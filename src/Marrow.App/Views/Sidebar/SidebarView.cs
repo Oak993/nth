@@ -290,6 +290,10 @@ public sealed class SidebarView : Decorator
             VerticalScrollBarVisibility = ScrollBarVisibility.Hidden,
         };
         Add(scroll, new GridLength(1, GridUnitType.Star));
+        // PORT-ONLY (ED-NEW-session-hotkeys): the selection's glide, behind the list in the scroll's own cell.
+        Glide = new SelectionGlide(list, enabled: !inPopover);
+        Grid.SetRow(Glide, Grid.GetRow(scroll));
+        column.Children.Insert(column.Children.IndexOf(scroll), Glide);
         scroll.LayoutUpdated += (_, _) =>
         {
             if (TopLevel.GetTopLevel(scroll) is { } window && scroll.TranslatePoint(default, window) is { } origin)
@@ -361,6 +365,42 @@ public sealed class SidebarView : Decorator
     // :5 @Environment(AppModel.self) private var model
     private AppModel Model => AppEnvironment.GetAppModel(this);
 
+    /// <summary>PORT-ONLY (ED-NEW-session-hotkeys): the selection's glide from row to row.</summary>
+    internal SelectionGlide Glide { get; }
+
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-session-hotkeys): this sidebar's session rows, top to bottom as the list draws them (threads and the
+    /// helper rows under them, across project and activity groups; search results while searching), for Ctrl+1..9 and its
+    /// hold-Ctrl numbers.
+    /// </summary>
+    private void PublishSessionOrder(ListPass pass)
+    {
+        var order = new List<Guid>();
+        if (pass.Items is { } items)
+        {
+            foreach (var item in items)
+            {
+                if (item.SidebarItemKind is SidebarItem.Kind.Thread thread) order.Add(thread.Value.Id);
+                else if (item.SidebarItemKind is SidebarItem.Kind.Helper helper) order.Add(helper.Value.Id);
+            }
+        }
+        else if (pass.Results is { } results)
+        {
+            foreach (var result in results) order.AddRange(result.Threads.Select(thread => thread.Id));
+        }
+        try { Model.SessionNumbers.Publish(this, inPopover, IsOnScreen, order); }
+        catch (InvalidOperationException) { } // no model in this tree
+    }
+
+    // On screen: in a window, visible, and inside no collapsed clip (the sidebar column at width 0).
+    private bool IsOnScreen()
+    {
+        if (!IsEffectivelyVisible || TopLevel.GetTopLevel(this) is null) return false;
+        for (Visual? visual = this; visual is not null && visual is not TopLevel; visual = visual.GetVisualParent())
+            if (visual.Bounds.Width < 1 || visual.Bounds.Height < 1) return false;
+        return true;
+    }
+
     // :61-63
     private string Query => state.Search.Trimmed();
 
@@ -410,6 +450,8 @@ public sealed class SidebarView : Decorator
         foreach (var change in changes) change.Dispose();
         changes.Clear();
         StopScrollAnimation();
+        try { Model.SessionNumbers.Withdraw(this); }
+        catch (InvalidOperationException) { }
     }
 
     // :168-175 the Settings row's icon: the gear, with the update dot at its top-trailing corner while an update waits.
@@ -526,6 +568,7 @@ public sealed class SidebarView : Decorator
         Transaction.WithAnimation(animation, () => ApplyEntries(pass.Items is { } items
             ? ItemEntries(items)
             : SearchEntries(pass.Results!, pass.Helpers)));
+        PublishSessionOrder(pass);
     }
 
     // A row of the list as its ForEach keeps it: the value it was built from and its control (R-VIEW-8).
@@ -2382,7 +2425,7 @@ internal static class ThreadRowMetrics
 }
 
 /// <summary>:1317-1425 <c>private struct SidebarHelperRow: View, Equatable</c>.</summary>
-internal sealed class SidebarHelperRow : Decorator
+internal sealed class SidebarHelperRow : Decorator, IGlideRow
 {
     /// <param name="snapshot">:1320 <c>let snapshot: ChatThread</c>.</param>
     /// <param name="isLast">:1326 <c>let isLast: Bool</c>.</param>
@@ -2415,8 +2458,28 @@ internal sealed class SidebarHelperRow : Decorator
     /// and an open ellipsis menu) survives them.</summary>
     internal void Update(ChatThread snapshot, bool isLast) => update?.Invoke(snapshot, isLast);
 
+    // PORT-ONLY (ED-NEW-session-hotkeys): the selection glide's hold and the row's number badge (see SidebarThreadRow).
+    private GlideHold glideHold;
+    private Action? repaintFill;
+    private SelectionGlide? glide;
+    private readonly Guid threadID;
+    private readonly Control fillShape;
+    internal SessionKeycap Keycap { get; }
+
+    Guid IGlideRow.ThreadID => threadID;
+
+    Control IGlideRow.FillShape => fillShape;
+
+    void IGlideRow.SetGlideHold(GlideHold hold)
+    {
+        if (glideHold == hold) return;
+        glideHold = hold;
+        repaintFill?.Invoke();
+    }
+
     public SidebarHelperRow(ChatThread snapshot, bool isLast, SidebarMenuRequests menuRequests, Action onFold, Action onRename, Action onDelete)
     {
+        threadID = snapshot.Id;
         var state = new ViewState { Snapshot = snapshot };
         var current = snapshot; // :1324-1325, refreshed by the Track below
         var isMenuPresented = new Binding<bool>(() => state.IsMenuPresented, value => state.IsMenuPresented = value);
@@ -2520,8 +2583,13 @@ internal sealed class SidebarHelperRow : Decorator
             shape.Padding = new Thickness(6, 0, TrailingPadding(showsActions), 0); // :1365-1367
             // :1370-1372 `.animation(Chrome.hover, value: isSelected)`: a selection change eases on Chrome.hover whatever
             // transaction carried it; a hover change rides its own withAnimation(Chrome.hover) (:1386).
-            fill.Set(Chrome.Overlay(BackgroundFill(isSelected, state.IsHovering)),
-                selectedBefore is { } before && before != isSelected ? Chrome.Hover : Transaction.Current);
+            var hovering = state.IsHovering;
+            void PaintFill(Animation? animation) => fill.Set(Chrome.Overlay(glideHold == GlideHold.Arriving && isSelected
+                ? 0 // PORT-ONLY (ED-NEW-session-hotkeys): the glide draws this fill while it lands here
+                : BackgroundFill(isSelected, hovering)), animation);
+            repaintFill = () => PaintFill(null);
+            PaintFill(glideHold != GlideHold.None ? null
+                : selectedBefore is { } before && before != isSelected ? Chrome.Hover : Transaction.Current);
             selectedBefore = isSelected;
             // :1375-1384 the Group's two branches swap when showsActions flips inside withAnimation(Chrome.hover) (:1386),
             // so they crossfade on SwiftUI's default .opacity transition. While a branch holds SwiftUI keeps its view under
@@ -2557,7 +2625,27 @@ internal sealed class SidebarHelperRow : Decorator
         Grid.SetColumn(overlayHost, 1);
         row.Children.Add(connector);
         row.Children.Add(overlayHost);
+        // PORT-ONLY (ED-NEW-session-hotkeys): the number badge centres on the connector's line (:1292, 18 pt in).
+        fillShape = shape;
+        Keycap = new SessionKeycap(snapshot.Id, () => [connector], button)
+        {
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Margin = new Thickness(ThreadRowMetrics.ConnectorLineX - Chrome.IconSize / 2, 0, 0, 0),
+        };
+        Grid.SetColumn(Keycap, 0);
+        Grid.SetColumnSpan(Keycap, 2);
+        row.Children.Add(Keycap);
         Child = row;
+        AttachedToVisualTree += (_, _) =>
+        {
+            glide = this.FindAncestorOfType<SidebarView>()?.Glide;
+            glide?.Register(this);
+        };
+        DetachedFromVisualTree += (_, _) =>
+        {
+            glide?.Unregister(this);
+            glide = null;
+        };
     }
 
     // :5 @Environment(AppModel.self) private var model (this file's own convention: SidebarView.cs:337)
@@ -3346,7 +3434,7 @@ internal sealed record HelperConnectorShape(bool EndsHere)
 }
 
 /// <summary>:1682-2001 <c>private struct SidebarThreadRow: View, Equatable</c>: a thread in either layout.</summary>
-internal sealed class SidebarThreadRow : Decorator
+internal sealed class SidebarThreadRow : Decorator, IGlideRow
 {
     /// <param name="snapshot">:1686 <c>let snapshot: ChatThread</c>.</param>
     /// <param name="projectName">:1692 <c>let projectName: String?</c>.</param>
@@ -3373,6 +3461,25 @@ internal sealed class SidebarThreadRow : Decorator
     private readonly Panel overlays = new();
     private readonly Button selectButton;
     private AppModel Model => AppEnvironment.GetAppModel(this); // :1683
+
+    // PORT-ONLY (ED-NEW-session-hotkeys): the selection glide's hold on this row, how the row repaints its fill for it, and the
+    // row's hold-Ctrl number badge.
+    private GlideHold glideHold;
+    private Action? repaintFill;
+    private SelectionGlide? glide;
+    private readonly Guid threadID;
+    internal SessionKeycap Keycap { get; }
+
+    Guid IGlideRow.ThreadID => threadID;
+
+    Control IGlideRow.FillShape => shape;
+
+    void IGlideRow.SetGlideHold(GlideHold hold)
+    {
+        if (glideHold == hold) return;
+        glideHold = hold;
+        repaintFill?.Invoke();
+    }
 
     // :1716-1872 body; :1899-1901 makeActions. The live context menu (Job SB, ROUND3.md item 3) is at this
     // constructor's own ContextMenu.Opening wiring, below.
@@ -3415,14 +3522,32 @@ internal sealed class SidebarThreadRow : Decorator
         };
         selectButton.Click += (_, _) => SelectThread(Model, Thread()); // :1736-1738
         overlays.Children.Add(selectButton);
+        threadID = snapshot.Id;
+        Control? check = null, trailing = null, fold = null;
+        ThreadRowFace? face = null; // the ONE face the row draws (:1739-1743), built once and updated in place
+        var numberedDetailed = false;
+        // PORT-ONLY (ED-NEW-session-hotkeys): the number badge sits over the row's leading mark (its icon or badge; a settled
+        // row's check), or over the trailing status of a row whose title starts at its edge (the detailed rows).
+        Keycap = new SessionKeycap(snapshot.Id,
+            () => numberedDetailed ? [trailing] : face?.LeadingMark is { } mark ? [mark] : [check],
+            selectButton);
+        overlays.Children.Add(Keycap);
+        AttachedToVisualTree += (_, _) =>
+        {
+            glide = this.FindAncestorOfType<SidebarView>()?.Glide;
+            glide?.Register(this);
+        };
+        DetachedFromVisualTree += (_, _) =>
+        {
+            glide?.Unregister(this);
+            glide = null;
+        };
         // PORT-ONLY (ED-NEW-ignis-guards): the Ignis keep-warm mark (its ember line at the leading edge, its hover zone just
         // before the trailing content), over the face and under the trailing buttons; null (unbound) keeps the row as it was.
         Ember = Marrow.App.Port.Ignis.Views.IgnisSidebar.MarkFor(snapshot.Id, () => SelectThread(Model, Thread()));
         if (Ember is not null) overlays.Children.Add(Ember);
         Child = ApplyDraggedLift(overlays, () => isDragged); // :1838-1849
         var menuPresented = new Binding<bool>(() => state.IsMenuPresented, value => state.IsMenuPresented = value);
-        Control? check = null, trailing = null, fold = null;
-        ThreadRowFace? face = null; // the ONE face the row draws (:1739-1743), built once and updated in place
         ChatThread shown = snapshot; // the thread the face is told of, for the badge it builds
         bool? selectedBefore = null, actionsBefore = null;
         this.Track(() =>
@@ -3464,10 +3589,18 @@ internal sealed class SidebarThreadRow : Decorator
             {
                 face.Update(thread, selected, mergeStage, clearance, Transaction.Current);
             }
-            var colors = BackgroundFill(thread.IsPinned, selected, hover);
-            fill.Set(colors.Background, selectedBefore is not null && selectedBefore != selected ? Chrome.Hover : Transaction.Current); // :1750-1754
+            // PORT-ONLY (ED-NEW-session-hotkeys): while the selection glides, the glide draws the selection fill and the row
+            // repaints at once for it; at rest the row draws its own exactly as the source does.
+            void PaintFill(Animation? animation)
+            {
+                var colors = GlideFill(thread.IsPinned, selected, hover, glideHold);
+                fill.Set(colors.Background, animation);
+                pinnedOverlay.Background = colors.PinnedOverlay?.Brush(pinnedOverlay); // :1756-1758
+            }
+            repaintFill = () => PaintFill(null);
+            PaintFill(glideHold != GlideHold.None ? null
+                : selectedBefore is not null && selectedBefore != selected ? Chrome.Hover : Transaction.Current); // :1750-1754
             selectedBefore = selected;
-            pinnedOverlay.Background = colors.PinnedOverlay?.Brush(pinnedOverlay); // :1756-1758
             // :1816-1817 the hover flips `showsActions` inside withAnimation(Chrome.hover): the branches that come and go
             // with it (the check, the trailing buttons or status or time, the fold chevron) leave and join on SwiftUI's
             // default .opacity transition, so they crossfade (2-chat-use.mov 70.74-71.30 s). Any other rebuild is an
@@ -3504,6 +3637,9 @@ internal sealed class SidebarThreadRow : Decorator
             Swap(ref fold, nextFold, (fold is null) != (nextFold is null));
             SetHidden(hidden); // :1834-1838
             AutomationProperties.SetName(selectButton, thread.Title); // :1871-1872
+            PlaceKeycap(settled, detailed);
+            numberedDetailed = detailed;
+            Keycap.Refresh(); // what it covers may have been rebuilt
         });
         overlays.OnHover(hovering => // :1816 hover includes the overlaid check and accessory buttons
         {
@@ -3642,6 +3778,28 @@ internal sealed class SidebarThreadRow : Decorator
             : Chrome.Overlay(Fill(isSelected, isHovering));
         var overlay = isPinned && isSelected ? Chrome.Danger.Opacity(0.06) : null; // :1756-1758
         return (background, overlay);
+    }
+
+    // PORT-ONLY (ED-NEW-session-hotkeys): the row's fill while the selection glides. Landing, the row draws its selected look but
+    // for the 0.12 fill, which the glide draws in the same place (so the hand-over at the end changes no pixel); leaving, it
+    // draws unselected at once.
+    private static (SwiftColor Background, SwiftColor? PinnedOverlay) GlideFill(bool isPinned, bool isSelected, bool isHovering, GlideHold hold)
+    {
+        if (hold == GlideHold.Arriving && isSelected)
+            return (Chrome.Overlay(0), isPinned ? Chrome.Danger.Opacity(0.06) : null);
+        return BackgroundFill(isPinned, isSelected, isHovering);
+    }
+
+    // PORT-ONLY (ED-NEW-session-hotkeys): the number badge centres on the leading slot (:2024-2031, 8 pt in, Chrome.iconSize
+    // wide), on a settled row's check (:1768, 6 pt in, 20 wide), or on the trailing status of a detailed row.
+    private void PlaceKeycap(bool settled, bool detailed)
+    {
+        var margin = detailed
+            ? new Thickness(0, 0, Chrome.RowHorizontalPadding, 0)
+            : new Thickness(settled ? ThreadRowMetrics.SettledCheckInset : Chrome.RowHorizontalPadding, 0, 0, 0);
+        var alignment = detailed ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+        if (Keycap.Margin != margin) Keycap.Margin = margin;
+        if (Keycap.HorizontalAlignment != alignment) Keycap.HorizontalAlignment = alignment;
     }
 
     // :1895-1898 private static func trailingClearance(isSettled:isDetailed:showsActions:showsFold:) -> CGFloat.
@@ -4005,6 +4163,9 @@ internal sealed class ThreadRowFace : Decorator
     private string? glyphSymbol;
     private Grid? row;
     private Control? leading;
+
+    /// <summary>PORT-ONLY (ED-NEW-session-hotkeys): the leading slot's mark (:2024-2031), which a number badge covers; null when none.</summary>
+    internal Control? LeadingMark => leading;
     private object? leadingKey;
 
     /// <param name="thread">:2007 <c>let thread: ChatThread</c>.</param>
