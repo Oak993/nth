@@ -484,6 +484,19 @@ public sealed class SplitterModel
         return true;
     }
 
+    /// <summary>
+    /// Takes a state set elsewhere (the stored value changed under the splitter). A drag under way keeps its own; the
+    /// same value and collapse leave a spring in flight alone (a committed step coming back through the store).
+    /// </summary>
+    public void Load(SplitterState state)
+    {
+        if (IsDragging) return;
+        var next = Clamped(state, limits);
+        if (next.Value == State.Value && next.IsCollapsed == State.IsCollapsed) return;
+        State = next;
+        Shown.Snap(State.Value);
+    }
+
     public SplitterReport Report() => SplitterMath.Report(State, limits);
 
     private static SplitterState Clamped(SplitterState state, SplitterLimits limits) => state.IsCollapsed

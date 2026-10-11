@@ -153,7 +153,7 @@ public sealed class SplitterGrip : Control
     internal Panel Figure => figure;
 
     /// <summary>Whether the frame clock still has a step of this grip waiting.</summary>
-    public bool IsAnimating => pendingFrame is not null;
+    public bool IsEasing => pendingFrame is not null;
 
     private bool ReduceMotion =>
         EnvironmentValues.GetAccessibilityReduceMotion(this) || Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion;

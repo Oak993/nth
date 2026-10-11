@@ -412,4 +412,25 @@ public sealed class SplitterMathTests
         Assert.Equal(700, model.Shown.Value);
         Assert.Equal(new SplitterState(0, true, 300), new SplitterModel(Sidebar, new SplitterState(55, true, 300)).State);
     }
+
+    [Fact]
+    public void A_value_loaded_from_elsewhere_lands_at_once_clamped_and_never_moves_a_held_divider()
+    {
+        var model = new SplitterModel(Plain, new SplitterState(500));
+        model.Apply(new SplitterCommand(SplitterCommandKind.ToMaximum)); // springing toward 900
+        model.Shown.Step(0.06);
+        model.Load(new SplitterState(640)); // another window wrote the setting: no spring from a stale place
+        Assert.Equal(new SplitterState(640), model.State);
+        Assert.False(model.Shown.IsMoving);
+        Assert.Equal(640, model.Shown.Value);
+        model.Load(new SplitterState(5000));
+        Assert.Equal(900, model.State.Value);
+        Assert.Equal(900, model.Shown.Value);
+
+        model.BeginDrag();
+        model.Drag(-100);
+        model.Load(new SplitterState(400)); // the pointer owns the divider while it is held
+        Assert.Equal(800, model.State.Value);
+        Assert.Equal(800, model.Shown.Value);
+    }
 }

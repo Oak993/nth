@@ -174,6 +174,14 @@ public sealed class SplitterValue : SplitterTarget
             : new SplitterCommand(SplitterCommandKind.Step, travel, 0));
     }
 
+    /// <summary>Takes the value stored elsewhere (see <see cref="SplitterModel.Load"/>); the host draws it itself.</summary>
+    public void Load(SplitterState state)
+    {
+        var before = Model.State;
+        Model.Load(state);
+        if (Model.State.Value != before.Value || Model.State.IsCollapsed != before.IsCollapsed) StopFrames();
+    }
+
     /// <summary>Lands the spring on its target now.</summary>
     public void Finish()
     {
@@ -321,6 +329,7 @@ public sealed class Splitter : Panel
         ApplyFineInset();
         AddHandler(PointerPressedEvent, OnPressTunnel, RoutingStrategies.Tunnel);
         AddHandler(PointerPressedEvent, OnPressBubble, RoutingStrategies.Bubble, handledEventsToo: true);
+        AddHandler(PointerReleasedEvent, OnReleaseTunnel, RoutingStrategies.Tunnel);
         AddHandler(PointerReleasedEvent, OnReleaseAny, RoutingStrategies.Bubble, handledEventsToo: true);
         handle.PointerCaptureLost += (_, _) => LoseDrag();
         AutomationProperties.SetName(this, "Resize");
@@ -360,6 +369,13 @@ public sealed class Splitter : Panel
             fineInset = value;
             ApplyFineInset();
         }
+    }
+
+    /// <summary>Measure the drag in screen DIP (a grip inside a popup, whose window moves with the drag).</summary>
+    public bool TracksInScreenSpace
+    {
+        get => handle.TracksInScreenSpace;
+        set => handle.TracksInScreenSpace = value;
     }
 
     /// <summary>Inactive: no hit, no cursor, no focus, no grip.</summary>
@@ -605,7 +621,7 @@ public sealed class Splitter : Panel
         if (!isActive || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
         var fine = e.Pointer.Type == PointerType.Mouse;
         handle.Slop = fine ? MouseSlop : CoarseSlop;
-        if (e.ClickCount < 2) Target.Settle();
+        if (e.ClickCount != 2) Target.Settle(); // the second press of a double-click is the reset's
         grip.Settle();
         pressed = true;
         CancelTimers();
@@ -629,8 +645,12 @@ public sealed class Splitter : Panel
 
     private void OnPressBubble(object? sender, PointerPressedEventArgs e) => Focusable = isActive;
 
+    // A touch or pen release would focus the nearest focusable control (Avalonia focuses on a coarse pointer's release).
+    private void OnReleaseTunnel(object? sender, PointerReleasedEventArgs e) => Focusable = false;
+
     private void OnReleaseAny(object? sender, PointerReleasedEventArgs e)
     {
+        Focusable = isActive;
         if (!pressed) return;
         pressed = false;
         longPressTask?.Cancel();
@@ -705,7 +725,7 @@ public sealed class Splitter : Panel
         grip.SetFocusRing(isActive && focusVisible);
         var showsReadout = isActive && ((dragging && ShowsReadout) || (focusVisible && !dragging));
         if (showsReadout) PlaceChips();
-        readout.IsOpen = showsReadout && TopLevel.GetTopLevel(this) is not null;
+        Open(readout, showsReadout && TopLevel.GetTopLevel(this) is not null);
     }
 
     private void ShowTip(bool show)
@@ -719,9 +739,24 @@ public sealed class Splitter : Panel
         }
         if (!isActive || TopLevel.GetTopLevel(this) is null) return;
         PlaceChips();
-        tip.IsOpen = true;
+        Open(tip, true);
         tipOpacity.Set(1, PortAnimation.EaseOut(0.2));
         tipLift.Set(0, PortAnimation.EaseOut(0.3));
+    }
+
+    // The chips are decoration: a top level that can host no popup (no platform popups and no overlay layer) shows none,
+    // and the resize goes on.
+    private static void Open(Popup popup, bool open)
+    {
+        if (popup.IsOpen == open) return;
+        try
+        {
+            popup.IsOpen = open;
+        }
+        catch (InvalidOperationException)
+        {
+            popup.IsOpen = false;
+        }
     }
 
     private void Follow(PointerEventArgs e)
