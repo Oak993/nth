@@ -40,6 +40,25 @@ public sealed class TextCleanupLeanEquivalenceTests
         Assert.True(mismatches.Count == 0, string.Join("\n", mismatches.Take(20)));
     }
 
+    [Fact]
+    public void StripANSI_with_a_lone_surrogate_matches_the_frozen_code_when_an_escape_is_present_and_returns_the_input_otherwise()
+    {
+        // The frozen code NFC-normalises every grapheme and .NET's normaliser throws on a lone surrogate, which a Swift String can
+        // never hold (Swift has no such input and never traps here). Escape-free text now returns the input untouched; text with an
+        // escape still takes the unchanged walk, so it behaves exactly as before.
+        var mismatches = new List<string>();
+        var escapeFree = 0;
+        foreach (var text in Texts(5305, allowEscape: true, allowDash: true, loneSurrogates: true))
+        {
+            if (text.Contains('\u001B', StringComparison.Ordinal)) { Compare(text, TextCleanupFrozen.StripANSI, TextCleanup.StripANSI, mismatches); continue; }
+            escapeFree++;
+            var result = TextCleanup.StripANSI(text);
+            if (!ReferenceEquals(result, text)) mismatches.Add($"escape-free {Escape(text)}: not returned as is");
+        }
+        Assert.True(escapeFree > Cases / 3, $"only {escapeFree} escape-free texts");
+        Assert.True(mismatches.Count == 0, string.Join("\n", mismatches.Take(20)));
+    }
+
     private static IEnumerable<string> Texts(int seed, bool allowEscape, bool allowDash, bool loneSurrogates)
     {
         var random = new Random(seed);

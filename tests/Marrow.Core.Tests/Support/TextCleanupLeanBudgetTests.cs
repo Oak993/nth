@@ -14,8 +14,8 @@ public sealed class TextCleanupLeanBudgetTests(ITestOutputHelper output)
 {
     private const int Megabyte = 1 << 20;
     private const int Deltas = 1_000;
-    private const long StripAnsiBytesPerMegabyteLimit = 72_000_000; // Debug: 48,072,688 on the unchanged code
-    private const long WithoutEmDashesBytesPerDeltaLimit = 144;      // Debug: 96 on the unchanged code
+    private const long StripAnsiBytesPerMegabyteLimit = 0;   // Debug: 48,072,688 before the escape early-out (limit 72,000,000), 0 after
+    private const long WithoutEmDashesBytesPerDeltaLimit = 0; // Debug: 96 before the long-dash early-out (limit 144), 0 after
 
     [Fact]
     public void StripANSI_on_a_megabyte_of_escape_free_CLI_text_stays_within_its_allocation_budget()
