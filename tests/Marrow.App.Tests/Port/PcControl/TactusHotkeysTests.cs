@@ -3,7 +3,6 @@ using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Port.PcControl;
 using Marrow.Core.Port.PcControl.Pill;
 using Marrow.Services.Port.PcControl;
-using Marrow.Services.Port.PcControl.Native;
 using Marrow.Services.Tests.Fixtures;
 
 namespace Marrow.App.Tests.Port.PcControl;

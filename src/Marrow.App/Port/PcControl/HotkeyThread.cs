@@ -1,15 +1,15 @@
-// PORT-ONLY: Tactus, PC control (OD-0145, ED-NEW-pcctl-12 item 1, ED-NEW-pcctl-15; DESIGN.md 4.4, 10.1, 10.2). The thread
-// the Tactus chords live on: its own message queue and loop, never the UI thread, so a busy UI never delays a stop.
-// RegisterHotKey with no window posts WM_HOTKEY to this thread's queue (the design's message-only window, with no window:
-// the queue is the thread's own, and nothing else runs on it). MOD_NOREPEAT keeps a held chord from repeating. The
-// low-level keyboard hook (PcLowLevelKeyboard) is installed here too, since a hook needs its installing thread to pump
-// messages; its key reports are handed on through the queue, so the IME check (a cross-process message with a 50 ms
-// limit) never runs inside the hook. Every call from another thread is posted here and waited on. Never used by automated
-// tests: a test binds a fake ITactusHotkeyHost.
+// PORT-ONLY: Tactus, PC control (OD-0145, ED-NEW-pcctl-12 item 1, ED-NEW-pcctl-15, ED-NEW-pcctl-17; DESIGN.md 2.7, 4.4,
+// 10.1, 10.2). The thread the Tactus chords live on: its own message queue and loop, never the UI thread, so a busy UI
+// never delays a stop. RegisterHotKey with no window posts WM_HOTKEY to this thread's queue (the design's message-only
+// window, with no window: the queue is the thread's own, and nothing else runs on it). MOD_NOREPEAT keeps a held chord
+// from repeating. The keys come from the physical input monitor's hooks (kept installed while the chords are watched);
+// its key reports are handed on through this queue, so the IME check (a cross-process message with a 50 ms limit) never
+// runs on the hook's reader. Every call from another thread is posted here and waited on. Never used by automated tests:
+// a test binds a fake ITactusHotkeyHost.
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using Marrow.Core.Port.PcControl.Pill;
-using Marrow.Services.Port.PcControl.Native;
+using Marrow.Services.Port.PcControl;
 
 namespace Marrow.App.Port.PcControl;
 
@@ -28,12 +28,14 @@ public sealed class HotkeyThread : ITactusHotkeyHost
     private readonly ConcurrentQueue<PcHookKeyDown> keys = new();
     private readonly Thread loop;
     private readonly ManualResetEventSlim ready = new();
-    private PcLowLevelKeyboard? hook;
+    private readonly IPhysicalInput input;
+    private IDisposable? kept;
     private uint threadId;
     private bool disposed;
 
-    public HotkeyThread()
+    public HotkeyThread(IPhysicalInput input)
     {
+        this.input = input;
         loop = new Thread(Run) { IsBackground = true, Name = "Tactus hotkeys" };
         loop.Start();
         ready.Wait();
@@ -49,16 +51,18 @@ public sealed class HotkeyThread : ITactusHotkeyHost
 
     public void Watch(bool on, Func<ushort, bool> isChordKey) => Invoke(() =>
     {
-        if (on && hook is null)
+        // Hooks that cannot be installed only lose Esc three times and the injected check: the chords still work.
+        if (on && kept is null)
         {
-            // A hook that cannot be installed only loses Esc three times and the injected check: the chords still work.
-            try { hook = PcLowLevelKeyboard.Install(isChordKey, Report); }
-            catch (InvalidOperationException) { hook = null; }
+            input.WatchChords(isChordKey);
+            input.KeyDown += Report;
+            kept = input.Keep();
         }
-        else if (!on && hook is not null)
+        else if (!on && kept is not null)
         {
-            hook.Dispose();
-            hook = null;
+            input.KeyDown -= Report;
+            kept.Dispose();
+            kept = null;
         }
         return true;
     });
@@ -105,8 +109,9 @@ public sealed class HotkeyThread : ITactusHotkeyHost
         disposed = true;
         work.Enqueue(() =>
         {
-            hook?.Dispose();
-            hook = null;
+            input.KeyDown -= Report;
+            kept?.Dispose();
+            kept = null;
         });
         PostThreadMessage(threadId, WorkMessage, 0, 0);
         PostThreadMessage(threadId, WM_QUIT, 0, 0);
@@ -127,7 +132,7 @@ public sealed class HotkeyThread : ITactusHotkeyHost
         return done.Task.WaitAsync(TimeSpan.FromSeconds(2)).GetAwaiter().GetResult();
     }
 
-    // Inside the hook: queue the report and return at once.
+    // On the hook's reader: queue the report and return at once.
     private void Report(PcHookKeyDown key)
     {
         keys.Enqueue(key);
