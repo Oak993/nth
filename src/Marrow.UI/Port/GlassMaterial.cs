@@ -664,32 +664,20 @@ internal static partial class GlassMaterial
             return min(a, b) - h * h * merge * 0.25;
         }
         """.Replace("EXTENT", ContinuousCorner.Extent.ToString("R", CultureInfo.InvariantCulture), StringComparison.Ordinal));
-    private static readonly ConcurrentDictionary<(int Slots, bool Merged), Lazy<SKRuntimeEffect>> effects = new();
+    private static readonly ConcurrentDictionary<int, Lazy<SKRuntimeEffect>> effects = new();
 
     // OD-0108 (ED-NEW-fix-knobcache, on unit/fix-knobcache: GlassWarmup, GpuWarmup's "glass"): the programs the material draws with, for the GPU
     // warm-up, made by the material's own builders, so a change to the shader is warmed as it is drawn. The same API as that unit's, for its merge.
-    // ED-356: a container merges its pieces in one smoothUnion program; the inside of a lone piece is the same program (its `interior` uniform),
-    // and so are both draws of a pixel (the `stage` uniform: DstOut, then Plus), so there are no separate inside programs to warm any more. A
-    // warm-up that mirrors the draws must draw each program twice, with BlendMode.DstOut and with BlendMode.Plus, and the blur as a Clamp image
-    // shader under the blur filter (Draw).
-    // ED-NEW-glassslots-1: a lone piece has its own program, and every container of 2 to WarmShapes pieces draws with ONE merged program of
-    // WarmShapes slots, the slots past its pieces switched off by the `pieces` uniform. Measured (native, no program cache, RTX 4080): a program per
-    // count made a piece coming or going a new program, linked on the render thread in the frame it first drew (a thread's branch menu took the
-    // chat chrome row from 6 to 7 pieces: 3.1 s; its changes tab the composer area from 1 to 2: 0.47 s; from the cache, 64 to 237 ms).
+    // ED-356: one program per shape count (a container merges its pieces in one smoothUnion program), 1 to WarmShapes; the inside of a lone
+    // piece is the same program (its `interior` uniform), and so are both draws of a pixel (the `stage` uniform: DstOut, then Plus), so there are no
+    // separate inside programs to warm any more. A warm-up that mirrors the draws must draw each program twice, with BlendMode.DstOut and with
+    // BlendMode.Plus, and the blur as a Clamp image shader under the blur filter (Draw).
     internal const int WarmShapes = 8;
 
-    internal static IReadOnlyList<SKRuntimeEffect> WarmupPrograms() => [.. Enumerable.Range(1, WarmShapes).Select(WarmupProgram)];
+    internal static IReadOnlyList<SKRuntimeEffect> WarmupPrograms() => [.. Enumerable.Range(1, WarmShapes).Select(Effect)];
 
-    /// <summary>The program a draw of <paramref name="count"/> shapes uses (the warm-up's), made as a draw makes it.</summary>
-    internal static SKRuntimeEffect WarmupProgram(int count) => Effect(Slots(count), merged: count > 1);
-
-    /// <summary>The slots of the program <paramref name="count"/> pieces draw with: one for a lone piece, WarmShapes for a container of up to
-    /// WarmShapes (a larger one, never drawn by the app, its own count).</summary>
-    internal static int Slots(int count) => count <= 1 ? 1 : Math.Max(count, WarmShapes);
-
-    /// <summary>Tests (ED-NEW-glassslots-1): draw each container with the program of its own count, as before the merged program, to prove the
-    /// two draw the same pixels.</summary>
-    internal static volatile bool CountProgramsForTests;
+    /// <summary>The program for <paramref name="count"/> shapes (the warm-up's), made as a draw makes it.</summary>
+    internal static SKRuntimeEffect WarmupProgram(int count) => Effect(count);
 
     /// <summary>Raised the first time a draw asks for the program of a shape count in this process (render thread; the warm-up records it).</summary>
     internal static event Action<int>? ShapeCountDrawn;
@@ -699,82 +687,34 @@ internal static partial class GlassMaterial
     /// 12 pt on a panel, 15 % of the smaller side on a small lens (Draw).</summary>
     internal static float BlurSigma(double smaller, float scale) => (float)Math.Min(12, Math.Max(1, smaller * 0.15)) * scale;
 
-    // merged (ED-NEW-glassslots-1): a container's program of `count` slots, drawing the first `pieces` (the container's count, 2 or more). Its
-    // union and its nearest piece walk the slots in a loop that stops at `pieces`, each slot's values read through an accessor, so the piece's
-    // distance (the long part of the program) is written once, not once a slot at each of the scene distance's five uses: the 8-slot program
-    // written out per slot took longer to link than the 6-piece one did (over 4 s on this machine's first frame, no program cache). The loop
-    // takes the slots in the order the program of the container's own count did, with the same arithmetic, so a container draws the same
-    // pixels as that program drew (GlassMaterialSlotsTests).
-    private static SKRuntimeEffect Effect(int count, bool merged) => effects.GetOrAdd((count, merged), static key => new Lazy<SKRuntimeEffect>(() =>
+    private static SKRuntimeEffect Effect(int count) => effects.GetOrAdd(count, static n => new Lazy<SKRuntimeEffect>(() =>
     {
-        var (n, merged) = key;
         var source = new StringBuilder(ShaderHeader).Append("\nuniform float stage;\nuniform float interior;\nuniform float4 window;\n");
-        if (merged) source.Append("uniform float pieces;\n");
-        for (var i = 0; i < n; i++)
-        {
-            source.Append(CultureInfo.InvariantCulture, $$"""
+        for (var i = 0; i < n; i++) source.Append(CultureInfo.InvariantCulture, $$"""
 
-                uniform float4 transform{{i}};
-                uniform float2 translate{{i}};
-                uniform float2 size{{i}};
-                uniform float4 corners{{i}};
-                uniform float4 tint{{i}};
-                uniform float4 film{{i}};
-                uniform float4 law{{i}};
-                uniform float4 optics{{i}};
-                uniform float4 flags{{i}};
-                uniform float4 pointer{{i}};
-                uniform float plain{{i}};
-                uniform float bare{{i}};
-
-                """);
-            if (merged && i > 0) continue;
-            source.Append(CultureInfo.InvariantCulture, $$"""
-                float2 local{{i}}(float2 xy) {
-                    return float2(xy.x * transform{{i}}.x + xy.y * transform{{i}}.z,
-                                  xy.x * transform{{i}}.y + xy.y * transform{{i}}.w) + translate{{i}};
-                }
-                float distance{{i}}(float2 xy) {
-                    return shapeDistance(local{{i}}(xy), size{{i}}, corners{{i}}, flags{{i}}.x, flags{{i}}.y) * flags{{i}}.z;
-                }
-                """);
-        }
-        if (merged)
-        {
-            foreach (var (type, name) in (ReadOnlySpan<(string, string)>)[("float4", "transform"), ("float2", "translate"), ("float2", "size"), ("float4", "corners"),
-                ("float4", "tint"), ("float4", "film"), ("float4", "law"), ("float4", "optics"), ("float4", "flags"), ("float4", "pointer"), ("float", "plain"), ("float", "bare")])
-            {
-                source.Append(CultureInfo.InvariantCulture, $"\n{type} {name}At(int i) {{ ");
-                for (var i = 1; i < n; i++) source.Append(CultureInfo.InvariantCulture, $"if (i == {i}) return {name}{i}; ");
-                source.Append(CultureInfo.InvariantCulture, $"return {name}0; }}");
+            uniform float4 transform{{i}};
+            uniform float2 translate{{i}};
+            uniform float2 size{{i}};
+            uniform float4 corners{{i}};
+            uniform float4 tint{{i}};
+            uniform float4 film{{i}};
+            uniform float4 law{{i}};
+            uniform float4 optics{{i}};
+            uniform float4 flags{{i}};
+            uniform float4 pointer{{i}};
+            uniform float plain{{i}};
+            uniform float bare{{i}};
+            float2 local{{i}}(float2 xy) {
+                return float2(xy.x * transform{{i}}.x + xy.y * transform{{i}}.z,
+                              xy.x * transform{{i}}.y + xy.y * transform{{i}}.w) + translate{{i}};
             }
-            source.Append(CultureInfo.InvariantCulture, $$"""
-
-                float2 localAt(int i, float2 xy) {
-                    float4 t = transformAt(i);
-                    return float2(xy.x * t.x + xy.y * t.z, xy.x * t.y + xy.y * t.w) + translateAt(i);
-                }
-                float distanceAt(int i, float2 xy) {
-                    float4 f = flagsAt(i);
-                    return shapeDistance(localAt(i, xy), sizeAt(i), cornersAt(i), f.x, f.y) * f.z;
-                }
-                float sceneDistance(float2 xy) {
-                    float d = distance0(xy);
-                    for (int i = 1; i < {{n}}; i++) {
-                        if (float(i) >= pieces) break;
-                        d = smoothUnion(d, distanceAt(i, xy));
-                    }
-                    return d;
-                }
-
-                """);
-        }
-        else
-        {
-            source.Append("\nfloat sceneDistance(float2 xy) { float d = distance0(xy);\n");
-            for (var i = 1; i < n; i++) source.Append(CultureInfo.InvariantCulture, $"d = smoothUnion(d, distance{i}(xy));\n");
-            source.Append("return d; }\n");
-        }
+            float distance{{i}}(float2 xy) {
+                return shapeDistance(local{{i}}(xy), size{{i}}, corners{{i}}, flags{{i}}.x, flags{{i}}.y) * flags{{i}}.z;
+            }
+            """);
+        source.Append("\nfloat sceneDistance(float2 xy) { float d = distance0(xy);\n");
+        for (var i = 1; i < n; i++) source.Append(CultureInfo.InvariantCulture, $"d = smoothUnion(d, distance{i}(xy));\n");
+        source.Append("return d; }\n");
         source.Append(BodySource);
         source.Append("half4 main(float2 xy) { float4 tint = tint0; float4 film = film0; float4 law = law0; float4 ptr = pointer0; float2 at = local0(xy); float4 flags = flags0; float2 extent = size0; float4 optics = optics0; float plain = plain0; float bare = bare0;\n");
         // ED-320 16: the inside of a lone rounded rectangle (Draw's Inside) is drawn with `interior` set: what the shader computes past Optics.Deep,
@@ -788,10 +728,7 @@ internal static partial class GlassMaterial
 
             """);
         else source.Append("float raw = distance0(xy);\n");
-        if (merged)
-            source.Append(CultureInfo.InvariantCulture, $"for (int i = 1; i < {n}; i++) {{ if (float(i) >= pieces) break; if (distanceAt(i, xy) < raw) {{ raw = distanceAt(i, xy); tint = tintAt(i); film = filmAt(i); law = lawAt(i); ptr = pointerAt(i); at = localAt(i, xy); flags = flagsAt(i); extent = sizeAt(i); optics = opticsAt(i); plain = plainAt(i); bare = bareAt(i); }} }}\n");
-        else
-            for (var i = 1; i < n; i++) source.Append(CultureInfo.InvariantCulture, $"if (distance{i}(xy) < raw) {{ raw = distance{i}(xy); tint = tint{i}; film = film{i}; law = law{i}; ptr = pointer{i}; at = local{i}(xy); flags = flags{i}; extent = size{i}; optics = optics{i}; plain = plain{i}; bare = bare{i}; }}\n");
+        for (var i = 1; i < n; i++) source.Append(CultureInfo.InvariantCulture, $"if (distance{i}(xy) < raw) {{ raw = distance{i}(xy); tint = tint{i}; film = film{i}; law = law{i}; ptr = pointer{i}; at = local{i}(xy); flags = flags{i}; extent = size{i}; optics = optics{i}; plain = plain{i}; bare = bare{i}; }}\n");
         if (n > 1) source.Append("float2 delta = at - ptr.xy;\nfloat highlight = exp(-dot(delta, delta) / (2.0 * 48.0 * 48.0)) * ptr.z;\n");
         // With one shape the scene's distance is the shape's own (no union): it is not evaluated twice.
         source.Append(n == 1 ? "float d = -raw;\n" : "float d = -sceneDistance(xy);\n");
@@ -1398,10 +1335,7 @@ internal static partial class GlassMaterial
         if (!sourceTransform.TryInvert(out var shaderTransform)) return null;
         using var backdrop = image.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp,
             new SKSamplingOptions(SKFilterMode.Linear), shaderTransform);
-        var count = state.Regions.Length;
-        var merged = count > 1;
-        var slots = CountProgramsForTests ? count : Slots(count);
-        var effect = Effect(slots, merged && !CountProgramsForTests);
+        var effect = Effect(state.Regions.Length);
         if (drawnCounts.TryAdd(state.Regions.Length, true)) ShapeCountDrawn?.Invoke(state.Regions.Length);
         // The window's surface in the shader's coordinates, half a device pixel in (the bend's reads are clamped to it).
         var surfaceRect = kept.Whole.Width > 0 && kept.Whole.Height > 0 ? new SKRect(0.5f, 0.5f, kept.Whole.Width - 0.5f, kept.Whole.Height - 0.5f) : new SKRect(-1e6f, -1e6f, 1e6f, 1e6f);
@@ -1431,18 +1365,6 @@ internal static partial class GlassMaterial
             foreach (var (name, value) in values) uniforms[name] = value;
             uniforms[$"plain{i}"] = r.NoRefraction ? 1f : 0f;
             uniforms[$"bare{i}"] = r.NoContactLine ? 1f : 0f;
-        }
-        if (merged && !CountProgramsForTests)
-        {
-            // ED-NEW-glassslots-1: the slots past the container's pieces are switched off and hold zeros (a uniform block is not cleared).
-            uniforms["pieces"] = (float)count;
-            for (var i = count; i < slots; i++)
-            {
-                foreach (var name in (string[])["transform", "corners", "tint", "film", "law", "optics", "flags", "pointer"]) uniforms[name + i] = new float[4];
-                foreach (var name in (string[])["translate", "size"]) uniforms[name + i] = new float[2];
-                uniforms[$"plain{i}"] = 0f;
-                uniforms[$"bare{i}"] = 0f;
-            }
         }
         var children = new SKRuntimeEffectChildren(effect) { ["backdrop"] = backdrop };
         using var maskShader = effect.ToShader(uniforms, children);

@@ -573,15 +573,10 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
             var reports = new List<GpuWarmupStep>();
             var done = GpuWarmup.StepsDone;
             var task = GpuWarmup.WarmAsync(window, new SyncProgress<GpuWarmupStep>(reports.Add));
-            // hurried: it steps at once, the idle run first, then the first run's own pass, one part a frame (a headless frame here
-            // answers a step a little late now and then: 1.14 to 1.18 frames a part measured), so within 5 frames for every 4 of the
-            // two passes' parts and 10 more, where a run still waiting for idle frames would need the 60 s cap (about 2800 of these
-            // frames). ED-NEW-warmupsplit-4: counted in frames, not in 5 s of wall time (a headless frame takes 16 to 25 ms of timer
-            // and sleep, so 5 s had held the 186 parts of then at about 1.26 frames a part)
-            var ticks = 0;
-            FramesFor(TimeSpan.FromSeconds(60), () => { ticks++; return task.IsCompleted; });
+            // hurried: it steps at once, the idle run first, then the first run's own pass, all of ED-NEW-warmupsplit-1's smaller
+            // parts within 5 s, well within the 60 s cap a run still waiting for idle frames would need
+            FramesFor(TimeSpan.FromSeconds(5), () => task.IsCompleted);
             Assert.True(task.IsCompletedSuccessfully, task.Exception?.InnerException?.Message);
-            Assert.True(ticks <= 2 * GpuWarmup.Programs.Count * 5 / 4 + 10, $"{ticks} frames for twice {GpuWarmup.Programs.Count} parts");
             Assert.Equal(GpuWarmup.Programs, reports.Select(r => r.Program));
             Assert.All(reports, r => Assert.False(r.Forced));
         }

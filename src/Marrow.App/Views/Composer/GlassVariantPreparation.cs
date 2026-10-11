@@ -15,9 +15,7 @@ namespace Marrow.App.Views.Composer;
 // the effect in an alpha modulation), open or under the hand-over's content clip (BootStageWindow.Apply's rounded RectangleGeometry, which
 // Skia applies as a coverage mask), and a lone rounded rectangle with its inside drawn apart or not. Which of these the main window's first
 // frames meet depends on where its fade and its clip stand when each piece first draws, so a launch could meet one no launch before it had;
-// a merged container's program takes about 3 s to link (measured: 2.7 to 3.0 s for six pieces), all of it on the render thread. Since
-// ED-NEW-glassslots-1 every container of 2 to 8 pieces draws with one merged program, so the variants of those counts are one program each
-// way (each count is still drawn: a draw finds the program its count uses already linked).
+// a merged container's program takes about 3 s to link (measured: 2.7 to 3.0 s for six pieces), all of it on the render thread.
 //
 // Each variant is drawn through the material's own Draw (GlassProgramVariants), under the opacity and the kind of clip that make it, into an
 // RGBA target on the worker's context: natively, against a cache filled by real launches, every variant drawn so was found in the cache (the

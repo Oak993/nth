@@ -1087,7 +1087,7 @@ public static partial class LiquidTrack
             if (frame.Mix is { } resolvedMix)
             {
                 if (mixRaster is null) { mixRaster = new StrikeRaster(wanted, gpu); StrikeSurfacesMade += mixRaster.SurfacesMade; }
-                mixRaster.Paint(frame.MixGeometry, resolvedMix, frame.MixInk, frame.Time, frame.MixSeed, frame.MixStill ? null : frame.MixContacts);
+                if (GpuWarmSites.Draw()) mixRaster.Paint(frame.MixGeometry, resolvedMix, frame.MixInk, frame.Time, frame.MixSeed, frame.MixStill ? null : frame.MixContacts);
                 lit = mixRaster.Screen; over = mixRaster.Over;
             }
             if (frame.ResolvedStrike is { } strike)

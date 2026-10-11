@@ -58,10 +58,6 @@ public sealed class StrikeRaster : IDisposable
 
     public void Paint(StrikeGeometry g, StrikeResolvedFrame frame, StrikeInk ink, double time, int seed, StrikeContacts? contacts = null)
     {
-        // ED-NEW-warmupsplit-4: the raster's GPU draws are six warm-up sites (GpuWarmSites), numbered on every paint in this order:
-        // the masks' strokes, the soft ink layer's fill and its blur, the sharp ink layer, the light, and the bursts with the light's
-        // screen. Outside a warm-up part every site draws, so a frame paints as it did.
-        var (strokes, softFill, softBlur, sharpInk, lit, screen) = (GpuWarmSites.Draw(), GpuWarmSites.Draw(), GpuWarmSites.Draw(), GpuWarmSites.Draw(), GpuWarmSites.Draw(), GpuWarmSites.Draw());
         InkDraws = LightDraws = WashDraws = CompositeDraws = 0; overCanvas.Clear(SKColors.Transparent); screenCanvas.Clear(SKColors.Transparent); lightCanvas.Clear(SKColors.Transparent);
         var scale = info.Height / g.Height;
         gradientWidth = g.Width * scale;
@@ -70,8 +66,8 @@ public sealed class StrikeRaster : IDisposable
             blurBig?.Dispose(); blurSmall?.Dispose(); blurBig = SKImageFilter.CreateBlur((float)(3 * scale), (float)(3 * scale)); blurSmall = SKImageFilter.CreateBlur((float)(2 * scale), (float)(2 * scale)); filterScale = scale; FiltersMade += 2;
         }
         for (var i = 0; i < masks.Length; i++) maskCanvases[i].Clear(SKColors.Transparent);
-        if (frame.Opacity <= 0.002) { if (screen) DrawBursts(); return; }
-        for (var i = 0; strokes && i < frame.Masks.Count; i++)
+        if (frame.Opacity <= 0.002) { DrawBursts(); return; }
+        for (var i = 0; i < frame.Masks.Count; i++)
         {
             var m = frame.Masks.At(i); var c = maskCanvases[m.Set * 3 + m.Layer]; var saved = c.Save(); c.Scale((float)scale);
             Trace(m.Trace); stroke.StrokeWidth = (float)m.Width; stroke.ColorF = new SKColorF(1, 1, 1, (float)m.Alpha); c.DrawPath(path, stroke); c.RestoreToCount(saved);
@@ -83,13 +79,12 @@ public sealed class StrikeRaster : IDisposable
             {
                 for (var layer = 0; layer < 2; layer++)
                 {
-                    if (!(layer == 0 ? softFill || softBlur : sharpInk)) continue;
                     var gain = (layer == 0 ? 0.55 : layer == 1 ? 0.92 : 1) * ink.Amount * frame.Opacity;
                     for (var i = 0; i < 5; i++) SetColour(i, layer == 2 ? ink.Palette.Core : ink.Gradient(layer == 0, time, seed % 7 * 0.9, i));
-                    Composite(overCanvas, layer, gain, true, true, layer == 0 ? g.Height >= 34 ? blurBig : blurSmall : null,ink.Amount*frame.Opacity,ink.Palette.Core,softFill,softBlur); InkDraws+=layer==1?2:1;
+                    Composite(overCanvas, layer, gain, true, true, layer == 0 ? g.Height >= 34 ? blurBig : blurSmall : null,ink.Amount*frame.Opacity,ink.Palette.Core); InkDraws+=layer==1?2:1;
                 }
             }
-            if (frame.LightOpacity >= 0.002 && lit)
+            if (frame.LightOpacity >= 0.002)
             {
                 for (var i = 0; i < frame.LightCount; i++) if (frame.Light[i].Layer == 0) { Light(lightCanvas, frame.Light[i], ink, g, scale); LightDraws++; }
                 for (var layer = 0; layer < 3; layer++)
@@ -98,8 +93,8 @@ public sealed class StrikeRaster : IDisposable
                     Composite(lightCanvas, layer, layer == 0 ? 0.14 : layer == 1 ? 0.36 : 0.92, false, false, null); LightDraws++;
                 }
             }
-            if (screen) DrawBursts();
-            if (frame.LightOpacity >= 0.002 && screen) { fill.ColorF = new SKColorF(1, 1, 1, (float)frame.LightOpacity); fill.BlendMode = SKBlendMode.Screen; light.Draw(screenCanvas, 0, 0, fill); CompositeDraws++; fill.BlendMode = SKBlendMode.SrcOver; }
+            DrawBursts();
+            if (frame.LightOpacity >= 0.002) { fill.ColorF = new SKColorF(1, 1, 1, (float)frame.LightOpacity); fill.BlendMode = SKBlendMode.Screen; light.Draw(screenCanvas, 0, 0, fill); CompositeDraws++; fill.BlendMode = SKBlendMode.SrcOver; }
         }
         finally { colour.SetChild("first", 0); colour.SetChild("second", 0); for (var i = 0; i < masks.Length; i++) { SkiaShaders.Release(shaders[i]); SkiaShaders.ReleaseImage(images[i]); images[i] = shaders[i] = 0; } }
 
@@ -119,7 +114,7 @@ public sealed class StrikeRaster : IDisposable
     }
 
     private void SetColour(int i, SKColor c) { gradientColours[i] = (uint)c; colours[i * 4] = c.Red / 255f; colours[i * 4 + 1] = c.Green / 255f; colours[i * 4 + 2] = c.Blue / 255f; colours[i * 4 + 3] = 1; }
-    private void Composite(SKCanvas canvas,int layer,double gain,bool useLock,bool perMask,SKImageFilter? filter,double coreGain=0,SKColor coreColor=default,bool fillSite=true,bool blurSite=true)
+    private void Composite(SKCanvas canvas,int layer,double gain,bool useLock,bool perMask,SKImageFilter? filter,double coreGain=0,SKColor coreColor=default)
     {
         nint shader=0;
         try {
@@ -133,10 +128,10 @@ public sealed class StrikeRaster : IDisposable
             if(filter is null) {canvas.DrawRect(new SKRect(0,0,info.Width,info.Height),fill);CompositeDraws++;}
             else {
                 // P:579-585: device-scale RGBA8 soft canvas first, then its CSS blur.
-                lightCanvas.Clear(SKColors.Transparent);if(fillSite){lightCanvas.DrawRect(new SKRect(0,0,info.Width,info.Height),fill);CompositeDraws++;}
+                lightCanvas.Clear(SKColors.Transparent);lightCanvas.DrawRect(new SKRect(0,0,info.Width,info.Height),fill);CompositeDraws++;
                 SkiaShaders.SetShader(fill,0);fill.ImageFilter=filter;
                 var image=SkiaShaders.Snapshot(light);
-                try {if(blurSite){SkiaShaders.DrawImage(canvas,image,0,0,fill);CompositeDraws++;}}
+                try {SkiaShaders.DrawImage(canvas,image,0,0,fill);CompositeDraws++;}
                 finally {SkiaShaders.ReleaseImage(image);lightCanvas.Clear(SKColors.Transparent);}
             }
         }
