@@ -79,10 +79,10 @@ public sealed class AboutUpdateViewsRealPopupTests(HeadlessSession headless) : S
         Assert.Equal(0, scroll.Offset.Y); // ED-NEW-softscroll-1: the popover's scroll view glides (OD-0071), nothing moves in the report's own frame
         Tick(h, 1000 / 60.0);
         Drain(window);
-        Assert.InRange(scroll.Offset.Y, 0.01, 149.99);
+        Assert.InRange(scroll.Offset.Y, 0.01, 299.99); // three notches: 300 points at the default 3 lines (ED-NEW-softscroll-2)
         Tick(h, 600);
         Drain(window);
-        Assert.True(Math.Abs(scroll.Offset.Y - Math.Min(150, scroll.Extent.Height - scroll.Viewport.Height)) < 1e-3, $"the wheel scrolled the list (offset {scroll.Offset})");
+        Assert.True(Math.Abs(scroll.Offset.Y - Math.Min(300, scroll.Extent.Height - scroll.Viewport.Height)) < 1e-3, $"the wheel scrolled the list (offset {scroll.Offset})");
 
         // A press outside closes it and clears the presented card.
         var outside = new Point(4, 4);

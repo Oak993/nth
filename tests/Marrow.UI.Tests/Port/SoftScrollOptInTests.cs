@@ -11,7 +11,8 @@ namespace Marrow.UI.Tests.Port;
 
 // ED-NEW-softscroll-1 (OD-0071, amends ED-333): the soft scrolling of ED-246 is every scroll view's default; a scroll view that opted
 // out (SoftScroll.IsEnabled false) keeps Avalonia's own wheel, which moves 50 points a notch in the report's own frame; a plain one,
-// with nothing set on it, glides there along the measured curve (SoftScrollTests).
+// with nothing set on it, glides a notch of Windows' lines setting (100 points at the default 3) along the two-stage curve of
+// ED-NEW-softscroll-2 (SoftScrollTests).
 [Collection("Headless")]
 public sealed class SoftScrollOptInTests(HeadlessSession headless)
 {
@@ -31,7 +32,7 @@ public sealed class SoftScrollOptInTests(HeadlessSession headless)
         soft.Wheel(new Vector(0, -1));
         Assert.Equal(0, soft.Scroll.Offset.Y); // nothing in the report's own frame
         var offsets = soft.Run(1.0);
-        Assert.InRange(offsets[0], 0.01, 25); // the first frame moves part of the way
-        Assert.Equal(50, offsets[^1]);
+        Assert.InRange(offsets[0], 0.01, 1); // the first 240 Hz frame starts the motion from rest: a third of a point
+        Assert.Equal(100, offsets[^1]);
     });
 }

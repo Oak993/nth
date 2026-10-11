@@ -1278,11 +1278,11 @@ public sealed class SidebarLeftoversTests(HeadlessSession headless)
                 harness.Main.Advance(TimeSpan.FromTicks(TimeSpan.TicksPerSecond / 60));
                 harness.Main.OnMain(() => ((ManualFrameSource)FrameClock.Source.Current).Advance(TimeSpan.FromTicks(TimeSpan.TicksPerSecond / 60)));
             }
-            Frame(); // the first 60 Hz frame moves part of the way
-            harness.Main.OnMain(() => Assert.InRange(LogicalQuery.SelfAndDescendants<ScrollViewer>(view).Single().Offset.Y, before + 0.01, before + 49.99));
+            Frame(); // the first 60 Hz frame starts the glide from rest (ED-NEW-softscroll-2: 4.5 of the notch's 100 points)
+            harness.Main.OnMain(() => Assert.InRange(LogicalQuery.SelfAndDescendants<ScrollViewer>(view).Single().Offset.Y, before + 4.4, before + 4.5));
             harness.Main.OnMain(() => Assert.False(ListStack(view).IsHitTestVisible));
-            for (var frame = 0; frame < 32; frame++) Frame(); // 0.55 s: the glide has come to rest (by 0.5 s), its last movement under 150 ms ago
-            harness.Main.OnMain(() => Assert.Equal(before + 50, LogicalQuery.SelfAndDescendants<ScrollViewer>(view).Single().Offset.Y, 3));
+            for (var frame = 0; frame < 32; frame++) Frame(); // 0.55 s: the glide has come to rest (at 0.47 s), its last movement under 150 ms ago
+            harness.Main.OnMain(() => Assert.Equal(before + 100, LogicalQuery.SelfAndDescendants<ScrollViewer>(view).Single().Offset.Y, 3));
             harness.Main.OnMain(() => Assert.False(ListStack(view).IsHitTestVisible));
             harness.Main.AdvanceMilliseconds(160);
             harness.Main.OnMain(() => Assert.True(ListStack(view).IsHitTestVisible));

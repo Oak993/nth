@@ -148,7 +148,7 @@ public sealed class AboutUpdateViewsProofRowsTests(HeadlessSession headless)
                 Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); glide.Add(scroll.Offset.Y);
             }
             Assert.Equal(notes.Contains('\n', StringComparison.Ordinal), scroll.Offset.Y > 0); // :756 basedOnSize: short content cannot scroll
-            if (scroll.Offset.Y > 0) { Assert.InRange(glide[0], 0.01, 49.99); Assert.Equal(Math.Min(50, scroll.Extent.Height - scroll.Viewport.Height), scroll.Offset.Y, 3); }
+            if (scroll.Offset.Y > 0) { Assert.InRange(glide[0], 0.01, 99.99); Assert.Equal(Math.Min(100, scroll.Extent.Height - scroll.Viewport.Height), scroll.Offset.Y, 3); } // a notch: 100 points at the default 3 lines (ED-NEW-softscroll-2)
             // Round 3: :749-762 carries no .scrollIndicators modifier, unlike the sites this template's presenter
             // recipe is shared with (:139/:363/:781-787 .scrollIndicators(.never)/.hidden), so a real indicator part
             // must exist and only be visible while the content actually overflows.

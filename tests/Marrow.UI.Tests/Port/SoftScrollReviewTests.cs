@@ -39,28 +39,34 @@ public sealed class SoftScrollReviewTests(HeadlessSession headless)
                 FormattableString.Invariant($"{what}: step {i} of {moving.Length} jumped {moving[i]:F4} after {moving[i - 1]:F4}; last steps {Steps(moving.TakeLast(6))}"));
     }
 
-    // ---- 1. A high-resolution (fractional) mouse wheel is a wheel: the measured glide, no touchpad coast ----
+    // ---- 1. A high-resolution (fractional) mouse wheel is a wheel: the two-stage glide, no touchpad coast ----
+
+    // The two stages' response to reports of `points` at `times` (ED-NEW-softscroll-2), aimed RestSpeed's worth past their sum.
+    private static double Glide(IReadOnlyList<double> times, double points, double t)
+    {
+        static double Step(double u) => u <= 0 ? 0 : 1 - (1 + u / ScrollPhysics.GlideStage) * Math.Exp(-u / ScrollPhysics.GlideStage);
+        var sum = times.Count * points;
+        var y = ScrollPhysics.RestSpeed * ScrollPhysics.GlideStage * Step(t - times[0]) + times.Sum(at => points * Step(t - at));
+        return Math.Min(y, sum);
+    }
 
     [Theory]
     [InlineData(60)]
     [InlineData(240)]
     [Trait("Decision", "ED-246")]
-    public void A_high_resolution_mouse_wheel_glides_with_the_measured_decay_and_never_coasts(int hz) => headless.OnUiThread(() =>
+    [Trait("Decision", "ED-NEW-softscroll-2")]
+    public void A_high_resolution_mouse_wheel_glides_along_the_two_stages_and_never_coasts(int hz) => headless.OnUiThread(() =>
     {
         using var rig = new SoftScrollRig();
         // A Logitech-style high-resolution wheel: 15 units (an eighth of WHEEL_DELTA) per report, at the wheel's own
-        // uneven pace. 8 reports = one notch's worth, 50 points.
+        // uneven pace. 8 reports = one notch's worth, 100 points at the default 3 lines.
         var times = new[] { 0, 0.011, 0.019, 0.031, 0.040, 0.054, 0.063, 0.079 };
         var trace = rig.Play(times.Select(t => (t, new Vector(0, -0.125))), hz, 1.2);
-        Assert.Equal(50, trace[^1].Y, 6); // exactly the wheel's distance: no coast added on top
-        var restAt = trace.First(f => Math.Abs(f.Y - 50) < 1e-9).T;
-        Assert.True(restAt < 0.079 + 0.6, FormattableString.Invariant($"still moving {restAt - 0.079:F2} s after the last report"));
-        // After the reports stop the speed falls by e every 0.071 s (mac-physics.md section 4), not every 0.5 s.
-        var speeds = trace.Zip(trace.Skip(1), (a, b) => (b.T, V: (b.Y - a.Y) * hz)).ToArray();
-        var at = speeds.First(s => s.T >= 0.15);
-        var later = speeds.First(s => s.T >= 0.15 + 0.071);
-        var expected = Math.Exp(-(later.T - at.T) / ScrollPhysics.GlideDecay);
-        Assert.InRange(later.V / at.V, expected * 0.97, expected * 1.03);
+        Assert.Equal(100, trace[^1].Y, 6); // exactly the wheel's distance: no coast added on top
+        var restAt = trace.First(f => Math.Abs(f.Y - 100) < 1e-9).T;
+        Assert.True(restAt < 0.079 + 0.45, FormattableString.Invariant($"still moving {restAt - 0.079:F2} s after the last report"));
+        // Every frame is the reports' own responses added up (one target), the tail included: no coast of a touchpad's.
+        foreach (var (t, y) in trace) Assert.InRange(y, Glide(times, 12.5, t) - 1e-3, Glide(times, 12.5, t) + 1e-3);
         // From the last report's interval on (the wheel's own uneven pace before it is the input's), it only slows.
         EndsWithoutAJump(trace.Where(f => f.T >= 0.079 + 0.016).ToList(), "fine wheel");
     });
@@ -140,7 +146,7 @@ public sealed class SoftScrollReviewTests(HeadlessSession headless)
     {
         using var rig = new SoftScrollRig();
         var trace = rig.Play([(0.0, new Vector(0, -1))], hz, 1.5);
-        Assert.Equal(50, trace[^1].Y);
+        Assert.Equal(100, trace[^1].Y);
         EndsWithoutAJump(trace, hz + " Hz notch");
     });
 
@@ -204,24 +210,27 @@ public sealed class SoftScrollReviewTests(HeadlessSession headless)
         Assert.True(steps[0] * 240 <= 2.5, FormattableString.Invariant($"stopped from {steps[0] * 240:F1} points a second"));
     });
 
-    // ---- 5. No start lag: a wheel flick's speed peaks as its notches end; the ends are reached from speed ----
+    // ---- 5. No start lag: a wheel flick moves in its first frame, from rest; the ends are reached from speed ----
 
     [Theory]
     [InlineData(60)]
     [InlineData(240)]
     [Trait("Decision", "ED-246")]
-    public void A_wheel_flick_responds_in_the_first_frame_and_peaks_as_its_notches_end(int hz) => headless.OnUiThread(() =>
+    [Trait("Decision", "ED-NEW-softscroll-2")]
+    public void A_wheel_flick_moves_in_the_first_frame_from_rest_and_peaks_a_stage_after_its_notches(int hz) => headless.OnUiThread(() =>
     {
         using var rig = new SoftScrollRig();
         // Five notches in 50 ms (a flick); the frames run on their own grid.
         var trace = rig.Play(Enumerable.Range(0, 5).Select(i => (i * 0.0125, new Vector(0, -1))), hz, 1.0);
-        Assert.True(trace[0].Y >= (hz == 240 ? 0.5 : 5), FormattableString.Invariant($"first frame {trace[0].Y:F2}"));
+        // It moves in the first frame, starting from rest: 4.8 points at 60 Hz, a third of a point at 240 Hz.
+        Assert.InRange(trace[0].Y, hz == 240 ? 0.32 : 4.7, hz == 240 ? 0.34 : 4.9);
         var speeds = trace.Zip(trace.Skip(1), (a, b) => (T: b.T, V: (b.Y - a.Y) * hz)).ToArray();
         var peak = speeds.MaxBy(s => s.V);
-        // Peak no later than the last notch's report interval plus a frame after it.
-        Assert.True(peak.T <= 0.05 + 0.0125 + 1.0 / hz + 1e-9, FormattableString.Invariant($"{hz} Hz: speed peaked at {peak.T:F3} s"));
-        // Weighted as measured: distance over peak speed about 0.1 s (mac-physics.md: 0.0998 s).
-        Assert.InRange(250 / peak.V, 0.085, 0.12);
+        // Peak about a stage after the burst's middle (81 ms), within a frame.
+        Assert.InRange(peak.T, 0.080, 0.0825 + 1.0 / hz + 1e-9);
+        // Weighted: distance over peak speed 0.144 s (0.146 s from 60 Hz frames).
+        Assert.InRange(500 / peak.V, 0.143, 0.147);
+        Assert.Equal(500, trace[^1].Y);
     });
 
     [Fact]
@@ -229,7 +238,7 @@ public sealed class SoftScrollReviewTests(HeadlessSession headless)
     public void A_glide_into_the_end_arrives_from_speed_and_brakes_briefly() => headless.OnUiThread(() =>
     {
         using var rig = new SoftScrollRig(content: new Border { Height = 300 + 276, Width = 100 }); // the theme list: 276 points of overflow
-        var trace = rig.Play(Enumerable.Range(0, 8).Select(i => (i * 0.0125, new Vector(0, -1))), 240, 1.0); // 400 points asked
+        var trace = rig.Play(Enumerable.Range(0, 4).Select(i => (i * 0.0125, new Vector(0, -1))), 240, 1.0); // 400 points asked (100 a notch)
         Assert.All(trace, f => Assert.InRange(f.Y, 0, 276));
         Assert.Equal(276, trace[^1].Y);
         var speeds = trace.Zip(trace.Skip(1), (a, b) => (T: b.T, Y: b.Y, V: (b.Y - a.Y) * 240)).ToArray();
@@ -320,26 +329,26 @@ public sealed class SoftScrollReviewTests(HeadlessSession headless)
     [Trait("Decision", "ED-246")]
     public void A_nested_scroll_view_at_its_end_passes_the_wheel_to_the_page() => headless.OnUiThread(() =>
     {
-        var inner = new ScrollViewer { Height = 100, VerticalAlignment = VerticalAlignment.Top, Content = new Border { Height = 300, Width = 100 } };
+        var inner = new ScrollViewer { Height = 200, VerticalAlignment = VerticalAlignment.Top, Content = new Border { Height = 500, Width = 100 } };
         SoftScroll.SetIsEnabled(inner, true);
         using var rig = new SoftScrollRig(content: new StackPanel { Children = { inner, new Border { Height = 2000 } } });
-        var over = new Point(50, 20); // over the inner view wherever the page has scrolled to (by 50 at most)
+        var over = new Point(50, 50); // over the inner view wherever the page has scrolled to (by 100 at most)
         rig.Play([(0.0, new Vector(0, -1))], 240, 0.6, over);
-        Assert.Equal(50, inner.Offset.Y); // not at its end: the inner view takes it
+        Assert.Equal(100, inner.Offset.Y); // not at its end: the inner view takes it
         Assert.Equal(0, rig.Scroll.Offset.Y);
         rig.Play([(0.0, new Vector(0, -4))], 240, 0.6, over);
-        Assert.Equal(200, inner.Offset.Y); // at its end now
+        Assert.Equal(300, inner.Offset.Y); // at its end now
         rig.Play([(0.0, new Vector(0, -1))], 240, 0.6, over);
-        Assert.Equal(200, inner.Offset.Y);
-        Assert.Equal(50, rig.Scroll.Offset.Y); // the page took it
+        Assert.Equal(300, inner.Offset.Y);
+        Assert.Equal(100, rig.Scroll.Offset.Y); // the page took it
         rig.Play([(0.0, new Vector(0, 1))], 240, 0.6, over);
-        Assert.Equal(150, inner.Offset.Y); // back up: the inner view can move that way again
-        Assert.Equal(50, rig.Scroll.Offset.Y);
+        Assert.Equal(200, inner.Offset.Y); // back up: the inner view can move that way again
+        Assert.Equal(100, rig.Scroll.Offset.Y);
         // With chaining off the inner view keeps the wheel even at its end (ScrollViewer.IsScrollChainingEnabled).
         ScrollViewer.SetIsScrollChainingEnabled(inner, false);
         rig.Play([(0.0, new Vector(0, -4))], 240, 0.6, over);
-        Assert.Equal(200, inner.Offset.Y);
-        Assert.Equal(50, rig.Scroll.Offset.Y);
+        Assert.Equal(300, inner.Offset.Y);
+        Assert.Equal(100, rig.Scroll.Offset.Y);
     });
 
 }

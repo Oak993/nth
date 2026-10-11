@@ -200,7 +200,8 @@ public sealed class ComposerViewBlitzChipTests(HeadlessSession headless)
                 Settle(window);
                 Assert.Equal(0, scroller.Offset.X); // ED-NEW-softscroll-1: the row glides (OD-0071), nothing moves in the report's own frame
             });
-            // The glide on the frame clock, the Swift clock with it: under way after one 60 Hz frame, at rest three notches (150 points) on.
+            // The glide on the frame clock, the Swift clock with it: under way after one 60 Hz frame, at rest three notches (300 points at
+            // the default 3 lines, ED-NEW-softscroll-2) on, or at the row's end.
             var most = h.Main.OnMain(() => scroller.Extent.Width - scroller.Viewport.Width);
             var trace = new List<double>();
             for (var frame = 0; frame < 60; frame++)
@@ -208,8 +209,8 @@ public sealed class ComposerViewBlitzChipTests(HeadlessSession headless)
                 h.Main.Advance(TimeSpan.FromTicks(TimeSpan.TicksPerSecond / 60));
                 h.Main.OnMain(() => { frames.Advance(TimeSpan.FromTicks(TimeSpan.TicksPerSecond / 60)); Settle(window); trace.Add(scroller.Offset.X); });
             }
-            Assert.InRange(trace[0], 0.01, Math.Min(150, most) - 0.01);
-            Assert.Equal(Math.Min(150, most), trace[^1], 3);
+            Assert.InRange(trace[0], 0.01, Math.Min(300, most) - 0.01);
+            Assert.Equal(Math.Min(300, most), trace[^1], 3);
             Close(h, window);
         });
     }

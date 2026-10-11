@@ -17,29 +17,33 @@ using Marrow.UI.Tests.Fixtures;
 namespace Marrow.UI.Tests.Port;
 
 // OD-0071 / ED-246: one soft, weighted scrolling behaviour, modelled on the Mac's measured physics
-// (E:/Droppy/work/review-scroll-physics/mac-physics.md). The physics is checked frame by frame on hand-driven time; the
-// behaviour on real ScrollViewers on the manual frame clock (ManualFrameSource) and the manual Swift clock.
+// (E:/Droppy/work/review-scroll-physics/mac-physics.md); the wheel's glide is ED-NEW-softscroll-2's two critically damped
+// stages (the owner, 2026-10-11: "no smooth premium weighted scrolling as I asked earlier"). The physics is checked frame
+// by frame on hand-driven time; the behaviour on real ScrollViewers on the manual frame clock (ManualFrameSource) and the
+// manual Swift clock.
 [Collection("Headless")]
 public sealed class SoftScrollTests(HeadlessSession headless)
 {
-    private const double Decay = ScrollPhysics.GlideDecay;
-    private const double Spread = ScrollPhysics.Cadence;
+    private const double Stage = ScrollPhysics.GlideStage;
 
-    // The notch response, solved by hand: the notch spread evenly over a stream's first report interval, followed
-    // through the lag; once it has all arrived the lag aims RestSpeed's worth past it and rests on arrival.
-    private static double Notch(double distance, double t)
+    // The two stages' step response, solved by hand: x(t) = 1 - (1 + t/tau) e^(-t/tau), from rest, with no speed at t = 0.
+    private static double Step(double t) => t <= 0 ? 0 : 1 - (1 + t / Stage) * Math.Exp(-t / Stage);
+
+    // The notch response: the two stages toward the notch, aimed RestSpeed's worth (over a stage) past it, resting the
+    // moment the view gets there.
+    private static double Notch(double distance, double t) => Burst([(0, distance)], t);
+
+    // Notches adding up to one target: the stages are linear, so the view is the sum of each notch's own response from its
+    // own time, plus the aim's hair past the sum from the first; until it reaches the sum, where it rests.
+    private static double Burst(IReadOnlyList<(double T, double Distance)> notches, double t)
     {
-        if (t <= 0) return 0;
-        var rate = distance / Spread;
-        if (t <= Spread) return rate * (t - Decay * (1 - Math.Exp(-t / Decay)));
-        var atSpread = rate * (Spread - Decay * (1 - Math.Exp(-Spread / Decay)));
-        var aim = distance + Math.Sign(distance) * ScrollPhysics.RestSpeed * Decay;
-        var y = aim + (atSpread - aim) * Math.Exp(-(t - Spread) / Decay);
-        return Math.Abs(y) >= Math.Abs(distance) ? distance : y;
+        var sum = notches.Sum(n => n.Distance);
+        var y = Math.Sign(sum) * ScrollPhysics.RestSpeed * Stage * Step(t - notches[0].T) + notches.Sum(n => n.Distance * Step(t - n.T));
+        return Math.Abs(y) >= Math.Abs(sum) ? sum : y;
     }
 
-    // The speed is highest as the spread ends.
-    private static double PeakSpeed(double distance) => distance / Spread * (1 - Math.Exp(-Spread / Decay));
+    // The speed is highest one stage in: the aim over (stage x e).
+    private static double PeakSpeed(double distance) => (distance + ScrollPhysics.RestSpeed * Stage) / (Stage * Math.E);
 
     // Steps the physics at a display rate; returns (time, position) per frame, the first at `from`.
     private static List<(double T, double Y)> Frames(ScrollPhysics physics, double hz, double from, double until, Action<double>? at = null)
@@ -66,11 +70,18 @@ public sealed class SoftScrollTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-246")] // the tuning is the recorded one (the other tests read these constants, so they are pinned here)
-    public void The_tuning_is_the_one_ED_246_records()
+    [Trait("Decision", "ED-NEW-softscroll-2")]
+    public void The_tuning_is_the_one_ED_246_and_ED_NEW_softscroll_2_record()
     {
-        // (2) the wheel: the lag 0.071 s (mac-physics.md section 4), 50 points a notch (Avalonia's step), a stream's
-        // first report spread over 8 ms.
-        Assert.Equal(0.071, ScrollPhysics.GlideDecay);
+        // (2) the wheel (ED-NEW-softscroll-2): two critically damped stages of 0.050 s each; a notch is Windows' lines
+        // setting x 33 1/3 points, 100 at the default 3 lines; "one screen at a time" (WHEEL_PAGESCROLL) reads as -1.
+        Assert.Equal(0.050, ScrollPhysics.GlideStage);
+        Assert.Equal(100.0 / 3, SystemWheel.LinePoints);
+        Assert.Equal(3, SystemWheel.DefaultLines);
+        Assert.Equal(-1, SystemWheel.PageScroll);
+        Assert.Equal(100, new SystemWheel(() => SystemWheel.DefaultLines).Notch(300), 12);
+        // The touchpad's stream: 50 points per WHEEL_DELTA (Avalonia's step), each report spread over the interval since
+        // the one before (a stream's first over 8 ms).
         Assert.Equal(50, ScrollPhysics.WheelLine);
         Assert.Equal(0.008, ScrollPhysics.Cadence);
         Assert.Equal(0.002, ScrollPhysics.MinSpread);
@@ -92,46 +103,59 @@ public sealed class SoftScrollTests(HeadlessSession headless)
     [Theory]
     [InlineData(60)]
     [InlineData(240)]
-    [Trait("Decision", "ED-246")] // (1) a notch glides along the measured curve, frame by frame, at 60 and 240 Hz
-    public void A_wheel_notch_glides_along_the_measured_curve_with_no_frame_jumping_further_than_the_curve_allows(int hz)
+    [Trait("Decision", "ED-NEW-softscroll-2")] // (1) a notch glides along the two-stage curve, frame by frame, at 60 and 240 Hz
+    public void A_wheel_notch_glides_along_the_two_stage_curve_from_no_speed_with_no_frame_jumping_further_than_the_curve_allows(int hz)
     {
         var physics = Physics();
-        physics.Notch(50, 0, instant: false);
+        physics.Notch(100, 0, instant: false);
         Assert.Equal(0, physics.Position); // nothing moves before a frame
+        Assert.Equal(0, physics.Velocity); // and it starts from no speed
         var frames = Frames(physics, hz, 0, 1.0);
-        var peak = PeakSpeed(50);
+        var peak = PeakSpeed(100);
         for (var i = 1; i < frames.Count; i++)
         {
             var (t, y) = frames[i];
-            Assert.Equal(Notch(50, t), y, 9);
+            Assert.Equal(Notch(100, t), y, 9);
             var step = y - frames[i - 1].Y;
             Assert.True(step >= 0, FormattableString.Invariant($"backwards at {t:F4}: {step}"));
             Assert.True(step <= peak / hz + 1e-9, FormattableString.Invariant($"frame at {t:F4} jumped {step:F3} > {peak / hz:F3}"));
         }
         Assert.False(physics.IsMoving);
-        Assert.Equal(50, frames[^1].Y);
-        // The first frame shows the motion starting, not the notch landing: at most a third of it at 60 Hz.
-        Assert.InRange(frames[1].Y, 0.01, 50.0 / 3);
+        Assert.Equal(100, frames[^1].Y);
+        var steps = frames.Zip(frames.Skip(1), (a, b) => b.Y - a.Y).ToArray();
+        // The first frame shows the motion starting from rest, not the notch landing (4.5 points at 60 Hz, under 5 % of
+        // it), and the frames speed up before they slow down.
+        Assert.InRange(frames[1].Y, 0.01, 100.1 * Step(1.0 / hz) + 1e-9);
+        if (hz == 60) Assert.InRange(frames[1].Y, 4.4, 4.5);
+        Assert.True(steps[0] < steps[1] && steps[1] < steps[2], "the glide did not start from rest");
+        // The speed peaks one stage (50 ms) in; half way at 83.8 ms, 90 % at 193.9 ms, at rest at 0.462 s.
+        var fastest = Array.IndexOf(steps, steps.Max());
+        Assert.InRange(frames[fastest].T, Stage - 1.0 / hz - 1e-9, Stage + 1e-9);
+        Assert.InRange(frames.First(f => f.Y >= 50).T, 0.08383, 0.08384 + 1.0 / hz);
+        Assert.InRange(frames.First(f => f.Y >= 90).T, 0.19392, 0.19393 + 1.0 / hz);
+        Assert.InRange(frames.First(f => f.Y >= 99).T, 0.32648, 0.32649 + 1.0 / hz);
+        Assert.InRange(frames.First(f => f.Y == 100).T, 0.46172, 0.46173 + 1.0 / hz);
     }
 
     [Fact]
-    [Trait("Decision", "ED-246")] // (1) the curve's shape is the Mac's: mac-physics.md section 4 (settings pooled, n = 37)
-    public void A_flick_peaks_as_its_notches_end_then_decays_with_the_Macs_measured_time_constant_and_coast_ratio()
+    [Trait("Decision", "ED-NEW-softscroll-2")] // (1) notches add up to one target, followed through the two stages
+    public void A_burst_of_notches_adds_up_to_one_target_its_speed_peaking_a_stage_after_the_burst()
     {
-        // A flick: five notches 12.5 ms apart, the Mac's 20-50 ms attack.
+        // A flick: five notches 12.5 ms apart.
         var physics = Physics();
-        var notches = Enumerable.Range(0, 5).Select(i => i * 0.0125).ToArray();
-        var frames = Frames(physics, 800, 0, 1.0, t => { if (notches.Any(n => Math.Abs(n - t) < 1e-9)) physics.Notch(50, t, false); });
+        var notches = Enumerable.Range(0, 5).Select(i => (T: i * 0.0125, Distance: 100.0)).ToArray();
+        var frames = Frames(physics, 800, 0, 1.0, t => { if (notches.Any(n => Math.Abs(n.T - t) < 1e-9)) physics.Notch(100, t, false); });
+        // Every frame is the sum of the notches' own responses: one target, nothing lost, nothing added, no step anywhere.
+        foreach (var (t, y) in frames) Assert.Equal(Burst(notches, t), y, 9);
+        Assert.Equal(500, frames[^1].Y);
+        Assert.False(physics.IsMoving);
         var speeds = frames.Skip(1).Select((f, i) => (f.T, V: (f.Y - frames[i].Y) * 800)).ToArray();
         var top = speeds.MaxBy(s => s.V);
-        // The speed is highest as the last notch's report interval ends (0.0625 s): no lag of its own on top.
-        Assert.InRange(top.T, 0.0620, 0.0640); // the 800 Hz frame ending at 62.5 ms
-        // Distance over peak speed: the Mac's 0.0998 s (total distance = 0.0998 s x peak speed + 25 px).
-        Assert.InRange(250 / top.V, 0.095, 0.110);
-        // After the peak the speed falls by e every 0.071 s (tau 0.071 s, half-life 0.049 s).
-        var at = speeds.First(s => s.T >= 0.15);
-        var later = speeds.First(s => s.T >= 0.15 + 0.071);
-        Assert.InRange(later.V / at.V, Math.Exp(-1) * 0.98, Math.Exp(-1) * 1.02);
+        // The speed is highest about a stage after the burst's middle (81 ms), not as its last notch lands (50 ms).
+        Assert.InRange(top.T, 0.0800, 0.0825);
+        // Distance over peak speed: 0.144 s.
+        Assert.InRange(500 / top.V, 0.143, 0.146);
+        Assert.InRange(frames.First(f => f.Y == 500).T, 0.5779, 0.5779 + 1 / 800.0);
     }
 
     [Fact]
@@ -142,7 +166,7 @@ public sealed class SoftScrollTests(HeadlessSession headless)
         {
             var slow = Physics();
             var fast = Physics();
-            void Input(ScrollPhysics p, double t) { if (precise) p.Precise(4, t, false); else p.Notch(50, t, false); }
+            void Input(ScrollPhysics p, double t) { if (precise) p.Precise(4, t, false); else p.Notch(100, t, false); }
             var times = precise ? Enumerable.Range(0, 20).Select(i => i * 0.0083).ToArray() : [0.0, 0.05];
             var at60 = new List<(double T, double Y)>();
             var at240 = new List<(double T, double Y)>();
@@ -172,36 +196,42 @@ public sealed class SoftScrollTests(HeadlessSession headless)
         {
             // Just before and just after a notch lands mid-glide, the view is where it was and moving as it was.
             var probe = Physics();
-            foreach (var earlier in notches.Where(n => n < t0)) { probe.Step(earlier); probe.Notch(50, earlier, false); }
+            foreach (var earlier in notches.Where(n => n < t0)) { probe.Step(earlier); probe.Notch(100, earlier, false); }
             probe.Step(t0 - 1e-5);
             var before = probe.Position;
             probe.Step(t0);
             var v = probe.Velocity;
-            probe.Notch(50, t0, false);
+            Assert.True(v > 0);
+            probe.Notch(100, t0, false);
             Assert.Equal(v, probe.Velocity, 6);
             probe.Step(t0 + 1e-5);
             Assert.Equal(before + v * 2e-5, probe.Position, 3);
         }
-        var frames = Frames(physics, 240, 0, 1.0, t => { if (notches.Any(n => Math.Abs(n - t) < 1e-9)) physics.Notch(50, t, false); });
+        var frames = Frames(physics, 240, 0, 1.0, t => { if (notches.Any(n => Math.Abs(n - t) < 1e-9)) physics.Notch(100, t, false); });
         for (var i = 1; i < frames.Count; i++) Assert.True(frames[i].Y >= frames[i - 1].Y);
         // While the notches keep coming the view never stops between them.
         for (var i = 1; i + 1 < frames.Count && frames[i].T < 0.12; i++) Assert.True(frames[i + 1].Y > frames[i].Y);
-        Assert.Equal(200, frames[^1].Y);
+        foreach (var (t, y) in frames) Assert.Equal(Burst(notches.Select(n => (n, 100.0)).ToArray(), t), y, 9);
+        Assert.Equal(400, frames[^1].Y);
     }
 
     [Fact]
     [Trait("Decision", "ED-246")] // (1) a notch the other way starts from where the view is
+    [Trait("Decision", "ED-NEW-softscroll-2")] // from rest: the two stages' own start, back the other way
     public void A_notch_the_other_way_turns_the_glide_round_from_where_the_view_is()
     {
         var physics = Physics();
         physics.Reset(500, 0);
-        physics.Notch(50, 0, false);
+        physics.Notch(100, 0, false);
         physics.Step(0.04);
         var turnedAt = physics.Position;
-        physics.Notch(-50, 0.04, false);
+        Assert.True(physics.Velocity > 100);
+        physics.Notch(-100, 0.04, false);
+        Assert.Equal(0, physics.Velocity);
         var frames = Frames(physics, 240, 0.04, 1.0);
         Assert.True(frames.Max(f => f.Y) <= turnedAt + 1e-9, "it ran on past the turn");
-        Assert.Equal(turnedAt - 50, frames[^1].Y, 6);
+        foreach (var (t, y) in frames) Assert.Equal(turnedAt + Notch(-100, t - 0.04), y, 9);
+        Assert.Equal(turnedAt - 100, frames[^1].Y, 6);
     }
 
     [Fact]
@@ -210,7 +240,9 @@ public sealed class SoftScrollTests(HeadlessSession headless)
     {
         var classifier = new WheelClassifier();
         Assert.Equal(WheelKind.Notch, classifier.Classify(-1, 0));
+        Assert.True(classifier.IsFresh);
         Assert.Equal(WheelKind.Notch, classifier.Classify(-2, 0.01));
+        Assert.False(classifier.IsFresh);
         // A high-resolution wheel (Logitech: 15 units, an eighth of WHEEL_DELTA), joining the same stream.
         Assert.Equal(WheelKind.FineWheel, classifier.Classify(-15 / 120.0, 0.02));
         Assert.Equal(WheelKind.FineWheel, classifier.Classify(-30 / 120.0, 0.03));
@@ -239,6 +271,28 @@ public sealed class SoftScrollTests(HeadlessSession headless)
         Assert.Equal(before + v * 1e-5, physics.Position, 4);
         Frames(physics, 240, 0.006, 1.0);
         Assert.Equal(17, physics.Position, 9); // nothing lost, nothing added
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-softscroll-2")] // a stream's reports weighed as a wheel's and then shown a touchpad's: the excess is taken back
+    public void An_amended_glide_goes_where_the_amended_sum_says_without_a_jump()
+    {
+        var physics = Physics();
+        physics.Notch(20, 0, false); // 24/120 taken for a fine wheel: 20 points at 3 lines, 10 at a touchpad's weight
+        physics.Step(0.008);
+        var (before, v) = (physics.Position, physics.Velocity);
+        physics.Amend(-10, 0.008);
+        Assert.Equal(before, physics.Position);
+        Assert.Equal(v, physics.Velocity, 9);
+        physics.Precise(17 * 50 / 120.0, 0.008, false);
+        Assert.Equal(v, physics.Velocity, 6);
+        var frames = Frames(physics, 240, 0.008, 1.0);
+        Assert.All(frames.Zip(frames.Skip(1)), pair => Assert.True(pair.Second.Y >= pair.First.Y - 1e-9, "backwards"));
+        Assert.Equal(41 * 50 / 120.0, frames[^1].Y, 9); // the stream at a touchpad's weight, nothing else
+        // Amending nothing under way changes nothing.
+        physics.Amend(-5, 1.1);
+        Assert.Equal(41 * 50 / 120.0, physics.Position, 9);
+        Assert.False(physics.IsMoving);
     }
 
     [Fact]
@@ -362,14 +416,14 @@ public sealed class SoftScrollTests(HeadlessSession headless)
     public void An_animation_started_while_the_view_moves_carries_its_speed_in()
     {
         var physics = Physics();
-        for (var i = 0; i < 4; i++) physics.Notch(50, 0, false);
+        for (var i = 0; i < 4; i++) physics.Notch(100, 0, false);
         var frames = Frames(physics, 240, 0, 0.05);
         var speed = physics.Velocity;
         physics.AnimateTo(2000, Animation.Smooth(0.35), 0.05);
         Assert.InRange(physics.Velocity - speed, -1, 1); // the speed it had, carried in (the spring itself starts from rest)
         // To a destination close by, where the curve's own first frame is a fraction of a point, the speed still carries.
         var near = Physics();
-        for (var i = 0; i < 4; i++) near.Notch(50, 0, false);
+        for (var i = 0; i < 4; i++) near.Notch(100, 0, false);
         var nearFrames = Frames(near, 240, 0, 0.05);
         var nearBefore = nearFrames[^1].Y - nearFrames[^2].Y;
         near.AnimateTo(nearFrames[^1].Y + 100, Animation.Smooth(0.35), 0.05);
@@ -404,6 +458,22 @@ public sealed class SoftScrollTests(HeadlessSession headless)
             var stopped = Array.FindIndex(steps, s => s == 0);
             Assert.All(steps.Skip(stopped), s => Assert.Equal(0, s));
             Assert.True(frames[stopped].Y == 34, FormattableString.Invariant($"{hz} Hz: stopped at {frames[stopped].Y:F3} before the row"));
+            // A wheel's glide of 100 points rests on the next whole row ahead too (102, six rows), from speed, never backwards.
+            var glide = Physics(max: 1000);
+            glide.Quantum = 17;
+            glide.Notch(100, 0, false);
+            var rows = new List<double> { 0 };
+            for (var k = 1; k / hz <= 1.0 + 1e-12; k++)
+            {
+                glide.Step(k / hz);
+                rows.Add(glide.Position);
+            }
+            Assert.Equal(102, rows[^1], 9);
+            var moves = rows.Zip(rows.Skip(1), (a, b) => b - a).ToArray();
+            Assert.All(moves, s => Assert.True(s >= -1e-9, "backwards"));
+            var still = Array.FindIndex(moves, s => s == 0);
+            Assert.All(moves.Skip(still), s => Assert.Equal(0, s));
+            Assert.Equal(102, rows[still], 9);
         }
     }
 
@@ -433,8 +503,8 @@ public sealed class SoftScrollTests(HeadlessSession headless)
         Assert.Equal(0, rig.Scroll.Offset.Y); // the presenter's instant 50-point jump did not happen
         Assert.Equal(1, rig.Frames.Pending);
         var trace = rig.Trace(1.0);
-        foreach (var (t, y) in trace) Assert.Equal(Notch(50, t - start), y, 6);
-        Assert.Equal(50, trace[^1].Y);
+        foreach (var (t, y) in trace) Assert.Equal(Notch(100, t - start), y, 6); // 100 points: 3 lines (the test default) x 33 1/3
+        Assert.Equal(100, trace[^1].Y);
         Assert.False(SoftScroll.For(rig.Scroll).IsMoving);
     });
 
@@ -586,7 +656,7 @@ public sealed class SoftScrollTests(HeadlessSession headless)
         var at = trace[^1].Y;
         rig.Wheel(new Vector(0, 1)); // a notch back up: from where the view is
         var after = rig.Run(1);
-        Assert.Equal(at - 50, rig.Scroll.Offset.Y, 6);
+        Assert.Equal(at - 100, rig.Scroll.Offset.Y, 6);
         Assert.True(after.Max() <= at + 1e-9, "it ran on with the animation: " + after.Max());
         Assert.Equal([ScrollPhase.Animating, ScrollPhase.Idle], phases);
     });
@@ -599,11 +669,11 @@ public sealed class SoftScrollTests(HeadlessSession headless)
         for (var i = 0; i < 5; i++) rig.Wheel(new Vector(0, -1));
         rig.Run(0.02);
         var moved = rig.Scroll.Offset.Y;
-        Assert.InRange(moved, 1, 249);
+        Assert.InRange(moved, 1, 499);
         SoftScroll.ScrollTo(rig.Scroll, new Vector(0, 1000), null);
         Assert.Equal(1000, rig.Scroll.Offset.Y);
         rig.Run(1);
-        Assert.Equal(1000 + 250 - moved, rig.Scroll.Offset.Y, 3);
+        Assert.Equal(1000 + 500 - moved, rig.Scroll.Offset.Y, 3);
     });
 
     [Fact]
@@ -613,11 +683,11 @@ public sealed class SoftScrollTests(HeadlessSession headless)
         using var rig = new SoftScrollRig(viewer => EnvironmentValues.SetAccessibilityReduceMotion(viewer, true));
         Assert.True(rig.Button.Focus()); // first: focus brings the button into view
         rig.Wheel(new Vector(0, -1));
-        Assert.Equal(50, rig.Scroll.Offset.Y);
+        Assert.Equal(100, rig.Scroll.Offset.Y);
         rig.Press(Key.PageDown);
-        Assert.Equal(50 + rig.Scroll.Viewport.Height, rig.Scroll.Offset.Y);
+        Assert.Equal(100 + rig.Scroll.Viewport.Height, rig.Scroll.Offset.Y);
         rig.Wheel(new Vector(0, -0.08));
-        Assert.Equal(54 + rig.Scroll.Viewport.Height, rig.Scroll.Offset.Y, 6);
+        Assert.Equal(104 + rig.Scroll.Viewport.Height, rig.Scroll.Offset.Y, 6);
         SoftScroll.ScrollTo(rig.Scroll, new Vector(0, 10), Animation.Smooth(0.35));
         Assert.Equal(10, rig.Scroll.Offset.Y);
         Assert.False(SoftScroll.For(rig.Scroll).IsMoving);
@@ -639,14 +709,14 @@ public sealed class SoftScrollTests(HeadlessSession headless)
         using var rig = new SoftScrollRig(content: new StackPanel { Children = { strip, new Border { Height = 2000 } } });
         rig.Wheel(new Vector(0, -1), new Point(150, 20));
         rig.Run(0.8);
-        Assert.Equal(50, rig.Scroll.Offset.Y);
+        Assert.Equal(100, rig.Scroll.Offset.Y);
         Assert.Equal(0, strip.Offset.X);
         rig.Scroll.Offset = default;
         Dispatcher.UIThread.RunJobs();
         rig.Window.UpdateLayout();
         rig.Wheel(new Vector(0, -1), new Point(150, 20), RawInputModifiers.Shift);
         rig.Run(0.8);
-        Assert.Equal(50, strip.Offset.X);
+        Assert.Equal(100, strip.Offset.X);
         Assert.Equal(0, rig.Scroll.Offset.Y);
     });
 
@@ -665,8 +735,8 @@ public sealed class SoftScrollTests(HeadlessSession headless)
         rig.Wheel(new Vector(0, -1));
         Assert.Equal(0, rig.Scroll.Offset.Y);
         var offsets = rig.Run(1.0);
-        Assert.Equal(Notch(50, 1 / 240.0), offsets[0], 3);
-        Assert.Equal(50, offsets[^1]);
+        Assert.Equal(Notch(100, 1 / 240.0), offsets[0], 3);
+        Assert.Equal(100, offsets[^1]);
     });
 
     // ---- Traces for the review plots (E:/Droppy/work/review-scroll-physics/port-vs-mac-*.png) ----
@@ -700,21 +770,21 @@ public sealed class SoftScrollTests(HeadlessSession headless)
         foreach (var hz in new[] { 60, 240 })
         {
             var single = Physics();
-            Add("notch" + hz, Play(single, hz, 1.0, [(0.0, t => single.Notch(50, t, false))]));
+            Add("notch" + hz, Play(single, hz, 1.0, [(0.0, t => single.Notch(100, t, false))]));
         }
         foreach (var n in new[] { 2, 3, 4, 5, 6, 8, 10, 12, 13, 20, 40, 80, 160, 300 })
         {
             var burst = Physics();
-            Add("burst" + n, Play(burst, 240, 1.5, Enumerable.Range(0, n).Select(k => (n > 1 ? k * 0.05 / (n - 1) : 0, (Action<double>)(t => burst.Notch(50, t, false))))), new { notches = n, spread = 0.05 });
+            Add("burst" + n, Play(burst, 240, 1.5, Enumerable.Range(0, n).Select(k => (n > 1 ? k * 0.05 / (n - 1) : 0, (Action<double>)(t => burst.Notch(100, t, false))))), new { notches = n, spread = 0.05 });
         }
         foreach (var hz in new[] { 60, 240 })
         {
             var end = Physics(max: 276);
-            Add("end276@" + hz, Play(end, hz, 1.0, Enumerable.Range(0, 8).Select(k => (k * 0.0125, (Action<double>)(t => end.Notch(50, t, false))))), new { max = 276, notches = 8 });
+            Add("end276@" + hz, Play(end, hz, 1.0, Enumerable.Range(0, 8).Select(k => (k * 0.0125, (Action<double>)(t => end.Notch(100, t, false))))), new { max = 276, notches = 8 });
         }
         var fine = Physics();
         var fineTimes = new[] { 0, 0.011, 0.019, 0.031, 0.040, 0.054, 0.063, 0.079 };
-        Add("fineWheel", Play(fine, 240, 1.2, fineTimes.Select(t0 => (t0, (Action<double>)(t => fine.Notch(6.25, t, false))))), new { reports = fineTimes, points = 6.25 });
+        Add("fineWheel", Play(fine, 240, 1.2, fineTimes.Select(t0 => (t0, (Action<double>)(t => fine.Notch(12.5, t, false))))), new { reports = fineTimes, points = 12.5 });
         foreach (var hz in new[] { 60, 240 })
         {
             var stroke = Physics();

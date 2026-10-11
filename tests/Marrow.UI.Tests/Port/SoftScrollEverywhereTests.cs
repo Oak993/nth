@@ -19,11 +19,13 @@ namespace Marrow.UI.Tests.Port;
 [Collection("Headless")]
 public sealed class SoftScrollEverywhereTests(HeadlessSession headless)
 {
-    // A notch on `viewer` (over `at`): nothing moves in the report's own frame, the first frame moves part of the way, it
-    // takes at least six 60 Hz frames, and it comes to rest exactly one notch (50 points) on.
+    // A notch on `viewer` (over `at`): nothing moves in the report's own frame; then, frame by frame at 60 Hz, the two-stage
+    // curve of ED-NEW-softscroll-2 (from rest: 4.5 points in the first frame), over at least six frames, never an eighth of
+    // the notch in one, and at rest exactly one notch (100 points at the default 3 lines) on.
     private static void AssertGlides(SoftScrollRig rig, ScrollViewer viewer, Point at)
     {
         var before = viewer.Offset.Y;
+        var start = rig.Seconds;
         rig.Wheel(new Vector(0, -1), at);
         Assert.Equal(before, viewer.Offset.Y); // nothing in the report's own frame
         var moved = new List<double>();
@@ -32,12 +34,15 @@ public sealed class SoftScrollEverywhereTests(HeadlessSession headless)
             rig.Frame(60);
             rig.Window.UpdateLayout();
             moved.Add(viewer.Offset.Y - before);
+            var t = rig.Seconds - start;
+            var curve = Math.Min(100, 100.1 * (1 - (1 + t / ScrollPhysics.GlideStage) * Math.Exp(-t / ScrollPhysics.GlideStage)));
+            Assert.True(Math.Abs(moved[^1] - curve) < 1e-6, FormattableString.Invariant($"frame {k + 1}: {moved[^1]:F4}, the curve {curve:F4}"));
         }
-        Assert.InRange(moved[0], 0.01, 25); // the first frame moves part of the way
+        Assert.InRange(moved[0], 4.4, 4.5); // the first frame starts the motion from rest
         var steps = moved.Zip(moved.Prepend(0), (now, was) => now - was).ToArray();
         Assert.True(steps.Count(step => step >= 0.5) >= 6, "the notch moved in fewer than six frames: " + string.Join(" ", moved.Take(12).Select(m => m.ToString("F2", System.Globalization.CultureInfo.InvariantCulture))));
-        Assert.All(steps, step => Assert.InRange(step, -1e-6, 25)); // never back, never half a notch in one frame
-        Assert.Equal(50, moved[^1], 6);
+        Assert.All(steps, step => Assert.InRange(step, -1e-6, 12.5)); // never back, never an eighth of the notch in one frame
+        Assert.Equal(100, moved[^1], 6);
         Assert.False(SoftScroll.For(viewer).IsMoving);
     }
 
@@ -97,13 +102,13 @@ public sealed class SoftScrollEverywhereTests(HeadlessSession headless)
     [Trait("Decision", "ED-NEW-softscroll-1")]
     public void A_soft_inner_scroll_view_glides_and_at_its_end_the_page_glides_on() => headless.OnUiThread(() =>
     {
-        var inner = new ScrollViewer { Height = 100, VerticalAlignment = VerticalAlignment.Top, Content = new Border { Height = 150, Width = 100 } };
+        var inner = new ScrollViewer { Height = 100, VerticalAlignment = VerticalAlignment.Top, Content = new Border { Height = 200, Width = 100 } };
         using var rig = new SoftScrollRig(content: new StackPanel { Children = { inner, new Border { Height = 2000 } } });
         var over = new Point(50, 20);
-        AssertGlides(rig, inner, over); // 50 of its 50: at its end now
+        AssertGlides(rig, inner, over); // 100 of its 100: at its end now
         Assert.Equal(0, rig.Scroll.Offset.Y);
         AssertGlides(rig, rig.Scroll, over); // chained
-        Assert.Equal(50, inner.Offset.Y);
+        Assert.Equal(100, inner.Offset.Y);
     });
 
     [Fact]
@@ -122,7 +127,7 @@ public sealed class SoftScrollEverywhereTests(HeadlessSession headless)
         rig.Wheel(new Vector(0, -1), new Point(50, 20));
         rig.Run(0.5);
         Assert.Equal(1, taker.Reports);
-        Assert.Equal(50, rig.Scroll.Offset.Y, 6);
+        Assert.Equal(100, rig.Scroll.Offset.Y, 6);
     });
 
     [Fact]
