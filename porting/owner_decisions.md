@@ -1262,7 +1262,7 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 - **Owner, through the lead (2026-10-11):** Tactus pill v2 is approved: `E:\Droppy\work\design\pc-control\DESIGN.md` section 10 with its work units P21 to P30, and canvas v3 (https://claude.ai/artifact/3ejBMyVZiy44VPpycb5XLW), with the canvas defaults.
 - **Defaults ruled with it:** Esc pressed three times stays a stop path; Pause is Ctrl+Alt+Space; on resume nth sends "continue" to the chat by default (a setting can turn it off); Esc inside the pill's card only collapses the card.
 - **Effect:** Pause and Resume, the stop paths of DESIGN.md 10.2, the draggable pill with its three anchors, and answering Tactus's questions and cards from the pill are built to section 10 after units 1 to 7. This supersedes the earlier note that Pause and Resume were not part of Tactus (ED-NEW-pcctl-6 item 3, ED-NEW-pcctl-7 item 8).
-- **Engineering record:** ED-NEW-pcctl-9 onwards in `porting/engineering_decisions.md` (DESIGN.md 10.14 names the P21 entry ED-NEW-pcctl-8; that number was already used by the engine unit, so P21's entry is ED-NEW-pcctl-9).
+- **Engineering record:** ED-NEW-pcctl-11 onwards in `porting/engineering_decisions.md` (DESIGN.md 10.14 names the P21 entry ED-NEW-pcctl-8; that number was already used by the engine unit, and ED-NEW-pcctl-9 and ED-NEW-pcctl-10 by the capture and MCP units built before the pill, so P21's entry is ED-NEW-pcctl-11).
 
 ## OD-0146 Tactus's mark is Cuspis (2026-10-11)
 
