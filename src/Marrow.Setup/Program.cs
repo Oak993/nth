@@ -1,74 +1,88 @@
 using System.Diagnostics;
-using System.Reflection;
-using System.Runtime.InteropServices;
+using System.Security;
+using Avalonia.Threading;
 using Marrow.Core.Support;
+using Marrow.Setup.Flow;
+using Marrow.Setup.Platform;
+using Marrow.Setup.Port;
+using Marrow.Setup.Screens;
+using Marrow.Setup.Shell;
+using Marrow.Setup.Smoke;
+using Marrow.Setup.Text;
 
 namespace Marrow.Setup;
 
 /// <summary>
-/// PORT-ONLY (OD-0072, ED-247): the installer the owner shares. It checks what is installed (InstallerGate, unit tested
-/// in Marrow.Core.Tests) and only for a new install or an upgrade copies the embedded Velopack Setup.exe to a temporary
-/// folder, runs it with the same arguments, waits, deletes the copy and returns its exit code. The same version or a
-/// newer one installed: a message box, nothing run, nothing written.
+/// PORT-ONLY (OD-0072, ED-247; nth installer PLAN.md 3 and 10, unit U1, ED-NEW-inst-u1-1): the installer the owner shares.
+/// <c>--silent</c> and <c>--help</c> go to the unchanged gate (<see cref="LegacyGateHost"/>): no window. <c>--ui-smoke</c>
+/// runs the window's smoke checks and exits (it cannot install). Otherwise one setup window per user session: a second
+/// start brings the first to the front and exits 0. The window's first screen comes from what is installed
+/// (<see cref="SetupFlow"/>), and its own signature is checked while it shows.
 /// </summary>
 public static class Program
 {
-    private const string PayloadName = "VelopackSetup.exe";
+    private static readonly TimeSpan FocusPatience = TimeSpan.FromSeconds(3);
 
     [STAThread]
     public static int Main(string[] args)
     {
-        var host = new Win32InstallerHost();
+        var started = Stopwatch.GetTimestamp();
+        if (InstallerGate.IsSilent(args) || InstallerGate.IsHelp(args)) return LegacyGateHost.Run(args);
+
+        var smoke = UiSmoke.Read(args);
+        SingleInstance? instance = null;
+        if (smoke is null)
+        {
+            instance = SingleInstance.TryAcquire();
+            if (instance is null)
+            {
+                SingleInstance.FocusExisting(new WindowsFocuser(), FocusPatience);
+                return 0;
+            }
+        }
+        using (instance)
+        {
+            var (exitCode, installChosen) = RunWindow(args, instance, smoke, started);
+            return installChosen ? LegacyGateHost.Run(args) : exitCode; // STUB(U3/U4): the progress engine replaces the gate's run
+        }
+    }
+
+    private static (int ExitCode, bool InstallChosen) RunWindow(string[] args, SingleInstance? instance, UiSmokeOptions? smoke, long started)
+    {
+        SetupApp.Build().SetupWithoutStarting();
+        var settings = new SystemSettings(new WindowsSystemLookSource());
+        var window = new SetupWindow(settings);
+        var version = LegacyGateHost.Metadata("InstallerVersion");
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        string? problem = null;
+        SetupRoute route;
         try
         {
-            return InstallerGate.Run(host, Identity(), args);
+            route = SetupFlow.Route(version, LegacyGateHost.Metadata("InstallerAppId"), args, AppContext.BaseDirectory, localAppData, new RegistryUninstallKeys());
         }
-        catch (Exception error)
+        catch (Exception error) when (error is FormatException or IOException or UnauthorizedAccessException or SecurityException)
         {
-            if (!InstallerGate.IsSilent(args)) host.ShowMessage(InstallerGate.Caption(Metadata("InstallerTitle")), error.Message, warning: true);
-            return 1;
+            route = SetupFlow.Problem(localAppData);
+            problem = SetupStrings.ProblemOther;
         }
+        var session = new SetupSession(window, route, new InterimScreens(), version, canInstall: smoke is null);
+        if (problem is not null) session.Fail(problem);
+        window.HandleReady += handle => instance?.Publish(handle, Environment.ProcessId);
+        session.Start();
+
+        using var done = new CancellationTokenSource();
+        window.Closed += (_, _) => done.Cancel();
+        if (smoke is not null) window.Opened += (_, _) => _ = UiSmoke.RunAsync(session, smoke, started);
+        else _ = CheckSignatureAsync(session);
+        window.Show();
+        Dispatcher.UIThread.MainLoop(done.Token);
+        return (session.ExitCode, session.InstallChosen);
     }
 
-    private static InstallerIdentity Identity()
+    /// <summary>The self-signature check hashes the whole file, so it runs off the UI thread after the window shows.</summary>
+    private static async Task CheckSignatureAsync(SetupSession session)
     {
-        var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Metadata("InstallerAppId"));
-        return new InstallerIdentity(Metadata("InstallerTitle"), Metadata("InstallerVersion"), root, AppContext.BaseDirectory);
-    }
-
-    private static string Metadata(string key) =>
-        typeof(Program).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().FirstOrDefault(a => a.Key == key)?.Value ?? "";
-
-    private sealed class Win32InstallerHost : IInstallerGateHost
-    {
-        private const uint MbOk = 0x0, MbIconWarning = 0x30, MbIconInformation = 0x40, MbSetForeground = 0x10000;
-
-        public void ShowMessage(string caption, string text, bool warning) =>
-            _ = MessageBoxW(IntPtr.Zero, text, caption, MbOk | MbSetForeground | (warning ? MbIconWarning : MbIconInformation));
-
-        public int RunVelopackSetup(IReadOnlyList<string> arguments)
-        {
-            using var payload = typeof(Program).Assembly.GetManifestResourceStream(PayloadName)
-                ?? throw new InvalidOperationException("This installer was built without Velopack's Setup.exe.");
-            var folder = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "MarrowSetup-" + Guid.NewGuid().ToString("N"))).FullName;
-            try
-            {
-                var setup = Path.Combine(folder, "Setup.exe");
-                using (var file = File.Create(setup)) payload.CopyTo(file);
-                var start = new ProcessStartInfo(setup) { UseShellExecute = false, WorkingDirectory = folder };
-                foreach (var argument in arguments) start.ArgumentList.Add(argument);
-                using var process = Process.Start(start) ?? throw new InvalidOperationException("Velopack's Setup.exe did not start.");
-                process.WaitForExit();
-                return process.ExitCode;
-            }
-            finally
-            {
-                try { Directory.Delete(folder, recursive: true); }
-                catch (Exception error) when (error is IOException or UnauthorizedAccessException) { } // %TEMP% is cleaned by Windows
-            }
-        }
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern int MessageBoxW(IntPtr owner, string text, string caption, uint type);
+        var result = await SignatureCheck.VerifySelfAsync().ConfigureAwait(false);
+        Dispatcher.UIThread.Post(() => session.SignatureChecked(result));
     }
 }
