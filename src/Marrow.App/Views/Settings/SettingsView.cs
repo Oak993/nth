@@ -616,7 +616,7 @@ internal sealed class AppearanceSettingsPage : Decorator
             // the page's first card: a mini window, the Theme segmented control with the named-theme menu and the Accent row
             // (Port/LookCard.cs). The source's first card keeps its other rows.
             var look = new LookCard(settings) { ZIndex = 1 }; // its theme menu hangs over the cards below
-            var sidebar = new ChromeRow("Sidebar", () => new ChromeVisualPicker<SidebarMode, Control>(SwiftEnum<SidebarMode>.AllCases.Select(mode => (mode, mode.Title)).ToArray(), new Binding<SidebarMode>(() => settings.SidebarMode, value => settings.SidebarMode = value), mode => SwiftImage.SystemName(mode == SidebarMode.Column ? "sidebar.left" : mode == SidebarMode.Floating ? "macwindow.on.rectangle" : "macwindow"))); // :432-436
+            var sidebar = new ChromeRow("Sidebar", () => new ChromeVisualPicker<SidebarMode, Control>(SwiftEnum<SidebarMode>.AllCases.Select(mode => (mode, mode.Title)).ToArray(), new Binding<SidebarMode>(() => settings.SidebarMode, value => PickSidebarMode(model, value)), mode => SwiftImage.SystemName(mode == SidebarMode.Column ? "sidebar.left" : mode == SidebarMode.Floating ? "macwindow.on.rectangle" : "macwindow"))); // :432-436
             sidebar.Track(() => settings.SidebarMode, value => SettingsRowDetails.Update(sidebar, value.Detail));
             var activity = new ChromeRow("Activity list", () => new ChromeVisualPicker<ActivityThreadStyle, Control>(SwiftEnum<ActivityThreadStyle>.AllCases.Select(style => (style, style.Title)).ToArray(), new Binding<ActivityThreadStyle>(() => settings.ActivityThreadStyle, value => settings.ActivityThreadStyle = value), style => SwiftImage.SystemName(style == ActivityThreadStyle.Icon ? "list.bullet" : "text.alignleft"))); // :438-442
             activity.Track(() => settings.ActivityThreadStyle, value => SettingsRowDetails.Update(activity, value.Detail));
@@ -625,6 +625,31 @@ internal sealed class AppearanceSettingsPage : Decorator
             var rows = new StackPanel();
             foreach (var row in new Control[] { new ChromeRow("Transparency", () => new BackdropOpacitySlider(new Binding<double>(() => settings.BackdropOpacity, value => settings.BackdropOpacity = value)), "How much shows through the window"), sidebar, activity, open }) { if (rows.Children.Count > 0) rows.Children.Add(new ChromeRowDivider()); rows.Children.Add(row); }
             host.Child = new ChromeSection("Appearance", () => new StackPanel { Spacing = Chrome.SectionHeaderSpacing, Children = { look, new ChromeCard(() => rows), new WallpaperCard(), new AppZoomCard(new Binding<long>(() => settings.AppZoom, value => settings.AppZoom = value)), new Marrow.App.Port.ModelsPalette.PaletteColoursSection(model.CreatePaletteColoursController()) } }); // :452-454
+        });
+    }
+
+    // :432-436 the Sidebar picker's write, PORT-ONLY in two ways (ED-NEW-sidebarmodes-6). The Mac writes the mode alone, so the column
+    // keeps whatever state it had: picking Column while the column was collapsed (from Floating or Panel only) showed nothing at all, the
+    // list gone from the window, against the option's own "A column beside the chat". Here picking Column brings the column out when it is
+    // away; Floating and Panel only keep the Mac's behaviour (Floating with the column collapsed is the panel; Panel only is the panel).
+    // The write is always animated (on the picker's own Chrome.hover transaction, which its tiles follow, or on Chrome.panelSlide when
+    // there is none), so a column that comes or goes with the change slides on panelSlide as the toolbar button's does (RootView), and a
+    // floating panel that comes or goes scales and fades (RootView :48,51) instead of the window jumping to the new layout.
+    internal static void PickSidebarMode(AppModel model, SidebarMode mode)
+    {
+        var settings = model.Settings;
+        var sidebar = model.Sidebar;
+        var wasShown = settings.SidebarMode != SidebarMode.PanelOnly && sidebar.IsVisible; // RootView :19, the column drawn now
+        Transaction.WithAnimation(Transaction.Current ?? Chrome.PanelSlide, () =>
+        {
+            settings.SidebarMode = mode; // :433 the binding's own write
+            if (mode == SidebarMode.Column && !sidebar.IsVisible)
+            {
+                sidebar.Toggle(); // the toolbar button's own press: restores the resting width, opens the slide window, persists
+                return;
+            }
+            var shown = mode != SidebarMode.PanelOnly && sidebar.IsVisible;
+            if (shown != wasShown) sidebar.NoteColumnSlide(shown ? -sidebar.Width : sidebar.Width); // Toggle's sign: opening narrows the chat
         });
     }
 }

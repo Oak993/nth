@@ -292,6 +292,11 @@ public sealed class CommandPalette : Decorator
             new("new-worktree", "New thread in worktree", null, null, "arrow.triangle.branch", ShortcutStore.Label(AppShortcut.NewWorktreeThread), () => model.NewThread(workspace: WorkspaceMode.Worktree)), // :157-159
             new("add-project", "Add project", null, null, "folder.badge.plus", ShortcutStore.Label(AppShortcut.AddProject), () => model.ChooseProjectFolder()), // :160-162
         };
+        // DEVIATION OD-0008 C3 (ED-NEW-sidebarmodes-2): the View menu's "Toggle sidebar" (AppCommands.swift:38-39) has no menu bar to live
+        // in, and C3 keeps every menu command reachable from the palette; it was the one left out. Not offered in Panel only, which has no
+        // column to show or hide (its chord does nothing there either, AppCommands.cs).
+        if (model.Settings.SidebarMode != SidebarMode.PanelOnly)
+            actions.Add(new Item("toggle-sidebar", "Toggle sidebar", null, null, "sidebar.left", ShortcutStore.Label(AppShortcut.ToggleSidebar), () => model.Sidebar.Toggle()));
         if (model.SelectedThreadID is { } threadID) // :164
         {
             var runtime = model.Runtime(threadID); // :165, side effect: creates the runtime if it did not exist

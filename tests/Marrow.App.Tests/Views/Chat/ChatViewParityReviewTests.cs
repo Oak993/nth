@@ -311,10 +311,10 @@ public sealed class ChatViewParityReviewTests(HeadlessSession headless)
     }
 
     // PR-CHAT-173 / PR-CHAT-172 (round 1, second pass). ChatView.swift:1124-1131,1176-1180: `.animation(Chrome.panelSlide, value:
-    // sidebarVisible)` sits on the whole row, so when the window buttons move to the sidebar the Threads button leaves on its own
-    // softAppear while every other control's new place in the HStack is animated by that panelSlide: the row closes up by gliding,
-    // starting at once (a removed view keeps no slot in the stack). The port animates nothing in the row's layout: the controls
-    // are already at their new place 64 ms in, a 42 pt jump to the left instead of the spring's glide (OD-0076: never a cut).
+    // sidebarVisible)` sits on the whole row, so when the Threads button leaves on its own softAppear every other control's new place
+    // in the HStack is animated by that panelSlide: the row closes up by gliding, starting at once (a removed view keeps no slot in the
+    // stack), never a 42 pt jump (OD-0076: never a cut). ED-NEW-sidebarmodes-1: the button now leaves for Panel only rather than with
+    // the window buttons, and the row glides for it the same way.
     [Fact]
     [Trait("Req", "PR-CHAT-173")] // App/Views/Chat/ChatView.swift:1125-1131,1179
     [Trait("Req", "PR-CHAT-172")] // App/Views/Chat/ChatView.swift:1179 .animation(Chrome.panelSlide, value: sidebarVisible)
@@ -329,11 +329,11 @@ public sealed class ChatViewParityReviewTests(HeadlessSession headless)
             using var timeScope = SwiftClock.Provider.Override(time);
             var frames = new ManualFrameSource();
             using var frameScope = FrameClock.Source.Override(frames);
-            var (row, window) = ChromeRow(h, model, holds: false);
+            var (row, window) = ChromeRow(h, model, panelOnly: false);
             void Step(int milliseconds) => StepRow(h, window, time, frames, milliseconds);
             Step(0);
             var withButton = NewThreadX(h, row, window);
-            h.Main.OnMain(() => model.Sidebar.NoteLaidOutWidth(400)); // the window buttons move to the sidebar: the Threads button leaves.
+            h.Main.OnMain(() => model.Settings.SidebarMode = SidebarMode.PanelOnly); // Panel only: the Threads button leaves.
             Step(16);
             Step(48); // 64 ms into the panelSlide spring (response 0.32, damping 0.9): about 38 % of the way.
             var mid = NewThreadX(h, row, window);
@@ -360,11 +360,11 @@ public sealed class ChatViewParityReviewTests(HeadlessSession headless)
             using var timeScope = SwiftClock.Provider.Override(time);
             var frames = new ManualFrameSource();
             using var frameScope = FrameClock.Source.Override(frames);
-            var (row, window) = ChromeRow(h, model, holds: true);
+            var (row, window) = ChromeRow(h, model, panelOnly: true);
             void Step(int milliseconds) => StepRow(h, window, time, frames, milliseconds);
             Step(0);
             var without = NewThreadX(h, row, window);
-            h.Main.OnMain(() => model.Sidebar.NoteLaidOutWidth(0)); // the sidebar lets go of the window buttons: the Threads button arrives.
+            h.Main.OnMain(() => model.Settings.SidebarMode = SidebarMode.Column); // back to Column: the Threads button arrives.
             Step(0);
             var first = NewThreadX(h, row, window);
             for (var i = 0; i < 60; i++) Step(16);
@@ -374,11 +374,10 @@ public sealed class ChatViewParityReviewTests(HeadlessSession headless)
         });
     }
 
-    private static (ChatChromeRow Row, AvaloniaWindow Window) ChromeRow(AppModelHarness h, AppModel model, bool holds) => h.Main.OnMain(() =>
+    private static (ChatChromeRow Row, AvaloniaWindow Window) ChromeRow(AppModelHarness h, AppModel model, bool panelOnly) => h.Main.OnMain(() =>
     {
-        model.Settings.SidebarFloats = false;
+        model.Settings.SidebarMode = panelOnly ? SidebarMode.PanelOnly : SidebarMode.Column;
         model.Settings.HydraEnabled = false;
-        if (holds) model.Sidebar.NoteLaidOutWidth(400);
         var runtime = model.Runtime(model.NewThread(model.AddProject(new Project("P", h.NewFolder("p")).Url))!.Id);
         var row = new ChatChromeRow(model, runtime, new ChromeScrollModel(), "T", null, h.Scratch, new GitStatusModel());
         var window = new AvaloniaWindow { Content = row, Width = 1400, Height = 300 };

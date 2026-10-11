@@ -103,7 +103,8 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
             {
                 var (_, _, palette) = Build(model);
                 var titles = Titles(palette);
-                Assert.Equal("Settings", titles[3]); // fourth row: no thread selected
+                Assert.Equal("Toggle sidebar", titles[3]); // ED-NEW-sidebarmodes-2: the View menu's command (AppCommands.swift:38), in Column by default
+                Assert.Equal("Settings", titles[4]); // fifth row: no thread selected
             });
         });
     }
@@ -127,12 +128,12 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
             {
                 (_, window, palette) = Build(model);
                 var titles = Titles(palette);
-                Assert.Equal("Welcome tour", titles[4]); // right after Settings (titles[3])
-                var row = RowParts(palette.RowsPanel.Children[4]);
+                Assert.Equal("Welcome tour", titles[5]); // right after Settings (titles[4]; Toggle sidebar is titles[3], ED-NEW-sidebarmodes-2)
+                var row = RowParts(palette.RowsPanel.Children[5]);
                 Assert.Equal("sparkles", Assert.IsType<SwiftImage>(Assert.Single(row.Icon.Children)).SymbolName);
-                Assert.Equal("welcome-tour", CommandPaletteRig.RowId(palette.RowsPanel.Children[4])); // OD-0053: place, symbol and id
+                Assert.Equal("welcome-tour", CommandPaletteRig.RowId(palette.RowsPanel.Children[5])); // OD-0053: place, symbol and id
                 Assert.True(string.IsNullOrEmpty(row.Chord.Text)); // the source gives the command no shortcut
-                Assert.True(palette.RowsPanel.Children[4].IsEnabled);
+                Assert.True(palette.RowsPanel.Children[5].IsEnabled);
                 // with a thread selected the row still follows Settings
                 var project = model.AddProject(new Project("P", directory).Url);
                 model.SelectedThreadID = model.NewThread(project)!.Id;

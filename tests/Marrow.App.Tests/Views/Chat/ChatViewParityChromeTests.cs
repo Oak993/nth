@@ -77,18 +77,22 @@ public sealed class ChatViewParityChromeTests(HeadlessSession headless)
         return (clipboard.TryGetTextAsync().GetAwaiter().GetResult(), formats.Contains(DataFormat.Bitmap));
     }
 
-    // ---- PR-CHAT-173 / UI-CHAT-074 / PR-CHAT-174: the Threads button -------------------------------------------------
+    // ---- PR-CHAT-173 / UI-CHAT-074 / PR-CHAT-174: the toolbar's sidebar button (ED-NEW-sidebarmodes-1) -----------------------
+    // The Mac drew it only while the column was away and, in Column mode, hung a popover of the sidebar from it; the port has no
+    // menu bar to hide an open column from, so the button stays in Column and Floating, open or not, always shows or hides the
+    // column, and is absent only in Panel only ("No column and no toolbar button").
 
     [Theory]
-    [InlineData(false, false, false, "Threads")]
-    [InlineData(false, true, false, "Show the sidebar")]
-    [InlineData(false, false, true, "Threads")] // sidebarOnlyFloats means nothing without sidebarFloats.
-    [InlineData(false, true, true, null)] // the list floats as the only sidebar: nothing to open.
-    [InlineData(true, false, false, null)] // the sidebar holds the window buttons.
-    [InlineData(true, true, true, null)]
-    [Trait("Req", "PR-CHAT-173")] // App/Views/Chat/ChatView.swift:1125-1131,1249-1254
+    [InlineData(false, false, false, false, true)]
+    [InlineData(false, true, false, false, true)]
+    [InlineData(false, false, true, false, true)] // sidebarOnlyFloats means nothing without sidebarFloats.
+    [InlineData(false, true, true, false, false)] // Panel only: the list floats as the only sidebar, no button.
+    [InlineData(true, false, false, true, true)] // the column is open and holds the window buttons: the button stays, to hide it.
+    [InlineData(true, true, false, true, true)]
+    [InlineData(true, true, true, true, false)]
+    [Trait("Req", "PR-CHAT-173")] // App/Views/Chat/ChatView.swift:1125-1131,1249-1254; ED-NEW-sidebarmodes-1
     [Trait("Req", "UI-CHAT-074")] // App/Views/Chat/ChatView.swift:1125-1131,1244-1265
-    public void The_Threads_button_exists_only_while_the_sidebar_is_away_and_not_the_only_floating_list(bool holds, bool floats, bool onlyFloats, string? tip)
+    public void The_sidebar_button_leads_the_row_in_Column_and_Floating_open_or_not_and_is_absent_only_in_Panel_only(bool holds, bool floats, bool onlyFloats, bool open, bool present)
     {
         ChatHeadlessFixtures.Run(headless, () =>
         {
@@ -98,24 +102,31 @@ public sealed class ChatViewParityChromeTests(HeadlessSession headless)
             {
                 model.Settings.SidebarFloats = floats;
                 model.Settings.SidebarOnlyFloats = onlyFloats;
+                if (open) model.Sidebar.Toggle();
+                Assert.Equal(open, model.Sidebar.IsVisible);
                 if (holds) model.Sidebar.NoteLaidOutWidth(400);
                 Assert.Equal(holds, model.Sidebar.HoldsTrafficLights);
                 var row = new ChatChromeRow(model, NewRuntime(h, model), new ChromeScrollModel(), "T", null, h.Scratch, new GitStatusModel());
                 var button = LogicalQuery.SelfAndDescendants<ThreadsButton>(row).SingleOrDefault();
-                Assert.Equal(tip is null, button is null);
+                Assert.Equal(present, button is not null);
                 if (button is null) return;
                 Assert.Same(LogicalQuery.SelfAndDescendants<StackPanel>(row).First().Children[0], SwiftTransition.Container(button)); // the first slot.
-                Assert.Equal(tip, Tip(LogicalQuery.SelfAndDescendants<Button>(button).Single()));
+                var words = (open ? "Hide the sidebar" : "Show the sidebar") + ShortcutStore.Hint(AppShortcut.ToggleSidebar);
+                var press = LogicalQuery.SelfAndDescendants<Button>(button).Single();
+                Assert.Equal(words, Tip(press));
+                Assert.Equal(words, Avalonia.Automation.AutomationProperties.GetName(press));
                 Assert.Equal(["list.bullet"], Symbols(button));
             });
         });
     }
 
-    [Fact]
-    [Trait("Req", "PR-CHAT-173")] // App/Views/Chat/ChatView.swift:1253 `isPresented.toggle()`
-    [Trait("Req", "PR-CHAT-174")] // App/Views/Chat/ChatView.swift:1255-1259
+    [Theory]
+    [InlineData(false)] // Column: "the list button in the toolbar shows and hides it" (AppSettings.swift:63)
+    [InlineData(true)] // Floating: the Mac's own press (ChatView.swift:1253), and now the way back to the panel
+    [Trait("Req", "PR-CHAT-173")] // App/Views/Chat/ChatView.swift:1251-1254; ED-NEW-sidebarmodes-1
+    [Trait("Req", "PR-CHAT-174")] // App/Views/Chat/ChatView.swift:1255-1259, removed: no popover of the sidebar
     [Trait("Req", "UI-CHAT-074")] // App/Views/Chat/ChatView.swift:1244-1265
-    public void Without_floating_the_press_toggles_a_bottom_popover_of_the_sidebar_at_its_live_width_whose_dismiss_closes_it()
+    public void The_press_shows_and_hides_the_column_and_never_presents_a_popover_its_words_following_in_place(bool floats)
     {
         ChatHeadlessFixtures.Run(headless, () =>
         {
@@ -123,54 +134,46 @@ public sealed class ChatViewParityChromeTests(HeadlessSession headless)
             var model = h.MakeModel();
             var recorder = new RecordingPresenter();
             using var presenter = Presentation.Presenter.Override(recorder);
+            using var store = ShortcutStore.Shared.Override(h.Main.OnMain(() => (ShortcutStore)Activator.CreateInstance(typeof(ShortcutStore), nonPublic: true)!));
             Button button = null!;
-            var wasVisible = false;
+            ThreadsButton threads = null!;
             void Drain() { h.Main.RunUntilIdle(); Dispatcher.UIThread.RunJobs(); }
             h.Main.OnMain(() =>
             {
-                model.Settings.SidebarFloats = false;
-                var threads = new ThreadsButton(model);
+                model.Settings.SidebarFloats = floats;
+                Assert.False(model.Sidebar.IsVisible);
+                threads = new ThreadsButton(model);
                 Host(threads, 400);
                 button = LogicalQuery.SelfAndDescendants<Button>(threads).Single();
-                wasVisible = model.Sidebar.IsVisible;
+                Assert.Equal("Show the sidebar (Ctrl+B)", Tip(button)); // the default chord, in Windows notation
                 ChatGitFixtures.Click(button);
+                Assert.True(model.Sidebar.IsVisible); // the column, at once
             });
             Drain();
             h.Main.OnMain(() =>
             {
-                var (popup, presented) = Assert.Single(recorder.Calls);
-                Assert.True(presented);
-                Assert.Equal(wasVisible, model.Sidebar.IsVisible); // the popover, not the sidebar.
-                var circle = Assert.IsType<ChromeCircleButton>(popup.PlacementTarget); // hung from the button itself (:1255).
-                Assert.Contains(button, LogicalQuery.SelfAndDescendants<Button>(circle));
-                Assert.Equal(PlacementMode.Bottom, popup.Placement); // :1255 arrowEdge: .bottom
-                var sidebar = Assert.Single(LogicalQuery.SelfAndDescendants<SidebarView>(popup.Child!));
-                Assert.Equal(model.Sidebar.Width, sidebar.Width);
-                Assert.Equal(560, sidebar.Height);
-                Assert.True(Popovers.GetIsCapsuleButtonBorderShape(PopoverHost.Content(popup)!)); // .presentedChrome() on the site's own content (the presenter hangs it on its card, OD-0095)
-                ((Action)typeof(SidebarView).GetField("dismiss", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(sidebar)!)();
+                Assert.Empty(recorder.Calls); // nothing hung from the button
+                Assert.Same(button, LogicalQuery.SelfAndDescendants<Button>(threads).Single()); // the same button, its words changed in place
+                Assert.Equal("Hide the sidebar (Ctrl+B)", Tip(button));
+                Assert.Equal("Hide the sidebar (Ctrl+B)", Avalonia.Automation.AutomationProperties.GetName(button));
+                ChatGitFixtures.Click(button); // the same press hides it again
+                Assert.False(model.Sidebar.IsVisible);
             });
             Drain();
-            Assert.False(recorder.Calls[^1].Presented); // dismiss: { isPresented = false }
-            h.Main.OnMain(() => ChatGitFixtures.Click(button));
-            Drain();
-            Assert.True(recorder.Calls[^1].Presented);
-            h.Main.OnMain(() => ChatGitFixtures.Click(button)); // the same press closes it (:1253 isPresented.toggle()).
-            Drain();
-            Assert.False(recorder.Calls[^1].Presented);
-            // The content is built from the sidebar's own width each time it is made (:1257 model.sidebar.width).
             h.Main.OnMain(() =>
             {
-                typeof(SidebarLayout).GetProperty(nameof(SidebarLayout.Width))!.SetValue(model.Sidebar, 312d);
-                Assert.Equal(312, LogicalQuery.SelfAndDescendants<SidebarView>(ThreadsButton.BuildSidebarPopover(model, () => { })).Single().Width);
+                Assert.Empty(recorder.Calls);
+                Assert.Equal("Show the sidebar (Ctrl+B)", Tip(button));
+                Assert.Empty(LogicalQuery.SelfAndDescendants<SidebarView>(threads)); // no popover form of the sidebar anywhere in it
             });
+            Assert.Null(typeof(ThreadsButton).GetMethod("BuildSidebarPopover", BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Public)); // the dropdown is gone
         });
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-173")] // App/Views/Chat/ChatView.swift:1129-1131 `.transition(.softAppear)`
+    [Trait("Req", "PR-CHAT-173")] // App/Views/Chat/ChatView.swift:1129-1131 `.transition(.softAppear)`; ED-NEW-sidebarmodes-1
     [Trait("Req", "UI-CHAT-074")] // App/Views/Chat/ChatView.swift:1130
-    public void The_Threads_button_leaves_and_arrives_through_soft_appear_rather_than_a_cut()
+    public void The_sidebar_button_stays_when_the_column_takes_the_window_buttons_and_leaves_for_Panel_only_through_soft_appear_rather_than_a_cut()
     {
         ChatHeadlessFixtures.Run(headless, () =>
         {
@@ -182,18 +185,26 @@ public sealed class ChatViewParityChromeTests(HeadlessSession headless)
             var frames = new ManualFrameSource();
             using var frameScope = FrameClock.Source.Override(frames);
             ChatChromeRow row = null!;
+            ThreadsButton before = null!;
+            void Run() { for (var i = 0; i < 40; i++) { time.Advance(TimeSpan.FromMilliseconds(16)); frames.Advance(TimeSpan.FromMilliseconds(16)); h.Main.RunUntilIdle(); Dispatcher.UIThread.RunJobs(); } }
             h.Main.OnMain(() =>
             {
                 model.Settings.SidebarFloats = false;
                 row = new ChatChromeRow(model, NewRuntime(h, model), new ChromeScrollModel(), "T", null, h.Scratch, new GitStatusModel());
                 Host(row);
-                Assert.Single(LogicalQuery.SelfAndDescendants<ThreadsButton>(row));
-                model.Sidebar.NoteLaidOutWidth(400); // the window buttons move to the sidebar: the button leaves with them.
+                before = Assert.Single(LogicalQuery.SelfAndDescendants<ThreadsButton>(row));
+                model.Sidebar.NoteLaidOutWidth(400); // the window buttons move to the sidebar: the button stays.
             });
+            Run();
+            Assert.Same(before, Assert.Single(h.Main.OnMain(() => LogicalQuery.SelfAndDescendants<ThreadsButton>(row))));
+            h.Main.OnMain(() => model.Settings.SidebarFloats = true); // Column to Floating: the same button, no exit and no arrival
+            Run();
+            Assert.Same(before, Assert.Single(h.Main.OnMain(() => LogicalQuery.SelfAndDescendants<ThreadsButton>(row))));
+            h.Main.OnMain(() => model.Settings.SidebarOnlyFloats = true); // Panel only: it leaves
             h.Main.RunUntilIdle();
             Dispatcher.UIThread.RunJobs();
             Assert.Single(h.Main.OnMain(() => LogicalQuery.SelfAndDescendants<ThreadsButton>(row))); // still on screen mid-fade, not cut.
-            for (var i = 0; i < 40; i++) { time.Advance(TimeSpan.FromMilliseconds(16)); frames.Advance(TimeSpan.FromMilliseconds(16)); h.Main.RunUntilIdle(); Dispatcher.UIThread.RunJobs(); }
+            Run();
             Assert.Empty(h.Main.OnMain(() => LogicalQuery.SelfAndDescendants<ThreadsButton>(row)));
         });
     }
@@ -278,6 +289,10 @@ public sealed class ChatViewParityChromeTests(HeadlessSession headless)
                 var project = model.AddProject(new Project("LifeOS-Migration", h.NewFolder("project")).Url);
                 var runtime = model.Runtime(model.NewThread(project)!.Id);
                 model.Sidebar.NoteLaidOutWidth(400);
+                // The Mac was measured with its column holding the window buttons, where it draws no list button. The port keeps the list
+                // button in that state (ED-NEW-sidebarmodes-1), so the same row without it is Panel only's; the list button's own slot
+                // in Column is checked after.
+                model.Settings.SidebarMode = SidebarMode.PanelOnly;
                 var row = new ChatChromeRow(model, runtime, new ChromeScrollModel(), "Establish LifeOS repo baseline framework", project, project.Path, new GitStatusModel())
                 { VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
                 var window = Host(row, 2290);
@@ -304,6 +319,27 @@ public sealed class ChatViewParityChromeTests(HeadlessSession headless)
                 Assert.Equal(8, Box(capsules[1]).X - Box(capsules[0]).Right, 0.5);
                 Assert.Equal(12, Box(capsules[0]).Y, 0.5);
                 Assert.Equal(2290 - WindowChrome.CaptionTrailingReserve, Box(capsules[1]).Right, 0.5); // OD-0044 (the Mac: 2290 - 14).
+                window.Close();
+
+                // Column, the column open and holding the window buttons: the list button takes the first 32-point slot and every control
+                // after it moves along by one slot (32 + the row's 10-point spacing); the trailing capsules stay put.
+                model.Settings.SidebarMode = SidebarMode.Column;
+                var withList = new ChatChromeRow(model, runtime, new ChromeScrollModel(), "Establish LifeOS repo baseline framework", project, project.Path, new GitStatusModel())
+                { VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
+                window = Host(withList, 2290);
+                var list = LogicalQuery.SelfAndDescendants<Button>(LogicalQuery.SelfAndDescendants<ThreadsButton>(withList).Single()).Single();
+                Assert.Equal(14, Box(list).X, 0.5);
+                Assert.Equal(12, Box(list).Y, 0.5);
+                Assert.Equal(32, list.Bounds.Width, 0.5);
+                var moved = new Control[]
+                {
+                    LogicalQuery.SelfAndDescendants<ChromeCircleButton>(withList).Single(c => (Tip(LogicalQuery.SelfAndDescendants<Button>(c).First()) ?? "").StartsWith("New thread", StringComparison.Ordinal)),
+                    LogicalQuery.SelfAndDescendants<HydraButton>(withList).Single(),
+                    LogicalQuery.SelfAndDescendants<ChromeCircleMenu>(withList).Single(),
+                };
+                for (var i = 0; i < 3; i++) Assert.Equal(expected[i] + 42, Box(LogicalQuery.SelfAndDescendants<Button>(moved[i]).First()).X, 0.5);
+                Assert.Equal(140 + 42, Box(LogicalQuery.SelfAndDescendants<TextBlock>(LogicalQuery.SelfAndDescendants<ChatChromeTitle>(withList).Single()).Single()).X, 0.5);
+                Assert.Equal(2290 - WindowChrome.CaptionTrailingReserve, Box(LogicalQuery.SelfAndDescendants<ChromeCapsule>(withList).Last()).Right, 0.5);
             });
         });
     }

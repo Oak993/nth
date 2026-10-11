@@ -446,6 +446,11 @@ public sealed class SidebarLayout : MainActorModel
         });
     }
 
+    /// <summary>PORT-ONLY (ED-NEW-sidebarmodes-6): a Settings › Sidebar change that brings the column in or takes it away (Panel only
+    /// and back) moves the chat's leading edge by <paramref name="delta"/> just as <see cref="Toggle"/> does, so it opens the same slide
+    /// window (:310-320), in which the chat lays its text out once at the width it is heading for rather than on every frame.</summary>
+    public void NoteColumnSlide(double delta) => BeginSlide(delta);
+
     /// <summary>:322-338 <c>func beginDrag()</c>.</summary>
     public void BeginDrag()
     {

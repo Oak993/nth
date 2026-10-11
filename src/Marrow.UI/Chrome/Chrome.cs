@@ -916,13 +916,27 @@ namespace Marrow.UI.Chrome
                 Height = Chrome.CapsuleHeight,
                 Children = { new Ellipse { Fill = Brushes.Transparent }, image }, // :426 .contentShape(Circle())
             };
-            var button = PlainControls.Button(label, action); // :421, :428
+            var button = this.button = PlainControls.Button(label, action); // :421, :428
             button.Clip = new EllipseGeometry(new Rect(0, 0, Chrome.CapsuleHeight, Chrome.CapsuleHeight)); // :426 .contentShape(Circle())
             var surface = button.ChromeGlassCircle(); // :429
             surface.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :430-432
-            ToolTip.SetTip(button, help); // :433
-            AutomationProperties.SetName(button, help); // :434
+            Help = help; // :433-434
             Child = PlainControls.Background(surface, new NoWindowDragArea()); // :435
+        }
+
+        private readonly Button button;
+
+        /// <summary>:415 <c>help</c>: the tooltip (:433) and the accessible name (:434). PORT-ONLY setter (ED-NEW-sidebarmodes-1): a
+        /// button whose words follow a state (the toolbar's sidebar button, "Show the sidebar" / "Hide the sidebar") keeps its
+        /// identity, its hover and its place in the row while they change.</summary>
+        public string Help
+        {
+            get => ToolTip.GetTip(button) as string ?? "";
+            set
+            {
+                ToolTip.SetTip(button, value); // :433
+                AutomationProperties.SetName(button, value); // :434
+            }
         }
     }
 

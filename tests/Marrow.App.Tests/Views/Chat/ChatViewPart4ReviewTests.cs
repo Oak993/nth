@@ -70,9 +70,11 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
         });
     }
 
+    // ED-NEW-sidebarmodes-1: the Column-mode popover of the sidebar (:1255-1259) is gone; the button is the round glass button alone, with no
+    // popover host beside it, and its press brings out the window's own column at the sidebar's live width instead.
     [Fact]
-    [Trait("Req", "PR-CHAT-174")] // App/Views/Chat/ChatView.swift:1255-1259
-    public void The_threads_popover_factory_uses_the_sidebar_width_and_fixed_five_hundred_sixty_height()
+    [Trait("Req", "PR-CHAT-174")] // App/Views/Chat/ChatView.swift:1255-1259, removed
+    public void The_threads_button_has_no_popover_factory_and_its_press_brings_out_the_column_at_the_sidebars_width()
     {
         ChatHeadlessFixtures.Run(headless, () =>
         {
@@ -80,13 +82,15 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
             var model = h.MakeModel();
             h.Main.OnMain(() =>
             {
-                var build = typeof(ThreadsButton).GetMethod("BuildSidebarPopover", BindingFlags.NonPublic | BindingFlags.Static);
-                Assert.NotNull(build);
-                var popup = (Control)build.Invoke(null, [model, (Action)(() => { })])!;
-                var sidebar = Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.App.Views.Sidebar.SidebarView>(popup));
-                Assert.Equal(model.Sidebar.Width, sidebar.Width);
-                Assert.Equal(560, sidebar.Height);
-                Assert.True(Popovers.GetIsCapsuleButtonBorderShape(popup)); // :1258; UI/Chrome/Popovers.swift:8-12, capsule modifier, not a backdrop wrapper.
+                Assert.Null(typeof(ThreadsButton).GetMethod("BuildSidebarPopover", BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Public));
+                var threads = new ThreadsButton(model);
+                var circle = Assert.IsType<ChromeCircleButton>(threads.Child);
+                Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.App.Views.Sidebar.SidebarView>(threads));
+                Assert.False(model.Sidebar.IsVisible);
+                LogicalQuery.SelfAndDescendants<Button>(circle).Single().RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                Assert.True(model.Sidebar.IsVisible);
+                Assert.Equal(model.Sidebar.Width, model.Sidebar.RenderedWidth);
+                Assert.InRange(model.Sidebar.Width, SidebarLayout.MinimumWidth, SidebarLayout.MaximumWidth);
             });
         });
     }

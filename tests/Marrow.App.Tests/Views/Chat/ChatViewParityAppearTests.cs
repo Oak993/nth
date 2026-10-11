@@ -25,9 +25,9 @@ namespace Marrow.App.Tests.Views.Chat;
 [Collection("Headless")]
 public sealed class ChatViewParityAppearTests(HeadlessSession headless)
 {
-    private static (ChatChromeRow Row, AvaloniaWindow Window, ThreadRuntime Runtime) MakeRow(AppModelHarness h, AppModel model, bool sidebarHoldsButtons, bool hydra) => h.Main.OnMain(() =>
+    private static (ChatChromeRow Row, AvaloniaWindow Window, ThreadRuntime Runtime) MakeRow(AppModelHarness h, AppModel model, bool sidebarHoldsButtons, bool hydra, bool panelOnly = false) => h.Main.OnMain(() =>
     {
-        model.Settings.SidebarFloats = false;
+        model.Settings.SidebarMode = panelOnly ? SidebarMode.PanelOnly : SidebarMode.Column;
         model.Settings.HydraEnabled = hydra;
         if (sidebarHoldsButtons) model.Sidebar.NoteLaidOutWidth(400);
         var runtime = model.Runtime(model.NewThread(model.AddProject(new Project("P", h.NewFolder("p")).Url))!.Id);
@@ -58,7 +58,7 @@ public sealed class ChatViewParityAppearTests(HeadlessSession headless)
     });
 
     // The arrival: faded out and 4 points low on the first frame, then Opacity = p and Rise = 4 (1 - p) on the softAppear curve, whole at its end.
-    private void AssertArrives<T>(bool sidebarHoldsButtons, bool hydra, Action<AppModel> trigger) where T : Control
+    private void AssertArrives<T>(bool sidebarHoldsButtons, bool hydra, Action<AppModel> trigger, bool panelOnly = false) where T : Control
     {
         ChatHeadlessFixtures.Run(headless, () =>
         {
@@ -69,7 +69,7 @@ public sealed class ChatViewParityAppearTests(HeadlessSession headless)
             using var timeScope = SwiftClock.Provider.Override(time);
             var frames = new ManualFrameSource();
             using var frameScope = FrameClock.Source.Override(frames);
-            var (row, window, _) = MakeRow(h, model, sidebarHoldsButtons, hydra);
+            var (row, window, _) = MakeRow(h, model, sidebarHoldsButtons, hydra, panelOnly);
             Step(h, window, time, frames, 0);
             Assert.Empty(LogicalQuery.SelfAndDescendants<T>(row));
             h.Main.OnMain(() => trigger(model));
@@ -96,7 +96,7 @@ public sealed class ChatViewParityAppearTests(HeadlessSession headless)
     }
 
     // The departure: a plain fade on .easeOut(duration: 0.12) with no rise, and the control is gone when it ends.
-    private void AssertLeaves<T>(bool sidebarHoldsButtons, bool hydra, Action<AppModel> trigger) where T : Control
+    private void AssertLeaves<T>(bool sidebarHoldsButtons, bool hydra, Action<AppModel> trigger, bool panelOnly = false) where T : Control
     {
         ChatHeadlessFixtures.Run(headless, () =>
         {
@@ -107,7 +107,7 @@ public sealed class ChatViewParityAppearTests(HeadlessSession headless)
             using var timeScope = SwiftClock.Provider.Override(time);
             var frames = new ManualFrameSource();
             using var frameScope = FrameClock.Source.Override(frames);
-            var (row, window, _) = MakeRow(h, model, sidebarHoldsButtons, hydra);
+            var (row, window, _) = MakeRow(h, model, sidebarHoldsButtons, hydra, panelOnly);
             Step(h, window, time, frames, 0);
             Step(h, window, time, frames, 400);
             var settled = Look<T>(h, row, window);
@@ -137,12 +137,12 @@ public sealed class ChatViewParityAppearTests(HeadlessSession headless)
     [Fact]
     [Trait("Rule", "R-TEST-4")] // ChatView.swift:1129-1131; Chrome.swift:938-960 (PR-CHAT-173 and UI-CHAT-074, the arrival half); ED-278
     public void The_Threads_button_arrives_on_the_soft_appear_curve_fading_in_with_a_4_point_rise() =>
-        AssertArrives<ThreadsButton>(sidebarHoldsButtons: true, hydra: false, model => model.Sidebar.NoteLaidOutWidth(0));
+        AssertArrives<ThreadsButton>(sidebarHoldsButtons: true, hydra: false, model => model.Settings.SidebarMode = SidebarMode.Column, panelOnly: true); // ED-NEW-sidebarmodes-1: it comes back with Column, not with the window buttons
 
     [Fact]
     [Trait("Rule", "R-TEST-4")] // ChatView.swift:1129-1131; Chrome.swift:948-956 (PR-CHAT-173 and UI-CHAT-074, the departure half); ED-278
     public void The_Threads_button_leaves_on_an_ease_out_fade_of_0_12_seconds_without_sinking() =>
-        AssertLeaves<ThreadsButton>(sidebarHoldsButtons: false, hydra: false, model => model.Sidebar.NoteLaidOutWidth(400));
+        AssertLeaves<ThreadsButton>(sidebarHoldsButtons: false, hydra: false, model => model.Settings.SidebarMode = SidebarMode.PanelOnly); // ED-NEW-sidebarmodes-1: it leaves for Panel only
 
     [Fact]
     [Trait("Rule", "R-TEST-4")] // ChatView.swift:1138-1140; Chrome.swift:938-960 (the Hydra slot of PR-CHAT-171, the arrival half); ED-278
