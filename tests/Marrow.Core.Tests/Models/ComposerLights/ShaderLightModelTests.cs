@@ -2,11 +2,12 @@ using Marrow.Core.Models.ComposerLights;
 
 namespace Marrow.Core.Tests.Models.ComposerLights;
 
-// PORT-ONLY, owner-ruled addition (OD-0139 Composer Light v2, v3 and v4; ED-NEW-lightv2-2, -4, -5, -6): the shader lights'
-// catalogue, settings and motion. Every light is listed with every control; each light's options, Custom colours, the Text
-// and light settings and the wallpaper's dimming persist; the loop moves with the speed and the state's rate and stands at
-// the light's still under Reduce Motion; the state's energy eases (no jumps); keystrokes lift and age as the page's do; the
-// wallpaper's veil is off with no light or no wallpaper and follows the measured wallpaper.
+// PORT-ONLY, owner-ruled addition (OD-0139 Composer Light v2, v3 and v4; ED-NEW-lightv2-2, -4, -5, -6, -8): the shader
+// lights' catalogue, settings and motion. Every light is listed with every control; each light's options, Custom colours, the
+// Text and light settings and the wallpaper's dimming persist; the loop moves with the speed and the state's rate and stands
+// at the light's still under Reduce Motion; the state's energy eases (no jumps); keystrokes lift and age as the page's do; the
+// readability guard follows a brighter light at once and lets go of a dimmer one over 150 ms; the wallpaper's veil is off
+// with no light or no wallpaper and follows the measured wallpaper.
 public sealed class ShaderLightModelTests
 {
     private static readonly string[] Ids =
@@ -124,6 +125,39 @@ public sealed class ShaderLightModelTests
         b.Advance(5, 1, 5);
         b.Produce(5, 400, 46, 23);
         Assert.Equal((ShaderLightCatalog.Find("nebula")!.Still + 1.9 * .05 / 24) % 1, b.Drawn[0].Loop, 6);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-lightv2-8")]
+    public void The_readability_guard_follows_a_brighter_light_at_once_and_lets_go_over_150_ms()
+    {
+        var a = Animate(On("nebula"), phase: ComposerLightPhase.Running);
+        double Lift(double now) { a.Produce(now, 400, 46, 23); return a.Drawn[0].GuardLift; }
+        double Bright() => (.38 + .82 * a.Energy) * (1 + .3 * a.KeyLift); // the light's brightness over its (steady) intensity
+        a.Advance(1 / 60.0, 1, 1 / 60.0);
+        Assert.Equal(1, Lift(1 / 60.0), 9);          // a steady light: nothing held
+        var held = Bright();
+        a.Keystroke(80);
+        Assert.Equal(1, Lift(1 / 60.0), 9);          // a brighter light: the guard reads it at once (no lag behind it)
+        double last = 1, most = 1;
+        for (var i = 2; i <= 91; i++)
+        {
+            a.Advance(1 / 60.0, 1, i / 60.0);
+            var b = Bright();
+            held = b >= held ? b : b + (held - b) * Math.Exp(-1 / 60.0 / ShaderLightAnimator.GuardSeconds);
+            var lift = Lift(i / 60.0);
+            Assert.Equal(held / b, lift, 6);         // as the keystroke's lift fades, the guard lets go over .15 s
+            Assert.InRange(lift - last, -.02, .02);  // no jumps from frame to frame
+            (last, most) = (lift, Math.Max(most, lift));
+        }
+        Assert.Equal(.15, ShaderLightAnimator.GuardSeconds);
+        Assert.InRange(most, 1.03, 1.1);             // a hold while the light dims ...
+        Assert.InRange(last, 1, 1.001);              // ... and none once it is steady again
+        var still = Animate(On("nebula"), reduce: true, phase: ComposerLightPhase.Running);
+        still.Keystroke(80);
+        still.Advance(1 / 60.0, 1, 1 / 60.0);
+        still.Produce(1 / 60.0, 400, 46, 23);
+        Assert.Equal(1, still.Drawn[0].GuardLift);  // Reduce Motion: a still light, nothing held
     }
 
     [Fact]

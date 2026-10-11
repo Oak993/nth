@@ -48,7 +48,7 @@ public sealed class ShaderLightReferenceTests
         var at = (int)Math.Ceiling(frame.Reach);
         var info = new SKImageInfo(ComposerWidth + 2 * at, ComposerHeight + 2 * at, SKColorType.Rgba8888, SKAlphaType.Premul);
         using var surface = SKSurface.Create(info);
-        using var renderer = new ShaderLightRenderer();
+        using var renderer = new ShaderLightRenderer { Guard = false }; // the pages' maths alone (the readability guard is ED-NEW-lightv2-8's, tested in ShaderLightRenderTests)
         var canvas = surface.Canvas;
         canvas.Clear(SKColors.Transparent);
         canvas.Translate(at, at);

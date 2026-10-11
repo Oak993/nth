@@ -8,6 +8,9 @@
 // (the v4 page's three modes). Only the pixels Avalonia redraws in this frame (the canvas's clip) are read and written, so what
 // it reads is always this frame's. Without a surface (or under an opacity layer, where the surface is not what the canvas
 // draws into) it draws with Screen as before, and the light behind the chat text still dims.
+// The readability guard (ED-NEW-lightv2-8) dims the light near the chat text by as much as keeps the app's chat text colour at
+// 4.5:1 against the window there (read from the window's pixels; with none, across the chat text block against the window's
+// colour).
 // With no GPU (ED-251: the light is a still) the software raster shades a band once (0.2 to 1.6 s for the largest at 2x) and
 // keeps its pixels (DrawStill): a redraw of the window under the band copies them, with Screen.
 using Marrow.Core.Models.ComposerLights;
@@ -35,6 +38,15 @@ public sealed class ShaderLightRenderer : IDisposable
 
     /// <summary>How many times the software raster has shaded a still band (tests).</summary>
     internal int StillShades { get; private set; }
+
+    /// <summary>False: the pages' composition alone, without the readability guard (ED-NEW-lightv2-8; tests).</summary>
+    internal bool Guard { get; set; } = true;
+
+    // the chat text the guard keeps readable: labelColor (85 %) over the window (#1E1E20; white), and with no window to read, the window
+    private static readonly float[] DarkGlyph = [.85f + .15f * 30 / 255, .85f + .15f * 30 / 255, .85f + .15f * 32 / 255];
+    private static readonly float[] DarkGround = [30 / 255f, 30 / 255f, 32 / 255f];
+    private static readonly float[] LightGlyph = [.15f, .15f, .15f];
+    private static readonly float[] LightGround = [1f, 1f, 1f];
 
     private static float[] Linear(string hex) { var (r, g, b) = ShaderLightCatalog.Linear(hex); return [(float)r, (float)g, (float)b]; }
 
@@ -117,7 +129,7 @@ public sealed class ShaderLightRenderer : IDisposable
         foreach (var v in f.Pulse) Add(v);
         foreach (var v in f.PulseAmp) Add(v);
         foreach (var v in f.Modes) Add(v);
-        Add(f.Dark ? 1 : 0); Add(scale); Add(opacity); Add(fadeBottom ?? 1e6f);
+        Add(f.Dark ? 1 : 0); Add(f.GuardLift); Add(Guard ? 1 : 0); Add(scale); Add(opacity); Add(fadeBottom ?? 1e6f);
         Add(m.ScaleX); Add(m.SkewX); Add(m.TransX); Add(m.SkewY); Add(m.ScaleY); Add(m.TransY); Add(m.Persp0); Add(m.Persp1); Add(m.Persp2);
         Add(device.Width); Add(device.Height);
         return n;
@@ -187,6 +199,10 @@ public sealed class ShaderLightRenderer : IDisposable
         u["uText"] = v4;
         u["uTextLight"] = f.Dark ? 1f : 0f;
         u["uFade"] = fadeBottom ?? 1e6f;
+        u["uGuard"] = Guard ? 1f : 0f;
+        u["uGuardLift"] = (float)Math.Max(1, f.GuardLift);
+        u["uGlyph"] = f.Dark ? DarkGlyph : LightGlyph;
+        u["uGround"] = f.Dark ? DarkGround : LightGround;
     }
 
     private void Pair(SKRuntimeEffectUniforms u, string name, float x, float y)

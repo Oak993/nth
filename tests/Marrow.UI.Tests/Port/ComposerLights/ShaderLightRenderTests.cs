@@ -20,6 +20,7 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
     [
         "uC", "uB", "uR", "uLoop", "uEnergy", "uWork", "uInt", "uSpread", "uKey", "uCaret", "uPal", "uAvg", "uCore", "uAA", "uReach",
         "uOpacity", "uPulse", "uPulseA", "uUseBack", "uModes", "uBehind", "uHalo", "uText", "uTextLight", "uFade",
+        "uGuard", "uGuardLift", "uGlyph", "uGround",
     ];
 
     // a frame of light `id` with `options`, at its still (reduce motion), in `phase`, in the dark appearance
@@ -36,7 +37,7 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
 
     // draws `f` with the composer's top left at (margin + reach) on a transparent surface (or `under`'s pixels), at `scale`
     private static SKBitmap Render(ShaderLightFrame f, float scale = 1, float margin = 20, Action<SKCanvas, float>? under = null,
-        bool compose = false, SKRect? clip = null)
+        bool compose = false, SKRect? clip = null, bool guard = true)
     {
         var reach = (float)f.Reach;
         var size = new SKSizeI((int)Math.Ceiling(((float)W + 2 * (reach + margin)) * scale), (int)Math.Ceiling(((float)H + 2 * (reach + margin)) * scale));
@@ -48,7 +49,7 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
         canvas.Translate(reach + margin, reach + margin);
         under?.Invoke(canvas, reach + margin);
         if (clip is { } c) canvas.ClipRect(c);
-        using var renderer = new ShaderLightRenderer();
+        using var renderer = new ShaderLightRenderer { Guard = guard };
         Assert.True(renderer.Draw(canvas, f, scale, 1, compose ? surface : null));
         var bitmap = new SKBitmap(info);
         Assert.True(surface.ReadPixels(info, bitmap.GetPixels(), bitmap.RowBytes, 0, 0));
@@ -246,6 +247,176 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
             for (var x = 24f; x < W - 24; x += 6) canvas.DrawRect(x, top, 2, 9, ink);
     }
 
+    // the chat text as the app draws it: labelColor strokes (85 % white over the window, #1E1E20; 85 % black over white)
+    private static void LabelChatText(SKCanvas canvas, bool dark)
+    {
+        canvas.Clear(dark ? new SKColor(0x1E, 0x1E, 0x20) : SKColors.White);
+        using var ink = new SKPaint { Color = dark ? new SKColor(221, 221, 221) : new SKColor(38, 38, 38), IsAntialias = false };
+        foreach (var top in ChatLines)
+            for (var x = 24f; x < W - 24; x += 6) canvas.DrawRect(x, top, 2, 9, ink);
+    }
+
+    private static bool IsGlyph(int x, int y) =>
+        x >= 24 && x - (x - 24) % 6 < W - 24 && (x - 24) % 6 < 2 && ChatLines.Any(top => y >= top && y < top + 9);
+
+    // the chat text block alone (composer px), drawn on a surface of just its size: the window's text, then the light over it
+    // (composing with the surface, with Screen from no surface, or from the kept pixels of the CPU fallback)
+    private static readonly SKRectI TextBlock = new(8, -112, (int)W - 8, -40);
+
+    private enum Route { Compose, Screen, Still }
+
+    private static SKBitmap TextRegion(ShaderLightRenderer renderer, ShaderLightFrame f, bool dark, Route path)
+    {
+        var info = new SKImageInfo(TextBlock.Width, TextBlock.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
+        using var surface = SKSurface.Create(info);
+        var canvas = surface.Canvas;
+        canvas.Translate(-TextBlock.Left, -TextBlock.Top);
+        LabelChatText(canvas, dark);
+        Assert.True(path == Route.Still ? renderer.DrawStill(canvas, f, 1) : renderer.Draw(canvas, f, 1, 1, path == Route.Compose ? surface : null));
+        var bitmap = new SKBitmap(info);
+        Assert.True(surface.ReadPixels(info, bitmap.GetPixels(), bitmap.RowBytes, 0, 0));
+        return bitmap;
+    }
+
+    // WCAG's relative luminance of every pixel of a text block
+    private static double[] Luminances(SKBitmap b)
+    {
+        static double Lin(double v) => v <= .04045 ? v / 12.92 : Math.Pow((v + .055) / 1.055, 2.4);
+        var pixels = b.Pixels;
+        var l = new double[pixels.Length];
+        for (var i = 0; i < pixels.Length; i++)
+            l[i] = .2126 * Lin(pixels[i].Red / 255.0) + .7152 * Lin(pixels[i].Green / 255.0) + .0722 * Lin(pixels[i].Blue / 255.0);
+        return l;
+    }
+
+    // the least contrast between a glyph's pixel and the window's pixels around it (every one within `reach` px, across and
+    // up and down), and the pairs the 4.5:1 test this replaces took (a stroke's right column against the pixel 3 to its
+    // right, on each line's fifth row); and where
+    private static (double Worst, int X, int Y) WorstGlyph(SKBitmap b, int reach = 2)
+    {
+        var l = Luminances(b);
+        var width = b.Width;
+        double L(int x, int y) => l[(y - TextBlock.Top) * width + x - TextBlock.Left];
+        static double Ratio(double a, double c) => (Math.Max(a, c) + .05) / (Math.Min(a, c) + .05);
+        (double Worst, int X, int Y) worst = (double.MaxValue, 0, 0);
+        foreach (var top in ChatLines)
+            for (var gy = (int)top; gy < top + 9; gy++)
+                for (var gx = 24; gx < W - 22; gx++)
+                {
+                    if (!IsGlyph(gx, gy)) continue;
+                    for (var dy = -reach; dy <= reach; dy++)
+                        for (var dx = -reach; dx <= reach; dx++)
+                        {
+                            int x = gx + dx, y = gy + dy;
+                            if (IsGlyph(x, y) || x < TextBlock.Left || x >= TextBlock.Right || y < TextBlock.Top || y >= TextBlock.Bottom) continue;
+                            var c = Ratio(L(gx, gy), L(x, y));
+                            if (c < worst.Worst) worst = (c, x, y);
+                        }
+                }
+        foreach (var top in ChatLines)
+            for (var x = 24; x < W - 24; x += 6)
+            {
+                var c = Ratio(L(x + 1, (int)top + 4), L(x + 4, (int)top + 4));
+                if (c < worst.Worst) worst = (c, x + 4, (int)top + 4);
+            }
+        return worst;
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-lightv2-8")]
+    public void The_readability_guard_holds_every_chat_glyph_at_four_and_a_half_to_one()
+    {
+        // every light, every pack (Custom too), intensity 2 while a turn runs, in all three Text and light modes composing with
+        // the window, and with no window to read (with Screen: the CPU fallback's program, whose kept pixels are the same as
+        // With_no_GPU_a_still_band_is_shaded_once_and_its_pixels_kept shows); the light appearance too. The text is the app's
+        // labelColor (dimmer than the white of the test this replaces), every glyph pixel against every window pixel within 2 px
+        var custom = new ShaderLightColours("#FF3355", "#33FF99", "#3366FF", "#FFEE44");
+        ComposerLightTextMode[] modes = [ComposerLightTextMode.TextAbove, ComposerLightTextMode.LightAbove, ComposerLightTextMode.Difference];
+        var cases = new List<(string Id, string Pack, ComposerLightTextMode Mode, bool Dark, Route Path)>();
+        foreach (var def in ShaderLightCatalog.All)
+        {
+            ShaderLightShaders.Effect(def.Id); // compiled once before the cases run side by side
+            foreach (var pack in ShaderLightCatalog.Packs)
+            {
+                foreach (var mode in modes) cases.Add((def.Id, pack.Id, mode, true, Route.Compose));
+                cases.Add((def.Id, pack.Id, ComposerLightTextMode.TextAbove, true, Route.Screen));
+            }
+            foreach (var mode in modes) cases.Add((def.Id, def.Pack, mode, false, Route.Compose));
+            cases.Add((def.Id, def.Pack, ComposerLightTextMode.TextAbove, false, Route.Screen));
+        }
+        cases.Add(("velum", "aurora", ComposerLightTextMode.TextAbove, true, Route.Still)); // and the kept pixels themselves, once
+        var results = new (double Worst, string Where, string Group)[cases.Count];
+        Parallel.For(0, cases.Count, i =>
+        {
+            var (id, pack, mode, dark, path) = cases[i];
+            var f = Frame(id, ShaderLightCatalog.Find(id)!.Defaults with { Intensity = 2, Pack = pack, Custom = custom }, ComposerLightPhase.Running, dark,
+                ComposerLightSettings.Default with { TextMode = mode });
+            using var renderer = new ShaderLightRenderer();
+            using var b = TextRegion(renderer, f, dark, path);
+            var (worst, x, y) = WorstGlyph(b);
+            results[i] = (worst, $"{id}, {pack}, {mode}, {(dark ? "dark" : "light")}, {path}, at ({x}, {y})", $"{mode}, {(dark ? "dark" : "light")}, {path}");
+        });
+        var least = results.MinBy(r => r.Worst);
+        var line = string.Format(CultureInfo.InvariantCulture, "Readability guard, {0} cases at intensity 2: worst {1:F2}:1 ({2})", cases.Count, least.Worst, least.Where);
+        var lines = new List<string> { line };
+        foreach (var group in results.GroupBy(r => r.Group).OrderBy(g => g.Key, StringComparer.Ordinal))
+        {
+            var w = group.MinBy(r => r.Worst);
+            lines.Add(string.Format(CultureInfo.InvariantCulture, "  {0}: {1} cases, worst {2:F2}:1 ({3})", group.Key, group.Count(), w.Worst, w.Where));
+        }
+        foreach (var l in lines) output.WriteLine(l);
+        var folder = Environment.GetEnvironmentVariable("MARROW_COMPOSER_LIGHT_EVIDENCE");
+        if (!string.IsNullOrEmpty(folder)) File.WriteAllLines(Path.Combine(folder, "shader-light-guard.txt"), lines);
+        Assert.True(least.Worst >= 4.5, line);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-lightv2-8")]
+    public void The_guard_changes_nothing_where_the_text_already_reads()
+    {
+        // each light at its defaults while typing (the shipped look), Text above light: where the pages' composition already
+        // keeps every glyph at 5:1 or more against every window pixel within 5 px (all the guard reaches), the guard leaves the
+        // window's pixels as they were (a glyph's own by at most 3 of 255: a tenth of the light reaches it); away from any text
+        // it never acts
+        var lines = new List<string>();
+        var untouched = 0;
+        foreach (var def in ShaderLightCatalog.All)
+        {
+            var f = Frame(def.Id, def.Defaults, ComposerLightPhase.Typing);
+            using var guarded = new ShaderLightRenderer();
+            using var bare = new ShaderLightRenderer { Guard = false };
+            using var g = TextRegion(guarded, f, true, Route.Compose);
+            using var p = TextRegion(bare, f, true, Route.Compose);
+            var (pageWorst, _, _) = WorstGlyph(p, 5);
+            var (worst, _, _) = WorstGlyph(g);
+            int window = 0, glyph = 0;
+            for (var y = TextBlock.Top; y < TextBlock.Bottom; y++)
+                for (var x = TextBlock.Left; x < TextBlock.Right; x++)
+                {
+                    SKColor a = g.GetPixel(x - TextBlock.Left, y - TextBlock.Top), z = p.GetPixel(x - TextBlock.Left, y - TextBlock.Top);
+                    var d = Math.Max(Math.Abs(a.Red - z.Red), Math.Max(Math.Abs(a.Green - z.Green), Math.Abs(a.Blue - z.Blue)));
+                    if (IsGlyph(x, y)) glyph = Math.Max(glyph, d); else window = Math.Max(window, d);
+                }
+            lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: the pages {1:F2}:1, guarded {2:F2}:1, the window's pixels changed by up to {3}/255, the glyphs' by {4}/255",
+                def.Id, pageWorst, worst, window, glyph));
+            Assert.True(worst >= 4.5, lines[^1]);
+            if (pageWorst >= 5)
+            {
+                Assert.True(window <= 1 && glyph <= 3, lines[^1]);
+                untouched++;
+            }
+            // below the composer there is no text: the guard does not act there
+            var below = new SKRect((float)W / 2 - 4, (float)H + 8, (float)W / 2 + 4, (float)H + 16);
+            using var clear = Render(f, 1, 0, clip: below);
+            using var clearBare = Render(f, 1, 0, clip: below, guard: false);
+            Assert.Equal(At(clearBare, f, W / 2, H + 12, 1, 0), At(clear, f, W / 2, H + 12, 1, 0));
+        }
+        lines.Add($"{untouched} of {ShaderLightCatalog.All.Count} lights read at 5:1 at their defaults without the guard (left as they were)");
+        var folder = Environment.GetEnvironmentVariable("MARROW_COMPOSER_LIGHT_EVIDENCE");
+        if (!string.IsNullOrEmpty(folder)) File.WriteAllLines(Path.Combine(folder, "shader-light-guard-defaults.txt"), lines);
+        foreach (var l in lines) output.WriteLine(l);
+    }
+
     // the chat text's strokes blurred by a Gaussian of `sigma` at (px, py): how CSS draws a text shadow's coverage there
     private static double ShadowCover(double px, double py, double sigma)
     {
@@ -278,10 +449,11 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
             var above = Mode(id, ComposerLightTextMode.TextAbove);
             var over = Mode(id, ComposerLightTextMode.LightAbove);
             var diff = Mode(id, ComposerLightTextMode.Difference);
-            using var a = Render(above, 1, 0, ChatText, compose: true);
-            using var l = Render(over, 1, 0, ChatText, compose: true);
-            using var d = Render(diff, 1, 0, ChatText, compose: true);
-            using var plain = Render(above, 1, 0, ChatText, compose: false); // no surface: Screen, the text is not read
+            // the pages' composition itself: without the readability guard (ED-NEW-lightv2-8, tested on its own below)
+            using var a = Render(above, 1, 0, ChatText, compose: true, guard: false);
+            using var l = Render(over, 1, 0, ChatText, compose: true, guard: false);
+            using var d = Render(diff, 1, 0, ChatText, compose: true, guard: false);
+            using var plain = Render(above, 1, 0, ChatText, compose: false, guard: false); // no surface: Screen, the text is not read
             double glyphA = 0, glyphD = 0, gapA = 0, gapL = 0; var n = 0;
             for (var x = 24.0; x < W - 24; x += 6)
             {
@@ -316,8 +488,8 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
         {
             var f = Mode(def.Id, ComposerLightTextMode.TextAbove);
             var bare = Mode(def.Id, ComposerLightTextMode.TextAbove, halo: 0);
-            using var b = Render(f, 1, 0, ChatText, compose: true);
-            using var nb = Render(bare, 1, 0, ChatText, compose: true);
+            using var b = Render(f, 1, 0, ChatText, compose: true, guard: false); // the halo itself, without the guard over it
+            using var nb = Render(bare, 1, 0, ChatText, compose: true, guard: false);
             var g = f.Intensity * (.38 + .82 * f.Energy) * (1 + f.Key * .3);
             foreach (var top in ChatLines)
             {

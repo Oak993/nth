@@ -112,8 +112,68 @@ internal static partial class ShaderLightShaders
         uniform float4 uText;   // the chat text block (composer px: left, top, right, bottom)
         uniform float uTextLight; // 1: the text is lighter than what is behind it (dark appearance)
         uniform float uFade;    // where the window ends below (composer px): the outer light fades out over the 13 px above it
+        uniform float uGuard;     // 1: the readability guard holds the chat text at 4.6:1 (ED-NEW-lightv2-8); 0: the pages' composition alone
+        uniform float uGuardLift; // >= 1: how much brighter the light was in the last 150 ms (the guard lets go over that)
+        uniform float3 uGlyph;    // the chat text's colour the guard keeps readable (labelColor over the window) ...
+        uniform float3 uGround;   // ... and, with no window to read, the window's
 
         float lumE(half4 c) { return dot(float3(c.rgb) / max(float(c.a), 1e-4), float3(.2126, .7152, .0722)); }
+        float3 unpre(half4 c) { return float3(c.rgb) / max(float(c.a), 1e-4); }
+        float3 scr(float3 a, float3 b) { return a + b - a * b; }
+        float linC(float v) { return v <= .04045 ? v / 12.92 : pow((v + .055) / 1.055, 2.4); }
+        float relL(float3 c) { c = clamp(c, 0., 1.); return .2126 * linC(c.r) + .7152 * linC(c.g) + .0722 * linC(c.b); }
+
+        // a chat glyph (window colour G) and the window beside it (B) under the light p, composed as the modes md do it: text
+        // above light (the glyph keeps .9 of the light out; the halo sh over the window), light above text (both screened),
+        // difference (the glyph one minus the lit window, lo its luminance); their WCAG luminances, the bright side's first (the
+        // glyph's behind light text, lit 1; the window's behind dark text)
+        float2 sides(float3 p, float3 G, float3 B, float sh, float lo, float3 md, float3 ink, float lit) {
+          p = min(p, float3(1.));
+          float3 bo = scr(p, B);
+          float3 g = md.x * scr(p * .1, G) + md.y * scr(p, G) + md.z * (1. - (float3(lo) + p - float3(lo) * p));
+          float3 b = md.x * mix(bo, ink, sh) + (md.y + md.z) * bo;
+          float lg = relL(g); float lb = relL(b);
+          return lit > .5 ? float2(lg, lb) : float2(lb, lg);
+        }
+
+        // the guard's limits: the bright side held at L.x or above and the dark side at L.y or below, (L.x + .05) = 4.6 (L.y +
+        // .05), so any glyph and any window pixel each within them read at 4.6:1 together (4.5 and a margin for the dither),
+        // whatever light each of them has; L.z the text's own contrast with no light. Where light only brightens the bright side
+        // its floor is its unlit luminance; in Difference behind light text (light darkens the glyphs) the two sides share the
+        // contrast to spare evenly
+        float3 limits(float3 G, float3 B, float lo, float3 md, float3 ink, float lit) {
+          float2 z = sides(float3(0.), G, B, 0., lo, md, ink, lit);
+          float c0 = (z.x + .05) / (z.y + .05);
+          float f = pow(max(c0 / 4.6, 1.), .5 * md.z * lit);
+          return float3((z.x + .05) / f - .05 - 1e-4, (z.x + .05) / (4.6 * f) - .05 + 1e-4, c0);
+        }
+
+        bool holds(float3 p, float3 G, float3 B, float sh, float lo, float3 md, float3 ink, float lit, float3 L) {
+          float2 v = sides(p, G, B, sh, lo, md, ink, lit);
+          return v.x >= L.x && v.y <= L.y;
+        }
+
+        // the share of the light (0..1) that keeps this pixel within the limits: the most light before it first leaves them,
+        // found by a scan and bisection, so the guard takes only as much as it needs (and, where a blend of the modes is not
+        // monotonic, always the first, dim side: neighbouring pixels never take opposite sides). Text the window itself shows
+        // below 4.6:1 (L.z), or texture, is not guarded (1).
+        float guardK(float3 p, float3 G, float3 B, float sh, float lo, float3 md, float3 ink, float lit, float3 L) {
+          if (L.z < 4.6) return 1.;
+          if (md.z < .001 && holds(p, G, B, sh, lo, md, ink, lit, L)) return 1.;
+          float a = 0.; float z = 1.; float hit = 0.;
+          for (int i = 1; i <= 8; i++) {
+            float h = float(i) / 8.;
+            if (hit < .5) {
+              if (!holds(p * h, G, B, sh, lo, md, ink, lit, L)) { z = h; hit = 1.; } else a = h;
+            }
+          }
+          if (hit < .5) return 1.;
+          for (int i = 0; i < 8; i++) {
+            float h = .5 * (a + z);
+            if (holds(p * h, G, B, sh, lo, md, ink, lit, L)) a = h; else z = h;
+          }
+          return a;
+        }
 
         half4 main(float2 xy) {
           float2 q = xy - uC;
@@ -144,25 +204,44 @@ internal static partial class ShaderLightShaders
           col = clamp(col, 0., 1.);
           m = max(col.r, max(col.g, col.b));
           float4 P = float4(col, m) * uOpacity;
-          if (uUseBack < .5) return half4(P);
+          // the halo's ink: the v4 page's near-black behind light text; behind dark text (the light appearance) the window's white
+          float3 ink = uTextLight > .5 ? float3(8., 8., 10.) / 255. : float3(1.);
+          float lit = uTextLight > .5 ? 1. : 0.;
+          if (uUseBack < .5) {
+            // no window to read (drawn with Screen: the light over the text): the guard holds the app's label colour and the
+            // window's within the limits across the chat text block
+            if (uGuard > .5 && P.a > .003 && d > 0. && tmask > .001) {
+              float3 L = limits(uGlyph, uGround, 0., float3(0., 1., 0.), ink, lit);
+              float k = guardK(P.rgb * uGuardLift, uGlyph, uGround, 0., 0., float3(0., 1., 0.), ink, lit, L);
+              P *= mix(1., k, tmask);
+            }
+            return half4(P);
+          }
           // Text and light (v4's modes): the chat text's glyphs (c) and the soft dark halo behind them, read from the window's
-          // pixels around this one: the brightest and the darkest of 16 taps, 2.5 and 8 px out, and the near and far taps' means
+          // pixels around this one: the brightest and the darkest of 16 taps, 2.5 and 8 px out (and their colours, for the
+          // readability guard), and the near and far taps' means
           float4 s = float4(S);
-          float c = 0.; float near = 0.; float far = 0.; float lo = 0.;
-          if (P.a > .003 && d > 0. && uModes.y < .999) {
+          float c = 0.; float near = 0.; float far = 0.; float lo = 0.; float present = 0.; float mn = 0.; float mx = 0.;
+          float3 cmn = float3(0.); float3 cmx = float3(0.);
+          if (P.a > .003 && d > 0.) {
             float yc = lumE(S);
-            float mn = yc; float mx = yc; float sn = 0.; float sf = 0.;
+            mn = yc; mx = yc; float sn = 0.; float sf = 0.;
+            cmn = unpre(S); cmx = cmn;
             for (int i = 0; i < 8; i++) {
               float2 o = circ(float(i) * .7853982 + .3927);
-              float a = lumE(uBack.eval(xy + o * 2.5));
-              float b = lumE(uBack.eval(xy + o * 8.));
-              mn = min(mn, min(a, b)); mx = max(mx, max(a, b));
+              half4 ta = uBack.eval(xy + o * 2.5);
+              half4 tb = uBack.eval(xy + o * 8.);
+              float a = lumE(ta);
+              float b = lumE(tb);
+              if (a < mn) { mn = a; cmn = unpre(ta); }
+              if (a > mx) { mx = a; cmx = unpre(ta); }
+              if (b < mn) { mn = b; cmn = unpre(tb); }
+              if (b > mx) { mx = b; cmx = unpre(tb); }
               sn += a; sf += b;
             }
             float range = mx - mn;
-            float present = smoothstep(.08, .22, range);
+            present = smoothstep(.08, .22, range);
             float r = max(range, 1e-3);
-            float lit = uTextLight > .5 ? 1. : 0.;
             c = present * smoothstep(.3, .7, mix((mx - yc) / r, (yc - mn) / r, lit));
             near = present * clamp(mix((mx - sn / 8.) / r, (sn / 8. - mn) / r, lit), 0., 1.);
             far = present * clamp(mix((mx - sf / 8.) / r, (sf / 8. - mn) / r, lit), 0., 1.);
@@ -173,10 +252,47 @@ internal static partial class ShaderLightShaders
           float g = uInt * (.38 + .82 * uEnergy) * (1. + uKey * .3);
           float est = min(1., g * 1.25 * exp(min(xy.y, 0.) / (uSpread * .6)) * (1. - uBehind * .85) + .15 * g);
           float ha = uHalo * est;
-          float shadow = (1. - (1. - .95 * ha * near) * (1. - .7 * ha * far) * (1. - .5 * ha * far * .8)) * (1. - c);
+          float sh = 1. - (1. - .95 * ha * near) * (1. - .7 * ha * far) * (1. - .5 * ha * far * .8);
+          float shadow = sh * (1. - c);
+          // the readability guard (ED-NEW-lightv2-8): near the chat text the light is dimmed by as much as keeps the app's chat
+          // text colour and the window within the limits (4.6:1 between any glyph and window pixel), in the mode shown (nothing
+          // where it already is). Every pixel within 2 device pixels of a glyph (the 5 x 5 pixels around it) is held in full, and
+          // softly out to about 4 px (the near taps and 8 more 3.5 px out); text is told from texture by its own contrast (4.6 to
+          // 6:1 on the window). Where this pixel is the window and the light already leaves it within the limits, the guard has
+          // nothing to do and reads nothing (the window beside it, darker behind light text and brighter behind dark, and the
+          // halo only add contrast)
+          if (uGuard > .5 && P.a > .003 && d > 0.) {
+            float3 pg = P.rgb * uGuardLift;
+            float3 own = unpre(S);
+            if (uModes.z > .001 || !holds(pg, uGlyph, own, 0., lo, uModes, ink, lit, limits(uGlyph, own, lo, uModes, ink, lit))) {
+              float gmn = mn; float gmx = mx; float hi = 0.; float lw = 1.;
+              float3 wmn = cmn; float3 wmx = cmx;
+              for (int j = 0; j < 5; j++) {
+                for (int i = 0; i < 5; i++) {
+                  half4 t = uBack.eval(xy + float2(float(i) - 2., float(j) - 2.) * uAA);
+                  float a = lumE(t);
+                  hi = max(hi, a); lw = min(lw, a);
+                  if (a < gmn) { gmn = a; wmn = unpre(t); }
+                  if (a > gmx) { gmx = a; wmx = unpre(t); }
+                }
+              }
+              float sz = 0.;
+              for (int i = 0; i < 8; i++) sz += lumE(uBack.eval(xy + circ(float(i) * .7853982 + .3927) * 3.5));
+              float r = max(gmx - gmn, 1e-3);
+              float zone = clamp(mix((gmx - sz / 8.) / r, (sz / 8. - gmn) / r, lit), 0., 1.);
+              float held = smoothstep(.3, .7, clamp(mix((gmx - lw) / r, (hi - gmn) / r, lit), 0., 1.));
+              float w = smoothstep(.08, .22, gmx - gmn) * max(held, smoothstep(.02, .12, max(zone, near)));
+              if (w > 0.) {
+                float3 B = mix(wmx, wmn, lit);
+                float3 L = limits(uGlyph, B, lo, uModes, ink, lit);
+                float k = guardK(pg, uGlyph, B, sh, lo, uModes, ink, lit, L);
+                P *= mix(1., k, w * smoothstep(4.6, 6., L.z));
+              }
+            }
+          }
           float4 Pa = P * (1. - .9 * c);
           float4 above = Pa + s - Pa * s;
-          above.rgb = mix(above.rgb, float3(8., 8., 10.) / 255. * above.a, shadow);
+          above.rgb = mix(above.rgb, ink * above.a, shadow);
           // light above text: the light washes over the text (the page's screen-blended text)
           float4 over = P + s - P * s;
           // difference: the glyphs invert against the light (the page's white text, difference-blended): 1 - the lit window

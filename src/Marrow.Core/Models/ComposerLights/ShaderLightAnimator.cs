@@ -31,6 +31,11 @@ public sealed class ShaderLightFrame(ShaderLightDef def)
     public double Behind, Halo;
     /// <summary>True in the dark appearance: the chat text is lighter than what lies behind it.</summary>
     public bool Dark;
+    /// <summary>
+    /// The readability guard's hold (ED-NEW-lightv2-8): how much brighter the light was within the last 150 ms than it is now
+    /// (1: not brighter). The guard follows a brighter light at once and lets go of a dimmer one over that.
+    /// </summary>
+    public double GuardLift = 1;
 
     /// <summary>How far this frame's light reaches outside the composer (px): the band it shades.</summary>
     public double Reach => Math.Max(Def.Reach * Spread, Def.ReachPx) + Def.ReachHalfWidth * W / 2 + 2;
@@ -55,6 +60,7 @@ public sealed class ShaderLightAnimator
         public CssTransition Spread = new(def.Spread), Intensity = new(1), Speed = new(1);
         public readonly CssTransition[] Colour = new CssTransition[12];
         public double Phase; // loops advanced since the still (the page's loop - still)
+        public double Peak;  // the light's brightness held for the readability guard, letting go over GuardSeconds
         public readonly double[] Pulse = [99, 99, 99, 99], PulseAmp = [0, 0, 0, 0]; // the page's pa, pm
 
         public void Push(double amp)
@@ -68,6 +74,12 @@ public sealed class ShaderLightAnimator
 
     /// <summary>The Text and light modes' cross-over (s).</summary>
     public const double ModeSeconds = .2;
+
+    /// <summary>How long the readability guard takes to let go of a light that has dimmed (s; ED-NEW-lightv2-8).</summary>
+    public const double GuardSeconds = .15;
+
+    // the light's brightness as the v4 page's updateHalo() reckons it: intensity, energy and the keystroke lift
+    private double Brightness(Slot s, double now) => s.Intensity.Value(now) * (.38 + .82 * energy) * (1 + .3 * key);
 
     private readonly Slot[] slots;
     private ComposerLightSettings settings;
@@ -143,7 +155,7 @@ public sealed class ShaderLightAnimator
     {
         var t = Target(phase);
         (energy, rate, work, key) = (t.E, t.Rate, t.W, 0);
-        foreach (var s in slots) { s.Phase = 0; s.SettlePulses(); }
+        foreach (var s in slots) { s.Phase = 0; s.SettlePulses(); s.Peak = 0; }
     }
 
     /// <summary>A keystroke at <paramref name="caretX"/> (composer px from its left): the page's lift, +.75 capped at 1 (none under reduce motion).</summary>
@@ -175,6 +187,8 @@ public sealed class ShaderLightAnimator
                 var speed = s.Speed.Value(now);
                 s.Phase = (s.Phase + dt * motionScale * speed * rate / ShaderLightCatalog.LoopSeconds) % 1;
                 for (var i = 0; i < 4; i++) s.Pulse[i] = Math.Min(99, s.Pulse[i] + dt * motionScale * speed);
+                var b = Brightness(s, now);
+                s.Peak = b >= s.Peak ? b : b + (s.Peak - b) * Math.Exp(-dt / GuardSeconds);
             }
     }
 
@@ -202,6 +216,8 @@ public sealed class ShaderLightAnimator
             for (var i = 0; i < 4; i++) { f.Pulse[i] = (float)s.Pulse[i]; f.PulseAmp[i] = (float)s.PulseAmp[i]; }
             for (var i = 0; i < 3; i++) f.Modes[i] = (float)modes[i].Value(now);
             f.Behind = behind.Value(now); f.Halo = halo.Value(now); f.Dark = dark;
+            var bright = Brightness(s, now);
+            f.GuardLift = reduce || bright <= 1e-6 ? 1 : Math.Max(1, s.Peak / bright);
             Drawn[DrawnCount++] = f;
         }
     }
