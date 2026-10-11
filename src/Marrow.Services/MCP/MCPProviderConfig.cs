@@ -313,6 +313,53 @@ public static class MCPProviderConfig
         return GeminiSettingsURL; // :227
     }
 
+    // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): no Swift counterpart. A session's ask_advisor server, null unless
+    // its chat has an advisor (a Hydra head, whose lead advises); the per-provider shapes below add it beside the
+    // connected servers only then, so a chat with no advisor launches exactly as before.
+    public static MCPResolvedServer? AdvisorServer(Providers.SessionConfiguration configuration) =>
+        Port.Advisor.AdvisorMcpBridge.Server(configuration);
+
+    /// <summary>Codex: the connected servers (CodexOverrides) with the advisor's entry added; null when there are neither.</summary>
+    public static JSONValue? CodexServers(JSONValue? overrides, MCPResolvedServer? advisor)
+    {
+        if (advisor is null) return overrides;
+        var merged = new Dictionary<string, JSONValue>(overrides?.JSONValueObject ?? new Dictionary<string, JSONValue>());
+        foreach (var (key, value) in Codex([advisor])["mcp_servers"]!.JSONValueObject!) merged[key] = value;
+        return ObjectOf(merged);
+    }
+
+    /// <summary>Copilot: the advisor's entry in the "mcpServers" shape a session's create parameters take; null without one.</summary>
+    public static JSONValue? CopilotSessionServers(MCPResolvedServer? advisor) =>
+        advisor is null ? null : Copilot([advisor])["mcpServers"];
+
+    /// <summary>ACP: the connected servers with the advisor's entry appended (the skills relay's form).</summary>
+    public static JSONValue AcpServers(JSONValue servers, MCPResolvedServer? advisor) => advisor is null ? servers
+        : new JSONValue.Array(new ValueList<JSONValue>((servers.JSONValueArray ?? []).Append(Port.Advisor.AdvisorMcpBridge.AcpEntry(advisor))));
+
+    /// <summary>
+    /// Claude: the session's one --mcp-config file and whether --strict-mcp-config follows it. Without an advisor it is
+    /// exactly ClaudeConfigPath() with strict (or null), as before. With one, the connected servers of claude.json and
+    /// the advisor's entry are merged into a file of the chat's own, strict only when there were connected servers (as
+    /// before: with none, the user's own servers stay on). A file that cannot be written leaves the launch as before.
+    /// </summary>
+    public static (string Path, bool Strict)? ClaudeSessionConfig(MCPResolvedServer? advisor, Guid? thread)
+    {
+        var connected = ClaudeConfigPath();
+        (string, bool)? plain = connected is null ? null : (connected, true);
+        if (advisor is null) return plain;
+        var merged = SwiftTry.Optional(() =>
+        {
+            var servers = new Dictionary<string, JSONValue>();
+            if (connected is not null && ReadOptionalConfig(connected) is { } data && JSONValue.Parse(data)?["mcpServers"]?.JSONValueObject is { } existing)
+                foreach (var (key, value) in existing) servers[key] = value;
+            servers[advisor.Id] = Claude([advisor])["mcpServers"]![advisor.Id]!;
+            var path = SwiftPath.AppendingPathComponent(MCPPaths.Directory, "advisor-" + (thread ?? Guid.NewGuid()).ToString("N") + ".json");
+            FileOps.WriteAtomic(path, ObjectOf(new Dictionary<string, JSONValue> { ["mcpServers"] = ObjectOf(servers) }).Data(pretty: true));
+            return path;
+        });
+        return merged is null ? plain : (merged, connected is not null);
+    }
+
     // :230. private static let geminiSettingsURL. ENGINEERING DECISION: like MCPPaths.Directory (MCP.cs, ED-177),
     // Storage.Root is an Ambient scoped per async flow, so a process-wide cached field here would freeze on
     // whichever test's root won the race to evaluate it first. Recomputed on every access instead.

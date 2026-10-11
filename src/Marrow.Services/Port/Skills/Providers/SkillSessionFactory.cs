@@ -45,5 +45,5 @@ public static class SkillSessionFactory
     }
 
     public static NativeSkillTools NativeTools(SessionConfiguration configuration) =>
-        new(configuration.SkillGeneration, offer: configuration.SkillToolOffer);
+        new(configuration.SkillGeneration, offer: configuration.SkillToolOffer, advisor: Marrow.Services.Port.Advisor.AdvisorTool.Registration(configuration)); // + ED-NEW-ignisadvisor-2
 }

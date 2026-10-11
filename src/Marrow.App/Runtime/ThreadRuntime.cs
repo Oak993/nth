@@ -2270,7 +2270,7 @@ public sealed partial class ThreadRuntime : MainActorModel
 
     // ThreadRuntime.swift:1474,1537; Windows boundary as in ProviderRegistry.FileUrl.
     // Percent-encode a native path under a non-file scheme: file URL .Path is POSIX.
-    private static SwiftURL SessionDirectoryUrl(string path)
+    internal static SwiftURL SessionDirectoryUrl(string path) // internal: ED-NEW-ignisadvisor-2 (the advisor session's scratch directory)
     {
         var native = path.Replace('/', '\\');
         var builder = new System.Text.StringBuilder();
