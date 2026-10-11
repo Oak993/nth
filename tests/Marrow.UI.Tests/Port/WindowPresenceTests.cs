@@ -64,6 +64,9 @@ public sealed class WindowPresenceTests(HeadlessSession headless)
             b.SetSeen(false);
             Assert.Equal((before.Open + 2, before.Seen), WindowPresence.Counts);
 
+            // Both unseen: quiet exactly when no other tracked window is seen (so the check below is not vacuous when none is).
+            WindowPresence.Hung = _ => false;
+            Assert.Equal(before.Seen == 0, WindowPresence.Quiet);
             // Both unseen, and the second window's thread has stopped answering: never quiet, whatever else is open.
             WindowPresence.Hung = handle => handle == SecondHandle;
             Assert.False(WindowPresence.Quiet);
