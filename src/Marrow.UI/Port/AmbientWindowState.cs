@@ -13,11 +13,14 @@ internal sealed class AmbientWindowState : IDisposable
 {
     private static readonly ConditionalWeakTable<Window, AmbientWindowState> Windows = new();
     internal static Func<Window, AmbientWindowState>? TestFactory;
+    /// <summary>Installs a WinEvent hook for one range of events (tests record the ranges).</summary>
+    internal static Func<uint, uint, AmbientWinEventCallback, nint> SetHook { get; set; } = static (first, last, callback) => SetWinEventHook(first, last, 0, callback, 0, 0, 0);
+    /// <summary>Removes a hook <see cref="SetHook"/> installed (tests: a recorder's handles are 0 and never removed).</summary>
+    internal static Action<nint> Unhook { get; set; } = static handle => UnhookWinEvent(handle);
     private readonly Window window;
     private readonly nint hwnd;
-    private readonly AmbientWinEventCallback callback;
-    private readonly Action refresh;
-    private nint hook;
+    private readonly Action onEvent, refresh;
+    private bool subscribed;
     private int users, available, queued;
     private double lastInput = Now;
     internal event Action? Changed;
@@ -29,14 +32,14 @@ internal sealed class AmbientWindowState : IDisposable
     {
         this.window = window;
         hwnd = test ? 0 : window.TryGetPlatformHandle()?.Handle ?? 0;
-        callback = OnWindowEvent; refresh = Refresh;
+        onEvent = OnWindowEvent; refresh = Refresh;
         if (test) { available = 1; return; }
         window.PropertyChanged += WindowChanged;
         window.AddHandler(InputElement.PointerMovedEvent, PointerInput, RoutingStrategies.Tunnel, true);
         window.AddHandler(InputElement.PointerPressedEvent, PointerInput, RoutingStrategies.Tunnel, true);
         window.AddHandler(InputElement.PointerWheelChangedEvent, PointerInput, RoutingStrategies.Tunnel, true);
         window.AddHandler(InputElement.KeyDownEvent, KeyInput, RoutingStrategies.Tunnel, true);
-        hook = SetWinEventHook(3, 0x801b, 0, callback, 0, 0, 0);
+        Events.Subscribe(onEvent); subscribed = true;
         Refresh();
     }
 
@@ -61,9 +64,9 @@ internal sealed class AmbientWindowState : IDisposable
     {
         if (args.Property == Window.IsActiveProperty || args.Property == Window.WindowStateProperty || args.Property == Visual.IsVisibleProperty) Refresh();
     }
-    private void OnWindowEvent(nint hook, uint kind, nint handle, int objectId, int childId, uint thread, uint time)
+    // A batch of window events: one refresh (one walk of the windows above) however many came before it runs.
+    private void OnWindowEvent()
     {
-        if (objectId != 0 || childId != 0 || (kind != 3 && kind != 0x16 && kind != 0x17 && kind != 0x8002 && kind != 0x8003 && kind != 0x8004 && kind != 0x800b && kind != 0x8017 && kind != 0x8018)) return;
         if (Interlocked.Exchange(ref queued, 1) == 0) Dispatcher.UIThread.Post(refresh, DispatcherPriority.Background);
     }
     private void Refresh()
@@ -73,8 +76,8 @@ internal sealed class AmbientWindowState : IDisposable
         SetAvailable(window.IsVisible && window.IsActive && window.WindowState != WindowState.Minimized
             && GetForegroundWindow() == hwnd && !Cloaked(hwnd) && !FullyCovered(hwnd));
     }
-    private static bool Cloaked(nint handle) => DwmGetWindowAttribute(handle, 14, out int value, sizeof(int)) == 0 && value != 0;
-    private static bool FullyCovered(nint handle)
+    internal static bool Cloaked(nint handle) => DwmGetWindowAttribute(handle, 14, out int value, sizeof(int)) == 0 && value != 0;
+    internal static bool FullyCovered(nint handle)
     {
         if (!GetWindowRect(handle, out var bounds)) return false;
         var remaining = new List<Rect> { bounds.Rect };
@@ -104,7 +107,49 @@ internal sealed class AmbientWindowState : IDisposable
         window.RemoveHandler(InputElement.PointerPressedEvent, PointerInput);
         window.RemoveHandler(InputElement.PointerWheelChangedEvent, PointerInput);
         window.RemoveHandler(InputElement.KeyDownEvent, KeyInput);
-        if (hook != 0) { UnhookWinEvent(hook); hook = 0; }
+        if (subscribed) { Events.Unsubscribe(onEvent); subscribed = false; }
+    }
+
+    /// <summary>
+    /// ED-NEW-lean-6: the process's one set of window-event hooks, shared by every window's ambient state and presence. It
+    /// hears only what can change whether a window is in front or can be seen: the foreground (3), the end of a move or
+    /// resize (0x0B), minimise start and end (0x16-0x17), show, hide and reorder (0x8002-0x8004) and cloak and uncloak
+    /// (0x8017-0x8018); never a location change (0x800B, every caret and cursor move on the desktop). Only events of a window
+    /// itself (OBJID_WINDOW, CHILDID_SELF) reach the subscribers. UI thread (the hooks call back on its message loop).
+    /// </summary>
+    internal static class Events
+    {
+        internal static readonly (uint First, uint Last)[] Ranges = [(0x0003, 0x0003), (0x000B, 0x000B), (0x0016, 0x0017), (0x8002, 0x8004), (0x8017, 0x8018)];
+        private static readonly AmbientWinEventCallback Callback = OnEvent; // rooted while hooked
+        private static Action[] subscribers = [];
+        private static nint[]? hooks;
+
+        /// <summary>Whether the hooks are installed (tests).</summary>
+        internal static bool Hooked => hooks is not null;
+
+        internal static void Subscribe(Action handler)
+        {
+            subscribers = [.. subscribers, handler];
+            if (hooks is not null) return;
+            hooks = new nint[Ranges.Length];
+            for (var i = 0; i < Ranges.Length; i++) hooks[i] = SetHook(Ranges[i].First, Ranges[i].Last, Callback);
+        }
+
+        internal static void Unsubscribe(Action handler)
+        {
+            var index = Array.IndexOf(subscribers, handler);
+            if (index < 0) return;
+            subscribers = [.. subscribers[..index], .. subscribers[(index + 1)..]];
+            if (subscribers.Length != 0 || hooks is null) return;
+            foreach (var hook in hooks) if (hook != 0) Unhook(hook);
+            hooks = null;
+        }
+
+        private static void OnEvent(nint hook, uint kind, nint handle, int objectId, int childId, uint thread, uint time)
+        {
+            if (objectId != 0 || childId != 0) return; // OBJID_WINDOW, CHILDID_SELF
+            foreach (var subscriber in subscribers) subscriber();
+        }
     }
     [DllImport("user32.dll")] private static extern nint GetForegroundWindow();
     [DllImport("user32.dll")] private static extern nint GetWindow(nint handle, uint command);

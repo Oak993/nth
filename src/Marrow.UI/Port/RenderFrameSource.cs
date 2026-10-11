@@ -162,14 +162,31 @@ public sealed class RenderFrameSource : IRefreshFrameSource, IDisposable
     // other sessions' load showed its ticks running late by 2-5 ms, and a frame drawn late reaches the screen a refresh late)
     private static int raised;
 
-    // render thread, under the compositor's lock: one tick
-    private bool Tick()
+    // ED-NEW-lean-6: DWM's timing is read once per refresh and shared by every source ticking in it (a tick's identity is
+    // the compositor's time of the tick, as AmbientRefreshPacer's); a new reader (tests) reads afresh.
+    private static readonly object timingGate = new();
+    private static long timingTick = long.MinValue;
+    private static Func<long?>? timingFrom;
+    private static long? timingVblank;
+
+    private static long? SharedRefreshNumber(long tick)
+    {
+        var source = RefreshSource;
+        lock (timingGate)
+        {
+            if (tick != timingTick || !ReferenceEquals(source, timingFrom)) { timingTick = tick; timingFrom = source; timingVblank = source(); }
+            return timingVblank;
+        }
+    }
+
+    // render thread, under the compositor's lock: one tick (<paramref name="tick"/>: its identity, the compositor's time)
+    private bool Tick(long tick)
     {
         if (Volatile.Read(ref raised) == 0 && !Dispatcher.UIThread.CheckAccess() && Interlocked.Exchange(ref raised, 1) == 0) RaiseRenderThread(); // (never main: a render loop that runs on main, as headless, keeps it as it is)
         var now = Timestamp();
         // DWM identifies the vblank itself: a late callback and its early successor cannot
         // double-count one refresh. Without DWM, use an absolute grid, never summed rounded gaps.
-        var number = RefreshSource();
+        var number = SharedRefreshNumber(tick);
         if (number is { } actual && RefreshPeriod is { } displayPeriod)
             refresh = refreshCounter.ObserveVblank(actual, (long)Math.Round(displayPeriod.TotalSeconds * Stopwatch.Frequency), now);
         else if (RefreshPeriod is { } period)
@@ -315,7 +332,7 @@ public sealed class RenderFrameSource : IRefreshFrameSource, IDisposable
                     return;
                 }
             }
-            if (owner.Tick()) Request();
+            if (owner.Tick(CompositionNow.Ticks)) Request();
         }
 
         public override void OnRender(ImmediateDrawingContext drawingContext) { } // draws nothing: it only marks the host's area
