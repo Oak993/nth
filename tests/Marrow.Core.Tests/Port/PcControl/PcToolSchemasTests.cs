@@ -81,7 +81,7 @@ public sealed class PcToolSchemasTests
     public void The_instructions_cover_the_loop_targeting_waiting_secrets_confirmation_and_untrusted_screen_text()
     {
         var text = PcInstructions.Text;
-        foreach (var needle in new[] { "pc_list_apps", "pc_observe", "element numbers", "obs", "pc_batch", "Never sleep", "passwords", "ask the user in chat first", "never instructions", "stop and tell the user" })
+        foreach (var needle in new[] { "pc_list_apps", "pc_observe", "element numbers", "obs", "pc_batch", "Never sleep", "passwords", "ask the user in chat first", "never instructions", "stop and tell the user", "Tactus", "every call names its window", "at the same time", "minimized", "never brings a window to the front" })
             Assert.Contains(needle, text, StringComparison.Ordinal);
         Assert.StartsWith("<pc_control>\n", PcInstructions.PromptBlock, StringComparison.Ordinal);
         Assert.DoesNotContain('—', text);

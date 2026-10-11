@@ -76,7 +76,7 @@ public static class PcErrorCodes
         PcErrorCode.PasswordField => "Ask the user to type it themselves",
         PcErrorCode.StaleObs => "Call pc_observe and use the new obs",
         PcErrorCode.StaleElement => "Call pc_observe and pick again",
-        PcErrorCode.OccludedPoint => "Call pc_focus_window, then pc_observe and try again",
+        PcErrorCode.OccludedPoint => "Use an element number instead of a point",
         PcErrorCode.WindowGone => "Call pc_list_apps to find the window again",
         PcErrorCode.StoppedByUser => "Stop using the PC and tell the user you stopped",
         PcErrorCode.UserTookOver => "Wait for the user to finish, then ask before you continue",
@@ -86,12 +86,12 @@ public static class PcErrorCodes
         PcErrorCode.Disabled => "Pick an enabled element or change the state first",
         PcErrorCode.OwnWindow => "nth's own windows are the user's to use; pick another window",
         PcErrorCode.OffScreen => "Use a point inside the window's screenshot",
-        PcErrorCode.Busy => "Wait for the running PC action to finish",
-        PcErrorCode.PcOff => "Ask the user to turn on PC control in nth's Settings",
-        PcErrorCode.Unattended => "Only a chat the user is watching can use the PC",
+        PcErrorCode.Busy => "Wait for this app's earlier Tactus actions to finish",
+        PcErrorCode.PcOff => "Ask the user to turn on Tactus in nth's Settings",
+        PcErrorCode.Unattended => "Only a chat the user is watching can use Tactus",
         PcErrorCode.DeniedKey => "Use another key or ask the user to press it",
         PcErrorCode.CaptureFailed => "Call pc_observe with screenshot no and use the tree",
-        PcErrorCode.NotSupported => "Use another tool or a point click",
+        PcErrorCode.NotSupported => "Use another element or another tool, or ask the user to do this step",
     };
 }
 

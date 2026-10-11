@@ -1,6 +1,7 @@
-// PORT-ONLY: PC control (OD-0140, ED-NEW-pcctl-1; DESIGN.md 2.2). The fifteen nth-pc tools: stable names, short titles for
-// the timeline, descriptions and JSON input schemas, in nth's own words. One place for the MCP server and for the API
-// providers' native tool loop.
+// PORT-ONLY: Tactus, PC control (OD-0140, OD-0141, ED-NEW-pcctl-1, ED-NEW-pcctl-6; DESIGN.md 2.2). The fifteen nth-pc tools:
+// stable wire names, short titles for the timeline, descriptions and JSON input schemas, in nth's own words. Every tool
+// that acts on a window names it, so a model can work in several apps in one turn. One place for the MCP server and for
+// the API providers' native tool loop.
 using System.Text.Json.Nodes;
 
 namespace Marrow.Core.Port.PcControl;
@@ -54,25 +55,25 @@ public static class PcToolSchemas
     public static IReadOnlyList<PcToolSpec> All { get; } =
     [
         new(ListApps, "List apps",
-            "List the running apps that have windows, with each window's id, title and screen, and whether you may use the app. With installed, also list apps from the Start menu that can be launched.",
+            "List the running apps that have windows, with each window's id, title, screen and whether it is minimized, and whether Tactus may use the app. With installed, also list apps from the Start menu that can be launched.",
             true, "{\"type\":\"object\",\"properties\":{\"installed\":{\"type\":\"boolean\",\"default\":false,\"description\":\"Also list installed apps.\"}},\"additionalProperties\":false}"),
         new(LaunchApp, "Launch app",
-            "Start an app by its app_id from pc_list_apps (installed), or by the full path of an .exe. Returns its new windows. Never runs a shell or a command line.",
+            "Start an app by its app_id from pc_list_apps (installed), or by the full path of an .exe, without taking the user's focus. Returns its new windows. Never runs a shell or a command line.",
             false, "{\"type\":\"object\",\"properties\":{\"app_id\":{\"type\":\"string\"},\"path\":{\"type\":\"string\"}},\"additionalProperties\":false}"),
         new(Observe, "Look at window",
-            "Look at one window. Returns a new obs id and the window's accessibility tree as numbered lines (a diff against your last look unless full is true), the focused element and the selection. Adds a screenshot when screenshot is yes, or in auto when the tree has little to act on.",
+            "Look at one window, in front, behind others or minimized. Returns a new obs id and the window's accessibility tree as numbered lines (a diff against your last look unless full is true), the focused element and the selection. Adds a screenshot when screenshot is yes, or in auto when the tree has little to act on.",
             true, "{\"type\":\"object\",\"properties\":{" + WindowProp + ",\"tree\":{\"type\":\"boolean\",\"default\":true},\"screenshot\":{\"type\":\"string\",\"enum\":[\"auto\",\"yes\",\"no\"],\"default\":\"auto\"},\"query\":{\"type\":\"string\",\"description\":\"Keep only lines containing this text, with their parents.\"},\"full\":{\"type\":\"boolean\",\"default\":false,\"description\":\"The whole tree, not a diff.\"},\"max_lines\":{\"type\":\"integer\",\"minimum\":20,\"maximum\":2000,\"default\":300}},\"required\":[\"window\"],\"additionalProperties\":false}"),
         new(Click, "Click",
-            "Click an element by its number (preferred) or a point from the latest screenshot. A plain left click on an element uses its own action (press, toggle, select, expand) when it has one.",
+            "Click an element by its number (preferred) or a point from the latest screenshot. Tactus runs the element's own action (press, toggle, select, expand) in the background, without the user's pointer; a point acts on the element under it.",
             false, "{\"type\":\"object\",\"properties\":{" + WindowProp + "," + ElementProp + "," + PointProp + "," + ObsProp + ",\"button\":{\"type\":\"string\",\"enum\":[\"left\",\"right\",\"middle\"],\"default\":\"left\"},\"count\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":3,\"default\":1}," + ModifiersProp + "},\"required\":[\"window\"],\"additionalProperties\":false}"),
         new(Type, "Type",
-            "Type text into the focused field, or into element after focusing it. Never for passwords, codes or card numbers. mode paste puts the text on the clipboard, pastes it and restores the clipboard. submit presses Enter after.",
-            false, "{\"type\":\"object\",\"properties\":{" + WindowProp + ",\"text\":{\"type\":\"string\",\"maxLength\":20000}," + ElementProp + ",\"mode\":{\"type\":\"string\",\"enum\":[\"type\",\"paste\"],\"default\":\"type\"},\"submit\":{\"type\":\"boolean\",\"default\":false}},\"required\":[\"window\",\"text\"],\"additionalProperties\":false}"),
+            "Type text into an element, or into the window's focused field, without the user's keyboard: the text goes straight into the control, after its current text. Never for passwords, codes or card numbers. submit sends Enter to the field after.",
+            false, "{\"type\":\"object\",\"properties\":{" + WindowProp + ",\"text\":{\"type\":\"string\",\"maxLength\":20000}," + ElementProp + ",\"submit\":{\"type\":\"boolean\",\"default\":false}},\"required\":[\"window\",\"text\"],\"additionalProperties\":false}"),
         new(SetValue, "Set value",
             "Replace an element's whole value (a text field, a slider or a spin box) in one step. Refused for password and read-only fields.",
             false, "{\"type\":\"object\",\"properties\":{" + WindowProp + "," + ElementProp + ",\"value\":{\"type\":\"string\"}},\"required\":[\"window\",\"element\",\"value\"],\"additionalProperties\":false}"),
         new(Key, "Press keys",
-            "Press a key or a chord in the window, such as enter, ctrl+s, alt+f4, shift+tab, f5 or numpad0. The Windows key is never pressed.",
+            "Run a key or a shortcut in the window, such as enter, escape, tab, f5, ctrl+s or alt+f4, without the user's keyboard: a shortcut runs the command that shows it (keys= in the tree), alt+f4 closes the window, and a plain key goes to the window's focused control. The Windows key is never pressed.",
             false, "{\"type\":\"object\",\"properties\":{" + WindowProp + ",\"keys\":{\"type\":\"string\"},\"repeat\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":20,\"default\":1}},\"required\":[\"window\",\"keys\"],\"additionalProperties\":false}"),
         new(Scroll, "Scroll",
             "Scroll an element by its number, or at a point from the latest screenshot, by pages or lines.",
@@ -84,7 +85,7 @@ public static class PcToolSchemas
             "Run one of the actions an element lists after actions: (expand, collapse, toggle, select, set_value through pc_set_value), or focus, scroll_into_view, and the window actions minimize, maximize, restore and close.",
             false, "{\"type\":\"object\",\"properties\":{" + WindowProp + "," + ElementProp + ",\"action\":{\"type\":\"string\",\"enum\":[\"expand\",\"collapse\",\"toggle\",\"select\",\"focus\",\"scroll_into_view\",\"minimize\",\"maximize\",\"restore\",\"close\"]}},\"required\":[\"window\",\"element\",\"action\"],\"additionalProperties\":false}"),
         new(FocusWindow, "Focus window",
-            "Bring the window to the front. Input tools do this themselves; use it when a point was reported as covered.",
+            "Bring the window to the front, only when the user asks to see it. Tactus never needs this to act: it works in background and minimized windows.",
             false, "{\"type\":\"object\",\"properties\":{" + WindowProp + "},\"required\":[\"window\"],\"additionalProperties\":false}"),
         new(Batch, "Run steps",
             "Run 2 to 20 sure steps in one call (pc_click, pc_type, pc_set_value, pc_key, pc_scroll, pc_drag, pc_action), stopping at the first error, then look once. Each step is an object with tool and that tool's arguments; window comes from the batch.",

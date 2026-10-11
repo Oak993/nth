@@ -1243,3 +1243,9 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 - **Defaults decided by the lead with this ruling:** the feature is off by default (Settings master switch); confirmations for send, delete and pay actions are on by default; the stop pill sits top-centre of the screen that holds the controlled window (its UI is designed and canvas-approved later); inside nth chats, when the feature is on, nth's PC control replaces Codex's own computer-use plugin so two controllers never act at once.
 - **Clean-room rule:** OpenAI's plugin, helper and skill text are proprietary; nth learns their design only. nth's code, tool schemas and model instructions are written from scratch; no text or code is copied.
 - **Engineering record:** ED-NEW-pcctl-1 onwards in `porting/engineering_decisions.md`.
+
+## OD-0141 PC control is named Tactus (2026-10-11)
+
+- **Owner, verbatim:** "I like the Tactus name, you can finalize it for PC Control"
+- **Effect:** every user-facing name of the PC control feature (OD-0140) is "Tactus": the Settings group title, the on-screen pill, the approval sheets, the timeline rows and the tool descriptions and instructions models are shown. Plain descriptive helper text (for example "Let models see and control this PC") may stand beside the name. Internal type and namespace names (PcControl, Pc*) and the wire names (the MCP server nth-pc, the pc_* tools, the error codes) stay as they are.
+- **Numbering note:** OD-0139 is used by three different entries on other branches; this entry takes the next number above the highest used on any branch at the time of writing (OD-0140, PC control).

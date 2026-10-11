@@ -66,6 +66,7 @@ public static partial class PcPolicy
         ("microsoft.powershell", PcDenyCategory.Terminal),
         ("microsoft.sechealthui", PcDenyCategory.Security),
         ("microsoft.lockapp", PcDenyCategory.System),
+        ("microsoft.windows.shell.rundialog", PcDenyCategory.Terminal),
         ("microsoft.windows.secureassessmentbrowser", PcDenyCategory.System),
         ("openai.codex", PcDenyCategory.AgentApp),
         ("openai.chatgpt", PcDenyCategory.AgentApp),
