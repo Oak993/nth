@@ -40,6 +40,7 @@ public static class PcToolSchemas
     public const string Zoom = "pc_zoom";
     public const string Wait = "pc_wait";
     public const string Delegate = "pc_delegate";
+    public const string Ask = "pc_ask";
 
     /// <summary>The most steps one pc_batch runs.</summary>
     public const int MaxBatchSteps = 50;
@@ -124,6 +125,14 @@ public static class PcToolSchemas
     public static PcToolSpec DelegateSpec { get; } = new(Delegate, "Fast helper",
         "Hand a plan of simple steps to the user's fast helper model. goal is the plan: each step has tool (pc_observe, pc_read, pc_click, pc_type, pc_set_value, pc_action with select, pc_scroll or pc_wait), window, a target and an expect; the helper only fills in details and never adds steps. Any mismatch, ambiguity or guarded action returns to you at once with a report.",
         false, "{\"type\":\"object\",\"properties\":{\"goal\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":40,\"items\":{\"type\":\"object\",\"properties\":{\"tool\":{\"type\":\"string\",\"enum\":[\"pc_observe\",\"pc_read\",\"pc_click\",\"pc_type\",\"pc_set_value\",\"pc_action\",\"pc_scroll\",\"pc_wait\"]},\"window\":{\"type\":\"string\"}," + TargetProp + "," + ExpectProp + "},\"required\":[\"tool\",\"window\",\"target\",\"expect\"]}},\"windows\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"done_when\":{\"type\":\"string\"},\"max_steps\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":40}},\"required\":[\"goal\",\"windows\",\"done_when\"],\"additionalProperties\":false}");
+
+    /// <summary>
+    /// pc_ask (DESIGN.md 10.4, 10.9): the model's short question, answered from the pill or the chat. Plain text; a question
+    /// that asks for a secret is shown only in the chat.
+    /// </summary>
+    public static PcToolSpec AskSpec { get; } = new(Ask, "Ask the user",
+        "Ask the user a short question while you work in their apps; they answer from Tactus's pill or from the chat. Give up to four short choices, and allow_text for a typed answer (on unless you turn it off). Plain text only. Never ask for passwords, codes, or card or bank numbers: such a question goes only to the chat. Returns the answer, or waiting_for_user with reason question and a token for pc_wait until \"step\".",
+        true, "{\"type\":\"object\",\"properties\":{\"question\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":600},\"choices\":{\"type\":\"array\",\"maxItems\":4,\"items\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":40}},\"allow_text\":{\"type\":\"boolean\",\"default\":true},\"window\":{\"type\":\"string\",\"description\":\"The window the question is about (w:...), for the pill's line.\"}},\"required\":[\"question\"],\"additionalProperties\":false}");
 
     /// <summary>The tools a model is offered: the fifteen, plus pc_delegate when the fast helper is on.</summary>
     public static IReadOnlyList<PcToolSpec> Listed(PcSettings settings) => settings.FastHelper ? [.. All, DelegateSpec] : All;

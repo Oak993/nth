@@ -63,6 +63,12 @@ public static class PcWaitReason
     public const string TypingHere = "typing_here";
     public const string ConfirmCard = "confirm_card";
     public const string BatchBudget = "batch_budget";
+
+    /// <summary>The user paused that app (DESIGN.md 10.1): the call returns at once, and only the user resumes it.</summary>
+    public const string Paused = "paused";
+
+    /// <summary>A pc_ask waiting for the user's answer (DESIGN.md 10.9).</summary>
+    public const string Question = "question";
 }
 
 /// <summary>Why no cursor-free rung could do a step and real input may not (DESIGN.md 2.2, the reasons of needs_real_input).</summary>
@@ -188,6 +194,9 @@ public sealed record PcResult
     /// <summary>For waiting_for_user: the token pc_wait until "step" resumes the same step with.</summary>
     public string? Token { get; init; }
 
+    /// <summary>On the first result after a Resume (DESIGN.md 10.1): the resumed block.</summary>
+    public PcResumed? Resumed { get; init; }
+
     /// <summary>The action ran and its check passed (not an error, not unverified, not waiting).</summary>
     public bool Ok => Error is null && Status == PcStatus.Ok;
 
@@ -215,11 +224,15 @@ public sealed record PcResult
             text.Append("error: ").Append(PcErrorCodes.Wire(code)).Append(": ").Append(Sentence(Reason ?? "failed")).Append(' ').Append(PcErrorCodes.Recovery(code)).Append('.');
         else if (Status == PcStatus.Unverified)
             text.Append("unverified: ").Append(Sentence(Reason ?? "no change was seen")).Append(" Call pc_observe or give an expect; do not assume it worked.");
+        else if (Status == PcStatus.WaitingForUser && Reason == PcWaitReason.Paused)
+            text.Append("waiting_for_user: paused. token: ").Append(Token)
+                .Append(". The user paused this app: do not retry it or reach it another way. Work in other apps; if nothing is left, call pc_wait once with until \"step\" and this token, and if it is still paused, end your turn with one short line.");
         else if (Status == PcStatus.WaitingForUser)
             text.Append("waiting_for_user: ").Append(Reason ?? PcWaitReason.Approval).Append(". token: ").Append(Token)
                 .Append(". Do other steps, then call pc_wait with until \"step\" and this token.");
         else text.Append("ok");
         if (Window is not null) text.Append('\n').Append(Window.Render());
+        if (Resumed is not null) text.Append('\n').Append(Resumed.Render());
         if (!string.IsNullOrEmpty(Body)) text.Append('\n').Append(Body.TrimEnd('\n'));
         return text.ToString();
     }
