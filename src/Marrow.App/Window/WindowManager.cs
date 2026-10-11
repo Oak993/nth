@@ -312,6 +312,11 @@ public sealed class WindowManager
         {
             if (owner.TryGetTarget(out var target)) target.Model.SelectThreadNumber(number);
         };
+        // PORT-ONLY (ED-NEW-session-hotkeys): hold Ctrl to see which number opens which session.
+        (window as ThreadWindow)?.ShowSessionNumbers = shown =>
+        {
+            if (owner.TryGetTarget(out var target)) target.Model.SessionNumbers.SetShown(shown, window);
+        };
         // :66 window.contentMinSize: Avalonia reports it to Windows as the minimum tracking size (WM_GETMINMAXINFO).
         window.MinWidth = Size.MainMinimum.Width;
         // ENGINEERING DECISION (ED-332 (1)): the minimum HEIGHT of the CLIENT is 560, but Avalonia adds the standard
@@ -946,7 +951,24 @@ public sealed class FrameHostingView : Decorator
     // not enabled, which makes every control under it not IsEffectivelyEnabled, and no chord reaches one, however it is
     // bound (a key binding on the window or in the subtree, Button.IsDefault or IsCancel). The subtree's own IsEnabled
     // values are untouched; a hidden host already draws nothing, takes no pointer and holds no focus.
-    protected override bool IsEnabledCore => IsVisible && base.IsEnabledCore;
+    protected override bool IsEnabledCore => IsVisible && !isLeaving && base.IsEnabledCore;
+
+    private bool isLeaving;
+
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-session-hotkeys): a chat column on its way out of a switch is still drawn for its 90 ms fade, but it is
+    /// gated as if hidden already: no chord, default button or focus reaches it.
+    /// </summary>
+    internal bool IsLeaving
+    {
+        get => isLeaving;
+        set
+        {
+            if (isLeaving == value) return;
+            isLeaving = value;
+            UpdateIsEffectivelyEnabled();
+        }
+    }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {

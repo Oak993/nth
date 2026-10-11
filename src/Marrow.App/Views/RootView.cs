@@ -711,7 +711,23 @@ public sealed class DetailView : Decorator
             return model.SelectedThreadID is { } id && model.Thread(id) is not null ? (Guid?)id : null;
         }, Prebuild); // :134 .task(id: threadID), cancelled on selection change or detach.
         DetachedFromVisualTree += (_, _) => { runningObservation?.Cancel(); runningObservation = null; };
+        // PORT-ONLY (ED-NEW-session-hotkeys): Ctrl+1..9 asks for the opened chat's composer, even over the sidebar's search field.
+        AttachedToVisualTree += (_, _) =>
+        {
+            try { focusModel = AppEnvironment.GetAppModel(this); }
+            catch (InvalidOperationException) { return; }
+            focusModel.ComposerFocusRequested += OnComposerFocusRequested;
+        };
+        DetachedFromVisualTree += (_, _) =>
+        {
+            if (focusModel is not null) focusModel.ComposerFocusRequested -= OnComposerFocusRequested;
+            focusModel = null;
+        };
     }
+
+    private AppModel? focusModel;
+
+    private void OnComposerFocusRequested(Guid id) => columns?.RequestComposerFocus(id);
 
     // :131-133 evaluate the running input again after columns create their runtimes. A state-driven Swift body
     // reads those new runtimes on its next evaluation; an observation captured only on attach misses them.
@@ -816,6 +832,12 @@ internal sealed class ThreadColumns : Decorator
         Update(threadID, prebuilt, running, model, liveResize);
     }
 
+    /// <summary>PORT-ONLY (ED-NEW-session-hotkeys): the switch's motion, for tests.</summary>
+    internal ChatSwitchMotion Motion => coordinator.Motion;
+
+    /// <summary>PORT-ONLY (ED-NEW-session-hotkeys): see <see cref="Coordinator.RequestComposerFocus"/>.</summary>
+    public void RequestComposerFocus(Guid id) => coordinator.RequestComposerFocus(id);
+
     // :193-198 updateNSView. The coordinator survives input changes, just as NSViewRepresentable's does.
     public void Update(Guid threadID, IReadOnlyList<Guid> prebuilt, IReadOnlySet<Guid> running, AppModel model, WindowLiveResize liveResize)
     {
@@ -836,31 +858,88 @@ internal sealed class ThreadColumns : Decorator
         private readonly List<FrameHostingView> retired = [];
         private TaskHandle? retirement;
 
+        // PORT-ONLY (ED-NEW-session-hotkeys): the switch's motion, and the chat Ctrl+1..9 asked to type into next.
+        private readonly ChatSwitchMotion motion = new();
+        private Guid? composerFocusFor;
+
+        /// <summary>The switch motion (tests read its poses).</summary>
+        internal ChatSwitchMotion Motion => motion;
+
         // :224-243 func show(_:in:model:liveResize:)
         public void Show(Guid id, Control @in, AppModel model, WindowLiveResize liveResize)
         {
             if (id == shown) return;
+            // PORT-ONLY (ED-NEW-session-hotkeys): every switch, whatever made it, moves the same way; the first chat shown does not.
+            var animates = shown is not null && ChatSwitchMotion.CanAnimate(@in);
             if (shown is { } previousID && columns.TryGetValue(previousID, out var previous))
             {
-                previous.Width = previous.Bounds.Width;
-                previous.Height = previous.Bounds.Height; // :207-209 freeze hidden layout at the size built.
                 RootView.SetChatColumnIsShown(previous, false);
-                previous.IsVisible = false;
+                if (animates)
+                {
+                    // The chat left keeps the size it was built at while it fades (a window resize mid-move does not
+                    // lay it out again), as a hidden column does (:207-209).
+                    previous.Width = previous.Bounds.Width;
+                    previous.Height = previous.Bounds.Height;
+                    motion.Leave(previous, () => Hide(previous));
+                }
+                else Hide(previous);
             }
+            FrameHostingView column;
             if (columns.TryGetValue(id, out var kept))
             {
-                RootView.SetChatColumnIsShown(kept, true);
+                if (!animates) motion.Settle(kept); // else a column still leaving comes back from the pose it has (Enter below)
                 kept.Width = double.NaN;
                 kept.Height = double.NaN;
+                // Visible before it is told it is shown: the composer's focus (ComposerView, :201-203) needs a visible box.
                 kept.IsVisible = true;
+                RootView.SetChatColumnIsShown(kept, true);
                 kept.Measure(@in.Bounds.Size);
                 kept.Arrange(new Rect(@in.Bounds.Size));
+                column = kept;
             }
-            else Make(id, true, @in, model, liveResize);
+            else column = Make(id, true, @in, model, liveResize);
+            if (animates) motion.Enter(column);
             shown = id;
             order.Remove(id);
             order.Add(id);
             while (order.Count > KeptLimit + 1) Drop(order[0]);
+            FocusComposer(column, force: composerFocusFor == id);
+            composerFocusFor = null;
+        }
+
+        // :207-209 freeze hidden layout at the size built.
+        private static void Hide(FrameHostingView column)
+        {
+            column.Width = column.Bounds.Width;
+            column.Height = column.Bounds.Height;
+            column.IsVisible = false;
+        }
+
+        /// <summary>
+        /// PORT-ONLY (ED-NEW-session-hotkeys): Ctrl+1..9 opened <paramref name="id"/>: its composer takes the keyboard, now if it
+        /// is the chat shown, else as it is shown.
+        /// </summary>
+        public void RequestComposerFocus(Guid id)
+        {
+            if (shown == id && columns.TryGetValue(id, out var column)) FocusComposer(column, force: true);
+            else composerFocusFor = id;
+        }
+
+        /// <summary>
+        /// PORT-ONLY (ED-NEW-session-hotkeys): the chat switched to is ready to type in: its composer takes the keyboard with the
+        /// caret at the end of the draft. A text field outside the chats the user is typing in (the sidebar's search, a rename)
+        /// keeps its focus unless Ctrl+1..9 asked (<paramref name="force"/>). Focus moves nothing: no layout, no scroll.
+        /// </summary>
+        private static void FocusComposer(FrameHostingView column, bool force)
+        {
+            if (ChatSwitchMotion.ChatOf(column)?.ComposerBox is not { } box) return;
+            var focused = TopLevel.GetTopLevel(column)?.FocusManager?.GetFocusedElement();
+            if (!force && focused is TextBox other && other is not Composer.ComposerNSTextView) return;
+            if (!box.Focus()) return;
+            var end = box.Text?.Length ?? 0;
+            box.SelectionStart = end;
+            box.SelectionEnd = end;
+            box.CaretIndex = end;
         }
 
         // :247-249 func dropHidden(where:)

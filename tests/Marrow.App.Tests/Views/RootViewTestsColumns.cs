@@ -45,6 +45,9 @@ public sealed class RootViewTestsColumns(HeadlessSession headless)
         using var h = new AppModelHarness();
         using var cursor = DragHandleView.CursorPlatform.Override(new ChatNoCursor());
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        // These tests prove the source's columns (RootView.swift:120-297), which flip at once; the port's quick switch motion
+        // (ED-NEW-session-hotkeys) takes that same instant path under Reduce Motion and is proven frame by frame in SessionSwitchTests.
+        using var motion = Chrome.ReduceMotionPlatform.Override(new RenderingGeniePlatform { AccessibilityDisplayShouldReduceMotion = true });
         var model = h.MakeModel();
         Guid[] ids = [];
         var pane = new Panel();

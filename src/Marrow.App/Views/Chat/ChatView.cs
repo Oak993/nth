@@ -191,6 +191,32 @@ public sealed class ChatView : Decorator
         DetachedFromVisualTree += (_, _) => { dragObservation?.Dispose(); dragObservation = null; };
     }
 
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-session-hotkeys): the parts a chat switch moves. <c>Content</c> is what differs from chat to chat (the
+    /// transcript, the header, the panels, the terminal drawer); <c>Rise</c> is the transcript, which settles up a few points as
+    /// it comes in; <c>Backdrop</c> is what every column draws alike (the sheet's wash and tint, the composer pill), drawn once
+    /// while two columns cross so it never doubles or dips; <c>Veils</c> is the top veil, which the chat leaving keeps over its
+    /// own transcript while that fades, so nothing shows unveiled under the header.
+    /// </summary>
+    internal (IReadOnlyList<Control> Content, Control Rise, IReadOnlyList<Control> Backdrop, IReadOnlyList<Control> Veils) SwitchParts
+    {
+        get
+        {
+            var content = new List<Control> { timelineHost };
+            if (chrome is not null) content.Add(chrome);
+            content.Add(floatingHost);
+            content.Add(terminalHost);
+            var backdrop = new List<Control>();
+            if (Child is Panel sheet) backdrop.AddRange(sheet.Children.OfType<Avalonia.Controls.Shapes.Shape>());
+            backdrop.Add(composerHost);
+            return (content, timelineHost, backdrop, pane.Children.OfType<PaneTopVeil>().ToArray());
+        }
+    }
+
+    /// <summary>PORT-ONLY (ED-NEW-session-hotkeys): the column's composer text box, the one a chat switch puts the keyboard in.</summary>
+    internal ComposerNSTextView? ComposerBox =>
+        Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(composerHost).OfType<ComposerNSTextView>().FirstOrDefault();
+
     // :80-84 thread/project values supplied to the children once per input change.
     private string ResolveDirectory()
     {
