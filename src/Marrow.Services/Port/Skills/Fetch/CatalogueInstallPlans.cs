@@ -31,6 +31,18 @@ public sealed class CatalogueInstallPlans(string dataRoot, Uri? rawBase = null)
         return (parts[0], parts[1].EndsWith(".git", StringComparison.OrdinalIgnoreCase) ? parts[1][..^4] : parts[1]);
     }
 
+    /// <summary>
+    /// Whether <see cref="Plan"/> can say how to fetch and install the item: a skill set or plugin at one commit of a GitHub repository. Everything else (a tool, a package set, a set at per-skill pins) fails closed
+    /// in <see cref="Plan"/> (decision (5) above), so a page or an offer must not offer to download it (ED-NEW-dlhonest-1).
+    /// </summary>
+    public static bool CanPlan(CatalogueItem item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        if (item.Kind is not (ItemKind.Skillset or ItemKind.Plugin) || string.IsNullOrEmpty(item.Pin)) return false;
+        try { _ = Repository(item); return true; }
+        catch (FirstInstallUnavailableException) { return false; }
+    }
+
     /// <summary>The raw-file address of one file of the item at its pin.</summary>
     public Uri Url(CatalogueItem item, string path)
     {

@@ -4,7 +4,23 @@ using Marrow.Core.Port.Skills.Catalogue;
 namespace Marrow.Core.Port.Skills.Pages;
 
 /// <summary>What step 1 of the fallback says for one item: the file or files to get and where from.</summary>
-public sealed record ManualFallback(string File, string Source, Uri Page, bool ForTool);
+public sealed record ManualFallback(string File, string Source, Uri Page, bool ForTool)
+{
+    /// <summary>
+    /// <see cref="File"/> in the pieces it is drawn in (ED-NEW-dlhonest-1, owner 2026-10-11): the words as prose and only the literal values (a file name, a commit, wheels.txt) in code. Joined, they are
+    /// <see cref="File"/> exactly. By default the whole of <see cref="File"/> is one literal.
+    /// </summary>
+    public IReadOnlyList<ManualFallbackPart> Parts { get; init; } = [new(File, Code: true)];
+
+    /// <summary>Value equality, the parts compared piece by piece (a list compares by reference).</summary>
+    public bool Equals(ManualFallback? other) =>
+        other is not null && File == other.File && Source == other.Source && Page == other.Page && ForTool == other.ForTool && Parts.SequenceEqual(other.Parts);
+
+    public override int GetHashCode() => HashCode.Combine(File, Source, Page, ForTool, Parts.Count);
+}
+
+/// <summary>One piece of step 1's text: prose, or a literal value drawn in code.</summary>
+public sealed record ManualFallbackPart(string Text, bool Code);
 
 /// <summary>
 /// The fallback's step 1 from the catalogue, in the design's words (its FB table). ENGINEERING DECISIONS (ED-384): the design writes each item's two texts by hand; here they follow from what the
@@ -30,21 +46,22 @@ public static class ManualFallbacks
                 if (!string.IsNullOrEmpty(item.Pin))
                 {
                     var commit = item.Pin[..Math.Min(7, item.Pin.Length)];
-                    return Make("the repository at commit " + commit + ", as a .zip", Strip(repo.Host) + "/" + path + "/tree/" + commit, false);
+                    return Make(Strip(repo.Host) + "/" + path + "/tree/" + commit, false, Prose("the repository at commit "), Code(commit), Prose(", as a .zip"));
                 }
                 var pins = item.Skills.Select(s => s.Pin).OfType<string>().Where(p => p.Length > 0).Select(p => p[..Math.Min(7, p.Length)]).Distinct(StringComparer.Ordinal).ToList();
                 if (pins.Count == 0 || item.Skills.Any(s => string.IsNullOrEmpty(s.Pin))) return null;
                 var count = pins.Count < Words.Length ? Words[pins.Count] : pins.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                return Make("the " + count + " skill folders at their pinned commits (" + string.Join(", ", pins) + ")", Strip(repo.Host) + "/" + path, false);
+                var listed = pins.SelectMany((p, i) => i == 0 ? new[] { Code(p) } : [Prose(", "), Code(p)]);
+                return Make(Strip(repo.Host) + "/" + path, false, [Prose("the " + count + " skill folders at their pinned commits ("), .. listed, Prose(")")]);
             }
             case ItemKind.Pyset:
-                return Make("the pinned wheels named in wheels.txt in that folder", "pypi.org", true);
+                return Make("pypi.org", true, Prose("the pinned wheels named in "), Code("wheels.txt"), Prose(" in that folder"));
             case ItemKind.Tool when item.Artifacts.Count > 0:
             {
-                var file = string.Join(" and ", item.Artifacts.Select(a => a.Name));
+                var file = item.Artifacts.SelectMany((a, i) => i == 0 ? new[] { Code(a.Name) } : [Prose(" and "), Code(a.Name)]).ToArray();
                 var url = item.Artifacts[0].Url is { } address && Uri.TryCreate(address, UriKind.Absolute, out var parsed) ? parsed : null;
-                if (url is not null) return Make(file, Strip(url.Host) + url.AbsolutePath[..(url.AbsolutePath.LastIndexOf('/') + 1)], true);
-                if (item.SourceUrl is { } page && Uri.TryCreate(page, UriKind.Absolute, out var source)) return Make(file, Strip(source.Host) + source.AbsolutePath.TrimEnd('/'), true);
+                if (url is not null) return Make(Strip(url.Host) + url.AbsolutePath[..(url.AbsolutePath.LastIndexOf('/') + 1)], true, file);
+                if (item.SourceUrl is { } page && Uri.TryCreate(page, UriKind.Absolute, out var source)) return Make(Strip(source.Host) + source.AbsolutePath.TrimEnd('/'), true, file);
                 return null;
             }
             default:
@@ -54,5 +71,10 @@ public static class ManualFallbacks
 
     private static string Strip(string host) => host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? host[4..] : host;
 
-    private static ManualFallback Make(string file, string source, bool tool) => new(file, source, new Uri("https://" + source), tool);
+    private static ManualFallbackPart Prose(string text) => new(text, Code: false);
+
+    private static ManualFallbackPart Code(string text) => new(text, Code: true);
+
+    private static ManualFallback Make(string source, bool tool, params ManualFallbackPart[] parts) =>
+        new(string.Concat(parts.Select(p => p.Text)), source, new Uri("https://" + source), tool) { Parts = parts };
 }

@@ -172,6 +172,7 @@ public sealed class LibraryController : IDisposable
         lock (gate)
         {
             if (!backend.CanFetch) return Task.CompletedTask;
+            if (!backend.CanFetchItem(id)) return Task.CompletedTask; // ED-NEW-dlhonest-1: an item that cannot be fetched is not tried (it would only fail)
             if (run is { Phase: RunPhase.Downloading or RunPhase.Paused }) return Task.CompletedTask;
             var row = Rows.FirstOrDefault(r => r.Id == id);
             if (row is null || row.TermsOwed || row.OnThisPc || row.Busy) return Task.CompletedTask;
@@ -412,7 +413,15 @@ public sealed class LibraryController : IDisposable
 
     // ---- Download all
 
-    public DownloadAllPlan Plan => DownloadAllPlan.Build(section, Rows, backend.Catalogue, backend.Free());
+    /// <summary>
+    /// ED-NEW-dlhonest-1: while fetching is bound, an item not here that cannot be fetched (<see cref="CanFetchItem"/>) is not part of Download all: the run would only fail on it. Its row says why.
+    /// </summary>
+    public DownloadAllPlan Plan => DownloadAllPlan.Build(section, Offered(Rows), backend.Catalogue, backend.Free());
+
+    private IReadOnlyList<LibraryRow> Offered(IReadOnlyList<LibraryRow> rows) => backend.CanFetch ? rows.Where(r => r.OnThisPc || r.Busy || backend.CanFetchItem(r.Id)).ToList() : rows;
+
+    /// <summary>ED-NEW-dlhonest-1: whether the item can be downloaded now (the page's Download, Retry and Check again are on only then; otherwise the row shows that downloading isn't available).</summary>
+    public bool CanFetchItem(string id) => backend.CanFetch && backend.CanFetchItem(id);
 
     /// <summary>The button at the foot of the list: "Download all plugins · 32 MB", or "All plugins are here".</summary>
     public string DownloadAllLabel
@@ -421,7 +430,8 @@ public sealed class LibraryController : IDisposable
         {
             var plan = Plan;
             if (!plan.IsEmpty) return LibraryWords.DownloadAllButton(section, plan.DownloadMb);
-            return plan.Lines.Any(l => l.Kind is PlanLineKind.NeedsTerms or PlanLineKind.NoSize) ? "Download all " + section.Noun() : LibraryWords.DownloadAllButton(section, null);
+            var notHere = plan.Lines.Count < Rows.Count(r => !r.Busy); // ED-NEW-dlhonest-1: items left out because they cannot be fetched are not "here"
+            return notHere || plan.Lines.Any(l => l.Kind is PlanLineKind.NeedsTerms or PlanLineKind.NoSize) ? "Download all " + section.Noun() : LibraryWords.DownloadAllButton(section, null);
         }
     }
 
@@ -430,7 +440,7 @@ public sealed class LibraryController : IDisposable
     // ---- "Download it yourself" (the design's fallback block under a failed item)
 
     /// <summary>Step 1 of the fallback for the item (its file and where from, the design's words), or null when the design draws none for it.</summary>
-    public ManualFallback? ManualFallbackOf(string id) => backend.Catalogue.Items.FirstOrDefault(i => i.Id == id) is { } item ? ManualFallbacks.For(item) : null;
+    public ManualFallback? ManualFallbackOf(string id) => backend.ManualFallbackOf(id); // the item's own entry (the Tools page shows tools as sets; its fallback is still a tool's)
 
     /// <summary>The folder step 2 names, as the design writes it.</summary>
     public string ManualFolderText => ManualFallbackWords.Folder;
@@ -446,7 +456,7 @@ public sealed class LibraryController : IDisposable
         CancellationTokenSource placement;
         lock (gate)
         {
-            if (!backend.CanFetch) return Task.CompletedTask; // unbound: nothing is placed and nothing is asked of the install
+            if (!backend.CanFetch || !backend.CanFetchItem(id)) return Task.CompletedTask; // unbound, or not fetchable: nothing is placed and nothing is asked of the install
             if (backend.State.Get(id).State != ItemState.Failed && !(overlay.TryGetValue(id, out var mine) && mine.State == ItemState.Failed)) return Task.CompletedTask;
             if (Rows.FirstOrDefault(row => row.Id == id) is not { Busy: false }) return Task.CompletedTask;
             item = backend.Catalogue.Items.First(i => i.Id == id);

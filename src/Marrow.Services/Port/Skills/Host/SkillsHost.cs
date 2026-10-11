@@ -130,7 +130,7 @@ public sealed class SkillsHost : IDisposable
         var custom = new CustomSources(Path.Combine(paths.Skills, "own"), options.CustomFiles ?? new DiskCustomSourceFiles(), options.CustomGitHub ?? new PublicGitHubSource(), options.Clock ?? TimeProvider.System);
         var generations = new SkillGenerations(paths, pipeline, options.Protection, options.ClashSource, new CombinedOwnSkillSource(imported, custom), custom);
         var terms = new TermsStep(options.Catalogue, () => pipeline.State, (id, at) => pipeline.AcceptTerms(id, at), options.LicenceText, options.Clock);
-        return new SkillsHost(paths.Root, paths, pipeline, generations, imported, custom, terms, new SkillsDownloads(pipeline, options.Catalogue), options.Catalogue, guarded, trust.Unrestored);
+        return new SkillsHost(paths.Root, paths, pipeline, generations, imported, custom, terms, new SkillsDownloads(pipeline, options.Catalogue, options.Installable), options.Catalogue, guarded, trust.Unrestored);
     }
 
     /// <summary>

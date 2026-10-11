@@ -24,6 +24,7 @@ public sealed class HostLibraryBackend(SkillsHost host, SkillsCatalogue catalogu
     private readonly object gate = new();
     private SkillSwitches? switches;
     private bool unreadable;
+    private readonly bool injected = installs is not null;
 
     /// <summary>The catalogue the host was opened with (the host does not expose it): the caller passes the same one.</summary>
     public SkillsCatalogue Catalogue { get; } = catalogue;
@@ -57,6 +58,13 @@ public sealed class HostLibraryBackend(SkillsHost host, SkillsCatalogue catalogu
     public void CancelFetching(string itemId) => host.Downloads.Stop(itemId);
 
     public bool CanFetch => Installs.IsAvailable;
+
+    /// <summary>
+    /// ED-NEW-dlhonest-1: through the host's shared downloads, the item's own answer (<see cref="SkillsDownloads.CanFetch"/>: pinned, needs pinned, installable by the bound seam). A first install the caller
+    /// injected answers for itself, so only <see cref="CanFetch"/> applies to it.
+    /// </summary>
+    public bool CanFetchItem(string itemId) =>
+        CanFetch && (injected || Catalogue.Items.FirstOrDefault(i => i.Id == itemId) is { } item && host.Downloads.CanFetch(item));
 
     public ISwitchReader Switches => new SwitchTruth(Current());
 

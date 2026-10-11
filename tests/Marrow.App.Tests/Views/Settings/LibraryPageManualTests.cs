@@ -30,8 +30,12 @@ public sealed class LibraryPageManualTests(HeadlessSession headless)
         FailS1(harness);
         var words = Words(Block(harness)).ToList();
         Assert.Contains(ManualFallbackWords.Heading, words);
-        Assert.Contains(ManualFallbackWords.Get, words);
-        Assert.Contains("the repository at commit 0123456, as a .zip", words);
+        // ED-NEW-dlhonest-1 (owner 2026-10-11, over the design's whole phrase in code): step 1 is one line of prose, "Get " and the words plain, only the commit in the code face.
+        var step = Block(harness).GetVisualDescendants().OfType<TextBlock>().Single(t => t.Inlines is { Count: > 0 });
+        var runs = step.Inlines!.OfType<Avalonia.Controls.Documents.Run>().ToList();
+        Assert.Equal(ManualFallbackWords.Get + "the repository at commit 0123456, as a .zip", string.Concat(runs.Select(r => r.Text)));
+        Assert.Equal(["0123456"], runs.Where(r => r.FontFamily == LibraryUi.MonoFamily).Select(r => r.Text));
+        Assert.Equal(ManualFallbackWords.Get, runs[0].Text);
         Assert.Contains("github.com/example/s1/tree/0123456", words);
         Assert.Contains(ManualFallbackWords.PutIn, words);
         Assert.Contains(ManualFallbackWords.Folder, words);
