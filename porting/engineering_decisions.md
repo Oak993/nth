@@ -6141,3 +6141,11 @@ Branch claude/release-integration, 2026-10-10 (integrates Ignis part A, points s
 5. THREADS: see ED-NEW-pcctl-6 (one MTA worker per window).
 6. TESTS: the pure mapping (UiaNodes, UiaPatterns.Outcome) is unit tested from property dictionaries; UIA itself is never called by automated tests. The interface IIDs and vtable slots must be checked by the native smoke test before release (unit 8+).
 
+## ED-NEW-pcctl-5
+2026-10-11 - Tactus captures one window at a time (OD-0140, OD-0141, ED-NEW-pcctl-1; DESIGN.md 3.2). ENGINEERING DECISION. PORT-ONLY (no Swift counterpart).
+1. CHAIN: Windows.Graphics.Capture for the window (App layer, cursor not captured, border off where Windows allows), then PrintWindow with PW_RENDERFULLCONTENT, then a screen copy of the window's frame only when the window is in front and no nth window overlaps it. The first source with a frame that is not blank wins; the source is named in the audit.
+2. MODEL GRID: the frame is scaled (never up) to a long edge of 1280 (1600 at High detail) and at most 1 MP (2 MP), and JPEG-encoded at quality 75 (Skia, high-quality resampling) in the App layer behind IPcJpegEncoder; Services holds only the pipeline and the seams (PcCaptureSeams).
+3. ZOOM: pc_zoom re-crops the full-resolution frame of the observation it names, up to twice the grid scale and never above the frame's own pixels, at most 1280 on the long edge.
+4. A MINIMIZED WINDOW has no pixels to capture: the tree still works; the screenshot reports capture_failed until the owner's coming rule for minimized windows (DESIGN.md update) says otherwise.
+5. TESTS: the pipeline is tested on fake sources and a recording encoder; no test captures a window or the screen.
+
