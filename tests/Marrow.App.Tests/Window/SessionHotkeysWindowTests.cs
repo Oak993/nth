@@ -284,4 +284,62 @@ public sealed class SessionHotkeysWindowTests(HeadlessSession headless)
         Assert.Equal([.. navigation.Select(pair => pair.Key), Key.NumPad0, Key.NumPad2, Key.NumPad3], passed);
         window.Close();
     });
+    [Fact]
+    [Trait("Req", "ED-NEW-session-hotkeys")]
+    public void A_wheel_turn_hides_the_numbers_and_spends_the_hold_until_Control_is_released() => headless.OnUiThread(() =>
+    {
+        using var rig = new Rig();
+        rig.ControlPress();
+        rig.Advance(500);
+        Assert.True(rig.Shown);
+        // The sidebar scrolled under the numbers (or Ctrl+wheel): the badges would sit on rows that moved. They go at once.
+        rig.Window.MouseWheel(new Avalonia.Point(40, 40), new Avalonia.Vector(0, -1), RawInputModifiers.Control);
+        Assert.False(rig.Shown);
+        Assert.Equal([true, false], rig.Calls);
+        rig.Advance(1000); // still held: the hold is spent, they do not come back
+        Assert.False(rig.Shown);
+        rig.ControlRelease();
+        rig.ControlPress();
+        rig.Advance(500);
+        Assert.True(rig.Shown); // a fresh hold shows them again
+        Assert.Equal([true, false, true], rig.Calls);
+
+        // A wheel turn during the 500 ms wait spends it too.
+        rig.ControlRelease();
+        rig.ControlPress();
+        rig.Advance(200);
+        rig.Window.MouseWheel(new Avalonia.Point(40, 40), new Avalonia.Vector(0, 1), RawInputModifiers.Control);
+        rig.Advance(600);
+        Assert.False(rig.Shown);
+    });
+
+    [Fact]
+    [Trait("Req", "ED-NEW-session-hotkeys")]
+    public void A_quick_release_and_press_never_leaves_the_safety_net_without_a_handle_or_with_two_loops() => headless.OnUiThread(() =>
+    {
+        using var rig = new Rig();
+        rig.ControlPress();
+        Assert.True(rig.Window.HoldWatchState.Held);
+        // Released and pressed again before the cancelled watcher's tail has run: that tail must not clear the new handle.
+        rig.Window.KeyRelease(Key.LeftCtrl, RawInputModifiers.None, PhysicalKey.ControlLeft, null);
+        rig.Window.KeyPress(Key.LeftCtrl, RawInputModifiers.Control, PhysicalKey.ControlLeft, null);
+        Dispatcher.UIThread.RunJobs();
+        rig.Advance(60); // every pending tail and one watch interval
+        Assert.True(rig.Window.HoldWatchState.Held);
+        Assert.Equal(1, rig.Window.HoldWatchState.Loops);
+        // Pressed once more (a repeat) and released: the one watcher stops, and none is left behind.
+        rig.Window.KeyPress(Key.LeftCtrl, RawInputModifiers.Control, PhysicalKey.ControlLeft, null);
+        rig.ControlRelease();
+        rig.Advance(120);
+        Assert.Equal((false, 0), rig.Window.HoldWatchState);
+        // The safety net still catches a lost key-up after all this (one loop, its handle held).
+        rig.ControlPress();
+        rig.Advance(500);
+        Assert.True(rig.Shown);
+        rig.ControlDown = false; // the key-up went elsewhere
+        rig.Advance(50);
+        Assert.False(rig.Shown);
+        rig.Advance(60);
+        Assert.Equal((false, 0), rig.Window.HoldWatchState);
+    });
 }
