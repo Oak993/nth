@@ -217,10 +217,14 @@ internal sealed class SpinnerLayerView : Control
         source.RequestFrame(frame);
     }
 
+    /// <summary>ED-NEW-lean-8 (tests): how many frames have repainted the spinner.</summary>
+    internal int Invalidations { get; private set; }
+
     private void OnFrame(TimeSpan _)
     {
         waiting = false;
         if (!animated) return;
+        Invalidations++;
         InvalidateVisual();
         Request();
     }

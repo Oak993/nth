@@ -1020,11 +1020,15 @@ public sealed class HydraChargeLayerView : Control
         source.RequestFrame(frame);
     }
 
+    /// <summary>ED-NEW-lean-8 (tests): how many frames have repainted the charge.</summary>
+    internal int Invalidations { get; private set; }
+
     private void OnFrame(TimeSpan _)
     {
         waiting = false;
         if (source is null) return;
         Refresh();
+        Invalidations++;
         InvalidateVisual();
         Request();
     }

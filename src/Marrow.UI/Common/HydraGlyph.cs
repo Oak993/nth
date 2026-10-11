@@ -228,11 +228,15 @@ public sealed class HydraBreathRingView : Control
         source.RequestFrame(frame);
     }
 
+    /// <summary>ED-NEW-lean-8 (tests): how many frames have repainted the ring.</summary>
+    internal int Invalidations { get; private set; }
+
     private void OnFrame(TimeSpan _)
     {
         waiting = false;
         if (source is null) return;
         Update();
+        Invalidations++;
         InvalidateVisual();
         Request();
     }

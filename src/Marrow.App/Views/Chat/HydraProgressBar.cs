@@ -620,8 +620,12 @@ public sealed class HydraProgressBar : Decorator
             this.hovered = hovered;
             this.rising = rising;
             this.sweeping = sweeping;
+            Invalidations++;
             InvalidateVisual();
         }
+
+        /// <summary>ED-NEW-lean-8 (tests): how many updates have repainted the bar.</summary>
+        internal int Invalidations { get; private set; }
 
         // :357-446
         public override void Render(DrawingContext context)
