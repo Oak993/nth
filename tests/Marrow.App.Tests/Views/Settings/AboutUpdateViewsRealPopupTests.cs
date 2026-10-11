@@ -76,7 +76,13 @@ public sealed class AboutUpdateViewsRealPopupTests(HeadlessSession headless) : S
         window.MouseMove(inside);
         window.MouseWheel(inside, new Vector(0, -3));
         Drain(window);
-        Assert.True(scroll.Offset.Y > 0, $"the wheel scrolled the list (offset {scroll.Offset})");
+        Assert.Equal(0, scroll.Offset.Y); // ED-NEW-softscroll-1: the popover's scroll view glides (OD-0071), nothing moves in the report's own frame
+        Tick(h, 1000 / 60.0);
+        Drain(window);
+        Assert.InRange(scroll.Offset.Y, 0.01, 149.99);
+        Tick(h, 600);
+        Drain(window);
+        Assert.True(Math.Abs(scroll.Offset.Y - Math.Min(150, scroll.Extent.Height - scroll.Viewport.Height)) < 1e-3, $"the wheel scrolled the list (offset {scroll.Offset})");
 
         // A press outside closes it and clears the presented card.
         var outside = new Point(4, 4);

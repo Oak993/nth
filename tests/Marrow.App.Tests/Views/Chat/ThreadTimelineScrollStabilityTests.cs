@@ -491,4 +491,38 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
         var last = landing.Take(arrived + 1).ToList();
         if (last.Count >= 2) Assert.True(last[^1] - last[^2] > 0, "the view crept onto the end instead of arriving from speed");
     });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-001")]
+    [Trait("Decision", "ED-NEW-softscroll-1")] // the owner, 2026-10-11: "Every scroll looks harsh and static movements": a notch is a glide over many frames, not a jump
+    public void A_wheel_notch_on_the_timeline_spreads_over_at_least_six_frames_at_60_Hz() => WithLongThread(30, (view, _, window, frames) =>
+    {
+        var scroller = Scroller(view);
+        var lift = System.Diagnostics.Stopwatch.StartNew();
+        while (IsReaderScrolling(view) && lift.ElapsedMilliseconds < 3000) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(20); }
+        var target = TextsOnScreen(view, scroller).First();
+        var point = target.TranslatePoint(new Point(4, target.Bounds.Height / 2), window)!.Value;
+        window.MouseMove(point);
+        clock?.Advance(TimeSpan.FromSeconds(1)); // a new stream
+        var start = scroller.Offset.Y;
+        window.MouseWheel(point, new Vector(0, 1));
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(start, scroller.Offset.Y, 3); // nothing in the report's own frame
+        var frame = TimeSpan.FromTicks(TimeSpan.TicksPerSecond / 60);
+        var moved = new List<double>();
+        for (var k = 0; k < 60; k++)
+        {
+            clock?.Advance(frame);
+            frames.Advance(frame);
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+            moved.Add(start - scroller.Offset.Y);
+        }
+        var steps = moved.Zip(moved.Prepend(0.0), (now, was) => now - was).ToArray();
+        var shown = string.Join(" ", moved.Take(16).Select(m => m.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)));
+        Assert.True(steps.Count(step => step >= 0.5) >= 6, "the notch moved half a point or more in fewer than six 60 Hz frames: " + shown);
+        Assert.All(steps, step => Assert.True(step >= -1e-6 && step <= 50 * 0.25, $"a 60 Hz frame moved {step:F2} of the 50-point notch: " + shown));
+        Assert.Equal(50, moved[^1], 3);
+        Assert.False(SoftScroll.For(scroller).IsMoving);
+    });
 }

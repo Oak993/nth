@@ -1,7 +1,18 @@
-// PORT-ONLY (OD-0071, ED-246): the one soft, weighted scrolling behaviour every scroll area of the app uses.
-// Taken from unit/premium-scroll (9964d3af4, not merged) for the chat timeline only (UI-CHAT-001, ED-333): a
-// ScrollViewer takes it when SoftScroll.IsEnabled is set on it (the timeline's); every other scroll view keeps Avalonia's
-// own until the shared unit lands (its overlay indicator, ScrollIndicator, is not taken: the timeline hides its indicators).
+// PORT-ONLY (OD-0071, ED-246, ED-NEW-softscroll-1): the one soft, weighted scrolling behaviour every scroll area of the app uses.
+// Taken from unit/premium-scroll (9964d3af4, not merged), first for the chat timeline only (UI-CHAT-001, ED-333); since
+// ED-NEW-softscroll-1 it is the default of EVERY ScrollViewer of the process (SoftScroll.IsEnabled defaults to true): the
+// chat timeline, the diff panel, Settings' pages and sidebar, the thread sidebar, popovers, menus, sheets and panels,
+// text editors' own scroll views (their caret scrolling moves the offset at once, which a motion carries along, see
+// ScrollDriver). The opt-outs, each named where it is made:
+//   * SoftScroll.SetIsEnabled(viewer, false): the viewer (and the scroll views inside it, the property inherits) keeps
+//     Avalonia's own stepping; no scroll view of the app sets it today;
+//   * a viewer presenting ILogicalScrollable content (logical units, not points: a 50-point notch would be 50 items) is
+//     left to Avalonia's logical stepping automatically; none exists in the app today;
+//   * SoftScroll.OwnsWheel on a control that takes the wheel itself: the scroll views around it leave its wheel alone.
+//     The terminal sets it (TerminalSurface): it scrolls its ConPTY history by whole lines and reports the wheel to a
+//     program that asked for the mouse (SwiftTerm, MacTerminalView.swift:3204-3254), so it is no ScrollViewer to glide;
+//   * no frame clock bound (FrameClock.IsBound false, never in the app): nothing could animate, so input steps at once.
+// The overlay indicator of unit/premium-scroll (ScrollIndicator) is not taken.
 //
 // Avalonia's ScrollViewer jumps its offset on every input (a wheel notch is 50 points at once, Page Up/Down a page at
 // once, a touch flick stops dead on release), which the owner ruled is not the Mac's feel (OD-0071). Here every
@@ -25,8 +36,11 @@
 //     its speed until it is within 12 ms of it and then brakes onto it (about 40 ms), where the Mac stops in one frame;
 //   * keyboard (Page Up/Down, Home/End, when the focused control leaves them unhandled) and programmatic scrolls animate
 //     along a SwiftUI curve, `.smooth(duration: 0.25)` for keys, and carry a running speed in;
-//   * reduce motion (\.accessibilityReduceMotion, ED-084): every input steps the offset at once.
-// Work per frame is O(1): a few exponentials per axis and one Offset write.
+//   * reduce motion (\.accessibilityReduceMotion, ED-084): every input steps the offset at once;
+//   * nested scroll views: the innermost on the wheel's route that can still move that way takes it, and one resting at
+//     its end hands it to the one around it (Avalonia's scroll chaining, ScrollViewer.IsScrollChainingEnabled);
+//   * a scroll bar's thumb taken by the pointer stops the motion where it is (the thumb moves the offset itself).
+// Work per frame is O(1): a few exponentials per axis and one Offset write. Work per wheel report is a walk up its route.
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
@@ -997,30 +1011,51 @@ public static class SoftScroll
     /// <summary>The curve keyboard scrolls take: <c>.smooth(duration: 0.25)</c> (see the file note).</summary>
     public static Animation KeyAnimation { get; } = Animation.Smooth(0.25);
 
-    /// <summary>Whether the ScrollViewer scrolls softly, inherited by the scroll views inside it (ED-333: the chat timeline's, until every
-    /// scroll view does).</summary>
+    /// <summary>Whether the ScrollViewer scrolls softly, inherited by the scroll views inside it. True by default: every scroll
+    /// view does (OD-0071, ED-NEW-softscroll-1); false is an opt-out, justified where it is set (see the file note).</summary>
     public static readonly AttachedProperty<bool> IsEnabledProperty =
-        AvaloniaProperty.RegisterAttached<Control, bool>("SoftScrollIsEnabled", typeof(SoftScroll), inherits: true);
+        AvaloniaProperty.RegisterAttached<Control, bool>("SoftScrollIsEnabled", typeof(SoftScroll), defaultValue: true, inherits: true);
 
-    public static bool GetIsEnabled(ScrollViewer viewer) => viewer.GetValue(IsEnabledProperty);
+    public static bool GetIsEnabled(Control control) => control.GetValue(IsEnabledProperty);
 
-    public static void SetIsEnabled(ScrollViewer viewer, bool value) => viewer.SetValue(IsEnabledProperty, value);
+    public static void SetIsEnabled(Control control, bool value) => control.SetValue(IsEnabledProperty, value);
+
+    /// <summary>A control that takes the wheel itself (the terminal): the scroll views around it leave its wheel to it, and to
+    /// Avalonia's own handling after it (see the file note). Not inherited.</summary>
+    public static readonly AttachedProperty<bool> OwnsWheelProperty =
+        AvaloniaProperty.RegisterAttached<Control, bool>("SoftScrollOwnsWheel", typeof(SoftScroll));
+
+    public static bool GetOwnsWheel(Control control) => control.GetValue(OwnsWheelProperty);
+
+    public static void SetOwnsWheel(Control control, bool value) => control.SetValue(OwnsWheelProperty, value);
+
+    // Whether the behaviour drives `viewer`: enabled, and not a logical scroller (its offset is in items, not points).
+    private static bool Drives(ScrollViewer viewer) =>
+        GetIsEnabled(viewer) && viewer.Presenter is not ScrollContentPresenter { Child: ILogicalScrollable { IsLogicalScrollEnabled: true } };
 
     /// <summary>Raised on a ScrollViewer when its phase changes.</summary>
     public static readonly RoutedEvent<ScrollPhaseChangedEventArgs> PhaseChangedEvent =
         RoutedEvent.Register<ScrollViewer, ScrollPhaseChangedEventArgs>("SoftScrollPhaseChanged", RoutingStrategies.Direct);
 
-    /// <summary>Puts the behaviour on every ScrollViewer of the process that has <see cref="IsEnabledProperty"/> set (once; PortControlThemes.Register calls it).</summary>
+    /// <summary>Puts the behaviour on every ScrollViewer of the process that has not opted out of it (once; PortControlThemes.Register calls it).</summary>
     public static void Install()
     {
         if (installed) return;
         installed = true;
+        // Tunnelling (InputElement.PointerWheelChangedEvent routes Tunnel | Bubble in Avalonia 12.1.2): the scroll view sees the
+        // report before its ScrollContentPresenter's own wheel handling (bubbling, OnPointerWheelChanged) can jump the offset.
         InputElement.PointerWheelChangedEvent.AddClassHandler<ScrollViewer>(OnWheel, RoutingStrategies.Tunnel);
         InputElement.KeyDownEvent.AddClassHandler<InputElement>(BeforeKey, RoutingStrategies.Tunnel, handledEventsToo: true);
         InputElement.KeyDownEvent.AddClassHandler<InputElement>(AfterKey, RoutingStrategies.Bubble, handledEventsToo: true);
         InputElement.ScrollGestureEvent.AddClassHandler<ScrollViewer>((viewer, e) =>
         {
-            if (NearestViewer(e.Source) == viewer && GetIsEnabled(viewer)) For(viewer).Touch();
+            if (NearestViewer(e.Source) == viewer && Drives(viewer)) For(viewer).Touch();
+        }, RoutingStrategies.Bubble, handledEventsToo: true);
+        // A scroll bar's thumb taken by the pointer: the thumb moves the offset itself, so the motion stops where it is.
+        Thumb.DragStartedEvent.AddClassHandler<ScrollViewer>((viewer, e) =>
+        {
+            if (e.Source is Visual thumb && thumb.FindAncestorOfType<ScrollBar>() is { } bar && bar.FindAncestorOfType<ScrollViewer>() == viewer
+                && Drivers.TryGetValue(viewer, out var driver)) driver.Stop();
         }, RoutingStrategies.Bubble, handledEventsToo: true);
         InputElement.ScrollGestureEndedEvent.AddClassHandler<ScrollViewer>((viewer, e) =>
         {
@@ -1052,7 +1087,8 @@ public static class SoftScroll
             () => new Vector(
                 viewer.HorizontalScrollBarVisibility == ScrollBarVisibility.Disabled ? 0 : viewer.Extent.Width - viewer.Viewport.Width,
                 viewer.VerticalScrollBarVisibility == ScrollBarVisibility.Disabled ? 0 : viewer.Extent.Height - viewer.Viewport.Height),
-            () => EnvironmentValues.GetAccessibilityReduceMotion(viewer));
+            // No frame clock (never in the app, which binds one at start-up): nothing could animate, so input steps at once.
+            () => EnvironmentValues.GetAccessibilityReduceMotion(viewer) || !FrameClock.IsBound);
         driver.PhaseChanged += phase => viewer.RaiseEvent(new ScrollPhaseChangedEventArgs(phase));
         viewer.DetachedFromVisualTree += (_, _) => driver.Stop();
         return driver;
@@ -1071,7 +1107,10 @@ public static class SoftScroll
         var now = ScrollDriver.Now;
         var kind = Classifier.Classify(Math.Abs(delta.Y) >= Math.Abs(delta.X) ? delta.Y : delta.X, now);
         var owner = Owner(e.Source, delta, kind);
-        if (owner is not null && !GetIsEnabled(owner)) return; // a scroll view that does not scroll softly keeps Avalonia's own wheel
+        if (owner is not null && !Drives(owner)) return; // a scroll view that opted out keeps Avalonia's own wheel
+        // A control on the way that takes the wheel itself (the terminal's history) keeps it: nothing here handles it.
+        for (var visual = e.Source as Visual; visual is not null && visual != owner; visual = visual.GetVisualParent())
+            if (visual is Control control && GetOwnsWheel(control)) return;
         if (owner is null)
         {
             // Nobody can move that way. A view still gliding to that end keeps the report from its presenter (which
@@ -1102,7 +1141,7 @@ public static class SoftScroll
         for (var visual = source as Visual; visual is not null && owner is null; visual = visual.GetVisualParent())
         {
             if (visual is not ScrollViewer viewer || !CanScrollAlong(viewer, delta)) continue;
-            if (!GetIsEnabled(viewer))
+            if (!Drives(viewer))
             {
                 if (CanMoveNow(viewer, direction) || !ScrollViewer.GetIsScrollChainingEnabled(viewer)) owner = viewer;
                 continue;
@@ -1110,7 +1149,7 @@ public static class SoftScroll
             var driver = For(viewer);
             if (driver.CanMove(direction) || driver.IsHeading(direction) || !ScrollViewer.GetIsScrollChainingEnabled(viewer)) owner = viewer;
         }
-        latched = kind == WheelKind.Touchpad && owner is not null && GetIsEnabled(owner) ? new WeakReference<ScrollViewer>(owner) : null;
+        latched = kind == WheelKind.Touchpad && owner is not null && Drives(owner) ? new WeakReference<ScrollViewer>(owner) : null;
         return owner;
     }
 
@@ -1172,7 +1211,7 @@ public static class SoftScroll
             // ScrollViewer.PageDown, a jump): the page is taken over and glides.
             if (e.Handled && e.Key is Key.PageUp or Key.PageDown)
                 foreach (var (own, was) in KeyOffsets.ToArray())
-                    if (GetIsEnabled(own) && ReferenceEquals(own.TemplatedParent, element) && own.Offset != was)
+                    if (Drives(own) && ReferenceEquals(own.TemplatedParent, element) && own.Offset != was)
                     {
                         own.Offset = was;
                         if (ReferenceEquals(waiting, own)) waiting = null;
@@ -1187,9 +1226,9 @@ public static class SoftScroll
             handledBelow = e.Handled;
             return;
         }
-        if (!GetIsEnabled(viewer))
+        if (!Drives(viewer))
         {
-            handledBelow = e.Handled; // a scroll view that does not scroll softly pages itself, as Avalonia does
+            handledBelow = e.Handled; // a scroll view that opted out pages itself, as Avalonia does
             return;
         }
         // Avalonia's own Page Up/Down jump (it runs only on a key that arrived unhandled) is undone: the key is ours.

@@ -34,6 +34,10 @@ internal sealed class TerminalSurface : Decorator
         this.measureCell = measureCell;
         // MacTerminalView.swift:3271-3273 resetCursorRects: the I-beam over the whole body (the catalogue's pointer.ibeam-text).
         Cursor = new Cursor(StandardCursorType.Ibeam);
+        // ED-NEW-softscroll-1 opt-out: the terminal takes the wheel itself (OnPointerWheelChanged): it scrolls its ConPTY history by
+        // whole lines, or reports the wheel to a program that asked for the mouse (MacTerminalView.swift:3204-3254), so no soft
+        // scroll view around it may take its wheel.
+        SoftScroll.SetOwnsWheel(this, true);
         TextControl = new SelectableTextBlock
         {
             TextWrapping = TextWrapping.NoWrap,

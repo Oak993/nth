@@ -103,11 +103,11 @@ public sealed class SettingsViewFinishSidebarTests(HeadlessSession headless) : S
             foreach (var title in titles.Skip(1)) { Reveal(w, h, RowButton(view, title)); Click(w, RowButton(view, title)); Tick(h, 110); Check(title); if (title == "Archive") Assert.Empty(Nodes<ChromeCompactTitle>(view)); /* :198 the empty archive is one symbol */ else Assert.Equal(title, Text(Assert.Single(Nodes<ChromeCompactTitle>(view)))[0]); }
             // :182 frozen while the pane scrolls: a wheel turn over the page holds every row away from the pointer (no hover fill, no click) until 150ms after the last movement.
             Reveal(w, h, RowButton(view, "General")); Click(w, RowButton(view, "General")); Tick(h, 101); /* About's wash finishes fading out */ Reveal(w, h, RowButton(view, "About")); /* OD-0134: About is the sidebar's last row, scrolled to */ var scroll = Assert.Single(Nodes<ScrollViewer>(Field<Control>(view, "detail"))); var at = scroll.TranslatePoint(new Point(scroll.Bounds.Width / 2, scroll.Bounds.Height / 2), w)!.Value;
-            Assert.True(list.IsHitTestVisible); w.MouseMove(at); w.MouseWheel(at, new Vector(0, -3)); Drain(w); Assert.True(scroll.Offset.Y > 0); Assert.False(list.IsHitTestVisible);
+            Assert.True(list.IsHitTestVisible); w.MouseMove(at); w.MouseWheel(at, new Vector(0, -3)); Drain(w); Assert.Equal(0, scroll.Offset.Y); /* ED-NEW-softscroll-1: the page glides (OD-0071), so the freeze starts with its first frame of movement */ Tick(h, 1000 / 60.0); Drain(w); Assert.InRange(scroll.Offset.Y, 0.01, 149.99); Assert.False(list.IsHitTestVisible);
             var about = RowButton(view, "About"); var aboutFill = Assert.IsType<Border>(about.Content); var point = about.TranslatePoint(new Point(10, 10), w)!.Value;
             w.MouseMove(point); Drain(w); Tick(h, 30); Assert.False(about.IsPointerOver); Ink(aboutFill, aboutFill.Background, SwiftColor.Clear);
             w.MouseDown(point, MouseButton.Left); w.MouseUp(point, MouseButton.Left); Drain(w); Assert.Single(Nodes<GeneralSettingsPage>(view)); Check("General", 101); /* still inside the 150 ms freeze: a longer wait would thaw the rows and let the pointer light About */
-            Tick(h, 200); Assert.True(list.IsHitTestVisible); Click(w, RowButton(view, "About")); Assert.Single(Nodes<AboutSettingsPage>(view)); Check("About");
+            Tick(h, 400); Assert.Equal(Math.Min(150, scroll.Extent.Height - scroll.Viewport.Height), scroll.Offset.Y, 3); /* the glide has come to rest */ Tick(h, 200); Assert.True(list.IsHitTestVisible); Click(w, RowButton(view, "About")); Assert.Single(Nodes<AboutSettingsPage>(view)); Check("About");
         });
     }
 

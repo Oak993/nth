@@ -266,7 +266,7 @@ public static class PortControlThemes
     public static void Register(Application application)
     {
         application.Resources[typeof(ScrollViewer)] = ScrollViewerTheme;
-        SoftScroll.Install(); // OD-0071 (ED-246): a ScrollViewer marked SoftScroll.IsEnabled (the chat timeline's, ED-333) scrolls softly
+        SoftScroll.Install(); // OD-0071 (ED-246, ED-NEW-softscroll-1): every ScrollViewer scrolls softly unless it opted out
         application.Resources[typeof(ProgressBar)] = ProgressBarTheme;
         application.Resources[typeof(ToolTip)] = ToolTipTheme;
         // ED-NEW-T45: every .help site uses a long dwell, including after a previous tag.

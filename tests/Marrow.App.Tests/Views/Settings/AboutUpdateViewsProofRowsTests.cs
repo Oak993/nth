@@ -140,7 +140,15 @@ public sealed class AboutUpdateViewsProofRowsTests(HeadlessSession headless)
             window.UpdateLayout(); AvaloniaHeadlessPlatform.ForceRenderTimerTick(3); Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick(3);
             window.MouseMove(at, RawInputModifiers.None); Dispatcher.UIThread.RunJobs();
             window.MouseWheel(at, new Vector(0, -1), RawInputModifiers.None); Dispatcher.UIThread.RunJobs();
+            Assert.Equal(0, scroll.Offset.Y); // ED-NEW-softscroll-1: the notes glide (OD-0071), nothing moves in the report's own frame
+            var glide = new List<double>();
+            for (var frame = 0; frame < 60; frame++)
+            {
+                runtime.Advance(TimeSpan.FromTicks(TimeSpan.TicksPerSecond / 60)); ((ManualFrameSource)FrameClock.Source.Current).Advance(TimeSpan.FromTicks(TimeSpan.TicksPerSecond / 60));
+                Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); glide.Add(scroll.Offset.Y);
+            }
             Assert.Equal(notes.Contains('\n', StringComparison.Ordinal), scroll.Offset.Y > 0); // :756 basedOnSize: short content cannot scroll
+            if (scroll.Offset.Y > 0) { Assert.InRange(glide[0], 0.01, 49.99); Assert.Equal(Math.Min(50, scroll.Extent.Height - scroll.Viewport.Height), scroll.Offset.Y, 3); }
             // Round 3: :749-762 carries no .scrollIndicators modifier, unlike the sites this template's presenter
             // recipe is shared with (:139/:363/:781-787 .scrollIndicators(.never)/.hidden), so a real indicator part
             // must exist and only be visible while the content actually overflows.

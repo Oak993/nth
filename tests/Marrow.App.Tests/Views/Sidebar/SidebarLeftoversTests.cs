@@ -1263,14 +1263,26 @@ public sealed class SidebarLeftoversTests(HeadlessSession headless)
             harness.Main.OnMain(() => Assert.False(ListStack(view).IsHitTestVisible));
             harness.Main.AdvanceMilliseconds(1);
             harness.Main.OnMain(() => Assert.True(ListStack(view).IsHitTestVisible)); // :402 150 ms after the last movement
+            var before = 0.0;
             harness.Main.OnMain(() =>
             {
                 var window = WindowOf(view);
                 var at = view.TranslatePoint(new Point(120, 300), window)!.Value;
-                var before = LogicalQuery.SelfAndDescendants<ScrollViewer>(view).Single().Offset.Y;
+                before = LogicalQuery.SelfAndDescendants<ScrollViewer>(view).Single().Offset.Y;
                 window.MouseWheel(at, new Vector(0, -1)); // a real wheel tick: it reports no phase (:392-404's comment), only the offset moving
-                Assert.NotEqual(before, LogicalQuery.SelfAndDescendants<ScrollViewer>(view).Single().Offset.Y);
+                // ED-NEW-softscroll-1: the list glides (OD-0071): nothing moves in the report's own frame.
+                Assert.Equal(before, LogicalQuery.SelfAndDescendants<ScrollViewer>(view).Single().Offset.Y);
             });
+            void Frame()
+            {
+                harness.Main.Advance(TimeSpan.FromTicks(TimeSpan.TicksPerSecond / 60));
+                harness.Main.OnMain(() => ((ManualFrameSource)FrameClock.Source.Current).Advance(TimeSpan.FromTicks(TimeSpan.TicksPerSecond / 60)));
+            }
+            Frame(); // the first 60 Hz frame moves part of the way
+            harness.Main.OnMain(() => Assert.InRange(LogicalQuery.SelfAndDescendants<ScrollViewer>(view).Single().Offset.Y, before + 0.01, before + 49.99));
+            harness.Main.OnMain(() => Assert.False(ListStack(view).IsHitTestVisible));
+            for (var frame = 0; frame < 32; frame++) Frame(); // 0.55 s: the glide has come to rest (by 0.5 s), its last movement under 150 ms ago
+            harness.Main.OnMain(() => Assert.Equal(before + 50, LogicalQuery.SelfAndDescendants<ScrollViewer>(view).Single().Offset.Y, 3));
             harness.Main.OnMain(() => Assert.False(ListStack(view).IsHitTestVisible));
             harness.Main.AdvanceMilliseconds(160);
             harness.Main.OnMain(() => Assert.True(ListStack(view).IsHitTestVisible));

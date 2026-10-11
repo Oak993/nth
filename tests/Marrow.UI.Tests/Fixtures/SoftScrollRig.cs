@@ -33,7 +33,7 @@ public sealed class SoftScrollRig : IDisposable
         {
             Content = content ?? new StackPanel { Children = { Button, new Border { Height = 2000, Width = 100 } } },
         };
-        SoftScroll.SetIsEnabled(Scroll, true); // ED-333: soft scrolling is opt-in until every scroll view takes it
+        // ED-NEW-softscroll-1: a plain ScrollViewer, nothing set on it: soft scrolling is every scroll view's default.
         configure?.Invoke(Scroll);
         Window = new Window { Content = Scroll, Width = 300, Height = 300 };
         Window.Show();
