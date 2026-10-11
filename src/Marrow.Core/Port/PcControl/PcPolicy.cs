@@ -1,0 +1,152 @@
+// PORT-ONLY: PC control (OD-0140, ED-NEW-pcctl-1; DESIGN.md 4.2, 4.3). The rules the model cannot talk its way around:
+// the apps nth never drives (terminals and shells, password managers and credential prompts, security apps, the lock screen
+// and UAC, nth itself and other agent apps), elevated windows, password fields, the guarded-action words that need the
+// user's confirmation, and who gets the tools at all (ED-NEW-pcctl-2: only a chat the user is watching). The lists are
+// nth's own, written from public knowledge of these apps' executable names.
+using System.Text.RegularExpressions;
+
+namespace Marrow.Core.Port.PcControl;
+
+public enum PcDenyCategory
+{
+    None,
+    Terminal,
+    PasswordManager,
+    Security,
+    System,
+    AgentApp,
+    User,
+}
+
+/// <summary>What the policy says about an app.</summary>
+public sealed record PcAppVerdict(PcDenyCategory Category, string? Reason)
+{
+    public bool Denied => Category != PcDenyCategory.None;
+    public static PcAppVerdict Allowed { get; } = new(PcDenyCategory.None, null);
+}
+
+/// <summary>A process's token facts (from OpenProcessToken and GetTokenInformation).</summary>
+public sealed record PcProcessSecurity(bool Elevated, bool HighIntegrity, bool UiAccess, bool Readable = true);
+
+public static partial class PcPolicy
+{
+    private static readonly Dictionary<string, PcDenyCategory> deniedExes = Build();
+
+    private static Dictionary<string, PcDenyCategory> Build()
+    {
+        var map = new Dictionary<string, PcDenyCategory>(StringComparer.OrdinalIgnoreCase);
+        foreach (var exe in new[]
+                 {
+                     "windowsterminal.exe", "wt.exe", "openconsole.exe", "conhost.exe", "cmd.exe", "powershell.exe", "pwsh.exe",
+                     "powershell_ise.exe", "wsl.exe", "wslhost.exe", "bash.exe", "mintty.exe", "alacritty.exe", "wezterm.exe",
+                     "wezterm-gui.exe", "kitty.exe", "hyper.exe", "tabby.exe", "conemu.exe", "conemu64.exe", "cmder.exe", "putty.exe",
+                 }) map[exe] = PcDenyCategory.Terminal;
+        foreach (var exe in new[]
+                 {
+                     "1password.exe", "bitwarden.exe", "keepass.exe", "keepassxc.exe", "lastpass.exe", "dashlane.exe", "keeper.exe",
+                     "keeperpasswordmanager.exe", "enpass.exe", "proton pass.exe", "protonpass.exe", "nordpass.exe", "roboform.exe",
+                     "credentialuibroker.exe",
+                 }) map[exe] = PcDenyCategory.PasswordManager;
+        foreach (var exe in new[]
+                 {
+                     "sechealthui.exe", "securityhealthsystray.exe", "securityhealthhost.exe", "msascui.exe", "mpcmdrun.exe",
+                     "bdagent.exe", "bdwtxag.exe", "avastui.exe", "avgui.exe", "nortonui.exe", "norton.exe", "avpui.exe", "avp.exe",
+                     "mbam.exe", "mbamtray.exe", "egui.exe", "mcuicnt.exe",
+                 }) map[exe] = PcDenyCategory.Security;
+        foreach (var exe in new[] { "consent.exe", "lockapp.exe", "logonui.exe", "useraccountcontrolsettings.exe", "regedit.exe", "mmc.exe" })
+            map[exe] = PcDenyCategory.System;
+        foreach (var exe in new[] { "marrow.app.exe", "nth.exe", "codex.exe", "chatgpt.exe", "claude.exe", "codex-computer-use.exe" })
+            map[exe] = PcDenyCategory.AgentApp;
+        return map;
+    }
+
+    private static readonly (string Prefix, PcDenyCategory Category)[] deniedAumids =
+    [
+        ("microsoft.windowsterminal", PcDenyCategory.Terminal),
+        ("microsoft.powershell", PcDenyCategory.Terminal),
+        ("microsoft.sechealthui", PcDenyCategory.Security),
+        ("microsoft.lockapp", PcDenyCategory.System),
+        ("microsoft.windows.secureassessmentbrowser", PcDenyCategory.System),
+        ("openai.codex", PcDenyCategory.AgentApp),
+        ("openai.chatgpt", PcDenyCategory.AgentApp),
+        ("claude", PcDenyCategory.AgentApp),
+        ("anthropic.claude", PcDenyCategory.AgentApp),
+        ("agilebits.1password", PcDenyCategory.PasswordManager),
+        ("8bitsolutionsllc.bitwardendesktop", PcDenyCategory.PasswordManager),
+    ];
+
+    private static readonly HashSet<string> riskyExes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "chrome.exe", "msedge.exe", "firefox.exe", "brave.exe", "opera.exe", "vivaldi.exe", "arc.exe", "iexplore.exe",
+        "outlook.exe", "olk.exe", "thunderbird.exe", "hxoutlook.exe",
+        "teams.exe", "ms-teams.exe", "slack.exe", "discord.exe", "whatsapp.exe", "telegram.exe", "signal.exe", "zoom.exe",
+        "explorer.exe", "totalcmd64.exe",
+    };
+
+    /// <summary>Whether the app may be driven at all. <paramref name="userDenied"/> holds exe names or AUMIDs the user added.</summary>
+    public static PcAppVerdict Classify(PcAppIdentity app, IEnumerable<string>? userDenied = null)
+    {
+        if (deniedExes.TryGetValue(app.ExeName, out var category)) return new PcAppVerdict(category, Reason(category, app.ExeName));
+        if (app.Aumid is { Length: > 0 } aumid)
+        {
+            foreach (var (prefix, denied) in deniedAumids)
+                if (aumid.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return new PcAppVerdict(denied, Reason(denied, aumid));
+        }
+        foreach (var entry in userDenied ?? [])
+        {
+            var item = entry.Trim();
+            if (item.Length == 0) continue;
+            if (string.Equals(item, app.ExeName, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(item, app.ExePath, StringComparison.OrdinalIgnoreCase)
+                || (app.Aumid is { } id && string.Equals(item, id, StringComparison.OrdinalIgnoreCase)))
+                return new PcAppVerdict(PcDenyCategory.User, "the user blocked this app in Settings");
+        }
+        return PcAppVerdict.Allowed;
+    }
+
+    /// <summary>The Run dialog (a #32770 dialog titled "Run" owned by Explorer) runs commands, so it is denied like a shell.</summary>
+    public static bool IsRunDialog(string exeName, string className, string title) =>
+        string.Equals(exeName, "explorer.exe", StringComparison.OrdinalIgnoreCase) && className == "#32770"
+        && string.Equals(title.Trim(), "Run", StringComparison.OrdinalIgnoreCase);
+
+    private static string Reason(PcDenyCategory category, string what) => category switch
+    {
+        PcDenyCategory.Terminal => what + " is a terminal or shell; nth never drives those",
+        PcDenyCategory.PasswordManager => what + " holds passwords; nth never drives it",
+        PcDenyCategory.Security => what + " is a security app; nth never drives it",
+        PcDenyCategory.System => what + " is a protected Windows screen",
+        PcDenyCategory.AgentApp => what + " is nth itself or another agent app",
+        PcDenyCategory.User => "the user blocked this app in Settings",
+        PcDenyCategory.None => "",
+    };
+
+    /// <summary>Apps where a click acts as the user towards other people or files (the approval sheet warns).</summary>
+    public static bool IsRisky(PcAppIdentity app) => riskyExes.Contains(app.ExeName);
+
+    /// <summary>Elevated, high-integrity or UIAccess windows are refused; a token nth cannot read counts as elevated.</summary>
+    public static bool IsElevated(PcProcessSecurity security) => !security.Readable || security.Elevated || security.HighIntegrity || security.UiAccess;
+
+    /// <summary>Text may never go into a password field (pc_type, pc_set_value, paste).</summary>
+    public static bool RefusesText(PcUiNode? element) => element is not null && element.Has(PcStates.Password);
+
+    /// <summary>
+    /// ED-NEW-pcctl-2 (legacy Marrow pcTools.ts:39-45): the tools are offered only when PC control is on and the chat is one
+    /// the user is watching. Hydra heads, actors and other background runs never get the mouse.
+    /// </summary>
+    public static bool OffersTools(PcSettings settings, bool attended) => settings.Enabled && attended;
+
+    // The guarded words (DESIGN.md 4.3), whole words, any case. "sign out" and "delete account" are phrases.
+    [GeneratedRegex(@"\b(delete\s+account|sign\s+out|send|delete|pay|buy|purchase|order|submit|publish|post|transfer|install|uninstall)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex GuardedWords();
+
+    /// <summary>The guarded word an element's name holds, lower-cased, or null.</summary>
+    public static string? GuardedWord(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        var matches = GuardedWords().Matches(name);
+        if (matches.Count == 0) return null;
+        // "Delete account" is reported as the phrase, not as "delete".
+        var best = matches.OrderByDescending(m => m.Length).First();
+        return string.Join(' ', best.Value.ToLowerInvariant().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+    }
+}
