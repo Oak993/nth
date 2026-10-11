@@ -88,13 +88,15 @@ public sealed class UpdateCheckTests
     [Trait("Rule", "R-TEST-4")]
     public void An_item_the_catalogue_no_longer_has_is_an_orphan_and_one_without_a_pin_cannot_be_decided_and_neither_is_changed()
     {
+        // ED-NEW-dl-13: every real item is pinned since pin run 4, so the item without a pin is A6 with its pin taken away.
+        var catalogue = CatalogueFixtures.Change(Catalogue, "A6", i => i with { Pin = null });
         var state = Installed(("A6", "x"), ("T1", "3.14.8"), ("Z9", "1"));
-        var result = UpdateCheck.Compute(state, Catalogue);
+        var result = UpdateCheck.Compute(state, catalogue);
         Assert.Equal(["Z9"], result.Orphans);
         Assert.Equal(["A6"], result.Undecidable);
         Assert.Equal(StateFixtures.Text(state), StateFixtures.Text(result.State));
         var offered = AddonsState.Restore([StateFixtures.Rec("A6", ItemState.UpdateAvailable, "x", "y")], [], [], []);
-        var kept = UpdateCheck.Compute(offered, Catalogue);
+        var kept = UpdateCheck.Compute(offered, catalogue);
         Assert.Equal(["A6"], kept.Undecidable);
         Assert.Equal(StateFixtures.Rec("A6", ItemState.UpdateAvailable, "x", "y"), kept.State.Get("A6"));
     }
@@ -109,7 +111,8 @@ public sealed class UpdateCheckTests
             UpdateCheck.CataloguePin(o3));
         Assert.Equal("3.14.8", UpdateCheck.CataloguePin(CatalogueFixtures.Item(Catalogue, "T1")));
         Assert.Equal(OldCommit, UpdateCheck.CataloguePin(CatalogueFixtures.Item(Catalogue, "A1")));
-        Assert.Null(UpdateCheck.CataloguePin(CatalogueFixtures.Item(Catalogue, "A6")));
+        Assert.Equal("ab024cdcfa7ca80be204acd4907656ba5a968589", UpdateCheck.CataloguePin(CatalogueFixtures.Item(Catalogue, "A6")));
+        Assert.Null(UpdateCheck.CataloguePin(CatalogueFixtures.Item(Catalogue, "A6") with { Pin = null }));
         var partial = o3 with { Skills = o3.Skills.Select(s => s.Folder == "pdf" ? s with { Pin = null } : s).ToList() };
         Assert.Null(UpdateCheck.CataloguePin(partial));
         var current = UpdateCheck.CataloguePin(o3)!;

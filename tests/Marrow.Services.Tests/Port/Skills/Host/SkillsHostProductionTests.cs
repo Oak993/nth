@@ -49,17 +49,25 @@ public sealed class SkillsHostProductionTests
         try
         {
             using var host = SkillsHost.Open(root, SkillsHostOptions.Production() with { ClashSource = _ => [] });
-            // ED-NEW-dl-11: pin run 3 recorded A2's licence file hash; O5 stays blocked (no licence file covers it), so its terms still cannot be accepted.
+            // ED-NEW-dl-11: pin run 3 recorded A2's licence file hash. ED-NEW-dl-13: pin run 4 recorded a licence for each plugin of O5 and A6, so their terms are keyed by the hash of all
+            // their licence files together and can be accepted too; the open plugin sets owe none.
             var a2 = host.Terms.Offer("A2")!;
             Assert.Equal("Under Anthropic's terms", a2.Label);
             Assert.True(a2.CanAccept);
             var o5 = host.Terms.Offer("O5")!;
             Assert.Equal("Under OpenAI's terms", o5.Label);
-            Assert.False(o5.CanAccept);
+            Assert.True(o5.CanAccept);
+            Assert.Equal(PluginLicences.Hash(host.Catalogue.Items.Single(i => i.Id == "O5")), o5.LicenceSha256);
+            var a6 = host.Terms.Offer("A6")!;
+            Assert.Equal(("Under Anthropic's terms", true), (a6.Label, a6.CanAccept));
             Assert.Null(host.Terms.Offer("A1")); // an open set owes none
-            Assert.Throws<InvalidOperationException>(() => host.Terms.Accept("O5", readControlChecked: true));
+            Assert.Null(host.Terms.Offer("A3"));
+            Assert.Null(host.Terms.Offer("O4"));
+            Assert.Throws<InvalidOperationException>(() => host.Terms.Accept("O5", readControlChecked: false));
             Assert.Throws<InvalidOperationException>(() => host.Terms.Accept("A2", readControlChecked: false));
             host.Terms.Accept("A2", readControlChecked: true);
+            host.Terms.Accept("O5", readControlChecked: true);
+            Assert.Null(host.Terms.Offer("O5"));
         }
         finally { SkillsHostRig.Delete(root); }
     }

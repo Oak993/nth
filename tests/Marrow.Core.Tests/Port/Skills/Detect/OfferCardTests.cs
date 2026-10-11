@@ -20,7 +20,7 @@ public sealed class OfferCardTests
         var card = detection.Card!;
         Assert.Equal(["T3", "T4"], card.Requested);
         Assert.Equal(["T3", "T4"], card.Items);
-        Assert.Equal(374.87 + 43.7, card.ApproxSizeMb!.Value, 6); // ED-NEW-dl-11: T3 as pin run 3 measured it, T4 still the plan's estimate
+        Assert.Equal(374.87 + 43.71, card.ApproxSizeMb!.Value, 6); // ED-NEW-dl-11, ED-NEW-dl-13: T3 as pin run 3 measured it, T4 as pin run 4 did
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public sealed class OfferCardTests
         Assert.True(items.IndexOf("T2") < items.IndexOf("P6"));
         // ED-NEW-dl-11: pin run 3 sized P6 (43.54 MB), so every item of this card has a size now and the card adds them up; one item without a size still makes it unknown, not zero.
         Assert.Equal(card.Items.Sum(i => CatalogueFixtures.Item(DetectFixtures.Catalogue, i).ApproxSizeMb!.Value), card.ApproxSizeMb!.Value, 6);
-        Assert.Equal(668.8, card.ApproxSizeMb!.Value, 6);
+        Assert.Equal(668.81, card.ApproxSizeMb!.Value, 6); // ED-NEW-dl-13: with T4 as pin run 4 measured it
         var unsized = DetectFixtures.Ctx() with { Catalogue = CatalogueFixtures.Change(DetectFixtures.Catalogue, "P6", i => i with { ApproxSizeMb = null }) };
         Assert.Null(DetectFixtures.Run(unsized, new ToolRequested("A2", "document skills")).Card!.ApproxSizeMb);
     }

@@ -47,21 +47,7 @@ public sealed class PluginLicenceTermsTests
         ],
     };
 
-    /// <summary>Serves each licence file by path and counts the reads; any other path is refused.</summary>
-    private sealed class Files(Dictionary<string, string> texts) : ILicenceText
-    {
-        public List<string> Read { get; } = [];
-
-        public Task<byte[]> ReadAsync(CatalogueItem item, CancellationToken cancellation) => throw new InvalidOperationException("No item licence file.");
-
-        public Task<byte[]> ReadFileAsync(CatalogueItem item, string path, CancellationToken cancellation)
-        {
-            Read.Add(path);
-            return Task.FromResult(Encoding.UTF8.GetBytes(texts[path]));
-        }
-    }
-
-    private static Files Texts() => new(new Dictionary<string, string> { ["plugins/one/LICENSE"] = One, ["plugins/two/LICENSE"] = Two, ["plugins/two/skills/beta/LICENSE.txt"] = Beta });
+    private static PluginLicenceFiles Texts() => new(new Dictionary<string, string> { ["plugins/one/LICENSE"] = One, ["plugins/two/LICENSE"] = Two, ["plugins/two/skills/beta/LICENSE.txt"] = Beta });
 
     private static TermsStep Step(CatalogueItem item, ILicenceText text, Func<AddonsState>? state = null) =>
         new(new SkillsCatalogue { Schema = 1, ReadOn = "2026-10-11", Items = [item] }, state ?? (() => AddonsState.Empty), (_, _) => { }, text, new FixedClock(TermsRig.At));
@@ -90,7 +76,7 @@ public sealed class PluginLicenceTermsTests
     [Trait("Rule", "R-TEST-4")]
     public async Task One_licence_file_that_does_not_match_its_pin_refuses_the_whole_text_and_a_reader_of_item_licences_only_fails_closed()
     {
-        var changed = new Files(new Dictionary<string, string> { ["plugins/one/LICENSE"] = One, ["plugins/two/LICENSE"] = Two + "!", ["plugins/two/skills/beta/LICENSE.txt"] = Beta });
+        var changed = new PluginLicenceFiles(new Dictionary<string, string> { ["plugins/one/LICENSE"] = One, ["plugins/two/LICENSE"] = Two + "!", ["plugins/two/skills/beta/LICENSE.txt"] = Beta });
         await Assert.ThrowsAsync<InvalidDataException>(() => Step(Plugin(), changed).LicenceTextAsync("P1"));
         await Assert.ThrowsAsync<InvalidOperationException>(() => Step(Plugin(), new StubLicenceText(One)).LicenceTextAsync("P1"));
         await Assert.ThrowsAsync<InvalidOperationException>(() => Step(Plugin(), new FailClosedLicenceText()).LicenceTextAsync("P1"));

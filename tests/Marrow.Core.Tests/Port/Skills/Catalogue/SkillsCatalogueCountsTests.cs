@@ -6,6 +6,8 @@ namespace Marrow.Core.Tests.Port.Skills.Catalogue;
 // OpenAI 227), about 49 MB", 2.2: "11 tools plus 6 package sets"; BUILD-PLAN.md 2.5 SK-1 and the OD-0099 amendment add A2 and O5 (already
 // in the ten) and claude-plugins-official and the Figma folders (the two "added" items whose counts SK-2's re-read sets).
 // The counts live in one place, SkillsCatalogueCounts; the first test pins that place to the plan, the others hold the catalogue to it.
+// ED-NEW-dl-13: pin run 4 pinned the last five sets. A plugin set offers the skills nth can load and lists the others as left out, each with its reason, so its offered and left-out
+// skills together are the plan's count (A4: 111 at the very commit the plan names, where the plan counts 112; run 3's resolver found the same 111).
 [Trait("Spec", "DL-1")]
 public sealed class SkillsCatalogueCountsTests
 {
@@ -13,6 +15,13 @@ public sealed class SkillsCatalogueCountsTests
     {
         ["A1"] = 13, ["A2"] = 5, ["A3"] = 252, ["A4"] = 112, ["A5"] = 6,
         ["O1"] = 4, ["O2"] = 30, ["O3"] = 4, ["O4"] = 65, ["O5"] = 124,
+    };
+
+    // ED-NEW-dl-13: what each set offers after pin run 4, and how many of its skills it lists as left out.
+    private static readonly Dictionary<string, (int Offered, int LeftOut)> Offered = new()
+    {
+        ["A1"] = (13, 0), ["A2"] = (5, 0), ["A3"] = (212, 40), ["A4"] = (63, 48), ["A5"] = (6, 0),
+        ["O1"] = (4, 0), ["O2"] = (30, 0), ["O3"] = (4, 0), ["O4"] = (64, 1), ["O5"] = (117, 7),
     };
 
     private static IEnumerable<CatalogueItem> PlanSets => CatalogueFixtures.Real.Items.Where(i => i.Kind is ItemKind.Skillset or ItemKind.Plugin && i.CountState == CountState.Plan);
@@ -36,44 +45,59 @@ public sealed class SkillsCatalogueCountsTests
     [Fact]
     [Trait("Feature", "SK-1")]
     [Trait("Rule", "R-TEST-4")]
-    public void Ten_vendor_sets_hold_615_skills_388_Anthropic_and_227_OpenAI()
+    public void Ten_vendor_sets_hold_the_plan_s_615_skills_388_Anthropic_and_227_OpenAI_offered_or_left_out_but_for_the_one_A4_skill_its_pin_lacks()
     {
         var sets = PlanSets.ToList();
         Assert.Equal(SkillsCatalogueCounts.VendorSets, sets.Count);
         Assert.Equal(PlanSkills.Keys.OrderBy(k => k, StringComparer.Ordinal), sets.Select(s => s.Id).OrderBy(k => k, StringComparer.Ordinal));
-        Assert.Equal(SkillsCatalogueCounts.Skills, sets.Sum(s => s.SkillCount!.Value));
-        Assert.Equal(SkillsCatalogueCounts.AnthropicSkills, sets.Where(s => s.Vendor == "Anthropic").Sum(s => s.SkillCount!.Value));
-        Assert.Equal(SkillsCatalogueCounts.OpenAiSkills, sets.Where(s => s.Vendor == "OpenAI").Sum(s => s.SkillCount!.Value));
+        static int Held(CatalogueItem s) => s.SkillCount!.Value + s.Skipped.Count;
+        Assert.Equal(SkillsCatalogueCounts.Skills - 1, sets.Sum(Held));
+        Assert.Equal(SkillsCatalogueCounts.AnthropicSkills - 1, sets.Where(s => s.Vendor == "Anthropic").Sum(Held));
+        Assert.Equal(SkillsCatalogueCounts.OpenAiSkills, sets.Where(s => s.Vendor == "OpenAI").Sum(Held));
+        Assert.Equal([("A4", 112, 111)], sets.Where(s => Held(s) != PlanSkills[s.Id]).Select(s => (s.Id, PlanSkills[s.Id], Held(s))));
     }
 
     [Fact]
     [Trait("Feature", "SK-1")]
     [Trait("Rule", "R-TEST-4")]
-    public void Each_set_has_the_skill_count_its_row_in_ONDEMAND_2_1_states()
+    public void Each_set_offers_the_skills_pin_run_4_found_loadable_and_lists_the_rest_of_its_ONDEMAND_2_1_row_as_left_out()
     {
-        foreach (var (id, count) in PlanSkills) Assert.Equal(count, CatalogueFixtures.Item(CatalogueFixtures.Real, id).SkillCount);
+        Assert.Equal(PlanSkills.Keys.Order(StringComparer.Ordinal), Offered.Keys.Order(StringComparer.Ordinal));
+        foreach (var (id, (offered, leftOut)) in Offered)
+        {
+            var set = CatalogueFixtures.Item(CatalogueFixtures.Real, id);
+            Assert.Equal((id, offered, leftOut), (id, set.SkillCount!.Value, set.Skipped.Count));
+            Assert.Equal(offered, set.Skills.Count);
+            Assert.Equal(id == "A4" ? PlanSkills[id] - 1 : PlanSkills[id], offered + leftOut);
+        }
     }
 
     [Fact]
     [Trait("Feature", "SK-1")]
     [Trait("Rule", "R-TEST-4")]
-    public void The_plugin_folders_of_A3_O4_and_O5_add_up_to_their_set_and_have_the_names_and_counts_the_plan_lists()
+    public void The_plugin_folders_of_each_plugin_set_are_its_plugins_and_add_up_to_the_skills_it_offers()
     {
-        var a3 = CatalogueFixtures.Item(CatalogueFixtures.Real, "A3");
-        Assert.Equal(18, a3.Folders.Count);
-        Assert.Equal(252, a3.Folders.Sum(f => f.SkillCount));
-        Assert.Equal(36, a3.Folders.Single(f => f.Name == "sales").SkillCount);
-        Assert.Equal(44, a3.Folders.Single(f => f.Name == "small-business").SkillCount);
-        Assert.Equal(71, a3.Folders.Single(f => f.Name == "partner-built").SkillCount);
-        Assert.Equal(1, a3.Folders.Single(f => f.Name == "pdf-viewer").SkillCount);
-        var o4 = CatalogueFixtures.Item(CatalogueFixtures.Real, "O4");
-        Assert.Equal(9, o4.Folders.Count);
-        Assert.Equal(65, o4.Folders.Sum(f => f.SkillCount));
-        Assert.Equal(18, o4.Folders.Single(f => f.Name == "ngs-analysis").SkillCount);
-        var o5 = CatalogueFixtures.Item(CatalogueFixtures.Real, "O5");
-        Assert.Equal(8, o5.Folders.Count);
-        Assert.Equal(124, o5.Folders.Sum(f => f.SkillCount));
-        Assert.Equal(50, o5.Folders.Single(f => f.Name == "life-science-research").SkillCount);
+        // ED-NEW-dl-13: a plugin set's folders are its plugins, the folders its plugin.json files mark (the keys its switches are stored under), so the plan's one partner-built folder of
+        // A3 (71 skills) is its five partner plugins; a plugin left with no skill nth can load is not offered (A4's fund-admin and operations, O4's zotero).
+        (string, int)[] Folders(string id) => CatalogueFixtures.Item(CatalogueFixtures.Real, id).Folders.Select(f => (f.Name, f.SkillCount)).ToArray();
+        Assert.Equal([("bio-research", 6), ("cowork-plugin-management", 2), ("customer-support", 5), ("data", 10), ("design", 7), ("engineering", 10), ("enterprise-search", 5),
+            ("finance", 8), ("human-resources", 9), ("legal", 9), ("marketing", 8), ("operations", 9), ("partner-built/apollo", 3), ("partner-built/brand-voice", 3),
+            ("partner-built/common-room", 5), ("partner-built/slack", 2), ("partner-built/zoom-plugin", 23), ("pdf-viewer", 1), ("product-management", 7), ("productivity", 3),
+            ("sales", 34), ("small-business", 43)], Folders("A3"));
+        Assert.Equal([("plugins/agent-plugins/earnings-reviewer", 6), ("plugins/agent-plugins/gl-reconciler", 2), ("plugins/agent-plugins/kyc-screener", 2),
+            ("plugins/agent-plugins/market-researcher", 5), ("plugins/agent-plugins/meeting-prep-agent", 3), ("plugins/agent-plugins/model-builder", 3),
+            ("plugins/agent-plugins/month-end-closer", 3), ("plugins/agent-plugins/pitch-agent", 3), ("plugins/agent-plugins/statement-auditor", 1),
+            ("plugins/agent-plugins/valuation-reviewer", 3), ("plugins/partner-built/lseg", 8), ("plugins/partner-built/spglobal", 3), ("plugins/vertical-plugins/equity-research", 3),
+            ("plugins/vertical-plugins/financial-analysis", 3), ("plugins/vertical-plugins/investment-banking", 8), ("plugins/vertical-plugins/private-equity", 7)], Folders("A4"));
+        Assert.Equal([("plugins/claude-code-setup", 1), ("plugins/claude-md-management", 1), ("plugins/claude-security", 1), ("plugins/cwc-makers", 2), ("plugins/example-plugin", 2),
+            ("plugins/frontend-design", 1), ("plugins/hookify", 1), ("plugins/math-olympiad", 1), ("plugins/math-proof", 2), ("plugins/mcp-server-dev", 3), ("plugins/playground", 1),
+            ("plugins/plugin-dev", 7), ("plugins/project-artifact", 1), ("plugins/skill-creator", 1)], Folders("A6"));
+        Assert.Equal([("plugins/build-web-apps", 6), ("plugins/build-web-data-visualization", 18), ("plugins/game-studio", 9), ("plugins/google-drive", 5), ("plugins/ngs-analysis", 18),
+            ("plugins/plugin-eval", 5), ("plugins/sentry", 1), ("plugins/test-android-apps", 2)], Folders("O4"));
+        Assert.Equal([("plugins/codex-security", 15), ("plugins/creative-production", 2), ("plugins/data-analytics", 14), ("plugins/life-science-research", 50),
+            ("plugins/openai-ads-conversions", 1), ("plugins/openai-developers", 5), ("plugins/product-design", 9), ("plugins/public-equity-investing", 21)], Folders("O5"));
+        Assert.All(CatalogueFixtures.Real.Items.Where(i => i.Kind == ItemKind.Plugin), i => Assert.Equal(i.SkillCount, i.Folders.Sum(f => f.SkillCount)));
+        Assert.All(CatalogueFixtures.Real.Items.Where(i => i.Kind == ItemKind.Plugin), i => Assert.All(i.Folders, f => Assert.True(f.SkillCount > 0, f.Name)));
     }
 
     [Fact]
@@ -117,7 +141,8 @@ public sealed class SkillsCatalogueCountsTests
         var added = CatalogueFixtures.Real.Items.Where(i => i.CountState == CountState.Added).Select(i => i.Id).OrderBy(i => i, StringComparer.Ordinal).ToList();
         Assert.Equal(["A6", "O6"], added);
         Assert.Equal(SkillsCatalogueCounts.AddedSets, added.Count);
-        Assert.Null(CatalogueFixtures.Item(CatalogueFixtures.Real, "A6").SkillCount);
+        var a6 = CatalogueFixtures.Item(CatalogueFixtures.Real, "A6");
+        Assert.Equal((25, 2), (a6.SkillCount, a6.Skipped.Count)); // ED-NEW-dl-13: pin run 4 counted A6
         Assert.Equal(8, CatalogueFixtures.Item(CatalogueFixtures.Real, "O6").SkillCount);
         Assert.Equal(SkillsCatalogueCounts.Tools + SkillsCatalogueCounts.PackageSets + SkillsCatalogueCounts.VendorSets + SkillsCatalogueCounts.AddedSets,
             CatalogueFixtures.Real.Items.Count);
@@ -138,19 +163,21 @@ public sealed class SkillsCatalogueCountsTests
     [Trait("Rule", "R-TEST-4")]
     public void Every_pinned_size_is_the_one_the_pin_run_measured_and_the_plan_s_estimates_stay_only_where_nothing_was_measured()
     {
-        // ONDEMAND-PLAN.md 2.1: "about 49 MB in all" for the sets the plan sizes.
-        Assert.Equal(49, Math.Round(PlanSets.Sum(s => s.ApproxSizeMb!.Value), MidpointRounding.AwayFromZero));
+        // ONDEMAND-PLAN.md 2.1: "about 49 MB in all" for the sets the plan sizes; measured, the files the ten sets offer come to 45 MB (ED-NEW-dl-13: pin run 4 measured the last four,
+        // without the skills they leave out).
+        Assert.Equal(45, Math.Round(PlanSets.Sum(s => s.ApproxSizeMb!.Value), MidpointRounding.AwayFromZero));
         // ED-NEW-dl-11: pin run 3 measured every pinned item, a set by its files and a tool or package set by its downloads, in MB to two places (the plan's 356 MB T3, 12.6 MB T1,
-        // 325.3 MB T10 and unsized P6 were estimates); the items it could not pin keep the plan's estimates.
+        // 325.3 MB T10 and unsized P6 were estimates); the items it could not pin kept the plan's estimates until pin run 4 measured them (ED-NEW-dl-13).
         foreach (var item in CatalogueFixtures.Real.Items.Where(i => i.PinState == PinState.Pinned))
         {
             var bytes = item.Kind is ItemKind.Skillset or ItemKind.Plugin ? item.Files.Sum(f => f.Size) : item.Artifacts.Sum(a => a.Size!.Value);
             Assert.Equal(Math.Round(bytes / 1e6, 2), item.ApproxSizeMb!.Value, 6);
         }
-        Assert.Equal(new (string, double?)[] { ("A3", 8.1), ("A4", 2), ("A6", null), ("O4", 3.9), ("O5", 18.2), ("T4", 43.7) },
-            CatalogueFixtures.Real.Items.Where(i => i.PinState != PinState.Pinned).Select(i => (i.Id, i.ApproxSizeMb)));
+        Assert.All(CatalogueFixtures.Real.Items, i => Assert.Equal((i.Id, PinState.Pinned), (i.Id, i.PinState)));
+        Assert.Equal(new (string, double)[] { ("A3", 6.09), ("A4", 1.12), ("A6", 3.76), ("O4", 3.79), ("O5", 17.44), ("T4", 43.71) },
+            new[] { "A3", "A4", "A6", "O4", "O5", "T4" }.Select(id => (id, CatalogueFixtures.Item(CatalogueFixtures.Real, id).ApproxSizeMb!.Value)));
         double Mb(string id) => CatalogueFixtures.Item(CatalogueFixtures.Real, id).ApproxSizeMb!.Value;
-        // ONDEMAND-PLAN.md 2.2: "The common document case (T1, T1p, P1, P2, P3, T3, T4) is about 480 MB"; measured (with T4's estimate) it is 557 MB.
+        // ONDEMAND-PLAN.md 2.2: "The common document case (T1, T1p, P1, P2, P3, T3, T4) is about 480 MB"; measured it is 557 MB (T4 measured by pin run 4, ED-NEW-dl-13).
         Assert.Equal(557, Math.Round(new[] { "T1", "T1p", "P1", "P2", "P3", "T3", "T4" }.Sum(Mb), MidpointRounding.AwayFromZero));
         Assert.Equal(374.87, Mb("T3"), 6);
         Assert.Equal(325.32, Mb("T10"), 6);

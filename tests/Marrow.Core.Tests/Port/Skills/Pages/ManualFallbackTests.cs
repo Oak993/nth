@@ -21,6 +21,9 @@ public sealed class ManualFallbackTests
     [InlineData("O1", "the repository at commit 2739e82, as a .zip", "github.com/openai/codex/tree/2739e82")]
     [InlineData("O2", "the repository at commit 49f948f, as a .zip", "github.com/openai/skills/tree/49f948f")]
     [InlineData("O4", "the repository at commit 5fd93af, as a .zip", "github.com/openai/plugins/tree/5fd93af")]
+    // ED-NEW-dl-13: pin run 4 pinned A6 and O5, so they follow the rule of every set at one commit.
+    [InlineData("A6", "the repository at commit ab024cd, as a .zip", "github.com/anthropics/claude-plugins-official/tree/ab024cd")]
+    [InlineData("O5", "the repository at commit 5fd93af, as a .zip", "github.com/openai/plugins/tree/5fd93af")]
     // The design lists O3's commits in its plan's skill order; the pinned catalogue lists the skills in the ordinal order of their paths (doc, pdf, slides, spreadsheet), so the commits come in that order.
     [InlineData("O3", "the three skill folders at their pinned commits (45d05d7, 49f948f, e6afb0d)", "github.com/openai/skills")]
     [InlineData("T2", "node-v24.21.0-win-x64.zip", "nodejs.org/dist/v24.21.0/")]
@@ -52,8 +55,16 @@ public sealed class ManualFallbackTests
 
     [Theory]
     [InlineData("P6")] // a Node package set: the design draws none
-    [InlineData("A6")] // no pin: no commit to name
     public void An_item_the_design_draws_no_fallback_for_has_none(string id) => Assert.Null(Of(id));
+
+    [Fact]
+    public void A_set_with_no_pin_has_none_for_there_is_no_commit_to_name()
+    {
+        // ED-NEW-dl-13: no real set lacks a pin since pin run 4, so the set without one is A6 with its pin taken away.
+        var a6 = Catalogue.Items.Single(i => i.Id == "A6");
+        Assert.NotNull(ManualFallbacks.For(a6));
+        Assert.Null(ManualFallbacks.For(a6 with { Pin = null }));
+    }
 
     [Fact]
     public void The_words_are_the_designs()

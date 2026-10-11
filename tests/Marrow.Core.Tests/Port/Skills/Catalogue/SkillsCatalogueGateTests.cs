@@ -127,8 +127,11 @@ public sealed class SkillsCatalogueGateTests
         var fixture = CatalogueFixtures.Pinned();
         Assert.True(CatalogueFixtures.Fires(Check(CatalogueFixtures.Change(fixture, "X1", i => i with { PinState = PinState.Unpinned })), CatalogueRules.PinState, "X1"));
         Assert.True(CatalogueFixtures.Fires(Check(CatalogueFixtures.Change(fixture, "X1", i => i with { Artifacts = i.Artifacts.Select(a => a with { Sha256 = null }).ToList() })), CatalogueRules.PinState, "X1"));
-        // ED-NEW-dl-11: pin run 3 pinned T1; T4 (no official Windows build) is still unpinned, so a declared pin is refused on it, and a pinned item declared unpinned is refused too.
-        Assert.True(CatalogueFixtures.Fires(Check(CatalogueFixtures.Change(Real, "T4", i => i with { PinState = PinState.Pinned })), CatalogueRules.PinState, "T4"));
+        // ED-NEW-dl-11: pin run 3 pinned T1; a pinned item declared unpinned is refused. ED-NEW-dl-13: pin run 4 pinned T4 and the plugin sets, so an item that loses a value it pins
+        // while still declared pinned is refused: T4 without its artifact's digest, A3 without its files, O5 with a plugin's licence removed.
+        Assert.True(CatalogueFixtures.Fires(Check(CatalogueFixtures.Change(Real, "T4", i => i with { Artifacts = i.Artifacts.Select(a => a with { Sha256 = null }).ToList() })), CatalogueRules.PinState, "T4"));
+        Assert.True(CatalogueFixtures.Fires(Check(CatalogueFixtures.Change(Real, "A3", i => i with { Files = [] })), CatalogueRules.PinState, "A3"));
+        Assert.True(CatalogueFixtures.Fires(Check(CatalogueFixtures.Change(Real, "O5", i => i with { Folders = i.Folders.Select((f, n) => n == 0 ? f with { LicenceName = null, LicenceFile = null } : f).ToList() })), CatalogueRules.PinState, "O5"));
         Assert.True(CatalogueFixtures.Fires(Check(CatalogueFixtures.Change(Real, "T1", i => i with { PinState = PinState.Unpinned })), CatalogueRules.PinState, "T1"));
         Assert.True(CatalogueFixtures.Fires(Check(CatalogueFixtures.Change(fixture, "X3", i => i with { Files = [] })), CatalogueRules.PinState, "X3"));
         Assert.True(CatalogueFixtures.Fires(Check(CatalogueFixtures.Change(fixture, "X3", i => i with { LicenceFile = null })), CatalogueRules.PinState, "X3"));
@@ -170,7 +173,12 @@ public sealed class SkillsCatalogueGateTests
     [Trait("Rule", "R-TEST-4")]
     public void The_strict_option_off_lets_unpinned_items_through_and_on_it_does_not()
     {
+        // ED-NEW-dl-13: every real item is pinned now, so both pass on the real catalogue; with T4 taken back to unpinned only the strict option refuses it.
+        var strict = new CatalogueGateOptions { RequireAllPinned = true };
         Assert.Empty(Check(Real).Violations);
-        Assert.NotEmpty(CatalogueGate.Check(Real, new CatalogueGateOptions { RequireAllPinned = true }).Violations);
+        Assert.Empty(CatalogueGate.Check(Real, strict).Violations);
+        var unpinned = CatalogueFixtures.Change(Real, "T4", i => i with { PinState = PinState.Unpinned, Artifacts = i.Artifacts.Select(a => a with { Sha256 = null }).ToList() });
+        Assert.Empty(Check(unpinned).Violations);
+        Assert.Equal([(CatalogueRules.Unpinned, "T4")], CatalogueGate.Check(unpinned, strict).Violations.Select(v => (v.Rule, v.ItemId!)));
     }
 }

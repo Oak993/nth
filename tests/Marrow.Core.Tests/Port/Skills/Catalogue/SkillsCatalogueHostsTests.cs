@@ -31,6 +31,9 @@ public sealed class SkillsCatalogueHostsTests
         var urls = AllUrls(CatalogueFixtures.Real).ToList();
         Assert.NotEmpty(urls);
         foreach (var (id, field, url) in urls) Assert.True(field == "licenceUrl" ? CatalogueHosts.IsAllowedLicence(url) : CatalogueHosts.IsAllowed(url), $"{id} {field}: {url}");
+        // ED-NEW-dl-13: the one licence URL off the plan's list is T4's, Poppler's own COPYING at its release tag on the project's own GitLab.
+        Assert.Equal([("T4", "https://gitlab.freedesktop.org/poppler/poppler/-/raw/poppler-26.09.0/COPYING")],
+            urls.Where(u => !CatalogueHosts.IsAllowed(u.Url)).Select(u => (u.Id, u.Url)));
     }
 
     [Fact]

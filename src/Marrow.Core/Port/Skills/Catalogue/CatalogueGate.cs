@@ -341,6 +341,10 @@ public static partial class CatalogueGate
         if (item.Kind != ItemKind.Plugin || item.Folders.Count == 0) return;
         var roots = item.Files.Select(f => f.Path).Where(p => PluginManifest().IsMatch(p)).Select(p => p[..p.LastIndexOf("/.", StringComparison.Ordinal)])
             .ToHashSet(StringComparer.Ordinal);
+        // A plugin.json at the repository root makes the whole set one plugin to a generation, so no folder of it could be switched on its own.
+        foreach (var file in item.Files)
+            if (file.Path is ".claude-plugin/plugin.json" or ".codex-plugin/plugin.json" or ".cursor-plugin/plugin.json")
+                fail(CatalogueRules.Count, $"{file.Path} makes the whole set one plugin, so its plugin folders cannot be listed");
         foreach (var folder in item.Folders)
             if (!roots.Contains(folder.Name)) fail(CatalogueRules.Count, $"plugin folder {folder.Name} holds no plugin.json");
         foreach (var root in roots)

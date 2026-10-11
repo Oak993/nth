@@ -25,12 +25,10 @@ public sealed class CatalogueToolInstallTests
 {
     private static readonly TimeSpan Guard = TimeSpan.FromSeconds(60);
 
-    private static readonly string[] Blocked = ["A3", "A4", "A6", "O4", "O5", "T4"];
-
     // The installer each runnable item of the release is built by (ED-NEW-dl-7); written out, not derived, so a catalogue change that moves an item to another installer fails here.
     private static readonly Dictionary<string, InstallerKind> Kinds = new()
     {
-        ["T1"] = InstallerKind.PythonEmbed, ["T1p"] = InstallerKind.Zip, ["T2"] = InstallerKind.Zip, ["T3"] = InstallerKind.MsiAdmin, ["T5"] = InstallerKind.Zip, ["T6"] = InstallerKind.Zip,
+        ["T1"] = InstallerKind.PythonEmbed, ["T1p"] = InstallerKind.Zip, ["T2"] = InstallerKind.Zip, ["T3"] = InstallerKind.MsiAdmin, ["T4"] = InstallerKind.Zip, ["T5"] = InstallerKind.Zip, ["T6"] = InstallerKind.Zip,
         ["T7"] = InstallerKind.Sfx7z, ["T8"] = InstallerKind.Zip, ["T9"] = InstallerKind.Zip, ["T10"] = InstallerKind.Zip,
         ["P1"] = InstallerKind.Pyset, ["P2"] = InstallerKind.Pyset, ["P3"] = InstallerKind.Pyset, ["P4"] = InstallerKind.Pyset, ["P5"] = InstallerKind.Pyset, ["P6"] = InstallerKind.Nodeset,
     };
@@ -41,7 +39,7 @@ public sealed class CatalogueToolInstallTests
     private static ItemRecord Checking(CatalogueItem item) => new(item.Id, ItemState.Checking, null, UpdateCheck.CataloguePin(item), null);
 
     [Fact]
-    public async Task Every_pinned_item_of_the_release_plans_its_exact_downloads_and_each_blocked_item_fails_closed_with_the_one_message()
+    public async Task Every_item_of_the_release_plans_its_exact_downloads_and_an_item_taken_back_to_unpinned_fails_closed_with_the_one_message()
     {
         await using var rig = new CatalogueToolRig();
         var real = rig.Real;
@@ -51,12 +49,6 @@ public sealed class CatalogueToolInstallTests
         var perSkillCommits = 0;
         foreach (var item in real.Items)
         {
-            if (Blocked.Contains(item.Id))
-            {
-                Assert.False(CatalogueInstallPlans.CanPlan(item), item.Id);
-                Assert.Equal(LibraryWords.DownloadsUnavailable, Assert.Throws<FirstInstallUnavailableException>(() => plans.Plan(item, Checking(item))).Message);
-                continue;
-            }
             Assert.True(CatalogueInstallPlans.CanPlan(item), item.Id);
             if (item.Kind == ItemKind.Pyset)
             {
@@ -94,6 +86,21 @@ public sealed class CatalogueToolInstallTests
             }
         }
         Assert.True(perSkillCommits > 1, "O3 is fetched file by file at the commits of its own skills");
+        // ED-NEW-dl-13: pin run 4 pinned the six items that were blocked, so every item plans. One that lacks a value it must pin fails closed with the one message, as they did: T4 without
+        // its artifact's digest, A6 without its commit, O5 with one plugin's licence unknown.
+        var t4 = real.Items.Single(i => i.Id == "T4");
+        var a6 = real.Items.Single(i => i.Id == "A6");
+        var o5 = real.Items.Single(i => i.Id == "O5");
+        foreach (var lacking in new[]
+        {
+            t4 with { PinState = PinState.Unpinned, Artifacts = t4.Artifacts.Select(a => a with { Sha256 = null }).ToList() },
+            a6 with { PinState = PinState.Unpinned, Pin = null },
+            o5 with { PinState = PinState.Unpinned, Folders = o5.Folders.Select((f, n) => n == 0 ? f with { LicenceName = null, LicenceFile = null } : f).ToList() },
+        })
+        {
+            Assert.False(CatalogueInstallPlans.CanPlan(lacking), lacking.Id);
+            Assert.Equal(LibraryWords.DownloadsUnavailable, Assert.Throws<FirstInstallUnavailableException>(() => plans.Plan(lacking, Checking(lacking))).Message);
+        }
 
         // Once the Python the sets need is installed, each real set plans with that interpreter and every pinned wheel by its own pinned requirement.
         await Install(rig.Host, "T1", rig);
@@ -170,6 +177,8 @@ public sealed class CatalogueToolInstallTests
         Assert.Equal((Path.Combine(Folder("T3"), "program", "soffice.exe"), true), (soffice.Target, soffice.LibreOffice));
         Assert.Equal(Path.Combine(Folder("T7"), "bin", "bash.exe"), PipelineRoutingReader.ResolveShim(state, "bash.exe").Target);
         Assert.Equal(Path.Combine(Folder("T8"), "gh", "bin", "gh.exe"), PipelineRoutingReader.ResolveShim(state, "gh.exe").Target);
+        Assert.Equal(Path.Combine(Folder("T4"), "poppler-26.09.0", "Library", "bin", "pdftoppm.exe"), PipelineRoutingReader.ResolveShim(state, "pdftoppm.exe").Target);
+        Assert.Equal(Path.Combine(Folder("T4"), "poppler-26.09.0", "Library", "bin", "pdftotext.exe"), PipelineRoutingReader.ResolveShim(state, "pdftotext.exe").Target);
         var exported = new Dictionary<string, string>
         {
             ["NODE_PATH"] = Path.Combine(Folder("P6"), "node_modules"), ["PLAYWRIGHT_BROWSERS_PATH"] = Folder("T10"), ["PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS"] = "1",
@@ -178,7 +187,8 @@ public sealed class CatalogueToolInstallTests
         Assert.Equal(exported.OrderBy(e => e.Key, StringComparer.Ordinal), npm.Environment.OrderBy(e => e.Key, StringComparer.Ordinal));
 
         // addons\bin holds one launcher copy and sidecar per published name, kept in step by the pipeline's own change event.
-        var names = new[] { "bash.exe", "gh.exe", "node.exe", "npm.cmd", "npx.cmd", "pandoc.exe", "pip.exe", "py.exe", "python.exe", "python3.exe", "qpdf.exe", "sh.exe", "soffice.exe", "uv.exe" };
+        var names = new[] { "bash.exe", "gh.exe", "node.exe", "npm.cmd", "npx.cmd", "pandoc.exe", "pdftoppm.exe", "pdftotext.exe", "pip.exe", "py.exe", "python.exe", "python3.exe", "qpdf.exe", "sh.exe",
+            "soffice.exe", "uv.exe" };
         Assert.Equal(names, PipelineShimSync.Published(rig.Host.Paths));
         var bin = Path.Combine(rig.Host.Paths.Addons, "bin");
         var launcher = await File.ReadAllBytesAsync(rig.Launcher);

@@ -8,16 +8,19 @@ namespace Marrow.Core.Tests.Port.Skills.Catalogue;
 // source and the resolver verified (signatures, published digests): every pin, artifact URL, exact size and full SHA-256, and every licence file with its own size and SHA-256.
 // The six items with no official source or no licence file covering them stay unpinned with the values they lack; nothing is filled in for them. These assertions replace the
 // interim ones that held the plan's 2026-10-04 transcription (ED-NEW-dl-11 quotes them).
+// Pin run 4 (ED-NEW-dl-13, the lead's 2026-10-11 decisions) pinned those six: the five plugin sets with a licence recorded for each plugin (and for each skill with a licence file of its
+// own), the skills that cannot be offered listed with their reasons; T4 as conda-forge's Poppler build, every file of its zip proven against conda-forge's published digests. No item is
+// unpinned any more; the assertions that held the six as blocked are replaced by the ones below (ED-NEW-dl-13 quotes them).
 public sealed partial class SkillsCataloguePinsTests(ITestOutputHelper output)
 {
     [GeneratedRegex("^[0-9a-f]{40}$")] private static partial Regex Commit();
-
-    private static readonly string[] Blocked = ["A3", "A4", "A6", "O4", "O5", "T4"];
 
     private static readonly Dictionary<string, string> Pins = new()
     {
         ["A1"] = "8a1541c4a3ffa5a20a5a91de0dcf3f0bab1d1ef4", ["A2"] = "8a1541c4a3ffa5a20a5a91de0dcf3f0bab1d1ef4", ["A5"] = "e96556b637b56d6cc3a5ad33987009be9e60aa5c",
         ["O1"] = "2739e828581c3deee59a270cd740675dc278ed14", ["O2"] = "49f948faa9258a0c61caceaf225e179651397431", ["O6"] = "49f948faa9258a0c61caceaf225e179651397431",
+        ["A3"] = "8444efcd48f7012f09797778a36a33e73d0861f4", ["A4"] = "574ed3624aebd0418c7e96cd101262f30210ab26", ["A6"] = "ab024cdcfa7ca80be204acd4907656ba5a968589",
+        ["O4"] = "5fd93af4cd0c623e020d0cc7e9ce178b4ac1f70f", ["O5"] = "5fd93af4cd0c623e020d0cc7e9ce178b4ac1f70f", ["T4"] = "26.09.0",
         ["T1"] = "3.14.8", ["T1p"] = "26.2.1", ["T2"] = "24.21.0", ["T3"] = "26.8.1", ["T5"] = "12.4.2", ["T6"] = "3.12.1", ["T7"] = "2.56.0.2", ["T8"] = "2.102.0", ["T9"] = "0.13.0",
         ["T10"] = "153.0.8010.12",
         ["P1"] = "lock-538e7cbf0fcfcb2b", ["P2"] = "lock-aa3d89398a7bb84e", ["P3"] = "lock-f6ec0d1e8d733197", ["P4"] = "lock-a7605968006c29e1", ["P5"] = "lock-6381065e41bed01f",
@@ -31,6 +34,7 @@ public sealed partial class SkillsCataloguePinsTests(ITestOutputHelper output)
         ("T1p", "pip-26.2.1-py3-none-any.whl", "https://files.pythonhosted.org/packages/f3/6e/1736e5b4ae2b778ef2f81c47d797de9f891d4d8acb047a24ca37a60294dd/pip-26.2.1-py3-none-any.whl", 1816632L, "71138adf1f4ca900cdb7d289c21b7494329f2332b6d85f0e1c42108c0384ed3e"),
         ("T2", "node-v24.21.0-win-x64.zip", "https://nodejs.org/dist/v24.21.0/node-v24.21.0-win-x64.zip", 37618919L, "158f7685b44de51f6c0df1d153526cbcd3e1bc739a8dfc607721cef75de9e541"),
         ("T3", "LibreOffice_26.8.1_Win_x86-64.msi", "https://download.documentfoundation.org/libreoffice/stable/26.8.1/win/x86_64/LibreOffice_26.8.1_Win_x86-64.msi", 374870016L, "c6298b10cfa1748bcbedad94c62ce771e240e5021bfd6d7a967cd571b04b5312"),
+        ("T4", "Release-26.09.0-0.zip", "https://github.com/oschwartz10612/poppler-windows/releases/download/v26.09.0-0/Release-26.09.0-0.zip", 43709956L, "7a6f256a0ddf7536182246a5733331bf4677cbcc34f4663774947ad34556c8d0"),
         ("T5", "qpdf-12.4.2-msvc64.zip", "https://github.com/qpdf/qpdf/releases/download/v12.4.2/qpdf-12.4.2-msvc64.zip", 28183147L, "db87077e683630c1217e0e8f9a20a9749d952ab676e881c3689187763a5de25d"),
         ("T6", "pandoc-3.12.1-windows-x86_64.zip", "https://github.com/jgm/pandoc/releases/download/3.12.1/pandoc-3.12.1-windows-x86_64.zip", 42154914L, "6ef431cb20b2c24a0371fc19200dc49d452be54b1b5c9239f3462841ef53e587"),
         ("T7", "PortableGit-2.56.0.2-64-bit.7z.exe", "https://github.com/git-for-windows/git/releases/download/v2.56.0.windows.2/PortableGit-2.56.0.2-64-bit.7z.exe", 60027568L, "075e158ef8e1f0ab80b347e245405d3eca735c2dc88fd8e032e137d0ca61f61b"),
@@ -53,6 +57,7 @@ public sealed partial class SkillsCataloguePinsTests(ITestOutputHelper output)
         ("T1p", "MIT", "LICENSE.txt", "https://raw.githubusercontent.com/pypa/pip/26.2.1/LICENSE.txt", 1093L, "634300a669d49aeae65b12c6c48c924c51a4cdf3d1ff086dc3456dc8bcaa2104"),
         ("T2", "MIT", "LICENSE", "https://raw.githubusercontent.com/nodejs/node/v24.21.0/LICENSE", 157609L, "5888dbb9a1d2b18f2c3e6c5f6af1b39de658372b402a0577b002777f14c62ace"),
         ("T3", "MPL-2.0", "COPYING.MPL", "https://raw.githubusercontent.com/LibreOffice/core/libreoffice-26.8.1.1/COPYING.MPL", 16725L, "1f256ecad192880510e84ad60474eab7589218784b9a50bc7ceee34c2b91f1d5"),
+        ("T4", "GPL-2.0-or-later", "COPYING", "https://gitlab.freedesktop.org/poppler/poppler/-/raw/poppler-26.09.0/COPYING", 17987L, "ab15fd526bd8dd18a9e77ebc139656bf4d33e97fc7238cd11bf60e2b9b8666c6"),
         ("T5", "Apache-2.0", "LICENSE.txt", "https://raw.githubusercontent.com/qpdf/qpdf/v12.4.2/LICENSE.txt", 11358L, "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"),
         ("T6", "GPL-2.0-or-later", "COPYING.md", "https://raw.githubusercontent.com/jgm/pandoc/3.12.1/COPYING.md", 17763L, "3ebfbf9235b049d384cdba5a66a1a3434bb544391e720b76faa8e1b3ee61a4e5"),
         ("T7", "GPL-2.0-only", "COPYING", "https://raw.githubusercontent.com/git-for-windows/git/v2.56.0.windows.2/COPYING", 18765L, "5b2198d1645f767585e8a88ac0499b04472164c0d2da22e75ecf97ef443ab32e"),
@@ -67,20 +72,53 @@ public sealed partial class SkillsCataloguePinsTests(ITestOutputHelper output)
         ("P6", "MIT, Apache-2.0, ISC, 0BSD and others", "LICENSE", "https://raw.githubusercontent.com/dolanmiu/docx/9.10.0/LICENSE", 1072L, "b5b2364c0c95a26b2a2399d7e706a61acac680be1d5b180b00592ee85830bffb"),
     ];
 
+    // ED-NEW-dl-13: the five plugin sets record their licences per plugin. Each folder names the licence its plugin.json is under: a licence file in the folder ("own"), the repository's
+    // root LICENSE where the folder has none ("root"), or the "license" field of the plugin.json itself where no licence text is in the folders ("plugin.json"); a skill with a licence
+    // file of its own names it. Each row: the set's licence names, then its folders and its skills with their own licence files, counted by licence, place and SHA-256 of the file.
+    private static readonly (string Id, string Name, string[] Folders, string[] Skills)[] PluginLicenceSets =
+    [
+        ("A3", "Apache-2.0, MIT",
+            ["13 Apache-2.0 own cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30", "5 Apache-2.0 root a6946284993aeec75c7d75906064b66210c46051e562077efb30eb6dcfe72e26",
+             "1 MIT own 32d2293a7c5f76c3a8b1bd1e9a5a26cc7a472c0b462b8cec5ee81daed2896752", "1 MIT own 95ac05a64eb46a59e2da6315b4a95ebe58c851536229da4a1cd27c81d98e1142",
+             "1 MIT own a8fdbfcbd785e4e372ab3d17bc2f4faf489437fcd985872607a8107ac2cd85f8", "1 MIT own ccbd532eabd9c4a87884b19caa6738bd6541e047460a736aca3bf1ac4fd91300"],
+            ["5 Apache-2.0 7505b489cc8ad7f16ba08343184320f1583303cfacdb9121b9b756bc073df1ab", "1 Apache-2.0 58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"]),
+        ("A4", "Apache-2.0",
+            ["15 Apache-2.0 root cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30", "1 Apache-2.0 own 6d52428205148726e444e00abc2138ca3f73a0e7f49202e400c5e8c14269e867"],
+            ["3 Apache-2.0 6d52428205148726e444e00abc2138ca3f73a0e7f49202e400c5e8c14269e867", "1 Apache-2.0 58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"]),
+        ("A6", "Apache-2.0, Proprietary",
+            ["13 Apache-2.0 own cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30", "1 Proprietary own 15d46b21bd3c8ead21dd4fe0f4b82a8d934b698cf6367b09c06211058fc4332d"],
+            ["1 Apache-2.0 0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594", "1 Apache-2.0 58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"]),
+        ("O4", "MIT, Apache-2.0", ["8 MIT plugin.json"], ["2 Apache-2.0 4dd13869245e356246a5b770723247bbb80a8f07a181d1d3d873a1734297cdb9"]),
+        ("O5", "Proprietary, Apache-2.0", ["8 Proprietary plugin.json"], ["2 Apache-2.0 a7f55b2cb68997f729e6199720d4d3cae47633aba0254a84b2d36ab284be9d45"]),
+    ];
+
     private static CatalogueItem Item(string id) => CatalogueFixtures.Item(CatalogueFixtures.Real, id);
+
+    private static string[] Counted(IEnumerable<string> keys) =>
+        keys.GroupBy(k => k, StringComparer.Ordinal).OrderByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Count()} {g.Key}").ToArray();
+
+    private static string[] FolderLicences(CatalogueItem item) => Counted(item.Folders.Select(f =>
+    {
+        var sha = item.Files.Single(x => x.Path == f.LicenceFile).Sha256;
+        return f.LicenceFile == f.Name + "/.codex-plugin/plugin.json" || f.LicenceFile == f.Name + "/.claude-plugin/plugin.json" ? f.LicenceName + " plugin.json"
+            : f.LicenceName + (f.LicenceFile!.StartsWith(f.Name + "/", StringComparison.Ordinal) ? " own " : " root ") + sha;
+    }));
+
+    private static string[] SkillLicences(CatalogueItem item) =>
+        Counted(item.Skills.Where(s => s.LicenceFile is not null).Select(s => s.LicenceName + " " + item.Files.Single(x => x.Path == s.LicenceFile).Sha256));
 
     [Fact]
     [Trait("Feature", "RR-14")]
     [Trait("Spec", "DL-1")]
     [Trait("Rule", "R-TEST-4")]
-    public void Every_approved_item_carries_the_pin_run_s_exact_pin_and_the_six_blocked_items_stay_unpinned()
+    public void Every_item_carries_the_pin_run_s_exact_pin_and_none_is_left_unpinned()
     {
         foreach (var (id, pin) in Pins)
         {
             Assert.Equal(pin, Item(id).Pin);
             Assert.Equal(PinState.Pinned, Item(id).PinState);
         }
-        foreach (var id in new[] { "A1", "A2", "A5", "O1", "O2", "O6" }) Assert.Matches(Commit(), Item(id).Pin!);
+        foreach (var id in new[] { "A1", "A2", "A3", "A4", "A5", "A6", "O1", "O2", "O4", "O5", "O6" }) Assert.Matches(Commit(), Item(id).Pin!);
         var o3 = Item("O3");
         Assert.Null(o3.Pin);
         Assert.Equal(PinState.Pinned, o3.PinState);
@@ -88,7 +126,8 @@ public sealed partial class SkillsCataloguePinsTests(ITestOutputHelper output)
         Assert.Equal("e6afb0d74cc75d220df2faf3dd6c635c2dc6a108", o3.Skills.Single(s => s.Folder == "spreadsheet").Pin);
         Assert.Equal("e6afb0d74cc75d220df2faf3dd6c635c2dc6a108", o3.Skills.Single(s => s.Folder == "slides").Pin);
         Assert.Equal(Pins["O2"], o3.Skills.Single(s => s.Folder == "pdf").Pin);
-        Assert.Equal(Blocked, CatalogueFixtures.Real.Items.Where(i => i.PinState == PinState.Unpinned).Select(i => i.Id).ToArray());
+        Assert.Empty(CatalogueFixtures.Real.Items.Where(i => i.PinState != PinState.Pinned).Select(i => i.Id));
+        Assert.Equal(CatalogueFixtures.Real.Items.Select(i => i.Id).Where(id => id != "O3").Order(StringComparer.Ordinal), Pins.Keys.Order(StringComparer.Ordinal));
         Assert.Equal(29, CatalogueFixtures.Real.Items.Count);
         Assert.Equal("2026-10-11", CatalogueFixtures.Real.ReadOn);
     }
@@ -113,7 +152,7 @@ public sealed partial class SkillsCataloguePinsTests(ITestOutputHelper output)
     [Trait("Rule", "R-TEST-4")]
     public void Every_pinned_item_names_its_licence_by_SPDX_and_pins_its_licence_file_with_the_bytes_read_at_the_source()
     {
-        var actual = CatalogueFixtures.Real.Items.Where(i => i.PinState == PinState.Pinned).Select(i =>
+        var actual = CatalogueFixtures.Real.Items.Where(i => i.PinState == PinState.Pinned && !PluginLicences.PerPlugin(i)).Select(i =>
         {
             var file = i.Files.Single(f => f.Path == i.LicenceFile);
             return (i.Id, i.LicenceName!, i.LicenceFile!, i.LicenceUrl!, file.Size, file.Sha256);
@@ -121,6 +160,14 @@ public sealed partial class SkillsCataloguePinsTests(ITestOutputHelper output)
         Assert.Equal(Licences, actual);
         Assert.All(CatalogueFixtures.Real.Items.Where(i => i.PinState == PinState.Pinned && i.Kind is ItemKind.Tool or ItemKind.Pyset or ItemKind.Nodeset),
             i => Assert.Equal([i.LicenceFile], i.Files.Select(f => f.Path)));
+
+        var perPlugin = CatalogueFixtures.Real.Items.Where(PluginLicences.PerPlugin).ToArray();
+        static string Row(string id, string name, string[] folders, string[] skills) => $"{id} | {name} | {string.Join("; ", folders)} | {string.Join("; ", skills)}";
+        Assert.Equal(PluginLicenceSets.Select(r => Row(r.Id, r.Name, r.Folders, r.Skills)), perPlugin.Select(i => Row(i.Id, i.LicenceName!, FolderLicences(i), SkillLicences(i))));
+        Assert.All(perPlugin, i => Assert.Equal((ItemKind.Plugin, PinState.Pinned, (string?)null, (string?)null), (i.Kind, i.PinState, i.LicenceUrl, i.LicenceFile)));
+        // A3's root LICENSE covers exactly the five plugins with no licence file of their own; A6's one proprietary plugin is claude-security, whose plugin.json names its LICENSE.
+        Assert.Equal(["design", "engineering", "human-resources", "operations", "small-business"], Item("A3").Folders.Where(f => f.LicenceFile == "LICENSE").Select(f => f.Name));
+        Assert.Equal([("plugins/claude-security", "plugins/claude-security/LICENSE")], Item("A6").Folders.Where(f => f.LicenceName == "Proprietary").Select(f => (f.Name, f.LicenceFile!)));
     }
 
     [Fact]
@@ -164,31 +211,24 @@ public sealed partial class SkillsCataloguePinsTests(ITestOutputHelper output)
     [Trait("Feature", "RR-14")]
     [Trait("Spec", "DL-1")]
     [Trait("Rule", "R-TEST-4")]
-    public void The_gate_finds_no_violation_and_only_the_blocked_items_lack_values_each_with_what_it_lacks()
+    public void The_gate_finds_no_violation_and_no_item_lacks_a_value()
     {
         var report = CatalogueGate.Check(CatalogueFixtures.Real);
         Assert.Empty(report.Violations);
         foreach (var item in CatalogueFixtures.Real.Items) Assert.Equal(CatalogueGate.Missing(item).Count == 0 ? PinState.Pinned : PinState.Unpinned, item.PinState);
-        Assert.Equal(Blocked, report.Unpinned.Select(u => u.ItemId).ToArray());
-        IReadOnlyList<string> Of(string id) => report.Unpinned.Single(u => u.ItemId == id).Missing;
-        Assert.Equal(["licenceFile", "licenceUrl", "files", "skills"], Of("A3"));
-        Assert.Equal(["licenceFile", "licenceUrl", "files", "skills"], Of("A4"));
-        Assert.Equal(["pin", "licenceName", "licenceFile", "licenceUrl", "files", "skillCount", "skills"], Of("A6"));
-        Assert.Equal(["licenceFile", "licenceUrl", "files", "skills"], Of("O4"));
-        Assert.Equal(["licenceFile", "licenceUrl", "files", "skills"], Of("O5"));
-        Assert.Equal(["licenceFile", "licenceUrl", "artifacts[0].url", "artifacts[0].size", "artifacts[0].sha256"], Of("T4"));
         foreach (var unpinned in report.Unpinned) output.WriteLine($"UNPINNED {unpinned.ItemId}: lacks {string.Join(", ", unpinned.Missing)}");
+        Assert.Empty(report.Unpinned);
+        Assert.All(CatalogueFixtures.Real.Items, i => Assert.Empty(CatalogueGate.Missing(i)));
     }
 
     [Fact]
     [Trait("Feature", "RR-14")]
     [Trait("Spec", "DL-1")]
     [Trait("Rule", "R-TEST-4")]
-    public void The_release_gate_fails_only_on_the_blocked_items_and_every_pinned_runnable_item_carries_its_installer()
+    public void The_release_gate_passes_and_every_pinned_runnable_item_carries_its_installer()
     {
         var strict = CatalogueGate.Check(CatalogueFixtures.Real, new CatalogueGateOptions { RequireAllPinned = true });
-        Assert.All(strict.Violations, v => Assert.Equal(CatalogueRules.Unpinned, v.Rule));
-        Assert.Equal(Blocked, strict.Violations.Select(v => v.ItemId!).ToArray());
+        Assert.Empty(strict.Violations);
         Assert.All(CatalogueFixtures.Real.Items.Where(i => i.PinState == PinState.Pinned), i => Assert.Null(CatalogueGate.InstallMissing(i)));
         Assert.All(CatalogueFixtures.Real.Items.Where(i => i.Kind is ItemKind.Skillset or ItemKind.Plugin), i => Assert.Null(i.Install));
         Assert.Empty(CatalogueGate.Check(CatalogueFixtures.Installable(), new CatalogueGateOptions { RequireAllPinned = true }).Violations);
@@ -212,6 +252,7 @@ public sealed partial class SkillsCataloguePinsTests(ITestOutputHelper output)
         Assert.Equal("node.exe=node-v24.21.0-win-x64/node.exe; npm.cmd=node-v24.21.0-win-x64/node.exe {folder}/node-v24.21.0-win-x64/node_modules/npm/bin/npm-cli.js; " +
             "npx.cmd=node-v24.21.0-win-x64/node.exe {folder}/node-v24.21.0-win-x64/node_modules/npm/bin/npx-cli.js", Shims("T2"));
         Assert.Equal((InstallKind.MsiAdmin, "soffice.exe=program/soffice.exe [libreoffice]"), (Item("T3").Install!.Kind, Shims("T3")));
+        Assert.Equal((InstallKind.Zip, "pdftoppm.exe=poppler-26.09.0/Library/bin/pdftoppm.exe; pdftotext.exe=poppler-26.09.0/Library/bin/pdftotext.exe"), (Item("T4").Install!.Kind, Shims("T4")));
         Assert.Equal("qpdf.exe=qpdf-12.4.2-msvc64/bin/qpdf.exe", Shims("T5"));
         Assert.Equal("pandoc.exe=pandoc-3.12.1/pandoc.exe", Shims("T6"));
         Assert.Equal((InstallKind.Sfx7z, "bash.exe=bin/bash.exe; sh.exe=bin/sh.exe"), (Item("T7").Install!.Kind, Shims("T7")));

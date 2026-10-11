@@ -61,10 +61,18 @@ public sealed class SkillsCatalogueSkillNamesTests
     {
         var all = CatalogueFixtures.Real.Items.SelectMany(i => i.Skills.Select(s => (i.Id, s))).ToList();
         // ED-NEW-dl-11: pin run 3 lists every skill of the pinned sets, not only the ones the plan names (A1 13, A2 5, A5 6, O1 4, O2 30, O3 4, O6 8).
-        Assert.Equal([("A1", 13), ("A2", 5), ("A5", 6), ("O1", 4), ("O2", 30), ("O3", 4), ("O6", 8)], CatalogueFixtures.Real.Items.Where(i => i.Skills.Count > 0).Select(i => (i.Id, i.Skills.Count)));
-        Assert.Equal(70, all.Count);
+        // ED-NEW-dl-13: pin run 4 lists the skills the five plugin sets offer (A3 212, A4 63, A6 25, O4 64, O5 117); the others are listed as left out, with their reasons.
+        Assert.Equal([("A1", 13), ("A2", 5), ("A3", 212), ("A4", 63), ("A5", 6), ("A6", 25), ("O1", 4), ("O2", 30), ("O3", 4), ("O4", 64), ("O5", 117), ("O6", 8)],
+            CatalogueFixtures.Real.Items.Where(i => i.Skills.Count > 0).Select(i => (i.Id, i.Skills.Count)));
+        Assert.Equal(551, all.Count);
         Assert.All(all, t => Assert.True(SkillName.IsValid(t.s.Folder), $"{t.Id}/{t.s.Folder}"));
         Assert.All(CatalogueFixtures.Real.Items, i => Assert.Equal(i.Skills.Count, i.Skills.Select(s => s.Folder).Distinct(StringComparer.Ordinal).Count()));
+        // A plugin's skill is loaded by its frontmatter name, which may differ from its folder (ED-NEW-dl-13); every name follows the rule and none is used twice inside its item.
+        Assert.All(all, t => Assert.True(SkillName.IsValid(t.s.Name!), $"{t.Id}/{t.s.Name}"));
+        Assert.All(CatalogueFixtures.Real.Items, i => Assert.Equal(i.Skills.Count, i.Skills.Select(s => s.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count()));
+        Assert.Equal([("A3", 9), ("A4", 2), ("A6", 1), ("O4", 2)],
+            CatalogueFixtures.Real.Items.Select(i => (i.Id, i.Skills.Count(s => s.Name != s.Folder))).Where(t => t.Item2 > 0));
+        Assert.All(all.Where(t => t.s.Name != t.s.Folder), t => Assert.Equal(ItemKind.Plugin, CatalogueFixtures.Item(CatalogueFixtures.Real, t.Id).Kind));
     }
 
     [Fact]

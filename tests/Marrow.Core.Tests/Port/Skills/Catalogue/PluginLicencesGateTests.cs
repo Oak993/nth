@@ -131,6 +131,8 @@ public sealed class PluginLicencesGateTests
                 SkillCount = 3,
                 Folders = [i.Folders[0] with { SkillCount = 1 }, i.Folders[1] with { SkillCount = 1 }, new CatalogueFolder { Name = "plugins/one/skills", SkillCount = 1, LicenceName = "MIT", LicenceFile = "plugins/one/LICENSE" }],
             }, f => f.Append(new CatalogueFile { Path = "plugins/one/skills/.claude-plugin/plugin.json", Size = 1, Sha256 = CatalogueFixtures.Sha("n") }))), CatalogueRules.Count));
+        Assert.Contains(".codex-plugin/plugin.json makes the whole set one plugin, so its plugin folders cannot be listed",
+            Messages(Check(i => Files(i, f => f.Append(new CatalogueFile { Path = ".codex-plugin/plugin.json", Size = 1, Sha256 = CatalogueFixtures.Sha("r") }))), CatalogueRules.Count));
         Assert.Contains("plugin folder plugins/one counts 1 skills but holds 2",
             Messages(Check(i => i with { Folders = [i.Folders[0] with { SkillCount = 1 }, i.Folders[1] with { SkillCount = 2 }] }), CatalogueRules.Count));
         Assert.Contains("skill other/skills/x lies in 0 plugin folders, not one",
@@ -165,7 +167,7 @@ public sealed class PluginLicencesGateTests
 
     [Fact]
     [Trait("Feature", "RR-14")]
-    [Trait("Spec", "SK-13")]
+    [Trait("Spec", "DL-7")]
     [Trait("Rule", "R-TEST-4")]
     public void The_terms_key_of_a_set_with_licences_per_plugin_covers_every_licence_file_by_path_and_hash()
     {

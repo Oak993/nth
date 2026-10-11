@@ -25,9 +25,13 @@ public sealed class ItemTermsTests
     {
         Assert.Equal(StateFixtures.Hash1, ItemTerms.LicenceHash(WithLicence("Proprietary", StateFixtures.Hash1)));
         Assert.Null(ItemTerms.LicenceHash(WithLicence("Proprietary", null)));
-        // ED-NEW-dl-11: pin run 3 pinned A2's licence file (skills/docx/LICENSE.txt at 8a1541c4), so its terms are accepted against that file's hash; O5 is still blocked.
+        // ED-NEW-dl-11: pin run 3 pinned A2's licence file (skills/docx/LICENSE.txt at 8a1541c4), so its terms are accepted against that file's hash.
         Assert.Equal("79f6d8f5b427252fa3b1c11ecdbdb6bf610b944f7530b4de78f770f38741cfaa", ItemTerms.LicenceHash(CatalogueFixtures.Item(CatalogueFixtures.Real, "A2")));
-        Assert.Null(ItemTerms.LicenceHash(CatalogueFixtures.Item(CatalogueFixtures.Real, "O5")));
+        // ED-NEW-dl-13: pin run 4 pinned O5 with a licence for each plugin, so its terms are keyed by the hash of all its licence files together; with one of them unknown it has none.
+        var o5 = CatalogueFixtures.Item(CatalogueFixtures.Real, "O5");
+        Assert.Equal(PluginLicences.Hash(o5), ItemTerms.LicenceHash(o5));
+        Assert.Matches("^[0-9a-f]{64}$", ItemTerms.LicenceHash(o5)!);
+        Assert.Null(ItemTerms.LicenceHash(o5 with { Folders = o5.Folders.Select((f, n) => n == 0 ? f with { LicenceFile = null } : f).ToList() }));
         Assert.Null(ItemTerms.LicenceHash(CatalogueFixtures.Item(CatalogueFixtures.Pinned(), "X1")));
     }
 

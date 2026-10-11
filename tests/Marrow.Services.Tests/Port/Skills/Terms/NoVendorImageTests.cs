@@ -63,7 +63,10 @@ public sealed partial class NoVendorImageTests
             item.AsObject().Remove("files");
         }
         Assert.Empty(ImageReference().Matches(catalogue.ToJsonString()).Select(m => m.Value));
-        Assert.All(payload, p => Assert.Contains("/assets/", p, StringComparison.Ordinal));
+        // ED-NEW-dl-13: pin run 4 pinned A6 and O5 unmodified too, so three README example images of A6's plugins and a test golden of O5's are payload of the same kind.
+        Assert.Equal(["plugins/claude-code-setup/automation-recommender-example.png", "plugins/claude-md-management/claude-md-improver-example.png",
+            "plugins/claude-md-management/revise-claude-md-example.png", "plugins/public-equity-investing/tests/goldens/dashboard-production-complete.png"],
+            payload.Where(p => !p.Contains("/assets/", StringComparison.Ordinal)));
         Assert.NotEmpty(payload);
     }
 

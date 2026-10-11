@@ -1,6 +1,7 @@
 // PORT-ONLY: RR-14 (ED-NEW-dl-11). The owner's run of the installed 1.0 ended Settings > Updates > Tools' Download all "0 of 16 downloaded", every row "Didn't download". The Tools page over
-// the production backend and a real SkillsHost, with the release catalogue's 16 runnable items (their pins, kinds, needs and installer parameters) and fixture bytes on SK-0's loopback
-// https fake: Download all installs all 16 and the pill counts them; offline, a row says why and keeps Retry, which installs once the source answers. No network, no installer runs.
+// the production backend and a real SkillsHost, with the release catalogue's 17 runnable items (their pins, kinds, needs and installer parameters; ED-NEW-dl-13: pin run 4 added T4) and
+// fixture bytes on SK-0's loopback https fake: Download all installs all 17 and the pill counts them; offline, a row says why and keeps Retry, which installs once the source answers.
+// No network, no installer runs.
 using Marrow.App.Port.Skills.Pages;
 using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Port.Skills.Pages;
@@ -13,6 +14,8 @@ namespace Marrow.App.Tests.Port.Skills;
 [Collection("Headless")]
 [Trait("Feature", "RR-14")]
 [Trait("Spec", "DL-17")]
+[Trait("Rule", "R-TEST-10")]
+[Trait("Decision", "ED-NEW-dl-11")]
 public sealed class ToolsDownloadsLiveTests(HeadlessSession headless)
 {
     private static readonly TimeSpan Bound = TimeSpan.FromSeconds(120);
@@ -29,14 +32,15 @@ public sealed class ToolsDownloadsLiveTests(HeadlessSession headless)
     });
 
     [Fact]
-    public void Download_all_tools_installs_all_sixteen_runnable_items_and_the_pill_counts_them_from_1_of_16_to_Downloaded() => Live((h, rig, controller, model) =>
+    public void Download_all_tools_installs_all_seventeen_runnable_items_and_the_pill_counts_them_from_1_of_17_to_Downloaded() => Live((h, rig, controller, model) =>
     {
         Assert.Equal(rig.Catalogue.Items.Select(i => i.Id).Order(StringComparer.Ordinal), controller.Rows.Select(r => r.Id).Order(StringComparer.Ordinal));
-        Assert.Equal(16, controller.Rows.Count);
+        Assert.Equal(17, controller.Rows.Count);
+        Assert.Contains(controller.Rows, r => r.Id == "T4");
         Assert.True(controller.CanDownloadAll);
         controller.OpenDownloadAll();
         Assert.Equal("Download all tools?", model.Dialog.Title);
-        Assert.Equal(16, model.Dialog.Lines.Count);
+        Assert.Equal(17, model.Dialog.Lines.Count);
         Assert.DoesNotContain(model.Dialog.Lines, l => l.State is RunLineState.CantFetch or RunLineState.NoSize or RunLineState.NeedsTerms or RunLineState.AlreadyHere);
 
         model.DialogHidden = true;
@@ -46,14 +50,14 @@ public sealed class ToolsDownloadsLiveTests(HeadlessSession headless)
         var run = controller.Continue();
         HeadlessSession.RunDispatcherUntil(hold.WaitForArrivals(1), Bound);
         h.Settle();
-        Assert.Equal("Downloading 1 of 16", pill.LabelText);
+        Assert.Equal("Downloading 1 of 17", pill.LabelText);
 
         hold.Release();
         HeadlessSession.RunDispatcherUntil(run, Bound);
         h.Settle();
         var view = controller.Dialog;
         Assert.Equal((RunPhase.Done, LibraryWords.DoneTitle, 0), (view.Phase, view.Title, view.Failed));
-        Assert.Equal(16, view.Lines.Count(l => l.State == RunLineState.Downloaded));
+        Assert.Equal(17, view.Lines.Count(l => l.State == RunLineState.Downloaded));
         Assert.Equal("Downloaded", pill.LabelText);
         Assert.All(rig.Catalogue.Items, i => Assert.Equal(ItemState.Installed, rig.Host.Pipeline.State.Get(i.Id).State));
         Assert.All(controller.Rows, r => Assert.True(r.OnThisPc, r.Id));
