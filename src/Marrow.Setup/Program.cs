@@ -24,9 +24,8 @@ public static class Program
         var host = new Win32InstallerHost();
         try
         {
-            var identity = Identity();
-            host.InstallRoot = identity.DefaultInstallRoot;
-            return InstallerGate.Run(host, identity, args);
+            host.InstallRoot = Identity().DefaultInstallRoot;
+            return InstallerGate.Run(host, Identity(), args);
         }
         catch (Exception error)
         {
@@ -71,8 +70,15 @@ public static class Program
                 // entry, which Velopack writes after the install hook. The real shell and HKCU are bound here only.
                 if (process.ExitCode == 0 && InstallRoot is { } root)
                 {
-                    using var shell = new ShellLinks();
-                    AfterSetupExit.Run(shell, new RegistryUserHive(Registry.CurrentUser), root, resultPath: null);
+                    try
+                    {
+                        using var shell = new ShellLinks();
+                        AfterSetupExit.Run(shell, new RegistryUserHive(Registry.CurrentUser), root, resultPath: null);
+                    }
+                    catch (Exception)
+                    {
+                        // Best effort: Setup.exe succeeded, and nth's start-time self-heal repeats these steps.
+                    }
                 }
                 return process.ExitCode;
             }
