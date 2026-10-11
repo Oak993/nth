@@ -118,14 +118,14 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
 
     private static float[] OrbUniforms(VoicePillScene scene) => scene.Rig.Main.OnMain(() => Slot(scene.View).Orb.Handler!.Scene!.Runtime(Slot(scene.View).Orb.Kind)!.Values.ToArray());
 
-    public static TheoryData<VoiceListeningStyle, int, bool, string, double> Matrix()
+    /// <summary>The V-T132 / V-T133 identities at one scale: 2 styles, 2 orb sizes, dark and light, 7 states (56). Each scale is its own class (ComposerVoiceCleanPillAt*Tests).</summary>
+    public static TheoryData<VoiceListeningStyle, int, bool, string, double> MatrixAt(double scale)
     {
         var data = new TheoryData<VoiceListeningStyle, int, bool, string, double>();
         foreach (var style in new[] { VoiceListeningStyle.Pill, VoiceListeningStyle.Float })
         foreach (var d in new[] { 32, 26 })
         foreach (var dark in new[] { true, false })
         foreach (var state in new[] { "quiet", "speech", "processing", "pop", "level06", "level1", "resize" })
-        foreach (var scale in new[] { 1.0, 1.25, 1.5, 2.0 })
             data.Add(style, d, dark, state, scale);
         return data;
     }
@@ -146,55 +146,162 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
         });
     }
 
-    [Theory] // V-T132
-    [MemberData(nameof(Matrix))]
-    [Trait("Decision", "ED-292")]
-    public void Nothing_of_the_pills_material_shows_beside_the_orb(VoiceListeningStyle style, int diameter, bool dark, string state, double scale)
+    // ---- one render per identity, judged by V-T132 and V-T133 ---------------------------------------------------------------------------------------------------
+    // The two tests used to open the same scene apart and take the same frame with the pill twice. Now the scene of an identity is opened once: the frame with the pill
+    // is the one V-T133's detector runs on and the one V-T132 compares with the frame without the pill (a scene opens the same way every time, ED-573), and each test
+    // asserts exactly what it asserted, in the same order, on that one render. The verdict is kept for the run, so the second test of an identity renders nothing.
+
+    /// <summary>What the two tests read from one identity's render.</summary>
+    internal sealed record Verdict(double ShownOpacity, double RenderScaling, int ExpectedWidth, int FrameWidth, float[] Uniforms, float[] UniformsWithout, int Worst, string Where,
+        IReadOnlyList<string> NotInTheDesign);
+
+    private static readonly Dictionary<string, (Verdict? Verdict, System.Runtime.ExceptionServices.ExceptionDispatchInfo? Failure)> Verdicts = [];
+
+    /// <summary>The identity's verdict, rendering it on first use (on the UI thread); a scene that fails to open fails both tests the same way.</summary>
+    internal static Verdict Judge(VoiceListeningStyle style, int diameter, bool dark, string state, double scale)
     {
-        headless.OnUiThread(() =>
+        var tag = $"{style}-{diameter}-{dark}-{state}-{scale}";
+        lock (Verdicts)
         {
-            using var motion = new VoicePillMotion();
-            var scene = Open(style, diameter, dark, state, scale);
-            using var _ = scene;
-            var (orb, cap, radius) = Marks(scene);
-            Assert.True(scene.Rig.Main.OnMain(() => Pill(scene.View).ShownOpacity) > 0.99, "the pill is open");
-            var withPill = Shot(scene);
-            var orbUniforms = OrbUniforms(scene);
-            Assert.Equal(scale, scene.Window.RenderScaling);
-            Assert.Equal((int)Math.Ceiling(scene.Window.ClientSize.Width * scale), withPill.Size.Width);
-#pragma warning disable CS0618
-            if (Environment.GetEnvironmentVariable("VT12_DUMP") is { } dump) scene.Rig.Main.OnMain(() => { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); using var f = scene.Window.CaptureRenderedFrame(); f!.Save(System.IO.Path.Combine(dump, $"with-{style}-{diameter}-{dark}-{state}-{scale}.png")); });
-#pragma warning restore CS0618
-            scene.Rig.Main.OnMain(() => Pill(scene.View).IsVisible = false);
-            scene.Rig.PumpWindow(scene.Window);
-            var without = Shot(scene);
-            Assert.Equal(orbUniforms, OrbUniforms(scene)); // the same orb at the same instant in the paired renders
-            scene.Rig.Main.OnMain(() => Pill(scene.View).IsVisible = true);
-            cap *= scale;
-            orb *= scale;
-            var ballRadius = scene.Rig.Main.OnMain(() => Slot(scene.View).Orb.Handler!.Scene!.Motion.Diameter * Slot(scene.View).Orb.Handler!.Scene!.Motion.Scale / 2);
-            var inner = ballRadius * scale + 1; // the ball at this exact frame, plus 1 physical pixel
-            var outer = radius * scale + 3;
-            var worst = 0;
-            var where = "";
-            for (var y = (int)(cap.Y - outer) - 1; y <= cap.Y + outer + 1; y++)
-            for (var x = (int)(cap.X - outer) - 1; x <= cap.X + outer + 1; x++)
+            if (!Verdicts.TryGetValue(tag, out var known))
             {
-                var dx = x + 0.5 - cap.X;
-                var dy = y + 0.5 - cap.Y;
-                var r = Math.Sqrt(dx * dx + dy * dy);
-                var ballDistance = Math.Sqrt((x + 0.5 - orb.X) * (x + 0.5 - orb.X) + (y + 0.5 - orb.Y) * (y + 0.5 - orb.Y));
-                if (ballDistance < inner || r > outer) continue;
-                if (style == VoiceListeningStyle.Pill ? dx < 4 * scale : dx > -4 * scale) continue; // the sector where the pill's body continues
-                var at = y * withPill.Stride + x * 4;
-                for (var c = 0; c < 3; c++)
+                try { known = (Render(style, diameter, dark, state, scale), null); }
+                catch (Exception failure) { known = (null, System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure)); }
+                Verdicts[tag] = known;
+            }
+            known.Failure?.Throw();
+            return known.Verdict!;
+        }
+    }
+
+    /// <summary>V-T132: nothing of the pill's material shows beside the orb.</summary>
+    internal static void BesideTheOrb(HeadlessSession headless, VoiceListeningStyle style, int diameter, bool dark, string state, double scale) => headless.OnUiThread(() =>
+    {
+        var verdict = Judge(style, diameter, dark, state, scale);
+        Assert.True(verdict.ShownOpacity > 0.99, "the pill is open");
+        Assert.Equal(scale, verdict.RenderScaling);
+        Assert.Equal(verdict.ExpectedWidth, verdict.FrameWidth);
+        Assert.Equal(verdict.Uniforms, verdict.UniformsWithout); // the same orb at the same instant in the paired renders
+        Assert.True(verdict.Worst <= 3, $"the pill leaves a difference of {verdict.Worst}/255 beside the orb at {verdict.Where}");
+    });
+
+    /// <summary>V-T133: the pill and a margin round it have no specks the approved design does not have.</summary>
+    internal static void NoSpecks(HeadlessSession headless, VoiceListeningStyle style, int diameter, bool dark, string state, double scale) => headless.OnUiThread(() =>
+    {
+        var verdict = Judge(style, diameter, dark, state, scale);
+        Assert.True(verdict.NotInTheDesign.Count == 0, "specks the approved design does not have (within 1 px): " + string.Join("; ", verdict.NotInTheDesign.Take(8)));
+    });
+
+    private static Verdict Render(VoiceListeningStyle style, int diameter, bool dark, string state, double scale)
+    {
+        using var motion = new VoicePillMotion();
+        var scene = Open(style, diameter, dark, state, scale);
+        using var _ = scene;
+        var (orb, cap, radius) = Marks(scene);
+        var shown = scene.Rig.Main.OnMain(() => Pill(scene.View).ShownOpacity);
+        var withPill = Shot(scene);
+        var orbUniforms = OrbUniforms(scene);
+        var renderScaling = scene.Window.RenderScaling;
+        var expectedWidth = (int)Math.Ceiling(scene.Window.ClientSize.Width * scale);
+        var notInTheDesign = Specks(scene, style, diameter, dark, state, scale, withPill, orb * scale);
+#pragma warning disable CS0618
+        if (Environment.GetEnvironmentVariable("VT12_DUMP") is { } dump) scene.Rig.Main.OnMain(() => { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); using var f = scene.Window.CaptureRenderedFrame(); f!.Save(System.IO.Path.Combine(dump, $"with-{style}-{diameter}-{dark}-{state}-{scale}.png")); });
+#pragma warning restore CS0618
+        scene.Rig.Main.OnMain(() => Pill(scene.View).IsVisible = false);
+        scene.Rig.PumpWindow(scene.Window);
+        var without = Shot(scene);
+        var uniformsWithout = OrbUniforms(scene);
+        scene.Rig.Main.OnMain(() => Pill(scene.View).IsVisible = true);
+        cap *= scale;
+        orb *= scale;
+        var ballRadius = scene.Rig.Main.OnMain(() => Slot(scene.View).Orb.Handler!.Scene!.Motion.Diameter * Slot(scene.View).Orb.Handler!.Scene!.Motion.Scale / 2);
+        var inner = ballRadius * scale + 1; // the ball at this exact frame, plus 1 physical pixel
+        var outer = radius * scale + 3;
+        var worst = 0;
+        var where = "";
+        for (var y = (int)(cap.Y - outer) - 1; y <= cap.Y + outer + 1; y++)
+        for (var x = (int)(cap.X - outer) - 1; x <= cap.X + outer + 1; x++)
+        {
+            var dx = x + 0.5 - cap.X;
+            var dy = y + 0.5 - cap.Y;
+            var r = Math.Sqrt(dx * dx + dy * dy);
+            var ballDistance = Math.Sqrt((x + 0.5 - orb.X) * (x + 0.5 - orb.X) + (y + 0.5 - orb.Y) * (y + 0.5 - orb.Y));
+            if (ballDistance < inner || r > outer) continue;
+            if (style == VoiceListeningStyle.Pill ? dx < 4 * scale : dx > -4 * scale) continue; // the sector where the pill's body continues
+            var at = y * withPill.Stride + x * 4;
+            for (var c = 0; c < 3; c++)
+            {
+                var diff = Math.Abs(withPill.Bytes[at + c] - without.Bytes[at + c]);
+                if (diff > worst) { worst = diff; where = $"({x}, {y}) r {r:F1} channel {c}"; }
+            }
+        }
+        return new Verdict(shown, renderScaling, expectedWidth, withPill.Size.Width, orbUniforms, uniformsWithout, worst, where, notInTheDesign);
+    }
+
+    /// <summary>V-T133's detector, unchanged, on the frame with the pill; <paramref name="orb"/> is the orb's centre in device pixels. The specks the approved design does not have.</summary>
+    private static List<string> Specks(VoicePillScene scene, VoiceListeningStyle style, int diameter, bool dark, string state, double scale, (int Stride, byte[] Bytes, PixelSize Size) frame, Point orb)
+    {
+        var pillRect = scene.Rig.Main.OnMain(() =>
+        {
+            var pill = Pill(scene.View);
+            var origin = pill.TranslatePoint(default, scene.Window)!.Value;
+            return new Rect(origin, pill.Bounds.Size);
+        });
+        pillRect = new Rect(pillRect.X * scale, pillRect.Y * scale, pillRect.Width * scale, pillRect.Height * scale);
+        var area = pillRect.Inflate(12 * scale);
+        var (outlier, w, h) = Outliers(frame, area);
+        var ink = scene.Rig.Main.OnMain(() => VoicePillInk.Render(scene, frame.Size, $"{style}-{diameter}-{dark}-{state}-{scale}"));
+        var ballRadius = scene.Rig.Main.OnMain(() => Slot(scene.View).Orb.Handler!.Scene!.Motion.Diameter * Slot(scene.View).Orb.Handler!.Scene!.Motion.Scale / 2);
+        bool Inked(int x, int y) => ink[y * w + x]
+            || Math.Sqrt((x + 0.5 - orb.X) * (x + 0.5 - orb.X) + (y + 0.5 - orb.Y) * (y + 0.5 - orb.Y)) <= ballRadius * scale + 1;
+        var seen = new bool[w * h];
+        var specks = new List<string>();
+        var components = new List<(int X, int Y)[]>(); // diagnostic sidecar; acceptance uses the unchanged detector below
+        for (var y = 0; y < h; y++)
+        for (var x = 0; x < w; x++)
+        {
+            if (!outlier[y * w + x] || seen[y * w + x]) continue;
+            var stack = new Stack<(int, int)>();
+            var members = new List<(int X, int Y)>();
+            stack.Push((x, y));
+            seen[y * w + x] = true;
+            while (stack.Count > 0)
+            {
+                var (cx, cy) = stack.Pop();
+                members.Add((cx, cy));
+                for (var dy = -1; dy <= 1; dy++)
+                for (var dx = -1; dx <= 1; dx++)
                 {
-                    var diff = Math.Abs(withPill.Bytes[at + c] - without.Bytes[at + c]);
-                    if (diff > worst) { worst = diff; where = $"({x}, {y}) r {r:F1} channel {c}"; }
+                    var nx = cx + dx;
+                    var ny = cy + dy;
+                    if (nx < 0 || ny < 0 || nx >= w || ny >= h || seen[ny * w + nx] || !outlier[ny * w + nx]) continue;
+                    seen[ny * w + nx] = true;
+                    stack.Push((nx, ny));
                 }
             }
-            Assert.True(worst <= 3, $"the pill leaves a difference of {worst}/255 beside the orb at {where}");
-        });
+            if (members.Count <= 9 && !members.Any(m => Inked(m.X, m.Y)))
+            {
+                specks.Add($"{members.Count} px at ({members[0].X}, {members[0].Y})");
+                components.Add(members.ToArray());
+            }
+        }
+        if (VoicePillDiagnostics.Selected($"{style}-{diameter}-{dark}-{state}-{scale}"))
+            scene.Rig.Main.OnMain(() => VoicePillDiagnostics.CaptureComponents(scene, $"{style}-{diameter}-{dark}-{state}-{scale}", frame, pillRect, orb, ballRadius * scale, components));
+#pragma warning disable CS0618
+        if (specks.Count > 0 && Environment.GetEnvironmentVariable("VT12_DUMP") is { } dump)
+            scene.Rig.Main.OnMain(() => { using var f = scene.Window.CaptureRenderedFrame(); f!.Save(System.IO.Path.Combine(dump, $"specks-{style}-{diameter}-{dark}-{state}-{scale}.png")); VoicePillDiagnostics.Capture(scene, $"{style}-{diameter}-{dark}-{state}-{scale}"); });
+#pragma warning restore CS0618
+        // OD-0125: the detector above is unchanged. A speck fails only when the approved design (voice-composer.html drawn in Chrome at this scale, state, theme and backdrop; locked
+        // references checked against their SHA-256) has no speck within 1 pixel of the same spot.
+        if (Environment.GetEnvironmentVariable("VT12_DESIGN_DUMP") is { } designDump)
+            VoicePillDesignReference.Dump(scene, $"{style}-{diameter}-{dark}-{state}-{scale}", designDump, area);
+        var designSpecks = specks.Count == 0 ? [] : VoicePillDesignReference.Has($"{style}-{diameter}-{dark}-{state}-{scale}")
+            ? VoicePillDesignReference.Specks($"{style}-{diameter}-{dark}-{state}-{scale}", (x, y) => Math.Sqrt((x + 0.5 - orb.X) * (x + 0.5 - orb.X) + (y + 0.5 - orb.Y) * (y + 0.5 - orb.Y)) <= ballRadius * scale + 1)
+            : [];
+        var notInTheDesign = new List<string>();
+        for (var k = 0; k < specks.Count; k++)
+            if (!components[k].Any(m => designSpecks.Any(d => Math.Abs(d.X - m.X) <= 1 && Math.Abs(d.Y - m.Y) <= 1))) notInTheDesign.Add(specks[k]);
+        return notInTheDesign;
     }
 
     internal static (bool[] Outlier, int Width, int Height) Outliers((int Stride, byte[] Bytes, PixelSize Size) frame, Rect area)
@@ -245,83 +352,6 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
         return (outlier, w, h);
     }
 
-    [Theory] // V-T133
-    [MemberData(nameof(Matrix))]
-    [Trait("Decision", "ED-292")]
-    public void The_pill_and_a_margin_round_it_have_no_specks(VoiceListeningStyle style, int diameter, bool dark, string state, double scale)
-    {
-        headless.OnUiThread(() =>
-        {
-            using var motion = new VoicePillMotion();
-            var scene = Open(style, diameter, dark, state, scale);
-            using var _ = scene;
-            var (orb, _, _) = Marks(scene);
-            var frame = Shot(scene);
-            var pillRect = scene.Rig.Main.OnMain(() =>
-            {
-                var pill = Pill(scene.View);
-                var origin = pill.TranslatePoint(default, scene.Window)!.Value;
-                return new Rect(origin, pill.Bounds.Size);
-            });
-            pillRect = new Rect(pillRect.X * scale, pillRect.Y * scale, pillRect.Width * scale, pillRect.Height * scale);
-            orb *= scale;
-            var area = pillRect.Inflate(12 * scale);
-            var (outlier, w, h) = Outliers(frame, area);
-            var ink = scene.Rig.Main.OnMain(() => VoicePillInk.Render(scene, frame.Size, $"{style}-{diameter}-{dark}-{state}-{scale}"));
-            var ballRadius = scene.Rig.Main.OnMain(() => Slot(scene.View).Orb.Handler!.Scene!.Motion.Diameter * Slot(scene.View).Orb.Handler!.Scene!.Motion.Scale / 2);
-            bool Inked(int x, int y) => ink[y * w + x]
-                || Math.Sqrt((x + 0.5 - orb.X) * (x + 0.5 - orb.X) + (y + 0.5 - orb.Y) * (y + 0.5 - orb.Y)) <= ballRadius * scale + 1;
-            var seen = new bool[w * h];
-            var specks = new List<string>();
-            var components = new List<(int X, int Y)[]>(); // diagnostic sidecar; acceptance uses the unchanged detector below
-            for (var y = 0; y < h; y++)
-            for (var x = 0; x < w; x++)
-            {
-                if (!outlier[y * w + x] || seen[y * w + x]) continue;
-                var stack = new Stack<(int, int)>();
-                var members = new List<(int X, int Y)>();
-                stack.Push((x, y));
-                seen[y * w + x] = true;
-                while (stack.Count > 0)
-                {
-                    var (cx, cy) = stack.Pop();
-                    members.Add((cx, cy));
-                    for (var dy = -1; dy <= 1; dy++)
-                    for (var dx = -1; dx <= 1; dx++)
-                    {
-                        var nx = cx + dx;
-                        var ny = cy + dy;
-                        if (nx < 0 || ny < 0 || nx >= w || ny >= h || seen[ny * w + nx] || !outlier[ny * w + nx]) continue;
-                        seen[ny * w + nx] = true;
-                        stack.Push((nx, ny));
-                    }
-                }
-                if (members.Count <= 9 && !members.Any(m => Inked(m.X, m.Y)))
-                {
-                    specks.Add($"{members.Count} px at ({members[0].X}, {members[0].Y})");
-                    components.Add(members.ToArray());
-                }
-            }
-            if (VoicePillDiagnostics.Selected($"{style}-{diameter}-{dark}-{state}-{scale}"))
-                scene.Rig.Main.OnMain(() => VoicePillDiagnostics.CaptureComponents(scene, $"{style}-{diameter}-{dark}-{state}-{scale}", frame, pillRect, orb, ballRadius * scale, components));
-#pragma warning disable CS0618
-            if (specks.Count > 0 && Environment.GetEnvironmentVariable("VT12_DUMP") is { } dump)
-                scene.Rig.Main.OnMain(() => { using var f = scene.Window.CaptureRenderedFrame(); f!.Save(System.IO.Path.Combine(dump, $"specks-{style}-{diameter}-{dark}-{state}-{scale}.png")); VoicePillDiagnostics.Capture(scene, $"{style}-{diameter}-{dark}-{state}-{scale}"); });
-#pragma warning restore CS0618
-            // OD-0125: the detector above is unchanged. A speck fails only when the approved design (voice-composer.html drawn in Chrome at this scale, state, theme and backdrop; locked
-            // references checked against their SHA-256) has no speck within 1 pixel of the same spot.
-            if (Environment.GetEnvironmentVariable("VT12_DESIGN_DUMP") is { } designDump)
-                VoicePillDesignReference.Dump(scene, $"{style}-{diameter}-{dark}-{state}-{scale}", designDump, area);
-            var designSpecks = specks.Count == 0 ? [] : VoicePillDesignReference.Has($"{style}-{diameter}-{dark}-{state}-{scale}")
-                ? VoicePillDesignReference.Specks($"{style}-{diameter}-{dark}-{state}-{scale}", (x, y) => Math.Sqrt((x + 0.5 - orb.X) * (x + 0.5 - orb.X) + (y + 0.5 - orb.Y) * (y + 0.5 - orb.Y)) <= ballRadius * scale + 1)
-                : [];
-            var notInTheDesign = new List<string>();
-            for (var k = 0; k < specks.Count; k++)
-                if (!components[k].Any(m => designSpecks.Any(d => Math.Abs(d.X - m.X) <= 1 && Math.Abs(d.Y - m.Y) <= 1))) notInTheDesign.Add(specks[k]);
-            Assert.True(notInTheDesign.Count == 0, "specks the approved design does not have (within 1 px): " + string.Join("; ", notInTheDesign.Take(8)));
-        });
-    }
-
     [Theory] // V-T133: the orb's 72 px view fades its glow to zero before its own edge
     [InlineData(32, 1.0)]
     [InlineData(26, 1.0)]
@@ -359,19 +389,19 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
     // Named reproductions keep these regressions selectable even when the adapter discovers MemberData as a single theory.
     [Fact]
     [Trait("Decision", "ED-292")]
-    public void Canonical_inline_small_dark_cap_is_clear() => Nothing_of_the_pills_material_shows_beside_the_orb(VoiceListeningStyle.Pill, 26, true, "quiet", 1.5);
+    public void Canonical_inline_small_dark_cap_is_clear() => BesideTheOrb(headless, VoiceListeningStyle.Pill, 26, true, "quiet", 1.5);
 
     [Fact]
     [Trait("Decision", "ED-292")]
-    public void Canonical_float_small_dark_cap_is_clear() => Nothing_of_the_pills_material_shows_beside_the_orb(VoiceListeningStyle.Float, 26, true, "quiet", 1.25);
+    public void Canonical_float_small_dark_cap_is_clear() => BesideTheOrb(headless, VoiceListeningStyle.Float, 26, true, "quiet", 1.25);
 
     [Fact]
     [Trait("Decision", "ED-292")]
-    public void Canonical_inline_small_light_pill_has_no_specks() => The_pill_and_a_margin_round_it_have_no_specks(VoiceListeningStyle.Pill, 26, false, "quiet", 1);
+    public void Canonical_inline_small_light_pill_has_no_specks() => NoSpecks(headless, VoiceListeningStyle.Pill, 26, false, "quiet", 1);
 
     [Fact]
     [Trait("Decision", "ED-292")]
-    public void Canonical_float_small_dark_pill_has_no_specks() => The_pill_and_a_margin_round_it_have_no_specks(VoiceListeningStyle.Float, 26, true, "quiet", 1.5);
+    public void Canonical_float_small_dark_pill_has_no_specks() => NoSpecks(headless, VoiceListeningStyle.Float, 26, true, "quiet", 1.5);
 
     [Theory]
     [InlineData(VoiceListeningStyle.Pill, 26, false, "quiet", 2.0)]
@@ -384,7 +414,7 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
     [InlineData(VoiceListeningStyle.Pill, 26, true, "quiet", 1.5)]
     [Trait("Decision", "ED-292")]
     public void Representative_remaining_specks(VoiceListeningStyle style, int diameter, bool dark, string state, double scale)
-        => The_pill_and_a_margin_round_it_have_no_specks(style, diameter, dark, state, scale);
+        => NoSpecks(headless, style, diameter, dark, state, scale);
 
     [Theory]
     [InlineData(VoiceListeningStyle.Pill)]
