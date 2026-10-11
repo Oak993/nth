@@ -12,23 +12,34 @@ namespace Marrow.App.Tests.Views.Composer;
 // ED-NEW-lean-9 (lean pass L9): the composer's working dots for one simulated second on a 240 Hz display. Headless and deterministic
 // (R-TEST-5): the field's clock is the test's ManualTimeProvider, advanced 1/240 s before each forced compositor tick, read through
 // ThreadCountingTimeProvider, and the display's refresh period is 1/240 s (RenderFrameSource.PeriodSource). A pill-wide field: 700 x 24
-// points, 3 rows of 89 dots. 60 warm ticks first. Debug build (the test project builds Debug).
+// points, 3 rows of 89 dots, the clock 10 s in (Settled). 60 warm ticks first. Debug build (the test project builds Debug).
 // What is counted, with no hook in the field: draws (ticks after which the field's last drawn frame shows a new time), the field's clock
 // reads (one per render-server callback that samples: the frame update and the draw), and the bytes the test thread allocates inside
 // ForceRenderTimerTick, where headless runs the compositor tick and with it the field's handler (asserted: every clock read of the
-// field is on the test thread, none elsewhere). The bytes include Avalonia's own work for the tick.
-// Numbers: see ED-NEW-lean-9 in porting/engineering_decisions.md (before on 1fdf47b43, after the L9 fix).
+// field is on the test thread, none elsewhere). Those bytes include Avalonia's own work for a tick that draws (about 4.2 KB, the same for
+// 9 or 89 columns; a still window's tick allocates nothing), so the field's own share is measured too: the same ticks of the same window
+// with InvalidatingCompositionHandler (invalidated at every refresh over the field's area, drawing nothing) in place of the field are
+// Avalonia's share, and the dots' share is the difference of the two runs' median ticks (the reference must draw at every tick, as the
+// dots do: asserted). The
+// reference pushes one opacity layer per draw, as the dots do: Avalonia's ImmediateDrawingContext allocates its state stack (56 B)
+// at a draw's first push, which is Avalonia's share, not the field's.
+// Numbers: see ED-NEW-lean-9 in porting/engineering_decisions.md (before on 1fdf47b43, after the L9 fix). The 60 Hz pacing the plan
+// names is not in L9 (the shared pacer is internal to Marrow.UI; ED-NEW-lean-9), so the draws and clock reads still follow the display.
 [Collection("Headless")]
 public sealed class ComposerWorkingDotsLeanBudgetTests(HeadlessSession headless)
 {
     private const double Rate = 240;
     private const int Warm = 60;
+    // The composer loop's time is the clock's own seconds (production: seconds since boot), so a clock at 0 would leave most dots
+    // before their first pulse. 10 s in, every dot of the loop is in its wave, as in a running app.
+    private const double Settled = 10;
 
-    private static (int Draws, int Reads, double Bytes) OneSimulatedSecond()
+    private static (int Draws, int Reads, double Bytes, long Median) OneSimulatedSecond()
     {
         var period = RenderFrameSource.PeriodSource;
         RenderFrameSource.PeriodSource = () => TimeSpan.FromSeconds(1 / Rate);
         using var runtime = new TestRuntime();
+        runtime.Advance(TimeSpan.FromSeconds(Settled));
         var clock = new ThreadCountingTimeProvider(runtime.Time, Environment.CurrentManagedThreadId);
         using var provider = SwiftClock.Provider.Override(clock);
         using var executor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
@@ -41,27 +52,74 @@ public sealed class ComposerWorkingDotsLeanBudgetTests(HeadlessSession headless)
         {
             Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            Assert.Equal(267, field.LastRenderedFrame is { } first ? first.Rows * first.Columns : 0);
             for (var i = 0; i < Warm; i++) Tick(runtime, out _);
+            Assert.Equal(267, field.LastRenderedFrame is { } first ? first.Rows * first.Columns : 0);
             var last = field.LastRenderedFrame!.Now.Ticks;
             var reads = clock.OnThread;
             var draws = 0;
             long bytes = 0;
+            var ticks = new long[(int)Rate];
             for (var i = 0; i < Rate; i++)
             {
                 Tick(runtime, out var allocated);
                 bytes += allocated;
+                ticks[i] = allocated;
                 if (field.LastRenderedFrame is { } frame && frame.Now.Ticks != last) { draws++; last = frame.Now.Ticks; }
             }
             Assert.Equal(0, clock.OffThread); // the field's render-server work ran on this thread, so its allocations are counted
             Assert.Equal(0, frames.Pending); // never a UI-thread frame
-            return (draws, clock.OnThread - reads, bytes / Rate);
+            return (draws, clock.OnThread - reads, bytes / Rate, Median(ticks));
         }
         finally
         {
             window.Content = null; window.Close(); Dispatcher.UIThread.RunJobs();
             RenderFrameSource.PeriodSource = period;
         }
+    }
+
+    // The same window and ticks with a visual that is invalidated at every refresh and draws nothing: Avalonia's own bytes per tick.
+    private static long ReferenceBytes()
+    {
+        var period = RenderFrameSource.PeriodSource;
+        RenderFrameSource.PeriodSource = () => TimeSpan.FromSeconds(1 / Rate);
+        using var runtime = new TestRuntime();
+        runtime.Advance(TimeSpan.FromSeconds(Settled));
+        using var executor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        var host = new Avalonia.Controls.Border();
+        var window = new Avalonia.Controls.Window { Width = 700, Height = 24, Background = Brushes.Black, Content = host };
+        window.Show();
+        try
+        {
+            Dispatcher.UIThread.RunJobs();
+            var handler = new InvalidatingCompositionHandler(new Avalonia.Rect(0, 0, 712, 24));
+            var visual = Avalonia.Rendering.Composition.ElementComposition.GetElementVisual(host)!.Compositor.CreateCustomVisual(handler);
+            visual.Size = new Avalonia.Vector(700, 24);
+            Avalonia.Rendering.Composition.ElementComposition.SetElementChildVisual(host, visual);
+            visual.SendHandlerMessage(handler);
+            for (var i = 0; i < Warm; i++) Tick(runtime, out _);
+            var draws = handler.Draws;
+            var ticks = new long[(int)Rate];
+            for (var i = 0; i < Rate; i++) Tick(runtime, out ticks[i]);
+            Assert.Equal((int)Rate, handler.Draws - draws);
+            Assert.Equal(0, frames.Pending);
+            return Median(ticks);
+        }
+        finally
+        {
+            window.Content = null; window.Close(); Dispatcher.UIThread.RunJobs();
+            RenderFrameSource.PeriodSource = period;
+        }
+    }
+
+    // The median tick: a one-off allocation of Avalonia's inside the second (a pool growing, about 16 KB once) moves a mean by tens of
+    // bytes a tick, in either run; the median tick of each run is the steady cost of a tick.
+    private static long Median(long[] ticks)
+    {
+        var sorted = (long[])ticks.Clone();
+        Array.Sort(sorted);
+        return sorted[sorted.Length / 2];
     }
 
     private static void Tick(TestRuntime runtime, out long allocated)
@@ -77,7 +135,7 @@ public sealed class ComposerWorkingDotsLeanBudgetTests(HeadlessSession headless)
     [Trait("Decision", "ED-NEW-lean-9")]
     public void The_dots_draw_within_the_budget_in_a_simulated_second_on_a_240_Hz_display() => headless.OnUiThread(() =>
     {
-        var (draws, _, _) = OneSimulatedSecond();
+        var (draws, _, _, _) = OneSimulatedSecond();
         Assert.True(draws > 0, "the field stopped drawing");
         Assert.True(draws <= DrawsLimit, $"the dots drew {draws} times in one simulated second at {Rate} Hz (limit {DrawsLimit})");
     });
@@ -86,7 +144,7 @@ public sealed class ComposerWorkingDotsLeanBudgetTests(HeadlessSession headless)
     [Trait("Decision", "ED-NEW-lean-9")]
     public void The_dots_sample_their_clock_within_the_budget_in_a_simulated_second_on_a_240_Hz_display() => headless.OnUiThread(() =>
     {
-        var (_, reads, _) = OneSimulatedSecond();
+        var (_, reads, _, _) = OneSimulatedSecond();
         Assert.True(reads > 0, "the field stopped sampling");
         Assert.True(reads <= ReadsLimit, $"the dots read their clock {reads} times in one simulated second at {Rate} Hz (limit {ReadsLimit})");
     });
@@ -95,11 +153,23 @@ public sealed class ComposerWorkingDotsLeanBudgetTests(HeadlessSession headless)
     [Trait("Decision", "ED-NEW-lean-9")]
     public void A_warm_compositor_tick_with_the_dots_allocates_within_the_budget() => headless.OnUiThread(() =>
     {
-        var (_, _, bytes) = OneSimulatedSecond();
+        var (_, _, bytes, _) = OneSimulatedSecond();
         Assert.True(bytes <= BytesLimit, $"a warm compositor tick with the dots allocates {bytes:F1} B (limit {BytesLimit})");
     });
 
-    private const int DrawsLimit = 360; // before 240 (1.5x)
-    private const int ReadsLimit = 720; // before 480 (1.5x)
-    private const double BytesLimit = 6890; // before 4593 B (1.5x)
+    [Fact]
+    [Trait("Decision", "ED-NEW-lean-9")]
+    public void The_dots_own_share_of_a_warm_compositor_tick_allocates_within_the_budget() => headless.OnUiThread(() =>
+    {
+        var reference = ReferenceBytes();
+        var (draws, _, _, median) = OneSimulatedSecond();
+        Assert.Equal((int)Rate, draws); // the dots drew at every tick, as the reference did
+        var own = median - reference;
+        Assert.True(own <= OwnBytesLimit, $"the dots' own work allocates {own} B a warm compositor tick (median tick {median} B with the dots, {reference} B without) (limit {OwnBytesLimit})");
+    });
+
+    private const int DrawsLimit = 312; // before 240 (first limit 360, 1.5x); after 240 (1.3x)
+    private const int ReadsLimit = 312; // before 480 (first limit 720, 1.5x); after 240 (1.3x)
+    private const double BytesLimit = 5314; // before 19478 B (first limit 29217, 1.5x); after 4088 B (1.3x)
+    private const long OwnBytesLimit = 0; // before 15384 B (first limit 23076, 1.5x); after 0 B
 }
