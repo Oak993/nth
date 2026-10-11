@@ -18,9 +18,10 @@ public sealed class TerminalSnapshotBudgetTests(ITestOutputHelper output)
     private const int ScreenRows = 50;
     private const int Frames = 100;
 
-    // Measured on the unchanged code (before) and after the fix; see ED-NEW-lean-10.
-    private const double FrameBytesLimit = 5_310_000;    // one output read that rewrites one line, plus the frame snapshot
-    private const double IdleSnapshotBytesLimit = 5_310_000; // a snapshot with nothing changed since the last one
+    // Before (unchanged code): 3,540,048 B per frame, 3,538,496 B per idle snapshot (limits were 5,310,000).
+    // After copy-on-write rows: 13,032 B and 5,056 B; limits about 1.3x of those. See ED-NEW-lean-10.
+    private const double FrameBytesLimit = 16_950;       // one output read that rewrites one line, plus the frame snapshot
+    private const double IdleSnapshotBytesLimit = 6_580;     // a snapshot with nothing changed since the last one
 
     [Fact]
     [Trait("Decision", "ED-NEW-lean-10")]
@@ -46,6 +47,30 @@ public sealed class TerminalSnapshotBudgetTests(ITestOutputHelper output)
         Assert.StartsWith("frame 000139", string.Concat(frame.Lines[frame.HistoryCount + 9].Select(cell => cell.Text ?? " ")), StringComparison.Ordinal);
         Assert.True(frameBytes <= FrameBytesLimit, $"a frame costs {frameBytes:F0} B");
         Assert.True(idleBytes <= IdleSnapshotBytesLimit, $"an idle snapshot costs {idleBytes:F0} B");
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-lean-10")]
+    public void Consecutive_snapshots_share_every_unchanged_row_and_copy_the_written_one()
+    {
+        var screen = FullScreen();
+        var first = screen.Snapshot();
+        screen.Feed("\x1b[10;1Hchanged");
+        var second = screen.Snapshot();
+        Assert.Equal(first.Lines.Length, second.Lines.Length);
+        var changed = first.HistoryCount + 9;
+        for (var row = 0; row < first.Lines.Length; row++)
+        {
+            if (row == changed) Assert.NotSame(first.Lines[row], second.Lines[row]);
+            else Assert.Same(first.Lines[row], second.Lines[row]);
+        }
+        Assert.StartsWith("line ", string.Concat(first.Lines[changed].Select(cell => cell.Text ?? " ")), StringComparison.Ordinal);
+        Assert.StartsWith("changed", string.Concat(second.Lines[changed].Select(cell => cell.Text ?? " ")), StringComparison.Ordinal);
+        // A second write to the same row before the next snapshot writes in place: the row is the buffer's own again.
+        screen.Feed("\x1b[10;1HCH");
+        Assert.StartsWith("changed", string.Concat(second.Lines[changed].Select(cell => cell.Text ?? " ")), StringComparison.Ordinal);
+        var third = screen.Snapshot();
+        Assert.StartsWith("CHanged", string.Concat(third.Lines[changed].Select(cell => cell.Text ?? " ")), StringComparison.Ordinal);
     }
 
     [Theory]
