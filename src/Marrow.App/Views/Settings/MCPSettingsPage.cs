@@ -25,7 +25,7 @@ namespace Marrow.App.Views.Settings;
 
 // Source: DroppyCode/App/Views/Settings/MCPSettingsPage.swift (B3 52bc792), :1-1141.
 // DEVIATION OD-0012 F1: Marrow; OD-0008 B3/B4: Credential Manager / this PC.
-public sealed class MCPSettingsPage : Decorator
+public sealed class MCPSettingsPage : Decorator, Marrow.App.Port.Settings.ISettingsPageChrome
 {
     private string query; // :7
     private readonly StackPanel root = new() { Spacing = Chrome.SectionSpacing }; // :36
@@ -55,11 +55,16 @@ public sealed class MCPSettingsPage : Decorator
     public MCPSettingsPage(string query)
     {
         this.query = query; Child = root;
+        ChromeAccessories = MCPHeaderActions.Make(); // PORT-ONLY ED-NEW-mcpimport-2: "+ Add" and "Import" beside the search field, as on Skills and Plugins
         // :64-74 register before layout tracking, so a newly connected card stays in its grid while celebrating.
         AttachedToVisualTree += (_, _) => stateChanges ??= new OnChange<IReadOnlyDictionary<string, MCPConnectionState>>(() => AppEnvironment.GetAppModel(this).Mcp.States, Celebrate);
         DetachedFromVisualTree += (_, _) => { stateChanges?.Dispose(); stateChanges = null; };
         this.Track(() => (AppEnvironment.GetAppModel(this).Mcp.States, AppEnvironment.GetAppModel(this).Mcp.Customs, view.Celebrating, AppEnvironment.GetAppModel(this).Mcp.CredentialDeletionFailure), _ => Rebuild());
     }
+    /// <inheritdoc />
+    public bool HasChromeControls => true; // :270-272 the page already has the search field in the row
+    /// <inheritdoc />
+    public IReadOnlyList<Control> ChromeAccessories { get; }
     // :64-74. Intentionally independent of Settings.SettleSound, and each task removes its own ID after 900ms.
     private void Celebrate(IReadOnlyDictionary<string, MCPConnectionState> previous, IReadOnlyDictionary<string, MCPConnectionState> current)
     {
@@ -464,6 +469,15 @@ internal sealed class MCPCustomSection : Decorator
         var add = PlainControls.Button(new Border { Background = Brushes.Transparent, Padding = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11), Child = addRow }, () => state.Adding = true);
         // The editor contains its own picker popup; retain the deferred outer popup across list updates.
         var addHost = new Panel { Children = { add, MCPSettingsPage.Popover(add, new Binding<bool>(() => state.Adding, v => state.Adding = v), () => new MCPCustomEditor(null), this, buildBeforeOpen: false) } };
+        // PORT-ONLY ED-NEW-mcpimport-1: "Import from other apps", the "Add server" row's twin, under it: a read-only look at other AI apps' MCP configs, imported through the same store.
+        var importRow = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*"), ColumnSpacing = 12 };
+        var importGlyph = MCPSettingsPage.Symbol("square.and.arrow.down", 13, Chrome.Accent); importGlyph.HorizontalAlignment = HorizontalAlignment.Center;
+        importRow.Children.Add(new Border { Width = 26, Child = importGlyph });
+        var importText = MCPSettingsPage.Text(Marrow.Core.Port.MCP.Import.McpImportWords.Action, 13, Chrome.PrimaryText, SwiftFont.Weight.Medium); Grid.SetColumn(importText, 1); importRow.Children.Add(importText);
+        Button? import = null;
+        import = PlainControls.Button(new Border { Background = Brushes.Transparent, Padding = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11), Child = importRow }, () => Marrow.App.Port.MCP.Import.McpImportLauncher.Open(import!));
+        AutomationProperties.SetName(import, Marrow.Core.Port.MCP.Import.McpImportWords.Action); AutomationProperties.SetAutomationId(import, "mcp-import-open");
+        var importDivider = new ChromeRowDivider();
         var note = MCPSettingsPage.Text("Servers of your own: a command that runs on this PC, or a remote address, with the variables they need.", 12, Chrome.SecondaryText); note.Margin = new Thickness(16, 11);
         var section = new ChromeSection("Custom", () => new ChromeCard(() => rows, lazy: true));
 
@@ -486,6 +500,7 @@ internal sealed class MCPCustomSection : Decorator
             }
             children.Add(trailingDivider); // :403,409
             children.Add(addHost); // :411 the same add button/popup remains last
+            children.Add(importDivider); children.Add(import); // PORT-ONLY ED-NEW-mcpimport-1
             MCPSettingsPage.Reconcile(rows, children);
             foreach (var gone in rowControls.Keys.Where(id => !visible.Any(server => SwiftString.Equal(server.Id, id))).ToArray())
             {

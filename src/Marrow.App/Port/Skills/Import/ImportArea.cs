@@ -72,7 +72,8 @@ internal sealed class ImportArea : Decorator
 
     internal bool LineOpen => foundFold.Open;
 
-    private void Open()
+    // ED-NEW-mcpimport-2: also the Skills page header's "Import"
+    internal void Open()
     {
         hidden = false;
         // a sheet that is not closed is an import in progress (hidden by Escape): it comes back as it was, it is not started again

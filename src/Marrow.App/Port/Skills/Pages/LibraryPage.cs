@@ -50,7 +50,7 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
         ownKind = tools ? CustomAddKind.Tools : section == LibrarySection.Plugins ? CustomAddKind.Plugins : CustomAddKind.Skills;
         own = CustomAddSeams.Backends.Current.Own;
         model = tools ? SkillsPageSeams.Controllers.Current.Tools() : SkillsPageSeams.Controllers.Current.For(section);
-        ChromeAccessories = model is null ? [] : [new CustomAddAction(tools ? CustomAddKind.Tools : section == LibrarySection.Plugins ? CustomAddKind.Plugins : CustomAddKind.Skills)];
+        ChromeAccessories = model is null ? [] : HeaderActions(tools);
         downloadAll = PlainControls.Button(downloadAllWords, OpenDownloadAll);
         SwiftGlass.StyleButton(downloadAll);
         downloadAll.HorizontalAlignment = HorizontalAlignment.Stretch;
@@ -85,7 +85,7 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
         if (!tools) page.Children.Add(listing);
         page.Children.Add(panes);
         if (!tools && section == LibrarySection.Skills) page.Children.Add(providers);
-        if (!tools && section == LibrarySection.Skills && SkillsPageSeams.Imports.Current.Model is { } imports) page.Children.Add(new ImportArea(imports)); // SK-18
+        if (!tools && section == LibrarySection.Skills && SkillsPageSeams.Imports.Current.Model is { } imports) page.Children.Add(importArea = new ImportArea(imports)); // SK-18
         page.Children.Add(Footer(reset));
         Child = page;
 
@@ -96,6 +96,20 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
         AttachedToVisualTree += (_, _) => SyncDialog(model.Dialog); // a page built again finds the run it left and shows its dialog, unless the user hid it
         DetachedFromVisualTree += (_, _) => CloseSheet();
         Refresh();
+    }
+
+    // PORT-ONLY ED-NEW-mcpimport-2 (owner 2026-10-11: "Skills, Plugins and MCP need to have the add and import options"): "+ Add" and "Import" side by side in the header on all three pages.
+    // Skills' Import opens SK-18's sheet (the in-page action stays); Plugins' opens "Import plugins"; the optional tools page keeps "+ Add" alone.
+    private ImportArea? importArea;
+
+    private IReadOnlyList<Control> HeaderActions(bool tools)
+    {
+        var add = new CustomAddAction(tools ? CustomAddKind.Tools : section == LibrarySection.Plugins ? CustomAddKind.Plugins : CustomAddKind.Skills);
+        if (tools) return [add];
+        Button? import = null;
+        if (section == LibrarySection.Skills && SkillsPageSeams.Imports.Current.Model is not null) import = PageHeaderButton.Import(() => importArea?.Open());
+        else if (section == LibrarySection.Plugins && PluginImport.PluginImportLauncher.Model() is not null) import = PageHeaderButton.Import(() => PluginImport.PluginImportLauncher.Open(import!));
+        return import is null ? [add] : [add, import];
     }
 
     /// <inheritdoc />
