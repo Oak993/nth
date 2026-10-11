@@ -51,7 +51,7 @@ public sealed partial class PcControlEngine
             else approved = Granted(first.App);
             text.Append("app ").Append(AppName(first)).Append(" exe ").Append(first.ExeName);
             if (first.Aumid is { Length: > 0 } aumid) text.Append(" app_id ").Append(PcWindowLine.Quote(aumid));
-            text.Append(" approved: ").Append(approved).Append('\n');
+            text.Append(" approved: ").Append(approved).Append(", state: ").Append(PcPauseText.Wire(State(first.App.Key))).Append('\n');
             foreach (var window in app)
             {
                 // A fresh list is the model's new view: a handle Windows reused is known again from here on.
@@ -72,6 +72,10 @@ public sealed partial class PcControlEngine
         }
         return PcResult.Success(body: text.ToString().TrimEnd('\n'));
     }
+
+    // What the app is doing for Tactus (DESIGN.md 10.9): paused by the user, working (a call in its stream), or idle.
+    private PcAppState State(string app) =>
+        parts.Pause.IsPaused(app) ? PcAppState.Paused : parts.Lanes.Active.Contains(app, StringComparer.Ordinal) ? PcAppState.Working : PcAppState.Idle;
 
     // none, chat or always: what the user allowed for this app (seeing or acting).
     private string Granted(PcAppIdentity app)

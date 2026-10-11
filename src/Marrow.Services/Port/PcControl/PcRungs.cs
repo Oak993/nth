@@ -277,7 +277,7 @@ public sealed class PcMessageRung(IPcMessageSink sink) : IPcInputRung
                     var control = element?.NativeWindow is { } own && own != 0 ? own : element is null ? sink.FocusControl(window.Handle) : 0;
                     if (control != 0 && sink.IsUnicode(control))
                     {
-                        plans.Add(Plan(request, "wm_char", PcGate.Probe, element, _ => Task.FromResult(Result(sink.Chars(control, text), "the window did not take the text")),
+                        plans.Add(Plan(request, "wm_char", PcGate.Probe, element, token => Chars(control, text, request.Boundary, token),
                             "typed " + PcArgsCount(text.Length) + " characters" + (element is null ? " into the window's focused control" : " into " + PcVerify.Describe(element))) with { Writes = true });
                     }
                 }
@@ -356,6 +356,28 @@ public sealed class PcMessageRung(IPcMessageSink sink) : IPcInputRung
         };
 
     private static PcUiaOutcome Result(bool done, string reason) => done ? PcUiaOutcome.Ok : PcUiaOutcome.Fail(PcErrorCode.NotSupported, reason);
+
+    /// <summary>The longest WM_CHAR run, one atomic unit: a pause holds the typing only between runs (DESIGN.md 10.1).</summary>
+    public const int CharRun = 64;
+
+    // A WM_CHAR stream in runs of up to 64 characters (a surrogate pair is never split). Between runs the boundary may hold
+    // the typing for a pause and end it when the field changed meanwhile.
+    private async Task<PcUiaOutcome> Chars(nint control, string text, Func<int, int, CancellationToken, Task<string?>>? boundary, CancellationToken cancellationToken)
+    {
+        var at = 0;
+        do
+        {
+            var length = Math.Min(CharRun, text.Length - at);
+            if (at + length < text.Length && char.IsHighSurrogate(text[at + length - 1])) length--;
+            if (!sink.Chars(control, text.Substring(at, length)))
+                return Result(false, at == 0 ? "the window did not take the text" : "the window stopped taking the text after " + PcArgsCount(at) + " of " + PcArgsCount(text.Length) + " characters");
+            at += length;
+            if (at < text.Length && boundary is not null && await boundary(at, text.Length, cancellationToken).ConfigureAwait(false) is { } changed)
+                return PcUiaOutcome.Fail(PcErrorCode.ExpectFailed, changed);
+        }
+        while (at < text.Length);
+        return PcUiaOutcome.Ok;
+    }
 
     private static string PcArgsCount(int value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
 }

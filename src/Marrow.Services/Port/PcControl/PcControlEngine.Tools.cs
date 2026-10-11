@@ -146,6 +146,8 @@ public sealed partial class PcControlEngine
         var observation = Observation(PcArgs.Str(args, "obs"));
         if (observation is null || observation.Window.Handle != info.Handle || observation.Shot is null || LatestShot(info.Handle)?.Number != observation.Number)
             return PcResult.Fail(PcErrorCode.StaleObs, "a drag needs the obs of this window's latest screenshot");
+        if (PausedAfter(info.App.Key, observation.At) is { } pause)
+            return PcResult.Fail(PcErrorCode.StaleObs, PcPauseText.StaleAfterPause(TimeSpan.FromMilliseconds(pause.LengthMs)));
         if (args["path"] is not JsonArray { Count: >= 2 and <= 50 } path) throw new PcArgsException("path must hold 2 to 50 points");
         var hold = PcArgs.Int(args, "hold_ms") ?? 0;
         if (hold is < 0 or > 2000) throw new PcArgsException("hold_ms must be 0 to 2000");

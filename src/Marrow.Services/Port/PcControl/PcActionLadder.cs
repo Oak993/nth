@@ -28,6 +28,12 @@ public enum PcInputKind
 /// <summary>One input, already resolved and checked by the engine: the live element and the fresh tree, or a screen point.</summary>
 public sealed record PcInputRequest(PcInputKind Kind, PcWindowInfo Window)
 {
+    /// <summary>
+    /// Between two runs of a typed text (characters typed so far, the total): null goes on; a reason ends the typing as
+    /// expect_failed (a field that changed while the app was paused, DESIGN.md 10.1).
+    /// </summary>
+    public Func<int, int, CancellationToken, Task<string?>>? Boundary { get; init; }
+
     public PcTree? Tree { get; init; }
     public PcUiNode? Element { get; init; }
     public PcPoint? Point { get; init; }

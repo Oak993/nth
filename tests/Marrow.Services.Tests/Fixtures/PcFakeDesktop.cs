@@ -445,8 +445,12 @@ public sealed class PcFakeDesktop : IWindowCatalog, IUiaReader, IPcChangeFeed, I
         if (Control(control) is not { } found) return false;
         effect(found.App, found.Node);
         Notify(found.App.Handle);
+        OnMessage?.Invoke(found.App, what);
         return true;
     }
+
+    /// <summary>Runs after each posted or sent message took effect (a test pauses Tactus between two runs of text here).</summary>
+    public Action<PcFakeApp, string>? OnMessage { get; set; }
 
     public nint FocusControl(nint window)
     {

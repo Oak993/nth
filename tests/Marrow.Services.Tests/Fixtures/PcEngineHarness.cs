@@ -6,7 +6,7 @@ using Marrow.Services.Port.PcControl;
 namespace Marrow.Services.Tests.Fixtures;
 
 // PORT-ONLY: Tactus, PC control (ED-NEW-pcctl-6, ED-NEW-pcctl-7, ED-NEW-pcctl-8). The engine wired to the fake desktop: the
-// real lanes, run control, window holds, action ladder (R1 UI Automation, R2 messages, R4 refusing), capability store,
+// real lanes, run control, pause control, window holds, action ladder (R1 UI Automation, R2 messages, R4 refusing), capability store,
 // settle and checks; fake approval, confirmation, stop key, audit and capture. The 25 s budget runs on a manual clock that
 // moves only when a test advances it. Tactus is on unless a test turns it off.
 public sealed class PcEngineHarness
@@ -19,6 +19,7 @@ public sealed class PcEngineHarness
         Ladder = new PcActionLadder([new PcUiaRung(Desktop), new PcMessageRung(Desktop), new PcBorrowRung(() => Settings)], Capabilities);
         Capture = new PcCapturePipeline([CaptureSource], Encoder);
         Ownership = new PcWindowOwnership(Desktop.Clock);
+        Pause = new PcPauseControl(Desktop.Clock, Control);
     }
 
     public PcFakeDesktop Desktop { get; } = new();
@@ -35,6 +36,7 @@ public sealed class PcEngineHarness
     public PcActionLadder Ladder { get; }
     public PcCapturePipeline Capture { get; }
     public PcWindowOwnership Ownership { get; }
+    public PcPauseControl Pause { get; }
     public PcSettings Settings { get; set; } = PcSettings.Default with { Enabled = true };
     public DateTimeOffset Now { get; set; } = Today;
 
@@ -51,6 +53,7 @@ public sealed class PcEngineHarness
         Confirmer = Confirmer,
         StopKey = StopKey,
         Control = Control,
+        Pause = Pause,
         Audit = Audit,
         Clock = Desktop.Clock,
         Launcher = Desktop,

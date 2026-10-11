@@ -23,6 +23,7 @@ public sealed partial class PcControlEngine
     /// </summary>
     private async Task<(PcTarget? Target, PcResult? Failure)> Resolve(PcWindowInfo info, JsonObject args, bool pointAllowed, bool required, PcCall call)
     {
+        await Boundary(info, call).ConfigureAwait(false);
         var element = PcArgs.Int(args, "element");
         var locator = PcArgs.Locator(args);
         var point = PcArgs.Pair(args["point"], "point");
@@ -58,6 +59,9 @@ public sealed partial class PcControlEngine
             var observation = Observation(PcArgs.Str(args, "obs"));
             if (observation is null || observation.Window.Handle != info.Handle || observation.Shot is null || LatestShot(info.Handle)?.Number != observation.Number)
                 return (null, PcResult.Fail(PcErrorCode.StaleObs, "a point needs the obs of this window's latest screenshot"));
+            // Every point from a look before a pause is stale (DESIGN.md 10.1, Resume item 5).
+            if (PausedAfter(info.App.Key, observation.At) is { } pause)
+                return (null, PcResult.Fail(PcErrorCode.StaleObs, PcPauseText.StaleAfterPause(TimeSpan.FromMilliseconds(pause.LengthMs))));
             var (x, y) = point!.Value;
             var grid = observation.Shot.Grid;
             if (!CoordinateMapper.OnGrid(grid, x, y)) return (null, PcResult.Fail(PcErrorCode.OffScreen, "the point is outside the screenshot"));
@@ -117,17 +121,24 @@ public sealed partial class PcControlEngine
     // and had input since), a target whose value or state differs from that look was changed by the user, and the step
     // stops instead of acting on what the model saw. Tactus's own earlier writes do not count unless the user was also
     // working there, which errs on the side of stopping.
+    // A look taken before a pause counts as old facts whoever changed the target (DESIGN.md 10.1, Resume item 6): the step
+    // returns "changed while paused" instead of acting.
     private string? UserChanged(PcWindowInfo info, PcObservation looked, PcUiNode seen, PcUiNode now)
     {
-        var user = parts.Foreground.Read();
-        if (user.Foreground != info.Handle || user.InputAgeMs >= parts.Clock.NowMs - looked.At) return null;
+        var paused = PausedAfter(info.App.Key, looked.At) is not null;
+        if (!paused)
+        {
+            var user = parts.Foreground.Read();
+            if (user.Foreground != info.Handle || user.InputAgeMs >= parts.Clock.NowMs - looked.At) return null;
+        }
         var what = PcVerify.Describe(now);
+        var lead = paused ? "changed while paused: " + what : "the user changed " + what + " since your look";
         if (PcElementMatch.Editable(seen) && !seen.Has(PcStates.Password)
             && !string.Equals(PcVerify.Text(seen.Value), PcVerify.Text(now.Value), StringComparison.Ordinal))
-            return "the user changed " + what + " since your look: it now shows " + PcWindowLine.Quote(TreeFormatter.Clean(now.Value ?? "", 80)) + "; look again before acting";
+            return lead + ": it now shows " + PcWindowLine.Quote(TreeFormatter.Clean(now.Value ?? "", 80)) + "; look again before acting";
         const PcStates watched = PcStates.Checked | PcStates.Selected | PcStates.Expanded | PcStates.Collapsed;
         if ((seen.States & watched) != (now.States & watched))
-            return "the user changed " + what + " since your look: it is now " + StateWords(seen.States, now.States) + "; look again before acting";
+            return lead + ": it is now " + StateWords(seen.States, now.States) + "; look again before acting";
         return null;
     }
 
@@ -171,7 +182,30 @@ public sealed partial class PcControlEngine
     /// </summary>
     private async Task<PcResult> Act(PcWindowInfo info, PcInputRequest request, PcExpect? expect, PcCall call, string? typed = null)
     {
+        while (true)
+        {
+            try
+            {
+                await Boundary(info, call).ConfigureAwait(false);
+                return await ActOnce(info, request, expect, call, typed).ConfigureAwait(false);
+            }
+            catch (PcHeld) when (call.Acted && !call.Token.IsCancellationRequested)
+            {
+                // Paused between two actions of one step (a pc_type and its submit) before this one acted: it holds here,
+                // then starts again from its own top (a fresh read, and its confirmation asked again).
+                await HoldInPlace(info, call).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private async Task<PcResult> ActOnce(PcWindowInfo info, PcInputRequest request, PcExpect? expect, PcCall call, string? typed)
+    {
         var handle = info.Handle;
+        if (request.Kind == PcInputKind.Type)
+        {
+            var field = request.Element;
+            request = request with { Boundary = (done, total, token) => TextBoundary(info, field, done, total, call, token) };
+        }
         // What changed on its own since Tactus last looked (a clock, a caret, an animation) is noise for the check.
         var cached = Cached(handle);
         var before = await Tree(handle, fresh: false, call.Token).ConfigureAwait(false);
@@ -200,9 +234,17 @@ public sealed partial class PcControlEngine
         foreach (var way in plan.Plans)
         {
             if (tried == 2) break;
+            // Paused after a way acted and failed its check: the step ends with that result instead of trying another way.
+            if (tried > 0 && parts.Pause.PausedSince(info.App.Key, call.PauseEpoch)) return last!;
             if (Clipboard(request, way) is { } clipboard) return clipboard;
             if (await Guard(info, request, way, before, confirmed, call).ConfigureAwait(false) is { } refused) return refused;
+            // A pause while the confirmation (or the typing wait) was up: an answer given then is asked again after the
+            // Resume, with the target read again (DESIGN.md 10.1).
+            if (tried == 0 && parts.Pause.PausedSince(info.App.Key, call.PauseEpoch)) throw new PcHeld();
             tried++;
+            call.Acted = true;
+            // An action in flight: the pill reads "Pausing" until it and its check end.
+            using var unit = parts.Pause.Acting(info.App.Key);
             var structureSeen = parts.Feed.StructureVersion(handle);
             var windowsBefore = AppWindows(info);
             var pre = parts.Foreground.Read();
@@ -215,7 +257,8 @@ public sealed partial class PcControlEngine
             if (!outcome.Done)
             {
                 last = PcResult.Fail(outcome.Error ?? PcErrorCode.NotSupported, outcome.Reason ?? "the app refused the action", Line(info, Latest(handle)));
-                if (outcome.Error is PcErrorCode.Disabled or PcErrorCode.PasswordField or PcErrorCode.StaleElement) return last;
+                // A text stopped by a change while paused is partly typed: no other way types it again.
+                if (outcome.Error is PcErrorCode.Disabled or PcErrorCode.PasswordField or PcErrorCode.StaleElement or PcErrorCode.ExpectFailed) return last;
                 if (way.Probe && way.Key is { } failedKey) parts.Ladder.Capabilities.Refuse(failedKey);
                 continue;
             }
@@ -256,7 +299,21 @@ public sealed partial class PcControlEngine
                 if (verdict.Passed && expect is not null) verdict = PcVerify.Expected(expect, check);
                 return verdict.Passed;
             }
-            var settled = await settle.Until(handle, structureSeen, Busy(before), call.InBatch, Holds, call.Token).ConfigureAwait(false);
+            PcSettleResult settled;
+            using (var cut = CancellationTokenSource.CreateLinkedTokenSource(call.Token, parts.Pause.PausedToken(info.App.Key)))
+            {
+                try
+                {
+                    settled = await settle.Until(handle, structureSeen, Busy(before), call.InBatch, Holds, cut.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (!call.Token.IsCancellationRequested)
+                {
+                    // Paused while the action settled: one read of the window is its post-check (DESIGN.md 10.1), then the step ends.
+                    var started2 = parts.Clock.NowMs;
+                    var holds = await Holds().ConfigureAwait(false);
+                    settled = new PcSettleResult(holds, !holds, parts.Clock.NowMs - started2);
+                }
+            }
             call.Timings.Mark("settle");
             if (way.Key is { } key && learned)
             {
@@ -334,6 +391,8 @@ public sealed partial class PcControlEngine
                 var users = user.Foreground == info.Handle && user.InputAgeMs < UserActiveMs
                     && (target is null || target.Has(PcStates.Focused) || (target.NativeWindow != 0 && target.NativeWindow == user.Focus));
                 if (!users) return null;
+                // Paused while waiting for the user's typing: the step holds and starts again, its 10 s afresh.
+                if (parts.Pause.PausedSince(info.App.Key, call.PauseEpoch)) throw new PcHeld();
                 var waited = parts.Clock.NowMs - start;
                 if (waited >= YieldMs)
                 {
@@ -343,7 +402,11 @@ public sealed partial class PcControlEngine
                 waiting ??= call.Wait.Waiting(PcWaitReason.TypingHere);
                 // A timeout tied to the condition: the moment the user's last input is 2 s old, or the 10 s limit.
                 var until = (int)Math.Max(1, Math.Min(UserActiveMs - user.InputAgeMs, YieldMs - waited));
-                await parts.Clock.Delay(until, call.Token).ConfigureAwait(false);
+                using (var cut = CancellationTokenSource.CreateLinkedTokenSource(call.Token, parts.Pause.PausedToken(info.App.Key)))
+                {
+                    try { await parts.Clock.Delay(until, cut.Token).ConfigureAwait(false); }
+                    catch (OperationCanceledException) when (!call.Token.IsCancellationRequested) { throw new PcHeld(); }
+                }
                 call.Timings.Mark("yield");
             }
         }

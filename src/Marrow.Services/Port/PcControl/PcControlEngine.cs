@@ -7,7 +7,8 @@
 // side and one app's calls never overlap. No call blocks for more than 25 s: past that it answers waiting_for_user with a
 // token (PcPendingSteps). Targets are found again by identity just before acting, every input goes down the action ladder
 // without activating any window, the window is waited on by its change events, and every action is checked locally
-// before its call returns. Each call's phase timings go to the audit log.
+// before its call returns. A paused app's steps hold in its stream until the user resumes it (PcPauseControl,
+// ED-NEW-pcctl-14). Each call's phase timings go to the audit log.
 using System.Globalization;
 using System.Text.Json.Nodes;
 using Marrow.Core.Port.PcControl;
@@ -42,6 +43,10 @@ public sealed class PcEngineParts
     public required IPcConfirmer Confirmer { get; init; }
     public required IPcStopKey StopKey { get; init; }
     public required PcRunControl Control { get; init; }
+
+    /// <summary>Pause and Resume, shared by every chat like the run control (DESIGN.md 10.1).</summary>
+    public required PcPauseControl Pause { get; init; }
+
     public required IPcAudit Audit { get; init; }
     public required IPcClock Clock { get; init; }
     public required IAppLauncher Launcher { get; init; }
@@ -88,7 +93,16 @@ public sealed class PcCall(PcTimings timings, PcAuditDraft audit, CancellationTo
     /// <summary>What the step produced for later batch steps; shared by the copies <see cref="With"/> makes.</summary>
     public PcStepOutput Output { get; private init; } = new();
 
-    public PcCall With(CancellationToken other) => new(Timings, Audit, other, Wait) { InBatch = InBatch, Base = Base, Output = Output };
+    /// <summary>The app's pause count when the step started (or last resumed): a different count means it was paused since.</summary>
+    public long PauseEpoch { get; set; }
+
+    /// <summary>Whether the step has started an action: from then on a pause holds it in place instead of starting it again.</summary>
+    public bool Acted { get; set; }
+
+    /// <summary>The resumed block of the step's latest hold, carried by its result.</summary>
+    public PcResumed? Resumed { get; set; }
+
+    public PcCall With(CancellationToken other) => new(Timings, Audit, other, Wait) { InBatch = InBatch, Base = Base, Output = Output, PauseEpoch = PauseEpoch };
 }
 
 /// <summary>What one step produced for later batch steps: the text a pc_read read, the windows an action opened.</summary>
@@ -167,6 +181,7 @@ public sealed partial class PcControlEngine : IDisposable
     {
         pending.CancelAll();
         parts.Ownership.Release(caller.Thread);
+        parts.Pause.EndTurn(caller.Thread);
         lock (gate)
         {
             stoppedForTurn = false;
@@ -317,12 +332,17 @@ public sealed partial class PcControlEngine : IDisposable
         if (!parts.StopKey.Arm())
             return PcResult.Fail(PcErrorCode.NotSupported, "the stop key " + parts.StopKey.Chord + " is taken by another app, so Tactus cannot start. Ask the user to pick another stop key in Settings, Tactus");
         Remember(info);
+        // The call counts as the chat's in this app (the chat's Pause covers it), and while the app is paused it answers
+        // waiting_for_user "paused" at once, also while its approval card waits (the card stays answerable).
+        using var joined = parts.Pause.Join(caller.Thread, info.App.Key, call.Wait);
         call.Timings.Mark("guard");
         PcApproval approval;
         using (call.Wait.Waiting(PcWaitReason.Approval)) approval = await Approve(info.App, AppName(info), capability, call.Token).ConfigureAwait(false);
         call.Timings.Mark("approve");
         if (approval is not (PcApproval.Chat or PcApproval.Always))
             return PcResult.Fail(PcErrorCode.NotApproved, approval == PcApproval.TimedOut ? "the user did not answer" : "the user did not allow Tactus to " + (capability == PcCapability.See ? "see" : "use") + " this app");
+        // A stop that came while the card was up still holds for the rest of the turn.
+        if (StoppedHere(info.App.Key) is { } stopped) return stopped;
         if (capability == PcCapability.Act && parts.Ownership.Claim(handle, caller.Thread, caller.Label) is { } other)
             return PcResult.Fail(PcErrorCode.BusyWindow, other + " is using this window");
         parts.Feed.Watch(handle, info.ProcessId);
@@ -330,13 +350,7 @@ public sealed partial class PcControlEngine : IDisposable
         using var watch = parts.Control.Watch(call.Token, caller.Thread, info.App.Key, handle);
         try
         {
-            return await parts.Lanes.Run(info.App.Key, async laneToken =>
-            {
-                call.Timings.Mark("queue");
-                // The facts may have changed while the call waited for its turn.
-                if (parts.Catalog.Window(handle) is not { } live || !info.SameWindow(live)) return PcResult.Fail(PcErrorCode.WindowGone, "the window is gone");
-                return await run(live, call.With(laneToken)).ConfigureAwait(false);
-            }, watch.Token).ConfigureAwait(false);
+            return await parts.Lanes.Run(info.App.Key, laneToken => Stream(info, capability, approval, call.With(laneToken), run), watch.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (watch.Stopped)
         {

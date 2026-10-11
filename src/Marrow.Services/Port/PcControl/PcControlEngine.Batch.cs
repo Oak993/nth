@@ -135,14 +135,16 @@ public sealed partial class PcControlEngine
         }
         line ??= parts.Catalog.Window(main) is { } current ? Line(current, Latest(main)) : null;
         var body = report.ToString().TrimEnd('\n');
+        // The first step that held for a pause gives the batch its resumed block.
+        var resumed = outcomes.Select(o => o?.Result?.Resumed).FirstOrDefault(r => r is not null);
         if (failed?.Result is { } bad)
         {
             var reason = "step " + Count(failed.Step.Number) + " (" + failed.Step.Tool + "): " + bad.Reason;
-            return bad.Error is { } code
+            return (bad.Error is { } code
                 ? PcResult.Fail(code, reason, line) with { Body = body }
-                : PcResult.Unverified(reason, line, body);
+                : PcResult.Unverified(reason, line, body)) with { Resumed = resumed };
         }
-        return PcResult.Success(line, body, image) with { Details = details };
+        return PcResult.Success(line, body, image) with { Details = details, Resumed = resumed };
     }
 
     // One window's steps in order (or the whole batch in order); the first failure ends them.
