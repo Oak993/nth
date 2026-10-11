@@ -267,17 +267,21 @@ public sealed class SubagentPanelTests(HeadlessSession headless)
         });
     }
 
+    // web W1 (DESIGN 4.3, ED-NEW-web-w1-5): the grips are the shared Splitter's, 8 DIP edges (6 in SubagentPanel.swift:596,
+    // UI-HYDRA-072) and the source's 16 DIP corner (:597); PanelResizeGripsTests covers their placement, drag, keys and reset.
     [Fact]
-    [Trait("Req", "UI-HYDRA-072")] // App/Views/Chat/SubagentPanel.swift:593-638
-    public void Resize_grip_dimensions_match_the_source()
+    [Trait("Decision", "ED-NEW-web-w1-5")]
+    public void Resize_grip_dimensions_are_the_shared_splitters_edge_and_corner()
     {
         var edge = typeof(PanelResizeGrips).GetField("Edge", BindingFlags.NonPublic | BindingFlags.Static);
         var corner = typeof(PanelResizeGrips).GetField("Corner", BindingFlags.NonPublic | BindingFlags.Static);
 
         Assert.NotNull(edge);
         Assert.NotNull(corner);
-        Assert.Equal(6d, edge.GetRawConstantValue());
+        Assert.Equal(8d, edge.GetRawConstantValue());
+        Assert.Equal(Splitter.EdgeThickness, edge.GetRawConstantValue());
         Assert.Equal(16d, corner.GetRawConstantValue());
+        Assert.Equal(Splitter.CornerSize, corner.GetRawConstantValue());
     }
 
     [Fact]
