@@ -408,40 +408,47 @@ public sealed class SettingsSwitch : Decorator
 /// <summary>
 /// ENGINEERING DECISION: Avalonia's own ToggleSwitch needs its Fluent theme's control template
 /// (PART_MovingKnobs), which this codebase's headless test host does not register, so it throws
-/// KeyNotFoundException the moment it is measured. A small, self-drawn switch avoids any themed
-/// template. Its look is the Mac's, measured in the reference runtime (ED-280; work/reference-video,
-/// 1 px = 1 pt): a 44 x 20 track and a white 26 x 16 pill knob 2 in from every edge (S 178.0 on, S 42.5 off); the off
-/// track is the label colour at 0.10 over the card; a press widens the knob to 30 and 2 taller (CATALOGUE
-/// settings.switch-toggle: 25 to 29-30 in 80-100 ms, +2 px tall, its centre fixed; frames/w-1-settings-tour-24.0/win row
-/// y 346: 740.5 at rest, 740.5-741.0 held) and turns it into the glass lens, about half see-through over the accent
-/// (the centre pixel (242,141,173) over (246,37,103) is 0.48 white; over the off track the reference's lens is 0.58-0.61 white, so the lens's white follows the track's tint); the commit slides the knob its 14 points over 0.21 s
-/// on an ease-out (0.5 of the way at 72 ms, 0.91 at 163 ms) while the track crossfades over 0.25 s. Reduce motion jumps.
+/// KeyNotFoundException the moment it is measured. A small, self-drawn switch avoids any themed template.
+/// DEVIATION OD-0141 (owner, 2026-10-11, "Lock Nocta as the toggle"; ED-NEW-nocta-1): its look and motion are the owner's Nocta, design 7 of
+/// work/design/toggles/index.html, in place of the Mac's measured switch (ED-280 (5)): an obsidian dome knob of polished black glass, 22 across and 2 in
+/// from every edge, on a 46 x 26 black glass track; a softbox reflection on the dome's crown; at its centre a 5 point lume, an empty ring when off and,
+/// when on, a dot lit in the accent made light (oklab 45 % to white) that lights the dome from inside, with a soft accent aura in the track. Contact
+/// and ambient shadows deepen on hover and while pressed, hover outlines the dome, a press scales it 1.08, and the knob slides its 20 points on a
+/// spring (response 0.38 s, damping 0.82). The lights cross over 0.28 s. Under Reduce Motion the knob and its press jump and the lights cross over
+/// 0.14 s. On and off read without colour: the knob's side, and a ring against a lit dot.
 /// </summary>
 internal sealed class SmallSwitch : Control
 {
-    internal const double TrackWidth = 44;
-    internal const double TrackHeight = 20;
-    internal const double Inset = 2;
-    internal const double KnobWidth = 26;
-    internal const double KnobHeight = 16;
-    internal const double PressedKnobWidth = 30;
-    internal const double PressedKnobHeight = 18;
-    /// <summary>The held lens's white over the accent track: 0x7A (0.48), the reference's centre pixel over the accent (242,141,173). The rim's
-    /// alpha (0x55) is UNVERIFIED, the port's own (the transparency slider's held knob takes the same).</summary>
-    internal const byte LensAlpha = 0x7A;
-    /// <summary>The held lens's white over the off track: 0x99 (0.6), the reference's centre pixel (171-178,178-186,180-187) over the off track's
-    /// (46-47,78-80,78-80), 0.58-0.61 white in every channel (frames/w-1-settings-tour-24.0/win row y 346, x 726, frames 000043-000044 and
-    /// 000109-000110). The glass is whiter over the grey track than over the accent, so the lens's white follows the track's tint.</summary>
-    internal const byte LensAlphaOff = 0x99;
-    internal static Animation Slide => Animation.EaseOut(duration: 0.21);
-    internal static Animation Crossfade => Animation.EaseOut(duration: 0.25);
-    internal static Animation Press => Animation.EaseOut(duration: 0.09);
+    internal const double TrackWidth = NoctaLook.TrackWidth;
+    internal const double TrackHeight = NoctaLook.TrackHeight;
+    internal const double Inset = NoctaLook.Inset;
+    internal const double KnobSize = NoctaLook.KnobSize;
+    internal const double Travel = NoctaLook.Travel;
+    /// <summary>.t-noc --px/--py: the pressed dome's scale, about its centre.</summary>
+    internal const double PressScale = 1.08;
+    /// <summary>--e-s/--d-s: spring(0.38, 0.82), the slide.</summary>
+    internal static Animation Slide { get; } = Animation.Spring(response: 0.38, dampingFraction: 0.82);
+    /// <summary>--e-p/--d-p: spring(0.22, 0.9), the press.</summary>
+    internal static Animation Press { get; } = Animation.Spring(response: 0.22, dampingFraction: 0.9);
+    /// <summary>.tg i: opacity 0.28 s cubic-bezier(.3, .7, .3, 1), every light (on and off, hover, the deeper shadow).</summary>
+    internal static Animation Light { get; } = Animation.TimingCurve(.3, .7, .3, 1, duration: 0.28);
+    /// <summary>html.rm .tg i: opacity 0.14 s ease, the lights under Reduce Motion.</summary>
+    internal static Animation ReducedLight { get; } = Animation.TimingCurve(.25, .1, .25, 1, duration: 0.14);
+
+    /// <summary>The state drawn now. Lights 0 is off (the empty ring), 1 on (the lit lume, the inner light and the aura).</summary>
+    internal readonly record struct Look(double Position, double Lights, double Scale, double Hover, double Deep);
 
     private readonly Binding<bool> isOn;
     private bool pressed;
     private bool keyboardFocus;
-    private readonly AnimatedScalar position, tint, widen;
-    private IBrush? offBrush, onBrush;
+    private readonly AnimatedScalar position, lights, scale, hover, deep;
+    // the accent's lights, made once per switch and recoloured in place when the accent moves (never rebuilt per frame)
+    private SolidColorBrush? accent;
+    private SolidColorBrush? lumeSolid;
+    private RadialGradientBrush? aura, inner, lume;
+    private Pen? ringDark, ringLight;
+    private BoxShadows glowWide, glowTight;
+    private Color lumeColor;
 
     public SmallSwitch(Binding<bool> isOn)
     {
@@ -450,16 +457,21 @@ internal sealed class SmallSwitch : Control
         Height = TrackHeight;
         Focusable = true;
         Cursor = new Cursor(StandardCursorType.Hand);
-        position = new AnimatedScalar(this, isOn.Value ? 1 : 0, _ => InvalidateVisual());
-        tint = new AnimatedScalar(this, isOn.Value ? 1 : 0, _ => InvalidateVisual());
-        widen = new AnimatedScalar(this, 0, _ => InvalidateVisual());
+        Action<double> redraw = _ => InvalidateVisual();
+        position = new AnimatedScalar(this, isOn.Value ? 1 : 0, redraw);
+        lights = new AnimatedScalar(this, isOn.Value ? 1 : 0, redraw) { RunsUnderReduceMotion = true };
+        scale = new AnimatedScalar(this, 1, redraw);
+        hover = new AnimatedScalar(this, 0, redraw) { RunsUnderReduceMotion = true };
+        deep = new AnimatedScalar(this, 0, redraw) { RunsUnderReduceMotion = true };
         var primed = false;
-        ActualThemeVariantChanged += (_, _) => InvalidateVisual(); // the track and its fade take the theme's colours
+        ActualThemeVariantChanged += (_, _) => InvalidateVisual(); // the focus ring takes the appearance's colour
         this.Track(() => isOn.Value, value =>
         {
-            var still = !primed || Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion; primed = true;
-            position.Set(value ? 1 : 0, still ? null : Slide); tint.Set(value ? 1 : 0, still ? null : Crossfade);
+            var still = !primed; primed = true;
+            position.Set(value ? 1 : 0, still ? null : Slide); lights.Set(value ? 1 : 0, still ? null : LightNow());
         });
+        // Space turns it. Return does not: it stays the window's or the sheet's default action (the revert confirmation's Revert,
+        // TimelineRows.swift:2791 .keyboardShortcut(.defaultAction)), as the Mac's switch leaves it (ED-NEW-nocta-1 (3)).
         KeyDown += (_, e) => { if (e.Key == Key.Space && IsEffectivelyEnabled) { isOn.Value = !isOn.Value; e.Handled = true; } };
         // :296-305 the native switch acts on a primary press that is released inside it: a secondary or middle press,
         // or a press dragged away before release, changes nothing.
@@ -468,7 +480,7 @@ internal sealed class SmallSwitch : Control
             if (!IsEffectivelyEnabled || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
             Focus(NavigationMethod.Pointer);
             pressed = true;
-            widen.Set(1, Press);
+            scale.Set(PressScale, Press); Shade();
             e.Pointer.Capture(this);
             e.Handled = true;
         };
@@ -476,28 +488,87 @@ internal sealed class SmallSwitch : Control
         {
             if (!pressed) return;
             pressed = false;
-            widen.Set(0, Press);
+            scale.Set(1, Press); Shade();
             e.Pointer.Capture(null);
             e.Handled = true;
             if (!IsEffectivelyEnabled || !new Rect(Bounds.Size).Contains(e.GetPosition(this))) return;
             isOn.Value = !isOn.Value;
         };
-        PointerCaptureLost += (_, _) => { if (pressed) widen.Set(0, Press); pressed = false; };
+        PointerCaptureLost += (_, _) => { if (pressed) scale.Set(1, Press); pressed = false; Shade(); };
     }
 
-    /// <summary>The track's colour now: the label colour at 0.10 when off (the Mac's off track, S 42.5: background (45,60,60) became (65,78,78)),
-    /// the accent when on, crossfaded while it moves.</summary>
-    internal Color TrackNow() => SwiftColor.PremultipliedMix(Chrome.Overlay(0.10).Resolve(ActualThemeVariant), Chrome.AccentNSColor.Resolve(ActualThemeVariant), tint.Value);
+    private bool ReduceMotion => EnvironmentValues.GetAccessibilityReduceMotion(this) || Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion;
+    private Animation LightNow() => ReduceMotion ? ReducedLight : Light;
 
-    /// <summary>The knob's rectangle now: the pill that slid, widened and made taller about its own centre while pressed (the reference keeps
-    /// the centre fixed: 740.5 at rest, 740.5-741.0 held).</summary>
+    // .hv shows on hover; .shl, the deeper shadow, on hover or while pressed.
+    private void Shade()
+    {
+        var over = IsPointerOver && IsEffectivelyEnabled;
+        hover.Set(over ? 1 : 0, LightNow());
+        deep.Set(over || pressed ? 1 : 0, LightNow());
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (deep is not null && (change.Property == IsPointerOverProperty || change.Property == IsEffectivelyEnabledProperty)) Shade();
+    }
+
+    /// <summary>The state drawn now; no allocation.</summary>
+    internal Look LookNow() => new(position.Value, lights.Value, scale.Value, hover.Value, deep.Value);
+
+    /// <summary>The dome's rectangle now: 22 across, 2 in from the track, slid by the spring and scaled about its centre while pressed.</summary>
     internal Rect KnobNow()
     {
-        var width = KnobWidth + (PressedKnobWidth - KnobWidth) * widen.Value;
-        var height = KnobHeight + (PressedKnobHeight - KnobHeight) * widen.Value;
-        var travel = TrackWidth - 2 * Inset - KnobWidth;
-        var centre = Inset + travel * position.Value + KnobWidth / 2;
-        return new Rect(centre - width / 2, (TrackHeight - height) / 2, width, height);
+        var size = KnobSize * scale.Value;
+        var centreX = Inset + Travel * position.Value + KnobSize / 2;
+        return new Rect(centreX - size / 2, TrackHeight / 2 - size / 2, size, size);
+    }
+
+    /// <summary>The lit lume's colour now (--acc-l): the switch's accent, Chrome.accent, 0.45 of the way to white in Oklab.</summary>
+    internal Color LumeColor() { EnsureLook(); return lumeColor; }
+
+    private void EnsureLook()
+    {
+        if (accent is not null) return;
+        accent = (SolidColorBrush)Chrome.AccentNSColor.Brush(this); // follows the appearance and the user's accent, easing as the window does (ED-250, ED-254)
+        lumeSolid = new SolidColorBrush();
+        aura = new RadialGradientBrush // .aura: radial-gradient(ellipse 48% 95% at 74% 50%, acc-l 30%, transparent 78%)
+        {
+            Center = new RelativePoint(.74, .5, RelativeUnit.Relative), GradientOrigin = new RelativePoint(.74, .5, RelativeUnit.Relative),
+            RadiusX = new RelativeScalar(.48, RelativeUnit.Relative), RadiusY = new RelativeScalar(.95, RelativeUnit.Relative),
+            GradientStops = [new GradientStop(default, 0), new GradientStop(default, .78)],
+        };
+        var innerRadius = new RelativeScalar(Math.Sqrt(11 * 11 + 11.88 * 11.88) / KnobSize, RelativeUnit.Relative); // circle at 50% 54%, to the farthest corner
+        inner = new RadialGradientBrush // .inner: radial-gradient(circle at 50% 54%, acc-l 42% 0, acc-l 10% 50%, transparent 75%)
+        {
+            Center = new RelativePoint(.5, .54, RelativeUnit.Relative), GradientOrigin = new RelativePoint(.5, .54, RelativeUnit.Relative),
+            RadiusX = innerRadius, RadiusY = innerRadius,
+            GradientStops = [new GradientStop(default, 0), new GradientStop(default, .5), new GradientStop(default, .75)],
+        };
+        var lumeRadius = new RelativeScalar(Math.Sqrt(.5), RelativeUnit.Relative); // circle, to the farthest corner of its 5 x 5 box
+        lume = new RadialGradientBrush // .lume: radial-gradient(circle, #fff 0, acc-l 70%)
+        {
+            Center = RelativePoint.Center, GradientOrigin = RelativePoint.Center, RadiusX = lumeRadius, RadiusY = lumeRadius,
+            GradientStops = [new GradientStop(Colors.White, 0), new GradientStop(default, .7)],
+        };
+        ringDark = new Pen(lumeSolid, 2);
+        ringLight = new Pen(accent, 2);
+        Recolour(accent.Color);
+        accent.PropertyChanged += (_, e) => { if (e.Property == SolidColorBrush.ColorProperty) { Recolour(accent.Color); InvalidateVisual(); } };
+    }
+
+    // The accent's lights, recoloured in place: no brush, stop or shadow array is made.
+    private void Recolour(Color color)
+    {
+        var light = NoctaLook.Lume(color);
+        lumeColor = light;
+        lumeSolid!.Color = light;
+        aura!.GradientStops[0].Color = NoctaLook.Faded(light, .30); aura.GradientStops[1].Color = NoctaLook.Faded(light, 0);
+        inner!.GradientStops[0].Color = NoctaLook.Faded(light, .42); inner.GradientStops[1].Color = NoctaLook.Faded(light, .10); inner.GradientStops[2].Color = NoctaLook.Faded(light, 0);
+        lume!.GradientStops[1].Color = light;
+        glowWide = new BoxShadows(new BoxShadow { Blur = 8, Color = NoctaLook.Faded(light, .6) }); // .lume: 0 0 8px acc-l 60%, under ...
+        glowTight = new BoxShadows(new BoxShadow { Blur = 3, Color = light }); // ... 0 0 3px acc-l
     }
 
     protected override AutomationPeer OnCreateAutomationPeer() => new SwitchPeer(this);
@@ -525,24 +596,44 @@ internal sealed class SmallSwitch : Control
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        var track = new Rect(0, 0, TrackWidth, TrackHeight);
-        // at rest the track is the theme's own brush, so it follows an appearance change; between the two it is the mixed colour
-        // (one brush each for the life of the switch, so an appearance change eases them where the window turns over, ED-254)
-        offBrush ??= Chrome.Overlay(0.10).Brush(this); onBrush ??= Chrome.AccentNSColor.Brush(this);
-        IBrush trackBrush = tint.Value == 1 ? onBrush : tint.Value == 0 ? offBrush
-            : new SolidColorBrush(SwiftColor.PremultipliedMix(((ISolidColorBrush)offBrush).Color, ((ISolidColorBrush)onBrush).Color, tint.Value));
-        context.DrawRectangle(trackBrush, null, track, TrackHeight / 2, TrackHeight / 2);
-        var knob = KnobNow();
-        // Pressed, the knob turns into the Mac's glass lens (CATALOGUE settings.switch-toggle; the reference's centre pixel is 0.48 white over the
-        // accent), faded in with the widening; its rim is the port's own 1 px white at 0x55 (UNVERIFIED), as the transparency slider's held knob has.
-        var lens = widen.Value;
-        var lensAlpha = LensAlphaOff + (LensAlpha - LensAlphaOff) * tint.Value; // the lens's white over the track now: 0.6 over the off track, 0.48 over the accent
-        IBrush fill = lens == 0 ? Brushes.White : new SolidColorBrush(Color.FromArgb((byte)Math.Round(255 - (255 - lensAlpha) * lens), 255, 255, 255));
-        Pen? rim = lens == 0 ? null : new Pen(new SolidColorBrush(Color.FromArgb((byte)Math.Round(0x55 * lens), 255, 255, 255)), 1);
-        context.DrawRectangle(fill, rim, knob, knob.Height / 2, knob.Height / 2);
-        // CZ-15: the existing CzButton/CzSlider 2 px accent ring, keyboard only; the Mac track/knob stay unchanged at rest.
+        EnsureLook();
+        var look = LookNow();
+        // the track: black glass, the accent's aura when on, the glass's reflection
+        context.DrawRectangle(NoctaLook.Track, null, NoctaLook.TrackShape, NoctaLook.TrackShadows);
+        if (look.Lights > 0) using (context.PushOpacity(Math.Min(1, look.Lights))) context.DrawRectangle(aura, null, NoctaLook.TrackShape);
+        context.DrawRectangle(NoctaLook.Reflection, null, NoctaLook.TrackShape);
+        using (context.PushTransform(Matrix.CreateTranslation(Inset + Travel * look.Position, Inset)))
+        {
+            // the contact and ambient shadows (not scaled), deeper on hover and while pressed
+            context.DrawRectangle(NoctaLook.ShadowGround, null, NoctaLook.KnobShape, NoctaLook.Contact);
+            if (look.Deep > 0) using (context.PushOpacity(Math.Min(1, look.Deep))) context.DrawRectangle(NoctaLook.ShadowGround, null, NoctaLook.KnobShape, NoctaLook.ContactDeep);
+            var c = KnobSize / 2;
+            // every layer of the dome lies within its circle (the lume's 8 point glow fades out inside it, the rim's shadows are inset), so the
+            // design's overflow:hidden needs no clip
+            using (context.PushTransform(Matrix.CreateTranslation(-c, -c) * Matrix.CreateScale(look.Scale, look.Scale) * Matrix.CreateTranslation(c, c)))
+            {
+                context.DrawRectangle(NoctaLook.Dome, null, NoctaLook.KnobShape);
+                if (look.Lights > 0)
+                    using (context.PushOpacity(Math.Min(1, look.Lights)))
+                    {
+                        context.DrawRectangle(inner, null, NoctaLook.KnobShape);
+                        context.DrawRectangle(lume, null, NoctaLook.LumeShape, glowWide);
+                        context.DrawRectangle(lume, null, NoctaLook.LumeShape, glowTight);
+                    }
+                if (look.Lights < 1)
+                    using (context.PushOpacity(Math.Max(0, 1 - look.Lights)))
+                        context.DrawEllipse(null, NoctaLook.LumeOffRing, NoctaLook.KnobCentre, NoctaLook.LumeOffRadius, NoctaLook.LumeOffRadius);
+                context.DrawRectangle(NoctaLook.SoftLight, null, NoctaLook.SoftShape);
+                context.DrawRectangle(NoctaLook.Clear, null, NoctaLook.KnobShape, NoctaLook.Rim);
+                if (look.Hover > 0)
+                    using (context.PushOpacity(Math.Min(1, look.Hover)))
+                        context.DrawEllipse(null, NoctaLook.HoverRing, NoctaLook.KnobCentre, NoctaLook.HoverRadius, NoctaLook.HoverRadius);
+            }
+        }
+        // CZ-15, keyboard only: .tg::after, a 2 px ring 3 out from the track in the accent made light (the plain accent on a light appearance,
+        // where the light accent would not read)
         if (keyboardFocus && IsEffectivelyEnabled)
-            context.DrawRectangle(null, new Pen(Marrow.UI.Port.Settings.CzTheme.Brush(Marrow.UI.Port.Settings.CzTheme.Accent(this)), 2), track.Inflate(2), TrackHeight / 2 + 2, TrackHeight / 2 + 2);
+            context.DrawRectangle(null, ActualThemeVariant == Avalonia.Styling.ThemeVariant.Light ? ringLight : ringDark, NoctaLook.FocusShape);
     }
 }
 

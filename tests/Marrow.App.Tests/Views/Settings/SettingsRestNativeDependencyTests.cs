@@ -45,8 +45,8 @@ public sealed class SettingsRestNativeDependencyTests(HeadlessSession headless) 
     public void Existing_switch_binding_preview_and_disabled_state_are_preserved_pending_native_switch_form()
     {
         // Resolved STOP opencode-SettingsView-rest #5 (UI-SETTINGS-066, UI-THEME-026/027, UI-USAGE-044): SmallSwitch is no longer an invented 28 x 16 control;
-        // it is the Mac's switch measured in the reference runtime (ED-280 (5): 44 x 20 track, 26 x 16 knob, press lens, slide and crossfade;
-        // SmallSwitchMotionTests). This test keeps the binding, preview and disabled-state checks; SettingsViewBlitzBTests prove each record's rows.
+        // it was the Mac's switch measured in the reference runtime (ED-280 (5)) and is now the owner's Nocta (OD-0141, ED-NEW-nocta-1: 46 x 26 track,
+        // 22 dome, lume, press scale, spring slide and light crossover; SmallSwitchMotionTests). This test keeps the binding, preview and disabled-state checks; SettingsViewBlitzBTests prove each record's rows.
         var sound = new SettingsViewSoundRecorder(); using var output = SoundOutput.Current.Override(sound);
         With(() => new GeneralSettingsPage(), (view, model, h, w) =>
         {

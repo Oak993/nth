@@ -56,18 +56,12 @@ public sealed class SettingsViewFinishGeneralTests(HeadlessSession headless) : S
             Assert.False(settle.IsEnabled); Assert.Equal(0.5, settle.Opacity, 6); Click(w, gated); Assert.Equal(was, s.SettleSound); Assert.True(gated.Focus() || !gated.IsEffectivelyEnabled); Press(w, Key.Space); Assert.Equal(was, s.SettleSound);
             foreach (var other in rows.Where(r => r.Title != "Sound when settling")) { var live = Row(view, other.Title); Assert.True(live.IsEnabled); Assert.Equal(1, live.Opacity, 6); }
             s.ThreadFinishAction = ThreadFinishAction.Settle; Drain(w); Assert.True(settle.IsEnabled); Assert.Equal(1, settle.Opacity, 6); Click(w, gated); Assert.Equal(!was, s.SettleSound);
-            // :296-305 the system switch takes the window's tint, Chrome.accent (the theme's accent, or the system accent): the on track is drawn in it and an off track is not.
-            try { var thinking = Assert.Single(Nodes<SmallSwitch>(Row(view, "Show thinking"))); s.ShowReasoning = true; Drain(w); Tick(h, 300); var system = Chrome.Accent.Resolve(thinking.ActualThemeVariant); // the track crossfades over 0.25 s (ED-280), so the colours are read once it has settled
-            Assert.True(Count(thinking, system) > 0); s.ShowReasoning = false; Drain(w); Tick(h, 300); Assert.Equal(0, Count(thinking, system)); s.ShowReasoning = true; s.Theme = AppTheme.Nord; Drain(w); Tick(h, 300);
-            var nord = Chrome.Accent.Resolve(thinking.ActualThemeVariant); Assert.Equal(SwiftColor.Hex("88C0D0").Resolve(thinking.ActualThemeVariant), nord); Assert.True(Count(thinking, nord) > 0); Assert.Equal(0, Count(thinking, system)); } finally { s.Theme = AppTheme.System; }
+            // :296-305 the system switch takes the window's tint, Chrome.accent (the theme's accent, or the system accent). Drawn as Nocta (OD-0141), the tint is
+            // the on switch's lume, the accent made light: the on switch draws it and an off switch does not; a theme's accent replaces the system's.
+            try { var thinking = Assert.Single(Nodes<SmallSwitch>(Row(view, "Show thinking"))); s.ShowReasoning = true; Drain(w); Tick(h, 1200); var system = NoctaLook.Lume(Chrome.Accent.Resolve(thinking.ActualThemeVariant)); // the lights cross over 0.28 s (OD-0141), so the colours are read once they have settled
+            Assert.Equal(system, thinking.LumeColor()); Assert.True(NoctaProbe.DrawsLitLume(thinking, system)); s.ShowReasoning = false; Drain(w); Tick(h, 1200); Assert.False(NoctaProbe.DrawsLitLume(thinking, system)); s.ShowReasoning = true; s.Theme = AppTheme.Nord; Drain(w); Tick(h, 1200);
+            var nord = Chrome.Accent.Resolve(thinking.ActualThemeVariant); Assert.Equal(SwiftColor.Hex("88C0D0").Resolve(thinking.ActualThemeVariant), nord); Assert.True(NoctaProbe.DrawsLitLume(thinking, NoctaLook.Lume(nord))); Assert.False(NoctaProbe.DrawsLitLume(thinking, system)); Assert.NotEqual(system, NoctaLook.Lume(nord)); } finally { s.Theme = AppTheme.System; }
         });
-    }
-
-    private static int Count(Control control, Color color)
-    {
-        using var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize((int)control.Bounds.Width, (int)control.Bounds.Height)); using (var dc = bitmap.CreateDrawingContext()) control.Render(dc);
-        using var stream = new MemoryStream(); bitmap.Save(stream, new PngBitmapEncoderOptions()); using var pixels = SkiaSharp.SKBitmap.Decode(stream.ToArray());
-        return pixels.Pixels.Count(p => p.Red == color.R && p.Green == color.G && p.Blue == color.B && p.Alpha == color.A);
     }
 
     [Fact]
