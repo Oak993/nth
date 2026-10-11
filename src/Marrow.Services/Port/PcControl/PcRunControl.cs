@@ -5,8 +5,9 @@
 // never waits on a worker: it cancels the calls' tokens and returns; a worker stuck in a hung app is left behind. The
 // paths are the configured stop chord (Ctrl+Alt+Esc by default), the pill's Stop (all) and its per-app stop, the chat's
 // Stop, and Tactus switched off in Settings. Esc stops only during a borrow of the real pointer or focus (unit P3/P5), never
-// because a controlled window is in front (DESIGN.md 4.4 rejects that). Pause and Resume belong to pill v2 (DESIGN.md
-// section 10) and are not here.
+// because a controlled window is in front (DESIGN.md 4.4 rejects that); three Escs within 1 s, the first in a window Tactus
+// is using, stop all (pill v2, DESIGN.md 10.2 path 5). The paths are named in PcStopControl; Pause and Resume are
+// PcPauseControl's.
 namespace Marrow.Services.Port.PcControl;
 
 public enum PcScopeKind
@@ -42,6 +43,12 @@ public enum PcStopSource
 
     /// <summary>The PC is going to sleep (WM_POWERBROADCAST): every stream stops and its call answers locked.</summary>
     Sleep,
+
+    /// <summary>Esc three times within 1 s in a window Tactus is using (DESIGN.md 10.2 path 5).</summary>
+    EscapeThreeTimes,
+
+    /// <summary>The tray menu's "Stop Tactus" (DESIGN.md 10.2 path 8).</summary>
+    Tray,
 }
 
 /// <summary>A watch over one call: its token is cancelled by a stop that covers it.</summary>

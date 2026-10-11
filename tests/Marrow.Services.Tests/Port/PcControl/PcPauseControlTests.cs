@@ -70,17 +70,6 @@ public sealed class PcPauseControlTests
         Assert.Equal(new[] { Outlook }, pause.PausedApps);
     }
 
-    [Theory]
-    [InlineData(2, 2, false, true)]
-    [InlineData(2, 1, false, false)]
-    [InlineData(2, 0, true, false)]
-    [InlineData(0, 0, true, true)]
-    [InlineData(0, 0, false, false)]
-    public void The_chord_resumes_only_when_every_live_app_is_paused(int live, int paused, bool latched, bool resumes)
-    {
-        Assert.Equal(resumes, PcPauseControl.ChordResumes(live, paused, latched));
-    }
-
     [Fact]
     public void The_chord_pauses_all_when_one_app_runs_and_resumes_all_when_all_are_paused()
     {

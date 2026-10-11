@@ -203,6 +203,15 @@ public sealed record PcSettings
     public bool FastHelper { get; init; }
     public IReadOnlyList<string> UserDeniedApps { get; init; } = [];
 
+    /// <summary>The stop chord (DESIGN.md 4.4, 10.10 `pcControl.stopChord`).</summary>
+    public string StopChord { get; init; } = "Ctrl+Alt+Esc";
+
+    /// <summary>The pause chord (DESIGN.md 10.1, 10.10 `pcControl.pauseChord`).</summary>
+    public string PauseChord { get; init; } = "Ctrl+Alt+Space";
+
+    /// <summary>"Answer Tactus", empty when not set (DESIGN.md 10.10 `pcControl.answerChord`).</summary>
+    public string AnswerChord { get; init; } = "";
+
     /// <summary>The model grid for this setting (DESIGN.md 2.3, critique C27).</summary>
     public PcGridProfile Grid => Detail == PcDetail.High ? PcGridProfile.High : PcGridProfile.Standard;
 

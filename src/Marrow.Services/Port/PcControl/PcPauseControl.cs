@@ -7,6 +7,7 @@
 // of what it covers (its held steps are cancelled by the stop itself); sleep and lock leave it as it is. Shared by every
 // chat, like the lanes and the run control.
 using Marrow.Core.Port.PcControl;
+using Marrow.Core.Port.PcControl.Pill;
 
 namespace Marrow.Services.Port.PcControl;
 
@@ -104,6 +105,15 @@ public sealed class PcPauseControl : IDisposable
         get
         {
             lock (gate) return LiveApps().ToList();
+        }
+    }
+
+    /// <summary>Whether any chat has used Tactus this turn (or keeps a paused app): its stream is live for the chords.</summary>
+    public bool InTurn
+    {
+        get
+        {
+            lock (gate) return used.Count > 0;
         }
     }
 
@@ -215,15 +225,12 @@ public sealed class PcPauseControl : IDisposable
         lock (gate)
         {
             var live = LiveApps().ToList();
-            resumes = ChordResumes(live.Count, live.Count(holds.ContainsKey), latched);
+            resumes = ChordFilter.Resumes(live.Count, live.Count(holds.ContainsKey), latched);
         }
         if (resumes) Resume(PcScope.All, PcPauseSource.Chord);
         else Pause(PcScope.All, PcPauseSource.Chord);
         return resumes;
     }
-
-    /// <summary>The chord's rule: resume when every live app is paused, or when nothing is live and the latch is on.</summary>
-    public static bool ChordResumes(int live, int paused, bool latched) => live > 0 ? paused == live : latched;
 
     /// <summary>
     /// A call of <paramref name="thread"/> entered <paramref name="app"/>: the app counts as the chat's (its Pause covers
@@ -278,6 +285,7 @@ public sealed class PcPauseControl : IDisposable
             apps.RemoveWhere(a => !holds.ContainsKey(a));
             if (apps.Count == 0) used.Remove(thread);
         }
+        Changed?.Invoke();
     }
 
     public void Dispose()
