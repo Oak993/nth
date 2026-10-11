@@ -11,6 +11,10 @@ namespace Marrow.App.Port.FirstRun;
 // half, and the settled frame (1.3 s in). Every frame the whole family drew before is still drawn (a mask set split in two
 // strokes the same layers with the same paints, so it makes the same programs: on ANGLE the cache took the same 24 entries
 // whole, halved or in thirds); the parts only spread it over steps.
+// ED-NEW-warmupsplit-4: each brand's first Mix frame (its first strike's fresh lightning, even masks), which links that brand's
+// programs, is drawn one GPU draw (site) a part, as the legacy frame is: on a cached launch it loaded 7 programs in 21.6 ms (Claude)
+// and 4 in 19.9 ms (Silver) in one step. The Mix raster's paint, which loaded 6 (Claude) and 4 (Silver) of them in one draw, is
+// itself six sites (StrikeRaster.Paint). The brand's later parts link nothing new and stay whole.
 public static class StrikeWarmup
 {
     /// <summary>The family every part makes (the registry's one "strike" program before the split).</summary>
@@ -18,6 +22,10 @@ public static class StrikeWarmup
 
     /// <summary>How many GPU draws (sites) the legacy strike frame makes, so how many parts it is drawn in (a test counts them).</summary>
     internal const int LegacySites = 8;
+
+    /// <summary>How many GPU draws (sites) a Mix frame makes, so how many parts each brand's first fresh frame is drawn in (a test
+    /// counts them).</summary>
+    internal const int MixSites = 14;
 
     private static readonly int[] mixStrikes = [36862, 36863, 36870, 36875, 36887, 36898, 36918];
     private static readonly EffortBrand[] mixBrands = [EffortBrand.Claude, EffortBrand.Silver, EffortBrand.Copilot];
@@ -45,7 +53,13 @@ public static class StrikeWarmup
                 for (var third = 0; third < 3; third++)
                 {
                     var (b, s, t) = (brand, strike, third);
-                    parts.Add(GpuProgram.Draw(Family + "[" + b + " " + s + " " + "abc"[t] + "]", FirstRunSteps.Strike, context => DrawMixPart(context, b, s, t), Family));
+                    if (strike == mixStrikes[0] && third == 0)
+                        for (var site = 0; site < MixSites; site++)
+                        {
+                            var k = site;
+                            parts.Add(GpuProgram.Draw(Family + "[" + b + " " + s + " a" + k + "]", FirstRunSteps.Strike, context => DrawMixPart(context, b, s, t, k), Family));
+                        }
+                    else parts.Add(GpuProgram.Draw(Family + "[" + b + " " + s + " " + "abc"[t] + "]", FirstRunSteps.Strike, context => DrawMixPart(context, b, s, t), Family));
                 }
         return [.. parts];
     }
@@ -64,6 +78,13 @@ public static class StrikeWarmup
         ArgumentOutOfRangeException.ThrowIfGreaterThan(part, 2);
         using var surface = MixSurface(context, out var scale);
         return PaintMix(surface, context.Gpu, scale, brand, [strike], part);
+    }
+
+    /// <summary>One site of a part of a brand's Mix strike (ED-NEW-warmupsplit-4): only GPU draw <paramref name="site"/> of the
+    /// part's frame is drawn, the last site every later one too.</summary>
+    internal static int DrawMixPart(GpuWarmContext context, EffortBrand brand, int strike, int part, int site)
+    {
+        using (GpuWarmup.Site(site, MixSites)) return DrawMixPart(context, brand, strike, part);
     }
 
     private static SKSurface MixSurface(GpuWarmContext context, out double scale)

@@ -34,8 +34,9 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
         var plan = new FirstRunPreparation().Plan();
         Assert.Equal(["Graphics card", "Effort slider knob", "Composer light", "Slider liquid", "Fast mode lightning"], plan.Select(s => s.Step.Name));
         // the adapter read; the knob's four programs; the light's three, the liquid and the strike, each in frame-sized parts
-        // (ED-NEW-warmupsplit-1: 5 + 3 + 3 for the lights, 8 for the liquid, 8 legacy and 63 Mix for the strike)
-        Assert.Equal([1, 4, 11, 8, 71], plan.Select(s => s.Parts));
+        // (ED-NEW-warmupsplit-1: 5 + 3 + 3 for the lights, 8 for the liquid, 8 legacy and 102 Mix for the strike,
+        // each brand's first fresh frame in its 14 GPU draws: ED-NEW-warmupsplit-4)
+        Assert.Equal([1, 4, 11, 8, 110], plan.Select(s => s.Parts));
     }
 
     [Fact] // GR-1.order
@@ -49,7 +50,7 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
         var plan = new FirstRunPreparation().Plan();
         Assert.Equal(["Graphics card", "Effort slider knob", "A step between", "Composer light", "Slider liquid", "Fast mode lightning", "Voice hardware"],
             plan.Select(s => s.Step.Name));
-        Assert.Equal([1, 4, 1, 11, 8, 72, 1], plan.Select(s => s.Parts)); // a new strike program is one more part of its step
+        Assert.Equal([1, 4, 1, 11, 8, 111, 1], plan.Select(s => s.Parts)); // a new strike program is one more part of its step
         voice.Dispose(); step.Dispose(); strike.Dispose();
         Assert.Equal(5, new FirstRunPreparation().Plan().Count);
     }
@@ -439,7 +440,7 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
                 .. Parts("knob", 4),
                 .. Parts("lights", 11), // ED-NEW-warmupsplit-1: each family in frame-sized parts (5 + 3 + 3, 8, 8 + 63)
                 .. Parts("liquid", 8),
-                .. Parts("strike", 71),
+                .. Parts("strike", 110),
                 "hw:Running:0/1", "voice-hardware", "hw:Done:1/1",
                 "end:Prepared",
             ], log);

@@ -38,14 +38,14 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
         Assert.Equal(["light-rotate", "light-moving", "light-aura", "liquid", "strike"], after.Select(p => p.Family).Distinct());
         Assert.Equal(AfterTheKnob(), after.Select(p => p.Name));
         Assert.All(after, p => Assert.Equal(p.Family switch { "liquid" => FirstRunSteps.Liquid, "strike" => FirstRunSteps.Strike, _ => FirstRunSteps.Lights }, p.Step));
-        Assert.Equal(4 + 5 + 3 + 3 + 8 + 8 + 3 * 7 * 3, GpuWarmup.Steps);
+        Assert.Equal(4 + 5 + 3 + 3 + 8 + 8 + 3 * (14 + 2 + 6 * 3), GpuWarmup.Steps);
         Assert.Equal(9, GpuWarmup.Families);
         Assert.Equal(GpuWarmup.Steps, GpuWarmup.Programs.Count);
     }
 
     // the parts' names after the knob's four programs (ED-NEW-warmupsplit-1): the lights' and the liquid's one GPU draw each, the
     // legacy strike frame's one draw each, then each brand's Mix strikes in three parts (the fresh lightning's two halves of its
-    // masks, the settled frame)
+    // masks, the settled frame), the first strike's first part one GPU draw a part (ED-NEW-warmupsplit-4)
     private static string[] AfterTheKnob() =>
     [
         .. Enumerable.Range(0, 5).Select(k => $"light-rotate[{k}]"),
@@ -55,7 +55,7 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
         .. Enumerable.Range(0, 8).Select(k => $"strike[legacy {k}]"),
         .. from brand in new[] { "Claude", "Silver", "Copilot" }
            from strike in new[] { 36862, 36863, 36870, 36875, 36887, 36898, 36918 }
-           from part in new[] { "a", "b", "c" }
+           from part in strike == 36862 ? [.. Enumerable.Range(0, 14).Select(k => $"a{k}"), "b", "c"] : new[] { "a", "b", "c" }
            select $"strike[{brand} {strike} {part}]",
     ];
 

@@ -31,9 +31,13 @@ public sealed class GpuWarmupSplitTests(HeadlessSession headless)
             ("light-aura", p => p.Family == "light-aura", GpuWarmup.LightSites(GpuWarmup.LightKind.Aura)),
             ("liquid", p => p.Family == "liquid", GpuWarmup.LiquidSites),
             ("strike legacy", p => p.Name.StartsWith("strike[legacy ", StringComparison.Ordinal), StrikeWarmup.LegacySites),
+            // ED-NEW-warmupsplit-4: each brand's first fresh Mix frame, the one that links the brand's programs
+            .. StrikeWarmup.MixBrands.Select(brand => ("strike " + brand + " first", (Func<GpuProgram, bool>)(p =>
+                p.Name.StartsWith("strike[" + brand + " " + StrikeWarmup.MixStrikes[0] + " a", StringComparison.Ordinal)), StrikeWarmup.MixSites)),
         ];
-        // the frames' GPU draws, counted on the CPU (the harness counted the same on ANGLE: 5, 3, 3, 8 and 8)
-        Assert.Equal([5, 3, 3, 8, 8], families.Select(f => f.Sites));
+        // the frames' GPU draws, counted on the CPU (the harness counted the same on ANGLE: 5, 3, 3, 8 and 8; a Mix frame 14, the
+        // Mix raster's paint six of them, for every brand, strike and part)
+        Assert.Equal([5, 3, 3, 8, 8, 14, 14, 14], families.Select(f => f.Sites));
         foreach (var (family, of, sites) in families)
         {
             var parts = GpuWarmup.Registered.Where(of).ToArray();
@@ -75,14 +79,23 @@ public sealed class GpuWarmupSplitTests(HeadlessSession headless)
     public void The_strikes_mix_parts_draw_every_pass_the_whole_mix_draws_and_a_part_half_of_the_fresh_lightning_at_most()
     {
         var mix = GpuWarmup.Registered.Where(p => p.Family == "strike" && !p.Name.StartsWith("strike[legacy ", StringComparison.Ordinal)).ToArray();
-        Assert.Equal(StrikeWarmup.MixBrands.Count * StrikeWarmup.MixStrikes.Count * 3, mix.Length);
+        // three parts a strike, the first strike's first part in one part a GPU draw (ED-NEW-warmupsplit-4)
+        Assert.Equal(StrikeWarmup.MixBrands.Count * (StrikeWarmup.MixStrikes.Count * 3 - 1 + StrikeWarmup.MixSites), mix.Length);
         foreach (var brand in StrikeWarmup.MixBrands)
         {
             var parts = 0;
             foreach (var strike in StrikeWarmup.MixStrikes)
                 for (var part = 0; part < 3; part++) parts |= StrikeWarmup.DrawMixPart(Cpu, brand, strike, part);
             Assert.Equal(StrikeWarmup.DrawMix(Cpu, brand), parts); // the same ink, light and wash passes as the whole family drew
+            var sites = 0;
+            for (var site = 0; site < StrikeWarmup.MixSites; site++) sites |= StrikeWarmup.DrawMixPart(Cpu, brand, StrikeWarmup.MixStrikes[0], 0, site);
+            Assert.Equal(StrikeWarmup.DrawMixPart(Cpu, brand, StrikeWarmup.MixStrikes[0], 0), sites); // its sites draw what the whole part drew
         }
+        Assert.Equal(
+            [.. StrikeWarmup.MixBrands.SelectMany(brand => StrikeWarmup.MixStrikes.SelectMany(strike => strike == StrikeWarmup.MixStrikes[0]
+                ? [.. Enumerable.Range(0, StrikeWarmup.MixSites).Select(k => $"strike[{brand} {strike} a{k}]"), $"strike[{brand} {strike} b]", $"strike[{brand} {strike} c]"]
+                : new[] { $"strike[{brand} {strike} a]", $"strike[{brand} {strike} b]", $"strike[{brand} {strike} c]" }))],
+            mix.Select(p => p.Name));
         // a fresh frame's masks are split in two halves that stroke each mask once, in its order
         var storm = new StrikeStorm(1274);
         var geometry = new StrikeGeometry(298, 34, 272, 24);
