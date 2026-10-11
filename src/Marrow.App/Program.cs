@@ -43,6 +43,15 @@ public static class Program
         var app = VelopackApp.Build();
         // SK-13 / DL-16: the skills and tools data is unlocked and deleted before Velopack removes the app (ONDEMAND-PLAN.md 3.8).
         SkillsUninstallHook.Register(hook => app.OnBeforeUninstallFastCallback(hook), SkillsDataRoot.Resolve);
+        // nth installer PLAN.md 8 and 8a (unit U5, ED-NEW-inst-u5-1): Start, the desktop shortcut, the root uninstaller
+        // and the uninstall key, inside Velopack's hook budgets. The real shell and HKCU are bound here only.
+        NthInstallHook.Register(
+            hook => app.OnAfterInstallFastCallback(hook),
+            hook => app.OnAfterUpdateFastCallback(hook),
+            hook => app.OnBeforeUninstallFastCallback(hook),
+            version => NthInstallHook.ContextFor(baseDirectory, version),
+            () => new ShellLinks(),
+            () => new RegistryUserHive(Microsoft.Win32.Registry.CurrentUser));
         app.Run();
     }
 
@@ -189,6 +198,9 @@ public static class Program
         shell.FinishLaunching();
         launchReady.TrySetResult();
         skills?.CollectInBackground(); // SK-13: the startup GC runs on the pool once the main window is up, never on the launch path (single-instance lock is already held)
+        // nth installer PLAN.md 8 and 8a (unit U5): the start-time self-heal of Start, nth's desktop shortcuts and the
+        // uninstall key, on the pool after the first window; nothing outside a Velopack install.
+        _ = NthInstallHook.StartSelfHeal(AppContext.BaseDirectory, InstalledByVelopack, () => new ShellLinks(), () => new RegistryUserHive(Microsoft.Win32.Registry.CurrentUser));
         DroppyCodeApp.ReceiveNotificationArguments(shell.Delegate, args); // ED-220: cold protocol activation
         reopen.Listen(() => shell.Reopen(lifetime.Windows));
     }

@@ -27,6 +27,9 @@
     <!-- OD-0112: icon D Aurora, generated from the locked Canvas source by porting/tools/generate_app_icon_d.py. -->
     <ApplicationIcon>Assets/icon.ico</ApplicationIcon>
     <AssemblyTitle>nth</AssemblyTitle>
+    <!-- nth installer PLAN.md 8a (unit U5, ED-NEW-inst-u5-1): Port/ShellLinks.cs declares the shell-link COM interfaces with
+         [GeneratedComInterface] (AOT-safe; nth Setup compiles the same file), whose generated v-table code needs unsafe. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
