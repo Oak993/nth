@@ -17,11 +17,13 @@ public sealed class ThreadRuntimeStreamBudgetTests(ITestOutputHelper output)
 {
     private const BindingFlags InstanceMembers = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
-    // Measured on the unchanged code (before) and after the fix; see ED-NEW-lean-5.
-    private const double DeltaBytesLimit = 424;            // bytes per queued delta, at 10k and at 100k characters
-    private const double FlushOverheadLimit10k = 524_000;    // bytes per flush beyond the one flat copy of the reply
-    private const double FlushOverheadLimit100k = 3_725_000;
-    private const long ToolWindowBytesLimit = 433_000_000;  // 1 MB of tool output in 4 KB deltas within one window
+    // Measured on the unchanged code, then after the fix (ED-NEW-lean-5). Before: 282.7 B per delta at 10k and 100k;
+    // 349,088 B (10k) and 2,482,912 B (100k) per flush beyond the flat copy; 288,557,112 B for the tool window
+    // (limits were 424; 524,000; 3,725,000; 433,000,000). After: 173.3 B; 592.0 B and 609.9 B; 8,485,592 B.
+    private const double DeltaBytesLimit = 225;            // bytes per queued delta, at 10k and at 100k characters
+    private const double FlushOverheadLimit10k = 770;      // bytes per flush beyond the one flat copy of the reply
+    private const double FlushOverheadLimit100k = 795;
+    private const long ToolWindowBytesLimit = 11_040_000;  // 1 MB of tool output in 4 KB deltas within one window
 
     private const string Phrase = "The quick brown fox’s café jumps 🙂 over the lazy dog.\n";
     private const string Delta = "and the reply goes on, ";
@@ -35,9 +37,21 @@ public sealed class ThreadRuntimeStreamBudgetTests(ITestOutputHelper output)
         using var test = new TestRuntime();
         var (deltaBytes, flushOverhead) = test.OnMain(() => MeasureReply(length));
         output.WriteLine($"{length} characters: {deltaBytes:F1} B per delta, {flushOverhead:F1} B per flush beyond the flat copy");
-        Assert.True(deltaBytes <= DeltaBytesLimit, $"a queued delta costs {deltaBytes:F1} B at {length} characters");
+        Assert.True(deltaBytes <= DeltaBytesLimit, $"a queued delta costs {deltaBytes:F1} B at {length} characters (a flush {flushOverhead:F1} B beyond the flat copy)");
         var flushLimit = length >= 100_000 ? FlushOverheadLimit100k : FlushOverheadLimit10k;
         Assert.True(flushOverhead <= flushLimit, $"a flush costs {flushOverhead:F1} B beyond the flat copy at {length} characters");
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-lean-5")]
+    public void Per_flush_cost_beyond_the_flat_copy_stays_within_twice_from_10k_to_100k_characters()
+    {
+        using var test = new TestRuntime();
+        var small = test.OnMain(() => MeasureReply(10_000));
+        var large = test.OnMain(() => MeasureReply(100_000));
+        output.WriteLine($"10k: {small.DeltaBytes:F1} / {small.FlushOverhead:F1} B; 100k: {large.DeltaBytes:F1} / {large.FlushOverhead:F1} B");
+        Assert.True(large.DeltaBytes <= 2 * Math.Max(small.DeltaBytes, 64), $"per delta {small.DeltaBytes:F1} B -> {large.DeltaBytes:F1} B");
+        Assert.True(large.FlushOverhead <= 2 * Math.Max(small.FlushOverhead, 256), $"per flush {small.FlushOverhead:F1} B -> {large.FlushOverhead:F1} B");
     }
 
     [Fact]

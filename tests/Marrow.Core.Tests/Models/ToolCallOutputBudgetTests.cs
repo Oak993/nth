@@ -11,8 +11,8 @@ namespace Marrow.Core.Tests.Models;
 // is one copy of the new Output per append; the budget is what the trimming adds on top.
 public sealed class ToolCallOutputBudgetTests(ITestOutputHelper output)
 {
-    // Measured on the unchanged code (before) and after the fix; see ED-NEW-lean-5.
-    private const long AppendMegabyteLimit = 73_100_000;
+    // ED-NEW-lean-5: 48,723,112 B on the unchanged code (limit was 73,100,000), 20,270,040 B after the fix.
+    private const long AppendMegabyteLimit = 26_360_000;
 
     [Fact]
     [Trait("Decision", "ED-NEW-lean-5")]
