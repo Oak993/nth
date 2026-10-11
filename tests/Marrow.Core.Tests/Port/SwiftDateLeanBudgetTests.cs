@@ -1,5 +1,6 @@
 using Marrow.Core.Port;
 using Marrow.Testing;
+using Xunit.Abstractions;
 
 namespace Marrow.Core.Tests.Port;
 
@@ -7,13 +8,13 @@ namespace Marrow.Core.Tests.Port;
 // HydraIdleSeconds, SwiftFormatters): ReferenceSeconds (Date.timeIntervalSinceReferenceDate) and FromReferenceSeconds, whose work is
 // NearestTicks (Date(timeIntervalSinceReferenceDate:)). 1,000 fixed-seed present-day dates and second values (2024-2027, sub-second
 // fractions), measured on a dedicated thread after warm-up (AllocationProbe), no clock. Numbers are for the Debug build the test runs use;
-// the ledger entry records the before and after values the limits come from.
+// the ledger entry records the before and after values the limits come from. Bytes per call round up, so a limit of 0 means no allocation.
 [Trait("Decision", "ED-NEW-lean-2")]
-public sealed class SwiftDateLeanBudgetTests
+public sealed class SwiftDateLeanBudgetTests(ITestOutputHelper output)
 {
     private const int Calls = 1_000;
-    private const long ReferenceSecondsBytesPerCallLimit = 3_700; // Debug: 2,464 before the BigInteger-free paths
-    private const long NearestTicksBytesPerCallLimit = 180;         // Debug: 119 before the BigInteger-free paths
+    private const long ReferenceSecondsBytesPerCallLimit = 0; // Debug: 2,464 before the BigInteger-free paths (limit 3,700), 0 after
+    private const long NearestTicksBytesPerCallLimit = 0;     // Debug: 119 before the BigInteger-free paths (limit 180), 0 after
 
     [Fact]
     public void ReferenceSeconds_stays_within_its_allocation_budget()
@@ -27,7 +28,8 @@ public sealed class SwiftDateLeanBudgetTests
         void Pass() { foreach (var date in dates) sum += SwiftDate.ReferenceSeconds(date); }
         var bytes = AllocationProbe.Measure(() => { for (var i = 0; i < 20; i++) Pass(); }, Pass);
         Assert.True(sum > 0);
-        var perCall = bytes / Calls;
+        var perCall = (bytes + Calls - 1) / Calls; // rounded up: one stray byte is over a limit of 0
+        output.WriteLine($"ReferenceSeconds: {perCall} bytes per call ({bytes} for {Calls} calls)");
         Assert.True(perCall <= ReferenceSecondsBytesPerCallLimit, $"{perCall} bytes per ReferenceSeconds ({bytes} for {Calls} calls)");
     }
 
@@ -41,7 +43,8 @@ public sealed class SwiftDateLeanBudgetTests
         var ticks = 0L;
         void Pass() { foreach (var value in seconds) ticks ^= SwiftDate.FromReferenceSeconds(value).UtcTicks; }
         var bytes = AllocationProbe.Measure(() => { for (var i = 0; i < 20; i++) Pass(); }, Pass);
-        var perCall = bytes / Calls;
+        var perCall = (bytes + Calls - 1) / Calls; // rounded up: one stray byte is over a limit of 0
+        output.WriteLine($"NearestTicks: {perCall} bytes per call ({bytes} for {Calls} calls)");
         Assert.True(perCall <= NearestTicksBytesPerCallLimit, $"{perCall} bytes per FromReferenceSeconds/NearestTicks ({bytes} for {Calls} calls)");
     }
 }
