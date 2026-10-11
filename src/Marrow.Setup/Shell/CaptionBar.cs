@@ -206,10 +206,12 @@ public sealed class CaptionButton : Border, IMotion
     private void Fade()
     {
         var target = (isHot || isPressedDown) && !isPaused ? 1 : 0;
-        if (hot.Target == target) return;
-        hot.Retarget(target, FadeSeconds * Math.Abs(target - hot.Value), CubicBezier.Ease);
-        animator.Start(this);
-        Draw();
+        if (hot.Target != target)
+        {
+            hot.Retarget(target, FadeSeconds * Math.Abs(target - hot.Value), CubicBezier.Ease);
+            animator.Start(this);
+        }
+        Draw(); // a pause changes the glyph even when the wash does not move
     }
 
     private void Draw()

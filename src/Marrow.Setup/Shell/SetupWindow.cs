@@ -63,6 +63,7 @@ public sealed class SetupWindow : Window, ICaptionSurface
     private readonly Border rim = new() { IsHitTestVisible = false };
     private readonly Border topLight = new() { IsHitTestVisible = false, BorderThickness = new Thickness(0, 1, 0, 0) };
     private readonly ScrollViewer scroller;
+    private readonly Panel root;
     private readonly WindowShutdownBlocker? windowBlocker;
     private readonly SetupWindowHooks? hooks;
     private RegistryWatcher? textSizeWatcher;
@@ -103,7 +104,10 @@ public sealed class SetupWindow : Window, ICaptionSurface
         Grid.SetRow(scroller, 1);
         layout.Children.Add(Caption);
         layout.Children.Add(scroller);
-        Content = new Panel { Children = { backdrop, layout, topLight, rim } };
+        // The window's limits are also the content's, so its size comes out of layout the same on every platform
+        // (Windows also enforces them through WM_GETMINMAXINFO; the headless platform does not).
+        root = new Panel { MinHeight = BaseHeight, Children = { backdrop, layout, topLight, rim } };
+        Content = root;
         Title = SetupStrings.CaptionSetup;
         CaptionTitle = SetupStrings.CaptionSetup;
 
@@ -244,6 +248,8 @@ public sealed class SetupWindow : Window, ICaptionSurface
         MaxHeight = fit.MaxHeight;
         Width = fit.Width;
         MinHeight = Math.Min(BaseHeight, fit.MaxHeight);
+        root.MinHeight = MinHeight;
+        root.MaxHeight = MaxHeight;
     }
 
     private static double Luminance(Color color) => (0.2126 * color.R + 0.7152 * color.G + 0.0722 * color.B) / 255;

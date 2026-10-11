@@ -169,7 +169,7 @@ public sealed class HoldLine : Decorator, IMotion
         }
         moving |= opacity.Advance(seconds);
         moving |= offset.Advance(seconds);
-        if (!brightness.IsAtRest) moving |= brightness.Advance(seconds);
+        if (!brightness.IsAtRest) brightness.Advance(seconds);
         else if (holdLeft > 0 && !double.IsPositiveInfinity(holdLeft))
         {
             holdLeft -= seconds;
@@ -178,8 +178,9 @@ public sealed class HoldLine : Decorator, IMotion
                 holdLeft = 0;
                 brightness.Retarget(0, PingFall, CubicBezier.Ease);
             }
-            moving = true;
         }
+        // still moving while bright and waiting to fall (the frame the rise ends must not stop the loop)
+        moving |= !brightness.IsAtRest || (holdLeft > 0 && !double.IsPositiveInfinity(holdLeft));
         if (!wanted && opacity.IsAtRest && opacity.Value <= 0)
         {
             IsVisible = false; // gone: it gives up its place
