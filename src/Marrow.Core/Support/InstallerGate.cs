@@ -49,6 +49,19 @@ public static class InstallerGate
     /// <summary>The exit code of a refused installer (Velopack's Setup.exe exits 1 on any failure).</summary>
     public const int RefusedExitCode = 1;
 
+    // The silent exit codes below are the contract units U3 and U4 build on (nth installer PLAN.md 3a, 13; ED-NEW-inst-u0-1),
+    // taken with their names and meanings from the unmerged unit/installer-close (e1fd0019c) as VELOPACK_CHECK.md asks.
+    // Nothing returns them yet: the logic that does arrives with the running-nth handshake and the install hold.
+
+    /// <summary>The exit code when the user cancels closing a running nth: nothing was changed and nothing was closed.</summary>
+    public const int CancelledExitCode = 2;
+
+    /// <summary>The exit code when a silent setup's request to close a running nth was not answered in time, or was not allowed: nothing was changed.</summary>
+    public const int NotClosedExitCode = 3;
+
+    /// <summary>The exit code when a silent setup found another installation of nth in progress: nothing was asked, run or changed.</summary>
+    public const int InProgressExitCode = 4;
+
     public static string Caption(string title) => title + " Setup"; // Velopack's title-setup, locales/en-US.ftl
 
     public static string UpToDateMessage(string title, string version) => $"{title} {version} is already installed and up to date.";
