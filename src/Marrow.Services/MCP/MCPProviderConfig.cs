@@ -313,6 +313,44 @@ public static class MCPProviderConfig
         return GeminiSettingsURL; // :227
     }
 
+    // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): no Swift counterpart. A session's ask_advisor server, null unless
+    // its chat has an advisor (a Hydra head, whose lead advises); the per-provider shapes below add it beside the
+    // connected servers only then, so a chat with no advisor launches exactly as before.
+    public static MCPResolvedServer? AdvisorServer(Providers.SessionConfiguration configuration) =>
+        Port.Advisor.AdvisorMcpBridge.Server(configuration);
+
+    /// <summary>Codex: the connected servers (CodexOverrides) with the advisor's entry added; null when there are neither.</summary>
+    public static JSONValue? CodexServers(JSONValue? overrides, MCPResolvedServer? advisor)
+    {
+        if (advisor is null) return overrides;
+        var merged = new Dictionary<string, JSONValue>(overrides?.JSONValueObject ?? new Dictionary<string, JSONValue>());
+        foreach (var (key, value) in Codex([advisor])["mcp_servers"]!.JSONValueObject!) merged[key] = value;
+        return ObjectOf(merged);
+    }
+
+    /// <summary>Copilot: the advisor's entry in the "mcpServers" shape a session's create parameters take; null without one.</summary>
+    public static JSONValue? CopilotSessionServers(MCPResolvedServer? advisor) =>
+        advisor is null ? null : Copilot([advisor])["mcpServers"];
+
+    /// <summary>ACP: the connected servers with the advisor's entry appended (the skills relay's form).</summary>
+    public static JSONValue AcpServers(JSONValue servers, MCPResolvedServer? advisor) => advisor is null ? servers
+        : new JSONValue.Array(new ValueList<JSONValue>((servers.JSONValueArray ?? []).Append(Port.Advisor.AdvisorMcpBridge.AcpEntry(advisor))));
+
+    /// <summary>
+    /// Claude: a config file holding only the advisor's entry, for a second --mcp-config beside the connected servers'
+    /// file; null without an advisor or when the file cannot be written (the session then launches without the tool).
+    /// </summary>
+    public static string? ClaudeAdvisorConfigPath(MCPResolvedServer? advisor, Guid? thread)
+    {
+        if (advisor is null) return null;
+        return SwiftTry.Optional(() =>
+        {
+            var path = SwiftPath.AppendingPathComponent(MCPPaths.Directory, "advisor-" + (thread ?? Guid.NewGuid()).ToString("N") + ".json");
+            FileOps.WriteAtomic(path, Claude([advisor]).Data(pretty: true));
+            return path;
+        });
+    }
+
     // :230. private static let geminiSettingsURL. ENGINEERING DECISION: like MCPPaths.Directory (MCP.cs, ED-177),
     // Storage.Root is an Ambient scoped per async flow, so a process-wide cached field here would freeze on
     // whichever test's root won the race to evaluate it first. Recomputed on every access instead.

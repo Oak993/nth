@@ -61,6 +61,8 @@ public sealed class ACPSession : ProviderSession, Port.Skills.Providers.ISkillSe
     private JSONRPCConnection? connection; // :31
     private StdioProcess? readersProcess; // SK-17: hold the runtime generation until the actual ACP child exits.
     private Port.Skills.Providers.SkillsMcpBridge? skillsMcp;
+    // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): the session's ask_advisor server, registered once; null for a chat with no advisor.
+    private MCPResolvedServer? advisorServer;
     private bool canLoadSessions; // :34
     private bool supportsHTTPMCP; // :35
     private ValueList<string> authMethods = ValueList<string>.Empty; // :33
@@ -419,9 +421,9 @@ public sealed class ACPSession : ProviderSession, Port.Skills.Providers.ISkillSe
         var baseParams = new Dictionary<string, JSONValue>
         {
             ["cwd"] = WorkingDirectory, // :254
-            ["mcpServers"] = skillsMcp is { } bridge
+            ["mcpServers"] = MCPProviderConfig.AcpServers(skillsMcp is { } bridge
                 ? new JSONValue.Array(new ValueList<JSONValue>((MCPProviderConfig.AcpServers(supportsHTTPMCP).JSONValueArray ?? []).Append(bridge.Configuration)))
-                : MCPProviderConfig.AcpServers(supportsHTTPMCP), // :254 + SK-17 live-proven per-session server
+                : MCPProviderConfig.AcpServers(supportsHTTPMCP), advisorServer ??= MCPProviderConfig.AdvisorServer(configuration)), // :254 + SK-17 live-proven per-session server + ED-NEW-ignisadvisor-2 a Hydra head's ask_advisor
         };
         if (configuration.ResumeID is { } resumeID && canLoadSessions) // :255
         {

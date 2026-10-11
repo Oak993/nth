@@ -216,6 +216,15 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
             arguments.Add(mcpConfig);
             arguments.Add("--strict-mcp-config");
         }
+        // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): a Hydra head's ask_advisor server in a file of its own, and
+        // the tool allowed without a prompt (it only asks the lead's model). Absent for every other chat.
+        if (MCPProviderConfig.ClaudeAdvisorConfigPath(MCPProviderConfig.AdvisorServer(configuration), configuration.IgnisThreadID) is { } advisorConfig)
+        {
+            arguments.Add("--mcp-config");
+            arguments.Add(advisorConfig);
+            arguments.Add("--allowedTools");
+            arguments.Add("mcp__" + Port.Advisor.AdvisorMcpServer.ServerName + "__" + Port.Advisor.AdvisorTool.Name);
+        }
         var environment = new ValueMap<string, string>(ProviderChildEnvironment.Apply(configuration.Environment), SwiftStringComparer.Instance); // DEVIATION OD-0099 DL-6: only PATH changes; an unbound Storage (a test) leaves the environment as it came.
         var options = await KnownOptions(executable, environment); // :98
         if (options.Contains("--plugin-dir") && acquireSkills is not null)

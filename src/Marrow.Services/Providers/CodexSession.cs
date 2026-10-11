@@ -726,7 +726,8 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
             joined.Add(AntiSlopPolicy.Instructions(configuration.AntiSlopEnabled));
             parameters["developerInstructions"] = string.Join("\n\n", joined); // :255-259
 
-            if (MCPProviderConfig.CodexOverrides() is { } servers) // :262
+            // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): a Hydra head's ask_advisor server joins the connected ones.
+            if (MCPProviderConfig.CodexServers(MCPProviderConfig.CodexOverrides(), MCPProviderConfig.AdvisorServer(configuration)) is { } servers) // :262
             {
                 var mergedConfig = parameters.TryGetValue("config", out var currentConfig) && currentConfig.JSONValueObject is { } currentObject
                     ? new Dictionary<string, JSONValue>(currentObject, StringComparer.Ordinal)
