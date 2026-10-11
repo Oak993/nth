@@ -62,12 +62,13 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
     private static readonly int[] CurveMoments = [20, 40, 60, 80, 100, 130, 160, 200, 250, 300];
 
     // The title's way, from the old text's width to the new one's, <paramref name="moments"/> ms after a change made by
-    // <paramref name="change"/>: its width (the label's frame) and its chevron's position (the chevron rides that frame, centred
-    // in the card, so it moves half the width's way: read from where the chevron is drawn, not from the width it follows).
-    private static List<(int Ms, double Width, double Chevron)> Ways(Avalonia.Controls.Window window, MorphingTextBlock title, Control chevron,
+    // <paramref name="change"/>: its width (the label's frame) and its right edge's position (the title is centred in the card, so
+    // its edge moves half the width's way: read from where the edge is drawn, not from the width it follows). OD-0139 took the
+    // chevron, which used to ride that edge, off the title (the model line has it now): the title's own edge is read in its place.
+    private static List<(int Ms, double Width, double Chevron)> Ways(Avalonia.Controls.Window window, MorphingTextBlock title,
         ManualFrameSource frames, Marrow.Testing.ManualTimeProvider clock, Action change, int[] moments)
     {
-        double ChevronX() => chevron.TranslatePoint(new Point(0, 0), window)!.Value.X;
+        double ChevronX() => title.TranslatePoint(new Point(title.Bounds.Width, 0), window)!.Value.X; // the title's right edge, where the chevron used to ride
         window.UpdateLayout();
         var from = title.Bounds.Width;
         var fromX = ChevronX();
@@ -86,17 +87,17 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
         var toX = ChevronX();
         Assert.False(title.IsMorphing);
         Assert.True(Math.Abs(to - from) > 5, $"the title's width does not change: {from:F1} -> {to:F1}");
-        Assert.True(Math.Abs(toX - fromX) > 2.5, $"the title's chevron does not move: {fromX:F1} -> {toX:F1}");
+        Assert.True(Math.Abs(toX - fromX) > 2.5, $"the title's right edge does not move: {fromX:F1} -> {toX:F1}");
         return moments.Select(ms => (ms, (at[ms].Width - from) / (to - from), (at[ms].X - fromX) / (toX - fromX))).ToList();
     }
 
-    // The way a change made by <paramref name="change"/> takes along <paramref name="curve"/>: the width and the chevron's
+    // The way a change made by <paramref name="change"/> takes along <paramref name="curve"/>: the width and the right edge's
     // position at every moment of CurveMoments within <paramref name="tolerance"/> of the curve's own progress there.
     private static void AssertOnCurve(string name, List<(int Ms, double Width, double Chevron)> ways, Animation curve, string curveName, double tolerance = 0.01)
     {
         var worst = ways.Max(way => Math.Max(Math.Abs(way.Width - curve.Progress(way.Ms / 1000.0)), Math.Abs(way.Chevron - curve.Progress(way.Ms / 1000.0))));
         var seen = string.Join(", ", ways.Select(way => $"{way.Ms} ms {way.Width:F2}/{way.Chevron:F2} ({curve.Progress(way.Ms / 1000.0):F2})"));
-        Assert.True(worst <= tolerance, $"{name}: the title's width and chevron are not on {curveName} (worst {worst:F3} off, allowed {tolerance:F2}); width/chevron (the curve) {seen}");
+        Assert.True(worst <= tolerance, $"{name}: the title's width and right edge are not on {curveName} (worst {worst:F3} off, allowed {tolerance:F2}); width/edge (the curve) {seen}");
     }
 
     // SOURCE FACT, EffortSlider.swift:579-583: the title's HStack (the text, so its width and the chevron after it) carries
@@ -106,7 +107,7 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
     // effort, runs on smooth(0.3) whatever comes around it, and any other runs on the slider's snappy(0.2). SOURCE FACT, the
     // reference video (chevron_fit.out, REVIEW a7c682bf6): High -> Extra High follows snappy(0.2), Extra High -> Max and
     // Max -> Extra High smooth(0.3). Read along the whole curve (CurveMoments, AssertOnCurve): the label's width and the
-    // chevron's drawn position at ten moments from 20 to 300 ms, each within 0.01 of its curve's own progress.
+    // right edge's drawn position at ten moments from 20 to 300 ms, each within 0.01 of its curve's own progress.
     [Fact]
     [Trait("Decision", "ED-238")] // ED-238 final round 5: :582-583 at PR-COMPOSER-111 / UI-COMPOSER-031's title
     public void The_title_runs_on_smooth_0_3_when_maximum_or_fast_mode_changes_and_on_the_sliders_snappy_otherwise() => headless.OnUiThread(() =>
@@ -125,7 +126,7 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
         try
         {
             var title = Assert.Single(card.GetVisualDescendants().OfType<MorphingTextBlock>());
-            var chevron = Assert.IsAssignableFrom<Control>(Assert.IsAssignableFrom<Panel>(title.Parent).Children[1]);
+            Assert.DoesNotContain(title.GetVisualAncestors(), ancestor => ancestor is Button); // OD-0139: the title is plain text, no chevron beside it
             var snappy = Animation.Snappy(duration: 0.2);
             var smooth = Animation.Smooth(duration: 0.3);
             void Slider(string value) => Transaction.WithAnimation(Animation.Snappy(duration: 0.2), () => effort.Value = value);
@@ -140,7 +141,7 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
                 ("Medium -> Max with no animation, into maximum", () => effort.Value = "max", smooth, "smooth(0.3)"),
             };
             foreach (var (name, change, expected, curve) in steps)
-                AssertOnCurve(name, Ways(window, title, chevron, frames, clock, change, CurveMoments), expected, curve);
+                AssertOnCurve(name, Ways(window, title, frames, clock, change, CurveMoments), expected, curve);
         }
         finally { window.Close(); }
     });
@@ -167,9 +168,9 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
         try
         {
             var title = Assert.Single(card.GetVisualDescendants().OfType<MorphingTextBlock>());
-            var chevron = Assert.IsAssignableFrom<Control>(Assert.IsAssignableFrom<Panel>(title.Parent).Children[1]);
+            Assert.DoesNotContain(title.GetVisualAncestors(), ancestor => ancestor is Button); // OD-0139: the title is plain text, no chevron beside it
             var smooth = Animation.Smooth(duration: 0.3);
-            AssertOnCurve("High -> Medium with no animation, as Reset writes it", Ways(window, title, chevron, frames, clock, () => effort.Value = "medium", CurveMoments), smooth, "smooth(0.3)");
+            AssertOnCurve("High -> Medium with no animation, as Reset writes it", Ways(window, title, frames, clock, () => effort.Value = "medium", CurveMoments), smooth, "smooth(0.3)");
 
             EnvironmentValues.SetAccessibilityReduceMotion(window, true);
             Dispatcher.UIThread.RunJobs();
@@ -178,7 +179,7 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
             Assert.Equal("Extra High", title.Text);
             Assert.False(title.IsMorphing, "with reduce motion an effort change the Mac does not animate is still morphed");
 
-            AssertOnCurve("with reduce motion, Extra High -> Max (into maximum, :582)", Ways(window, title, chevron, frames, clock, () => effort.Value = "max", CurveMoments), smooth, "smooth(0.3)");
+            AssertOnCurve("with reduce motion, Extra High -> Max (into maximum, :582)", Ways(window, title, frames, clock, () => effort.Value = "max", CurveMoments), smooth, "smooth(0.3)");
         }
         finally { window.Close(); }
     });
@@ -372,10 +373,10 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
         string.Join("; ", drawn.Select(pair => $"\"{pair.Key}\" {string.Join(",", pair.Value)}"));
 
     // SOURCE FACT (reference runtime, 2-chat-use.mov 35.12-35.29 s): as "Extra High" narrows to "Max", the leaving "High"
-    // is carried right past the chevron and fades there, raised; a plain SwiftUI button does not clip its label.
+    // is carried right past the narrowing label's edge (once past the chevron; OD-0139 moved the chevron to the model line) and fades there, raised; nothing clips it.
     [Fact]
     [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111: the numericText morph (EffortSlider.swift:574), not the button clauses; re-traited in final round 3
-    public void Leaving_letters_carried_past_the_chevron_are_drawn_not_clipped() => headless.OnUiThread(() =>
+    public void Leaving_letters_carried_past_the_titles_edge_are_drawn_not_clipped() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         using var source = FrameClock.Source.Override(frames);
@@ -390,7 +391,7 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
         try
         {
             var title = Assert.Single(card.GetVisualDescendants().OfType<MorphingTextBlock>());
-            var button = title.GetVisualAncestors().OfType<Avalonia.Controls.Button>().First();
+            Assert.DoesNotContain(title.GetVisualAncestors(), ancestor => ancestor is Avalonia.Controls.Button); // OD-0139: no button around the title; nothing clips its leaving letters
             Transaction.WithAnimation(Animation.Snappy(duration: 0.2), () => effort.Value = "max");
             for (var ms = 0; ms < 130; ms += 10)
             {
@@ -399,7 +400,7 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
                 Dispatcher.UIThread.RunJobs();
             }
             window.UpdateLayout();
-            var box = new Avalonia.Rect(button.TranslatePoint(new Avalonia.Point(0, 0), window)!.Value, button.Bounds.Size);
+            var box = new Avalonia.Rect(title.TranslatePoint(new Avalonia.Point(0, 0), window)!.Value, title.Bounds.Size);
             using var frame = window.CaptureRenderedFrame() ?? throw new Xunit.Sdk.XunitException("no rendered frame");
             using var pixels = frame.Lock();
             var row = new byte[pixels.RowBytes];
@@ -410,7 +411,7 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
                 for (var x = (int)Math.Ceiling(box.Right) + 1; x < Math.Min(pixels.Size.Width, (int)box.Right + 40); x++)
                     if (Math.Max(row[x * 4], Math.Max(row[x * 4 + 1], row[x * 4 + 2])) > 40) ink++;
             }
-            Assert.True(ink > 10, $"letters drawn past the title button's right edge: {ink} pixels");
+            Assert.True(ink > 10, $"letters drawn past the title's right edge: {ink} pixels");
         }
         finally { window.Close(); }
     });

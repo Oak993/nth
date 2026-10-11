@@ -89,7 +89,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-COMPOSER-116")] // App/Views/Composer/EffortSlider.swift:558 VStack(spacing: 16), :567 VStack(spacing: 2): both centre alignment
     [Trait("Req", "UI-COMPOSER-037")] // App/Views/Composer/EffortSlider.swift:641-650 the pair's caption
-    public void The_pair_caption_and_the_title_button_are_each_centred_at_their_own_width()
+    public void The_pair_caption_the_title_and_the_model_line_button_are_each_centred_at_their_own_width()
     {
         headless.OnUiThread(() =>
         {
@@ -101,11 +101,12 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
                 new Binding<string?>(() => "low", _ => { }), new Binding<bool>(() => false, _ => { }), () => { }, pair, onTitleTap: () => { });
             var window = Show(card);
             // A VStack centres each child at its own width; the StackPanel stretched the caption across the column (its text then
-            // began at the left edge) and the title's hover plate across the model name's width.
+            // began at the left edge) and the model line's hover plate across the title's width.
             var caption = Assert.Single(card.GetVisualDescendants().OfType<TextBlock>(), b => b.Text == "The lead's effort · heads run at high effort");
-            var titleButton = Assert.Single(card.GetVisualDescendants().OfType<Button>(),
-                button => button.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text == "Low"));
-            foreach (var child in new Control[] { caption, titleButton })
+            var modelButton = Assert.Single(card.GetVisualDescendants().OfType<Button>(), button => Equals(ToolTip.GetTip(button), "Choose a model"));
+            var title = Assert.Single(card.GetVisualDescendants().OfType<MorphingTextBlock>(), text => text.Text == "Low");
+            Assert.DoesNotContain(title.GetVisualAncestors(), ancestor => ancestor is Button); // OD-0139: the effort title is plain text, the model line is the button
+            foreach (var child in new Control[] { caption, modelButton, title })
             {
                 Assert.Equal(child.DesiredSize.Width, child.Bounds.Width, 0.5); // at its own width
                 Assert.Equal(card.Bounds.Width / 2, child.TranslatePoint(new Point(child.Bounds.Width / 2, 0), card)!.Value.X, 0.5);
@@ -668,7 +669,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     [Trait("Req", "PR-COMPOSER-111")] // App/Views/Composer/EffortSlider.swift:568-597
     [Trait("Req", "UI-COMPOSER-031")] // App/Views/Composer/EffortSlider.swift:568-597
     [Trait("Req", "UI-COMPOSER-034")] // App/Views/Composer/EffortSlider.swift:564
-    public void Title_and_reset_are_real_buttons_with_exact_help_and_actions()
+    public void Model_line_and_reset_are_real_buttons_with_exact_help_and_actions_and_the_title_is_plain_text()
     {
         headless.OnUiThread(() =>
         {
@@ -679,6 +680,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             foreach (var help in new[] { "Choose a model", "Reset to default" })
             {
                 var button = Assert.Single(window.GetVisualDescendants().OfType<Button>(), b => Equals(ToolTip.GetTip(b), help));
+                if (help == "Choose a model") Assert.Contains(button.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Test model"); // the model line (OD-0139)
                 button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             }
             Assert.Equal(1, tapped);
@@ -686,9 +688,10 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var standard = Assert.Single(window.GetVisualDescendants().OfType<TextBlock>(), b => b.Text == "Standard");
             Assert.Equal(17, standard.FontSize);
             Assert.Equal(FontWeight.Medium, standard.FontWeight);
+            Assert.DoesNotContain(standard.GetVisualAncestors(), ancestor => ancestor is Button); // the effort title is no button (OD-0139)
             window.Close();
             var disabled = Show(Card([], null, null));
-            Assert.Contains(disabled.GetVisualDescendants().OfType<Button>(), b => Equals(ToolTip.GetTip(b), "") && !b.IsEnabled);
+            Assert.Contains(disabled.GetVisualDescendants().OfType<Button>(), b => Equals(ToolTip.GetTip(b), "") && !b.IsEnabled && b.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text == "Test model"));
             disabled.Close();
         });
     }

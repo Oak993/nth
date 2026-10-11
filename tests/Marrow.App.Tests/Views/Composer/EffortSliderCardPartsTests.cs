@@ -77,11 +77,11 @@ public sealed class EffortSliderCardPartsTests(HeadlessSession headless)
         clock.Advance(TimeSpan.FromMilliseconds(milliseconds)); frames.Advance(TimeSpan.FromMilliseconds(milliseconds)); Dispatcher.UIThread.RunJobs();
     }
 
-    // ---- UI-COMPOSER-031: the title button ---------------------------------------------------------------------------------------
+    // ---- UI-COMPOSER-031: the model line button (OD-0139) ---------------------------------------------------------------------------------------
 
     [Fact]
     [Trait("Req", "UI-COMPOSER-031")] // App/Views/Composer/EffortSlider.swift:531-534,543-597
-    public void The_title_button_is_the_efforts_title_in_its_colour_with_a_chevron_a_hover_plate_and_a_tap_that_opens_the_list() => headless.OnUiThread(() =>
+    public void The_model_line_is_the_button_with_a_chevron_a_hover_plate_and_a_tap_that_opens_the_list_and_the_efforts_title_is_plain_text_in_its_colour() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource(); using var frameBinding = FrameClock.Source.Override(frames);
         var clock = new ManualTimeProvider(); using var clockBinding = SwiftClock.Provider.Override(clock);
@@ -92,25 +92,30 @@ public sealed class EffortSliderCardPartsTests(HeadlessSession headless)
         {
             var title = Title(card);
             Assert.Equal("Low", title.Text);
-            var button = card.GetVisualDescendants().OfType<Button>().Single(b => Equals(ToolTip.GetTip(b), "Choose a model")); // the tooltip
+            var button = card.GetVisualDescendants().OfType<Button>().Single(b => Equals(ToolTip.GetTip(b), "Choose a model")); // the tooltip (OD-0139: on the model line)
             Assert.True(button.IsEnabled);
-            // :569-597 HStack(spacing: 4): the title and the chevron; .padding(.horizontal, 8), .padding(.vertical, 2); a radius 7 continuous plate
+            // the title is plain text: in no button, no tooltip, no chevron beside it
+            Assert.DoesNotContain(title.GetVisualAncestors(), ancestor => ancestor is Button);
+            Assert.Null(ToolTip.GetTip(title));
+            Assert.DoesNotContain(card.GetVisualDescendants().OfType<Button>(), b => b.GetVisualDescendants().Contains(title));
+            // :569-597 moved onto the model line (OD-0139): the line and the chevron; .padding(.horizontal, 8), .padding(.vertical, 2); a radius 7 continuous plate
             var plate = Assert.IsType<Border>(button.Content);
             Assert.Equal(new Thickness(8, 2), plate.Padding);
             Assert.Equal(new CornerRadius(7), plate.CornerRadius); Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(plate));
-            var row = Assert.IsType<StackPanel>(plate.Child);
-            Assert.Equal(Orientation.Horizontal, row.Orientation); Assert.Equal(4, row.Spacing);
-            Assert.Same(title, row.Children[0]);
+            var row = Assert.IsType<Grid>(plate.Child);
+            var line = Assert.IsType<Grid>(row.Children[0]);
+            var modelName = Assert.Single(line.GetVisualDescendants().OfType<TextBlock>()); Assert.Equal("Test model", modelName.Text);
             var chevron = Assert.IsType<SwiftImage>(row.Children[1]); Assert.Equal(2, row.Children.Count);
             Assert.Equal("chevron.right", chevron.SymbolName);
-            Assert.Equal(4, Left(chevron, card) - (Left(title, card) + title.Bounds.Width), 0.75);
-            // :573 .title2 medium (17 pt) ; :576 the chevron .callout semibold (12 pt) in secondary text
+            Assert.Equal(4, Left(chevron, card) - (Left(line, card) + line.Bounds.Width), 0.75);
+            // :573 the title is .title2 medium (17 pt); the chevron by the 13 pt line is Footnote semibold (10 pt, smaller than the old callout 12 pt) in secondary text
             Assert.Equal(17, title.FontSize); Assert.Equal(FontWeight.Medium, title.FontWeight);
-            var chevronFont = SwiftImage.GetFont(chevron)!.Resolve(); Assert.Equal(12, chevronFont.FontSize); Assert.Equal(FontWeight.SemiBold, chevronFont.FontWeight);
+            var chevronFont = SwiftImage.GetFont(chevron)!.Resolve(); Assert.Equal(10, chevronFont.FontSize); Assert.Equal(FontWeight.SemiBold, chevronFont.FontWeight);
+            Assert.True(chevronFont.FontSize < modelName.FontSize);
             Assert.Equal(Ink(chevron, Chrome.SecondaryText), Colour(chevron.Foreground));
-            // :470 the title block is inset 44 points on each side, the subtitle under it with 2 points between
+            // :470 the title block is inset 44 points on each side, the title and the model line under it with 2 points between
             var block = title.GetVisualAncestors().OfType<StackPanel>().First(panel => panel.Margin == new Thickness(44, 0));
-            Assert.Equal(2, block.Spacing); Assert.Same(button, block.Children[0]);
+            Assert.Equal(2, block.Spacing); Assert.Same(title, block.Children[0]); Assert.Same(button, block.Children[1]);
 
             // :543-555 the colour, state by state (the Swift literals: the accent mixed 22 percent toward white, the brand's title, gold)
             var theme = title.ActualThemeVariant;
@@ -147,7 +152,7 @@ public sealed class EffortSliderCardPartsTests(HeadlessSession headless)
             Assert.InRange((int)Colour(plate.Background).A, alpha - 1, alpha + 1);
             Step(clock, frames, 100);
             Assert.Equal(Chrome.PrimaryText.Opacity(0.08).Resolve(plate.ActualThemeVariant), Colour(plate.Background));
-            // a press anywhere on the plate (the block is the whole title button), once: the list is opened
+            // a press anywhere on the plate (the block is the whole model line button), once: the list is opened
             Click(window, point);
             Assert.Equal(1, taps);
             window.MouseMove(new Point(329, 499)); Step(clock, frames, 200);
@@ -177,6 +182,8 @@ public sealed class EffortSliderCardPartsTests(HeadlessSession headless)
             Assert.Equal("Medium", Title(plain).Text);
             var button = plain.GetVisualDescendants().OfType<Button>().Single(b => ToolTip.GetTip(b) is "");
             Assert.False(button.IsEnabled);
+            Assert.Contains(button.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Test model"); // the plain model line
+            Assert.DoesNotContain(button.GetVisualDescendants(), visual => visual is MorphingTextBlock); // and the title is outside it
             Assert.DoesNotContain(plain.GetVisualDescendants().OfType<SwiftImage>(), image => image.SymbolName == "chevron.right");
             var disabledPoint = Centre(button, plainWindow);
             plainWindow.MouseMove(disabledPoint); Dispatcher.UIThread.RunJobs(); Step(clock, frames, 200);

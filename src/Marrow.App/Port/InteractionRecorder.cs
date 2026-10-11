@@ -255,9 +255,9 @@ internal static class InteractionRecorder
                 if (Find<ModelEffortButton>(main)?.Child is not Button opener) return "no effort chip";
                 opener.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 await Task.Delay(1000);
-                Restart(); // the interaction is the title tap, not the effort popover's open
-                if (OpenContent() is not { } panel || Find<Button>(panel, b => ToolTip.GetTip(b) is "Choose a model") is not { } title) return "no title button";
-                title.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Restart(); // the interaction is the model line tap, not the effort popover's open
+                if (OpenContent() is not { } panel || Find<Button>(panel, b => ToolTip.GetTip(b) is "Choose a model") is not { } modelLine) return "no model button";
+                modelLine.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 await Task.Delay(1200);
                 return null;
             case "picker-scroll":
