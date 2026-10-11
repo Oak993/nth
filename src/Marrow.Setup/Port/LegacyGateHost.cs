@@ -19,17 +19,17 @@ public sealed partial class LegacyGateHost : IInstallerGateHost
     private const uint MbOk = 0x0, MbIconWarning = 0x30, MbIconInformation = 0x40, MbSetForeground = 0x10000;
 
     /// <summary>The gate with these arguments, its errors shown in a message box unless silent.</summary>
-    public static int Run(IReadOnlyList<string> arguments)
+    public static int Run(IReadOnlyList<string> args)
     {
-        ArgumentNullException.ThrowIfNull(arguments);
+        ArgumentNullException.ThrowIfNull(args);
         var host = new LegacyGateHost();
         try
         {
-            return InstallerGate.Run(host, Identity(), arguments);
+            return InstallerGate.Run(host, Identity(), args);
         }
         catch (Exception error)
         {
-            if (!InstallerGate.IsSilent(arguments)) host.ShowMessage(InstallerGate.Caption(Metadata("InstallerTitle")), error.Message, warning: true);
+            if (!InstallerGate.IsSilent(args)) host.ShowMessage(InstallerGate.Caption(Metadata("InstallerTitle")), error.Message, warning: true);
             return 1;
         }
     }

@@ -28,6 +28,9 @@
     <InstallerAppId Condition="'$(InstallerAppId)' == ''">NthApp</InstallerAppId>
     <!-- PLAN.md 5, "Rendering": Software drops ANGLE; kept only if Mica and 60 fps at 200 % hold (the lead's measurement). -->
     <SetupRenderingMode Condition="'$(SetupRenderingMode)' == ''">AngleEgl</SetupRenderingMode>
+    <!-- Until unit U7 publishes it with Native AOT: a single-file publish (scripts/package-windows.ps1) carries Skia's,
+         HarfBuzz's and ANGLE's native libraries inside the one exe, so the shared setup is still one file. -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
   <ItemGroup>
