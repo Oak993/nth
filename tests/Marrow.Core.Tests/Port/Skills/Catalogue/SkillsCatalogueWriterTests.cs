@@ -29,9 +29,10 @@ public sealed class SkillsCatalogueWriterTests
     [Trait("Rule", "R-TEST-4")]
     public void The_fully_pinned_fixture_round_trips_with_every_field()
     {
-        var text = SkillsCatalogueWriter.Serialize(CatalogueFixtures.Pinned());
+        // ED-NEW-dl-11: the release gate also wants each runnable item's installer parameters and licence pin, so the full round trip uses the fixture that carries them.
+        var text = SkillsCatalogueWriter.Serialize(CatalogueFixtures.Installable());
         var back = SkillsCatalogueLoader.Parse(text);
-        Assert.Empty(CatalogueChangeReport.Compare(CatalogueFixtures.Pinned(), back).Items);
+        Assert.Empty(CatalogueChangeReport.Compare(CatalogueFixtures.Installable(), back).Items);
         Assert.Equal(text, SkillsCatalogueWriter.Serialize(back));
         Assert.Empty(CatalogueGate.Check(back, new CatalogueGateOptions { RequireAllPinned = true }).Violations);
     }

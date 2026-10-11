@@ -27,8 +27,8 @@ public sealed record ManualFallbackPart(string Text, bool Code);
 /// catalogue pins, by the rule the design's entries follow: (1) a skill set or plugin at one commit is "the repository at commit &lt;7 digits&gt;, as a .zip" from "github.com/&lt;owner&gt;/&lt;repo&gt;/tree/&lt;7 digits&gt;";
 /// one at per-skill commits is "the &lt;n&gt; skill folders at their pinned commits (&lt;7 digits&gt;, ...)" from the repository; (2) a tool is its artifacts' file names joined by " and ", from the directory of its first
 /// artifact's address (without "www."), or, where the catalogue gives an artifact no address, from the item's own source page (the vendor's releases page); (3) a Python package set is "the pinned wheels named
-/// in wheels.txt in that folder" from "pypi.org"; (4) a Node package set, an item with no pin and one with no source have none (the design draws none). Python's embedded package (T1) is two items here (the
-/// design's one entry names the pip wheel too), so its text names only its own file.
+/// in wheels.txt in that folder" from "pypi.org"; (4) a Node package set, an item with no pin and one with no source have none (the design draws none). Python's embedded package (T1) pins the pip wheel
+/// as its second artifact (ED-NEW-dl-7), so its text is the design's one entry, both files; the pip item (T1p) names the wheel alone. Where an artifact's directory is no page, see <see cref="PageOf"/>.
 /// </summary>
 public static class ManualFallbacks
 {
@@ -60,13 +60,27 @@ public static class ManualFallbacks
             {
                 var file = item.Artifacts.SelectMany((a, i) => i == 0 ? new[] { Code(a.Name) } : [Prose(" and "), Code(a.Name)]).ToArray();
                 var url = item.Artifacts[0].Url is { } address && Uri.TryCreate(address, UriKind.Absolute, out var parsed) ? parsed : null;
-                if (url is not null) return Make(Strip(url.Host) + url.AbsolutePath[..(url.AbsolutePath.LastIndexOf('/') + 1)], true, file);
+                if (url is not null) return Make(PageOf(url), true, file);
                 if (item.SourceUrl is { } page && Uri.TryCreate(page, UriKind.Absolute, out var source)) return Make(Strip(source.Host) + source.AbsolutePath.TrimEnd('/'), true, file);
                 return null;
             }
             default:
                 return null;
         }
+    }
+
+    /// <summary>
+    /// ED-NEW-dl-12: where a pinned artifact's file is found by hand. A GitHub release asset ("github.com/&lt;owner&gt;/&lt;repo&gt;/releases/download/&lt;tag&gt;/&lt;file&gt;") is found on the repository's
+    /// releases page, as the design's entries for qpdf, pandoc, Git, gh and uv read (the download folder itself is no page); a wheel on PyPI's file host is found on "pypi.org", the design's source for
+    /// every pinned wheel; any other file is found in the directory of its address, as the design's entries for Python, Node.js, LibreOffice and Chrome for Testing read.
+    /// </summary>
+    private static string PageOf(Uri url)
+    {
+        var segments = url.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (url.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase) && segments.Length >= 6 && segments[2] == "releases" && segments[3] == "download")
+            return Strip(url.Host) + "/" + segments[0] + "/" + segments[1] + "/releases";
+        if (url.Host.Equals("files.pythonhosted.org", StringComparison.OrdinalIgnoreCase)) return "pypi.org";
+        return Strip(url.Host) + url.AbsolutePath[..(url.AbsolutePath.LastIndexOf('/') + 1)];
     }
 
     private static string Strip(string host) => host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? host[4..] : host;

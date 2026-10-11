@@ -20,6 +20,8 @@ public sealed record InstallPlan(CatalogueItem Item, ItemRecord Record, string D
     public IReadOnlyList<LocalNodePackage>? NodePackages { get; init; }
     public string? Extractor { get; init; }
     public IReadOnlyList<SpareProjection>? Spares { get; init; }
+    /// <summary>ED-NEW-dl-7: empty files the tool's runtime looks for, added to the built tree before it is locked (Playwright's INSTALLATION_COMPLETE).</summary>
+    public IReadOnlyList<string>? Markers { get; init; }
 
     public InstallPlan WithDownloads(DownloadOutcome outcome)
     {

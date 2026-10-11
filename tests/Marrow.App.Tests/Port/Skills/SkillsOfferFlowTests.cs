@@ -6,7 +6,7 @@ using Marrow.Services.Port.Skills.Providers;
 namespace Marrow.App.Tests.Port.Skills;
 public sealed class SkillsOfferFlowTests
 {
-    private const string Continuation = "LibreOffice 26.2.6 is installed now (`soffice` is on PATH). Please continue the task from where it stopped.";
+    private const string Continuation = "LibreOffice 26.8.1 is installed now (`soffice` is on PATH). Please continue the task from where it stopped."; // the release's T3 (ED-NEW-dl-11)
     private const string Denial = "LibreOffice isn't on this PC and the user chose not to download it now.";
 
     [Fact, Trait("Rule", "R-SKILLS-12")]
@@ -173,7 +173,7 @@ public sealed class SkillsOfferFlowTests
     public void Existing_download_attaches_without_starting_a_second_download()
     {
         using var r = new SkillsOfferRig(); r.Turn.Send("fixture");
-        r.SetState(Marrow.Core.Port.Skills.State.AddonsState.Restore([new("T3", Marrow.Core.Port.Skills.State.ItemState.Downloading, null, "26.2.6", null)], [], [], []));
+        r.SetState(Marrow.Core.Port.Skills.State.AddonsState.Restore([new("T3", Marrow.Core.Port.Skills.State.ItemState.Downloading, null, "26.8.1", null)], [], [], []));
         var completion = new TaskCompletionSource<IReadOnlyDictionary<string, string>>();
         r.Download.Script = (_, progress, _) => { progress(new(OfferStage.Downloading, 10, 20)); return completion.Task; };
         r.Offer(); Assert.NotNull(r.Flow.Card); Assert.Equal(1, r.Download.AttachCalls); Assert.Equal(0, r.Download.Calls);

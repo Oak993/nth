@@ -60,7 +60,9 @@ public sealed class SkillsCatalogueSkillNamesTests
     public void Every_listed_skill_folder_in_the_catalogue_follows_the_rule_and_is_unique_inside_its_item()
     {
         var all = CatalogueFixtures.Real.Items.SelectMany(i => i.Skills.Select(s => (i.Id, s))).ToList();
-        Assert.Equal(13 + 5 + 4 + 4, all.Count);
+        // ED-NEW-dl-11: pin run 3 lists every skill of the pinned sets, not only the ones the plan names (A1 13, A2 5, A5 6, O1 4, O2 30, O3 4, O6 8).
+        Assert.Equal([("A1", 13), ("A2", 5), ("A5", 6), ("O1", 4), ("O2", 30), ("O3", 4), ("O6", 8)], CatalogueFixtures.Real.Items.Where(i => i.Skills.Count > 0).Select(i => (i.Id, i.Skills.Count)));
+        Assert.Equal(70, all.Count);
         Assert.All(all, t => Assert.True(SkillName.IsValid(t.s.Folder), $"{t.Id}/{t.s.Folder}"));
         Assert.All(CatalogueFixtures.Real.Items, i => Assert.Equal(i.Skills.Count, i.Skills.Select(s => s.Folder).Distinct(StringComparer.Ordinal).Count()));
     }
@@ -99,6 +101,8 @@ public sealed class SkillsCatalogueSkillNamesTests
         Assert.True(CatalogueFixtures.Fires(CatalogueGate.Check(CatalogueFixtures.Change(fixture, "X3", i => i with { Skills = [i.Skills[0] with { Path = "skills/other" }, i.Skills[1]] })), CatalogueRules.SkillName, "X3"));
         Assert.True(CatalogueFixtures.Fires(CatalogueGate.Check(CatalogueFixtures.Change(fixture, "X3", i => i with { Skills = [i.Skills[0] with { Path = "skills/../alpha-skill" }, i.Skills[1]] })), CatalogueRules.SkillName, "X3"));
         Assert.True(CatalogueFixtures.Fires(CatalogueGate.Check(CatalogueFixtures.Change(fixture, "X3", i => i with { Skills = [i.Skills[0] with { Path = "/skills/alpha-skill" }, i.Skills[1]] })), CatalogueRules.SkillName, "X3"));
-        Assert.All(CatalogueFixtures.Real.Items.SelectMany(i => i.Skills).Where(s => s.Path is not null), s => Assert.EndsWith("/" + s.Folder, s.Path, StringComparison.Ordinal));
+        // ED-NEW-dl-11: the gate's rule is the path's last segment; A5's skills sit at its repository's root (pin run 3), so their path is the folder itself.
+        Assert.All(CatalogueFixtures.Real.Items.SelectMany(i => i.Skills).Where(s => s.Path is not null), s => Assert.Equal(s.Folder, s.Path!.Split('/')[^1]));
+        Assert.Equal(6, CatalogueFixtures.Item(CatalogueFixtures.Real, "A5").Skills.Count(s => s.Path == s.Folder));
     }
 }

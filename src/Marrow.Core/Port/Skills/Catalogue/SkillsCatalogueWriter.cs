@@ -28,9 +28,12 @@ public static class SkillsCatalogueWriter
 
     private static readonly Dictionary<Type, string[]> Optional = new()
     {
-        [typeof(CatalogueItem)] = ["pinHint", "licenceNotes", "skillCount", "skillsListed", "skills", "folders", "packages"],
+        [typeof(CatalogueItem)] = ["pinHint", "licenceNotes", "skillCount", "skillsListed", "skills", "folders", "packages", "install"],
         [typeof(CatalogueArtifact)] = ["sha256Hint"],
         [typeof(CatalogueSkill)] = ["termsClass", "pin"],
+        [typeof(CatalogueInstall)] = ["archives", "python", "nodeTree", "markers", "shims", "exports", "pythonPackages"],
+        [typeof(CatalogueInstallArchive)] = ["prefix"],
+        [typeof(CatalogueShim)] = ["target", "item", "shim", "arguments", "python", "libreOffice"],
     };
 
     private static void LeaveOutOptionalWhenEmpty(JsonTypeInfo info)
@@ -51,6 +54,9 @@ public static class SkillsCatalogueWriter
         ArgumentNullException.ThrowIfNull(catalogue);
         return JsonSerializer.Serialize(catalogue, Options) + "\n";
     }
+
+    /// <summary>ED-NEW-dl-7: an item's installer parameters in the catalogue's own canonical text (null when it has none), so the change report can name any change of them.</summary>
+    public static string? InstallText(CatalogueInstall? install) => install is null ? null : JsonSerializer.Serialize(install, Options);
 
     /// <summary>
     /// Sets every item's <see cref="PinState"/> to what its values say (SK-1's rule, <see cref="CatalogueGate.Missing"/>): pinned only when nothing is missing. The builder

@@ -9,8 +9,10 @@ namespace Marrow.Services.Port.Skills.Host;
 /// <summary>
 /// ENGINEERING DECISION (ED-339): the one trust root the app has after a restart is the embedded catalogue (ED-321 (3), ED-325). A skill set or plugin installed at the pin the
 /// catalogue holds now gets a descriptor whose inventory is exactly the catalogue's files; its folder is the one its immutable route sidecar names (the pipeline cross-checks it).
-/// Everything else has none and is listed in <see cref="TrustedInstalls.Unrestored"/>: a tool or package set (its installed-tree hashes are derived from the archives at install time
-/// and are not persisted anywhere trusted), and a set installed at an older pin (the catalogue that pinned it is gone). Persisting those descriptors is SK-16's (UNRESOLVED here).
+/// A set installed at an older pin is trusted through the catalogue entry its install was verified against (ED-368, <c>addons\manifests</c>). ED-NEW-dl-9 (RR-14): a tool or package set
+/// is trusted through the same manifest, which also keeps the whole-tree inventory and empty folders its verified install produced (the catalogue pins only the downloads it was built
+/// from); at the pin the catalogue holds now, that entry must still agree with the catalogue's own artifacts. Anything without such a record, or whose record does not hold up, is listed
+/// in <see cref="TrustedInstalls.Unrestored"/>.
 /// </summary>
 public static class CatalogueTrust
 {
@@ -40,7 +42,17 @@ public static class CatalogueTrust
         foreach (var record in state.Items.Where(r => r.InstalledPin is not null && r.State != ItemState.Removing))
         {
             var item = catalogue.Items.FirstOrDefault(i => i.Id == record.Id);
-            if (item is null || item.Kind is not (ItemKind.Skillset or ItemKind.Plugin)) { unrestored.Add(record.Id); continue; }
+            if (item is null) { unrestored.Add(record.Id); continue; }
+            if (item.Kind is not (ItemKind.Skillset or ItemKind.Plugin))
+            {
+                if (RestoreTool(paths, item, record) is { } tool)
+                {
+                    versions.Add(tool.Store);
+                    directories[(record.Id, record.InstalledPin!)] = tool.Directories;
+                }
+                else unrestored.Add(record.Id);
+                continue;
+            }
             // SK-16 review: at the pin the catalogue holds now the inventory is the catalogue's files; at an earlier pin (the app was updated) it is the catalogue entry that install was verified against, kept in addons\manifests.
             var frozen = UpdateCheck.CataloguePin(item) == record.InstalledPin ? item : PipelineManifests.Read(paths.StateFile, record.Id, record.InstalledPin!);
             if (frozen is null) { unrestored.Add(record.Id); continue; }
@@ -59,5 +71,25 @@ public static class CatalogueTrust
             }
         }
         return new TrustedInstalls(versions, directories, unrestored);
+    }
+
+    private static (StoreItem Store, string[] Directories)? RestoreTool(StorePaths paths, CatalogueItem item, ItemRecord record)
+    {
+        var kept = PipelineManifests.ReadInstalled(paths.StateFile, record.Id, record.InstalledPin!);
+        if (kept is not { } installed || installed.Item.Kind != item.Kind) return null;
+        // At the pin the catalogue holds now, the kept entry must be the one the catalogue still pins: the same downloads, licence and installer parameters.
+        if (UpdateCheck.CataloguePin(item) == record.InstalledPin && SkillsCatalogueWriter.Serialize(new SkillsCatalogue { Schema = 1, ReadOn = "installed", Items = [installed.Item] }) !=
+            SkillsCatalogueWriter.Serialize(new SkillsCatalogue { Schema = 1, ReadOn = "installed", Items = [item] })) return null;
+        try
+        {
+            var selected = AddonsState.Restore([new ItemRecord(record.Id, ItemState.Installed, record.InstalledPin, null, null)], [], [], []);
+            var route = PipelineRoutes.Read(paths.StateFile, selected).Single();
+            if (!StorePaths.Under(paths.RequireManaged(route.Folder), paths.Tools)) return null;
+            return (new StoreItem(installed.Item, route.Folder, installed.Manifest, record.InstalledPin), installed.Directories);
+        }
+        catch (Exception error) when (error is ArgumentException or InvalidDataException or IOException or KeyNotFoundException or InvalidOperationException or System.Text.Json.JsonException or UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 }

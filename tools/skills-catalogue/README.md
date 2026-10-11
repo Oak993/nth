@@ -60,11 +60,13 @@ If any item fails (a hash that does not match a published digest, a signature th
 ## After a run: what to expect (details in ED-298)
 
 - Licence files: `licenceFile` is the licence at the root of the repository when there is one; folders that carry their own licences are listed in the Pin run section, and
-  an item with none at the root stays unpinned until `licenceFile` is set in `sources.json` or the schema changes. Tools and package sets have no licence file or URL source at
-  all, so they stay unpinned the same way.
+  an item with none at the root stays unpinned until `licenceFile` is set in `sources.json` or the schema changes. A tool or package set carries its licence as its one
+  `files` entry (the licence its source's own metadata names, pinned by URL, size and SHA-256), which the installer lays down at `<tree>/<licenceFile>` (ED-NEW-dl-7 (2)); it
+  is offered only when that file, its artifacts and its `install` parameters are all pinned (the strict gate's `install` rule).
 - Plugins list their skills so that the gate's name rule can be checked; the same skill folder name in two plugins of one item is a gate violation to be decided.
 - The new `catalogue.json` replaces plan estimates with measured sizes and nulls with values, so tests that transcribe today's data (the pins, counts and sizes tests of SK-1,
-  `UpdateCheckTests` and `ItemTermsTests` of SK-7) move with it.
+  `UpdateCheckTests` and `ItemTermsTests` of SK-7, `OfferCardTests`, and SK-14's `ManualFallbackTests` and `ManualFallbackPartsTests`, and the App and Services tests
+  ED-NEW-dl-11 (6) to (9) name) move with it, in the same commit.
 
 ## Round 2: source metadata pin generator (RR-13 / RR-14)
 

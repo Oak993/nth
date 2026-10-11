@@ -1,5 +1,6 @@
 using Marrow.Core.Port.Skills.Detect;
 using Marrow.Core.Port.Skills.State;
+using Marrow.Core.Tests.Port.Skills.Catalogue;
 
 namespace Marrow.Core.Tests.Port.Skills.Detect;
 
@@ -19,7 +20,7 @@ public sealed class OfferCardTests
         var card = detection.Card!;
         Assert.Equal(["T3", "T4"], card.Requested);
         Assert.Equal(["T3", "T4"], card.Items);
-        Assert.Equal(356.0 + 43.7, card.ApproxSizeMb!.Value, 6);
+        Assert.Equal(374.87 + 43.7, card.ApproxSizeMb!.Value, 6); // ED-NEW-dl-11: T3 as pin run 3 measured it, T4 still the plan's estimate
     }
 
     [Fact]
@@ -44,7 +45,7 @@ public sealed class OfferCardTests
         var card = DetectFixtures.Run(DetectFixtures.Ctx(), DetectFixtures.Failed("python s.py", 1, "ModuleNotFoundError: No module named 'docx'", false)).Card!;
         Assert.Equal(["P1"], card.Requested);
         Assert.Equal(["T1", "T1p", "P1"], card.Items);
-        Assert.Equal(12.6 + 1.8 + 5.3, card.ApproxSizeMb!.Value, 6);
+        Assert.Equal(14.42 + 1.82 + 54.57, card.ApproxSizeMb!.Value, 6); // ED-NEW-dl-11: the sizes pin run 3 measured
     }
 
     [Fact]
@@ -54,7 +55,7 @@ public sealed class OfferCardTests
     {
         var detection = DetectFixtures.Run(DetectFixtures.Ctx(DetectFixtures.State(DetectFixtures.Has("T1"))), new CommandHeld("python -m docx"));
         Assert.Equal(["T1p", "P1"], detection.Card!.Items);
-        Assert.Equal(1.8 + 5.3, detection.Card.ApproxSizeMb!.Value, 6);
+        Assert.Equal(1.82 + 54.57, detection.Card.ApproxSizeMb!.Value, 6);
         var both = DetectFixtures.Run(DetectFixtures.Ctx(DetectFixtures.State(DetectFixtures.Has("T1"), DetectFixtures.Has("T1p"))), new CommandHeld("python -m docx"));
         Assert.Equal(["P1"], both.Card!.Items);
         var found = AddonsState.Empty.MergeFound(DetectFixtures.Catalogue, ["T1"], [new FoundOnPc("T1", @"C:\Python314\python.exe")]);
@@ -73,7 +74,7 @@ public sealed class OfferCardTests
             DetectFixtures.Failed("python s.py", 1, "ModuleNotFoundError: No module named 'pypdf'", false)).Card!;
         Assert.Equal(["P1", "P2"], card.Requested);
         Assert.Equal(["T1", "T1p", "P1", "P2"], card.Items);
-        Assert.Equal(12.6 + 1.8 + 5.3 + 17.2, card.ApproxSizeMb!.Value, 6);
+        Assert.Equal(14.42 + 1.82 + 54.57 + 24.48, card.ApproxSizeMb!.Value, 6); // ED-NEW-dl-11: the sizes pin run 3 measured
     }
 
     [Fact]
@@ -89,7 +90,11 @@ public sealed class OfferCardTests
         Assert.True(items.IndexOf("T1") < items.IndexOf("T1p"));
         Assert.True(items.IndexOf("T1p") < items.IndexOf("P1"));
         Assert.True(items.IndexOf("T2") < items.IndexOf("P6"));
-        Assert.Null(card.ApproxSizeMb);
+        // ED-NEW-dl-11: pin run 3 sized P6 (43.54 MB), so every item of this card has a size now and the card adds them up; one item without a size still makes it unknown, not zero.
+        Assert.Equal(card.Items.Sum(i => CatalogueFixtures.Item(DetectFixtures.Catalogue, i).ApproxSizeMb!.Value), card.ApproxSizeMb!.Value, 6);
+        Assert.Equal(668.8, card.ApproxSizeMb!.Value, 6);
+        var unsized = DetectFixtures.Ctx() with { Catalogue = CatalogueFixtures.Change(DetectFixtures.Catalogue, "P6", i => i with { ApproxSizeMb = null }) };
+        Assert.Null(DetectFixtures.Run(unsized, new ToolRequested("A2", "document skills")).Card!.ApproxSizeMb);
     }
 
     [Fact]

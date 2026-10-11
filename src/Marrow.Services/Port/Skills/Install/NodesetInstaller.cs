@@ -22,13 +22,21 @@ internal static class NodesetInstaller
             using var gzip = new GZipStream(compressed, CompressionMode.Decompress);
             using var reader = new TarReader(gzip);
             var entries = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            string? top = null;
             while (reader.GetNextEntry() is { } entry)
             {
+                // ED-NEW-dl-7: npm unpacks a tarball by dropping its one top folder, whatever it is called ("package" for npm pack, the package's own name for DefinitelyTyped's
+                // @types tarballs); every entry must sit under that same folder. A pax global header carries no file.
+                if (entry.EntryType == TarEntryType.GlobalExtendedAttributes) continue;
                 var name = entry.Name.TrimEnd('/');
                 InstallPaths.Relative(name);
-                if (name == "package" && entry.EntryType == TarEntryType.Directory) continue;
-                if (!name.StartsWith("package/", StringComparison.Ordinal)) throw new InvalidDataException("npm package prefix absent.");
-                var relative = InstallPaths.Relative(name[8..]);
+                var slash = name.IndexOf('/', StringComparison.Ordinal);
+                var first = slash < 0 ? name : name[..slash];
+                top ??= first;
+                if (!first.Equals(top, StringComparison.Ordinal)) throw new InvalidDataException("npm package prefix absent.");
+                if (slash < 0 && entry.EntryType == TarEntryType.Directory) continue;
+                if (slash < 0) throw new InvalidDataException("npm package prefix absent.");
+                var relative = InstallPaths.Relative(name[(slash + 1)..]);
                 if (!entries.Add(relative)) throw new InvalidDataException("Duplicate tar entry.");
                 var destination = InstallPaths.Under(target, tree + "/" + relative);
                 if (entry.EntryType == TarEntryType.Directory) { Directory.CreateDirectory(destination); continue; }

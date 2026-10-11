@@ -49,6 +49,9 @@ public sealed record SkillsHostOptions
 
     public TimeProvider? Clock { get; init; }
 
+    /// <summary>RR-14 (ED-NEW-dl-10): the NativeAOT launcher <c>addons\bin</c> holds copies of; null: the one shipped beside the app (<see cref="PipelineShimSync.Launcher"/>).</summary>
+    public string? ShimLauncher { get; init; }
+
     public ICustomSourceFiles? CustomFiles { get; init; }
 
     public ICustomGitHubSource? CustomGitHub { get; init; }

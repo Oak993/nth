@@ -1,5 +1,6 @@
 using Marrow.App.Port.Skills;
 using Marrow.App.Tests.Fixtures;
+using Marrow.Core.Port.Skills.Catalogue;
 using Marrow.Core.Port.Skills.Detect;
 using Marrow.Core.Port.Skills.Pages;
 using Marrow.Services.Port.Skills.Fetch;
@@ -9,9 +10,18 @@ using Marrow.Services.Port.Skills.Offers;
 namespace Marrow.App.Tests.Port.Skills;
 
 // PORT-ONLY (no Swift twin): SK-14 (DL-18, DL-19): an offer built for a chat is wired to the app's one host: its downloads are the host's shared ones (SkillsHost.OfferDownloads), its state is the pipeline's, and a decline is
-// written to state.json before the provider is answered. Fresh data roots under MARROW_PORT_DATA_DIR; the catalogue's items are all unpinned, so no download can start (nothing reaches a network).
+// written to state.json before the provider is answered. Fresh data roots under MARROW_PORT_DATA_DIR. Since pin run 3 (ED-NEW-dl-11) LibreOffice (T3) is fetchable, so the host here
+// holds the release catalogue with T3's installer parameters taken out: the offered item cannot be fetched, no download can start and nothing reaches a network.
 public sealed class SkillsOfferFlowsTests
 {
+    private static SkillsHostOptions Unfetchable(string root)
+    {
+        var real = SkillsCatalogueLoader.LoadEmbedded();
+        var catalogue = real with { Items = real.Items.Select(i => i.Id == "T3" ? i with { Install = null } : i).ToList() };
+        Assert.False(CatalogueInstallPlans.CanPlan(catalogue.Items.Single(i => i.Id == "T3")));
+        return SkillsHostOptions.Production(catalogue).WithDownloads(root);
+    }
+
     private static string FreshRoot()
     {
         var parent = Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR");
@@ -28,7 +38,7 @@ public sealed class SkillsOfferFlowsTests
         var root = FreshRoot();
         try
         {
-            using var host = SkillsHost.Open(root, SkillsHostOptions.Production().WithDownloads(root));
+            using var host = SkillsHost.Open(root, Unfetchable(root));
             using var r = new SkillsOfferRig(runtime => SkillsOfferFlows.Create(runtime, host));
             r.Turn.Send("fixture");
             r.Offer();
@@ -47,7 +57,7 @@ public sealed class SkillsOfferFlowsTests
         var root = FreshRoot();
         try
         {
-            using var host = SkillsHost.Open(root, SkillsHostOptions.Production().WithDownloads(root));
+            using var host = SkillsHost.Open(root, Unfetchable(root));
             using var r = new SkillsOfferRig(runtime => SkillsOfferFlows.Create(runtime, host));
             r.Turn.Send("fixture");
             r.Offer();

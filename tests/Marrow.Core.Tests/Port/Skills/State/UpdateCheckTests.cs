@@ -41,7 +41,8 @@ public sealed class UpdateCheckTests
         Assert.Equal(StateFixtures.Rec("A1", ItemState.UpdateAvailable, OldCommit, NewCommit), result.State.Get("A1"));
         Assert.Equal(StateFixtures.Rec("T1", ItemState.UpdateAvailable, "3.14.8", "3.14.9"), result.State.Get("T1"));
         Assert.Equal(ItemState.Installed, result.State.Get("T2").State);
-        Assert.Equal([new UpdateInfo("A1", OldCommit, NewCommit, 8.1), new UpdateInfo("T1", "3.14.8", "3.14.9", 12.6)], result.Updates);
+        // ED-NEW-dl-11: the sizes are pin run 3's measured ones (the plan estimated 8.1 and 12.6 MB).
+        Assert.Equal([new UpdateInfo("A1", OldCommit, NewCommit, 8.16), new UpdateInfo("T1", "3.14.8", "3.14.9", 14.42)], result.Updates);
     }
 
     [Fact]

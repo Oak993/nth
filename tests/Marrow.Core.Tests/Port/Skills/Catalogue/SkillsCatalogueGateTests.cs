@@ -127,7 +127,9 @@ public sealed class SkillsCatalogueGateTests
         var fixture = CatalogueFixtures.Pinned();
         Assert.True(CatalogueFixtures.Fires(Check(CatalogueFixtures.Change(fixture, "X1", i => i with { PinState = PinState.Unpinned })), CatalogueRules.PinState, "X1"));
         Assert.True(CatalogueFixtures.Fires(Check(CatalogueFixtures.Change(fixture, "X1", i => i with { Artifacts = i.Artifacts.Select(a => a with { Sha256 = null }).ToList() })), CatalogueRules.PinState, "X1"));
-        Assert.True(CatalogueFixtures.Fires(Check(CatalogueFixtures.Change(Real, "T1", i => i with { PinState = PinState.Pinned })), CatalogueRules.PinState, "T1"));
+        // ED-NEW-dl-11: pin run 3 pinned T1; T4 (no official Windows build) is still unpinned, so a declared pin is refused on it, and a pinned item declared unpinned is refused too.
+        Assert.True(CatalogueFixtures.Fires(Check(CatalogueFixtures.Change(Real, "T4", i => i with { PinState = PinState.Pinned })), CatalogueRules.PinState, "T4"));
+        Assert.True(CatalogueFixtures.Fires(Check(CatalogueFixtures.Change(Real, "T1", i => i with { PinState = PinState.Unpinned })), CatalogueRules.PinState, "T1"));
         Assert.True(CatalogueFixtures.Fires(Check(CatalogueFixtures.Change(fixture, "X3", i => i with { Files = [] })), CatalogueRules.PinState, "X3"));
         Assert.True(CatalogueFixtures.Fires(Check(CatalogueFixtures.Change(fixture, "X3", i => i with { LicenceFile = null })), CatalogueRules.PinState, "X3"));
         Assert.True(CatalogueFixtures.Fires(Check(CatalogueFixtures.Change(fixture, "X2", i => i with { Packages = [new CataloguePackage { Name = "fixturemod", Version = null, Licence = "MIT" }] })), CatalogueRules.PinState, "X2"));

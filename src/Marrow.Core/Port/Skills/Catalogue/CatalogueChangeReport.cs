@@ -21,6 +21,9 @@ public enum ChangeCategory
     Skills,
     State,
     Text,
+
+    /// <summary>ED-NEW-dl-7: the item's installer parameters (how a tool or package set is unpacked, and the shims, links and exports it publishes).</summary>
+    Install,
 }
 
 /// <summary>What the owner must look at (ONDEMAND-PLAN.md 2.5, 3.7).</summary>
@@ -272,6 +275,18 @@ public sealed record CatalogueChangeReport(
         foreach (var c in Scalar(ChangeCategory.Text, "summary", old.Summary, now.Summary)) yield return c;
         foreach (var c in Scalar(ChangeCategory.Text, "vendor", old.Vendor, now.Vendor)) yield return c;
         foreach (var c in Scalar(ChangeCategory.Text, "licenceNotes", old.LicenceNotes, now.LicenceNotes)) yield return c;
+
+        var oldInstall = SkillsCatalogueWriter.InstallText(old.Install);
+        var newInstall = SkillsCatalogueWriter.InstallText(now.Install);
+        if (oldInstall != newInstall)
+        {
+            static string Kind(InstallKind kind) => System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(kind.ToString());
+            yield return Make(ChangeCategory.Install, "install", oldInstall, newInstall,
+                old.Install is null ? $"install: added ({Kind(now.Install!.Kind)})"
+                : now.Install is null ? $"install: removed (was {Kind(old.Install.Kind)})"
+                : old.Install.Kind != now.Install.Kind ? $"install: {Kind(old.Install.Kind)} -> {Kind(now.Install.Kind)}"
+                : $"install: the {Kind(now.Install.Kind)} parameters changed");
+        }
     }
 
     private static string Provided(CatalogueProvide provide)

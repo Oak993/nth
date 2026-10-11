@@ -53,8 +53,12 @@ public static class PipelineRoutes
             Validate(stateFile, route);
             routes.Add(route);
         }
-        if (routes.SelectMany(r => r.Shims.Keys).Distinct(StringComparer.OrdinalIgnoreCase).Count() != routes.Sum(r => r.Shims.Count))
+        var names = routes.SelectMany(r => r.Shims.Keys.Concat(r.Links?.Keys ?? Enumerable.Empty<string>())).ToArray();
+        if (names.Distinct(StringComparer.OrdinalIgnoreCase).Count() != names.Length)
             throw new InvalidDataException("Two installed items provide the same shim.");
+        var exports = routes.SelectMany(r => r.Exports?.Keys ?? Enumerable.Empty<string>()).ToArray();
+        if (exports.Distinct(StringComparer.OrdinalIgnoreCase).Count() != exports.Length)
+            throw new InvalidDataException("Two installed items export the same environment name.");
         return routes;
     }
 
@@ -70,15 +74,23 @@ public static class PipelineRoutes
         foreach (var (name, shim) in route.Shims)
         {
             if (name != Path.GetFileName(name) || name.IndexOfAny(['/', '\\']) >= 0 || shim is null ||
-                !Path.IsPathFullyQualified(shim.Target) || !StorePaths.Under(Path.GetFullPath(shim.Target), folder))
+                !Path.IsPathFullyQualified(shim.Target) || !StorePaths.Under(Path.GetFullPath(shim.Target), folder) ||
+                shim.PythonPathFile is { } pth && (!Path.IsPathFullyQualified(pth) || !StorePaths.Under(Path.GetFullPath(pth), folder)))
                 throw new InvalidDataException("Invalid shim route.");
         }
+        // ED-NEW-dl-7: a link names a shim of another item, resolved at each run; an export is a plain environment name (never PATH, which the provider launch owns).
+        foreach (var (name, link) in route.Links ?? [])
+            if (name != Path.GetFileName(name) || name.IndexOfAny(['/', '\\']) >= 0 || link is null || string.IsNullOrEmpty(link.Item) || link.Item == route.Id ||
+                string.IsNullOrEmpty(link.Shim) || link.Arguments is null || route.Shims.Keys.Any(k => k.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidDataException("Invalid shim route.");
+        foreach (var (name, value) in route.Exports ?? [])
+            if (name.Length == 0 || name.Any(c => !(char.IsAsciiLetterOrDigit(c) || c == '_')) || char.IsAsciiDigit(name[0]) || name.Equals("PATH", StringComparison.OrdinalIgnoreCase) || value is null || value.Any(char.IsControl))
+                throw new InvalidDataException("Invalid exported environment.");
     }
 
     public static ShimDefinition ResolveShim(string stateFile, string name)
     {
         var routes = Read(stateFile); // Exactly one state read: never mix pins across a commit.
-        return routes.SelectMany(r => r.Shims).SingleOrDefault(p => p.Key.Equals(name, StringComparison.OrdinalIgnoreCase)).Value
-            ?? throw new InvalidOperationException("The shim's item is not installed.");
+        return PipelineRoutingReader.Resolve(routes, name, Path.GetDirectoryName(Path.GetDirectoryName(stateFile))!);
     }
 }

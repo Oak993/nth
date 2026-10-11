@@ -29,6 +29,8 @@ public sealed class SkillsHost : IDisposable
     private readonly string key;
     private bool disposed;
     private Task? collection;
+    private readonly object shimGate = new();
+    private string? shimLauncher;
 
     private SkillsHost(string key, StorePaths paths, SkillsPipeline pipeline, SkillGenerations generations, ImportedSkillsLibrary imported, CustomSources custom, TermsStep terms, SkillsDownloads fetches, SkillsCatalogue catalogue,
         Func<CatalogueItem, ItemRecord, IProgress<double?>, CancellationToken, Task<InstallPlan>>? downloads, IReadOnlyList<string> unrestored)
@@ -45,6 +47,7 @@ public sealed class SkillsHost : IDisposable
         Catalogue = catalogue;
         GuardedDownloads = downloads;
         Unrestored = unrestored;
+        pipeline.Changed += SyncShims;
     }
 
     public StorePaths Paths { get; }
@@ -130,7 +133,24 @@ public sealed class SkillsHost : IDisposable
         var custom = new CustomSources(Path.Combine(paths.Skills, "own"), options.CustomFiles ?? new DiskCustomSourceFiles(), options.CustomGitHub ?? new PublicGitHubSource(), options.Clock ?? TimeProvider.System);
         var generations = new SkillGenerations(paths, pipeline, options.Protection, options.ClashSource, new CombinedOwnSkillSource(imported, custom), custom);
         var terms = new TermsStep(options.Catalogue, () => pipeline.State, (id, at) => pipeline.AcceptTerms(id, at), options.LicenceText, options.Clock);
-        return new SkillsHost(paths.Root, paths, pipeline, generations, imported, custom, terms, new SkillsDownloads(pipeline, options.Catalogue, options.Installable), options.Catalogue, guarded, trust.Unrestored);
+        return new SkillsHost(paths.Root, paths, pipeline, generations, imported, custom, terms, new SkillsDownloads(pipeline, options.Catalogue, options.Installable), options.Catalogue, guarded, trust.Unrestored)
+            { shimLauncher = options.ShimLauncher };
+    }
+
+    /// <summary>
+    /// RR-14 (ONDEMAND-PLAN.md 3.6, ED-NEW-dl-10): <c>addons\bin</c> follows what the selected pins publish, after every install, update, repair, removal or reset (the pipeline's
+    /// <see cref="SkillsPipeline.Changed"/>) and once per launch with the startup collection, off the launch path. A failure is logged, never thrown: the next change or launch tries again.
+    /// </summary>
+    public void SyncShims()
+    {
+        lock (shimGate)
+        {
+            try { if (PipelineShimSync.Sync(Paths, shimLauncher) is { } problem) Log.Error("skills: " + problem); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or System.Text.Json.JsonException or ArgumentException)
+            {
+                Log.Error("skills: the shims could not be brought up to date: " + error.Message);
+            }
+        }
     }
 
     /// <summary>
@@ -144,7 +164,7 @@ public sealed class SkillsHost : IDisposable
             ObjectDisposedException.ThrowIf(disposed, this);
             return collection ??= Task.Run(() =>
             {
-                try { Pipeline.Collect(); }
+                try { Pipeline.Collect(); SyncShims(); }
                 catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or ObjectDisposedException)
                 {
                     Log.Error("skills: the startup collection failed: " + error.Message);

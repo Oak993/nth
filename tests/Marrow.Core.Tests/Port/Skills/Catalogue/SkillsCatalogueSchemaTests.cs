@@ -31,7 +31,7 @@ public sealed class SkillsCatalogueSchemaTests
         Assert.NotNull(stream);
         Assert.Equal("Marrow.Core.SkillsCatalogue.json", SkillsCatalogueLoader.ResourceName);
         Assert.Equal(SkillsCatalogueCounts.SchemaVersion, CatalogueFixtures.Real.Schema);
-        Assert.Equal("2026-10-04", CatalogueFixtures.Real.ReadOn);
+        Assert.Equal("2026-10-11", CatalogueFixtures.Real.ReadOn); // ED-NEW-dl-11: the day pin run 3 read the sources
     }
 
     [Fact]

@@ -85,10 +85,13 @@ public sealed class SkillsCatalogueCountsTests
         Assert.Equal(["academy-guide", "algorithmic-art", "canvas-design", "claude-api", "discernment-nudge", "frontend-design", "internal-comms",
             "mcp-builder", "skill-creator", "slack-gif-creator", "theme-factory", "web-artifacts-builder", "webapp-testing"], Folders("A1"));
         Assert.DoesNotContain("brand-guidelines", Folders("A1"));
-        Assert.Equal(["docx", "xlsx", "pptx", "pdf", "doc-coauthoring"], Folders("A2"));
+        // ED-NEW-dl-11: pin run 3 lists every pinned set's skills in the ordinal order of their paths (the plan wrote A2 and O3 in its own order; O2's skills/.system/plugin-creator comes after its curated folders).
+        Assert.Equal(["doc-coauthoring", "docx", "pdf", "pptx", "xlsx"], Folders("A2"));
         Assert.Equal(["imagegen", "openai-docs", "review-agent", "skill-creator"], Folders("O1"));
         Assert.DoesNotContain("skill-installer", Folders("O1"));
-        Assert.Equal(["doc", "spreadsheet", "slides", "pdf"], Folders("O3"));
+        Assert.Equal(["doc", "pdf", "slides", "spreadsheet"], Folders("O3"));
+        Assert.All(CatalogueFixtures.Real.Items.Where(i => i.PinState == PinState.Pinned), i => Assert.Equal(i.Skills.Select(s => s.Path!).Order(StringComparer.Ordinal), i.Skills.Select(s => s.Path!)));
+        Assert.Equal("plugin-creator", Folders("O2")[^1]);
     }
 
     [Fact]
@@ -133,15 +136,25 @@ public sealed class SkillsCatalogueCountsTests
     [Fact]
     [Trait("Feature", "SK-1")]
     [Trait("Rule", "R-TEST-4")]
-    public void The_sizes_transcribed_from_the_plan_add_up_to_the_totals_the_plan_prints()
+    public void Every_pinned_size_is_the_one_the_pin_run_measured_and_the_plan_s_estimates_stay_only_where_nothing_was_measured()
     {
-        // ONDEMAND-PLAN.md 2.1: "about 49 MB in all". 2.2: "The common document case (T1, T1p, P1, P2, P3, T3, T4) is about 480 MB."
+        // ONDEMAND-PLAN.md 2.1: "about 49 MB in all" for the sets the plan sizes.
         Assert.Equal(49, Math.Round(PlanSets.Sum(s => s.ApproxSizeMb!.Value), MidpointRounding.AwayFromZero));
+        // ED-NEW-dl-11: pin run 3 measured every pinned item, a set by its files and a tool or package set by its downloads, in MB to two places (the plan's 356 MB T3, 12.6 MB T1,
+        // 325.3 MB T10 and unsized P6 were estimates); the items it could not pin keep the plan's estimates.
+        foreach (var item in CatalogueFixtures.Real.Items.Where(i => i.PinState == PinState.Pinned))
+        {
+            var bytes = item.Kind is ItemKind.Skillset or ItemKind.Plugin ? item.Files.Sum(f => f.Size) : item.Artifacts.Sum(a => a.Size!.Value);
+            Assert.Equal(Math.Round(bytes / 1e6, 2), item.ApproxSizeMb!.Value, 6);
+        }
+        Assert.Equal(new (string, double?)[] { ("A3", 8.1), ("A4", 2), ("A6", null), ("O4", 3.9), ("O5", 18.2), ("T4", 43.7) },
+            CatalogueFixtures.Real.Items.Where(i => i.PinState != PinState.Pinned).Select(i => (i.Id, i.ApproxSizeMb)));
         double Mb(string id) => CatalogueFixtures.Item(CatalogueFixtures.Real, id).ApproxSizeMb!.Value;
-        Assert.Equal(480, Math.Round(new[] { "T1", "T1p", "P1", "P2", "P3", "T3", "T4" }.Sum(Mb), MidpointRounding.AwayFromZero));
-        Assert.Equal(356, Mb("T3"));
-        Assert.Equal(325.3, Mb("T10"), 6);
-        Assert.Equal(12.6, Mb("T1"), 6);
-        Assert.Null(CatalogueFixtures.Item(CatalogueFixtures.Real, "P6").ApproxSizeMb);
+        // ONDEMAND-PLAN.md 2.2: "The common document case (T1, T1p, P1, P2, P3, T3, T4) is about 480 MB"; measured (with T4's estimate) it is 557 MB.
+        Assert.Equal(557, Math.Round(new[] { "T1", "T1p", "P1", "P2", "P3", "T3", "T4" }.Sum(Mb), MidpointRounding.AwayFromZero));
+        Assert.Equal(374.87, Mb("T3"), 6);
+        Assert.Equal(325.32, Mb("T10"), 6);
+        Assert.Equal(14.42, Mb("T1"), 6);
+        Assert.Equal(43.54, Mb("P6"), 6);
     }
 }

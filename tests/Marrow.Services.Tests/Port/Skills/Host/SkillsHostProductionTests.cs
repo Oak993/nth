@@ -43,18 +43,23 @@ public sealed class SkillsHostProductionTests
     }
 
     [Fact]
-    public void The_real_catalogue_owes_terms_for_the_non_open_sets_and_cannot_accept_them_until_the_pin_run_fills_their_licence_hash()
+    public void The_real_catalogue_owes_terms_for_the_non_open_sets_and_accepts_them_only_where_the_pin_run_recorded_the_licence_hash()
     {
         var root = SkillsHostRig.FreshRoot();
         try
         {
             using var host = SkillsHost.Open(root, SkillsHostOptions.Production() with { ClashSource = _ => [] });
+            // ED-NEW-dl-11: pin run 3 recorded A2's licence file hash; O5 stays blocked (no licence file covers it), so its terms still cannot be accepted.
             var a2 = host.Terms.Offer("A2")!;
             Assert.Equal("Under Anthropic's terms", a2.Label);
-            Assert.False(a2.CanAccept);
-            Assert.Equal("Under OpenAI's terms", host.Terms.Offer("O5")!.Label);
+            Assert.True(a2.CanAccept);
+            var o5 = host.Terms.Offer("O5")!;
+            Assert.Equal("Under OpenAI's terms", o5.Label);
+            Assert.False(o5.CanAccept);
             Assert.Null(host.Terms.Offer("A1")); // an open set owes none
-            Assert.Throws<InvalidOperationException>(() => host.Terms.Accept("A2", readControlChecked: true));
+            Assert.Throws<InvalidOperationException>(() => host.Terms.Accept("O5", readControlChecked: true));
+            Assert.Throws<InvalidOperationException>(() => host.Terms.Accept("A2", readControlChecked: false));
+            host.Terms.Accept("A2", readControlChecked: true);
         }
         finally { SkillsHostRig.Delete(root); }
     }

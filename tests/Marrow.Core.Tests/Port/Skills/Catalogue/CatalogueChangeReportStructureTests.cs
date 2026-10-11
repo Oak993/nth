@@ -98,7 +98,7 @@ public sealed class CatalogueChangeReportStructureTests
         var known = new[]
         {
             "Id", "Kind", "Title", "Summary", "Vendor", "CountState", "PinState", "Pin", "PinHint", "SourceUrl", "LicenceName", "LicenceUrl", "LicenceFile", "LicenceNotes", "TermsClass",
-            "ApproxSizeMb", "Needs", "Provides", "Artifacts", "Files", "SkillCount", "SkillsListed", "Skills", "Folders", "Packages",
+            "ApproxSizeMb", "Needs", "Provides", "Artifacts", "Files", "SkillCount", "SkillsListed", "Skills", "Folders", "Packages", "Install",
         };
         Assert.Equal(known.OrderBy(k => k, StringComparer.Ordinal), typeof(CatalogueItem).GetProperties().Select(p => p.Name).OrderBy(k => k, StringComparer.Ordinal));
         Assert.Equal(["Folder", "Name", "Needs", "Path", "Pin", "TermsClass"], typeof(CatalogueSkill).GetProperties().Select(p => p.Name).OrderBy(k => k, StringComparer.Ordinal));
@@ -119,8 +119,29 @@ public sealed class CatalogueChangeReportStructureTests
         {
             ["PinHint"] = i => i with { PinHint = "abcdef0" }, ["Artifacts"] = i => i with { Artifacts = [] },
             ["Packages"] = i => i with { Packages = [new CataloguePackage { Name = "p", Version = "1", Licence = null }] },
+            ["Install"] = i => i with { Install = new CatalogueInstall { Kind = InstallKind.Pyset, PythonPackages = true } },
         };
         foreach (var (field, change) in tool)
             Assert.True(Compare(change, "X2").ChangesFor("X2").Count > 0, field);
+    }
+
+    [Fact]
+    [Trait("Feature", "RR-14")]
+    [Trait("Rule", "R-TEST-4")]
+    public void A_change_of_installer_parameters_is_an_install_change_named_by_the_installer_kind_with_both_texts()
+    {
+        // ED-NEW-dl-7: the report names every change of how an item is installed, so an owner reading a pin run's report sees a new shim, export or archive folder too.
+        CatalogueInstall Zip(string? prefix) => new() { Kind = InstallKind.Zip, Archives = [new CatalogueInstallArchive { Artifact = "tool.zip", Prefix = prefix }] };
+        SkillsCatalogue With(CatalogueInstall? install) => ChangeReportFixtures.Mutate(ChangeReportFixtures.Previous(), "X2", i => i with { Install = install });
+        CatalogueChange Install(CatalogueInstall? from, CatalogueInstall? to) =>
+            CatalogueChangeReport.Compare(With(from), With(to)).ChangesFor("X2").Single(c => c.Category == ChangeCategory.Install);
+        var added = Install(null, Zip(null));
+        Assert.Equal(("install: added (zip)", (string?)null, SkillsCatalogueWriter.InstallText(Zip(null))), (added.Message, added.Old, added.New));
+        var changed = Install(Zip(null), Zip("tool"));
+        Assert.Equal(("install: the zip parameters changed", SkillsCatalogueWriter.InstallText(Zip(null)), SkillsCatalogueWriter.InstallText(Zip("tool"))), (changed.Message, changed.Old, changed.New));
+        Assert.Contains("\"prefix\": \"tool\"", changed.New, StringComparison.Ordinal);
+        Assert.Equal("install: zip -> pyset", Install(Zip(null), new CatalogueInstall { Kind = InstallKind.Pyset, PythonPackages = true }).Message);
+        Assert.Equal("install: removed (was zip)", Install(Zip(null), null).Message);
+        Assert.Empty(CatalogueChangeReport.Compare(With(Zip("tool")), With(Zip("tool"))).ChangesFor("X2"));
     }
 }

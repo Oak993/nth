@@ -88,4 +88,24 @@ internal static class CatalogueFixtures
         Schema = SkillsCatalogueCounts.SchemaVersion, ReadOn = "2026-10-04",
         Items = [PinnedTool(), PinnedPyset(), PinnedSkillset()],
     };
+
+    // ED-NEW-dl-7: the pinned fixture as the release gate wants it, with each runnable item's installer parameters and its licence file pinned in files.
+    public static CatalogueItem InstallableTool(string id = "X1", string exeName = "fixturetool") => PinnedTool(id, exeName) with
+    {
+        Files = [new CatalogueFile { Path = "LICENSE", Size = 3, Sha256 = Sha("MIT") }],
+        Install = new CatalogueInstall
+        {
+            Kind = InstallKind.Zip, Archives = [new CatalogueInstallArchive { Artifact = "tool.zip", Prefix = "tool" }],
+            Shims = [new CatalogueShim { Name = exeName + ".exe", Target = "tool/bin/" + exeName + ".exe" }],
+            Exports = [new CatalogueExport { Name = "FIXTURETOOL_HOME", Value = "{folder}/tool" }],
+        },
+    };
+
+    public static CatalogueItem InstallablePyset(string id = "X2", string moduleName = "fixturemod") => PinnedPyset(id, moduleName) with
+    {
+        Files = [new CatalogueFile { Path = "LICENSE", Size = 3, Sha256 = Sha("MIT") }],
+        Install = new CatalogueInstall { Kind = InstallKind.Pyset, PythonPackages = true },
+    };
+
+    public static SkillsCatalogue Installable() => Pinned() with { Items = [InstallableTool(), InstallablePyset(), PinnedSkillset()] };
 }

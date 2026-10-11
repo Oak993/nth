@@ -78,6 +78,13 @@ public sealed class ItemInstaller(IInstallLock? installLock = null, IInstallProc
                 case InstallerKind.Skillset: SkillsetInstaller.Build(plan, transaction.Path); break;
                 default: throw new InvalidDataException("Unknown installer kind.");
             }
+            foreach (var marker in plan.Markers ?? [])
+            {
+                var path = InstallPaths.Under(transaction.Path, InstallPaths.Relative(marker));
+                if (File.Exists(path) && new FileInfo(path).Length == 0) continue;
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                using (new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None)) { }
+            }
             var licenceTarget = InstallPaths.Under(transaction.Path, licence);
             if (!File.Exists(licenceTarget)) InstallTree.Copy(plan.LocalFiles[licence], licenceTarget);
             InstallHash.Verify(licenceTarget, licencePin.Size, licencePin.Sha256);

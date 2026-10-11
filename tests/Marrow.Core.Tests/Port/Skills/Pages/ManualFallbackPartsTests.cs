@@ -26,13 +26,14 @@ public sealed class ManualFallbackPartsTests
     public void A_repository_is_prose_with_only_its_commit_in_code()
     {
         Assert.Equal([new ManualFallbackPart("the repository at commit ", false), new ManualFallbackPart("8444efc", true), new ManualFallbackPart(", as a .zip", false)], Of("A3").Parts);
-        Assert.Equal(["45d05d7", "e6afb0d", "49f948f"], Code(Of("O3")));
+        Assert.Equal(["45d05d7", "49f948f", "e6afb0d"], Code(Of("O3")));
     }
 
     [Fact]
     public void A_tool_is_its_file_names_in_code_and_never_a_repository_commit()
     {
-        Assert.Equal(["python-3.14.8-embed-amd64.zip"], Code(Of("T1")));
+        Assert.Equal(["python-3.14.8-embed-amd64.zip", "pip-26.2.1-py3-none-any.whl"], Code(Of("T1")));
+        Assert.Equal(" and ", Assert.Single(Of("T1").Parts, p => !p.Code).Text);
         Assert.DoesNotContain("commit", Of("T1").File, StringComparison.Ordinal);
         Assert.Equal(["chrome-win64.zip", "chrome-headless-shell-win64.zip"], Code(Of("T10")));
         Assert.Equal(" and ", Assert.Single(Of("T10").Parts, p => !p.Code).Text);

@@ -126,6 +126,108 @@ public sealed record CatalogueItem
     public IReadOnlyList<CatalogueFolder> Folders { get; init; } = [];
 
     public IReadOnlyList<CataloguePackage> Packages { get; init; } = [];
+
+    /// <summary>
+    /// How a tool or package set is installed from its verified artifacts (ONDEMAND-PLAN.md 3.4's kinds) and what it publishes (3.6's shims, the Python package folders and the
+    /// environment a tool exports). ENGINEERING DECISION (ED-NEW-dl-7): installer parameters are catalogue data, pinned with the artifacts by the same pin run and reviewed with them;
+    /// absent for skill sets and plugins, and an item without it is never offered as a download.
+    /// </summary>
+    public CatalogueInstall? Install { get; init; }
+}
+
+/// <summary>ONDEMAND-PLAN.md 3.4: <c>zip</c>, <c>pythonEmbed</c>, <c>pyset</c>, <c>nodeset</c>, <c>msiAdmin</c>, <c>sfx7z</c>.</summary>
+public enum InstallKind
+{
+    Zip,
+    PythonEmbed,
+    Pyset,
+    Nodeset,
+    MsiAdmin,
+    Sfx7z,
+}
+
+/// <summary>The installer parameters of one tool or package set (ED-NEW-dl-7). Paths are relative to the installed folder, with <c>/</c>.</summary>
+public sealed record CatalogueInstall
+{
+    public required InstallKind Kind { get; init; }
+
+    /// <summary><c>zip</c>: every archive artifact and the folder it unpacks into (none: the item folder). <c>pythonEmbed</c>: the interpreter archive.</summary>
+    public IReadOnlyList<CatalogueInstallArchive> Archives { get; init; } = [];
+
+    /// <summary><c>pythonEmbed</c>: the pip wheel and the <c>._pth</c> layout (3.4).</summary>
+    public CataloguePythonEmbed? Python { get; init; }
+
+    /// <summary><c>nodeset</c>: each tarball artifact, where the lock puts it (<c>node_modules/...</c>) and its npm integrity.</summary>
+    public IReadOnlyList<CatalogueNodePackage> NodeTree { get; init; } = [];
+
+    /// <summary>Empty files the tool's own runtime looks for (Playwright's <c>INSTALLATION_COMPLETE</c>).</summary>
+    public IReadOnlyList<string> Markers { get; init; } = [];
+
+    /// <summary>The executables published into <c>addons\bin</c> (3.6), one per provided name.</summary>
+    public IReadOnlyList<CatalogueShim> Shims { get; init; } = [];
+
+    /// <summary>Environment every shimmed child gets while the item is installed; <c>{folder}</c> in a value is the installed folder.</summary>
+    public IReadOnlyList<CatalogueExport> Exports { get; init; } = [];
+
+    /// <summary><c>pyset</c>: the installed folder is listed on the Python path of every Python shim run (3.4).</summary>
+    public bool PythonPackages { get; init; }
+}
+
+public sealed record CatalogueInstallArchive
+{
+    public required string Artifact { get; init; }
+
+    public string? Prefix { get; init; }
+}
+
+public sealed record CataloguePythonEmbed
+{
+    public required string PipArtifact { get; init; }
+
+    public required string PthFile { get; init; }
+
+    public required string StandardLibraryZip { get; init; }
+
+    public required string AgentVersion { get; init; }
+}
+
+public sealed record CatalogueNodePackage
+{
+    public required string Artifact { get; init; }
+
+    public required string Path { get; init; }
+
+    public required string Integrity { get; init; }
+}
+
+/// <summary>
+/// One shim: <see cref="Name"/> runs <see cref="Target"/> (a file of this item) or, when <see cref="Item"/> is set, the shim <see cref="Shim"/> of that needed item
+/// (pip runs Python's own interpreter). <see cref="Arguments"/> go first; <c>{folder}</c> in one is this item's installed folder.
+/// </summary>
+public sealed record CatalogueShim
+{
+    public required string Name { get; init; }
+
+    public string? Target { get; init; }
+
+    public string? Item { get; init; }
+
+    public string? Shim { get; init; }
+
+    public IReadOnlyList<string> Arguments { get; init; } = [];
+
+    /// <summary>The target is the embedded Python: its <c>._pth</c> is rewritten per run with the installed package sets (3.6).</summary>
+    public bool Python { get; init; }
+
+    /// <summary>The target is LibreOffice: each run gets its own profile (3.6).</summary>
+    public bool LibreOffice { get; init; }
+}
+
+public sealed record CatalogueExport
+{
+    public required string Name { get; init; }
+
+    public required string Value { get; init; }
 }
 
 public sealed record CatalogueProvide
