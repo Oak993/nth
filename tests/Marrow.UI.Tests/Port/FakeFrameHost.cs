@@ -39,6 +39,12 @@ internal sealed class FakeFrameHost : IFrameHost
 
     // As production: on main, at Normal (ahead of a queued render job).
     public void Post(Action job) => Dispatcher.UIThread.Post(job, DispatcherPriority.Normal);
+
+    // The process-wide hooks are set once, by the first Win32 source of the test run; a test calls
+    // AvaloniaFrameSource.WindowsChanged itself, as the production cloak watch does.
+    public Action? CloakWatch { get; private set; }
+
+    public void WatchCloaking(Action changed) => CloakWatch = changed;
 }
 
 // A one-shot timer on SwiftClock (a test's ManualTimeProvider): armed for an instant, fired by the test when it is due, as

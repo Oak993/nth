@@ -88,8 +88,8 @@ public interface IRefreshFrameSource : IFrameSource
 /// <summary>
 /// PORT-ONLY. The production frame source: <c>TopLevel.RequestAnimationFrame</c>, its frame time passed on.
 /// ED-NEW-lean-7: on the Windows platform it holds a draw loop's request back to an instant (<see cref="IWakeFrameSource"/>),
-/// and while every shown window of the app is minimised or cloaked it asks for no frames for draw loops: their requests wait,
-/// and are asked for as soon as a window can be seen again. <see cref="RequestFrame"/> is asked for at once, always. Limit:
+/// and while every shown window of the app is minimised or cloaked by the shell (another virtual desktop) it asks for no frames
+/// for draw loops: their requests wait, and are asked for as soon as a window can be seen again. <see cref="RequestFrame"/> is asked for at once, always. Limit:
 /// frames on the compositor's render thread (<see cref="RenderFrames"/>: ambient and onRenderThread timelines) are
 /// <see cref="RenderFrameSource"/>'s, and are neither held back nor parked here.
 /// </summary>
@@ -265,42 +265,47 @@ public sealed class AvaloniaFrameSource : IWakeFrameSource, IRenderFrameSourcePr
             _ = compositor.RequestCommitAsync();
     }
 
+    // Only a yes is kept (review 2026-10-11): a top level asked before its platform window exists is asked again at the next
+    // request, so a source made early never stays without holding back and parking for the life of the process.
     private bool IsWin32
     {
         get
         {
             if (win32 is { } known) return known;
-            win32 = host.IsWin32(topLevel);
-            if (win32 == true)
+            if (!host.IsWin32(topLevel)) return false;
+            win32 = true;
+            // Weakly: a source that is gone stops listening (tests make many; the app one).
+            var self = new WeakReference<AvaloniaFrameSource>(this);
+            Action? changed = null;
+            changed = () =>
             {
-                // Weakly: a source that is gone stops listening (tests make many; the app one).
-                var self = new WeakReference<AvaloniaFrameSource>(this);
-                Action? changed = null;
-                changed = () =>
+                if (!self.TryGetTarget(out var source))
                 {
-                    if (!self.TryGetTarget(out var source))
-                    {
-                        HostsChanged -= changed;
-                        return;
-                    }
-                    source.hostsChanged = true;
-                    if (source.parked.Count > 0) source.host.Post(source.Recheck);
-                };
-                HostsChanged += changed;
-                Hook();
-            }
-            return win32.Value;
+                    HostsChanged -= changed;
+                    return;
+                }
+                source.hostsChanged = true;
+                if (source.parked.Count > 0) source.host.Post(source.Recheck);
+            };
+            HostsChanged += changed;
+            Hook(host);
+            return true;
         }
     }
 
-    // A window minimised, restored, shown, hidden or activated (back from another virtual desktop) is looked at again at once.
-    private static void Hook()
+    // A window minimised, restored, shown, hidden or activated is looked at again at once; so is one Windows cloaks or uncloaks
+    // (another virtual desktop), which raises no Avalonia property change (review 2026-10-11: the host's cloak watch).
+    private static void Hook(IFrameHost host)
     {
         if (Interlocked.Exchange(ref hooked, 1) != 0) return;
         Window.WindowStateProperty.Changed.AddClassHandler<Window>((_, _) => HostsChanged?.Invoke());
         WindowBase.IsActiveProperty.Changed.AddClassHandler<WindowBase>((_, _) => HostsChanged?.Invoke());
         Visual.IsVisibleProperty.Changed.AddClassHandler<Window>((_, _) => HostsChanged?.Invoke());
+        host.WatchCloaking(WindowsChanged);
     }
+
+    /// <summary>ED-NEW-lean-7: something about the app's windows changed: every source looks at them again.</summary>
+    internal static void WindowsChanged() => HostsChanged?.Invoke();
 
     // The precise timer holds requests back; without one (older Windows) nothing is held back, and the looks at the windows
     // while requests are parked use a timer of the system's resolution instead. Not a Win32 window (headless): neither.
@@ -403,8 +408,11 @@ internal interface IFrameHost
     /// <summary>A one-shot timer of the system's resolution whose wake-up runs on main (the looks without a precise timer); null when there is none.</summary>
     IWakeTimer? CoarseTimer(Action fired);
 
-    /// <summary>Whether no shown window of the app can be seen: every one minimised (IsIconic) or cloaked (DWMWA_CLOAKED).</summary>
+    /// <summary>Whether no shown window of the app can be seen: every one minimised (IsIconic) or cloaked by the shell (DWMWA_CLOAKED).</summary>
     bool NoWindowSeen();
+
+    /// <summary>Calls <paramref name="changed"/> on main whenever Windows cloaks or uncloaks a window of the app (once per process).</summary>
+    void WatchCloaking(Action changed);
 
     /// <summary>Runs <paramref name="job"/> on main ahead of the next frame's render job.</summary>
     void Post(Action job);
@@ -440,11 +448,59 @@ internal sealed class Win32FrameHost : IFrameHost
 
     private static nint Handle(Window window) => window.TryGetPlatformHandle() is { HandleDescriptor: "HWND" } handle ? handle.Handle : 0;
 
-    /// <summary>Minimised (IsIconic) or cloaked (DWMWA_CLOAKED: another virtual desktop); a failed query counts as not cloaked.</summary>
+    /// <summary>Minimised (IsIconic) or cloaked by the shell (DWMWA_CLOAKED: another virtual desktop); a failed query counts as not cloaked.</summary>
     internal static bool Hidden(nint window) =>
-        IsIconic(window) || DwmGetWindowAttribute(window, DwmwaCloaked, out var cloaked, sizeof(int)) == 0 && cloaked != 0;
+        HiddenBy(IsIconic(window), DwmGetWindowAttribute(window, DwmwaCloaked, out var cloaked, sizeof(int)) == 0 ? cloaked : 0);
+
+    /// <summary>
+    /// Review 2026-10-11: only the shell's cloak hides a window here (DWM_CLOAKED_SHELL: another virtual desktop). A window the app
+    /// cloaks itself (DWM_CLOAKED_APP: WindowManager.SettingsCloak, the boot stage, ED-236) is being composed to be shown, and
+    /// is shown by an uncloak that raises no Avalonia event: it counts as seen, so its draw loops run on as before.
+    /// </summary>
+    internal static bool HiddenBy(bool iconic, int cloaked) => iconic || (cloaked & DwmCloakedShell) != 0;
+
+    /// <summary>
+    /// Review 2026-10-11: an out-of-context WinEvent hook for the app's own process (EVENT_OBJECT_CLOAKED, EVENT_OBJECT_UNCLOAKED), set
+    /// on main, which delivers there: a window back from another virtual desktop is looked at again at once, not at the next
+    /// 100 ms look. Nothing outside the process is watched or changed.
+    /// </summary>
+    public void WatchCloaking(Action changed)
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => WatchCloaking(changed), DispatcherPriority.Normal);
+            return;
+        }
+        if (cloakHook != 0) return;
+        cloakChanged = changed;
+        cloakProc = (_, _, window, objectId, _, _, _) =>
+        {
+            if (objectId == ObjidWindow && window != 0) cloakChanged?.Invoke();
+        };
+        try
+        {
+            cloakHook = SetWinEventHook(EventObjectCloaked, EventObjectUncloaked, 0, cloakProc, (uint)Environment.ProcessId, 0, WineventOutOfContext);
+        }
+        catch (DllNotFoundException) { }
+        catch (EntryPointNotFoundException) { }
+    }
+
+    /// <summary>Whether the cloak watch is set (tests).</summary>
+    internal bool WatchingCloaks => cloakHook != 0;
 
     private const int DwmwaCloaked = 14;
+    private const int DwmCloakedShell = 0x2;
+    private const uint EventObjectCloaked = 0x8017, EventObjectUncloaked = 0x8018, WineventOutOfContext = 0;
+    private const int ObjidWindow = 0;
+    private nint cloakHook;
+    private Action? cloakChanged;
+    private WinEventProc? cloakProc; // kept alive for as long as the hook
+
+    private delegate void WinEventProc(nint hook, uint eventType, nint window, int objectId, int childId, uint thread, uint time);
+
+    [DllImport("user32.dll")]
+    private static extern nint SetWinEventHook(uint eventMin, uint eventMax, nint module, WinEventProc proc, uint process, uint thread, uint flags);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -532,6 +588,8 @@ internal sealed class WakeTimer : IWakeTimer, IDisposable
 /// each with the new time. A callback requested during an Advance waits for the next one.
 /// ED-NEW-lean-7: with a <see cref="WakePeriod"/> set, a request held back to an instant waits for the first Advance at
 /// which SwiftClock has reached it; without one (the default) it waits for the next Advance as any request.
+/// Review 2026-10-11: with <see cref="Unseen"/> set, a draw loop's request is held as <see cref="AvaloniaFrameSource"/> parks
+/// it while no window can be seen (one asked for at once while a window could be seen still gets its frame).
 /// </summary>
 public sealed class ManualFrameSource : IWakeFrameSource
 {
@@ -539,12 +597,21 @@ public sealed class ManualFrameSource : IWakeFrameSource
     private readonly List<Request> waiting = [];
     private long delivered;
 
-    private sealed class Request(Action<TimeSpan> frame, ContinuousInstant? wake = null)
+    private sealed class Request(Action<TimeSpan> frame, ContinuousInstant? wake = null, bool parks = false)
     {
         public Action<TimeSpan> Frame { get; } = frame;
         public ContinuousInstant? Wake { get; } = wake;
+        public bool Parks { get; } = parks; // a draw loop's request not yet asked for: held while Unseen
         public bool Withdrawn { get; set; }
     }
+
+    /// <summary>
+    /// ED-NEW-lean-7 (review 2026-10-11): no window of the app can be seen. Draw loops' requests (<see cref="RequestFrameAt"/>)
+    /// made meanwhile, or held back to an instant, wait until it is cleared; <see cref="IFrameSource.RequestFrame"/> never waits.
+    /// </summary>
+    public bool Unseen { get { lock (gate) return unseen; } set { lock (gate) unseen = value; } }
+
+    private bool unseen;
 
     /// <summary>ED-NEW-lean-7: the display's refresh period a test gives it; null (the default): it holds nothing back.</summary>
     public TimeSpan? WakePeriod { get; set; }
@@ -574,7 +641,11 @@ public sealed class ManualFrameSource : IWakeFrameSource
     public void RequestFrameAt(ContinuousInstant? wake, Action<TimeSpan> frame)
     {
         ArgumentNullException.ThrowIfNull(frame);
-        lock (gate) waiting.Add(new Request(frame, WakePeriod is null ? null : wake));
+        lock (gate)
+        {
+            var held = WakePeriod is null ? null : wake;
+            waiting.Add(new Request(frame, held, parks: unseen || held is not null));
+        }
     }
 
     public void CancelFrame(Action<TimeSpan> frame)
@@ -602,11 +673,13 @@ public sealed class ManualFrameSource : IWakeFrameSource
         {
             now += by;
             time = now;
-            if (waiting.Exists(request => request.Wake is not null))
+            if (unseen || waiting.Exists(request => request.Wake is not null))
             {
                 var clock = SwiftClock.Now;
-                due = waiting.FindAll(request => request.Wake is not { } wake || wake <= clock);
-                waiting.RemoveAll(request => request.Wake is not { } wake || wake <= clock);
+                var hidden = unseen;
+                bool Due(Request request) => (request.Wake is not { } wake || wake <= clock) && !(hidden && request.Parks);
+                due = waiting.FindAll(Due);
+                waiting.RemoveAll(Due);
             }
             else
             {

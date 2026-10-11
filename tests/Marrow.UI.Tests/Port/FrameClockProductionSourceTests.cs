@@ -233,6 +233,92 @@ public sealed class FrameClockProductionSourceTests(HeadlessSession headless)
         window.Close();
     });
 
+    // Review 2026-10-11: only a yes is kept. A top level asked before its platform window exists (no HWND yet) is asked
+    // again at the next request, so the process's source never stays without holding back and parking.
+    [Fact]
+    [Trait("Decision", "ED-NEW-lean-7")]
+    public void A_no_from_the_platform_is_asked_again_and_a_yes_holds_back_from_then_on() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var window = ShownWindow();
+        var host = new FakeFrameHost { Win32 = false, Period = Refresh240 };
+        var frames = new AvaloniaFrameSource(window, host);
+        Assert.Null(frames.WakePeriod);
+        var ran = 0;
+        frames.RequestFrameAt(SwiftClock.Now + TimeSpan.FromMilliseconds(50), _ => ran++);
+        Tick();
+        Assert.Equal(1, ran); // not a Win32 window yet: asked for at once, as before
+        host.Win32 = true; // the platform window exists now
+        Assert.Equal(Refresh240, frames.WakePeriod);
+        frames.RequestFrameAt(SwiftClock.Now + TimeSpan.FromMilliseconds(50), _ => ran++);
+        Assert.Equal([TimeSpan.FromMilliseconds(50)], host.Precise!.Arms);
+        Tick(3);
+        Assert.Equal(1, ran);
+        host.Win32 = false; // a yes is kept
+        Assert.Equal(Refresh240, frames.WakePeriod);
+        runtime.Advance(TimeSpan.FromMilliseconds(50));
+        host.Precise.FireIfDue();
+        Tick();
+        Assert.Equal(2, ran);
+        window.Close();
+    });
+
+    // Review 2026-10-11: a window Windows uncloaks (back from another virtual desktop) raises no Avalonia property change; the
+    // host's cloak watch calls AvaloniaFrameSource.WindowsChanged, and parked requests are asked for at the next frame, not at
+    // the next 100 ms look.
+    [Fact]
+    [Trait("Decision", "ED-NEW-lean-7")]
+    public void A_cloak_change_looks_at_the_windows_again_at_once_and_resumes_parked_requests_at_the_next_frame() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var window = ShownWindow();
+        var unseen = true;
+        var host = new FakeFrameHost { Period = Refresh240, Probe = () => unseen };
+        var frames = new AvaloniaFrameSource(window, host);
+        var ran = 0;
+        frames.RequestFrameAt(null, _ => ran++);
+        Assert.Equal(1, frames.Pending);
+        Tick(3);
+        Assert.Equal(0, ran);
+        var looks = host.Looks;
+        unseen = false;
+        AvaloniaFrameSource.WindowsChanged(); // the WinEvent hook's call (EVENT_OBJECT_UNCLOAKED); no time has passed
+        Tick();
+        Assert.Equal(1, ran);
+        Assert.Equal(looks + 1, host.Looks);
+        Assert.Equal(0, frames.Pending);
+        window.Close();
+    });
+
+    // Review 2026-10-11: only the shell's cloak (another virtual desktop) hides a window. A window the app cloaks itself
+    // (WindowManager.SettingsCloak, the boot stage: DWM_CLOAKED_APP) is being composed to be shown and counts as seen.
+    [Theory]
+    [Trait("Decision", "ED-NEW-lean-7")]
+    [InlineData(false, 0, false)]
+    [InlineData(true, 0, true)]   // minimised
+    [InlineData(false, 0x1, false)] // DWM_CLOAKED_APP: the app's own cloak
+    [InlineData(false, 0x2, true)]  // DWM_CLOAKED_SHELL: another virtual desktop
+    [InlineData(false, 0x4, false)] // DWM_CLOAKED_INHERITED alone: as its owner, which is checked on its own
+    [InlineData(false, 0x6, true)]
+    [InlineData(true, 0x1, true)]
+    public void Only_a_minimised_or_shell_cloaked_window_is_hidden(bool iconic, int cloaked, bool hidden) =>
+        Assert.Equal(hidden, Win32FrameHost.HiddenBy(iconic, cloaked));
+
+    // The production cloak watch is set on main, once, for this process only.
+    [Fact]
+    [Trait("Decision", "ED-NEW-lean-7")]
+    public void The_production_cloak_watch_is_set_on_main_once() => headless.OnUiThread(() =>
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        var host = new Win32FrameHost();
+        var calls = 0;
+        host.WatchCloaking(() => calls++);
+        Assert.True(host.WatchingCloaks);
+        host.WatchCloaking(() => calls += 100); // once: the first watch stays
+        Assert.True(host.WatchingCloaks);
+        Assert.Equal(0, calls);
+    });
+
     // The draws of slow loops on the production source with a precise timer are those of the same source with none (which
     // asks at every frame, as before ED-NEW-lean-7): 30 Hz and 24 Hz, a link re-timed and a timeline re-timed and paused,
     // on 240/144/60 Hz, with the wake-up on time and late by up to 1.4 refreshes (the margin is 1.5).

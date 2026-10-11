@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Threading;
+using Marrow.Testing;
 using Marrow.UI.Port;
 using Marrow.UI.Tests.Fixtures;
 
@@ -11,7 +12,8 @@ namespace Marrow.UI.Tests.Port;
 // the unchanged base (1fdf47b43), with the window minimised: one frame per refresh (240 in 240 ticks). After ED-NEW-lean-7: 0.
 // The window is really minimised and restored (WindowState): the source's window hooks, its look cache and its posted re-look
 // run as in production; only IsIconic is answered by the fake host from the window's state (a headless window has no HWND),
-// through the production rule AvaloniaFrameSource.NoWindowSeen.
+// through the production rule AvaloniaFrameSource.NoWindowSeen. Review 2026-10-11 (R-TEST-5): on a manual clock (TestRuntime),
+// so the look is armed exactly 100 ms ahead (it was a 20 ms window on the machine's clock).
 [Collection("Headless")]
 public sealed class FrameClockHiddenHostBudgetTests(HeadlessSession headless)
 {
@@ -34,6 +36,7 @@ public sealed class FrameClockHiddenHostBudgetTests(HeadlessSession headless)
     [Trait("Decision", "ED-NEW-lean-7")]
     public void A_display_link_gets_no_frames_while_no_window_can_be_seen_and_its_next_refresh_once_one_can() => headless.OnUiThread(() =>
     {
+        using var runtime = new TestRuntime();
         var window = new Window { Width = 400, Height = 300, Content = new Border() };
         window.Show();
         Dispatcher.UIThread.RunJobs();
@@ -53,8 +56,8 @@ public sealed class FrameClockHiddenHostBudgetTests(HeadlessSession headless)
         var delivered = ticks - before;
         Assert.True(delivered <= 0, $"{delivered} frames in 240 refreshes while no window can be seen (budget 0; 240 on the unchanged base)");
         Assert.Equal(1, frames.Pending); // the link's request waits, counted as before (ED-252)
-        // looked at again in 100 ms (the system clock moves on while it arms), without a precise timer
-        Assert.InRange(Assert.Single(host.Coarse!.Arms), AvaloniaFrameSource.LookEvery - TimeSpan.FromMilliseconds(20), AvaloniaFrameSource.LookEvery);
+        // looked at again in exactly 100 ms, without a precise timer
+        Assert.Equal(AvaloniaFrameSource.LookEvery, Assert.Single(host.Coarse!.Arms));
         window.WindowState = WindowState.Normal; // restored: the hook posts a look ahead of the next frame's render job
         Tick(1);
         Assert.Equal(before + 1, ticks);

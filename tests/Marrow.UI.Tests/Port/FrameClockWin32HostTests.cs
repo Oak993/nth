@@ -1,14 +1,12 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Marrow.UI.Port;
-using Xunit.Abstractions;
 
 namespace Marrow.UI.Tests.Port;
 
 // ED-NEW-lean-7: the production platform pieces of AvaloniaFrameSource that the fake host stands for elsewhere: the rule
 // over the app's windows, the IsIconic/DWMWA_CLOAKED query, and the high-resolution waitable timer with its waiting thread
 // (real kernel timers; no window is created, minimised or moved).
-public sealed class FrameClockWin32HostTests(ITestOutputHelper output)
+public sealed class FrameClockWin32HostTests
 {
     [Fact]
     [Trait("Decision", "ED-NEW-lean-7")]
@@ -32,89 +30,33 @@ public sealed class FrameClockWin32HostTests(ITestOutputHelper output)
         Assert.False(Win32FrameHost.Hidden(GetDesktopWindow())); // the desktop: never minimised or cloaked
     }
 
+    // Review 2026-10-11 (R-TEST-5): the real kernel timers in real time (once per arming, a re-arming replacing the last, a
+    // disposed timer silent, the latency against the 240 Hz margin) are FrameClockWakeTimerNativeTests, run with the native
+    // tests. Here only what needs no clock: both kinds exist, and a timer armed for an instant already past fires (a signal,
+    // waited for under a hang guard only; nothing about how soon is asserted).
     [Fact]
     [Trait("Decision", "ED-NEW-lean-7")]
-    public void The_wake_timer_fires_once_per_arming_a_new_arming_replaces_the_last_and_disposed_it_never_fires()
+    public void Both_kinds_of_wake_timer_exist_and_each_fires_when_armed()
     {
         if (!OperatingSystem.IsWindows()) return;
-        var fired = 0;
-        using var signal = new SemaphoreSlim(0);
-        var timer = WakeTimer.Create(() => Interlocked.Increment(ref fired), job => { job(); signal.Release(); }, precise: true);
-        Assert.NotNull(timer); // Windows 10 1803 and later
-        try
+        foreach (var precise in new[] { true, false })
         {
-            timer.Arm(TimeSpan.FromMilliseconds(400));
-            timer.Arm(TimeSpan.FromMilliseconds(5)); // replaces the 400 ms arming
-            Assert.True(signal.Wait(TimeSpan.FromSeconds(2)));
-            Assert.False(signal.Wait(TimeSpan.FromMilliseconds(600))); // the 400 ms arming is gone, and one-shot
-            Assert.Equal(1, Volatile.Read(ref fired));
-        }
-        finally
-        {
-            timer.Dispose();
-        }
-        timer.Arm(TimeSpan.FromMilliseconds(1)); // disposed: nothing
-        Assert.False(signal.Wait(TimeSpan.FromMilliseconds(100)));
-        Assert.Equal(1, Volatile.Read(ref fired));
-    }
-
-    // Without the high-resolution timer the looks at the windows use a timer of the system's resolution: it fires, once.
-    [Fact]
-    [Trait("Decision", "ED-NEW-lean-7")]
-    public void The_coarse_wake_timer_fires_once_per_arming()
-    {
-        if (!OperatingSystem.IsWindows()) return;
-        var fired = 0;
-        using var signal = new SemaphoreSlim(0);
-        var timer = WakeTimer.Create(() => Interlocked.Increment(ref fired), job => { job(); signal.Release(); }, precise: false);
-        Assert.NotNull(timer);
-        try
-        {
-            timer.Arm(TimeSpan.FromMilliseconds(20));
-            Assert.True(signal.Wait(TimeSpan.FromSeconds(2)));
-            Assert.False(signal.Wait(TimeSpan.FromMilliseconds(200)));
-            Assert.Equal(1, Volatile.Read(ref fired));
-        }
-        finally
-        {
-            timer.Dispose();
-        }
-    }
-
-    // The margin of a held request is 1.5 refreshes (6.25 ms at 240 Hz) for the timer's lateness plus the UI thread reaching
-    // the posted wake-up (at Normal, ahead of the frame's render job). Measured (Debug, the test host under the full test
-    // run): see ED-NEW-lean-7. The limits keep the timer itself well inside the 240 Hz margin.
-    [Fact]
-    [Trait("Decision", "ED-NEW-lean-7")]
-    public void The_wake_timer_fires_well_within_the_margin_of_a_240_hz_display()
-    {
-        if (!OperatingSystem.IsWindows()) return;
-        long firedAt = 0;
-        using var signal = new SemaphoreSlim(0);
-        var timer = WakeTimer.Create(() => Volatile.Write(ref firedAt, Stopwatch.GetTimestamp()), job => { job(); signal.Release(); }, precise: true);
-        Assert.NotNull(timer);
-        var late = new List<double>();
-        try
-        {
-            var delay = TimeSpan.FromMilliseconds(4);
-            for (var i = 0; i < 40; i++)
+            var fired = 0;
+            using var signal = new SemaphoreSlim(0);
+            var timer = WakeTimer.Create(() => Interlocked.Increment(ref fired), job => { job(); signal.Release(); }, precise);
+            Assert.NotNull(timer); // Windows 10 1803 and later
+            try
             {
-                var armedAt = Stopwatch.GetTimestamp();
-                timer.Arm(delay);
-                Assert.True(signal.Wait(TimeSpan.FromSeconds(2)));
-                late.Add((Stopwatch.GetElapsedTime(armedAt, Volatile.Read(ref firedAt)) - delay).TotalMilliseconds);
+                timer.Arm(TimeSpan.FromHours(1));
+                timer.Arm(TimeSpan.Zero); // replaces the hour: due at once
+                Assert.True(signal.Wait(TimeSpan.FromMinutes(1)), $"the {(precise ? "precise" : "coarse")} timer never fired");
+                Assert.Equal(1, Volatile.Read(ref fired));
+            }
+            finally
+            {
+                timer.Dispose();
             }
         }
-        finally
-        {
-            timer.Dispose();
-        }
-        late.Sort();
-        double At(double q) => late[(int)Math.Min(late.Count - 1, Math.Floor(q * late.Count))];
-        output.WriteLine($"wake timer lateness ms: min {late[0]:F3} p50 {At(.5):F3} p90 {At(.9):F3} max {late[^1]:F3}");
-        Assert.True(late[0] > -1.0, $"fired {-late[0]:F3} ms early");
-        Assert.True(At(.5) < 2.0, $"median lateness {At(.5):F3} ms (limit 2)");
-        Assert.True(At(.9) < 4.0, $"90th percentile lateness {At(.9):F3} ms (limit 4; the 240 Hz margin is 6.25)");
     }
 
     [DllImport("user32.dll")]
