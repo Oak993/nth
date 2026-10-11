@@ -1,0 +1,155 @@
+# nth Setup's words, English (nth installer PLAN.md 3, "Text"; the approved canvas work/design/installer/index.html).
+# Every string the setup window shows comes from this table, so the window can be translated without code changes:
+# another language is another table with the same keys (SetupStrings.<language>). One "key = value" per line; spaces
+# around the value are not kept; {0}, {1} are filled in by the code. A key ending in .one / .other is a count's form.
+# Lower-case "nth" everywhere (OD-0135). Apostrophes and quotes are the typographic ones (ED-NEW-inst-u1-1, 6).
+
+# The caption and Narrator names
+caption.setup = nth Setup
+caption.uninstall = Uninstall nth
+caption.minimise = Minimise
+caption.close = Close
+common.dot = ·
+
+# Screen names (Narrator)
+screen.welcome = Welcome
+screen.options = Install options
+screen.installing = Installing
+screen.ready = Ready
+screen.update = Update
+screen.current = Already installed
+screen.problem = Problem
+screen.uninstall = Uninstall
+
+# Welcome
+welcome.title = Welcome to nth
+welcome.by = by {0}
+welcome.meta = Version {0} · {1} MB on disk
+welcome.signed = Signed by {0}
+welcome.unsigned = Unsigned test build, not for sharing
+welcome.forYou = For you only, no admin needed
+welcome.offline = This setup works offline and sends nothing
+welcome.install = Install
+welcome.installsTo = Installs to {0}
+welcome.options = Options
+welcome.adds.both = Adds nth to Start and your desktop
+welcome.adds.start = Adds nth to Start
+welcome.desktop.leaveOut = Don’t add to desktop
+welcome.desktop.add = Add to desktop
+welcome.licence = Free software under the GNU AGPL v3.0
+welcome.licence.view = View license
+
+# Options
+options.title = Install options
+options.subtitle = Change where nth goes, or leave out the desktop shortcut.
+options.location = Location
+options.change = Change…
+options.desktop = Desktop shortcut
+options.desktop.hint = You can change this later in nth’s Settings
+options.signIn = Open at sign-in is off. Turn it on in nth’s Settings.
+options.done = Done
+
+# Installing, and the steps of Installing and Update
+installing.title = Installing nth
+installing.subtitle = This usually takes less than a minute.
+installing.slow = Slower than usual. Windows may be checking the files.
+installing.hold = You can close this window once nth is safely in place.
+step.checking = Checking your PC
+step.preparing = Preparing files
+step.closing = Saving and closing nth
+step.copying = Copying nth
+step.copyingNew = Copying the new version
+step.adding.both = Adding nth to Start and your desktop
+step.adding.start = Adding nth to Start
+step.finishing = Finishing up
+step.stopping.one = Stopping {0} thread and closing nth
+step.stopping.other = Stopping {0} threads and closing nth
+step.waiting.one = Waiting for {0} thread to finish
+step.waiting.other = Waiting for {0} threads to finish
+progress.bytes = {0} of {1} MB
+progress.percent = {0}%
+
+# Ready
+ready.title = nth is ready
+ready.title.updated = nth is updated
+ready.both = Find it in Start and on your desktop.
+ready.start = Find it in Start.
+ready.updated = You’re on {0}. Your chats and settings are as you left them.
+ready.nameTaken = Your desktop already has a different “nth” shortcut, so none was added.
+ready.failed = Windows didn’t allow a desktop shortcut. You can add one later in nth’s Settings.
+ready.hidden = Your desktop icons are hidden right now, so you won’t see it there until you show them again.
+ready.close = Close
+ready.open = Open nth
+ready.opening = Opening…
+
+# Update (asked, busy, waiting, updating) and a running nth (PLAN.md 3a)
+update.title = Update nth
+update.subtitle = nth {0} is installed. This updates it to {1}.
+update.whatsNew = What’s new in {0}
+update.keep = Your chats and settings stay as they are.
+update.keep.open = Your chats and settings stay as they are. nth is open: it saves your work and closes for a moment.
+update.later = Not now
+update.go = Update
+update.busy.title = nth is still working
+update.busy.subtitle.one = {0} thread is running in nth. Updating now would stop it.
+update.busy.subtitle.other = {0} threads are running in nth. Updating now would stop them.
+update.busy.running = Running in nth now
+update.busy.row = {0} · {1} min
+update.busy.note = Nothing has changed yet. Your chats and settings stay as they are either way.
+update.busy.stop.one = Stop it and update
+update.busy.stop.other = Stop them and update
+update.busy.wait.one = Update when it finishes
+update.busy.wait.other = Update when they finish
+update.wait.title = Update waits for nth
+update.wait.subtitle.one = It starts by itself when it finishes.
+update.wait.subtitle.other = It starts by itself when they finish.
+update.wait.stop = Stop waiting
+update.running.title = Updating to {0}
+update.hold = You can close this window once the new version is in place.
+update.notResponding = nth isn’t responding. Close it anyway?
+
+# Up to date and Newer installed (OD-0072: the sentences stay word for word)
+current.title = nth is up to date
+current.subtitle = nth {0} is already installed and up to date.
+newer.title = A newer nth is installed
+newer.subtitle = A newer version of nth ({0}) is already installed. Nothing was changed.
+
+# Problem
+problem.title = nth couldn’t be installed
+problem.space = There isn’t enough free space on drive {0}. nth needs about {1} MB, and {2} MB is free.
+problem.inUse = Some of nth’s files are in use. Close any window showing nth’s folder, then retry.
+problem.blocked = Security software stopped the install. Allow nth Setup, then retry.
+problem.other = Something went wrong while installing.
+problem.changed = This copy of nth Setup has been changed. Download it again.
+problem.safe = Nothing was changed on your PC.
+problem.left = Some of nth’s files may be left. Retry repairs them.
+problem.copy = Copy details
+problem.copied = Copied
+problem.retry = Retry
+problem.show = Show details
+problem.hide = Hide details
+problem.header = nth Setup {0} · Windows {1} {2} · {3}
+
+# Uninstall, Removing, Removed
+uninstall.title = Uninstall nth?
+uninstall.subtitle = nth will be removed from this PC. Your projects and files aren’t touched.
+uninstall.wipe = Also remove my chats and settings
+uninstall.wipe.hint = Kept by default, so a reinstall picks up where you left off
+uninstall.warning = Your chats and settings will be deleted too. This can’t be undone.
+uninstall.cancel = Cancel
+uninstall.go = Uninstall
+uninstall.removing = Removing nth
+uninstall.removing.wipe = Removing nth, your chats and your settings.
+uninstall.removing.keep = Your chats and settings are kept.
+uninstall.hold = You can close this window once nth is removed.
+uninstall.removed = nth was removed
+uninstall.removed.wipe = Everything nth kept on this PC is gone.
+uninstall.removed.keep = Your chats and settings are still here if you install nth again.
+uninstall.close = Close
+
+# The desktop previews (Options, Ready)
+desktop.recycleBin = Recycle Bin
+desktop.nth = nth
+
+# Sign-out and shutdown, held while nth is being put in place (ShutdownBlockReasonCreate, PLAN.md 3, "Close")
+shutdown.installing = Finishing installing nth

@@ -2,11 +2,13 @@
   <Import Project="..\..\Directory.Release.props" />
 
   <!--
-    OD-0072, ED-247: the Marrow installer the owner shares. A small bootstrapper around Velopack's Setup.exe that first
-    checks what is installed (src/Marrow.Core/Support/InstallerGate.cs, compiled in here; this project references no
-    other Marrow project) and only then runs the embedded Setup.exe. Built by scripts/package-windows.ps1, which passes
-    the Setup.exe that vpk pack produced and the same title, id and version it gave vpk. Built without them (as part of
+    OD-0072, ED-247: the nth installer the owner shares. A small window around Velopack's Setup.exe that first checks
+    what is installed (src/Marrow.Core/Support/InstallerGate.cs, compiled in here; this project references no other
+    Marrow project) and only then runs the embedded Setup.exe. Built by scripts/package-windows.ps1, which passes the
+    Setup.exe that vpk pack produced and the same title, id and version it gave vpk. Built without them (as part of
     Marrow.sln) it compiles but has nothing to install and says so.
+    nth installer PLAN.md 3 and 5, unit U1 (ED-NEW-inst-u1-1): a small Avalonia app. Views are written in C# (no runtime
+    XAML) and the code is checked by the trim and AOT analyzers, so it can be published with Native AOT (unit U7).
   -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -18,11 +20,24 @@
     <ApplicationIcon>..\Marrow.App\Assets\icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsAotCompatible>true</IsAotCompatible>
     <Product>nth</Product>
     <AssemblyTitle>nth Setup</AssemblyTitle>
     <InstallerTitle Condition="'$(InstallerTitle)' == ''">nth</InstallerTitle>
     <InstallerAppId Condition="'$(InstallerAppId)' == ''">NthApp</InstallerAppId>
+    <!-- PLAN.md 5, "Rendering": Software drops ANGLE; kept only if Mica and 60 fps at 200 % hold (the lead's measurement). -->
+    <SetupRenderingMode Condition="'$(SetupRenderingMode)' == ''">AngleEgl</SetupRenderingMode>
   </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Marrow.Setup.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Skia" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Include="..\Marrow.Core\Support\InstallerGate.cs" Link="InstallerGate.cs" />
@@ -32,7 +47,12 @@
     <AssemblyMetadata Include="InstallerTitle" Value="$(InstallerTitle)" />
     <AssemblyMetadata Include="InstallerAppId" Value="$(InstallerAppId)" />
     <AssemblyMetadata Include="InstallerVersion" Value="$(InstallerVersion)" />
+    <AssemblyMetadata Include="SetupRenderingMode" Value="$(SetupRenderingMode)" />
     <EmbeddedResource Include="$(VelopackSetupExe)" LogicalName="VelopackSetup.exe" Condition="'$(VelopackSetupExe)' != ''" />
+    <!-- PLAN.md 3, "Text": every string the window shows, one table per language. -->
+    <EmbeddedResource Include="Text\en.strings" LogicalName="SetupStrings.en" />
+    <!-- The caption's 16 px mark and the taskbar icon: the app's own icon (every frame is a PNG). -->
+    <EmbeddedResource Include="..\Marrow.App\Assets\icon.ico" Link="Assets\icon.ico" LogicalName="SetupIcon.ico" />
   </ItemGroup>
 
 </Project>

@@ -110,6 +110,12 @@ public static class InstallerGate
     /// <summary>Whether Setup.exe would run silently (--silent or -s, before the -- separator): then no message is shown.</summary>
     public static bool IsSilent(IReadOnlyList<string> arguments) => ReadArguments(arguments, Environment.CurrentDirectory).Silent;
 
+    /// <summary>Whether Setup.exe would show its help (-h/--help, before the -- separator): help goes straight to Setup.exe.</summary>
+    public static bool IsHelp(IReadOnlyList<string> arguments) => ReadArguments(arguments, Environment.CurrentDirectory).Help;
+
+    /// <summary>The -t/--installto folder as Setup.exe would read it (a relative one against <paramref name="launchDirectory"/>), or null.</summary>
+    public static string? ReadInstallTo(IReadOnlyList<string> arguments, string launchDirectory) => ReadArguments(arguments, launchDirectory).InstallTo;
+
     /// <summary>
     /// The gate: reads what is installed where Setup.exe would install, decides, and either tells the user (same or newer
     /// version installed; nothing runs and nothing is written) or hands every argument to Setup.exe and returns its exit
