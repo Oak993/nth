@@ -5,6 +5,10 @@
 // (1.1 s a turn) while tidying; a keep-warm throws a burst of nine sparks from the core (0.7 s); a tidy-up settles the ring
 // (0.72 → 1.1 → 1 over 0.75 s). The heat eases over 0.6 s, the fill over 0.5 s. Reduce Motion: no breathing, no spin, no
 // sparks, no settle; values change at once.
+// ED-NEW-kindlehover-1 (owner: "Dull pill. Doesn't even do anything when I hover mouse over it?"): under the pointer (or while
+// the popover is open) a cold or off capsule's ring, separator and drop lift from the disabled grey toward the design's
+// secondary text tone (Lift), and a cold one's core kindles faintly (Kindle). Both are eased scalars that run only while they
+// move: no timer and no ambient clock at rest.
 using Avalonia;
 using Avalonia.Controls;
 using Marrow.UI.Port;
@@ -20,7 +24,7 @@ internal sealed class KindleGlyph : AmbientCanvas
     private static readonly Animation SparkCurve = Animation.TimingCurve(.15, .7, .3, 1, duration: .7);
     private static readonly (double Angle, double Distance, double Delay)[] Sparks = MakeSparks(9, 11);
 
-    private readonly AnimatedScalar heat, fill, spark, settle;
+    private readonly AnimatedScalar heat, fill, spark, settle, lift, kindle;
     private bool warm, tidying;
 
     public KindleGlyph()
@@ -32,6 +36,8 @@ internal sealed class KindleGlyph : AmbientCanvas
         fill = new AnimatedScalar(this, 0, _ => InvalidateVisual());
         spark = new AnimatedScalar(this, 1, _ => InvalidateVisual());
         settle = new AnimatedScalar(this, 1, _ => InvalidateVisual());
+        lift = new AnimatedScalar(this, 0, _ => InvalidateVisual());
+        kindle = new AnimatedScalar(this, 0, _ => InvalidateVisual());
     }
 
     public double Heat => heat.Value;
@@ -41,6 +47,10 @@ internal sealed class KindleGlyph : AmbientCanvas
     /// <summary>Sparks in flight (0 ... 1 while a burst runs, 1 at rest).</summary>
     public double SparkProgress => spark.Value;
     public double SettleProgress => settle.Value;
+    /// <summary>The hover lift of the cold grey toward the secondary tone (0 at rest ... 1 under the pointer).</summary>
+    public double Lift => lift.Value;
+    /// <summary>The faint ember a cold core shows under the pointer (0 ... 1).</summary>
+    public double Kindle => kindle.Value;
 
     protected override bool Moving => warm || tidying;
 
@@ -55,6 +65,13 @@ internal sealed class KindleGlyph : AmbientCanvas
             tidying = isTidying;
             MovingChanged();
         }
+    }
+
+    /// <summary>The pointer's state: <paramref name="toLift"/> and <paramref name="toKindle"/> 0 ... 1, each along its curve (none: at once).</summary>
+    public void Hover(double toLift, double toKindle, Animation? liftCurve, Animation? kindleCurve)
+    {
+        lift.Set(Math.Clamp(toLift, 0, 1), liftCurve);
+        kindle.Set(Math.Clamp(toKindle, 0, 1), kindleCurve);
     }
 
     /// <summary>A keep-warm landed: nine sparks from the core.</summary>
@@ -73,9 +90,12 @@ internal sealed class KindleGlyph : AmbientCanvas
         settle.Set(1, Animation.Linear(.75));
     }
 
-    private sealed record State(KindlePalette Palette, double Heat, double Fill, double Spark, double Settle, bool Warm, bool Tidying);
+    private sealed record State(KindlePalette Palette, double Heat, double Fill, double Spark, double Settle, bool Warm, bool Tidying, double Lift, double Kindle);
 
-    protected override object Snapshot() => new State(KindlePalette.For(this), heat.Value, fill.Value, spark.Value, settle.Value, warm, tidying);
+    protected override object Snapshot() => new State(KindlePalette.For(this), heat.Value, fill.Value, spark.Value, settle.Value, warm, tidying, lift.Value, kindle.Value);
+
+    /// <summary>The track and separator colour at <paramref name="lifted"/>: the design's track ring, lifted toward its tertiary text tone.</summary>
+    internal static Avalonia.Media.Color TrackColor(KindlePalette palette, double lifted) => KindlePalette.Mix(palette.TrackRing, palette.Text3, lifted);
 
     protected override void Draw(SKCanvas canvas, Size size, double seconds, bool still, object snapshot)
     {
@@ -84,6 +104,8 @@ internal sealed class KindleGlyph : AmbientCanvas
         var h = state.Heat;
         var warm = state.Warm;
         var tidying = state.Tidying;
+        var lifted = state.Lift;
+        var trackColor = TrackColor(palette, lifted);
         var cy = (float)(size.Height / 2);
 
         // ---- the ring: track, then the fill's arc in the warming gradient, with its glow
@@ -97,12 +119,13 @@ internal sealed class KindleGlyph : AmbientCanvas
         canvas.RotateDegrees((float)spin);
         canvas.Scale(16f / 15f);
         canvas.Translate(-7.5f, -7.5f);
-        using (var track = new SKPaint { IsAntialias = true, Style = SKPaintStyle.Stroke, StrokeWidth = 2.5f, Color = KindlePalette.Sk(palette.TrackRing) })
+        using (var track = new SKPaint { IsAntialias = true, Style = SKPaintStyle.Stroke, StrokeWidth = 2.5f, Color = KindlePalette.Sk(trackColor) })
             canvas.DrawCircle(7.5f, 7.5f, 6.2f, track);
         var f = state.Fill;
         if (f > 0.001)
         {
             var (a, b) = palette.RingStops(h);
+            if (lifted > 0) (a, b) = (KindlePalette.Mix(a, palette.Text2, lifted), KindlePalette.Mix(b, palette.Text2, lifted));
             using var arcPath = new SKPath();
             var oval = new SKRect(7.5f - 6.2f, 7.5f - 6.2f, 7.5f + 6.2f, 7.5f + 6.2f);
             if (f >= .999) arcPath.AddOval(oval);
@@ -120,7 +143,7 @@ internal sealed class KindleGlyph : AmbientCanvas
 
         // ---- the separator
         var sepX = (float)(RingSize + Gap);
-        using (var sep = new SKPaint { IsAntialias = true, Color = KindlePalette.Sk(palette.TrackRing) })
+        using (var sep = new SKPaint { IsAntialias = true, Color = KindlePalette.Sk(trackColor) })
             canvas.DrawRect(new SKRect(sepX, cy - 6, sepX + 1, cy + 6), sep);
 
         // ---- the core: the flame, breathing while warm
@@ -129,7 +152,7 @@ internal sealed class KindleGlyph : AmbientCanvas
         var scale = (float)(1 + .09 * breath);
         var half = (float)(FlameSize / 2) * scale;
         var center = new SKPoint(flameX + (float)FlameSize / 2, cy);
-        KindleFlame.Draw(canvas, new SKRect(center.X - half, center.Y - half, center.X + half, center.Y + half), palette, h, 1 + .14 * breath);
+        KindleFlame.Draw(canvas, new SKRect(center.X - half, center.Y - half, center.X + half, center.Y + half), palette, h, 1 + .14 * breath, lifted, state.Kindle);
 
         // ---- sparks: a burst from the core while one is in flight
         var p = state.Spark;
