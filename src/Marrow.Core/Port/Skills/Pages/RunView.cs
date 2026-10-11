@@ -19,6 +19,7 @@ public enum RunLineState
     AlreadyHere,
     NeedsTerms,
     NoSize,
+    CantFetch,
     Waiting,
     Downloading,
     Checking,

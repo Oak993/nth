@@ -92,14 +92,21 @@ public static class LibraryWords
     public static string FactFree(string drive) => "Free on " + drive;
     public const string FactFrom = "From";
 
-    public static string Included(int all, int alreadyHere, int needTerms, int noSize)
+    public static string Included(int all, int alreadyHere, int needTerms, int noSize, int cantFetch = 0)
     {
         var text = "Included \u00B7 " + all;
         if (alreadyHere > 0) text += " \u00B7 " + alreadyHere + " already here, skipped";
         if (needTerms > 0) text += " \u00B7 " + needTerms + (needTerms == 1 ? " needs its terms first, skipped" : " need their terms first, skipped");
         if (noSize > 0) text += " \u00B7 " + noSize + (noSize == 1 ? " has no size yet, skipped" : " have no size yet, skipped");
+        if (cantFetch > 0) text += " \u00B7 " + cantFetch + " can\u2019t be downloaded in this build, skipped";
         return text;
     }
+
+    /// <summary>ED-NEW-dl-6: the right side of a line the run leaves out because this build cannot fetch it (the row's own detail says <see cref="DownloadsUnavailable"/>).</summary>
+    public const string NotAvailable = "Not available in this build";
+
+    /// <summary>ED-NEW-dl-6: the confirmation's statement when nothing is left to fetch but not everything is here (the list says why for each).</summary>
+    public const string NothingToDownload = "Nothing on this page can be downloaded now. The list says why.";
 
     /// <summary>ENGINEERING DECISION: the right side of a line the run leaves out because the catalogue holds no size for it yet (the size could not be stated before Continue).</summary>
     public const string SizeUnknown = "Size not known yet";

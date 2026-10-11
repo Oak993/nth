@@ -29,6 +29,24 @@ public sealed class DownloadAllPlanTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
+    [Trait("Decision", "ED-NEW-dl-6")]
+    public void An_item_this_build_cannot_fetch_stays_in_the_list_as_skipped_with_its_reason_and_is_neither_fetched_nor_counted()
+    {
+        var plan = DownloadAllPlan.Build(LibrarySection.Skills, PageFixtures.Rows(LibrarySection.Skills, null, null), PageFixtures.Catalogue(), null, id => id != "SA");
+        Assert.Equal(PlanLineKind.CantFetch, plan.Lines.Single(l => l.Id == "SA").Kind);
+        Assert.Empty(plan.ToDownload);
+        Assert.Equal(0, plan.DownloadMb);
+        Assert.Empty(plan.Hosts);
+        Assert.False(plan.CanContinue);
+        Assert.Equal(LibraryWords.NothingToDownload, plan.Statement);
+        Assert.EndsWith(" · 1 can’t be downloaded in this build, skipped", plan.IncludedHeading, StringComparison.Ordinal);
+        Assert.Equal("Included · 3 · 2 already here, skipped · 1 can’t be downloaded in this build, skipped", LibraryWords.Included(3, 2, 0, 0, 1));
+        var here = DownloadAllPlan.Build(LibrarySection.Skills, PageFixtures.Rows(LibrarySection.Skills, null, null, PageFixtures.Rec("SA", ItemState.Installed, PageFixtures.Pin)), PageFixtures.Catalogue(), null, _ => false);
+        Assert.Equal(PlanLineKind.AlreadyHere, here.Lines.Single(l => l.Id == "SA").Kind); // on this PC wins over fetchable
+    }
+
+    [Fact]
+    [Trait("Feature", "SK-15")]
     [Trait("Rule", "R-TEST-4")]
     public void Items_that_are_here_already_are_listed_but_not_fetched_or_counted()
     {

@@ -414,11 +414,10 @@ public sealed class LibraryController : IDisposable
     // ---- Download all
 
     /// <summary>
-    /// ED-NEW-dlhonest-1: while fetching is bound, an item not here that cannot be fetched (<see cref="CanFetchItem"/>) is not part of Download all: the run would only fail on it. Its row says why.
+    /// ED-NEW-dlhonest-1, ED-NEW-dl-6: while fetching is bound, an item not here that cannot be fetched (<see cref="CanFetchItem"/>) is not downloaded by Download all (the run would only fail on it), and the
+    /// confirmation lists it as skipped with the reason instead of leaving it out silently. Its row says why too.
     /// </summary>
-    public DownloadAllPlan Plan => DownloadAllPlan.Build(section, Offered(Rows), backend.Catalogue, backend.Free());
-
-    private IReadOnlyList<LibraryRow> Offered(IReadOnlyList<LibraryRow> rows) => backend.CanFetch ? rows.Where(r => r.OnThisPc || r.Busy || backend.CanFetchItem(r.Id)).ToList() : rows;
+    public DownloadAllPlan Plan => DownloadAllPlan.Build(section, Rows, backend.Catalogue, backend.Free(), backend.CanFetch ? backend.CanFetchItem : null);
 
     /// <summary>ED-NEW-dlhonest-1: whether the item can be downloaded now (the page's Download, Retry and Check again are on only then; otherwise the row shows that downloading isn't available).</summary>
     public bool CanFetchItem(string id) => backend.CanFetch && backend.CanFetchItem(id);
@@ -430,8 +429,7 @@ public sealed class LibraryController : IDisposable
         {
             var plan = Plan;
             if (!plan.IsEmpty) return LibraryWords.DownloadAllButton(section, plan.DownloadMb);
-            var notHere = plan.Lines.Count < Rows.Count(r => !r.Busy); // ED-NEW-dlhonest-1: items left out because they cannot be fetched are not "here"
-            return notHere || plan.Lines.Any(l => l.Kind is PlanLineKind.NeedsTerms or PlanLineKind.NoSize) ? "Download all " + section.Noun() : LibraryWords.DownloadAllButton(section, null);
+            return plan.Lines.Any(l => l.Kind is PlanLineKind.NeedsTerms or PlanLineKind.NoSize or PlanLineKind.CantFetch) ? "Download all " + section.Noun() : LibraryWords.DownloadAllButton(section, null);
         }
     }
 
@@ -512,6 +510,17 @@ public sealed class LibraryController : IDisposable
     public void OpenManualFolder() => backend.OpenManualFolder();
 
     public bool CanDownloadAll => backend.CanFetch && (run is { Phase: RunPhase.Downloading or RunPhase.Paused or RunPhase.Done or RunPhase.Partial } || !Plan.IsEmpty);
+
+    /// <summary>ED-NEW-dl-6: why Download all is off when items are not here but none of them can be fetched by this build (null otherwise), so the off button is never silent.</summary>
+    public string? DownloadAllNote
+    {
+        get
+        {
+            if (CanDownloadAll) return null;
+            var plan = Plan;
+            return plan.Lines.Any(l => l.Kind == PlanLineKind.CantFetch) ? LibraryWords.DownloadsUnavailable : null;
+        }
+    }
 
     /// <summary>Opens the confirmation. Nothing downloads until <see cref="Continue"/>. While a run goes on, its dialog is what opens again.</summary>
     public void OpenDownloadAll()
@@ -689,6 +698,7 @@ public sealed class LibraryController : IDisposable
             PlanLineKind.AlreadyHere => new RunLine(l.Id, l.Title, RunLineState.AlreadyHere, 0, LibraryWords.AlreadyHere),
             PlanLineKind.NeedsTerms => new RunLine(l.Id, l.Title, RunLineState.NeedsTerms, 0, l.TermsLabel ?? ""),
             PlanLineKind.NoSize => new RunLine(l.Id, l.Title, RunLineState.NoSize, 0, LibraryWords.SizeUnknown),
+            PlanLineKind.CantFetch => new RunLine(l.Id, l.Title, RunLineState.CantFetch, 0, LibraryWords.NotAvailable),
             _ => new RunLine(l.Id, l.Title, RunLineState.Waiting, 0, SizeText.Short(l.SizeMb ?? 0)),
         }).ToList();
         return new RunView(RunPhase.Confirm, plan.Title, plan.Sub, plan.Statement, plan.Large && !plan.IsEmpty, LibraryWords.ConfirmFoot, null, 0, lines, plan.IncludedHeading, plan.DownloadFact,
@@ -710,6 +720,7 @@ public sealed class LibraryController : IDisposable
                 {
                     PlanLineKind.AlreadyHere => new RunLine(l.Id, l.Title, RunLineState.AlreadyHere, 0, LibraryWords.AlreadyHere),
                     PlanLineKind.NeedsTerms => new RunLine(l.Id, l.Title, RunLineState.NeedsTerms, 0, l.TermsLabel ?? ""),
+                    PlanLineKind.CantFetch => new RunLine(l.Id, l.Title, RunLineState.CantFetch, 0, LibraryWords.NotAvailable),
                     _ => new RunLine(l.Id, l.Title, RunLineState.NoSize, 0, LibraryWords.SizeUnknown),
                 });
                 continue;

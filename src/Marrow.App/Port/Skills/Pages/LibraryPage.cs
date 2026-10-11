@@ -211,6 +211,7 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
 
         downloadAllWords.SetText(model.DownloadAllLabel);
         downloadAll.IsEnabled = controller.CanDownloadAll;
+        ToolTip.SetTip(downloadAll, controller.DownloadAllNote); // ED-NEW-dl-6: an off button says why
         providers.Apply(controller.Providers);
         reset!.Apply(controller.ResetAsked);
         SyncDialog(model.Dialog);

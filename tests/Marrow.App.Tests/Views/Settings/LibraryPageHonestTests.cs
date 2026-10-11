@@ -46,6 +46,48 @@ public sealed class LibraryPageHonestTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "ED-NEW-dl-6")]
+    public void Download_all_lists_what_this_build_cannot_fetch_as_skipped_with_the_reason_instead_of_dropping_it() => LibraryPageHarness.Run(headless, LibrarySection.Skills, harness =>
+    {
+        harness.Backend.Unfetchable.UnionWith(["S1", "S3"]);
+        harness.Controller.Select("S2"); // a change the page draws again
+        harness.Settle();
+        var plan = harness.Controller.Plan;
+        Assert.Equal(PlanLineKind.CantFetch, plan.Lines.Single(l => l.Id == "S1").Kind);
+        Assert.Equal(PlanLineKind.CantFetch, plan.Lines.Single(l => l.Id == "S3").Kind);
+        Assert.DoesNotContain("S1", plan.ToDownload);
+        Assert.DoesNotContain("S3", plan.ToDownload);
+        Assert.Contains("S2", plan.ToDownload);
+        Assert.True(harness.Press("download-all"));
+        harness.Settle();
+        var dialog = harness.Page.Sheet!.Dialog;
+        Assert.Equal(["S1", "S2", "S3", "S4", "S5"], dialog.Lines.Keys.Order()); // nothing on the page is dropped from the list
+        Assert.Contains("2 can’t be downloaded in this build, skipped", dialog.IncludedShown, StringComparison.Ordinal);
+        foreach (var id in new[] { "S1", "S3" })
+        {
+            var line = dialog.Lines[id];
+            Assert.Equal(StatusMark.Mark.Words, line.Mark.Current);
+            Assert.Contains(LibraryWords.NotAvailable, Words(line));
+        }
+        Assert.DoesNotContain(LibraryWords.NotAvailable, Words(dialog.Lines["S2"]));
+        Assert.Empty(harness.Install.Calls);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-dl-6")]
+    public void When_nothing_left_can_be_fetched_the_off_Download_all_button_says_why() => LibraryPageHarness.Run(headless, LibrarySection.Plugins, harness =>
+    {
+        harness.Backend.Unfetchable.UnionWith(["P1", "P2"]);
+        harness.Controller.Select("P1");
+        harness.Settle();
+        Assert.False(harness.Page.DownloadAllButton.IsEnabled);
+        Assert.Equal(LibraryWords.DownloadsUnavailable, ToolTip.GetTip(harness.Page.DownloadAllButton));
+        Assert.All(harness.Controller.Plan.Lines, l => Assert.Equal(PlanLineKind.CantFetch, l.Kind));
+        Assert.Equal(LibraryWords.NothingToDownload, harness.Controller.Plan.Statement);
+        Assert.Contains("2 can’t be downloaded in this build, skipped", harness.Controller.Plan.IncludedHeading, StringComparison.Ordinal);
+    });
+
+    [Fact]
     [Trait("Decision", "ED-NEW-dlhonest-1")]
     public void With_nothing_on_the_page_fetchable_Download_all_is_off_and_does_not_say_everything_is_here() => LibraryPageHarness.Run(headless, LibrarySection.Plugins, harness =>
     {
