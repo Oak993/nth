@@ -263,10 +263,25 @@ public sealed class AccountsSettingsModel
         return HandedOverExample.For(decisions.GetSetting(DecisionKind.Bring), next, handshake.Enabled);
     }
 
+    private readonly HashSet<ProviderKind> adding = [];
+
+    /// <summary>Whether a sign-in for another account of <paramref name="service"/> is under way (ED-NEW-providersmerge-2): its add row waits, and a second click starts nothing.</summary>
+    public bool Adding(ProviderKind service) => adding.Contains(service);
+
+    /// <summary>Signs in another account of <paramref name="service"/> and says why when it could not; null when it was added, or when a sign-in of the service is already under way (one at a time,
+    /// so a double click never starts two sign-ins with two half-made accounts). A sign-in that throws says its message instead of being lost.</summary>
     public async Task<string?> AddAsync(ProviderKind service)
     {
-        var message = await actions.AddAccountAsync(service);
+        if (!adding.Add(service)) return null;
         Changed?.Invoke();
+        string? message;
+        try { message = await actions.AddAccountAsync(service); }
+        catch (Exception error) when (error is not OperationCanceledException) { message = error.Message; }
+        finally
+        {
+            adding.Remove(service);
+            Changed?.Invoke(); // a cancelled sign-in too: the row stops waiting
+        }
         return message;
     }
 

@@ -16,16 +16,24 @@ public sealed class WingetUpdater : IUpdateItem
     private readonly Func<DevToolCommand, CancellationToken, Task<DevToolCommandResult>> run;
     private readonly IReadOnlyList<string> query;
     private readonly Func<CancellationToken, Task<IReadOnlyList<GitLockingProcess>>>? gitLocks;
+    private readonly Func<TimeSpan, CancellationToken, Task> pause;
 
-    /// <param name="gitLocks">Git only (ED-NEW-providers-git-1): what holds Git for Windows right now. When given, an update (and so its Retry) looks first and, while anything holds Git,
-    /// says what without starting winget; after the installer itself refuses, it names what is running. Null: no look (the installer's own list still names the processes).</param>
+    /// <summary>How long the update waits before its second look at what holds Git (ED-NEW-providersmerge-git-2): a git.exe or bash.exe that runs for a moment (nth's own source control,
+    /// an agent's Bash command) has exited by then, as it would have before the installer reached its own check.</summary>
+    public static readonly TimeSpan SecondLook = TimeSpan.FromMilliseconds(1750);
+
+    /// <param name="gitLocks">Git only (ED-NEW-providers-git-1): what holds Git for Windows right now. When given, an update (and so its Retry) looks first and, while the same processes
+    /// still hold Git at a second look <see cref="SecondLook"/> later, says what without starting winget; after the installer itself refuses, it names what is running. Null: no look (the
+    /// installer's own list still names the processes).</param>
+    /// <param name="pause">The wait between the two looks (Task.Delay; a test passes its own).</param>
     public WingetUpdater(string id, string title, Func<DevToolCommand, CancellationToken, Task<DevToolCommandResult>>? run = null, IReadOnlyList<string>? query = null,
-        Func<CancellationToken, Task<IReadOnlyList<GitLockingProcess>>>? gitLocks = null)
+        Func<CancellationToken, Task<IReadOnlyList<GitLockingProcess>>>? gitLocks = null, Func<TimeSpan, CancellationToken, Task>? pause = null)
     {
         ValidateId(id);
         packageId = id; Title = title; this.run = run ?? DevToolProcess.Refuse;
         this.query = query?.ToArray() ?? ["--id", id, "-e"];
         this.gitLocks = id == "Git.Git" ? gitLocks : null;
+        this.pause = pause ?? Task.Delay;
     }
     public string Id => "dev:" + packageId;
     public string Title { get; }
@@ -91,6 +99,16 @@ public sealed class WingetUpdater : IUpdateItem
         catch (Exception error) when (error is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception) { return []; } // an unreadable look never blocks the update
     }
 
+    // Only what holds Git at both looks: a process that came and went in between, or one first seen at the second look, would not have stopped the installer (ED-NEW-providersmerge-git-2).
+    private async Task<IReadOnlyList<GitLockingProcess>> StillHolding(CancellationToken cancellation)
+    {
+        var first = await Holding(cancellation);
+        if (first.Count == 0) return first;
+        await pause(SecondLook, cancellation);
+        var second = await Holding(cancellation);
+        return second.Where(now => first.Any(before => before.Same(now))).ToList();
+    }
+
     // What the installer listed, with the apps that started it when the live look can still see them.
     private async Task<string> InUseMessage(string log, CancellationToken cancellation)
     {
@@ -106,7 +124,7 @@ public sealed class WingetUpdater : IUpdateItem
         if (before is null) return new(false, null, false, false, "The tool is no longer installed.");
         if (before.Source != "winget") return new(false, before.Version, false, false, "This installed tool is not matched to the winget source.");
         if (!HasTrial(packageId)) return new(false, before.Version, false, false, "This installed tool's upgrade has not been supervised and recorded.");
-        if (gitLocks is not null && await Holding(cancellation) is { Count: > 0 } holding)
+        if (gitLocks is not null && await StillHolding(cancellation) is { Count: > 0 } holding)
             return new(false, before.Version, false, false, GitInUse.Message(holding)); // the installer would refuse: nothing is started
         progress.Report(null);
         var result = await run(UpgradeCommand(packageId), cancellation);

@@ -16,10 +16,15 @@ internal sealed class AppAccountActions(AppModel model) : IAccountActions
         var accounts = model.Settings.Accounts;
         if (!AccountCapabilities(service)) return service.DisplayName + " keeps one account.";
         var account = accounts.Add(service);
-        string? problem;
-        try { problem = await model.Providers.SignIn(account.Id); }
-        catch (InvalidOperationException e) { problem = e.Message; }
-        if (problem is not null) accounts.Remove(account.Id);
+        string? problem = null;
+        var finished = false;
+        try
+        {
+            try { problem = await model.Providers.SignIn(account.Id); }
+            catch (InvalidOperationException e) { problem = e.Message; }
+            finished = true;
+        }
+        finally { if (!finished || problem is not null) accounts.Remove(account.Id); } // a sign-in that failed, threw or was cancelled leaves no half-made account (ED-NEW-providersmerge-2)
         return problem;
     }
 

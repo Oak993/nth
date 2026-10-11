@@ -4,8 +4,13 @@ using System.Text.RegularExpressions;
 
 namespace Marrow.Services.Port.Updates;
 
-/// <summary>One running process that keeps Git for Windows' files in use: its executable name (bash.exe) and, when known, the app that started it (Claude Code).</summary>
-public sealed record GitLockingProcess(string Name, string? Host = null);
+/// <summary>One running process that keeps Git for Windows' files in use: its executable name (bash.exe) and, when known, the app that started it (Claude Code). The live look also gives
+/// its process id and start time (0 when unknown), so two looks can tell the same process from a new one that reused the id.</summary>
+public sealed record GitLockingProcess(string Name, string? Host = null, int Id = 0, long Started = 0)
+{
+    /// <summary>Whether this is the same running process as <paramref name="other"/>: the same executable, process id and start time.</summary>
+    public bool Same(GitLockingProcess other) => Id == other.Id && Started == other.Started && string.Equals(Name, other.Name, StringComparison.OrdinalIgnoreCase);
+}
 
 public static class GitInUse
 {
@@ -34,7 +39,7 @@ public static class GitInUse
         var labels = processes.Select(p => Label(p.Name)).Distinct(StringComparer.Ordinal).OrderBy(l => l == "Git Bash" ? 0 : l == "a Git command" ? 1 : 2).ThenBy(l => l, StringComparer.Ordinal).ToList();
         var hosts = processes.Select(p => p.Host).OfType<string>().Where(h => h.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var what = Join(labels);
-        what = char.ToUpperInvariant(what[0]) + what[1..];
+        if (labels[0] == "a Git command") what = "A" + what[1..]; // the one label that starts a sentence in lower case; "Git Bash" is already capitalised and an agent keeps its process name (ssh-agent)
         var one = labels.Count == 1;
         return $"{what} {(one ? "is" : "are")} running{(hosts.Count > 0 ? $" (used by {Join(hosts)})" : "")}. Close {(one ? "it" : "them")} and try again.";
     }

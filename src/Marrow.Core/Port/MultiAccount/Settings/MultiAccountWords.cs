@@ -9,6 +9,7 @@ public static class MultiAccountWords
     public const string AccountsHeading = "Accounts";
     public const string AccountsFoot = "nth uses your accounts from the top down. Drag to change the order. Each account’s ⋯ menu has its own options.";
     public const string AddAnother = "Add another account";
+    public const string SigningIn = "Signing in…";
     public const string UsageDetails = "Usage details";
     public const string SignOut = "Sign out";
     public const string SignOutOfThis = "Sign out of this account";

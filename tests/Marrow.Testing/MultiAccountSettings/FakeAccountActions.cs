@@ -13,10 +13,13 @@ public sealed class FakeAccountActions : IAccountActions
     public List<string> LocalAddresses { get; } = [];
     public LocalConnectResult Local { get; set; } = new(LocalConnectOutcome.Found, 1, "this PC");
 
+    /// <summary>When set, a sign-in runs this (it may add the account, wait, fail or throw) instead of answering <see cref="AddFails"/> at once.</summary>
+    public Func<ProviderKind, Task<string?>>? AddRuns { get; set; }
+
     public Task<string?> AddAccountAsync(ProviderKind service)
     {
         Added.Add(service);
-        return Task.FromResult(AddFails);
+        return AddRuns is { } runs ? runs(service) : Task.FromResult(AddFails);
     }
 
     /// <summary>When set, a local connect waits for it (a test looks at the "Looking" line meanwhile).</summary>

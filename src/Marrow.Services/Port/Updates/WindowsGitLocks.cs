@@ -43,7 +43,7 @@ public static class WindowsGitLocks
         foreach (var entry in entries.Values.Where(InGit).OrderBy(e => e.Id))
         {
             cancellation.ThrowIfCancellationRequested();
-            found.Add(new(entry.Name, Host(entry)));
+            found.Add(new(entry.Name, Host(entry), entry.Id, entry.Started));
         }
         return found;
 

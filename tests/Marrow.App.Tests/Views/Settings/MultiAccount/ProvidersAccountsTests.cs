@@ -240,6 +240,48 @@ public sealed class ProvidersAccountsTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "ED-NEW-providersmerge-2")]
+    public void While_a_sign_in_runs_the_add_row_waits_saying_so_and_the_card_then_lists_both_accounts() => Run(One(), (h, view) =>
+    {
+        var hold = new TaskCompletionSource<string?>();
+        h.Rig.Actions.AddRuns = _ => hold.Task;
+        var block = view.Block(ProviderKind.Claude);
+        var id = "service-add-" + ProviderKind.Claude.Id;
+        var button = h.Find<Button>(id);
+        Assert.True(h.Press(id));
+        Assert.Equal(MultiAccountWords.SigningIn, block.AddStatusShown);
+        h.Until(() => h.Words().Contains(MultiAccountWords.SigningIn));
+        Assert.False(button.IsEffectivelyEnabled);
+        Assert.False(h.Press(id)); // a second click finds the row waiting
+        button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); h.Settle(); // and a click that gets through anyway starts nothing
+        Assert.Equal([ProviderKind.Claude], h.Rig.Actions.Added);
+        Assert.False(block.ListOpen);
+        h.Rig.ConnectAnother(ProviderKind.Claude, "Max");
+        hold.SetResult(null);
+        h.Until(() => block.ListOpen && block.Rows.Count == 2);
+        Assert.Equal(["Claude Max 1", "Claude Max 2"], block.Rows.Values.OrderBy(r => r.View.Number).Select(r => r.NameShown));
+        Assert.True(block.HeadingOpen && block.FootOpen && block.AddOpen);
+        Assert.True(button.IsEffectivelyEnabled);
+        Assert.Equal("", block.AddStatusShown);
+        h.Until(() => !h.Words().Contains(MultiAccountWords.SigningIn));
+        Assert.Equal(2, h.Find(found => found.StartsWith("account-grip-", StringComparison.Ordinal)).Count());
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-providersmerge-2")]
+    public void A_sign_in_that_throws_says_its_message_under_the_add_row_and_leaves_no_account() => Run(One(), (h, view) =>
+    {
+        h.Rig.Actions.AddRuns = _ => Task.FromException<string?>(new IOException("The sign-in window closed."));
+        Assert.True(h.Press("service-add-" + ProviderKind.Claude.Id));
+        var block = view.Block(ProviderKind.Claude);
+        h.Until(() => h.Words().Contains("The sign-in window closed."));
+        Assert.Equal("The sign-in window closed.", block.AddStatusShown);
+        Assert.Single(h.Rig.Accounts.ForService(ProviderKind.Claude));
+        Assert.False(block.ListOpen);
+        Assert.True(h.Find<Button>("service-add-" + ProviderKind.Claude.Id).IsEffectivelyEnabled); // and the row is offered again
+    });
+
+    [Fact]
     [Trait("Feature", "MA-8")]
     [Trait("Rule", "R-TEST-4")]
     public void A_dragged_row_lands_where_its_distance_points_inside_the_list()

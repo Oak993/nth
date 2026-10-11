@@ -828,24 +828,53 @@ internal sealed class ProvidersSettingsPage : Decorator
 
     /// <summary>PORT-ONLY (ED-NEW-providers-reveal-1): the asked-for section is scrolled to where a page's first section sits at rest, just under the chrome row, and kept there while its card
     /// folds open (the page's height grows under it). A bare BringIntoView, posted while the page had not been laid out, did nothing: "Keys and order" landed at the top of the page. The page's
-    /// own scroll is left to the person the moment they move it.</summary>
+    /// own scroll is left to the person the moment they move it.
+    /// ED-NEW-providersmerge-reveal-2: the section is kept there after its fold settles too, until the person acts on the page (a press, the wheel, a key, or a scroll of their own) or
+    /// <see cref="RevealHold"/> passes: the cards above it go on growing after it has settled (a signed-in service's plan limits and credits arrive from the network a second or more
+    /// later), and a ScrollViewer keeps no anchor of its own, so each of them pushed the section down.</summary>
     private void ScrollToTop(ProviderSettingsSection target)
     {
         double? placed = null;
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
         EventHandler? onLayout = null;
+        EventHandler<VisualTreeAttachmentEventArgs>? gone = null;
+        Action? unhook = null; // takes the hold's input handlers off the page's ScrollViewer
+        void Stop()
+        {
+            LayoutUpdated -= onLayout;
+            DetachedFromVisualTree -= gone;
+            unhook?.Invoke();
+            unhook = null;
+        }
+        gone = (_, _) => Stop();
         onLayout = (_, _) =>
         {
+            if (System.Diagnostics.Stopwatch.GetElapsedTime(started) > RevealHold) { Stop(); return; }
             if (target.FindAncestorOfType<ScrollViewer>() is not { } scroll || scroll.Viewport.Height <= 0 || target.Bounds.Height <= 0 || target.TranslatePoint(default, scroll) is not { } at) return;
-            if (placed is { } last && Math.Abs(scroll.Offset.Y - last) > 0.5) { LayoutUpdated -= onLayout; return; } // the person scrolled: the page is theirs
+            if (unhook is null)
+            {
+                const Avalonia.Interactivity.RoutingStrategies Both = Avalonia.Interactivity.RoutingStrategies.Tunnel | Avalonia.Interactivity.RoutingStrategies.Bubble;
+                EventHandler<PointerPressedEventArgs> pressed = (_, _) => Stop();
+                EventHandler<PointerWheelEventArgs> wheel = (_, _) => Stop();
+                EventHandler<KeyEventArgs> key = (_, _) => Stop();
+                scroll.AddHandler(PointerPressedEvent, pressed, Both, handledEventsToo: true);
+                scroll.AddHandler(PointerWheelChangedEvent, wheel, Both, handledEventsToo: true);
+                scroll.AddHandler(KeyDownEvent, key, Both, handledEventsToo: true);
+                unhook = () => { scroll.RemoveHandler(PointerPressedEvent, pressed); scroll.RemoveHandler(PointerWheelChangedEvent, wheel); scroll.RemoveHandler(KeyDownEvent, key); };
+            }
+            if (placed is { } last && Math.Abs(scroll.Offset.Y - last) > 0.5) { Stop(); return; } // the person scrolled: the page is theirs
             var top = Chrome.ChromeTopPadding + Chrome.CapsuleHeight + 16; // the page's own top margin under the chrome row (RebuildDetail)
             var offset = Math.Clamp(scroll.Offset.Y + at.Y - top, 0, Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height));
             if (Math.Abs(offset - scroll.Offset.Y) > 0.5) scroll.Offset = scroll.Offset.WithY(offset);
             placed = scroll.Offset.Y;
-            if (target.IsOpenAndSettled) LayoutUpdated -= onLayout; // open and laid out at its full height: in place for good
         };
         LayoutUpdated += onLayout;
+        DetachedFromVisualTree += gone;
         InvalidateMeasure();
     }
+
+    /// <summary>How long a revealed section is kept under the chrome row while the person leaves the page alone (ED-NEW-providersmerge-reveal-2): past the 25 s watchdog of a plan-limits load (ProviderRegistry.RefreshPlanLimits), the longest a card above it waits for its rows.</summary>
+    internal static readonly TimeSpan RevealHold = TimeSpan.FromSeconds(30);
 }
 
 /// <summary>:617-824 <c>private struct ProviderSettingsSection: View</c>: one provider's settings.</summary>
@@ -856,6 +885,9 @@ internal sealed class ProviderSettingsSection : Decorator
     private Marrow.App.Port.MultiAccount.Settings.ServiceBlockControl? accountsPart;
     /// <summary>PORT-ONLY (OD-0139): the service's accounts or keys at the foot of its card; null without the accounts.</summary>
     internal Marrow.App.Port.MultiAccount.Settings.ServiceBlockControl? AccountsPart => accountsPart;
+    private Marrow.UI.Port.Settings.CzFoldRow? keyFold;
+    /// <summary>PORT-ONLY (ED-NEW-providersmerge-keys-2): the fold that holds an API-key service's single "API key" box, closed while its keys are listed; null without the accounts.</summary>
+    internal Marrow.UI.Port.Settings.CzFoldRow? KeyFold => keyFold;
     private ChromeRevealLayout? revealLayout;
     /// <summary>PORT-ONLY (ED-NEW-providers-reveal-1): the card is fully open and its fold has finished.</summary>
     internal bool IsOpenAndSettled => revealLayout is { Fraction: >= 1 };
@@ -913,9 +945,19 @@ internal sealed class ProviderSettingsSection : Decorator
                 usageSlot.Children.Add(new ChromeRowDivider()); usageSlot.Children.Add(usage);
                 model.Providers.RefreshPlanLimits(provider); model.Providers.RefreshCredits(provider); // :772-779
             });
+            // PORT-ONLY (ED-NEW-providersmerge-keys-2): with the accounts, an API-key service's key row sits in a fold that closes when its keys are listed below (two or more): the list, with each
+            // key's name, order, switch, eye and Remove, then stands in place of the single box. Without the accounts the rows are the card's own, as the source draws them.
+            var keyRows = cardRows;
+            Border? keySlot = null;
+            if (provider.IsAPIKeyBased && Marrow.App.Port.MultiAccount.Settings.MultiAccountSettingsSeams.For(this) is not null)
+            {
+                keySlot = new Border();
+                keyRows = new StackPanel();
+            }
             if (provider.AcceptsAPIKey)
             {
-                cardRows.Children.Add(new ChromeRowDivider()); // :689-690
+                if (keySlot is not null) cardRows.Children.Add(keySlot);
+                keyRows.Children.Add(new ChromeRowDivider()); // :689-690
                 var keyField = PlainControls.TextField("sk-\u2026", new Binding<string>(() => state.ApiKey, value =>
                 {
                     state.ApiKey = value;
@@ -937,7 +979,7 @@ internal sealed class ProviderSettingsSection : Decorator
                     if (keyControls.Children.Count > 1) keyControls.Children.RemoveAt(1);
                     if (refusal is not null) keyControls.Children.Add(new TextBlock { Text = refusal, TextWrapping = TextWrapping.Wrap, Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.System(SwiftFont.TextStyle.Subheadline))); // DEVIATION OD-0012 E5: exact line beneath the field, in the key row's own detail style (ED-090: .subheadline, Chrome.secondaryText, :1055-1079).
                 });
-                cardRows.Children.Add(new ChromeRow(provider.IsAPIKeyBased ? "API key" : "API key (optional)", () => keyControls, keyDetail)); // :691-717
+                keyRows.Children.Add(new ChromeRow(provider.IsAPIKeyBased ? "API key" : "API key (optional)", () => keyControls, keyDetail)); // :691-717
                 keyField.Track(() => StoredKey(model.Settings), value => { if (!SwiftString.Equal(state.ApiKey, value)) state.ApiKey = value; }); // :796-799
             }
             if (!provider.IsAPIKeyBased)
@@ -964,6 +1006,14 @@ internal sealed class ProviderSettingsSection : Decorator
                 accountsPart = new Marrow.App.Port.MultiAccount.Settings.ServiceBlockControl(accounts.Accounts, provider,
                     () => { _ = model.Providers.Statuses; return provider.IsAPIKeyBased || provider == ProviderKind.Local || model.Providers.Status(provider).ProviderStatusAuth is ProviderStatus.Auth.SignedIn; });
                 cardRows.Children.Add(accountsPart);
+                if (keySlot is not null)
+                {
+                    var part = accountsPart;
+                    var fold = new Marrow.UI.Port.Settings.CzFoldRow(keyRows, !part.KeysListed);
+                    keyFold = fold;
+                    keySlot.Child = fold;
+                    part.KeysListedChanged += listed => fold.Open = !listed;
+                }
             }
         });
     }

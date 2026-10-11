@@ -41,7 +41,6 @@ internal sealed class ServiceBlockControl : Decorator
     private readonly KeyAddBox? keyBox;
     private readonly LocalServerBox? serverBox;
     private ServiceBlockView? view;
-    private bool adding;
 
     /// <param name="addAllowed">Whether the card offers its add row now (Settings > Providers: the service is signed in; its "Sign in" row is the way to the first account). Always, when not given.</param>
     internal ServiceBlockControl(AccountsSettingsModel model, ProviderKind service, Func<bool>? addAllowed = null)
@@ -127,19 +126,23 @@ internal sealed class ServiceBlockControl : Decorator
 
     internal KeyAddBox? KeyBox => keyBox;
 
+    /// <summary>Whether this API-key service's keys are listed (two or more, or one that is not the original): the list then stands in place of the card's single "API key" box
+    /// (ED-NEW-providersmerge-keys-2).</summary>
+    internal bool KeysListed { get; private set; }
+
+    /// <summary>Raised when <see cref="KeysListed"/> changes.</summary>
+    internal event Action<bool>? KeysListedChanged;
+
     private string Heading() => keys ? MultiAccountWords.KeysAndOrder : local ? MultiAccountWords.LocalModelsHeading : MultiAccountWords.AccountsHeading;
 
+    // ED-NEW-providersmerge-2: one sign-in at a time (the model starts nothing while one runs; the row waits, saying so), and its result is always said under the row.
     private async Task Add()
     {
-        if (adding) return;
-        adding = true;
-        try
-        {
-            addStatus.SetText("");
-            addStatusFold.Open = false;
-            if (await model.AddAsync(service) is { } problem) { addStatus.SetText(problem); addStatusFold.Open = true; }
-        }
-        finally { adding = false; }
+        if (model.Adding(service)) return;
+        string? problem;
+        try { problem = await model.AddAsync(service); }
+        catch (OperationCanceledException) { problem = null; }
+        if (problem is not null) { addStatus.SetText(problem); addStatusFold.Open = true; }
     }
 
     /// <summary>The quiet "Add another account" row: the accent plus and the accent words, a plain button the width of its words.</summary>
@@ -175,7 +178,19 @@ internal sealed class ServiceBlockControl : Decorator
         listFold.Open = listed.Count > 0;
         if (addButton is not null) addHost.Child = canAdd ? addButton : addGhost;
         addFold.Open = canAdd;
+        if (!keys && addButton is not null)
+        {
+            var busy = model.Adding(service);
+            addButton.IsEnabled = !busy;
+            if (busy) { addStatus.SetText(MultiAccountWords.SigningIn); addStatusFold.Open = true; }
+            else if (addStatus.Text == MultiAccountWords.SigningIn) { addStatus.SetText(""); addStatusFold.Open = false; }
+        }
         footFold.Open = !local && listed.Count > 1;
+        if (keys && listed.Count > 0 != KeysListed)
+        {
+            KeysListed = listed.Count > 0;
+            KeysListedChanged?.Invoke(KeysListed);
+        }
         blockFold.Open = local || listed.Count > 0 || canAdd;
         foreach (var gone in rows.Keys.Where(k => listed.All(r => r.Id != k)).ToArray())
         {

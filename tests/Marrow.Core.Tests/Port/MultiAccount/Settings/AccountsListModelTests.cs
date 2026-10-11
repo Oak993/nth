@@ -159,6 +159,55 @@ public sealed class AccountsListModelTests
     }
 
     [Fact]
+    [Trait("Decision", "ED-NEW-providersmerge-2")]
+    public async Task One_sign_in_runs_at_a_time_per_service_and_the_list_shows_the_new_account_when_it_ends()
+    {
+        var rig = new AccountsRig();
+        rig.Connect(ProviderKind.Claude, "Max");
+        rig.Connect(ProviderKind.Codex, "Plus");
+        var hold = new TaskCompletionSource<string?>();
+        rig.Actions.AddRuns = _ => hold.Task;
+        var changes = 0;
+        rig.Model.Changed += () => changes++;
+        var first = rig.Model.AddAsync(ProviderKind.Claude);
+        Assert.True(rig.Model.Adding(ProviderKind.Claude));
+        Assert.False(rig.Model.Adding(ProviderKind.Codex));
+        Assert.Equal(1, changes); // the add row learns that a sign-in runs
+        Assert.Null(await rig.Model.AddAsync(ProviderKind.Claude)); // a second click while it runs starts nothing
+        Assert.Equal([ProviderKind.Claude], rig.Actions.Added);
+        rig.ConnectAnother(ProviderKind.Claude, "Max"); // what the sign-in makes
+        hold.SetResult(null);
+        Assert.Null(await first);
+        Assert.False(rig.Model.Adding(ProviderKind.Claude));
+        var block = rig.Model.BlockFor(ProviderKind.Claude)!;
+        Assert.True(block.Several);
+        Assert.Equal(["Claude Max 1", "Claude Max 2"], block.Rows.Select(r => r.Name));
+        rig.Actions.AddRuns = null;
+        Assert.Null(await rig.Model.AddAsync(ProviderKind.Claude)); // once it ended, another sign-in may start
+        Assert.Equal([ProviderKind.Claude, ProviderKind.Claude], rig.Actions.Added);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-providersmerge-2")]
+    public async Task A_sign_in_that_throws_says_its_message_and_lets_the_next_one_start()
+    {
+        var rig = new AccountsRig();
+        rig.Connect(ProviderKind.Claude, "Max");
+        rig.Actions.AddRuns = _ => Task.FromException<string?>(new IOException("The sign-in window closed."));
+        Assert.Equal("The sign-in window closed.", await rig.Model.AddAsync(ProviderKind.Claude));
+        Assert.False(rig.Model.Adding(ProviderKind.Claude));
+        Assert.Single(rig.Accounts.ForService(ProviderKind.Claude));
+        rig.Actions.AddRuns = _ => throw new InvalidOperationException("Claude Code is not installed.");
+        Assert.Equal("Claude Code is not installed.", await rig.Model.AddAsync(ProviderKind.Claude));
+        rig.Actions.AddRuns = _ => Task.FromCanceled<string?>(new CancellationToken(true));
+        var changes = 0;
+        rig.Model.Changed += () => changes++;
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => rig.Model.AddAsync(ProviderKind.Claude)); // a cancelled sign-in is not a failure to report
+        Assert.False(rig.Model.Adding(ProviderKind.Claude));
+        Assert.Equal(2, changes); // the row learns it started and that it ended: it does not go on waiting
+    }
+
+    [Fact]
     public void A_service_that_keeps_one_account_never_offers_to_add_another()
     {
         var rig = new AccountsRig();

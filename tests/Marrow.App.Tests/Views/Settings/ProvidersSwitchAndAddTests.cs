@@ -124,6 +124,27 @@ public sealed class ProvidersSwitchAndAddTests(HeadlessSession headless) : Setti
     });
 
     [Fact]
+    [Trait("Decision", "ED-NEW-providersmerge-keys-2")]
+    public void With_two_keys_the_list_stands_in_place_of_the_single_API_key_box_and_the_box_comes_back_with_one() => WithAccounts(ProviderKind.Zai, SignedInStatus, (view, rig, model, h, w) =>
+    {
+        var section = Assert.IsType<ProviderSettingsSection>(view);
+        var part = Assert.IsType<ServiceBlockControl>(section.AccountsPart);
+        var fold = Assert.IsType<Marrow.UI.Port.Settings.CzFoldRow>(section.KeyFold);
+        var box = Assert.IsType<ChromeRow>(Row(view, "API key"));
+        Assert.True(part.KeysListed && part.ListOpen);
+        Assert.False(fold.Open); Assert.Equal(0, fold.Bounds.Height, 3); Assert.False(Showing(box)); // one place for the keys: the list, not the box and the list
+        var ids = rig.Accounts.ForService(ProviderKind.Zai).Select(a => a.Id).ToArray();
+        Assert.Equal(ids, part.Rows.Values.OrderBy(r => r.View.Number).Select(r => r.Id)); // every key in the order nth uses them, the first key too
+        Assert.All(part.Rows.Values, row => Assert.True(Showing(row.Eye!)));
+        Assert.Contains(rig.Model.Menu(ids[1]), e => e.Key == "rename"); Assert.Contains(rig.Model.Menu(ids[1]), e => e.Key == "top"); Assert.Contains(rig.Model.Menu(ids[1]), e => e.Key == "remove"); // a name, the key used first, remove
+        Assert.True(Showing(Nodes<Button>(view).Single(b => AutomationProperties.GetName(b) == MultiAccountWords.AddKey)));
+        rig.Model.RemoveKeyAsync(ids[1]).GetAwaiter().GetResult(); Drain(w); Tick(h, 400); Drain(w);
+        Assert.False(part.KeysListed);
+        Assert.True(fold.Open); Assert.True(fold.Bounds.Height > 20); Assert.True(Showing(box)); // one key again: the source's box
+        Assert.True(Showing(Assert.Single(Nodes<TextBox>(box))));
+    }, setup: rig => Assert.Null(rig.Model.AddKeyAsync(ProviderKind.Zai, "zai-second-key-bbbb").GetAwaiter().GetResult()));
+
+    [Fact]
     [Trait("Decision", "ED-NEW-providersmerge-1")]
     public void The_page_ends_with_the_account_wide_group_which_opens_with_a_second_account() => WithAccountsPage((view, rig, model, h, w) =>
     {
@@ -227,4 +248,45 @@ public sealed class ProvidersSwitchAndAddTests(HeadlessSession headless) : Setti
         Assert.True(top + section.Bounds.Height <= scroll.Viewport.Height + 1 || Math.Abs(top - inset) <= 1, "the section is not in view");
         Assert.Null(SettingsNavigation.Shared.RequestedProvider);
     }, height: 600);
+
+    private static void PublishLimits(AppModel model, ProviderKind provider, int windows)
+    {
+        var limits = new PlanLimits { PlanName = "Max", Windows = new ValueList<PlanLimits.Window>(Enumerable.Range(0, windows).Select(i => new PlanLimits.Window { Id = "w" + i, Title = "Window " + i, Percent = 10 + i, ResetsAt = SwiftDate.Now.AddHours(i + 1) })) };
+        var property = typeof(ProviderRegistry).GetProperty(nameof(ProviderRegistry.PlanLimits))!;
+        property.SetValue(model.Providers, ((ValueMap<ProviderKind, PlanLimits>)property.GetValue(model.Providers)!).Mutating(map => map[provider] = limits));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-providersmerge-reveal-2")]
+    public void A_revealed_section_stays_under_the_chrome_row_when_plan_limits_load_above_it_after_it_settled_until_the_person_scrolls() => WithProvidersPage((view, model, h, w) =>
+    {
+        SettingsNavigation.Shared.RequestedProvider = ProviderKind.Deepseek; SettingsNavigation.Shared.RequestedPage = SettingsPage.Providers;
+        Drain(w); for (var i = 0; i < 8; i++) { Tick(h, 100); Drain(w); }
+        var sections = Nodes<ProviderSettingsSection>(view);
+        var section = sections.Single(s => s.Provider == ProviderKind.Deepseek);
+        var above = sections.Where(s => s.Provider is ProviderKind.Claude or ProviderKind.Codex).ToArray();
+        Assert.Equal(2, above.Length);
+        Assert.All(above, s => Assert.True(s.TranslatePoint(default, section)!.Value.Y < 0, s.Provider + " is not above DeepSeek"));
+        Assert.True(section.IsOpenAndSettled);
+        var scroll = Nodes<ScrollViewer>(Field<Control>(view, "detail")).First();
+        var inset = Marrow.UI.Chrome.Chrome.ChromeTopPadding + Marrow.UI.Chrome.Chrome.CapsuleHeight + 16;
+        double Top() => section.TranslatePoint(default, scroll)!.Value.Y;
+        Assert.InRange(Top(), inset - 0.5, inset + 0.5);
+        // a second after the fold settled, Claude's and Codex's plan limits arrive: their rows grow the cards above DeepSeek
+        var heightAbove = above.Sum(s => s.Bounds.Height);
+        Tick(h, 1000); Drain(w);
+        PublishLimits(model, ProviderKind.Claude, 3); PublishLimits(model, ProviderKind.Codex, 2);
+        Drain(w); Tick(h, 400); Drain(w);
+        Assert.True(above.Sum(s => s.Bounds.Height) > heightAbove + 20, $"the cards above did not grow ({heightAbove} -> {above.Sum(s => s.Bounds.Height)})");
+        Assert.InRange(Top(), inset - 0.5, inset + 0.5);
+        // the person turns the wheel: the page is theirs, and a later change above moves the section with the page instead of the page being moved under them
+        w.MouseWheel(At(section, w), new Vector(0, -1)); Drain(w); Tick(h, 400); Drain(w);
+        var theirs = scroll.Offset.Y;
+        Assert.True(Math.Abs(Top() - inset) > 0.5, "the wheel did not move the page");
+        PublishLimits(model, ProviderKind.Claude, 6);
+        Drain(w); Tick(h, 400); Drain(w);
+        Assert.Equal(theirs, scroll.Offset.Y, 3);
+    }, model => { Seed(model, ProviderKind.Claude, InstalledAndSignedIn); Seed(model, ProviderKind.Codex, InstalledAndSignedIn); }, height: 600);
+
+    private static readonly ProviderStatus InstalledAndSignedIn = new() { Executable = SwiftURL.FileURLWithPath("/fixture/never-launch"), ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) };
 }
