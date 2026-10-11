@@ -188,6 +188,12 @@ public sealed partial class FakeShellLinks : IShellLinks
         lock (gate) folders.TryAdd(Norm(path), now);
     }
 
+    /// <summary>Makes a folder not exist (a desktop that was moved away).</summary>
+    public void RemoveFolder(string path)
+    {
+        lock (gate) folders.Remove(Norm(path));
+    }
+
     /// <summary>Renames a link the way a user would in Explorer; every field and property moves with it.</summary>
     public void Rename(string from, string to)
     {
