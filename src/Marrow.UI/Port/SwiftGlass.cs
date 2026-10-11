@@ -73,6 +73,24 @@ public sealed record GlassEffect(GlassShape Shape, SwiftColor? TintColor, double
 
     /// <summary>The same glass with <see cref="NoContactLine"/> set.</summary>
     public GlassEffect WithoutContactLine() => this with { NoContactLine = true };
+
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-glasslook-1): the surface whose look (<see cref="GlassLooks"/>) this glass takes; null lets the material tell it from the
+    /// shape (<see cref="GlassLooks.SurfaceOf"/>).
+    /// </summary>
+    public GlassSurface? Surface { get; init; }
+
+    /// <summary>The same glass on <paramref name="surface"/>.</summary>
+    public GlassEffect OnSurface(GlassSurface surface) => this with { Surface = surface };
+
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-glasslook-1): a look for this glass alone, over its surface's (a design canvas's comparison, the tests); null takes the
+    /// surface's from <see cref="GlassLooks"/>.
+    /// </summary>
+    public GlassLook? Look { get; init; }
+
+    /// <summary>The same glass with its own <paramref name="look"/>.</summary>
+    public GlassEffect WithLook(GlassLook look) => this with { Look = look };
 }
 
 /// <summary>The glass effect recorded on a layer (ED-180).</summary>

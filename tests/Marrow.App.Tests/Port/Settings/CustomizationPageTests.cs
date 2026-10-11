@@ -105,7 +105,8 @@ public sealed class CustomizationPageTests(HeadlessSession headless)
         Assert.NotNull(page.Rest);
         Assert.Collection(page.Rest.Children, // CZ-8: the Speech section is first after the sticky container, then "Pill in the composer" (multi-account step 3a)
             child => Assert.Same(page.Speech!.Section, child),
-            child => Assert.IsType<Marrow.App.Port.MultiAccount.Capsule.PillCapsuleSection>(child));
+            child => Assert.IsType<Marrow.App.Port.MultiAccount.Capsule.PillCapsuleSection>(child),
+            child => Assert.Same(page.Glass!.Section, child)); // then Glass (ED-NEW-glasslook-2, owner-requested: the user's Liquid Glass Look and tuning)
         // the stage sits 2 above the Style heading (CZ-3.4)
         Assert.Equal(2, page.Stage.Margin.Bottom);
         Assert.True(page.Stage.Bounds.Bottom + 2 <= kids[1].Bounds.Top + 0.5);
