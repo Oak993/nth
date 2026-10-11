@@ -6,11 +6,11 @@
     "pypi.org", "files.pythonhosted.org", "registry.npmjs.org", "cdn.playwright.dev"
   ],
   "items": {
-    "A1": { "repo": "anthropics/skills", "layout": { "type": "listedSkills" } },
-    "A2": { "repo": "anthropics/skills", "layout": { "type": "listedSkills" } },
+    "A1": { "repo": "anthropics/skills", "licenceFile": "skills/academy-guide/LICENSE.txt", "layout": { "type": "listedSkills" } },
+    "A2": { "repo": "anthropics/skills", "licenceFile": "skills/docx/LICENSE.txt", "layout": { "type": "listedSkills" } },
     "A3": { "repo": "anthropics/knowledge-work-plugins", "layout": { "type": "plugins", "parents": [""], "namesFromPrevious": true } },
     "A4": { "repo": "anthropics/financial-services", "layout": { "type": "plugins", "parents": ["plugins", ""] } },
-    "A5": { "repo": "anthropics/life-sciences", "layout": { "type": "skillFolders" } },
+    "A5": { "repo": "anthropics/life-sciences", "licenceFile": "clinical-trial-protocol-skill/LICENSE.txt", "layout": { "type": "skillFolders" } },
     "A6": {
       "repo": "anthropics/claude-plugins-official",
       "pin": "ab024cdcfa7ca80be204acd4907656ba5a968589",
@@ -20,15 +20,16 @@
     "O1": { "repo": "openai/codex", "layout": { "type": "listedSkills" } },
     "O2": {
       "repo": "openai/skills",
+      "licenceFile": "skills/.curated/cli-creator/LICENSE.txt",
       "layout": { "type": "folders", "parents": ["skills/.curated"], "excludeNames": ["pdf", "openai-docs"], "excludeNamePrefixes": ["figma"], "extraFolders": ["skills/.system/plugin-creator"] }
     },
-    "O3": { "repo": "openai/skills", "layout": { "type": "perSkillPins" } },
+    "O3": { "repo": "openai/skills", "licenceFile": "skills/.curated/doc/LICENSE.txt", "layout": { "type": "perSkillPins" } },
     "O4": {
       "repo": "openai/plugins",
       "layout": { "type": "plugins", "parents": ["plugins", ""], "namesFromPrevious": true, "excludeSegmentsIn": { "plugin-eval": ["fixtures"] } }
     },
     "O5": { "repo": "openai/plugins", "layout": { "type": "plugins", "parents": ["plugins", ""], "namesFromPrevious": true } },
-    "O6": { "repo": "openai/skills", "layout": { "type": "folders", "parents": ["skills/.curated"], "includeNamePrefixes": ["figma"] } },
+    "O6": { "repo": "openai/skills", "licenceFile": "skills/.curated/figma-code-connect-components/LICENSE.TXT", "layout": { "type": "folders", "parents": ["skills/.curated"], "includeNamePrefixes": ["figma"] } },
 
     "T1": { "fetch": { "type": "direct" }, "verify": { "type": "sigstore" } },
     "T1p": { "fetch": { "type": "pypi", "project": "pip" }, "verify": { "type": "pypiDigest" } },
@@ -36,10 +37,10 @@
     "T3": { "fetch": { "type": "direct" }, "verify": { "type": "gpgAsc" } },
     "T4": { "fetch": { "type": "release", "repo": "oschwartz10612/poppler-windows", "tag": "v26.09.0-0" }, "verify": { "type": "githubDigest" } },
     "T5": { "fetch": { "type": "release", "repo": "qpdf/qpdf", "tag": "v12.4.2" }, "verify": { "type": "githubDigest" } },
-    "T6": { "fetch": { "type": "release", "repo": "jgm/pandoc", "tag": "3.12" }, "verify": { "type": "githubDigest" } },
-    "T7": { "fetch": { "type": "release", "repo": "git-for-windows/git", "tag": "v2.56.0.windows.1" }, "verify": { "type": "githubDigest" } },
+    "T6": { "fetch": { "type": "release", "repo": "jgm/pandoc", "tag": "3.12.1" }, "verify": { "type": "githubDigest" } },
+    "T7": { "fetch": { "type": "release", "repo": "git-for-windows/git", "tag": "v2.56.0.windows.2" }, "verify": { "type": "githubDigest" } },
     "T8": { "fetch": { "type": "release", "repo": "cli/cli", "tag": "v2.102.0" }, "verify": { "type": "githubDigest" } },
-    "T9": { "fetch": { "type": "release", "repo": "astral-sh/uv", "tag": "0.12.23" }, "verify": { "type": "githubDigest" } },
+    "T9": { "fetch": { "type": "release", "repo": "astral-sh/uv", "tag": "0.13.0" }, "verify": { "type": "githubDigest" } },
     "T10": { "fetch": { "type": "direct" }, "verify": { "type": "none", "reason": "Playwright publishes no signature for its browser zips; the pin run's own hash becomes the pin" } },
 
     "P1": { "fetch": { "type": "pip", "python": "3.14", "platform": "win_amd64", "abis": ["cp314", "abi3", "none"] } },

@@ -294,6 +294,8 @@ async function buildNodeset(prev, cfg) {
     const r = run(args.npmExe, ['install', '--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: dir, env: { ...process.env, npm_config_os: f.os, npm_config_cpu: f.cpu } });
     if (r.status !== 0) throw new Error(`${id}: npm install --package-lock-only failed: ${(r.stderr || r.stdout).trim().slice(-600)}`);
     const { kept, skipped } = L.filterNpmLock(JSON.parse(fs.readFileSync(path.join(dir, 'package-lock.json'), 'utf8')), { os: f.os, cpu: f.cpu });
+    // RR-14 (ED-NEW-dl-7): the node_modules position of every kept package, so the nodeset installer can lay the tarballs out as the lock does.
+    e.npmTree = kept.map((p) => ({ path: p.path, name: p.name, version: p.version, resolved: p.resolved, integrity: p.integrity }));
     e.notes.push(`${kept.length} packages for ${f.os}/${f.cpu}; skipped ${skipped.length} (${skipped.map((s) => `${s.name}: ${s.reason}`).slice(0, 12).join('; ')}${skipped.length > 12 ? '; ...' : ''})`);
     const artifacts = [];
     await L.mapLimit(kept, args.concurrency, async (p) => {
@@ -382,7 +384,7 @@ async function buildRepoItem(prev, cfg) {
   let pin = cfg.pin ?? prev.pin;
   if (cfg.pin && prev.pinHint && !cfg.pin.startsWith(prev.pinHint)) throw new Error(`${id}: the pin in sources.json (${cfg.pin}) does not start with the catalogue's hint ${prev.pinHint}`);
   const skills = [];
-  let files = [], folders = [], licenceFile = null, rootsUsed = [];
+  let files = [], folders = [], licenceFile = null, rootsUsed = [], perSkillLicenceUrl = null;
   if (layout.type === 'perSkillPins') {
     pin = null;
     for (const old of prev.skills) {
@@ -395,6 +397,13 @@ async function buildRepoItem(prev, cfg) {
       files.push(...got.files);
       skills.push({ ...old, path: dirs[0], name: L.parseFrontmatterName(got.texts.get(`${dirs[0]}/SKILL.md`) ?? '') });
       rootsUsed.push(dirs[0]);
+    }
+    // ED-NEW-dl-11 (7): a set at per-skill pins names its licence file in sources.json; it is fetched at the pin of the skill whose folder holds it.
+    if (cfg.licenceFile) {
+      const owner = skills.find((s) => cfg.licenceFile.startsWith(s.path + '/'));
+      if (!owner || !files.some((f) => f.path === cfg.licenceFile)) throw new Error(`${id}: the licence file ${cfg.licenceFile} is not in any pinned skill folder`);
+      licenceFile = cfg.licenceFile;
+      perSkillLicenceUrl = L.rawUrl(repo, owner.pin, licenceFile);
     }
   } else {
     if (!L.isFullCommit(pin)) throw new Error(`${id}: no full commit pin (the catalogue has ${pin ?? 'none'}; put it in sources.json)`);
@@ -435,7 +444,7 @@ async function buildRepoItem(prev, cfg) {
   if (off !== null && Math.abs(off) > 15) warn(id, `measured ${L.mbFromBytes(total)} MB differs from the plan's ${prev.approxSizeMb} MB by ${off}%`);
   e.notes.push(`${files.length} files, ${total} bytes, from ${rootsUsed.length} folder(s)`);
   return {
-    ...prev, pin, sourceUrl: prev.sourceUrl ?? `https://github.com/${repo}`, licenceFile, licenceUrl: licenceFile && pin ? L.rawUrl(repo, pin, licenceFile) : null,
+    ...prev, pin, sourceUrl: prev.sourceUrl ?? `https://github.com/${repo}`, licenceFile, licenceUrl: licenceFile && pin ? L.rawUrl(repo, pin, licenceFile) : perSkillLicenceUrl,
     files, skillCount: skills.length, skillsListed: true, skills, folders, approxSizeMb: L.mbFromBytes(total),
   };
 }

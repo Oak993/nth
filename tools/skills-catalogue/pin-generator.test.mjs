@@ -99,6 +99,60 @@ test('redirected/injected byte sources, empty artifacts and wrong published size
     await assert.rejects(generatePins(manifest, { sources, request: async url => ({ url, chunks: (async function* () {})() }) }), /empty/);
 });
 
+test('an empty body is pinned only for a file the resolver recorded as empty, and still against its expected digest', async () => {
+    const empty = async url => url.endsWith('.artifact') ? { url, chunks: (async function* () {})() } : request(url);
+    const resolved = structuredClone(manifest);
+    for (const item of resolved.items) item.entries[0].expectedSize = 0;
+    const result = await generatePins(resolved, { sources, request: empty, now: () => new Date(date) });
+    assert.ok(result.items.every(item => item.entries[0].size === 0 && item.entries[0].sha256 === sha(Buffer.alloc(0))));
+    resolved.items[0].entries[0].expectedSha256 = sha(bytes);
+    await assert.rejects(generatePins(resolved, { sources, request: empty }), /digest/);
+    const unexpected = structuredClone(manifest);
+    unexpected.items[0].entries[0].expectedSize = 3;
+    await assert.rejects(generatePins(unexpected, { sources, request: empty }), /empty/);
+});
+
+test('a mirror redirect is accepted only for a mirrored item artifact with an established digest, which its bytes must match', async () => {
+    const t3 = manifest.items.findIndex(item => item.id === 'T3');
+    const viaMirror = async (url, policy) => {
+      if (!url.endsWith('T3.artifact')) return request(url, policy);
+      const mirror = 'https://mirror.example.org/tdf/T3.artifact';
+      assert.ok(policy(url));
+      if (!(policy.redirect ?? policy)(mirror)) throw new Error('URL is outside this item\'s official sources: ' + mirror);
+      return { url: mirror, chunks: (async function* () { yield bytes; })() };
+    };
+    await assert.rejects(generatePins(manifest, { sources, request: viaMirror }), /official sources/);
+    const pinned = structuredClone(manifest);
+    pinned.items[t3].entries[0].expectedSha256 = sha(bytes);
+    const result = await generatePins(pinned, { sources, request: viaMirror, now: () => new Date(date) });
+    assert.equal(result.items[t3].entries[0].finalUrl, 'https://mirror.example.org/tdf/T3.artifact');
+    assert.equal(result.items[t3].entries[0].sha256, sha(bytes));
+    pinned.items[t3].entries[0].expectedSha256 = sha(Buffer.from('other'));
+    await assert.rejects(generatePins(pinned, { sources, request: viaMirror }), /digest/);
+    const other = structuredClone(manifest);
+    const t2 = other.items.findIndex(item => item.id === 'T2');
+    other.items[t2].entries[0].expectedSha256 = sha(bytes);
+    const t2Mirror = async (url, policy) => url.endsWith('T2.artifact') ? ((policy.redirect ?? policy)('https://mirror.example.org/T2.artifact') ? { url: 'https://mirror.example.org/T2.artifact', chunks: (async function* () { yield bytes; })() } : (() => { throw new Error('URL is outside this item\'s official sources'); })()) : request(url, policy);
+    await assert.rejects(generatePins(other, { sources, request: t2Mirror }), /official sources/);
+});
+
+test('the Chrome for Testing bucket is only a redirect destination for T10 under its public path', async () => {
+    const { sourcePolicy } = await import('./pin-generator.mjs');
+    const allowed = sourcePolicy('T10', sources.items.T10);
+    const cft = 'https://storage.googleapis.com/chrome-for-testing-public/1.0/win64/chrome-win64.zip';
+    assert.equal(allowed(cft), false);
+    assert.equal(allowed.redirect(cft), true);
+    assert.equal(allowed.redirect('https://storage.googleapis.com/other-bucket/chrome-win64.zip'), false);
+    assert.equal(sourcePolicy('T9', sources.items.T9).redirect(cft), false);
+    const seen = [];
+    const reply = await requestOfficial('https://cdn.playwright.dev/builds/cft/1.0/win64/chrome-win64.zip', allowed, async url => {
+      seen.push(url);
+      return seen.length === 1 ? new Response(null, { status: 302, headers: { Location: cft } }) : new Response(bytes);
+    });
+    assert.equal(reply.url, cft);
+    await assert.rejects(requestOfficial(cft, allowed, async () => new Response(bytes)), /official/);
+});
+
 test('official array metadata is selected by an observed field, with ambiguity rejected', () => {
     const selector = { format: 'json', pointer: '/versions', match: { field: 'version', value: 'fixture' }, valuePointer: '/version' };
     assert.equal(readMetadata(Buffer.from('{"versions":[{"version":"other"},{"version":"fixture"}]}'), selector), 'fixture');
