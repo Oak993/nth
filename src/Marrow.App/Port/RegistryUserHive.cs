@@ -19,6 +19,11 @@ public sealed class RegistryUserHive(RegistryKey root) : IUserRegistry
         return key is not null;
     }
 
+    public void CreateKey(string subKey)
+    {
+        using var key = root.CreateSubKey(subKey, writable: true);
+    }
+
     public object? GetValue(string subKey, string name)
     {
         using var key = root.OpenSubKey(subKey);

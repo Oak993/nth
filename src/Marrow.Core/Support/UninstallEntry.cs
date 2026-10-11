@@ -11,6 +11,13 @@ public interface IUserRegistry
 {
     bool KeyExists(string subKey);
 
+    /// <summary>
+    /// Creates the key (and any missing parent) when it does not exist; an existing key is left as it is. Added for unit U8
+    /// (ED-NEW-inst-u8-1): the sign-in entry goes in <c>...\CurrentVersion\Run</c>, which a profile may not have yet. The
+    /// uninstall key is never made this way.
+    /// </summary>
+    void CreateKey(string subKey);
+
     /// <summary>The value, or null when the key or the value does not exist.</summary>
     object? GetValue(string subKey, string name);
 

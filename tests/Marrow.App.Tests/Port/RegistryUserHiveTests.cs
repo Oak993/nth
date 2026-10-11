@@ -148,4 +148,49 @@ public sealed class RegistryUserHiveTests : IDisposable
         using var key = hive.Root.OpenSubKey(UninstallEntry.RunKeyPath)!;
         Assert.Equal(new[] { "Other" }, key.GetValueNames());
     }
+
+    // ---- unit U8 (ED-NEW-inst-u8-1): the key the sign-in entry may have to make, and the entry end to end ----
+
+    [Fact]
+    [Trait("Decision", "ED-247")]
+    public void CreateKey_makes_the_key_and_its_parents_and_leaves_an_existing_key_and_its_values_alone()
+    {
+        var registry = new RegistryUserHive(hive.Root);
+
+        registry.CreateKey(UninstallEntry.RunKeyPath);
+        Assert.True(registry.KeyExists(UninstallEntry.RunKeyPath));
+        registry.SetString(UninstallEntry.RunKeyPath, "Other", "kept");
+        registry.CreateKey(UninstallEntry.RunKeyPath);
+
+        Assert.Equal("kept", registry.GetValue(UninstallEntry.RunKeyPath, "Other"));
+        Assert.Null(hive.Root.OpenSubKey(UninstallEntry.KeyPath)); // the uninstall key is still never made
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-247")]
+    public void The_sign_in_entry_is_made_read_turned_off_by_Windows_turned_on_again_and_removed_in_the_test_hive()
+    {
+        var registry = new RegistryUserHive(hive.Root);
+        var launch = new LaunchTarget(Root + @"\current\nth.exe", "", Root + @"\current", Root + @"\current\nth.exe", 0, FromStart: true);
+        var command = "\"" + Root + "\current\nth.exe\" --at-sign-in";
+
+        Assert.Equal(SignInChangeOutcome.Changed, SignInEntry.Enable(registry, Root, launch).Outcome); // the profile had no Run key at all
+        Assert.Equal(new SignInState(SignInStatus.On, command), SignInEntry.Read(registry, Root));
+        Assert.Equal<(object?, RegistryValueKind)>((command, RegistryValueKind.String), Read(UninstallEntry.RunKeyPath, "nth"));
+
+        // what the Startup apps page writes when the user turns the entry off: a REG_BINARY whose first byte is 3
+        using (var approved = hive.CreateKey(SignInEntry.ApprovedKeyPath))
+            approved.SetValue("nth", new byte[] { 3, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8 }, RegistryValueKind.Binary);
+        Assert.Equal(SignInStatus.DisabledInWindows, SignInEntry.Read(registry, Root).Status);
+
+        Assert.Equal(SignInChangeOutcome.Changed, SignInEntry.Enable(registry, Root, launch).Outcome);
+        Assert.Equal(SignInStatus.On, SignInEntry.Read(registry, Root).Status);
+        using (var approved = hive.Root.OpenSubKey(SignInEntry.ApprovedKeyPath)!)
+            Assert.Null(approved.GetValue("nth"));
+
+        Assert.Equal(SignInChangeOutcome.Changed, SignInEntry.Disable(registry, Root).Outcome);
+        Assert.Equal(SignInStatus.Off, SignInEntry.Read(registry, Root).Status);
+        using var run = hive.Root.OpenSubKey(UninstallEntry.RunKeyPath)!;
+        Assert.Empty(run.GetValueNames());
+    }
 }

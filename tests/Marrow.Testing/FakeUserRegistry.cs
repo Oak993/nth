@@ -15,18 +15,30 @@ public sealed class FakeUserRegistry : IUserRegistry
     /// <summary>Values set or deleted through <see cref="IUserRegistry"/> (seeding does not count).</summary>
     public int Writes { get; private set; }
 
-    public void CreateKey(string subKey)
+    /// <summary>Makes a key as an outside writer would (not counted).</summary>
+    public void SeedKey(string subKey)
     {
         if (!keys.ContainsKey(subKey)) keys[subKey] = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
     }
 
-    /// <summary>Sets a value as an outside writer would (not counted); creates the key.</summary>
+    /// <summary><see cref="IUserRegistry.CreateKey"/>: counts a write only when the key was missing.</summary>
+    public void CreateKey(string subKey)
+    {
+        if (keys.ContainsKey(subKey)) return;
+        SeedKey(subKey);
+        Writes++;
+    }
+
+    /// <summary>Sets a value as an outside writer would (not counted); creates the key. A value is a string, an int or bytes (a <c>REG_BINARY</c>).</summary>
     public void Seed(string subKey, string name, object value)
     {
-        if (value is not (string or int)) throw new ArgumentException("A value is a string or an int.", nameof(value));
-        CreateKey(subKey);
+        if (value is not (string or int or byte[])) throw new ArgumentException("A value is a string, an int or bytes.", nameof(value));
+        SeedKey(subKey);
         keys[subKey][name] = value;
     }
+
+    /// <summary>How many values a key holds, for a check that nothing was left behind; null when the key does not exist.</summary>
+    public int? ValueCount(string subKey) => keys.TryGetValue(subKey, out var values) ? values.Count : null;
 
     /// <summary>
     /// What Velopack 1.2.161 writes for NthApp (registry.rs:9-57): Update.exe's uninstall strings, the size of
