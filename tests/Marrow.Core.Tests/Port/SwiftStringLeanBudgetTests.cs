@@ -11,8 +11,8 @@ namespace Marrow.Core.Tests.Port;
 [Trait("Decision", "ED-NEW-lean-1")]
 public sealed class SwiftStringLeanBudgetTests
 {
-    private const long ContainsBytesPerCallLimit = 2_150;  // measured 1,434 before the fast paths (Debug)
-    private const long SplitBytesLimit = 45_000;          // measured 29,984 before the fast paths (Debug)
+    private const long ContainsBytesPerCallLimit = 210;    // Debug: 1,434 before the fast paths (limit 2,150), 158 after
+    private const long SplitBytesLimit = 39_000;          // Debug: 29,984 before the fast paths (limit 45,000), 29,920 after
 
     [Fact]
     public void Searching_500_thread_titles_stays_within_its_allocation_budget()
