@@ -2182,7 +2182,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                     SkillDataRoot = Storage.Root,
                     SkillHome = environment.TryGetValue("HOME", out var skillHome) ? skillHome : LoginEnvironment.HomeDirectory,
                     SkillToolOffer = SkillsOffers,
-                    SkillMcpExecutable = thread.Provider == ProviderKind.Cursor ? Path.Combine(AppContext.BaseDirectory, "Marrow.App.exe") : null,
+                    SkillMcpExecutable = thread.Provider == ProviderKind.Cursor ? AppExecutable.Path : null,
                     IgnisThreadID = ThreadID, // PORT-ONLY: Ignis (ED-NEW-ignis-runtime)
                 };
 

@@ -54,7 +54,7 @@ public sealed class VelopackStartupHookTests
             Assert.False(Program.InstalledByVelopack(current + Path.DirectorySeparatorChar));
             Assert.False(Program.InstalledByVelopack(current));
             Assert.False(Program.InstalledByVelopack(AppContext.BaseDirectory));
-            // Velopack's layout: <root>\Update.exe and <root>\current\Marrow.App.exe
+            // Velopack's layout: <root>\Update.exe and <root>\current\nth.exe
             File.WriteAllBytes(Path.Combine(root, "Update.exe"), []);
             Assert.True(Program.InstalledByVelopack(current + Path.DirectorySeparatorChar));
             Assert.True(Program.InstalledByVelopack(current));

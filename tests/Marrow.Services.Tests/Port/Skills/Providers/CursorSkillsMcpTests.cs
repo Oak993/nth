@@ -19,7 +19,7 @@ public sealed class CursorSkillsMcpTests
         var item = f.Add("O3", "pdf");
         using var g = f.Open().Start("cursor", "chat", [item], f.Switches((item, true)), f.Budget);
         var type = typeof(Generation).Assembly.GetType("Marrow.Services.Port.Skills.Providers.SkillsMcpBridge")!;
-        using var bridge = (IDisposable)Activator.CreateInstance(type, g, "C:/fake/Marrow.App.exe")!;
+        using var bridge = (IDisposable)Activator.CreateInstance(type, g, "C:/fake/nth.exe")!;
         var pipeName = (string)type.GetProperty("PipeName")!.GetValue(bridge)!;
         var relayName = "MarrowTestRelay-" + Guid.NewGuid().ToString("N");
         using var peer = new NamedPipeServerStream(relayName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
@@ -43,7 +43,7 @@ public sealed class CursorSkillsMcpTests
         using var g = f.Open().Start("cursor", "chat", [item], f.Switches((item, true)), f.Budget);
         var type = typeof(Generation).Assembly.GetType("Marrow.Services.Port.Skills.Providers.SkillsMcpBridge");
         Assert.NotNull(type);
-        using var bridge = (IDisposable)Activator.CreateInstance(type, g, "C:/fake/Marrow.App.exe")!;
+        using var bridge = (IDisposable)Activator.CreateInstance(type, g, "C:/fake/nth.exe")!;
         var config = (JSONValue)type.GetProperty("Configuration")!.GetValue(bridge)!;
         var name = config["name"]!.JSONValueString!;
         var permission = type.GetMethod("AutomaticOption");
@@ -119,7 +119,7 @@ public sealed class CursorSkillsMcpTests
         using var g = f.Open().Start("cursor", "chat", [item], f.Switches((item, true)), f.Budget);
         var type = typeof(Generation).Assembly.GetType("Marrow.Services.Port.Skills.Providers.SkillsMcpBridge");
         Assert.NotNull(type);
-        using var bridge = (IDisposable)Activator.CreateInstance(type, g, "C:/fake/Marrow.App.exe")!;
+        using var bridge = (IDisposable)Activator.CreateInstance(type, g, "C:/fake/nth.exe")!;
         var pipeName = (string)type.GetProperty("PipeName")!.GetValue(bridge)!;
         using var pipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
         await pipe.ConnectAsync(5000);

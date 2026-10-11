@@ -25,7 +25,7 @@ public sealed class VelopackSelfUpdateEngineTests
         var applied = new List<VelopackAsset>();
         // channel "win": the feed file is releases.win.json, whatever system the test runs on (Velopack's default channel is the system's own)
         var root = Directory.CreateTempSubdirectory("ue1-root-").FullName;
-        var locator = new TestVelopackLocator("NthApp", installed, packages, root, root, Path.Combine(root, "Update.exe"), "win", null, null, "Marrow.App.exe");
+        var locator = new TestVelopackLocator("NthApp", installed, packages, root, root, Path.Combine(root, "Update.exe"), "win", null, null, "nth.exe");
         var engine = VelopackSelfUpdateEngine.ForRepository(MarrowReleaseFeed.Url, feed, locator, (_, asset) => applied.Add(asset));
         return new VelopackEngineRig(engine, feed, applied, packages);
     }

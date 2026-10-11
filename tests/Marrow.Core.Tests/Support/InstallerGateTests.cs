@@ -20,7 +20,7 @@ public sealed class InstallerGateTests
         <authors>nth</authors>
         <version>{0}</version>
         <channel>win</channel>
-        <mainExe>Marrow.App.exe</mainExe>
+        <mainExe>nth.exe</mainExe>
         <os>win</os>
         <rid>win-x64</rid>
         </metadata>
@@ -361,9 +361,10 @@ public sealed class InstallerGateTests
         Assert.Contains("<InstallerAppId Condition=\"'$(InstallerAppId)' == ''\">NthApp</InstallerAppId>", project, StringComparison.Ordinal);
         Assert.Equal("NthApp", Marrow.Core.Port.SelfUpdate.MarrowReleaseFeed.PackageId);
         Assert.NotEqual(AppInfo.DataFolderName, Marrow.Core.Port.SelfUpdate.MarrowReleaseFeed.PackageId, StringComparer.OrdinalIgnoreCase);
-        // Programs\Marrow.lnk is the Electron app's: the shortcut goes in the authors' folder, never the Start menu root
-        Assert.Contains("--shortcuts StartMenu `", script, StringComparison.Ordinal);
-        Assert.DoesNotContain("StartMenuRoot `", script, StringComparison.Ordinal);
+        // nth installer PLAN.md override 3 (ED-NEW-inst-u7-2): the Electron app that owned Programs\Marrow.lnk no longer matters because our file is nth.lnk, so
+        // Start shows Programs\nth.lnk (StartMenuRoot), not a folder named after the publisher (StartMenu). PackageWindowsNthTests holds the same, and more.
+        Assert.Contains("--shortcuts StartMenuRoot `", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("--shortcuts StartMenu `", script, StringComparison.Ordinal);
         // the gate is built with the same title, id and version vpk pack was given, around the Setup.exe vpk produced
         Assert.Contains("--packId $PackId `", script, StringComparison.Ordinal);
         Assert.Contains("--packVersion $version `", script, StringComparison.Ordinal);
