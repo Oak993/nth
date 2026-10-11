@@ -1,3 +1,4 @@
+using System.Text;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
@@ -62,8 +63,15 @@ public sealed class StreamedTextTracker
 
     public string? CurrentMessageID { get; private set; } // :50
     public string? CurrentThinkingID { get; private set; } // :51
-    public string MessageText { get; private set; } = ""; // :52
-    public string ThinkingText { get; private set; } = ""; // :53
+    // ED-NEW-lean-4: the two text buffers append in place and are flattened once when read (at message or block
+    // end), not copied whole on every delta; MessageText and ThinkingText are the same plain concatenation as before.
+    private readonly StringBuilder messageText = new(); // :52
+    private readonly StringBuilder thinkingText = new(); // :53
+    private string? messageFlat = "";
+    private string? thinkingFlat = "";
+
+    public string MessageText => messageFlat ??= messageText.ToString(); // :52
+    public string ThinkingText => thinkingFlat ??= thinkingText.ToString(); // :53
     public bool StreamedText { get; private set; } // :54
 
     public StreamedTextTracker(Func<long, string> messageID, Func<long, string> thinkingID) // :56-59
@@ -77,7 +85,8 @@ public sealed class StreamedTextTracker
     {
         messageCounter++;
         CurrentMessageID = messageID(messageCounter);
-        MessageText = "";
+        messageText.Clear();
+        messageFlat = "";
         StreamedText = false;
     }
 
@@ -90,7 +99,8 @@ public sealed class StreamedTextTracker
             CurrentMessageID = messageID(messageCounter);
         }
         StreamedText = true;
-        MessageText += delta;
+        messageText.Append(delta);
+        messageFlat = null;
         return CurrentMessageID ?? "";
     }
 
@@ -98,7 +108,8 @@ public sealed class StreamedTextTracker
     {
         thinkingCounter++;
         CurrentThinkingID = thinkingID(thinkingCounter);
-        ThinkingText = "";
+        thinkingText.Clear();
+        thinkingFlat = "";
     }
 
     /// <summary>The id a thinking delta belongs to. <paramref name="resetsText"/> follows the provider's
@@ -117,7 +128,8 @@ public sealed class StreamedTextTracker
                 CurrentThinkingID = thinkingID(thinkingCounter);
             }
         }
-        ThinkingText += delta;
+        thinkingText.Append(delta);
+        thinkingFlat = null;
         return CurrentThinkingID ?? "";
     }
 
@@ -129,7 +141,8 @@ public sealed class StreamedTextTracker
     public void ResetThinking() // :109-113
     {
         CurrentThinkingID = null;
-        ThinkingText = "";
+        thinkingText.Clear();
+        thinkingFlat = "";
     }
 
     /// <summary>The turn's text flag, cleared before each turn.</summary>
