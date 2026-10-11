@@ -7,6 +7,8 @@
     types twice. The shared test helpers this project needs are linked the same way instead; each uses nothing from
     Marrow.Core but those linked contract files. No test here runs the real installer, Setup.exe or Update.exe, or touches
     the real Desktop, Start menu or HKCU.
+    Unit U1 (ED-NEW-inst-u1-1): the window shell is tested headless (Avalonia.Headless with Skia, one session per
+    assembly); what only Windows can answer about the live window is checked by the setup's own ui-smoke run.
   -->
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
@@ -17,6 +19,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Avalonia.Headless" />
+    <PackageReference Include="Avalonia.Skia" />
     <PackageReference Include="coverlet.collector" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
