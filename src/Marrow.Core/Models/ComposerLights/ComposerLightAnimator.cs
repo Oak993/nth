@@ -59,6 +59,9 @@ public sealed class ComposerLightAnimator
     public AuraFrame Aura { get; } = new();
     public BeamFrame[] Slots { get; } = [new(), new(), new()];
     public ComposerLightClock Clock => clock;
+
+    /// <summary>OD-0139: the shader lights (Composer Light v2), their state and frames.</summary>
+    public ShaderLightAnimator Shaders { get; }
     public ComposerLightSettings Settings => settings;
 
     /// <summary>The slots drawn this frame (their index into <see cref="Slots"/>), and how many.</summary>
@@ -87,6 +90,7 @@ public sealed class ComposerLightAnimator
         var cs = AuraColors();
         for (var i = 0; i < 24; i++) colors[i] = new CssTransition(cs[i]);
         keys[0] = BeamSlotConfig.For(b, BeamDark(b));
+        Shaders = new ShaderLightAnimator(this.settings, phase, dark, reduce, this.palette);
         Produce(0);
     }
 
@@ -214,8 +218,15 @@ public sealed class ComposerLightAnimator
             keys[j] = key; seq[j] = ++counter; on = j;
             for (var i = 0; i < 3; i++) slotAlpha[i].Set(i == on ? 1 : 0, now, p);
         }
+        Shaders.Retarget(settings, phase, dark, palette, reduce, now);
         if (reduce) SnapAll();
     }
+
+    /// <summary>OD-0139: a keystroke in the composer at <paramref name="caretX"/> (px from the composer's left): the shader lights' lift.</summary>
+    public void Keystroke(double caretX) => Shaders.Keystroke(caretX);
+
+    /// <summary>OD-0139: where the composer's caret is (px from its left).</summary>
+    public void SetCaret(double caretX) => Shaders.SetCaret(caretX);
 
     // reduce motion: the playground's `transition: none` (every value at its target at once)
     private void SnapAll()
@@ -238,12 +249,13 @@ public sealed class ComposerLightAnimator
         var beamDark = BeamDark(b);
         clock.Advance(dt * motionScale, reduce, settings.Aura.Speed, settings.Aura.Breathing, BorderBeamMath.Duration(b, w, h, ComposerRadius),
             b.StaticColors || b.Palette == BeamPalette.Mono, !beamDark, b.Radius ?? ComposerRadius);
+        Shaders.Advance(dt, motionScale, now);
         Produce(now);
         if (reduce) return false;
-        var lit = AuraVisible || DrawnCount > 0;
+        var lit = AuraVisible || DrawnCount > 0 || Shaders.DrawnCount > 0;
         if (lit) return true;
         // nothing drawn: frames only while a fade is still under way
-        return auraGroup.IsRunning(now) || beamGroup.IsRunning(now) || active.IsRunning(now);
+        return auraGroup.IsRunning(now) || beamGroup.IsRunning(now) || active.IsRunning(now) || Shaders.Fading(now);
     }
 
     /// <summary>The playground's absolute-time hook for stills and tests (window.__bbT): the beam at T seconds.</summary>
@@ -292,6 +304,7 @@ public sealed class ComposerLightAnimator
             return new CssColor(colors[k * 4].Value(now) * 255, colors[k * 4 + 1].Value(now) * 255, colors[k * 4 + 2].Value(now) * 255, pa);
         }
         a.C1 = C(0); a.C2 = C(1); a.K1 = C(2); a.K2 = C(3); a.N1 = C(4); a.N2 = C(5);
+        Shaders?.Produce(now, w, h, ComposerRadius);
     }
 
     /// <summary>

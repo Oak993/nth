@@ -40,7 +40,7 @@ public sealed class CustomizationSectionsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-251")] // CZ-T23, CZ-5.1: three cards in a radio group named Light with the design's texts; a pick writes `style` and keeps the other styles' settings (CZ-5.3)
+    [Trait("Decision", "ED-251")] // CZ-T23, CZ-5.1 (OD-0139: and the shader lights' cards between the Uiverse light and Off): the cards in a radio group named Light with the design's texts; a pick writes `style` and keeps the other styles' settings (CZ-5.3)
     [Trait("Spec", "CZ-T23")]
     public void The_style_cards_are_a_radio_group_and_a_pick_writes_the_style_keeping_the_others_settings() => headless.OnUiThread(() =>
     {
@@ -51,7 +51,7 @@ public sealed class CustomizationSectionsTests(HeadlessSession headless)
         });
         var cards = rig.Page.StyleCards!;
         Assert.Equal("beam", cards.SelectedId);
-        Assert.Equal(["Border beam", "Uiverse light", "Off"], cards.Buttons.Select(b => Avalonia.Automation.AutomationProperties.GetName(b)));
+        Assert.Equal(["Border beam", "Uiverse light", "Lumen", "Fluxa", "Lacus", "Caustica", "Borea", "Quies", "Nebula", "Serica", "Favilla", "Unda", "Argenta", "Vesper", "Neonis", "Crystallum", "Radiantia", "Nacrea", "Aurum", "Stellaris", "Velum", "Lamina", "Fulgor", "Off"], cards.Buttons.Select(b => Avalonia.Automation.AutomationProperties.GetName(b)));
         var before = rig.Light;
         rig.Do(() => cards.Select("aura"));
         Assert.Equal(ComposerLightStyle.Aura, rig.Light.Style);

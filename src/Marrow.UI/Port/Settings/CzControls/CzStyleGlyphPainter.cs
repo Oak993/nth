@@ -15,8 +15,27 @@ internal sealed class CzStyleGlyphPainter
     private SKRoundRect? clip;
     private float clipWidth;
 
+    private static readonly Dictionary<string, SKShader> shaderLights = [];
+    private static SKMaskFilter? shaderBlur;
+
+    // OD-0139: a shader light's glyph: its default pack around the capsule, a wide soft halo (the light spreads outward)
+    private static SKShader ShaderLight(string style)
+    {
+        lock (Gate)
+        {
+            if (shaderLights.TryGetValue(style, out var shader)) return shader;
+            var def = Marrow.Core.Models.ComposerLights.ShaderLightCatalog.Find(style)!;
+            var pack = Marrow.Core.Models.ComposerLights.ShaderLightCatalog.Colours(def.Defaults, "#489CF9");
+            SKColor[] colours = def.Id == "quies" ? [SKColor.Parse(pack[0]), SKColor.Parse("#FFF1E2"), SKColor.Parse(pack[0]), SKColor.Parse(pack[0])] : pack.Select(SKColor.Parse).ToArray();
+            shader = SKShader.CreateSweepGradient(default, [.. colours, colours[0]], [0, .25f, .5f, .75f, 1], SKShaderTileMode.Clamp, 0, 360);
+            shaderLights[style] = shader;
+            return shader;
+        }
+    }
+
     private static SKShader Shader(string style)
     {
+        if (style is not ("beam" or "aura")) return ShaderLight(style);
         lock (Gate)
         {
             if (style == "beam")
@@ -31,7 +50,7 @@ internal sealed class CzStyleGlyphPainter
 
     private static SKMaskFilter Blur(string style)
     {
-        lock (Gate) return style == "beam" ? beamBlur ??= SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 6) : auraBlur ??= SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 8);
+        lock (Gate) return style == "beam" ? beamBlur ??= SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 6) : style == "aura" ? auraBlur ??= SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 8) : shaderBlur ??= SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 9);
     }
 
     /// <summary>Draws the glyph of <paramref name="style"/> ("beam", "aura", "off") in a tile <paramref name="width"/> wide and 56 high at the canvas's origin, its sweep turned to <paramref name="angle"/> degrees.</summary>
@@ -59,8 +78,9 @@ internal sealed class CzStyleGlyphPainter
             canvas.Translate(width / 2, 28);
             canvas.RotateDegrees(turn);
             var back = SKMatrix.CreateRotationDegrees(-turn);
-            var inflate = beam ? 3f : 6f;
-            var radius = beam ? 15f : 18f;
+            var shaderLight = style is not ("beam" or "aura");
+            var inflate = beam ? 3f : shaderLight ? 9f : 6f;
+            var radius = beam ? 15f : shaderLight ? 21f : 18f;
             path.Reset();
             path.AddRoundRect(new SKRect(-52 - inflate, -12 - inflate, 52 + inflate, 12 + inflate), radius, radius);
             path.Transform(back);
@@ -69,6 +89,18 @@ internal sealed class CzStyleGlyphPainter
             paint.MaskFilter = Blur(style);
             canvas.DrawPath(path, paint);
             paint.MaskFilter = null;
+            if (shaderLight)
+            {
+                // the rim: a thin line of the same colours on the glass's edge
+                paint.Color = SKColors.White.WithAlpha((byte)(.8 * 255 * opacity));
+                path.Reset();
+                path.AddRoundRect(new SKRect(-52.5f, -12.5f, 52.5f, 12.5f), 12.5f, 12.5f);
+                path.AddRoundRect(new SKRect(-51.5f, -11.5f, 51.5f, 11.5f), 11.5f, 11.5f);
+                path.FillType = SKPathFillType.EvenOdd;
+                path.Transform(back);
+                canvas.DrawPath(path, paint);
+                path.FillType = SKPathFillType.Winding;
+            }
             if (beam)
             {
                 paint.Color = SKColors.White.WithAlpha((byte)(255 * opacity));

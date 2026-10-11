@@ -9,8 +9,17 @@ using System.Text.Json;
 
 namespace Marrow.Core.Models.ComposerLights;
 
-/// <summary>Which light the composer wears (OD-0085): Border beam (the default, OD-0089), the Uiverse light, or none.</summary>
-public enum ComposerLightStyle { Beam, Aura, Off }
+/// <summary>Which light the composer wears (OD-0085): Border beam (the default, OD-0089), the Uiverse light, none, or a shader light (OD-0139: the one <see cref="ComposerLightSettings.ShaderId"/> names).</summary>
+public enum ComposerLightStyle { Beam, Aura, Off, Shader }
+
+/// <summary>
+/// OD-0139 (ED-NEW-lightv2-5): how the chat text above the composer meets a shader light (the v4 page's "Text and light", TL.mode):
+/// the text on top of the light with a soft dark halo, the light washing over the text, or the text inverting against it.
+/// </summary>
+public enum ComposerLightTextMode { TextAbove, LightAbove, Difference }
+
+/// <summary>OD-0139 (ED-NEW-lightv2-6): the wallpaper's dimming near the composer while a light is on: worked out from the wallpaper, or none.</summary>
+public enum WallpaperDimMode { Auto, Off }
 
 /// <summary>What the composer is doing, as the playground's preview states (logic.js STATES).</summary>
 public enum ComposerLightPhase { Rest, Typing, Running }
@@ -233,19 +242,74 @@ public sealed record ComposerLightSettings
     public BorderBeamOptions Beam { get; init; } = BorderBeamOptions.Default;
     public UiverseAuraOptions Aura { get; init; } = UiverseAuraOptions.Default;
 
+    /// <summary>OD-0139: the shader light worn when <see cref="Style"/> is <see cref="ComposerLightStyle.Shader"/> (kept while another style shows).</summary>
+    public string ShaderId { get; init; } = ShaderLightCatalog.All[0].Id;
+
+    /// <summary>OD-0139: every shader light's options (each light keeps its own).</summary>
+    public ShaderLightOptionsSet Shaders { get; init; } = ShaderLightOptionsSet.Empty;
+
+    /// <summary>OD-0139: how the chat text meets a shader light (the v4 page's TL.mode; Text above light by default).</summary>
+    public ComposerLightTextMode TextMode { get; init; } = ComposerLightTextMode.TextAbove;
+
+    /// <summary>OD-0139: "Light behind text", 0..1 (TL.behind, 35 %).</summary>
+    public double TextBehind { get; init; } = DefaultTextBehind;
+
+    /// <summary>OD-0139: "Text halo", 0..1 (TL.halo, 60 %).</summary>
+    public double TextHalo { get; init; } = DefaultTextHalo;
+
+    /// <summary>OD-0139: "Dim wallpaper behind light": Auto (the default) or Off.</summary>
+    public WallpaperDimMode WallpaperDim { get; init; } = WallpaperDimMode.Auto;
+
+    /// <summary>OD-0139: the dimming's strength, 0..1 (50 %), scaling the Auto amount.</summary>
+    public double WallpaperDimStrength { get; init; } = DefaultWallpaperDimStrength;
+
+    public const double DefaultTextBehind = .35, DefaultTextHalo = .6, DefaultWallpaperDimStrength = .5;
+
+    /// <summary>The three 0..100 % sliders (Light behind text, Text halo, the dimming's strength).</summary>
+    public static readonly LightSlider PercentSlider = new(0, 1, 0.01);
+
+    /// <summary>True when the text and dimming settings are as they ship.</summary>
+    public bool TextAndDimAtDefaults => TextMode == ComposerLightTextMode.TextAbove && TextBehind == DefaultTextBehind && TextHalo == DefaultTextHalo
+        && WallpaperDim == WallpaperDimMode.Auto && WallpaperDimStrength == DefaultWallpaperDimStrength;
+
+    /// <summary>These settings with the text and dimming settings as they ship.</summary>
+    public ComposerLightSettings WithTextAndDimDefaults() => this with
+    {
+        TextMode = ComposerLightTextMode.TextAbove, TextBehind = DefaultTextBehind, TextHalo = DefaultTextHalo,
+        WallpaperDim = WallpaperDimMode.Auto, WallpaperDimStrength = DefaultWallpaperDimStrength,
+    };
+
+    /// <summary>The shader light the composer wears now, or null when its style is not a shader light.</summary>
+    public ShaderLightDef? ActiveShader => Style == ComposerLightStyle.Shader ? ShaderLightCatalog.Find(ShaderId) : null;
+
+    /// <summary>The options of shader light <paramref name="id"/>.</summary>
+    public ShaderLightOptions ShaderOptions(string id) => Shaders.For(id);
+
     /// <summary>OD-0089: Border beam with the playground's opening values; the Uiverse light at its calm defaults.</summary>
     public static ComposerLightSettings Default { get; } = new();
 
-    public ComposerLightSettings Clamped() => this with { Beam = Beam.Clamped(), Aura = Aura.Clamped() };
+    public ComposerLightSettings Clamped() => this with
+    {
+        Beam = Beam.Clamped(), Aura = Aura.Clamped(),
+        ShaderId = ShaderLightCatalog.Find(ShaderId) is not null ? ShaderId : ShaderLightCatalog.All[0].Id,
+        Shaders = (Shaders ?? ShaderLightOptionsSet.Empty).Clamped(),
+        TextMode = Enum.IsDefined(TextMode) ? TextMode : ComposerLightTextMode.TextAbove,
+        TextBehind = PercentSlider.Snap(TextBehind),
+        TextHalo = PercentSlider.Snap(TextHalo),
+        WallpaperDim = Enum.IsDefined(WallpaperDim) ? WallpaperDim : WallpaperDimMode.Auto,
+        WallpaperDimStrength = PercentSlider.Snap(WallpaperDimStrength),
+    };
 
     // ---------- JSON: the playground's own keys ----------
 
-    private static readonly string[] StyleNames = ["beam", "aura", "off"];
+    private static readonly string[] StyleNames = ["beam", "aura", "off"]; // a shader light is stored by its id (OD-0139)
     private static readonly string[] FamilyNames = ["rotate", "pulse"];
     private static readonly string[] TypeNames = ["md", "sm", "line", "pulse-inner", "pulse-outside"];
     private static readonly string[] PaletteNames = ["colorful", "mono", "ocean", "sunset", "forest", "candy", "ice", "gold"];
     private static readonly string[] ThemeNames = ["dark", "light", "auto"];
     private static readonly string[] SchemeNames = ["original", "maker", "accent", "custom"];
+    private static readonly string[] TextModeNames = ["above", "light", "diff"]; // the v4 page's TL.mode
+    private static readonly string[] DimNames = ["auto", "off"];
 
     /// <summary>The package's name of a type (its <c>size</c> prop).</summary>
     public static string TypeName(BeamType type) => TypeNames[(int)type];
@@ -260,7 +324,9 @@ public sealed record ComposerLightSettings
         using (var w = new Utf8JsonWriter(stream))
         {
             w.WriteStartObject();
-            w.WriteString("style", StyleNames[(int)Style]);
+            // OD-0139: a shader light's style is its id; the id is kept on its own too, for when another style shows
+            w.WriteString("style", Style == ComposerLightStyle.Shader ? ShaderId : StyleNames[(int)Style]);
+            w.WriteString("shader", ShaderId);
             w.WriteStartObject("beam");
             var b = Beam;
             w.WriteString("family", FamilyNames[(int)b.Family]);
@@ -308,6 +374,29 @@ public sealed record ComposerLightSettings
             w.WriteNumber("dotCell", a.DotCell);
             w.WriteNumber("dotStr", a.DotStrength);
             w.WriteEndObject();
+            w.WriteStartObject("shaders");
+            foreach (var (id, o) in Shaders.Entries)
+            {
+                w.WriteStartObject(id);
+                w.WriteString("pack", o.Pack);
+                w.WriteNumber("spread", o.Spread);
+                w.WriteNumber("intensity", o.Intensity);
+                w.WriteNumber("speed", o.Speed);
+                w.WriteStartArray("custom");
+                foreach (var c in o.Custom.All) w.WriteStringValue(c);
+                w.WriteEndArray();
+                w.WriteEndObject();
+            }
+            w.WriteEndObject();
+            w.WriteStartObject("text");
+            w.WriteString("mode", TextModeNames[(int)TextMode]);
+            w.WriteNumber("behind", TextBehind);
+            w.WriteNumber("halo", TextHalo);
+            w.WriteEndObject();
+            w.WriteStartObject("wallDim");
+            w.WriteString("mode", DimNames[(int)WallpaperDim]);
+            w.WriteNumber("strength", WallpaperDimStrength);
+            w.WriteEndObject();
             w.WriteEndObject();
         }
         return stream.ToArray();
@@ -332,6 +421,45 @@ public sealed record ComposerLightSettings
             var root = document.RootElement;
             if (root.ValueKind != JsonValueKind.Object) return Default;
             var settings = Default with { Style = Name(root, "style", StyleNames, Default.Style) };
+            // OD-0139: the shader lights (a style named by a light's id; the kept id; each light's options)
+            if (Text(root, "shader") is { } kept && ShaderLightCatalog.Find(kept) is not null) settings = settings with { ShaderId = kept };
+            if (Text(root, "style") is { } styleName && ShaderLightCatalog.Find(styleName) is not null)
+                settings = settings with { Style = ComposerLightStyle.Shader, ShaderId = styleName };
+            if (root.TryGetProperty("shaders", out var shaders) && shaders.ValueKind == JsonValueKind.Object)
+            {
+                var set = ShaderLightOptionsSet.Empty;
+                foreach (var entry in shaders.EnumerateObject())
+                {
+                    if (ShaderLightCatalog.Find(entry.Name) is not { } def || entry.Value.ValueKind != JsonValueKind.Object) continue;
+                    var o = entry.Value; var d = def.Defaults;
+                    var custom = d.Custom;
+                    if (o.TryGetProperty("custom", out var arr) && arr.ValueKind == JsonValueKind.Array)
+                    {
+                        var i = 0;
+                        foreach (var c in arr.EnumerateArray())
+                        {
+                            if (i > 3) break;
+                            if (c.ValueKind == JsonValueKind.String && c.GetString() is { } hex) custom = custom.With(i, hex);
+                            i++;
+                        }
+                    }
+                    set = set.With(entry.Name, new ShaderLightOptions(Text(o, "pack") ?? d.Pack, Number(o, "spread", d.Spread), Number(o, "intensity", d.Intensity), Number(o, "speed", d.Speed), custom));
+                }
+                settings = settings with { Shaders = set };
+            }
+            if (root.TryGetProperty("text", out var text) && text.ValueKind == JsonValueKind.Object)
+                settings = settings with
+                {
+                    TextMode = Name(text, "mode", TextModeNames, Default.TextMode),
+                    TextBehind = Number(text, "behind", Default.TextBehind),
+                    TextHalo = Number(text, "halo", Default.TextHalo),
+                };
+            if (root.TryGetProperty("wallDim", out var dim) && dim.ValueKind == JsonValueKind.Object)
+                settings = settings with
+                {
+                    WallpaperDim = Name(dim, "mode", DimNames, Default.WallpaperDim),
+                    WallpaperDimStrength = Number(dim, "strength", Default.WallpaperDimStrength),
+                };
             if (root.TryGetProperty("beam", out var beam) && beam.ValueKind == JsonValueKind.Object)
             {
                 var d = BorderBeamOptions.Default;

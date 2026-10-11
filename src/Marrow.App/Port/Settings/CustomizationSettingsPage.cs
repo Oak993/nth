@@ -41,6 +41,8 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
     internal CzStyleCards? StyleCards { get; private set; }
     internal BeamSections? Beam { get; private set; }
     internal AuraSections? Aura { get; private set; }
+    /// <summary>OD-0139: the shader lights' sections (Composer Light v2), rendered from the catalogue.</summary>
+    internal ShaderSections? Shader { get; private set; }
     internal CzSection? Off { get; private set; }
     internal VoiceOrbSections? Voice { get; private set; }
     internal WorkingDotsSections? Dots { get; private set; }
@@ -80,13 +82,14 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
         Stage = new CustomizationStage(() => settings.ComposerLight, () => settings.BackdropOpacity, session, () => settings.WorkingDots, () => settings.VoiceOrb, () => settings.VoiceTyping) { Margin = new Thickness(0, 0, 0, CustomizationStage.GapBelow) };
 
         // Style (CZ-5)
-        StyleCards = new CzStyleCards(StyleId(style));
-        StyleCards.SelectionChanged += id => { if (!echoing) editor.Edit(s => s with { Style = StyleOf(id) }); };
+        StyleCards = new CzStyleCards(StyleId(settings.ComposerLight));
+        StyleCards.SelectionChanged += id => { if (!echoing) editor.Edit(s => Pick(s, id)); };
         var styleSection = new Border { Padding = new Thickness(0, 0, 0, Chrome.SectionSpacing), Child = new ChromeSection("Style", () => StyleCards) };
 
         // the three styles' sections (CZ-6, CZ-7, CZ-8); the others' settings are kept while one shows (CZ-5.3)
         Beam = new BeamSections(editor, Advanced, ComposerSize, () => CzTheme.Dark(this), open: style == ComposerLightStyle.Beam);
         Aura = new AuraSections(editor, Advanced, () => PreviewMakers.For(session.Maker).Name, () => AccentName(settings), open: style == ComposerLightStyle.Aura);
+        Shader = new ShaderSections(editor, () => AccentHex(this), open: style == ComposerLightStyle.Shader);
         var offRows = new CzRowStack();
         offRows.Add(new CzNoteRow(CzRowText.OffNote));
         Off = new CzSection(null, offRows, open: style == ComposerLightStyle.Off);
@@ -95,6 +98,7 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
         Sticky.Children.Add(styleSection);
         foreach (var section in Beam.Sections) Sticky.Children.Add(section);
         foreach (var section in Aura.Sections) Sticky.Children.Add(section);
+        foreach (var section in Shader.Sections) Sticky.Children.Add(section);
         Sticky.Children.Add(Off);
 
         // CZ-7a: the voice rows precede Working dots. CZ-7b subscribes to the session's preview seam.
@@ -105,6 +109,7 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
         Dots = new WorkingDotsSections(() => settings.WorkingDots, value => settings.WorkingDots = value, () => PreviewMakers.For(session.Maker).Name, session.WorkingDotsTouched);
         Sticky.Children.Add(Dots.Section);
         Sticky.Children.Add(Aura.Picker);
+        Sticky.Children.Add(Shader.Picker);
 
         // CZ-3.5: the block is sticky in the scroll viewer the page sits in (found on attach)
         Stickiness = new StickyStageController(this, Sticky, Stage);
@@ -136,17 +141,19 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
     // what the settings say now, into every row; the folds for the style
     private void Apply(ComposerLightSettings light)
     {
-        if (Beam is null || Aura is null || Off is null || StyleCards is null) return;
+        if (Beam is null || Aura is null || Shader is null || Off is null || StyleCards is null) return;
         echoing = true;
-        try { StyleCards.Show(StyleId(light.Style)); }
+        try { StyleCards.Show(StyleId(light)); }
         finally { echoing = false; }
         Beam.Apply();
         Aura.Apply();
+        Shader.Apply();
         Dots?.Apply();
         Voice?.Apply();
         Speech?.Apply();
         foreach (var section in Beam.Sections) section.Open = light.Style == ComposerLightStyle.Beam;
         foreach (var section in Aura.Sections) section.Open = light.Style == ComposerLightStyle.Aura;
+        foreach (var section in Shader.Sections) section.Open = light.Style == ComposerLightStyle.Shader;
         Off.Open = light.Style == ComposerLightStyle.Off;
     }
 
@@ -159,9 +166,29 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
         return AccentPalette.All[index < 0 ? 0 : index].Name;
     }
 
-    private static string StyleId(ComposerLightStyle style) => style switch { ComposerLightStyle.Aura => "aura", ComposerLightStyle.Off => "off", _ => "beam" };
+    // OD-0139: a shader light's card is its id
+    private static string StyleId(ComposerLightSettings light) => light.Style switch
+    {
+        ComposerLightStyle.Aura => "aura",
+        ComposerLightStyle.Off => "off",
+        ComposerLightStyle.Shader => light.ShaderId,
+        _ => "beam",
+    };
 
-    private static ComposerLightStyle StyleOf(string id) => id switch { "aura" => ComposerLightStyle.Aura, "off" => ComposerLightStyle.Off, _ => ComposerLightStyle.Beam };
+    private static ComposerLightSettings Pick(ComposerLightSettings s, string id) => id switch
+    {
+        "aura" => s with { Style = ComposerLightStyle.Aura },
+        "off" => s with { Style = ComposerLightStyle.Off },
+        _ when ShaderLightCatalog.Find(id) is not null => s with { Style = ComposerLightStyle.Shader, ShaderId = id },
+        _ => s with { Style = ComposerLightStyle.Beam },
+    };
+
+    // the accent as the Accent pack takes it: the app's accent colour, for the appearance shown
+    private static string AccentHex(Control control)
+    {
+        var x = Chrome.Accent.Resolve(control.ActualThemeVariant);
+        return $"#{x.R:X2}{x.G:X2}{x.B:X2}";
+    }
 
     private static PreviewState StateOf(string id) => id switch { "typing" => PreviewState.Typing, "running" => PreviewState.Running, _ => PreviewState.Rest };
 }

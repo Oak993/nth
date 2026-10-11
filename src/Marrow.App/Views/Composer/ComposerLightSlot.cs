@@ -2,9 +2,11 @@
 // group (ComposerArea), over the group's glass and under the tab and the pill's content; it reads the app's settings
 // (AppSettings.ComposerLight, so a change reaches every composer at once), the composer's state (ENGINEERING DECISION:
 // running while a turn runs, typing while the draft holds anything, else at rest), the thread's maker colours and the
-// accent (the Uiverse light's Maker and Accent schemes), and where the composer and the window's bottom edge are.
+// accent (the Uiverse light's Maker and Accent schemes), and where the composer and the window's bottom edge are. OD-0139: the
+// shader lights' keystrokes and caret, and their warm-up gate (ShaderLightGate).
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.VisualTree;
 using Avalonia.Styling;
 using Marrow.App.Port;
 using Marrow.App.Port.Settings;
@@ -22,7 +24,14 @@ internal sealed class ComposerLightSlot : Decorator
 {
     private readonly ComposerLightView light = new();
     private readonly Control composer;
+    private readonly ShaderLightGate gate;
     private ProviderKind? provider;
+    private ComposerNSTextView? box;
+    private Avalonia.Controls.Presenters.TextPresenter? presenter;
+    private int keystrokes;
+    private bool lightOn;
+    private int wallpaperRevision;
+    private (Size Window, Size Composer) measuredFor;
 
     public ComposerLightView Light => light;
 
@@ -31,8 +40,15 @@ internal sealed class ComposerLightSlot : Decorator
         this.composer = composer;
         IsHitTestVisible = false;
         ClipToBounds = false;
-        Child = light;
-        this.Track(() => AppEnvironment.GetAppModel(this).Settings.ComposerLight, settings => light.Settings = settings);
+        // OD-0139 (ED-NEW-lightv2-3): a shader light is shown once its program is warm; the warm-up's 1 px host sits beside the light
+        gate = new ShaderLightGate(light);
+        Child = new Panel { IsHitTestVisible = false, Children = { light, gate.Host } };
+        this.Track(() => AppEnvironment.GetAppModel(this).Settings.ComposerLight, settings =>
+        {
+            lightOn = settings.Style != ComposerLightStyle.Off;
+            if (box is not null) box.LightOn = lightOn; // OD-0139 (ED-NEW-lightv2-7): the lifted placeholder
+            gate.Apply(settings);
+        });
         this.Track(() => runtime.IsRunning ? ComposerLightPhase.Running : runtime.DraftIsEmpty ? ComposerLightPhase.Rest : ComposerLightPhase.Typing,
             phase => light.Phase = phase);
         this.Track(() => AppEnvironment.GetAppModel(this).Thread(runtime.ThreadID)?.Provider, p => { provider = p; UpdatePalette(); });
@@ -40,15 +56,62 @@ internal sealed class ComposerLightSlot : Decorator
         // PORT-ONLY (voice-SPEC V-13.4, OD-0097 B1 to B3; VT-12): the light's level while the voice is on (the setting's: steps aside, dims to 35 %, stays on) and 1 otherwise; the light eases to it itself
         if ((composer as ComposerView)?.Voice is { } voice)
             this.Track(() => VoiceLightTarget.For(voice.OrbSettings.LightVoice, voice.State), level => light.VoiceLight = level);
+        // OD-0139 (ED-NEW-lightv2-6): the wallpaper the composer sits on, for the veil near it (measured again when it changes)
+        this.Track(() => Marrow.UI.Theme.Wallpapers.WallpaperLibraryStore.Shared.Current.Selection, _ => UpdateWallpaper());
+        this.Track(() => Marrow.UI.Theme.WallpaperStore.Shared.Current.Image, _ => UpdateWallpaper());
         ActualThemeVariantChanged += (_, _) => UpdatePalette();
         LayoutUpdated += (_, _) => Place();
         composer.LayoutUpdated += (_, _) => Place();
+        composer.LayoutUpdated += (_, _) => FindBox();
+    }
+
+    // OD-0139: the shader lights' keystroke lift at the caret (the page's uKey and uCaret): each change the user types into the
+    // composer's text is a keystroke, at the caret's x in the composer
+    private void FindBox()
+    {
+        if (box is not null && TopLevel.GetTopLevel(box) is not null) return;
+        if (box is not null) box.TextChanged -= Typed;
+        box = composer.GetVisualDescendants().OfType<ComposerNSTextView>().FirstOrDefault();
+        presenter = null;
+        if (box is not null) { box.TextChanged += Typed; box.LightOn = lightOn; }
+    }
+
+    private void Typed(object? sender, TextChangedEventArgs e)
+    {
+        if (box is not { IsFocused: true } || !box.IsKeyboardFocusWithin) return;
+        light.CaretX = CaretX();
+        light.Keystrokes = ++keystrokes;
+    }
+
+    private double CaretX()
+    {
+        if (box is null) return double.NaN;
+        presenter ??= box.GetVisualDescendants().OfType<Avalonia.Controls.Presenters.TextPresenter>().FirstOrDefault();
+        if (presenter is null) return double.NaN;
+        try
+        {
+            var at = presenter.TextLayout.HitTestTextPosition(Math.Clamp(box.CaretIndex, 0, box.Text?.Length ?? 0));
+            return presenter.TranslatePoint(new Point(at.X, 0), composer) is { } p ? p.X : double.NaN;
+        }
+        catch (Exception) { return double.NaN; }
+    }
+
+    private void UpdateWallpaper()
+    {
+        var library = Marrow.UI.Theme.Wallpapers.WallpaperLibraryStore.Shared.Current.Selection;
+        var picture = Marrow.UI.Theme.WallpaperStore.Shared.Current.Image;
+        var kind = library?.Kind ?? Marrow.UI.Theme.Wallpapers.WallpaperKind.None;
+        light.Wallpaper = new WallpaperState(kind != Marrow.UI.Theme.Wallpapers.WallpaperKind.None || picture is not null,
+            kind == Marrow.UI.Theme.Wallpapers.WallpaperKind.Animated, ++wallpaperRevision);
     }
 
     // the composer's rectangle in the light's coordinates, and the window's bottom edge (the playground's 13 px fade)
     private void Place()
     {
         if (TopLevel.GetTopLevel(this) is not { } top || TopLevel.GetTopLevel(composer) != top) return;
+        // the window's or the composer's size changed: what lies under the composer is measured again (the veil's amount)
+        var size = (top.Bounds.Size, composer.Bounds.Size);
+        if (size != measuredFor && light.Wallpaper.Showing) { measuredFor = size; light.Wallpaper = light.Wallpaper with { Revision = ++wallpaperRevision }; }
         if (composer.TranslatePoint(default, light) is not { } origin) return;
         light.ComposerRect = new Rect(origin, composer.Bounds.Size);
         light.FadeBottom = top.TranslatePoint(new Point(0, top.Bounds.Height), light)?.Y;

@@ -19,7 +19,8 @@ namespace Marrow.UI.Port.ComposerLights;
 /// <summary>Everything the render thread needs for one composer's light, as one immutable value.</summary>
 public sealed record ComposerLightSnapshot(
     ComposerLightSettings Settings, ComposerLightPhase Phase, bool Dark, Rect Composer, bool ReduceMotion,
-    ComposerLightPalette Palette, double? FadeBottom, TimeProvider Clock, double VoiceLight = 1);
+    ComposerLightPalette Palette, double? FadeBottom, TimeProvider Clock, double VoiceLight = 1, int Keystrokes = 0, double CaretX = double.NaN,
+    WallpaperState Wallpaper = default);
 
 /// <summary>The view left the tree: the handler stops and releases its bakes on the render thread.</summary>
 internal sealed class ComposerLightStop
@@ -36,6 +37,15 @@ internal sealed class ComposerLightHandler(AmbientMotionController? ambient = nu
     private ComposerLightSnapshot? snapshot;
     private ComposerLightAnimator? light;
     private readonly ComposerLightRenderer renderer = new();
+    // OD-0139 (ED-NEW-lightv2-6): the wallpaper's veil near the composer, its amount measured from what lies under the composer
+    private readonly WallpaperDimVeil veil = new();
+    private readonly CssTransition veilAlpha = new(0);
+    private double measuredAuto = WallpaperDim.Unmeasured, measuredAt = double.NegativeInfinity;
+    private int? measuredRevision;
+
+    /// <summary>The veil's alpha now and the measured Auto amount (tests).</summary>
+    public double VeilAlpha => snapshot is { } s ? veilAlpha.Value(Seconds(s.Clock)) : 0;
+    public double MeasuredDim => measuredAuto;
     private bool frameRequested;
     private bool drawnSinceRequest = true;
     private bool wantsFrames;
@@ -95,6 +105,7 @@ internal sealed class ComposerLightHandler(AmbientMotionController? ambient = nu
         {
             Stop();
             renderer.Dispose();
+            veil.Dispose();
             Volatile.Write(ref animating, 0);
             return;
         }
@@ -114,6 +125,10 @@ internal sealed class ComposerLightHandler(AmbientMotionController? ambient = nu
             light.SetPhase(next.Phase, now);
             light.SetSettings(next.Settings, now);
         }
+        // OD-0139: a keystroke lifts the shader lights near the caret (the composer's x; NaN: its middle)
+        var caret = double.IsNaN(next.CaretX) ? size.Width / 2 : next.CaretX;
+        if (snapshot is not null && next.Keystrokes != snapshot.Keystrokes) light.Keystroke(caret);
+        else light.SetCaret(caret);
         snapshot = next;
         Step(now);
     }
@@ -149,19 +164,39 @@ internal sealed class ComposerLightHandler(AmbientMotionController? ambient = nu
         if (voice.Value <= 0)
         {
             // at 0 the light draws nothing, asks for no frames (unless the level is on its way back) and its motion clock stands still (nothing is advanced; the clock caps a step at 50 ms, so it goes on from where it stopped)
-            wantsFrames = voice.Moving;
+            wantsFrames = voice.Moving | StepVeil(now); // the wallpaper's veil is under the light, not part of it: it stays
             Dirty();
             if (wantsFrames && drawnSinceRequest) Request();
             return;
         }
         wantsFrames = light.Advance(now, ambient?.Clock.Speed ?? 1) || renderer.Settling || voice.Moving;
+        wantsFrames |= StepVeil(now);
         reach = Reach(light);
+        if (veilAlpha.Target > 0 || veilAlpha.Value(now) > 0) reach = Math.Max(reach, WallpaperDimVeil.Reach(VeilSpread()));
         Dirty();
         // the board's port notes: frames only while something moves, and only while it is seen. A frame is asked for
         // again only once the last one was drawn; a light nobody draws (a hidden chat column) stops, and OnRender
         // resumes it when it is drawn again.
         if (wantsFrames && drawnSinceRequest) Request();
     }
+
+    // the veil's alpha eases to its target with the light's own fades (in .6 s, out .5 s); under reduce motion it is there at once
+    private bool StepVeil(double now)
+    {
+        if (snapshot is not { } s) return false;
+        var target = WallpaperDim.Target(s.Settings, s.Wallpaper, measuredAuto);
+        if (Math.Abs(target - veilAlpha.Target) > 1e-4)
+            veilAlpha.Set(target, now, s.ReduceMotion || software ? 0 : target > veilAlpha.Value(now) ? ComposerLightAnimator.FadeInSeconds : ComposerLightAnimator.FadeOutSeconds);
+        return veilAlpha.IsRunning(now);
+    }
+
+    // the veil fades out over about the light's spread (a shader light's own; 100 px for Border beam and the Uiverse light)
+    private double VeilSpread() => snapshot?.Settings.ActiveShader is { } def ? snapshot.Settings.ShaderOptions(def.Id).Spread : 100;
+
+    // measured when the wallpaper or the window's size changed, and every 3 s while it moves; only while the veil is wanted
+    private bool MeasureDue(double now) => snapshot is { } s && s.Wallpaper.Showing && s.Settings.Style != ComposerLightStyle.Off
+        && s.Settings.WallpaperDim == WallpaperDimMode.Auto
+        && (measuredRevision != s.Wallpaper.Revision || (s.Wallpaper.Animated && now - measuredAt >= WallpaperDim.AnimatedRemeasureSeconds));
 
     private void Request()
     {
@@ -188,6 +223,7 @@ internal sealed class ComposerLightHandler(AmbientMotionController? ambient = nu
             var f = light.Slots[light.Drawn[i]];
             if (f.Mode == 3) r = Math.Max(r, 30 + 3 * Math.Max(f.OuterBloomSigma, f.CoreSigma) + 4);
         }
+        for (var i = 0; i < light.Shaders.DrawnCount; i++) r = Math.Max(r, light.Shaders.Drawn[i].Reach); // OD-0139: a shader light's band
         return r;
     }
 
@@ -200,7 +236,8 @@ internal sealed class ComposerLightHandler(AmbientMotionController? ambient = nu
         if (IsStopped || snapshot is not { } s || light is null) return;
         drawnSinceRequest = true;
         drawnReach = reach;
-        if (voice.Value > 0 && (light.AuraVisible || light.DrawnCount > 0))
+        var lit = voice.Value > 0 && (light.AuraVisible || light.DrawnCount > 0 || light.Shaders.DrawnCount > 0);
+        if (lit || veilAlpha.Value(Seconds(s.Clock)) > 0 || MeasureDue(Seconds(s.Clock)))
         {
             var feature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
             if (feature is null) return;
@@ -217,8 +254,18 @@ internal sealed class ComposerLightHandler(AmbientMotionController? ambient = nu
             var scale = (float)Math.Max(1, Math.Sqrt(m.ScaleX * m.ScaleX + m.SkewY * m.SkewY));
             canvas.Save();
             canvas.Translate((float)s.Composer.X, (float)s.Composer.Y);
-            renderer.Draw(canvas, lease.GrContext, light, scale, now, (float)(lease.CurrentOpacity * voice.Value),
-                s.FadeBottom is { } f ? (float)(f - s.Composer.Y) : null);
+            var surface = lease.CurrentOpacity >= .999 ? lease.SkSurface : null; // the window's surface, when the canvas draws straight into it (no opacity layer between)
+            // OD-0139: the wallpaper under the composer is measured before anything of the light is drawn over it, then veiled
+            if (MeasureDue(now) && veil.Measure(canvas, surface, lease.GrContext, s.Composer.Width, s.Composer.Height) is { } measure)
+            {
+                measuredAuto = WallpaperDim.Auto(measure.Luminance, measure.Busyness);
+                (measuredRevision, measuredAt) = (s.Wallpaper.Revision, now);
+                if (StepVeil(now)) wantsFrames = true;
+            }
+            veil.Draw(canvas, s.Composer.Width, s.Composer.Height, ComposerLightAnimator.ComposerRadius, VeilSpread(), veilAlpha.Value(now) * lease.CurrentOpacity);
+            // OD-0139 Text and light: the shader lights compose with the surface's pixels themselves
+            if (lit) renderer.Draw(canvas, lease.GrContext, light, scale, now, (float)(lease.CurrentOpacity * voice.Value),
+                s.FadeBottom is { } f ? (float)(f - s.Composer.Y) : null, surface);
             canvas.Restore();
             Interlocked.Increment(ref frames);
             if (renderer.Settling) wantsFrames = true;
@@ -245,6 +292,15 @@ public sealed class ComposerLightView : Control
         AvaloniaProperty.Register<ComposerLightView, Rect>(nameof(ComposerRect));
     public static readonly StyledProperty<double?> FadeBottomProperty =
         AvaloniaProperty.Register<ComposerLightView, double?>(nameof(FadeBottom));
+    /// <summary>OD-0139: how many keystrokes the composer has had (each one lifts a shader light near the caret).</summary>
+    public static readonly StyledProperty<int> KeystrokesProperty =
+        AvaloniaProperty.Register<ComposerLightView, int>(nameof(Keystrokes));
+    /// <summary>OD-0139: the caret's x in the composer (px from its left); NaN for its middle.</summary>
+    public static readonly StyledProperty<double> CaretXProperty =
+        AvaloniaProperty.Register<ComposerLightView, double>(nameof(CaretX), double.NaN);
+    /// <summary>OD-0139: the wallpaper under the composer (none: no veil).</summary>
+    public static readonly StyledProperty<WallpaperState> WallpaperProperty =
+        AvaloniaProperty.Register<ComposerLightView, WallpaperState>(nameof(Wallpaper));
     public static readonly StyledProperty<double> VoiceLightProperty =
         AvaloniaProperty.Register<ComposerLightView, double>(nameof(VoiceLight), 1, coerce: static (_, value) => double.IsNaN(value) ? 1 : Math.Clamp(value, 0, 1));
 
@@ -285,6 +341,15 @@ public sealed class ComposerLightView : Control
     /// </summary>
     public double VoiceLight { get => GetValue(VoiceLightProperty); set => SetValue(VoiceLightProperty, value); }
 
+    /// <summary>OD-0139: the composer's keystrokes so far; each new one lifts a shader light at <see cref="CaretX"/>.</summary>
+    public int Keystrokes { get => GetValue(KeystrokesProperty); set => SetValue(KeystrokesProperty, value); }
+
+    /// <summary>OD-0139: the caret's x in the composer (px from its left); NaN for its middle.</summary>
+    public double CaretX { get => GetValue(CaretXProperty); set => SetValue(CaretXProperty, value); }
+
+    /// <summary>OD-0139 (ED-NEW-lightv2-6): the wallpaper under the composer, for the veil near it.</summary>
+    public WallpaperState Wallpaper { get => GetValue(WallpaperProperty); set => SetValue(WallpaperProperty, value); }
+
     internal ComposerLightHandler? Handler => handler;
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -292,6 +357,7 @@ public sealed class ComposerLightView : Control
         base.OnPropertyChanged(change);
         if (change.Property == SettingsProperty || change.Property == PhaseProperty || change.Property == PaletteProperty
             || change.Property == ComposerRectProperty || change.Property == FadeBottomProperty || change.Property == VoiceLightProperty
+            || change.Property == KeystrokesProperty || change.Property == CaretXProperty || change.Property == WallpaperProperty
             || change.Property == EnvironmentValues.AccessibilityReduceMotionProperty || change.Property == BoundsProperty)
             Send();
     }
@@ -328,7 +394,7 @@ public sealed class ComposerLightView : Control
         // not laid out yet: nothing to light (a 0 x 0 composer is never sent)
         if (!(composer.Width > 0) || !(composer.Height > 0)) return;
         var snapshot = new ComposerLightSnapshot(Settings, Phase, ActualThemeVariant == ThemeVariant.Dark, composer,
-            EnvironmentValues.GetAccessibilityReduceMotion(this), Palette, FadeBottom, SwiftClock.Provider.Current, VoiceLight);
+            EnvironmentValues.GetAccessibilityReduceMotion(this), Palette, FadeBottom, SwiftClock.Provider.Current, VoiceLight, Keystrokes, CaretX, Wallpaper);
         if (snapshot == sent) return;
         sent = snapshot;
         visual.Size = new Vector(Bounds.Width, Bounds.Height);

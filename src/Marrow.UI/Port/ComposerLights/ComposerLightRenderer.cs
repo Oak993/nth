@@ -142,6 +142,7 @@ public sealed class ComposerLightRenderer : IDisposable
     private readonly SKShader nothing = SKShader.CreateColor(SKColors.Transparent);
     private readonly SKShader profiles = ComposerLightShaders.Profiles.ToShader(SKShaderTileMode.Repeat, SKShaderTileMode.Clamp, new SKSamplingOptions(SKFilterMode.Linear));
     private readonly SKPaint paint = new() { IsAntialias = false, BlendMode = SKBlendMode.SrcOver };
+    private readonly ShaderLightRenderer shaderLights = new(); // OD-0139: the shader lights (Composer Light v2)
     private bool disposed;
 
     /// <summary>How many bakes (blurred rectangles and blob fields) have run so far (tests).</summary>
@@ -164,7 +165,8 @@ public sealed class ComposerLightRenderer : IDisposable
     /// <paramref name="fadeBottom"/> (composer px), when given, is where the outer light has faded out (the playground's
     /// window edge fade, 13 px).
     /// </summary>
-    public void Draw(SKCanvas canvas, GRContext? gpu, ComposerLightAnimator light, float scale, double now = 0, float opacity = 1, float? fadeBottom = null)
+    /// <param name="surface">The surface <paramref name="canvas"/> draws into, for the shader lights' Text and light (null: they draw with Screen).</param>
+    public void Draw(SKCanvas canvas, GRContext? gpu, ComposerLightAnimator light, float scale, double now = 0, float opacity = 1, float? fadeBottom = null, SKSurface? surface = null)
     {
         if (disposed) return;
         Settling = false;
@@ -173,6 +175,13 @@ public sealed class ComposerLightRenderer : IDisposable
         {
             var slot = light.Drawn[i];
             if (light.SlotKey(slot) is { } key) DrawBeam(canvas, gpu, beams[slot], light.Slots[slot], key, scale, now, opacity);
+        }
+        var shaders = light.Shaders;
+        for (var i = 0; i < shaders.DrawnCount; i++)
+        {
+            // with no GPU the light is a still (ED-251): the software raster shades its band once and keeps the pixels
+            if (gpu is null) shaderLights.DrawStill(canvas, shaders.Drawn[i], scale, opacity, fadeBottom);
+            else shaderLights.Draw(canvas, shaders.Drawn[i], scale, opacity, surface, fadeBottom);
         }
     }
 
@@ -365,5 +374,6 @@ public sealed class ComposerLightRenderer : IDisposable
         disposed = true;
         foreach (var b in beams) b.Dispose();
         auraUniforms.Dispose(); auraChildren.Dispose(); halo.Dispose(); rim.Dispose(); nothing.Dispose(); profiles.Dispose(); paint.Dispose();
+        shaderLights.Dispose();
     }
 }

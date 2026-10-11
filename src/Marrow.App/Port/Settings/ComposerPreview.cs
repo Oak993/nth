@@ -58,6 +58,8 @@ internal sealed partial class ComposerPreview : Grid
     private readonly Border text, padded;
 
     internal ComposerLightView Light { get; } = new() { IsHitTestVisible = false, ClipToBounds = false };
+    private readonly ShaderLightGate gate;
+    private int keystrokes;
     internal Border Pill { get; }
     internal ComposerNSTextView Hint { get; }
     internal TextBlock Typed { get; }
@@ -80,7 +82,7 @@ internal sealed partial class ComposerPreview : Grid
     internal ComposerLightSettings Settings
     {
         get => settings;
-        set { settings = value; Light.Settings = value; }
+        set { settings = value; gate.Apply(value); } // OD-0139: a shader light shows once warm (ED-NEW-lightv2-3)
     }
 
     /// <summary>CZ-5 (CZ-10.4): the working dots' setting, the app's, handed in by the page; the dots wear its colour for the preview maker.</summary>
@@ -96,6 +98,7 @@ internal sealed partial class ComposerPreview : Grid
     {
         this.session = session;
         typingFrame = TypingFrame;
+        gate = new ShaderLightGate(Light);
         var motion = new CzMotion(this);
 
         // the text: the composer's own text view draws the placeholder; the typed string is a layer over it that the placeholder crosses with
@@ -165,6 +168,7 @@ internal sealed partial class ComposerPreview : Grid
         AutomationProperties.SetName(Pill, "Composer preview");
 
         Children.Add(Light);
+        Children.Add(gate.Host);
         Children.Add(Pill);
 
         hintOpacity = new CzNumber(motion, 1, v => Hint.Opacity = v);
@@ -303,6 +307,8 @@ internal sealed partial class ComposerPreview : Grid
             Typed.Text = TypedString[..count];
             Typed.Measure(Size.Infinity);
             Caret.Margin = new Thickness(Typed.DesiredSize.Width + 1, 0, 0, 0);
+            // OD-0139: each typed character lifts a shader light at the caret, as the page's study does
+            if (!reduce && Typed.TranslatePoint(new Point(Typed.DesiredSize.Width + 1, 0), Pill) is { } caret) { Light.CaretX = caret.X; Light.Keystrokes = ++keystrokes; }
         }
         if (!reduce) Caret.Opacity = Blink(elapsed % CaretPeriod / CaretPeriod) * typedOpacity.Value;
         else Caret.Opacity = typedOpacity.Value;

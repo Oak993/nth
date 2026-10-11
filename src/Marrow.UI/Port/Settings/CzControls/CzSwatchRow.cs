@@ -35,4 +35,44 @@ public sealed class CzSwatchRow : CzRadioGroup
         }).ToArray();
         return new CzSwatchRow("Colours", swatches, selected);
     }
+
+    /// <summary>OD-0139: at most this many swatches to a line, the rest wrapping onto further lines (null: one line).</summary>
+    public int? PerLine { get; init; }
+
+    private const double Size = 24, Gap = 2, LineGap = 4;
+
+    protected override Avalonia.Size MeasureOverride(Avalonia.Size availableSize)
+    {
+        if (PerLine is not { } per) return base.MeasureOverride(availableSize);
+        foreach (var b in Buttons) b.Measure(new Avalonia.Size(Size, Size));
+        var columns = Math.Min(per, Buttons.Count); var lines = (Buttons.Count + per - 1) / per;
+        return new Avalonia.Size(columns * Size + (columns - 1) * Gap, lines * Size + (lines - 1) * LineGap);
+    }
+
+    protected override Avalonia.Size ArrangeOverride(Avalonia.Size finalSize)
+    {
+        if (PerLine is not { } per) return base.ArrangeOverride(finalSize);
+        for (var i = 0; i < Buttons.Count; i++) Buttons[i].Arrange(new Rect(i % per * (Size + Gap), i / per * (Size + LineGap), Size, Size));
+        return finalSize;
+    }
+
+    /// <summary>A swatch's fill: four colours from top left to bottom right.</summary>
+    public static IBrush Fill(IReadOnlyList<string> colours)
+    {
+        var brush = new LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative) };
+        for (var i = 0; i < colours.Count; i++) brush.GradientStops.Add(new GradientStop(Color.Parse(colours[i]), colours.Count == 1 ? 0 : i / (double)(colours.Count - 1)));
+        return brush;
+    }
+
+    /// <summary>OD-0139: the shader lights' colour packs (the catalogue's, Custom last), eight to a line; Accent and Custom take their colours from <paramref name="colours"/>.</summary>
+    public static CzSwatchRow ShaderPacks(string selected, Func<string, IReadOnlyList<string>> colours) =>
+        new("Colours", ShaderLightCatalog.Packs.Select(p => (p.Id, p.Name, Fill(p.Colours ?? colours(p.Id)))).ToArray(), selected) { PerLine = 8 };
+
+    /// <summary>Gives swatch <paramref name="id"/> new colours (Accent, Custom).</summary>
+    public void Recolour(string id, IReadOnlyList<string> colours)
+    {
+        if (Buttons.FirstOrDefault(b => b.Id == id) is not { } button) return;
+        button.SwatchFill = Fill(colours);
+        button.InvalidateVisual();
+    }
 }

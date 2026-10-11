@@ -271,18 +271,17 @@ public static class CzText
         "The composer has no light. Your Border beam and Uiverse light settings are kept for when you turn one back on.",
     });
 
-    public static IReadOnlyDictionary<string, string> StyleTitles { get; } = new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(new Dictionary<string, string>
+    // OD-0139: the shader lights (Composer Light v2) are listed between the Uiverse light and Off, in the catalogue's order, from the catalogue
+    public static IReadOnlyDictionary<string, string> StyleTitles { get; } = Styles(("beam", "Border beam"), ("aura", "Uiverse light"), d => d.Name, ("off", "Off"));
+    public static IReadOnlyDictionary<string, string> StyleDescriptions { get; } = Styles(("beam", "A beam of colour travels the edge"), ("aura", "A soft two-tone glow turns around it"), d => d.Description, ("off", "No light around the composer"));
+
+    private static IReadOnlyDictionary<string, string> Styles((string, string) beam, (string, string) aura, Func<Marrow.Core.Models.ComposerLights.ShaderLightDef, string> shader, (string, string) off)
     {
-        ["beam"] = "Border beam",
-        ["aura"] = "Uiverse light",
-        ["off"] = "Off",
-    });
-    public static IReadOnlyDictionary<string, string> StyleDescriptions { get; } = new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(new Dictionary<string, string>
-    {
-        ["beam"] = "A beam of colour travels the edge",
-        ["aura"] = "A soft two-tone glow turns around it",
-        ["off"] = "No light around the composer",
-    });
+        var map = new Dictionary<string, string> { [beam.Item1] = beam.Item2, [aura.Item1] = aura.Item2 };
+        foreach (var d in Marrow.Core.Models.ComposerLights.ShaderLightCatalog.All) map[d.Id] = shader(d);
+        map[off.Item1] = off.Item2;
+        return new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(map);
+    }
     public static IReadOnlyDictionary<string, string> PaletteNames { get; } = new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(new Dictionary<string, string>
     {
         ["colorful"] = "Colourful",
