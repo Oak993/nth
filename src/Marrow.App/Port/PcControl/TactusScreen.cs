@@ -8,6 +8,10 @@
 // user's pointer reaches the host (where it is, for the card's shift; a held button, for the auto-expand) and the bands'
 // hit test (a press that began in another app holds the region; each record for the style-flip test) (ED-NEW-pcctl-34).
 // An app whose pointer is parked (its target cannot be seen) reads "working behind" on its row (ED-NEW-pcctl-37).
+// The real mouse and keyboard (ED-NEW-pcctl-38): "Do it now" and "Not now" answer the request the pill shows, "Put them
+// back" replays the kept keys and says so, the mark's ring fills each frame from the gate's stillness (HandsRing) while
+// the hands-off request shows, a new request plays the soft sound when Settings has it on, and the stop chord's checks
+// show and clear "Stop key is taken".
 using Marrow.Core.Port.PcControl;
 using Marrow.Core.Port.PcControl.Pill;
 using Marrow.App.Port.PcControl.Overlay;
@@ -60,6 +64,9 @@ public sealed class TactusScreenParts
     /// <summary>Opens a chat at its asks (thread id, the card's draft when there is one).</summary>
     public Action<string, string?>? OpenChat { get; init; }
 
+    /// <summary>The soft sound of a new hands-off request ("Sound when Tactus needs a moment"); none: silent.</summary>
+    public Action? Chime { get; init; }
+
     /// <summary>Puts the keyboard in the open card (activates the input band and focuses the reply field; native).</summary>
     public Action? KeyboardToCard { get; init; }
 
@@ -77,6 +84,8 @@ public sealed class TactusScreen : IDisposable
     private readonly TactusPillHost host;
     private readonly Action<TimeSpan> frame;
     private readonly Lock gate = new();
+    private readonly HandsRing ring = new();
+    private double? ringAt;
     private bool pullPosted;
     private bool framing;
     private double? expiry;
@@ -98,6 +107,7 @@ public sealed class TactusScreen : IDisposable
         parts.Cards.OpenChat += OnOpenChat;
         parts.Cards.SendToChat += OnSendToChat;
         parts.Feed.Changed += PullLater;
+        parts.Feed.Asked += OnAsked;
         assembly.Pointer.Aimed += OnAimed;
         assembly.Pause.AppPaused += OnAppPaused;
         assembly.Pause.AppResumed += OnAppResumed;
@@ -118,6 +128,7 @@ public sealed class TactusScreen : IDisposable
         if (parts.Hotkeys is { } keys)
         {
             keys.PauseKeyProblem += OnPauseKeyProblem;
+            keys.StopKeyChecked += OnStopKeyChecked;
             if (keys.PauseProblem is not null) parts.Feed.PauseKeyTaken();
         }
         Follow(assembly.Settings);
@@ -159,6 +170,7 @@ public sealed class TactusScreen : IDisposable
         parts.Cards.OpenChat -= OnOpenChat;
         parts.Cards.SendToChat -= OnSendToChat;
         parts.Feed.Changed -= PullLater;
+        parts.Feed.Asked -= OnAsked;
         assembly.Pointer.Aimed -= OnAimed;
         assembly.Pause.AppPaused -= OnAppPaused;
         assembly.Pause.AppResumed -= OnAppResumed;
@@ -170,7 +182,11 @@ public sealed class TactusScreen : IDisposable
             pointer.Moved -= OnPointerMoved;
         }
         if (parts.Overlays is { } overlays) overlays.HandlesChanged -= OnHandles;
-        if (parts.Hotkeys is { } keys) keys.PauseKeyProblem -= OnPauseKeyProblem;
+        if (parts.Hotkeys is { } keys)
+        {
+            keys.PauseKeyProblem -= OnPauseKeyProblem;
+            keys.StopKeyChecked -= OnStopKeyChecked;
+        }
         if (framing) FrameClock.Source.Current.CancelFrame(frame);
         parts.Feed.Dispose();
         host.Dispose();
@@ -204,8 +220,9 @@ public sealed class TactusScreen : IDisposable
         if (parts.Pointers is { } pointers)
         {
             pointers.Active([.. facts.Apps.Where(a => a.Phase != PillAppPhase.Stopped).Select(a => a.Key)]);
-            WantFrames();
         }
+        // the pointers' frames, and the ring's while a hands-off request shows
+        WantFrames();
         Expire(facts);
     }
 
@@ -274,7 +291,13 @@ public sealed class TactusScreen : IDisposable
                 assembly.Stop.PillRow(app);
                 break;
             case PillCommandKind.PutBack:
-                assembly.Lease.PutBack();
+                PutBack();
+                break;
+            case PillCommandKind.DoItNow:
+                parts.Feed.DoItNow();
+                break;
+            case PillCommandKind.NotNow:
+                parts.Feed.NotNow();
                 break;
             case PillCommandKind.Settings:
                 parts.Feed.SettingsOpened();
@@ -285,6 +308,13 @@ public sealed class TactusScreen : IDisposable
                 if (assembly.Asks.Find(parts.Cards.Asks[0].Id) is { } pending) parts.OpenChat?.Invoke(pending.Thread, null);
                 break;
         }
+    }
+
+    // "Put them back": the kept keys go back to the window they were typed in, and the pill says so.
+    private void PutBack()
+    {
+        var keys = assembly.Lease.KeptKeys;
+        if (assembly.Lease.PutBack()) parts.Feed.PutBack(keys);
     }
 
     private void OnAnswered(PillCardAnswer answer)
@@ -327,6 +357,19 @@ public sealed class TactusScreen : IDisposable
     private void OnSendToChat(string thread, string text) => parts.OpenChat?.Invoke(thread, text);
 
     private void OnPauseKeyProblem(PcChordProblem problem) => parts.Feed.PauseKeyTaken();
+
+    // The stop chord was tried (the engine's Arm, any thread): taken shows "Stop key is taken", working clears it.
+    private void OnStopKeyChecked(bool works)
+    {
+        if (works) parts.Feed.StopKeyWorks();
+        else parts.Feed.StopKeyTaken();
+    }
+
+    // A hands-off request appeared where none showed (any thread): the soft sound, when Settings has it on.
+    private void OnAsked() => parts.Post(() =>
+    {
+        if (!disposed && assembly.Settings.Sound) parts.Chime?.Invoke();
+    });
 
     // ---- the pointers ----
 
@@ -376,7 +419,8 @@ public sealed class TactusScreen : IDisposable
 
     private void WantFrames()
     {
-        if (disposed || framing || parts.Pointers is null) return;
+        if (disposed || framing) return;
+        if (parts.Pointers is null && ringAt is null && parts.Feed.HandsOff is null) return;
         framing = true;
         FrameClock.Source.Current.RequestFrame(frame);
     }
@@ -384,6 +428,28 @@ public sealed class TactusScreen : IDisposable
     private void OnFrame(TimeSpan _)
     {
         framing = false;
-        if (!disposed && parts.Pointers!.Frame()) WantFrames();
+        if (disposed) return;
+        var pointers = parts.Pointers?.Frame() == true;
+        if (Ring() | pointers) WantFrames();
+    }
+
+    // ---- the hands-off ring ----
+
+    // Each frame while the hands-off request shows, the ring's fill follows the gate's stillness (HandsRing: up at once,
+    // down smoothly, full in 90 ms once the borrow runs). Once no request shows the ring springs away with its fill as it
+    // was, and the next request starts from the stillness then.
+    private bool Ring()
+    {
+        if (parts.Feed.HandsOff is not { } wait)
+        {
+            ringAt = null;
+            ring.Reset();
+            return false;
+        }
+        var now = parts.Now();
+        var step = ringAt is { } last ? now - last : 0;
+        ringAt = now;
+        host.RingFill(ring.Next(PcInputGate.Stillness(assembly.Input.Snapshot(), assembly.Lease.Clock.NowMs), step, wait.Running));
+        return true;
     }
 }

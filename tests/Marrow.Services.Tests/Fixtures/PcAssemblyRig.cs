@@ -7,15 +7,18 @@ namespace Marrow.Services.Tests.Fixtures;
 // PORT-ONLY: Tactus's composition on the fake desktop (ED-NEW-pcctl-40). PcBackends made of fakes: the fake desktop for
 // windows, UI Automation, change events, messages, security and the launcher; a healthy physical input monitor on the
 // desktop's clock; a fake input hold and real-input host; capture through a fake source and encoder; one fake audit per
-// chat thread; a manual wait clock. The settings start on and can be changed; the stop key is a fake.
+// chat thread; a manual wait clock. The settings start on and can be changed; the stop key is a fake. A test may give the
+// lease and the monitor their own clock (a manual one, to act between the gate's polls) and a foreground protection
+// (ED-NEW-pcctl-38).
 public sealed class PcAssemblyRig : IDisposable
 {
-    public PcAssemblyRig(PcSettings? settings = null)
+    public PcAssemblyRig(PcSettings? settings = null, IPcClock? clock = null, IForegroundProtection? protection = null)
     {
         Settings = settings ?? PcSettings.Default with { Enabled = true };
-        Input = new PhysicalInputMonitor(Desktop.Clock);
+        var time = clock ?? Desktop.Clock;
+        Input = new PhysicalInputMonitor(time, protection);
         Input.Installed(true);
-        Input.LastInputSeen(Desktop.Clock.NowMs);
+        Input.LastInputSeen(time.NowMs);
         Backends = new PcBackends
         {
             Catalog = Desktop,
@@ -26,10 +29,10 @@ public sealed class PcAssemblyRig : IDisposable
             Foreground = Desktop,
             Own = Desktop,
             Launcher = Desktop,
-            Clock = Desktop.Clock,
+            Clock = time,
             Input = Input,
             Hold = Hold,
-            RealHost = new PcFakeRealInputHost(Input, Desktop.Clock),
+            RealHost = new PcFakeRealInputHost(Input, time),
             Capture = new PcCapturePipeline([new PcFakeCapture("wgc", PcFakeCapture.Solid(1200, 800, 90))], new PcFakeEncoder()),
             Audit = thread =>
             {

@@ -5,6 +5,7 @@
 // taken) and "Answer Tactus" when the user set one. The pause chord ignores injected presses and presses under 400 ms
 // apart, and resumes only when every live app is paused. Esc three times within 1 s, the first in a window Tactus is
 // using, stops all; Escs an IME consumes, auto-repeats and injected Escs do not count. Every handler only sets flags.
+// Each real try of the stop chord says whether it works (StopKeyChecked), so the pill can say "Stop key is taken" (ED-NEW-pcctl-38).
 using Marrow.Core.Port.PcControl;
 using Marrow.Core.Port.PcControl.Pill;
 using Marrow.Services.Port.PcControl;
@@ -86,6 +87,12 @@ public sealed class TactusHotkeys : IPcStopKey, IDisposable
     /// <summary>Raised once when the pause chord could not be registered or failed its checks (the pill says "Pause key is taken").</summary>
     public event Action<PcChordProblem>? PauseKeyProblem;
 
+    /// <summary>
+    /// Each time Arm really tries the stop chord: false when it is taken or not valid, so no stream starts (the pill says
+    /// "Stop key is taken by another app"), true when it works again (ED-NEW-pcctl-38).
+    /// </summary>
+    public event Action<bool>? StopKeyChecked;
+
     /// <summary>Why the pause chord is not working; null while it works or nothing is armed.</summary>
     public PcChordProblem? PauseProblem { get; private set; }
 
@@ -121,7 +128,11 @@ public sealed class TactusHotkeys : IPcStopKey, IDisposable
             }
             var current = settings();
             var stopKey = Parse(current.StopChord, PcHotkey.StopDefault);
-            if (ChordValidator.Check(stopKey, [], _ => false) != PcChordProblem.None || !host.Register(StopId, stopKey)) return false;
+            if (ChordValidator.Check(stopKey, [], _ => false) != PcChordProblem.None || !host.Register(StopId, stopKey))
+            {
+                StopKeyChecked?.Invoke(false);
+                return false;
+            }
             PcHotkey? pauseKey = Parse(current.PauseChord, PcHotkey.PauseDefault);
             var check = ChordValidator.Check(pauseKey.Value, [stopKey], host.TypesCharacter);
             if (check == PcChordProblem.None && !host.Register(PauseId, pauseKey.Value)) check = PcChordProblem.Clash;
@@ -144,6 +155,7 @@ public sealed class TactusHotkeys : IPcStopKey, IDisposable
             }
             host.Watch(true, IsChordKey);
         }
+        StopKeyChecked?.Invoke(true);
         if (problem is { } said) PauseKeyProblem?.Invoke(said);
         return true;
     }

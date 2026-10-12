@@ -39,7 +39,7 @@ public sealed class RealInputLeaseTests
     {
         var rig = new PcBorrowRig().ProveAll();
         var chips = new List<string>();
-        rig.Lease.Used += (stream, detail) => chips.Add(detail);
+        rig.Lease.Used += wait => chips.Add(wait.Detail);
 
         var outcome = await rig.Lease.Borrow(rig.Click(), CancellationToken.None);
 
@@ -68,7 +68,7 @@ public sealed class RealInputLeaseTests
         rig.Lease.Waiting += wait => waits.Add(wait.Check);
         rig.Lease.WaitEnded += _ => ended++;
         var chips = 0;
-        rig.Lease.Used += (_, _) => chips++;
+        rig.Lease.Used += _ => chips++;
         rig.UserInput(rig.Move(5, 5));
         var start = rig.Clock.NowMs;
 

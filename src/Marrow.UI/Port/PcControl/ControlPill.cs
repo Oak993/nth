@@ -9,7 +9,10 @@
 // composition-only value. The capsule's width, Stop's key-cap fold, travels, the lift and the scales go through the motion
 // driver: laid out once at their end, then on composition key frames and the render-thread glass. A press on a button
 // never becomes a drag; a press elsewhere drags past the threshold, lifts the pill, and its release hands the host a
-// velocity to choose an anchor.
+// velocity to choose an anchor. "Do it now" and "Not now" get the card's misclick shield (CardShield; DESIGN.md 4.5,
+// critique C12): nothing counts in a request's first 400 ms while the two rise from 35 %, a mouse click only after a
+// 150 ms rest on the button, and a button that appeared under the pointer waits until the pointer has left it. The mark's
+// hands-off ring fills as the host says (RingFill) (ED-NEW-pcctl-38).
 using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Animation.Easings;
@@ -97,6 +100,11 @@ public sealed class ControlPill : Canvas, IPillTargets
     /// </summary>
     public const double DotStagger = 0.3;
 
+    /// <summary>The shield's ids of "Do it now" and "Not now".</summary>
+    public const string DoItNowId = "doitnow";
+
+    public const string NotNowId = "notnow";
+
     public static readonly FontFamily TextFont = new("Segoe UI Variable Text, Segoe UI, fonts:Inter#Inter");
     public static readonly FontFamily MonoFont = new("fonts:CascadiaMono#Cascadia Mono");
 
@@ -161,6 +169,10 @@ public sealed class ControlPill : Canvas, IPillTargets
     private readonly Dictionary<Control, (PillCurve Curve, double Unit)> springs = [];
     private readonly Dictionary<Control, PillTrack> slides = [];
     private readonly Dictionary<Control, PillTrack> fades = [];
+    // "Do it now" and "Not now" (ED-NEW-pcctl-38): the shield of the request shown now, and the pointer in the pill's DIP
+    private readonly CardShield handsShield = new();
+    private PillVector? pointerAt;
+    private (PillGroupKind Group, double? Since)? guarded;
 
     private PillGroupKind shownGroup = (PillGroupKind)(-1);
     private PillGlyph shownGlyph = PillGlyph.None;
@@ -292,6 +304,8 @@ public sealed class ControlPill : Canvas, IPillTargets
         hitArea.PointerPressed += Pressed;
         PointerEntered += (_, _) => HoverChanged?.Invoke(true);
         PointerExited += (_, _) => HoverChanged?.Invoke(false);
+        PointerMoved += (_, e) => PointerOver(e.GetPosition(this));
+        PointerExited += (_, _) => PointerOver(null);
         hitArea.PointerMoved += Moved;
         hitArea.PointerReleased += Released;
         hitArea.PointerCaptureLost += CaptureLost;
@@ -404,6 +418,16 @@ public sealed class ControlPill : Canvas, IPillTargets
             animator.StopBreathing(bars);
         }
     }
+
+    /// <summary>The hands-off ring's fill, 0 to 1 (the host drives it from the gate's stillness while the request shows).</summary>
+    public double RingFill
+    {
+        get => mark.RingFill;
+        set => mark.RingFill = value;
+    }
+
+    /// <summary>The shield on "Do it now" and "Not now" (tests read it).</summary>
+    public CardShield HandsShield => handsShield;
 
     /// <summary>The pill's own clock, seconds (the one every curve runs on).</summary>
     public double Now => clock.GetTimestamp() / (double)clock.TimestampFrequency;
@@ -525,9 +549,13 @@ public sealed class ControlPill : Canvas, IPillTargets
         stopButton.IsEnabled = shown.ShowsStop;
         Swap(stopSlot, shown.ShowsStop, stopShown, instant, reduce, now, BadgeResponse, new Point(stop / 2, PillSurfacePainter.StopHeight / 2));
         stopShown = shown.ShowsStop;
-        if (unchanged) return;
-        if (Follower) driver.Run(Motion, parts, now);
-        else Run(next, now);
+        if (!unchanged)
+        {
+            if (Follower) driver.Run(Motion, parts, now);
+            else Run(next, now);
+        }
+        // after the layout: the shield reads the buttons where they come to rest
+        Guard(groups.TryGetValue(shown.Group, out var guardedPart) ? guardedPart : null, shown, now);
     }
 
     /// <summary>The mirror takes its leader's motion (<paramref name="held"/>: a drag frame, set at once).</summary>
@@ -776,6 +804,8 @@ public sealed class ControlPill : Canvas, IPillTargets
     private void Badge(int count, bool instant, bool reduce, double now)
     {
         badgeText.Text = count > 0 ? count.ToString(System.Globalization.CultureInfo.InvariantCulture) : "";
+        // measured shown, so it scales about its real centre (a hidden part measures to nothing)
+        if (count > 0) Reveal(badge);
         badge.Measure(Size.Infinity);
         Swap(badge, count > 0, shownBadge > 0, instant, reduce, now, BadgeResponse, new Point(badge.DesiredSize.Width / 2, badge.DesiredSize.Height / 2));
         shownBadge = count;
@@ -869,6 +899,55 @@ public sealed class ControlPill : Canvas, IPillTargets
         if (control is not null) GroupEnter(control, instant, reduce, now);
     }
 
+    // A new hands-off request (its group shows, or another request takes it): the shield starts again with the buttons where
+    // they rest, those under the pointer inert at 35 %, the others rising from 35 % to full over 400 ms.
+    private void Guard(Control? part, PillView view, double now)
+    {
+        if (part is not Panel panel || view.Group is not (PillGroupKind.HandsOff or PillGroupKind.NotNow))
+        {
+            guarded = null;
+            return;
+        }
+        if (guarded is { } shown && shown.Group == view.Group && Nullable.Equals(shown.Since, view.RequestSince)) return;
+        guarded = (view.Group, view.RequestSince);
+        UpdateLayout();
+        var buttons = panel.Children.OfType<PillButton>().Where(b => b.GuardId is not null).ToList();
+        var layout = new List<CardControl>();
+        foreach (var button in buttons)
+            if (button.TranslatePoint(default, this) is { } at)
+                layout.Add(new CardControl(button.GuardId!, new PillRect(at.X, at.Y, button.Bounds.Width, button.Bounds.Height), CardControlKind.Answer));
+        handsShield.Show(now * 1000, layout, pointerAt);
+        foreach (var button in buttons)
+        {
+            var id = button.GuardId!;
+            if (handsShield.IsInert(id)) animator.SetOpacity(button, CardShield.ShieldFrom);
+            else animator.Fade(button, PillTrack.Of(now, now + (CardShield.ShieldMs / 1000), t => handsShield.Opacity(t * 1000, id)));
+        }
+    }
+
+    // The pointer over the pill (its DIP) or gone: the shield's rest timers, and an inert button the pointer left turns live.
+    private void PointerOver(Point? at)
+    {
+        if (Follower) return;
+        pointerAt = at is { } p ? new PillVector(p.X, p.Y) : null;
+        var inert = Guarded().Where(b => handsShield.IsInert(b.GuardId!)).ToList();
+        handsShield.Moved(Now * 1000, pointerAt);
+        foreach (var button in inert)
+            if (!handsShield.IsInert(button.GuardId!)) animator.SetOpacity(button, 1);
+    }
+
+    private IEnumerable<PillButton> Guarded() =>
+        guarded is { } shown && groups.TryGetValue(shown.Group, out var part) && part is Panel panel
+            ? panel.Children.OfType<PillButton>().Where(b => b.GuardId is not null)
+            : [];
+
+    // "Do it now" or "Not now" pressed: it counts only when the shield says so.
+    internal void GuardedClick(PillButton button, PillCommandKind kind)
+    {
+        if (button.GuardId is { } id && handsShield.Click(Now * 1000, id, button.LastKind, button.LastClickCount) != CardClick.Fires) return;
+        Raise(kind);
+    }
+
     // The group's slide up and out under its clip (150 ms on the canvas's ease); Reduce Motion: a 150 ms fade in place.
     private void GroupLeave(Control part, bool instant, bool reduce, double now)
     {
@@ -898,11 +977,12 @@ public sealed class ControlPill : Canvas, IPillTargets
     // The group's slide in from below; Reduce Motion: a 150 ms fade in place.
     private void GroupEnter(Control part, bool instant, bool reduce, double now)
     {
+        // shown first: a hidden part measures to nothing, and would sit past its clip, unseen and unclickable
+        part.IsEnabled = true;
+        Reveal(part);
         part.Measure(Size.Infinity);
         SetLeft(part, GroupBox - part.DesiredSize.Width);
         SetTop(part, (PillLayout.Height - part.DesiredSize.Height) / 2);
-        part.IsEnabled = true;
-        Reveal(part);
         if (instant)
         {
             Forget(part);
@@ -942,9 +1022,9 @@ public sealed class ControlPill : Canvas, IPillTargets
                 Labelled(PillButtonLook.Primary, PillIcons.Play(12, Text1), "Resume").On(PillCommandKind.ResumeAll, this),
                 Labelled(PillButtonLook.Plain, null, "Stop this app").On(PillCommandKind.StopThisApp, this)),
             PillGroupKind.HandsOff => Buttons(
-                Labelled(PillButtonLook.Primary, null, "Do it now").On(PillCommandKind.DoItNow, this),
-                Labelled(PillButtonLook.Plain, null, "Not now").On(PillCommandKind.NotNow, this)),
-            PillGroupKind.NotNow => Buttons(Labelled(PillButtonLook.Plain, null, "Not now").On(PillCommandKind.NotNow, this)),
+                Labelled(PillButtonLook.Primary, null, "Do it now").Guarded(PillCommandKind.DoItNow, DoItNowId, this),
+                Labelled(PillButtonLook.Plain, null, "Not now").Guarded(PillCommandKind.NotNow, NotNowId, this)),
+            PillGroupKind.NotNow => Buttons(Labelled(PillButtonLook.Plain, null, "Not now").Guarded(PillCommandKind.NotNow, NotNowId, this)),
             PillGroupKind.PutBack => Buttons(Labelled(PillButtonLook.Plain, null, "Put them back").On(PillCommandKind.PutBack, this)),
             PillGroupKind.Settings => Buttons(Labelled(PillButtonLook.Plain, null, "Settings").On(PillCommandKind.Settings, this)),
             PillGroupKind.Card => CardGroup(),
@@ -1451,6 +1531,23 @@ public sealed class PillButton : Button
         return this;
     }
 
+    /// <summary>A button under the pill's misclick shield ("Do it now", "Not now"): a click counts only when the shield says so.</summary>
+    public PillButton Guarded(PillCommandKind kind, string id, ControlPill pill)
+    {
+        GuardId = id;
+        Click += (_, _) => pill.GuardedClick(this, kind);
+        return this;
+    }
+
+    /// <summary>The shield's id; null: the button is free of it.</summary>
+    public string? GuardId { get; private set; }
+
+    /// <summary>How the last press came (the shield's rest rule is for the mouse only).</summary>
+    public PillPointerKind LastKind { get; private set; } = PillPointerKind.Mouse;
+
+    /// <summary>2 for the second press of a double-click.</summary>
+    public int LastClickCount { get; private set; } = 1;
+
     private IBrush Rest => look switch
     {
         PillButtonLook.Primary => new ImmutableSolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF)),
@@ -1476,6 +1573,13 @@ public sealed class PillButton : Button
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
+        LastKind = e.Pointer.Type switch
+        {
+            PointerType.Pen => PillPointerKind.Pen,
+            PointerType.Touch => PillPointerKind.Touch,
+            _ => PillPointerKind.Mouse,
+        };
+        LastClickCount = Math.Max(1, e.ClickCount);
         base.OnPointerPressed(e);
         RenderTransform = PressScale;
     }

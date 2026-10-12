@@ -10,6 +10,7 @@ using Avalonia.Threading;
 using Marrow.App.Port.PcControl.Overlay;
 using Marrow.Core.Port;
 using Marrow.Services.Port.PcControl;
+using Marrow.UI.Port.PcControl;
 
 namespace Marrow.App.Port.PcControl;
 
@@ -85,6 +86,7 @@ internal static class TactusScreenDesktop
             Now = Now,
             OpenSettings = () => MainActor.Post(() => Marrow.App.Window.WindowManager.Shared.ShowSettings(Marrow.App.Views.Settings.SettingsPage.PcControl)),
             OpenChat = OpenChat,
+            Chime = TactusChime.Play,
             KeyboardToCard = () =>
             {
                 if (host.MonitorId is not { } id || !windows.TryGetValue(id, out var window)) return;

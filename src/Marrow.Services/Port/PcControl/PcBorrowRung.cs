@@ -110,6 +110,7 @@ public sealed class PcBorrowRung(Func<PcSettings> settings, RealInputLease? leas
         new(request.Window.App.Key, kind, request.Window.Handle, request.Window.App.ExeName)
         {
             Detail = detail,
+            Words = PcBusyWords.Words(request),
             Waiting = request.Waiting,
         };
 

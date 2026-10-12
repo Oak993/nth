@@ -5,6 +5,8 @@
 // and folds its key cap, the badge, the hint row, the per-app rows and the polite announcement. Priority: the card, then
 // Stop key taken, Stopped, the input check restarting, the hands-off family, an expired confirm and the other notices, the
 // ask, Pause key taken, Pausing or Paused, Waiting while you type, Working. No Avalonia types: the control renders this.
+// The hands-off request turns the mark's ring on (its fill is the caller's, ED-NEW-pcctl-38); "Stop key is taken" with
+// nothing working reads "New steps wait for a stop key that works" (canvas gallery 12).
 namespace Marrow.UI.Port.PcControl;
 
 /// <summary>Where one app's stream is (DESIGN.md 10.1).</summary>
@@ -66,7 +68,8 @@ public enum PillNoticeKind
 public sealed record PillNotice(PillNoticeKind Kind, string Title, string Line, string? Hint, PillGroupKind Group, double Since, double Lasts, IReadOnlyList<PillHintPart>? HintParts = null)
 {
     /// <summary>"Stop key is taken by another app" with Settings (critique C11).</summary>
-    public static PillNotice StopKeyTaken(double now) => new(PillNoticeKind.StopKeyTaken, "Stop key is taken by another app", "", null, PillGroupKind.Settings, now, 0);
+    public static PillNotice StopKeyTaken(double now) =>
+        new(PillNoticeKind.StopKeyTaken, "Stop key is taken by another app", "New steps wait for a stop key that works", null, PillGroupKind.Settings, now, 0);
 
     /// <summary>"Pause key is taken by another app" with Settings, shown once (DESIGN.md 10.1).</summary>
     public static PillNotice PauseKeyTaken(double now) => new(PillNoticeKind.PauseKeyTaken, "Pause key is taken by another app", "", null, PillGroupKind.Settings, now, 0);
@@ -77,11 +80,12 @@ public sealed record PillNotice(PillNoticeKind Kind, string Title, string Line, 
     /// <summary>
     /// "Hands off for a moment": the step on the second line ("Drag the chart in Excel", "+1 more" when other apps wait),
     /// the whole sentence in the hint row ("Tactus needs the mouse for one step: drag the chart in Excel."), with "Esc stops
-    /// this step" once the borrow runs, and "Release the mouse first" when Do it now meets a held button.
+    /// this step" once the borrow runs, and "Release the mouse first" when Do it now meets a held button ("the keys" for a held key).
     /// </summary>
-    public static PillNotice HandsOff(string step, string sentence, int more, bool running, bool releaseFirst, double now)
+    public static PillNotice HandsOff(string step, string sentence, int more, bool running, bool releaseFirst, double now, bool keysHeld = false)
     {
-        var line = releaseFirst ? "Release the mouse first" : more > 0 ? $"{step} +{more} more" : step;
+        // a held key, not a button: the same words for the keys
+        var line = releaseFirst ? keysHeld ? "Release the keys first" : "Release the mouse first" : more > 0 ? $"{step} +{more} more" : step;
         var hint = running ? $"{sentence} Esc stops this step" : sentence;
         // the canvas draws the key as a chip: "<kbd>Esc</kbd> stops this step"
         IReadOnlyList<PillHintPart> parts = running ? [new(sentence + " "), PillHintPart.Key("Esc"), new(" stops this step")] : [new(sentence)];
@@ -102,7 +106,14 @@ public sealed record PillNotice(PillNoticeKind Kind, string Title, string Line, 
 
     /// <summary>A focus borrow waits behind an admin or full-screen window (critique C1), with "Not now".</summary>
     public static PillNotice ProtectedForeground(bool admin, double now) =>
-        new(PillNoticeKind.ProtectedForeground, admin ? "Waiting until you leave the admin window" : "Waiting until you leave the full-screen app", "", null, PillGroupKind.NotNow, now, 0);
+        ProtectedForeground(admin ? "Waiting until you leave the admin window" : "Waiting until you leave the full-screen app", now);
+
+    /// <summary>The same wait in the gate's own words (also "Waiting until Windows' prompt closes"), with "Not now".</summary>
+    public static PillNotice ProtectedForeground(string title, double now) => new(PillNoticeKind.ProtectedForeground, title, "", null, PillGroupKind.NotNow, now, 0);
+
+    /// <summary>"Put them back" sent the kept keys, for 1.2 s: "Put back 6 keys", "Where you typed them" (canvas `cuP[4].kp`).</summary>
+    public static PillNotice PutBack(int keys, double now) =>
+        new(PillNoticeKind.Done, $"Put back {keys} {(keys == 1 ? "key" : "keys")}", "Where you typed them", null, PillGroupKind.Run, now, 1.2);
 
     /// <summary>A confirm that expired, for 2 s: "Send in Outlook expired", "Nothing was sent. Ask in chat to try again".</summary>
     public static PillNotice Expired(string action, string app, double now) =>
@@ -119,8 +130,9 @@ public sealed record PillNotice(PillNoticeKind Kind, string Title, string Line, 
     {
         PillNoticeKind.StopKeyTaken => 0,
         PillNoticeKind.InputRestarting => 2,
-        PillNoticeKind.HandsOff or PillNoticeKind.ProtectedForeground => 3,
-        PillNoticeKind.KeysHeld or PillNoticeKind.KeptKeys or PillNoticeKind.Done or PillNoticeKind.Borrowed => 4,
+        // what the user must do about their own input (the request, the held or kept keys) before what Tactus did with it
+        PillNoticeKind.HandsOff or PillNoticeKind.ProtectedForeground or PillNoticeKind.KeysHeld or PillNoticeKind.KeptKeys => 3,
+        PillNoticeKind.Done or PillNoticeKind.Borrowed => 4,
         PillNoticeKind.Expired => 5,
         PillNoticeKind.OpenedWindow => 6,
         _ => 8,
@@ -270,6 +282,9 @@ public sealed record PillView(
 
     /// <summary>Stop shows in every state but the card's and the empty one (canvas `noStop`).</summary>
     public bool ShowsStop => Group is not (PillGroupKind.None or PillGroupKind.Card);
+
+    /// <summary>When the request that owns "Do it now" or "Not now" began: another one starts the buttons' shield again.</summary>
+    public double? RequestSince { get; init; }
 }
 
 public static class PillStates
@@ -307,6 +322,9 @@ public static class PillStates
         var hint = Hint(facts, allPaused);
         var hintParts = HintParts(facts, allPaused);
         var hintShown = false;
+        double? requestSince = null;
+        // nothing working reads Stopped, unless a notice still has something to say (kept keys, a borrow's Done)
+        var showsStopped = stopped || (live.Count == 0 && notice is not { Rank: < 7 });
 
         if (facts.Card && n > 0)
         {
@@ -319,10 +337,10 @@ public static class PillStates
         }
         else if (notice is { Kind: PillNoticeKind.StopKeyTaken })
         {
-            (title, line, group) = (notice.Title, workingLine, notice.Group);
+            (title, line, group) = (notice.Title, workingLine.Length > 0 ? workingLine : notice.Line, notice.Group);
             announcement = BaseAnnouncement(stopped, live, working, paused, pausing, allPaused, n);
         }
-        else if (stopped || live.Count == 0)
+        else if (showsStopped)
         {
             title = "Stopped";
             line = facts.Stopped?.EscThreeTimes == true ? "Esc pressed 3 times. Ask in chat to continue." : "Ask in chat to continue";
@@ -334,14 +352,18 @@ public static class PillStates
         {
             title = notice.Title;
             line = notice.Line.Length > 0 ? notice.Line : workingLine;
-            group = notice.Group;
+            // with nothing working (the kept keys after the turn ended, a borrow's Done) there is nothing to pause
+            group = live.Count == 0 && notice.Group == PillGroupKind.Run ? PillGroupKind.None : notice.Group;
             if (notice.Hint is { } sentence)
             {
                 hint = sentence;
                 hintParts = notice.HintParts ?? [new PillHintPart(sentence)];
                 hintShown = !facts.Dragging;
             }
-            isWorking = notice.Line.Length == 0;
+            isWorking = live.Count > 0 && notice.Line.Length == 0;
+            // the hands-off request: the ring round the mark fills while the user stays still (the caller drives it)
+            if (notice.Kind == PillNoticeKind.HandsOff) mark = TactusMarkState.HandsOff;
+            if (notice.Group is PillGroupKind.HandsOff or PillGroupKind.NotNow) requestSince = notice.Since;
             if (notice.Kind == PillNoticeKind.Expired)
             {
                 // DESIGN.md 4.5: no buttons and no glyph; Stop keeps its own slot while other apps still work.
@@ -411,7 +433,10 @@ public static class PillStates
         var rowsShown = facts.RowsOpen && !facts.Card && !facts.Dragging && live.Count > 0;
         hintShown = hintShown || rowsShown || (ask && facts.RowsOpen && !facts.Dragging);
         if (facts.Card || (stopped && group == PillGroupKind.None)) hintShown = false;
-        var view = new PillView(title, line, glyph, mark, group, ask, isWorking, n, announcement, hint, hintShown, rows, rowsShown, pager, stopName, pauseName, resumeName, stopped || live.Count == 0, hintParts);
+        var view = new PillView(title, line, glyph, mark, group, ask, isWorking, n, announcement, hint, hintShown, rows, rowsShown, pager, stopName, pauseName, resumeName, showsStopped, hintParts)
+        {
+            RequestSince = requestSince,
+        };
         // the dot: the mark and the live glyph only (canvas `.sdot`); what it says stays for assistive technology
         return facts.Dot && !facts.Card
             ? view with { Title = "", Line = "", Group = PillGroupKind.None, Badge = 0, HintShown = false, RowsShown = false, Pager = null, Dot = true }

@@ -2,7 +2,8 @@
 // pill host on fake bands and monitors (PcPillHostRig), the card's bridge and the feed, the card's keyboard over fake Win32
 // calls, the chords on a fake hotkey thread, the user's pointer over the shared input monitor and a fake probe (ED-NEW-pcctl-34),
 // the Tactus pointers when a test gives them (ED-NEW-pcctl-37), and what the screen asks the app to do (settings saved, a chat opened,
-// Settings opened, the keyboard put in the card). Everything runs inline on the test's UI thread.
+// Settings opened, the keyboard put in the card, the hands-off sound played). A test may give the lease its own clock (a manual
+// one, to act between the gate's polls; ED-NEW-pcctl-38). Everything runs inline on the test's UI thread.
 using Marrow.App.Port.PcControl;
 using Marrow.App.Port.PcControl.Overlay;
 using Marrow.Core.Port.PcControl;
@@ -16,9 +17,9 @@ public sealed class PcScreenRig : IDisposable
     public const nint Overlay = 0x50;
     public const nint Word = 0x10;
 
-    public PcScreenRig(PcSettings? settings = null, PointerOverlays? pointers = null)
+    public PcScreenRig(PcSettings? settings = null, PointerOverlays? pointers = null, IPcClock? clock = null)
     {
-        Parts = new PcAssemblyRig(settings);
+        Parts = new PcAssemblyRig(settings, clock);
         Assembly = Parts.Build();
         Pill = PcPillHostRig.Create();
         Cards = new PillAskBridge(Assembly.Asks);
@@ -53,6 +54,7 @@ public sealed class PcScreenRig : IDisposable
             Now = () => Pill.Now,
             OpenSettings = () => SettingsOpened++,
             OpenChat = (thread, draft) => Chats.Add((thread, draft)),
+            Chime = () => Chimes++,
             KeyboardToCard = () =>
             {
                 KeyboardCalls++;
@@ -84,6 +86,7 @@ public sealed class PcScreenRig : IDisposable
     public List<(string Thread, string? Draft)> Chats { get; } = [];
     public int SettingsOpened { get; private set; }
     public int KeyboardCalls { get; private set; }
+    public int Chimes { get; private set; }
 
     public void Dispose()
     {

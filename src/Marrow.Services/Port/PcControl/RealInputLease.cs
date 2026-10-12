@@ -10,8 +10,9 @@
 // them back", and after a failed restore the user's keys stay held until the user's own click moves the foreground. A
 // watchdog owns the release path: past the hold cap plus 100 ms it lets go of everything and marks the borrow failed.
 // Esc in a borrow stops that stream. A cursor-free step in an app the user works in waits for a still moment through the
-// same gate, words and answers, holding nothing (ED-NEW-pcctl-19). Tests drive it on fakes; the app binds the Win32 host
-// and the hooks.
+// same gate, words and answers, holding nothing (ED-NEW-pcctl-19). The pill follows each shown wait (Waiting, WaitEnded),
+// its run (RunningChanged), a borrow that went at once (Used) and one that ran after its wait (Ran) (ED-NEW-pcctl-38).
+// Tests drive it on fakes; the app binds the Win32 host and the hooks.
 using Marrow.Core.Port.PcControl;
 using Marrow.Services.Port.PcControl.Native;
 using NativeKind = Marrow.Services.Port.PcControl.Native.PcInputKind;
@@ -67,7 +68,10 @@ public sealed class RealInputLease
     public event Action<PcBorrowWait>? WaitEnded;
 
     /// <summary>A borrow ran at once, with no wait: the pill's 1 s chip ("Used the mouse for one click in Paint").</summary>
-    public event Action<string, string>? Used;
+    public event Action<PcBorrowWait>? Used;
+
+    /// <summary>A shown wait's borrow started or stopped holding the user's input (PcBorrowWait.Running).</summary>
+    public event Action<PcBorrowWait>? RunningChanged;
 
     /// <summary>Esc pressed while a borrow held the user's input: that stream stops (DESIGN.md 4.4).</summary>
     public event Action<string>? EscapeInBorrow;
@@ -175,7 +179,7 @@ public sealed class RealInputLease
         if (permitted?.Invoke() == false) return RealInputOff();
         if (Unproven(request.Exe, request.Kind) is { } unproven) return new PcBorrowOutcome(PcBorrowStatus.NeedsRealInput, unproven);
         if (request.Chunks.Count == 0 || request.Chunks.Any(c => c.Count == 0)) throw new ArgumentException("a borrow sends at least one event in each array", nameof(request));
-        var entry = new Entry(new PcBorrowWait(request.Stream, request.Detail));
+        var entry = new Entry(new PcBorrowWait(request.Stream, request.Detail) { Kind = request.Kind, Words = request.Words });
         lock (gate)
         {
             if (queue.Any(e => e.Wait.Stream == request.Stream))
@@ -197,7 +201,8 @@ public sealed class RealInputLease
                 if (opened.Outcome is { } refused) return refused;
                 var outcome = await Run(entry, request, opened.Delivered, opened.Tick, cancellationToken, permitted, validate, waited ? clock.NowMs - queuedAt : -1).ConfigureAwait(false);
                 if (outcome is null) continue;
-                if (outcome.Done && !waited && request.Detail.Length > 0) Used?.Invoke(request.Stream, request.Detail);
+                if (outcome.Done) entry.Wait.Ran = true;
+                if (outcome.Done && !waited && request.Detail.Length > 0) Used?.Invoke(entry.Wait);
                 return outcome;
             }
         }
@@ -220,9 +225,14 @@ public sealed class RealInputLease
     /// takes neither the pointer nor the keyboard). Done once the user is still (or chose "Do it now"); Deferred when they
     /// chose "Not now". While the hooks are unhealthy it keeps waiting: the step's 25 s rule ends a long wait.
     /// </summary>
-    public async Task<PcBorrowStatus> Still(string stream, string detail, Func<string, IDisposable>? waiting, CancellationToken cancellationToken)
+    public Task<PcBorrowStatus> Still(string stream, string detail, Func<string, IDisposable>? waiting, CancellationToken cancellationToken) =>
+        Still(new PcBorrowWait(stream, detail), waiting, cancellationToken);
+
+    /// <summary>A still moment for <paramref name="wait"/> (its stream, detail and words; its Kind stays null: it holds nothing).</summary>
+    public async Task<PcBorrowStatus> Still(PcBorrowWait wait, Func<string, IDisposable>? waiting, CancellationToken cancellationToken)
     {
-        var entry = new Entry(new PcBorrowWait(stream, detail));
+        ArgumentNullException.ThrowIfNull(wait);
+        var entry = new Entry(wait);
         lock (gate) stills.Add(entry);
         IDisposable? mark = null;
         try
@@ -270,7 +280,7 @@ public sealed class RealInputLease
             }
             if (head && check.Open)
             {
-                lock (gate) entry.Running = !still;
+                if (!still) SetRunning(entry, true);
                 return (null, delivered, tick);
             }
             if (check.Block == PcGateBlock.Unhealthy && !still)
@@ -307,7 +317,7 @@ public sealed class RealInputLease
             // The cold read held no input. If its wait reopened a safety gate, queue and validate again.
             if (ownCardUp() || HoldingKeys || !PcInputGate.Check(input.Snapshot(), clock.NowMs, input.Protection(), entry.Wait.DoItNowChosen).Open)
             {
-                lock (gate) entry.Running = false;
+                SetRunning(entry, false);
                 return null;
             }
         }
@@ -375,7 +385,7 @@ public sealed class RealInputLease
                 await CatchUp(borrow).ConfigureAwait(false);
                 MoveCursor(borrow, always: false);
                 await LetGo(borrow).ConfigureAwait(false);
-                lock (gate) entry.Running = false;
+                SetRunning(entry, false);
                 return null;
             }
             var activation = PcBorrowProofs.Activation(capabilities, request.Exe, request.Kind)!.Value;
@@ -728,11 +738,27 @@ public sealed class RealInputLease
         }
     }
 
+    // A borrow's run starts or ends: a shown wait tells the pill.
+    private void SetRunning(Entry entry, bool running)
+    {
+        bool shown;
+        lock (gate)
+        {
+            entry.Running = running;
+            shown = entry.Shown;
+        }
+        if (shown) RunningChanged?.Invoke(entry.Wait);
+    }
+
     private sealed class Entry(PcBorrowWait wait)
     {
         public PcBorrowWait Wait { get; } = wait;
 
-        public bool Running { get; set; }
+        public bool Running
+        {
+            get => Wait.Running;
+            set => Wait.Running = value;
+        }
 
         public bool Shown { get; set; }
     }

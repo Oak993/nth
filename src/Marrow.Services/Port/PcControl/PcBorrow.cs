@@ -165,6 +165,9 @@ public sealed record PcBorrowRequest(string Stream, PcBorrowKind Kind, nint Targ
     /// <summary>"one click in Paint": the pill's chip when the borrow ran at once.</summary>
     public string Detail { get; init; } = "";
 
+    /// <summary>The step in the pill's words, without the app (PcBusyWords.Words): its hands-off request, chip and Done line.</summary>
+    public PcStepWords? Words { get; init; }
+
     /// <summary>The engine's wait mark (the 25 s rule): called with "hands_off" while the borrow waits for the gate.</summary>
     public Func<string, IDisposable>? Waiting { get; init; }
 
@@ -269,10 +272,32 @@ public sealed class PcBorrowWait(string stream, string detail)
 {
     private int now;
     private int declined;
+    private int running;
+    private int ran;
 
     public string Stream { get; } = stream;
 
     public string Detail { get; } = detail;
+
+    /// <summary>The real mouse (Pointer) or keyboard (Focus) the step borrows; null for a still moment, which holds nothing.</summary>
+    public PcBorrowKind? Kind { get; init; }
+
+    /// <summary>The step in the pill's words, without the app (PcBusyWords.Words); null when the caller gave none.</summary>
+    public PcStepWords? Words { get; init; }
+
+    /// <summary>The gate opened and the borrow holds the user's input now (the pill adds "Esc stops this step").</summary>
+    public bool Running
+    {
+        get => Volatile.Read(ref running) == 1;
+        internal set => Volatile.Write(ref running, value ? 1 : 0);
+    }
+
+    /// <summary>The borrow ran to its end (the pill says "Done, all yours" when its wait ends).</summary>
+    public bool Ran
+    {
+        get => Volatile.Read(ref ran) == 1;
+        internal set => Volatile.Write(ref ran, value ? 1 : 0);
+    }
 
     /// <summary>What the gate waits for now.</summary>
     public PcGateCheck Check { get; internal set; }

@@ -54,4 +54,22 @@ public static class PcInputGate
         if (state.LastUnseenMs is { } unseen && nowMs - unseen < keys) return new(PcGateBlock.Unseen);
         return new(PcGateBlock.None);
     }
+
+    /// <summary>
+    /// How far the user is into the stillness the gate waits for, 0 to 1: the hands-off ring's fill, whose speed shows the
+    /// threshold (DESIGN.md 4.5 "Hands-off behaviour": 350 ms after the pointer, 700 ms after a key, 2 s with an IME
+    /// language; ED-NEW-pcctl-38). The least of the three; 0 while a key or button is held, a composition is open or the
+    /// hooks are unhealthy.
+    /// </summary>
+    public static double Stillness(PcPhysicalSnapshot state, long nowMs)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (!state.Healthy || state.HeldKeys > 0 || state.HeldButtons > 0 || state.Composition != 0) return 0;
+        var keys = (double)(state.ImeLanguage ? ImeKeysStillMs : KeysStillMs);
+        var fill = 1.0;
+        if (state.LastPointerMs is { } pointer) fill = Math.Min(fill, (nowMs - pointer) / (double)PointerStillMs);
+        if (state.LastKeyMs is { } key) fill = Math.Min(fill, (nowMs - key) / keys);
+        if (state.LastUnseenMs is { } unseen) fill = Math.Min(fill, (nowMs - unseen) / keys);
+        return Math.Clamp(fill, 0, 1);
+    }
 }

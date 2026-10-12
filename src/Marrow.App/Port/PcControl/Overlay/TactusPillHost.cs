@@ -528,6 +528,12 @@ public sealed class TactusPillHost : IDisposable
         Command?.Invoke(command);
     }
 
+    /// <summary>The hands-off ring's fill on every pill (TactusScreen drives it each frame while the request shows; ED-NEW-pcctl-38).</summary>
+    public void RingFill(double fill)
+    {
+        foreach (var pair in pairs.Values) pair.Each(p => p.RingFill = fill);
+    }
+
     /// <summary>The overlay could not take the keyboard after the reply field's click (CardFocus.ActivationFailed).</summary>
     public void KeyboardRefused()
     {

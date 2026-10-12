@@ -701,7 +701,8 @@ public sealed partial class PcControlEngine
             if (still)
             {
                 waited = true;
-                var status = await parts.Lease.Still(info.App.Key, "a step in " + AppName(info), call.Wait.Waiting, cut.Token).ConfigureAwait(false);
+                var wait = new PcBorrowWait(info.App.Key, "a step in " + AppName(info)) { Words = PcBusyWords.Words(request) };
+                var status = await parts.Lease.Still(wait, call.Wait.Waiting, cut.Token).ConfigureAwait(false);
                 call.Timings.Mark("still");
                 if (status == PcBorrowStatus.Deferred)
                 {
