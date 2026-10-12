@@ -172,6 +172,34 @@ public sealed class VisusHistoryTests
         Assert.Equal(1, state.Tabs[2].Zoom);
         Assert.Null(VisusTabsState.Empty.Normalized().SelectedId);
     }
+
+    [Fact]
+    public void Saved_tabs_round_trip_through_the_threads_json_and_bad_text_reads_as_none()
+    {
+        var state = new VisusTabsState
+        {
+            Tabs = new ValueList<VisusTabState>(
+            [
+                new("a", VisusTabKind.Browse, "https://example.com/", "Example \"quoted\""),
+                new("c", VisusTabKind.Preview, "http://localhost:5173/", "Orbit", 1.25),
+            ]),
+            SelectedId = "c",
+        };
+        var json = state.ToJson();
+        Assert.Equal(state.Normalized(), VisusTabsState.FromJson(json));
+        Assert.Contains("\"kind\":\"Preview\"", json, StringComparison.Ordinal);
+        Assert.Equal(VisusTabsState.Empty, VisusTabsState.FromJson("{ nope"));
+        Assert.Equal(VisusTabsState.Empty, VisusTabsState.FromJson("[]"));
+        Assert.Equal(VisusTabsState.Empty, VisusTabsState.FromJson(null));
+
+        // A newer build's kind is dropped and the rest kept; a private tab or a non-page written by hand never comes back.
+        var mixed = VisusTabsState.FromJson(
+            """{"selected":"x","tabs":[{"id":"x","kind":"Hologram","url":"https://x.example/"},{"id":"p","kind":"Private","url":"https://secret.example/"},{"id":"a","kind":"Browse","url":"https://a.example/","title":"A","zoom":2},{"id":"f","kind":"Browse","url":"file:///C:/x"},null]}""");
+        Assert.Equal(new[] { "a" }, mixed.Tabs.Select(tab => tab.Id).ToArray());
+        Assert.Equal("a", mixed.SelectedId);
+        Assert.Equal(2, mixed.Tabs[0].Zoom);
+        Assert.Equal("A", mixed.Tabs[0].Title);
+    }
 }
 
 // DESIGN 8.3: "Remember for this site" for mailto and tel, per origin and profile, never for private or agent tabs.

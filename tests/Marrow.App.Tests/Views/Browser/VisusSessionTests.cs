@@ -1,9 +1,11 @@
+using System.Text.Json;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Browser;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Web;
+using Marrow.Services.Store;
 using Marrow.Services.Web;
 
 namespace Marrow.App.Tests.Views.Browser;
@@ -564,6 +566,43 @@ public sealed class VisusSessionTests(HeadlessSession headless)
             Assert.Equal("a", runtime.VisusTabs.SelectedId);
             session.Dispose();
         });
+    });
+
+    [Fact]
+    public void The_tabs_are_kept_with_the_thread_and_come_back_after_a_restart() => headless.OnUiThread(() =>
+    {
+        using var rig = new VisusRig();
+        using var store = new AppModelHarness();
+        var project = AppModelSamples.Project("Visus kept", store.NewFolder("visus-kept"));
+        var thread = AppModelSamples.Thread(project);
+        store.WriteLibrary([project], [thread]);
+        var app = store.MakeModel();
+        store.Main.OnMain(() =>
+        {
+            var runtime = app.Runtime(thread.Id);
+            var session = new VisusSession(runtime);
+            session.NewTab(VisusTabKind.Browse, "https://a.example/");
+            session.NewTab(VisusTabKind.Private, "https://secret.example/");
+            session.NewTab(VisusTabKind.Preview, "http://localhost:5173/");
+            session.Dispose();
+            // The Browser pane's data in the thread's workspace (web W3c), never the private tab.
+            var kept = runtime.GetPaneState(PaneKind.Browser);
+            Assert.NotNull(kept);
+            using (var document = JsonDocument.Parse(kept)) // the library's form escapes slashes, so it is read as JSON
+            {
+                var urls = document.RootElement.GetProperty("tabs").EnumerateArray().Select(tab => tab.GetProperty("url").GetString()).ToArray();
+                Assert.Equal(new[] { "https://a.example/", "http://localhost:5173/" }, urls);
+            }
+            Assert.DoesNotContain("secret", kept, StringComparison.Ordinal);
+        });
+        store.Main.Advance(TimeSpan.FromSeconds(10));
+        DiskWriter.Shared.WaitForQueuedWrites();
+
+        var restarted = store.MakeModel();
+        var back = store.Main.OnMain(() => restarted.Runtime(thread.Id).VisusTabs);
+        Assert.Equal(new[] { "https://a.example/", "http://localhost:5173/" }, back.Tabs.Select(tab => tab.Url));
+        Assert.Equal(VisusTabKind.Preview, back.Tabs[1].Kind);
+        Assert.Equal(back.Tabs[1].Id, back.SelectedId);
     });
 
     private static bool Decided(WebExternalUriRequest request)

@@ -235,4 +235,45 @@ public sealed record VisusTabsState
         var selected = kept.Any(tab => tab.Id == SelectedId) ? SelectedId : kept.FirstOrDefault()?.Id;
         return new VisusTabsState { Tabs = new ValueList<VisusTabState>(kept), SelectedId = selected };
     }
+
+    private static readonly JsonSerializerOptions Json = new() { WriteIndented = false, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
+    /// <summary>
+    /// The JSON the thread keeps for its Visus pane (ThreadRuntime.SetPaneState, web W3c), always of the normalized form:
+    /// <c>{"selected":id,"tabs":[{"id","kind","url","title","zoom"}]}</c>.
+    /// </summary>
+    public string ToJson()
+    {
+        var saved = Normalized();
+        var tabs = saved.Tabs.Select(tab => (SavedTab?)new SavedTab(tab.Id, tab.Kind.ToString(), tab.Url, tab.Title, tab.Zoom)).ToList();
+        return JsonSerializer.Serialize(new Saved(saved.SelectedId, tabs), Json);
+    }
+
+    /// <summary>
+    /// The saved tabs back from <see cref="ToJson"/>, normalized. Text that does not parse reads as no tabs; a tab of a kind
+    /// this build does not know (or a private one written by hand) is dropped, the others kept.
+    /// </summary>
+    public static VisusTabsState FromJson(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return Empty;
+        try
+        {
+            if (JsonSerializer.Deserialize<Saved>(json, Json) is not { Tabs: { } read } saved) return Empty;
+            var tabs = new List<VisusTabState>();
+            foreach (var tab in read)
+            {
+                if (tab is { Id: { } id, Url: { } url } && Enum.TryParse<VisusTabKind>(tab.Kind, ignoreCase: false, out var kind) && Enum.IsDefined(kind))
+                    tabs.Add(new VisusTabState(id, kind, url, tab.Title ?? "", tab.Zoom ?? 1));
+            }
+            return new VisusTabsState { Tabs = new ValueList<VisusTabState>(tabs), SelectedId = saved.Selected }.Normalized();
+        }
+        catch (JsonException)
+        {
+            return Empty;
+        }
+    }
+
+    private sealed record Saved(string? Selected, List<SavedTab?>? Tabs);
+
+    private sealed record SavedTab(string? Id, string? Kind, string? Url, string? Title, double? Zoom);
 }
