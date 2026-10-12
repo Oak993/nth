@@ -175,6 +175,8 @@ public sealed class ReserveGuardTests : IDisposable
 
         Assert.Null(rig.Pick(first, ReserveOptionKind.Move));       // the owner's tap is taken; the move fails
         Assert.Single(mover.Moved);
+        Assert.DoesNotContain(rig.Audit, e => (e.Result ?? "").Contains("signed out", StringComparison.Ordinal));   // the reason is for the card, not the log
+        Assert.Contains(rig.Audit, e => e.Tool == "reserve_answer" && e.Result!.EndsWith(": did not work", StringComparison.Ordinal));
         var again = rig.Missions.Queue.Of(record.Id).Single(c => c.Kind == DecisionKind.Reserve);
         Assert.NotEqual(first.Id, again.Id);
         Assert.Equal("Moving the rest did not work: Codex A is signed out. " + ReserveGuard.PausedNote, again.Note);
@@ -188,6 +190,23 @@ public sealed class ReserveGuardTests : IDisposable
         Assert.Equal(MissionState.Working, rig.Missions.Now(record).Mission.State);
         Assert.Single(rig.Missions.Agents.Chats);
         Assert.Null(rig.Guard.HoldOf(record.Id));
+    }
+
+    [Fact]
+    public void Nothing_a_mission_s_title_or_a_mover_s_error_says_reaches_the_activity_log()
+    {
+        const string Sentinel = "sk-SENTINEL-0123456789abcdef";
+        var mover = new FakeMover { Offering = new ReserveMoveOffer(CodexA, 3.2), Refusal = "token " + Sentinel + " was refused" };
+        using var rig = Rig(mover);
+        rig.Always(30);
+        rig.Read(30, account: CodexA);
+        rig.Read(68);
+        var record = rig.Missions.Started(rig.Missions.Request("Use " + Sentinel + " to log in"));
+        Assert.Null(rig.Pick(rig.Card(record)!, ReserveOptionKind.Move));
+        Assert.Null(rig.Pick(rig.Missions.Queue.Of(record.Id).Single(c => c.Kind == DecisionKind.Reserve), ReserveOptionKind.Wait));
+        Assert.NotEmpty(rig.Audit);
+        Assert.All(rig.Audit, e => Assert.DoesNotContain(Sentinel, string.Join(" ", e.Tool, e.Target, e.Result, e.Mission, e.Assistant, string.Join(" ", e.Inputs.Select(i => i.ToString()))), StringComparison.Ordinal));
+        Assert.All(rig.Audit, e => Assert.Equal(record.Id.ToString("D"), e.Mission));   // each line names its mission, by id
     }
 
     [Fact]

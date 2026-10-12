@@ -23,7 +23,7 @@ public sealed class ReservePersistenceTests : IDisposable
     [Fact]
     [Trait("Feature", "AS-13")]
     [Trait("Decision", "ED-NEW-dextra-as13-7")]
-    public void The_rules_load_at_the_start_and_are_written_the_moment_they_change()
+    public void The_rules_load_at_the_start_and_are_written_as_soon_as_they_change_off_the_thread_that_changed_them()
     {
         var clock = new ManualTimeProvider(T0);
         using (var store = AssistantStore.Open(temp.Roots))
@@ -37,8 +37,10 @@ public sealed class ReservePersistenceTests : IDisposable
             Assert.Empty(settings.Rules);
             Assert.Null(reopened.Reserves());                       // nothing was written for nothing
             Assert.Null(settings.Add(Always("Claude 20x", 30)));
-            Assert.Single(reopened.Reserves()!["rules"]!.AsArray());           // at once, with no wait
+            persistence.Flush();                                    // the write was handed to the pool; Flush waits for it
+            Assert.Single(reopened.Reserves()!["rules"]!.AsArray());
             settings.SetHoldReserves(true);
+            persistence.Flush();
             Assert.True(reopened.Reserves()!["holdReserves"]!.GetValue<bool>());
         }
         var again = new ReserveSettings();
@@ -144,6 +146,7 @@ public sealed class ReservePersistenceTests : IDisposable
         store.Dispose();                                            // the store is gone: every write fails
 
         Assert.Null(settings.Add(Always("Claude 20x", 30)));        // the owner's rule is kept in memory all the same
+        persistence.Flush();
         Assert.Single(faults);
         Assert.StartsWith("The reserve rules could not be saved: ", faults[0], StringComparison.Ordinal);
         turns.Record("opus", 100_000, T0);

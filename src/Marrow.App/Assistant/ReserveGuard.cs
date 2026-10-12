@@ -52,7 +52,11 @@ public sealed partial class ReserveGuard : IReserveGate, IDisposable
     private readonly Dictionary<Guid, MissionReserve> missions = [];
     private readonly Dictionary<Guid, Flight> flights = [];
     private readonly Dictionary<Guid, ReserveAfterReport> reports = [];
+    private readonly Queue<Guid> reportOrder = new();
     private bool disposed;
+
+    /// <summary>The after-reports kept for the board (the oldest go first); a report is small, but a list nothing trims would grow for ever.</summary>
+    public const int ReportsKept = 200;
 
     public ReserveGuard(ReserveGuardOptions options)
     {
@@ -357,6 +361,8 @@ public sealed partial class ReserveGuard : IReserveGate, IDisposable
             }
             report = BuildReport(m, clock.GetUtcNow());
             reports[mission] = report;
+            reportOrder.Enqueue(mission);
+            while (reportOrder.Count > ReportsKept) reports.Remove(reportOrder.Dequeue());
             foreach (var thread in flights.Where(f => f.Value.Mission == mission).Select(f => f.Key).ToList())
             {
                 if (flights.Remove(thread, out var flight) && accounts.TryGetValue(flight.AccountKey, out var state)) state.TurnEnded(thread);

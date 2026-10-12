@@ -1,9 +1,9 @@
 // PORT-ONLY: Dextra (DESIGN.md rev 5, 11.2, 11.7, 15.3; unit AS-13; ED-NEW-dextra-as13-7). No Swift twin.
-// Keeps the reserve's three living objects in the assistant's store: the owner's rules and switches (written at once, they are
-// his words), and the calibration and the turn costs (written at most every 30 seconds, they change with every reading and a
-// disk write per token event would be a cost nothing needs). A file this build cannot write (a newer version's) is left alone; a
-// write that fails is reported, never thrown into the app.
-
+// Keeps the reserve's three living objects in the assistant's store: the owner's rules and switches (written as soon as he changes
+// them, off the thread that changed them: the store's atomic write is disk I/O and the change comes from his click), and the
+// calibration and the turn costs (written at most every 30 seconds, since they change with every reading and a disk write per
+// token event would be a cost nothing needs). A file this build cannot write (a newer version's) is left alone; a write that
+// fails is reported, never thrown into the app. Flush and Dispose write whatever is pending before they return.
 namespace Marrow.Services.Assistant;
 
 public sealed class ReservePersistence : IDisposable
@@ -17,8 +17,10 @@ public sealed class ReservePersistence : IDisposable
     private readonly TurnCostHistory turns;
     private readonly TimeProvider clock;
     private readonly object gate = new();
+    private readonly object writing = new();     // one write at a time, so an older document never lands after a newer one
     private ITimer? timer;
     private bool dirty;
+    private bool settingsDirty;
     private bool disposed;
 
     /// <summary>Loads what the store holds into the three objects, then follows their changes.</summary>
@@ -33,7 +35,7 @@ public sealed class ReservePersistence : IDisposable
         var calibration = store.Calibration();
         calibrator.Load(calibration);
         turns.Load(calibration?["turns"]);
-        settings.Changed += SaveSettings;
+        settings.Changed += SettingsChanged;
         calibrator.Changed += Touch;
         turns.Changed += Touch;
     }
@@ -41,13 +43,32 @@ public sealed class ReservePersistence : IDisposable
     /// <summary>A write failed: the line for the board. The app goes on; the next change tries again.</summary>
     public event Action<string>? Faulted;
 
-    private void SaveSettings()
+    // The change came from the owner's click: the write is handed to the pool, and it writes the rules as they are by then.
+    private void SettingsChanged()
     {
-        if (settings.ToJson() is not { } document) return; // a newer version's file: left as it is
-        try { store.SaveReserves(document); }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ObjectDisposedException)
+        lock (gate)
         {
-            Faulted?.Invoke("The reserve rules could not be saved: " + error.Message);
+            if (disposed) return;
+            settingsDirty = true;
+        }
+        _ = Task.Run(WriteSettings);
+    }
+
+    private void WriteSettings()
+    {
+        lock (writing)
+        {
+            lock (gate)
+            {
+                if (!settingsDirty) return;
+                settingsDirty = false;
+            }
+            if (settings.ToJson() is not { } document) return; // a newer version's file: left as it is
+            try { store.SaveReserves(document); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or ObjectDisposedException)
+            {
+                Faulted?.Invoke("The reserve rules could not be saved: " + error.Message);
+            }
         }
     }
 
@@ -61,22 +82,26 @@ public sealed class ReservePersistence : IDisposable
         }
     }
 
-    /// <summary>Writes the calibration and the turn costs now, if they changed.</summary>
+    /// <summary>Writes the rules and the calibration and the turn costs now, if they changed, and returns when they are written.</summary>
     public void Flush()
     {
-        lock (gate)
+        WriteSettings();
+        lock (writing)
         {
-            timer?.Dispose();
-            timer = null;
-            if (!dirty) return;
-            dirty = false;
-        }
-        if (calibrator.ToJson(turns.ToJson()) is not { } document) return; // a newer version's file: left as it is
-        try { store.SaveCalibration(document); }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ObjectDisposedException)
-        {
-            lock (gate) dirty = true;
-            Faulted?.Invoke("What nth learned about your usage could not be saved: " + error.Message);
+            lock (gate)
+            {
+                timer?.Dispose();
+                timer = null;
+                if (!dirty) return;
+                dirty = false;
+            }
+            if (calibrator.ToJson(turns.ToJson()) is not { } document) return; // a newer version's file: left as it is
+            try { store.SaveCalibration(document); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or ObjectDisposedException)
+            {
+                lock (gate) dirty = true;
+                Faulted?.Invoke("What nth learned about your usage could not be saved: " + error.Message);
+            }
         }
     }
 
@@ -85,26 +110,17 @@ public sealed class ReservePersistence : IDisposable
         lock (gate)
         {
             if (disposed) return;
-            disposed = true;
         }
-        settings.Changed -= SaveSettings;
-        calibrator.Changed -= Touch;
-        turns.Changed -= Touch;
+        // The last changes are written before nth lets go of the store; after that nothing is listened to.
+        Flush();
         lock (gate)
         {
+            disposed = true;
             timer?.Dispose();
             timer = null;
         }
-        // The last changes are written before nth lets go of the store.
-        bool pending;
-        lock (gate) pending = dirty;
-        if (pending && calibrator.ToJson(turns.ToJson()) is { } document)
-        {
-            try { store.SaveCalibration(document); }
-            catch (Exception error) when (error is IOException or UnauthorizedAccessException or ObjectDisposedException)
-            {
-                Faulted?.Invoke("What nth learned about your usage could not be saved: " + error.Message);
-            }
-        }
+        settings.Changed -= SettingsChanged;
+        calibrator.Changed -= Touch;
+        turns.Changed -= Touch;
     }
 }

@@ -186,7 +186,8 @@ public sealed partial class ReserveGuard
             case ReserveOptionKind.Move:
             {
                 var refusal = record is null || hold.Offer is null || o.Mover is null ? "that move is not available now" : o.Mover.Move(record, hold.Offer);
-                Log(m.AssistantId, missionId, "reserve_answer", refusal is null ? chosen.Text : $"{chosen.Text}: did not work, {refusal}");
+                // The log says that it did not work; why is the mover's own text, for the card the owner reads, not for a log line.
+                Log(m.AssistantId, missionId, "reserve_answer", refusal is null ? chosen.Text : $"{chosen.Text}: did not work");
                 if (refusal is null)
                 {
                     Release(m, hold);
