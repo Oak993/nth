@@ -76,6 +76,17 @@ public sealed class SetupStringsTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0072")]
+    public void Problem_in_uninstall_mode_says_removing_words_unit_U6()
+    {
+        // ED-NEW-inst-u6-1: the canvas has no uninstall failure, so Problem carries it, worded for removing
+        Assert.Equal("nth couldn’t be removed", SetupStrings.UninstallProblemTitle);
+        Assert.Equal("Something went wrong while removing nth.", SetupStrings.UninstallProblemOther);
+        Assert.Equal("Some of nth’s files may be left. Retry removes them.", SetupStrings.UninstallProblemLeft);
+        Assert.Equal("Nothing was changed on your PC.", SetupStrings.ProblemSafe);
+    }
+
+    [Fact]
     [Trait("Decision", "ED-247")]
     public void A_count_picks_its_form_and_numbers_are_invariant()
     {

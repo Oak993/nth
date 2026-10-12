@@ -107,7 +107,11 @@ public sealed class SetupWindowTests(SetupHeadlessSession headless)
 
             Assert.Equal(63, title.FontSize);
             Assert.Equal(12 * 2.25, rig.Window.Caption.TitleBlock.FontSize);
-            Assert.Equal(468, rig.Window.ClientSize.Height); // the content still fits the base height at 225 %
+            // the canvas's Welcome needs more than the base height at 225 %: the window grows to fit it exactly and nothing scrolls
+            var scroller = rig.Window.GetVisualDescendants().OfType<ScrollViewer>().Single();
+            Assert.True(rig.Window.ClientSize.Height > 468);
+            Assert.Equal(CaptionBar.BandHeight + scroller.Extent.Height, rig.Window.ClientSize.Height, 1);
+            Assert.Equal(scroller.Extent.Height, scroller.Viewport.Height, 1);
             rig.Window.CloseNow();
         });
     }

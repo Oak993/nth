@@ -225,7 +225,7 @@ public sealed class FakeWallpaperSource : IWallpaperSource
                 var from = ((y * image.Height / height * image.Width) + (x * image.Width / width)) * 4;
                 Array.Copy(image.Bgra, from, pixels, ((y * width) + x) * 4, 4);
             }
-        return new WallpaperImage(width, height, pixels);
+        return new WallpaperImage(width, height, pixels) { SourceWidth = image.SourceWidth, SourceHeight = image.SourceHeight };
     }
 
     private sealed record FakeFile(long Length, bool IsNetwork, WallpaperImage? Image)

@@ -199,6 +199,9 @@ public static class SetupStrings
     public static string ProblemChanged => S("problem.changed");
     public static string ProblemSafe => S("problem.safe");
     public static string ProblemLeft => S("problem.left");
+    public static string UninstallProblemTitle => S("problem.uninstall.title");
+    public static string UninstallProblemOther => S("problem.uninstall.other");
+    public static string UninstallProblemLeft => S("problem.uninstall.left");
     public static string ProblemCopy => S("problem.copy");
     public static string ProblemCopied => S("problem.copied");
     public static string ProblemRetry => S("problem.retry");

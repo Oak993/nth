@@ -91,6 +91,34 @@ public sealed class HoldLine : Decorator, IMotion
         wanted = true;
         if (!IsVisible)
         {
+            if (AtCommit is { } atCommit)
+            {
+                // the screen's reveal places it with the changes waiting (the lines and buttons leaving go first)
+                if (placing) return;
+                placing = true;
+                atCommit(() =>
+                {
+                    placing = false;
+                    if (wanted && !IsVisible) Show(text.Text ?? words, arriving: true);
+                });
+                return;
+            }
+            Show(words, arriving: true);
+            return;
+        }
+        Show(words, arriving: false);
+    }
+
+    /// <summary>The screen's way to place the line: its reveal runs the arrival at its next commit. Without it the line comes at once.</summary>
+    public Action<Action>? AtCommit { get; set; }
+
+    private bool placing;
+
+    private void Show(string words, bool arriving)
+    {
+        text.Text = words;
+        if (arriving)
+        {
             IsVisible = true; // the commit: its place appears under the flexible space, nothing above moves
             opacity.Snap(0);
             offset.Snap(calm() ? 0 : SettleFrom);
@@ -140,6 +168,7 @@ public sealed class HoldLine : Decorator, IMotion
     public void Now(string? words)
     {
         wanted = words is not null;
+        placing = false;
         if (words is not null) text.Text = words;
         IsVisible = wanted;
         opacity.Snap(wanted ? 1 : 0);

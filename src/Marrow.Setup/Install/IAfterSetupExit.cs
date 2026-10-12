@@ -11,14 +11,3 @@ public interface IAfterSetupExit
 {
     void Run(string root, string resultPath);
 }
-
-/// <summary>
-/// STUB(U5): until unit U5's step is wired in at integration, nothing is done after exit 0 (nth's start-time self-heal,
-/// also U5's, re-points the entry at nth's next start). The progress engine's order is the real one either way.
-/// </summary>
-public sealed class NoAfterSetupExit : IAfterSetupExit
-{
-    public void Run(string root, string resultPath)
-    {
-    }
-}

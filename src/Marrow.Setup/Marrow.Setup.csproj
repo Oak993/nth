@@ -51,21 +51,22 @@
     <!-- nth installer PLAN.md 8a, unit U0: the install-options/result files and the shell-link contract, linked like the gate (no Marrow project reference). -->
     <Compile Include="..\Marrow.Core\Support\InstallOptions.cs" Link="InstallOptions.cs" />
     <Compile Include="..\Marrow.Core\Support\IShellLinks.cs" Link="IShellLinks.cs" />
-    <!-- nth installer PLAN.md 3a, unit U4 (ED-NEW-inst-u4-1, -3): the control pipe's wire format and the install hold, linked the same way. -->
-    <Compile Include="..\Marrow.Core\Support\NthControl.cs" Link="NthControl.cs" />
-    <Compile Include="..\Marrow.Core\Support\InstallHold.cs" Link="InstallHold.cs" />
-    <!-- PLAN.md 3 step 4 and 5, unit U9: the folders the setup writes outside the install root and the sweeps that remove what it leaves. -->
-    <Compile Include="..\Marrow.Core\Support\SetupFolders.cs" Link="SetupFolders.cs" />
-    <Compile Include="..\Marrow.Core\Support\SetupSweeper.cs" Link="SetupSweeper.cs" />
     <!-- Unit U5: the shortcut logic, the install layout and the uninstall entry, plus the real shell and registry (app Port). -->
     <Compile Include="..\Marrow.Core\Support\DesktopShortcut.cs" Link="DesktopShortcut.cs" />
     <Compile Include="..\Marrow.Core\Support\InstallLayout.cs" Link="InstallLayout.cs" />
     <Compile Include="..\Marrow.Core\Support\UninstallEntry.cs" Link="UninstallEntry.cs" />
     <Compile Include="..\Marrow.App\Port\ShellLinks.cs" Link="Port\ShellLinks.cs" />
     <Compile Include="..\Marrow.App\Port\RegistryUserHive.cs" Link="Port\RegistryUserHive.cs" />
+    <!-- PLAN.md 3 step 4 and 5, unit U9: the folders the setup writes outside the install root and the sweeps that remove what it leaves. -->
+    <Compile Include="..\Marrow.Core\Support\SetupFolders.cs" Link="SetupFolders.cs" />
+    <Compile Include="..\Marrow.Core\Support\SetupSweeper.cs" Link="SetupSweeper.cs" />
+    <!-- nth installer PLAN.md 3a, unit U4 (ED-NEW-inst-u4-1, -3): the control pipe's wire format and the install hold, linked the same way. -->
+    <Compile Include="..\Marrow.Core\Support\NthControl.cs" Link="NthControl.cs" />
+    <Compile Include="..\Marrow.Core\Support\InstallHold.cs" Link="InstallHold.cs" />
     <AssemblyMetadata Include="InstallerTitle" Value="$(InstallerTitle)" />
     <AssemblyMetadata Include="InstallerAppId" Value="$(InstallerAppId)" />
     <AssemblyMetadata Include="InstallerVersion" Value="$(InstallerVersion)" />
+    <AssemblyMetadata Include="InstallerSizeMegabytes" Value="$(InstallerSizeMegabytes)" />
     <AssemblyMetadata Include="SetupRenderingMode" Value="$(SetupRenderingMode)" />
     <!-- PLAN.md 4, unit U3: the measured sizes (bytes) the packaging step passes in; unset, the setup uses the plan's figures. -->
     <AssemblyMetadata Include="InstallerPackageBytes" Value="$(InstallerPackageBytes)" />
@@ -77,6 +78,8 @@
     <EmbeddedResource Include="Text\en.strings" LogicalName="SetupStrings.en" />
     <!-- The caption's 16 px mark and the taskbar icon: the app's own icon (every frame is a PNG). -->
     <EmbeddedResource Include="..\Marrow.App\Assets\icon.ico" Link="Assets\icon.ico" LogicalName="SetupIcon.ico" />
+    <!-- unit U2: View license on Welcome opens the licence nth ships under -->
+    <EmbeddedResource Include="..\Marrow.App\Legal\LICENSE" Link="Legal\LICENSE" LogicalName="SetupLicense.txt" />
   </ItemGroup>
 
 </Project>
