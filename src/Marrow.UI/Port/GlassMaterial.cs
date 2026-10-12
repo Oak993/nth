@@ -1490,8 +1490,7 @@ internal static partial class GlassMaterial
                 foreach (var (material, spread) in pass)
                 {
                     if (grown.Contains(material)) continue;
-                    var reach = spread.Of(changed);
-                    var add = SKRectI.Intersect(reach, spread.Output);
+                    var add = spread.Adds(changed);
                     if (add.IsEmpty || changed.Contains(add)) continue;
                     grown.Add(material);
                     addRect(tracker, add);
@@ -1624,12 +1623,23 @@ internal static partial class GlassMaterial
     // How far a change under a material reaches into what it draws, in the surface's pixels: through the blur (3 sigma) everywhere, and through the
     // refraction as well (SampledMargin in all) within the refracting band at the shape's edge. Inner is the part of the output no band can reach into
     // (empty for a container's union or a turned shape): a change whose blur and refraction reach stays inside it spreads by the blur alone.
-    internal readonly record struct Spread(SKRectI Output, int Margin, SKRectI Inner, int Blur, int Bend)
+    // ED-NEW-glass-c10-6: Whole, a piece that reads its own backdrop (the voice pill) is redrawn whole: Skia antialiases a path that the frame's clip cuts
+    // differently from the same path drawn whole (1 to 3 levels on edge pixels far from the cut, more beside it), and the pill's rim draws its shade, fringe,
+    // rings and highlights as such paths over its glass; a reach rect that ended in its right cap changed its left cap by 3 levels. Its box is small, so
+    // drawing all of it costs little; every other piece adds only its reach (ED-320 15 and 16).
+    internal readonly record struct Spread(SKRectI Output, int Margin, SKRectI Inner, int Blur, int Bend, bool Whole = false)
     {
         public SKRectI Of(SKRectI changed)
         {
             var wide = Grow(changed, Blur + Bend);
             return Grow(changed, !Inner.IsEmpty && Inner.Contains(wide) ? Blur : Math.Max(Margin, Blur + Bend));
+        }
+
+        /// <summary>What a change adds to the frame's region: its reach inside the output, or the whole output when the piece is drawn whole and the reach meets it.</summary>
+        public SKRectI Adds(SKRectI changed)
+        {
+            var reach = SKRectI.Intersect(Of(changed), Output);
+            return Whole && !reach.IsEmpty ? Output : reach;
         }
         // Clamped to int: a huge or infinite rect (an unbounded dirty rect) must not overflow the checked arithmetic (Directory.Build.props).
         private static SKRectI Grow(SKRectI r, int by) => new(Clamp((long)r.Left - by), Clamp((long)r.Top - by), Clamp((long)r.Right + by), Clamp((long)r.Bottom + by));
@@ -1873,6 +1883,6 @@ internal static partial class GlassMaterial
             inner = new SKRectI(output.Left + inset, output.Top + inset, output.Right - inset, output.Bottom - inset);
             if (inner.Width <= 0 || inner.Height <= 0) inner = SKRectI.Empty;
         }
-        return new Spread(output, margin, inner, blur, bend);
+        return new Spread(output, margin, inner, blur, bend, state.Regions.Any(r => r.OwnBackdrop));
     }
 }
