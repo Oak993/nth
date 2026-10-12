@@ -71,6 +71,9 @@ public static class TextCleanup
 {
     public static string StripANSI(string text)
     {
+        // ED-NEW-lean-3: every match starts with an ESC grapheme, and NFC never makes an ESC out of anything else, so text without
+        // U+001B has nothing to strip and is returned as is, without the per-grapheme walk below (most CLI output has no escape).
+        if (text.AsSpan().IndexOf('\u001B') < 0) return text;
         // The exact Swift pattern is \x1B\[[0-9;?]*[ -/]*[@-~]. Swift Regex compares entire NFC
         // graphemes; a naive .NET Regex would consume a partial one. Walked over SwiftString.Characters
         // (R-STR-1) rather than a second hand-rolled grapheme reader.
@@ -143,6 +146,9 @@ public static class TextCleanup
 
     public static string WithoutEmDashes(string text)
     {
+        // ED-NEW-lean-3: the byte prescan below is true exactly when one of the four long dashes is in the text, so a text without
+        // any of them is returned as is before the UTF-8 copy of the whole text (almost every streamed delta).
+        if (text.AsSpan().IndexOfAny(LongDashes) < 0) return text;
         if (!MayContainEmDash(Encoding.UTF8.GetBytes(text))) return text;
         // Grapheme walk via SwiftString.Characters (R-STR-1), not a second GetTextElementEnumerator use.
         var found = false;
@@ -175,6 +181,9 @@ public static class TextCleanup
         }
         return false;
     }
+
+    // U+2014, U+2015, U+2E3A, U+2E3B: the characters IsEmDash matches, as UTF-16 code units.
+    private const string LongDashes = "—―⸺⸻";
 
     private static bool IsEmDash(string character) => character is "—" or "―" or "⸺" or "⸻";
 }
