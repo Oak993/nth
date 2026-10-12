@@ -1,10 +1,10 @@
 using Marrow.Services.Port.ModelsPalette;
 using Marrow.Services.Tests.Fixtures;
 namespace Marrow.Services.Tests.Port.ModelsPalette;
-// PORT-ONLY: lean pass guard (ED-NEW-lean-18b). The palette engine's BelowNormal thread also runs under EcoQoS, and
+// PORT-ONLY: lean pass guard (ED-NEW-lean-23). The palette engine's BelowNormal thread also runs under EcoQoS, and
 // EcoQoS(false) hands a borrowed thread (SkillGenerations' pool thread) back to Windows. Reads the thread's own
 // THREAD_POWER_THROTTLING_STATE; no window, no native UI.
-[Trait("Decision","ED-NEW-lean-18b")]
+[Trait("Decision","ED-NEW-lean-23")]
 public sealed class PaletteEcoQoSTests
 {
     [Fact]

@@ -98,9 +98,9 @@ public sealed partial class PaletteEngine : Actor,IDisposable
         network.AvailabilityChanged+=NetworkAvailable;
         QueueCheck();
     }
-    // ED-NEW-lean-18b: a network-available event ends the offline backoff, so the next check retries at 120 s again.
+    // ED-NEW-lean-23: a network-available event ends the offline backoff, so the next check retries at 120 s again.
     private void NetworkAvailable(bool available){if(available){Volatile.Write(ref offlineFailures,0);QueueCheck();}}
-    // ED-NEW-lean-18b: offline retries back off from 120 s, doubling to 30 min; any catalogue success resets it.
+    // ED-NEW-lean-23: offline retries back off from 120 s, doubling to 30 min; any catalogue success resets it.
     internal static int OfflineRetrySeconds(int failures)=>Math.Min(1800,120<<Math.Clamp(failures-1,0,4));
     private void QueueCheck()
     {
@@ -141,7 +141,7 @@ public sealed partial class PaletteEngine : Actor,IDisposable
         }
         if(!catalogueOk)
         {
-            // ED-NEW-lean-18b: only automatic retries count; a manual refresh keeps the pace it found.
+            // ED-NEW-lean-23: only automatic retries count; a manual refresh keeps the pace it found.
             var failures=started&&!manual?Interlocked.Increment(ref offlineFailures):Volatile.Read(ref offlineFailures);
             if(started){pollTimer?.Dispose();pollTimer=time.CreateTimer(_=>QueueCheck(),null,TimeSpan.FromSeconds(OfflineRetrySeconds(failures)),Timeout.InfiniteTimeSpan);}
             Progress?.Invoke(new(PaletteRefreshPhase.Done,1,1));

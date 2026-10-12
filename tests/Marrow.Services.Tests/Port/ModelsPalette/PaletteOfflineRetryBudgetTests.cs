@@ -1,10 +1,10 @@
 using Marrow.Services.Port.ModelsPalette;
 using Marrow.Services.Tests.Fixtures;
 namespace Marrow.Services.Tests.Port.ModelsPalette;
-// PORT-ONLY: lean pass budget (ED-NEW-lean-18b). Headless and deterministic: the ManualTimeProvider is the only clock,
+// PORT-ONLY: lean pass budget (ED-NEW-lean-23). Headless and deterministic: the ManualTimeProvider is the only clock,
 // every catalogue reply is an in-process 503, so the engine stays offline for the whole simulated hour. Debug or Release
 // make no difference to a request count.
-[Trait("Decision","ED-NEW-lean-18b")]
+[Trait("Decision","ED-NEW-lean-23")]
 public sealed class PaletteOfflineRetryBudgetTests
 {
     private static int Catalogue(PalettePipelineFixture fake)=>fake.Http.Received.Count(r=>r.Url.AbsolutePath.EndsWith("/models",StringComparison.Ordinal));

@@ -2,11 +2,11 @@ using Marrow.Services.Port.Advisor;
 
 namespace Marrow.Services.Tests.Port.Advisor;
 
-// PORT-ONLY: lean pass budget (ED-NEW-lean-18b): how often the advisor pipe listens again in one simulated minute of a
+// PORT-ONLY: lean pass budget (ED-NEW-lean-23): how often the advisor pipe listens again in one simulated minute of a
 // persistent pipe error. Runs the bridge's real serve loop (AdvisorMcpBridge.Serve) through its seam: a scripted listen
 // that fails or connects, and a simulated wait that adds up time instead of sleeping. No pipe, no clock; Debug or
 // Release do not matter.
-[Trait("Decision", "ED-NEW-lean-18b")]
+[Trait("Decision", "ED-NEW-lean-23")]
 public sealed class AdvisorPipeRetryBudgetTests
 {
     /// <summary>Drives the serve loop over a script (true: a relay connects, false: the pipe fails) and records each wait.</summary>

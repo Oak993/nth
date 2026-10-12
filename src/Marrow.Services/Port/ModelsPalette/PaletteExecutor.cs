@@ -16,7 +16,7 @@ internal sealed class PaletteExecutor : IExecutor,IDisposable
     }
     public void Enqueue(Action work){if(!jobs.IsAddingCompleted)try{jobs.Add(work);}catch(InvalidOperationException){}}
     public void Dispose(){jobs.CompleteAdding();if(Thread.CurrentThread!=thread)thread.Join(TimeSpan.FromSeconds(2));}
-    // ED-NEW-lean-18b: Windows EcoQoS for a thread that already runs BelowNormal, so the scheduler may keep it on efficient
+    // ED-NEW-lean-23: Windows EcoQoS for a thread that already runs BelowNormal, so the scheduler may keep it on efficient
     // cores at an efficient clock. on=false hands the choice back to Windows (a borrowed pool thread is put back that way).
     internal static bool EcoQoS(bool on)
     {

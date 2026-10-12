@@ -3,7 +3,7 @@
 // process-wide named pipe this process serves. Each advised session registers once at launch and gets its own token; the
 // relay sends the token as its first line, so the pipe knows the chat and the advisor. A session whose chat has no advisor
 // registers nothing and gets no entry, so the tool is listed only in advised chats.
-// ED-NEW-lean-18b: a registration lives while its session does. The session holds the relay entry Server returned
+// ED-NEW-lean-23: a registration lives while its session does. The session holds the relay entry Server returned
 // (ACPSession and CopilotSession keep theirs for every MCP session they open, ClaudeSession its launch's) and its relays
 // hold the token's pipe connections. Once the entry is no longer held and no relay is connected, the registration is
 // dropped after a short grace (30 s after the last relay closed; 5 min after registering for a token no relay ever

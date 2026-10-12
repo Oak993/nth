@@ -7,7 +7,7 @@ using Marrow.Testing;
 
 namespace Marrow.Services.Tests.Port.Advisor;
 
-// PORT-ONLY: lean pass budget (ED-NEW-lean-18b): registrations the advisor bridge still holds after 100 advised
+// PORT-ONLY: lean pass budget (ED-NEW-lean-23): registrations the advisor bridge still holds after 100 advised
 // sessions end. A session is its relay: it connects through the real pipe, sends its token and ends. No AdvisorSeams
 // are set, so AdvisorHostedRouteTests' seams are never raced. The grace runs on a ManualTimeProvider; the 10 s waits
 // only bound the in-process pipe. A count, so Debug or Release do not matter. The session's hold on its relay entry
@@ -15,7 +15,7 @@ namespace Marrow.Services.Tests.Port.Advisor;
 // object a NoInlining helper creates, so no Debug stack slot keeps it alive; dropping it and collecting is the session
 // ending. The guards beside the budgets: a relay reconnecting inside the grace, and a held entry reused long after its
 // first relay ended, keep their registration. One class, because all of them set the bridge's clock.
-[Trait("Decision", "ED-NEW-lean-18b")]
+[Trait("Decision", "ED-NEW-lean-23")]
 public sealed class AdvisorRegistrationBudgetTests
 {
     private static readonly AdvisorRegistration Advised = new(Guid.Parse("7b1e4c2a-90d3-4f6e-8a15-2c4d6e8f0a1b"), ProviderKind.Codex, "sonnet", new AdvisorChoice(ProviderKind.Codex, "astra-6"));

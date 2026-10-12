@@ -1,10 +1,10 @@
 using Marrow.Services.Port.ModelsPalette;
 using Marrow.Services.Tests.Fixtures;
 namespace Marrow.Services.Tests.Port.ModelsPalette;
-// PORT-ONLY: lean pass guard (ED-NEW-lean-18b). The offline retry starts at the old 120 s, doubles to 30 min, and comes
+// PORT-ONLY: lean pass guard (ED-NEW-lean-23). The offline retry starts at the old 120 s, doubles to 30 min, and comes
 // back to 120 s after a network-available event or a catalogue success. ManualTimeProvider only; time never moves here,
 // so each retry deadline is exactly its delay.
-[Trait("Decision","ED-NEW-lean-18b")]
+[Trait("Decision","ED-NEW-lean-23")]
 public sealed class PaletteOfflineBackoffTests
 {
     private static TimeSpan S(int seconds)=>TimeSpan.FromSeconds(seconds);

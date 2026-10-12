@@ -393,7 +393,7 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
                 var oldPriority = OperatingSystem.IsWindows() ? thread.Priority : ThreadPriority.Normal;
                 try
                 {
-                    // ED-NEW-lean-18b: EcoQoS too while the spare builds; the pool thread gets both back before it returns.
+                    // ED-NEW-lean-23: EcoQoS too while the spare builds; the pool thread gets both back before it returns.
                     if (OperatingSystem.IsWindows()) { thread.Priority = ThreadPriority.BelowNormal; ModelsPalette.PaletteExecutor.EcoQoS(true); }
                     built = Build(provider, "spare-" + plan.Key + "-" + Nonce(), plan);
                 }
