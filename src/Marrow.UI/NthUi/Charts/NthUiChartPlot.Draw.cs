@@ -5,6 +5,7 @@
 // enlarged dots and the readout all follow it, so hovering from one column to the next glides instead of jumping, and a mark
 // takes the accent in proportion to how near the focus is.
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Marrow.UI.Port.Nth;
@@ -63,6 +64,16 @@ public sealed partial class NthUiChartPlot
     }
 
     private static IBrush Solid(Color color) => new ImmutableSolidColorBrush(color);
+
+    /// <summary>Device pixels to a DIP: a hairline is one device pixel wide and sits on the pixel grid at any display scaling.</summary>
+    private double Pixel => 1 / (TopLevel.GetTopLevel(this)?.RenderScaling ?? 1);
+
+    /// <summary>The coordinate of a one-pixel line near <paramref name="at"/>, on the middle of a device pixel.</summary>
+    private double Hairline(double at)
+    {
+        var pixel = Pixel;
+        return (Math.Round(at / pixel) + .5) * pixel;
+    }
 
     private static IPen Line(Color color, double thickness, double[]? dash = null, PenLineCap cap = PenLineCap.Round) =>
         new ImmutablePen(new ImmutableSolidColorBrush(color), thickness, dash is null ? null : new ImmutableDashStyle(dash, 0), cap, PenLineJoin.Round);
@@ -140,13 +151,14 @@ public sealed partial class NthUiChartPlot
             var baseline = rests && Math.Abs(value) < 1e-9 || Math.Abs(y - plot.Bottom) < .5;
             using (alpha < .999 ? context.PushOpacity(alpha) : default)
             {
-                context.DrawLine(Line(baseline ? ink.Axis : ink.Grid, 1, null, PenLineCap.Flat), new Point(plot.Left, Math.Round(y) + .5), new Point(plot.Right, Math.Round(y) + .5));
+                var yLine = Hairline(y);
+                context.DrawLine(Line(baseline ? ink.Axis : ink.Grid, Pixel, null, PenLineCap.Flat), new Point(plot.Left, yLine), new Point(plot.Right, yLine));
                 var label = text.Get(YLabel(value), NthUiChartInk.AxisFont, ink.Text3);
                 label.Draw(context, new Point(plot.Left - 8 - label.WidthIncludingTrailingWhitespace, y - label.Height / 2));
             }
         }
-        var rule = Math.Round(plot.Bottom) + .5;
-        context.DrawLine(Line(ink.Axis, 1, null, PenLineCap.Flat), new Point(plot.Left, rule), new Point(plot.Right, rule));
+        var rule = Hairline(plot.Bottom);
+        context.DrawLine(Line(ink.Axis, Pixel, null, PenLineCap.Flat), new Point(plot.Left, rule), new Point(plot.Right, rule));
         if (model.Kind == NthUiChartKind.Scatter)
         {
             foreach (var (value, alpha) in xTicks.Visible(now))
@@ -155,7 +167,8 @@ public sealed partial class NthUiChartPlot
                 if (x < plot.Left - .5 || x > plot.Right + .5) continue;
                 using (alpha < .999 ? context.PushOpacity(alpha) : default)
                 {
-                    context.DrawLine(Line(ink.Grid, 1, null, PenLineCap.Flat), new Point(Math.Round(x) + .5, plot.Top), new Point(Math.Round(x) + .5, plot.Bottom));
+                    var xLine = Hairline(x);
+                    context.DrawLine(Line(ink.Grid, Pixel, null, PenLineCap.Flat), new Point(xLine, plot.Top), new Point(xLine, plot.Bottom));
                     var label = text.Get(XLabel(value), NthUiChartInk.AxisFont, ink.Text3);
                     var left = Math.Clamp(x - label.WidthIncludingTrailingWhitespace / 2, 0, Math.Max(0, Bounds.Width - label.WidthIncludingTrailingWhitespace));
                     label.Draw(context, new Point(left, plot.Bottom + 6));
@@ -296,8 +309,8 @@ public sealed partial class NthUiChartPlot
         }
         if (focus.Alpha > .01)
         {
-            var x = Math.Round(focus.X) + .5;
-            using (context.PushOpacity(focus.Alpha)) context.DrawLine(Line(ink.Axis, 1, [3, 3], PenLineCap.Flat), new Point(x, f.Plot.Top), new Point(x, f.Plot.Bottom));
+            var x = Hairline(focus.X);
+            using (context.PushOpacity(focus.Alpha)) context.DrawLine(Line(ink.Axis, Pixel, [3, 3], PenLineCap.Flat), new Point(x, f.Plot.Top), new Point(x, f.Plot.Bottom));
         }
         using (context.PushClip(sweepRect))
         {

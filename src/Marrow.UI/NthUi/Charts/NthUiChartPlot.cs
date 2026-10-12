@@ -67,6 +67,7 @@ public sealed partial class NthUiChartPlot : Control, INthUiAnimated
         ActualThemeVariantChanged += (_, _) =>
         {
             text.Clear();
+            brushes.Clear();
             InvalidateVisual();
         };
         Show(model);

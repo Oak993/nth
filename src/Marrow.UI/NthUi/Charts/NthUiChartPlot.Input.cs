@@ -230,11 +230,10 @@ public sealed partial class NthUiChartPlot
             return;
         }
         if (cursor is not { } c) return;
-        var ltr = FlowDirection == Avalonia.Media.FlowDirection.LeftToRight;
         (int Series, int Index)? next = e.Key switch
         {
-            Key.Left => Step(c, ltr ? -1 : 1),
-            Key.Right => Step(c, ltr ? 1 : -1),
+            Key.Left => Step(c, -1),
+            Key.Right => Step(c, 1),
             Key.Home => Edge(c, false),
             Key.End => Edge(c, true),
             Key.Up => Across(c, -1),

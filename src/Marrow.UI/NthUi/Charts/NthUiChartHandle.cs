@@ -40,16 +40,16 @@ public sealed class NthUiChartHandle : NthUiRange
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
-        var ltr = FlowDirection == Avalonia.Media.FlowDirection.LeftToRight;
+        // A chart is drawn left to right in every layout direction (numbers and time read that way), so the keys are absolute.
         switch (e.Key)
         {
             case Key.Left:
                 e.Handled = true;
-                Stepped?.Invoke(Index, ltr ? -1 : 1);
+                Stepped?.Invoke(Index, -1);
                 return;
             case Key.Right:
                 e.Handled = true;
-                Stepped?.Invoke(Index, ltr ? 1 : -1);
+                Stepped?.Invoke(Index, 1);
                 return;
             case Key.Home:
                 e.Handled = true;
