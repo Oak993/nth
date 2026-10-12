@@ -29,15 +29,18 @@ public sealed class SidebarLeanBudgetTests(HeadlessSession headless)
 
     // Debug build. Measured on the base (claude/release-integration 0a946c558): 668,267 bytes per keystroke (668,268 on a rerun), with the
     // search field found once (a first cut found it again on every keystroke, a walk of the whole tree that cost 1.64 MB of the 2.31 MB it
-    // read). Limit about 1.5x.
-    private const long SearchKeystrokeLimit = 1_000_000;
+    // read). After the fix (an equal pass is not applied again, the placement fingerprints are checked in place): 110,538 bytes (110,551
+    // on a rerun). Limit about 1.3x of that.
+    private const long SearchKeystrokeLimit = 145_000;
     // Measured on the base: 20 list passes for 20 changes the list does not show (10 spaces, 10 keystrokes that keep the results). Limit
-    // about 1.5x; the fix's target is 0.
-    private const int NoOpPassLimit = 30;
-    // Measured on the base: 502 subscribers with 500 thread rows (one per row, and two others). Limit about 1.5x.
-    private const int LayoutSubscriberLimit = 750;
-    // Debug build. Measured on the base: 393,324 bytes per pointer move of a dragged row (393,330 on a rerun). Limit about 1.5x.
-    private const long DragMoveLimit = 590_000;
+    // about 1.5x; the fix's target is 0. After the fix: 0 (an equal pass is not applied again).
+    private const int NoOpPassLimit = 0;
+    // Measured on the base: 502 subscribers with 500 thread rows (one per row, and two others). After the fix: 3 (the window's one for
+    // every row, and the same two others). Limit about 1.3x of that.
+    private const int LayoutSubscriberLimit = 4;
+    // Debug build. Measured on the base: 393,324 bytes per pointer move of a dragged row (393,330 on a rerun). After the fix (per-id
+    // drag cells: only the grabbed row and its riders re-evaluate): 13,877 bytes on two runs. Limit about 1.3x of that.
+    private const long DragMoveLimit = 18_000;
 
     internal sealed class Rig(AppModelHarness harness, ManualFrameSource frames, AvaloniaWindow window, SidebarView view, AppModel model)
     {
