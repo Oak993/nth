@@ -54,6 +54,35 @@ public sealed class AssistantControllerOptions
 
     /// <summary>The environment the classifier places paths with; null reads nth's own (MissionClassifier.CurrentEnvironment).</summary>
     public ValueMap<string, string>? Environment { get; init; }
+
+    /// <summary>The usage reserve (AS-13): what it reads and keeps. Null: no reserve; nothing is held back for usage.</summary>
+    public ReserveSetup? Reserve { get; init; }
+}
+
+/// <summary>What the usage reserve is made of (11.2 to 11.5): the owner's rules, the calibration, and how a chat finds its account.</summary>
+public sealed class ReserveSetup
+{
+    public required ReserveSettings Settings { get; init; }
+
+    public required UsageCalibrator Calibrator { get; init; }
+
+    public required TurnCostHistory Turns { get; init; }
+
+    public required Func<Guid, ReserveAccountRef?> AccountOf { get; init; }
+
+    public required Func<MissionRecord, ReserveAccountRef?> AccountForNew { get; init; }
+
+    public required Func<Marrow.Core.Port.UsageAccountKey, ReserveAccountRef> AccountOfSnapshot { get; init; }
+
+    /// <summary>The router's seam (AS-14) for option 1 of the pause card.</summary>
+    public IReserveMover? Mover { get; init; }
+
+    public Func<MissionRecord, bool>? IsPinned { get; init; }
+
+    public Func<ReserveAccountRef, Task>? Refresh { get; init; }
+
+    /// <summary>Whatever else lives and dies with the reserve (its store writer): the controller disposes it with the guard.</summary>
+    public IDisposable? Owned { get; init; }
 }
 
 public sealed class AssistantController : IAssistantToolHost, IDisposable
@@ -82,7 +111,30 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
             Granted = Granted,
             Time = o.Time,
         });
+        if (o.Reserve is { } reserve)
+        {
+            Reserve = new ReserveGuard(new ReserveGuardOptions
+            {
+                Runner = Runner,
+                Queue = Queue,
+                Settings = reserve.Settings,
+                Calibrator = reserve.Calibrator,
+                Turns = reserve.Turns,
+                AccountOf = reserve.AccountOf,
+                AccountForNew = reserve.AccountForNew,
+                AccountOfSnapshot = reserve.AccountOfSnapshot,
+                Mover = reserve.Mover,
+                IsPinned = reserve.IsPinned ?? (_ => false),
+                Refresh = reserve.Refresh,
+                Audit = TryAudit,
+                Time = o.Time,
+            });
+            Runner.Reserve = Reserve;
+        }
     }
+
+    /// <summary>The usage reserve (AS-13), when one is set up: it follows the accounts and gates every turn of a mission.</summary>
+    public ReserveGuard? Reserve { get; }
 
     public DecisionQueue Queue { get; }
 
@@ -506,6 +558,8 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
 
     public void Dispose()
     {
+        Reserve?.Dispose();
+        o.Reserve?.Owned?.Dispose();
         foreach (var thread in o.Jobs.Threads) o.Jobs.End(thread);
     }
 }

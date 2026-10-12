@@ -44,6 +44,9 @@ public sealed partial class AppModel
     /// <summary>Dextra's controller, while Dextra runs (AS-8 starts it from the home; null before).</summary>
     public AssistantController? Dextra { get; private set; }
 
+    /// <summary>The usage reserve (AS-13) of the running controller, if it has one: the taps feed it, the board and the plan card read it.</summary>
+    internal ReserveGuard? Reserve => Dextra?.Reserve;
+
     /// <summary>The Job Object of every mission agent (12.6), by chat. A test may swap the factory before any launch.</summary>
     public AgentJobs MissionJobs { get; internal set; } = new(WindowsAgentJobFactory.Instance);
 
@@ -61,8 +64,23 @@ public sealed partial class AppModel
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(audit);
         ArgumentNullException.ThrowIfNull(profiles);
+        // The usage reserve (AS-13): the owner's rules and what nth learned of his usage come from the store and go back to it.
+        var reserveSettings = new ReserveSettings();
+        var calibrator = new UsageCalibrator();
+        var turnCosts = new TurnCostHistory();
+        var reservePersistence = new ReservePersistence(store, reserveSettings, calibrator, turnCosts);
         var controller = new AssistantController(new AssistantControllerOptions
         {
+            Reserve = new ReserveSetup
+            {
+                Settings = reserveSettings,
+                Calibrator = calibrator,
+                Turns = turnCosts,
+                AccountOf = thread => ExistingRuntime(thread)?.UsageAccount is { } account ? AssistantTaps.AccountRef(account) : null,
+                AccountForNew = record => AssistantTaps.AccountRef(Marrow.Core.Port.UsageAccountKey.Default(record.Provider)),
+                AccountOfSnapshot = account => AssistantTaps.AccountRef(account),
+                Owned = reservePersistence,
+            },
             Agents = new AppMissionAgents(this),
             Thread = Thread,
             Projects = () => [.. Projects.Select(p => new MissionProject(p.Id, p.Name, p.Path))],
