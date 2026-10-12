@@ -6289,3 +6289,7 @@ ENGINEERING DECISION (C6c D5, 2026-10-12): Independently dispose each of the six
 ## ED-NEW-dextra-c6c-6
 
 ENGINEERING DECISION (C6c D6, 2026-10-12): Pin the liveness filter within the exact sub-minute boundary identified by both D6 votes: another shared window reset 30 seconds earlier, while the stored episode reset is still in the future. A stale reading cannot retain the episode after the owning window resets, and NoteLimit expiry pruning cannot hide this result. Removing only the others liveness filter fails this test twice alone; restore byte-exact. Production code is unchanged.
+
+## ED-NEW-dextra-c6c-7
+
+ENGINEERING DECISION (C6c D7, 2026-10-12): Decode each damaged mission/assistant parent mark as Guid.Empty and verify its ordinary child inherits hiding and emits only the fixed hidden summary with no IDs. Also retain that parent in HideAncestors while initially visible, so hiding it redacts already queued descendants. The old non-null Ancestors parent check fails each new test twice alone; restore byte-exact. Production code is unchanged.
