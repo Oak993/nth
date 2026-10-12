@@ -53,7 +53,9 @@ public sealed class UiMcpServerTests
         var tools = (await Mcp(server, "tools/list"))["result"]!["tools"]!.AsArray();
         // The four artifact tools, then W17's read-only live-view reference.
         Assert.Equal(new[] { "artifact_create", "artifact_update", "artifact_read", "artifact_list", "ui_reference" }, tools.Select(t => t!["name"]!.GetValue<string>()));
-        Assert.Equal(UiMcpServer.ToolNames, tools.Select(t => t!["name"]!.GetValue<string>()));
+        // ask_user (W25) is served only while a host for it is bound (here none is): the list is exactly what the process offers, and nothing else is held back.
+        Assert.Equal(UiMcpServer.Offered, tools.Select(t => t!["name"]!.GetValue<string>()));
+        Assert.Equal(UiMcpServer.ToolNames.Where(name => name != "ask_user"), UiMcpServer.Offered);
         foreach (var tool in tools.Where(t => ArtifactTools.IsName(t!["name"]!.GetValue<string>())))
         {
             var name = tool!["name"]!.GetValue<string>();

@@ -88,6 +88,17 @@ public sealed record PaneGutter(
     /// <summary>The collapsed position lies past the maximum (the chat gutter) rather than under the minimum (Side chat).</summary>
     public bool CollapsesPastMaximum => CanCollapse && CollapsedValue > NormalMaximum;
 
+    /// <summary>
+    /// The limits the shared Splitter reports to assistive technology (4.2): the range includes the collapsed position
+    /// (400 to 1,294 for the chat gutter, where 1,294 means the panes are collapsed), and the value text names the state.
+    /// </summary>
+    public SplitterLimits Limits => new(NormalMinimum, NormalMaximum, DefaultValue)
+    {
+        Collapse = !CanCollapse ? SplitterCollapse.None : CollapsesPastMaximum ? SplitterCollapse.AboveMaximum : SplitterCollapse.BelowMinimum,
+        CollapsedValue = CollapsedValue,
+        CollapsedText = ValueText,
+    };
+
     /// <summary>The value the gutter would have with its centre at <paramref name="position"/> on its axis.</summary>
     public double ValueAt(double position) => ValueOrigin + ValueSign * position;
 

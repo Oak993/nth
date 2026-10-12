@@ -30,6 +30,16 @@ public enum PaneGlyphKind
     Close,
     More,
     Chevron,
+    Eye,
+    Send,
+    Stop,
+    Check,
+
+    /// <summary>The canvas's i-plus (New terminal; later units' New tab).</summary>
+    Plus,
+
+    /// <summary>A pane with its foot band marked: the chat's drawer (W4's "Move to the drawer").</summary>
+    DockBottom,
 
     // PORT-ONLY (web surfaces W19): the MCP App card's display modes, its trust strip and the pop-out's pin.
     Inline,
@@ -69,6 +79,13 @@ public sealed class PaneGlyph : Control
         [PaneGlyphKind.Close] = Parse("M6 6l12 12M18 6L6 18"),
         [PaneGlyphKind.More] = Parse(Circle(12, 5.5, 1.2) + Circle(12, 12, 1.2) + Circle(12, 18.5, 1.2)),
         [PaneGlyphKind.Chevron] = Parse("M7 10l5 5 5-5"),
+        // Web surfaces W6 (the canvas's i-eye, i-send, i-stop and i-check): the side chat's note, its composer and its confirmation.
+        [PaneGlyphKind.Eye] = Parse("M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" + Circle(12, 12, 3)),
+        [PaneGlyphKind.Send] = Parse("M12 19V5M6.5 10.5L12 5l5.5 5.5"),
+        [PaneGlyphKind.Stop] = Parse("M8.6 7h6.8A1.6 1.6 0 0 1 17 8.6v6.8a1.6 1.6 0 0 1-1.6 1.6H8.6A1.6 1.6 0 0 1 7 15.4V8.6A1.6 1.6 0 0 1 8.6 7z"),
+        [PaneGlyphKind.Check] = Parse("M5 12.5l4.5 4.5L19 7.5"),
+        [PaneGlyphKind.Plus] = Parse("M12 5v14M5 12h14"),
+        [PaneGlyphKind.DockBottom] = Parse("M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z M4 14.5h16"),
         [PaneGlyphKind.Inline] = Parse("M4 6h16M4 18h16M7.5 9h9a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 13.5v-3A1.5 1.5 0 0 1 7.5 9z"),
         [PaneGlyphKind.Pane] = Parse("M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM14 5v14"),
         [PaneGlyphKind.PopOut] = Parse("M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM13 11h5a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z"),

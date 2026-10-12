@@ -10,8 +10,10 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
+using Marrow.App.Views.Panes;
 using Marrow.App.Views.Terminal.Port;
 using Marrow.App.Window;
 using Marrow.Core.Models;
@@ -64,12 +66,15 @@ public sealed class TerminalPanel : Decorator
             VerticalAlignment = VerticalAlignment.Center,
         };
 
+        // PORT-ONLY (web W4): the third column is the source's empty one (:25 the Spacer's place before the chevron); it holds the
+        // drawer's "Move to the panes" button once the drawer is inside a pane workspace, and stays 0 wide before that.
         var header = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("*,Auto,0,Auto"),
+            ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto,Auto"),
             Height = 38,
             Margin = new Thickness(10, 0),
             ColumnSpacing = 6,
+            Background = Brushes.Transparent, // web W4: the empty header area takes the press that lifts the drawer (DESIGN 3.6)
         };
         Grid.SetColumn(scrollingTabs, 0);
         header.Children.Add(scrollingTabs);
@@ -81,6 +86,36 @@ public sealed class TerminalPanel : Decorator
         });
         Grid.SetColumn(add, 1);
         header.Children.Add(add);
+
+        // PORT-ONLY (web W4, DESIGN 3.1, 3.6): the drawer can go to the pane grid. A drag of the header's empty area does it by
+        // pointer (DrawerLiftGesture); this button is the way without one.
+        var dock = MakeIconButton("rectangle.righthalf.inset.fill", "Move to the panes", () =>
+            runtime.Workspace = runtime.Workspace.MoveTerminalToGrid());
+        dock.IsVisible = false;
+        Grid.SetColumn(dock, 2);
+        header.Children.Add(dock);
+        // Shown inside a pane workspace; enabled where the terminal then fits beside a readable chat (a narrower window would turn
+        // the workspace into tabs, DESIGN 3.8), re-read when the workspace's size or the thread's workspace changes.
+        PaneWorkspace? dockHost = null;
+        void UpdateDock()
+        {
+            var host = this.FindAncestorOfType<PaneWorkspace>();
+            dock.IsVisible = host is not null;
+            dock.IsEnabled = host?.CanDockTerminalToGrid(runtime.Workspace) == true;
+            if (ReferenceEquals(host, dockHost)) return;
+            if (dockHost is not null) dockHost.SizeChanged -= OnDockHostResized;
+            dockHost = host;
+            if (host is not null) host.SizeChanged += OnDockHostResized;
+        }
+        void OnDockHostResized(object? sender, SizeChangedEventArgs e) => UpdateDock();
+        AttachedToVisualTree += (_, _) => UpdateDock();
+        DetachedFromVisualTree += (_, _) =>
+        {
+            if (dockHost is not null) dockHost.SizeChanged -= OnDockHostResized;
+            dockHost = null;
+        };
+        this.Track(() => runtime.Workspace, _ => UpdateDock());
+        DrawerLiftGesture.Attach(header, () => this.FindAncestorOfType<PaneWorkspace>(), () => this);
 
         // :52 .help("Hide terminal\(ShortcutStore.hint(for: .toggleTerminal))"): the chord is read live, so a remapped or
         // cleared Toggle terminal shortcut corrects the tooltip. :53 the accessibility label never carries it.
@@ -276,12 +311,18 @@ public sealed class TerminalPanel : Decorator
     /// </summary>
     internal void TakeKeyboardIfWanted() => (terminalArea.Child as TerminalHost)?.TakeKeyboardIfWanted();
 
-    private Control MakeEmptyState(AppModel current)
+    private Control MakeEmptyState(AppModel current) => EmptyState(this, current, runtime, directory);
+
+    /// <summary>
+    /// :64-78 The empty state: no shell is open in this thread. Shared with the terminal pane (web W4); <paramref name="owner"/>
+    /// is the control whose theme the label's colour follows.
+    /// </summary>
+    internal static Control EmptyState(Control owner, AppModel current, ThreadRuntime runtime, string directory)
     {
         var label = new TextBlock
         {
             Text = "No shell open in this thread", // :68
-            Foreground = Chrome.SecondaryText.Brush(this), // :70
+            Foreground = Chrome.SecondaryText.Brush(owner), // :70
             HorizontalAlignment = HorizontalAlignment.Center,
             TextAlignment = TextAlignment.Center,
         };
@@ -366,7 +407,7 @@ public sealed class TerminalPanel : Decorator
         runtime.IsTerminalVisible = false;
     }
 
-    private static Color PanelColor(bool isDark) =>
+    internal static Color PanelColor(bool isDark) =>
         isDark ? Color.FromRgb(20, 20, 20) : Color.FromRgb(251, 251, 251); // :107
 
     private void UpdatePanelColor()
@@ -518,14 +559,18 @@ public sealed class TerminalHost : Decorator
 {
     private readonly TerminalSession session;
     private readonly ThreadRuntime runtime;
-    private readonly Action onEscapeAtPrompt;
+    private readonly Action? onEscapeAtPrompt;
     private bool escapeListenerAttached;
     private static int activeEscapeListenerCount;
 
     /// <summary>Test readback for PR-TERM-032: one scoped listener per attached host.</summary>
     internal static int ActiveEscapeListenerCount => activeEscapeListenerCount;
 
-    public TerminalHost(TerminalSession session, ThreadRuntime runtime, Action onEscapeAtPrompt)
+    /// <param name="onEscapeAtPrompt">
+    /// What a bare Escape at the shell's prompt does (:214-221: the drawer closes). Null in a pane (web W4): a pane stays until it
+    /// is closed, so Escape always reaches the shell.
+    /// </param>
+    public TerminalHost(TerminalSession session, ThreadRuntime runtime, Action? onEscapeAtPrompt)
     {
         this.session = session;
         this.runtime = runtime;
@@ -591,7 +636,7 @@ public sealed class TerminalHost : Decorator
         if (e.Key != Key.Escape) return;
         var modifiers = KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Shift | KeyModifiers.Meta;
         var bare = (e.KeyModifiers & modifiers) == KeyModifiers.None;
-        if (bare && session.View.IsFocused && session.IsRunning && TerminalSession.ForegroundJobIsTheShell(session.View.ProcessId))
+        if (bare && onEscapeAtPrompt is not null && session.View.IsFocused && session.IsRunning && TerminalSession.ForegroundJobIsTheShell(session.View.ProcessId))
         {
             onEscapeAtPrompt();
             e.Handled = true;
@@ -613,6 +658,10 @@ public sealed class TerminalHostContainer : Decorator
     private PropertyChangedEventHandler? resizeStarted;
     private PropertyChangedEventHandler? resizeEnded;
     private bool wasLiveResizing;
+
+    // PORT-ONLY (web W3b, DESIGN 3.7): the terminal is a content scope. The shell gets every key first (Ctrl+D is end of input,
+    // Ctrl+Backslash is quit); nth takes only the reserved chords from here.
+    public TerminalHostContainer() => ShortcutScopeHost.SetScope(this, ShortcutScope.Content);
 
     /// <summary>Actual registrations for the two will-start/did-end observers in Swift.</summary>
     internal int ResizeObserverCount => (resizeStarted is null ? 0 : 1) + (resizeEnded is null ? 0 : 1);
@@ -686,18 +735,25 @@ public sealed class TerminalHostContainer : Decorator
         var currentResize = liveResize;
         resizeStarted = (_, change) =>
         {
-            if (change.PropertyName != nameof(WindowLiveResize.IsActive) || !currentResize.IsActive) return;
+            if (!IsReshapingProperty(change.PropertyName) || !Reshaping(currentResize)) return;
             wasLiveResizing = true;
             IsAutoResizing = false;
         };
         resizeEnded = (_, change) =>
         {
-            if (change.PropertyName == nameof(WindowLiveResize.IsActive) &&
-                !currentResize.IsActive && wasLiveResizing) FinishResize();
+            if (IsReshapingProperty(change.PropertyName) &&
+                !Reshaping(currentResize) && wasLiveResizing) FinishResize();
         };
         currentResize.PropertyChanged += resizeStarted;
         currentResize.PropertyChanged += resizeEnded;
     }
+
+    // PORT-ONLY (web W4): a pane gutter being dragged, or the chat column springing beside the terminal, reshapes the terminal like
+    // a window resize does: its grid follows at the 50 ms beat, not once per frame (DESIGN 2.6, 4.2 "Live reflow").
+    private static bool Reshaping(WindowLiveResize resize) => resize.IsActive || resize.IsWorkspaceResizing;
+
+    private static bool IsReshapingProperty(string? name) =>
+        name == nameof(WindowLiveResize.IsActive) || name == nameof(WindowLiveResize.IsWorkspaceResizing);
 
     private WindowLiveResize? ResolveLiveResize()
     {
@@ -710,7 +766,7 @@ public sealed class TerminalHostContainer : Decorator
     protected override Size ArrangeOverride(Size finalSize)
     {
         if (Child is not { } child) return finalSize;
-        var active = liveResize?.IsActive == true;
+        var active = liveResize is { } resize && Reshaping(resize);
         if (active)
         {
             wasLiveResizing = true;

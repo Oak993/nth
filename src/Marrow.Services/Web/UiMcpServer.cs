@@ -21,10 +21,17 @@ public sealed class UiMcpServer(UiRegistration? registration)
     /// The server's instructions (initialize): the teaching Marrow.Core.NthUi.NthUiTeaching writes for the tools this server serves
     /// (W17, ED-NEW-web-w17-1): when to use text, a live view or an artifact, then the view language and worked examples.
     /// </summary>
-    public static string Instructions => UiTeaching.Instructions(ToolNames);
+    public static string Instructions => UiTeaching.Instructions(Offered);
 
-    /// <summary>The tools the server serves, in the order it lists them. The live-answer tools of W24 join this list.</summary>
-    public static IReadOnlyList<string> ToolNames { get; } = [.. ArtifactTools.Names, UiReferenceTool.Name];
+    /// <summary>The tools the server can serve, in the order it lists them. The live-answer tools of W24 join this list; ask_user (W25) is the last.</summary>
+    public static IReadOnlyList<string> ToolNames { get; } = [.. ArtifactTools.Names, UiReferenceTool.Name, AskUserTool.Name];
+
+    /// <summary>
+    /// The tools the process serves now, which is what the teaching says (so it never names a tool the model cannot call): the artifact
+    /// tools and the reference while the artifact store is on, ask_user (W25) while a host for it is bound.
+    /// </summary>
+    public static IReadOnlyList<string> Offered =>
+        [.. ToolNames.Where(name => name == AskUserTool.Name ? AskUserDirectory.Shared.Current.IsBound : ArtifactHost.Shared.Current.IsOn)];
 
     /// <summary>True for a Claude Code tool name of this server's ("mcp__nth-ui__artifact_create").</summary>
     public static bool IsOwnTool(string? qualifiedName) =>
@@ -62,43 +69,62 @@ public sealed class UiMcpServer(UiRegistration? registration)
         catch (Exception error) when (error is ArgumentException or InvalidOperationException or FormatException) { return Error(id, -32602, error.Message); }
     }
 
-    private bool Serves => registration is { Host.IsOn: true };
+    private bool Serves => ServesArtifacts || ServesAsk;
+
+    private bool ServesArtifacts => registration is { Host.IsOn: true };
+
+    // PORT-ONLY (W25): ask_user is the chat's own, so it needs only a host bound for the chat's runtime, not the artifact store.
+    private bool ServesAsk => registration is not null && AskUserDirectory.Shared.Current.IsBound;
 
     private JsonArray Tools()
     {
         var tools = new JsonArray();
-        if (!Serves) return tools;
-        foreach (var name in ArtifactTools.Names)
+        if (ServesArtifacts)
         {
-            var reads = name is ArtifactTools.ReadName or ArtifactTools.ListName;
+            foreach (var name in ArtifactTools.Names)
+            {
+                var reads = name is ArtifactTools.ReadName or ArtifactTools.ListName;
+                tools.Add(new JsonObject
+                {
+                    ["name"] = name,
+                    ["title"] = ArtifactTools.Title,
+                    ["description"] = ArtifactTools.Description(name),
+                    ["inputSchema"] = ArtifactTools.InputSchema(name),
+                    ["annotations"] = new JsonObject { ["readOnlyHint"] = reads, ["destructiveHint"] = false, ["openWorldHint"] = false },
+                });
+            }
+            // PORT-ONLY (W17, ED-NEW-web-w17-1): the on-demand reference of the live-view language, read only.
             tools.Add(new JsonObject
             {
-                ["name"] = name,
-                ["title"] = ArtifactTools.Title,
-                ["description"] = ArtifactTools.Description(name),
-                ["inputSchema"] = ArtifactTools.InputSchema(name),
-                ["annotations"] = new JsonObject { ["readOnlyHint"] = reads, ["destructiveHint"] = false, ["openWorldHint"] = false },
+                ["name"] = UiReferenceTool.Name,
+                ["title"] = UiReferenceTool.Title,
+                ["description"] = UiReferenceTool.Description,
+                ["inputSchema"] = UiReferenceTool.InputSchema(),
+                ["annotations"] = new JsonObject { ["readOnlyHint"] = true, ["destructiveHint"] = false, ["openWorldHint"] = false },
             });
         }
-        // PORT-ONLY (W17, ED-NEW-web-w17-1): the on-demand reference of the live-view language, read only.
-        tools.Add(new JsonObject
-        {
-            ["name"] = UiReferenceTool.Name,
-            ["title"] = UiReferenceTool.Title,
-            ["description"] = UiReferenceTool.Description,
-            ["inputSchema"] = UiReferenceTool.InputSchema(),
-            ["annotations"] = new JsonObject { ["readOnlyHint"] = true, ["destructiveHint"] = false, ["openWorldHint"] = false },
-        });
+        if (ServesAsk) tools.Add(AskTool());
         return tools;
     }
+
+    // PORT-ONLY (W25): the person is asked, nothing in the world changes.
+    private static JsonObject AskTool() => new()
+    {
+        ["name"] = AskUserTool.Name,
+        ["title"] = "Ask the user",
+        ["description"] = AskUserTool.Description,
+        ["inputSchema"] = AskUserTool.InputSchema(),
+        ["annotations"] = new JsonObject { ["readOnlyHint"] = true, ["destructiveHint"] = false, ["openWorldHint"] = false },
+    };
 
     private async Task<JsonNode> Call(JsonNode? parameters, CancellationToken cancellationToken)
     {
         var name = (parameters?["name"] as JsonValue)?.GetValue<string>();
-        if (!Serves || !ToolNames.Contains(name ?? "")) throw new ArgumentException("Unknown nth-ui tool.");
+        if (!Serves || !ToolNames.Contains(name ?? "") || (name == AskUserTool.Name ? !ServesAsk : !ServesArtifacts)) throw new ArgumentException("Unknown nth-ui tool.");
         var (thread, provider, model, host) = registration!;
         ArtifactToolResult result;
-        if (name == UiReferenceTool.Name) result = UiReferenceTool.Run(parameters?["arguments"]);
+        if (name == AskUserTool.Name) result = await AskUserTool.Run(parameters?["arguments"], AskUserDirectory.Shared.Current.Find(thread), cancellationToken).ConfigureAwait(false);
+        else if (name == UiReferenceTool.Name) result = UiReferenceTool.Run(parameters?["arguments"]);
         else
         {
             var (author, prompt) = await host.Caller(thread, provider, model).ConfigureAwait(false);

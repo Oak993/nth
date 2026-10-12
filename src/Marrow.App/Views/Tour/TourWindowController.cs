@@ -181,7 +181,7 @@ public sealed class TourWindowController
         // DroppyCodeApp.swift:21-25, `AppCommands(model: WindowManager.shared.model)`, answers its key equivalents. With no
         // menu bar the window carries the port's dispatch of those chords (Port/MenuKeyEquivalents.cs), the command table
         // read afresh at each key-down, as WindowManager.MakeWindow does for the main and Settings windows.
-        _ = MenuKeyEquivalents.Attach(createdWindow, (positional, typed) => new AppCommands(WindowManager.Shared.Model).PerformKeyDown(positional, typed));
+        _ = MenuKeyEquivalents.Attach(createdWindow, (positional, typed, scope) => new AppCommands(WindowManager.Shared.Model).PerformKeyDown(positional, typed, scope));
 
         createdWindow.Show();
         createdWindow.Activate();

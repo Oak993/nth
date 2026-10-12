@@ -1173,7 +1173,7 @@ public sealed class ComposerView : Decorator
                 // A running turn is stopped and taken back, its words returning to the box; with nothing running, the
                 // panels go the way the terminal and changes chords take them.
                 if (runtime.IsRunning) runtime.TakeBackRunningTurn();
-                else if (runtime.IsTerminalVisible) runtime.IsTerminalVisible = false;
+                else if (runtime.IsTerminalInDrawer) runtime.IsTerminalVisible = false; // web W4: only the drawer; a pane stays until it is closed
                 else if (runtime.IsDiffVisible) runtime.ToggleDiff();
                 else return false;
                 return true;

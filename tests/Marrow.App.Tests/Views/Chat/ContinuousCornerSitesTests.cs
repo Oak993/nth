@@ -138,6 +138,8 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.UI/Panes/PaneHeader.cs", "8", 2, Circular), // web W3a (ED-NEW-web-w3a-1): a 26 DIP header button and text chip, design-page layout (canvas .hb, CSS border-radius 8)
         ("Marrow.UI/Panes/PaneHeader.cs", "11", 1, Capsule), // web W3a (ED-NEW-web-w3a-1): the 22 DIP "Chat is working" chip, r = h / 2 (canvas .pchip)
         ("Marrow.UI/Panes/PaneHeader.cs", "3", 1, Circle), // web W3a (ED-NEW-web-w3a-1): the chip's 6 x 6 dot, a circle by construction
+        ("Marrow.UI/Panes/NarrowTabStrip.cs", "PillHeight / 2", 1, Capsule), // web W3c (ED-NEW-web-w3c-2): the 34 DIP narrow tab strip's pill, r = h / 2 (canvas .ntabs .in, border-radius 999)
+        ("Marrow.UI/Panes/NarrowTabStrip.cs", "TabHeight / 2", 1, Capsule), // web W3c (ED-NEW-web-w3c-2): a 28 DIP tab of the narrow strip, r = h / 2 (canvas .ntabs button)
         ("Marrow.UI/Chrome/Chrome.cs", "side / 2", 1, Circle),
         ("Marrow.UI/Chrome/ChromeSegmentedPicker.cs", "11", 1, Capsule),
         ("Marrow.UI/Chrome/DragHandle.cs", "Metrics.GlowRadius", 1, Circular),
