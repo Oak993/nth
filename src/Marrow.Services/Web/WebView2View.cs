@@ -87,6 +87,8 @@ internal sealed class WebView2View : IWebEngineView
     public event EventHandler<WebScriptDialogRequest>? ScriptDialogOpening;
     public event EventHandler<WebCertificateErrorRequest>? CertificateErrorDetected;
     public event EventHandler<bool>? FullScreenChanged;
+    public event EventHandler<WebNotification>? NotificationReceived;
+    public event EventHandler<WebScreenCaptureRequest>? ScreenCaptureStarting;
 
     /// <summary>Takes one reference on each pointer (the adapter's getters hand out owned references) and wraps them.</summary>
     public void Attach(nint coreWebView2, nint controllerPointer)
@@ -350,6 +352,8 @@ internal sealed class WebView2View : IWebEngineView
         c.ScriptDialogOpening += OnScriptDialogOpening;
         c.ServerCertificateErrorDetected += OnServerCertificateErrorDetected;
         c.ContainsFullScreenElementChanged += OnFullScreenChanged;
+        Safe(() => c.NotificationReceived += OnNotificationReceived);
+        Safe(() => c.ScreenCaptureStarting += OnScreenCaptureStarting);
         if (controller is { } ctl)
         {
             ctl.AcceleratorKeyPressed += OnAcceleratorKeyPressed;
@@ -380,6 +384,8 @@ internal sealed class WebView2View : IWebEngineView
                 c.ServerCertificateErrorDetected -= OnServerCertificateErrorDetected;
                 c.ContainsFullScreenElementChanged -= OnFullScreenChanged;
             });
+            Safe(() => c.NotificationReceived -= OnNotificationReceived);
+            Safe(() => c.ScreenCaptureStarting -= OnScreenCaptureStarting);
         }
 
         if (controller is { } ctl)
@@ -458,7 +464,9 @@ internal sealed class WebView2View : IWebEngineView
         Settle(e, args.GetDeferral, decision =>
         {
             args.State = decision == WebPermissionDecision.Deny ? CoreWebView2PermissionState.Deny : CoreWebView2PermissionState.Allow;
-            Safe(() => args.SavesInProfile = decision == WebPermissionDecision.AllowAlways);
+            // W8b (ED-NEW-web-w8b-1): nth's PermissionStore is the only memory of an answer, so the profile never keeps one
+            // that Settings › Site permissions does not list (and Remove works with no view open).
+            Safe(() => args.SavesInProfile = false);
         });
     }
 
@@ -475,10 +483,12 @@ internal sealed class WebView2View : IWebEngineView
             {
                 args.ResultFilePath = path;
                 args.Cancel = false;
+                e.ReportStarted(new WebView2Download(operation, path));
             }
             else
             {
                 args.Cancel = true;
+                e.ReportStarted(null);
             }
         });
     }
@@ -632,6 +642,26 @@ internal sealed class WebView2View : IWebEngineView
             : CoreWebView2ServerCertificateErrorAction.Cancel);
     }
 
+    private void OnNotificationReceived(object? sender, CoreWebView2NotificationReceivedEventArgs args)
+    {
+        // W8b (DESIGN 5.5): never Windows' default notification; nth shows its own toast for browse tabs or drops it.
+        Safe(() => args.Handled = true);
+        var note = Try(() => args.Notification);
+        if (note is null) return;
+        var e = new WebNotification(Origin(Try(() => args.SenderOrigin)), Try(() => note.Title) ?? "", Try(() => note.Body) ?? "", Try(() => note.Tag), Try(() => note.IsSilent));
+        NotificationReceived?.Invoke(this, e);
+        if (e.Shown) Safe(note.ReportShown);
+    }
+
+    private void OnScreenCaptureStarting(object? sender, CoreWebView2ScreenCaptureStartingEventArgs args)
+    {
+        Safe(() => args.Handled = true);
+        args.Cancel = true; // denied unless the surface lets the browser's own picker show (W8b)
+        var e = new WebScreenCaptureRequest(Origin(Try(() => args.OriginalSourceFrameInfo?.Source)));
+        ScreenCaptureStarting?.Invoke(this, e);
+        Settle(e, args.GetDeferral, allow => args.Cancel = !allow);
+    }
+
     private void OnFullScreenChanged(object? sender, object e) => FullScreenChanged?.Invoke(this, Try(() => core?.ContainsFullScreenElement ?? false));
 
     private void OnAcceleratorKeyPressed(object? sender, CoreWebView2AcceleratorKeyPressedEventArgs args)
@@ -747,5 +777,90 @@ internal sealed class WebView2View : IWebEngineView
 
         private void OnEvent(object? sender, CoreWebView2DevToolsProtocolEventReceivedEventArgs args) =>
             handler(new WebCdpEvent(eventName, string.IsNullOrEmpty(args.SessionId) ? null : args.SessionId, args.ParameterObjectAsJson));
+    }
+}
+
+/// <summary>
+/// W8b (DESIGN 5.4): a saved WebView2 download as <see cref="IWebDownloadOperation"/>. A pause is the engine's Interrupted state
+/// with the UserPaused reason; nth never opens the file (no <c>OpenDefaultDownloadDialog</c>, no shell open).
+/// </summary>
+internal sealed class WebView2Download : IWebDownloadOperation
+{
+    private readonly CoreWebView2DownloadOperation operation;
+    private string path;
+
+    public WebView2Download(CoreWebView2DownloadOperation operation, string path)
+    {
+        this.operation = operation;
+        this.path = path;
+        operation.BytesReceivedChanged += OnChanged;
+        operation.StateChanged += OnStateChanged;
+    }
+
+    public string ResultFilePath => path;
+
+    public long BytesReceived => Read(() => operation.BytesReceived, 0L);
+
+    public long? TotalBytes => Read(() => operation.TotalBytesToReceive is > 0 and var total ? (long?)total : null, null);
+
+    public WebDownloadState State => Read(() => operation.State switch
+    {
+        CoreWebView2DownloadState.Completed => WebDownloadState.Completed,
+        CoreWebView2DownloadState.Interrupted when operation.InterruptReason == CoreWebView2DownloadInterruptReason.UserPaused => WebDownloadState.Paused,
+        CoreWebView2DownloadState.Interrupted => WebDownloadState.Interrupted,
+        _ => WebDownloadState.InProgress,
+    }, WebDownloadState.Interrupted);
+
+    public string? InterruptReason => Read(() => operation.State == CoreWebView2DownloadState.Interrupted ? operation.InterruptReason.ToString() : null, null);
+
+    public bool CanResume => Read(() => operation.CanResume, false);
+
+    public event EventHandler? Changed;
+
+    public void Cancel() => Run(operation.Cancel);
+
+    public void Pause() => Run(operation.Pause);
+
+    public void Resume() => Run(operation.Resume);
+
+    private void OnChanged(object? sender, object e) => Changed?.Invoke(this, EventArgs.Empty);
+
+    private void OnStateChanged(object? sender, object e)
+    {
+        var final = Read(() => operation.ResultFilePath, null);
+        if (!string.IsNullOrEmpty(final)) path = final;
+        Changed?.Invoke(this, EventArgs.Empty);
+        if (State is WebDownloadState.Completed || State == WebDownloadState.Interrupted && !CanResume)
+        {
+            Run(() =>
+            {
+                operation.BytesReceivedChanged -= OnChanged;
+                operation.StateChanged -= OnStateChanged;
+            });
+        }
+    }
+
+    private static T Read<T>(Func<T> read, T fallback)
+    {
+        try
+        {
+            return read();
+        }
+        catch (Exception ex) when (ex is COMException or InvalidOperationException or NotImplementedException)
+        {
+            return fallback;
+        }
+    }
+
+    private static void Run(Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (Exception ex) when (ex is COMException or InvalidOperationException or NotImplementedException)
+        {
+            // the operation is over or the browser is gone
+        }
     }
 }

@@ -65,6 +65,18 @@ public enum PaneGlyphKind
     Reload,
     Lock,
     Mask,
+
+    // Visus (web W8b): the canvas's i-camera, i-down, i-folder, i-pause, i-play and i-arrow (the pointer), and a microphone,
+    // a location pin and a bell drawn in the same hand, for the permission and download prompts and the downloads list.
+    Camera,
+    Download,
+    Folder,
+    Pause,
+    Play,
+    Pointer,
+    Microphone,
+    Location,
+    Bell,
 }
 
 /// <summary>A line glyph in the inherited text colour.</summary>
@@ -123,6 +135,15 @@ public sealed class PaneGlyph : Control
         [PaneGlyphKind.Pane] = Parse("M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM14 5v14"),
         [PaneGlyphKind.PopOut] = Parse("M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM13 11h5a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z"),
         [PaneGlyphKind.Pin] = Parse("M9.5 4h5l-.8 5.2 3.3 3.3H7l3.3-3.3zM12 12.5V20"),
+        [PaneGlyphKind.Camera] = Parse("M4 8h3l1.8-2.5h6.4L17 8h3v11H4z" + Circle(12, 13, 3.4)),
+        [PaneGlyphKind.Download] = Parse("M12 4v11M7.5 10.5L12 15l4.5-4.5M5 20h14"),
+        [PaneGlyphKind.Folder] = Parse("M3.5 7a1.5 1.5 0 0 1 1.5-1.5h4l2 2h8a1.5 1.5 0 0 1 1.5 1.5v8.5a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5z"),
+        [PaneGlyphKind.Pause] = Parse("M9 6.5v11M15 6.5v11"),
+        [PaneGlyphKind.Play] = Parse("M8 5.5l10.5 6.5L8 18.5z"),
+        [PaneGlyphKind.Pointer] = Parse("M6 3.5v15.6l4.2-3.8 2.8 6.2 2.9-1.3-2.7-6.1 5.7-.3z"),
+        [PaneGlyphKind.Microphone] = Parse("M9 6.5a3 3 0 0 1 6 0v4.5a3 3 0 0 1-6 0z M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V20.5M9 20.5h6"),
+        [PaneGlyphKind.Location] = Parse("M12 20.5s-6.5-5.8-6.5-10.8a6.5 6.5 0 0 1 13 0c0 5-6.5 10.8-6.5 10.8z" + Circle(12, 9.8, 2.4)),
+        [PaneGlyphKind.Bell] = Parse("M6.5 16V11a5.5 5.5 0 0 1 11 0v5l1.5 1.5h-14z M10 20h4"),
     };
 
     static PaneGlyph()

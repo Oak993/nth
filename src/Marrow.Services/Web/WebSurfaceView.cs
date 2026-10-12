@@ -23,6 +23,8 @@ public sealed class WebSurfaceView : IWebViewSurface
     private int modelSteps;
     private int bridgeCalls;
     private int openArtifactPanes;
+    private int userHolds;
+    private int scriptHolds;
     private readonly List<(string Json, string? Event)> pendingMessages = [];
     private string? navigationTarget;
     private (string Token, IWebEngineView Engine, TaskCompletionSource<bool> Ready)? discardNotice;
@@ -31,6 +33,9 @@ public sealed class WebSurfaceView : IWebViewSurface
     internal string? NavigationTarget => navigationTarget;
     private TaskCompletionSource? liveHidden;
     private WebSandbox? sandbox;
+    private readonly List<IDisposable> guardSubscriptions = [];
+    private readonly List<WebAgentNote> agentNotes = [];
+    private WebPointerLockRequest? pointerLockAsk;
 
     internal WebSurfaceView(WebSurface owner, int sequence, WebSurfaceKind kind, string windowId, WebCreationOptions creation, string? url)
     {
@@ -83,6 +88,30 @@ public sealed class WebSurfaceView : IWebViewSurface
     /// <summary>True while a model step drives the view (never suspended or discarded then, DESIGN 2.3).</summary>
     public bool IsModelStepRunning => modelSteps > 0;
 
+    /// <summary>
+    /// W8b (DESIGN 5.4, 5.5, 8.4): a question of this page waits for the user (a download, a permission, a sign-in, a page
+    /// dialog, a file for the model's page). The engine holds the page's side of it, so the view is neither suspended nor
+    /// discarded until every hold is released.
+    /// </summary>
+    public bool IsHeldForUser => userHolds > 0;
+
+    /// <summary>
+    /// W8b: a page dialog (alert, confirm, prompt, leave page) waits for the user. The page's script is stopped inside it, so the
+    /// hang probe (2.7) does not run: a page waiting on its reader is not "not responding".
+    /// </summary>
+    public bool IsScriptHeldForUser => scriptHolds > 0;
+
+    /// <summary>
+    /// W8b: holds the view's engine for a question the user has not answered yet; dispose when it is answered.
+    /// <paramref name="blocksScript"/> is true for a page dialog, which stops the page's script until it is answered.
+    /// </summary>
+    public IDisposable HoldForUser(bool blocksScript = false)
+    {
+        userHolds++;
+        if (blocksScript) scriptHolds++;
+        return new UserHold(this, blocksScript);
+    }
+
     internal bool IsSuspending { get; set; }
     internal bool IsDiscarding { get; set; }
     internal bool NeedsLiveReload { get; set; }
@@ -97,6 +126,12 @@ public sealed class WebSurfaceView : IWebViewSurface
 
     public event Action? Changed;
     internal event Action? BecameLive;
+
+    /// <summary>
+    /// W8b: the page's engine went (a crash, a runtime that went missing, the view closing): every question it was waiting on
+    /// is void, so its asker withdraws them. Raised before the engine is disposed.
+    /// </summary>
+    public event Action? EngineReleased;
     public event Action<bool>? FocusExitRequested;
     public event EventHandler<WebNavigationStarting>? NavigationStarting;
     public event EventHandler<WebNavigationStarting>? FrameNavigationStarting;
@@ -113,6 +148,30 @@ public sealed class WebSurfaceView : IWebViewSurface
     public event EventHandler<WebScriptDialogRequest>? ScriptDialogOpening;
     public event EventHandler<WebCertificateErrorRequest>? CertificateErrorDetected;
     public event EventHandler<bool>? FullScreenChanged;
+
+    /// <summary>W8b (DESIGN 5.5): a browse tab's page notification; nth shows it as its own toast (other profiles never raise it).</summary>
+    public event EventHandler<WebNotification>? NotificationReceived;
+
+    /// <summary>W8b (8.4): a page asked to lock the pointer (browse, preview and private tabs only); unanswered asks are refused.</summary>
+    public event EventHandler<WebPointerLockRequest>? PointerLockRequested;
+
+    /// <summary>W8b (8.4): the pointer was locked (true) or released (false), as the page's gate reported it.</summary>
+    public event Action<bool>? PointerLockChanged;
+
+    /// <summary>W8b (8.4): an agent tab's page opened a file chooser; nth intercepted it (the guarded card answers, 5.10).</summary>
+    public event EventHandler<WebFileChooser>? FileChooserIntercepted;
+
+    /// <summary>W8b (8.4): something the model is told about its tab (a dismissed dialog, a sign-in it cannot do).</summary>
+    public event Action<WebAgentNote>? AgentNoted;
+
+    /// <summary>W8b: the pointer is locked in the page now (the gate's last report).</summary>
+    public bool IsPointerLocked { get; private set; }
+
+    /// <summary>W8b: the latest notes for the model, oldest first (at most <see cref="AgentNoteLimit"/>).</summary>
+    public IReadOnlyList<WebAgentNote> AgentNotes => agentNotes;
+
+    /// <summary>How many notes an agent tab keeps.</summary>
+    public const int AgentNoteLimit = 50;
 
     /// <summary>
     /// DESIGN 6.5 (ED-NEW-web-w13-1): a sandboxed view tried to leave its own origin (a link, a script, a refresh, a form, a
@@ -238,6 +297,20 @@ public sealed class WebSurfaceView : IWebViewSurface
 
     internal void HoldArtifactPane(bool hold) => openArtifactPanes += hold ? 1 : -1;
 
+    private sealed class UserHold(WebSurfaceView view, bool blocksScript) : IDisposable
+    {
+        private bool done;
+
+        public void Dispose()
+        {
+            if (done) return;
+            done = true;
+            view.userHolds--;
+            if (blocksScript) view.scriptHolds--;
+            view.owner.Touch(view);
+        }
+    }
+
     private sealed class BridgeScope(WebSurfaceView view) : IDisposable
     {
         private bool done;
@@ -320,6 +393,7 @@ public sealed class WebSurfaceView : IWebViewSurface
         engine = owner.Engine.CreateView(Creation);
         cdp = new CdpBroker(engine);
         Hook(engine);
+        ApplyGuard(engine, cdp);
         if (sandbox is not null) ApplySandbox(engine);
         if (pendingUrl is null && lastUrl is not null) pendingUrl = lastUrl;
         SetLiveness(WebLiveness.Pending);
@@ -332,6 +406,16 @@ public sealed class WebSurfaceView : IWebViewSurface
         navigationTarget = null;
         if (engine.Url is { } url) lastUrl = url;
         Unhook(engine);
+        EngineReleased?.Invoke();
+        foreach (var subscription in guardSubscriptions) subscription.Dispose();
+        guardSubscriptions.Clear();
+        pointerLockAsk?.Answer(false);
+        pointerLockAsk = null;
+        if (IsPointerLocked)
+        {
+            IsPointerLocked = false;
+            PointerLockChanged?.Invoke(false);
+        }
         cdp?.Dispose();
         cdp = null;
         engine.Dispose();
@@ -376,6 +460,8 @@ public sealed class WebSurfaceView : IWebViewSurface
         view.ScriptDialogOpening += OnScriptDialog;
         view.CertificateErrorDetected += OnCertificateError;
         view.FullScreenChanged += OnFullScreen;
+        view.NotificationReceived += OnNotification;
+        view.ScreenCaptureStarting += OnScreenCapture;
     }
 
     private void Unhook(IWebEngineView view)
@@ -399,11 +485,14 @@ public sealed class WebSurfaceView : IWebViewSurface
         view.ScriptDialogOpening -= OnScriptDialog;
         view.CertificateErrorDetected -= OnCertificateError;
         view.FullScreenChanged -= OnFullScreen;
+        view.NotificationReceived -= OnNotification;
+        view.ScreenCaptureStarting -= OnScreenCapture;
     }
 
     private void OnAttached(object? sender, EventArgs e)
     {
         if (engine is null) return;
+        SendGuardCalls();
         SetLiveness(WebLiveness.Live);
         if (pendingUrl is { } url)
         {
@@ -495,7 +584,12 @@ public sealed class WebSurfaceView : IWebViewSurface
         // DESIGN 5.5: agent profile and artifacts are always denied, no prompt; notifications are blocked in preview; a
         // kind outside the design's list is denied with no prompt everywhere (ED-NEW-web-w7-1).
         // W19: an MCP App's declared kinds go to its host, which asks the user (DESIGN 7.6); every other sandboxed request is denied.
-        if (Creation.Kind is WebProfileKind.Agent or WebProfileKind.Artifacts && !(Kind == WebSurfaceKind.McpApp && sandbox?.Prompts?.Invoke(e.Kind) == true)) e.Respond(WebPermissionDecision.Deny);
+        bool appAsks = Kind == WebSurfaceKind.McpApp && sandbox?.Prompts?.Invoke(e.Kind) == true;
+        if ((Creation.Kind is WebProfileKind.Agent or WebProfileKind.Artifacts) && !appAsks)
+        {
+            e.Respond(WebPermissionDecision.Deny);
+            if (Kind == WebSurfaceKind.AgentTab) Note(WebAgentNoteKind.FeatureDenied, $"The page asked for a permission ({e.Kind}); the model's tab never gets one.");
+        }
         else if (e.Kind is WebPermissionKind.Unknown or WebPermissionKind.PersistentStorage) e.Respond(WebPermissionDecision.Deny);
         else if (Creation.Kind == WebProfileKind.Preview && e.Kind == WebPermissionKind.Notifications) e.Respond(WebPermissionDecision.Deny);
         PermissionRequested?.Invoke(this, e);
@@ -505,6 +599,8 @@ public sealed class WebSurfaceView : IWebViewSurface
     {
         // DESIGN 5.4: artifacts, inline widgets and MCP Apps cannot download (export goes through nth's own control).
         if (IsSandboxed) e.Respond(WebDownloadDecision.Cancel);
+        // DESIGN 5.4: a model-started download waits for the user in the same prompt; the model only learns it waits.
+        else if (Kind == WebSurfaceKind.AgentTab) Note(WebAgentNoteKind.DownloadWaiting, $"A download is waiting for the user to save or cancel it: {e.SuggestedFileName}");
         DownloadStarting?.Invoke(this, e);
     }
 
@@ -579,6 +675,7 @@ public sealed class WebSurfaceView : IWebViewSurface
     {
         // DESIGN 8.4: HTTP auth is denied for agent tabs and sandboxed content.
         if (IsSandboxed || Kind == WebSurfaceKind.AgentTab) e.Respond(null);
+        if (Kind == WebSurfaceKind.AgentTab) Note(WebAgentNoteKind.SignInNeeded, $"page needs sign-in ({WebPolicy.SourceName(e.Uri)}); the model cannot sign in.");
         AuthenticationRequested?.Invoke(this, e);
     }
 
@@ -586,6 +683,7 @@ public sealed class WebSurfaceView : IWebViewSurface
     {
         // DESIGN 8.4: agent tabs auto-dismiss (logged for the model); sandboxed content has none.
         if (IsSandboxed || Kind == WebSurfaceKind.AgentTab) e.Respond(WebScriptDialogDecision.Dismiss);
+        if (Kind == WebSurfaceKind.AgentTab) Note(WebAgentNoteKind.DialogDismissed, $"The page showed a {DialogWord(e.Kind)} and nth dismissed it: {Clip(e.Message)}");
         ScriptDialogOpening?.Invoke(this, e);
     }
 
@@ -596,7 +694,186 @@ public sealed class WebSurfaceView : IWebViewSurface
         CertificateErrorDetected?.Invoke(this, e);
     }
 
-    private void OnFullScreen(object? sender, bool e) => FullScreenChanged?.Invoke(this, e);
+    private void OnFullScreen(object? sender, bool e)
+    {
+        // DESIGN 8.4: fullscreen is denied in agent tabs and sandboxed content: nth ends it and never expands anything.
+        if (Kind == WebSurfaceKind.AgentTab || IsSandboxed)
+        {
+            if (!e || engine is not { IsAttached: true } live) return;
+            _ = RunQuietly(live.ExecuteScriptAsync(WebFeatureGuard.ExitFullscreenScript, CancellationToken.None));
+            if (Kind == WebSurfaceKind.AgentTab) Note(WebAgentNoteKind.FeatureDenied, "The page asked for fullscreen; the model's tab never gets it.");
+            return;
+        }
+        FullScreenChanged?.Invoke(this, e);
+    }
+
+    /// <summary>W8b (8.4): ends the page's fullscreen (Esc, Ctrl+Shift+\, the pane restored or closed).</summary>
+    public void ExitFullScreen()
+    {
+        if (engine is { IsAttached: true } live) _ = RunQuietly(live.ExecuteScriptAsync(WebFeatureGuard.ExitFullscreenScript, CancellationToken.None));
+    }
+
+    private void OnNotification(object? sender, WebNotification e)
+    {
+        // DESIGN 5.5: notifications are blocked in preview and agent profiles (and private tabs keep nothing); in browse they map
+        // to nth's own toast.
+        if (Creation.Kind != WebProfileKind.Browse) return;
+        NotificationReceived?.Invoke(this, e);
+    }
+
+    // W8b (ED-NEW-web-w8b-3): the browser's own picker shows in Visus page tabs (the user picks what to share in it); agent tabs
+    // and sandboxed content never capture the screen.
+    private void OnScreenCapture(object? sender, WebScreenCaptureRequest e) =>
+        e.Respond(Kind is WebSurfaceKind.VisusTab or WebSurfaceKind.VisusPrivateTab or WebSurfaceKind.PreviewTab);
+
+    /// <summary>
+    /// W8b: a key the page got (not reserved, not claimed). Esc releases a locked pointer (8.4 "Esc always releases"), whatever the
+    /// page does with it.
+    /// </summary>
+    internal void OnPageKeyDown(KeyChord chord)
+    {
+        if (chord == EscapeChord) ReleasePointerLock();
+    }
+
+    /// <summary>W8b (8.4): releases a locked pointer (Esc, whoever took the key: the page, or a prompt that claimed it).</summary>
+    public void ReleasePointerLock()
+    {
+        if (!IsPointerLocked || engine is not { IsAttached: true } || cdp is not { } broker) return;
+        _ = RunQuietly(broker.CallAsync("Runtime.evaluate", new System.Text.Json.Nodes.JsonObject
+        {
+            ["expression"] = WebFeatureGuard.ExitPointerLockExpression,
+            ["userGesture"] = true,
+        }));
+    }
+
+    /// <summary>
+    /// W8b (8.4, 5.10): the files the user chose in the guarded file upload card go to the agent tab's file input
+    /// (<c>DOM.setFileInputFiles</c> on the input the chooser named). Only nth's card calls this, never the model; the paths are
+    /// not logged or noted.
+    /// </summary>
+    public async Task<bool> GiveFilesAsync(WebFileChooser chooser, IReadOnlyList<string> paths)
+    {
+        if (Kind != WebSurfaceKind.AgentTab || chooser.BackendNodeId is not { } node || paths.Count == 0) return false;
+        if (engine is not { IsAttached: true } || cdp is not { } broker) return false;
+        var files = new System.Text.Json.Nodes.JsonArray();
+        foreach (var path in paths) files.Add(path);
+        try
+        {
+            await broker.CallAsync("DOM.setFileInputFiles", new System.Text.Json.Nodes.JsonObject { ["files"] = files, ["backendNodeId"] = node });
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    private static readonly KeyChord EscapeChord = new(0x01, Marrow.Core.Port.ChordModifiers.None);
+
+    private void ApplyGuard(IWebEngineView view, CdpBroker broker)
+    {
+        if (IsSandboxed) return;
+        foreach (var script in WebFeatureGuard.DocumentScriptsFor(Kind)) view.AddDocumentCreatedScript(script);
+        if (Kind is WebSurfaceKind.VisusTab or WebSurfaceKind.VisusPrivateTab or WebSurfaceKind.PreviewTab)
+            guardSubscriptions.Add(broker.Subscribe("Runtime.bindingCalled", OnBindingCalled));
+        if (Kind == WebSurfaceKind.AgentTab)
+            guardSubscriptions.Add(broker.Subscribe("Page.fileChooserOpened", OnFileChooserOpened));
+    }
+
+    private void SendGuardCalls()
+    {
+        if (IsSandboxed || cdp is not { } broker) return;
+        foreach (var (method, parameters) in WebFeatureGuard.AttachCallsFor(Kind)) _ = RunQuietly(broker.CallAsync(method, parameters));
+    }
+
+    private void OnBindingCalled(WebCdpEvent e)
+    {
+        if (WebFeatureGuard.ReadBindingCall(e.ParamsJson, out var context) is not { } call) return;
+        owner.Post(() => OnPointerLockCall(call.Kind, call.Id, context, e.SessionId));
+    }
+
+    private void OnPointerLockCall(string kind, int id, int context, string? sessionId)
+    {
+        if (kind is "locked" or "released")
+        {
+            var locked = kind == "locked";
+            if (IsPointerLocked == locked) return;
+            IsPointerLocked = locked;
+            PointerLockChanged?.Invoke(locked);
+            return;
+        }
+        var origin = WebPolicy.OriginOf(Url) ?? Url ?? "";
+        // One ask at a time per tab: a page that asks again while nth is asking is refused at once (no prompt flood).
+        if (pointerLockAsk is { IsAnswered: false } || PointerLockRequested is null)
+        {
+            AnswerPointerLock(id, context, sessionId, allow: false);
+            return;
+        }
+        var ask = new WebPointerLockRequest(origin, allow =>
+        {
+            pointerLockAsk = null;
+            AnswerPointerLock(id, context, sessionId, allow);
+        });
+        pointerLockAsk = ask;
+        PointerLockRequested?.Invoke(this, ask);
+    }
+
+    private void AnswerPointerLock(int id, int context, string? sessionId, bool allow)
+    {
+        if (cdp is not { } broker) return;
+        var parameters = new System.Text.Json.Nodes.JsonObject
+        {
+            ["expression"] = WebFeatureGuard.AnswerExpression(id, allow),
+            ["userGesture"] = true,
+        };
+        if (context > 0) parameters["contextId"] = context;
+        _ = RunQuietly(broker.CallAsync("Runtime.evaluate", parameters, sessionId));
+    }
+
+    private void OnFileChooserOpened(WebCdpEvent e)
+    {
+        if (WebFeatureGuard.ReadFileChooser(e.ParamsJson) is not { } chooser) return;
+        owner.Post(() =>
+        {
+            Note(WebAgentNoteKind.FileChooserBlocked, "The page asked for a file. Only the user can choose one, in nth's file upload card.");
+            FileChooserIntercepted?.Invoke(this, chooser);
+        });
+    }
+
+    private void Note(WebAgentNoteKind kind, string text)
+    {
+        var note = new WebAgentNote(kind, text, owner.Now);
+        agentNotes.Add(note);
+        if (agentNotes.Count > AgentNoteLimit) agentNotes.RemoveAt(0);
+        AgentNoted?.Invoke(note);
+    }
+
+    private static string DialogWord(WebScriptDialogKind kind) => kind switch
+    {
+        WebScriptDialogKind.Confirm => "confirm dialog",
+        WebScriptDialogKind.Prompt => "prompt dialog",
+        WebScriptDialogKind.BeforeUnload => "leave-page dialog",
+        _ => "alert",
+    };
+
+    private static string Clip(string text)
+    {
+        var one = text.ReplaceLineEndings(" ").Trim();
+        return one.Length <= 300 ? one : one[..297] + "…";
+    }
+
+    private static async Task RunQuietly(Task task)
+    {
+        try
+        {
+            await task;
+        }
+        catch (Exception)
+        {
+            // A switch the engine refused (an older runtime, a view going away): the script gates still hold, and the safe answer
+            // stands (a pointer-lock ask with no answer stays refused in the page).
+        }
+    }
 
     private sealed class StepScope(WebSurfaceView view) : IDisposable
     {

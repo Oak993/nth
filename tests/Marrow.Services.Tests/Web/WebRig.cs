@@ -42,6 +42,18 @@ internal sealed class WebRig : IDisposable
 
     public static FakeWebView Fake(WebSurfaceView view) => Assert.IsType<FakeWebView>(view.Engine);
 
+    /// <summary>
+    /// W8b (ED-NEW-web-w8b-3): the view's engine after its feature guard attached. The calls so far must be exactly the guard's
+    /// own (<see cref="WebFeatureGuard.AttachCallsFor"/>, in order); they are cleared so the test sees only the calls it makes.
+    /// </summary>
+    public static FakeWebView FakeAfterGuard(WebSurfaceView view)
+    {
+        var fake = Fake(view);
+        Assert.Equal(WebFeatureGuard.AttachCallsFor(view.Kind).Select(call => (call.Method, call.Params.ToJsonString())), fake.CdpCalls.Select(call => (call.Method, call.Params)));
+        fake.CdpCalls.Clear();
+        return fake;
+    }
+
     /// <summary>The result of a task the test expects to have finished already (the fakes answer in line).</summary>
     public static T Done<T>(Task<T> task)
     {

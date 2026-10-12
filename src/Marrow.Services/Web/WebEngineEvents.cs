@@ -115,11 +115,88 @@ public sealed record WebDownloadDecision(bool Save, string? ResultFilePath)
 public sealed class WebDownloadRequest(string url, string suggestedFileName, long? totalBytes, string mimeType, string sourceOrigin)
     : WebDeferredRequest<WebDownloadDecision>(WebDownloadDecision.Cancel)
 {
+    private readonly TaskCompletionSource<IWebDownloadOperation?> started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     public string Url { get; } = url;
     public string SuggestedFileName { get; } = suggestedFileName;
     public long? TotalBytes { get; } = totalBytes;
     public string MimeType { get; } = mimeType;
     public string SourceOrigin { get; } = sourceOrigin;
+
+    /// <summary>
+    /// W8b: the transfer, once the engine applied a Save (null after a Cancel). Its progress feeds the downloads list and the
+    /// Background tasks pane (DESIGN 5.1 "downloads (with a progress ring)", 3.10).
+    /// </summary>
+    public Task<IWebDownloadOperation?> Started => started.Task;
+
+    /// <summary>The engine reports the transfer it started for the decision (or null). Only the first report counts.</summary>
+    public void ReportStarted(IWebDownloadOperation? operation) => started.TrySetResult(operation);
+}
+
+/// <summary>W8b: a saved download's state (<c>CoreWebView2DownloadState</c>, with Paused split out of InProgress).</summary>
+public enum WebDownloadState
+{
+    InProgress,
+    Paused,
+    Interrupted,
+    Completed,
+}
+
+/// <summary>
+/// W8b (DESIGN 5.4): one transfer the user saved. The file is never opened by nth; the browser keeps the Mark of the Web and its
+/// SmartScreen check. Every member runs on the UI thread.
+/// </summary>
+public interface IWebDownloadOperation
+{
+    /// <summary>Where the file lands (nth chose it: the Downloads folder or the Save as… path).</summary>
+    string ResultFilePath { get; }
+
+    long BytesReceived { get; }
+
+    /// <summary>The size, when the server said it.</summary>
+    long? TotalBytes { get; }
+
+    WebDownloadState State { get; }
+
+    /// <summary>Why it stopped (the engine's reason, as text), when <see cref="State"/> is Interrupted.</summary>
+    string? InterruptReason { get; }
+
+    bool CanResume { get; }
+
+    void Cancel();
+
+    void Pause();
+
+    void Resume();
+
+    /// <summary>Bytes, state or the path changed.</summary>
+    event EventHandler? Changed;
+}
+
+/// <summary>
+/// W8b (DESIGN 5.5 "Notifications ... in browse they map to nth's own toast"): a page's notification, held from Windows'
+/// default. The engine always marks it handled; nth shows it as its own toast or drops it.
+/// </summary>
+public sealed class WebNotification(string senderOrigin, string title, string body, string? tag, bool isSilent) : EventArgs
+{
+    public string SenderOrigin { get; } = senderOrigin;
+    public string Title { get; } = title;
+    public string Body { get; } = body;
+    public string? Tag { get; } = tag;
+    public bool IsSilent { get; } = isSilent;
+
+    /// <summary>nth showed it (the engine reports it shown to the page).</summary>
+    public bool Shown { get; set; }
+}
+
+/// <summary>
+/// W8b: <c>ScreenCaptureStarting</c> (<c>getDisplayMedia</c>), before the browser's own picker shows. Denied by default; the
+/// Visus page profiles let the picker show (the user picks what to share in it); agent tabs and sandboxed content never.
+/// </summary>
+public sealed class WebScreenCaptureRequest(string origin) : WebDeferredRequest<bool>(false)
+{
+    /// <summary>The frame's site that asked.</summary>
+    public string Origin { get; } = origin;
 }
 
 /// <summary>DESIGN 2.7: the process failure kinds the engine reports.</summary>
