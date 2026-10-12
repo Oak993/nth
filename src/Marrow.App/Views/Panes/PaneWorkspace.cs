@@ -932,8 +932,7 @@ public sealed class PaneWorkspace : Panel
                 return true;
             case AppShortcut.ExpandPane:
                 if ((pane ?? state.Expanded) is not { } expanding || expanding == PaneKind.Chat) return false;
-                ToggleExpanded(expanding);
-                if (cards.TryGetValue(expanding, out var expandedMotion) && expandedMotion.Card.IsVisible) expandedMotion.Card.Focus(NavigationMethod.Tab);
+                ToggleExpanded(expanding); // a reflow does not move keyboard focus (3.3): a page keeps its caret
                 return true;
             case AppShortcut.MovePaneEarlier:
             case AppShortcut.MovePaneLater:
@@ -1011,8 +1010,8 @@ public sealed class PaneWorkspace : Panel
         }
         SettleAll();
         var targets = PaneRedock.Targets(Drawn(), solved, kind);
-        var start = e.GetPosition(this);
-        var current = redock = new Redock(kind, motion, start);
+        var start = motion.Card.Header.TranslatePoint(motion.Card.Header.PressPoint, this) ?? e.GetPosition(this);
+        var current = redock = new Redock(kind, motion, start) { Pointer = e.GetPosition(this) };
         redocking = true;
         var top = TopBand;
         foreach (var target in targets)

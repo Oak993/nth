@@ -146,6 +146,9 @@ public sealed class PaneHeader : Panel
     /// <summary>The pane is lifted and follows the pointer now.</summary>
     public bool IsLifted => lifted;
 
+    /// <summary>Where the button went down, in header coordinates: the lifted pane follows the pointer from here (the canvas does).</summary>
+    public Point PressPoint => pressPoint;
+
     /// <summary>Ends a drag in progress without a drop (Esc, a closed pane); the pointer capture is released.</summary>
     public void CancelDrag()
     {
