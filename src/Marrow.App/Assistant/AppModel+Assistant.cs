@@ -5,6 +5,8 @@
 // app's approvals, questions, turn ends and Hydra heads reach the controller when one is bound. With none bound, nothing
 // changes for any chat but a mission's, which stays sealed and capped.
 using Marrow.App.Assistant;
+using Marrow.App.Safety;
+using Marrow.App.Tray;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Assistant;
@@ -43,6 +45,42 @@ public sealed partial class AppModel
         assistantFeedStopped = true;
         assistantTaps?.Dispose();
         AssistantEvents.Dispose();
+        DisposeSafety();
+    }
+
+    /// <summary>
+    /// The one stop chord of nth (12.6), shared by Tactus and the Assistant; null until <see cref="EnsureStopKey"/> (the Assistant's
+    /// start, or Tactus's). The chord is registered only while some work holds a lease on it.
+    /// </summary>
+    public GlobalStop? StopKey { get; private set; }
+
+    /// <summary>The one tray icon of nth (7.4); null until <see cref="EnsureTray"/>.</summary>
+    public AppTray? Tray { get; private set; }
+
+    /// <summary>
+    /// The stop chord service, made on first use over its own message-loop thread. <paramref name="chordSetting"/> reads the
+    /// owner's chord text ("Ctrl+Alt+Esc" when null or unreadable); Settings persists it (AS-8 for the Assistant, Tactus's
+    /// page for its own).
+    /// </summary>
+    public GlobalStop EnsureStopKey(Func<string?>? chordSetting = null) =>
+        StopKey ??= new GlobalStop(new StopChordThread(), chordSetting ?? (() => null));
+
+    /// <summary>
+    /// The tray icon, made on first use. It shows while the window is hidden (<paramref name="windowHidden"/>), always when
+    /// <paramref name="alwaysShow"/> says so, or while a feature that added items says it is live; <paramref name="open"/>
+    /// brings the window back.
+    /// </summary>
+    public AppTray EnsureTray(Func<bool> windowHidden, Func<bool>? alwaysShow = null, Action? open = null) =>
+        Tray ??= new AppTray(new AvaloniaTrayHost(), windowHidden, alwaysShow, open);
+
+    private void DisposeSafety()
+    {
+        dextraTray?.Dispose();
+        dextraTray = null;
+        Tray?.Dispose();
+        Tray = null;
+        StopKey?.Dispose();
+        StopKey = null;
     }
 
     /// <summary>Dextra's controller, while Dextra runs (AS-8 starts it from the home; null before).</summary>
@@ -63,7 +101,9 @@ public sealed partial class AppModel
     /// controller; the caller owns it.
     /// </summary>
     public AssistantController StartDextra(AssistantStore store, Action<AuditEntry> audit, Func<IReadOnlyList<Marrow.Core.Port.Assistant.AssistantProfile>> profiles,
-        ProviderKind provider = ProviderKind.Claude, string? model = null, IReadOnlyList<string>? protectedRoots = null)
+        ProviderKind provider = ProviderKind.Claude, string? model = null, IReadOnlyList<string>? protectedRoots = null,
+        GlobalStop? stopKey = null, AppTray? tray = null, IPcStreamHold? pcStreams = null,
+        IReadOnlyList<IStopScope>? stopScopes = null)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(audit);
@@ -91,14 +131,23 @@ public sealed partial class AppModel
             Projects = () => [.. Projects.Select(p => new MissionProject(p.Id, p.Name, p.Path))],
             Profiles = profiles,
             Jobs = MissionJobs,
-            Workspaces = new StoreMissionWorkspaces(mission => store.MissionWorktreeFolder(MissionJournal.StoreId(mission))),
+            Workspaces = new StoreMissionWorkspaces((mission, attempt) =>
+                store.MissionWorktreeFolder(MissionJournal.StoreId(mission) + (attempt > 1 ? "-" + attempt.ToString(System.Globalization.CultureInfo.InvariantCulture) : ""))),
             Audit = audit,
             Save = record => store.SaveMission(MissionJournal.StoreId(record.Id), MissionJournal.ToJson(record)),
             Provider = provider,
             Model = model,
             ProtectedRoots = [store.Root, .. protectedRoots ?? []],
+            StopKey = stopKey,
+            PcStreams = pcStreams,
+            StopScopes = stopScopes ?? [],
         });
         controller.Runner.Load(store.Missions().Select(stored => MissionJournal.FromJson(stored.Body)).OfType<MissionRecord>());
+        // What Revert and Restart kept for 7 days, and the workspaces of missions over for 7 days, are swept at start (the
+        // scheduler, AS-10, repeats it daily); a sweep that fails is reported and never stops the start.
+        _ = SweepKept(controller);
+        // The Assistant's items in nth's one tray icon (7.4, 12.6): Stop works with the window closed.
+        if (tray is not null) dextraTray = AssistantTray.Bind(tray, controller);
         BindDextra(controller);
         return controller;
     }
@@ -139,6 +188,17 @@ public sealed partial class AppModel
     private IReadOnlyList<RouteModel> RouterModelsOf(ProviderKind provider) =>
         RouterModels.Of(provider, Providers.Models(provider), IgnisRuntimeSeams.Points.Current());
 
+    private AssistantTray? dextraTray;
+
+    private static async Task SweepKept(AssistantController controller)
+    {
+        try { await controller.Runner.CleanUpWorkspaces().ConfigureAwait(false); }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            controller.Runner.ReportFault("The 7-day sweep of kept work failed: " + error.Message);
+        }
+    }
+
     /// <summary>Binds Dextra's controller: the nth-dextra tools, approvals, questions and turn ends go to it.</summary>
     public void BindDextra(AssistantController controller)
     {
@@ -153,6 +213,8 @@ public sealed partial class AppModel
     public void UnbindDextra()
     {
         if (Dextra is null) return;
+        dextraTray?.Dispose();
+        dextraTray = null;
         Dextra = null;
         AssistantMcpBridge.Host.SetProcessDefault(NoAssistantToolHost.Instance);
     }
@@ -182,10 +244,38 @@ public sealed partial class AppModel
     internal Task DextraAdmitHelper(ChatThread helper) =>
         helper.MissionID is not null && Dextra is { } dextra ? dextra.Runner.AdmitHelper(helper.Id, helper.Provider) : Task.CompletedTask;
 
+    /// <summary>
+    /// A head whose finish a Pause held (12.6b) is released: Hydra finishes it now with the status its turn ended with, and
+    /// tells the lead. The turn's own tail runs again, and finds the head no longer held.
+    /// </summary>
+    internal void DextraFinishHeldHead(ChatThread head, TurnStatus status) => HydraHeadTurnFinished(head, status);
+
+    /// <summary>
+    /// Resume on a head Stop cut (12.6b): Hydra counts it as running again, and its chat gets the continue message. False when
+    /// the chat cannot take it now.
+    /// </summary>
+    internal bool DextraRestartHead(Guid head, string text)
+    {
+        UpdateHydraHead(head, value => value with
+        {
+            HydraHeadInfoStatus = HydraHeadInfo.Status.Running,
+            FinishedAt = null,
+            ExecutionFinishedAt = null,
+        });
+        return Runtime(head).SendMissionMessage(text);
+    }
+
     /// <summary>Hydra seam 3: a head under a mission's lead is the mission's agent too.</summary>
     internal void DextraHeadAdded(ChatThread lead, ChatThread head) => Dextra?.OnHeadAdded(lead, head);
 
     /// <summary>A head of a mission waits at the agent gate before its chat starts; at once for any other head.</summary>
-    internal Task DextraAdmitHead(ChatThread head) =>
-        head.MissionID is not null && Dextra is { } dextra ? dextra.Runner.AdmitHead(head.Id, head.Provider) : Task.CompletedTask;
+    internal Task<bool> DextraAdmitHead(ChatThread head) =>
+        head.MissionID is not null && Dextra is { } dextra ? dextra.Runner.AdmitHead(head.Id, head.Provider) : Task.FromResult(true);
+
+    /// <summary>
+    /// A head Stop kept from starting waits here until the owner resumes it (12.6b); false when its mission is over and it never
+    /// starts. Its chat is started by the caller once this says true and the head has been admitted again.
+    /// </summary>
+    internal Task<bool> DextraAwaitHeadResume(ChatThread head) =>
+        head.MissionID is not null && Dextra is { } dextra ? dextra.Runner.AwaitHeadResume(head.Id) : Task.FromResult(false);
 }

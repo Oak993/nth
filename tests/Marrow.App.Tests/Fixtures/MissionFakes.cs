@@ -162,6 +162,38 @@ internal sealed class FakeMissionAgents : IMissionAgents
         return MoveAnswer?.Invoke(thread, account) ?? Task.FromResult(true);
     }
 
+    /// <summary>What each chat holds as context (AS-6: a cold start reads it again); unknown when absent.</summary>
+    public Dictionary<Guid, long> Context { get; } = [];
+
+    public long? ContextTokens(Guid thread) => Context.TryGetValue(thread, out var tokens) ? tokens : null;
+
+    /// <summary>What each chat says it is doing (AS-6: the "Still pausing" note names it).</summary>
+    public Dictionary<Guid, string> Doing { get; } = [];
+
+    public string? Activity(Guid thread) => Doing.TryGetValue(thread, out var text) ? text : null;
+
+    /// <summary>The heads whose finish a Pause held and a Resume gave back (AS-6).</summary>
+    public List<(Guid Head, TurnStatus Status)> HeldFinished { get; } = [];
+
+    public void FinishHeld(Guid head, TurnStatus status) => HeldFinished.Add((head, status));
+
+    /// <summary>The stopped heads whose chats were started again, and what they were told (AS-6).</summary>
+    public List<(Guid Head, string Text)> HeadsRestarted { get; } = [];
+
+    public bool RestartHead(Guid head, string text)
+    {
+        lock (gate)
+        {
+            HeadsRestarted.Add((head, text));
+            if (Chats.FirstOrDefault(c => c.Id == head) is { } chat)
+            {
+                chat.Sent.Add(text);
+                chat.Running = true;
+            }
+        }
+        return true;
+    }
+
     /// <summary>The chat's turn ends with this answer.</summary>
     public void Finish(Guid thread, string? answer)
     {
@@ -185,16 +217,50 @@ internal sealed class FakeWorkspaces(string root) : IMissionWorkspaces
 
     public Exception? CreateFails { get; set; }
 
-    public Task<MissionWorkspace> Create(Guid mission, string title, string source)
+    /// <summary>What Revert was asked to do with each workspace (AS-6).</summary>
+    public List<MissionWorkspace> Reverted { get; } = [];
+
+    public Exception? RevertFails { get; set; }
+
+    /// <summary>What an interrupted revert is found to have done (AS-6): null when it did nothing.</summary>
+    public RevertedWork? FoundReverted { get; set; }
+
+    public Task<RevertedWork?> FindReverted(MissionWorkspace workspace, Guid mission)
+    {
+        Calls.Add("find reverted");
+        return Task.FromResult(FoundReverted);
+    }
+
+    public Task<RevertedWork> Revert(MissionWorkspace workspace, Guid mission, DateTimeOffset now, int changedFiles)
+    {
+        Calls.Add("revert");
+        if (RevertFails is { } error) throw error;
+        Reverted.Add(workspace);
+        return Task.FromResult(new RevertedWork(workspace, "refs/nth/reverted/" + mission.ToString("N") + "/stamp", "c0ffee", now, changedFiles));
+    }
+
+    public Task<MissionWorkspace> Restore(RevertedWork reverted, Guid mission)
+    {
+        Calls.Add("restore");
+        return Task.FromResult(reverted.Workspace);
+    }
+
+    public Task DropReverted(RevertedWork reverted, Guid mission)
+    {
+        Calls.Add("drop");
+        return Task.CompletedTask;
+    }
+
+    public Task<MissionWorkspace> Create(Guid mission, string title, string source, int attempt = 1)
     {
         Calls.Add("create " + source);
         if (CreateFails is { } error) throw error;
-        var path = Path.Combine(root, mission.ToString("N"));
+        var path = Path.Combine(root, mission.ToString("N") + (attempt > 1 ? "-" + attempt : ""));
         return Task.FromResult(new MissionWorkspace(MissionWorkspaceKind.Worktree, source, path)
         {
             WorkingFolder = path,
             Repository = source,
-            Branch = MissionWorkspaces.BranchName(mission, title),
+            Branch = MissionWorkspaces.BranchName(mission, title, attempt),
             BaseBranch = "main",
             BaseCommit = "0000000000000000000000000000000000000000",
         });
@@ -281,7 +347,7 @@ internal sealed class FakeMemory(MemoryReading? reading) : IMemoryReader
 internal sealed class MissionRig
 {
     public MissionRig(string root, Func<ApprovalRequest, ApprovalVerdict>? policy = null, MissionLimits? limits = null, MemoryReading? memory = null,
-        Action<MissionRecord>? save = null)
+        Action<MissionRecord>? save = null, MissionRigControls? controls = null)
     {
         Root = root;
         Workspaces = new FakeWorkspaces(Path.Combine(root, "worktrees"));
@@ -308,6 +374,13 @@ internal sealed class MissionRig
                 if (AuditFails?.Invoke(e) == true) throw new IOException("The activity log's disk is full.");
                 lock (Audit) Audit.Add(e);
             },
+            // Dextra AS-6: the controls' seams, when a test asks for them.
+            StopKey = controls?.StopKey,
+            Hold = controls?.Hold,
+            PcStreams = controls?.PcStreams,
+            ReserveCard = controls?.ReserveCard,
+            CurrentInputs = controls?.CurrentInputs,
+            Time = controls?.Time ?? TimeProvider.System,
         });
     }
 

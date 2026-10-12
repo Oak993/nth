@@ -70,7 +70,7 @@ public static class MissionStates
         state is MissionState.Planning or MissionState.Working or MissionState.Reviewing or MissionState.NeedsYou or MissionState.Blocked;
 
     /// <summary>The slots of a task's row or card (12.6b's table).</summary>
-    public static ControlSlots Slots(MissionState state, bool changedFiles, bool reverted) => state switch
+    public static ControlSlots Slots(MissionState state, bool changedFiles, bool reverted, bool stoppedAfterFailure = false) => state switch
     {
         MissionState.Planning or MissionState.Working or MissionState.Reviewing or MissionState.NeedsYou or MissionState.Blocked =>
             new ControlSlots(SlotA.Pause, true, SlotB.Stop, true),
@@ -79,7 +79,9 @@ public static class MissionStates
         MissionState.Stopping => new ControlSlots(SlotA.Resume, false, SlotB.Stop, false),
         MissionState.Stopped => reverted
             ? new ControlSlots(SlotA.Restart, true, SlotB.RevertChanges, false)
-            : new ControlSlots(SlotA.Resume, true, SlotB.RevertChanges, changedFiles),
+            : stoppedAfterFailure
+                ? new ControlSlots(SlotA.Restart, true, SlotB.RevertChanges, changedFiles)
+                : new ControlSlots(SlotA.Resume, true, SlotB.RevertChanges, changedFiles),
         MissionState.Done => new ControlSlots(SlotA.None, false, SlotB.None, false),
         _ => throw new ArgumentOutOfRangeException(nameof(state)),
     };

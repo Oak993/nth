@@ -122,6 +122,12 @@ public sealed record DecisionItem(Guid Id, DecisionKind Kind, DecisionWeight Wei
 
     public DecisionAnswer? Answer { get; init; }
 
+    /// <summary>
+    /// The answer the owner gave while the task was paused (12.6b "Cards while paused"): kept, shown as "your answer runs
+    /// on resume", and acted on at Resume. A card holding one is still open; answering again replaces it.
+    /// </summary>
+    public DecisionAnswer? Kept { get; init; }
+
     public DateTimeOffset Raised { get; init; }
 
     public DateTimeOffset? Settled { get; init; }

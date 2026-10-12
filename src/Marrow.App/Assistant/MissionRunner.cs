@@ -7,6 +7,7 @@
 // a mission. Every change is journaled, so a crash resumes it. Confined to the app's main thread, like AppModel; work
 // that resumes off it (the gate, git) comes back through IMissionAgents.Post.
 using System.Globalization;
+using Marrow.App.Safety;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Assistant;
@@ -72,14 +73,47 @@ public sealed class MissionRunnerOptions
     public Action<DecisionItem, DecisionAnswer>? Granted { get; init; }
 
     public TimeProvider Time { get; init; } = TimeProvider.System;
+
+    /// <summary>
+    /// The one stop chord (AS-6, 12.6): a mission holds a lease on it while it runs; when the chord cannot be registered
+    /// nothing starts (a start waits with the line, a Resume is refused). Null: no chord (the tests, a build without it).
+    /// </summary>
+    public GlobalStop? StopKey { get; init; }
+
+    /// <summary>The scheduler's two holds (AS-6, 12.6, 12.6b): what they cover starts paused.</summary>
+    public SchedulerHold? Hold { get; init; }
+
+    /// <summary>Tactus's streams, held by a task's Pause and resumed by its Resume (12.6b); null while Tactus is not here.</summary>
+    public IPcStreamHold? PcStreams { get; init; }
+
+    /// <summary>
+    /// A fallback that raises the reserve's card for a task a reserve holds when none waits (11.5): normally AS-13's ReserveGuard
+    /// raised it when it held the task, and Resume only puts the task at Needs you with it. Null: Resume is refused when no card waits.
+    /// </summary>
+    public Func<MissionRecord, DecisionItem?>? ReserveCard { get; init; }
+
+    /// <summary>
+    /// The inputs a held card has now, so a card whose inputs changed while it was held is withdrawn and raised anew
+    /// (4.2). Null: unchanged.
+    /// </summary>
+    public Func<DecisionItem, ValueList<DecisionInput>?>? CurrentInputs { get; init; }
+
+    /// <summary>How long a paused task keeps its agents' processes before they are let go (12.6b: 10 minutes).</summary>
+    public TimeSpan ReleaseAgentsAfter { get; init; } = MissionRunner.AgentsReleasedAfter;
 }
 
-public sealed class MissionRunner
+public sealed partial class MissionRunner
 {
+    /// <summary>A paused task keeps its agents for this long; then each local agent's process tree is ended (12.6b).</summary>
+    public static readonly TimeSpan AgentsReleasedAfter = TimeSpan.FromMinutes(10);
+
     /// <summary>How often a stopping mission looks whether its agents have ended.</summary>
     public static readonly TimeSpan StopCheck = TimeSpan.FromMilliseconds(100);
 
     public const string Withdrawn = "Answered Deny by Stop: the turn was cut, and it is asked again when that turn runs again.";
+
+    /// <summary>The note on an irreversible card whose approval the pause got to first (12.6b).</summary>
+    public const string HeldAfterApproval = "You approved this just before the pause, and it had not run. After Resume it needs a new tap, with its inputs checked again.";
 
     public const string WithdrawnQuestion = "Withdrawn by Stop: the turn that asked was cut, and it asks again when that turn runs again.";
 
@@ -100,12 +134,32 @@ public sealed class MissionRunner
         public CancellationTokenSource Launch = new();
         /// <summary>It came back from the journal: no turn of it runs, so Resume runs its cut turn again.</summary>
         public bool Restored;
+        /// <summary>The stop chord's lease while the mission runs (AS-6).</summary>
+        public IDisposable? Lease;
+        /// <summary>Wakes the heads that wait to start whenever the mission's heads change (AS-6).</summary>
+        public TaskCompletionSource HeadsChanged = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        /// <summary>The status a head's turn ended with while a Pause held its finish (AS-6): Resume gives it to Hydra.</summary>
+        public readonly Dictionary<Guid, TurnStatus> HeldFinish = [];
+        /// <summary>Agents the owner forced to end: they count as settled whatever the provider says (AS-6).</summary>
+        public readonly HashSet<Guid> ForceEnded = [];
+        /// <summary>The release timer of a paused task (AS-6).</summary>
+        public ITimer? ReleaseTimer;
+        /// <summary>Tactus streams a pause held: Resume sends the continue message when any were.</summary>
+        public bool PcHeld;
+        /// <summary>Revert changes is running (git work off the main thread): Resume and Restart wait for it.</summary>
+        public bool Reverting;
+        /// <summary>The task was stopped as a whole (its own Stop or Stop all), not just summed to Stopped from its heads (12.6b).</summary>
+        public bool WholeStop;
+        /// <summary>When the task began pausing (the "Still pausing" note opens 5 s later); null while it is not pausing.</summary>
+        public DateTimeOffset? PausingSince;
     }
 
     public MissionRunner(MissionRunnerOptions options)
     {
         o = options;
         o.Queue.Changed += QueueChanged;
+        // 12.6b "Cards while paused": a reversible card of a paused task keeps the owner's answer until Resume.
+        o.Queue.KeepsAnswers = KeepsAnswer;
     }
 
     /// <summary>
@@ -193,6 +247,15 @@ public sealed class MissionRunner
         if (refused is null) Reserve?.MissionBegan(record, request.Reserve);
         Raise(record);
         if (refused is not null) return new MissionStart(record, Task.CompletedTask);
+        if (o.Hold?.StartsPaused(request.Origin) == true)
+        {
+            // Stop all holds the scheduler, or Pause all is on and this is a duty (12.6, 12.6b): it starts paused, and Resume
+            // (or Resume all) launches it.
+            var why = o.Hold.StopHeld ? "Stop all" : "Pause all";
+            Update(mission.Id, r => r with { Mission = MissionMachine.Pause(r.Mission, turnRunning: false, PauseCause.PauseAll).Mission });
+            Log(Find(mission.Id)!, null, "pause", ActionClass.Agents, $"starts paused: {why} is on");
+            return new MissionStart(Find(mission.Id)!, Task.CompletedTask);
+        }
         return new MissionStart(record, Launch(mission.Id));
     }
 
@@ -200,10 +263,12 @@ public sealed class MissionRunner
     {
         if (Find(id) is not { } record) return;
         var token = LiveOf(id).Launch.Token;
+        // Fail closed (12.6): no mission starts while the stop key cannot be registered.
+        if (!await EnsureStopKey(id, token).ConfigureAwait(false)) return;
         if (record.Workspace is null)
         {
             MissionWorkspace workspace;
-            try { workspace = await o.Workspaces.Create(id, record.Mission.Title, record.ProjectPath).ConfigureAwait(false); }
+            try { workspace = await o.Workspaces.Create(id, record.Mission.Title, record.ProjectPath, record.Attempt).ConfigureAwait(false); }
             catch (Exception error) when (error is not OperationCanceledException)
             {
                 OnMain(() => Block(id, error is MissionWorkspaceError ? error.Message : "Its workspace could not be made: " + error.Message));
@@ -308,7 +373,7 @@ public sealed class MissionRunner
     /// A Hydra head was added under one of the runner's leads: it is the mission's agent too. A native head (the lead
     /// provider's own subagent) runs inside the lead's process, so in the lead's job and slot, and works at once.
     /// </summary>
-    public void HeadAdded(Guid lead, Guid head, string name, bool native = false)
+    public void HeadAdded(Guid lead, Guid head, string name, bool native = false, IReadOnlyList<Guid>? dependsOn = null)
     {
         if (MissionOf(lead) is not { } record) return;
         lock (gate)
@@ -316,15 +381,29 @@ public sealed class MissionRunner
             threadMission[head] = record.Id;
             LiveOf(record.Id).AgentNames[head] = name;
         }
-        Update(record.Id, r => r with
+        Update(record.Id, r =>
         {
-            Mission = r.Mission with
+            var initial = native ? HeadState.Working : HeadState.Queued;
+            var added = new MissionHead(HeadId(head), name, initial)
             {
-                ThreadIds = r.Mission.ThreadIds.Contains(head) ? r.Mission.ThreadIds : r.Mission.ThreadIds.Appending(head),
-                Heads = r.Mission.Heads.Any(h => h.Id == HeadId(head))
-                    ? r.Mission.Heads
-                    : r.Mission.Heads.Appending(new MissionHead(HeadId(head), name, native ? HeadState.Working : HeadState.Queued)),
-            },
+                DependsOn = new ValueList<string>((dependsOn ?? []).Select(HeadId)),
+            };
+            // A head that appears while the task is paused or stopped is paused or stopped with it (12.6b: queued heads
+            // pause at once); it starts on Resume, never before.
+            added = r.Mission.State switch
+            {
+                MissionState.Pausing or MissionState.Paused => added with { State = HeadState.Paused, ResumeTo = initial },
+                MissionState.Stopping or MissionState.Stopped => added with { State = HeadState.Stopped, ResumeTo = initial },
+                _ => added,
+            };
+            return r with
+            {
+                Mission = r.Mission with
+                {
+                    ThreadIds = r.Mission.ThreadIds.Contains(head) ? r.Mission.ThreadIds : r.Mission.ThreadIds.Appending(head),
+                    Heads = r.Mission.Heads.Any(h => h.Id == HeadId(head)) ? r.Mission.Heads : r.Mission.Heads.Appending(added),
+                },
+            };
         });
     }
 
@@ -360,18 +439,60 @@ public sealed class MissionRunner
     private readonly Dictionary<Guid, List<TaskCompletionSource>> reserveWaiters = [];
 
     /// <summary>
-    /// A head waits for the usage reserve (11.5: a new agent's first turn is a turn), then at the gate (the same 16-agent cap and
-    /// memory floor as every agent), before its chat starts. A head whose account has no room waits Queued while its mission is
-    /// paused for the reserve; it goes on when the owner's answer lets the mission go on, and stops waiting when the mission is
-    /// stopped or ends.
+    /// A head waits to start (12.6b): until it may (queued, and every head it waits on done; a paused head waits for its Resume), then
+    /// for the usage reserve (11.5: a new agent's first turn is a turn), then at the gate (the same 16-agent cap and memory floor as
+    /// every agent). A head whose account has no room waits Queued while its mission is paused for the reserve; it goes on when the
+    /// owner's answer lets the mission go on. True when the head started. False when it must not start now: its mission was stopped
+    /// or ended, or the head itself was stopped, while it waited. It took no slot and started nothing; the caller then asks
+    /// <see cref="AwaitHeadResume"/> and tries again once the owner resumes it.
     /// </summary>
-    public async Task AdmitHead(Guid head, ProviderKind provider, CancellationToken token = default)
+    public async Task<bool> AdmitHead(Guid head, ProviderKind provider, CancellationToken token = default)
     {
-        if (MissionOf(head) is not { } record) return;
-        // A mission stopped or ended while the head waited: it takes no slot and starts nothing.
-        if (!await WaitForReserve(record.Id, head, provider, token).ConfigureAwait(false)) return;
-        await Admit(record.Id, head, provider, token).ConfigureAwait(false);
-        OnMain(() => HeadStarted(head));
+        if (MissionOf(head) is not { } first) return true;
+        var mission = first.Id;
+        while (!token.IsCancellationRequested)
+        {
+            Task changed;
+            lock (gate) changed = LiveOf(mission).HeadsChanged.Task;
+            if (Find(mission) is not { } record || record.Mission.State is MissionState.Done or MissionState.Failed) return false;
+            if (record.Mission.Heads.FirstOrDefault(h => h.Id == HeadId(head)) is not { } self) return false;
+            if (self.State is HeadState.Stopped or HeadState.Stopping) return false;
+            if (!MissionMachine.CanStart(self, record.Mission.Heads))
+            {
+                try { await changed.WaitAsync(token).ConfigureAwait(false); }
+                catch (OperationCanceledException) { return false; }
+                continue;
+            }
+            if (!await WaitForReserve(mission, head, provider, token).ConfigureAwait(false)) return false;
+            await Admit(mission, head, provider, token).ConfigureAwait(false);
+            var started = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            OnMain(() => started.TrySetResult(HeadStarted(head)));
+            if (await started.Task.ConfigureAwait(false)) return true;
+            // It was paused or stopped while it waited at the gate: the slot goes back; the top of the loop says what happens next.
+            o.Gate.Leave(head);
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// A head that did not start because its mission or it was stopped waits here for its Resume (12.6b): true once it is queued
+    /// again and may start (the caller then asks <see cref="AdmitHead"/> again), false when its mission ended or it is gone.
+    /// </summary>
+    public async Task<bool> AwaitHeadResume(Guid head, CancellationToken token = default)
+    {
+        if (MissionOf(head) is not { } first) return false;
+        var mission = first.Id;
+        while (!token.IsCancellationRequested)
+        {
+            Task changed;
+            lock (gate) changed = LiveOf(mission).HeadsChanged.Task;
+            if (Find(mission) is not { } record || record.Mission.State is MissionState.Done or MissionState.Failed) return false;
+            if (record.Mission.Heads.FirstOrDefault(h => h.Id == HeadId(head)) is not { } self) return false;
+            if (self.State is HeadState.Queued or HeadState.Paused && record.Mission.State is not (MissionState.Stopping or MissionState.Stopped)) return true;
+            try { await changed.WaitAsync(token).ConfigureAwait(false); }
+            catch (OperationCanceledException) { return false; }
+        }
+        return false;
     }
 
     // True when the reserve lets the head start (or there is none); false when the wait was cancelled.
@@ -435,33 +556,43 @@ public sealed class MissionRunner
         foreach (var wake in waiting) wake.TrySetResult();
     }
 
-    private void HeadStarted(Guid head)
+    private bool HeadStarted(Guid head)
     {
-        if (MissionOf(head) is not { } record) return;
+        if (MissionOf(head) is not { } record) return true;
         var move = MissionMachine.StartHead(record.Mission, HeadId(head));
-        if (move.Done) Update(record.Id, r => r with { Mission = move.Mission });
+        if (!move.Done) return false;
+        Update(record.Id, r => r with { Mission = move.Mission });
+        return true;
     }
 
-    /// <summary>A head finished its last turn (HydraHeadTurnFinished): its slot is free and it counts as done.</summary>
-    public void HeadFinished(Guid head, TurnStatus status)
+    /// <summary>
+    /// A head finished its last turn (HydraHeadTurnFinished): its slot is free and it counts as done. Returns true when a
+    /// Pause holds the finish (12.6b): the head paused at this turn boundary, Hydra must not finish it or tell the lead, and
+    /// Resume gives the finish back (IMissionAgents.FinishHeld). Its slot and job stay for the first 10 minutes paused.
+    /// </summary>
+    public bool HeadFinished(Guid head, TurnStatus status)
     {
-        if (MissionOf(head) is not { } record) return;
+        if (MissionOf(head) is not { } record) return false;
+        var id = HeadId(head);
+        if (record.Mission.State != MissionState.Stopping
+            && record.Mission.Heads.FirstOrDefault(h => h.Id == id) is { State: HeadState.Pausing or HeadState.Paused })
+        {
+            lock (gate) LiveOf(record.Id).HeldFinish[head] = status;
+            Update(record.Id, r => r with { Mission = MissionMachine.TurnBoundary(r.Mission, id).Mission });
+            Log(record, head, "pause", ActionClass.Agents, "head paused at its turn boundary");
+            return true;
+        }
         o.Gate.Leave(head);
         if (record.Mission.State == MissionState.Stopping)
         {
             CheckStopping();
-            return;
+            return false;
         }
-        var id = HeadId(head);
-        if (record.Mission.Heads.FirstOrDefault(h => h.Id == id) is not { } h) return;
-        if (h.State == HeadState.Pausing)
-        {
-            Update(record.Id, r => r with { Mission = MissionMachine.TurnBoundary(r.Mission, id).Mission });
-            return;
-        }
+        if (record.Mission.Heads.FirstOrDefault(h => h.Id == id) is not { } h) return false;
         var move = h.State == HeadState.Working ? MissionMachine.FinishHead(record.Mission, id) : null;
         if (move is { Done: true }) Update(record.Id, r => r with { Mission = move.Mission });
         o.Jobs.End(head);
+        return false;
     }
 
     private static string HeadId(Guid thread) => thread.ToString("D");
@@ -551,10 +682,18 @@ public sealed class MissionRunner
     private void Approved(DecisionItem card, DecisionAnswer answer, ApprovalRequest request)
     {
         if (card.ThreadId is not { } thread || card.MissionId is not { } id || Find(id) is not { } record) return;
+        var actionClass = card.Class ?? ActionClass.Unknown;
+        // 12.6b: an irreversible card the owner approved a moment before the task paused, which had not run, is withdrawn:
+        // it is held like the rest, and needs a new tap after Resume. The provider still waits on it (its request stays).
+        if (answer.Approves && record.Mission.State is MissionState.Pausing or MissionState.Paused && DecisionRules.HeldByPause(card)
+            && o.Queue.Reopen(card.Id, DecisionHold.Pause, HeldAfterApproval))
+        {
+            Log(record, thread, "approval", actionClass, "held by Pause before it ran: needs a new tap after Resume", request.Title, CardId(card));
+            return;
+        }
         bool pending;
         lock (gate) pending = pendingRequests.Remove((thread, request.Id));
         if (!pending) return;
-        var actionClass = card.Class ?? ActionClass.Unknown;
         if (!answer.Approves)
         {
             o.Agents.Resolve(thread, request, approve: false);
@@ -690,6 +829,9 @@ public sealed class MissionRunner
             // A helper's turn is over: its gate slot is free (it waits again before nth starts its next turn).
             o.Gate.Leave(thread);
             if (record.Mission.State == MissionState.Stopping) CheckStopping();
+            else if (record.Mission.State == MissionState.Pausing && record.Mission.Heads.Count == 0
+                     && !Threads(record).Any(t => t != thread && o.Agents.TurnRunning(t)))
+                Update(id, r => r with { Mission = MissionMachine.TurnBoundary(r.Mission).Mission });
             else Advance(id);
             return;
         }
@@ -701,6 +843,9 @@ public sealed class MissionRunner
             case MissionState.Pausing:
                 if (thread == record.LeadThread) LiveOf(id).LeadDone = status == TurnStatus.Completed;
                 if (thread == record.ReviewerThread) LiveOf(id).ReviewDone = status == TurnStatus.Completed;
+                // A task with no heads is paused only once no turn of it runs (a helper's may still); the last one to end
+                // brings the boundary. Line counts never call a pausing head paused: a head pauses at its own turn's end.
+                if (record.Mission.Heads.Count == 0 && Threads(record).Any(t => t != thread && o.Agents.TurnRunning(t))) return;
                 Update(id, r => r with { Mission = MissionMachine.TurnBoundary(r.Mission, r.Mission.Heads.Any(h => h.Id == HeadId(thread)) ? HeadId(thread) : null).Mission });
                 return;
         }
@@ -760,7 +905,7 @@ public sealed class MissionRunner
 
     private async Task StartReview(Guid id)
     {
-        if (Find(id) is not { } record) return;
+        if (Find(id) is not { } record || record.ReviewerThread is not null) return;
         Update(id, r => Moved(r, MissionState.Reviewing));
         MergeReview? changes = null;
         if (record.Workspace is { } workspace)
@@ -774,7 +919,7 @@ public sealed class MissionRunner
         if (token.IsCancellationRequested) return;
         OnMain(() =>
         {
-            if (Find(id) is not { } now || now.Mission.State != MissionState.Reviewing)
+            if (Find(id) is not { } now || now.Mission.State != MissionState.Reviewing || now.ReviewerThread is not null)
             {
                 o.Gate.Leave(slot);
                 return;
@@ -1001,6 +1146,7 @@ public sealed class MissionRunner
             catch (Exception error) when (error is not OperationCanceledException) { continue; }
             OnMain(() => Update(record.Id, r => r with { Workspace = null }));
         }
+        await SweepKept().ConfigureAwait(false);
     }
 
     // ---- the owner's controls ----
@@ -1016,12 +1162,37 @@ public sealed class MissionRunner
         var threads = Threads(record);
         var open = threads.Any(t => o.Agents.TurnRunning(t) || (o.Jobs.Existing(t)?.LiveProcesses ?? 0) > 0);
         var move = MissionMachine.Stop(record.Mission, open, cause);
-        if (!move.Done) return move.Refused;
-        lock (gate) LiveOf(id).Launch.Cancel();
+        if (!move.Done)
+        {
+            // A task that summed to Stopped from its heads (the last head that could run was stopped) has no stop of its own
+            // yet: its lead may still run. Stop reaches the agents then, and the task is stopped as a whole (12.6b).
+            bool wholeAlready;
+            lock (gate) wholeAlready = LiveOf(id).WholeStop;
+            if (record.Mission.State is MissionState.Stopping or MissionState.Stopped && !wholeAlready && open)
+            {
+                lock (gate) LiveOf(id).WholeStop = true;
+                CutAgents(id, record, threads, cause);
+                return null;
+            }
+            return move.Refused;
+        }
+        lock (gate)
+        {
+            LiveOf(id).Launch.Cancel();
+            LiveOf(id).WholeStop = true;
+        }
         var stopping = move.Mission;
         // Its approval cards are answered Deny below, so on Resume it goes back to what it was doing, not to Needs you.
         if (stopping.ResumeTo == MissionState.NeedsYou) stopping = stopping with { ResumeTo = NeedsYouFrom(record) };
         Update(id, r => r with { Mission = stopping, Waiting = null });
+        CutAgents(id, record, threads, cause);
+        return null;
+    }
+
+    // The effects of a Stop on the task's agents: its pending requests die, its cards are held, every turn is interrupted, the
+    // heads stopped, every job terminated and every slot freed.
+    private void CutAgents(Guid id, MissionRecord record, List<Guid> threads, StopCause cause)
+    {
         // The provider's own requests die with the cut turn: approvals are answered Deny, questions withdrawn. Every request
         // still pending is denied, also one whose card the owner answered a moment ago and whose answer has not reached the
         // provider yet (it finds nothing pending and sends nothing; ED-NEW-dextra-as5-13).
@@ -1044,10 +1215,9 @@ public sealed class MissionRunner
             o.Jobs.Terminate(thread);
             o.Gate.Leave(thread);
         }
-        Log(record, null, "stop", ActionClass.Agents, "stop sent");
+        Log(record, null, "stop", ActionClass.Agents, cause == StopCause.StopAll ? "stop sent by Stop all" : "stop sent");
         CheckStopping();
         if (Find(id)?.Mission.State == MissionState.Stopping) stopTimer ??= o.Time.CreateTimer(_ => OnMain(CheckStopping), null, StopCheck, StopCheck);
-        return null;
     }
 
     /// <summary>A provider approval that waits on a card, with its mission.</summary>
@@ -1058,13 +1228,25 @@ public sealed class MissionRunner
     /// <summary>Confirms each stopping agent once it has no live process and no turn (12.6 "Afterwards").</summary>
     public void CheckStopping()
     {
-        foreach (var record in Missions.Where(r => r.Mission.State == MissionState.Stopping))
+        foreach (var record in Missions.Where(r => r.Mission.State == MissionState.Stopping || r.Mission.Heads.Any(h => h.State == HeadState.Stopping)))
         {
-            bool Settled(Guid t) => !o.Agents.TurnRunning(t) && o.Jobs.Settled(t);
+            var forced = LiveOf(record.Id).ForceEnded;
+            bool Settled(Guid t)
+            {
+                lock (gate)
+                {
+                    if (forced.Contains(t)) return true;
+                }
+                return !o.Agents.TurnRunning(t) && o.Jobs.Settled(t);
+            }
             // The lead, the reviewer and every helper chat (ED-NEW-dextra-as5-14); the heads settle one by one below.
             var headThreads = record.Mission.Heads.Select(h => Guid.TryParse(h.Id, out var t) ? t : Guid.Empty).ToHashSet();
             var leadSettled = Threads(record).Where(t => !headThreads.Contains(t)).All(Settled);
             var m = record.Mission;
+            // Only a task stopped as a whole waits for its lead; one that is Stopping because its last runnable head is
+            // stopping (the sum of its heads) waits for that head alone (12.6b).
+            bool whole;
+            lock (gate) whole = LiveOf(record.Id).WholeStop;
             if (m.Heads.Count == 0)
             {
                 if (leadSettled) m = MissionMachine.ConfirmStopped(m).Mission;
@@ -1075,15 +1257,15 @@ public sealed class MissionRunner
                 {
                     if (!Guid.TryParse(head.Id, out var thread) || !Settled(thread)) continue;
                     var last = m.Heads.Count(h => h.State == HeadState.Stopping) == 1;
-                    if (last && !leadSettled) continue;
+                    if (m.State == MissionState.Stopping && whole && last && !leadSettled) continue;
                     m = MissionMachine.ConfirmStopped(m, head.Id).Mission;
                 }
-                if (m.State == MissionState.Stopping && m.Heads.All(h => h.State != HeadState.Stopping) && leadSettled)
+                if (m.State == MissionState.Stopping && whole && m.Heads.All(h => h.State != HeadState.Stopping) && leadSettled)
                     m = MissionMachine.ConfirmStopped(m).Mission;
             }
             if (!ReferenceEquals(m, record.Mission)) Update(record.Id, r => r with { Mission = m });
         }
-        if (!Missions.Any(r => r.Mission.State == MissionState.Stopping))
+        if (!Missions.Any(r => r.Mission.State == MissionState.Stopping || r.Mission.Heads.Any(h => h.State == HeadState.Stopping)))
         {
             stopTimer?.Dispose();
             stopTimer = null;
@@ -1099,6 +1281,11 @@ public sealed class MissionRunner
         if (!move.Done) return move.Refused;
         Update(id, r => r with { Mission = move.Mission });
         o.Queue.Hold(c => c.MissionId == id, DecisionHold.Pause);
+        // A task's Pause holds its Tactus streams at once, at Tactus's next atomic boundary (12.6b).
+        if (o.PcStreams is { } pc && pc.Hold(id, Threads(record)) > 0)
+        {
+            lock (gate) LiveOf(id).PcHeld = true;
+        }
         Log(record, null, "pause", ActionClass.Agents, move.Mission.State.ToString());
         return null;
     }
@@ -1151,75 +1338,6 @@ public sealed class MissionRunner
 
     /// <summary>The board's line for a task the reserve holds ("Paused before your Claude 20x reserve"); null clears it.</summary>
     public void NoteWaiting(Guid id, string? line) => Update(id, r => r.Waiting == line ? r : r with { Waiting = line });
-
-    /// <summary>
-    /// Resume (12.6b): held cards come back bound to their inputs; a mission that was stopped, or interrupted by nth's
-    /// end, runs its cut turn again; one that never started its lead launches it.
-    /// </summary>
-    public string? Resume(Guid id)
-    {
-        if (Find(id) is not { } record) return "There is no such mission.";
-        var heldIrreversible = o.Queue.Of(id).Any(c => c.State == DecisionState.Held && DecisionRules.HeldByPause(c));
-        var restored = LiveOf(id).Restored;
-        var wasStopped = record.Mission.State == MissionState.Stopped || record.Interrupted || restored;
-        var move = MissionMachine.Resume(record.Mission, heldIrreversible);
-        if (!move.Done) return move.Refused;
-        var mission = move.Mission;
-        // It waited on cards it no longer has (lost with nth's end): it goes back to what it was doing and asks again.
-        if (mission.State == MissionState.NeedsYou && o.Queue.Of(id).Count == 0) mission = mission with { State = NeedsYouFrom(record) };
-        lock (gate)
-        {
-            var l = LiveOf(id);
-            if (l.Launch.IsCancellationRequested) l.Launch = new CancellationTokenSource();
-            l.Restored = false;
-        }
-        Update(id, r => r with { Mission = mission, Interrupted = false });
-        o.Queue.Release(c => c.MissionId == id);
-        Log(record, null, "resume", ActionClass.Agents, mission.State.ToString());
-        var state = mission.State;
-        if (state == MissionState.Planning && record.LeadThread is null)
-        {
-            _ = Launch(id);
-            return null;
-        }
-        if (!wasStopped)
-        {
-            Advance(id);
-            return null;
-        }
-        // A review the reserve held before its reviewer began starts afresh.
-        if (state == MissionState.Reviewing && record.ReviewerThread is null && record.LeadThread is not null)
-        {
-            _ = StartReview(id);
-            return null;
-        }
-        // The cut turn runs again: each agent that was working goes on behind the gate.
-        var again = state == MissionState.Reviewing ? record.ReviewerThread : record.LeadThread;
-        if (again is { } thread)
-        {
-            var token = LiveOf(id).Launch.Token;
-            _ = Admit(id, thread, record.Provider, token).ContinueWith(_ => OnMain(() =>
-            {
-                if (Find(id) is not { } now || !MissionStates.IsRunning(now.Mission.State)) return;
-                var text = state == MissionState.Reviewing
-                    ? "Your review was cut off. Do it again from the start. " + ReviewVerdict.Instruction
-                    : now.PendingRedirect ?? "The mission was stopped part way. Go on from where it stopped; do the last step again, since it may have been cut.";
-                if (Reserve is { } reserve && !reserve.BeforeTurn(now, thread, now.Provider, now.Model, ReserveTurns.Resume))
-                {
-                    // The reserve has no room for the cut turn: its text waits for the lead, and the gate slot is given back.
-                    o.Gate.Leave(thread);
-                    if (state != MissionState.Reviewing) Update(id, r => r with { PendingRedirect = text });
-                    return;
-                }
-                if (o.Agents.Send(thread, text))
-                {
-                    Reserve?.TurnStarted(id, thread, now.Model);
-                    if (now.PendingRedirect is not null && state != MissionState.Reviewing) Update(id, r => r with { PendingRedirect = null });
-                }
-            }), TaskScheduler.Default);
-        }
-        return null;
-    }
 
     /// <summary>Redirect (3.3): a short instruction to the lead, now when it is idle, else at the end of its turn.</summary>
     public string? Redirect(Guid id, string text)
@@ -1345,8 +1463,9 @@ public sealed class MissionRunner
     /// The missions the store held at open (after the interrupted rule): each comes back as it was journaled. A mission
     /// whose merge was pending raises its merge card again; an interrupted one waits for the owner's Resume.
     /// </summary>
-    public void Load(IEnumerable<MissionRecord> records)
+    public void Load(IEnumerable<MissionRecord> loaded)
     {
+        var records = loaded.ToList();
         var merges = new List<Guid>();
         lock (gate)
         {
@@ -1361,6 +1480,7 @@ public sealed class MissionRunner
             }
         }
         foreach (var id in merges) _ = OfferMerge(id, "Raised again after nth restarted.");
+        foreach (var record in records.Where(r => r.RevertIntent)) _ = RecoverRevert(record);
     }
 
     // ---- helpers ----
@@ -1414,16 +1534,18 @@ public sealed class MissionRunner
 
     private void Update(Guid id, Func<MissionRecord, MissionRecord> change)
     {
+        MissionRecord current;
         MissionRecord next;
         lock (gate)
         {
-            if (!missions.TryGetValue(id, out var current)) return;
+            if (!missions.TryGetValue(id, out current!)) return;
             next = change(current);
             if (ReferenceEquals(next, current)) return;
             missions[id] = next;
         }
         Journal(next);
         Raise(next);
+        Settle(current, next);
     }
 
     private void Journal(MissionRecord record)

@@ -100,7 +100,7 @@ public sealed record MergeResult(MergeOutcome Outcome, string? Refused = null)
 public sealed class MissionWorkspaceError(string message) : Exception(message);
 
 /// <summary>The workspace operations of 12.6a.</summary>
-public static class MissionWorkspaces
+public static partial class MissionWorkspaces
 {
     /// <summary>The largest folder a snapshot copies; a larger one is refused (Blocked), never half copied.</summary>
     public const long SnapshotByteCap = 1L << 30;
@@ -124,9 +124,13 @@ public static class MissionWorkspaces
     private const string BranchPrefix = "nth/mission-";
     private const int PatchCap = 40_000;
 
-    /// <summary>The mission's branch: <c>nth/mission-&lt;first 8 of the id&gt;-&lt;slug of the title&gt;</c>.</summary>
-    public static string BranchName(Guid missionId, string title) =>
-        BranchPrefix + missionId.ToString("N", CultureInfo.InvariantCulture)[..8] + "-" + Slug(title);
+    /// <summary>
+    /// The mission's branch: <c>nth/mission-&lt;first 8 of the id&gt;-&lt;slug of the title&gt;</c>, and <c>-r2</c>, <c>-r3</c>
+    /// for each restart, so a fresh branch never meets the failed one the owner may still be reviewing (12.6b).
+    /// </summary>
+    public static string BranchName(Guid missionId, string title, int attempt = 1) =>
+        BranchPrefix + missionId.ToString("N", CultureInfo.InvariantCulture)[..8] + "-" + Slug(title)
+        + (attempt > 1 ? "-r" + attempt.ToString(CultureInfo.InvariantCulture) : "");
 
     /// <summary>A branch-safe slug: lowercase ASCII letters and digits, runs of anything else as one dash, at most 32.</summary>
     public static string Slug(string title)
@@ -148,16 +152,16 @@ public static class MissionWorkspaces
     /// the folder is copied.
     /// </summary>
     public static async Task<MissionWorkspace> Create(Guid missionId, string title, string source, string folder,
-        long byteCap = SnapshotByteCap, int fileCap = SnapshotFileCap)
+        long byteCap = SnapshotByteCap, int fileCap = SnapshotFileCap, int attempt = 1)
     {
         if (!Directory.Exists(source)) throw new MissionWorkspaceError($"The folder {source} does not exist.");
         if (Directory.Exists(folder) || File.Exists(folder)) throw new MissionWorkspaceError("This mission already has a workspace.");
         var git = new GitValue(source);
-        if (await git.IsRepository() && await git.HasCommits()) return await CreateWorktree(missionId, title, source, folder, git);
+        if (await git.IsRepository() && await git.HasCommits()) return await CreateWorktree(missionId, title, source, folder, git, attempt);
         return CreateSnapshot(source, folder, byteCap, fileCap);
     }
 
-    private static async Task<MissionWorkspace> CreateWorktree(Guid missionId, string title, string source, string folder, GitValue git)
+    private static async Task<MissionWorkspace> CreateWorktree(Guid missionId, string title, string source, string folder, GitValue git, int attempt)
     {
         var root = (await git.Output(["rev-parse", "--show-toplevel"])).Trim();
         var repository = new GitValue(root);
@@ -165,7 +169,7 @@ public static class MissionWorkspaces
         var head = await repository.Run(["symbolic-ref", "--quiet", "--short", "HEAD"]);
         var baseBranch = head.Succeeded && head.TrimmedOutput.Length > 0 ? head.TrimmedOutput : null;
         var baseCommit = await repository.CommitHash("HEAD");
-        var branch = BranchName(missionId, title);
+        var branch = BranchName(missionId, title, attempt);
         GitValue.Check(await repository.Run([.. NoHooks(folder), "worktree", "add", "-b", branch, folder, baseCommit]));
         var working = prefix.Length == 0 ? folder : System.IO.Path.Combine(folder, prefix.Replace('/', System.IO.Path.DirectorySeparatorChar));
         var made = new MissionWorkspace(MissionWorkspaceKind.Worktree, source, folder)

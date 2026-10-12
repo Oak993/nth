@@ -288,7 +288,11 @@ public sealed partial class AppModel
         // PORT-ONLY (Dextra AS-5, seam 3): a mission's head waits at the agent gate (16 local agents, the memory floor) first.
         MainActor.Spawn(async () =>
         {
-            await DextraAdmitHead(head);
+            // A head the owner stopped before it started waits for his Resume, then goes through the gate again (12.6b).
+            while (!await DextraAdmitHead(head))
+            {
+                if (!await DextraAwaitHeadResume(head)) return;
+            }
             await StartDroppyHead(id, attachments, brief);
         });
         return head;
@@ -627,7 +631,9 @@ public sealed partial class AppModel
 
         // PORT-ONLY (Dextra AS-5): the head is done (a launch failure Hydra retries above keeps its slot): its gate slot is
         // freed and it counts as finished in its mission.
-        if (head.MissionID is not null) Dextra?.OnHeadFinished(head.Id, status);
+        // PORT-ONLY (Dextra AS-6, 12.6b): a head the owner paused ends its turn at its boundary and is Paused, not finished: Hydra
+        // does not finish it or tell the lead until Resume (DextraFinishHeldHead runs this tail again).
+        if (head.MissionID is not null && Dextra?.OnHeadFinished(head.Id, status) == true) return;
         MainActor.Spawn(async () =>
         {
             HydraLanding? landing = null;

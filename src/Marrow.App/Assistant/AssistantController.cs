@@ -4,6 +4,7 @@
 // every provider approval of a mission chat. Auto-answering is off (16, the ordering rule): AS-7 turns it on only after
 // its injection corpus passes, so until then the engine's Allow still lands on a card.
 using System.Text.Json.Nodes;
+using Marrow.App.Safety;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Assistant;
@@ -55,6 +56,18 @@ public sealed class AssistantControllerOptions
     /// <summary>The environment the classifier places paths with; null reads nth's own (MissionClassifier.CurrentEnvironment).</summary>
     public ValueMap<string, string>? Environment { get; init; }
 
+    /// <summary>
+    /// The one stop chord (AS-6, 12.6): missions hold a lease on it while they run and Stop all is bound to it. Null: no chord
+    /// (a build without it, the tests); the tray and the buttons still stop.
+    /// </summary>
+    public GlobalStop? StopKey { get; init; }
+
+    /// <summary>Tactus's streams, held by a task's Pause (12.6b); null while Tactus is not here.</summary>
+    public IPcStreamHold? PcStreams { get; init; }
+
+    /// <summary>Scopes beyond missions that Stop all also stops (a voice reply, a teach recording, Tactus streams of its missions).</summary>
+    public IReadOnlyList<IStopScope> StopScopes { get; init; } = [];
+
     /// <summary>The usage reserve (AS-13): what it reads and keeps. Null: no reserve; nothing is held back for usage.</summary>
     public ReserveSetup? Reserve { get; init; }
 
@@ -104,6 +117,7 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
         o = options;
         Queue = new DecisionQueue(o.Time);
         Gate = new AgentGate(o.Limits, o.Memory, o.Time);
+        Hold = new SchedulerHold();
         Runner = new MissionRunner(new MissionRunnerOptions
         {
             Agents = o.Agents,
@@ -117,12 +131,26 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
             Audit = TryAudit,
             Granted = Granted,
             Time = o.Time,
+            StopKey = o.StopKey,
+            Hold = Hold,
+            PcStreams = o.PcStreams,
         });
         if (o.Router is { } routing)
         {
             Router = new AssistantRouter(routing, o.Time, Runner, o.Agents);
             Runner.ReviewerRouter = Router;
         }
+        Stopper = new StopAll(new StopAllOptions
+        {
+            Runner = Runner,
+            Jobs = o.Jobs,
+            Agents = o.Agents,
+            Hold = Hold,
+            Scopes = o.StopScopes,
+            Time = o.Time,
+        });
+        if (o.StopKey is { } key) Stopper.Bind(key);
+        Controls = new MissionControls(Runner, Stopper, Hold, Queue);
         if (o.Reserve is { } reserve)
         {
             Reserve = new ReserveGuard(new ReserveGuardOptions
@@ -167,6 +195,15 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
     public AgentGate Gate { get; }
 
     public MissionRunner Runner { get; }
+
+    /// <summary>Stop all (12.6): bound to the one stop chord when there is one.</summary>
+    public StopAll Stopper { get; }
+
+    /// <summary>Stop all holds the scheduler; Pause all is a latch (12.6, 12.6b).</summary>
+    public SchedulerHold Hold { get; }
+
+    /// <summary>Pause, Resume, Stop, Revert and Restart for each task and head, and Pause all, Resume all and Stop all (12.6b).</summary>
+    public MissionControls Controls { get; }
 
     /// <summary>
     /// Off until AS-7's injection corpus passes (16): the engine's Allow runs no tool and answers no approval alone. Only
@@ -222,7 +259,8 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
     public void OnHeadAdded(ChatThread lead, ChatThread head) => Runner.HeadAdded(lead.Id, head.Id, head.Hydra?.DisplayName ?? head.Title ?? "A head",
         native: head.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Native);
 
-    public void OnHeadFinished(Guid head, TurnStatus status) => Runner.HeadFinished(head, status);
+    /// <summary>A head finished its turn. True when a Pause holds the finish (12.6b): Hydra must not finish the head yet.</summary>
+    public bool OnHeadFinished(Guid head, TurnStatus status) => Runner.HeadFinished(head, status);
 
     /// <summary>A helper chat a mission's chat opened: false when it is no running mission's, and then it does not open.</summary>
     public bool OnHelperAdded(ChatThread parent, ChatThread helper) => Runner.HelperAdded(parent.Id, helper.Id);
@@ -344,6 +382,8 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
                     BudgetUsd = args["budget_usd"]?.JSONValueDouble is { } budget ? (decimal)budget : null,
                 });
                 var r = started.Record;
+                if (Runner.Find(r.Id)?.Mission.State == MissionState.Paused)
+                    return AssistantToolResult.Done($"Mission {r.Id:D} “{r.Mission.Title}” is paused: {(Hold.StopHeld ? "Stop all" : "Pause all")} is on. It starts when the owner resumes.");
                 return r.Mission.State == MissionState.Blocked
                     ? AssistantToolResult.Failed($"Not started: {r.Reason}")
                     : AssistantToolResult.Done($"Mission {r.Id:D} “{r.Mission.Title}” is planning; its lead starts when an agent slot is free.");
@@ -383,6 +423,10 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
                 var record = Runner.MissionOf(agent);
                 if (record is not null && agent == record.LeadThread)
                     return Runner.Stop(record.Id) is { } refused ? AssistantToolResult.Failed("Not stopped: " + refused) : AssistantToolResult.Done("The mission is stopping; its work is kept.");
+                if (record is not null && record.Mission.Heads.Any(h => h.Id == agent.ToString("D")))
+                    return Runner.StopHead(record.Id, agent) is { } headRefused
+                        ? AssistantToolResult.Failed("Not stopped: " + headRefused)
+                        : AssistantToolResult.Done("The head is stopping; its work is kept.");
                 o.Agents.StopHead(agent);
                 o.Jobs.Terminate(agent);
                 return AssistantToolResult.Done("The head is stopping; its work is kept.");
@@ -465,6 +509,13 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
         };
         return Queue.Raise(card, (item, answer) =>
         {
+            // 12.6b: an irreversible card approved a moment before its task paused had not run: it is held, and needs a new tap.
+            if (answer.Approves && item.MissionId is { } paused && Runner.Find(paused)?.Mission.State is MissionState.Pausing or MissionState.Paused
+                && DecisionRules.HeldByPause(item) && Queue.Reopen(item.Id, DecisionHold.Pause, MissionRunner.HeldAfterApproval))
+            {
+                TryAudit(AssistantToolRunner.Entry(call, "held by Pause before it ran: needs a new tap after Resume"));
+                return;
+            }
             if (answer.Approves)
             {
                 // 12.5: the owner's allow is logged with his card before the call runs; when the log cannot be written,
@@ -589,6 +640,7 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
 
     public void Dispose()
     {
+        Stopper.Dispose();
         Reserve?.Dispose();
         o.Reserve?.Owned?.Dispose();
         foreach (var thread in o.Jobs.Threads) o.Jobs.End(thread);
