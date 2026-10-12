@@ -2,7 +2,10 @@
 // What a borrow of the real mouse or keyboard (rung R4) is made of: the request a rung hands the lease (the stream, the
 // target, the exact SendInput arrays, the hold cap), what came of it, what was saved to put back, the native seam the
 // lease drives, the wait the pill shows ("Hands off for a moment", with Do it now and Not now), and the activation and
-// restore ways, which are used only once the NP-4 probe proved them (per exe, or for every app).
+// restore ways. Since ED-NEW-pcctl-45 those are learned at runtime per target (exe, version and framework, DESIGN.md 2.6
+// "Self-check"): a way not tried yet on a target may be probed, a way that worked is used, a way that failed is not used
+// for 7 days, and the results are saved with the capabilities. The older per-exe proofs (or "*" for every app) stay for
+// the lease's current call sites; nothing loads them from disk.
 using Marrow.Core.Port.PcControl;
 using Marrow.Services.Port.PcControl.Native;
 
@@ -29,8 +32,10 @@ public enum PcActivation
 }
 
 /// <summary>
-/// Which activation and restore ways the NP-4 probe proved, kept in the capability store under rung R4 per exe (or "*" for
-/// every app). Nothing is proven until the probe's results are imported: until then R4 answers "activation unproven".
+/// Which activation and restore ways work, kept in the capability store under rung R4. Per target (exe, version,
+/// framework): learned by the borrows themselves and saved with the capabilities. Per exe (or "*" for every app): the
+/// older form the lease still calls, which nothing loads from disk, so it answers "activation unproven" until proven in
+/// memory.
 /// </summary>
 public static class PcBorrowProofs
 {
@@ -58,6 +63,83 @@ public static class PcBorrowProofs
     /// <summary>Null when a borrow may run for this exe and kind; else the needs_real_input reason.</summary>
     public static string? Unproven(PcCapabilities capabilities, string exe, PcBorrowKind kind) =>
         Activation(capabilities, exe, kind) is null || !Proven(capabilities, exe, Restore) ? PcRealInputReason.ActivationUnproven : null;
+
+    /// <summary>The method name a way is learned under.</summary>
+    public static string MethodOf(PcActivation activation) => activation switch
+    {
+        PcActivation.Pointer => Pointer,
+        PcActivation.Caption => Caption,
+        _ => Foreground,
+    };
+
+    /// <summary>Whether a method is one of the borrow's learned ways (the three activations and the restore).</summary>
+    public static bool IsProofMethod(string method) => method is Pointer or Caption or Foreground or Restore;
+
+    /// <summary>One way on one target: rung R4, the target's exe and version, and its framework in the control slot.</summary>
+    public static PcCapabilityKey Key(PcProofTarget target, string method) =>
+        new(target.Exe, target.Version, PcRung.R4, method, target.Framework.ToString());
+
+    /// <summary>
+    /// The way a borrow on this target brings it in front: a way that worked on it, else one not tried on it yet (the
+    /// self-check's probe), in DESIGN.md's order (b caption, then c SetForegroundWindow, for a focus step); null when every
+    /// way is refused or the target has no identity. Never a proof from another exe, version or framework.
+    /// </summary>
+    public static PcActivation? Activation(PcCapabilities capabilities, PcProofTarget target, PcBorrowKind kind)
+    {
+        ArgumentNullException.ThrowIfNull(capabilities);
+        ArgumentNullException.ThrowIfNull(target);
+        if (!target.Known) return null;
+        if (kind == PcBorrowKind.Pointer) return Usable(capabilities, target, Pointer) ? PcActivation.Pointer : null;
+        if (State(capabilities, target, Caption) == PcLearned.Passed) return PcActivation.Caption;
+        if (State(capabilities, target, Foreground) == PcLearned.Passed) return PcActivation.Foreground;
+        if (State(capabilities, target, Caption) == PcLearned.Unknown) return PcActivation.Caption;
+        return State(capabilities, target, Foreground) == PcLearned.Unknown ? PcActivation.Foreground : null;
+    }
+
+    /// <summary>Null when a borrow may run on this target for this kind (proven, or a probe); else the needs_real_input reason.</summary>
+    public static string? Unproven(PcCapabilities capabilities, PcProofTarget target, PcBorrowKind kind) =>
+        Activation(capabilities, target, kind) is null || !Usable(capabilities, target, Restore) ? PcRealInputReason.ActivationUnproven : null;
+
+    /// <summary>
+    /// What one borrow on this target taught (the self-check, DESIGN.md 2.6): a borrow that finished proves its activation,
+    /// one whose target did not come in front refuses it for 7 days; a finished borrow proves the restore when the user's
+    /// window came back in front and refuses it when it did not. Anything else (Not now, the gate, a covered point, a
+    /// control that would not take the focus) teaches nothing.
+    /// </summary>
+    public static void Learn(PcCapabilities capabilities, PcProofTarget target, PcActivation activation, PcBorrowOutcome outcome)
+    {
+        ArgumentNullException.ThrowIfNull(capabilities);
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentNullException.ThrowIfNull(outcome);
+        if (!target.Known) return;
+        var way = Key(target, MethodOf(activation));
+        if (outcome.Activated == false) capabilities.Refuse(way);
+        else if (outcome.Done || outcome.Activated == true) capabilities.Passed(way);
+        if (!outcome.Done) return;
+        if (outcome.ForegroundRestored) capabilities.Passed(Key(target, Restore));
+        else capabilities.Refuse(Key(target, Restore));
+    }
+
+    private static PcLearned State(PcCapabilities capabilities, PcProofTarget target, string method) => capabilities.State(Key(target, method));
+
+    private static bool Usable(PcCapabilities capabilities, PcProofTarget target, string method) =>
+        State(capabilities, target, method) is PcLearned.Passed or PcLearned.Unknown;
+}
+
+/// <summary>
+/// Whose borrow proofs: the target's exe (lower-case file name), its file version and its UI framework. A proof learned on
+/// one target is never used for another exe, version or framework.
+/// </summary>
+public sealed record PcProofTarget(string Exe, string Version, PcFramework Framework)
+{
+    public static PcProofTarget Of(PcWindowInfo window, PcFramework framework)
+    {
+        ArgumentNullException.ThrowIfNull(window);
+        return new(window.ExeName, window.Version, framework);
+    }
+
+    /// <summary>A real exe (not empty and not the old "every app" mark).</summary>
+    public bool Known => Exe.Length > 0 && Exe != PcBorrowProofs.AnyApp;
 }
 
 /// <summary>One borrow: whose it is, the target window, and the SendInput arrays it sends (one array each, in order).</summary>
@@ -85,6 +167,9 @@ public sealed record PcBorrowRequest(string Stream, PcBorrowKind Kind, nint Targ
 
     /// <summary>The engine's wait mark (the 25 s rule): called with "hands_off" while the borrow waits for the gate.</summary>
     public Func<string, IDisposable>? Waiting { get; init; }
+
+    /// <summary>The target whose learned ways the borrow uses and teaches; null on the older per-exe proofs.</summary>
+    public PcProofTarget? Proof { get; init; }
 }
 
 public enum PcBorrowStatus
@@ -115,6 +200,9 @@ public sealed record PcBorrowOutcome(PcBorrowStatus Status, string? Reason = nul
     public bool ForegroundRestored { get; init; } = true;
 
     public bool ZOrderRestored { get; init; } = true;
+
+    /// <summary>Whether the target came in front by the borrow's way: false when it did not; null when not checked.</summary>
+    public bool? Activated { get; init; }
 }
 
 /// <summary>What a borrow saves before it holds the user's input, to put back after.</summary>

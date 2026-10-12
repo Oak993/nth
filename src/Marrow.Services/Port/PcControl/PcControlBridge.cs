@@ -34,7 +34,15 @@ public static class PcControlBridge
     /// <summary>The parts every chat's engine drives, bound by the app; null until bound, and then no session gets the entry.</summary>
     public static Ambient<Func<PcEngineParts?>> Parts { get; } = new(new Func<PcEngineParts?>(() => null));
 
-    /// <summary>Whether a chat's run is attended now (critique C14); the app binds the real answer. Attended until bound.</summary>
+    /// <summary>
+    /// A chat thread's parts (its own audit log; ED-NEW-pcctl-40); the shared <see cref="Parts"/> until the app binds it.
+    /// </summary>
+    public static Ambient<Func<string, PcEngineParts?>> PartsFor { get; } = new(new Func<string, PcEngineParts?>(_ => Parts.Current()));
+
+    /// <summary>
+    /// Whether a Hydra head's run is attended now (critique C14); the app binds the real answer. Attended until bound. The
+    /// lead chat is never limited by it (DESIGN.md 2.10), so it is asked only for heads.
+    /// </summary>
     public static Ambient<Func<string, bool>> Attended { get; } = new(new Func<string, bool>(_ => true));
 
     /// <summary>
@@ -61,6 +69,7 @@ public static class PcControlBridge
         return new PcRegistration(thread, configuration.Provider, configuration.Model, configuration.Provider.SupportsImages)
         {
             Head = configuration.IsHydraHead ? "a Hydra head" : null,
+            ImageFolder = PcProviderWiring.ImageFolder(configuration.Provider, thread),
         };
     }
 
@@ -72,13 +81,21 @@ public static class PcControlBridge
     public static PcControlEngine? Engine(PcRegistration registration)
     {
         if (engines.TryGetValue(registration.Thread, out var engine)) return engine;
-        if (Parts.Current() is not { } parts) return null;
         var thread = registration.Thread;
-        var made = new PcControlEngine(parts, new PcCaller(thread, () => Attended.Current(thread), registration.Vision) { Head = registration.Head });
+        if (Parts.Current() is null || PartsFor.Current(thread) is not { } parts) return null;
+        var head = registration.Head is not null;
+        var made = new PcControlEngine(parts, new PcCaller(thread, () => !head || Attended.Current(thread), registration.Vision)
+        {
+            Head = registration.Head,
+            Model = registration.Model,
+        });
         var kept = engines.GetOrAdd(thread, made);
         if (!ReferenceEquals(kept, made)) made.Dispose();
         return kept;
     }
+
+    /// <summary>The chat threads with an engine now (the pill's Stop interrupts their turns).</summary>
+    public static IReadOnlyList<string> Threads => [.. engines.Keys];
 
     /// <summary>The chat's Stop: its queued steps are cancelled and no step starts again this turn.</summary>
     public static void StopTurn(string thread)

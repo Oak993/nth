@@ -1113,6 +1113,7 @@ public sealed partial class AppModel : MainActorModel
 
     private void DiscardThreadState(ChatThread thread, bool deletingDocument = true)
     {
+        Marrow.App.Port.PcControl.TactusComposition.ChatClosed(thread.Id); // PORT-ONLY OD-0145 (Tactus, ED-NEW-pcctl-32): its engine, mirror rows and chat grants go
         if (idleSessionStops.Remove(thread.Id, out var stop)) stop.Cancel(); // AppModel.swift:1070-1071
         if (runtimes.Remove(thread.Id, out var runtime))
         {

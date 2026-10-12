@@ -213,8 +213,9 @@ public enum PcLearned
 }
 
 /// <summary>
-/// The capability store (DESIGN.md 2.6 self-check). Kept in memory; the app saves and loads it with <see cref="Export"/>
-/// and <see cref="Import"/> in nth's settings and the user can clear it ("forget learned behaviour").
+/// The capability store (DESIGN.md 2.6 self-check). Kept in memory; <see cref="PcCapabilityFile"/> loads it at start and
+/// saves it after each change (<see cref="Changed"/>) in nth's data folder, through <see cref="Export"/> and
+/// <see cref="Import"/>, and the user can clear it ("forget learned behaviour").
 /// </summary>
 public sealed class PcCapabilities(Func<DateTimeOffset> now)
 {
@@ -222,6 +223,9 @@ public sealed class PcCapabilities(Func<DateTimeOffset> now)
     public static readonly TimeSpan RefusedFor = TimeSpan.FromDays(7);
 
     private readonly ConcurrentDictionary<PcCapabilityKey, (PcLearned State, DateTimeOffset At)> learned = new();
+
+    /// <summary>Something was learned, refused or cleared (not raised by <see cref="Import"/>).</summary>
+    public event Action? Changed;
 
     public PcLearned State(PcCapabilityKey key)
     {
@@ -238,17 +242,30 @@ public sealed class PcCapabilities(Func<DateTimeOffset> now)
     public void Passed(PcCapabilityKey key)
     {
         var state = State(key);
-        if (state is PcLearned.Unknown) learned[key] = (PcLearned.Passed, now());
+        if (state is not PcLearned.Unknown) return;
+        learned[key] = (PcLearned.Passed, now());
+        Changed?.Invoke();
     }
 
     public void FocusMoving(PcCapabilityKey key)
     {
-        if (State(key) != PcLearned.Refused) learned[key] = (PcLearned.FocusMoving, now());
+        var state = State(key);
+        if (state is PcLearned.Refused or PcLearned.FocusMoving) return;
+        learned[key] = (PcLearned.FocusMoving, now());
+        Changed?.Invoke();
     }
 
-    public void Refuse(PcCapabilityKey key) => learned[key] = (PcLearned.Refused, now());
+    public void Refuse(PcCapabilityKey key)
+    {
+        learned[key] = (PcLearned.Refused, now());
+        Changed?.Invoke();
+    }
 
-    public void Clear() => learned.Clear();
+    public void Clear()
+    {
+        learned.Clear();
+        Changed?.Invoke();
+    }
 
     public string Export()
     {

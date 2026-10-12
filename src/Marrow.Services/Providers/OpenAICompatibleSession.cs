@@ -116,6 +116,14 @@ public class OpenAICompatibleSession : ProviderSession
     // this session sends exactly as the Mac's.
     public NativeSkillTools? SkillTools { get; set; }
 
+    // PORT-ONLY (Tactus, ED-NEW-pcctl-42): the nth-pc tools while Tactus is on (set at construction from the bridge); null,
+    // the default, leaves every byte this session sends exactly as before.
+    public Port.PcControl.PcNativeTools? PcTools { get; set; }
+
+    // PORT-ONLY (Tactus, ED-NEW-pcctl-42): the screenshots of this round's nth-pc calls, sent in one user message after the
+    // round's tool messages when the model takes images.
+    private readonly List<(string Tool, Marrow.Core.Port.PcControl.PcImage Image)> pcShots = [];
+
     // PORT-ONLY (SK-11f, DL-12): the normalized tool events (CommandHeld, CommandFinished, SkillUsed, ToolRequested) the missing-tool detector reads.
     public Action<ToolEvent>? OnToolEvent { get; set; }
 
@@ -150,6 +158,9 @@ public class OpenAICompatibleSession : ProviderSession
     // PORT-ONLY (SK-11f): Marrow's own tools (use_skill, request_tool), empty unless SkillTools offers them, so the request is the Mac's byte for byte by default.
     private IReadOnlyList<JSONValue> SkillToolDefinitions => SkillTools?.Definitions ?? [];
 
+    // PORT-ONLY (Tactus, ED-NEW-pcctl-42): the nth-pc tools, empty unless PcTools offers them.
+    private IReadOnlyList<JSONValue> PcToolDefinitions => PcTools?.Definitions ?? [];
+
     // :61-65
     private IReadOnlyList<JSONValue> McpToolDefinitions => [.. mcpTools.Select(tool => JSONValue.FromDictionaryLiteral(
         ("type", "function"),
@@ -166,6 +177,7 @@ public class OpenAICompatibleSession : ProviderSession
         runtimeMode = configuration.RuntimeMode;
         interactionMode = configuration.InteractionMode;
         currentModel = configuration.Model ?? config.DefaultModel;
+        PcTools = Port.PcControl.PcNativeTools.For(configuration, config.IsVisionModel(currentModel)); // PORT-ONLY (Tactus, ED-NEW-pcctl-42): null while Tactus is off
         // RR-50: production binding is exact and dated. Unfilled data never supplies a guessed estimator.
         if (ModelPriceCatalog.Current.Current.Find(configuration.Provider, currentModel, SwiftClock.Provider.Current.GetUtcNow()) is not null)
             KeySpendEstimator = defaultSpendEstimator = usage => ModelPriceCatalog.Current.Current.Find(Configuration.Provider, currentModel, SwiftClock.Provider.Current.GetUtcNow())?.Estimate(usage);
@@ -344,6 +356,11 @@ public class OpenAICompatibleSession : ProviderSession
         // are only re-read when their size or mtime moved. :293-294
         RefreshSystemPrompt(); // :295
 
+        // PORT-ONLY (Tactus, ED-NEW-pcctl-42; ED-NEW-pcctl-2): screenshots do not outlive their turn unless "Keep screenshots
+        // in chat history" is on; then only the newest two stay. No screenshot message, no change.
+        pcShots.Clear();
+        if (messages.Exists(Port.PcControl.PcNativeTools.IsScreenshotMessage))
+            messages = Port.PcControl.PcNativeTools.Pruned(messages, PcTools?.Settings.KeepScreenshots == true ? Port.PcControl.PcNativeTools.KeptScreenshots : 0);
         var userContent = await UserContentValue(input.Text, input.Images); // :297
         messages.Add(JSONValue.FromDictionaryLiteral(("role", "user"), ("content", userContent))); // :298
         TrimHistory(); // :299
@@ -470,6 +487,7 @@ public class OpenAICompatibleSession : ProviderSession
                     TrimHistory();  // :401
                     toolIndex += 1; // :402
                 }
+                SendPcScreenshots(shouldContinue && !interrupted); // PORT-ONLY (Tactus, ED-NEW-pcctl-42)
                 if (!shouldContinue || interrupted) break; // :404
                 if (!Configuration.IsHydraHead && ContinueAfterAccountStep is { } boundary
                     && !await boundary(SwiftTask.CancellationToken)) return;
@@ -589,7 +607,7 @@ public class OpenAICompatibleSession : ProviderSession
     public Task<bool> Tidy(int keepTurns)
     {
         if (!CanRunIgnisRequest()) return Task.FromResult(false);
-        var turnStarts = Enumerable.Range(1, messages.Count - 1).Where(index => messages[index]["role"]?.JSONValueString == "user").ToList();
+        var turnStarts = Enumerable.Range(1, messages.Count - 1).Where(index => messages[index]["role"]?.JSONValueString == "user" && !Port.PcControl.PcNativeTools.IsScreenshotMessage(messages[index])).ToList(); // + ED-NEW-pcctl-42
         var keep = Math.Max(0, keepTurns);
         if (turnStarts.Count <= keep) return Task.FromResult(false);
         var cut = keep == 0 ? messages.Count : turnStarts[turnStarts.Count - keep];
@@ -1169,7 +1187,7 @@ public class OpenAICompatibleSession : ProviderSession
         };
         if (withTools) // :575
         {
-            payload["tools"] = JSONValue.FromArrayLiteral([.. ToolDefinitions, .. SkillToolDefinitions, .. McpToolDefinitions]); // :576
+            payload["tools"] = JSONValue.FromArrayLiteral([.. ToolDefinitions, .. SkillToolDefinitions, .. PcToolDefinitions, .. McpToolDefinitions]); // :576 (+ PORT-ONLY ED-NEW-pcctl-42)
             payload["tool_choice"] = "auto"; // :577
         }
         ApplyProviderPayload(payload, model, effort, withTools); // :579
@@ -1727,6 +1745,7 @@ public class OpenAICompatibleSession : ProviderSession
             }
             default: // :1027
             {
+                if (PcTools is { } pcTools && pcTools.Owns(tool.Name)) return await ExecutePcTool(pcTools, tool, args); // PORT-ONLY (Tactus, ED-NEW-pcctl-42)
                 if (SkillTools is { } skillTools && skillTools.Owns(tool.Name)) return await ExecuteSkillTool(skillTools, tool, args); // PORT-ONLY (SK-11f)
                 var call = new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = tool.Name }; // :1028
                 OnEvent?.Invoke(new ProviderEvent.ToolStarted(callID, call)); // :1029
@@ -1734,6 +1753,48 @@ public class OpenAICompatibleSession : ProviderSession
                 return $"Error: unknown tool {tool.Name}."; // :1031
             }
         }
+    }
+
+    // PORT-ONLY (Tactus, ED-NEW-pcctl-42). Runs one nth-pc call on the chat's engine, whose own approval governs it (no
+    // card here). The tool message is its text; its screenshots wait for the round's screenshot message. A stopped turn
+    // answers "Stopped." as the built-in tools do.
+    private async Task<string> ExecutePcTool(Port.PcControl.PcNativeTools pcTools, PendingToolCall tool, JSONValue args)
+    {
+        OnEvent?.Invoke(new ProviderEvent.ToolStarted(tool.Id, new ToolCall
+        {
+            ToolCallKind = ToolCall.Kind.Other,
+            Title = Port.PcControl.PcNativeTools.Title(tool.Name),
+            Detail = args.IsNull ? null : args.PrettyString,
+        }));
+        Port.PcControl.PcNativeResult result;
+        try { result = await pcTools.Execute(tool.Name, args, SwiftTask.CancellationToken); }
+        catch (OperationCanceledException) when (SwiftTask.IsCancelled || interrupted) { return "Stopped."; }
+        catch (Exception error) when (SwiftTry.IsThrownError(error))
+        {
+            if (SwiftTask.IsCancelled || interrupted) return "Stopped.";
+            OnEvent?.Invoke(new ProviderEvent.ToolUpdated(tool.Id, new ToolUpdate { Output = error.Message, Status = ToolCall.Status.Failed }));
+            return $"Error: {error.Message}";
+        }
+        if (SwiftTask.IsCancelled || interrupted) return "Stopped.";
+        OnEvent?.Invoke(new ProviderEvent.ToolUpdated(tool.Id, new ToolUpdate
+        {
+            Output = Summary(result.Text, 4_000),
+            Status = result.Failed ? ToolCall.Status.Failed : ToolCall.Status.Completed,
+        }));
+        foreach (var image in result.Images) pcShots.Add((tool.Name, image));
+        return result.Text;
+    }
+
+    // PORT-ONLY (Tactus, ED-NEW-pcctl-42; DESIGN.md 2.4, 3.4). After a round's tool messages: its screenshots in one user
+    // message when the model takes images (a text-only model has the tree text already), then only the newest two kept.
+    private void SendPcScreenshots(bool roundFinished)
+    {
+        if (pcShots.Count == 0) return;
+        var shots = pcShots.ToList();
+        pcShots.Clear();
+        if (!roundFinished || !OpenAICompatibleSessionConfig.IsVisionModel(currentModel)) return;
+        messages.Add(Port.PcControl.PcNativeTools.ScreenshotMessage(shots));
+        messages = Port.PcControl.PcNativeTools.Pruned(messages, Port.PcControl.PcNativeTools.KeptScreenshots);
     }
 
     // PORT-ONLY (SK-11f, WU-12, DL-14). Runs one of Marrow's own tools. A stopped turn answers "Stopped." as the built-in tools do; nothing it produced is said.
@@ -2063,6 +2124,7 @@ public class OpenAICompatibleSession : ProviderSession
         {
             policy.Length == 0 ? null : policy,
             SkillTools?.CatalogueBlock(),
+            PcTools?.PromptBlock(), // PORT-ONLY (Tactus, ED-NEW-pcctl-42): null while Tactus is off
             guidance.SystemPromptBlock(),
         }.Where(value => value is not null));
         // DEVIATION OD-0012 F1 (PR-PROVAPI-141): upstream :1200 reads
@@ -2146,7 +2208,7 @@ public class OpenAICompatibleSession : ProviderSession
         if (messages.Count <= 60) return; // :1251
         var system = messages.Count > 0 ? messages[0] : null; // :1252
         var body = messages.Skip(1).ToList(); // :1253
-        var turnStart = body.FindLastIndex(message => message["role"]?.JSONValueString == "user"); // :1254
+        var turnStart = body.FindLastIndex(message => message["role"]?.JSONValueString == "user" && !Port.PcControl.PcNativeTools.IsScreenshotMessage(message)); // :1254 (+ PORT-ONLY ED-NEW-pcctl-42: a screenshot message is not a turn's start)
         if (turnStart < 0) turnStart = body.Count;
         var current = body.Skip(turnStart).ToList(); // :1255
         var earlierAll = body.Take(turnStart).ToList();

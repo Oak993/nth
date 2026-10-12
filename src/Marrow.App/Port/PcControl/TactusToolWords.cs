@@ -64,6 +64,29 @@ public static class TactusToolWords
         };
     }
 
+    /// <summary>
+    /// The pill's line for a step a chat's audit log wrote (ED-NEW-pcctl-32): the timeline's words without the app, which
+    /// the pill's title names ("Clicked Save", "Typed 42 characters into Subject", "Could not click Save").
+    /// </summary>
+    public static string Step(PcAuditEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        var element = entry.Element is { Length: > 0 } named ? named : null;
+        var (_, done, plain) = Words(entry.Tool, new JsonObject(), element, null);
+        if (entry.Tool == PcToolSchemas.Type)
+        {
+            var typed = " " + Count(entry.TextLength ?? 0, "character") + (element is null ? "" : " into " + element);
+            (done, plain) = ("Typed" + typed, "type" + typed);
+        }
+        return entry.Result switch
+        {
+            "ok" => done,
+            "unverified" => done + " (not confirmed)",
+            "waiting_for_user" => "Waiting for you: " + plain,
+            _ => "Could not " + plain,
+        };
+    }
+
     /// <summary>(running, done, the plain verb phrase) for a tool, its arguments, the element and the app.</summary>
     private static (string Running, string Done, string Plain) Words(string tool, JsonObject args, string? element, string? app)
     {
