@@ -6859,3 +6859,53 @@ ENGINEERING DECISION (C6c D7, 2026-10-12): Decode each damaged mission/assistant
 2. THE LEAD MUST connect at merge: (a) AS-8 starts the Assistant with EnsureStopKey and EnsureTray and puts the chord text in Settings > Assistant (the chord is read through a function; nothing persists it yet); (b) Tactus (see -2, -5, -10); (c) AS-10's scheduler reads SchedulerHold.DutiesMayFire and starts duties through MissionRunner.Start (a held duty starts paused); (d) AS-13's ReserveCard; (e) AS-21's Restore button.
 3. Native checks owed (written, never run): GlobalStopNativeTests, AppTrayNativeTests; and by hand the real thing with a hidden Hydra team: Pause a head mid-turn and Resume it, Stop all with a long build running, then Resume all.
 4. No third-party package is added.
+
+## ED-NEW-dextra-as10-1
+2026-10-13 - The duty, its triggers and the words for a schedule (Dextra unit AS-10; DESIGN.md rev 5, 7.1, 7.2; tests ScheduleTextTests, CronLineTests, DutyTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. A duty (Marrow.Core/Port/Assistant/Duty.cs) holds what 7.1 lists: name, owner assistant, trigger, instructions (or a skill or a saved workflow), a per-run budget in dollars and a reserve rule kept as the owner's words ("keep 30%", read as a task rule when a run starts, so the rule text stays what he typed), the grants it narrows (the existing DutyScope: classes and grant ids, null meaning all of its assistant's), report style, active hours, missed-run policy, on/off, and the last 50 runs. Defaults are the design's: silent unless changed, catch up once, on, no wake.
+2. A trigger is a closed set of records (DutyTrigger): TimeTrigger (a TimeSchedule and a stored zone id), FolderChangeTrigger (path, glob of * and ?, new/changed/removed, subfolders or not), PageWatchTrigger (address, minutes between looks, condition changed/price below/contains text, optional start and end markers that cut out the region), AppEventTrigger (chat finished, head failed, window reset, account above X percent, mission finished, with the account and window it narrows to) and ManualTrigger. Run now exists for every duty whatever its trigger (7.2).
+3. A TimeSchedule is Once, Every N minutes (at least 5, at most a year), Daily, Weekdays, Weekly (a set of days), Monthly (day 1 to 31, a month without it runs on its last day) or Cron. ScheduleText reads the words schedule_duty and the owner give ("weekdays 08:00", "daily 6:30pm", "weekly mon,thu 09:00", "monthly 15 09:00", "every 30 minutes", "once 2026-11-01 09:00", "tomorrow 07:00", "in 2 hours", "cron 0 9 * * 1-5", a bare five-field line) and says a schedule back in plain words ("Every day at 08:00"), so the card and the duty list use one wording. Words it cannot read give one reason and a hint, never a guess.
+4. Cron is five fields with lists, ranges, steps, month and weekday names, 7 as Sunday and the @hourly @daily @weekly @monthly shortcuts. When both day fields are restricted a day matches if either does (vixie cron's rule). A field outside its range, a zero step or a backwards range makes the whole line invalid with the field named. No seconds field and no year.
+5. No third-party package is added.
+
+## ED-NEW-dextra-as10-2
+2026-10-13 - When a time schedule runs next, across clock changes (Dextra unit AS-10; DESIGN.md rev 5, 7.1, 7.2 "Time zone stored; DST-safe"; tests ScheduleMathTests, ScheduleMathDstTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. ScheduleMath.Next takes the moment to look after, the zone and the duty's anchor and returns the first run strictly after the moment, or null. It has no clock of its own, so a manual clock proves it. Calendar schedules (daily, weekdays, weekly, monthly, cron) are wall-clock times of the duty's zone, found by visiting local dates in order.
+2. A wall-clock time that a clock change skips (spring forward: 02:30 on 2026-03-08 in New York) runs that same day at once in the offset the day started in, so it fires at 03:30 EDT, once, and not the day after. A time the clocks repeat (fall back: 01:30 on 2026-11-01) runs on its first occurrence only; an hourly cron line therefore runs once in the repeated hour. Every N minutes counts real minutes on a grid anchored at the duty's Since, so a clock change does not move it; a run owed before the anchor never exists.
+3. Missed(lastHandled, now) is true when the first scheduled moment after lastHandled is not after now. However many moments passed while nth was closed, one run is owed (catch up once, 7.1). Skip records the missed run as skipped and moves on.
+4. A cron line is searched six years ahead; one that names a day that never comes (31 February) has no next run, which the card shows as "Not scheduled".
+5. UNVERIFIED on a real zone database other than Windows': the tests use Eastern and Pakistan standard time, found by their Windows ids.
+6. No third-party package is added.
+
+## ED-NEW-dextra-as10-3
+2026-10-13 - Active hours (Dextra unit AS-10; DESIGN.md rev 5, 7.1; tests ActiveHoursTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. Active hours are a from time, a to time and a set of days, read in the duty's zone. Equal ends are the whole day, a from after a to runs overnight and belongs to the day it opens on (Friday 22:00 to 06:00 covers Saturday morning, not Friday morning). No day chosen means never.
+2. A run that comes due outside them is held until the next opening and then runs once (under Skip it is skipped instead), whatever started it: a time, a folder change, a page, an app event. Run now ignores active hours: the owner pressed it.
+3. No third-party package is added.
+
+## ED-NEW-dextra-as10-4
+2026-10-13 - What a duty remembers about its own schedule (Dextra unit AS-10; DESIGN.md rev 5, 7.1; tests DutyTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. Since is when the current trigger began (creation, or the owner's edit of the trigger); Handled is until when the schedule has been dealt with (a run, a skip or a catch-up); LastRun is the last time it ran. The next owed run is the first after Handled (or Since), so a duty switched on today is never "caught up" for the days it was off, and an edit starts a fresh grid.
+2. History is newest first and held to 50 (Duty.HistoryLimit). A run is first Started with its mission id; when the mission ends the scheduler replaces its outcome (done, failed, stopped, nothing changed) by that id.
+3. A Once duty switches itself off after it ran or was skipped; it stays in the list with its history.
+4. A duty id is a short token (d plus 12 hex digits; lowercase letters, digits and dashes, at most 40), because it travels in a command line (nth --duty id) and a Task Scheduler entry name. A duty is saved only when Problem() is null: a name, an owner, something to do, a trigger that can run, a budget that is not negative, and no wake for a duty that needs the desktop.
+5. No third-party package is added.
+
+## ED-NEW-dextra-as10-8
+2026-10-13 - Dry run (Dextra unit AS-10; DESIGN.md rev 5, 7.3; canvas 5; tests DryRunLogTests and the runner tests). ENGINEERING DECISIONS. PORT-ONLY.
+1. A dry run is a real mission with a dry flag. Every approval its agents ask for is classified as usual; a read (a file or web read the policy does not deny) is answered yes and listed as "a real read"; every other action is answered no and listed as a "would" step (Would run: git push), marked "on its own" when the real run would do it alone, "would ask you" when it would stop for the owner and "would be refused" when the engine denies it. The agent is told the action was not run and to carry on as if it had worked, so the rest of its plan still shows. The nth-dextra tools behave the same way: only the read-only ones run.
+2. Nothing is written because nothing but reads runs; the mission's worktree is the temp copy the design asks for, and it is discarded when the dry run ends. A dry run skips the reviewer and the merge card, ends Done with its step list as the report, and starts from the same banner the canvas shows: "Dry run: reads are real; nothing is written, sent or clicked".
+3. The step list holds at most 200 steps. A page that needs a sign-in is not read at all (the watcher refuses it, ED-NEW-dextra-as10-7).
+4. No third-party package is added.
+
+## ED-NEW-dextra-as10-9
+2026-10-13 - The words around a duty, and the broad-trigger warning (Dextra unit AS-10; DESIGN.md rev 5, 7.2, 7.3; canvas 5; tests DutyWordsTests, DutyForecastTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. DutyWords says each trigger as the canvas does ("Every day at 08:00", "New files matching *.pdf in D:\Store\Invoices", "Every 2 h · price below $650 · shop.example/espresso/pro", "When Codex A's weekly window resets"), the next run as "in 41 min", "Today 14:00", "Tomorrow 08:00", "Mon 09:00", a date, "On change" or "Run now only", and builds the inputs of the card the owner sees before a duty is saved: its trigger (with the zone), what it does, its assistant, its grants, its budget, its report style, its hours, what happens if nth was closed, and whether it wakes the PC or needs the desktop. A card for an edit shows each changed field with "(was: ...)".
+2. DutyForecast says how often a duty is likely to run in a day. A time trigger is counted on the schedule itself over the next 24 hours (a cron line is exact), a page watch by its looks (a condition fires rarely), and a folder or an app event by what nth saw over the last day when it could measure, else a guess (every file: 25; one pattern: 5; chat finished: 30). More than 20 a day is broad: the card warns and gives an estimate of the daily cost from the budget or the last runs' cost.
+3. No third-party package is added.
+
+## ED-NEW-dextra-as10-10
+2026-10-13 - The structured result that makes a duty silent (Dextra unit AS-10; DESIGN.md rev 5, 7.1 "Silent unless something changed"; tests DutyForecastTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. The report tool's status list (done, partial, failed, blocked) is unchanged. A duty's brief ends with an instruction to make the last line of the report exactly "RESULT: nothing_changed" when there was nothing to do or nothing changed, and DutyResult.NothingChanged reads only the last non-blank line, any case. A report that mentions the line anywhere else does not count, so a duty cannot hide a finding behind it.
+2. A run whose report ends that way is recorded as NothingChanged and nothing reaches the board or the digest beyond one quiet feed line; a run that failed or was blocked is never quiet whatever its report says.
+3. No third-party package is added.
