@@ -126,6 +126,7 @@ public sealed class FakeWebView : IWebEngineView
 
     /// <summary>What <see cref="SuspendAsync"/> returns when the view is hidden (WebView2 refuses a visible view).</summary>
     public bool SuspendSucceeds { get; set; } = true;
+    public TaskCompletionSource<bool>? HeldSuspend { get; set; }
 
     public int Captures { get; private set; }
 
@@ -304,12 +305,13 @@ public sealed class FakeWebView : IWebEngineView
         pendingFrames.Clear();
     }
 
-    public Task<bool> SuspendAsync()
+    public async Task<bool> SuspendAsync()
     {
         Log.Add("Suspend");
-        if (IsVisible || !SuspendSucceeds) return Task.FromResult(false);
+        if (IsVisible || !SuspendSucceeds) return false;
+        if (HeldSuspend is { } held && !await held.Task) return false;
         IsSuspended = true;
-        return Task.FromResult(true);
+        return true;
     }
 
     public void Resume()

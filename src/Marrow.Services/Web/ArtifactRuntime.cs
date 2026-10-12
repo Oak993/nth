@@ -124,6 +124,7 @@ public sealed class ArtifactMount : IWebResourceHandler, IDisposable
         bridge = new ArtifactBridge(runtime, this);
         view.SetSandbox(new WebSandbox(Origin, this, SandboxScripts.DocumentScripts));
         view.WebMessageReceived += OnMessage;
+        view.BecameLive += OnViewLive;
         view.NavigationStarting += OnNavigationStarting;
         view.SandboxNavigationBlocked += OnBlocked;
         runtime.Store.Changed += OnStoreChanged;
@@ -175,6 +176,7 @@ public sealed class ArtifactMount : IWebResourceHandler, IDisposable
     /// <summary>Shows another version (null for the latest) and reloads.</summary>
     public void Show(int? version)
     {
+        View.CancelPendingMorph();
         lock (gate)
         {
             Version = version;
@@ -334,6 +336,13 @@ public sealed class ArtifactMount : IWebResourceHandler, IDisposable
 
     private void OnMessage(object? sender, WebMessage message) => bridge.Receive(message);
 
+    private void OnViewLive()
+    {
+        if (disposed) return;
+        lock (gate) snapshot = null;
+        Reload();
+    }
+
     private void OnNavigationStarting(object? sender, WebNavigationStarting e)
     {
         if (e.IsMainFrame) bridge.NewDocument();
@@ -378,6 +387,7 @@ public sealed class ArtifactMount : IWebResourceHandler, IDisposable
         if (disposed) return;
         disposed = true;
         View.WebMessageReceived -= OnMessage;
+        View.BecameLive -= OnViewLive;
         View.NavigationStarting -= OnNavigationStarting;
         View.SandboxNavigationBlocked -= OnBlocked;
         runtime.Store.Changed -= OnStoreChanged;

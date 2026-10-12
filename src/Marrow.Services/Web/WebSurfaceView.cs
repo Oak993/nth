@@ -1,4 +1,5 @@
 using Marrow.Core.Web;
+using System.Text.Json;
 
 namespace Marrow.Services.Web;
 
@@ -19,6 +20,8 @@ public sealed class WebSurfaceView : IWebViewSurface
     private string? pendingUrl;
     private string? lastUrl;
     private int modelSteps;
+    private readonly List<(string Json, string? Event)> pendingMessages = [];
+    private string? navigationTarget;
     private TaskCompletionSource? liveHidden;
     private WebSandbox? sandbox;
 
@@ -74,12 +77,14 @@ public sealed class WebSurfaceView : IWebViewSurface
     public bool IsModelStepRunning => modelSteps > 0;
 
     internal bool IsSuspending { get; set; }
+    internal long ActivityVersion { get; set; }
     internal bool IsProbing { get; set; }
     internal DateTimeOffset? LastProbeAt { get; set; }
     internal DateTimeOffset? HungSince { get; set; }
     internal bool StepHangReported { get; set; }
 
     public event Action? Changed;
+    internal event Action? BecameLive;
     public event Action<bool>? FocusExitRequested;
     public event EventHandler<WebNavigationStarting>? NavigationStarting;
     public event EventHandler<WebNavigationStarting>? FrameNavigationStarting;
@@ -135,9 +140,55 @@ public sealed class WebSurfaceView : IWebViewSurface
     {
         ArgumentException.ThrowIfNullOrEmpty(url);
         lastUrl = url;
-        if (engine is { IsAttached: true } live) live.Navigate(url);
+        ActivateForContent();
+        if (engine is { IsAttached: true } live)
+        {
+            navigationTarget = url;
+            live.Navigate(url);
+        }
         else pendingUrl = url;
     }
+
+    /// <summary>Content for an on-screen view first restores it; pending engines receive it on attach.</summary>
+    public void PostMessage(string json)
+    {
+        var sessionReply = false;
+        string? contentEvent = null;
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            if (document.RootElement.ValueKind == JsonValueKind.Object)
+            {
+                sessionReply = document.RootElement.TryGetProperty("s", out _);
+                if (document.RootElement.TryGetProperty("event", out var ev) && ev.ValueKind == JsonValueKind.String) contentEvent = ev.GetString();
+            }
+        }
+        catch (JsonException) { }
+        var oldEngine = engine;
+        ActivateForContent();
+        if (liveness is WebLiveness.Suspended or WebLiveness.Discarded or WebLiveness.Closed) return;
+        // A reply belongs to the requesting document, never to a replacement engine. Its bridge is already listening.
+        if (sessionReply)
+        {
+            if (engine == oldEngine && engine is { IsAttached: true } replyEngine) replyEngine.PostMessage(json);
+            return;
+        }
+        if (engine is { IsAttached: true } live && navigationTarget is null) live.PostMessage(json);
+        else
+        {
+            // Streaming previews and themes need only their newest value while the document is loading.
+            if (contentEvent is "morph" or "theme")
+                pendingMessages.RemoveAll(m => m.Event == contentEvent);
+            pendingMessages.Add((json, contentEvent));
+        }
+    }
+
+    private void ActivateForContent()
+    {
+        if (IsShown && (IsSuspending || liveness is WebLiveness.Suspended or WebLiveness.Discarded)) owner.Activate(this);
+    }
+
+    internal void CancelPendingMorph() => pendingMessages.RemoveAll(m => m.Event == "morph");
 
     /// <summary>The pane shows or hides the view (DESIGN 2.3: hidden views run at low memory and may be discarded).</summary>
     public void SetShown(bool shown) => owner.SetShown(this, shown);
@@ -227,6 +278,7 @@ public sealed class WebSurfaceView : IWebViewSurface
     internal void ReleaseEngine()
     {
         if (engine is null) return;
+        navigationTarget = null;
         if (engine.Url is { } url) lastUrl = url;
         Unhook(engine);
         cdp?.Dispose();
@@ -250,6 +302,7 @@ public sealed class WebSurfaceView : IWebViewSurface
     }
 
     internal void RaiseChanged() => Changed?.Invoke();
+    internal void RaiseBecameLive() => BecameLive?.Invoke();
 
     private void Hook(IWebEngineView view)
     {
@@ -304,10 +357,12 @@ public sealed class WebSurfaceView : IWebViewSurface
         if (pendingUrl is { } url)
         {
             pendingUrl = null;
+            navigationTarget = url;
             engine.Navigate(url);
         }
 
         owner.OnViewLive(this);
+        if (navigationTarget is null) FlushMessages();
     }
 
     private void OnProcessFailed(object? sender, WebProcessFailed e) => owner.OnProcessFailed(this, e);
@@ -329,6 +384,7 @@ public sealed class WebSurfaceView : IWebViewSurface
     private void OnNavigationStarting(object? sender, WebNavigationStarting e)
     {
         if (BlockSandboxNavigation(e)) return;
+        if (e.IsMainFrame) navigationTarget = e.Url;
         NavigationStarting?.Invoke(this, e);
     }
 
@@ -352,6 +408,18 @@ public sealed class WebSurfaceView : IWebViewSurface
         lastUrl = e.Url;
         owner.OnNavigated(this);
         NavigationCompleted?.Invoke(this, e);
+        if (e.IsSuccess && (navigationTarget is null || navigationTarget == e.Url))
+        {
+            navigationTarget = null;
+            FlushMessages();
+        }
+    }
+
+    private void FlushMessages()
+    {
+        if (engine is not { IsAttached: true } live || liveness != WebLiveness.Live) return;
+        foreach (var message in pendingMessages) live.PostMessage(message.Json);
+        pendingMessages.Clear();
     }
 
     private void OnNewWindow(object? sender, WebNewWindowRequest e)

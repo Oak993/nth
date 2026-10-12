@@ -309,7 +309,7 @@ internal sealed class ArtifactBridge(ArtifactRuntime runtime, ArtifactMount moun
     private void PostJson(JsonObject body)
     {
         var json = body.ToJsonString();
-        runtime.Post(() => mount.View.Engine?.PostMessage(json));
+        runtime.Post(() => mount.View.PostMessage(json));
     }
 
     private string Key(JsonObject root) => Text(root["key"]) ?? throw Invalid("A storage key is a non-empty string.");

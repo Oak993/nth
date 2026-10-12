@@ -13,6 +13,77 @@ public sealed class ArtifactRuntimeTests
 {
     private const string Weather = "<!doctype html><html><head><title>Weather</title></head><body><h1>Weather</h1></body></html>";
 
+
+    [Fact]
+    public void Resuming_an_artifact_that_missed_a_version_reloads_the_current_store_version()
+    {
+        using var rig = new ArtifactRuntimeRig();
+        var (mount, engine) = rig.Mount(rig.Create(ArtifactKind.Html, Weather));
+        mount.View.SetShown(true);
+        for (var i = 0; i < 4; i++) rig.Web.OpenLive(shown: true);
+        mount.View.SetLiveVisible(false);
+        Assert.Equal(WebLiveness.Suspended, mount.View.Liveness);
+        rig.Store.Update(ArtifactRuntimeRig.Chat, "weather", new ArtifactRevision { Content = "<p>new version</p>" }, ArtifactRuntimeRig.Model, null);
+        engine.Log.Clear();
+        mount.View.Activate();
+        Assert.Equal(WebLiveness.Live, mount.View.Liveness);
+        Assert.Contains("Navigate " + mount.Address, engine.Log);
+        Assert.Contains("new version", ArtifactRuntimeRig.Body(ArtifactRuntimeRig.Get(engine, mount.Address)), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Incoming_navigation_or_theme_activates_a_shown_suspended_artifact(bool theme)
+    {
+        using var rig = new ArtifactRuntimeRig();
+        var (mount, engine) = rig.Mount(rig.Create(ArtifactKind.Html, Weather));
+        mount.View.SetShown(true);
+        for (var i = 0; i < 4; i++) rig.Web.OpenLive(shown: true);
+        mount.View.SetLiveVisible(false);
+        Assert.Equal(WebLiveness.Suspended, mount.View.Liveness);
+        engine.Log.Clear();
+        if (theme) rig.Host.RaiseThemeChanged();
+        else mount.Show(null);
+        Assert.Equal(WebLiveness.Live, mount.View.Liveness);
+        Assert.Equal("Resume", engine.Log[0]);
+        if (theme) engine.RaiseNavigationCompleted(mount.Address);
+        Assert.Contains(engine.Log, l => theme ? l.StartsWith("Post ", StringComparison.Ordinal) : l == "Navigate " + mount.Address);
+    }
+
+    [Fact]
+    public void A_streaming_morph_activates_the_shown_artifact_before_posting()
+    {
+        using var rig = new ArtifactRuntimeRig();
+        var (mount, engine) = rig.Mount(rig.Create(ArtifactKind.Html, Weather));
+        mount.View.SetShown(true);
+        for (var i = 0; i < 4; i++) rig.Web.OpenLive(shown: true);
+        mount.View.SetLiveVisible(false);
+        engine.Log.Clear();
+        const string morph = "{\"nth\":1,\"event\":\"morph\",\"html\":\"<p>new</p>\"}";
+        mount.View.PostMessage(morph);
+        Assert.Equal(WebLiveness.Live, mount.View.Liveness);
+        Assert.Equal("Resume", engine.Log[0]);
+        Assert.DoesNotContain("Post " + morph, engine.Log);
+        engine.RaiseNavigationCompleted(mount.Address);
+        Assert.Equal("Post " + morph, engine.Log[^1]);
+    }
+
+    [Fact]
+    public void A_queued_latest_morph_cannot_overwrite_an_explicit_historical_version()
+    {
+        using var rig = new ArtifactRuntimeRig();
+        var (mount, engine) = rig.Mount(rig.Create(ArtifactKind.Html, "<p>one</p>"));
+        rig.Store.Update(ArtifactRuntimeRig.Chat, "weather", new ArtifactRevision { Content = "<p>two</p>" }, ArtifactRuntimeRig.Model, null);
+        mount.View.Navigate(mount.Address);
+        const string morph = "{\"nth\":1,\"event\":\"morph\",\"html\":\"<p>two</p>\"}";
+        mount.View.PostMessage(morph);
+        mount.Show(1);
+        engine.RaiseNavigationCompleted(mount.Address);
+        Assert.DoesNotContain("Post " + morph, engine.Log);
+        Assert.Contains("<p>one</p>", ArtifactRuntimeRig.Body(ArtifactRuntimeRig.Get(engine, mount.Address)), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void A_mount_binds_the_view_to_the_artifacts_own_site_with_the_sandbox_scripts_first()
     {

@@ -252,7 +252,11 @@ public sealed class WebSurface : IDisposable
 
     // Called by WebSurfaceView.
 
-    internal void Touch(WebSurfaceView view) => view.LastUsedAt = time.GetUtcNow();
+    internal void Touch(WebSurfaceView view)
+    {
+        view.LastUsedAt = time.GetUtcNow();
+        view.ActivityVersion++;
+    }
 
     internal void SetShown(WebSurfaceView view, bool shown)
     {
@@ -282,6 +286,7 @@ public sealed class WebSurface : IDisposable
             case WebLiveness.Suspended:
                 view.Engine?.Resume();
                 view.SetLiveness(WebLiveness.Live);
+                view.RaiseBecameLive();
                 break;
         }
 
@@ -300,6 +305,7 @@ public sealed class WebSurface : IDisposable
             Engine.ReleasePrewarm();
         }
 
+        view.RaiseBecameLive();
         EnforceCapSoon(except: view);
     }
 
@@ -437,10 +443,13 @@ public sealed class WebSurface : IDisposable
             var tried = new HashSet<WebSurfaceView>();
             while (views.Count(v => v.Liveness == WebLiveness.Live && !v.IsSuspending) > Options.MaxLiveViews)
             {
+                var shownOverCap = views.Count(v => v.IsShown) > Options.MaxLiveViews;
                 var candidate = views
-                    .Where(v => v.Liveness == WebLiveness.Live && !v.IsSuspending && !v.IsModelStepRunning && v != except && !tried.Contains(v)
+                    .Where(v => v.Liveness == WebLiveness.Live && !v.IsSuspending && !v.IsModelStepRunning && (v != except || !v.IsShown) && !tried.Contains(v)
+                                && (!v.IsShown || shownOverCap)
                                 && v.Engine is { IsAttached: true })
-                    .OrderBy(v => v.LastUsedAt)
+                    .OrderBy(v => v.IsShown)
+                    .ThenBy(v => v.LastUsedAt)
                     .ThenBy(v => v.Sequence)
                     .FirstOrDefault();
                 if (candidate is null)
@@ -462,12 +471,14 @@ public sealed class WebSurface : IDisposable
     private async Task SuspendAsync(WebSurfaceView view)
     {
         if (view.Engine is not { } engine) return;
+        var activity = view.ActivityVersion;
         view.IsSuspending = true;
         try
         {
             // A shown view gets a current frame first, so its snapshot is what the user last saw.
             var shown = view.IsShown && view.IsLiveVisible;
             if (shown) await CaptureAndStoreAsync(view, engine, CancellationToken.None);
+            if (view.Engine != engine || view.Liveness != WebLiveness.Live || view.ActivityVersion != activity) return;
             view.SetLiveness(WebLiveness.Suspended);
             if (shown && view.IsLiveVisible)
             {
@@ -481,7 +492,20 @@ public sealed class WebSurface : IDisposable
 
             view.SetLiveVisible(false);
             engine.MemoryLevel = WebMemoryLevel.Low;
-            if (!await engine.SuspendAsync())
+            var suspended = await engine.SuspendAsync();
+            if (view.Engine != engine) return;
+            if (view.ActivityVersion != activity || view.Liveness != WebLiveness.Suspended)
+            {
+                // Activation can race the native await: its earlier Resume did not cancel TrySuspendAsync.
+                if (suspended || engine.IsSuspended) engine.Resume();
+                if (view.Liveness == WebLiveness.Suspended)
+                {
+                    view.SetLiveness(WebLiveness.Live);
+                    view.RaiseBecameLive();
+                }
+                return;
+            }
+            if (!suspended)
             {
                 // The page cannot be suspended now (audio playing, for one): it stays live; the cap tries the next view.
                 view.SetLiveness(WebLiveness.Live);
