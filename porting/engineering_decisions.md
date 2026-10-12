@@ -6475,3 +6475,9 @@ C3cV4Tests restored GREEN9/0/0. Six compiling temporary mutations each failed a 
 2026-10-12 - Tactus C2-V3: prove the real post-key prefix independently. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c V3 owner ruling; read-only evidence review).
 Keep both no-dispatch assertions and place the corrected post key prefix assertion first. The earlier dispatch mutation proved Messages == 0; repeating it now proves the real-prefix assertion itself catches the stale-target post. No production change.
 V3-prefix-before-refusal mutation RED twice0/1/0 at Assert.DoesNotContain Filter matched in collection; restored C3A8Tests GREEN7/0/0. Exact production source bytes restored. The earlier V3 red twice0/1/0 at Messages == 0 remains preserved, so each assertion has direct evidence.
+
+
+## ED-NEW-pcctl-cx-18
+2026-10-12 - Tactus C2-V5: cover changed live targets and in-borrow refusals. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c owner rulings; DESIGN.md 2.7, 2.11, 2.12 and 10.2).
+Managed engine tests cover same-identity changed value/state, liveWay null, queued first-piece value/recycled identity/point bounds and later RuntimeId focus. Assertions check refusal and zero dispatch before stale action.
+C3cV5Tests restored GREEN7/0/0. Seven compiling temporary mutations failed targeted assertions twice; exact source bytes restored after every mutation.
