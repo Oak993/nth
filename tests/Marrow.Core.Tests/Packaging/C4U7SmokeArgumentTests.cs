@@ -21,7 +21,7 @@ public sealed class C4U7SmokeArgumentTests
                     Invoke-NthUiSmoke -StartProcess {
                         $state.owned = Start-NthUiSmokeProcess -FilePath (Get-Process -Id $PID).Path -ArgumentList @('-NoLogo', '-NoProfile', '-NonInteractive', '-File', $scriptFile, $outputFile, 'space name', 'a"b', 'C:\ends with space\', '')
                         $state.owned
-                    } -TimeoutMilliseconds 5000 -StopTimeoutMilliseconds 5000
+                    } -StopTimeoutMilliseconds 5000
                 } catch { $message = $_.Exception.Message }
                 $arguments = @()
                 if ([IO.File]::Exists($outputFile)) { $arguments = @([IO.File]::ReadAllText($outputFile) | ConvertFrom-Json) }

@@ -55,7 +55,7 @@ public sealed class C4U7SmokeOutcomeTests
                     $state.owned = Start-NthUiSmokeProcess -FilePath (Get-Process -Id $PID).Path -ArgumentList @('-NoLogo', '-NoProfile', '-NonInteractive', '-Command', 'exit EXIT_CODE')
                     $state.handle = $state.owned.Process.SafeHandle
                     $state.owned
-                } -TimeoutMilliseconds 5000 -StopTimeoutMilliseconds 5000
+                } -StopTimeoutMilliseconds 5000
             }
             catch { $message = $_.Exception.Message }
             Write-Output '#JSON'

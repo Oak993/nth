@@ -6251,3 +6251,8 @@ ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I8). The own
 ## ED-NEW-inst-c4c-14: Keep GUI smoke first-show state hidden
 
 ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I14). Shared hidden smoke fix with I8 under the same owner instruction. STARTF_USESHOWWINDOW and SW_HIDE are set in the STARTUPINFO passed to CreateProcessW. The same one Fact fails alone twice before the change and passes after, through source checks with no Setup or installer launch.
+
+
+## ED-NEW-inst-c4c-9: Prove smoke defaults job disposal and bounded polling
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I9). Real Stop calls the shared internal polling loop. Fake-clock Facts pin repeated polls, bounded sleeps and exact timeout. Fake owned objects require 30000 ms exit and 5000 ms cleanup defaults. A nonowning synthetic job handle and disposable process observer prove independent handle closure. Exit/argv disposable fixtures use the production exit default for cold starts, assertions unchanged. Default-exit, default-stop, job-dispose, polling, timeout and real-caller omission mutations fail alone twice and restore byte-exact before focused green. No installer, package or actual application runs.

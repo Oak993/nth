@@ -95,13 +95,24 @@ namespace Nth.Build
             // Terminate the JOB even when the original process has exited: its living descendants remain members.
             if (!TerminateJobObject(job, 1)) throw LastError("Could not stop the smoke process job");
             var clock = Stopwatch.StartNew();
-            while (true)
+            WaitForJobEmpty(milliseconds, () =>
             {
                 if (!QueryInformationJobObject(job, 1, out Accounting info, (uint)Marshal.SizeOf<Accounting>(), IntPtr.Zero))
                     throw LastError("Could not check the smoke process job cleanup");
-                if (info.ActiveProcesses == 0) return;
-                if (clock.ElapsedMilliseconds >= milliseconds) throw new TimeoutException("The smoke process tree did not stop within " + milliseconds + " ms.");
-                Thread.Sleep((int)Math.Max(1, Math.Min(10, milliseconds - clock.ElapsedMilliseconds)));
+                return info.ActiveProcesses;
+            }, () => clock.ElapsedMilliseconds, Thread.Sleep);
+        }
+
+        // The real Stop and deterministic tests share the same bounded active-process polling loop.
+        internal static void WaitForJobEmpty(int milliseconds, Func<uint> activeProcesses, Func<long> elapsedMilliseconds, Action<int> sleep)
+        {
+            if (milliseconds < 1) throw new ArgumentOutOfRangeException(nameof(milliseconds));
+            while (true)
+            {
+                if (activeProcesses() == 0) return;
+                var remaining = milliseconds - elapsedMilliseconds();
+                if (remaining <= 0) throw new TimeoutException("The smoke process tree did not stop within " + milliseconds + " ms.");
+                sleep((int)Math.Max(1, Math.Min(10, remaining)));
             }
         }
 
