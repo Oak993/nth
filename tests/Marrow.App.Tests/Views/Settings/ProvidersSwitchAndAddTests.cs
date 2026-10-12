@@ -27,6 +27,11 @@ public sealed class ProvidersSwitchAndAddTests(HeadlessSession headless) : Setti
 {
     private static readonly ProviderStatus SignedInStatus = new() { ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) };
 
+    // OD-0143 (ED-NEW-nocta-1, ED-NEW-reltests-1): the Nocta switch's 22 pt dome sits 2 in from its 46 pt track, so its left edge is at x = 2 off and slides 20 to x = 22 on, on a spring (response 0.38 s, damping 0.82)
+    // that is settled, and snaps to its target, after the spring's own SettlingDuration (0.51 s); a switch is read at rest only after that.
+    private const double KnobOff = 2, KnobOn = 2 + 20;
+    private static readonly double SwitchSettledMs = SmallSwitch.Slide.Duration * 1000;
+
     [Fact]
     [Trait("Decision", "ED-NEW-providers-switch-1")]
     public void A_click_on_a_providers_switch_turns_the_provider_off_slides_the_knob_and_persists_and_a_second_click_turns_it_back_on() => With(
@@ -35,14 +40,15 @@ public sealed class ProvidersSwitchAndAddTests(HeadlessSession headless) : Setti
         Tick(h, 400); Drain(w); // the card has opened
         var toggle = Assert.Single(Nodes<SmallSwitch>(view));
         var toggles = Assert.IsAssignableFrom<IToggleProvider>(ControlAutomationPeer.CreatePeerForElement(toggle));
-        Assert.True(model.Settings.IsEnabled(ProviderKind.Codex)); Assert.Equal(16, toggle.KnobNow().X, 3); Assert.Equal(ToggleState.On, toggles.ToggleState);
+        Assert.True(model.Settings.IsEnabled(ProviderKind.Codex)); Assert.Equal(KnobOn, toggle.KnobNow().X, 3); Assert.Equal(ToggleState.On, toggles.ToggleState);
         Click(w, toggle);
         Assert.False(model.Settings.IsEnabled(ProviderKind.Codex)); Assert.Equal(ToggleState.Off, toggles.ToggleState);
         Assert.False(new AppSettings().IsEnabled(ProviderKind.Codex)); // persisted: a fresh read of the settings store has it off
-        Tick(h, 72); var halfway = toggle.KnobNow().X; Assert.InRange(halfway, 2.5, 15.5); // the designed 0.21 s slide is under way, not a jump
-        Tick(h, 400); Assert.Equal(2, toggle.KnobNow().X, 3);
-        Click(w, toggle); Tick(h, 400);
-        Assert.True(model.Settings.IsEnabled(ProviderKind.Codex)); Assert.True(new AppSettings().IsEnabled(ProviderKind.Codex)); Assert.Equal(16, toggle.KnobNow().X, 3);
+        Tick(h, 72); var halfway = toggle.KnobNow().X; Assert.InRange(halfway, KnobOff + 0.5, KnobOn - 0.5); // the designed 0.38 s spring is under way, not a jump
+        Assert.Equal(KnobOn - (KnobOn - KnobOff) * SmallSwitch.Slide.Progress(0.072), halfway, 3); // and 72 ms along that spring exactly
+        Tick(h, SwitchSettledMs); Assert.Equal(KnobOff, toggle.KnobNow().X, 3);
+        Click(w, toggle); Tick(h, SwitchSettledMs);
+        Assert.True(model.Settings.IsEnabled(ProviderKind.Codex)); Assert.True(new AppSettings().IsEnabled(ProviderKind.Codex)); Assert.Equal(KnobOn, toggle.KnobNow().X, 3);
     }, model => Seed(model, ProviderKind.Codex, SignedInStatus));
 
     private static Button? AddRow(Control view) => Nodes<Button>(view).SingleOrDefault(b => AutomationProperties.GetName(b) == MultiAccountWords.AddAnother);
@@ -207,8 +213,8 @@ public sealed class ProvidersSwitchAndAddTests(HeadlessSession headless) : Setti
         Assert.True(zai.IsOpenAndSettled);
         // the switch
         var toggle = Assert.Single(Nodes<SmallSwitch>(zai)); Hits(w, toggle, "Z.ai's switch");
-        Click(w, toggle); Tick(h, 400); Assert.False(model.Settings.IsEnabled(ProviderKind.Zai)); Assert.Equal(2, toggle.KnobNow().X, 3);
-        Click(w, toggle); Tick(h, 400); Assert.True(model.Settings.IsEnabled(ProviderKind.Zai)); Assert.Equal(16, toggle.KnobNow().X, 3);
+        Click(w, toggle); Tick(h, SwitchSettledMs); Assert.False(model.Settings.IsEnabled(ProviderKind.Zai)); Assert.Equal(KnobOff, toggle.KnobNow().X, 3);
+        Click(w, toggle); Tick(h, SwitchSettledMs); Assert.True(model.Settings.IsEnabled(ProviderKind.Zai)); Assert.Equal(KnobOn, toggle.KnobNow().X, 3);
         // the API key box and its eye
         var key = Assert.Single(Nodes<TextBox>(zai)); Hits(w, key, "Z.ai's API key box");
         Type(w, key, "k1"); Assert.True(key.IsFocused); Assert.Equal("k1", key.Text); Assert.Equal("k1", model.Settings.ApiKeyInput(ProviderKind.Zai));
@@ -249,6 +255,16 @@ public sealed class ProvidersSwitchAndAddTests(HeadlessSession headless) : Setti
         Assert.Null(SettingsNavigation.Shared.RequestedProvider);
     }, height: 600);
 
+    // ED-NEW-softscroll-2 (1): one notch of D points from rest follows A (1 - (1 + t / tau) e^(-t / tau)), tau = ScrollPhysics.GlideStage and A = D + RestSpeed x tau (the glide aims that far past its
+    // stop), and rests on D when (1 + u) e^(-u) = RestSpeed x tau / A, u = t / tau (0.4617 s for 100 pt); one 60 Hz frame is added so the frame that lands it has run.
+    private static double NotchRestMs(double distance)
+    {
+        var tau = ScrollPhysics.GlideStage; var residual = ScrollPhysics.RestSpeed * tau / (distance + ScrollPhysics.RestSpeed * tau);
+        double low = 0, high = 60;
+        for (var i = 0; i < 100; i++) { var mid = (low + high) / 2; if ((1 + mid) * Math.Exp(-mid) > residual) low = mid; else high = mid; }
+        return high * tau * 1000 + 1000 / 60.0;
+    }
+
     private static void PublishLimits(AppModel model, ProviderKind provider, int windows)
     {
         var limits = new PlanLimits { PlanName = "Max", Windows = new ValueList<PlanLimits.Window>(Enumerable.Range(0, windows).Select(i => new PlanLimits.Window { Id = "w" + i, Title = "Window " + i, Percent = 10 + i, ResetsAt = SwiftDate.Now.AddHours(i + 1) })) };
@@ -280,8 +296,10 @@ public sealed class ProvidersSwitchAndAddTests(HeadlessSession headless) : Setti
         Assert.True(above.Sum(s => s.Bounds.Height) > heightAbove + 20, $"the cards above did not grow ({heightAbove} -> {above.Sum(s => s.Bounds.Height)})");
         Assert.InRange(Top(), inset - 0.5, inset + 0.5);
         // the person turns the wheel: the page is theirs, and a later change above moves the section with the page instead of the page being moved under them
-        w.MouseWheel(At(section, w), new Vector(0, -1)); Drain(w); Tick(h, 400); Drain(w);
+        var before = scroll.Offset.Y;
+        w.MouseWheel(At(section, w), new Vector(0, -1)); Drain(w); Tick(h, NotchRestMs(100)); Drain(w); // ED-NEW-softscroll-2: the notch (100 pt at the default 3 lines) glides and is read once it has rested, not part way along
         var theirs = scroll.Offset.Y;
+        Assert.Equal(before + 100, theirs, 3); // the whole notch, 3 lines x 100/3 pt (ED-NEW-softscroll-2 (3)): the glide has rested on its stop
         Assert.True(Math.Abs(Top() - inset) > 0.5, "the wheel did not move the page");
         PublishLimits(model, ProviderKind.Claude, 6);
         Drain(w); Tick(h, 400); Drain(w);
