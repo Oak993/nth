@@ -6,6 +6,8 @@ using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Platform;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using SkiaSharp;
 
 namespace Marrow.UI.Port.Nth.Beads;
@@ -36,6 +38,17 @@ public sealed class NthBeadsControl : NthMotionControl
         AttachedToVisualTree += (_, _) => Attach();
         DetachedFromVisualTree += (_, _) => Detach();
     }
+
+    // An ancestor shown or hidden after attach (a capsule built hidden for an idle helper) changes whether the beads are shown. Avalonia 12.1.2 has
+    // no IsEffectivelyVisible property for OnPropertyChanged to see, and its IsEffectivelyVisibleChanged event is internal, so one class handler on
+    // IsVisible restamps the attached beads under the visual that changed, after the change has settled (ED-NEW-calculi-rv-1).
+    private static readonly HashSet<NthBeadsControl> Attached = [];
+
+    static NthBeadsControl() => IsVisibleProperty.Changed.AddClassHandler<Visual>((visual, _) =>
+    {
+        foreach (var beads in Attached)
+            if (!ReferenceEquals(beads, visual) && visual.IsVisualAncestorOf(beads)) Dispatcher.UIThread.Post(beads.Restamp);
+    });
 
     public double GlyphSize { get => GetValue(GlyphSizeProperty); set => SetValue(GlyphSizeProperty, value); }
     public bool Quiet { get => GetValue(QuietProperty); set => SetValue(QuietProperty, value); }
@@ -129,6 +142,7 @@ public sealed class NthBeadsControl : NthMotionControl
 
     private void Attach()
     {
+        Attached.Add(this);
         window ??= AmbientWindowState.Acquire(this);
         if (window is not null) window.Changed += WindowChanged;
         platform = Application.Current?.PlatformSettings;
@@ -138,6 +152,7 @@ public sealed class NthBeadsControl : NthMotionControl
 
     private void Detach()
     {
+        Attached.Remove(this);
         if (window is not null) { window.Changed -= WindowChanged; window.Dispose(); window = null; }
         if (platform is not null) platform.ColorValuesChanged -= ColorsChanged;
         platform = null;

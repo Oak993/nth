@@ -15,6 +15,7 @@ using Marrow.App.Runtime;
 using Marrow.Core.Models;
 using Marrow.UI.Port;
 using Marrow.UI.Port.Nth.Beads;
+using AnimatedDouble = Marrow.App.Views.Tour.AnimatedDouble;
 
 namespace Marrow.App.Views.Chat;
 
@@ -186,6 +187,27 @@ internal sealed class NthWorkingBeads
         Move(slot);
     }
 
+    /// <summary>How the room a label left for the beads closes (<see cref="CloseRoom"/>): the label glides to its own place.</summary>
+    public static readonly Animation RoomClose = Animation.Smooth(duration: .35);
+
+    /// <summary>Calculi (ED-NEW-calculi-rv-1): the room a label leaves for the beads beside it (the finished header's slot, a split line's hold)
+    /// closes once the beads are done there: they have left <paramref name="slot"/> (a new line took them) or their exit in it has ended. The label
+    /// then glides to the place a view made again gives it (the Mac's header), so a turn that ended here and the same turn reopened read the same.
+    /// Nothing waits for this: the label says how the turn ended from the first frame (section 5.1); only the room left for the beads waits for them.
+    /// <paramref name="apply"/> gets the room's share, from 1 to 0 (Reduce Motion: at once, the end state).</summary>
+    public void CloseRoom(Panel slot, Control owner, Action<double> apply)
+    {
+        Action<TimeSpan>? poll = null;
+        poll = _ =>
+        {
+            if (ReferenceEquals(Beads.Parent, slot) && !Left()) { FrameClock.Source.Current.RequestFrame(poll!); return; }
+            var room = new AnimatedDouble(apply);
+            room.Set(1, null);
+            room.Set(0, EnvironmentValues.GetAccessibilityReduceMotion(owner) ? null : RoomClose);
+        };
+        FrameClock.Source.Current.RequestFrame(poll);
+    }
+
     /// <summary>Whether the beads are inside <paramref name="row"/>, and where they sit in it (the running row that the finished block replaces).</summary>
     public bool IsIn(Visual row, out double x)
     {
@@ -278,7 +300,7 @@ internal sealed class NthWorkingBeads
     {
         if (Place(Beads) is not { } place) { placed = false; anchor = null; return; }
         var (found, x, y) = place;
-        if (placed && ReferenceEquals(found, anchor))
+        if (placed && ReferenceEquals(found, anchor) && !Beads.IsGone) // beads that draw nothing have no place to keep (a room closing around them)
         {
             double dx = x - placeX, dy = y - placeY;
             if ((Math.Abs(dx) > .01 || Math.Abs(dy) > .01) && Math.Abs(dx) <= ReflowLimit && Math.Abs(dy) <= ReflowLimit) Beads.Reflow(dx, dy);

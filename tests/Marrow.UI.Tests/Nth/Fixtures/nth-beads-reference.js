@@ -8,11 +8,11 @@ const path = require('path'), fs = require('fs');
 const REF = process.argv[2] || 'E:/Droppy/work/design/working-motion/reference';
 const K = require(path.join(REF, 'engine.js')), STRESS = require(path.join(REF, 'stress.js'));
 const STATES = STRESS.STATES;
-// ED-NEW-calculi-wu1-3: Machina's left stroke runs in [0, .56] of the cycle (the reference's [-.06, .5] left it 0.17 units off
+// ED-NEW-calculi-wu1-3 / rv-1: Machina's strokes run in [0, .5] and [.5, 1] of the cycle (the reference's [-.06, .5] left it 0.17 units off
 // Pedes at t = 0 and T). The port carries the fix, so the fixture is made with it; stress.js 200 40 passes every gate with it.
 { const st = v => (v <= 0 || v >= 1) ? 0 : Math.sin(Math.PI * v) ** 2, make = K.MOT.machina.make;
   K.MOT.machina.make = (n, v) => { const m = make(n, v), T = m.T, A = 1.42 * (1 + .08 * v.b), RT = 1.64;
-    m.at = (t, k) => { const u = t / T, pL = st(u / .56), pR = st((u - .44) / .56);
+    m.at = (t, k) => { const u = t / T, pL = st(u / .5), pR = st((u - .5) / .5);
       if (k === 0) return [...K.wire(A * pL), 1, 1]; if (k === 2) return [...K.wire(K.LW - A * pR), 1, 1]; return [.22 * (pR - pL), RT - .16 * (pL + pR), 1, 1]; };
     return m; }; }
 const rng = seed => { let a = seed >>> 0; return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; };

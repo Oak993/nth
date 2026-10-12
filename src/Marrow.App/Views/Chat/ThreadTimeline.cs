@@ -1691,7 +1691,7 @@ public sealed class WorkingIndicator : Decorator
         var chevronFade = new AnimatedDouble(opacity => chevron.Opacity = opacity);
         var inner = new StackPanel { Spacing = 10, Children = { header } };
         var frame = new Border { CornerRadius = new CornerRadius(TimelineMetrics.PillRadius), Background = Brushes.Transparent, Child = inner, HorizontalAlignment = HorizontalAlignment.Left }.RoundedRectangle(TimelineMetrics.PillRadius, RoundedCornerStyle.Continuous); // :2148 .contentShape(RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))
-        Control? title = null; NthWorkingTitle? thinking = null; NthBeadsHold? hold = null; string? titleText = null; bool? titleRunning = null; HydraProgressBar? bar = null; ValueList<TimelineEntry>? barEntries = null; bool? barCard = null; var chevronShown = false; var drawn = false; var leaving = 0;
+        Control? title = null; NthWorkingTitle? thinking = null; NthBeadsHold? hold = null; var holdRoom = 1.0; string? titleText = null; bool? titleRunning = null; HydraProgressBar? bar = null; ValueList<TimelineEntry>? barEntries = null; bool? barCard = null; var chevronShown = false; var drawn = false; var leaving = 0;
         GrowingBody? opened = null; StackPanel? openedDetails = null; StackPanel? openedThinking = null; WorkSteps? openedSteps = null;
         // PORT-ONLY (UI-THEME-047): every draw builds the thinking markdown again, so the veils of its steps (SwiftUI's @State, kept by the ForEach's
         // offsets, :2158) live here for as long as the steps stay open on screen.
@@ -1724,10 +1724,18 @@ public sealed class WorkingIndicator : Decorator
                     var previous = title;
                     // Calculi WU5 (ED-NEW-calculi-wu5-2): a title that leaves with a fade gives its beads up first, into a hold at their place that does not fade
                     // (the beads never fade, never leave the screen for a frame); the label stands after the hold, where the running word stood.
-                    if (previous is NthWorkingTitle leaving) { if (leaving.Glyph is not null && hold is null) titleHost.Children.Add(hold = new NthBeadsHold()); leaving.ReleaseBeads(hold?.Slot); }
+                    // ED-NEW-calculi-rv-1: once the beads are done in the hold, its room closes and the label glides to the place a view made again gives it.
+                    if (previous is NthWorkingTitle leaving)
+                    {
+                        var made = false;
+                        if (leaving.Glyph is not null && hold is null) { titleHost.Children.Add(hold = new NthBeadsHold()); made = true; }
+                        leaving.ReleaseBeads(hold?.Slot);
+                        if (made && hold is not null)
+                            NthWorkingBeads.For(runtime).CloseRoom(hold.Slot, titleHost, room => { holdRoom = room; if (title is HydraWorkingTitle shown) shown.Margin = new Thickness(NthBeadsHold.Indent * room, 0, 0, 0); });
+                    }
                     thinking = running ? new NthWorkingTitle(label, NthWorkingBeads.For(runtime)) : null;
                     Control next = thinking is not null ? thinking : new HydraWorkingTitle(label, false, TextAlignment.Left); title = next; // :2104 the earlier segment's label at rest draws no breathing
-                    if (hold is not null && thinking is null) next.Margin = new Thickness(NthBeadsHold.Indent, 0, 0, 0);
+                    if (hold is not null && thinking is null) next.Margin = new Thickness(NthBeadsHold.Indent * holdRoom, 0, 0, 0);
                     int Before() => hold is not null && titleHost.Children.IndexOf(hold) is var at && at >= 0 ? at : titleHost.Children.Count; // the hold stays last (the header reads the first child's baseline)
                     if (previous is null) titleHost.Children.Insert(Before(), next);
                     else Transaction.WithAnimation(Change, () => { SwiftTransition.Remove(titleHost, previous); SwiftTransition.Insert(titleHost, Before(), next.Transition(SwiftTransition.Opacity)); });

@@ -4107,8 +4107,9 @@ public sealed class TurnFinishedBlock : Decorator
 
     /// <summary>PORT-ONLY: Calculi WU5 (ED-NEW-calculi-wu5-1). The running line's beads play their exit here, beside the label that already says how the
     /// turn ended (the UI never waits for them, DESIGN.md section 5.1). Their slot keeps the place they had in the running line (<paramref name="inset"/>
-    /// from the leading edge), and the label stands after it where the line's word stood, from the first frame and for this view's life: nothing moves
-    /// when the exit ends. The slot is outside the header button, whose turn-end fade the beads must not share (they never fade).</summary>
+    /// from the leading edge), and the label stands after it where the line's word stood, from the first frame. Once the exit has ended (or a new line
+    /// took the beads) the slot closes and the label glides to the Mac's place, where a view made again puts it (ED-NEW-calculi-rv-1). The slot is
+    /// outside the header button, whose turn-end fade the beads must not share (they never fade).</summary>
     private void HostBeads(NthWorkingBeads beads, double inset)
     {
         if (headerColumn is not { } column || headerButton is not { } header || column.Children.IndexOf(header) is var at && at < 0) return;
@@ -4119,6 +4120,12 @@ public sealed class TurnFinishedBlock : Decorator
         column.Children.Insert(at, new StackPanel { Orientation = Orientation.Horizontal, Children = { slot, header } });
         BeadsSlot = slot;
         beads.Host(slot);
+        var margin = Math.Max(0, inset);
+        beads.CloseRoom(slot, this, room =>
+        {
+            slot.Width = envelope.Width * room; slot.Height = envelope.Height * room;
+            slot.Margin = new Thickness(margin * room, 0, BeadsGap * room, 0);
+        });
     }
 
     private const double BeadsGap = 8; // NthWorkingTitle's gap between the beads and the word

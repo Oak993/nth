@@ -94,6 +94,31 @@ public sealed class HydraHeadTranscriptTests(HeadlessSession headless)
             Assert.Empty(All<ComposerArea>(transcript));
         });
 
+    [Fact]
+    [Trait("Design", "Calculi WU6")] // ED-NEW-calculi-rv-1: the footer is built again when the head's record changes; a running head's beads go on, never re-enter
+    public void A_running_heads_footer_keeps_its_beads_through_a_rebuild_and_ends_them_when_the_head_stops() =>
+        Run(HydraHeadInfo.Kind.Native, false, (c, transcript) =>
+        {
+            var footer = Assert.Single(All<HydraHeadFooter>(transcript));
+            var slot = Assert.Single(All<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(footer));
+            Assert.True(slot.IsRunning); Assert.Equal(1, slot.Beads.Current.Turn);
+            // the head's real description arrives (HydraAgentStarted rewrites Task and Title): the stored record changes and the footer is rebuilt
+            c.Model.UpdateThread(c.First.Id, t => t with { Hydra = t.Hydra! with { Task = "The real description" } });
+            transcript.Update(c.Model.Thread(c.First.Id)!);
+            c.Drain();
+            var rebuilt = Assert.Single(All<HydraHeadFooter>(transcript));
+            Assert.NotSame(footer, rebuilt);
+            Assert.Same(slot, Assert.Single(All<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(rebuilt)));
+            Assert.True(slot.IsRunning); Assert.Equal(1, slot.Beads.Current.Turn); // the same turn: no Ortus again
+            Assert.True(Avalonia.VisualTree.VisualExtensions.IsAttachedToVisualTree(slot.Beads));
+            // the head stops: its footer shows the status icon and the beads leave with their slot
+            c.Status(c.First, HydraHeadInfo.Status.Completed);
+            transcript.Update(c.Model.Thread(c.First.Id)!);
+            c.Drain();
+            Assert.Empty(All<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(transcript));
+            Assert.False(slot.IsRunning); Assert.Equal(Marrow.UI.Port.Nth.Beads.NthBeadsExit.Finish, slot.Beads.Current.Exit);
+        });
+
     [Theory]
     [InlineData(HydraHeadInfo.Kind.Droppy)]
     [InlineData(HydraHeadInfo.Kind.Native)]

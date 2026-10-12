@@ -262,11 +262,12 @@ public sealed class NthSitesBeadsTests(HeadlessSession headless)
         Assert.Equal(2, beads.Current.Turn); Assert.Equal(NthBeadsExit.None, beads.Current.Exit); Assert.Equal(NthBeadsEntrance.Ortus, beads.Current.Entrance);
         Assert.Equal(NthBeadsState.Tool, beads.Current.State);
         Assert.True(Draws(beads), "the turn draws in the new line");
-        // the split-off line keeps its hold (at no height) and its label stands where the running word stood
+        // the split-off line keeps its hold (at no height); once the beads left it, its room closed and the label glided to the place a view made
+        // again gives it, the leading edge (ED-NEW-calculi-rv-1; it stood at NthBeadsHold.Indent, where the running word stood, while the beads were there)
         var hold = mount.View.GetVisualDescendants().OfType<NthBeadsHold>().Single();
         Assert.Empty(hold.Slot.Children);
         var label = ((Panel)hold.GetVisualParent()!).Children.OfType<HydraWorkingTitle>().Single();
-        Assert.Equal(NthBeadsHold.Indent, label.Bounds.X, 1);
+        Assert.Equal(0, label.Bounds.X, 1);
     });
 
     [Fact]
@@ -290,6 +291,43 @@ public sealed class NthSitesBeadsTests(HeadlessSession headless)
         Assert.Equal(1, beads.Current.Turn); Assert.Equal(NthBeadsEntrance.Scriptio, beads.Current.Entrance);
         Assert.Same(beads, Title(mount).Glyph);
     });
+
+    [Theory]
+    [Trait("Design", "Calculi WU5")] // ED-NEW-calculi-rv-1: the finished header's room for the exit closes once the exit has ended; the label glides, never snaps
+    [InlineData(TurnStatus.Completed)]
+    [InlineData(TurnStatus.Failed)]
+    [InlineData(TurnStatus.Interrupted)]
+    public void Once_the_exit_has_ended_the_finished_headers_label_glides_to_the_leading_edge_where_a_view_made_again_puts_it(TurnStatus status) =>
+        ThreadTimelineRig.Run(headless, mount =>
+        {
+            var entries = new List<TimelineEntry> { User("prompt", Turn, "go"), ToolEntry("Running a command", Turn) };
+            Start(mount, entries);
+            var beads = Title(mount).Glyph!;
+            Watch(mount, beads, 10);
+            entries.Add(EndEntry("end", Turn, status));
+            End(mount, entries);
+            var block = LogicalQuery.SelfAndDescendants<TurnFinishedBlock>(mount.View).Single();
+            var slot = block.BeadsSlot!;
+            var header = ((StackPanel)slot.GetVisualParent()!).Children[1];
+            double X() => header.TranslatePoint(default, block)!.Value.X;
+            var start = X();
+            Assert.True(start > 30, $"the label stands after the beads' slot at the hand-off ({start:0.0} DIP)");
+            var last = start; var glided = 0; var steps = 0.0;
+            for (var i = 0; i < 60 * 5; i++)
+            {
+                Frame(mount);
+                var x = X();
+                if (Draws(beads)) Assert.Equal(start, x, 3); // while the exit plays the label stands still beside it
+                Assert.True(x <= last + 1e-6, $"frame {i}: the label moved back ({last:0.00} to {x:0.00})");
+                Assert.True(last - x <= .16 * start, $"frame {i}: the label snapped {last - x:0.00} DIP of {start:0.0} in one frame");
+                if (x < last - 1e-6) glided++;
+                steps = Math.Max(steps, last - x); last = x;
+            }
+            Assert.True(glided >= 10, $"the label glided over {glided} frames");
+            Assert.Equal(0, last, 2); // the leading edge: a finished header made again has no slot, its label at 0
+            Assert.Equal(0, slot.Bounds.Width, 2); Assert.Equal(0, slot.Bounds.Height, 2);
+            Assert.False(Draws(beads), "the exit has ended");
+        });
 
     // Where layout put a visual in an ancestor: its arranged places only (a render transform, such as a row's arrival offset, moves the beads rigidly
     // and is not a layout move).
@@ -432,11 +470,16 @@ public sealed class NthSmallSitesBeadsTests(HeadlessSession headless)
         var column = new StackPanel { Spacing = 4 };
         var marks = Enumerable.Range(0, 6).Select(i => NthWorkingMarks.Working(Guid.Parse($"6f0000{i:00}-1111-4222-8333-444455556666").ToString())).ToList();
         foreach (var mark in marks) column.Children.Add(mark);
+        var control = new NthBeadsSlot(NthBeadsPlace.HelperCapsule, "control-60"); // a 60 Hz site in the same window: the rate the rows are measured against
+        column.Children.Add(control);
         var window = Show(column);
         try
         {
             Pump(time, 60 * 2);
             var frames = 60 * 24;
+            // the engines' clocks step only where the real handler advances them (OnAnimationFrameUpdate, after the pacer's beat at the frame's rate)
+            var steps = new int[marks.Count]; var controlSteps = 0;
+            var clocks = marks.Select(mark => mark.Beads.Painter!.Driver.Engine!.Clock).ToArray(); var controlClock = control.Beads.Painter!.Driver.Engine!.Clock;
             var seen = marks.Select(_ => new List<NthBeadsSample>()).ToList();
             var worst30 = 0.0;
             for (var f = 0; f < frames; f++)
@@ -447,7 +490,9 @@ public sealed class NthSmallSitesBeadsTests(HeadlessSession headless)
                     var driver = marks[m].Beads.Painter!.Driver;
                     seen[m].Add(driver.Sample);
                     if (f > 0 && f % 2 == 0) worst30 = Math.Max(worst30, Travel(seen[m][f], seen[m][f - 2])); // a 30 Hz client updates every second slot
+                    if (driver.Engine!.Clock != clocks[m]) { steps[m]++; clocks[m] = driver.Engine.Clock; }
                 }
+                if (control.Beads.Painter!.Driver.Engine!.Clock != controlClock) { controlSteps++; controlClock = control.Beads.Painter.Driver.Engine!.Clock; }
             }
             for (var m = 0; m < marks.Count; m++)
             {
@@ -455,6 +500,10 @@ public sealed class NthSmallSitesBeadsTests(HeadlessSession headless)
                 Assert.Equal(NthBeadsMode.Running, driver.Engine!.Mode);
                 Assert.True(driver.Moving, $"row {m} asks for frames");
                 Assert.True(marks[m].Beads.FramesDrawn > frames / 2 - 60, $"row {m} was drawn {marks[m].Beads.FramesDrawn} times");
+                // advanced at 30 Hz through the real handler (the divisor reaches the compositor): every second slot, while a 60 Hz site in the same
+                // window advances in every slot (its redraws do not speed the rows up)
+                Assert.True(controlSteps > frames * .95, $"the 60 Hz control advanced in {controlSteps} of {frames} slots");
+                Assert.InRange(steps[m] / (double)controlSteps, .45, .55);
                 // it animates: in every second of the run the beads travel (none holds a still formation that looks hung)
                 for (var second = 0; second < 24; second++)
                 {
@@ -567,6 +616,10 @@ public sealed class NthSmallSitesBeadsTests(HeadlessSession headless)
             box.Update("Helper", true);
             Assert.True(box.IsVisible); Assert.True(slot.IsRunning); Assert.Equal(1, slot.Beads.Current.Turn);
             Pump(time, 90);
+            // the box was built hidden and the slot attached under it: showing the box (an ancestor) shows the beads, with no input event (ED-NEW-calculi-rv-1)
+            Assert.True(slot.Beads.Current.Shown, "the beads know their host is shown");
+            Assert.True(slot.Beads.IsMoving, "the beads move once the box shows");
+            Assert.True(slot.Beads.Painter!.Driver.Sample[0].S > .5, "the entrance has grown the beads");
             box.Update("Helper", true); // the same state again: nothing happens
             Assert.Equal(1, slot.Beads.Current.Turn);
             box.Update("Helper", false);

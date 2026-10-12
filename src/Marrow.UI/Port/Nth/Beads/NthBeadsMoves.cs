@@ -506,9 +506,10 @@ internal static class NthBeadsMoves
                 }
             case NthBeadsMoveId.Machina:
                 {
-                    // ED-NEW-calculi-wu1-3: the left stroke's window is [0, .56], not the reference's [-.06, .5], so the beam
-                    // engine starts and ends exactly on Pedes like every other motif (the right stroke keeps [.44, 1]).
-                    double pL = St(u / .56), pR = St((u - .44) / .56);
+                    // ED-NEW-calculi-wu1-3 as amended by ED-NEW-calculi-rv-1: the strokes run in [0, .5] and [.5, 1] of the cycle (the
+                    // reference's [-.06, .5] and [.44, 1] wrap past the cycle's ends), so the beam engine starts and ends exactly on Pedes
+                    // like every other motif and its two strokes stay exactly half a cycle apart (no limp).
+                    double pL = St(u / .5), pR = St((u - .5) / .5);
                     if (k == 0) return P4(Wire(m.A * pL));
                     if (k == 2) return P4(Wire(WireLength - m.A * pR));
                     return P4(new(.22 * (pR - pL), RT - .16 * (pL + pR)));
