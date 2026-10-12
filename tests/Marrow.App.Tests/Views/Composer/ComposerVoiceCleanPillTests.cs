@@ -41,6 +41,25 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
         });
     }
 
+    // OD-0125, OD-0147 (ED-NEW-glasslook-4): the locked references are the design's pill over the port's own frame as it was drawn then, every glass at the
+    // release look, and V-T133 compares at the same backdrop. Each glass in the window that names no look of its own is drawn at that look here (the voice
+    // pill keeps its own, the approved design). The shipped canvas composer behind the inline pill has no locked reference of its own (ED-NEW-glasslook-4).
+    // The returned action puts every glass back as the app ships it, so the scene serves V-T132 and V-T133 over the shipped glass from one render (ED-NEW-glassmerge-1).
+    private static Action ReleaseBackdrop(VoicePillScene scene) => scene.Rig.Main.OnMain(() =>
+    {
+        var changed = new List<(Control Control, Marrow.UI.Port.GlassEffect Shipped)>();
+        foreach (var control in Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(scene.Window).OfType<Control>())
+            if (Marrow.UI.Port.SwiftGlass.GetEffect(control) is { Look: null } effect)
+            {
+                changed.Add((control, effect));
+                Marrow.UI.Port.SwiftGlass.SetEffect(control, effect.WithLook(Marrow.UI.Port.GlassLook.Release));
+            }
+        return (Action)(() => scene.Rig.Main.OnMain(() =>
+        {
+            foreach (var (control, shipped) in changed) Marrow.UI.Port.SwiftGlass.SetEffect(control, shipped);
+        }));
+    });
+
     private static void RunRendered(VoiceComposerRig rig, ComposerView view, Avalonia.Controls.Window window, double seconds)
     {
         for (var k = 0; k < (int)Math.Round(seconds / FrameTime); k++)
@@ -148,8 +167,10 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
 
     // ---- one render per identity, judged by V-T132 and V-T133 ---------------------------------------------------------------------------------------------------
     // The two tests used to open the same scene apart and take the same frame with the pill twice. Now the scene of an identity is opened once: the frame with the pill
-    // is the one V-T133's detector runs on and the one V-T132 compares with the frame without the pill (a scene opens the same way every time, ED-573), and each test
-    // asserts exactly what it asserted, in the same order, on that one render. The verdict is kept for the run, so the second test of an identity renders nothing.
+    // is the one V-T133's detector runs on over the shipped glass and the one V-T132 compares with the frame without the pill (a scene opens the same way every time, ED-573),
+    // and V-T133 itself, at the backdrop its locked references were drawn over, runs on a frame of the same scene with every glass at the release look (OD-0125, OD-0147), put
+    // back before the pill is hidden. Each test asserts exactly what it asserted, in the same order, on that one render. The verdict is kept for the run, so the later tests
+    // of an identity render nothing.
 
     private static readonly Dictionary<string, (ComposerVoiceVerdict? Verdict, System.Runtime.ExceptionServices.ExceptionDispatchInfo? Failure)> Verdicts = [];
 
@@ -181,11 +202,20 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
         Assert.True(verdict.Worst <= 3, $"the pill leaves a difference of {verdict.Worst}/255 beside the orb at {verdict.Where}");
     });
 
-    /// <summary>V-T133: the pill and a margin round it have no specks the approved design does not have.</summary>
+    /// <summary>V-T133: the pill and a margin round it have no specks the approved design does not have, at the backdrop its locked references were drawn over.</summary>
     internal static void NoSpecks(HeadlessSession headless, VoiceListeningStyle style, int diameter, bool dark, string state, double scale) => headless.OnUiThread(() =>
     {
         var verdict = Judge(style, diameter, dark, state, scale);
         Assert.True(verdict.NotInTheDesign.Count == 0, "specks the approved design does not have (within 1 px): " + string.Join("; ", verdict.NotInTheDesign.Take(8)));
+    });
+
+    /// <summary>V-T133 over the shipped glass (ED-NEW-glasslook-4 item 6, the lead's ruling of 2026-10-12): V-T133 itself at the glass the app ships (OD-0147: the canvas
+    /// composer and the flat controls on it): the same detector, area, ink, ball and rule, a speck failing unless the approved design (the locked references, OD-0125, never
+    /// redrawn to make a failure pass) has one within 1 px. Before OD-0147 the shipped glass was the release look, so this is the check V-T133 made then.</summary>
+    internal static void NoSpecksOverTheShippedGlass(HeadlessSession headless, VoiceListeningStyle style, int diameter, bool dark, string state, double scale) => headless.OnUiThread(() =>
+    {
+        var verdict = Judge(style, diameter, dark, state, scale);
+        Assert.True(verdict.NotInTheDesignOverTheShippedGlass.Count == 0, "specks over the shipped glass the approved design does not have (within 1 px): " + string.Join("; ", verdict.NotInTheDesignOverTheShippedGlass.Take(8)));
     });
 
     private static ComposerVoiceVerdict Render(VoiceListeningStyle style, int diameter, bool dark, string state, double scale)
@@ -199,10 +229,15 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
         var orbUniforms = OrbUniforms(scene);
         var renderScaling = scene.Window.RenderScaling;
         var expectedWidth = (int)Math.Ceiling(scene.Window.ClientSize.Width * scale);
-        var notInTheDesign = Specks(scene, style, diameter, dark, state, scale, withPill, orb * scale);
+        var overTheShippedGlass = Specks(scene, style, diameter, dark, state, scale, withPill, orb * scale, true);
 #pragma warning disable CS0618
         if (Environment.GetEnvironmentVariable("VT12_DUMP") is { } dump) scene.Rig.Main.OnMain(() => { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); using var f = scene.Window.CaptureRenderedFrame(); f!.Save(System.IO.Path.Combine(dump, $"with-{style}-{diameter}-{dark}-{state}-{scale}.png")); });
 #pragma warning restore CS0618
+        // V-T133 itself, at the backdrop its locked references were drawn over; then every glass is back as the app ships it for the paired renders below.
+        var putBack = ReleaseBackdrop(scene);
+        var atTheReleaseLook = Shot(scene);
+        var notInTheDesign = Specks(scene, style, diameter, dark, state, scale, atTheReleaseLook, orb * scale, false);
+        putBack();
         scene.Rig.Main.OnMain(() => Pill(scene.View).IsVisible = false);
         scene.Rig.PumpWindow(scene.Window);
         var without = Shot(scene);
@@ -231,11 +266,13 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
                 if (diff > worst) { worst = diff; where = $"({x}, {y}) r {r:F1} channel {c}"; }
             }
         }
-        return new ComposerVoiceVerdict(shown, renderScaling, expectedWidth, withPill.Size.Width, orbUniforms, uniformsWithout, worst, where, notInTheDesign);
+        return new ComposerVoiceVerdict(shown, renderScaling, expectedWidth, withPill.Size.Width, orbUniforms, uniformsWithout, worst, where, notInTheDesign, overTheShippedGlass);
     }
 
-    /// <summary>V-T133's detector, unchanged, on the frame with the pill; <paramref name="orb"/> is the orb's centre in device pixels. The specks the approved design does not have.</summary>
-    private static List<string> Specks(VoicePillScene scene, VoiceListeningStyle style, int diameter, bool dark, string state, double scale, (int Stride, byte[] Bytes, PixelSize Size) frame, Point orb)
+    /// <summary>V-T133's detector, unchanged, on the frame with the pill; <paramref name="orb"/> is the orb's centre in device pixels. The specks the approved design does not have.
+    /// <paramref name="overTheShippedGlass"/>: the frame is drawn with the glass the app ships, not the backdrop of the locked references (diagnostic dumps keep apart).</summary>
+    private static List<string> Specks(VoicePillScene scene, VoiceListeningStyle style, int diameter, bool dark, string state, double scale, (int Stride, byte[] Bytes, PixelSize Size) frame, Point orb,
+        bool overTheShippedGlass)
     {
         var pillRect = scene.Rig.Main.OnMain(() =>
         {
@@ -281,16 +318,19 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
                 components.Add(members.ToArray());
             }
         }
-        if (VoicePillDiagnostics.Selected($"{style}-{diameter}-{dark}-{state}-{scale}"))
+        if (!overTheShippedGlass && VoicePillDiagnostics.Selected($"{style}-{diameter}-{dark}-{state}-{scale}"))
             scene.Rig.Main.OnMain(() => VoicePillDiagnostics.CaptureComponents(scene, $"{style}-{diameter}-{dark}-{state}-{scale}", frame, pillRect, orb, ballRadius * scale, components));
 #pragma warning disable CS0618
-        if (specks.Count > 0 && Environment.GetEnvironmentVariable("VT12_DUMP") is { } dump)
+        if (!overTheShippedGlass && specks.Count > 0 && Environment.GetEnvironmentVariable("VT12_DUMP") is { } dump)
             scene.Rig.Main.OnMain(() => { using var f = scene.Window.CaptureRenderedFrame(); f!.Save(System.IO.Path.Combine(dump, $"specks-{style}-{diameter}-{dark}-{state}-{scale}.png")); VoicePillDiagnostics.Capture(scene, $"{style}-{diameter}-{dark}-{state}-{scale}"); });
 #pragma warning restore CS0618
         // OD-0125: the detector above is unchanged. A speck fails only when the approved design (voice-composer.html drawn in Chrome at this scale, state, theme and backdrop; locked
         // references checked against their SHA-256) has no speck within 1 pixel of the same spot.
         if (Environment.GetEnvironmentVariable("VT12_DESIGN_DUMP") is { } designDump)
-            VoicePillDesignReference.Dump(scene, $"{style}-{diameter}-{dark}-{state}-{scale}", designDump, area);
+            VoicePillDesignReference.Dump(scene, $"{style}-{diameter}-{dark}-{state}-{scale}", overTheShippedGlass ? System.IO.Path.Combine(designDump, "shipped") : designDump, area);
+        // diagnostics only: the frame over the shipped glass (the locked references are never redrawn from it)
+        if (overTheShippedGlass && Environment.GetEnvironmentVariable("VT12_DUMP") is { } shippedDump)
+            Save(frame, System.IO.Path.Combine(shippedDump, $"shipped-{style}-{diameter}-{dark}-{state}-{scale}.png"));
         var designSpecks = specks.Count == 0 ? [] : VoicePillDesignReference.Has($"{style}-{diameter}-{dark}-{state}-{scale}")
             ? VoicePillDesignReference.Specks($"{style}-{diameter}-{dark}-{state}-{scale}", (x, y) => Math.Sqrt((x + 0.5 - orb.X) * (x + 0.5 - orb.X) + (y + 0.5 - orb.Y) * (y + 0.5 - orb.Y)) <= ballRadius * scale + 1)
             : [];
@@ -346,6 +386,17 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
             }
         }
         return (outlier, w, h);
+    }
+
+    // a captured frame as a PNG (diagnostics only, VT12_DUMP)
+    private static void Save((int Stride, byte[] Bytes, PixelSize Size) frame, string path)
+    {
+        using var bitmap = new SkiaSharp.SKBitmap(new SkiaSharp.SKImageInfo(frame.Size.Width, frame.Size.Height, SkiaSharp.SKColorType.Bgra8888, SkiaSharp.SKAlphaType.Premul));
+        var pixels = bitmap.GetPixels();
+        for (var y = 0; y < frame.Size.Height; y++)
+            System.Runtime.InteropServices.Marshal.Copy(frame.Bytes, y * frame.Stride, pixels + y * bitmap.RowBytes, frame.Size.Width * 4);
+        using var data = bitmap.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+        System.IO.File.WriteAllBytes(path, data.ToArray());
     }
 
     [Theory] // V-T133: the orb's 72 px view fades its glow to zero before its own edge

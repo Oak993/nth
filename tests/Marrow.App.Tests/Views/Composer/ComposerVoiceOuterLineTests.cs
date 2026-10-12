@@ -26,4 +26,18 @@ public sealed class ComposerVoiceOuterLineTests(HeadlessSession headless)
         });
         rig.Close(window);
     });
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-glasslook-4")] // the page's backdrop-filter blurs the pixels in the pill's own box (GlassOwnBackdropTests shows the material keeps to it)
+    public void The_voice_pills_frost_reads_only_its_own_box() => headless.OnUiThread(() =>
+    {
+        using var rig = new VoiceComposerRig();
+        var (pill, window) = Standalone(rig);
+        rig.Main.OnMain(() =>
+        {
+            Assert.True(SwiftGlass.GetEffect(pill.Body)!.OwnBackdrop);
+            Assert.False(GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Circular)).OwnBackdrop); // every other glass reads round its shape
+        });
+        rig.Close(window);
+    });
 }

@@ -47,6 +47,7 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
     internal VoiceOrbSections? Voice { get; private set; }
     internal WorkingDotsSections? Dots { get; private set; }
     internal SpeechSections? Speech { get; private set; }
+    internal GlassSections? Glass { get; private set; }
     internal CzAdvancedState Advanced { get; } = new();
     internal PreviewSession? Session => session;
 
@@ -61,6 +62,7 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
         // on attach, in this order: the page is built from the app's model, then it follows the app's settings
         this.Track(() => AppEnvironment.GetAppModel(this), Build);
         this.Track(() => { var settings = AppEnvironment.GetAppModel(this).Settings; return (Light: settings.ComposerLight, settings.Accent, settings.WorkingDots, settings.VoiceOrb, settings.VoiceTyping); }, shown => Apply(shown.Light));
+        this.Track(() => AppEnvironment.GetAppModel(this).Settings.Glass, _ => Glass?.Apply()); // ED-NEW-glasslook-2: the Glass rows follow the setting (a glide, a reset, another window)
     }
 
     /// <inheritdoc />
@@ -119,6 +121,9 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
         WindowsDisplayLanguage.Watch(this, Speech.Apply); // the Language row names the display language under language default C
         // PORT-ONLY (multi-account step 3a, OD-0115, OD-0119): "Pill in the composer" follows the sticky sections, where the pinned block has let go; Speech stays the first section there (CZ-3.5.3), so it goes after Speech
         Rest.Children.Add(new Marrow.App.Port.MultiAccount.Capsule.PillCapsuleSection(settings.CapsuleStyle));
+        // PORT-ONLY, owner-requested (OD-0107, ED-NEW-glasslook-2): Glass, after the composer's pill, where the pinned block has let go
+        Glass = new GlassSections(() => settings.Glass, value => settings.Glass = value, settings.FlushPendingWrites);
+        Rest.Children.Add(Glass.Section);
 
         // the chrome row's Preview state control is the session's pick (CZ-3.2, CZ-4.6); the session can move it too (touching Working dots)
         PreviewStatePick.SelectionChanged += id => { if (!echoing) session.Pick(StateOf(id)); };

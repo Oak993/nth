@@ -660,6 +660,7 @@ public sealed class ComposerTextView : Decorator
         var inkPlace = new TranslateTransform();
         textView.RenderTransform = Dictation.RenderTransform = inkPlace;
         var centresInk = false;
+        Avalonia.Controls.Presenters.TextPresenter? textPresenter = null;
         void PlaceInk()
         {
             if (!centresInk) { inkPlace.Y = 0; return; }
@@ -677,11 +678,37 @@ public sealed class ComposerTextView : Decorator
                     : 0;
                 return;
             }
+            // ED-NEW-glass-c10-7: the typed line likewise, from its glyph runs' outlines, and from where its presenter actually lies. The layout's Extent and
+            // OverhangAfter come from GlyphRun.InkBounds, which Avalonia rounds to whole logical pixels (14 for an ink of 13.52): the line's ink sat 0.26 pt
+            // low, one device row at 200 %. The presenter is placed by layout rounding (the 2 pt inset is 1.6 pt at 125 %), unlike the placeholder,
+            // which the text view draws at its inset itself.
             using var layout = textView.CreateComposerLayout(displayed, Math.Max(1, textView.Bounds.Width - textView.Padding.Left - textView.Padding.Right));
-            inkPlace.Y = layout.TextLines.Count == 1 && layout.Extent > 0
-                ? textView.Bounds.Height / 2 - (layout.Height + layout.OverhangAfter - layout.Extent / 2) - textView.Padding.Top
+            var lineTop = textPresenter?.TranslatePoint(default, textView)?.Y ?? textView.Padding.Top;
+            inkPlace.Y = layout.TextLines.Count == 1 && LineInk(layout.TextLines[0]) is { } line
+                ? textView.Bounds.Height / 2 - (line.Top + line.Bottom) / 2 - lineTop
                 : 0;
         }
+        // The vertical extent of a line's glyph outlines, from the line's top; null when it draws no ink. Each run's outline is placed on the line's baseline.
+        static (double Top, double Bottom)? LineInk(TextLine line)
+        {
+            (double Top, double Bottom)? ink = null;
+            foreach (var run in line.TextRuns.OfType<ShapedTextRun>())
+            {
+                var outline = run.GlyphRun.BuildGeometry().Bounds;
+                if (outline.Height <= 0) continue;
+                var shift = line.Baseline - run.GlyphRun.BaselineOrigin.Y;
+                ink = ink is { } known
+                    ? (Math.Min(known.Top, outline.Top + shift), Math.Max(known.Bottom, outline.Bottom + shift))
+                    : (outline.Top + shift, outline.Bottom + shift);
+            }
+            return ink;
+        }
+        textView.TemplateApplied += (_, e) =>
+        {
+            textPresenter = e.NameScope.Find<Avalonia.Controls.Presenters.TextPresenter>("PART_TextPresenter");
+            // a new scale re-rounds where the presenter lies without always resizing the text view
+            if (textPresenter is not null) textPresenter.PropertyChanged += (_, change) => { if (change.Property == Visual.BoundsProperty) PlaceInk(); };
+        };
         textView.SizeChanged += (_, _) => PlaceInk();
         textView.TextChanged += (_, _) => PlaceInk();
         textView.InkMetricsChanged += PlaceInk;

@@ -5,7 +5,7 @@ using Xunit;
 namespace Marrow.App.Tests.Views.Composer;
 
 // VT-12, V-T132 and V-T133 (ComposerVoiceCleanPillTests holds the scenes, the detector and the judged render): the 224-identity matrix, one class per scale so each runs well
-// under the gate's 500 s. Every identity renders once; its two tests assert on that render (ComposerVoiceCleanPillTests.Judge).
+// under the gate's 500 s. Every identity renders once; its three tests assert on that render (ComposerVoiceCleanPillTests.Judge).
 [Collection("Headless")]
 public sealed class ComposerVoiceCleanPillAt100Tests(HeadlessSession headless)
 {
@@ -22,4 +22,10 @@ public sealed class ComposerVoiceCleanPillAt100Tests(HeadlessSession headless)
     [Trait("Decision", "ED-292")]
     public void The_pill_and_a_margin_round_it_have_no_specks(VoiceListeningStyle style, int diameter, bool dark, string state, double scale)
         => ComposerVoiceCleanPillTests.NoSpecks(headless, style, diameter, dark, state, scale);
+
+    [Theory] // V-T133 over the shipped glass (ED-NEW-glasslook-4 item 6; ED-NEW-glassmerge-1: moved here from ComposerVoiceCleanPillTests with the split)
+    [MemberData(nameof(Matrix))]
+    [Trait("Decision", "ED-292")]
+    public void Over_the_shipped_glass_the_pill_and_a_margin_round_it_have_no_specks(VoiceListeningStyle style, int diameter, bool dark, string state, double scale)
+        => ComposerVoiceCleanPillTests.NoSpecksOverTheShippedGlass(headless, style, diameter, dark, state, scale);
 }

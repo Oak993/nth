@@ -75,9 +75,11 @@ public static class SmallAccentGlassButton
         var fill = new Border { IsHitTestVisible = false, Background = Brushes.Transparent }; // transparent, not null: a control with nothing to draw gets no composition visual for the material to sit behind
         fill.Capsule(RoundedCornerStyle.Continuous);
         var capsule = GlassShape.Capsule(RoundedCornerStyle.Continuous);
-        var glass = enabled
+        // OD-0147: a solid accent control keeps the release material its reference capture was matched with (UI-UPDATE-022); the approved canvas
+        // has no solid control but Send, which keeps its own face (OD-0136)
+        var glass = (enabled
             ? GlassEffect.Regular(capsule).Tint(Chrome.Accent, 1).Interactive()
-            : GlassEffect.Regular(capsule).Tint(Chrome.PrimaryText, DisabledWash);
+            : GlassEffect.Regular(capsule).Tint(Chrome.PrimaryText, DisabledWash)).WithLook(GlassLook.Release);
         SwiftGlass.SetEffect(fill, glass);
         return new Panel { Children = { fill, button } };
     }

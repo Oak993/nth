@@ -89,6 +89,7 @@ public sealed class HydraPanel : Decorator
         // :99-121 Keep the shadow-bearing scrim outside the clipped glass surface.
         var shape = new Border { ClipToBounds = true, Child = stageHost }.RoundedRectangle(CornerRadius, RoundedCornerStyle.Continuous); // :57 `shape`, the 22-point continuous rounded rectangle (ED-181, ED-275)
         SwiftGlass.SetEffect(shape, GlassEffect.Regular(GlassShape.RoundedRectangle(CornerRadius, RoundedCornerStyle.Continuous))); // :105
+        SwiftGlass.SetCastsOwnShadow(shape, true); // OD-0147: the scrim below casts the card's one shadow
         var scrim = new Border { CornerRadius = new CornerRadius(CornerRadius) };
         // :120 `.shadow(color: .black.opacity(isDark ? 1 : 0.65), radius: 28, y: 10)` on the filled scrim: the scrim's own coverage, cast at
         // its fill's alpha and drawn under it, through it (SwiftShadow.Caster, ED-358; sigma 28, ED-327).

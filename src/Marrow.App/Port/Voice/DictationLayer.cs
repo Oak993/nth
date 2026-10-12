@@ -674,6 +674,8 @@ internal sealed class DictationLayer : Control
         spans.Add(new ValueSpan<TextRunProperties>(from, to - from, Properties(face, size, new ImmutableSolidColorBrush(Alpha(ink, 1)))));
         if (to < original.Text.Length) spans.Add(new ValueSpan<TextRunProperties>(to, original.Text.Length - to, Properties(face, size, Brushes.Transparent)));
         using var layout = editor.CreateComposerLayout(original.Text, Math.Max(1, LayoutWidth()), Brushes.Transparent, spans);
+        // ED-NEW-glass-c10-1: fade the composed selection and glyphs once; per-paint alpha makes their overlap nonlinear.
+        using (context.PushRenderOptions(new RenderOptions { RequiresFullOpacityHandling = true }))
         using (context.PushOpacity(fade))
         {
             // Match TextPresenter.Render in Avalonia 12.1.2: the editor fills each selection rectangle after PixelRect.FromRect(rect, 1), before drawing the glyphs.

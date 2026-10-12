@@ -314,6 +314,7 @@ public sealed partial class AppSettings : MainActorModel, ProviderSettings, Acco
         public const string VoiceHardware = VoiceHardwareRecord.StoreKey;
         public const string VoiceNotes = VoiceNotesSettings.StoreKey;
         public const string WorkingDots = WorkingDotsSettings.StoreKey;
+        public const string GlassLook = GlassSettings.StoreKey; // PORT-ONLY, owner-requested (OD-0107, OD-0147, ED-NEW-glasslook-2)
     }
 
     // :182
@@ -408,6 +409,7 @@ public sealed partial class AppSettings : MainActorModel, ProviderSettings, Acco
     private VoiceHardwareRecord? voiceHardware;
     private VoiceNotesSettings voiceNotes = VoiceNotesSettings.Default;
     private WorkingDotsSettings workingDots = WorkingDotsSettings.Default;
+    private GlassSettings glass = GlassSettings.Default;
     private TextGenerationChoice textGeneration;
     private string commitInstructions = "";
     private double terminalHeight;
@@ -665,6 +667,20 @@ public sealed partial class AppSettings : MainActorModel, ProviderSettings, Acco
     {
         get => Read(workingDots);
         set => Set(ref workingDots, value, _ => Store(Key.WorkingDots, value.ToJson()));
+    }
+
+    /// <summary>PORT-ONLY, owner-requested and owner-approved (OD-0107, OD-0147, ED-NEW-glasslook-2): <c>glass</c> (the approved canvas's settings; the
+    /// earlier <c>glassLook</c> key is not read), the Glass settings of Customization, held to their
+    /// ranges and mirrored into the material's tuning (GlassLooks.Tuning) as the theme is into ThemeManager; the store is written through the
+    /// coalescer, so a slider's drag writes at most every 250 ms.</summary>
+    public GlassSettings Glass
+    {
+        get => Read(glass);
+        set => Set(ref glass, (value ?? GlassSettings.Default).Held(), _ =>
+        {
+            Store(Key.GlassLook, glass.ToJson());
+            GlassLooks.Tuning = glass;
+        });
     }
 
     // PORT-ONLY (CZ-13.5): the one place the keys above and composerLight reach the store: the in-memory value is already current,
@@ -1318,6 +1334,9 @@ public sealed partial class AppSettings : MainActorModel, ProviderSettings, Acco
         voiceHardware = defaults.Data(Key.VoiceHardware) is { } hardwareStored ? VoiceHardwareRecord.FromJson(hardwareStored) : null;
         voiceNotes = defaults.Data(Key.VoiceNotes) is { } notesStored ? VoiceNotesSettings.FromJson(notesStored) : VoiceNotesSettings.Default;
         workingDots = defaults.Data(Key.WorkingDots) is { } dotsStored ? WorkingDotsSettings.FromJson(dotsStored) : WorkingDotsSettings.Default;
+        // PORT-ONLY (ED-NEW-glasslook-2): unreadable or missing, every surface's own look; mirrored into the material before any window draws.
+        glass = defaults.Data(Key.GlassLook) is { } glassStored ? GlassSettings.FromJson(glassStored) : GlassSettings.Default;
+        GlassLooks.Tuning = glass;
     }
 
     // MARK: - Hydra pairs

@@ -23,13 +23,26 @@ internal static class ComposerCentreProbe
         var rect = Frame(view, window);
         var scale = window.RenderScaling;
         var x = (int)(rect.Center.X * scale);
-        var sample = (int)Math.Floor(rect.Top * scale) - 8;
-        var background = Enumerable.Range(0, 3).Select(c => pixels.Bytes[sample * pixels.Stride + x * 4 + c]).ToArray();
-        bool Painted(int y) => Enumerable.Range(0, 3).Max(c => Math.Abs(pixels.Bytes[y * pixels.Stride + x * 4 + c] - background[c])) >= 2;
+        bool Painted(int y) => RowIsOutline(pixels, rect, scale, x, y, ((Avalonia.Media.SolidColorBrush)window.Background!).Color);
         var top = Enumerable.Range((int)Math.Floor(rect.Top * scale) - 3, 8).First(Painted);
         var bottom = Enumerable.Range((int)Math.Ceiling(rect.Bottom * scale) - 4, 8).Last(Painted);
         return (top + bottom + 1) / 2.0;
     }
+    internal static bool RowIsOutline((int Stride, byte[] Bytes, PixelSize Size) pixels, Rect rect, double scale, int x, int y, Avalonia.Media.Color backdrop)
+    {
+        // ED-NEW-glass-c10-3 / OD-0147; lead decision 2026-10-12 20:10:
+        // compare against the prepared uniform backdrop plus the design's shadow, not a shadowed reference row.
+        // Independent replay of glass-ui/index.html FS_GLASS, composer [6,18,.20,.14]; do not read port shader constants.
+        var logicalY = (y + .5) / scale;
+        double Distance(double drop) => Math.Max(rect.Top - (logicalY - drop), logicalY - drop - rect.Bottom);
+        static double Shadow(double distance, double sigma, double alpha) => alpha * .5 * (1 - Math.Tanh(Math.Clamp(.85 * distance / sigma, -8, 8)));
+        var shadow = Shadow(Distance(6), 18, .20);
+        shadow = 1 - (1 - shadow) * (1 - Shadow(Distance(1), 2.5, .14));
+        // ED-NEW-glass-c10-5: pure shadow baseline; shape coverage is part of the measured foreground.
+        int Expected(int channel) => (int)Math.Round((channel == 0 ? backdrop.R : channel == 1 ? backdrop.G : backdrop.B) * (1 - shadow));
+        return Enumerable.Range(0, 3).Max(c => Math.Abs(pixels.Bytes[y * pixels.Stride + x * 4 + c] - Expected(c))) >= 2;
+    }
+
     internal static double InkCentre(ComposerView view, Avalonia.Controls.Window window)
     {
         return InkCentre(DictationProbe.Box(view), window);
