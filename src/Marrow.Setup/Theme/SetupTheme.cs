@@ -37,6 +37,36 @@ public enum TextRole
 
     /// <summary>A button's label: 15 semibold.</summary>
     Button,
+
+    /// <summary>Welcome's version and size line: 13 (unit U2).</summary>
+    Meta,
+
+    /// <summary>A row's label in a glass group (Options, Uninstall): 15 on 21 (unit U2).</summary>
+    RowLabel,
+
+    /// <summary>A row's detail line: 12.5 on 17 (unit U2).</summary>
+    RowHint,
+
+    /// <summary>A notes card's heading ("What's new in 1.1.0", "Running in nth now"): 13 semibold (unit U2).</summary>
+    NotesHeading,
+
+    /// <summary>A notes card's lines: 14 on 21 (unit U2).</summary>
+    Notes,
+
+    /// <summary>The details log on Problem: Cascadia Mono 11 on 16 (unit U2).</summary>
+    Log,
+
+    /// <summary>An install path: Cascadia Mono 11.5 on the fine print's 18 (unit U2).</summary>
+    Path,
+
+    /// <summary>The uninstall warning: 13 on 19 (unit U2).</summary>
+    Warning,
+
+    /// <summary>A progress step's label: 15 (unit U2).</summary>
+    Step,
+
+    /// <summary>A small button's label (Options' Change…): 13.5 semibold (unit U2).</summary>
+    SmallButton,
 }
 
 /// <summary>A text role at 100 % text size.</summary>
@@ -76,6 +106,16 @@ public static class SetupTheme
         TextRole.Hint => new TextStyle(12.5, 18, FontWeight.Normal, AppFamily),
         TextRole.Numbers => new TextStyle(12, 16, FontWeight.Normal, MonoFamily),
         TextRole.Button => new TextStyle(15, 20, FontWeight.SemiBold, AppFamily),
+        TextRole.Meta => new TextStyle(13, 19, FontWeight.Normal, AppFamily),
+        TextRole.RowLabel => new TextStyle(15, 21, FontWeight.Normal, AppFamily),
+        TextRole.RowHint => new TextStyle(12.5, 17, FontWeight.Normal, AppFamily),
+        TextRole.NotesHeading => new TextStyle(13, 20, FontWeight.SemiBold, AppFamily),
+        TextRole.Notes => new TextStyle(14, 21, FontWeight.Normal, AppFamily),
+        TextRole.Log => new TextStyle(11, 16, FontWeight.Normal, MonoFamily),
+        TextRole.Path => new TextStyle(11.5, 18, FontWeight.Normal, MonoFamily),
+        TextRole.Warning => new TextStyle(13, 19, FontWeight.Normal, AppFamily),
+        TextRole.Step => new TextStyle(15, 22, FontWeight.Normal, AppFamily),
+        TextRole.SmallButton => new TextStyle(13.5, 18, FontWeight.SemiBold, AppFamily),
         _ => throw new ArgumentOutOfRangeException(nameof(role)),
     };
 
@@ -140,6 +180,16 @@ public static class SetupTheme
         TextRole.Hint => "hint",
         TextRole.Numbers => "numbers",
         TextRole.Button => "button",
+        TextRole.Meta => "meta",
+        TextRole.RowLabel => "rowLabel",
+        TextRole.RowHint => "rowHint",
+        TextRole.NotesHeading => "notesHeading",
+        TextRole.Notes => "notes",
+        TextRole.Log => "log",
+        TextRole.Path => "path",
+        TextRole.Warning => "warning",
+        TextRole.Step => "step",
+        TextRole.SmallButton => "smallButton",
         _ => throw new ArgumentOutOfRangeException(nameof(role)),
     };
 }
