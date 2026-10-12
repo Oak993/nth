@@ -278,7 +278,7 @@ public sealed class VisusPaneTests(HeadlessSession headless)
 
         Go(visus, rig, "http://plain.example/");
         Assert.Equal("Not secure", trust.Label);
-        Assert.Equal(PaneGlyphKind.Warn, trust.Glyph);
+        Assert.Equal(PaneGlyphKind.Warning, trust.Glyph);
         Assert.Equal("Visus · plain.example, not secure", AutomationProperties.GetName(trust));
 
         Go(visus, rig, "localhost:5173");

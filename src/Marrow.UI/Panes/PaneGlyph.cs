@@ -41,35 +41,25 @@ public enum PaneGlyphKind
     /// <summary>A pane with its foot band marked: the chat's drawer (W4's "Move to the drawer").</summary>
     DockBottom,
 
-    /// <summary>W8a, Visus's toolbar and chips: the canvas's i-back.</summary>
-    Back,
-
-    /// <summary>The canvas's i-fwd.</summary>
-    Forward,
-
-    /// <summary>The canvas's i-reload.</summary>
-    Reload,
-
-    /// <summary>The canvas's i-lock (the site chip of an https page).</summary>
-    Lock,
-
-    /// <summary>The canvas's i-mask (private tabs).</summary>
-    Mask,
-
-    /// <summary>The canvas's i-search.</summary>
-    Search,
-
-    /// <summary>The canvas's i-copy.</summary>
+    // Tabula (web W14): the canvas's i-copy, i-save, i-ext, i-spark, i-shield, i-search, i-edit, i-warn and i-back,
+    // and an export arrow drawn in the same hand.
     Copy,
-
-    /// <summary>The canvas's i-ext (open elsewhere).</summary>
-    External,
-
-    /// <summary>The canvas's i-warn.</summary>
-    Warn,
-
-    /// <summary>The canvas's i-shield (prompts).</summary>
+    Save,
+    OpenExternal,
+    Spark,
     Shield,
+    Search,
+    Edit,
+    Warning,
+    Back,
+    Export,
+
+    // Visus (web W8a): the canvas's i-fwd, i-reload, i-lock and i-mask (Back, Search, Copy, OpenExternal, Warning and Shield
+    // are Tabula's, above).
+    Forward,
+    Reload,
+    Lock,
+    Mask,
 }
 
 /// <summary>A line glyph in the inherited text colour.</summary>
@@ -108,19 +98,22 @@ public sealed class PaneGlyph : Control
         [PaneGlyphKind.Stop] = Parse("M8.6 7h6.8A1.6 1.6 0 0 1 17 8.6v6.8a1.6 1.6 0 0 1-1.6 1.6H8.6A1.6 1.6 0 0 1 7 15.4V8.6A1.6 1.6 0 0 1 8.6 7z"),
         [PaneGlyphKind.Check] = Parse("M5 12.5l4.5 4.5L19 7.5"),
         [PaneGlyphKind.Plus] = Parse("M12 5v14M5 12h14"),
-        [PaneGlyphKind.Back] = Parse("M15 18l-6-6 6-6"),
         [PaneGlyphKind.Forward] = Parse("M9 18l6-6-6-6"),
         [PaneGlyphKind.Reload] = Parse("M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4.5H15"),
         [PaneGlyphKind.Lock] = Parse("M7.5 11h9a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2z M8.5 11V8a3.5 3.5 0 0 1 7 0v3"),
         [PaneGlyphKind.Mask] = Parse(
             "M3 9.5c3-2.5 15-2.5 18 0-.6 4.5-3.2 7-5.6 7-1.5 0-2-1.6-3.4-1.6S10.1 16.5 8.6 16.5C6.2 16.5 3.6 14 3 9.5z M7.5 11.5l2 .5M14.5 12l2-.5"),
-        [PaneGlyphKind.Search] = Parse(Circle(11, 11, 6) + "M20 20l-4.5-4.5"),
-        [PaneGlyphKind.Copy] = Parse(
-            "M10.5 8.5h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z M15.5 8.5V6.5a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2"),
-        [PaneGlyphKind.External] = Parse("M14 4h6v6M20 4l-8.5 8.5M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"),
-        [PaneGlyphKind.Warn] = Parse("M12 4l9 16H3z M12 10v4M12 17h.01"),
-        [PaneGlyphKind.Shield] = Parse("M12 3.5l7 2.5v5.5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"),
         [PaneGlyphKind.DockBottom] = Parse("M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z M4 14.5h16"),
+        [PaneGlyphKind.Copy] = Parse("M10.5 8.5h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z M15.5 8.5V6.5a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2"),
+        [PaneGlyphKind.Save] = Parse("M12 4v10M8 10.5l4 4 4-4M4.5 15v2.5a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V15"),
+        [PaneGlyphKind.OpenExternal] = Parse("M14 4h6v6M20 4l-8.5 8.5M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"),
+        [PaneGlyphKind.Spark] = Parse("M12 3.5l1.7 5L18.5 10l-4.8 1.6L12 16.5l-1.7-4.9L5.5 10l4.8-1.5zM18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"),
+        [PaneGlyphKind.Shield] = Parse("M12 3.5l7 2.5v5.5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"),
+        [PaneGlyphKind.Search] = Parse(Circle(11, 11, 6) + "M20 20l-4.5-4.5"),
+        [PaneGlyphKind.Edit] = Parse("M4.5 19.5h4l10-10-4-4-10 10z"),
+        [PaneGlyphKind.Warning] = Parse("M12 4l9 16H3z M12 10v4M12 17h.01"),
+        [PaneGlyphKind.Back] = Parse("M15 18l-6-6 6-6"),
+        [PaneGlyphKind.Export] = Parse("M12 15V4M8 7.5l4-4 4 4M5 12.5v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"),
     };
 
     static PaneGlyph()

@@ -57,6 +57,9 @@ public sealed class PaneContent
         HeaderContentPlacementChanged?.Invoke(inHeader);
     }
 
+    /// <summary>A menu the header's title opens (Tabula's artifacts, web W14); null for a plain title.</summary>
+    public Action? TitleMenu { get; private set; }
+
     /// <summary>The control that takes keyboard focus when the person opens the pane (Side chat's composer); null: focus stays where it was.</summary>
     public Control? FocusTarget { get; set; }
 
@@ -68,6 +71,13 @@ public sealed class PaneContent
         Title = title;
         Subtitle = subtitle;
         if (actions is not null) Actions = actions;
+        Changed?.Invoke();
+    }
+
+    /// <summary>Gives the title a menu (or takes it away with null).</summary>
+    public void SetTitleMenu(Action? menu)
+    {
+        TitleMenu = menu;
         Changed?.Invoke();
     }
 }

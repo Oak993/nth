@@ -190,6 +190,18 @@ public sealed class ArtifactMount : IWebResourceHandler, IDisposable
         if (!disposed) View.Navigate(Address);
     }
 
+    /// <summary>
+    /// Streaming preview (DESIGN 6.4; web W14): the page morphs into <paramref name="html"/>, the newest text of a version
+    /// being written, so its state and scroll survive; the next full load shows the version itself.
+    /// </summary>
+    public void Morph(string html)
+    {
+        ArgumentNullException.ThrowIfNull(html);
+        if (disposed) return;
+        var json = new System.Text.Json.Nodes.JsonObject { ["nth"] = 1, ["event"] = "morph", ["html"] = html }.ToJsonString();
+        runtime.Post(() => View.Engine?.PostMessage(json));
+    }
+
     /// <summary>The version the mount serves, read once and kept until the artifact changes.</summary>
     public ArtifactSnapshot? Snapshot()
     {

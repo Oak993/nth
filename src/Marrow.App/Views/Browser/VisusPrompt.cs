@@ -60,7 +60,7 @@ public sealed class VisusPrompt : Border
         heading.FontWeight = FontWeight.SemiBold;
         var detail = Text(Shorten(launch.Uri), 12.5, PaneTokens.Text2, wrap: true);
         detail.Margin = new Thickness(0, 2, 0, 0);
-        var glyph = new PaneGlyph(PaneGlyphKind.External, 20) { Margin = new Thickness(0, 1, 10, 0), VerticalAlignment = VerticalAlignment.Top };
+        var glyph = new PaneGlyph(PaneGlyphKind.OpenExternal, 20) { Margin = new Thickness(0, 1, 10, 0), VerticalAlignment = VerticalAlignment.Top };
         glyph.Foreground = PaneTokens.Text1.Brush(glyph);
         var words = new StackPanel { Orientation = Orientation.Vertical, Children = { heading, detail } };
         var top = new DockPanel { LastChildFill = true };
@@ -247,7 +247,7 @@ public sealed class VisusNotice : Border
         {
             Orientation = Orientation.Horizontal,
             Spacing = 8,
-            Children = { new PaneGlyph(PaneGlyphKind.Warn, 13) { VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 1, 0, 0) }, text },
+            Children = { new PaneGlyph(PaneGlyphKind.Warning, 13) { VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 1, 0, 0) }, text },
         };
         AutomationProperties.SetLiveSetting(this, AutomationLiveSetting.Polite);
         ActualThemeVariantChanged += (_, _) => ApplyLook();

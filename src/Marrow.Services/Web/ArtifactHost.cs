@@ -19,6 +19,9 @@ public sealed class ArtifactHost(ArtifactStore? store, Func<Guid, Task<ArtifactT
 
     public bool IsOn => Store is not null;
 
+    /// <summary>The artifacts the chats are writing right now (W14: Tabula opens on them with a skeleton, DESIGN 6.4).</summary>
+    public ArtifactStreams Streams { get; } = new();
+
     /// <summary>Raised when the user opens an artifact's chip in an answer; the Tabula pane opens it.</summary>
     public event Action<Guid, string>? OpenRequested;
 

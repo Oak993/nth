@@ -7,4 +7,5 @@ obj/
 porting/verification/runs/
 
 # scripts/package-windows.ps1: the local Velopack publish folder and installer output (OD-0062; never committed).
-artifacts/
+# Rooted, so a source folder named Artifacts (Tabula's views, web W14) is not ignored on this case-insensitive checkout.
+/artifacts/

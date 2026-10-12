@@ -375,7 +375,7 @@ public sealed class VisusTrustStrip : Button
         var kind = chip.Kind switch
         {
             SiteChipKind.Secure => PaneGlyphKind.Lock,
-            SiteChipKind.NotSecure => PaneGlyphKind.Warn,
+            SiteChipKind.NotSecure => PaneGlyphKind.Warning,
             SiteChipKind.Preview => PaneGlyphKind.Browser,
             SiteChipKind.Private => PaneGlyphKind.Mask,
             SiteChipKind.Agent => PaneGlyphKind.Shield,
@@ -797,7 +797,7 @@ public sealed class VisusSuggestionRow : Border
         var glyph = new PaneGlyph(suggestion.Kind switch
         {
             VisusSuggestionKind.Search => PaneGlyphKind.Search,
-            VisusSuggestionKind.OpenApp => PaneGlyphKind.External,
+            VisusSuggestionKind.OpenApp => PaneGlyphKind.OpenExternal,
             VisusSuggestionKind.SwitchToTab => PaneGlyphKind.Browser,
             _ => PaneGlyphKind.Browser,
         }, 13) { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };

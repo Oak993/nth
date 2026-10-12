@@ -23,6 +23,7 @@ public sealed class PaneCard : Border
     private readonly Border clip;
     private readonly Grid layout = new() { RowDefinitions = new RowDefinitions($"{PaneTokens.HeaderHeight},*") };
     private readonly ScaleTransform scale = new(1, 1);
+    private readonly TranslateTransform slide = new();
     private readonly TranslateTransform offset = new(0, 0);
     private bool focused;
     private bool expanded;
@@ -36,7 +37,7 @@ public sealed class PaneCard : Border
         CornerRadius = new CornerRadius(PaneTokens.CornerRadius);
         BorderThickness = new Thickness(1);
         ClipToBounds = false;
-        RenderTransform = new TransformGroup { Children = { scale, offset } };
+        RenderTransform = new TransformGroup { Children = { scale, slide, offset } };
         RenderTransformOrigin = RelativePoint.Center;
         // F6 reaches a pane as a whole (DESIGN 3.7, 10: "Every pane is a landmark ... F6 cycles panes and splitters"); Tab skips the
         // card itself and goes on into its body.
@@ -84,6 +85,16 @@ public sealed class PaneCard : Border
             if (scale.ScaleX == value) return;
             scale.ScaleX = value;
             scale.ScaleY = value;
+        }
+    }
+
+    /// <summary>The narrow slide in DIP along the strip's axis (3.8: 8 DIP while a surface fades in or out), a render transform only.</summary>
+    public double Slide
+    {
+        get => slide.X;
+        set
+        {
+            if (slide.X != value) slide.X = value;
         }
     }
 
@@ -139,6 +150,7 @@ public sealed class PaneCard : Border
     {
         Header.SetTitle(Content.Title ?? PaneKinds.Title(Kind), Content.Subtitle);
         Header.SetActions(Content.Actions);
+        Header.TitleMenu = Content.TitleMenu;
     }
 
     private void UpdateFocus()

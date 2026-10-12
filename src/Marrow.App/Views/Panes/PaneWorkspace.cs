@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Marrow.App.Port;
@@ -29,6 +30,11 @@ using Marrow.UI.Web;
 // Panes sit under the title band (the caption buttons' row) with an 8 DIP margin to the window's right and bottom; the
 // chat column keeps the full height, as it does today. The layout is solved left to right: Avalonia mirrors the whole
 // subtree under a right-to-left window, pointer travel included (the Splitter un-mirrors its own travel).
+// Narrow mode (web surfaces W3c, DESIGN 3.8, ED-NEW-web-w3c-2): when the solver says the window is too narrow for the chat and
+// one pane, the workspace shows one surface at a time under a glass tab strip in the title band (Chat, then the open panes in
+// order). A switch cross-fades with an 8 DIP slide on the same springs, a pane that opens is chosen and one that closes gives
+// way to the chat; the surface not chosen is out of the layout and out of the accessibility tree once it has faded. The chat
+// column then starts below the title band (its own chrome row under the strip), and every pane fills the solver's area.
 //
 // Web surfaces W3b adds (DESIGN 3.5 collapse, 3.6 re-dock, 3.7 keyboard, 4.2 limits; ED-NEW-web-w3b-1 to 4):
 // - a gutter dragged past the collapsible side's minimum by 56 DIP folds that side into a 22 DIP rail (PaneRailStrip); a collapsible
@@ -68,6 +74,9 @@ public sealed partial class PaneWorkspace : Panel
     /// <summary>Panes start under the title band, clear of the caption buttons.</summary>
     public static double TopBand => WindowChrome.TitlebarHeight + PaneKinds.Gap;
 
+    /// <summary>How far a narrow surface slides while it fades in or out (DESIGN 3.8: "cross-fades with an 8 DIP slide").</summary>
+    public const double NarrowSlide = 8;
+
     /// <summary>
     /// The chat reflow every new workspace uses. Clip until spike (h) shows the live spring holds 8 ms per frame at p99
     /// with a 2,000-turn transcript while streaming (DESIGN 2.6); then Live.
@@ -75,6 +84,11 @@ public sealed partial class PaneWorkspace : Panel
     public static ChatReflow DefaultChatReflow { get; set; } = ChatReflow.Clip;
 
     private readonly ChatSlot chat = new();
+    private readonly NarrowTabStrip strip = new() { IsVisible = false, ZIndex = 15 };
+    private readonly SplitterSpring stripOpacity = new(0, epsilon: 0.002);
+    private readonly SplitterSpring chatOpacity = new(1, epsilon: 0.002);
+    private readonly SplitterSpring chatSlide = new(0);
+    private readonly TranslateTransform chatTranslate = new();
     private readonly Dictionary<PaneKind, CardMotion> cards = [];
     private readonly Dictionary<string, RailMotion> rails = [];
     private readonly Dictionary<string, Splitter> splitters = [];
@@ -106,12 +120,20 @@ public sealed partial class PaneWorkspace : Panel
     private int gestureSerial;
     private bool gestureOpen;
     private TopLevel? keyTop;
+    private bool narrowMode;
+    private bool narrowReserve;
+    private bool chatHiding;
+    private double chatTop;
+    private PaneKind? narrowShown;
 
     public PaneWorkspace(Control chatColumn, Func<PaneKind, PaneContent?> factory)
     {
         ArgumentNullException.ThrowIfNull(chatColumn);
         this.factory = factory ?? throw new ArgumentNullException(nameof(factory));
         chat.Content = chatColumn;
+        chat.RenderTransform = chatTranslate;
+        strip.TabChosen += Select;
+        Children.Add(strip); // first: the keyboard reaches the tabs before the surface they choose
         Children.Add(chat);
         foreach (var key in PaneGutterKeys.All)
         {
@@ -216,8 +238,24 @@ public sealed partial class PaneWorkspace : Panel
     /// <summary>The rail's rectangle on screen (in the workspace, under the title band), or null.</summary>
     public Rect? RailBounds(string key) => rails.TryGetValue(key, out var motion) && motion.Wanted ? motion.Bounds : null;
 
-    /// <summary>The chat column's rectangle on screen now.</summary>
-    public Rect ChatBounds => new(0, 0, ChatShownWidth, solvedSize.Height);
+    /// <summary>The chat column's rectangle on screen now (below the title band in narrow mode).</summary>
+    public Rect ChatBounds => new(0, chatTop, ChatShownWidth, Math.Max(0, solvedSize.Height - chatTop));
+
+    /// <summary>The window is too narrow for the chat and a pane side by side: one surface shows under the tab strip (DESIGN 3.8).</summary>
+    public bool IsNarrow => narrowMode;
+
+    /// <summary>The surface narrow mode shows (the chat or a pane), or null in tiles mode.</summary>
+    public PaneKind? NarrowSurface => narrowMode ? narrowShown : null;
+
+    /// <summary>The narrow tab strip (visible only in narrow mode, and while it fades).</summary>
+    public NarrowTabStrip NarrowStrip => strip;
+
+    /// <summary>The strip's rectangle in the title band: clear of the caption buttons, with the pill centred in it.</summary>
+    public Rect StripBounds => new(
+        Marrow.UI.Chrome.Chrome.ChromeHorizontalPadding,
+        Marrow.UI.Chrome.Chrome.ChromeTopPadding + (Marrow.UI.Chrome.Chrome.CapsuleHeight - NarrowTabStrip.PillHeight) / 2,
+        Math.Max(0, solvedSize.Width - Marrow.UI.Chrome.Chrome.ChromeHorizontalPadding - WindowChrome.CaptionTrailingReserve),
+        NarrowTabStrip.PillHeight);
 
     /// <summary>A card's rectangle on screen now (in the workspace, under the title band), or null when it is not drawn.</summary>
     public Rect? BoundsOf(PaneKind kind) => cards.TryGetValue(kind, out var motion) && motion.Card.IsVisible ? Shown(motion) : null;
@@ -249,6 +287,9 @@ public sealed partial class PaneWorkspace : Panel
         rubberKey = null;
         rubberGive = 0;
         chat.FinishNow();
+        narrowMode = false;
+        narrowShown = null;
+        chatHiding = false;
         state = PaneWorkspaceState.Default;
         if (!Apply(next, animate: false))
         {
@@ -302,7 +343,7 @@ public sealed partial class PaneWorkspace : Panel
 
     public void RestoreExpanded() => Commit(state.RestoreExpanded());
 
-    public void Select(PaneKind kind) => Commit(state.Select(kind));
+    public void Select(PaneKind kind) => Commit(kind == PaneKind.Chat ? state.Open(PaneKind.Chat) : state.Select(kind));
 
     /// <summary>Collapses a collapsible side (<see cref="PaneGutterKeys.Chat"/> folds every pane, <see cref="PaneGutterKeys.Side"/> Side chat) to its rail.</summary>
     public void Collapse(string key) => Commit(PaneLayout.Collapse(state, SolverWidth, SolverHeight, key));
@@ -329,6 +370,9 @@ public sealed partial class PaneWorkspace : Panel
         }
         lastFrame = null;
         chatWidth.Settle();
+        chatOpacity.Settle();
+        chatSlide.Settle();
+        stripOpacity.Settle();
         foreach (var motion in cards.Values) motion.Settle();
         foreach (var motion in rails.Values) motion.Opacity.Settle();
         ghost?.Settle();
@@ -402,7 +446,7 @@ public sealed partial class PaneWorkspace : Panel
             card.Header.DragDropped += e => EndRedock(kind, drop: true);
             card.Header.DragCanceled += () => EndRedock(kind, drop: false);
             cards[kind] = motion;
-            Children.Insert(1, card);
+            Children.Insert(2, card);
         }
         foreach (var (kind, motion) in cards.ToList())
         {
@@ -474,17 +518,32 @@ public sealed partial class PaneWorkspace : Panel
         var area = new Rect(0, top, SolverWidth, SolverHeight);
         var give = RubberOffset(result);
 
-        // The chat column: the full area alone, its tile otherwise (and the rest of the window beside a rail). Narrow mode
-        // keeps it full under the chosen pane until W3c adds the narrow tab strip.
+        // Narrow mode (DESIGN 3.8): one surface at a time under the tab strip. Every surface fills the solver's area, the strip
+        // standing in the title band above it, and the chat column starts below the title band.
         var tiles = result.Mode == PaneLayoutMode.Tiles;
+        var narrow = !tiles;
+        var surface = narrow ? result.NarrowSelection : (PaneKind?)null;
+        var before = narrowMode ? narrowShown : (PaneKind?)null;
+        var slide = narrow ? SlideDirection(result, surface!.Value) : 0;
+        var chatWanted = !narrow || surface == PaneKind.Chat;
+        // The chat column: the full area alone, its tile otherwise (and the rest of the window beside a rail).
         var panes = tiles && (result.Shown.Any(kind => kind != PaneKind.Chat) || result.Rails.Count > 0);
         var chatTarget = (panes ? result.Chat.Width : size.Width) + (rubberKey == PaneGutterKeys.Chat ? give : 0);
-        if (springs)
+        var reserveSet = false;
+        if (!chatWanted && springs && chat.IsVisible)
+        {
+            // The chat fades out at the width it has; it takes the full width once it is gone (FinishHidden).
+        }
+        else if (springs)
         {
             if (Math.Abs(chatWidth.Target - chatTarget) > 0.01)
             {
                 if (Reflow == ChatReflow.Clip) chat.Reserve(ChatShownWidth);
-                else SetCaptionReserve(panes ? result.Chat.Right : size.Width, animates: true);
+                else
+                {
+                    SetCaptionReserve(panes ? result.Chat.Right : size.Width, animates: true);
+                    reserveSet = true;
+                }
                 chatWidth.SetTarget(chatTarget, reduce);
                 reflowing = true;
                 UpdateResizing();
@@ -495,7 +554,16 @@ public sealed partial class PaneWorkspace : Panel
             chatWidth.Snap(chatTarget);
             chat.FinishNow();
             SetCaptionReserve(panes ? result.Chat.Right : size.Width, animates: false);
+            reserveSet = true;
         }
+        // The chat chrome row's trailing clearance follows the mode once the chat is the surface shown (a chat fading out keeps its own).
+        if (reserveSet) narrowReserve = narrow;
+        else if (chatWanted && narrow != narrowReserve)
+        {
+            SetCaptionReserve(panes ? result.Chat.Right : size.Width, animates: false);
+            narrowReserve = narrow;
+        }
+        RetargetChat(narrow, chatWanted, slide, springs, reduce, size.Width);
 
         var front = FrontOf(result);
         foreach (var (kind, motion) in cards)
@@ -510,7 +578,7 @@ public sealed partial class PaneWorkspace : Panel
                 continue;
             }
             Rect? target = null;
-            if (front == kind) target = area;
+            if (front == kind || (narrow && surface == kind)) target = area;
             else if (tiles && result.IsShown(kind) && result.BoundsOf(kind) is { } bounds)
                 target = Nudge(result, bounds, give, top);
             var folded = tiles && target is null && result.Rails.Any(rail => rail.Panes.Contains(kind));
@@ -529,6 +597,16 @@ public sealed partial class PaneWorkspace : Panel
             }
             if (target is not { } rect)
             {
+                if (motion.Hiding && springs) continue; // already fading out
+                if (narrow && motion.Visible && springs)
+                {
+                    // The surface another tab replaced: it fades out and slides away, and leaves the layout once it has.
+                    motion.Hiding = true;
+                    card.IsHitTestVisible = false;
+                    motion.Opacity.SetTarget(0, reduce);
+                    motion.Slide.SetTarget(SlideStart(-slide, reduce), reduce);
+                    continue;
+                }
                 if (folded && motion.Visible && springs)
                 {
                     // A folded side: the pane fades out where it is while the chat takes its room (one motion).
@@ -544,10 +622,12 @@ public sealed partial class PaneWorkspace : Panel
                 motion.Folding = false;
                 motion.Visible = false;
                 motion.Fresh = false;
+                motion.Hiding = false;
                 card.IsVisible = false;
                 card.IsHitTestVisible = true;
                 continue;
             }
+            motion.Hiding = false;
             var appearing = !motion.Visible || !motion.Placed;
             var fadesIn = motion.Fresh || (motion.Folded && appearing);
             motion.Folding = false;
@@ -555,17 +635,27 @@ public sealed partial class PaneWorkspace : Panel
             if (appearing || !springs)
             {
                 motion.SnapRect(rect);
-                if (fadesIn && springs)
+                if (fadesIn && springs && !narrow)
                 {
                     motion.Opacity.Snap(0);
                     motion.Scale.Snap(reduce ? 1 : OpenScale);
                     motion.Opacity.SetTarget(1, reduce);
                     motion.Scale.SetTarget(1, reduce);
                 }
+                else if (narrow && appearing && springs)
+                {
+                    // The surface a tab chose: it fades in and slides in from the side the tab lies on.
+                    motion.Opacity.Snap(0);
+                    motion.Scale.Snap(1);
+                    motion.Slide.Snap(SlideStart(slide, reduce));
+                    motion.Opacity.SetTarget(1, reduce);
+                    motion.Slide.SetTarget(0, reduce);
+                }
                 else if (!springs || appearing)
                 {
                     motion.Opacity.Snap(1);
                     motion.Scale.Snap(1);
+                    motion.Slide.Snap(0);
                 }
             }
             else
@@ -573,6 +663,7 @@ public sealed partial class PaneWorkspace : Panel
                 motion.SetRect(rect, reduce);
                 motion.Opacity.SetTarget(1, reduce);
                 motion.Scale.SetTarget(redock is { Lifted: true } held && held.Kind == kind && !reduce ? PaneRedock.LiftScale : 1, reduce);
+                motion.Slide.SetTarget(0, reduce);
             }
             motion.Fresh = false;
             motion.Folded = false;
@@ -594,12 +685,25 @@ public sealed partial class PaneWorkspace : Panel
         }
         PostSplitterRefresh();
 
+        RetargetStrip(result, narrow, springs, reduce);
+        narrowMode = narrow;
+        narrowShown = surface;
+        // A tab switch is a gesture over web panes like a lift is: their pages show a snapshot before anything fades over them
+        // (DESIGN 2.4, 2.5, 3.8), and the springs wait for the captures. No web pane, or a gesture already open: they start at once.
+        var ready = Task.CompletedTask;
+        if (before is { } previous && surface is { } now && previous != now)
+        {
+            HandOffFocus(previous, now);
+            if (springs && !gestureOpen) ready = BeginWebGesture();
+        }
+
         ApplyLooks();
         if (springs && AnyMoving)
         {
             moving = true;
             UpdateHeld();
-            RequestFrame();
+            if (ready.IsCompleted) RequestFrame();
+            else _ = ready.ContinueWith(_ => Dispatcher.UIThread.Post(RequestFrame), TaskScheduler.Default);
         }
         else if (!AnyMoving)
         {
@@ -613,6 +717,7 @@ public sealed partial class PaneWorkspace : Panel
                 }
                 foreach (var motion in cards.Values) motion.Lifted = motion.Card.IsExpandedLook = front == motion.Card.Kind;
                 HideFolded();
+                FinishHidden(size.Width);
                 UpdateHeld();
                 PostRemoval();
             }
@@ -632,7 +737,7 @@ public sealed partial class PaneWorkspace : Panel
                 control.RestoreRequested += kind => RestoreFromRail(key, kind);
                 motion = new RailMotion(control);
                 rails[rail.Key] = motion;
-                Children.Insert(1, control);
+                Children.Insert(2, control);
             }
             motion.Wanted = true;
             motion.Rail.SetPanes([.. rail.Panes]);
@@ -690,14 +795,123 @@ public sealed partial class PaneWorkspace : Panel
         }
     }
 
-    // The pane drawn over the others: the expanded one, or the narrow selection until W3c's tab strip.
-    private static PaneKind? FrontOf(PaneLayoutResult result)
+    // The pane drawn over the others: the expanded one (in tiles; narrow mode has surfaces, not a pane over the rest).
+    private static PaneKind? FrontOf(PaneLayoutResult result) => result.Mode == PaneLayoutMode.Tiles ? result.Expanded : null;
+
+    // Which side a narrow surface comes from: toward a later tab it comes from the end of the strip, toward an earlier one from
+    // the start. From the tiles the chat is the first tab; a surface with no earlier place (the chat, or one just closed) comes
+    // from the side its own tab lies on.
+    private int SlideDirection(PaneLayoutResult result, PaneKind next)
     {
-        if (result.Mode == PaneLayoutMode.Narrow) return result.NarrowSelection == PaneKind.Chat ? null : result.NarrowSelection;
-        return result.Expanded;
+        var tabs = result.NarrowTabs;
+        var to = tabs.IndexOf(next);
+        var origin = narrowMode ? (narrowShown is { } shown ? tabs.IndexOf(shown) : -1) : 0;
+        if (origin < 0 || origin == to) return to <= 0 ? -1 : 1;
+        return to > origin ? 1 : -1;
     }
 
-    private bool AnyMoving => chatWidth.IsMoving || cards.Values.Any(motion => motion.IsMoving)
+    // The slide a surface starts from or leaves to: 8 DIP toward `direction`, none under Reduce Motion.
+    private static double SlideStart(int direction, bool reduce) => reduce ? 0 : direction * NarrowSlide;
+
+    // The chat column: below the title band in narrow mode (its chrome row under the strip), at the top otherwise; in narrow mode
+    // a surface like the panes, faded and slid in when its tab is chosen and out when another is.
+    private void RetargetChat(bool narrow, bool wanted, int slide, bool springs, bool reduce, double width)
+    {
+        var top = narrow ? WindowChrome.TitlebarHeight : 0;
+        if (wanted)
+        {
+            var wasHidden = !chat.IsVisible;
+            var appears = wasHidden || Math.Abs(chatTop - top) > 0.01 || chatHiding;
+            chatTop = top;
+            chatHiding = false;
+            chat.IsHitTestVisible = true;
+            chat.IsVisible = true;
+            if (!springs)
+            {
+                chatOpacity.Snap(1);
+                chatSlide.Snap(0);
+                return;
+            }
+            if (appears && (wasHidden || (!chatOpacity.IsMoving && chatOpacity.Value >= 1)))
+            {
+                // A fresh appearance (a tab chose it, or it moved a title band down or up): from nothing, from the side its tab lies on.
+                chatOpacity.Snap(0);
+                chatSlide.Snap(narrow && wasHidden ? SlideStart(slide, reduce) : 0);
+            }
+            chatOpacity.SetTarget(1, reduce);
+            chatSlide.SetTarget(0, reduce);
+            return;
+        }
+        if (!chat.IsVisible || (chatHiding && springs)) return;
+        if (springs)
+        {
+            chatHiding = true;
+            chat.IsHitTestVisible = false;
+            chatOpacity.SetTarget(0, reduce);
+            chatSlide.SetTarget(SlideStart(-slide, reduce), reduce);
+            return;
+        }
+        chatTop = top;
+        HideChat(width);
+    }
+
+    private void HideChat(double width)
+    {
+        chatHiding = false;
+        chat.IsVisible = false;
+        chatOpacity.Snap(0);
+        chatSlide.Snap(0);
+        chatWidth.Snap(width);
+        chat.FinishNow();
+    }
+
+    // The tab strip fades in with narrow mode and out with it (opacity only); it keeps its tabs while it fades.
+    private void RetargetStrip(PaneLayoutResult result, bool narrow, bool springs, bool reduce)
+    {
+        if (narrow) strip.SetTabs(result.NarrowTabs, result.NarrowSelection);
+        var target = narrow ? 1.0 : 0.0;
+        if (springs) stripOpacity.SetTarget(target, reduce);
+        else stripOpacity.Snap(target);
+        strip.IsHitTestVisible = narrow;
+        strip.IsVisible = narrow || stripOpacity.IsMoving || stripOpacity.Value > 0.001;
+    }
+
+    // Surfaces that have faded out leave the layout (and the accessibility tree); the chat takes the full width it will have.
+    private void FinishHidden(double width)
+    {
+        if (chatHiding && !chatOpacity.IsMoving) HideChat(width);
+        foreach (var motion in cards.Values)
+        {
+            if (!motion.Hiding || motion.IsMoving) continue;
+            motion.Hiding = false;
+            motion.Visible = false;
+            motion.Card.IsVisible = false;
+            motion.Opacity.Snap(0); // a surface that comes back is drawn afresh (the appearing branch of Retarget)
+            motion.Slide.Snap(0);
+        }
+        if (!narrowMode && !stripOpacity.IsMoving && stripOpacity.Value <= 0.001) strip.IsVisible = false;
+    }
+
+    // Focus that was in the surface a tab replaced goes to the new one, so the keyboard is never left in a hidden surface.
+    private void HandOffFocus(PaneKind leaving, PaneKind entering)
+    {
+        var had = leaving == PaneKind.Chat ? chat.IsKeyboardFocusWithin : cards.TryGetValue(leaving, out var motion) && motion.Card.IsKeyboardFocusWithin;
+        if (!had) return;
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (entering == PaneKind.Chat)
+            {
+                MoveFocusToChat();
+                return;
+            }
+            var body = cards.TryGetValue(entering, out var target) ? target.Card.Content.Body : null;
+            var focusable = body?.GetVisualDescendants().OfType<InputElement>().Prepend(body).FirstOrDefault(element => element.Focusable && element.IsEffectivelyVisible && element.IsEffectivelyEnabled);
+            if (focusable is not null) focusable.Focus();
+            else strip.TabButtons.FirstOrDefault(tab => tab.IsTabStop)?.Focus();
+        });
+    }
+
+    private bool AnyMoving => chatWidth.IsMoving || chatOpacity.IsMoving || chatSlide.IsMoving || stripOpacity.IsMoving || cards.Values.Any(motion => motion.IsMoving)
         || rails.Values.Any(motion => motion.Opacity.IsMoving) || dropSlots.Any(slot => slot.Appear.IsMoving || slot.HotSpring.IsMoving)
         || ghost?.IsMoving == true;
 
@@ -730,9 +944,16 @@ public sealed partial class PaneWorkspace : Panel
         InvalidateMeasure();
     }
 
-    // The chat chrome row's trailing end keeps clear of the caption buttons only where the chat column runs under them.
+    // The chat chrome row's trailing end keeps clear of the caption buttons only where the chat column runs under them. In
+    // narrow mode the column starts below the title band, so nothing runs under them and the row keeps only its own padding.
     private void SetCaptionReserve(double chatRight, bool animates)
     {
+        if (solved is { Mode: PaneLayoutMode.Narrow })
+        {
+            ChatView.SetChromeTrailingReserveAnimates(chat, false);
+            ChatView.SetChromeTrailingReserve(chat, 0);
+            return;
+        }
         var overlap = WindowChrome.CaptionTrailingReserve - Math.Max(0, solvedSize.Width - chatRight);
         ChatView.SetChromeTrailingReserveAnimates(chat, animates);
         ChatView.SetChromeTrailingReserve(chat, overlap >= WindowChrome.CaptionTrailingReserve ? double.NaN : overlap);
@@ -761,10 +982,14 @@ public sealed partial class PaneWorkspace : Panel
         {
             motion.Card.Opacity = Math.Clamp(motion.Opacity.Value, 0, 1);
             motion.Card.Scale = Math.Clamp(motion.Scale.Value, 0.9, 1.05);
+            motion.Card.Slide = Math.Clamp(motion.Slide.Value, -NarrowSlide, NarrowSlide);
             motion.Card.Offset = new Vector(motion.DragX.Value, motion.DragY.Value);
             motion.Card.ZIndex = motion.Held ? 40 : motion.Lifted ? 10 : motion.Leaving ? 1 : 0;
         }
         foreach (var motion in rails.Values) motion.Rail.Opacity = Math.Clamp(motion.Opacity.Value, 0, 1);
+        chat.Opacity = Math.Clamp(chatOpacity.Value, 0, 1);
+        chatTranslate.X = Math.Clamp(chatSlide.Value, -NarrowSlide, NarrowSlide);
+        strip.Opacity = Math.Clamp(stripOpacity.Value, 0, 1);
         foreach (var slot in dropSlots)
         {
             slot.Visual.Opacity = Math.Clamp(slot.Appear.Value, 0, 1);
@@ -787,6 +1012,9 @@ public sealed partial class PaneWorkspace : Panel
         var dt = lastFrame is { } last ? Math.Clamp((now - last).TotalSeconds, 0, 0.034) : 1.0 / 60;
         lastFrame = now;
         var any = chatWidth.Step(dt);
+        any |= chatOpacity.Step(dt);
+        any |= chatSlide.Step(dt);
+        any |= stripOpacity.Step(dt);
         foreach (var motion in cards.Values) any |= motion.Step(dt);
         foreach (var motion in rails.Values) any |= motion.Opacity.Step(dt);
         if (ghost is not null) any |= ghost.Step(dt);
@@ -820,6 +1048,7 @@ public sealed partial class PaneWorkspace : Panel
             motion.Card.IsLiftedLook = false;
         }
         HideFolded();
+        FinishHidden(solvedSize.Width);
         FinishGhost();
         ApplyLooks();
         UpdateHeld();
@@ -976,7 +1205,8 @@ public sealed partial class PaneWorkspace : Panel
 
     /// <summary>
     /// The places F6 visits, in reading order (DESIGN 3.7): the chat, the open panes in their order, Side chat, then the
-    /// splitters and the collapse rails. An expanded pane is the only stop (the chat runs behind it).
+    /// splitters and the collapse rails. An expanded pane is the only stop (the chat runs behind it). In narrow mode the tab
+    /// strip comes first and the one surface shown is the only other stop.
     /// </summary>
     public IReadOnlyList<Control> FocusStops() => [.. Stops().Select(stop => stop.Element)];
 
@@ -990,7 +1220,10 @@ public sealed partial class PaneWorkspace : Panel
             if (cards.TryGetValue(expanded, out var front) && front.Card.IsVisible) stops.Add(CardStop(front));
             return stops;
         }
-        stops.Add(new Stop(chat, MoveFocusToChat));
+        // Narrow mode (web W3c): the tab strip first, then the one surface shown; a chat that is not the surface is out of the layout.
+        if (result.Mode == PaneLayoutMode.Narrow && strip.IsVisible)
+            stops.Add(new Stop(strip, () => strip.TabButtons.FirstOrDefault(tab => tab.IsTabStop)?.Focus(NavigationMethod.Tab)));
+        if (chat.IsVisible) stops.Add(new Stop(chat, MoveFocusToChat));
         var ordered = state.GridPanes.Append(PaneKind.SideChat);
         foreach (var kind in ordered)
             if (cards.TryGetValue(kind, out var motion) && !motion.Leaving && motion.Card.IsVisible && motion.Card.Opacity > 0) stops.Add(CardStop(motion));
@@ -1214,7 +1447,8 @@ public sealed partial class PaneWorkspace : Panel
             double.IsFinite(availableSize.Height) ? availableSize.Height : solvedSize.Height);
         if (dirty || size != solvedSize) Retarget(size, pendingAnimate && size == solvedSize);
         pendingAnimate = false;
-        chat.Measure(new Size(ChatShownWidth, size.Height));
+        chat.Measure(new Size(ChatShownWidth, Math.Max(0, size.Height - chatTop)));
+        if (strip.IsVisible) strip.Measure(StripBounds.Size);
         foreach (var motion in cards.Values)
             if (motion.Card.IsVisible) motion.Card.Measure(Shown(motion).Size);
         if (ghost is { } lifted) lifted.Card.Measure(Shown(lifted).Size);
@@ -1229,7 +1463,12 @@ public sealed partial class PaneWorkspace : Panel
     protected override Size ArrangeOverride(Size finalSize)
     {
         if (finalSize != solvedSize) Retarget(finalSize, false);
-        chat.Arrange(new Rect(0, 0, ChatShownWidth, finalSize.Height));
+        chat.Arrange(new Rect(0, chatTop, ChatShownWidth, Math.Max(0, finalSize.Height - chatTop)));
+        if (strip.IsVisible)
+        {
+            strip.Measure(StripBounds.Size);
+            strip.Arrange(StripBounds);
+        }
         foreach (var motion in cards.Values)
         {
             if (!motion.Card.IsVisible) continue;
@@ -1284,6 +1523,9 @@ public sealed partial class PaneWorkspace : Panel
 
         public SplitterSpring Scale { get; } = new(1, epsilon: 0.0005);
 
+        /// <summary>The narrow slide (DIP): 8 toward the side a tab came from or goes to, 0 at rest.</summary>
+        public SplitterSpring Slide { get; } = new(0, epsilon: 0.02);
+
         /// <summary>A header drag's travel from the slot (a render translation); it springs home on Esc.</summary>
         public SplitterSpring DragX { get; } = new(0);
 
@@ -1300,6 +1542,9 @@ public sealed partial class PaneWorkspace : Panel
 
         public bool Leaving { get; set; }
 
+        /// <summary>Fading out because another narrow tab was chosen; it leaves the layout once it has.</summary>
+        public bool Hiding { get; set; }
+
         /// <summary>Its side is folding into a rail: it fades out where it stands and is hidden when it has landed.</summary>
         public bool Folding { get; set; }
 
@@ -1312,7 +1557,7 @@ public sealed partial class PaneWorkspace : Panel
         /// <summary>Held by its header (or springing home from it): drawn over everything.</summary>
         public bool Held { get; set; }
 
-        public bool IsMoving => X.IsMoving || Y.IsMoving || W.IsMoving || H.IsMoving || Opacity.IsMoving || Scale.IsMoving || DragX.IsMoving || DragY.IsMoving;
+        public bool IsMoving => X.IsMoving || Y.IsMoving || W.IsMoving || H.IsMoving || Opacity.IsMoving || Scale.IsMoving || Slide.IsMoving || DragX.IsMoving || DragY.IsMoving;
 
         public void SnapRect(Rect rect)
         {
@@ -1338,6 +1583,7 @@ public sealed partial class PaneWorkspace : Panel
             H.Settle();
             Opacity.Settle();
             Scale.Settle();
+            Slide.Settle();
             DragX.Settle();
             DragY.Settle();
         }
@@ -1350,6 +1596,7 @@ public sealed partial class PaneWorkspace : Panel
             any |= H.Step(seconds);
             any |= Opacity.Step(seconds);
             any |= Scale.Step(seconds);
+            any |= Slide.Step(seconds);
             any |= DragX.Step(seconds);
             any |= DragY.Step(seconds);
             return any;

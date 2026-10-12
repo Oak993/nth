@@ -652,6 +652,23 @@ public sealed class DetailView : Decorator
     /// <summary>The pane workspace around the chat columns while a thread is shown.</summary>
     internal Marrow.App.Views.Panes.PaneWorkspace? Workspace => workspace;
 
+    // PORT-ONLY: web surfaces W3c (DESIGN 3.11 "Each ThreadWindow has its own workspace for its thread"; ED-NEW-web-w3c-1). A window
+    // beside the main one that shows a thread of its own pins it here, so the model's selection (the main window's) never moves it.
+    // Each window draws its own PaneWorkspace; the state it draws is its thread's, owned by that thread's runtime.
+    private Guid? pinnedThreadID;
+
+    /// <summary>The thread this view shows whatever the model selects; null follows the model's selection (the main window).</summary>
+    internal Guid? PinnedThreadID
+    {
+        get => pinnedThreadID;
+        set
+        {
+            if (pinnedThreadID == value) return;
+            pinnedThreadID = value;
+            Rebuild();
+        }
+    }
+
     /// <summary>Whether a pane kind can be opened by a chord: the pane unit registered its content (tests with their own factory: every kind).</summary>
     internal Func<PaneKind, bool> PaneAvailable { get; set; } = Marrow.App.Views.Panes.PaneContents.IsAvailable;
 
@@ -711,7 +728,7 @@ public sealed class DetailView : Decorator
         this.Task(() =>
         {
             var model = AppEnvironment.GetAppModel(this);
-            return model.SelectedThreadID is { } id && model.Thread(id) is not null ? (Guid?)id : null;
+            return (pinnedThreadID ?? model.SelectedThreadID) is { } id && model.Thread(id) is not null ? (Guid?)id : null;
         }, Prebuild); // :134 .task(id: threadID), cancelled on selection change or detach.
         DetachedFromVisualTree += (_, _) =>
         {
@@ -802,7 +819,7 @@ public sealed class DetailView : Decorator
         voiceQuestion ??= Marrow.App.Port.Voice.VoiceFirstRun.Find(model.Settings)?.Question; // WV-1: the same question every composer reads
 
         // :130 `if let threadID = model.selectedThreadID, model.thread(threadID) != nil`
-        if (model.SelectedThreadID is { } threadID && model.Thread(threadID) is not null)
+        if ((pinnedThreadID ?? model.SelectedThreadID) is { } threadID && model.Thread(threadID) is not null)
         {
             voiceQuestion?.CloseWelcome();
             if (shown != threadID) prebuilt.Clear(); // :133 onChange(threadID)
