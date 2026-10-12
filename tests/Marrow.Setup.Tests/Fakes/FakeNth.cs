@@ -32,7 +32,8 @@ public sealed class FakeNth : INthControlChannel, IRunningNthProcesses
     private readonly object gate = new();
     private readonly List<string> sent = [];
     private readonly List<int> ended = [];
-    private ITimer? exitTimer;
+    private TimeSpan? exitAt;
+    private List<RunningNthProcess> inRoot;
     private bool quitting;
     private readonly long begun;
 
@@ -42,7 +43,7 @@ public sealed class FakeNth : INthControlChannel, IRunningNthProcesses
         Root = root;
         begun = time.GetTimestamp();
         Main = new RunningNthProcess(4242, Path.Combine(root, "current", "nth.exe"), 1000);
-        InRoot = [Main];
+        inRoot = [Main];
     }
 
     public string Root { get; }
@@ -54,7 +55,21 @@ public sealed class FakeNth : INthControlChannel, IRunningNthProcesses
     public RunningNthProcess Main { get; }
 
     /// <summary>Every nth program inside the root that runs (the main process, and whatever a test adds).</summary>
-    public List<RunningNthProcess> InRoot { get; set; }
+    public List<RunningNthProcess> InRoot
+    {
+        get
+        {
+            lock (gate)
+            {
+                Settle();
+                return inRoot;
+            }
+        }
+        set
+        {
+            lock (gate) inRoot = value;
+        }
+    }
 
     public FakePipe Pipe { get; set; } = FakePipe.Answers;
 
@@ -90,7 +105,11 @@ public sealed class FakeNth : INthControlChannel, IRunningNthProcesses
     {
         get
         {
-            lock (gate) return quitting;
+            lock (gate)
+            {
+                Settle();
+                return quitting;
+            }
         }
     }
 
@@ -114,14 +133,30 @@ public sealed class FakeNth : INthControlChannel, IRunningNthProcesses
 
     public int Count(string request) => Sent.Count(item => item == request);
 
+    /// <summary>The person closes nth themselves this long after the test began (a point on the clock, so a fast-forwarded test cannot jump over a look at it).</summary>
+    public void CloseAfter(TimeSpan sinceStart)
+    {
+        lock (gate) exitAt = sinceStart;
+    }
+
     public void Close()
     {
         lock (gate)
         {
-            InRoot = [];
+            inRoot = [];
             quitting = false;
-            exitTimer?.Dispose();
+            exitAt = null;
         }
+    }
+
+    // The exit is a point on the clock, not a timer of its own: the only timers a test's clock holds are the handshake's, so a test that moves time
+    // from one timer to the next can never jump past what the handshake is about to ask, and the exit is seen exactly when it is looked at.
+    private void Settle()
+    {
+        if (exitAt is not { } at || Since < at) return;
+        inRoot = [];
+        quitting = false;
+        exitAt = null;
     }
 
     public Task<NthControlExchange> SendAsync(NthControlRequest request, CancellationToken cancellationToken)
@@ -130,7 +165,8 @@ public sealed class FakeNth : INthControlChannel, IRunningNthProcesses
         lock (gate)
         {
             sent.Add(Name(request));
-            if (!Running) return Task.FromResult(NthControlExchange.Failed(NthControlFailure.NoPipe));
+            Settle();
+            if (inRoot.Count == 0) return Task.FromResult(NthControlExchange.Failed(NthControlFailure.NoPipe));
             if (Pipe == FakePipe.Missing || (PipeAppearsAfter is { } after && Since < after))
                 return Task.FromResult(NthControlExchange.Failed(NthControlFailure.NoPipe));
             if (Pipe == FakePipe.Silent) return Task.FromResult(NthControlExchange.Failed(NthControlFailure.NoAnswer));
@@ -152,7 +188,7 @@ public sealed class FakeNth : INthControlChannel, IRunningNthProcesses
             case NthControlCommand.Withdraw:
                 if (quitting && MergeUntil is { } until && Since < until)
                 {
-                    exitTimer?.Dispose();
+                    exitAt = null;
                     quitting = false; // the merge's wait is called off
                 }
                 return Reply(NthControlReply.Ok, []);
@@ -177,25 +213,25 @@ public sealed class FakeNth : INthControlChannel, IRunningNthProcesses
         if (quitting) return;
         quitting = true;
         if (ExitDelay is not { } delay) return; // agrees, then hangs
-        var wait = (MergeUntil is { } until && Since < until ? until - Since : TimeSpan.Zero) + delay;
-        exitTimer = time.CreateTimer(_ =>
-        {
-            lock (gate)
-            {
-                InRoot = [];
-                quitting = false;
-            }
-        }, null, wait, Timeout.InfiniteTimeSpan);
+        exitAt = Since + (MergeUntil is { } until && Since < until ? until - Since : TimeSpan.Zero) + delay;
     }
 
     public IReadOnlyList<RunningNthProcess> FindInside(string installRoot)
     {
-        lock (gate) return string.Equals(installRoot, Root, StringComparison.OrdinalIgnoreCase) ? [.. InRoot] : [];
+        lock (gate)
+        {
+            Settle();
+            return string.Equals(installRoot, Root, StringComparison.OrdinalIgnoreCase) ? [.. inRoot] : [];
+        }
     }
 
     public bool IsRunning(RunningNthProcess process)
     {
-        lock (gate) return InRoot.Any(item => item.ProcessId == process.ProcessId);
+        lock (gate)
+        {
+            Settle();
+            return inRoot.Any(item => item.ProcessId == process.ProcessId);
+        }
     }
 
     public ProcessEndResult End(RunningNthProcess process)
@@ -203,10 +239,11 @@ public sealed class FakeNth : INthControlChannel, IRunningNthProcesses
         lock (gate)
         {
             ended.Add(process.ProcessId);
-            if (!InRoot.Any(item => item.ProcessId == process.ProcessId)) return ProcessEndResult.Gone;
+            Settle();
+            if (!inRoot.Any(item => item.ProcessId == process.ProcessId)) return ProcessEndResult.Gone;
             if (!CanBeEnded) return ProcessEndResult.AccessDenied;
             if (SurvivesEnd) return ProcessEndResult.Failed;
-            InRoot = InRoot.Where(item => item.ProcessId != process.ProcessId).ToList();
+            inRoot = inRoot.Where(item => item.ProcessId != process.ProcessId).ToList();
             return ProcessEndResult.Ended;
         }
     }

@@ -11,6 +11,9 @@ public static class VirtualTime
 {
     private static readonly TimeSpan RealLimit = TimeSpan.FromSeconds(30);
 
+    // How many 1 ms looks with no timer at all make a task idle for AdvanceUntilAsync (a task between two waits registers its next timer in far less).
+    private const int IdleChecks = 25;
+
     /// <summary>Moves time until <paramref name="task"/> finishes; fails when it needs more than <paramref name="virtualLimit"/> of the fake clock (10 minutes by default).</summary>
     public static async Task<T> RunAsync<T>(this ManualTimeProvider time, Task<T> task, TimeSpan? virtualLimit = null)
     {
@@ -30,15 +33,24 @@ public static class VirtualTime
     {
         var start = time.Elapsed;
         var real = Stopwatch.StartNew();
+        var idle = 0;
         while (!done())
         {
             if (real.Elapsed > RealLimit) throw new TimeoutException("The condition never came true in real time.");
             if (time.Elapsed - start >= by) return;
             if (time.TimerDeadlines is not [var next, ..])
             {
-                await Task.Yield();
+                // Nothing waits on the clock. Either the task is between two waits (a real moment brings the next one) or it has nothing left to wait
+                // for, and then the rest of the time passes at once.
+                if (++idle > IdleChecks && !done())
+                {
+                    time.Advance(by - (time.Elapsed - start));
+                    return;
+                }
+                await Task.Delay(1);
                 continue;
             }
+            idle = 0;
             var step = next - time.Elapsed;
             var limit = by - (time.Elapsed - start);
             time.Advance(step > limit ? limit : step < TimeSpan.Zero ? TimeSpan.Zero : step);
@@ -56,7 +68,7 @@ public static class VirtualTime
             if (real.Elapsed > RealLimit) throw new TimeoutException("The task never finished in real time (it waits on something that is not the fake clock).");
             if (time.TimerDeadlines is not [var next, ..])
             {
-                await Task.Yield(); // the task is between two waits
+                await Task.Delay(1); // the task is between two waits: a real moment, never a spin that fills a core
                 continue;
             }
             var step = next - time.Elapsed;

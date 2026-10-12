@@ -64,13 +64,12 @@ public sealed class RunningNthHandshakeEdgeTests
     {
         var rig = new HandshakeRig();
         rig.Nth.Pipe = FakePipe.Missing;
-        var timer = rig.Time.CreateTimer(_ => rig.Nth.Close(), null, TimeSpan.FromSeconds(1), Timeout.InfiniteTimeSpan);
+        rig.Nth.CloseAfter(TimeSpan.FromSeconds(1));
 
         var status = await rig.AskAsync();
 
         Assert.Equal(RunningNthState.Closed, status.State);
         Assert.Empty(rig.Nth.Ended);
-        timer.Dispose();
     }
 
     [Fact]
@@ -259,14 +258,13 @@ public sealed class RunningNthHandshakeEdgeTests
         var rig = new HandshakeRig();
         rig.Nth.Work = _ => HandshakeRig.TwoThreads;
         Assert.Equal(RunningNthState.Busy, (await rig.AskAsync()).State);
-        var timer = rig.Time.CreateTimer(_ => rig.Nth.Close(), null, TimeSpan.FromSeconds(3), Timeout.InfiniteTimeSpan);
+        rig.Nth.CloseAfter(rig.Time.Elapsed + TimeSpan.FromSeconds(3));
 
         var status = await rig.Time.RunAsync(rig.Handshake.WaitForWorkToFinishAsync());
 
         Assert.Equal(RunningNthState.Closed, status.State);
         Assert.Equal(0, rig.Nth.Count("quit:stop"));
         Assert.Empty(rig.Nth.Ended);
-        timer.Dispose();
     }
 
     [Fact]
