@@ -22,9 +22,10 @@ public sealed record ShortcutScanResult(IReadOnlyList<FoundLink> Links, bool Cap
 
 /// <summary>
 /// What a repair or a removal did: links changed or removed, links found (for a repair, the ones nth made), whether the scan
-/// stopped at its cap, whether the step was skipped because another writer held the lock for 2 s, and links that failed.
+/// stopped at its cap, whether the step was skipped because another writer held the lock for 2 s, links that failed,
+/// and the first repair failure's HRESULT when available.
 /// </summary>
-public sealed record ShortcutChangeResult(int Changed, int Found, bool Capped, bool Busy, int Failed)
+public sealed record ShortcutChangeResult(int Changed, int Found, bool Capped, bool Busy, int Failed, int? HResult = null)
 {
     public static ShortcutChangeResult WriterBusy { get; } = new(0, 0, Capped: false, Busy: true, Failed: 0);
 }
@@ -227,6 +228,8 @@ public sealed class DesktopShortcut
     {
         var hidden = budget.CanStartCall && IconsHidden();
         var repair = Repair(scan, budget);
+        if (repair.Failed > 0)
+            return InstallResult.FailedWith(repair.HResult ?? UnknownFailureHResult) with { IconsHidden = hidden, ScanCapped = repair.Capped };
         var present = repair.Found > 0 || (repair.Busy && SafeFileExists(DesktopLinkPath));
         return new InstallResult(present ? DesktopShortcutOutcome.Kept : DesktopShortcutOutcome.Off, IconsHidden: hidden, ScanCapped: repair.Capped);
     }
@@ -325,6 +328,7 @@ public sealed class DesktopShortcut
         if (!budget.CanStartCall) return new ShortcutChangeResult(0, found.Links.Count(l => l.Link.IsMadeByNth), Capped: true, Busy: false, Failed: 0);
         var launch = CurrentLaunchTarget(budget.ReadTimeout);
         int changed = 0, failed = 0;
+        int? hresult = null;
         foreach (var link in found.Links)
         {
             if (!budget.CanStartCall) { capped = true; break; }
@@ -332,9 +336,9 @@ public sealed class DesktopShortcut
             {
                 if (link.Link.IsMadeByNth ? RepairMade(link.Path, link.Link, launch) : FixGoneTarget(link.Path, link.Link, launch)) changed++;
             }
-            catch (Exception error) when (IsShellFailure(error)) { failed++; }
+            catch (Exception error) when (IsShellFailure(error)) { failed++; hresult ??= HResultOf(error); }
         }
-        return new ShortcutChangeResult(changed, found.Links.Count(l => l.Link.IsMadeByNth), capped, Busy: false, failed);
+        return new ShortcutChangeResult(changed, found.Links.Count(l => l.Link.IsMadeByNth), capped, Busy: false, failed, hresult);
     }
 
     /// <summary>nth's Settings switch off: deletes every link nth made (renamed ones included) and tells Explorer. A user's own shortcut is never touched.</summary>
