@@ -43,14 +43,6 @@ public sealed class PaneShortcutTests(HeadlessSession headless)
 
     private static void F6(PaneWorkspaceRig rig, bool shift = false) => rig.Chord(Key.F6, PhysicalKey.F6, shift ? Shift : RawInputModifiers.None);
 
-    // Counts the keys that reach a control: a key the window took never does.
-    private sealed class KeySpy
-    {
-        public KeySpy(Control control) => control.AddHandler(InputElement.KeyDownEvent, (_, e) => Keys.Add((e.Key, e.KeyModifiers)), RoutingStrategies.Bubble);
-
-        public List<(Key Key, KeyModifiers Modifiers)> Keys { get; } = [];
-    }
-
     [Fact]
     public void Each_toggle_chord_opens_and_closes_its_pane_from_nth_chrome() => headless.OnUiThread(() =>
     {

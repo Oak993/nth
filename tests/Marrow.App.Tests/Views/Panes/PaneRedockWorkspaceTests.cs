@@ -154,6 +154,33 @@ public sealed class PaneRedockWorkspaceTests(HeadlessSession headless)
     });
 
     [Fact]
+    public void In_a_right_to_left_window_the_lifted_pane_still_follows_the_pointer_and_the_drop_lands_under_it() => headless.OnUiThread(() =>
+    {
+        using var rig = new PaneWorkspaceRig();
+        rig.Window.FlowDirection = Avalonia.Media.FlowDirection.RightToLeft;
+        rig.Workspace.Open(PaneKind.BackgroundTasks);
+        rig.Workspace.Open(PaneKind.Changes);
+        rig.Workspace.Open(PaneKind.Browser);
+        rig.Settle();
+        var card = rig.Card(PaneKind.Changes);
+        var press = rig.HeaderPoint(PaneKind.Changes);
+        var before = card.TranslatePoint(default, rig.Window)!.Value;
+        rig.Down(press);
+        rig.Move(press + new Vector(6, 0));
+        rig.Move(press + new Vector(80, 30)); // to the screen's right and down
+        var after = card.TranslatePoint(default, rig.Window)!.Value;
+        Assert.Equal(before.X + 80, after.X, 1.5); // what is drawn moved with the pointer, not against it
+        Assert.Equal(before.Y + 30, after.Y, 1.5);
+
+        var drop = rig.BodyPoint(PaneKind.BackgroundTasks);
+        rig.Move(drop);
+        Assert.Equal(PaneKind.BackgroundTasks, rig.Workspace.HotDrop!.Target.Target);
+        rig.Up(drop);
+        rig.Settle();
+        Assert.Equal([PaneKind.Changes, PaneKind.BackgroundTasks, PaneKind.Browser], rig.Workspace.State.GridPanes);
+    });
+
+    [Fact]
     public void A_release_over_another_cells_header_joins_it_as_a_tab() => headless.OnUiThread(() =>
     {
         using var rig = Three();

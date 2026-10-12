@@ -36,25 +36,12 @@ public sealed class PaneHeaderDragTests(HeadlessSession headless)
         Dispatcher.UIThread.RunJobs();
     }
 
-    private sealed class Events
-    {
-        public Events(PaneHeader header)
-        {
-            header.DragLifted += _ => Log.Add("lift");
-            header.DragMoved += _ => Log.Add("move");
-            header.DragDropped += _ => Log.Add("drop");
-            header.DragCanceled += () => Log.Add("cancel");
-        }
-
-        public List<string> Log { get; } = [];
-    }
-
     [Fact]
     public void A_press_on_the_empty_area_that_moves_4_DIP_lifts_follows_and_drops() => headless.OnUiThread(() =>
     {
         using var rig = new PaneHeaderRig(PaneKind.Browser);
         rig.Header.CanDrag = true;
-        var events = new Events(rig.Header);
+        var events = new HeaderDragLog(rig.Header);
         var press = Empty(rig);
         Down(rig, press);
         Move(rig, press + new Vector(3.9, 0));
@@ -79,7 +66,7 @@ public sealed class PaneHeaderDragTests(HeadlessSession headless)
     {
         using var rig = new PaneHeaderRig(PaneKind.Browser);
         rig.Header.CanDrag = true;
-        var events = new Events(rig.Header);
+        var events = new HeaderDragLog(rig.Header);
         var press = Empty(rig);
         Down(rig, press);
         Move(rig, press + new Vector(2, 2));
@@ -92,7 +79,7 @@ public sealed class PaneHeaderDragTests(HeadlessSession headless)
     public void Without_CanDrag_a_header_never_lifts() => headless.OnUiThread(() =>
     {
         using var rig = new PaneHeaderRig(PaneKind.Browser);
-        var events = new Events(rig.Header);
+        var events = new HeaderDragLog(rig.Header);
         Assert.False(rig.Header.CanDrag);
         var press = Empty(rig);
         Down(rig, press);
@@ -106,7 +93,7 @@ public sealed class PaneHeaderDragTests(HeadlessSession headless)
     {
         using var rig = new PaneHeaderRig(PaneKind.Browser);
         rig.Header.CanDrag = true;
-        var events = new Events(rig.Header);
+        var events = new HeaderDragLog(rig.Header);
         var press = Empty(rig);
         Down(rig, press, MouseButton.Right);
         rig.Window.MouseMove(press + new Vector(60, 0), RawInputModifiers.RightMouseButton);
@@ -119,7 +106,7 @@ public sealed class PaneHeaderDragTests(HeadlessSession headless)
     {
         using var rig = new PaneHeaderRig(PaneKind.Browser);
         rig.Header.CanDrag = true;
-        var events = new Events(rig.Header);
+        var events = new HeaderDragLog(rig.Header);
         var close = rig.Header.CloseButton;
         var at = close.TranslatePoint(new Point(close.Bounds.Width / 2, close.Bounds.Height / 2), rig.Window)!.Value;
         var closed = 0;
@@ -142,7 +129,7 @@ public sealed class PaneHeaderDragTests(HeadlessSession headless)
         rig.Header.CanDrag = true;
         rig.Header.SetTabs([new PaneHeaderTab(PaneKind.BackgroundTasks, "Tasks", false), new PaneHeaderTab(PaneKind.Browser, "Visus", true)]);
         rig.Layout();
-        var events = new Events(rig.Header);
+        var events = new HeaderDragLog(rig.Header);
         var chosenTabs = rig.Header.TabStrip.Children.OfType<Button>().ToList();
         var chosen = chosenTabs.Single(tab => tab.Classes.Contains("chosen"));
         var other = chosenTabs.Single(tab => !tab.Classes.Contains("chosen"));
@@ -169,7 +156,7 @@ public sealed class PaneHeaderDragTests(HeadlessSession headless)
     {
         using var rig = new PaneHeaderRig(PaneKind.Browser);
         rig.Header.CanDrag = true;
-        var events = new Events(rig.Header);
+        var events = new HeaderDragLog(rig.Header);
         var press = Empty(rig);
         Down(rig, press);
         Move(rig, press + new Vector(30, 0));
