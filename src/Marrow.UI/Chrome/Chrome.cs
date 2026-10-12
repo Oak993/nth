@@ -155,6 +155,15 @@ namespace Marrow.UI.Chrome
         // :98
         public static Animation Hover => Animation.EaseOut(duration: 0.1);
 
+        // ED-NEW-segmenthover-1 (owner 2026-10-11): an icon in a glass pill or a round glass button keeps the Mac's glyph (primary at 0.92 at rest, 1 under the pointer,
+        // on Hover; a segment of a pill also lifts a soft plate (an overlay wash, like RoundIconButton's)
+        // behind just itself, a little stronger while it is pressed. Opacity only (no movement), so Reduce Motion leaves it as it is.
+        public static SwiftColor IconForeground(bool lit) => lit ? PrimaryText : PrimaryText.Opacity(0.92);
+
+        public const double SegmentPlateHover = 0.1;
+
+        public const double SegmentPlatePressed = 0.18;
+
         // The seam behind `NSWorkspace.shared.accessibilityDisplayShouldReduceMotion` (ED-084, port_impacts.md X4);
         // read live at each call, never cached, as the nine sites PR-WIN-208 names do.
         public static Ambient<IGeniePlatform> ReduceMotionPlatform { get; } = new(() => new WindowsGeniePlatform());
@@ -751,7 +760,9 @@ namespace Marrow.UI.Chrome
         private bool isEnabled;
         private bool isActive;
         private bool isHovering;
+        private bool isPressed;
         private Ellipse? activeCircle;
+        private readonly AnimatedColor plate;
 
         /// <param name="symbol">:334 <c>let symbol: String</c>.</param>
         /// <param name="isEnabled">:335 <c>var isEnabled = true</c>.</param>
@@ -763,24 +774,34 @@ namespace Marrow.UI.Chrome
             var image = Symbols.Image(symbol, Chrome.IconFont); // :340-341
             foreground = new AnimatedColor(image);
             image.SetValue(TextElement.ForegroundProperty, foreground.Brush); // :342
+            // PORT-ONLY (ED-NEW-segmenthover-1): the hover plate of this segment, a rounded wash behind the glyph that is always mounted
+            // and only changes its alpha, so moving the pointer from one segment to the next crossfades the two. Its corner radius is half
+            // the frame, so in a capsule it is concentric with the pill's own curve at the ends; the pill's padding (3 pt at the sides, 2 pt
+            // above and below) is its inset from the pill's edge.
+            var plateShape = new Border { CornerRadius = new CornerRadius(Chrome.CapsuleContentHeight / 2), IsHitTestVisible = false, Name = "SegmentPlate" };
+            plate = new AnimatedColor(plateShape);
+            plateShape.Background = plate.Brush;
+            AutomationProperties.SetAccessibilityView(plateShape, AccessibilityView.Raw);
             frame = new Panel
             {
                 Width = Chrome.CapsuleContentHeight, // :343
                 Height = Chrome.CapsuleContentHeight,
                 Background = Brushes.Transparent, // :351 .contentShape(.rect)
-                Children = { image },
+                Children = { plateShape, image },
             };
             Child = frame;
             Update(isEnabled, isActive, isHovering);
         }
 
         /// <summary>The parent passing new inputs (R-VIEW-1): the owning button's hover and presentation state.</summary>
-        public void Update(bool isEnabled, bool isActive, bool isHovering)
+        public void Update(bool isEnabled, bool isActive, bool isHovering, bool isPressed = false)
         {
             this.isEnabled = isEnabled;
             this.isActive = isActive;
             this.isHovering = isHovering;
+            this.isPressed = isPressed;
             foreground.Set(Foreground, Transaction.Current);
+            plate.Set(Chrome.Overlay(Plate), Transaction.Current);
             // :344-350 `.background { if isActive { Circle().fill(Chrome.overlay(0.12)).padding(1) } }`
             if (isActive && activeCircle is null)
             {
@@ -802,9 +823,12 @@ namespace Marrow.UI.Chrome
             {
                 if (!isEnabled) return Chrome.PrimaryText.Opacity(0.32); // :355
                 if (isActive) return Chrome.PrimaryText; // :356
-                return Chrome.PrimaryText.Opacity(isHovering ? 1 : 0.92); // :357
+                return Chrome.IconForeground(isHovering || isPressed); // :357, ED-NEW-segmenthover-1: primary at 0.92 at rest, primary under the pointer
             }
         }
+
+        // The plate's alpha (of the overlay colour, so a fade never passes through another hue): none at rest or when disabled.
+        private double Plate => !isEnabled ? 0 : isPressed ? Chrome.SegmentPlatePressed : isHovering ? Chrome.SegmentPlateHover : 0;
     }
 
     // :361-383 struct ChromeIconButton: View
@@ -814,8 +838,11 @@ namespace Marrow.UI.Chrome
         private sealed class ViewState : MainActorModel
         {
             private bool isHovering;
+            private bool isPressed;
 
             public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+
+            public bool IsPressed { get => Read(isPressed); set => Set(ref isPressed, value); }
         }
 
         /// <summary>Swift members symbol, isEnabled, isActive, help, action (:362-366); help and action have no
@@ -827,10 +854,11 @@ namespace Marrow.UI.Chrome
             this.isEnabled = isEnabled;
             this.isActive = isActive;
             label = new ChromeIconLabel(symbol, isEnabled, isActive, isHovering: false); // :372
-            label.Track(() => state.IsHovering, hovering => label.Update(this.isEnabled, this.isActive, hovering));
+            label.Track(() => (state.IsHovering, state.IsPressed), current => label.Update(this.isEnabled, this.isActive, current.IsHovering, current.IsPressed));
             var button = PlainControls.Button(label, action); // :371, :374 .buttonStyle(.plain)
             button.IsEnabled = isEnabled; // :375 .disabled(!isEnabled)
             button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :376-378
+            button.OnPressed(pressed => Transaction.WithAnimation(Chrome.Hover, () => state.IsPressed = pressed)); // ED-NEW-segmenthover-1
             ToolTip.SetTip(button, help); // :379 .help(help)
             AutomationProperties.SetName(button, help); // :380 .accessibilityLabel(Text(help))
             Child = PlainControls.Background(button, new NoWindowDragArea()); // :381
@@ -848,7 +876,7 @@ namespace Marrow.UI.Chrome
         {
             if (this.isActive == isActive) return;
             this.isActive = isActive;
-            label.Update(isEnabled, isActive, state.IsHovering);
+            label.Update(isEnabled, isActive, state.IsHovering, state.IsPressed);
         }
     }
 
@@ -860,10 +888,13 @@ namespace Marrow.UI.Chrome
         {
             private bool isHovering;
             private bool isPresented;
+            private bool isPressed;
 
             public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
 
             public bool IsPresented { get => Read(isPresented); set => Set(ref isPresented, value); }
+
+            public bool IsPressed { get => Read(isPressed); set => Set(ref isPressed, value); }
         }
 
         /// <param name="symbol">:386 <c>let symbol: String</c>.</param>
@@ -874,9 +905,10 @@ namespace Marrow.UI.Chrome
         {
             var state = new ViewState();
             var label = new ChromeIconLabel(symbol, isActive: false, isHovering: false); // :397
-            label.Track(() => (state.IsPresented, state.IsHovering), shown => label.Update(isEnabled: true, shown.IsPresented, shown.IsHovering));
+            label.Track(() => (state.IsPresented, state.IsHovering, state.IsPressed), shown => label.Update(isEnabled: true, shown.IsPresented, shown.IsHovering, shown.IsPressed));
             var button = PlainControls.Button(label, () => state.IsPresented = !state.IsPresented); // :394-396, :399
             button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :400-402
+            button.OnPressed(pressed => Transaction.WithAnimation(Chrome.Hover, () => state.IsPressed = pressed)); // ED-NEW-segmenthover-1
             ToolTip.SetTip(button, help); // :403
             AutomationProperties.SetName(button, help); // :404
             var popover = PlainControls.Popover(
@@ -909,7 +941,7 @@ namespace Marrow.UI.Chrome
             var foreground = new AnimatedColor(image);
             image.SetValue(TextElement.ForegroundProperty, foreground.Brush);
             image.Track(() => state.IsHovering, hovering =>
-                foreground.Set(Chrome.PrimaryText.Opacity(hovering ? 1 : 0.92), Transaction.Current)); // :424
+                foreground.Set(Chrome.IconForeground(hovering), Transaction.Current)); // :424, ED-NEW-segmenthover-1: primary at 0.92 at rest, primary lit
             var label = new Panel
             {
                 Width = Chrome.CapsuleHeight, // :425
@@ -951,7 +983,7 @@ namespace Marrow.UI.Chrome
             var foreground = new AnimatedColor(image);
             image.SetValue(TextElement.ForegroundProperty, foreground.Brush);
             image.Track(() => state.IsHovering || state.IsPresented, full =>
-                foreground.Set(Chrome.PrimaryText.Opacity(full ? 1 : 0.92), Transaction.Current)); // :454
+                foreground.Set(Chrome.IconForeground(full), Transaction.Current)); // :454, ED-NEW-segmenthover-1
             var label = new Panel
             {
                 Width = Chrome.CapsuleHeight, // :455

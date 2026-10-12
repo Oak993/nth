@@ -186,6 +186,16 @@ public static class PlainControls
         return control;
     }
 
+    /// <summary>A button's pressed state (SwiftUI's <c>configuration.isPressed</c> in a ButtonStyle): called with true as it goes down and false as it comes up or is abandoned.</summary>
+    public static Avalonia.Controls.Button OnPressed(this Avalonia.Controls.Button button, Action<bool> action)
+    {
+        button.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == Avalonia.Controls.Button.IsPressedProperty) action(button.IsPressed);
+        };
+        return button;
+    }
+
     /// <summary>
     /// <c>.popover(isPresented:arrowEdge:) { content }</c> anchored on <paramref name="anchor"/>: a light-dismiss
     /// popup by it (<paramref name="placement"/> default Bottom, for arrowEdge .bottom; Right for arrowEdge .trailing,
