@@ -49,7 +49,7 @@ public sealed class LocalDiscovery : IDisposable
     {
         foreach (var entry in Entries)
             if (entry.Models.FirstOrDefault(model => model.SelectionId == selection) is { } model)
-                return new LocalTarget(entry.Server, model, entry.Models);
+                return new LocalTarget(entry.Server, model, entry.Models, entry.Kind);
         return null;
     }
 
@@ -112,9 +112,11 @@ public sealed class LocalDiscovery : IDisposable
                     if (rows.FirstOrDefault(row => Text(row, "id") == models[index].Id) is { ValueKind: JsonValueKind.Object } row)
                         models[index] = models[index] with { Capabilities = Metadata(row, models[index].Capabilities, native: true) };
                 // llama.cpp reports its configured per-slot context in default_generation_settings, not model maximum.
-                if (models.Any(model => model.Capabilities.ToolCalling is null || !model.Capabilities.ContextReported))
+                // PORT-ONLY (W17, ED-NEW-web-w17-1): a server not yet identified is asked for /props too, which names llama.cpp.
+                if (kind == LocalServerKind.Unknown || models.Any(model => model.Capabilities.ToolCalling is null || !model.Capabilities.ContextReported))
                 {
                     var props = await Read(server.NativeURL("props"), token).ConfigureAwait(false);
+                    if (props is { } identity && kind == LocalServerKind.Unknown) kind = LocalServerIdentity.FromPropsReply(identity);
                     if (props is { } properties && models.Count == 1)
                     {
                         var caps = Metadata(properties, models[0].Capabilities);

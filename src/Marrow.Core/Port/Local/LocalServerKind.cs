@@ -6,4 +6,7 @@ public enum LocalServerKind
     Unknown,
     Ollama,
     LMStudio,
+
+    // PORT-ONLY (web surfaces W17, ED-NEW-web-w17-1): a llama.cpp server, which takes a GBNF grammar with a request.
+    LlamaCpp,
 }

@@ -309,7 +309,7 @@ public static class NthUiTeaching
         THE VIEW LANGUAGE
         A view is lines of text, one component per line; a child is indented two spaces under its parent. A line is a head word, then values: "quoted text", numbers, name=value attributes (no spaces around =), bare flags, and = expression for a computed value. Every line also takes id=name and when=condition. A line nth cannot read shows as plain text, so keep to these forms.
 
-        Values: state name = 3 declares something the reader can change; let name = expression computes from states and lets. A control (stepper, slider, segmented, select, toggle, textfield, date) sets the state named by its first value.
+        Values: state name = 3 declares something the reader can change; let name = expression computes from states and lets. A control (stepper, slider, segmented, select, toggle, textfield, date) sets the state named by its first value. What the reader changes stays in the view: you hear of it only through send, context, call or a form's submit.
         Expressions: numbers, "text", true, false, [lists], {key: value}, + - * / %, == != < <= > >=, and, or, not, a ? b : c, list[0], object.key, and the functions min max round floor ceil abs sqrt pow clamp fmt len sum avg map filter sort reverse slice range join contains str num. A lambda only in map, filter and sort: map(xs, x => x * 2). fmt(1234.5, "$#,##0") gives $1,235; fmt(0.256, "0.0%") gives 25.6%; fmt(n, "0.0a") gives 1.2k.
         Text and layout: text "..." (flags muted strong small) | heading "..." level=2 | card "Title" subtitle="..." icon=name | section "Title" | stack | row | grid cols=2 | divider | badge "..." tone=info | stat "Label" = expression delta="+8%" unit="GB" | callout "..." title="..." tone=info (neutral, info, success, warning, danger)
         Data: table cols="A,B" holding row "x" "y" = expression (flags total, muted) | chart bar (or line, area, pie, scatter) x="a,b" y=[1,2] title="..." unit="$" min max stacked; several series: series="S1,S2" y=[[1,2],[3,4]] or child lines series "Name" y=[1,2]; chart ... editable=points bind=listState lets the reader drag the points | list "Title" and checklist "Title" bind=name holding item "text" value=x (flag done) | timeline holding event "Title" time="Mon" (flag done, tone=...) | map "Title" zoom=5 holding stop "Name" lat=38.7 lon=-9.1 and route "Name" via="A,B"
@@ -328,14 +328,14 @@ public static class NthUiTeaching
         state n = 3                          a value the reader can change
         let x = n * 2                        a value computed from states
         stepper n label="N" min=1 max=9      slider n label="N" min=0 max=100 step=5 unit="%"
-        text "A sentence"                    add the word muted for grey text; or  text = expression
-        table cols="A,B"                     then lines indented under it:  row "x" "y"   or   row "Total" = fmt(x, "$0")  (add the word total)
+        text "A sentence"                    grey text is  text muted "A sentence" ; computed text is  text = expression
+        table cols="A,B"                     then lines indented under it:  row "x" "y"   or   row total "Total" = fmt(x, "$0")
         chart bar x="a,b" y=[1,2]            bar, line, area, pie or scatter; unit="$"; for several lines of data put  series "Name" y=[1,2]  lines indented under it
         chips "Show" bind=v                  then lines indented under it:  chip "Label" value=x selected
         checklist "Title" bind=v             then lines indented under it:  item "Label" value=x done
         followups                            at the top level after the card, then lines indented under it:  chip "Next question"
         Expressions: numbers, "text", + - * / %, == != < <= > >=, and, or, not, a ? b : c, [lists], list[0], and min max round floor ceil abs sum len fmt. fmt(1234.5, "$#,##0") gives $1,235; fmt(0.25, "0%") gives 25%.
-        A computed value goes after = (row "Each" = fmt(each, "$0.00")). Declare a state before the control that sets it.
+        A computed value goes after = (row "Each" = fmt(each, "$0.00")). Declare a state before the control that sets it. Keep each line's options in the order shown. What the reader changes stays in the view.
         """;
 
     // ------------------------------------------------------------------------------------------------------------------
