@@ -71,8 +71,7 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
                 Assert.True(childSession.View.IsFocused);
                 childWindow.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
                 Assert.Equal(1, closeCount);
-                // The source guard's own answer while the child holds the foreground (a live descendant). After
-                // Terminate the shell is gone (ED-NEW-shellleak-1), so the check below reads false for that reason too.
+                // The source guard's own answer while the child holds the foreground (a live descendant).
                 Assert.False(TerminalSession.ForegroundJobIsTheShell(childSession.View.ProcessId));
             }
             finally
@@ -82,6 +81,9 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
                 Dispatcher.UIThread.RunJobs();
             }
 
+            // ED-NEW-shellleak-1: Terminate ends the shell and its child. While the job's processes are being ended, a
+            // snapshot can hold the dying shell after its child has gone, so the guard is read once the shell has exited.
+            Assert.True(ShellProbe.WaitForExit(childSession.View.ProcessId, TimeSpan.FromSeconds(15)), "Terminate left the shell running");
             // Keep this assertion tied to the source guard, rather than merely to the callback count.
             Assert.False(TerminalSession.ForegroundJobIsTheShell(childSession.View.ProcessId));
         }, (session, _, _, _, _) => { }, () => closeCount++);
