@@ -41,6 +41,8 @@ public static class Program
     {
         if (!InstalledByVelopack(baseDirectory)) return;
         var app = VelopackApp.Build();
+        // Web surfaces W23 (ED-NEW-web-w23-3): Visus's browser data (%LOCALAPPDATA%\nth\WebView2) goes first, with its own 5 s budget.
+        WebDataUninstallHook.Register(hook => app.OnBeforeUninstallFastCallback(hook), Marrow.Services.Web.WebDataRoot.Resolve);
         // SK-13 / DL-16: the skills and tools data is unlocked and deleted before Velopack removes the app (ONDEMAND-PLAN.md 3.8).
         SkillsUninstallHook.Register(hook => app.OnBeforeUninstallFastCallback(hook), SkillsDataRoot.Resolve);
         app.Run();

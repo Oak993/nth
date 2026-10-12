@@ -57,9 +57,8 @@ public sealed class WebProfiles
         Language = language;
     }
 
-    /// <summary><c>%LOCALAPPDATA%\nth\WebView2</c> (DESIGN 2.3; the Velopack uninstall hook removes it, W23).</summary>
-    public static string DefaultUserDataFolder =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "nth", "WebView2");
+    /// <summary><c>%LOCALAPPDATA%\nth\WebView2</c> (DESIGN 2.3; the Velopack uninstall hook removes it, W23: <see cref="WebDataRoot"/>).</summary>
+    public static string DefaultUserDataFolder => WebDataRoot.Resolve();
 
     public string UserDataFolder { get; }
 
