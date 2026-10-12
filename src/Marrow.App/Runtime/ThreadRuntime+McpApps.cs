@@ -29,13 +29,16 @@ public sealed partial class ThreadRuntime
 
     /// <summary>
     /// Starts a turn with an app's message (DESIGN 7.6): the row is the app's, the model reads it as untrusted. Null when it
-    /// started; else why not (the chat is busy, archived or reverting).
+    /// started; else why not (the chat is busy, archived or reverting, or apps already started three turns in a row).
     /// </summary>
     public string? PostAppMessage(string server, string text)
     {
         ArgumentException.ThrowIfNullOrEmpty(server);
         if (string.IsNullOrWhiteSpace(text)) return "The message is empty.";
         if (Phase != RuntimePhase.Idle || IsReverting || followUps.Count > 0) return AppMessageBusy;
+        // ED-NEW-web-w26-7: apps start at most three turns in a row; the user's own message lets them post again.
+        if (McpAppUntrusted.TurnsInARow(Entries.Select(entry => entry.Item.TimelineItemContent).OfType<TimelineItem.Content.User>().Select(user => user.Value))
+            >= McpAppUntrusted.MaxTurnsInARow) return McpAppUntrusted.TurnsInARowRefusal;
         if (App?.Thread(ThreadID) is not { IsArchived: false }) return "This chat cannot take messages now.";
         _ = MainActor.Spawn(() => StartAppTurn(server, text));
         return null;

@@ -216,6 +216,7 @@ public sealed class McpAppsHostTests
     }
 
     [Fact]
+    [Trait("Decision", "ED-NEW-web-w26-3")]
     public void Model_context_goes_to_the_visible_chip_and_links_go_through_the_link_setting()
     {
         using var rig = new McpAppsRig(csp: McpUiCsp.None);
@@ -228,10 +229,17 @@ public sealed class McpAppsHostTests
         rig.Call("c2", McpAppProtocol.UpdateModelContext, new JsonObject());
         Assert.Equal("", rig.Ui.Contexts[1]); // an empty update removes the chip
 
+        // ED-NEW-web-w26-3: the app's own link opens only after the user's Open on its card; Cancel opens nothing.
+        rig.Ui.LinkAnswer = true;
         Assert.NotNull(rig.Call("l", McpAppProtocol.OpenLink, Params(("url", "https://shipyard.dev/releases/2.4.1")))["result"]);
+        Assert.Equal(["https://shipyard.dev/releases/2.4.1"], rig.Ui.LinkCards);
         Assert.Equal(["https://shipyard.dev/releases/2.4.1"], rig.Ui.Links);
         Assert.NotNull(rig.Call("l2", McpAppProtocol.OpenLink, Params(("url", "javascript:alert(1)")))["error"]);
         Assert.NotNull(rig.Call("l3", McpAppProtocol.OpenLink, Params(("url", "file:///C:/Windows/win.ini")))["error"]);
+        Assert.Single(rig.Ui.LinkCards);
+        rig.Ui.LinkAnswer = false;
+        Assert.NotNull(rig.Call("l4", McpAppProtocol.OpenLink, Params(("url", "https://shipyard.dev/other")))["error"]);
+        Assert.Equal(2, rig.Ui.LinkCards.Count);
         Assert.Single(rig.Ui.Links);
 
         rig.View!.RaiseNavigationStarting("https://shipyard.dev/docs", userInitiated: true);
