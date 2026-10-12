@@ -46,6 +46,7 @@ public sealed partial class MultiAccountRouting
                 {
                     if (limits.ObserveHandshakeCosts(snapshot)) UpdateReportUse();
                     app.NotifyAccountReport();
+                    app.AssistantTaps.TapAccountSnapshot(snapshot); // PORT-ONLY (AS-2, ED-NEW-dextra-as2-8): the Assistant's live feed
                 }
             });
         };
@@ -145,6 +146,7 @@ public sealed partial class MultiAccountRouting
     public bool NoteLimit(ThreadRuntime runtime, UsageAccountKey? observed, DateTimeOffset? reset)
     {
         MainActor.AssumeIsolated();
+        app.AssistantTaps.TapAccountLimit(runtime, observed, reset); // PORT-ONLY (AS-2, ED-NEW-dextra-as2-8): the Assistant's live feed
         CancelManualSelection(runtime.ThreadID);
         if (!runtime.TryHandshakeAccountId(out _)) return false;
         if (!Eligible(runtime))
