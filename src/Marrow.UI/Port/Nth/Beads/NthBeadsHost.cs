@@ -3,7 +3,9 @@
 // those events at their times and advances the engine only on the handler's pacer slots (60 Hz, or every second slot at 30 Hz);
 // OnRender only paints the sample the last slot made. A paused host (window unavailable, or the visual not drawn) asks for no
 // frames, freezes the engine's clock, cuts an exit in progress to gone, and re-anchors the clock when it resumes, so the beads go
-// on exactly where they were with no catch-up burst. After warm-up a slot allocates nothing.
+// on exactly where they were with no catch-up burst. The driver outlives its visual: a control that leaves the tree and comes back
+// (a virtualised list, a reparent) hands the same driver to its new painter, so a turn goes on where it was and a turn that ended
+// stays ended; nothing is replayed. After warm-up a slot allocates nothing.
 using Avalonia;
 using SkiaSharp;
 using static Marrow.UI.Port.Nth.Beads.NthBeadsGeometry;
@@ -59,6 +61,7 @@ public sealed class NthBeadsDriver
     private double shift, last = double.NaN;
     private bool hidden, unseen, wasMoving;
     private volatile bool moving;
+    private volatile object? owner;
 
     public NthBeadsDriver() => sample.Glint = -1;
 
@@ -80,6 +83,21 @@ public sealed class NthBeadsDriver
     /// <summary>Whether frames are wanted: running and not still. Safe to read from the UI thread.</summary>
     public bool Moving => moving;
 
+    /// <summary>The painter that drives this driver now (the last to <see cref="Adopt"/> it).</summary>
+    public object? Owner => owner;
+
+    /// <summary>The painter <paramref name="by"/> takes this driver over at <paramref name="now"/> (render thread). A driver handed
+    /// on from a visual that left the tree pauses as one not drawn (an exit in progress is cut to gone, the clock re-anchors when
+    /// it is drawn again), unless the hand-off came within a stall (a reparent in one frame: it simply goes on).</summary>
+    public void Adopt(object by, double now)
+    {
+        ArgumentNullException.ThrowIfNull(by);
+        if (ReferenceEquals(owner, by)) return;
+        var handed = owner is not null;
+        owner = by;
+        if (handed && !(now - last <= StallSeconds)) Unseen();
+    }
+
     /// <summary>Engine time for the clock time <paramref name="now"/> while running.</summary>
     public double EngineTime(double now) => now - shift;
 
@@ -92,7 +110,9 @@ public sealed class NthBeadsDriver
         if (engine is null || engine.Quiet != frame.Quiet)
         {
             engine = new NthBeadsEngine(frame.Seed, frame.Quiet);
-            applied = applied with { Turn = 0, Exit = NthBeadsExit.None }; // a new engine has had no turn
+            // a new engine has had no turn: a turn still running enters it; a turn that has ended is not replayed
+            applied = frame.Exit == NthBeadsExit.None ? applied with { Turn = 0, Exit = NthBeadsExit.None }
+                : applied with { Turn = frame.Turn, Exit = frame.Exit, Entrance = frame.Entrance, Seed = frame.Seed, EnterAt = frame.EnterAt, ExitAt = frame.ExitAt };
             shift = now; last = double.NaN; wasMoving = false;
         }
         if (count == Capacity) Apply(Paused ? engine.Clock : Math.Max(engine.Clock, EngineTime(now)));
@@ -222,31 +242,41 @@ public sealed class NthBeadsDriver
     }
 }
 
-/// <summary>The beads' painter on the composition host: the driver's engine, painted by <see cref="NthBeadsPainter"/>.</summary>
-public sealed class NthBeadsHostPainter : NthAdvancingPainter
+/// <summary>The beads' painter on the composition host: the driver's engine, painted by <see cref="NthBeadsPainter"/>. A painter
+/// whose driver a newer painter has taken over (its visual left the tree) does nothing: it asks for no frames and draws nothing.</summary>
+public sealed class NthBeadsHostPainter(NthBeadsDriver? driver = null) : NthAdvancingPainter
 {
     private readonly NthBeadsPainter ink = new();
 
-    /// <summary>The render thread's engine and clock rules.</summary>
-    public NthBeadsDriver Driver { get; } = new();
+    /// <summary>The render thread's engine and clock rules (the control's own, kept across detach and re-attach).</summary>
+    public NthBeadsDriver Driver { get; } = driver ?? new();
+
+    private bool Owns => ReferenceEquals(Driver.Owner, this);
 
     public override bool ClipsToSize => false;
 
-    public override bool Moving(NthFrame frame, double now) => Driver.Moving;
+    public override bool Moving(NthFrame frame, double now) => Owns && Driver.Moving;
 
     public override Rect Bounds(NthFrame frame) => frame.State is NthBeadsFrame f ? Driver.Bounds(frame.Size, f.Size) : new(frame.Size);
 
     internal override int Every(NthFrame frame) => frame.State is NthBeadsFrame f ? f.Every : 1;
-    internal override bool Paused => Driver.Paused;
-    internal override void Receive(NthFrame frame, double now) { if (frame.State is NthBeadsFrame f) Driver.Receive(f, now); }
-    internal override void Advance(NthFrame frame, double now) => Driver.Advance(now);
-    internal override void Unseen() => Driver.Unseen();
-    internal override void Seen(double now) => Driver.Seen(now);
+    internal override bool Paused => !Owns || Driver.Paused;
+
+    internal override void Receive(NthFrame frame, double now)
+    {
+        if (frame.State is not NthBeadsFrame f) return;
+        Driver.Adopt(this, now);
+        Driver.Receive(f, now);
+    }
+
+    internal override void Advance(NthFrame frame, double now) { if (Owns) Driver.Advance(now); }
+    internal override void Unseen() { if (Owns) Driver.Unseen(); }
+    internal override void Seen(double now) { if (Owns) Driver.Seen(now); }
 
     /// <summary>Paints the last slot's sample, the envelope box centred in the control.</summary>
     public override void Draw(SKCanvas canvas, NthFrame frame, double now)
     {
-        if (frame.State is not NthBeadsFrame f || !Driver.Sample.Present) return;
+        if (frame.State is not NthBeadsFrame f || !Owns || !Driver.Sample.Present) return;
         var box = NthBeadsPainter.EnvelopeSize(f.Size);
         float dx = (float)Math.Max(0, (frame.Size.Width - box.Width) / 2), dy = (float)Math.Max(0, (frame.Size.Height - box.Height) / 2);
         if (dx == 0 && dy == 0) { ink.Paint(canvas, Driver.Sample, f.Size, frame.Dark, f.Contrast); return; }

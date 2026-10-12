@@ -234,6 +234,119 @@ public sealed class NthBeadsHostTests
         Assert.True(Travel(before, d.Sample) < .25);
     }
 
+    // ---------------- detach and re-attach (the driver outlives its visual) ----------------
+
+    [Fact]
+    public void A_driver_handed_to_a_new_painter_goes_on_where_it_was_and_never_replays_the_entrance()
+    {
+        var d = new NthBeadsDriver();
+        object a = new(), b = new();
+        var f = Turn(Shown(T0), T0, NthBeadsEntrance.Scriptio);
+        d.Adopt(a, T0);
+        d.Receive(f, T0);
+        var t = Run(d, T0, 4);
+        var e = d.Engine!;
+        var clock = e.Clock;
+        var before = d.Sample;
+        var entrances = 0;
+        e.MoveBegan += _ => { if (e.MoveId is NthBeadsMoveId.Scriptio or NthBeadsMoveId.Ortus) entrances++; };
+        // the control left the tree for 5 s (a virtualised list) and came back with a new visual and painter
+        d.Adopt(b, t + 5);
+        d.Receive(f, t + 5);
+        Assert.Same(b, d.Owner);
+        Assert.True(d.Paused); // paused as not drawn: the frozen pose, no clock
+        Assert.Equal(clock, e.Clock);
+        Assert.Equal(before.B1, d.Sample.B1);
+        d.Seen(t + 5);
+        d.Advance(t + 5 + Slot);
+        Assert.Equal(clock + Slot, e.Clock, 9); // re-anchored: one slot on, no catch-up
+        Assert.Equal(NthBeadsMode.Running, e.Mode);
+        Assert.True(Travel(before, d.Sample) < .25, $"no snap on re-attach ({Travel(before, d.Sample):0.###} bead widths)");
+        Run(d, t + 5 + Slot, 2);
+        Assert.Equal(0, entrances);
+        Assert.Equal(NthBeadsMode.Running, e.Mode);
+    }
+
+    [Theory]
+    [InlineData(NthBeadsExit.Finish)]
+    [InlineData(NthBeadsExit.Fail)]
+    [InlineData(NthBeadsExit.Stop)]
+    public void A_turn_that_ended_stays_ended_when_its_control_comes_back(NthBeadsExit exit)
+    {
+        var d = new NthBeadsDriver();
+        object a = new(), b = new(), c = new();
+        var f = Turn(Shown(T0), T0);
+        d.Adopt(a, T0);
+        d.Receive(f, T0);
+        var t = Run(d, T0, 3);
+        d.Receive(f = f with { Exit = exit, ExitAt = t }, t);
+        t = Run(d, t, 4); // the exit (the error's ~2 s hold included) has played out
+        Assert.Equal(NthBeadsMode.Gone, d.Engine!.Mode);
+        var began = 0;
+        d.Engine.MoveBegan += _ => began++;
+        d.Adopt(b, t + 10);
+        d.Receive(f, t + 10);
+        d.Seen(t + 10);
+        t = Run(d, t + 10, 3);
+        Assert.Equal(0, began); // no entrance, no exit, no hold again
+        Assert.Equal(NthBeadsMode.Gone, d.Engine.Mode);
+        Assert.False(d.Sample.Present);
+        Assert.False(d.Moving);
+        // an exit in progress when the control leaves the tree is cut to gone, never resumed later
+        d.Receive(f = Turn(f, t), t);
+        t = Run(d, t, 3);
+        d.Receive(f = f with { Exit = exit, ExitAt = t }, t);
+        t = Run(d, t, .2);
+        Assert.Equal(NthBeadsMode.Exiting, d.Engine.Mode);
+        d.Adopt(c, t + 2);
+        Assert.Equal(NthBeadsMode.Gone, d.Engine.Mode);
+        d.Receive(f, t + 2);
+        d.Seen(t + 2);
+        Run(d, t + 2, 3);
+        Assert.Equal(NthBeadsMode.Gone, d.Engine.Mode);
+        Assert.False(d.Sample.Present);
+    }
+
+    [Fact]
+    public void A_hand_off_within_one_frame_simply_goes_on()
+    {
+        var d = new NthBeadsDriver();
+        object a = new(), b = new();
+        var f = Turn(Shown(T0), T0);
+        d.Adopt(a, T0);
+        d.Receive(f, T0);
+        var t = Run(d, T0, 3);
+        d.Receive(f = f with { Exit = NthBeadsExit.Finish, ExitAt = t }, t);
+        t = Run(d, t, .1);
+        d.Adopt(b, t + Slot); // a reparent: the new visual's first frame comes on the next slot
+        Assert.False(d.Paused);
+        Assert.Equal(NthBeadsMode.Exiting, d.Engine!.Mode); // the exit is not cut
+        var clock = d.Engine.Clock;
+        d.Advance(t + Slot);
+        Assert.Equal(clock + Slot, d.Engine.Clock, 9);
+    }
+
+    [Fact]
+    public void A_new_engine_for_a_turn_that_has_ended_replays_nothing()
+    {
+        var d = new NthBeadsDriver();
+        var f = Turn(Shown(T0), T0, NthBeadsEntrance.Scriptio);
+        d.Receive(f, T0);
+        var t = Run(d, T0, 3);
+        d.Receive(f = f with { Exit = NthBeadsExit.Fail, ExitAt = t }, t);
+        t = Run(d, t, 4);
+        Assert.Equal(NthBeadsMode.Gone, d.Engine!.Mode);
+        var old = d.Engine;
+        d.Receive(f with { Quiet = true }, t); // the site switched family after the turn ended: a new engine
+        Assert.NotSame(old, d.Engine);
+        var began = 0;
+        d.Engine.MoveBegan += _ => began++;
+        Run(d, t, 4);
+        Assert.Equal(0, began);
+        Assert.Equal(NthBeadsMode.Gone, d.Engine.Mode);
+        Assert.False(d.Sample.Present);
+    }
+
     [Fact]
     public void A_thirty_hertz_driver_matches_the_same_session_at_sixty()
     {
@@ -438,4 +551,44 @@ public sealed class NthBeadsControlTests(HeadlessSession headless)
         Assert.Equal(requests, beads.FrameRequests);
         Assert.False(beads.IsMoving);
     }, calm: true));
+
+    [Fact]
+    public void A_control_that_leaves_the_tree_and_comes_back_goes_on_and_never_replays() => headless.OnUiThread(() => Shown((beads, window, _, time) =>
+    {
+        beads.Enter(NthBeadsEntrance.Scriptio, "t1");
+        Pump(time, 240); // past the entrance: working
+        var first = beads.Painter!;
+        var driver = first.Driver;
+        var engine = driver.Engine!;
+        Assert.Equal(NthBeadsMode.Running, engine.Mode);
+        var clock = engine.Clock;
+        var entrances = 0;
+        engine.MoveBegan += _ => { if (engine.MoveId is NthBeadsMoveId.Scriptio or NthBeadsMoveId.Ortus) entrances++; };
+        window.Content = null; // scrolled out of a virtualised list
+        Pump(time, 60);
+        window.Content = beads; // and back
+        Pump(time, 4);
+        Assert.NotSame(first, beads.Painter);
+        Assert.Same(driver, beads.Painter!.Driver);
+        Assert.Same(engine, driver.Engine);
+        Assert.Equal(NthBeadsMode.Running, engine.Mode);
+        Assert.InRange(engine.Clock, clock, clock + 5 / 60.0); // went on from the frozen clock, no 1 s catch-up
+        Assert.True(beads.IsMoving);
+        Pump(time, 60);
+        Assert.Equal(0, entrances);
+        // the turn ends and plays out, then the control leaves and comes back: nothing replays
+        beads.Finish();
+        Pump(time, 240);
+        Assert.Equal(NthBeadsMode.Gone, engine.Mode);
+        var began = 0;
+        engine.MoveBegan += _ => began++;
+        window.Content = null;
+        Pump(time, 60);
+        window.Content = beads;
+        Pump(time, 60);
+        Assert.Equal(0, began);
+        Assert.Equal(NthBeadsMode.Gone, engine.Mode);
+        Assert.False(driver.Sample.Present);
+        Assert.False(beads.IsMoving);
+    }));
 }

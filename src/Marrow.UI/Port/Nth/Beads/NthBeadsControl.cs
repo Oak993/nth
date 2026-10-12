@@ -23,6 +23,7 @@ public sealed class NthBeadsControl : NthMotionControl
     public static readonly StyledProperty<bool> AmbientProperty = AvaloniaProperty.Register<NthBeadsControl, bool>(nameof(Ambient));
 
     private NthBeadsFrame state = NthBeadsFrame.Blank;
+    private readonly NthBeadsDriver driver = new(); // outlives each visual: a re-attached control goes on, never replays
     private NthBeadsHostPainter? painter;
     private AmbientWindowState? window;
     private IPlatformSettings? platform;
@@ -100,7 +101,7 @@ public sealed class NthBeadsControl : NthMotionControl
 
     private void Restamp() => Post(Stamp(state));
 
-    protected override NthPainter CreatePainter() => painter = new NthBeadsHostPainter();
+    protected override NthPainter CreatePainter() => painter = new NthBeadsHostPainter(driver);
 
     protected override object? State => state;
 
