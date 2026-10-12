@@ -88,6 +88,9 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Port/Settings/UpdatesMainButton.cs", "ButtonHeight / 2", 1, Capsule), // UE-4 (ED-343): the Updates page's 30 pt glass capsule; CzButton draws its focus ring from this radius, r = h / 2
         ("Marrow.App/Port/Voice/VoiceLanguageQuestion.cs", "CardRadius", 2, Circular), // VT-12 (V-12.11, ED-292): the design-page question card's 14 px border radius, not a Swift shape (glass and rim)
         ("Marrow.App/Port/SettingsShell.cs", "8", 1, Circular), // RR-37 (ED-NEW-design-gaps-lead-1): the Settings window's shadow carrier, design-page layout (settings-open-rise-2-locked .glass, CSS border-radius 8 with its 0 34px 90px / 0 8px 24px shadows)
+        ("Marrow.App/Views/Browser/VisusAgentCard.cs", "9", 1, Circular), // web W11 (ED-NEW-web-w11-1): the card text's focus ring, design-page layout (web-surfaces canvas, as VisusPrompt's)
+        ("Marrow.App/Views/Browser/VisusAgentCard.cs", "10", 1, Circular), // web W11: the rows box, design-page layout (the canvas's .kv, CSS border-radius 10px)
+        ("Marrow.App/Views/Browser/VisusAgentCard.cs", "11", 1, Capsule), // web W11: the chat and model chips, 22 DIPs tall with r = 11 (the canvas's .who span)
         ("Marrow.App/Views/Chat/ChatBadge.cs", "TimelineMetrics.PillRadius", 1, Other),
         ("Marrow.App/Views/Chat/HydraButton.cs", "999", 1, Capsule),
         ("Marrow.App/Views/Chat/HydraMergePopover.cs", "10", 1, Fit),
