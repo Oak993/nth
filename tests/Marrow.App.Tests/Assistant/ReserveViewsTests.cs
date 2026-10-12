@@ -300,6 +300,7 @@ public sealed class ReserveViewsTests(HeadlessSession headless)
             var (model, settings, _) = Setup(Bar("Claude 20x", 10, null), Bar("Codex A", 10, null));
             var view = new ReservesView(model);
             using var stage = new ReserveViewStage(view);
+            view.Field.Focus();
             view.Field.Text = "keep 30%";
             stage.Press(Key.Enter);
             Assert.True(view.ShowsQuestion);
@@ -313,6 +314,7 @@ public sealed class ReserveViewsTests(HeadlessSession headless)
             Assert.False(view.ShowsQuestion);
             Assert.Equal(["Always keep 30% on Claude 20x"], view.RuleTitles);
 
+            view.Field.Focus();
             view.Field.Text = "keep 20%";
             stage.Press(Key.Enter);
             Click(view.EveryButton!);
@@ -320,6 +322,7 @@ public sealed class ReserveViewsTests(HeadlessSession headless)
             Assert.Equal(["Always keep 30% on Claude 20x", "Always keep 20%"], view.RuleTitles);
 
             // Escape on the question drops it and puts the owner back in the field.
+            view.Field.Focus();
             view.Field.Text = "keep 10%";
             stage.Press(Key.Enter);
             Assert.True(view.ShowsQuestion);
