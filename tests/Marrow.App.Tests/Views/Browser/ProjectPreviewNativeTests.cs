@@ -48,7 +48,7 @@ public sealed class ProjectPreviewNativeTests(WindowManagerNativeSession native)
             });
             Assert.True(SpinWait.SpinUntil(() => native.OnUi(() => tab.View!.Engine!.IsAttached && !tab.IsLoading), TimeSpan.FromSeconds(15)), "real WebView2 did not attach/navigate");
             var controller = native.OnUi(() => body.Preview!);
-            Assert.True(SpinWait.SpinUntil(() => native.OnUi(() => controller.Runtime.Diagnostics?.Console.Any(row => row.Level == "error" && row.Text.Contains("fixture error", StringComparison.Ordinal)) == true && controller.Runtime.Diagnostics.Network.Any(row => row.Path == "/fixture.json" && row.Status == 200)), TimeSpan.FromSeconds(10)), "real console/Network CDP events did not reach the preview drawer");
+            Assert.True(SpinWait.SpinUntil(() => native.OnUi(() => controller.Runtime.Diagnostics is { } diagnostic && diagnostic.Console.Any(row => row.Level == "error" && row.Text.Contains("fixture error", StringComparison.Ordinal)) && diagnostic.Network.Any(row => row.Path == "/fixture.json" && row.Status == 200)), TimeSpan.FromSeconds(10)), "real console/Network CDP events did not reach the preview drawer");
             var detail = native.OnUi(() => controller.Runtime.Diagnostics!.ToChat(controller.Runtime.Diagnostics.Network.Last(row => row.Path == "/fixture.json")));
             Assert.DoesNotContain("fake-native-auth", detail, StringComparison.Ordinal); Assert.Contains("[redacted]", detail, StringComparison.Ordinal);
             native.OnUi(() => controller.SetDevice(DevicePreset.Phone));
