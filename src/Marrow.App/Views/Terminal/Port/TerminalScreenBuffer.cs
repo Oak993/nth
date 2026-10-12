@@ -23,8 +23,13 @@ internal sealed class TerminalScreenBuffer
     private readonly List<bool> scrollbackWrapped = [];
     private TerminalCell[][] lines;
     private bool[] wrapped;
+    // ED-NEW-lean-10: rows are copy-on-write. owned[row] is true while lines[row] is this buffer's own array; a
+    // snapshot hands the arrays out and clears the flags, and the next write to a row it handed out copies that row
+    // first (OwnRow). Scrollback rows are never written again, so snapshots always share them.
+    private bool[] owned;
     private TerminalCell[][]? savedNormalLines;
     private bool[]? savedNormalWrapped;
+    private bool[]? savedNormalOwned;
     private int savedNormalColumn;
     private int savedNormalRow;
     private int savedColumn;
@@ -48,6 +53,7 @@ internal sealed class TerminalScreenBuffer
         Rows = Math.Max(1, rows);
         lines = NewLines(Columns, Rows);
         wrapped = new bool[Rows];
+        owned = Owned(Rows);
         scrollBottom = Rows - 1;
     }
 
@@ -78,9 +84,30 @@ internal sealed class TerminalScreenBuffer
 
     public string AllText() => string.Join('\n', ScrollbackLines.Concat(Enumerable.Range(0, Rows).Select(LineText)));
 
-    public TerminalFrame Snapshot() => new(scrollback.Concat(lines).Select(line => line.ToArray()).ToArray(),
-        scrollbackWrapped.Concat(wrapped).ToArray(), scrollback.Count, Columns, Rows,
-        CursorColumn, CursorRow, CursorVisible);
+    /// <summary>
+    /// The frame shares the row arrays (ED-NEW-lean-10): neither the frame's reader nor this buffer ever writes a row
+    /// array after it was handed out, because the buffer copies a shared row before its next write (OwnRow).
+    /// </summary>
+    public TerminalFrame Snapshot()
+    {
+        var history = scrollback.Count;
+        var frameLines = new TerminalCell[history + Rows][];
+        var frameWrapped = new bool[history + Rows];
+        scrollback.CopyTo(frameLines, 0);
+        scrollbackWrapped.CopyTo(frameWrapped, 0);
+        Array.Copy(lines, 0, frameLines, history, Rows);
+        Array.Copy(wrapped, 0, frameWrapped, history, Rows);
+        Array.Clear(owned);
+        return new(frameLines, frameWrapped, history, Columns, Rows, CursorColumn, CursorRow, CursorVisible);
+    }
+
+    /// <summary>The row to write: copied first when a snapshot holds it (ED-NEW-lean-10).</summary>
+    private TerminalCell[] OwnRow(int row)
+    {
+        if (owned[row]) return lines[row];
+        owned[row] = true;
+        return lines[row] = (TerminalCell[])lines[row].Clone();
+    }
 
     public string CopySelection((int Column, int Row) start, (int Column, int Row) end)
     {
@@ -171,6 +198,7 @@ internal sealed class TerminalScreenBuffer
         Rows = rows;
         lines = replacement;
         wrapped = replacementWrapped;
+        owned = Owned(rows); // every row above is a new array
         CursorColumn = Math.Clamp(CursorColumn, 0, columns - 1);
         CursorRow = Math.Clamp(newCursor - history, 0, rows - 1);
         scrollTop = 0;
@@ -182,6 +210,7 @@ internal sealed class TerminalScreenBuffer
             for (var row = 0; row < Math.Min(rows, savedNormalLines.Length); row++)
                 Array.Copy(savedNormalLines[row], normal[row], Math.Min(columns, savedNormalLines[row].Length));
             savedNormalLines = normal;
+            savedNormalOwned = Owned(rows);
             Array.Resize(ref savedNormalWrapped, rows);
             savedNormalColumn = Math.Clamp(savedNormalColumn, 0, columns - 1);
             savedNormalRow = Math.Clamp(savedNormalRow, 0, rows - 1);
@@ -249,15 +278,16 @@ internal sealed class TerminalScreenBuffer
         if (previousColumn >= 0 && previous.Text is not null
             && (width == 0 || previous.Text.EndsWith("\u200d", StringComparison.Ordinal) || regionalPair))
         {
-            lines[previousRow][previousColumn] = previous with { Text = previous.Text + rune.ToString() };
+            OwnRow(previousRow)[previousColumn] = previous with { Text = previous.Text + rune.ToString() };
             return;
         }
         if (width == 0) return;
         width = Math.Min(width, Columns);
         if (wrapPending || CursorColumn + width > Columns)
         { CursorColumn = 0; LineFeed(continuation: true); wrapPending = false; }
-        lines[CursorRow][CursorColumn] = new TerminalCell(rune.ToString(), foreground, background, bold, underline, inverse, width);
-        if (width == 2) lines[CursorRow][CursorColumn + 1] = new TerminalCell("", foreground, background, bold, underline, inverse, 0);
+        var line = OwnRow(CursorRow);
+        line[CursorColumn] = new TerminalCell(rune.ToString(), foreground, background, bold, underline, inverse, width);
+        if (width == 2) line[CursorColumn + 1] = new TerminalCell("", foreground, background, bold, underline, inverse, 0);
         var nextColumn = CursorColumn + width;
         wrapPending = nextColumn >= Columns;
         CursorColumn = Math.Min(Columns - 1, nextColumn);
@@ -359,7 +389,7 @@ internal sealed class TerminalScreenBuffer
             case 'T': for (var i = 0; i < Param(0); i++) ScrollDown(); break;
             case '@': InsertCells(Param(0)); break;
             case 'P': DeleteCells(Param(0)); break;
-            case 'X': for (var i = CursorColumn; i < Math.Min(Columns, CursorColumn + Param(0)); i++) lines[CursorRow][i] = EraseCell(); break;
+            case 'X': { var line = OwnRow(CursorRow); for (var i = CursorColumn; i < Math.Min(Columns, CursorColumn + Param(0)); i++) line[i] = EraseCell(); } break;
             case 'L': for (var i = 0; i < Param(0); i++) ScrollDown(CursorRow); break;
             case 'M': for (var i = 0; i < Param(0); i++) ScrollUp(CursorRow); break;
             case 's': savedColumn = CursorColumn; savedRow = CursorRow; break;
@@ -418,7 +448,8 @@ internal sealed class TerminalScreenBuffer
             var from = mode == 0 && row == CursorRow ? CursorColumn : 0;
             var to = mode == 1 && row == CursorRow ? CursorColumn + 1 : Columns;
             if (mode == 0 && row < CursorRow || mode == 1 && row > CursorRow) continue;
-            for (var col = from; col < to; col++) lines[row][col] = EraseCell();
+            var line = OwnRow(row);
+            for (var col = from; col < to; col++) line[col] = EraseCell();
             if (from == 0) wrapped[row] = false;
         }
     }
@@ -428,19 +459,20 @@ internal sealed class TerminalScreenBuffer
         if (mode is < 0 or > 2) return;
         var from = mode == 0 ? CursorColumn : 0;
         var to = mode == 1 ? CursorColumn + 1 : Columns;
-        for (var col = from; col < to; col++) lines[CursorRow][col] = EraseCell();
+        var line = OwnRow(CursorRow);
+        for (var col = from; col < to; col++) line[col] = EraseCell();
     }
 
     private void InsertCells(int count)
     {
-        var line = lines[CursorRow];
+        var line = OwnRow(CursorRow);
         for (var col = Columns - 1; col >= CursorColumn + count; col--) line[col] = line[col - count];
         for (var col = CursorColumn; col < Math.Min(Columns, CursorColumn + count); col++) line[col] = EraseCell();
     }
 
     private void DeleteCells(int count)
     {
-        var line = lines[CursorRow];
+        var line = OwnRow(CursorRow);
         for (var col = CursorColumn; col < Columns; col++) line[col] = col + count < Columns ? line[col + count] : EraseCell();
     }
 
@@ -468,18 +500,20 @@ internal sealed class TerminalScreenBuffer
             { scrollback.RemoveAt(0); scrollbackWrapped.RemoveAt(0); }
         }
         for (var row = top; row < scrollBottom; row++)
-        { lines[row] = lines[row + 1]; wrapped[row] = wrapped[row + 1]; }
+        { lines[row] = lines[row + 1]; wrapped[row] = wrapped[row + 1]; owned[row] = owned[row + 1]; }
         lines[scrollBottom] = Enumerable.Repeat(EraseCell(), Columns).ToArray();
         wrapped[scrollBottom] = false;
+        owned[scrollBottom] = true;
     }
 
     private void ScrollDown(int? from = null)
     {
         var top = from ?? scrollTop;
         for (var row = scrollBottom; row > top; row--)
-        { lines[row] = lines[row - 1]; wrapped[row] = wrapped[row - 1]; }
+        { lines[row] = lines[row - 1]; wrapped[row] = wrapped[row - 1]; owned[row] = owned[row - 1]; }
         lines[top] = Enumerable.Repeat(EraseCell(), Columns).ToArray();
         wrapped[top] = false;
+        owned[top] = true;
     }
 
     private void SwitchAlternate(bool enabled)
@@ -488,21 +522,32 @@ internal sealed class TerminalScreenBuffer
         {
             savedNormalLines = lines;
             savedNormalWrapped = wrapped;
+            savedNormalOwned = owned;
             savedNormalColumn = CursorColumn;
             savedNormalRow = CursorRow;
             lines = NewLines(Columns, Rows);
             wrapped = new bool[Rows];
+            owned = Owned(Rows);
             CursorColumn = CursorRow = 0;
         }
         else if (!enabled && savedNormalLines is not null)
         {
             lines = savedNormalLines;
             wrapped = savedNormalWrapped!;
+            owned = savedNormalOwned!;
             savedNormalLines = null;
             savedNormalWrapped = null;
+            savedNormalOwned = null;
             CursorColumn = savedNormalColumn;
             CursorRow = savedNormalRow;
         }
+    }
+
+    private static bool[] Owned(int rows)
+    {
+        var flags = new bool[rows];
+        Array.Fill(flags, true);
+        return flags;
     }
 
     private static TerminalCell[][] NewLines(int columns, int rows) =>
