@@ -129,6 +129,86 @@ public sealed class ArtifactRuntimeTests
         Assert.Contains("<p>one</p>", ArtifactRuntimeRig.Body(ArtifactRuntimeRig.Get(engine, mount.Address)), StringComparison.Ordinal);
     }
 
+    // ED-NEW-web-nocap-6: the mount's own Morph (Tabula's streaming preview) goes through the view like every other
+    // content path, so a frozen on-screen artifact is restored first and the newest text follows the load.
+    [Fact]
+    public void The_mounts_own_Morph_restores_a_frozen_shown_artifact_and_posts_only_the_newest_text_after_its_load()
+    {
+        using var rig = new ArtifactRuntimeRig();
+        var (mount, engine) = rig.Mount(rig.Create(ArtifactKind.Html, Weather));
+        mount.View.SetShown(true);
+        for (var i = 0; i < 4; i++) rig.Web.OpenLive(shown: true);
+        mount.View.SetLiveVisible(false);
+        Assert.Equal(WebLiveness.Suspended, mount.View.Liveness);
+        engine.Log.Clear();
+        mount.Morph("<p>first</p>");
+        mount.Morph("<p>newest</p>");
+        Assert.Equal(WebLiveness.Live, mount.View.Liveness);
+        Assert.Equal("Resume", engine.Log[0]);
+        Assert.Empty(ArtifactRuntimeRig.Posts(engine));
+        engine.RaiseNavigationCompleted(mount.Address);
+        var morphs = ArtifactRuntimeRig.Posts(engine).Where(p => p["event"]?.GetValue<string>() == "morph").ToList();
+        Assert.Equal("<p>newest</p>", Assert.Single(morphs)["html"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void A_mount_morph_for_a_hidden_frozen_artifact_is_dropped_and_the_store_version_shows_when_it_goes_live()
+    {
+        using var rig = new ArtifactRuntimeRig();
+        var (mount, engine) = rig.Mount(rig.Create(ArtifactKind.Html, "<p>one</p>"));
+        mount.View.SetShown(true);
+        for (var i = 0; i < 4; i++) rig.Web.OpenLive(shown: true);
+        mount.View.SetLiveVisible(false);
+        mount.View.SetShown(false);
+        Assert.Equal(WebLiveness.Suspended, mount.View.Liveness);
+        mount.Morph("<p>half written</p>");
+        rig.Store.Update(ArtifactRuntimeRig.Chat, "weather", new ArtifactRevision { Content = "<p>two</p>" }, ArtifactRuntimeRig.Model, null);
+        Assert.Empty(ArtifactRuntimeRig.Posts(engine));
+        engine.Log.Clear();
+        mount.View.SetShown(true);
+        Assert.Equal(WebLiveness.Live, mount.View.Liveness);
+        Assert.Contains("Navigate " + mount.Address, engine.Log);
+        engine.RaiseNavigationCompleted(mount.Address);
+        Assert.Empty(ArtifactRuntimeRig.Posts(engine));
+        Assert.Contains("<p>two</p>", ArtifactRuntimeRig.Body(ArtifactRuntimeRig.Get(engine, mount.Address)), StringComparison.Ordinal);
+    }
+
+    // ED-NEW-web-nocap-7: a view that attaches after the mount (the pane opens it before the platform view exists) loads
+    // the artifact once; the live-again reload is for a page that was alive and frozen, not for the load that just began.
+    [Fact]
+    public void A_mount_on_a_view_that_attaches_later_loads_its_address_once()
+    {
+        using var rig = new ArtifactRuntimeRig();
+        var snapshot = rig.Create(ArtifactKind.Html, Weather);
+        var view = rig.Web.Surface.Open(WebSurfaceKind.Artifact, "w1");
+        using var mount = rig.Runtime.Mount(view, ArtifactRuntimeRig.Chat, snapshot.Artifact.Id);
+        view.AttachNative(1, 2);
+        Assert.Single(WebRig.Fake(view).Log, l => l == "Navigate " + mount.Address);
+    }
+
+    [Fact]
+    public void A_discarded_artifact_restored_by_the_pane_loads_the_current_version_with_one_navigation()
+    {
+        using var rig = new ArtifactRuntimeRig();
+        var (mount, engine) = rig.Mount(rig.Create(ArtifactKind.Html, "<p>one</p>"));
+        using var heldMount = mount;
+        mount.SetPaneOpen(false);
+        mount.View.SetShown(false);
+        for (var i = 0; i < 9; i++) rig.Web.OpenLive();
+        rig.Advance(TimeSpan.FromMinutes(11));
+        rig.Web.Surface.Tick();
+        var notice = ArtifactRuntimeRig.Posts(engine).Last(p => p["event"]?.GetValue<string>() == "willDiscard");
+        ArtifactRuntimeRig.Send(mount, engine, new { nth = 1, type = "discard.ready", token = notice["token"]!.GetValue<string>(), ok = true });
+        Assert.Equal(WebLiveness.Discarded, mount.View.Liveness);
+        rig.Store.Update(ArtifactRuntimeRig.Chat, "weather", new ArtifactRevision { Content = "<p>two</p>" }, ArtifactRuntimeRig.Model, null);
+        mount.SetPaneOpen(true);
+        mount.View.SetShown(true);
+        var fresh = WebRig.Fake(mount.View);
+        mount.View.AttachNative(3, 4);
+        Assert.Single(fresh.Log, l => l == "Navigate " + mount.Address);
+        Assert.Contains("<p>two</p>", ArtifactRuntimeRig.Body(ArtifactRuntimeRig.Get(fresh, mount.Address)), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void A_mount_binds_the_view_to_the_artifacts_own_site_with_the_sandbox_scripts_first()
     {

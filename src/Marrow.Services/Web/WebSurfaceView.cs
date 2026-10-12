@@ -27,6 +27,8 @@ public sealed class WebSurfaceView : IWebViewSurface
     private string? navigationTarget;
     private (string Token, IWebEngineView Engine, TaskCompletionSource<bool> Ready)? discardNotice;
     internal bool IsDocumentReady => navigationTarget is null && engine is { IsAttached: true };
+    /// <summary>The address the main frame is loading now, or null once it finished.</summary>
+    internal string? NavigationTarget => navigationTarget;
     private TaskCompletionSource? liveHidden;
     private WebSandbox? sandbox;
 

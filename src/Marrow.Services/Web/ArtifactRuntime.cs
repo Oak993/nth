@@ -211,7 +211,8 @@ public sealed class ArtifactMount : IWebResourceHandler, IDisposable
         ArgumentNullException.ThrowIfNull(html);
         if (disposed) return;
         var json = new System.Text.Json.Nodes.JsonObject { ["nth"] = 1, ["event"] = "morph", ["html"] = html }.ToJsonString();
-        runtime.Post(() => View.Engine?.PostMessage(json));
+        // Through the view, so a frozen on-screen artifact is restored first and a loading document gets the newest text after its load.
+        runtime.Post(() => View.PostMessage(json));
     }
 
     /// <summary>The version the mount serves, read once and kept until the artifact changes.</summary>
@@ -362,6 +363,8 @@ public sealed class ArtifactMount : IWebResourceHandler, IDisposable
     {
         if (disposed) return;
         lock (gate) snapshot = null;
+        // A view that just attached is already loading this address (it reads the current version when the page asks for it).
+        if (string.Equals(View.NavigationTarget, Address, StringComparison.Ordinal)) return;
         Reload();
     }
 
