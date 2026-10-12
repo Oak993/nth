@@ -1709,7 +1709,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             if (await checkpoint.Value) UpdateTurn(turn.Id, current => current with { BaseCheckpoint = checkpointRef });
             _ = await start.Value;
 
-            if (SlashCommand.NameIn(text) is not null) await app.Providers.LoadCommands(initialThread.Provider, directory);
+            if (!initialThread.IsSideChat && SlashCommand.NameIn(text) is not null) await app.Providers.LoadCommands(initialThread.Provider, directory);
 
             if (currentTurnID != turn.Id || session is not { } liveSession || app.Thread(ThreadID) is not { } thread) return;
 
@@ -1890,6 +1890,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:1640-1686. Swift characters are counted as grapheme clusters.
     private ValueList<TranscriptMessage> ApiTranscript()
     {
+        if (Thread?.IsSideChat == true) return ValueList<TranscriptMessage>.Empty; // PORT-ONLY (web surfaces W6): a side chat's turn carries its own conversation so far (SideChatPrompt)
         var fragments = new List<(bool Assistant, string Text)>();
         foreach (var entry in Entries)
         {

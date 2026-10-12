@@ -73,6 +73,20 @@ public sealed class AppModelSideChatTests
     }
 
     [Fact]
+    public void Can_act_follows_the_main_threads_run_mode_at_each_send()
+    {
+        using var rig = new SideChatRig();
+        rig.H.Main.OnMain(() => rig.App.SetSideChatCanAct(rig.ParentId, true));
+        Assert.Equal(RuntimeMode.Supervised, rig.Side!.RuntimeMode);
+        rig.H.Main.OnMain(() => rig.App.UpdateThread(rig.ParentId, thread => thread with { RuntimeMode = RuntimeMode.AutoAcceptEdits }));
+        Assert.True(rig.Ask("make the change"));
+        var session = rig.Launch(1);
+        Assert.Equal((InteractionMode.Build, RuntimeMode.AutoAcceptEdits), (session.Inputs[0].InteractionMode, session.Inputs[0].RuntimeMode));
+        Assert.DoesNotContain("read-only tools", session.Inputs[0].Text, StringComparison.Ordinal);
+        Assert.Contains("You may act with this thread's tools", session.Inputs[0].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Turning_Can_act_off_stops_a_turn_that_was_acting()
     {
         using var rig = new SideChatRig(script: session => session.SendScript = _ => new TaskCompletionSource().Task);

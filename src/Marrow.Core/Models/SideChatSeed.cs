@@ -134,7 +134,7 @@ public static class SideChatSeed
         var turns = main.Turns.ToList();
         var byTurn = Group(main.Items, turns);
         digest.Keep(turns.Select(turn => turn.Id).ToHashSet());
-        var changed = ChangedFiles(main, turns);
+        var changed = ChangedFiles(main, turns, byTurn);
 
         // The window shrinks from the verbatim side: tool output first, then whole turns, then the length of every message. A turn that
         // leaves the window is not lost: it is in the digest from then on.
@@ -368,7 +368,7 @@ public static class SideChatSeed
 
     // The files the run changed: each turn's touched paths, then the paths of the edits its tools reported, once each, in the order they
     // first changed.
-    private static List<string> ChangedFiles(SideChatMain main, List<TurnRecord> turns)
+    private static List<string> ChangedFiles(SideChatMain main, List<TurnRecord> turns, Dictionary<Guid, List<TimelineItem>> byTurn)
     {
         var files = new List<string>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -380,7 +380,7 @@ public static class SideChatSeed
         foreach (var turn in turns)
         {
             foreach (var path in turn.TouchedPaths ?? ValueList<string>.Empty) Add(path);
-            foreach (var item in main.Items.Where(item => item.TurnID == turn.Id))
+            foreach (var item in byTurn[turn.Id])
                 if (item.TimelineItemContent is TimelineItem.Content.Tool tool)
                     foreach (var edit in tool.Value.Edits) Add(edit.Path);
         }
