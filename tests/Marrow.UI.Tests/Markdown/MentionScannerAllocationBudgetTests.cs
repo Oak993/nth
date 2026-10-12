@@ -9,8 +9,8 @@ namespace Marrow.UI.Tests.Markdown;
 // build the heavy slot runs.
 public sealed class MentionScannerAllocationBudgetTests
 {
-    // Before the lean pass (Debug): 18,698,264 B; limit about 1.5x.
-    private const long ScanLimit = 28_000_000;
+    // Before the lean pass (Debug): 18,698,264 B (limit then 28,000,000). After it: 17,984 B; limit about 1.3x.
+    private const long ScanLimit = 23_400;
 
     private static readonly string[] Heads = ["Hank", "Hank 2", "Nova", "Orion", "Vega"];
 

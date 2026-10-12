@@ -9,9 +9,10 @@ namespace Marrow.UI.Tests.Markdown;
 // for the Debug build the heavy slot runs.
 public sealed class MarkdownParserAllocationBudgetTests
 {
-    // Before the lean pass (Debug): 1,332,720 B whole and 54,608 B per streaming step; limits about 1.5x.
-    private const long WholeParseLimit = 2_000_000;
-    private const long StreamStepLimit = 82_000;
+    // Before the lean pass (Debug): 1,332,720 B whole and 54,608 B per streaming step (limits then 2,000,000 and
+    // 82,000). After it: 247,056 B and 8,672 B; limits about 1.3x those.
+    private const long WholeParseLimit = 321_000;
+    private const long StreamStepLimit = 11_300;
 
     [Fact]
     [Trait("Decision", "ED-NEW-lean-13")]
