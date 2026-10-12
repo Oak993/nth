@@ -373,7 +373,7 @@ internal static partial class GlassMaterial
             var (darkness, tint) = a.Appearance(control, this, e, resolved);
             return new Region(control.Bounds.Size, e.Shape, corners, tint, drawnTint, darkness,
                 e.IsInteractive && a.hovered, e.IsInteractive && a.pressed, a.pointer, toOwner, opacity, e.NoRefraction, e.NoContactLine, look,
-                e.IsInteractive ? a.hoverShown : 0, e.IsInteractive ? a.pressShown : 0);
+                e.IsInteractive ? a.hoverShown : 0, e.IsInteractive ? a.pressShown : 0, e.OwnBackdrop);
         }
 
         // Whether a glass piece lies inside another glass piece (a visual ancestor with an effect of its own).
@@ -619,7 +619,7 @@ internal static partial class GlassMaterial
 
     private sealed record Region(Size Size, GlassShape Shape, CornerRadius Corners, Color Tint, bool DrawnTint,
         double Darkness, bool Hovered, bool Pressed, Point Pointer, Matrix Transform, double Opacity, bool NoRefraction = false, bool NoContactLine = false,
-        GlassLook? Look = null, double HoverAmount = 0, double PressAmount = 0)
+        GlassLook? Look = null, double HoverAmount = 0, double PressAmount = 0, bool OwnBackdrop = false)
     {
         /// <summary>ED-NEW-glasslook-1: the look it is drawn with (GlassLooks), the release's when none is named.</summary>
         public GlassLook Drawn => Look ?? GlassLook.Release;
@@ -1694,6 +1694,31 @@ internal static partial class GlassMaterial
             using var blur = SKImageFilter.CreateBlur(radius, radius, SKShaderTileMode.Clamp);
             using var blurPaint = new SKPaint { ImageFilter = blur };
             blurredCanvas.DrawImage(pixels, taken.Area.Left - crop.Left, taken.Area.Top - crop.Top, blurPaint);
+            // PORT-ONLY (GlassEffect.OwnBackdrop, the voice pill): inside its box such a piece's frost is the blur of the pixels in that box alone, by its
+            // own sigma, mirrored at the box's edges (the page's backdrop-filter in Chrome: the border box snapped to the device grid, each edge rounded to
+            // the nearest pixel, mirror tiling); it reads its frost there with no bend, so nothing past the box reaches it.
+            foreach (var r in state.Regions)
+            {
+                if (!r.OwnBackdrop) continue;
+                var ownerBox = new Rect(r.Size).TransformToAABB(r.Transform);
+                var owned = transform.MapRect(new SKRect((float)ownerBox.Left, (float)ownerBox.Top, (float)ownerBox.Right, (float)ownerBox.Bottom));
+                var box = new SKRectI((int)MathF.Floor(owned.Left + 0.5f), (int)MathF.Floor(owned.Top + 0.5f), (int)MathF.Floor(owned.Right + 0.5f), (int)MathF.Floor(owned.Bottom + 0.5f));
+                var inPixels = SKRectI.Intersect(new SKRectI(box.Left - taken.Area.Left, box.Top - taken.Area.Top, box.Right - taken.Area.Left, box.Bottom - taken.Area.Top),
+                    new SKRectI(0, 0, pixels.Width, pixels.Height));
+                if (inPixels.IsEmpty) continue;
+                using var own = pixels.Subset(inPixels);
+                if (own is null) continue;
+                var sigma = r.Drawn.Canvas is { } canvasLook ? (float)canvasLook.Sigma * scale
+                    : Math.Min(12 * scale, BlurSigma(Math.Min(r.Size.Width, r.Size.Height), scale) * (float)r.Drawn.BlurValue);
+                using var ownBlur = SKImageFilter.CreateBlur(sigma, sigma, SKShaderTileMode.Mirror);
+                using var ownPaint = new SKPaint { ImageFilter = ownBlur };
+                blurredCanvas.Save();
+                blurredCanvas.ClipRect(new SKRect(taken.Area.Left + inPixels.Left - crop.Left, taken.Area.Top + inPixels.Top - crop.Top,
+                    taken.Area.Left + inPixels.Right - crop.Left, taken.Area.Top + inPixels.Bottom - crop.Top));
+                blurredCanvas.Clear(SKColors.Transparent);
+                blurredCanvas.DrawImage(own, taken.Area.Left + inPixels.Left - crop.Left, taken.Area.Top + inPixels.Top - crop.Top, ownPaint);
+                blurredCanvas.Restore();
+            }
         }
         blurredCanvas.Restore();
         using var image = surface.Snapshot();

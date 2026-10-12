@@ -75,6 +75,16 @@ public sealed record GlassEffect(GlassShape Shape, SwiftColor? TintColor, double
     public GlassEffect WithoutContactLine() => this with { NoContactLine = true };
 
     /// <summary>
+    /// PORT-ONLY (OD-0121, OD-0125, voice pill; ED-NEW-glasslook-4): the frost reads only the pixels under the piece's own box, its edges mirrored, as the
+    /// approved page's <c>backdrop-filter</c> reads them (Chrome blurs the backdrop inside the element's border box, snapped to the device pixel grid, with
+    /// mirrored edges); nothing past the box bleeds in. The tint, rim light and shade stay. Off for every other consumer, whose frost reads round its shape.
+    /// </summary>
+    public bool OwnBackdrop { get; init; }
+
+    /// <summary>The same glass with <see cref="OwnBackdrop"/> set.</summary>
+    public GlassEffect WithOwnBackdrop() => this with { OwnBackdrop = true };
+
+    /// <summary>
     /// PORT-ONLY (ED-NEW-glasslook-1): the surface whose look (<see cref="GlassLooks"/>) this glass takes; null lets the material tell it from the
     /// shape (<see cref="GlassLooks.SurfaceOf"/>).
     /// </summary>
