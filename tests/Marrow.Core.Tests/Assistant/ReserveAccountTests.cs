@@ -11,8 +11,9 @@ public sealed class ReserveAccountTests
 
     private static readonly CalibratedRate Rate = new(50_000, 40_000, 0.9, 8, true);
 
-    private static ReserveAccount Account(Func<string?, ReserveWindowKind, CalibratedRate>? rates = null) =>
-        new("claude:1", "Claude 20x", "claude", rates ?? ((_, _) => Rate));
+    // The tests that read the formula of 11.5 alone use ReserveSafety.Formula; the allowances have tests of their own below.
+    private static ReserveAccount Account(Func<string?, ReserveWindowKind, CalibratedRate>? rates = null, ReserveSafety? safety = null) =>
+        new("claude:1", "Claude 20x", "claude", rates ?? ((_, _) => Rate), safety ?? ReserveSafety.Formula);
 
     private static ReserveWindow W(double percent, DateTimeOffset at, ReserveWindowKind kind = ReserveWindowKind.FiveHour, DateTimeOffset? resets = null) =>
         new(kind.ToString(), kind, percent, at, resets ?? at.AddHours(3));
@@ -338,5 +339,37 @@ public sealed class ReserveAccountTests
         Assert.Equal(1.0, account.Margin("FiveHour", T0), 9);
         account.TurnStarted(Guid.NewGuid(), "big", 24_000); // 3 more
         Assert.Equal(4.0, account.Margin("FiveHour", T0), 9);
+    }
+
+    [Fact]
+    [Trait("Feature", "AS-13")]
+    [Trait("Decision", "ED-NEW-dextra-as13-5")]
+    public void A_whole_point_reading_adds_a_point_and_the_new_turn_is_counted_at_one_and_a_half_times_its_p90()
+    {
+        var account = Account(safety: ReserveSafety.Production);
+        account.Observe([W(60, T0)]);
+        var check = account.Check(Floors(70), "m", 200_000, T0);        // p90 5 points x 1.5 = 7.5; 60 + 7.5 + 1 + 1 = 69.5
+        Assert.Equal(7.5, check.Binding!.TurnP90, 9);
+        Assert.Equal(1.0, check.Binding.Quantum, 9);
+        Assert.Equal(69.5, check.Binding.Projected, 9);
+        Assert.True(check.Go);
+        Assert.False(account.Check(Floors(70), "m", 220_000, T0).Go);   // 60 + 8.25 + 1 + 1 = 70.25
+
+        // A reading with a fraction of a point shows it is not whole: nothing is hiding behind it.
+        var fine = Account(safety: ReserveSafety.Production);
+        fine.Observe([W(60.4, T0)]);
+        Assert.Equal(0.0, fine.Check(Floors(70), "m", 200_000, T0).Binding!.Quantum, 9);
+
+        // A check with no new turn adds the point but not the tail.
+        Assert.Equal(60 + 0 + 1 + 1, account.Check(Floors(70), "m", 0, T0).Binding!.Projected, 9);
+
+        // The bare formula adds neither.
+        var bare = Account();
+        bare.Observe([W(60, T0)]);
+        Assert.Equal(66.0, bare.Check(Floors(70), "m", 200_000, T0).Binding!.Projected, 9);
+        Assert.Equal(1.0, ReserveSafety.Production.QuantumAllowance, 9);
+        Assert.Equal(1.5, ReserveSafety.Production.NewTurnTail, 9);
+        Assert.Equal(0.0, ReserveSafety.Formula.QuantumAllowance, 9);
+        Assert.Equal(1.0, ReserveSafety.Formula.NewTurnTail, 9);
     }
 }

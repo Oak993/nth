@@ -8,6 +8,9 @@ namespace Marrow.Core.Port.Assistant;
 /// <summary>One window checked for a turn: where it stands and how much room the floor leaves after the projection.</summary>
 public sealed record ReserveWindowCheck(ReserveWindow Window, ReserveFloor Floor, double Estimate, double TurnP90, double Margin, double Projected)
 {
+    /// <summary>What the check added because a whole-point reading hides up to a point (ED-NEW-dextra-as13-5).</summary>
+    public double Quantum { get; init; }
+
     /// <summary>Points left under the floor after the projection; negative when the projection crosses it.</summary>
     public double Room => Floor.Percent - Projected;
 
@@ -29,8 +32,10 @@ public sealed record ReserveWindowChange(ReserveWindow Window, double Estimate, 
 /// <summary>Use the owner made outside nth, found when a reading beat the estimate (11.5).</summary>
 public sealed record ReserveOutsideUse(DateTimeOffset At, DateTimeOffset Since, string WindowId, double Points);
 
-public sealed class ReserveAccount(string key, string name, string providerId, Func<string?, ReserveWindowKind, CalibratedRate> rates)
+public sealed class ReserveAccount(string key, string name, string providerId, Func<string?, ReserveWindowKind, CalibratedRate> rates, ReserveSafety? safety = null)
 {
+    private readonly ReserveSafety safe = safety ?? ReserveSafety.Production;
+
     /// <summary>The most spends kept between two readings; past it the older half is merged pairwise (an extreme case only; the estimate stays a bound).</summary>
     public const int MaxSpends = 4096;
 
@@ -209,14 +214,18 @@ public sealed class ReserveAccount(string key, string name, string providerId, F
             var window = tracked.Last;
             if (floorOf(window) is not { } floor || floor.Percent >= 100) continue;
             var estimate = Estimate(window.Id, now);
-            var turn = newTurnP90Tokens > 0 ? rates(model, window.Kind).PercentP90(newTurnP90Tokens) : 0;
+            var turn = newTurnP90Tokens > 0 ? rates(model, window.Kind).PercentP90(newTurnP90Tokens) * safe.NewTurnTail : 0;
             var margin = Margin(window.Id, now, remainingOnly: newTurnP90Tokens <= 0);
-            checks.Add(new ReserveWindowCheck(window, floor, estimate, turn, margin, ReserveMath.Projected(estimate, turn, margin)));
+            var quantum = IsWhole(window.Percent) ? safe.QuantumAllowance : 0;
+            checks.Add(new ReserveWindowCheck(window, floor, estimate, turn, margin, ReserveMath.Projected(estimate, turn, margin) + quantum) { Quantum = quantum });
         }
         if (checks.Count == 0) return ReserveCheck.Free;
         var binding = checks.OrderBy(c => c.Room).First();
         return new ReserveCheck(checks.All(c => !c.Crosses), binding, checks);
     }
+
+    // A reading of 47 and one of 47.3 are different promises: only a whole number can be hiding a point.
+    private static bool IsWhole(double percent) => percent == Math.Floor(percent);
 
     /// <summary>The use outside nth since <paramref name="since"/> (a mission's start), on one window or on all.</summary>
     public double OutsideSince(DateTimeOffset since, string? windowId = null) =>
