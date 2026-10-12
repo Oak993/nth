@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Marrow.Core.Port.Advisor;
 using Marrow.Core.Models;
 using Marrow.Services.Port.Advisor;
+using Marrow.Services.Tests.Fixtures;
 using Marrow.Testing;
 
 namespace Marrow.Services.Tests.Port.Advisor;
@@ -23,22 +24,16 @@ public sealed class AdvisorRegistrationBudgetTests
 
     private static readonly AdvisorRegistration Reused = new(Guid.Parse("7b1e4c2a-90d3-4f6e-8a15-2c4d6e8f0a1d"), ProviderKind.Copilot, "sonnet", new AdvisorChoice(ProviderKind.Claude, "opus"));
 
-    /// <summary>A session's hold on its relay entry, as ACPSession's and CopilotSession's advisorServer field.</summary>
-    private sealed class Session
-    {
-        public MCPResolvedServer? Server;
-    }
-
     /// <summary>Registers and keeps nothing of the entry but its arguments (Codex: the entry only rides into one launch).</summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static string[] Launch(AdvisorRegistration registration) => [.. AdvisorMcpBridge.Register(registration).Args];
 
     /// <summary>Registers and keeps the entry for the session's life.</summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static Session Open(AdvisorRegistration registration) => new() { Server = AdvisorMcpBridge.Register(registration) };
+    private static AdvisorRelayHold Open(AdvisorRegistration registration) => new() { Server = AdvisorMcpBridge.Register(registration) };
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static string[] Arguments(Session session) => [.. session.Server!.Args];
+    private static string[] Arguments(AdvisorRelayHold session) => [.. session.Server!.Args];
 
     private static void Collect()
     {

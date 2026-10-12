@@ -42,32 +42,8 @@ public sealed class SidebarLeanBudgetTests(HeadlessSession headless)
     // drag cells: only the grabbed row and its riders re-evaluate): 13,877 bytes on two runs. Limit about 1.3x of that.
     private const long DragMoveLimit = 18_000;
 
-    internal sealed class Rig(AppModelHarness harness, ManualFrameSource frames, AvaloniaWindow window, SidebarView view, AppModel model)
-    {
-        public AppModelHarness Harness => harness;
-        public AvaloniaWindow Window => window;
-        public SidebarView View => view;
-        public AppModel Model => model;
-
-        public void Tick(int milliseconds)
-        {
-            harness.Main.AdvanceMilliseconds(milliseconds);
-            harness.Main.OnMain(() => { frames.Advance(TimeSpan.FromMilliseconds(milliseconds)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
-        }
-
-        private TextBox? box; // found once: a search of the whole tree per keystroke would be the test's own cost, not the list's
-
-        public void Type(string text, int then = 16)
-        {
-            harness.Main.OnMain(() => (box ??= SearchBox(view)).Text = text);
-            Tick(then);
-        }
-
-        public void OnMain(Action body) => harness.Main.OnMain(body);
-    }
-
     // `count` threads titled "Thread 000" on, spread over five expanded projects, each a minute older than the last.
-    internal static void Run(int count, Action<Rig> body)
+    internal static void Run(int count, Action<SidebarLeanRig> body)
     {
         using var harness = new AppModelHarness();
         var frames = new ManualFrameSource();
@@ -77,7 +53,7 @@ public sealed class SidebarLeanBudgetTests(HeadlessSession headless)
         var model = Model(harness, projects, threads);
         SidebarView view = null!;
         harness.Main.OnMain(() => view = Attached(model));
-        var rig = new Rig(harness, frames, WindowOf(view), view, model);
+        var rig = new SidebarLeanRig(harness, frames, WindowOf(view), view, model);
         try
         {
             rig.Tick(1600); // every row's delayed insertion fade has finished

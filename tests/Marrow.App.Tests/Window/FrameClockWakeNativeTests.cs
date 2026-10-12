@@ -28,42 +28,6 @@ public sealed class FrameClockWakeNativeTests(WindowManagerNativeSession native,
 {
     private const int DwmwaCloak = 13, DwmwaCloaked = 14;
 
-    // The same production source seen as a plain frame source: a draw loop asks it at every frame, as before ED-NEW-lean-7.
-    private sealed class EveryFrame(IFrameSource inner) : IFrameSource
-    {
-        public long Answered;
-        private readonly Dictionary<Action<TimeSpan>, Action<TimeSpan>> wrapped = [];
-
-        private Action<TimeSpan> Wrap(Action<TimeSpan> frame)
-        {
-            if (!wrapped.TryGetValue(frame, out var counted)) wrapped[frame] = counted = time => { Answered++; frame(time); };
-            return counted;
-        }
-
-        public void RequestFrame(Action<TimeSpan> frame) => inner.RequestFrame(Wrap(frame));
-        public void CancelFrame(Action<TimeSpan> frame) => inner.CancelFrame(Wrap(frame));
-        public int Pending => inner.Pending;
-    }
-
-    // The production source as a draw loop's source, counting the frame callbacks it answers.
-    private sealed class Held(AvaloniaFrameSource inner) : IWakeFrameSource
-    {
-        public long Answered;
-        private readonly Dictionary<Action<TimeSpan>, Action<TimeSpan>> wrapped = [];
-
-        private Action<TimeSpan> Wrap(Action<TimeSpan> frame)
-        {
-            if (!wrapped.TryGetValue(frame, out var counted)) wrapped[frame] = counted = time => { Answered++; frame(time); };
-            return counted;
-        }
-
-        public TimeSpan? WakePeriod => inner.WakePeriod;
-        public void RequestFrame(Action<TimeSpan> frame) => inner.RequestFrame(Wrap(frame));
-        public void RequestFrameAt(ContinuousInstant? wake, Action<TimeSpan> frame) => inner.RequestFrameAt(wake, Wrap(frame));
-        public void CancelFrame(Action<TimeSpan> frame) => inner.CancelFrame(Wrap(frame));
-        public int Pending => inner.Pending;
-    }
-
     private AvaloniaWindow Shown()
     {
         var window = new AvaloniaWindow { Width = 320, Height = 120, ShowInTaskbar = false, Content = new Border() };
@@ -76,11 +40,9 @@ public sealed class FrameClockWakeNativeTests(WindowManagerNativeSession native,
     private static nint Hwnd(AvaloniaWindow window) =>
         window.TryGetPlatformHandle()?.Handle ?? throw new InvalidOperationException("NATIVE_PRECONDITION: the test window has no HWND.");
 
-    private sealed record Run(int Draws, double Seconds, long Answered, double[] LatenessMs);
-
     // A 30 Hz display link on the given source for `seconds` of wall time after a second's warm-up; each draw's lateness is the
     // time from the instant its interval was complete (ED-117 (2): 1/30 s since the last draw, 1 ms early) to the draw.
-    private Run Link(Func<AvaloniaWindow, IFrameSource> source, double seconds)
+    private WakeLinkRun Link(Func<AvaloniaWindow, IFrameSource> source, double seconds)
     {
         var draws = new List<ContinuousInstant>();
         var (window, link, counter) = native.OnUi(() =>
@@ -103,7 +65,7 @@ public sealed class FrameClockWakeNativeTests(WindowManagerNativeSession native,
             var interval = TimeSpan.FromSeconds(1.0 / 30) - TimeSpan.FromMilliseconds(1);
             var late = new List<double>();
             for (var i = startDraw + 1; i < draws.Count; i++) late.Add((draws[i] - (draws[i - 1] + interval)).TotalMilliseconds);
-            var result = new Run(draws.Count - startDraw - 1, span, Answered(counter) - startAnswered, [.. late.Order()]);
+            var result = new WakeLinkRun(draws.Count - startDraw - 1, span, Answered(counter) - startAnswered, [.. late.Order()]);
             window.Close();
             return result;
         });
@@ -112,8 +74,8 @@ public sealed class FrameClockWakeNativeTests(WindowManagerNativeSession native,
 
     private static long Answered(IFrameSource source) => source switch
     {
-        EveryFrame every => every.Answered,
-        Held held => held.Answered,
+        CountingEveryFrameSource every => every.Answered,
+        CountingHeldFrameSource held => held.Answered,
         _ => 0,
     };
 
@@ -133,14 +95,14 @@ public sealed class FrameClockWakeNativeTests(WindowManagerNativeSession native,
             var period = native.OnUi(() => Win32FrameHost.Shared.RefreshPeriod())
                 ?? throw new InvalidOperationException("NATIVE_PRECONDITION: DWM gave no refresh period.");
             var refreshMs = period.TotalMilliseconds;
-            var before = Link(window => new EveryFrame(new AvaloniaFrameSource(window)), 6);
+            var before = Link(window => new CountingEveryFrameSource(new AvaloniaFrameSource(window)), 6);
             var after = Link(window =>
             {
                 var production = new AvaloniaFrameSource(window);
                 if (production.WakePeriod is null) throw new InvalidOperationException("NATIVE_PRECONDITION: the production source holds nothing back on this window.");
-                return new Held(production);
+                return new CountingHeldFrameSource(production);
             }, 6);
-            string Describe(string name, Run run) =>
+            string Describe(string name, WakeLinkRun run) =>
                 $"{name}: {run.Draws / run.Seconds:F2} draws/s, {run.Answered / run.Seconds:F1} frame callbacks/s, lateness ms p50 {At(run.LatenessMs, .5):F2} " +
                 $"p90 {At(run.LatenessMs, .9):F2} p99 {At(run.LatenessMs, .99):F2} max {run.LatenessMs[^1]:F2}, over a refresh +2 ms: " +
                 $"{run.LatenessMs.Count(ms => ms > refreshMs + 2)}";

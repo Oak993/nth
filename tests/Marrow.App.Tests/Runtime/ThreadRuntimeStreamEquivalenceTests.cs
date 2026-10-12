@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Marrow.App.Runtime;
+using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
@@ -29,8 +30,6 @@ public sealed class ThreadRuntimeStreamEquivalenceTests
         "ष", "—", "…", "’", "✓", "\t", "x⃝", "️", "❤", "ำ",
     ];
 
-    private enum Row { Message, Reasoning, Plan, Tool }
-
     [Theory]
     [InlineData(1)]
     [InlineData(2)]
@@ -46,23 +45,23 @@ public sealed class ThreadRuntimeStreamEquivalenceTests
         {
             var random = new Random(seed * 7919);
             var runtime = CreateRuntime();
-            var entries = new Dictionary<Row, TimelineEntry>
+            var entries = new Dictionary<ThreadRuntimeStreamRow, TimelineEntry>
             {
-                [Row.Message] = AddEntry(runtime, "m", new TimelineItem.Content.Assistant(new AssistantMessage { Text = "", IsStreaming = true })),
-                [Row.Reasoning] = AddEntry(runtime, "r", new TimelineItem.Content.Reasoning(new ReasoningBlock { Text = "", IsStreaming = true })),
-                [Row.Plan] = AddEntry(runtime, "p", new TimelineItem.Content.Plan(new ProposedPlan { Markdown = "", ProposedPlanState = ProposedPlan.State.Drafting })),
-                [Row.Tool] = AddEntry(runtime, "t", new TimelineItem.Content.Tool(new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = "Run" })),
+                [ThreadRuntimeStreamRow.Message] = AddEntry(runtime, "m", new TimelineItem.Content.Assistant(new AssistantMessage { Text = "", IsStreaming = true })),
+                [ThreadRuntimeStreamRow.Reasoning] = AddEntry(runtime, "r", new TimelineItem.Content.Reasoning(new ReasoningBlock { Text = "", IsStreaming = true })),
+                [ThreadRuntimeStreamRow.Plan] = AddEntry(runtime, "p", new TimelineItem.Content.Plan(new ProposedPlan { Markdown = "", ProposedPlanState = ProposedPlan.State.Drafting })),
+                [ThreadRuntimeStreamRow.Tool] = AddEntry(runtime, "t", new TimelineItem.Content.Tool(new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = "Run" })),
             };
-            var ids = new Dictionary<Row, string> { [Row.Message] = "m", [Row.Reasoning] = "r", [Row.Plan] = "p", [Row.Tool] = "t" };
-            var kinds = new Dictionary<Row, ThreadRuntime.DeltaKind>
+            var ids = new Dictionary<ThreadRuntimeStreamRow, string> { [ThreadRuntimeStreamRow.Message] = "m", [ThreadRuntimeStreamRow.Reasoning] = "r", [ThreadRuntimeStreamRow.Plan] = "p", [ThreadRuntimeStreamRow.Tool] = "t" };
+            var kinds = new Dictionary<ThreadRuntimeStreamRow, ThreadRuntime.DeltaKind>
             {
-                [Row.Message] = ThreadRuntime.DeltaKind.Message,
-                [Row.Reasoning] = ThreadRuntime.DeltaKind.Reasoning,
-                [Row.Plan] = ThreadRuntime.DeltaKind.Plan,
-                [Row.Tool] = ThreadRuntime.DeltaKind.ToolOutput,
+                [ThreadRuntimeStreamRow.Message] = ThreadRuntime.DeltaKind.Message,
+                [ThreadRuntimeStreamRow.Reasoning] = ThreadRuntime.DeltaKind.Reasoning,
+                [ThreadRuntimeStreamRow.Plan] = ThreadRuntime.DeltaKind.Plan,
+                [ThreadRuntimeStreamRow.Tool] = ThreadRuntime.DeltaKind.ToolOutput,
             };
-            var rows = new Dictionary<Row, string> { [Row.Message] = "", [Row.Reasoning] = "", [Row.Plan] = "", [Row.Tool] = "" };
-            var pending = new Dictionary<Row, string>();
+            var rows = new Dictionary<ThreadRuntimeStreamRow, string> { [ThreadRuntimeStreamRow.Message] = "", [ThreadRuntimeStreamRow.Reasoning] = "", [ThreadRuntimeStreamRow.Plan] = "", [ThreadRuntimeStreamRow.Tool] = "" };
+            var pending = new Dictionary<ThreadRuntimeStreamRow, string>();
             var flushLength = Method("PendingFlushLength");
             var flush = Method("FlushDeltas");
             SetField(runtime, "lastFlushAt", SwiftClock.Now + TimeSpan.FromSeconds(1000));
@@ -72,11 +71,11 @@ public sealed class ThreadRuntimeStreamEquivalenceTests
                 var roll = random.Next(100);
                 if (roll < 80)
                 {
-                    var row = (Row)random.Next(4);
-                    var delta = RandomDelta(random, row == Row.Tool && random.Next(8) == 0 ? 6_000 : 12);
+                    var row = (ThreadRuntimeStreamRow)random.Next(4);
+                    var delta = RandomDelta(random, row == ThreadRuntimeStreamRow.Tool && random.Next(8) == 0 ? 6_000 : 12);
                     Method("QueueDelta").Invoke(runtime, [ids[row], kinds[row], delta]);
                     if (delta.Length == 0) continue;
-                    var cleaned = row == Row.Tool ? delta : TextCleanup.WithoutEmDashes(delta);
+                    var cleaned = row == ThreadRuntimeStreamRow.Tool ? delta : TextCleanup.WithoutEmDashes(delta);
                     pending[row] = pending.TryGetValue(row, out var queued) ? queued + cleaned : cleaned;
                 }
                 else if (roll < 90)
@@ -88,16 +87,16 @@ public sealed class ThreadRuntimeStreamEquivalenceTests
                     Assert.Equal(OldPendingFlushLength(pending, rows), (long)flushLength.Invoke(runtime, [])!);
                     flush.Invoke(runtime, [false]);
                     foreach (var (row, text) in pending)
-                        rows[row] = row == Row.Tool ? OldTrimOutput(rows[row] + text) : rows[row] + text;
+                        rows[row] = row == ThreadRuntimeStreamRow.Tool ? OldTrimOutput(rows[row] + text) : rows[row] + text;
                     pending.Clear();
                     foreach (var row in rows.Keys) Assert.Equal(rows[row], RowText(entries[row]), StringComparer.Ordinal);
                 }
             }
             flush.Invoke(runtime, [false]);
-            foreach (var (row, text) in pending) rows[row] = row == Row.Tool ? OldTrimOutput(rows[row] + text) : rows[row] + text;
+            foreach (var (row, text) in pending) rows[row] = row == ThreadRuntimeStreamRow.Tool ? OldTrimOutput(rows[row] + text) : rows[row] + text;
             foreach (var row in rows.Keys) Assert.Equal(rows[row], RowText(entries[row]), StringComparer.Ordinal);
-            Assert.True(rows[Row.Message].Length > 1_000, "the script streamed a real reply");
-            Assert.StartsWith("…", rows[Row.Tool], StringComparison.Ordinal); // the script reached the trim
+            Assert.True(rows[ThreadRuntimeStreamRow.Message].Length > 1_000, "the script streamed a real reply");
+            Assert.StartsWith("…", rows[ThreadRuntimeStreamRow.Tool], StringComparison.Ordinal); // the script reached the trim
         });
     }
 
@@ -117,8 +116,8 @@ public sealed class ThreadRuntimeStreamEquivalenceTests
             {
                 Method("QueueDelta").Invoke(runtime, ["m", ThreadRuntime.DeltaKind.Message, delta]);
                 var oracle = OldPendingFlushLength(
-                    new Dictionary<Row, string> { [Row.Message] = delta },
-                    new Dictionary<Row, string> { [Row.Message] = RowText(entry) });
+                    new Dictionary<ThreadRuntimeStreamRow, string> { [ThreadRuntimeStreamRow.Message] = delta },
+                    new Dictionary<ThreadRuntimeStreamRow, string> { [ThreadRuntimeStreamRow.Message] = RowText(entry) });
                 Assert.Equal(oracle, (long)flushLength.Invoke(runtime, [])!);
                 flush.Invoke(runtime, [false]);
                 Assert.Equal(expectedRow, RowText(entry), StringComparer.Ordinal);
@@ -240,12 +239,12 @@ public sealed class ThreadRuntimeStreamEquivalenceTests
 
     // ---- Frozen copy of the old code (ThreadRuntime.cs:4476-4494 and Timeline.cs:196-199 before ED-NEW-lean-5) ----
 
-    private static long OldPendingFlushLength(Dictionary<Row, string> pending, Dictionary<Row, string> rows)
+    private static long OldPendingFlushLength(Dictionary<ThreadRuntimeStreamRow, string> pending, Dictionary<ThreadRuntimeStreamRow, string> rows)
     {
         long longest = 0;
         foreach (var (row, text) in pending)
         {
-            if (row == Row.Tool) continue;
+            if (row == ThreadRuntimeStreamRow.Tool) continue;
             longest = Math.Max(longest, OldCharacters(rows[row]).LongCount() + OldCharacters(text).LongCount());
         }
         return longest;

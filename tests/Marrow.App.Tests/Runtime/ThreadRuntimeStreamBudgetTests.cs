@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Marrow.App.Runtime;
+using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Testing;
@@ -15,7 +16,7 @@ namespace Marrow.App.Tests.Runtime;
 // delay tier) and FlushDeltas. Tool output queued inside one window builds up the same way.
 public sealed class ThreadRuntimeStreamBudgetTests(ITestOutputHelper output)
 {
-    private const BindingFlags InstanceMembers = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+    internal const BindingFlags InstanceMembers = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
     // Measured on the unchanged code, then after the fix (ED-NEW-lean-5). Before: 282.7 B per delta at 10k and 100k;
     // 349,088 B (10k) and 2,482,912 B (100k) per flush beyond the flat copy; 288,557,112 B for the tool window
@@ -26,7 +27,7 @@ public sealed class ThreadRuntimeStreamBudgetTests(ITestOutputHelper output)
     private const long ToolWindowBytesLimit = 11_040_000;  // 1 MB of tool output in 4 KB deltas within one window
 
     private const string Phrase = "The quick brown fox’s café jumps 🙂 over the lazy dog.\n";
-    private const string Delta = "and the reply goes on, ";
+    internal const string Delta = "and the reply goes on, ";
 
     [Theory]
     [InlineData(10_000)]
@@ -63,7 +64,7 @@ public sealed class ThreadRuntimeStreamBudgetTests(ITestOutputHelper output)
         long bytes = 0;
         test.OnMain(() =>
         {
-            var rig = new Rig(new TimelineItem.Content.Tool(new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = "Run" }));
+            var rig = new ThreadRuntimeStreamRig(new TimelineItem.Content.Tool(new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = "Run" }));
             rig.ToolWindow(chunk); // warm
             var before = GC.GetAllocatedBytesForCurrentThread();
             rig.ToolWindow(chunk);
@@ -77,7 +78,7 @@ public sealed class ThreadRuntimeStreamBudgetTests(ITestOutputHelper output)
 
     private static (double DeltaBytes, double FlushOverhead) MeasureReply(int length)
     {
-        var rig = new Rig(new TimelineItem.Content.Assistant(new AssistantMessage { Text = Reply(length), IsStreaming = true }));
+        var rig = new ThreadRuntimeStreamRig(new TimelineItem.Content.Assistant(new AssistantMessage { Text = Reply(length), IsStreaming = true }));
         for (var window = 0; window < 20; window++) rig.ReplyWindow(); // warm
         long deltaBytes = 0, flushBytes = 0, flatBytes = 0;
         const int windows = 60;
@@ -109,56 +110,14 @@ public sealed class ThreadRuntimeStreamBudgetTests(ITestOutputHelper output)
         return builder.ToString(0, 4_096);
     }
 
-    private sealed class Rig
-    {
-        private readonly Action<string, ThreadRuntime.DeltaKind, string> queue;
-        private readonly Func<long> flushLength;
-        private readonly Action<bool> flush;
-
-        public Rig(TimelineItem.Content content)
-        {
-            var runtime = CreateRuntime();
-            Entry = AddEntry(runtime, "row", content);
-            SetField(runtime, "lastFlushAt", SwiftClock.Now + TimeSpan.FromSeconds(1000)); // every delta waits for its window
-            queue = Method("QueueDelta").CreateDelegate<Action<string, ThreadRuntime.DeltaKind, string>>(runtime);
-            flushLength = Method("PendingFlushLength").CreateDelegate<Func<long>>(runtime);
-            flush = Method("FlushDeltas").CreateDelegate<Action<bool>>(runtime);
-        }
-
-        public TimelineEntry Entry { get; }
-
-        public string ReplyText => Assert.IsType<TimelineItem.Content.Assistant>(Entry.Item.TimelineItemContent).Value.Text;
-
-        // The first delta of a window schedules its flush; three more join it; the flush task reads the length tier
-        // and the flush appends the window's text to the row.
-        public (long Deltas, long Flush) ReplyWindow()
-        {
-            queue("row", ThreadRuntime.DeltaKind.Message, Delta);
-            var start = GC.GetAllocatedBytesForCurrentThread();
-            for (var i = 0; i < 3; i++) queue("row", ThreadRuntime.DeltaKind.Message, Delta);
-            var queued = GC.GetAllocatedBytesForCurrentThread();
-            flushLength();
-            flush(false);
-            var flushed = GC.GetAllocatedBytesForCurrentThread();
-            return (queued - start, flushed - queued);
-        }
-
-        public void ToolWindow(string chunk)
-        {
-            for (var i = 0; i < 256; i++) queue("row", ThreadRuntime.DeltaKind.ToolOutput, chunk);
-            flushLength();
-            flush(false);
-        }
-    }
-
-    private static MethodInfo Method(string name)
+    internal static MethodInfo Method(string name)
     {
         var method = typeof(ThreadRuntime).GetMethod(name, InstanceMembers);
         Assert.NotNull(method);
         return method!;
     }
 
-    private static ThreadRuntime CreateRuntime()
+    internal static ThreadRuntime CreateRuntime()
     {
         var runtime = (ThreadRuntime)RuntimeHelpers.GetUninitializedObject(typeof(ThreadRuntime));
         SetField(runtime, "entries", ValueList<TimelineEntry>.Empty);
@@ -179,14 +138,14 @@ public sealed class ThreadRuntimeStreamBudgetTests(ITestOutputHelper output)
         return runtime;
     }
 
-    private static TimelineEntry AddEntry(ThreadRuntime runtime, string id, TimelineItem.Content content)
+    internal static TimelineEntry AddEntry(ThreadRuntime runtime, string id, TimelineItem.Content content)
     {
         var item = new TimelineItem(Guid.NewGuid(), content, id, new DateTimeOffset(2025, 1, 2, 3, 4, 5, TimeSpan.Zero));
         Method("Append").Invoke(runtime, [item]);
         return Assert.Single(runtime.Entries, entry => entry.Id == id);
     }
 
-    private static void SetField(object target, string name, object? value)
+    internal static void SetField(object target, string name, object? value)
     {
         var field = target.GetType().GetField(name, InstanceMembers);
         Assert.NotNull(field);

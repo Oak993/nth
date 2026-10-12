@@ -10,12 +10,7 @@ namespace Marrow.App.Tests;
 // thread's cell, each parent's child cell and Threads. Landed green on the unchanged code first.
 public sealed class AppModelLeanThreadEventTests
 {
-    private sealed class Watch
-    {
-        public readonly HashSet<string> Fired = [];
-    }
-
-    private static void Observe(AppModel model, IReadOnlyList<Guid> ids, Watch watch)
+    private static void Observe(AppModel model, IReadOnlyList<Guid> ids, ThreadEventWatch watch)
     {
         watch.Fired.Clear();
         ObservationTracking.WithTracking(() => model.Threads, () => watch.Fired.Add("threads"));
@@ -62,7 +57,7 @@ public sealed class AppModelLeanThreadEventTests
         var model = h.MakeModel();
         var ids = seed.Select(thread => thread.Id).ToArray();
         var random = new Random(16);
-        var watch = new Watch();
+        var watch = new ThreadEventWatch();
         h.Main.OnMain(() =>
         {
             foreach (var id in ids) model.IsSelected(id);
@@ -173,7 +168,7 @@ public sealed class AppModelLeanThreadEventTests
         {
             Assert.True(model.MoveInActivity(c.Id, b.Id, placeAfter: false, peers)); // a 3, c 1, b 2
             var before = model.Threads;
-            var watch = new Watch();
+            var watch = new ThreadEventWatch();
             Observe(model, [a.Id, b.Id, c.Id], watch);
             Assert.True(model.MoveInActivity(c.Id, b.Id, placeAfter: false, peers)); // a 3 to 0 to 3, c 1, b 2: no net change
             Assert.Equal(before, model.Threads);

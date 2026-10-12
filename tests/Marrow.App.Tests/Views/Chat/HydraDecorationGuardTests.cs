@@ -123,47 +123,14 @@ public sealed class HydraDecorationGuardTests(HeadlessSession headless)
 
     // ---- harness ----
 
-    private sealed class Scene(HydraProgressBar bar, Avalonia.Controls.Window window, List<TimelineEntry> entries, DateTimeOffset startedAt, DateTimeOffset? finishedAt)
-    {
-        public void Add(ToolCall.Kind kind, double inSeconds)
-        {
-            entries.Add(ToolEntry(kind, SwiftDate.Now.AddSeconds(inSeconds)));
-            bar.UpdateEntries([.. entries]);
-        }
-
-        public void Hover(int? stave)
-        {
-            window.MouseMove(stave is { } index ? new Point(index * 6 + 1, Top + 14) : new Point(299, 1));
-            Dispatcher.UIThread.RunJobs();
-        }
-
-        public void ReduceMotion(bool on)
-        {
-            EnvironmentValues.SetAccessibilityReduceMotion(bar, on);
-            Dispatcher.UIThread.RunJobs();
-        }
-
-        public void Theme(ThemeVariant theme)
-        {
-            window.RequestedThemeVariant = theme;
-            Dispatcher.UIThread.RunJobs();
-        }
-
-        public void Status(HydraHeadInfo.Status status)
-        {
-            bar.UpdateTimes(startedAt, status == HydraHeadInfo.Status.Running ? null : finishedAt, status);
-            Dispatcher.UIThread.RunJobs();
-        }
-    }
-
-    private const double Top = 50; // room above the bar for its hover card
+    internal const double Top = 50; // room above the bar for its hover card
 
     /// <summary>
     /// A bar of five old staves and one arriving at the start, its card room above it, in a window of the light appearance:
     /// 1 s, then 19 steps of 0.173 s, with <paramref name="step"/> run before each; one SHA-256 over the compositor's frames,
     /// how many differ, and at each timestamp the kept picture checked against a new BarDrawing of the same inputs.
     /// </summary>
-    private static (string Hash, int Distinct) Run(HydraHeadInfo.Status status, Action<int, Scene> step)
+    private static (string Hash, int Distinct) Run(HydraHeadInfo.Status status, Action<int, HydraBarScene> step)
     {
         var frames = new ManualFrameSource();
         var time = new ManualTimeProvider();
@@ -174,7 +141,7 @@ public sealed class HydraDecorationGuardTests(HeadlessSession headless)
         var finishedAt = SwiftDate.Now;
         var bar = Bar(status, [.. entries], status == HydraHeadInfo.Status.Running ? null : finishedAt, startedAt);
         var shown = Show(bar, ThemeVariant.Light);
-        var scene = new Scene(bar, shown.Window, entries, startedAt, finishedAt);
+        var scene = new HydraBarScene(bar, shown.Window, entries, startedAt, finishedAt);
         try
         {
             using var all = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
@@ -270,7 +237,7 @@ public sealed class HydraDecorationGuardTests(HeadlessSession headless)
     private static HydraProgressBar Bar(HydraHeadInfo.Status status, IReadOnlyList<TimelineEntry> entries, DateTimeOffset? finishedAt, DateTimeOffset? startedAt = null) =>
         new(EmptyRuntime(), startedAt ?? SwiftDate.Now.AddSeconds(-30), finishedAt, status, Tint, entries);
 
-    private static TimelineEntry ToolEntry(ToolCall.Kind kind, DateTimeOffset date) =>
+    internal static TimelineEntry ToolEntry(ToolCall.Kind kind, DateTimeOffset date) =>
         new(new TimelineItem(
             turnID: null,
             content: new TimelineItem.Content.Tool(new ToolCall
