@@ -41,6 +41,11 @@ public enum PolicyRule
     NeedsGrant,
     /// <summary>The duty running it does not cover it.</summary>
     OutsideDuty,
+    /// <summary>
+    /// The engine allowed it, but auto-answering is still off (16, the ordering rule: AS-7 turns it on once its injection
+    /// corpus passes), so it goes to the owner as a card. Set by the caller that holds the switch, never by the engine.
+    /// </summary>
+    AutoAnswerOff,
 }
 
 /// <summary>What a duty run may do: it can only narrow its assistant's grants and classes (12.1).</summary>
