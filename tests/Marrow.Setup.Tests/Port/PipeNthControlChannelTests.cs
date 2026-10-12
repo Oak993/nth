@@ -13,7 +13,8 @@ public sealed class PipeNthControlChannelTests
     private static readonly TimeSpan Short = TimeSpan.FromMilliseconds(400);
     private static readonly TimeSpan Patient = TimeSpan.FromSeconds(10);
 
-    private static NthControlResponse OkAnswer() => new(NthControlReply.Ok, 4242, @"C:\nth\current\nth.exe", [], 0);
+    private static string PeerRoot => Path.GetDirectoryName(Environment.ProcessPath!)!;
+    private static NthControlResponse OkAnswer() => new(NthControlReply.Ok, Environment.ProcessId, Environment.ProcessPath!, [], 0);
 
     [Fact]
     [Trait("Decision", "ED-247")]
@@ -21,9 +22,9 @@ public sealed class PipeNthControlChannelTests
     public async Task Every_request_goes_out_as_the_wire_says_and_the_answer_is_read_back()
     {
         var name = FakeNthPipeServer.NewName();
-        var busy = new NthControlResponse(NthControlReply.Busy, 4242, "nth.exe", [new NthWorkItem("Refactor the sign-in module", NthWorkKind.Thread, 240)], 1);
+        var busy = new NthControlResponse(NthControlReply.Busy, Environment.ProcessId, Environment.ProcessPath!, [new NthWorkItem("Refactor the sign-in module", NthWorkKind.Thread, 240)], 1);
         using var server = new FakeNthPipeServer(name, FakeNthPipeServer.Answer(busy));
-        var channel = new PipeNthControlChannel(name, Patient, Patient);
+        var channel = new PipeNthControlChannel(name, Patient, Patient, PeerRoot);
 
         var first = await channel.SendAsync(NthControlRequest.QuitIfIdle, CancellationToken.None);
         await channel.SendAsync(NthControlRequest.Status, CancellationToken.None);
@@ -63,8 +64,8 @@ public sealed class PipeNthControlChannelTests
         var closing = FakeNthPipeServer.NewName();
         using var gone = new FakeNthPipeServer(closing, FakeNthPipeServer.CloseAtOnce());
 
-        var waited = await new PipeNthControlChannel(silent, Patient, Short).SendAsync(NthControlRequest.QuitIfIdle, CancellationToken.None);
-        var closed = await new PipeNthControlChannel(closing, Patient, Patient).SendAsync(NthControlRequest.QuitIfIdle, CancellationToken.None);
+        var waited = await new PipeNthControlChannel(silent, Patient, Short, PeerRoot).SendAsync(NthControlRequest.QuitIfIdle, CancellationToken.None);
+        var closed = await new PipeNthControlChannel(closing, Patient, Patient, PeerRoot).SendAsync(NthControlRequest.QuitIfIdle, CancellationToken.None);
 
         Assert.Equal(NthControlFailure.NoAnswer, waited.Failure);
         Assert.Equal(NthControlFailure.NoAnswer, closed.Failure);
@@ -83,9 +84,9 @@ public sealed class PipeNthControlChannelTests
         var huge = FakeNthPipeServer.NewName();
         using var third = new FakeNthPipeServer(huge, FakeNthPipeServer.SendBytes([0x01, 0x00, 0x01, 0x00, 1, 2, 3])); // claims 65,537 bytes
 
-        Assert.Equal(NthControlFailure.BadAnswer, (await new PipeNthControlChannel(rubbish, Patient, Patient).SendAsync(NthControlRequest.Status, CancellationToken.None)).Failure);
-        Assert.Equal(NthControlFailure.BadAnswer, (await new PipeNthControlChannel(newer, Patient, Patient).SendAsync(NthControlRequest.Status, CancellationToken.None)).Failure);
-        Assert.Equal(NthControlFailure.NoAnswer, (await new PipeNthControlChannel(huge, Patient, Patient).SendAsync(NthControlRequest.Status, CancellationToken.None)).Failure);
+        Assert.Equal(NthControlFailure.BadAnswer, (await new PipeNthControlChannel(rubbish, Patient, Patient, PeerRoot).SendAsync(NthControlRequest.Status, CancellationToken.None)).Failure);
+        Assert.Equal(NthControlFailure.BadAnswer, (await new PipeNthControlChannel(newer, Patient, Patient, PeerRoot).SendAsync(NthControlRequest.Status, CancellationToken.None)).Failure);
+        Assert.Equal(NthControlFailure.NoAnswer, (await new PipeNthControlChannel(huge, Patient, Patient, PeerRoot).SendAsync(NthControlRequest.Status, CancellationToken.None)).Failure);
     }
 
     [Fact]
@@ -96,7 +97,7 @@ public sealed class PipeNthControlChannelTests
         var name = FakeNthPipeServer.NewName();
         using var server = new FakeNthPipeServer(name, FakeNthPipeServer.Silent());
         using var cancel = new CancellationTokenSource();
-        var pending = new PipeNthControlChannel(name, Patient, Patient).SendAsync(NthControlRequest.Status, cancel.Token);
+        var pending = new PipeNthControlChannel(name, Patient, Patient, PeerRoot).SendAsync(NthControlRequest.Status, cancel.Token);
         await Task.Delay(200);
         Assert.False(pending.IsCompleted);
 
@@ -111,7 +112,7 @@ public sealed class PipeNthControlChannelTests
     public async Task The_setups_client_and_the_apps_server_understand_each_other_end_to_end()
     {
         var name = FakeNthPipeServer.NewName();
-        var busy = new NthControlResponse(NthControlReply.Busy, 4242, "nth.exe", [new NthWorkItem("Write the release notes", NthWorkKind.Thread, 61)], 1);
+        var busy = new NthControlResponse(NthControlReply.Busy, Environment.ProcessId, Environment.ProcessPath!, [new NthWorkItem("Write the release notes", NthWorkKind.Thread, 61)], 1);
         var afterRan = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var host = new ScriptedNthHost(request => request.Command switch
         {
@@ -120,7 +121,7 @@ public sealed class PipeNthControlChannelTests
             _ => new NthControlAnswer(OkAnswer(), () => afterRan.TrySetResult()),
         });
         using var server = NthControlServer.Start(name, host);
-        var channel = new PipeNthControlChannel(name, Patient, Patient);
+        var channel = new PipeNthControlChannel(name, Patient, Patient, PeerRoot);
 
         var status = await channel.SendAsync(NthControlRequest.Status, CancellationToken.None);
         var idle = await channel.SendAsync(NthControlRequest.QuitIfIdle, CancellationToken.None);
@@ -129,7 +130,8 @@ public sealed class PipeNthControlChannelTests
         await afterRan.Task.WaitAsync(Patient); // and a stop quits once its answer was read
 
         Assert.Equal(NthControlReply.Status, status.Response!.Reply);
-        Assert.Equal(4242, status.Response.Pid);
+        Assert.Equal(Environment.ProcessId, status.Response.Pid);
+        Assert.Equal(Environment.ProcessPath, status.Response.Exe);
         Assert.Equal(NthControlReply.Busy, idle.Response!.Reply);
         Assert.Equal(61, Assert.Single(idle.Response.Work).Seconds);
         Assert.Equal(NthControlReply.Ok, stop.Response!.Reply);

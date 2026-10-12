@@ -26,6 +26,7 @@ public sealed class RunningNthHandshake : IRunningNth
     private readonly TimeProvider time;
     private readonly RunningNthTimings timings;
     private readonly object gate = new();
+    private readonly SemaphoreSlim discoveryGate = new(1, 1);
     private RunningNthStatus status = RunningNthStatus.Initial;
     private CancellationTokenSource? run;
     private TaskCompletionSource? runDone;
@@ -61,7 +62,7 @@ public sealed class RunningNthHandshake : IRunningNth
     public async Task<bool> IsNthOpenAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return (await FindAsync().ConfigureAwait(false)).Count > 0;
+        return (await RefreshWatchedAsync(cancellationToken).ConfigureAwait(false)).Count > 0;
     }
 
     public Task<RunningNthStatus> AskAsync(CancellationToken cancellationToken = default) =>
@@ -146,7 +147,7 @@ public sealed class RunningNthHandshake : IRunningNth
     {
         quitSent = false;
         Set(RunningNthState.Asking);
-        var found = await FindAsync().ConfigureAwait(false);
+        var found = await RefreshWatchedAsync(token).ConfigureAwait(false);
         if (found.Count == 0) return Set(RunningNthState.Clear);
 
         // Who answers? A running nth with no pipe yet may be starting up, so the setup asks again for a few seconds before it gives up.
@@ -161,16 +162,16 @@ public sealed class RunningNthHandshake : IRunningNth
                 break;
             }
             if (hello.Failure == NthControlFailure.NotAllowed) return Refuse("not-allowed");
-            found = await FindAsync().ConfigureAwait(false);
+            found = await RefreshWatchedAsync(token).ConfigureAwait(false);
             if (found.Count == 0) return Set(RunningNthState.Closed); // it left by itself while it was being asked
-            watched = found;
             if (time.GetElapsedTime(since) >= timings.StartupPatience) return Set(RunningNthState.NotResponding, reason: "no-answer");
             await Delay(timings.AskRetry, token).ConfigureAwait(false);
         }
 
         if (answer.Reply == NthControlReply.Refused) return Refuse(answer.Reason ?? "refused");
         if (answer.Reply != NthControlReply.Status) return Refuse("unexpected");
-        watched = found; // Only the processes discovered in this attempt can clear its guard.
+        found = await RefreshWatchedAsync(token).ConfigureAwait(false);
+        // Only discovered in-root processes can give consent; retain their live/uncertain earlier lifetimes.
         if (!found.Any(process => process.ProcessId == answer.Pid) || !RunningNthPaths.IsInside(root, answer.Exe))
             return await WaitForExitAsync(finishingMerge: false, token).ConfigureAwait(false);
         // A different nth cannot give consent for these processes, even if its executable is also in the root.
@@ -228,13 +229,12 @@ public sealed class RunningNthHandshake : IRunningNth
                     shape = now;
                     continue;
                 }
-                watched = await FindAsync().ConfigureAwait(false);
+                await RefreshWatchedAsync(token).ConfigureAwait(false);
                 return await ReadQuitReplyAsync(reply, token).ConfigureAwait(false);
             }
             if (reply.Failure == NthControlFailure.NotAllowed) return Refuse("not-allowed");
-            var left = await FindAsync().ConfigureAwait(false);
+            var left = await RefreshWatchedAsync(token).ConfigureAwait(false);
             if (left.Count == 0) return Set(RunningNthState.Closed); // the person closed nth themselves while the setup waited
-            watched = left;
             if (++failures >= timings.WorkFailureLimit) return Set(RunningNthState.NotResponding, reason: "no-answer");
         }
     }
@@ -247,7 +247,7 @@ public sealed class RunningNthHandshake : IRunningNth
         while (true)
         {
             token.ThrowIfCancellationRequested();
-            if (!await AnyAliveAsync().ConfigureAwait(false)) return Set(RunningNthState.Closed);
+            if (!await AnyAliveAsync(token).ConfigureAwait(false)) return Set(RunningNthState.Closed);
             if (finishingMerge && time.GetElapsedTime(lastMergeAsk) >= timings.MergePoll)
             {
                 lastMergeAsk = time.GetTimestamp();
@@ -274,13 +274,13 @@ public sealed class RunningNthHandshake : IRunningNth
     {
         Set(RunningNthState.Ending);
         var failure = (string?)null;
-        foreach (var target in await FindAsync().ConfigureAwait(false))
+        foreach (var target in await RefreshWatchedAsync(token).ConfigureAwait(false))
         {
             var result = await Task.Run(() => processes.End(target), CancellationToken.None).ConfigureAwait(false);
             if (result == ProcessEndResult.AccessDenied) failure = "not-allowed";
             else if (result == ProcessEndResult.Failed) failure ??= "could-not-end";
         }
-        var left = await FindAsync().ConfigureAwait(false);
+        var left = await RefreshWatchedAsync(token).ConfigureAwait(false);
         return left.Count == 0 ? Set(RunningNthState.Closed) : Refuse(failure ?? "could-not-end");
     }
 
@@ -288,7 +288,7 @@ public sealed class RunningNthHandshake : IRunningNth
     {
         // It never answered: ask again from the start. It agreed but did not leave: give it another 15 s.
         if (Status.Reason == "no-answer") return await AskCoreAsync(token).ConfigureAwait(false);
-        watched = await FindAsync().ConfigureAwait(false);
+        await RefreshWatchedAsync(token).ConfigureAwait(false);
         return await WaitForExitAsync(finishingMerge: false, token).ConfigureAwait(false);
     }
 
@@ -312,13 +312,25 @@ public sealed class RunningNthHandshake : IRunningNth
 
     // ---- helpers ----
 
-    private Task<IReadOnlyList<RunningNthProcess>> FindAsync() => Task.Run(() => processes.FindInside(root));
-
-    private async Task<bool> AnyAliveAsync()
+    private async Task<IReadOnlyList<RunningNthProcess>> RefreshWatchedAsync(CancellationToken token)
     {
-        var list = watched;
-        return await Task.Run(() => list.Any(processes.IsRunning)).ConfigureAwait(false);
+        // IsNthOpenAsync may overlap an operation: an older refresh must never overwrite newly watched records.
+        await discoveryGate.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            var earlier = watched;
+            watched = await Task.Run<IReadOnlyList<RunningNthProcess>>(() =>
+                // Equality includes creation time: reusing a PID/path never drops the new lifetime.
+                earlier.Where(processes.IsRunning).Concat(processes.FindInside(root)).Distinct().ToArray()).ConfigureAwait(false);
+            return watched;
+        }
+        finally
+        {
+            discoveryGate.Release();
+        }
     }
+
+    private async Task<bool> AnyAliveAsync(CancellationToken token) => (await RefreshWatchedAsync(token).ConfigureAwait(false)).Count != 0;
 
     private Task Delay(TimeSpan span, CancellationToken token) => Task.Delay(span, time, token);
 

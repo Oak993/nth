@@ -93,7 +93,7 @@ public sealed class RunningNthOverPipeTests
         var closed = await rig.Handshake.EndItAsync();
 
         Assert.Equal(RunningNthState.Closed, closed.State);
-        Assert.Equal([4242], rig.Nth.Ended);
+        Assert.Equal([rig.Nth.Main.ProcessId], rig.Nth.Ended);
     }
 
     [Fact]

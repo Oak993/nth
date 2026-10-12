@@ -21,12 +21,15 @@ public sealed record PipeRig(FakeNth Nth, FakeNthPipeServer Server, RunningNthHa
 
     public static PipeRig Create(bool running = true)
     {
-        var nth = new FakeNth(TimeProvider.System, HandshakeRig.Root);
+        var executable = Environment.ProcessPath!;
+        var root = Path.GetDirectoryName(executable)!;
+        var peer = new RunningNthProcess(Environment.ProcessId, executable, 1000);
+        var nth = new FakeNth(TimeProvider.System, root, peer);
         if (!running) nth.Close();
         nth.ExitDelay = TimeSpan.FromMilliseconds(100);
         var name = FakeNthPipeServer.NewName();
         var server = FakeNthPipeServer.Backing(name, nth);
-        var channel = new PipeNthControlChannel(name, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(3));
-        return new PipeRig(nth, server, new RunningNthHandshake(HandshakeRig.Root, channel, nth, timings: Quick));
+        var channel = new PipeNthControlChannel(name, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(3), root);
+        return new PipeRig(nth, server, new RunningNthHandshake(root, channel, nth, timings: Quick));
     }
 }

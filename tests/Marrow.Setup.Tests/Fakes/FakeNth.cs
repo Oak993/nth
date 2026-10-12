@@ -37,12 +37,12 @@ public sealed class FakeNth : INthControlChannel, IRunningNthProcesses
     private bool quitting;
     private readonly long begun;
 
-    public FakeNth(TimeProvider time, string root)
+    public FakeNth(TimeProvider time, string root, RunningNthProcess? mainProcess = null)
     {
         this.time = time;
         Root = root;
         begun = time.GetTimestamp();
-        Main = new RunningNthProcess(4242, Path.Combine(root, "current", "nth.exe"), 1000);
+        Main = mainProcess ?? new RunningNthProcess(4242, Path.Combine(root, "current", "nth.exe"), 1000);
         inRoot = [Main];
     }
 
