@@ -186,8 +186,10 @@ public static class SwiftGlass
             SetEffect(surface, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Tint(Chrome.Chrome.Accent, 1).Interactive());
             // ENGINEERING DECISION (ED-280, UNVERIFIED: no reference frame shows a disabled glass button): a disabled one (.disabled, SettingsView.swift:1134)
             // is dimmed to 40 %, the dim every port control takes when disabled, easing over Chrome.hover (OD-0076).
-            var dim = new AnimatedScalar(surface, source.IsEffectivelyEnabled ? 1 : 0.4, value => surface.Opacity = value);
-            source.PropertyChanged += (_, e) => { if (e.Property == Avalonia.Input.InputElement.IsEffectivelyEnabledProperty) dim.Set(source.IsEffectivelyEnabled ? 1 : 0.4, Chrome.Chrome.Hover); };
+            // EnabledLook (ED-NEW-session-hotkeys): a chat column fading out of a switch is gated but keeps its look.
+            var drawn = true;
+            var dim = new AnimatedScalar(surface, EnabledLook.Of(source, ref drawn) ? 1 : 0.4, value => surface.Opacity = value);
+            source.PropertyChanged += (_, e) => { if (EnabledLook.Changes(e.Property)) dim.Set(EnabledLook.Of(source, ref drawn) ? 1 : 0.4, Chrome.Chrome.Hover); };
             return surface;
         });
     }

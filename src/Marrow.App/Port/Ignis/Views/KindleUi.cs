@@ -54,15 +54,17 @@ internal static class KindleUi
         content.VerticalAlignment = VerticalAlignment.Center;
         content.HorizontalAlignment = HorizontalAlignment.Center;
         var button = PlainControls.Button(face, action).KeyboardFocus();
+        var drawnEnabled = true;
         void Paint()
         {
-            var fill = !button.IsEffectivelyEnabled ? (ghost ? null : ControlFill) : button.IsPointerOver ? ControlHover : ghost ? null : ControlFill;
+            var enabled = Marrow.UI.Port.EnabledLook.Of(button, ref drawnEnabled); // held through a chat switch's fade (ED-NEW-session-hotkeys)
+            var fill = !enabled ? (ghost ? null : ControlFill) : button.IsPointerOver ? ControlHover : ghost ? null : ControlFill;
             face.Background = fill?.Brush(face) ?? Brushes.Transparent;
-            button.Opacity = button.IsEffectivelyEnabled ? 1 : .45;
+            button.Opacity = enabled ? 1 : .45;
         }
         button.PropertyChanged += (_, e) =>
         {
-            if (e.Property == InputElement.IsPointerOverProperty || e.Property == InputElement.IsEffectivelyEnabledProperty) Paint();
+            if (e.Property == InputElement.IsPointerOverProperty || Marrow.UI.Port.EnabledLook.Changes(e.Property)) Paint();
         };
         button.ActualThemeVariantChanged += (_, _) => Paint();
         Paint();

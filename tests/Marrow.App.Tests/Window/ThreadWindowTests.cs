@@ -130,16 +130,18 @@ public sealed class ThreadWindowTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-154")] // App/Window/ThreadWindow.swift:14, :23
     public void A_key_outside_the_nine_number_row_digits_is_returned_unchanged() => headless.OnUiThread(() =>
     {
-        // The map holds 18-26 and 28 but not 29 (digit 0), and no numpad key.
+        // The map holds 18-26 and 28 but not 29 (digit 0). PORT-ONLY (ED-NEW-session-hotkeys, owner 2026-10-11): the number
+        // pad's 1 to 9 now select as well (SessionHotkeysWindowTests); its 0, and its 1 with Num Lock off (End), still pass.
         var window = Show(new ThreadWindow());
         var passed = Passed(window);
         var numbers = new List<long>();
         window.SelectThreadNumber = numbers.Add;
         Press(window, Key.D0, PhysicalKey.Digit0, RawInputModifiers.Control);
-        Press(window, Key.NumPad1, PhysicalKey.NumPad1, RawInputModifiers.Control);
+        Press(window, Key.NumPad0, PhysicalKey.NumPad0, RawInputModifiers.Control);
+        Press(window, Key.End, PhysicalKey.NumPad1, RawInputModifiers.Control);
         Press(window, Key.A, PhysicalKey.A, RawInputModifiers.Control);
         Assert.Empty(numbers);
-        Assert.Equal([Key.D0, Key.NumPad1, Key.A], passed);
+        Assert.Equal([Key.D0, Key.NumPad0, Key.End, Key.A], passed);
         window.Close();
     });
 

@@ -233,14 +233,15 @@ public static class PortControlThemes
             [!!Track.ValueProperty] = slider[!!RangeBase.ValueProperty],
         }.RegisterInNameScope(scope);
         var root = new Panel { Background = Brushes.Transparent, MinHeight = 14, Children = { track } };
+        var drawnEnabled = true;
         void Paint()
         {
             ring.IsVisible = slider.Classes.Contains(":focus-visible");
-            root.Opacity = slider.IsEffectivelyEnabled ? 1 : 0.4;
+            root.Opacity = EnabledLook.Of(slider, ref drawnEnabled) ? 1 : 0.4; // held through a chat switch's fade (ED-NEW-session-hotkeys)
         }
         slider.PropertyChanged += (_, e) =>
         {
-            if (e.Property == Avalonia.Input.InputElement.IsEffectivelyEnabledProperty || e.Property == Avalonia.Input.InputElement.IsFocusedProperty) Paint();
+            if (EnabledLook.Changes(e.Property) || e.Property == Avalonia.Input.InputElement.IsFocusedProperty) Paint();
             if (e.Property == Slider.OrientationProperty) held.Set(held.Value, null);
         };
         slider.Classes.CollectionChanged += (_, _) => Paint();

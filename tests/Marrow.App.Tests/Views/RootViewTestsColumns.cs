@@ -17,10 +17,46 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Tests.Views;
 
-// Source: DroppyCode/App/Views/RootView.swift (B3 52bc792), :120-297.
+// Source: DroppyCode/App/Views/RootView.swift (B3 52bc792), :120-297. PORT-ONLY (ED-NEW-session-hotkeys): every test runs on
+// both paths a switch can take: the port's default one, where the chat left fades out for 90 ms (gated at once, hidden after),
+// and Reduce Motion's, which flips the columns at once as the source does.
 [Collection("Headless")]
-public sealed class RootViewTestsColumns(HeadlessSession headless)
+public sealed class RootViewTestsColumns(HeadlessSession headless) : RootViewTestsColumnsPaths(headless)
 {
+    protected override bool Animated => true;
+}
+
+[Collection("Headless")]
+public sealed class RootViewTestsColumnsReduceMotion(HeadlessSession headless) : RootViewTestsColumnsPaths(headless)
+{
+    protected override bool Animated => false;
+}
+
+public abstract class RootViewTestsColumnsPaths(HeadlessSession headless)
+{
+    /// <summary>True: the default path (a switch moves); false: Reduce Motion (it flips at once, as the source does).</summary>
+    protected abstract bool Animated { get; }
+
+    private ManualFrameSource frameSource = null!;
+
+    // The column the switch left: hidden at once under Reduce Motion; on the default path, leaving (gated, fading) until its
+    // move is drawn, then hidden.
+    private bool Gone(FrameHostingView host) => Animated ? !host.IsVisible || host.IsLeaving : !host.IsVisible;
+
+    // The one column shown (a column still fading out is drawn but not shown).
+    private static FrameHostingView ShownHost(Panel pane) => Hosts(pane).Single(host => host.IsVisible && !host.IsLeaving);
+
+    // The switch's move drawn to its end: time and frames go on together (a test whose timers it would shift does not call it).
+    private void FinishMoves(AppModelHarness h)
+    {
+        for (var frame = 0; frame < 12; frame++)
+        {
+            h.Main.OnMain(() => Dispatcher.UIThread.RunJobs());
+            h.Main.AdvanceMilliseconds(1000.0 / 60);
+            h.Main.OnMain(() => frameSource.Advance(TimeSpan.FromMilliseconds(1000.0 / 60)));
+        }
+    }
+
     private static Type ColumnsType => typeof(RootView).Assembly.GetType("Marrow.App.Views.ThreadColumns")!;
     private static object Coordinator() => Activator.CreateInstance(ColumnsType.GetNestedType("Coordinator")!)!;
     private static void Call(object target, string name, params object?[] args) => target.GetType().GetMethod(name)!.Invoke(target, args);
@@ -44,7 +80,9 @@ public sealed class RootViewTestsColumns(HeadlessSession headless)
     {
         using var h = new AppModelHarness();
         using var cursor = DragHandleView.CursorPlatform.Override(new ChatNoCursor());
-        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        frameSource = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(frameSource);
+        using var motion = Chrome.ReduceMotionPlatform.Override(new RenderingGeniePlatform { AccessibilityDisplayShouldReduceMotion = !Animated });
         var model = h.MakeModel();
         Guid[] ids = [];
         var pane = new Panel();
@@ -95,14 +133,28 @@ public sealed class RootViewTestsColumns(HeadlessSession headless)
             Assert.Same(resize, AppEnvironment.GetWindowLiveResize(chat));
             Assert.True(RootView.GetChatColumnIsShown(chat));
             Call(coordinator, "Show", ids[1], pane, model, resize);
-            Assert.False(first.IsVisible);
+            Assert.True(Gone(first));
             Assert.Same(pane, first.Parent); // :171-174 hidden, never detached on a switch
             Assert.False(RootView.GetChatColumnIsShown(chat));
-            Assert.False(first.IsEffectivelyEnabled); // FrameHostingView's hidden shortcut gate
-            Assert.True(RootView.GetChatColumnIsShown(Chat(Hosts(pane).Single(host => host.IsVisible))));
+            Assert.False(first.IsEffectivelyEnabled); // FrameHostingView's hidden shortcut gate (closed at once on both paths)
+            Assert.True(RootView.GetChatColumnIsShown(Chat(ShownHost(pane))));
+        });
+        if (Animated)
+        {
+            FinishMoves(h);
+            h.Main.OnMain(() =>
+            {
+                Assert.False(first.IsVisible); // hidden once its fade is drawn
+                Assert.False(first.IsLeaving);
+                Assert.False(first.IsEffectivelyEnabled);
+                Assert.Same(Hosts(pane).Single(host => host != first), Hosts(pane).Single(host => host.IsVisible));
+            });
+        }
+        h.Main.OnMain(() =>
+        {
             Call(coordinator, "Show", ids[0], pane, model, resize);
             window.UpdateLayout();
-            Assert.Same(first, Hosts(pane).Single(host => host.IsVisible));
+            Assert.Same(first, ShownHost(pane));
             Assert.Same(chat, Chat(first));
             Assert.Same(timeline, Assert.Single(LogicalQuery.SelfAndDescendants<ThreadTimeline>(chat)));
             Assert.Same(composer, Assert.Single(LogicalQuery.SelfAndDescendants<ComposerView>(chat)));
@@ -124,7 +176,7 @@ public sealed class RootViewTestsColumns(HeadlessSession headless)
             Assert.Equal(9, Hosts(pane).Length); // keptLimit 8 + shown one
             Call(coordinator, "Show", ids[9], pane, model, resize);
             Assert.Equal(10, Hosts(pane).Length); // retired stays attached until the switch is drawn
-            Assert.False(oldest.IsVisible);
+            Assert.True(Gone(oldest));
         });
         Tick(h, 499);
         h.Main.OnMain(() => Assert.Same(pane, oldest.Parent));
@@ -177,7 +229,7 @@ public sealed class RootViewTestsColumns(HeadlessSession headless)
             pane.Width = 700; pane.Height = 500;
             window.UpdateLayout();
             Assert.Equal(original, first.Bounds.Size);
-            Assert.Equal(new Size(700, 500), Hosts(pane).Single(host => host.IsVisible).Bounds.Size);
+            Assert.Equal(new Size(700, 500), ShownHost(pane).Bounds.Size);
             Call(coordinator, "Show", ids[0], pane, model, resize);
             window.UpdateLayout();
             Assert.Equal(new Size(700, 500), first.Bounds.Size);
@@ -191,7 +243,7 @@ public sealed class RootViewTestsColumns(HeadlessSession headless)
         Control columns = null!;
         h.Main.OnMain(() =>
         {
-            columns = (Control)Activator.CreateInstance(ColumnsType, ids[0], new[] { ids[1] }, new HashSet<Guid>(), model, resize)!;
+            columns = (Control)Activator.CreateInstance(ColumnsType, ids[0], new[] { ids[1] }, new HashSet<Guid>(), model, resize, false)!;
             window.Content = columns;
             window.UpdateLayout();
             var hosts = LogicalQuery.SelfAndDescendants<FrameHostingView>(columns).ToArray();

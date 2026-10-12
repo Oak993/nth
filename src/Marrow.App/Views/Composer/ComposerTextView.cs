@@ -794,5 +794,9 @@ public sealed class ComposerTextView : Decorator
         var contentHeight = layout.Height;
         var total = Math.Ceiling(Math.Max(18, contentHeight) + textView.Padding.Top + textView.Padding.Bottom); // :374
         if (Math.Abs(height.Value - total) > 0.5) height.Value = total; // :375
+        HasMeasured = true;
     }
+
+    /// <summary>PORT-ONLY (ED-NEW-session-hotkeys): the height has been measured at a real width once (the column's first height).</summary>
+    internal bool HasMeasured { get; private set; }
 }

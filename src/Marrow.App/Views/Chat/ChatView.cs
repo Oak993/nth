@@ -191,6 +191,51 @@ public sealed class ChatView : Decorator
         DetachedFromVisualTree += (_, _) => { dragObservation?.Dispose(); dragObservation = null; };
     }
 
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-session-hotkeys): the parts a chat switch moves. What differs from chat to chat crosses: <c>Content</c>
+    /// (the transcript, the panels, the terminal drawer; <c>Rise</c>, the transcript, settles up a few points as it comes in),
+    /// the composer's <c>Draft</c> when the two drafts differ, and the title's words (<see cref="PrepareTitleCross"/>). What is
+    /// glass is drawn once, never two over each other: the chat opened draws its <c>Chrome</c> (the header's capsules) and its
+    /// <c>Composer</c> from the first frame and the chat left takes its own away at once. The <c>Backdrop</c> (the sheet's wash
+    /// and tint) is drawn by the lowest column only and the <c>Veils</c> (the top veil) by the top one, so neither doubles.
+    /// </summary>
+    internal ChatSwitchParts SwitchParts => new(
+        [timelineHost, floatingHost, terminalHost],
+        timelineHost,
+        chrome,
+        composerHost,
+        Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(composerHost).OfType<ComposerTextColumn>().FirstOrDefault(),
+        Child is Panel sheet ? sheet.Children.OfType<Avalonia.Controls.Shapes.Shape>().ToArray() : [],
+        pane.Children.OfType<PaneTopVeil>().ToArray());
+
+    /// <summary>PORT-ONLY (ED-NEW-session-hotkeys): the thread's title as the header shows it ("" for a new thread).</summary>
+    internal string Title => model?.Thread(runtime.ThreadID)?.Title ?? "";
+
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-session-hotkeys): what the composer's draft shows (its text and its chips' words), compared between the
+    /// chat left and the chat opened: the draft crosses only when the two differ.
+    /// </summary>
+    internal string DraftWords => SwitchParts.Draft is { } draft ? ChatSwitchParts.WordsOf(draft) : "";
+
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-session-hotkeys): the title lays the words of the chat left over its own, before the column is laid out
+    /// (so they keep their own width), for the switch to cross: <see cref="TitleCross"/>.
+    /// </summary>
+    internal void PrepareTitleCross(string previousTitle) => chrome?.PrepareTitleCross(previousTitle);
+
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-session-hotkeys): while a switch crosses the title, the words left (fading out) and this chat's words
+    /// (fading in); render-only, so no frame lays the header out. Null when there is nothing to cross.
+    /// </summary>
+    internal (Control Leaving, Control Arriving)? TitleCross => chrome?.TitleCross;
+
+    /// <summary>PORT-ONLY (ED-NEW-session-hotkeys): the cross is over: this chat's words alone, whole.</summary>
+    internal void EndTitleCross() => chrome?.EndTitleCross();
+
+    /// <summary>PORT-ONLY (ED-NEW-session-hotkeys): the column's composer text box, the one a chat switch puts the keyboard in.</summary>
+    internal ComposerNSTextView? ComposerBox =>
+        Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(composerHost).OfType<ComposerNSTextView>().FirstOrDefault();
+
     // :80-84 thread/project values supplied to the children once per input change.
     private string ResolveDirectory()
     {
@@ -1319,6 +1364,20 @@ internal sealed class ChatChromeRow : Decorator
         SwiftTransition.Opacity.Animation(Animation.EaseOut(duration: 0.12)));
 
     private Action<string, Project?, string>? updateInputs;
+    private readonly ChatChromeTitle titleView = null!;
+
+    /// <summary>PORT-ONLY (ED-NEW-session-hotkeys): see <see cref="ChatView.PrepareTitleCross"/>.</summary>
+    internal void PrepareTitleCross(string previousTitle) => titleView.PrepareCross(previousTitle);
+
+    /// <summary>PORT-ONLY (ED-NEW-session-hotkeys): see <see cref="ChatView.TitleCross"/>.</summary>
+    internal (Control Leaving, Control Arriving)? TitleCross => titleView.Cross;
+
+    /// <summary>PORT-ONLY (ED-NEW-session-hotkeys): see <see cref="ChatView.EndTitleCross"/>.</summary>
+    internal void EndTitleCross() => titleView.EndCross();
+
+    /// <summary>The words the title draws now, the ones arriving if a crossfade is under way (tests).</summary>
+    internal string TitleWords => titleView.Words;
+
     internal void UpdateInputs(string title, Project? project, string directory) => updateInputs?.Invoke(title, project, directory); // :1112-1115,1147-1151
     // :1109-1114 the view's inputs, plus AppModel explicitly (no Avalonia @Environment). scrollChrome is not read
     // here (the row has no member citing it); it stays a parameter so the caller's signature matches the Swift
@@ -1336,6 +1395,7 @@ internal sealed class ChatChromeRow : Decorator
         var host = new Panel();
         Child = host;
         var titleView = new ChatChromeTitle(model, runtime, title); // :1194-1196 title state survives other row changes.
+        this.titleView = titleView;
         // The row's own children persist across refreshes, as SwiftUI keeps a view's identity (and its @State, such as an open
         // popover) while its body re-evaluates: only the controls whose branch changes come and go, and the two that carry
         // .transition(.softAppear) (ThreadsButton :1129-1131, HydraButton :1139-1140) arrive and leave through it.
@@ -1576,11 +1636,13 @@ internal sealed class ChatChromeTitle : Decorator
         shownEmpty = title.Length == 0;
         wordsLayer = new Canvas { IsHitTestVisible = false }; // no size of its own: the leaving words take no room
         wordsHost = new Panel { Children = { text, wordsLayer } };
+        crossLayer = new Canvas { IsHitTestVisible = false };
+        var crossHost = new Panel { Children = { wordsHost, crossLayer } }; // PORT-ONLY (ED-NEW-session-hotkeys): see PrepareCross
         var padded = new Border
         {
             Padding = new Thickness(0, 6), // :1208
             Background = Brushes.Transparent, // :1209 .contentShape(.rect)
-            Child = wordsHost,
+            Child = crossHost,
         };
         var button = PlainControls.Button(padded, () => state.IsPresented = !state.IsPresented); // :1199-1202
         button.HorizontalContentAlignment = HorizontalAlignment.Left;
@@ -1645,6 +1707,58 @@ internal sealed class ChatChromeTitle : Decorator
             SwiftTransition.RemoveContinuing(wordsLayer, leaving); // words still arriving leave from where they have got to
             SwiftTransition.Insert(wordsHost, 0, arriving);
         });
+    }
+
+    // PORT-ONLY (ED-NEW-session-hotkeys): a chat switch's title. The column opened lays the words of the chat left over its own
+    // (in their own layer, at their own width and truncation) before it is laid out; the switch then crosses the two by
+    // opacity alone, in step with the transcripts, so the header's words cross while its glass stays one and no frame lays
+    // it out. At rest the layer is transparent and this title's words are whole.
+    private Canvas? crossLayer; // no size of its own: the words left take no room
+    private TextBlock? crossWords;
+    private bool crossing;
+
+    internal string Words => Child is ChatChromeTitle body ? body.Words : titleText.Text ?? "";
+
+    internal (Control Leaving, Control Arriving)? Cross =>
+        Child is ChatChromeTitle body ? body.Cross : crossing && crossWords is not null && wordsHost is not null ? (crossWords, wordsHost) : null;
+
+    internal void PrepareCross(string previousTitle)
+    {
+        if (Child is ChatChromeTitle body)
+        {
+            body.PrepareCross(previousTitle);
+            return;
+        }
+        EndCross();
+        var empty = previousTitle.Length == 0;
+        var shown = empty ? "New thread" : previousTitle;
+        if (crossLayer is null || (shown == titleText.Text && empty == shownEmpty)) return; // the same words: nothing crosses
+        crossWords ??= NewCrossWords(crossLayer);
+        crossWords.Text = shown;
+        crossWords.Foreground = (empty ? Chrome.SecondaryText : Chrome.PrimaryText).Brush(crossWords);
+        crossWords.MaxWidth = Math.Max(0, Bounds.Width); // the title's whole lane, so they truncate as they did
+        crossing = true;
+    }
+
+    internal void EndCross()
+    {
+        if (Child is ChatChromeTitle body)
+        {
+            body.EndCross();
+            return;
+        }
+        crossing = false;
+        if (crossWords is not null) crossWords.Opacity = 0;
+        if (wordsHost is not null) wordsHost.Opacity = 1;
+    }
+
+    private static TextBlock NewCrossWords(Canvas layer)
+    {
+        var words = NewWords("");
+        words.Opacity = 0;
+        words.IsHitTestVisible = false;
+        layer.Children.Add(words);
+        return words;
     }
 
     // :1219-1229, extracted so a test can inspect the menu without a real popup (headless cannot open one).

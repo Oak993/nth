@@ -1242,10 +1242,23 @@ public sealed partial class AppModel : MainActorModel
     // AppModel.swift:1110-1114. Swift: selectThread(number:). Renamed: C# cannot overload SelectThread on the label alone.
     public void SelectThreadNumber(long number) // AppModel.swift:1110-1114
     {
-        var order = SidebarThreads;
+        // PORT-ONLY (ED-NEW-session-hotkeys): number N is the Nth session row the sidebar shows (its layout, pinned first, the
+        // activity groups, a collapsed group left out, search results), the row hold-Ctrl badges N; the source's order
+        // (sidebarThreads, :384-390) stands while no sidebar has published one.
+        var order = SessionNumbers.Order is { } published
+            ? new ValueList<ChatThread>(published.Select(Thread).OfType<ChatThread>())
+            : SidebarThreads;
         if (number < 1 || number > order.Count) return;
-        SelectedThreadID = order[checked((int)(number - 1))].Id;
+        var id = order[checked((int)(number - 1))].Id;
+        SelectedThreadID = id;
+        ComposerFocusRequested?.Invoke(id); // the chat opened is ready to type in
     }
+
+    /// <summary>PORT-ONLY (ED-NEW-session-hotkeys): the sidebar's session numbering and its hold-Ctrl badges.</summary>
+    public Marrow.App.Views.Sidebar.SessionNumbers SessionNumbers { get; } = new();
+
+    /// <summary>PORT-ONLY (ED-NEW-session-hotkeys): Ctrl+1..9 opened this chat; its composer takes the keyboard.</summary>
+    public event Action<Guid>? ComposerFocusRequested;
 
     // AppModel.swift:1116-1141. Swift: createWorktree(for:).
     public Task CreateWorktree(Guid threadID) =>

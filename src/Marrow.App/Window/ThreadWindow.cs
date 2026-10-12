@@ -50,7 +50,19 @@ public sealed class ThreadWindow : AvaloniaWindow
 
     // A class handler: Avalonia runs it at the window before any instance handler, and the window is the first stop
     // of the tunnel route.
-    static ThreadWindow() => KeyDownEvent.AddClassHandler<ThreadWindow>((window, e) => window.SendEvent(e), RoutingStrategies.Tunnel);
+    static ThreadWindow()
+    {
+        KeyDownEvent.AddClassHandler<ThreadWindow>((window, e) => window.SendEvent(e), RoutingStrategies.Tunnel);
+        // PORT-ONLY (ED-NEW-session-hotkeys): hold-Ctrl watches every key and press in the window, handled or not, from the
+        // window's end of the tunnel, so no control under it (the composer, the list, a menu) can keep a Ctrl release from it.
+        KeyDownEvent.AddClassHandler<ThreadWindow>((window, e) => window.NoteKeyDown(e), RoutingStrategies.Tunnel, handledEventsToo: true);
+        KeyUpEvent.AddClassHandler<ThreadWindow>((window, e) => window.NoteKeyUp(e), RoutingStrategies.Tunnel, handledEventsToo: true);
+        PointerPressedEvent.AddClassHandler<ThreadWindow>((window, _) => window.EndHold(taint: true), RoutingStrategies.Tunnel, handledEventsToo: true);
+        // A wheel turn (the sidebar scrolled under the numbers, Ctrl+wheel zoom) is a use of the hand like a press: the numbers go.
+        PointerWheelChangedEvent.AddClassHandler<ThreadWindow>((window, _) => window.EndHold(taint: true), RoutingStrategies.Tunnel, handledEventsToo: true);
+    }
+
+    public ThreadWindow() => Deactivated += (_, _) => EndHold(taint: false);
 
     // :4 var selectThread: ((Int) -> Void)?
     public Action<long>? SelectThread { get; set; }
@@ -79,14 +91,151 @@ public sealed class ThreadWindow : AvaloniaWindow
     /// else in it (Port/SettingsOverlay.cs); true takes the key.</summary>
     internal Func<KeyEventArgs, bool>? OverlayKeys { get; set; }
 
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-session-hotkeys; owner 2026-10-11): Ctrl held alone for <see cref="HoldDelay"/> shows the sidebar's
+    /// session numbers (true); releasing Ctrl, any other key, a press, or the window going inactive hides them (false).
+    /// </summary>
+    public Action<bool>? ShowSessionNumbers { get; set; }
+
+    /// <summary>How long Ctrl is held alone before the numbers show.</summary>
+    public static readonly TimeSpan HoldDelay = TimeSpan.FromMilliseconds(500);
+
+    /// <summary>How often the safety net reads Ctrl's real state while a hold is pending or the numbers show.</summary>
+    public static readonly TimeSpan HoldWatchInterval = TimeSpan.FromMilliseconds(50);
+
+    /// <summary>
+    /// The keyboard's real Ctrl state: true down, false up, null unknown. The safety net behind the key-up: a release the window
+    /// never sees (it went to another window, an IME, a focus change) still hides the numbers within one watch interval.
+    /// Windows: GetAsyncKeyState(VK_CONTROL). Tests stand in their own.
+    /// </summary>
+    internal static Ambient<Func<bool?>> ControlKeyState { get; } = new(Win32ControlKeyState);
+
+    private bool controlHeld; // Ctrl went down alone and is still down
+    private bool holdSpent;   // another key or a press came while Ctrl was down: no numbers until Ctrl comes up
+    private bool numbersShown;
+    private TaskHandle? holdWait;
+    private TaskHandle? holdWatch;
+    private long holdWatchTurn; // the watcher's turn: a cancelled loop's tail never clears the handle of the one after it
+
+    /// <summary>Whether the session numbers show now (tests).</summary>
+    internal bool AreSessionNumbersShown => numbersShown;
+
+    /// <summary>Whether the safety net holds a watcher now, and how many of its loops are alive (tests).</summary>
+    internal (bool Held, int Loops) HoldWatchState => (holdWatch is not null, holdWatchLoops);
+
+    private int holdWatchLoops;
+
+    private void NoteKeyDown(KeyEventArgs e)
+    {
+        if (e.Key is Key.LeftCtrl or Key.RightCtrl)
+        {
+            // Ctrl alone (the Windows key is masked out like fn, ED-099 (3)); Ctrl with Shift or Alt (AltGr) is another chord.
+            var alone = ((ChordModifiers)e.KeyModifiers & KeyChord.AllowedModifiers) == ChordModifiers.Control;
+            if (!alone)
+            {
+                EndHold(taint: true);
+                return;
+            }
+            if (controlHeld || holdSpent) return; // the key's own auto-repeat
+            controlHeld = true;
+            StartHold();
+            return;
+        }
+        // Any other key: a chord (Ctrl+C, Ctrl+1) or typing. The numbers go at once and the hold is spent until Ctrl is up.
+        EndHold(taint: true);
+    }
+
+    private void NoteKeyUp(KeyEventArgs e)
+    {
+        if (e.Key is not (Key.LeftCtrl or Key.RightCtrl)) return;
+        controlHeld = false;
+        holdSpent = false;
+        EndHold(taint: false); // the fade-out starts on this same key-up
+    }
+
+    private void StartHold()
+    {
+        holdWait?.Cancel();
+        var weak = new WeakReference<ThreadWindow>(this);
+        holdWait = MainActor.Spawn(async () =>
+        {
+            if (!await SwiftTask.TrySleep(HoldDelay) || !weak.TryGetTarget(out var window)) return;
+            if (!window.controlHeld || window.holdSpent || !window.IsVisible || window.AttachedSheet is not null) return;
+            window.numbersShown = true;
+            window.ShowSessionNumbers?.Invoke(true);
+        });
+        Watch();
+    }
+
+    // The safety net: while a hold is pending or the numbers show, Ctrl's real state is read every interval.
+    private void Watch()
+    {
+        if (holdWatch is not null) return;
+        var weak = new WeakReference<ThreadWindow>(this);
+        var turn = ++holdWatchTurn;
+        holdWatch = MainActor.Spawn(async () =>
+        {
+            if (weak.TryGetTarget(out var started)) started.holdWatchLoops++;
+            while (await SwiftTask.TrySleep(HoldWatchInterval) && weak.TryGetTarget(out var window) && window.holdWatchTurn == turn)
+            {
+                if (!window.controlHeld && !window.numbersShown) break;
+                if (ControlKeyState.Current() == false)
+                {
+                    window.controlHeld = false;
+                    window.holdSpent = false;
+                    window.EndHold(taint: false);
+                    break;
+                }
+            }
+            if (!weak.TryGetTarget(out var owner)) return;
+            owner.holdWatchLoops--;
+            if (owner.holdWatchTurn == turn) owner.holdWatch = null;
+        });
+    }
+
+    /// <summary>
+    /// Ends a pending hold and hides the numbers if they show. <paramref name="taint"/>: Ctrl may still be down but this hold is
+    /// spent (another key, a press); false: Ctrl is up (its key-up, the safety net, the window going inactive).
+    /// </summary>
+    private void EndHold(bool taint)
+    {
+        holdWait?.Cancel();
+        holdWait = null;
+        if (taint && controlHeld) holdSpent = true;
+        if (!taint)
+        {
+            controlHeld = false;
+            holdSpent = false;
+        }
+        var wasShown = numbersShown;
+        numbersShown = false;
+        if (!controlHeld)
+        {
+            holdWatch?.Cancel();
+            holdWatch = null;
+            holdWatchTurn++; // the cancelled loop's tail is not this handle's any more
+        }
+        if (wasShown) ShowSessionNumbers?.Invoke(false);
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int key);
+
+    private static bool? Win32ControlKeyState()
+    {
+        if (!OperatingSystem.IsWindows()) return null;
+        try { return (GetAsyncKeyState(0x11) & 0x8000) != 0; } // VK_CONTROL
+        catch (DllNotFoundException) { return null; }
+        catch (EntryPointNotFoundException) { return null; }
+    }
+
     // :11-17 the local monitor's body: true consumes the event (`return nil`), false returns it (`return event`).
     private bool DigitMonitor(KeyEventArgs e)
     {
         // :12-14
         if (!ReferenceEquals(TopLevel.GetTopLevel(e.Source as Visual), this) || AttachedSheet is not null ||
             ((ChordModifiers)e.KeyModifiers & KeyChord.AllowedModifiers) != ChordModifiers.Control ||
-            KeyCode(e) is not { } keyCode || !DigitKeyCodes.TryGetValue(keyCode, out var number) ||
-            selectThreadNumber is not { } select) return false;
+            DigitNumber(e) is not { } number || selectThreadNumber is not { } select) return false;
         select(number); // :15
         return true; // :16
     }
@@ -122,6 +271,16 @@ public sealed class ThreadWindow : AvaloniaWindow
             return;
         }
         if ((digitMonitor is { } monitor && monitor(e)) || PerformKeyEquivalent(e)) e.Handled = true;
+    }
+
+    // :14 the digit the chord names: the number row by scan code (:23), or, PORT-ONLY (ED-NEW-session-hotkeys; owner
+    // 2026-10-11 "with the numpad working as well"), the number pad's 1 to 9. The pad is matched by the key it types, which is
+    // NumPad1..9 only with Num Lock on: with it off the same keys type End, Down, PageDown, Left, Clear, Right, Home, Up and
+    // PageUp, which keep their own Ctrl chords. NumPad0 is not a thread number (as the row's 0 is not).
+    private static long? DigitNumber(KeyEventArgs e)
+    {
+        if (KeyCode(e) is { } keyCode && DigitKeyCodes.TryGetValue(keyCode, out var number)) return number;
+        return e.Key is >= Key.NumPad1 and <= Key.NumPad9 ? e.Key - Key.NumPad1 + 1 : null;
     }
 
     // NSEvent.keyCode as a scan code (ED-099 (1)) for the keys this file names: the digits 1 to 9 (:23) and Tab (:26).
