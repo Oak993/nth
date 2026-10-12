@@ -286,6 +286,43 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
     });
 
     [Fact]
+    public void The_App_pane_holds_the_apps_newest_frame_until_the_workspace_stands_still() => ThreadTimelineRig.Run(headless, m =>
+    {
+        using var apps = new Apps(m.Runtime);
+        m.SetEntries([Call("shipyard · list_releases", "{}", ToolCall.Status.Completed)]);
+        Pump(m);
+        var session = Assert.Single(Find<McpAppRow>(m.View)).Session!;
+        session.SetMode(McpAppDisplayMode.Pane);
+        Pump(m);
+        Assert.False(session.Host.IsHeld); // nowhere to show: no hold left on it
+
+        var (paneWindow, pane, _) = OpenPane(m.Runtime);
+        try
+        {
+            // The app arrives in the pane on its snapshot (the pane springs in with opacity and scale, which a page cannot follow)...
+            Assert.Same(session.Host, pane.Slot.Child);
+            Assert.True(pane.HoldsForMotion);
+            Assert.True(session.Host.IsHeld);
+
+            // ...and goes live two frames after nothing moves.
+            Pump(m);
+            Assert.False(pane.HoldsForMotion);
+            Assert.False(session.Host.IsHeld);
+
+            // Its size changing while still (no workspace motion) holds nothing.
+            paneWindow.Width = 640;
+            paneWindow.UpdateLayout();
+            Assert.False(pane.HoldsForMotion);
+        }
+        finally
+        {
+            paneWindow.Close();
+        }
+
+        Assert.False(session.Host.IsHeld); // the pane left: its hold went with it
+    });
+
+    [Fact]
     public void The_pop_out_window_resizes_with_Splitter_grips_within_280_by_180_and_remembers_the_size() => ThreadTimelineRig.Run(headless, m =>
     {
         using var apps = new Apps(m.Runtime);
@@ -339,6 +376,7 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
         Assert.True(coordinator.IsHeld(card));
         Assert.True(card.App!.Host.IsHeld);
         Assert.Null(coordinator.Live);
+        Assert.Equal(InlineWebWidget.SnapshotText, card.BadgeText); // the header's pill says so (canvas .live.snap)
 
         // Still again: the card is live only if it lies wholly inside the clear part of the thread.
         coordinator.GetType().GetProperty(nameof(InlineWebCoordinator.Scrolling))!.SetValue(coordinator, false);
@@ -348,6 +386,7 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
         var inside = new InlineRect(at.X, at.Y, card.Slot.Bounds.Width, card.Slot.Bounds.Height).IsInside(clear);
         Assert.Equal(inside, coordinator.Live == card);
         Assert.Equal(!inside, coordinator.IsHeld(card));
+        Assert.Equal(inside ? InlineWebWidget.LiveText : InlineWebWidget.SnapshotText, card.BadgeText);
 
         // An app moved to the pane leaves no hold behind on its host.
         card.App!.SetMode(McpAppDisplayMode.Pane);

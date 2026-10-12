@@ -5,10 +5,15 @@
 // shipyard", outside the web rectangle. The header offers Pop out and Back inline; its close button closes the pane and the
 // app goes back to its card. A pane opened with no app to show (a thread whose app is gone) shows the thread's newest app, or
 // closes itself.
+//
+// Motion (DESIGN 2.4, 2.6): the pane springs open, reflows and closes in the workspace with opacity and scale, which a web view's
+// own window cannot follow. So while the workspace moves, and from the moment the app arrives until two frames after it stops,
+// the app's host shows its newest frame; the page goes live once the pane stands still.
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Marrow.App.Port.Web.McpApps;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Chat;
@@ -17,6 +22,7 @@ using Marrow.Core.Port;
 using Marrow.Core.Web;
 using Marrow.UI.Panes;
 using Marrow.UI.Port;
+using Marrow.UI.Web;
 
 namespace Marrow.App.Views.Panes;
 
@@ -31,6 +37,9 @@ public sealed class AppPane : Decorator
     private readonly TextBlock trustText;
     private PaneContent? content;
     private McpAppSession? shown;
+    private (WebViewHost Host, IDisposable Lease)? motionHold;
+    private Action<TimeSpan>? pendingFrame;
+    private int stillFrames;
 
     public AppPane(ThreadRuntime runtime)
     {
@@ -53,7 +62,9 @@ public sealed class AppPane : Decorator
         Child = column;
         slot.PropertyChanged += (_, e) =>
         {
-            if (e.Property == BoundsProperty) shown?.UpdateContext(slot);
+            if (e.Property != BoundsProperty) return;
+            shown?.UpdateContext(slot);
+            if (Workspace()?.IsMoving == true) HoldWhileMoving();
         };
     }
 
@@ -99,6 +110,7 @@ public sealed class AppPane : Decorator
 
         shown.AttachPane(slot);
         if (shown.Mode != McpAppDisplayMode.Pane) shown.SetMode(McpAppDisplayMode.Pane);
+        HoldWhileMoving();
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
@@ -106,6 +118,7 @@ public sealed class AppPane : Decorator
         base.OnDetachedFromVisualTree(e);
         McpAppSessions.ExpandedChanged -= OnExpandedChanged;
         shown?.DetachPane(slot);
+        EndMotionHold();
     }
 
     private void OnExpandedChanged(Guid thread)
@@ -115,6 +128,48 @@ public sealed class AppPane : Decorator
         shown?.DetachPane(slot);
         Show(next);
         next.AttachPane(slot);
+        HoldWhileMoving();
+    }
+
+    private PaneWorkspace? Workspace() => this.FindAncestorOfType<PaneWorkspace>();
+
+    /// <summary>True while the pane keeps the app on its snapshot because the workspace moves (tests).</summary>
+    internal bool HoldsForMotion => motionHold is not null;
+
+    // The app's page shows its newest frame until the workspace has stood still for two frames.
+    private void HoldWhileMoving()
+    {
+        if (shown is null) return;
+        if (motionHold is { } held && held.Host != shown.Host) EndMotionHold();
+        motionHold ??= (shown.Host, shown.Host.HoldSnapshot());
+        stillFrames = 0;
+        if (pendingFrame is not null) return;
+        pendingFrame = OnFrame;
+        FrameClock.Source.Current.RequestFrame(pendingFrame);
+    }
+
+    private void OnFrame(TimeSpan now)
+    {
+        pendingFrame = null;
+        if (motionHold is null) return;
+        stillFrames = Workspace()?.IsMoving == true ? 0 : stillFrames + 1;
+        if (stillFrames >= 2)
+        {
+            EndMotionHold();
+            return;
+        }
+
+        pendingFrame = OnFrame;
+        FrameClock.Source.Current.RequestFrame(pendingFrame);
+    }
+
+    private void EndMotionHold()
+    {
+        if (pendingFrame is { } pending) FrameClock.Source.Current.CancelFrame(pending);
+        pendingFrame = null;
+        if (motionHold is not { } held) return;
+        motionHold = null;
+        held.Lease.Dispose();
     }
 
     private void Show(McpAppSession? session)

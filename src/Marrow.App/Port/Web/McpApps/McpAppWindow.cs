@@ -79,9 +79,13 @@ public sealed class McpAppWindow
         strip.PointerPressed += OnStripPressed;
         AutomationProperties.SetName(strip, session.Server);
 
+        var hairline = new Border { Height = 0.5, VerticalAlignment = VerticalAlignment.Bottom }; // the canvas's .wt border-bottom
+        hairline.Background = PaneTokens.Line.Brush(hairline);
+        var top = new Panel { Children = { strip, hairline } };
+
         Slot = new Decorator();
-        var body = new Border { Margin = new Thickness(6, 0, 6, 6), CornerRadius = new CornerRadius(9), ClipToBounds = true, Child = Slot };
-        var column = new Grid { RowDefinitions = new RowDefinitions("Auto,*"), Children = { strip, body } };
+        var body = new Border { Margin = new Thickness(6, 0, 6, 6), CornerRadius = new CornerRadius(9), ClipToBounds = true, Child = Slot }; // the canvas .mweb: under the hairline
+        var column = new Grid { RowDefinitions = new RowDefinitions("Auto,*"), Children = { top, body } };
         Grid.SetRow(body, 1);
 
         var grips = Grips();

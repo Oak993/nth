@@ -40,6 +40,8 @@ public sealed class InlineWebWidget : Decorator
 
     public const string WidgetTrustText = "Widget · from this answer";
     public const string TryAgainText = "Try again";
+    public const string LiveText = "Live";
+    public const string SnapshotText = "Snapshot";
 
     // The card's glass (canvas: rgba(255,255,255,.035) and a .5 rim of .1 on dark; the light look mirrors it in ink).
     internal static readonly SwiftColor CardFill = SwiftColor.Dynamic(new SwiftColor(0, 0, 0, 0.025), new SwiftColor(1, 1, 1, 0.035));
@@ -61,6 +63,9 @@ public sealed class InlineWebWidget : Decorator
     private readonly Border failure;
     private readonly TextBlock failureText;
     private readonly Dictionary<McpAppDisplayMode, Segment> segments = [];
+    private readonly Border badge;
+    private readonly TextBlock badgeText;
+    private readonly Border badgeDot;
     private ScrollViewer? scroller;
     private InlineWebCoordinator? coordinator;
     private DateTimeOffset lastIntent;
@@ -93,6 +98,25 @@ public sealed class InlineWebWidget : Decorator
         trustText.Foreground = PaneTokens.Text3.Brush(trustText);
         trust = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(4, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, Children = { shield, trustText } };
 
+        // The canvas's .live pill: a green dot and "Live" while the page itself shows, a grey dot and "Snapshot" while its last
+        // frame stands in (the thread scrolls, or another widget is the live one). It is as wide as "Snapshot" either way, so
+        // the trust strip beside it never moves while the thread scrolls.
+        badgeDot = new Border { Width = 6, Height = 6, CornerRadius = new CornerRadius(3), VerticalAlignment = VerticalAlignment.Center };
+        badgeText = new TextBlock { Text = LiveText, FontSize = 10.5, FontWeight = FontWeight.Medium, VerticalAlignment = VerticalAlignment.Center };
+        badgeText.Foreground = PaneTokens.Text2.Brush(badgeText);
+        var badgeRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5, HorizontalAlignment = HorizontalAlignment.Center, Children = { badgeDot, badgeText } };
+        badge = new Border
+        {
+            Height = 20,
+            Padding = new Thickness(7, 0, 7, 0),
+            CornerRadius = new CornerRadius(10),
+            VerticalAlignment = VerticalAlignment.Center,
+            MinWidth = BadgeWidth(),
+            Child = badgeRow,
+        };
+        badge.Background = SegmentFill.Brush(badge);
+        ShowLive(true);
+
         if (app is not null)
         {
             title.Text = app.Server + " · " + app.Title;
@@ -107,17 +131,18 @@ public sealed class InlineWebWidget : Decorator
         var header = new Grid
         {
             Height = HeaderHeight,
-            ColumnDefinitions = new ColumnDefinitions("Auto,Auto,Auto,*,Auto"),
+            ColumnDefinitions = new ColumnDefinitions("Auto,Auto,Auto,Auto,*,Auto"),
             ColumnSpacing = 8,
             Margin = new Thickness(12, 0, 6, 0),
-            Children = { glyph, title, trust },
+            Children = { glyph, title, badge, trust },
         };
         Grid.SetColumn(title, 1);
-        Grid.SetColumn(trust, 2);
+        Grid.SetColumn(badge, 2);
+        Grid.SetColumn(trust, 3);
         if (app is not null)
         {
             var switcher = Switcher();
-            Grid.SetColumn(switcher, 4);
+            Grid.SetColumn(switcher, 5);
             header.Children.Add(switcher);
         }
 
@@ -137,7 +162,7 @@ public sealed class InlineWebWidget : Decorator
 
         body = new Border
         {
-            Margin = new Thickness(6, 6, 6, 6),
+            Margin = new Thickness(6, 0, 6, 6), // the canvas's .mweb: under the header's hairline, 6 DIP in at the sides and foot
             CornerRadius = new CornerRadius(9),
             ClipToBounds = true,
             Child = new Panel { Children = { slot, failure } },
@@ -213,6 +238,9 @@ public sealed class InlineWebWidget : Decorator
     /// <summary>The trust strip shows (wide enough, and an app).</summary>
     public bool ShowsTrust => trust.IsVisible;
 
+    /// <summary>The header's pill says "Live" (the page shows) or "Snapshot" (its last frame stands in).</summary>
+    public string BadgeText => badgeText.Text ?? "";
+
     /// <summary>The failure line shows, with its words.</summary>
     public string? FailureText => failure.IsVisible ? failureText.Text : null;
 
@@ -286,6 +314,22 @@ public sealed class InlineWebWidget : Decorator
     }
 
     private void OnTheme(object? sender, EventArgs e) => Show();
+
+    /// <summary>The coordinator let the page show (true) or holds its last frame up (false).</summary>
+    internal void ShowLive(bool live)
+    {
+        badgeText.Text = live ? LiveText : SnapshotText;
+        badgeDot.Background = (live ? PaneTokens.ChipDot : PaneTokens.Text3).Brush(badgeDot);
+        AutomationProperties.SetName(badge, badgeText.Text);
+    }
+
+    // The pill's width with "Snapshot" in it: the dot, the gap, the words and the padding.
+    private static double BadgeWidth()
+    {
+        var probe = new TextBlock { Text = SnapshotText, FontSize = 10.5, FontWeight = FontWeight.Medium };
+        probe.Measure(Size.Infinity);
+        return Math.Ceiling(7 + 6 + 5 + probe.DesiredSize.Width + 7);
+    }
 
     private void OnScrollerChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
@@ -570,12 +614,14 @@ public sealed class InlineWebCoordinator
         }
 
         holds[widget] = (host, host.HoldSnapshot());
+        widget.ShowLive(false);
     }
 
     private void Release(InlineWebWidget widget)
     {
         if (!holds.Remove(widget, out var held)) return;
         held.Lease.Dispose();
+        widget.ShowLive(true);
     }
 
     /// <summary>True while the coordinator keeps the widget on its snapshot (tests).</summary>

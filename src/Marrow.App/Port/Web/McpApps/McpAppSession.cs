@@ -354,6 +354,9 @@ public static class McpAppSessions
 
     public static IReadOnlyList<McpAppSession> In(Guid thread) => [.. Sessions.Where(p => p.Key.Thread == thread).Select(p => p.Value)];
 
+    /// <summary>Every session of every thread (tests close their windows).</summary>
+    internal static IReadOnlyList<McpAppSession> All() => [.. Sessions.Values];
+
     public static McpAppSession? Expanded(Guid thread) => ExpandedByThread.GetValueOrDefault(thread);
 
     internal static void SetExpanded(Guid thread, McpAppSession? session)
