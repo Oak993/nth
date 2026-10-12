@@ -63,6 +63,9 @@
     <!-- nth installer PLAN.md 3a, unit U4 (ED-NEW-inst-u4-1, -3): the control pipe's wire format and the install hold, linked the same way. -->
     <Compile Include="..\Marrow.Core\Support\NthControl.cs" Link="NthControl.cs" />
     <Compile Include="..\Marrow.Core\Support\InstallHold.cs" Link="InstallHold.cs" />
+    <Compile Include="..\Marrow.Core\Support\SweepLimits.cs" Link="SweepLimits.cs" />
+    <Compile Include="..\Marrow.Core\Support\SweepBudget.cs" Link="SweepBudget.cs" />
+    <Compile Include="..\Marrow.Core\Support\SweepLimitException.cs" Link="SweepLimitException.cs" />
     <AssemblyMetadata Include="InstallerTitle" Value="$(InstallerTitle)" />
     <AssemblyMetadata Include="InstallerAppId" Value="$(InstallerAppId)" />
     <AssemblyMetadata Include="InstallerVersion" Value="$(InstallerVersion)" />

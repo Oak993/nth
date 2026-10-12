@@ -16,7 +16,7 @@ public sealed class SetupSweeperTests : IDisposable
 
     [Fact]
     [Trait("Decision", "ED-247")]
-    public void Stale_staging_folders_old_runtime_builds_and_loose_files_all_go_and_the_empty_setup_folder_with_them()
+    public void Proven_owned_staging_and_runtime_units_go_while_an_unowned_loose_file_is_preserved_and_reported()
     {
         area.PutInSetup("1.0.0", "nth Setup Engine.exe");
         area.PutInSetup("1.0.0", "install-options.json");
@@ -27,9 +27,19 @@ public sealed class SetupSweeperTests : IDisposable
 
         var result = SetupSweeper.Sweep(area.LocalAppData, area.Temp);
 
-        Assert.Equal(5, result.Removed); // two staging folders, two builds, one loose file
-        Assert.True(result.Clean);
-        Assert.False(Directory.Exists(area.SetupRoot));
+        Assert.Equal(4, result.Removed); // all four proven-owned units still go
+        var kept = Assert.Single(result.Kept);
+        Assert.Equal(Path.Combine(area.SetupRoot, "setup.log"), kept.Path);
+        Assert.Equal(SweepKeptReason.NotRemoved, kept.Reason);
+        Assert.False(result.Clean);
+        Assert.True(File.Exists(kept.Path));
+        Assert.Equal("x", File.ReadAllText(kept.Path));
+        Assert.False(Directory.Exists(Path.Combine(area.SetupRoot, "1.0.0")));
+        Assert.False(Directory.Exists(Path.Combine(area.SetupRoot, "0.9.0")));
+        Assert.False(Directory.Exists(Path.Combine(area.SetupRoot, "runtime")));
+        var again = SetupSweeper.Sweep(area.LocalAppData, area.Temp);
+        Assert.False(again.Clean);
+        Assert.Equal(kept.Path, Assert.Single(again.Kept).Path);
     }
 
     [Fact]
@@ -105,7 +115,8 @@ public sealed class SetupSweeperTests : IDisposable
     [Trait("Decision", "ED-247")]
     public void A_claim_left_by_a_run_that_died_is_just_a_file_and_the_folder_goes()
     {
-        area.PutInSetup("1.0.0", SetupFolders.ClaimFileName);
+        area.MarkOwnedSetup("1.0.0");
+        area.Put(Path.Combine(area.SetupRoot, "1.0.0", SetupFolders.ClaimFileName), "nth Setup claim v1\n");
         area.PutInSetup("1.0.0", "nth Setup Engine.exe");
 
         var result = SetupSweeper.Sweep(area.LocalAppData, area.Temp);
@@ -116,7 +127,7 @@ public sealed class SetupSweeperTests : IDisposable
 
     [Fact]
     [Trait("Decision", "ED-247")]
-    public void Read_only_files_and_folders_do_not_stop_the_sweep()
+    public void Read_only_owned_payloads_go_but_an_unowned_read_only_loose_file_is_preserved_and_reported()
     {
         var locked = area.PutInSetup("1.0.0", "install-result.json");
         File.SetAttributes(locked, FileAttributes.ReadOnly);
@@ -126,8 +137,15 @@ public sealed class SetupSweeperTests : IDisposable
 
         var result = SetupSweeper.Sweep(area.LocalAppData, area.Temp);
 
-        Assert.True(result.Clean);
-        Assert.False(Directory.Exists(area.SetupRoot));
+        Assert.False(result.Clean);
+        Assert.Equal(1, result.Removed);
+        Assert.Equal(loose, Assert.Single(result.Kept).Path);
+        Assert.Equal(SweepKeptReason.NotRemoved, result.Kept[0].Reason);
+        Assert.True(File.Exists(loose));
+        Assert.Equal("x", File.ReadAllText(loose));
+        Assert.True(File.GetAttributes(loose).HasFlag(FileAttributes.ReadOnly));
+        Assert.False(Directory.Exists(Path.Combine(area.SetupRoot, "1.0.0")));
+        Assert.False(SetupSweeper.Sweep(area.LocalAppData, area.Temp).Clean);
     }
 
     [Fact]
@@ -156,7 +174,7 @@ public sealed class SetupSweeperTests : IDisposable
         var otherTemp = area.Put(Path.Combine(area.Temp, "other", "x.txt"));
         var tempLookAlike = area.Put(Path.Combine(area.Temp, "nth Uninstall2", "x.txt"));
         var setupFile = area.PutInSetup("1.0.0", "install-options.json");
-        var tempCopy = area.Put(Path.Combine(area.UninstallTemp, "nth Uninstall.exe"));
+        var tempCopy = area.PutInUninstall("nth Uninstall.exe");
 
         var result = SetupSweeper.Sweep(area.LocalAppData, area.Temp);
 
@@ -173,7 +191,7 @@ public sealed class SetupSweeperTests : IDisposable
     public void A_second_sweep_finds_nothing_and_a_missing_setup_folder_is_not_made()
     {
         area.PutInSetup("1.0.0", "nth Setup Engine.exe");
-        area.Put(Path.Combine(area.UninstallTemp, "nth Uninstall.exe"));
+        area.PutInUninstall("nth Uninstall.exe");
         Assert.Equal(2, SetupSweeper.Sweep(area.LocalAppData, area.Temp).Removed);
 
         var again = SetupSweeper.Sweep(area.LocalAppData, area.Temp);

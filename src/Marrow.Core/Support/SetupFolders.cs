@@ -75,6 +75,104 @@ public static class SetupFolders
         return true;
     }
 
+    /// <summary>Persistent provenance written before nth creates a unit's payload; unmarked legacy content is never adopted.</summary>
+    public const string OwnerFileName = ".nth-setup-owner";
+    internal const string OwnerMarker = "nth Setup owned unit v1\n";
+    internal const string ClaimMarker = "nth Setup claim v1\n";
+
+    internal static void PrepareOwnedUnit(string folder, Action? checkpoint = null, Action<string>? admission = null)
+    {
+        RequireNoLinks(folder, checkpoint);
+        var parent = Path.GetDirectoryName(folder);
+        if (parent is not null && string.Equals(Path.GetFileName(parent), RuntimeFolderName, StringComparison.OrdinalIgnoreCase)
+            && Path.GetDirectoryName(parent) is { } root && string.Equals(Path.GetFileName(root), InstallOptions.SetupFolderName, StringComparison.OrdinalIgnoreCase))
+        {
+            PrepareOwnedFolder(root, adoptNonempty: false, requireOwnership: false, checkpoint, admission);
+            PrepareOwnedFolder(parent, adoptNonempty: false, requireOwnership: false, checkpoint, admission);
+        }
+        else if (parent is not null && string.Equals(Path.GetFileName(parent), InstallOptions.SetupFolderName, StringComparison.OrdinalIgnoreCase))
+            PrepareOwnedFolder(parent, adoptNonempty: false, requireOwnership: false, checkpoint, admission);
+        PrepareOwnedFolder(folder, adoptNonempty: false, requireOwnership: true, checkpoint, admission);
+    }
+
+    private static void PrepareOwnedFolder(string folder, bool adoptNonempty, bool requireOwnership, Action? checkpoint, Action<string>? admission)
+    {
+        admission?.Invoke(folder);
+        RequireNoLinks(folder, checkpoint);
+        checkpoint?.Invoke();
+        Directory.CreateDirectory(folder);
+        checkpoint?.Invoke();
+        RequireNoLinks(folder, checkpoint);
+        admission?.Invoke(Path.Combine(folder, OwnerFileName));
+        if (HasOwnMarker(folder, checkpoint)) return;
+        checkpoint?.Invoke();
+        var hasContents = Directory.EnumerateFileSystemEntries(folder).Any();
+        checkpoint?.Invoke();
+        if (!adoptNonempty && hasContents)
+        {
+            if (requireOwnership) throw new IOException($"The setup folder has content without nth's ownership marker: '{folder}'.");
+            return; // an unowned container may hold owned units, but is never itself removed
+        }
+        var marker = Path.Combine(folder, OwnerFileName);
+        RequireNoLinks(marker, checkpoint);
+        using var created = new FileStream(marker, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+        checkpoint?.Invoke();
+        created.Write(System.Text.Encoding.UTF8.GetBytes(OwnerMarker));
+        checkpoint?.Invoke();
+        created.Flush(flushToDisk: true);
+        checkpoint?.Invoke();
+    }
+
+    internal static bool HasOwnMarker(string folder, Action? checkpoint = null) =>
+        MatchesMarker(Path.Combine(folder, OwnerFileName), OwnerMarker, checkpoint);
+
+    internal static bool MatchesMarker(string file, string expected, Action? checkpoint = null)
+    {
+        checkpoint?.Invoke();
+        RequireNoLinks(file, checkpoint);
+        try
+        {
+            using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read);
+            checkpoint?.Invoke();
+            var bytes = System.Text.Encoding.UTF8.GetBytes(expected);
+            var length = stream.Length;
+            checkpoint?.Invoke();
+            if (length != bytes.Length) return false;
+            var actual = new byte[bytes.Length];
+            stream.ReadExactly(actual);
+            checkpoint?.Invoke();
+            return actual.AsSpan().SequenceEqual(bytes);
+        }
+        catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException)
+        {
+            checkpoint?.Invoke();
+            return false;
+        }
+    }
+    /// <summary>Refuses every reparse-point ancestor, including ancestors outside the setup root. Missing leaves may be created later.</summary>
+    internal static void RequireNoLinks(string path, Action? checkpoint = null)
+    {
+        RequireFull(path, nameof(path));
+        var full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+        var levels = 0;
+        for (var at = full; at is not null; at = Path.GetDirectoryName(at))
+        {
+            checkpoint?.Invoke();
+            if (++levels > 256) throw new IOException("The setup path has too many ancestors.");
+            try
+            {
+                var attributes = File.GetAttributes(at);
+                checkpoint?.Invoke();
+                if ((attributes & FileAttributes.ReparsePoint) != 0) throw new IOException($"The setup path contains a link: '{at}'.");
+                if (!string.Equals(at, full, StringComparison.OrdinalIgnoreCase) && (attributes & FileAttributes.Directory) == 0)
+                    throw new IOException($"The setup path has a file where an ancestor folder is needed: '{at}'.");
+            }
+            catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException)
+            {
+                checkpoint?.Invoke(); // missing leaves are safe only if every existing ancestor is safe too
+            }
+        }
+    }
     internal static void RequireFull(string path, string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path, name);

@@ -127,6 +127,7 @@ public sealed class StagingScopeTests : IDisposable
     public void A_folder_an_earlier_run_left_is_emptied_first_so_a_stale_result_is_never_read()
     {
         var folder = Path.Combine(area.SetupRoot, "1.0.0");
+        area.MarkOwnedSetup("1.0.0");
         var stale = area.Put(Path.Combine(folder, InstallOptions.ResultFileName), """{"version":1,"desktopShortcut":"created"}""");
         area.Put(Path.Combine(folder, SetupFolders.EngineFileName));
         using var scope = Scope();
@@ -177,7 +178,7 @@ public sealed class StagingScopeTests : IDisposable
     {
         area.PutInSetup("0.9.0", "nth Setup Engine.exe");
         area.PutInSetup("runtime", "81be07", "libSkiaSharp.dll");
-        area.Put(Path.Combine(area.UninstallTemp, "nth Uninstall.exe"));
+        area.PutInUninstall("nth Uninstall.exe");
         using var scope = Scope();
         var folder = scope.Ensure();
 
