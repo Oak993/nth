@@ -6167,3 +6167,8 @@ Runs (heavy slot, native tests excluded): Marrow.Setup.Tests 160/160 (two full r
 ## ED-NEW-inst-c4c-3: Signature unavailability preserves non-install routes
 
 ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I3). A timed-out or faulted signature check keeps installation unavailable, but redirects only Welcome, Update and Options. Uninstall, UpToDate and NewerInstalled keep their route and exit code. Six independent route facts retain exact state, exit and gate assertions; the three broken routes fail alone twice on C4b.
+
+
+## ED-NEW-inst-c4c-12: Prove bounded signature dispatch and cancellation
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I12). Pin the agreed wait at exactly thirty seconds and replace the vacuous repeated await with production dispatch tests for close before and after posting, fault and unknown answers, timeout and a late answer. The real verifier, clock, UI dispatcher and window cancellation token call the tested helper. One post after the bounded answer is pinned structurally, so the immediate late-count observation is supplemental rather than a claim of draining asynchronous work. Temporary patience, callback-guard, unavailable-mapping, caller and second-late-post mutations each fail alone twice and are restored byte-exact. All checks use fake clocks and headless sessions.

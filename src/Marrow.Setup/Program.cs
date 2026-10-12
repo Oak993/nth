@@ -80,13 +80,18 @@ public static class Program
     }
 
     /// <summary>The self-signature check hashes the whole file, so it runs off the UI thread after the window shows.</summary>
-    private static async Task CheckSignatureAsync(SetupSession session, CancellationToken closed)
+    private static Task CheckSignatureAsync(SetupSession session, CancellationToken closed) =>
+        DispatchSignatureAsync(session, SignatureCheck.VerifySelfAsync(), TimeProvider.System,
+            action => Dispatcher.UIThread.Post(action), closed);
+
+    private static async Task DispatchSignatureAsync(SetupSession session, Task<SignatureResult> check,
+        TimeProvider clock, Action<Action> post, CancellationToken closed)
     {
         try
         {
-            var result = await SignatureCheck.WaitForAnswerAsync(SignatureCheck.VerifySelfAsync(), TimeProvider.System, closed).ConfigureAwait(false);
+            var result = await SignatureCheck.WaitForAnswerAsync(check, clock, closed).ConfigureAwait(false);
             if (closed.IsCancellationRequested) return;
-            Dispatcher.UIThread.Post(() =>
+            post(() =>
             {
                 if (closed.IsCancellationRequested) return;
                 if (result is null) session.SignatureCheckUnavailable();

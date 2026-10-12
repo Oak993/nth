@@ -15,11 +15,9 @@ public sealed class SignatureWaitTests
         var wait = Wait(pending.Task, clock);
         Assert.False(wait.IsCompleted);
         Assert.Single(clock.TimerDeadlines);
-        Assert.InRange(clock.TimerDeadlines[0], TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(60));
+        Assert.Equal(TimeSpan.FromSeconds(30), clock.TimerDeadlines[0]);
         clock.Advance(clock.TimerDeadlines[0]);
         Assert.Null(await wait);
-        pending.SetResult(new SignatureResult(SignatureState.Signed, "Publisher", 0));
-        Assert.Null(await wait); // a late answer cannot turn a timed-out check into permission to install
         Assert.Equal(0, clock.ActiveTimers);
     }
 
