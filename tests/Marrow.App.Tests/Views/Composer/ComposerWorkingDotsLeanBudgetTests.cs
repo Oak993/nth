@@ -236,6 +236,6 @@ public sealed class ComposerWorkingDotsLeanBudgetTests(HeadlessSession headless)
     // Added in the review round, measured first on the unchanged L9 field (c92e5ca66): 64 B, one new immutable brush a draw for each
     // new colour of the blend (first limit 96, 1.5x); before L9 15512 B; after the review round 64 B (1.3x).
     private const long BlendOwnBytesLimit = 83;
-    // Added with the pacing: the most a paced tick (the dots' update asks for the next one and draws nothing) allocates; measured PACEDB.
+    // Added with the pacing: the most a paced tick (the dots' update asks for the next one and draws nothing) allocates; measured 0 B (ED-NEW-lean-9 (pacing) item 3).
     private const long PacedBytesLimit = 0;
 }
