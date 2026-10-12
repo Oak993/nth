@@ -52,10 +52,24 @@ public sealed class EngineStaging
     /// <summary>The setup's own payload stream, from its embedded resources.</summary>
     public static Stream? EmbeddedPayload() => typeof(EngineStaging).Assembly.GetManifestResourceStream(PayloadResource);
 
-    /// <summary>Starts staging once (on a pool thread) and returns the same task however often it is asked.</summary>
+    /// <summary>
+    /// Starts staging once (on a pool thread) and returns the same task however often it is asked. A staging that failed, or
+    /// whose engine has gone since it was written (a scanner took it), starts again: Problem's Retry stages afresh.
+    /// </summary>
     public Task StageAsync()
     {
-        lock (gate) return staging ??= Task.Run(Stage);
+        lock (gate)
+        {
+            if (staging is { IsCompleted: true } && (Error is not null || !File.Exists(EnginePath)))
+            {
+                staging = null;
+                Error = null;
+                IsComplete = false;
+                Interlocked.Exchange(ref staged, 0);
+                Interlocked.Exchange(ref total, -1);
+            }
+            return staging ??= Task.Run(Stage);
+        }
     }
 
     private void Stage()

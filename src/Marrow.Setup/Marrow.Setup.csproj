@@ -51,6 +51,11 @@
     <AssemblyMetadata Include="InstallerAppId" Value="$(InstallerAppId)" />
     <AssemblyMetadata Include="InstallerVersion" Value="$(InstallerVersion)" />
     <AssemblyMetadata Include="SetupRenderingMode" Value="$(SetupRenderingMode)" />
+    <!-- PLAN.md 4, unit U3: the measured sizes (bytes) the packaging step passes in; unset, the setup uses the plan's figures. -->
+    <AssemblyMetadata Include="InstallerPackageBytes" Value="$(InstallerPackageBytes)" />
+    <AssemblyMetadata Include="InstallerAppBytes" Value="$(InstallerAppBytes)" />
+    <AssemblyMetadata Include="InstallerDiskBytes" Value="$(InstallerDiskBytes)" />
+    <AssemblyMetadata Include="InstallerVelopackNeedBytes" Value="$(InstallerVelopackNeedBytes)" />
     <EmbeddedResource Include="$(VelopackSetupExe)" LogicalName="VelopackSetup.exe" Condition="'$(VelopackSetupExe)' != ''" />
     <!-- PLAN.md 3, "Text": every string the window shows, one table per language. -->
     <EmbeddedResource Include="Text\en.strings" LogicalName="SetupStrings.en" />
