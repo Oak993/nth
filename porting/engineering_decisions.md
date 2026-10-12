@@ -6457,3 +6457,9 @@ C3cV7Tests saved focus zero regression RED twice0/1/0; GREEN1/0/0. No native inp
 2026-10-12 - Tactus C2-V11: retain the cheap live snapshot on immediate R4 actions. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c owner rulings; DESIGN.md 2.7, 2.11, 2.12 and 10.2).
 An immediate R4 action validates and refreshes from its one cheap live target snapshot instead of replacing it with the older warm-tree node. Waited paths retain their cheap/cold rematching and window/point checks. Independent review identified app-only Value and Bounds changes without events.
 C3cV11Tests supplemental value/geometry cases RED twice4/2/0; corrected GREEN6/0/0. Insert preserves the app value; click follows live geometry; both retain zero extra fresh trees.
+
+
+## ED-NEW-pcctl-cx-16
+2026-10-12 - Tactus C2-V3: make stale-target post-message assertions effective. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c owner rulings; DESIGN.md 2.7, 2.11, 2.12 and 10.2).
+The stale confirmed target test asserts Messages == 0 and checks the real post key prefix. Temporary post-before-refusal dispatch must be detected.
+C3A8Tests restored GREEN7/0/0; temporary V3-post-before-refusal compiled and failed the tightened test twice; exact source bytes restored.
