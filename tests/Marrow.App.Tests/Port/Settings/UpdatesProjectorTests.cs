@@ -257,7 +257,7 @@ public sealed class UpdatesProjectorTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-providers-updates-1")] // the owner's rule: "Update everything" while an update waits, otherwise "Check for updates"; Retry stays on the failed row
+    [Trait("Decision", "ED-NEW-reltrace-1")] // ED-NEW-providers-updates-1: the owner's rule: "Update everything" while an update waits, otherwise "Check for updates"; Retry stays on the failed row
     public void The_header_button_is_Update_everything_while_an_update_waits_and_Check_for_updates_otherwise()
     {
         var mixed = UpdatesProjector.Project([Claude(UpdateRowState.UpdateAvailable), Codex(UpdateRowState.Failed, message: "failed")], Quiet());

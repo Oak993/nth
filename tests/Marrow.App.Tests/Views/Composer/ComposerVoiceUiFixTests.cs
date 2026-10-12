@@ -63,7 +63,7 @@ public sealed class ComposerVoiceUiFixTests(HeadlessSession headless)
     // ---- 1: the pill never swells the composer (OD-0132) ------------------------------------------------------------------------------------------------------
 
     [Theory]
-    [Trait("Decision", "ED-NEW-voicefix-ui-1")]
+    [Trait("Decision", "OD-0132")] // ED-NEW-voicefix-ui-1
     [InlineData(1.0)]
     [InlineData(1.25)]
     public void The_open_pill_leaves_the_composer_outline_as_it_was(double scale) => headless.OnUiThread(() =>
@@ -123,7 +123,7 @@ public sealed class ComposerVoiceUiFixTests(HeadlessSession headless)
     // ---- 2: the fade beside the pill holds in a narrow column (OD-0130) ---------------------------------------------------------------------------------------
 
     [Theory]
-    [Trait("Decision", "ED-NEW-voicefix-ui-2")]
+    [Trait("Decision", "OD-0130")] // ED-NEW-voicefix-ui-2
     [InlineData(1.0, 380)]
     [InlineData(1.25, 380)]
     [InlineData(1.25, 340)]
@@ -176,7 +176,7 @@ public sealed class ComposerVoiceUiFixTests(HeadlessSession headless)
     // ---- 3: a long placeholder fades out before the orb ------------------------------------------------------------------------------------------------------
 
     [Theory]
-    [Trait("Decision", "ED-NEW-voicefix-ui-3")]
+    [Trait("Decision", "OD-0130")] // ED-NEW-voicefix-ui-3
     [InlineData(1.0)]
     [InlineData(1.25)]
     public void A_placeholder_longer_than_the_field_fades_out_before_its_edge(double scale) => headless.OnUiThread(() =>
@@ -223,7 +223,7 @@ public sealed class ComposerVoiceUiFixTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-voicefix-ui-3")]
+    [Trait("Decision", "OD-0130")] // ED-NEW-voicefix-ui-3
     public void A_placeholder_that_fits_is_drawn_as_before() => headless.OnUiThread(() =>
     {
         using var rig = new VoiceComposerRig();
@@ -252,7 +252,7 @@ public sealed class ComposerVoiceUiFixTests(HeadlessSession headless)
     // ---- 6: the ask-others glyph sits midway between the attach glyph and the text -------------------------------------------------------------------------------
 
     [Theory]
-    [Trait("Decision", "ED-NEW-voicefix-ui-6")]
+    [Trait("Decision", "OD-0132")] // ED-NEW-voicefix-ui-6
     [InlineData(1.0)]
     [InlineData(1.25)]
     public void The_ask_others_glyph_is_as_far_from_the_attach_glyph_as_from_the_text(double scale) => headless.OnUiThread(() =>
@@ -290,7 +290,7 @@ public sealed class ComposerVoiceUiFixTests(HeadlessSession headless)
     // ---- 8: the voice language question leaves the composer's outline as it was -----------------------------------------------------------------------------
 
     [Theory]
-    [Trait("Decision", "ED-NEW-voicefix-ui-8")]
+    [Trait("Decision", "ED-NEW-reltrace-1")] // ED-NEW-voicefix-ui-8
     [InlineData(1.0)]
     [InlineData(1.25)]
     public void The_language_question_leaves_the_composer_outline_as_it_was(double scale) => headless.OnUiThread(() =>
@@ -357,7 +357,7 @@ public sealed class ComposerVoiceUiFixTests(HeadlessSession headless)
     private static double ScaleOf(Control control) => control.RenderTransform is ScaleTransform scale ? scale.ScaleX : 1;
 
     [Theory]
-    [Trait("Decision", "ED-NEW-voicefix-ui-9")]
+    [Trait("Decision", "ED-NEW-reltrace-1")] // ED-NEW-voicefix-ui-9
     [InlineData(1.0, 380)]
     [InlineData(1.25, 380)]
     [InlineData(1.25, 340)]
@@ -446,7 +446,7 @@ public sealed class ComposerVoiceUiFixTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-voicefix-ui-9")]
+    [Trait("Decision", "ED-NEW-reltrace-1")] // ED-NEW-voicefix-ui-9
     public void A_composer_with_room_keeps_its_buttons_while_the_pill_is_open() => headless.OnUiThread(() =>
     {
         var accounts = new OpinionViewRig();

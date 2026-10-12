@@ -14,7 +14,7 @@ namespace Marrow.App.Tests.Port.Voice;
 // Every live batch is the difference from the words after all the operations sent before it; the session paces its adds 60 ms apart (V-7.5, PaceLive), so
 // the next batch's revises, removes and confirms (due at once) used to run before the earlier batch's later adds and were lost.
 [Collection("Headless")]
-[Trait("Decision", "ED-NEW-voicefix-ui-4")]
+[Trait("Decision", "ED-NEW-reltrace-1")] // ED-NEW-voicefix-ui-4
 public sealed class DictationBatchOrderTests(HeadlessSession headless)
 {
     private static readonly TimeSpan Pace = TranscriptOps.MinAddSpacing;

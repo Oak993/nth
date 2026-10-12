@@ -37,87 +37,12 @@ public sealed class KindleCapsuleHoverTests(HeadlessSession headless)
 
     private static IgnisChatStatus Off(TestRuntime runtime) => Cold(runtime) with { Mode = IgnisMode.Off, Cache = IgnisCacheState.Off };
 
-    private sealed class Rig : IDisposable
-    {
-        private readonly IDisposable frameScope, motionScope, presenterScope;
-        public TestRuntime Runtime { get; } = new();
-        public ManualFrameSource Frames { get; } = new();
-        public RecordingPresenter Presenter { get; } = new();
-        public KindleFakeController Controller { get; }
-        public KindleCapsule Capsule { get; }
-        public AvaloniaWindow Window { get; }
-
-        public Rig(Func<TestRuntime, IgnisChatStatus> status)
-        {
-            frameScope = FrameClock.Source.Override(Frames);
-            motionScope = ChromeTokens.ReduceMotionPlatform.Override(new RenderingGeniePlatform { AccessibilityDisplayShouldReduceMotion = false });
-            presenterScope = Presentation.Presenter.Override(Presenter);
-            Controller = new KindleFakeController(new IgnisSettings(Runtime.Defaults)) { Current = status(Runtime) };
-            Capsule = Runtime.OnMain(() => new KindleCapsule(Controller, Chat));
-            Window = Runtime.OnMain(() =>
-            {
-                var window = new AvaloniaWindow
-                {
-                    Content = new Border { Child = Capsule, Margin = new Thickness(40), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Bottom },
-                    Width = 600, Height = 400,
-                };
-                window.Show();
-                return window;
-            });
-            Render();
-        }
-
-        public void Render()
-        {
-            for (var i = 0; i < 4; i++)
-            {
-                Window.UpdateLayout();
-                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-            }
-        }
-
-        /// <summary>Moves the clock and the frame clock together and delivers one frame.</summary>
-        public void Step(double milliseconds)
-        {
-            Runtime.Time.Advance(TimeSpan.FromMilliseconds(milliseconds));
-            Frames.Advance(TimeSpan.FromMilliseconds(milliseconds));
-            Runtime.RunUntilIdle();
-        }
-
-        /// <summary>The ring's centre (the glyph itself takes no hits: what is under it must).</summary>
-        public Point Ring => Capsule.Glyph.TranslatePoint(new Point(KindleGlyph.RingSize / 2, Capsule.Glyph.Bounds.Height / 2), Window)!.Value;
-
-        /// <summary>The empty padding after the words, inside the capsule's right end.</summary>
-        public Point Padding => Capsule.Button.TranslatePoint(new Point(Capsule.Button.Bounds.Width - 5, Capsule.Button.Bounds.Height / 2), Window)!.Value;
-
-        /// <summary>Well away from the capsule.</summary>
-        public Point Away => new(560, 20);
-
-        // pointer input reaches the view's model, so it is delivered on the main loop as the app's input is
-        public void Move(Point point) => Runtime.OnMain(() => Window.MouseMove(point));
-        public void Down(Point point) => Runtime.OnMain(() => Window.MouseDown(point, MouseButton.Left));
-        public void Up(Point point) => Runtime.OnMain(() => Window.MouseUp(point, MouseButton.Left));
-        public bool Presented => Runtime.OnMain(() => Capsule.IsPresented);
-
-        public Color Resolve(SwiftColor color) => color.Resolve(Capsule.ActualThemeVariant);
-
-        public void Dispose()
-        {
-            Runtime.OnMain(Window.Close);
-            presenterScope.Dispose();
-            motionScope.Dispose();
-            frameScope.Dispose();
-            Runtime.Dispose();
-        }
-    }
-
     [Fact]
     [Trait("Feature", "IG-4")]
     [Trait("Decision", "ED-NEW-kindlehover-1")]
     public void Hover_washes_a_cold_capsule_lifts_its_ring_kindles_its_core_and_leaving_reverts() => headless.OnUiThread(() =>
     {
-        using var rig = new Rig(Cold);
+        using var rig = new KindleCapsuleRig(Cold);
         var capsule = rig.Capsule;
         var primary = rig.Resolve(ChromeTokens.PrimaryText);
         rig.Runtime.OnMain(() =>
@@ -224,7 +149,7 @@ public sealed class KindleCapsuleHoverTests(HeadlessSession headless)
     [Trait("Decision", "ED-NEW-kindlehover-1")]
     public void The_words_stay_primary_in_every_state_warm_does_not_lift_and_Off_lifts_without_kindling() => headless.OnUiThread(() =>
     {
-        using var rig = new Rig(Warm);
+        using var rig = new KindleCapsuleRig(Warm);
         var capsule = rig.Capsule;
         var primary = rig.Resolve(ChromeTokens.PrimaryText);
         rig.Runtime.OnMain(() =>
@@ -267,7 +192,7 @@ public sealed class KindleCapsuleHoverTests(HeadlessSession headless)
     [Trait("Decision", "ED-NEW-kindlehover-1")]
     public void A_real_press_on_the_ring_or_the_padding_opens_and_closes_the_popover(string which) => headless.OnUiThread(() =>
     {
-        using var rig = new Rig(which switch { "Cold" => Cold, "Off" => Off, _ => Warm });
+        using var rig = new KindleCapsuleRig(which switch { "Cold" => Cold, "Off" => Off, _ => Warm });
         var capsule = rig.Capsule;
         rig.Runtime.OnMain(() => Assert.Equal(which == "Warm" ? "42m" : which, capsule.Text));
         // the ring: before, only the words' glyphs took the pointer and a press here fell through to the composer

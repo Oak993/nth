@@ -19,67 +19,11 @@ namespace Marrow.App.Tests.Window;
 [Collection("Headless")]
 public sealed class SessionHotkeysWindowTests(HeadlessSession headless)
 {
-    private sealed class Rig : IDisposable
-    {
-        private readonly TestRuntime runtime = new();
-        private readonly IDisposable actor;
-        private readonly IDisposable keyState;
-
-        public Rig()
-        {
-            actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
-            keyState = ThreadWindow.ControlKeyState.Override(() => ControlDown);
-            Window = new ThreadWindow { Width = 400, Height = 300 };
-            Window.ShowSessionNumbers = shown => Calls.Add(shown);
-            Window.Show();
-            Dispatcher.UIThread.RunJobs();
-        }
-
-        public ThreadWindow Window { get; }
-
-        /// <summary>The keyboard's real Ctrl state the safety net reads.</summary>
-        public bool? ControlDown { get; set; }
-
-        /// <summary>Every ShowSessionNumbers call, in order.</summary>
-        public List<bool> Calls { get; } = [];
-
-        public bool Shown => Window.AreSessionNumbersShown;
-
-        public void Advance(double milliseconds)
-        {
-            Dispatcher.UIThread.RunJobs();
-            runtime.Time.Advance(TimeSpan.FromMilliseconds(milliseconds), () => Dispatcher.UIThread.RunJobs());
-            Dispatcher.UIThread.RunJobs();
-        }
-
-        public void ControlPress(RawInputModifiers extra = RawInputModifiers.None)
-        {
-            ControlDown = true;
-            Window.KeyPress(Key.LeftCtrl, RawInputModifiers.Control | extra, PhysicalKey.ControlLeft, null);
-            Dispatcher.UIThread.RunJobs();
-        }
-
-        public void ControlRelease()
-        {
-            ControlDown = false;
-            Window.KeyRelease(Key.LeftCtrl, RawInputModifiers.None, PhysicalKey.ControlLeft, null);
-        }
-
-        public void Dispose()
-        {
-            Window.Close();
-            Dispatcher.UIThread.RunJobs();
-            keyState.Dispose();
-            actor.Dispose();
-            runtime.Dispose();
-        }
-    }
-
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void Holding_Control_alone_shows_the_numbers_at_500_ms_and_not_before() => headless.OnUiThread(() =>
     {
-        using var rig = new Rig();
+        using var rig = new SessionHotkeysRig();
         rig.ControlPress();
         rig.Advance(250);
         // Windows repeats a held key: the repeats neither restart nor double the hold.
@@ -95,10 +39,10 @@ public sealed class SessionHotkeysWindowTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void A_quick_chord_like_Control_C_never_shows_the_numbers_even_if_Control_stays_down() => headless.OnUiThread(() =>
     {
-        using var rig = new Rig();
+        using var rig = new SessionHotkeysRig();
         rig.ControlPress();
         rig.Advance(80);
         rig.Window.KeyPress(Key.C, RawInputModifiers.Control, PhysicalKey.C, null);
@@ -114,10 +58,10 @@ public sealed class SessionHotkeysWindowTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void Releasing_Control_hides_the_numbers_on_that_same_key_up_with_no_click_or_move() => headless.OnUiThread(() =>
     {
-        using var rig = new Rig();
+        using var rig = new SessionHotkeysRig();
         rig.ControlPress();
         rig.Advance(500);
         Assert.True(rig.Shown);
@@ -127,10 +71,10 @@ public sealed class SessionHotkeysWindowTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void The_release_is_seen_even_when_the_focused_text_box_and_a_handler_swallow_the_key_up() => headless.OnUiThread(() =>
     {
-        using var rig = new Rig();
+        using var rig = new SessionHotkeysRig();
         var box = new TextBox();
         rig.Window.Content = box;
         Dispatcher.UIThread.RunJobs();
@@ -148,10 +92,10 @@ public sealed class SessionHotkeysWindowTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void A_lost_key_up_is_caught_by_the_key_state_safety_net_within_one_watch_interval() => headless.OnUiThread(() =>
     {
-        using var rig = new Rig();
+        using var rig = new SessionHotkeysRig();
         rig.ControlPress();
         rig.Advance(500);
         Assert.True(rig.Shown);
@@ -168,10 +112,10 @@ public sealed class SessionHotkeysWindowTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void Another_key_a_press_or_the_window_going_inactive_hides_the_numbers() => headless.OnUiThread(() =>
     {
-        using var rig = new Rig();
+        using var rig = new SessionHotkeysRig();
         rig.ControlPress();
         rig.Advance(500);
         rig.Window.KeyPress(Key.K, RawInputModifiers.Control, PhysicalKey.K, null);
@@ -195,10 +139,10 @@ public sealed class SessionHotkeysWindowTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void Control_with_Shift_or_Alt_AltGr_is_not_a_hold() => headless.OnUiThread(() =>
     {
-        using var rig = new Rig();
+        using var rig = new SessionHotkeysRig();
         rig.ControlPress(RawInputModifiers.Shift);
         rig.Advance(600);
         rig.ControlRelease();
@@ -209,10 +153,10 @@ public sealed class SessionHotkeysWindowTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void Control_and_a_digit_while_the_numbers_show_selects_and_hides_them() => headless.OnUiThread(() =>
     {
-        using var rig = new Rig();
+        using var rig = new SessionHotkeysRig();
         var numbers = new List<long>();
         rig.Window.SelectThreadNumber = numbers.Add;
         rig.ControlPress();
@@ -232,7 +176,7 @@ public sealed class SessionHotkeysWindowTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void Control_and_each_number_pad_digit_with_Num_Lock_on_selects_that_thread_number() => headless.OnUiThread(() =>
     {
         var window = new ThreadWindow { Width = 400, Height = 300 };
@@ -255,7 +199,7 @@ public sealed class SessionHotkeysWindowTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void With_Num_Lock_off_the_pad_keys_type_navigation_keys_and_keep_their_own_chords() => headless.OnUiThread(() =>
     {
         var window = new ThreadWindow { Width = 400, Height = 300 };
@@ -285,10 +229,10 @@ public sealed class SessionHotkeysWindowTests(HeadlessSession headless)
         window.Close();
     });
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void A_wheel_turn_hides_the_numbers_and_spends_the_hold_until_Control_is_released() => headless.OnUiThread(() =>
     {
-        using var rig = new Rig();
+        using var rig = new SessionHotkeysRig();
         rig.ControlPress();
         rig.Advance(500);
         Assert.True(rig.Shown);
@@ -314,10 +258,10 @@ public sealed class SessionHotkeysWindowTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void A_quick_release_and_press_never_leaves_the_safety_net_without_a_handle_or_with_two_loops() => headless.OnUiThread(() =>
     {
-        using var rig = new Rig();
+        using var rig = new SessionHotkeysRig();
         rig.ControlPress();
         Assert.True(rig.Window.HoldWatchState.Held);
         // Released and pressed again before the cancelled watcher's tail has run: that tail must not clear the new handle.

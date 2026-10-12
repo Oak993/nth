@@ -151,14 +151,10 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
     // is the one V-T133's detector runs on and the one V-T132 compares with the frame without the pill (a scene opens the same way every time, ED-573), and each test
     // asserts exactly what it asserted, in the same order, on that one render. The verdict is kept for the run, so the second test of an identity renders nothing.
 
-    /// <summary>What the two tests read from one identity's render.</summary>
-    internal sealed record Verdict(double ShownOpacity, double RenderScaling, int ExpectedWidth, int FrameWidth, float[] Uniforms, float[] UniformsWithout, int Worst, string Where,
-        IReadOnlyList<string> NotInTheDesign);
-
-    private static readonly Dictionary<string, (Verdict? Verdict, System.Runtime.ExceptionServices.ExceptionDispatchInfo? Failure)> Verdicts = [];
+    private static readonly Dictionary<string, (ComposerVoiceVerdict? Verdict, System.Runtime.ExceptionServices.ExceptionDispatchInfo? Failure)> Verdicts = [];
 
     /// <summary>The identity's verdict, rendering it on first use (on the UI thread); a scene that fails to open fails both tests the same way.</summary>
-    internal static Verdict Judge(VoiceListeningStyle style, int diameter, bool dark, string state, double scale)
+    internal static ComposerVoiceVerdict Judge(VoiceListeningStyle style, int diameter, bool dark, string state, double scale)
     {
         var tag = $"{style}-{diameter}-{dark}-{state}-{scale}";
         lock (Verdicts)
@@ -192,7 +188,7 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
         Assert.True(verdict.NotInTheDesign.Count == 0, "specks the approved design does not have (within 1 px): " + string.Join("; ", verdict.NotInTheDesign.Take(8)));
     });
 
-    private static Verdict Render(VoiceListeningStyle style, int diameter, bool dark, string state, double scale)
+    private static ComposerVoiceVerdict Render(VoiceListeningStyle style, int diameter, bool dark, string state, double scale)
     {
         using var motion = new VoicePillMotion();
         var scene = Open(style, diameter, dark, state, scale);
@@ -235,7 +231,7 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
                 if (diff > worst) { worst = diff; where = $"({x}, {y}) r {r:F1} channel {c}"; }
             }
         }
-        return new Verdict(shown, renderScaling, expectedWidth, withPill.Size.Width, orbUniforms, uniformsWithout, worst, where, notInTheDesign);
+        return new ComposerVoiceVerdict(shown, renderScaling, expectedWidth, withPill.Size.Width, orbUniforms, uniformsWithout, worst, where, notInTheDesign);
     }
 
     /// <summary>V-T133's detector, unchanged, on the frame with the pill; <paramref name="orb"/> is the orb's centre in device pixels. The specks the approved design does not have.</summary>

@@ -10,7 +10,7 @@ namespace Marrow.App.Tests.Port;
 // ED-NEW-providersmerge-switch-repair-1: the Providers switch of builds before ED-NEW-providers-switch-1 wrote a provider into "disabledProviders" while its knob stayed on. On the owner's PC that
 // left Claude and Z.ai off (read-only look at the owner's settings: disabledProviders = ["claude", "zai"], written after the 2026-10-11 copy from the old "Marrow Code" folder, which had none),
 // so Claude's models were missing from the picker. Once per data folder, before AppSettings reads the store, those providers are switched back on.
-[Trait("Decision", "ED-NEW-providersmerge-switch-repair-1")]
+[Trait("Decision", "ED-NEW-reltrace-1")] // ED-NEW-providersmerge-switch-repair-1
 public sealed class ProviderSwitchRepairTests
 {
     private static string[] Disabled(ISettingsStore store) => Assert.IsAssignableFrom<IReadOnlyList<string>>(store.StringArray("disabledProviders")).ToArray();

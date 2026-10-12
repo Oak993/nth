@@ -13,7 +13,7 @@ namespace Marrow.App.Tests.Port.Settings;
 public sealed class ShaderLightCustomizationTests(HeadlessSession headless)
 {
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-4")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-4
     public void Every_light_is_a_card_and_picking_each_persists_it() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(reduceMotion: true);
@@ -35,7 +35,7 @@ public sealed class ShaderLightCustomizationTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-4")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-4
     public void The_rows_edit_the_light_picked_and_custom_colours_persist() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(reduceMotion: true, seed: s => s.ComposerLight = ComposerLightSettings.Default with { Style = ComposerLightStyle.Shader, ShaderId = "aurum" });
@@ -57,7 +57,7 @@ public sealed class ShaderLightCustomizationTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-5")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-5
     public void Text_and_light_and_the_wallpaper_dimming_persist_and_reset_restores_them() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(reduceMotion: true, seed: s => s.ComposerLight = ComposerLightSettings.Default with { Style = ComposerLightStyle.Shader, ShaderId = "velum" });

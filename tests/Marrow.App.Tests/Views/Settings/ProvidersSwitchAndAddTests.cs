@@ -33,7 +33,7 @@ public sealed class ProvidersSwitchAndAddTests(HeadlessSession headless) : Setti
     private static readonly double SwitchSettledMs = SmallSwitch.Slide.Duration * 1000;
 
     [Fact]
-    [Trait("Decision", "ED-NEW-providers-switch-1")]
+    [Trait("Decision", "ED-NEW-reltrace-1")] // ED-NEW-providers-switch-1
     public void A_click_on_a_providers_switch_turns_the_provider_off_slides_the_knob_and_persists_and_a_second_click_turns_it_back_on() => With(
         () => new ProviderSettingsSection(ProviderKind.Codex, Binding<bool>.Constant(true)), (view, model, h, w) =>
     {
@@ -68,7 +68,7 @@ public sealed class ProvidersSwitchAndAddTests(HeadlessSession headless) : Setti
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-providers-add-1")]
+    [Trait("Decision", "OD-0149")] // ED-NEW-providers-add-1
     public void A_signed_in_service_that_keeps_several_accounts_offers_Add_another_account_and_it_runs_the_Models_pages_sign_in() => WithAccounts(ProviderKind.Claude, SignedInStatus, (view, rig, model, h, w) =>
     {
         var add = Assert.IsType<Button>(AddRow(view));
@@ -80,7 +80,7 @@ public sealed class ProvidersSwitchAndAddTests(HeadlessSession headless) : Setti
     });
 
     [Theory]
-    [Trait("Decision", "ED-NEW-providers-add-1")]
+    [Trait("Decision", "OD-0149")] // ED-NEW-providers-add-1
     [InlineData(ProviderKind.Antigravity)] // keeps one account
     [InlineData(ProviderKind.Zai)] // kept by API keys (Keys and order)
     public void A_service_that_cannot_add_an_account_shows_no_add_row(ProviderKind provider) => WithAccounts(provider, SignedInStatus, (view, _, _, _, _) => Assert.Null(AddRow(view)));
@@ -130,7 +130,7 @@ public sealed class ProvidersSwitchAndAddTests(HeadlessSession headless) : Setti
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-providersmerge-keys-2")]
+    [Trait("Decision", "OD-0149")] // ED-NEW-providersmerge-keys-2
     public void With_two_keys_the_list_stands_in_place_of_the_single_API_key_box_and_the_box_comes_back_with_one() => WithAccounts(ProviderKind.Zai, SignedInStatus, (view, rig, model, h, w) =>
     {
         var section = Assert.IsType<ProviderSettingsSection>(view);
@@ -201,7 +201,7 @@ public sealed class ProvidersSwitchAndAddTests(HeadlessSession headless) : Setti
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-providers-switch-1")]
+    [Trait("Decision", "ED-NEW-reltrace-1")] // ED-NEW-providers-switch-1
     public void Every_control_of_a_provider_section_takes_the_pointer_and_keyboard_after_the_page_is_scrolled_to_it() => WithProvidersPage((view, model, h, w) =>
     {
         Click(w, RowButton(view, "Providers")); Tick(h, 400); Drain(w);
@@ -236,7 +236,7 @@ public sealed class ProvidersSwitchAndAddTests(HeadlessSession headless) : Setti
     }, model => { Seed(model, ProviderKind.Zai, SignedInStatus); Seed(model, ProviderKind.Codex, SignedInStatus); }, height: 700);
 
     [Fact]
-    [Trait("Decision", "ED-NEW-providers-reveal-1")]
+    [Trait("Decision", "ED-NEW-reltrace-1")] // ED-NEW-providers-reveal-1
     public void Keys_and_order_lands_on_the_services_open_section_scrolled_to_the_top_of_the_page() => WithProvidersPage((view, model, h, w) =>
     {
         Assert.Empty(Nodes<ProvidersSettingsPage>(view)); // on General
@@ -273,7 +273,7 @@ public sealed class ProvidersSwitchAndAddTests(HeadlessSession headless) : Setti
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-providersmerge-reveal-2")]
+    [Trait("Decision", "ED-NEW-reltrace-1")] // ED-NEW-providersmerge-reveal-2
     public void A_revealed_section_stays_under_the_chrome_row_when_plan_limits_load_above_it_after_it_settled_until_the_person_scrolls() => WithProvidersPage((view, model, h, w) =>
     {
         SettingsNavigation.Shared.RequestedProvider = ProviderKind.Deepseek; SettingsNavigation.Shared.RequestedPage = SettingsPage.Providers;

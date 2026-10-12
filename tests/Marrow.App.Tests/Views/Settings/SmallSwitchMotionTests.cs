@@ -339,7 +339,6 @@ public sealed class SmallSwitchMotionTests(HeadlessSession headless) : SettingsF
     // NOCTA_PREVIEW_DIR when that is set (E:\Droppy\work\design\toggles\nocta-app), else to a throwaway folder; it never ships.
     [Fact]
     [Trait("Rule", "R-TEST-4")]
-    [Trait("Preview", "Nocta")]
     public void Preview_renders_off_on_hover_press_and_focus_at_1x_and_3x()
     {
         var folder = Environment.GetEnvironmentVariable("NOCTA_PREVIEW_DIR") is { Length: > 0 } set ? set : Path.Combine(Path.GetTempPath(), "nocta-preview-" + Guid.NewGuid().ToString("N"));

@@ -30,7 +30,7 @@ namespace Marrow.App.Tests.Views;
 [Collection("Headless")]
 public sealed class SessionSwitchTests(HeadlessSession headless)
 {
-    private const double Frame = 1000.0 / 60;
+    private const double Frame = SessionSwitchRig.Frame;
 
     private static readonly (Key Key, PhysicalKey Physical)[] Digits =
     [
@@ -39,110 +39,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
         (Key.D7, PhysicalKey.Digit7), (Key.D8, PhysicalKey.Digit8), (Key.D9, PhysicalKey.Digit9),
     ];
 
-    private sealed class Rig(AppModelHarness h, AppModel model, ThreadWindow window, SidebarView sidebar, SidebarView? floating, DetailView detail, ManualFrameSource frames, Guid[] ids, Guid[] second)
-    {
-        public AppModelHarness H { get; } = h;
-        public AppModel Model { get; } = model;
-        public ThreadWindow Window { get; } = window;
-        public SidebarView Sidebar { get; } = sidebar;
-        public SidebarView? Floating { get; } = floating;
-        public DetailView Detail { get; } = detail;
-        public ManualFrameSource Frames { get; } = frames;
-        public Guid[] Ids { get; } = ids;
-        public Guid[] Second { get; } = second;
-        public bool ControlDown { get; set; }
-
-        /// <summary>The numbered order the sidebar published (a convenience: the tests that prove the order read the rows).</summary>
-        public IReadOnlyList<Guid> Order => Model.SessionNumbers.Order ?? throw new Xunit.Sdk.XunitException("no published order");
-
-        public void Step(double milliseconds = Frame) => Step(TimeSpan.FromMilliseconds(milliseconds));
-
-        public void Step(TimeSpan by)
-        {
-            // The real dispatcher runs work posted by input (a spawned hold, a posted refresh) before time moves on.
-            Dispatcher.UIThread.RunJobs();
-            H.Main.Time.Advance(by, () => Dispatcher.UIThread.RunJobs());
-            Frames.Advance(by);
-        }
-
-        public void Settle(int frames = 40)
-        {
-            for (var i = 0; i < frames; i++)
-            {
-                Step();
-                Dispatcher.UIThread.RunJobs();
-                Window.UpdateLayout();
-            }
-        }
-
-        public void Press(Key key, PhysicalKey physical)
-        {
-            Window.KeyPress(key, RawInputModifiers.Control, physical, null);
-            Dispatcher.UIThread.RunJobs();
-        }
-
-        public void Release(Key key, PhysicalKey physical) => Window.KeyRelease(key, RawInputModifiers.Control, physical, null);
-
-        public void Key(Key key, PhysicalKey physical)
-        {
-            Window.KeyPress(key, RawInputModifiers.None, physical, null);
-            Window.KeyRelease(key, RawInputModifiers.None, physical, null);
-            Dispatcher.UIThread.RunJobs();
-        }
-
-        public ThreadColumns Columns => Assert.IsType<ThreadColumns>(Detail.Child);
-
-        public Dictionary<Guid, FrameHostingView> ColumnMap
-        {
-            get
-            {
-                var coordinator = typeof(ThreadColumns).GetField("coordinator", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(Columns)!;
-                return (Dictionary<Guid, FrameHostingView>)coordinator.GetType().GetField("columns", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(coordinator)!;
-            }
-        }
-
-        public FrameHostingView Column(Guid id) => ColumnMap[id];
-
-        public ChatView Chat(Guid id) => ChatSwitchMotion.ChatOf(Column(id))!;
-
-        public SidebarThreadRow Row(Guid id) =>
-            LogicalQuery.SelfAndDescendants<SidebarThreadRow>(Sidebar).Single(row => ((IGlideRow)row).ThreadID == id);
-
-        /// <summary>The row's fill shape in the sidebar's space.</summary>
-        public Rect RowFrame(Guid id)
-        {
-            var shape = ((IGlideRow)Row(id)).FillShape;
-            return new Rect(shape.TranslatePoint(default, Sidebar.Glide)!.Value, shape.Bounds.Size);
-        }
-
-        /// <summary>The pointer arrives over the row (its hover look settles in its own 0.1 s, before any click).</summary>
-        public void Hover(Guid id)
-        {
-            Window.MouseMove(Center(id));
-            Dispatcher.UIThread.RunJobs();
-        }
-
-        private Point Center(Guid id)
-        {
-            var shape = ((IGlideRow)Row(id)).FillShape;
-            return shape.TranslatePoint(new Point(shape.Bounds.Width / 2, shape.Bounds.Height / 2), Window)!.Value;
-        }
-
-        public void Click(Guid id)
-        {
-            var center = Center(id);
-            Window.MouseMove(center);
-            Window.MouseDown(center, MouseButton.Left);
-            Window.MouseUp(center, MouseButton.Left);
-            Dispatcher.UIThread.RunJobs();
-        }
-
-        public TextBox SearchBox => LogicalQuery.SelfAndDescendants<TextBox>(Sidebar).First();
-
-        public object? Focused => Window.FocusManager?.GetFocusedElement();
-    }
-
-    private void With(Action<Rig> check, int threads = 4, bool reduceMotion = false, ThemeVariant? theme = null, bool collapsed = false,
+    private void With(Action<SessionSwitchRig> check, int threads = 4, bool reduceMotion = false, ThemeVariant? theme = null, bool collapsed = false,
         bool floating = false, int secondProjectThreads = 0, int? zoom = null) => headless.OnUiThread(() =>
     {
         using var h = new AppModelHarness();
@@ -150,7 +47,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
         var frames = new ManualFrameSource();
         using var frameSeam = FrameClock.Source.Override(frames);
         using var motion = Chrome.ReduceMotionPlatform.Override(new RenderingGeniePlatform { AccessibilityDisplayShouldReduceMotion = reduceMotion });
-        Rig? rig = null;
+        SessionSwitchRig? rig = null;
         var controlDown = false;
         using var keyState = ThreadWindow.ControlKeyState.Override(() => rig?.ControlDown ?? controlDown);
         var model = h.MakeModel();
@@ -213,7 +110,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
             window.SelectThreadNumber = model.SelectThreadNumber;
             window.ShowSessionNumbers = shown => model.SessionNumbers.SetShown(shown, window);
             window.Show();
-            rig = new Rig(h, model, window, sidebar, popover, detail, frames, ids, second);
+            rig = new SessionSwitchRig(h, model, window, sidebar, popover, detail, frames, ids, second);
             rig.Settle(30);
             check(rig);
         }
@@ -256,17 +153,17 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
         Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(Composer(chat)).OfType<ComposerTextColumn>().Single();
 
     /// <summary>Every chat column the pane draws: a column dropped (a chat deleted) stays in the pane while it fades out.</summary>
-    private static FrameHostingView[] PaneColumns(Rig rig) =>
+    private static FrameHostingView[] PaneColumns(SessionSwitchRig rig) =>
         ((Panel)rig.ColumnMap.Values.First(column => column.Parent is Panel).Parent!).Children.OfType<FrameHostingView>().ToArray();
 
-    private static ChatView[] VisibleChats(Rig rig) =>
+    private static ChatView[] VisibleChats(SessionSwitchRig rig) =>
         PaneColumns(rig).Where(column => column.IsVisible).Select(column => ChatSwitchMotion.ChatOf(column)!).ToArray();
 
     /// <summary>
     /// One frame of a switch, as drawn: the glass (header capsules, composer) of exactly one column, that column's top veil
     /// alone, the sheet's wash of exactly one column, and the column opened over the one left.
     /// </summary>
-    private static void AssertOneOfEachDrawn(Rig rig, Guid opened, string frame)
+    private static void AssertOneOfEachDrawn(SessionSwitchRig rig, Guid opened, string frame)
     {
         var chats = VisibleChats(rig);
         var shown = rig.Chat(opened);
@@ -284,7 +181,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
         Assert.True(chats.Single(chat => Sheet(chat).Any(shape => Drawn(shape) > 0)) is var drawsSheet && Sheet(drawsSheet).All(shape => Drawn(shape) == 1));
     }
 
-    private static FrameHostingView ChatSwitchColumn(Rig rig, ChatView chat) => PaneColumns(rig).Single(column => ChatSwitchMotion.ChatOf(column) == chat);
+    private static FrameHostingView ChatSwitchColumn(SessionSwitchRig rig, ChatView chat) => PaneColumns(rig).Single(column => ChatSwitchMotion.ChatOf(column) == chat);
 
     private static double RiseOf(ChatView chat) => Timeline(chat).RenderTransform is TranslateTransform translate ? translate.Y : 0;
 
@@ -293,7 +190,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     /// transcripts cross (the opened one readable from the first frame, settled in 140 ms, rising 4 points; the left one gone in
     /// 90 ms, then hidden), and every frame draws one glass, one veil, one wash.
     /// </summary>
-    private static Guid AssertCrosses(Rig rig, Guid from, Func<Guid> switchNow, bool titlesDiffer = false)
+    private static Guid AssertCrosses(SessionSwitchRig rig, Guid from, Func<Guid> switchNow, bool titlesDiffer = false)
     {
         var leaving = rig.Column(from);
         var left = rig.Chat(from);
@@ -359,7 +256,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     // ---- Ctrl+1..9 -----------------------------------------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void The_number_row_and_the_number_pad_open_the_first_session_ready_to_type_with_the_caret_at_the_end() => With(rig =>
     {
         var order = RowsOnScreen(rig.Sidebar).Select(row => row.Id).ToArray();
@@ -395,7 +292,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void A_number_past_the_last_row_does_nothing() => With(rig =>
     {
         var selected = rig.Model.SelectedThreadID;
@@ -426,7 +323,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     /// The numbers are the rows' places: the Nth row from the top (as drawn) carries badge N, the ninth is the last numbered,
     /// and Ctrl+N opens exactly that row's session.
     /// </summary>
-    private static void AssertNumbersFollowTheRows(Rig rig, SidebarView sidebar, int expectedRows)
+    private static void AssertNumbersFollowTheRows(SessionSwitchRig rig, SidebarView sidebar, int expectedRows)
     {
         var rows = RowsOnScreen(sidebar);
         Assert.Equal(expectedRows, rows.Count);
@@ -444,7 +341,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void In_the_project_layout_the_numbers_follow_the_rows_drawn_pinned_first_and_helpers_under_their_thread() => With(rig =>
     {
         // Pinned and helper rows move rows about: the numbers must follow them as drawn, not the model's own list.
@@ -462,7 +359,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     }, threads: 6);
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void Past_nine_rows_the_tenth_has_no_number_and_a_collapsed_group_is_left_out() => With(rig =>
     {
         AssertNumbersFollowTheRows(rig, rig.Sidebar, 12);
@@ -477,7 +374,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     }, threads: 7, secondProjectThreads: 5);
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void In_the_activity_layout_the_numbers_follow_its_rows() => With(rig =>
     {
         rig.Model.UpdateThread(rig.Ids[2], thread => thread with { IsPinned = true });
@@ -487,7 +384,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     }, threads: 5);
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void While_searching_the_numbers_follow_the_results_drawn() => With(rig =>
     {
         string[] titles = ["Alpha one", "Beta two", "Alpha three", "Gamma four", "Alpha five"];
@@ -504,7 +401,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     }, threads: 5);
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void With_the_sidebar_collapsed_the_shortcut_still_opens_the_session_it_would_number() => With(rig =>
     {
         // Nothing of the column sidebar is on screen; its rows, laid out at their width, still say what it would number.
@@ -515,7 +412,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     }, collapsed: true);
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void With_the_floating_sidebar_on_screen_the_numbers_follow_its_rows() => With(rig =>
     {
         rig.Model.UpdateThread(rig.Ids[1], thread => thread with { IsPinned = true });
@@ -524,7 +421,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     }, floating: true);
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void The_order_is_the_floating_sidebars_while_on_screen_else_the_columns_on_screen_or_not()
     {
         var numbers = new SessionNumbers();
@@ -551,7 +448,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     // ---- the switch: what is drawn ----------------------------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void A_click_glides_the_selection_and_crosses_the_chats_with_one_glass_one_veil_and_one_wash_drawn_every_frame() => With(rig =>
     {
         var order = RowsOnScreen(rig.Sidebar).Select(row => row.Id).ToArray();
@@ -587,7 +484,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void The_selection_glides_down_without_overshoot_and_lands_on_the_row() => With(rig =>
     {
         var order = RowsOnScreen(rig.Sidebar).Select(row => row.Id).ToArray();
@@ -613,7 +510,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void A_chat_never_shown_before_is_built_and_crosses_in_the_same_way_ready_to_type() => With(rig =>
     {
         var before = rig.Model.SelectedThreadID!.Value;
@@ -633,7 +530,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void The_draft_crosses_only_when_the_two_drafts_differ() => With(rig =>
     {
         var order = RowsOnScreen(rig.Sidebar).Select(row => row.Id).ToArray();
@@ -658,7 +555,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void The_shortcut_moves_exactly_like_the_click_and_a_quick_second_press_turns_it_without_a_jump() => With(rig =>
     {
         var order = RowsOnScreen(rig.Sidebar).Select(row => row.Id).ToArray();
@@ -709,7 +606,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     public static TheoryData<string> OtherWaysIn => new() { "selection", "new chat", "delete", "search Return" };
 
     [Theory]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     [MemberData(nameof(OtherWaysIn))]
     public void Every_other_way_into_a_chat_moves_the_same_way_and_leaves_it_ready_to_type(string way) => With(rig =>
     {
@@ -748,7 +645,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     }, threads: 4);
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void A_chat_picked_over_an_empty_detail_comes_in_the_same_way() => With(rig =>
     {
         var order = RowsOnScreen(rig.Sidebar).Select(row => row.Id).ToArray();
@@ -768,7 +665,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void With_Reduce_Motion_the_switch_is_at_once() => With(rig =>
     {
         var order = RowsOnScreen(rig.Sidebar).Select(row => row.Id).ToArray();
@@ -788,7 +685,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     // ---- the chat left: gated, its look kept ---------------------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void A_column_leaving_is_gated_at_once_but_its_controls_keep_the_look_they_drew() => With(rig =>
     {
         var enabled = new Button { Content = "Allow" };
@@ -823,7 +720,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     // ---- ready to type ---------------------------------------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void Picking_a_search_result_by_click_Return_or_arrows_leaves_the_chat_ready_to_type() => With(rig =>
     {
         string[] titles = ["Alpha one", "Alpha two", "Alpha three", "Beta"];
@@ -859,7 +756,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     }, threads: 4);
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void When_the_composer_cannot_take_the_keyboard_the_chat_shown_holds_it_never_the_chat_left() => With(rig =>
     {
         var order = RowsOnScreen(rig.Sidebar).Select(row => row.Id).ToArray();
@@ -883,7 +780,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     // ---- hold Ctrl: the numbers ---------------------------------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void Holding_Control_fades_the_numbers_in_together_and_letting_go_starts_the_fade_out_at_once() => With(rig =>
     {
         var order = RowsOnScreen(rig.Sidebar).Select(row => row.Id).ToArray();
@@ -931,7 +828,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void Letting_go_mid_fade_bends_the_numbers_round_from_where_they_are_with_their_speed() => With(rig =>
     {
         var keycap = rig.Row(rig.Order[0]).Keycap;
@@ -973,7 +870,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void A_row_changing_its_mark_under_a_badge_keeps_that_change_when_the_badge_goes() => With(rig =>
     {
         var row = rig.Row(rig.Order[0]);
@@ -996,7 +893,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "ED-NEW-session-hotkeys")]
+    [Trait("Decision", "OD-0155")] // ED-NEW-session-hotkeys
     public void With_Reduce_Motion_the_numbers_show_and_hide_at_once() => With(rig =>
     {
         var keycap = rig.Row(rig.Order[0]).Keycap;
@@ -1061,7 +958,7 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
         Capture(rig, "switch-settled-dark.png");
     }, theme: ThemeVariant.Dark);
 
-    private static void Capture(Rig rig, string file)
+    private static void Capture(SessionSwitchRig rig, string file)
     {
         var folder = Environment.GetEnvironmentVariable("MARROW_SESSION_HOTKEYS_CAPTURE");
         if (string.IsNullOrEmpty(folder)) return;
@@ -1083,10 +980,10 @@ public sealed class SessionSwitchTests(HeadlessSession headless)
             ? $"{waiting.GetType().Name} {(waiting.IsMeasureValid ? "arrange" : "measure")} under {string.Join("<", Avalonia.VisualTree.VisualExtensions.GetVisualAncestors(waiting).Take(6).Select(a => a.GetType().Name))}"
             : null;
 
-    private static Button Row1Button(Rig rig, Guid id) =>
+    private static Button Row1Button(SessionSwitchRig rig, Guid id) =>
         LogicalQuery.SelfAndDescendants<Button>(rig.Row(id)).First();
 
-    private static Rect TitleFrame(Rig rig, Guid id)
+    private static Rect TitleFrame(SessionSwitchRig rig, Guid id)
     {
         var row = rig.Row(id);
         var title = LogicalQuery.SelfAndDescendants<TextBlock>(row).First(block => !string.IsNullOrEmpty(block.Text) && block.Text!.Length > 2);

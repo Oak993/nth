@@ -122,7 +122,7 @@ public sealed class UpdatesControllerTests
 
     [Fact]
     [Trait("Decision", "ED-308")] // a failure keeps the others' results; its row's Retry runs only what failed
-    [Trait("Decision", "ED-NEW-providers-updates-1")] // the header no longer says Retry: with nothing waiting it is "Check for updates"
+    [Trait("Decision", "ED-NEW-reltrace-1")] // ED-NEW-providers-updates-1: the header no longer says Retry: with nothing waiting it is "Check for updates"
     public void A_failed_item_is_retried_alone_by_its_rows_Retry_and_the_others_are_not_run_again()
     {
         using var runtime = new TestRuntime();

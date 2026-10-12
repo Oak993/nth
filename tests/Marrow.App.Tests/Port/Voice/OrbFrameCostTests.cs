@@ -16,7 +16,7 @@ namespace Marrow.App.Tests.Port.Voice;
 /// window) a frame, drawn, flushed and waited for, stays a small part of a 60 Hz frame; on the software rasterizer, where the orb is one still (V-11.3), that still is
 /// drawn well inside a quarter second. Measured on this PC (RTX 4080): GPU 0.08 to 0.11 ms median, under 0.5 ms at the 95th percentile; CPU 33 to 94 ms.
 /// </summary>
-[Trait("Decision", "ED-NEW-voicefix-ui-7")]
+[Trait("Decision", "ED-NEW-reltrace-1")] // ED-NEW-voicefix-ui-7
 [Trait("Spec", "V-T51")]
 public sealed class OrbFrameCostTests
 {

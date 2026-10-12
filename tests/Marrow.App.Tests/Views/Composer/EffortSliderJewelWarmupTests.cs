@@ -1192,10 +1192,6 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
         }
     }
 
-    // ED-NEW-jewelwarmup-1: what StepFrames drew: the frames, those of them before the warm-up's first step was asked (its
-    // waking: a hurried run notices at its next animation frame), and the times no step was asked within Settle (the last frame)
-    private readonly record struct StepRun(int Frames, int Waking, int Idle);
-
     // ED-NEW-jewelwarmup-1: frames drawn one at a time, each only once a step waits to be drawn (asked and not drawn yet), until
     // done. A step's answer reaches the UI thread through the thread pool and the dispatcher before the next is asked, which a
     // loaded machine slows: the frames wait for that ask (Settle is a ceiling, never the measure), so the count is the warm-up's,
@@ -1203,7 +1199,7 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
     // MediaContext lets one batch fly at a time), so a step takes one or two frames. First the waking: frames until an animation
     // frame of the window's own has passed (the hurried run's frame comes with it), unless a step is asked before. No step asked
     // within Settle is an idle frame, and it ends the run (a run waiting for idle frames asks none).
-    private static StepRun StepFrames(TopLevel window, Func<bool> done)
+    private static JewelWarmupStepRun StepFrames(TopLevel window, Func<bool> done)
     {
         var (asked, drawn) = (GpuWarmup.StepsAsked, GpuWarmup.StepsDone);
         bool Waiting() => GpuWarmup.StepsAsked - asked > GpuWarmup.StepsDone - drawn;
@@ -1223,11 +1219,11 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
             var since = System.Diagnostics.Stopwatch.GetTimestamp();
             while (!done() && !Waiting())
             {
-                if (System.Diagnostics.Stopwatch.GetElapsedTime(since) >= Settle) return new StepRun(frames, waking, 1);
+                if (System.Diagnostics.Stopwatch.GetElapsedTime(since) >= Settle) return new JewelWarmupStepRun(frames, waking, 1);
                 Thread.Sleep(1);
                 Dispatcher.UIThread.RunJobs();
             }
-            if (done()) return new StepRun(frames, waking, 0);
+            if (done()) return new JewelWarmupStepRun(frames, waking, 0);
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             frames++;
             Dispatcher.UIThread.RunJobs();

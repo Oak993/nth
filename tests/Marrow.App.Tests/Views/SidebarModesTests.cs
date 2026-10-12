@@ -38,32 +38,6 @@ public sealed class SidebarModesTests(HeadlessSession headless)
     private const string FloatingWords = "With the column collapsed, the thread list floats as a panel over the chat and stays where you leave it";
     private const string PanelOnlyWords = "No column and no toolbar button; the floating panel is the sidebar";
 
-    private sealed record Rig(LaunchHarness Launch, AppModel Model, RootView Root, AvaloniaWindow Window, ManualFrameSource Frames)
-    {
-        public double ColumnWidth => Launch.Harness.Main.OnMain(() => Root.SidebarColumn.Bounds.Width);
-        public double DetailX => Launch.Harness.Main.OnMain(() => Root.DetailClip.TranslatePoint(default, Root)!.Value.X);
-        public FloatingSidebarPanel? Panel => Launch.Harness.Main.OnMain(() => Root.FloatingPanel);
-
-        // One frame: the clock and the frame source move on together, then the model's posted changes and the layout run.
-        public void Step(int milliseconds)
-        {
-            Launch.Harness.Main.Advance(TimeSpan.FromMilliseconds(milliseconds));
-            Launch.Harness.Main.OnMain(() => Frames.Advance(TimeSpan.FromMilliseconds(milliseconds)));
-            Settle();
-        }
-
-        public void Settle()
-        {
-            Launch.Harness.Main.RunUntilIdle();
-            Launch.Harness.Main.OnMain(() => { Window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
-            Launch.Harness.Main.RunUntilIdle();
-        }
-
-        public void Finish() { for (var i = 0; i < 60; i++) Step(16); }
-
-        public void OnMain(Action action) => Launch.Harness.Main.OnMain(action);
-    }
-
     private static Action<AppModelHarness> Saved(SidebarMode mode, bool startsOpen) => h =>
     {
         // What a previous run left behind (AppSettings.swift:647-661; WindowChrome.swift:245-248).
@@ -72,7 +46,7 @@ public sealed class SidebarModesTests(HeadlessSession headless)
         h.Defaults.Set("sidebarStartsOpen", startsOpen);
     };
 
-    private void WithRoot(Action<Rig> check, Action<AppModelHarness>? prepare = null, bool reduceMotion = false, double width = 1000, double height = 700) => headless.OnUiThread(() =>
+    private void WithRoot(Action<SidebarModesRig> check, Action<AppModelHarness>? prepare = null, bool reduceMotion = false, double width = 1000, double height = 700) => headless.OnUiThread(() =>
     {
         using var motion = Chrome.ReduceMotionPlatform.Override(new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = reduceMotion });
         var frames = new ManualFrameSource();
@@ -93,7 +67,7 @@ public sealed class SidebarModesTests(HeadlessSession headless)
                 window = new AvaloniaWindow { Content = host, Width = width, Height = height };
                 window.Show();
             });
-            var rig = new Rig(launch, model, root, window, frames);
+            var rig = new SidebarModesRig(launch, model, root, window, frames);
             rig.Settle();
             check(rig);
         }
@@ -101,7 +75,7 @@ public sealed class SidebarModesTests(HeadlessSession headless)
     });
 
     // What an option draws, settled: the column's width, whether the list floats as a panel, and whether that panel can close.
-    private static void AssertDraws(Rig rig, SidebarMode mode, bool columnOpen)
+    private static void AssertDraws(SidebarModesRig rig, SidebarMode mode, bool columnOpen)
     {
         var model = rig.Model;
         Assert.Equal(mode, model.Settings.SidebarMode);
