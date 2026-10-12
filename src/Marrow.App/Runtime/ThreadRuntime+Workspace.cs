@@ -19,6 +19,10 @@ public sealed partial class ThreadRuntime
     public PaneWorkspaceState Workspace
     {
         get => Read(workspace);
-        set => Set(ref workspace, value ?? PaneWorkspaceState.Default);
+        set => Set(ref workspace, value ?? PaneWorkspaceState.Default, previous =>
+        {
+            // PORT-ONLY (web surfaces W6, DESIGN 3.9): closing Side chat ends what it was allowed to do (AppModel.SideChatClosed).
+            if (previous.IsSideChatOpen && !workspace.IsSideChatOpen) App?.SideChatClosed(ThreadID);
+        });
     }
 }
