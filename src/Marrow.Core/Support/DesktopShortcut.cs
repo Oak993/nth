@@ -22,9 +22,10 @@ public sealed record ShortcutScanResult(IReadOnlyList<FoundLink> Links, bool Cap
 
 /// <summary>
 /// What a repair or a removal did: links changed or removed, links found (for a repair, the ones nth made), whether the scan
-/// stopped at its cap, whether the step was skipped because another writer held the lock for 2 s, and links that failed.
+/// stopped at its cap, whether the step was skipped because another writer held the lock for 2 s, links that failed,
+/// and the first repair failure's HRESULT when available.
 /// </summary>
-public sealed record ShortcutChangeResult(int Changed, int Found, bool Capped, bool Busy, int Failed)
+public sealed record ShortcutChangeResult(int Changed, int Found, bool Capped, bool Busy, int Failed, int? HResult = null)
 {
     public static ShortcutChangeResult WriterBusy { get; } = new(0, 0, Capped: false, Busy: true, Failed: 0);
 }
@@ -148,13 +149,15 @@ public sealed class DesktopShortcut
     }
 
     /// <summary>The launch target on this machine now: Start is read if it exists.</summary>
-    public LaunchTarget CurrentLaunchTarget()
+    public LaunchTarget CurrentLaunchTarget(TimeSpan? readTimeout = null) => ReadLaunchTarget(() => readTimeout);
+
+    private LaunchTarget ReadLaunchTarget(Func<TimeSpan?> readTimeout)
     {
         ShellLink? start = null;
         var startPath = StartLinkPath;
         if (shell.FileExists(startPath))
         {
-            try { start = shell.ReadLink(startPath); }
+            try { var allowance = readTimeout(); start = allowance is { } timeout ? shell.ReadLink(startPath, timeout) : shell.ReadLink(startPath); }
             catch (Exception error) when (IsShellFailure(error)) { } // an unreadable Start link counts as missing
         }
         return LaunchTarget(Root, start, shell.FileExists, shell.ExpandEnvironment);
@@ -211,21 +214,24 @@ public sealed class DesktopShortcut
     /// → <see cref="Repair"/> only, never a new shortcut, reported as <c>kept</c> when nth's shortcut is there and <c>off</c>
     /// when not.
     /// </summary>
-    public InstallResult? Apply(InstallOptions? options, ShortcutScan scan = ShortcutScan.Hook)
+    public InstallResult? Apply(InstallOptions? options, ShortcutScan scan = ShortcutScan.Hook, TimeSpan? allowance = null)
     {
         if (options is null) return null;
+        var budget = new ShortcutBudget(time, scan, allowance);
         return options.Kind switch
         {
-            InstallKind.Install when options.DesktopShortcut => Create(scan),
-            InstallKind.Install => new InstallResult(DesktopShortcutOutcome.Off, IconsHidden: IconsHidden()),
-            InstallKind.Update => UpdateResult(scan),
+            InstallKind.Install when options.DesktopShortcut => Create(scan, budget),
+            InstallKind.Install => new InstallResult(DesktopShortcutOutcome.Off, IconsHidden: budget.CanStartCall && IconsHidden()),
+            InstallKind.Update => UpdateResult(scan, budget),
         };
     }
 
-    private InstallResult UpdateResult(ShortcutScan scan)
+    private InstallResult UpdateResult(ShortcutScan scan, ShortcutBudget budget)
     {
-        var hidden = IconsHidden();
-        var repair = Repair(scan);
+        var hidden = budget.CanStartCall && IconsHidden();
+        var repair = Repair(scan, budget);
+        if (repair.Failed > 0)
+            return InstallResult.FailedWith(repair.HResult ?? UnknownFailureHResult) with { IconsHidden = hidden, ScanCapped = repair.Capped };
         var present = repair.Found > 0 || (repair.Busy && SafeFileExists(DesktopLinkPath));
         return new InstallResult(present ? DesktopShortcutOutcome.Kept : DesktopShortcutOutcome.Off, IconsHidden: hidden, ScanCapped: repair.Capped);
     }
@@ -238,14 +244,16 @@ public sealed class DesktopShortcut
     /// Any shell error gives <c>failed</c> with its HRESULT; another writer holding the lock for 2 s gives <c>failed</c> with
     /// <see cref="WriterBusyHResult"/>. It never throws for the shell.
     /// </summary>
-    public InstallResult Create(ShortcutScan scan = ShortcutScan.Full)
+    public InstallResult Create(ShortcutScan scan = ShortcutScan.Full, TimeSpan? allowance = null) => Create(scan, new ShortcutBudget(time, scan, allowance));
+
+    private InstallResult Create(ShortcutScan scan, ShortcutBudget budget)
     {
-        var hidden = IconsHidden();
+        var hidden = budget.CanStartCall && IconsHidden();
         try
         {
-            using var writer = shell.TryEnterWriter(ShellLinkKeys.WriterWait);
+            using var writer = shell.TryEnterWriter(budget.WriterWait);
             if (writer is null) return InstallResult.FailedWith(WriterBusyHResult) with { IconsHidden = hidden };
-            return CreateLocked(scan) with { IconsHidden = hidden };
+            return CreateLocked(scan, budget) with { IconsHidden = hidden };
         }
         catch (Exception error) when (IsShellFailure(error))
         {
@@ -253,35 +261,50 @@ public sealed class DesktopShortcut
         }
     }
 
-    private InstallResult CreateLocked(ShortcutScan scan)
+    private InstallResult CreateLocked(ShortcutScan scan, ShortcutBudget budget)
     {
         var path = DesktopLinkPath;
         if (shell.FileExists(path))
         {
-            var existing = shell.ReadLink(path);
+            if (!budget.CanStartCall) return CappedCreate();
+            var existing = shell.ReadLink(path, budget.ReadTimeout);
             if (existing.IsMadeByNth)
             {
-                RepairMade(path, existing, CurrentLaunchTarget());
+                var launch = CurrentLaunchTarget(budget.ReadTimeout);
+                if (!budget.CanStartCall) return CappedCreate();
+                RepairMade(path, existing, launch);
                 return new InstallResult(DesktopShortcutOutcome.Kept);
             }
             if (IntoRoot(existing))
             {
-                FixGoneTarget(path, existing, CurrentLaunchTarget());
+                var launch = CurrentLaunchTarget(budget.ReadTimeout);
+                if (!budget.CanStartCall) return CappedCreate();
+                FixGoneTarget(path, existing, launch);
                 return new InstallResult(DesktopShortcutOutcome.Kept);
             }
             return new InstallResult(DesktopShortcutOutcome.NameTaken);
         }
-        var made = Scan(link => link.IsMadeByNth, scan);
+        var made = Scan(link => link.IsMadeByNth, scan, budget);
         if (made.Links.Count > 0)
         {
-            var current = CurrentLaunchTarget();
-            foreach (var found in made.Links) RepairMade(found.Path, found.Link, current);
+            if (!budget.CanStartCall) return CappedCreate();
+            var current = CurrentLaunchTarget(budget.ReadTimeout);
+            foreach (var found in made.Links)
+            {
+                if (!budget.CanStartCall) return CappedCreate();
+                RepairMade(found.Path, found.Link, current);
+            }
             return new InstallResult(DesktopShortcutOutcome.Kept, ScanCapped: made.Capped);
         }
-        shell.WriteLink(path, Expected(CurrentLaunchTarget()));
+        if (!budget.CanStartCall) return CappedCreate();
+        var target = CurrentLaunchTarget(budget.ReadTimeout);
+        if (!budget.CanStartCall) return CappedCreate();
+        shell.WriteLink(path, Expected(target));
         Notify(ShellChange.Created, path);
         return new InstallResult(DesktopShortcutOutcome.Created, ScanCapped: made.Capped);
     }
+
+    private static InstallResult CappedCreate() => InstallResult.FailedWith(WriterBusyHResult) with { ScanCapped = true };
 
     /// <summary>The desktop links nth made (marker), placeholders skipped.</summary>
     public ShortcutScanResult FindMade(ShortcutScan scan = ShortcutScan.Full) => Scan(link => link.IsMadeByNth, scan);
@@ -295,39 +318,47 @@ public sealed class DesktopShortcut
     /// the <c>%LOCALAPPDATA%</c> form); an unmarked link into the root gets only its target and working directory re-pointed,
     /// and only when its target is gone. File names stay; nothing is ever created.
     /// </summary>
-    public ShortcutChangeResult Repair(ShortcutScan scan = ShortcutScan.Full)
+    public ShortcutChangeResult Repair(ShortcutScan scan = ShortcutScan.Full, TimeSpan? allowance = null) => Repair(scan, new ShortcutBudget(time, scan, allowance));
+
+    private ShortcutChangeResult Repair(ShortcutScan scan, ShortcutBudget budget)
     {
-        using var writer = shell.TryEnterWriter(ShellLinkKeys.WriterWait);
+        using var writer = shell.TryEnterWriter(budget.WriterWait);
         if (writer is null) return ShortcutChangeResult.WriterBusy;
-        var found = Scan(link => link.IsMadeByNth || IntoRoot(link), scan);
+        var found = Scan(link => link.IsMadeByNth || IntoRoot(link), scan, budget);
         if (found.Links.Count == 0) return new ShortcutChangeResult(0, 0, found.Capped, Busy: false, Failed: 0);
-        var launch = CurrentLaunchTarget();
+        var capped = found.Capped;
+        if (!budget.CanStartMutation) return new ShortcutChangeResult(0, found.Links.Count(l => l.Link.IsMadeByNth), Capped: true, Busy: false, Failed: 0);
+        var launch = ReadLaunchTarget(() => budget.ReadTimeout);
         int changed = 0, failed = 0;
+        int? hresult = null;
         foreach (var link in found.Links)
         {
+            if (!budget.CanStartMutation) { capped = true; break; }
             try
             {
-                if (link.Link.IsMadeByNth ? RepairMade(link.Path, link.Link, launch) : FixGoneTarget(link.Path, link.Link, launch)) changed++;
+                if (link.Link.IsMadeByNth ? RepairMade(link.Path, link.Link, launch, budget) : FixGoneTarget(link.Path, link.Link, launch, budget)) changed++;
             }
-            catch (Exception error) when (IsShellFailure(error)) { failed++; }
+            catch (Exception error) when (IsShellFailure(error)) { failed++; hresult ??= HResultOf(error); }
         }
-        return new ShortcutChangeResult(changed, found.Links.Count(l => l.Link.IsMadeByNth), found.Capped, Busy: false, failed);
+        return new ShortcutChangeResult(changed, found.Links.Count(l => l.Link.IsMadeByNth), capped, Busy: false, failed, hresult);
     }
 
     /// <summary>nth's Settings switch off: deletes every link nth made (renamed ones included) and tells Explorer. A user's own shortcut is never touched.</summary>
-    public ShortcutChangeResult RemoveMade(ShortcutScan scan = ShortcutScan.Full) => Remove(link => link.IsMadeByNth, scan);
+    public ShortcutChangeResult RemoveMade(ShortcutScan scan = ShortcutScan.Full, TimeSpan? allowance = null) => Remove(link => link.IsMadeByNth, scan, new ShortcutBudget(time, scan, allowance));
 
     /// <summary>Uninstall: deletes every link into the root, marked or not, renamed ones included, and tells Explorer (none of them would work afterwards).</summary>
-    public ShortcutChangeResult RemoveIntoRoot(ShortcutScan scan = ShortcutScan.Full) => Remove(IntoRoot, scan);
+    public ShortcutChangeResult RemoveIntoRoot(ShortcutScan scan = ShortcutScan.Full, TimeSpan? allowance = null) => Remove(IntoRoot, scan, new ShortcutBudget(time, scan, allowance));
 
-    private ShortcutChangeResult Remove(Func<ShellLink, bool> keep, ShortcutScan scan)
+    private ShortcutChangeResult Remove(Func<ShellLink, bool> keep, ShortcutScan scan, ShortcutBudget budget)
     {
-        using var writer = shell.TryEnterWriter(ShellLinkKeys.WriterWait);
+        using var writer = shell.TryEnterWriter(budget.WriterWait);
         if (writer is null) return ShortcutChangeResult.WriterBusy;
-        var found = Scan(keep, scan);
+        var found = Scan(keep, scan, budget);
+        var capped = found.Capped;
         int removed = 0, failed = 0;
         foreach (var link in found.Links)
         {
+            if (!budget.CanStartCall) { capped = true; break; }
             try
             {
                 shell.DeleteLink(link.Path);
@@ -336,7 +367,7 @@ public sealed class DesktopShortcut
             }
             catch (Exception error) when (IsShellFailure(error)) { failed++; }
         }
-        return new ShortcutChangeResult(removed, found.Links.Count, found.Capped, Busy: false, failed);
+        return new ShortcutChangeResult(removed, found.Links.Count, capped, Busy: false, failed);
     }
 
     /// <summary>
@@ -428,7 +459,7 @@ public sealed class DesktopShortcut
         }
     }
 
-    private bool RepairMade(string path, ShellLink link, LaunchTarget launch)
+    private bool RepairMade(string path, ShellLink link, LaunchTarget launch, ShortcutBudget? budget = null)
     {
         var expected = Expected(launch);
         var sameIcon = SamePath(link.IconPath, expected.IconPath) && link.IconIndex == expected.IconIndex;
@@ -439,16 +470,19 @@ public sealed class DesktopShortcut
             IconIndex: sameIcon ? null : expected.IconIndex,
             AppUserModelId: string.Equals(link.AppUserModelId, expected.AppUserModelId, StringComparison.Ordinal) ? null : expected.AppUserModelId);
         if (change.IsEmpty) return false;
-        shell.UpdateLink(path, change);
+        if (budget is not null) shell.UpdateLink(path, change, budget.ReadTimeout);
+        else shell.UpdateLink(path, change);
         Notify(ShellChange.Updated, path);
         return true;
     }
 
-    private bool FixGoneTarget(string path, ShellLink link, LaunchTarget launch)
+    private bool FixGoneTarget(string path, ShellLink link, LaunchTarget launch, ShortcutBudget? budget = null)
     {
         if (shell.FileExists(shell.ExpandEnvironment(link.Target))) return false;
         var expected = Expected(launch);
-        shell.UpdateLink(path, new ShellLinkChange(Target: expected.Target, WorkingDirectory: expected.WorkingDirectory));
+        var change = new ShellLinkChange(Target: expected.Target, WorkingDirectory: expected.WorkingDirectory);
+        if (budget is not null) shell.UpdateLink(path, change, budget.ReadTimeout);
+        else shell.UpdateLink(path, change);
         Notify(ShellChange.Updated, path);
         return true;
     }
@@ -458,9 +492,10 @@ public sealed class DesktopShortcut
     /// A hook scan stops before the 2,001st read or once 3 s have passed and reports <see cref="ShortcutScanResult.Capped"/>.
     /// A link that cannot be read is skipped.
     /// </summary>
-    private ShortcutScanResult Scan(Func<ShellLink, bool> keep, ShortcutScan scan)
+    private ShortcutScanResult Scan(Func<ShellLink, bool> keep, ShortcutScan scan, ShortcutBudget? budget = null)
     {
         var started = time.GetTimestamp();
+        budget ??= new ShortcutBudget(time, scan, null);
         var found = new List<FoundLink>();
         var reads = 0;
         foreach (var folder in DesktopFolders())
@@ -468,20 +503,52 @@ public sealed class DesktopShortcut
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var pattern in (string[])["nth*.lnk", "*.lnk"])
             {
-                foreach (var file in shell.EnumerateLinks(folder, pattern))
+                using var listing = shell.EnumerateLinks(folder, pattern).GetEnumerator();
+                while (true)
                 {
+                    if (Capped()) return new ShortcutScanResult(found, Capped: true);
+                    var next = listing.MoveNext();
+                    // MoveNext includes the directory listing/attribute cost, even for skipped and duplicate entries.
+                    if (Capped()) return new ShortcutScanResult(found, Capped: true);
+                    if (!next) break;
+                    var file = listing.Current;
                     if (!seen.Add(file.Path) || file.IsCloudPlaceholder) continue;
-                    if (scan == ShortcutScan.Hook && (reads >= ShellLinkKeys.ScanCapLinks || time.GetElapsedTime(started) >= ShellLinkKeys.ScanCapTime))
+                    if (scan == ShortcutScan.Hook && reads >= ShellLinkKeys.ScanCapLinks)
                         return new ShortcutScanResult(found, Capped: true);
                     reads++;
                     ShellLink link;
-                    try { link = shell.ReadLink(file.Path); }
-                    catch (Exception error) when (IsShellFailure(error)) { continue; }
+                    try { link = scan == ShortcutScan.Hook ? shell.ReadLink(file.Path, ReadTimeout()) : shell.ReadLink(file.Path); }
+                    catch (Exception error) when (IsShellFailure(error))
+                    {
+                        if (Capped()) return new ShortcutScanResult(found, Capped: true);
+                        continue;
+                    }
                     if (keep(link)) found.Add(new FoundLink(file.Path, link));
                 }
             }
         }
         return new ShortcutScanResult(found, Capped: false);
+
+        bool Capped() => scan == ShortcutScan.Hook && (time.GetElapsedTime(started) >= ShellLinkKeys.ScanCapTime || budget.Remaining <= TimeSpan.Zero);
+        TimeSpan ReadTimeout()
+        {
+            var scanRemaining = ShellLinkKeys.ScanCapTime - time.GetElapsedTime(started);
+            return scanRemaining < budget.ReadTimeout ? scanRemaining : budget.ReadTimeout;
+        }
+    }
+
+    /// <summary>One deadline covers the writer wait, scan, launch read and every mutation of a desktop step.</summary>
+    private sealed class ShortcutBudget(TimeProvider time, ShortcutScan scan, TimeSpan? allowance)
+    {
+        private readonly long started = time.GetTimestamp();
+        private readonly TimeSpan limit = scan == ShortcutScan.Full ? Timeout.InfiniteTimeSpan
+            : allowance ?? (ShellLinkKeys.WriterWait + ShellLinkKeys.ScanCapTime + ShellLinkKeys.CallTimeout);
+
+        public TimeSpan Remaining => limit == Timeout.InfiniteTimeSpan ? TimeSpan.MaxValue : TimeSpan.FromTicks(Math.Max(0, (limit - time.GetElapsedTime(started)).Ticks));
+        public bool CanStartCall => Remaining >= ShellLinkKeys.CallTimeout;
+        public bool CanStartMutation => Remaining > TimeSpan.Zero;
+        public TimeSpan ReadTimeout => Remaining < ShellLinkKeys.CallTimeout ? Remaining : ShellLinkKeys.CallTimeout;
+        public TimeSpan WriterWait => Remaining < ShellLinkKeys.WriterWait ? Remaining : ShellLinkKeys.WriterWait;
     }
 
     /// <summary>Tells Explorer; a refused notification never undoes or fails the change it reports.</summary>

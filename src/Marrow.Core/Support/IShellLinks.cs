@@ -116,6 +116,9 @@ public static class ShellLinkKeys
     /// <summary>... or after this long, whichever comes first.</summary>
     public static readonly TimeSpan ScanCapTime = TimeSpan.FromSeconds(3);
 
+    /// <summary>The maximum wait for one production COM call; writers admit a call only while this still fits.</summary>
+    public static readonly TimeSpan CallTimeout = TimeSpan.FromSeconds(5);
+
     /// <summary><c>PKEY_AppUserModel_ID</c> and <c>PKEY_AppUserModel_ToastActivatorCLSID</c> share this format id (propkey.h).</summary>
     public static readonly Guid AppUserModelFormat = new("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3");
 
@@ -172,11 +175,17 @@ public interface IShellLinks
     /// <summary>Opens a link and reads every field of <see cref="ShellLink"/>. Opening a cloud placeholder downloads it.</summary>
     ShellLink ReadLink(string path);
 
+    /// <summary>Reads within the caller's remaining allowance. Implementations with blocking reads must honor it.</summary>
+    ShellLink ReadLink(string path, TimeSpan timeout) => ReadLink(path);
+
     /// <summary>Writes a whole link to <paramref name="path"/> (<c>IShellLinkW</c> plus <c>IPersistFile::Save</c>), replacing any file there.</summary>
     void WriteLink(string path, ShellLink link);
 
     /// <summary>Loads the link, sets only the change's non-null fields, commits and saves; every other field and property survives.</summary>
     void UpdateLink(string path, ShellLinkChange change);
+
+    /// <summary>Updates within the remaining hook allowance; blocking implementations must honor it.</summary>
+    void UpdateLink(string path, ShellLinkChange change, TimeSpan timeout) => UpdateLink(path, change);
 
     /// <summary>Deletes the link file. A file that is already gone is not an error.</summary>
     void DeleteLink(string path);

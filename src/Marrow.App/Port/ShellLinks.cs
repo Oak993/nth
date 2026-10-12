@@ -13,15 +13,15 @@ namespace Marrow.App.Port;
 /// because built-in COM interop is not AOT-safe and nth Setup (Native AOT) compiles this file too. <c>PROPVARIANT</c> is
 /// marshalled by hand (<c>VT_LPWSTR</c> and <c>VT_CLSID</c> in CoTaskMem, freed with <c>PropVariantClear</c>).
 /// <para>Every COM call runs on an STA thread this object owns, because hook processes and pool threads are MTA; a call
-/// that does not answer within <see cref="CallTimeout"/> fails with <c>ERROR_TIMEOUT</c> and every later call fails at once,
-/// so a hook can still write its result in time. <c>IShellLink::Resolve</c> is never called.</para>
+/// that does not answer within <see cref="CallTimeout"/> fails with <c>ERROR_TIMEOUT</c>. A read timeout is unknown,
+/// so a later call gets its own bounded opportunity to answer. <c>IShellLink::Resolve</c> is never called.</para>
 /// <para>Constructed only in <c>src/Marrow.App/Program.cs</c> and <c>src/Marrow.Setup/Program.cs</c> (ShellLinksBindingTests);
 /// tests construct it only over a temporary folder.</para>
 /// </summary>
 public sealed class ShellLinks : IShellLinks, IDisposable
 {
-    /// <summary>How long a caller waits for one shell call before giving up on the shell.</summary>
-    public static readonly TimeSpan CallTimeout = TimeSpan.FromSeconds(5);
+    /// <summary>The maximum wait for one shell call; a timeout does not prove the shell is broken.</summary>
+    public static readonly TimeSpan CallTimeout = ShellLinkKeys.CallTimeout;
 
     private const int TimeoutHResult = unchecked((int)0x800705B4);
     private const uint ClsctxInprocServer = 0x1;
@@ -48,7 +48,7 @@ public sealed class ShellLinks : IShellLinks, IDisposable
     private readonly IReadOnlyDictionary<ShellKnownFolder, string>? folders;
     private readonly BlockingCollection<Action> queue = new();
     private readonly Thread worker;
-    private volatile bool broken;
+    private volatile bool timeoutOccurred;
     private volatile bool disposed;
 
     /// <param name="knownFolders">Folders to use instead of the user's (tests); any folder not listed is the real one.</param>
@@ -99,18 +99,20 @@ public sealed class ShellLinks : IShellLinks, IDisposable
     public IEnumerable<ShellLinkFile> EnumerateLinks(string folder, string searchPattern = "*.lnk")
     {
         var directory = new DirectoryInfo(folder);
-        if (!directory.Exists) return [];
+        if (!directory.Exists) yield break;
         var options = new EnumerationOptions { MatchType = MatchType.Win32, AttributesToSkip = 0, IgnoreInaccessible = true, RecurseSubdirectories = false };
         // The listing's own data (FindFirstFile): no link is opened, so a cloud placeholder stays one.
-        return [.. directory.EnumerateFiles(searchPattern, options)
-            .Where(file => file.Name.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase))
-            .Select(file => new ShellLinkFile(file.FullName, file.Attributes, file.LastWriteTimeUtc))];
+        foreach (var file in directory.EnumerateFiles(searchPattern, options))
+            if (file.Name.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase))
+                yield return new ShellLinkFile(file.FullName, file.Attributes, file.LastWriteTimeUtc);
     }
 
-    public ShellLink ReadLink(string path)
+    public ShellLink ReadLink(string path) => ReadLink(path, CallTimeout);
+
+    public ShellLink ReadLink(string path, TimeSpan timeout)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return Invoke(() => WithLink(path, StgmRead, Read));
+        return Invoke(() => WithLink(path, StgmRead, Read), timeout);
     }
 
     public void WriteLink(string path, ShellLink link)
@@ -144,7 +146,9 @@ public sealed class ShellLinks : IShellLinks, IDisposable
         });
     }
 
-    public void UpdateLink(string path, ShellLinkChange change)
+    public void UpdateLink(string path, ShellLinkChange change) => UpdateLink(path, change, CallTimeout);
+
+    public void UpdateLink(string path, ShellLinkChange change, TimeSpan timeout)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(change);
@@ -167,7 +171,7 @@ public sealed class ShellLinks : IShellLinks, IDisposable
             }
             ((IPersistFile)instance).Save(path, 1);
             return 0;
-        }));
+        }), timeout);
     }
 
     public void DeleteLink(string path)
@@ -246,19 +250,22 @@ public sealed class ShellLinks : IShellLinks, IDisposable
         disposed = true;
         queue.CompleteAdding();
         // A worker stuck in a call that never answered keeps the queue: disposing it would throw on that background thread.
-        if (!broken && worker.Join(CallTimeout)) queue.Dispose();
+        if (worker.Join(timeoutOccurred ? TimeSpan.Zero : CallTimeout)) queue.Dispose();
     }
 
-    private T Invoke<T>(Func<T> work)
+    private T Invoke<T>(Func<T> work) => Invoke(work, CallTimeout);
+
+    private T Invoke<T>(Func<T> work, TimeSpan timeout)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
+        if (timeout <= TimeSpan.Zero) throw new COMException("The shell call has no time left.", TimeoutHResult);
+        if (timeout > CallTimeout) timeout = CallTimeout;
         if (Thread.CurrentThread == worker) return work();
-        if (broken) throw new COMException("An earlier shell call did not answer.", TimeoutHResult);
         var call = new Call<T>(work);
         queue.Add(call.Run);
-        if (!call.Done.Wait(CallTimeout))
+        if (!call.Done.Wait(timeout))
         {
-            broken = true;
+            timeoutOccurred = true; // Teardown must not spend a second wait after an unanswered call.
             throw new COMException("The shell did not answer in time.", TimeoutHResult);
         }
         return call.Result();

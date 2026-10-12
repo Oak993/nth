@@ -6431,3 +6431,55 @@ ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I3). A timed
 ## ED-NEW-inst-c4c-12: Prove bounded signature dispatch and cancellation
 
 ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I12). Pin the agreed wait at exactly thirty seconds and replace the vacuous repeated await with production dispatch tests for close before and after posting, fault and unknown answers, timeout and a late answer. The real verifier, clock, UI dispatcher and window cancellation token call the tested helper. One post after the bounded answer is pinned structurally, so the immediate late-count observation is supplemental rather than a claim of draining asynchronous work. Temporary patience, callback-guard, unavailable-mapping, caller and second-late-post mutations each fail alone twice and are restored byte-exact. All checks use fake clocks and headless sessions.
+
+## ED-NEW-inst-cx-2
+
+2026-10-12 - Installer C4-u5-1: shared desktop hook deadlines and a lazy, budgeted shell scan (codex/inst-c4-u5; C4b owner-authorized fix; PLAN.md sections 8/8a; VELOPACK_CHECK.md check 15). Amends ED-247 and ED-NEW-inst-u5-1. ENGINEERING DECISION. PORT-ONLY (Windows installer; no Swift counterpart).
+1. FAILURE. Repair and removal capped reads but then mutated every found link without a deadline. Sixteen 1-second repairs exhausted the 15-second after-update hook and skipped the uninstaller copy and final uninstall-key repair. Desktop listing was materialized before the scan checked time; placeholders/duplicate entries bypassed its deadline, and a single real 5-second COM read exceeded the 3-second scan budget.
+2. FIX. InstallHooks passes the hook's remaining time after earlier steps, reserving the later copy/key or sign-in steps plus 100 ms. One desktop deadline covers mutex wait, listing/read scan, launch-target read and all mutations. Each mutation is admitted only with the production COM maximum (5 seconds) left; capped work reports scanCapped. Full self-heal/Settings/uninstaller operations remain unbounded. The production enumeration yields directory entries lazily; scan checks before and after each MoveNext, including skipped placeholders and duplicates. A compatible IShellLinks.ReadLink(path, timeout) overload passes the minimum remaining scan/operation time to the real STA wait, bounded by its existing 5-second maximum; no-allowance reads are rejected before queuing. Existing callers retain ReadLink(path).
+3. RED EVIDENCE. On be24185c8076fe1a8c13c4697ef02b7a37e8a3fb, six C4HookBudgetTests regressions failed twice alone through one-names-long.sh under heavy.sh: copy/key reservation, earlier-step elapsed time, uninstall Run cleanup, placeholder listing time, eager production listing and a single slow read's remaining scan allowance. The full-repair preservation fact is an additional guard. Logs: work/scratch/codex-C4b/u5-red-*.log; root's centrally captured wrapper logs hold commands/results.
+4. SCOPE. Tests use FakeShellLinks, ManualTimeProvider, an in-memory registry and source-text assertions; no native adapter, real registry/Desktop/Start, installer, packaging or packaged app runs. Deadline checks cannot cancel an arbitrary synchronous filesystem stall inside MoveNext/DeleteLink; production COM reads honor the smaller wait, and no further mutation starts when its allowance cannot fit.
+5. GREEN EVIDENCE (root-coordinated heavy slot and one-names-long.sh): Core build 0 warnings/0 errors; C4HookBudgetTests 8 passed/0 failed/0 skipped; existing DesktopShortcutTests, InstallHooksTests, InstallLayoutTests and UninstallEntryTests 98 passed/0 failed/0 skipped. Independent U7 adversarial source review ACCEPT. No test was run by this worker.
+
+## ED-NEW-inst-cx-3
+
+2026-10-12 - Installer C4-u5-2: drive-root descendant ownership (codex/inst-c4-u5; C4b owner-authorized fix; PLAN.md section 8 uninstall cleanup). Amends ED-247 and ED-NEW-inst-u5-1. ENGINEERING DECISION. PORT-ONLY (Windows installer; no Swift counterpart).
+1. FAILURE. Path.TrimEndingDirectorySeparator preserves a drive root such as D:\; IsInside then added another separator and rejected D:\current\nth.exe. Before-uninstall therefore left nth's Run value in place for an accepted drive-root install.
+2. FIX. The descendant prefix uses the root's existing final separator when it has one, otherwise adds one. Full-path, case-insensitive comparison, exact-root acceptance and sibling-root boundaries are unchanged; no special deletion branch is needed.
+3. RED EVIDENCE. On be24185c8076fe1a8c13c4697ef02b7a37e8a3fb, C4InstallRootTests.Drive_root_install_recognizes_descendant_targets (line 12) and A_drive_root_uninstall_removes_its_Run_value_and_keeps_other_programs (line 21) each failed alone twice. The source predicate and fake registry test prove the cleanup failure without registry/drive writes. Logs: work/scratch/codex-C4b/u5-red-Drive_root_install_recognizes_descendant_targets-1/2.log and u5-red-A_drive_root_uninstall_removes_its_Run_value_and_keeps_other_programs-1/2.log.
+4. COVERAGE. C4InstallRootTests also keeps different drives, similarly named sibling folders, UNC share descendants and neighboring share names bounded. All calls use strings and FakeUserRegistry; no native/installer/real shell or registry execution.
+5. GREEN EVIDENCE (root-coordinated heavy slot and one-names-long.sh): Core build 0 warnings/0 errors; Setup linked-source adapter compile 0 warnings/0 errors. Raw focus C4InstallRootTests + C4HookBudgetTests: 15 passed/0 failed/0 skipped (7 root cases + 8 budget facts); existing four U5 Core classes 98 passed/0 failed/0 skipped. The 8 budget facts were rerun after the neutral missing-target amendment. No native tests ran.
+
+## ED-NEW-inst-cx-4
+
+2026-10-12 - Installer C4-u5-3: report and persist failed upgrade shortcut repair (codex/inst-c4-u5; C4b owner-authorized fix; PLAN.md section 8a result; VELOPACK_CHECK.md check 15). Amends ED-247 and ED-NEW-inst-u5-1. ENGINEERING DECISION. PORT-ONLY (Windows installer; no Swift counterpart).
+1. FAILURE. Apply(ForUpdate) ignored Repair.Failed and reported kept merely because it found nth's marked shortcut. When updating that sole shortcut failed with E_ACCESSDENIED, the broken target remained and the install hook persisted a misleading kept result for Ready.
+2. FIX. ShortcutChangeResult retains the first repair failure HRESULT through an optional property, preserving every existing caller. UpdateResult returns failed whenever repair.Failed is positive, with that HRESULT (E_FAIL only if unavailable), and keeps iconsHidden and scanCapped. The unchanged InstallResult writer/reader then persists and returns the failure; no options/result JSON schema change or shortcut creation is introduced.
+3. RED EVIDENCE. On be24185c8076fe1a8c13c4697ef02b7a37e8a3fb, C4RepairResultTests.Setup_upgrade_reports_failed_when_the_only_desktop_link_stays_broken (line 15) and The_install_hook_persists_the_failed_upgrade_result_for_Ready (line 32) each failed twice alone: expected Failed, actual Kept. Both also pin exact HRESULT 0x80070005. Logs: work/scratch/codex-C4b/u5-red-Setup_upgrade_reports_failed_when_the_only_desktop_link_stays_broken-1/2.log and u5-red-The_install_hook_persists_the_failed_upgrade_result_for_Ready-1/2.log.
+4. SCOPE. FakeShellLinks and FakeUserRegistry only; persistence writes an owned temporary options/result directory and deletes that fixture in finally. No installed/package execution, real registry/Desktop/Start/settings/user data or native tests.
+5. GREEN EVIDENCE (root-coordinated heavy slot and one-names-long.sh): Core build and Setup.Tests linked-source compatibility build each 0 warnings/0 errors. Raw focus C4HookBudgetTests + C4InstallRootTests + C4RepairResultTests: 17 passed/0 failed/0 skipped (8 budget + 7 root + 2 result cases); existing four U5 Core classes 98 passed/0 failed/0 skipped. Logs: work/scratch/codex-C4b/u5-result-compat-build.log, u5-result-build.log, u5-result-focus.log and u5-result-existing.log. Independent U8 static review ACCEPT (root boundary, constructor compatibility, first HRESULT, flags and unchanged persistence); no native tests or worker test execution.
+
+
+## ED-NEW-inst-c4c-1: Retry unanswered shell reads
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I1). A missed bounded read wait is unknown, not proof of a broken shell. Remove the permanent retry refusal; preserve timeout HRESULTs, STA queue ordering and per-call bounds. Keep a disposal-only timeout flag so an unanswered worker does not add another five-second hook teardown wait. Pure production-queue tests cover both shortened and full waits; no COM or real shell folders are touched.
+
+
+## ED-NEW-inst-c4c-5: A scan timeout leaves the shell retryable
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I5). I5 shares the I1 root cause and fix. A healthy read that finishes after the shortened scan wait must allow the following call to answer. C4cShellReadRetryTests guards short and full read timeouts and bounded teardown; the scan forwarding assertions remain unchanged.
+
+
+## ED-NEW-inst-c4c-2: Prove the install create allowance
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I2). Fake-clock tests exercise an exhausted create allowance and AfterInstall passing its actual remaining time while retaining the final uninstaller copy and persisted failure result. Temporary mutations omit the install allowance, remove all seven CreateLocked admission guards, and make CappedCreate claim Created. Each mutation fails alone twice, is restored byte-exact, and the original two facts pass. No production change is needed for this coverage finding.
+
+
+## ED-NEW-inst-c4c-7: Prove repair-result flags and HRESULT fallback
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I7). Failed update results retain IconsHidden and ScanCapped alongside the first failure HRESULT. A nonnegative exception HRESULT maps through the reachable HResultOf fallback to E_FAIL. Removing flags and returning the nonnegative HRESULT each fail the new fact alone twice, then are restored byte-exact. Repair always supplies HResultOf, so the outer null-coalescing fallback remains unreachable in this flow; no production change or artificial unreachable-path test is claimed.
+
+
+## ED-NEW-inst-c4c-16: Use the remaining repair allowance
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I16). A completed scan below the designed three-second cap may repair with less than a full five-second call wait left. Repair alone admits a mutation while positive time remains and recalculates the allowance after path/expected-field preparation immediately before each Start read or update through IShellLinks to the real STA queue. Zero remaining time cannot queue or claim a write. Create and removal keep their existing admission checks. Fake-clock hook evidence retains uninstaller copy and key steps inside fifteen seconds; slow updates and preparation are bounded with timeout HRESULT and no claimed write. Pure source wiring proves the production update overload uses the supplied wait.
