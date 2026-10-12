@@ -6481,3 +6481,9 @@ V3-prefix-before-refusal mutation RED twice0/1/0 at Assert.DoesNotContain Filter
 2026-10-12 - Tactus C2-V5: cover changed live targets and in-borrow refusals. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c owner rulings; DESIGN.md 2.7, 2.11, 2.12 and 10.2).
 Managed engine tests cover same-identity changed value/state, liveWay null, queued first-piece value/recycled identity/point bounds and later RuntimeId focus. Assertions check refusal and zero dispatch before stale action.
 C3cV5Tests restored GREEN7/0/0. Seven compiling temporary mutations failed targeted assertions twice; exact source bytes restored after every mutation.
+
+
+## ED-NEW-pcctl-cx-19
+2026-10-12 - Tactus C2-V6: cover disabled real input and post-approval launch gates. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c owner rulings; DESIGN.md 2.7, 2.11, 2.12 and 10.2).
+Managed tests close Enabled while a real-input borrow is queued and change each launch gate after approval: Attended, SecureDesktop, live denied-app verdict and standing Always. They assert refusal and no input/launch.
+C3cV6Tests restored GREEN5/0/0. Five compiling temporary mutations failed targeted assertions twice; exact source bytes restored after every mutation.
