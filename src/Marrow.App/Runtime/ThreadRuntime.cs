@@ -1580,6 +1580,8 @@ public sealed partial class ThreadRuntime : MainActorModel
     {
         await EnsureLoaded();
         var ignisPing = ignisPingTurn.Value; // Ignis: a ping that cannot run now is dropped, never queued as a follow-up
+        var tactusChip = tactusChipTurn.Value; // PORT-ONLY: Tactus (ED-NEW-pcctl-27): a resume's continue, shown as its chip
+        if (!ignisPing && tactusChip is null && !skillsContinuationTurn.Value) TactusUserWrote(); // Port/PcControl/ThreadRuntimeTactus.cs
         if (Phase != RuntimePhase.Idle || IsReverting)
         {
             if (!ignisPing) EnqueueFollowUp(text, attachments);
@@ -1609,6 +1611,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             userItem = userItem with { TimelineItemContent = new TimelineItem.Content.Notice(new Notice { NoticeLevel = Notice.Level.Info, Message = text }) };
         }
         if (ignisPing) userItem = IgnisPingItem(userItem, turn.Id);
+        if (tactusChip is not null) userItem = TactusChipItem(userItem, tactusChip);
         turn = turn with { UserItemID = userItem.Id };
         Turns = Turns.Appending(turn);
         saveRevision++;
@@ -2287,6 +2290,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     {
         if (Phase == RuntimePhase.Idle) return;
         StopAsks(); // PORT-ONLY (web surfaces W25): Stop cancels the questions the turn waits on
+        TactusInterrupt(); // PORT-ONLY: Tactus (ED-NEW-pcctl-27; DESIGN.md 10.2 path 6): the chat's Stop stops that chat's streams
 
         var turnID = currentTurnID;
         interruptWatchdog?.Cancel();
@@ -2637,6 +2641,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // :1733-1736. Swift: answer(_:answers:); the map is ProviderSession.AnswerQuestion's.
     public void Answer(QuestionRequest request, ValueMap<string, ValueList<string>> answers)
     {
+        if (TactusAnswer(request, answers)) return; // PORT-ONLY: Tactus (ED-NEW-pcctl-27): a pc_ask question answered in the chat
         BufferHandoff(HandoffJournal.EncodeResolution(request.Id, new { Request = request, Answers = answers }), preserve: true);
         Questions = Questions.Mutating(items => items.RemoveAll(item => item.Id == request.Id));
         session?.AnswerQuestion(request.Id, answers);

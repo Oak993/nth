@@ -64,6 +64,9 @@ public static class Program
         // ED-NEW-web-w12-1: the nth-ui relay (Tabula's artifact tools), the same kind of private headless child.
         if (args.FirstOrDefault() == Marrow.Services.Web.UiMcpBridge.Command)
             return Marrow.Services.Web.UiMcpBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
+        // Tactus (OD-0140, ED-NEW-pcctl-10): the nth-pc relay, the same kind of private headless child.
+        if (args.FirstOrDefault() == Marrow.Services.Port.PcControl.PcControlBridge.Command)
+            return Marrow.Services.Port.PcControl.PcControlBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
         // OD-0062, ED-235: Velopack's startup hook, before anything else (before the single-instance lock, the toast
         // identity, every binding). When Update.exe runs the app to install, update or uninstall it (--veloapp-*
         // arguments) this handles the event and exits the process; started normally it returns at once.
@@ -85,6 +88,10 @@ public static class Program
         // desktop or data binding: the single-instance lock, toast identity, settings and the app lifetime.
         if(args.FirstOrDefault()=="--colour-bake")return Marrow.Services.Port.ModelsPalette.PaletteBake.Run(args,new Marrow.UI.Port.ModelsPalette.SkiaLogoDecoder());
         if(args.FirstOrDefault()=="--colour-bake-live")return Marrow.Services.Port.ModelsPalette.PaletteLiveBake.Run(args,new Marrow.UI.Port.ModelsPalette.SkiaLogoDecoder());
+#if DEBUG
+        // ED-NEW-pcctl-22: Tactus's overlay spike (P25a, debug builds only): NP-15 and NP-16, run by hand, never by a test.
+        if (args.FirstOrDefault() == Marrow.App.Port.PcControl.Overlay.OverlaySpike.Command) return Marrow.App.Port.PcControl.Overlay.OverlaySpike.Run(args);
+#endif
         WindowsToastStartup.RestoreDevRoot(args); // ED-212/ED-220: retain protocol launch's instance identity
 #if DEBUG
         // ED-212, review fix: a mistyped or since-deleted MARROW_DEV_DATA_ROOT must not silently fall back to the
@@ -149,6 +156,7 @@ public static class Program
         Marrow.App.Port.Web.AppWebSurface.Enable(); Marrow.App.Views.Artifacts.TabulaPane.Register(); // ED-NEW-web-w14-1: the Tabula pane, its pages on the process's one web surface
         Marrow.App.Port.AskUser.AskUserStartup.Bind(); // ED-NEW-web-w25-1: ask_user, a blocking question card in the thread, for every model
         Marrow.App.Views.Panes.SideChatPane.Register(); // ED-NEW-web-w6-1: Ctrl+; opens Side chat, a second conversation about the thread
+        Marrow.App.Port.PcControl.PcControlStartup.Bind(); // Tactus (OD-0140, ED-NEW-pcctl-9): the capture seams, Windows.Graphics.Capture and the Skia JPEG encoder
         if (skills is not null) SkillsUpdateRows.Attach(skills); // SK-16: the installed items are the Updates page's "Skills and tools" rows (ED-343's hook)
 
         var lifetime = new ClassicDesktopStyleApplicationLifetime
