@@ -239,8 +239,16 @@ public sealed partial class PcControlEngine
         var confirmed = new HashSet<string>(StringComparer.Ordinal);
         PcResult? last = null;
         var tried = 0;
-        foreach (var way in plan.Plans)
+        foreach (var offered in plan.Plans)
         {
+            var way = offered;
+            var intended = way.Target ?? request.Element;
+            var focusedKey = intended is null && request.Kind == PcInputKind.Key
+                && request.Chord is { Modifiers.Count: 0 } chord && chord.Key is KeyChordParser.Return or 0x20
+                && before.Focused is not null;
+            if (focusedKey) intended = before.Elements[before.Focused!.Value];
+            var identity = intended is not null && request.Tree!.IndexOf(intended.RuntimeId) is { } intendedIndex
+                ? PcElementMatch.Identity(request.Tree, intendedIndex) : null;
             if (tried == 2) break;
             // Paused after a way acted and failed its check: the step ends with that result instead of trying another way.
             if (tried > 0 && parts.Pause.PausedSince(info.App.Key, call.PauseEpoch)) return last!;
@@ -262,6 +270,28 @@ public sealed partial class PcControlEngine
                     && await ChangedWhileWaiting(info, element, call).ConfigureAwait(false) is { } changed)
                     return changed;
             }
+            // Confirmation/yield may have outlived the user's 2 s activity window. Revalidate content, not recency.
+            if (identity is not null)
+            {
+                var fresh = await Tree(handle, fresh: true, call.Token).ConfigureAwait(false);
+                if (fresh is null) return PcResult.Fail(PcErrorCode.WindowGone, "the window is gone");
+                var match = PcElementMatch.Resolve(fresh, identity);
+                if (!match.Found) return PcResult.Fail(match.Kind == PcMatchKind.Ambiguous ? PcErrorCode.AmbiguousTarget : PcErrorCode.StaleElement,
+                    match.Detail ?? "the intended element changed while Tactus waited");
+                var live = fresh.Elements[match.Index];
+                if (request.Point is { } point && !live.Bounds.IsEmpty && !live.Bounds.Contains(point))
+                    return PcResult.Fail(PcErrorCode.StaleObs, "the intended element is no longer under the point; look again before acting");
+                if (Difference(intended!, live, "the target changed while Tactus waited") is { } difference)
+                    return PcResult.Fail(PcErrorCode.ExpectFailed, difference);
+                var refreshedRequest = request with { Tree = fresh, Element = request.Element is null && !focusedKey ? null : live };
+                var refreshed = parts.Ladder.Plan(refreshedRequest);
+                if (refreshed.Refused) return PcResult.Fail(refreshed.Refusal ?? PcErrorCode.StaleElement, refreshed.Reason ?? "the target changed");
+                var liveWay = refreshed.Plans.FirstOrDefault(p => p.Rung == way.Rung && p.Method == way.Method
+                    && (p.Target ?? refreshedRequest.Element)?.RuntimeId == live.RuntimeId);
+                if (liveWay is null) return PcResult.Fail(PcErrorCode.StaleElement, "the intended action is no longer available on the target");
+                way = liveWay with { Target = live, Writes = way.Writes };
+                before = fresh;
+            }
             if (call.GrantLive?.Invoke() == false)
                 return PcResult.Fail(PcErrorCode.NotApproved, "the app was removed from Tactus's apps while the step waited");
             tried++;
@@ -274,8 +304,30 @@ public sealed partial class PcControlEngine
             var started = parts.Clock.NowMs;
             var pressesAt = parts.Input.Presses(handle);
             AimPointer(info, request, way);
+            Func<CancellationToken, Task<PcUiaOutcome>>? validateBorrow = null;
+            if (way.Rung == PcRung.R4 && (way.Target ?? request.Element) is { } borrowTarget
+                && before.IndexOf(borrowTarget.RuntimeId) is { } borrowIndex)
+            {
+                var borrowIdentity = PcElementMatch.Identity(before, borrowIndex);
+                validateBorrow = async token =>
+                {
+                    if (parts.Catalog.Window(handle) is not { } window || !info.SameWindow(window))
+                        return PcUiaOutcome.Fail(PcErrorCode.WindowGone, "the window was replaced while the borrow waited");
+                    var fresh = await Tree(handle, fresh: true, token).ConfigureAwait(false);
+                    if (fresh is null) return PcUiaOutcome.Fail(PcErrorCode.WindowGone, "the window is gone");
+                    var match = PcElementMatch.Resolve(fresh, borrowIdentity);
+                    if (!match.Found) return PcUiaOutcome.Fail(match.Kind == PcMatchKind.Ambiguous ? PcErrorCode.AmbiguousTarget : PcErrorCode.StaleElement,
+                        match.Detail ?? "the intended element changed while the borrow waited");
+                    var live = fresh.Elements[match.Index];
+                    if (live.RuntimeId != borrowTarget.RuntimeId || live.Bounds != borrowTarget.Bounds)
+                        return PcUiaOutcome.Fail(PcErrorCode.StaleElement, "the target moved or was replaced while the borrow waited; look again before acting");
+                    if (Difference(borrowTarget, live, "the target changed while the borrow waited") is { } difference)
+                        return PcUiaOutcome.Fail(PcErrorCode.ExpectFailed, difference);
+                    return new PcUiaOutcome(null, null);
+                };
+            }
             var outcome = parts.Lease is { } lease
-                ? await lease.RunWithPermission(call.GrantLive, () => way.Run(call.Token)).WaitAsync(call.Token).ConfigureAwait(false)
+                ? await lease.RunWithPermission(call.GrantLive, () => way.Run(call.Token), validateBorrow).WaitAsync(call.Token).ConfigureAwait(false)
                 : await way.Run(call.Token).WaitAsync(call.Token).ConfigureAwait(false);
             if (call.GrantLive?.Invoke() == false)
                 return PcResult.Fail(PcErrorCode.NotApproved, "the app was removed from Tactus's apps while the step waited");

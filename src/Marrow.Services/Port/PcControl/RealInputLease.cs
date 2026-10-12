@@ -35,6 +35,7 @@ public sealed class RealInputLease
     private readonly List<Entry> queue = [];
     private readonly List<Entry> stills = [];
     private readonly AsyncLocal<Func<bool>?> actionPermission = new();
+    private readonly AsyncLocal<Func<CancellationToken, Task<PcUiaOutcome>>?> actionValidation = new();
     private readonly List<PcRawInput> kept = [];
     private readonly IPhysicalInput input;
     private readonly IPcInputHold hold;
@@ -139,17 +140,21 @@ public sealed class RealInputLease
     }
 
     // The engine's grant follows its async action into R4 without changing the shared request/assembly seams.
-    internal async Task<PcUiaOutcome> RunWithPermission(Func<bool>? permitted, Func<Task<PcUiaOutcome>> run)
+    internal async Task<PcUiaOutcome> RunWithPermission(Func<bool>? permitted, Func<Task<PcUiaOutcome>> run,
+        Func<CancellationToken, Task<PcUiaOutcome>>? validate = null)
     {
         var previous = actionPermission.Value;
+        var previousValidation = actionValidation.Value;
         actionPermission.Value = permitted;
+        actionValidation.Value = validate;
         try { return await run().ConfigureAwait(false); }
-        finally { actionPermission.Value = previous; }
+        finally { actionPermission.Value = previous; actionValidation.Value = previousValidation; }
     }
 
     public async Task<PcBorrowOutcome> Borrow(PcBorrowRequest request, CancellationToken cancellationToken, Func<bool>? permitted = null)
     {
         ArgumentNullException.ThrowIfNull(request);
+        var validate = actionValidation.Value;
         if (actionPermission.Value is { } grant)
         {
             var realInput = permitted;
@@ -177,7 +182,7 @@ public sealed class RealInputLease
                     mark ??= request.Waiting?.Invoke(PcWaitReason.HandsOff);
                 }, permitted).ConfigureAwait(false);
                 if (opened.Outcome is { } refused) return refused;
-                var outcome = await Run(entry, request, opened.Delivered, opened.Tick, cancellationToken, permitted).ConfigureAwait(false);
+                var outcome = await Run(entry, request, opened.Delivered, opened.Tick, cancellationToken, permitted, validate).ConfigureAwait(false);
                 if (outcome is null) continue;
                 if (outcome.Done && !waited && request.Detail.Length > 0) Used?.Invoke(request.Stream, request.Detail);
                 return outcome;
@@ -276,8 +281,22 @@ public sealed class RealInputLease
     }
 
     // Steps 3 to 7. Null: something arrived between the gate and the hold, so the borrow let go and waits again.
-    private async Task<PcBorrowOutcome?> Run(Entry entry, PcBorrowRequest request, long deliveredAtGate, long? tickAtGate, CancellationToken cancellationToken, Func<bool>? permitted)
+    private async Task<PcBorrowOutcome?> Run(Entry entry, PcBorrowRequest request, long deliveredAtGate, long? tickAtGate, CancellationToken cancellationToken, Func<bool>? permitted,
+        Func<CancellationToken, Task<PcUiaOutcome>>? validate)
     {
+        if (validate is not null)
+        {
+            var checkedTarget = await validate(cancellationToken).ConfigureAwait(false);
+            if (!checkedTarget.Done)
+                return new PcBorrowOutcome(PcBorrowStatus.NotSent, checkedTarget.Reason) { Code = checkedTarget.Error };
+            // The cold read held no input. If its wait reopened a safety gate, queue and validate again.
+            if (ownCardUp() || HoldingKeys || !PcInputGate.Check(input.Snapshot(), clock.NowMs, input.Protection(), entry.Wait.DoItNowChosen).Open)
+            {
+                lock (gate) entry.Running = false;
+                return null;
+            }
+        }
+        cancellationToken.ThrowIfCancellationRequested();
         if (permitted?.Invoke() == false) return RealInputOff();
         var borrow = new Loan(request, host.Save(request.Target), permitted);
         var escaped = 0;
