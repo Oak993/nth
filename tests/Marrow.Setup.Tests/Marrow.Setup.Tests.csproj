@@ -35,6 +35,8 @@
     <Compile Include="..\Marrow.Testing\Traceability.cs" Link="Linked\Traceability.cs" />
     <Compile Include="..\Marrow.Testing\ManualTimeProvider.cs" Link="Linked\ManualTimeProvider.cs" />
     <Compile Include="..\Marrow.Testing\FakeShellLinks.cs" Link="Linked\FakeShellLinks.cs" />
+    <!-- Unit U4 (ED-NEW-inst-u4-1): the app's control-pipe server, so the setup's client is also tested end to end against the server nth really runs. It uses only the wire types the setup already compiles. -->
+    <Compile Include="..\..\src\Marrow.Core\Support\NthControlServer.cs" Link="Linked\NthControlServer.cs" />
   </ItemGroup>
 
 </Project>

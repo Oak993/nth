@@ -46,9 +46,11 @@ public static class Program
         app.Run();
     }
 
-    internal static bool InstalledByVelopack(string baseDirectory) =>
-        Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(baseDirectory)) is { } root
-        && File.Exists(Path.Combine(root, "Update.exe"));
+    internal static bool InstalledByVelopack(string baseDirectory) => InstalledRoot(baseDirectory) is not null;
+
+    /// <summary>The Velopack install root this app runs from (the folder one above its own <c>current</c> folder, where Update.exe is), or null for a dev run, a portable copy or a test host.</summary>
+    internal static string? InstalledRoot(string baseDirectory) =>
+        Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(baseDirectory)) is { } root && File.Exists(Path.Combine(root, "Update.exe")) ? root : null;
 
     [STAThread]
     public static int Main(string[] args)
@@ -106,6 +108,9 @@ public static class Program
             return 0;
         }
         using var instanceLock = singleInstanceLock;
+        // nth installer PLAN.md 3a (U4, ED-NEW-inst-u4-3): while nth Setup runs Velopack on this install root, Velopack stops every
+        // process in it, so an nth opened now would show a window and be killed. It waits here, with no window, at most ten minutes.
+        DroppyCodeApp.WaitForInstallerToFinish(AppContext.BaseDirectory);
         // OD-0135: the product is named nth. Once, before anything reads settings, logs, the library or the GPU program cache, the
         // old "Marrow Code" data folder and .marrow state folder are COPIED to their new names (never moved; the old app may still run).
         LegacyDataCopy.CopyProductFolders(DevDataRoot.LocalApplicationData(), DevDataRoot.IsRedirected ? DevDataRoot.LocalApplicationData() : LoginEnvironment.HomeDirectory, AppInfo.Current.IsDevelopment);
@@ -162,6 +167,8 @@ public static class Program
         var shell = new AppShell(new AppDelegate(), exit: () => lifetime.Shutdown(), afterWillTerminate: () => settings.Synchronize());
         var launchReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var notifications = DroppyCodeApp.ListenForNotificationArguments(shell.Delegate, launchReady.Task);
+        // nth installer PLAN.md 3a (U4, ED-NEW-inst-u4-1): nth Setup asks over this pipe whether nth may quit before it updates the install.
+        using var installerControl = DroppyCodeApp.ListenForInstallerControl(shell, launchReady.Task);
 
         DroppyCodeApp.RunPrologue(); // DroppyCodeApp.swift:7-19
 
