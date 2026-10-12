@@ -15,14 +15,25 @@ namespace Marrow.App.Tests.Views.Composer;
 // field's frame updates (asserted: the update its last draw asked for comes) but draws nothing, as for a window that is not
 // composed; and hidden (IsVisible false), where it is ticked and not drawn too. Disabling the guard (asking at every update) fails
 // all four tests (checked once in the review round). Headless and deterministic
-// (R-TEST-5): the field's clock is the test's ManualTimeProvider, advanced 1/240 s before each forced compositor tick. A field that
-// stops and never starts again is the risk this guards.
+// (R-TEST-5): the field's clock is the test's ManualTimeProvider, advanced 1/60 s before each forced compositor tick, on a 60 Hz
+// display (RenderFrameSource.PeriodSource), where every refresh is a 60 Hz slot of the shared pacer (ED-NEW-lean-9 (pacing): the
+// tests ran at 240 Hz before the pacing, with the same assertions but the new frame's blend check, made stricter; the guard at
+// 240 Hz, paced, is ComposerWorkingDotsPacedStopGuardTests).
+// A field that stops and never starts again is the risk this guards.
 [Collection("Headless")]
 public sealed class ComposerWorkingDotsStopGuardTests(HeadlessSession headless)
 {
-    private const double Rate = 240;
+    private const double Rate = 60;
 
     private static void Run(Action<TestRuntime, DotFieldControl, DotFieldCompositionHandler> body)
+    {
+        var period = RenderFrameSource.PeriodSource;
+        RenderFrameSource.PeriodSource = () => TimeSpan.FromSeconds(1 / Rate);
+        try { RunAt(body); }
+        finally { RenderFrameSource.PeriodSource = period; }
+    }
+
+    private static void RunAt(Action<TestRuntime, DotFieldControl, DotFieldCompositionHandler> body)
     {
         using var runtime = new TestRuntime();
         runtime.Advance(TimeSpan.FromSeconds(10));
@@ -151,8 +162,13 @@ public sealed class ComposerWorkingDotsStopGuardTests(HeadlessSession headless)
         Dispatcher.UIThread.RunJobs();
         Tick(runtime);
         Assert.True(Drawn(field) == SwiftClock.Now.Ticks, "the field was not drawn on the first refresh after it came back with a new frame");
-        Assert.True(field.LastRenderedFrame!.Blending);
-        AssertDrawsEveryTick(runtime, field, handler, 20, "back inside with a new frame");
+        // ED-NEW-lean-9 (pacing): the new frame reaches the render server at the next tick (headless applies the UI's commit a tick
+        // later), and from that refresh on the field draws the new frame's blend, from the colour it showed to the new one (the check
+        // was Blending at the first refresh, which at 240 Hz the earlier blend still met; at 60 Hz the earlier blend is over)
+        AssertDrawsEveryTick(runtime, field, handler, 1, "back inside with a new frame");
+        Assert.Equal(new SwiftColor(0, 1, 0.4).Resolve(field.ActualThemeVariant), field.LastRenderedFrame!.Target);
+        Assert.True(field.LastRenderedFrame!.Blending, "the field back inside does not draw the new frame's blend");
+        AssertDrawsEveryTick(runtime, field, handler, 19, "back inside with a new frame");
     }));
 
     [Fact]

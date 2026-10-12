@@ -105,3 +105,14 @@ internal sealed class AmbientRefreshPacer
         count = slot = 0;
     }
 }
+
+/// <summary>
+/// PORT-ONLY (ED-NEW-frame-pacing, ED-NEW-lean-9). The seam to the shared pacer for an ambient source outside Marrow.UI (the
+/// composer's working dots in Marrow.App): <see cref="AmbientRefreshPacer.Beat"/> of the same per-compositor pacer every ambient
+/// source of that compositor asks, so the dots advance on the same 60 Hz slots as the rest (never a private copy).
+/// </summary>
+public static class AmbientRefreshPacing
+{
+    /// <summary>The shared pacer of <paramref name="compositor"/>: Beat(tick, now) is whether that refresh tick is a 60 Hz slot.</summary>
+    public static Func<long, double, bool> For(Compositor compositor) => AmbientRefreshPacer.For(compositor).Beat;
+}

@@ -298,7 +298,7 @@ public sealed class DotFieldControl : Canvas
         if (compositionVisual is null)
         {
             if (ElementComposition.GetElementVisual(this) is not { } host) return;
-            compositionHandler = new DotFieldCompositionHandler();
+            compositionHandler = new DotFieldCompositionHandler(Marrow.UI.Port.AmbientRefreshPacing.For(host.Compositor));
             compositionVisual = host.Compositor.CreateCustomVisual(compositionHandler);
             compositionVisual.ClipToBounds = false;
             ElementComposition.SetElementChildVisual(this, compositionVisual);

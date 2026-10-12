@@ -13,8 +13,11 @@ namespace Marrow.App.Views.Composer;
 // the accent blends (0.32 s after a change) the colour changes at nearly every draw and each new colour is a new immutable brush
 // (64 B a draw, ComposerWorkingDotsLeanBudgetTests); a colour drawn again keeps its brush. The "stop when not drawn" guard of
 // NthMotionHandler: the next update is asked for by a draw, so a field that is not drawn (its window not composed) stops asking
-// until it is drawn again or sent a new frame (ComposerWorkingDotsStopGuardTests).
-internal sealed class DotFieldCompositionHandler : CompositionCustomVisualHandler
+// until it is drawn again or sent a new frame (ComposerWorkingDotsStopGuardTests). ED-NEW-lean-9 (pacing): decorative motion, so a
+// frame update draws only on a 60 Hz slot of the compositor's shared pacer (ED-NEW-frame-pacing, NthMotionHandler's gate): every 4th
+// refresh at 240 Hz; the other updates ask for the next one and draw nothing. The draw's time is still the clock's (SwiftClock), so a
+// drawn picture is the unpaced field's picture at the same instant (ComposerWorkingDotsPacedPixelGuardTests).
+internal sealed class DotFieldCompositionHandler(Func<long, double, bool>? pacer = null) : CompositionCustomVisualHandler
 {
     private DotFieldCompositionFrame? state;
     // The last draw's frame, time and brush, written and read together (a reader on another thread sees one draw's three).
@@ -62,6 +65,13 @@ internal sealed class DotFieldCompositionHandler : CompositionCustomVisualHandle
         Interlocked.Increment(ref updates);
         requested = false;
         if (IsStopped) return;
+        // not a 60 Hz slot: ask for the next update and draw nothing; `drawn` is left as it is (the stop-when-not-drawn guard)
+        if (pacer is not null && state is { } paced && !pacer(CompositionNow.Ticks, paced.ClockNow().Ticks / (double)TimeSpan.TicksPerSecond))
+        {
+            requested = true;
+            RegisterForNextAnimationFrameUpdate();
+            return;
+        }
         Invalidate();
         // the draw that follows asks for the next update; one asked for before the last draw was drawn asks again here
         if (drawn && state is { } current) Request(current.ClockNow());

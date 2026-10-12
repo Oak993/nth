@@ -72,7 +72,11 @@ public sealed class ComposerWorkingDotsCompositorTests(HeadlessSession headless)
         Assert.Contains("RegisterForNextAnimationFrameUpdate()", handler, StringComparison.Ordinal);
         Assert.DoesNotContain("Dispatcher.", handler, StringComparison.Ordinal);
         Assert.DoesNotContain("Timer", handler, StringComparison.Ordinal);
-        Assert.DoesNotContain("CompositionNow", handler + frame, StringComparison.Ordinal);
+        // ED-NEW-lean-9 (pacing): the frame never names the compositor's time; the handler names it once, as the shared 60 Hz pacer's
+        // tick identity, with the clock's (SwiftClock) seconds as the pacer's time; the draw's time is the clock's (the frame's ClockNow).
+        Assert.DoesNotContain("CompositionNow", frame, StringComparison.Ordinal);
+        Assert.Equal(1, handler.Split("CompositionNow").Length - 1);
+        Assert.Contains("pacer(CompositionNow.Ticks, paced.ClockNow().Ticks / (double)TimeSpan.TicksPerSecond)", handler, StringComparison.Ordinal);
         Assert.Contains("SwiftClock.Now", frame, StringComparison.Ordinal);
     }
     private static string SourceDirectory([System.Runtime.CompilerServices.CallerFilePath] string source = "") => System.IO.Path.GetDirectoryName(source)!;
