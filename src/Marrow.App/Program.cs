@@ -62,6 +62,10 @@ public static class Program
         // Tactus (OD-0140, ED-NEW-pcctl-10): the nth-pc relay, the same kind of private headless child.
         if (args.FirstOrDefault() == Marrow.Services.Port.PcControl.PcControlBridge.Command)
             return Marrow.Services.Port.PcControl.PcControlBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
+        // Tactus's separate workspace (P18, ED-NEW-pcws-6): the agent the child session runs, and the user's own enable and
+        // disable commands, headless like the relays above.
+        if (Marrow.App.Port.PcControl.Workspace.WorkspaceCommands.Handles(args))
+            return Marrow.App.Port.PcControl.Workspace.WorkspaceCommands.Run(args).GetAwaiter().GetResult();
         // OD-0062, ED-235: Velopack's startup hook, before anything else (before the single-instance lock, the toast
         // identity, every binding). When Update.exe runs the app to install, update or uninstall it (--veloapp-*
         // arguments) this handles the event and exits the process; started normally it returns at once.
