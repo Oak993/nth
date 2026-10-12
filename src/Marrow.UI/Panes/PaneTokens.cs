@@ -8,6 +8,7 @@
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Marrow.Core.Models;
 using Marrow.UI.Port;
 
 namespace Marrow.UI.Panes;
@@ -19,7 +20,7 @@ public static class PaneTokens
     public const double CornerRadius = 12;
 
     /// <summary>The header's height (3.12).</summary>
-    public const double HeaderHeight = 36;
+    public const double HeaderHeight = PaneKinds.HeaderHeight;
 
     /// <summary>A header button (canvas .hb).</summary>
     public const double ButtonSize = 26;
