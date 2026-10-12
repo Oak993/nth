@@ -450,8 +450,9 @@ public sealed record ToolCall
     public DateTimeOffset? FinishedAt { get; init; }                           // :179
 
     // The mutating methods return the changed copy (R-VAL-1).
-    // :181-184
-    public ToolCall AppendOutput(string text) => this with { Output = TrimOutput(Output + text) };
+    // :181-184. ED-NEW-lean-5: the same Output as TrimOutput(Output + text), without first joining a text that is
+    // only cut down again.
+    public ToolCall AppendOutput(string text) => this with { Output = AppendTrimmed(Output, text) };
 
     // :186-189
     public ToolCall SetOutput(string text) => this with { Output = TrimOutput(text) };
@@ -461,7 +462,44 @@ public sealed record ToolCall
 
     // :196-199
     private static string TrimOutput(string output) =>
-        SwiftString.Utf8Count(output) > OutputLimit ? "…" + SwiftString.Suffix(output, (int)(OutputLimit / 2)) : output;
+        SwiftString.Utf8Count(output) > OutputLimit ? Trimmed(output) : output;
+
+    // ED-NEW-lean-5. TrimOutput(output + text). The UTF-8 count of the joined text is the sum of the two counts
+    // unless a high surrogate ending output meets a low one starting text (two replacement characters become one
+    // scalar); that seam takes the old path. Under the ceiling the joined string is the result; over it the two
+    // parts are joined in a pooled buffer and only the trimmed result becomes a string.
+    private static string AppendTrimmed(string output, string text)
+    {
+        if (output.Length > 0 && text.Length > 0 && char.IsHighSurrogate(output[^1]) && char.IsLowSurrogate(text[0]))
+            return TrimOutput(output + text);
+        if ((long)SwiftString.Utf8Count(output) + SwiftString.Utf8Count(text) <= OutputLimit) return output + text;
+        var length = output.Length + text.Length;
+        var buffer = System.Buffers.ArrayPool<char>.Shared.Rent(length);
+        try
+        {
+            output.CopyTo(buffer);
+            text.CopyTo(buffer.AsSpan(output.Length));
+            return Trimmed(buffer.AsSpan(0, length));
+        }
+        finally
+        {
+            System.Buffers.ArrayPool<char>.Shared.Return(buffer);
+        }
+    }
+
+    // "…" + String(output.suffix(OutputLimit / 2)): the Characters are walked twice (count, then skip to the first
+    // kept one) instead of listing every Character start.
+    private static string Trimmed(ReadOnlySpan<char> output)
+    {
+        const int keep = (int)(OutputLimit / 2);
+        var count = 0;
+        for (var index = 0; index < output.Length; count += 1)
+            index += System.Globalization.StringInfo.GetNextTextElementLength(output[index..]);
+        var start = 0;
+        for (var skip = count - keep; skip > 0; skip -= 1)
+            start += System.Globalization.StringInfo.GetNextTextElementLength(output[start..]);
+        return string.Concat("…".AsSpan(), output[start..]);
+    }
 }
 
 internal sealed class ToolCallConverter : JsonConverter<ToolCall>
