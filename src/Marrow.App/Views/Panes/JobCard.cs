@@ -162,6 +162,7 @@ public sealed class JobCard : Border
             ApplyLook();
         }
         title.Text = next.Title;
+        ToolTip.SetTip(title, next.Title); // a title the card trims reads in full here
         elapsed.IsVisible = !finished;
         tokens.IsVisible = !finished && next.Tokens is not null;
         tools.IsVisible = !finished && next.ToolUses is not null;

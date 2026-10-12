@@ -50,7 +50,7 @@ public static class BackgroundJobText
         return count.ToString(CultureInfo.InvariantCulture) + (count == 1 ? " tool use" : " tool uses");
     }
 
-    public const string ToolUsesReserve = "99999 tool uses";
+    public const string ToolUsesReserve = "9999 tool uses";
 
     /// <summary>"62 %", the canvas's download figure (a space before the sign).</summary>
     public static string Percent(double progress)

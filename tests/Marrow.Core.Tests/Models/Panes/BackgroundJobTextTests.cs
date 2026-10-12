@@ -100,7 +100,7 @@ public sealed class BackgroundJobTextTests
     {
         Assert.True(BackgroundJobText.ElapsedReserve.Length >= BackgroundJobText.Elapsed(TimeSpan.FromHours(99).Add(TimeSpan.FromMinutes(59))).Length);
         Assert.True(BackgroundJobText.TokensReserve.Length >= BackgroundJobText.Tokens(999_949).Length);
-        Assert.True(BackgroundJobText.ToolUsesReserve.Length >= BackgroundJobText.ToolUses(99_999).Length);
+        Assert.True(BackgroundJobText.ToolUsesReserve.Length >= BackgroundJobText.ToolUses(9_999).Length);
         Assert.True(BackgroundJobText.PercentReserve.Length >= BackgroundJobText.Percent(1).Length);
     }
 
