@@ -394,8 +394,18 @@ public sealed class ShortcutRecorder : Decorator
             Refresh();
         });
         border.DetachedFromVisualTree += (_, _) => { input.Detach(); session.Cancel(); }; // :201 .onDisappear
-        this.Track(() => store.Chord(shortcut), _ =>
-            Transaction.WithAnimation(Animation.Spring(0.3, 0.8, 0), Refresh)); // :185
+        // ED-NEW-lean-21: ShortcutStore keeps every override in one observed map, so an edit of any row re-runs this Track in
+        // every row. A row whose own chord did not change keeps what it shows, as SwiftUI leaves a view whose inputs are
+        // equal; the first run after the row appears and every real change of its chord restyle it as before.
+        KeyChord? trackedChord = null;
+        var tracking = false;
+        this.DetachedFromVisualTree += (_, _) => tracking = false;
+        this.Track(() => store.Chord(shortcut), chord =>
+        {
+            if (tracking && Equals(chord, trackedChord)) return;
+            (tracking, trackedChord) = (true, chord);
+            Transaction.WithAnimation(Animation.Spring(0.3, 0.8, 0), Refresh); // :185
+        });
 
         Child = new Panel { Children = { button, popup } };
     }

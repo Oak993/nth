@@ -136,6 +136,6 @@ public sealed class TokenActivityHeatmapBudgetTests(HeadlessSession headless)
     }
 
     // Debug build. Before the fix (measured on claude/release-integration 0a946c558) and after; see ED-NEW-lean-21.
-    private const long SteadyFrameBytes = 438_000; // measured 291,728 B before the fix
-    private const long BlendFrameBytes = 536_000; // measured 357,248 B before the fix
+    private const long SteadyFrameBytes = 208; // measured 291,728 B before the fix, 160 B after (the platform accent read; see ED-NEW-lean-21)
+    private const long BlendFrameBytes = 208; // measured 357,248 B before the fix, 160 B after
 }

@@ -138,6 +138,6 @@ public sealed class ShortcutsSettingsPageBudgetTests(HeadlessSession headless)
     }
 
     // Debug build. Measured on claude/release-integration 0a946c558 before the fix, and after; see ED-NEW-lean-21.
-    private const int ControlsRebuiltPerEdit = 0; // measured 0 before the fix
-    private const long BytesPerEdit = 83_500; // measured 55,565 B before the fix
+    private const int ControlsRebuiltPerEdit = 0; // measured 0 before and after the fix
+    private const long BytesPerEdit = 38_500; // measured 55,565 B before the fix, 29,597 B after
 }
