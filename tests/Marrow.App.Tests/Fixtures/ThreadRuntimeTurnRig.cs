@@ -53,7 +53,7 @@ public sealed class ThreadRuntimeTurnRig : IDisposable
     public void Install(ThreadRuntimeScriptedSession session, bool? antiSlopEnabled = null, bool observe = true)
     {
         Session = session;
-        H.Main.OnMain(() =>
+        void Apply()
         {
             var current = App.Thread(InitialThread.Id)!;
             if (observe) Runtime.Observe(session);
@@ -63,7 +63,10 @@ public sealed class ThreadRuntimeTurnRig : IDisposable
                 .Invoke(null, [current, Directory, antiSlopEnabled ?? App.Settings.AntiSlopEnabled, keeps ? App.HydraLaunch(current) : null]);
             ThreadRuntimeReflection.Set(Runtime, "session", session);
             ThreadRuntimeReflection.Set(Runtime, "sessionSignature", signature);
-        });
+        }
+        // From inside a main-loop action (the loop runs everything an action posts before OnMain returns), install in place.
+        if (H.Main.Loop.CheckAccess()) Apply();
+        else H.Main.OnMain(Apply);
     }
 
     /// <summary>Runs StartTurn (ThreadRuntime.swift:1175) up to its first real suspension on the main loop and hands

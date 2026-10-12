@@ -41,6 +41,7 @@ public sealed class TabulaVersionStrip : Border
     private int? compare;
     private bool diff;
     private TabulaPendingAsk? pending;
+    private IReadOnlyList<TabulaPendingAsk> queued = [];
     private Point? pressAt;
     private bool scrubbing;
     private int? scrubbed;
@@ -91,16 +92,19 @@ public sealed class TabulaVersionStrip : Border
     /// <summary>Each version's words as the strip shows them: "v4 · latest" and its caption.</summary>
     public IReadOnlyList<(string Label, string Caption)> Labels => nodes.Select(n => (n.Label.Text ?? "", n.Caption.Text ?? "")).ToList();
 
-    public void Show(Artifact value, int version, int? compareWith, bool comparing, TabulaPendingAsk? asking)
+    public void Show(Artifact value, int version, int? compareWith, bool comparing, TabulaPendingAsk? asking,
+        IReadOnlyList<TabulaPendingAsk>? queuedAsks = null)
     {
+        queuedAsks ??= [];
         var rebuild = artifact is null || artifact.Id != value.Id || artifact.Thread != value.Thread || artifact.Versions.Count != value.Versions.Count
-            || artifact.Current != value.Current || pending != asking;
+            || artifact.Current != value.Current || pending != asking || !queued.SequenceEqual(queuedAsks);
         var animate = artifact is not null && artifact.Id == value.Id && artifact.Thread == value.Thread;
         artifact = value;
         shown = version;
         compare = compareWith;
         diff = comparing;
         pending = asking;
+        queued = queuedAsks;
         if (rebuild) Build();
         Paint(animate && !rebuild);
         Pulse();
@@ -143,13 +147,19 @@ public sealed class TabulaVersionStrip : Border
         var latest = artifact.Current;
         foreach (var version in artifact.Versions)
         {
-            var label = version.Number == latest && pending is null
+            var label = version.Number == latest && pending is null && queued.Count == 0
                 ? string.Create(CultureInfo.InvariantCulture, $"v{version.Number} · latest")
                 : string.Create(CultureInfo.InvariantCulture, $"v{version.Number}");
             nodes.Add(Make(version.Number, label, Caption(version), isPending: false, isLast: false));
         }
         if (pending is { } asking)
-            nodes.Add(Make(latest + 1, string.Create(CultureInfo.InvariantCulture, $"v{latest + 1}"), FirstLine(asking.Prompt), isPending: true, isLast: true));
+            nodes.Add(Make(asking.Number > 0 ? asking.Number : latest + 1, string.Create(CultureInfo.InvariantCulture, $"v{(asking.Number > 0 ? asking.Number : latest + 1)}"), FirstLine(asking.Prompt), isPending: true, isLast: true));
+        foreach (var request in queued)
+        {
+            var node = Make(request.Number, string.Create(CultureInfo.InvariantCulture, $"v{request.Number} queued"), FirstLine(request.Prompt), isPending: true, isLast: true);
+            node.IsQueued = true;
+            nodes.Add(node);
+        }
         if (nodes.Count > 0) nodes[^1].Line.IsVisible = false;
         foreach (var node in nodes) row.Children.Add(node.Root);
     }
@@ -191,7 +201,7 @@ public sealed class TabulaVersionStrip : Border
             node.Caption.Foreground = PaneTokens.Text3.Brush(node.Caption);
             if (animate) node.Halo!.To(on ? 1 : 0, reduce);
             else node.Halo!.Snap(on ? 1 : 0);
-            AutomationProperties.SetItemStatus(node.Root, node.IsPending ? "Being written" : on ? "Shown" : compared ? "Compared" : "");
+            AutomationProperties.SetItemStatus(node.Root, node.IsQueued ? "Queued" : node.IsPending ? "Being written" : on ? "Shown" : compared ? "Compared" : "");
         }
         Avalonia.Threading.Dispatcher.UIThread.Post(() => Reveal(animate && !reduce), Avalonia.Threading.DispatcherPriority.Loaded);
     }
@@ -245,7 +255,7 @@ public sealed class TabulaVersionStrip : Border
         pulseStart ??= now;
         var phase = (now - pulseStart.Value).TotalSeconds % 1.0;
         var opacity = 0.45 + 0.55 * (0.5 + 0.5 * Math.Cos(phase * 2 * Math.PI));
-        foreach (var node in nodes.Where(n => n.IsPending)) node.Dot.Opacity = opacity;
+        foreach (var node in nodes.Where(n => n.IsPending && !n.IsQueued)) node.Dot.Opacity = opacity;
         pulse = OnPulse;
         pulseSource = FrameClock.Source.Current;
         pulseSource.RequestFrame(pulse);
@@ -362,6 +372,7 @@ public sealed class TabulaVersionStrip : Border
         public TextBlock Label { get; } = label;
         public TextBlock Caption { get; } = caption;
         public bool IsPending { get; } = isPending;
+        public bool IsQueued { get; set; }
         public TabulaSpringValue? Halo { get; set; }
     }
 }

@@ -36,7 +36,12 @@ public enum TabulaGalleryScope
 public sealed record TabulaRef(Guid Thread, string Id);
 
 /// <summary>A change asked from the pane that the model has not answered yet (the strip's pulsing dot).</summary>
-public sealed record TabulaPendingAsk(string Id, int FromVersion, string Prompt, DateTimeOffset At);
+public sealed record TabulaPendingAsk(string Id, int FromVersion, string Prompt, DateTimeOffset At)
+{
+    public Guid RequestId { get; init; } = Guid.NewGuid();
+    public int Number { get; init; }
+    public bool IsQueued { get; init; }
+}
 
 /// <summary>What one thread's Tabula pane shows.</summary>
 public sealed class TabulaState
@@ -44,6 +49,7 @@ public sealed class TabulaState
     public const string FileName = "tabula.json";
 
     private readonly string? file;
+    private readonly List<TabulaPendingAsk> asks = [];
 
     public TabulaState(Guid thread, string? file = null)
     {
@@ -84,7 +90,54 @@ public sealed class TabulaState
     /// <summary>The text chosen in Markdown or code when Ask to change opened ("Change this part").</summary>
     public string? AskSelection { get; private set; }
 
-    public TabulaPendingAsk? PendingAsk { get; private set; }
+    public TabulaPendingAsk? PendingAsk => asks.FirstOrDefault(a => !a.IsQueued);
+
+    public IReadOnlyList<TabulaPendingAsk> QueuedAsks => asks.Where(a => a.IsQueued).ToArray();
+
+    /// <summary>Accepted requests, in thread order; kept outside the pane's controls (ED-NEW-web-nc6-1).</summary>
+    public IReadOnlyList<TabulaPendingAsk> Asks => asks.ToArray();
+
+    public void AddAsk(TabulaPendingAsk pending)
+    {
+        if (asks.Any(a => a.RequestId == pending.RequestId)) return;
+        var number = Math.Max(pending.FromVersion + 1, asks.Where(a => a.Id == pending.Id).Select(a => a.Number + 1).DefaultIfEmpty(1).Max());
+        asks.Add(pending with { Number = number });
+        Commit(save: false);
+    }
+
+    public void StartAsk(Guid request, int currentVersion)
+    {
+        var at = asks.FindIndex(a => a.RequestId == request);
+        if (at < 0) return;
+        var active = asks[at] with { IsQueued = false, Number = currentVersion + 1 };
+        asks[at] = active;
+        var next = active.Number;
+        for (var i = at + 1; i < asks.Count; i++)
+            if (asks[i].Id == active.Id) asks[i] = asks[i] with { Number = ++next };
+        Commit(save: false);
+    }
+
+    public void FinishAsk(Guid request)
+    {
+        if (asks.RemoveAll(a => a.RequestId == request) == 0) return;
+        Commit(save: false);
+    }
+
+    /// <summary>One turn can write several versions: every waiting node stays after all written versions.</summary>
+    public void RebaseAsks(string artifact, int currentVersion)
+    {
+        var number = Math.Max(currentVersion, asks.Where(a => a.Id == artifact && !a.IsQueued).Select(a => a.Number).DefaultIfEmpty(0).Max());
+        var changed = false;
+        for (var i = 0; i < asks.Count; i++)
+        {
+            if (asks[i].Id != artifact || !asks[i].IsQueued) continue;
+            number++;
+            if (asks[i].Number == number) continue;
+            asks[i] = asks[i] with { Number = number };
+            changed = true;
+        }
+        if (changed) Commit(save: false);
+    }
 
     /// <summary>The artifact is another chat's: it opens read-only, with "Copy into this thread" (6.1).</summary>
     public bool IsReadOnly => Selected is { } selected && selected.Thread != Thread;
@@ -185,8 +238,8 @@ public sealed class TabulaState
     public void SetPendingAsk(TabulaPendingAsk? pending)
     {
         if (PendingAsk == pending) return;
-        PendingAsk = pending;
-        Commit(save: false);
+        if (PendingAsk is { } previous) FinishAsk(previous.RequestId);
+        if (pending is not null) AddAsk(pending);
     }
 
     private void Commit(bool save)
