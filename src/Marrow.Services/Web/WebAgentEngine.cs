@@ -1,0 +1,983 @@
+// PORT-ONLY: web surfaces W11, model access to Visus (E:/Droppy/work/design/web-surfaces/DESIGN.md 5.10 "Model access (in the
+// same safety model as Tactus)", 8.1; ED-NEW-web-w11-1). No Swift counterpart. One engine per chat runs the web_* tools on the
+// tabs the chat's model may use. Every step goes through the same gates, in order: Visus model access on, not stopped this
+// turn, the Tactus run control's watch (Stop and the chord end it at once), the queue (steps run one at a time, so a stop also
+// cancels the queued ones), Pause and take-over (the step holds, up to 25 s, then answers paused or user_took_over), the
+// per-site card for actions (and for reading a shared tab), the cross-origin-after-read card for model navigations, the hard
+// denies and the guarded-action card, judged on the element's facts read fresh at the moment of the step. Navigations the
+// model causes (a click, Enter, a redirect within 3 s of a step) are checked as they start and stopped when they would cross
+// to another site after a read; the model is told to ask through web_open. Page content reaches the model only inside the
+// untrusted block. Asks wait 25 s in the call, then answer waiting_for_user; the card stays up (2 minutes) and the same call
+// again joins it. This file holds the gates and the tab-level tools; WebAgentEngine.Page.cs holds the page-level ones.
+using System.Globalization;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Marrow.Core.Web;
+using Marrow.Services.Port.PcControl;
+
+namespace Marrow.Services.Web;
+
+public sealed partial class WebAgentEngine : IDisposable
+{
+    /// <summary>How long a call waits for the user's answer before it answers waiting_for_user.</summary>
+    public const int AskWaitMs = 25_000;
+
+    /// <summary>How long an unanswered card stays up for the same call to join it again.</summary>
+    public const int AskLifetimeMs = 120_000;
+
+    /// <summary>How long a step holds for Pause or a take-over before it answers paused or user_took_over.</summary>
+    public const int HoldWaitMs = 25_000;
+
+    /// <summary>A navigation this soon after a model step on the tab counts as the model's (a click's link, a submit's redirect).</summary>
+    public const int AfterStepMs = 3_000;
+
+    /// <summary>How long web_open and web_navigate wait for the page to load.</summary>
+    public const int LoadWaitMs = 15_000;
+
+    /// <summary>How long a click or Enter waits for the navigation it may start.</summary>
+    public const int SettleMs = 350;
+
+    private readonly WebAgentHub hub;
+    private readonly SemaphoreSlim queue = new(1, 1);
+    private readonly Lock gate = new();
+    private readonly Dictionary<string, TabState> states = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> shortIds = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> readOrigins = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> knownUrls = new(StringComparer.Ordinal);
+    private readonly LinkedList<string> readTexts = new();
+    private readonly Dictionary<string, PendingAsk> asks = new(StringComparer.Ordinal);
+    private CancellationTokenSource turn = new();
+    private PcRunControl? watchedRun;
+    private bool stopped;
+    private int nextShort;
+    private bool disposed;
+
+    internal WebAgentEngine(WebAgentHub hub, string thread)
+    {
+        this.hub = hub;
+        Thread = thread;
+    }
+
+    public string Thread { get; }
+
+    /// <summary>The user stopped the web steps for the rest of this turn.</summary>
+    public bool StoppedForTurn
+    {
+        get
+        {
+            lock (gate) return stopped;
+        }
+    }
+
+    /// <summary>The sites whose content the model has read in this chat (the cross-origin rule's sources).</summary>
+    public IReadOnlyCollection<string> ReadOrigins
+    {
+        get
+        {
+            lock (gate) return [.. readOrigins];
+        }
+    }
+
+    /// <summary>The asks waiting for the user now.</summary>
+    public int PendingAsks
+    {
+        get
+        {
+            lock (gate) return asks.Values.Count(a => !a.Task.IsCompleted);
+        }
+    }
+
+    /// <summary>Runs one web tool for <paramref name="caller"/>. Never throws for a refusal; a cancelled call throws.</summary>
+    public async Task<WebToolResult> Call(string tool, JsonObject? arguments, WebAgentCaller caller, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        if (WebToolSchemas.Spec(tool) is null) return Fail(WebErrorCodes.BadArgs, "There is no web tool " + tool + ".");
+        if (!hub.Offered || hub.Host is not { } host || hub.Asker is not { } asker)
+            return Fail(WebErrorCodes.Off, "Visus model access is off (Settings › Visus › Let models use Visus). Ask the user to turn it on.");
+        WatchRun();
+        if (StoppedForTurn) return Stopped();
+        CancellationToken turnToken;
+        lock (gate) turnToken = turn.Token;
+        using var watch = hub.Run.Watch(cancellationToken, Thread, WebAgentHub.App, 0);
+        using var joined = hub.TactusPause?.Join(Thread, WebAgentHub.App, new PcWaitState());
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(watch.Token, turnToken);
+        var token = linked.Token;
+        try
+        {
+            await queue.WaitAsync(token).ConfigureAwait(false);
+            try
+            {
+                if (StoppedForTurn) return Stopped();
+                var step = new Step(tool, arguments ?? [], caller, host, asker, token);
+                // A stop ends the call at once, even while a page call it made is still on its way back.
+                return await host.OnUi(() => Dispatch(step)).WaitAsync(token).ConfigureAwait(false);
+            }
+            finally
+            {
+                queue.Release();
+            }
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            if (watch.Stopped) StopTurn(watch.StoppedBy ?? PcStopSource.Pill);
+            return Stopped();
+        }
+    }
+
+    /// <summary>The user stopped the web steps: the running one ends, the queued ones never start, and none starts this turn.</summary>
+    public void StopTurn(PcStopSource source)
+    {
+        List<TabState> driven;
+        lock (gate)
+        {
+            if (disposed) return;
+            stopped = true;
+            turn.Cancel();
+            asks.Clear();
+            driven = [.. states.Values.Where(s => s.Driven)];
+        }
+        hub.Report(new WebAgentActivity(Thread, WebAgentPhase.Stopped, "Every web step ended. Ctrl+Alt+Esc does the same."));
+        Release(driven);
+    }
+
+    /// <summary>The turn ended: the asks go, the overlay leaves the tabs, and the next turn may use Visus again.</summary>
+    public void EndTurn()
+    {
+        List<TabState> driven;
+        lock (gate)
+        {
+            if (disposed) return;
+            turn.Cancel();
+            turn = new CancellationTokenSource();
+            stopped = false;
+            asks.Clear();
+            driven = [.. states.Values.Where(s => s.Driven)];
+        }
+        hub.Report(new WebAgentActivity(Thread, WebAgentPhase.Idle, ""));
+        Release(driven);
+    }
+
+    /// <summary>Resume: every tab the user took over goes back to the model.</summary>
+    internal void HandBack()
+    {
+        lock (gate)
+        {
+            foreach (var state in states.Values) state.TookOver = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        List<TabState> all;
+        lock (gate)
+        {
+            if (disposed) return;
+            disposed = true;
+            turn.Cancel();
+            all = [.. states.Values];
+            states.Clear();
+            asks.Clear();
+            if (watchedRun is not null) watchedRun.Stopped -= OnRunStopped;
+            watchedRun = null;
+        }
+        foreach (var state in all) state.Unhook();
+        turn.Dispose();
+        queue.Dispose();
+    }
+
+    private async Task<WebToolResult> Dispatch(Step s)
+    {
+        try
+        {
+            return s.Tool switch
+            {
+                WebToolSchemas.Open => await Open(s),
+                WebToolSchemas.Tabs => ListTabs(s),
+                WebToolSchemas.Read => await Read(s),
+                WebToolSchemas.Find => await FindOnPage(s),
+                WebToolSchemas.Screenshot => await Screenshot(s),
+                WebToolSchemas.Click => await Click(s),
+                WebToolSchemas.Type => await TypeText(s),
+                WebToolSchemas.Key => await Keys(s),
+                WebToolSchemas.Scroll => await Scroll(s),
+                WebToolSchemas.Select => await SelectOption(s),
+                WebToolSchemas.Wait => await Wait(s),
+                WebToolSchemas.Navigate => await History(s),
+                WebToolSchemas.Console => await Logs(s, network: false),
+                WebToolSchemas.Network => await Logs(s, network: true),
+                WebToolSchemas.Device => await Device(s),
+                WebToolSchemas.Eval => await Eval(s),
+                _ => Fail(WebErrorCodes.BadArgs, "There is no web tool " + s.Tool + "."),
+            };
+        }
+        catch (Refusal refusal)
+        {
+            return refusal.Result;
+        }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            return Fail(WebErrorCodes.PageFailed, "The page did not answer (" + error.GetType().Name + "). Read it again, or reload it with web_navigate.");
+        }
+    }
+
+    // ---- The tab-level tools ----
+
+    private WebToolResult ListTabs(Step s)
+    {
+        var tabs = s.Host.Tabs(Thread).Where(t => !t.IsClosed && t.Kind != VisusTabKind.Private).ToList();
+        if (tabs.Count == 0) return new WebToolResult("No Visus tabs are yours or shared with you. web_open opens one.");
+        var lines = new StringBuilder();
+        foreach (var tab in tabs)
+        {
+            var state = StateOf(tab);
+            lines.Append(state.Short).Append(" (").Append(tab.Shared ? "shared by the user" : "yours").Append(") ").Append(tab.Url);
+            if (tab.Title.Length > 0) lines.Append(" | ").Append(tab.Title);
+            lines.Append('\n');
+        }
+        return new WebToolResult("Tabs you may use (" + N(tabs.Count) + "):\n" + WebAgentText.Untrusted(null, lines.ToString().TrimEnd()));
+    }
+
+    private async Task<WebToolResult> Open(Step s)
+    {
+        var url = Str(s.Args, "url")?.Trim();
+        var query = Str(s.Args, "query")?.Trim();
+        if (string.IsNullOrEmpty(url) == string.IsNullOrEmpty(query)) return Fail(WebErrorCodes.BadArgs, "Pass url or query (one of them).");
+        var searched = !string.IsNullOrEmpty(query);
+        url = searched ? s.Host.SearchUrl(query!) : WithScheme(url!);
+        if (WebAgentUrls.DeniedReason(url) is { } why) return Fail(WebErrorCodes.Denied, why);
+        var target = WebPolicy.OriginOf(url)!;
+        TabState? state = null;
+        if (Str(s.Args, "tab") is { Length: > 0 } named)
+        {
+            state = await Prepare(s, TabFor(s, named));
+        }
+        if (!searched && !IsKnown(s, url, state)) return Fail(WebErrorCodes.UnknownUrl, "nth opens only addresses from the conversation, from pages you read and from search results. Search for it with query, or ask the user for the address.");
+        if (await Hold(s, state) is { } held) return held;
+        var (refused, crossed) = await CrossOrigin(s, state, url);
+        if (refused is not null) return refused;
+        if (!crossed && state is { Tab.Shared: true } && !SameOrigin(state.Tab.Url, url) && WebPolicy.OriginOf(state.Tab.Url) is not null)
+        {
+            var move = WebGuardVerdict.Ask(WebGuardCategory.NewSite, "open");
+            if (await Guard(s, state, move, new WebElementFacts(), "open|" + WebAgentUrls.Normalize(url), url) is { } cancelled) return cancelled;
+        }
+        Report(searched ? "Searching for " + Clip(query!, 40) : "Opening " + WebPolicy.SourceName(url), state?.Short);
+        if (state is null)
+        {
+            var opened = await s.Host.OpenAgentTab(Thread, url, s.Token) ?? throw new Refusal(Fail(WebErrorCodes.PageFailed, "Visus could not open a tab."));
+            state = await Prepare(s, opened);
+            state.Expected = target;
+            using var lease = BeginStep(state);
+            await WaitLoaded(state, s.Token);
+        }
+        else
+        {
+            state.Expected = target;
+            using var lease = BeginStep(state);
+            var before = state.Tab.Url;
+            state.Tab.Navigate(url);
+            await WaitStarted(state, before, s.Token);
+            await WaitLoaded(state, s.Token);
+        }
+        lock (gate) knownUrls.Add(WebAgentUrls.Normalize(url));
+        if (state.Blocked is { } blocked) return Fail(WebErrorCodes.Blocked, blocked);
+        var tab = state.Tab;
+        var text = "Opened " + state.Short + " at " + tab.Url + (tab.Loading ? " (still loading; web_wait for load)" : "") + ".";
+        return new WebToolResult(text + "\n" + WebAgentText.Untrusted(WebPolicy.OriginOf(tab.Url), "Title: " + tab.Title));
+    }
+
+    private async Task<WebToolResult> History(Step s)
+    {
+        var state = await Prepare(s, TabFor(s, Str(s.Args, "tab")));
+        var action = Str(s.Args, "action")?.Trim().ToLowerInvariant();
+        if (action is not ("back" or "forward" or "reload")) return Fail(WebErrorCodes.BadArgs, "action is back, forward or reload.");
+        if (await Hold(s, state) is { } held) return held;
+        var view = state.Tab.View;
+        if (action == "back" && view is { CanGoBack: false }) return Fail(WebErrorCodes.BadArgs, state.Short + " has no page to go back to.");
+        if (action == "forward" && view is { CanGoForward: false }) return Fail(WebErrorCodes.BadArgs, state.Short + " has no page to go forward to.");
+        Report(action switch { "back" => "Going back", "forward" => "Going forward", _ => "Reloading the page" }, state.Short);
+        using (BeginStep(state))
+        {
+            var before = state.Tab.Url;
+            state.Expected = action == "reload" ? WebPolicy.OriginOf(before) : null;
+            if (action == "back") state.Tab.GoBack();
+            else if (action == "forward") state.Tab.GoForward();
+            else state.Tab.Reload();
+            await WaitStarted(state, action == "reload" ? null : before, s.Token);
+            await WaitLoaded(state, s.Token);
+        }
+        if (state.Blocked is { } blocked) return Fail(WebErrorCodes.Blocked, blocked);
+        return new WebToolResult(state.Short + " is at " + state.Tab.Url + ".\n" + WebAgentText.Untrusted(WebPolicy.OriginOf(state.Tab.Url), "Title: " + state.Tab.Title));
+    }
+
+    private async Task<WebToolResult> Wait(Step s)
+    {
+        var state = await Prepare(s, TabFor(s, Str(s.Args, "tab")));
+        var kind = (Str(s.Args, "for") ?? "load").Trim().ToLowerInvariant();
+        var timeout = (int)Math.Clamp(Num(s.Args, "timeout") ?? 10_000, 100, WebToolSchemas.MaxWaitMs);
+        if (kind is not ("load" or "ref" or "idle")) return Fail(WebErrorCodes.BadArgs, "for is load, ref or idle.");
+        WebNodeKey? key = null;
+        if (kind == "ref") key = RefOf(state, Str(s.Args, "ref"));
+        Report("Waiting for the page", state.Short);
+        var start = hub.Clock.NowMs;
+        while (true)
+        {
+            var done = kind switch
+            {
+                "load" => !state.Tab.Loading && await ReadyState(state, s.Token) is null or "complete",
+                "idle" => state.Logs.InFlight == 0 && hub.Clock.NowMs - Math.Max(state.Logs.LastNetworkAt, start - 500) >= 500,
+                _ => await Visible(state, key!.Value, s.Token),
+            };
+            if (done) return new WebToolResult(kind switch { "load" => state.Short + " finished loading.", "idle" => state.Short + " has no requests running.", _ => Str(s.Args, "ref") + " is on the page." });
+            if (hub.Clock.NowMs - start >= timeout)
+                return Fail(WebErrorCodes.Timeout, "Waited " + N(timeout) + " ms; " + (kind switch { "load" => "the page is still loading.", "idle" => "requests are still running.", _ => "the element is not visible." }));
+            await hub.Clock.Delay(kind == "ref" ? 200 : 100, s.Token);
+        }
+    }
+
+    private async Task<WebToolResult> Logs(Step s, bool network)
+    {
+        var state = await Prepare(s, TabFor(s, Str(s.Args, "tab")));
+        if (await Hold(s, state) is { } held) return held;
+        if (state.Tab.Shared && await Site(s, state) is { } refused) return refused;
+        Report(network ? "Reading the network" : "Reading the console", state.Short);
+        var since = (long)Math.Max(0, Num(s.Args, "since") ?? 0);
+        var (lines, next) = network ? state.Logs.Network(since) : state.Logs.Console(since);
+        var origin = WebPolicy.OriginOf(state.Tab.Url);
+        Saw(origin, null, []);
+        if (lines.Count == 0) return new WebToolResult("Nothing new in " + state.Short + "'s " + (network ? "network" : "console") + ". next: " + N(next)) { ReadOrigin = origin };
+        var body = string.Join('\n', lines.Select(l => "#" + N(l.Number) + " " + l.Text));
+        return new WebToolResult(N(lines.Count) + " " + (network ? "requests" : "messages") + " in " + state.Short + ". next: " + N(next) + "\n" + WebAgentText.Untrusted(origin, body)) { ReadOrigin = origin };
+    }
+
+    private async Task<WebToolResult> Device(Step s)
+    {
+        var state = await Prepare(s, TabFor(s, Str(s.Args, "tab")));
+        if (state.Tab.Kind != VisusTabKind.Preview && !WebPolicy.IsDevUrl(state.Tab.Url))
+            return Fail(WebErrorCodes.NotSupported, "web_device works on project previews (localhost and LAN dev hosts) only.");
+        if (await Hold(s, state) is { } held) return held;
+        WebDeviceSize? size;
+        var preset = Str(s.Args, "preset");
+        if (preset is not null)
+        {
+            if (!WebAgentDevices.Presets.TryGetValue(preset.Trim(), out size)) return Fail(WebErrorCodes.BadArgs, "preset is phone, tablet, laptop or desktop.");
+        }
+        else if (Num(s.Args, "width") is { } width && Num(s.Args, "height") is { } height)
+        {
+            if (width < WebAgentDevices.MinSide || height < WebAgentDevices.MinSide || width > WebAgentDevices.MaxSide || height > WebAgentDevices.MaxSide)
+                return Fail(WebErrorCodes.BadArgs, "width and height are 240 to 4000 CSS px.");
+            size = new WebDeviceSize((int)width, (int)height, 1, false);
+        }
+        else
+        {
+            return Fail(WebErrorCodes.BadArgs, "Pass preset, or width and height.");
+        }
+        Report("Setting the device size", state.Short);
+        var cdp = state.Cdp!;
+        if (size is null)
+        {
+            await cdp.CallAsync("Emulation.clearDeviceMetricsOverride", cancellationToken: s.Token);
+            await cdp.CallAsync("Emulation.setTouchEmulationEnabled", new JsonObject { ["enabled"] = false }, cancellationToken: s.Token);
+            return new WebToolResult(state.Short + " is back at the pane's own size.");
+        }
+        await cdp.CallAsync("Emulation.setDeviceMetricsOverride", new JsonObject
+        {
+            ["width"] = size.Width,
+            ["height"] = size.Height,
+            ["deviceScaleFactor"] = size.Scale,
+            ["mobile"] = size.Mobile,
+        }, cancellationToken: s.Token);
+        await cdp.CallAsync("Emulation.setTouchEmulationEnabled", new JsonObject { ["enabled"] = size.Mobile }, cancellationToken: s.Token);
+        return new WebToolResult(state.Short + " now shows " + N(size.Width) + " x " + N(size.Height) + " CSS px" + (size.Mobile ? " as a touch device" : "") + ".");
+    }
+
+    private async Task<WebToolResult> Eval(Step s)
+    {
+        var state = await Prepare(s, TabFor(s, Str(s.Args, "tab")));
+        var expression = Str(s.Args, "expression");
+        if (string.IsNullOrWhiteSpace(expression)) return Fail(WebErrorCodes.BadArgs, "Pass expression.");
+        if (!WebPolicy.IsDevUrl(state.Tab.Url) || WebPolicy.OriginOf(state.Tab.Url) is not { } origin)
+            return Fail(WebErrorCodes.NotSupported, "web_eval runs only in project previews (localhost and LAN dev hosts).");
+        if (await Hold(s, state) is { } held) return held;
+        if (!hub.Grants.Eval(origin))
+        {
+            var ask = new WebEvalAsk(Thread, state.Short, origin, s.Model);
+            Report("Check the card", state.Short, WebAgentPhase.Asking);
+            var (answered, allowed) = await Ask("eval|" + origin, t => s.Asker.AskEval(ask, t), false, s);
+            if (!answered) return Waiting(s);
+            if (!allowed) return Fail(WebErrorCodes.NotApproved, "The user did not allow scripts in " + WebPolicy.SourceName(origin) + ". Use the other web tools.");
+            hub.Grants.GrantEval(origin);
+        }
+        Report("Running a script", state.Short);
+        var result = await state.Cdp!.CallAsync("Runtime.evaluate", new JsonObject
+        {
+            ["expression"] = expression,
+            ["returnByValue"] = true,
+            ["awaitPromise"] = true,
+            ["timeout"] = 10_000,
+            ["userGesture"] = false,
+        }, cancellationToken: s.Token);
+        Saw(origin, null, []);
+        if (result.TryGetProperty("exceptionDetails", out var thrown))
+        {
+            var message = thrown.TryGetProperty("exception", out var ex) && Text(ex, "description") is { } description ? description : Text(thrown, "text") ?? "error";
+            return Fail(WebErrorCodes.PageFailed, "The expression threw.\n" + WebAgentText.Untrusted(origin, Clip(message, 4000))) with { ReadOrigin = origin };
+        }
+        var value = result.TryGetProperty("result", out var r)
+            ? r.TryGetProperty("value", out var v) ? v.GetRawText() : Text(r, "description") ?? Text(r, "type") ?? "undefined"
+            : "undefined";
+        return new WebToolResult("Result:\n" + WebAgentText.Untrusted(origin, Clip(value, 20_000))) { ReadOrigin = origin };
+    }
+
+    // ---- The gates ----
+
+    // The tab a call names, among the tabs the chat's model may use now.
+    private IWebAgentTab TabFor(Step s, string? shortId)
+    {
+        if (string.IsNullOrWhiteSpace(shortId)) throw new Refusal(Fail(WebErrorCodes.BadArgs, "Pass tab (t1) from web_tabs or web_open."));
+        string? id;
+        lock (gate) shortIds.TryGetValue(shortId.Trim(), out id);
+        var tab = id is null ? null : s.Host.Tabs(Thread).FirstOrDefault(t => string.Equals(t.Id, id, StringComparison.Ordinal));
+        if (tab is null || tab.IsClosed || tab.Kind == VisusTabKind.Private)
+            throw new Refusal(Fail(WebErrorCodes.NoTab, "There is no tab " + shortId.Trim() + " you may use. web_tabs lists them."));
+        return tab;
+    }
+
+    // The tab's state, with its view live and hooked (navigation checks, take-over, logs).
+    private async Task<TabState> Prepare(Step s, IWebAgentTab tab)
+    {
+        if (!await tab.MakeLiveAsync(s.Token)) throw new Refusal(Fail(WebErrorCodes.PageFailed, "The tab could not load its page."));
+        var state = StateOf(tab);
+        if (tab.View is not { } view || tab.Cdp is not { } cdp) throw new Refusal(Fail(WebErrorCodes.PageFailed, "The tab has no page yet."));
+        if (!ReferenceEquals(state.View, view) || !ReferenceEquals(state.Cdp, cdp))
+        {
+            state.Unhook();
+            state.View = view;
+            state.Cdp = cdp;
+            state.Refs = new WebRefs();
+            state.Overlay = new WebAgentOverlay();
+            state.FramesAttached = false;
+            EventHandler<WebNavigationStarting> starting = (_, e) => OnNavigationStarting(state, e);
+            EventHandler<WebNavigationCompleted> completed = (_, _) => state.Overlay.Reset();
+            Action input = () => OnUserInput(state);
+            view.NavigationStarting += starting;
+            view.NavigationCompleted += completed;
+            tab.UserInput += input;
+            state.Hooks.Add(new Unhooking(() =>
+            {
+                view.NavigationStarting -= starting;
+                view.NavigationCompleted -= completed;
+                tab.UserInput -= input;
+            }));
+            state.Hooks.Add(cdp.Subscribe("Runtime.bindingCalled", e => OnBinding(state, e)));
+            state.Hooks.Add(state.Logs);
+            await state.Logs.AttachAsync(cdp, s.Token);
+            foreach (var domain in new[] { "Page.enable", "DOM.enable" }) await Quietly(cdp, domain, s.Token);
+        }
+        return state;
+    }
+
+    private TabState StateOf(IWebAgentTab tab)
+    {
+        lock (gate)
+        {
+            if (states.TryGetValue(tab.Id, out var state))
+            {
+                state.Tab = tab;
+                return state;
+            }
+            var made = new TabState(tab, "t" + N(++nextShort), () => hub.Clock.NowMs);
+            states[tab.Id] = made;
+            shortIds[made.Short] = tab.Id;
+            return made;
+        }
+    }
+
+    // Pause and take-over: the step holds until they end, up to 25 s, then answers paused or user_took_over.
+    private async Task<WebToolResult?> Hold(Step s, TabState? state)
+    {
+        var start = hub.Clock.NowMs;
+        var held = false;
+        while (true)
+        {
+            var paused = hub.IsPaused;
+            var took = state is not null && TookOver(state);
+            if (!paused && !took)
+            {
+                if (held) Report("Resuming", state?.Short);
+                return null;
+            }
+            if (!held)
+            {
+                if (paused) Report("The page stays as it is", state?.Short, WebAgentPhase.Paused);
+                else Report("Resume when you are done", state?.Short, WebAgentPhase.TookOver);
+            }
+            held = true;
+            var left = HoldWaitMs - (hub.Clock.NowMs - start);
+            if (left <= 0)
+            {
+                return paused
+                    ? Fail(WebErrorCodes.Paused, "The user paused Visus; the page stays as it is. Call again after they resume.")
+                    : Fail(WebErrorCodes.TookOver, "The user is working in " + state!.Short + ". Do not use that tab until they resume; other tabs still work.");
+            }
+            using var cut = CancellationTokenSource.CreateLinkedTokenSource(s.Token);
+            await Task.WhenAny(hub.NextChange(), Swallow(hub.Clock.Delay((int)Math.Min(left, int.MaxValue), cut.Token)));
+            await cut.CancelAsync();
+            s.Token.ThrowIfCancellationRequested();
+        }
+    }
+
+    // DESIGN 5.10: the first action on a site in a tab asks; reading a shared tab asks too. Allow once lasts while the tab stays
+    // on the site. A shared tab is never offered "Always allow", and its card cannot be turned off.
+    private async Task<WebToolResult?> Site(Step s, TabState state)
+    {
+        var origin = WebPolicy.OriginOf(state.Tab.Url);
+        if (origin is null) return null;
+        if (state.OnceOrigin is { } once && !string.Equals(once, origin, StringComparison.OrdinalIgnoreCase)) state.OnceOrigin = null;
+        if (state.OnceOrigin is not null) return null;
+        if (!state.Tab.Shared && (!hub.Settings().AskNewSites || hub.Grants.Site(origin))) return null;
+        var ask = new WebSiteAsk(Thread, state.Short, origin, s.Model, state.Tab.Shared);
+        Report("Check the card", state.Short, WebAgentPhase.Asking);
+        var (answered, answer) = await Ask("site|" + state.Tab.Id + "|" + origin, t => s.Asker.AskSite(ask, t), WebSiteAnswer.Deny, s);
+        if (!answered) return Waiting(s);
+        if (answer == WebSiteAnswer.Deny)
+            return Fail(WebErrorCodes.NotApproved, "The user did not allow " + s.Model + " to use " + WebPolicy.SourceName(origin) + " in Visus. Do not try another way to use it.");
+        if (answer == WebSiteAnswer.AlwaysAllow && ask.AllowAlways) hub.Grants.GrantSite(origin);
+        state.OnceOrigin = origin;
+        return null;
+    }
+
+    // DESIGN 5.10 cross-origin rule: once the model read one site, a model navigation to another asks, with the full address.
+    private async Task<(WebToolResult? Refused, bool Asked)> CrossOrigin(Step s, TabState? state, string url)
+    {
+        IReadOnlyList<string> from;
+        lock (gate) from = WebAgentUrls.CrossOriginSources(readOrigins, url, hub.Grants.Pair);
+        if (from.Count == 0) return (null, false);
+        var ask = new WebNavigateAsk(Thread, state?.Short, from, url, WebAgentUrls.QueryFields(url, FromPage), s.Model);
+        Report("Check the card", state?.Short, WebAgentPhase.Asking);
+        var (answered, answer) = await Ask("nav|" + url, t => s.Asker.AskNavigate(ask, t), WebNavigateAnswer.Deny, s);
+        if (!answered) return (Waiting(s), true);
+        if (answer == WebNavigateAnswer.Deny)
+            return (Fail(WebErrorCodes.NotApproved, "The user did not allow opening " + WebPolicy.SourceName(url) + ". Do not try another way to open it."), true);
+        if (answer == WebNavigateAnswer.AlwaysForPair)
+        {
+            var to = WebPolicy.OriginOf(url)!;
+            foreach (var source in from) hub.Grants.GrantPair(source, to);
+        }
+        return (null, true);
+    }
+
+    // The guarded-action card ("Send invite?") or a hard deny; null when the step may run.
+    private async Task<WebToolResult?> Guard(Step s, TabState state, WebGuardVerdict verdict, WebElementFacts element, string key, string? target = null,
+        IReadOnlyList<KeyValuePair<string, string>>? fields = null)
+    {
+        if (verdict.Kind == WebGuardKind.Deny) return Fail(WebErrorCodes.Denied, verdict.Reason ?? "nth never does this for a model.");
+        if (verdict.Kind != WebGuardKind.Confirm) return null;
+        var origin = WebPolicy.OriginOf(target ?? state.Tab.Url) ?? state.Tab.Url;
+        var name = Clip(element.Name, 60);
+        var rows = new List<KeyValuePair<string, string>>(fields ?? []);
+        if (target is not null) rows.Add(new("Address", target));
+        rows.Add(new("Site", WebPolicy.SourceName(state.Tab.Url)));
+        var ask = new WebGuardAsk(Thread, state.Short, origin, verdict.Category, verdict.Word ?? "", name, s.Model) { Rows = rows, Chat = s.Host.ChatTitle(Thread) };
+        Report("Check the card", state.Short, WebAgentPhase.Asking);
+        var (answered, confirmed) = await Ask("guard|" + state.Tab.Id + "|" + key + "|" + verdict.Category, t => s.Asker.Confirm(ask, t), false, s);
+        if (!answered) return Waiting(s);
+        return confirmed ? null : Fail(WebErrorCodes.Cancelled, "The user cancelled " + (name.Length > 0 ? name : "this step") + ". Do not try another way to do it.");
+    }
+
+    // One ask, shared by the same call made again: it waits 25 s in this call; an answer that comes later is kept for the next.
+    private async Task<(bool Answered, T Value)> Ask<T>(string key, Func<CancellationToken, Task<T>> start, T refused, Step s)
+    {
+        PendingAsk pending;
+        lock (gate)
+        {
+            if (!asks.TryGetValue(key, out pending!))
+            {
+                var life = CancellationTokenSource.CreateLinkedTokenSource(turn.Token);
+                Task<T> task;
+                try
+                {
+                    task = start(life.Token);
+                }
+                catch (Exception error) when (error is not OperationCanceledException)
+                {
+                    task = Task.FromResult(refused);
+                }
+                pending = new PendingAsk(task, life);
+                asks[key] = pending;
+                _ = Expire(key, pending);
+            }
+        }
+        var typed = (Task<T>)pending.Task;
+        if (!typed.IsCompleted)
+        {
+            using var cut = CancellationTokenSource.CreateLinkedTokenSource(s.Token);
+            await Task.WhenAny(typed, Swallow(hub.Clock.Delay(AskWaitMs, cut.Token)));
+            await cut.CancelAsync();
+        }
+        s.Token.ThrowIfCancellationRequested();
+        if (!typed.IsCompleted) return (false, refused);
+        lock (gate)
+        {
+            if (asks.TryGetValue(key, out var current) && ReferenceEquals(current, pending)) asks.Remove(key);
+        }
+        await pending.Life.CancelAsync();
+        return (true, typed.IsCompletedSuccessfully ? typed.Result : refused);
+    }
+
+    // An unanswered card goes after its lifetime; the next call asks again.
+    private async Task Expire(string key, PendingAsk pending)
+    {
+        try
+        {
+            await hub.Clock.Delay(AskLifetimeMs, pending.Life.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        lock (gate)
+        {
+            if (asks.TryGetValue(key, out var current) && ReferenceEquals(current, pending) && !pending.Task.IsCompleted) asks.Remove(key);
+        }
+        await pending.Life.CancelAsync().ConfigureAwait(false);
+    }
+
+    // DESIGN 5.10 "unknown URL means stop": an address the model may open comes from the conversation, a page it read, search
+    // results, or the site it is on.
+    private bool IsKnown(Step s, string url, TabState? state)
+    {
+        if (WebAgentUrls.IsSearchResults(url) || s.Host.InConversation(Thread, url)) return true;
+        var origin = WebPolicy.OriginOf(url);
+        lock (gate)
+        {
+            if (knownUrls.Contains(WebAgentUrls.Normalize(url))) return true;
+            if (origin is not null && readOrigins.Contains(origin)) return true;
+        }
+        return state is not null && SameOrigin(state.Tab.Url, url);
+    }
+
+    // Content the model read: its site counts for the cross-origin rule, its links and addresses become known.
+    private void Saw(string? origin, string? text, IEnumerable<string> links)
+    {
+        lock (gate)
+        {
+            if (origin is not null) readOrigins.Add(origin);
+            foreach (var link in links.Concat(WebAgentUrls.FindAddresses(text)).Take(2000))
+                if (WebPolicy.IsWeb(link)) knownUrls.Add(WebAgentUrls.Normalize(link));
+            if (!string.IsNullOrEmpty(text))
+            {
+                readTexts.AddLast(text.Length <= 200_000 ? text : text[..200_000]);
+                while (readTexts.Count > 12) readTexts.RemoveFirst();
+            }
+        }
+    }
+
+    // Whether a query value came from a page the model read ("This address carries text from the page you were on").
+    private bool FromPage(string value)
+    {
+        lock (gate) return readTexts.Any(t => t.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    // ---- Navigations, take-over and the step window ----
+
+    private void OnNavigationStarting(TabState state, WebNavigationStarting e)
+    {
+        if (!e.IsMainFrame || e.Cancel || !ModelCaused(state)) return;
+        var url = e.Url;
+        if (WebPolicy.IsBlank(url)) return;
+        if (WebAgentUrls.DeniedReason(url) is { } why)
+        {
+            Block(state, e, "nth stopped the page from opening " + url + ": " + why);
+            return;
+        }
+        var target = WebPolicy.OriginOf(url)!;
+        if (state.Expected is { } expected && string.Equals(expected, target, StringComparison.OrdinalIgnoreCase)) return;
+        if (SameOrigin(state.Tab.Url, url)) return;
+        lock (gate) knownUrls.Add(WebAgentUrls.Normalize(url));
+        if (state.Tab.Shared)
+        {
+            Block(state, e, "nth stopped the user's shared tab from moving to " + WebPolicy.SourceName(url) + ". To go there, call web_open with this url (it asks the user): " + url);
+            return;
+        }
+        IReadOnlyList<string> from;
+        lock (gate) from = WebAgentUrls.CrossOriginSources(readOrigins, url, hub.Grants.Pair);
+        if (from.Count > 0)
+            Block(state, e, "nth stopped the page from opening " + WebPolicy.SourceName(url) + ": after reading " + string.Join(", ", from.Select(WebPolicy.SourceName)) + ", opening another site needs the user's OK. Call web_open with this url to ask them: " + url);
+    }
+
+    private void Block(TabState state, WebNavigationStarting e, string why)
+    {
+        e.Cancel = true;
+        state.Blocked = why;
+    }
+
+    private bool ModelCaused(TabState state)
+    {
+        lock (gate)
+        {
+            if (state.TookOver) return false;
+            return state.Stepping > 0 || hub.Clock.NowMs - state.LastStepEnd <= AfterStepMs;
+        }
+    }
+
+    private void OnBinding(TabState state, WebCdpEvent e)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(e.ParamsJson);
+            if (Text(document.RootElement, "name") != WebAgentOverlay.Binding) return;
+        }
+        catch (JsonException)
+        {
+            return;
+        }
+        OnUserInput(state);
+    }
+
+    // DESIGN 5.10 "User takes over": the user clicked or typed in a tab the model drives; the model pauses on that tab.
+    private void OnUserInput(TabState state)
+    {
+        lock (gate)
+        {
+            if (!state.Driven || state.TookOver) return;
+            state.TookOver = true;
+        }
+        hub.Report(new WebAgentActivity(Thread, WebAgentPhase.TookOver, "Resume when you are done", state.Short));
+        if (state.Cdp is { } cdp) _ = Swallow(state.Overlay.Drive(cdp, false, CancellationToken.None));
+        hub.RaiseChanged();
+    }
+
+    private bool TookOver(TabState state)
+    {
+        lock (gate) return state.TookOver;
+    }
+
+    private StepLease BeginStep(TabState state)
+    {
+        var lease = state.Tab.BeginModelStep();
+        lock (gate)
+        {
+            state.Stepping++;
+            state.Driven = true;
+            state.Blocked = null;
+        }
+        return new StepLease(() =>
+        {
+            lock (gate)
+            {
+                state.Stepping--;
+                state.LastStepEnd = hub.Clock.NowMs;
+            }
+            lease.Dispose();
+        });
+    }
+
+    // The overlay leaves the tabs the model drove (Stop, the turn's end).
+    private void Release(List<TabState> driven)
+    {
+        foreach (var state in driven)
+        {
+            lock (gate)
+            {
+                state.Driven = false;
+                state.TookOver = false;
+                state.Expected = null;
+            }
+        }
+        if (driven.Count == 0 || hub.Host is not { } host) return;
+        _ = Swallow(host.OnUi(async () =>
+        {
+            foreach (var state in driven)
+                if (state.Cdp is { } cdp) await Swallow(state.Overlay.Remove(cdp, CancellationToken.None));
+            return true;
+        }));
+    }
+
+    private void WatchRun()
+    {
+        var run = hub.Run;
+        lock (gate)
+        {
+            if (ReferenceEquals(run, watchedRun)) return;
+            if (watchedRun is not null) watchedRun.Stopped -= OnRunStopped;
+            watchedRun = run;
+            run.Stopped += OnRunStopped;
+        }
+    }
+
+    private void OnRunStopped(PcScope scope, PcStopSource source)
+    {
+        // A sleep stops the streams, not the turn (Tactus DESIGN 2.10).
+        if (source != PcStopSource.Sleep && scope.Covers(Thread, WebAgentHub.App)) StopTurn(source);
+    }
+
+    private async Task WaitStarted(TabState state, string? before, CancellationToken token)
+    {
+        var start = hub.Clock.NowMs;
+        while (!state.Tab.Loading && (before is null || string.Equals(state.Tab.Url, before, StringComparison.Ordinal)) && state.Blocked is null && hub.Clock.NowMs - start < 1_000)
+            await hub.Clock.Delay(50, token);
+    }
+
+    private async Task WaitLoaded(TabState state, CancellationToken token)
+    {
+        var start = hub.Clock.NowMs;
+        while (state.Tab.Loading && state.Blocked is null && hub.Clock.NowMs - start < LoadWaitMs) await hub.Clock.Delay(100, token);
+    }
+
+    private void Report(string step, string? tab, WebAgentPhase phase = WebAgentPhase.Working) =>
+        hub.Report(new WebAgentActivity(Thread, phase, step, tab));
+
+    // ---- Small helpers ----
+
+    private static WebToolResult Fail(string code, string text) => WebToolResult.Fail(code, text);
+
+    private static WebToolResult Stopped() => Fail(WebErrorCodes.Stopped, "The user stopped Visus. Do not use the web tools again this turn.");
+
+    private static WebToolResult Waiting(Step s) => Fail(WebErrorCodes.WaitingForUser,
+        "The user has not answered the card in Visus yet. Do other work, or call " + s.Tool + " again with the same arguments to keep waiting.");
+
+    // An address without a scheme gets https (http for a dev host); a scheme stays, so the deny check sees it.
+    private static string WithScheme(string url)
+    {
+        if (url.Contains("://", StringComparison.Ordinal)) return url;
+        var colon = url.IndexOf(':', StringComparison.Ordinal);
+        if (colon > 0 && !url[..colon].Contains('.', StringComparison.Ordinal) && (colon + 1 >= url.Length || !char.IsAsciiDigit(url[colon + 1]))) return url;
+        var host = url.Split('/', ':', '?', '#')[0];
+        return (WebPolicy.IsDevHost(host) ? "http://" : "https://") + url;
+    }
+
+    private static bool SameOrigin(string? a, string? b)
+    {
+        var left = WebPolicy.OriginOf(a);
+        return left is not null && string.Equals(left, WebPolicy.OriginOf(b), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string N(long value) => value.ToString(CultureInfo.InvariantCulture);
+
+    private static string N(double value) => Math.Round(value).ToString(CultureInfo.InvariantCulture);
+
+    private static string Clip(string? text, int max)
+    {
+        var value = (text ?? "").Trim();
+        return value.Length <= max ? value : value[..(max - 1)] + "…";
+    }
+
+    private static string? Str(JsonObject args, string name) => args[name] switch
+    {
+        JsonValue value when value.TryGetValue<string>(out var text) => text,
+        _ => null,
+    };
+
+    private static double? Num(JsonObject args, string name)
+    {
+        if (args[name] is not JsonValue value) return null;
+        if (value.TryGetValue<double>(out var d)) return d;
+        if (value.TryGetValue<int>(out var i)) return i;
+        if (value.TryGetValue<long>(out var l)) return l;
+        if (value.TryGetValue<decimal>(out var m)) return (double)m;
+        if (value.TryGetValue<float>(out var f)) return f;
+        if (value.TryGetValue<JsonElement>(out var element) && element.ValueKind == JsonValueKind.Number) return element.GetDouble();
+        if (value.TryGetValue<string>(out var text) && double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)) return parsed;
+        return null;
+    }
+
+    private static bool Bool(JsonObject args, string name)
+    {
+        if (args[name] is not JsonValue value) return false;
+        if (value.TryGetValue<bool>(out var b)) return b;
+        if (value.TryGetValue<JsonElement>(out var element)) return element.ValueKind == JsonValueKind.True;
+        return value.TryGetValue<string>(out var text) && string.Equals(text, "true", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string? Text(JsonElement element, string name) =>
+        element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+
+    private static async Task Quietly(CdpBroker cdp, string method, CancellationToken token, JsonObject? parameters = null, string? session = null)
+    {
+        try
+        {
+            await cdp.CallAsync(method, parameters, session, token);
+        }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+        }
+    }
+
+    private static async Task Swallow(Task task)
+    {
+        try
+        {
+            await task.ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    private sealed record Step(string Tool, JsonObject Args, WebAgentCaller Caller, IWebAgentHost Host, IWebAgentAsker Asker, CancellationToken Token)
+    {
+        public string Model => Host.ModelName(Caller.Model);
+    }
+
+    private sealed record PendingAsk(Task Task, CancellationTokenSource Life);
+
+    private sealed class Refusal(WebToolResult result) : Exception(result.Text)
+    {
+        public WebToolResult Result { get; } = result;
+    }
+
+    private sealed class StepLease(Action end) : IDisposable
+    {
+        private Action? end = end;
+
+        public void Dispose() => Interlocked.Exchange(ref end, null)?.Invoke();
+    }
+
+    private sealed class Unhooking(Action undo) : IDisposable
+    {
+        private Action? undo = undo;
+
+        public void Dispose() => Interlocked.Exchange(ref undo, null)?.Invoke();
+    }
+
+    private sealed class TabState(IWebAgentTab tab, string shortId, Func<long> clock)
+    {
+        public IWebAgentTab Tab { get; set; } = tab;
+        public string Short { get; } = shortId;
+        public WebAgentLogs Logs { get; private set; } = new(clock);
+        public WebRefs Refs { get; set; } = new();
+        public WebAgentOverlay Overlay { get; set; } = new();
+        public IWebEngineView? View { get; set; }
+        public CdpBroker? Cdp { get; set; }
+        public List<IDisposable> Hooks { get; } = [];
+        public bool FramesAttached { get; set; }
+
+        /// <summary>"Allow once": the site this tab may be used on until it leaves it.</summary>
+        public string? OnceOrigin { get; set; }
+
+        /// <summary>The site a model navigation (web_open, reload) may load without a check.</summary>
+        public string? Expected { get; set; }
+
+        /// <summary>Why the last model-caused navigation was stopped.</summary>
+        public string? Blocked { get; set; }
+
+        public int Stepping { get; set; }
+        public long LastStepEnd { get; set; } = long.MinValue / 2;
+        public bool Driven { get; set; }
+        public bool TookOver { get; set; }
+
+        public void Unhook()
+        {
+            foreach (var hook in Hooks) hook.Dispose();
+            Hooks.Clear();
+            Logs = new WebAgentLogs(clock);
+            View = null;
+            Cdp = null;
+            OverlayReady = false;
+        }
+
+        /// <summary>The overlay is in the page now (its last install answered).</summary>
+        public bool OverlayReady { get; set; }
+    }
+}

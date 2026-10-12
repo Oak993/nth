@@ -1,0 +1,59 @@
+// PORT-ONLY: web surfaces W11, the web tools for API providers (E:/Droppy/work/design/web-surfaces/DESIGN.md 5.10 "as native
+// tools for API providers (WebNativeTools, like NativeSkillTools)"; ED-NEW-web-w11-1). No Swift counterpart. The same engine
+// and gates as the nth-pc server; the definitions are the OpenAI-style functions the API sessions send, offered while Visus
+// model access is on, with the model instructions in the system prompt. A native tool answers text only, so a screenshot's
+// answer says the model should read the page instead.
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Marrow.Core.Port;
+using Marrow.Core.Support;
+using Marrow.Core.Web;
+using Marrow.Services.Port.Skills.Providers;
+using Marrow.Services.Providers;
+
+namespace Marrow.Services.Web;
+
+public sealed class WebNativeTools(Func<WebAgentHub> hub, string thread, string? model)
+{
+    /// <summary>The chat's web tools, or null when Visus is not bound or the session serves no chat.</summary>
+    public static WebNativeTools? For(SessionConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+        var shared = WebAgentHub.Shared.Current;
+        if (shared.Host is null || configuration.IgnisThreadID is not { } thread) return null;
+        return new WebNativeTools(() => WebAgentHub.Shared.Current, thread.ToString("D"), configuration.Model);
+    }
+
+    public string Thread { get; } = thread;
+
+    private bool On => hub().Offered;
+
+    /// <summary>The function definitions to send now: all the web tools while Visus model access is on, none otherwise.</summary>
+    public IReadOnlyList<JSONValue> Definitions => On ? [.. WebToolSchemas.All.Select(spec => JSONValue.Parse(spec.FunctionDefinition().ToJsonString())!)] : [];
+
+    /// <summary>The instructions for the system prompt while the tools are offered; null otherwise.</summary>
+    public string? Instructions => On ? WebAgentText.Instructions : null;
+
+    public bool Owns(string toolName) => On && WebToolSchemas.IsWebTool(toolName);
+
+    /// <summary>The timeline row's title ("Visus · Read the page").</summary>
+    public static string Title(string toolName) => "Visus \u00B7 " + (WebToolSchemas.Spec(toolName)?.Title ?? toolName);
+
+    /// <summary>Runs one web tool; a refusal is a failed result, never a throw. A stop or the turn's end cancels it.</summary>
+    public async Task<NativeToolResult> Execute(string toolName, JSONValue arguments, CancellationToken? cancellationToken = null)
+    {
+        if (hub().Engine(Thread) is not { } engine) return new NativeToolResult(Title(toolName), WebErrorCodes.Off + ": Visus is not available here.", true, []);
+        JsonObject? args;
+        try
+        {
+            args = JsonNode.Parse(arguments.CompactString) as JsonObject;
+        }
+        catch (JsonException)
+        {
+            args = null;
+        }
+        if (args is null) return new NativeToolResult(Title(toolName), WebErrorCodes.BadArgs + ": the arguments must be a JSON object.", true, []);
+        var result = await engine.Call(toolName, args, new WebAgentCaller(Thread, model, Vision: false), cancellationToken ?? SwiftTask.CancellationToken).ConfigureAwait(true);
+        return new NativeToolResult(Title(toolName), result.Render(), result.Failed, []);
+    }
+}

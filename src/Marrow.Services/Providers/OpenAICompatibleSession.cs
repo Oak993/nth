@@ -2100,6 +2100,7 @@ public class OpenAICompatibleSession : ProviderSession
             policy.Length == 0 ? null : policy,
             SkillTools?.CatalogueBlock(),
             SkillTools?.UiTeachingBlock(TeachingProfile, TeachingToolsUsable), // PORT-ONLY (web surfaces W17, ED-NEW-web-w17-1): live answers and artifacts, null without the chat's artifact tools
+            SkillTools?.WebBlock(), // PORT-ONLY (web surfaces W11, ED-NEW-web-w11-1): the Visus tools' rules, null while they are not offered
             guidance.SystemPromptBlock(),
         }.Where(value => value is not null));
         // DEVIATION OD-0012 F1 (PR-PROVAPI-141): upstream :1200 reads
