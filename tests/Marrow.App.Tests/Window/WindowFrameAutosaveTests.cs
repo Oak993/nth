@@ -22,7 +22,7 @@ public sealed class WindowFrameAutosaveTests : IDisposable
     private IReadOnlyDictionary<string, object> Saved() => Assert.IsAssignableFrom<IReadOnlyDictionary<string, object>>(runtime.Defaults.Object(Name));
 
     [Fact]
-    [Trait("Decision", "ED-NEW-perf-startup-structure-1")]
+    [Trait("Decision", "ED-NEW-perfstartup-1")] // ED-NEW-perf-startup-structure-1
     public void The_first_frame_after_a_quiet_time_is_written_at_once_in_the_stores_format()
     {
         var autosave = Create();
@@ -37,7 +37,7 @@ public sealed class WindowFrameAutosaveTests : IDisposable
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-perf-startup-structure-1")]
+    [Trait("Decision", "ED-NEW-perfstartup-1")] // ED-NEW-perf-startup-structure-1
     public void A_two_second_drag_at_60_Hz_writes_at_most_five_times_and_the_last_frame_is_saved_within_half_a_second()
     {
         var autosave = Create();
@@ -58,7 +58,7 @@ public sealed class WindowFrameAutosaveTests : IDisposable
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-perf-startup-structure-1")]
+    [Trait("Decision", "ED-NEW-perfstartup-1")] // ED-NEW-perf-startup-structure-1
     public void A_frame_equal_to_the_last_one_is_not_written_again()
     {
         var autosave = Create();
@@ -70,7 +70,7 @@ public sealed class WindowFrameAutosaveTests : IDisposable
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-perf-startup-structure-1")]
+    [Trait("Decision", "ED-NEW-perfstartup-1")] // ED-NEW-perf-startup-structure-1
     public void Flush_writes_the_held_frame_now_and_nothing_is_left_waiting()
     {
         var autosave = Create();
@@ -90,7 +90,7 @@ public sealed class WindowFrameAutosaveTests : IDisposable
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-perf-startup-structure-1")]
+    [Trait("Decision", "ED-NEW-perfstartup-1")] // ED-NEW-perf-startup-structure-1
     public void A_window_that_is_not_in_its_normal_state_writes_no_frame_and_keeps_the_one_it_held()
     {
         var autosave = Create();

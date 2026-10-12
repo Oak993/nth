@@ -17,7 +17,7 @@ public sealed class WindowManagerFrameFlushTests(HeadlessSession headless)
         Assert.IsAssignableFrom<IReadOnlyDictionary<string, object>>(harness.Defaults.Object(FrameName));
 
     [Fact]
-    [Trait("Decision", "ED-NEW-perf-startup-structure-1")]
+    [Trait("Decision", "ED-NEW-perfstartup-1")] // ED-NEW-perf-startup-structure-1
     public void A_burst_of_moves_writes_far_fewer_times_than_it_moves_and_FlushPendingFrames_saves_the_last_frame() => WindowManagerMutationScope.Run(headless, (harness, manager) =>
     {
         manager.ShowMain();
@@ -41,7 +41,7 @@ public sealed class WindowManagerFrameFlushTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-perf-startup-structure-1")]
+    [Trait("Decision", "ED-NEW-perfstartup-1")] // ED-NEW-perf-startup-structure-1
     public void Hiding_the_main_window_writes_the_frame_it_was_holding() => WindowManagerMutationScope.Run(headless, (harness, manager) =>
     {
         manager.ShowMain();
@@ -59,7 +59,7 @@ public sealed class WindowManagerFrameFlushTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-perf-startup-structure-1")]
+    [Trait("Decision", "ED-NEW-perfstartup-1")] // ED-NEW-perf-startup-structure-1
     public void The_app_ending_flushes_the_window_frames_before_the_settings_are_written_out()
     {
         var calls = MethodCalls.Of(typeof(AppDelegate).GetMethod(nameof(AppDelegate.ApplicationWillTerminate))!).Select(c => c.DeclaringType!.Name + "." + c.Name).ToList();
