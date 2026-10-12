@@ -562,9 +562,14 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 
             model.SelectedThreadID = thread.Id;
             Assert.False(Named(commands, "Toggle changes").IsDisabled);
+            // Web surfaces W4 (ED-NEW-web-w4-1, DESIGN 3.7 "Changes | Ctrl+D (existing ToggleChanges, now the pane)"): the chord opens and
+            // closes the Changes pane; the popover (IsDiffVisible) is the Alt+click on the toolbar button's, and stays shut.
             Assert.True(commands.PerformKeyEquivalent(CtrlD));
-            Assert.True(model.Runtime(thread.Id).IsDiffVisible);
+            Assert.True(model.Runtime(thread.Id).IsChangesPaneOpen);
+            Assert.True(model.Runtime(thread.Id).Workspace.IsOpen(PaneKind.Changes));
+            Assert.False(model.Runtime(thread.Id).IsDiffVisible);
             Assert.True(commands.PerformKeyEquivalent(CtrlD));
+            Assert.False(model.Runtime(thread.Id).IsChangesPaneOpen);
             Assert.False(model.Runtime(thread.Id).IsDiffVisible);
         });
     }
@@ -1796,7 +1801,8 @@ public sealed class AppCommandsTests(HeadlessSession headless)
             Assert.True(commands.PerformKeyEquivalent(CtrlJ));
             Assert.True(model.Runtime(thread.Id).IsTerminalVisible);
             Assert.True(commands.PerformKeyEquivalent(CtrlD));
-            Assert.True(model.Runtime(thread.Id).IsDiffVisible);
+            Assert.True(model.Runtime(thread.Id).IsChangesPaneOpen); // web W4 (ED-NEW-web-w4-1): the pane, not the popover
+            Assert.False(model.Runtime(thread.Id).IsDiffVisible);
         });
     }
 

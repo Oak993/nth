@@ -95,7 +95,7 @@ public sealed class AppCommands
                 new("Toggle changes", // :45
                     shortcuts.KeyboardShortcut(AppShortcut.ToggleChanges), // :46
                     Model.SelectedThreadID is null, // :47
-                    () => Runtime?.ToggleDiff()), // :45
+                    () => Runtime?.ToggleChanges()), // :45; web W4: the pane (Alt+click on the toolbar button is the popover, ToggleDiff)
                 new("Toggle activity view", // :48
                     shortcuts.KeyboardShortcut(AppShortcut.ToggleActivityView), // :51
                     false,

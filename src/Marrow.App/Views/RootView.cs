@@ -817,6 +817,8 @@ public sealed class DetailView : Decorator
                 {
                     // A chord for a pane kind this build cannot draw is not taken (web W3b, DESIGN 3.7).
                     IsKindAvailable = kind => PaneAvailable(kind),
+                    // Web W4: where a terminal dragged back to the drawer is outlined, the drawer's stored height.
+                    DrawerHeight = () => model.Settings.TerminalHeight,
                 };
                 workspace.StateChanged += state =>
                 {
