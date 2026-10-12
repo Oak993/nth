@@ -101,6 +101,9 @@ public interface IWebEngineView : IDisposable
     /// <summary>Page zoom factor (DESIGN 5.3).</summary>
     double Zoom { get; set; }
 
+    event EventHandler? ZoomChanged;
+    event EventHandler<WebFindResult>? FindResultChanged;
+
     Task<WebFindResult> FindAsync(string query, bool matchCase, CancellationToken cancellationToken);
     void FindNext();
     void FindPrevious();

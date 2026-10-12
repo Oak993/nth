@@ -35,6 +35,13 @@ public enum VisusCommand
     SelectTab7,
     SelectTab8,
     SelectLastTab,
+    Find,
+    ZoomIn,
+    ZoomOut,
+    ResetZoom,
+    ShowZoom,
+    Print,
+    SavePdf,
     PickElement,
 }
 
@@ -48,6 +55,14 @@ public static class VisusKeys
     // ED-099 scan codes (Set 1; extended keys as 0xE000 | code).
     private static readonly Dictionary<KeyChord, VisusCommand> Table = new()
     {
+        [new KeyChord(0x21, Ctrl)] = VisusCommand.Find,
+        [new KeyChord(0x19, Ctrl)] = VisusCommand.Print,
+        [new KeyChord(0x0D, Ctrl)] = VisusCommand.ZoomIn,
+        [new KeyChord(0x0D, Ctrl | Shift)] = VisusCommand.ZoomIn,
+        [new KeyChord(0x4E, Ctrl)] = VisusCommand.ZoomIn,
+        [new KeyChord(0x0C, Ctrl)] = VisusCommand.ZoomOut,
+        [new KeyChord(0x4A, Ctrl)] = VisusCommand.ZoomOut,
+        [new KeyChord(0x0B, Ctrl)] = VisusCommand.ResetZoom,
         [new KeyChord(0x12, Ctrl | Shift)] = VisusCommand.PickElement,
         [new KeyChord(0x14, Ctrl)] = VisusCommand.NewTab, // Ctrl+T
         [new KeyChord(0x31, Ctrl | Shift)] = VisusCommand.NewPrivateTab, // Ctrl+Shift+N
@@ -90,6 +105,11 @@ public static class VisusKeys
     /// <summary>The text a menu shows for a command's first chord ("Ctrl+T").</summary>
     public static string? Label(VisusCommand command) => command switch
     {
+        VisusCommand.Find => "Ctrl+F",
+        VisusCommand.Print => "Ctrl+P",
+        VisusCommand.ZoomIn => "Ctrl++",
+        VisusCommand.ZoomOut => "Ctrl+-",
+        VisusCommand.ResetZoom => "Ctrl+0",
         VisusCommand.NewTab => "Ctrl+T",
         VisusCommand.PickElement => "Ctrl+Shift+E",
         VisusCommand.NewPrivateTab => "Ctrl+Shift+N",

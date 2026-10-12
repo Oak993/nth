@@ -74,6 +74,9 @@ public sealed class VisusTab
     private bool loading;
     private bool shown;
     private int faviconRead;
+    private IWebEngineView? zoomEngine;
+    private bool applyingZoom;
+    private bool released;
     private readonly List<VisusAsk> asks = [];
     private readonly Dictionary<VisusAsk, IDisposable> holds = [];
     private WebFailureKind? failure;
@@ -89,7 +92,9 @@ public sealed class VisusTab
         Id = string.IsNullOrEmpty(id) ? Guid.NewGuid().ToString("N")[..12] : id;
         this.url = url is not null && WebPolicy.IsTopLevelAllowed(url) ? url : WebPolicy.Blank;
         this.title = title ?? "";
-        Zoom = zoom;
+        Zoom = double.IsFinite(zoom) && zoom >= VisusSiteZoom.Steps[0] && zoom <= VisusSiteZoom.Steps[^1] ? zoom : 1;
+        if (kind == VisusTabKind.Private) VisusHost.SiteZoom.RetainPrivate();
+        VisusHost.SiteZoom.Changed += OnSiteZoom;
         PreviewState = (preview ?? new PreviewState { Preset = ProjectPreviewHost.DefaultDevice(), ReloadOnSave = ProjectPreviewHost.ReloadOnSave() }).Normalized();
     }
 
@@ -137,6 +142,7 @@ public sealed class VisusTab
 
     /// <summary>The page zoom (W8c sets it per site; carried here so a saved tab comes back at its zoom).</summary>
     public double Zoom { get; private set; }
+    internal long DocumentVersion { get; private set; }
 
     /// <summary>DESIGN 5.1: the site chip.</summary>
     public SiteChip Chip => WebPolicy.ChipFor(Kind, Url);
@@ -146,6 +152,20 @@ public sealed class VisusTab
 
     /// <summary>The tab is on screen (the pane is open and this is its tab).</summary>
     public bool IsShown => shown;
+
+    /// <summary>
+    /// PORT-ONLY (web surfaces W11, ED-NEW-web-w11-1; DESIGN 2.3 "The user can share one tab with the model ('Let the model use
+    /// this tab'), and then per-site approvals apply"): the model may use this browse or preview tab. Never a private tab; kept
+    /// only while the session lives, so a restart shares nothing.
+    /// </summary>
+    public bool SharedWithModel { get; private set; }
+
+    internal void SetSharedWithModel(bool value)
+    {
+        if (SharedWithModel == value) return;
+        SharedWithModel = value;
+        Raise();
+    }
 
     /// <summary>The questions the tab waits on, oldest first (the pane shows the first while the tab is on screen).</summary>
     public IReadOnlyList<VisusAsk> Asks => asks;
@@ -174,7 +194,10 @@ public sealed class VisusTab
     private void Open(string address, bool restoring)
     {
         if (!WebPolicy.IsTopLevelAllowed(address)) return;
+        DocumentVersion++;
         url = address;
+        if (restoring && Zoom != 1 && !VisusHost.SiteZoom.Contains(ZoomProfile, address)) VisusHost.SiteZoom.Set(ZoomProfile, address, Zoom);
+        Zoom = VisusHost.SiteZoom.Get(ZoomProfile, address);
         if (!restoring)
         {
             title = ""; // a saved tab keeps its title until its page names itself
@@ -190,11 +213,12 @@ public sealed class VisusTab
                 Preview = new ProjectPreviewRuntime(this, session.Runtime);
                 ProjectPreviewHost.RestoreSite(this, session.Runtime);
             }
-            if (Zoom != 1 && view.Engine is { } engine) engine.Zoom = Zoom;
+            BindZoomEngine();
             view.SetShown(shown);
         }
         else
         {
+            ApplyZoom();
             view.Navigate(address);
         }
         loading = !WebPolicy.IsBlank(address);
@@ -215,6 +239,7 @@ public sealed class VisusTab
     public void Reload(bool hard = false)
     {
         if (IsBlank) return;
+        DocumentVersion++;
         if (Engine() is not { } engine)
         {
             Open(url);
@@ -321,12 +346,22 @@ public sealed class VisusTab
 
     internal void SetZoom(double zoom)
     {
+        VisusSiteZoom.Validate(zoom);
         Zoom = zoom;
-        if (view?.Engine is { } engine) engine.Zoom = zoom;
+        ApplyZoom();
+        VisusHost.SiteZoom.Set(ZoomProfile, url, zoom);
+        Raise();
+        session.TabStateChanged();
     }
 
     internal void Release()
     {
+        if (this.released) return;
+        this.released = true;
+        VisusHost.SiteZoom.Changed -= OnSiteZoom;
+        if (Kind == VisusTabKind.Private) VisusHost.SiteZoom.ReleasePrivate();
+        if (zoomEngine is { } old) { old.Attached -= OnZoomAttached; old.ZoomChanged -= OnEngineZoom; }
+        zoomEngine = null;
         AnswerAsks(_ => true); // a closed tab answers everything it waited on safely
         tabBlocks.Clear();
         fullScreen = false;
@@ -343,6 +378,7 @@ public sealed class VisusTab
         if (view.Engine is null || view.Liveness == WebLiveness.Suspended) view.Activate(); // a discarded or frozen tab comes back on use (2.3)
         return view.Engine;
     }
+    internal IWebEngineView? ReadyEngine() => Engine();
 
     private static WebSurfaceKind SurfaceKind(VisusTabKind kind) => kind switch
     {
@@ -375,6 +411,7 @@ public sealed class VisusTab
         v.FileChooserIntercepted += OnFileChooser;
         v.EngineReleased += OnEngineReleased;
         v.Changed += OnViewChanged;
+        BindZoomEngine();
     }
 
     private void Unhook(WebSurfaceView v)
@@ -428,6 +465,10 @@ public sealed class VisusTab
         }
         if (!e.IsRedirected) NewDocument();
         blockedPopup = null;
+        url = e.Url;
+        DocumentVersion++;
+        Zoom = VisusHost.SiteZoom.Get(ZoomProfile, url);
+        ApplyZoom();
         loading = true;
         Raise();
     }
@@ -435,6 +476,36 @@ public sealed class VisusTab
     private void OnFrameNavigationStarting(object? sender, WebNavigationStarting e)
     {
         if (!WebPolicy.IsFrameAllowed(e.Url) && WebPolicy.CheckTopLevel(e.Url) != TopLevelVerdict.External) e.Cancel = true;
+    }
+
+    private string ZoomProfile => Kind switch
+    {
+        VisusTabKind.Private => WebProfiles.PrivateProfile,
+        VisusTabKind.Preview => WebProfiles.PreviewProfile,
+        VisusTabKind.Agent => WebProfiles.AgentProfileName(session.ThreadFolder ?? throw new InvalidOperationException("An agent tab needs its thread folder.")),
+        _ => WebProfiles.BrowseProfile,
+    };
+    private void OnSiteZoom(string profile, string origin)
+    {
+        if (released || profile != ZoomProfile || VisusSiteZoom.Origin(url) != origin) return;
+        Zoom = VisusHost.SiteZoom.Get(profile, url);
+        ApplyZoom(); Raise(); session.TabStateChanged();
+    }
+    private void BindZoomEngine()
+    {
+        if (ReferenceEquals(zoomEngine, view?.Engine)) return;
+        if (zoomEngine is { } old) { old.Attached -= OnZoomAttached; old.ZoomChanged -= OnEngineZoom; }
+        zoomEngine = view?.Engine;
+        if (zoomEngine is { } current) { current.Attached += OnZoomAttached; current.ZoomChanged += OnEngineZoom; ApplyZoom(); }
+    }
+    private void OnZoomAttached(object? sender, EventArgs e) => ApplyZoom();
+    private void OnEngineZoom(object? sender, EventArgs e) { if (!applyingZoom && zoomEngine is { } current && double.IsFinite(current.Zoom) && current.Zoom >= 0.25 && current.Zoom <= 5) SetZoom(current.Zoom); }
+    private void ApplyZoom()
+    {
+        if (zoomEngine is not { } engine) return;
+        applyingZoom = true;
+        try { engine.Zoom = Zoom; }
+        finally { applyingZoom = false; }
     }
 
     private void OnNavigationCompleted(object? sender, WebNavigationCompleted e)
@@ -563,6 +634,7 @@ public sealed class VisusTab
     // away or a missing runtime takes every question of the page with it. A hung page keeps them (it may be waiting on its reader).
     private void OnViewChanged()
     {
+        BindZoomEngine();
         var now = view?.Failure?.Kind;
         if (now != failure)
         {

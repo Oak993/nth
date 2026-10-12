@@ -91,6 +91,9 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Port/Web/McpApps/McpAppWindow.cs", "14", 1, Circular), // web W19 (ED-NEW-web-w19-5): the pop-out window's frame (canvas .popw, CSS border-radius 14), not a Swift shape
         ("Marrow.App/Port/Web/McpApps/McpAppWindow.cs", "7", 1, Circular), // web W19 (ED-NEW-web-w19-5): the 24 DIP pin and Back inline button (canvas .popw button), design-page layout (CSS border-radius 7)
         ("Marrow.App/Port/SettingsShell.cs", "8", 1, Circular), // RR-37 (ED-NEW-design-gaps-lead-1): the Settings window's shadow carrier, design-page layout (settings-open-rise-2-locked .glass, CSS border-radius 8 with its 0 34px 90px / 0 8px 24px shadows)
+        ("Marrow.App/Views/Browser/VisusAgentCard.cs", "9", 1, Circular), // web W11 (ED-NEW-web-w11-1): the card text's focus ring, design-page layout (web-surfaces canvas, as VisusPrompt's)
+        ("Marrow.App/Views/Browser/VisusAgentCard.cs", "10", 1, Circular), // web W11: the rows box, design-page layout (the canvas's .kv, CSS border-radius 10px)
+        ("Marrow.App/Views/Browser/VisusAgentCard.cs", "11", 1, Capsule), // web W11: the chat and model chips, 22 DIPs tall with r = 11 (the canvas's .who span)
         ("Marrow.App/Views/Chat/ChatBadge.cs", "TimelineMetrics.PillRadius", 1, Other),
         ("Marrow.App/Views/Chat/HydraButton.cs", "999", 1, Capsule),
         ("Marrow.App/Views/Chat/HydraMergePopover.cs", "10", 1, Fit),

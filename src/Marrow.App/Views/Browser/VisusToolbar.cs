@@ -1,4 +1,5 @@
 using Avalonia;
+using System.Globalization;
 using Avalonia.Automation;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls;
@@ -45,11 +46,13 @@ public sealed class VisusToolbar : Border
         Height = VisusTokens.ToolbarHeight;
         Padding = new Thickness(6, 0);
         BorderThickness = new Thickness(0, 0, 0, 0.5);
-        Back = new VisusToolbarButton(PaneGlyphKind.Back, "Back", "Alt+Left", _ => session.Selected?.GoBack());
-        Forward = new VisusToolbarButton(PaneGlyphKind.Forward, "Forward", "Alt+Right", _ => session.Selected?.GoForward());
+        // + ED-NEW-web-w11-1: each press is the user's own action on the tab (a tab the model drives pauses for it, DESIGN 5.10).
+        Back = new VisusToolbarButton(PaneGlyphKind.Back, "Back", "Alt+Left", _ => session.Perform(VisusCommand.Back));
+        Forward = new VisusToolbarButton(PaneGlyphKind.Forward, "Forward", "Alt+Right", _ => session.Perform(VisusCommand.Forward));
         Reload = new VisusToolbarButton(PaneGlyphKind.Reload, "Reload", "F5", modifiers =>
         {
             if (session.Selected is not { } tab) return;
+            session.Acted(tab);
             if (tab.IsLoading) tab.Stop();
             else tab.Reload(hard: modifiers.HasFlag(KeyModifiers.Shift));
         });
@@ -200,7 +203,7 @@ public sealed class VisusToolbar : Border
         if (items.Count == 0 || !ReferenceEquals(tab, session.Selected)) return;
         var entries = items.Select(item => new ContextMenuEntry(
             string.IsNullOrWhiteSpace(item.Title) ? VisusAddress.Display(item.Url) : item.Title,
-            true, false, false, [], () => _ = tab.GoToHistoryAsync(item))).ToList();
+            true, false, false, [], () => { session.Acted(tab); _ = tab.GoToHistoryAsync(item); })).ToList();
         NativeContextMenus.Presenter.Current.Present(button, at, entries);
     }
 
@@ -299,6 +302,11 @@ public sealed class VisusToolbar : Border
         }
         rows.Add(null);
         var web = tab is not null && WebPolicy.IsWeb(tab.Url);
+        rows.Add(new("Find in page", () => session.Perform(VisusCommand.Find), "Ctrl+F", web));
+        rows.Add(new("Zoom " + Math.Round((tab?.Zoom ?? 1) * 100).ToString(CultureInfo.InvariantCulture) + " %", () => session.Perform(VisusCommand.ShowZoom), IsEnabled: web));
+        rows.Add(new("Print", () => session.Perform(VisusCommand.Print), "Ctrl+P", web));
+        rows.Add(new("Save as PDF", () => session.Perform(VisusCommand.SavePdf), IsEnabled: web));
+        rows.Add(null);
         rows.Add(new("Copy link", () => VisusPaneBody.CopyText(this, tab!.Url), IsEnabled: web));
         // A private tab's page is not handed to the default browser, which would keep it in its history (5.1 "Nothing you do
         // here is kept").

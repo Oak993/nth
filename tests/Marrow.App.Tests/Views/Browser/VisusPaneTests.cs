@@ -387,7 +387,8 @@ public sealed class VisusPaneTests(HeadlessSession headless)
         var page = Go(visus, rig, "https://a.example/");
         string[] Titles() => body.Toolbar.MenuEntries().Where(row => row is not null).Select(row => row!.Title).ToArray();
 
-        Assert.Equal(new[] { "New tab", "New private tab", "Reopen closed tab", "Copy link", "Open in default browser" }, Titles());
+        // ED-NEW-web-w8c-3: DESIGN 5.1/5.3 adds four commands; keep the exact inventory and all W8a checks.
+        Assert.Equal(new[] { "New tab", "New private tab", "Reopen closed tab", "Find in page", "Zoom 100 %", "Print", "Save as PDF", "Copy link", "Open in default browser" }, Titles());
         Assert.False(body.Toolbar.MenuEntries().First(row => row?.Title == "Reopen closed tab")!.IsEnabled);
         body.Toolbar.MenuEntries().First(row => row?.Title == "Open in default browser")!.Run();
         Assert.Equal(new[] { page.Url }, visus.OpenedInBrowser);
