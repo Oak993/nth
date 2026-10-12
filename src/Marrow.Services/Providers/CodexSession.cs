@@ -65,6 +65,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
     private JSONRPCConnection? skillsReader;
     public Task SkillReadersExited => skillsReader?.ChildExited ?? Task.CompletedTask;
     private JSONRPCConnection? connection;                // :36
+    private MCPResolvedServer? dextraServer; // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): the chat's nth-dextra server; null for a chat that is not Dextra's.
     private string? threadID;                             // :37
     private string? turnID;                               // :38
     private string? activeModel;                           // :39
@@ -727,7 +728,9 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
             parameters["developerInstructions"] = string.Join("\n\n", joined); // :255-259
 
             // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): a Hydra head's ask_advisor server joins the connected ones.
-            if (MCPProviderConfig.CodexServers(MCPProviderConfig.CodexOverrides(), MCPProviderConfig.AdvisorServer(configuration)) is { } servers) // :262
+            // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): so does a Dextra chat's nth-dextra server.
+            dextraServer ??= MCPProviderConfig.DextraServer(configuration);
+            if (MCPProviderConfig.CodexBuiltIns(MCPProviderConfig.CodexOverrides(), MCPProviderConfig.BuiltInServers(MCPProviderConfig.AdvisorServer(configuration), dextraServer)) is { } servers) // :262
             {
                 var mergedConfig = parameters.TryGetValue("config", out var currentConfig) && currentConfig.JSONValueObject is { } currentObject
                     ? new Dictionary<string, JSONValue>(currentObject, StringComparer.Ordinal)
@@ -1846,6 +1849,13 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
         }
         if (SwiftString.Equal(method, "mcpServer/elicitation/request")) // :989
         {
+            // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): nth-dextra never asks for input itself, so its elicitation is Codex's
+            // own approval of one call, which the server's policy check already governs (DESIGN.md 12.3).
+            if (dextraServer is not null && Marrow.Services.Assistant.AssistantProviderWiring.IsCodexElicitation(parameters))
+            {
+                connection?.Respond(id, Marrow.Services.Assistant.AssistantProviderWiring.CodexElicitationAccept());
+                return;
+            }
             connection?.Respond(id, new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
             {
                 ["action"] = "decline", // :990

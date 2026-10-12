@@ -84,6 +84,7 @@ public sealed class CommandCodeSession : ProviderSession, Marrow.Services.Port.S
     /// initializer, because its closures capture <see cref="launchID"/>. :43, :78-81</summary>
     private readonly StreamedTextTracker stream;
     private int turnCounter;                                // :44
+    private bool dextraTools; // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): this launch was given the nth-dextra server.
     /// <summary>The model the CLI reported for the run, for the context meter's ceiling. :45-46</summary>
     private string? activeModel;
     /// <summary>Files a write_file is about to replace, snapshotted as the call is queued (SessionSupport.cs,
@@ -227,7 +228,15 @@ public sealed class CommandCodeSession : ProviderSession, Marrow.Services.Port.S
         {
             environment = SetEnvironment(environment, "DROPPY_CODE_MCP_BRIDGE", bridge.LocalPath);
         }
-        if (File.Exists(MCPPaths.ClaudeConfigURL)) // :177-179
+        // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7; Tactus pc-control 3.4): with built-in servers (a Dextra chat's nth-dextra, a
+        // head's advisor) the bridge reads the chat's own merged file; without, exactly as before.
+        var builtIns = MCPProviderConfig.BuiltInServers(configuration);
+        dextraTools = builtIns.Any(server => server.Id == Marrow.Services.Assistant.AssistantProviderWiring.ServerName);
+        if (builtIns.Count > 0 && MCPProviderConfig.ClaudeBuiltInConfig(builtIns, configuration.IgnisThreadID) is { } merged && merged.Path != MCPPaths.ClaudeConfigURL)
+        {
+            environment = SetEnvironment(environment, "DROPPY_CODE_MCP_CONFIG", merged.Path);
+        }
+        else if (File.Exists(MCPPaths.ClaudeConfigURL)) // :177-179
         {
             environment = SetEnvironment(environment, "DROPPY_CODE_MCP_CONFIG", MCPPaths.ClaudeConfigURL);
         }
@@ -945,7 +954,8 @@ public sealed class CommandCodeSession : ProviderSession, Marrow.Services.Port.S
         var name = request["toolName"]?.JSONValueString ?? "";
         var input = request["input"] ?? new JSONValue.Null();
         var approval = MakeApproval(id, name, input);
-        if (AutoApproves(name, input) || sessionGrants.Contains(approval.RequestKind.GrantKey()))
+        // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): the nth-dextra server asks nth's policy engine before every tool (DESIGN.md 12.3).
+        if (AutoApproves(name, input) || sessionGrants.Contains(approval.RequestKind.GrantKey()) || (dextraTools && Marrow.Services.Assistant.AssistantProviderWiring.IsClaudeTool(name)))
         {
             Reply(id, allow: true);
             return;

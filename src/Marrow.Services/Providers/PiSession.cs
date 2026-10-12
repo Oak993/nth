@@ -102,6 +102,7 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
 
     // PORT-ONLY RR-49: permanent no-tools mode; never used or adopted as a working session.
     private bool textOnlyHead;
+    private bool dextraTools; // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): this launch was given the nth-dextra server.
     private bool textOnlyVerified;
     private bool textOnlyCommandAvailable;
 
@@ -183,7 +184,13 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
             // ERR_UNSUPPORTED_ESM_URL_SCHEME, so the port passes pathToFileURL(bridgePath).href; the Swift
             // source's `bridge.path` becomes the file:// URL string InstallBridge already returns.
             environment["DROPPY_CODE_MCP_BRIDGE"] = bridge.AbsoluteUri;
-        if (!textOnlyHead && File.Exists(MCPPaths.ClaudeConfigURL))
+        // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7; Tactus pc-control 3.4): with built-in servers (a Dextra chat's nth-dextra, a
+        // head's advisor) the bridge reads the chat's own merged file; without, exactly as before.
+        IReadOnlyList<MCPResolvedServer> builtIns = textOnlyHead ? [] : MCPProviderConfig.BuiltInServers(configuration);
+        dextraTools = builtIns.Any(server => server.Id == Marrow.Services.Assistant.AssistantProviderWiring.ServerName);
+        if (builtIns.Count > 0 && MCPProviderConfig.ClaudeBuiltInConfig(builtIns, configuration.IgnisThreadID) is { } merged && merged.Path != MCPPaths.ClaudeConfigURL)
+            environment["DROPPY_CODE_MCP_CONFIG"] = merged.Path;
+        else if (!textOnlyHead && File.Exists(MCPPaths.ClaudeConfigURL))
             environment["DROPPY_CODE_MCP_CONFIG"] = MCPPaths.ClaudeConfigURL;
 
         // :113-134
@@ -905,6 +912,12 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
         }
         var kindString = payload["kind"]?.JSONValueString ?? "tool";
         if (sessionGrants.Contains(kindString))
+        {
+            process?.Send(Obj(("type", "extension_ui_response"), ("id", id), ("value", "Allow")));
+            return;
+        }
+        // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): the nth-dextra server asks nth's policy engine before every tool (DESIGN.md 12.3).
+        if (dextraTools && Marrow.Services.Assistant.AssistantProviderWiring.IsClaudeTool(payload["toolName"]?.JSONValueString))
         {
             process?.Send(Obj(("type", "extension_ui_response"), ("id", id), ("value", "Allow")));
             return;

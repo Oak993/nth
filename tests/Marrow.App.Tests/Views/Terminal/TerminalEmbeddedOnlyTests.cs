@@ -17,7 +17,7 @@ public sealed class TerminalEmbeddedOnlyTests(HeadlessSession headless)
 {
     [Fact]
     [Trait("Req", "PR-TERM-116")] // App/AppModel.swift:1094-1098; App/Views/Terminal/TerminalPanel.swift:35-43,71-75
-    public void Running_a_script_and_opening_terminals_happen_in_the_drawer_and_never_launch_an_external_terminal() => TerminalPanelRig.Run(headless, rig =>
+    public void Running_a_script_and_opening_terminals_happen_in_the_drawer_and_never_launch_an_external_terminal() => TerminalPanelRig.RunWithRealShell(headless, rig =>
     {
         using var workspace = new ChatWorkspaceFixture();
         var project = rig.App.Project(rig.Thread.ProjectID)!;

@@ -63,6 +63,7 @@ public sealed class ACPSession : ProviderSession, Port.Skills.Providers.ISkillSe
     private Port.Skills.Providers.SkillsMcpBridge? skillsMcp;
     // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): the session's ask_advisor server, registered once; null for a chat with no advisor.
     private MCPResolvedServer? advisorServer;
+    private MCPResolvedServer? dextraServer; // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): the chat's nth-dextra server; null for a chat that is not Dextra's.
     private bool canLoadSessions; // :34
     private bool supportsHTTPMCP; // :35
     private ValueList<string> authMethods = ValueList<string>.Empty; // :33
@@ -421,9 +422,10 @@ public sealed class ACPSession : ProviderSession, Port.Skills.Providers.ISkillSe
         var baseParams = new Dictionary<string, JSONValue>
         {
             ["cwd"] = WorkingDirectory, // :254
-            ["mcpServers"] = MCPProviderConfig.AcpServers(skillsMcp is { } bridge
+            ["mcpServers"] = MCPProviderConfig.AcpBuiltIns(skillsMcp is { } bridge
                 ? new JSONValue.Array(new ValueList<JSONValue>((MCPProviderConfig.AcpServers(supportsHTTPMCP).JSONValueArray ?? []).Append(bridge.Configuration)))
-                : MCPProviderConfig.AcpServers(supportsHTTPMCP), advisorServer ??= MCPProviderConfig.AdvisorServer(configuration)), // :254 + SK-17 live-proven per-session server + ED-NEW-ignisadvisor-2 a Hydra head's ask_advisor
+                : MCPProviderConfig.AcpServers(supportsHTTPMCP), MCPProviderConfig.BuiltInServers(advisorServer ??= MCPProviderConfig.AdvisorServer(configuration),
+                    dextraServer ??= MCPProviderConfig.DextraServer(configuration))), // :254 + SK-17 live-proven per-session server + ED-NEW-ignisadvisor-2 a Hydra head's ask_advisor + ED-NEW-dextra-as4-7 a Dextra chat's nth-dextra
         };
         if (configuration.ResumeID is { } resumeID && canLoadSessions) // :255
         {
@@ -840,7 +842,9 @@ public sealed class ACPSession : ProviderSession, Port.Skills.Providers.ISkillSe
         var options = parameters["options"]?.JSONValueArray ?? []; // :560
         var toolCall = parameters["toolCall"] ?? new JSONValue.Null(); // :561
         var call = MakeToolCall(toolCall); // :562
-        if ((skillsMcp?.AutomaticOption(toolCall, options) ?? AutomaticOption(call.ToolCallKind, options)) is { } optionID) // :563 + SK-17 owned read-only tools
+        if ((skillsMcp?.AutomaticOption(toolCall, options)
+            ?? (dextraServer is not null ? Marrow.Services.Assistant.AssistantProviderWiring.AcpAutomaticOption(toolCall, options) : null) // PORT-ONLY ED-NEW-dextra-as4-7: the server's policy check governs nth-dextra
+            ?? AutomaticOption(call.ToolCallKind, options)) is { } optionID) // :563 + SK-17 owned read-only tools
         {
             connection?.Respond(id, JSONValue.FromDictionaryLiteral( // :564-565
                 ("outcome", JSONValue.FromDictionaryLiteral(("outcome", "selected"), ("optionId", optionID)))));
