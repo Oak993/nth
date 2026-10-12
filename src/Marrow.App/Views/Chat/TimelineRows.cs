@@ -3187,6 +3187,7 @@ public static class ToolPresentation
     // ToolCall.Kind/Status and SwiftString). Root-word roots per :2192-2200; the two-part join per :2201-2205.
     public static string Label(ToolCall @for)
     {
+        if (Marrow.App.Port.PcControl.TactusToolWords.Label(@for) is { } tactus) return tactus; // PORT-ONLY OD-0140 (ED-NEW-pcctl-28): an nth-pc call reads as one sentence
         var roots = Roots(@for.ToolCallKind); // :2192-2200
         var subject = @for.Title; // :2201
         var words = SwiftString.Split(@for.Title, " ", maxSplits: 1); // :2202
@@ -3269,6 +3270,7 @@ public static class ToolPresentation
     public static (MCPCatalogEntry Entry, string Tool)? McpParts(ToolCall call)
     {
         if (call.ToolCallKind != ToolCall.Kind.Mcp) return null; // :2243
+        if (Marrow.App.Port.PcControl.TactusToolWords.Owns(call)) return null; // PORT-ONLY OD-0140 (ED-NEW-pcctl-28): Tactus rows never wear a catalogue badge
         const string separator = " \U000000B7 "; // U+00B7 MIDDLE DOT, a space on each side (:2244)
         var at = call.Title.IndexOf(separator, StringComparison.Ordinal); // :2244 range(of:)
         if (at < 0) return null;
