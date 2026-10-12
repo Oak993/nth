@@ -208,10 +208,15 @@ public sealed partial class PcControlEngine
     private async Task<PcResult> ActOnce(PcWindowInfo info, PcInputRequest request, PcExpect? expect, PcCall call, string? typed)
     {
         var handle = info.Handle;
+        var textSent = 0;
         if (request.Kind == PcInputKind.Type)
         {
             var field = request.Element;
-            request = request with { Boundary = (done, total, token) => TextBoundary(info, field, done, total, call, token) };
+            request = request with { Boundary = (done, total, token) =>
+            {
+                textSent = done;
+                return TextBoundary(info, field, done, total, call, token);
+            } };
         }
         // What changed on its own since Tactus last looked (a clock, a caret, an animation) is noise for the check.
         var cached = Cached(handle);
@@ -313,6 +318,14 @@ public sealed partial class PcControlEngine
                 {
                     if (parts.Catalog.Window(handle) is not { } window || !info.SameWindow(window))
                         return PcUiaOutcome.Fail(PcErrorCode.WindowGone, "the window was replaced while the borrow waited");
+                    // ED-NEW-pcctl-cx-10 (C3c V1/V9): our previous piece changes value and may grow the field.
+                    // TextBoundary still guards intervening pauses; later pieces require the same window and focus.
+                    if (textSent > 0)
+                    {
+                        var focused = await parts.Reader.Focused(handle, token).WaitAsync(token).ConfigureAwait(false);
+                        return focused?.RuntimeId == borrowTarget.RuntimeId ? PcUiaOutcome.Ok
+                            : PcUiaOutcome.Fail(PcErrorCode.StaleElement, "the typed field no longer holds focus; look again before typing the rest");
+                    }
                     var fresh = await Tree(handle, fresh: true, token).ConfigureAwait(false);
                     if (fresh is null) return PcUiaOutcome.Fail(PcErrorCode.WindowGone, "the window is gone");
                     var match = PcElementMatch.Resolve(fresh, borrowIdentity);
