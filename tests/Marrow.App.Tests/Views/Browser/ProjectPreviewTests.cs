@@ -14,6 +14,39 @@ namespace Marrow.App.Tests.Views.Browser;
 public sealed class ProjectPreviewTests(HeadlessSession headless)
 {
     [Fact]
+    [Trait("Decision", "ED-NEW-web-w9-9")]
+    public void Drawer_tabs_keep_the_approved_24_DIP_height_7_DIP_radius_and_10_DIP_padding() => headless.OnUiThread(() =>
+    {
+        using var rig = new VisusRig(); rig.Page("http://localhost:5173/", VisusTabKind.Preview);
+        var preview = new VisusPaneBody(rig.Session).Preview!;
+        foreach (var name in new[] { "Console", "Network" })
+        {
+            var button = LogicalQuery.SelfAndDescendants<Button>(preview.Drawer).Single(b => Avalonia.Automation.AutomationProperties.GetName(b) == name);
+            Assert.Equal(24, button.Height); Assert.Equal(new Avalonia.CornerRadius(7), button.CornerRadius);
+            Assert.Equal(new Avalonia.Thickness(10, 0), button.Padding);
+        }
+        var console = LogicalQuery.SelfAndDescendants<Button>(preview.Drawer).Single(b => Avalonia.Automation.AutomationProperties.GetName(b) == "Console");
+        var network = LogicalQuery.SelfAndDescendants<Button>(preview.Drawer).Single(b => Avalonia.Automation.AutomationProperties.GetName(b) == "Network");
+        Assert.Equal(Marrow.UI.Panes.PaneTokens.HoverFill.Resolve(console.ActualThemeVariant), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(console.Background).Color);
+        Assert.Equal(Avalonia.Media.Colors.Transparent, Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(network.Background).Color);
+        network.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Assert.Equal(Marrow.UI.Panes.PaneTokens.HoverFill.Resolve(network.ActualThemeVariant), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(network.Background).Color);
+        Assert.Equal(Avalonia.Media.Colors.Transparent, Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(console.Background).Color);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-web-w9-9")]
+    public void Fill_has_no_quiet_device_rim_or_shadow_and_the_preset_restores_it() => headless.OnUiThread(() =>
+    {
+        using var rig = new VisusRig(); rig.Page("http://localhost:5173/", VisusTabKind.Preview);
+        var preview = new VisusPaneBody(rig.Session).Preview!;
+        var frame = LogicalQuery.SelfAndDescendants<Border>(preview).Single(b => b.Parent is Canvas && b.BoxShadow.Count > 0);
+        Assert.True(frame.IsVisible);
+        preview.SetDevice(DevicePreset.Fill); Assert.False(frame.IsVisible);
+        preview.SetDevice(DevicePreset.Phone); Assert.True(frame.IsVisible);
+    });
+
+    [Fact]
     public void Closing_console_keeps_the_error_badge_separate_from_the_label() => headless.OnUiThread(() =>
     {
         using var rig = new VisusRig();

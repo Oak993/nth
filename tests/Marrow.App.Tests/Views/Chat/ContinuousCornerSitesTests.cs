@@ -134,6 +134,14 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Views/Usage/UsageViews.cs", "2.5", 2, Tiny),
         ("Marrow.App/Views/Panes/PaneCard.cs", "PaneTokens.CornerRadius", 1, Circular), // web W3a (ED-NEW-web-w3a-1): the pane card, design-page layout (canvas .gl, CSS border-radius 12), not a Swift shape
         ("Marrow.App/Views/Panes/PaneCard.cs", "PaneTokens.CornerRadius - 1", 1, Circular), // web W3a (ED-NEW-web-w3a-1): the card's content clip inside its 1 DIP rim, the same design-page corner
+        ("Marrow.App/Views/Browser/DevicePresetBar.cs", "8", 3, Circular), // W9 (ED-NEW-web-w9-10): approved index.html:321,327 preset/rotate buttons and 16 DIP error badge, CSS circular corners
+        ("Marrow.App/Views/Browser/DevicePresetBar.cs", "10", 1, Circular), // W9: index.html:320 segmented control, a design-page corner
+        ("Marrow.App/Views/Browser/DevicePresetBar.cs", "13", 2, Capsule), // W9: index.html:324 Reload/Console toggles, height 26 and radius = height / 2
+        ("Marrow.App/Views/Browser/DevicePresetBar.cs", "6", 1, Circular), // W9: ED-NEW-web-w9-3 shared preview action style; design-page control, not a Swift continuous shape
+        ("Marrow.App/Views/Browser/PreviewConsoleDrawer.cs", "10", 1, Circular), // W9: index.html:344 drawer, CSS border-radius 10
+        ("Marrow.App/Views/Browser/PreviewConsoleDrawer.cs", "7", 1, Circular), // W9: index.html:348 Console/Network tab loop, CSS border-radius 7
+        ("Marrow.App/Views/Browser/PreviewConsoleDrawer.cs", "11", 1, Capsule), // W9: index.html:356 Send to chat, height 22 and radius = height / 2
+        ("Marrow.App/Views/Browser/ProjectPreviewBody.cs", "6", 1, Circular), // W9: index.html:331 device frame, CSS border-radius 6; hidden in Fill (:332)
         ("Marrow.UI/Panes/PaneHeader.cs", "12", 1, Capsule), // web W3a (ED-NEW-web-w3a-1): a 24 DIP tab pill, r = h / 2 (canvas .tabg button)
         ("Marrow.UI/Panes/PaneHeader.cs", "8", 2, Circular), // web W3a (ED-NEW-web-w3a-1): a 26 DIP header button and text chip, design-page layout (canvas .hb, CSS border-radius 8)
         ("Marrow.UI/Panes/PaneHeader.cs", "11", 1, Capsule), // web W3a (ED-NEW-web-w3a-1): the 22 DIP "Chat is working" chip, r = h / 2 (canvas .pchip)
@@ -238,6 +246,7 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Rule", "R-TEST-4")] // OD-0102 / ED-275 (7): the table is the proof that no raw CornerRadius Border is left unaccounted for; the pixels of the routed ones are below
+    [Trait("Decision", "ED-NEW-web-w9-10")]
     public void Every_raw_CornerRadius_assignment_is_routed_through_the_continuous_shape_or_classed_with_why_it_never_reaches_the_band()
     {
         var found = Found();

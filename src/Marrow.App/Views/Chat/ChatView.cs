@@ -2580,7 +2580,7 @@ internal sealed class ScriptsEditor : Decorator
         {
             HorizontalAlignment = HorizontalAlignment.Stretch, // :1670 VStack(alignment: .leading) inside a card that fills the scroll area: its fields are flexible and take the card's width
             Spacing = 8, // :1670
-            Children = { top, commandFrame, previewField, worktreeToggle },
+            Children = { top, commandFrame, worktreeToggle, previewField },
             Margin = new Thickness(14), // :1695
         };
         return new ChromeCard(() => body); // :1669

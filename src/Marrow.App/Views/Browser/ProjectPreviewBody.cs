@@ -133,6 +133,7 @@ public sealed class ProjectPreviewBody : Grid, IDisposable
         {
             var width = Math.Max(1, viewport.Bounds.Width); var height = Math.Max(1, viewport.Bounds.Height);
             var metrics = Tab.PreviewState.Metrics(width, height);
+            frame.IsVisible = Tab.PreviewState.Preset != DevicePreset.Fill;
             if (Metrics != metrics) { Metrics = metrics; resizePending = true; Bar.Refresh(metrics); }
             var w = metrics.Width * metrics.Scale; var h = metrics.Height * metrics.Scale;
             var x = Math.Max(0, (width - w) / 2); var y = Math.Max(0, (height - h) / 2);

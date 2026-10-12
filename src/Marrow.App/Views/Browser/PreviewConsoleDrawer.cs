@@ -21,6 +21,8 @@ public sealed class PreviewConsoleDrawer : Border, IDisposable
     private readonly TextBox search = new() { PlaceholderText = "Search", MinWidth = 90, Height = 24, FontSize = 11 };
     private readonly ComboBox levels = new() { ItemsSource = new[] { "All levels", "error", "warn", "info", "log", "debug" }, SelectedIndex = 0, Height = 24, FontSize = 11, MinWidth = 82 };
     private readonly Button strip;
+    private readonly Button consoleTab;
+    private readonly Button networkTab;
     private readonly Grid expanded = new() { RowDefinitions = new RowDefinitions("32,*") };
     private readonly DispatcherTimer timer;
     private bool network;
@@ -32,8 +34,13 @@ public sealed class PreviewConsoleDrawer : Border, IDisposable
         BorderThickness = new Thickness(.5); BorderBrush = new SolidColorBrush(Color.FromArgb(20, 255, 255, 255)); Background = new SolidColorBrush(Color.FromArgb(71, 0, 0, 0));
         strip = DevicePresetBar.Action("Console", () => { State.Restore(); Refresh(); }); strip.Height = 24;
         var tools = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5, Margin = new Thickness(8, 4) };
-        tools.Children.Add(DevicePresetBar.Action("Console", () => { network = false; RenderRows(); }));
-        tools.Children.Add(DevicePresetBar.Action("Network", () => { network = true; RenderRows(); }));
+        consoleTab = DevicePresetBar.Action("Console", () => { network = false; RenderRows(); });
+        networkTab = DevicePresetBar.Action("Network", () => { network = true; RenderRows(); });
+        foreach (var tab in new[] { consoleTab, networkTab })
+        {
+            tab.Height = 24; tab.Padding = new Thickness(10, 0); tab.CornerRadius = new CornerRadius(7);
+            tab.ActualThemeVariantChanged += (_, _) => RefreshTabs(); tools.Children.Add(tab);
+        }
         tools.Children.Add(levels); tools.Children.Add(search);
         tools.Children.Add(DevicePresetBar.Action("Clear", () => owner.Runtime.Diagnostics?.Clear()));
         var preserve = new CheckBox { Content = "Preserve log", FontSize = 11 };
@@ -63,6 +70,7 @@ public sealed class PreviewConsoleDrawer : Border, IDisposable
     private void Queue() => dirty = true;
     private void RenderRows()
     {
+        RefreshTabs();
         var data = (network ? owner.Runtime.Diagnostics?.FindNetwork(search.Text ?? "").Cast<object>().ToArray()
             : owner.Runtime.Diagnostics?.FindConsole(search.Text ?? "", levels.SelectedIndex > 0 ? levels.SelectedItem as string : null).Cast<object>().ToArray()) ?? [];
         if (data.Length == 0) { displayed.Clear(); return; }
@@ -71,6 +79,13 @@ public sealed class PreviewConsoleDrawer : Border, IDisposable
         for (var i = 0; i < data.Length; i++)
             if (i >= displayed.Count) displayed.Add(data[i]); else if (!Equals(displayed[i], data[i])) displayed[i] = data[i];
         while (displayed.Count > data.Length) displayed.RemoveAt(displayed.Count - 1);
+    }
+    private void RefreshTabs()
+    {
+        consoleTab.Background = network ? Brushes.Transparent : PaneTokens.HoverFill.Brush(this);
+        networkTab.Background = network ? PaneTokens.HoverFill.Brush(this) : Brushes.Transparent;
+        consoleTab.Foreground = network ? PaneTokens.Text2.Brush(this) : PaneTokens.Text1.Brush(this);
+        networkTab.Foreground = network ? PaneTokens.Text1.Brush(this) : PaneTokens.Text2.Brush(this);
     }
     private Control Row(object? item)
     {
