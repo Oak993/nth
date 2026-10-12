@@ -115,6 +115,9 @@ public sealed class DesktopShortcutProbe
             try { link = shell.ReadLink(file.Path); }
             catch (Exception error) when (DesktopShortcut.IsShellFailure(error))
             {
+                // C4b U8-2, ED-NEW-inst-cx-11: a still-listed but unreadable link has not proved its old marker absent.
+                // Keep the old timestamp too, so the changed file is retried rather than cached as successfully read.
+                if (cache.Links.TryGetValue(file.Path, out var previous)) next[file.Path] = previous;
                 unreadable = true; // skipped now; the folder is not marked up to date, so the next probe tries it again
                 continue;
             }
