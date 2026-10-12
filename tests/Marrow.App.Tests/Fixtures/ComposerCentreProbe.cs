@@ -38,9 +38,7 @@ internal static class ComposerCentreProbe
         static double Shadow(double distance, double sigma, double alpha) => alpha * .5 * (1 - Math.Tanh(Math.Clamp(.85 * distance / sigma, -8, 8)));
         var shadow = Shadow(Distance(6), 18, .20);
         shadow = 1 - (1 - shadow) * (1 - Shadow(Distance(1), 2.5, .14));
-        var aa = .7 / scale;
-        var t = Math.Clamp((Distance(0) + aa) / (2 * aa), 0, 1);
-        shadow *= t * t * (3 - 2 * t); // outside coverage; the AA boundary remains measurable
+        // ED-NEW-glass-c10-5: pure shadow baseline; shape coverage is part of the measured foreground.
         int Expected(int channel) => (int)Math.Round((channel == 0 ? backdrop.R : channel == 1 ? backdrop.G : backdrop.B) * (1 - shadow));
         return Enumerable.Range(0, 3).Max(c => Math.Abs(pixels.Bytes[y * pixels.Stride + x * 4 + c] - Expected(c))) >= 2;
     }

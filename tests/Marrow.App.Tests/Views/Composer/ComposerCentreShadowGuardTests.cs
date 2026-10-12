@@ -40,6 +40,16 @@ public sealed class ComposerCentreShadowGuardTests(HeadlessSession headless)
                     checkedRows++;
                 }
                 Assert.True(checkedRows >= 18);
+                // ED-NEW-glass-c10-5: the expected backdrop is shadow alone, even at the AA boundary.
+                // Independent FS_GLASS replay at the prepared top pixel centre (boundary-shadow-oracle.json).
+                Assert.Equal(scale == 1.25 ? 238.25 : 382, rect.Top * scale, .001);
+                var boundary = (int)Math.Floor(rect.Top * scale);
+                var boundaryAt = boundary * pixels.Stride + x * 4;
+                var shadowOnly = (byte[])pixels.Bytes.Clone();
+                var sourceShadow = scale == 1.25 ? new byte[] { 42, 49, 62 } : new byte[] { 42, 49, 61 };
+                Array.Copy(sourceShadow, 0, shadowOnly, boundaryAt, 3);
+                Assert.False(ComposerCentreProbe.RowIsOutline((pixels.Stride, shadowOnly, pixels.Size), rect, scale, x, boundary, backdrop),
+                    $"Pure approved shadow at antialias boundary row {boundary} counted as outline");
                 // A real two-level departure still counts; subtracting the shadow must not relax the detector.
                 var row = (int)Math.Floor(rect.Top * scale) - 10;
                 var index = row * pixels.Stride + x * 4;
