@@ -22,6 +22,7 @@ public sealed class TerminalShellLifetimeTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-TERM-046")] // App/Views/Terminal/TerminalStore.swift:59-63 view.terminate(); the ConPTY shell does not outlive it
+    [Trait("Decision", "ED-NEW-shellleak-1")]
     public void Terminating_a_view_gives_its_running_shell_the_graceful_step_and_then_ends_it() => headless.OnUiThread(() =>
     {
         using var shells = TerminalShells.Fake();
@@ -40,6 +41,7 @@ public sealed class TerminalShellLifetimeTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-TERM-046")] // App/Views/Terminal/TerminalStore.swift:59-63
+    [Trait("Decision", "ED-NEW-shellleak-1")]
     public void Terminating_a_view_disarms_the_report_of_the_exit_its_own_kill_causes() => headless.OnUiThread(() =>
     {
         using var shells = TerminalShells.Fake();
@@ -56,6 +58,7 @@ public sealed class TerminalShellLifetimeTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-TERM-047")] // App/Views/Terminal/TerminalStore.swift:97-100 processTerminated; PR-TERM-046 for the terminate that follows
+    [Trait("Decision", "ED-NEW-shellleak-1")]
     public void A_shell_that_exits_by_itself_is_reported_once_and_is_not_killed_when_its_view_is_terminated_later() => headless.OnUiThread(() =>
     {
         using var shells = TerminalShells.Fake();
@@ -76,6 +79,7 @@ public sealed class TerminalShellLifetimeTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-TERM-046")] // App/Views/Terminal/TerminalStore.swift:59-63; a view that never started a shell has nothing to end
+    [Trait("Decision", "ED-NEW-shellleak-1")]
     public void Terminating_a_view_that_never_started_a_shell_does_nothing() => headless.OnUiThread(() =>
     {
         using var shells = TerminalShells.Fake();

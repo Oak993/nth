@@ -71,6 +71,9 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
                 Assert.True(childSession.View.IsFocused);
                 childWindow.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
                 Assert.Equal(1, closeCount);
+                // The source guard's own answer while the child holds the foreground (a live descendant). After
+                // Terminate the shell is gone (ED-NEW-shellleak-1), so the check below reads false for that reason too.
+                Assert.False(TerminalSession.ForegroundJobIsTheShell(childSession.View.ProcessId));
             }
             finally
             {
