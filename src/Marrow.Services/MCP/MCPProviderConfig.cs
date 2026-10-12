@@ -319,22 +319,34 @@ public static class MCPProviderConfig
     public static MCPResolvedServer? AdvisorServer(Providers.SessionConfiguration configuration) =>
         Port.Advisor.AdvisorMcpBridge.Server(configuration);
 
-    /// <summary>Codex: the connected servers (CodexOverrides) with the advisor's entry added; null when there are neither.</summary>
-    public static JSONValue? CodexServers(JSONValue? overrides, MCPResolvedServer? advisor)
+    // PORT-ONLY (web surfaces W12, ED-NEW-web-w12-1): no Swift counterpart. A chat session's nth-ui server (Tabula's
+    // artifact tools), null for a session of no chat or while artifacts are off; the shapes below add it beside the
+    // connected servers and the advisor's, so a session without it launches exactly as before.
+    public static MCPResolvedServer? UiServer(Providers.SessionConfiguration configuration) =>
+        Web.UiMcpBridge.Server(configuration);
+
+    private static IReadOnlyList<MCPResolvedServer> BuiltIns(MCPResolvedServer? advisor, MCPResolvedServer? ui) =>
+        [.. new[] { advisor, ui }.OfType<MCPResolvedServer>()];
+
+    /// <summary>Codex: the connected servers (CodexOverrides) with the advisor's and nth-ui's entries added; null when there are none.</summary>
+    public static JSONValue? CodexServers(JSONValue? overrides, MCPResolvedServer? advisor, MCPResolvedServer? ui = null)
     {
-        if (advisor is null) return overrides;
+        var builtIns = BuiltIns(advisor, ui);
+        if (builtIns.Count == 0) return overrides;
         var merged = new Dictionary<string, JSONValue>(overrides?.JSONValueObject ?? new Dictionary<string, JSONValue>());
-        foreach (var (key, value) in Codex([advisor])["mcp_servers"]!.JSONValueObject!) merged[key] = value;
+        foreach (var (key, value) in Codex(builtIns)["mcp_servers"]!.JSONValueObject!) merged[key] = value;
         return ObjectOf(merged);
     }
 
-    /// <summary>Copilot: the advisor's entry in the "mcpServers" shape a session's create parameters take; null without one.</summary>
-    public static JSONValue? CopilotSessionServers(MCPResolvedServer? advisor) =>
-        advisor is null ? null : Copilot([advisor])["mcpServers"];
+    /// <summary>Copilot: the advisor's and nth-ui's entries in the "mcpServers" shape a session's create parameters take; null without either.</summary>
+    public static JSONValue? CopilotSessionServers(MCPResolvedServer? advisor, MCPResolvedServer? ui = null) =>
+        BuiltIns(advisor, ui) is { Count: > 0 } builtIns ? Copilot(builtIns)["mcpServers"] : null;
 
-    /// <summary>ACP: the connected servers with the advisor's entry appended (the skills relay's form).</summary>
-    public static JSONValue AcpServers(JSONValue servers, MCPResolvedServer? advisor) => advisor is null ? servers
-        : new JSONValue.Array(new ValueList<JSONValue>((servers.JSONValueArray ?? []).Append(Port.Advisor.AdvisorMcpBridge.AcpEntry(advisor))));
+    /// <summary>ACP: the connected servers with the advisor's and nth-ui's entries appended (the skills relay's form).</summary>
+    public static JSONValue AcpServers(JSONValue servers, MCPResolvedServer? advisor, MCPResolvedServer? ui = null) =>
+        BuiltIns(advisor, ui) is { Count: > 0 } builtIns
+            ? new JSONValue.Array(new ValueList<JSONValue>((servers.JSONValueArray ?? []).Concat(builtIns.Select(Port.Advisor.AdvisorMcpBridge.AcpEntry))))
+            : servers;
 
     /// <summary>
     /// Claude: the session's one --mcp-config file and whether --strict-mcp-config follows it. Without an advisor it is
@@ -342,18 +354,19 @@ public static class MCPProviderConfig
     /// the advisor's entry are merged into a file of the chat's own, strict only when there were connected servers (as
     /// before: with none, the user's own servers stay on). A file that cannot be written leaves the launch as before.
     /// </summary>
-    public static (string Path, bool Strict)? ClaudeSessionConfig(MCPResolvedServer? advisor, Guid? thread)
+    public static (string Path, bool Strict)? ClaudeSessionConfig(MCPResolvedServer? advisor, Guid? thread, MCPResolvedServer? ui = null)
     {
         var connected = ClaudeConfigPath();
         (string, bool)? plain = connected is null ? null : (connected, true);
-        if (advisor is null) return plain;
+        var builtIns = BuiltIns(advisor, ui);
+        if (builtIns.Count == 0) return plain;
         var merged = SwiftTry.Optional(() =>
         {
             var servers = new Dictionary<string, JSONValue>();
             if (connected is not null && ReadOptionalConfig(connected) is { } data && JSONValue.Parse(data)?["mcpServers"]?.JSONValueObject is { } existing)
                 foreach (var (key, value) in existing) servers[key] = value;
-            servers[advisor.Id] = Claude([advisor])["mcpServers"]![advisor.Id]!;
-            var path = SwiftPath.AppendingPathComponent(MCPPaths.Directory, "advisor-" + (thread ?? Guid.NewGuid()).ToString("N") + ".json");
+            foreach (var builtIn in builtIns) servers[builtIn.Id] = Claude([builtIn])["mcpServers"]![builtIn.Id]!;
+            var path = SwiftPath.AppendingPathComponent(MCPPaths.Directory, (advisor is null ? "nth-" : "advisor-") + (thread ?? Guid.NewGuid()).ToString("N") + ".json");
             FileOps.WriteAtomic(path, ObjectOf(new Dictionary<string, JSONValue> { ["mcpServers"] = ObjectOf(servers) }).Data(pretty: true));
             return path;
         });

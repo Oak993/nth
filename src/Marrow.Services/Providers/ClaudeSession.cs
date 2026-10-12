@@ -83,6 +83,8 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
     private IClaudeProcess? process;                        // :30
     // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): this launch's ask_advisor server; null for a chat with no advisor.
     private MCPResolvedServer? advisorServer;
+    // PORT-ONLY (web surfaces W12, ED-NEW-web-w12-1): this launch's nth-ui server (Tabula's artifact tools); null for a session of no chat.
+    private MCPResolvedServer? uiServer;
     private static readonly string AdvisorToolName = "mcp__" + Port.Advisor.AdvisorMcpServer.ServerName + "__" + Port.Advisor.AdvisorTool.Name;
     private TaskHandle? readTask;                          // :31
     private string? sessionID;                             // :32
@@ -224,7 +226,8 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): a Hydra head's ask_advisor server is merged into that one
         // config; a chat with no advisor gets exactly the connected servers' file, as before.
         advisorServer = MCPProviderConfig.AdvisorServer(configuration);
-        if (MCPProviderConfig.ClaudeSessionConfig(advisorServer, configuration.IgnisThreadID) is { } mcpConfig)
+        uiServer = MCPProviderConfig.UiServer(configuration); // + ED-NEW-web-w12-1: a chat's nth-ui server joins the same file
+        if (MCPProviderConfig.ClaudeSessionConfig(advisorServer, configuration.IgnisThreadID, uiServer) is { } mcpConfig)
         {
             arguments.Add("--mcp-config");
             arguments.Add(mcpConfig.Path);
@@ -558,6 +561,13 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): nth's own ask_advisor runs without a card, as the skills relay's
         // read-only tools do on ACP (SkillsMcpBridge.AutomaticOption): it only asks the lead's model.
         if (advisorServer is not null && SwiftString.Equal(name, AdvisorToolName))
+        {
+            ResolveApproval(requestID, "allow");
+            return;
+        }
+        // PORT-ONLY (web surfaces W12, ED-NEW-web-w12-1): nth-ui's artifact tools write only into this chat's own artifacts
+        // (sandboxed, versioned, nothing lost), so they run without a card as the advisor's does.
+        if (uiServer is not null && Web.UiMcpServer.IsOwnTool(name))
         {
             ResolveApproval(requestID, "allow");
             return;

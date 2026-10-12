@@ -59,6 +59,9 @@ public static class Program
         // ED-NEW-ignisadvisor-2: the ask_advisor relay, the same kind of private headless child.
         if (args.FirstOrDefault() == Marrow.Services.Port.Advisor.AdvisorMcpBridge.Command)
             return Marrow.Services.Port.Advisor.AdvisorMcpBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
+        // ED-NEW-web-w12-1: the nth-ui relay (Tabula's artifact tools), the same kind of private headless child.
+        if (args.FirstOrDefault() == Marrow.Services.Web.UiMcpBridge.Command)
+            return Marrow.Services.Web.UiMcpBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
         // OD-0062, ED-235: Velopack's startup hook, before anything else (before the single-instance lock, the toast
         // identity, every binding). When Update.exe runs the app to install, update or uninstall it (--veloapp-*
         // arguments) this handles the event and exits the process; started normally it returns at once.
@@ -139,6 +142,7 @@ public static class Program
         Marrow.App.Port.MultiAccount.Capsule.ComposerCapsuleSeams.Bind(); // step 3a: the composer shows the account capsule
         Marrow.App.Port.Ignis.Runtime.IgnisRuntimeStartup.Bind(); // Ignis (ED-NEW-ignis-runtime): the controller, made on first use once the U1 parts are bound
         Marrow.App.Port.Advisor.AdvisorRuntimeStartup.Bind(); // ED-NEW-ignisadvisor-2: a Droppy Hydra head asks its lead's model (ask_advisor)
+        Marrow.App.Port.Tabula.ArtifactRuntimeStartup.Bind(); // ED-NEW-web-w12-1: Tabula's artifacts, on disk per thread, for every model
         if (skills is not null) SkillsUpdateRows.Attach(skills); // SK-16: the installed items are the Updates page's "Skills and tools" rows (ED-343's hook)
 
         var lifetime = new ClassicDesktopStyleApplicationLifetime
