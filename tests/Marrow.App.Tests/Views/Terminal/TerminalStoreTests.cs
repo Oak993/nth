@@ -12,16 +12,23 @@ namespace Marrow.App.Tests.Views.Terminal;
 
 // Source: DroppyCode/App/Views/Terminal/TerminalStore.swift (B2 1fbf81e), :103-176, the store's bookkeeping.
 // Every expectation below is transcribed from the Swift lines cited on each test and from the PR-TERM records; none
-// comes from running the port. TerminalSession.init (:17-41) always starts a shell, so every session these tests
-// open is a real PowerShell (OD-0008 C5) in a throwaway folder, and every test ends with TerminateAll.
+// comes from running the port. TerminalSession.init (:17-41) always starts a shell. The tests that read what a real
+// shell is (its process, command line, directory, environment, prompt or exit) open a real PowerShell (OD-0008 C5) in a
+// throwaway folder (WithRealStore); the tests of the store's bookkeeping open the same sessions on a stand-in shell, so
+// that no PowerShell and conhost are started for them (WithStore). Every test ends with TerminateAll.
 // The Swift stored property `sessions` (:106) and the method `sessions(for:)` (:109) cannot share one C# name; these
 // tests read the store only through Sessions(threadID), Selected(threadID) and Selection (see the unit report).
 [Collection("Headless")]
 public sealed class TerminalStoreTests(HeadlessSession headless)
 {
-    private static void WithStore(Action<TerminalStore> body)
+    private static void WithStore(Action<TerminalStore> body) => WithStore(realShell: false, body);
+
+    private static void WithRealStore(Action<TerminalStore> body) => WithStore(realShell: true, body);
+
+    private static void WithStore(bool realShell, Action<TerminalStore> body)
     {
         using var defaults = UserDefaults.Standard.Override(new InMemorySettingsStore());
+        using var shells = realShell ? null : TerminalShells.Fake();
         var store = new TerminalStore();
         try
         {
@@ -472,7 +479,7 @@ public sealed class TerminalStoreTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-TERM-039")] // App/Views/Terminal/TerminalStore.swift:28
-    public void The_launched_shell_is_pwsh_or_windows_powershell() => headless.OnUiThread(() => WithStore(store =>
+    public void The_launched_shell_is_pwsh_or_windows_powershell() => headless.OnUiThread(() => WithRealStore(store =>
     {
         var thread = Guid.NewGuid();
         var directory = TerminalTestFolders.Create("shell resolution");
@@ -487,7 +494,7 @@ public sealed class TerminalStoreTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-TERM-040")] // App/Views/Terminal/TerminalStore.swift:29-33
-    public void The_shell_receives_exactly_the_four_overridden_variables() => headless.OnUiThread(() => WithStore(store =>
+    public void The_shell_receives_exactly_the_four_overridden_variables() => headless.OnUiThread(() => WithRealStore(store =>
     {
         var thread = Guid.NewGuid();
         var directory = TerminalTestFolders.CreateProjectDirectory("environment overrides");
@@ -505,7 +512,7 @@ public sealed class TerminalStoreTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-TERM-041")] // App/Views/Terminal/TerminalStore.swift:34
-    public void The_environment_carries_the_awkward_directory_verbatim_and_each_override_appears_once() => headless.OnUiThread(() => WithStore(store =>
+    public void The_environment_carries_the_awkward_directory_verbatim_and_each_override_appears_once() => headless.OnUiThread(() => WithRealStore(store =>
     {
         var thread = Guid.NewGuid();
         var directory = TerminalTestFolders.CreateProjectDirectory("verbatim env");
@@ -524,7 +531,7 @@ public sealed class TerminalStoreTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-TERM-042")] // App/Views/Terminal/TerminalStore.swift:35, :40
-    public void No_hyphen_prefixed_login_argv_zero_is_set() => headless.OnUiThread(() => WithStore(store =>
+    public void No_hyphen_prefixed_login_argv_zero_is_set() => headless.OnUiThread(() => WithRealStore(store =>
     {
         var thread = Guid.NewGuid();
         var directory = TerminalTestFolders.Create("no hyphen argv0");
@@ -541,7 +548,7 @@ public sealed class TerminalStoreTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-TERM-043")] // App/Views/Terminal/TerminalStore.swift:36-40
-    public void A_plain_tab_launches_the_shell_with_no_extra_arguments() => headless.OnUiThread(() => WithStore(store =>
+    public void A_plain_tab_launches_the_shell_with_no_extra_arguments() => headless.OnUiThread(() => WithRealStore(store =>
     {
         var thread = Guid.NewGuid();
         var directory = TerminalTestFolders.Create("empty args");
@@ -556,7 +563,7 @@ public sealed class TerminalStoreTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-TERM-044")] // App/Views/Terminal/TerminalStore.swift:40
-    public void The_shell_starts_in_the_sessions_directory() => headless.OnUiThread(() => WithStore(store =>
+    public void The_shell_starts_in_the_sessions_directory() => headless.OnUiThread(() => WithRealStore(store =>
     {
         var thread = Guid.NewGuid();
         var directory = TerminalTestFolders.CreateProjectDirectory("working directory");
@@ -616,11 +623,12 @@ public sealed class TerminalStoreTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-TERM-046")] // App/Views/Terminal/TerminalStore.swift:59-63
-    public void Terminate_marks_the_session_not_running_at_once_and_a_second_call_is_a_no_op() => headless.OnUiThread(() => WithStore(store =>
+    public void Terminate_marks_the_session_not_running_at_once_and_a_second_call_is_a_no_op() => headless.OnUiThread(() => WithRealStore(store =>
     {
         // :60-63: terminate() does not wait for the shell to actually exit and has no escalation (unlike
         // Shell.terminate's ladder) -- an idle prompt can ignore the graceful signal (PR-TERM-046 failure_cases),
-        // so this proves the idempotency the record actually promises, not that the OS process has died.
+        // so this proves the idempotency the record actually promises, not that the OS process has died (the port's view
+        // ends the shell too, as macOS's closed pty does; the next test proves that).
         var thread = Guid.NewGuid();
         var directory = TerminalTestFolders.Create("terminate idempotent");
         var session = store.Open(thread, directory);
@@ -634,11 +642,46 @@ public sealed class TerminalStoreTests(HeadlessSession headless)
         Assert.False(session.IsRunning);
     }));
 
+    [Fact]
+    [Trait("Req", "PR-TERM-046")] // App/Views/Terminal/TerminalStore.swift:59-63; on macOS the closed pty hangs the shell up, a ConPTY has no hang-up
+    public void Terminate_also_ends_the_shell_process_and_the_program_it_started_so_nothing_outlives_the_tab() => headless.OnUiThread(() => WithRealStore(store =>
+    {
+        // An idle PowerShell prompt ignores the graceful step, and a tab that was closed, restarted or quit with the app
+        // used to leave the shell and its conhost running. The shell starts a hidden program of its own that sleeps.
+        var thread = Guid.NewGuid();
+        var directory = TerminalTestFolders.Create("terminate ends the tree");
+        var command = "$exe = (Get-Process -Id $PID).Path; "
+            + "$child = Start-Process -FilePath $exe -WindowStyle Hidden -PassThru -ArgumentList '-NoLogo','-NoProfile','-Command','Start-Sleep -Seconds 300'; "
+            + "Set-Content -Path 'child.pid' -Value $child.Id -Encoding ascii";
+        store.Run(new ProjectScript(name: "Tree", command: command), thread, directory);
+        var session = store.Sessions(thread)[0];
+        var shell = session.View.ProcessId;
+        var child = 0;
+        try
+        {
+            Assert.True(int.TryParse(UiPump.WaitForText(Path.Join(directory, "child.pid"), UiPump.Bound),
+                System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out child),
+                "the shell did not start its program");
+            Assert.True(ShellProbe.IsAlive(shell));
+            Assert.True(ShellProbe.IsAlive(child));
+
+            session.Terminate();
+
+            Assert.True(ShellProbe.WaitForExit(shell, UiPump.Bound), "the shell outlived Terminate");
+            Assert.True(ShellProbe.WaitForExit(child, UiPump.Bound), "the program the shell started outlived Terminate");
+        }
+        finally
+        {
+            if (child != 0) ShellProbe.KillIfAlive(child);
+            ShellProbe.KillIfAlive(shell);
+        }
+    }));
+
     // ---- PR-TERM-047: a shell that exits on its own marks the session not running -------------------------------------
 
     [Fact]
     [Trait("Req", "PR-TERM-047")] // App/Views/Terminal/TerminalStore.swift:78-80, :97-100
-    public void A_shell_that_exits_on_its_own_marks_isRunning_false_and_keeps_the_tab() => headless.OnUiThread(() => WithStore(store =>
+    public void A_shell_that_exits_on_its_own_marks_isRunning_false_and_keeps_the_tab() => headless.OnUiThread(() => WithRealStore(store =>
     {
         var thread = Guid.NewGuid();
         var directory = TerminalTestFolders.Create("self exit");
@@ -677,7 +720,7 @@ public sealed class TerminalStoreTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-TERM-049")] // App/Views/Terminal/TerminalStore.swift:69-76
-    public void A_shell_at_the_prompt_reads_as_foreground_and_a_shell_running_a_child_does_not() => headless.OnUiThread(() => WithStore(store =>
+    public void A_shell_at_the_prompt_reads_as_foreground_and_a_shell_running_a_child_does_not() => headless.OnUiThread(() => WithRealStore(store =>
     {
         var thread = Guid.NewGuid();
         var directory = TerminalTestFolders.Create("foreground job");
@@ -761,7 +804,7 @@ public sealed class TerminalStoreTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-TERM-123")] // App/Views/Terminal/TerminalStore.swift:37-39
-    public void A_script_tab_runs_the_command_then_stays_interactive_whether_it_succeeded_or_failed() => headless.OnUiThread(() => WithStore(store =>
+    public void A_script_tab_runs_the_command_then_stays_interactive_whether_it_succeeded_or_failed() => headless.OnUiThread(() => WithRealStore(store =>
     {
         var thread = Guid.NewGuid();
         var directory = TerminalTestFolders.Create("script argv");
