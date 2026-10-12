@@ -66,6 +66,11 @@ public static class Program
             problem = SetupStrings.ProblemOther;
         }
         var session = new SetupSession(window, route, new InterimScreens(), version, canInstall: smoke is null);
+        // PLAN.md 3 step 4 and 5, "Leftovers" (unit U9, ED-NEW-inst-u9-1): this run's staging folder goes on every exit path (Ready
+        // or Problem showing, Close on any screen, an unhandled exception); stale folders from earlier runs are swept once the
+        // window is up. A smoke run stages nothing and sweeps nothing.
+        using var staging = smoke is null && Path.IsPathFullyQualified(localAppData) ? StagingScope.Create(localAppData, Path.GetTempPath(), version) : null;
+        staging?.ReleaseWhenShown(session);
         if (problem is not null) session.Fail(problem);
         window.HandleReady += handle => instance?.Publish(handle, Environment.ProcessId);
         session.Start();
@@ -74,6 +79,7 @@ public static class Program
         window.Closed += (_, _) => done.Cancel();
         if (smoke is not null) window.Opened += (_, _) => _ = UiSmoke.RunAsync(session, smoke, started);
         else _ = CheckSignatureAsync(session);
+        if (staging is not null) window.Opened += (_, _) => _ = staging.SweepStaleAsync();
         window.Show();
         Dispatcher.UIThread.MainLoop(done.Token);
         return (session.ExitCode, session.InstallChosen);
