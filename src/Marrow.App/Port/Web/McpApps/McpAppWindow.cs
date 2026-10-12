@@ -181,7 +181,7 @@ public sealed class McpAppWindow
     internal void CloseQuietly()
     {
         quietly = true;
-        if (Slot.Child is not null) Slot.Child = null;
+        McpAppSession.TakeOut(Slot);
         Window.Close();
     }
 

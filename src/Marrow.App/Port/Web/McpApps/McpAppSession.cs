@@ -7,6 +7,7 @@
 // the card asks the registry for the session rather than owning it.
 using System.Text.Json.Nodes;
 using Avalonia.Controls;
+using Avalonia.VisualTree;
 using Marrow.App.Runtime;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -156,7 +157,7 @@ public sealed class McpAppSession
     internal void DetachInline(Decorator slot)
     {
         if (inlineSlot != slot) return;
-        if (Host.Parent == slot) slot.Child = null;
+        if (Host.Parent == slot) TakeOut(slot);
         inlineSlot = null;
         Place();
     }
@@ -172,7 +173,7 @@ public sealed class McpAppSession
     internal void DetachPane(Decorator slot)
     {
         if (paneSlot != slot) return;
-        if (Host.Parent == slot) slot.Child = null;
+        if (Host.Parent == slot) TakeOut(slot);
         paneSlot = null;
         Place();
     }
@@ -233,7 +234,7 @@ public sealed class McpAppSession
         }
 
         if (from != McpAppDisplayMode.Pane) return;
-        if (paneSlot is { } slot && Host.Parent == slot) slot.Child = null;
+        if (paneSlot is { } slot && Host.Parent == slot) TakeOut(slot);
         if (McpAppSessions.Expanded(Runtime.ThreadID) != this) return;
         McpAppSessions.SetExpanded(Runtime.ThreadID, null);
         if (closePane && Runtime.Workspace.IsOpen(PaneKind.App)) Runtime.Workspace = Runtime.Workspace.Close(PaneKind.App);
@@ -254,6 +255,20 @@ public sealed class McpAppSession
         SetMode(McpAppDisplayMode.Inline);
     }
 
+    /// <summary>
+    /// Takes the page out of a slot. Leaving a window queues the page's controls with that window's layout manager, and a page
+    /// that is then put into another window (the card, the App pane and the pop-out window are different roots) makes the first
+    /// window's next pass throw ("wrong LayoutManager"). So the window runs its pass once the page is out and before it goes in
+    /// elsewhere: the pass drops what is no longer inside it, and nothing of the page is left queued behind.
+    /// </summary>
+    internal static void TakeOut(Decorator slot)
+    {
+        if (slot.Child is null) return;
+        var top = TopLevel.GetTopLevel(slot);
+        slot.Child = null;
+        top?.UpdateLayout();
+    }
+
     /// <summary>Puts the host where the mode says, and tells the app its container.</summary>
     internal void Place()
     {
@@ -264,7 +279,7 @@ public sealed class McpAppSession
             McpAppDisplayMode.PopOut => window?.Slot,
             _ => noSlot,
         };
-        if (Host.Parent is Decorator current && current != target) current.Child = null;
+        if (Host.Parent is Decorator current && current != target) TakeOut(current);
         if (target is not null && target.Child != Host)
         {
             target.Child = null;
@@ -322,7 +337,7 @@ public sealed class McpAppSession
         McpAppHostUi.Withdraw(Mount);
         await Mount.TeardownAsync();
         Mount.Dispose();
-        if (Host.Parent is Decorator parent) parent.Child = null;
+        if (Host.Parent is Decorator parent) TakeOut(parent);
         View.SetShown(false);
         WebSurfaces.Shared.Close(View);
     }

@@ -29,6 +29,8 @@ public static class McpAppsStartup
         McpAppsHost.Bind(new McpAppsHost(new McpHubAppServers(hub), new McpAppGrantStore(McpAppGrantStore.DefaultPath()), ui, MainActor.Post,
             log: line => System.Diagnostics.Trace.WriteLine(line)));
         AppPane.Register();
+        // W24's HTML live answers (html_widget, a fenced nth-html block) are drawn by the inline widget host.
+        Marrow.App.Views.Chat.LiveAnswerHtml.Host.SetProcessDefault(Marrow.App.Views.Chat.InlineWebWidget.ForLiveAnswer);
         hub.ListChanged += change => { _ = McpAppCatalog.RefreshAsync(hub); };
         _ = McpAppCatalog.RefreshAsync(hub);
     }

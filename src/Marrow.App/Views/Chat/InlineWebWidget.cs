@@ -20,7 +20,9 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Marrow.App.Port.Web.McpApps;
+using Marrow.App.Runtime;
 using Marrow.App.Views.Composer;
+using Marrow.Core.Models;
 using Marrow.Core.Web;
 using Marrow.UI.Chrome;
 using Marrow.UI.Panes;
@@ -220,6 +222,22 @@ public sealed class InlineWebWidget : Decorator
     /// <summary>The card of an html_widget (W24's tool): the same widget for every row that draws the same id.</summary>
     public static InlineWebWidget Html(string id, string html, double? height = null) => new(null, InlineWidgetSession.For(id, html, height));
 
+    /// <summary>
+    /// The card of a live answer that is one HTML page (W24's html_widget or a fenced nth-html block), for LiveAnswerHtml.Host: null while the
+    /// page is still arriving (the row says it is being written) or has no id. The widget is one per chat, id and version, so a newer view
+    /// with the same id is a new page on its own site, and two chats that use the same id never share one.
+    /// </summary>
+    public static Control? ForLiveAnswer(ToolLiveView live, ThreadRuntime runtime)
+    {
+        ArgumentNullException.ThrowIfNull(live);
+        ArgumentNullException.ThrowIfNull(runtime);
+        if (!live.IsHtml || !live.Complete || live.Id.Length == 0 || live.Text.Length == 0) return null;
+        return Html(WidgetKey(runtime.ThreadID, live.Id, live.Version), live.Text, live.Height is { } height and > 0 ? height : null);
+    }
+
+    /// <summary>The widget's name for the session table and its site: the chat, the view's id and its version.</summary>
+    public static string WidgetKey(Guid thread, string id, int version) => thread.ToString("N")[..8] + "-" + id + "-v" + version;
+
     /// <summary>The app this card shows, or null for an html_widget.</summary>
     public McpAppSession? App => app;
 
@@ -271,7 +289,7 @@ public sealed class InlineWebWidget : Decorator
         if (widget is not null)
         {
             widget.Changed += Show;
-            if (widget.Host.Parent is Decorator old && old != slot) old.Child = null;
+            if (widget.Host.Parent is Decorator old && old != slot) McpAppSession.TakeOut(old);
             slot.Child = widget.Host;
             widget.View.SetShown(true);
         }

@@ -59,6 +59,7 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
         {
             WebSurfaces.Reset();
             McpAppSessions.Reset();
+            InlineWidgetSession.Reset();
             WebSurfaces.Factory = static () => new WebSurface(new FakeWebEngine(), new WebProfiles(@"C:\nth-test\WebView2", "en-US"), post: static action => action());
             WebSurfaces.LiveFactory = static _ => new Border();
             Grants = new McpAppGrantStore(null);
@@ -79,6 +80,7 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
         {
             foreach (var session in McpAppSessions.All()) session.Window?.CloseQuietly();
             McpAppSessions.Reset();
+            InlineWidgetSession.Reset();
             McpAppSessions.HostSource = static () => McpAppsHost.Shared;
             McpAppCatalog.Set([]);
             WebSurfaces.Reset();
@@ -100,11 +102,11 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
     private static void Pump(TimelineMount m, int milliseconds = 100) => m.Advance(milliseconds);
 
     // The App pane's content, shown in a window of its own as the workspace would.
-    private static (Window Window, AppPane Pane, Views.Panes.PaneContent Content) OpenPane(ThreadRuntime runtime)
+    private static (Avalonia.Controls.Window Window, AppPane Pane, Marrow.App.Views.Panes.PaneContent Content) OpenPane(ThreadRuntime runtime)
     {
         var content = PaneContents.Create(PaneKind.App, runtime)!;
         var pane = Assert.IsType<AppPane>(content.Body);
-        var window = new Window { Width = 700, Height = 500, Content = pane };
+        var window = new Avalonia.Controls.Window { Width = 700, Height = 500, Content = pane };
         window.Show();
         Dispatcher.UIThread.RunJobs();
         window.UpdateLayout();
@@ -132,7 +134,7 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
         Assert.Equal("shipyard", message.Server);
         Assert.Equal("Promote v2.4.1 to production.", message.Message.Text);
         Assert.Contains(Find<TextBlock>(message), text => text.Text == "Message from shipyard");
-    });
+    }, height: 900); // 60 % of the thread is more than the card's 320 before the app says how tall it is
 
     [Fact]
     public void A_plain_mcp_call_stays_a_plain_tool_row() => ThreadTimelineRig.Run(headless, m =>
@@ -361,6 +363,43 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
         Assert.Equal(new Size(1872, 1032), McpAppWindow.Fit(new Size(5000, 5000), new Size(1872, 1032)));
     });
 
+    private static ToolLiveView HtmlView(string text, bool complete = true, int version = 1, string id = "pong") =>
+        new() { Id = id, Kind = LiveViewKind.Html, Text = text, Complete = complete, Version = version, Height = 300 };
+
+    [Fact]
+    public void An_html_live_answer_is_the_inline_widget_card_one_per_chat_id_and_version() => ThreadTimelineRig.Run(headless, m =>
+    {
+        using var apps = new Apps(m.Runtime);
+        const string page = "<!doctype html><title>Pong</title><canvas id=c></canvas>";
+
+        // While the page is still arriving, with no id, or when it is not a page, the row draws its own calm card.
+        Assert.Null(InlineWebWidget.ForLiveAnswer(HtmlView(page, complete: false), m.Runtime));
+        Assert.Null(InlineWebWidget.ForLiveAnswer(HtmlView(page, id: ""), m.Runtime));
+        Assert.Null(InlineWebWidget.ForLiveAnswer(HtmlView(page) with { Kind = LiveViewKind.Ui }, m.Runtime));
+        Assert.Null(InlineWebWidget.ForLiveAnswer(HtmlView(""), m.Runtime));
+
+        // A finished page is the card of the canvas: "Widget · from this answer", no switch, no trust strip (the title says it).
+        var first = Assert.IsType<InlineWebWidget>(InlineWebWidget.ForLiveAnswer(HtmlView(page), m.Runtime));
+        Assert.Equal(InlineWebWidget.WidgetTrustText, first.TitleText);
+        Assert.NotNull(first.Widget);
+        Assert.Null(first.App);
+        Assert.False(first.ShowsTrust);
+        Assert.Null(first.SwitchButton(McpAppDisplayMode.Pane));
+        Assert.Equal(300, first.Widget!.DeclaredHeight);
+
+        // Drawn again (the rows of a thread are made again and again), it is the same widget, not a second page.
+        var again = Assert.IsType<InlineWebWidget>(InlineWebWidget.ForLiveAnswer(HtmlView(page), m.Runtime));
+        Assert.Same(first.Widget, again.Widget);
+
+        // A newer view with the same id is a new page on its own site; another chat never shares one.
+        var newer = Assert.IsType<InlineWebWidget>(InlineWebWidget.ForLiveAnswer(HtmlView(page + "<p>2</p>", version: 2), m.Runtime));
+        Assert.NotSame(first.Widget, newer.Widget);
+        Assert.NotEqual(first.Widget.Mount.SiteHost, newer.Widget!.Mount.SiteHost);
+        Assert.NotEqual(InlineWebWidget.WidgetKey(Guid.NewGuid(), "pong", 1), InlineWebWidget.WidgetKey(m.Runtime.ThreadID, "pong", 1));
+        Assert.StartsWith("w-", first.Widget.Mount.SiteHost, StringComparison.Ordinal);
+        Assert.EndsWith(".invalid", first.Widget.Mount.SiteHost, StringComparison.Ordinal);
+    });
+
     [Fact]
     public void Scrolling_holds_every_inline_app_on_its_snapshot_and_one_goes_live_after_the_thread_is_still() => ThreadTimelineRig.Run(headless, m =>
     {
@@ -403,7 +442,7 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
         Pump(m);
         var session = Assert.Single(Find<McpAppRow>(m.View)).Session!;
         var chips = new AppContextChips(m.Runtime);
-        var window = new Window { Width = 600, Height = 200, Content = chips };
+        var window = new Avalonia.Controls.Window { Width = 600, Height = 200, Content = chips };
         window.Show();
         try
         {
