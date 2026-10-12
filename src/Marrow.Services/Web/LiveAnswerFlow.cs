@@ -62,7 +62,6 @@ public sealed class LiveAnswerFlow(Guid thread, LiveAnswerHost host, bool lite, 
     {
         public string OriginalId { get; } = id;
         public LiveFenceParser Parser { get; } = new();
-        public System.Text.StringBuilder Raw { get; } = new();
         public string SegmentId { get; set; } = id;
         public int Segment { get; set; }
         public System.Text.StringBuilder SegmentText { get; } = new();
@@ -237,7 +236,7 @@ public sealed class LiveAnswerFlow(Guid thread, LiveAnswerHost host, bool lite, 
     {
         var output = new List<ProviderEvent>();
         var view = change.View;
-        var known = entryOfView.TryGetValue(view.Id, out var mapped) ? mapped : lookup.EntryOf(view.Id);
+        var known = entryOfView.TryGetValue(view.Id, out var mapped) && lookup.Current(mapped) is not null ? mapped : lookup.EntryOf(view.Id); // a row the chat no longer holds (rewound) is not the view's row
         if (change.Kind == LiveChangeKind.Updated)
         {
             if (known is not null)
@@ -319,7 +318,6 @@ public sealed class LiveAnswerFlow(Guid thread, LiveAnswerHost host, bool lite, 
     private List<ProviderEvent> Delta(ProviderEvent.MessageDelta delta)
     {
         if (!messages.TryGetValue(delta.Id, out var message)) messages[delta.Id] = message = new Message(delta.Id);
-        message.Raw.Append(delta.Text);
         var output = new List<ProviderEvent>();
         Take(message, message.Parser.Feed(delta.Text), output);
         // An answer with no block is passed on as it came (a held-back line is the only difference, and it comes out later).

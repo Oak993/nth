@@ -191,7 +191,7 @@ public sealed class LiveAnswerRow : Decorator
         next.StateChanged += OnStateChanged;
         next.HorizontalAlignment = HorizontalAlignment.Stretch;
         if (Child is not OpacityCrossfade fade) Child = fade = new OpacityCrossfade();
-        if (swap && fade.Current is not null) Transaction.WithAnimation(Animation.Snappy(duration: .24), () => fade.Show(next));
+        if (swap && fade.Current is not null) Transaction.WithAnimation(TimelineRows.UnlessReduced(Animation.Snappy(duration: .24)), () => fade.Show(next));
         else fade.Show(next);
         view = next;
         htmlHost = null;
