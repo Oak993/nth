@@ -21,41 +21,43 @@ namespace Marrow.UI.Tests.Markdown;
 [Collection("Headless")]
 public sealed class StreamVeilLeanTests(HeadlessSession headless)
 {
-    // Budgets per kind of paragraph and length (both numbers are in ED-NEW-lean-12).
-    private const long ProseShort = 333_000; // base 221,894
-    private const long ProseLong = 1_890_000; // base 1,258,184
-    private const long LinkShort = 107_000; // base 71,074
-    private const long LinkLong = 527_000; // base 351,074
-    private const long CodeShort = 146_000; // base 97,191
-    private const long CodeLong = 766_000; // base 510,191
+    // Budgets per kind of paragraph and length, about 1.3x the cost after the fix (both numbers are in ED-NEW-lean-12). Before it, a tick
+    // cut and compared the whole paragraph's Characters, rebuilt every run and swapped every inline of a SelectableTextBlock (which rebuilds
+    // its whole text twice per inline added or removed): about five times as much at 4,000 characters as at 500.
+    private const double Growth = 2.0; // a 4,000-character paragraph's tick may cost at most twice a 500-character one's
+    private const long ProseShort = 34_200; // base 221,894; after the fix 26,315
+    private const long ProseLong = 34_200; // base 1,258,184; after the fix 26,315
+    private const long LinkShort = 26_100; // base 71,074; after the fix 20,040
+    private const long LinkLong = 26_100; // base 351,074; after the fix 20,040
+    private const long CodeShort = 34_100; // base 97,191; after the fix 26,235
+    private const long CodeLong = 34_100; // base 510,191; after the fix 26,235
 
     private const string Local = "file:///C:/notes.md"; // a link with no host: nothing to fetch a favicon for
     private const double Frame = 34; // a little over 1/30 s: every frame is a veil-clock tick (StreamVeil.swift:174-181, preferred 30)
 
-    public enum Kind { Prose, Link, Code }
-
     [Theory]
-    [InlineData(Kind.Prose)]
-    [InlineData(Kind.Link)]
-    [InlineData(Kind.Code)]
+    [InlineData("prose")]
+    [InlineData("link")]
+    [InlineData("code")]
     [Trait("Decision", "ED-NEW-lean-12")]
-    public void A_veil_tick_costs_the_same_for_a_long_paragraph_as_for_a_short_one(Kind kind) => headless.OnUiThread(() =>
+    public void A_veil_tick_costs_the_same_for_a_long_paragraph_as_for_a_short_one(string kind) => headless.OnUiThread(() =>
     {
         var (shortLimit, longLimit) = kind switch
         {
-            Kind.Prose => (ProseShort, ProseLong),
-            Kind.Link => (LinkShort, LinkLong),
+            "prose" => (ProseShort, ProseLong),
+            "link" => (LinkShort, LinkLong),
             _ => (CodeShort, CodeLong),
         };
         var small = BytesPerTick(kind, 500);
         var large = BytesPerTick(kind, 4000);
         Assert.True(small <= shortLimit, $"{kind}: bytes per veil tick at 500 characters: {small} (limit {shortLimit}); at 4,000: {large}");
         Assert.True(large <= longLimit, $"{kind}: bytes per veil tick at 4,000 characters: {large} (limit {longLimit}); at 500: {small}");
+        Assert.True(large <= small * Growth, $"{kind}: a veil tick at 4,000 characters costs {large} bytes, more than {Growth}x the {small} at 500");
     });
 
     /// <summary>A streaming reply of one paragraph (prose, a paragraph with a link, or a code block) about <paramref name="length"/> characters
     /// long, flushed with a few more words every ten frames; bytes per tick over the eight frames after the first two of each flush.</summary>
-    internal static long BytesPerTick(Kind kind, int length)
+    internal static long BytesPerTick(string kind, int length)
     {
         using var runtime = new TestRuntime();
         var frames = new ManualFrameSource();
@@ -68,8 +70,8 @@ public sealed class StreamVeilLeanTests(HeadlessSession headless)
             var text = body + string.Concat(Enumerable.Repeat(" more", flush));
             return kind switch
             {
-                Kind.Link => $"Read [notes]({Local}) {text}",
-                Kind.Code => $"```\n{text}\n```\n",
+                "link" => $"Read [notes]({Local}) {text}",
+                "code" => $"```\n{text}\n```\n",
                 _ => text,
             };
         }

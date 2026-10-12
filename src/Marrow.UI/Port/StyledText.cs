@@ -92,13 +92,85 @@ public sealed class StyledText
         host.Inlines ??= new InlineCollection();
         host.Inlines.Clear();
         AppendTo(host.Inlines, host);
+        ApplyLineBox(host);
+    }
+
+    /// <summary>
+    /// ENGINEERING DECISION (ED-NEW-lean-12). What <see cref="Render(TextBlock, Painted)"/> last put in a host it owns: the runs and the
+    /// inline it made for each. A veiled paragraph renders on every veil-clock tick, and from tick to tick its runs mostly differ only in
+    /// the colour of the words still dissolving; every inline added to or removed from a SelectableTextBlock makes it rebuild its whole
+    /// text twice (Avalonia 12.1.2 coerces the selection against it), so a long paragraph cost its whole length on every tick.
+    /// </summary>
+    public sealed class Painted
+    {
+        internal Run[] Runs = [];
+        internal Inline[] Inlines = [];
+    }
+
+    /// <summary>
+    /// ED-NEW-lean-12: <see cref="Render(TextBlock)"/> for a host only this caller renders into. When the host still holds the inlines the
+    /// last call made and the runs differ from the last ones only in the colour of coloured text runs, those inlines take the new
+    /// colour's brush in place (the brush a fresh inline would get); anything else renders afresh. Either way the host ends up holding
+    /// inlines with the same properties.
+    /// </summary>
+    public void Render(TextBlock host, Painted kept)
+    {
+        if (Recolour(host, kept))
+        {
+            ApplyLineBox(host);
+            return;
+        }
+
+        Render(host);
+        kept.Runs = [.. runs];
+        kept.Inlines = [.. host.Inlines!];
+    }
+
+    private bool Recolour(TextBlock host, Painted kept)
+    {
+        var inlines = host.Inlines;
+        if (inlines is null || inlines.Count != runs.Count || kept.Runs.Length != runs.Count || kept.Inlines.Length != runs.Count) return false;
+        for (var index = 0; index < runs.Count; index++)
+        {
+            if (!ReferenceEquals(inlines[index], kept.Inlines[index])) return false;
+            var before = kept.Runs[index];
+            var after = runs[index];
+            if (ReferenceEquals(before, after) || before == after) continue;
+            if (inlines[index] is not AvaloniaRun || before.Image is not null || after.Image is not null) return false;
+            if (before.Color is null || after.Color is null || before with { Color = after.Color } != after) return false;
+        }
+
+        for (var index = 0; index < runs.Count; index++)
+        {
+            var after = runs[index];
+            if (ReferenceEquals(kept.Runs[index], after)) continue;
+            if (kept.Runs[index] != after) ((AvaloniaRun)inlines[index]).Foreground = Brush(host, after.Color!);
+            kept.Runs[index] = after;
+        }
+
+        return true;
+    }
+
+    private void ApplyLineBox(TextBlock host)
+    {
         // ED-290 (1): a font given to the concatenated Text is the nearest .font, so it sets the host's line box as SwiftFont.Apply does:
         // a text style's box (TimelineRows.swift:454-455, the callout's 17), or the face's own for a fixed size, which cuts an outer
         // style's box off (HydraGlyph.swift:239-241). A line is as tall as its tallest run's box. With no font on any run the host keeps
         // whatever box it has or inherits.
-        var fonts = runs.Where(static run => run.Image is null && run.Font is not null).Select(static run => run.Font!).ToArray();
-        if (fonts.Length > 0)
-            host.SetValue(SwiftFont.LineBoxProperty, fonts.Select(static font => font.LineBox).Max() ?? double.NaN);
+        // ED-NEW-lean-12: one pass over the runs, no arrays (a veiled paragraph renders on every veil-clock tick). The tallest box is
+        // Enumerable.Max over the boxes that are known: a missing box is skipped, a NaN gives way to the next box, none known is NaN.
+        var anyFont = false;
+        double? tallest = null;
+        foreach (var run in runs)
+        {
+            if (run.Image is not null || run.Font is not { } font) continue;
+            anyFont = true;
+            if (font.LineBox is not { } box) continue;
+            if (tallest is not { } known || double.IsNaN(known) || box > known) tallest = box;
+        }
+
+        if (anyFont)
+            host.SetValue(SwiftFont.LineBoxProperty, tallest ?? double.NaN);
     }
 
     // UI/Markdown/StreamVeil.swift:295-300, :326-331 interleaves styled values with its own prose.
@@ -164,12 +236,7 @@ public sealed class StyledText
                 inline.FontFeatures = new FontFeatureCollection { new FontFeature { Tag = "tnum", Value = 1 } };
         }
 
-        if (run.Color is { } color)
-        {
-            var cache = BrushCache.GetValue(host, _ => new Dictionary<SwiftColor, IBrush>());
-            if (!cache.TryGetValue(color, out var brush)) cache[color] = brush = color.Brush(host);
-            inline.Foreground = brush;
-        }
+        if (run.Color is { } color) inline.Foreground = Brush(host, color);
 
         if (run.IsUnderlined == true || run.IsStrikethrough == true)
         {
@@ -178,6 +245,13 @@ public sealed class StyledText
             if (run.IsStrikethrough == true) decorations.Add(new TextDecoration { Location = TextDecorationLocation.Strikethrough });
             inline.TextDecorations = decorations;
         }
+    }
+
+    private static IBrush Brush(TextBlock host, SwiftColor color)
+    {
+        var cache = BrushCache.GetValue(host, _ => new Dictionary<SwiftColor, IBrush>());
+        if (!cache.TryGetValue(color, out var brush)) cache[color] = brush = color.Brush(host);
+        return brush;
     }
 
     // ED-092 packet: modifiers produce a new value and apply to every run of the receiver.

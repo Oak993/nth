@@ -84,10 +84,8 @@ public sealed class StreamVeilPixelGuardTests(HeadlessSession headless)
         Assert.True(pixels == MarkdownPixels, $"pixels: {pixels} (recorded {MarkdownPixels}); runs: {runs}");
     });
 
-    private delegate void Stream(TestRuntime runtime, ManualFrameSource frames, Action<Window, Control> capture);
-
     // Runs the stream on the manual clock and frame source; every capture hashes the window's rendered frame and the runs under the control.
-    private static (string Pixels, string Runs) Capture(Stream stream)
+    private static (string Pixels, string Runs) Capture(Action<TestRuntime, ManualFrameSource, Action<Window, Control>> stream)
     {
         using var runtime = new TestRuntime();
         var frames = new ManualFrameSource();
