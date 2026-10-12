@@ -41,6 +41,8 @@ public static class Program
     {
         if (!InstalledByVelopack(baseDirectory)) return;
         var app = VelopackApp.Build();
+        // nth installer PLAN.md 5 (unit U9, ED-NEW-inst-u9-1): the setup's leftover folders go with the app, unless a setup or the uninstaller is open.
+        SetupLeftoversStartup.RegisterUninstall(hook => app.OnBeforeUninstallFastCallback(hook));
         // SK-13 / DL-16: the skills and tools data is unlocked and deleted before Velopack removes the app (ONDEMAND-PLAN.md 3.8).
         SkillsUninstallHook.Register(hook => app.OnBeforeUninstallFastCallback(hook), SkillsDataRoot.Resolve);
         app.Run();
@@ -195,6 +197,8 @@ public static class Program
         Marrow.App.Port.MultiAccount.Thread.ThreadPortSeams.Bind(Marrow.App.Window.WindowManager.Shared.Model);
         shell.FinishLaunching();
         launchReady.TrySetResult();
+        // nth installer PLAN.md 5 (unit U9, ED-NEW-inst-u9-1): nth Setup's leftover folders are removed on the pool once the first window is up, when no setup runs.
+        _ = SetupLeftoversStartup.SweepAtStart(AppContext.BaseDirectory);
         skills?.CollectInBackground(); // SK-13: the startup GC runs on the pool once the main window is up, never on the launch path (single-instance lock is already held)
         DroppyCodeApp.ReceiveNotificationArguments(shell.Delegate, args); // ED-220: cold protocol activation
         reopen.Listen(() => shell.Reopen(lifetime.Windows));

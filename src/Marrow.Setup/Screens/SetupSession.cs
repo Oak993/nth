@@ -43,6 +43,20 @@ public sealed class SetupSession
 
     public SetupScreen Screen { get; private set; }
 
+    /// <summary>
+    /// Raised after a screen has been built and put in the window (the first screen, every <see cref="Go"/>). The staging folder
+    /// is released from here when Ready or Problem shows (PLAN.md 5, "Leftovers"; unit U9), which is after the screen was built,
+    /// so everything it reads from that folder must be read before the screen is shown.
+    /// </summary>
+    public event Action<SetupScreen>? ScreenShown;
+
+    /// <summary>
+    /// This run's staging folder (unit U9, <see cref="StagingScope.Attach"/>); null in a smoke run. Whatever the install writes
+    /// outside the install root goes in it through <see cref="StagingScope.Ensure"/>, which claims it, so that it is deleted on
+    /// every exit path and no sweep takes it while the run uses it.
+    /// </summary>
+    public StagingScope? Staging { get; internal set; }
+
     public ISetupScreen? Current => built.GetValueOrDefault(Screen);
 
     public SignatureResult Signature { get; private set; } = SignatureResult.Pending;
@@ -181,5 +195,6 @@ public sealed class SetupSession
         var next = Get(screen);
         Screen = screen;
         Window.Body.Show(next.View, immediately);
+        ScreenShown?.Invoke(screen);
     }
 }
