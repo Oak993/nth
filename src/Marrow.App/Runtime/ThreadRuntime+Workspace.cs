@@ -116,6 +116,8 @@ public sealed partial class ThreadRuntime
     {
         var was = before.Normalized();
         var now = workspace.Normalized();
+        // PORT-ONLY (web surfaces W6, DESIGN 3.9): closing Side chat ends what it was allowed to do (AppModel.SideChatClosed).
+        if (was.IsSideChatOpen && !now.IsSideChatOpen) App?.SideChatClosed(ThreadID);
         if (was.IsOpen(PaneKind.Terminal) && now.IsOpen(PaneKind.Terminal) && was.IsTerminalInDrawer != now.IsTerminalInDrawer)
             TerminalWantsFocus = true;
         Set(ref isTerminalVisible, now.IsOpen(PaneKind.Terminal), property: nameof(IsTerminalVisible));

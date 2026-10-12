@@ -315,6 +315,11 @@ public sealed record ChatThread
     public int? PillStepIndex { get; init; }
     public string? PillStepAccountID { get; init; }
 
+    // PORT-ONLY (web surfaces W6, ED-NEW-web-w6-1; DESIGN 3.9): this thread is the side chat of its parent, a second light
+    // conversation beside the main run. It is a panel child (ParentThreadID, IsInPanel) that the sidebar, the palette and the
+    // subagent panel never list. Written only when set, so every other thread's file is byte for byte what it was.
+    public bool IsSideChat { get; init; }
+
     public Marrow.Core.Accounts.Pills.PillThreadState? PillRelay =>
         PillID is { } pill && PillStepIndex is { } index && PillStepAccountID is { } account ? new(pill, index, account) : null;
 
@@ -498,6 +503,7 @@ internal sealed class ChatThreadConverter : JsonConverter<ChatThread>
             PillID = Coding.Value<Guid?>(element, "pillID", field => SwiftDecoding.ReadUUID(field), () => null),
             PillStepIndex = Coding.Value<int?>(element, "pillStepIndex", field => (int)SwiftDecoding.ReadInt(field), () => null),
             PillStepAccountID = Coding.Value<string?>(element, "pillStepAccountID", SwiftDecoding.ReadString, () => null),
+            IsSideChat = Coding.Value(element, "isSideChat", SwiftDecoding.ReadBool, () => false), // PORT-ONLY (web surfaces W6): absent means an ordinary thread
         }, element);
     }
 
@@ -558,6 +564,7 @@ internal sealed class ChatThreadConverter : JsonConverter<ChatThread>
         if (value.PillID is { } pillID) writer.WriteString("pillID", SwiftUUID.UuidString(pillID)); // PORT-ONLY (MA-7)
         if (value.PillStepIndex is { } pillStepIndex) writer.WriteNumber("pillStepIndex", pillStepIndex);
         if (value.PillStepAccountID is { } pillStepAccountID) writer.WriteString("pillStepAccountID", pillStepAccountID);
+        if (value.IsSideChat) writer.WriteBoolean("isSideChat", true); // PORT-ONLY (web surfaces W6): omitted when false
         if (value.Workspace is { IsEmpty: false } workspace) // PORT-ONLY (web W3c): a thread at the default layout writes nothing
         {
             writer.WritePropertyName("workspace");

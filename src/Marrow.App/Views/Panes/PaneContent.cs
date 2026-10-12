@@ -36,6 +36,9 @@ public sealed class PaneContent
     /// <summary>The pane's own header actions, in reading order (Expand and Close are the workspace's).</summary>
     public IReadOnlyList<PaneHeaderAction> Actions { get; private set; }
 
+    /// <summary>The control that takes keyboard focus when the person opens the pane (Side chat's composer); null: focus stays where it was.</summary>
+    public Control? FocusTarget { get; set; }
+
     /// <summary>Raised after <see cref="Update"/>.</summary>
     public event Action? Changed;
 
