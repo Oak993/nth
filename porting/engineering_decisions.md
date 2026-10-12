@@ -6487,3 +6487,9 @@ C3cV5Tests restored GREEN7/0/0. Seven compiling temporary mutations failed targe
 2026-10-12 - Tactus C2-V6: cover disabled real input and post-approval launch gates. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c owner rulings; DESIGN.md 2.7, 2.11, 2.12 and 10.2).
 Managed tests close Enabled while a real-input borrow is queued and change each launch gate after approval: Attended, SecureDesktop, live denied-app verdict and standing Always. They assert refusal and no input/launch.
 C3cV6Tests restored GREEN5/0/0. Five compiling temporary mutations failed targeted assertions twice; exact source bytes restored after every mutation.
+
+
+## ED-NEW-pcctl-cx-20
+2026-10-12 - Tactus C2-V8: make worker and kept-key regression checks deterministic. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c owner rulings; DESIGN.md 2.7, 2.11, 2.12 and 10.2).
+The managed lease observer publishes the actual action task so A7-3 waits for completion after health loss and observes any late send. Replay fixtures use twenty distinct keys and A5 checks the exact prefix and final event order across refusal and PutBack.
+Changed C3A5Tests/C3A7Tests restored GREEN4/0/0. Wrong retained-key slicing and combined ignored drag cancellation/late-send guard mutations each failed the tightened test twice. Exact source bytes restored.

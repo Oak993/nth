@@ -78,6 +78,8 @@ public sealed class RealInputLease
     /// <summary>The user's keys are held after a failed restore (the pill's "Click where you were working to keep typing").</summary>
     public event Action<bool>? HoldingKeysChanged;
 
+    internal Action<Task>? ActionStarted { get; set; }
+
     public IPcClock Clock => clock;
 
     public IRealInputHost Host => host;
@@ -391,6 +393,7 @@ public sealed class RealInputLease
             var dog = Watchdog(borrow, watchdog.Token);
             input.HealthChanged += HealthChanged;
             var act = Act(borrow, activation, caption, actionCancellation.Token);
+            ActionStarted?.Invoke(act);
             // Stop never waits on a worker: when the watchdog lets go first (a hung focus call), the worker is abandoned.
             var winner = await Task.WhenAny(act, dog, unhealthy.Task).ConfigureAwait(false);
             if (winner == unhealthy.Task)

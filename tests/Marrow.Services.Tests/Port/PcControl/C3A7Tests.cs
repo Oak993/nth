@@ -70,11 +70,16 @@ public sealed class C3A7Tests
     public async Task Hook_failure_during_a_drag_ends_it_and_releases_the_button()
     {
         var rig = new PcBorrowRig().ProveAll();
+        var worker = new TaskCompletionSource<Task>(TaskCreationOptions.RunContinuationsAsynchronously);
+        rig.Lease.ActionStarted = task => worker.TrySetResult(task);
         var (arrays, gaps) = PcBorrowRung.DragArrays([new PcPoint(10, 10), new PcPoint(50, 50)], [], 100,
             rig.Host.Desktop(), rig.Host.ScanCode);
-        rig.Host.OnSend = _ => { rig.Host.OnSend = null; rig.Monitor.Installed(false); };
         var request = rig.Click() with { Chunks = arrays, GapsMs = gaps, HoldCapMs = RealInputLease.DragCapMs };
-        var result = await rig.Drive(rig.Lease.Borrow(request, CancellationToken.None));
+        var borrowing = rig.Lease.Borrow(request, CancellationToken.None);
+        var act = await worker.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Single(rig.Host.Sent);
+        rig.Monitor.Installed(false);
+        var result = await borrowing.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(PcBorrowStatus.NeedsRealInput, result.Status);
         Assert.Equal(PcRealInputReason.MonitorUnhealthy, result.Reason);
         Assert.Equal(2, rig.Host.Sent.Count);
@@ -82,7 +87,9 @@ public sealed class C3A7Tests
         Assert.Equal(PcBorrowRig.User, rig.Host.Foreground);
         Assert.False(rig.Hold.Swallowing);
         rig.Clock.Advance(1000);
-        await Task.Delay(25);
+        try { await act.WaitAsync(TimeSpan.FromSeconds(5)); }
+        catch (OperationCanceledException) { }
+        Assert.True(act.IsCompleted);
         Assert.Equal(2, rig.Host.Sent.Count);
     }
 }

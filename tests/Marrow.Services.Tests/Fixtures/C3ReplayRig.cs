@@ -4,7 +4,10 @@ namespace Marrow.Services.Tests.Fixtures;
 
 public static class C3ReplayRig
 {
-    public static async Task Keep(PcBorrowRig rig, nint window, nint focus, ushort key, int count = 1)
+    public static Task Keep(PcBorrowRig rig, nint window, nint focus, ushort key, int count = 1) =>
+        Keep(rig, window, focus, Enumerable.Repeat(key, count).ToArray());
+
+    public static async Task Keep(PcBorrowRig rig, nint window, nint focus, IReadOnlyList<ushort> keys)
     {
         rig.Host.Foreground = window;
         rig.Host.FocusedControl = focus;
@@ -12,7 +15,7 @@ public static class C3ReplayRig
         rig.Host.OnSend = _ =>
         {
             rig.Host.OnSend = null;
-            for (var i = 0; i < count; i++)
+            foreach (var key in keys)
             {
                 rig.UserInput(rig.Key(key, true));
                 rig.UserInput(rig.Key(key, false));
