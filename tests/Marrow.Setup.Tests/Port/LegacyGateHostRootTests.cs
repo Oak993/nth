@@ -51,6 +51,20 @@ public sealed class LegacyGateHostRootTests
         Assert.DoesNotContain("DefaultInstallRoot", gate, StringComparison.Ordinal);
     }
 
+    [Fact]
+    [Trait("Decision", "ED-247")]
+    public void The_gate_host_and_its_identity_have_one_home_and_Program_keeps_no_copy()
+    {
+        // ED-NEW-inst-merge-6: U7's tests reflected over Program.Identity() after U1 had moved it, and found null
+        const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
+        var hosts = typeof(LegacyGateHost).Assembly.GetTypes().Where(t => typeof(IInstallerGateHost).IsAssignableFrom(t) && !t.IsInterface).ToArray();
+
+        Assert.Equal(typeof(LegacyGateHost), Assert.Single(hosts));
+        Assert.Null(typeof(Program).GetMethod("Identity", Any));
+        Assert.NotNull(typeof(LegacyGateHost).GetMethod(nameof(LegacyGateHost.Identity), BindingFlags.Public | BindingFlags.Static));
+        Assert.DoesNotContain("\"nth Setup-\"", File.ReadAllText(Path.Combine(Repository(), "src", "Marrow.Setup", "Program.cs")), StringComparison.Ordinal);
+    }
+
     private static string Repository()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
