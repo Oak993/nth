@@ -6182,3 +6182,13 @@ Runs (heavy slot, native tests excluded; a failure counts only if it fails alone
 3. RED EVIDENCE. On be24185c8076fe1a8c13c4697ef02b7a37e8a3fb, C4RepairResultTests.Setup_upgrade_reports_failed_when_the_only_desktop_link_stays_broken (line 15) and The_install_hook_persists_the_failed_upgrade_result_for_Ready (line 32) each failed twice alone: expected Failed, actual Kept. Both also pin exact HRESULT 0x80070005. Logs: work/scratch/codex-C4b/u5-red-Setup_upgrade_reports_failed_when_the_only_desktop_link_stays_broken-1/2.log and u5-red-The_install_hook_persists_the_failed_upgrade_result_for_Ready-1/2.log.
 4. SCOPE. FakeShellLinks and FakeUserRegistry only; persistence writes an owned temporary options/result directory and deletes that fixture in finally. No installed/package execution, real registry/Desktop/Start/settings/user data or native tests.
 5. GREEN EVIDENCE (root-coordinated heavy slot and one-names-long.sh): Core build and Setup.Tests linked-source compatibility build each 0 warnings/0 errors. Raw focus C4HookBudgetTests + C4InstallRootTests + C4RepairResultTests: 17 passed/0 failed/0 skipped (8 budget + 7 root + 2 result cases); existing four U5 Core classes 98 passed/0 failed/0 skipped. Logs: work/scratch/codex-C4b/u5-result-compat-build.log, u5-result-build.log, u5-result-focus.log and u5-result-existing.log. Independent U8 static review ACCEPT (root boundary, constructor compatibility, first HRESULT, flags and unchanged persistence); no native tests or worker test execution.
+
+
+## ED-NEW-inst-c4c-1: Retry unanswered shell reads
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I1). A missed bounded read wait is unknown, not proof of a broken shell. Remove the permanent retry refusal; preserve timeout HRESULTs, STA queue ordering and per-call bounds. Keep a disposal-only timeout flag so an unanswered worker does not add another five-second hook teardown wait. Pure production-queue tests cover both shortened and full waits; no COM or real shell folders are touched.
+
+
+## ED-NEW-inst-c4c-5: A scan timeout leaves the shell retryable
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I5). I5 shares the I1 root cause and fix. A healthy read that finishes after the shortened scan wait must allow the following call to answer. C4cShellReadRetryTests guards short and full read timeouts and bounded teardown; the scan forwarding assertions remain unchanged.
