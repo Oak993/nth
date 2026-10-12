@@ -107,7 +107,26 @@ public sealed class MCPResultReaderTests
     {
         var result = MCPResultReader.Read(Json("""{"content":[],"structuredContent":{"answer":42}}"""));
         Assert.Equal("""{"answer":42}""", result.Text);
-        Assert.NotNull(result.ToPayload());
+        Assert.Null(result.ToPayload()); // the text already holds it; only a tool with a view keeps the structure in the row
+    }
+
+    [Fact]
+    public void A_tool_without_a_view_keeps_only_images_and_link_addresses_in_the_payload()
+    {
+        var result = MCPResultReader.Read(Json("""
+            {"content":[{"type":"image","data":"iVBORw0KGgo=","mimeType":"image/png"},
+            {"type":"resource","resource":{"uri":"file:///inline.txt","text":"inline words"}}],
+            "structuredContent":{"n":1},"_meta":{"k":"v"}}
+            """)) with { Server = "srv", ToolName = "plain" };
+
+        var payload = result.ToPayload()!;
+        Assert.Single(payload.Images);
+        var link = Assert.Single(payload.ResourceLinks);
+        Assert.Equal("file:///inline.txt", link.Uri);
+        Assert.Null(link.Text);
+        Assert.Null(payload.StructuredContent);
+        Assert.False(payload.StructuredContentOmitted);
+        Assert.Null(payload.Meta);
     }
 
     [Fact]

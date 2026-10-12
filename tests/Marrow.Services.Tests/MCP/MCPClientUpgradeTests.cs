@@ -380,6 +380,32 @@ public sealed class MCPClientUpgradeTests
         }
     }
 
+    [Fact]
+    public async Task A_listing_overtaken_by_a_change_is_returned_but_not_cached()
+    {
+        var hub = await Hub(new Dictionary<string, string> { ["MCP_RICH_NOTIFY_ON_LIST"] = "once" });
+        try
+        {
+            var changed = new TaskCompletionSource<MCPListChange>(TaskCreationOptions.RunContinuationsAsynchronously);
+            hub.ListChanged += change => changed.TrySetResult(change);
+
+            var first = await hub.Tools().WaitAsync(Bound);
+            Assert.Contains(first, t => t.Name == "list-1"); // what the caller asked for is answered
+            await changed.Task.WaitAsync(Bound);
+
+            var second = await hub.Tools().WaitAsync(Bound); // the first listing may be stale: asked again
+            Assert.Contains(second, t => t.Name == "list-2");
+            Assert.DoesNotContain(second, t => t.Name == "list-1");
+
+            var third = await hub.Tools().WaitAsync(Bound); // the second listing began after the change: cached
+            Assert.Contains(third, t => t.Name == "list-2");
+        }
+        finally
+        {
+            await hub.Reload();
+        }
+    }
+
     // ---- the server's own requests ----
 
     [Fact]

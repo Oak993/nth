@@ -15,6 +15,7 @@ $ErrorActionPreference = 'Stop'
 $out = [Console]::Out
 $freshTools = $false
 $freshResources = $false
+$listCount = 0
 $initParams = ''
 
 function Send($obj) {
@@ -58,7 +59,15 @@ while ($true) {
         }
         'notifications/initialized' { }
         'tools/list' {
-            Send @{ jsonrpc = '2.0'; id = $id; result = @{ tools = @(ToolList) } }
+            $tools = @(ToolList)
+            # MCP_RICH_NOTIFY_ON_LIST=once: the first listing is overtaken by a change (the notification comes before
+            # the reply), and every listing names itself ("list-N") so a test can tell which one it got.
+            if ($env:MCP_RICH_NOTIFY_ON_LIST -eq 'once') {
+                $script:listCount += 1
+                $tools += @{ name = ('list-' + $script:listCount) }
+                if ($script:listCount -eq 1) { Send @{ jsonrpc = '2.0'; method = 'notifications/tools/list_changed' } }
+            }
+            Send @{ jsonrpc = '2.0'; id = $id; result = @{ tools = $tools } }
         }
         'resources/list' {
             $cursor = $msg.params.cursor

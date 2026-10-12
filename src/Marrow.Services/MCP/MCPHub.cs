@@ -129,10 +129,14 @@ public sealed class MCPHub : Actor
 
         /// <summary>
         /// The part of the result the text cannot carry, under the persistence caps of <see cref="ToolPayload"/>, or
-        /// null when there is none (a plain text result).
+        /// null when there is none (a plain text result). Images and the addresses of links are always kept. The
+        /// structuredContent, the _meta and the text of embedded resources are kept only for a tool that names a
+        /// view: the view needs them to be drawn again after a restart, while for any other tool the text already
+        /// carries the data and the thread file must not store it twice.
         /// </summary>
         public ToolPayload? ToPayload()
         {
+            var forView = UiResourceUri is not null;
             var payload = new ToolPayload { Server = Server, Tool = ToolName, UiResourceUri = UiResourceUri };
             foreach (var image in Images) payload = payload.WithImage(image.MimeType, image.Data, MCPResultReader.Base64Bytes(image.Data));
             foreach (var resource in Resources)
@@ -144,12 +148,12 @@ public sealed class MCPHub : Actor
                     MimeType = resource.MimeType,
                     Description = resource.Description,
                     Embedded = resource.Embedded,
-                    Text = resource.Text,
+                    Text = forView ? resource.Text : null,
                     ByteCount = resource.ByteCount,
                 });
             }
-            if (StructuredContent is { } structured) payload = payload.WithStructuredContent(structured.CompactString);
-            if (Meta is { } meta) payload = payload.WithMeta(meta.CompactString);
+            if (forView && StructuredContent is { } structured) payload = payload.WithStructuredContent(structured.CompactString);
+            if (forView && Meta is { } meta) payload = payload.WithMeta(meta.CompactString);
             return payload.IsEmpty ? null : payload;
         }
     }
@@ -160,6 +164,11 @@ public sealed class MCPHub : Actor
     private readonly Dictionary<string, List<MCPResource>> resourceCache = new(SwiftStringComparer.Instance);
     private readonly Dictionary<string, List<MCPResourceTemplate>> templateCache = new(SwiftStringComparer.Instance);
     private readonly HashSet<string> failed = new(SwiftStringComparer.Instance);
+
+    // A server's lists changed this many times. A listing that began before a change is not cached: it may be stale.
+    private readonly Dictionary<string, int> changeEpoch = new(SwiftStringComparer.Instance);
+
+    private int Epoch(string server) => changeEpoch.GetValueOrDefault(server);
 
     private int toolsRevision;
 
@@ -202,9 +211,10 @@ public sealed class MCPHub : Actor
             var client = Client(id, spec);
             try
             {
+                var epoch = Epoch(id);
                 var listed = await client.ListTools();
                 var listedList = listed.ToList();
-                toolCache[id] = listedList;
+                if (Epoch(id) == epoch) toolCache[id] = listedList;
                 all.AddRange(listedList);
             }
             catch (Exception error) when (SwiftTry.IsThrownError(error))
@@ -269,8 +279,9 @@ public sealed class MCPHub : Actor
     {
         var spec = SpecFor(server);
         if (resourceCache.TryGetValue(server, out var cached)) return (IReadOnlyList<MCPResource>)cached;
+        var epoch = Epoch(server);
         var listed = (await Guarded(() => Client(server, spec).ListResources())).ToList();
-        resourceCache[server] = listed;
+        if (Epoch(server) == epoch) resourceCache[server] = listed;
         return listed;
     });
 
@@ -279,8 +290,9 @@ public sealed class MCPHub : Actor
     {
         var spec = SpecFor(server);
         if (templateCache.TryGetValue(server, out var cached)) return (IReadOnlyList<MCPResourceTemplate>)cached;
+        var epoch = Epoch(server);
         var listed = (await Guarded(() => Client(server, spec).ListResourceTemplates())).ToList();
-        templateCache[server] = listed;
+        if (Epoch(server) == epoch) templateCache[server] = listed;
         return listed;
     });
 
@@ -343,6 +355,7 @@ public sealed class MCPHub : Actor
     private void NoteListChanged(MCPClient client, MCPWire.ListKind kind) => _ = Isolated(() =>
     {
         if (!clients.TryGetValue(client.Id, out var current) || !ReferenceEquals(current, client)) return;
+        changeEpoch[client.Id] = Epoch(client.Id) + 1;
         switch (kind)
         {
             case MCPWire.ListKind.Tools:
@@ -372,6 +385,7 @@ public sealed class MCPHub : Actor
         toolCache.Clear();
         resourceCache.Clear();
         templateCache.Clear();
+        changeEpoch.Clear();
         failed.Clear();
         specs = null;
         foreach (var client in existing.Values) Spawn(async () => await client.Stop());
