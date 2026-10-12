@@ -47,11 +47,14 @@ namespace Nth.Build
                     var limit = last ? length : length - keep;
                     if (ascii) Scan(buffer, length, limit, offset - carried, asciiBytes, 1, found);
                     if (utf16) Scan(buffer, length, limit, offset - carried, wideBytes, 2, found);
-                    if (last) break;
+                    if (last) { carried = 0; break; }
                     Buffer.BlockCopy(buffer, length - keep, buffer, 0, keep);
                     offset += read;
                     carried = keep;
                 }
+                // A full final read carries its last bytes into a zero-byte EOF read. Scan that tail once.
+                if (ascii && carried > 0) Scan(buffer, carried, carried, offset - carried, asciiBytes, 1, found);
+                if (utf16 && carried > 0) Scan(buffer, carried, carried, offset - carried, wideBytes, 2, found);
             }
             return found;
         }
