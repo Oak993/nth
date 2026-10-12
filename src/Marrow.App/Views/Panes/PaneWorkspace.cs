@@ -57,7 +57,7 @@ public enum ChatReflow
 }
 
 /// <summary>The detail area of a thread: the chat column and its panes.</summary>
-public sealed class PaneWorkspace : Panel
+public sealed partial class PaneWorkspace : Panel
 {
     /// <summary>The window's margin to the right and bottom of the panes (the gap).</summary>
     public const double EdgeMargin = PaneKinds.Gap;
@@ -331,6 +331,7 @@ public sealed class PaneWorkspace : Panel
         chatWidth.Settle();
         foreach (var motion in cards.Values) motion.Settle();
         foreach (var motion in rails.Values) motion.Opacity.Settle();
+        ghost?.Settle();
         foreach (var slot in dropSlots)
         {
             slot.Appear.Settle();
@@ -581,7 +582,7 @@ public sealed class PaneWorkspace : Panel
         }
 
         SyncRails(result, top, springs, reduce);
-        if (redock is { } lifted && !PaneRedock.CanLift(drawn, result, lifted.Kind)) Dispatcher.UIThread.Post(CancelRedock);
+        if (redock is { } lifted && !(lifted.FromDrawer ? PaneRedock.CanLiftFromDrawer(drawn, result) : PaneRedock.CanLift(drawn, result, lifted.Kind))) Dispatcher.UIThread.Post(CancelRedock);
 
         var showsGutters = tiles && result.Expanded is null;
         foreach (var (key, splitter) in splitters)
@@ -697,7 +698,8 @@ public sealed class PaneWorkspace : Panel
     }
 
     private bool AnyMoving => chatWidth.IsMoving || cards.Values.Any(motion => motion.IsMoving)
-        || rails.Values.Any(motion => motion.Opacity.IsMoving) || dropSlots.Any(slot => slot.Appear.IsMoving || slot.HotSpring.IsMoving);
+        || rails.Values.Any(motion => motion.Opacity.IsMoving) || dropSlots.Any(slot => slot.Appear.IsMoving || slot.HotSpring.IsMoving)
+        || ghost?.IsMoving == true;
 
     // The rubber band (4.2): how far, in layout DIP along x, the dragged gutter's divider stands past where its limit holds it.
     private double RubberOffset(PaneLayoutResult result)
@@ -768,6 +770,7 @@ public sealed class PaneWorkspace : Panel
             slot.Visual.Opacity = Math.Clamp(slot.Appear.Value, 0, 1);
             slot.Visual.Hot = slot.HotSpring.Value;
         }
+        ApplyGhostLooks();
     }
 
     private void RequestFrame()
@@ -786,6 +789,7 @@ public sealed class PaneWorkspace : Panel
         var any = chatWidth.Step(dt);
         foreach (var motion in cards.Values) any |= motion.Step(dt);
         foreach (var motion in rails.Values) any |= motion.Opacity.Step(dt);
+        if (ghost is not null) any |= ghost.Step(dt);
         foreach (var slot in dropSlots)
         {
             any |= slot.Appear.Step(dt);
@@ -816,6 +820,7 @@ public sealed class PaneWorkspace : Panel
             motion.Card.IsLiftedLook = false;
         }
         HideFolded();
+        FinishGhost();
         ApplyLooks();
         UpdateHeld();
         PostRemoval();
@@ -1026,7 +1031,7 @@ public sealed class PaneWorkspace : Panel
             return;
         }
         SettleAll();
-        var targets = PaneRedock.Targets(Drawn(), solved, kind);
+        var targets = PaneRedock.Targets(Drawn(), solved, kind, DrawerHeightNow); // web W4: the terminal's targets include its drawer
         var start = motion.Card.Header.TranslatePoint(motion.Card.Header.PressPoint, this) ?? e.GetPosition(this);
         var current = redock = new Redock(kind, motion, start) { Pointer = e.GetPosition(this) };
         redocking = true;
@@ -1110,6 +1115,11 @@ public sealed class PaneWorkspace : Panel
         current.Ended = true;
         redock = null;
         keyTop?.RemoveHandler(KeyDownEvent, OnRedockKey);
+        if (current.FromDrawer)
+        {
+            EndDrawerRedock(current, drop);
+            return;
+        }
         var reduce = ReduceMotion;
         foreach (var slot in current.Slots)
         {
@@ -1206,6 +1216,7 @@ public sealed class PaneWorkspace : Panel
         chat.Measure(new Size(ChatShownWidth, size.Height));
         foreach (var motion in cards.Values)
             if (motion.Card.IsVisible) motion.Card.Measure(Shown(motion).Size);
+        if (ghost is { } lifted) lifted.Card.Measure(Shown(lifted).Size);
         foreach (var motion in rails.Values)
             if (motion.Rail.IsVisible) motion.Rail.Measure(motion.Bounds.Size);
         foreach (var (key, splitter) in splitters)
@@ -1224,6 +1235,12 @@ public sealed class PaneWorkspace : Panel
             var rect = Shown(motion);
             motion.Card.Measure(rect.Size);
             motion.Card.Arrange(rect);
+        }
+        if (ghost is { } lifted)
+        {
+            var rect = Shown(lifted);
+            lifted.Card.Measure(rect.Size);
+            lifted.Card.Arrange(rect);
         }
         foreach (var motion in rails.Values)
         {
@@ -1371,6 +1388,9 @@ public sealed class PaneWorkspace : Panel
     private sealed class Redock(PaneKind kind, CardMotion motion, Point start)
     {
         public PaneKind Kind { get; } = kind;
+
+        /// <summary>Web W4: lifted from the chat's terminal drawer, so the motion is its ghost, not a card of the grid.</summary>
+        public bool FromDrawer { get; init; }
 
         public CardMotion Motion { get; } = motion;
 

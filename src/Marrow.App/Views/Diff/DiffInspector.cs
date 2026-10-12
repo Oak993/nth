@@ -23,10 +23,23 @@ namespace Marrow.App.Views.Diff;
 
 // Source: DroppyCode/App/Views/Diff/DiffInspector.swift (B3 52bc792), :1-692.
 
+/// <summary>
+/// PORT-ONLY (web W4, ED-NEW-web-w4-1): where a <see cref="DiffInspector"/> is shown. The popover is the Mac's, 640 x 540 by
+/// default and resizable (Alt+click on the toolbar's Changes button; DESIGN 4.3); the pane is the workspace's Changes pane
+/// (Ctrl+D), which takes the size its cell gives it and keeps its title, its Close and its Esc to the pane's header.
+/// </summary>
+public enum DiffInspectorMode
+{
+    Popover,
+    Pane,
+}
+
 /// <summary>:4-155 <c>struct DiffInspector: View</c>: the thread's diff, file by file.</summary>
 public sealed class DiffInspector : Decorator
 {
     private readonly ThreadRuntime runtime;
+    private readonly DiffInspectorMode mode;
+    private string? paneSelectionTitle;
     private readonly Grid root;
     private readonly ScrollViewer scrollViewer;
     private readonly StackPanel filesPanel;
@@ -47,11 +60,20 @@ public sealed class DiffInspector : Decorator
     private readonly List<AuroraDiffLoadingState> exitingStates = [];
 
     // :5, :22-121
-    public DiffInspector(ThreadRuntime runtime)
+    public DiffInspector(ThreadRuntime runtime, DiffInspectorMode mode = DiffInspectorMode.Popover)
     {
         this.runtime = runtime;
-        Width = DiffPopoverCoordinator.Width;
-        Height = DiffPopoverCoordinator.Height;
+        this.mode = mode;
+        if (mode == DiffInspectorMode.Popover)
+        {
+            Width = DiffPopoverCoordinator.Width;
+            Height = DiffPopoverCoordinator.Height;
+        }
+        else
+        {
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch;
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch;
+        }
         filesPanel = new StackPanel { Spacing = 10 };
         scrollViewer = new ScrollViewer
         {
@@ -70,9 +92,22 @@ public sealed class DiffInspector : Decorator
         // (a vertical StackPanel measures the scroll view without a limit, so it would never scroll).
         root = new Grid { RowDefinitions = new RowDefinitions("Auto,*") };
         Child = root;
-        runtime.PropertyChanged += RuntimePropertyChanged;
-        AttachedToVisualTree += (_, _) => LoadForCurrentKey();
-        DetachedFromVisualTree += (_, _) => loadTask?.Cancel();
+        if (mode == DiffInspectorMode.Popover) runtime.PropertyChanged += RuntimePropertyChanged;
+        AttachedToVisualTree += (_, _) =>
+        {
+            // A pane stays for as long as the user keeps it, so it listens only while it is on screen.
+            if (mode == DiffInspectorMode.Pane)
+            {
+                runtime.PropertyChanged -= RuntimePropertyChanged;
+                runtime.PropertyChanged += RuntimePropertyChanged;
+            }
+            LoadForCurrentKey();
+        };
+        DetachedFromVisualTree += (_, _) =>
+        {
+            loadTask?.Cancel();
+            if (mode == DiffInspectorMode.Pane) runtime.PropertyChanged -= RuntimePropertyChanged;
+        };
         KeyDown += HandleKeyDown;
         BuildRoot();
     }
@@ -101,68 +136,7 @@ public sealed class DiffInspector : Decorator
             }
         if (files.Count != 0 || !isLoading || !ReferenceEquals(stateContainer.Child, loadingState)) stateContainer.Child = null;
 
-        var menu = new ChromeTextMenu(
-            "plusminus",
-            SelectionTitle(),
-            "Choose which changes to show",
-            BuildSelectionMenu);
-        var close = new ChromeIconButton(
-            "xmark",
-            "Hide changes" + ShortcutStore.Hint(AppShortcut.ToggleChanges),
-            () => runtime.IsDiffVisible = false);
-        var more = new ChromeMenuButton("ellipsis", "More", BuildMoreMenu);
-
-        // :26 HStack(spacing: 10) holding the menu, a flexible Spacer(minLength: 8), the counts when there are files, and the
-        // capsule. A horizontal StackPanel gives a spacer no free width, so the row is a grid: the 8-point minimum sits in the
-        // star column between two 10-point gaps, and it takes everything the other items leave.
-        var hasFiles = files.Count != 0;
-        var chromeRow = new Grid
-        {
-            Margin = new Thickness(14, 12, 14, 10),
-            ColumnDefinitions = hasFiles
-                ? new ColumnDefinitions("Auto,10,*,10,Auto,10,Auto,10,Auto")
-                : new ColumnDefinitions("Auto,10,*,10,Auto"),
-        };
-        chromeRow.ColumnDefinitions[2].MinWidth = 8; // :45 Spacer(minLength: 8)
-        SwiftGlass.SetContainerSpacing(chromeRow, 2); // :25 GlassEffectContainer(spacing: 2)
-        void Place(Control item, int column)
-        {
-            item.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center; // HStack's default alignment
-            Grid.SetColumn(item, column);
-            chromeRow.Children.Add(item);
-        }
-
-        Place(menu, 0);
-        if (hasFiles) // :46-54
-        {
-            Place(new TextBlock
-            {
-                Text = summary.Files.Count == 1
-                    ? "1 file"
-                    : summary.Files.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " files",
-                FontFamily = new FontFamily("fonts:Inter#Inter"),
-                FontSize = 11,
-                Foreground = Chrome.SecondaryText.Brush(this),
-            }, 4);
-            Place(new DiffStatLabel
-            {
-                Additions = (int)summary.Additions,
-                Deletions = (int)summary.Deletions,
-            }, 6);
-        }
-
-        Place(new ChromeCapsule(() =>
-        {
-            var trailing = new StackPanel
-            {
-                Orientation = Avalonia.Layout.Orientation.Horizontal,
-                Spacing = 6,
-            };
-            trailing.Children.Add(more);
-            trailing.Children.Add(new ChromeDivider());
-            trailing.Children.Add(close);
-            return trailing;
-        }), hasFiles ? 8 : 4);
+        var chromeRow = mode == DiffInspectorMode.Pane ? BuildPaneChrome() : BuildPopoverChrome();
         Grid.SetRow(chromeRow, 0);
         root.Children.Insert(0, chromeRow);
 
@@ -240,6 +214,114 @@ public sealed class DiffInspector : Decorator
             Grid.SetRow(leaving, 1); root.Children.Add(leaving);
             leaving.Complete(() => { exitingStates.Remove(leaving); root.Children.Remove(leaving); });
         }
+        Changed?.Invoke();
+    }
+
+    /// <summary>PORT-ONLY (web W4): the pane header reads the file count after each rebuild.</summary>
+    internal event Action? Changed;
+
+    /// <summary>How many files the diff shows now.</summary>
+    internal int FileCount => files.Count;
+
+    /// <summary>The diff is still loading.</summary>
+    internal bool IsLoading => isLoading;
+
+    // :25-60 the popover's chrome row: the selection menu, the counts and the More and Close capsule.
+    private Grid BuildPopoverChrome()
+    {
+        var menu = new ChromeTextMenu(
+            "plusminus",
+            SelectionTitle(),
+            "Choose which changes to show",
+            BuildSelectionMenu);
+        var close = new ChromeIconButton(
+            "xmark",
+            "Hide changes" + ShortcutStore.Hint(AppShortcut.ToggleChanges),
+            () => runtime.IsDiffVisible = false);
+        var more = new ChromeMenuButton("ellipsis", "More", BuildMoreMenu);
+
+        // :26 HStack(spacing: 10) holding the menu, a flexible Spacer(minLength: 8), the counts when there are files, and the
+        // capsule. A horizontal StackPanel gives a spacer no free width, so the row is a grid: the 8-point minimum sits in the
+        // star column between two 10-point gaps, and it takes everything the other items leave.
+        var hasFiles = files.Count != 0;
+        var chromeRow = new Grid
+        {
+            Margin = new Thickness(14, 12, 14, 10),
+            ColumnDefinitions = hasFiles
+                ? new ColumnDefinitions("Auto,10,*,10,Auto,10,Auto,10,Auto")
+                : new ColumnDefinitions("Auto,10,*,10,Auto"),
+        };
+        chromeRow.ColumnDefinitions[2].MinWidth = 8; // :45 Spacer(minLength: 8)
+        SwiftGlass.SetContainerSpacing(chromeRow, 2); // :25 GlassEffectContainer(spacing: 2)
+        void Place(Control item, int column)
+        {
+            item.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center; // HStack's default alignment
+            Grid.SetColumn(item, column);
+            chromeRow.Children.Add(item);
+        }
+
+        Place(menu, 0);
+        if (hasFiles) // :46-54
+        {
+            Place(new TextBlock
+            {
+                Text = summary.Files.Count == 1
+                    ? "1 file"
+                    : summary.Files.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " files",
+                FontFamily = new FontFamily("fonts:Inter#Inter"),
+                FontSize = 11,
+                Foreground = Chrome.SecondaryText.Brush(this),
+            }, 4);
+            Place(new DiffStatLabel
+            {
+                Additions = (int)summary.Additions,
+                Deletions = (int)summary.Deletions,
+            }, 6);
+        }
+
+        Place(new ChromeCapsule(() =>
+        {
+            var trailing = new StackPanel
+            {
+                Orientation = Avalonia.Layout.Orientation.Horizontal,
+                Spacing = 6,
+            };
+            trailing.Children.Add(more);
+            trailing.Children.Add(new ChromeDivider());
+            trailing.Children.Add(close);
+            return trailing;
+        }), hasFiles ? 8 : 4);
+        return chromeRow;
+    }
+
+    // PORT-ONLY (web W4, ED-NEW-web-w4-1): the pane's chrome row. The pane's header carries the title, the file count, Expand and
+    // Close, so the row keeps what is the diff's own: the selection menu, the totals and More (DiffPaneChrome: plain controls, as a
+    // pane card is a tinted layer and never glass on glass, DESIGN 3.12).
+    private Grid BuildPaneChrome()
+    {
+        var hasFiles = files.Count != 0;
+        var row = new Grid
+        {
+            Margin = new Thickness(10, 8, 10, 6),
+            ColumnDefinitions = hasFiles ? new ColumnDefinitions("Auto,8,*,8,Auto,6,Auto") : new ColumnDefinitions("Auto,8,*,6,Auto"),
+        };
+        row.ColumnDefinitions[2].MinWidth = 8;
+        void Place(Control item, int column)
+        {
+            item.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
+            Grid.SetColumn(item, column);
+            row.Children.Add(item);
+        }
+
+        paneSelectionTitle = SelectionTitle();
+        Place(DiffPaneChrome.SelectionChip(paneSelectionTitle, "Choose which changes to show", BuildSelectionMenu), 0);
+        if (hasFiles)
+        {
+            Place(new DiffStatLabel { Additions = (int)summary.Additions, Deletions = (int)summary.Deletions }, 4);
+            Place(DiffPaneChrome.MoreButton("More", BuildMoreMenu), 6);
+        }
+        else Place(DiffPaneChrome.MoreButton("More", BuildMoreMenu), 4);
+        return row;
     }
 
     // :27-44
@@ -309,6 +391,12 @@ public sealed class DiffInspector : Decorator
     // :110-120
     private void RuntimePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     {
+        // A pane stays open through every turn: only what the diff reads rebuilds it (the popover rebuilds on any change, as it always has).
+        if (mode == DiffInspectorMode.Pane
+            && args.PropertyName is not (nameof(ThreadRuntime.DiffRevision) or nameof(ThreadRuntime.DiffSelection)
+                or nameof(ThreadRuntime.DiffFocusRevision) or nameof(ThreadRuntime.Turns)))
+            return;
+        if (mode == DiffInspectorMode.Pane && args.PropertyName == nameof(ThreadRuntime.Turns) && SelectionTitle() == paneSelectionTitle) return;
         var nextKey = LoadKey;
         if (nextKey != loadKey)
         {
@@ -436,7 +524,7 @@ public sealed class DiffInspector : Decorator
     // :668-672
     private void HandleKeyDown(object? sender, KeyEventArgs args)
     {
-        if (args.Key != Key.Escape) return;
+        if (mode != DiffInspectorMode.Popover || args.Key != Key.Escape) return; // a pane's Esc is the workspace's (restore), never a close
         runtime.IsDiffVisible = false;
         args.Handled = true;
     }

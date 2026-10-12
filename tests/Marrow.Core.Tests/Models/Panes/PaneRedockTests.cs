@@ -123,7 +123,15 @@ public sealed class PaneRedockTests
                     Assert.True(target.Bounds.Width >= 0 && target.Bounds.Height >= 0, "negative target");
                     Assert.True(target.Bounds.X >= -1e-6 && target.Bounds.Right <= w + 1e-6 && target.Bounds.Y >= -1e-6 && target.Bounds.Bottom <= h + 1e-6, $"{target.Bounds} outside {w} x {h}");
                     PaneLayoutChecks.AssertNone(PaneLayoutChecks.Problems(target.Result, PaneLayout.Solve(target.Result, w, h)));
-                    Assert.Equal(state.Normalized().GridPanes.Order().ToList(), target.Result.GridPanes.Order().ToList()); // nothing lost or gained
+                    var expected = state.Normalized().GridPanes.Order().ToList();
+                    if (target.Kind == PaneDropKind.Drawer)
+                    {
+                        // Web W4 (ED-NEW-web-w4-1): the terminal's one move that leaves the grid, back to the chat's drawer.
+                        Assert.Equal(PaneKind.Terminal, pane);
+                        Assert.True(target.Result.IsTerminalInDrawer);
+                        expected.Remove(PaneKind.Terminal);
+                    }
+                    Assert.Equal(expected, target.Result.GridPanes.Order().ToList()); // nothing lost or gained
                 }
             }
         }

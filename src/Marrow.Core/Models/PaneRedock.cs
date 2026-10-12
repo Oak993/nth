@@ -14,13 +14,19 @@ public enum PaneDropKind
 
     /// <summary>The cell's header: the pane joins that slot as a tab.</summary>
     Header,
+
+    /// <summary>Web W4: the empty part of the workspace, where the terminal lifted from its drawer opens the grid.</summary>
+    Grid,
+
+    /// <summary>Web W4: the chat column's foot, where the terminal lifted from the grid goes back to its drawer.</summary>
+    Drawer,
 }
 
 /// <summary>One drop target: its rectangle (solver coordinates), the pane it names and the workspace the drop produces.</summary>
 public sealed record PaneDropTarget(PaneDropKind Kind, PaneKind Target, PaneRect Bounds, PaneWorkspaceState Result);
 
 /// <summary>The drops of a layout, and the give of a collapsible limit under a drag.</summary>
-public static class PaneRedock
+public static partial class PaneRedock
 {
     /// <summary>How far past the pointer's travel a pane lifted from its header follows before it counts as lifted (DESIGN 3.6: 4 DIP).</summary>
     public const double LiftDistance = 4;
@@ -44,7 +50,7 @@ public static class PaneRedock
     /// (swap), another cell's header (join as a tab), and, for a pane that is a tab in a group, its own cell's body (leave
     /// the group). Header targets come first so a hit test prefers them where they cover a body target.
     /// </summary>
-    public static IReadOnlyList<PaneDropTarget> Targets(PaneWorkspaceState state, PaneLayoutResult layout, PaneKind dragged)
+    public static IReadOnlyList<PaneDropTarget> Targets(PaneWorkspaceState state, PaneLayoutResult layout, PaneKind dragged, double drawerHeight = DefaultDrawerHeight)
     {
         var s = state.Normalized();
         if (!CanLift(s, layout, dragged)) return [];
@@ -73,7 +79,7 @@ public static class PaneRedock
             var swapped = s.DropOnBody(dragged, target);
             if (!swapped.Equals(s)) bodies.Add(new PaneDropTarget(PaneDropKind.Body, target, body, swapped));
         }
-        return [.. headers, .. bodies];
+        return [.. headers, .. bodies, .. DrawerTargetFor(s, layout, dragged, drawerHeight)];
     }
 
     /// <summary>The target under (<paramref name="x"/>, <paramref name="y"/>): a header before a body; null over nothing.</summary>

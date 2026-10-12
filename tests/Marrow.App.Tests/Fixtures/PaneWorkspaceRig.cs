@@ -247,10 +247,30 @@ public sealed class ChatColumnProbe : Border
     public ChatColumnProbe()
     {
         Background = Brushes.DimGray;
-        Child = Composer;
+        Child = new Grid { Children = { Composer, Drawer } };
+        // Web W4: a stand-in for the terminal's drawer (hidden until a test shows it): a 200 DIP block at the column's foot with a
+        // 38 DIP header row on top, which is where the drawer's header drag starts.
+        Drawer.Child = DrawerHeader;
     }
 
     public TextBox Composer { get; } = new() { Text = "composer", VerticalAlignment = Avalonia.Layout.VerticalAlignment.Bottom };
+
+    /// <summary>The terminal drawer's stand-in; <see cref="Control.IsVisible"/> is false until a test shows it.</summary>
+    public Border Drawer { get; } = new()
+    {
+        Height = 200,
+        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Bottom,
+        Background = Brushes.Black,
+        IsVisible = false,
+    };
+
+    /// <summary>The drawer's header row.</summary>
+    public Border DrawerHeader { get; } = new()
+    {
+        Height = 38,
+        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+        Background = Brushes.Transparent,
+    };
 
     public List<double> Widths { get; } = [];
 

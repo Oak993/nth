@@ -8,6 +8,7 @@ using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Port;
@@ -155,7 +156,7 @@ public sealed class ChatView : Decorator
             if (wasResizing == true && !active) ReclampPanels(); // :257-264
             wasResizing = active;
         });
-        this.Track(() => this.runtime.IsTerminalVisible, _ => RefreshTerminal()); // :275-278,290
+        this.Track(() => this.runtime.IsTerminalInDrawer, _ => RefreshTerminal()); // :275-278,290; web W4: only the drawer's half of the terminal is this column's
         this.Track(() => this.runtime.IsHydraPanelHidden, hidden =>
         {
             if (!hidden || !hydraLingers) return;
@@ -354,7 +355,7 @@ public sealed class ChatView : Decorator
     private void RefreshTerminal() // :275-278,290
     {
         if (model is null) return;
-        var visible = runtime.IsTerminalVisible;
+        var visible = runtime.IsTerminalInDrawer; // web W4: a terminal docked in the pane grid is the workspace's, not the drawer's
         var changed = terminalWasVisible is { } was && was != visible;
         void Apply()
         {
@@ -1522,9 +1523,21 @@ internal sealed class ChatChromeRow : Decorator
                 var terminalButton = terminalToggle = new ChromeIconButton("terminal", terminalHelp,
                     () => runtime.IsTerminalVisible = !runtime.IsTerminalVisible, // :1166
                     isActive: runtime.IsTerminalVisible);
+                // :1170 runtime.toggleDiff. PORT-ONLY (web W4, DESIGN 3.1, 3.7): the button opens the Changes pane; Alt+click on it
+                // still opens the popover the Mac has (resizable now, 4.3). The Alt state is the press's, read before the click.
+                var altPress = false;
                 var changesButton = diffToggle = new ChromeIconButton("plusminus", changesHelp,
-                    runtime.ToggleDiff, // :1170
-                    isActive: runtime.IsDiffVisible);
+                    () =>
+                    {
+                        var alt = altPress;
+                        altPress = false;
+                        if (alt) runtime.ToggleDiff();
+                        else runtime.ToggleChanges();
+                    },
+                    isActive: runtime.IsDiffVisible || runtime.IsChangesPaneOpen);
+                changesButton.AddHandler(InputElement.PointerPressedEvent,
+                    (_, e) => altPress = (e.KeyModifiers & KeyModifiers.Alt) != 0,
+                    RoutingStrategies.Tunnel, handledEventsToo: true);
                 toggles = new ChromeCapsule(() =>
                 {
                     var capsule = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0 };
@@ -1539,7 +1552,7 @@ internal sealed class ChatChromeRow : Decorator
             else
             {
                 Transaction.WithAnimation(Chrome.PanelSlide, () => terminalToggle!.Update(runtime.IsTerminalVisible));
-                Transaction.WithAnimation(Chrome.Hover, () => diffToggle!.Update(runtime.IsDiffVisible));
+                Transaction.WithAnimation(Chrome.Hover, () => diffToggle!.Update(runtime.IsDiffVisible || runtime.IsChangesPaneOpen));
             }
             if (trailing.Children.Count == 0) { trailing.Children.Add(openCapsule); trailing.Children.Add(toggles); }
             else
@@ -1596,7 +1609,7 @@ internal sealed class ChatChromeRow : Decorator
             trailingClearance = to;
             applyMargins();
         };
-        this.Track(() => (model.Sidebar.HoldsTrafficLights, model.Settings.SidebarFloats, model.Settings.SidebarOnlyFloats, model.Settings.HydraEnabled, model.Thread(runtime.ThreadID), git.IsRepository, git.Activity, git.Status, git.Branches, git.RemoteURL, runtime.IsTerminalVisible, runtime.IsDiffVisible, ShortcutStore.Hint(AppShortcut.NewThread), ShortcutStore.Hint(AppShortcut.ToggleTerminal), ShortcutStore.Hint(AppShortcut.ToggleChanges)), _ => Build());
+        this.Track(() => (model.Sidebar.HoldsTrafficLights, model.Settings.SidebarFloats, model.Settings.SidebarOnlyFloats, model.Settings.HydraEnabled, model.Thread(runtime.ThreadID), git.IsRepository, git.Activity, git.Status, git.Branches, git.RemoteURL, runtime.IsTerminalVisible, runtime.IsDiffVisible, runtime.IsChangesPaneOpen, ShortcutStore.Hint(AppShortcut.NewThread), ShortcutStore.Hint(AppShortcut.ToggleTerminal), ShortcutStore.Hint(AppShortcut.ToggleChanges)), _ => Build());
         Build();
     }
 }
