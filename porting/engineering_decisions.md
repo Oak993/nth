@@ -6285,3 +6285,7 @@ ENGINEERING DECISION (C6c D4, 2026-10-12): Strengthen the two supplemental F5 te
 ## ED-NEW-dextra-c6c-5
 
 ENGINEERING DECISION (C6c D5, 2026-10-12): Independently dispose each of the six tap kinds while its separate bus remains live and subscribed. Require an eligible before-disposal positive control, its output, no main-thread clock reads after disposal, and no additional output. The clock witness detects account guards even when their disposed watcher exception is swallowed. Also set persistenceEnabled false on a fresh model before its first SaveBeforeQuit, then require bus, taps and watcher retirement. Removing all six tap guards fails each tap test twice alone; moving disposal after the persistence guard fails the fresh-model test twice alone. Restore mutations byte-exact. Production code is unchanged.
+
+## ED-NEW-dextra-c6c-6
+
+ENGINEERING DECISION (C6c D6, 2026-10-12): Pin the liveness filter within the exact sub-minute boundary identified by both D6 votes: another shared window reset 30 seconds earlier, while the stored episode reset is still in the future. A stale reading cannot retain the episode after the owning window resets, and NoteLimit expiry pruning cannot hide this result. Removing only the others liveness filter fails this test twice alone; restore byte-exact. Production code is unchanged.
