@@ -751,3 +751,31 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
+
+### Artifact libraries (served offline to artifacts, web surfaces unit W13, ED-NEW-web-w13-3)
+
+Artifacts run without the network, so the libraries they commonly load are copied beside the app in
+`Assets/lib/<library>/` (built from the npm packages named below by `tools/artifact-libs/build.mjs`; every file's
+SHA-256 is in `Assets/lib/manifest.json`). Each library's own licence file ships unchanged next to it, and the minified
+files keep the licence comments their packages ship (for math.js, `math.min.js.LICENSE.txt`). The ESM wrappers in
+`Assets/lib/esm/` and the runtime scripts in `Marrow.Services/Web/Sandbox/` are nth's own.
+
+| Library | npm package and version | Licence | Copyright (from the licence file) | Licence file |
+| --- | --- | --- | --- | --- |
+| React | react 18.3.1 | MIT | Facebook, Inc. and its affiliates | `react/LICENSE` |
+| React DOM | react-dom 18.3.1 | MIT | Facebook, Inc. and its affiliates | `react-dom/LICENSE` |
+| prop-types | prop-types 15.8.1 | MIT | 2013-present, Facebook, Inc. | `prop-types/LICENSE` |
+| Sucrase (JSX and TypeScript compiler) | sucrase 3.35.1 | MIT | 2012-2018 various contributors | `sucrase/LICENSE` |
+| Tailwind CSS (in-browser build) | @tailwindcss/browser 4.3.3 | MIT | Tailwind Labs, Inc. | `tailwindcss/LICENSE` |
+| Recharts | recharts 2.15.4 | MIT | 2015-present recharts | `recharts/LICENSE` |
+| Lucide | lucide 1.55.0 | ISC | 2026 Lucide Icons and Contributors | `lucide/LICENSE` |
+| Lucide React | lucide-react 0.577.0 | ISC | Lucide Icons and Contributors; portions Cole Bemis (Feather, MIT) | `lucide-react/LICENSE` |
+| D3 | d3 7.9.0 | ISC | 2010-2023 Mike Bostock | `d3/LICENSE` |
+| Chart.js | chart.js 4.5.1 | MIT | 2014-2024 Chart.js Contributors | `chart.js/LICENSE.md` |
+| Mermaid | mermaid 11.16.1 | MIT | 2014-2022 Knut Sveidqvist | `mermaid/LICENSE` |
+| three.js and its OrbitControls | three 0.186.0 | MIT | 2010-2026 three.js authors | `three/LICENSE`, `three-orbit-controls/LICENSE` |
+| KaTeX and its auto-render | katex 0.16.47 | MIT | 2013-2020 Khan Academy and other contributors | `katex/LICENSE` |
+| highlight.js | @highlightjs/cdn-assets 11.12.0 | BSD-3-Clause | 2006, Ivan Sagalaev | `highlight.js/LICENSE` |
+| Papa Parse | papaparse 5.7.0 | MIT | 2015 Matthew Holt | `papaparse/LICENSE` |
+| Lodash | lodash 4.18.1 | MIT | OpenJS Foundation and other contributors | `lodash/LICENSE` |
+| math.js | mathjs 15.2.0 | Apache-2.0 | 2013-2026 Jos de Jong (bundles decimal.js, MIT, Michael Mclaughlin) | `mathjs/LICENSE` |
