@@ -1,4 +1,5 @@
 // PORT-ONLY: AC-3's IR-3 lineup algorithm, mirrored intensity_r3.py :447-910; ED-617.
+using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Globalization;
 using System.Text.RegularExpressions;
@@ -48,6 +49,20 @@ public sealed class MakerLineup
         return LineupRanker.Order(candidates).FirstOrDefault()?.Canon;
     }
 }
+/// <summary>ED-NEW-perf-startup-structure-4: the answers of a pure two-input function, kept by both inputs, up to a cap (no eviction: the id set is a few hundred strings, and an id past the cap is simply computed each time).</summary>
+internal sealed class CanonicalMemo(int cap)
+{
+    private readonly ConcurrentDictionary<(string Id,bool StripSpeed),(string Canon,bool Stripped,string? Date)> kept=new();
+    internal int Count=>kept.Count;
+    internal (string Canon,bool Stripped,string? Date) Get(string id,bool stripSpeed,Func<string,bool,(string Canon,bool Stripped,string? Date)> compute)
+    {
+        var key=(id,stripSpeed);
+        if(kept.TryGetValue(key,out var hit))return hit;
+        var facts=compute(id,stripSpeed);
+        lock(kept){if(kept.Count<cap)kept.TryAdd(key,facts);} // a miss already costs the regex work; the lock only makes the cap exact
+        return facts;
+    }
+}
 public static class LineupRanker
 {
     private static readonly FrozenDictionary<string,double> Down=Table("nano:0 tiny:0 micro:0 lite:1 xs:1 oss:1 gemma:1 glimmer:1 edge:1 ministral:1 nemo:1 mini:2 small:2 haiku:2");
@@ -58,7 +73,13 @@ public static class LineupRanker
     private static FrozenDictionary<string,double> Table(string s)=>s.Split(' ').Select(x=>x.Split(':')).ToFrozenDictionary(x=>x[0],x=>double.Parse(x[1],CultureInfo.InvariantCulture),StringComparer.Ordinal);
     internal static string[] Tokens(string c)=>Regex.Split(c,@"[-_.\s/]+",RegexOptions.CultureInvariant);
     public static string Canonical(string id,bool keepSpeed=false)=>CanonicalFacts(id,!keepSpeed).Canon;
-    internal static (string Canon,bool Stripped,string? Date) CanonicalFacts(string id,bool stripSpeed)
+    // ED-NEW-perf-startup-structure-4: CanonicalFacts is a pure function of (id, stripSpeed) that costs about 30 regex calls (7 us), and the maker resolver
+    // and the palette scan the whole boundary (500+ ids) once per model on every catalogue change. The answers are kept (CanonicalMemo), by the two inputs
+    // that decide them, so nothing goes stale; the cache stops growing at CanonicalCap entries (an id past the cap is computed each time, as before).
+    internal const int CanonicalCap=8192;
+    private static readonly CanonicalMemo Memo=new(CanonicalCap);
+    internal static (string Canon,bool Stripped,string? Date) CanonicalFacts(string id,bool stripSpeed)=>Memo.Get(id,stripSpeed,ComputeCanonicalFacts);
+    internal static (string Canon,bool Stripped,string? Date) ComputeCanonicalFacts(string id,bool stripSpeed)
     {
         var x=id.ToLowerInvariant().TrimStart('~').Split('/')[^1];var raw=x;
         x=Regex.Replace(x,@"\[.*?\]","",RegexOptions.CultureInvariant).Split(':')[0];string? date=null;

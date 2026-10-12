@@ -52,6 +52,13 @@ public sealed class WallpaperLibraryStore : ObservableModel
             .ToDictionary(o => o.Key, o => o.Value, StringComparer.Ordinal),
     };
 
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-perf-startup-structure-5): whether the settings hold a library wallpaper. Making the store then builds the whole catalogue
+    /// (two JSON documents and a definition per wallpaper) to check the choice, so start-up reads the catalogue on the pool first; with none saved,
+    /// nothing is read.
+    /// </summary>
+    public static bool HasSavedSelection(ISettingsStore defaults) => defaults.Object(Key) is string;
+
     public void Select(WallpaperKind kind, string id) => Selection = Recall(kind, id);
 
     private void LoadChoices()

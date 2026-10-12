@@ -23,6 +23,8 @@
 // - np11-rdp: the separate workspace's Remote Desktop control (unit P18a, ED-NEW-pcctl-33, NP-11), in
 //   Workspace/RdpHostSpike.cs: hosted in a native child window, connected to a child session when they are on, and its
 //   drawing and the session's heartbeat measured while visible, cloaked and minimized.
+// - np6-workspace and np7-cloaked: the separate workspace started for real and typed into while shown or cloaked (unit P18,
+//   ED-NEW-pcws-11, NP-6 and NP-7), in Workspace/WorkspaceProbe.cs. These two do send input, only inside the workspace.
 #if DEBUG
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -56,7 +58,8 @@ public static class OverlaySpike
     /// <summary>How long a probe runs before it writes its RESULT and exits.</summary>
     public const double RunSeconds = 90;
 
-    public static IReadOnlyList<string> Probes { get; } = ["np15-region", "np15-pixel", "np15-flip", "np16", "np18-focus", Workspace.RdpProbe.Probe];
+    public static IReadOnlyList<string> Probes { get; } = ["np15-region", "np15-pixel", "np15-flip", "np16", "np18-focus", Workspace.RdpProbe.Probe, Workspace.WorkspaceProbe.Shown,
+        Workspace.WorkspaceProbe.Cloaked];
 
     public static int Run(string[] args)
     {
@@ -80,6 +83,8 @@ public static class OverlaySpike
                 "np15-flip" => new FlipProbe(log, options),
                 "np18-focus" => new FocusProbe(log, options),
                 Workspace.RdpProbe.Probe => new Workspace.RdpProbe(log, options),
+                Workspace.WorkspaceProbe.Shown => new Workspace.WorkspaceProbe(log, options, cloaked: false),
+                Workspace.WorkspaceProbe.Cloaked => new Workspace.WorkspaceProbe(log, options, cloaked: true),
                 _ => new MotionProbe(log, options),
             };
             log.Line($"probe {probe} warm={options.Warm} straddle={options.Straddle} lwa={options.Lwa} refresh={SpikeNative.RefreshHz()} Hz");

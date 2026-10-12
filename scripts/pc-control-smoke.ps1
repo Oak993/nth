@@ -1,7 +1,8 @@
 # Tactus native smoke and probes (unit 15, P19; ED-NEW-pcctl-43; DESIGN.md 5.4 items 1 to 11). Run by hand, alone, with
 # focus, only with the owner's go-ahead, on a quiet desktop with nothing private open. It builds Marrow.App.Tests once,
 # then walks the checklist: "auto" items run one native test by itself, "guided" items run one while you do what the
-# steps say, "chat" and "app" items are checks you do in nth itself, and "blocked" items wait for a later unit. Each test
+# steps say, "chat" and "app" items are checks you do in nth itself, "spike" items are probes of a DEBUG build that
+# scripts/pc-control-overlay-spike.ps1 runs (you note their RESULT lines here), and "blocked" items wait for a later unit. Each test
 # writes RESULT lines to %TEMP%\tactus-smoke\<probe>.log; this script shows them live, asks for your verdict, and writes
 # everything to %TEMP%\tactus-smoke\summary-<time>.txt. Send that file to the Tactus unit owner: its RESULT lines go
 # into ED-NEW-pcctl-43, and np4-proofs.json (from NP-4) is an optional
@@ -116,8 +117,16 @@ $items = @(
         'Kept as np4-proofs-NP-4b.json. Only pairs proven in both files may be imported.')),
     (Item 'NP-5' 'auto' 'Child sessions: state read only' "$ns.PcChildSessionNativeTests" @('np5-child-sessions') @(
         'Nothing is changed. Whether enabling works with Remote Desktop off is tried with P18.')),
-    (Item 'NP-6' 'blocked' 'Workspace agent start and real input inside' $null @() @('Blocked on P18 (the separate workspace host).')),
-    (Item 'NP-7' 'blocked' 'Workspace view cloaked: rendering and input' $null @() @('Blocked on P18.')),
+    (Item 'NP-5b' 'guided' 'Child sessions turned on by you, with Remote Desktop off: nth reads the workspace Ready' "$ns.PcWorkspaceNativeTests.NP5_" @('np5-workspace-ready') @(
+        'Before Enter: in nth, Settings, Tactus, Separate workspace, Set up. Copy the setup command, open Terminal (Admin) yourself, paste it and run it.',
+        'The test only reads: child sessions on, Remote Desktop and TermService as they were, and what Settings shows. It changes nothing.',
+        'To undo later, run the undo command from the same panel in Terminal (Admin). Leave child sessions on for NP-6 and NP-7.')),
+    (Item 'NP-6' 'spike' 'Workspace agent start and real input inside while you type on the desk' $null @() @(
+        'On a DEBUG build: scripts\pc-control-overlay-spike.ps1 -Exe <DEBUG nth.exe> -Only np6-workspace, and follow its steps.',
+        'Note its RESULT line and whether your desk typing arrived whole.')),
+    (Item 'NP-7' 'spike' 'Workspace view cloaked: rendering and input' $null @() @(
+        'On a DEBUG build: scripts\pc-control-overlay-spike.ps1 -Exe <DEBUG nth.exe> -Only np7-cloaked.',
+        'Note its RESULT line. The separate workspace stays a preview (off) until NP-5b, NP-6, NP-7 and NP-11 pass.')),
     (Item 'NP-8' 'auto' 'Latency: the ten-field form plus Save as one batch' "$ns.PcLatencyNativeTests.NP8_The_ten_field" @('np8-form') @(
         'Hands off. Targets: 0.6 s p50, 1.5 s p95 tool time.')),
     (Item 'NP-8b' 'guided' 'Overhead of Tactus idle in Chrome, Edge, VS Code and Slack' "$ns.PcLatencyNativeTests.NP8_Tactus_idle" @('np8-overhead') @(
@@ -127,7 +136,9 @@ $items = @(
     (Item 'NP-9' 'chat' 'The 40-task real suite' $null @() (@('In nth with a strong model and Tactus on, one fresh chat per task. Note per task: done or not, the model turns, and the rungs the audit log shows.') + ($np9 | ForEach-Object -Begin { $n = 0 } -Process { $n++; "  $n. $_" }))),
     (Item 'NP-10' 'guided' 'IME composition signals (Hindi, Urdu)' "$ns.PcImeProbeNativeTests" @('np10-ime') @(
         'When asked: in Notepad (and Word, Chrome, Outlook if open) switch to Hindi, compose two words, then Urdu, two words, within 90 s.')),
-    (Item 'NP-11' 'blocked' 'ActiveX hosting spike in Avalonia 12' $null @() @('Blocked on P18a.')),
+    (Item 'NP-11' 'spike' 'ActiveX hosting spike in Avalonia 12' $null @() @(
+        'On a DEBUG build: scripts\pc-control-overlay-spike.ps1 -Exe <DEBUG nth.exe> -Only np11-rdp (after NP-5b for the connected phases).',
+        'Note its RESULT line.')),
     (Item 'NP-12' 'guided' 'Quiet peek of minimized apps' "$ns.PcPeekProbeNativeTests" @('np12-peek') @(
         'Before: open Outlook, Excel and Chrome if you have them. Each is minimized, then peeked after a 3 s warning.',
         'Watch the screen and the taskbar at each peek; in the note say per app whether you saw an animation, a flash or a taskbar change.')),

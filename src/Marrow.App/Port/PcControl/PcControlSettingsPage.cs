@@ -4,8 +4,9 @@
 // user's own blocked apps with "Block another app"); Safety (confirm guarded actions, keep screenshots, real mouse and
 // keyboard, which stays off until the user turns it on, its privacy line, the sound, the Stop key, the Pause key and Answer
 // Tactus with their Change buttons, and every stop path in one line); Activity log; Pill (Position, Show on, answer in the
-// pill, continue the chat); Separate workspace (preview); Advanced (the Tactus pointer, screenshot detail, OCR, typed
-// text, forget learned app behaviour). Built from the Settings pages' own parts (ChromeSection, ChromeCard, ChromeRow,
+// pill, continue the chat); Separate workspace (preview: its readiness, "Set up" with the command to copy, what changes, the
+// undo and the limits, "Watch workspace", and "Use for new apps"; P18, ED-NEW-pcws-10); Advanced (the Tactus pointer,
+// screenshot detail, OCR, typed text, forget learned app behaviour). Built from the Settings pages' own parts (ChromeSection, ChromeCard, ChromeRow,
 // ChromeSegmentedPicker, SettingsSwitch, CzMenuButton, CzCapsuleButton), as the Ignis page is. Every change writes the
 // whole settings through the page's parts (PcSettingsStore.Write in the app) and the master switch going off stops
 // everything (stop path 9). "Fast helper for simple steps" is not shown: pc_delegate is not part of this version.
@@ -13,6 +14,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Views.Settings;
@@ -20,6 +22,7 @@ using Marrow.Core.Port;
 using Marrow.Core.Port.PcControl;
 using Marrow.Core.Port.PcControl.Pill;
 using Marrow.Services.Port.PcControl;
+using Marrow.Services.Port.PcControl.Workspace;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Marrow.UI.Port.PcControl;
@@ -53,11 +56,23 @@ public sealed class PcSettingsPageParts
     /// <summary>Clears PcCapabilities (what Tactus learned about each app).</summary>
     public Action? ForgetLearned { get; init; }
 
-    /// <summary>The separate workspace's status line ("Not set up", "Ready", "Running, 2 apps").</summary>
-    public Func<string> WorkspaceStatus { get; init; } = () => PcControlSettingsPage.WorkspaceNotSetUp;
+    /// <summary>The separate workspace's status ("Not set up", "Ready", "Running, 2 apps"), read off the UI thread.</summary>
+    public Func<CancellationToken, Task<WorkspaceStatus>> ReadWorkspace { get; init; } = _ => Task.FromResult(WorkspaceStatus.NotSetUp);
 
-    /// <summary>"Set up": the steps of DESIGN.md 2.13 (the command to copy, what changes, the undo); null: not offered yet.</summary>
-    public Action? SetUpWorkspace { get; init; }
+    /// <summary>nth's exe, as the setup commands name it.</summary>
+    public string WorkspaceExe { get; init; } = Environment.ProcessPath ?? "nth.exe";
+
+    /// <summary>Puts text on the clipboard for the setup commands' Copy buttons; null: the page's own window's clipboard.</summary>
+    public Func<string, Task>? Copy { get; init; }
+
+    /// <summary>"Watch workspace": shows the view-only picture in picture; false when no workspace runs.</summary>
+    public Func<bool>? WatchWorkspace { get; init; }
+
+    /// <summary>Opens Windows' Remote Desktop settings page (nth only links to it).</summary>
+    public Action? OpenRemoteDesktopSettings { get; init; }
+
+    /// <summary>Whether this build lets Tactus use the workspace (WorkspacePreview); false: the page says it is a preview.</summary>
+    public bool WorkspaceReleased { get; init; } = WorkspacePreview.Released;
 
     /// <summary>A file picker for "Block another app": the exe path chosen, or null.</summary>
     public Func<Task<string?>>? PickApp { get; init; }
@@ -115,6 +130,20 @@ public sealed class PcControlSettingsPage : Decorator
     public const string WorkspaceNotSetUp = "Not set up";
     public const string WorkspaceUseRow = "Use for new apps";
     public const string SetUp = "Set up";
+    public const string SetUpOpenHelp = "Shows the steps: what changes, the command, the undo.";
+    public const string SetUpCloseHelp = "Hides the steps. Esc";
+    public const string WatchRow = "Watch workspace";
+    public const string WatchLabel = "Watch";
+    public const string WatchDetail = "View only. Take over gives it your mouse and keyboard until you give it back.";
+    public const string WatchNotRunning = "Nothing runs there yet.";
+    public const string CopyLabel = "Copy";
+    public const string CopyEnableName = "Copy the setup command";
+    public const string CopyUndoName = "Copy the undo command";
+    public const string Copied = "Copied.";
+    public const string CopyFailed = "Could not copy. Select the command and copy it yourself.";
+    public const string OpenRemoteDesktop = "Open Remote Desktop settings";
+    public const string LimitsTitle = "Limits";
+    public const int WorkspaceRefreshMs = 3000;
     public const string AdvancedTitle = "Advanced";
     public const string PointerRow = "Show Tactus pointer";
     public const string DetailRow = "Screenshot detail";
@@ -144,6 +173,8 @@ public sealed class PcControlSettingsPage : Decorator
     private readonly StackPanel appsRows = new();
     private readonly StackPanel deniedRows = new();
     private readonly Dictionary<string, ChordButton> chords = new(StringComparer.Ordinal);
+    private readonly Avalonia.Threading.DispatcherTimer workspaceRefresh;
+    private CancellationTokenSource? workspaceRead;
     private PcSettings value;
 
     public PcControlSettingsPage()
@@ -194,16 +225,46 @@ public sealed class PcControlSettingsPage : Decorator
             new ChromeRow(AnswerInPillRow, () => Switch(AnswerInPillRow, () => value.AnswerInPill, on => Change(s => s with { AnswerInPill = on })), AnswerInPillDetail),
             new ChromeRow(ContinueRow, () => Switch(ContinueRow, () => value.ResumeContinuesChat, on => Change(s => s with { ResumeContinuesChat = on })), ContinueDetail));
 
-        // Separate workspace (preview)
-        WorkspaceStatusText = new TextBlock { Text = parts.WorkspaceStatus(), VerticalAlignment = VerticalAlignment.Center };
+        // Separate workspace (preview): the status, "Set up" folding the steps open below it, Watch, Use for new apps
+        WorkspaceStatusText = new TextBlock { Text = WorkspaceNotSetUp, VerticalAlignment = VerticalAlignment.Center };
+        AutomationProperties.SetName(WorkspaceStatusText, WorkspaceStatusRow);
+        AutomationProperties.SetLiveSetting(WorkspaceStatusText, AutomationLiveSetting.Polite);
+        SetUpButton = Capsule(SetUp, ToggleSetUp);
+        AutomationProperties.SetHelpText(SetUpButton, SetUpOpenHelp);
+        EnableCommandText = WorkspaceSetup.Command(parts.WorkspaceExe, WorkspaceSetup.EnableCommand);
+        DisableCommandText = WorkspaceSetup.Command(parts.WorkspaceExe, WorkspaceSetup.DisableCommand);
+        CopyEnableButton = CopyButton(CopyEnableName, EnableCommandText);
+        CopyDisableButton = CopyButton(CopyUndoName, DisableCommandText);
+        CopyNote = new TextBlock { TextWrapping = TextWrapping.Wrap, IsVisible = false };
+        SwiftFont.Footnote.Apply(CopyNote);
+        AutomationProperties.SetLiveSetting(CopyNote, AutomationLiveSetting.Polite);
+        SetUpFold = new CzFoldRow(SetUpSteps(), false);
+        SetUpFold.KeyDown += (_, e) =>
+        {
+            if (e.Key != Key.Escape || e.KeyModifiers != KeyModifiers.None || !SetUpFold.Open) return;
+            e.Handled = true;
+            ToggleSetUp();
+        };
+        WatchButton = Capsule(WatchLabel, parts.WatchWorkspace is null ? null : Watch);
+        WatchButton.Dimmed = true;
+        AutomationProperties.SetName(WatchButton, WatchRow);
         WorkspacePicker = new ChromeSegmentedPicker<string>(
             new ChromeSegmentedOption<string>[] { new("auto", "Auto"), new("always", "Always"), new("never", "Never") },
             new Binding<string>(() => value.WorkspaceUse, use => Change(s => s with { WorkspaceUse = use })));
         AutomationProperties.SetName(WorkspacePicker, WorkspaceUseRow);
-        var workspace = Rows(
-            Line(WorkspaceLine),
-            new ChromeRow(WorkspaceStatusRow, () => new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { WorkspaceStatusText, Capsule(SetUp, parts.SetUpWorkspace) } }, null),
-            new ChromeRow(WorkspaceUseRow, () => WorkspacePicker, null));
+        var status = new StackPanel
+        {
+            Children =
+            {
+                new ChromeRow(WorkspaceStatusRow, () => new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { WorkspaceStatusText, SetUpButton } }, null),
+                SetUpFold,
+            },
+        };
+        var workspace = parts.WorkspaceReleased
+            ? Rows(Line(WorkspaceLine), status, new ChromeRow(WatchRow, () => WatchButton, WatchDetail), new ChromeRow(WorkspaceUseRow, () => WorkspacePicker, null))
+            : Rows(Line(WorkspaceLine + " " + WorkspacePreview.NotReleasedLine), status, new ChromeRow(WatchRow, () => WatchButton, WatchDetail), new ChromeRow(WorkspaceUseRow, () => WorkspacePicker, null));
+        workspaceRefresh = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(WorkspaceRefreshMs) };
+        workspaceRefresh.Tick += (_, _) => _ = RefreshWorkspace();
 
         // Advanced
         DetailPicker = new ChromeSegmentedPicker<PcDetail>(
@@ -247,6 +308,8 @@ public sealed class PcControlSettingsPage : Decorator
         DetachedFromVisualTree += (_, _) =>
         {
             if (parts.Grants is { } grants) grants.Changed -= grantsChanged;
+            workspaceRefresh.Stop();
+            workspaceRead?.Cancel();
         };
     }
 
@@ -263,6 +326,29 @@ public sealed class PcControlSettingsPage : Decorator
     public ChromeSegmentedPicker<PcDetail> DetailPicker { get; }
 
     public TextBlock WorkspaceStatusText { get; }
+
+    public CzCapsuleButton SetUpButton { get; }
+
+    /// <summary>The setup steps under the status row: what changes, the command, the undo, Remote Desktop, the limits.</summary>
+    public CzFoldRow SetUpFold { get; }
+
+    public CzCapsuleButton CopyEnableButton { get; }
+
+    public CzCapsuleButton CopyDisableButton { get; }
+
+    /// <summary>"Copied." or why not, under the steps.</summary>
+    public TextBlock CopyNote { get; }
+
+    public CzCapsuleButton WatchButton { get; }
+
+    /// <summary>The command that turns child sessions on, as the panel shows and copies it.</summary>
+    public string EnableCommandText { get; }
+
+    /// <summary>The undo command.</summary>
+    public string DisableCommandText { get; }
+
+    /// <summary>The workspace's status as last read.</summary>
+    public WorkspaceStatus Workspace { get; private set; } = WorkspaceStatus.NotSetUp;
 
     public CzCapsuleButton BlockButton { get; }
 
@@ -319,10 +405,124 @@ public sealed class PcControlSettingsPage : Decorator
         _ => "",
     };
 
+    /// <summary>Reads the workspace's status off the UI thread and shows it; Watch is offered only while one runs.</summary>
+    public async Task RefreshWorkspace()
+    {
+        workspaceRead?.Cancel();
+        var reading = workspaceRead = new CancellationTokenSource();
+        WorkspaceStatus status;
+        try
+        {
+            status = await parts.ReadWorkspace(reading.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        if (reading.IsCancellationRequested) return;
+        Workspace = status;
+        WorkspaceStatusText.Text = status.Text;
+        WatchButton.Dimmed = parts.WatchWorkspace is null || status.State != WorkspaceState.Running;
+        AutomationProperties.SetHelpText(WatchButton, status.State == WorkspaceState.Running ? WatchDetail : WatchNotRunning);
+    }
+
+    /// <summary>"Set up": folds the steps open (and reads the status every 3 s while they are open), or closes them.</summary>
+    public void ToggleSetUp()
+    {
+        SetUpFold.Open = !SetUpFold.Open;
+        AutomationProperties.SetHelpText(SetUpButton, SetUpFold.Open ? SetUpCloseHelp : SetUpOpenHelp);
+        if (SetUpFold.Open)
+        {
+            workspaceRefresh.Start();
+            CopyEnableButton.Focus();
+            return;
+        }
+        workspaceRefresh.Stop();
+        CopyNote.IsVisible = false;
+        SetUpButton.Focus();
+    }
+
+    private void Watch()
+    {
+        if (parts.WatchWorkspace?.Invoke() != true) _ = RefreshWorkspace();
+    }
+
+    private async Task CopyCommand(string command)
+    {
+        try
+        {
+            var copy = parts.Copy;
+            if (copy is null && TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard) copy = text => clipboard.SetTextAsync(text);
+            if (copy is null) throw new InvalidOperationException("no clipboard");
+            await copy(command);
+            CopyNote.Text = Copied;
+        }
+        catch (Exception error) when (error is InvalidOperationException or System.Runtime.InteropServices.ExternalException or TimeoutException)
+        {
+            _ = error;
+            CopyNote.Text = CopyFailed;
+        }
+        CopyNote.IsVisible = true;
+    }
+
+    private CzCapsuleButton CopyButton(string name, string command)
+    {
+        var button = Capsule(CopyLabel, () => _ = CopyCommand(command));
+        AutomationProperties.SetName(button, name);
+        return button;
+    }
+
+    // The steps of DESIGN.md 2.13: what changes, open the terminal, the command, come back, the undo, Remote Desktop, the limits.
+    private StackPanel SetUpSteps()
+    {
+        var steps = new StackPanel { Spacing = 8, Margin = new Thickness(16, 2, 16, 14) };
+        steps.Children.Add(Step(WorkspaceSetup.WhatChanges));
+        steps.Children.Add(Step(WorkspaceSetup.OpenTerminal));
+        steps.Children.Add(Step(WorkspaceSetup.PasteCommand));
+        steps.Children.Add(CommandBox(EnableCommandText, CopyEnableButton));
+        steps.Children.Add(Step(WorkspaceSetup.ComeBack));
+        steps.Children.Add(Step(WorkspaceSetup.UndoLine));
+        steps.Children.Add(CommandBox(DisableCommandText, CopyDisableButton));
+        steps.Children.Add(Step(WorkspaceSetup.RemoteDesktopNote));
+        steps.Children.Add(Capsule(OpenRemoteDesktop, parts.OpenRemoteDesktopSettings));
+        var limits = new TextBlock { Text = LimitsTitle, Margin = new Thickness(0, 4, 0, 0) };
+        SwiftFont.Footnote.Apply(limits);
+        limits.FontWeight = FontWeight.SemiBold;
+        steps.Children.Add(limits);
+        foreach (var limit in WorkspaceSetup.Limits) steps.Children.Add(Step("\u2022 " + limit));
+        steps.Children.Add(CopyNote);
+        return steps;
+    }
+
+    private static TextBlock Step(string text)
+    {
+        var line = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap };
+        SwiftFont.Footnote.Apply(line);
+        line.Foreground = Chrome.SecondaryText.Brush(line);
+        return line;
+    }
+
+    // The command in a monospaced, selectable box with its Copy button; long paths wrap.
+    private static Border CommandBox(string command, CzCapsuleButton copy)
+    {
+        var text = new SelectableTextBlock { Text = command, TextWrapping = TextWrapping.Wrap, FontSize = 11.5, VerticalAlignment = VerticalAlignment.Center };
+        text.FontFamily = new FontFamily("Cascadia Mono,Consolas,monospace");
+        AutomationProperties.SetName(text, command);
+        copy.VerticalAlignment = VerticalAlignment.Center;
+        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 10 };
+        grid.Children.Add(text);
+        grid.Children.Add(copy);
+        Grid.SetColumn(copy, 1);
+        var box = new Border { Padding = new Thickness(12, 8), Child = grid };
+        box.RoundedRectangle(10, RoundedCornerStyle.Continuous);
+        box.Background = Chrome.Overlay(.06).Brush(box);
+        return box;
+    }
+
     private void Reload()
     {
         value = parts.Read();
-        WorkspaceStatusText.Text = parts.WorkspaceStatus();
+        _ = RefreshWorkspace();
         foreach (var (row, button) in chords)
         {
             button.Show(row switch { StopKeyRow => value.StopChord, PauseKeyRow => value.PauseChord, _ => value.AnswerChord });
