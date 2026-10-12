@@ -215,6 +215,23 @@ public static partial class FeedShield
                         end += 3; // YAML backslashes are literal, including before a doubled quote.
                         continue;
                     }
+                    // A literal Windows drive path may end in a backslash before its quote.
+                    // Restrict this exception to that path shape; other escaped/unterminated secrets
+                    // continue to fail closed, including C6-F4's escaped internal quotes.
+                    if (quoteLength == 1 && scan[end] == '\\' && end + 1 < scan.Length
+                        && scan[end + 1] == quote[0] && end - valueStart >= 3
+                        && char.IsAsciiLetter(scan[valueStart]) && scan[valueStart + 1] == ':'
+                        && scan[valueStart + 2] == '\\'
+                        && scan.AsSpan(valueStart, end - valueStart).IndexOf(quote[0]) < 0
+                        && scan.IndexOf(quote[0], end + 2) < 0
+                        && match.Groups["name"].Value.EndsWith("private_key", StringComparison.OrdinalIgnoreCase)
+                        && (scan.AsSpan(end + 2).StartsWith(" not found;", StringComparison.OrdinalIgnoreCase)
+                            || scan.AsSpan(end + 2).StartsWith(" not found ", StringComparison.OrdinalIgnoreCase)
+                            || scan.AsSpan(end + 2).Equals(" not found", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        end++; // The backslash belongs to the path; the following quote closes it.
+                        break;
+                    }
                     end += scan[end] == '\\' && end + 1 < scan.Length ? 2 : 1;
                 }
                 valueEnd = end;
@@ -227,7 +244,7 @@ public static partial class FeedShield
                 if (end == start) { cursor = start; continue; }
             }
             var value = scan[valueStart..valueEnd];
-            if (value is not (SecretMask or CardMask or CodeMask or IdMask))
+            if (value.Length > 0 && value is not (SecretMask or CardMask or CodeMask or IdMask))
             {
                 result.Append(scan, copied, start - copied).Append(quote).Append(SecretMask).Append(quote);
                 copied = end;

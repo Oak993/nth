@@ -6273,3 +6273,7 @@ ENGINEERING DECISION. Owner accepted verifier D1 (C6c, 2026-10-12). Keep the F8 
 ## ED-NEW-dextra-c6c-2
 
 ENGINEERING DECISION (C6c D2, 2026-10-12): Mask the entire value of single-quoted dictionary keys, backslash-quoted embedded JSON keys/values, escaped outer quotes and doubled YAML single quotes. A timed header regex finds secret names and separators; a single bounded value walk preserves the existing complete long/multiline/unterminated masking and idempotence. The six new shape tests fail twice alone before this change; plain JSON is an already-green control. No source/design string or provider behavior changes.
+
+## ED-NEW-dextra-c6c-3
+
+ENGINEERING DECISION (C6c D3, 2026-10-12): Leave empty quoted values unchanged and preserve the not-found diagnostic after a literal Windows drive path whose final backslash precedes its closing quote. The path exception requires private_key context, a drive-letter prefix, no other matching quote and a recognizable not-found tail. Ambiguous drive-shaped secrets remain fail-closed. Interpretation of the brief: restore the old 1..200 rule's non-empty lower bound, but keep the accepted C6-F4 requirement to mask whole values longer than 200 and through the bounded 4096-character scan; reinstating a total 200-character cap would leak secrets and contradict unchanged F4 tests. Two new diagnostic tests fail twice alone before this change; the ambiguous-secret control already passes. No OD or existing test expectation changes.
