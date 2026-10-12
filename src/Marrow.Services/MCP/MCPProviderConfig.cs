@@ -137,9 +137,12 @@ public static class MCPProviderConfig
     // environment, home) convention).
     public static ValueList<string> CodexUserServerNames() => CodexUserServerNames(LoginEnvironment.HomeDirectory); // :164
 
-    internal static ValueList<string> CodexUserServerNames(string home) // :163-164
+    internal static ValueList<string> CodexUserServerNames(string home) => // :163-164
+        CodexServerNamesAt(SwiftPath.AppendingPathComponent(home, ".codex/config.toml")); // :164
+
+    /// <summary>PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-3): the [mcp_servers.*] names of one Codex config.toml (CODEX_HOME's).</summary>
+    public static ValueList<string> CodexServerNamesAt(string path)
     {
-        var path = SwiftPath.AppendingPathComponent(home, ".codex/config.toml"); // :164
         string? text = SwiftTry.Optional(() => SwiftText.DecodeUtf8OrNil(File.ReadAllBytes(path))); // :165, R-STR-8
         if (text is null) return ValueList<string>.Empty; // :165
 
@@ -312,6 +315,17 @@ public static class MCPProviderConfig
         if (!ServersPresent(GeminiSettingsURL, "mcpServers")) return null; // :226
         return GeminiSettingsURL; // :227
     }
+
+    /// <summary>
+    /// PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-3): the mcpServers object of nth's own claude.json (the servers connected in
+    /// Settings), or null when there is none; a sealed mission chat keeps only the ones its assistant's profile lists.
+    /// </summary>
+    public static JSONValue? ClaudeConnectedServers() =>
+        ReadOptionalConfig(MCPPaths.ClaudeConfigURL) is { } data ? JSONValue.Parse(data)?["mcpServers"] : null;
+
+    /// <summary>PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-3): the mcp_servers object of nth's own codex.json, or null.</summary>
+    public static JSONValue? CodexConnectedServers() =>
+        ReadOptionalConfig(MCPPaths.CodexConfigURL) is { } data ? JSONValue.Parse(data)?["mcp_servers"] : null;
 
     // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): no Swift counterpart. A session's ask_advisor server, null unless
     // its chat has an advisor (a Hydra head, whose lead advises); the per-provider shapes below add it beside the

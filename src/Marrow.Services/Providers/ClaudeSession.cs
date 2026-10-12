@@ -126,8 +126,8 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
     {
         this.configuration = configuration;
         this.acquireSkills = acquireSkills;
-        runtimeMode = configuration.RuntimeMode;
-        permissionMode = ModeName(configuration.RuntimeMode, configuration.InteractionMode);
+        runtimeMode = configuration.Sealed is null ? configuration.RuntimeMode : Marrow.Services.Assistant.SealedProviderConfig.CappedMode;
+        permissionMode = ModeName(runtimeMode, configuration.InteractionMode);
         model = configuration.Model;
     }
 
@@ -216,7 +216,16 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
             arguments.Add("--effort");
             arguments.Add(effort);
         }
-        if (handshakeAgent is not null || configuration.FastMode) // :93; OD-0114 temporary flag layer, never a settings file.
+        if (configuration.Sealed is not null)
+        {
+            // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-3): a mission chat loads no settings file and its one flag layer
+            // carries the seal (no allow rules, the ask mode, bypass off, no hooks) beside the fast-mode and handshake flags.
+            arguments = Marrow.Services.Assistant.SealedProviderConfig.ClaudeArguments(arguments);
+            var others = handshakeAgent is not null || configuration.FastMode ? JSONValue.Parse(HandshakeLaunchSettings())?.JSONValueObject : null;
+            arguments.Add("--settings");
+            arguments.Add(Marrow.Services.Assistant.SealedProviderConfig.ClaudeFlagSettings(others));
+        }
+        else if (handshakeAgent is not null || configuration.FastMode) // :93; OD-0114 temporary flag layer, never a settings file.
         {
             arguments.Add("--settings");
             arguments.Add(HandshakeLaunchSettings());
@@ -227,7 +236,16 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         advisorServer = MCPProviderConfig.AdvisorServer(configuration);
         // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): a Dextra chat's nth-dextra server joins the same file.
         dextraServer = MCPProviderConfig.DextraServer(configuration);
-        if (MCPProviderConfig.ClaudeBuiltInConfig(MCPProviderConfig.BuiltInServers(advisorServer, dextraServer), configuration.IgnisThreadID) is { } mcpConfig)
+        if (configuration.Sealed is { } seal)
+        {
+            // PORT-ONLY (Dextra AS-5): only the servers the mission's profile lists, and always strict, so the owner's own
+            // servers never load beside them; a file that cannot be written stops the launch (fail closed).
+            arguments.Add("--mcp-config");
+            arguments.Add(Marrow.Services.Assistant.SealedProviderConfig.WriteClaudeMcpConfig(seal,
+                MCPProviderConfig.BuiltInServers(advisorServer, dextraServer), configuration.IgnisThreadID));
+            arguments.Add("--strict-mcp-config");
+        }
+        else if (MCPProviderConfig.ClaudeBuiltInConfig(MCPProviderConfig.BuiltInServers(advisorServer, dextraServer), configuration.IgnisThreadID) is { } mcpConfig)
         {
             arguments.Add("--mcp-config");
             arguments.Add(mcpConfig.Path);
@@ -328,6 +346,7 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
             initialize["forwardSubagentText"] = true;
         }
         var initialization = await Control(new JSONValue.Object(new ValueMap<string, JSONValue>(initialize, SwiftStringComparer.Instance))); // :160
+        if (configuration.Sealed is not null) await CheckSeal();
         isStarted = true; // :161
         var models = Models(initialization); // :162
         if (models.Count != 0) OnEvent?.Invoke(new ProviderEvent.Models(models, configuration.Model)); // :163
@@ -335,6 +354,25 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         if (commands.Count != 0) OnEvent?.Invoke(new ProviderEvent.Commands(commands)); // :165
         return id; // :166
     }
+
+    /// <summary>
+    /// PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-3): a sealed chat asks the CLI for its effective settings and stops when an
+    /// allow rule or the bypass mode got through. A CLI that cannot answer (older versions) keeps the launch flags alone.
+    /// </summary>
+    private async Task CheckSeal()
+    {
+        var reply = Control(JSONValue.FromDictionaryLiteral(("subtype", "get_settings")));
+        if (await Task.WhenAny(reply, Task.Delay(SealCheckTimeout)) != reply)
+            throw new ProviderError(new ProviderError.Case.Failed("Claude Code did not confirm this mission chat's seal."));
+        JSONValue? settings;
+        try { settings = await reply; }
+        catch (Exception error) when (error is not OperationCanceledException) { settings = null; } // an older CLI refuses the request
+        if (Marrow.Services.Assistant.SealedProviderConfig.ClaudeSealBroken(settings) is { } broken)
+            throw new ProviderError(new ProviderError.Case.Failed("This mission chat could not be sealed: " + broken));
+    }
+
+    /// <summary>PORT-ONLY (AS-5): how long a sealed launch waits for the CLI to report its effective settings.</summary>
+    internal static TimeSpan SealCheckTimeout { get; set; } = TimeSpan.FromSeconds(15);
 
     private static ValueList<ModelOption> Models(JSONValue initialization) // :169-181
     {
@@ -996,8 +1034,8 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
             OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = "An nth skill file changed during this chat; new chats are not affected" }));
         }
         if (handshakeAgent is not null) await CheckHandshakePolicyAsync();
-        runtimeMode = input.RuntimeMode; // :216
-        var mode = ModeName(input.RuntimeMode, input.InteractionMode); // :217
+        runtimeMode = configuration.Sealed is null ? input.RuntimeMode : Marrow.Services.Assistant.SealedProviderConfig.CappedMode; // :216; PORT-ONLY (AS-5): a sealed chat stays in the ask mode
+        var mode = ModeName(runtimeMode, input.InteractionMode); // :217
         if (!SwiftString.Equal(mode, permissionMode)) // :218-221
         {
             _ = await SwiftTry.OptionalAsync(async () => (JSONValue?)await Control(JSONValue.FromDictionaryLiteral(("subtype", "set_permission_mode"), ("mode", mode))));
@@ -1062,6 +1100,7 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
     public void ResolveApproval(string requestID, string optionID, string? reason) // :254-275
     {
         if (!pendingTools.Remove(requestID, out var pending)) return; // :255
+        if (configuration.Sealed is not null && SwiftString.Equal(optionID, "always")) optionID = "allow"; // PORT-ONLY (AS-5): a sealed chat keeps no rule
         if (SwiftString.Equal(optionID, "allow") || SwiftString.Equal(optionID, "always")) // :256
         {
             var response = new Dictionary<string, JSONValue> { ["behavior"] = "allow", ["updatedInput"] = pending.Input }; // :257

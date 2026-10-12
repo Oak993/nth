@@ -115,6 +115,11 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
         {
             throw new ProviderError(new ProviderError.Case.NotInstalled(configuration.Provider)); // :67
         }
+        // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-3): Codex's own "Always allow" rules run commands without asking whatever
+        // a thread's policy says, and nth cannot switch them off for one thread, so a sealed chat does not start beside them.
+        if (configuration.Sealed is not null
+            && Marrow.Services.Assistant.SealedProviderConfig.CodexRefusal(configuration.Environment, LoginEnvironment.HomeDirectory) is { } refused)
+            throw new ProviderError(new ProviderError.Case.Failed(refused));
 
         var connected = await Connect(
             executable,
@@ -260,7 +265,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
             }
         }
 
-        var policy = PolicySettingsFor(input.RuntimeMode); // :135
+        var policy = PolicySettingsFor(configuration.Sealed is null ? input.RuntimeMode : Marrow.Services.Assistant.SealedProviderConfig.CappedMode); // :135; PORT-ONLY (AS-5): a sealed chat stays in the ask mode
         var parameters = new Dictionary<string, JSONValue>(StringComparer.Ordinal)
         {
             ["threadId"] = currentThreadID,                                      // :137
@@ -679,7 +684,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
     {
         get
         {
-            var policy = PolicySettingsFor(configuration.RuntimeMode); // :227
+            var policy = PolicySettingsFor(configuration.Sealed is null ? configuration.RuntimeMode : Marrow.Services.Assistant.SealedProviderConfig.CappedMode); // :227; PORT-ONLY (AS-5)
             var parameters = new Dictionary<string, JSONValue>(StringComparer.Ordinal)
             {
                 ["cwd"] = WorkingDirectory,               // :229
@@ -730,7 +735,20 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
             // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): a Hydra head's ask_advisor server joins the connected ones.
             // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): so does a Dextra chat's nth-dextra server.
             dextraServer ??= MCPProviderConfig.DextraServer(configuration);
-            if (MCPProviderConfig.CodexBuiltIns(MCPProviderConfig.CodexOverrides(), MCPProviderConfig.BuiltInServers(MCPProviderConfig.AdvisorServer(configuration), dextraServer)) is { } servers) // :262
+            if (configuration.Sealed is { } seal)
+            {
+                // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-3): only the servers the mission's profile lists; every other
+                // connected server and every server of the account's own config.toml is switched off for this thread.
+                var userNames = MCPProviderConfig.CodexUserServerNames()
+                    .Concat(MCPProviderConfig.CodexServerNamesAt(Path.Combine(Marrow.Services.Assistant.SealedProviderConfig.CodexHome(configuration.Environment, LoginEnvironment.HomeDirectory), "config.toml")));
+                var sealedConfig = parameters.TryGetValue("config", out var present) && present.JSONValueObject is { } presentObject
+                    ? new Dictionary<string, JSONValue>(presentObject, StringComparer.Ordinal)
+                    : new Dictionary<string, JSONValue>(StringComparer.Ordinal);
+                sealedConfig["mcp_servers"] = Marrow.Services.Assistant.SealedProviderConfig.CodexServers(MCPProviderConfig.CodexConnectedServers(), userNames, seal,
+                    MCPProviderConfig.BuiltInServers(MCPProviderConfig.AdvisorServer(configuration), dextraServer));
+                parameters["config"] = new JSONValue.Object(new ValueMap<string, JSONValue>(sealedConfig));
+            }
+            else if (MCPProviderConfig.CodexBuiltIns(MCPProviderConfig.CodexOverrides(), MCPProviderConfig.BuiltInServers(MCPProviderConfig.AdvisorServer(configuration), dextraServer)) is { } servers) // :262
             {
                 var mergedConfig = parameters.TryGetValue("config", out var currentConfig) && currentConfig.JSONValueObject is { } currentObject
                     ? new Dictionary<string, JSONValue>(currentObject, StringComparer.Ordinal)
@@ -747,6 +765,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
     public void ResolveApproval(string requestID, string optionID)
     {
         if (!pendingRequests.Remove(requestID, out var pending)) return; // :306
+        if (configuration.Sealed is not null) optionID = Marrow.Services.Assistant.SealedProviderConfig.CodexOnce(optionID); // PORT-ONLY (AS-5): a sealed chat keeps no rule
         switch (pending)
         {
             case PendingRequest.Decision(var id, var payloads):

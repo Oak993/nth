@@ -81,6 +81,9 @@ public sealed record SessionConfiguration
     // PORT-ONLY (OD-0134 Ignis, ED-NEW-ignis-runtime): the chat this session serves, so Ignis can answer per chat (cache
     // lifetimes at a Claude launch, request-level cache levers). Null: legacy call sites and test fixtures.
     public Guid? IgnisThreadID { get; init; }
+    // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-3): set for every chat of a mission. The session launches in the ask mode
+    // with none of the owner's allow rules, hooks or bypasses, and only the MCP servers the seal lists. Null: as before.
+    public Marrow.Services.Assistant.SealedLaunch? Sealed { get; init; }
 }
 
 // :50-58. One exchange of a conversation, for replaying it into a session that starts over.
