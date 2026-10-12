@@ -1213,8 +1213,8 @@ public sealed class ComposerView : Decorator
         }
         // :375-378 Return while the turn runs stops it and sends right away. With heads at work it queues instead (a
         // head takes it, or it waits for the lead): the heads run inside the lead's session, and a stop would kill them.
-        if (runtime.IsRunning) runtime.InterruptAndSend();
-        else runtime.Send(); // :380
+        if (runtime.IsRunning) runtime.InterruptAndSend(byOwner: true);
+        else runtime.Send(byOwner: true); // :380 (byOwner: Dextra AS-7, ED-NEW-dextra-as7-12)
     }
 
     // :384-398 Command-Return: steer the running turn by queueing the draft behind it. Idle, there is nothing to steer
@@ -1229,11 +1229,11 @@ public sealed class ComposerView : Decorator
         // is compared, not the key event.
         if (runtime.CanQueue && ShortcutStore.Shared.Current.Chord(AppShortcut.QueueChat) == new KeyChord(0x1C, ChordModifiers.Control))
         {
-            runtime.QueueDraftAsFollowUp(); // :394
+            runtime.QueueDraftAsFollowUp(byOwner: true); // :394
         }
         else
         {
-            runtime.Send(); // :396
+            runtime.Send(byOwner: true); // :396
         }
     }
 

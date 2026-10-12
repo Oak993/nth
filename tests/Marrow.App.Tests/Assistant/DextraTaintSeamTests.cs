@@ -93,10 +93,75 @@ public sealed class DextraTaintSeamTests
             rig.H.Main.OnMain(() =>
             {
                 rig.Runtime.Draft = new ComposerDraft { Text = "Thanks. Book nothing." };
-                rig.Runtime.Send();
+                rig.Runtime.Send(byOwner: true);
             });
             Assert.False(rig.H.Main.OnMain(() => controller.HomeTaint(home)).IsTainted);
             rig.H.Main.Loop.RunUntil(() => rig.Session.Inputs.Count == 2, AppModelHarness.Bound);
+        }
+        finally
+        {
+            rig.H.Main.OnMain(() => rig.App.AttachDextra(null));
+        }
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-dextra-as7-12")]
+    public void Only_the_owners_own_sends_clear_the_home_chats_taint_never_nths_own_or_its_continue_after_a_limit()
+    {
+        using var rig = new ThreadRuntimeTurnRig(ProviderKind.Claude, thread => thread with { AssistantID = Guid.NewGuid() });
+        var home = rig.InitialThread.Id;
+        var controller = rig.H.Main.OnMain(() =>
+        {
+            var made = Controller(rig.App, new FakeWorkspaces(rig.H.NewFolder("worktrees")));
+            rig.App.AttachDextra(made);
+            return made;
+        });
+        bool Tainted() => rig.H.Main.OnMain(() => controller.HomeTaint(home)).IsTainted;
+        try
+        {
+            rig.Send("Read the page.");
+            rig.H.Main.OnMain(() => rig.Session.Emit(new ProviderEvent.ToolStarted("w1", Web("https://hostile.example/page"))));
+            rig.Complete();
+            Assert.True(Tainted());
+
+            // nth's own send through the composer's path (a head's retry, a helper's prompt) is no owner's message.
+            rig.H.Main.OnMain(() =>
+            {
+                rig.Runtime.Draft = new ComposerDraft { Text = "Retry the brief." };
+                rig.Runtime.Send();
+            });
+            Assert.True(Tainted());
+            rig.H.Main.Loop.RunUntil(() => rig.Session.Inputs.Count == 2, AppModelHarness.Bound);
+            rig.Complete();
+
+            // AutoContinue after a usage limit queues its own "continue" and sends it at once: no owner's message either.
+            rig.H.Main.OnMain(() =>
+            {
+                rig.Runtime.EnqueueFollowUp(AutoContinue.ContinueMessage, []);
+                rig.Runtime.SendFollowUpNow(rig.Runtime.FollowUps[^1].Id);
+            });
+            Assert.True(Tainted());
+            rig.H.Main.Loop.RunUntil(() => rig.Session.Inputs.Count == 3, AppModelHarness.Bound);
+            rig.Complete();
+
+            // The owner pressing send on a message nth queued does not make its words his.
+            rig.H.Main.OnMain(() =>
+            {
+                rig.Runtime.EnqueueFollowUp("A report delivered into the chat.", []);
+                rig.Runtime.SendFollowUpNow(rig.Runtime.FollowUps[^1].Id, byOwner: true);
+            });
+            Assert.True(Tainted());
+            rig.H.Main.Loop.RunUntil(() => rig.Session.Inputs.Count == 4, AppModelHarness.Bound);
+
+            // A message the owner wrote and queued while the turn runs, sent now by him, is his own message.
+            rig.H.Main.OnMain(() =>
+            {
+                rig.Runtime.Draft = new ComposerDraft { Text = "Stop. Book nothing." };
+                rig.Runtime.QueueDraftAsFollowUp(byOwner: true);
+                rig.Runtime.SendFollowUpNow(rig.Runtime.FollowUps[^1].Id, byOwner: true);
+            });
+            Assert.False(Tainted());
+            Assert.Equal(1, rig.Session.InterruptCalls);
         }
         finally
         {

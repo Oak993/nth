@@ -354,6 +354,9 @@ public sealed partial class ThreadRuntime : MainActorModel
     // PORT-ONLY: SK-12 / DL-13. UI unit SK-14 binds the card; the host supplies the checked installer.
     public Marrow.App.Port.Skills.SkillsOfferFlow? SkillsOffers { get; private set; }
     private readonly HashSet<Guid> skillsFollowUps = [];
+    // PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-12): queued messages the owner wrote in the composer. Kept in memory only:
+    // after a restart a queued message counts as nth's, so sending it does not clear a Dextra chat's taint.
+    private readonly HashSet<Guid> ownerFollowUps = [];
     private readonly AsyncLocal<bool> skillsContinuationTurn = new();
     private readonly AsyncLocal<bool> ignisPingTurn = new(); // PORT-ONLY: Ignis (ED-NEW-ignis-runtime): a hidden keep-warm ping (Port/Ignis/Runtime/ThreadRuntimeIgnis.cs)
     internal void AttachSkillsOffers(Marrow.App.Port.Skills.SkillsOfferFlow flow)
@@ -1016,7 +1019,11 @@ public sealed partial class ThreadRuntime : MainActorModel
     // MARK: - Sending
 
     // :744-756
-    public void Send()
+    public void Send() => Send(byOwner: false);
+
+    // :744-756. PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-12): byOwner is true only where the owner himself sent it (the
+    // composer and its commands); nth's own sends (a head's retry, a helper's prompt) pass false.
+    public void Send(bool byOwner)
     {
         if (IsReverting || Draft.IsEmpty || Phase != RuntimePhase.Idle) return;
         var text = FoundationText.Trim(Draft.OutgoingText, includeNewlines: true);
@@ -1028,8 +1035,8 @@ public sealed partial class ThreadRuntime : MainActorModel
         }
 
         Draft = new ComposerDraft();
-        App?.DextraOwnerMessage(ThreadID); // PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-9): the owner's own message
         if (DispatchSentHead(text, attachments)) return; // ThreadRuntime.swift:753
+        if (byOwner) App?.DextraOwnerMessage(ThreadID); // PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-9, -12): the owner's own message
         _ = MainActor.Spawn(() => StartTurn(text, attachments));
     }
 
@@ -1096,23 +1103,28 @@ public sealed partial class ThreadRuntime : MainActorModel
     public bool CanQueue => IsRunning || HasWorkingHeads; // ThreadRuntime.swift:771-773
 
     // :775-788 With nothing to queue behind, the draft simply goes out: the queue chord is never a dead key.
-    public void QueueDraftAsFollowUp() // ThreadRuntime.swift:780-788
+    public void QueueDraftAsFollowUp() => QueueDraftAsFollowUp(byOwner: false); // ThreadRuntime.swift:780-788
+
+    // ThreadRuntime.swift:780-788. PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-12): byOwner as in Send(bool).
+    public void QueueDraftAsFollowUp(bool byOwner)
     {
         if (IsReverting || Draft.IsEmpty) return; // :781
         if (!CanQueue) // :782-785
         {
-            Send();
+            Send(byOwner);
             return;
         }
-        EnqueueFollowUp(Draft.OutgoingText, Draft.Attachments); // :786
+        EnqueueFollowUpCore(Draft.OutgoingText, Draft.Attachments, byOwner); // :786
         Draft = new ComposerDraft(); // :787
     }
 
     // :809-830
-    public void InterruptAndSend() // ThreadRuntime.swift:809-830
+    public void InterruptAndSend() => InterruptAndSend(byOwner: false); // ThreadRuntime.swift:809-830
+
+    // ThreadRuntime.swift:809-830. PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-12): byOwner as in Send(bool).
+    public void InterruptAndSend(bool byOwner)
     {
         if (IsReverting || Draft.IsEmpty || Phase == RuntimePhase.Idle) return;
-        App?.DextraOwnerMessage(ThreadID); // PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-9): the owner's own message
 
         if (DispatchSentHead(Draft.OutgoingText, Draft.Attachments))
         {
@@ -1122,11 +1134,12 @@ public sealed partial class ThreadRuntime : MainActorModel
 
         if (HasWorkingHeads)
         {
-            EnqueueFollowUp(Draft.OutgoingText, Draft.Attachments);
+            EnqueueFollowUpCore(Draft.OutgoingText, Draft.Attachments, byOwner);
             Draft = new ComposerDraft();
             return;
         }
 
+        if (byOwner) App?.DextraOwnerMessage(ThreadID); // PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-9, -12): the owner's own message
         pendingSend = new PendingSend
         {
             Text = Draft.OutgoingText,
@@ -1239,6 +1252,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     private FollowUpPrompt TakeBundle(int index)
     {
         var merged = MergedBundle(index);
+        ownerFollowUps.ExceptWith(BundleIDs(index)); // PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-12)
         if (followUps[index].BundleID is { } bundle)
         {
             var end = index;
@@ -1250,6 +1264,14 @@ public sealed partial class ThreadRuntime : MainActorModel
             FollowUps = followUps.Mutating(items => items.RemoveAt(index));
         }
         return merged;
+    }
+
+    // PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-12): the ids of the queued prompts TakeBundle(index) takes.
+    private IEnumerable<Guid> BundleIDs(int index)
+    {
+        yield return followUps[index].Id;
+        if (followUps[index].BundleID is not { } bundle) yield break;
+        for (var next = index + 1; next < followUps.Count && followUps[next].BundleID == bundle; next++) yield return followUps[next].Id;
     }
 
     // ThreadRuntime.swift:853, 1087, 1101
@@ -1298,7 +1320,11 @@ public sealed partial class ThreadRuntime : MainActorModel
     }
 
     // :954-990
-    public void SendFollowUpNow(Guid id) // ThreadRuntime.swift:954-990
+    public void SendFollowUpNow(Guid id) => SendFollowUpNow(id, byOwner: false); // ThreadRuntime.swift:954-990
+
+    // ThreadRuntime.swift:954-990. PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-12): byOwner is true only when the owner
+    // pressed send on the queued message; it counts as his own message only when he wrote every part of it.
+    public void SendFollowUpNow(Guid id, bool byOwner)
     {
         if (isReverting) return;
         if (phase != RuntimePhase.Idle && skillsFollowUps.Contains(id)) return;
@@ -1309,16 +1335,16 @@ public sealed partial class ThreadRuntime : MainActorModel
         if (followUps[index].BundleID is { } bundle)
             while (start > 0 && followUps[start - 1].BundleID == bundle) start--;
 
-        var skills = skillsFollowUps.Contains(id);
+        var owners = byOwner && BundleIDs(start).All(ownerFollowUps.Contains);
         var prompt = TakeBundle(start);
         saveRevision++;
         ScheduleSave();
         if (prompt.IsEmpty) return;
-        if (!skills) App?.DextraOwnerMessage(ThreadID); // PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-9): the owner's queued message
 
         if (phase == RuntimePhase.Idle)
         {
             if (HandleLocalCommand(FoundationText.Trim(prompt.Text, includeNewlines: true))) return;
+            if (owners) App?.DextraOwnerMessage(ThreadID); // PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-9, -12): the owner's queued message
             MainActor.Spawn(async () =>
             {
                 await EnsureLoaded();
@@ -1339,6 +1365,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                 return;
             }
 
+            if (owners) App?.DextraOwnerMessage(ThreadID); // PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-9, -12): the owner's queued message
             pendingSend = new PendingSend { Text = prompt.Text, Attachments = prompt.Attachments };
             Interrupt();
         }
@@ -1410,8 +1437,9 @@ public sealed partial class ThreadRuntime : MainActorModel
     public void EnqueueFollowUp(string text, IReadOnlyList<Attachment> attachments) =>
         EnqueueFollowUpCore(text, attachments); // ThreadRuntime.swift:991-1008
 
-    // ThreadRuntime.swift:991-1008
-    private void EnqueueFollowUpCore(string text, IReadOnlyList<Attachment> attachments)
+    // ThreadRuntime.swift:991-1008. PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-12): byOwner marks a message the owner wrote
+    // (the composer's queue), the only kind whose "send now" counts as his own message.
+    private void EnqueueFollowUpCore(string text, IReadOnlyList<Attachment> attachments, bool byOwner = false)
     {
         var prompt = new FollowUpPrompt
         {
@@ -1420,6 +1448,11 @@ public sealed partial class ThreadRuntime : MainActorModel
         };
         if (prompt.IsEmpty) return;
         if (phase != RuntimePhase.Idle && DispatchQueuedHead(prompt)) return;
+        if (byOwner)
+        {
+            ownerFollowUps.IntersectWith(followUps.Select(queued => queued.Id)); // marks of prompts gone by other paths
+            ownerFollowUps.Add(prompt.Id);
+        }
         FollowUps = followUps.Appending(prompt);
         saveRevision++;
         ScheduleSave();
