@@ -50,8 +50,9 @@ public static class ModelCatalog
     {
         var registry = model.Providers;
         var result = model.Settings.ModelList.Count == 0
-            ? registry.AvailableProviders
+            ? ListedProviders(registry, including)
                 .SelectMany(provider => registry.Models(provider).Select(option => new Entry(provider, option)))
+                .Where(IsChatModel) // DEVIATION (ED-NEW-pickerclaude-2)
                 .ToList()
             : model.Settings.ModelList
                 .Select(pin => registry.Model(pin.ModelID, pin.Provider) is { } option
@@ -59,6 +60,7 @@ public static class ModelCatalog
                     : null)
                 .Where(entry => entry is not null)
                 .Select(entry => entry!)
+                .Where(IsChatModel) // DEVIATION (ED-NEW-pickerclaude-2)
                 .ToList();
         Marrow.App.Port.Advisor.AdvisorPicker.AddEntries(registry, result); // DEVIATION (ED-NEW-ignisadvisor-1): the Claude advisor entries
 
@@ -71,6 +73,27 @@ public static class ModelCatalog
 
         return new ValueList<Entry>(result);
     }
+
+    /// <summary>
+    /// DEVIATION (ED-NEW-pickerclaude-1): the providers whose models the full list shows. The source lists the ready providers
+    /// (switched on in Settings › Providers and installed) and, for a chat on a provider that is switched off, only that chat's
+    /// current model, so a Claude chat whose provider switch was off showed "Opus 5.5" alone and no other Claude model. The chat's
+    /// own provider, when installed, now lists its whole lineup in its usual place; every other switched-off provider stays hidden.
+    /// </summary>
+    internal static IEnumerable<ProviderKind> ListedProviders(ProviderRegistry registry, ChatThread? including)
+    {
+        var available = registry.AvailableProviders;
+        if (including is not { } thread || available.Contains(thread.Provider) || !registry.CountsAsInstalled(thread.Provider)) return available;
+        return SwiftEnum<ProviderKind>.AllCases.Where(provider => provider == thread.Provider || available.Contains(provider));
+    }
+
+    /// <summary>
+    /// DEVIATION (ED-NEW-pickerclaude-2): whether an entry can run a chat. OpenRouter lists each Anthropic model's batch endpoint
+    /// (an id ending ":batch", named "… (batch)") beside it; a batch endpoint answers queued, asynchronous requests, never an
+    /// interactive turn, so the chat picker leaves it out. The OpenRouter catalogue itself keeps it.
+    /// </summary>
+    internal static bool IsChatModel(Entry entry) =>
+        entry.Provider != ProviderKind.OpenRouter || !entry.Option.Id.EndsWith(":batch", StringComparison.OrdinalIgnoreCase);
 }
 
 /// <summary>:36-150 <c>struct ModelEffortButton: View</c>.</summary>
