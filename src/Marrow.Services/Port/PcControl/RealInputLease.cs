@@ -121,7 +121,11 @@ public sealed class RealInputLease
         {
             if (kept.Count == 0 || HoldingKeys || queue.Any(e => e.Running)) return false;
             origin = host.Focus();
-            if (!kept.Remove(origin, out keys!)) return false;
+            if (!kept.Remove(origin, out keys!))
+            {
+                origin = (origin.Window, 0);
+                if (!kept.Remove(origin, out keys!)) return false;
+            }
         }
         Replay(keys, origin.Window, origin.Focus, out var left);
         // Replay alone owns retaining any unsent keys; left only reports completion.

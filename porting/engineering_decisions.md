@@ -6445,3 +6445,9 @@ Original two regressions RED twice0/2/0; drag supplement RED twice2/1/0, then fu
 2026-10-12 - Tactus C2-V2: serialize activation with health release. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; DESIGN.md 2.7 and 10.2; C3c owner rulings).
 SetForeground and Raise share the borrow send gate and refuse activation after Finished/health/permission changes. A reentrant host health callback may finish release inside activation; check Finished after that call and restore its late foreground/Z-order/placement/cursor effects again. Emergency foreground recovery checks the result and retries up to RestoreTries. The managed host can expose deterministic activation/release points.
 Original focus/raise race RED twice0/2/0; initialGREEN2/0/0. Review added first-restore-failure supplement, RED twice2/1/0, correctedGREEN3/0/0. Before the 13:50 cadence update: raw area550/2/0, pause-expiry failed twice alone; queue first-alonefailed and secondpassed; final area552/0/0. These raw runs remain disclosed, not relabelled clean. No further per-finding area sweeps after the cadence update; final combined area is recorded at end. Fake health loss occurs after check and inside host activation, release is observed before activation returns; no input and saved foreground/Z-order recovered.
+
+
+## ED-NEW-pcctl-cx-15
+2026-10-12 - Tactus C2-V7: match kept keys saved with wildcard focus. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c owner rulings; DESIGN.md 2.7, 2.11, 2.12 and 10.2).
+PutBack first prefers an exact window/control key, then the saved window/focus-zero key. Replay retains its existing wildcard focus rule.
+C3cV7Tests saved focus zero regression RED twice0/1/0; GREEN1/0/0. No native input.
