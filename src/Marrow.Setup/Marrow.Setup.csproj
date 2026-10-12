@@ -54,6 +54,9 @@
     <Compile Include="..\Marrow.Core\Support\UninstallEntry.cs" Link="UninstallEntry.cs" />
     <Compile Include="..\Marrow.App\Port\ShellLinks.cs" Link="Port\ShellLinks.cs" />
     <Compile Include="..\Marrow.App\Port\RegistryUserHive.cs" Link="Port\RegistryUserHive.cs" />
+    <!-- PLAN.md 3 step 4 and 5, unit U9: the folders the setup writes outside the install root and the sweeps that remove what it leaves. -->
+    <Compile Include="..\Marrow.Core\Support\SetupFolders.cs" Link="SetupFolders.cs" />
+    <Compile Include="..\Marrow.Core\Support\SetupSweeper.cs" Link="SetupSweeper.cs" />
     <AssemblyMetadata Include="InstallerTitle" Value="$(InstallerTitle)" />
     <AssemblyMetadata Include="InstallerAppId" Value="$(InstallerAppId)" />
     <AssemblyMetadata Include="InstallerVersion" Value="$(InstallerVersion)" />
