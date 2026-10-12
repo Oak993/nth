@@ -156,4 +156,28 @@ public sealed class AppModelLeanThreadEventTests
             Assert.Equal([b.Id], model.Children(ghost).Select(thread => thread.Id));
         });
     }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-lean-16")] // Observation.Set: an event whose changes cancel out (a repeated id, A to B then B to A) tells no one
+    public void A_thread_event_whose_changes_cancel_out_tells_no_observer()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("lean-cancel")) with { IsExpanded = true };
+        var a = AppModelSamples.Thread(project) with { Title = "a" };
+        var b = AppModelSamples.Thread(project) with { Title = "b" };
+        var c = AppModelSamples.Thread(project) with { Title = "c" };
+        h.WriteLibrary([project], [a, b, c]);
+        var model = h.MakeModel();
+        Guid[] peers = [a.Id, b.Id, c.Id, a.Id]; // a repeats: its order goes 0 then 3
+        h.Main.OnMain(() =>
+        {
+            Assert.True(model.MoveInActivity(c.Id, b.Id, placeAfter: false, peers)); // a 3, c 1, b 2
+            var before = model.Threads;
+            var watch = new Watch();
+            Observe(model, [a.Id, b.Id, c.Id], watch);
+            Assert.True(model.MoveInActivity(c.Id, b.Id, placeAfter: false, peers)); // a 3 to 0 to 3, c 1, b 2: no net change
+            Assert.Equal(before, model.Threads);
+            Assert.Empty(watch.Fired);
+        });
+    }
 }

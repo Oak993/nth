@@ -304,10 +304,11 @@ public sealed partial class AppModel : MainActorModel
     /// parent: the cells, the child cells and the index then stay as they are but for the changed threads' own cells, so the
     /// event costs no pass over the library. Writes the cells and drops the stray child cells exactly as the setter's full
     /// sync (AppModel.swift:33-45, :157-210) would for such a list. Returns false, assigning nothing, for any other change
-    /// (a thread added, removed, moved to another project or parent, a repeated id), which takes the setter.
+    /// (a thread added, removed, moved to another project or parent, a repeated id, or no net change), which takes the setter.
     /// </summary>
     private bool AssignThreadsInPlace(ValueList<ChatThread> value, IReadOnlyList<int> changed)
     {
+        if (changed.Count == 0) return false; // the lists are equal (changes that cancel out): the setter, whose Set tells no one
         var held = threads;
         if (value.Count != held.Count || threadCells.Count != held.Count) return false; // threadCells holds one cell per distinct id
         foreach (var index in changed)
