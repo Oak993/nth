@@ -65,6 +65,12 @@ public sealed class MissionControls
 
     public string? StopHead(Guid mission, Guid head) => runner.StopHead(mission, head);
 
+    /// <summary>The "Still pausing" note of a task that has been pausing for 5 s; null before (12.6b, r4 G9).</summary>
+    public PauseNote? StillPausing(Guid mission) => runner.StillPausing(mission);
+
+    /// <summary>The heads waiting on this head; a head's Stop asks when there are any (12.6b, r4 B3).</summary>
+    public IReadOnlyList<string> HeadsWaitingOn(Guid mission, Guid head) => runner.HeadsWaitingOn(mission, head);
+
     // ---- everything ----
 
     /// <summary>

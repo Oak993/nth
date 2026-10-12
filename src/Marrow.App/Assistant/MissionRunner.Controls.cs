@@ -24,6 +24,9 @@ public sealed record ResumeOutcome(string? Refused)
     public ValueList<string> HeadsLeftStopped { get; init; } = ValueList<string>.Empty;
 }
 
+/// <summary>The note a task that has been Pausing for 5 s opens: its text and the names of the agents it waits for.</summary>
+public sealed record PauseNote(string Text, ValueList<string> Waiting);
+
 /// <summary>One agent a Stop is ending, and whether it is confirmed (no turn, no live process).</summary>
 public sealed record AgentStopLine(Guid Mission, Guid Thread, string Name, bool Settled);
 
@@ -101,6 +104,14 @@ public sealed partial class MissionRunner
         var was = before.Mission.State;
         var now = after.Mission.State;
         if (!HoldsStopKey(now)) ReleaseLease(id);
+        if (now == MissionState.Pausing && was != MissionState.Pausing)
+        {
+            lock (gate) LiveOf(id).PausingSince = o.Time.GetUtcNow();
+        }
+        else if (now != MissionState.Pausing && was == MissionState.Pausing)
+        {
+            lock (gate) LiveOf(id).PausingSince = null;
+        }
         if (now == MissionState.Paused && was != MissionState.Paused) ArmRelease(id, o.ReleaseAgentsAfter);
         else if (now != MissionState.Paused) CancelRelease(id);
         if (now != was || !before.Mission.Heads.SequenceEqual(after.Mission.Heads)) PokeHeads(id);
@@ -298,6 +309,37 @@ public sealed partial class MissionRunner
         }), TaskScheduler.Default);
     }
 
+    // ---- the "Still pausing" note (12.6b, r4 G9) ----
+
+    /// <summary>After this long a pausing task opens a note saying what it still waits for (the pill's own 5 s).</summary>
+    public static readonly TimeSpan StillPausingAfter = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// The note of a task that has been Pausing for 5 s: the heads (or the lead) whose turn it waits for, and what the first of them
+    /// does now. Null while the task is not pausing or has not waited 5 s yet.
+    /// </summary>
+    public PauseNote? StillPausing(Guid mission)
+    {
+        if (Find(mission) is not { } record || record.Mission.State != MissionState.Pausing) return null;
+        DateTimeOffset? since;
+        lock (gate) since = LiveOf(mission).PausingSince;
+        if (since is not { } began || o.Time.GetUtcNow() - began < StillPausingAfter) return null;
+        var waiting = new List<(string Name, Guid Thread)>();
+        foreach (var head in record.Mission.Heads.Where(h => h.State == HeadState.Pausing))
+            if (Guid.TryParse(head.Id, out var thread)) waiting.Add((head.Name, thread));
+        if (waiting.Count == 0 && record.LeadThread is { } lead && o.Agents.TurnRunning(lead)) waiting.Add(("the lead", lead));
+        if (waiting.Count == 0) return null;
+        return new PauseNote(ControlWords.StillPausing([.. waiting.Select(w => w.Name)], o.Agents.Activity(waiting[0].Thread)), new ValueList<string>(waiting.Select(w => w.Name)));
+    }
+
+    /// <summary>The heads that wait on this head (a head's Stop asks when other heads wait on it, r4 B3).</summary>
+    public IReadOnlyList<string> HeadsWaitingOn(Guid mission, Guid head)
+    {
+        if (Find(mission) is not { } record) return [];
+        var id = HeadId(head);
+        return [.. record.Mission.Heads.Where(h => h.State is not (HeadState.Done or HeadState.Stopped) && h.DependsOn.Contains(id)).Select(h => h.Name)];
+    }
+
     // ---- heads (12.6b "Heads") ----
 
     /// <summary>Pause one head: no interrupt; at its turn boundary it is Paused. The others keep working.</summary>
@@ -470,30 +512,78 @@ public sealed partial class MissionRunner
             if (l.Reverting) return "Its changes are already being reverted.";
             l.Reverting = true;
         }
+        // Intent is journaled before the work comes out, the outcome after: a crash in between is found at the next start.
+        var gone = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        OnMain(() =>
+        {
+            Update(id, r => r with { RevertIntent = true });
+            gone.TrySetResult();
+        });
+        await gone.Task.ConfigureAwait(false);
         RevertedWork reverted;
         try { reverted = await o.Workspaces.Revert(workspace, id, o.Time.GetUtcNow(), record.Mission.ChangedFiles).ConfigureAwait(false); }
         catch (Exception error) when (error is not OperationCanceledException)
         {
             lock (gate) l.Reverting = false;
+            // A revert that failed part way may have left its ref: look, and if it did, complete the record rather than lose it.
+            if (await FindInterrupted(id, workspace).ConfigureAwait(false) is { } done)
+            {
+                await CompleteRevert(id, done).ConfigureAwait(false);
+                return null;
+            }
+            OnMain(() => Update(id, r => r with { RevertIntent = false }));
             return "Not reverted: " + error.Message;
         }
-        var done = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        lock (gate) l.Reverting = false;
+        await CompleteRevert(id, reverted).ConfigureAwait(false);
+        return null;
+    }
+
+    // The outcome of a revert, recorded: the task is Reverted, its work kept, its open cards withdrawn.
+    private Task CompleteRevert(Guid id, RevertedWork reverted)
+    {
+        var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         OnMain(() =>
         {
-            lock (gate) l.Reverting = false;
             foreach (var card in o.Queue.Of(id)) o.Queue.Withdraw(card.Id, "Withdrawn by Revert changes.");
-            Update(id, r => r with
+            Update(id, r =>
             {
-                Mission = MissionMachine.Revert(r.Mission).Mission with { WorktreePath = null },
-                Workspace = null,
-                RevertedWork = reverted,
-                MergePending = false,
+                // What an interrupted revert found does not know how many files it moved: the record does.
+                var kept = reverted with { ChangedFiles = reverted.ChangedFiles > 0 ? reverted.ChangedFiles : r.Mission.ChangedFiles };
+                var move = MissionMachine.Revert(r.Mission with { ChangedFiles = Math.Max(1, kept.ChangedFiles) });
+                // The work is kept either way; the task becomes Reverted only if it is still the stopped task it was.
+                return move.Done
+                    ? r with { Mission = move.Mission with { WorktreePath = null }, Workspace = null, RevertedWork = kept, MergePending = false, RevertIntent = false }
+                    : r with { RevertedWork = kept, RevertIntent = false };
             });
-            Log(Find(id) ?? record, null, "revert", ActionClass.Work,
-                string.Create(CultureInfo.InvariantCulture, $"reverted {ControlWords.Plural(reverted.ChangedFiles, "changed file")}; kept until {reverted.Expires:yyyy-MM-dd}"), reverted.Ref);
-            done.TrySetResult(null);
+            if (Find(id) is { } now)
+                Log(now, null, "revert", ActionClass.Work,
+                    string.Create(CultureInfo.InvariantCulture, $"reverted {ControlWords.Plural(now.RevertedWork?.ChangedFiles ?? 0, "changed file")}; kept until {reverted.Expires:yyyy-MM-dd}"), reverted.Ref);
+            done.TrySetResult();
         });
-        return await done.Task.ConfigureAwait(false);
+        return done.Task;
+    }
+
+    private async Task<RevertedWork?> FindInterrupted(Guid id, MissionWorkspace workspace)
+    {
+        try { return await o.Workspaces.FindReverted(workspace, id).ConfigureAwait(false); }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            Faulted?.Invoke("What an interrupted revert did could not be read: " + error.Message);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// The crash guard of a Revert (12.6b): a mission that came back from the journal with a Revert begun and not recorded. What the
+    /// revert did is looked for (its hidden ref, or its set-aside copy) and the record completed; when it did nothing, the intent is
+    /// cleared and the mission is as it was. Never run again blind.
+    /// </summary>
+    private async Task RecoverRevert(MissionRecord record)
+    {
+        if (record.Workspace is not { } workspace) return;
+        if (await FindInterrupted(record.Id, workspace).ConfigureAwait(false) is { } done) await CompleteRevert(record.Id, done).ConfigureAwait(false);
+        else OnMain(() => Update(record.Id, r => r with { RevertIntent = false }));
     }
 
     /// <summary>The Activity log's restore (12.6b): puts reverted work back, within 7 days, while the task has not been restarted.</summary>

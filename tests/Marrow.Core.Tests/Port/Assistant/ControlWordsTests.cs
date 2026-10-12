@@ -24,6 +24,9 @@ public sealed class ControlWordsTests
         // Never "0 ms": the press itself took some time.
         Assert.StartsWith("Stop sent in 1 ms ", ControlWords.StopStrip(0.2, "Tray", 0, 0, null), StringComparison.Ordinal);
         Assert.Equal("Stop key unavailable: Ctrl+Alt+Esc is taken. Change it in Settings", ControlWords.StopKeyUnavailable("Ctrl+Alt+Esc"));
+        Assert.Equal("Still pausing. Waiting for Voice to finish: generating the voiceover (3:42 of script). Pause never cuts a turn; Stop cuts it now.",
+            ControlWords.StillPausing(["Voice"], "generating the voiceover (3:42 of script)"));
+        Assert.Equal("Still pausing. Waiting for A and B to finish. Pause never cuts a turn; Stop cuts it now.", ControlWords.StillPausing(["A", "B"], "  "));
         Assert.Equal("Resuming with a cold cache: about 60k tokens read again.", ControlWords.ColdCache(60_400));
         Assert.Equal("Resuming with a cold cache: about 1k tokens read again.", ControlWords.ColdCache(1_000));
         Assert.Equal("Resuming with a cold cache: about 640 tokens read again.", ControlWords.ColdCache(640));

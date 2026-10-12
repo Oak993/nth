@@ -155,6 +155,11 @@ internal sealed class FakeMissionAgents : IMissionAgents
 
     public long? ContextTokens(Guid thread) => Context.TryGetValue(thread, out var tokens) ? tokens : null;
 
+    /// <summary>What each chat says it is doing (AS-6: the "Still pausing" note names it).</summary>
+    public Dictionary<Guid, string> Doing { get; } = [];
+
+    public string? Activity(Guid thread) => Doing.TryGetValue(thread, out var text) ? text : null;
+
     /// <summary>The heads whose finish a Pause held and a Resume gave back (AS-6).</summary>
     public List<(Guid Head, TurnStatus Status)> HeldFinished { get; } = [];
 
@@ -204,6 +209,15 @@ internal sealed class FakeWorkspaces(string root) : IMissionWorkspaces
     public List<MissionWorkspace> Reverted { get; } = [];
 
     public Exception? RevertFails { get; set; }
+
+    /// <summary>What an interrupted revert is found to have done (AS-6): null when it did nothing.</summary>
+    public RevertedWork? FoundReverted { get; set; }
+
+    public Task<RevertedWork?> FindReverted(MissionWorkspace workspace, Guid mission)
+    {
+        Calls.Add("find reverted");
+        return Task.FromResult(FoundReverted);
+    }
 
     public Task<RevertedWork> Revert(MissionWorkspace workspace, Guid mission, DateTimeOffset now, int changedFiles)
     {

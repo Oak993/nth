@@ -585,6 +585,44 @@ public sealed class MissionControlsTaskTests : IDisposable
     }
 
     [Fact]
+    public void A_revert_nth_ended_in_is_completed_at_the_next_start_from_what_it_left_and_never_run_again_blind()
+    {
+        var rig = Rig();
+        var begun = Journaled(MissionState.Stopped) with { RevertIntent = true };
+        rig.Rig.Workspaces.FoundReverted = new RevertedWork(begun.Workspace!, "refs/nth/reverted/" + begun.Id.ToString("N") + "/20260922T120000000Z", "c0ffee", Long, 0);
+
+        rig.Runner.Load([begun]);
+
+        MissionRig.Until(() => rig.Runner.Find(begun.Id)!.RevertedWork is not null, "the interrupted revert to be completed");
+        var done = rig.Runner.Find(begun.Id)!;
+        Assert.True(done.Mission.Reverted);
+        Assert.Equal(0, done.Mission.ChangedFiles);
+        Assert.Null(done.Workspace);
+        Assert.False(done.RevertIntent);
+        Assert.Equal(3, done.RevertedWork!.ChangedFiles); // the record knows how many files; the ref does not
+        Assert.Equal(["find reverted"], rig.Rig.Workspaces.Calls); // it was looked for, not done again
+        Assert.Contains(rig.Rig.Audit, e => e.Tool == "revert");
+    }
+
+    [Fact]
+    public void A_revert_that_had_done_nothing_when_nth_ended_clears_its_intent_and_leaves_the_task_as_it_was()
+    {
+        var rig = Rig();
+        var begun = Journaled(MissionState.Stopped) with { RevertIntent = true };
+        rig.Rig.Workspaces.FoundReverted = null;
+
+        rig.Runner.Load([begun]);
+
+        MissionRig.Until(() => !rig.Runner.Find(begun.Id)!.RevertIntent, "the intent to be cleared");
+        var same = rig.Runner.Find(begun.Id)!;
+        Assert.False(same.Mission.Reverted);
+        Assert.Equal(3, same.Mission.ChangedFiles);
+        Assert.NotNull(same.Workspace);
+        Assert.Null(same.RevertedWork);
+        Assert.Equal(["find reverted"], rig.Rig.Workspaces.Calls);
+    }
+
+    [Fact]
     public async Task Revert_that_fails_changes_nothing_and_is_hidden_on_every_task_that_is_not_stopped_with_changes()
     {
         var rig = Rig();

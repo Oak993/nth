@@ -137,6 +137,53 @@ public sealed class MissionWorkspaceRevertTests
     }
 
     [Fact]
+    public async Task A_revert_nth_ended_in_is_found_by_its_ref_and_finished_and_one_that_did_nothing_is_not()
+    {
+        using var runtime = new TestRuntime();
+        using var repository = GitRepository.WithCommit();
+        using var store = new ScratchFolder();
+        var workspace = await WorkedIn(repository, store);
+        Assert.Null(await MissionWorkspaces.FindReverted(workspace, Id)); // nothing was done: the workspace is as it was
+        Assert.True(Directory.Exists(workspace.Path));
+
+        // nth ended after the work was committed and its ref made, before the worktree went.
+        var review = await MissionWorkspaces.Review(workspace);
+        var kept = MissionWorkspaces.RevertedRefRoot + Id.ToString("N") + "/20261012T093000000Z";
+        repository.Git("update-ref", kept, review.Commit!);
+
+        var found = await MissionWorkspaces.FindReverted(workspace, Id);
+        Assert.NotNull(found);
+        Assert.Equal((kept, review.Commit, At), (found!.Ref, found.Commit, found.At));
+        Assert.False(Directory.Exists(workspace.Path)); // finished off
+        Assert.Equal("", repository.Git("branch", "--list", "nth/*").Trim());
+        var back = await MissionWorkspaces.Restore(found);
+        Assert.Equal("mission file\n", Read(Path.Combine(back.Path, "c.txt")));
+        // A ref of another mission is not this one's.
+        repository.Git("update-ref", MissionWorkspaces.RevertedRefRoot + Guid.NewGuid().ToString("N") + "/20261012T093000000Z", review.Commit!);
+        await MissionWorkspaces.Discard(back);
+        Assert.Null(await MissionWorkspaces.FindReverted(back, Id));
+    }
+
+    [Fact]
+    public async Task A_copy_set_aside_before_nth_ended_is_found_beside_its_place()
+    {
+        using var runtime = new TestRuntime();
+        using var source = GitRepository.NotARepository();
+        using var store = new ScratchFolder();
+        Directory.CreateDirectory(source.Child("owner"));
+        File.WriteAllText(source.Child("owner", "a.txt"), "a\n");
+        var workspace = await MissionWorkspaces.Create(Id, "Copy work", source.Child("owner"), store.Child("worktrees", "s1"));
+        Assert.Null(await MissionWorkspaces.FindReverted(workspace, Id));
+        var reverted = await MissionWorkspaces.Revert(workspace, Id, At, 1);
+
+        var found = await MissionWorkspaces.FindReverted(workspace, Id);
+        Assert.Equal((reverted.Ref, At), (found!.Ref, found.At));
+        // The place is taken again (a restart made a fresh copy): the old set-aside copy is no revert of this workspace.
+        Directory.CreateDirectory(workspace.Path);
+        Assert.Null(await MissionWorkspaces.FindReverted(workspace, Id));
+    }
+
+    [Fact]
     public async Task A_copied_folder_is_set_aside_beside_itself_restored_and_dropped()
     {
         using var runtime = new TestRuntime();

@@ -244,8 +244,7 @@ public sealed class MissionControlsHeadTests : IDisposable
         Assert.False(start.IsCompleted);
 
         Assert.Null(rig.Controls.Resume(record.Id));
-        Assert.Equal(HeadState.Queued, HeadOf(rig.Now(record), late).State);
-        Assert.True(MissionRig.Within(start, 10));
+        Assert.True(MissionRig.Within(start, 10)); // it starts only now (it may already be through the gate by the next line)
         Assert.Equal(HeadState.Working, HeadOf(rig.Now(record), late).State);
     }
 
@@ -278,6 +277,51 @@ public sealed class MissionControlsHeadTests : IDisposable
         Assert.Null(rig.Controls.ResumeHead(record.Id, a));
         Assert.Equal(HeadState.Working, HeadOf(rig.Now(record), a).State);
         Assert.False(HeadOf(rig.Now(record), a).StoppedByHand);
+    }
+
+    [Fact]
+    public void A_task_that_has_been_pausing_for_five_seconds_names_the_head_it_waits_for_and_what_it_does()
+    {
+        var (rig, record, lead, a, b) = Team("Voice", "Subtitles");
+        rig.Agents.Doing[a] = "generating the voiceover (3:42 of script)";
+        Assert.Null(rig.Controls.Pause(record.Id));
+        Assert.Equal(MissionState.Pausing, rig.Now(record).Mission.State);
+
+        Assert.Null(rig.Controls.StillPausing(record.Id)); // not yet
+        rig.Time.Advance(TimeSpan.FromSeconds(4.9));
+        Assert.Null(rig.Controls.StillPausing(record.Id));
+        rig.Time.Advance(TimeSpan.FromSeconds(0.2));
+        var note = rig.Controls.StillPausing(record.Id)!;
+        Assert.Equal("Still pausing. Waiting for Voice and Subtitles to finish: generating the voiceover (3:42 of script). "
+            + "Pause never cuts a turn; Stop cuts it now.", note.Text);
+        Assert.Equal(["Voice", "Subtitles"], note.Waiting);
+        Assert.Equal("still finishing: generating the voiceover (3:42 of script)", ControlWords.HeadStillFinishing(rig.Agents.Doing[a]));
+        Assert.Equal("still finishing its turn", ControlWords.HeadStillFinishing(null));
+
+        // Voice finishes its turn: the note follows what is still pending, and goes with the pause.
+        rig.Agents.Finish(a, "Voice done.");
+        Assert.True(rig.Runner.HeadFinished(a, TurnStatus.Completed));
+        Assert.Equal(["Subtitles"], rig.Controls.StillPausing(record.Id)!.Waiting);
+        Assert.StartsWith("Still pausing. Waiting for Subtitles to finish. ", rig.Controls.StillPausing(record.Id)!.Text, StringComparison.Ordinal);
+        rig.Agents.Finish(b, "Subtitles done.");
+        Assert.True(rig.Runner.HeadFinished(b, TurnStatus.Completed));
+        rig.EndTurn(lead, "Waiting for the heads.");
+        Assert.Equal(MissionState.Paused, rig.Now(record).Mission.State);
+        Assert.Null(rig.Controls.StillPausing(record.Id));
+    }
+
+    [Fact]
+    public void A_head_others_wait_on_says_so_so_its_Stop_can_ask()
+    {
+        var rig = Rig();
+        var record = rig.Started(rig.Rig.Request(team: true));
+        var subtitles = rig.AddHead(record, "Subtitles");
+        var thumbnail = rig.AddHead(record, "Thumbnail", true, subtitles);
+        var voice = rig.AddHead(record, "Voice");
+        Assert.Equal(["Thumbnail"], rig.Controls.HeadsWaitingOn(record.Id, subtitles));
+        Assert.Empty(rig.Controls.HeadsWaitingOn(record.Id, voice));
+        Assert.Empty(rig.Controls.HeadsWaitingOn(record.Id, thumbnail));
+        Assert.Empty(rig.Controls.HeadsWaitingOn(Guid.NewGuid(), subtitles));
     }
 
     [Fact]

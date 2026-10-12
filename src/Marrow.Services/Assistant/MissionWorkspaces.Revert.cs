@@ -100,6 +100,42 @@ public static partial class MissionWorkspaces
         return back with { GitDir = gitDir };
     }
 
+    /// <summary>
+    /// What a Revert that nth's end interrupted already did (the crash guard of 12.6b): the newest hidden ref kept for this mission, or
+    /// the copy set aside beside its place. A worktree still standing is finished off (removed with its branch), so the revert is
+    /// complete when this returns it. Null when nothing was done yet: the workspace is as it was.
+    /// </summary>
+    public static async Task<RevertedWork?> FindReverted(MissionWorkspace workspace, Guid missionId)
+    {
+        ArgumentNullException.ThrowIfNull(workspace);
+        if (workspace.Kind == MissionWorkspaceKind.Snapshot)
+        {
+            var parent = System.IO.Path.GetDirectoryName(workspace.Path);
+            if (parent is null || !Directory.Exists(parent)) return null;
+            var prefix = System.IO.Path.GetFileName(workspace.Path) + RevertedSuffix;
+            var aside = Directory.EnumerateDirectories(parent, prefix + "*").OrderByDescending(d => d, StringComparer.Ordinal).FirstOrDefault();
+            if (aside is null || Directory.Exists(workspace.Path)) return null;
+            return new RevertedWork(workspace, aside, null, StampOf(aside[(aside.LastIndexOf(RevertedSuffix, StringComparison.Ordinal) + RevertedSuffix.Length)..]), 0);
+        }
+        if (workspace.Repository is not { } root || !Directory.Exists(root)) return null;
+        var repository = new GitValue(root);
+        var folder = RevertedRefRoot + missionId.ToString("N", CultureInfo.InvariantCulture) + "/";
+        var listed = (await repository.Output(["for-each-ref", "--sort=-refname", "--format=%(refname) %(objectname)", folder])).Trim();
+        var first = listed.Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        if (first is null) return null;
+        var parts = first.Split(' ', 2);
+        if (parts.Length != 2 || !parts[0].StartsWith(folder, StringComparison.Ordinal)) return null;
+        // The ref was made, so the work is safe; finish what the interrupted revert had not (the worktree and its branch).
+        await Discard(workspace);
+        return new RevertedWork(workspace, parts[0], parts[1], StampOf(parts[0][folder.Length..]), 0);
+    }
+
+    // The time in a ref or folder name (yyyyMMddTHHmmssfffZ); now when it cannot be read, so the 7 days start late rather than early.
+    private static DateTimeOffset StampOf(string stamp) =>
+        DateTimeOffset.TryParseExact(stamp, "yyyyMMdd'T'HHmmssfff'Z'", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var at)
+            ? at
+            : DateTimeOffset.UtcNow;
+
     /// <summary>Forgets reverted work for good: its hidden ref, or its set-aside copy. Safe to repeat.</summary>
     public static async Task DropReverted(RevertedWork reverted)
     {

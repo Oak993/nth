@@ -141,6 +141,8 @@ public sealed partial class MissionRunner
         public bool Reverting;
         /// <summary>The task was stopped as a whole (its own Stop or Stop all), not just summed to Stopped from its heads (12.6b).</summary>
         public bool WholeStop;
+        /// <summary>When the task began pausing (the "Still pausing" note opens 5 s later); null while it is not pausing.</summary>
+        public DateTimeOffset? PausingSince;
     }
 
     public MissionRunner(MissionRunnerOptions options)
@@ -1260,8 +1262,9 @@ public sealed partial class MissionRunner
     /// The missions the store held at open (after the interrupted rule): each comes back as it was journaled. A mission
     /// whose merge was pending raises its merge card again; an interrupted one waits for the owner's Resume.
     /// </summary>
-    public void Load(IEnumerable<MissionRecord> records)
+    public void Load(IEnumerable<MissionRecord> loaded)
     {
+        var records = loaded.ToList();
         var merges = new List<Guid>();
         lock (gate)
         {
@@ -1276,6 +1279,7 @@ public sealed partial class MissionRunner
             }
         }
         foreach (var id in merges) _ = OfferMerge(id, "Raised again after nth restarted.");
+        foreach (var record in records.Where(r => r.RevertIntent)) _ = RecoverRevert(record);
     }
 
     // ---- helpers ----

@@ -58,6 +58,13 @@ public sealed record MissionRecord(Mission Mission)
     public bool AgentsReleased { get; init; }
 
     /// <summary>
+    /// Revert changes began and its outcome is not recorded yet (12.6b): written before the work comes out of the workspace, cleared
+    /// after. If nth ends in between, the next start finds what the revert did (its hidden ref) and completes the record, instead of
+    /// running the revert again blind.
+    /// </summary>
+    public bool RevertIntent { get; init; }
+
+    /// <summary>
     /// Tokens the lead read again at the uncached price because its agents were let go while paused (12.6b): they count in the
     /// task's spend (AS-13 adds them to the ledger's figure).
     /// </summary>
@@ -148,6 +155,7 @@ public static class MissionJournal
         // Added in AS-6 (ED-NEW-dextra-as6-7): optional keys, so a file written before them loads, and none is written unless set.
         if (record.Attempt > 1) body["attempt"] = record.Attempt;
         if (record.AgentsReleased) body["agentsReleased"] = true;
+        if (record.RevertIntent) body["revertIntent"] = true;
         if (record.ColdStartTokens > 0) body["coldStartTokens"] = record.ColdStartTokens;
         if (record.RevertedWork is { } revertedWork) body["revertedWork"] = MissionWorkspaces.ToJson(revertedWork);
         if (record.Previous.Count > 0)
@@ -231,6 +239,7 @@ public static class MissionJournal
                 Ended = Text(body, "ended") is { } ended ? ParseTime(ended) : null,
                 Attempt = body["attempt"] is { } attempt ? Math.Max(1, attempt.GetValue<int>()) : 1,
                 AgentsReleased = Bool(body, "agentsReleased"),
+                RevertIntent = Bool(body, "revertIntent"),
                 ColdStartTokens = body["coldStartTokens"] is { } cold ? Math.Max(0, cold.GetValue<long>()) : 0,
                 RevertedWork = body["revertedWork"] is { } revertedWork ? MissionWorkspaces.RevertedFromJson(revertedWork) ?? throw new FormatException("revertedWork") : null,
                 Previous = new ValueList<PreviousWorkspace>(Array(body, "previous").Select(p =>

@@ -64,6 +64,18 @@ public static class ControlWords
         ? $"Resuming with a cold cache: about {(n < 1000 ? n.ToString(CultureInfo.InvariantCulture) : ((n + 500) / 1000).ToString(CultureInfo.InvariantCulture) + "k")} tokens read again."
         : "Resuming with a cold cache: the context is read again at the uncached price.";
 
+    /// <summary>
+    /// The note a Pausing task opens after 5 s (12.6b, r4 G9): which agents it still waits for and what they do. Pause never cuts a
+    /// turn, so Stop instead is the way out.
+    /// </summary>
+    public static string StillPausing(IReadOnlyList<string> waiting, string? activity) =>
+        $"Still pausing. Waiting for {AndList(waiting)} to finish{(string.IsNullOrWhiteSpace(activity) ? "" : ": " + activity.Trim())}. "
+        + "Pause never cuts a turn; Stop cuts it now.";
+
+    /// <summary>A pausing head's own line (12.6b, r4 G9): "still finishing: generating the voiceover".</summary>
+    public static string HeadStillFinishing(string? activity) =>
+        string.IsNullOrWhiteSpace(activity) ? "still finishing its turn" : "still finishing: " + activity.Trim();
+
     /// <summary>The line a Resume that cannot take the stop key reports.</summary>
     public static string ResumeNeedsStopKey(string chord) => StopKeyUnavailable(chord) + ", then resume.";
 

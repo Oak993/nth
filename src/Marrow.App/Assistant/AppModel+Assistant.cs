@@ -122,6 +122,9 @@ public sealed partial class AppModel
             StopScopes = stopScopes ?? [],
         });
         controller.Runner.Load(store.Missions().Select(stored => MissionJournal.FromJson(stored.Body)).OfType<MissionRecord>());
+        // What Revert and Restart kept for 7 days, and the workspaces of missions over for 7 days, are swept at start (the
+        // scheduler, AS-10, repeats it daily); a sweep that fails is reported and never stops the start.
+        _ = SweepKept(controller);
         // The Assistant's items in nth's one tray icon (7.4, 12.6): Stop works with the window closed.
         if (tray is not null) dextraTray = AssistantTray.Bind(tray, controller);
         BindDextra(controller);
@@ -129,6 +132,15 @@ public sealed partial class AppModel
     }
 
     private AssistantTray? dextraTray;
+
+    private static async Task SweepKept(AssistantController controller)
+    {
+        try { await controller.Runner.CleanUpWorkspaces().ConfigureAwait(false); }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            controller.Runner.ReportFault("The 7-day sweep of kept work failed: " + error.Message);
+        }
+    }
 
     /// <summary>Binds Dextra's controller: the nth-dextra tools, approvals, questions and turn ends go to it.</summary>
     public void BindDextra(AssistantController controller)

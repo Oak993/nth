@@ -67,6 +67,9 @@ public interface IMissionAgents
     /// <summary>How many tokens of context the chat holds (what a cold start reads again at the uncached price); null when unknown.</summary>
     long? ContextTokens(Guid thread);
 
+    /// <summary>What the chat is doing now in a few words ("generating the voiceover (3:42 of script)"); null when it says nothing.</summary>
+    string? Activity(Guid thread);
+
     /// <summary>
     /// A head whose finish a Pause held (it paused at its turn boundary, 12.6b) is released: Hydra finishes it now, with
     /// the status its turn ended with, and tells the lead.
@@ -98,6 +101,12 @@ public interface IMissionWorkspaces
     /// <summary>Revert changes (12.6b): the work comes out of the workspace and is kept, restorable, for 7 days.</summary>
     Task<RevertedWork> Revert(MissionWorkspace workspace, Guid mission, DateTimeOffset now, int changedFiles);
 
+    /// <summary>
+    /// What a Revert that nth's end interrupted already did (its hidden ref or set-aside copy), finished off; null when it did
+    /// nothing yet. The crash guard of 12.6b: the next start completes the record instead of running the revert blind again.
+    /// </summary>
+    Task<RevertedWork?> FindReverted(MissionWorkspace workspace, Guid mission);
+
     /// <summary>Puts reverted work back where it was (the Activity log's restore, within 7 days).</summary>
     Task<MissionWorkspace> Restore(RevertedWork reverted, Guid mission);
 
@@ -126,6 +135,9 @@ public sealed class StoreMissionWorkspaces(Func<Guid, int, string> folder) : IMi
 
     public Task<RevertedWork> Revert(MissionWorkspace workspace, Guid mission, DateTimeOffset now, int changedFiles) =>
         MissionWorkspaces.Revert(Checked(mission, workspace), mission, now, changedFiles);
+
+    public Task<RevertedWork?> FindReverted(MissionWorkspace workspace, Guid mission) =>
+        MissionWorkspaces.FindReverted(Checked(mission, workspace), mission)!;
 
     public Task<MissionWorkspace> Restore(RevertedWork reverted, Guid mission) =>
         MissionWorkspaces.Restore(reverted with { Workspace = Checked(mission, reverted.Workspace) });
@@ -221,6 +233,8 @@ public sealed class AppMissionAgents(AppModel app) : IMissionAgents
     public IReadOnlyList<string> Models(ProviderKind provider) => [.. app.Providers.Models(provider).Select(m => m.Id)];
 
     public long? ContextTokens(Guid thread) => app.ExistingRuntime(thread)?.Usage?.UsedTokens;
+
+    public string? Activity(Guid thread) => app.ExistingRuntime(thread)?.HydraActivity is { Length: > 0 } activity ? activity : null;
 
     public void FinishHeld(Guid head, TurnStatus status)
     {

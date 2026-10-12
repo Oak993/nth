@@ -37,7 +37,7 @@ public sealed class MissionRecordControlsJournalTests
     public void A_record_without_the_new_keys_writes_none_of_them_and_an_old_journal_loads_as_the_first_try()
     {
         var json = MissionJournal.ToJson(Plain());
-        foreach (var key in new[] { "attempt", "agentsReleased", "coldStartTokens", "revertedWork", "previous" }) Assert.False(json.ContainsKey(key), key);
+        foreach (var key in new[] { "attempt", "agentsReleased", "coldStartTokens", "revertIntent", "revertedWork", "previous" }) Assert.False(json.ContainsKey(key), key);
         var back = MissionJournal.FromJson(json)!;
         Assert.Equal(1, back.Attempt);
         Assert.False(back.AgentsReleased);
@@ -55,6 +55,7 @@ public sealed class MissionRecordControlsJournalTests
         {
             Attempt = 3,
             AgentsReleased = true,
+            RevertIntent = true,
             ColdStartTokens = 60_400,
             RevertedWork = reverted,
             Previous = new ValueList<PreviousWorkspace>([new PreviousWorkspace(Worktree("m1-2"), At.AddHours(-2)), new PreviousWorkspace(Worktree("m1-3"), At.AddHours(-1))]),
@@ -62,6 +63,7 @@ public sealed class MissionRecordControlsJournalTests
         var back = MissionJournal.FromJson(MissionJournal.ToJson(record))!;
         Assert.Equal(3, back.Attempt);
         Assert.True(back.AgentsReleased);
+        Assert.True(back.RevertIntent);
         Assert.Equal(60_400, back.ColdStartTokens);
         Assert.Equal(reverted, back.RevertedWork);
         Assert.Equal(At.AddDays(7), back.RevertedWork!.Expires);
