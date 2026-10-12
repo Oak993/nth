@@ -216,8 +216,7 @@ public sealed class PaneWorkspaceNarrowTests(HeadlessSession headless)
         Assert.False(host!.IsShowingSnapshot);
 
         surface.HeldGesture.SetResult(new Marrow.Core.Web.WebGestureFrame(surface.LastSnapshot, null));
-        PumpUntil(() => host.IsShowingSnapshot);
-        rig.Layout();
+        PumpUntil(() => host.IsShowingSnapshot && rig.Frames.Pending > 0); // the captures are in: the springs ask for their frames
         rig.Frame();
         rig.Frame();
         Assert.True(browser.Opacity < 1 && rig.Workspace.Chat.Opacity > 0, "the fade runs over the snapshot");
