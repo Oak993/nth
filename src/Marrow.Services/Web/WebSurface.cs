@@ -228,6 +228,25 @@ public sealed class WebSurface : IDisposable
         }
     }
 
+    /// <summary>
+    /// W10, "Clear browsing data" and "Forget agent data": clears, through a view of each matching profile that has a page open, the whole
+    /// profile's browser data, and marks that profile's waiting request done. A profile with no page open is left waiting: its next page
+    /// carries the clear out before it navigates (<see cref="WebProfileClears"/>). Returns how many profiles were cleared now.
+    /// </summary>
+    public async Task<int> ClearProfilesNowAsync(Func<WebCreationOptions, bool> matches, CancellationToken cancellationToken = default)
+    {
+        var done = new HashSet<string>(StringComparer.Ordinal);
+        var cleared = 0;
+        foreach (var view in views.ToList())
+        {
+            if (view.Engine is not { IsAttached: true } engine || !matches(view.Creation) || !done.Add(view.Creation.ProfileName)) continue;
+            if (!await engine.ClearProfileDataAsync(cancellationToken)) continue;
+            Engine.ProfileClears?.Complete(view.Creation.ProfileName);
+            cleared++;
+        }
+        return cleared;
+    }
+
     /// <summary>"Restart Visus" (DESIGN 2.7): a new environment, and every view recreated and restored by URL.</summary>
     public void Restart()
     {

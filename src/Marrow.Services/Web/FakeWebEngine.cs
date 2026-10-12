@@ -60,6 +60,12 @@ public sealed class FakeWebEngine : IWebEngine
 
     public void ResetEnvironment() => EnvironmentResets++;
 
+    /// <summary>The clears waiting for a profile's next page; a test sets it (the real engine reads it from its data folder).</summary>
+    public WebProfileClears? ProfileClears { get; set; }
+
+    /// <summary>What a view's profile clear returns (a browser that refuses is modelled with false).</summary>
+    public bool ClearSucceeds { get; set; } = true;
+
     public Task PrewarmAsync(WebCreationOptions creation, CancellationToken cancellationToken)
     {
         Prewarms.Add(creation);
@@ -188,7 +194,20 @@ public sealed class FakeWebView : IWebEngineView
     {
         IsAttached = true;
         Log.Add("Attach");
+        // W10: the profile's waiting clear is carried out before the view can navigate (the real view holds its first navigation for it).
+        if (engine.ProfileClears is { } clears && clears.IsPending(Creation.ProfileName))
+        {
+            Log.Add("ClearProfileData " + Creation.ProfileName);
+            if (engine.ClearSucceeds) clears.Complete(Creation.ProfileName);
+        }
         Attached?.Invoke(this, EventArgs.Empty);
+    }
+
+    public Task<bool> ClearProfileDataAsync(CancellationToken cancellationToken)
+    {
+        if (!IsAttached) return Task.FromResult(false);
+        Log.Add("ClearProfileData " + Creation.ProfileName);
+        return Task.FromResult(engine.ClearSucceeds);
     }
 
     public void Detach()

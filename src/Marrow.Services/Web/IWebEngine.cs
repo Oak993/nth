@@ -31,6 +31,12 @@ public interface IWebEngine
     /// <summary>Drops the environment after the browser process died, so "Restart Visus" creates a new one (DESIGN 2.7).</summary>
     void ResetEnvironment();
 
+    /// <summary>
+    /// The clears waiting for a profile's next page (W10: "Clear browsing data", "Forget agent data"; <see cref="WebProfileClears"/>), read when the
+    /// environment is made; null until then. A view carries out its profile's waiting clear before its first navigation.
+    /// </summary>
+    WebProfileClears? ProfileClears { get; }
+
     /// <summary>DESIGN 2.3 pre-warm: starts the browser process group with these (environment-identical) options.</summary>
     Task PrewarmAsync(WebCreationOptions creation, CancellationToken cancellationToken);
 
@@ -138,6 +144,12 @@ public interface IWebEngineView : IDisposable
 
     /// <summary>DESIGN 2.5 settle: waits for page frames via a <c>requestAnimationFrame</c> ping.</summary>
     Task<bool> WaitForFramesAsync(int frames, TimeSpan timeout, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Removes the browsing data of the view's whole profile: cookies, cache, site storage and the rest the browser keeps for it (W10: "Clear
+    /// browsing data", "Forget agent data"). False when the view is not attached or the browser refused.
+    /// </summary>
+    Task<bool> ClearProfileDataAsync(CancellationToken cancellationToken);
 
     /// <summary><c>TrySuspendAsync</c>; the view must be hidden first. False when the page cannot be suspended now.</summary>
     Task<bool> SuspendAsync();

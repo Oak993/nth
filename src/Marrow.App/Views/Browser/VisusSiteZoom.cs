@@ -53,6 +53,14 @@ public sealed class VisusSiteZoom
         while (sites.Count > MaxSitesPerProfile) sites.RemoveAt(0);
         Changed?.Invoke(profile, origin);
     }
+    /// <summary>Settings › Visus › "Clear browsing data" (W10): every site zoom of a profile goes (a private tab keeps none).</summary>
+    public void ClearProfile(string profile)
+    {
+        if (profile == WebProfiles.PrivateProfile || !profiles.TryGetValue(profile, out var sites) || sites.Count == 0) return;
+        var origins = sites.Keys.ToList();
+        sites.Clear();
+        foreach (var origin in origins) Changed?.Invoke(profile, origin);
+    }
     internal void RetainPrivate() => privateTabs++;
     internal void ReleasePrivate() { if (privateTabs > 0 && --privateTabs == 0) privateSites.Clear(); }
     /// <summary>The file's text; null when the file came from a newer nth and must stay as it is.</summary>

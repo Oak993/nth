@@ -39,6 +39,9 @@ public sealed class WebView2Engine : IWebEngine, IDisposable
 
     public bool IsPrewarmed { get; private set; }
 
+    /// <summary>W10: the clears waiting for a profile's next page, read from the data folder when the environment is first made.</summary>
+    public WebProfileClears? ProfileClears { get; private set; }
+
     public event EventHandler? NewRuntimeVersionAvailable;
 
     public string? RuntimeVersion()
@@ -112,6 +115,7 @@ public sealed class WebView2Engine : IWebEngine, IDisposable
     private async Task<CoreWebView2Environment> CreateEnvironmentAsync(WebCreationOptions creation)
     {
         Directory.CreateDirectory(creation.UserDataFolder);
+        ProfileClears ??= await Task.Run(() => WebProfileClears.ForFolder(creation.UserDataFolder)); // off the UI thread: it reads a file
         var options = new CoreWebView2EnvironmentOptions(additionalBrowserArguments: creation.AdditionalBrowserArguments, language: creation.Language);
         var created = await CoreWebView2Environment.CreateAsync(browserExecutableFolder: null, userDataFolder: creation.UserDataFolder, options: options);
         environment = created;

@@ -566,9 +566,41 @@ internal sealed class WebView2View : IWebEngineView, IPreviewViewport
     {
         if (core is not { } c) return;
         var pending = documentScripts.Select(script => (Task)c.AddScriptToExecuteOnDocumentCreatedAsync(script)).ToList();
+        // W10: a waiting "Clear browsing data" or "Forget agent data" for this profile is carried out before the first navigation, so no page
+        // can read what the reader asked to be removed.
+        if (engine.ProfileClears is { } clears && clears.IsPending(Creation.ProfileName)) pending.Add(ClearForWaitingRequest(c, clears, Creation.ProfileName));
         scriptsReady = pending.Count == 0 ? Task.CompletedTask : Task.WhenAll(pending);
         resourcesHooked = false;
         if (resourceHandler is not null) HookResources();
+    }
+
+    private async Task ClearForWaitingRequest(CoreWebView2 c, WebProfileClears clears, string profileName)
+    {
+        try
+        {
+            await c.Profile.ClearBrowsingDataAsync();
+            await Task.Run(() => clears.Complete(profileName));
+        }
+        catch (Exception error) when (SwiftTry.IsThrownError(error))
+        {
+            // The request stays, to be carried out with the profile's next page; this page still loads, as it would have.
+            log.Error($"web: the waiting clear of profile {profileName} failed: {error.GetType().Name}");
+        }
+    }
+
+    public async Task<bool> ClearProfileDataAsync(CancellationToken cancellationToken)
+    {
+        if (core is not { } c) return false;
+        try
+        {
+            await c.Profile.ClearBrowsingDataAsync().WaitAsync(cancellationToken);
+            return true;
+        }
+        catch (Exception error) when (SwiftTry.IsThrownError(error))
+        {
+            log.Error($"web: clearing profile {Creation.ProfileName} failed: {error.GetType().Name}");
+            return false;
+        }
     }
 
     private async void NavigateWhenScriptsReady(Task ready, string url)
