@@ -4,8 +4,13 @@
 // the app of the latest step, the broker's asks (PillAskBridge), Stopped for 2 s after a stop of everything, each stopped
 // app "Stopped by you" on its row until a new step runs there or the turn ends, "<app> opened <title>" for 2 s, "Pause key
 // is taken" once (4 s), and the chords as Settings has them (the pause chord left out while it does not work). Changed is raised on any thread; the screen posts the facts.
+// + web surfaces W11 (ED-NEW-web-w11-1; DESIGN 5.10 "The pill: 'Using Visus' with the step line"): the app "visus" joins
+// through the pause control like any app; its line is the web tools' latest step, "Check the card" while Visus's own card
+// waits, "You took over Visus" while the user works in a driven tab, and "The page stays as it is" while it alone is paused.
+using Marrow.App.Views.Browser;
 using Marrow.Core.Port.PcControl;
 using Marrow.Services.Port.PcControl;
+using Marrow.Services.Web;
 using Marrow.UI.Port.PcControl;
 
 namespace Marrow.App.Port.PcControl;
@@ -22,6 +27,8 @@ public sealed class TactusPillFeed : IDisposable
     private readonly PillAskBridge cards;
     private readonly Func<double> now;
     private readonly Func<bool> pauseKeyBroken;
+    private readonly WebAgentHub web;
+    private readonly VisusAgentAsks webAsks;
     private readonly Lock gate = new();
     private readonly List<string> order = [];
     private readonly Dictionary<string, string> names = new(StringComparer.Ordinal);
@@ -35,7 +42,9 @@ public sealed class TactusPillFeed : IDisposable
 
     /// <param name="now">The pill's clock (seconds).</param>
     /// <param name="pauseKeyBroken">Whether the pause chord does not work now (TactusHotkeys.PauseProblem).</param>
-    public TactusPillFeed(PcAssembly assembly, PillAskBridge cards, Func<double> now, Func<bool>? pauseKeyBroken = null)
+    /// <param name="web">The web tools' hub (the process's by default).</param>
+    /// <param name="webAsks">The web tools' cards (the process's by default).</param>
+    public TactusPillFeed(PcAssembly assembly, PillAskBridge cards, Func<double> now, Func<bool>? pauseKeyBroken = null, WebAgentHub? web = null, VisusAgentAsks? webAsks = null)
     {
         ArgumentNullException.ThrowIfNull(assembly);
         ArgumentNullException.ThrowIfNull(cards);
@@ -44,6 +53,11 @@ public sealed class TactusPillFeed : IDisposable
         this.cards = cards;
         this.now = now;
         this.pauseKeyBroken = pauseKeyBroken ?? (() => false);
+        this.web = web ?? WebAgentHub.Shared.Current;
+        this.webAsks = webAsks ?? VisusAgentAsks.Shared;
+        this.web.Activity += OnWeb;
+        this.web.Changed += Raise;
+        this.webAsks.Changed += Raise;
         assembly.Pause.Changed += OnPause;
         assembly.Lanes.ActiveChanged += OnLanes;
         assembly.Stop.StoppedIn += OnStopped;
@@ -98,6 +112,8 @@ public sealed class TactusPillFeed : IDisposable
         var settings = assembly.Settings;
         var asks = cards.Asks;
         var broken = pauseKeyBroken();
+        var webCard = webAsks.Pending.Count > 0;
+        var webTookOver = web.AnyTookOver;
         lock (gate)
         {
             // in the engine's order (chats by key, each chat's apps by key, then the paused ones in the order they paused), so
@@ -118,8 +134,14 @@ public sealed class TactusPillFeed : IDisposable
                     : status is not null ? PillAppPhase.Paused
                     : PillAppPhase.Working;
                 var since = phase == PillAppPhase.Stopped ? stoppedApps[key] : status is { } s ? at - ((s.ElapsedMs) / 1000.0) : 0;
+                var visus = key == WebAgentHub.App;
                 list.Add(new PillApp(key, name, steps.GetValueOrDefault(key, ""), phase, since,
-                    WaitsOnAsk: asks.Any(a => !a.Withdrawn && string.Equals(a.AppName, name, StringComparison.OrdinalIgnoreCase))));
+                    WaitsOnAsk: (visus && webCard) || asks.Any(a => !a.Withdrawn && string.Equals(a.AppName, name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    TookOver = visus && webTookOver,
+                    OwnCard = visus && webCard,
+                    PausedLine = visus ? "The page stays as it is" : null,
+                });
             }
             return new PillFacts
             {
@@ -147,6 +169,23 @@ public sealed class TactusPillFeed : IDisposable
         assembly.Control.WindowOpened -= OnOpened;
         assembly.Pointer.Aimed -= OnAimed;
         cards.Changed -= Raise;
+        web.Activity -= OnWeb;
+        web.Changed -= Raise;
+        webAsks.Changed -= Raise;
+    }
+
+    // web W11: a web step's line becomes Visus's, and Visus the latest app; a stop or a turn's end changes nothing here (the
+    // pause control's rows and the stop path say so).
+    private void OnWeb(WebAgentActivity activity)
+    {
+        if (activity.Phase != WebAgentPhase.Working || activity.Step.Length == 0) return;
+        lock (gate)
+        {
+            steps[WebAgentHub.App] = activity.Step;
+            stoppedApps.Remove(WebAgentHub.App);
+            latest = WebAgentHub.App;
+        }
+        Raise();
     }
 
     // Under gate: a key joins the order and its exe name maps to it.

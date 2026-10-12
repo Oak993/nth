@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Primitives.PopupPositioning;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
@@ -71,6 +72,12 @@ public sealed class VisusPaneBody : Grid
     private readonly VisusPopover noticePopover;
     private VisusPopover? promptPopover;
     private IDisposable? promptEntry;
+    // W11 (ED-NEW-web-w11-1): the web tools' card of this chat, and the asks whose tab was brought forward once
+    private VisusAgentCard? card;
+    private VisusPopover? cardPopover;
+    private IDisposable? cardEntry;
+    private readonly HashSet<VisusAgentAsk> broughtForward = [];
+    private bool cardSyncing;
     private Control? blankSurface;
     private VisusTab? blankFor;
     private bool focusAddressPending;
@@ -136,6 +143,15 @@ public sealed class VisusPaneBody : Grid
     /// <summary>The prompts waiting behind it.</summary>
     public int WaitingPrompts => waiting.Count;
 
+    /// <summary>The web tools' card showing now (W11): the model waits for the user's answer.</summary>
+    public VisusAgentCard? AgentCard => card;
+
+    /// <summary>The popup the agent card is in (tests read its placement).</summary>
+    internal Popup? AgentCardPopup => cardPopover?.Popup;
+
+    /// <summary>Where the pointer is, for a card that must not open under it (a test scripts it, as DragHandleView's own seam).</summary>
+    internal static Ambient<ICursorPlatform> Pointer { get; } = new(() => new WindowsCursorPlatform());
+
     /// <summary>The notice showing now (null when none).</summary>
     public string? NoticeText => noticePopover.IsOpen ? notice.Text : null;
 
@@ -173,7 +189,8 @@ public sealed class VisusPaneBody : Grid
         Session.Notice += OnNotice;
         Session.LaunchRequested += OnLaunch;
         Session.PageKey += OnPageKey;
-        Session.ClaimsPageKey = chord => Prompt is not null && chord == EscapeChord;
+        Session.ClaimsPageKey = chord => (Prompt is not null || card is not null) && chord == EscapeChord;
+        VisusAgentAsks.Shared.Changed += OnAsksChanged;
         if (top is WindowBase window)
         {
             window.Activated += OnActivated;
@@ -199,6 +216,7 @@ public sealed class VisusPaneBody : Grid
         Session.LaunchRequested -= OnLaunch;
         Session.PageKey -= OnPageKey;
         Session.ClaimsPageKey = null;
+        VisusAgentAsks.Shared.Changed -= OnAsksChanged;
         if (top is WindowBase window)
         {
             window.Activated -= OnActivated;
@@ -206,6 +224,7 @@ public sealed class VisusPaneBody : Grid
         }
         top = null;
         DismissPrompts();
+        card?.Close(); // its ask waits for the pane to come back
         noticePopover.SetOpen(false);
         notice.Stop();
         Session.IsVisible = false;
@@ -215,7 +234,9 @@ public sealed class VisusPaneBody : Grid
     private void UpdateVisible()
     {
         var visible = attached && IsEffectivelyVisible;
-        if (Session.IsVisible != visible) Session.IsVisible = visible;
+        if (Session.IsVisible == visible) return;
+        Session.IsVisible = visible;
+        SyncCard();
     }
 
     private void OnActivated(object? sender, EventArgs e)
@@ -254,6 +275,7 @@ public sealed class VisusPaneBody : Grid
         UpdateBlank(selected);
         if (Prompt is { } prompt && (!ReferenceEquals(prompt.Launch.Tab, selected) || !Session.Tabs.Contains(prompt.Launch.Tab))) prompt.Dismiss();
         ApplyLook();
+        SyncCard();
     }
 
     private void UpdateBlank(VisusTab? selected)
@@ -374,7 +396,105 @@ public sealed class VisusPaneBody : Grid
 
     private void OnPageKey(VisusTab tab, KeyChord chord)
     {
-        if (chord == EscapeChord) Prompt?.Dismiss();
+        if (chord != EscapeChord) return;
+        if (Prompt is { } prompt) prompt.Dismiss();
+        else card?.Refuse();
+    }
+
+    // ---- W11: the web tools' cards (DESIGN 5.10; ED-NEW-web-w11-1) ----
+
+    private void OnAsksChanged()
+    {
+        if (Dispatcher.UIThread.CheckAccess()) SyncCard();
+        else Dispatcher.UIThread.Post(SyncCard);
+    }
+
+    // The oldest ask of this chat shows when its tab is the chosen one (an ask for a new tab hangs from whichever tab is); a
+    // new ask brings its tab forward once, so the user sees the page it is about. An ask goes when it is answered or withdrawn.
+    private void SyncCard()
+    {
+        if (cardSyncing) return;
+        cardSyncing = true;
+        try
+        {
+            var asks = VisusAgentAsks.Shared.Pending.Where(Mine).ToList();
+            broughtForward.RemoveWhere(ask => ask.IsDone || !asks.Contains(ask));
+            if (card is { } open && (open.Ask.IsDone || !asks.Contains(open.Ask) || !Shows(open.Ask))) open.Close();
+            if (card is not null || !attached || top is null || !Session.IsVisible) return;
+            foreach (var ask in asks)
+            {
+                if (broughtForward.Add(ask) && TabOf(ask) is { } tab && !ReferenceEquals(tab, Session.Selected)) Session.Select(tab);
+                if (!Shows(ask)) continue;
+                ShowCard(ask);
+                return;
+            }
+        }
+        finally
+        {
+            cardSyncing = false;
+        }
+    }
+
+    private bool Mine(VisusAgentAsk ask) =>
+        Session.AgentThread is { } thread ? string.Equals(ask.Thread, thread, StringComparison.OrdinalIgnoreCase) : TabOf(ask) is not null;
+
+    private VisusTab? TabOf(VisusAgentAsk ask) => ask.TabId is { } id ? Session.Tabs.FirstOrDefault(t => t.Id == id) : null;
+
+    private bool Shows(VisusAgentAsk ask) => ask.TabId is null || (Session.Selected is { } selected && selected.Id == ask.TabId);
+
+    private void ShowCard(VisusAgentAsk ask)
+    {
+        var made = new VisusAgentCard(ask);
+        card = made;
+        made.Done += OnCardDone;
+        var near = (ask.Request as Marrow.Services.Web.WebGuardAsk)?.Near;
+        var popover = new VisusPopover(near is null ? Toolbar.Trust : pages, () => made, lightDismiss: false, takesFocus: false, dismissed: made.Refuse);
+        if (near is { } point) PlaceNear(popover.Popup, point, Session.Selected?.Zoom ?? 1);
+        cardPopover = popover;
+        Children.Add(popover.Popup);
+        popover.SetOpen(true);
+        made.LayoutUpdated += AvoidPointer;
+        if (top is not null) cardEntry = VisusPrompts.Add(top, made.FocusFirst);
+    }
+
+    // The canvas's guard card: above the element the step acts on (10 DIPs off its edge), below it when there is no room.
+    internal static void PlaceNear(Popup popup, Marrow.Services.Web.WebPoint point, double zoom)
+    {
+        const double reach = 24; // half a typical control's height plus the gap
+        popup.Placement = PlacementMode.AnchorAndGravity;
+        popup.PlacementRect = new Rect(point.X * zoom - 1, point.Y * zoom - reach, 2, 2 * reach);
+        popup.PlacementAnchor = PopupAnchor.Top;
+        popup.PlacementGravity = PopupGravity.Top;
+        popup.PlacementConstraintAdjustment = PopupPositionerConstraintAdjustment.FlipY | PopupPositionerConstraintAdjustment.SlideX | PopupPositionerConstraintAdjustment.SlideY;
+    }
+
+    // "Never under the pointer": once the card has its place, it moves aside when the pointer is over it.
+    private void AvoidPointer(object? sender, EventArgs e)
+    {
+        if (card is not { } shown || cardPopover is not { } popover || shown.Bounds.Width <= 0 || TopLevel.GetTopLevel(shown) is not { } root) return;
+        shown.LayoutUpdated -= AvoidPointer;
+        var scale = root.RenderScaling;
+        var from = shown.PointToScreen(default);
+        var to = shown.PointToScreen(new Point(shown.Bounds.Width, shown.Bounds.Height));
+        var shift = VisusAgentCard.PointerShift(new PixelRect(from, to), Pointer.Current.ScreenPosition, (int)Math.Ceiling(VisusAgentCard.PointerMargin * scale));
+        if (shift != 0) popover.Popup.HorizontalOffset += shift / scale;
+    }
+
+    private void OnCardDone(VisusAgentCard done)
+    {
+        if (!ReferenceEquals(done, card)) return;
+        done.Done -= OnCardDone;
+        done.LayoutUpdated -= AvoidPointer;
+        cardEntry?.Dispose();
+        cardEntry = null;
+        if (cardPopover is { } popover)
+        {
+            popover.SetOpen(false);
+            Children.Remove(popover.Popup);
+        }
+        cardPopover = null;
+        card = null;
+        if (attached) Dispatcher.UIThread.Post(SyncCard, DispatcherPriority.Background);
     }
 
     private void DismissPrompts()

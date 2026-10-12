@@ -157,6 +157,7 @@ public static class Program
         Marrow.App.Port.AskUser.AskUserStartup.Bind(); // ED-NEW-web-w25-1: ask_user, a blocking question card in the thread, for every model
         Marrow.App.Views.Panes.SideChatPane.Register(); // ED-NEW-web-w6-1: Ctrl+; opens Side chat, a second conversation about the thread
         Marrow.App.Port.PcControl.PcControlStartup.Bind(); // Tactus (OD-0140, ED-NEW-pcctl-9): the capture seams, Windows.Graphics.Capture and the Skia JPEG encoder
+        Marrow.App.Views.Browser.VisusAgentStartup.Bind(); // ED-NEW-web-w11-1: the web_* tools drive Visus, with its cards, the turn, Stop and Background tasks
         if (skills is not null) SkillsUpdateRows.Attach(skills); // SK-16: the installed items are the Updates page's "Skills and tools" rows (ED-343's hook)
 
         var lifetime = new ClassicDesktopStyleApplicationLifetime

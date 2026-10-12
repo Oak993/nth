@@ -133,6 +133,20 @@ public sealed class VisusTab
     /// <summary>The tab is on screen (the pane is open and this is its tab).</summary>
     public bool IsShown => shown;
 
+    /// <summary>
+    /// PORT-ONLY (web surfaces W11, ED-NEW-web-w11-1; DESIGN 2.3 "The user can share one tab with the model ('Let the model use
+    /// this tab'), and then per-site approvals apply"): the model may use this browse or preview tab. Never a private tab; kept
+    /// only while the session lives, so a restart shares nothing.
+    /// </summary>
+    public bool SharedWithModel { get; private set; }
+
+    internal void SetSharedWithModel(bool value)
+    {
+        if (SharedWithModel == value) return;
+        SharedWithModel = value;
+        Raise();
+    }
+
     /// <summary>Raised after anything the strip, the toolbar or the trust strip shows changed.</summary>
     public event Action? Changed;
 

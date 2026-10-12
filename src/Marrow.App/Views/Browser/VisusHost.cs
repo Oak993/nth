@@ -120,7 +120,7 @@ public static class VisusHost
     public static VisusSession SessionFor(ThreadRuntime runtime)
     {
         ArgumentNullException.ThrowIfNull(runtime);
-        return Sessions.GetValue(runtime, r => new VisusSession(r) { ThreadFolder = r.VisusThreadFolder });
+        return Sessions.GetValue(runtime, r => new VisusSession(r) { ThreadFolder = r.VisusThreadFolder, AgentThread = r.ThreadID.ToString("D") });
     }
 
     /// <summary>A stable id for a window (the engine's live-view cap and focus are per window, 2.3).</summary>

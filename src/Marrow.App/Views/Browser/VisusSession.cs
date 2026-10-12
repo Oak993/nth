@@ -38,6 +38,9 @@ public sealed class VisusSession
     /// <summary>The thread's folder, for agent tabs' own profile (2.3).</summary>
     public string? ThreadFolder { get; set; }
 
+    /// <summary>The chat's thread id as the web tools name it (W11): the pane shows this chat's agent cards.</summary>
+    public string? AgentThread { get; set; }
+
     /// <summary>Whether the pane is on screen; only then is the chosen tab's view shown.</summary>
     public bool IsVisible
     {
@@ -75,6 +78,31 @@ public sealed class VisusSession
     public event Action<VisusTab, Marrow.Core.Models.KeyChord>? PageKey;
 
     internal void RaisePageKey(VisusTab tab, Marrow.Core.Models.KeyChord chord) => PageKey?.Invoke(tab, chord);
+
+    /// <summary>
+    /// PORT-ONLY (web surfaces W11, ED-NEW-web-w11-1; DESIGN 5.10 "User takes over"): the user acted on a tab from Visus's own
+    /// chrome (typed an address, chose a suggestion, Back, Forward, Reload); a tab the model drives pauses for it.
+    /// </summary>
+    public event Action<VisusTab>? UserActed;
+
+    /// <summary>The user acted on <paramref name="tab"/> from Visus's chrome (the toolbar, the address field, the menus).</summary>
+    internal void Acted(VisusTab? tab)
+    {
+        if (tab is not null) UserActed?.Invoke(tab);
+    }
+
+    /// <summary>
+    /// PORT-ONLY (web surfaces W11; DESIGN 2.3): "Let the model use this tab" shares one browse or preview tab with the chat's
+    /// model (sharing another ends the first); false stops sharing. A private or agent tab is never shared this way.
+    /// </summary>
+    public void ShareWithModel(VisusTab tab, bool share)
+    {
+        if (!tabs.Contains(tab) || tab.Kind is VisusTabKind.Private or VisusTabKind.Agent) return;
+        if (share)
+            foreach (var other in tabs.Where(t => !ReferenceEquals(t, tab))) other.SetSharedWithModel(false);
+        tab.SetSharedWithModel(share);
+        Changed?.Invoke();
+    }
 
     /// <summary>
     /// Opens a new tab after the chosen one (or at <paramref name="at"/>). With an address it opens it; without, the address field
@@ -202,6 +230,7 @@ public sealed class VisusSession
                 OpenTypedApp(current, link);
                 return result;
             case { Url: { } address }:
+                Acted(current);
                 Navigate(current, address);
                 return result;
         }
@@ -221,7 +250,9 @@ public sealed class VisusSession
             OpenTypedApp(selected, suggestion.Url);
             return;
         }
-        if (WebPolicy.IsTopLevelAllowed(suggestion.Url)) Navigate(selected, suggestion.Url);
+        if (!WebPolicy.IsTopLevelAllowed(suggestion.Url)) return;
+        Acted(selected);
+        Navigate(selected, suggestion.Url);
     }
 
     /// <summary>A browser key or menu command (3.7), for <paramref name="from"/> (the tab whose page had the key) or the chosen tab.</summary>
@@ -247,15 +278,19 @@ public sealed class VisusSession
                 FocusAddressRequested?.Invoke();
                 return true;
             case VisusCommand.Reload:
+                Acted(tab);
                 tab?.Reload();
                 return tab is not null;
             case VisusCommand.HardReload:
+                Acted(tab);
                 tab?.Reload(hard: true);
                 return tab is not null;
             case VisusCommand.Back:
+                Acted(tab);
                 tab?.GoBack();
                 return tab is not null;
             case VisusCommand.Forward:
+                Acted(tab);
                 tab?.GoForward();
                 return tab is not null;
             case VisusCommand.NextTab:
