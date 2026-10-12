@@ -83,6 +83,10 @@ public static class Program
         // desktop or data binding: the single-instance lock, toast identity, settings and the app lifetime.
         if(args.FirstOrDefault()=="--colour-bake")return Marrow.Services.Port.ModelsPalette.PaletteBake.Run(args,new Marrow.UI.Port.ModelsPalette.SkiaLogoDecoder());
         if(args.FirstOrDefault()=="--colour-bake-live")return Marrow.Services.Port.ModelsPalette.PaletteLiveBake.Run(args,new Marrow.UI.Port.ModelsPalette.SkiaLogoDecoder());
+#if DEBUG
+        // ED-NEW-pcctl-22: Tactus's overlay spike (P25a, debug builds only): NP-15 and NP-16, run by hand, never by a test.
+        if (args.FirstOrDefault() == Marrow.App.Port.PcControl.Overlay.OverlaySpike.Command) return Marrow.App.Port.PcControl.Overlay.OverlaySpike.Run(args);
+#endif
         WindowsToastStartup.RestoreDevRoot(args); // ED-212/ED-220: retain protocol launch's instance identity
 #if DEBUG
         // ED-212, review fix: a mistyped or since-deleted MARROW_DEV_DATA_ROOT must not silently fall back to the
