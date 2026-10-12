@@ -26,7 +26,7 @@ public static class HandoffJournal
         or ProviderEvent.MessageDelta or ProviderEvent.MessageCompleted or ProviderEvent.TurnCompleted or ProviderEvent.Exited
         or ProviderEvent.ReasoningDelta or ProviderEvent.ReasoningCompleted or ProviderEvent.PlanDelta or ProviderEvent.PlanCompleted
         or ProviderEvent.Todos or ProviderEvent.Diff or ProviderEvent.Notice
-        ? Encode(value.GetType().Name, JsonSerializer.SerializeToElement(value, value.GetType(), Options)) : null;
+        ? JsonSerializer.Serialize(new { Event = value.GetType().Name, Payload = (object)value }, Options) : null; // ED-NEW-perf-ui-thread-5: one pass over the event (it was serialized to a tree and the tree again)
 
     // Original provider IDs are preserved in the archive, but only the display projection is replayed.
     public static string? EncodeTrace(ProviderEvent value) => Encode(value) is null ? null
@@ -109,9 +109,10 @@ public static class HandoffJournal
 
     public static string[] Read(string threadFolder)
     {
+        HandoffJournalWriter.WaitForQueuedWrites(); // ED-NEW-perf-ui-thread-5: the lines handed to the writer are on disk before they are read
         lock (FileGate)
         {
-            if (!Directory.Exists(threadFolder)) return [];
+            if (!Directory.Exists(threadFolder)) return HandoffJournalWriter.RefusedFor(threadFolder);
             var lines = new List<string>();
             var stems = Directory.EnumerateFiles(threadFolder, "handoff-events-*.jsonl*")
                 .Where(path => path.EndsWith(".jsonl", StringComparison.Ordinal) || path.EndsWith(".jsonl.gz", StringComparison.Ordinal))
@@ -129,6 +130,7 @@ public static class HandoffJournal
                 else lines.AddRange(File.ReadAllLines(stem));
             }
             if (File.Exists(PathIn(threadFolder))) lines.AddRange(File.ReadAllLines(PathIn(threadFolder)));
+            lines.AddRange(HandoffJournalWriter.RefusedFor(threadFolder)); // a batch the disk refused follows the lines on disk
             return [.. lines];
         }
     }
