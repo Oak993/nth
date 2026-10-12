@@ -249,7 +249,7 @@ internal static class TactusDesktop
             Clock = clock,
             Input = input,
             Hold = PcLowLevelHooks.Hold,
-            RealHost = new RealInputHost(clock),
+            RealHost = new RealInputHost(clock, reader.FocusControl),
             Capture = encoder is null ? null : new PcCapturePipeline(sources, encoder),
             Owned = [hooks, ime, events, feed, reader],
         };

@@ -87,6 +87,24 @@ public sealed class UiaReader : IUiaReader, IDisposable
         return UiaPatterns.ReadText(element, Build(element, ref budget, withChildren: true));
     }, CallTimeout, cancellationToken);
 
+    /// <summary>
+    /// UI Automation focus on a control window, for a borrow's restore (DESIGN.md 2.7 step 6: the user's window back in
+    /// front, then focus on the user's control). Waits at most one call timeout; false when the control is gone or refuses.
+    /// </summary>
+    public bool FocusControl(nint control)
+    {
+        try
+        {
+            return workers.For(control).Run(() =>
+                Check(Client().Automation.ElementFromHandle(control, out var element), element) is { } found && found.SetFocus() == 0,
+                CallTimeout, CancellationToken.None).GetAwaiter().GetResult();
+        }
+        catch (Exception error) when (error is PcUiaTimeoutException or COMException or InvalidOperationException or InvalidCastException)
+        {
+            return false;
+        }
+    }
+
     public void Dispose() => workers.Dispose();
 
     private UiaClient Client()
