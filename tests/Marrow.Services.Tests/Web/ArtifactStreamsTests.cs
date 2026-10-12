@@ -94,7 +94,7 @@ public sealed class ArtifactStreamsTests
         filter.Filter(new ProviderEvent.MessageDelta("m1", "Sure:\n```nth-artifact id=pricing kind=html title=\"Pricing calculator\"\n<h3>Orbit"));
         var open = Assert.Single(scope.Host.Streams.Of(Chat));
         Assert.Equal(("pricing", "Pricing calculator", ArtifactKind.Html, false), (open.Id, open.Title, open.Kind, open.IsUpdate));
-        Assert.StartsWith("<h3>Orbit", open.Content, StringComparison.Ordinal);
+        Assert.Equal("<h3>Orbit", open.Content); // the partial line shows as it arrives
         Assert.Empty(ended);
 
         filter.Filter(new ProviderEvent.MessageDelta("m1", " pricing</h3>\n```\nDone."));

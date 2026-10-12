@@ -104,7 +104,7 @@ public sealed class ArtifactFenceFilter(Guid thread, ArtifactHost host, Func<(Ar
         {
             var key = StreamPrefix(messageId) + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
             var parser = message.Parser;
-            streams.Update(Thread, key, () => parser.Open?.Content ?? "");
+            streams.Update(Thread, key, () => parser.Streaming ?? "");
         }
     }
 
