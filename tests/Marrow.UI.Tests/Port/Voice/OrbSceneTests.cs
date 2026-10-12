@@ -128,7 +128,7 @@ public sealed class OrbSceneTests
     [Trait("Feature", "VT-8")]
     [Trait("Decision", "ED-267")]
     [Trait("Spec", "V-T51")]
-    [Trait("Decision", "ED-NEW-voicefix-ui-7")]
+    [Trait("Decision", "ED-NEW-reltrace-1")] // ED-NEW-voicefix-ui-7
     public void A_new_device_ratio_lays_the_orb_out_again_at_2x()
     {
         var scene = new OrbScene(VoiceOrbKind.Siri, 32, true);

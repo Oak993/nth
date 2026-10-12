@@ -38,7 +38,7 @@ public sealed class ShaderLightReferenceTests
     };
 
     [Theory]
-    [Trait("Decision", "ED-NEW-lightv2-1")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-1
     [MemberData(nameof(Lights))]
     public void The_shader_draws_the_pages_maths(string id)
     {

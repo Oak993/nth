@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using Marrow.Core.Models.ComposerLights;
 using Marrow.UI.Port.ComposerLights;
+using Marrow.UI.Tests.Fixtures;
 using SkiaSharp;
 
 namespace Marrow.UI.Tests.Port.ComposerLights;
@@ -63,7 +64,7 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-1")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-1
     public void Every_light_compiles_with_its_uniforms_bound()
     {
         Assert.Equal(21, ShaderLightCatalog.All.Count); // v2's six, v3's seven (G retired), v4's eight
@@ -80,7 +81,7 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-1")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-1
     public void A_frame_lights_the_window_outside_the_composer_and_nothing_past_its_band()
     {
         const float scale = .5f, margin = 24;
@@ -105,7 +106,7 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-4")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-4
     public void Every_pack_draws_on_every_light()
     {
         var custom = new ShaderLightColours("#FF3355", "#33FF99", "#3366FF", "#FFEE44");
@@ -122,7 +123,7 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-4")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-4
     public void The_pack_the_spread_and_the_intensity_change_what_is_drawn()
     {
         foreach (var id in new[] { "lumen", "nebula", "crystallum" })
@@ -149,7 +150,7 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-1")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-1
     public void With_no_GPU_a_still_band_is_shaded_once_and_its_pixels_kept()
     {
         var f = Frame("lumen");
@@ -202,7 +203,7 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
     private static (double R, double G, double B) Rgb(SKColor c) => (c.Red / 255.0, c.Green / 255.0, c.Blue / 255.0);
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-5")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-5
     public void The_composers_text_keeps_four_and_a_half_to_one_over_the_inner_light_at_its_strongest()
     {
         // the strongest light: intensity 2, spread 220, Working, a keystroke's full lift at the caret; the glass under it the
@@ -263,16 +264,14 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
     // (composing with the surface, with Screen from no surface, or from the kept pixels of the CPU fallback)
     private static readonly SKRectI TextBlock = new(8, -112, (int)W - 8, -40);
 
-    private enum Route { Compose, Screen, Still }
-
-    private static SKBitmap TextRegion(ShaderLightRenderer renderer, ShaderLightFrame f, bool dark, Route path)
+    private static SKBitmap TextRegion(ShaderLightRenderer renderer, ShaderLightFrame f, bool dark, ShaderLightRoute path)
     {
         var info = new SKImageInfo(TextBlock.Width, TextBlock.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
         using var surface = SKSurface.Create(info);
         var canvas = surface.Canvas;
         canvas.Translate(-TextBlock.Left, -TextBlock.Top);
         LabelChatText(canvas, dark);
-        Assert.True(path == Route.Still ? renderer.DrawStill(canvas, f, 1) : renderer.Draw(canvas, f, 1, 1, path == Route.Compose ? surface : null));
+        Assert.True(path == ShaderLightRoute.Still ? renderer.DrawStill(canvas, f, 1) : renderer.Draw(canvas, f, 1, 1, path == ShaderLightRoute.Compose ? surface : null));
         var bitmap = new SKBitmap(info);
         Assert.True(surface.ReadPixels(info, bitmap.GetPixels(), bitmap.RowBytes, 0, 0));
         return bitmap;
@@ -323,7 +322,7 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-8")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-8
     public void The_readability_guard_holds_every_chat_glyph_at_four_and_a_half_to_one()
     {
         // every light, every pack (Custom too), intensity 2 while a turn runs, in all three Text and light modes composing with
@@ -332,19 +331,19 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
         // labelColor (dimmer than the white of the test this replaces), every glyph pixel against every window pixel within 2 px
         var custom = new ShaderLightColours("#FF3355", "#33FF99", "#3366FF", "#FFEE44");
         ComposerLightTextMode[] modes = [ComposerLightTextMode.TextAbove, ComposerLightTextMode.LightAbove, ComposerLightTextMode.Difference];
-        var cases = new List<(string Id, string Pack, ComposerLightTextMode Mode, bool Dark, Route Path)>();
+        var cases = new List<(string Id, string Pack, ComposerLightTextMode Mode, bool Dark, ShaderLightRoute Path)>();
         foreach (var def in ShaderLightCatalog.All)
         {
             ShaderLightShaders.Effect(def.Id); // compiled once before the cases run side by side
             foreach (var pack in ShaderLightCatalog.Packs)
             {
-                foreach (var mode in modes) cases.Add((def.Id, pack.Id, mode, true, Route.Compose));
-                cases.Add((def.Id, pack.Id, ComposerLightTextMode.TextAbove, true, Route.Screen));
+                foreach (var mode in modes) cases.Add((def.Id, pack.Id, mode, true, ShaderLightRoute.Compose));
+                cases.Add((def.Id, pack.Id, ComposerLightTextMode.TextAbove, true, ShaderLightRoute.Screen));
             }
-            foreach (var mode in modes) cases.Add((def.Id, def.Pack, mode, false, Route.Compose));
-            cases.Add((def.Id, def.Pack, ComposerLightTextMode.TextAbove, false, Route.Screen));
+            foreach (var mode in modes) cases.Add((def.Id, def.Pack, mode, false, ShaderLightRoute.Compose));
+            cases.Add((def.Id, def.Pack, ComposerLightTextMode.TextAbove, false, ShaderLightRoute.Screen));
         }
-        cases.Add(("velum", "aurora", ComposerLightTextMode.TextAbove, true, Route.Still)); // and the kept pixels themselves, once
+        cases.Add(("velum", "aurora", ComposerLightTextMode.TextAbove, true, ShaderLightRoute.Still)); // and the kept pixels themselves, once
         var results = new (double Worst, string Where, string Group)[cases.Count];
         Parallel.For(0, cases.Count, i =>
         {
@@ -371,7 +370,7 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-8")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-8
     public void The_guard_changes_nothing_where_the_text_already_reads()
     {
         // each light at its defaults while typing (the shipped look), Text above light: where the pages' composition already
@@ -385,8 +384,8 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
             var f = Frame(def.Id, def.Defaults, ComposerLightPhase.Typing);
             using var guarded = new ShaderLightRenderer();
             using var bare = new ShaderLightRenderer { Guard = false };
-            using var g = TextRegion(guarded, f, true, Route.Compose);
-            using var p = TextRegion(bare, f, true, Route.Compose);
+            using var g = TextRegion(guarded, f, true, ShaderLightRoute.Compose);
+            using var p = TextRegion(bare, f, true, ShaderLightRoute.Compose);
             var (pageWorst, _, _) = WorstGlyph(p, 5);
             var (worst, _, _) = WorstGlyph(g);
             int window = 0, glyph = 0;
@@ -441,7 +440,7 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
             settings: ComposerLightSettings.Default with { TextMode = mode, TextHalo = halo });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-5")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-5
     public void Each_text_mode_composes_with_the_chat_text_as_the_page_does()
     {
         foreach (var id in new[] { "lumen", "velum", "fulgor" })
@@ -474,7 +473,7 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-5")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-5
     public void Text_above_light_lifts_the_chat_text_as_the_pages_halo_does()
     {
         // under every light at intensity 2 while a turn runs, Text above light at the defaults: a chat glyph against the window
@@ -526,7 +525,7 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
     internal const double HaloTolerance = .08;
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-6")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-6
     public void The_veil_measures_a_bright_busy_wallpaper_as_wanting_more_dimming_than_a_dark_calm_one()
     {
         using var veil = new WallpaperDimVeil();
@@ -554,7 +553,7 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-6")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-6
     public void The_veil_darkens_the_wallpaper_near_the_composer_and_fades_out_with_no_edge()
     {
         using var veil = new WallpaperDimVeil();
@@ -578,7 +577,7 @@ public sealed class ShaderLightRenderTests(Xunit.Abstractions.ITestOutputHelper 
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-1")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-1
     public void Per_frame_cost_of_each_light_on_the_software_raster()
     {
         // the GPU's time cannot be measured headless; Skia's software raster of the whole band is its upper bound here

@@ -24,7 +24,7 @@ public sealed class OrbRendererTests
     [Trait("Feature", "VT-8")]
     [Trait("Decision", "ED-267")]
     [Trait("Spec", "V-T51")]
-    [Trait("Decision", "ED-NEW-voicefix-ui-7")]
+    [Trait("Decision", "ED-NEW-reltrace-1")] // ED-NEW-voicefix-ui-7
     public void The_shader_runs_at_2x_at_every_scale(double dpr, int devicePx, int scale)
     {
         var runtime = OrbRig.Runtime(Rest, dpr);
@@ -74,7 +74,7 @@ public sealed class OrbRendererTests
     [Trait("Feature", "VT-8")]
     [Trait("Decision", "ED-267")]
     [Trait("Spec", "V-T51")]
-    [Trait("Decision", "ED-NEW-voicefix-ui-7")]
+    [Trait("Decision", "ED-NEW-reltrace-1")] // ED-NEW-voicefix-ui-7
     public void A_runtime_built_without_supersampling_draws_straight_with_no_surface()
     {
         using var renderer = new OrbRenderer();

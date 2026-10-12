@@ -12,8 +12,8 @@ namespace Marrow.UI.Tests.Port.Voice;
 /// fractional placement, in both themes, the device pixels of the edge annulus stay within a few levels of the same frame rendered at 8x and box-filtered down
 /// (an anti-aliased edge by construction), and no pure-white 1 px ring appears that the ideal does not have.
 /// </summary>
-[Trait("Decision", "ED-NEW-voicefix-ui-5")]
-[Trait("Decision", "ED-NEW-voicefix-ui-7")]
+[Trait("Decision", "ED-NEW-reltrace-1")] // ED-NEW-voicefix-ui-5
+// ED-NEW-voicefix-ui-7
 public sealed class OrbEdgeAntialiasTests
 {
     private const int Ideal = 8;
