@@ -4,11 +4,13 @@ namespace Marrow.Core.Support;
 
 /// <summary>
 /// What nth decided about one request: the answer, and what to do once the answer is on the pipe (a quit goes ahead only
-/// after the installer has read "ok", so the installer never sees the pipe vanish before its answer).
+/// after the installer has read "ok"; an idle quit can prepare and return a final Busy/refusal on the same bounded connection).
 /// </summary>
 /// <param name="Response">The answer to write.</param>
 /// <param name="AfterReply">Runs once, after the answer was written and the client acknowledged reading it (<see cref="NthControl.AckByte"/>); never runs when the other side left first or did not acknowledge.</param>
-public sealed record NthControlAnswer(NthControlResponse Response, Action? AfterReply = null);
+public sealed record NthControlAnswer(NthControlResponse Response, Action? AfterReply = null,
+    Func<CancellationToken, Task<NthControlAnswer>>? PrepareCommit = null, Action? Abort = null,
+    Func<CancellationToken, Task<NthControlResponse?>>? Commit = null);
 
 /// <summary>
 /// PORT-ONLY (no Swift twin; nth installer PLAN.md 3a, unit U4, ED-NEW-inst-u4-1). The part of nth that decides what a
@@ -23,7 +25,7 @@ public interface INthControlHost
 
 /// <summary>
 /// PORT-ONLY (no Swift twin; nth installer PLAN.md 3a, unit U4, ED-NEW-inst-u4-1). Listens on nth's control pipe
-/// (<see cref="NthControl.PipeName"/>) for the signed-in user alone. One request and one reply per connection
+/// (<see cref="NthControl.PipeName"/>) for the signed-in user alone. One request per connection, with acknowledged quit phases
 /// (<see cref="NthControl.Frame"/>); a connection that sends nothing within <see cref="RequestTimeout"/>, sends a length that is
 /// not 1 byte to 64 KiB, or leaves is dropped without touching the host. A request that is not version 1 gets
 /// <c>refused</c> with the reason <c>unsupported</c>. Each connection has its own task, so a slow or silent client never holds
@@ -35,8 +37,8 @@ public sealed class NthControlServer : IDisposable
     /// <summary>How long a connection may take to send its request.</summary>
     public static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(5);
 
-    /// <summary>How long the server waits for the other side to read the answer before it lets go of the pipe.</summary>
-    private static readonly TimeSpan DrainTimeout = TimeSpan.FromSeconds(2);
+    /// <summary>The deadline for the complete request, host, response and acknowledgement connection.</summary>
+    public static readonly TimeSpan ConnectionTimeout = TimeSpan.FromSeconds(15);
 
     /// <summary>How long the server waits for the acknowledgement of an answer that a quit follows.</summary>
     public static readonly TimeSpan AckTimeout = TimeSpan.FromSeconds(2);
@@ -143,69 +145,43 @@ public sealed class NthControlServer : IDisposable
     private async Task Serve(NamedPipeServerStream pipe)
     {
         await using (pipe.ConfigureAwait(false))
+        using (var disconnected = new CancellationTokenSource())
+        using (var watch = CancellationTokenSource.CreateLinkedTokenSource(stop.Token))
         {
+            var monitor = NthControlConnection.WatchDisconnectAsync(pipe, disconnected, watch.Token);
             try
             {
-                using var window = CancellationTokenSource.CreateLinkedTokenSource(stop.Token);
-                window.CancelAfter(requestTimeout);
-                var bytes = await NthControl.ReadFrameAsync(pipe, window.Token).ConfigureAwait(false);
-                if (bytes is null) return;
-                var request = NthControlRequest.Parse(bytes);
-                var answer = request is null
-                    ? new NthControlAnswer(NthControlResponse.Refused(Environment.ProcessId, Environment.ProcessPath ?? string.Empty, "unsupported"))
-                    : await host.HandleAsync(request, stop.Token).ConfigureAwait(false);
-                await NthControl.WriteFrameAsync(pipe, answer.Response.ToJson(), stop.Token).ConfigureAwait(false);
-                if (answer.AfterReply is not { } after)
+                await NthControlConnection.ServeAsync(pipe, host, requestTimeout, ConnectionTimeout,
+                    stop.Token, disconnected.Token).ConfigureAwait(false);
+            }
+            finally
+            {
+                watch.Cancel();
+                await monitor.ConfigureAwait(false);
+            }
+        }
+    }
+
+    internal static async Task<NthControlAnswer> HandleConnectedAsync(INthControlHost host,
+        NthControlRequest request, CancellationToken serverStop, CancellationToken connection)
+    {
+        using var window = CancellationTokenSource.CreateLinkedTokenSource(serverStop, connection);
+        var pending = host.HandleAsync(request, connection);
+        try { return await pending.WaitAsync(window.Token).ConfigureAwait(false); }
+        catch (OperationCanceledException) when (window.IsCancellationRequested)
+        {
+            // A non-cooperative host cannot retain the pipe/task. Observe its completion and release any late reservation.
+            _ = pending.ContinueWith(done =>
+            {
+                if (done.IsCompletedSuccessfully)
                 {
-                    await Drained(pipe).ConfigureAwait(false); // keep the pipe open until the answer was read, so it is not lost
-                    return;
+                    try { done.Result.Abort?.Invoke(); }
+                    catch (Exception) { /* cleanup failure must not retain the disconnected reservation/task */ }
                 }
-                if (await Acknowledged(pipe).ConfigureAwait(false)) after();
-            }
-            catch (Exception)
-            {
-                // The other side left, was too slow, or the server is closing, or the host failed: nothing more to say to it
-                // (a host that throws must not take nth down, and the installer then falls back to asking before it ends nth).
-            }
+                else _ = done.Exception;
+            }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            throw;
         }
-    }
-
-    // True when the other side wrote its acknowledgement (NthControl.AckByte) within AckTimeout: it holds the answer. A client that left
-    // first, died before reading, or never acknowledges gets no quit. (Draining is not enough: Windows may report a pipe drained after
-    // the other side closed it with the answer unread.)
-    private async Task<bool> Acknowledged(NamedPipeServerStream pipe)
-    {
-        using var window = CancellationTokenSource.CreateLinkedTokenSource(stop.Token);
-        window.CancelAfter(AckTimeout);
-        var one = new byte[1];
-        try
-        {
-            return await pipe.ReadAsync(one, window.Token).ConfigureAwait(false) == 1 && one[0] == NthControl.AckByte;
-        }
-        catch (Exception error) when (error is OperationCanceledException or IOException or ObjectDisposedException)
-        {
-            return false;
-        }
-    }
-
-    // True when the other side read the answer (or the wait ended without it leaving); false when it left first.
-    private async Task<bool> Drained(NamedPipeServerStream pipe)
-    {
-        var drain = Task.Run(() =>
-        {
-            if (!OperatingSystem.IsWindows()) return true; // WaitForPipeDrain is Windows-only; nth runs on Windows
-            try
-            {
-                pipe.WaitForPipeDrain();
-                return true;
-            }
-            catch (Exception error) when (error is IOException or ObjectDisposedException or InvalidOperationException)
-            {
-                return false;
-            }
-        });
-        var finished = await Task.WhenAny(drain, Task.Delay(DrainTimeout, stop.Token)).ConfigureAwait(false);
-        return finished == drain && await drain.ConfigureAwait(false);
     }
 
     /// <summary>Stops listening; connections in flight are dropped.</summary>

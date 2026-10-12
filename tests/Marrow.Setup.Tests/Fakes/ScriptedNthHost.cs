@@ -19,6 +19,7 @@ public sealed class ScriptedNthHost(Func<NthControlRequest, NthControlAnswer> an
     public Task<NthControlAnswer> HandleAsync(NthControlRequest request, CancellationToken cancellationToken)
     {
         lock (gate) requests.Add(request);
-        return Task.FromResult(answer(request));
+        var result = answer(request);
+        return Task.FromResult(result with { Response = result.Response with { Id = request.Id } });
     }
 }

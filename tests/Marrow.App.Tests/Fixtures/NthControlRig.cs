@@ -36,6 +36,8 @@ public sealed class NthControlRig : IDisposable
 
     public NthControlHost Host { get; }
 
+    public string? LastQuitId { get; private set; }
+
     public void SetRunning(int index, TimeSpan runningFor, bool running = true) => H.Main.OnMain(() =>
     {
         typeof(ThreadRuntime).GetProperty(nameof(ThreadRuntime.Phase))!.SetValue(Runtimes[index], running ? RuntimePhase.Running : RuntimePhase.Idle);
@@ -49,13 +51,34 @@ public sealed class NthControlRig : IDisposable
     });
 
     /// <summary>The host's decision for one request, made on the main actor.</summary>
-    public NthControlAnswer Ask(NthControlRequest request) => H.Main.OnMain(() => Host.Answer(request));
+    public NthControlAnswer Ask(NthControlRequest request) => H.Main.OnMain(() => Host.Answer(Prepare(request)));
+
+    internal NthControlRequest Prepare(NthControlRequest request)
+    {
+        MainActor.AssumeIsolated();
+        if (request.Command == NthControlCommand.Quit)
+        {
+            request = request with { Id = request.Id ?? Guid.NewGuid().ToString("N") };
+            LastQuitId = request.Id;
+        }
+        else if (request.Command == NthControlCommand.Withdraw && request.Id is null)
+            request = request with { Id = LastQuitId };
+        return request;
+    }
 
     /// <summary>What the pipe server does once the answer was read.</summary>
-    public void Finish(NthControlAnswer answer)
+    public NthControlResponse Finish(NthControlAnswer answer)
     {
-        answer.AfterReply?.Invoke();
+        if (answer.PrepareCommit is { } prepare)
+            answer = H.Main.OnMain(() => prepare(CancellationToken.None)).GetAwaiter().GetResult();
+        if (answer.Commit is { } commit)
+        {
+            var outcome = H.Main.OnMain(() => commit(CancellationToken.None)).GetAwaiter().GetResult();
+            if (outcome is not null) answer = new NthControlAnswer(outcome);
+        }
+        else answer.AfterReply?.Invoke();
         H.Main.RunUntilIdle();
+        return answer.Response;
     }
 
     public void Dispose() => H.Dispose();

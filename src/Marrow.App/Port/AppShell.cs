@@ -36,6 +36,8 @@ public sealed class AppShell : ITerminationSender
     private readonly Action afterWillTerminate;
     private bool terminationPending;
     private bool terminationFromInstaller;
+    private string? installerQuitId;
+    private object? installerQuitGeneration;
     private bool terminated;
     private bool mainHooksAttached;
     internal bool HasTerminated => terminated;
@@ -117,11 +119,24 @@ public sealed class AppShell : ITerminationSender
     /// waits it is remembered as the installer's, so <see cref="WithdrawInstallerQuit"/> can call it off. A quit that already
     /// waits (the user's own close) stays the user's.
     /// </summary>
-    internal void TerminateForInstaller()
+    internal bool TerminateForInstaller(string requestId, object generation)
     {
-        if (terminationPending || terminated) return;
-        Terminate();
-        terminationFromInstaller = terminationPending;
+        if (terminated) return true;
+        if (terminationPending) return false;
+        switch (Delegate.ApplicationShouldTerminate(new InstallerTerminationSender(this, requestId, generation)))
+        {
+            case NSApplication.TerminateReply.TerminateNow:
+                exit();
+                return true;
+            case NSApplication.TerminateReply.TerminateLater:
+                terminationPending = true;
+                terminationFromInstaller = true;
+                installerQuitId = requestId;
+                installerQuitGeneration = generation;
+                return true;
+            default:
+                return false;
+        }
     }
 
     /// <summary>
@@ -129,11 +144,13 @@ public sealed class AppShell : ITerminationSender
     /// The app's own wait for the merge (AppDelegate.swift:46-52) goes on until its end, but its late reply finds no quit pending and
     /// is ignored (<see cref="Reply"/>). The user's own close is never called off by the installer.
     /// </summary>
-    internal bool WithdrawInstallerQuit()
+    internal bool WithdrawInstallerQuit(string requestId)
     {
-        if (!terminationPending || !terminationFromInstaller) return false;
+        if (!terminationPending || !terminationFromInstaller || installerQuitId != requestId) return false;
         terminationPending = false;
         terminationFromInstaller = false;
+        installerQuitId = null;
+        installerQuitGeneration = null;
         return true;
     }
 
@@ -163,11 +180,18 @@ public sealed class AppShell : ITerminationSender
     }
 
     /// <summary><c>reply(toApplicationShouldTerminate:)</c> (:51): true ends the app.</summary>
+    internal void ReplyForInstaller(string requestId, object generation, bool shouldTerminate)
+    {
+        if (terminationFromInstaller && installerQuitId == requestId && ReferenceEquals(installerQuitGeneration, generation)) Reply(shouldTerminate);
+    }
+
     public void Reply(bool toApplicationShouldTerminate)
     {
         if (!terminationPending) return;
         terminationPending = false;
         terminationFromInstaller = false;
+        installerQuitId = null;
+        installerQuitGeneration = null;
         if (toApplicationShouldTerminate) exit();
     }
 

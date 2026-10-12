@@ -4,23 +4,14 @@ using Marrow.Setup.Support;
 
 namespace Marrow.Setup.Port;
 
-/// <summary>
-/// PORT-ONLY (nth installer PLAN.md 3a, unit U4, ED-NEW-inst-u4-1). The setup's end of nth's control pipe, one connection per request.
-/// The pipe is nth's alone to answer: <c>PipeOptions.CurrentUserOnly</c> makes this side check that the server belongs to this user, so
-/// an elevated nth (owned by Administrators) or another user's is <see cref="NthControlFailure.NotAllowed"/> and a look-alike that is not
-/// nth's cannot be handed a request. The connect time covers an nth still starting; the reply time covers a hung one.
-/// </summary>
-public sealed class PipeNthControlChannel(string pipeName, TimeSpan connectTimeout, TimeSpan replyTimeout) : INthControlChannel
+// PORT-ONLY: ED-NEW-inst-c7-4. The account ACL and OS server-process identity are independent checks.
+public sealed class PipeNthControlChannel(string pipeName, TimeSpan connectTimeout, TimeSpan replyTimeout, string? installRoot = null) : INthControlChannel
 {
-    /// <summary>How long to wait for the pipe to exist and have a free instance.</summary>
     public static readonly TimeSpan DefaultConnectTimeout = TimeSpan.FromSeconds(2);
-
-    /// <summary>How long to wait for nth's answer (its main thread has to run for it to come).</summary>
     public static readonly TimeSpan DefaultReplyTimeout = TimeSpan.FromSeconds(5);
 
-    /// <summary>The channel to the release nth of the signed-in user, or null off Windows.</summary>
-    public static PipeNthControlChannel? ForCurrentUser(bool development = false) =>
-        NthControl.CurrentUserSid() is { } sid ? new PipeNthControlChannel(NthControl.PipeName(sid, development), DefaultConnectTimeout, DefaultReplyTimeout) : null;
+    public static PipeNthControlChannel? ForCurrentUser(bool development = false, string? installRoot = null) =>
+        NthControl.CurrentUserSid() is { } sid ? new PipeNthControlChannel(NthControl.PipeName(sid, development), DefaultConnectTimeout, DefaultReplyTimeout, installRoot) : null;
 
     public async Task<NthControlExchange> SendAsync(NthControlRequest request, CancellationToken cancellationToken)
     {
@@ -43,39 +34,69 @@ public sealed class PipeNthControlChannel(string pipeName, TimeSpan connectTimeo
             reply.CancelAfter(replyTimeout);
             try
             {
-                await NthControl.WriteFrameAsync(client, request.ToJson(), reply.Token).ConfigureAwait(false);
-                var bytes = await NthControl.ReadFrameAsync(client, reply.Token).ConfigureAwait(false);
-                if (bytes is null) return NthControlExchange.Failed(NthControlFailure.NoAnswer);
-                if (NthControlResponse.Parse(bytes) is not { } response) return NthControlExchange.Failed(NthControlFailure.BadAnswer);
-                await AcknowledgeAsync(client, reply.Token).ConfigureAwait(false);
-                return NthControlExchange.Answered(response);
+                var peer = PipeNthPeer.Describe(client);
+                return await SendConnectedAsync(client, peer, request, reply.Token, installRoot,
+                    process => PipeNthPeer.Describe(client) == process).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
                 return NthControlExchange.Failed(NthControlFailure.NoAnswer);
             }
         }
-        catch (UnauthorizedAccessException)
-        {
-            return NthControlExchange.Failed(NthControlFailure.NotAllowed);
-        }
-        catch (IOException)
-        {
-            return NthControlExchange.Failed(NthControlFailure.NoAnswer);
-        }
+        catch (UnauthorizedAccessException) { return NthControlExchange.Failed(NthControlFailure.NotAllowed); }
+        catch (IOException) { return NthControlExchange.Failed(NthControlFailure.NoAnswer); }
     }
 
-    // nth quits for a quit request only once it has seen this byte (NthControl.AckByte), so it never quits for a setup that did not get the "ok".
-    // A pipe that closed already (an answer that needed no acknowledgement) is not a failure.
-    private static async Task AcknowledgeAsync(NamedPipeClientStream client, CancellationToken cancellationToken)
+    // The pure stream seam is the production connected path too. The lifetime check is repeated
+    // before the request and after every reply; a recycled PID or a peer that exited cannot authorize a quit.
+    internal static async Task<NthControlExchange> SendConnectedAsync(Stream client, RunningNthProcess? peer,
+        NthControlRequest request, CancellationToken cancellationToken, string? installRoot = null,
+        Func<RunningNthProcess, bool>? samePeer = null)
     {
-        try
+        if (peer is not { StartedAtTicks: > 0 } || !RunningNthPaths.IsInside(installRoot, peer.ExecutablePath)
+            || samePeer is null || !samePeer(peer)) return NthControlExchange.Failed(NthControlFailure.NoAnswer);
+        await NthControl.WriteFrameAsync(client, request.ToJson(), cancellationToken).ConfigureAwait(false);
+        var bytes = await NthControl.ReadFrameAsync(client, cancellationToken).ConfigureAwait(false);
+        if (bytes is null) return NthControlExchange.Failed(NthControlFailure.NoAnswer);
+        if (NthControlResponse.Parse(bytes) is not { } response) return NthControlExchange.Failed(NthControlFailure.BadAnswer);
+        if (response.Pid != peer.ProcessId || !samePeer(peer)) return NthControlExchange.Failed(NthControlFailure.NoAnswer);
+        if (request.Id is not null && !string.Equals(response.Id, request.Id, StringComparison.Ordinal))
+            return NthControlExchange.Failed(NthControlFailure.BadAnswer);
+        if (response.CommitRequired)
         {
+            if (request.Command != NthControlCommand.Quit || response.Reply != NthControlReply.Ok)
+                return NthControlExchange.Failed(NthControlFailure.BadAnswer);
+            // First ACK proves receipt of idle-and-quit. The host then rechecks idle and answers Busy or final Ok.
+            await NthControl.WriteAckAsync(client, cancellationToken).ConfigureAwait(false);
+            bytes = await NthControl.ReadFrameAsync(client, cancellationToken).ConfigureAwait(false);
+            if (bytes is null) return NthControlExchange.Failed(NthControlFailure.NoAnswer);
+            if (NthControlResponse.Parse(bytes) is not { CommitRequired: false } final)
+                return NthControlExchange.Failed(NthControlFailure.BadAnswer);
+            if (final.Reply is not (NthControlReply.Ok or NthControlReply.Busy or NthControlReply.Refused))
+                return NthControlExchange.Failed(NthControlFailure.BadAnswer);
+            if (final.Pid != peer.ProcessId || !samePeer(peer)) return NthControlExchange.Failed(NthControlFailure.NoAnswer);
+            if (request.Id is not null && !string.Equals(final.Id, request.Id, StringComparison.Ordinal))
+                return NthControlExchange.Failed(NthControlFailure.BadAnswer);
+            response = final;
             await NthControl.WriteAckAsync(client, cancellationToken).ConfigureAwait(false);
         }
+        else if (request.Command == NthControlCommand.Quit && response.Reply == NthControlReply.Ok)
+            await NthControl.WriteAckAsync(client, cancellationToken).ConfigureAwait(false);
+        else await AcknowledgeAsync(client, cancellationToken).ConfigureAwait(false);
+        if (request.Command == NthControlCommand.Quit && response.Reply == NthControlReply.Ok)
+        {
+            var completion = await PipeNthQuitCompletion.ReadAsync(client, peer, samePeer, request, cancellationToken).ConfigureAwait(false);
+            if (completion is not null) return completion;
+        }
+        return NthControlExchange.Answered(response with { Exe = peer.ExecutablePath });
+    }
+
+    private static async Task AcknowledgeAsync(Stream client, CancellationToken cancellationToken)
+    {
+        try { await NthControl.WriteAckAsync(client, cancellationToken).ConfigureAwait(false); }
         catch (Exception error) when (error is IOException or ObjectDisposedException or OperationCanceledException)
         {
-            // Nothing to acknowledge to.
+            // A status or refusal may already have closed; quit framing is made transactional by ED-NEW-inst-c7-5.
         }
     }
 }

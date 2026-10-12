@@ -72,7 +72,7 @@ public sealed partial class AppModel
     // :79-187
     public async Task AutoMergeHydraWork(Guid leadID)
     {
-        if (!Settings.HydraAutoMerge || Thread(leadID) is not { } waiting || !HydraIsOn(waiting) ||
+        if (InstallerHoldsNewTurns || !Settings.HydraAutoMerge || Thread(leadID) is not { } waiting || !HydraIsOn(waiting) ||
             ExistingRuntime(leadID) is not { } queued || queued.IsHydraMerging || queued.IsHydraMergeQueued ||
             !queued.IsReadyForHydraMerge)
             return; // :80-82
@@ -96,7 +96,7 @@ public sealed partial class AppModel
 
         // Everything is read again after the wait, and the flag below is set with no suspension after this
         // guard, so of several waiters exactly one goes.
-        if (!Settings.HydraAutoMerge || Thread(leadID) is not { } lead || !HydraIsOn(lead) ||
+        if (InstallerHoldsNewTurns || !Settings.HydraAutoMerge || Thread(leadID) is not { } lead || !HydraIsOn(lead) ||
             Project(lead.ProjectID) is not { } project || ExistingRuntime(leadID) is not { } runtime ||
             runtime.IsHydraMerging || IsAnyHydraMergeRunning || !runtime.IsReadyForHydraMerge)
             return; // :98-100

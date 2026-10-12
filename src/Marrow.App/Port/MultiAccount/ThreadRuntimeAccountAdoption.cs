@@ -16,6 +16,11 @@ public sealed partial class ThreadRuntime
     internal async Task<bool> TryResumeAfterAccountWaitAsync(Guid account, long epoch, Guid interrupted, string? originalSessionId, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
+        if (InstallerHoldsNewTurns) return false;
+        using var admission = App?.AdmitInstallerTurn(ThreadID, requiresDurability: false);
+        var requestedCancellation = ct;
+        using var installerStop = CancellationTokenSource.CreateLinkedTokenSource(ct, admission?.StopToken ?? CancellationToken.None);
+        ct = installerStop.Token;
         if (!IsAccountSwitchSafe || !TryHandshakeAccountId(out var active) || active != account
             || limitedReplyTurnID != interrupted || Turns.LastOrDefault()?.Id != interrupted
             || session is { IsRunning: true } && sessionEpoch != epoch
@@ -26,7 +31,7 @@ public sealed partial class ThreadRuntime
         if (!row.Enabled || !App.IsAccountConnected(row)) return false;
         var configuration = CreateHandshakeConfiguration(new(new(account.ToString("D"), row.Service.Id, row.CustomName ?? App.Settings.Accounts.DefaultName(account))))
             with { Model = source.Model, Effort = source.Effort, FastMode = source.FastMode };
-        bool StillOwnsRestart() => IsAccountWorkSettled && (!isStartingSession
+        bool StillOwnsRestart() => !InstallerHoldsNewTurns && persistenceEnabled && IsAccountWorkSettled && (!isStartingSession
             || guardedStartingSession is not null && ReferenceEquals(session, guardedStartingSession)) && limitedReplyTurnID == interrupted
             && Turns.LastOrDefault()?.Id == interrupted && Thread is { } current
             && current.ProviderSessionID == originalSessionId && current.ProviderAccountID == source.ProviderAccountID
@@ -40,6 +45,7 @@ public sealed partial class ThreadRuntime
             candidate = session is { IsRunning: true } existing ? existing
                 : await EnsureSessionOwned(configuration.WorkingDirectory.Path, allowNewSession: false, ct, StillOwnsRestart);
         }
+        catch (OperationCanceledException) when (!requestedCancellation.IsCancellationRequested && admission?.StopToken.IsCancellationRequested == true) { return false; }
         catch (OperationCanceledException) { throw; }
         catch (Exception error)
         {
@@ -47,7 +53,7 @@ public sealed partial class ThreadRuntime
             return false;
         }
         ct.ThrowIfCancellationRequested();
-        if (!IsAccountSwitchSafe || limitedReplyTurnID != interrupted || Turns.LastOrDefault()?.Id != interrupted
+        if (InstallerHoldsNewTurns || !IsAccountSwitchSafe || limitedReplyTurnID != interrupted || Turns.LastOrDefault()?.Id != interrupted
             || !TryHandshakeAccountId(out active) || active != account || !ReferenceEquals(session, candidate)) return false;
         ResumeHandshakeReply(candidate, configuration, Turns.First(turn => turn.Id == interrupted));
         return true;
@@ -57,6 +63,8 @@ public sealed partial class ThreadRuntime
         PillThreadState? relay = null, bool resumeReply = false, bool pinAccount = false, string? deferredContext = null)
     {
         var app = App ?? throw new InvalidOperationException("The conversation is unavailable.");
+        if (resumeReply && InstallerHoldsNewTurns) throw new InvalidOperationException("nth is closing to update");
+        using var admission = resumeReply ? app.AdmitInstallerConversationWork(ThreadID) : null;
         var source = Thread ?? throw new InvalidOperationException("The conversation is unavailable.");
         if (ReferenceEquals(candidate, session) || !IsAccountSwitchSafe || configuration.AccountId is not { } accountId
             || app.Settings.Accounts.Choose(configuration.Provider, accountId) is null || !candidate.IsRunning
@@ -100,6 +108,7 @@ public sealed partial class ThreadRuntime
 
     private void ResumeHandshakeReply(ProviderSession candidate, SessionConfiguration configuration, TurnRecord turn)
     {
+        if (InstallerHoldsNewTurns) throw new InvalidOperationException("nth is closing to update");
         FlushDeltas();
         foreach (var end in Entries.Where(entry => entry.TurnID == turn.Id && entry.Item.TimelineItemContent is TimelineItem.Content.TurnEnd).ToArray()) Remove(end.Id);
         var partial = Entries.LastOrDefault(entry => entry.TurnID == turn.Id && entry.Item.TimelineItemContent is TimelineItem.Content.Assistant);

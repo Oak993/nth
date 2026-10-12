@@ -65,8 +65,14 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
     public Func<bool>? CanCommit { get; set; }
     public bool AtSafePoint => runtime.IsAccountSwitchSafe;
     public bool ReplyInFlight => runtime.HandshakeReplyInFlight;
-    public async Task<IStandbySession> StartStandbyAsync(SwitchTarget target, CancellationToken ct)
+    public Task<IStandbySession> StartStandbyAsync(SwitchTarget target, CancellationToken ct) => MainActor.Invoke(() => StartStandbyOwnedAsync(target, ct));
+    private async Task<IStandbySession> StartStandbyOwnedAsync(SwitchTarget target, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
+        using var admission = PlanFor(incomingProvider(target)) == StandbyPlan.Primed
+            ? app.AdmitInstallerConversationWork(runtime.ThreadID) : null;
+        using var installerStop = CancellationTokenSource.CreateLinkedTokenSource(ct, admission?.StopToken ?? CancellationToken.None);
+        ct = installerStop.Token;
         var from = ActiveAccountId;
         var epoch = runtime.HandshakeStamp.Epoch;
         var generation = ++preparationGeneration;
@@ -102,7 +108,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         preparedFrom = from;
         preparedEpoch = epoch;
         preparedTarget = target;
-        return standby;
+        return new InstallerStandbySession(app, runtime.ThreadID, standby);
     }
 
     // OpenCode holds the context on its own HTTP server and opens the conversation's ACP session (session/load) at the handover; every other service injects through its own session.
@@ -171,10 +177,14 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         preparedTarget = target;
         return standby;
     }
-    public async Task<string?> RequestBriefingAsync(HandoffSummary summary, CancellationToken ct)
+    public Task<string?> RequestBriefingAsync(HandoffSummary summary, CancellationToken ct) => MainActor.Invoke(() => RequestBriefingOwnedAsync(summary, ct));
+    private async Task<string?> RequestBriefingOwnedAsync(HandoffSummary summary, CancellationToken ct)
     {
         var account = app.Settings.Accounts.Get(Guid.Parse(ActiveAccountId));
         if (!HasVerifiableStandby(account.Service)) return null;
+        using var admission = app.AdmitInstallerConversationWork(runtime.ThreadID);
+        using var installerStop = CancellationTokenSource.CreateLinkedTokenSource(ct, admission.StopToken);
+        ct = installerStop.Token;
         var from = ActiveAccountId;
         var epoch = runtime.HandshakeStamp.Epoch;
         var target = new SwitchTarget(new(account.Id.ToString("D"), account.Service.Id, account.CustomName ?? app.Settings.Accounts.DefaultName(account.Id)));
@@ -188,13 +198,17 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         return await privateSession.TextTurnAsync("[nth Handshake] Write a short briefing for your successor: the goal, why decisions were made, what is next, and pitfalls. Take no actions. Use only this recorded context:\n" + summary.Text, ct);
     }
 
-    public async Task<string?> RequestIncomingBriefingAsync(SwitchTarget target, HandoffSummary summary, CancellationToken ct)
+    public Task<string?> RequestIncomingBriefingAsync(SwitchTarget target, HandoffSummary summary, CancellationToken ct) => MainActor.Invoke(() => RequestIncomingBriefingOwnedAsync(target, summary, ct));
+    private async Task<string?> RequestIncomingBriefingOwnedAsync(SwitchTarget target, HandoffSummary summary, CancellationToken ct)
     {
         var from = ActiveAccountId;
         var epoch = runtime.HandshakeStamp.Epoch;
         var original = runtime.CreateHandshakeConfiguration(target);
         if (original.Provider != ProviderKind.Claude)
             throw new NotSupportedException("This service has no verified light-model briefing capability.");
+        using var admission = app.AdmitInstallerConversationWork(runtime.ThreadID);
+        using var installerStop = CancellationTokenSource.CreateLinkedTokenSource(ct, admission.StopToken);
+        ct = installerStop.Token;
         var id = Guid.Parse(target.Account.Id);
         bool CanTransfer() => SourceStillCurrent(from, epoch) && AccountAvailable(original.Provider, id)
             && SameTransferSettings(original, runtime.CreateHandshakeConfiguration(target));
@@ -208,8 +222,14 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         return answer;
     }
 
-    public async Task SwitchAsync(IStandbySession standby, SwitchTarget target, bool resumeReply, CancellationToken ct)
+    public Task SwitchAsync(IStandbySession standby, SwitchTarget target, bool resumeReply, CancellationToken ct) =>
+        MainActor.Invoke(() => SwitchOwnedAsync(standby, target, resumeReply, ct));
+    private async Task SwitchOwnedAsync(IStandbySession standby, SwitchTarget target, bool resumeReply, CancellationToken ct)
     {
+        if (standby is InstallerStandbySession guarded) standby = guarded.Inner;
+        using var admission = standby.Kind == StandbyKind.Primed ? app.AdmitInstallerConversationWork(runtime.ThreadID) : null;
+        using var installerStop = CancellationTokenSource.CreateLinkedTokenSource(ct, admission?.StopToken ?? CancellationToken.None);
+        ct = installerStop.Token;
         if (standby is DeferredStandby deferred)
         {
             await SwitchDeferredAsync(deferred, target, ct);

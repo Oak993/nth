@@ -1,4 +1,8 @@
 using System.Reflection;
+using Marrow.App.Port;
+using Marrow.App.Port.Skills;
+using Marrow.App.Tests.Port;
+using Marrow.Services.Port.Skills.Generations;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Accounts;
@@ -11,12 +15,15 @@ using Marrow.Testing;
 
 namespace Marrow.App.Tests.Port.Accounts;
 
+[Collection("MCPHub processes")]
 [Trait("Rule", "R-TEST-4")]
 public sealed class LiveApiKeyPoolTests
 {
     [Fact]
     public void A_live_API_launch_uses_its_recorded_key_and_persists_reported_spend_on_that_actual_identity()
     {
+        using var shell = new C7OfflineShell();
+        using var skills = ProviderSkills.Prepare.Override((_, _, _, _) => Task.FromResult<Generation?>(null));
         using var http = new InProcessHttpHandler();
         using var transport = URLSession.Transport.Override(http);
         using var reader = MultiAccountRouting.LimitsReader.Override((app, key, ct) => Task.FromResult<PlanLimits?>(null));
@@ -47,6 +54,8 @@ public sealed class LiveApiKeyPoolTests
     [InlineData(true)]
     public void A_live_key_at_its_local_month_cap_cannot_send_or_escape_the_cap_through_a_thread_pin(bool pin)
     {
+        using var shell = new C7OfflineShell();
+        using var skills = ProviderSkills.Prepare.Override((_, _, _, _) => Task.FromResult<Generation?>(null));
         using var http = new InProcessHttpHandler();
         using var transport = URLSession.Transport.Override(http);
         using var reader = MultiAccountRouting.LimitsReader.Override((app, key, ct) => Task.FromResult<PlanLimits?>(null));
@@ -71,6 +80,8 @@ public sealed class LiveApiKeyPoolTests
     [Fact]
     public void A_private_handshake_uses_only_its_fixed_destination_key_even_when_live_automatic_key_moves_are_allowed()
     {
+        using var shell = new C7OfflineShell();
+        using var skills = ProviderSkills.Prepare.Override((_, _, _, _) => Task.FromResult<Generation?>(null));
         using var http = new InProcessHttpHandler();
         using var transport = URLSession.Transport.Override(http);
         using var reader = MultiAccountRouting.LimitsReader.Override((app, key, ct) => Task.FromResult<PlanLimits?>(null));
@@ -84,7 +95,10 @@ public sealed class LiveApiKeyPoolTests
             var summaries = new HandshakeSummaryAdapter((id, ct) => rig.Runtime.BuildHandshakeSourceAsync(ct));
             var host = new ThreadAccountHost(rig.App, rig.Runtime, new(), summaries);
             await using var standby = await host.StartStandbyAsync(new(new(destination.Id.ToString("D"), destination.Service.Id, "Destination")), CancellationToken.None);
-            var provider = (ProviderSession)typeof(HandshakeStandbySession).GetField("session", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(standby)!;
+            // ED-NEW-inst-c7-5: transparent adapter retains fixed-key ownership and zero HTTP.
+            var adapter = Assert.IsType<InstallerStandbySession>(standby);
+            var actual = Assert.IsType<HandshakeStandbySession>(adapter.Inner);
+            var provider = (ProviderSession)typeof(HandshakeStandbySession).GetField("session", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(actual)!;
             var api = Assert.IsAssignableFrom<OpenAICompatibleSession>(provider);
             Assert.NotNull(api.KeyRotation);
             Assert.Equal(destination.Id.ToString("D"), api.KeyRotation.Current()!.Id);

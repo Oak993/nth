@@ -335,8 +335,14 @@ public sealed partial class MultiAccountRouting
         await Task.CompletedTask;
     }
 
+    internal void ResumeAfterInstallerQuit()
+    {
+        MainActor.AssumeIsolated();
+        foreach (var thread in routes.Keys.ToArray()) _ = MainActor.Spawn(() => TickAsync(thread));
+    }
     private async Task TickAsync(Guid thread)
     {
+        if (app.InstallerHoldsNewTurns) return;
         if (ManualSelectionPending(thread) || app.ApiKeys.AwaitingChoice(thread)) return;
         if (!routes.TryGetValue(thread, out var route)) return;
         if (!route.Runtime.TryHandshakeAccountId(out var active)) { Detach(thread); return; }
@@ -350,8 +356,11 @@ public sealed partial class MultiAccountRouting
         await route.Machine.TickAsync(route.Cancellation.Token);
         if (route.ResumeWaiting && route.Runtime.IsAccountSwitchSafe && route.LimitedAccount is { } account && route.LimitedTurn is { } turn)
         {
+            var installerGeneration = app.InstallerQuitGeneration;
             route.ResumeWaiting = false;
-            await route.Runtime.TryResumeAfterAccountWaitAsync(account, route.LimitedEpoch, turn, route.LimitedSessionId, route.Cancellation.Token);
+            var resumed = await route.Runtime.TryResumeAfterAccountWaitAsync(account, route.LimitedEpoch, turn, route.LimitedSessionId, route.Cancellation.Token);
+            if (!resumed && (app.InstallerHoldsNewTurns || app.InstallerQuitGeneration != installerGeneration)
+                && routes.TryGetValue(thread, out var current) && ReferenceEquals(current, route)) route.ResumeWaiting = true;
         }
     }
 

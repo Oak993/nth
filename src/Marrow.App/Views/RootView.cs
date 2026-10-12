@@ -277,6 +277,7 @@ public sealed class RootView : Decorator
         outerRoot.Children.Add(windowClip);
         outerRoot.Children.Add(genieLayer);
         outerRoot.Children.Add(rowGlideLayer);
+        outerRoot.Children.Add(new InstallerClosingNotice()); // ED-NEW-inst-c7-5: visible with no selected chat too
         outerRoot.Children.Add(paletteHost); // :72-76, CommandPalette added/removed by UpdatePalette below
         HorizontalAlignment = HorizontalAlignment.Stretch;
         VerticalAlignment = VerticalAlignment.Stretch;

@@ -13,6 +13,6 @@ public static class ProductionRunningNth
     public static IRunningNth Create(string installRoot) =>
         new RunningNthHandshake(
             installRoot,
-            PipeNthControlChannel.ForCurrentUser() ?? throw new PlatformNotSupportedException("nth Setup runs on Windows."),
+            PipeNthControlChannel.ForCurrentUser(installRoot: installRoot) ?? throw new PlatformNotSupportedException("nth Setup runs on Windows."),
             new WindowsRunningNthProcesses());
 }

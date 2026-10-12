@@ -21,7 +21,7 @@
     <ApplicationIcon>..\Marrow.App\Assets\icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <!-- Unit U5 (ED-NEW-inst-u5-1): the linked ShellLinks.cs uses [GeneratedComInterface], whose generated code needs unsafe. -->
+    <!-- Unit U5 (ED-NEW-inst-u5-1): the linked ShellLinks.cs uses [GeneratedComInterface], whose generated code needs unsafe; so does the pipe peer identity's generated LibraryImport (ED-NEW-inst-c7-4). -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IsAotCompatible>true</IsAotCompatible>
     <Product>nth</Product>

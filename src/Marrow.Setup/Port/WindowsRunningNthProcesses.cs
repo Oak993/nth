@@ -87,7 +87,9 @@ public sealed class WindowsRunningNthProcesses : IRunningNthProcesses
         try
         {
             if (WaitForSingleObject(handle, 0) == WaitObject0) return ProcessEndResult.Gone;
-            if (process.StartedAtTicks != 0 && StartedAt(handle) is { } started && started != process.StartedAtTicks) return ProcessEndResult.Gone; // another program has this id now
+            var identity = DescribeHandle(handle); // Verify this acquired handle; never reopen a possibly recycled PID.
+            if (CheckEndIdentity(process, identity?.Path, identity?.StartedAt) is { } identityFailure)
+                return identityFailure;
             if (TerminateProcess(handle, 1) == 0)
                 return Marshal.GetLastWin32Error() == ErrorAccessDenied ? ProcessEndResult.AccessDenied : ProcessEndResult.Failed;
             return WaitForSingleObject(handle, (uint)EndWait.TotalMilliseconds) == WaitObject0 ? ProcessEndResult.Ended : ProcessEndResult.Failed;
@@ -98,22 +100,40 @@ public sealed class WindowsRunningNthProcesses : IRunningNthProcesses
         }
     }
 
+    // ED-NEW-inst-c7-4: retained uncertain records never authorize terminating an unverifiable handle.
+    internal static ProcessEndResult? CheckEndIdentity(RunningNthProcess process, string? executable, long? started)
+    {
+        if (process.StartedAtTicks <= 0 || started is not > 0) return ProcessEndResult.Failed;
+        if (started != process.StartedAtTicks) return ProcessEndResult.Gone;
+        if (string.IsNullOrWhiteSpace(executable) || !string.Equals(process.ExecutablePath, executable, StringComparison.OrdinalIgnoreCase))
+            return ProcessEndResult.Failed;
+        return null;
+    }
+
     // The file a process runs and when it started, or null when Windows will not say (then it is not counted: the setup cannot reason about it).
+    internal static RunningNthProcess? DescribeProcess(int processId) => Describe(processId) is { } info
+        ? new RunningNthProcess(processId, info.Path, info.StartedAt) : null;
+
     private static (string Path, long StartedAt)? Describe(int processId)
     {
         var handle = OpenProcess(ProcessQueryLimitedInformation, 0, processId);
         if (handle == IntPtr.Zero) return null;
         try
         {
-            var buffer = new char[1024];
-            var size = (uint)buffer.Length;
-            if (QueryFullProcessImageNameW(handle, 0, buffer, ref size) == 0) return null;
-            return (new string(buffer, 0, (int)size), StartedAt(handle) ?? 0);
+            return DescribeHandle(handle);
         }
         finally
         {
             _ = CloseHandle(handle);
         }
+    }
+
+    private static (string Path, long StartedAt)? DescribeHandle(IntPtr handle)
+    {
+        var buffer = new char[1024];
+        var size = (uint)buffer.Length;
+        if (QueryFullProcessImageNameW(handle, 0, buffer, ref size) == 0) return null;
+        return (new string(buffer, 0, (int)size), StartedAt(handle) ?? 0);
     }
 
     private static long? StartedAt(IntPtr handle) =>

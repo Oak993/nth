@@ -31,18 +31,19 @@ public sealed class FakeNth : INthControlChannel, IRunningNthProcesses
     private readonly TimeProvider time;
     private readonly object gate = new();
     private readonly List<string> sent = [];
+    private readonly List<NthControlRequest> requests = [];
     private readonly List<int> ended = [];
     private TimeSpan? exitAt;
     private List<RunningNthProcess> inRoot;
     private bool quitting;
     private readonly long begun;
 
-    public FakeNth(TimeProvider time, string root)
+    public FakeNth(TimeProvider time, string root, RunningNthProcess? mainProcess = null)
     {
         this.time = time;
         Root = root;
         begun = time.GetTimestamp();
-        Main = new RunningNthProcess(4242, Path.Combine(root, "current", "nth.exe"), 1000);
+        Main = mainProcess ?? new RunningNthProcess(4242, Path.Combine(root, "current", "nth.exe"), 1000);
         inRoot = [Main];
     }
 
@@ -131,6 +132,8 @@ public sealed class FakeNth : INthControlChannel, IRunningNthProcesses
         }
     }
 
+    public IReadOnlyList<NthControlRequest> Requests { get { lock (gate) return [.. requests]; } }
+
     public int Count(string request) => Sent.Count(item => item == request);
 
     /// <summary>The person closes nth themselves this long after the test began (a point on the clock, so a fast-forwarded test cannot jump over a look at it).</summary>
@@ -165,13 +168,14 @@ public sealed class FakeNth : INthControlChannel, IRunningNthProcesses
         lock (gate)
         {
             sent.Add(Name(request));
+            requests.Add(request);
             Settle();
             if (inRoot.Count == 0) return Task.FromResult(NthControlExchange.Failed(NthControlFailure.NoPipe));
             if (Pipe == FakePipe.Missing || (PipeAppearsAfter is { } after && Since < after))
                 return Task.FromResult(NthControlExchange.Failed(NthControlFailure.NoPipe));
             if (Pipe == FakePipe.Silent) return Task.FromResult(NthControlExchange.Failed(NthControlFailure.NoAnswer));
             if (Pipe == FakePipe.NotAllowed) return Task.FromResult(NthControlExchange.Failed(NthControlFailure.NotAllowed));
-            return Task.FromResult(NthControlExchange.Answered(Answer(request)));
+            return Task.FromResult(NthControlExchange.Answered(Answer(request) with { Id = request.Id }));
         }
     }
 

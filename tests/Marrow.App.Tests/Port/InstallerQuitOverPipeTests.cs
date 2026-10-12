@@ -30,12 +30,30 @@ public sealed class InstallerQuitOverPipeTests
         {
             // The server needed no acknowledgement and let go.
         }
-        return NthControlResponse.Parse(bytes);
+        var response = NthControlResponse.Parse(bytes);
+        if (response?.CommitRequired == true)
+        {
+            bytes = await NthControl.ReadFrameAsync(client, window.Token);
+            if (bytes is null) return null;
+            response = NthControlResponse.Parse(bytes);
+            await NthControl.WriteAckAsync(client, window.Token);
+        }
+        if (request.Command == NthControlCommand.Quit && response?.Reply == NthControlReply.Ok)
+        {
+            bytes = await NthControl.ReadFrameAsync(client, window.Token);
+            if (bytes is not null)
+            {
+                response = NthControlResponse.Parse(bytes);
+                await NthControl.WriteAckAsync(client, window.Token);
+            }
+        }
+        return response;
     }
 
     // The request waits for the app's main loop, which only runs when the test lets it.
     private static NthControlResponse Ask(NthControlRig rig, string pipeName, NthControlRequest request)
     {
+        request = rig.H.Main.OnMain(() => rig.Prepare(request));
         var asking = Task.Run(() => SendAsync(pipeName, request));
         rig.H.Main.Loop.RunUntil(() => asking.IsCompleted, AppModelHarness.Bound);
         return asking.GetAwaiter().GetResult() ?? throw new InvalidOperationException("nth closed the pipe without an answer.");
