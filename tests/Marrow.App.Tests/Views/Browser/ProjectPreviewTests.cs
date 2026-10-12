@@ -14,6 +14,33 @@ namespace Marrow.App.Tests.Views.Browser;
 public sealed class ProjectPreviewTests(HeadlessSession headless)
 {
     [Fact]
+    [Trait("Decision", "ED-NEW-web-w9-11")]
+    public void Drawer_exposes_named_filters_empty_state_selected_tabs_and_long_RTL_console_text() => headless.OnUiThread(() =>
+    {
+        using var rig = new VisusRig(); var tab = rig.Page("http://localhost:5173/", VisusTabKind.Preview);
+        var preview = new VisusPaneBody(rig.Session).Preview!;
+        var search = LogicalQuery.SelfAndDescendants<TextBox>(preview.Drawer).Single();
+        var levels = LogicalQuery.SelfAndDescendants<ComboBox>(preview.Drawer).Single();
+        var list = LogicalQuery.SelfAndDescendants<ListBox>(preview.Drawer).Single();
+        Assert.Equal("Search preview logs", Avalonia.Automation.AutomationProperties.GetName(search));
+        Assert.Equal("Console level", Avalonia.Automation.AutomationProperties.GetName(levels));
+        Assert.Equal("Preview log entries", Avalonia.Automation.AutomationProperties.GetName(list));
+        Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(preview.Drawer), text => text.Text == "No console messages" && text.IsVisible);
+        var console = LogicalQuery.SelfAndDescendants<Avalonia.Controls.Primitives.ToggleButton>(preview.Drawer).Single(button => Avalonia.Automation.AutomationProperties.GetName(button) == "Console");
+        var network = LogicalQuery.SelfAndDescendants<Avalonia.Controls.Primitives.ToggleButton>(preview.Drawer).Single(button => Avalonia.Automation.AutomationProperties.GetName(button) == "Network");
+        Assert.True(console.IsChecked); Assert.False(network.IsChecked);
+        network.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Assert.False(console.IsChecked); Assert.True(network.IsChecked);
+        console.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        var longText = string.Concat(Enumerable.Repeat("رسالة طويلة ", 160));
+        VisusRig.Live(tab).EmitCdp("Runtime.consoleAPICalled", System.Text.Json.JsonSerializer.Serialize(new { type = "error", args = new[] { new { value = longText } } }));
+        search.Text = "رسالة"; Dispatcher.UIThread.RunJobs();
+        var entry = Assert.IsType<Marrow.Services.Web.PreviewConsoleEntry>(Assert.Single(list.ItemsSource!.Cast<object>()));
+        Assert.Equal(longText, entry.Text); Assert.Equal("error", entry.Level);
+        var row = list.ItemTemplate!.Build(entry);
+        Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(row!), text => text.Text == longText && text.TextWrapping == Avalonia.Media.TextWrapping.Wrap);
+    });
+    [Fact]
     [Trait("Decision", "ED-NEW-web-w9-9")]
     public void Drawer_tabs_keep_the_approved_24_DIP_height_7_DIP_radius_and_10_DIP_padding() => headless.OnUiThread(() =>
     {

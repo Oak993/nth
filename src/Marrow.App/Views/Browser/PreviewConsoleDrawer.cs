@@ -2,6 +2,8 @@ using System.Globalization;
 using System.Collections.ObjectModel;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Automation;
+using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -23,6 +25,7 @@ public sealed class PreviewConsoleDrawer : Border, IDisposable
     private readonly Button strip;
     private readonly Button consoleTab;
     private readonly Button networkTab;
+    private readonly TextBlock empty = new() { Text = "No console messages", FontSize = 12, Margin = new Thickness(10), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
     private readonly Grid expanded = new() { RowDefinitions = new RowDefinitions("32,*") };
     private readonly DispatcherTimer timer;
     private bool network;
@@ -34,8 +37,8 @@ public sealed class PreviewConsoleDrawer : Border, IDisposable
         BorderThickness = new Thickness(.5); BorderBrush = new SolidColorBrush(Color.FromArgb(20, 255, 255, 255)); Background = new SolidColorBrush(Color.FromArgb(71, 0, 0, 0));
         strip = DevicePresetBar.Action("Console", () => { State.Restore(); Refresh(); }); strip.Height = 24;
         var tools = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5, Margin = new Thickness(8, 4) };
-        consoleTab = DevicePresetBar.Action("Console", () => { network = false; RenderRows(); });
-        networkTab = DevicePresetBar.Action("Network", () => { network = true; RenderRows(); });
+        consoleTab = DevicePresetBar.Action("Console", () => { network = false; RenderRows(); }, toggle: true);
+        networkTab = DevicePresetBar.Action("Network", () => { network = true; RenderRows(); }, toggle: true);
         foreach (var tab in new[] { consoleTab, networkTab })
         {
             tab.Height = 24; tab.Padding = new Thickness(10, 0); tab.CornerRadius = new CornerRadius(7);
@@ -47,6 +50,10 @@ public sealed class PreviewConsoleDrawer : Border, IDisposable
         preserve.IsCheckedChanged += (_, _) => { if (owner.Runtime.Diagnostics is { } d) d.PreserveLog = preserve.IsChecked == true; }; tools.Children.Add(preserve);
         expanded.Children.Add(new ScrollViewer { Content = tools, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled });
         Grid.SetRow(rows, 1); expanded.Children.Add(rows);
+        Grid.SetRow(empty, 1); expanded.Children.Add(empty);
+        AutomationProperties.SetName(search, "Search preview logs");
+        AutomationProperties.SetName(levels, "Console level");
+        AutomationProperties.SetName(rows, "Preview log entries");
         rows.ItemTemplate = new FuncDataTemplate<object>((item, _) => Row(item));
         rows.ItemsSource = displayed;
         search.TextChanged += (_, _) => RenderRows(); levels.SelectionChanged += (_, _) => RenderRows();
@@ -73,6 +80,8 @@ public sealed class PreviewConsoleDrawer : Border, IDisposable
         RefreshTabs();
         var data = (network ? owner.Runtime.Diagnostics?.FindNetwork(search.Text ?? "").Cast<object>().ToArray()
             : owner.Runtime.Diagnostics?.FindConsole(search.Text ?? "", levels.SelectedIndex > 0 ? levels.SelectedItem as string : null).Cast<object>().ToArray()) ?? [];
+        empty.Text = !string.IsNullOrEmpty(search.Text) ? "No matching entries" : network ? "No network requests" : "No console messages";
+        empty.IsVisible = data.Length == 0;
         if (data.Length == 0) { displayed.Clear(); return; }
         var first = displayed.IndexOf(data[0]);
         if (first > 0) for (var i = 0; i < first; i++) displayed.RemoveAt(0);
@@ -82,6 +91,8 @@ public sealed class PreviewConsoleDrawer : Border, IDisposable
     }
     private void RefreshTabs()
     {
+        ((ToggleButton)consoleTab).IsChecked = !network; ((ToggleButton)networkTab).IsChecked = network;
+        empty.Foreground = PaneTokens.Text2.Brush(this);
         consoleTab.Background = network ? Brushes.Transparent : PaneTokens.HoverFill.Brush(this);
         networkTab.Background = network ? PaneTokens.HoverFill.Brush(this) : Brushes.Transparent;
         consoleTab.Foreground = network ? PaneTokens.Text2.Brush(this) : PaneTokens.Text1.Brush(this);
