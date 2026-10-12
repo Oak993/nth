@@ -37,7 +37,8 @@ public sealed class HydraShimmerBudgetTests(HeadlessSession headless)
         bytes /= 30;
         TimelineRowsPrSupport.Close(window);
         Assert.True(moves >= 50, $"the band moves at every tick ({moves} of 60)");
-        // Measured on the unchanged code (2026-10-12, Debug): 9,048 B per tick.
-        Assert.True(bytes <= 13_600, $"HydraShimmer: {bytes} B per tick");
+        // Measured on the unchanged code (2026-10-12, Debug): 9,048 B per tick (limit was 13,600). After: 2,672 B, the timeline's and the moving band's
+        // change notifications. Limit about 1.3x.
+        Assert.True(bytes <= 3_480, $"HydraShimmer: {bytes} B per tick");
     });
 }

@@ -26,7 +26,7 @@ public sealed class MarkdownStreamingParseBudgetTests(HeadlessSession headless)
             if (flush >= 10) bytes += after - before;
         }
         bytes /= 5;
-        // Measured on the unchanged code (2026-10-12, Debug): 545,793 B per flush.
-        Assert.True(bytes <= 820_000, $"StreamingParse at 100k: {bytes} B per flush");
+        // Measured on the unchanged code (2026-10-12, Debug): 545,793 B per flush (limit was 820,000). After: 344,980 B, the parser's own. Limit about 1.3x.
+        Assert.True(bytes <= 448_500, $"StreamingParse at 100k: {bytes} B per flush");
     });
 }

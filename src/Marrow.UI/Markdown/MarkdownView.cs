@@ -72,7 +72,7 @@ public sealed class MarkdownView : Decorator
     internal const int StreamingSlots = 48; // :115 nonisolated fileprivate at B3, so RichLink (:811) can read it
 
     /// <param name="text">:10 <c>let text: String</c>.</param>
-    public string Text { get; }
+    public string Text { get; private set; }
 
     /// <param name="isStreaming">:16 <c>var isStreaming = false</c>.</param>
     public bool IsStreaming { get; }
@@ -129,8 +129,16 @@ public sealed class MarkdownView : Decorator
         }
         else // :84-98
         {
-            root = VeiledBlocks(blocks, stable, isStreaming, veils);
+            List<PlacedBlock>? placed = isStreaming && veils is not null ? [] : null; // lean L11: the blocks a later flush may keep (Stream)
+            var stack = VeiledBlocks(blocks, stable, isStreaming, veils, placed);
+            root = stack;
             StreamVeil.SetMarkdownVeiled(root, isStreaming); // :96 .environment(\.markdownVeiled, isStreaming)
+            if (placed is not null)
+            {
+                streamStack = stack;
+                streamVeils = veils;
+                placedBlocks = placed;
+            }
         }
 
         Child = root;
@@ -154,9 +162,10 @@ public sealed class MarkdownView : Decorator
         return stack;
     }
 
-    // :86-97 the block branch, each block at its place in the veils (b{n}).
-    private static StackPanel VeiledBlocks(IReadOnlyList<MarkdownBlock> blocks, int stable, bool isStreaming, MarkdownVeilScope? veils)
+    // :86-97 the block branch, each block at its place in the veils (b{n}). `placed` (lean L11) collects what Stream needs to keep the settled blocks.
+    private static StackPanel VeiledBlocks(IReadOnlyList<MarkdownBlock> blocks, int stable, bool isStreaming, MarkdownVeilScope? veils, List<PlacedBlock>? placed = null)
     {
+        var now = SwiftDate.Now;
         var last = blocks.Count - 1;
         var known = veils?.TreeKnown ?? false; // PORT-ONLY (UI-THEME-047): a tree that has been built before, so a block that is new in it is an insertion
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 }; // :86
@@ -172,17 +181,93 @@ public sealed class MarkdownView : Decorator
                 // it (opacity and a 4 point offset, 0.32 s); it runs on through the flushes after, which each build the tree again, from where it was.
                 view.Transition(Arrival(block));
                 SwiftTransition.Insert(stack, stack.Children.Count, view, elapsed);
+                placed?.Add(new PlacedBlock(view, index < stable ? now : null, Plain: false));
             }
             else
             {
                 view.Transition(Transition(block)); // :92
                 stack.Children.Add(view);
+                placed?.Add(new PlacedBlock(view, index < stable ? now : null, Plain: true));
             }
         }
         veils?.TreeBuilt(blocks.Count);
         stack.HorizontalAlignment = HorizontalAlignment.Stretch; // :97 frame(maxWidth: .infinity, alignment: .leading)
         return stack;
     }
+
+    // PORT-ONLY (lean L11, ED-NEW-lean-11). A block of a streaming tree as it stands in the stack: its view, since when the parser has called it settled
+    // (null while it is not), and whether it was placed plainly (not by an arrival's insertion).
+    private readonly record struct PlacedBlock(MarkdownBlockView View, DateTimeOffset? SettledSince, bool Plain);
+
+    // PORT-ONLY (lean L11). The streaming tree this view built (its stack, the places of its veils, its blocks in order): what Stream updates in place.
+    private StackPanel? streamStack;
+    private MarkdownVeilScope? streamVeils;
+    private List<PlacedBlock> placedBlocks = [];
+
+    /// <summary>PORT-ONLY (lean L11, ED-NEW-lean-11). How long a settled block rests before a flush keeps its view: every chunk of its veil has settled by then
+    /// (no chunk fades longer than <see cref="StreamVeil.LongestFade"/> from the flush that fed it, and a settled block's text is fed no more) and its arrival has
+    /// run (<see cref="MarkdownVeils.ArrivalLength"/>), with a margin for the frame that paints the last of either. A block in that window is built again
+    /// for every flush, exactly as before.</summary>
+    internal static TimeSpan SettleQuiet { get; } = TimeSpan.FromSeconds(Math.Max(1.0, StreamVeil.LongestFade + MarkdownVeils.ArrivalLength.TotalSeconds + 0.25));
+
+    /// <summary>
+    /// PORT-ONLY (lean L11, ED-NEW-lean-11): the next flush of the streaming reply this view shows, applied to this view instead of building a new one.
+    /// The Swift's ForEach keeps every block view and `.equatable()` skips a settled block (MarkdownView.swift:86-97, :295-298); the port built the whole
+    /// tree again for every flush, so a flush cost grew with the reply. Here the leading blocks the parser has settled, that are the same block, that are not
+    /// the last block, that were placed plainly and that have rested <see cref="SettleQuiet"/> keep their views where they are (never taken out of the
+    /// tree); every block from the first that does not is built again and placed exactly as the constructor places it (the same veil places b{n}, the same
+    /// arrival and transition). <paramref name="keep"/> is told, before the change, the views that leave and the views just built (none in the tree yet),
+    /// as a row that rebuilds the whole tree hands its delegation cards over (TimelineRows' KeepCards). Returns false, changing nothing, when this view
+    /// did not build a streaming tree or its veils have forgotten the tree (the row left the screen): the caller builds a new view then.
+    /// </summary>
+    public bool Stream(string text, Action<IReadOnlyList<Control>, IReadOnlyList<Control>>? keep = null)
+    {
+        if (streamStack is not { } stack || streamVeils is not { TreeKnown: true } veils) return false;
+        var (blocks, stable) = StreamingParse(text); // :67
+        var now = SwiftDate.Now;
+        var last = blocks.Count - 1;
+        var kept = 0;
+        while (kept < placedBlocks.Count && kept < blocks.Count && Keeps(placedBlocks[kept], blocks[kept], kept < stable, kept == last, now)) kept++;
+        var made = new List<Control>(blocks.Count - kept);
+        var arrivals = new TimeSpan?[blocks.Count - kept];
+        var settledSince = new DateTimeOffset?[blocks.Count - kept];
+        for (var index = kept; index < blocks.Count; index++) // :87-92, as VeiledBlocks
+        {
+            var block = blocks[index];
+            var place = veils.Child("b" + index);
+            var view = new MarkdownBlockView(block, settled: index < stable, veils: place); // :88
+            SetMarkdownStreaming(view, index == last); // :89-91
+            var arrival = place.Arrival(true);
+            view.Transition(arrival is null ? Transition(block) : Arrival(block)); // :92
+            made.Add(view);
+            arrivals[index - kept] = arrival;
+            settledSince[index - kept] = index >= stable ? null
+                : index < placedBlocks.Count && placedBlocks[index].SettledSince is { } since && MarkdownBlockView.Keeps(placedBlocks[index].View, block, settled: true) ? since : now;
+        }
+        if (keep is not null)
+        {
+            var leaving = new List<Control>(stack.Children.Count - kept);
+            for (var index = kept; index < stack.Children.Count; index++) leaving.Add(stack.Children[index]);
+            keep(leaving, made);
+        }
+        stack.Children.RemoveRange(kept, stack.Children.Count - kept);
+        placedBlocks.RemoveRange(kept, placedBlocks.Count - kept);
+        for (var index = 0; index < made.Count; index++)
+        {
+            if (arrivals[index] is { } elapsed) SwiftTransition.Insert(stack, stack.Children.Count, made[index], elapsed);
+            else stack.Children.Add(made[index]);
+            placedBlocks.Add(new PlacedBlock((MarkdownBlockView)made[index], settledSince[index], Plain: arrivals[index] is null));
+        }
+        veils.TreeBuilt(blocks.Count);
+        Text = text;
+        return true;
+    }
+
+    // lean L11: whether the block at a place keeps the view it has. MarkdownView.swift:295-298's settled rule (a settled pair is the same block), made stricter:
+    // the parse of a text that does not extend the last one renumbers its blocks, so the block must also be the same block by content.
+    private static bool Keeps(PlacedBlock placed, MarkdownBlock block, bool settled, bool isLast, DateTimeOffset now) =>
+        placed.Plain && !isLast && placed.SettledSince is { } since && now - since >= SettleQuiet
+        && !GetMarkdownStreaming(placed.View) && MarkdownBlockView.Keeps(placed.View, block, settled);
 
     // PORT-ONLY (UI-THEME-047). :51-56's transition as a block ARRIVES, which the soft appear of Chrome.swift:949-955 does: opacity 0 -> 1 with a 4 point offset -> 0
     // over Animation.softAppear. Chrome.SoftAppear's modifier carries a Bool alone, which the transition mechanics apply at its identity at once (SwiftAnimation.cs
@@ -290,17 +375,19 @@ public sealed class MarkdownView : Decorator
     public static Ambient<Action<string>> ParseObserver { get; } = new(static _ => { });
 
     // :111 @MainActor private static var streamingParses: [(text: String, parse: MarkdownParser.Parse)] = [].
-    private static readonly List<(string Text, MarkdownParser.Parse Parse)> streamingParses = []; // PR-THEME-123
+    // lean L11: each kept text carries its UTF-8 length, measured once when it is kept rather than again for every flush.
+    private static readonly List<(string Text, int Utf8Count, MarkdownParser.Parse Parse)> streamingParses = []; // PR-THEME-123
 
     // :123-133 static func streamingParse(for text: String) -> (blocks: [MarkdownBlock], stable: Int).
     // PR-THEME-123/125.
     public static (ValueList<MarkdownBlock> Blocks, int Stable) StreamingParse(string @for)
     {
         var text = @for;
+        var count = SwiftString.Utf8Count(text); // lean L11: once per flush
         for (var i = streamingParses.Count - 1; i >= 0; i--)
         {
             var candidate = streamingParses[i];
-            if (SwiftString.Utf8Count(candidate.Text) == SwiftString.Utf8Count(text) && candidate.Text == text)
+            if (candidate.Utf8Count == count && candidate.Text == text)
             {
                 return (candidate.Parse.Blocks, candidate.Parse.Stable);
             }
@@ -308,12 +395,12 @@ public sealed class MarkdownView : Decorator
         var slot = -1;
         for (var i = streamingParses.Count - 1; i >= 0; i--)
         {
-            if (Extends(streamingParses[i].Text, text)) { slot = i; break; }
+            if (ExtendsCounted(streamingParses[i].Text, streamingParses[i].Utf8Count, text, count)) { slot = i; break; }
         }
         var parsed = MarkdownParser.MarkdownParserParse(text, slot >= 0 ? (streamingParses[slot].Text, streamingParses[slot].Parse) : null);
         if (slot >= 0) streamingParses.RemoveAt(slot);
         else if (streamingParses.Count == StreamingSlots) streamingParses.RemoveAt(0);
-        streamingParses.Add((text, parsed));
+        streamingParses.Add((text, count, parsed));
         return (parsed.Blocks, parsed.Stable);
     }
 
@@ -345,23 +432,69 @@ public sealed class MarkdownView : Decorator
 
     // :154-167 private static func extends(_ earlier: String, to text: String) -> Bool. PR-THEME-125: byte-probe
     // extension test, not a whole-text comparison.
-    private static bool Extends(string earlier, string to)
+    private static bool Extends(string earlier, string to) => ExtendsCounted(earlier, SwiftString.Utf8Count(earlier), to, SwiftString.Utf8Count(to));
+
+    // lean L11 (ED-NEW-lean-11): the same test with the two UTF-8 lengths known, reading only the probed bytes. It used to encode both whole texts to
+    // compare 128 of their bytes, twice a reply's size for every flush.
+    private static bool ExtendsCounted(string earlier, int earlierCount, string text, int count)
     {
-        var text = to;
-        var earlierCount = SwiftString.Utf8Count(earlier);
-        var count = SwiftString.Utf8Count(text);
         if (earlierCount <= 0 || earlierCount >= count) return false;
         const int probe = 64;
-        var earlierBytes = Encoding.UTF8.GetBytes(earlier);
-        var bytes = Encoding.UTF8.GetBytes(text);
         if (earlierCount <= probe * 2)
         {
-            return bytes.Length >= earlierBytes.Length && bytes.AsSpan(0, earlierBytes.Length).SequenceEqual(earlierBytes);
+            Span<byte> whole = stackalloc byte[earlierCount];
+            Span<byte> start = stackalloc byte[earlierCount];
+            Utf8Window(earlier, 0, earlierCount, whole);
+            Utf8Window(text, 0, earlierCount, start);
+            return start.SequenceEqual(whole);
         }
-        if (!bytes.AsSpan(0, probe).SequenceEqual(earlierBytes.AsSpan(0, probe))) return false;
-        var earlierTail = earlierBytes.AsSpan(earlierBytes.Length - probe, probe);
+        Span<byte> earlierProbe = stackalloc byte[probe];
+        Span<byte> textProbe = stackalloc byte[probe];
+        Utf8Window(earlier, 0, probe, earlierProbe);
+        Utf8Window(text, 0, probe, textProbe);
+        if (!textProbe.SequenceEqual(earlierProbe)) return false;
         var tailStart = earlierCount - probe;
-        return bytes.AsSpan(tailStart, probe).SequenceEqual(earlierTail);
+        Utf8Window(earlier, tailStart, earlierCount, earlierProbe);
+        Utf8Window(text, tailStart, earlierCount, textProbe);
+        return textProbe.SequenceEqual(earlierProbe);
+    }
+
+    // lean L11: bytes [from, to) of Encoding.UTF8.GetBytes(text) (a lone surrogate as U+FFFD's three bytes, a pair as four), into `into`, encoding only
+    // the characters that hold them. `to` is at most the text's UTF-8 length.
+    private static void Utf8Window(string text, int from, int to, Span<byte> into)
+    {
+        int index = 0, offset = 0;
+        while (index < text.Length)
+        {
+            var width = Utf8Width(text, index, out var units);
+            if (offset + width > from) break;
+            offset += width;
+            index += units;
+        }
+        var first = index;
+        var firstOffset = offset;
+        while (index < text.Length && offset < to)
+        {
+            offset += Utf8Width(text, index, out var units);
+            index += units;
+        }
+        Span<byte> bytes = stackalloc byte[offset - firstOffset];
+        Encoding.UTF8.GetBytes(text.AsSpan(first, index - first), bytes);
+        bytes.Slice(from - firstOffset, to - from).CopyTo(into);
+    }
+
+    private static int Utf8Width(string text, int index, out int units)
+    {
+        var unit = text[index];
+        units = 1;
+        if (unit < 0x80) return 1;
+        if (unit < 0x800) return 2;
+        if (char.IsHighSurrogate(unit) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1]))
+        {
+            units = 2;
+            return 4;
+        }
+        return 3;
     }
 
     // :170-176 private static func fenceMarker(in trimmed: String) -> String?. Not cited by any record in this
@@ -689,6 +822,11 @@ public sealed class MarkdownBlockView : Decorator
     // word alone; anything else compares by content.
     public static bool Equatable(MarkdownBlockView lhs, MarkdownBlockView rhs) =>
         (lhs.Settled && rhs.Settled) || lhs.Block == rhs.Block;
+
+    /// <summary>PORT-ONLY (lean L11, ED-NEW-lean-11). Whether <paramref name="view"/> may stand for <paramref name="block"/> at its place in a flush that calls it
+    /// <paramref name="settled"/>: <see cref="Equatable"/>'s settled pair, and the same block by content as well (MarkdownView.Stream).</summary>
+    internal static bool Keeps(MarkdownBlockView view, MarkdownBlock block, bool settled) =>
+        view.Settled && settled && (ReferenceEquals(view.Block, block) || view.Block == block);
 
     private Control Build(MarkdownBlock block)
     {

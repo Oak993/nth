@@ -52,10 +52,14 @@ public sealed class TimelineRowsSettledBlocksBudgetTests(HeadlessSession headles
         var small = PerFlush(10_000);
         var large = PerFlush(100_000);
         var report = $"10k: {small.Bytes} B, {small.Controls} controls; 100k: {large.Bytes} B, {large.Controls} controls per flush";
-        // Measured on the unchanged code (2026-10-12, Debug): 10k 11,695,742 B and 457 controls, 100k 112,767,465 B and 4,269 controls per flush.
-        Assert.True(small.Bytes <= 17_500_000, report);
-        Assert.True(large.Bytes <= 169_000_000, report);
-        Assert.True(small.Controls <= 690, report);
-        Assert.True(large.Controls <= 6_400, report);
+        // Measured on the unchanged code (2026-10-12, Debug): 10k 11,695,742 B and 457 controls, 100k 112,767,465 B and 4,269 controls per flush; limits
+        // were 1.5x that. After keeping the settled blocks: 10k 1,039,336 B and 20 controls, 100k 913,313 B and 8 controls. Limits about 1.3x.
+        Assert.True(small.Bytes <= 1_352_000, report);
+        Assert.True(large.Bytes <= 1_188_000, report);
+        Assert.True(small.Controls <= 26, report);
+        Assert.True(large.Controls <= 11, report);
+        // A flush no longer grows with the reply: ten times the reply costs at most twice as much.
+        Assert.True(large.Bytes <= 2 * small.Bytes, report);
+        Assert.True(large.Controls <= 2 * small.Controls, report);
     });
 }
