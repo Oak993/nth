@@ -1001,7 +1001,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // :724-729
     public ValueList<string> SentPrompts => new(Entries.Select(entry => entry.Item.TimelineItemContent)
         .OfType<TimelineItem.Content.User>()
-        .Where(user => !user.Value.IsFromHydra && !user.Value.IsHydraBrief)
+        .Where(user => !user.Value.IsFromHydra && !user.Value.IsHydraBrief && user.Value.AppSource is null) // W19: an app's message is not the user's to recall
         .Select(user => user.Value.Text));
 
     // :731-736
@@ -1585,9 +1585,10 @@ public sealed partial class ThreadRuntime : MainActorModel
     {
         await EnsureLoaded();
         var ignisPing = ignisPingTurn.Value; // Ignis: a ping that cannot run now is dropped, never queued as a follow-up
+        var appSource = appMessageTurn.Value; // PORT-ONLY W19 (DESIGN 7.6): an MCP App's message, never the user's
         if (Phase != RuntimePhase.Idle || IsReverting)
         {
-            if (!ignisPing) EnqueueFollowUp(text, attachments);
+            if (!ignisPing && appSource is null) EnqueueFollowUp(text, attachments); // W19: an app's message is never queued as the user's
             return;
         }
 
@@ -1596,7 +1597,7 @@ public sealed partial class ThreadRuntime : MainActorModel
 
         if (initialThread.IsArchived)
         {
-            if (!ignisPing) EnqueueFollowUp(text, attachments);
+            if (!ignisPing && appSource is null) EnqueueFollowUp(text, attachments); // W19: an app's message is never queued as the user's
             return;
         }
 
@@ -1608,6 +1609,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             Attachments = new ValueList<Attachment>(attachments),
             HydraHeads = hydraHeads is null ? null : new ValueList<long>(hydraHeads),
             HydraBrief = hydraBrief ? true : null,
+            AppSource = appSource,
         }));
         if (skillsContinuationTurn.Value)
         {
@@ -1629,7 +1631,7 @@ public sealed partial class ThreadRuntime : MainActorModel
 
         EndDelegationStream();
         HydraCurrentTurnTouchedPaths = new ValueSet<string>([], SwiftStringComparer.Instance);
-        hydraBudget = hydraBudget.BeginTurn(userAuthored: hydraHeads is null && !ignisPing);
+        hydraBudget = hydraBudget.BeginTurn(userAuthored: hydraHeads is null && !ignisPing && appSource is null);
 
         if (initialThread.Hydra is { HydraHeadInfoKind: HydraHeadInfo.Kind.Droppy, IsFinished: true })
         {
@@ -1706,11 +1708,11 @@ public sealed partial class ThreadRuntime : MainActorModel
             if (await checkpoint.Value) UpdateTurn(turn.Id, current => current with { BaseCheckpoint = checkpointRef });
             _ = await start.Value;
 
-            if (SlashCommand.NameIn(text) is not null) await app.Providers.LoadCommands(initialThread.Provider, directory);
+            if (appSource is null && SlashCommand.NameIn(text) is not null) await app.Providers.LoadCommands(initialThread.Provider, directory);
 
             if (currentTurnID != turn.Id || session is not { } liveSession || app.Thread(ThreadID) is not { } thread) return;
 
-            var commandName = SlashCommand.NameIn(text);
+            var commandName = appSource is null ? SlashCommand.NameIn(text) : null; // W19: an app's text never runs a command
             SlashCommand? command = null;
             if (commandName is not null
                 && app.Providers.Commands.TryGetValue(ProviderRegistry.CommandKey(thread.Provider, directory), out var commands))
@@ -1718,7 +1720,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                 command = commands.FirstOrDefault(candidate => candidate.Name == commandName);
             }
 
-            var prompt = text;
+            var prompt = AppPrompt(appSource, text, command: commandName is not null); // PORT-ONLY W19: the apps' words, wrapped as untrusted
             var files = attachments.Where(attachment => !attachment.IsImage).ToArray();
             if (files.Length != 0)
                 prompt += "\n\nAttached files:\n" + string.Join("\n", files.Select(file => "- " + file.Path));
@@ -2372,7 +2374,7 @@ public sealed partial class ThreadRuntime : MainActorModel
 
                 currentTurnID = null;
                 FlushDeltas();
-                Approvals = ValueList<ApprovalRequest>.Empty;
+                Approvals = AppPromptsOnly(); // W19: an app's cards are the app's, not the turn's
                 Questions = ValueList<QuestionRequest>.Empty;
 
                 var reportedEdits = new List<FileEdit>();
@@ -2611,6 +2613,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // :1721-1731. Swift: resolve(_:option:).
     public void Resolve(ApprovalRequest request, ApprovalRequest.Option option)
     {
+        if (ResolveAppPrompt(request, option)) return; // PORT-ONLY W19: an MCP App's card answers the app
         // DEVIATION OD-0114 / ED-407: retain the request, chosen answer and scope after it leaves Approvals.
         BufferHandoff(HandoffJournal.EncodeResolution(request.Id, new { Request = request, Option = option }), preserve: true);
         Approvals = Approvals.Mutating(items => items.RemoveAll(item => item.Id == request.Id));
@@ -4192,7 +4195,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                 FlushDeltas();
                 if (isStartingSession) break;
                 ReleaseSession(stop: false);
-                Approvals = ValueList<ApprovalRequest>.Empty;
+                Approvals = AppPromptsOnly(); // W19: an app's cards are the app's, not the session's
                 Questions = ValueList<QuestionRequest>.Empty;
                 StopNativeHeads();
                 if (currentTurnID is not null)

@@ -30,6 +30,13 @@ public enum PaneGlyphKind
     Close,
     More,
     Chevron,
+
+    // PORT-ONLY (web surfaces W19): the MCP App card's display modes, its trust strip and the pop-out's pin.
+    Inline,
+    Pane,
+    PopOut,
+    Shield,
+    Pin,
 }
 
 /// <summary>A line glyph in the inherited text colour.</summary>
@@ -62,6 +69,11 @@ public sealed class PaneGlyph : Control
         [PaneGlyphKind.Close] = Parse("M6 6l12 12M18 6L6 18"),
         [PaneGlyphKind.More] = Parse(Circle(12, 5.5, 1.2) + Circle(12, 12, 1.2) + Circle(12, 18.5, 1.2)),
         [PaneGlyphKind.Chevron] = Parse("M7 10l5 5 5-5"),
+        [PaneGlyphKind.Inline] = Parse("M4 6h16M4 18h16M7.5 9h9a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 13.5v-3A1.5 1.5 0 0 1 7.5 9z"),
+        [PaneGlyphKind.Pane] = Parse("M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM14 5v14"),
+        [PaneGlyphKind.PopOut] = Parse("M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM13 11h5a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z"),
+        [PaneGlyphKind.Shield] = Parse("M12 3.5l7 2.5v5.5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"),
+        [PaneGlyphKind.Pin] = Parse("M9.5 4h5l-.8 5.2 3.3 3.3H7l3.3-3.3zM12 12.5V20"),
     };
 
     static PaneGlyph()

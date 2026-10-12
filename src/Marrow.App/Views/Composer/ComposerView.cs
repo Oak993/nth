@@ -129,6 +129,7 @@ public sealed class ComposerArea : Decorator
 
         // :24 VStack(spacing: 12): the approval cards, then the group.
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 };
+        stack.Children.Add(new AppContextChips(runtime)); // PORT-ONLY (W19, ED-NEW-web-w19-2): the apps' context chips, above the composer
         stack.Children.Add(layers);
         approvalStack = stack;
         var departures = new Canvas { IsHitTestVisible = false }; // over the stack: where a resolved card fades, out of the layout
