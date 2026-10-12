@@ -210,4 +210,17 @@ public sealed class SetupLeftoversStartupTests : IDisposable
 
         Assert.True(startup.IndexOf("AppShell.FinishLaunching") < startup.IndexOf("SetupLeftoversStartup.SweepAtStart"), "after the main window is set up: " + string.Join(", ", startup));
     }
+    [Fact]
+    [Trait("Decision", "ED-247")]
+    public void The_before_uninstall_hook_has_a_short_deadline_and_reports_kept_work()
+    {
+        var (staged, _, _, _) = Leftovers();
+        VelopackHook? hook = null;
+        SetupLeftoversStartup.RegisterUninstall(value => hook = value, Local, Temp, new FakeSetupProbe(running: false), new C7SteppingHookClock());
+        hook!(SemanticVersion.Parse("1.0.0"));
+        Assert.False(SetupLeftoversStartup.LastUninstallSweep.Clean);
+        Assert.Contains(SetupLeftoversStartup.LastUninstallSweep.Kept, kept => kept.Reason == Marrow.Core.Support.SweepKeptReason.LimitReached);
+        Assert.True(File.Exists(staged));
+    }
+
 }

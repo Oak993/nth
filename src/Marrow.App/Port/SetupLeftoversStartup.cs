@@ -16,6 +16,11 @@ namespace Marrow.App.Port;
 /// </summary>
 internal static class SetupLeftoversStartup
 {
+    private static SweepResult lastUninstallSweep = SweepResult.Nothing;
+    internal static SweepResult LastUninstallSweep => Volatile.Read(ref lastUninstallSweep);
+    private static SweepResult lastStartupSweep = SweepResult.Nothing;
+    internal static SweepResult LastStartupSweep => Volatile.Read(ref lastStartupSweep);
+
     /// <summary>How long nth waits for a setup that is open at its start to end: nth is often opened from the setup's Ready screen.</summary>
     internal static readonly TimeSpan DefaultPatience = TimeSpan.FromMinutes(10);
 
@@ -34,39 +39,40 @@ internal static class SetupLeftoversStartup
         {
             try
             {
-                _ = await SetupSweeper.SweepWhenNoSetupRunsAsync(
+                var result = await SetupSweeper.SweepWhenNoSetupRunsAsync(
                     localAppData ?? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     tempPath ?? Path.GetTempPath(),
                     probe ?? new NamedLockSetupProbe(),
                     patience ?? DefaultPatience,
                     interval ?? DefaultInterval).ConfigureAwait(false);
+                Volatile.Write(ref lastStartupSweep, result);
             }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException)
             {
-                // a janitor never stops nth from starting
+                Volatile.Write(ref lastStartupSweep, new SweepResult(0, [new(localAppData ?? "nth Setup", SweepKeptReason.NotRemoved)]));
             }
         });
     }
 
     /// <summary>Adds the sweep to Velopack's before-uninstall hook (Velopack adds callbacks to one multicast delegate, so the skills hook still runs).</summary>
-    internal static void RegisterUninstall(Action<VelopackHook> register, string? localAppData = null, string? tempPath = null, ISetupRunningProbe? probe = null)
+    internal static void RegisterUninstall(Action<VelopackHook> register, string? localAppData = null, string? tempPath = null, ISetupRunningProbe? probe = null, TimeProvider? clock = null)
     {
         ArgumentNullException.ThrowIfNull(register);
-        register(_ => Sweep(localAppData, tempPath, probe));
+        register(_ => Volatile.Write(ref lastUninstallSweep, Sweep(localAppData, tempPath, probe, clock)));
     }
 
-    private static SweepResult Sweep(string? localAppData, string? tempPath, ISetupRunningProbe? probe)
+    private static SweepResult Sweep(string? localAppData, string? tempPath, ISetupRunningProbe? probe, TimeProvider? clock)
     {
         try
         {
             return SetupSweeper.SweepUnlessSetupRuns(
                 localAppData ?? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 tempPath ?? Path.GetTempPath(),
-                probe ?? new NamedLockSetupProbe());
+                probe ?? new NamedLockSetupProbe(), SweepLimits.Hook, clock);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException)
         {
-            return SweepResult.Nothing;
+            return new SweepResult(0, [new(localAppData ?? "nth Setup", SweepKeptReason.NotRemoved)]);
         }
     }
 }

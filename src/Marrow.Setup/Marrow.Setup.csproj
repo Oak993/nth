@@ -50,6 +50,9 @@
     <!-- PLAN.md 3 step 4 and 5, unit U9: the folders the setup writes outside the install root and the sweeps that remove what it leaves. -->
     <Compile Include="..\Marrow.Core\Support\SetupFolders.cs" Link="SetupFolders.cs" />
     <Compile Include="..\Marrow.Core\Support\SetupSweeper.cs" Link="SetupSweeper.cs" />
+    <Compile Include="..\Marrow.Core\Support\SweepLimits.cs" Link="SweepLimits.cs" />
+    <Compile Include="..\Marrow.Core\Support\SweepBudget.cs" Link="SweepBudget.cs" />
+    <Compile Include="..\Marrow.Core\Support\SweepLimitException.cs" Link="SweepLimitException.cs" />
     <AssemblyMetadata Include="InstallerTitle" Value="$(InstallerTitle)" />
     <AssemblyMetadata Include="InstallerAppId" Value="$(InstallerAppId)" />
     <AssemblyMetadata Include="InstallerVersion" Value="$(InstallerVersion)" />

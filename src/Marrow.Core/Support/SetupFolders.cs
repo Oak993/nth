@@ -80,37 +80,47 @@ public static class SetupFolders
     internal const string OwnerMarker = "nth Setup owned unit v1\n";
     internal const string ClaimMarker = "nth Setup claim v1\n";
 
-    internal static void PrepareOwnedUnit(string folder)
+    internal static void PrepareOwnedUnit(string folder, Action? checkpoint = null, Action<string>? admission = null)
     {
-        RequireNoLinks(folder);
+        RequireNoLinks(folder, checkpoint);
         var parent = Path.GetDirectoryName(folder);
         if (parent is not null && string.Equals(Path.GetFileName(parent), RuntimeFolderName, StringComparison.OrdinalIgnoreCase)
             && Path.GetDirectoryName(parent) is { } root && string.Equals(Path.GetFileName(root), InstallOptions.SetupFolderName, StringComparison.OrdinalIgnoreCase))
         {
-            PrepareOwnedFolder(root, adoptNonempty: false, requireOwnership: false);
-            PrepareOwnedFolder(parent, adoptNonempty: false, requireOwnership: false);
+            PrepareOwnedFolder(root, adoptNonempty: false, requireOwnership: false, checkpoint, admission);
+            PrepareOwnedFolder(parent, adoptNonempty: false, requireOwnership: false, checkpoint, admission);
         }
         else if (parent is not null && string.Equals(Path.GetFileName(parent), InstallOptions.SetupFolderName, StringComparison.OrdinalIgnoreCase))
-            PrepareOwnedFolder(parent, adoptNonempty: false, requireOwnership: false);
-        PrepareOwnedFolder(folder, adoptNonempty: false, requireOwnership: true);
+            PrepareOwnedFolder(parent, adoptNonempty: false, requireOwnership: false, checkpoint, admission);
+        PrepareOwnedFolder(folder, adoptNonempty: false, requireOwnership: true, checkpoint, admission);
     }
 
-    private static void PrepareOwnedFolder(string folder, bool adoptNonempty, bool requireOwnership)
+    private static void PrepareOwnedFolder(string folder, bool adoptNonempty, bool requireOwnership, Action? checkpoint, Action<string>? admission)
     {
-        RequireNoLinks(folder);
+        admission?.Invoke(folder);
+        RequireNoLinks(folder, checkpoint);
+        checkpoint?.Invoke();
         Directory.CreateDirectory(folder);
-        RequireNoLinks(folder);
-        if (HasOwnMarker(folder)) return;
-        if (!adoptNonempty && Directory.EnumerateFileSystemEntries(folder).Any())
+        checkpoint?.Invoke();
+        RequireNoLinks(folder, checkpoint);
+        admission?.Invoke(Path.Combine(folder, OwnerFileName));
+        if (HasOwnMarker(folder, checkpoint)) return;
+        checkpoint?.Invoke();
+        var hasContents = Directory.EnumerateFileSystemEntries(folder).Any();
+        checkpoint?.Invoke();
+        if (!adoptNonempty && hasContents)
         {
             if (requireOwnership) throw new IOException($"The setup folder has content without nth's ownership marker: '{folder}'.");
             return; // an unowned container may hold owned units, but is never itself removed
         }
         var marker = Path.Combine(folder, OwnerFileName);
-        RequireNoLinks(marker);
+        RequireNoLinks(marker, checkpoint);
         using var created = new FileStream(marker, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+        checkpoint?.Invoke();
         created.Write(System.Text.Encoding.UTF8.GetBytes(OwnerMarker));
+        checkpoint?.Invoke();
         created.Flush(flushToDisk: true);
+        checkpoint?.Invoke();
     }
 
     internal static bool HasOwnMarker(string folder, Action? checkpoint = null) =>
@@ -125,7 +135,9 @@ public static class SetupFolders
             using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read);
             checkpoint?.Invoke();
             var bytes = System.Text.Encoding.UTF8.GetBytes(expected);
-            if (stream.Length != bytes.Length) return false;
+            var length = stream.Length;
+            checkpoint?.Invoke();
+            if (length != bytes.Length) return false;
             var actual = new byte[bytes.Length];
             stream.ReadExactly(actual);
             checkpoint?.Invoke();
