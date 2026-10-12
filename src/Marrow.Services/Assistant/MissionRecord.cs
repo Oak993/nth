@@ -31,6 +31,15 @@ public sealed record MissionRecord(Mission Mission)
 
     public string? Model { get; init; }
 
+    /// <summary>
+    /// The account of the mission's provider the router chose for it (AS-14), by the account store's id; null: the provider's
+    /// first enabled account, as before. Every chat the mission starts runs on it, and the usage reserve follows it.
+    /// </summary>
+    public Guid? AccountId { get; init; }
+
+    /// <summary>The owner chose this model for the mission (spec 8): the router and the reserve never switch it (11.5, 11.6).</summary>
+    public bool ModelPinned { get; init; }
+
     /// <summary>A Hydra team leads it (the lead chat has Hydra on).</summary>
     public bool Team { get; init; }
 
@@ -129,6 +138,8 @@ public static class MissionJournal
         Put("worktreePath", m.WorktreePath);
         Put("branch", m.Branch);
         Put("model", record.Model);
+        Put("account", record.AccountId?.ToString("D"));
+        if (record.ModelPinned) body["modelPinned"] = true;
         Put("lead", record.LeadThread?.ToString("D"));
         Put("reviewer", record.ReviewerThread?.ToString("D"));
         Put("report", record.Report);
@@ -174,6 +185,8 @@ public static class MissionJournal
                 ProjectPath = Text(body, "projectPath") ?? "",
                 Provider = SwiftEnum<ProviderKind>.FromRawValue(Text(body, "provider")) ?? throw new FormatException("unknown provider"),
                 Model = Text(body, "model"),
+                AccountId = Text(body, "account") is { } account ? Guid.Parse(account) : null,
+                ModelPinned = Bool(body, "modelPinned"),
                 Team = Bool(body, "team"),
                 Level = Int(body, "level"),
                 Workspace = body["workspace"] is { } workspace ? MissionWorkspaces.FromJson(workspace) ?? throw new FormatException("workspace") : null,
