@@ -3275,6 +3275,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     public void HydraHeadFinished(Guid headID, HydraHeadInfo info, HydraHeadInfo.Status status, string? summary,
         HydraLanding? landing = null, string? copyPath = null)
     {
+        App?.AssistantTaps.TapHeadFinished(ThreadID, headID, info, status, summary); // PORT-ONLY (AS-2, ED-NEW-dextra-as2-8): the Assistant's live feed
         if (info.HydraHeadInfoKind == HydraHeadInfo.Kind.Native)
         {
             if (info.ToolUseID is not { } toolID
@@ -4032,6 +4033,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // Swift's pinned implementation contains two .tokenSpend arms; the first is selected for every such event.
     private void Handle(ProviderEvent @event)
     {
+        App?.AssistantTaps.TapProvider(ThreadID, @event); // PORT-ONLY (AS-2, ED-NEW-dextra-as2-8): the Assistant's live feed
         if (@event is ProviderEvent.MessageCompleted) handoffMessageBoundary = true;
         else if (@event is ProviderEvent.MessageDelta or ProviderEvent.TurnStarted or ProviderEvent.ToolStarted
             or ProviderEvent.Approval or ProviderEvent.Question) handoffMessageBoundary = false;

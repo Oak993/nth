@@ -315,6 +315,15 @@ public sealed record ChatThread
     public int? PillStepIndex { get; init; }
     public string? PillStepAccountID { get; init; }
 
+    // PORT-ONLY (AS-3a, DESIGN.md 15.3; ED-NEW-dextra-as3a-1): the three marks the Assistant puts on a chat. All three are
+    // unset on every chat the Assistant has no part in, and a chat saved before they existed reads as having none.
+    // AssistantID: the Assistant or Astur this chat belongs to (its home thread, or the chats it runs).
+    // MissionID: the mission this chat runs; mission chats group under their assistant, and a head spawned under one inherits it.
+    // HiddenFromAssistant: the owner hid this chat from the Assistant (5.4); it sends no text to the feed. Mission chats cannot be hidden.
+    public Guid? AssistantID { get; init; }
+    public Guid? MissionID { get; init; }
+    public bool HiddenFromAssistant { get; init; }
+
     public Marrow.Core.Accounts.Pills.PillThreadState? PillRelay =>
         PillID is { } pill && PillStepIndex is { } index && PillStepAccountID is { } account ? new(pill, index, account) : null;
 
@@ -492,8 +501,20 @@ internal sealed class ChatThreadConverter : JsonConverter<ChatThread>
             PillID = Coding.Value<Guid?>(element, "pillID", field => SwiftDecoding.ReadUUID(field), () => null),
             PillStepIndex = Coding.Value<int?>(element, "pillStepIndex", field => (int)SwiftDecoding.ReadInt(field), () => null),
             PillStepAccountID = Coding.Value<string?>(element, "pillStepAccountID", SwiftDecoding.ReadString, () => null),
+            // PORT-ONLY (AS-3a): absent or null is unset. A value that is there but cannot be read fails closed: an id reads as the empty
+            // id (still a mission chat, still an assistant's chat, of one nobody knows) and the flag reads as hidden, so a damaged
+            // key never turns a mission chat into an ordinary one or shows the Assistant a chat the owner hid.
+            AssistantID = ReadAssistantMark(element, "assistantID"),
+            MissionID = ReadAssistantMark(element, "missionID"),
+            HiddenFromAssistant = element.TryGetProperty("hiddenFromAssistant", out var hidden) && hidden.ValueKind != JsonValueKind.Null
+                && Coding.Value(element, "hiddenFromAssistant", SwiftDecoding.ReadBool, () => true),
         };
     }
+
+    private static Guid? ReadAssistantMark(JsonElement element, string key) =>
+        element.TryGetProperty(key, out var field) && field.ValueKind != JsonValueKind.Null
+            ? Coding.Value<Guid?>(element, key, value => SwiftDecoding.ReadUUID(value), () => Guid.Empty)
+            : null;
 
     public override void Write(Utf8JsonWriter writer, ChatThread value, JsonSerializerOptions options) => WriteMembers(writer, value);
 
@@ -543,6 +564,10 @@ internal sealed class ChatThreadConverter : JsonConverter<ChatThread>
         if (value.PillID is { } pillID) writer.WriteString("pillID", SwiftUUID.UuidString(pillID)); // PORT-ONLY (MA-7)
         if (value.PillStepIndex is { } pillStepIndex) writer.WriteNumber("pillStepIndex", pillStepIndex);
         if (value.PillStepAccountID is { } pillStepAccountID) writer.WriteString("pillStepAccountID", pillStepAccountID);
+        // PORT-ONLY (AS-3a): written only when set, so a chat the Assistant has no part in is stored byte for byte as before and an older build ignores the keys.
+        if (value.AssistantID is { } assistantID) writer.WriteString("assistantID", SwiftUUID.UuidString(assistantID));
+        if (value.MissionID is { } missionID) writer.WriteString("missionID", SwiftUUID.UuidString(missionID));
+        if (value.HiddenFromAssistant) writer.WriteBoolean("hiddenFromAssistant", true);
         writer.WriteEndObject();
     }
 }

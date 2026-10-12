@@ -826,6 +826,7 @@ public sealed partial class AppModel : MainActorModel
         {
             Title = "Continued: " + resolved.Title,
             HasCustomTitle = true,
+            HiddenFromAssistant = resolved.HiddenFromAssistant, // PORT-ONLY (AS-3a, ED-NEW-dextra-as3a-2): it carries the hidden chat's words, so it stays hidden
         };
         Threads = Threads.Appending(forwarded);
         UpdateProject(project.Id, value => value with { IsExpanded = true });
@@ -1176,6 +1177,7 @@ public sealed partial class AppModel : MainActorModel
             IsInPanel = true, // AppModel.swift:1042
             Title = title, // AppModel.swift:1043
             HasCustomTitle = true, // AppModel.swift:1044
+            HiddenFromAssistant = parent.HiddenFromAssistant, // PORT-ONLY (AS-3a, ED-NEW-dextra-as3a-2): a helper of a hidden chat is hidden too
         };
         Threads = Threads.Appending(thread); // AppModel.swift:1045
         ScheduleSave(); // AppModel.swift:1046
@@ -1286,6 +1288,7 @@ public sealed partial class AppModel : MainActorModel
     // AppModel.swift:1158-1169
     public void ThreadNeedsAttention(Guid id) // AppModel.swift:1158-1169
     {
+        AssistantTaps.TapNeedsAttention(id); // PORT-ONLY (AS-2, ED-NEW-dextra-as2-8): the Assistant's live feed
         if (Thread(id) is not { } thread) return;
         if (IsApplicationActive() && IsOnScreen(thread))
         {
@@ -1299,6 +1302,7 @@ public sealed partial class AppModel : MainActorModel
     public void TurnFinished(Guid id, TurnStatus status, bool continues) // AppModel.swift:1173-1216
     {
         if (IgnisTurnFinished(id, status)) return; // PORT-ONLY: Ignis (ED-NEW-ignis-runtime): a hidden keep-warm ping ends silently
+        AssistantTaps.TapTurnFinished(id, status, continues); // PORT-ONLY (AS-2, ED-NEW-dextra-as2-8): the Assistant's live feed
         var thread = Thread(id);
         var isVisible = IsApplicationActive() && thread is not null && IsOnScreen(thread);
         var isHead = thread?.IsHydraHead == true;
