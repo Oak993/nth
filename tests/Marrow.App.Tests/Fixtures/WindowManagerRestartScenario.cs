@@ -15,6 +15,8 @@ namespace Marrow.App.Tests.Fixtures;
 
 // The only writer of the saved main frame is production WindowManager's move/resize subscription.
 // A new SettingsStore is constructed in each child. No test seeds, copies or repairs the shared store.
+// DEVIATION OD-0151 (ED-NEW-settingsinapp-1): Settings opens as the panel inside the main window, so it has no frame of its own to
+// place, save or recompute; each phase opens it in the main window and proves the store unchanged.
 internal static class WindowManagerRestartScenario
 {
     internal static WindowManagerRestartResult Run(WindowManagerRestartReady identity, string directory)
@@ -92,9 +94,10 @@ internal static class WindowManagerRestartScenario
             Assert.Equal(ThemeVariant.Dark, Assert.Single(LogicalQuery.SelfAndDescendants<HostedRoot>((Control)main.Content!)).RequestedThemeVariant);
             if (request.Phase == 1)
             {
-                // Swift:67-69 plus ED-225 on the asserted headless work area. The Mac bias remains
-                // outside this test's claim. This cannot accidentally pass by loading a prior run.
-                Assert.Equal(new WindowManagerRestartFrame(300, 140, 1320, 860), ReadFrame(main));
+                // Swift:67-69 plus ED-225 on the asserted headless work area, at ED-NEW-settingsinapp-3's first-launch size: 69 % x 92 %
+                // of the 1920 x 1280 work area, rounded (1325 x 1178), centred both ways. The Mac bias remains outside this test's claim.
+                // This cannot accidentally pass by loading a prior run.
+                Assert.Equal(new WindowManagerRestartFrame(298, 51, 1325, 1178), ReadFrame(main));
                 Record("main-shown");
                 main.Position = new PixelPoint(2345, 6789);
                 WindowManagerMutationScope.Settle(main);
@@ -125,44 +128,40 @@ internal static class WindowManagerRestartScenario
             E.AssertSerializedFrame(beforeSettings);
             if (incoming is not null) Assert.Equal(incoming, beforeSettings);
 
+            // OD-0151: Settings opens as the panel inside the main window, in the dark theme the store holds; no second window is made.
             manager.ShowSettings();
-            var settings = Assert.IsType<SecondaryWindow>(LaunchHarness.WindowOf(Assert.Single(settingsRoots)));
-            WindowManagerMutationScope.Settle(settings);
-            RequireHeadlessGeometry(settings);
-            Assert.Equal("Settings", settings.Title);
-            Assert.False(settings.CanResize);
-            Assert.True(settings.CanMaximize); // T45 owner caption override persists on reopening.
-            Assert.True(settings.CanMinimize);
-            Assert.True(settings.IsVisible);
+            var settingsRoot = Assert.Single(settingsRoots);
+            Assert.Same(main, LaunchHarness.WindowOf(settingsRoot));
+            var overlay = Assert.IsType<Marrow.App.Port.SettingsOverlay>(manager.SettingsOverlay);
+            Assert.Same(main, overlay.Window);
+            Assert.Same(settingsRoot, overlay.Content);
+            Assert.True(manager.IsSettingsOpen);
+            Assert.True(overlay.IsVisible);
+            WindowManagerMutationScope.Settle(main);
+            RequireHeadlessGeometry(main);
+            Assert.Same(main, manager.MainWindow);
+            Assert.True(main.IsVisible);
+            Assert.Equal(WindowState.Normal, main.WindowState);
             Assert.Equal(ThemeVariant.Dark, application.RequestedThemeVariant);
-            Assert.Equal(ThemeVariant.Dark, Assert.Single(LogicalQuery.SelfAndDescendants<HostedRoot>((Control)settings.Content!)).RequestedThemeVariant);
-            Assert.Equal(new Size(780, 580), settings.ClientSize);
-            // Swift:48-52: rounded AppKit origin (2682,-6286), clamped to (1140,0),
-            // hence Windows top-left (1140,700). The old Settings location is (23,45).
-            Assert.Equal(E.RecomputedSettings, ReadFrame(settings));
-            Assert.NotEqual(E.MovedSettings, ReadFrame(settings));
+            Assert.Equal(ThemeVariant.Dark, Assert.Single(LogicalQuery.SelfAndDescendants<HostedRoot>(overlay)).RequestedThemeVariant);
+            // Opening it neither moves nor resizes the main window, in a first launch or a restored one.
+            Assert.Equal(E.SavedMain, ReadFrame(main));
             Assert.Equal(beforeSettings, FlushAndRead(store, storePath));
-            Record(request.Phase == 1 ? "settings-shown" : "settings-recomputed");
-            if (request.Phase == 1)
-            {
-                settings.Position = new PixelPoint(23, 45);
-                WindowManagerMutationScope.Settle(settings);
-                Assert.Equal(E.MovedSettings, ReadFrame(settings));
-                Record("settings-moved");
-            }
+            Record("settings-panel-shown");
             // Compare the entire serialized document, not a guessed Settings key. This detects
-            // changed/new Settings placement data and accidental writes under the main frame key.
+            // new Settings placement data and accidental writes under the main frame key.
             Assert.Equal(beforeSettings, FlushAndRead(store, storePath));
             E.AssertStoredFrame(store, E.SavedMain);
             Assert.Equal(E.SavedMain, ReadFrame(main));
             mainReading = ReadFrame(main);
-            settingsReading = ReadFrame(settings);
+            settingsReading = ReadFrame(LaunchHarness.WindowOf(settingsRoot)!); // the frame of the window Settings is in: the main one
             Record("settings-store-unchanged");
         }
         finally
         {
             // Only test-owned headless windows are hidden. No main.Close/AppShell binding is
             // substituted. The enclosing HeadlessSession is disposed before the child Fact returns.
+            manager.CloseSettings();
             foreach (var root in roots)
             {
                 if (LaunchHarness.WindowOf(root) is not { } window) continue;

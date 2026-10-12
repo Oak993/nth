@@ -39,21 +39,20 @@ namespace Marrow.App.Tests.Window;
 // is one 1920 x 1280 working area at scale 1 (Avalonia.Headless HeadlessScreensStub), so pixels and points agree.
 // This original suite isolates content through WindowManager.MainContent and SettingsContent.
 // WindowManagerNextTests also exercises the default real SettingsView; RootView still needs its owning chat.
+// DEVIATION OD-0151 (ED-NEW-settingsinapp-1, -3): Settings is a panel inside the main window (Port/SettingsOverlay.cs), not a window, so
+// :16, :21, :36, :40-55 and :80-84 are not ported as such (no Settings window to size, centre, title or style); and with no saved frame the
+// main window opens at 69 % x 92 % of its monitor's work area, 1325 x 1178 on the headless one, instead of :19's 1320 x 860.
 [Collection("Headless")]
 public sealed class WindowManagerTests(HeadlessSession headless)
 {
-    // Headless screen (Avalonia.Headless 12.1.2 HeadlessScreensStub): working area (0, 0, 1920, 1280), scale 1.
-    private const int ScreenWidth = 1920;
-    private const int ScreenHeight = 1280;
-
     // WindowsMessages the live-resize hook reads (winuser.h).
     private const uint WM_SIZING = 0x0214;
     private const uint WM_MOVING = 0x0216;
     private const uint WM_ENTERSIZEMOVE = 0x0231;
     private const uint WM_EXITSIZEMOVE = 0x0232;
 
-    // One test body: a real AppModel store in a throwaway folder (AppModelHarness), a fresh WindowManager whose two
-    // windows host the given stand-ins, and the process-wide values a test here changes put back afterwards.
+    // One test body: a real AppModel store in a throwaway folder (AppModelHarness), a fresh WindowManager whose main
+    // window and Settings panel host the given stand-ins, and the process-wide values a test here changes put back afterwards.
     private void WithManager(Action<AppModelHarness, WindowManager> body) => headless.OnUiThread(() =>
     {
         var application = SwiftTraps.Unwrap(Application.Current);
@@ -62,13 +61,17 @@ public sealed class WindowManagerTests(HeadlessSession headless)
         using var harness = new AppModelHarness();
         using var cursor = WindowCenteringTestHooks.OverrideCursor(new WindowCenteringCursor());
         var page = harness.Main.OnMain(() => SettingsNavigation.Shared.RequestedPage);
+        WindowManager? manager = null;
         try
         {
-            var manager = harness.Main.OnMain(() => new WindowManager());
+            // OD-0151: Settings opens in the main window, so a test that opens only Settings still makes the main window; it hosts a
+            // stand-in here unless the test gives it one.
+            manager = harness.Main.OnMain(() => new WindowManager { MainContent = () => new Border() });
             body(harness, manager);
         }
         finally
         {
+            if (manager is { } made) harness.Main.OnMain(made.CloseSettings);
             harness.Main.OnMain(() => SettingsNavigation.Shared.RequestedPage = page);
             ThemeManager.Current = theme;
             application.RequestedThemeVariant = variant;
@@ -103,17 +106,18 @@ public sealed class WindowManagerTests(HeadlessSession headless)
         return window;
     }
 
+    // OD-0151: the window Settings opens in, which is the main window (its panel holds the content).
     private static AvaloniaWindow ShowSettings(AppModelHarness harness, WindowManager manager, Control content)
     {
         manager.SettingsContent = () => content;
         harness.Main.OnMain(() => manager.ShowSettings());
         var window = WindowOf(content);
         harness.Main.OnMain(() => Settle(window));
+        Assert.True(manager.IsSettingsOpen);
+        Assert.Same(manager.MainWindow, window);
+        Assert.Same(window, Assert.IsType<SettingsOverlay>(manager.SettingsOverlay).Window);
         return window;
     }
-
-    // NSWindow.frame's size here: the content size (the headless platform reports no decorations, FrameSize null).
-    private static Size SizeOf(AvaloniaWindow window) => new(window.Width, window.Height);
 
     // ---- PR-WIN-003: the main window is built at most once ----
 
@@ -140,13 +144,14 @@ public sealed class WindowManagerTests(HeadlessSession headless)
     // ---- PR-WIN-004, PR-WIN-005: main window size and minimum ----
 
     [Fact]
-    [Trait("Req", "PR-WIN-004")] // App/Window/WindowManager.swift:19, :63, :95-96
-    public void The_main_window_opens_with_a_1320_by_860_content_area() => WithManager((harness, manager) =>
+    [Trait("Req", "PR-WIN-004")] // App/Window/WindowManager.swift:19, :63, :95-96; DEVIATION OD-0151 (ED-NEW-settingsinapp-3)
+    public void The_main_window_opens_at_69_by_92_percent_of_the_work_area() => WithManager((harness, manager) =>
     {
         var window = ShowMain(harness, manager, new Border());
-        Assert.Equal(1320d, window.Width);
-        Assert.Equal(860d, window.Height);
-        Assert.Equal(new Size(1320, 860), window.ClientSize);
+        // the headless work area is 1920 x 1280: 1324.8 x 1177.6, rounded
+        Assert.Equal(1325d, window.Width);
+        Assert.Equal(1178d, window.Height);
+        Assert.Equal(new Size(1325, 1178), window.ClientSize);
     });
 
     [Fact]
@@ -235,20 +240,17 @@ public sealed class WindowManagerTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-WIN-007")] // App/Window/WindowManager.swift:63, :81, :93-94, :101
     [Trait("Req", "PR-WIN-010")] // App/Window/WindowManager.swift:81
-    public void The_main_window_is_resizable_and_the_Settings_window_is_not_and_both_extend_their_content_under_the_title_bar() => WithManager((harness, manager) =>
+    [Trait("Decision", "OD-0151")]
+    public void The_main_window_is_resizable_and_extends_its_content_under_the_title_bar_and_Settings_opens_inside_it() => WithManager((harness, manager) =>
     {
         var main = ShowMain(harness, manager, new Border());
         var settings = ShowSettings(harness, manager, new Border());
+        Assert.Same(main, settings); // OD-0151: no Settings window with a style of its own
         Assert.True(main.CanResize);
-        Assert.False(settings.CanResize);
-        Assert.True(settings.CanMaximize); // T45 owner override: Settings caption maximize activates, without a resize border.
-        foreach (var window in new[] { main, settings })
-        {
-            Assert.True(window.CanMinimize); // .miniaturizable
-            Assert.Equal(WindowDecorations.Full, window.WindowDecorations); // .titled, .closable (ED-063)
-            Assert.True(window.ExtendClientAreaToDecorationsHint); // .fullSizeContentView
-            Assert.Equal(44, window.ExtendClientAreaTitleBarHeightHint); // PR-WIN-007 windows_path, ED-063: a 44 px title bar band
-        }
+        Assert.True(main.CanMinimize); // .miniaturizable
+        Assert.Equal(WindowDecorations.Full, main.WindowDecorations); // .titled, .closable (ED-063)
+        Assert.True(main.ExtendClientAreaToDecorationsHint); // .fullSizeContentView
+        Assert.Equal(44, main.ExtendClientAreaTitleBarHeightHint); // PR-WIN-007 windows_path, ED-063: a 44 px title bar band
     });
 
     // ---- PR-WIN-008, PR-SETTINGS-001: kept when closed ----
@@ -257,7 +259,8 @@ public sealed class WindowManagerTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-008")] // App/Window/WindowManager.swift:98
     [Trait("Req", "PR-SETTINGS-001")] // App/Window/WindowManager.swift:32-37, :98
     [Trait("Req", "PR-WIN-003")] // App/Window/WindowManager.swift:16, :34-35, :98
-    public void Closing_the_Settings_window_hides_it_and_the_next_showSettings_presents_the_same_window_and_content() => WithManager((harness, manager) =>
+    [Trait("Decision", "OD-0151")]
+    public void Closing_Settings_hides_its_panel_and_the_next_showSettings_presents_the_same_panel_and_content() => WithManager((harness, manager) =>
     {
         var content = new Border();
         var built = 0;
@@ -268,14 +271,21 @@ public sealed class WindowManagerTests(HeadlessSession headless)
         };
         harness.Main.OnMain(() => manager.ShowSettings());
         var window = WindowOf(content);
+        var overlay = Assert.IsType<SettingsOverlay>(manager.SettingsOverlay);
+        Assert.Same(manager.MainWindow, window);
+        Assert.True(overlay.IsVisible);
         harness.Main.OnMain(() =>
         {
-            window.Close();
+            manager.CloseSettings();
             Settle(window);
         });
-        Assert.False(window.IsVisible);
+        Assert.False(manager.IsSettingsOpen);
+        Assert.False(overlay.IsVisible);
+        Assert.True(window.IsVisible); // the main window it was in stays
         harness.Main.OnMain(() => manager.ShowSettings());
-        Assert.True(window.IsVisible);
+        Assert.True(manager.IsSettingsOpen);
+        Assert.True(overlay.IsVisible);
+        Assert.Same(overlay, manager.SettingsOverlay);
         Assert.Same(window, WindowOf(content));
         Assert.Equal(1, built);
     });
@@ -292,40 +302,38 @@ public sealed class WindowManagerTests(HeadlessSession headless)
         Assert.Equal("Marrow", window.Title);
     });
 
-    // ---- PR-WIN-010, PR-SETTINGS-001: the settings window ----
+    // ---- PR-WIN-010, PR-SETTINGS-001: Settings (OD-0151: a panel in the main window, not a window) ----
+    // Deleted with OD-0151: the Settings window's frame autosave test (there is no Settings frame) and the centring of the Settings window
+    // over the main window (:40-55: centred, rounded, clamped, re-centred on every show).
 
     [Fact]
     [Trait("Req", "PR-WIN-010")] // App/Window/WindowManager.swift:21, :81
     [Trait("Req", "PR-SETTINGS-001")] // App/Window/WindowManager.swift:21, :80-84, :97
-    public void The_Settings_window_is_titled_Settings_and_measures_780_by_580() => WithManager((harness, manager) =>
+    [Trait("Decision", "OD-0151")]
+    [Trait("Decision", "ED-NEW-settingsinapp-2")]
+    public void Settings_is_a_panel_named_Settings_in_the_main_window_and_takes_its_size_from_that_window() => WithManager((harness, manager) =>
     {
         var window = ShowSettings(harness, manager, new Border());
-        Assert.Equal("Settings", window.Title);
-        Assert.Equal(780d, window.Width);
-        Assert.Equal(580d, window.Height);
-        Assert.Equal(new Size(780, 580), window.ClientSize);
-        Assert.IsType<SecondaryWindow>(window);
-    });
-
-    [Fact]
-    [Trait("Req", "PR-SETTINGS-001")] // App/Window/WindowManager.swift:80-84 (no setFrameAutosaveName, unlike :70)
-    [Trait("Req", "PR-WIN-010")] // App/Window/WindowManager.swift:80-84
-    public void The_Settings_window_has_no_frame_autosave_so_moving_or_resizing_it_writes_nothing() => WithManager((harness, manager) =>
-    {
-        var window = ShowSettings(harness, manager, new Border());
-        harness.Defaults.Writes.Clear();
-        harness.Main.OnMain(() =>
-        {
-            window.Position = new PixelPoint(11, 22);
-            window.Width = 800;
-            Settle(window);
-        });
-        Assert.Empty(harness.Defaults.Writes);
+        Assert.IsType<ThreadWindow>(window); // the main window: Settings makes no SecondaryWindow
+        var overlay = Assert.IsType<SettingsOverlay>(manager.SettingsOverlay);
+        Assert.Equal("Settings", Avalonia.Automation.AutomationProperties.GetName(overlay.Card)); // :81's title, now the panel's name
+        // ED-NEW-settingsinapp-4: the frame is the window's pixels less the owner's margins; the panel is laid out in points at the base scale (100 %).
+        // The stage is the whole window in points (Avalonia's layout rounding takes an arranged size up to the next whole point), and the
+        // panel is the stage's frame in pixels, laid out in points, rounded up the same way.
+        var stage = overlay.Stage.Bounds.Size;
+        Assert.InRange(stage.Width - window.ClientSize.Width / AppZoom.BaseScale, -0.01, 1);
+        Assert.InRange(stage.Height - window.ClientSize.Height / AppZoom.BaseScale, -0.01, 1);
+        var pixels = SettingsOverlay.SettingsStage.CardSize(new Size(stage.Width * AppZoom.BaseScale, stage.Height * AppZoom.BaseScale), AppZoom.BaseScale);
+        var expected = new Size(Math.Ceiling(pixels.Width / AppZoom.BaseScale - 1e-6), Math.Ceiling(pixels.Height / AppZoom.BaseScale - 1e-6));
+        // A one-point window: rounded up once, and once more where the stage's own size was rounded up.
+        Assert.InRange(overlay.Card.Bounds.Width, expected.Width - 0.01, expected.Width + 1.01);
+        Assert.InRange(overlay.Card.Bounds.Height, expected.Height - 0.01, expected.Height + 1.01);
     });
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-001")] // App/Window/WindowManager.swift:16, :32-37
-    public void The_Settings_window_is_built_once_and_reused_by_every_showSettings() => WithManager((harness, manager) =>
+    [Trait("Decision", "OD-0151")]
+    public void The_Settings_panel_is_built_once_and_reused_by_every_showSettings() => WithManager((harness, manager) =>
     {
         var content = new Border();
         var built = 0;
@@ -336,137 +344,49 @@ public sealed class WindowManagerTests(HeadlessSession headless)
         };
         harness.Main.OnMain(() => manager.ShowSettings());
         var window = WindowOf(content);
+        var overlay = Assert.IsType<SettingsOverlay>(manager.SettingsOverlay);
         harness.Main.OnMain(() => manager.ShowSettings(SettingsPage.Hydra));
         harness.Main.OnMain(() => manager.ShowSettings());
         Assert.Equal(1, built);
         Assert.Same(window, WindowOf(content));
+        Assert.Same(manager.MainWindow, window);
+        Assert.Same(overlay, manager.SettingsOverlay);
+        Assert.Same(overlay, Assert.Single(Assert.IsAssignableFrom<Panel>(window.Content).Children.OfType<SettingsOverlay>()));
+        Assert.True(manager.IsSettingsOpen);
     });
 
-    // ---- PR-WIN-011, PR-SETTINGS-002: centred over the main window ----
-    // With no main window, or a hidden or minimised one, the Settings window is centred by window.center() (:43), and a
-    // new one is centered by it first (:82): ED-225 supplies the working-area placement.
-    // What the source does fix there is that the window is not centred over the main window.
+    // ---- PR-WIN-011, PR-SETTINGS-002: the window Settings opens in ----
+    // :42-45 guard a hidden or minimised main window. OD-0151: Settings opens inside the main window, so showSettings presents that window
+    // (:37) whatever state it was in, and the panel opens in it.
 
     [Fact]
     [Trait("Req", "PR-WIN-011")] // App/Window/WindowManager.swift:42-45
     [Trait("Req", "PR-SETTINGS-002")] // App/Window/WindowManager.swift:42-45
-    public void With_the_main_window_hidden_or_minimised_the_Settings_window_is_not_centred_over_it() => WithManager((harness, manager) =>
+    [Trait("Decision", "OD-0151")]
+    public void With_the_main_window_hidden_or_minimised_showSettings_brings_it_back_with_the_Settings_panel_open() => WithManager((harness, manager) =>
     {
         var main = ShowMain(harness, manager, new Border());
         harness.Main.OnMain(() =>
         {
-            main.Position = new PixelPoint(0, 0);
             main.Hide();
             Settle(main);
         });
         var settings = ShowSettings(harness, manager, new Border());
-        // Centred over the main window at (0, 0, 1320, 860), :46-52 would put it at (270, 140).
-        var overMain = new PixelPoint(270, 140);
-        Assert.NotEqual(overMain, settings.Position); // :42 `main.isVisible` fails: :43-44 instead
+        Assert.Same(main, settings);
+        Assert.True(main.IsVisible); // :42 `main.isVisible` failed: the window is shown again
 
         harness.Main.OnMain(() =>
         {
-            settings.Position = new PixelPoint(7, 9);
-            manager.ShowMain();
+            manager.CloseSettings();
             main.WindowState = WindowState.Minimized;
             Settle(main);
             manager.ShowSettings();
-        });
-        Assert.NotEqual(overMain, settings.Position); // :42 `!main.isMiniaturized` fails: :43-44 instead
-    });
-
-    [Fact]
-    [Trait("Req", "PR-WIN-011")] // App/Window/WindowManager.swift:46-49, :54
-    [Trait("Req", "PR-SETTINGS-002")] // App/Window/WindowManager.swift:46-49
-    public void The_Settings_window_is_centred_over_the_visible_main_window() => WithManager((harness, manager) =>
-    {
-        var main = ShowMain(harness, manager, new Border());
-        harness.Main.OnMain(() =>
-        {
-            main.Position = new PixelPoint(100, 50);
             Settle(main);
         });
-        var settings = ShowSettings(harness, manager, new Border());
-        // parent (100, 50, 1320, 860): mid (760, 480); origin (760 - 390, 480 - 290).
-        Assert.Equal(new PixelPoint(370, 190), settings.Position);
-        Assert.Equal(new Size(780, 580), SizeOf(settings));
-    });
-
-    [Fact]
-    [Trait("Req", "PR-WIN-011")] // App/Window/WindowManager.swift:46-49, :54
-    public void Each_centred_coordinate_is_rounded_to_a_whole_point_half_away_from_zero_before_the_clamp() => WithManager((harness, manager) =>
-    {
-        var main = ShowMain(harness, manager, new Border());
-        harness.Main.OnMain(() =>
-        {
-            main.Width = 1321;
-            main.Height = 861;
-            Settle(main);
-            main.Position = new PixelPoint(0, 0);
-            Settle(main);
-        });
-        var settings = ShowSettings(harness, manager, new Border());
-        // An AppKit frame's origin is its bottom-left corner, with y growing upward from the bottom edge of the primary
-        // screen (here 1280 high). :46 the main window's frame is (0, 1280 - 861 = 419, 1321, 861): midX 660.5, midY
-        // 849.5. :48 (660.5 - 390).rounded() = 271; :49 (849.5 - 290).rounded() = 559.5.rounded() = 560
-        // (.toNearestOrAwayFromZero), so the top edge is 560 + 580 = 1140 up, 1280 - 1140 = 140 down from the top.
-        Assert.Equal(new PixelPoint(271, 140), settings.Position);
-
-        harness.Main.OnMain(() =>
-        {
-            main.Position = new PixelPoint(0, 1);
-            Settle(main);
-            manager.ShowSettings();
-        });
-        // :46 (0, 1280 - 1 - 861 = 418, 1321, 861): midY 848.5. :49 (848.5 - 290).rounded() = 558.5.rounded() = 559, a
-        // top edge 559 + 580 = 1139 up, 141 down.
-        Assert.Equal(new PixelPoint(271, 141), settings.Position);
-    });
-
-    [Fact]
-    [Trait("Req", "PR-WIN-011")] // App/Window/WindowManager.swift:50-53
-    [Trait("Req", "PR-SETTINGS-002")] // App/Window/WindowManager.swift:50-53
-    public void The_centred_frame_is_clamped_into_the_working_area_of_the_main_window_screen() => WithManager((harness, manager) =>
-    {
-        var main = ShowMain(harness, manager, new Border());
-        harness.Main.OnMain(() =>
-        {
-            main.Position = new PixelPoint(1000, 700);
-            Settle(main);
-        });
-        var settings = ShowSettings(harness, manager, new Border());
-        // Centred at (1270, 840): the right and bottom edges would pass the working area, so min(.., max - size).
-        Assert.Equal(new PixelPoint(ScreenWidth - 780, ScreenHeight - 580), settings.Position);
-
-        harness.Main.OnMain(() =>
-        {
-            main.Position = new PixelPoint(-600, -400);
-            Settle(main);
-            manager.ShowSettings();
-        });
-        // Centred at (-330, -260): max(.., min) puts the left and top edges on the working area's.
-        Assert.Equal(new PixelPoint(0, 0), settings.Position);
-    });
-
-    [Fact]
-    [Trait("Req", "PR-WIN-011")] // App/Window/WindowManager.swift:34-36
-    public void The_Settings_window_is_recentred_over_the_main_window_on_every_show() => WithManager((harness, manager) =>
-    {
-        var main = ShowMain(harness, manager, new Border());
-        harness.Main.OnMain(() =>
-        {
-            main.Position = new PixelPoint(100, 50);
-            Settle(main);
-        });
-        var settings = ShowSettings(harness, manager, new Border());
-        harness.Main.OnMain(() =>
-        {
-            settings.Position = new PixelPoint(3, 4);
-            main.Position = new PixelPoint(200, 100);
-            Settle(main);
-            manager.ShowSettings();
-        });
-        Assert.Equal(new PixelPoint(470, 240), settings.Position);
+        Assert.True(manager.IsSettingsOpen); // :42 `!main.isMiniaturized` failed: the window is restored, Settings open in it
+        Assert.Same(main, Assert.IsType<SettingsOverlay>(manager.SettingsOverlay).Window);
+        Assert.True(main.IsVisible);
+        Assert.Equal(WindowState.Normal, main.WindowState); // OD-0038: as it was before it was minimised
     });
 
     // ---- PR-WIN-012: the requested page ----
@@ -505,14 +425,17 @@ public sealed class WindowManagerTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-WIN-013")] // App/Window/WindowManager.swift:29, :37, :57-60
     [Trait("Req", "PR-SETTINGS-002")] // App/Window/WindowManager.swift:57-60
+    [Trait("Decision", "OD-0151")]
     public void Presenting_a_window_shows_it_and_makes_it_the_active_window() => WithManager((harness, manager) =>
     {
         var main = ShowMain(harness, manager, new Border());
         Assert.True(main.IsVisible);
         Assert.True(main.IsActive);
+        // OD-0151: showSettings presents the main window Settings opens in (:37).
         var settings = ShowSettings(harness, manager, new Border());
-        Assert.True(settings.IsVisible);
-        Assert.True(settings.IsActive);
+        Assert.Same(main, settings);
+        Assert.True(main.IsVisible);
+        Assert.True(main.IsActive);
         harness.Main.OnMain(() =>
         {
             main.Hide();
@@ -538,9 +461,10 @@ public sealed class WindowManagerTests(HeadlessSession headless)
         var hosting = Assert.IsType<FrameHostingView>(container.Children[0]);
         var capsule = Assert.IsType<LayoutTransformControl>(container.Children[1]); Assert.IsType<ZoomIndicator>(capsule.Child); Assert.False(capsule.IsHitTestVisible);
         Assert.Same(WindowChrome.CaptionLayer(window), container.Children[2]);
-        Assert.Equal(new Rect(0, 0, 1320, 860), hosting.Bounds);
-        Assert.Equal(new Rect(0, 0, 1320, 860), container.Bounds);
-        Assert.Equal(new Rect(0, 0, 1320, 860), container.Children[2].Bounds);
+        // ED-NEW-settingsinapp-3: the first-launch window, 69 % x 92 % of the headless 1920 x 1280 work area.
+        Assert.Equal(new Rect(0, 0, 1325, 1178), hosting.Bounds);
+        Assert.Equal(new Rect(0, 0, 1325, 1178), container.Bounds);
+        Assert.Equal(new Rect(0, 0, 1325, 1178), container.Children[2].Bounds);
         Assert.Same(WindowChrome.CaptionLayer(window), WindowChrome.CaptionCluster(window).Parent); // the buttons live on it
     });
 
@@ -836,6 +760,7 @@ public sealed class WindowManagerTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-WIN-019")] // App/Window/WindowManager.swift:143-150, :165-179
     [Trait("Req", "PR-WIN-221")] // App/Window/WindowManager.swift:104, :143-150, :173-175
+    [Trait("Decision", "OD-0151")]
     public void Every_window_root_carries_the_model_the_live_resize_object_the_app_zoom_the_capsule_shape_and_the_theme_tint() => WithManager((harness, manager) =>
     {
         harness.Main.OnMain(() =>
@@ -845,15 +770,24 @@ public sealed class WindowManagerTests(HeadlessSession headless)
         });
         var mainContent = new Border();
         var settingsContent = new Border();
-        ShowMain(harness, manager, mainContent);
+        var main = ShowMain(harness, manager, mainContent);
         ShowSettings(harness, manager, settingsContent);
-        // :172 one live-resize object per window (:103)
-        Assert.NotSame(AppEnvironment.GetWindowLiveResize(mainContent), AppEnvironment.GetWindowLiveResize(settingsContent));
+        // :172 one live-resize object per window (:103): the Settings panel is in the main window, so it has the main window's (OD-0151).
+        Assert.Same(AppEnvironment.GetWindowLiveResize(mainContent), AppEnvironment.GetWindowLiveResize(settingsContent));
+        Hosts(mainContent);
+        // The panel's root is a hosted root of its own (HostedRoot over its stage), beside the main window's, so its tree is zoomed once, at
+        // its stage, and not again inside the main root's zoom.
+        var overlay = Assert.IsType<SettingsOverlay>(manager.SettingsOverlay);
+        Assert.Same(main, overlay.Window);
+        var zoom = Assert.IsType<ZoomLayout>(overlay.Stage.Parent);
+        var root = Assert.IsType<HostedRoot>(zoom.Parent);
+        Assert.Same(overlay, root.Parent);
+        Assert.Equal(125 / 100.0 * AppZoom.BaseScale, ScaleOf(mainContent)); // :175, AppZoom.swift:22; the level over the base scale (ED-NEW-textsize-2)
+        Assert.Equal(125 / 100.0 * AppZoom.BaseScale, ScaleOf(overlay.Stage));
+        Assert.Null(settingsContent.RenderTransform);
         foreach (var content in new[] { mainContent, settingsContent })
         {
-            Hosts(content);
             Assert.Same(manager.Model, AppEnvironment.GetAppModel(content)); // :171
-            Assert.Equal(125 / 100.0 * AppZoom.BaseScale, ScaleOf(content)); // :175, AppZoom.swift:22; the level over the base scale (ED-NEW-textsize-2)
             Assert.True(Popovers.GetIsCapsuleButtonBorderShape(content)); // :176
             Assert.Equal(Color.FromRgb(0xBD, 0x93, 0xF9), SwiftTraps.Unwrap(Popovers.GetTint(content)).Resolve(ThemeVariant.Dark)); // :177, AppTheme.swift:119
         }
@@ -883,6 +817,7 @@ public sealed class WindowManagerTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-221")] // App/Window/WindowManager.swift:173-175
+    [Trait("Decision", "OD-0151")]
     public void Changing_the_app_zoom_rescales_every_hosted_tree_live_without_rebuilding_its_content() => WithManager((harness, manager) =>
     {
         // Layout rounding off for the stand-in, so its bounds show the unrounded division (as AppZoomTests does).
@@ -893,18 +828,21 @@ public sealed class WindowManagerTests(HeadlessSession headless)
         ShowMain(harness, manager, mainContent);
         ShowSettings(harness, manager, settingsContent);
         var zoom = Hosts(mainContent).Zoom;
+        var stage = Assert.IsType<SettingsOverlay>(manager.SettingsOverlay).Stage; // OD-0151: the Settings panel's tree is zoomed at its stage
         Assert.Equal(AppZoom.BaseScale, ScaleOf(mainContent)); // 100 %: the base scale alone (ED-NEW-textsize-2)
+        Assert.Equal(AppZoom.BaseScale, ScaleOf(stage));
         var attachedBefore = attached;
 
         harness.Main.OnMain(() => manager.Model.Settings.AppZoom = 175);
         harness.Main.OnMain(() => Settle(WindowOf(mainContent)));
         var scale = 175 / 100.0 * AppZoom.BaseScale;
         Assert.Equal(scale, ScaleOf(mainContent));
-        Assert.Equal(scale, ScaleOf(settingsContent));
+        Assert.Equal(scale, ScaleOf(stage));
+        Assert.Null(settingsContent.RenderTransform); // once, not again inside it
         Assert.Same(zoom, Hosts(mainContent).Zoom); // the same layout, the same content: nothing rebuilt
         Assert.Equal(attachedBefore, attached); // never detached and attached again
-        // AppZoom.swift:40-46: laid out in the window's space divided by the scale.
-        Assert.Equal(new Size(1320 / scale, 860 / scale), mainContent.Bounds.Size);
+        // AppZoom.swift:40-46: laid out in the window's space divided by the scale (ED-NEW-settingsinapp-3: the window is 1325 x 1178).
+        Assert.Equal(new Size(1325 / scale, 1178 / scale), mainContent.Bounds.Size);
 
         harness.Main.OnMain(() => manager.Model.Settings.AppZoom = 95); // not a level: normalized to 100
         harness.Main.OnMain(() => Settle(WindowOf(mainContent)));
@@ -1021,99 +959,31 @@ public sealed class WindowManagerTests(HeadlessSession headless)
     // hand-over (SettingsView.swift:123-127) and the openers (AppCommands.swift:12-14, CommandPalette.swift:176-178)
     // belong to other units: STOP App.Window.WindowManager #4 below. The Acrylic material OD-0014 names for the clear
     // window over the desktop is WindowChrome.Configure's (ED-236), closed STOP App.Window.WindowManager #5 below.
+    // OD-0151: the Settings window's own tests (fixed 780 x 580 and titled, drawn from its top-left under its own title bar, centred over
+    // the main window on every open) are gone with that window; the panel's size, shape and backdrop are in WindowManagerNextTests,
+    // WindowManagerSettingsSurfaceTests and SettingsOverlayTests.
 
-    [Fact]
-    [Trait("Req", "UI-SETTINGS-001")] // App/Window/WindowManager.swift:21, :80-84, :93-97
-    public void The_Settings_window_is_a_fixed_780_by_580_window_titled_Settings_that_can_be_minimised_but_not_resized() => WithManager((harness, manager) =>
-    {
-        var window = ShowSettings(harness, manager, new Border());
-        Assert.Equal("Settings", window.Title); // :81, :97
-        Assert.Equal(new Size(780, 580), window.ClientSize); // :21, :95-96 the content rect
-        Assert.False(window.CanResize); // :94 .resizable is inserted only when asked, and :81 passes false
-        Assert.True(window.CanMaximize); // T45 owner caption override; normal size and CanResize stay pinned.
-        Assert.True(window.CanMinimize); // :93 .miniaturizable
-
-        // Fixed: a close and a reopen bring back the same size and the same style.
-        harness.Main.OnMain(() =>
-        {
-            window.Close();
-            Settle(window);
-            manager.ShowSettings();
-            Settle(window);
-        });
-        Assert.True(window.IsVisible);
-        Assert.Equal(new Size(780, 580), window.ClientSize);
-        Assert.False(window.CanResize);
-        Assert.True(window.CanMinimize);
-    });
-
-    [Fact]
-    [Trait("Req", "UI-SETTINGS-001")] // App/Window/WindowManager.swift:93, :101, :104-108; UI/Chrome/WindowChrome.swift:111-117
-    public void The_Settings_window_draws_its_content_from_the_top_left_corner_under_a_transparent_title_bar_over_a_clear_window() => WithManager((harness, manager) =>
-    {
-        var content = new Border();
-        var window = ShowSettings(harness, manager, content);
-        Assert.Equal(WindowDecorations.Full, window.WindowDecorations); // the title bar is the system's (ED-063)
-        Assert.True(window.ExtendClientAreaToDecorationsHint); // :93 .fullSizeContentView; WindowChrome.swift:111-113
-        // WindowChrome.swift:116-117 isOpaque = false, backgroundColor = .clear
-        Assert.Equal(Colors.Transparent, Assert.IsAssignableFrom<ISolidColorBrush>(window.Background).Color);
-        // Nothing between the window and the hosted view paints (:104-108: a plain container and the hosting view),
-        // so what shows is the content itself, from the window's top-left corner under the title bar, at 780 x 580 (pixels: the content's points at the
-        // base scale, ED-NEW-textsize-2).
-        var container = Assert.IsAssignableFrom<Panel>(window.Content);
-        Assert.Null(container.Background);
-        Assert.Equal(new Point(0, 0), content.TranslatePoint(new Point(0, 0), window));
-        ZoomDrawn.Covers(new Size(780, 580), content, window);
-    });
-
-    // ED-236 (OD-0014, closes STOP #5): the clear window over the desktop is Acrylic under the app-drawn scrim, on both
-    // windows WindowChrome.configure (:101) reaches. Native pixels: GlassWindowNativeTests.
+    // ED-236 (OD-0014, closes STOP #5): the clear window over the desktop is Acrylic under the app-drawn scrim, on the window
+    // WindowChrome.configure (:101) reaches; OD-0151: Settings opens in that same window. Native pixels: GlassWindowNativeTests.
     [Fact]
     [Trait("Decision", "ED-236")]
+    [Trait("Decision", "OD-0151")]
     [Trait("Req", "UI-SETTINGS-001")] // WindowChrome.swift:116-117 through WindowManager.swift:101; OD-0014
-    public void The_main_window_and_the_Settings_window_ask_for_the_Acrylic_backdrop_over_the_clear_window() => WithManager((harness, manager) =>
+    public void The_main_window_asks_for_the_Acrylic_backdrop_over_the_clear_window_with_Settings_open_in_it() => WithManager((harness, manager) =>
     {
         var main = ShowMain(harness, manager, new Border());
+        Assert.Equal([WindowTransparencyLevel.AcrylicBlur, WindowTransparencyLevel.Transparent], main.TransparencyLevelHint);
+        Assert.Equal(Colors.Transparent, Assert.IsAssignableFrom<ISolidColorBrush>(main.Background).Color); // the clear window is kept
         var settings = ShowSettings(harness, manager, new Border());
-        foreach (var window in new[] { main, settings })
-        {
-            Assert.Equal([WindowTransparencyLevel.AcrylicBlur, WindowTransparencyLevel.Transparent], window.TransparencyLevelHint);
-            Assert.Equal(Colors.Transparent, Assert.IsAssignableFrom<ISolidColorBrush>(window.Background).Color); // the clear window is kept
-        }
-    });
-
-    [Fact]
-    [Trait("Req", "UI-SETTINGS-001")] // App/Window/WindowManager.swift:36, :40-55, :80-84
-    public void Every_open_centres_the_Settings_window_over_the_main_window_clamped_into_its_screen_and_nothing_remembers_where_it_was() => WithManager((harness, manager) =>
-    {
-        var main = ShowMain(harness, manager, new Border());
-        harness.Main.OnMain(() =>
-        {
-            main.Position = new PixelPoint(1000, 100);
-            Settle(main);
-        });
-        var settings = ShowSettings(harness, manager, new Border());
-        // parent (1000, 100, 1320, 860): mid (1660, 530); origin (1270, 240); :51 min(max(1270, 0), 1920 - 780) = 1140;
-        // :52 the top edge stays at 240, inside the working area.
-        Assert.Equal(new PixelPoint(1140, 240), settings.Position);
-
-        harness.Defaults.Writes.Clear();
-        harness.Main.OnMain(() =>
-        {
-            settings.Position = new PixelPoint(40, 30); // moved away by its sidebar
-            Settle(settings);
-            settings.Close();
-            Settle(settings);
-        });
-        Assert.Empty(harness.Defaults.Writes); // no frame autosave (:80-84; only the main window has one, :70)
-
-        harness.Main.OnMain(() => manager.ShowSettings());
-        Assert.Equal(new PixelPoint(1140, 240), settings.Position); // :36 centred again, not where it was left
+        Assert.Same(main, settings);
+        Assert.Equal([WindowTransparencyLevel.AcrylicBlur, WindowTransparencyLevel.Transparent], main.TransparencyLevelHint);
+        Assert.Equal(Colors.Transparent, Assert.IsAssignableFrom<ISolidColorBrush>(main.Background).Color);
     });
 
     [Fact]
     [Trait("Req", "UI-SETTINGS-001")] // App/Window/WindowManager.swift:16, :34-35, :98
-    public void Closing_the_Settings_window_hides_it_and_its_view_state_survives_so_the_next_open_shows_the_same_page_and_search_text() => WithManager((harness, manager) =>
+    [Trait("Decision", "OD-0151")]
+    public void Closing_Settings_hides_its_panel_and_its_view_state_survives_so_the_next_open_shows_the_same_page_and_search_text() => WithManager((harness, manager) =>
     {
         // Stand-ins for SettingsView's @State page and search (SettingsView.swift:93-94), held by the hosted view.
         var search = new TextBox { Text = "zoom" };
@@ -1127,14 +997,18 @@ public sealed class WindowManagerTests(HeadlessSession headless)
         };
         harness.Main.OnMain(() => manager.ShowSettings());
         var window = WindowOf(content);
+        var overlay = Assert.IsType<SettingsOverlay>(manager.SettingsOverlay);
+        Assert.Same(manager.MainWindow, window);
 
-        // The close button asks the window to close (performClose); :98 keeps it.
+        // The close button closes the panel (OD-0151; it was the window's performClose); :98 keeps it.
         harness.Main.OnMain(() =>
         {
-            window.Close();
+            manager.CloseSettings();
             Settle(window);
         });
-        Assert.False(window.IsVisible);
+        Assert.False(manager.IsSettingsOpen);
+        Assert.False(overlay.IsVisible);
+        Assert.True(window.IsVisible); // the main window it is in stays
         Assert.Same(window, WindowOf(content));
 
         harness.Main.OnMain(() =>
@@ -1142,8 +1016,10 @@ public sealed class WindowManagerTests(HeadlessSession headless)
             manager.ShowSettings();
             Settle(window);
         });
-        Assert.True(window.IsVisible);
-        Assert.Equal(1, built); // :34 the kept window, not a new one
+        Assert.True(manager.IsSettingsOpen);
+        Assert.True(overlay.IsVisible);
+        Assert.Same(overlay, manager.SettingsOverlay);
+        Assert.Equal(1, built); // :34 the kept view, not a new one
         Assert.Same(window, WindowOf(content));
         Assert.Equal("zoom", search.Text);
         Assert.Equal(SettingsPage.Appearance, page.Tag);
@@ -1151,21 +1027,26 @@ public sealed class WindowManagerTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-SETTINGS-001")] // App/Window/WindowManager.swift:32-37
-    public void Reopening_the_Settings_window_with_a_page_requests_that_page_before_the_same_kept_view_is_shown_again() => WithManager((harness, manager) =>
+    [Trait("Decision", "OD-0151")]
+    public void Reopening_Settings_with_a_page_requests_that_page_before_the_same_kept_view_is_shown_again() => WithManager((harness, manager) =>
     {
         var search = new TextBox { Text = "zoom" };
         var content = new StackPanel { Children = { search } };
         var window = ShowSettings(harness, manager, content);
+        var overlay = Assert.IsType<SettingsOverlay>(manager.SettingsOverlay);
         harness.Main.OnMain(() =>
         {
-            window.Close();
+            manager.CloseSettings();
             Settle(window);
             SettingsNavigation.Shared.RequestedPage = null;
         });
+        Assert.False(manager.IsSettingsOpen);
+        Assert.False(overlay.IsVisible);
 
+        // OD-0151: Settings is shown when its panel becomes visible in the main window (it was the Settings window's show).
         SettingsPage? requestedWhenShown = null;
         var shown = 0;
-        window.PropertyChanged += (_, e) =>
+        overlay.PropertyChanged += (_, e) =>
         {
             if (e.Property != Visual.IsVisibleProperty || !e.GetNewValue<bool>()) return;
             shown++;
@@ -1174,9 +1055,11 @@ public sealed class WindowManagerTests(HeadlessSession headless)
         harness.Main.OnMain(() => manager.ShowSettings(SettingsPage.Mcp));
 
         Assert.Equal(1, shown);
+        Assert.True(manager.IsSettingsOpen);
         Assert.Equal(SettingsPage.Mcp, requestedWhenShown); // :33 before :37: the view finds the page as it appears
         Assert.Equal(SettingsPage.Mcp, harness.Main.OnMain(() => SettingsNavigation.Shared.RequestedPage));
         Assert.Same(window, WindowOf(content)); // the same view state, which the requested page then overrides
+        Assert.Same(overlay, manager.SettingsOverlay);
         Assert.Equal("zoom", search.Text);
     });
 }
@@ -1264,8 +1147,9 @@ public sealed class WindowManagerTests(HeadlessSession headless)
 // without a blur (native launch capture 2026-10-02: other windows' text showed through sharp).
 // Closed by ED-236 (a decision naming the unit): WindowChrome.Configure, the twin of :116-117, sets
 // WindowChrome.GlassBackdrop = [AcrylicBlur, Transparent] beside the transparent Background, so the main window and the
-// Settings window made here have the Acrylic under the app-drawn scrim, and so does the tour window. Proved by
-// The_main_window_and_the_Settings_window_ask_for_the_Acrylic_backdrop_over_the_clear_window and on real screen pixels by
+// Settings window made here have the Acrylic under the app-drawn scrim, and so does the tour window (OD-0151: Settings now opens in the
+// main window, so that is the one window here). Proved by
+// The_main_window_asks_for_the_Acrylic_backdrop_over_the_clear_window_with_Settings_open_in_it and on real screen pixels by
 // GlassWindowNativeTests (stripes behind the real main window: contrast 42.9 bare, 0.0 through it, active and inactive).
 // OD-0041's start-up gap is covered by the boot hand-over (BootStageWindowTests, GlassWindowNativeTests).
 // Still open, named in ED-236 and not decided here: the corners outside the 26 pt shape show the Acrylic without the scrim

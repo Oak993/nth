@@ -44,7 +44,6 @@ internal static class WindowInvisibleBorder
 
     private static int FromSystem(AvaloniaWindow window, double scaling)
     {
-        if (window.Content is SettingsShell { Inset: > 0 }) return 0; // app-owned shell has no NC resize strip
         if (!OperatingSystem.IsWindows() || window.TryGetPlatformHandle() is not { Handle: not 0 } handle || handle.HandleDescriptor != "HWND") return 0;
         var dpi = (uint)Math.Max(1, (int)Math.Round(96 * scaling));
         return GetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);

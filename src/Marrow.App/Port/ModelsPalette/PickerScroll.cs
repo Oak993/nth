@@ -19,6 +19,7 @@ internal static class PickerScroll
         viewer.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
         viewer.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
         viewer.AllowAutoHide = false;
+        viewer.Fades(top: 16, bottom: 18); // PORT-ONLY (OD-0151): rows dissolve under the search pill above and fade out below the fold (ScrollEdgeFade)
         viewer.Template = new FuncControlTemplate<ScrollViewer>((v, scope) =>
         {
             var panel = new Grid { ColumnDefinitions = new ColumnDefinitions("*,12") };

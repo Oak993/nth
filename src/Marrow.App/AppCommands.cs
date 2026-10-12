@@ -56,7 +56,7 @@ public sealed class AppCommands
                 new("Settings\U00002026", // :13
                     shortcuts.KeyboardShortcut(AppShortcut.OpenSettings), // :14
                     false,
-                    () => WindowManager.Shared.ShowSettings()), // :13
+                    () => WindowManager.Shared.ToggleSettings()), // :13; OD-0151: the shortcut closes the Settings panel when it is open
                 // :21-25 CommandGroup(before: .windowArrangement)
                 new(AppInfo.Current.Name, // :22; OD-0012 F1: Marrow
                     shortcuts.KeyboardShortcut(AppShortcut.ShowMainWindow), // :23; OD-0012 G6: no default

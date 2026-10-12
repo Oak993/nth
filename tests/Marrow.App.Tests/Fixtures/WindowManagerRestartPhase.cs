@@ -114,7 +114,7 @@ internal sealed class WindowManagerRestartPhase(WindowManagerRestartRequest requ
             Assert.Equal(ready, result.Identity);
             Assert.Equal(R.StorePath(request.Root), result.StorePath);
             Assert.Equal(E.SavedMain, result.Main);
-            Assert.Equal(request.Phase == 1 ? E.MovedSettings : E.RecomputedSettings, result.Settings);
+            Assert.Equal(E.SavedMain, result.Settings); // OD-0151: Settings opens as the panel in the main window, so it reads the main frame
             Assert.Equal(request.ExpectedInputHash, result.InputHash);
             var snapshot = File.ReadAllBytes(P.UnderRun(directory, Path.Combine(directory, "output-store.bin")));
             E.AssertSerializedFrame(snapshot);

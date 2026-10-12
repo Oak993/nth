@@ -15,9 +15,6 @@ namespace Marrow.App.Tests.Window;
 [Collection("Headless")]
 public sealed class WindowManagerCenteringTests(HeadlessSession headless)
 {
-    private static AvaloniaWindow Settings(WindowManager manager) => Assert.IsType<SecondaryWindow>(
-        typeof(WindowManager).GetField("settingsWindow", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(manager));
-
     private static void Settle(AvaloniaWindow window)
     {
         for (var i = 0; i < 5; i++) { window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); }
@@ -40,7 +37,7 @@ public sealed class WindowManagerCenteringTests(HeadlessSession headless)
         finally
         {
             if (manager.MainWindow is { } main) { main.Content = null; main.Hide(); }
-            if (typeof(WindowManager).GetField("settingsWindow", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(manager) is AvaloniaWindow settings) { settings.Content = null; settings.Hide(); }
+            manager.SettingsOverlay?.Close();
             ThemeManager.Current = originalTheme;
             Application.Current.RequestedThemeVariant = originalAppearance;
             Dispatcher.UIThread.RunJobs();
@@ -68,14 +65,15 @@ public sealed class WindowManagerCenteringTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-006")] // App/Window/WindowManager.swift:67-70; ED-225
-    [Trait("Req", "UI-LAUNCH-001")] // the first launch's 1320 x 860 content, centred (WindowManager.swift:67-70; ED-225)
-    public void A_first_run_main_uses_the_pointer_monitor_work_area_and_the_one_third_vertical_bias() => WithManager((manager, harness, screens, cursor) =>
+    [Trait("Req", "UI-LAUNCH-001")] // the first launch's content, 69 % x 92 % of the work area, centred (ED-NEW-settingsinapp-3, OD-0151)
+    [Trait("Decision", "ED-NEW-settingsinapp-3")]
+    public void A_first_run_main_takes_69_by_92_percent_of_the_pointer_monitor_work_area_centred_both_ways() => WithManager((manager, harness, screens, cursor) =>
     {
         manager.ShowMain();
         var main = manager.MainWindow!;
-        // Work area (-1600,-1200,1600,1160), frame 1320x860: free 280x300, offsets 140x100.
-        Assert.Equal(new PixelPoint(-1460, -1100), main.Position);
-        Assert.Equal(new Size(1320, 860), main.ClientSize);
+        // Work area (-1600,-1200,1600,1160): 69 % of 1600 is 1104, 92 % of 1160 is 1067.2 (1067); free 496x93, offsets 248x46.5 (away from zero).
+        Assert.Equal(new PixelPoint(-1352, -1154), main.Position);
+        Assert.Equal(new Size(1104, 1067), main.ClientSize);
         Assert.Equal(cursor.Position, screens.LastPoint);
         Assert.Equal(1, screens.PointReads);
         Assert.Equal(0, screens.OwnerReads);
@@ -90,8 +88,8 @@ public sealed class WindowManagerCenteringTests(HeadlessSession headless)
     {
         using var strip = Marrow.App.Port.WindowInvisibleBorder.Pixels.Override((_, scale) => (int)Math.Round(8 * scale));
         manager.ShowMain();
-        // Work area (-1600,-1200,1600,1160), visible frame 1320x860: free 280x300, offsets 140x100: visible left -1460.
-        Assert.Equal(new PixelPoint(-1468, -1100), manager.MainWindow!.Position);
+        // Work area (-1600,-1200,1600,1160), visible frame 1104x1067 (ED-NEW-settingsinapp-3): offsets 248x46.5: visible left -1352.
+        Assert.Equal(new PixelPoint(-1360, -1154), manager.MainWindow!.Position);
     });
 
     // ENGINEERING DECISION (ED-284, WindowInvisibleBorder), arithmetic with a stood-in strip of 12 px (not the 8 px
@@ -104,22 +102,9 @@ public sealed class WindowManagerCenteringTests(HeadlessSession headless)
     {
         using var strip = Marrow.App.Port.WindowInvisibleBorder.Pixels.Override((_, scale) => (int)Math.Round(12 * scale));
         manager.ShowMain();
-        // Pointer monitor work area (-1600,-1200,1600,1160), visible frame 1320x860: offsets 140x100: visible left -1460, top -1100.
-        Assert.Equal(new PixelPoint(-1472, -1100), manager.MainWindow!.Position);
-    });
-
-    // The same strip on the Settings window opened with no main window to centre over (WindowCentering.Center on the owner monitor's work area).
-    [Fact]
-    [Trait("Req", "PR-WIN-010")] // App/Window/WindowManager.swift:80-84, :42-45; ED-225, ED-284 (1)
-    [Trait("Req", "PR-SETTINGS-002")]
-    public void The_Settings_HWND_without_a_main_window_is_placed_one_invisible_strip_left_of_the_centred_visible_window() => WithManager((manager, harness, screens, cursor) =>
-    {
-        using var strip = Marrow.App.Port.WindowInvisibleBorder.Pixels.Override((_, scale) => (int)Math.Round(12 * scale));
-        screens.Pointer = screens.Owner;
-        cursor.Position = new PixelPoint(2800, 500);
-        manager.ShowSettings();
-        // Work area (2000,100,1800,1180), visible frame 780x580: visible left 2510, top 300 (offsets 510x200).
-        Assert.Equal(new PixelPoint(2498, 300), Settings(manager).Position);
+        // Pointer monitor work area (-1600,-1200,1600,1160), visible frame 1104x1067 (ED-NEW-settingsinapp-3): offsets 248x46.5: visible
+        // left -1352, top -1154.
+        Assert.Equal(new PixelPoint(-1364, -1154), manager.MainWindow!.Position);
     });
 
     // The clamp of WindowCentering.Center keeps the visible window, not the HWND, inside the working area: a frame wider and
@@ -130,10 +115,34 @@ public sealed class WindowManagerCenteringTests(HeadlessSession headless)
     public void A_visible_main_window_larger_than_the_work_area_keeps_its_left_edge_on_it_and_the_strip_outside_it() => WithManager((manager, harness, screens, cursor) =>
     {
         using var strip = Marrow.App.Port.WindowInvisibleBorder.Pixels.Override((_, scale) => (int)Math.Round(12 * scale));
-        screens.Pointer = new WindowCenteringScreen(new PixelRect(0, 0, 1000, 700), new PixelRect(0, 0, 1000, 700), primary: true);
-        cursor.Position = new PixelPoint(500, 350);
+        // ED-NEW-settingsinapp-3: a first-launch window is never below the 860 x 560 minimum, so a work area of 800 x 500 is smaller than it.
+        screens.Pointer = new WindowCenteringScreen(new PixelRect(0, 0, 800, 500), new PixelRect(0, 0, 800, 500), primary: true);
+        cursor.Position = new PixelPoint(400, 250);
         manager.ShowMain();
+        Assert.Equal(new Size(860, 560), manager.MainWindow!.ClientSize);
         Assert.Equal(new PixelPoint(-12, 0), manager.MainWindow!.Position);
+    });
+
+    // OD-0151: Settings with no main window shown opens the main window (first-launch sized and centred, the monitor read once) with the
+    // Settings panel in it; no other window is made.
+    [Fact]
+    [Trait("Decision", "OD-0151")]
+    [Trait("Decision", "ED-NEW-settingsinapp-3")]
+    public void Settings_without_a_main_window_opens_the_main_window_centred_with_the_panel_in_it() => WithManager((manager, harness, screens, cursor) =>
+    {
+        screens.Pointer = screens.Owner;
+        cursor.Position = new PixelPoint(2800, 500);
+        var opened = new List<AvaloniaWindow>();
+        using var watch = AvaloniaWindow.WindowOpenedEvent.AddClassHandler<AvaloniaWindow>((window, _) => opened.Add(window));
+        manager.ShowSettings();
+        var main = manager.MainWindow!;
+        Assert.Same(main, Assert.Single(opened));
+        Assert.True(manager.IsSettingsOpen);
+        Assert.Same(main, manager.SettingsOverlay!.Window);
+        // Work area (2000,100,1800,1180): 69 % is 1242, 92 % is 1085.6 (1086); offsets 279x47.
+        Assert.Equal(new Size(1242, 1086), main.ClientSize);
+        Assert.Equal(new PixelPoint(2279, 147), main.Position);
+        Assert.Equal(1, screens.PointReads);
     });
 
     [Fact]
@@ -156,45 +165,6 @@ public sealed class WindowManagerCenteringTests(HeadlessSession headless)
             Assert.Equal(reads, cursor.Reads);
         }
         finally { if (next.MainWindow is { } main) { main.Content = null; main.Hide(); } }
-    });
-
-    [Fact]
-    [Trait("Req", "PR-WIN-010")] // App/Window/WindowManager.swift:80-84; ED-225
-    [Trait("Req", "PR-SETTINGS-002")] // App/Window/WindowManager.swift:42-45; ED-225
-    public void Settings_without_main_is_centered_on_creation_and_again_on_every_show() => WithManager((manager, harness, screens, cursor) =>
-    {
-        screens.Pointer = screens.Owner;
-        cursor.Position = new PixelPoint(2800, 500);
-        manager.ShowSettings();
-        var settings = Settings(manager);
-        // Work area (2000,100,1800,1180), frame 780x580: free 1020x600, offsets 510x200.
-        Assert.Equal(new PixelPoint(2510, 300), settings.Position);
-        Assert.Equal(2, screens.PointReads); // :82 on construction, then :43 on show
-        settings.Position = new PixelPoint(7, 9);
-        settings.Close();
-        manager.ShowSettings();
-        Assert.Same(settings, Settings(manager));
-        Assert.Equal(new PixelPoint(2510, 300), settings.Position);
-        Assert.Equal(3, screens.PointReads);
-    });
-
-    [Fact]
-    [Trait("Req", "PR-WIN-011")] // App/Window/WindowManager.swift:42-45; ED-225
-    [Trait("Req", "PR-SETTINGS-002")] // App/Window/WindowManager.swift:42-45; ED-225
-    public void Hidden_and_minimized_main_use_pointer_screen_centering_instead_of_the_main_frame() => WithManager((manager, harness, screens, cursor) =>
-    {
-        manager.ShowMain();
-        var main = manager.MainWindow!;
-        main.Hide();
-        screens.Pointer = screens.Owner;
-        manager.ShowSettings();
-        var settings = Settings(manager);
-        Assert.Equal(new PixelPoint(2510, 300), settings.Position);
-        manager.ShowMain();
-        main.WindowState = WindowState.Minimized;
-        settings.Position = new PixelPoint(0, 0);
-        manager.ShowSettings();
-        Assert.Equal(new PixelPoint(2510, 300), settings.Position);
     });
 
     [Fact]
@@ -222,13 +192,19 @@ public sealed class WindowManagerCenteringTests(HeadlessSession headless)
     public void Monitor_scaling_converts_the_fixed_logical_frame_to_pixels_before_centering() => WithManager((manager, harness, screens, cursor) =>
     {
         screens.Pointer = new WindowCenteringScreen(new PixelRect(1920, 0, 2560, 1600), new PixelRect(1920, 40, 2560, 1460), scale: 2);
-        manager.ShowSettings();
-        var window = Settings(manager);
+        // OD-0151: Settings has no window of its own; ED-225's centring is proved on a plain window of the old Settings frame.
+        var window = new AvaloniaWindow { Width = 780, Height = 580 };
+        WindowCenteringTestHooks.Center(window, new Size(780, 580));
         // 780x580 DIP is 1560x1160 pixels: free 1000x300, offsets 500x100, work origin 1920x40.
         Assert.Equal(new PixelPoint(2420, 140), window.Position);
         Assert.Equal(780, window.Width);
         Assert.Equal(580, window.Height);
         Assert.True(screens.Pointer.WorkingArea.Contains(new PixelRect(window.Position, new PixelSize(1560, 1160))));
+        // The first-launch main window on that monitor: 69 % x 92 % of 1280 x 730 DIP is 883.2 x 671.6 (883 x 672), centred both ways.
+        manager.ShowMain();
+        var main = manager.MainWindow!;
+        Assert.Equal(new Size(883, 672), main.ClientSize);
+        Assert.Equal(new PixelPoint(1920 + (2560 - 1766) / 2, 40 + (1460 - 1344) / 2), main.Position);
     });
 
     [Fact]
@@ -236,10 +212,12 @@ public sealed class WindowManagerCenteringTests(HeadlessSession headless)
     public void An_exactly_fitting_work_area_keeps_all_edges_inside_without_changing_the_frame() => WithManager((manager, harness, screens, cursor) =>
     {
         screens.Pointer = new WindowCenteringScreen(new PixelRect(-1000, 0, 1000, 1000), new PixelRect(-900, 120, 780, 580));
-        manager.ShowSettings();
-        var window = Settings(manager);
+        // OD-0151: Settings has no window of its own; ED-225's clamp is proved on a plain window of the old Settings frame.
+        var window = new AvaloniaWindow { Width = 780, Height = 580 };
+        WindowCenteringTestHooks.Center(window, new Size(780, 580));
         Assert.Equal(new PixelPoint(-900, 120), window.Position);
-        Assert.Equal(new Size(780, 580), window.ClientSize);
+        Assert.Equal(780, window.Width);
+        Assert.Equal(580, window.Height);
         Assert.True(screens.Pointer.WorkingArea.Contains(new PixelRect(window.Position, new PixelSize(780, 580))));
     });
 }

@@ -17,7 +17,7 @@ using HostWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Tests.Port;
 
-// OD-0088 (ED-253): Escape in the real Settings window (WindowManager's SecondaryWindow). The source's SecondaryWindow closes
+// OD-0088 (ED-253): Escape in the real Settings panel (OD-0151: SettingsOverlay in the main window; it was WindowManager's SecondaryWindow). The source's SecondaryWindow closes
 // on Escape in sendEvent (App/Window/ThreadWindow.swift:47-55), but a menu or a popover over it is a window of its own on the
 // Mac (NSMenu, NSPopover), so the Escape that closes it never reaches the Settings window. The port draws those over the
 // window, so the window's Escape first closes the newest of them, and only with none open closes the window. The theme menu
@@ -25,7 +25,7 @@ namespace Marrow.App.Tests.Port;
 [Collection("Headless")]
 public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWindowFixture(headless)
 {
-    private void Open(SettingsPage page, Action<SecondaryWindow, SettingsView, RecordingPresenter> check, Action<Marrow.App.AppModel>? arrange = null) =>
+    private void Open(SettingsPage page, Action<HostWindow, SettingsView, RecordingPresenter> check, Action<Marrow.App.AppModel>? arrange = null) =>
         WithManager((h, manager) =>
         {
             var presenter = new RecordingPresenter();
@@ -34,7 +34,6 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
             rise = rig;
             manager.Model.Settings.Theme = AppTheme.Dark;
             arrange?.Invoke(manager.Model);
-            manager.SettingsCloak = rig.Cloak;
             manager.ShowSettings(page);
             Dispatcher.UIThread.RunJobs();
             var window = Settings(manager);
@@ -51,6 +50,9 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
 
     private static void Escape(HostWindow window) => Press(window, Key.Escape, PhysicalKey.Escape);
 
+    // OD-0151: Settings is the panel in the main window; open means the panel is open there.
+    private static bool IsOpen(HostWindow window) => window.GetVisualDescendants().OfType<SettingsOverlay>().Single().IsOpen;
+
     private static IInputElement? Focused(HostWindow window) => window.FocusManager?.GetFocusedElement();
 
     [Fact]
@@ -64,11 +66,11 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
         Assert.Contains(card.Menu.Rows, r => r.IsFocused);
         Escape(window);
         Assert.False(card.Menu.IsOpen);
-        Assert.True(window.IsVisible); // the window stays
+        Assert.True(IsOpen(window)); // Settings stays
         Assert.Same(card.Segments.Buttons[3], Focused(window));
         // With nothing open over it, Escape closes the window as the source's does (WindowManager hides it).
         Escape(window);
-        Assert.False(window.IsVisible); // the window closes (hidden, WindowManager keeps it)
+        Assert.False(IsOpen(window)); Assert.True(window.IsVisible); // Settings closes; the main window it was in stays
     });
 
     [Fact]
@@ -80,10 +82,10 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
         Assert.True(card.Menu.IsOpen);
         Escape(window);
         Assert.False(card.Menu.IsOpen);
-        Assert.True(window.IsVisible); // the window stays
+        Assert.True(IsOpen(window)); // Settings stays
         Assert.Same(card.Segments.Buttons[3], Focused(window));
         Escape(window);
-        Assert.False(window.IsVisible); // the window closes (hidden, WindowManager keeps it)
+        Assert.False(IsOpen(window)); Assert.True(window.IsVisible); // Settings closes; the main window it was in stays
     });
 
     // A page popover (PlainControls.Popover: GlassPickerButton, ChromeVisualPicker, the theme capsule, the archive and model
@@ -98,9 +100,9 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
         var popup = Assert.Single(presenter.Calls, c => c.Presented).Popup;
         Escape(window);
         Assert.Equal((popup, false), presenter.Calls[^1]);
-        Assert.True(window.IsVisible); // the window stays
+        Assert.True(IsOpen(window)); // Settings stays
         Escape(window);
-        Assert.False(window.IsVisible); // the window closes (hidden, WindowManager keeps it)
+        Assert.False(IsOpen(window)); Assert.True(window.IsVisible); // Settings closes; the main window it was in stays
     });
 
     // A popover the page builds on its own Popup (HydraSettingsPage's cookbook, as the About page's release notes): the same.
@@ -114,9 +116,9 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
         var popup = Assert.Single(presenter.Calls, c => c.Presented).Popup;
         Escape(window);
         Assert.Equal((popup, false), presenter.Calls[^1]);
-        Assert.True(window.IsVisible); // the window stays
+        Assert.True(IsOpen(window)); // Settings stays
         Escape(window);
-        Assert.False(window.IsVisible); // the window closes (hidden, WindowManager keeps it)
+        Assert.False(IsOpen(window)); Assert.True(window.IsVisible); // Settings closes; the main window it was in stays
     });
 
     // UI-MCP-047 (MCPSettingsPage.swift:570-572): the custom server editor's popover (an "Add server" row of the MCP page, PlainControls.Popover through
@@ -133,9 +135,9 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
         Escape(window);
         Assert.Equal((popup, false), presenter.Calls[^1]);
         Assert.False(WindowTransients.IsShown(popup));
-        Assert.True(window.IsVisible); // the window stays
+        Assert.True(IsOpen(window)); // Settings stays
         Escape(window);
-        Assert.False(window.IsVisible); // the window closes (hidden, WindowManager keeps it)
+        Assert.False(IsOpen(window)); Assert.True(window.IsVisible); // Settings closes; the main window it was in stays
     });
 
     // ED-253 round 4 (F1): a link's popover (LinkPopover, right-click on a link in the Licenses popover or the About page's
@@ -154,9 +156,9 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
             Escape(window);
             Assert.Equal((popup, false), presenter.Calls[^1]);
             Assert.False(WindowTransients.IsShown(popup));
-            Assert.True(window.IsVisible); // the window stays
+            Assert.True(IsOpen(window)); // Settings stays
             Escape(window);
-            Assert.False(window.IsVisible); // the window closes (hidden, WindowManager keeps it)
+            Assert.False(IsOpen(window)); Assert.True(window.IsVisible); // Settings closes; the main window it was in stays
         }
         finally { Marrow.UI.Markdown.LinkPopover.Shared.Close(); }
     });
@@ -179,7 +181,7 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
             Marrow.UI.Markdown.LinkPopover.Shared.Close();
             Assert.False(WindowTransients.IsShown(popup));
             Escape(window);
-            Assert.False(window.IsVisible); // nothing open over it: Escape closes the window
+            Assert.False(IsOpen(window)); // nothing open over it: Escape closes the window
         }
         finally { Marrow.UI.Markdown.LinkPopover.Shared.Close(); }
     });
@@ -198,14 +200,14 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
         {
             Drain(window);
             var paragraph = markdown.GetVisualDescendants().OfType<ParagraphTextPresenter>().First();
-            var menu = new EscapeInsideMenu(() => { Escape(window); return window.IsVisible; });
+            var menu = new EscapeInsideMenu(() => { Escape(window); return IsOpen(window); });
             using (NativeContextMenus.Presenter.Override(menu))
                 paragraph.RaiseEvent(new ContextRequestedEventArgs());
             Assert.True(menu.ShownAfterEscape, "Escape over the paragraph's text menu closed the Settings window");
             Assert.Equal(1, menu.Dismissed);
-            Assert.True(window.IsVisible);
+            Assert.True(IsOpen(window));
             Escape(window);
-            Assert.False(window.IsVisible); // the menu is gone: Escape closes the window
+            Assert.False(IsOpen(window)); // the menu is gone: Escape closes the window
         }
         finally { host.Children.Remove(markdown); }
     });
@@ -225,7 +227,7 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
             using (NativeContextMenus.Presenter.Override(new EscapeInsideMenu(escape: null)))
                 paragraph.RaiseEvent(new ContextRequestedEventArgs());
             Escape(window);
-            Assert.False(window.IsVisible);
+            Assert.False(IsOpen(window));
         }
         finally { host.Children.Remove(markdown); }
     });
@@ -251,9 +253,9 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
             Assert.True(WindowTransients.IsShown(popup));
             Escape(window);
             Assert.Equal((popup, false), presenter.Calls[^1]);
-            Assert.True(window.IsVisible); // the window stays
+            Assert.True(IsOpen(window)); // Settings stays
             Escape(window);
-            Assert.False(window.IsVisible); // the window closes (hidden, WindowManager keeps it)
+            Assert.False(IsOpen(window)); Assert.True(window.IsVisible); // Settings closes; the main window it was in stays
         }
         finally { host.Children.Remove(cards); }
     });
@@ -272,10 +274,10 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
         Assert.Same(open, popup.PlacementTarget);
         Escape(window);
         Assert.Equal((popup, false), presenter.Calls[^1]);
-        Assert.True(window.IsVisible); // the window stays
+        Assert.True(IsOpen(window)); // Settings stays
         Assert.Single(view.GetVisualDescendants().OfType<HydraPairRow>()); // the pair is still there
         Escape(window);
-        Assert.False(window.IsVisible); // the window closes (hidden, WindowManager keeps it)
+        Assert.False(IsOpen(window)); Assert.True(window.IsVisible); // Settings closes; the main window it was in stays
     }, model => model.Settings.AddHydraPair(new Marrow.Core.Models.HydraPair(Marrow.Core.Models.ProviderKind.Codex)));
 
     // ED-253 round 4 (F6): a popover open over another window (the main window's) is not over the Settings window: the Settings
@@ -297,7 +299,7 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
             Assert.Equal(0, dismissed);
             Assert.True(WindowTransients.IsShown(popup)); // the other window's popover stays
             Assert.Equal((popup, true), presenter.Calls[^1]);
-            Assert.False(window.IsVisible); // nothing over Settings: its Escape closes it
+            Assert.False(IsOpen(window)); // nothing over Settings: its Escape closes it
         }
         finally
         {

@@ -1401,7 +1401,7 @@ internal sealed class ThemeMenu : Border
             watched.AddHandler(PointerPressedEvent, OnOutsidePress, RoutingStrategies.Tunnel, handledEventsToo: true);
             watched.AddHandler(KeyDownEvent, OnEscape, RoutingStrategies.Tunnel, handledEventsToo: true);
         }
-        // ED-253: the Settings window's own Escape (SecondaryWindow, ahead of every handler here) closes the menu, not itself.
+        // ED-253: the Settings panel's own Escape (SettingsOverlay, ahead of every handler here) closes the menu, not itself.
         WindowTransients.Show(this, this, EscapeClose);
         if (keyboard) (current ?? Rows[0]).Focus(NavigationMethod.Directional);
     }

@@ -65,6 +65,6 @@ public static class WindowCenteringTestHooks
     public static void Center(Avalonia.Controls.Window window, Size size)
     {
         Assert.NotNull(Binding);
-        Binding.GetMethod("Center", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, [window, size]);
+        Marrow.App.Port.WindowCentering.Center(window, size); // ED-225's third above (the default)
     }
 }

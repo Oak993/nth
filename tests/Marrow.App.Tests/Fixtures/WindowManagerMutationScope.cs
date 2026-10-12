@@ -31,7 +31,7 @@ public static class WindowManagerMutationScope
         finally
         {
             if (manager.MainWindow is { } main) { main.Content = null; main.Hide(); }
-            if (SettingsOrNull(manager) is { } settings) { settings.Content = null; settings.Hide(); }
+            manager.SettingsOverlay?.Close(); // OD-0151: Settings is a panel in the main window
             SettingsNavigation.Shared.RequestedPage = requested;
             ThemeManager.Current = theme;
             application.RequestedThemeVariant = appearance;
@@ -39,10 +39,15 @@ public static class WindowManagerMutationScope
         }
     });
 
-    public static Avalonia.Controls.Window? SettingsOrNull(WindowManager manager) =>
-        (Avalonia.Controls.Window?)typeof(WindowManager).GetField("settingsWindow", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(manager);
+    // OD-0151: Settings is a panel in the main window (SettingsOverlay); these give the window it is open in.
+    public static Avalonia.Controls.Window? SettingsOrNull(WindowManager manager) => manager.SettingsOverlay?.Window;
 
-    public static Avalonia.Controls.Window Settings(WindowManager manager) => Assert.IsType<SecondaryWindow>(SettingsOrNull(manager));
+    public static Avalonia.Controls.Window Settings(WindowManager manager)
+    {
+        Assert.True(manager.SettingsOverlay is { IsOpen: true }, "Settings is open");
+        Assert.Same(manager.MainWindow, manager.SettingsOverlay!.Window);
+        return manager.SettingsOverlay.Window;
+    }
 
     public static void Settle(Avalonia.Controls.Window window)
     {

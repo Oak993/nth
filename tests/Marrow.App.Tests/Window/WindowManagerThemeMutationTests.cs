@@ -52,11 +52,12 @@ public sealed class WindowManagerThemeMutationTests(HeadlessSession headless)
                 WindowManagerMutationScope.Settle(main);
                 WindowManagerMutationScope.Settle(settings);
                 Assert.Equal(expected, Application.Current!.RequestedThemeVariant);
-                foreach (var window in new Avalonia.Controls.Window[] { main, settings })
-                {
-                    var host = Assert.Single(LogicalQuery.SelfAndDescendants<HostedRoot>(Assert.IsAssignableFrom<Control>(window.Content)));
-                    Assert.Equal(expected, host.RequestedThemeVariant);
-                }
+                // OD-0151: Settings is a panel in the main window, with a host of its own beside the main content's
+                Assert.Same(main, settings);
+                var hosts = LogicalQuery.SelfAndDescendants<HostedRoot>(Assert.IsAssignableFrom<Control>(main.Content)).ToArray();
+                Assert.Equal(2, hosts.Length);
+                Assert.Contains(hosts, host => Avalonia.VisualTree.VisualExtensions.GetVisualAncestors(manager.SettingsOverlay!.Stage).Contains(host));
+                foreach (var host in hosts) Assert.Equal(expected, host.RequestedThemeVariant);
                 if (expected != ThemeVariant.Default) Assert.Equal(expected, foreign.ActualThemeVariant);
                 Assert.Equal(Application.Current.ActualThemeVariant, foreign.ActualThemeVariant);
             }

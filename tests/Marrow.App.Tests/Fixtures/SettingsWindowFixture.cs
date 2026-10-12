@@ -49,8 +49,8 @@ public abstract class SettingsWindowFixture(HeadlessSession headless)
             try { check(harness, manager); }
             finally
             {
+                manager.SettingsOverlay?.Close();
                 if (manager.MainWindow is { } main) { main.Content = null; main.Hide(); }
-                if (SettingsOrNull(manager) is { } settings) { settings.Content = null; settings.Hide(); }
                 SettingsNavigation.Shared.RequestedPage = requested;
                 ThemeManager.Current = theme;
                 application.RequestedThemeVariant = appearance;
@@ -59,17 +59,28 @@ public abstract class SettingsWindowFixture(HeadlessSession headless)
         });
     }
 
-    protected static HostWindow? SettingsOrNull(WindowManager manager) =>
-        (HostWindow?)typeof(WindowManager).GetField("settingsWindow", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(manager);
+    // OD-0151: Settings is a panel inside the main window (SettingsOverlay), no window of its own.
+    /// <summary>The window Settings is open in: the main window, once Settings has been opened; null before.</summary>
+    protected static HostWindow? SettingsOrNull(WindowManager manager) => manager.SettingsOverlay?.Window;
 
-    protected static SecondaryWindow Settings(WindowManager manager) => Assert.IsType<SecondaryWindow>(SettingsOrNull(manager));
+    /// <summary>The window the open Settings panel is in (the main window); fails when Settings is not open there.</summary>
+    protected static HostWindow Settings(WindowManager manager)
+    {
+        var overlay = Overlay(manager);
+        Assert.True(overlay.IsOpen, "Settings is open");
+        Assert.Same(manager.MainWindow, overlay.Window);
+        return overlay.Window;
+    }
+
+    /// <summary>The Settings panel of the main window.</summary>
+    private protected static SettingsOverlay Overlay(WindowManager manager) => Assert.IsType<SettingsOverlay>(manager.SettingsOverlay);
 
     protected static HostWindow MainOf(WindowManager manager) => Assert.IsAssignableFrom<HostWindow>(manager.MainWindow);
 
     protected static T[] Nodes<T>(Control root) where T : class => LogicalQuery.SelfAndDescendants<T>(root).ToArray();
 
     protected static SettingsView View(WindowManager manager) =>
-        Assert.Single(Nodes<SettingsView>(Assert.IsAssignableFrom<Control>(Settings(manager).Content)));
+        Assert.Single(Nodes<SettingsView>(Overlay(manager).Content));
 
     protected static void Drain(HostWindow window)
     {

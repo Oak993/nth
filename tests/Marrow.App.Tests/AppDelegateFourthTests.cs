@@ -16,11 +16,13 @@ namespace Marrow.App.Tests;
 // the earlier suites (AppDelegateTests, AppDelegateSecondTests, AppDelegateThirdTests, AppDelegateProofTests) left to
 // other units' tests, or left unasserted. Every expected value is transcribed from the Swift line cited on the test
 // (OD-0098: where a record asks for a capture the reference videos do not hold, the pinned source is the proof).
-//   :22 windows.showMain(); WindowManager.swift:18-24, :26-30, :57-60, :62-72 (title, 1320 x 860, minimum 860 x 560)
+//   :22 windows.showMain(); WindowManager.swift:18-24, :26-30, :57-60, :62-72 (title, minimum 860 x 560; the first-launch size is
+//   ED-NEW-settingsinapp-3's 69 % x 92 % of the work area, not :19's 1320 x 860)
 //   :24-26, :27, :28-33 the rest of the launch sequence (AppModel.swift:121-147, :240-287: no onboarding state)
 //   :28 UpdateChecker.swift:132-149 startBackgroundChecks(): guard backgroundTask == nil; the loop outlives a failed check
 //   :36-39 applicationShouldHandleReopen -> showMain(): the cached window, its content intact (WindowManager.swift:26-30)
-//   :29-33 the About window opened by the relaunch marker (WindowManager.swift:21, :32-38, :46-49: 780 x 580, over main)
+//   :29-33 Settings on About opened by the relaunch marker (WindowManager.swift:32-38; OD-0151: the Settings panel inside the main
+//   window, not a window of its own, so :21's 780 x 580 and :46-49's centring over main are gone)
 [Collection("Headless")]
 public sealed class AppDelegateFourthTests(HeadlessSession headless)
 {
@@ -70,7 +72,7 @@ public sealed class AppDelegateFourthTests(HeadlessSession headless)
             Assert.NotNull(window);
             Assert.Same(window, launch.Manager.MainWindow);
             Assert.Equal("Marrow", window.Title); // :63
-            Assert.Equal(new Size(1320, 860), window.ClientSize); // :19 Size.main
+            Assert.Equal(new Size(1325, 1178), window.ClientSize); // ED-NEW-settingsinapp-3: 69 % x 92 % of the headless 1920 x 1280 work area (the source's :19 is 1320 x 860)
             Assert.Equal(860d, window.MinWidth); // :20, :66 contentMinSize
             Assert.Equal(560d, window.MinHeight);
             Assert.True(window.IsVisible); // :59 makeKeyAndOrderFront
@@ -246,9 +248,10 @@ public sealed class AppDelegateFourthTests(HeadlessSession headless)
     // ===== :29-33 the About window after an installed update =====
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof of UI-LAUNCH-003: the window's own geometry and page; the states are AppDelegateThirdTests, the update tap WindowsToastRoutingTests
-    [Trait("Req", "UI-LAUNCH-003")] // App/AppDelegate.swift:29-33; App/Window/WindowManager.swift:21, :32-38, :46-49
-    public void The_Settings_window_opened_after_an_install_is_780_by_580_on_About_and_centred_over_the_visible_main_window()
+    [Trait("Rule", "R-TEST-4")] // Partial proof of UI-LAUNCH-003: where Settings opens and its page; the states are AppDelegateThirdTests, the update tap WindowsToastRoutingTests
+    [Trait("Req", "UI-LAUNCH-003")] // App/AppDelegate.swift:29-33; App/Window/WindowManager.swift:32-38
+    [Trait("Decision", "OD-0151")] // Settings is a panel inside the main window: no window of its own, so no size or place of its own
+    public void Settings_opened_after_an_install_is_the_panel_in_the_visible_main_window_on_About()
     {
         WithLaunch(h =>
         {
@@ -263,13 +266,12 @@ public sealed class AppDelegateFourthTests(HeadlessSession headless)
             Assert.NotNull(main);
             var settings = LaunchHarness.WindowOf(launch.SettingsContent);
             Assert.NotNull(settings);
-            Assert.True(settings.IsVisible);
-            Assert.Equal("Settings", settings.Title); // :80-81
-            Assert.Equal(new Size(780, 580), settings.ClientSize); // :21 Size.settings
+            Assert.Same(main, settings); // OD-0151: the Settings content sits in the main window
+            Assert.Same(main, launch.Harness.Main.OnMain(() => launch.Manager.SettingsOverlay!.Window));
+            Assert.True(launch.Harness.Main.OnMain(() => launch.Manager.IsSettingsOpen));
+            Assert.True(main.IsVisible);
+            Assert.True(main.IsActive); // WindowManager.swift:37, :58-59: the window Settings is in comes to the front
             Assert.Equal(SettingsPage.About, launch.Harness.Main.OnMain(() => SettingsNavigation.Shared.RequestedPage)); // :32, WindowManager :33
-            // :46-49 the origin is the main window's middle less half the settings size; the headless screen (1920 x 1280)
-            // holds both, so :50-53's clamp leaves it where it is.
-            Assert.Equal(new PixelPoint(main.Position.X + (1320 - 780) / 2, main.Position.Y + (860 - 580) / 2), settings.Position);
         });
     }
 }

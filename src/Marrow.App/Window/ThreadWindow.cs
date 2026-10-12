@@ -75,6 +75,10 @@ public sealed class ThreadWindow : AvaloniaWindow
     /// <summary>NSWindow.attachedSheet: the sheet over this window, or null.</summary>
     public Control? AttachedSheet { get; set; }
 
+    /// <summary>PORT-ONLY (OD-0151, ED-NEW-settingsinapp-1): the keys of the Settings panel open over this window, asked before anything
+    /// else in it (Port/SettingsOverlay.cs); true takes the key.</summary>
+    internal Func<KeyEventArgs, bool>? OverlayKeys { get; set; }
+
     // :11-17 the local monitor's body: true consumes the event (`return nil`), false returns it (`return event`).
     private bool DigitMonitor(KeyEventArgs e)
     {
@@ -112,6 +116,11 @@ public sealed class ThreadWindow : AvaloniaWindow
     private void SendEvent(KeyEventArgs e)
     {
         if (e.Handled) return;
+        if (OverlayKeys is { } overlay && overlay(e))
+        {
+            e.Handled = true;
+            return;
+        }
         if ((digitMonitor is { } monitor && monitor(e)) || PerformKeyEquivalent(e)) e.Handled = true;
     }
 
@@ -136,6 +145,8 @@ public sealed class ThreadWindow : AvaloniaWindow
 /// <summary>
 /// :41-44 A window beside the main one, Settings say, where Command-W closes it as it does in any Mac app. The chord
 /// is the archive shortcut in the main window and, left alone, would reach the Thread menu from here too.
+/// PORT-ONLY (OD-0151): the app makes none since Settings became a panel inside the main window (Port/SettingsOverlay.cs, which keeps
+/// its Escape and Command-W); the type stays as the source declares it.
 /// </summary>
 public sealed class SecondaryWindow : AvaloniaWindow
 {

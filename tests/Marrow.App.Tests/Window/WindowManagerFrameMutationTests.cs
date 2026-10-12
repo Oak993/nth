@@ -136,8 +136,10 @@ public sealed class WindowManagerFrameMutationTests(HeadlessSession headless)
         Assert.Null(harness.Defaults.Object(FrameName));
         manager.ShowMain();
         var window = Assert.IsType<ThreadWindow>(manager.MainWindow);
-        // ED-225 on the headless 1920x1280 work area: x=(1920-1320)/2, y=(1280-860)/3.
-        Assert.Equal(new PixelPoint(300, 140), window.Position);
+        // ED-NEW-settingsinapp-3 on the headless 1920x1280 work area: 69 % x 92 % is 1325 x 1178, centred: x=(1920-1325)/2 (297.5, away
+        // from zero), y=(1280-1178)/2.
+        Assert.Equal(new Size(1325, 1178), window.ClientSize);
+        Assert.Equal(new PixelPoint(298, 51), window.Position);
         harness.Defaults.Writes.Clear();
         window.Position = new PixelPoint(501, 303);
         WindowManagerMutationScope.Settle(window);

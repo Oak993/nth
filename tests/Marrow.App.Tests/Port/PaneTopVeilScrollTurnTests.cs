@@ -28,7 +28,6 @@ public sealed class PaneTopVeilScrollTurnTests(HeadlessSession headless) : Setti
         using var rig = new SettingsRiseRig { Accepts = false };
         using var accent = SwiftColor.AccentSource.Override(() => Color.Parse("#0067C0"));
         manager.Model.Settings.Theme = AppTheme.Dark;
-        manager.SettingsCloak = rig.Cloak;
         manager.ShowSettings(SettingsPage.Appearance);
         Dispatcher.UIThread.RunJobs();
         var window = Settings(manager);

@@ -18,7 +18,8 @@ namespace Marrow.App.Tests;
 //   "The windows themselves are AppKit windows owned by WindowManager. This scene only carries the menus."
 // The scene declares no window; evaluating it is the first access to WindowManager.shared (WindowManager.swift:10-13), whose
 // `let model = AppModel()` is the one model every window and every menu item reads. WindowManager.swift:26-38 makes the main
-// and the Settings window only when showMain() and showSettings() ask.
+// and the Settings window only when showMain() and showSettings() ask; DEVIATION OD-0151: Settings is a panel made inside the
+// main window, not a window of its own.
 // DEVIATION OD-0008 C3 (PR-LAUNCH-004, PR-WIN-001 deviation): the port builds no menu bar; the command set stays on its chords,
 // reached through the key dispatch each window carries (Port/MenuKeyEquivalents.cs).
 // DEVIATION OD-0008 C2 (PR-LAUNCH-073): the stock Quit menu item of the Mac has no counterpart; the window close control and
@@ -29,7 +30,8 @@ public sealed class DroppyCodeSceneTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-LAUNCH-004")] // App/DroppyCodeApp.swift:21-25; App/Window/WindowManager.swift:10-13, :26-38
     [Trait("Req", "PR-WIN-001")] // App/DroppyCodeApp.swift:21-25
-    public void The_scene_makes_no_window_the_main_window_comes_with_showMain_and_the_settings_window_only_when_asked()
+    [Trait("Decision", "OD-0151")] // Settings is a panel inside the main window
+    public void The_scene_makes_no_window_the_main_window_comes_with_showMain_and_the_Settings_panel_in_it_only_when_asked()
     {
         WithLaunch(headless, null, launch =>
         {
@@ -45,13 +47,20 @@ public sealed class DroppyCodeSceneTests(HeadlessSession headless)
             launch.Harness.Main.OnMain(launch.Manager.ShowMain);
 
             Assert.Equal(["main window built"], launch.Events); // :26-30 the main window, and no other
-            Assert.True(LaunchHarness.WindowOf(launch.MainContent)!.IsVisible);
+            var main = LaunchHarness.WindowOf(launch.MainContent)!;
+            Assert.True(main.IsVisible);
             Assert.Null(LaunchHarness.WindowOf(launch.SettingsContent)); // :32-38 not before showSettings()
+            Assert.Null(launch.Manager.SettingsOverlay);
+            Assert.False(launch.Manager.IsSettingsOpen);
 
             launch.Harness.Main.OnMain(() => launch.Manager.ShowSettings());
             Assert.Equal(["main window built", "settings window built"], launch.Events);
+            Assert.Same(main, LaunchHarness.WindowOf(launch.SettingsContent)); // OD-0151: the panel is in the main window, no window of its own
+            Assert.Same(main, launch.Manager.SettingsOverlay!.Window);
+            Assert.True(launch.Manager.IsSettingsOpen);
             launch.Harness.Main.OnMain(launch.Manager.ShowMain);
             Assert.Equal(["main window built", "settings window built"], launch.Events); // each is made once
+            Assert.Same(main, launch.Manager.MainWindow);
         });
     }
 
@@ -84,7 +93,8 @@ public sealed class DroppyCodeSceneTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-LAUNCH-004")] // App/DroppyCodeApp.swift:21-25; owner_decisions.md OD-0008 C3
     [Trait("Req", "PR-WIN-001")] // App/DroppyCodeApp.swift:21-25; owner_decisions.md OD-0008 C3
-    public void No_menu_bar_is_built_for_either_window_or_for_the_application()
+    [Trait("Decision", "OD-0151")] // Settings is a panel inside the main window
+    public void No_menu_bar_is_built_for_the_main_window_with_the_Settings_panel_open_or_for_the_application()
     {
         WithLaunch(headless, TourSeen, launch =>
         {
@@ -94,14 +104,13 @@ public sealed class DroppyCodeSceneTests(HeadlessSession headless)
             launch.Harness.Main.OnMain(() => launch.Manager.ShowSettings());
             var main = LaunchHarness.WindowOf(launch.MainContent)!;
             var settings = LaunchHarness.WindowOf(launch.SettingsContent)!;
+            Assert.Same(main, settings); // OD-0151: the panel is in the main window
+            Assert.True(launch.Manager.IsSettingsOpen);
 
             Assert.Null(NativeMenu.GetMenu(Avalonia.Application.Current!));
-            foreach (var window in new[] { main, settings })
-            {
-                Assert.Null(NativeMenu.GetMenu(window));
-                Assert.Empty(window.GetVisualDescendants().OfType<Menu>());
-                Assert.Empty(window.GetVisualDescendants().OfType<NativeMenuBar>());
-            }
+            Assert.Null(NativeMenu.GetMenu(main));
+            Assert.Empty(main.GetVisualDescendants().OfType<Menu>()); // the Settings panel included
+            Assert.Empty(main.GetVisualDescendants().OfType<NativeMenuBar>());
         });
     }
 

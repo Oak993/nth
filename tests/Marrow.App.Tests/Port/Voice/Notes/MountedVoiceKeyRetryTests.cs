@@ -45,15 +45,17 @@ public sealed class MountedVoiceKeyRetryTests(HeadlessSession headless) : Settin
             Assert.Empty(handler.Received); Assert.Equal(0, rig.Capture.StartCount);
             rig.Main.OnMain(() => Marrow.App.Tests.Views.Composer.ComposerViewTests.Click(note.Link!));
             var settings = Settings(manager);
-            Drain(settings);
+            // OD-0151: Settings is a panel in the main window, laid out in the window's next layout pass rather than as a window is shown;
+            // that pass builds the page, on the main actor as in the app.
+            rig.Main.OnMain(() => Drain(settings));
             var page = LogicalQuery.SelfAndDescendants<VoiceTypingSettingsPage>(settings).Single();
             Assert.Same(page.KeyButton, settings.FocusManager!.GetFocusedElement());
             rig.Main.OnMain(() => page.KeyButton.Activate());
-            Drain(settings);
+            rig.Main.OnMain(() => Drain(settings));
             var field = LogicalQuery.SelfAndDescendants<TextBox>(page.KeyFold).Single();
             Assert.Equal('\u2022', field.PasswordChar); Assert.Equal(200, field.Width);
             rig.Main.OnMain(() => field.Text = "sk-synthetic-editor-retry");
-            Drain(settings);
+            rig.Main.OnMain(() => Drain(settings));
             Assert.Equal("sk-synthetic-editor-retry", keys.Read());
             rig.Main.OnMain(() => view.Voice!.Activate());
             rig.PumpWindow(window);

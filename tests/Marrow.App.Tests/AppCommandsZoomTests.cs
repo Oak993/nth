@@ -257,17 +257,18 @@ public sealed class AppCommandsZoomTests(HeadlessSession headless)
 
     // PR-WIN-222, PR-WIN-224, PR-WIN-225, UI-WIN-074 through the production reader and the production windows. The reviewer's
     // mutant "the reader ignores Shift" left every other zoom test green, because they read a table layout; here the layout
-    // is read by WindowsKeyboardLayoutText over the real US and French layouts, and the keys are pressed in the main and
-    // Settings windows WindowManager makes. Each record's remaining clauses (title, never disabled, the step and the end,
-    // the write of appZoom even at an end, the rescale of both hosted trees, no menu bar, no palette row, and for Actual
-    // Size that Ctrl+0 does not front the hidden main window) are asserted in the same test.
+    // is read by WindowsKeyboardLayoutText over the real US and French layouts, and the keys are pressed in the main window
+    // WindowManager makes, with its Settings panel (OD-0151) closed and open. Each record's remaining clauses (title, never disabled,
+    // the step and the end, the write of appZoom even at an end, the rescale of both hosted trees, no menu bar, no palette row, and
+    // for Actual Size that Ctrl+0 does not front the main window) are asserted in the same test.
     [Fact]
     [Trait("Req", "PR-WIN-222")] // App/AppCommands.swift:53-54; App/Window/WindowManager.swift:173-175
     [Trait("Req", "PR-WIN-224")] // App/AppCommands.swift:57-58; OD-0012 G6
     [Trait("Req", "PR-WIN-225")] // App/AppCommands.swift:59-62
     [Trait("Req", "UI-WIN-074")] // App/AppCommands.swift:53-54
     [Trait("Decision", "ED-270")]
-    public void Read_by_Windows_Ctrl_Shift_equals_and_Ctrl_equals_zoom_in_and_on_a_French_keyboard_Ctrl_Shift_0_is_Actual_Size_in_the_production_windows() => headless.OnUiThread(() =>
+    [Trait("Decision", "OD-0151")] // Settings is a panel inside the main window
+    public void Read_by_Windows_Ctrl_Shift_equals_and_Ctrl_equals_zoom_in_and_on_a_French_keyboard_Ctrl_Shift_0_is_Actual_Size_with_the_Settings_panel_closed_and_open() => headless.OnUiThread(() =>
     {
         using var layouts = new WindowsLayoutReaders();
         using var launch = new LaunchHarness();
@@ -277,36 +278,53 @@ public sealed class AppCommandsZoomTests(HeadlessSession headless)
         void OnMain(Action action) => launch.Harness.Main.OnMain(action);
         T Get<T>(Func<T> function) => launch.Harness.Main.OnMain(function);
         AvaloniaWindow main = null!;
-        AvaloniaWindow settings = null!;
+        Control stage = null!;
         OnMain(() =>
         {
             launch.Manager.ShowMain();
             launch.Manager.ShowSettings();
             main = LaunchHarness.WindowOf(launch.MainContent)!;
-            settings = LaunchHarness.WindowOf(launch.SettingsContent)!;
+            // OD-0151: Settings is a panel inside the main window; its own hosted root (WindowManager.HostedRoot) zooms the panel's
+            // stage, the Settings content's host.
+            Assert.Same(main, LaunchHarness.WindowOf(launch.SettingsContent));
+            stage = Assert.IsType<SettingsOverlay>(launch.Manager.SettingsOverlay).Stage;
+            Assert.True(stage.IsVisualAncestorOf(launch.SettingsContent));
         });
         double[] Scales() => Get(() =>
         {
             Dispatcher.UIThread.RunJobs();
-            return new[] { launch.MainContent, launch.SettingsContent }
+            return new[] { launch.MainContent, stage }
                 .Select(content => Assert.IsType<ScaleTransform>(content.RenderTransform).ScaleX).ToArray();
         });
         long Zoom() => Get(() => model.Settings.AppZoom);
         void SetZoom(long percent) => OnMain(() => model.Settings.AppZoom = percent);
-        void Zoomed(string chord, AvaloniaWindow window, Key key, PhysicalKey physical, RawInputModifiers modifiers, long to)
+        // OD-0151: a key pressed "in Settings" is pressed in the main window with the Settings panel open over it, and one "in the
+        // main window" with the panel closed.
+        const bool InMain = false, InSettings = true;
+        void SetPanel(bool open)
         {
+            // Opening Settings fronts the window it is in (WindowManager.Present); that activation runs on the dispatcher, so it lands
+            // here rather than inside a later step's key press.
+            OnMain(() => { if (open) launch.Manager.ShowSettings(); else launch.Manager.CloseSettings(); Dispatcher.UIThread.RunJobs(); });
+            Assert.Equal(open, Get(() => launch.Manager.IsSettingsOpen));
+        }
+        void Zoomed(string chord, bool inSettings, Key key, PhysicalKey physical, RawInputModifiers modifiers, long to)
+        {
+            SetPanel(inSettings);
             OnMain(() => defaults.Writes.Clear());
-            OnMain(() => Press(window, key, physical, modifiers));
+            OnMain(() => Press(main, key, physical, modifiers));
             Assert.True(Zoom() == to, $"{chord}: the zoom is {Zoom()}, not {to}");
             Assert.Equal(["appZoom"], Get(() => defaults.Writes.ToList())); // AppSettings.swift:253-254, even when the value stays
             var scale = to / 100d * Marrow.UI.Common.AppZoom.BaseScale; // ED-NEW-textsize-1: 100% draws at the base scale
             Assert.Equal([scale, scale], Scales()); // WindowManager.swift:173-175, every hosted tree
+            Assert.Equal(inSettings, Get(() => launch.Manager.IsSettingsOpen)); // a zoom chord leaves the panel as it was
         }
-        void NotZoomed(string chord, AvaloniaWindow window, Key key, PhysicalKey physical, RawInputModifiers modifiers)
+        void NotZoomed(string chord, bool inSettings, Key key, PhysicalKey physical, RawInputModifiers modifiers)
         {
+            SetPanel(inSettings);
             var before = Zoom();
             OnMain(() => defaults.Writes.Clear());
-            OnMain(() => Press(window, key, physical, modifiers));
+            OnMain(() => Press(main, key, physical, modifiers));
             Assert.True(before == Zoom(), $"{chord} changed the zoom from {before} to {Zoom()}");
             Assert.Empty(Get(() => defaults.Writes.ToList()));
         }
@@ -318,11 +336,9 @@ public sealed class AppCommandsZoomTests(HeadlessSession headless)
                 var commands = new AppCommands(model);
                 Assert.Equal(["Zoom In", "Zoom Out", "Actual Size", "Zoom In"], commands.Body.Where(command => command.MatchesTypedCharacter).Select(command => command.Title));
                 Assert.All(commands.Body.Where(command => command.MatchesTypedCharacter), command => Assert.False(command.IsDisabled));
-                foreach (var window in new[] { main, settings })
-                {
-                    Assert.Null(NativeMenu.GetMenu(window)); // OD-0008 C3: no menu bar
-                    Assert.Empty(window.GetVisualDescendants().OfType<Menu>());
-                }
+                Assert.True(launch.Manager.IsSettingsOpen);
+                Assert.Null(NativeMenu.GetMenu(main)); // OD-0008 C3: no menu bar
+                Assert.Empty(main.GetVisualDescendants().OfType<Menu>()); // the Settings panel included
             });
 
             using (KeyboardLayoutText.Current.Override(layouts.Us))
@@ -330,50 +346,53 @@ public sealed class AppCommandsZoomTests(HeadlessSession headless)
                 SetZoom(100);
                 Assert.Equal([Marrow.UI.Common.AppZoom.BaseScale, Marrow.UI.Common.AppZoom.BaseScale], Scales()); // ED-NEW-textsize-1
                 // :53-54 "+" is Shift with the US "=" key: the chord a user presses for Zoom In. Windows must report Shift.
-                Zoomed("US Ctrl+Shift+=", main, Key.OemPlus, PhysicalKey.Equal, CtrlShift, 110);
+                Zoomed("US Ctrl+Shift+=", InMain, Key.OemPlus, PhysicalKey.Equal, CtrlShift, 110);
                 // :59-62 the hidden item: the same key without Shift ("US keyboards produce '=' for Command-plus without Shift").
-                Zoomed("US Ctrl+=", settings, Key.OemPlus, PhysicalKey.Equal, Ctrl, 125);
-                Zoomed("US Ctrl+Shift+= in Settings", settings, Key.OemPlus, PhysicalKey.Equal, CtrlShift, 150);
-                Zoomed("US Ctrl+=", main, Key.OemPlus, PhysicalKey.Equal, Ctrl, 175);
-                Zoomed("US Ctrl+Shift+=", main, Key.OemPlus, PhysicalKey.Equal, CtrlShift, 200);
+                Zoomed("US Ctrl+=", InSettings, Key.OemPlus, PhysicalKey.Equal, Ctrl, 125);
+                Zoomed("US Ctrl+Shift+= in Settings", InSettings, Key.OemPlus, PhysicalKey.Equal, CtrlShift, 150);
+                Zoomed("US Ctrl+=", InMain, Key.OemPlus, PhysicalKey.Equal, Ctrl, 175);
+                Zoomed("US Ctrl+Shift+=", InMain, Key.OemPlus, PhysicalKey.Equal, CtrlShift, 200);
                 // At 200 both items are still enabled and the step leaves 200, writing the setting again.
                 OnMain(() => Assert.All(new AppCommands(model).Body.Where(command => command.Title == "Zoom In"), command => Assert.False(command.IsDisabled)));
-                Zoomed("US Ctrl+Shift+= at 200", main, Key.OemPlus, PhysicalKey.Equal, CtrlShift, 200);
-                Zoomed("US Ctrl+= at 200", settings, Key.OemPlus, PhysicalKey.Equal, Ctrl, 200);
+                Zoomed("US Ctrl+Shift+= at 200", InMain, Key.OemPlus, PhysicalKey.Equal, CtrlShift, 200);
+                Zoomed("US Ctrl+= at 200", InSettings, Key.OemPlus, PhysicalKey.Equal, Ctrl, 200);
 
                 // Shift with the US "0" key types ")" and with "-" types "_": no item holds either.
-                NotZoomed("US Ctrl+Shift+0", main, Key.D0, PhysicalKey.Digit0, CtrlShift);
-                NotZoomed("US Ctrl+Shift+-", main, Key.OemMinus, PhysicalKey.Minus, CtrlShift);
+                NotZoomed("US Ctrl+Shift+0", InMain, Key.D0, PhysicalKey.Digit0, CtrlShift);
+                NotZoomed("US Ctrl+Shift+-", InMain, Key.OemMinus, PhysicalKey.Minus, CtrlShift);
                 // :55-56 and :57-58.
-                Zoomed("US Ctrl+-", main, Key.OemMinus, PhysicalKey.Minus, Ctrl, 175);
-                Zoomed("US Ctrl+0", settings, Key.D0, PhysicalKey.Digit0, Ctrl, 100);
+                Zoomed("US Ctrl+-", InMain, Key.OemMinus, PhysicalKey.Minus, Ctrl, 175);
+                Zoomed("US Ctrl+0", InSettings, Key.D0, PhysicalKey.Digit0, Ctrl, 100);
                 SetZoom(75);
-                Zoomed("US Ctrl+0 from 75", main, Key.D0, PhysicalKey.Digit0, Ctrl, 100);
-                Zoomed("US Ctrl+- from 100", main, Key.OemMinus, PhysicalKey.Minus, Ctrl, 90);
-                Zoomed("US Ctrl+0 from 90", main, Key.D0, PhysicalKey.Digit0, Ctrl, 100);
+                Zoomed("US Ctrl+0 from 75", InMain, Key.D0, PhysicalKey.Digit0, Ctrl, 100);
+                Zoomed("US Ctrl+- from 100", InMain, Key.OemMinus, PhysicalKey.Minus, Ctrl, 90);
+                Zoomed("US Ctrl+0 from 90", InMain, Key.D0, PhysicalKey.Digit0, Ctrl, 100);
             }
 
             using (KeyboardLayoutText.Current.Override(layouts.French))
             {
                 SetZoom(150);
-                Zoomed("French Ctrl+Shift+0 in Settings", settings, Key.D0, PhysicalKey.Digit0, CtrlShift, 100); // "0" is Shift with that key
+                Zoomed("French Ctrl+Shift+0 in Settings", InSettings, Key.D0, PhysicalKey.Digit0, CtrlShift, 100); // "0" is Shift with that key
                 SetZoom(150);
-                NotZoomed("French Ctrl+0, which types the letter a with a grave accent", settings, Key.D0, PhysicalKey.Digit0, Ctrl);
-                Zoomed("French Ctrl+Shift+0 in the main window", main, Key.D0, PhysicalKey.Digit0, CtrlShift, 100);
+                NotZoomed("French Ctrl+0, which types the letter a with a grave accent", InSettings, Key.D0, PhysicalKey.Digit0, Ctrl);
+                Zoomed("French Ctrl+Shift+0 in the main window", InMain, Key.D0, PhysicalKey.Digit0, CtrlShift, 100);
                 // "=" is at the US "=" position, "+" is Shift with it: both zoom in.
-                Zoomed("French Ctrl+=", main, Key.OemPlus, PhysicalKey.Equal, Ctrl, 110);
-                Zoomed("French Ctrl+Shift+=", settings, Key.OemPlus, PhysicalKey.Equal, CtrlShift, 125);
+                Zoomed("French Ctrl+=", InMain, Key.OemPlus, PhysicalKey.Equal, Ctrl, 110);
+                Zoomed("French Ctrl+Shift+=", InSettings, Key.OemPlus, PhysicalKey.Equal, CtrlShift, 125);
             }
 
-            // OD-0012 G6: Ctrl+0 is Actual Size alone; with the main window hidden, the chord pressed in Settings fronts nothing.
+            // OD-0012 G6: Ctrl+0 is Actual Size alone; with the main window behind another, the chord pressed in Settings fronts nothing
+            // (OD-0151: Settings is a panel inside the main window, so that window cannot be hidden while Settings takes the key).
             using (KeyboardLayoutText.Current.Override(layouts.Us))
             {
-                OnMain(() => main.Hide());
+                SetPanel(InSettings);
+                OnMain(() => Deactivate(main));
                 var built = launch.Events.Count(value => value == "main window built");
                 SetZoom(150);
-                OnMain(() => Press(settings, Key.D0, PhysicalKey.Digit0, Ctrl));
+                OnMain(() => Press(main, Key.D0, PhysicalKey.Digit0, Ctrl));
                 Assert.Equal(100, Zoom());
-                Assert.False(Get(() => main.IsVisible));
+                Assert.False(Get(() => main.IsActive));
+                Assert.True(Get(() => launch.Manager.IsSettingsOpen));
                 Assert.Equal(built, launch.Events.Count(value => value == "main window built"));
             }
 
@@ -390,18 +409,21 @@ public sealed class AppCommandsZoomTests(HeadlessSession headless)
             }
             finally { OnMain(() => paletteWindow.Close()); }
         }
-        finally { OnMain(() => { settings.Hide(); main.Hide(); Dispatcher.UIThread.RunJobs(); }); }
+        finally { OnMain(() => { launch.Manager.CloseSettings(); main.Hide(); Dispatcher.UIThread.RunJobs(); }); }
     });
 
     // The main window is a ThreadWindow (WindowManager.swift:63-65), whose digit monitor takes Command with the number row
     // by key position before the menu sees the event (ThreadWindow.swift:11-23: "taken before the event is dispatched"). On a
     // French keyboard the key that types "-" is the US "6" position, so in the main window Ctrl with it selects Thread 6 and
-    // does not zoom out; in the Settings window, which has no such monitor, the same chord reaches the menu's Zoom Out (:55-56),
-    // which comes before Thread 6 in the body (:95-98). The earlier French test above uses a bare window.
+    // does not zoom out. With the Settings panel open over it (OD-0151: Settings is a panel inside the main window, no window of
+    // its own) the monitor stands still, as under any sheet (ThreadWindow.swift:12-14), so the same chord reaches the menu's
+    // Zoom Out (:55-56), which comes before Thread 6 in the body (:95-98), as it did in the Settings window. The earlier French
+    // test above uses a bare window.
     [Fact]
     [Trait("Decision", "ED-270")]
-    [Trait("Rule", "R-TEST-4")] // partial for PR-WIN-110 and PR-WIN-223: the French number-row chord by window, nothing else of either record
-    public void On_a_French_keyboard_Ctrl_with_the_key_that_types_a_minus_selects_Thread_6_in_the_main_window_and_zooms_out_in_the_Settings_window() => headless.OnUiThread(() =>
+    [Trait("Decision", "OD-0151")]
+    [Trait("Rule", "R-TEST-4")] // partial for PR-WIN-110 and PR-WIN-223: the French number-row chord with and without the Settings panel, nothing else of either record
+    public void On_a_French_keyboard_Ctrl_with_the_key_that_types_a_minus_selects_Thread_6_in_the_main_window_and_zooms_out_with_the_Settings_panel_open() => headless.OnUiThread(() =>
     {
         using var layouts = new WindowsLayoutReaders();
         using var launch = new LaunchHarness(h =>
@@ -420,26 +442,33 @@ public sealed class AppCommandsZoomTests(HeadlessSession headless)
             var settings = LaunchHarness.WindowOf(launch.SettingsContent)!;
             try
             {
+                Assert.Same(main, settings); // OD-0151: the panel is in the main window
                 Assert.True(main is ThreadWindow);
                 Assert.Equal(7, order.Count);
                 Assert.Null(model.SelectedThreadID);
                 using var layout = KeyboardLayoutText.Current.Override(layouts.French);
                 model.Settings.AppZoom = 100;
 
+                launch.Manager.CloseSettings();
+                Assert.False(launch.Manager.IsSettingsOpen);
                 Press(main, Key.D6, PhysicalKey.Digit6, Ctrl);
                 Assert.Equal(order[5], model.SelectedThreadID); // ThreadWindow.swift:23 key code 22 is Thread 6; AppModel order[number - 1]
                 Assert.Equal(100, model.Settings.AppZoom); // the digit monitor took the chord first
 
                 model.SelectedThreadID = null;
+                launch.Manager.ShowSettings();
+                Assert.True(launch.Manager.IsSettingsOpen);
                 Press(settings, Key.D6, PhysicalKey.Digit6, Ctrl);
                 Assert.Equal(90, model.Settings.AppZoom); // AppCommands.swift:55-56, before Thread 6 in the body
                 Assert.Null(model.SelectedThreadID);
+                Assert.True(launch.Manager.IsSettingsOpen);
 
                 // The number keys that type digits only with Shift still select by position in the main window.
+                launch.Manager.CloseSettings();
                 Press(main, Key.D2, PhysicalKey.Digit2, Ctrl);
                 Assert.Equal(order[1], model.SelectedThreadID);
             }
-            finally { settings.Hide(); main.Hide(); Dispatcher.UIThread.RunJobs(); }
+            finally { launch.Manager.CloseSettings(); main.Hide(); Dispatcher.UIThread.RunJobs(); }
         });
     });
 }

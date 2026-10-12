@@ -50,9 +50,9 @@ internal static class WindowManagerRestartProof
             Assert.Equal(persisted, File.ReadAllBytes(R.StorePath(root)));
             Assert.Equal(E.SavedMain, firstResult.Result.Main);
             Assert.Equal(E.SavedMain, secondResult.Result.Main);
-            Assert.Equal(E.MovedSettings, firstResult.Result.Settings);
-            Assert.Equal(E.RecomputedSettings, secondResult.Result.Settings);
-            Assert.NotEqual(firstResult.Result.Settings, secondResult.Result.Settings);
+            // OD-0151: Settings opens as the panel inside the main window in both processes, so it is where the restored main frame is.
+            Assert.Equal(E.SavedMain, firstResult.Result.Settings);
+            Assert.Equal(E.SavedMain, secondResult.Result.Settings);
             P.Write(root.Directory, "restart-result.json", new { Root = root, First = firstResult, Second = secondResult });
         }
         catch (Exception error)

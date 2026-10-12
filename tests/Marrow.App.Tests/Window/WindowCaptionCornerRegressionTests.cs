@@ -7,6 +7,8 @@ using Marrow.UI.Common;
 
 namespace Marrow.App.Tests.Window;
 
+// OD-0151 (ED-NEW-settingsinapp-1): Settings has no window, so no caption of its own; it is a panel inside the main window, under the
+// main window's caption buttons. The settingsOpen cases drive the main window's caption with that panel open.
 [Collection("Headless")]
 public sealed class WindowCaptionCornerRegressionTests(HeadlessSession headless) : SettingsWindowFixture(headless)
 {
@@ -18,13 +20,18 @@ public sealed class WindowCaptionCornerRegressionTests(HeadlessSession headless)
     [InlineData(true, 125)]
     [InlineData(true, 150)]
     [Trait("Decision", "ED-063")]
-    public void The_full_zoomed_caption_cells_hover_and_click_at_each_corner(bool settings, int percent) => WithManager((_, manager) =>
+    [Trait("Decision", "OD-0151")]
+    public void The_full_zoomed_caption_cells_hover_and_click_at_each_corner(bool settingsOpen, int percent) => WithManager((_, manager) =>
     {
         var closes = 0; manager.MainWindowClose = () => closes++;
         manager.Model.Settings.AppZoom = percent;
         manager.ShowMain();
-        if (settings) manager.ShowSettings();
-        var window = settings ? Settings(manager) : MainOf(manager);
+        var window = MainOf(manager);
+        if (settingsOpen)
+        {
+            manager.ShowSettings();
+            Assert.Same(window, Settings(manager));
+        }
         WindowChrome.PlaceTrafficLights(window, false, false); Drain(window);
         var scale = percent / 100.0 * AppZoom.BaseScale; // the zoom over the base scale (ED-NEW-textsize-2)
         foreach (var kind in new[] { CaptionButton.Kind.Minimize, CaptionButton.Kind.Maximize, CaptionButton.Kind.Close })
@@ -53,8 +60,8 @@ public sealed class WindowCaptionCornerRegressionTests(HeadlessSession headless)
                 Assert.False(button.IsPressed);
                 if (kind == CaptionButton.Kind.Minimize) Assert.Equal(WindowState.Minimized, window.WindowState);
                 else if (kind == CaptionButton.Kind.Maximize) Assert.Equal(WindowState.Maximized, window.WindowState);
-                else if (settings) Assert.False(window.IsVisible);
                 else Assert.Equal(before + 1, closes);
+                Assert.Equal(settingsOpen, manager.IsSettingsOpen); // the caption acts on the window and leaves the Settings panel as it was
             }
         }
     }, realSettings: false);

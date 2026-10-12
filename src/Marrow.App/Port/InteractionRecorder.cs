@@ -292,10 +292,10 @@ internal static class InteractionRecorder
             case "settings-open":
                 Marrow.App.Window.WindowManager.Shared.ShowSettings();
                 await Task.Delay(1800);
-                if (Marrow.App.Window.WindowManager.Shared.SettingsWindow is { } settings) Probe(settings, "settings");
+                if (Marrow.App.Window.WindowManager.Shared.SettingsOverlay is { IsOpen: true } settings) Probe(settings.Window, "settings");
                 return null;
             case "settings-close":
-                Marrow.App.Window.WindowManager.Shared.SettingsWindow?.Close();
+                Marrow.App.Window.WindowManager.Shared.CloseSettings();
                 await Task.Delay(1000);
                 main.Activate();
                 return null;

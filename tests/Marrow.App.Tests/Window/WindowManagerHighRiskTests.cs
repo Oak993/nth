@@ -86,21 +86,7 @@ public sealed class WindowManagerHighRiskTests(HeadlessSession headless)
                 Dispatcher.UIThread.RunJobs();
                 Assert.Equal(WindowState.Normal, main.WindowState);
 
-                manager.ShowSettings();
-                var settings = Assert.IsType<SecondaryWindow>(typeof(WindowManager)
-                    .GetField("settingsWindow", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(manager));
-                using var settingsNative = new NativeMessageWindow((nint hwnd, uint msg, nint wParam, nint lParam, ref bool handled) =>
-                    DispatchCaptionMessage(manager, settings, hwnd, msg, wParam, lParam, ref handled));
-                NativeMessageWindow.Send(settingsNative.Handle, WM_NCLBUTTONDOWN, HTMAXBUTTON);
-                NativeMessageWindow.Send(settingsNative.Handle, WM_NCLBUTTONUP, HTMAXBUTTON);
-                NativeMessageWindow.Pump(settingsNative.Handle);
-                Dispatcher.UIThread.RunJobs();
-                Assert.Equal(WindowState.Maximized, settings.WindowState); // T45 owner caption override.
-                NativeMessageWindow.Send(settingsNative.Handle, WM_NCLBUTTONDOWN, HTMAXBUTTON);
-                NativeMessageWindow.Send(settingsNative.Handle, WM_NCLBUTTONUP, HTMAXBUTTON);
-                NativeMessageWindow.Pump(settingsNative.Handle);
-                Dispatcher.UIThread.RunJobs();
-                Assert.Equal(WindowState.Normal, settings.WindowState);
+                // OD-0151: Settings has no window of its own (a panel in this window), so there is no Settings caption to maximise.
 
                 NativeMessageWindow.Send(native.Handle, WM_NCLBUTTONDOWN, HTCLOSE);
                 NativeMessageWindow.Send(native.Handle, WM_NCLBUTTONUP, HTCLOSE);
@@ -111,8 +97,7 @@ public sealed class WindowManagerHighRiskTests(HeadlessSession headless)
             finally
             {
                 manager.MainWindow?.Hide();
-                if (typeof(WindowManager).GetField("settingsWindow", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(manager) is AvaloniaWindow settings)
-                    settings.Hide();
+                manager.SettingsOverlay?.Close();
             }
         });
     }

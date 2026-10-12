@@ -10,7 +10,7 @@ public sealed class StrikeChildGcEnvironmentTests
     public void Measurement_children_explicitly_enable_server_gc_before_the_runtime_starts()
     {
         var request = WindowManagerNativeChildProtocol.CreateRequest(
-            WindowManagerNativeChildProtocol.FactName(nameof(WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI)));
+            WindowManagerNativeChildProtocol.FactName(nameof(WindowManagerNativeTests.Reopening_Settings_activates_the_native_main_window_its_panel_is_in_and_leaves_that_window_where_it_is)));
         var values = WindowManagerNativeChildProtocol.ChildEnvironment(request, WindowManagerProcessProtocol.ResolveDotnetHost());
         Assert.True(values.TryGetValue("DOTNET_gcServer", out var server));
         Assert.Equal("1", server);

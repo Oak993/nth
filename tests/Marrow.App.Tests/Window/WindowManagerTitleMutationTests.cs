@@ -82,7 +82,10 @@ public sealed class WindowManagerTitleMutationTests(HeadlessSession headless)
         Assert.Equal(displayName, peer.GetName());
         manager.SettingsContent = () => new Border();
         manager.ShowSettings();
-        Assert.Equal("Settings", WindowManagerMutationScope.Settings(manager).Title);
+        // OD-0151: Settings is a panel named "Settings" in the main window, which keeps its own title
+        Assert.Same(window, WindowManagerMutationScope.Settings(manager));
+        Assert.Equal("Settings", Avalonia.Automation.AutomationProperties.GetName(manager.SettingsOverlay!.Card));
+        Assert.Equal(displayName, window.Title);
     });
 
     [Fact]
