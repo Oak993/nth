@@ -10,43 +10,6 @@ namespace Marrow.Services.Tests.Port.MCP.Import;
 // and records what reaches SaveCustomValues: a locked value goes where Add server keeps locked values (the Credential Manager), a plain one in mcp.json.
 public sealed class McpImportTests
 {
-    internal sealed class FakeTarget : IMcpImportTarget
-    {
-        public List<MCPCustomServer> Saved { get; } = [];
-        public Dictionary<string, IReadOnlyList<(string Key, string Value, bool IsSecret)>> Values { get; } = [];
-        public List<(string Id, string? Replacing)> Calls { get; } = [];
-        public HashSet<string> Connected { get; } = [];
-        public List<string> Refreshed { get; } = [];
-
-        public IReadOnlyList<MCPCustomServer> Customs => [.. Saved];
-
-        public IReadOnlySet<string> TakenIds => Saved.Select(s => s.Id).ToHashSet(SwiftStringComparer.Instance);
-
-        public bool IsConnected(string id) => Connected.Contains(id);
-
-        public MCPCustomError? SaveCustom(MCPCustomServer server, string? replacing)
-        {
-            var old = replacing is null ? null : Saved.FirstOrDefault(s => s.Id == replacing);
-            var taken = Saved.Select(s => s.Id).ToHashSet(SwiftStringComparer.Instance);
-            if (old is not null) taken.Remove(old.Id);
-            server = server with { Name = server.Name.Trimmed() };
-            server = server with { Id = old?.Id ?? MCPCustomServer.MakeID(server.Name) };
-            if (MCPCustomError.Validate(server, taken) is { } error) return error;
-            var index = Saved.FindIndex(s => s.Id == server.Id);
-            if (index >= 0) Saved[index] = server; else Saved.Add(server);
-            Calls.Add((server.Id, replacing));
-            return null;
-        }
-
-        public bool SaveCustomValues(IReadOnlyList<(string Key, string Value, bool IsSecret)> values, string id, MCPCatalogEntry? replacingFieldsOf)
-        {
-            Values[id] = values;
-            return true;
-        }
-
-        public void Refresh(string id) => Refreshed.Add(id);
-    }
-
     private static ForeignMcpServer Stdio(string name, string command = "npx", string[]? args = null, params (string, string)[] env) =>
         new(ForeignMcpApp.Cursor, "", name, MCPCustomServer.Kind.Stdio, command, args ?? ["-y", "@fixture/" + name], "", [.. env.Select(e => new ForeignMcpVariable(e.Item1, e.Item2))], @"C:\fixture\.cursor\mcp.json");
 
@@ -88,7 +51,7 @@ public sealed class McpImportTests
     [Trait("Decision", "ED-NEW-mcpimport-1")]
     public void Import_saves_through_the_add_server_calls_with_locked_values_split_out()
     {
-        var target = new FakeTarget();
+        var target = new FakeMcpImportTarget();
         var outcome = McpImport.Import([Stdio("files", env: [("LOG_LEVEL", "info"), ("API_KEY", Fake("sk-"))]), Remote("docs", "https://docs.example.test/mcp", ("Authorization", "Bearer " + Fake("")), ("X-Team", "one"))], DuplicateChoice.Skip, target);
         Assert.Equal((2, 0, 0, 0), (outcome.Imported, outcome.Replaced, outcome.Skipped, outcome.Failed.Count));
         var files = target.Saved.Single(s => s.Id == "custom-files");
@@ -106,7 +69,7 @@ public sealed class McpImportTests
     [Trait("Decision", "ED-NEW-mcpimport-1")]
     public void Duplicates_are_found_by_name_by_command_and_arguments_and_by_address()
     {
-        var target = new FakeTarget();
+        var target = new FakeMcpImportTarget();
         McpImport.Import([Stdio("files"), Remote("docs", "https://docs.example.test/mcp")], DuplicateChoice.Skip, target);
         Assert.NotNull(McpImport.DuplicateOf(Stdio("Files", command: "other"), target.Customs)); // the same name makes the same id
         Assert.NotNull(McpImport.DuplicateOf(Stdio("renamed", args: ["-y", "@fixture/files"]), target.Customs));
@@ -119,7 +82,7 @@ public sealed class McpImportTests
     [Trait("Decision", "ED-NEW-mcpimport-1")]
     public void A_duplicate_is_skipped_replaced_in_place_or_kept_both_under_a_new_name()
     {
-        var target = new FakeTarget();
+        var target = new FakeMcpImportTarget();
         McpImport.Import([Stdio("files")], DuplicateChoice.Skip, target);
         target.Connected.Add("custom-files");
 
@@ -143,7 +106,7 @@ public sealed class McpImportTests
     [Trait("Decision", "ED-NEW-mcpimport-1")]
     public void What_add_server_would_refuse_is_reported_as_a_failure()
     {
-        var target = new FakeTarget();
+        var target = new FakeMcpImportTarget();
         var outcome = McpImport.Import([Remote("plain", "http://not-local.example.test/mcp"), Stdio("bad-env", env: [("1BAD", "x")])], DuplicateChoice.Skip, target);
         Assert.Equal(2, outcome.Failed.Count);
         Assert.Equal(new MCPCustomError.BadURL().Message, outcome.Failed[0].Reason);
@@ -155,7 +118,7 @@ public sealed class McpImportTests
     [Trait("Decision", "ED-NEW-mcpimport-1")]
     public async Task The_controller_scans_lists_by_app_with_unreadable_files_and_imports_only_the_ticked()
     {
-        var target = new FakeTarget();
+        var target = new FakeMcpImportTarget();
         McpImport.Import([Stdio("files")], DuplicateChoice.Skip, target);
         var scan = new ForeignMcpScan([Stdio("files"), Stdio("memory"), Remote("docs", "https://docs.example.test/mcp")], [new ForeignMcpProblem(ForeignMcpApp.Codex, @"C:\fixture\.codex\config.toml", "bad")]);
         var controller = new McpImportController(() => scan, target);
