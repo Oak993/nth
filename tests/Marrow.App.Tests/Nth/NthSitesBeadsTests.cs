@@ -99,7 +99,12 @@ public sealed class NthSitesBeadsTests(HeadlessSession headless)
         Assert.Same(NthWorkingBeads.For(mount.Runtime).Beads, beads);
         Assert.Equal(18, beads.GlyphSize);
         Assert.Equal(18.9, beads.Bounds.Width, 1); Assert.Equal(22.1, beads.Bounds.Height, 1);
-        Assert.True(title.Bounds.Height >= beads.Bounds.Height - 1e-9, "the row makes room for the whole envelope");
+        // the envelope is centred on the word's line, and the pill around the line holds all of it (the row makes room: nothing clips a bead)
+        var letters = LogicalQuery.SelfAndDescendants<NthLetters>(title).Single();
+        Assert.Equal(letters.TranslatePoint(new Point(0, letters.Bounds.Height / 2), title)!.Value.Y, beads.TranslatePoint(new Point(0, beads.Bounds.Height / 2), title)!.Value.Y, 1);
+        var pill = LogicalQuery.SelfAndDescendants<Border>(Line(mount)).Single(border => border.Child is StackPanel { Spacing: 10 });
+        var top = beads.TranslatePoint(default, pill)!.Value;
+        Assert.InRange(top.Y, 0, pill.Bounds.Height - beads.Bounds.Height); Assert.InRange(top.X, 0, pill.Bounds.Width - beads.Bounds.Width);
         var gap = LogicalQuery.SelfAndDescendants<NthLetters>(title).Single().TranslatePoint(default, title)!.Value.X - beads.TranslatePoint(default, title)!.Value.X - beads.Bounds.Width;
         Assert.Equal(8, gap, 3);
         // the turn has started: thinking, entered once (the old turns ended moments ago: Ortus)
@@ -185,6 +190,15 @@ public sealed class NthSitesBeadsTests(HeadlessSession headless)
         Assert.Equal(2, beads.Current.Turn);
     });
 
+    // Where layout put a visual in an ancestor: its arranged places only (a render transform, such as a row's arrival offset, moves the beads rigidly
+    // and is not a layout move).
+    private static Point Place(Visual visual, Visual root)
+    {
+        double x = 0, y = 0;
+        for (var at = visual; !ReferenceEquals(at, root); at = at.GetVisualParent()!) { x += at.Bounds.X; y += at.Bounds.Y; }
+        return new Point(x, y);
+    }
+
     [Fact]
     [Trait("Design", "Calculi WU5")] // section 9: layout moves of the glyph are reflows; a scroll is not
     public void The_glyphs_layout_moves_are_reported_as_reflows_and_a_scroll_is_not() => ThreadTimelineRig.Run(headless, mount =>
@@ -198,15 +212,15 @@ public sealed class NthSitesBeadsTests(HeadlessSession headless)
         mount.Scroll.Offset = new Vector(0, Math.Max(0, mount.Scroll.Offset.Y - 120)); mount.Advance(100);
         Assert.Equal(reflows, beads.Current.Reflows);
         // the turn ends: the beads move from the line's pill to the finished header, a layout move: one reflow, straight up or down (same column)
-        var before = beads.TranslatePoint(default, mount.Column)!.Value;
+        var before = Place(beads, mount.Column); var (reflowX, reflowY) = (beads.Current.ReflowX, beads.Current.ReflowY); // the frame keeps a running total
         entries.Add(EndEntry("end", Turn, TurnStatus.Completed));
         End(mount, entries); mount.Advance(50);
-        var after = beads.TranslatePoint(default, mount.Column)!.Value;
+        var after = Place(beads, mount.Column);
         Assert.True(Math.Abs(after.Y - before.Y) > .01, "the header holds the beads at another height than the pill did");
         Assert.Equal(reflows + 1, beads.Current.Reflows);
         var u = NthBeadsPainter.Unit(NthWorkingBeads.GlyphSize);
-        Assert.Equal((after.X - before.X) / u, beads.Current.ReflowX, 6);
-        Assert.Equal((after.Y - before.Y) / u, beads.Current.ReflowY, 6);
+        Assert.Equal((after.X - before.X) / u, beads.Current.ReflowX - reflowX, 6);
+        Assert.Equal((after.Y - before.Y) / u, beads.Current.ReflowY - reflowY, 6);
         Assert.InRange(Math.Abs(after.X - before.X), 0, .5); // the slot keeps the line's inset
     });
 }

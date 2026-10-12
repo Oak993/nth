@@ -58,8 +58,8 @@ internal static class NthLineType
 
 /// <summary>The running working line's title: the working beads (Calculi) and the line's word in breathing letters.</summary>
 // PORT-ONLY: Calculi WU5 (ED-NEW-calculi-wu5-1; DESIGN.md sections 5.1, 6, 9 and 12). The beads replace the three-arc glyph: an 18 DIP n box in its
-// 18.9 x 22.1 DIP motion envelope, centred on the word's line as the canvas's flex row centres it; the row is at least the envelope tall. The slot is
-// always the envelope's size, whether the beads are in it yet or not, so the line's layout never depends on the beads.
+// 18.9 x 22.1 DIP motion envelope, centred on the word's line as the canvas's flex row centres it; the pill around the line is taller than the envelope
+// (the row makes room with the pill's padding). The slot is always the envelope's size, whether the beads are in it yet or not, so the line's layout never depends on the beads.
 internal sealed class NthWorkingTitle : Panel, IBaselineProvider
 {
     private const double Gap = 8;
@@ -103,25 +103,24 @@ internal sealed class NthWorkingTitle : Panel, IBaselineProvider
     /// <summary>The line's word; a new one arrives letter by letter.</summary>
     public string Word { get => letters.Text; set => letters.Text = value; }
 
-    // The row's own height (the envelope or the word, the taller): the word's baseline and both places follow from it alone, so a parent that measures
-    // the title in less height (DesiredSize is clamped to it) still lines the word up where the title says.
-    private double Row => Math.Max(Envelope.Height, letters.DesiredSize.Height);
+    public double Baseline => (DesiredSize.Height - letters.DesiredSize.Height) / 2 + NthLineType.Baseline(Font);
 
-    public double Baseline => (Row - letters.DesiredSize.Height) / 2 + NthLineType.Baseline(Font);
-
+    // The title lays out as the word's line (its height is the word's, as before), and the beads' envelope is centred on that line, reaching past the
+    // title's top and bottom by half the difference (3.2 DIP for the 13 pt word): the pill's own padding (8 or 11 DIP) is the room the row makes for it,
+    // so the line's height, its baselines and everything under it stay where they were.
     protected override Size MeasureOverride(Size availableSize)
     {
         slot.Measure(Envelope);
         word.Measure(Size.Infinity);
         var width = Envelope.Width + Gap + letters.DesiredSize.Width;
-        return new Size(Math.Min(width, availableSize.Width), Math.Max(Envelope.Height, letters.DesiredSize.Height));
+        return new Size(Math.Min(width, availableSize.Width), letters.DesiredSize.Height);
     }
 
     protected override Size ArrangeOverride(Size finalSize)
     {
-        slot.Arrange(new Rect(0, (Row - Envelope.Height) / 2, Envelope.Width, Envelope.Height));
+        slot.Arrange(new Rect(0, (finalSize.Height - Envelope.Height) / 2, Envelope.Width, Envelope.Height));
         var left = Envelope.Width + Gap;
-        word.Arrange(new Rect(left, (Row - letters.DesiredSize.Height) / 2, Math.Max(0, Math.Min(letters.DesiredSize.Width, finalSize.Width - left)), letters.DesiredSize.Height));
+        word.Arrange(new Rect(left, (finalSize.Height - letters.DesiredSize.Height) / 2, Math.Max(0, Math.Min(letters.DesiredSize.Width, finalSize.Width - left)), letters.DesiredSize.Height));
         return finalSize;
     }
 
