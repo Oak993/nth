@@ -195,6 +195,113 @@ public sealed class WebAgentEngineTests
         Assert.StartsWith("Nothing new", again.Text, StringComparison.Ordinal);
     }
 
+    // ---- Waiting, history and the network log ----
+
+    [Fact]
+    public async Task WaitForLoadAnswersOnceThePageIsDoneAndGivesUpAtItsTimeout()
+    {
+        using var rig = new WebAgentRig();
+        var tab = await ReadInvite(rig);
+
+        var loaded = await rig.Call(WebToolSchemas.Wait, Tab(extra: ",\"for\":\"load\""));
+        tab.Loading = true;
+        var start = rig.Clock.NowMs;
+        var loading = await rig.Call(WebToolSchemas.Wait, Tab(extra: ",\"for\":\"load\",\"timeout\":400"));
+        var waited = rig.Clock.NowMs - start;
+        var capped = await rig.Call(WebToolSchemas.Wait, Tab(extra: ",\"for\":\"load\",\"timeout\":90000"));
+        var wrong = await rig.Call(WebToolSchemas.Wait, Tab(extra: ",\"for\":\"forever\""));
+
+        Assert.Null(loaded.Error);
+        Assert.Equal("t1 finished loading.", loaded.Text);
+        Assert.Equal(WebErrorCodes.Timeout, loading.Error);
+        Assert.Contains("Waited 400 ms; the page is still loading.", loading.Text, StringComparison.Ordinal);
+        Assert.InRange(waited, 400, 500);
+        Assert.Contains("Waited 25000 ms", capped.Text, StringComparison.Ordinal); // web_wait waits up to 25 s (DESIGN 5.10)
+        Assert.Equal(WebErrorCodes.BadArgs, wrong.Error);
+    }
+
+    [Fact]
+    public async Task WaitForIdleHoldsWhileARequestRunsAndWaitForARefFindsIt()
+    {
+        using var rig = new WebAgentRig();
+        var tab = await ReadInvite(rig);
+        tab.Fake.EmitCdp("Network.requestWillBeSent", "{\"requestId\":\"r1\",\"type\":\"Fetch\",\"request\":{\"method\":\"GET\",\"url\":\"https://a.test/api/people\"}}");
+
+        var busy = await rig.Call(WebToolSchemas.Wait, Tab(extra: ",\"for\":\"idle\",\"timeout\":300"));
+        tab.Fake.EmitCdp("Network.loadingFinished", "{\"requestId\":\"r1\",\"encodedDataLength\":10}");
+        var finishedAt = rig.Clock.NowMs;
+        var idle = await rig.Call(WebToolSchemas.Wait, Tab(extra: ",\"for\":\"idle\""));
+        var seen = await rig.Call(WebToolSchemas.Wait, Ref("e3", ",\"for\":\"ref\""));
+
+        Assert.Equal(WebErrorCodes.Timeout, busy.Error);
+        Assert.Contains("requests are still running.", busy.Text, StringComparison.Ordinal);
+        Assert.Equal("t1 has no requests running.", idle.Text);
+        Assert.True(rig.Clock.NowMs - finishedAt >= 500, "idle means half a second with no request");
+        Assert.Equal("e3 is on the page.", seen.Text);
+    }
+
+    [Fact]
+    public async Task NavigateGoesBackAndReloadsOnTheSameSite()
+    {
+        using var rig = new WebAgentRig();
+        var tab = await ReadInvite(rig);
+
+        var nothing = await rig.Call(WebToolSchemas.Navigate, Tab(extra: ",\"action\":\"back\""));
+        tab.Fake.CanGoBack = true;
+        tab.BackUrl = "https://a.test/home";
+        var back = await rig.Call(WebToolSchemas.Navigate, Tab(extra: ",\"action\":\"back\""));
+        var reload = await rig.Call(WebToolSchemas.Navigate, Tab(extra: ",\"action\":\"reload\""));
+        var wrong = await rig.Call(WebToolSchemas.Navigate, Tab(extra: ",\"action\":\"home\""));
+
+        Assert.Equal(WebErrorCodes.BadArgs, nothing.Error);
+        Assert.Contains("t1 has no page to go back to.", nothing.Text, StringComparison.Ordinal);
+        Assert.Null(back.Error);
+        Assert.StartsWith("t1 is at https://a.test/home.", back.Text, StringComparison.Ordinal);
+        Assert.Contains(WebAgentText.OpenTag, back.Text, StringComparison.Ordinal); // the title is page text
+        Assert.Null(reload.Error);
+        Assert.Equal(["https://a.test/home", "https://a.test/home"], tab.Navigations.TakeLast(2));
+        Assert.Equal(WebErrorCodes.BadArgs, wrong.Error);
+        Assert.Empty(rig.Asker.Of<WebNavigateAsk>());
+    }
+
+    [Fact]
+    public async Task GoingBackToAnotherSiteAfterAReadIsStoppedLikeALink()
+    {
+        using var rig = new WebAgentRig();
+        var tab = await ReadInvite(rig);
+        tab.Fake.CanGoBack = true;
+        tab.BackUrl = "https://b.test/search?q=invite";
+
+        var back = await rig.Call(WebToolSchemas.Navigate, Tab(extra: ",\"action\":\"back\""));
+
+        Assert.Equal(WebErrorCodes.Blocked, back.Error);
+        Assert.Contains("web_open", back.Text, StringComparison.Ordinal);
+        Assert.Equal("https://a.test/invite", tab.Url);
+    }
+
+    [Fact]
+    public async Task NetworkLinesKeepNoHeadersOrBodiesAndTheNextCallGetsOnlyNewOnes()
+    {
+        using var rig = new WebAgentRig();
+        var tab = await ReadInvite(rig);
+        tab.Fake.EmitCdp("Network.requestWillBeSent",
+            "{\"requestId\":\"r1\",\"type\":\"Fetch\",\"request\":{\"method\":\"POST\",\"url\":\"https://a.test/api/invite\",\"headers\":{\"Authorization\":\"Bearer s3cret\",\"Cookie\":\"sid=abc\"},\"postData\":\"email=ann%40a.test\"}}");
+        tab.Fake.EmitCdp("Network.responseReceived", "{\"requestId\":\"r1\",\"response\":{\"status\":201,\"headers\":{\"Set-Cookie\":\"sid=def\"}}}");
+        tab.Fake.EmitCdp("Network.loadingFinished", "{\"requestId\":\"r1\",\"encodedDataLength\":2048}");
+
+        var first = await rig.Call(WebToolSchemas.Network, Tab());
+        var next = first.Text.Split("next: ")[1].Split('\n')[0];
+        var again = await rig.Call(WebToolSchemas.Network, Tab(extra: ",\"since\":" + next));
+
+        Assert.Null(first.Error);
+        Assert.Contains("POST 201 https://a.test/api/invite (fetch 2 KB", first.Text, StringComparison.Ordinal);
+        Assert.Contains(WebAgentText.OpenTag, first.Text, StringComparison.Ordinal);
+        foreach (var secret in new[] { "s3cret", "sid=", "email=", "Authorization", "Cookie" })
+            Assert.DoesNotContain(secret, first.Text, StringComparison.Ordinal);
+        Assert.Equal("https://a.test", first.ReadOrigin);
+        Assert.StartsWith("Nothing new in t1's network", again.Text, StringComparison.Ordinal);
+    }
+
     // ---- Per-site approval ----
 
     [Fact]
