@@ -175,8 +175,10 @@ public static class Program
         // watchdog's first ping (HangWatchdog.swift:52) posts to it.
         MainActor.Bind(AvaloniaMainExecutor.Instance);
         DesktopPerformanceProbe.Start();
-        // SwiftUI's default @Environment(\.openURL): the system opens the link (MarkdownView.swift:1110, :1148).
-        InlineText.OpenUrl = url => Marrow.Services.Port.Workspace.Open.Current(url);
+        // SwiftUI's default @Environment(\.openURL): the system opens the link (MarkdownView.swift:1110, :1148). PORT-ONLY (web surfaces W10, DESIGN 5.11,
+        // ED-NEW-web-w10-2): a link a chat or one of its cards opens follows Settings > Visus > "Open links from chats in" (Ask the first time, Visus or the
+        // default browser); sign-ins (MCP OAuth, account sign-in), update and store links call Workspace.Open themselves and never come through here.
+        InlineText.OpenUrl = url => Marrow.App.Port.Web.ChatLinks.OpenFromAnywhere(url);
         // PORT-ONLY (W19, ED-NEW-web-w19-3): MCP Apps over the hub, the App pane, the list of app tools (after the main actor and the link setting).
         Marrow.App.Port.Web.McpApps.McpAppsStartup.Bind();
 

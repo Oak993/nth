@@ -139,11 +139,11 @@ public sealed class TabulaContext
     /// <summary>Puts text in the thread's composer (nth.send).</summary>
     public Action<string> Draft { get; init; } = static _ => { };
 
-    /// <summary>Opens an address the artifact linked to, once the user agrees.</summary>
-    public Action<string> OpenLink { get; init; } = static url =>
-    {
-        if (SwiftURL.Create(url) is { } address) Marrow.Services.Port.Workspace.Open.Current(address);
-    };
+    /// <summary>
+    /// Opens an address the artifact linked to, once the user agrees. PORT-ONLY (web surfaces W10, ED-NEW-web-w10-2): it follows "Open links
+    /// from chats in" like a link in the chat (a sign-in address still stays in the default browser).
+    /// </summary>
+    public Action<string> OpenLink { get; init; } = static url => Marrow.App.Port.Web.ChatLinks.OpenFromAnywhere(url);
 
     public ITabulaFiles Files { get; init; } = TabulaSystem.Instance;
 

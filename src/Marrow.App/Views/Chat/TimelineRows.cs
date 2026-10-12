@@ -606,8 +606,15 @@ public sealed class HydraReportRow : Decorator
     // :304-311 and :1130-1135.
     internal static Button OpenLink(SwiftURL link)
     {
-        var open = PlainControls.Button(TimelineRows.ChatText("Open", SwiftFont.TextStyle.Caption, SwiftFont.Weight.Semibold, Chrome.SecondaryText),
-            () => Marrow.Services.Port.Workspace.Open.Current(link));
+        Button? open = null;
+        // PORT-ONLY (web surfaces W10, DESIGN 5.11, ED-NEW-web-w10-2): the report's link follows "Open links from chats in", like a link in prose:
+        // through the chat's link hook the timeline above the row set; without one (a row drawn outside a chat) the system's browser, as before.
+        open = PlainControls.Button(TimelineRows.ChatText("Open", SwiftFont.TextStyle.Caption, SwiftFont.Weight.Semibold, Chrome.SecondaryText),
+            () =>
+            {
+                if (open is not null && MarkdownView.GetChatLinkAction(open) is { } chat && chat(link, Avalonia.Input.KeyModifiers.None)) return;
+                Marrow.Services.Port.Workspace.Open.Current(link);
+            });
         ToolTip.SetTip(open, "Open in the browser");
         return open;
     }

@@ -133,6 +133,11 @@ public sealed class ThreadTimeline : Decorator
             if (HydraMentionTarget.ThreadIDIn(url) is not { } headID) return false;
             AppEnvironment.GetAppModel(this).SelectedThreadID = headID; return true;
         });
+        // PORT-ONLY (web surfaces W10, DESIGN 5.11, ED-NEW-web-w10-2): a link clicked in this chat's prose (plain, or with Ctrl for the other
+        // browser) follows "Open links from chats in". The chat's own links come first: an artifact's chip opens Tabula and a head's name
+        // its chat, whatever the browser setting says.
+        MarkdownView.SetChatLinkAction(this, (url, modifiers) =>
+            MarkdownView.GetOpenUrlAction(this)?.Invoke(url) == true || Marrow.App.Port.Web.ChatLinks.Open(url, runtime, modifiers, this, settings: AppEnvironment.GetAppModel(this).Settings.Web));
         // :134-144 `if runtime.isLoadingHistory { Color.clear } else if blocks.isEmpty && !runtime.isRunning { NewThreadPrompt } else { timeline }`: the branch on show is one child of
         // this host. A swap between the prompt and the timeline crossfades (OD-0076: the Mac swaps them in one frame; ED-255 (3)). The loading mark hands over in about
         // 0.2 s, where the Mac opens a thread in one frame (CATALOGUE.md C 164.452-164.640): it fades out while what the thread shows fades and rises in (OD-0105 (1)).

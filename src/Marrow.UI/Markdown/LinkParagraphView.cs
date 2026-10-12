@@ -816,6 +816,16 @@ public sealed class LinkTextView : Decorator
             return;
         }
 
+        // PORT-ONLY (web surfaces W10, DESIGN 5.11, ED-NEW-web-w10-2): in a chat a left press on a link, plain or with Ctrl held, goes to the chat's
+        // own link hook with the click's modifiers (Visus, the default browser or the first-time question; Ctrl opens the other one). A right
+        // press still shows the popover, and so does a Ctrl press when the hook declines or there is no hook (any Markdown outside a chat).
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && MarkdownView.GetChatLinkAction(this) is { } chatLink
+            && LinkAndRange(point) is { } chatHit && chatLink(chatHit.Url, e.KeyModifiers))
+        {
+            Consume(e);
+            return;
+        }
+
         if (e.GetCurrentPoint(this).Properties.IsRightButtonPressed ||
             (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && e.KeyModifiers.HasFlag(Avalonia.Input.KeyModifiers.Control)))
         {

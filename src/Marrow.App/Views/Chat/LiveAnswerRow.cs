@@ -33,8 +33,11 @@ public static class LiveAnswerRows
 /// <summary>Where the live-answer rows send what a reader does in a view (links); W10 points links at Visus through the reader's link setting.</summary>
 public static class LiveAnswerEffects
 {
-    /// <summary>Opens a web address from a view. True when it was handed on.</summary>
-    public static Ambient<Func<string, bool>> OpenLink { get; } = new(url => SwiftURL.Create(url) is { } address && Marrow.Services.Port.Workspace.Open.Current(address));
+    /// <summary>
+    /// Opens a web address from a view. True when it was handed on. PORT-ONLY (web surfaces W10, ED-NEW-web-w10-2): by default it follows "Open links
+    /// from chats in" like a link in prose, for the chat the row belongs to (<see cref="Marrow.App.Port.Web.ChatLinks.With"/>).
+    /// </summary>
+    public static Ambient<Func<string, bool>> OpenLink { get; } = new(url => Marrow.App.Port.Web.ChatLinks.OpenFromAnywhere(url));
 
     /// <summary>Sends a message of the reader's from a view (a button's or a chip's send, and a call, which the model makes); tests replace it.</summary>
     public static Ambient<Action<ThreadRuntime, string>> Send { get; } = new(static (runtime, text) => runtime.SendLiveText(text));
@@ -203,7 +206,7 @@ public sealed class LiveAnswerRow : Decorator
         switch (effect.Kind)
         {
             case NthUiEffectKind.Open:
-                e.Handled = LiveAnswerEffects.OpenLink.Current(effect.Text);
+                e.Handled = Marrow.App.Port.Web.ChatLinks.With(runtime, this, () => LiveAnswerEffects.OpenLink.Current(effect.Text));
                 break;
             case NthUiEffectKind.Send:
                 LiveAnswerEffects.Send.Current(runtime, effect.Text);

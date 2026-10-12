@@ -201,7 +201,13 @@ public sealed class McpAppHostUi : IMcpAppHostUi
 
     public void OpenLink(McpAppMount app, string url) => OnMain(() =>
     {
-        if (SwiftURL.Create(url) is { } link) InlineText.OpenUrl?.Invoke(link);
+        // PORT-ONLY (web surfaces W10, ED-NEW-web-w10-2): after the app's own card, the link follows "Open links from chats in" for the chat it runs in.
+        if (SwiftURL.Create(url) is not { } link) return;
+        Marrow.App.Port.Web.ChatLinks.With(runtimes(app.Launch.Thread), null, () =>
+        {
+            InlineText.OpenUrl?.Invoke(link);
+            return true;
+        });
     });
 
     private static void OnMain(Action action)
