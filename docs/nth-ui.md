@@ -290,7 +290,8 @@ diagram "Request flow" alt="Client to server to database"
 
 A table `row` takes any number of cells, then the tail as the last cell. `rows=` builds the rows from an expression
 instead, as a list of lists. A chart's `type` is line, bar, area, pie or scatter. Its values come from `y` (one list,
-or a list of lists with `series` naming each), or from `series` lines; `x` labels the points.
+or a list of lists with `series` naming each), or from `series` lines; `x` labels the points (on a scatter the numbers in `x`
+position them).
 
 ```nth-ui
 card "Savings plan"
@@ -329,7 +330,35 @@ card "Demand plan" icon=chart
 ```
 
 `editable=points` without `bind` draws a normal chart and adds a warning. `bind` without an existing state makes a
-list state from the chart's `y`.
+list state from the chart's `y`. Only a line, bar or area chart of one series can be edited; on a scatter or a pie the
+word is ignored and the chart is drawn as a normal one.
+
+### How a chart is drawn
+
+nth draws every chart natively, in the thread's monochrome line art: hairline gridlines, tabular numerals, series told
+apart by tone, dash and marker shape (never by colour alone), and the accent only for the point the reader is on.
+
+- A `bar` chart of one series with up to twelve categories is drawn as the bar list: each row has the name, a bar as long
+  as its share of the largest value, and the value, with the largest bar in the accent. More categories, several series,
+  `stacked` or an editable chart are drawn as vertical bars.
+- A `pie` is a ring with a key (name, value and share of each slice) and the total, or the slice the reader is on, in
+  the middle. Only the first series counts, and a value that is not above zero is not a slice.
+- The axis of a `bar` or `area` chart rests on zero. A `line` or `scatter` chart starts at zero when its values are not
+  far above it, else it follows the data. `min` and `max` fix the ends. The ticks are round numbers (1, 2, 2.5 or 5 times
+  a power of ten) with the same decimals on every label, and a scatter plots `y` against the numbers in `x`.
+- Marks draw in once, left to right, when a chart arrives; a series that arrives later draws in beside the ones already
+  there. When a state changes, every mark springs to its new value, the axis range springs, and the old gridlines fade as
+  the new ones fade in. Under Reduce Motion this is a short fade.
+- Pointing at a column or a point (or walking a chart with the keys Left, Right, Up, Down, Home and End, which the chart
+  takes as one stop in the tab order) shows a readout of its values. A pie lifts the slice under the pointer and lights
+  its row in the key.
+- On an editable chart a press picks the column under the pointer and a drag moves its point exactly with the pointer;
+  the state keeps the value snapped to `step` and clamped to `min` and `max`, and every `let` and stat that reads it
+  follows in the same frame. The axis holds still under the finger and makes room when it is let go. Each point is also a
+  range control: Up and Down change it by `step`, Page Up and Page Down by ten steps.
+- Every chart carries a text summary (its description for a screen reader) and a quiet "Show as table" button under it that
+  swaps the drawing for a table of its numbers, one row a point and one column a series. The table follows the data while
+  it is shown.
 
 ### Choices and steps
 

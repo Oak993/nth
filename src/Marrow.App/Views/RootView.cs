@@ -13,6 +13,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using Marrow.App.Port;
+using Marrow.App.Runtime;
 using Marrow.App.Views.Chat;
 using Marrow.App.Views.Palette;
 using Marrow.App.Views.Settings;
@@ -642,6 +643,17 @@ public sealed class DetailView : Decorator
     private ThreadColumns? columns;
     private AppModel? columnModel;
     private ObservationTracker? runningObservation;
+    // PORT-ONLY: web surfaces W3a (DESIGN 3.11; ED-NEW-web-w3a-1). The thread's pane workspace around the chat columns,
+    // bound to the shown thread's runtime: its state is drawn, and what the user changes is written back.
+    private Marrow.App.Views.Panes.PaneWorkspace? workspace;
+    private ThreadRuntime? workspaceRuntime;
+    private ObservationTracker? workspaceObservation;
+
+    /// <summary>The pane workspace around the chat columns while a thread is shown.</summary>
+    internal Marrow.App.Views.Panes.PaneWorkspace? Workspace => workspace;
+
+    /// <summary>What each pane kind draws (the pane units register theirs); tests replace it.</summary>
+    internal Marrow.App.Views.Panes.PaneContentFactory PaneFactory { get; set; } = Marrow.App.Views.Panes.PaneContents.Create;
     private Marrow.App.Port.Voice.VoiceSpeedQuestion? voiceQuestion;
 
     /// <summary>
@@ -698,7 +710,41 @@ public sealed class DetailView : Decorator
             var model = AppEnvironment.GetAppModel(this);
             return model.SelectedThreadID is { } id && model.Thread(id) is not null ? (Guid?)id : null;
         }, Prebuild); // :134 .task(id: threadID), cancelled on selection change or detach.
-        DetachedFromVisualTree += (_, _) => { runningObservation?.Cancel(); runningObservation = null; };
+        DetachedFromVisualTree += (_, _) =>
+        {
+            runningObservation?.Cancel();
+            runningObservation = null;
+            workspaceObservation?.Cancel();
+            workspaceObservation = null;
+        };
+    }
+
+    // PORT-ONLY: web surfaces W3a. Shows the thread's workspace: a new thread's panes are drawn at once, with that
+    // thread's contents; a change of its state afterwards springs.
+    private void BindWorkspace(ThreadRuntime runtime)
+    {
+        if (workspace is null) return;
+        var factory = PaneFactory;
+        if (!ReferenceEquals(workspaceRuntime, runtime))
+        {
+            workspaceRuntime = runtime;
+            workspace.Reload(kind => factory(kind, runtime), runtime.Workspace);
+        }
+        else workspace.SetState(runtime.Workspace);
+        workspace.IsChatWorking = runtime.IsRunning;
+        ObserveWorkspace(runtime);
+    }
+
+    private void ObserveWorkspace(ThreadRuntime runtime)
+    {
+        workspaceObservation?.Cancel();
+        workspaceObservation = ObservationTracking.Track(() => (runtime.Workspace, runtime.IsRunning), () => MainActor.Post(() =>
+        {
+            if (!ReferenceEquals(workspaceRuntime, runtime) || workspace is null || TopLevel.GetTopLevel(this) is null) return;
+            workspace.SetState(runtime.Workspace);
+            workspace.IsChatWorking = runtime.IsRunning;
+            ObserveWorkspace(runtime);
+        })).Tracker;
     }
 
     // :131-133 evaluate the running input again after columns create their runtimes. A state-driven Swift body
@@ -764,9 +810,16 @@ public sealed class DetailView : Decorator
             {
                 columnModel = model;
                 columns = new ThreadColumns(threadID, prebuilt, running, model, liveResize);
-                Child = columns;
+                workspace = new Marrow.App.Views.Panes.PaneWorkspace(columns, _ => null);
+                workspace.StateChanged += state =>
+                {
+                    if (workspaceRuntime is { } owner) owner.Workspace = state;
+                };
+                workspaceRuntime = null;
+                Child = workspace;
             }
             else columns.Update(threadID, prebuilt, running, model, liveResize);
+            BindWorkspace(model.Runtime(threadID));
             ObserveRunning(model);
             return;
         }
@@ -774,6 +827,10 @@ public sealed class DetailView : Decorator
         shown = null;
         columns = null;
         columnModel = null;
+        workspace = null;
+        workspaceRuntime = null;
+        workspaceObservation?.Cancel();
+        workspaceObservation = null;
         prebuilt.Clear();
         runningObservation?.Cancel();
         runningObservation = null;
