@@ -50,8 +50,8 @@ public sealed class McpAppScriptsTests
         const vm = require('vm'); const fs = require('fs');
         const make = (origin) => {
           const toNth = []; const native = []; const events = []; const listeners = []; const frames = [];
-          class MessageEvent { constructor(type, init) { this.type = type; Object.assign(this, init); } }
-          class CustomEvent { constructor(type, init) { this.type = type; this.detail = init && init.detail; } }
+          function MessageEvent(type, init) { this.type = type; Object.assign(this, init); }
+          function CustomEvent(type, init) { this.type = type; this.detail = init && init.detail; }
           const win = {
             location: { origin },
             chrome: { webview: { postMessage: (m) => toNth.push(JSON.parse(JSON.stringify(m))), addEventListener: (t, f) => listeners.push(f) } },

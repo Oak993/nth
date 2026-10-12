@@ -5,10 +5,13 @@
 // left-aligned above the composer; each opens a popover with the exact text the model will read, the cut note when it was cut,
 // and Remove. The row is gone while no app has said anything.
 using Avalonia;
+using Avalonia.Animation;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Chat;
 using Marrow.Core.Port;
@@ -40,7 +43,7 @@ public sealed class AppContextChips : Decorator
         this.runtime = runtime;
         Child = row;
         HorizontalAlignment = HorizontalAlignment.Left;
-        Margin = new Thickness(4, 0, 4, 0);
+        Margin = new Thickness(4, 0, 4, 12); // the approval stack's 12 point gap, only while the row shows
         Show();
     }
 
@@ -92,7 +95,23 @@ public sealed class AppContextChips : Decorator
             else if (at != index) row.Children.Move(at, index);
         }
 
-        IsVisible = entries.Count > 0;
+        var show = entries.Count > 0;
+        if (show && !IsVisible && this.IsAttachedToVisualTree())
+        {
+            // The row arrives with a short fade (opacity only; the composer stays where it is, the thread above gives it room).
+            Transitions = null;
+            Opacity = 0;
+            IsVisible = true;
+            Dispatcher.UIThread.Post(() =>
+            {
+                Transitions = [new DoubleTransition { Property = OpacityProperty, Duration = TimeSpan.FromMilliseconds(160) }];
+                Opacity = 1;
+            }, DispatcherPriority.Render);
+            return;
+        }
+
+        IsVisible = show;
+        if (show && Opacity < 1 && Transitions is null) Opacity = 1;
     }
 
     private Control Chip(McpAppContextEntry entry)

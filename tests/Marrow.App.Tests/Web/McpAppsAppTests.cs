@@ -30,64 +30,9 @@ namespace Marrow.App.Tests.Web;
 [Trait("Feature", "W-19")]
 public sealed class McpAppsAppTests(HeadlessSession headless)
 {
-    private const string Resource = "ui://shipyard/release-board.html";
-    private static readonly McpAppToolEntry Board = new("shipyard", "list_releases", Resource) { Title = "Release board" };
-    private static readonly McpAppToolEntry Ledger = new("shipyard", "show_ledger", "ui://shipyard/ledger.html") { Title = "Ledger" };
-
-    private sealed class Servers : IMcpAppServers
-    {
-        public Task<McpAppPage> ReadPageAsync(string server, string uri, CancellationToken cancellationToken) =>
-            Task.FromResult(new McpAppPage(server, uri, "<!doctype html><title>Release board</title><p>v2.4.1</p>", McpUiCsp.None));
-
-        public Task<IReadOnlyList<McpAppTool>> ToolsAsync(string server, CancellationToken cancellationToken) =>
-            Task.FromResult<IReadOnlyList<McpAppTool>>([new McpAppTool("list_releases", "Release board", true)]);
-
-        public Task<JsonObject> CallToolAsync(string server, string tool, JsonObject arguments, CancellationToken cancellationToken) =>
-            Task.FromResult(new JsonObject { ["content"] = new JsonArray(), ["isError"] = false });
-
-        public Task<JsonObject> ReadResourceAsync(string server, string uri, CancellationToken cancellationToken) =>
-            Task.FromResult(new JsonObject { ["contents"] = new JsonArray() });
-    }
-
-    // The app layer over the fake engine; everything static it touched is put back after.
-    private sealed class Apps : IDisposable
-    {
-        private readonly Func<WebSurface> factory = WebSurfaces.Factory;
-        private readonly Func<IWebViewSurface, Control>? live = WebSurfaces.LiveFactory;
-
-        public Apps(ThreadRuntime runtime)
-        {
-            WebSurfaces.Reset();
-            McpAppSessions.Reset();
-            InlineWidgetSession.Reset();
-            WebSurfaces.Factory = static () => new WebSurface(new FakeWebEngine(), new WebProfiles(@"C:\nth-test\WebView2", "en-US"), post: static action => action());
-            WebSurfaces.LiveFactory = static _ => new Border();
-            Grants = new McpAppGrantStore(null);
-            Ui = new McpAppHostUi(thread => thread == runtime.ThreadID ? runtime : null);
-            Host = new McpAppsHost(new Servers(), Grants, Ui, static action => action());
-            McpAppSessions.HostSource = () => Host;
-            McpAppCatalog.Set([Board, Ledger]);
-            AppPane.Register();
-        }
-
-        public McpAppGrantStore Grants { get; }
-
-        public McpAppHostUi Ui { get; }
-
-        public McpAppsHost Host { get; }
-
-        public void Dispose()
-        {
-            foreach (var session in McpAppSessions.All()) session.Window?.CloseQuietly();
-            McpAppSessions.Reset();
-            InlineWidgetSession.Reset();
-            McpAppSessions.HostSource = static () => McpAppsHost.Shared;
-            McpAppCatalog.Set([]);
-            WebSurfaces.Reset();
-            WebSurfaces.Factory = factory;
-            WebSurfaces.LiveFactory = live;
-        }
-    }
+    private const string Resource = McpAppsAppRig.Resource;
+    private static readonly McpAppToolEntry Board = McpAppsAppRig.Board;
+    private static readonly McpAppToolEntry Ledger = McpAppsAppRig.Ledger;
 
     private static TimelineEntry Call(string title, string? detail, ToolCall.Status status = ToolCall.Status.Running, Guid? turn = null) =>
         new(new TimelineItem(turn, new TimelineItem.Content.Tool(new ToolCall { ToolCallKind = ToolCall.Kind.Mcp, Title = title, Detail = detail, ToolCallStatus = status })));
@@ -116,7 +61,7 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
     [Fact]
     public void An_app_call_draws_its_card_under_its_tool_row_and_an_app_message_is_the_apps_own_row() => ThreadTimelineRig.Run(headless, m =>
     {
-        using var apps = new Apps(m.Runtime);
+        using var apps = new McpAppsAppRig(m.Runtime);
         m.SetEntries([AppMessage("Promote v2.4.1 to production."), Call("shipyard · list_releases", "{\"env\":\"stag")]);
         Pump(m);
 
@@ -139,7 +84,7 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
     [Fact]
     public void A_plain_mcp_call_stays_a_plain_tool_row() => ThreadTimelineRig.Run(headless, m =>
     {
-        using var apps = new Apps(m.Runtime);
+        using var apps = new McpAppsAppRig(m.Runtime);
         m.SetEntries([Call("shipyard · delete_everything", "{}"), Call("other · list_releases", "{}")]);
         Pump(m);
         Assert.Empty(Find<McpAppRow>(m.View));
@@ -149,7 +94,7 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
     [Fact]
     public void A_finished_turn_keeps_its_app_once_in_the_folded_answer() => ThreadTimelineRig.Run(headless, m =>
     {
-        using var apps = new Apps(m.Runtime);
+        using var apps = new McpAppsAppRig(m.Runtime);
         var turn = Guid.NewGuid();
         m.SetEntries(
         [
@@ -167,7 +112,7 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
     [Fact]
     public void The_switch_moves_the_one_host_to_the_pane_and_the_window_and_Bring_back_returns_it() => ThreadTimelineRig.Run(headless, m =>
     {
-        using var apps = new Apps(m.Runtime);
+        using var apps = new McpAppsAppRig(m.Runtime);
         m.SetEntries([Call("shipyard · list_releases", "{}", ToolCall.Status.Completed)]);
         Pump(m);
         var row = Assert.Single(Find<McpAppRow>(m.View));
@@ -231,7 +176,7 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
     [Fact]
     public void The_apps_fullscreen_is_the_expanded_App_pane_and_its_close_brings_the_app_back_inline() => ThreadTimelineRig.Run(headless, m =>
     {
-        using var apps = new Apps(m.Runtime);
+        using var apps = new McpAppsAppRig(m.Runtime);
         m.SetEntries([Call("shipyard · list_releases", "{}", ToolCall.Status.Completed)]);
         Pump(m);
         var row = Assert.Single(Find<McpAppRow>(m.View));
@@ -254,7 +199,7 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
     [Fact]
     public void A_thread_has_one_App_pane_and_expanding_another_app_sends_the_first_back_to_its_card() => ThreadTimelineRig.Run(headless, m =>
     {
-        using var apps = new Apps(m.Runtime);
+        using var apps = new McpAppsAppRig(m.Runtime);
         m.SetEntries([Call("shipyard · list_releases", "{}", ToolCall.Status.Completed), Call("shipyard · show_ledger", "{}", ToolCall.Status.Completed)]);
         Pump(m);
         var rows = Find<McpAppRow>(m.View);
@@ -290,7 +235,7 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
     [Fact]
     public void The_App_pane_holds_the_apps_newest_frame_until_the_workspace_stands_still() => ThreadTimelineRig.Run(headless, m =>
     {
-        using var apps = new Apps(m.Runtime);
+        using var apps = new McpAppsAppRig(m.Runtime);
         m.SetEntries([Call("shipyard · list_releases", "{}", ToolCall.Status.Completed)]);
         Pump(m);
         var session = Assert.Single(Find<McpAppRow>(m.View)).Session!;
@@ -327,7 +272,7 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
     [Fact]
     public void The_pop_out_window_resizes_with_Splitter_grips_within_280_by_180_and_remembers_the_size() => ThreadTimelineRig.Run(headless, m =>
     {
-        using var apps = new Apps(m.Runtime);
+        using var apps = new McpAppsAppRig(m.Runtime);
         m.SetEntries([Call("shipyard · list_releases", "{}", ToolCall.Status.Completed)]);
         Pump(m);
         var session = Assert.Single(Find<McpAppRow>(m.View)).Session!;
@@ -369,7 +314,7 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
     [Fact]
     public void An_html_live_answer_is_the_inline_widget_card_one_per_chat_id_and_version() => ThreadTimelineRig.Run(headless, m =>
     {
-        using var apps = new Apps(m.Runtime);
+        using var apps = new McpAppsAppRig(m.Runtime);
         const string page = "<!doctype html><title>Pong</title><canvas id=c></canvas>";
 
         // While the page is still arriving, with no id, or when it is not a page, the row draws its own calm card.
@@ -403,7 +348,7 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
     [Fact]
     public void Scrolling_holds_every_inline_app_on_its_snapshot_and_one_goes_live_after_the_thread_is_still() => ThreadTimelineRig.Run(headless, m =>
     {
-        using var apps = new Apps(m.Runtime);
+        using var apps = new McpAppsAppRig(m.Runtime);
         m.SetEntries([Call("shipyard · list_releases", "{}", ToolCall.Status.Completed)]);
         Pump(m);
         var card = Assert.Single(Find<McpAppRow>(m.View)).Card!;
@@ -437,7 +382,7 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
     [Fact]
     public void An_apps_context_is_a_chip_capped_at_4000_characters_that_the_user_can_read_and_remove() => ThreadTimelineRig.Run(headless, m =>
     {
-        using var apps = new Apps(m.Runtime);
+        using var apps = new McpAppsAppRig(m.Runtime);
         m.SetEntries([Call("shipyard · list_releases", "{}", ToolCall.Status.Completed)]);
         Pump(m);
         var session = Assert.Single(Find<McpAppRow>(m.View)).Session!;
@@ -537,7 +482,7 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
     [Fact]
     public void The_hosts_cards_carry_the_designs_words_and_tools_ask_unless_the_chat_has_full_access() => ThreadTimelineRig.Run(headless, m =>
     {
-        using var apps = new Apps(m.Runtime);
+        using var apps = new McpAppsAppRig(m.Runtime);
         m.SetEntries([Call("shipyard · list_releases", "{}", ToolCall.Status.Completed)]);
         Pump(m);
         var mount = Assert.Single(Find<McpAppRow>(m.View)).Session!.Mount;

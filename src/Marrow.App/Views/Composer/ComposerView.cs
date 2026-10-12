@@ -129,7 +129,6 @@ public sealed class ComposerArea : Decorator
 
         // :24 VStack(spacing: 12): the approval cards, then the group.
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 };
-        stack.Children.Add(new AppContextChips(runtime)); // PORT-ONLY (W19, ED-NEW-web-w19-2): the apps' context chips, above the composer
         stack.Children.Add(layers);
         approvalStack = stack;
         var departures = new Canvas { IsHitTestVisible = false }; // over the stack: where a resolved card fades, out of the layout
@@ -137,7 +136,9 @@ public sealed class ComposerArea : Decorator
 
         // :23 GlassEffectContainer(spacing: 8), independent of the VStack's layout spacing.
         // :52 .frame(maxWidth: 820): at most 820 wide, centred in the room the padding leaves.
-        var container = new Decorator { Child = new Panel { Children = { stack, departures } }, MaxWidth = 820 };
+        // PORT-ONLY (W19, ED-NEW-web-w19-2): the apps' context chips sit above the approval stack, outside it, so the Swift stack still holds only the
+        // approval cards and the group (no slot, no spacing while no app has said anything: the row is not visible then).
+        var container = new Decorator { Child = new StackPanel { Orientation = Orientation.Vertical, Children = { new AppContextChips(runtime), new Panel { Children = { stack, departures } } } }, MaxWidth = 820 };
         SwiftGlass.SetContainerSpacing(container, 8);
         // :53-55 .padding(.horizontal, 20).padding(.bottom, 14).frame(maxWidth: .infinity)
         Child = new Border { Child = container, Padding = new Thickness(20, 0, 20, 14) };
