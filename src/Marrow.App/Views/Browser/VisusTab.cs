@@ -71,6 +71,9 @@ public sealed class VisusTab
     private bool loading;
     private bool shown;
     private int faviconRead;
+    private IWebEngineView? zoomEngine;
+    private bool applyingZoom;
+    private bool released;
 
     internal VisusTab(VisusSession session, VisusTabKind kind, string? id = null, string? url = null, string? title = null, double zoom = 1)
     {
@@ -79,7 +82,9 @@ public sealed class VisusTab
         Id = string.IsNullOrEmpty(id) ? Guid.NewGuid().ToString("N")[..12] : id;
         this.url = url is not null && WebPolicy.IsTopLevelAllowed(url) ? url : WebPolicy.Blank;
         this.title = title ?? "";
-        Zoom = zoom;
+        Zoom = double.IsFinite(zoom) && zoom >= VisusSiteZoom.Steps[0] && zoom <= VisusSiteZoom.Steps[^1] ? zoom : 1;
+        if (kind == VisusTabKind.Private) VisusHost.SiteZoom.RetainPrivate();
+        VisusHost.SiteZoom.Changed += OnSiteZoom;
     }
 
     public string Id { get; }
@@ -123,6 +128,7 @@ public sealed class VisusTab
 
     /// <summary>The page zoom (W8c sets it per site; carried here so a saved tab comes back at its zoom).</summary>
     public double Zoom { get; private set; }
+    internal long DocumentVersion { get; private set; }
 
     /// <summary>DESIGN 5.1: the site chip.</summary>
     public SiteChip Chip => WebPolicy.ChipFor(Kind, Url);
@@ -151,7 +157,10 @@ public sealed class VisusTab
     private void Open(string address, bool restoring)
     {
         if (!WebPolicy.IsTopLevelAllowed(address)) return;
+        DocumentVersion++;
         url = address;
+        if (restoring && Zoom != 1 && !VisusHost.SiteZoom.Contains(ZoomProfile, address)) VisusHost.SiteZoom.Set(ZoomProfile, address, Zoom);
+        Zoom = VisusHost.SiteZoom.Get(ZoomProfile, address);
         if (!restoring)
         {
             title = ""; // a saved tab keeps its title until its page names itself
@@ -162,11 +171,12 @@ public sealed class VisusTab
         {
             view = VisusHost.Surface.Open(SurfaceKind(Kind), session.WindowId, address, session.ThreadFolder);
             Hook(view);
-            if (Zoom != 1 && view.Engine is { } engine) engine.Zoom = Zoom;
+            BindZoomEngine();
             view.SetShown(shown);
         }
         else
         {
+            ApplyZoom();
             view.Navigate(address);
         }
         loading = !WebPolicy.IsBlank(address);
@@ -187,6 +197,7 @@ public sealed class VisusTab
     public void Reload(bool hard = false)
     {
         if (IsBlank) return;
+        DocumentVersion++;
         if (Engine() is not { } engine)
         {
             Open(url);
@@ -288,12 +299,22 @@ public sealed class VisusTab
 
     internal void SetZoom(double zoom)
     {
+        VisusSiteZoom.Validate(zoom);
         Zoom = zoom;
-        if (view?.Engine is { } engine) engine.Zoom = zoom;
+        ApplyZoom();
+        VisusHost.SiteZoom.Set(ZoomProfile, url, zoom);
+        Raise();
+        session.TabStateChanged();
     }
 
     internal void Release()
     {
+        if (this.released) return;
+        this.released = true;
+        VisusHost.SiteZoom.Changed -= OnSiteZoom;
+        if (Kind == VisusTabKind.Private) VisusHost.SiteZoom.ReleasePrivate();
+        if (zoomEngine is { } old) { old.Attached -= OnZoomAttached; old.ZoomChanged -= OnEngineZoom; }
+        zoomEngine = null;
         if (view is not { } released) return;
         Unhook(released);
         view = null;
@@ -306,6 +327,7 @@ public sealed class VisusTab
         if (view.Engine is null) view.Activate(); // a discarded tab comes back on use (2.3)
         return view.Engine;
     }
+    internal IWebEngineView? ReadyEngine() => Engine();
 
     private static WebSurfaceKind SurfaceKind(VisusTabKind kind) => kind switch
     {
@@ -327,7 +349,8 @@ public sealed class VisusTab
         v.HistoryChanged += OnHistoryChanged;
         v.NewWindowRequested += OnNewWindow;
         v.ExternalUriRequested += OnExternalUri;
-        v.Changed += Raise;
+        v.Changed += OnViewChanged;
+        BindZoomEngine();
     }
 
     private void Unhook(WebSurfaceView v)
@@ -342,7 +365,7 @@ public sealed class VisusTab
         v.HistoryChanged -= OnHistoryChanged;
         v.NewWindowRequested -= OnNewWindow;
         v.ExternalUriRequested -= OnExternalUri;
-        v.Changed -= Raise;
+        v.Changed -= OnViewChanged;
     }
 
     private void OnClaimedChord(Marrow.Core.Models.KeyChord chord)
@@ -370,6 +393,10 @@ public sealed class VisusTab
                 return;
         }
         blockedPopup = null;
+        url = e.Url;
+        DocumentVersion++;
+        Zoom = VisusHost.SiteZoom.Get(ZoomProfile, url);
+        ApplyZoom();
         loading = true;
         Raise();
     }
@@ -377,6 +404,37 @@ public sealed class VisusTab
     private void OnFrameNavigationStarting(object? sender, WebNavigationStarting e)
     {
         if (!WebPolicy.IsFrameAllowed(e.Url) && WebPolicy.CheckTopLevel(e.Url) != TopLevelVerdict.External) e.Cancel = true;
+    }
+
+    private string ZoomProfile => Kind switch
+    {
+        VisusTabKind.Private => WebProfiles.PrivateProfile,
+        VisusTabKind.Preview => WebProfiles.PreviewProfile,
+        VisusTabKind.Agent => WebProfiles.AgentProfileName(session.ThreadFolder ?? throw new InvalidOperationException("An agent tab needs its thread folder.")),
+        _ => WebProfiles.BrowseProfile,
+    };
+    private void OnSiteZoom(string profile, string origin)
+    {
+        if (released || profile != ZoomProfile || VisusSiteZoom.Origin(url) != origin) return;
+        Zoom = VisusHost.SiteZoom.Get(profile, url);
+        ApplyZoom(); Raise(); session.TabStateChanged();
+    }
+    private void OnViewChanged() { BindZoomEngine(); Raise(); }
+    private void BindZoomEngine()
+    {
+        if (ReferenceEquals(zoomEngine, view?.Engine)) return;
+        if (zoomEngine is { } old) { old.Attached -= OnZoomAttached; old.ZoomChanged -= OnEngineZoom; }
+        zoomEngine = view?.Engine;
+        if (zoomEngine is { } current) { current.Attached += OnZoomAttached; current.ZoomChanged += OnEngineZoom; ApplyZoom(); }
+    }
+    private void OnZoomAttached(object? sender, EventArgs e) => ApplyZoom();
+    private void OnEngineZoom(object? sender, EventArgs e) { if (!applyingZoom && zoomEngine is { } current && double.IsFinite(current.Zoom) && current.Zoom >= 0.25 && current.Zoom <= 5) SetZoom(current.Zoom); }
+    private void ApplyZoom()
+    {
+        if (zoomEngine is not { } engine) return;
+        applyingZoom = true;
+        try { engine.Zoom = Zoom; }
+        finally { applyingZoom = false; }
     }
 
     private void OnNavigationCompleted(object? sender, WebNavigationCompleted e)

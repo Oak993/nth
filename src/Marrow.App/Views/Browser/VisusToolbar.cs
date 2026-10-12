@@ -1,4 +1,5 @@
 using Avalonia;
+using System.Globalization;
 using Avalonia.Automation;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls;
@@ -170,6 +171,11 @@ public sealed class VisusToolbar : Border
         }
         rows.Add(null);
         var web = tab is not null && WebPolicy.IsWeb(tab.Url);
+        rows.Add(new("Find in page", () => session.Perform(VisusCommand.Find), "Ctrl+F", web));
+        rows.Add(new("Zoom " + Math.Round((tab?.Zoom ?? 1) * 100).ToString(CultureInfo.InvariantCulture) + " %", () => session.Perform(VisusCommand.ShowZoom), IsEnabled: web));
+        rows.Add(new("Print", () => session.Perform(VisusCommand.Print), "Ctrl+P", web));
+        rows.Add(new("Save as PDF", () => session.Perform(VisusCommand.SavePdf), IsEnabled: web));
+        rows.Add(null);
         rows.Add(new("Copy link", () => VisusPaneBody.CopyText(this, tab!.Url), IsEnabled: web));
         // A private tab's page is not handed to the default browser, which would keep it in its history (5.1 "Nothing you do
         // here is kept").

@@ -37,6 +37,17 @@ public static class VisusHost
     private static DispatcherTimer? saver;
     private static VisusHistory? history;
     private static ExternalSchemeChoices? schemeChoices;
+    private static VisusSiteZoom? siteZoom;
+    public static VisusSiteZoom SiteZoom
+    {
+        get
+        {
+            if (siteZoom is not null) return siteZoom;
+            siteZoom = VisusSiteZoom.FromJson(ReadFile("site-zoom.json"));
+            siteZoom.Changed += (_, _) => ScheduleSave();
+            return siteZoom;
+        }
+    }
     private static int windows;
 
     /// <summary>Makes the process's WebSurface (the real engine in the app; tests put a fake engine here).</summary>
@@ -143,6 +154,7 @@ public static class VisusHost
         saver?.Stop();
         WriteFile("history.json", history?.ToJson());
         WriteFile("external-apps.json", schemeChoices?.ToJson());
+        WriteFile("site-zoom.json", siteZoom?.ToJson());
     }
 
     /// <summary>Tests: a fresh host over the given surface and live view, nothing on disk.</summary>
@@ -169,6 +181,7 @@ public static class VisusHost
         surface = null;
         history = null;
         schemeChoices = null;
+        siteZoom = null;
         IsUpdateReady = false;
         Sessions.Clear();
         SurfaceFactory = CreateSurface;

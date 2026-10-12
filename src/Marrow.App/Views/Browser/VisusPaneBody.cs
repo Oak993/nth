@@ -18,6 +18,7 @@ using Marrow.UI.Chrome;
 using Marrow.UI.Panes;
 using Marrow.UI.Port;
 using Marrow.UI.Web;
+using Marrow.App.Views.Artifacts;
 
 // PORT-ONLY: web surfaces W8a, the Visus pane (E:/Droppy/work/design/web-surfaces/DESIGN.md 5.1 pane anatomy: "Header row: tab
 // strip ... Toolbar row ... Content: the page, inside a 6 DIP bezel", 3.7 the keyboard scope rule (the browser keys are
@@ -76,6 +77,13 @@ public sealed class VisusPaneBody : Grid
     private bool focusAddressPending;
     private bool attached;
     private TopLevel? top;
+    private readonly VisusFindController find;
+    private readonly VisusPopover findPopover;
+    private readonly VisusPopover zoomPopover;
+    private bool pdfBusy;
+    private long exportEpoch;
+    public VisusFindBar FindBar { get; }
+    public ITabulaFiles Files { get; set; } = TabulaSystem.Instance;
 
     public VisusPaneBody(VisusSession session, ThreadRuntime? runtime = null, bool focusAddress = false)
     {
@@ -86,6 +94,17 @@ public sealed class VisusPaneBody : Grid
         Strip = new VisusTabStrip(session);
         stripRow = new Border { Height = StripRowHeight, Padding = new Thickness(6, 3, 6, 3), Child = Strip };
         Toolbar = new VisusToolbar(session);
+        find = new VisusFindController(session);
+        find.Suspend();
+        FindBar = new VisusFindBar(find, CloseFind);
+        findPopover = new VisusPopover(Toolbar, () => FindBar, lightDismiss: false, dismissed: CloseFind, placement: PlacementMode.BottomEdgeAlignedRight);
+        var findCard = PopoverHost.RectangularCard(FindBar, Toolbar);
+        findPopover.Popup.Child = findCard;
+        findPopover.Popup.VerticalOffset = 10 - findCard.Margin.Top;
+        findPopover.Popup.HorizontalOffset = findCard.Margin.Right - 24;
+        PopoverHost.SetSiteCard(findPopover.Popup, findCard);
+        find.Changed += () => { if (!find.IsOpen) findPopover.SetOpen(false); };
+        zoomPopover = new VisusPopover(Toolbar.Address.ZoomChip, BuildZoom);
         web = new Border
         {
             Margin = new Thickness(VisusTokens.Bezel, 0, VisusTokens.Bezel, VisusTokens.Bezel),
@@ -99,6 +118,8 @@ public sealed class VisusPaneBody : Grid
         Children.Add(stripRow);
         Children.Add(Toolbar);
         Children.Add(web);
+        Children.Add(findPopover.Popup);
+        Children.Add(zoomPopover.Popup);
         noticePopover = new VisusPopover(Toolbar.Address, () => notice, lightDismiss: false, takesFocus: false);
         notice.Expired += () => noticePopover.SetOpen(false);
         Children.Add(noticePopover.Popup);
@@ -165,15 +186,19 @@ public sealed class VisusPaneBody : Grid
     {
         base.OnAttachedToVisualTree(e);
         attached = true;
+        find.Resume();
         top = TopLevel.GetTopLevel(this);
         Session.WindowId = VisusHost.WindowIdOf(top);
         Session.Changed += Sync;
         Session.FocusAddressRequested += OnFocusAddress;
+        Session.FindRequested += OpenFind;
+        Session.ZoomRequested += OpenZoom;
+        Session.SavePdfRequested += OnSavePdf;
         Session.Emptied += OnEmptied;
         Session.Notice += OnNotice;
         Session.LaunchRequested += OnLaunch;
         Session.PageKey += OnPageKey;
-        Session.ClaimsPageKey = chord => Prompt is not null && chord == EscapeChord;
+        Session.ClaimsPageKey = chord => (Prompt is not null || find.IsOpen) && chord == EscapeChord;
         if (top is WindowBase window)
         {
             window.Activated += OnActivated;
@@ -192,8 +217,15 @@ public sealed class VisusPaneBody : Grid
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         attached = false;
+        exportEpoch++;
         Session.Changed -= Sync;
         Session.FocusAddressRequested -= OnFocusAddress;
+        Session.FindRequested -= OpenFind;
+        Session.ZoomRequested -= OpenZoom;
+        Session.SavePdfRequested -= OnSavePdf;
+        find.Suspend(); findPopover.SetOpen(false); zoomPopover.SetOpen(false);
+        foreach (var tab in watchedTabs) tab.Changed -= Sync;
+        watchedTabs.Clear();
         Session.Emptied -= OnEmptied;
         Session.Notice -= OnNotice;
         Session.LaunchRequested -= OnLaunch;
@@ -215,6 +247,7 @@ public sealed class VisusPaneBody : Grid
     private void UpdateVisible()
     {
         var visible = attached && IsEffectivelyVisible;
+        if (!visible) { find.Close(); findPopover.SetOpen(false); zoomPopover.SetOpen(false); }
         if (Session.IsVisible != visible) Session.IsVisible = visible;
     }
 
@@ -374,7 +407,54 @@ public sealed class VisusPaneBody : Grid
 
     private void OnPageKey(VisusTab tab, KeyChord chord)
     {
+        if (chord == EscapeChord && find.IsOpen) { CloseFind(); return; }
         if (chord == EscapeChord) Prompt?.Dismiss();
+    }
+
+    private void OpenFind()
+    {
+        zoomPopover.SetOpen(false);
+        if (!find.Open()) return;
+        FindBar.Search();
+        findPopover.SetOpen(true);
+        Dispatcher.UIThread.Post(() => { if (find.IsOpen) FindBar.FocusQuery(); }, DispatcherPriority.Input);
+    }
+    private void CloseFind() { find.Close(); findPopover.SetOpen(false); if (attached) FocusPage(); }
+    private void OpenZoom() { find.Close(); zoomPopover.SetOpen(true); }
+    private Control BuildZoom()
+    {
+        var stack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(8) };
+        var percent = new TextBlock { FontSize = 13, VerticalAlignment = VerticalAlignment.Center };
+        void Update() => percent.Text = Math.Round((Session.Selected?.Zoom ?? 1) * 100).ToString(System.Globalization.CultureInfo.InvariantCulture) + " %";
+        Update();
+        var decrease = PlainControls.Button(new TextBlock { Text = "−", FontSize = 16 }, () => { Session.Perform(VisusCommand.ZoomOut); Update(); }).KeyboardFocus(6);
+        var reset = PlainControls.Button(percent, () => { Session.Perform(VisusCommand.ResetZoom); Update(); }).KeyboardFocus(6);
+        var increase = PlainControls.Button(new TextBlock { Text = "+", FontSize = 16 }, () => { Session.Perform(VisusCommand.ZoomIn); Update(); }).KeyboardFocus(6);
+        AutomationProperties.SetName(decrease, "Zoom out"); AutomationProperties.SetName(reset, "Reset zoom"); AutomationProperties.SetName(increase, "Zoom in");
+        stack.Children.Add(decrease); stack.Children.Add(reset); stack.Children.Add(increase);
+        return stack;
+    }
+    private void OnSavePdf() => _ = SavePdfAsync();
+    public async Task SavePdfAsync()
+    {
+        if (pdfBusy || Session.Selected is not { IsBlank: false } tab || tab.ReadyEngine() is not { IsAttached: true } engine) return;
+        var url = tab.Url;
+        var document = tab.DocumentVersion;
+        var epoch = exportEpoch;
+        var selectionChanged = false;
+        void OnSelection() { if (!ReferenceEquals(Session.Selected, tab)) selectionChanged = true; }
+        pdfBusy = true;
+        Session.Changed += OnSelection;
+        try
+        {
+            var name = string.Concat(tab.Title.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c)).Trim().TrimEnd('.');
+            if (string.IsNullOrEmpty(name)) name = "page";
+            var path = await Files.SaveAsync(this, new TabulaSaveRequest("Save as PDF", null, name + ".pdf", "PDF", "pdf"));
+            if (path is null || selectionChanged || epoch != exportEpoch || document != tab.DocumentVersion || !ReferenceEquals(Session.Selected, tab) || tab.Url != url || !ReferenceEquals(tab.View?.Engine, engine) || !engine.IsAttached) return;
+            if (!await engine.PrintToPdfAsync(path, CancellationToken.None)) Session.Notify(tab, "Could not save PDF");
+        }
+        catch (Exception) { Session.Notify(tab, "Could not save PDF"); }
+        finally { Session.Changed -= OnSelection; pdfBusy = false; }
     }
 
     private void DismissPrompts()
