@@ -801,6 +801,10 @@ public sealed record HydraShimmer
     // :484 private static let sweep: TimeInterval = 1.8
     private const double Sweep = 1.8;
 
+    // :502-506 the band's colours, Chrome.primaryText at 0 and 0.9 (lean L11: made once; Chrome.PrimaryText is one immutable colour).
+    private static readonly SwiftColor Clear = Chrome.PrimaryText.Opacity(0);
+    private static readonly SwiftColor Peak = Chrome.PrimaryText.Opacity(0.9);
+
     // :486-520 func body(content:)
     public Control Body(Control content)
     {
@@ -811,19 +815,28 @@ public sealed record HydraShimmer
         var root = new Panel { Children = { content, layer } };
         var width = 0.0;
         DateTimeOffset date = SwiftDate.Now;
+        // lean L11 (ED-NEW-lean-11): the band keeps one translation and one gradient and changes their values at each tick, where it made both anew
+        // 30 times a second. The stops take the colours the band resolves now, so a theme or system colour change still reaches the next tick.
+        var move = new TranslateTransform();
+        GradientStop clearStart = new(), peak = new() { Offset = 0.5 }, clearEnd = new() { Offset = 1 };
+        var gradient = new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(0, 0.5, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 0.5, RelativeUnit.Relative),
+            GradientStops = new GradientStops { clearStart, peak, clearEnd },
+        };
         void Draw()
         {
             var side = Math.Max(24, width / 3);
             band.Width = side;
             var phase = SwiftDate.ReferenceSeconds(date) % Sweep / Sweep;
-            band.RenderTransform = new TranslateTransform(-side + phase * (width + side), 0);
-            var primary = Chrome.PrimaryText;
-            band.Background = new LinearGradientBrush
-            {
-                StartPoint = new RelativePoint(0, 0.5, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 0.5, RelativeUnit.Relative),
-                GradientStops = new GradientStops { new(primary.Opacity(0).Resolve(band.ActualThemeVariant), 0),
-                    new(primary.Opacity(0.9).Resolve(band.ActualThemeVariant), 0.5), new(primary.Opacity(0).Resolve(band.ActualThemeVariant), 1) }
-            };
+            move.X = -side + phase * (width + side);
+            if (!ReferenceEquals(band.RenderTransform, move)) band.RenderTransform = move;
+            var clear = Clear.Resolve(band.ActualThemeVariant);
+            var middle = Peak.Resolve(band.ActualThemeVariant);
+            if (clearStart.Color != clear) clearStart.Color = clear;
+            if (peak.Color != middle) peak.Color = middle;
+            if (clearEnd.Color != clear) clearEnd.Color = clear;
+            if (!ReferenceEquals(band.Background, gradient)) band.Background = gradient;
         }
         content.SizeChanged += (_, e) => { width = e.NewSize.Width; Draw(); };
         band.ActualThemeVariantChanged += (_, _) => Draw();
@@ -1871,6 +1884,10 @@ public sealed class AssistantMessageRow : Decorator
     // live here, through the rebuilds, for as long as the row is on screen. Internal for the tests (InternalsVisibleTo Marrow.App.Tests).
     internal MarkdownVeils Veils { get; } = new();
 
+    /// <summary>PORT-ONLY (lean L11, ED-NEW-lean-11), a seam for the tests: whether a flush of a reply that streams on is applied to the markdown on show
+    /// (MarkdownView.Stream) instead of building the body again. Off, the row builds the whole body for every flush as it did before.</summary>
+    internal static Ambient<Func<bool>> StreamsInPlace { get; } = new(static () => true);
+
     /// <param name="entry">:1354 <c>let entry: TimelineEntry</c>.</param>
     /// <param name="summary">:1355-1357 <c>let summary: TurnSummary?</c>: the turn's summary, set only on the turn's last
     /// reply, precomputed by the timeline so rows never scan the thread.</param>
@@ -1887,14 +1904,26 @@ public sealed class AssistantMessageRow : Decorator
             {
                 built = null;
                 Child = null;
+                markdown = null;
                 return;
             }
             var message = assistant.Value;
             if (built is { } previous && previous.Text == message.Text && previous.IsStreaming == message.IsStreaming) return;
+            // lean L11 (ED-NEW-lean-11): a reply that streams on keeps its body; the markdown takes the flush itself and builds again only the blocks
+            // that have not settled (MarkdownView.Stream), handing the delegation cards of those over as below. Everything else of the body reads
+            // nothing that a flush of a streaming reply changes (the hover line is hidden while it streams, :1378) but the menu's text.
+            if (built is { IsStreaming: true } && message.IsStreaming && markdown is { } shown && StreamsInPlace.Current() && shown.Stream(message.Text, KeepCards))
+            {
+                built = message;
+                menuText.Value = message.Text;
+                return;
+            }
             built = message;
-            var body = Body(message, this.summary, runtime, state, Veils.Root);
-            KeepCards(Child, body);
+            menuText.Value = message.Text;
+            var body = Body(message, this.summary, runtime, state, Veils.Root, menuText, out var made);
+            KeepCards(Child is null ? [] : [Child], [body]);
             Child = body;
+            markdown = made;
         }
         Build(entry.Item.TimelineItemContent);
         this.Track(() => entry.Item.TimelineItemContent, Build);
@@ -1903,6 +1932,9 @@ public sealed class AssistantMessageRow : Decorator
     private TurnSummary? summary; // :1355-1357, handed again by a pass of the timeline's body (SetSummary)
     private readonly ThreadRuntime runtime;
     private AssistantMessage? built;
+    private MarkdownView? markdown; // lean L11: the markdown of the body on show
+    // lean L11: the text the message menu snapshots when it opens (:1383), the reply's text now; a box, so the menu's builder never holds the row.
+    private readonly System.Runtime.CompilerServices.StrongBox<string> menuText = new("");
 
     /// <summary>The row handed its turn's summary again: the same row, its hover kept, its line saying the new summary. ED-255 (3).</summary>
     internal void SetSummary(TurnSummary? next)
@@ -1911,20 +1943,24 @@ public sealed class AssistantMessageRow : Decorator
         summary = next;
         if (built is { } message)
         {
-            var body = Body(message, summary, runtime, state, Veils.Root);
-            KeepCards(Child, body);
+            var body = Body(message, summary, runtime, state, Veils.Root, menuText, out var made);
+            KeepCards(Child is null ? [] : [Child], [body]);
             Child = body;
+            markdown = made;
         }
     }
 
     // :1364 .equatable() with the blocks of MarkdownView kept by position: a block that is still the same block when the reply streams on or its summary arrives is
     // the same view, which keeps its state and animates what changes in it. A delegation card is the one block with state of its own that streams (:703-704), so
     // the cards of the body just made are the cards already on show, handed the new block: the n-th card of the old body becomes the n-th card of the new.
-    private static void KeepCards(Control? old, Control next)
+    // lean L11 (ED-NEW-lean-11): a streaming flush the markdown takes itself hands over only what it builds again, the blocks that leave and the blocks
+    // just made (MarkdownView.Stream); the blocks it keeps keep their cards, which are the leading cards of both bodies, so the n-th card left of the
+    // old blocks still meets the n-th card of the new.
+    private static void KeepCards(IReadOnlyList<Control> old, IReadOnlyList<Control> next)
     {
-        if (old is null) return;
-        var shown = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(old).OfType<HydraDelegationBlock>().ToList();
-        var made = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(next).OfType<HydraDelegationBlock>().ToList();
+        if (old.Count == 0) return;
+        var shown = old.SelectMany(Avalonia.VisualTree.VisualExtensions.GetVisualDescendants).OfType<HydraDelegationBlock>().ToList();
+        var made = next.SelectMany(Avalonia.VisualTree.VisualExtensions.GetVisualDescendants).OfType<HydraDelegationBlock>().ToList();
         for (var i = 0; i < Math.Min(shown.Count, made.Count); i++)
         {
             var (card, fresh) = (shown[i], made[i]);
@@ -1938,10 +1974,12 @@ public sealed class AssistantMessageRow : Decorator
     }
 
     // :1363-1388
-    private static Control Body(AssistantMessage message, TurnSummary? summary, ThreadRuntime runtime, ViewState state, MarkdownVeilScope veils)
+    private static Control Body(AssistantMessage message, TurnSummary? summary, ThreadRuntime runtime, ViewState state, MarkdownVeilScope veils,
+        System.Runtime.CompilerServices.StrongBox<string> menuText, out MarkdownView markdown)
     {
         var column = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2, Background = Brushes.Transparent }; // :1363
-        column.Children.Add(new MarkdownView(message.Text, message.IsStreaming, veils)); // :1364
+        markdown = new MarkdownView(message.Text, message.IsStreaming, veils);
+        column.Children.Add(markdown); // :1364
         // :1365-1374 one side for both kinds of message: the summary sits where the copy control used to be.
         // :1367 HStack(spacing: 8) with its default .center alignment: the summary sits on the centre line of the 22-point
         // line (UI-CHAT-019); a plain horizontal StackPanel stretched it to the top of the slot.
@@ -1965,7 +2003,7 @@ public sealed class AssistantMessageRow : Decorator
         // :1380-1382 .onHover { [hovering = $isHovering] isOver in withAnimation(.easeOut(duration: 0.12)) { ... } }: the
         // state box alone, so a hover responder never keeps a scrolled-away message alive.
         column.OnHover(isOver => Transaction.WithAnimation(Animation.EaseOut(duration: 0.12), () => state.IsHovering = isOver));
-        column.MessageMenu(message.Text, runtime); // :1383
+        column.RightClickPopover(() => MessageActions(menuText.Value!, TimelineRows.LastCodeBlock(menuText.Value!), runtime)); // :1383 messageMenu(text:), the text now (lean L11)
         // :1384-1388 the hover line's room stays inside the row but not in its height (2 = the VStack's spacing above).
         column.Margin = new Thickness(0, 0, 0, -(TimelineMetrics.HoverLineHeight + 2));
         return column;
