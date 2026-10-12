@@ -580,9 +580,9 @@ public sealed class NthUiTextFieldView : NthUiInputView
         frame.PointerPressed += (_, _) => box.Focus(NavigationMethod.Pointer);
         box.GotFocus += (_, _) => Ring(true);
         box.LostFocus += (_, _) => Ring(false);
-        box.TextChanged += (_, _) =>
+        box.PropertyChanged += (_, e) =>
         {
-            if (syncing) return;
+            if (e.Property != TextBox.TextProperty || syncing) return;
             Context.Changed(Runtime.SetInput(Node, NthUiValue.Of(box.Text ?? "")));
         };
         SetField(frame);

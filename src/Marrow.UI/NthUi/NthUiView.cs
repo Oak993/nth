@@ -52,13 +52,15 @@ public sealed class NthUiView : Decorator
         AutomationProperties.SetControlTypeOverride(this, Avalonia.Automation.Peers.AutomationControlType.Group);
     }
 
-    /// <summary>A view of a whole text shown at once, as a saved answer is reopened: no motion, every line placed.</summary>
+    /// <summary>A view of a whole text shown at once, as a saved answer is reopened: every line placed in its end state with
+    /// no arrival motion; the reader's own changes (a tab, a filter) still move.</summary>
     public static NthUiView Show(string text, NthUiProfile profile = NthUiProfile.Full, CultureInfo? culture = null, string? savedState = null)
     {
         var view = new NthUiView(profile, culture) { Animates = false };
-        if (savedState is not null) view.Runtime.LoadState(savedState);
         view.Append(text);
         view.Complete();
+        if (savedState is not null) view.LoadState(savedState);
+        view.Animates = true;
         return view;
     }
 
@@ -114,13 +116,22 @@ public sealed class NthUiView : Decorator
     /// <summary>Restores saved states and redraws what reads them.</summary>
     public void LoadState(string json) => Refresh(Runtime.LoadState(json));
 
-    /// <summary>The node with <paramref name="key"/> (the nearest card for `export png`) as a PNG, or null when it is not shown.</summary>
+    /// <summary>The node with <paramref name="key"/> (the nearest card for `export png`) as a PNG on the thread's colour, or
+    /// null when it is not shown.</summary>
     public byte[]? ExportPng(string key, double scale = 2)
     {
         if (ControlFor(key) is not { } control || control.Bounds.Width < 1 || control.Bounds.Height < 1) return null;
         var size = new PixelSize((int)Math.Ceiling(control.Bounds.Width * scale), (int)Math.Ceiling(control.Bounds.Height * scale));
         using var bitmap = new RenderTargetBitmap(size, new Vector(96 * scale, 96 * scale));
-        bitmap.Render(SlotFor(key) is { } slot ? slot : control);
+        Visual target = SlotFor(key) is { } slot ? slot : control;
+        // A card's fill is see-through and text drawn over nothing loses its edges, so the export paints the thread first and
+        // draws the card over it through a visual brush, as the thread shows it.
+        using (var context = bitmap.CreateDrawingContext(true))
+        {
+            var area = new Rect(target.Bounds.Size);
+            context.FillRectangle(new Avalonia.Media.Immutable.ImmutableSolidColorBrush(NthUiTokens.Backdrop.Resolve(ActualThemeVariant)), new Rect(0, 0, size.Width / scale, size.Height / scale));
+            context.FillRectangle(new VisualBrush(target) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top, SourceRect = new RelativeRect(area, RelativeUnit.Absolute), DestinationRect = new RelativeRect(area, RelativeUnit.Absolute) }, area);
+        }
         using var stream = new MemoryStream();
         bitmap.Save(stream, PngBitmapEncoderOptions.Default);
         return stream.ToArray();
@@ -253,7 +264,7 @@ public sealed class NthUiView : Decorator
         pending.Text = text;
         pending.Flags = flags;
         if (pending.View is not null) pending.View.Show(text, flags);
-        else if (!ShowPendingIfDue(NthUiMotion.Now)) motion.Start(watch);
+        else if (ShowPendingIfDue(NthUiMotion.Now)) motion.Start(watch);
     }
 
     private bool ShowPendingIfDue(double now)

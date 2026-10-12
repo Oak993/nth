@@ -18,7 +18,8 @@ public static class NthUiTokens
 
     private static SwiftColor Paper(double opacity) => new(red: 1, green: 1, blue: 1, opacity: opacity);
 
-    // canvas --t1..--t3 are #ECECEE at 1, .68 and .48; .48 falls under 4.5:1 on the card, so the third step is .58.
+    // canvas --t1..--t3 are #ECECEE at 1, .68 and .48; .48 falls under 4.5:1 on the card and on a field's fill, so the third
+    // step is .62.
     private static SwiftColor Mist(double opacity) => new(red: 236 / 255.0, green: 236 / 255.0, blue: 238 / 255.0, opacity: opacity);
 
     /// <summary>Primary text: the thread's own label colour.</summary>
@@ -28,7 +29,7 @@ public static class NthUiTokens
     public static SwiftColor Text2 { get; } = SwiftColor.Dynamic(light: Ink(.62), dark: Mist(.68));
 
     /// <summary>Tertiary text: units, counters, captions; still 4.5:1 on the card.</summary>
-    public static SwiftColor Text3 { get; } = SwiftColor.Dynamic(light: Ink(.56), dark: Mist(.58));
+    public static SwiftColor Text3 { get; } = SwiftColor.Dynamic(light: Ink(.56), dark: Mist(.62));
 
     /// <summary>A card's tint over the thread (canvas .uic background).</summary>
     public static SwiftColor CardFill { get; } = SwiftColor.Dynamic(light: Ink(.032), dark: Paper(.045));
@@ -72,15 +73,18 @@ public static class NthUiTokens
     /// <summary>A menu under a field (a select's options, a date's month): solid, so it reads over anything.</summary>
     public static SwiftColor Menu { get; } = SwiftColor.Dynamic(light: SwiftColor.Rgb(0xFFFFFF), dark: SwiftColor.Rgb(0x2A2A2F));
 
+    /// <summary>The thread's colour an exported card sits on (`export png`), so its see-through fill and text read in any viewer.</summary>
+    public static SwiftColor Backdrop { get; } = SwiftColor.Dynamic(light: SwiftColor.Rgb(0xF5F5F7), dark: SwiftColor.Rgb(0x1E1E21));
+
     /// <summary>The accent, only for the current value and focus (7.5).</summary>
     public static SwiftColor Accent => Marrow.UI.Chrome.Chrome.Accent;
 
     /// <summary>The colour of a tone's text and glyph; neutral is secondary text.</summary>
     public static SwiftColor Tone(string? tone) => tone switch
     {
-        "info" => SwiftColor.Dynamic(light: SwiftColor.Rgb(0x0A5FC2), dark: SwiftColor.Rgb(0x6CB2FF)),
-        "success" => SwiftColor.Dynamic(light: SwiftColor.Rgb(0x1B7F3B), dark: SwiftColor.Rgb(0x5BD18B)),
-        "warning" => SwiftColor.Dynamic(light: SwiftColor.Rgb(0x8A5A00), dark: SwiftColor.Rgb(0xF2B84B)),
+        "info" => SwiftColor.Dynamic(light: SwiftColor.Rgb(0x0857B0), dark: SwiftColor.Rgb(0x6CB2FF)),
+        "success" => SwiftColor.Dynamic(light: SwiftColor.Rgb(0x15692F), dark: SwiftColor.Rgb(0x5BD18B)),
+        "warning" => SwiftColor.Dynamic(light: SwiftColor.Rgb(0x7D5100), dark: SwiftColor.Rgb(0xF2B84B)),
         "danger" => SwiftColor.Dynamic(light: SwiftColor.Rgb(0xB42129), dark: SwiftColor.Rgb(0xFF8A8A)),
         _ => Text2,
     };

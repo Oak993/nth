@@ -379,8 +379,18 @@ public sealed class NthUiImageView : NthUiNodeView
 }
 
 /// <summary>A box of a fixed aspect ratio, as wide as allowed up to its own width.</summary>
-public sealed class NthUiImageBox(double width, double ratio) : Border
+public sealed class NthUiImageBox : Border
 {
+    private readonly double width;
+    private readonly double ratio;
+
+    public NthUiImageBox(double width, double ratio)
+    {
+        this.width = width;
+        this.ratio = ratio;
+        HorizontalAlignment = HorizontalAlignment.Left;
+    }
+
     protected override Size MeasureOverride(Size availableSize)
     {
         var w = Math.Max(1, Math.Min(width, double.IsFinite(availableSize.Width) ? availableSize.Width : width));
@@ -392,8 +402,9 @@ public sealed class NthUiImageBox(double width, double ratio) : Border
     protected override Size ArrangeOverride(Size finalSize)
     {
         var w = Math.Max(1, Math.Min(width, finalSize.Width));
-        Child?.Arrange(new Rect(0, 0, w, Math.Round(w * Math.Clamp(ratio, .05, 4))));
-        return finalSize;
+        var size = new Size(w, Math.Round(w * Math.Clamp(ratio, .05, 4)));
+        Child?.Arrange(new Rect(size));
+        return size;
     }
 }
 
@@ -488,7 +499,7 @@ public sealed class NthUiActionView : NthUiNodeView
     {
         if (!Context.Motion.CanAnimate)
         {
-            then();
+            Avalonia.Threading.DispatcherTimer.RunOnce(then, TimeSpan.FromSeconds(seconds));
             return;
         }
         Context.Motion.Start(new Delay(NthUiMotion.Now + seconds, then));

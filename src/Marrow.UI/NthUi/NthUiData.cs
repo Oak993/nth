@@ -157,7 +157,9 @@ public sealed class NthUiTableGrid
             shown.Cells.Padding = row.Total ? new Thickness(4, 9, 4, 7) : new Thickness(4, 7, 4, 7);
         }
         var names = columns.Length > 0 ? columns : null;
-        AutomationProperties.SetName(shown.Slot.Child!, string.Join(", ", row.Cells.Select((c, i) => names is not null && i < names.Length && names[i].Length > 0 ? $"{names[i]} {c}" : c)));
+        var name = string.Join(", ", row.Cells.Select((c, i) => (Text: c, At: i)).Where(c => c.Text.Length > 0)
+            .Select(c => names is not null && c.At < names.Length && names[c.At].Length > 0 ? $"{names[c.At]} {c.Text}" : c.Text));
+        if (!string.Equals(AutomationProperties.GetName(shown.Slot.Child!), name, StringComparison.Ordinal)) AutomationProperties.SetName(shown.Slot.Child!, name);
     }
 }
 
@@ -193,8 +195,8 @@ public sealed class NthUiTableView : NthUiNodeView
         if (Node.Arg("rows") is null) return;
         var table = Runtime.Table(Node);
         var data = table.Rows.Where(r => r.Key is null).ToArray();
-        for (var i = 0; i < data.Length; i++) grid.Show(new NthUiGridRow("#" + i, data[i].Cells), true, i);
-        for (var i = data.Length; i < dataRows; i++) grid.Show(new NthUiGridRow("#" + i, []), false);
+        for (var i = 0; i < data.Length; i++) grid.Show(new NthUiGridRow(Node.Key + "#" + i, data[i].Cells), true, i);
+        for (var i = data.Length; i < dataRows; i++) grid.Show(new NthUiGridRow(Node.Key + "#" + i, []), false);
         dataRows = Math.Max(dataRows, data.Length);
     }
 
@@ -213,16 +215,19 @@ public sealed class NthUiTableView : NthUiNodeView
     }
 }
 
-/// <summary>The stand-in for `chart` until W16b: its data as a table (labels down, series across) under its title.</summary>
+/// <summary>The stand-in for `chart` until W16b: its data as a table under its title, one series after another (a named
+/// series under its name), each point a row of its label (or x) and its value. A series arriving later adds its rows at the
+/// end, so the rows already shown never move.</summary>
 public sealed class NthUiChartTableView : NthUiNodeView
 {
     private readonly NthUiTableGrid grid;
-    private readonly HashSet<string> shown = new(StringComparer.Ordinal);
+    private readonly List<string> order = [];
 
     public NthUiChartTableView(NthUiContext context, NthUiNode node) : base(context, node)
     {
         var data = Runtime.Chart(node);
         grid = new NthUiTableGrid(context, data.Title ?? NthUiStrings.Chart);
+        grid.SetColumns([], 2);
         Show();
     }
 
@@ -242,19 +247,33 @@ public sealed class NthUiChartTableView : NthUiNodeView
     private void Show()
     {
         var data = Runtime.Chart(Node);
-        if (data.Series.Count == 0) return;
-        var names = new[] { "" }.Concat(data.Series.Select((s, i) => s.Name.Length > 0 ? s.Name : data.Series.Count == 1 ? data.Unit ?? "" : (i + 1).ToString(Runtime.Culture))).ToArray();
-        grid.SetColumns(names.Skip(1).All(n => n.Length == 0) ? [] : names, names.Length);
-        var count = data.Labels.Count;
-        var keep = new HashSet<string>(StringComparer.Ordinal);
-        for (var i = 0; i < count; i++)
+        var rows = new List<NthUiGridRow>();
+        for (var j = 0; j < data.Series.Count; j++)
         {
-            var cells = new List<string> { data.Labels[i] };
-            cells.AddRange(data.Series.Select(s => NthUiNumbers.Format(i < s.Values.Count ? s.Values[i] : null, Runtime.Culture, data.Series.Count == 1 ? data.Unit : null)));
-            var key = Node.Key + "#" + i;
-            keep.Add(key);
-            grid.Show(new NthUiGridRow(key, cells), true);
-            shown.Add(key);
+            var series = data.Series[j];
+            if (series.Name.Length > 0 || j > 0)
+                rows.Add(new NthUiGridRow(Node.Key + "#s" + j, [series.Name.Length > 0 ? series.Name : (j + 1).ToString(Runtime.Culture), ""], Total: true));
+            for (var i = 0; i < series.Values.Count; i++)
+            {
+                var label = series.X is { } x && i < x.Count ? NthUiValue.FormatNumber(x[i], Runtime.Culture)
+                    : i < data.Labels.Count ? data.Labels[i]
+                    : (i + 1).ToString(Runtime.Culture);
+                rows.Add(new NthUiGridRow(Node.Key + "#" + j + "." + i, [label, NthUiNumbers.Format(series.Values[i], Runtime.Culture, data.Unit)]));
+            }
+        }
+        var keep = new HashSet<string>(StringComparer.Ordinal);
+        string? previous = null;
+        foreach (var row in rows)
+        {
+            keep.Add(row.Key);
+            if (!order.Contains(row.Key))
+            {
+                var at = previous is null ? 0 : order.IndexOf(previous) + 1;
+                order.Insert(at, row.Key);
+                grid.Show(row, true, at);
+            }
+            else grid.Show(row, true);
+            previous = row.Key;
         }
         grid.HideExcept(keep);
     }

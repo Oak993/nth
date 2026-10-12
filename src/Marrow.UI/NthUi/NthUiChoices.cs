@@ -103,7 +103,7 @@ public sealed class NthUiSegments : Control, INthUiAnimated
         }
         width = Math.Max(width, lineWidth);
         height += lineHeight;
-        return new Size(width + 2 * Pad, height + 2 * Pad);
+        return first ? default : new Size(width + 2 * Pad, height + 2 * Pad);
     }
 
     protected override Size ArrangeOverride(Size finalSize)
@@ -192,6 +192,7 @@ public sealed class NthUiSegments : Control, INthUiAnimated
 
     public override void Render(DrawingContext context)
     {
+        if (Bounds.Width < 1 || Bounds.Height < 1) return;
         var theme = ActualThemeVariant;
         var track = new RoundedRect(new Rect(Bounds.Size), NthUiTokens.ControlRadius);
         context.DrawRectangle(new ImmutableSolidColorBrush(NthUiTokens.ControlFill.Resolve(theme)), null, track);
@@ -339,6 +340,7 @@ public sealed class NthUiTabsView : NthUiNodeView
 {
     private readonly NthUiColumn column = new() { Gap = NthUiTokens.CardGap };
     private readonly NthUiSegments track;
+    private readonly NthUiSlot trackSlot;
     private readonly NthUiSlot host;
     private readonly List<(NthUiNode Node, ToggleButton Toggle, NthUiPanelView Panel)> tabs = [];
 
@@ -349,8 +351,11 @@ public sealed class NthUiTabsView : NthUiNodeView
         AutomationProperties.SetControlTypeOverride(track, AutomationControlType.Tab);
         host = new NthUiSlot(context.Motion) { Key = node.Key + "/panel", Mode = NthUiSlotMode.Exact };
         AutomationProperties.SetControlTypeOverride(host, AutomationControlType.Pane);
-        column.Children.Add(track);
+        // The track opens with its first tab, so an empty tabs line draws nothing and the first label fades in.
+        trackSlot = new NthUiSlot(context.Motion) { Key = node.Key + "/tabs", Child = track };
+        column.Children.Add(trackSlot);
         column.Children.Add(host);
+        trackSlot.Arrive(false, revealSize: true);
     }
 
     public override Control Control => column;
@@ -367,6 +372,7 @@ public sealed class NthUiTabsView : NthUiNodeView
         var toggle = NthUiSegment.Create(Runtime.Text(child), child.Arg("icon")?.Literal.AsText, () => Pick(child), AutomationControlType.TabItem);
         tabs.Add((child, toggle, panel));
         track.Add(toggle);
+        trackSlot.SetShown(true);
         Sync(animate: false);
         return panel;
     }

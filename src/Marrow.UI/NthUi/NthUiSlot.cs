@@ -8,6 +8,7 @@
 // edge grows with it and its content is clipped inside the padding, never over the edge.
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Marrow.UI.Port;
@@ -119,6 +120,9 @@ public sealed class NthUiSlot : Control, INthUiAnimated
 
     private bool Calm => NthUiCalm.For(this);
 
+    /// <summary>A spring's value, exactly its target once it has settled (so a rested layout is the end layout to the pixel).</summary>
+    private static double Rest(NthSpring spring, double now) => spring.Settled(now) ? spring.Target : spring.Value(now);
+
     /// <summary>The node has just been placed: open from nothing and fade in with a rise, or stay closed while `when` is false.</summary>
     internal void Arrive(bool visible, bool revealSize, bool hold = false)
     {
@@ -225,7 +229,12 @@ public sealed class NthUiSlot : Control, INthUiAnimated
         var resizing = !open.Settled(now) || (following && !follow.Settled(now));
         var moving = resizing || !fade.Settled(now);
         if (following && follow.Settled(now)) following = false;
-        if (resizing || sizing) InvalidateMeasure();
+        if (resizing || sizing)
+        {
+            InvalidateMeasure();
+            // A column spaces its children by their opening (NthUiColumn), which an empty slot's own size does not show.
+            (Parent as Layoutable)?.InvalidateMeasure();
+        }
         sizing = resizing;
         if (!moving) Settle();
         return moving;
@@ -257,7 +266,7 @@ public sealed class NthUiSlot : Control, INthUiAnimated
     {
         if (child is null)
         {
-            Openness = Math.Clamp(open.Value(NthUiMotion.Now), 0, 1);
+            Openness = Math.Clamp(Rest(open, NthUiMotion.Now), 0, 1);
             return default;
         }
         var now = NthUiMotion.Now;
@@ -292,9 +301,9 @@ public sealed class NthUiSlot : Control, INthUiAnimated
                 motion.Start(this);
             }
             else if (!following) springNext = false;
-            height = following ? Math.Max(0, follow.Value(now)) : full;
+            height = following ? Math.Max(0, Rest(follow, now)) : full;
         }
-        var o = Math.Clamp(open.Value(now), 0, 1);
+        var o = Math.Clamp(Rest(open, now), 0, 1);
         Openness = o;
         return Reveal == NthUiReveal.Vertical ? new Size(desired.Width, height * o) : new Size(desired.Width * o, height);
     }
