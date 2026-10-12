@@ -26,6 +26,12 @@ public interface IPcApprover
     /// </summary>
     Task<PcApproval> Ask(PcAskSource source, PcAppIdentity app, string appName, PcCapability capability,
         bool risky, bool allowAlways, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// What the user said with a denial of this chat's ask (the card's "Reply instead", or a See-only answer to a step that
+    /// needed Use), once; null when nothing was said. It goes to the model in the not_approved result (DESIGN.md 10.4).
+    /// </summary>
+    string? Reason(string thread, PcAppIdentity app, PcCapability capability) => null;
 }
 
 /// <summary>What the user answered on the pill's "Show this window?" question (DESIGN.md 2.2, critique C15).</summary>

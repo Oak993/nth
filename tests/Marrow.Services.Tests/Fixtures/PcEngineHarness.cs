@@ -170,6 +170,16 @@ public sealed class PcFakeApprover : IPcApprover
     public Dictionary<(string Exe, PcCapability Capability), PcApproval> Standings { get; } = [];
     public TaskCompletionSource<PcApproval>? Hold { get; set; }
 
+    /// <summary>What the user said with a denial (the card's "Reply instead"), handed to the engine once.</summary>
+    public string? Said { get; set; }
+
+    public string? Reason(string thread, PcAppIdentity app, PcCapability capability)
+    {
+        var said = Said;
+        Said = null;
+        return said;
+    }
+
     public PcApproval? Standing(PcAppIdentity app, PcCapability capability) =>
         Standings.TryGetValue((app.ExeName, capability), out var standing) ? standing : null;
 

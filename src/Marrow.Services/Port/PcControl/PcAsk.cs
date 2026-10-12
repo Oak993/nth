@@ -78,6 +78,12 @@ public enum PcResolve
 /// <summary>An app approval's subject.</summary>
 public sealed record PcApprovalAsk(PcCapability Capability, bool Risky, bool AllowAlways);
 
+/// <summary>
+/// The approval card's answer (DESIGN.md 10.4): Don't allow, Allow for this chat or Always allow, with the See and Use
+/// chips' choice (Use implies See) and, for "Reply instead", the user's reason that goes to the model with Don't allow.
+/// </summary>
+public sealed record PcApprovalReply(PcApproval Approval, bool Use, string? Reason = null);
+
 /// <summary>A show-window ask's subject: the window and why it would show.</summary>
 public sealed record PcShowAsk(string WindowTitle, string? Why = null);
 

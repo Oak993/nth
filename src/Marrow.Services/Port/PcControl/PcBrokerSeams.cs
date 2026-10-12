@@ -6,15 +6,45 @@ using Marrow.Core.Port.PcControl;
 
 namespace Marrow.Services.Port.PcControl;
 
-public sealed class PcBrokerApprover(PcAskBroker broker, Func<PcAppIdentity, PcCapability, PcApproval?> standing) : IPcApprover
+public sealed class PcBrokerApprover : IPcApprover
 {
+    /// <summary>The reason a See-only answer gives a step that needed Use.</summary>
+    public const string SeeOnly = "the user allowed Tactus only to see this app, not to click or type in it";
+
+    private readonly PcAskBroker broker;
+    private readonly Func<PcAppIdentity, PcCapability, PcApproval?> standing;
+    private readonly PcGrants? grants;
+    private readonly Lock gate = new();
+    private readonly Dictionary<(string Thread, string App, PcCapability Capability), string> reasons = [];
+
+    public PcBrokerApprover(PcAskBroker broker, Func<PcAppIdentity, PcCapability, PcApproval?> standing)
+    {
+        this.broker = broker;
+        this.standing = standing;
+    }
+
+    /// <summary>With the grants store: "Always" grants are read from it, and every grant the card makes is written to it (ED-NEW-pcctl-25).</summary>
+    public PcBrokerApprover(PcAskBroker broker, PcGrants grants)
+        : this(broker, (grants ?? throw new ArgumentNullException(nameof(grants))).Standing)
+    {
+        this.grants = grants;
+    }
+
     public PcApproval? Standing(PcAppIdentity app, PcCapability capability) => standing(app, capability);
+
+    public string? Reason(string thread, PcAppIdentity app, PcCapability capability)
+    {
+        ArgumentNullException.ThrowIfNull(app);
+        lock (gate) return reasons.Remove((thread, app.Key, capability), out var reason) ? reason : null;
+    }
 
     public async Task<PcApproval> Ask(PcAskSource source, PcAppIdentity app, string appName, PcCapability capability,
         bool risky, bool allowAlways, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(app);
+        // A chat grant made for another step covers this one (a See-only answer to a step that needed Use covers See).
+        if (grants?.ForChat(source.Thread, app, capability) is { } granted) return granted;
         var ask = broker.Add(new PcAskDraft(PcAskKind.Approval, source.Thread, new PcApprovalAsk(capability, risky, allowAlways && source.Head is null))
         {
             App = app.Key,
@@ -22,7 +52,34 @@ public sealed class PcBrokerApprover(PcAskBroker broker, Func<PcAppIdentity, PcC
             Head = source.Head,
         }, cancellationToken);
         var outcome = await ask.Outcome.WaitAsync(cancellationToken).ConfigureAwait(false);
-        return outcome is { Status: PcAskStatus.Answered, Answer: PcApproval answer } ? answer : PcApproval.TimedOut;
+        if (outcome.Status != PcAskStatus.Answered) return PcApproval.TimedOut;
+        var reply = outcome.Answer switch
+        {
+            PcApprovalReply r => r,
+            PcApproval a => new PcApprovalReply(a, capability == PcCapability.Act),
+            _ => null,
+        };
+        if (reply is null) return PcApproval.TimedOut;
+        var approval = reply.Approval;
+        if (approval is PcApproval.Chat or PcApproval.Always)
+        {
+            // A head's answer is never an "Always" grant (critique C14; its card never offers it).
+            var scope = approval == PcApproval.Always && source.Head is null ? PcGrantScope.Always : PcGrantScope.Chat;
+            grants?.Grant(source.Thread, app, appName, reply.Use, scope);
+            if (capability == PcCapability.Act && !reply.Use)
+            {
+                Remember(source.Thread, app, capability, SeeOnly);
+                return PcApproval.Denied;
+            }
+            return approval;
+        }
+        if (reply.Reason is { Length: > 0 } reason) Remember(source.Thread, app, capability, reason);
+        return approval;
+    }
+
+    private void Remember(string thread, PcAppIdentity app, PcCapability capability, string reason)
+    {
+        lock (gate) reasons[(thread, app.Key, capability)] = reason;
     }
 }
 

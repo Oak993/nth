@@ -75,8 +75,8 @@ public static class AskLifetimes
         if (source == PcAnswerSource.Pill && ask.ChatOnly) return false;
         return ask.Kind switch
         {
-            PcAskKind.Approval => answer is PcApproval.Denied or PcApproval.Chat
-                || (answer is PcApproval.Always && ask.Payload is PcApprovalAsk { AllowAlways: true }),
+            PcAskKind.Approval => (answer is PcApprovalReply reply ? reply.Approval : answer) is PcApproval.Denied or PcApproval.Chat
+                || ((answer is PcApprovalReply always ? always.Approval : answer) is PcApproval.Always && ask.Payload is PcApprovalAsk { AllowAlways: true }),
             PcAskKind.Confirm => answer is bool,
             PcAskKind.ShowWindow => answer is PcShowAnswer,
             PcAskKind.Question => answer is PcAnswer reply && ask.Payload is PcAskRequest request && Fits(request, reply),
@@ -113,6 +113,10 @@ public static class AskLifetimes
         var app = ask.AppName ?? "the app";
         var from = source == PcAnswerSource.Pill ? " (from the pill)" : "";
         var verb = ask.Payload is PcConfirmContent content ? content.Verb : "the action";
+        // A See-only answer says so ("You let this chat see Outlook (from the pill)").
+        if (ask.Kind == PcAskKind.Approval && answer is PcApprovalReply { Use: false, Approval: PcApproval.Chat or PcApproval.Always } seeOnly)
+            return (seeOnly.Approval == PcApproval.Always ? "You let every chat see " : "You let this chat see ") + app + from;
+        if (answer is PcApprovalReply plain) answer = plain.Approval;
         return (ask.Kind, answer) switch
         {
             (PcAskKind.Approval, PcApproval.Chat) => "You allowed " + app + " for this chat" + from,

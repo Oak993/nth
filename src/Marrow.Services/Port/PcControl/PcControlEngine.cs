@@ -368,7 +368,12 @@ public sealed partial class PcControlEngine : IDisposable
         using (call.Wait.Waiting(PcWaitReason.Approval)) approval = await Approve(info.App, AppName(info), capability, call.Token).ConfigureAwait(false);
         call.Timings.Mark("approve");
         if (approval is not (PcApproval.Chat or PcApproval.Always))
-            return PcResult.Fail(PcErrorCode.NotApproved, approval == PcApproval.TimedOut ? "the user did not answer" : "the user did not allow Tactus to " + (capability == PcCapability.See ? "see" : "use") + " this app");
+        {
+            var reason = approval == PcApproval.TimedOut ? null : parts.Approver.Reason(caller.Thread, info.App, capability);
+            return PcResult.Fail(PcErrorCode.NotApproved, approval == PcApproval.TimedOut ? "the user did not answer"
+                : reason == PcBrokerApprover.SeeOnly ? reason
+                : "the user did not allow Tactus to " + (capability == PcCapability.See ? "see" : "use") + " this app" + (reason is null ? "" : ". The user said: " + reason));
+        }
         // A stop that came while the card was up still holds for the rest of the turn.
         if (StoppedHere(info.App.Key) is { } stopped) return stopped;
         if (capability == PcCapability.Act && parts.Ownership.Claim(handle, caller.Thread, caller.Label) is { } other)
