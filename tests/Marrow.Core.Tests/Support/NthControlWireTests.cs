@@ -195,7 +195,7 @@ public sealed class NthControlWireTests
         Assert.Equal(@"nth-S-1-5-21-111-222-333-1001-control", NthControl.PipeName(sid));
         Assert.Equal(@"nth-dev-S-1-5-21-111-222-333-1001-control", NthControl.PipeName(sid, development: true));
         Assert.Throws<ArgumentException>(() => NthControl.PipeName(" "));
-        if (OperatingSystem.IsWindows()) Assert.StartsWith("S-1-5-", NthControl.CurrentUserSid());
+        if (OperatingSystem.IsWindows()) Assert.StartsWith("S-1-5-", NthControl.CurrentUserSid(), StringComparison.Ordinal);
     }
 
     [Fact]

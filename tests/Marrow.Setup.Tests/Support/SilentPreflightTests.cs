@@ -68,6 +68,61 @@ public sealed class SilentPreflightTests
     [Fact]
     [Trait("Decision", "OD-0072")]
     [Trait("Platform", "WINDOWS-ONLY")]
+    public async Task Two_installers_started_at_once_for_one_root_let_exactly_one_go_ahead_and_the_other_is_exit_4()
+    {
+        for (var round = 0; round < 12; round++)
+        {
+            var root = NewRoot();
+            var first = new HandshakeRig(running: false);
+            var second = new HandshakeRig(running: false);
+
+            var both = await Task.WhenAll(
+                Task.Run(() => SilentPreflight.RunAsync(root, first.Handshake)),
+                Task.Run(() => SilentPreflight.RunAsync(root, second.Handshake)));
+
+            try
+            {
+                Assert.Single(both, preflight => preflight.ExitCode is null && preflight.Hold is not null);
+                var loser = Assert.Single(both, preflight => preflight.ExitCode == InstallerGate.InProgressExitCode);
+                var loserRig = ReferenceEquals(loser, both[0]) ? first : second;
+                Assert.Empty(loserRig.Nth.Sent); // the one that stood aside asked nth nothing
+                Assert.True(InstallHold.IsHeld(root));
+            }
+            finally
+            {
+                foreach (var preflight in both) preflight.Dispose();
+            }
+            Assert.False(InstallHold.IsHeld(root));
+            using var again = await SilentPreflight.RunAsync(root, first.Handshake); // the root is free for the next one
+            Assert.Null(again.ExitCode);
+        }
+    }
+
+    [Fact]
+    [Trait("Decision", "OD-0072")]
+    [Trait("Platform", "WINDOWS-ONLY")]
+    public async Task An_installer_that_starts_while_another_waits_for_nth_to_close_is_stood_aside_because_the_hold_comes_before_the_question()
+    {
+        var root = NewRoot();
+        var rig = new HandshakeRig();
+        rig.Nth.ExitDelay = TimeSpan.FromSeconds(5); // agrees at once, leaves five seconds later
+        var first = SilentPreflight.RunAsync(root, rig.Handshake);
+        await rig.Time.AdvanceUntilAsync(() => rig.Handshake.Status.State == RunningNthState.Closing, TimeSpan.FromSeconds(1));
+        Assert.False(first.IsCompleted);
+
+        using var second = await SilentPreflight.RunAsync(root, new HandshakeRig().Handshake);
+
+        Assert.Equal(InstallerGate.InProgressExitCode, second.ExitCode);
+        using var winner = await rig.Time.RunAsync(first);
+        Assert.Null(winner.ExitCode);
+        Assert.NotNull(winner.Hold);
+        Assert.False(rig.Nth.Running);
+        Assert.Empty(rig.Nth.Ended);
+    }
+
+    [Fact]
+    [Trait("Decision", "OD-0072")]
+    [Trait("Platform", "WINDOWS-ONLY")]
     public async Task A_busy_nth_is_exit_3_a_silent_setup_never_stops_anyones_work_and_the_hold_is_let_go()
     {
         var root = NewRoot();
