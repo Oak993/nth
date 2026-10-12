@@ -7,4 +7,5 @@ internal sealed class NthInstallerQuit
     internal bool NeedsIdle { get; init; }
     internal bool Cancelled { get; set; }
     internal bool Committed { get; set; }
+    internal CancellationTokenRegistration ConnectionCancellation { get; set; }
 }

@@ -27,11 +27,16 @@ public sealed class NthControlHost : INthControlHost
     public async Task<NthControlAnswer> HandleAsync(NthControlRequest request, CancellationToken cancellationToken)
     {
         await launchReady.WaitAsync(cancellationToken).ConfigureAwait(false);
-        return await MainActor.Run(() => Answer(request)).ConfigureAwait(false);
+        return await MainActor.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested(); // a request queued before disconnect must not mutate the model
+            return Answer(request, cancellationToken);
+        }).ConfigureAwait(false);
     }
 
-    internal NthControlAnswer Answer(NthControlRequest request)
+    internal NthControlAnswer Answer(NthControlRequest request, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var work = RunningWork();
         if (request.Command == NthControlCommand.Status) return new NthControlAnswer(Reply(NthControlReply.Status, work));
         var id = request.Id is { } candidate && Guid.TryParseExact(candidate, "N", out var parsed) ? parsed.ToString("N") : null;
@@ -53,6 +58,7 @@ public sealed class NthControlHost : INthControlHost
 
         var quit = new NthInstallerQuit { Id = id, NeedsIdle = request.Mode == NthQuitMode.IfIdle };
         quits.Add(id, quit);
+        quit.ConnectionCancellation = cancellationToken.Register(() => MainActor.Post(() => Abort(quit)));
         shell.Delegate.Model?.HoldInstallerTurns(quit);
         var merge = work.Any(item => item.Kind == NthWorkKind.Merge);
         return new NthControlAnswer(Reply(NthControlReply.Ok, [], merge ? NthWorkKind.Merge : null) with { Id = id, CommitRequired = true },
@@ -71,6 +77,7 @@ public sealed class NthControlHost : INthControlHost
     {
         if (quit.Cancelled) return;
         quit.Cancelled = true;
+        quit.ConnectionCancellation.Dispose();
         Retire(quit.Id);
         quits.Remove(quit.Id);
         shell.Delegate.Model?.ReleaseInstallerTurns(quit);
@@ -105,7 +112,7 @@ public sealed class NthControlHost : INthControlHost
         if (quit.NeedsIdle && current.Count != 0 || shell.Delegate.Model?.HasUndurableInstallerTurns == true)
         { Withdraw(quit); return Reply(NthControlReply.Busy, current) with { Id = quit.Id }; }
         if (!quit.NeedsIdle) shell.Delegate.Model?.CancelInstallerPrivateWork();
-        if (shell.TerminateForInstaller(quit.Id, quit)) { quit.Committed = true; return null; }
+        if (shell.TerminateForInstaller(quit.Id, quit)) { quit.Committed = true; quit.ConnectionCancellation.Dispose(); return null; }
         Withdraw(quit);
         return Reply(NthControlReply.Refused, []) with { Reason = "pending-quit", Id = quit.Id };
     });
