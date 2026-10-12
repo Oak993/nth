@@ -30,6 +30,11 @@ internal sealed class WebView2View : IWebEngineView
     private IWebResourceHandler? resourceHandler;
     private bool resourcesHooked;
     private Task scriptsReady = Task.CompletedTask;
+    private CoreWebView2Find? find;
+    private WebFindFallback? findFallback;
+    private bool useFindFallback;
+    public event EventHandler? ZoomChanged;
+    public event EventHandler<WebFindResult>? FindResultChanged;
 
     public WebView2View(WebView2Engine engine, WebCreationOptions creation)
     {
@@ -125,6 +130,14 @@ internal sealed class WebView2View : IWebEngineView
         foreach (var subscription in cdpSubscriptions) subscription.Disconnect();
         UnhookResources();
         Unhook();
+        if (find is { } search)
+        {
+            Safe(() => search.MatchCountChanged -= OnFindResult);
+            Safe(() => search.ActiveMatchIndexChanged -= OnFindResult);
+        }
+        find = null;
+        findFallback = null;
+        useFindFallback = false;
         core = null;
         controller = null;
     }
@@ -167,7 +180,9 @@ internal sealed class WebView2View : IWebEngineView
 
     public async Task<WebFindResult> FindAsync(string query, bool matchCase, CancellationToken cancellationToken)
     {
-        if (core is null) return new WebFindResult(0, -1);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (core is null) throw new InvalidOperationException("The web view is not attached.");
+        if (useFindFallback) return await (findFallback ??= new(this)).StartAsync(query, matchCase, cancellationToken);
         try
         {
             var options = core.Environment.CreateFindOptions();
@@ -175,19 +190,43 @@ internal sealed class WebView2View : IWebEngineView
             options.IsCaseSensitive = matchCase;
             options.SuppressDefaultFindDialog = true;
             options.ShouldHighlightAllMatches = true;
-            await core.Find.StartAsync(options).WaitAsync(cancellationToken);
-            return new WebFindResult(core.Find.MatchCount, core.Find.ActiveMatchIndex);
+            if (find is null)
+            {
+                find = core.Find;
+                find.MatchCountChanged += OnFindResult;
+                find.ActiveMatchIndexChanged += OnFindResult;
+            }
+            find.Stop(); // Identical Start options otherwise mean "next", rather than a fresh query.
+            await find.StartAsync(options).WaitAsync(cancellationToken);
+            return new WebFindResult(find.MatchCount, find.ActiveMatchIndex);
         }
-        catch (NotImplementedException)
+        catch (Exception e) when (e is NotImplementedException or InvalidCastException || e is COMException { HResult: unchecked((int)0x80004002) })
         {
-            // An older runtime without the Find API; the find bar's CDP fallback (W8c) takes over.
-            return new WebFindResult(0, -1);
+            useFindFallback = true;
+            return await (findFallback ??= new(this)).StartAsync(query, matchCase, cancellationToken);
         }
     }
 
-    public void FindNext() => Safe(() => core?.Find.FindNext());
-    public void FindPrevious() => Safe(() => core?.Find.FindPrevious());
-    public void StopFind() => Safe(() => core?.Find.Stop());
+    private void OnFindResult(object? sender, object e)
+    {
+        if (find is { } current) FindResultChanged?.Invoke(this, new(current.MatchCount, current.ActiveMatchIndex));
+    }
+    public void FindNext() { if (useFindFallback) _ = MoveFallbackAsync(false); else find?.FindNext(); }
+    public void FindPrevious() { if (useFindFallback) _ = MoveFallbackAsync(true); else find?.FindPrevious(); }
+    public void StopFind() { if (findFallback is not null) _ = StopFallbackAsync(); else find?.Stop(); }
+    private async Task MoveFallbackAsync(bool previous)
+    {
+        try
+        {
+            if (findFallback is { } fallback) FindResultChanged?.Invoke(this, await fallback.MoveAsync(previous, CancellationToken.None));
+        }
+        catch (Exception e) { log.Error($"web: find move failed: {e.Message}"); FindResultChanged?.Invoke(this, new(-1, -1)); }
+    }
+    private async Task StopFallbackAsync()
+    {
+        try { if (findFallback is { } fallback) await fallback.StopAsync(CancellationToken.None); }
+        catch (Exception e) { log.Error($"web: find cleanup failed: {e.Message}"); }
+    }
     public void ShowPrintUI() => core?.ShowPrintUI(CoreWebView2PrintDialogKind.System);
 
     public async Task<bool> PrintToPdfAsync(string path, CancellationToken cancellationToken) =>
@@ -353,6 +392,7 @@ internal sealed class WebView2View : IWebEngineView
         {
             ctl.AcceleratorKeyPressed += OnAcceleratorKeyPressed;
             ctl.MoveFocusRequested += OnMoveFocusRequested;
+            ctl.ZoomFactorChanged += OnZoomChanged;
         }
     }
 
@@ -387,9 +427,12 @@ internal sealed class WebView2View : IWebEngineView
             {
                 ctl.AcceleratorKeyPressed -= OnAcceleratorKeyPressed;
                 ctl.MoveFocusRequested -= OnMoveFocusRequested;
+                ctl.ZoomFactorChanged -= OnZoomChanged;
             });
         }
     }
+
+    private void OnZoomChanged(object? sender, object e) => ZoomChanged?.Invoke(this, EventArgs.Empty);
 
     private void OnNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs args)
     {
