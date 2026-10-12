@@ -1,11 +1,13 @@
-// PORT-ONLY: Tactus, PC control (OD-0140, OD-0141, OD-0144, ED-NEW-pcctl-6, ED-NEW-pcctl-7, ED-NEW-pcctl-8; DESIGN.md 2.6,
-// 2.8, 2.9, 2.11, 2.12, 4.3; critique C5, C6, C7, C13, C16, C21, C25 to C28). Acting. The target is found again by
-// identity just before acting (a recycled container or a look-alike is never acted on; two matches are refused). The action
-// goes down the ladder without activating any window: before each way the guarded-word check runs on what that way will
-// press (name, AutomationId, default action, class, menu text; an unnamed button in a mail or chat app), a write into the
-// control the user is typing in waits, and around each way the user's foreground, pointer and focus are compared (a way
-// that moved them is not used again). The window is then waited on by its change events until the action's check holds,
-// and the check decides ok, unverified or expect_failed; a failed check tries the next way once.
+// PORT-ONLY: Tactus, PC control (OD-0140, OD-0141, OD-0144, ED-NEW-pcctl-6, ED-NEW-pcctl-7, ED-NEW-pcctl-8,
+// ED-NEW-pcctl-19; DESIGN.md 2.6, 2.8, 2.9, 2.11, 2.12, 4.3; critique C5, C6, C7, C13, C16, C21, C25 to C28). Acting. The
+// target is found again by identity just before acting (a recycled container or a look-alike is never acted on; two
+// matches are refused), and a target the user changed since the model's look stops the step. The action goes down the
+// ladder without activating any window: before each way the guarded-word check runs on what that way will press (name,
+// AutomationId, default action, class, menu text; an unnamed button in a mail or chat app), a write into the user's
+// control waits, an app-global way waits for a still moment while the user works in the app, and around each way the
+// user's foreground, pointer and focus are compared (a way that moved them is not used again). Whose input it was comes
+// from the physical input monitor. The window is then waited on by its change events until the action's check holds, and
+// the check decides ok, unverified or expect_failed; a failed check tries the next way once.
 using System.Text;
 using System.Text.Json.Nodes;
 using Marrow.Core.Port.PcControl;
@@ -117,22 +119,23 @@ public sealed partial class PcControlEngine
         return (new PcTarget(current, resolved, node, screen), null);
     }
 
-    // Never acts on old facts (DESIGN.md 2.9): when the user worked in this window after the model's look (it was in front
-    // and had input since), a target whose value or state differs from that look was changed by the user, and the step
-    // stops instead of acting on what the model saw. Tactus's own earlier writes do not count unless the user was also
-    // working there, which errs on the side of stopping.
+    // Never acts on old facts (DESIGN.md 2.9): when the user pressed keys or buttons in this window after the model's look
+    // (the physical input monitor counts them; Tactus's own input never counts), a target whose value or state differs
+    // from that look was changed by the user, and the step stops instead of acting on what the model saw. Tactus's own
+    // earlier writes do not count unless the user also pressed there, which errs on the side of stopping.
     // A look taken before a pause counts as old facts whoever changed the target (DESIGN.md 10.1, Resume item 6): the step
     // returns "changed while paused" instead of acting.
     private string? UserChanged(PcWindowInfo info, PcObservation looked, PcUiNode seen, PcUiNode now)
     {
         var paused = PausedAfter(info.App.Key, looked.At) is not null;
-        if (!paused)
-        {
-            var user = parts.Foreground.Read();
-            if (user.Foreground != info.Handle || user.InputAgeMs >= parts.Clock.NowMs - looked.At) return null;
-        }
+        if (!paused && parts.Input.Presses(info.Handle) == looked.Presses) return null;
         var what = PcVerify.Describe(now);
-        var lead = paused ? "changed while paused: " + what : "the user changed " + what + " since your look";
+        return Difference(seen, now, paused ? "changed while paused: " + what : "the user changed " + what + " since your look");
+    }
+
+    // How the target differs from what was seen, led by who changed it; null when its value and watched states are the same.
+    private static string? Difference(PcUiNode seen, PcUiNode now, string lead)
+    {
         if (PcElementMatch.Editable(seen) && !seen.Has(PcStates.Password)
             && !string.Equals(PcVerify.Text(seen.Value), PcVerify.Text(now.Value), StringComparison.Ordinal))
             return lead + ": it now shows " + PcWindowLine.Quote(TreeFormatter.Clean(now.Value ?? "", 80)) + "; look again before acting";
@@ -212,7 +215,8 @@ public sealed partial class PcControlEngine
         if (before is null) return PcResult.Fail(PcErrorCode.WindowGone, "the window is gone");
         var user = parts.Foreground.Read();
         var inFront = user.Foreground == handle;
-        var active = inFront && user.InputAgeMs < UserActiveMs;
+        // The user is active in this window: their own input went into it within 2 s (DESIGN.md 2.9).
+        var active = AppStateGuard.ActiveIn(parts.Input, [handle], parts.Clock.NowMs);
         var noise = cached is not null && !ReferenceEquals(cached, before) ? PcVerify.Changed(cached, before) : new HashSet<string>(StringComparer.Ordinal);
         if (active && before.Focused is { } focusedIndex) noise.Add(before.Elements[focusedIndex].RuntimeId);
         request = request with { Tree = before, InFront = inFront, UserActive = active, ModifiersDown = user.ModifiersDown, Waiting = call.Wait.Waiting };
@@ -238,9 +242,22 @@ public sealed partial class PcControlEngine
             if (tried > 0 && parts.Pause.PausedSince(info.App.Key, call.PauseEpoch)) return last!;
             if (Clipboard(request, way) is { } clipboard) return clipboard;
             if (await Guard(info, request, way, before, confirmed, call).ConfigureAwait(false) is { } refused) return refused;
+            var pressesBefore = parts.Input.Presses(handle);
+            var (deferred, waited) = await Share(info, request, way, call).ConfigureAwait(false);
+            if (deferred is not null) return deferred;
             // A pause while the confirmation (or the typing wait) was up: an answer given then is asked again after the
             // Resume, with the target read again (DESIGN.md 10.1).
             if (tried == 0 && parts.Pause.PausedSince(info.App.Key, call.PauseEpoch)) throw new PcHeld();
+            if (waited)
+            {
+                // The user worked while the step waited: the window is read again (their input made it dirty), and a target
+                // they changed stops the step.
+                before = await Tree(handle, fresh: false, call.Token).ConfigureAwait(false) ?? before;
+                if (active && before.Focused is { } userFocus) noise.Add(before.Elements[userFocus].RuntimeId);
+                if (request.Element is { } element && parts.Input.Presses(handle) != pressesBefore
+                    && await ChangedWhileWaiting(info, element, call).ConfigureAwait(false) is { } changed)
+                    return changed;
+            }
             tried++;
             call.Acted = true;
             // An action in flight: the pill reads "Pausing" until it and its check end.
@@ -249,11 +266,12 @@ public sealed partial class PcControlEngine
             var windowsBefore = AppWindows(info);
             var pre = parts.Foreground.Read();
             var started = parts.Clock.NowMs;
+            var pressesAt = parts.Input.Presses(handle);
             var outcome = await way.Run(call.Token).WaitAsync(call.Token).ConfigureAwait(false);
             call.Timings.Mark("act");
             call.Audit.Rung = way.Rung + " " + way.Method;
             var post = parts.Foreground.Read();
-            var learned = Learn(info, way, pre, post, windowsBefore, parts.Clock.NowMs - started);
+            var learned = Learn(info, way, pre, post, windowsBefore, started);
             if (!outcome.Done)
             {
                 last = PcResult.Fail(outcome.Error ?? PcErrorCode.NotSupported, outcome.Reason ?? "the app refused the action", Line(info, Latest(handle)));
@@ -272,10 +290,9 @@ public sealed partial class PcControlEngine
                 // reads back right goes on without waiting for its change event (critique C21).
                 var after = await Tree(handle, fresh: call.InBatch && checks++ == 0, call.Token).ConfigureAwait(false);
                 var now = parts.Catalog.Window(handle);
-                // The user worked in the window since the action: where their focus is now is their doing (critique C26).
+                // The user pressed in the window since the action: where their focus is now is their doing (critique C26).
                 var seen = noise;
-                var during = parts.Foreground.Read();
-                if (during.Foreground == handle && during.InputAgeMs < parts.Clock.NowMs - started && after?.Focused is { } userFocus)
+                if (parts.Input.Presses(handle) != pressesAt && after?.Focused is { } userFocus)
                     seen = new HashSet<string>(noise, StringComparer.Ordinal) { after.Elements[userFocus].RuntimeId };
                 check = new PcCheck
                 {
@@ -375,39 +392,42 @@ public sealed partial class PcControlEngine
     }
 
     /// <summary>
-    /// The yield rule (DESIGN.md 2.9), until the physical input monitor (unit P2) can tell the user's keys apart: a write
-    /// waits while the window is in front, the user gave input within 2 s, and the target is the focused control (or the
-    /// write has no target). It runs as soon as that ends; after 10 s it answers user_typing_here.
+    /// The yield rule (DESIGN.md 2.9): a write into the user's control waits (UserControlTracker: it has the focus and they
+    /// typed into it within 2 s, or their pointer is pressed on it). It runs as soon as the control is no longer theirs;
+    /// after 10 s it answers user_typing_here and nothing is written. Writes into other controls run at once.
     /// </summary>
     private async Task<PcResult?> Yield(PcWindowInfo info, PcUiNode? target, PcCall call)
     {
         var start = parts.Clock.NowMs;
+        var focused = target is null || target.Has(PcStates.Focused);
         IDisposable? waiting = null;
         try
         {
             while (true)
             {
+                var now = parts.Clock.NowMs;
                 var user = parts.Foreground.Read();
-                var users = user.Foreground == info.Handle && user.InputAgeMs < UserActiveMs
-                    && (target is null || target.Has(PcStates.Focused) || (target.NativeWindow != 0 && target.NativeWindow == user.Focus));
-                if (!users) return null;
+                var check = UserControlTracker.Check(parts.Input.Snapshot(), now, new PcWriteTarget(info.Handle, target, user.Foreground == info.Handle, user.Focus, focused));
+                if (!check.Users) return null;
                 // Paused while waiting for the user's typing: the step holds and starts again, its 10 s afresh.
                 if (parts.Pause.PausedSince(info.App.Key, call.PauseEpoch)) throw new PcHeld();
-                var waited = parts.Clock.NowMs - start;
-                if (waited >= YieldMs)
-                {
-                    return PcResult.Fail(PcErrorCode.UserTypingHere, "the user is typing in " + (target is null ? "this window's focused field" : PcVerify.Describe(target))
-                        + " (" + AppName(info) + ")");
-                }
+                var waited = now - start;
+                if (waited >= YieldMs) return PcResult.Fail(PcErrorCode.UserTypingHere, UsersControl(check.Hold, target, info));
                 waiting ??= call.Wait.Waiting(PcWaitReason.TypingHere);
-                // A timeout tied to the condition: the moment the user's last input is 2 s old, or the 10 s limit.
-                var until = (int)Math.Max(1, Math.Min(UserActiveMs - user.InputAgeMs, YieldMs - waited));
+                // A timeout tied to the condition: the moment the user's last key there is 2 s old, or the 10 s limit.
+                var until = (int)Math.Max(1, Math.Min(check.AgainMs - now, YieldMs - waited));
                 using (var cut = CancellationTokenSource.CreateLinkedTokenSource(call.Token, parts.Pause.PausedToken(info.App.Key)))
                 {
                     try { await parts.Clock.Delay(until, cut.Token).ConfigureAwait(false); }
                     catch (OperationCanceledException) when (!call.Token.IsCancellationRequested) { throw new PcHeld(); }
                 }
                 call.Timings.Mark("yield");
+                // The user may have moved on to another field: an element with no window of its own is asked again.
+                if (target is { NativeWindow: 0 } element)
+                {
+                    var live = await parts.Reader.Element(info.Handle, element.RuntimeId, call.Token).WaitAsync(call.Token).ConfigureAwait(false);
+                    focused = live?.Has(PcStates.Focused) ?? false;
+                }
             }
         }
         finally
@@ -416,15 +436,94 @@ public sealed partial class PcControlEngine
         }
     }
 
+    private string UsersControl(PcUserHold hold, PcUiNode? target, PcWindowInfo info)
+    {
+        var what = (target is null ? "this window's focused field" : PcVerify.Describe(target)) + " (" + AppName(info) + ")";
+        return hold switch
+        {
+            PcUserHold.Pressed => "the user is holding the mouse button on " + what,
+            PcUserHold.Unseen => "the user may be typing in " + what + ": Tactus cannot see the keyboard right now",
+            _ => "the user is typing in " + what,
+        };
+    }
+
+    /// <summary>
+    /// Shared app state (DESIGN.md 2.9, AppStateGuard): before a cursor-free way runs, an app-global way waits for a still
+    /// moment while the user is active in the app (the borrow's gate, words and answers), a focus-moving way while they are
+    /// active in this window, and a way that can shift the layout while their pointer moved inside the window within
+    /// 500 ms. A borrow (R4) waits at the lease's own gate. Returns deferred_by_user for "Not now", and whether it waited.
+    /// </summary>
+    private async Task<(PcResult? Deferred, bool Waited)> Share(PcWindowInfo info, PcInputRequest request, PcRungPlan way, PcCall call)
+    {
+        if (way.Rung == PcRung.R4) return (null, false);
+        var effect = AppStateGuard.Classify(request, way);
+        if (effect == PcStepEffect.None) return (null, false);
+        var handle = info.Handle;
+        var waited = false;
+        using var cut = CancellationTokenSource.CreateLinkedTokenSource(call.Token, parts.Pause.PausedToken(info.App.Key));
+        try
+        {
+            var now = parts.Clock.NowMs;
+            var still = (effect.HasFlag(PcStepEffect.AppGlobal) && AppStateGuard.ActiveIn(parts.Input, AppWindows(info), now))
+                || (effect.HasFlag(PcStepEffect.MovesFocus) && AppStateGuard.ActiveIn(parts.Input, [handle], now));
+            if (still)
+            {
+                waited = true;
+                var status = await parts.Lease.Still(info.App.Key, "a step in " + AppName(info), call.Wait.Waiting, cut.Token).ConfigureAwait(false);
+                call.Timings.Mark("still");
+                if (status == PcBorrowStatus.Deferred)
+                {
+                    return (PcResult.Fail(PcErrorCode.DeferredByUser, "the user chose Not now while working in " + AppName(info)
+                        + "; do another step or try this one later", Line(info, Latest(handle))), true);
+                }
+            }
+            if (effect.HasFlag(PcStepEffect.LayoutShift))
+            {
+                IDisposable? mark = null;
+                try
+                {
+                    while (AppStateGuard.PointerNear(parts.Input.Snapshot(), handle, parts.Clock.NowMs) is { } quiet)
+                    {
+                        waited = true;
+                        mark ??= call.Wait.Waiting(PcWaitReason.HandsOff);
+                        await parts.Clock.Delay((int)Math.Max(1, quiet - parts.Clock.NowMs), cut.Token).ConfigureAwait(false);
+                    }
+                }
+                finally
+                {
+                    mark?.Dispose();
+                }
+                call.Timings.Mark("pointer");
+            }
+        }
+        catch (OperationCanceledException) when (!call.Token.IsCancellationRequested)
+        {
+            // Paused while waiting: the step holds and starts again from its own top.
+            throw new PcHeld();
+        }
+        return (null, waited);
+    }
+
+    // After a wait in which the user pressed in the window: the target read live; gone, or changed from what the step resolved, stops it.
+    private async Task<PcResult?> ChangedWhileWaiting(PcWindowInfo info, PcUiNode element, PcCall call)
+    {
+        var live = await parts.Reader.Element(info.Handle, element.RuntimeId, call.Token).WaitAsync(call.Token).ConfigureAwait(false);
+        if (live is null) return PcResult.Fail(PcErrorCode.StaleElement, PcVerify.Describe(element) + " is gone; the user worked in the window while Tactus waited");
+        return Difference(element, live, "the user changed " + PcVerify.Describe(live) + " while Tactus waited") is { } changed
+            ? PcResult.Fail(PcErrorCode.ExpectFailed, changed)
+            : null;
+    }
+
     /// <summary>
     /// The delta check (DESIGN.md 2.6, critique C16): the user's foreground, pointer and focused control before and after a
     /// way. A way that moved the foreground (other than to a window the app opened) or the pointer is refused for 7 days in
-    /// this app; one that moved the focus is marked focus-moving. When the user gave input during the way, nothing is
-    /// learned (the move may be theirs). Returns whether the way was clean.
+    /// this app; one that moved the focus is marked focus-moving. When the user gave physical input during the way, or the
+    /// hooks could not see it, nothing is learned (the move may be theirs). Returns whether the way was clean.
     /// </summary>
-    private bool Learn(PcWindowInfo info, PcRungPlan way, PcUserState pre, PcUserState post, IReadOnlySet<nint> windowsBefore, long elapsedMs)
+    private bool Learn(PcWindowInfo info, PcRungPlan way, PcUserState pre, PcUserState post, IReadOnlySet<nint> windowsBefore, long started)
     {
-        if (post.InputAgeMs <= elapsedMs) return false;
+        var input = parts.Input.Snapshot();
+        if (!input.Healthy || input.LastUserMs >= started) return false;
         var foregroundMoved = post.Foreground != pre.Foreground
             && !(post.Foreground != info.Handle && NewWindows(info, windowsBefore).Any(w => w.Handle == post.Foreground));
         var pointerMoved = post.Cursor != pre.Cursor;
@@ -455,7 +554,12 @@ public sealed partial class PcControlEngine
             lock (gate) opened.Add(window.Handle);
             Remember(window);
             extra.Append("\nnew window: ").Append(PcWindowRef.Format(window.Handle)).Append(' ').Append(PcWindowLine.Quote(TreeFormatter.Clean(window.Title, 120)));
-            if (post.Foreground == window.Handle) extra.Append(" (it took the foreground)");
+            if (post.Foreground == window.Handle)
+            {
+                extra.Append(" (it took the foreground)");
+                // The user sees why their focus moved: "Excel opened Save As" on the pill for 2 s (DESIGN.md 2.9).
+                parts.Control.Opened(new PcOpenedNotice(info.App.Key, AppName(info), TreeFormatter.Clean(window.Title, 60)));
+            }
         }
         call.Output.Opened = check.NewWindows;
         if (settled.TimedOut) extra.Append("\nthe window was still changing after ").Append(Count(settled.ElapsedMs)).Append(" ms");

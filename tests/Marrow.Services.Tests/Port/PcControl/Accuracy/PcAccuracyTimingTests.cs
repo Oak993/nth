@@ -23,12 +23,11 @@ public sealed class PcAccuracyTimingTests
         return (harness, app, engine);
     }
 
-    // The user is at work in the window now: it is in front and has just had their input.
+    // The user is at work in the window now: it is in front and has just had their key.
     private static void UserWorking(PcEngineHarness harness)
     {
         harness.Desktop.Clock.NowMs += 500;
-        harness.Desktop.ForegroundWindow = 0x1a;
-        harness.Desktop.LastInputAt = harness.Desktop.Clock.NowMs;
+        harness.UserTypes(0x1a);
     }
 
     [Theory]
@@ -199,7 +198,7 @@ public sealed class PcAccuracyTimingTests
                 if (noise == "typing")
                 {
                     field.Value += "a";
-                    harness.Desktop.LastInputAt = harness.Desktop.Clock.NowMs;
+                    harness.UserTypes(0x1a);
                 }
                 else
                 {
@@ -225,7 +224,8 @@ public sealed class PcAccuracyTimingTests
         harness.Desktop.Schedule(60, () =>
         {
             app.Root.Children[0].States |= PcStates.Focused;
-            harness.Desktop.LastInputAt = harness.Desktop.Clock.NowMs;
+            harness.UserButton(0x1a, new PcPoint(60, 200), down: true);
+            harness.UserButton(0x1a, new PcPoint(60, 200), down: false);
             harness.Desktop.Bump(0x1a);
         });
         var result = await PcEngineHarness.Call(engine, "pc_click", "{\"window\":\"w:1a\",\"element\":5}");

@@ -7,8 +7,18 @@
 // Stop, and Tactus switched off in Settings. Esc stops only during a borrow of the real pointer or focus (unit P3/P5), never
 // because a controlled window is in front (DESIGN.md 4.4 rejects that); three Escs within 1 s, the first in a window Tactus
 // is using, stop all (pill v2, DESIGN.md 10.2 path 5). The paths are named in PcStopControl; Pause and Resume are
-// PcPauseControl's.
+// PcPauseControl's. It also carries the notice of a window a Tactus step opened that took the user's foreground
+// (DESIGN.md 2.9), for the pill.
 namespace Marrow.Services.Port.PcControl;
+
+/// <summary>A window a Tactus step opened took the foreground from the user: the pill says so for 2 s.</summary>
+public sealed record PcOpenedNotice(string App, string AppName, string Title)
+{
+    public const int ShowMs = 2000;
+
+    /// <summary>"Excel opened Save As".</summary>
+    public string Text => AppName + " opened " + Title;
+}
 
 public enum PcScopeKind
 {
@@ -68,6 +78,11 @@ public sealed class PcRunControl
 
     /// <summary>Raised after a stop, with its scope and source (engines record the turn-wide refusal; the pill redraws).</summary>
     public event Action<PcScope, PcStopSource>? Stopped;
+
+    /// <summary>A window a Tactus step opened took the user's foreground (DESIGN.md 2.9): the pill shows the notice for 2 s.</summary>
+    public event Action<PcOpenedNotice>? WindowOpened;
+
+    public void Opened(PcOpenedNotice notice) => WindowOpened?.Invoke(notice);
 
     /// <summary>A watch over one call by <paramref name="thread"/> in <paramref name="app"/>, on <paramref name="window"/>.</summary>
     public IPcWatch Watch(CancellationToken outer, string thread, string app, nint window)

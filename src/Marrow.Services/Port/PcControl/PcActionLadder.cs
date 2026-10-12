@@ -95,6 +95,12 @@ public sealed record PcRungPlan(PcRung Rung, string Method, Func<CancellationTok
 
     /// <summary>True when the framework gate marks this way "probe" and it has not passed its self-check for this exe yet.</summary>
     public bool Probe { get; init; }
+
+    /// <summary>
+    /// A way learned to move focus, kept while the user works in the window because no other way is left: it waits for a
+    /// still moment like a borrow before it runs (DESIGN.md 2.9 "Focus inside the app").
+    /// </summary>
+    public bool WaitsForStill { get; init; }
 }
 
 /// <summary>What one rung offers for a request: its ways, or a refusal that ends the ladder (disabled, a password field).</summary>
@@ -296,6 +302,7 @@ public sealed class PcActionLadder(IReadOnlyList<IPcInputRung> rungs, PcCapabili
     {
         var framework = PcFrameworkGate.Of(request.Window, request.Element, request.Tree);
         var plans = new List<PcRungPlan>();
+        var focusMoving = new List<PcRungPlan>();
         PcErrorCode? refusal = null;
         string? reason = null;
         foreach (var rung in Order(request, framework))
@@ -314,7 +321,9 @@ public sealed class PcActionLadder(IReadOnlyList<IPcInputRung> rungs, PcCapabili
                         reason ??= "the way Tactus tried before (" + plan.Method + ") took the user's focus or pointer in this app";
                         continue;
                     case PcLearned.FocusMoving when request.UserActive:
+                        // Left out while another way can do it; kept, waiting for a still moment, when none can.
                         reason ??= plan.Method + " moves focus in this app, and the user is working in this window";
+                        focusMoving.Add(plan with { WaitsForStill = true });
                         continue;
                     case PcLearned.Passed:
                         plans.Add(plan with { Probe = false });
@@ -326,6 +335,11 @@ public sealed class PcActionLadder(IReadOnlyList<IPcInputRung> rungs, PcCapabili
             }
             if (offer.Refusal is { } code)
             {
+                if (plans.Count == 0 && focusMoving.Count > 0 && code == PcErrorCode.NeedsRealInput)
+                {
+                    plans.AddRange(focusMoving);
+                    focusMoving.Clear();
+                }
                 // A refusal that is not "needs the real input" (disabled, a password field, read-only, two commands) ends the
                 // plan even when a rung before it offered ways: it says the input must not be done at all.
                 if (plans.Count == 0 || code != PcErrorCode.NeedsRealInput)
@@ -335,6 +349,8 @@ public sealed class PcActionLadder(IReadOnlyList<IPcInputRung> rungs, PcCapabili
                 break;
             }
         }
+        // Before a borrow too: waiting for a still moment and running cursor-free beats taking the user's input.
+        if (focusMoving.Count > 0 && plans.All(p => p.Rung == PcRung.R4)) plans.InsertRange(0, focusMoving);
         if (plans.Count == 0) return new PcLadderPlan([], PcErrorCode.NeedsRealInput, reason ?? PcRealInputReason.Off);
         return new PcLadderPlan(plans, refusal, reason);
     }

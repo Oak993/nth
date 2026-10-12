@@ -8,7 +8,8 @@
 // token (PcPendingSteps). Targets are found again by identity just before acting, every input goes down the action ladder
 // without activating any window, the window is waited on by its change events, and every action is checked locally
 // before its call returns. A paused app's steps hold in its stream until the user resumes it (PcPauseControl,
-// ED-NEW-pcctl-14). Each call's phase timings go to the audit log.
+// ED-NEW-pcctl-14). Whose input went where comes from the physical input monitor (ED-NEW-pcctl-19): physical input in a
+// window makes its cached tree and the model's look there dirty. Each call's phase timings go to the audit log.
 using System.Globalization;
 using System.Text.Json.Nodes;
 using Marrow.Core.Port.PcControl;
@@ -41,6 +42,15 @@ public sealed class PcEngineParts
     public required IPcChangeFeed Feed { get; init; }
     public required PcActionLadder Ladder { get; init; }
     public required IForeground Foreground { get; init; }
+
+    /// <summary>
+    /// The physical input monitor, on the engine's clock: the user's own keys and pointer, per window (DESIGN.md 2.9). Its
+    /// hooks are kept installed while the chords are armed, which every call needs.
+    /// </summary>
+    public required IPhysicalInput Input { get; init; }
+
+    /// <summary>The one real mouse and keyboard (R4), and the still-moment wait of app-global steps (DESIGN.md 2.7, 2.9).</summary>
+    public required RealInputLease Lease { get; init; }
     public required IOwnWindows Own { get; init; }
     public required IPcApprover Approver { get; init; }
     public required IPcConfirmer Confirmer { get; init; }
@@ -79,6 +89,12 @@ public sealed record PcObservation(long Number, PcWindowInfo Window, PcTree Tree
 
     /// <summary>When Tactus looked (engine clock): input in the window after this makes the look dirty (DESIGN.md 2.9).</summary>
     public long At { get; init; }
+
+    /// <summary>
+    /// The user's key-downs and button presses into the window when its tree was read (IPhysicalInput.Presses): more now
+    /// means the user may have changed what the model saw.
+    /// </summary>
+    public long Presses { get; init; }
 }
 
 /// <summary>
@@ -139,7 +155,7 @@ public sealed partial class PcControlEngine : IDisposable
     public const int WarmTreeMaxAgeMs = 2000;
 
     /// <summary>The user counts as working in a window for 2 s after their last input there (DESIGN.md 2.9).</summary>
-    public const int UserActiveMs = 2000;
+    public const int UserActiveMs = UserControlTracker.TypingMs;
 
     /// <summary>How long a write waits while the user types in its target control before user_typing_here.</summary>
     public const int YieldMs = 10_000;
@@ -152,7 +168,7 @@ public sealed partial class PcControlEngine : IDisposable
     private readonly Dictionary<nint, PcObservation> latest = [];
     private readonly Dictionary<long, PcObservation> observations = [];
     private readonly Dictionary<nint, PcNumbering> numbering = [];
-    private readonly Dictionary<nint, (PcTree Tree, long Version, long At)> warm = [];
+    private readonly Dictionary<nint, (PcTree Tree, long Version, long At, long Input, long Presses)> warm = [];
     private readonly Dictionary<(string App, PcCapability Capability), PcAsking> approvals = [];
     private readonly Dictionary<nint, PcWindowInfo> known = [];
     private readonly HashSet<nint> opened = [];
@@ -471,9 +487,12 @@ public sealed partial class PcControlEngine : IDisposable
     private PcObservation Record(PcWindowInfo info, PcTree tree, long version, PcShot? shot)
     {
         var windows = AppWindows(info);
+        var presses = parts.Input.Presses(info.Handle);
         lock (gate)
         {
-            var observation = new PcObservation(++nextObservation, info, tree, version) { Shot = shot, AppWindows = windows, At = parts.Clock.NowMs };
+            // The presses counted when this tree was read: input during the read counts as after the look.
+            if (warm.TryGetValue(info.Handle, out var read) && ReferenceEquals(read.Tree, tree)) presses = read.Presses;
+            var observation = new PcObservation(++nextObservation, info, tree, version) { Shot = shot, AppWindows = windows, At = parts.Clock.NowMs, Presses = presses };
             if (shot is not null)
             {
                 // One frame per window is kept (points and zoom use the latest screenshot only).
@@ -487,13 +506,19 @@ public sealed partial class PcControlEngine : IDisposable
         }
     }
 
-    /// <summary>The window's tree with stable element numbers: from the warm cache while no change event came since it was read.</summary>
+    /// <summary>
+    /// The window's tree with stable element numbers: from the warm cache while no change event came and no physical input
+    /// went into the window since it was read (the user's input makes it dirty: one fresh read, DESIGN.md 2.9).
+    /// </summary>
     private async Task<PcTree?> Tree(nint window, bool fresh, CancellationToken cancellationToken)
     {
         var version = parts.Feed.Version(window);
+        var input = parts.Input.Version(window);
+        var presses = parts.Input.Presses(window);
         lock (gate)
         {
-            if (!fresh && warm.TryGetValue(window, out var cached) && cached.Version == version && parts.Clock.NowMs - cached.At <= WarmTreeMaxAgeMs)
+            if (!fresh && warm.TryGetValue(window, out var cached) && cached.Version == version && cached.Input == input
+                && parts.Clock.NowMs - cached.At <= WarmTreeMaxAgeMs)
                 return cached.Tree;
         }
         var root = await parts.Reader.Tree(window, cancellationToken).WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -506,7 +531,7 @@ public sealed partial class PcControlEngine : IDisposable
             }
             if (!numbering.TryGetValue(window, out var numbers)) numbering[window] = numbers = new PcNumbering();
             var tree = numbers.Apply(TreeFormatter.Format(root));
-            warm[window] = (tree, version, parts.Clock.NowMs);
+            warm[window] = (tree, version, parts.Clock.NowMs, input, presses);
             return tree;
         }
     }

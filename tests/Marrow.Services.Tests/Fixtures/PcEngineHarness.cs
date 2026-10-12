@@ -5,10 +5,12 @@ using Marrow.Services.Port.PcControl;
 
 namespace Marrow.Services.Tests.Fixtures;
 
-// PORT-ONLY: Tactus, PC control (ED-NEW-pcctl-6, ED-NEW-pcctl-7, ED-NEW-pcctl-8). The engine wired to the fake desktop: the
-// real lanes, run control, pause control, window holds, action ladder (R1 UI Automation, R2 messages, R4 refusing), capability store,
-// settle and checks; fake approval, confirmation, stop key, audit and capture. The 25 s budget runs on a manual clock that
-// moves only when a test advances it. Tactus is on unless a test turns it off.
+// PORT-ONLY: Tactus, PC control (ED-NEW-pcctl-6, ED-NEW-pcctl-7, ED-NEW-pcctl-8, ED-NEW-pcctl-19). The engine wired to the
+// fake desktop: the real lanes, run control, pause control, window holds, action ladder (R1 UI Automation, R2 messages, R4
+// refusing), capability store, settle and checks, the physical input monitor (healthy, on the desktop's clock; a test plays
+// the user's keys and pointer into it) and the real-input lease on a fake host; fake approval, confirmation, stop key,
+// audit and capture. The 25 s budget runs on a manual clock that moves only when a test advances it. Tactus is on unless a
+// test turns it off.
 public sealed class PcEngineHarness
 {
     public static readonly DateTimeOffset Today = new(2026, 10, 11, 12, 0, 0, TimeSpan.Zero);
@@ -16,7 +18,12 @@ public sealed class PcEngineHarness
     public PcEngineHarness()
     {
         Capabilities = new PcCapabilities(() => Now);
-        Ladder = new PcActionLadder([new PcUiaRung(Desktop), new PcMessageRung(Desktop), new PcBorrowRung(() => Settings)], Capabilities);
+        Input = new PhysicalInputMonitor(Desktop.Clock);
+        Input.Installed(true);
+        Input.LastInputSeen(Desktop.Clock.NowMs);
+        RealHost = new PcFakeRealInputHost(Input, Desktop.Clock);
+        Lease = new RealInputLease(Input, Hold, RealHost, Desktop.Clock, Capabilities, control: Control);
+        Ladder = new PcActionLadder([new PcUiaRung(Desktop), new PcMessageRung(Desktop), new PcBorrowRung(() => Settings, Lease)], Capabilities);
         Capture = new PcCapturePipeline([CaptureSource], Encoder);
         Ownership = new PcWindowOwnership(Desktop.Clock);
         Pause = new PcPauseControl(Desktop.Clock, Control);
@@ -35,6 +42,13 @@ public sealed class PcEngineHarness
     public PcManualClock WaitClock { get; } = new();
     public PcCapabilities Capabilities { get; }
     public PcActionLadder Ladder { get; }
+
+    /// <summary>The physical input monitor: healthy, with no input until a test plays the user's.</summary>
+    public PhysicalInputMonitor Input { get; }
+
+    public PcFakeInputHold Hold { get; } = new();
+    public PcFakeRealInputHost RealHost { get; }
+    public RealInputLease Lease { get; }
     public PcCapturePipeline Capture { get; }
     public PcWindowOwnership Ownership { get; }
     public PcPauseControl Pause { get; }
@@ -54,6 +68,8 @@ public sealed class PcEngineHarness
         Feed = Desktop,
         Ladder = Ladder,
         Foreground = Desktop,
+        Input = Input,
+        Lease = Lease,
         Own = Desktop,
         Approver = Approver,
         Confirmer = Confirmer,
@@ -74,6 +90,31 @@ public sealed class PcEngineHarness
 
     public PcControlEngine Engine(string thread = "chat-1", bool attended = true, bool vision = true, string? head = null) =>
         new(Parts, new PcCaller(thread, () => attended, vision) { Head = head });
+
+    /// <summary>The user presses a key in the window (it comes in front, its focus as the desktop reports it).</summary>
+    public void UserTypes(nint window, ushort key = 0x41)
+    {
+        Desktop.ForegroundWindow = window;
+        var now = Desktop.Clock.NowMs;
+        var focus = Desktop.FocusHandle;
+        Input.Record(new PcRawInput(now, PcRawKind.Key, true, key, false, 0) { Window = window, Focus = focus });
+        Input.Record(new PcRawInput(now, PcRawKind.Key, false, key, false, 0) { Window = window, Focus = focus });
+    }
+
+    /// <summary>The user keeps typing in the window: a key now and one every 100 ms for the next <paramref name="forMs"/> of the desktop clock.</summary>
+    public void KeepTyping(nint window, int forMs = 12_000)
+    {
+        UserTypes(window);
+        for (var at = 100; at <= forMs; at += 100) Desktop.Schedule(at, () => UserTypes(window));
+    }
+
+    /// <summary>The user moves the pointer over the window, to a point.</summary>
+    public void UserPoints(nint window, PcPoint at) =>
+        Input.Record(new PcRawInput(Desktop.Clock.NowMs, PcRawKind.Move, false, 0, false, 0) { Window = window, Point = at, Moved = new PcPoint(1, 1) });
+
+    /// <summary>The user presses (or lets go of) the left button over the window.</summary>
+    public void UserButton(nint window, PcPoint at, bool down) =>
+        Input.Record(new PcRawInput(Desktop.Clock.NowMs, PcRawKind.Button, down, 1, false, 0) { Window = window, Point = at, HeldButtons = down ? 1 : 0 });
 
     /// <summary>One tool call with JSON arguments.</summary>
     public static Task<PcResult> Call(PcControlEngine engine, string tool, string json, CancellationToken cancellationToken = default) =>

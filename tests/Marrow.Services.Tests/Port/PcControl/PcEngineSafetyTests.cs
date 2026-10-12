@@ -325,8 +325,7 @@ public sealed class PcEngineSafetyTests
         var (harness, app, engine) = await Ready();
         app.Root.Children[0].States |= PcStates.Focused;
         harness.Desktop.Bump(0x1a);
-        harness.Desktop.ForegroundWindow = 0x1a;
-        harness.Desktop.LastInputAt = harness.Desktop.Clock.NowMs;
+        harness.UserTypes(0x1a);
         var typed = await PcEngineHarness.Call(engine, "pc_type", "{\"window\":\"w:1a\",\"element\":2,\"text\":\"x\"}");
         Assert.True(typed.Ok, typed.Render());
         Assert.Equal("x", app.Root.Children[0].Value);
@@ -339,8 +338,7 @@ public sealed class PcEngineSafetyTests
         var (harness, app, engine) = await Ready();
         app.Root.Children[0].States |= PcStates.Focused;
         harness.Desktop.Bump(0x1a);
-        harness.Desktop.ForegroundWindow = 0x1a;
-        harness.Desktop.KeepTyping = true;
+        harness.KeepTyping(0x1a);
         var start = harness.Desktop.Clock.NowMs;
         var typed = await PcEngineHarness.Call(engine, "pc_type", "{\"window\":\"w:1a\",\"element\":2,\"text\":\"x\"}");
         Assert.Equal(PcErrorCode.UserTypingHere, typed.Error);

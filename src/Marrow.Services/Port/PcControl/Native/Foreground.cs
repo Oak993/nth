@@ -1,7 +1,7 @@
 // PORT-ONLY: Tactus, PC control (OD-0144, ED-NEW-pcctl-7, ED-NEW-pcctl-8; DESIGN.md 2.6 delta check, critique C16). Reads
 // the user's side of the PC around each way: the foreground root, the real cursor, the foreground thread's focused
-// control, whether Shift, Ctrl, Alt or Windows is down, and the age of the last input of the session. Reading only.
-// Never used by automated tests.
+// control, and whether Shift, Ctrl, Alt or Windows is down. Whose input it was comes from the physical input monitor
+// (ED-NEW-pcctl-19). Reading only. Never used by automated tests.
 using System.Runtime.InteropServices;
 using Marrow.Core.Port.PcControl;
 
@@ -25,9 +25,6 @@ public sealed class Foreground : IForeground
             if (thread != 0 && Win32.GetGUIThreadInfo(thread, ref info)) focus = info.Focus;
         }
         var down = Modifiers.Any(key => (Win32.GetAsyncKeyState(key) & 0x8000) != 0);
-        var last = new Win32.LASTINPUTINFO { Size = Marshal.SizeOf<Win32.LASTINPUTINFO>() };
-        // The tick counts wrap every 49.7 days; unsigned subtraction keeps the age right across the wrap.
-        var age = Win32.GetLastInputInfo(ref last) ? (long)unchecked(Win32.GetTickCount() - last.Time) : long.MaxValue;
-        return new PcUserState(root == 0 ? front : root, cursor, focus, down, age);
+        return new PcUserState(root == 0 ? front : root, cursor, focus, down);
     }
 }

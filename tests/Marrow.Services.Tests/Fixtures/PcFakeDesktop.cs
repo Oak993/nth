@@ -165,12 +165,6 @@ public sealed class PcFakeDesktop : IWindowCatalog, IUiaReader, IPcChangeFeed, I
     public nint FocusHandle { get; set; }
     public bool ModifiersDown { get; set; }
 
-    /// <summary>When the user last pressed a key or moved the mouse (fake clock ms); long ago by default.</summary>
-    public long LastInputAt { get; set; } = -1_000_000;
-
-    /// <summary>The user keeps typing: every read sees input just now.</summary>
-    public bool KeepTyping { get; set; }
-
     /// <summary>Runs before each pattern call (a test stops Tactus here, or changes the app).</summary>
     public Action<PcFakeApp, PcFakeNode, PcElementCommand>? BeforePerform { get; set; }
 
@@ -557,11 +551,7 @@ public sealed class PcFakeDesktop : IWindowCatalog, IUiaReader, IPcChangeFeed, I
 
     // ----- IForeground -----
 
-    public PcUserState Read()
-    {
-        if (KeepTyping) LastInputAt = Clock.NowMs;
-        return new PcUserState(ForegroundWindow, Cursor, FocusHandle, ModifiersDown, Clock.NowMs - LastInputAt);
-    }
+    public PcUserState Read() => new(ForegroundWindow, Cursor, FocusHandle, ModifiersDown);
 }
 
 public sealed class PcNothing : IDisposable

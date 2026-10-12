@@ -69,10 +69,10 @@ public interface IWindowCatalog
 
 /// <summary>
 /// The user's side of the PC at one moment (DESIGN.md 2.6 delta check, critique C16): the foreground window (its root),
-/// the real cursor, the focused control of the foreground thread, whether a modifier key is down, and how long ago the
-/// last physical or injected input of the session was (GetLastInputInfo).
+/// the real cursor, the focused control of the foreground thread, and whether a modifier key is down. The user's own
+/// input is the physical input monitor's (IPhysicalInput).
 /// </summary>
-public readonly record struct PcUserState(nint Foreground, PcPoint Cursor, nint Focus, bool ModifiersDown, long InputAgeMs);
+public readonly record struct PcUserState(nint Foreground, PcPoint Cursor, nint Focus, bool ModifiersDown);
 
 /// <summary>Reads the user's state. Reading only: nothing here changes the foreground, the focus or the cursor.</summary>
 public interface IForeground

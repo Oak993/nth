@@ -9,7 +9,9 @@
 // with a separate tag into the user's window while it is the one in front; keys that cannot go back are kept for "Put
 // them back", and after a failed restore the user's keys stay held until the user's own click moves the foreground. A
 // watchdog owns the release path: past the hold cap plus 100 ms it lets go of everything and marks the borrow failed.
-// Esc in a borrow stops that stream. Tests drive it on fakes; the app binds the Win32 host and the hooks.
+// Esc in a borrow stops that stream. A cursor-free step in an app the user works in waits for a still moment through the
+// same gate, words and answers, holding nothing (ED-NEW-pcctl-19). Tests drive it on fakes; the app binds the Win32 host
+// and the hooks.
 using Marrow.Core.Port.PcControl;
 using Marrow.Services.Port.PcControl.Native;
 using NativeKind = Marrow.Services.Port.PcControl.Native.PcInputKind;
@@ -31,6 +33,7 @@ public sealed class RealInputLease
 
     private readonly Lock gate = new();
     private readonly List<Entry> queue = [];
+    private readonly List<Entry> stills = [];
     private readonly List<PcRawInput> kept = [];
     private readonly IPhysicalInput input;
     private readonly IPcInputHold hold;
@@ -88,12 +91,12 @@ public sealed class RealInputLease
 
     public bool HoldingKeys => Volatile.Read(ref holdingKeys) == 1;
 
-    /// <summary>The borrows waiting now, in queue order.</summary>
+    /// <summary>The borrows waiting now, in queue order, then the steps waiting for a still moment.</summary>
     public IReadOnlyList<PcBorrowWait> Waits
     {
         get
         {
-            lock (gate) return queue.Select(e => e.Wait).ToList();
+            lock (gate) return queue.Concat(stills).Select(e => e.Wait).ToList();
         }
     }
 
@@ -152,7 +155,7 @@ public sealed class RealInputLease
         {
             while (true)
             {
-                var opened = await Gate(entry, request, cancellationToken, () =>
+                var opened = await Gate(entry, still: false, cancellationToken, () =>
                 {
                     waited = true;
                     mark ??= request.Waiting?.Invoke(PcWaitReason.HandsOff);
@@ -177,9 +180,38 @@ public sealed class RealInputLease
         }
     }
 
+    /// <summary>
+    /// A still moment for a cursor-free step in an app the user is working in (DESIGN.md 2.9 "Shared app state"): the
+    /// borrow's gate, words and answers, with nothing held, no queue, and no protected-window or own-card wait (the step
+    /// takes neither the pointer nor the keyboard). Done once the user is still (or chose "Do it now"); Deferred when they
+    /// chose "Not now". While the hooks are unhealthy it keeps waiting: the step's 25 s rule ends a long wait.
+    /// </summary>
+    public async Task<PcBorrowStatus> Still(string stream, string detail, Func<string, IDisposable>? waiting, CancellationToken cancellationToken)
+    {
+        var entry = new Entry(new PcBorrowWait(stream, detail));
+        lock (gate) stills.Add(entry);
+        IDisposable? mark = null;
+        try
+        {
+            var opened = await Gate(entry, still: true, cancellationToken, () => mark ??= waiting?.Invoke(PcWaitReason.HandsOff)).ConfigureAwait(false);
+            return opened.Outcome?.Status ?? PcBorrowStatus.Done;
+        }
+        finally
+        {
+            mark?.Dispose();
+            bool shown;
+            lock (gate)
+            {
+                stills.Remove(entry);
+                shown = entry.Shown;
+            }
+            if (shown) WaitEnded?.Invoke(entry.Wait);
+        }
+    }
+
     // The head of the queue waits for the gate (DESIGN.md 2.7 step 2). Returns the hook's delivered count and the input tick
-    // read with the check that opened it, or the outcome that ends the borrow.
-    private async Task<(PcBorrowOutcome? Outcome, long Delivered, long? Tick)> Gate(Entry entry, PcBorrowRequest request, CancellationToken cancellationToken, Action onWait)
+    // read with the check that opened it, or the outcome that ends the borrow. A still wait is always its own head.
+    private async Task<(PcBorrowOutcome? Outcome, long Delivered, long? Tick)> Gate(Entry entry, bool still, CancellationToken cancellationToken, Action onWait)
     {
         long? unhealthySince = null;
         while (true)
@@ -189,11 +221,11 @@ public sealed class RealInputLease
             var delivered = hold.Delivered;
             var tick = host.LastInputMs();
             if (tick is { } seen) input.LastInput(seen);
-            var protection = input.Protection();
+            var protection = still ? PcForegroundProtection.None : input.Protection();
             PcGateCheck check;
             bool head;
-            lock (gate) head = queue.FirstOrDefault(e => !e.Running) == entry && !queue.Any(e => e.Running);
-            if (ownCardUp() || HoldingKeys) check = new PcGateCheck(PcGateBlock.Held);
+            lock (gate) head = still || (queue.FirstOrDefault(e => !e.Running) == entry && !queue.Any(e => e.Running));
+            if (!still && (ownCardUp() || HoldingKeys)) check = new PcGateCheck(PcGateBlock.Held);
             else check = PcInputGate.Check(input.Snapshot(), now, protection, entry.Wait.DoItNowChosen);
             if (entry.Wait.NotNowChosen)
             {
@@ -203,10 +235,10 @@ public sealed class RealInputLease
             }
             if (head && check.Open)
             {
-                lock (gate) entry.Running = true;
+                lock (gate) entry.Running = !still;
                 return (null, delivered, tick);
             }
-            if (check.Block == PcGateBlock.Unhealthy)
+            if (check.Block == PcGateBlock.Unhealthy && !still)
             {
                 unhealthySince ??= now;
                 if (now - unhealthySince.Value >= UnhealthyWaitMs) return (new PcBorrowOutcome(PcBorrowStatus.NeedsRealInput, PcRealInputReason.MonitorUnhealthy), 0, null);

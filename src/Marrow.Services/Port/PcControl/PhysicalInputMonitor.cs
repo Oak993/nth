@@ -119,6 +119,8 @@ public sealed class PhysicalInputMonitor : IPhysicalInput
     private readonly IForegroundProtection? protection;
     private readonly List<PcInjectionLedger> ledgers = [];
     private readonly Dictionary<nint, long> versions = [];
+    private readonly Dictionary<nint, long> presses = [];
+    private readonly Dictionary<nint, long> lastIn = [];
     private Func<ushort, bool> chordKey = _ => false;
     private bool installed;
     private bool healthy;
@@ -134,6 +136,7 @@ public sealed class PhysicalInputMonitor : IPhysicalInput
     private nint pointerWindow;
     private nint keyWindow;
     private nint keyFocus;
+    private long? keyWindowAt;
     private nint composition;
     private bool imeLanguage;
     private nint pressedWindow;
@@ -194,6 +197,7 @@ public sealed class PhysicalInputMonitor : IPhysicalInput
                 PointerWindow = pointerWindow,
                 KeyWindow = keyWindow,
                 KeyFocus = keyFocus,
+                KeyWindowMs = keyWindowAt,
                 Composition = composition,
                 ImeLanguage = imeLanguage,
                 PressedWindow = pressedWindow,
@@ -205,6 +209,16 @@ public sealed class PhysicalInputMonitor : IPhysicalInput
     public long Version(nint window)
     {
         lock (gate) return versions.GetValueOrDefault(window);
+    }
+
+    public long Presses(nint window)
+    {
+        lock (gate) return presses.GetValueOrDefault(window);
+    }
+
+    public long? LastIn(nint window)
+    {
+        lock (gate) return lastIn.TryGetValue(window, out var at) ? at : null;
     }
 
     public IDisposable Keep()
@@ -318,6 +332,7 @@ public sealed class PhysicalInputMonitor : IPhysicalInput
     {
         var origin = PcInputOrigin.User;
         nint dirty = 0;
+        var pressed = false;
         bool? changed = null;
         Func<ushort, bool> chords;
         lock (gate)
@@ -339,7 +354,9 @@ public sealed class PhysicalInputMonitor : IPhysicalInput
                     {
                         keyWindow = input.Window;
                         keyFocus = input.Focus;
+                        keyWindowAt = input.TimeMs;
                         dirty = input.Window;
+                        if (input.Down) pressed = true;
                     }
                 }
                 else
@@ -354,10 +371,16 @@ public sealed class PhysicalInputMonitor : IPhysicalInput
                         {
                             pressedWindow = input.Window;
                             pressedPoint = input.Point;
+                            pressed = true;
                         }
                     }
                 }
-                if (dirty != 0) versions[dirty] = versions.GetValueOrDefault(dirty) + 1;
+                if (dirty != 0)
+                {
+                    versions[dirty] = versions.GetValueOrDefault(dirty) + 1;
+                    lastIn[dirty] = Math.Max(lastIn.GetValueOrDefault(dirty), input.TimeMs);
+                    if (pressed) presses[dirty] = presses.GetValueOrDefault(dirty) + 1;
+                }
             }
             if (installed && !healthy && agreeAt is { } tick && input.TimeMs >= tick - HealthSlackMs)
             {

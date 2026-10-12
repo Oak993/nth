@@ -123,6 +123,9 @@ public sealed record PcPhysicalSnapshot
     /// <summary>The focused control at the last physical key.</summary>
     public nint KeyFocus { get; init; }
 
+    /// <summary>When the last physical key reached <see cref="KeyWindow"/> (a swallowed key reached no window).</summary>
+    public long? KeyWindowMs { get; init; }
+
     /// <summary>The window whose IME composition is open now; 0 when none is.</summary>
     public nint Composition { get; init; }
 
@@ -150,6 +153,15 @@ public interface IPhysicalInput
 
     /// <summary>Counts physical input into the window (mouse over it, keys while it is in front): a step compares it with the count it saw.</summary>
     long Version(nint window);
+
+    /// <summary>
+    /// Counts the physical key-downs and button presses into the window: input that can change a control's value, state or
+    /// focus (a pointer passing over it cannot).
+    /// </summary>
+    long Presses(nint window);
+
+    /// <summary>When physical input last went into the window (a key while it was in front, a pointer event over it); null if never.</summary>
+    long? LastIn(nint window);
 
     /// <summary>Keeps the hooks installed until disposed.</summary>
     IDisposable Keep();
