@@ -50,7 +50,20 @@ public sealed record WallpaperFile(long Length, bool IsNetwork);
 /// pixel in B, G, R, A order (premultiplied), stride <c>Width * 4</c>. Neutral of the UI toolkit, so the chain, the
 /// position maths and the label luminance are tested without it.
 /// </summary>
-public sealed record WallpaperImage(int Width, int Height, byte[] Bgra);
+public sealed record WallpaperImage(int Width, int Height, byte[] Bgra)
+{
+    /// <summary>
+    /// The file's own pixel width before the decode scaled it (unit U2, ED-NEW-inst-u2-1): Center and Tile draw the image
+    /// at its own size on the monitor, so the preview needs it. Defaults to <see cref="Width"/> (an unscaled image).
+    /// </summary>
+    public int SourceWidth { get; init; } = Width;
+
+    /// <summary>The file's own pixel height before the decode scaled it.</summary>
+    public int SourceHeight { get; init; } = Height;
+
+    /// <summary>Monitor pixels per decoded pixel when the image is drawn at its own size.</summary>
+    public double SourceScale => Width <= 0 ? 1 : (double)SourceWidth / Width;
+}
 
 /// <summary>The fixed limits of the wallpaper read (PLAN.md 8a).</summary>
 public static class WallpaperLimits
