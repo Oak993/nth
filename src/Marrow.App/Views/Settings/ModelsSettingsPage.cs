@@ -8,6 +8,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Marrow.App.Port;
 using Marrow.App.Views.Composer;
 using Marrow.Core.Models;
@@ -113,7 +114,7 @@ public sealed class ModelsSettingsPage : Decorator
         }
 
         var providers = registry.AvailableProviders.Where(provider => // :25-27
-            trimmed.Length == 0 || registry.Models(provider).Any(option => Matches(option, option.Id, provider, trimmed))).ToList();
+            trimmed.Length == 0 || MatchingIDs(registry.Models(provider), provider, trimmed).Count > 0).ToList(); // ED-NEW-perf-ui-thread-1: the set the section reads too, made once per catalogue and query
 
         foreach (var provider in providers) // :75-84
         {
@@ -288,18 +289,34 @@ public sealed class ModelsSettingsPage : Decorator
     public static bool Matches(ModelOption? option, string id, ProviderKind provider, string query)
     {
         if (query.Length == 0) return true;
-        var fields = new string?[]
+        return Contains(option?.ShortName, query) || Contains(option?.Name, query) || Contains(option?.Detail, query) || Contains(id, query) || Contains(provider.DisplayName, query);
+    }
+
+    private static bool Contains(string? field, string query) => field is { } value && SwiftString.LocalizedCaseInsensitiveContains(value, query);
+
+    // ED-NEW-perf-ui-thread-1: the page's provider filter, each section's visible rows and its card each asked Matches of every option of a catalogue (hundreds, for OpenRouter),
+    // three passes per keystroke. The ids that match are worked out once for a catalogue (by reference: a new list is a new catalogue) and a query, and the last four queries kept.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<ValueList<ModelOption>, MatchMemo> matchMemos = new();
+
+    /// <summary>The ids of the options of <paramref name="catalogue"/> that <see cref="Matches"/> the query. Shared: callers read it and never change it.</summary>
+    internal static HashSet<string> MatchingIDs(ValueList<ModelOption> catalogue, ProviderKind provider, string query) =>
+        matchMemos.GetValue(catalogue, static _ => new MatchMemo()).Get(catalogue, provider, query);
+
+    private sealed class MatchMemo
+    {
+        private readonly List<(ProviderKind Provider, string Query, HashSet<string> Ids)> recent = [];
+
+        public HashSet<string> Get(ValueList<ModelOption> catalogue, ProviderKind provider, string query)
         {
-            option?.ShortName,
-            option?.Name,
-            option?.Detail,
-            id,
-            provider.DisplayName,
-        };
-        foreach (var field in fields)
-            if (field is { } value && SwiftString.LocalizedCaseInsensitiveContains(value, query))
-                return true;
-        return false;
+            foreach (var entry in recent)
+                if (entry.Provider == provider && string.Equals(entry.Query, query, StringComparison.Ordinal)) return entry.Ids;
+            var ids = new HashSet<string>();
+            foreach (var option in catalogue)
+                if (Matches(option, option.Id, provider, query)) ids.Add(option.Id);
+            if (recent.Count == 4) recent.RemoveAt(0);
+            recent.Add((provider, query, ids));
+            return ids;
+        }
     }
 
     /// <summary>:141-150 <c>private struct PinnedRowHeightReporter: ViewModifier</c>: real height reporting is
@@ -526,12 +543,33 @@ internal sealed class RowControl : Decorator
 /// <summary>:298-413 <c>private struct ProviderModelsSection: View</c>: one provider's catalogue.</summary>
 internal sealed class ProviderModelsSection : Decorator
 {
-    /// <summary>One catalogue row: the divider above it and the row itself, each in its own reveal (:346-395).</summary>
-    private sealed record RowParts(ModelOption Option, ChromeRevealLayout DividerReveal, SettingsScalarAnimation DividerMotion,
-        ChromeRow Row, ChromeRevealLayout RowReveal, SettingsScalarAnimation RowMotion, Button Toggle);
+    /// <summary>One catalogue row: the divider above it and the row itself, each in its own reveal (:346-395). <see cref="Visible"/> and <see cref="DividerShown"/> are what was last
+    /// applied to it, so a pass that changes nothing for a row touches nothing of it (ED-NEW-perf-ui-thread-1).</summary>
+    private sealed record RowParts(int Index, ModelOption Option, ChromeRevealLayout DividerReveal, SettingsScalarAnimation DividerMotion,
+        ChromeRow Row, ChromeRevealLayout RowReveal, SettingsScalarAnimation RowMotion, Button Toggle)
+    {
+        public bool? Visible { get; set; }
+        public bool? DividerShown { get; set; }
+    }
+
+    /// <summary>What a toggle shows: whether the model is chosen and whether the picker is full (the only two things its glyph, tooltip and enabled state read).</summary>
+    private sealed record ToggleApplied(bool Added, bool Full);
+
+    // ED-NEW-perf-ui-thread-1: a catalogue of hundreds (OpenRouter) made about fifteen controls per model in one UI turn. The first screen's rows are made at once, the rest a few at a time,
+    // each turn at background priority (after input and the frame), the rows that show first. The rows are the same, in the same places, in the same states.
+    internal const int FirstRows = 24;
+    internal const int RowsPerTurn = 16;
 
     private string query;
     private readonly Action sync;
+    private readonly List<int> buildTurns = [];
+    private int pendingRows;
+
+    /// <summary>How many rows each turn of building made, the first (the constructor's, or a catalogue's arrival) first.</summary>
+    internal IReadOnlyList<int> BuildTurns => buildTurns;
+
+    /// <summary>The catalogue's rows not made yet.</summary>
+    internal int PendingRows => pendingRows;
 
     // :299-305 let provider, var query = "", @Binding var isExpanded; :307-412 body
     // AppModel is passed directly for the same reason as PinnedModelRow's (see its comment).
@@ -564,15 +602,23 @@ internal sealed class ProviderModelsSection : Decorator
         ValueList<ModelOption>? builtCatalogue = null;
         var builtLoading = false;
         var arrivingFromSkeleton = false; // nth step 7: the rows that replace the skeleton rise in
-        var parts = new List<RowParts>();
+        var parts = new List<RowParts>(); // the rows made so far, in the catalogue's order (each row's divider and reveal are two children of the card, at twice its place)
+        var pending = new List<(int Index, ModelOption Option)>(); // the rows still to make
+        var generation = 0; // a catalogue replaced while a turn of building was waiting stops that turn
+        var turnScheduled = false;
         ChromeRevealLayout? emptyReveal = null;
         SettingsScalarAnimation? emptyMotion = null;
 
         var shownGlyphs = new System.Runtime.CompilerServices.ConditionalWeakTable<Button, SwiftImage>();
+        var toggleApplied = new System.Runtime.CompilerServices.ConditionalWeakTable<Button, ToggleApplied>();
 
         void UpdateToggle(Button toggle, ModelOption option, ModelPin pin)
         {
             var added = settings.IsInModelList(pin);
+            var full = settings.ModelList.Count >= AppSettings.ModelListLimit;
+            // ED-NEW-perf-ui-thread-1: a toggle whose state is the one it shows keeps its glyph (each pass made a new glyph control for every row, and replaced the old one).
+            if (toggleApplied.TryGetValue(toggle, out var applied) && applied.Added == added && applied.Full == full) return;
+            toggleApplied.AddOrUpdate(toggle, new ToggleApplied(added, full));
             var glyph = SwiftImage.SystemName(added ? "checkmark.circle.fill" : "plus.circle").Font(SwiftFont.System(17));
             glyph.ForegroundStyle(added ? Chrome.Accent : Chrome.SecondaryText);
             // :376-379 .contentTransition(.symbolEffect(.replace)): adding or removing replaces the glyph in two steps
@@ -592,7 +638,6 @@ internal sealed class ProviderModelsSection : Decorator
             }
             else host.Children.Add(glyph);
             shownGlyphs.AddOrUpdate(toggle, glyph);
-            var full = settings.ModelList.Count >= AppSettings.ModelListLimit;
             toggle.IsEnabled = added || !full;
             toggle.Opacity = !added && full ? 0.35 : 1;
             var help = added ? "Remove from the picker" : full ? "The picker holds up to " + AppSettings.ModelListLimit.ToString(System.Globalization.CultureInfo.InvariantCulture) + " models" : "Add to the picker";
@@ -602,8 +647,12 @@ internal sealed class ProviderModelsSection : Decorator
 
         void Build(ValueList<ModelOption> catalogue, bool expanded, bool isFiltering)
         {
+            generation++;
             cardContent.Children.Clear();
             parts.Clear();
+            pending.Clear();
+            pendingRows = 0;
+            buildTurns.Clear();
             emptyReveal = null;
             emptyMotion = null;
             if (catalogue.Count == 0) // :330-344
@@ -628,42 +677,69 @@ internal sealed class ProviderModelsSection : Decorator
                 return;
             }
 
-            foreach (var option in catalogue) // :346-395
+            for (var index = 0; index < catalogue.Count; index++) pending.Add((index, catalogue[index])); // :346-395 the rows are made by MakeRows, as the passes ask
+            pendingRows = pending.Count;
+        }
+
+        // :346-395 one catalogue row: its divider and its row in their own reveals.
+        RowParts MakeRow(int index, ModelOption option)
+        {
+            var dividerReveal = new ChromeRevealLayout(0) { ClipToBounds = true };
+            dividerReveal.Children.Add(new ChromeRowDivider());
+
+            var pin = new ModelPin(provider, option.Id);
+            var controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+            if (option.SupportsFast)
             {
-                var dividerReveal = new ChromeRevealLayout(0) { ClipToBounds = true };
-                dividerReveal.Children.Add(new ChromeRowDivider());
-                cardContent.Children.Add(dividerReveal);
-
-                var pin = new ModelPin(provider, option.Id);
-                var controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-                if (option.SupportsFast)
-                {
-                    var bolt = SwiftImage.SystemName("bolt").Font(SwiftFont.System(11));
-                    bolt.ForegroundStyle(Chrome.SecondaryText);
-                    ToolTip.SetTip(bolt, "Supports fast mode");
-                    controls.Children.Add(bolt);
-                }
-                var toggle = new Button { Background = Brushes.Transparent, BorderThickness = new Thickness(0), Padding = new Thickness(0) };
-                toggle.Click += (_, _) =>
-                {
-                    void Flip()
-                    {
-                        if (settings.IsInModelList(pin)) settings.RemoveFromModelList(pin);
-                        else settings.AddToModelList(pin);
-                    }
-                    if (this.query.Length > 0) Flip();
-                    else Transaction.WithAnimation(Chrome.PanelSlide, Flip);
-                    UpdateToggle(toggle, option, pin);
-                };
-                controls.Children.Add(toggle);
-
-                var rowContent = new ChromeRow(option.ShortName, () => controls, option.Detail);
-                var rowReveal = new ChromeRevealLayout(0) { ClipToBounds = true };
-                rowReveal.Children.Add(rowContent);
-                cardContent.Children.Add(rowReveal);
-                parts.Add(new RowParts(option, dividerReveal, new SettingsScalarAnimation(dividerReveal, 0, value => dividerReveal.Fraction = value),
-                    rowContent, rowReveal, new SettingsScalarAnimation(rowReveal, 0, value => rowReveal.Fraction = value), toggle));
+                var bolt = SwiftImage.SystemName("bolt").Font(SwiftFont.System(11));
+                bolt.ForegroundStyle(Chrome.SecondaryText);
+                ToolTip.SetTip(bolt, "Supports fast mode");
+                controls.Children.Add(bolt);
             }
+            var toggle = new Button { Background = Brushes.Transparent, BorderThickness = new Thickness(0), Padding = new Thickness(0) };
+            toggle.Click += (_, _) =>
+            {
+                void Flip()
+                {
+                    if (settings.IsInModelList(pin)) settings.RemoveFromModelList(pin);
+                    else settings.AddToModelList(pin);
+                }
+                if (this.query.Length > 0) Flip();
+                else Transaction.WithAnimation(Chrome.PanelSlide, Flip);
+                UpdateToggle(toggle, option, pin);
+            };
+            controls.Children.Add(toggle);
+
+            var rowContent = new ChromeRow(option.ShortName, () => controls, option.Detail);
+            var rowReveal = new ChromeRevealLayout(0) { ClipToBounds = true };
+            rowReveal.Children.Add(rowContent);
+            return new RowParts(index, option, dividerReveal, new SettingsScalarAnimation(dividerReveal, 0, value => dividerReveal.Fraction = value),
+                rowContent, rowReveal, new SettingsScalarAnimation(rowReveal, 0, value => rowReveal.Fraction = value), toggle);
+        }
+
+        // ED-NEW-perf-ui-thread-1: up to `count` of the rows not made yet, those that show now first (in the catalogue's order), then the others. The new rows are put where the
+        // catalogue's order puts them (a hidden row has no height, so one made above a shown row moves nothing); the caller applies their states.
+        void MakeRows(int count, Func<ModelOption, bool> isVisible)
+        {
+            var take = new List<int>(count);
+            for (var position = 0; position < pending.Count && take.Count < count; position++)
+                if (isVisible(pending[position].Option)) take.Add(position);
+            for (var position = 0; position < pending.Count && take.Count < count; position++)
+                if (!take.Contains(position)) take.Add(position);
+            if (take.Count == 0) return;
+            var made = take.Select(position => pending[position]).OrderBy(entry => entry.Index).ToList();
+            pending.RemoveAll(entry => made.Contains(entry));
+            pendingRows = pending.Count;
+            foreach (var (index, option) in made)
+            {
+                var row = MakeRow(index, option);
+                var place = parts.FindIndex(existing => existing.Index > index);
+                if (place < 0) place = parts.Count;
+                parts.Insert(place, row);
+                cardContent.Children.Insert(2 * place, row.DividerReveal);
+                cardContent.Children.Insert(2 * place + 1, row.RowReveal);
+            }
+            buildTurns.Add(made.Count);
         }
 
         static Control LoadingRows(Button loadButton)
@@ -681,6 +757,36 @@ internal sealed class ProviderModelsSection : Decorator
             return grid;
         }
 
+        // :317-321 which options show: the ones that match the search, else all of them while the section is open, else the chosen ones.
+        Func<ModelOption, bool> VisibleOptions(ValueList<ModelOption> catalogue, bool expanded, bool isFiltering)
+        {
+            if (isFiltering)
+            {
+                var matching = ModelsSettingsPage.MatchingIDs(catalogue, provider, this.query);
+                return option => matching.Contains(option.Id);
+            }
+            if (expanded) return static _ => true;
+            return option => settings.IsInModelList(new ModelPin(provider, option.Id));
+        }
+
+        // :346-395 a row that does not show is clipped, disabled, not hit-testable and accessibilityHidden. Only what differs from what the row last had is applied (a row
+        // that keeps its state keeps its running motion, too: a pass that sets the target it already has no longer starts the motion again).
+        void ApplyRow(RowParts part, bool isVisible, bool dividerShown, Animation? animation)
+        {
+            if (part.DividerShown != dividerShown)
+            {
+                part.DividerMotion.Set(dividerShown ? 1 : 0, animation);
+                part.DividerShown = dividerShown;
+            }
+            if (part.Visible == isVisible) return;
+            part.RowMotion.Set(isVisible ? 1 : 0, animation);
+            part.Row.IsEnabled = isVisible;
+            part.Row.IsHitTestVisible = isVisible;
+            AutomationProperties.SetAccessibilityView(part.RowReveal, isVisible ? AccessibilityView.Content : AccessibilityView.Raw);
+            AutomationProperties.SetAccessibilityView(part.DividerReveal, isVisible ? AccessibilityView.Content : AccessibilityView.Raw);
+            part.Visible = isVisible;
+        }
+
         var immediate = true;
         void Sync()
         {
@@ -688,7 +794,7 @@ internal sealed class ProviderModelsSection : Decorator
             var catalogue = registry.Models(provider); // :312
             var isFiltering = this.query.Length > 0; // :314
             var loading = registry.LoadingCatalogs.Contains(provider);
-            if (builtCatalogue is null || !builtCatalogue.Equals(catalogue) || (catalogue.Count == 0 && loading != builtLoading))
+            if (builtCatalogue is null || !(ReferenceEquals(builtCatalogue, catalogue) || builtCatalogue.Equals(catalogue)) || (catalogue.Count == 0 && loading != builtLoading))
             {
                 arrivingFromSkeleton = builtLoading && builtCatalogue?.Count == 0 && catalogue.Count > 0;
                 Build(catalogue, expanded, isFiltering);
@@ -699,6 +805,7 @@ internal sealed class ProviderModelsSection : Decorator
 
             var animation = immediate ? null : Transaction.Current;
             immediate = false;
+            string? firstVisibleID = null;
             if (catalogue.Count == 0)
             {
                 emptyMotion!.Set(expanded || isFiltering ? 1 : 0, animation);
@@ -710,38 +817,41 @@ internal sealed class ProviderModelsSection : Decorator
             }
             else
             {
-                var visibleIDs = new HashSet<string>(catalogue
-                    .Where(option => isFiltering
-                        ? ModelsSettingsPage.Matches(option, option.Id, provider, this.query)
-                        : expanded || settings.IsInModelList(new ModelPin(provider, option.Id)))
-                    .Select(option => option.Id)); // :317-321
-                var firstVisibleID = catalogue.FirstOrDefault(option => visibleIDs.Contains(option.Id))?.Id; // :322
+                var isVisible = VisibleOptions(catalogue, expanded, isFiltering);
+                firstVisibleID = catalogue.FirstOrDefault(isVisible)?.Id; // :322
+                if (parts.Count == 0 && pending.Count > 0) MakeRows(FirstRows, isVisible);
                 foreach (var part in parts)
                 {
-                    var isVisible = visibleIDs.Contains(part.Option.Id);
-                    part.DividerMotion.Set(isVisible && part.Option.Id != firstVisibleID ? 1 : 0, animation);
-                    part.RowMotion.Set(isVisible ? 1 : 0, animation);
-                    part.Row.IsEnabled = isVisible;
-                    part.Row.IsHitTestVisible = isVisible;
-                    // :346-395 a row that does not show is clipped, disabled, not hit-testable and accessibilityHidden.
-                    AutomationProperties.SetAccessibilityView(part.RowReveal, isVisible ? AccessibilityView.Content : AccessibilityView.Raw);
-                    AutomationProperties.SetAccessibilityView(part.DividerReveal, isVisible ? AccessibilityView.Content : AccessibilityView.Raw);
+                    var visible = isVisible(part.Option);
+                    ApplyRow(part, visible, visible && part.Option.Id != firstVisibleID, animation);
                     UpdateToggle(part.Toggle, part.Option, new ModelPin(provider, part.Option.Id));
                 }
                 if (arrivingFromSkeleton)
                 {
                     arrivingFromSkeleton = false;
-                    NthArrive.Rows(parts.Where(part => visibleIDs.Contains(part.Option.Id)).Select(part => (Control)part.RowReveal).ToList()); // nth step 7: 6 px up, 0.36 s, 40 ms apart
+                    NthArrive.Rows(parts.Where(part => part.Visible == true).Select(part => (Control)part.RowReveal).ToList()); // nth step 7: 6 px up, 0.36 s, 40 ms apart
                 }
+                ScheduleTurn();
             }
 
-            var cardVisible = expanded || isFiltering || (catalogue.Count > 0
-                ? catalogue.Any(option => isFiltering
-                    ? ModelsSettingsPage.Matches(option, option.Id, provider, this.query)
-                    : expanded || settings.IsInModelList(new ModelPin(provider, option.Id)))
-                : false); // :323-324
+            var cardVisible = expanded || isFiltering || firstVisibleID is not null; // :323-324
             card.IsHitTestVisible = cardVisible;
             AutomationProperties.SetAccessibilityView(card, cardVisible ? AccessibilityView.Content : AccessibilityView.Raw);
+        }
+
+        void ScheduleTurn()
+        {
+            if (pending.Count == 0 || turnScheduled) return;
+            turnScheduled = true;
+            var forGeneration = generation;
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (forGeneration != generation) return; // the catalogue it was for is gone; the new one scheduled its own turn
+                turnScheduled = false;
+                if (pending.Count == 0 || builtCatalogue is not { } catalogue) return;
+                MakeRows(RowsPerTurn, VisibleOptions(catalogue, isExpanded.Value, this.query.Length > 0));
+                Sync(); // applies the new rows' states and schedules the next turn
+            }, DispatcherPriority.Background);
         }
 
         sync = Sync;
