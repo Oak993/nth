@@ -59,6 +59,9 @@ public static class UninstallEntry
 
     public const string SignInValueName = "nth";
 
+    /// <summary>Windows' approval record for Run values; kept here because the uninstaller compiles this file without SignInEntry.</summary>
+    public const string StartupApprovedRunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
+
     public static string UninstallCommand(string root) => "\"" + InstallLayout.UninstallerPath(root) + "\" --uninstall";
 
     public static string QuietUninstallCommand(string root) => UninstallCommand(root) + " --silent";
@@ -136,7 +139,7 @@ public static class UninstallEntry
     }
 
     /// <summary>
-    /// Removes nth's sign-in entry (the Run value <c>nth</c>) when the program it starts is inside the root (PLAN.md 8: the
+    /// Removes nth's sign-in entry (the Run value <c>nth</c>) and its Windows approval record when the program it starts is inside the root (PLAN.md 8: the
     /// app's before-uninstall hook does it in case Velopack's uninstaller is run directly). An entry that starts anything
     /// else is left. Returns whether it was removed.
     /// </summary>
@@ -146,6 +149,8 @@ public static class UninstallEntry
         ArgumentException.ThrowIfNullOrWhiteSpace(root);
         if (registry.GetValue(RunKeyPath, SignInValueName) is not string command) return false;
         if (CommandExecutable(command) is not { } program || !InstallLayout.IsInside(root, Environment.ExpandEnvironmentVariables(program))) return false;
+        // C4b U8-1, ED-NEW-inst-cx-10: clear the approval first, retaining the ownership proof if that write is refused.
+        registry.DeleteValue(StartupApprovedRunKeyPath, SignInValueName);
         registry.DeleteValue(RunKeyPath, SignInValueName);
         return true;
     }

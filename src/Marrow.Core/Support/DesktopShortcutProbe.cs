@@ -108,6 +108,9 @@ public sealed class DesktopShortcutProbe
             if (reads >= ShellLinkKeys.ScanCapLinks || time.GetElapsedTime(started) >= ShellLinkKeys.ScanCapTime)
             {
                 folderCapped = true; // not opened yet; the next probe carries on from the cache
+                // C4c I4, ED-NEW-inst-c4c-4: a cap cannot prove a still-listed cached marker absent.
+                // Keep its old timestamp so the changed file is retried when the next probe has budget.
+                if (cache.Links.TryGetValue(file.Path, out var previous)) next[file.Path] = previous;
                 continue;
             }
             reads++;
@@ -115,6 +118,9 @@ public sealed class DesktopShortcutProbe
             try { link = shell.ReadLink(file.Path); }
             catch (Exception error) when (DesktopShortcut.IsShellFailure(error))
             {
+                // C4b U8-2, ED-NEW-inst-cx-11: a still-listed but unreadable link has not proved its old marker absent.
+                // Keep the old timestamp too, so the changed file is retried rather than cached as successfully read.
+                if (cache.Links.TryGetValue(file.Path, out var previous)) next[file.Path] = previous;
                 unreadable = true; // skipped now; the folder is not marked up to date, so the next probe tries it again
                 continue;
             }
