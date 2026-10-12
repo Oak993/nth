@@ -290,7 +290,7 @@ public sealed partial class WebAgentEngine
             var covered = hit is not null && key is not null && !SameElement(hit.Facts, element.Facts);
             var (verdict, judged) = Strictest((WebAgentPolicy.CheckPress(element.Facts, origin), element), covered ? (WebAgentPolicy.CheckPress(hit!.Facts, origin), hit) : (WebGuardVerdict.Pass, hit!));
             var what = reference ?? N(point.X) + ", " + N(point.Y);
-            if (await Guard(s, state, verdict, judged.Facts, "click|" + Identity(judged.Facts), null, judged.Rows) is { } stop) return stop;
+            if (await Guard(s, state, verdict, judged.Facts, "click|" + Identity(judged.Facts), null, judged.Rows, new WebPoint(point.X, point.Y)) is { } stop) return stop;
             Report("Pressing " + Clip(Display(element), 40), state.Short);
             using (BeginStep(state))
             {

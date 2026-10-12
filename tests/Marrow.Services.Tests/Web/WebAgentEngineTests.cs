@@ -214,7 +214,10 @@ public sealed class WebAgentEngineTests
         Assert.Equal(2, tab.Page.Mouse("mousePressed").Count());
         var press = tab.Page.Mouse("mousePressed").First();
         Assert.Equal((160d, 520d), (press["x"]!.GetValue<double>(), press["y"]!.GetValue<double>()));
-        Assert.Equal(2, tab.Steps);
+        // the read and each click hold the tab for their whole call (DESIGN 2.3), and each click's input is a step inside it
+        Assert.Equal(5, tab.Steps);
+        Assert.Equal(6, tab.InputSteps.Count); // move, press, release per click
+        Assert.All(tab.InputSteps, open => Assert.Equal(2, open));
         Assert.Equal(0, tab.OpenSteps);
     }
 

@@ -48,6 +48,8 @@ public sealed partial class WebAgentEngine : IDisposable
     private readonly LinkedList<string> readTexts = new();
     private readonly Dictionary<string, PendingAsk> asks = new(StringComparer.Ordinal);
     private CancellationTokenSource turn = new();
+    private CancellationTokenSource? running;
+    private volatile string? crashed;
     private PcRunControl? watchedRun;
     private bool stopped;
     private int nextShort;
@@ -102,7 +104,8 @@ public sealed partial class WebAgentEngine : IDisposable
         using var watch = hub.Run.Watch(cancellationToken, Thread, WebAgentHub.App, 0);
         using var joined = hub.TactusPause?.Join(Thread, WebAgentHub.App, new PcWaitState());
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(watch.Token, turnToken);
-        var token = linked.Token;
+        using var crash = CancellationTokenSource.CreateLinkedTokenSource(linked.Token);
+        var token = crash.Token;
         try
         {
             await queue.WaitAsync(token).ConfigureAwait(false);
@@ -110,13 +113,26 @@ public sealed partial class WebAgentEngine : IDisposable
             {
                 if (StoppedForTurn) return Stopped();
                 var step = new Step(tool, arguments ?? [], caller, host, asker, token);
-                // A stop ends the call at once, even while a page call it made is still on its way back.
-                return await host.OnUi(() => Dispatch(step)).WaitAsync(token).ConfigureAwait(false);
+                lock (gate) running = crash;
+                try
+                {
+                    // A stop ends the call at once, even while a page call it made is still on its way back.
+                    return await host.OnUi(() => Dispatch(step)).WaitAsync(token).ConfigureAwait(false);
+                }
+                finally
+                {
+                    lock (gate) running = null;
+                }
             }
             finally
             {
                 queue.Release();
             }
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && crashed is { } why && !linked.IsCancellationRequested)
+        {
+            crashed = null;
+            return Fail(WebErrorCodes.PageFailed, "The page failed while this step ran (" + why + "). Nothing was sent again. Wait for it to reload, then read it before you act.");
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -137,7 +153,8 @@ public sealed partial class WebAgentEngine : IDisposable
             asks.Clear();
             driven = [.. states.Values.Where(s => s.Driven)];
         }
-        hub.Report(new WebAgentActivity(Thread, WebAgentPhase.Stopped, "Every web step ended. Ctrl+Alt+Esc does the same."));
+        // the chord is named only while Tactus is bound (without it Visus has no chord: Background tasks and the chat stop it)
+        hub.Report(new WebAgentActivity(Thread, WebAgentPhase.Stopped, "Every web step ended." + (hub.StopChord is { } chord ? " " + chord + " does the same." : "")));
         Release(driven);
     }
 
@@ -155,6 +172,8 @@ public sealed partial class WebAgentEngine : IDisposable
             driven = [.. states.Values.Where(s => s.Driven)];
         }
         hub.Report(new WebAgentActivity(Thread, WebAgentPhase.Idle, ""));
+        // The pill forgets Visus for this chat (a Tactus engine of the chat, when there is one, does the same at its turn end).
+        hub.TactusPause?.EndTurn(Thread);
         Release(driven);
     }
 
@@ -187,6 +206,18 @@ public sealed partial class WebAgentEngine : IDisposable
     }
 
     private async Task<WebToolResult> Dispatch(Step s)
+    {
+        try
+        {
+            return await Run(s);
+        }
+        finally
+        {
+            foreach (var lease in s.Leases) lease.Dispose();
+        }
+    }
+
+    private async Task<WebToolResult> Run(Step s)
     {
         try
         {
@@ -401,7 +432,7 @@ public sealed partial class WebAgentEngine : IDisposable
         if (await Hold(s, state) is { } held) return held;
         if (!hub.Grants.Eval(origin))
         {
-            var ask = new WebEvalAsk(Thread, state.Short, origin, s.Model);
+            var ask = new WebEvalAsk(Thread, state.Short, origin, s.Model) { TabId = state.Tab.Id };
             Report("Check the card", state.Short, WebAgentPhase.Asking);
             var (answered, allowed) = await Ask("eval|" + origin, t => s.Asker.AskEval(ask, t), false, s);
             if (!answered) return Waiting(s);
@@ -446,8 +477,11 @@ public sealed partial class WebAgentEngine : IDisposable
     // The tab's state, with its view live and hooked (navigation checks, take-over, logs).
     private async Task<TabState> Prepare(Step s, IWebAgentTab tab)
     {
-        if (!await tab.MakeLiveAsync(s.Token)) throw new Refusal(Fail(WebErrorCodes.PageFailed, "The tab could not load its page."));
         var state = StateOf(tab);
+        // The tab is the model's for the whole call: it is never suspended or discarded meanwhile (DESIGN 2.3), and a crash
+        // while the call runs fails it (2.7).
+        if (!s.Leases.Any(l => l is TabLease held && ReferenceEquals(held.State, state))) s.Leases.Add(new TabLease(this, state, tab.BeginModelStep()));
+        if (!await tab.MakeLiveAsync(s.Token)) throw new Refusal(Fail(WebErrorCodes.PageFailed, "The tab could not load its page."));
         if (tab.View is not { } view || tab.Cdp is not { } cdp) throw new Refusal(Fail(WebErrorCodes.PageFailed, "The tab has no page yet."));
         if (!ReferenceEquals(state.View, view) || !ReferenceEquals(state.Cdp, cdp))
         {
@@ -460,14 +494,17 @@ public sealed partial class WebAgentEngine : IDisposable
             EventHandler<WebNavigationStarting> starting = (_, e) => OnNavigationStarting(state, e);
             EventHandler<WebNavigationCompleted> completed = (_, _) => state.Overlay.Reset();
             Action input = () => OnUserInput(state);
+            Action<string> failed = reason => OnStepFailed(state, reason);
             view.NavigationStarting += starting;
             view.NavigationCompleted += completed;
             tab.UserInput += input;
+            tab.StepFailed += failed;
             state.Hooks.Add(new Unhooking(() =>
             {
                 view.NavigationStarting -= starting;
                 view.NavigationCompleted -= completed;
                 tab.UserInput -= input;
+                tab.StepFailed -= failed;
             }));
             state.Hooks.Add(cdp.Subscribe("Runtime.bindingCalled", e => OnBinding(state, e)));
             state.Hooks.Add(state.Logs);
@@ -536,7 +573,7 @@ public sealed partial class WebAgentEngine : IDisposable
         if (state.OnceOrigin is { } once && !string.Equals(once, origin, StringComparison.OrdinalIgnoreCase)) state.OnceOrigin = null;
         if (state.OnceOrigin is not null) return null;
         if (!state.Tab.Shared && (!hub.Settings().AskNewSites || hub.Grants.Site(origin))) return null;
-        var ask = new WebSiteAsk(Thread, state.Short, origin, s.Model, state.Tab.Shared);
+        var ask = new WebSiteAsk(Thread, state.Short, origin, s.Model, state.Tab.Shared) { TabId = state.Tab.Id };
         Report("Check the card", state.Short, WebAgentPhase.Asking);
         var (answered, answer) = await Ask("site|" + state.Tab.Id + "|" + origin, t => s.Asker.AskSite(ask, t), WebSiteAnswer.Deny, s);
         if (!answered) return Waiting(s);
@@ -553,7 +590,7 @@ public sealed partial class WebAgentEngine : IDisposable
         IReadOnlyList<string> from;
         lock (gate) from = WebAgentUrls.CrossOriginSources(readOrigins, url, hub.Grants.Pair);
         if (from.Count == 0) return (null, false);
-        var ask = new WebNavigateAsk(Thread, state?.Short, from, url, WebAgentUrls.QueryFields(url, FromPage), s.Model);
+        var ask = new WebNavigateAsk(Thread, state?.Short, from, url, WebAgentUrls.QueryFields(url, FromPage), s.Model) { TabId = state?.Tab.Id };
         Report("Check the card", state?.Short, WebAgentPhase.Asking);
         var (answered, answer) = await Ask("nav|" + url, t => s.Asker.AskNavigate(ask, t), WebNavigateAnswer.Deny, s);
         if (!answered) return (Waiting(s), true);
@@ -569,7 +606,7 @@ public sealed partial class WebAgentEngine : IDisposable
 
     // The guarded-action card ("Send invite?") or a hard deny; null when the step may run.
     private async Task<WebToolResult?> Guard(Step s, TabState state, WebGuardVerdict verdict, WebElementFacts element, string key, string? target = null,
-        IReadOnlyList<KeyValuePair<string, string>>? fields = null)
+        IReadOnlyList<KeyValuePair<string, string>>? fields = null, WebPoint? near = null)
     {
         if (verdict.Kind == WebGuardKind.Deny) return Fail(WebErrorCodes.Denied, verdict.Reason ?? "nth never does this for a model.");
         if (verdict.Kind != WebGuardKind.Confirm) return null;
@@ -578,7 +615,7 @@ public sealed partial class WebAgentEngine : IDisposable
         var rows = new List<KeyValuePair<string, string>>(fields ?? []);
         if (target is not null) rows.Add(new("Address", target));
         rows.Add(new("Site", WebPolicy.SourceName(state.Tab.Url)));
-        var ask = new WebGuardAsk(Thread, state.Short, origin, verdict.Category, verdict.Word ?? "", name, s.Model) { Rows = rows, Chat = s.Host.ChatTitle(Thread) };
+        var ask = new WebGuardAsk(Thread, state.Short, origin, verdict.Category, verdict.Word ?? "", name, s.Model) { Rows = rows, Chat = s.Host.ChatTitle(Thread), TabId = state.Tab.Id, Near = near };
         Report("Check the card", state.Short, WebAgentPhase.Asking);
         var (answered, confirmed) = await Ask("guard|" + state.Tab.Id + "|" + key + "|" + verdict.Category, t => s.Asker.Confirm(ask, t), false, s);
         if (!answered) return Waiting(s);
@@ -743,7 +780,7 @@ public sealed partial class WebAgentEngine : IDisposable
             if (!state.Driven || state.TookOver) return;
             state.TookOver = true;
         }
-        hub.Report(new WebAgentActivity(Thread, WebAgentPhase.TookOver, "Resume when you are done", state.Short));
+        hub.Report(new WebAgentActivity(Thread, WebAgentPhase.TookOver, "Resume when you are done", state.Short) { TabId = state.Tab.Id });
         if (state.Cdp is { } cdp) _ = Swallow(state.Overlay.Drive(cdp, false, CancellationToken.None));
         hub.RaiseChanged();
     }
@@ -751,6 +788,35 @@ public sealed partial class WebAgentEngine : IDisposable
     private bool TookOver(TabState state)
     {
         lock (gate) return state.TookOver;
+    }
+
+    /// <summary>Whether the user took over one of the tabs the model drives (the pill reads "You took over Visus").</summary>
+    public bool AnyTookOver
+    {
+        get
+        {
+            lock (gate) return states.Values.Any(s => s.TookOver);
+        }
+    }
+
+    // DESIGN 2.7: the page crashed (or hung, or Visus stopped) while a model step ran on it: that step fails at once and is never
+    // sent again; a step on another tab goes on.
+    private void OnStepFailed(TabState state, string reason)
+    {
+        CancellationTokenSource? cut;
+        lock (gate)
+        {
+            if (running is not { } now || state.Busy == 0) return;
+            cut = now;
+        }
+        crashed = reason;
+        try
+        {
+            cut.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
     }
 
     private StepLease BeginStep(TabState state)
@@ -825,8 +891,13 @@ public sealed partial class WebAgentEngine : IDisposable
         while (state.Tab.Loading && state.Blocked is null && hub.Clock.NowMs - start < LoadWaitMs) await hub.Clock.Delay(100, token);
     }
 
-    private void Report(string step, string? tab, WebAgentPhase phase = WebAgentPhase.Working) =>
-        hub.Report(new WebAgentActivity(Thread, phase, step, tab));
+    private void Report(string step, string? tab, WebAgentPhase phase = WebAgentPhase.Working)
+    {
+        string? id = null;
+        if (tab is not null)
+            lock (gate) shortIds.TryGetValue(tab, out id);
+        hub.Report(new WebAgentActivity(Thread, phase, step, tab) { TabId = id });
+    }
 
     // ---- Small helpers ----
 
@@ -918,6 +989,33 @@ public sealed partial class WebAgentEngine : IDisposable
     private sealed record Step(string Tool, JsonObject Args, WebAgentCaller Caller, IWebAgentHost Host, IWebAgentAsker Asker, CancellationToken Token)
     {
         public string Model => Host.ModelName(Caller.Model);
+
+        /// <summary>The tabs this call holds (released when it ends).</summary>
+        public List<IDisposable> Leases { get; } = [];
+    }
+
+    // One call's hold on a tab: the tab's model step, and the count a crash looks at.
+    private sealed class TabLease : IDisposable
+    {
+        private readonly WebAgentEngine engine;
+        private IDisposable? step;
+
+        public TabLease(WebAgentEngine engine, TabState state, IDisposable step)
+        {
+            this.engine = engine;
+            State = state;
+            this.step = step;
+            lock (engine.gate) state.Busy++;
+        }
+
+        public TabState State { get; }
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref step, null) is not { } held) return;
+            lock (engine.gate) State.Busy--;
+            held.Dispose();
+        }
     }
 
     private sealed record PendingAsk(Task Task, CancellationTokenSource Life);
@@ -963,6 +1061,9 @@ public sealed partial class WebAgentEngine : IDisposable
         public string? Blocked { get; set; }
 
         public int Stepping { get; set; }
+
+        /// <summary>The calls that hold the tab now (a crash fails the running one).</summary>
+        public int Busy { get; set; }
         public long LastStepEnd { get; set; } = long.MinValue / 2;
         public bool Driven { get; set; }
         public bool TookOver { get; set; }

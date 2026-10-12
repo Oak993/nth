@@ -282,7 +282,11 @@ internal sealed class FakeAgentTab : IWebAgentTab
         Page = page;
         Fake = (FakeWebView)new FakeWebEngine().CreateView(new WebCreationOptions(WebProfileKind.Agent, "agent", false, "C:\\nth-test", "en-US", null, false));
         Fake.Navigate(url);
-        Fake.CdpHandler = page.Answer;
+        Fake.CdpHandler = (method, parameters, session) =>
+        {
+            if (method.StartsWith("Input.", StringComparison.Ordinal)) InputSteps.Add(OpenSteps);
+            return page.Answer(method, parameters, session);
+        };
         Cdp = new CdpBroker(Fake);
     }
 
@@ -298,6 +302,9 @@ internal sealed class FakeAgentTab : IWebAgentTab
     public bool IsClosed { get; set; }
     public bool Loading { get; set; }
     public int Steps { get; private set; }
+
+    /// <summary>How many model steps were open on the tab when each input event reached the page.</summary>
+    public List<int> InputSteps { get; } = [];
     public int OpenSteps { get; private set; }
     public List<string> Navigations { get; } = [];
     public string? BackUrl { get; set; }
@@ -333,6 +340,10 @@ internal sealed class FakeAgentTab : IWebAgentTab
     }
 
     public void RaiseUserInput() => UserInput?.Invoke();
+
+    public event Action<string>? StepFailed;
+
+    public void RaiseStepFailed(string reason) => StepFailed?.Invoke(reason);
 
     private sealed class Ending(Action end) : IDisposable
     {
@@ -407,15 +418,18 @@ internal sealed class WebAgentRig : IDisposable
 {
     public const string Thread = "chat-1";
 
-    public WebAgentRig()
+    /// <param name="tactusPause">Bind a Tactus pause control (as when Tactus is on), so the pill's pause and rows cover Visus.</param>
+    public WebAgentRig(bool tactusPause = false)
     {
-        Hub = new WebAgentHub(() => Run, () => null, Clock);
+        if (tactusPause) Pause = new PcPauseControl(Clock, Run);
+        Hub = new WebAgentHub(() => Run, () => Pause, Clock, () => "Ctrl+Alt+Esc");
         Hub.Bind(Host, Asker, Grants, () => Settings);
         Hub.Activity += a => Activity.Add(a);
     }
 
     public WebTestClock Clock { get; } = new();
     public PcRunControl Run { get; } = new();
+    public PcPauseControl? Pause { get; }
     public FakeAgentHost Host { get; } = new();
     public FakeAgentAsker Asker { get; } = new();
     public WebAgentGrants Grants { get; } = new();
@@ -445,5 +459,9 @@ internal sealed class WebAgentRig : IDisposable
         return tab;
     }
 
-    public void Dispose() => Hub.Forget(Thread);
+    public void Dispose()
+    {
+        Hub.Forget(Thread);
+        Pause?.Dispose();
+    }
 }

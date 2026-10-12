@@ -33,7 +33,11 @@ public enum WebAgentPhase
 }
 
 /// <summary>One change of a chat's web activity: its phase, the step line, and the tab it is in.</summary>
-public sealed record WebAgentActivity(string Thread, WebAgentPhase Phase, string Step, string? Tab = null);
+public sealed record WebAgentActivity(string Thread, WebAgentPhase Phase, string Step, string? Tab = null)
+{
+    /// <summary>The Visus tab's own id (<see cref="IWebAgentTab.Id"/>), when the step is in one.</summary>
+    public string? TabId { get; init; }
+}
 
 /// <summary>Who calls a web tool: the chat, the model (for the cards) and whether it sees images.</summary>
 public sealed record WebAgentCaller(string Thread, string? Model, bool Vision);
@@ -50,6 +54,7 @@ public sealed class WebAgentHub
     private readonly PcRunControl ownRun = new();
     private readonly Func<PcRunControl?> tactusRun;
     private readonly Func<PcPauseControl?> tactusPause;
+    private readonly Func<string?> stopChord;
     private readonly Lock gate = new();
     private TaskCompletionSource changed = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private PcPauseControl? watchedPause;
@@ -59,10 +64,11 @@ public sealed class WebAgentHub
     /// A hub over Tactus's controls when they are bound (<paramref name="run"/>, <paramref name="pause"/>; by default those of the
     /// bound Tactus parts), on <paramref name="clock"/>.
     /// </summary>
-    public WebAgentHub(Func<PcRunControl?>? run = null, Func<PcPauseControl?>? pause = null, IPcClock? clock = null)
+    public WebAgentHub(Func<PcRunControl?>? run = null, Func<PcPauseControl?>? pause = null, IPcClock? clock = null, Func<string?>? stopChord = null)
     {
         tactusRun = run ?? (() => PcControlBridge.Parts.Current()?.Control);
         tactusPause = pause ?? (() => PcControlBridge.Parts.Current()?.Pause);
+        this.stopChord = stopChord ?? (() => PcControlBridge.Parts.Current()?.Settings().StopChord);
         Clock = clock ?? new SystemPcClock();
     }
 
@@ -97,6 +103,9 @@ public sealed class WebAgentHub
     /// <summary>The run control the web steps answer to: Tactus's when bound (its chord and pill stop Visus too), else the hub's.</summary>
     public PcRunControl Run => tactusRun() ?? ownRun;
 
+    /// <summary>Tactus's stop chord while Tactus is bound ("Ctrl+Alt+Esc"); null without Tactus, which has no chord then.</summary>
+    public string? StopChord => tactusRun() is null ? null : stopChord() is { Length: > 0 } chord ? chord : null;
+
     /// <summary>Tactus's pause control when bound.</summary>
     public PcPauseControl? TactusPause => tactusPause();
 
@@ -110,6 +119,9 @@ public sealed class WebAgentHub
 
     /// <summary>The engines made so far (for the pill and tests).</summary>
     public IReadOnlyCollection<WebAgentEngine> Engines => [.. engines.Values];
+
+    /// <summary>Whether the user took over a tab a model drives, in any chat ("You took over Visus" with Resume).</summary>
+    public bool AnyTookOver => engines.Values.Any(e => e.AnyTookOver);
 
     /// <summary>Whether Visus is paused now (the hub's own pause or Tactus's pause of "visus").</summary>
     public bool IsPaused
@@ -186,16 +198,42 @@ public sealed class WebAgentHub
         Changed?.Invoke();
     }
 
-    // Tactus's pause changes reach the web steps' holds.
+    // Tactus's pause changes reach the web steps' holds, and its Resume of Visus (the pill's row, Resume all, the chord, the
+    // tray) hands back the tabs the user took over, as the hub's own Resume does.
     private void WatchPause()
     {
         var pause = TactusPause;
         lock (gate)
         {
             if (ReferenceEquals(pause, watchedPause)) return;
-            if (watchedPause is not null) watchedPause.Changed -= RaiseChanged;
+            if (watchedPause is not null)
+            {
+                watchedPause.Changed -= RaiseChanged;
+                watchedPause.AppResumed -= OnTactusResumed;
+            }
             watchedPause = pause;
-            if (pause is not null) pause.Changed += RaiseChanged;
+            if (pause is not null)
+            {
+                pause.Changed += RaiseChanged;
+                pause.AppResumed += OnTactusResumed;
+            }
         }
+    }
+
+    private void OnTactusResumed(string app, PcPauseSource source)
+    {
+        if (!string.Equals(app, App, StringComparison.Ordinal)) return;
+        foreach (var engine in engines.Values) engine.HandBack();
+        RaiseChanged();
+    }
+
+    /// <summary>
+    /// Resume from a Tactus control while Visus is not paused there (the pill's Resume on "You took over Visus"): the tabs the
+    /// user took over go back to the model.
+    /// </summary>
+    public void HandBack()
+    {
+        foreach (var engine in engines.Values) engine.HandBack();
+        RaiseChanged();
     }
 }

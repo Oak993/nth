@@ -51,6 +51,12 @@ public interface IWebAgentTab
 
     /// <summary>The user clicked or typed inside the tab's page (DESIGN 5.10 "User takes over").</summary>
     event Action? UserInput;
+
+    /// <summary>
+    /// The page failed while a model step ran on it (DESIGN 2.7: crashed, not responding, Visus stopped), with the reason the
+    /// step's answer gives; the step fails and is never sent again.
+    /// </summary>
+    event Action<string>? StepFailed;
 }
 
 /// <summary>Visus for the web tools: the tabs of a chat, opening agent tabs, and the UI thread.</summary>
@@ -68,7 +74,10 @@ public interface IWebAgentHost
     /// <summary>The user's search engine's results page for a query (Settings › Visus › Search engine).</summary>
     string SearchUrl(string query) => SearchEngines.QueryUrl(SearchEngines.Default, query);
 
-    /// <summary>Whether an address appears in the chat's own conversation (the user's messages and the model's answers).</summary>
+    /// <summary>
+    /// Whether an address appears in what the user wrote in the chat. The model's own answers do not count: an address the model
+    /// invented or copied from a page into its answer stays unknown (DESIGN 5.10 "unknown URL means stop"; ED-NEW-web-w11-1).
+    /// </summary>
     bool InConversation(string thread, string url) => false;
 
     /// <summary>The model's name as the cards show it ("Claude Sonnet"), from the session's model id.</summary>
@@ -97,6 +106,9 @@ public enum WebNavigateAnswer
 /// <summary>"Let Claude Sonnet use example.com in Visus?" for one tab. A shared tab is never offered "Always allow".</summary>
 public sealed record WebSiteAsk(string Thread, string Tab, string Origin, string Model, bool Shared)
 {
+    /// <summary>The Visus tab's own id (<see cref="IWebAgentTab.Id"/>; <see cref="Tab"/> is the model's short name, "t1").</summary>
+    public string? TabId { get; init; }
+
     public bool AllowAlways => !Shared;
 
     /// <summary>The card's title.</summary>
@@ -109,6 +121,9 @@ public sealed record WebSiteAsk(string Thread, string Tab, string Origin, string
 /// </summary>
 public sealed record WebNavigateAsk(string Thread, string? Tab, IReadOnlyList<string> From, string Url, IReadOnlyList<WebQueryField> Query, string Model)
 {
+    /// <summary>The Visus tab's own id, or null for a new agent tab.</summary>
+    public string? TabId { get; init; }
+
     public bool CarriesPageText => Query.Any(q => q.FromPage);
 
     /// <summary>"This address carries text from the page you were on" (DESIGN 5.10), when it does.</summary>
@@ -123,11 +138,20 @@ public sealed record WebNavigateAsk(string Thread, string? Tab, IReadOnlyList<st
 /// </summary>
 public sealed record WebGuardAsk(string Thread, string Tab, string Origin, WebGuardCategory Category, string Word, string Element, string Model)
 {
+    /// <summary>The Visus tab's own id.</summary>
+    public string? TabId { get; init; }
+
     /// <summary>The content rows: the form's fields as the page shows them (never a password), and the site.</summary>
     public IReadOnlyList<KeyValuePair<string, string>> Rows { get; init; } = [];
 
     /// <summary>The chat's title for the card's "who" row.</summary>
     public string? Chat { get; init; }
+
+    /// <summary>
+    /// Where the step acts in the page (CSS pixels of the viewport), when it is a point: the card is drawn near it, never under the
+    /// pointer (the canvas's guard card); null hangs the card from the tab's trust chip.
+    /// </summary>
+    public WebPoint? Near { get; init; }
 
     /// <summary>The card's first line: the element's own words with a question mark ("Send invite?").</summary>
     public string Title => Category switch
@@ -161,9 +185,15 @@ public sealed record WebGuardAsk(string Thread, string Tab, string Origin, WebGu
     private static string Capitalized(string word) => word.Length == 0 ? "Confirm" : char.ToUpperInvariant(word[0]) + word[1..];
 }
 
+/// <summary>A point in a page's viewport, in CSS pixels.</summary>
+public readonly record struct WebPoint(double X, double Y);
+
 /// <summary>"Let Claude Sonnet run scripts in localhost:5173?" (DESIGN 5.10 web_eval: "after the user allows it per project").</summary>
 public sealed record WebEvalAsk(string Thread, string Tab, string Origin, string Model)
 {
+    /// <summary>The Visus tab's own id.</summary>
+    public string? TabId { get; init; }
+
     public string Title => $"Let {Model} run scripts in {WebPolicy.SourceName(Origin)}?";
 }
 
