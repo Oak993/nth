@@ -25,6 +25,9 @@ public sealed record DutyRun(DateTimeOffset At, DutyCause Cause, DutyRunOutcome 
     public Guid? MissionId { get; init; }
 
     public string? Note { get; init; }
+
+    /// <summary>How many identical skipped times this line stands for (a run that is still going skips every time that comes).</summary>
+    public int Count { get; init; } = 1;
 }
 
 public sealed record Duty(string Id, string Name, string AssistantId, DutyTrigger Trigger, string Instructions)
@@ -109,10 +112,12 @@ public sealed record Duty(string Id, string Name, string AssistantId, DutyTrigge
         return Trigger.Problem();
     }
 
-    /// <summary>The duty with this run recorded (newest first), the history held to its limit.</summary>
-    public Duty WithRun(DutyRun run) => this with
+    /// <summary>The duty with this run recorded (newest first), the history held to its limit, and it marked as the last that ran.</summary>
+    public Duty WithRun(DutyRun run) => WithHistory(run) with { LastRun = run.At };
+
+    /// <summary>A line in the history for something that is not a run (a skipped time, a refused start, a dry run): LastRun stays.</summary>
+    public Duty WithHistory(DutyRun run) => this with
     {
-        LastRun = run.At,
         History = new ValueList<DutyRun>(History.Prepend(run).Take(HistoryLimit)),
     };
 
