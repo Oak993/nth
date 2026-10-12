@@ -141,7 +141,8 @@ public sealed partial class PaletteEngine : Actor,IDisposable
         }
         if(!catalogueOk)
         {
-            var failures=Interlocked.Increment(ref offlineFailures);
+            // ED-NEW-lean-18b: only automatic retries count; a manual refresh keeps the pace it found.
+            var failures=started&&!manual?Interlocked.Increment(ref offlineFailures):Volatile.Read(ref offlineFailures);
             if(started){pollTimer?.Dispose();pollTimer=time.CreateTimer(_=>QueueCheck(),null,TimeSpan.FromSeconds(OfflineRetrySeconds(failures)),Timeout.InfiniteTimeSpan);}
             Progress?.Invoke(new(PaletteRefreshPhase.Done,1,1));
             return new(false,Current.Models.Count,ValueList<string>.Empty,ValueList<string>.Empty,ValueList<string>.Empty,Current.Boundary,Current.Digest);

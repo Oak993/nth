@@ -29,7 +29,6 @@ internal sealed class PaletteInkWorker : IDisposable
     }
     private void Run()
     {
-        EcoQoS(true);
         while(true)
         {
             wake.WaitOne();int steps;lock(gate){if(disposed)return;steps=owed;owed=0;}
@@ -72,18 +71,6 @@ internal sealed class PaletteInkWorker : IDisposable
             canvas.Restore();
         }
     }
-    // ED-NEW-lean-18b: the same EcoQoS as the palette engine's PaletteExecutor (Marrow.Services keeps its helper internal).
-    internal static bool EcoQoS(bool on)
-    {
-        if(!OperatingSystem.IsWindows())return false;
-        var state=new PowerThrottling{Version=1,ControlMask=on?1u:0u,StateMask=on?1u:0u};
-        return SetThreadInformation(GetCurrentThread(),3,ref state,(uint)Marshal.SizeOf<PowerThrottling>());
-    }
-    [StructLayout(LayoutKind.Sequential)]private struct PowerThrottling{public uint Version;public uint ControlMask;public uint StateMask;}
-    [DllImport("kernel32.dll",SetLastError=true)][DefaultDllImportSearchPaths(DllImportSearchPath.System32)][return:MarshalAs(UnmanagedType.Bool)]
-    private static extern bool SetThreadInformation(IntPtr thread,int informationClass,ref PowerThrottling information,uint size);
-    [DllImport("kernel32.dll")][DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    private static extern IntPtr GetCurrentThread();
     internal void Retire()=>ThreadPool.QueueUserWorkItem(_=>Dispose());
     public void Dispose()
     {

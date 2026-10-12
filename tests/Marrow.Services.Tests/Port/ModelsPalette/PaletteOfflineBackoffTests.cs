@@ -37,4 +37,15 @@ public sealed class PaletteOfflineBackoffTests
         fake.FailModels=true;await engine.CheckNow();
         Assert.Contains(S(120),fake.Time.TimerDeadlines);Assert.DoesNotContain(S(480),fake.Time.TimerDeadlines);
     }
+    [Fact]
+    public async Task A_manual_refresh_while_offline_does_not_lengthen_the_automatic_retry()
+    {
+        using var roots=new ModelsPaletteRoots();using var fake=new PalettePipelineFixture{FailModels=true};
+        using var engine=new PaletteEngine(roots.New(),fake.Http,fake,fake.Time,fake.Pack);
+        engine.Start();
+        Assert.False((await engine.RefreshNow()).CatalogueSucceeded);Assert.Contains(S(120),fake.Time.TimerDeadlines);
+        // The first automatic failure still waits the old 120 s: the manual refresh before it did not count.
+        await engine.CheckNow();Assert.Contains(S(120),fake.Time.TimerDeadlines);Assert.DoesNotContain(S(240),fake.Time.TimerDeadlines);
+        await engine.CheckNow();Assert.Contains(S(240),fake.Time.TimerDeadlines);
+    }
 }
