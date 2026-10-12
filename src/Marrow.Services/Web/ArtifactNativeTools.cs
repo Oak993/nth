@@ -18,23 +18,29 @@ public sealed class ArtifactNativeTools(UiRegistration registration)
 
     public UiRegistration Registration { get; } = registration;
 
-    /// <summary>The tools there are, in order: the four artifact tools, the read-only live-view reference (W17), then ask_user (W25). The live-answer tools of W24 join them. Which are offered now: <see cref="Offered"/>.</summary>
-    public static IReadOnlyList<string> Names { get; } = [.. ArtifactTools.Names, UiReferenceTool.Name, AskUserTool.Name];
+    /// <summary>The tools there are, in order: the four artifact tools, the live-answer tools (W24), the read-only live-view reference (W17), then ask_user (W25). Which are offered now: <see cref="Offered"/>.</summary>
+    public static IReadOnlyList<string> Names { get; } = [.. ArtifactTools.Names, .. LiveAnswerTools.Names, UiReferenceTool.Name, AskUserTool.Name];
 
     private bool ArtifactsOn => Registration.Host.IsOn;
 
     private static bool AskOn => AskUserDirectory.Shared.Current.IsBound;
 
-    /// <summary>The tools offered to this chat now: the artifact tools and the reference while the artifact store is on, ask_user while a host is bound.</summary>
+    /// <summary>
+    /// The tools offered to this chat now: the artifact tools and the reference while the artifact store is on, the live-answer tools
+    /// only while Settings has them on (and a small local model has no HTML widget), ask_user while a host is bound.
+    /// </summary>
     public IReadOnlyList<string> Offered => [.. Names.Where(Offers)];
 
-    private bool Offers(string toolName) => toolName == AskUserTool.Name ? AskOn : ArtifactsOn;
+    private bool Offers(string toolName) =>
+        toolName == AskUserTool.Name ? AskOn
+        : ArtifactsOn && (!LiveAnswerTools.IsName(toolName) || (Registration.Host.Live.Enabled && LiveAnswerTools.Offered(Registration.Lite).Contains(toolName)));
 
     public IReadOnlyList<JSONValue> Definitions => [.. Offered.Select(Definition)];
 
     private static JSONValue Definition(string toolName) =>
         toolName == AskUserTool.Name ? AskUserTool.FunctionDefinition()
         : toolName == UiReferenceTool.Name ? UiReferenceTool.FunctionDefinition()
+        : LiveAnswerTools.IsName(toolName) ? LiveAnswerTools.FunctionDefinition(toolName)
         : ArtifactTools.FunctionDefinition(toolName);
 
     public bool Owns(string toolName) => Names.Contains(toolName) && Offers(toolName);
@@ -50,7 +56,9 @@ public sealed class ArtifactNativeTools(UiRegistration registration)
     /// <summary>The timeline row's title for a call, known before it runs.</summary>
     public static string Title(string toolName, JSONValue arguments) =>
         toolName == AskUserTool.Name ? AskUserTool.ProviderRowTitle
-        : toolName == UiReferenceTool.Name ? UiReferenceTool.RowTitle(Node(arguments)) : ArtifactTools.RowTitle(toolName, Node(arguments));
+        : toolName == UiReferenceTool.Name ? UiReferenceTool.RowTitle(Node(arguments))
+        : LiveAnswerTools.IsName(toolName) ? LiveAnswerFlow.RowTitle(toolName) // the live-answer flow turns this row into the view (W24)
+        : ArtifactTools.RowTitle(toolName, Node(arguments));
 
     /// <summary>True for a tool the card replaces: the chat draws no row for it (W25).</summary>
     public static bool HidesRow(string toolName) => toolName == AskUserTool.Name;
@@ -69,6 +77,11 @@ public sealed class ArtifactNativeTools(UiRegistration registration)
             return new NativeToolResult(Title(toolName, arguments), reference.Text, reference.Failed, []);
         }
         var (thread, provider, model, host) = Registration;
+        if (LiveAnswerTools.IsName(toolName))
+        {
+            var live = await LiveAnswerTools.Run(host.Live, thread, Registration.Lite, toolName, Node(arguments)).ConfigureAwait(true);
+            return new NativeToolResult(LiveAnswerTools.Title, live.Text, live.Failed, []);
+        }
         var (author, prompt) = await host.Caller(thread, provider, model).ConfigureAwait(true);
         var result = ArtifactTools.Run(host.Store!, thread, toolName, Node(arguments), author, prompt);
         return new NativeToolResult(Title(toolName, arguments), result.Text, result.Failed, []);

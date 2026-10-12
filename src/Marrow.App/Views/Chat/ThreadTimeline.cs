@@ -1144,6 +1144,7 @@ public abstract record TimelineGroup
             if (entry.TimelineEntryKind == TimelineEntry.Kind.Tool)
             {
                 if (IsHead(entry)) { heads.Add(entry); continue; }
+                if (LiveAnswerRows.IsLive(entry)) { Flush(); groups.Add(new Single(entry)); continue; } // PORT-ONLY (web surfaces W24): a live answer is drawn as the view, not as a step
                 if (work.Count > 0 && work[^1].TurnID != entry.TurnID) Flush();
                 if (work.Count == 0) start = index; work.Add(entry);
             }
@@ -1468,7 +1469,7 @@ public sealed class TurnRunningBlock : Decorator
         // with their transitions (:1983, :1988, :1998). ED-255 (3).
         var arrives = placed; placed = true;
         var contextChanged = shownContext is { } before && before != context; shownContext = context;
-        var partition = Partition(groupCache.Groups(entries)); var wanted = new List<Control>();
+        var partition = Partition(groupCache.Groups(entries)); var wanted = new List<Control>(); var liveWanted = new List<Control>(); // + W24: a live answer follows the working line, as the reply it belongs to does
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var group in partition.Rows)
         {
@@ -1481,7 +1482,7 @@ public sealed class TurnRunningBlock : Decorator
                 rowViews[group.Id] = kept = (group, new TurnRow(group, runtime, context).Transition(ThreadTimeline.RowTransition));
                 if (arrives) SwiftTransition.Insert(stack, stack.Children.Count, kept.Row); else SwiftTransition.Place(stack, stack.Children.Count, kept.Row);
             }
-            wanted.Add(kept.Row);
+            (group is TimelineGroup.Single { Value: { } liveEntry } && LiveAnswerRows.IsLive(liveEntry) ? liveWanted : wanted).Add(kept.Row);
         }
         foreach (var gone in rowViews.Keys.Where(id => !seen.Contains(id)).ToArray()) { stack.Children.Remove(rowViews[gone].Row); rowViews.Remove(gone); }
         if (partition.Heads is { } heads)
@@ -1511,7 +1512,8 @@ public sealed class TurnRunningBlock : Decorator
             wanted.Add(working);
         }
         else if (working is not null) { stack.Children.Remove(working); working = null; }
-        // The order of the stack is the rows, the heads, the working line.
+        // The order of the stack is the rows, the heads, the working line, then the live answers (W24).
+        wanted.AddRange(liveWanted);
         for (var i = 0; i < wanted.Count; i++) { var at = stack.Children.IndexOf(wanted[i]); if (at >= 0 && at != i) stack.Children.Move(at, i); }
     }
     // :1948-1976
@@ -1580,7 +1582,7 @@ public sealed class TimelineGroupView : Decorator
                 TimelineEntry.Kind.User => new UserMessageRow(single.Value, runtime, context.CanRewind),
                 TimelineEntry.Kind.Assistant => new AssistantMessageRow(single.Value, summary, runtime),
                 TimelineEntry.Kind.Reasoning => null,
-                TimelineEntry.Kind.Tool => new WorkGroup(new([single.Value]), runtime, context.WorkingDirectory),
+                TimelineEntry.Kind.Tool => LiveAnswerRows.IsLive(single.Value) ? new LiveAnswerRow(single.Value, runtime) : new WorkGroup(new([single.Value]), runtime, context.WorkingDirectory), // + W24: a live answer
                 TimelineEntry.Kind.Plan => new PlanCard(single.Value, runtime), TimelineEntry.Kind.Todos => new TodoListRow(single.Value), TimelineEntry.Kind.Notice => new NoticeRow(single.Value),
                 TimelineEntry.Kind.Ask => new Marrow.App.Port.AskUser.AskCardRow(single.Value, runtime), // PORT-ONLY (web surfaces W25): an ask_user card
                 TimelineEntry.Kind.TurnEnd when single.Value.Item.TimelineItemContent is TimelineItem.Content.TurnEnd end => new TurnEndRow(end.Value, hasReply), _ => null,
@@ -1611,6 +1613,7 @@ public sealed class TimelineGroupView : Decorator
                     case UserMessageRow user: user.SetCanRevert(context.CanRewind); break;
                     case AssistantMessageRow reply: reply.SetSummary(summary); break;
                     case WorkGroup tool when single.Value.TimelineEntryKind == TimelineEntry.Kind.Tool: tool.Update(new([single.Value]), false); break;
+                    case LiveAnswerRow: break; // PORT-ONLY (W24): the row reads its entry itself
                     case TurnEndRow when single.Value.Item.TimelineItemContent is TimelineItem.Content.TurnEnd end:
                         if (!Equals(shownSummary, summary) || shownHasReply != hasReply || context != shownContext) Child = new TurnEndRow(end.Value, hasReply); break; // no state in it: made again with what it says
                     default: break; // a plan, a checklist, a notice, a reply with nothing to say: the entry is all they hold, and it stands

@@ -68,10 +68,12 @@ public sealed record ToolPayload
     public bool StructuredContentOmitted { get; init; }
     /// <summary>The result's <c>_meta</c> as compact JSON; null when absent or over the cap.</summary>
     public string? Meta { get; init; }
+    /// <summary>PORT-ONLY (web surfaces W24, ED-NEW-web-w24-1): the live answer this row is (ui_show, ui_update, html_widget or a fenced nth-ui or nth-html block), or null.</summary>
+    public ToolLiveView? LiveView { get; init; }
 
     public bool IsEmpty =>
         Images.Count == 0 && ResourceLinks.Count == 0 && UiResourceUri is null && StructuredContent is null
-        && !StructuredContentOmitted && Meta is null;
+        && !StructuredContentOmitted && Meta is null && LiveView is null;
 
     /// <summary>
     /// Adds an image of <paramref name="decodedBytes"/> bytes under the caps: kept with its data while there is room
@@ -189,6 +191,7 @@ internal sealed class ToolPayloadConverter : JsonConverter<ToolPayload>
         StructuredContent = OptionalString(element, "structuredContent"),
         StructuredContentOmitted = SwiftDecoding.Value(element, "structuredContentOmitted", SwiftDecoding.ReadBool, () => false),
         Meta = OptionalString(element, "meta"),
+        LiveView = SwiftDecoding.Value<ToolLiveView?>(element, "liveView", field => field.ValueKind == JsonValueKind.Object ? ToolLiveViewConverter.Decode(field) : null, () => null),
     };
 
     public override void Write(Utf8JsonWriter writer, ToolPayload value, JsonSerializerOptions options) => WriteMembers(writer, value);
@@ -216,6 +219,11 @@ internal sealed class ToolPayloadConverter : JsonConverter<ToolPayload>
         if (value.StructuredContent is { } structuredContent) writer.WriteString("structuredContent", structuredContent);
         if (value.StructuredContentOmitted) writer.WriteBoolean("structuredContentOmitted", true);
         if (value.Meta is { } meta) writer.WriteString("meta", meta);
+        if (value.LiveView is { } liveView)
+        {
+            writer.WritePropertyName("liveView");
+            ToolLiveViewConverter.WriteMembers(writer, liveView);
+        }
         writer.WriteEndObject();
     }
 }
