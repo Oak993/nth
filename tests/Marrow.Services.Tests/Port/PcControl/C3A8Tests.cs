@@ -26,8 +26,8 @@ public sealed class C3A8Tests
         h.Desktop.Clock.NowMs += 3000;
         h.Confirmer.Hold.SetResult(true);
         Assert.Equal(PcErrorCode.StaleElement, (await action.WaitAsync(TimeSpan.FromSeconds(5))).Error);
-        Assert.Equal(0, h.Desktop.Messages);
         Assert.DoesNotContain(h.Desktop.Log, line => line.StartsWith("post key", StringComparison.Ordinal));
+        Assert.Equal(0, h.Desktop.Messages);
     }
 
     [Fact]

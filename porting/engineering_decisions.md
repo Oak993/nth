@@ -6469,3 +6469,9 @@ C3A8Tests restored GREEN7/0/0; temporary V3-post-before-refusal compiled and fai
 2026-10-12 - Tactus C2-V4: exercise public UIA token and sacrificial cancellation wiring. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c owner rulings; DESIGN.md 2.7, 2.11, 2.12 and 10.2).
 An internal delegate provider routes managed public Perform tests through the real PerformResolved and Sacrificial paths without creating UIA/COM workers. The native constructor retains native lookup/build/pattern/MTA behavior. Tests cover token forwarding, Invoke routing, thread entry cancellation, OCE catch and the wait token.
 C3cV4Tests restored GREEN9/0/0. Six compiling temporary mutations each failed a targeted assertion twice; exact source bytes restored after every mutation. Managed delegates only.
+
+
+## ED-NEW-pcctl-cx-22
+2026-10-12 - Tactus C2-V3: prove the real post-key prefix independently. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c V3 owner ruling; read-only evidence review).
+Keep both no-dispatch assertions and place the corrected post key prefix assertion first. The earlier dispatch mutation proved Messages == 0; repeating it now proves the real-prefix assertion itself catches the stale-target post. No production change.
+V3-prefix-before-refusal mutation RED twice0/1/0 at Assert.DoesNotContain Filter matched in collection; restored C3A8Tests GREEN7/0/0. Exact production source bytes restored. The earlier V3 red twice0/1/0 at Messages == 0 remains preserved, so each assertion has direct evidence.
