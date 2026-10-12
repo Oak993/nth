@@ -34,6 +34,7 @@ public sealed class RealInputLease
     private readonly Lock gate = new();
     private readonly List<Entry> queue = [];
     private readonly List<Entry> stills = [];
+    private readonly AsyncLocal<Func<bool>?> actionPermission = new();
     private readonly List<PcRawInput> kept = [];
     private readonly IPhysicalInput input;
     private readonly IPcInputHold hold;
@@ -137,9 +138,23 @@ public sealed class RealInputLease
         KeptChanged?.Invoke(0);
     }
 
+    // The engine's grant follows its async action into R4 without changing the shared request/assembly seams.
+    internal async Task<PcUiaOutcome> RunWithPermission(Func<bool>? permitted, Func<Task<PcUiaOutcome>> run)
+    {
+        var previous = actionPermission.Value;
+        actionPermission.Value = permitted;
+        try { return await run().ConfigureAwait(false); }
+        finally { actionPermission.Value = previous; }
+    }
+
     public async Task<PcBorrowOutcome> Borrow(PcBorrowRequest request, CancellationToken cancellationToken, Func<bool>? permitted = null)
     {
         ArgumentNullException.ThrowIfNull(request);
+        if (actionPermission.Value is { } grant)
+        {
+            var realInput = permitted;
+            permitted = () => grant() && realInput?.Invoke() != false;
+        }
         if (permitted?.Invoke() == false) return RealInputOff();
         if (Unproven(request.Exe, request.Kind) is { } unproven) return new PcBorrowOutcome(PcBorrowStatus.NeedsRealInput, unproven);
         if (request.Chunks.Count == 0 || request.Chunks.Any(c => c.Count == 0)) throw new ArgumentException("a borrow sends at least one event in each array", nameof(request));

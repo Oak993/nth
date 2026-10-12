@@ -124,10 +124,13 @@ public sealed class PcCall(PcTimings timings, PcAuditDraft audit, CancellationTo
     /// <summary>Whether the step has started an action: from then on a pause holds it in place instead of starting it again.</summary>
     public bool Acted { get; set; }
 
+    /// <summary>A standing grant must still exist after a queued or confirmed action waits.</summary>
+    public Func<bool>? GrantLive { get; set; }
+
     /// <summary>The resumed block of the step's latest hold, carried by its result.</summary>
     public PcResumed? Resumed { get; set; }
 
-    public PcCall With(CancellationToken other) => new(Timings, Audit, other, Wait) { InBatch = InBatch, Base = Base, Output = Output, PauseEpoch = PauseEpoch };
+    public PcCall With(CancellationToken other) => new(Timings, Audit, other, Wait) { InBatch = InBatch, Base = Base, Output = Output, PauseEpoch = PauseEpoch, GrantLive = GrantLive };
 }
 
 /// <summary>What one step produced for later batch steps: the text a pc_read read, the windows an action opened.</summary>
@@ -408,6 +411,9 @@ public sealed partial class PcControlEngine : IDisposable
         PcAsking asking;
         lock (gate)
         {
+            if (approvals.TryGetValue(key, out var cached) && cached.Answer.IsCompletedSuccessfully
+                && cached.Answer.Result == PcApproval.Always && parts.Approver.Standing(app, capability) != PcApproval.Always)
+                approvals.Remove(key);
             if (!approvals.TryGetValue(key, out asking!))
             {
                 asking = new PcAsking();

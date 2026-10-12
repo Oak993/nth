@@ -207,6 +207,9 @@ public sealed partial class PcControlEngine
             answer = await parts.Confirmer.Show(Source(info), AppName(info), info.Title, call.Token).ConfigureAwait(false);
         call.Timings.Mark("confirm");
         if (answer != PcShowAnswer.Show) return PcResult.Fail(PcErrorCode.DeclinedByUser, "the user chose Not now");
+        if (call.GrantLive?.Invoke() == false)
+            return PcResult.Fail(PcErrorCode.NotApproved, "the app was removed from Tactus's apps while the step waited");
+        call.Token.ThrowIfCancellationRequested();
         var shown = parts.Catalog.Show(info.Handle);
         call.Timings.Mark("act");
         return shown

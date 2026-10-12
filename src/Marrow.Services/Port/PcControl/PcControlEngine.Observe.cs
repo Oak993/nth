@@ -132,6 +132,9 @@ public sealed partial class PcControlEngine
             var liveVerdict = PcPolicy.Classify(app, liveSettings.UserDeniedApps);
             if (liveVerdict.Denied) return PcResult.Fail(PcErrorCode.DeniedApp, liveVerdict.Reason ?? "this app is not allowed");
             call.Token.ThrowIfCancellationRequested();
+            if (approval == PcApproval.Always && parts.Approver.Standing(app, PcCapability.Act) != PcApproval.Always)
+                return PcResult.Fail(PcErrorCode.NotApproved, "the app was removed from Tactus's apps while the step waited");
+            call.Token.ThrowIfCancellationRequested();
             var launch = parts.Launcher.Launch(target);
             call.Timings.Mark("launch");
             if (!launch.Started) return PcResult.Fail(PcErrorCode.NotSupported, launch.Problem ?? "Windows could not start it");

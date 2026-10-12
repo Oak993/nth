@@ -198,6 +198,10 @@ public sealed partial class PcControlEngine
                 // then starts again from its own top (a fresh read, and its confirmation asked again).
                 await HoldInPlace(info, call).ConfigureAwait(false);
             }
+            catch (PcGrantRemoved exception)
+            {
+                return PcResult.Fail(PcErrorCode.NotApproved, exception.Message);
+            }
         }
     }
 
@@ -258,6 +262,8 @@ public sealed partial class PcControlEngine
                     && await ChangedWhileWaiting(info, element, call).ConfigureAwait(false) is { } changed)
                     return changed;
             }
+            if (call.GrantLive?.Invoke() == false)
+                return PcResult.Fail(PcErrorCode.NotApproved, "the app was removed from Tactus's apps while the step waited");
             tried++;
             call.Acted = true;
             // An action in flight: the pill reads "Pausing" until it and its check end.
@@ -268,7 +274,11 @@ public sealed partial class PcControlEngine
             var started = parts.Clock.NowMs;
             var pressesAt = parts.Input.Presses(handle);
             AimPointer(info, request, way);
-            var outcome = await way.Run(call.Token).WaitAsync(call.Token).ConfigureAwait(false);
+            var outcome = parts.Lease is { } lease
+                ? await lease.RunWithPermission(call.GrantLive, () => way.Run(call.Token)).WaitAsync(call.Token).ConfigureAwait(false)
+                : await way.Run(call.Token).WaitAsync(call.Token).ConfigureAwait(false);
+            if (call.GrantLive?.Invoke() == false)
+                return PcResult.Fail(PcErrorCode.NotApproved, "the app was removed from Tactus's apps while the step waited");
             call.Timings.Mark("act");
             if (request.Kind == PcInputKind.Drag && request.Path.Count > 1) AimPointer(info, request, way, request.Path[^1]);
             call.Audit.Rung = way.Rung + " " + way.Method;
