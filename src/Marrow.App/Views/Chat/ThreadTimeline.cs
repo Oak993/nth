@@ -1365,7 +1365,10 @@ public sealed class TimelineBlockCache
         pills ??= new(); var entries = @for as ValueList<TimelineEntry> ?? (IReadOnlyList<TimelineEntry>)@for.ToArray();
         var wanted = new Key { Entries = entries, TurnEnds = 0, IsRunning = isRunning, HydraMergeID = hydraMergeID, Pills = pills, ShowReasoning = showReasoning }; // :1720-1737
         if (key is not null && wanted.Entries.Count == key.Entries.Count && wanted.SameFlags(key) && wanted.SamePrefix(key)) return built.Blocks; // :1738 (equal references: the same turn ends)
-        if (key is not null && wanted.Extends(key) && BuildTail(@for, key.Entries.Count, showReasoning, isRunning, hydraMergeID, pills) is { } tail) { built = tail; wanted = wanted with { TurnEnds = key.TurnEnds + TurnEndsIn(entries, key.Entries.Count) }; }
+        // ED-NEW-perf-ui-thread-3: the turn's phase flips at the send and again at its end, together with the entry that is appended there. The blocks before the last run do not read the flag (only the last
+        // run's working line, the trailing working block and the heads that come after it do), so that flip is a tail build as well, not a rebuild of the whole thread; a pass with the heads' pill before
+        // the running turn (which it inserts into the stable part) still rebuilds whole.
+        if (key is not null && (wanted.Extends(key) || wanted.ExtendsOrIsAfterRunFlip(key)) && BuildTail(@for, key.Entries.Count, showReasoning, isRunning, hydraMergeID, pills) is { } tail) { built = tail; wanted = wanted with { TurnEnds = key.TurnEnds + TurnEndsIn(entries, key.Entries.Count) }; }
         else { meta = TimelineMeta.Build(@for); built = DisplayBlock.Build(@for, 0, [], meta, showReasoning, isRunning, hydraMergeID, pills); wanted = wanted with { TurnEnds = TurnEndsIn(entries, 0) }; }
         key = wanted; return built.Blocks; // :1739-1746
     }
@@ -1378,15 +1381,17 @@ public sealed class TimelineBlockCache
     // :1745-1770 private func buildTail(_:appendedFrom:showReasoning:isRunning:hydraMergeID:pills:) -> DisplayBlock.Built?
     private DisplayBlock.Built? BuildTail(IReadOnlyList<TimelineEntry> entries, int appendedFrom, bool showReasoning, bool isRunning, string? hydraMergeID, HeadPills pills)
     {
-        var grown = meta; var kept = built.Blocks.Take(built.StableCount).ToArray();
-        foreach (var entry in entries.Skip(appendedFrom))
+        var kept = built.Blocks.Take(built.StableCount).ToArray();
+        for (var index = appendedFrom; index < entries.Count; index++)
         {
-            grown = grown.Add(entry);
+            var entry = entries[index];
             if (entry.TimelineEntryKind == TimelineEntry.Kind.TurnEnd && entry.Item.TimelineItemContent is TimelineItem.Content.TurnEnd end && kept.Any(block => block.TurnID == end.Value.TurnID)) return null; // :1755-1762
         }
         var tail = DisplayBlock.Build(entries, built.LastRunStart, kept, grown, showReasoning, isRunning, hydraMergeID, pills); meta = grown; return tail; // :1764-1779
     }
 
+        // ED-NEW-perf-ui-thread-3: the appended entries are folded into the meta in one pass (a copy of its maps per entry grew with the thread).
+        var grown = appendedFrom < entries.Count ? meta.AddRange(entries.Skip(appendedFrom)) : meta;
     // :1775-1786 func mentionPersonas(for:roster:) -> [HydraPersona]
     private long?[] personaHeads = []; // :1712
     private bool personaRoster;
@@ -1413,6 +1418,9 @@ public sealed class TimelineBlockCache
         public bool SameFlags(Key old) => IsRunning == old.IsRunning && HydraMergeID == old.HydraMergeID && Pills == old.Pills && ShowReasoning == old.ShowReasoning;
         public bool SamePrefix(Key old)
         {
+        // ED-NEW-perf-ui-thread-3: the same list or a longer one with the turn's phase flipped and nothing else different (no heads' pill before the running turn: see Blocks).
+        public bool ExtendsOrIsAfterRunFlip(Key old) => Entries.Count >= old.Entries.Count && IsRunning != old.IsRunning && Pills.Earlier.Count == 0
+            && HydraMergeID == old.HydraMergeID && Pills == old.Pills && ShowReasoning == old.ShowReasoning && SamePrefix(old);
             if (ReferenceEquals(Entries, old.Entries)) return true;
             if (Entries.Count < old.Entries.Count) return false;
             for (var index = old.Entries.Count - 1; index >= 0; index--) if (!ReferenceEquals(old.Entries[index], Entries[index])) return false; // from the end: a changed list differs there first
@@ -1440,15 +1448,29 @@ public sealed record TimelineMeta
     // :1810-1815 @MainActor static func build(_:) -> TimelineMeta
     public static TimelineMeta Build(IReadOnlyList<TimelineEntry> entries)
     {
-        var meta = new TimelineMeta(); foreach (var entry in entries) meta = meta.Add(entry); return meta; // :1822-1827
+        return new TimelineMeta().AddRange(entries); // :1822-1827
     }
 
     // :1819-1834 @MainActor mutating func add(_:); a mutating method returns the new value (R-VAL-1).
-    public TimelineMeta Add(TimelineEntry entry)
+    public TimelineMeta Add(TimelineEntry entry) => AddRange([entry]);
+
+    /// <summary>ED-NEW-perf-ui-thread-3: <see cref="Add"/> for each entry in order, with the same result, but the maps are copied once for the whole run of entries, not once per entry
+    /// (Add on each of a thread's 1,000 assistant rows copied the maps of every turn so far: quadratic).</summary>
+    public TimelineMeta AddRange(IEnumerable<TimelineEntry> entries)
     {
-        if (entry.TimelineEntryKind == TimelineEntry.Kind.Assistant && entry.TurnID is { } turn) return this with { LastAssistantIDByTurn = LastAssistantIDByTurn.Mutating(map => map[turn] = entry.Id), TurnsWithReply = new(TurnsWithReply.Append(turn)) };
-        if (entry.TimelineEntryKind == TimelineEntry.Kind.TurnEnd && entry.Item.TimelineItemContent is TimelineItem.Content.TurnEnd end) return this with { SummaryByTurn = SummaryByTurn.Mutating(map => map[end.Value.TurnID] = end.Value) };
-        return this; // :1831-1846
+        Dictionary<Guid, string>? lastAssistant = null; Dictionary<Guid, TurnSummary>? summaries = null; HashSet<Guid>? replies = null;
+        foreach (var entry in entries)
+        {
+            if (entry.TimelineEntryKind == TimelineEntry.Kind.Assistant && entry.TurnID is { } turn) { (lastAssistant ??= new(LastAssistantIDByTurn))[turn] = entry.Id; (replies ??= new(TurnsWithReply)).Add(turn); }
+            else if (entry.TimelineEntryKind == TimelineEntry.Kind.TurnEnd && entry.Item.TimelineItemContent is TimelineItem.Content.TurnEnd end) (summaries ??= new(SummaryByTurn))[end.Value.TurnID] = end.Value;
+        }
+        if (lastAssistant is null && summaries is null) return this; // :1831-1846
+        return this with
+        {
+            LastAssistantIDByTurn = lastAssistant is null ? LastAssistantIDByTurn : new(lastAssistant),
+            TurnsWithReply = replies is null ? TurnsWithReply : new(replies),
+            SummaryByTurn = summaries is null ? SummaryByTurn : new(summaries),
+        };
     }
 
     // :1838-1843 @MainActor func summary(for:) -> TurnSummary?
