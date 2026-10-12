@@ -270,13 +270,24 @@ public sealed class InstallScenarioTests
 
     [Fact]
     [Trait("Decision", "ED-247")]
-    public void A_step_after_exit_that_throws_still_ends_the_install()
+    public void A_step_after_exit_that_throws_shows_its_failure_without_certifying_completion()
     {
         using var scenario = new InstallScenario(VelopackScenarios.Build("fast"), update: false);
         scenario.After.Throws = true;
         scenario.Play();
         Assert.Equal(1, scenario.After.Calls);
-        Assert.Equal(InstallPhase.Succeeded, scenario.Frames[^1].Frame.Phase);
+        Assert.Equal(InstallPhase.Failed, scenario.Frames[^1].Frame.Phase);
+        Assert.Equal("the shell refused", scenario.Run.Failure!.Sentence);
+        Assert.Equal(InstallStep.Finishing, scenario.Run.Failure.Step);
+        Assert.Equal(0, scenario.Run.Failure.ExitCode);
+        Assert.False(scenario.Run.Failure.NothingChanged);
+        Assert.False(scenario.Run.Evidence.Finished);
+        Assert.Null(scenario.Run.Result);
+        Assert.True(scenario.Run.Frame.Target < 100);
+        Assert.True(Directory.Exists(scenario.Staging));
+        Assert.False(scenario.Hive.IsRepointed(scenario.Root));
+        Assert.Contains("Update.exe", scenario.Hive.Values["UninstallString"], StringComparison.Ordinal);
+        Assert.Contains("Message: the shell refused", scenario.Run.Failure.Details("1.1.0", "Windows 11", 1, "x64", null), StringComparison.Ordinal);
     }
 
     private static bool Succeeds(string name) => name is "default" or "fast" or "slow" or "stall25" or "hookTimeout" or "upgrade" or "extractToTemp";
