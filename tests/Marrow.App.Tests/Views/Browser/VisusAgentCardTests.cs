@@ -54,7 +54,10 @@ public sealed class VisusAgentCardTests(HeadlessSession headless)
     private static List<string> Texts(Control root) => [.. root.GetLogicalDescendants().OfType<TextBlock>()
         .Select(t => t.Inlines is { Count: > 0 } inlines ? string.Concat(inlines.OfType<Run>().Select(r => r.Text)) : t.Text ?? "")];
 
-    private static List<string> Labels(VisusAgentCard card) => [.. card.Buttons.Select(b => AutomationProperties.GetName(b) ?? "")];
+    private static List<string> Labels(VisusAgentCard card) => [.. card.ButtonLabels];
+
+    // 10.1: "The prompt's buttons are named in full".
+    private static List<string> Names(VisusAgentCard card) => [.. card.Buttons.Select(b => AutomationProperties.GetName(b) ?? "")];
 
     private static KeyEventArgs KeyArgs(Key key, PhysicalKey physical) => new() { RoutedEvent = InputElement.KeyDownEvent, Key = key, PhysicalKey = physical };
 
@@ -81,6 +84,10 @@ public sealed class VisusAgentCardTests(HeadlessSession headless)
         var card = Assert.IsType<VisusAgentCard>(body.AgentCard);
         Assert.Equal("Let Opus 5.5 use mail.test in Visus?", card.Title);
         Assert.Equal(new[] { "Allow once", "Don't allow" }, Labels(card));
+        Assert.Equal(new[] { "Allow Opus 5.5 to use mail.test this time", "Don't allow Opus 5.5 to use mail.test" }, Names(card));
+        Assert.Equal("Let Opus 5.5 use mail.test in Visus? Your tab, shared with the model in this chat. Press F6 to answer.", card.Announcement);
+        Assert.Equal(card.Announcement, AutomationProperties.GetName(card));
+        Assert.Equal(card.Announcement, body.Announcement); // the pane's live region reads it as it appears (10.1)
         Assert.Contains("nth · Visus", Texts(card));
         Assert.Contains(VisusPrompt.Foot, Texts(card));
         Assert.Same(focused, rig.Window.FocusManager?.GetFocusedElement()); // never takes focus
@@ -177,6 +184,7 @@ public sealed class VisusAgentCardTests(HeadlessSession headless)
         Assert.Contains("Opus 5.5", texts);
         Assert.Contains("Asked because this sends a message. Enter never confirms.", texts);
         Assert.Equal(new[] { "Send invite", "Cancel" }, Labels(card));
+        Assert.Equal(new[] { "Send invite on localhost:5173 for Opus 5.5", "Cancel Send invite on localhost:5173" }, Names(card));
         Assert.Equal(VisusAgentCard.GuardWidth, card.Width);
         Assert.Equal(PlacementMode.AnchorAndGravity, popup.Placement);
         Assert.Equal(PopupGravity.Top, popup.PlacementGravity);
@@ -257,9 +265,58 @@ public sealed class VisusAgentCardTests(HeadlessSession headless)
         var card = body.AgentCard!;
 
         Assert.Equal("Let Opus 5.5 run scripts in localhost:5173?", card.Title);
-        Assert.True(VisusPrompts.FocusNewest(rig.Window));
-        Assert.Same(card.Buttons[0], rig.Window.FocusManager?.GetFocusedElement());
+        Assert.Equal(new[] { "Allow Opus 5.5 to run scripts in localhost:5173", "Don't allow Opus 5.5 to run scripts in localhost:5173" }, Names(card));
+        body.Toolbar.Address.Box.Focus();
+        rig.Layout();
+        var before = rig.Window.FocusManager?.GetFocusedElement();
+        visus.Time.Advance(VisusPromptCard.Shield); // the appearance shield is over
+
+        Assert.True(rig.Workspace.CycleFocus(forward: true)); // F6: the newest card first
+        Assert.True(card.Lead.IsFocused); // 10.1: the card's text, not a button
+        Assert.True(card.IsShielded); // the shield runs again from the keyboard's entry
+        rig.Key(Avalonia.Input.Key.Tab);
+        Assert.True(card.Buttons[0].IsFocused); // Tab reaches the buttons
+        rig.Key(Avalonia.Input.Key.Space);
+        Assert.False(evalAsk.IsCompleted); // a Space within 400 ms of focus entering it is ignored
+        rig.Key(Avalonia.Input.Key.Enter);
+        Assert.False(evalAsk.IsCompleted); // Enter does nothing
+        rig.Key(Avalonia.Input.Key.F6);
+        Assert.Same(before, rig.Window.FocusManager?.GetFocusedElement()); // F6 again: back where it was
+
         Assert.False(elsewhere.IsCompleted);
         Assert.False(evalAsk.IsCompleted); // focus alone never answers the card
+    });
+
+    [Fact]
+    public void One_card_at_a_time_a_model_card_waits_behind_the_tabs_own_question_and_shows_once_it_is_answered() => headless.OnUiThread(() =>
+    {
+        using var visus = new VisusRig();
+        var (rig, body, asks) = Open(visus);
+        using var _ = rig;
+        var tab = Go(visus, rig, "http://localhost:5173/");
+        var request = VisusRig.Live(tab).RaisePermission("http://localhost:5173", WebPermissionKind.Camera);
+        rig.Layout();
+        var permission = Assert.IsType<VisusPermissionPrompt>(body.Card);
+
+        var answer = asks.AskSite(new WebSiteAsk(Thread, "t1", "http://localhost:5173", "Opus 5.5", Shared: true) { TabId = tab.Id }, CancellationToken.None);
+        Settle(rig);
+
+        Assert.Null(body.AgentCard); // never two cards over one tab
+        Assert.Same(permission, body.Card);
+
+        visus.Time.Advance(VisusPromptCard.Shield);
+        permission.AllowOnceButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Settle(rig);
+
+        Assert.Equal(WebPermissionDecision.AllowOnce, request.Decision.Result);
+        Assert.Null(body.Card);
+        var card = Assert.IsType<VisusAgentCard>(body.AgentCard);
+        Assert.Equal(card.Announcement, body.Announcement);
+
+        var later = VisusRig.Live(tab).RaisePermission("http://localhost:5173", WebPermissionKind.Microphone);
+        rig.Layout();
+        Assert.Null(body.Card); // and the tab's next question waits behind the model's card
+        Assert.False(answer.IsCompleted);
+        Assert.False(later.Decision.IsCompleted);
     });
 }

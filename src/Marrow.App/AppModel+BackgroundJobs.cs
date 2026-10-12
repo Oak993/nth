@@ -33,6 +33,7 @@ public sealed partial class AppModel
             jobs.AddSource(new HelperJobSource(this));
             jobs.AddSource(new TerminalJobSource(this));
             jobs.AddSource(new DownloadJobSource(DownloadJobRegistry.Shared));
+            jobs.AddSource(new Marrow.App.Views.Browser.VisusDownloadJobSource(() => Marrow.App.Views.Browser.VisusHost.Downloads)); // web W8b
             jobs.AddSource(PublishedJobs);
             return backgroundJobs = jobs;
         }

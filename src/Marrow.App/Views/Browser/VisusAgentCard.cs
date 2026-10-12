@@ -9,6 +9,8 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.Core.Web;
 using Marrow.Services.Web;
+using Avalonia.VisualTree;
+using Marrow.UI.Chrome;
 using Marrow.UI.NthUi;
 using Marrow.UI.Panes;
 using Marrow.UI.Port;
@@ -33,15 +35,18 @@ public sealed class VisusAgentCard : Border
     /// <summary>How far the card keeps from the pointer when it would open under it (DIPs).</summary>
     public const int PointerMargin = 16;
 
-    private readonly long shownAt;
     private readonly List<Button> buttons = [];
+    private readonly List<string> labels = [];
+    private Border lead = null!;
+    private long shieldFrom;
+    private IInputElement? returnTo;
     private bool closed;
 
     public VisusAgentCard(VisusAgentAsk ask)
     {
         ArgumentNullException.ThrowIfNull(ask);
         Ask = ask;
-        shownAt = VisusHost.Time.GetTimestamp();
+        shieldFrom = VisusHost.Time.GetTimestamp();
         Padding = new Thickness(14);
         var body = new StackPanel { Orientation = Orientation.Vertical };
         body.Children.Add(new StackPanel
@@ -58,50 +63,71 @@ public sealed class VisusAgentCard : Border
                 Width = 310;
                 Title = site.Title;
                 detail = site.Shared ? "Your tab, shared with the model in this chat." : "A tab the model opened in this chat.";
-                body.Children.Add(Heading(PaneGlyphKind.Shield, Title, detail));
+                body.Children.Add(MakeLead(Heading(PaneGlyphKind.Shield, Title, detail), Title, detail));
                 body.Children.Add(Rows([new("Site", site.Origin)]));
-                Row(body, ("Allow once", VisusAgentChoice.Once, true), site.AllowAlways ? ("Always allow", VisusAgentChoice.Always, false) : ((string, VisusAgentChoice, bool)?)null, ("Don't allow", VisusAgentChoice.Deny, false));
+                var where = WebPolicy.SourceName(site.Origin);
+                Row(body, ("Allow once", $"Allow {site.Model} to use {where} this time", VisusAgentChoice.Once, true),
+                    site.AllowAlways ? ("Always allow", $"Always allow {site.Model} to use {where}", VisusAgentChoice.Always, false) : null,
+                    ("Don't allow", $"Don't allow {site.Model} to use {where}", VisusAgentChoice.Deny, false));
                 body.Children.Add(Foot(VisusPrompt.Foot));
                 break;
             case WebNavigateAsk navigate:
                 Width = 310;
                 Title = navigate.Title;
                 detail = navigate.From.Count > 0 ? "The model read " + string.Join(", ", navigate.From.Select(WebPolicy.SourceName)) + " before this." : "";
-                body.Children.Add(Heading(PaneGlyphKind.Shield, Title, detail));
+                body.Children.Add(MakeLead(Heading(PaneGlyphKind.Shield, Title, detail), Title, detail));
                 body.Children.Add(Address(navigate.Url));
                 if (navigate.Query.Count > 0) body.Children.Add(Rows(navigate.Query.Select(q => new KeyValuePair<string, string>(q.Name, q.Value)).ToList(), navigate.Query.Select(q => q.FromPage).ToList()));
                 if (navigate.CarriesPageText) body.Children.Add(Warning(WebNavigateAsk.CarriesNote));
-                Row(body, ("Allow once", VisusAgentChoice.Once, true), ("Always for this site pair", VisusAgentChoice.Always, false), ("Don't allow", VisusAgentChoice.Deny, false));
+                var target = WebPolicy.SourceName(navigate.Url);
+                var pair = navigate.From.Count > 0 ? $"to go from {string.Join(", ", navigate.From.Select(WebPolicy.SourceName))} to {target}" : $"to open {target}";
+                Row(body, ("Allow once", $"Allow {navigate.Model} to open {target} this time", VisusAgentChoice.Once, true),
+                    ("Always for this site pair", $"Always allow {navigate.Model} {pair}", VisusAgentChoice.Always, false),
+                    ("Don't allow", $"Don't allow {navigate.Model} to open {target}", VisusAgentChoice.Deny, false));
                 body.Children.Add(Foot(VisusPrompt.Foot));
                 break;
             case WebGuardAsk guard:
                 Width = GuardWidth;
                 Title = guard.Title;
-                body.Children.Add(Heading(PaneGlyphKind.Shield, Title, guard.Detail));
+                detail = guard.Detail;
+                body.Children.Add(MakeLead(Heading(PaneGlyphKind.Shield, Title, detail), Title, detail));
                 if (guard.Rows.Count > 0) body.Children.Add(Rows(guard.Rows));
                 body.Children.Add(Who(guard.Chat, guard.Model));
-                Row(body, (guard.ConfirmLabel, VisusAgentChoice.Once, true), ("Cancel", VisusAgentChoice.Deny, false));
+                var on = WebPolicy.SourceName(guard.Origin);
+                Row(body, (guard.ConfirmLabel, $"{guard.ConfirmLabel} on {on} for {guard.Model}", VisusAgentChoice.Once, true),
+                    ("Cancel", $"Cancel {Title.TrimEnd('?')} on {on}", VisusAgentChoice.Deny, false));
                 body.Children.Add(Foot(guard.Foot));
                 break;
             case WebEvalAsk eval:
                 Width = 310;
                 Title = eval.Title;
-                body.Children.Add(Heading(PaneGlyphKind.Shield, Title, "The model's scripts run in this preview's page, for this project only."));
+                detail = "The model's scripts run in this preview's page, for this project only.";
+                body.Children.Add(MakeLead(Heading(PaneGlyphKind.Shield, Title, detail), Title, detail));
                 body.Children.Add(Rows([new("Site", eval.Origin)]));
-                Row(body, ("Allow", VisusAgentChoice.Once, true), ("Don't allow", VisusAgentChoice.Deny, false));
+                var preview = WebPolicy.SourceName(eval.Origin);
+                Row(body, ("Allow", $"Allow {eval.Model} to run scripts in {preview}", VisusAgentChoice.Once, true),
+                    ("Don't allow", $"Don't allow {eval.Model} to run scripts in {preview}", VisusAgentChoice.Deny, false));
                 body.Children.Add(Foot(VisusPrompt.Foot));
                 break;
             default:
                 throw new ArgumentException("Not a web ask.", nameof(ask));
         }
+        Detail = detail;
         Child = body;
         KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
-        AutomationProperties.SetName(this, Title);
+        // 10.1: read in full as it appears ("... Press F6 to answer."), with no focus taken
+        AutomationProperties.SetName(this, Announcement);
+        AutomationProperties.SetLiveSetting(this, AutomationLiveSetting.Assertive);
         SetValue(AutomationProperties.ControlTypeOverrideProperty, AutomationControlType.Window);
         AddHandler(KeyDownEvent, OnKey, RoutingStrategies.Tunnel);
         AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel);
         AddHandler(PointerPressedEvent, OnPointer, RoutingStrategies.Tunnel);
         AddHandler(PointerReleasedEvent, OnPointer, RoutingStrategies.Tunnel);
+        PropertyChanged += (_, e) =>
+        {
+            // 10.1: the shield also runs from the moment the keyboard enters the card.
+            if (e.Property == IsKeyboardFocusWithinProperty && e.NewValue is true) shieldFrom = VisusHost.Time.GetTimestamp();
+        };
     }
 
     public VisusAgentAsk Ask { get; }
@@ -109,20 +135,52 @@ public sealed class VisusAgentCard : Border
     /// <summary>The card's first line ("Send invite?", "Let Claude Sonnet use example.com in Visus?").</summary>
     public string Title { get; }
 
-    /// <summary>The card's buttons in order (the first is the strong one).</summary>
+    /// <summary>The line under the title.</summary>
+    public string Detail { get; }
+
+    /// <summary>What a screen reader hears when the card appears (10.1), the same form as Visus's own cards.</summary>
+    public string Announcement => VisusPromptCard.Sentence(Detail.Length > 0 ? VisusPromptCard.Sentence(Title) + " " + Detail : Title) + " " + VisusPromptCard.F6Hint;
+
+    /// <summary>The card's text, where F6 puts the keyboard (10.1).</summary>
+    public Control Lead => lead;
+
+    /// <summary>The card's buttons in order (the first is the strong one); each is named in full for a screen reader (10.1).</summary>
     public IReadOnlyList<Button> Buttons => buttons;
+
+    /// <summary>The words on the buttons' faces, in order.</summary>
+    public IReadOnlyList<string> ButtonLabels => labels;
 
     /// <summary>The button for <paramref name="choice"/>, if the card has it.</summary>
     public Button? ButtonFor(VisusAgentChoice choice) => buttons.FirstOrDefault(b => b.Tag is VisusAgentChoice c && c == choice);
 
-    /// <summary>Within the 400 ms shield of appearing: the buttons ignore clicks and keys.</summary>
-    public bool IsShielded => VisusHost.Time.GetElapsedTime(shownAt) < VisusPrompt.Shield;
+    /// <summary>Within the 400 ms shield of appearing or of the keyboard entering it: the buttons ignore clicks and keys.</summary>
+    public bool IsShielded => VisusHost.Time.GetElapsedTime(shieldFrom) < VisusPromptCard.Shield;
 
     /// <summary>The card was answered (or went away) and should close.</summary>
     public event Action<VisusAgentCard>? Done;
 
-    /// <summary>F6 into the card (10.1): its first button takes the keyboard. It never does so by itself.</summary>
-    public bool FocusFirst() => !closed && buttons.Count > 0 && buttons[0].Focus(NavigationMethod.Tab);
+    /// <summary>F6 gave the keyboard back (10.1); the pane puts it on the page when the element it came from is gone.</summary>
+    public event Action<VisusAgentCard>? FocusReturned;
+
+    /// <summary>
+    /// F6 into the card (10.1): its text takes the keyboard (not a button), and <paramref name="from"/> is where F6 again gives it
+    /// back. It never does so by itself.
+    /// </summary>
+    public bool FocusFirst(IInputElement? from = null)
+    {
+        if (closed) return false;
+        if (from is not null && !(from is Visual visual && (ReferenceEquals(visual, this) || this.IsVisualAncestorOf(visual)))) returnTo = from;
+        return lead.Focus(NavigationMethod.Tab);
+    }
+
+    /// <summary>F6 again (10.1): the keyboard goes back where it was.</summary>
+    internal void ReturnFocus()
+    {
+        var target = returnTo;
+        returnTo = null;
+        if (target is InputElement { IsEffectivelyVisible: true } element && TopLevel.GetTopLevel(element) is not null && element.Focus(NavigationMethod.Tab)) return;
+        FocusReturned?.Invoke(this);
+    }
 
     /// <summary>The ask went away without an answer here (withdrawn, answered elsewhere): the card closes.</summary>
     public void Close()
@@ -163,7 +221,7 @@ public sealed class VisusAgentCard : Border
         return Math.Abs(left) <= right ? left : right;
     }
 
-    private void Row(StackPanel body, params (string Label, VisusAgentChoice Choice, bool Strong)?[] items)
+    private void Row(StackPanel body, params (string Label, string Name, VisusAgentChoice Choice, bool Strong)?[] items)
     {
         var row = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 12, 0, 0) };
         foreach (var item in items)
@@ -175,8 +233,9 @@ public sealed class VisusAgentCard : Border
             made.IsDefault = false; // Enter never answers a card
             made.IsCancel = false; // Esc is handled here
             made.Margin = new Thickness(0, 0, 6, 6);
-            AutomationProperties.SetName(made, button.Label);
+            AutomationProperties.SetName(made, button.Name);
             buttons.Add(made);
+            labels.Add(button.Label);
             row.Children.Add(made);
         }
         body.Children.Add(row);
@@ -193,6 +252,10 @@ public sealed class VisusAgentCard : Border
                 e.Handled = true;
                 Refuse();
                 return;
+            case Key.F6:
+                e.Handled = true;
+                ReturnFocus();
+                return;
             case Key.Space when IsShielded:
                 e.Handled = true;
                 return;
@@ -207,6 +270,26 @@ public sealed class VisusAgentCard : Border
     private void OnPointer(object? sender, PointerEventArgs e)
     {
         if (IsShielded) e.Handled = true;
+    }
+
+    // 10.1: the card's text is where F6 lands (a reader hears the question before any button); the ring is the app's focus band,
+    // and the margin gives back its room so nothing moves when it shows (as Visus's own cards).
+    private Control MakeLead(Control heading, string title, string detail)
+    {
+        lead = new Border
+        {
+            Focusable = true,
+            Margin = new Thickness(-6),
+            Padding = new Thickness(4),
+            BorderThickness = new Thickness(2),
+            CornerRadius = new CornerRadius(9),
+            BorderBrush = Brushes.Transparent,
+            Child = heading,
+        };
+        AutomationProperties.SetName(lead, detail.Length > 0 ? VisusPromptCard.Sentence(title) + " " + detail : title);
+        lead.GotFocus += (_, _) => lead.BorderBrush = Marrow.UI.Chrome.Chrome.Accent.Opacity(0.25).Brush(lead);
+        lead.LostFocus += (_, _) => lead.BorderBrush = Brushes.Transparent;
+        return lead;
     }
 
     private static Control Heading(PaneGlyphKind kind, string title, string detail)

@@ -270,8 +270,9 @@ public sealed class WebView2Engine : IWebEngine, IDisposable
             AreBrowserAcceleratorKeysEnabled: false,
             AreDefaultScriptDialogsEnabled: false,
             AreDefaultContextMenusEnabled: !sandboxed,
-            IsPasswordAutosaveEnabled: creation.Kind == WebProfileKind.Browse,
-            IsGeneralAutofillEnabled: creation.Kind == WebProfileKind.Browse,
+            // W8b: the 8.4 row "Autofill and password saving: Chromium's, in browse only", read from the one table.
+            IsPasswordAutosaveEnabled: WebFeaturePolicy.Rule(creation.Kind, WebFeature.Autofill) == WebFeatureRule.System,
+            IsGeneralAutofillEnabled: WebFeaturePolicy.Rule(creation.Kind, WebFeature.Autofill) == WebFeatureRule.System,
             IsZoomControlEnabled: !sandboxed,
             IsSwipeNavigationEnabled: !sandboxed,
             IsStatusBarEnabled: !sandboxed,
