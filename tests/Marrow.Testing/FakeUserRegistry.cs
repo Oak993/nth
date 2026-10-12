@@ -53,6 +53,9 @@ public sealed class FakeUserRegistry : IUserRegistry
     /// <summary>The values of a key, or null when it does not exist.</summary>
     public IReadOnlyDictionary<string, object>? Values(string subKey) => keys.TryGetValue(subKey, out var values) ? new Dictionary<string, object>(values, StringComparer.OrdinalIgnoreCase) : null;
 
+    /// <summary>Deletes a key as an outside writer would (Velopack's uninstaller removing its entry; unit U6), not counted.</summary>
+    public void RemoveKey(string subKey) => keys.Remove(subKey);
+
     public bool KeyExists(string subKey) => keys.ContainsKey(subKey);
 
     public object? GetValue(string subKey, string name) => keys.TryGetValue(subKey, out var values) && values.TryGetValue(name, out var value) ? value : null;
