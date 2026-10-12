@@ -101,6 +101,7 @@ internal static class WindowManagerRestartScenario
                 Record("main-shown");
                 main.Position = new PixelPoint(2345, 6789);
                 WindowManagerMutationScope.Settle(main);
+                manager.FlushPendingFrames(); // ED-NEW-perf-startup-structure-1: the frame is saved at most half a second late; the app ending writes it
                 _ = FlushAndRead(store, storePath);
                 E.AssertStoredFrame(store, E.MainAfterMove);
                 Assert.Equal(E.MainAfterMove, ReadFrame(main));
@@ -110,6 +111,7 @@ internal static class WindowManagerRestartScenario
                 main.Width = 1453;
                 main.Height = 973;
                 WindowManagerMutationScope.Settle(main);
+                manager.FlushPendingFrames(); // ED-NEW-perf-startup-structure-1
                 _ = FlushAndRead(store, storePath);
                 E.AssertStoredFrame(store, E.SavedMain);
                 Assert.Equal(E.SavedMain, ReadFrame(main));
