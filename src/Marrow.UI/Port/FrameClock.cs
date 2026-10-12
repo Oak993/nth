@@ -91,7 +91,10 @@ public interface IRefreshFrameSource : IFrameSource
 /// and while every shown window of the app is minimised or cloaked by the shell (another virtual desktop) it asks for no frames
 /// for draw loops: their requests wait, and are asked for as soon as a window can be seen again. <see cref="RequestFrame"/> is asked for at once, always. Limit:
 /// frames on the compositor's render thread (<see cref="RenderFrames"/>: ambient and onRenderThread timelines) are
-/// <see cref="RenderFrameSource"/>'s, and are neither held back nor parked here.
+/// <see cref="RenderFrameSource"/>'s and are not held back or parked here; they stop while their window cannot be seen by
+/// RenderFrameSource's own ambient gate (no frame while AmbientMotionController.Available is false: minimised, hidden, cloaked,
+/// covered or not in front), and every render-thread timeline is ambient (EffortSlider's track, the only one), so none of them
+/// runs while hidden (ED-NEW-lean-7 (render-thread frames)).
 /// </summary>
 public sealed class AvaloniaFrameSource : IWakeFrameSource, IRenderFrameSourceProvider
 {
