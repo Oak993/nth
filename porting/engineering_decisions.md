@@ -6843,3 +6843,13 @@ ENGINEERING DECISION, lead check of the C8 packet (DESIGN 2.3, 6.5): C8-1 made e
 ## ED-NEW-web-nocap-8
 
 ENGINEERING DECISION, lead check of the C8 packet (DESIGN 2.3, 5.3): a Visus tab can be frozen while on screen when more tabs are on screen than the live budget. VisusTab.Engine() (back, forward, reload, stop, history) restored only a discarded tab; it now also restores a suspended one first, so the toolbar works on it the way a click into the page does. Test: VisusSessionTests (back on a tab frozen while on screen restores it first).
+
+
+## ED-NEW-web-nocap-9
+
+ENGINEERING DECISION, lead check of the C8 packet after the merge with W14 (DESIGN 6.2, 6.4): C8-4 feeds the fence parser one line at a time so a refused block's content is committed before later answer text passes it. W14's stream text read (ArtifactStreams.Update, at most every 250 ms) ran after every line, so the first line used up the read budget and the tail of the delta, the partial line of the open block, was not seen. ArtifactFenceFilter now reports opens and closes per line and reads the open block's text once per delta, after its last line. Test: ArtifactStreamsTests.A_fenced_block_streams_from_its_opener_with_its_id_title_and_kind_and_ends_when_it_closes (unchanged; it failed after the merge and passes again).
+
+
+## ED-NEW-web-nocap-10
+
+ENGINEERING DECISION, lead check of the C8 packet after the merge with W14 (DESIGN 6.4): with C8-1 the newest streaming text waits while the artifact page is still loading and is posted when the load finishes (a morph sent to a document that has no bridge yet would be lost). TabulaFlowTests.A_page_being_written_keeps_its_skeleton_until_it_exists_and_a_new_version_morphs_the_shown_page never finished the page's load, which the real engine always does; it now asserts that no morph is posted while the page loads (stricter) and keeps its original assertion after the load finishes.
