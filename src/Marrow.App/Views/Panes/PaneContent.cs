@@ -36,6 +36,9 @@ public sealed class PaneContent
     /// <summary>The pane's own header actions, in reading order (Expand and Close are the workspace's).</summary>
     public IReadOnlyList<PaneHeaderAction> Actions { get; private set; }
 
+    /// <summary>A menu the header's title opens (Tabula's artifacts, web W14); null for a plain title.</summary>
+    public Action? TitleMenu { get; private set; }
+
     /// <summary>Raised after <see cref="Update"/>.</summary>
     public event Action? Changed;
 
@@ -44,6 +47,13 @@ public sealed class PaneContent
         Title = title;
         Subtitle = subtitle;
         if (actions is not null) Actions = actions;
+        Changed?.Invoke();
+    }
+
+    /// <summary>Gives the title a menu (or takes it away with null).</summary>
+    public void SetTitleMenu(Action? menu)
+    {
+        TitleMenu = menu;
         Changed?.Invoke();
     }
 }
