@@ -336,6 +336,7 @@ public sealed partial class AppModel
             Hydra = info,
             WorktreePath = sameProject ? parent.WorktreePath : null,
             Branch = sameProject ? parent.Branch : null,
+            HiddenFromAssistant = parent.HiddenFromAssistant, // PORT-ONLY (AS-3a, ED-NEW-dextra-as3a-2): a head of a hidden chat is hidden too
         };
 
         UpdateThread(parent.Id, value => value with { HydraSpawnCount = counter });

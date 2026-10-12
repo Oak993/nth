@@ -826,6 +826,7 @@ public sealed partial class AppModel : MainActorModel
         {
             Title = "Continued: " + resolved.Title,
             HasCustomTitle = true,
+            HiddenFromAssistant = resolved.HiddenFromAssistant, // PORT-ONLY (AS-3a, ED-NEW-dextra-as3a-2): it carries the hidden chat's words, so it stays hidden
         };
         Threads = Threads.Appending(forwarded);
         UpdateProject(project.Id, value => value with { IsExpanded = true });
@@ -1176,6 +1177,7 @@ public sealed partial class AppModel : MainActorModel
             IsInPanel = true, // AppModel.swift:1042
             Title = title, // AppModel.swift:1043
             HasCustomTitle = true, // AppModel.swift:1044
+            HiddenFromAssistant = parent.HiddenFromAssistant, // PORT-ONLY (AS-3a, ED-NEW-dextra-as3a-2): a helper of a hidden chat is hidden too
         };
         Threads = Threads.Appending(thread); // AppModel.swift:1045
         ScheduleSave(); // AppModel.swift:1046

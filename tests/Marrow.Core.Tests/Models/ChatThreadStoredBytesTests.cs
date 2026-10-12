@@ -38,6 +38,7 @@ public sealed class ChatThreadStoredBytesTests
 
     [Fact]
     [Trait("Feature", "AS-3a")]
+    [Trait("Decision", "ED-NEW-dextra-as3a-1")]
     [Trait("Rule", "R-CODE-3")]
     public void The_build_with_the_assistant_fields_writes_a_library_that_has_none_byte_for_byte_as_before()
     {
@@ -47,6 +48,7 @@ public sealed class ChatThreadStoredBytesTests
 
     [Fact]
     [Trait("Feature", "AS-3a")]
+    [Trait("Decision", "ED-NEW-dextra-as3a-1")]
     [Trait("Rule", "R-CODE-1")]
     public void A_library_written_before_the_assistant_fields_loads_and_saves_again_unchanged()
     {
