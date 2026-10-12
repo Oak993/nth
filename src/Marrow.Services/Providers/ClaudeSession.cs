@@ -309,7 +309,9 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
 
         var process = ClaudeProviderRuntime.Process.Current(executable.Path, arguments, configuration.WorkingDirectory.Path, environment); // :136-141
         this.process = process;
-        process.Start(); // :143
+        var stoppedBefore = isStopping;
+        await process.StartAsync(); // :143. ED-NEW-perf-ui-thread-2: CreateProcessW runs on the pool, not on the UI thread's turn.
+        if (isStopping && !stoppedBefore) process.Terminate(); // a Stop that came while the child was being created found nothing running to end
         skillReadersExited = process.WaitForExit(); // RR-15: EOF is not exit
         if (generation is not null) RetainSkillsUntilExit(process);
         var messages = process.Messages; // :144
