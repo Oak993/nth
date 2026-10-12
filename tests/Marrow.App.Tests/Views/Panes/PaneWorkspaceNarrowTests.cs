@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -11,6 +12,7 @@ using Marrow.App.Views.Panes;
 using Marrow.Core.Models;
 using Marrow.UI.Chrome;
 using Marrow.UI.Panes;
+using Marrow.UI.Web;
 
 namespace Marrow.App.Tests.Views.Panes;
 
@@ -165,6 +167,65 @@ public sealed class PaneWorkspaceNarrowTests(HeadlessSession headless)
         Assert.False(chat.IsVisible);
         Assert.Equal(1, tasks.Opacity, 3);
         Assert.Equal(0, tasks.Slide, 3);
+    });
+
+    private static void PumpUntil(Func<bool> condition)
+    {
+        var until = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+        while (!condition())
+        {
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+            if (condition()) return;
+            if (DateTime.UtcNow > until) throw new TimeoutException("the condition did not come true");
+            Thread.Sleep(1);
+        }
+    }
+
+    [Fact]
+    public void A_tab_switch_over_a_web_pane_shows_its_snapshot_first_and_the_fade_waits_for_the_capture() => headless.OnUiThread(() =>
+    {
+        var surface = new PaneWebSurface();
+        WebViewHost? host = null;
+        PaneContent? Contents(PaneKind kind)
+        {
+            Control body;
+            if (kind == PaneKind.Browser)
+            {
+                host = new WebViewHost(surface, _ => new Border { Focusable = true, Background = Brushes.Red });
+                body = host;
+            }
+            else body = new Border { Child = new TextBox { Text = kind.ToString() } };
+            return new PaneContent(body, PaneKinds.Title(kind));
+        }
+
+        using var rig = new PaneWorkspaceRig(width: NarrowWidth, height: 800, contents: Contents);
+        rig.Workspace.Open(PaneKind.Browser);
+        rig.Settle();
+        PumpUntil(() => host!.State == WebViewHostState.Live);
+        surface.HeldGesture = new TaskCompletionSource<Marrow.Core.Web.WebGestureFrame>();
+        var browser = rig.Card(PaneKind.Browser);
+
+        PaneWorkspaceRig.Click(rig.Workspace.NarrowStrip.TabButtons[0]); // the chat: the page is about to fade
+        rig.Layout();
+        PumpUntil(() => surface.Captures == 1);
+        for (var i = 0; i < 3; i++) rig.Frame();
+        Assert.Equal(1, browser.Opacity, 3); // the capture is held: nothing fades over a live page
+        Assert.Equal(0, rig.Workspace.Chat.Opacity, 3);
+        Assert.False(host!.IsShowingSnapshot);
+
+        surface.HeldGesture.SetResult(new Marrow.Core.Web.WebGestureFrame(surface.LastSnapshot, null));
+        PumpUntil(() => host.IsShowingSnapshot);
+        rig.Layout();
+        rig.Frame();
+        rig.Frame();
+        Assert.True(browser.Opacity < 1 && rig.Workspace.Chat.Opacity > 0, "the fade runs over the snapshot");
+        rig.Settle();
+        Assert.False(browser.IsVisible);
+        PumpUntil(() => !host.IsShowingSnapshot);
+        Assert.Equal(WebViewHostState.Live, host.State);
+        Assert.Equal(1, surface.Captures);
     });
 
     [Fact]

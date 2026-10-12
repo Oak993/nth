@@ -671,14 +671,22 @@ public sealed partial class PaneWorkspace : Panel
         RetargetStrip(result, narrow, springs, reduce);
         narrowMode = narrow;
         narrowShown = surface;
-        if (before is { } previous && surface is { } now && previous != now) HandOffFocus(previous, now);
+        // A tab switch is a gesture over web panes like a lift is: their pages show a snapshot before anything fades over them
+        // (DESIGN 2.4, 2.5, 3.8), and the springs wait for the captures. No web pane, or a gesture already open: they start at once.
+        var ready = Task.CompletedTask;
+        if (before is { } previous && surface is { } now && previous != now)
+        {
+            HandOffFocus(previous, now);
+            if (springs && !gestureOpen) ready = BeginWebGesture();
+        }
 
         ApplyLooks();
         if (springs && AnyMoving)
         {
             moving = true;
             UpdateHeld();
-            RequestFrame();
+            if (ready.IsCompleted) RequestFrame();
+            else _ = ready.ContinueWith(_ => Dispatcher.UIThread.Post(RequestFrame), TaskScheduler.Default);
         }
         else if (!AnyMoving)
         {
