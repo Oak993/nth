@@ -11,6 +11,9 @@ public sealed partial class ThreadRuntime
 {
     private ArtifactFenceFilter? artifactFences;
 
+    /// <summary>The key prefix of a stream that an artifact_create tool call started (web W14).</summary>
+    public const string ToolStreamPrefix = "tool:";
+
     /// <summary>The running turn, its prompt and the chat's model; null when no turn runs (a version is then not tied to one).</summary>
     public ArtifactTurn? ArtifactTurn() => currentTurnID is { } turn ? new ArtifactTurn(turn, ArtifactPrompt(turn), Thread?.Model) : null;
 
@@ -27,6 +30,10 @@ public sealed partial class ThreadRuntime
     {
         var host = ArtifactHost.Shared.Current;
         if (!host.IsOn) return [@event];
+        // PORT-ONLY (web W14, DESIGN 6.4; ED-NEW-web-w14-1): Tabula opens with a skeleton the moment artifact_create starts.
+        // The call's own result (the store's Created) or the end of the turn ends the stream.
+        if (@event is ProviderEvent.ToolStarted started && ArtifactStreams.IsCreateCall(started.Call.Title, started.Call.Detail))
+            host.Streams.Begin(ThreadID, ToolStreamPrefix + started.Id, null, null, null);
         artifactFences ??= new ArtifactFenceFilter(ThreadID, host, () =>
         {
             var turn = ArtifactTurn();

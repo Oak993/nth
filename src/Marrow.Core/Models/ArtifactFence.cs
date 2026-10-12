@@ -119,6 +119,9 @@ public sealed class ArtifactFenceParser
     /// <summary>The block being streamed now (its index, header and content so far), or null outside one.</summary>
     public (int Index, ArtifactFenceHeader Header, string Content)? Open => block is { } open ? (open.Index, open.Header, open.Content.ToString()) : null;
 
+    /// <summary>The index of the block being streamed now, or null outside one; unlike <see cref="Open"/> it copies no text.</summary>
+    public int? OpenIndex => block?.Index;
+
     /// <summary>
     /// The answer's chip for an artifact: a Markdown link on its own line with the nth-artifact scheme, which the
     /// timeline opens in Tabula, reading "Title · Kind" so it says what it is even where no chip is drawn.
