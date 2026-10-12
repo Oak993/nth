@@ -36,6 +36,19 @@ public static class SkillsCatalogueLoader
         Converters = { new StrictEnumConverterFactory() },
     };
 
+    private static readonly Lazy<SkillsCatalogue> EmbeddedOnce = new(LoadEmbedded, LazyThreadSafetyMode.ExecutionAndPublication);
+
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-perf-startup-structure-3): the embedded catalogue, parsed once for the process. The parse (1.2 MB through reflection-based
+    /// System.Text.Json) takes about 70 ms the first time, so start-up reads it on the pool while the desktop is being bound (<see cref="IsEmbeddedLoaded"/>
+    /// tells a test whether that read has finished) and the skills host takes it from here. The catalogue is immutable, so sharing one instance is safe;
+    /// <see cref="LoadEmbedded"/> still parses afresh for a caller that wants its own.
+    /// </summary>
+    public static SkillsCatalogue Embedded => EmbeddedOnce.Value;
+
+    /// <summary>Whether <see cref="Embedded"/> has been parsed (or has failed to parse).</summary>
+    public static bool IsEmbeddedLoaded => EmbeddedOnce.IsValueCreated;
+
     public static SkillsCatalogue LoadEmbedded()
     {
         using var stream = typeof(SkillsCatalogue).Assembly.GetManifestResourceStream(ResourceName)

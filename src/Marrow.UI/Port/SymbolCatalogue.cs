@@ -57,6 +57,9 @@ public static class SymbolCatalogue
         SymbolCategory Popular,
         IReadOnlyList<SymbolCategory> Categories);
 
+    /// <summary>PORT-ONLY (ED-NEW-perf-startup-structure-5): whether the mapping has been read (or has failed to read), for the start-up prime's test.</summary>
+    internal static bool IsLoaded => Loaded.IsValueCreated;
+
     /// <summary>Every SF name the mapping holds (2753 at B2), in the mapping's order.</summary>
     public static IReadOnlyCollection<string> SymbolNames => Loaded.Value.Names;
 
