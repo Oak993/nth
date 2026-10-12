@@ -1,4 +1,5 @@
 using Marrow.Core.Support;
+using Marrow.Core.Tests.Fixtures;
 using Marrow.Testing;
 
 namespace Marrow.Core.Tests.Support;
@@ -95,6 +96,40 @@ public sealed class SignInStartupCleanupTests
         Assert.Same(approval, registry.GetValue(SignInEntry.ApprovedKeyPath, "nth"));
         Assert.Equal(@"C:\Foreign\nth.exe", registry.GetValue(UninstallEntry.RunKeyPath, "nth"));
         Assert.Equal(0, registry.Writes);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-247")]
+    public void A_refused_approval_delete_preserves_Run_ownership_and_a_later_uninstall_retry_cleans_both()
+    {
+        var hive = ProfileWithOwnedEntry(3);
+        var command = hive.GetValue(UninstallEntry.RunKeyPath, "nth");
+        var approval = hive.GetValue(SignInEntry.ApprovedKeyPath, "nth");
+        var otherApproval = Approval(7);
+        hive.Seed(UninstallEntry.RunKeyPath, "Other", @"C:\Other\other.exe");
+        hive.Seed(SignInEntry.ApprovedKeyPath, "Other", otherApproval);
+        var registry = new StartupApprovalRefusingRegistry(hive);
+
+        var error = Assert.Throws<UnauthorizedAccessException>(() => UninstallEntry.RemoveSignInEntry(registry, Root));
+
+        Assert.Equal(unchecked((int)0x80070005), error.HResult);
+        Assert.Equal(command, hive.GetValue(UninstallEntry.RunKeyPath, "nth"));
+        Assert.Same(approval, hive.GetValue(SignInEntry.ApprovedKeyPath, "nth"));
+        Assert.Equal(0, hive.Writes);
+        Assert.Equal((SignInEntry.ApprovedKeyPath, "nth"), Assert.Single(registry.DeletionAttempts));
+        registry.RefuseApprovalDeletion = false;
+        registry.DeletionAttempts.Clear();
+
+        Assert.True(UninstallEntry.RemoveSignInEntry(registry, Root));
+
+        Assert.Null(hive.GetValue(UninstallEntry.RunKeyPath, "nth"));
+        Assert.Null(hive.GetValue(SignInEntry.ApprovedKeyPath, "nth"));
+        Assert.Equal(2, hive.Writes);
+        Assert.Equal(new[] { (SignInEntry.ApprovedKeyPath, "nth"), (UninstallEntry.RunKeyPath, "nth") }, registry.DeletionAttempts);
+        Assert.Equal(@"C:\Other\other.exe", hive.GetValue(UninstallEntry.RunKeyPath, "Other"));
+        Assert.Same(otherApproval, hive.GetValue(SignInEntry.ApprovedKeyPath, "Other"));
+        Assert.False(UninstallEntry.RemoveSignInEntry(registry, Root));
+        Assert.Equal(2, hive.Writes);
     }
 
     private static FakeUserRegistry ProfileWithOwnedEntry(byte status)

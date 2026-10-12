@@ -23,7 +23,8 @@ public sealed class DesktopShortcutProbeRecoveryTests
 
         var result = probe.Probe();
 
-        Assert.True(result.Present || result.Failed);
+        Assert.True(result.Present);
+        Assert.False(result.Failed);
     }
 
     [Fact]
@@ -38,7 +39,8 @@ public sealed class DesktopShortcutProbeRecoveryTests
         shell.Fail(FakeShellLinks.Call.ReadLink, unchecked((int)0x80070020), times: 1, path: Path);
 
         var unreadable = probe.Probe();
-        Assert.True(unreadable.Present || unreadable.Failed);
+        Assert.True(unreadable.Present);
+        Assert.False(unreadable.Failed);
         shell.ResetCounters();
         var recovered = probe.Probe();
 
