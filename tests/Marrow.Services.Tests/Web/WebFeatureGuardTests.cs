@@ -51,6 +51,60 @@ public sealed class WebFeatureGuardTests
     }
 
     [Fact]
+    public void Autofill_and_password_saving_follow_the_8_4_row_for_every_kind()
+    {
+        var profiles = new WebProfiles(WebRig.UserData, "en-US");
+        foreach (var kind in Enum.GetValues<WebSurfaceKind>())
+        {
+            var creation = profiles.For(kind, kind == WebSurfaceKind.AgentTab ? Thread : null);
+            var plan = WebView2Engine.SettingsFor(creation);
+            var system = WebFeaturePolicy.Rule(creation.Kind, WebFeature.Autofill) == WebFeatureRule.System;
+            Assert.Equal(system, plan.IsPasswordAutosaveEnabled);
+            Assert.Equal(system, plan.IsGeneralAutofillEnabled);
+            Assert.Equal(kind == WebSurfaceKind.VisusTab, plan.IsPasswordAutosaveEnabled); // browse only: never private, preview or agent
+        }
+    }
+
+    [Fact]
+    public void A_page_waiting_on_the_user_is_neither_discarded_nor_suspended_and_a_released_engine_says_so()
+    {
+        using var rig = new WebRig();
+        rig.Surface.Options.MaxHeldViews = 0;
+        var view = rig.OpenLive(WebSurfaceKind.VisusTab, shown: true);
+        var fake = WebRig.Fake(view);
+        fake.RaiseNavigationCompleted("https://a.test/page");
+        view.SetShown(false);
+        var hold = view.HoldForUser();
+        Assert.True(view.IsHeldForUser);
+        rig.Time.Advance(TimeSpan.FromMinutes(11));
+        rig.Surface.Tick();
+        Assert.Equal(WebLiveness.Live, view.Liveness);
+        Assert.False(fake.IsDisposed);
+        Assert.DoesNotContain("Suspend", fake.Log);
+
+        // Over the live cap: a held view is skipped, so the cap waits rather than freezing a page that asks.
+        var others = new List<WebSurfaceView>();
+        for (var i = 0; i < 4; i++)
+        {
+            others.Add(rig.OpenLive(url: $"https://b.test/{i}"));
+            rig.Time.Advance(TimeSpan.FromSeconds(1));
+        }
+        Assert.DoesNotContain("Suspend", fake.Log);
+        Assert.Contains(others, other => other.Liveness == WebLiveness.Suspended);
+
+        hold.Dispose();
+        hold.Dispose(); // a hold ends once
+        Assert.False(view.IsHeldForUser);
+        var released = 0;
+        view.EngineReleased += () => released++;
+        rig.Time.Advance(TimeSpan.FromMinutes(11));
+        rig.Surface.Tick();
+        Assert.Equal(WebLiveness.Discarded, view.Liveness);
+        Assert.Equal(1, released);
+        Assert.True(fake.IsDisposed);
+    }
+
+    [Fact]
     public void A_Visus_tab_adds_the_pointer_lock_binding_and_an_agent_tab_intercepts_file_choosers_and_webauthn_as_they_attach()
     {
         using var rig = new WebRig();

@@ -15,7 +15,7 @@ public sealed class CdpBrokerTests
     {
         using var rig = new WebRig();
         var view = rig.OpenLive(shown: true);
-        var fake = WebRig.Fake(view);
+        var fake = WebRig.FakeAfterGuard(view); // W8b: the feature guard's own attach calls come first (ED-NEW-web-w8b-3)
         var first = new TaskCompletionSource<string>();
         fake.CdpHandler = (method, _, _) => method == "Page.enable" ? first.Task : Task.FromResult("""{"ok":true}""");
         var broker = view.Cdp!;
@@ -52,7 +52,7 @@ public sealed class CdpBrokerTests
     {
         using var rig = new WebRig();
         var view = rig.OpenLive(shown: true);
-        var fake = WebRig.Fake(view);
+        var fake = WebRig.FakeAfterGuard(view); // W8b: the feature guard's own attach calls come first (ED-NEW-web-w8b-3)
 
         Assert.True(view.Cdp!.AttachToFramesAsync().IsCompletedSuccessfully);
         var setAutoAttach = Assert.Single(fake.CdpCalls);

@@ -23,6 +23,8 @@ public sealed class WebSurfaceView : IWebViewSurface
     private int modelSteps;
     private int bridgeCalls;
     private int openArtifactPanes;
+    private int userHolds;
+    private int scriptHolds;
     private readonly List<(string Json, string? Event)> pendingMessages = [];
     private string? navigationTarget;
     private (string Token, IWebEngineView Engine, TaskCompletionSource<bool> Ready)? discardNotice;
@@ -86,6 +88,30 @@ public sealed class WebSurfaceView : IWebViewSurface
     /// <summary>True while a model step drives the view (never suspended or discarded then, DESIGN 2.3).</summary>
     public bool IsModelStepRunning => modelSteps > 0;
 
+    /// <summary>
+    /// W8b (DESIGN 5.4, 5.5, 8.4): a question of this page waits for the user (a download, a permission, a sign-in, a page
+    /// dialog, a file for the model's page). The engine holds the page's side of it, so the view is neither suspended nor
+    /// discarded until every hold is released.
+    /// </summary>
+    public bool IsHeldForUser => userHolds > 0;
+
+    /// <summary>
+    /// W8b: a page dialog (alert, confirm, prompt, leave page) waits for the user. The page's script is stopped inside it, so the
+    /// hang probe (2.7) does not run: a page waiting on its reader is not "not responding".
+    /// </summary>
+    public bool IsScriptHeldForUser => scriptHolds > 0;
+
+    /// <summary>
+    /// W8b: holds the view's engine for a question the user has not answered yet; dispose when it is answered.
+    /// <paramref name="blocksScript"/> is true for a page dialog, which stops the page's script until it is answered.
+    /// </summary>
+    public IDisposable HoldForUser(bool blocksScript = false)
+    {
+        userHolds++;
+        if (blocksScript) scriptHolds++;
+        return new UserHold(this, blocksScript);
+    }
+
     internal bool IsSuspending { get; set; }
     internal bool IsDiscarding { get; set; }
     internal bool NeedsLiveReload { get; set; }
@@ -100,6 +126,12 @@ public sealed class WebSurfaceView : IWebViewSurface
 
     public event Action? Changed;
     internal event Action? BecameLive;
+
+    /// <summary>
+    /// W8b: the page's engine went (a crash, a runtime that went missing, the view closing): every question it was waiting on
+    /// is void, so its asker withdraws them. Raised before the engine is disposed.
+    /// </summary>
+    public event Action? EngineReleased;
     public event Action<bool>? FocusExitRequested;
     public event EventHandler<WebNavigationStarting>? NavigationStarting;
     public event EventHandler<WebNavigationStarting>? FrameNavigationStarting;
@@ -265,6 +297,20 @@ public sealed class WebSurfaceView : IWebViewSurface
 
     internal void HoldArtifactPane(bool hold) => openArtifactPanes += hold ? 1 : -1;
 
+    private sealed class UserHold(WebSurfaceView view, bool blocksScript) : IDisposable
+    {
+        private bool done;
+
+        public void Dispose()
+        {
+            if (done) return;
+            done = true;
+            view.userHolds--;
+            if (blocksScript) view.scriptHolds--;
+            view.owner.Touch(view);
+        }
+    }
+
     private sealed class BridgeScope(WebSurfaceView view) : IDisposable
     {
         private bool done;
@@ -360,6 +406,7 @@ public sealed class WebSurfaceView : IWebViewSurface
         navigationTarget = null;
         if (engine.Url is { } url) lastUrl = url;
         Unhook(engine);
+        EngineReleased?.Invoke();
         foreach (var subscription in guardSubscriptions) subscription.Dispose();
         guardSubscriptions.Clear();
         pointerLockAsk?.Answer(false);

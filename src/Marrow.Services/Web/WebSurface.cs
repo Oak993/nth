@@ -209,6 +209,7 @@ public sealed class WebSurface : IDisposable
         {
             if (view.Liveness == WebLiveness.Live && view.IsShown && view.IsLiveVisible && IsFocused(view.WindowId)
                 && view.Engine is { IsAttached: true, IsSuspended: false } && !view.IsProbing && view.Failure is null
+                && !view.IsScriptHeldForUser // W8b: a page inside its own dialog waits on the user, not hung
                 && (view.LastProbeAt is not { } probed || now - probed >= Options.ProbeInterval))
             {
                 view.LastProbeAt = now;
@@ -473,7 +474,7 @@ public sealed class WebSurface : IDisposable
             {
                 var shownOverCap = views.Count(v => v.IsShown) > Options.MaxLiveViews;
                 var candidate = views
-                    .Where(v => v.Liveness == WebLiveness.Live && !v.IsSuspending && !v.IsDiscarding && !v.IsModelStepRunning && !v.IsBridgeCallRunning && (v != except || !v.IsShown) && !tried.Contains(v)
+                    .Where(v => v.Liveness == WebLiveness.Live && !v.IsSuspending && !v.IsDiscarding && !v.IsModelStepRunning && !v.IsBridgeCallRunning && !v.IsHeldForUser && (v != except || !v.IsShown) && !tried.Contains(v)
                                 && (!v.IsShown || shownOverCap)
                                 && v.Engine is { IsAttached: true })
                     .OrderBy(v => v.IsShown)
@@ -566,6 +567,7 @@ public sealed class WebSurface : IDisposable
         && !disposed && views.Contains(view)
         && !view.IsBridgeCallRunning
         && !view.HasOpenArtifactPane
+        && !view.IsHeldForUser // W8b: a download, permission, sign-in or dialog waits for the user
         && view.Engine is { IsAttached: true, IsPlayingAudio: false }
         && (!view.IsSandboxed || view.IsDocumentReady)
         && view.Kind != WebSurfaceKind.VisusPrivateTab // ED-NEW-web-w7-2: discarding would end its InPrivate session
@@ -614,7 +616,7 @@ public sealed class WebSurface : IDisposable
                 {
                     view.IsDiscarding = false;
                     if (!disposed && views.Contains(view) && view.Engine == engine && view.Liveness == WebLiveness.Live && !view.IsShown
-                        && !view.IsModelStepRunning && !view.IsBridgeCallRunning && !engine.IsPlayingAudio
+                        && !view.IsModelStepRunning && !view.IsBridgeCallRunning && !view.IsHeldForUser && !engine.IsPlayingAudio
                         && (wasSuspended || LiveCount > Options.MaxLiveViews))
                     {
                         try { await SuspendAsync(view); }
