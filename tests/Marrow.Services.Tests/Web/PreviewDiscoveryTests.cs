@@ -51,12 +51,23 @@ public sealed class PreviewDiscoveryTests
         view.CdpHandler = (method, _, _) => Task.FromResult(method == "Runtime.evaluate" ? "{\"result\":{\"value\":123}}" : "{}");
         using var reload = new PreviewReload(surface, rig.Time);
         reload.FileChanged(); rig.Time.Advance(TimeSpan.FromMilliseconds(100)); reload.FileChanged();
-        rig.Time.Advance(TimeSpan.FromMilliseconds(149)); Assert.DoesNotContain("Reload False", view.Log);
+        rig.Time.Advance(TimeSpan.FromMilliseconds(149)); Assert.DoesNotContain("Reload", view.Log);
         rig.Time.Advance(TimeSpan.FromMilliseconds(1)); await reload.WhenIdle;
-        Assert.Equal(1, view.Log.Count(x => x == "Reload False"));
+        Assert.Equal(1, view.Log.Count(x => x == "Reload"));
         view.RaiseNavigationCompleted(surface.Url!); await reload.WhenIdle;
         Assert.Contains(view.CdpCalls, x => x.Method == "Runtime.evaluate" && x.Params.Contains("scrollTo(0,123)", StringComparison.Ordinal));
         reload.BeginTurn(); reload.HotReloaded(); reload.EndTurn(filesEdited: true); await reload.WhenIdle;
-        Assert.Equal(1, view.Log.Count(x => x == "Reload False"));
+        Assert.Equal(1, view.Log.Count(x => x == "Reload"));
+    }
+
+    [Fact]
+    public async Task Model_turn_file_changes_reload_once_at_turn_end()
+    {
+        using var rig = new WebRig(); var surface = rig.OpenLive(WebSurfaceKind.PreviewTab); var view = WebRig.Fake(surface);
+        using var reload = new PreviewReload(surface, rig.Time);
+        reload.BeginTurn(); reload.FileChanged(); rig.Time.Advance(TimeSpan.FromMilliseconds(150)); await reload.WhenIdle;
+        Assert.DoesNotContain("Reload", view.Log);
+        reload.EndTurn(filesEdited: true); await reload.WhenIdle;
+        Assert.Equal(1, view.Log.Count(x => x == "Reload"));
     }
 }

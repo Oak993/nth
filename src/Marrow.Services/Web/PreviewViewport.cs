@@ -33,9 +33,10 @@ internal sealed class PreviewViewport(CoreWebView2Controller controller) : IDisp
         if (child == 0)
         {
             // Avalonia's HWND adapter gives each view its own parent; WebView2 creates its child in that parent.
-            child = GetWindow(controller.ParentWindow, 5); // GW_CHILD
-            if (child == 0 || GetWindow(child, 2) != 0) // GW_HWNDNEXT: ambiguity is a native precondition failure.
+            var candidate = GetWindow(controller.ParentWindow, 5); // GW_CHILD
+            if (candidate == 0 || GetWindow(candidate, 2) != 0) // GW_HWNDNEXT: ambiguity is a native precondition failure.
                 throw new InvalidOperationException("The preview needs a dedicated WebView2 child window.");
+            child = candidate;
             original = controller.Bounds;
         }
         if (this.viewportWidth != viewportWidth || this.viewportHeight != viewportHeight || scale != dpi)

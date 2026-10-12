@@ -20,8 +20,8 @@ public sealed class PreviewDiagnosticsTests
         view.EmitCdp("Network.responseReceived", "{\"requestId\":\"1\",\"timestamp\":1.05,\"type\":\"Fetch\",\"response\":{\"status\":404,\"headers\":{\"Set-Cookie\":\"fake-cookie\"}}}");
         var request = Assert.Single(diagnostics.Network);
         Assert.Equal(404, request.Status); Assert.Equal("/api", request.Path);
-        Assert.DoesNotContain("fake-secret", diagnostics.ToChat(request)); Assert.DoesNotContain("fake-cookie", diagnostics.ToChat(request));
-        Assert.Contains("[redacted]", diagnostics.ToChat(request));
+        Assert.DoesNotContain("fake-secret", diagnostics.ToChat(request), StringComparison.Ordinal); Assert.DoesNotContain("fake-cookie", diagnostics.ToChat(request), StringComparison.Ordinal);
+        Assert.Contains("[redacted]", diagnostics.ToChat(request), StringComparison.Ordinal);
         Assert.Single(diagnostics.FindNetwork("api"));
         diagnostics.Clear(); Assert.Empty(diagnostics.Console);
         diagnostics.Dispose(); view.EmitCdp("Runtime.exceptionThrown", "{}"); Assert.Empty(diagnostics.Console);
@@ -41,7 +41,7 @@ public sealed class PreviewDiagnosticsTests
         Assert.Equal(499, device.Latest.Width); Assert.Single(view.CdpCalls);
         held.SetResult("{}"); await device.WhenIdle;
         Assert.Equal(2, view.CdpCalls.Count(x => x.Method == "Emulation.setDeviceMetricsOverride"));
-        Assert.Contains("499", view.CdpCalls.Last(x => x.Method == "Emulation.setDeviceMetricsOverride").Params);
+        Assert.Contains("499", view.CdpCalls.Last(x => x.Method == "Emulation.setDeviceMetricsOverride").Params, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -59,11 +59,11 @@ public sealed class PreviewDiagnosticsTests
         Assert.True(diagnostics.Network[^1].Failed);
         view.CdpHandler = (_, _, _) => Task.FromResult("{\"body\":\"Cookie: fake-cookie\\r\\nAuthorization: fake-secret\",\"base64Encoded\":false}");
         var body = await diagnostics.ResponsePreviewAsync(diagnostics.Network[^1]);
-        Assert.DoesNotContain("fake-secret", body); Assert.DoesNotContain("fake-cookie", body);
+        Assert.DoesNotContain("fake-secret", body, StringComparison.Ordinal); Assert.DoesNotContain("fake-cookie", body, StringComparison.Ordinal);
         diagnostics.PreserveLog = true; diagnostics.Navigation(); Assert.Equal(1000, diagnostics.Network.Count);
         diagnostics.PreserveLog = false; diagnostics.Navigation(); Assert.Empty(diagnostics.Network);
         view.EmitCdp("Runtime.exceptionThrown", "{\"exceptionDetails\":{\"text\":\"Uncaught\",\"exception\":{\"description\":\"TypeError: fixture\"}}}");
-        Assert.Contains("TypeError", Assert.Single(diagnostics.FindConsole("fixture", "error")).Text);
+        Assert.Contains("TypeError", Assert.Single(diagnostics.FindConsole("fixture", "error")).Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -86,8 +86,42 @@ public sealed class PreviewDiagnosticsTests
         view.EmitCdp("Overlay.inspectNodeRequested", "{\"backendNodeId\":7}");
         await picker.WhenIdle;
         Assert.Equal("#hero", picker.LastPick!.Selector); Assert.Equal(390, picker.LastPick.Width);
-        Assert.Contains("fixture", picker.LastPick.Html); Assert.Contains("390px", picker.LastPick.Styles);
+        Assert.Contains("fixture", picker.LastPick.Html, StringComparison.Ordinal); Assert.Contains("390px", picker.LastPick.Styles, StringComparison.Ordinal);
         Assert.Equal(FakeWebEngine.OnePixelPng, picker.LastPick.Screenshot);
         Assert.False(picker.Enabled);
+    }
+
+    [Fact]
+    public async Task Request_payloads_and_url_tokens_do_not_leak_into_diagnostics_drafts()
+    {
+        using var rig = new WebRig();
+        var surface = rig.OpenLive(WebSurfaceKind.PreviewTab);
+        using var diagnostics = new PreviewDiagnostics(surface.Cdp!);
+        await diagnostics.StartAsync();
+        WebRig.Fake(surface).EmitCdp("Network.requestWillBeSent", "{\"requestId\":\"p\",\"request\":{\"method\":\"POST\",\"url\":\"http://localhost/login?token=fake-token\",\"postData\":\"password=fake-password\"}}");
+        var row = Assert.Single(diagnostics.Network);
+        Assert.DoesNotContain("fake-token", row.Path, StringComparison.Ordinal);
+        Assert.DoesNotContain("fake-token", diagnostics.ToChat(row), StringComparison.Ordinal);
+        Assert.DoesNotContain("fake-password", diagnostics.ToChat(row), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Picker_uses_a_unique_dom_path_when_the_element_has_no_id()
+    {
+        using var rig = new WebRig(); var surface = rig.OpenLive(WebSurfaceKind.PreviewTab); var view = WebRig.Fake(surface);
+        view.CdpHandler = (method, _, _) => Task.FromResult(method switch
+        {
+            "DOM.describeNode" => "{\"node\":{\"nodeId\":7,\"localName\":\"div\"}}",
+            "DOM.resolveNode" => "{\"object\":{\"objectId\":\"fixture-node\"}}",
+            "Runtime.callFunctionOn" => "{\"result\":{\"value\":\"main > div:nth-of-type(2)\"}}",
+            "DOM.getOuterHTML" => "{\"outerHTML\":\"<div>fixture</div>\"}",
+            "DOM.getBoxModel" => "{\"model\":{\"width\":20,\"height\":20}}",
+            "Page.captureScreenshot" => "{\"data\":\"" + Convert.ToBase64String(FakeWebEngine.OnePixelPng) + "\"}",
+            _ => "{}"
+        });
+        using var picker = new PreviewElementPicker(surface.Cdp!); await picker.SetEnabledAsync(true);
+        view.EmitCdp("Overlay.inspectNodeRequested", "{\"backendNodeId\":7}"); await picker.WhenIdle;
+        Assert.Equal("main > div:nth-of-type(2)", picker.LastPick!.Selector);
+        Assert.Contains(view.CdpCalls, call => call.Method == "Runtime.releaseObject");
     }
 }
