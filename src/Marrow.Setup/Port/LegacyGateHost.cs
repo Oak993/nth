@@ -25,6 +25,7 @@ public sealed partial class LegacyGateHost : IInstallerGateHost
         var host = new LegacyGateHost();
         try
         {
+            host.InstallRoot = Identity().DefaultInstallRoot;
             return InstallerGate.Run(host, Identity(), args);
         }
         catch (Exception error)
@@ -43,6 +44,9 @@ public sealed partial class LegacyGateHost : IInstallerGateHost
     public static string Metadata(string key) =>
         typeof(LegacyGateHost).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().FirstOrDefault(a => a.Key == key)?.Value ?? "";
 
+    /// <summary>The root Setup.exe installs into; unit U5's post-exit steps run there.</summary>
+    public string? InstallRoot { get; set; }
+
     public void ShowMessage(string caption, string text, bool warning) =>
         _ = MessageBoxW(0, text, caption, MbOk | MbSetForeground | (warning ? MbIconWarning : MbIconInformation));
 
@@ -59,6 +63,7 @@ public sealed partial class LegacyGateHost : IInstallerGateHost
             foreach (var argument in arguments) start.ArgumentList.Add(argument);
             using var process = Process.Start(start) ?? throw new InvalidOperationException("Velopack's Setup.exe did not start.");
             process.WaitForExit();
+            if (process.ExitCode == 0 && InstallRoot is { } root) Program.FinishAfterSetupExit(root);
             return process.ExitCode;
         }
         finally

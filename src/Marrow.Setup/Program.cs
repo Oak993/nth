@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security;
 using Avalonia.Threading;
+using Marrow.App.Port;
 using Marrow.Core.Support;
 using Marrow.Setup.Flow;
 using Marrow.Setup.Platform;
@@ -8,7 +9,9 @@ using Marrow.Setup.Port;
 using Marrow.Setup.Screens;
 using Marrow.Setup.Shell;
 using Marrow.Setup.Smoke;
+using Marrow.Setup.Support;
 using Marrow.Setup.Text;
+using Microsoft.Win32;
 
 namespace Marrow.Setup;
 
@@ -89,5 +92,23 @@ public static class Program
     {
         var result = await SignatureCheck.VerifySelfAsync().ConfigureAwait(false);
         Dispatcher.UIThread.Post(() => session.SignatureChecked(result));
+    }
+
+    /// <summary>
+    /// Unit U5 (PLAN.md 8, item 1; 8a): after Velopack's Setup.exe exits 0, Start's AppUserModelID, the desktop shortcut's
+    /// alignment and the uninstall entry, which Velopack writes after the install hook. The real shell and HKCU are bound
+    /// here only (ShellLinksBindingTests). Best effort: Setup.exe succeeded, and nth's start-time self-heal repeats these.
+    /// </summary>
+    internal static void FinishAfterSetupExit(string root)
+    {
+        try
+        {
+            using var shell = new ShellLinks();
+            AfterSetupExit.Run(shell, new RegistryUserHive(Registry.CurrentUser), root, resultPath: null);
+        }
+        catch (Exception)
+        {
+            // Best effort: Setup.exe succeeded, and nth's start-time self-heal repeats these steps.
+        }
     }
 }
