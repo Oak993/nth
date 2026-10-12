@@ -158,6 +158,8 @@ public sealed class PhysicalInputMonitor : IPhysicalInput
 
     public event Action<PcRawInput>? Swallowed;
 
+    public event Action<PcRawInput>? Grabbed;
+
     /// <summary>The hooks should be installed (true) or removed (false): someone keeps the monitor, or no one does.</summary>
     public event Action<bool>? KeepChanged;
 
@@ -362,7 +364,8 @@ public sealed class PhysicalInputMonitor : IPhysicalInput
                 else
                 {
                     lastPointer = input.TimeMs;
-                    if (!input.Swallowed)
+                    // A grab in flight is the user's activity (the gate sees a busy hand) but went to the pill, not to a window.
+                    if (!input.Swallowed && !input.Grabbed)
                     {
                         pointer = input.Point;
                         pointerWindow = input.Window;
@@ -392,6 +395,7 @@ public sealed class PhysicalInputMonitor : IPhysicalInput
         if (changed is { } now) HealthChanged?.Invoke(now);
         if (dirty != 0) Dirty?.Invoke(dirty);
         if (input.Swallowed) Swallowed?.Invoke(input);
+        if (input.Grabbed) Grabbed?.Invoke(input);
         if (origin == PcInputOrigin.User && input.Kind == PcRawKind.Key && input.Down)
         {
             var kind = input.Code == Escape ? PcHookKey.Escape : input.Code != 0 && chords(input.Code) ? PcHookKey.Chord : PcHookKey.Other;

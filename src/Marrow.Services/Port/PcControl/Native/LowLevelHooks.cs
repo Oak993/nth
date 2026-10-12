@@ -44,6 +44,13 @@ public sealed unsafe class PcLowLevelHooks : IDisposable
     private static readonly PcHookCore Core = new();
     private static readonly PcInputRing Ring = new(8192);
 
+    /// <summary>The moving pill's grab zone the mouse callback tests presses against (null: no grab in flight).</summary>
+    public static IPcGrabZone? GrabZone
+    {
+        get => Core.Grab;
+        set => Core.Grab = value;
+    }
+
     private readonly PhysicalInputMonitor monitor;
     private readonly IPcClock clock;
     private readonly ConcurrentQueue<Action> work = new();
@@ -216,6 +223,7 @@ public sealed unsafe class PcLowLevelHooks : IDisposable
             Window = window,
             Focus = focus,
             Swallowed = record.Swallowed,
+            Grabbed = record.Grabbed,
             Repeat = record.Repeat,
             Scan = record.Scan,
             Extended = record.Extended,

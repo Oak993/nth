@@ -21,6 +21,9 @@ public struct PcHookRecord
     public bool Repeat;
     public bool Swallowed;
 
+    /// <summary>A press, its up or a move while it is held that grabbed the moving pill (swallowed only for the press and its up).</summary>
+    public bool Grabbed;
+
     /// <summary>LLKHF_EXTENDED: the right-hand Ctrl and Alt, the arrows and the editing keys (kept for the replay).</summary>
     public bool Extended;
     public byte Modifiers;
@@ -114,6 +117,8 @@ public sealed class PcHookCore : IPcInputHold
     private readonly ulong[] swallowedKeys = new ulong[4];
     private int buttons;
     private int swallowedButtons;
+    private int grabbedButtons;
+    private IPcGrabZone? grab;
     private int heldKeys;
     private int swallowing;
     private int abort;
@@ -135,6 +140,16 @@ public sealed class PcHookCore : IPcInputHold
 
     /// <summary>An auto-repeat of a key held before the hold arrived: the borrow must abort and replay.</summary>
     public bool AbortRequested => Volatile.Read(ref abort) != 0;
+
+    /// <summary>
+    /// The moving pill's grab zone (DESIGN.md 10.3 "Grab in flight"): outside a borrow, a physical mouse press (not pen or
+    /// touch) that lands on it is swallowed with its up, and the records from the press to its up are marked Grabbed.
+    /// </summary>
+    public IPcGrabZone? Grab
+    {
+        get => Volatile.Read(ref grab);
+        set => Volatile.Write(ref grab, value);
+    }
 
     /// <summary>Marks the Tactus chord keys (their codes are recorded); call from any thread.</summary>
     public void Watch(Func<ushort, bool> isChordKey)
@@ -243,9 +258,28 @@ public sealed class PcHookCore : IPcInputHold
         if (kind == PcRawKind.Button && physical && mask != 0)
             buttons = isDown ? buttons | mask : buttons & ~mask;
         swallow = false;
+        var grabbed = false;
         var dx = kind == PcRawKind.Wheel ? wheel : 0;
         var dy = 0;
-        if (Swallowing && !KeysOnly && (physical || extra == 0))
+        if (grabbedButtons != 0 || (physical && kind == PcRawKind.Button && isDown && mask != 0 && !Swallowing && !PcGrabZone.FromPenOrTouch(extra)))
+        {
+            // The grab in flight: a press on the moving pill, its up, and the moves between them belong to the pill's drag.
+            if (kind == PcRawKind.Button && isDown && grabbedButtons == 0 && Grab?.Contains(x, y, time) == true)
+            {
+                grabbedButtons = mask;
+                grabbed = swallow = true;
+            }
+            else if (kind == PcRawKind.Button && !isDown && (grabbedButtons & mask) != 0)
+            {
+                grabbedButtons &= ~mask;
+                grabbed = swallow = true;
+            }
+            else if (grabbedButtons != 0 && kind == PcRawKind.Move && physical)
+            {
+                grabbed = true;
+            }
+        }
+        if (!grabbed && Swallowing && !KeysOnly && (physical || extra == 0))
         {
             switch (kind)
             {
@@ -270,7 +304,7 @@ public sealed class PcHookCore : IPcInputHold
                     break;
             }
         }
-        Count(physical, swallow);
+        Count(physical, swallow && !grabbed);
         if (!swallow)
         {
             // A swallowed move does not move the cursor, so later deltas are measured from the last delivered position.
@@ -284,7 +318,8 @@ public sealed class PcHookCore : IPcInputHold
             Kind = kind,
             Down = isDown,
             Injected = injected,
-            Swallowed = swallow,
+            Swallowed = swallow && !grabbed,
+            Grabbed = grabbed,
             Modifiers = Modifiers(),
             HeldKeys = (byte)Math.Clamp(heldKeys, 0, 255),
             HeldButtons = (byte)buttons,
