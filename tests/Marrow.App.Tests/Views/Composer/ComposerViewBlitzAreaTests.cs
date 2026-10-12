@@ -88,7 +88,8 @@ public sealed class ComposerViewBlitzAreaTests(HeadlessSession headless)
             {
                 Assert.Equal(["a", "c"], Order());
                 AssertGaps();
-                Assert.Equal(3, Stack(area).Children.Count); // two card rows and the group: no row left behind
+                Assert.Equal(3, Stack(area).Children.Count(child => child is not Marrow.App.Views.Chat.TactusStrip)); // two card rows and the group: no row left behind
+                Assert.Single(Stack(area).Children.OfType<Marrow.App.Views.Chat.TactusStrip>()); // OD-0145, ED-NEW-pcctl-27: the one Tactus strip, empty and hidden, sits between them and adds no gap
             });
             Close(h, window);
         });
