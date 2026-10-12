@@ -53,7 +53,7 @@ public sealed class FakeUserRegistry : IUserRegistry
         Seed(key, "DisplayVersion", "1.0.0");
         Seed(key, "InstallDate", "20261011");
         Seed(key, "InstallLocation", root);
-        Seed(key, "Publisher", "nth");
+        Seed(key, "Publisher", "oak993"); // what Velopack writes from --packAuthors (decision A, ED-NEW-inst-merge-7)
         Seed(key, "QuietUninstallString", "\"" + update + "\" --uninstall --silent");
         Seed(key, "UninstallString", "\"" + update + "\" --uninstall");
         Seed(key, "EstimatedSize", currentSizeKb);

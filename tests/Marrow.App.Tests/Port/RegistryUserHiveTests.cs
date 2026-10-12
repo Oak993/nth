@@ -26,7 +26,7 @@ public sealed class RegistryUserHiveTests : IDisposable
         key.SetValue("DisplayName", "nth", RegistryValueKind.String);
         key.SetValue("DisplayVersion", "1.0.1", RegistryValueKind.String);
         key.SetValue("InstallLocation", Root, RegistryValueKind.String);
-        key.SetValue("Publisher", "nth", RegistryValueKind.String);
+        key.SetValue("Publisher", "oak993", RegistryValueKind.String); // Velopack writes --packAuthors (decision A)
         key.SetValue("UninstallString", "\"" + Root + "\\Update.exe\" --uninstall", RegistryValueKind.String);
         key.SetValue("QuietUninstallString", "\"" + Root + "\\Update.exe\" --uninstall --silent", RegistryValueKind.String);
         key.SetValue("EstimatedSize", currentSizeKb, RegistryValueKind.DWord);
