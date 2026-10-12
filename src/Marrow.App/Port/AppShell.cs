@@ -35,6 +35,7 @@ public sealed class AppShell : ITerminationSender
     private readonly Action exit;
     private readonly Action afterWillTerminate;
     private bool terminationPending;
+    private bool terminationFromInstaller;
     private bool terminated;
     private bool mainHooksAttached;
     internal bool HasTerminated => terminated;
@@ -111,6 +112,32 @@ public sealed class AppShell : ITerminationSender
     }
 
     /// <summary>
+    /// PORT-ONLY (nth installer PLAN.md 3a, unit U4, ED-NEW-inst-u4-1): the quit nth Setup asked for over the control pipe. The
+    /// same question as the main window's close control (<see cref="Terminate"/>): a merge going out is waited for. When the quit
+    /// waits it is remembered as the installer's, so <see cref="WithdrawInstallerQuit"/> can call it off. A quit that already
+    /// waits (the user's own close) stays the user's.
+    /// </summary>
+    internal void TerminateForInstaller()
+    {
+        if (terminationPending || terminated) return;
+        Terminate();
+        terminationFromInstaller = terminationPending;
+    }
+
+    /// <summary>
+    /// PORT-ONLY (unit U4): the installer gave up. Calls off a quit that it started and a merge still holds; returns whether it did.
+    /// The app's own wait for the merge (AppDelegate.swift:46-52) goes on until its end, but its late reply finds no quit pending and
+    /// is ignored (<see cref="Reply"/>). The user's own close is never called off by the installer.
+    /// </summary>
+    internal bool WithdrawInstallerQuit()
+    {
+        if (!terminationPending || !terminationFromInstaller) return false;
+        terminationPending = false;
+        terminationFromInstaller = false;
+        return true;
+    }
+
+    /// <summary>
     /// The desktop lifetime's ShutdownRequested: a session end (WM_QUERYENDSESSION, ED-004 (2)). The same question as
     /// <see cref="Terminate"/>: with .terminateNow the request goes on and the lifetime closes the app itself (its Exit
     /// runs <see cref="WillTerminate"/>); with .terminateLater, or while an earlier quit still waits, it is refused and
@@ -140,6 +167,7 @@ public sealed class AppShell : ITerminationSender
     {
         if (!terminationPending) return;
         terminationPending = false;
+        terminationFromInstaller = false;
         if (toApplicationShouldTerminate) exit();
     }
 
