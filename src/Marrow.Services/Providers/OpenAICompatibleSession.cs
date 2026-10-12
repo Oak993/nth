@@ -174,7 +174,8 @@ public class OpenAICompatibleSession : ProviderSession
         Configuration = configuration;
         fileTools = new NativeFileTools(configuration.WorkingDirectory.Path);
         guidance = new ProjectGuidance(configuration.WorkingDirectory.Path);
-        runtimeMode = configuration.RuntimeMode;
+        // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-16): a sealed chat is in the ask mode from the start.
+        runtimeMode = configuration.Sealed is null ? configuration.RuntimeMode : Marrow.Services.Assistant.SealedProviderConfig.CappedMode;
         interactionMode = configuration.InteractionMode;
         currentModel = configuration.Model ?? config.DefaultModel;
         DextraTools = Marrow.Services.Assistant.AssistantNativeTools.For(configuration); // PORT-ONLY (Dextra, ED-NEW-dextra-as4-5): null for a chat that is not Dextra's
@@ -346,7 +347,7 @@ public class OpenAICompatibleSession : ProviderSession
         if (sessionID is null || isStopping) throw new ProviderError(new ProviderError.Case.NotRunning());   // :286
         if (OpenAICompatibleSessionConfig.RequiresAPIKey && ApiKey.Length == 0 && KeyRotation is null) throw new ProviderError(new ProviderError.Case.NotInstalled(OpenAICompatibleSessionConfig.Kind)); // :287; ED-410
         turnAccountRevision = apiAccountRevision;
-        runtimeMode = input.RuntimeMode;             // :288
+        runtimeMode = Configuration.Sealed is null ? input.RuntimeMode : Marrow.Services.Assistant.SealedProviderConfig.CappedMode; // :288; PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-16): a sealed chat stays in the ask mode
         interactionMode = input.InteractionMode;     // :289
         if (input.Model is { Length: > 0 } model) currentModel = ModelForInput(model); // :290; ED-410
         lastEffort = input.Effort; // DEVIATION (OD-0134 Ignis)
@@ -557,10 +558,19 @@ public class OpenAICompatibleSession : ProviderSession
         await Task.CompletedTask;
     }
 
+    /// <summary>PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-16): whether this chat may use the MCP server (a sealed chat: only the listed ones).</summary>
+    internal bool SealAllows(string server) =>
+        Configuration.Sealed is not { } seal || seal.Connections.Any(listed => string.Equals(listed, server, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-16): the hub's tools this chat is offered.</summary>
+    internal IEnumerable<MCPHub.Tool> SealedTools(IEnumerable<MCPHub.Tool> tools) => tools.Where(tool => SealAllows(tool.Server));
+
     // :448-453
     public void ResolveApproval(string requestID, string optionID)
     {
         if (!pendingApprovals.Remove(requestID, out var continuation)) return; // :449
+        // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-16): a sealed (mission) chat keeps no rule: "Approve for turn" is once.
+        if (Configuration.Sealed is not null && optionID == "always") optionID = "allow";
         if (optionID == "always") approveAllRemaining = true; // :450
         continuation.Resume(optionID is "allow" or "always"); // :451
         OnEvent?.Invoke(new ProviderEvent.RequestResolved(requestID)); // :452
@@ -880,7 +890,9 @@ public class OpenAICompatibleSession : ProviderSession
         SanitizeHistory(); // :509
         if (withTools && !didLoadMCPTools) // :510
         {
-            mcpTools = [.. await MCPHub.Shared.Tools()];
+            // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-16): a sealed (mission) chat sees only the servers its assistant's
+            // profile lists (12.1a); any other chat sees every connected server, as before.
+            mcpTools = [.. SealedTools(await MCPHub.Shared.Tools())];
             didLoadMCPTools = true;
         }
         await UseRotationKeyAsync(); // PORT-ONLY (MA-6)
@@ -1546,6 +1558,9 @@ public class OpenAICompatibleSession : ProviderSession
         if (MCPHub.Parse(tool.Name) is { } parsed) // :898
         {
             var (server, name) = (parsed.Server, parsed.Tool);
+            // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-16): a sealed chat cannot call a server its profile does not list,
+            // whatever name the model sends.
+            if (!SealAllows(server)) return $"Error: {server} is not available in this mission chat.";
             OnEvent?.Invoke(new ProviderEvent.ToolStarted(callID, new ToolCall // :899
             {
                 ToolCallKind = ToolCall.Kind.Mcp,
@@ -1866,11 +1881,19 @@ public class OpenAICompatibleSession : ProviderSession
             _ => ApprovalRequest.Kind.Tool,                        // :1066
         };
         var options = new ValueList<ApprovalRequest.Option>( // :1068-1072
-        [
-            new ApprovalRequest.Option("allow", "Approve", ApprovalRequest.Option.Role.Approve),          // :1069
-            new ApprovalRequest.Option("always", "Approve for turn", ApprovalRequest.Option.Role.ApproveAlways), // :1070
-            new ApprovalRequest.Option("decline", "Decline", ApprovalRequest.Option.Role.Decline),         // :1071
-        ]);
+            Configuration.Sealed is null
+                ?
+                [
+                    new ApprovalRequest.Option("allow", "Approve", ApprovalRequest.Option.Role.Approve),          // :1069
+                    new ApprovalRequest.Option("always", "Approve for turn", ApprovalRequest.Option.Role.ApproveAlways), // :1070
+                    new ApprovalRequest.Option("decline", "Decline", ApprovalRequest.Option.Role.Decline),         // :1071
+                ]
+                :
+                [
+                    // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-16): a sealed chat offers no "Approve for turn".
+                    new ApprovalRequest.Option("allow", "Approve", ApprovalRequest.Option.Role.Approve),
+                    new ApprovalRequest.Option("decline", "Decline", ApprovalRequest.Option.Role.Decline),
+                ]);
         OnEvent?.Invoke(new ProviderEvent.Approval(new ApprovalRequest(id, approvalKind, title, options, Detail: detail, ToolItemID: toolItemID))); // :1073
         return await SwiftTask.WithCancellationHandler( // :1074-1081
             () => CheckedContinuation<bool>.With(continuation =>
