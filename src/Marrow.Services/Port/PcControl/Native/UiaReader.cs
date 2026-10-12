@@ -60,7 +60,7 @@ public sealed class UiaReader : IUiaReader, IDisposable
 
     public Task<PcUiaOutcome> Perform(nint window, string runtimeId, PcElementCommand command, CancellationToken cancellationToken) => workers.For(window).Run(() =>
         PerformResolved(() => Find(window, runtimeId, Client().Element), Build,
-            (element, node) => command.Action == PcElementAction.Invoke ? Sacrificial(element, node, command, cancellationToken) : UiaPatterns.Perform(element, node, command),
+            (element, node) => command.Action == PcElementAction.Invoke ? Sacrificial(element, node, command, cancellationToken) : UiaPatterns.Perform(element, node, command, cancellationToken),
             cancellationToken), CallTimeout, cancellationToken);
 
     // The production lookup/build/dispatch sequence, also usable with fake providers without a COM client.
@@ -92,7 +92,7 @@ public sealed class UiaReader : IUiaReader, IDisposable
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                done.TrySetResult(PerformAction(() => UiaPatterns.Perform(element, node, command), cancellationToken));
+                done.TrySetResult(PerformAction(() => UiaPatterns.Perform(element, node, command, cancellationToken), cancellationToken));
             }
             catch (OperationCanceledException) { done.TrySetCanceled(cancellationToken); }
             catch (COMException exception) { done.TrySetException(exception); }
