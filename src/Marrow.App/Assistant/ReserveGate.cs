@@ -15,6 +15,7 @@ public static class ReserveTurns
     public const string Review = "review";
     public const string Redirect = "redirect";
     public const string Resume = "resume";
+    public const string Head = "head";
 }
 
 /// <summary>

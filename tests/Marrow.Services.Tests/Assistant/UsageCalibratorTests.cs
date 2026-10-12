@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Marrow.Core.Port.Assistant;
 using Marrow.Services.Assistant;
+using Marrow.Services.Tests.Fixtures;
 using Marrow.Testing;
 
 namespace Marrow.Services.Tests.Assistant;
@@ -16,28 +17,11 @@ public sealed class UsageCalibratorTests
     private static ReserveWindow Reading(double percent, DateTimeOffset at, DateTimeOffset? resets = null) =>
         new("w", ReserveWindowKind.FiveHour, percent, at, resets ?? T0.AddHours(5));
 
-    // Feeds one interval of `points` points that cost `tokens`, from the current percent, one minute after the last reading.
-    private sealed class Feeder(UsageCalibrator calibrator, ManualTimeProvider clock, string model = "opus")
-    {
-        public double Percent { get; private set; } = 10;
-        public DateTimeOffset At { get; private set; } = clock.GetUtcNow();
-
-        public void Start() => calibrator.Observe(Account, Reading(Percent, At), false);
-
-        public void Interval(double points, double tokens, bool outside = false, string? spentModel = null)
-        {
-            calibrator.Spend(Account, spentModel ?? model, (long)tokens);
-            Percent += points;
-            At = At.AddMinutes(1);
-            calibrator.Observe(Account, Reading(Percent, At), outside);
-        }
-    }
-
-    private static (UsageCalibrator Calibrator, ManualTimeProvider Clock, Feeder Feed) Rig(Func<string, ReserveWindowKind, double>? published = null)
+    private static (UsageCalibrator Calibrator, ManualTimeProvider Clock, CalibrationFeeder Feed) Rig(Func<string, ReserveWindowKind, double>? published = null)
     {
         var clock = new ManualTimeProvider(T0);
         var calibrator = new UsageCalibrator(clock, published);
-        var feeder = new Feeder(calibrator, clock);
+        var feeder = new CalibrationFeeder(calibrator, clock, Account, "opus");
         feeder.Start();
         return (calibrator, clock, feeder);
     }

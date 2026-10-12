@@ -343,6 +343,60 @@ public sealed class ReserveGuardTests : IDisposable
         Assert.Equal(19, rig.Guard.Bars().Single().OutsidePoints, 6);
     }
 
+    // ---- a new agent's first turn ----
+
+    [Fact]
+    public void A_head_whose_account_has_no_room_waits_while_its_mission_is_paused_and_starts_when_the_owner_lets_it_go_on()
+    {
+        using var rig = Rig();
+        rig.Always(30);
+        rig.Read(55);
+        var record = rig.Started();
+        var lead = LeadOf(rig, record);
+        Second(rig);
+        rig.Read(66);                                               // between turns the mission fits (66 + 1.316 + 1 + 1 = 69.3) ...
+        Assert.Null(rig.Card(record));
+        var head = Guid.NewGuid();
+        rig.Missions.Runner.HeadAdded(lead, head, "Tests");
+
+        var admit = rig.Missions.Runner.AdmitHead(head, ProviderKind.Claude);   // ... but a new agent's turn does not (70.29)
+        Assert.False(admit.IsCompleted);
+        var card = Assert.IsType<DecisionItem>(rig.Card(record));
+        var held = rig.Missions.Now(record);
+        Assert.Equal(MissionState.Paused, held.Mission.State);       // (a task with heads pauses by its heads; the lead's own turn goes on)
+        Assert.Equal(PauseCause.Reserve, held.Mission.PausedBy);
+        Assert.Equal(0, rig.Missions.Agents.Of(lead).Interrupts);
+        Assert.NotEqual(HeadState.Working, held.Mission.Heads.Single().State);
+        Assert.False(rig.Missions.Gate.Holds(head));                 // it took no slot and started no chat
+
+        Assert.Null(rig.Pick(card, ReserveOptionKind.UseOnce));      // the owner uses a point of the reserve
+        Assert.True(MissionRig.Within(admit, 10));
+        MissionRig.Until(() => rig.Missions.Now(record).Mission.Heads.Single().State == HeadState.Working, "the head to start");
+        Assert.True(rig.Missions.Gate.Holds(head));
+        Assert.Equal(MissionState.Working, rig.Missions.Now(record).Mission.State);
+    }
+
+    [Fact]
+    public void A_head_that_waits_for_the_reserve_stops_waiting_when_its_mission_is_stopped()
+    {
+        using var rig = Rig();
+        rig.Always(30);
+        rig.Read(55);
+        var record = rig.Started();
+        var lead = LeadOf(rig, record);
+        Second(rig);
+        rig.Read(66);
+        var head = Guid.NewGuid();
+        rig.Missions.Runner.HeadAdded(lead, head, "Tests");
+        var admit = rig.Missions.Runner.AdmitHead(head, ProviderKind.Claude);
+        Assert.False(admit.IsCompleted);
+
+        Assert.Null(rig.Missions.Runner.Stop(record.Id));
+        Assert.True(MissionRig.Within(admit, 10));                    // it no longer waits
+        Assert.NotEqual(HeadState.Working, rig.Missions.Now(record).Mission.Heads.Single().State);
+        Assert.False(rig.Missions.Gate.Holds(head));                  // and it took no slot on its way out
+    }
+
     // ---- the margin, the ledger, the windows ----
 
     [Fact]

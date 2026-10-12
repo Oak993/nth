@@ -342,11 +342,85 @@ public sealed class MissionRunner
     public Task AdmitHelper(Guid helper, ProviderKind provider, CancellationToken token = default) =>
         MissionOf(helper) is { } record ? Admit(record.Id, helper, provider, token) : Task.CompletedTask;
 
-    /// <summary>A head waits at the gate before its chat starts (the same 16-agent cap and memory floor as every agent).</summary>
-    public Task AdmitHead(Guid head, ProviderKind provider, CancellationToken token = default)
+    /// <summary>How often a head that waits on the usage reserve looks again (a new reading, a rule that changed).</summary>
+    public static readonly TimeSpan HeadReserveRecheck = TimeSpan.FromSeconds(5);
+
+    private readonly Dictionary<Guid, List<TaskCompletionSource>> reserveWaiters = [];
+
+    /// <summary>
+    /// A head waits for the usage reserve (11.5: a new agent's first turn is a turn), then at the gate (the same 16-agent cap and
+    /// memory floor as every agent), before its chat starts. A head whose account has no room waits Queued while its mission is
+    /// paused for the reserve; it goes on when the owner's answer lets the mission go on, and stops waiting when the mission is
+    /// stopped or ends.
+    /// </summary>
+    public async Task AdmitHead(Guid head, ProviderKind provider, CancellationToken token = default)
     {
-        if (MissionOf(head) is not { } record) return Task.CompletedTask;
-        return Admit(record.Id, head, provider, token).ContinueWith(_ => OnMain(() => HeadStarted(head)), TaskScheduler.Default);
+        if (MissionOf(head) is not { } record) return;
+        // A mission stopped or ended while the head waited: it takes no slot and starts nothing.
+        if (!await WaitForReserve(record.Id, head, provider, token).ConfigureAwait(false)) return;
+        await Admit(record.Id, head, provider, token).ConfigureAwait(false);
+        OnMain(() => HeadStarted(head));
+    }
+
+    // True when the reserve lets the head start (or there is none); false when the wait was cancelled.
+    private async Task<bool> WaitForReserve(Guid mission, Guid thread, ProviderKind provider, CancellationToken token)
+    {
+        if (Reserve is null) return true;
+        using var cancelled = CancellationTokenSource.CreateLinkedTokenSource(token, LiveOf(mission).Launch.Token);
+        while (!cancelled.IsCancellationRequested)
+        {
+            var allowed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var wake = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            OnMain(() =>
+            {
+                if (Find(mission) is not { } now || Reserve is not { } reserve)
+                {
+                    allowed.SetResult(true);
+                    return;
+                }
+                // Registered before the question, so an answer that lands between the question and the wait is not lost.
+                lock (gate)
+                {
+                    if (!reserveWaiters.TryGetValue(mission, out var list)) reserveWaiters[mission] = list = [];
+                    list.Add(wake);
+                }
+                try { allowed.SetResult(reserve.BeforeTurn(now, thread, provider, now.Model, ReserveTurns.Head)); }
+                catch (Exception error) when (error is not OperationCanceledException) { allowed.SetException(error); }
+            });
+            bool go;
+            try { go = await allowed.Task.ConfigureAwait(false); }
+            catch
+            {
+                ForgetWaiter(mission, wake);
+                throw;
+            }
+            if (go)
+            {
+                ForgetWaiter(mission, wake);
+                return true;
+            }
+            await Task.WhenAny(wake.Task, Task.Delay(HeadReserveRecheck, o.Time, cancelled.Token)).ConfigureAwait(false);
+            ForgetWaiter(mission, wake);
+        }
+        return false;
+    }
+
+    private void ForgetWaiter(Guid mission, TaskCompletionSource wake)
+    {
+        lock (gate)
+        {
+            if (!reserveWaiters.TryGetValue(mission, out var list)) return;
+            list.Remove(wake);
+            if (list.Count == 0) reserveWaiters.Remove(mission);
+        }
+    }
+
+    // The reserve let the mission go on: the heads that waited look again at once.
+    private void WakeReserveWaiters(Guid mission)
+    {
+        List<TaskCompletionSource> waiting;
+        lock (gate) waiting = reserveWaiters.TryGetValue(mission, out var list) ? [.. list] : [];
+        foreach (var wake in waiting) wake.TrySetResult();
     }
 
     private void HeadStarted(Guid head)
@@ -1037,7 +1111,9 @@ public sealed class MissionRunner
         if (record.Mission.PausedBy == PauseCause.Reserve && record.Mission.State is MissionState.Pausing or MissionState.Paused)
         {
             Update(id, r => r with { Mission = r.Mission with { PausedBy = null }, Waiting = null });
-            return Resume(id);
+            var resumed = Resume(id);
+            WakeReserveWaiters(id);
+            return resumed;
         }
         // The owner pressed Resume on a reserve-held task: Resume put it in Needs you and its card was raised again.
         if (record.Mission.State == MissionState.NeedsYou && o.Queue.Of(id).Count == 0)

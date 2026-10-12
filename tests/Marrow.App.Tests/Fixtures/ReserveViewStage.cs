@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Marrow.UI.Port;
 using AvaloniaWindow = Avalonia.Controls.Window;
