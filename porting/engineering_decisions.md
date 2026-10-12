@@ -6264,3 +6264,8 @@ ENGINEERING DECISION. Owner accepted C6-F8 (2026-10-12); ED-NEW-dextra-as2-6. Su
 ## ED-NEW-dextra-cx-9
 
 ENGINEERING DECISION. Owner accepted C6-F9 (2026-10-12); ED-NEW-dextra-as2-6 item 4. TakeWaiters snapshots a drain's waiters without removing field ownership. Only completion of that drain removes and completes those snapshot members under the bus gate. Waiters registered later remain pending for the next drain. Dispose therefore sees every outstanding waiter, including captured ones during a stalled callback, and completes them before returning after its bounded wait. Completion races are idempotent and continuations remain asynchronous. Regression: DextraC6F9Tests.Dispose_completes_a_flush_already_captured_by_the_pump, using bounded barriers and a deterministic clock fixture, failed alone twice at 37fe3e03f.
+
+
+## ED-NEW-dextra-c6c-1
+
+ENGINEERING DECISION. Owner accepted verifier D1 (C6c, 2026-10-12). Keep the F8 reentrant subscription gate unchanged. The regression blocks a running callback, starts an external disposer on a dedicated thread, and observes that thread actually waiting for the join rather than merely scheduled before a call. Signals release the callback and positively prove it ended before Dispose returned; a later publish proves retirement. There are no sleep-based negative assertions. Temporary deletion of the Dispose join and of the Invoke lock are tested separately in this worktree and restored byte-exact before green. This refines ED-NEW-dextra-cx-8 verification, not its semantics.
