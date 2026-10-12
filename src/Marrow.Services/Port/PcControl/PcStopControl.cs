@@ -28,6 +28,9 @@ public sealed class PcStopControl(PcRunControl control, Action? interruptTurns =
     private readonly Lock gate = new();
     private (PcStopPath Path, string? Notice)? last;
 
+    /// <summary>Raised after every stop with its path and scope, before <see cref="Stopped"/> (the chats' rows, unit P28).</summary>
+    public event Action<PcStopPath, PcScope>? StoppedIn;
+
     /// <summary>Raised after every stop, with its path (the pill words its line from it).</summary>
     public event Action<PcStopPath>? Stopped;
 
@@ -71,6 +74,7 @@ public sealed class PcStopControl(PcRunControl control, Action? interruptTurns =
     private void Run(PcStopPath path, PcScope scope, PcStopSource source, string? notice = null)
     {
         control.Stop(scope, source);
+        StoppedIn?.Invoke(path, scope);
         lock (gate) last = (path, notice);
         Stopped?.Invoke(path);
     }

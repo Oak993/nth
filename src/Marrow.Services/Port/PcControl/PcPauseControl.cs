@@ -39,6 +39,12 @@ public sealed record PcPauseStatus(string App, PcPausePhase Phase, PcPauseSource
 }
 
 /// <summary>A pause of one app that has ended: when it began and ended (engine clock).</summary>
+/// <summary>
+/// One Pause or Resume by the user: the apps it changed and the chats it reached, each with the apps of its own it covered
+/// (the chat's rows and its resume, unit P28).
+/// </summary>
+public sealed record PcPauseMove(bool Paused, PcPauseSource Source, IReadOnlyList<string> Apps, IReadOnlyDictionary<string, IReadOnlyList<string>> Chats);
+
 public readonly record struct PcPauseSpan(long StartMs, long EndMs)
 {
     public long LengthMs => EndMs - StartMs;
@@ -81,6 +87,9 @@ public sealed class PcPauseControl : IDisposable
     /// <summary>Raised after the user resumed an app (not after a stop cleared it): the borrow queue re-queues its steps at the back, and the chat may continue (unit P28).</summary>
     public event Action<string, PcPauseSource>? AppResumed;
 
+    /// <summary>Raised after each Pause or Resume that changed an app, once for all its apps, with the chats it reached.</summary>
+    public event Action<PcPauseMove>? Moved;
+
     /// <summary>Pause all is on: an app, window or Hydra head that starts work starts paused.</summary>
     public bool Latched
     {
@@ -115,6 +124,15 @@ public sealed class PcPauseControl : IDisposable
         {
             lock (gate) return used.Count > 0;
         }
+    }
+
+    /// <summary>
+    /// The chats the scope reaches, each with the apps of its own the scope covers: the apps it used this turn and those it
+    /// keeps paused.
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> Chats(PcScope scope)
+    {
+        lock (gate) return ChatsOf(scope, null);
     }
 
     public bool IsPaused(string app)
@@ -374,7 +392,23 @@ public sealed class PcPauseControl : IDisposable
             if (paused) AppPaused?.Invoke(app, source);
             else AppResumed?.Invoke(app, source);
         }
+        IReadOnlyDictionary<string, IReadOnlyList<string>> chats;
+        lock (gate) chats = ChatsOf(PcScope.All, apps);
+        Moved?.Invoke(new PcPauseMove(paused, source, apps, chats));
         Changed?.Invoke();
+    }
+
+    // Under the lock: each chat the scope reaches, with its covered apps: those of only in its order, when given, else by key.
+    private Dictionary<string, IReadOnlyList<string>> ChatsOf(PcScope scope, IReadOnlyList<string>? only)
+    {
+        var chats = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+        foreach (var (thread, apps) in used)
+        {
+            var candidates = only?.Where(apps.Contains) ?? apps.Order(StringComparer.Ordinal);
+            var covered = candidates.Where(app => scope.Covers(thread, app)).ToList();
+            if (covered.Count > 0) chats[thread] = covered;
+        }
+        return chats;
     }
 
     private void Leave(Joined entry)
