@@ -177,6 +177,39 @@ public sealed class WindowPresenceTests(HeadlessSession headless)
         finally { window.Close(); Dispatcher.UIThread.RunJobs(); WindowPresence.TestFactory = null; }
     });
 
+    // ED-NEW-lean-6 (cloak rule): only the shell's cloak hides a window, as FrameClock.AvaloniaFrameSource.HiddenBy (L7); the app's
+    // own cloak (SettingsRise, the boot stage) leaves it seen, so its Nth motion keeps its frames through a warm-up or hand-over.
+    [Fact]
+    public void Only_the_shells_cloak_hides_a_window_and_the_apps_own_cloak_leaves_it_seen() => headless.OnUiThread(() =>
+    {
+        const nint Handle = 0x7B41;
+        var hub = new AmbientWindowState.EventHub((_, _, _, _) => 1, _ => { }, _ => true, _ => throw new InvalidOperationException("the presence takes its own look"));
+        var look = new AmbientWindowState.WindowLook(false, false, []);
+        var window = new Window { Width = 80, Height = 80, Background = Brushes.Black, Content = new Border { Background = Brushes.Black } };
+        WindowPresence.TestFactory = w => new WindowPresence(w, hub, Handle, () => look);
+        void Look(AmbientWindowState.WindowLook next) { look = next; hub.OnEvent(1, 0x8017, Handle, 0, 0, 0, 0); Dispatcher.UIThread.RunJobs(); }
+        try
+        {
+            var before = WindowPresence.Counts;
+            window.Show();
+            var presence = WindowPresence.For(window)!;
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(presence.Seen);
+            Look(new(true, false, [], AppCloakOnly: true));
+            Assert.True(presence.Seen, "the app's own cloak");
+            Assert.Equal((before.Open + 1, before.Seen + 1), WindowPresence.Counts);
+            Assert.False(WindowPresence.Quiet, "a window the app cloaked is not quiet");
+            Look(new(true, false, []));
+            Assert.False(presence.Seen, "the shell's cloak (another virtual desktop)");
+            Assert.Equal((before.Open + 1, before.Seen), WindowPresence.Counts);
+            Look(new(true, false, [], AppCloakOnly: true));
+            Assert.True(presence.Seen, "back to the app's own cloak");
+            Look(new(false, false, []));
+            Assert.True(presence.Seen, "uncloaked");
+        }
+        finally { window.Close(); Dispatcher.UIThread.RunJobs(); WindowPresence.TestFactory = null; }
+    });
+
     [Fact]
     public void Session_lock_and_display_off_pause_the_presence_until_both_end() => headless.OnUiThread(() =>
     {

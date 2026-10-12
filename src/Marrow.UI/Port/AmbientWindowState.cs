@@ -70,7 +70,10 @@ internal sealed class AmbientWindowState : IDisposable
         SetAvailable(window.IsVisible && window.IsActive && window.WindowState != WindowState.Minimized
             && GetForegroundWindow() == hwnd && events.Look(hwnd) is { Cloaked: false, Covered: false });
     }
-    internal static bool Cloaked(nint handle) => DwmGetWindowAttribute(handle, 14, out int value, sizeof(int)) == 0 && value != 0;
+    internal static bool Cloaked(nint handle) => Cloak(handle) != 0;
+
+    /// <summary>The window's DWMWA_CLOAKED flags (0: not cloaked).</summary>
+    internal static int Cloak(nint handle) => DwmGetWindowAttribute(handle, 14, out int value, sizeof(int)) == 0 ? value : 0;
     internal static bool FullyCovered(nint handle) => FullyCovered(handle, null);
 
     /// <summary>
@@ -134,8 +137,10 @@ internal sealed class AmbientWindowState : IDisposable
         events.Unsubscribe(refresh);
     }
 
-    /// <summary>What one look at a window found: cloaked, fully covered, and the processes of the windows covering it.</summary>
-    internal readonly record struct WindowLook(bool Cloaked, bool Covered, uint[] Coverers);
+    /// <summary>What one look at a window found: cloaked, fully covered, and the processes of the windows covering it.
+    /// <paramref name="AppCloakOnly"/>: the cloak is not the shell's (no DWM_CLOAKED_SHELL, 0x2): the app's own (DWM_CLOAKED_APP:
+    /// WindowManager.SettingsCloak, the boot stage, ED-236), a window being composed to be shown (ED-NEW-lean-6 (cloak rule)).</summary>
+    internal readonly record struct WindowLook(bool Cloaked, bool Covered, uint[] Coverers, bool AppCloakOnly = false);
 
     /// <summary>
     /// ED-NEW-lean-6: the process's one set of window-event hooks, shared by every window's ambient state and presence. It
@@ -240,7 +245,7 @@ internal sealed class AmbientWindowState : IDisposable
 
         private static WindowLook LookAt(nint window)
         {
-            if (Cloaked(window)) return new(true, false, []);
+            if (Cloak(window) is var cloak and not 0) return new(true, false, [], (cloak & 0x2) == 0);
             var coverers = new HashSet<uint>();
             var fully = FullyCovered(window, coverers);
             return new(false, fully, fully ? [.. coverers.Order()] : []);
