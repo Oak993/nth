@@ -99,7 +99,7 @@ public sealed class LiveAnswerFlowTests
             Assert.Equal(("savings", LiveViewKind.Ui, "Savings goal", true, 1), (view.Id, view.Kind, view.Title, view.Complete, view.Version));
             Assert.Equal("card \"Savings goal\"\n  state goal = 12000\n  stat \"Goal\" = goal\n", view.Text);
             Assert.Equal((ToolCall.Status.Completed, "Live answers · Savings goal"), (row.Status, row.Title));
-            Assert.Equal("savings", Recorded(host, "savings")!.Id); // the tools' record holds it for ui_update
+            Assert.Equal("savings", Recorded(host, "savings")!.Id); // the tools' store holds it for ui_update
         }
     }
 

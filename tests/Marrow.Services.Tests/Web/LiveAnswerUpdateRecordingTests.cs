@@ -46,7 +46,7 @@ public sealed class LiveAnswerUpdateRecordingTests
             Payload = new ToolPayload { LiveView = new ToolLiveView { Id = "savings", Text = Base, Version = 1, Complete = true, Title = "Savings goal", Lite = lite, State = "{\"goal\":12000,\"monthly\":400}" } },
         })]);
 
-    private static LiveAnswerRecordingTests.Replayed Replay(string provider, IReadOnlyList<ProviderEvent> events, TeachingOutcome outcome, ArtifactHostScope scope, bool lite = false, bool fenced = false)
+    private static LiveReplay Replay(string provider, IReadOnlyList<ProviderEvent> events, TeachingOutcome outcome, ArtifactHostScope scope, bool lite = false, bool fenced = false)
     {
         var script = fenced
             ? events.SelectMany(new ArtifactFenceFilter(Chat, scope.Host, () => (new ArtifactAuthor(provider, null, null), null)).Filter).Cast<object>().ToList()
@@ -54,7 +54,7 @@ public sealed class LiveAnswerUpdateRecordingTests
         return LiveAnswerRecordingTests.Read(script, scope.Host.Live, lite, sim => SetUp(sim, lite));
     }
 
-    private static void CheckUpdatedInPlace(string id, LiveAnswerRecordingTests.Replayed replayed, LiveAnswerHost host)
+    private static void CheckUpdatedInPlace(string id, LiveReplay replayed, LiveAnswerHost host)
     {
         var sim = replayed.Sim;
         Assert.Equal(1, replayed.Rows);
@@ -71,7 +71,7 @@ public sealed class LiveAnswerUpdateRecordingTests
         Assert.Contains("24 months", sim.Texts[0], StringComparison.Ordinal); // the sentence that goes with the change
     }
 
-    private static void CheckReplaced(string id, LiveAnswerRecordingTests.Replayed replayed, LiveAnswerHost host, bool lite)
+    private static void CheckReplaced(string id, LiveReplay replayed, LiveAnswerHost host, bool lite)
     {
         var sim = replayed.Sim;
         Assert.Equal(2, replayed.Rows);
@@ -83,7 +83,7 @@ public sealed class LiveAnswerUpdateRecordingTests
         Assert.Equal(ToolCall.Status.Completed, again.Status);
     }
 
-    private static void CheckWidget(string id, LiveAnswerRecordingTests.Replayed replayed, LiveAnswerHost host)
+    private static void CheckWidget(string id, LiveReplay replayed, LiveAnswerHost host)
     {
         Assert.Equal(2, replayed.Rows); // the earlier view and the widget
         var row = Assert.Single(replayed.Sim.LiveRows, candidate => candidate.View!.Kind == LiveViewKind.Html);

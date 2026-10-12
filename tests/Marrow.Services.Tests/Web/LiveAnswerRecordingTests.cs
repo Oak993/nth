@@ -15,7 +15,7 @@ namespace Marrow.Services.Tests.Web;
 // code, and what the session says is read again by the live-answer flow into the rows the chat shows: a plain question leaves no row,
 // a view question leaves exactly one row that grew while the model wrote and ends complete with the very view it wrote, in the order
 // sentence, row. Claude, Codex and DeepSeek call the tools; the tools run for real (the nth-ui server for the CLI providers, the native
-// tool loop for DeepSeek) and record the view, which binds to the provider's row. Copilot and a Local model write fenced blocks.
+// tool loop for DeepSeek) and make the view, which binds to the provider's row. Copilot and a Local model write fenced blocks.
 // The recordings are Marrow-authored synthetic transcripts (tests/fixtures/web-surfaces/teaching and live); no model provider is called.
 [Collection(OpenAICompatibleSessionCollection.Name)]
 [Trait("Decision", "ED-NEW-web-w24-5")]
@@ -23,11 +23,9 @@ public sealed class LiveAnswerRecordingTests
 {
     internal static readonly Guid Chat = Guid.Parse("7e5b2c44-1a90-4f3d-8c71-0d6a9b3e2f55");
 
-    /// <summary>What a replay made: the rows the chat shows, in order, and the texts of its messages.</summary>
-    internal sealed record Replayed(LiveTimelineSim Sim, int Rows, IReadOnlyList<string> Growth);
 
     /// <summary>Runs the events (and the tools' changes, where the provider's tools run) through the flow, noting how each live row grew.</summary>
-    internal static Replayed Read(IEnumerable<object> script, LiveAnswerHost host, bool lite = false, Action<LiveTimelineSim>? setUp = null)
+    internal static LiveReplay Read(IEnumerable<object> script, LiveAnswerHost host, bool lite = false, Action<LiveTimelineSim>? setUp = null)
     {
         var sim = new LiveTimelineSim();
         setUp?.Invoke(sim);
@@ -43,13 +41,13 @@ public sealed class LiveAnswerRecordingTests
             foreach (var row in sim.LiveRows) if (growth.Count == 0 || growth[^1] != row.View!.Text) growth.Add(row.View!.Text);
         }
         sim.Feed(flow, new ProviderEvent.TurnCompleted(TurnStatus.Completed, null));
-        return new Replayed(sim, sim.LiveRows.Count, growth);
+        return new LiveReplay(sim, sim.LiveRows.Count, growth);
     }
 
     private static string CleanView(string text) => NthUiPatch.Clean(text);
 
     /// <summary>Checks one replay against what its prompt expects.</summary>
-    private static void Check(string provider, TeachingRecording recording, Replayed replayed, string? expectedView, LiveAnswerHost host)
+    private static void Check(string provider, TeachingRecording recording, LiveReplay replayed, string? expectedView, LiveAnswerHost host)
     {
         var id = provider + "/" + recording.Id;
         var sim = replayed.Sim;
@@ -81,7 +79,7 @@ public sealed class LiveAnswerRecordingTests
         Assert.True(sim.Message(order[0]).Trim().Length > 0);
         Assert.DoesNotContain(sim.Texts, text => text.Contains("```", StringComparison.Ordinal) || text.Contains("card \"", StringComparison.Ordinal));
 
-        // The tools' record holds it, so ui_update can find it.
+        // The tools' store holds it, so ui_update can find it.
         Assert.Equal(view.Text.TrimEnd('\n'), host.Find(Chat, view.Id).GetAwaiter().GetResult()?.Text.TrimEnd('\n'));
     }
 

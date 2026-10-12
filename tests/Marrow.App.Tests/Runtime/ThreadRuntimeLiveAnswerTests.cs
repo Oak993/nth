@@ -10,7 +10,7 @@ using Xunit;
 namespace Marrow.App.Tests.Runtime;
 
 // PORT-ONLY: web surfaces W24, live-answer tools (DESIGN.md 7.3, 7.4; ED-NEW-web-w24-5). The thread runtime between a session and its timeline:
-// the events of a session pass through the artifact fallback and then the live-answer flow, the changes the tools record are applied to the rows
+// the events of a session pass through the artifact fallback and then the live-answer flow, the changes the tools make are applied to the rows
 // on the main actor, a row is found again by its view id (after a restart too), and the reader's states are kept on it.
 [Trait("Decision", "ED-NEW-web-w24-5")]
 public sealed class ThreadRuntimeLiveAnswerTests
