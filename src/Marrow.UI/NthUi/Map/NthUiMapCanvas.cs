@@ -353,7 +353,7 @@ public sealed class NthUiMapCanvas : Control
     protected override Size MeasureOverride(Size availableSize)
     {
         var width = double.IsInfinity(availableSize.Width) ? 480 : availableSize.Width;
-        return new Size(width, Math.Clamp(width * .6, 200, 380));
+        return new Size(width, Math.Clamp(width * .56, 200, 360));
     }
 
     protected override Size ArrangeOverride(Size finalSize)
@@ -624,6 +624,15 @@ public sealed class NthUiMapCanvas : Control
         return formatted;
     }
 
+    /// <summary>A stop's label: its name, and its detail under it in a smaller line.</summary>
+    private Size MeasureStop(NthUiMapStop stop)
+    {
+        var name = Measure(stop.Label, NthUiMapLabelKind.Stop);
+        if (stop.Detail is not { Length: > 0 } detail) return name;
+        var small = Measure(detail, NthUiMapLabelKind.City);
+        return new Size(Math.Max(name.Width, small.Width + 10), name.Height + small.Height - 3);
+    }
+
     private Size Measure(string text, NthUiMapLabelKind kind)
     {
         var formatted = Text(text, kind, Colors.Black);
@@ -764,7 +773,7 @@ public sealed class NthUiMapCanvas : Control
             {
                 var anchor = cam.ToScreen(unit.X + k, unit.Y);
                 if (!view.Inflate(40).Contains(anchor)) continue;
-                candidates.Add(new NthUiMapLabelCandidate("stop:" + stop.Key, NthUiMapLabelKind.Stop, stop.Label, anchor, Measure(stop.Label, NthUiMapLabelKind.Stop), 1000 - i, StopRadius));
+                candidates.Add(new NthUiMapLabelCandidate("stop:" + stop.Key, NthUiMapLabelKind.Stop, stop.Label, anchor, MeasureStop(stop), 1000 - i, StopRadius));
             }
         }
         foreach (var country in data.Countries)
@@ -790,7 +799,7 @@ public sealed class NthUiMapCanvas : Control
                 candidates.Add(new NthUiMapLabelCandidate("city:" + place.Rank.ToString(CultureInfo.InvariantCulture), NthUiMapLabelKind.City, place.Name, anchor, Measure(place.Name, NthUiMapLabelKind.City), 300 - place.Rank * .5, CityRadius));
             }
         }
-        placed = NthUiMapLabelPlanner.Place(candidates, view.Deflate(2));
+        placed = NthUiMapLabelPlanner.Place(candidates, view.Deflate(2), RouteObstacles(cam));
         plannedKeys = [.. placed.Select(p => p.Key)];
         var fresh = false;
         foreach (var label in placed)
@@ -804,6 +813,37 @@ public sealed class NthUiMapCanvas : Control
             foreach (var key in labelAlpha.Keys.ToList()) labelAlpha[key] = plannedKeys.Contains(key) ? 1 : 0;
         }
         else if (fresh || labelAlpha.Any(a => plannedKeys.Contains(a.Key) ? a.Value < 1 : a.Value > 0)) Wake();
+    }
+
+    /// <summary>Small boxes along every route's line on screen, which the labels keep off.</summary>
+    private List<Rect> RouteObstacles(NthUiMapCamera cam)
+    {
+        var boxes = new List<Rect>();
+        if (routeFade.Target < .5) return boxes;
+        var view = new Rect(Bounds.Size).Inflate(30);
+        foreach (var path in model.Paths)
+        {
+            if (path.Points.Count < 2) continue;
+            var minX = path.Points.Min(p => p.X);
+            var maxX = path.Points.Max(p => p.X);
+            foreach (var k in Copies(cam, minX, maxX))
+            {
+                var previous = cam.ToScreen(path.Points[0].X + k, path.Points[0].Y);
+                for (var i = 1; i < path.Points.Count && boxes.Count < 600; i++)
+                {
+                    var next = cam.ToScreen(path.Points[i].X + k, path.Points[i].Y);
+                    var length = Distance(previous, next);
+                    var steps = Math.Max(1, (int)Math.Ceiling(length / 7));
+                    for (var s = 0; s <= steps; s++)
+                    {
+                        var at = new Point(previous.X + (next.X - previous.X) * s / steps, previous.Y + (next.Y - previous.Y) * s / steps);
+                        if (view.Contains(at)) boxes.Add(new Rect(at.X - 3.5, at.Y - 3.5, 7, 7));
+                    }
+                    previous = next;
+                }
+            }
+        }
+        return boxes;
     }
 
     private void DrawLabels(DrawingContext context, Palette palette)
@@ -850,7 +890,13 @@ public sealed class NthUiMapCanvas : Control
             var pill = Color.FromArgb((byte)Math.Round(palette.Pill.A * arrival), palette.Pill.R, palette.Pill.G, palette.Pill.B);
             var ink = Color.FromArgb((byte)Math.Round(palette.StopLabel.A * arrival), palette.StopLabel.R, palette.StopLabel.G, palette.StopLabel.B);
             context.DrawRectangle(new ImmutableSolidColorBrush(pill), null, new RoundedRect(label.Box, 6));
-            context.DrawText(Text(label.Text, NthUiMapLabelKind.Stop, ink), new Point(label.Box.X + 5, label.Box.Y + 2));
+            var main = Text(label.Text, NthUiMapLabelKind.Stop, ink);
+            context.DrawText(main, new Point(label.Box.X + 5, label.Box.Y + 2));
+            if (model.Stops.FirstOrDefault(s => s.Key == key)?.Detail is { Length: > 0 } detail)
+            {
+                var second = Color.FromArgb((byte)Math.Round(palette.City.A * arrival), palette.City.R, palette.City.G, palette.City.B);
+                context.DrawText(Text(detail, NthUiMapLabelKind.City, second), new Point(label.Box.X + 5, label.Box.Y + 2 + Math.Ceiling(main.Height) - 3));
+            }
         }
     }
 }

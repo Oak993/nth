@@ -51,12 +51,13 @@ public static class NthUiMapLabelPlanner
     /// <summary>
     /// Places the candidates, highest priority first, inside <paramref name="viewport"/>. Stops are always returned (when none of
     /// their four places is free they take the right-hand one, over whatever is there); every other label is dropped where it
-    /// would overlap a label, a dot or the view's edge.
+    /// would overlap a label, a dot, one of <paramref name="avoid"/> or the view's edge.
     /// </summary>
-    public static IReadOnlyList<NthUiMapPlacedLabel> Place(IEnumerable<NthUiMapLabelCandidate> candidates, Rect viewport)
+    public static IReadOnlyList<NthUiMapPlacedLabel> Place(IEnumerable<NthUiMapLabelCandidate> candidates, Rect viewport, IEnumerable<Rect>? avoid = null)
     {
         var ordered = candidates.OrderByDescending(c => c.Kind == NthUiMapLabelKind.Stop).ThenByDescending(c => c.Priority).ThenBy(c => c.Key, StringComparer.Ordinal).ToList();
-        var taken = new List<Rect>();
+        // What the labels keep off: the routes' lines (a stop with no free place still takes one over them).
+        var taken = avoid is null ? new List<Rect>() : [.. avoid];
         // Every dot is an obstacle from the start, so a label never covers another label's dot.
         foreach (var c in ordered)
         {

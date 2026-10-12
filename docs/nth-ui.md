@@ -310,6 +310,32 @@ map "Lisbon to Paris" zoom=4
   route "By train" via="Lisbon,Madrid,Paris"
 ```
 
+### How the diagram, line art and map are drawn
+
+A `diagram` is drawn natively as vector, in the thread's own light or dark palette. nth reads its Mermaid source as it
+streams and asks its renderer for a drawing at most every fifth of a second, once a whole statement has arrived; a
+statement Mermaid cannot read yet leaves the last drawing in place, and a source that cannot be drawn at the end shows its
+text with a note. "Show source" swaps the drawing for the Mermaid text, and "Copy" copies it. Where no renderer is
+available (no web runtime on the machine) the source shows from the start. The drawing never uses a live web view.
+
+An `svg` is sanitised before anything is drawn. Only shapes (`rect`, `circle`, `ellipse`, `line`, `polyline`, `polygon`,
+`path`), `text` and `tspan`, groups, gradients, markers and `use` of an element of the same picture are kept, with their
+presentation attributes (fill, stroke, opacity, dashes, transforms, fonts). Scripts, `foreignObject`, style sheets,
+images, filters, clips, masks, patterns, animation, event handlers, classes and every address are dropped, and the picture
+is limited to 262,144 characters, 8,000 parts and 32 levels. It scales to fit its room and never stretches. A stroke or a
+text colour that would be lost on the thread (black on dark) is moved along its own hue until it reads: 3 to 1 for strokes,
+4.5 to 1 for text. `currentColor` is the primary text colour.
+
+A `map` draws on a built-in world map (Natural Earth, public domain) that works offline: countries and their borders,
+lakes, labels for countries as the zoom reaches them and for the 300 largest cities. `zoom` is the usual map zoom of the
+first view (0 shows the whole world, 4 about western Europe); the map never zooms deeper than 10, where the built-in data
+stops adding detail, and the view always keeps every stop in sight until the reader moves the map. A `route` names its
+stops by their labels (case and surrounding spaces ignored; a name that is not a stop is skipped) and is drawn along the
+great circles between them, the short way across the date line. The reader pans by dragging, zooms with Ctrl and the wheel,
+the plus and minus buttons or the `+` and `-` keys, moves with the arrow keys, and returns to every stop with the third button
+or Home; "Show as list" shows the stops and routes as a plain list. Street tiles are used only if the reader adds a tile
+source in Settings, since that sends locations to a third party.
+
 ### Editable charts: editable and bind
 
 `chart ... editable=points bind=name` lets the reader drag the chart's points. The chart reads its values from the list

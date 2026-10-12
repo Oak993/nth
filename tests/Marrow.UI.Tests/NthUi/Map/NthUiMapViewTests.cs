@@ -496,7 +496,19 @@ public sealed class NthUiMapViewTests(HeadlessSession headless)
         rig.Capture();
         var labels = canvas.PlacedLabels;
         foreach (var name in new[] { "Lisbon", "Madrid", "Barcelona" }) Assert.Contains(labels, l => l.Kind == NthUiMapLabelKind.Stop && l.Text == name);
-        Assert.Contains(labels, l => l.Kind == NthUiMapLabelKind.Country && l.Text is "Spain" or "Portugal" or "France");
+        // Countries and cities keep off the route's line (a stop in a crowd may have no free place and then takes one over it).
+        var camera = canvas.Camera;
+        var path = rig.ViewOf<NthUiMapView>().Model.Paths.Single();
+        for (var i = 1; i < path.Points.Count; i++)
+        {
+            var a = camera.ToScreen(path.Points[i - 1].X, path.Points[i - 1].Y);
+            var b = camera.ToScreen(path.Points[i].X, path.Points[i].Y);
+            for (var t = 0.0; t <= 1; t += .1)
+            {
+                var at = new Point(a.X + (b.X - a.X) * t, a.Y + (b.Y - a.Y) * t);
+                foreach (var label in labels.Where(l => l.Kind != NthUiMapLabelKind.Stop)) Assert.False(label.Box.Contains(at), $"{label.Text} lies over the route at {at}");
+            }
+        }
         var view = new Rect(canvas.Bounds.Size);
         var others = labels.Where(l => l.Kind != NthUiMapLabelKind.Stop).ToList();
         for (var i = 0; i < others.Count; i++)
@@ -519,6 +531,7 @@ public sealed class NthUiMapViewTests(HeadlessSession headless)
         Assert.Equal(3, canvas.Camera.Zoom, 2);
         var places = NthUiMapData.Shared.Places;
         var cities = canvas.PlacedLabels.Where(l => l.Kind == NthUiMapLabelKind.City).ToList();
+        Assert.Contains(canvas.PlacedLabels, l => l.Kind == NthUiMapLabelKind.Country);
         Assert.True(cities.Count >= 3, "cities are named at zoom 3: " + string.Join(", ", canvas.PlacedLabels.Select(l => l.Kind + ":" + l.Text)));
         Assert.All(cities, city => Assert.True(NthUiMapLabelPlanner.CityZoom(places.First(p => "city:" + p.Rank == city.Key).Rank) <= 3));
         // A step out, only the biggest twelve are named.
@@ -563,36 +576,6 @@ public sealed class NthUiMapViewTests(HeadlessSession headless)
     });
 
     // ---- the tile seam ---------------------------------------------------------------------------------------------------
-
-    private sealed class SolidTiles(Color color, int maxZoom) : INthUiMapTiles
-    {
-        private readonly Avalonia.Media.Imaging.RenderTargetBitmap tile = Make(color);
-
-        public int Asked { get; private set; }
-
-        public int MaxZoom { get; } = maxZoom;
-
-        public string Attribution => "Test tiles";
-
-        public IImage? Tile(int zoom, int x, int y)
-        {
-            Asked++;
-            return tile;
-        }
-
-        public event Action? TilesChanged
-        {
-            add { }
-            remove { }
-        }
-
-        private static Avalonia.Media.Imaging.RenderTargetBitmap Make(Color color)
-        {
-            var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize(256, 256));
-            using (var context = bitmap.CreateDrawingContext(true)) context.FillRectangle(new SolidColorBrush(color), new Rect(0, 0, 256, 256));
-            return bitmap;
-        }
-    }
 
     [Fact]
     [Trait("Decision", "ED-NEW-web-w16c-1")]
