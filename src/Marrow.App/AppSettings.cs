@@ -314,7 +314,7 @@ public sealed partial class AppSettings : MainActorModel, ProviderSettings, Acco
         public const string VoiceHardware = VoiceHardwareRecord.StoreKey;
         public const string VoiceNotes = VoiceNotesSettings.StoreKey;
         public const string WorkingDots = WorkingDotsSettings.StoreKey;
-        public const string GlassLook = GlassSettings.StoreKey; // PORT-ONLY, owner-requested (OD-0107, ED-NEW-glasslook-2)
+        public const string GlassLook = GlassSettings.StoreKey; // PORT-ONLY, owner-requested (OD-0107, OD-0147, ED-NEW-glasslook-2)
     }
 
     // :182
@@ -669,7 +669,8 @@ public sealed partial class AppSettings : MainActorModel, ProviderSettings, Acco
         set => Set(ref workingDots, value, _ => Store(Key.WorkingDots, value.ToJson()));
     }
 
-    /// <summary>PORT-ONLY, owner-requested (OD-0107, ED-NEW-glasslook-2): <c>glassLook</c>, the Glass settings of Customization, held to their
+    /// <summary>PORT-ONLY, owner-requested and owner-approved (OD-0107, OD-0147, ED-NEW-glasslook-2): <c>glass</c> (the approved canvas's settings; the
+    /// earlier <c>glassLook</c> key is not read), the Glass settings of Customization, held to their
     /// ranges and mirrored into the material's tuning (GlassLooks.Tuning) as the theme is into ThemeManager; the store is written through the
     /// coalescer, so a slider's drag writes at most every 250 ms.</summary>
     public GlassSettings Glass

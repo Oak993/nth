@@ -280,6 +280,15 @@ namespace Marrow.UI.Chrome
                             dark: Chrome.PanelControlFill(isDark: true, hovered: state.IsHovered)),
                         animation);
                 }
+                else if (SwiftGlass.IsInsideGlass(fill))
+                {
+                    // OD-0147 (the approved design canvas: no glass on glass): on another glass piece (a sheet, the floating sidebar, the composer)
+                    // the capsule is a control on glass, a glyph or a label with no wash of its own; the material draws it as a flat control, a
+                    // quiet white capsule under the pointer (GlassLooks' Inner surface).
+                    var glass = GlassEffect.Regular(glassShape);
+                    SwiftGlass.SetEffect(fill, IsInteractive ? glass.Interactive() : glass);
+                    paint.Set(SwiftColor.Clear, animation);
+                }
                 else
                 {
                     // :179-182 `.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3))[.interactive()], in: shape)`.
@@ -301,6 +310,7 @@ namespace Marrow.UI.Chrome
             {
                 if (e.Property == RenderBudget.IsOnGlassPanelProperty) Draw(Transaction.Current);
             };
+            host.AttachedToVisualTree += (_, _) => Draw(null); // OD-0147: whether it lies on another glass is known once it is in the tree
             Draw(null);
             return host;
         }

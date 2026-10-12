@@ -431,6 +431,7 @@ public sealed class SubagentPanel : Decorator
 
         shape.Child = content;
         SwiftGlass.SetEffect(shape, GlassEffect.Regular(GlassShape.RoundedRectangle(CornerRadius, RoundedCornerStyle.Continuous))); // :339
+        SwiftGlass.SetCastsOwnShadow(shape, true); // OD-0147: the scrim below casts the panel's one shadow
         // :347-355 The scrim sits under the clipped glass, not around it, and carries the panel's one shadow: a plain filled
         // shape, so its shadow is drawn once and kept (a shadow on the whole panel was blurred again with every streamed token).
         // Unclipped, so the shadow reaches past the panel's edge.

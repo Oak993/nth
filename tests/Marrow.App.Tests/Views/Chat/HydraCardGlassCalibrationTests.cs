@@ -5,6 +5,7 @@ using Avalonia.Headless;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Styling;
+using Avalonia.VisualTree;
 using Marrow.App.Tests.Fixtures;
 using Marrow.UI.Port;
 using Marrow.UI.Theme;
@@ -16,7 +17,15 @@ public sealed class HydraCardGlassCalibrationTests(HeadlessSession headless)
 {
     [Fact]
     [Trait("Req", "PR-HYDRA-229")] // HydraPanel.swift:99-121; Mac frame 18; ED-358 (1),(4)
-    public void The_real_Hydra_card_matches_the_Mac_body_band_and_cast_shadow() => ChatHeadlessFixtures.Run(headless, () =>
+    public void The_real_Hydra_card_matches_the_Mac_body_band_and_cast_shadow() => Measure(release: true);
+
+    [Fact]
+    [Trait("Decision", "OD-0147")] // the shipped canvas card: the canvas's popover glass, its body as continuous across the band (the same steps) and its cast shadow the Mac's (the card casts its own, so the material adds none)
+    public void The_real_Hydra_card_on_the_canvas_glass_keeps_a_continuous_body_and_the_Macs_cast_shadow() => Measure(release: false);
+
+    // OD-0147: the Mac frame's body and band levels are the release material's, so the release case draws the card with the release look; the
+    // canvas case measures the same site with the shipped material and holds every measure that is not the release material's own levels.
+    private void Measure(bool release) => ChatHeadlessFixtures.Run(headless, () =>
     {
         var previous = ThemeManager.Current;
         try
@@ -29,6 +38,10 @@ public sealed class HydraCardGlassCalibrationTests(HeadlessSession headless)
                 try
                 {
                     context.Window.Content = host;
+                    var glass = card.GetVisualDescendants().OfType<Control>().Prepend(card).Where(piece => SwiftGlass.GetEffect(piece) is not null).ToArray();
+                    Assert.NotEmpty(glass);
+                    if (release) foreach (var piece in glass) SwiftGlass.SetEffect(piece, SwiftGlass.GetEffect(piece)!.WithLook(GlassLook.Release));
+                    else Assert.Equal(GlassKind.Popover, GlassLooks.Of(SwiftGlass.GetEffect(glass[0])!).Canvas!.Kind);
                     context.Window.Width = 520; context.Window.Height = 347;
                     context.Window.Background = Brushes.Black;
                     Func<int, int, double> Capture(string tag)
@@ -36,7 +49,7 @@ public sealed class HydraCardGlassCalibrationTests(HeadlessSession headless)
                         for (var i = 0; i < 4; i++) { context.Drain(); context.Window.CaptureRenderedFrame()?.Dispose(); }
                         using var frame = context.Window.CaptureRenderedFrame()!;
                         Directory.CreateDirectory(HydraCardCalibrationSite.Evidence);
-                        frame.Save(Path.Combine(HydraCardCalibrationSite.Evidence, tag + ".png"), new PngBitmapEncoderOptions());
+                        frame.Save(Path.Combine(HydraCardCalibrationSite.Evidence, tag + (release ? "" : "-canvas") + ".png"), new PngBitmapEncoderOptions());
                         var bytes = new byte[frame.PixelSize.Width * frame.PixelSize.Height * 4];
                         var handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
                         try { frame.CopyPixels(new PixelRect(frame.PixelSize), handle.AddrOfPinnedObject(), bytes.Length, frame.PixelSize.Width * 4); }
@@ -78,11 +91,14 @@ public sealed class HydraCardGlassCalibrationTests(HeadlessSession headless)
                         lines.Add($"distance {d}: above {top:F3} vs Mac {above:F3}; beside {side:F3} vs Mac {beside:F3}");
                         if (Math.Abs(top-above) > .025 || Math.Abs(side-beside) > .025) failures.Add(lines[^1]);
                     }
-                    File.WriteAllLines(Path.Combine(HydraCardCalibrationSite.Evidence,"hydra18-headless-real-site.txt"),lines);
-                    Assert.InRange(upper,43.36-2.5,43.36+2.5);
-                    Assert.InRange(lower,42.70-2.5,42.70+2.5);
-                    Assert.InRange(band,43.99-3,43.99+3);
-                    Assert.InRange(Math.Abs(upper-lower),0,2);
+                    File.WriteAllLines(Path.Combine(HydraCardCalibrationSite.Evidence,release ? "hydra18-headless-real-site.txt" : "hydra18-headless-real-site-canvas.txt"),lines);
+                    if (release)
+                    {
+                        Assert.InRange(upper,43.36-2.5,43.36+2.5);
+                        Assert.InRange(lower,42.70-2.5,42.70+2.5);
+                        Assert.InRange(band,43.99-3,43.99+3);
+                        Assert.InRange(Math.Abs(upper-lower),0,2);
+                    }
                     Assert.InRange(topStep,0,3);
                     Assert.InRange(sideStep,0,3);
                     Assert.InRange(cornerStep,0,4);

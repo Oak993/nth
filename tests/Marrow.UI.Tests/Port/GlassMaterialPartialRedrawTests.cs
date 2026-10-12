@@ -39,11 +39,12 @@ public sealed class GlassMaterialPartialRedrawTests(HeadlessSession headless)
         return scene.Pixels();
     }
 
-    private static Border Piece(bool visible = true)
+    private static Border Piece(bool visible = true, GlassLook? look = null)
     {
         var piece = new Border { Background = Brushes.Transparent, Width = 160, Height = 120, HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center, IsVisible = visible };
-        SwiftGlass.SetEffect(piece, GlassEffect.Regular(GlassShape.RoundedRectangle(16, RoundedCornerStyle.Continuous)));
+        var effect = GlassEffect.Regular(GlassShape.RoundedRectangle(16, RoundedCornerStyle.Continuous));
+        SwiftGlass.SetEffect(piece, look is null ? effect : effect.WithLook(look));
         return piece;
     }
 
@@ -55,7 +56,34 @@ public sealed class GlassMaterialPartialRedrawTests(HeadlessSession headless)
     {
         var block = new Border { Width = 40, Height = 30, Background = Brushes.Black, HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center };
+        var piece = Piece(look: GlassLook.Release); // OD-0147: the release material (which a piece that names it still draws); the canvas's below
+
+        using var scene = new Scene(new Pattern { Flat = true }, new Panel { Children = { block, piece } });
+        var before = scene.Pixels();
+        block.Background = Brushes.White;
+        var partial = scene.Pixels();
+        var whole = Whole(scene);
+        var origin = block.TranslatePoint(default, scene.Window)!.Value;
+        var centre = new PixelPoint((int)(origin.X + block.Bounds.Width / 2), (int)(origin.Y + block.Bounds.Height / 2));
+        var lighter = partial(centre.X, centre.Y).G - before(centre.X, centre.Y).G;
+        var at = piece.TranslatePoint(default, scene.Window)!.Value;
+        var area = new PixelRect((int)at.X, (int)at.Y, (int)piece.Bounds.Width, (int)piece.Bounds.Height);
+        var apart = Largest(partial, whole, area, out var apartAt);
+        Assert.True(lighter >= 40 && apart <= 2,
+            $"the glass over the block grew {lighter} levels lighter (at least 40 expected); the piece is {apart} levels from a whole drawing (at {apartAt})");
+    });
+
+    // OD-0147: the same for the shipped canvas material. Its popover frost is wider (1.2 x 32 pt), so the block is twice as large to change the
+    // glass over it by as much; the piece must again be what a whole drawing gives, to 2 levels.
+    [Fact]
+    [Trait("Req", "PR-WIN-180")]
+    [Trait("Decision", "OD-0147")]
+    public void A_change_under_the_canvas_glass_that_only_it_redraws_shows_through_it_as_in_a_whole_drawing() => headless.OnUiThread(() =>
+    {
+        var block = new Border { Width = 80, Height = 60, Background = Brushes.Black, HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center };
         var piece = Piece();
+        Assert.NotNull(GlassLooks.Of(SwiftGlass.GetEffect(piece)!).Canvas);
         using var scene = new Scene(new Pattern { Flat = true }, new Panel { Children = { block, piece } });
         var before = scene.Pixels();
         block.Background = Brushes.White;

@@ -41,6 +41,16 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
         });
     }
 
+    // OD-0125, OD-0147 (ED-NEW-glasslook-4): the locked references are the design's pill over the port's own frame as it was drawn then, every glass at the
+    // release look, and V-T133 compares at the same backdrop. Each glass in the window that names no look of its own is drawn at that look here (the voice
+    // pill keeps its own, the approved design). The shipped canvas composer behind the inline pill has no locked reference of its own (ED-NEW-glasslook-4).
+    private static void ReleaseBackdrop(VoicePillScene scene) => scene.Rig.Main.OnMain(() =>
+    {
+        foreach (var control in Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(scene.Window).OfType<Control>())
+            if (Marrow.UI.Port.SwiftGlass.GetEffect(control) is { Look: null } effect)
+                Marrow.UI.Port.SwiftGlass.SetEffect(control, effect.WithLook(Marrow.UI.Port.GlassLook.Release));
+    });
+
     private static void RunRendered(VoiceComposerRig rig, ComposerView view, Avalonia.Controls.Window window, double seconds)
     {
         for (var k = 0; k < (int)Math.Round(seconds / FrameTime); k++)
@@ -255,6 +265,7 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
             using var motion = new VoicePillMotion();
             var scene = Open(style, diameter, dark, state, scale);
             using var _ = scene;
+            ReleaseBackdrop(scene); // OD-0125: the backdrop the locked references were drawn over
             var (orb, _, _) = Marks(scene);
             var frame = Shot(scene);
             var pillRect = scene.Rig.Main.OnMain(() =>

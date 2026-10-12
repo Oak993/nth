@@ -167,7 +167,9 @@ public sealed class GlassLookTests(HeadlessSession headless)
     public void The_specular_rim_lights_the_top_and_the_bottom_edge(bool light, byte level) => headless.OnUiThread(() =>
     {
         const int left = 40, top = 30;
-        var pixels = Render(Backdrop(level), Piece(GlassShape.Capsule(RoundedCornerStyle.Continuous), left, top, 400, 80), 480, 140, light);
+        // OD-0147: the release material's rim (GlassLook.Release, which a piece that names it still draws); the canvas's light is angled from the
+        // upper left (GlassTuningTests.The_rim_light_is_angled_from_the_upper_left)
+        var pixels = Render(Backdrop(level), Piece(GlassShape.Capsule(RoundedCornerStyle.Continuous), left, top, 400, 80, GlassLook.Release), 480, 140, light);
         const int x = left + 200;
         var topRim = Luma(pixels(x, top)) - Luma(pixels(x, top + 10));
         var bottomRim = Luma(pixels(x, top + 79)) - Luma(pixels(x, top + 69));
@@ -275,20 +277,17 @@ public sealed class GlassLookTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glasslook-1")] // the look table: until the owner approves the canvas, a piece with no look of its own draws the release's frosted rim
+    [Trait("Decision", "ED-NEW-glasslook-1")] // the release look (OD-0147 made the canvas's material every surface's; the release's is a piece's that names it) keeps its frosted rim
     public void A_piece_on_the_release_look_keeps_the_frosted_rim() => headless.OnUiThread(() =>
     {
         const int left = 60, top = 20;
         var shape = GlassShape.Capsule(RoundedCornerStyle.Continuous);
-        var lined = Render(Backdrop(128, Bar(left - 17, 0, 2, 400, 255)), Piece(shape, left, top, 400, 80), 520, 120);
-        var plain = Render(Backdrop(128), Piece(shape, left, top, 400, 80), 520, 120);
+        var lined = Render(Backdrop(128, Bar(left - 17, 0, 2, 400, 255)), Piece(shape, left, top, 400, 80, GlassLook.Release), 520, 120);
+        var plain = Render(Backdrop(128), Piece(shape, left, top, 400, 80, GlassLook.Release), 520, 120);
         var clear = Render(Backdrop(128, Bar(left - 17, 0, 2, 400, 255)), Piece(shape, left, top, 400, 80, Clear), 520, 120);
-        // each look's line against the same look over the plain backdrop: the dark body's gain gives way where a rim is clear (ED-NEW-glasslook-2),
-        // so the clear look's body is not the release's and only its own plain render isolates the line
-        var clearPlain = Render(Backdrop(128), Piece(shape, left, top, 400, 80, Clear), 520, 120);
         const int y = top + 40;
         var frosted = Enumerable.Range(left + 1, 30).Max(x => lined(x, y).G - plain(x, y).G);
-        var sharp = Enumerable.Range(left + 1, 30).Max(x => clear(x, y).G - clearPlain(x, y).G);
+        var sharp = Enumerable.Range(left + 1, 30).Max(x => clear(x, y).G - plain(x, y).G);
         Assert.True(frosted <= 20, $"the release rim lifts the bent line by {frosted} levels (frosted)");
         Assert.True(sharp >= 30, $"and a clear look's by {sharp} (the instrument sees a sharp line)");
     });

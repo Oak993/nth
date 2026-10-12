@@ -20,7 +20,9 @@ public sealed class GlassMaterialPanelLawTests(HeadlessSession headless)
             Width = width, Height = height, CornerRadius = new CornerRadius(radius), Background = Brushes.Transparent,
             HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
         };
-        SwiftGlass.SetEffect(piece, GlassEffect.Regular(GlassShape.RoundedRectangle(radius, RoundedCornerStyle.Continuous)));
+        // OD-0147: the panel law is the release material's (GlassLook.Release, which a piece that names it still draws); the canvas's sheet and
+        // popover are measured by GlassTuningTests
+        SwiftGlass.SetEffect(piece, GlassEffect.Regular(GlassShape.RoundedRectangle(radius, RoundedCornerStyle.Continuous)).WithLook(GlassLook.Release));
         return new GlassScene(new Panel { Background = new SolidColorBrush(Color.FromRgb(27, 27, 27)) }, piece, width + 120, height + 120);
     }
 

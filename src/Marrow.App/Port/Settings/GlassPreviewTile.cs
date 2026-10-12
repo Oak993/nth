@@ -28,7 +28,6 @@ internal sealed class GlassPreviewTile : Decorator
         // the bands: the warm and cool ends of a wallpaper, so the fringe's red and blue show at the bezel
         scene.Children.Add(new Border
         {
-            CornerRadius = new CornerRadius(12),
             Background = new LinearGradientBrush
             {
                 StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative),
@@ -38,7 +37,7 @@ internal sealed class GlassPreviewTile : Decorator
                     new GradientStop(Color.FromRgb(0x3E, 0xC6, 0xA8), 0.62), new GradientStop(Color.FromRgb(0x4F, 0x6B, 0xFF), 1),
                 },
             },
-        });
+        }.RoundedRectangle(12, RoundedCornerStyle.Continuous));
         // the lines: straight edges the bezel visibly bends
         for (var i = 0; i < 9; i++)
             scene.Children.Add(new Border

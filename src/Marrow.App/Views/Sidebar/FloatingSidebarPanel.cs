@@ -89,6 +89,7 @@ public sealed class FloatingSidebarPanel : Decorator
         UpdateTheme();
         ActualThemeVariantChanged += (_, _) => UpdateTheme();
         SwiftGlass.SetEffect(surface, GlassEffect.Regular(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous))); // :90
+        SwiftGlass.SetSurface(surface, GlassSurface.Sidebar); // OD-0147: drawn as the canvas's sidebar glass (Translucent sidebar)
 
         var panel = new Grid
         {

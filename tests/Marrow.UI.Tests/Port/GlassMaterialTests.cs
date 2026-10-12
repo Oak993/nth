@@ -155,7 +155,7 @@ public sealed class GlassMaterialTests(HeadlessSession headless)
         // ED-356 changed the design this test measured (P1's light from the bottom right, a dark inner shade at the top left): the Mac frames
         // (the composer pill, the title capsules) show the rim brightest at the top, bright at the bottom, faint at the sides, and a light inner edge under
         // the top rim, not a shade. The rim is now each edge's first pixel; the old points (138 and 27) lie 1.5 and 7.5 pt in.
-        using var scene = new Scene(new Pattern { Flat = true }, Surface(GlassShape.RoundedRectangle(16, RoundedCornerStyle.Continuous)));
+        using var scene = new Scene(new Pattern { Flat = true }, Surface(GlassShape.RoundedRectangle(16, RoundedCornerStyle.Continuous), GlassLook.Release));
         var pixels = scene.Pixels();
         var centre = pixels(128, 80).R;
         Assert.True(pixels(128, 20).R > centre + 8, "The light-facing (top) rim must pick up a specular highlight.");
@@ -167,7 +167,7 @@ public sealed class GlassMaterialTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-180")] // UI/Chrome/Chrome.swift:179-182; addendum edge refraction; ED-356 bend 40 / fall-off 11 (rizzytoday's map)
     public void EdgeRefractionBendsABroadGradientOutward() => headless.OnUiThread(() =>
     {
-        using var scene = new Scene(new Pattern { Gradient = true }, Surface(GlassShape.RoundedRectangle(16, RoundedCornerStyle.Continuous)));
+        using var scene = new Scene(new Pattern { Gradient = true }, Surface(GlassShape.RoundedRectangle(16, RoundedCornerStyle.Continuous), GlassLook.Release));
         var pixels = scene.Pixels("glass-material-refraction.png");
         // An affine gradient survives blur. ED-356 replaced the 0.18 dark frost (alone ~50/~170 here, the old thresholds 42/180) with
         // glass-g3's gain law (c + 0.95 c (1 - c)^2): undisplaced it gives 86 at x 54, 210 at x 201 and 158 in the middle.
@@ -181,7 +181,7 @@ public sealed class GlassMaterialTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-180")] // UI/Chrome/Chrome.swift:165 Capsule; ThreadChangesTab.swift:15,38 top-only corners
     public void UnevenCornersAreKeptAndVisibilityRemovesTheUnderlay() => headless.OnUiThread(() =>
     {
-        var glass = Surface(GlassShape.RoundedRectangle(12, RoundedCornerStyle.Continuous));
+        var glass = Surface(GlassShape.RoundedRectangle(12, RoundedCornerStyle.Continuous), GlassLook.Release); // OD-0147: the canvas's shadow darkens the cut corner
         glass.CornerRadius = new CornerRadius(12, 12, 0, 0);
         using var scene = new Scene(new Pattern { Flat = true }, glass);
         var pixels = scene.Pixels();
@@ -198,8 +198,9 @@ public sealed class GlassMaterialTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-180")] // App/Views/Composer/ComposerView.swift:23 spacing 8; ChatView.swift:1123/DiffInspector.swift:25 spacing 2
     public void ContainerSpacingDeterminesWhetherNearbyGlassJoins(double spacing, bool joins) => headless.OnUiThread(() =>
     {
-        var left = Surface(GlassShape.RoundedRectangle(16, RoundedCornerStyle.Continuous));
-        var right = Surface(GlassShape.RoundedRectangle(16, RoundedCornerStyle.Continuous));
+        // OD-0147: the release material, whose gap shows the pattern untouched (the canvas's shadow darkens it); the joining is the same for both
+        var left = Surface(GlassShape.RoundedRectangle(16, RoundedCornerStyle.Continuous), GlassLook.Release);
+        var right = Surface(GlassShape.RoundedRectangle(16, RoundedCornerStyle.Continuous), GlassLook.Release);
         left.Width = right.Width = 76;
         left.HorizontalAlignment = right.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
         left.Margin = new Thickness(48, 0, 0, 0);
@@ -411,12 +412,14 @@ public sealed class GlassMaterialTests(HeadlessSession headless)
         Assert.False(SynchronisationRequested(container), "and the request is spent");
     });
 
-    private static Border Surface(GlassShape shape)
+    // OD-0147: a test that measures the release material's own design (its rim, its bend, its contact line) names it (GlassLook.Release), which a
+    // piece that names it still draws; the shipped canvas material is measured by GlassTuningTests.
+    private static Border Surface(GlassShape shape, GlassLook? look = null)
     {
         // :171 shape.fill(.clear): give the fixture the source's clear hit area for pointer tests.
         var glass = new Border { Background = Brushes.Transparent, Width = 160, Height = 120, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center };
-        SwiftGlass.SetEffect(glass, GlassEffect.Regular(shape));
+        SwiftGlass.SetEffect(glass, look is null ? GlassEffect.Regular(shape) : GlassEffect.Regular(shape).WithLook(look));
         return glass;
     }
 

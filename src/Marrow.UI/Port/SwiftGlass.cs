@@ -107,11 +107,23 @@ public static class SwiftGlass
     public static readonly AttachedProperty<double?> ContainerSpacingProperty =
         AvaloniaProperty.RegisterAttached<Control, double?>("ContainerSpacing", typeof(SwiftGlass));
 
+    /// <summary>OD-0147: the surface a piece's glass is on when its effect names none, kept beside the effect so the effect stays the source's own
+    /// .glassEffect value (the floating sidebar's .regular is drawn as the canvas's sidebar glass).</summary>
+    public static readonly AttachedProperty<GlassSurface?> SurfaceProperty =
+        AvaloniaProperty.RegisterAttached<Control, GlassSurface?>("Surface", typeof(SwiftGlass));
+
+    /// <summary>OD-0147: the piece casts its own shadow (the source's .shadow on a scrim or a sheet's designed shadow), so the material draws none of
+    /// its own past the edge (the canvas's drop and contact shadows); one shadow, the design's, not two.</summary>
+    public static readonly AttachedProperty<bool> CastsOwnShadowProperty =
+        AvaloniaProperty.RegisterAttached<Control, bool>("CastsOwnShadow", typeof(SwiftGlass));
+
     static SwiftGlass()
     {
         EffectProperty.Changed.AddClassHandler<Control>((control, _) => GlassMaterial.Attach(control));
         UsesDesktopBackdropProperty.Changed.AddClassHandler<Control>((control, _) => GlassMaterial.Attach(control));
         ContainerSpacingProperty.Changed.AddClassHandler<Control>((control, _) => GlassMaterial.Attach(control));
+        SurfaceProperty.Changed.AddClassHandler<Control>((control, _) => GlassMaterial.Attach(control));
+        CastsOwnShadowProperty.Changed.AddClassHandler<Control>((control, _) => GlassMaterial.Attach(control));
     }
 
     public static GlassEffect? GetEffect(Control control) => control.GetValue(EffectProperty);
@@ -122,6 +134,20 @@ public static class SwiftGlass
     public static void SetUsesDesktopBackdrop(Control control, bool value) => control.SetValue(UsesDesktopBackdropProperty, value);
     public static double? GetContainerSpacing(Control control) => control.GetValue(ContainerSpacingProperty);
     public static void SetContainerSpacing(Control control, double? spacing) => control.SetValue(ContainerSpacingProperty, spacing);
+    public static GlassSurface? GetSurface(Control control) => control.GetValue(SurfaceProperty);
+    public static void SetSurface(Control control, GlassSurface? surface) => control.SetValue(SurfaceProperty, surface);
+    public static bool GetCastsOwnShadow(Control control) => control.GetValue(CastsOwnShadowProperty);
+    public static void SetCastsOwnShadow(Control control, bool value) => control.SetValue(CastsOwnShadowProperty, value);
+
+    /// <summary>OD-0147 (no glass on glass): whether <paramref name="control"/> lies inside another glass piece: a visual ancestor with a glass
+    /// effect of its own that is not the desktop's backdrop. What lies on glass is a control on glass (GlassSurface.Inner): a glyph or a label
+    /// with a quiet capsule under the pointer, no glass of its own.</summary>
+    public static bool IsInsideGlass(Control control)
+    {
+        for (var v = Avalonia.VisualTree.VisualExtensions.GetVisualParent(control); v is not null; v = Avalonia.VisualTree.VisualExtensions.GetVisualParent(v))
+            if (v is Control c && GetEffect(c) is not null && !GetUsesDesktopBackdrop(c)) return true;
+        return false;
+    }
 
     // Native SwiftUI .buttonStyle(.glass/.glassProminent), using the port's existing capsule recipe.
     // ModelsSettingsPage.swift:334-337; HydraCookbookPanel.swift:120-127. Native metrics UNVERIFIED (OD-0001).

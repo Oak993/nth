@@ -4,6 +4,8 @@
 // ED-356: the material is translucent (it keeps the alpha of what lies under it), lifts the colour under it, and has an edge:
 // a specular rim on every side (the top brightest), a light inner edge, a contact line, a refraction bend and a colour fringe sized by the
 // piece. The numbers below are the design's own (GlassMaterial.Optics, GlassMaterial.Film), measured on the headless renderer.
+// OD-0147 (the owner approved the Glass UI canvas, 2026-10-11): the shipped glass is the canvas's material; this design is the release material,
+// which a piece that names it (GlassLook.Release) still draws, and every piece here names it. The canvas's is measured by GlassTuningTests.
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
@@ -31,7 +33,7 @@ public sealed class GlassMaterialLiquidLookTests(HeadlessSession headless)
             Margin = double.IsNaN(left) ? default : new Thickness(left, 0, 0, 0),
         };
         if (shape.Kind == GlassShapeKind.RoundedRectangle) piece.CornerRadius = new CornerRadius(shape.CornerRadius ?? 0);
-        SwiftGlass.SetEffect(piece, GlassEffect.Regular(shape));
+        SwiftGlass.SetEffect(piece, GlassEffect.Regular(shape).WithLook(GlassLook.Release)); // OD-0147: this file measures the release material (ED-356)
         return piece;
     }
 
@@ -167,7 +169,7 @@ public sealed class GlassMaterialLiquidLookTests(HeadlessSession headless)
         var flat = () => new Panel { Background = new SolidColorBrush(Color.FromRgb(128, 128, 128)) };
         var other = Render(flat(), Piece(Panel, 160, 120), Brushes.Black);
         var quiet = Piece(Panel, 160, 120);
-        SwiftGlass.SetEffect(quiet, GlassEffect.Regular(Panel).WithoutContactLine());
+        SwiftGlass.SetEffect(quiet, GlassEffect.Regular(Panel).WithoutContactLine().WithLook(GlassLook.Release));
         var plain = Render(flat(), quiet, Brushes.Black);
         // The instrument: the same glass without the flag still has its dark line at the side (the test above), and the pixel beside it is the backdrop alone.
         Assert.True(other(47, 80).G <= 128 - 50, $"other glass keeps the contact line {other(47, 80)}");

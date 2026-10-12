@@ -5,6 +5,7 @@ using Avalonia.Headless;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
 using Marrow.Testing;
@@ -33,6 +34,7 @@ public sealed class TimelineMinimapFrameTests(HeadlessSession headless)
     private static TimelineMinimapEntry Entry(string id, double weight) => new() { Id = id, Title = id, Snippet = "", Weight = weight };
     private static void Hover(TimelineMinimapRail rail, string? id) => typeof(TimelineMinimapRail)
         .GetMethod("SetHovered", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(rail, [id]);
+    private static Control[] Cards(TimelineMinimapRail rail) => rail.GetVisualDescendants().OfType<Control>().Where(control => SwiftGlass.GetEffect(control) is not null).ToArray();
     private static void Step(TestRuntime runtime, ManualFrameSource frames, int milliseconds)
     {
         runtime.AdvanceMilliseconds(milliseconds);
@@ -103,6 +105,9 @@ public sealed class TimelineMinimapFrameTests(HeadlessSession headless)
             // C 177.60-178.20: a pointer on one tick: the hovered one 26 wide and ink, every other 2 wider (the lit one stays 26) and lifted to 0.34.
             Hover(rail, "long3");
             Step(runtime, frames, 1000);
+            // OD-0147: the frame's hovered tick is read beside the release preview card and its shadow; the shipped canvas card is the case below
+            foreach (var card in Cards(rail)) SwiftGlass.SetEffect(card, SwiftGlass.GetEffect(card)!.WithLook(GlassLook.Release));
+            Step(runtime, frames, 16);
             using (var hovered = Capture(window))
             {
                 var (hoveredWidth, hoveredStrength, _) = Tick(hovered, First + 30, windowColour);
@@ -146,6 +151,43 @@ public sealed class TimelineMinimapFrameTests(HeadlessSession headless)
                 Assert.Equal(0.95, buttons[3].Opacity);
             }
             finally { lightWindow.Content = null; lightWindow.Close(); }
+        }
+        finally { window.Content = null; window.Close(); Dispatcher.UIThread.RunJobs(); ThemeManager.Current = previousTheme; }
+    });
+
+    [Fact]
+    [Trait("Decision", "OD-0147")] // the shipped canvas preview card (the canvas's popover glass, whose shadow falls on the rail): with it set aside the hovered tick is the frame's, 26 wide at 0.77 to 0.83
+    public void Beside_the_canvas_preview_card_the_hovered_tick_is_the_frames_own() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        var previousTheme = ThemeManager.Current;
+        ThemeManager.Current = AppTheme.Monokai;
+        var entries = Enumerable.Range(0, 16).Select(i => Entry("long" + i, 1)).Append(Entry("lit", 1)).Concat(Enumerable.Range(0, 9).Select(i => Entry("short" + i, 0.15))).ToArray();
+        var rail = new TimelineMinimapRail(entries, 400, "lit", (_, _) => { });
+        var windowColour = new SKColor(38, 68, 59);
+        var window = new Avalonia.Controls.Window
+        {
+            Width = 80, Height = 400, RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark,
+            Background = new SolidColorBrush(Color.FromRgb(windowColour.Red, windowColour.Green, windowColour.Blue)), Content = rail,
+        };
+        window.Show();
+        try
+        {
+            Dispatcher.UIThread.RunJobs();
+            const int First = 74;
+            Hover(rail, "long3");
+            Step(runtime, frames, 1000);
+            var cards = Cards(rail);
+            Assert.NotEmpty(cards);
+            Assert.All(cards, card => Assert.Equal(GlassKind.Popover, GlassLooks.Of(SwiftGlass.GetEffect(card)!).Canvas!.Kind));
+            foreach (var card in cards) card.IsVisible = false;
+            Step(runtime, frames, 16);
+            using var hovered = Capture(window);
+            var (hoveredWidth, hoveredStrength, _) = Tick(hovered, First + 30, windowColour);
+            Assert.Equal(26, hoveredWidth);
+            Assert.InRange(hoveredStrength, 0.77, 0.83); // the frame's 0.79; the label colour at 0.95 is 0.81
         }
         finally { window.Content = null; window.Close(); Dispatcher.UIThread.RunJobs(); ThemeManager.Current = previousTheme; }
     });
