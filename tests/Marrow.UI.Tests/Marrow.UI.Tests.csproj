@@ -21,6 +21,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- W16a: the thirty nth-ui samples of the language tests drive the renderer tests too (ED-NEW-web-w16a-1). -->
+    <Compile Include="..\Marrow.Core.Tests\Fixtures\NthUiSamples.cs" Link="Fixtures\NthUiSamples.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Marrow.Testing\Marrow.Testing.csproj" />
     <ProjectReference Include="..\..\src\Marrow.UI\Marrow.UI.csproj" />
     <ProjectReference Include="..\..\src\Marrow.Core\Marrow.Core.csproj" />
