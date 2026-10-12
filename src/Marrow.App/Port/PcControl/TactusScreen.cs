@@ -12,6 +12,8 @@
 // back" replays the kept keys and says so, the mark's ring fills each frame from the gate's stillness (HandsRing) while
 // the hands-off request shows, a new request plays the soft sound when Settings has it on, and the stop chord's checks
 // show and clear "Stop key is taken".
+// The chat bridge (ED-NEW-pcctl-39): Open chat puts the card's draft in the chat's composer first; Send to chat sends it as the
+// user's message (ITactusChatInbox), or, when it cannot go, leaves it in the composer and opens the chat.
 using Marrow.Core.Port.PcControl;
 using Marrow.Core.Port.PcControl.Pill;
 using Marrow.App.Port.PcControl.Overlay;
@@ -63,6 +65,9 @@ public sealed class TactusScreenParts
 
     /// <summary>Opens a chat at its asks (thread id, the card's draft when there is one).</summary>
     public Action<string, string?>? OpenChat { get; init; }
+
+    /// <summary>The card's draft into a chat's composer (Open chat) or sent there (Send to chat); none: the chat only opens.</summary>
+    public ITactusChatInbox? Inbox { get; init; }
 
     /// <summary>The soft sound of a new hands-off request ("Sound when Tactus needs a moment"); none: silent.</summary>
     public Action? Chime { get; init; }
@@ -352,9 +357,21 @@ public sealed class TactusScreen : IDisposable
         parts.Save(assembly.Settings with { PillMonitor = monitorId, PillMonitorName = parts.Map.ById(monitorId)?.Name });
     }
 
-    private void OnOpenChat(string thread, string id, string? draft) => parts.OpenChat?.Invoke(thread, draft);
+    // Open chat: the card's draft goes into that chat's composer, then the chat opens (ED-NEW-pcctl-39).
+    private void OnOpenChat(string thread, string id, string? draft)
+    {
+        if (draft is { Length: > 0 }) parts.Inbox?.Carry(thread, draft);
+        parts.OpenChat?.Invoke(thread, draft);
+    }
 
-    private void OnSendToChat(string thread, string text) => parts.OpenChat?.Invoke(thread, text);
+    // Send to chat: the draft goes out as the user's message. When it cannot (the chat gone or reverting, or no inbox), it
+    // waits in the chat's composer and the chat opens, so nothing typed is lost.
+    private void OnSendToChat(string thread, string text)
+    {
+        if (parts.Inbox?.Send(thread, text) == true) return;
+        parts.Inbox?.Carry(thread, text);
+        parts.OpenChat?.Invoke(thread, text);
+    }
 
     private void OnPauseKeyProblem(PcChordProblem problem) => parts.Feed.PauseKeyTaken();
 

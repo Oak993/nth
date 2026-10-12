@@ -5,7 +5,8 @@
 // activation, the reply field's focus, the hand-back), the pointers, the user's pointer and buttons (the hooks', else
 // GetCursorPos and GetAsyncKeyState), the auto-dodge (window events, caption buttons and the top taskbar, read off the UI
 // thread) and the full-screen watch as the pill's shade (another monitor, or the dot), and the app's own calls (Settings at
-// Tactus, a chat opened at its asks). Never run by automated tests; the composition's tests bind fakes through TactusHost.Screen.
+// Tactus, a chat opened at its asks, the card's draft put in a chat's composer or sent there: TactusChatInbox over the
+// main window's chats, ED-NEW-pcctl-39). Never run by automated tests; the composition's tests bind fakes through TactusHost.Screen.
 using Avalonia.Threading;
 using Marrow.App.Port.PcControl.Overlay;
 using Marrow.Core.Port;
@@ -86,6 +87,7 @@ internal static class TactusScreenDesktop
             Now = Now,
             OpenSettings = () => MainActor.Post(() => Marrow.App.Window.WindowManager.Shared.ShowSettings(Marrow.App.Views.Settings.SettingsPage.PcControl)),
             OpenChat = OpenChat,
+            Inbox = new TactusChatInbox(ChatOf),
             Chime = TactusChime.Play,
             KeyboardToCard = () =>
             {
@@ -101,7 +103,7 @@ internal static class TactusScreenDesktop
         });
     }
 
-    // A chat opened at its asks; the card's draft is not put in the chat's composer yet (ED-NEW-pcctl-32 item 6).
+    // A chat opened at its asks (the card's draft is already in its composer: TactusScreen asks the inbox first).
     private static void OpenChat(string thread, string? draft)
     {
         if (!Guid.TryParse(thread, out var id)) return;
@@ -111,6 +113,13 @@ internal static class TactusScreenDesktop
             windows.ShowMain();
             windows.Model.SelectedThreadID = id;
         });
+    }
+
+    // A chat's runtime while the chat exists (the main window's model; on the UI thread, the main actor).
+    private static Marrow.App.Runtime.ThreadRuntime? ChatOf(Guid id)
+    {
+        var model = Marrow.App.Window.WindowManager.Shared.Model;
+        return model.Thread(id) is null ? null : model.Runtime(id);
     }
 
     private sealed class Releasing(Action release) : IDisposable
