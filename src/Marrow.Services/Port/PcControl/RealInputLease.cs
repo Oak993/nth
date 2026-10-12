@@ -532,14 +532,19 @@ public sealed class RealInputLease
         ? new PcBorrowOutcome(PcBorrowStatus.Failed, "the borrow ran past its hold cap; Tactus let go") { Code = PcErrorCode.Timeout }
         : new PcBorrowOutcome(PcBorrowStatus.Failed, "Windows did not take all of the input");
 
-    // One array, under the send lock, only while the borrow is not finished; the ups it owes are tracked before it goes.
+    // One array under the send lock. Provisional downs protect reentrant release; only accepted ups clear them.
     private bool Send(Loan borrow, IReadOnlyList<PcInputEvent> events)
     {
         lock (borrow.SendGate)
         {
             if (borrow.Finished || borrow.Permitted?.Invoke() == false || borrow.MonitorLost || !input.Snapshot().Healthy) return false;
-            borrow.Pressed.Track(events);
+            // ED-NEW-pcctl-cx-23: an unaccepted UP must not erase a release owed by an earlier DOWN.
+            var downs = events.Select(e => e.Kind == NativeKind.Mouse
+                ? e with { Flags = e.Flags & ~(PcInputPlan.LEFTUP | PcInputPlan.RIGHTUP | PcInputPlan.MIDDLEUP | PcBorrowEvents.XUP) } : e)
+                .Where(e => e.Kind != NativeKind.Key || (e.Flags & PcInputPlan.KEY_UP) == 0).ToList();
+            borrow.Pressed.Track(downs);
             var accepted = host.Send(events, borrow.Tag);
+            if (!borrow.Finished) borrow.Pressed.Track(events.Take(accepted).ToList());
             if (accepted > 0) actionSent.Value?.Invoke(events.Take(accepted).Count(e => e.Kind == NativeKind.Key
                 && (e.Flags & PcInputPlan.KEY_UNICODE) != 0 && (e.Flags & PcInputPlan.KEY_UP) == 0));
             return accepted == events.Count;

@@ -52,7 +52,7 @@ public sealed class C3cV12Tests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task Grant_removed_after_drag_down_reports_the_sent_action_and_releases_the_button(bool partial)
+    public async Task Grant_removed_after_first_drag_array_preserves_outcome_and_attempts_release(bool partial)
     {
         var rig = new C3cR4TextRig();
         rig.Harness.Approver.Standings[("mspaint.exe", PcCapability.Act)] = PcApproval.Always;
@@ -72,6 +72,10 @@ public sealed class C3cV12Tests
         Assert.Contains("grant was then removed", result.Body, StringComparison.Ordinal);
         Assert.Contains(rig.Borrow.Host.Sent.SelectMany(x => x.Events), e => (e.Flags & PcInputPlan.LEFTDOWN) != 0);
         Assert.Contains(rig.Borrow.Host.Sent.SelectMany(x => x.Events), e => (e.Flags & PcInputPlan.LEFTUP) != 0);
+        var acceptedFirst = rig.Borrow.Host.Accepted[0].Events;
+        Assert.Contains(acceptedFirst, e => (e.Flags & PcInputPlan.MOVE) != 0);
+        if (partial) Assert.DoesNotContain(acceptedFirst, e => (e.Flags & PcInputPlan.LEFTDOWN) != 0);
+        else Assert.Contains(acceptedFirst, e => (e.Flags & PcInputPlan.LEFTDOWN) != 0);
         Assert.False(rig.Borrow.Hold.Swallowing);
     }
     [Fact]
@@ -98,7 +102,7 @@ public sealed class C3cV12Tests
         rig.Borrow.Host.OnSend = events => { send(events); rig.Borrow.CardUp = true; };
         using var engine = rig.Harness.Engine();
         var action = PcEngineHarness.Call(engine, "pc_type", "{\"window\":\"w:200\",\"target\":{\"name\":\"Text editor\"},\"text\":\"" + new string('a', 200) + "\"}");
-        await PcTestWait.Until(() => rig.Field.Value!.Length == 64 && rig.Borrow.Lease.Waits.Count == 1 && !rig.Borrow.Hold.Swallowing);
+        await PcTestWait.Until(() => rig.Field.Value!.Length == 64 && rig.Borrow.Lease.Waits.Count == 1 && !rig.Borrow.Hold.Swallowing && rig.Borrow.Clock.Pending > 0);
         rig.Harness.Approver.Standings.Remove(("mspaint.exe", PcCapability.Act));
         rig.Borrow.CardUp = false;
         rig.Borrow.Clock.Advance(RealInputLease.PollMs);
@@ -109,4 +113,78 @@ public sealed class C3cV12Tests
         Assert.Equal(new string('a', 64), rig.Field.Value);
         Assert.Single(rig.Borrow.Host.Sent);
     }
+
+    [Fact]
+    public async Task Partial_text_acceptance_applies_only_the_accepted_prefix()
+    {
+        var rig = new C3cR4TextRig();
+        rig.Harness.Approver.Standings[("mspaint.exe", PcCapability.Act)] = PcApproval.Always;
+        rig.Borrow.Host.AcceptedCount = 2;
+        var send = rig.Borrow.Host.OnSend!;
+        rig.Borrow.Host.OnSend = events => { send(events); rig.Harness.Approver.Standings.Remove(("mspaint.exe", PcCapability.Act)); };
+        using var engine = rig.Harness.Engine();
+        var result = await rig.Drive(PcEngineHarness.Call(engine, "pc_type", "{\"window\":\"w:200\",\"target\":{\"name\":\"Text editor\"},\"text\":\"hello\"}"));
+        Assert.Equal(PcErrorCode.ExpectFailed, result.Error);
+        Assert.Contains("typed 1 of 5", result.Reason, StringComparison.Ordinal);
+        Assert.Contains("grant was then removed", result.Body, StringComparison.Ordinal);
+        Assert.Equal("h", rig.Field.Value);
+    }
+
+
+    [Fact]
+    public async Task Partial_click_acceptance_still_releases_the_accepted_down()
+    {
+        var rig = new C3cR4TextRig();
+        rig.Harness.Approver.Standings[("mspaint.exe", PcCapability.Act)] = PcApproval.Always;
+        rig.Borrow.Host.AcceptedCount = 2;
+        rig.Borrow.Host.OnSend = _ =>
+        {
+            rig.Borrow.Host.OnSend = null;
+            rig.Borrow.Host.AcceptedCount = null;
+            rig.Harness.Approver.Standings.Remove(("mspaint.exe", PcCapability.Act));
+        };
+        using var engine = rig.Harness.Engine();
+        await PcEngineHarness.Call(engine, "pc_observe", "{\"window\":\"w:200\",\"screenshot\":\"no\"}");
+        var result = await rig.Drive(PcEngineHarness.Call(engine, "pc_click", "{\"window\":\"w:200\",\"element\":3}"));
+        Assert.NotEqual(PcErrorCode.NotApproved, result.Error);
+        Assert.Contains("grant was then removed", result.Body, StringComparison.Ordinal);
+        var actual = rig.Borrow.Host.Accepted.SelectMany(x => x.Events).ToList();
+        Assert.Contains(actual, e => (e.Flags & PcInputPlan.LEFTDOWN) != 0);
+        Assert.Single(actual, e => (e.Flags & PcInputPlan.LEFTUP) != 0);
+        Assert.False(rig.Borrow.Hold.Swallowing);
+    }
+
+    [Fact]
+    public async Task Rejected_final_drag_up_remains_owed_to_release()
+    {
+        var rig = new C3cR4TextRig();
+        rig.Harness.Approver.Standings[("mspaint.exe", PcCapability.Act)] = PcApproval.Always;
+        var calls = 0;
+        rig.Borrow.Host.OnSend = _ =>
+        {
+            if (++calls == 2) rig.Borrow.Host.AcceptedCount = 0;
+            if (calls == 3)
+            {
+                rig.Borrow.Host.OnSend = null;
+                rig.Borrow.Host.AcceptedCount = null;
+                rig.Harness.Approver.Standings.Remove(("mspaint.exe", PcCapability.Act));
+            }
+        };
+        using var engine = rig.Harness.Engine();
+        var look = await PcEngineHarness.Call(engine, "pc_observe", "{\"window\":\"w:200\",\"screenshot\":\"yes\"}");
+        var action = PcEngineHarness.Call(engine, "pc_drag", "{\"window\":\"w:200\",\"path\":[[30,90],[50,90]],\"obs\":\"" + look.Window!.Obs + "\"}");
+        await PcTestWait.Until(() => action.IsCompleted || (rig.Borrow.Host.Accepted.Count >= 1 && rig.Borrow.Clock.Pending >= 2));
+        rig.Borrow.Clock.Advance(100);
+        await PcTestWait.Until(() => action.IsCompleted || (rig.Borrow.Host.Accepted.Count >= 2 && rig.Borrow.Clock.Pending >= 2));
+        rig.Borrow.Clock.Advance(InputInjector.DragStepMs);
+        var result = await action.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.NotEqual(PcErrorCode.NotApproved, result.Error);
+        Assert.Contains("grant was then removed", result.Body, StringComparison.Ordinal);
+        Assert.Empty(rig.Borrow.Host.Accepted[2].Events);
+        var actual = rig.Borrow.Host.Accepted.SelectMany(x => x.Events).ToList();
+        Assert.Contains(actual, e => (e.Flags & PcInputPlan.LEFTDOWN) != 0);
+        Assert.Single(actual, e => (e.Flags & PcInputPlan.LEFTUP) != 0);
+        Assert.False(rig.Borrow.Hold.Swallowing);
+    }
+
 }
