@@ -45,7 +45,32 @@ internal sealed class FakeMissionAgents : IMissionAgents
 
     public Func<AgentLaunch, Exception?>? FailStart { get; set; }
 
-    public void Post(Action work) => work();
+    /// <summary>When set, posted work waits until <see cref="RunPosted"/> (the app's main-thread queue, held still).</summary>
+    public bool Defer { get; set; }
+
+    private readonly List<Action> posted = [];
+
+    public void Post(Action work)
+    {
+        if (!Defer)
+        {
+            work();
+            return;
+        }
+        lock (gate) posted.Add(work);
+    }
+
+    /// <summary>Runs the work posted while <see cref="Defer"/> held it, in order.</summary>
+    public void RunPosted()
+    {
+        List<Action> work;
+        lock (gate)
+        {
+            work = [.. posted];
+            posted.Clear();
+        }
+        foreach (var item in work) item();
+    }
 
     public Guid Start(AgentLaunch launch)
     {
@@ -169,9 +194,13 @@ internal sealed class FakeWorkspaces(string root) : IMissionWorkspaces
         return Task.FromResult(Changes);
     }
 
-    public Task<MergeResult> Merge(MissionWorkspace workspace)
+    /// <summary>The review each Merge was asked to apply.</summary>
+    public List<MergeReview> Merged { get; } = [];
+
+    public Task<MergeResult> Merge(MissionWorkspace workspace, MergeReview reviewed)
     {
         Calls.Add("merge");
+        Merged.Add(reviewed);
         return Task.FromResult(MergeResult);
     }
 
@@ -264,6 +293,7 @@ internal sealed class MissionRig
             },
             Audit = e =>
             {
+                if (AuditFails?.Invoke(e) == true) throw new IOException("The activity log's disk is full.");
                 lock (Audit) Audit.Add(e);
             },
         });
@@ -292,6 +322,9 @@ internal sealed class MissionRig
     public List<MissionRecord> Saved { get; } = [];
 
     public List<AuditEntry> Audit { get; } = [];
+
+    /// <summary>When it says so for an entry, writing that entry fails (the log's disk is full).</summary>
+    public Func<AuditEntry, bool>? AuditFails { get; set; }
 
     public static readonly Guid Project = Guid.Parse("70000000-0000-4000-8000-000000000007");
 

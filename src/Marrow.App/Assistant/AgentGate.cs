@@ -114,6 +114,24 @@ public sealed class AgentGate(Func<MissionLimits> limits, IMemoryReader memory, 
         return waiter.Admitted.Task;
     }
 
+    /// <summary>
+    /// Moves a held slot to another id in one step (the placeholder a lead or reviewer waited under becomes its chat's id;
+    /// ED-NEW-dextra-as5-13). The slot is never free in between, so no waiting agent takes it and the agent that holds it
+    /// never queues behind the others. False when <paramref name="from"/> holds no slot.
+    /// </summary>
+    public bool Rekey(Guid from, Guid to)
+    {
+        bool freed;
+        lock (gate)
+        {
+            if (!running.Remove(from)) return false;
+            // The new id already held a slot of its own: the two become one, so one slot is free.
+            freed = !running.Add(to);
+        }
+        if (freed) Pump();
+        return true;
+    }
+
     /// <summary>Frees the agent's slot (it ended, stopped, or was let go while paused), and lets the next one in.</summary>
     public void Leave(Guid agent)
     {

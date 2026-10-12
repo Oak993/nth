@@ -44,6 +44,23 @@ public static class MissionClassifier
         };
     }
 
+    /// <summary>
+    /// The context for an approval of one chat of the mission, classified in that chat's own folder (its session's working
+    /// folder; ED-NEW-dextra-as5-14): a relative path is placed where the chat really works. A chat working outside the
+    /// worktree keeps the worktree as the only place a removal is plain work, so its own folder reads as outside; a chat
+    /// nth cannot place (no folder) gets no worktree, no folder and no access folders, so every write and every command
+    /// placed by folder asks.
+    /// </summary>
+    public static ClassifierContext ForAgent(MissionRecord record, IReadOnlyList<string> protectedRoots, string? agentFolder,
+        ValueMap<string, string>? environment = null)
+    {
+        var context = For(record, protectedRoots, environment);
+        if (record.Workspace is null) return context;
+        if (string.IsNullOrWhiteSpace(agentFolder))
+            return context with { MissionWorktree = null, WorkingDirectory = null, AccessFolders = ValueList<string>.Empty };
+        return context with { WorkingDirectory = agentFolder };
+    }
+
     /// <summary>The listed environment values of nth's own process.</summary>
     public static ValueMap<string, string> CurrentEnvironment()
     {

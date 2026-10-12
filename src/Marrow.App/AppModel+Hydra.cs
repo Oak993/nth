@@ -245,6 +245,21 @@ public sealed partial class AppModel
         return null;
     }
 
+    /// <summary>
+    /// PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-14): whether a project reference from a mission's lead names the lead's own
+    /// project (its name, or a path at or under the project's folder or the mission's own folder). Nothing is looked up or
+    /// added on the PC.
+    /// </summary>
+    private bool NamesMissionProject(string reference, ChatThread lead)
+    {
+        if (Project(lead.ProjectID) is not { } own) return false;
+        var expanded = SwiftPath.ExpandingTildeInPath(reference.Trimmed());
+        if (SwiftString.CaseInsensitiveCompare(own.Name, expanded) == 0) return true;
+        if (!SwiftPath.IsAbsolute(expanded)) return false;
+        bool AtOrUnder(string? root) => root is { Length: > 0 } && (SwiftPath.SamePath(root, expanded) || TouchedPaths.Relative(expanded, root) is not null);
+        return AtOrUnder(own.Path) || AtOrUnder(lead.WorktreePath);
+    }
+
     // :354-361
     public ChatThread? SpawnNativeHead(Guid parentID, AgentSpawn spawn)
     {
@@ -290,7 +305,17 @@ public sealed partial class AppModel
         AgentSpawn? nativeSpawn)
     {
         var launch = HydraLaunch(parent);
-        var targetProject = HydraProject(projectReference, parent);
+        // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-14): a mission's head works only in the mission's own copy. The project
+        // a mission's lead names is never looked up on the PC (no repository joins the sidebar), and a head it sends to any
+        // other project is refused, so no head of a mission ever works in the owner's own checkout.
+        if (parent.MissionID is not null && projectReference is { } missionReference && missionReference.Trimmed().Length > 0
+            && !NamesMissionProject(missionReference, parent))
+        {
+            Runtime(parent.Id).AppendHydraNote(
+                $"Hydra: a mission's heads work only in the mission's own copy, so no head was started for {missionReference}.");
+            return null;
+        }
+        var targetProject = parent.MissionID is not null ? Project(parent.ProjectID) : HydraProject(projectReference, parent);
         var unresolvedProject = targetProject is null && projectReference is { } reference && reference.Trimmed().Length > 0;
         if (unresolvedProject) targetProject = Project(parent.ProjectID);
 

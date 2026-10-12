@@ -13,6 +13,9 @@ public static class Reviewer
     /// <summary>How much of the patch the reviewer's brief carries.</summary>
     public const int PatchChars = 20_000;
 
+    /// <summary>How many changed files the brief names one by one; the rest are counted (ED-NEW-dextra-as5-13).</summary>
+    public const int ChangesListed = 200;
+
     /// <summary>
     /// The reviewer's model: by default a model of the same provider other than the workers' (3.4), so it does not grade
     /// its own work; the workers' model when the provider lists no other. The router (AS-14) later adds "the cheapest
@@ -44,7 +47,9 @@ public static class Reviewer
         {
             text.AppendLine();
             text.AppendLine("The changes (" + changes.Summary + "):");
-            foreach (var change in changes.Changes) text.AppendLine("- " + change.Kind + ": " + change.Path);
+            foreach (var change in changes.Changes.Take(ChangesListed)) text.AppendLine("- " + change.Kind + ": " + change.Path);
+            if (changes.Changes.Count > ChangesListed)
+                text.AppendLine("- and " + (changes.Changes.Count - ChangesListed).ToString(System.Globalization.CultureInfo.InvariantCulture) + " more files");
             if (changes.Patch.Length > 0)
             {
                 text.AppendLine();

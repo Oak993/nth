@@ -105,6 +105,9 @@ public sealed class MissionRunner
     /// <summary>A journal or log write failed; the mission went on and the board shows the line.</summary>
     public event Action<string>? Faulted;
 
+    /// <summary>Reports a fault of the controller's own (an activity log line it could not write) where the runner's go.</summary>
+    public void ReportFault(string message) => Faulted?.Invoke(message);
+
     public IReadOnlyList<MissionRecord> Missions
     {
         get { lock (gate) return [.. missions.Values.OrderBy(m => m.Created)]; }
@@ -246,12 +249,13 @@ public sealed class MissionRunner
         Log(Find(id)!, thread, "spawn_chat", ActionClass.Agents, "lead started");
     }
 
-    /// <summary>The gate slot was taken under a placeholder id before the chat existed: it moves to the chat.</summary>
+    /// <summary>
+    /// The gate slot was taken under a placeholder id before the chat existed: it moves to the chat in one step, so the
+    /// running agent never gives it up to a waiter or queues for one itself (ED-NEW-dextra-as5-13).
+    /// </summary>
     private void Rekey(Guid slot, Guid thread)
     {
-        if (slot == thread || !o.Gate.Holds(slot)) return;
-        o.Gate.Leave(slot);
-        _ = o.Gate.Enter(thread, AgentPlace.Local);
+        if (slot != thread) o.Gate.Rekey(slot, thread);
     }
 
     private static string LeadBrief(MissionRecord record, string folder)
@@ -294,6 +298,32 @@ public sealed class MissionRunner
             },
         });
     }
+
+    /// <summary>
+    /// A helper chat a mission's chat opened (AppModel.SpawnSubagent) is the mission's agent too: its approvals reach the
+    /// policy engine and the queue, Stop and Finish reach it, and it waits at the gate (ED-NEW-dextra-as5-14). False when
+    /// the parent is no chat of a running mission of the runner's: then the helper does not open.
+    /// </summary>
+    public bool HelperAdded(Guid parent, Guid helper)
+    {
+        if (MissionOf(parent) is not { } record) return false;
+        var state = record.Mission.State;
+        if (!MissionStates.IsRunning(state) && state != MissionState.NeedsYou) return false;
+        lock (gate)
+        {
+            threadMission[helper] = record.Id;
+            LiveOf(record.Id).AgentNames[helper] = "Helper";
+        }
+        Update(record.Id, r => r.Mission.ThreadIds.Contains(helper)
+            ? r
+            : r with { Mission = r.Mission with { ThreadIds = r.Mission.ThreadIds.Appending(helper) } });
+        Log(record, helper, "spawn_chat", ActionClass.Agents, "helper opened");
+        return true;
+    }
+
+    /// <summary>A helper chat waits at the gate before each turn nth starts for it.</summary>
+    public Task AdmitHelper(Guid helper, ProviderKind provider, CancellationToken token = default) =>
+        MissionOf(helper) is { } record ? Admit(record.Id, helper, provider, token) : Task.CompletedTask;
 
     /// <summary>A head waits at the gate before its chat starts (the same 16-agent cap and memory floor as every agent).</summary>
     public Task AdmitHead(Guid head, ProviderKind provider, CancellationToken token = default)
@@ -401,7 +431,7 @@ public sealed class MissionRunner
             RequestId = request.Id,
         };
         Log(record, thread, "approval", c.Class, "asked: " + (decision.Verdict == Verdict.Allow ? PolicyRule.AutoAnswerOff : decision.Rule), request.Title);
-        lock (gate) pendingRequests[(thread, request.Id)] = request;
+        lock (gate) pendingRequests[(thread, request.Id)] = new PendingRequest(record.Id, request);
         var raised = o.Queue.Raise(card, (item, answer) => OnMain(() => Approved(item, answer, request)));
         // Raised while the mission pauses: Pause holds it as it holds the cards that were open (irreversible ones only).
         if (Find(record.Id)?.Mission.State is MissionState.Pausing or MissionState.Paused) o.Queue.Hold(c => c.Id == raised.Id, DecisionHold.Pause);
@@ -409,14 +439,71 @@ public sealed class MissionRunner
         return true;
     }
 
+    /// <summary>
+    /// The owner answered an approval card. Only a request still pending reaches the provider: Stop, or an answer in the
+    /// chat, settled it first otherwise. An allow is logged with the card's id before it is sent (12.5) and turns into a
+    /// Deny when the log cannot be written, or when the mission began stopping before the answer arrived (12.6;
+    /// ED-NEW-dextra-as5-13).
+    /// </summary>
     private void Approved(DecisionItem card, DecisionAnswer answer, ApprovalRequest request)
     {
         if (card.ThreadId is not { } thread || card.MissionId is not { } id || Find(id) is not { } record) return;
-        lock (gate) pendingRequests.Remove((thread, request.Id));
-        o.Agents.Resolve(thread, request, answer.Approves);
+        bool pending;
+        lock (gate) pending = pendingRequests.Remove((thread, request.Id));
+        if (!pending) return;
+        var actionClass = card.Class ?? ActionClass.Unknown;
+        if (!answer.Approves)
+        {
+            o.Agents.Resolve(thread, request, approve: false);
+            Log(record, thread, "approval", actionClass, "denied by the owner: " + answer.Kind, request.Title, CardId(card));
+            return;
+        }
+        if (record.Mission.State is MissionState.Stopping or MissionState.Stopped)
+        {
+            o.Agents.Resolve(thread, request, approve: false);
+            Log(record, thread, "approval", actionClass, "refused: the mission was stopping when the owner's answer arrived", request.Title, CardId(card));
+            return;
+        }
+        if (!Log(record, thread, "approval", actionClass, "allowed by the owner: " + answer.Kind, request.Title, CardId(card)))
+        {
+            o.Agents.Resolve(thread, request, approve: false);
+            return;
+        }
+        o.Agents.Resolve(thread, request, approve: true);
         if (answer.Kind is DecisionAnswerKind.ForThisMission or DecisionAnswerKind.Always) o.Granted?.Invoke(card, answer);
-        Log(record, thread, "approval", card.Class ?? ActionClass.Unknown, (answer.Approves ? "allowed by the owner: " : "denied by the owner: ") + answer.Kind, request.Title);
     }
+
+    /// <summary>
+    /// The owner answered a mission chat's approval in the chat itself (ThreadRuntime.Resolve), before the option reaches
+    /// the provider. It is logged as his answer and its card withdrawn; an allow becomes the request's decline when the
+    /// mission is stopping or the log cannot be written (12.5, 12.6; ED-NEW-dextra-as5-13). A request the card or Stop
+    /// already settled passes as it is.
+    /// </summary>
+    public ApprovalRequest.Option OnChatAnswer(Guid thread, ApprovalRequest request, ApprovalRequest.Option option)
+    {
+        if (MissionOf(thread) is not { } record) return option;
+        bool pending;
+        lock (gate) pending = pendingRequests.Remove((thread, request.Id));
+        if (!pending) return option;
+        var card = o.Queue.Of(record.Id).FirstOrDefault(c => c.ThreadId == thread && c.RequestId == request.Id);
+        var actionClass = card?.Class ?? ActionClass.Unknown;
+        var by = "chat:" + thread.ToString("D");
+        var decline = SealedProviderConfig.DeclineOption(request) ?? option;
+        var chosen = option;
+        if (option.OptionRole is not (ApprovalRequest.Option.Role.Approve or ApprovalRequest.Option.Role.ApproveAlways))
+            Log(record, thread, "approval", actionClass, "denied by the owner in the chat: " + option.Title, request.Title, by);
+        else if (record.Mission.State is MissionState.Stopping or MissionState.Stopped)
+        {
+            Log(record, thread, "approval", actionClass, "refused: the mission is stopping", request.Title, by);
+            chosen = decline;
+        }
+        else if (!Log(record, thread, "approval", actionClass, "allowed by the owner in the chat: " + option.Title, request.Title, by))
+            chosen = decline;
+        o.Queue.WithdrawRequest(thread, request.Id, RequestSettled);
+        return chosen;
+    }
+
+    private static string CardId(DecisionItem card) => "card:" + card.Id.ToString("D");
 
     /// <summary>A question from one of the runner's chats: always a card (taste and design picks are the owner's).</summary>
     public bool OnQuestion(Guid thread, QuestionRequest request)
@@ -494,6 +581,14 @@ public sealed class MissionRunner
     {
         if (MissionOf(thread) is not { } record || continues) return;
         var id = record.Id;
+        if (IsHelper(record, thread))
+        {
+            // A helper's turn is over: its gate slot is free (it waits again before nth starts its next turn).
+            o.Gate.Leave(thread);
+            if (record.Mission.State == MissionState.Stopping) CheckStopping();
+            else Advance(id);
+            return;
+        }
         switch (record.Mission.State)
         {
             case MissionState.Stopping:
@@ -539,6 +634,8 @@ public sealed class MissionRunner
             }
             if (!l.LeadDone || o.Queue.Of(id).Count > 0) return;
             if (o.Agents.Heads(lead).Any(h => !h.Finished)) return;
+            // A helper still at work would change the files under the reviewer: the review waits for it.
+            if (Threads(record).Where(t => IsHelper(record, t)).Any(o.Agents.TurnRunning)) return;
             l.LeadDone = false;
             Update(id, r => r with { Report = o.Agents.FinalMessage(lead) ?? r.Report });
             _ = StartReview(id);
@@ -611,6 +708,8 @@ public sealed class MissionRunner
 
     private readonly Dictionary<Guid, string> reviewerModels = [];
 
+    private readonly HashSet<Guid> endedAgents = [];
+
     private void ApplyVerdict(Guid id, ReviewVerdict verdict)
     {
         if (Find(id) is not { } record || record.ReviewerThread is not { } reviewer) return;
@@ -659,8 +758,16 @@ public sealed class MissionRunner
         Update(id, r => r with { Mission = r.Mission with { TaintContext = TaintContext.MissionEnded() } });
     }
 
+    /// <summary>
+    /// Ends an agent's session, job and gate slot, once: Finish reaches every chat on record (helpers included), so a
+    /// reviewer its verdict already ended is not ended again. Done and Failed are final, so no ended chat runs again.
+    /// </summary>
     private void EndAgent(Guid thread)
     {
+        lock (gate)
+        {
+            if (!endedAgents.Add(thread)) return;
+        }
         o.Agents.StopSession(thread);
         o.Jobs.End(thread);
         o.Gate.Leave(thread);
@@ -693,6 +800,9 @@ public sealed class MissionRunner
             var inputs = new List<DecisionInput> { new("Changes", changes.Summary) };
             if (workspace.Branch is { } branch) inputs.Add(new("Branch", branch));
             if (workspace.BaseBranch is { } baseBranch) inputs.Add(new("Into", baseBranch));
+            // The card is bound to exactly what was reviewed, and its Merge applies exactly that (ED-NEW-dextra-as5-15).
+            if (changes.Commit is { } commit) inputs.Add(new("Commit", commit));
+            if (changes.Fingerprint is { } fingerprint) inputs.Add(new("Fingerprint", fingerprint));
             inputs.AddRange(changes.Changes.Take(50).Select(c => new DecisionInput(c.Kind.ToString(), c.Path)));
             var card = new DecisionItem(Guid.NewGuid(), DecisionKind.Merge, DecisionWeight.Irreversible, title)
             {
@@ -704,21 +814,27 @@ public sealed class MissionRunner
                 Agent = "Reviewer",
                 Note = note,
             };
-            o.Queue.Raise(card, (item, answer) => _ = MergeAnswered(id, item, answer));
+            o.Queue.Raise(card, (item, answer) => _ = MergeAnswered(id, item, answer, changes));
         });
     }
 
-    private async Task MergeAnswered(Guid id, DecisionItem card, DecisionAnswer answer)
+    private async Task MergeAnswered(Guid id, DecisionItem card, DecisionAnswer answer, MergeReview reviewed)
     {
         if (Find(id) is not { Workspace: { } workspace } record) return;
         switch (answer.Kind)
         {
             case DecisionAnswerKind.Merge:
             {
-                var result = await o.Workspaces.Merge(workspace).ConfigureAwait(false);
+                // 12.5: the owner's merge is logged with his card first; one that cannot be logged does not run.
+                if (!Log(record, null, "merge", ActionClass.Work, "allowed by the owner", reviewed.Commit ?? reviewed.Fingerprint, CardId(card)))
+                {
+                    OnMain(() => _ = OfferMerge(id, "The activity log could not be written, so nothing was merged."));
+                    return;
+                }
+                var result = await o.Workspaces.Merge(workspace, reviewed).ConfigureAwait(false);
                 OnMain(() =>
                 {
-                    Log(record, null, "merge", ActionClass.Work, result.Outcome.ToString());
+                    Log(record, null, "merge", ActionClass.Work, result.Outcome.ToString(), reviewed.Commit ?? reviewed.Fingerprint, CardId(card));
                     if (result.Outcome is MergeOutcome.Merged or MergeOutcome.NothingToMerge)
                         Update(id, r => r with { MergePending = false });
                     else
@@ -733,7 +849,7 @@ public sealed class MissionRunner
                 var result = await o.Workspaces.RebaseFirst(workspace).ConfigureAwait(false);
                 OnMain(() =>
                 {
-                    Log(record, null, "rebase", ActionClass.Work, result.Outcome.ToString());
+                    Log(record, null, "rebase", ActionClass.Work, result.Outcome.ToString(), allowedBy: CardId(card));
                     _ = OfferMerge(id, result.Outcome == MergeOutcome.Conflict
                         ? "Rebasing found conflicts in " + string.Join(", ", result.Conflicts) + "; the branch is as it was."
                         : result.Refused ?? "Rebased onto your branch.");
@@ -744,7 +860,7 @@ public sealed class MissionRunner
                 await o.Workspaces.Discard(workspace).ConfigureAwait(false);
                 OnMain(() =>
                 {
-                    Log(record, null, "discard", ActionClass.Work, "discarded");
+                    Log(record, null, "discard", ActionClass.Work, "discarded", allowedBy: CardId(card));
                     Update(id, r => r with { MergePending = false, Workspace = null, Mission = r.Mission with { ChangedFiles = 0, WorktreePath = null } });
                 });
                 return;
@@ -783,12 +899,18 @@ public sealed class MissionRunner
         // Its approval cards are answered Deny below, so on Resume it goes back to what it was doing, not to Needs you.
         if (stopping.ResumeTo == MissionState.NeedsYou) stopping = stopping with { ResumeTo = NeedsYouFrom(record) };
         Update(id, r => r with { Mission = stopping, Waiting = null });
-        // The provider's own requests die with the cut turn: approvals are answered Deny, questions withdrawn.
-        foreach (var card in o.Queue.Of(id).Where(c => c.Kind is DecisionKind.Approval or DecisionKind.Question && c.RequestId is not null))
+        // The provider's own requests die with the cut turn: approvals are answered Deny, questions withdrawn. Every request
+        // still pending is denied, also one whose card the owner answered a moment ago and whose answer has not reached the
+        // provider yet (it finds nothing pending and sends nothing; ED-NEW-dextra-as5-13).
+        List<(Guid Thread, ApprovalRequest Request)> cut;
+        lock (gate)
         {
-            if (card.Kind == DecisionKind.Approval && card.ThreadId is { } t) DenyPending(t, card.RequestId!);
-            o.Queue.Withdraw(card.Id, card.Kind == DecisionKind.Approval ? Withdrawn : WithdrawnQuestion);
+            cut = [.. pendingRequests.Where(p => p.Value.Mission == id).Select(p => (p.Key.Thread, p.Value.Request))];
+            foreach (var (thread, request) in cut) pendingRequests.Remove((thread, request.Id));
         }
+        foreach (var (thread, request) in cut) o.Agents.Resolve(thread, request, approve: false);
+        foreach (var card in o.Queue.Of(id).Where(c => c.Kind is DecisionKind.Approval or DecisionKind.Question && c.RequestId is not null))
+            o.Queue.Withdraw(card.Id, card.Kind == DecisionKind.Approval ? Withdrawn : WithdrawnQuestion);
         o.Queue.Hold(c => c.MissionId == id, DecisionHold.Stop);
         foreach (var thread in threads) o.Agents.Interrupt(thread);
         if (record.LeadThread is { } lead) o.Agents.StopHeads(lead);
@@ -803,14 +925,10 @@ public sealed class MissionRunner
         return null;
     }
 
-    private readonly Dictionary<(Guid, string), ApprovalRequest> pendingRequests = [];
+    /// <summary>A provider approval that waits on a card, with its mission.</summary>
+    private sealed record PendingRequest(Guid Mission, ApprovalRequest Request);
 
-    private void DenyPending(Guid thread, string requestId)
-    {
-        ApprovalRequest? request;
-        lock (gate) pendingRequests.Remove((thread, requestId), out request);
-        if (request is not null) o.Agents.Resolve(thread, request, approve: false);
-    }
+    private readonly Dictionary<(Guid Thread, string Request), PendingRequest> pendingRequests = [];
 
     /// <summary>Confirms each stopping agent once it has no live process and no turn (12.6 "Afterwards").</summary>
     public void CheckStopping()
@@ -818,7 +936,9 @@ public sealed class MissionRunner
         foreach (var record in Missions.Where(r => r.Mission.State == MissionState.Stopping))
         {
             bool Settled(Guid t) => !o.Agents.TurnRunning(t) && o.Jobs.Settled(t);
-            var leadSettled = (record.LeadThread is not { } lead || Settled(lead)) && (record.ReviewerThread is not { } rv || Settled(rv));
+            // The lead, the reviewer and every helper chat (ED-NEW-dextra-as5-14); the heads settle one by one below.
+            var headThreads = record.Mission.Heads.Select(h => Guid.TryParse(h.Id, out var t) ? t : Guid.Empty).ToHashSet();
+            var leadSettled = Threads(record).Where(t => !headThreads.Contains(t)).All(Settled);
             var m = record.Mission;
             if (m.Heads.Count == 0)
             {
@@ -917,16 +1037,36 @@ public sealed class MissionRunner
         if (Find(id) is not { } record) return "There is no such mission.";
         if (string.IsNullOrWhiteSpace(text)) return "Say what to tell the lead.";
         if (record.Mission.State is MissionState.Done or MissionState.Failed or MissionState.Stopping) return "The mission is not running.";
-        Log(record, record.LeadThread, "message_agent", ActionClass.Agents, "redirect", text);
         var running = MissionStates.IsRunning(record.Mission.State) || record.Mission.State == MissionState.NeedsYou;
-        if (running && record.LeadThread is { } lead && !o.Agents.TurnRunning(lead) && record.Mission.State != MissionState.Reviewing
-            && o.Agents.Send(lead, text))
+        var now = running && record.LeadThread is { } idle && !o.Agents.TurnRunning(idle) && record.Mission.State != MissionState.Reviewing;
+        // What waits for the lead is bounded (it is journaled): past the cap the sender says it again later (ED-NEW-dextra-as5-13).
+        const string TooMuch = "Too much already waits for the lead; say it again when its turn ends.";
+        var over = (record.PendingRedirect?.Length ?? 0) + text.Length > RedirectCap;
+        if (!now && over) return TooMuch;
+        Log(record, record.LeadThread, "message_agent", ActionClass.Agents, "redirect", text);
+        if (now && record.LeadThread is { } lead && o.Agents.Send(lead, text))
         {
             LiveOf(id).LeadDone = false;
             return null;
         }
+        if (over) return TooMuch;
         Update(id, r => r with { PendingRedirect = r.PendingRedirect is { } earlier ? earlier + "\n\n" + text : text });
         return null;
+    }
+
+    /// <summary>The most text that may wait for a lead's turn to end.</summary>
+    public const int RedirectCap = 16_000;
+
+    /// <summary>
+    /// A chat passed the mission material from a tainted context (12.4 "Taint follows text"): the mission's context takes
+    /// that taint until it ends or the owner's own message clears it (ED-NEW-dextra-as5-13).
+    /// </summary>
+    public void Absorb(Guid mission, Taint taint)
+    {
+        if (!taint.IsTainted) return;
+        Update(mission, r => r.Mission.State is MissionState.Done or MissionState.Failed
+            ? r
+            : r with { Mission = r.Mission with { TaintContext = new TaintContext(r.Mission.TaintContext.Taint.Union(taint)) } });
     }
 
     /// <summary>
@@ -1051,8 +1191,15 @@ public sealed class MissionRunner
         if (record.LeadThread is { } lead) threads.Add(lead);
         foreach (var head in record.Mission.Heads) if (Guid.TryParse(head.Id, out var t)) threads.Add(t);
         if (record.ReviewerThread is { } reviewer) threads.Add(reviewer);
+        // Helper chats (and earlier reviewers, long ended) are on record in ThreadIds: Stop and Finish reach every one.
+        foreach (var thread in record.Mission.ThreadIds) if (!threads.Contains(thread)) threads.Add(thread);
         return threads;
     }
+
+    /// <summary>A helper chat: one of the mission's chats that is not its lead, its reviewer or a Hydra head.</summary>
+    private static bool IsHelper(MissionRecord record, Guid thread) =>
+        thread != record.LeadThread && thread != record.ReviewerThread && record.Mission.Heads.All(h => h.Id != HeadId(thread))
+        && record.Mission.ThreadIds.Contains(thread);
 
     private static AgentPlace Place(ProviderKind provider) =>
         provider.IsAPIKeyBased || provider == ProviderKind.Local ? AgentPlace.Api : AgentPlace.Local;
@@ -1091,9 +1238,13 @@ public sealed class MissionRunner
 
     private void OnMain(Action work) => o.Agents.Post(work);
 
-    private void Log(MissionRecord record, Guid? thread, string tool, ActionClass actionClass, string result, string? input = null)
+    /// <summary>
+    /// Writes one activity log line; <paramref name="allowedBy"/> names the card or chat answer that allowed the action
+    /// (12.5). False when the line could not be written: an allow that depends on it is refused (ED-NEW-dextra-as5-13).
+    /// </summary>
+    private bool Log(MissionRecord record, Guid? thread, string tool, ActionClass actionClass, string result, string? input = null, string? allowedBy = null)
     {
-        if (o.Audit is not { } audit) return;
+        if (o.Audit is not { } audit) return true;
         try
         {
             audit(new AuditEntry
@@ -1105,9 +1256,15 @@ public sealed class MissionRunner
                 ActionClass = actionClass.ToString(),
                 Inputs = input is null ? [] : [AuditInput.Plain("request", input)],
                 Result = result,
+                AllowedBy = allowedBy,
             });
+            return true;
         }
-        catch (Exception error) when (error is not OperationCanceledException) { Faulted?.Invoke("The activity log could not be written: " + error.Message); }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            Faulted?.Invoke("The activity log could not be written: " + error.Message);
+            return false;
+        }
     }
 
     private static string RuleLine(PolicyRule rule) => rule switch

@@ -176,31 +176,108 @@ public sealed class MissionSeamTests
     }
 
     [Fact]
-    public void A_subagent_a_mission_chat_opens_is_the_missions_too_and_one_of_any_other_chat_is_as_before()
+    [Trait("Decision", "ED-NEW-dextra-as5-14")]
+    public void A_subagent_a_mission_chat_opens_is_the_missions_agent_in_its_folder_only_while_dextra_runs_it_and_one_of_any_other_chat_is_as_before()
     {
         using var h = new AppModelHarness();
         var project = AppModelSamples.Project("Project", h.NewFolder("project"));
         var mission = Guid.NewGuid();
         var assistant = Guid.NewGuid();
-        var lead = AppModelSamples.Thread(project) with { Provider = ProviderKind.Claude, RuntimeMode = SealedProviderConfig.CappedMode, MissionID = mission, AssistantID = assistant };
+        var worktree = h.NewFolder("worktree");
+        var lead = AppModelSamples.Thread(project) with
+        {
+            Provider = ProviderKind.Claude, RuntimeMode = SealedProviderConfig.CappedMode, MissionID = mission, AssistantID = assistant,
+            WorktreePath = worktree, Branch = "nth/mission-0f3c9a2e-fix",
+        };
         var home = AppModelSamples.Thread(project) with { Provider = ProviderKind.Claude, RuntimeMode = RuntimeMode.FullAccess, AssistantID = assistant };
         h.WriteLibrary([project], [lead, home]);
         var model = h.MakeModel();
         h.PrepareBootstrap(model);
-        var (fromMission, fromHome) = h.Main.OnMain(() =>
+        // No Dextra runs the mission: its chat's helper does not open (no chat outside Dextra's sight).
+        var (refused, count) = h.Main.OnMain(() =>
         {
             model.MissionJobs = new AgentJobs(new FakeAgentJobFactory());
-            return (model.SpawnSubagent(lead.Id, "Check", "Check the login tests."), model.SpawnSubagent(home.Id, "Notes", "Sum up the notes."));
+            return (model.SpawnSubagent(lead.Id, "Check", "Check the login tests."), model.Threads.Count);
         });
-        Assert.Equal(mission, fromMission!.MissionID);
-        Assert.Equal(assistant, fromMission.AssistantID);
-        Assert.Equal(SealedProviderConfig.CappedMode, fromMission.RuntimeMode);
-        Assert.True(MissionLaunch.IsMissionChat(fromMission));
-        Assert.Equal(SealedProviderConfig.CappedMode, MissionLaunch.TurnMode(fromMission with { RuntimeMode = RuntimeMode.FullAccess }));
+        Assert.Null(refused);
+        Assert.Equal(2, count);
 
-        Assert.Null(fromHome!.MissionID);
-        Assert.Null(fromHome.AssistantID);
-        Assert.Equal(RuntimeMode.FullAccess, fromHome.RuntimeMode);
+        var audit = new List<AuditEntry>();
+        var controller = h.Main.OnMain(() =>
+        {
+            var made = Controller(model, new FakeWorkspaces(h.NewFolder("worktrees")), audit);
+            made.Runner.Load([Record(mission, lead.Id, project.Id, project.Path) with { Provider = ProviderKind.Claude }]);
+            model.AttachDextra(made);
+            return made;
+        });
+        try
+        {
+            var (fromMission, fromHome) = h.Main.OnMain(() =>
+                (model.SpawnSubagent(lead.Id, "Check", "Check the login tests."), model.SpawnSubagent(home.Id, "Notes", "Sum up the notes.")));
+            Assert.Equal(mission, fromMission!.MissionID);
+            Assert.Equal(assistant, fromMission.AssistantID);
+            Assert.Equal(SealedProviderConfig.CappedMode, fromMission.RuntimeMode);
+            Assert.Equal(worktree, fromMission.WorktreePath);
+            Assert.Equal("nth/mission-0f3c9a2e-fix", fromMission.Branch);
+            Assert.True(MissionLaunch.IsMissionChat(fromMission));
+            Assert.Equal(SealedProviderConfig.CappedMode, MissionLaunch.TurnMode(fromMission with { RuntimeMode = RuntimeMode.FullAccess }));
+            Assert.Equal(mission, controller.Runner.MissionOf(fromMission.Id)!.Id);
+            Assert.Contains(fromMission.Id, controller.Runner.Find(mission)!.Mission.ThreadIds);
+            Assert.Contains(audit, e => e.Result == "helper opened" && e.Agent == fromMission.Id.ToString("D"));
+
+            Assert.Null(fromHome!.MissionID);
+            Assert.Null(fromHome.AssistantID);
+            Assert.Null(fromHome.WorktreePath);
+            Assert.Equal(RuntimeMode.FullAccess, fromHome.RuntimeMode);
+            Assert.Null(controller.Runner.MissionOf(fromHome.Id));
+        }
+        finally
+        {
+            h.Main.OnMain(() => model.AttachDextra(null));
+        }
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-dextra-as5-14")]
+    public void A_missions_lead_sends_heads_only_into_its_own_project_and_no_other_repository_joins_the_sidebar()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("Project", h.NewFolder("project"));
+        var other = h.NewFolder("elsewhere");
+        var mission = Guid.NewGuid();
+        var lead = AppModelSamples.Thread(project) with { Provider = ProviderKind.Claude, RuntimeMode = SealedProviderConfig.CappedMode, MissionID = mission };
+        h.WriteLibrary([project], [lead]);
+        var model = h.MakeModel();
+        h.Main.OnMain(() => model.Settings.HydraIsolateHeads = false);
+        h.PrepareBootstrap(model);
+        var audit = new List<AuditEntry>();
+        h.Main.OnMain(() =>
+        {
+            model.MissionJobs = new AgentJobs(new FakeAgentJobFactory());
+            var made = Controller(model, new FakeWorkspaces(h.NewFolder("worktrees")), audit);
+            made.Runner.Load([Record(mission, lead.Id, project.Id, project.Path)]);
+            model.AttachDextra(made);
+        });
+        try
+        {
+            var (away, projects, threads) = h.Main.OnMain(() =>
+                (model.SpawnDroppyHead(lead.Id, "Fix it there", HydraHeadInfo.Origin.Delegated, [], null, null, other, null, static (_, _) => "brief"),
+                    model.Projects.Count, model.Threads.Count));
+            Assert.Null(away);
+            Assert.Equal(1, projects);
+            Assert.Equal(1, threads);
+
+            var home = h.Main.OnMain(() =>
+                model.SpawnDroppyHead(lead.Id, "Write the tests", HydraHeadInfo.Origin.Delegated, [], null, null, "Project", null, static (_, _) => "brief"));
+            Assert.NotNull(home);
+            Assert.Equal(mission, home!.MissionID);
+            Assert.Equal(project.Id, home.ProjectID);
+            Assert.Equal(1, h.Main.OnMain(() => model.Projects.Count));
+        }
+        finally
+        {
+            h.Main.OnMain(() => model.AttachDextra(null));
+        }
     }
 
     [Theory]

@@ -1160,7 +1160,13 @@ public sealed partial class AppModel : MainActorModel
             else
             {
                 existingRuntime.Draft = new ComposerDraft { Text = prompt }; // AppModel.swift:1028-1029
-                existingRuntime.Send(); // AppModel.swift:1030
+                // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-14): a mission's helper waits at the agent gate first.
+                if (existing.MissionID is null) existingRuntime.Send(); // AppModel.swift:1030
+                else MainActor.Spawn(async () =>
+                {
+                    await DextraAdmitHelper(existing);
+                    existingRuntime.Send();
+                });
             }
             return existing; // AppModel.swift:1032
         }
@@ -1182,12 +1188,28 @@ public sealed partial class AppModel : MainActorModel
             // sealed, capped and in its own job like every mission descendant (12.3: never Full access, never the owner's rules).
             MissionID = parent.MissionID,
             AssistantID = parent.MissionID is null ? null : parent.AssistantID,
+            // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-14): it works in the mission's own folder, never the owner's tree.
+            WorktreePath = parent.MissionID is null ? null : parent.WorktreePath,
+            Branch = parent.MissionID is null ? null : parent.Branch,
         };
+        // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-14): a mission chat's helper is one of Dextra's agents of a running
+        // mission (its approvals through the policy engine and the queue, Stop and Finish reaching it, the gate counting
+        // it); with no running mission to take it, it does not open.
+        if (thread.MissionID is not null && !DextraHelperAdded(parent, thread))
+        {
+            Runtime(parentID).AppendHydraNote("Dextra: a helper of a mission opens only while Dextra runs that mission.");
+            return null;
+        }
         Threads = Threads.Appending(thread); // AppModel.swift:1045
         ScheduleSave(); // AppModel.swift:1046
         var runtime = Runtime(thread.Id); // AppModel.swift:1047
         runtime.Draft = new ComposerDraft { Text = prompt }; // AppModel.swift:1048-1049
-        runtime.Send(); // AppModel.swift:1050
+        if (thread.MissionID is null) runtime.Send(); // AppModel.swift:1050
+        else MainActor.Spawn(async () => // PORT-ONLY (Dextra AS-5): a mission's helper waits at the agent gate first
+        {
+            await DextraAdmitHelper(thread);
+            runtime.Send();
+        });
         return thread; // AppModel.swift:1051
     }
 

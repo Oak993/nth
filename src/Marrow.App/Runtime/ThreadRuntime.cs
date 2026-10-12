@@ -2628,6 +2628,9 @@ public sealed partial class ThreadRuntime : MainActorModel
     // :1721-1731. Swift: resolve(_:option:).
     public void Resolve(ApprovalRequest request, ApprovalRequest.Option option)
     {
+        // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-13): a mission chat's answer is logged first, and goes as a decline when
+        // it cannot be logged or its mission is stopping. Any other chat's answer passes unchanged.
+        if (App is { } dextraApp) option = dextraApp.DextraChatAnswer(ThreadID, request, option);
         // DEVIATION OD-0114 / ED-407: retain the request, chosen answer and scope after it leaves Approvals.
         BufferHandoff(HandoffJournal.EncodeResolution(request.Id, new { Request = request, Option = option }), preserve: true);
         Approvals = Approvals.Mutating(items => items.RemoveAll(item => item.Id == request.Id));

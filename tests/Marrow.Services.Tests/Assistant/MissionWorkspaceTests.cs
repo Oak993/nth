@@ -70,12 +70,12 @@ public sealed class MissionWorkspaceTests
         Assert.Contains("+fixed", review.Patch, StringComparison.Ordinal);
         Assert.Equal(before, OwnerState(repository));
 
-        var refused = await MissionWorkspaces.Merge(workspace);
+        var refused = await MissionWorkspaces.Merge(workspace, review);
         Assert.Equal(MergeOutcome.Merged, refused.Outcome); // untracked files of the owner do not block a merge that does not touch them
         Assert.Equal("a\nfixed\n", Read(repository.Child("a.txt")));
         Assert.Equal("new\n", Read(repository.Child("b.txt")));
         Assert.Equal("the owner's own work in progress\n", Read(repository.Child("mine.txt")));
-        Assert.Equal(MergeOutcome.NothingToMerge, (await MissionWorkspaces.Merge(workspace)).Outcome);
+        Assert.Equal(MergeOutcome.NothingToMerge, (await MissionWorkspaces.Merge(workspace, review)).Outcome);
     }
 
     [Fact]
@@ -113,7 +113,8 @@ public sealed class MissionWorkspaceTests
         File.WriteAllText(Path.Combine(workspace.Path, "a.txt"), "mission\n");
 
         repository.Write("a.txt", "owner uncommitted\n");
-        var dirty = await MissionWorkspaces.Merge(workspace);
+        var first = await MissionWorkspaces.Review(workspace);
+        var dirty = await MissionWorkspaces.Merge(workspace, first);
         Assert.Equal(MergeOutcome.Refused, dirty.Outcome);
         Assert.StartsWith("Commit or stash your changes in ", dirty.Refused, StringComparison.Ordinal);
         Assert.Equal("owner uncommitted\n", Read(repository.Child("a.txt")));
@@ -122,7 +123,7 @@ public sealed class MissionWorkspaceTests
         var before = OwnerState(repository);
         var review = await MissionWorkspaces.Review(workspace);
         Assert.True(review.BaseMoved);
-        var conflict = await MissionWorkspaces.Merge(workspace);
+        var conflict = await MissionWorkspaces.Merge(workspace, review);
         Assert.Equal(MergeOutcome.Conflict, conflict.Outcome);
         Assert.Equal(new[] { "a.txt" }, conflict.Conflicts);
         Assert.Equal(before, OwnerState(repository));
@@ -135,7 +136,7 @@ public sealed class MissionWorkspaceTests
         Assert.Equal("mission\n", Read(Path.Combine(workspace.Path, "a.txt")));
 
         repository.Git("switch", "-q", "-c", "elsewhere");
-        var elsewhere = await MissionWorkspaces.Merge(workspace);
+        var elsewhere = await MissionWorkspaces.Merge(workspace, review);
         Assert.Equal((MergeOutcome.Refused, $"Switch {workspace.Repository} to main first; nothing was merged."), (elsewhere.Outcome, elsewhere.Refused));
     }
 
@@ -203,7 +204,7 @@ public sealed class MissionWorkspaceTests
 
         // The owner edits a file the mission changed: nothing at all is copied back.
         File.WriteAllText(Path.Combine(source, "edit.txt"), "owner's\n");
-        var conflict = await MissionWorkspaces.Merge(workspace);
+        var conflict = await MissionWorkspaces.Merge(workspace, review);
         Assert.Equal(MergeOutcome.Conflict, conflict.Outcome);
         Assert.Equal(new[] { "edit.txt" }, conflict.Conflicts);
         Assert.False(File.Exists(Path.Combine(source, "added.txt")));
@@ -211,7 +212,7 @@ public sealed class MissionWorkspaceTests
 
         File.WriteAllText(Path.Combine(source, "edit.txt"), "old\n");
         File.WriteAllText(Path.Combine(source, "keep.txt"), "the owner's later edit of a file the mission left alone\n");
-        Assert.Equal(MergeOutcome.Merged, (await MissionWorkspaces.Merge(workspace)).Outcome);
+        Assert.Equal(MergeOutcome.Merged, (await MissionWorkspaces.Merge(workspace, review)).Outcome);
         Assert.Equal(("new\n", "added\n"), (Read(Path.Combine(source, "edit.txt")), Read(Path.Combine(source, "added.txt"))));
         Assert.False(File.Exists(Path.Combine(source, "sub", "gone.txt")));
         Assert.Equal("the owner's later edit of a file the mission left alone\n", Read(Path.Combine(source, "keep.txt")));

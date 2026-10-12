@@ -109,6 +109,20 @@ public sealed partial class AppModel
 
     internal void DextraRequestResolved(Guid thread, string requestId) => Dextra?.OnRequestResolved(thread, requestId);
 
+    /// <summary>
+    /// ThreadRuntime.Resolve's tap, before the option reaches the provider: a mission chat's approval answered in the chat
+    /// is logged, and goes as a decline when it cannot be or its mission is stopping (12.5, 12.6; ED-NEW-dextra-as5-13).
+    /// </summary>
+    internal ApprovalRequest.Option DextraChatAnswer(Guid thread, ApprovalRequest request, ApprovalRequest.Option option) =>
+        Dextra?.OnChatAnswer(thread, request, option) ?? option;
+
+    /// <summary>A mission chat's helper joins its mission (ED-NEW-dextra-as5-14); false when no running mission takes it.</summary>
+    internal bool DextraHelperAdded(ChatThread parent, ChatThread helper) => Dextra?.OnHelperAdded(parent, helper) ?? false;
+
+    /// <summary>A mission's helper waits at the agent gate before nth starts its turn.</summary>
+    internal Task DextraAdmitHelper(ChatThread helper) =>
+        helper.MissionID is not null && Dextra is { } dextra ? dextra.Runner.AdmitHelper(helper.Id, helper.Provider) : Task.CompletedTask;
+
     /// <summary>Hydra seam 3: a head under a mission's lead is the mission's agent too.</summary>
     internal void DextraHeadAdded(ChatThread lead, ChatThread head) => Dextra?.OnHeadAdded(lead, head);
 

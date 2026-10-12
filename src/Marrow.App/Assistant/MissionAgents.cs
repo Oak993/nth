@@ -72,7 +72,8 @@ public interface IMissionWorkspaces
 
     Task<MergeReview> Review(MissionWorkspace workspace);
 
-    Task<MergeResult> Merge(MissionWorkspace workspace);
+    /// <summary>Merges exactly what <paramref name="reviewed"/> showed the owner (ED-NEW-dextra-as5-15).</summary>
+    Task<MergeResult> Merge(MissionWorkspace workspace, MergeReview reviewed);
 
     Task<MergeResult> RebaseFirst(MissionWorkspace workspace);
 
@@ -86,7 +87,7 @@ public sealed class StoreMissionWorkspaces(Func<Guid, string> folder) : IMission
 
     public Task<MergeReview> Review(MissionWorkspace workspace) => MissionWorkspaces.Review(workspace);
 
-    public Task<MergeResult> Merge(MissionWorkspace workspace) => MissionWorkspaces.Merge(workspace);
+    public Task<MergeResult> Merge(MissionWorkspace workspace, MergeReview reviewed) => MissionWorkspaces.Merge(workspace, reviewed);
 
     public Task<MergeResult> RebaseFirst(MissionWorkspace workspace) => MissionWorkspaces.RebaseFirst(workspace);
 
