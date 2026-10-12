@@ -811,6 +811,8 @@ public sealed class DetailView : Decorator
                 columnModel = model;
                 columns = new ThreadColumns(threadID, prebuilt, running, model, liveResize);
                 workspace = new Marrow.App.Views.Panes.PaneWorkspace(columns, _ => null);
+                var settings = model.Settings;
+                workspace.DrawerHeight = () => settings.TerminalHeight; // web W4: where a terminal dragged back to the drawer is outlined
                 workspace.StateChanged += state =>
                 {
                     if (workspaceRuntime is { } owner) owner.Workspace = state;

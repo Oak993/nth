@@ -76,6 +76,47 @@ public sealed class TerminalPanelRig : IDisposable
         return (host, panel, window);
     }
 
+    /// <summary>Shows the terminal pane's body (web W4) for the rig's thread in a window of its own, with the AppModel inherited.</summary>
+    public (Border Host, Marrow.App.Views.Panes.PaneContent Content, AvaloniaWindow Window) ShowPane(double width = 500, double height = 400)
+    {
+        Border host = null!;
+        Marrow.App.Views.Panes.PaneContent content = null!;
+        AvaloniaWindow window = null!;
+        Step(() =>
+        {
+            host = new Border();
+            AppEnvironment.SetAppModel(host, App);
+            content = TerminalPane.Create(Runtime);
+            host.Child = content.Body;
+            window = new AvaloniaWindow { Content = host, Width = width, Height = height };
+            windows.Add(window);
+            window.Show();
+            Settle(window);
+        });
+        Step(() => Settle(window));
+        return (host, content, window);
+    }
+
+    /// <summary>Shows a drawer panel inside a pane workspace (web W4), as the app has it: the workspace is its ancestor.</summary>
+    public (Marrow.App.Views.Panes.PaneWorkspace Workspace, TerminalPanel Panel) ShowInWorkspace(string directory, double width = 900, double height = 600)
+    {
+        Marrow.App.Views.Panes.PaneWorkspace workspace = null!;
+        TerminalPanel panel = null!;
+        AvaloniaWindow window = null!;
+        Step(() =>
+        {
+            panel = new TerminalPanel(Runtime, directory);
+            workspace = new Marrow.App.Views.Panes.PaneWorkspace(new Border { Child = panel }, _ => null);
+            AppEnvironment.SetAppModel(workspace, App);
+            window = new AvaloniaWindow { Content = workspace, Width = width, Height = height };
+            windows.Add(window);
+            window.Show();
+            Settle(window);
+        });
+        Step(() => Settle(window));
+        return (workspace, panel);
+    }
+
     /// <summary>Lets layout, posted work and the headless render timer drain.</summary>
     public static void Settle(TopLevel window)
     {

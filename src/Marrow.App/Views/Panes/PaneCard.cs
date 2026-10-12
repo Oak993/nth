@@ -23,8 +23,10 @@ public sealed class PaneCard : Border
     private readonly Border clip;
     private readonly Grid layout = new() { RowDefinitions = new RowDefinitions($"{PaneTokens.HeaderHeight},*") };
     private readonly ScaleTransform scale = new(1, 1);
+    private readonly TranslateTransform shift = new(0, 0);
     private bool focused;
     private bool expanded;
+    private bool lifted;
 
     public PaneCard(PaneKind kind, PaneContent content)
     {
@@ -34,7 +36,7 @@ public sealed class PaneCard : Border
         CornerRadius = new CornerRadius(PaneTokens.CornerRadius);
         BorderThickness = new Thickness(1);
         ClipToBounds = false;
-        RenderTransform = scale;
+        RenderTransform = new TransformGroup { Children = { scale, shift } };
         RenderTransformOrigin = RelativePoint.Center;
         clip = new Border { CornerRadius = new CornerRadius(PaneTokens.CornerRadius - 1), ClipToBounds = true, Child = layout };
         Child = clip;
@@ -76,6 +78,32 @@ public sealed class PaneCard : Border
         }
     }
 
+    /// <summary>
+    /// A drag of the card's header moves the card (3.6): it follows the pointer by this much (a render transform, never layout).
+    /// </summary>
+    public Vector Shift
+    {
+        get => new(shift.X, shift.Y);
+        set
+        {
+            if (shift.X == value.X && shift.Y == value.Y) return;
+            shift.X = value.X;
+            shift.Y = value.Y;
+        }
+    }
+
+    /// <summary>The lifted look of a card in a drag (3.6): a deeper shadow.</summary>
+    public bool IsLiftedLook
+    {
+        get => lifted;
+        set
+        {
+            if (lifted == value) return;
+            lifted = value;
+            ApplyLook();
+        }
+    }
+
     /// <summary>The expanded look: denser and lifted (3.4).</summary>
     public bool IsExpandedLook
     {
@@ -112,6 +140,6 @@ public sealed class PaneCard : Border
         ThemeVariant theme = ActualThemeVariant;
         Background = PaneTokens.CardFill(theme, expanded);
         BorderBrush = PaneTokens.Rim(theme, focused);
-        BoxShadow = PaneTokens.Shadow(theme, expanded);
+        BoxShadow = PaneTokens.Shadow(theme, expanded || lifted);
     }
 }

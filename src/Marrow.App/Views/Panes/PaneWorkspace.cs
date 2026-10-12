@@ -42,7 +42,7 @@ public enum ChatReflow
 }
 
 /// <summary>The detail area of a thread: the chat column and its panes.</summary>
-public sealed class PaneWorkspace : Panel
+public sealed partial class PaneWorkspace : Panel
 {
     /// <summary>The window's margin to the right and bottom of the panes (the gap).</summary>
     public const double EdgeMargin = PaneKinds.Gap;
@@ -103,6 +103,7 @@ public sealed class PaneWorkspace : Panel
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Bubble);
         DetachedFromVisualTree += (_, _) =>
         {
+            CancelDock(immediately: true);
             SettleAll();
             dragging = false;
             reflowing = false;
@@ -174,6 +175,7 @@ public sealed class PaneWorkspace : Panel
     public void Reload(Func<PaneKind, PaneContent?> contents, PaneWorkspaceState next)
     {
         factory = contents ?? throw new ArgumentNullException(nameof(contents));
+        CancelDock(immediately: true);
         SettleAll();
         foreach (var motion in cards.Values) RemoveCard(motion);
         cards.Clear();
@@ -214,6 +216,7 @@ public sealed class PaneWorkspace : Panel
         lastFrame = null;
         chatWidth.Settle();
         foreach (var motion in cards.Values) motion.Settle();
+        SettleDock();
         ApplyLooks();
         InvalidateMeasure();
         if (moving) FinishMotion();
@@ -228,6 +231,7 @@ public sealed class PaneWorkspace : Panel
     {
         next = (next ?? PaneWorkspaceState.Default).Normalized();
         if (next.Equals(state)) return false;
+        if (!committing) CancelDock(immediately: true); // a state that changes under a drag (a pane opened elsewhere) ends it
         state = next;
         SyncCards(animate);
         pendingAnimate = dirty ? pendingAnimate && animate : animate;
@@ -272,6 +276,7 @@ public sealed class PaneWorkspace : Panel
                 RestoreExpanded();
                 MoveFocusToChat();
             };
+            if (IsDockable(kind)) PaneDockGesture.Attach(card.Header, kind, () => this); // web W4: the terminal's header lifts the pane (3.6)
             cards[kind] = motion;
             Children.Insert(1, card);
         }
@@ -466,7 +471,7 @@ public sealed class PaneWorkspace : Panel
         return result.Expanded;
     }
 
-    private bool AnyMoving => chatWidth.IsMoving || cards.Values.Any(motion => motion.IsMoving);
+    private bool AnyMoving => chatWidth.IsMoving || cards.Values.Any(motion => motion.IsMoving) || DockMoving;
 
     // The chat chrome row's trailing end keeps clear of the caption buttons only where the chat column runs under them.
     private void SetCaptionReserve(double chatRight, bool animates)
@@ -496,9 +501,10 @@ public sealed class PaneWorkspace : Panel
         foreach (var motion in cards.Values)
         {
             motion.Card.Opacity = Math.Clamp(motion.Opacity.Value, 0, 1);
-            motion.Card.Scale = Math.Clamp(motion.Scale.Value, 0.9, 1);
-            motion.Card.ZIndex = motion.Lifted ? 10 : motion.Leaving ? 1 : 0;
+            motion.Card.Scale = Math.Clamp(motion.Scale.Value, 0.9, 1.03);
+            motion.Card.ZIndex = dock is { Source: DockSource.Card } lifting && lifting.Kind == motion.Card.Kind ? DockZIndex : motion.Lifted ? 10 : motion.Leaving ? 1 : 0;
         }
+        ApplyDockLooks();
     }
 
     private void RequestFrame()
@@ -516,6 +522,7 @@ public sealed class PaneWorkspace : Panel
         lastFrame = now;
         var any = chatWidth.Step(dt);
         foreach (var motion in cards.Values) any |= motion.Step(dt);
+        any |= StepDock(dt);
         ApplyLooks();
         InvalidateMeasure();
         if (any)
@@ -602,6 +609,7 @@ public sealed class PaneWorkspace : Panel
             if (motion.Card.IsVisible) motion.Card.Measure(Shown(motion).Size);
         foreach (var (key, splitter) in splitters)
             if (splitter.IsVisible && GutterRect(key) is { } rect) splitter.Measure(rect.Size);
+        MeasureDock(size);
         return size;
     }
 
@@ -618,6 +626,7 @@ public sealed class PaneWorkspace : Panel
         }
         foreach (var (key, splitter) in splitters)
             if (splitter.IsVisible && GutterRect(key) is { } rect) splitter.Arrange(rect);
+        ArrangeDock();
         return finalSize;
     }
 
