@@ -2,8 +2,10 @@
 // 5.4 item 11, critique C4). NATIVE: keeps the physical-input monitor (its hooks and the IME WinEvent thread) for 90 s
 // while the owner composes words with the Hindi and then the Urdu input language in Notepad, and in Word, Chrome and
 // Outlook when open, and records every change of the two signals the gate reads (an open composition window, and an
-// IME-served input language in the foreground) with the foreground app. TextEditPattern events are not subscribed by the
-// gate, so they are not probed here (ED-NEW-pcctl-43 item 4). Reading only. Runs only from the smoke script.
+// IME-served input language in the foreground) with the foreground app. Since ED-NEW-pcctl-44 the composition signal is
+// the WinEvents or a TextEditPattern.GetActiveComposition read, and the language counts as served when TSF's profile for
+// it is a text service (Hindi and Urdu phonetic input), so both should show here. Reading only. Runs only from the smoke
+// script.
 using System.Diagnostics;
 using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Port.PcControl;
