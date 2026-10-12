@@ -83,8 +83,34 @@ public sealed class WebSurface : IDisposable
     /// <summary>The failure card's "Close tab" was pressed.</summary>
     public event Action<WebSurfaceView>? CloseRequested;
 
-    /// <summary>The runtime card's Install or Update was pressed (the bootstrapper flow asks the user first, W23).</summary>
+    /// <summary>
+    /// A runtime card's button was pressed: Install, Update (the runtime flow, W23: <c>WebRuntimeInstaller</c>, which acts only
+    /// on this user gesture) or Open Microsoft's page.
+    /// </summary>
     public event Action<WebFailureAction>? RuntimeActionRequested;
+
+    /// <summary>
+    /// W23: the card the runtime flow is showing in place of <c>Runtime.Card</c> (installing, or why it failed), or null
+    /// when the flow is idle. Views opened meanwhile start with it.
+    /// </summary>
+    public WebFailureCard? RuntimeFlowCard { get; private set; }
+
+    /// <summary>
+    /// W23: shows <paramref name="card"/> (or, for null, the plain offer for the runtime found) on every view that is waiting
+    /// on the runtime. Sandboxed surfaces keep their static fallback and never get a card.
+    /// </summary>
+    public void ShowRuntimeFlowCard(WebFailureCard? card)
+    {
+        RuntimeFlowCard = card;
+        foreach (var view in views.Where(v => v.Failure is { } failure && failure.Kind.IsRuntime()).ToList())
+            view.SetFailure(RuntimeCardFor(view));
+    }
+
+    private WebFailureCard? RuntimeCardFor(WebSurfaceView view)
+    {
+        var showsCard = !view.IsSandboxed;
+        return RuntimeFlowCard is { } flow ? flow with { ShowsCard = showsCard } : Runtime.Card(showsCard);
+    }
 
     /// <summary>Re-reads the runtime; views waiting on a missing or old runtime get an engine view when it is ready.</summary>
     public WebRuntimeStatus RefreshRuntime()
@@ -92,7 +118,8 @@ public sealed class WebSurface : IDisposable
         Runtime = WebRuntimeStatus.Evaluate(Engine);
         if (Runtime.State == WebRuntimeState.Ready)
         {
-            foreach (var view in views.Where(v => v.Failure?.Kind is WebFailureKind.RuntimeMissing or WebFailureKind.RuntimeTooOld).ToList())
+            RuntimeFlowCard = null;
+            foreach (var view in views.Where(v => v.Failure is { } failure && failure.Kind.IsRuntime()).ToList())
             {
                 view.SetFailure(null);
                 view.CreateEngine();
@@ -116,9 +143,12 @@ public sealed class WebSurface : IDisposable
             LastUsedAt = time.GetUtcNow(),
         };
         views.Add(view);
+        // W23: a runtime that was missing may have been installed since (by the flow, or by the user from Microsoft's page);
+        // the check is a registry read, so a view opened without one looks again before it shows a card.
+        if (Runtime.State != WebRuntimeState.Ready) RefreshRuntime();
         if (Runtime.State != WebRuntimeState.Ready)
         {
-            view.SetFailure(Runtime.Card(showsCard: !view.IsSandboxed));
+            view.SetFailure(RuntimeCardFor(view));
             view.SetLiveness(WebLiveness.Closed);
             return view;
         }
@@ -203,7 +233,7 @@ public sealed class WebSurface : IDisposable
         Engine.ResetEnvironment();
         foreach (var view in views.Where(v => v.Liveness != WebLiveness.Closed || v.Engine is not null).ToList())
         {
-            if (view.Failure?.Kind is WebFailureKind.RuntimeMissing or WebFailureKind.RuntimeTooOld) continue;
+            if (view.Failure is { } waiting && waiting.Kind.IsRuntime()) continue;
             view.ReleaseEngine();
             view.HungSince = null;
             view.SetFailure(null);
@@ -383,6 +413,7 @@ public sealed class WebSurface : IDisposable
                 break;
             case WebFailureAction.InstallRuntime:
             case WebFailureAction.UpdateRuntime:
+            case WebFailureAction.OpenRuntimePage:
                 RuntimeActionRequested?.Invoke(action);
                 break;
         }

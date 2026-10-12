@@ -54,12 +54,20 @@ public sealed class MCPWireTests
 
     [Fact]
     [Trait("Req", "PR-MCP-101")] // Services/MCP/MCPWire.swift:9-15 (B3); clientInfo.name is "Marrow" (DEVIATION OD-0012 F1)
-    public void InitializeParams_carries_the_protocol_version_marrow_clientinfo_and_empty_capabilities()
+    public void InitializeParams_carries_the_protocol_version_marrow_clientinfo_and_the_apps_capabilities()
     {
         var init = MCPWire.InitializeParams();
         Assert.Equal("2025-06-18", MCPWire.ProtocolVersion);
         Assert.Equal(MCPWire.ProtocolVersion, init["protocolVersion"]?.JSONValueString);
-        Assert.Empty(init["capabilities"]!.JSONValueObject!);
+        // DEVIATION ED-NEW-web-w18-2: the empty capabilities object became the MCP Apps extension plus resources
+        // (DESIGN.md 7.6); the check is stricter than "empty": every member and its value is named.
+        var capabilities = init["capabilities"]!;
+        Assert.Equal(["extensions", "resources"], capabilities.JSONValueObject!.Keys.Order(StringComparer.Ordinal).ToArray());
+        Assert.Equal(["io.modelcontextprotocol/ui"], capabilities["extensions"]!.JSONValueObject!.Keys.ToArray());
+        Assert.Equal(["text/html;profile=mcp-app"],
+            capabilities["extensions"]!["io.modelcontextprotocol/ui"]!["mimeTypes"]!.JSONValueArray!.Select(item => item.JSONValueString!).ToArray());
+        Assert.Equal(["mimeTypes"], capabilities["extensions"]!["io.modelcontextprotocol/ui"]!.JSONValueObject!.Keys.ToArray());
+        Assert.Empty(capabilities["resources"]!.JSONValueObject!);
         Assert.Equal("nth", init["clientInfo"]?["name"]?.JSONValueString);
         Assert.Equal("1.0", init["clientInfo"]?["version"]?.JSONValueString);
     }

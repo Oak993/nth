@@ -582,6 +582,7 @@ public sealed class ChatView : Decorator
         OnResize = (translation, axes) => CurrentResizer(id).OnResize(translation, axes),
         OnResizeEnd = () => CurrentResizer(id).OnResizeEnd(),
         OnReset = () => CurrentResizer(id).OnReset(),
+        Extent = () => CurrentResizer(id).Extent!(),
     };
 
     private void UpdatePanelPlacement(FloatingPanelID id, PlacedPanel placed, bool holds)
@@ -593,27 +594,7 @@ public sealed class ChatView : Decorator
         // SubagentPanel.swift:599-615. Moving to a different dock updates the existing grips' free edges.
         var dock = CurrentSlot(id).Corner;
         foreach (var grips in Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(placed).OfType<PanelResizeGrips>())
-            foreach (var handle in Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(grips).OfType<PanelDragHandle>())
-            {
-                var width = !double.IsNaN(handle.Width);
-                var height = !double.IsNaN(handle.Height);
-                var horizontal = width ? (dock.Side == PanelDockSide.Leading ? HorizontalAlignment.Right : HorizontalAlignment.Left) : HorizontalAlignment.Stretch;
-                var vertical = height ? (dock.IsTop ? VerticalAlignment.Bottom : VerticalAlignment.Top) : VerticalAlignment.Stretch;
-                var changed = handle.HorizontalAlignment != horizontal || handle.VerticalAlignment != vertical;
-                handle.HorizontalAlignment = horizontal;
-                handle.VerticalAlignment = vertical;
-                if (changed && width && height && handle.Child is DragHandleView grip)
-                {
-                    var cursor = new Cursor(dock switch
-                    {
-                        PanelDockCorner.TopLeading => StandardCursorType.BottomRightCorner,
-                        PanelDockCorner.TopTrailing => StandardCursorType.BottomLeftCorner,
-                        PanelDockCorner.BottomLeading => StandardCursorType.TopRightCorner,
-                        _ => StandardCursorType.TopLeftCorner,
-                    });
-                    grip.Cursor = grip.HandleCursor = grip.DragCursor = cursor;
-                }
-            }
+            grips.SetDock(dock);
     }
 
     private void DragPanel(FloatingPanelID id, PanelDragState drag, Size translation, Point rest, bool release = false) // :336-346,368-378,434-444,469-479,510-520
@@ -716,6 +697,12 @@ public sealed class ChatView : Decorator
         },
         OnResizeEnd = () => CommitPanelResize(model, resize), // :573
         OnReset = () => Transaction.WithAnimation(Chrome.PanelSlide, () => model.Settings.UsagePanelHeight = null), // :574-577
+        // PORT-ONLY (web W1): the usage height has no ceiling of its own; keys and automation stop at the column's.
+        Extent = () => new PanelResizeExtent(
+            new Size(resize.LiveSize?.Width ?? size.Width, resize.LiveUsageHeight ?? size.Height),
+            new Size(scene.Layout.Fitted(new Size(0, 0)).Width, minimum),
+            new Size(scene.Layout.Fitted(new Size(double.MaxValue, 0)).Width,
+                Math.Max(minimum, scene.Layout.Fitted(new Size(0, double.MaxValue)).Height))),
     };
 
     // :533-551 shared panel grips.
@@ -733,6 +720,8 @@ public sealed class ChatView : Decorator
         },
         OnResizeEnd = () => CommitPanelResize(model, resize),
         OnReset = () => Transaction.WithAnimation(Chrome.PanelSlide, () => model.Settings.PanelSize = null),
+        Extent = () => new PanelResizeExtent(resize.LiveSize ?? scene.Layout.PanelSize, scene.Layout.Fitted(new Size(0, 0)),
+            scene.Layout.Fitted(new Size(double.MaxValue, double.MaxValue))), // PORT-ONLY (web W1)
     };
 
     // :595-598. Only the live timeline width is quantized; commit keeps the exact preference.

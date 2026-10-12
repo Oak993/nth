@@ -203,6 +203,8 @@ public sealed record ToolUpdate
     public long? ExitCode { get; init; }             // :131
     public ValueList<FileEdit>? Edits { get; init; } // :132
     public ToolCall.Kind? Kind { get; init; }        // :133
+    /// <summary>PORT-ONLY (web surfaces W18, ED-NEW-web-w18-1): the structured part of an MCP tool result (images, resource links, UI resource, structuredContent). Replaces the row's payload when set.</summary>
+    public ToolPayload? Payload { get; init; }
 }
 
 // :136-151. R-PROTO-1: a Swift protocol ports to an interface. R-ISO-1: the Swift @MainActor annotation means

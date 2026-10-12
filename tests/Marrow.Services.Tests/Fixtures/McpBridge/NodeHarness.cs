@@ -39,6 +39,7 @@ public sealed class McpBridgeScratchFolder : IDisposable
 public static class NodeHarness
 {
     public static readonly string FakeStdioServerPath = FixturePath("fake-stdio-server.mjs");
+    public static readonly string FakeRichServerPath = FixturePath("fake-rich-server.mjs"); // W18
     private static readonly string HarnessScriptPath = FixturePath("run-harness.mjs");
     private static readonly string NodeExecutablePath = LocateNode();
 
@@ -70,7 +71,7 @@ public static class NodeHarness
         throw new FileNotFoundException("node executable not found on PATH; the MCP bridge tests need Node.js installed.");
     }
 
-    public sealed record ToolSummary(string Server, string Name, string Description, JsonElement InputSchema, string? CallResult);
+    public sealed record ToolSummary(string Server, string Name, string Description, JsonElement InputSchema, string? CallResult, JsonElement? CallContent = null);
 
     public sealed record HttpRequestRecord(string Path, string Method, IReadOnlyDictionary<string, string> Headers, JsonElement? Body);
 
@@ -128,7 +129,8 @@ public static class NodeHarness
                     tool.GetProperty("name").GetString()!,
                     tool.GetProperty("description").GetString()!,
                     tool.GetProperty("inputSchema").Clone(),
-                    callResult.ValueKind == JsonValueKind.Null ? null : callResult.GetString()));
+                    callResult.ValueKind == JsonValueKind.Null ? null : callResult.GetString(),
+                    tool.TryGetProperty("callContent", out var callContent) && callContent.ValueKind != JsonValueKind.Null ? callContent.Clone() : null));
             }
             foreach (var request in document.RootElement.GetProperty("httpRequests").EnumerateArray())
             {

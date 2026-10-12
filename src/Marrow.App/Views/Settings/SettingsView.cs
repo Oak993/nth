@@ -341,12 +341,12 @@ public sealed class SettingsView : Decorator
         var accessories = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
         var chromeRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 10, MinHeight = Chrome.CapsuleHeight, Children = { new ChromeCompactTitle(state.Page.Title, scrollChrome), accessories } }; Grid.SetColumn(accessories, 1);
         var chrome = new StackPanel { Spacing = 10, MinHeight = Chrome.CapsuleHeight, Margin = new Thickness(Chrome.ChromeHorizontalPadding, Chrome.ChromeTopPadding, WindowChrome.CaptionTrailingReserve, 0), VerticalAlignment = VerticalAlignment.Top, Children = { chromeRow } }; // :246-267; trailing: DEVIATION OD-0044, clear of the Windows caption buttons. Grid's star track is Swift's flexible title frame.
+        foreach (var accessory in ChromeAccessoriesOf(content)) accessories.Children.Add(accessory); // PORT-ONLY (SA-1): a page supplies its own accessories; ED-NEW-mcpimport-2: before the source's own, so MCP's search field stays trailing (:251-253)
         if (state.Page == SettingsPage.Models) accessories.Children.Add(new ChromeSearchField(new Binding<string>(() => state.ModelSearch, value => { state.ModelSearch = value; ((ModelsSettingsPage)content).SetQuery(value); }), "Search models")); // :248-250
         if (state.Page == SettingsPage.Mcp) accessories.Children.Add(new ChromeSearchField(new Binding<string>(() => state.McpSearch, value => { state.McpSearch = value; ((MCPSettingsPage)content).SetQuery(value); }), "Search servers")); // :251-253
         if (state.Page == SettingsPage.Providers) accessories.Children.Add(new ProvidersRefreshButton()); // :254-256
         if (state.Page == SettingsPage.Archive) accessories.Children.Add(new ArchiveDeleteAllButton()); // :257-259
         if (state.Page == SettingsPage.About) accessories.Children.Add(new AboutUpdateChromeAccessory()); // :260-262
-        foreach (var accessory in ChromeAccessoriesOf(content)) accessories.Children.Add(accessory); // PORT-ONLY (SA-1): a page supplies its own accessories
         riseChrome = accessories.Children.Count > 0 ? chrome : null; risePage = content; // OD-0074, ED-249
         detail.Child = new Panel { Children = { scroll, new PaneTopVeil(scrollChrome) { VerticalAlignment = VerticalAlignment.Top }, chrome } }.DetailSheet();
     }

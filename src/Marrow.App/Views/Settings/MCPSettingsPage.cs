@@ -25,7 +25,7 @@ namespace Marrow.App.Views.Settings;
 
 // Source: DroppyCode/App/Views/Settings/MCPSettingsPage.swift (B3 52bc792), :1-1141.
 // DEVIATION OD-0012 F1: Marrow; OD-0008 B3/B4: Credential Manager / this PC.
-public sealed class MCPSettingsPage : Decorator
+public sealed class MCPSettingsPage : Decorator, Marrow.App.Port.Settings.ISettingsPageChrome
 {
     private string query; // :7
     private readonly StackPanel root = new() { Spacing = Chrome.SectionSpacing }; // :36
@@ -55,11 +55,16 @@ public sealed class MCPSettingsPage : Decorator
     public MCPSettingsPage(string query)
     {
         this.query = query; Child = root;
+        ChromeAccessories = MCPHeaderActions.Make(); // PORT-ONLY ED-NEW-mcpimport-2: "+ Add" and "Import" beside the search field, as on Skills and Plugins
         // :64-74 register before layout tracking, so a newly connected card stays in its grid while celebrating.
         AttachedToVisualTree += (_, _) => stateChanges ??= new OnChange<IReadOnlyDictionary<string, MCPConnectionState>>(() => AppEnvironment.GetAppModel(this).Mcp.States, Celebrate);
         DetachedFromVisualTree += (_, _) => { stateChanges?.Dispose(); stateChanges = null; };
         this.Track(() => (AppEnvironment.GetAppModel(this).Mcp.States, AppEnvironment.GetAppModel(this).Mcp.Customs, view.Celebrating, AppEnvironment.GetAppModel(this).Mcp.CredentialDeletionFailure), _ => Rebuild());
     }
+    /// <inheritdoc />
+    public bool HasChromeControls => true; // :270-272 the page already has the search field in the row
+    /// <inheritdoc />
+    public IReadOnlyList<Control> ChromeAccessories { get; }
     // :64-74. Intentionally independent of Settings.SettleSound, and each task removes its own ID after 900ms.
     private void Celebrate(IReadOnlyDictionary<string, MCPConnectionState> previous, IReadOnlyDictionary<string, MCPConnectionState> current)
     {

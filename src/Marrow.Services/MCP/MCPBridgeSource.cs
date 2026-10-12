@@ -63,6 +63,38 @@ function contentText(content) {
   return items.map((item) => (item && item.type === "text" && typeof item.text === "string" ? item.text : "[image]")).join("\n");
 }
 
+// W18: the same result as blocks a provider can show, so a picture reaches it as a picture. Text stays text; an image
+// that carries data stays an image ({type, data, mimeType}); anything else becomes one line of text.
+function contentBlocks(content) {
+  const items = Array.isArray(content) ? content : [];
+  const blocks = [];
+  for (const item of items) {
+    if (!item || typeof item !== "object") continue;
+    if (item.type === "text" && typeof item.text === "string") {
+      blocks.push({ type: "text", text: item.text });
+    } else if (item.type === "image" && typeof item.data === "string" && item.data) {
+      blocks.push({ type: "image", data: item.data, mimeType: typeof item.mimeType === "string" && item.mimeType ? item.mimeType : "image/png" });
+    } else if (item.type === "image") {
+      blocks.push({ type: "text", text: "[image]" });
+    } else if (item.type === "audio") {
+      blocks.push({ type: "text", text: "[audio]" });
+    } else if (item.type === "resource_link" && typeof item.uri === "string") {
+      blocks.push({ type: "text", text: "[resource: " + item.uri + "]" });
+    } else if (item.type === "resource" && item.resource && typeof item.resource === "object") {
+      const uri = typeof item.resource.uri === "string" ? item.resource.uri : "";
+      const embedded = typeof item.resource.text === "string" && item.resource.text && !uri.startsWith("ui://") ? "\n" + item.resource.text : "";
+      blocks.push({ type: "text", text: "[resource: " + uri + "]" + embedded });
+    }
+  }
+  return blocks;
+}
+
+// W18: a tool whose _meta.ui.visibility leaves out "model" is for its app view only; the model is not offered it.
+function visibleToModel(entry) {
+  const visibility = entry && entry._meta && entry._meta.ui && entry._meta.ui.visibility;
+  return !Array.isArray(visibility) || visibility.includes("model");
+}
+
 function describe(entry, fallback) {
   if (entry && typeof entry.description === "string" && entry.description) return entry.description;
   return fallback;
@@ -82,7 +114,7 @@ function withTimeout(promise) {
 }
 
 function wrapTools(server, entries, callTool) {
-  return entries.map((entry) => ({
+  return entries.filter(visibleToModel).map((entry) => ({
     server,
     name: String(entry.name),
     description: describe(entry, String(entry.name)),
@@ -94,6 +126,20 @@ function wrapTools(server, entries, callTool) {
         return contentText(result ? result.content : []);
       } catch (error) {
         return "Error: " + errorText(error);
+      }
+    },
+    // W18: the same call, answered as content blocks (text and images) instead of one string.
+    callContent: async (args) => {
+      try {
+        const result = await callTool(entry.name, args && typeof args === "object" ? args : {});
+        if (result && result.isError) return [{ type: "text", text: "Error: " + (contentText(result.content) || "tool failed") }];
+        const blocks = contentBlocks(result ? result.content : []);
+        if (blocks.length === 0 && result && result.structuredContent && typeof result.structuredContent === "object") {
+          blocks.push({ type: "text", text: JSON.stringify(result.structuredContent) });
+        }
+        return blocks.length > 0 ? blocks : [{ type: "text", text: "" }];
+      } catch (error) {
+        return [{ type: "text", text: "Error: " + errorText(error) }];
       }
     },
   }));

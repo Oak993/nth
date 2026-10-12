@@ -687,7 +687,10 @@ http://www.apache.org/licenses/
 ## Web surfaces (Visus)
 
 The in-app browser, project previews, artifacts and live widgets (web surfaces unit W7, ED-NEW-web-w7-1) host Microsoft
-Edge WebView2 through Avalonia's WebView control. The WebView2 runtime itself is part of Windows and is not shipped.
+Edge WebView2 through Avalonia's WebView control. The WebView2 runtime itself is part of Windows and is not shipped. On a PC
+without it, Visus offers Microsoft's own Evergreen bootstrapper: nth downloads it from Microsoft only when the user presses
+Install, runs it only if Windows verifies Microsoft Corporation's signature on it, and never redistributes it (unit W23,
+ED-NEW-web-w23-2). The package ships the WebView2 loader of the app's architecture (x64 or arm64).
 
 ### Avalonia.Controls.WebView
 

@@ -449,6 +449,10 @@ public sealed record ToolCall
     public DateTimeOffset StartedAt { get; init; } = SwiftDate.Now;            // :178
     public DateTimeOffset? FinishedAt { get; init; }                           // :179
 
+    // PORT-ONLY (web surfaces W18, ED-NEW-web-w18-1): the structured part of an MCP tool result (images, resource
+    // links, the UI resource uri, structuredContent, _meta) next to the text Output. Null for every other tool.
+    public ToolPayload? Payload { get; init; }
+
     // The mutating methods return the changed copy (R-VAL-1).
     // :181-184
     public ToolCall AppendOutput(string text) => this with { Output = TrimOutput(Output + text) };
@@ -483,6 +487,10 @@ internal sealed class ToolCallConverter : JsonConverter<ToolCall>
         Edits = SwiftDecoding.Decode(element, "edits", field => SwiftDecoding.ReadArray(field, FileEditConverter_Decode)),
         StartedAt = SwiftDecoding.Decode(element, "startedAt", SwiftDecoding.ReadStorageDate),
         FinishedAt = SwiftDecoding.DecodeIfPresentValue(element, "finishedAt", SwiftDecoding.ReadStorageDate),
+        // PORT-ONLY (W18): optional and lenient, a malformed payload never makes a thread unreadable.
+        // An empty payload (nothing a row could show) reads as none, as it is written as none.
+        Payload = SwiftDecoding.Value<ToolPayload?>(element, "payload",
+            field => ToolPayloadConverter.Decode(field) is { IsEmpty: false } payload ? payload : null, () => null),
     };
 
     // FileEdit already has its own JsonConverter (Models/FileEdit.cs); reuse it through JsonSerializer for one
@@ -506,6 +514,11 @@ internal sealed class ToolCallConverter : JsonConverter<ToolCall>
         writer.WriteEndArray();
         writer.WriteString("startedAt", FoundationISO8601.Format(value.StartedAt));
         if (value.FinishedAt is { } finishedAt) writer.WriteString("finishedAt", FoundationISO8601.Format(finishedAt));
+        if (value.Payload is { IsEmpty: false } payload)
+        {
+            writer.WritePropertyName("payload");
+            ToolPayloadConverter.WriteMembers(writer, payload);
+        }
         writer.WriteEndObject();
     }
 }

@@ -17,6 +17,24 @@ public enum WebFailureKind
 
     /// <summary>The runtime is older than the minimum the SDK needs.</summary>
     RuntimeTooOld,
+
+    /// <summary>W23: the user said yes to the runtime install (or update) and nth is getting it from Microsoft.</summary>
+    RuntimeInstalling,
+
+    /// <summary>W23: the runtime install (or update) did not finish; the card says why and offers another go.</summary>
+    RuntimeInstallFailed,
+}
+
+/// <summary>W23: which failure kinds belong to the runtime flow (the offer, the update offer, the work, its failure).</summary>
+public static class WebFailureKinds
+{
+    /// <summary>
+    /// True for the cards that stand in for a page because the WebView2 runtime is not usable: the pane keeps no live
+    /// content under them, a restart of Visus leaves them alone, and a runtime that turns up replaces them.
+    /// </summary>
+    public static bool IsRuntime(this WebFailureKind kind) =>
+        kind is WebFailureKind.RuntimeMissing or WebFailureKind.RuntimeTooOld
+            or WebFailureKind.RuntimeInstalling or WebFailureKind.RuntimeInstallFailed;
 }
 
 /// <summary>DESIGN 2.7: the buttons a failure card offers.</summary>
@@ -28,6 +46,9 @@ public enum WebFailureAction
     RestartVisus,
     InstallRuntime,
     UpdateRuntime,
+
+    /// <summary>W23: opens Microsoft's WebView2 Runtime page in the default browser (the install card's second way out).</summary>
+    OpenRuntimePage,
 }
 
 /// <summary>One button on a failure card: its action and its label.</summary>
@@ -58,6 +79,11 @@ public sealed record WebFailureCard(
     public const string RuntimeMissingBody = "It is a 2 MB download from Microsoft. nth installs it when you say so.";
     public const string RuntimeTooOldTitle = "Visus needs a newer WebView2 runtime.";
     public const string RuntimeTooOldBody = "Update it from Microsoft, then open Visus again.";
+    public const string RuntimeInstallingTitle = "Installing the WebView2 runtime.";
+    public const string RuntimeUpdatingTitle = "Updating the WebView2 runtime.";
+    public const string RuntimeInstallingBody = "nth is getting it from Microsoft. This takes a moment.";
+    public const string RuntimeInstallFailedTitle = "The WebView2 runtime did not install.";
+    public const string RuntimeUpdateFailedTitle = "The WebView2 runtime did not update.";
     public const string ReloadsStoppedBody = "It stopped working 3 times in 5 minutes, so nth no longer reloads it by itself.";
 
     public const string ReloadTitle = "Reload";
@@ -66,6 +92,8 @@ public sealed record WebFailureCard(
     public const string RestartVisusTitle = "Restart Visus";
     public const string InstallTitle = "Install";
     public const string UpdateTitle = "Update";
+    public const string TryAgainTitle = "Try again";
+    public const string OpenRuntimePageTitle = "Open Microsoft's page";
 
     /// <summary>The card for <paramref name="kind"/> (DESIGN 2.7 table).</summary>
     /// <param name="kind">What failed.</param>
@@ -85,9 +113,29 @@ public sealed record WebFailureCard(
                 [new(WebFailureAction.InstallRuntime, InstallTitle)], showsCard, Dimmed: false),
             WebFailureKind.RuntimeTooOld => new WebFailureCard(kind, RuntimeTooOldTitle, RuntimeTooOldBody,
                 [new(WebFailureAction.UpdateRuntime, UpdateTitle)], showsCard, Dimmed: false),
+            WebFailureKind.RuntimeInstalling => RuntimeInstalling(updating: false, showsCard),
+            WebFailureKind.RuntimeInstallFailed => throw new ArgumentException("The install-failed card says why: use RuntimeInstallFailed(updating, reason).", nameof(kind)),
         };
         return automaticReloadsStopped && kind is WebFailureKind.RendererCrashed or WebFailureKind.RendererHung
             ? card with { Body = card.Body + " " + ReloadsStoppedBody }
             : card;
     }
+
+    /// <summary>
+    /// W23: the card while the runtime flow is running (nth was asked to install or update, and is downloading and running
+    /// Microsoft's bootstrapper). No buttons: the work cannot be cancelled once the installer has started, and it ends in
+    /// the pane's page or in <see cref="RuntimeInstallFailed"/>. Not dimmed, like the offer it replaces.
+    /// </summary>
+    public static WebFailureCard RuntimeInstalling(bool updating, bool showsCard = true) =>
+        new(WebFailureKind.RuntimeInstalling, updating ? RuntimeUpdatingTitle : RuntimeInstallingTitle, RuntimeInstallingBody,
+            [], showsCard, Dimmed: false);
+
+    /// <summary>
+    /// W23: the card when the flow did not end with a usable runtime. <paramref name="reason"/> is one calm sentence
+    /// (<see cref="WebRuntimeBootstrapper.ReasonFor"/>); the buttons are another go and Microsoft's own page.
+    /// </summary>
+    public static WebFailureCard RuntimeInstallFailed(bool updating, string reason, bool showsCard = true) =>
+        new(WebFailureKind.RuntimeInstallFailed, updating ? RuntimeUpdateFailedTitle : RuntimeInstallFailedTitle, reason,
+            [new(updating ? WebFailureAction.UpdateRuntime : WebFailureAction.InstallRuntime, TryAgainTitle),
+             new(WebFailureAction.OpenRuntimePage, OpenRuntimePageTitle)], showsCard, Dimmed: false);
 }

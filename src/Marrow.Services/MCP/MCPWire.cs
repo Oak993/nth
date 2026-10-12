@@ -18,11 +18,25 @@ public static class MCPWire
     // :7
     public const string ProtocolVersion = "2025-06-18";
 
+    // PORT-ONLY (web surfaces W18, DESIGN.md 7.6, ED-NEW-web-w18-2): the MCP Apps extension and its one MIME type.
+    public const string UiExtension = "io.modelcontextprotocol/ui";
+    public const string UiMimeType = "text/html;profile=mcp-app";
+
+    // PORT-ONLY (W18, ED-NEW-web-w18-2): what nth says it can do. It hosts MCP Apps (the UI extension with its MIME
+    // type) and reads resources. Nothing else is advertised: no roots, no sampling, no elicitation, so a server
+    // never asks for them, and a server that asks anyway is answered "method not found" (Reply below).
+    public static JSONValue ClientCapabilities() => JSONValue.FromDictionaryLiteral(
+        ("extensions", JSONValue.FromDictionaryLiteral(
+            (UiExtension, JSONValue.FromDictionaryLiteral(
+                ("mimeTypes", JSONValue.FromArrayLiteral(new JSONValue.String(UiMimeType))))))),
+        ("resources", JSONValue.FromDictionaryLiteral()));
+
     // :9-15. DEVIATION OD-0012 F1: clientInfo.name is "Marrow", not the Swift literal "Droppy Code"; every
-    // other member (protocolVersion, the empty capabilities object, version "1.0") is verbatim.
+    // other member (protocolVersion, version "1.0") is verbatim. DEVIATION ED-NEW-web-w18-2: capabilities is no
+    // longer the empty object but ClientCapabilities() above.
     public static JSONValue InitializeParams() => JSONValue.FromDictionaryLiteral(
         ("protocolVersion", new JSONValue.String(ProtocolVersion)),
-        ("capabilities", JSONValue.FromDictionaryLiteral()),
+        ("capabilities", ClientCapabilities()),
         ("clientInfo", JSONValue.FromDictionaryLiteral(
             ("name", new JSONValue.String("nth")), // DEVIATION OD-0012 F1: Swift literal is "Droppy Code".
             ("version", new JSONValue.String("1.0")))));
@@ -54,9 +68,13 @@ public static class MCPWire
 
     // :36-51. Paging for tools/list: ten pages at most, each cursor fed back until the server stops handing
     // one out. The caller owns the request and its error type (page may throw whatever the transport throws).
-    public static async Task<IReadOnlyList<JSONValue>> ListTools(Func<JSONValue, Task<JSONValue>> page)
+    public static Task<IReadOnlyList<JSONValue>> ListTools(Func<JSONValue, Task<JSONValue>> page) => List("tools", page);
+
+    // PORT-ONLY (W18): the same paging for any list method, named by the result member that holds the items
+    // ("resources" for resources/list, "resourceTemplates" for resources/templates/list).
+    public static async Task<IReadOnlyList<JSONValue>> List(string member, Func<JSONValue, Task<JSONValue>> page)
     {
-        var tools = new List<JSONValue>();
+        var items = new List<JSONValue>();
         string? cursor = null;
         for (var i = 0; i < 10; i++)
         {
@@ -64,13 +82,89 @@ public static class MCPWire
             if (cursor is { } c) fields["cursor"] = new JSONValue.String(c);
             var reply = await page(new JSONValue.Object(new ValueMap<string, JSONValue>(fields, SwiftStringComparer.Instance)));
             var list = reply["result"];
-            if (list?["tools"]?.JSONValueArray is { } page_tools) tools.AddRange(page_tools);
+            if (list?[member]?.JSONValueArray is { } pageItems) items.AddRange(pageItems);
             var next = list?["nextCursor"]?.JSONValueString;
             if (string.IsNullOrEmpty(next)) break;
             cursor = next;
         }
-        return tools;
+        return items;
     }
+
+    // MARK: - Inbound messages (PORT-ONLY, W18)
+
+    /// <summary>What a message from the server is, by its members (JSON-RPC 2.0).</summary>
+    public enum MessageKind
+    {
+        /// <summary>No usable shape: not an object, or neither a method nor an id.</summary>
+        Invalid,
+        /// <summary>The answer to a request of ours: an id and no method.</summary>
+        Response,
+        /// <summary>A request from the server to us: a method and an id. It must be answered.</summary>
+        Request,
+        /// <summary>A notification from the server: a method and no id. It is never answered.</summary>
+        Notification,
+    }
+
+    // A message with a method is never a reply, even when its id equals one of ours: a server numbers its own
+    // requests, so id 1 from the server and id 1 from us are two different things.
+    public static MessageKind Classify(JSONValue message)
+    {
+        if (message.JSONValueObject is null) return MessageKind.Invalid;
+        var hasId = message["id"] is { IsNull: false };
+        if (message["method"] is JSONValue.String { Value.Length: > 0 }) return hasId ? MessageKind.Request : MessageKind.Notification;
+        return hasId ? MessageKind.Response : MessageKind.Invalid;
+    }
+
+    public static string? MethodOf(JSONValue message) => message["method"]?.JSONValueString;
+
+    public static JSONValue Response(JSONValue id, JSONValue result) => JSONValue.FromDictionaryLiteral(
+        ("jsonrpc", new JSONValue.String("2.0")), ("id", id), ("result", result));
+
+    public static JSONValue ErrorResponse(JSONValue id, int code, string message) => JSONValue.FromDictionaryLiteral(
+        ("jsonrpc", new JSONValue.String("2.0")), ("id", id),
+        ("error", JSONValue.FromDictionaryLiteral(("code", new JSONValue.Int(code)), ("message", new JSONValue.String(message)))));
+
+    public const int MethodNotFound = -32601;
+
+    /// <summary>
+    /// The answer to a request the server sent us. <c>ping</c> is answered with an empty result, as the spec says;
+    /// every other method (roots, sampling, elicitation, anything unknown) is answered "method not found", because
+    /// nth advertised none of them. A server that waits for an answer is never left waiting.
+    /// </summary>
+    public static JSONValue Reply(JSONValue request)
+    {
+        var id = request["id"] ?? new JSONValue.Null();
+        return MethodOf(request) == "ping"
+            ? Response(id, JSONValue.FromDictionaryLiteral())
+            : ErrorResponse(id, MethodNotFound, "Method not found");
+    }
+
+    public enum ListKind { Tools, Resources, Prompts }
+
+    /// <summary>What a list-changed notification changed (the server's tools, resources or prompts), or null.</summary>
+    public static ListKind? ListChangedKind(string? method) => method switch
+    {
+        "notifications/tools/list_changed" => ListKind.Tools,
+        "notifications/resources/list_changed" => ListKind.Resources,
+        "notifications/prompts/list_changed" => ListKind.Prompts,
+        _ => null,
+    };
+
+    /// <summary>True when the server's initialize result says it will send any list-changed notification.</summary>
+    public static bool AnnouncesListChanges(JSONValue? capabilities)
+    {
+        if (capabilities is null) return false;
+        foreach (var area in new[] { "tools", "resources", "prompts" })
+            if (capabilities[area]?["listChanged"]?.JSONValueBool == true) return true;
+        return false;
+    }
+
+    /// <summary>
+    /// Whether the server could answer <paramref name="area"/> ("resources"): true when the initialize result named
+    /// no capabilities at all (an unknown server is asked), false only when it named some and left this one out.
+    /// </summary>
+    public static bool MaySupport(JSONValue? capabilities, string area) =>
+        capabilities?.JSONValueObject is not { } named || named.Count == 0 || named.ContainsKey(area);
 
     // MARK: - Streamable HTTP (:53-103)
 
@@ -84,7 +178,8 @@ public static class MCPWire
     // marking with no separate fix needed there; its comment is updated alongside this merge (B3 batch 4) to
     // stop describing the gap as still open.
     public static async Task<MCPHTTPReply> Post(
-        Uri to, IReadOnlyDictionary<string, string> headers, string? sessionID, JSONValue payload, int? id, double timeout)
+        Uri to, IReadOnlyDictionary<string, string> headers, string? sessionID, JSONValue payload, int? id, double timeout,
+        Action<JSONValue>? onInbound = null)
     {
         // :63-70
         var request = new URLRequest(to, timeout) with { HttpMethod = "POST", HttpBody = payload.Data() };
@@ -134,11 +229,59 @@ public static class MCPWire
             var trimmed = FoundationText.Trim(line);
             if (!trimmed.StartsWith("data:", StringComparison.Ordinal)) continue;
             var text = FoundationText.Trim(trimmed[5..]);
-            if (JSONValue.Parse(text) is not { } value || value.JSONValueObject is null || value["id"]?.JSONValueInt != wantedID) continue;
+            if (JSONValue.Parse(text) is not { } value || value.JSONValueObject is null) continue;
+            // PORT-ONLY (W18): a notification or a request the server sends on this stream before its reply goes to
+            // onInbound; only a response with our id ends the read (a server request may reuse our number).
+            var kind = Classify(value);
+            if (kind is MessageKind.Request or MessageKind.Notification)
+            {
+                onInbound?.Invoke(value);
+                continue;
+            }
+            if (value["id"]?.JSONValueInt != wantedID) continue;
             return new MCPHTTPReply(session, value);
         }
         // :102
         return new MCPHTTPReply(session, null);
+    }
+
+    // PORT-ONLY (W18, DESIGN.md 7.6): the streamable HTTP "listen" stream. A server that sends list-changed
+    // notifications (or requests) outside a reply does it on a GET with Accept: text/event-stream. Every message on
+    // the stream goes to onMessage; the call returns when the stream ends (Ended), when the server does not offer
+    // one (Unsupported: 405 or any other refusal, or a body that is not an event stream) or when it cannot be
+    // reached (Failed). It never throws for those; the caller's cancellation ends it.
+    public enum ListenOutcome { Unsupported, Ended, Failed }
+
+    public static async Task<ListenOutcome> Listen(
+        Uri to, IReadOnlyDictionary<string, string> headers, string? sessionID, Action<JSONValue> onMessage,
+        double idleTimeout = 3_600)
+    {
+        try
+        {
+            var request = new URLRequest(to, idleTimeout) with { HttpMethod = "GET" };
+            foreach (var (field, value) in headers) request = request.SetValue(value, field).MarkOriginBound(field);
+            request = request.SetValue("text/event-stream", "Accept");
+            request = request.SetValue(ProtocolVersion, "MCP-Protocol-Version");
+            if (sessionID is { } sid) request = request.SetValue(sid, "Mcp-Session-Id");
+
+            var (bytes, response) = await URLSession.Shared.Bytes(request);
+            if (response is not HTTPURLResponse http) return ListenOutcome.Failed;
+            if (http.StatusCode is < 200 or >= 300) return ListenOutcome.Unsupported;
+            if (!(http.Value("Content-Type") ?? "").Contains("text/event-stream", StringComparison.Ordinal))
+                return ListenOutcome.Unsupported;
+            await foreach (var line in bytes.Lines)
+            {
+                var trimmed = FoundationText.Trim(line);
+                if (!trimmed.StartsWith("data:", StringComparison.Ordinal)) continue;
+                if (JSONValue.Parse(FoundationText.Trim(trimmed[5..])) is { } value && Classify(value) != MessageKind.Invalid)
+                    onMessage(value);
+            }
+            return ListenOutcome.Ended;
+        }
+        catch (Exception error) when (SwiftTry.IsThrownError(error) && error is not CancellationError)
+        {
+            return ListenOutcome.Failed;
+        }
     }
 }
 
@@ -199,17 +342,26 @@ public sealed class MCPStdioConnection
     // :133
     private readonly Mutex<State> state = new(new State());
 
+    // PORT-ONLY (W18): where the server's notifications go (null: dropped, as before this unit). Called on the
+    // reader task, so a handler must be quick and thread-safe.
+    private readonly Action<JSONValue>? onNotification;
+
     // :135-137
-    private MCPStdioConnection(StdioProcess process) => Process = process;
+    private MCPStdioConnection(StdioProcess process, Action<JSONValue>? onNotification)
+    {
+        Process = process;
+        this.onNotification = onNotification;
+    }
 
     // :139-150. ED-194 (B3 amendment of ED-047 (b)/ED-126): StdioProcess already spawns every child inside a
     // Job Object with no limits (kill-tree at quit only; stop stays the pid-only ladder). ProcessControl is not
     // exposed here: this connection's only lifetime hooks are Stop (below) and the exit report Read() gives
     // Close(); a caller that needs MCPLiveProcesses-style tracking reaches it through Process.ProcessControl.
-    public static MCPStdioConnection Launch(string executable, IReadOnlyList<string> arguments, IReadOnlyDictionary<string, string> environment)
+    public static MCPStdioConnection Launch(string executable, IReadOnlyList<string> arguments, IReadOnlyDictionary<string, string> environment,
+        Action<JSONValue>? onNotification = null)
     {
         var process = new StdioProcess(executable, arguments, LoginEnvironment.HomeDirectory, environment);
-        var connection = new MCPStdioConnection(process);
+        var connection = new MCPStdioConnection(process, onNotification);
         process.Start();
         connection.Read();
         return connection;
@@ -331,6 +483,18 @@ public sealed class MCPStdioConnection
     {
         // :220
         if (message.JSONValueObject is not { } @object) return;
+        // PORT-ONLY (W18): a message with a method is the server talking, not a reply. A request (ping, roots,
+        // sampling...) is answered at once so the server is never left waiting; a notification goes to the owner.
+        // Before this unit such a message with an id was taken for a reply and could satisfy one of our requests.
+        switch (MCPWire.Classify(message))
+        {
+            case MCPWire.MessageKind.Request:
+                Process.Send(MCPWire.Reply(message));
+                return;
+            case MCPWire.MessageKind.Notification:
+                onNotification?.Invoke(message);
+                return;
+        }
         // :221
         if (!@object.TryGetValue("id", out var rawID) || RPCID.Create(rawID) is not { } id) return;
         // :222-226
