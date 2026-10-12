@@ -83,7 +83,7 @@ public static class InstallLayout
             return false;
         }
         return string.Equals(full, folder, StringComparison.OrdinalIgnoreCase)
-            || full.StartsWith(folder + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+            || full.StartsWith(Path.EndsInDirectorySeparator(folder) ? folder : folder + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
