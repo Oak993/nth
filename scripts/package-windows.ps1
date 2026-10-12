@@ -288,8 +288,7 @@ if ($SkipUiSmoke) {
     Write-Host '  --  the UI smoke test of the payload-free setup was SKIPPED (-SkipUiSmoke)'
 } else {
     Invoke-NthCheck 'the payload-free setup passes --ui-smoke (window, real shell-link round trip, wallpaper read, under Native AOT)' {
-        $smoke = Start-Process -FilePath $setupFree -ArgumentList '--ui-smoke' -Wait -PassThru -WindowStyle Hidden
-        if ($smoke.ExitCode -ne 0) { throw "nth-Setup.exe --ui-smoke exited with code $($smoke.ExitCode)." }
+        Invoke-NthUiSmoke -StartProcess { Start-NthUiSmokeProcess -FilePath $setupFree -ArgumentList @('--ui-smoke') }
     }
 }
 $packaged = Expand-NthPackageEntries -Package $fullPackage.FullName -Destination $checkDir -Names @(
