@@ -152,6 +152,7 @@ public static class Program
         Marrow.App.Port.Ignis.Runtime.IgnisRuntimeStartup.Bind(); // Ignis (ED-NEW-ignis-runtime): the controller, made on first use once the U1 parts are bound
         Marrow.App.Port.Advisor.AdvisorRuntimeStartup.Bind(); // ED-NEW-ignisadvisor-2: a Droppy Hydra head asks its lead's model (ask_advisor)
         Marrow.App.Port.Tabula.ArtifactRuntimeStartup.Bind(); // ED-NEW-web-w12-1: Tabula's artifacts, on disk per thread, for every model
+        Marrow.App.Views.Diff.DiffPane.Register(); Marrow.App.Views.Terminal.TerminalPane.Register(); Marrow.App.Views.Browser.VisusPane.Register(); // ED-NEW-web-w4-1, ED-NEW-web-w8a-1: the Changes, Terminal and Visus panes, with the other panes and not in the prologue (PR-LAUNCH-001: it carries only HangWatchdog.Start)
         Marrow.App.Views.Panes.BackgroundTasksPane.Register(); Marrow.App.Views.Panes.TranscriptPane.Register(); // ED-NEW-web-w5-1: the Background tasks and Transcript panes draw in the pane workspace
         Marrow.App.Port.Web.AppWebSurface.Enable(); Marrow.App.Views.Artifacts.TabulaPane.Register(); // ED-NEW-web-w14-1: the Tabula pane, its pages on the process's one web surface
         Marrow.App.Port.AskUser.AskUserStartup.Bind(); // ED-NEW-web-w25-1: ask_user, a blocking question card in the thread, for every model
