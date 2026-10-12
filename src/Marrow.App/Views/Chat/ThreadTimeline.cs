@@ -136,6 +136,7 @@ public sealed class ThreadTimeline : Decorator
         // PORT-ONLY (web surfaces W10, DESIGN 5.11, ED-NEW-web-w10-2): a link clicked in this chat's prose (plain, or with Ctrl for the other
         // browser) follows "Open links from chats in". The chat's own links come first: an artifact's chip opens Tabula and a head's name
         // its chat, whatever the browser setting says.
+        MarkdownView.SetChatLinkMenu(this, url => Marrow.App.Port.Web.ChatLinks.MenuFor(url, runtime));
         MarkdownView.SetChatLinkAction(this, (url, modifiers) =>
             MarkdownView.GetOpenUrlAction(this)?.Invoke(url) == true || Marrow.App.Port.Web.ChatLinks.Open(url, runtime, modifiers, this, settings: AppEnvironment.GetAppModel(this).Settings.Web));
         // :134-144 `if runtime.isLoadingHistory { Color.clear } else if blocks.isEmpty && !runtime.isRunning { NewThreadPrompt } else { timeline }`: the branch on show is one child of

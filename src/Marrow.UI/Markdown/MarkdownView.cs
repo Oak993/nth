@@ -602,6 +602,18 @@ public sealed class MarkdownView : Decorator
 
     public static void SetChatLinkAction(Control control, Func<SwiftURL, Avalonia.Input.KeyModifiers, bool>? value) => control.SetValue(ChatLinkActionProperty, value);
 
+    /// <summary>
+    /// PORT-ONLY (web surfaces W10, DESIGN 5.11 "HTML files get 'Open in Visus'"): extra rows of the link popover, asked of the chat that owns the
+    /// text for the link under the pointer. A chat answers with the rows that suit the link (an HTML file in its project gets "Open in Visus");
+    /// Markdown outside a chat sets none and the popover is as it was.
+    /// </summary>
+    public static readonly AttachedProperty<Func<SwiftURL, IReadOnlyList<LinkMenuItem>>?> ChatLinkMenuProperty =
+        AvaloniaProperty.RegisterAttached<Control, Func<SwiftURL, IReadOnlyList<LinkMenuItem>>?>("ChatLinkMenu", typeof(MarkdownView), null, inherits: true);
+
+    public static Func<SwiftURL, IReadOnlyList<LinkMenuItem>>? GetChatLinkMenu(Control control) => control.GetValue(ChatLinkMenuProperty);
+
+    public static void SetChatLinkMenu(Control control, Func<SwiftURL, IReadOnlyList<LinkMenuItem>>? value) => control.SetValue(ChatLinkMenuProperty, value);
+
     /// <summary>:1148 <c>{ url in openURL(url) }</c> read from <paramref name="control"/>'s environment.</summary>
     public static void OpenUrl(Control control, SwiftURL url)
     {
@@ -647,6 +659,9 @@ public sealed class MarkdownView : Decorator
 
     public static void SetMarkdownProseRuns(Control control, bool value) => control.SetValue(MarkdownProseRunsProperty, value);
 }
+
+/// <summary>One extra row of the link popover (<see cref="MarkdownView.ChatLinkMenuProperty"/>): its words, its symbol and what it does.</summary>
+public sealed record LinkMenuItem(string Title, string Symbol, Action Run);
 
 /// <summary>:278-539 <c>struct MarkdownBlockView: View, Equatable</c>.</summary>
 public sealed class MarkdownBlockView : Decorator

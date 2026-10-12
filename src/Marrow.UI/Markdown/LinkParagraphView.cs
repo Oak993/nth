@@ -380,6 +380,12 @@ public sealed class LinkParagraphView : Decorator
 /// </summary>
 public static class MarkdownLinkOpener
 {
+    /// <summary>
+    /// PORT-ONLY (web surfaces W10): the local file a link points at, as <see cref="Open"/> would take it (the drive-letter and file forms, the line
+    /// suffix rule applied), or null for a web address, a UNC target or anything that is not a local path. Nothing is opened.
+    /// </summary>
+    public static string? LocalPath(SwiftURL url) => IsUnc(url) ? null : LocalFilePath(url) is { } raw ? ApplyLineSuffixRule(raw) : null;
+
     // :227 static func open(_ url: URL)
     public static void Open(SwiftURL url)
     {

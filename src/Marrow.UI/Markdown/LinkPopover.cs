@@ -201,6 +201,9 @@ internal sealed class LinkPopoverContent : Decorator
         }
 
         stack.Children.Add(new PopoverItem("Open Link", () => OpenLink(url), symbol: "safari")); // :88-90
+        // PORT-ONLY (web surfaces W10): the chat's own rows for this link ("Open in Visus" for an HTML file of the project).
+        if (anchor is not null && MarkdownView.GetChatLinkMenu(anchor) is { } more)
+            foreach (var item in more(url)) stack.Children.Add(new PopoverItem(item.Title, item.Run, symbol: item.Symbol));
         stack.Children.Add(new PopoverItem("Copy Link", () => CopyLink(url), symbol: "link")); // :91-94
 
         var border = new Border
