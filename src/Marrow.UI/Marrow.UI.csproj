@@ -16,6 +16,8 @@
     <AvaloniaResource Include="Assets/Fonts/**" />
     <AvaloniaResource Include="Assets/Icons/**" />
     <AvaloniaResource Include="Assets/Images/**" />
+    <!-- Web surfaces W16c: the offline basemap of the `map` component (Natural Earth, public domain; Assets/naturalearth/README.txt). -->
+    <AvaloniaResource Include="Assets/naturalearth/**" />
   </ItemGroup>
 
   <ItemGroup>

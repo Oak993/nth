@@ -782,3 +782,11 @@ files keep the licence comments their packages ship (for math.js, `math.min.js.L
 | Papa Parse | papaparse 5.7.0 | MIT | 2015 Matthew Holt | `papaparse/LICENSE` |
 | Lodash | lodash 4.18.1 | MIT | OpenJS Foundation and other contributors | `lodash/LICENSE` |
 | math.js | mathjs 15.2.0 | Apache-2.0 | 2013-2026 Jos de Jong (bundles decimal.js, MIT, Michael Mclaughlin) | `mathjs/LICENSE` |
+
+### Natural Earth (the map component's offline basemap, web surfaces unit W16c, ED-NEW-web-w16c-1)
+
+The `map` component of live answers draws on `src/Marrow.UI/Assets/naturalearth/world.nemap`, made by `tools/naturalearth/build.mjs` from
+Natural Earth's 1:50m `ne_50m_admin_0_countries`, `ne_50m_lakes` and `ne_50m_populated_places_simple` layers, which Natural Earth
+(https://www.naturalearthdata.com, Tom Patterson, Nathaniel Vaughn Kelso and contributors) places in the public domain: no permission
+and no credit are needed. nth credits it anyway. The file holds outlines, names and label points only; the data is read from the app,
+never fetched, and no map tile or place name is requested from any server unless the reader adds a tile source in Settings.
