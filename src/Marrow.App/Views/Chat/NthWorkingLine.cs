@@ -1,5 +1,5 @@
 // PORT-ONLY: OD-0136 amendment 2, step 2 option B ("Thinking line", ED-NEW-nth-motion). The main working line under a turn
-// (ThreadTimeline's WorkingIndicator): the three-arc glyph (14 px), the line's word in breathing letters (a new word arrives letter
+// (ThreadTimeline's WorkingIndicator): the Calculi beads (an 18 DIP n box; the three-arc glyph is retired, ED-NEW-calculi-wu8-1), the line's word in breathing letters (a new word arrives letter
 // by letter) and the time since the turn started in rolling digits (mono, tabular, right-aligned, quieter than the word). The
 // words, the summaries and the time's text are the line's own; only the drawing changes. The Hydra head panels keep
 // HydraWorkingTitle, HydraElapsedTime and the activity chart as they are.

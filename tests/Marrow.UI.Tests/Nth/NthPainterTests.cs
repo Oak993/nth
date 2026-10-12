@@ -261,7 +261,7 @@ public sealed class NthPainterTests
         Assert.Equal(palette.FillTop, NthPalette.Light.FillTop);
     }
 
-    public static TheoryData<string> Painters() => ["spinner", "bar", "indeterminate", "ring", "status", "list", "diff", "plate", "send", "tube", "link", "glyph", "flick"];
+    public static TheoryData<string> Painters() => ["spinner", "bar", "indeterminate", "ring", "status", "list", "diff", "plate", "send", "tube", "link", "flick"];
 
     [Theory]
     [Trait("Decision", "OD-0136")]
@@ -282,7 +282,7 @@ public sealed class NthPainterTests
             "tube" => (new NthTubePainter(), Frame(168, 12, false, new NthTubeState(null, null))),
             "link" => (new NthLinkPainter(), Frame(120, 16, false, new NthLinkState(null))),
             "flick" => (new NthFlickPainter(), Frame(48, 48, false, new NthFlickState(null))),
-            _ => (new NthThinkingGlyphPainter(), Frame(14, 14, false, null)),
+            _ => throw new ArgumentOutOfRangeException(nameof(name), name, "no such painter"),
         };
         using (painter)
         {

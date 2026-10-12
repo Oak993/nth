@@ -45,7 +45,7 @@ public static class NthMotionWarmup
         [
             new NthSpinnerPainter(), new NthBarPainter(), new NthBarPainter(), new NthRingPainter(), new NthStatusPainter(),
             new NthSkeletonPainter(), new NthSkeletonPainter(), new NthSkeletonPainter(), new NthSkeletonPainter(),
-            new NthSendPainter(), new NthSendPainter(), new NthTubePainter(), new NthLinkPainter(), new NthThinkingGlyphPainter(),
+            new NthSendPainter(), new NthSendPainter(), new NthTubePainter(), new NthLinkPainter(),
             new NthFlickPainter(), new NthFlickPainter(),
         ];
         (Size Size, object? State)[] scenes =
@@ -63,7 +63,6 @@ public static class NthMotionWarmup
             (new Size(32, 32), new NthSendState(true, 0, true, 0, 1)),
             (new Size(168, 12), new NthTubeState(null, null)),
             (new Size(120, 16), new NthLinkState(null)),
-            (new Size(14, 14), null),
             (new Size(48, 48), new NthFlickState(null)),
             (new Size(48, 48), new NthFlickState(null)),
         ];

@@ -9,9 +9,6 @@ namespace Marrow.UI.Port.Nth;
 /// <summary>Where the spinner's line is on its tile track: from <see cref="Start"/> along the track for <see cref="Length"/>.</summary>
 public readonly record struct NthTrace(double Start, double Length, double Alpha);
 
-/// <summary>The thinking glyph's three arcs: the first one's centre angle, the angle between arcs, each arc's sweep (radians).</summary>
-public readonly record struct NthArcs(double Rotation, double Spacing, double Sweep, double Alpha);
-
 /// <summary>A segment of a bar between <see cref="X0"/> and <see cref="X1"/> drawn at <see cref="Alpha"/> (0: nothing).</summary>
 public readonly record struct NthSegment(double X0, double X1, double Alpha);
 
@@ -56,27 +53,7 @@ public static class NthMotion
         return new NthTrace(start, Math.Max(.04 * length, head - tail), NthEase.Out.Ease(seconds / .3));
     }
 
-    // ---- step 2, thinking option B: three arcs that gather and spread ----
-
-    public const double GlyphStroke = 1.7;
-
-    /// <summary>
-    /// Step 2 "B glyph": three arcs on one circle turning 360 degrees per 2.2 s; every 1.4 s they gather and spread (gap 0.2 to
-    /// 0.333 of a turn, arc 0.11 to 0.18), eased .65,0,.35,1 there and back; fade in 0.3 s. Calm: still and spread, the calm pulse.
-    /// </summary>
-    public static NthArcs Glyph(double seconds, bool calm)
-    {
-        double rotation, e, alpha;
-        if (calm) { rotation = -Math.PI / 2; e = 1; alpha = NthEase.CalmPulse(seconds); }
-        else
-        {
-            alpha = NthEase.Out.Ease(seconds / .3);
-            rotation = 2 * Math.PI * seconds / 2.2 - Math.PI / 2;
-            var u = NthEase.Phase(seconds, 1.4);
-            e = NthEase.InOut.Ease(u < .5 ? u * 2 : 2 - u * 2);
-        }
-        return new NthArcs(rotation, 2 * Math.PI * (.2 + .1333 * e), 2 * Math.PI * (.11 + .07 * e), alpha);
-    }
+    // ---- step 2, thinking option B: the letters (the breathing glyph is retired; the working line wears the Calculi beads) ----
 
     /// <summary>
     /// Step 2 "B letters": letter <paramref name="index"/> lifts -1.5 px and back on a 2.6 s cycle, 55 ms after the one before
