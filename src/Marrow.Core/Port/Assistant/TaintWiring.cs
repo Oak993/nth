@@ -1,5 +1,5 @@
-// PORT-ONLY: Dextra (DESIGN.md rev 5, 12.4 "Taint" and "Taint follows text"; unit AS-7; ED-NEW-dextra-as7-1). No Swift
-// twin. The wiring of Taint.cs to what agents really do: every tool call a Dextra chat makes (the provider's own tools,
+// PORT-ONLY: Dextra (DESIGN.md rev 5, 12.4 "Taint" and "Taint follows text"; unit AS-7; ED-NEW-dextra-as7-1, -16).
+// No Swift twin. The wiring of Taint.cs to what agents really do: every tool call a Dextra chat makes (the provider's own tools,
 // shown as ToolStarted) is placed by the classifier, and a call that reads untrusted content taints the agent that made
 // it. It fails closed: a tool nth cannot place taints. Pure: the controller feeds it the calls and keeps the taint.
 using Marrow.Core.Models;
@@ -44,6 +44,10 @@ public static class TaintWiring
             case ToolCall.Kind.Edit:
                 return Taint.Clean;
             case ToolCall.Kind.Read:
+                // A read whose title is no path (a browser page, a resource, a provider's "Read file" fallback) or a web
+                // address is not placed as a file in the chat's folder (ED-NEW-dextra-as7-16).
+                if (IsWebAddress(title)) return Taint.From(ContentOrigin.Web, Clip(title));
+                if (!LooksLikeFile(title)) return Taint.From(ContentOrigin.ToolOutput, Clip("a read nth could not place: " + (title.Length > 0 ? title : "no path")));
                 return ReadOf(title, context);
             case ToolCall.Kind.Search:
             {
@@ -130,6 +134,27 @@ public static class TaintWiring
         var dot = title.IndexOf('·', StringComparison.Ordinal);
         if (dot < 0) return ("", title.Trim());
         return (title[..dot].Trim(), title[(dot + 1)..].Trim());
+    }
+
+    /// <summary>A web address, not a file: "https://...", "file://..." and any other scheme, or "www....".</summary>
+    public static bool IsWebAddress(string title)
+    {
+        var t = title.Trim().Trim('"');
+        var scheme = t.IndexOf("://", StringComparison.Ordinal);
+        return t.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
+            || (scheme > 1 && t[..scheme].All(c => char.IsAsciiLetterOrDigit(c) || c is '+' or '-' or '.'));
+    }
+
+    /// <summary>
+    /// A title that names a file: it has a folder in it, a drive, or a file extension (".cs", ".gitignore"). Words such as
+    /// "Read browser page" or "Read file" (a provider's title when it gave no path) do not, and are not placed as files.
+    /// </summary>
+    public static bool LooksLikeFile(string title)
+    {
+        var t = title.Trim().Trim('"');
+        if (t.Length == 0) return false;
+        if (LooksLikePath(t)) return true;
+        return Extension(t) is { } extension && extension.Length <= 16 && extension[1..].All(c => char.IsLetterOrDigit(c) || c is '_' or '-' or '~');
     }
 
     private static bool LooksLikePath(string text) =>

@@ -136,4 +136,39 @@ public sealed class OutwardPrivacyTests
         Assert.Same(OutwardCheck.None, local.Outward);
         Assert.Equal(Verdict.Allow, local.Decision.Verdict);
     }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-dextra-as7-19")]
+    public void A_recipient_field_nth_has_no_list_entry_for_still_names_who_receives_it_and_its_first_message_asks()
+    {
+        var allow = new PolicyDecision(Verdict.Allow, PolicyRule.Grant, "Allowed by a grant") { GrantsUsed = new([Guid.NewGuid()]) };
+        Assert.Equal(["#external"], OutwardPrivacy.RecipientsOf("{\"channel_name\":\"#external\",\"text\":\"Build is green\"}"));
+        Assert.Equal(["!room:matrix.example"], OutwardPrivacy.RecipientsOf("{\"room_id\":\"!room:matrix.example\",\"body\":\"hi\"}"));
+        Assert.Equal(["x@evil.example"], OutwardPrivacy.RecipientsOf("{\"forwardTo\":\"x@evil.example\"}"));
+        var channel = OutwardPrivacy.Check(Mail("{\"channel_name\":\"#external\",\"text\":\"Build is green\"}"), []);
+        var asked = OutwardPrivacy.Apply(allow, channel);
+        Assert.Equal((Verdict.Ask, PolicyRule.NewRecipient), (asked.Verdict, asked.Rule));
+        Assert.Empty(asked.GrantsUsed);
+        // An address in a field nth does not know beside a listed one: it is a recipient too, so personal data blocks.
+        var forward = OutwardPrivacy.Check(Mail("{\"to\":\"listed@owner.example\",\"forward_to\":\"x@evil.example\",\"body\":\"Card 4111 1111 1111 1111\"}"), ["listed@owner.example"]);
+        Assert.Equal(["x@evil.example"], forward.Unlisted);
+        Assert.True(forward.Blocked);
+        var fwd = OutwardPrivacy.Check(Mail("{\"to\":\"listed@owner.example\",\"fwd\":\"x@evil.example\",\"body\":\"Call +1 415 555 0134\"}"), ["listed@owner.example"]);
+        Assert.True(fwd.Blocked);
+        Assert.Equal(["x@evil.example"], fwd.Unlisted);
+        Assert.Equal(["+44 20 7946 0958"], OutwardPrivacy.RecipientsOf("{\"sms\":\"+44 20 7946 0958\"}"));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-dextra-as7-19")]
+    public void Content_fields_senders_dates_and_plain_ids_are_not_taken_for_recipients()
+    {
+        Assert.Empty(OutwardPrivacy.RecipientsOf("{\"email_body\":\"Hello there\",\"chat_message\":\"hi\",\"user_agent\":\"nth\"}"));
+        Assert.Empty(OutwardPrivacy.RecipientsOf("{\"from\":\"me@owner.example\",\"sender\":\"me@owner.example\"}"));
+        Assert.Empty(OutwardPrivacy.RecipientsOf("{\"date\":\"2026-10-13\",\"issue\":\"1234567\",\"amount\":\"1500.00\"}"));
+        Assert.True(OutwardPrivacy.IsRecipientField("channel_name"));
+        Assert.True(OutwardPrivacy.IsRecipientField("toEmails"));
+        Assert.False(OutwardPrivacy.IsRecipientField("email_subject"));
+        Assert.False(OutwardPrivacy.IsRecipientField("repository"));
+    }
 }

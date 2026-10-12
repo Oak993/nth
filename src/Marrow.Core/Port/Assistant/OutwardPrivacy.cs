@@ -1,5 +1,5 @@
 // PORT-ONLY: Dextra (DESIGN.md rev 5, 12.1 "Personal data out", 12.4 "Privacy shield on the way out"; unit AS-7;
-// ED-NEW-dextra-as7-4). No Swift twin.
+// ED-NEW-dextra-as7-4, -19). No Swift twin.
 // The outward privacy check: a card for something that leaves the PC (send, post, a connector write, a booking) marks
 // every piece of personal data and every secret in its text, and under any grant personal data goes only to recipients
 // on the owner's list. A step whose text holds such data while a recipient is not on the list, or while nth cannot name
@@ -53,12 +53,43 @@ public static partial class OutwardPrivacy
     public static bool Applies(ActionClass actionClass) =>
         actionClass is ActionClass.Outward or ActionClass.PersonalDataOut or ActionClass.ConnectorWrite or ActionClass.Commitment;
 
-    /// <summary>The fields of a tool's input that name who receives it.</summary>
+    /// <summary>The fields of a tool's input that name who receives it, as whole names.</summary>
     private static readonly HashSet<string> RecipientFields = new(StringComparer.OrdinalIgnoreCase)
     {
         "to", "cc", "bcc", "recipient", "recipients", "email", "emails", "address", "addresses", "channel", "channel_id", "channelid",
         "user", "user_id", "userid", "users", "chat_id", "chatid", "phone", "phone_number", "number", "attendees", "invitees",
         "participants", "guests", "reply_to", "replyto", "target", "destination", "conversation", "thread_ts_channel",
+        "sendto", "mailto", "forwardto", "roomid", "channelname", "username", "groupid", "spaceid",
+    };
+
+    /// <summary>
+    /// The words of a field name ("channel_name", "forwardTo", "room-id") that make it name who receives the step
+    /// (ED-NEW-dextra-as7-19): a field nth has no list entry for still counts when one of its words is here and none of
+    /// <see cref="ContentWords"/> is.
+    /// </summary>
+    private static readonly HashSet<string> RecipientWords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "to", "cc", "bcc", "recipient", "recipients", "email", "emails", "address", "addresses", "channel", "channels",
+        "user", "users", "username", "usernames", "chat", "chats", "phone", "phones", "attendee", "attendees", "invitee", "invitees",
+        "participant", "participants", "guest", "guests", "target", "targets", "destination", "destinations", "conversation",
+        "conversations", "room", "rooms", "group", "groups", "member", "members", "contact", "contacts", "handle", "handles",
+        "peer", "peers", "space", "spaces", "team", "teams", "audience", "audiences", "assignee", "assignees", "reviewer",
+        "reviewers", "mention", "mentions", "dm", "dms", "inbox", "mailbox", "webhook", "forward", "share", "invite", "notify",
+        "subscriber", "subscribers", "follower", "followers", "watcher", "watchers",
+    };
+
+    /// <summary>Words that make a field the step's content, not its recipient ("email_body", "chat_message", "user_agent").</summary>
+    private static readonly HashSet<string> ContentWords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "body", "text", "message", "messages", "subject", "content", "contents", "title", "description", "summary", "note",
+        "notes", "html", "markdown", "caption", "comment", "comments", "topic", "agent", "signature", "template", "attachment",
+        "attachments", "file", "files", "count", "limit", "format", "type", "status", "language", "timezone",
+    };
+
+    /// <summary>Fields that name who sends, never who receives: a whole address in them is not counted as a recipient.</summary>
+    private static readonly HashSet<string> SenderFields = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "from", "sender", "author", "from_email", "fromemail", "sender_email", "senderemail",
     };
 
     [GeneratedRegex(@"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+", Flags, TimeoutMs)]
@@ -181,8 +212,10 @@ public static partial class OutwardPrivacy
     }
 
     /// <summary>
-    /// Who an input sends to: the recipient fields of a tool's JSON input (to, cc, channel, attendees...), and the host of
-    /// each web address in a command. Nothing for plain text.
+    /// Who an input sends to: the recipient fields of a tool's JSON input (to, cc, channel, attendees..., and any field a
+    /// recipient word names, such as channel_name or forwardTo), every value that is a whole email address or phone
+    /// number whatever its field (a sender's excepted), and the host of each web address in a command. Nothing for plain
+    /// text.
     /// </summary>
     public static IReadOnlyList<string> RecipientsOf(string text)
     {
@@ -217,7 +250,8 @@ public static partial class OutwardPrivacy
                 {
                     // A recipient object ({"email": ..., "name": ...}) is read for its address, not its name.
                     if (recipient && property.Name is "name" or "displayName" or "display_name") continue;
-                    Walk(property.Value, recipient || RecipientFields.Contains(property.Name), found, depth + 1);
+                    if (SenderFields.Contains(property.Name)) continue;
+                    Walk(property.Value, recipient || IsRecipientField(property.Name), found, depth + 1);
                 }
                 break;
             case JsonValueKind.Array:
@@ -227,10 +261,54 @@ public static partial class OutwardPrivacy
                 foreach (var part in (element.GetString() ?? "").Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                     found.Add(part);
                 break;
+            case JsonValueKind.String when IsWholeAddress(element.GetString()):
+                // A value that is nothing but an email address or a phone number names someone, whatever its field is
+                // called ("fwd": "x@example.com"): it counts as a recipient (ED-NEW-dextra-as7-19).
+                found.Add(element.GetString()!.Trim());
+                break;
             case JsonValueKind.Number when recipient:
                 found.Add(element.GetRawText());
                 break;
         }
+    }
+
+    /// <summary>Whether a field name names who receives the step: a known name, or one of its words is a recipient word.</summary>
+    public static bool IsRecipientField(string name)
+    {
+        if (RecipientFields.Contains(name)) return true;
+        var words = FieldWords(name).ToList();
+        return words.Any(RecipientWords.Contains) && !words.Any(ContentWords.Contains);
+    }
+
+    // "channel_name" -> channel, name; "forwardTo" -> forward, to; "room-id" -> room, id; "toEmails" -> to, emails.
+    private static IEnumerable<string> FieldWords(string name)
+    {
+        var start = 0;
+        for (var i = 1; i <= name.Length; i++)
+        {
+            var end = i == name.Length || name[i] is '_' or '-' or '.' or ' ' || (char.IsUpper(name[i]) && char.IsLower(name[i - 1]));
+            if (!end) continue;
+            var word = name[start..i].Trim('_', '-', '.', ' ');
+            if (word.Length > 0) yield return word;
+            start = i;
+        }
+    }
+
+    // The whole value is one email address, or one phone number as Scan marks one ("+92 300 1234567", "(555) 010-2000"):
+    // a date, an amount or a plain id is not.
+    private static bool IsWholeAddress(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length > 320) return false;
+        var v = value.Trim();
+        if (v.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase)) v = v[7..];
+        try
+        {
+            var email = EmailAddress().Match(v);
+            if (email.Success && email.Index == 0 && email.Length == v.Length) return true;
+            var phone = Phone().Match(v);
+            return phone.Success && phone.Index == 0 && phone.Length == v.Length && Digits(v) is >= 9 and <= 15;
+        }
+        catch (RegexMatchTimeoutException) { return true; }
     }
 
     /// <summary>

@@ -102,4 +102,28 @@ public sealed class TaintWiringTests
         Assert.Equal(("gmail", "send_message"), TaintWiring.SplitMcp("gmail \u00B7 send_message"));
         Assert.Equal(("", "plain"), TaintWiring.SplitMcp("plain"));
     }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-dextra-as7-16")]
+    public void A_read_whose_title_is_no_path_or_is_a_web_address_taints_instead_of_reading_as_a_file_in_the_folder()
+    {
+        // Antigravity names a browser or resource read by its tool (or the page's address); others fall back to "Read file".
+        foreach (var title in new[] { "Read browser page", "View content chunk", "Read resource", "Capture browser console logs", "Read file", "Image", "" })
+        {
+            var taint = Of(ToolCall.Kind.Read, title, provider: ProviderKind.Antigravity);
+            Assert.Equal(ContentOrigin.ToolOutput, taint.Sources.Single().Origin);
+            Assert.StartsWith("a read nth could not place", taint.Sources.Single().Detail, StringComparison.Ordinal);
+        }
+        Assert.Equal(ContentOrigin.Web, Of(ToolCall.Kind.Read, "https://shop.example/page", provider: ProviderKind.Antigravity).Sources.Single().Origin);
+        Assert.Equal(ContentOrigin.Web, Of(ToolCall.Kind.Read, "www.shop.example/page").Sources.Single().Origin);
+        Assert.Equal(ContentOrigin.Web, Of(ToolCall.Kind.Read, "file://C:/Users/me/page.html").Sources.Single().Origin);
+        // A real file in the folder still reads clean: it has a folder, a drive or an extension.
+        Assert.False(Of(ToolCall.Kind.Read, "README.md").IsTainted);
+        Assert.False(Of(ToolCall.Kind.Read, ".gitignore").IsTainted);
+        Assert.False(Of(ToolCall.Kind.Read, "src/notes on login.txt").IsTainted);
+        Assert.False(Of(ToolCall.Kind.Read, InjectionCorpus.Worktree + @"\Makefile").IsTainted);
+        Assert.True(TaintWiring.LooksLikeFile(@"src\login.cs"));
+        Assert.False(TaintWiring.LooksLikeFile("Read browser page"));
+        Assert.False(TaintWiring.IsWebAddress(@"C:\src.cs"));
+    }
 }
