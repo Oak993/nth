@@ -34,6 +34,7 @@ public sealed class ArtifactFenceFilter(Guid thread, ArtifactHost host, Func<(Ar
                     var end = delta.Text.IndexOf('\n', at);
                     end = end < 0 ? delta.Text.Length : end + 1;
                     var step = message.Parser.Feed(delta.Text[at..end]);
+                    Stream(store, delta.Id, message, step.Events);
                     Show(message, step.Display, output);
                     Commit(store, message, step.Events, output);
                     at = end;
@@ -46,6 +47,7 @@ public sealed class ArtifactFenceFilter(Guid thread, ArtifactHost host, Func<(Ar
                 if (messages.Remove(completed.Id, out var message) && string.Equals(message.Raw.ToString(), completed.Text, StringComparison.Ordinal))
                 {
                     var step = message.Parser.Finish();
+                    Stream(store, completed.Id, message, step.Events);
                     Show(message, step.Display, output);
                     Commit(store, message, step.Events, output);
                     display = message.Shown.ToString();
@@ -60,6 +62,7 @@ public sealed class ArtifactFenceFilter(Guid thread, ArtifactHost host, Func<(Ar
                     display = ArtifactFenceParser.Parse(completed.Text, (index, header) =>
                         message.Chip(index, message.Processed.TryGetValue(index, out var original) ? original.Header : header)
                         + (message.Refused.Contains(index) ? "\n" + PlainCode(contents[index]) : "")).Display;
+                    host.Streams.EndAll(Thread, stream => stream.Key.StartsWith(StreamPrefix(completed.Id), StringComparison.Ordinal));
                 }
                 // The completed text replaces accumulated deltas, so it must follow fallback deltas.
                 output.Add(completed with { Text = display });
@@ -72,14 +75,45 @@ public sealed class ArtifactFenceFilter(Guid thread, ArtifactHost host, Func<(Ar
                 {
                     var step = message.Parser.Finish();
                     Show(message, step.Display, output);
+                    Stream(store, id, message, step.Events);
                     Commit(store, message, step.Events, output);
                 }
                 messages.Clear();
+                host.Streams.EndAll(Thread); // W14: nothing the turn was writing is still arriving (fenced blocks and tool calls)
                 output.Add(@event);
                 return output;
             }
             default:
                 return [@event];
+        }
+    }
+
+    // PORT-ONLY (web W14, DESIGN 6.4; ED-NEW-web-w14-1): Tabula opens the moment a block opens and shows its text as it
+    // arrives. A block reports its id (the one it will be saved under), title and kind when it opens, its text at most every
+    // 250 ms while it streams (ArtifactStreams reads it), and its end when it closes; Commit saves it right after, so the
+    // pane swaps the skeleton for the saved version.
+    private static string StreamPrefix(string messageId) => "fence:" + messageId + ":";
+
+    private void Stream(ArtifactStore store, string messageId, Message message, IReadOnlyList<ArtifactFenceEvent> events)
+    {
+        var streams = host.Streams;
+        foreach (var @event in events)
+        {
+            var key = StreamPrefix(messageId) + @event.Index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (@event is ArtifactFenceEvent.Opened opened)
+            {
+                var id = message.Id(opened.Index, opened.Header);
+                var known = store.Find(Thread, id);
+                var kind = opened.Header.Kind ?? known?.Kind;
+                streams.Begin(Thread, key, id, opened.Header.Title ?? known?.Title, kind, isUpdate: known is not null && (kind is null || known.Kind == kind));
+            }
+            else streams.End(Thread, key);
+        }
+        if (message.Parser.OpenIndex is { } index)
+        {
+            var key = StreamPrefix(messageId) + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var parser = message.Parser;
+            streams.Update(Thread, key, () => parser.Streaming ?? "");
         }
     }
 

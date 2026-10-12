@@ -752,6 +752,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     {
         ThreadID = threadID;
         appReference = new WeakReference<AppModel>(app);
+        InitializeWorkspace(app); // PORT-ONLY (web surfaces W3c)
         if (DocumentPrefetch.Shared.Take(threadID) is { } prefetched)
         {
             Install(prefetched);
@@ -1681,7 +1682,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         treeEpoch++;
         var checkpoint = TaskHandle.Detached(async () =>
         {
-            if (ignisPing || !await git.IsRepository()) return false;
+            if (ignisPing || IsReadOnlySideChat(initialThread) || !await git.IsRepository()) return false; // PORT-ONLY (web surfaces W6): a read-only side chat has nothing to revert
             try
             {
                 await git.CaptureCheckpoint(checkpointRef);
@@ -1696,15 +1697,16 @@ public sealed partial class ThreadRuntime : MainActorModel
         try
         {
             if (warmup is { } pendingWarmup) await pendingWarmup.Completion;
+            if (initialThread.IsSideChat) BeginFreshSideChatSession(app); // PORT-ONLY (web surfaces W6): each side-chat turn starts in a fresh session
             var start = MainActor.SpawnThrowing(async () => await EnsureSession(directory));
             if (await checkpoint.Value) UpdateTurn(turn.Id, current => current with { BaseCheckpoint = checkpointRef });
             _ = await start.Value;
 
-            if (SlashCommand.NameIn(text) is not null) await app.Providers.LoadCommands(initialThread.Provider, directory);
+            if (!initialThread.IsSideChat && SlashCommand.NameIn(text) is not null) await app.Providers.LoadCommands(initialThread.Provider, directory);
 
             if (currentTurnID != turn.Id || session is not { } liveSession || app.Thread(ThreadID) is not { } thread) return;
 
-            var commandName = SlashCommand.NameIn(text);
+            var commandName = thread.IsSideChat ? null : SlashCommand.NameIn(text); // PORT-ONLY (web surfaces W6): a side chat's words are a question, never a command
             SlashCommand? command = null;
             if (commandName is not null
                 && app.Providers.Commands.TryGetValue(ProviderRegistry.CommandKey(thread.Provider, directory), out var commands))
@@ -1716,6 +1718,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             var files = attachments.Where(attachment => !attachment.IsImage).ToArray();
             if (files.Length != 0)
                 prompt += "\n\nAttached files:\n" + string.Join("\n", files.Select(file => "- " + file.Path));
+            if (thread.IsSideChat) prompt = await SideChatTurnText(prompt); // PORT-ONLY (web surfaces W6): the rules, the snapshot of the main thread now, the side chat so far
 
             // ThreadRuntime.swift:1282-1306. Carry the selected Hydra route to the actual provider input.
             if (!ignisPing && app.HydraLaunch(thread) is { } launch)
@@ -1781,6 +1784,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             var (nextHydraBudget, dropNotice) = hydraBudget.TakeDropNotice();
             hydraBudget = nextHydraBudget;
             if (dropNotice is not null) prompt = dropNotice + prompt;
+            if (commandName is null && TakeLiveContext() is { } carried) prompt = carried + "\n\n" + prompt; // PORT-ONLY (web surfaces W24, ED-NEW-web-w24-6): what a live view carries rides with the message
 
             Phase = RuntimePhase.Running;
             await liveSession.Send(new TurnInput
@@ -1880,6 +1884,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:1640-1686. Swift characters are counted as grapheme clusters.
     private ValueList<TranscriptMessage> ApiTranscript()
     {
+        if (Thread?.IsSideChat == true) return ValueList<TranscriptMessage>.Empty; // PORT-ONLY (web surfaces W6): a side chat's turn carries its own conversation so far (SideChatPrompt)
         var fragments = new List<(bool Assistant, string Text)>();
         foreach (var entry in Entries)
         {
@@ -4099,6 +4104,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                 break;
             case ProviderEvent.Approval value:
                 if (AutoApprovesAsk(value.Value)) break; // PORT-ONLY (web surfaces W25): the question card is the ask; a provider's "allow this tool?" before it is not asked
+                if (DeclinesInReadOnlySideChat(value.Value)) break; // PORT-ONLY (web surfaces W6): a read-only side chat never runs, changes or builds
                 SkillsOffers?.BindApproval(value.Value);
                 Approvals = Approvals.Mutating(items =>
                 {

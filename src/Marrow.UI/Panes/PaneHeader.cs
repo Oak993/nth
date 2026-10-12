@@ -28,7 +28,8 @@ namespace Marrow.UI.Panes;
 /// <param name="Text">A text chip's label ("v3"); drawn with a small chevron when <paramref name="Menu"/> is set.</param>
 /// <param name="Shortcut">The chord shown in the More menu and the tooltip ("Ctrl+Shift+C"), if any.</param>
 /// <param name="Menu">The action opens a menu (a chevron follows the text).</param>
-public sealed record PaneHeaderAction(string Name, Action Invoke, PaneGlyphKind? Glyph = null, string? Text = null, string? Shortcut = null, bool Menu = false);
+/// <param name="Pressed">A toggle's state (web W6, Side chat's Can act): null for a plain action; otherwise the chip is lit while on, and its accessible name says on or off.</param>
+public sealed record PaneHeaderAction(string Name, Action Invoke, PaneGlyphKind? Glyph = null, string? Text = null, string? Shortcut = null, bool Menu = false, bool? Pressed = null);
 
 /// <summary>A tab of a cell that holds several panes.</summary>
 public sealed record PaneHeaderTab(PaneKind Kind, string Name, bool IsChosen);
@@ -60,6 +61,8 @@ public sealed class PaneHeader : Panel
     private readonly List<Button> actionViews = [];
     private IReadOnlyList<PaneHeaderAction> actions = [];
     private IReadOnlyList<PaneHeaderTab> tabList = [];
+    private Control? titleContent;
+    private bool titleContentInHeader;
     private string titleText = "";
     private string? subtitleText;
     private bool expanded;
@@ -69,6 +72,8 @@ public sealed class PaneHeader : Panel
     private bool dirty = true;
     private double fitWidth = double.NaN;
     private bool menuOpen;
+    private Button? titleButton;
+    private Action? titleMenu;
     private bool canDrag;
     private bool pressed;
     private bool lifted;
@@ -192,9 +197,60 @@ public sealed class PaneHeader : Panel
 
     public TextBlock TitleBlock => title;
 
+    /// <summary>The title as a button that opens <see cref="TitleMenu"/>, or null for a plain title.</summary>
+    public Button? TitleButton => titleButton;
+
+    /// <summary>
+    /// A menu the title opens (DESIGN 3.12 "optional title menu", 6.3 Tabula's "title with a menu"): the title becomes a button
+    /// with a small chevron after it; null keeps a plain title. Web W14.
+    /// </summary>
+    public Action? TitleMenu
+    {
+        get => titleMenu;
+        set
+        {
+            if (ReferenceEquals(titleMenu, value)) return;
+            titleMenu = value;
+            RebuildTitleHost();
+            Invalidate();
+        }
+    }
+
     public StackPanel TabStrip => tabs;
 
     public bool IsMenuOpen => menuOpen;
+
+    /// <summary>
+    /// W8a (DESIGN 3.12 "Visus puts its tab strip in the header row"): a pane's own control in place of the kind glyph and the
+    /// title (the canvas .bh: the strip starts 6 DIP in, with no glyph). When the cell holds a tab group, the group's tabs stand
+    /// there instead and the control leaves the header: <see cref="TitleContentPlacementChanged"/> tells the pane, which shows
+    /// it in its own body. Null puts the glyph and title back.
+    /// </summary>
+    public void SetTitleContent(Control? content)
+    {
+        if (ReferenceEquals(titleContent, content)) return;
+        if (titleContent is { } old && titleContentInHeader)
+        {
+            Children.Remove(old);
+            titleContentInHeader = false;
+        }
+        titleContent = content;
+        TitleHost.IsVisible = !HasTabs && content is null;
+        PlaceTitleContent();
+        Invalidate();
+    }
+
+    /// <summary>The pane's own title control (<see cref="SetTitleContent"/>), or null.</summary>
+    public Control? TitleContent => titleContent;
+
+    /// <summary>Whether the pane's title control is in the header row now (false while the cell shows its group's tabs).</summary>
+    public bool IsTitleContentInHeader => titleContentInHeader;
+
+    /// <summary>
+    /// The pane's title control is about to come into the header (true: the pane lets go of it first) or has just left it (false:
+    /// the pane may show it elsewhere).
+    /// </summary>
+    public event Action<bool>? TitleContentPlacementChanged;
 
     /// <summary>The title, and its detail after a middle dot ("Release notes · Markdown").</summary>
     public void SetTitle(string text, string? subtitle = null)
@@ -294,14 +350,48 @@ public sealed class PaneHeader : Panel
 
     private bool HasTabs => tabList.Count > 1;
 
-    private Control TitlePart => HasTabs ? tabs : title;
+    private bool UsesTitleContent => titleContent is not null && !HasTabs;
+
+    private Control TitlePart => HasTabs ? tabs : UsesTitleContent ? titleContent! : TitleHost;
+
+    private double Leading => UsesTitleContent ? TitleContentLeading : PaneTokens.HeaderLeading + PaneTokens.GlyphSize + PaneTokens.HeaderGap;
+
+    /// <summary>The canvas .bh: a title control starts 6 DIP in.</summary>
+    public const double TitleContentLeading = 6;
+
+    // The control is in the header exactly when no group tabs stand there; the pane is told around each move so it is never in
+    // two parents.
+    private void PlaceTitleContent()
+    {
+        var want = UsesTitleContent;
+        glyph.IsVisible = !want;
+        if (titleContent is not { } content || want == titleContentInHeader)
+        {
+            if (titleContent is null) glyph.IsVisible = true;
+            return;
+        }
+        if (want)
+        {
+            TitleContentPlacementChanged?.Invoke(true);
+            if (content.Parent is Panel holder) holder.Children.Remove(content);
+            else if (content.Parent is Decorator decorator) decorator.Child = null;
+            Children.Insert(Children.IndexOf(trailing), content);
+            titleContentInHeader = true;
+        }
+        else
+        {
+            Children.Remove(content);
+            titleContentInHeader = false;
+            TitleContentPlacementChanged?.Invoke(false);
+        }
+    }
 
     // The parts as measured now. A hidden control measures to nothing, so each button's natural width is its face's,
     // measured on its own whether the button shows or not.
     private PaneHeaderParts Parts(double width)
     {
         foreach (var child in new Control[] { glyph, TitlePart }) child.Measure(Size.Infinity);
-        var fixedWidth = PaneTokens.HeaderLeading + PaneTokens.GlyphSize + PaneTokens.HeaderGap + PaneTokens.HeaderTrailing;
+        var fixedWidth = Leading + PaneTokens.HeaderTrailing;
         return new PaneHeaderParts(
             width, fixedWidth, PaneTokens.HeaderGap, PaneTokens.ButtonSize, TitlePart.DesiredSize.Width,
             actionViews.Select(NaturalWidth).ToArray(),
@@ -342,8 +432,8 @@ public sealed class PaneHeader : Panel
         var height = finalSize.Height;
         if (double.IsNaN(fitWidth) || (!held && (dirty || Math.Abs(width - fitWidth) > 0.25))) ApplyFit(width);
         var x = PaneTokens.HeaderLeading;
-        glyph.Arrange(Centred(x, PaneTokens.GlyphSize, PaneTokens.GlyphSize, height));
-        x += PaneTokens.GlyphSize + PaneTokens.HeaderGap;
+        glyph.Arrange(UsesTitleContent ? default : Centred(x, PaneTokens.GlyphSize, PaneTokens.GlyphSize, height));
+        x = Leading;
         var titleMinimum = Math.Min(TitlePart.DesiredSize.Width, PaneHeaderParts.TitleMinimum);
         var row = TrailingWidth();
         // The trailing row's width counts a gap before each item, so its first gap is the one after the title.
@@ -352,8 +442,8 @@ public sealed class PaneHeader : Panel
         trailing.Arrange(new Rect(trailingX, 0, trailingWidth, height));
         var titleWidth = Math.Max(0, Math.Min(TitlePart.DesiredSize.Width, trailingX - x));
         TitlePart.Arrange(Centred(x, titleWidth, TitlePart.DesiredSize.Height, height));
-        var other = HasTabs ? (Control)title : tabs;
-        other.Arrange(default);
+        foreach (var other in new Control?[] { TitleHost, tabs, titleContentInHeader ? titleContent : null })
+            if (other is not null && !ReferenceEquals(other, TitlePart)) other.Arrange(default);
         moreMenu.Arrange(default);
         hairline.Arrange(new Rect(0, height - 0.5, width, 0.5));
         return finalSize;
@@ -387,7 +477,7 @@ public sealed class PaneHeader : Panel
         var at = trailing.Children.IndexOf(more);
         foreach (var action in actions)
         {
-            var view = action.Glyph is { } kind
+            var view = action.Glyph is { } kind && action.Text is null
                 ? MakeButton(new PaneGlyph(kind), action.Name, action.Invoke, action.Shortcut)
                 : MakeTextButton(action);
             actionViews.Add(view);
@@ -406,13 +496,49 @@ public sealed class PaneHeader : Panel
         if (!string.IsNullOrEmpty(subtitleText))
             title.Inlines.Add(new Avalonia.Controls.Documents.Run(" · " + subtitleText) { FontWeight = FontWeight.Normal, Foreground = PaneTokens.Text3.Brush(this) });
         AutomationProperties.SetName(title, string.IsNullOrEmpty(subtitleText) ? titleText : titleText + ", " + subtitleText);
+        if (titleButton is not null) AutomationProperties.SetName(titleButton, AutomationProperties.GetName(title));
+    }
+
+    // The title alone, or (with a title menu) inside a button with a chevron, at the same place in the row.
+    private Control TitleHost => (Control?)titleButton ?? title;
+
+    private void RebuildTitleHost()
+    {
+        var wanted = titleMenu is not null;
+        if (wanted == titleButton is not null) return;
+        var at = Children.IndexOf(TitleHost);
+        if (wanted)
+        {
+            Children.Remove(title);
+            var chevron = new PaneGlyph(PaneGlyphKind.Chevron, 12) { Foreground = PaneTokens.Text3.Brush(this), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 1, 0, 0) };
+            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+            row.Children.Add(title);
+            Grid.SetColumn(chevron, 1);
+            row.Children.Add(chevron);
+            var face = new Border { Height = 24, Padding = new Thickness(4, 0, 3, 0), Margin = new Thickness(-4, 0, 0, 0), CornerRadius = new CornerRadius(7), Background = Brushes.Transparent, Child = row };
+            var button = PlainControls.Button(face, () => titleMenu?.Invoke()).KeyboardFocus(7);
+            button.OnHover(on => face.Background = on ? PaneTokens.HoverFill.Brush(this) : Brushes.Transparent);
+            AutomationProperties.SetName(button, AutomationProperties.GetName(title));
+            titleButton = button;
+            Children.Insert(Math.Max(0, at), button);
+        }
+        else if (titleButton is { Content: Border { Child: Grid row } } old)
+        {
+            row.Children.Remove(title);
+            Children.Remove(old);
+            titleButton = null;
+            Children.Insert(Math.Max(0, at), title);
+        }
+        title.IsVisible = true;
+        TitleHost.IsVisible = !HasTabs && titleContent is null;
     }
 
     private void RebuildTabs()
     {
         tabs.Children.Clear();
         tabs.IsVisible = HasTabs;
-        title.IsVisible = !HasTabs;
+        TitleHost.IsVisible = !HasTabs && titleContent is null;
+        PlaceTitleContent();
         if (!HasTabs) return;
         foreach (var tab in tabList)
         {
@@ -463,6 +589,13 @@ public sealed class PaneHeader : Panel
     private Button MakeTextButton(PaneHeaderAction action)
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 3, VerticalAlignment = VerticalAlignment.Center };
+        // A glyph with words (web W14, Tabula's "Ask to change"; canvas .abtn): the glyph leads the label.
+        PaneGlyph? leading = null;
+        if (action.Glyph is { } glyph)
+        {
+            leading = new PaneGlyph(glyph, 13) { Foreground = PaneTokens.Text2.Brush(this), Margin = new Thickness(0, 0, 3, 0) };
+            row.Children.Add(leading);
+        }
         var label = new TextBlock { Text = action.Text ?? action.Name, FontSize = 11.5, VerticalAlignment = VerticalAlignment.Center, Foreground = PaneTokens.Text2.Brush(this) };
         row.Children.Add(label);
         PaneGlyph? chevron = null;
@@ -471,23 +604,26 @@ public sealed class PaneHeader : Panel
             chevron = new PaneGlyph(PaneGlyphKind.Chevron, 11) { Foreground = PaneTokens.Text2.Brush(this) };
             row.Children.Add(chevron);
         }
+        var lit = action.Pressed == true; // a toggle that is on keeps its chip lit (canvas .tabg button.on: --fill2 and --t1)
         var face = new Border
         {
             Height = PaneTokens.ButtonSize,
             Padding = new Thickness(7, 0),
             CornerRadius = new CornerRadius(8),
-            Background = Brushes.Transparent,
+            Background = lit ? PaneTokens.HoverFill.Brush(this) : Brushes.Transparent,
             Child = row,
         };
+        if (lit) label.Foreground = PaneTokens.Text1.Brush(this);
         var button = PlainControls.Button(face, action.Invoke).KeyboardFocus(8);
         button.OnHover(on =>
         {
-            face.Background = on ? PaneTokens.HoverFill.Brush(this) : Brushes.Transparent;
-            label.Foreground = (on ? PaneTokens.Text1 : PaneTokens.Text2).Brush(this);
+            face.Background = on || lit ? PaneTokens.HoverFill.Brush(this) : Brushes.Transparent;
+            label.Foreground = (on || lit ? PaneTokens.Text1 : PaneTokens.Text2).Brush(this);
             if (chevron is not null) chevron.Foreground = label.Foreground;
+            if (leading is not null) leading.Foreground = label.Foreground;
         });
         ToolTip.SetTip(button, action.Shortcut is null ? action.Name : action.Name + "  " + action.Shortcut);
-        AutomationProperties.SetName(button, action.Name);
+        AutomationProperties.SetName(button, action.Pressed is { } state ? action.Name + (state ? ", on" : ", off") : action.Name);
         return button;
     }
 

@@ -18,3 +18,13 @@ view) or `artifact` (one artifact).
 
 The tests (`TeachingRecordingTests`) replay each file through the real session code and check every block. To use a real capture instead,
 replace a line with the provider's own events in the same format; nothing else changes. Real captures are for the native pass.
+
+## Live-answer recordings (W24)
+
+`live-<provider>.jsonl` (made by the same `generate.py` from `live_data.py`) hold what the same five providers are recorded as doing when a model
+changes a live view it showed earlier and when it makes a small HTML widget: `11-update` (a `ui_update` call of Claude, Codex and DeepSeek; the whole
+block again with the same id from Copilot and a Local model) and `12-widget` (an `html_widget` call, or a fenced `nth-html` block from Copilot; a
+Local model has no HTML widget, so it has no widget recording). `expect` is `update` or `widget`. `LiveAnswerUpdateRecordingTests` sets up the
+earlier view first (its text is `SAVINGS_BASE` in `live_data.py`), then replays each file through the provider's real session code and the
+live-answer flow. The teaching recordings above are replayed the same way by `LiveAnswerRecordingTests`.
+

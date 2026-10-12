@@ -58,6 +58,9 @@ public static class PaneTokens
     /// <summary>A header button under the pointer and a chosen tab (canvas --fill2).</summary>
     public static SwiftColor HoverFill { get; } = SwiftColor.Dynamic(light: Ink(.06), dark: Paper(.10));
 
+    /// <summary>The chosen tab of the narrow window's strip (canvas .ntabs button.on: white .13).</summary>
+    public static SwiftColor NarrowTabFill { get; } = SwiftColor.Dynamic(light: Ink(.09), dark: Paper(.13));
+
     /// <summary>The working chip's tint (canvas .pchip: --ok at .13 with a .4 rim).</summary>
     public static SwiftColor ChipFill { get; } = SwiftColor.Dynamic(
         light: new SwiftColor(red: 0.16, green: 0.55, blue: 0.33, opacity: .12),

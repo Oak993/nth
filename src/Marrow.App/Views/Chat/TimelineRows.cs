@@ -4210,7 +4210,7 @@ public sealed class TurnFinishedBlock : Decorator
                 TimelineGroup.Single single => single.Value.TimelineEntryKind switch // :2635-2649
                 {
                     TimelineEntry.Kind.Assistant => new AssistantMessageRow(single.Value, null, runtime), // :2638
-                    TimelineEntry.Kind.Tool => new WorkGroup(new ValueList<TimelineEntry>([single.Value]), runtime, workingDirectory), // :2640
+                    TimelineEntry.Kind.Tool => LiveAnswerRows.IsLive(single.Value) ? new LiveAnswerRow(single.Value, runtime) : new WorkGroup(new ValueList<TimelineEntry>([single.Value]), runtime, workingDirectory), // :2640 + W24: a live answer
                     TimelineEntry.Kind.Plan => new PlanCard(single.Value, runtime, "steps"), // :2642
                     TimelineEntry.Kind.Todos => new TodoListRow(single.Value), // :2644
                     TimelineEntry.Kind.Notice => new NoticeRow(single.Value), // :2646
@@ -4251,6 +4251,7 @@ public sealed class TurnFinishedBlock : Decorator
             if (entry.Item.TimelineItemContent is TimelineItem.Content.Assistant assistant && assistant.Value.Text.Length != 0)
                 column.Children.Add(new FoldedAnswerView(assistant.Value.Text, runtime));
         }
+        foreach (var entry in turn.LiveEntries) column.Children.Add(new LiveAnswerRow(entry, runtime)); // PORT-ONLY (web surfaces W24): a live answer stays in the folded turn, after the words that introduce it
         foreach (var entry in turn.CollapsedPlans) column.Children.Add(new PlanCard(entry, runtime, "folded")); // :2672-2674
         foreach (var entry in turn.CollapsedNotices) column.Children.Add(new NoticeRow(entry)); // :2675-2677
         return column.Transition(SwiftTransition.Identity); // PR-CHAT-104.windows_path
@@ -4305,6 +4306,7 @@ public sealed class TurnFinishedBlock : Decorator
     {
         public ValueList<TimelineEntry> AssistantEntries { get; init; } = ValueList<TimelineEntry>.Empty; // :2528-2529 every reply with something to read
         public ValueList<TimelineEntry> AnswerEntries { get; init; } = ValueList<TimelineEntry>.Empty;    // :2530-2534 the replies after the last tool call
+        public ValueList<TimelineEntry> LiveEntries { get; init; } = ValueList<TimelineEntry>.Empty;      // PORT-ONLY (W24): the turn's live answers, in order
         public ValueList<TimelineEntry> CollapsedPlans { get; init; } = ValueList<TimelineEntry>.Empty;   // :2535
         public ValueList<TimelineEntry> CollapsedNotices { get; init; } = ValueList<TimelineEntry>.Empty; // :2536-2538 errors and warnings
         public ValueList<TimelineEntry> CollapsedAsks { get; init; } = ValueList<TimelineEntry>.Empty;    // PORT-ONLY (web surfaces W25): the turn's ask_user cards
@@ -4320,6 +4322,7 @@ public sealed class TurnFinishedBlock : Decorator
             var answerEntries = new List<TimelineEntry>();
             var collapsedPlans = new List<TimelineEntry>();
             var collapsedNotices = new List<TimelineEntry>();
+            var liveEntries = new List<TimelineEntry>();
             var collapsedAsks = new List<TimelineEntry>();
             var hasEdits = false;
             var hasResponse = false;
@@ -4347,6 +4350,10 @@ public sealed class TurnFinishedBlock : Decorator
                     case TimelineEntry.Kind.Ask: // PORT-ONLY (web surfaces W25): a question to the person stays in view when the turn is folded
                         collapsedAsks.Add(entry);
                         break;
+                    case TimelineEntry.Kind.Tool when LiveAnswerRows.IsLive(entry): // PORT-ONLY (W24): a live answer is part of the reply, so it does not end the answer so far
+                        liveEntries.Add(entry);
+                        hasResponse = true;
+                        break;
                     case TimelineEntry.Kind.Tool: // :2566-2573 reaching for a tool ends the answer so far
                         answerEntries.Clear();
                         if (entry.Item.TimelineItemContent is not TimelineItem.Content.Tool tool) continue;
@@ -4361,6 +4368,7 @@ public sealed class TurnFinishedBlock : Decorator
             if (collapsedPlans.Count != 0 || collapsedNotices.Count != 0 || collapsedAsks.Count != 0) hasResponse = true; // :2579
             AssistantEntries = new ValueList<TimelineEntry>(assistantEntries);
             AnswerEntries = new ValueList<TimelineEntry>(answerEntries);
+            LiveEntries = new ValueList<TimelineEntry>(liveEntries);
             CollapsedPlans = new ValueList<TimelineEntry>(collapsedPlans);
             CollapsedNotices = new ValueList<TimelineEntry>(collapsedNotices);
             CollapsedAsks = new ValueList<TimelineEntry>(collapsedAsks);

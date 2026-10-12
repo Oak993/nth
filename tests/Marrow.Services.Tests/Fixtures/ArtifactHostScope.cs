@@ -14,7 +14,7 @@ public sealed class ArtifactHostScope : IDisposable
     private readonly IDisposable scope;
     private DateTimeOffset now = new(2026, 10, 11, 9, 0, 0, TimeSpan.Zero);
 
-    public ArtifactHostScope(ArtifactTurn? turn = null)
+    public ArtifactHostScope(ArtifactTurn? turn = null, LiveAnswerHost? live = null)
     {
         var dataDirectory = TestDataDirectory.Read();
         if (string.IsNullOrEmpty(dataDirectory))
@@ -23,7 +23,7 @@ public sealed class ArtifactHostScope : IDisposable
         Directory.CreateDirectory(Threads);
         Turn = turn;
         Store = new ArtifactStore(() => Threads, () => now = now.AddSeconds(1));
-        Host = new ArtifactHost(Store, _ => Task.FromResult(Turn));
+        Host = new ArtifactHost(Store, _ => Task.FromResult(Turn), live);
         scope = ArtifactHost.Shared.Override(Host);
     }
 

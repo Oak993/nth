@@ -22,6 +22,22 @@ public static class ShortcutScopeHost
 
     public static void SetScope(Control control, ShortcutScope value) => control.SetValue(ScopeProperty, value);
 
+    /// <summary>
+    /// W8a (DESIGN 3.7, ED-NEW-web-w8a-2): keys a pane answers itself while focus is anywhere inside it, before nth's window-wide
+    /// chords (Visus's browser keys in its tab strip, toolbar and address field: Ctrl+W closes the tab, not the thread). A pane
+    /// never claims a reserved chord. Inherited, like the scope.
+    /// </summary>
+    public static readonly AttachedProperty<Func<KeyEventArgs, bool>?> ClaimsKeyProperty =
+        AvaloniaProperty.RegisterAttached<Control, Func<KeyEventArgs, bool>?>("ClaimsKey", typeof(ShortcutScopeHost), null, inherits: true);
+
+    public static Func<KeyEventArgs, bool>? GetClaimsKey(Control control) => control.GetValue(ClaimsKeyProperty);
+
+    public static void SetClaimsKey(Control control, Func<KeyEventArgs, bool>? value) => control.SetValue(ClaimsKeyProperty, value);
+
+    /// <summary>Whether the control holding focus in <paramref name="topLevel"/> answers this key itself (the window's chords then leave it).</summary>
+    public static bool FocusClaims(TopLevel topLevel, KeyEventArgs e) =>
+        topLevel.FocusManager?.GetFocusedElement() is Control focused && GetClaimsKey(focused)?.Invoke(e) == true;
+
     /// <summary>The scope of the control holding keyboard focus in <paramref name="topLevel"/>; chrome when nothing has focus.</summary>
     public static ShortcutScope ScopeOfFocus(TopLevel topLevel) =>
         topLevel.FocusManager?.GetFocusedElement() is Control focused ? GetScope(focused) : ShortcutScope.Chrome;

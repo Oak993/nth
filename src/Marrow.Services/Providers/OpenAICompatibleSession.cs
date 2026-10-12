@@ -1315,6 +1315,7 @@ public class OpenAICompatibleSession : ProviderSession
                         if (toolCall.Name.Length > 0) acc.Name = toolCall.Name;   // :686
                         acc.Arguments += toolCall.Arguments;                      // :687
                         accumulators[toolCall.Index] = acc;                       // :688
+                        NoteLiveInput(acc.Id, acc.Name, acc.Arguments);           // PORT-ONLY (web surfaces W24, ED-NEW-web-w24-3)
                         break;
                     case StreamChunk.UsageChunk usageChunk: // :690
                         usage = usageChunk.Value;
@@ -1746,11 +1747,29 @@ public class OpenAICompatibleSession : ProviderSession
         }
     }
 
+    // PORT-ONLY (web surfaces W24, ED-NEW-web-w24-3). A model that calls ui_show or html_widget streams the view as the call's arguments; each piece is
+    // reported on the call's row as it arrives, so the chat draws the view while the model is still writing it. The call itself runs when the stream ends.
+    private readonly HashSet<string> liveInputsSeen = new(StringComparer.Ordinal);
+
+    private void NoteLiveInput(string id, string name, string arguments)
+    {
+        if (id.Length == 0 || name is not (Marrow.Services.Web.LiveAnswerTools.ShowName or Marrow.Services.Web.LiveAnswerTools.HtmlName) || SkillTools?.Owns(name) != true) return;
+        if (liveInputsSeen.Add(id))
+            OnEvent?.Invoke(new ProviderEvent.ToolStarted(id, new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = NativeSkillTools.Title(name, new JSONValue.Null()) }));
+        OnEvent?.Invoke(new ProviderEvent.ToolUpdated(id, new ToolUpdate { Detail = arguments }));
+    }
+
     // PORT-ONLY (SK-11f, WU-12, DL-14). Runs one of Marrow's own tools. A stopped turn answers "Stopped." as the built-in tools do; nothing it produced is said.
     private async Task<string> ExecuteSkillTool(NativeSkillTools skillTools, PendingToolCall tool, JSONValue args)
     {
         var showsRow = !NativeSkillTools.HidesRow(tool.Name); // PORT-ONLY (web surfaces W25): ask_user's card takes the row's place
-        if (showsRow) OnEvent?.Invoke(new ProviderEvent.ToolStarted(tool.Id, new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = NativeSkillTools.Title(tool.Name, args) }));
+        // PORT-ONLY (web surfaces W24, ED-NEW-web-w24-5): a live-answer call carries its arguments, which the live-answer flow turns into the row's view.
+        if (showsRow) OnEvent?.Invoke(new ProviderEvent.ToolStarted(tool.Id, new ToolCall
+        {
+            ToolCallKind = ToolCall.Kind.Other,
+            Title = NativeSkillTools.Title(tool.Name, args),
+            Detail = Marrow.Services.Web.LiveAnswerTools.IsName(tool.Name) ? args.CompactString : null,
+        }));
         NativeToolResult result;
         try { result = await skillTools.Execute(tool.Name, args); }
         catch (OperationCanceledException) when (SwiftTask.IsCancelled || interrupted) { return "Stopped."; }

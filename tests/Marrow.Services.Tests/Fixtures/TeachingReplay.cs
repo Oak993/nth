@@ -38,8 +38,9 @@ internal static class TeachingReplay
     public static string FixtureFolder([System.Runtime.CompilerServices.CallerFilePath] string here = "") =>
         Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "..", "..", "fixtures", "web-surfaces", "teaching"));
 
-    public static IReadOnlyList<TeachingRecording> Load(string provider) =>
-        [.. File.ReadAllLines(Path.Combine(FixtureFolder(), provider + ".jsonl")).Where(line => line.Length > 0).Select(line =>
+    /// <summary>The recordings of a provider: the teaching ones, or with <paramref name="prefix"/> "live-" the live-answer ones (W24).</summary>
+    public static IReadOnlyList<TeachingRecording> Load(string provider, string prefix = "") =>
+        [.. File.ReadAllLines(Path.Combine(FixtureFolder(), prefix + provider + ".jsonl")).Where(line => line.Length > 0).Select(line =>
         {
             var row = JSONValue.Parse(Encoding.UTF8.GetBytes(line))!;
             return new TeachingRecording(row["id"]!.JSONValueString!, row["prompt"]!.JSONValueString!, row["expect"]!.JSONValueString!, [.. row["events"]!.JSONValueArray!]);
@@ -93,7 +94,10 @@ internal static class TeachingReplay
     // The CLI providers.
     // ------------------------------------------------------------------------------------------------------------------
 
-    public static TeachingOutcome Claude(TeachingRecording recording)
+    public static TeachingOutcome Claude(TeachingRecording recording) => Outcome(ClaudeEvents(recording));
+
+    /// <summary>The events ClaudeSession emits for a recording (W24 reads them again through the live-answer flow).</summary>
+    public static List<ProviderEvent> ClaudeEvents(TeachingRecording recording)
     {
         var configuration = new SessionConfiguration
         {
@@ -107,25 +111,29 @@ internal static class TeachingReplay
         var events = new List<ProviderEvent>();
         session.OnEvent = events.Add;
         foreach (var message in recording.Events) session.Handle(message);
-        return Outcome(events);
+        return events;
     }
 
-    public static TeachingOutcome Codex(TeachingRecording recording)
+    public static TeachingOutcome Codex(TeachingRecording recording) => Outcome(CodexEvents(recording));
+
+    public static List<ProviderEvent> CodexEvents(TeachingRecording recording)
     {
         var session = CodexWiringFixture.Session();
         var events = new List<ProviderEvent>();
         session.OnEvent = events.Add;
         foreach (var notification in recording.Events)
             CodexWiringFixture.Call(session, "HandleNotification", notification["method"]!.JSONValueString!, notification["params"]!);
-        return Outcome(events);
+        return events;
     }
 
-    public static TeachingOutcome Copilot(TeachingRecording recording, TestRuntime runtime)
+    public static TeachingOutcome Copilot(TeachingRecording recording, TestRuntime runtime) => Outcome(CopilotEvents(recording, runtime));
+
+    public static IReadOnlyList<ProviderEvent> CopilotEvents(TeachingRecording recording, TestRuntime runtime)
     {
         var (session, events) = CopilotSessionHarness.Offline();
         foreach (var notification in recording.Events)
             CopilotSessionHarness.Notify(runtime, session, notification["params"]!, notification["method"]!.JSONValueString!);
-        return Outcome(events);
+        return events;
     }
 
     // ------------------------------------------------------------------------------------------------------------------

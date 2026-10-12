@@ -41,9 +41,14 @@ public sealed class NthUiDegradeTests(HeadlessSession headless)
     public void Maps_line_art_diagrams_and_images_show_readable_stand_ins() => headless.OnUiThread(() =>
     {
         using var map = new NthUiRig(NthUiView.Show(NthUiSamples.Map, culture: NthUiRig.English));
-        Assert.Equal(["Lisbon to Paris", "Lisbon", "38.72°N, 9.14°W", "Madrid", "Overnight · 40.42°N, 3.7°W", "Paris", "48.86°N, 2.35°E", "By train", "Lisbon → Madrid → Paris"], map.TextsOf("map"));
+        // W16c draws the map natively; its list of stops and routes is the text alternative the stand-in used to be.
+        map.Click(map.ViewOf<Marrow.UI.NthUi.Map.NthUiMapView>().ListButton);
+        map.Settle();
+        Assert.Equal(["Lisbon to Paris", "Lisbon", "38.72°N, 9.14°W", "Madrid", "Overnight · 40.42°N, 3.7°W", "Paris", "48.86°N, 2.35°E", "By train", "Lisbon → Madrid → Paris", "Show as map"], map.TextsOf("map"));
         using var svg = new NthUiRig(NthUiView.Show(NthUiSamples.Svg, culture: NthUiRig.English));
-        Assert.Contains("A rising line", svg.TextsOf("svg"));
+        var picture = Assert.IsType<Marrow.UI.NthUi.Diagram.NthUiSvgView>(svg.ViewOf("svg")); // W16c draws line art natively
+        Assert.NotNull(picture.Document);
+        Assert.Equal("A rising line", Avalonia.Automation.AutomationProperties.GetName(picture.Canvas));
         using var diagram = new NthUiRig(NthUiView.Show(NthUiSamples.Diagram, culture: NthUiRig.English));
         var source = diagram.TextsOf("diagram");
         Assert.Contains("Diagram · Request flow", source);

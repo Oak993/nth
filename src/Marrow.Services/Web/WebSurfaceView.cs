@@ -1,3 +1,4 @@
+using Marrow.Core.Models;
 using Marrow.Core.Web;
 using System.Text.Json;
 
@@ -117,6 +118,17 @@ public sealed class WebSurfaceView : IWebViewSurface
     /// </summary>
     public event EventHandler<WebSandboxNavigation>? SandboxNavigationBlocked;
 
+    /// <summary>
+    /// W8a (DESIGN 3.7): the chords the view's owner takes from inside the page before the page sees them, beside the reserved
+    /// ones (Visus's browser keys: new tab, close tab, the address field, reload, back and forward). Null claims none.
+    /// </summary>
+    public Func<KeyChord, bool>? ClaimsChord { get; set; }
+
+    /// <summary>A chord <see cref="ClaimsChord"/> took from inside the page; raised after the key event, on the UI thread.</summary>
+    public event Action<KeyChord>? ClaimedChordPressed;
+
+    internal void RaiseClaimedChord(KeyChord chord) => ClaimedChordPressed?.Invoke(chord);
+
     /// <summary>Sandboxed content: Tabula, inline HTML widgets and MCP Apps (DESIGN 6.5, 7.6).</summary>
     public bool IsSandboxed => Kind is WebSurfaceKind.Artifact or WebSurfaceKind.InlineWidget or WebSurfaceKind.McpApp;
 
@@ -158,6 +170,10 @@ public sealed class WebSurfaceView : IWebViewSurface
         }
         else pendingUrl = url;
     }
+
+    /// <summary>W8a: the page's favicon (PNG), read by the browser from the tab's own profile; null when there is none.</summary>
+    public Task<byte[]?> GetFaviconAsync(CancellationToken cancellationToken = default) =>
+        engine is { IsAttached: true } live ? live.GetFaviconAsync(cancellationToken) : Task.FromResult<byte[]?>(null);
 
     /// <summary>Content for an on-screen view first restores it; pending engines receive it on attach.</summary>
     public void PostMessage(string json)

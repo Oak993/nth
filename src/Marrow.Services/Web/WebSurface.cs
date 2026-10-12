@@ -359,10 +359,20 @@ public sealed class WebSurface : IDisposable
     internal void OnAccelerator(WebSurfaceView view, WebAcceleratorKey e)
     {
         // DESIGN 3.7: decide at once (the browser waits for this handler), run the chord after the key event.
-        if (!e.IsKeyDown || !IsReservedChord(e.Chord)) return;
-        e.Handled = true;
+        if (!e.IsKeyDown) return;
         var chord = e.Chord;
-        post(() => ReservedChordPressed?.Invoke(view, chord));
+        if (IsReservedChord(chord))
+        {
+            e.Handled = true;
+            post(() => ReservedChordPressed?.Invoke(view, chord));
+            return;
+        }
+
+        // W8a (3.7 "Visus's own browser keys are handled by Visus, not the page, as a browser does"): the view's own claim. A
+        // held key's repeats are kept from the page too, but run nothing (holding Ctrl+W must not close every tab).
+        if (view.ClaimsChord?.Invoke(chord) != true) return;
+        e.Handled = true;
+        if (!e.IsRepeat) post(() => view.RaiseClaimedChord(chord));
     }
 
     internal void OnProcessFailed(WebSurfaceView view, WebProcessFailed e)

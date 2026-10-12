@@ -219,6 +219,23 @@ internal sealed class WebView2View : IWebEngineView
 
     public void PostMessage(string json) => core?.PostWebMessageAsJson(json);
 
+    public async Task<byte[]?> GetFaviconAsync(CancellationToken cancellationToken)
+    {
+        if (core is not { } view || string.IsNullOrEmpty(Try(() => view.FaviconUri))) return null;
+        try
+        {
+            using var stream = await view.GetFaviconAsync(CoreWebView2FaviconImageFormat.Png).WaitAsync(cancellationToken);
+            if (stream is null) return null;
+            using var copy = new MemoryStream();
+            await stream.CopyToAsync(copy, cancellationToken);
+            return copy.Length == 0 ? null : copy.ToArray();
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            return null; // a favicon is decoration: a failed read shows the tab's glyph
+        }
+    }
+
     /// <summary>
     /// DESIGN 2.5: CDP <c>Page.captureScreenshot</c> (png at device scale, <c>optimizeForSpeed</c>, the visible
     /// viewport), with <c>CapturePreviewAsync</c> as the fallback.

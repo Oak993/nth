@@ -10,14 +10,20 @@ namespace Marrow.Services.Web;
 /// <summary>A chat's running turn: its id, the user's prompt and the model it runs on (null when the chat is idle).</summary>
 public sealed record ArtifactTurn(Guid? Turn, string? Prompt, string? Model);
 
-public sealed class ArtifactHost(ArtifactStore? store, Func<Guid, Task<ArtifactTurn?>>? turn)
+public sealed class ArtifactHost(ArtifactStore? store, Func<Guid, Task<ArtifactTurn?>>? turn, LiveAnswerHost? live = null)
 {
     /// <summary>The app's host; the default has no store, so artifacts are off.</summary>
     public static Ambient<ArtifactHost> Shared { get; } = new(new ArtifactHost(null, null));
 
     public ArtifactStore? Store { get; } = store;
 
+    /// <summary>PORT-ONLY (W24, ED-NEW-web-w24-1): the live views the chats have shown, the tools' record of ui_show, ui_update and html_widget.</summary>
+    public LiveAnswerHost Live { get; } = live ?? new LiveAnswerHost();
+
     public bool IsOn => Store is not null;
+
+    /// <summary>The artifacts the chats are writing right now (W14: Tabula opens on them with a skeleton, DESIGN 6.4).</summary>
+    public ArtifactStreams Streams { get; } = new();
 
     /// <summary>Raised when the user opens an artifact's chip in an answer; the Tabula pane opens it.</summary>
     public event Action<Guid, string>? OpenRequested;

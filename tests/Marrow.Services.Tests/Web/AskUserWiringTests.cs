@@ -74,7 +74,7 @@ public sealed class AskUserWiringTests
         using var ask = new AskUserScope();
         var server = new UiMcpServer(UiMcpBridge.For(Config(ProviderKind.Codex, Chat)));
         var names = (await Mcp(server, "tools/list"))["result"]!["tools"]!.AsArray().Select(node => node!["name"]!.GetValue<string>());
-        Assert.Equal(["artifact_create", "artifact_update", "artifact_read", "artifact_list", "ui_reference", "ask_user"], names);
+        Assert.Equal(["artifact_create", "artifact_update", "artifact_read", "artifact_list", "ui_show", "ui_update", "html_widget", "ui_reference", "ask_user"], names);
         Assert.Equal(UiMcpServer.ToolNames, UiMcpServer.Offered);
         var instructions = (await Mcp(server, "initialize", new { protocolVersion = "2025-06-18" }))["result"]!["instructions"]!.GetValue<string>();
         Assert.Equal(UiMcpServer.Instructions, instructions);

@@ -94,7 +94,7 @@ public sealed class HelperJobSource(AppModel model) : IBackgroundJobSource
         var jobs = new List<BackgroundJob>();
         foreach (var thread in model.Threads)
         {
-            if (thread.ParentThreadID is not { } parent || thread.IsHydraHead || thread.IsArchived) continue;
+            if (thread.ParentThreadID is not { } parent || thread.IsHydraHead || thread.IsArchived || thread.IsSideChat) continue; // a side chat is the person's own conversation (web W6), not a task
             var runtime = model.ExistingRuntime(thread.Id);
             var running = runtime?.IsRunning == true;
             if (!running && thread.LastStatus is null) continue; // a helper that never ran is a chat, not a task
