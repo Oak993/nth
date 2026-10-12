@@ -29,14 +29,17 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // that swaps a neighbour and springs home, the pointer leaving, a search and its clearing. It is held two ways, both recorded on the
 // unchanged code: the SHA-256 of every rendered frame's pixels, and the SHA-256 of every visible control's type, place, size, opacity,
 // transform and text (the same frames without the rasteriser, so a font or driver difference on another machine still has a guard to read).
+// ED-NEW-sidebarguard-1: the tree hash was re-recorded once, after the selection glide of ED-NEW-session-hotkeys joined the list's cell
+// (a SelectionGlide and its Canvas, drawn in no state of this scene); the pixel hash is the one first recorded and has not moved.
 [Collection("Headless")]
 public sealed class SidebarLeanPixelGuardTests(HeadlessSession headless)
 {
     private const string ScenePixels = "BEE8082646528548DAB010DFF1166F6DB082B34B11D0CB227573D5350BF0BD4F";
-    private const string SceneTree = "28F417F2CFF20437BE831C7AE13B39273E31A75531C9D32DA863A691C2E29FCB";
+    private const string SceneTree = "9CADEAB5A2B8A4E331ACC22E7BD7EB61159A28319287B458F480CC8F6CD873ED";
 
     [Fact]
     [Trait("Decision", "ED-NEW-lean-15")]
+    [Trait("Decision", "ED-NEW-sidebarguard-1")]
     public void The_list_hover_drag_and_search_render_exactly_as_before() => headless.OnUiThread(() =>
     {
         var (pixels, tree, count) = Capture();
