@@ -23,6 +23,10 @@ public sealed class ReservesModel : IDisposable
         settings.Changed += Raise;
     }
 
+    /// <summary>The model of a running guard: its rules, its bars, and the account the owner is looking at (null: the first).</summary>
+    public static ReservesModel For(ReserveGuard guard, Func<string?>? focus = null) =>
+        new((guard ?? throw new ArgumentNullException(nameof(guard))).Settings, guard.Bars, focus);
+
     /// <summary>The words typed so far.</summary>
     public string Draft { get; set; } = "";
 

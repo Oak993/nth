@@ -66,6 +66,9 @@ public sealed partial class ReserveGuard : IReserveGate, IDisposable
         o.Settings.Changed += OnSettingsChanged;
     }
 
+    /// <summary>The owner's rules and switches the guard reads (the Reserves view edits them).</summary>
+    public ReserveSettings Settings => o.Settings;
+
     /// <summary>A task was paused for its reserve and its card raised (the toast and the board listen).</summary>
     public event Action<ReserveHold>? Held;
 
