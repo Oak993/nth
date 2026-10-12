@@ -451,16 +451,21 @@ internal sealed class Win32FrameHost : IFrameHost
 
     private static nint Handle(Window window) => window.TryGetPlatformHandle() is { HandleDescriptor: "HWND" } handle ? handle.Handle : 0;
 
-    /// <summary>Minimised (IsIconic) or cloaked by the shell (DWMWA_CLOAKED: another virtual desktop); a failed query counts as not cloaked.</summary>
+    /// <summary>Minimised or cloaked without a proven app-only origin; a failed own-window query counts as not cloaked.</summary>
     internal static bool Hidden(nint window) =>
-        HiddenBy(IsIconic(window), DwmGetWindowAttribute(window, DwmwaCloaked, out var cloaked, sizeof(int)) == 0 ? cloaked : 0);
+        HiddenBy(IsIconic(window), AmbientWindowState.Cloak(window), window, AmbientWindowState.ReadCloak, AmbientWindowState.Owner);
 
     /// <summary>
-    /// Review 2026-10-11: only the shell's cloak hides a window here (DWM_CLOAKED_SHELL: another virtual desktop). A window the app
+    /// ED-NEW-lean-c9b-1: shell and unresolved inherited cloaks hide a window. A window the app
     /// cloaks itself (DWM_CLOAKED_APP: WindowManager.SettingsCloak, the boot stage, ED-236) is being composed to be shown, and
     /// is shown by an uncloak that raises no Avalonia event: it counts as seen, so its draw loops run on as before.
     /// </summary>
-    internal static bool HiddenBy(bool iconic, int cloaked) => iconic || (cloaked & DwmCloakedShell) != 0;
+    internal static bool HiddenBy(bool iconic, int cloaked) =>
+        HiddenBy(iconic, cloaked, 0, AmbientWindowState.ReadCloak, AmbientWindowState.Owner);
+
+    // ED-NEW-lean-c9b-1: fake mask and owner readers for the same production hidden predicate.
+    internal static bool HiddenBy(bool iconic, int cloaked, nint window, Func<nint, int?> readCloak, Func<nint, nint> readOwner) =>
+        iconic || (cloaked != 0 && !AmbientWindowState.IsAppCloakOnly(window, cloaked, readCloak, readOwner));
 
     /// <summary>
     /// Review 2026-10-11: an out-of-context WinEvent hook for the app's own process (EVENT_OBJECT_CLOAKED, EVENT_OBJECT_UNCLOAKED), set
@@ -492,8 +497,6 @@ internal sealed class Win32FrameHost : IFrameHost
     /// <summary>Whether the cloak watch is set (tests).</summary>
     internal bool WatchingCloaks => cloakHook != 0;
 
-    private const int DwmwaCloaked = 14;
-    private const int DwmCloakedShell = 0x2;
     private const uint EventObjectCloaked = 0x8017, EventObjectUncloaked = 0x8018, WineventOutOfContext = 0;
     private const int ObjidWindow = 0;
     private nint cloakHook;
@@ -509,8 +512,6 @@ internal sealed class Win32FrameHost : IFrameHost
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool IsIconic(nint window);
 
-    [DllImport("dwmapi.dll")]
-    private static extern int DwmGetWindowAttribute(nint window, int attribute, out int value, int size);
 }
 
 /// <summary>

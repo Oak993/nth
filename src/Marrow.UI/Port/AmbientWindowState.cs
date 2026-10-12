@@ -73,7 +73,26 @@ internal sealed class AmbientWindowState : IDisposable
     internal static bool Cloaked(nint handle) => Cloak(handle) != 0;
 
     /// <summary>The window's DWMWA_CLOAKED flags (0: not cloaked).</summary>
-    internal static int Cloak(nint handle) => DwmGetWindowAttribute(handle, 14, out int value, sizeof(int)) == 0 ? value : 0;
+    internal static int Cloak(nint handle) => ReadCloak(handle) ?? 0;
+
+    internal static int? ReadCloak(nint handle) => DwmGetWindowAttribute(handle, 14, out int value, sizeof(int)) == 0 ? value : null;
+    internal static nint Owner(nint handle) => GetWindow(handle, 4); // GW_OWNER
+
+    // ED-NEW-lean-c9b-1: direct APP without SHELL is exempt; INHERITED needs the first direct origin in the owner chain.
+    internal static bool IsAppCloakOnly(nint window, int cloak, Func<nint, int?> readCloak, Func<nint, nint> readOwner)
+    {
+        var direct = cloak & 0x3; // DWM_CLOAKED_APP | DWM_CLOAKED_SHELL
+        if (direct != 0) return direct == 0x1;
+        if ((cloak & 0x4) == 0 || window == 0) return false;
+        var visited = new HashSet<nint> { window };
+        for (var owner = readOwner(window); owner != 0 && visited.Add(owner); owner = readOwner(owner))
+        {
+            if (readCloak(owner) is not { } origin) return false;
+            direct = origin & 0x3;
+            if (direct != 0) return direct == 0x1;
+        }
+        return false; // Missing, unreadable or cyclic origin cannot grant an exemption.
+    }
     internal static bool FullyCovered(nint handle) => FullyCovered(handle, null);
 
     /// <summary>
@@ -138,8 +157,9 @@ internal sealed class AmbientWindowState : IDisposable
     }
 
     /// <summary>What one look at a window found: cloaked, fully covered, and the processes of the windows covering it.
-    /// <paramref name="AppCloakOnly"/>: the cloak is not the shell's (no DWM_CLOAKED_SHELL, 0x2): the app's own (DWM_CLOAKED_APP:
-    /// WindowManager.SettingsCloak, the boot stage, ED-236), a window being composed to be shown (ED-NEW-lean-6 (cloak rule)).</summary>
+    /// <paramref name="AppCloakOnly"/>: direct APP without SHELL, on this window or the first direct owner origin of an
+    /// inherited cloak. The app's own cloak (WindowManager.SettingsCloak, the boot stage, ED-236) stays exempt while being
+    /// composed to be shown; an unresolved inherited origin is not exempt (ED-NEW-lean-c9b-1).</summary>
     internal readonly record struct WindowLook(bool Cloaked, bool Covered, uint[] Coverers, bool AppCloakOnly = false);
 
     /// <summary>
@@ -243,9 +263,12 @@ internal sealed class AmbientWindowState : IDisposable
             return seen;
         }
 
-        private static WindowLook LookAt(nint window)
+        private static WindowLook LookAt(nint window) => LookAt(window, ReadCloak, Owner);
+
+        internal static WindowLook LookAt(nint window, Func<nint, int?> readCloak, Func<nint, nint> readOwner)
         {
-            if (Cloak(window) is var cloak and not 0) return new(true, false, [], (cloak & 0x2) == 0);
+            if ((readCloak(window) ?? 0) is var cloak and not 0)
+                return new(true, false, [], IsAppCloakOnly(window, cloak, readCloak, readOwner));
             var coverers = new HashSet<uint>();
             var fully = FullyCovered(window, coverers);
             return new(false, fully, fully ? [.. coverers.Order()] : []);

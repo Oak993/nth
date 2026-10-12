@@ -166,8 +166,8 @@ public sealed class WindowPresence
         if (closed || look is null) return;
         var shown = window.IsVisible && window.WindowState != WindowState.Minimized && !locked && !displayOff;
         var at = shown ? look() : default;
-        // ED-NEW-lean-6 (cloak rule): only the shell's cloak (another virtual desktop) hides a window, as FrameClock's HiddenBy; a
-        // window the app cloaks itself (warm-up, hand-over) is being composed to be shown and is shown by an uncloak, so it is seen
+        // ED-NEW-lean-c9b-1: only a proven app-only origin is exempt, as FrameClock's HiddenBy; a window the app cloaks itself
+        // (warm-up, hand-over) is composed to be shown, while shell and unresolved inherited cloaks remain unseen.
         SetSeen(shown && !(at.Cloaked && !at.AppCloakOnly) && !at.Covered);
         // fully covered: the covering windows' processes are heard moving, so their maximise, restore or snap is noticed
         events!.Cover(hwnd, shown && at.Covered ? at.Coverers : []);

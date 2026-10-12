@@ -298,10 +298,10 @@ public sealed class FrameClockProductionSourceTests(HeadlessSession headless)
     [InlineData(true, 0, true)]   // minimised
     [InlineData(false, 0x1, false)] // DWM_CLOAKED_APP: the app's own cloak
     [InlineData(false, 0x2, true)]  // DWM_CLOAKED_SHELL: another virtual desktop
-    [InlineData(false, 0x4, false)] // DWM_CLOAKED_INHERITED alone: as its owner, which is checked on its own
+    [InlineData(false, 0x4, true)]  // ED-NEW-lean-c9b-1: without a readable owner origin, inherited remains unseen
     [InlineData(false, 0x6, true)]
     [InlineData(true, 0x1, true)]
-    public void Only_a_minimised_or_shell_cloaked_window_is_hidden(bool iconic, int cloaked, bool hidden) =>
+    public void Minimized_shell_and_unresolved_inherited_cloaks_are_hidden(bool iconic, int cloaked, bool hidden) =>
         Assert.Equal(hidden, Win32FrameHost.HiddenBy(iconic, cloaked));
 
     // The production cloak watch is set on main, once, for this process only.
