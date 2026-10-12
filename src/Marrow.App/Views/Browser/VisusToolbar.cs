@@ -32,6 +32,8 @@ public sealed class VisusToolbar : Border
 {
     private readonly VisusSession session;
     private readonly VisusPopover moreMenu;
+    private readonly VisusPopover downloadsMenu;
+    private readonly Avalonia.Controls.Shapes.Arc downloadsRing;
     private VisusTab? watched;
 
     public VisusToolbar(VisusSession session)
@@ -52,6 +54,25 @@ public sealed class VisusToolbar : Border
         Forward.HistoryRequested += at => ShowHistory(Forward, back: false, at);
         More = new VisusToolbarButton(PaneGlyphKind.More, "Visus menu", null, _ => SetMoreOpen(!moreMenu!.IsOpen));
         moreMenu = new VisusPopover(More, () => new PopoverMenu(BuildMenu));
+        // W8b (5.4; the canvas's data-act="dls"): the downloads of this run, shown once there is one; a ring shows the progress
+        // of the transfers still running.
+        Downloads = new VisusToolbarButton(PaneGlyphKind.Download, "Downloads", null, _ => SetDownloadsOpen(!downloadsMenu!.IsOpen)) { IsVisible = false };
+        downloadsMenu = new VisusPopover(Downloads, () => new PopoverMenu(BuildDownloads));
+        downloadsRing = new Avalonia.Controls.Shapes.Arc
+        {
+            Width = VisusTokens.ToolbarButton - 4,
+            Height = VisusTokens.ToolbarButton - 4,
+            StartAngle = -90,
+            SweepAngle = 0,
+            StrokeThickness = 1.5,
+            StrokeLineCap = PenLineCap.Round,
+            IsHitTestVisible = false,
+            IsVisible = false,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        AutomationProperties.SetAccessibilityView(downloadsRing, AccessibilityView.Raw);
+        var downloadsSlot = new Panel { Children = { Downloads, downloadsRing }, VerticalAlignment = VerticalAlignment.Center };
         Address = new VisusAddressField(session) { Margin = new Thickness(4, 0) };
         var row = new DockPanel { LastChildFill = true, VerticalAlignment = VerticalAlignment.Center };
         foreach (var button in new[] { Back, Forward, Reload })
@@ -61,8 +82,10 @@ public sealed class VisusToolbar : Border
         }
         DockPanel.SetDock(More, Dock.Right);
         row.Children.Add(More);
+        DockPanel.SetDock(downloadsSlot, Dock.Right);
+        row.Children.Add(downloadsSlot);
         row.Children.Add(Address);
-        Child = new Panel { Children = { row, moreMenu.Popup } };
+        Child = new Panel { Children = { row, moreMenu.Popup, downloadsMenu.Popup } };
         AutomationProperties.SetName(this, "Visus toolbar");
         SetValue(AutomationProperties.ControlTypeOverrideProperty, AutomationControlType.ToolBar);
         ActualThemeVariantChanged += (_, _) => ApplyLook();
@@ -76,6 +99,14 @@ public sealed class VisusToolbar : Border
     public VisusToolbarButton Reload { get; }
 
     public VisusToolbarButton More { get; }
+
+    /// <summary>The downloads of this run (5.4), shown once there is one.</summary>
+    public VisusToolbarButton Downloads { get; }
+
+    /// <summary>The ring's share of the live transfers' bytes (null when none runs with a known size).</summary>
+    public double? DownloadsProgress => downloadsRing.IsVisible ? downloadsRing.SweepAngle / 360 : null;
+
+    public bool IsDownloadsOpen => downloadsMenu.IsOpen;
 
     public VisusAddressField Address { get; }
 
@@ -91,7 +122,9 @@ public sealed class VisusToolbar : Border
     {
         base.OnAttachedToVisualTree(e);
         session.Changed += Sync;
+        VisusHost.Downloads.Changed += ApplyDownloads;
         Sync();
+        ApplyDownloads();
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
@@ -100,6 +133,8 @@ public sealed class VisusToolbar : Border
         if (watched is not null) watched.Changed -= Apply;
         watched = null;
         moreMenu.SetOpen(false);
+        VisusHost.Downloads.Changed -= ApplyDownloads;
+        downloadsMenu.SetOpen(false);
         base.OnDetachedFromVisualTree(e);
     }
 
@@ -151,6 +186,67 @@ public sealed class VisusToolbar : Border
     }
 
     private void SetMoreOpen(bool open) => moreMenu.SetOpen(open);
+
+    private void SetDownloadsOpen(bool open) => downloadsMenu.SetOpen(open);
+
+    private void ApplyDownloads()
+    {
+        var downloads = VisusHost.Downloads;
+        Downloads.IsVisible = downloads.Items.Count > 0;
+        var live = downloads.LiveCount;
+        var progress = downloads.LiveProgress;
+        downloadsRing.IsVisible = Downloads.IsVisible && live > 0 && progress is not null;
+        downloadsRing.SweepAngle = (progress ?? 0) * 360;
+        downloadsRing.Stroke = Marrow.UI.Chrome.Chrome.Accent.Brush(this);
+        var name = live == 0 ? "Downloads" : progress is { } share
+            ? $"Downloads, {live} in progress, {Math.Round(share * 100)} %"
+            : $"Downloads, {live} in progress";
+        AutomationProperties.SetName(Downloads, name);
+        ToolTip.SetTip(Downloads, name);
+        if (!Downloads.IsVisible && downloadsMenu.IsOpen) SetDownloadsOpen(false);
+    }
+
+    /// <summary>The downloads popover's rows: each file with where it is, its live controls, then the folder and Clear.</summary>
+    internal IReadOnlyList<VisusMenuEntry?> DownloadEntries()
+    {
+        var downloads = VisusHost.Downloads;
+        var rows = new List<VisusMenuEntry?>();
+        foreach (var item in downloads.Items.Take(8))
+        {
+            var download = item;
+            // The row shows the file in its folder; nothing here ever opens it (5.4 "Files are never opened automatically").
+            rows.Add(new(download.FileName, () => VisusHost.ShowInFolder(download.Path), download.Status, download.State == VisusDownloadState.Done));
+            if (download.State == VisusDownloadState.Running) rows.Add(new("Pause " + download.FileName, download.Pause));
+            if (download.State == VisusDownloadState.Paused || download.State == VisusDownloadState.Failed && download.CanResume)
+                rows.Add(new("Resume " + download.FileName, download.Resume));
+            if (download.IsLive) rows.Add(new("Cancel " + download.FileName, download.Cancel));
+        }
+        rows.Add(null);
+        var folder = VisusHost.DownloadsFolder();
+        rows.Add(new("Open the Downloads folder", () =>
+        {
+            if (folder is not null) Marrow.UI.Port.ShellWorkspace.OpenWithDefaultApp(folder);
+        }, IsEnabled: folder is not null));
+        rows.Add(new("Clear finished", downloads.ClearFinished, IsEnabled: downloads.Items.Any(item => !item.IsLive)));
+        return rows;
+    }
+
+    private Control BuildDownloads()
+    {
+        var stack = new StackPanel { Orientation = Orientation.Vertical };
+        stack.Children.Add(new PopoverSectionHeader("Downloads"));
+        foreach (var row in DownloadEntries())
+        {
+            if (row is null)
+            {
+                stack.Children.Add(new PopoverDivider());
+                continue;
+            }
+            var run = row.Run;
+            stack.Children.Add(new PopoverItem(row.Title, () => { SetDownloadsOpen(false); run(); }, detail: row.Shortcut, isEnabled: row.IsEnabled));
+        }
+        return stack;
+    }
 
     /// <summary>The ⋮ menu's rows (null is a divider): the tab commands, what later units add, the page's link, and the update restart.</summary>
     internal IReadOnlyList<VisusMenuEntry?> MenuEntries()
@@ -435,9 +531,39 @@ public sealed class VisusTrustStrip : Button
             note += " This page is not encrypted.";
         if (note.Length > 0) stack.Children.Add(new PopoverNote(note));
         var shown = tab;
+        // W8b (5.5): what this site may do, as nth keeps it (browse and preview), with Reset.
+        var kept = KeptPermissions();
+        if (kept.Count > 0)
+        {
+            stack.Children.Add(new PopoverDivider());
+            stack.Children.Add(new PopoverSectionHeader("Permissions"));
+            stack.Children.Add(new PopoverNote(PermissionsLine(kept)));
+            stack.Children.Add(new PopoverItem("Reset permissions", () => { SetInfoOpen(false); ResetPermissions(); }));
+        }
         stack.Children.Add(new PopoverDivider());
         stack.Children.Add(new PopoverItem("Copy link", () => { SetInfoOpen(false); VisusPaneBody.CopyText(this, shown.Url); }));
         return stack;
+    }
+
+    /// <summary>The answers nth keeps for the shown site (none for private and agent tabs).</summary>
+    internal IReadOnlyList<SitePermission> KeptPermissions()
+    {
+        if (tab is null || tab.IsBlank) return [];
+        var profile = VisusTabRules.Profile(tab.Kind);
+        if (!PermissionStore.Keeps(profile) || PermissionStore.Clean(WebPolicy.OriginOf(tab.Url)) is not { } origin) return [];
+        return VisusHost.Permissions.For(profile, origin);
+    }
+
+    /// <summary>"Camera: allowed · Notifications: blocked".</summary>
+    internal static string PermissionsLine(IReadOnlyList<SitePermission> kept) =>
+        string.Join(" · ", kept.Select(entry => SitePermissions.Noun(entry.Kind) + ": " + SitePermissions.StateWord(entry.State).ToLowerInvariant()));
+
+    /// <summary>Reset permissions: the site asks again next time.</summary>
+    internal void ResetPermissions()
+    {
+        if (tab is null) return;
+        var profile = VisusTabRules.Profile(tab.Kind);
+        if (PermissionStore.Clean(WebPolicy.OriginOf(tab.Url)) is { } origin) VisusHost.Permissions.Forget(profile, origin);
     }
 }
 

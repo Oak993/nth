@@ -47,8 +47,47 @@ public sealed class VisusRig : IDisposable
             OpenedInBrowser.Add(link);
             return true;
         };
+        // W8b: downloads land in a folder of the rig's, the system dialogs answer what the test queues, and nothing is opened.
+        VisusHost.DownloadsFolder = () => DownloadsFolder;
+        VisusHost.FileExists = path => ExistingFiles.Contains(path);
+        VisusHost.PickSavePath = (_, name, folder) =>
+        {
+            SaveDialogs.Add((name, folder));
+            return Task.FromResult(NextSavePath);
+        };
+        VisusHost.PickOpenFiles = (_, multiple) =>
+        {
+            OpenDialogs.Add(multiple);
+            return Task.FromResult(NextOpenFiles);
+        };
+        VisusHost.ShowInFolder = ShownInFolder.Add;
+        VisusHost.ShowNotification = (source, title, body, sound) => Notifications.Add((source, title, body, sound));
         Session = new VisusSession { ThreadFolder = ThreadFolder };
     }
+
+    /// <summary>W8b: the Downloads folder Save writes to.</summary>
+    public const string DownloadsFolder = @"C:\nth-test\Downloads";
+
+    /// <summary>Files the rig says exist (Save picks a free name next to them).</summary>
+    public HashSet<string> ExistingFiles { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>What the next Save as… dialog returns (null: the user closed it).</summary>
+    public string? NextSavePath { get; set; }
+
+    /// <summary>The Save as… dialogs opened: the suggested name and folder.</summary>
+    public List<(string Name, string? Folder)> SaveDialogs { get; } = [];
+
+    /// <summary>What the next open dialog of the guarded file card returns (null: the user closed it).</summary>
+    public IReadOnlyList<string>? NextOpenFiles { get; set; }
+
+    /// <summary>The open dialogs shown (whether they took several files).</summary>
+    public List<bool> OpenDialogs { get; } = [];
+
+    /// <summary>Paths shown in File Explorer.</summary>
+    public List<string> ShownInFolder { get; } = [];
+
+    /// <summary>nth's toasts for page notifications: source, title, body, sound.</summary>
+    public List<(string Source, string Title, string Body, bool Sound)> Notifications { get; } = [];
 
     /// <summary>The thread folder the rig's session stands for (it names the agent profile).</summary>
     public const string ThreadFolder = @"C:\nth-test\Library\threads\T1";

@@ -351,7 +351,7 @@ public sealed class BackgroundJobSourcesTests
         {
             var jobs = model.BackgroundJobs;
             Assert.Same(jobs, model.BackgroundJobs);
-            Assert.Equal(["Hydra heads", "Helpers", "Terminals", "Downloads", "Published"], jobs.Sources.Select(source => source.Name));
+            Assert.Equal(["Hydra heads", "Helpers", "Terminals", "Downloads", "Visus downloads", "Published"], jobs.Sources.Select(source => source.Name)); // web W8b adds Visus's (ED-NEW-web-w8b-2)
 
             var stops = 0;
             var pauses = 0;

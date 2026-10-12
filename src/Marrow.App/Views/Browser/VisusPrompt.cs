@@ -8,6 +8,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Views;
 using Marrow.Core.Web;
@@ -16,35 +17,49 @@ using Marrow.UI.NthUi;
 using Marrow.UI.Panes;
 using Marrow.UI.Port;
 
-// PORT-ONLY: web surfaces W8a, the prompt for an app link (E:/Droppy/work/design/web-surfaces/DESIGN.md 8.3 "Visus asks:
-// '<site> wants to open <App name>' with the scheme shown, and Remember for this site only for mailto and tel", 8.4 the
+// PORT-ONLY: web surfaces W8a and W8b, the prompts a Visus tab asks in (E:/Droppy/work/design/web-surfaces/DESIGN.md 8.3 "Visus
+// asks: '<site> wants to open <App name>' with the scheme shown, and Remember for this site only for mailto and tel", 8.4 the
 // prompt rules: "Prompts never take focus when they appear. Enter does nothing in them; Esc refuses. F6 moves into the open
-// prompt; Tab and Space work inside it. For 400 ms after a prompt appears, clicks and keys on its buttons are ignored", 2.4
-// prompts are top-level popups (never under the native page), 13.3; the canvas's .pop .pt2 .row .pbtn .foot; ED-NEW-web-w8a-2).
-// No Swift counterpart. The prompt hangs from the site chip with a title strip carrying nth's own icon and the source, so a
-// page cannot draw a look-alike in its own area (the strip sits over the toolbar, outside any page).
+// prompt; Tab and Space work inside it. For 400 ms after a prompt appears, clicks and keys on its buttons are ignored", 10.1
+// "focus lands on the prompt's text, not on a button ... F6 again returns focus to where it was", "the appearance announcement
+// ends with 'Press F6 to answer.' The prompt's buttons are named in full", "a Space within 400 ms of the prompt appearing or
+// of focus entering it is ignored", 2.4 prompts are top-level popups (never under the native page), 13.3; the canvas's .pop
+// .pt2 .warn .row .pbtn .foot; ED-NEW-web-w8a-2, ED-NEW-web-w8b-4). No Swift counterpart. Every prompt hangs from the trust
+// strip with a title strip carrying nth's own icon, so a page cannot draw a look-alike in its own area (the strip sits over
+// the toolbar, outside any page).
 
 namespace Marrow.App.Views.Browser;
 
-/// <summary>DESIGN 8.3, 8.4: "example.com wants to open Mail (mailto:)" with Open and Cancel.</summary>
-public sealed class VisusPrompt : Border
+/// <summary>
+/// One Visus prompt card (10.1): its text takes the keyboard on F6, Tab and Shift+Tab move between its controls, Space presses
+/// the focused one, Enter does nothing, Esc gives the ask's safe answer, F6 again gives the keyboard back. For 400 ms after it
+/// appears, and after the keyboard enters it, its buttons ignore clicks and keys.
+/// </summary>
+public abstract class VisusPromptCard : Border
 {
-    /// <summary>How long after it appears the prompt ignores clicks and keys on its buttons (8.4).</summary>
+    /// <summary>How long after it appears (or the keyboard enters it) the card ignores clicks and keys (8.4, 10.1).</summary>
     public static readonly TimeSpan Shield = TimeSpan.FromMilliseconds(400);
 
-    /// <summary>The prompt's foot, word for word (the canvas's prompts).</summary>
-    public const string Foot = "Enter does nothing here. Esc cancels.";
+    /// <summary>The end of every appearance announcement (10.1).</summary>
+    public const string F6Hint = "Press F6 to answer.";
 
-    private readonly long shownAt;
+    /// <summary>The card's width (the canvas's .pop).</summary>
+    public const double CardWidth = 310;
+
+    private readonly Border lead;
+    private readonly WrapPanel buttons;
+    private long shieldFrom;
+    private IInputElement? returnTo;
     private bool closed;
 
-    public VisusPrompt(VisusExternalLaunch launch, string appName)
+    protected VisusPromptCard(VisusAsk ask, string title, string detail, PaneGlyphKind glyph)
     {
-        Launch = launch;
-        shownAt = VisusHost.Time.GetTimestamp();
-        Width = 310;
+        Ask = ask;
+        Title = title;
+        Detail = detail;
+        shieldFrom = VisusHost.Time.GetTimestamp();
+        Width = CardWidth;
         Padding = new Thickness(14);
-        Title = ExternalProtocols.PromptTitle(launch.Source, appName, launch.Scheme);
         var strip = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -56,86 +71,138 @@ public sealed class VisusPrompt : Border
                 Text("nth · Visus", 11.5, PaneTokens.Text3),
             },
         };
-        var heading = Text(Title, 13.5, PaneTokens.Text1, wrap: true);
+        var heading = Text(title, 13.5, PaneTokens.Text1, wrap: true);
         heading.FontWeight = FontWeight.SemiBold;
-        var detail = Text(Shorten(launch.Uri), 12.5, PaneTokens.Text2, wrap: true);
-        detail.Margin = new Thickness(0, 2, 0, 0);
-        var glyph = new PaneGlyph(PaneGlyphKind.OpenExternal, 20) { Margin = new Thickness(0, 1, 10, 0), VerticalAlignment = VerticalAlignment.Top };
-        glyph.Foreground = PaneTokens.Text1.Brush(glyph);
-        var words = new StackPanel { Orientation = Orientation.Vertical, Children = { heading, detail } };
-        var top = new DockPanel { LastChildFill = true };
-        DockPanel.SetDock(glyph, Dock.Left);
-        top.Children.Add(glyph);
-        top.Children.Add(words);
-        var body = new StackPanel { Orientation = Orientation.Vertical, Children = { strip, top } };
-        if (launch.CanRemember)
+        var words = new StackPanel { Orientation = Orientation.Vertical, Children = { heading } };
+        if (detail.Length > 0)
         {
-            Remember = new CheckBox { Content = Text("Remember for this site", 12.5, PaneTokens.Text1), Margin = new Thickness(30, 10, 0, 0) };
-            ChatDialogControls.Checkbox(Remember);
-            AutomationProperties.SetName(Remember, "Remember for this site");
-            body.Children.Add(Remember);
+            var line = Text(detail, 12.5, PaneTokens.Text2, wrap: true);
+            line.Margin = new Thickness(0, 2, 0, 0);
+            words.Children.Add(line);
         }
-        OpenButton = NthUiPress.Button("Open " + appName, NthUiFaceStyle.Plain, null, () => Answer(true), 30);
-        CancelButton = NthUiPress.Button("Cancel", NthUiFaceStyle.Plain, null, () => Answer(false), 30);
-        OpenButton.IsDefault = false;
-        CancelButton.IsCancel = false; // Esc is handled here (the window's own Esc must not run first)
-        body.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(0, 12, 0, 0), Children = { OpenButton, CancelButton } });
-        body.Children.Add(Text(Foot, 11.5, PaneTokens.Text3, wrap: true, margin: new Thickness(0, 10, 0, 0)));
-        Child = body;
+        var mark = new PaneGlyph(glyph, 20) { Margin = new Thickness(0, 1, 10, 0), VerticalAlignment = VerticalAlignment.Top };
+        mark.Foreground = PaneTokens.Text1.Brush(mark);
+        mark.ActualThemeVariantChanged += (_, _) => mark.Foreground = PaneTokens.Text1.Brush(mark);
+        var top = new DockPanel { LastChildFill = true };
+        DockPanel.SetDock(mark, Dock.Left);
+        top.Children.Add(mark);
+        top.Children.Add(words);
+        // 10.1: the prompt's text is where F6 lands (a reader hears the question before any button). The ring is the app's
+        // focus band; the margin gives back its room so nothing moves when it shows.
+        lead = new Border
+        {
+            Focusable = true,
+            Margin = new Thickness(-6),
+            Padding = new Thickness(4),
+            BorderThickness = new Thickness(2),
+            CornerRadius = new CornerRadius(9),
+            BorderBrush = Brushes.Transparent,
+            Child = top,
+        };
+        AutomationProperties.SetName(lead, detail.Length > 0 ? title + ". " + detail : title);
+        lead.GotFocus += (_, _) => lead.BorderBrush = Marrow.UI.Chrome.Chrome.Accent.Opacity(0.25).Brush(lead);
+        lead.LostFocus += (_, _) => lead.BorderBrush = Brushes.Transparent;
+        buttons = new WrapPanel { Orientation = Orientation.Horizontal, ItemSpacing = 6, LineSpacing = 6, Margin = new Thickness(0, 12, 0, 0) };
+        Body = new StackPanel { Orientation = Orientation.Vertical, Children = { strip, lead } };
+        Child = Body;
         KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.Cycle);
-        AutomationProperties.SetName(this, Title);
+        AutomationProperties.SetName(this, Announcement);
+        AutomationProperties.SetLiveSetting(this, AutomationLiveSetting.Assertive);
         SetValue(AutomationProperties.ControlTypeOverrideProperty, AutomationControlType.Window);
-        AutomationProperties.SetHelpText(this, launch.Uri);
         AddHandler(KeyDownEvent, OnKey, RoutingStrategies.Tunnel);
         AddHandler(KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel);
         AddHandler(PointerPressedEvent, OnPointer, RoutingStrategies.Tunnel);
         AddHandler(PointerReleasedEvent, OnPointer, RoutingStrategies.Tunnel);
+        PropertyChanged += (_, e) =>
+        {
+            // 10.1: the shield also runs from the moment the keyboard enters the card.
+            if (e.Property == IsKeyboardFocusWithinProperty && e.NewValue is true) shieldFrom = VisusHost.Time.GetTimestamp();
+        };
+        ask.Answered += OnAnswered;
     }
 
-    public VisusExternalLaunch Launch { get; }
+    /// <summary>The question the card answers.</summary>
+    public VisusAsk Ask { get; }
 
-    /// <summary>"example.com wants to open Mail (mailto:)".</summary>
+    /// <summary>The card's question ("example.com wants to open Mail (mailto:)").</summary>
     public string Title { get; }
 
-    public Button OpenButton { get; }
+    /// <summary>The line under it (the address, the size and source of a file, the realm).</summary>
+    public string Detail { get; }
 
-    public Button CancelButton { get; }
+    /// <summary>What a screen reader hears when the card appears (10.1).</summary>
+    public string Announcement => (Detail.Length > 0 ? Title + ". " + Detail : Title) + ". " + F6Hint;
 
-    /// <summary>"Remember for this site" (mailto and tel from a browse or preview tab only).</summary>
-    public CheckBox? Remember { get; }
+    /// <summary>The card's text, where F6 puts the keyboard (10.1).</summary>
+    public Control Lead => lead;
 
-    /// <summary>Within <see cref="Shield"/> of appearing: the buttons ignore clicks and keys.</summary>
-    public bool IsShielded => VisusHost.Time.GetElapsedTime(shownAt) < Shield;
+    /// <summary>The card's buttons, in order.</summary>
+    public IReadOnlyList<Button> Buttons => buttons.Children.OfType<Button>().ToList();
 
-    /// <summary>The prompt was answered (or cancelled from outside) and should go.</summary>
-    public event Action<VisusPrompt>? Done;
+    /// <summary>Within <see cref="Shield"/> of appearing or of the keyboard entering it: the buttons ignore clicks and keys.</summary>
+    public bool IsShielded => VisusHost.Time.GetElapsedTime(shieldFrom) < Shield;
 
-    /// <summary>F6 into the prompt (10.1): the first of its controls takes the keyboard. It never does so by itself.</summary>
-    public bool FocusFirst()
+    /// <summary>The card was answered (or cancelled from outside) and should go.</summary>
+    public event Action<VisusPromptCard>? Done;
+
+    /// <summary>F6 gave the keyboard back (10.1); the pane puts it on the page when the element it came from is gone.</summary>
+    public event Action<VisusPromptCard>? FocusReturned;
+
+    protected StackPanel Body { get; }
+
+    protected bool IsClosed => closed;
+
+    /// <summary>
+    /// F6 into the card (10.1): its text takes the keyboard, and <paramref name="from"/> is where F6 again gives it back. It never
+    /// does so by itself.
+    /// </summary>
+    public bool FocusFirst(IInputElement? from = null)
     {
         if (closed) return false;
-        Control first = Remember is not null ? Remember : OpenButton;
-        return first.Focus(NavigationMethod.Tab);
+        if (from is not null && !(from is Visual visual && (ReferenceEquals(visual, this) || this.IsVisualAncestorOf(visual)))) returnTo = from;
+        return lead.Focus(NavigationMethod.Tab);
     }
 
-    /// <summary>Cancel from outside (the tab went, another tab was chosen, the pane closed).</summary>
-    public void Cancel() => Answer(false);
+    /// <summary>Esc, a closed tab, a page that went away: the safe answer (Block, Cancel, Dismiss), whatever the shield says.</summary>
+    public void Dismiss() => Ask.AnswerSafe();
 
-    internal void Answer(bool open)
+    /// <summary>A button of the card: <paramref name="label"/> on its face, <paramref name="name"/> for a screen reader (10.1).</summary>
+    protected Button AddButton(string label, string name, bool primary, Action pressed, out TextBlock face)
     {
-        if (closed) return;
-        if (IsShielded) return; // a click or key that landed as the prompt appeared does nothing
-        closed = true;
-        Launch.Answer(open, open && Remember?.IsChecked == true);
-        Done?.Invoke(this);
+        var button = NthUiPress.Plain(new Button());
+        button.Content = NthUiPress.Face(button, primary ? NthUiFaceStyle.Primary : NthUiFaceStyle.Plain, label, null, 30, out face);
+        button.Click += (_, _) => Press(pressed);
+        button.IsDefault = false;
+        button.IsCancel = false; // Esc is the card's own (the window's Esc must not run first)
+        AutomationProperties.SetName(button, name);
+        buttons.Children.Add(button);
+        return button;
     }
 
-    /// <summary>Cancel that ignores the shield (the prompt is going away for another reason).</summary>
-    internal void Dismiss()
+    protected Button AddButton(string label, string name, bool primary, Action pressed) => AddButton(label, name, primary, pressed, out _);
+
+    /// <summary>Adds the button row, then the foot (the canvas's .row and .foot), after whatever the card added to its body.</summary>
+    protected void Finish(string foot)
     {
+        Body.Children.Add(buttons);
+        Body.Children.Add(Text(foot, 11.5, PaneTokens.Text3, wrap: true, margin: new Thickness(0, 10, 0, 0)));
+    }
+
+    /// <summary>Runs a button's answer unless the shield is up (a click or key that landed as the card appeared does nothing).</summary>
+    protected void Press(Action pressed)
+    {
+        if (closed || IsShielded) return;
+        pressed();
+    }
+
+    /// <summary>Enter in one of the card's own text fields (a sign-in, a page's prompt); false leaves Enter doing nothing.</summary>
+    protected virtual bool OnFieldEnter(TextBox field) => false;
+
+    private void OnAnswered(VisusAsk ask)
+    {
+        ask.Answered -= OnAnswered;
         if (closed) return;
         closed = true;
-        Launch.Answer(false);
         Done?.Invoke(this);
     }
 
@@ -144,11 +211,16 @@ public sealed class VisusPrompt : Border
         switch (e.Key)
         {
             case Key.Enter:
-                e.Handled = true; // Enter does nothing here (8.4)
+                e.Handled = true; // Enter does nothing on a button (8.4, 10.1)
+                if (e.Source is TextBox field && !IsShielded) OnFieldEnter(field);
                 return;
             case Key.Escape:
                 e.Handled = true;
                 Dismiss();
+                return;
+            case Key.F6:
+                e.Handled = true;
+                ReturnFocus();
                 return;
             case Key.Space when IsShielded:
                 e.Handled = true;
@@ -166,6 +238,15 @@ public sealed class VisusPrompt : Border
         if (IsShielded) e.Handled = true;
     }
 
+    /// <summary>F6 again (10.1): the keyboard goes back where it was.</summary>
+    internal void ReturnFocus()
+    {
+        var target = returnTo;
+        returnTo = null;
+        if (target is InputElement { IsEffectivelyVisible: true } element && TopLevel.GetTopLevel(element) is not null && element.Focus(NavigationMethod.Tab)) return;
+        FocusReturned?.Invoke(this);
+    }
+
     private static Control Icon()
     {
         var icon = AppIconImage.Make(14);
@@ -174,9 +255,9 @@ public sealed class VisusPrompt : Border
         return icon;
     }
 
-    private static string Shorten(string uri) => uri.Length <= 120 ? uri : uri[..117] + "…";
+    internal static string Shorten(string text, int limit = 120) => text.Length <= limit ? text : text[..(limit - 3)] + "…";
 
-    private static TextBlock Text(string text, double size, SwiftColor color, bool wrap = false, Thickness? margin = null)
+    internal static TextBlock Text(string text, double size, SwiftColor color, bool wrap = false, Thickness? margin = null)
     {
         var block = new TextBlock
         {
@@ -192,9 +273,45 @@ public sealed class VisusPrompt : Border
     }
 }
 
+/// <summary>DESIGN 8.3, 8.4: "example.com wants to open Mail (mailto:)" with Open and Cancel.</summary>
+public sealed class VisusPrompt : VisusPromptCard
+{
+    /// <summary>The prompt's foot, word for word (the canvas's prompts).</summary>
+    public const string Foot = "Enter does nothing here. Esc cancels.";
+
+    public VisusPrompt(VisusExternalLaunch launch, string appName)
+        : base(launch, ExternalProtocols.PromptTitle(launch.Source, appName, launch.Scheme), Shorten(launch.Uri), PaneGlyphKind.OpenExternal)
+    {
+        Launch = launch;
+        if (launch.CanRemember)
+        {
+            Remember = new CheckBox { Content = Text("Remember for this site", 12.5, PaneTokens.Text1), Margin = new Thickness(30, 10, 0, 0) };
+            ChatDialogControls.Checkbox(Remember);
+            AutomationProperties.SetName(Remember, $"Remember for {launch.Source}: open {appName} without asking");
+            Body.Children.Add(Remember);
+        }
+        OpenButton = AddButton("Open " + appName, $"Open this {launch.Scheme}: link in {appName}", primary: false, () => Launch.Answer(true, Remember?.IsChecked == true));
+        CancelButton = AddButton("Cancel", $"Don't open {appName}", primary: false, () => Launch.Answer(false));
+        Finish(Foot);
+        AutomationProperties.SetHelpText(this, launch.Uri);
+    }
+
+    public VisusExternalLaunch Launch { get; }
+
+    public Button OpenButton { get; }
+
+    public Button CancelButton { get; }
+
+    /// <summary>"Remember for this site" (mailto and tel from a browse or preview tab only).</summary>
+    public CheckBox? Remember { get; }
+
+    /// <summary>Cancel, as the Cancel button gives it (the shield holds).</summary>
+    public void Cancel() => Press(() => Launch.Answer(false));
+}
+
 /// <summary>
-/// The open Visus prompts of a window, newest last: F6 goes into the newest (PaneWorkspace.PromptFirst, 10.1). W8b's
-/// permission and download prompts join the same list.
+/// The open Visus prompts of a window, newest last: F6 goes into the newest (PaneWorkspace.PromptFirst, 10.1). App links,
+/// permissions, downloads, sign-ins and page dialogs all join the same list (W8b).
 /// </summary>
 public static class VisusPrompts
 {
