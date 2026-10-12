@@ -203,6 +203,8 @@ public sealed record ProjectScript
     public string Command { get; init; }                // :99
     public string Symbol { get; init; }                   // :100
     public bool RunOnWorktreeCreate { get; init; }          // :101
+    // PORT-ONLY: approved web DESIGN 5.6, ED-NEW-web-w9-1; optional so existing script bytes stay unchanged.
+    public string? PreviewUrl { get; init; }
 
     // :103-109
     public ProjectScript(string name, string command, string symbol = "play", bool runOnWorktreeCreate = false)
@@ -244,7 +246,8 @@ internal sealed class ProjectScriptConverter : JsonConverter<ProjectScript>
         SwiftDecoding.Decode(element, "name", SwiftDecoding.ReadString),                 // :114
         SwiftDecoding.Decode(element, "command", SwiftDecoding.ReadString),               // :115
         Coding.Value(element, "symbol", SwiftDecoding.ReadString, () => "play"),           // :116
-        Coding.Value(element, "runOnWorktreeCreate", SwiftDecoding.ReadBool, () => false)); // :117
+        Coding.Value(element, "runOnWorktreeCreate", SwiftDecoding.ReadBool, () => false)) with // :117
+        { PreviewUrl = element.TryGetProperty("previewUrl", out var preview) && preview.ValueKind == JsonValueKind.String ? preview.GetString() : null };
 
     public override void Write(Utf8JsonWriter writer, ProjectScript value, JsonSerializerOptions options) => WriteMembers(writer, value);
 
@@ -256,6 +259,7 @@ internal sealed class ProjectScriptConverter : JsonConverter<ProjectScript>
         writer.WriteString("command", value.Command);
         writer.WriteString("symbol", value.Symbol);
         writer.WriteBoolean("runOnWorktreeCreate", value.RunOnWorktreeCreate);
+        if (value.PreviewUrl is { } preview) writer.WriteString("previewUrl", preview);
         writer.WriteEndObject();
     }
 }

@@ -209,7 +209,10 @@ public static class VisusSuggestions
 }
 
 /// <summary>One saved tab of a thread's Visus pane (3.11): its kind, address, title and zoom.</summary>
-public sealed record VisusTabState(string Id, VisusTabKind Kind, string Url, string Title, double Zoom = 1);
+public sealed record VisusTabState(string Id, VisusTabKind Kind, string Url, string Title, double Zoom = 1)
+{
+    public PreviewState? Preview { get; init; }
+}
 
 /// <summary>
 /// DESIGN 3.11: a thread's Visus tabs as they are saved with the thread. Private tabs are never in it; addresses that are not
@@ -230,7 +233,7 @@ public sealed record VisusTabsState
         var kept = Tabs
             .Where(tab => tab is not null && VisusTabRules.IsPersisted(tab.Kind) && !string.IsNullOrEmpty(tab.Id) && WebPolicy.IsTopLevelAllowed(tab.Url))
             .Where(tab => ids.Add(tab.Id))
-            .Select(tab => tab with { Title = tab.Title ?? "", Zoom = double.IsFinite(tab.Zoom) && tab.Zoom > 0 ? tab.Zoom : 1 })
+            .Select(tab => tab with { Title = tab.Title ?? "", Zoom = double.IsFinite(tab.Zoom) && tab.Zoom > 0 ? tab.Zoom : 1, Preview = tab.Kind == VisusTabKind.Preview ? tab.Preview?.Normalized() : null })
             .ToList();
         var selected = kept.Any(tab => tab.Id == SelectedId) ? SelectedId : kept.FirstOrDefault()?.Id;
         return new VisusTabsState { Tabs = new ValueList<VisusTabState>(kept), SelectedId = selected };
@@ -245,7 +248,7 @@ public sealed record VisusTabsState
     public string ToJson()
     {
         var saved = Normalized();
-        var tabs = saved.Tabs.Select(tab => (SavedTab?)new SavedTab(tab.Id, tab.Kind.ToString(), tab.Url, tab.Title, tab.Zoom)).ToList();
+        var tabs = saved.Tabs.Select(tab => (SavedTab?)new SavedTab(tab.Id, tab.Kind.ToString(), tab.Url, tab.Title, tab.Zoom, tab.Preview)).ToList();
         return JsonSerializer.Serialize(new Saved(saved.SelectedId, tabs), Json);
     }
 
@@ -263,7 +266,7 @@ public sealed record VisusTabsState
             foreach (var tab in read)
             {
                 if (tab is { Id: { } id, Url: { } url } && Enum.TryParse<VisusTabKind>(tab.Kind, ignoreCase: false, out var kind) && Enum.IsDefined(kind))
-                    tabs.Add(new VisusTabState(id, kind, url, tab.Title ?? "", tab.Zoom ?? 1));
+                    tabs.Add(new VisusTabState(id, kind, url, tab.Title ?? "", tab.Zoom ?? 1) { Preview = tab.Preview });
             }
             return new VisusTabsState { Tabs = new ValueList<VisusTabState>(tabs), SelectedId = saved.Selected }.Normalized();
         }
@@ -275,5 +278,6 @@ public sealed record VisusTabsState
 
     private sealed record Saved(string? Selected, List<SavedTab?>? Tabs);
 
-    private sealed record SavedTab(string? Id, string? Kind, string? Url, string? Title, double? Zoom);
+    private sealed record SavedTab(string? Id, string? Kind, string? Url, string? Title, double? Zoom,
+        [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] PreviewState? Preview = null);
 }

@@ -14,7 +14,7 @@ public sealed class PreviewStateTests
         Assert.Null(old.PreviewUrl);
         var next = old with { PreviewUrl = "https://localhost:5173/" };
         Assert.Equal(next, JsonSerializer.Deserialize<ProjectScript>(JsonSerializer.Serialize(next)));
-        Assert.DoesNotContain("previewUrl", JsonSerializer.Serialize(old));
+        Assert.DoesNotContain("previewUrl", JsonSerializer.Serialize(old), StringComparison.Ordinal);
     }
 
     [Theory]
