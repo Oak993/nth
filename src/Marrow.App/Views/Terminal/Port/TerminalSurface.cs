@@ -18,6 +18,10 @@ internal sealed class TerminalSurface : Decorator
     private TerminalFrame? frame;
     private int historyOffset;
     private int[] textOffsets = [];
+    private string[] lineTexts = [];
+    private Dictionary<TerminalCell[], string> rowTexts = new(ReferenceEqualityComparer.Instance);
+    private Dictionary<TerminalCell[], string> nextRowTexts = new(ReferenceEqualityComparer.Instance);
+    private readonly TerminalPainter painter = new();
     private bool pressed;
     private TerminalPosition pressedCell;
     private readonly TerminalSelection selection = new();
@@ -38,7 +42,7 @@ internal sealed class TerminalSurface : Decorator
         // whole lines, or reports the wheel to a program that asked for the mouse (MacTerminalView.swift:3204-3254), so no soft
         // scroll view around it may take its wheel.
         SoftScroll.SetOwnsWheel(this, true);
-        TextControl = new SelectableTextBlock
+        TextControl = new TerminalSemanticText
         {
             TextWrapping = TextWrapping.NoWrap,
             // Keep the text control in the logical/automation tree and arranged in the viewport.
@@ -137,16 +141,59 @@ internal sealed class TerminalSurface : Decorator
     public void UpdateFrame(TerminalFrame next)
     {
         var changedVisibility = frame?.CursorVisible != next.CursorVisible;
+        var previous = frame;
         frame = next;
         historyOffset = Math.Min(historyOffset, next.HistoryCount);
-        var lines = next.Lines.Select(line => string.Concat(line.Select(cell => cell.Text ?? " ")).TrimEnd()).ToArray();
-        textOffsets = new int[lines.Length];
-        for (var row = 1; row < lines.Length; row++)
-            textOffsets[row] = textOffsets[row - 1] + lines[row - 1].Length + 1;
-        TextControl.Text = string.Join('\n', lines);
+        if (!SameRows(previous, next)) UpdateText(next.Lines);
         InvalidateMeasure();
         Redraw();
         if (changedVisibility) RestartBlink();
+    }
+
+    /// <summary>Row texts made from cells (for tests): one per row array that was not in the previous frame.</summary>
+    internal int RowTextsBuilt { get; private set; }
+
+    /// <summary>The grid painter (for tests).</summary>
+    internal TerminalPainter Painter => painter;
+
+    private static bool SameRows(TerminalFrame? previous, TerminalFrame next)
+    {
+        if (previous is null || previous.Lines.Length != next.Lines.Length) return false;
+        for (var row = 0; row < next.Lines.Length; row++)
+            if (!ReferenceEquals(previous.Lines[row], next.Lines[row])) return false;
+        return true;
+    }
+
+    // The semantic text is the grid's lines, trailing blanks trimmed, joined by newlines. A row array is immutable once a frame holds it
+    // (ED-NEW-lean-10), so its line is made once and reused while the row stays in the frame (ED-NEW-perf-motion-1).
+    private void UpdateText(TerminalCell[][] lines)
+    {
+        if (textOffsets.Length != lines.Length) textOffsets = new int[lines.Length];
+        if (lineTexts.Length != lines.Length) lineTexts = new string[lines.Length];
+        var offset = 0;
+        for (var row = 0; row < lines.Length; row++)
+        {
+            var cells = lines[row];
+            if (!rowTexts.TryGetValue(cells, out var text))
+            {
+                text = RowText(cells);
+                RowTextsBuilt++;
+            }
+            nextRowTexts[cells] = text;
+            lineTexts[row] = text;
+            textOffsets[row] = offset;
+            offset += text.Length + 1;
+        }
+        (rowTexts, nextRowTexts) = (nextRowTexts, rowTexts);
+        nextRowTexts.Clear();
+        TextControl.Text = string.Join('\n', lineTexts);
+    }
+
+    private static string RowText(TerminalCell[] cells)
+    {
+        var builder = new System.Text.StringBuilder(cells.Length);
+        foreach (var cell in cells) builder.Append(cell.Text ?? " ");
+        return builder.ToString().TrimEnd();
     }
 
     protected override Size MeasureOverride(Size availableSize)
@@ -234,39 +281,20 @@ internal sealed class TerminalSurface : Decorator
         var first = current.HistoryCount - historyOffset;
         var selectionFrom = Math.Min(SelectionStart, SelectionEnd);
         var selectionTo = Math.Max(SelectionStart, SelectionEnd);
+        var selectionBrush = SelectionBrush;
+        // ED-NEW-perf-motion-1: each row's paint (backgrounds, glyph runs, clipped cells, underlines) is kept by the painter while the row
+        // shows; a frame draws them in place and builds only rows it has not drawn before.
+        painter.Configure(cellSize, FontFamily, FontStyle, FontWeight, FontSize, Foreground ?? Brushes.White, Background);
         using var viewport = context.PushClip(new Rect(Bounds.Size));
         for (var row = 0; row < current.Rows && first + row < current.Lines.Length; row++)
         {
-            var cells = current.Lines[first + row];
-            var textIndex = textOffsets[first + row];
-            var textEnd = first + row + 1 < textOffsets.Length
-                ? textOffsets[first + row + 1] - 1 : Text?.Length ?? 0;
-            for (var column = 0; column < cells.Length; column++)
-            {
-                var cell = cells[column];
-                if (cell.IsContinuation) continue;
-                var rect = new Rect(column * cellSize.Width, row * cellSize.Height,
-                    Math.Max(1, cell.Width) * cellSize.Width, cellSize.Height);
-                var foreground = cell.Foreground is { } fg ? new SolidColorBrush(fg) : Foreground ?? Brushes.White;
-                var background = cell.Background is { } bg ? new SolidColorBrush(bg) : Background;
-                if (cell.Inverse) (foreground, background) = (background ?? Brushes.Black, foreground);
-                if (background is not null) context.FillRectangle(background, rect);
-                var text = cell.Text ?? " ";
-                if (SelectionBrush is { } selection && textIndex < Math.Min(selectionTo, textEnd)
-                    && textIndex + text.Length > selectionFrom)
-                    context.FillRectangle(selection, rect);
-                if (cell.Text is { Length: > 0 })
-                {
-                    var formatted = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-                        new Typeface(FontFamily, FontStyle, cell.Bold ? FontWeight.Bold : FontWeight), FontSize, foreground);
-                    using var clip = context.PushClip(rect);
-                    context.DrawText(formatted, rect.Position);
-                    if (cell.Underline)
-                        context.DrawLine(new Pen(foreground, 1), new Point(rect.Left, rect.Bottom - 1), new Point(rect.Right, rect.Bottom - 1));
-                }
-                textIndex += text.Length;
-            }
+            var line = first + row;
+            var textIndex = textOffsets[line];
+            var textEnd = line + 1 < textOffsets.Length ? textOffsets[line + 1] - 1 : Text?.Length ?? 0;
+            using (context.PushTransform(Matrix.CreateTranslation(0, row * cellSize.Height)))
+                painter.DrawRow(context, current.Lines[line], selectionBrush, selectionFrom - textIndex, Math.Min(selectionTo, textEnd) - textIndex);
         }
+        painter.EndFrame();
     }
 
     // The caret as MacCaretView draws it: a block over the cell (its glyph in the background colour) while the terminal is focused, an outline of line width 3 when not.
