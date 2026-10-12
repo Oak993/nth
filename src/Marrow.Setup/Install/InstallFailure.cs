@@ -94,6 +94,8 @@ public sealed record InstallFailure(FailureReason Reason, bool NothingChanged, i
         {
             foreach (var folder in new DirectoryInfo(parent).EnumerateDirectories(stem + "*"))
             {
+                // Windows matches "nth.*" against "nth" too (an empty extension), so the name is checked by hand.
+                if (folder.Name.Length != stem.Length + 16 || !folder.Name.StartsWith(stem, StringComparison.OrdinalIgnoreCase)) continue;
                 var tail = folder.Name[stem.Length..];
                 if (tail.Length == 16 && tail.All(char.IsAsciiLetterOrDigit) && !string.Equals(folder.FullName, full, StringComparison.OrdinalIgnoreCase)) found.Add(folder.FullName);
             }

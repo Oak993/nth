@@ -91,6 +91,7 @@ public static class FreeSpaceCheck
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(root);
         var path = Path.GetPathRoot(Path.GetFullPath(root)) ?? root;
-        return Path.TrimEndingDirectorySeparator(path);
+        var name = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return name.Length == 0 ? path : name; // "C:\" is drive "C:"; a share root keeps its name
     }
 }

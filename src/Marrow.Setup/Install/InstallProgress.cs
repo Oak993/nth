@@ -121,7 +121,7 @@ public sealed class ProgressEvidence
 /// before it is then done, so rows go waiting, working, done in order and never back. The target is the working step's
 /// start plus the share its signals show, never past the next step's start; it never goes back; it is 100 only once the
 /// setup's own work after exit 0 is done. If nothing changes for 2 s, it creeps toward the next step's start at a slowing
-/// rate (90 % of the gap at most, an e-fold every 10 s), never passing it; if nothing changes for 20 s the frame is slow
+/// rate (60 % of the gap at most, an e-fold every 25 s, so a pause of a few seconds moves it a little and the bytes soon catch up), never passing it; if nothing changes for 20 s the frame is slow
 /// (the stall line), until something moves again. While the first step waits on something outside the setup it neither
 /// creeps nor stalls.
 /// </summary>
@@ -131,10 +131,10 @@ public sealed class InstallProgress
     public static readonly TimeSpan SlowAfter = TimeSpan.FromSeconds(20);
 
     /// <summary>The creep's time constant: the gap to the next step shrinks by a factor e every this many seconds.</summary>
-    public const double CreepSeconds = 10;
+    public const double CreepSeconds = 25;
 
     /// <summary>The creep covers at most this share of the gap to the next step's start.</summary>
-    public const double CreepShare = 0.9;
+    public const double CreepShare = 0.6;
 
     private readonly InstallSizes sizes;
     private readonly bool desktopShortcut;

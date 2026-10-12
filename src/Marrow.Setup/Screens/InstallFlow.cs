@@ -50,7 +50,7 @@ public sealed class InstallFlow
     private Task<bool>? checks;
     private IProgressView? view;
     private bool starting;
-    private bool closed;
+    private volatile bool closed;
 
     /// <param name="session">The window's session.</param>
     /// <param name="createRun">A new run for the session's route (a Retry makes another).</param>
