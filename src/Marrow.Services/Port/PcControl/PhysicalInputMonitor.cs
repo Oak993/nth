@@ -160,6 +160,13 @@ public sealed class PhysicalInputMonitor : IPhysicalInput
 
     public event Action<PcRawInput>? Grabbed;
 
+    /// <summary>
+    /// Each of the user's pointer events (a move, a button, the wheel), swallowed and grabbed ones too (their flags say so),
+    /// once the monitor has kept it; on the hook reader's thread. The pill's pointer state reads it: where the pointer is
+    /// and whether a press that began in another app still holds (ED-NEW-pcctl-34). Tactus's own input never raises it.
+    /// </summary>
+    public event Action<PcRawInput>? UserPointer;
+
     /// <summary>The hooks should be installed (true) or removed (false): someone keeps the monitor, or no one does.</summary>
     public event Action<bool>? KeepChanged;
 
@@ -396,6 +403,7 @@ public sealed class PhysicalInputMonitor : IPhysicalInput
         if (dirty != 0) Dirty?.Invoke(dirty);
         if (input.Swallowed) Swallowed?.Invoke(input);
         if (input.Grabbed) Grabbed?.Invoke(input);
+        if (origin == PcInputOrigin.User && input.Kind != PcRawKind.Key) UserPointer?.Invoke(input);
         if (origin == PcInputOrigin.User && input.Kind == PcRawKind.Key && input.Down)
         {
             var kind = input.Code == Escape ? PcHookKey.Escape : input.Code != 0 && chords(input.Code) ? PcHookKey.Chord : PcHookKey.Other;

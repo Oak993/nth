@@ -1,6 +1,7 @@
 // PORT-ONLY: Tactus (ED-NEW-pcctl-32). The pill on screen as one test uses it: the shared parts on fakes (PcAssemblyRig), the
 // pill host on fake bands and monitors (PcPillHostRig), the card's bridge and the feed, the card's keyboard over fake Win32
-// calls, the chords on a fake hotkey thread, and what the screen asks the app to do (settings saved, a chat opened,
+// calls, the chords on a fake hotkey thread, the user's pointer over the shared input monitor and a fake probe (ED-NEW-pcctl-34),
+// and what the screen asks the app to do (settings saved, a chat opened,
 // Settings opened, the keyboard put in the card). Everything runs inline on the test's UI thread.
 using Marrow.App.Port.PcControl;
 using Marrow.App.Port.PcControl.Overlay;
@@ -29,6 +30,7 @@ public sealed class PcScreenRig : IDisposable
         Focus = new CardFocus(Native, () => Overlay, _ => false, Pill.Clock, (seconds, run) => FocusLater.Add((seconds, run)));
         var map = new MonitorMap(new PcFakeOverlayMonitors { Now = [PcTestMonitors.Main, PcTestMonitors.Right] });
         map.Refresh();
+        Pointer = new TactusPointerState(Parts.Input, Probe, () => Pill.Now);
         Screen = new TactusScreen(new TactusScreenParts
         {
             Assembly = Assembly,
@@ -39,6 +41,8 @@ public sealed class PcScreenRig : IDisposable
             Feed = Feed,
             Hotkeys = Hotkeys,
             Focus = Focus,
+            Pointer = Pointer,
+            Overlays = Pill.Overlays,
             Save = next =>
             {
                 Saved.Add(next);
@@ -67,6 +71,10 @@ public sealed class PcScreenRig : IDisposable
     public TactusFakeHotkeyHost KeysHost { get; } = new();
     public TactusHotkeys Hotkeys { get; }
     public PcFakeCardFocusNative Native { get; } = new();
+
+    public PcFakePointerProbe Probe { get; } = new();
+
+    public TactusPointerState Pointer { get; }
     public CardFocus Focus { get; }
     public TactusScreen Screen { get; }
     public List<PcSettings> Saved { get; } = [];
@@ -79,6 +87,7 @@ public sealed class PcScreenRig : IDisposable
     public void Dispose()
     {
         Screen.Dispose();
+        Pointer.Dispose();
         Hotkeys.Dispose();
         Parts.Dispose();
     }

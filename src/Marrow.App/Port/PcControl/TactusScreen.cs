@@ -4,7 +4,9 @@
 // paths; "Answer Tactus" opens the card and puts the keyboard in it; while the card holds the keyboard (and for 300 ms after
 // it handed it back) a borrow waits (PcSurface.OwnCardUp); every action's aim draws its pointer and names the monitor of
 // the latest step; the pause chord's problem shows once; the pill's place and monitor follow Settings, and a drag saves
-// them. With "Answer approvals and questions in the pill" off the card is not offered: a click opens the ask's chat.
+// them. With "Answer approvals and questions in the pill" off the card is not offered: a click opens the ask's chat. The
+// user's pointer reaches the host (where it is, for the card's shift; a held button, for the auto-expand) and the bands'
+// hit test (a press that began in another app holds the region; each record for the style-flip test) (ED-NEW-pcctl-34).
 using Marrow.Core.Port.PcControl;
 using Marrow.Core.Port.PcControl.Pill;
 using Marrow.App.Port.PcControl.Overlay;
@@ -32,6 +34,12 @@ public sealed class TactusScreenParts
 
     /// <summary>The Tactus pointers (P14); none: no pointer is drawn.</summary>
     public PointerOverlays? Pointers { get; init; }
+
+    /// <summary>The user's pointer and buttons (ED-NEW-pcctl-34); none: the host knows neither.</summary>
+    public TactusPointerState? Pointer { get; init; }
+
+    /// <summary>The bands (their hit tests and windows), for the user's pointer; none in tests that do not need them.</summary>
+    public PillOverlays? Overlays { get; init; }
 
     /// <summary>Writes the whole settings (PcSettingsStore.Write in the app).</summary>
     public Action<PcSettings> Save { get; init; } = _ => { };
@@ -94,6 +102,18 @@ public sealed class TactusScreen : IDisposable
         assembly.Pause.AppResumed += OnAppResumed;
         if (parts.Pointers is { } pointers) pointers.FramesWanted += OnFramesWanted;
         if (parts.Focus is { } focus) focus.ActivationFailed += host.KeyboardRefused;
+        if (parts.Pointer is { } pointer)
+        {
+            host.PointerAt = pointer.PointerAt;
+            host.ButtonHeld = pointer.ButtonHeld;
+            pointer.HeldElsewhereChanged += OnHeldElsewhere;
+            pointer.Moved += OnPointerMoved;
+        }
+        if (parts.Overlays is { } overlays)
+        {
+            overlays.HandlesChanged += OnHandles;
+            OnHandles();
+        }
         if (parts.Hotkeys is { } keys)
         {
             keys.PauseKeyProblem += OnPauseKeyProblem;
@@ -143,6 +163,12 @@ public sealed class TactusScreen : IDisposable
         assembly.Pause.AppResumed -= OnAppResumed;
         if (parts.Pointers is { } pointers) pointers.FramesWanted -= OnFramesWanted;
         if (parts.Focus is { } focus) focus.ActivationFailed -= host.KeyboardRefused;
+        if (parts.Pointer is { } pointer)
+        {
+            pointer.HeldElsewhereChanged -= OnHeldElsewhere;
+            pointer.Moved -= OnPointerMoved;
+        }
+        if (parts.Overlays is { } overlays) overlays.HandlesChanged -= OnHandles;
         if (parts.Hotkeys is { } keys) keys.PauseKeyProblem -= OnPauseKeyProblem;
         if (framing) FrameClock.Source.Current.CancelFrame(frame);
         parts.Feed.Dispose();
@@ -319,6 +345,26 @@ public sealed class TactusScreen : IDisposable
     });
 
     private void OnFramesWanted() => parts.Post(WantFrames);
+
+    // ---- the user's pointer ----
+
+    // A press that began in another app: the bands' hit regions wait until every button is up (the hook reader's thread).
+    private void OnHeldElsewhere(bool held) => parts.Post(() =>
+    {
+        if (!disposed) parts.Overlays?.ButtonHeldElsewhere(held);
+    });
+
+    // Each pointer record for the style-flip test, on the hook reader's thread (PillOverlays.Pointer is made for it).
+    private void OnPointerMoved(int x, int y, double seconds)
+    {
+        if (!disposed) parts.Overlays?.Pointer(x, y, seconds);
+    }
+
+    // The bands' windows changed: a press on one of them is the pill's own.
+    private void OnHandles()
+    {
+        if (parts.Overlays is { } overlays) parts.Pointer?.Own(overlays.Handles);
+    }
 
     private void WantFrames()
     {

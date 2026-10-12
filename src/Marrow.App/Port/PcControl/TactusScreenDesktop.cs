@@ -2,8 +2,8 @@
 // twin. Makes TactusScreen on the UI thread for one set of shared parts: the input and shadow bands (PillBandWindows over
 // Win32, the hit test in force), the monitors, the pill host, the card's bridge to the broker, the chat mirror
 // (TactusChatBridge.Current, over the app's runtimes), the card's keyboard (CardFocus over Win32: the band window's
-// activation, the reply field's focus, the hand-back), the pointers, and the app's own calls (Settings at Tactus, a chat
-// opened at its asks). Never run by automated tests; the composition's tests bind fakes through TactusHost.Screen.
+// activation, the reply field's focus, the hand-back), the pointers, the user's pointer and buttons (the hooks', else
+// GetCursorPos and GetAsyncKeyState), and the app's own calls (Settings at Tactus, a chat opened at its asks). Never run by automated tests; the composition's tests bind fakes through TactusHost.Screen.
 using Avalonia.Threading;
 using Marrow.App.Port.PcControl.Overlay;
 using Marrow.Core.Port;
@@ -50,6 +50,7 @@ internal static class TactusScreenDesktop
             };
         };
         var pointers = new PointerOverlays(new PointerWindows(), new Win32PointerScreens(assembly.Shared.Catalog, Now), Now, () => host.ReduceMotion);
+        var pointer = new TactusPointerState(assembly.Input, new Win32PointerProbe(), Now);
 
         return new TactusScreen(new TactusScreenParts
         {
@@ -62,6 +63,8 @@ internal static class TactusScreenDesktop
             Hotkeys = hotkeys,
             Focus = focus,
             Pointers = pointers,
+            Pointer = pointer,
+            Overlays = overlays,
             Save = settings => PcSettingsStore.Write(UserDefaults.Standard.Current, settings),
             Post = action => Dispatcher.UIThread.Post(action),
             After = (seconds, run) => DispatcherTimer.RunOnce(run, TimeSpan.FromSeconds(seconds)),
@@ -78,7 +81,7 @@ internal static class TactusScreenDesktop
             Owned = [new Releasing(() =>
             {
                 if (ReferenceEquals(TactusChatBridge.Current, chat)) TactusChatBridge.Current = null;
-            }), chat, chatFeed, overlays],
+            }), chat, chatFeed, overlays, pointer],
         });
     }
 
