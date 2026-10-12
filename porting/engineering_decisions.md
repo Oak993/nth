@@ -6483,3 +6483,65 @@ ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I7). Failed 
 ## ED-NEW-inst-c4c-16: Use the remaining repair allowance
 
 ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I16). A completed scan below the designed three-second cap may repair with less than a full five-second call wait left. Repair alone admits a mutation while positive time remains and recalculates the allowance after path/expected-field preparation immediately before each Start read or update through IShellLinks to the real STA queue. Zero remaining time cannot queue or claim a write. Create and removal keep their existing admission checks. Fake-clock hook evidence retains uninstaller copy and key steps inside fifteen seconds; slow updates and preparation are bounded with timeout HRESULT and no claimed write. Pure source wiring proves the production update overload uses the supplied wait.
+
+## ED-NEW-inst-cx-5
+
+2026-10-12 - C4b U7 publisher default. OWNER DECISION: decision A selects oak993 (lower case), as accepted in the C4b fix order. scripts/package-windows.ps1 defaults PackAuthors to oak993 and Directory.Release.props defaults NthPublisher to the same value. Existing PackageWindowsNthTests retains its equality/transport assertions and replaces the superseded nth assertion with oak993; C4U7PublisherTests checks both defaults against the owner-selected string.
+TEST EVIDENCE: on 9f59c455ce2b88bc352b1e156cd5b77e17917df5, Owner_selected_publisher_is_the_default_in_both_packaging_and_release_metadata failed alone twice (0 passed / 1 failed / 0 skipped each), expecting oak993. Green verification is recorded in the C4b fix report. No packaging, installer, native or signing operation was run for this fix.
+
+## ED-NEW-inst-cx-6
+
+2026-10-12 - C4b U7 Release-only packaging. OWNER DECISION: packaging is Release only. The script rejects every Configuration except exact Release with a plain error before its first root/path assignment, tool invocation, directory creation or output. This keeps the Release nth.App identity and the packaged binary configuration aligned. The guard also precedes ValidateReleaseNotesOnly; that preflight mode uses the same configuration contract.
+TEST EVIDENCE: Debug_is_rejected_with_a_plain_error_in_the_preflight_before_any_path_or_side_effect failed alone twice on unchanged 9f59c455ce2b88bc352b1e156cd5b77e17917df5 (0 passed / 1 failed / 0 skipped each), with no error for Debug. The safe AST-extracted preflight test requires the plain rejection and accepts Release without running the packaging script. Green verification is recorded in the C4b report. No real package, installer, native or signing operation was run.
+
+## ED-NEW-inst-cx-7
+
+2026-10-12 - C4b U7 exact-block EOF branding scan. ENGINEERING DECISION: BinaryTextScan drains the carried 64-byte tail after a zero-byte EOF read, when the final file block was full. A short final block clears carried after its normal scan, so it cannot be scanned twice. Absolute match offsets and ASCII/UTF16 selection are unchanged.
+TEST EVIDENCE: Branding_scan_finds_utf16_word_at_eof_of_an_exact_one_megabyte_file failed alone twice on unchanged 9f59c455ce2b88bc352b1e156cd5b77e17917df5 (0 passed / 1 failed / 0 skipped each), at the single-match assertion line21. The disposable 1 MiB fixture ends with the UTF16 word and requires exactly one match. Green verification is recorded in the C4b report. No real binaries, installer, native or packaging operation was run.
+
+## ED-NEW-inst-cx-8
+
+2026-10-12 - C4b U7 bounded UI-smoke process ownership. ENGINEERING DECISION: wait at most 30000 ms for the payload-free smoke process, and in finally stop its entire owned job with a 5000 ms cleanup deadline and always dispose its job/process handles. scripts/lib/SmokeProcess.cs is a C#9 local build helper loaded only by Start-NthUiSmokeProcess, never app code. It creates a child suspended with CREATE_NO_WINDOW and non-inherited handles, assigns its anonymous kill-on-close Windows Job Object before resuming, and opens the managed process handle before a fast exit can race it. Start failure terminates a successfully created suspended child within 5000 ms and closes raw process/thread, job and managed handles; failed CreateProcess output handles are never used. Explicit application path and Windows argv quoting preserve spaces, quotes, empty arguments and trailing slashes.
+OWNERSHIP: finally terminates the job even if the original process already exited, then polls only that job's ActiveProcesses within the cleanup deadline. Kill-on-close is a final backstop if termination or polling fails. No global process enumeration, PID-based production tree search, CIM, real registry, settings, Desktop or Start menu access is added. The normal --ui-smoke exit code still must be zero; a failed start or nonzero exit remains an error. Existing PackageWindowsNthTests retains its default/explicit-skip/else-branch assertions and now requires the owned-job seam instead of an unbounded Start-Process -Wait.
+AUTHORITY: Microsoft Job Objects https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects (child membership and kill-on-close), Job accounting https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_basic_accounting_information (ActiveProcesses), CreateProcessW https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw and argv https://learn.microsoft.com/en-us/cpp/cpp/main-function-command-line-args?view=msvc-170 . Root/U8 static cross-review accepted the suspended-launch ownership/handle/quoting design.
+TEST EVIDENCE: initial sleeping-tree fact failed alone twice on 9f59c455ce2b88bc352b1e156cd5b77e17917df5. Eight strengthened smoke facts then each failed alone twice before smoke production on edc93fb13ba43c092f04f636f15abaf9c47f8a3f plus the granted EOF diff (0 passed / 1 failed / 0 skipped each, sixteen intentional red executions). These cover timeout/live tree, success, exit7, start error, source wiring, exited-parent child cleanup for success/exit7, and exact argv roundtrip. Fixture observers pin handles while their disposable pwsh processes are alive, avoiding PID reuse in defensive cleanup; nested finally disposes the owned job first and always attempts observation-handle/temp cleanup. Green counts and exact method/assertion locations are in the C4b report. Disposable-process ownership fixtures invoke Windows process/job APIs only; no Setup/app/native-app/gallery/COM, real registry/Desktop/settings, installer, signing or packaging run occurs. Native-named suites remain excluded.
+
+## ED-NEW-inst-cx-9
+
+2026-10-12 - C4b U7 execution-stub metadata and optional signature gates. ENGINEERING DECISION: the already-extracted execution stub is validated against the same app identity and English (United States) language as nth.exe. When Sign is selected, its signature must also be Valid and timestamped along with the other package/shared executables. The GUI-subsystem gate already checked this file; all three gates now include it. Signing remains optional; this change adds validation, never a signer invocation.
+TEST EVIDENCE: Metadata_gate_rejects_an_execution_stub_with_foreign_resources and Optional_signing_gate_rejects_an_execution_stub_without_a_valid_timestamped_signature each failed alone twice on 9f59c455ce2b88bc352b1e156cd5b77e17917df5 (0 passed / 1 failed / 0 skipped per execution). Safe C4PackagingCheck extracts the real gate scriptblock from its AST, substitutes synthetic paths and mocked resource/signature reads, and requires rejection only when the execution stub is bad. Metadata expected app identity; signature expected filename and NotSigned. Root/U8 static patch review accepted. Green counts and exact methods/assertion lines are recorded in the C4b report. No real package, PE stamping, certificate/signing operation, installer, Setup/app/native-app/gallery/COM, registry/Desktop/settings mutation or external CLI/network call was used.
+
+
+## ED-NEW-inst-c4c-6: Align legacy publisher fixtures with the owner identity
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I6). ED-NEW-inst-cx-5 records the owner replacement of the original nth publisher by exact lower-case oak993. Update only the obsolete publisher literals in InstallerGateTests and SetupIdentityTests, preserving the original Contains and Equal assertion shapes and every root, package, title, transport and absent-metadata assertion. Both existing Facts failed alone twice on the C4b head with their original nth literals; both builds had zero warnings and errors. Root coordinates focused green and commits. This corrects fixtures contradicted by the owner decision and makes no production, packaging, installer or app change.
+
+
+## ED-NEW-inst-c4c-8: Request hidden smoke process startup
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I8). The owner resolves split I8: smoke must start hidden. STARTUPINFO sets STARTF_USESHOWWINDOW with SW_HIDE while retaining suspended launch, job-before-resume and CREATE_NO_WINDOW. Shared fix and identical single-Fact twice-alone red and green evidence with I14. Source checks prove the startup request; no actual Setup/app/installer visibility is exercised.
+
+
+## ED-NEW-inst-c4c-14: Keep GUI smoke first-show state hidden
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I14). Shared hidden smoke fix with I8 under the same owner instruction. STARTF_USESHOWWINDOW and SW_HIDE are set in the STARTUPINFO passed to CreateProcessW. The same one Fact fails alone twice before the change and passes after, through source checks with no Setup or installer launch.
+
+
+## ED-NEW-inst-c4c-9: Prove smoke defaults job disposal and bounded polling
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I9). Real Stop calls the shared internal polling loop. Fake-clock Facts pin repeated polls, bounded sleeps and exact timeout. Fake owned objects require 30000 ms exit and 5000 ms cleanup defaults. A nonowning synthetic job handle and disposable process observer prove independent handle closure. Exit/argv disposable fixtures use the production exit default for cold starts, assertions unchanged. Default-exit, default-stop, job-dispose, polling, timeout and real-caller omission mutations fail alone twice and restore byte-exact before focused green. No installer, package or actual application runs.
+
+
+## ED-NEW-inst-c4c-10: Prove stub identity language and signing activation
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I10). The metadata fixture requires exact identity.App and CheckLanguage for the stub while retaining foreign-resource rejection. Signing fixtures execute the real surrounding if AST: None reads no signatures, SignTool/Azure each check six exes including the stub once. Wrong-Setup identity, removed language switch and inverted signing condition mutations fail selected Facts alone twice and restore byte-exact. Synthetic paths and resource/signature mocks only; no signer or packaging/installer execution.
+
+
+## ED-NEW-inst-c4c-11: Prove case-sensitive Release preflight
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I11). ED-NEW-inst-cx-6 requires exact Release. Separate lowercase release, uppercase RELEASE and mixed ReLeAsE Facts keep the same plain preflight rejection and require canonical Release to pass. The cne-to-ne mutation fails each variant alone twice, restores byte-exact, then all four configuration Facts pass. Original Debug remains. Only AST-extracted preflight before the first path assignment runs, with no packaging/build/signing command.
+
+
+## ED-NEW-inst-c4c-15: Keep primary smoke and failed-start errors during cleanup failures
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I15). Invoke-NthUiSmoke captures its primary ErrorRecord and attempts Stop and Dispose separately. Secondary cleanup errors aggregate with the original timeout/nonzero-exit error; cleanup failure after success fails closed. Native Start captures its primary failure and invokes tested cleanup that always disposes, aggregates stop/wait/disposal failures and retains the outer raw-handle close finally. Six original Facts fail alone twice before the fix; synthetic tests cover secondary Stop and Dispose errors. Real-start-caller omission also fails alone twice and restores byte-exact. Focused green uses fakes only, no actual Setup/installer/package/app launch.

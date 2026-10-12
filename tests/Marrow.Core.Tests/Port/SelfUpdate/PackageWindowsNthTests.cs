@@ -171,9 +171,9 @@ public sealed class PackageWindowsNthTests
     {
         var code = Code();
         Assert.Contains("[switch]$SkipUiSmoke,", code, StringComparison.Ordinal);
-        Assert.Contains("Start-Process -FilePath $setupFree -ArgumentList '--ui-smoke' -Wait -PassThru -WindowStyle Hidden", code, StringComparison.Ordinal);
+        Assert.Contains("Invoke-NthUiSmoke -StartProcess { Start-NthUiSmokeProcess -FilePath $setupFree -ArgumentList @('--ui-smoke') }", code, StringComparison.Ordinal);
         Assert.Contains("if ($SkipUiSmoke) {", code, StringComparison.Ordinal);
-        var smoke = At(code, "--ui-smoke' -Wait");
+        var smoke = At(code, "Invoke-NthUiSmoke -StartProcess");
         Assert.True(At(code, "} else {", At(code, "if ($SkipUiSmoke) {")) < smoke); // the smoke test is the else branch
         Assert.Contains("NOT FULLY VERIFIED: the payload-free setup was not started", code, StringComparison.Ordinal);
     }

@@ -75,6 +75,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# C4b owner decision: package only the Release identity, before paths, commands or outputs are created.
+if ($Configuration -cne 'Release') { throw 'Only Release builds can be packaged. Use -Configuration Release.' }
 $root = Split-Path -Parent $PSScriptRoot
 $project = Join-Path $root 'src/Marrow.App/Marrow.App.csproj'
 $icon = Join-Path $root 'src/Marrow.App/Assets/icon.ico'
@@ -286,8 +288,7 @@ if ($SkipUiSmoke) {
     Write-Host '  --  the UI smoke test of the payload-free setup was SKIPPED (-SkipUiSmoke)'
 } else {
     Invoke-NthCheck 'the payload-free setup passes --ui-smoke (window, real shell-link round trip, wallpaper read, under Native AOT)' {
-        $smoke = Start-Process -FilePath $setupFree -ArgumentList '--ui-smoke' -Wait -PassThru -WindowStyle Hidden
-        if ($smoke.ExitCode -ne 0) { throw "nth-Setup.exe --ui-smoke exited with code $($smoke.ExitCode)." }
+        Invoke-NthUiSmoke -StartProcess { Start-NthUiSmokeProcess -FilePath $setupFree -ArgumentList @('--ui-smoke') }
     }
 }
 $packaged = Expand-NthPackageEntries -Package $fullPackage.FullName -Destination $checkDir -Names @(
@@ -300,9 +301,10 @@ Invoke-NthCheck 'every exe is a GUI-subsystem exe (no console window)' {
         Assert-NthGuiExe -Path $exe
     }
 }
-Invoke-NthCheck 'version resources match PLAN.md section 7 (nth.exe, nth-Setup, nth Updater, Velopack Setup)' {
+Invoke-NthCheck 'version resources match PLAN.md section 7 (nth.exe, execution stub, nth-Setup, nth Updater, Velopack Setup)' {
     Assert-NthVersionResource -Path (Join-Path $publishDir $MainExe) -Expected $identity.App -CheckLanguage
     Assert-NthVersionResource -Path (Join-Path $checkDir "lib/app/$MainExe") -Expected $identity.App -CheckLanguage
+    Assert-NthVersionResource -Path (Join-Path $checkDir $stubName) -Expected $identity.App -CheckLanguage
     Assert-NthVersionResource -Path $setupFree -Expected $identity.Setup -CheckLanguage
     Assert-NthVersionResource -Path $setupShared -Expected $identity.Setup -CheckLanguage
     Assert-NthVersionResource -Path (Join-Path $checkDir 'lib/app/nth-Setup.exe') -Expected $identity.Setup -CheckLanguage
@@ -353,7 +355,7 @@ Invoke-NthCheck 'the shared file adds at most 30 MiB to the Velopack Setup.exe i
 if ($Sign -ne 'None') {
     Invoke-NthCheck 'every exe is signed with a valid, timestamped signature' {
         foreach ($exe in @($setupShared, (Join-Path $checkDir "lib/app/$MainExe"), (Join-Path $checkDir 'lib/app/nth-Setup.exe'), (Join-Path $checkDir 'lib/app/Squirrel.exe'),
-                $velopackSetup.FullName)) {
+                (Join-Path $checkDir $stubName), $velopackSetup.FullName)) {
             $state = Get-NthSignatureState -Path $exe
             if (-not $state.Signed -or -not $state.Timestamped) { throw "$exe is $($state.Status)$(if (-not $state.Timestamped) { ', not timestamped' })." }
         }

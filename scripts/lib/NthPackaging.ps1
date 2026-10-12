@@ -21,6 +21,46 @@ function Invoke-NthCheck {
     Write-Host "  ok  $Name"
 }
 
+# C4b: this local build-tool job owns the smoke process and its descendants, even after the parent exits.
+function Start-NthUiSmokeProcess {
+    param([Parameter(Mandatory)][string]$FilePath, [string[]]$ArgumentList = @())
+    if (-not ('Nth.Build.SmokeProcess' -as [type])) {
+        Add-Type -Path (Join-Path $script:NthLibDir 'SmokeProcess.cs') -ErrorAction Stop
+    }
+    [Nth.Build.SmokeProcess]::Start($FilePath, $ArgumentList)
+}
+
+function Invoke-NthUiSmoke {
+    param(
+        [Parameter(Mandatory)][scriptblock]$StartProcess,
+        [ValidateRange(1, 2147483647)][int]$TimeoutMilliseconds = 30000,
+        [ValidateRange(1, 2147483647)][int]$StopTimeoutMilliseconds = 5000
+    )
+    $owned = $null
+    $failure = $null
+    try {
+        $owned = & $StartProcess
+        if ($null -eq $owned) { throw 'The UI smoke process could not be started.' }
+        if (-not $owned.WaitForExit($TimeoutMilliseconds)) {
+            throw "nth-Setup.exe --ui-smoke timed out after $TimeoutMilliseconds ms."
+        }
+        if ($owned.ExitCode -ne 0) { throw "nth-Setup.exe --ui-smoke exited with code $($owned.ExitCode)." }
+    } catch {
+        $failure = $_
+        throw
+    } finally {
+        if ($null -ne $owned) {
+            $cleanupErrors = [Collections.Generic.List[Exception]]::new()
+            try { $owned.Stop($StopTimeoutMilliseconds) } catch { $cleanupErrors.Add($_.Exception) }
+            try { $owned.Dispose() } catch { $cleanupErrors.Add($_.Exception) }
+            if ($cleanupErrors.Count -gt 0) {
+                if ($null -ne $failure) { $cleanupErrors.Insert(0, $failure.Exception) }
+                throw [AggregateException]::new('The UI smoke run or its cleanup failed.', $cleanupErrors.ToArray())
+            }
+        }
+    }
+}
+
 # ---- PE files --------------------------------------------------------------------------------------------------------------
 
 function Get-NthPeInfo {
