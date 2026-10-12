@@ -137,9 +137,10 @@ public sealed class RealInputLease
         KeptChanged?.Invoke(0);
     }
 
-    public async Task<PcBorrowOutcome> Borrow(PcBorrowRequest request, CancellationToken cancellationToken)
+    public async Task<PcBorrowOutcome> Borrow(PcBorrowRequest request, CancellationToken cancellationToken, Func<bool>? permitted = null)
     {
         ArgumentNullException.ThrowIfNull(request);
+        if (permitted?.Invoke() == false) return RealInputOff();
         if (Unproven(request.Exe, request.Kind) is { } unproven) return new PcBorrowOutcome(PcBorrowStatus.NeedsRealInput, unproven);
         if (request.Chunks.Count == 0 || request.Chunks.Any(c => c.Count == 0)) throw new ArgumentException("a borrow sends at least one event in each array", nameof(request));
         var entry = new Entry(new PcBorrowWait(request.Stream, request.Detail));
@@ -159,9 +160,9 @@ public sealed class RealInputLease
                 {
                     waited = true;
                     mark ??= request.Waiting?.Invoke(PcWaitReason.HandsOff);
-                }).ConfigureAwait(false);
+                }, permitted).ConfigureAwait(false);
                 if (opened.Outcome is { } refused) return refused;
-                var outcome = await Run(entry, request, opened.Delivered, opened.Tick, cancellationToken).ConfigureAwait(false);
+                var outcome = await Run(entry, request, opened.Delivered, opened.Tick, cancellationToken, permitted).ConfigureAwait(false);
                 if (outcome is null) continue;
                 if (outcome.Done && !waited && request.Detail.Length > 0) Used?.Invoke(request.Stream, request.Detail);
                 return outcome;
@@ -211,12 +212,13 @@ public sealed class RealInputLease
 
     // The head of the queue waits for the gate (DESIGN.md 2.7 step 2). Returns the hook's delivered count and the input tick
     // read with the check that opened it, or the outcome that ends the borrow. A still wait is always its own head.
-    private async Task<(PcBorrowOutcome? Outcome, long Delivered, long? Tick)> Gate(Entry entry, bool still, CancellationToken cancellationToken, Action onWait)
+    private async Task<(PcBorrowOutcome? Outcome, long Delivered, long? Tick)> Gate(Entry entry, bool still, CancellationToken cancellationToken, Action onWait, Func<bool>? permitted = null)
     {
         long? unhealthySince = null;
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (!still && permitted?.Invoke() == false) return (RealInputOff(), 0, null);
             var now = clock.NowMs;
             var delivered = hold.Delivered;
             var tick = host.LastInputMs();
@@ -259,9 +261,10 @@ public sealed class RealInputLease
     }
 
     // Steps 3 to 7. Null: something arrived between the gate and the hold, so the borrow let go and waits again.
-    private async Task<PcBorrowOutcome?> Run(Entry entry, PcBorrowRequest request, long deliveredAtGate, long? tickAtGate, CancellationToken cancellationToken)
+    private async Task<PcBorrowOutcome?> Run(Entry entry, PcBorrowRequest request, long deliveredAtGate, long? tickAtGate, CancellationToken cancellationToken, Func<bool>? permitted)
     {
-        var borrow = new Loan(request, host.Save(request.Target));
+        if (permitted?.Invoke() == false) return RealInputOff();
+        var borrow = new Loan(request, host.Save(request.Target), permitted);
         var escaped = 0;
         var chord = Chord;
         var dropped = new HashSet<ushort>();
@@ -376,6 +379,7 @@ public sealed class RealInputLease
     private async Task<PcBorrowOutcome> Act(Loan borrow, PcActivation activation, List<PcInputEvent> caption, CancellationToken cancellationToken)
     {
         var request = borrow.Request;
+        if (borrow.Permitted?.Invoke() == false) return RealInputOff();
         if (request.Kind == PcBorrowKind.Pointer)
         {
             if (request.Point is { } point && host.WindowAt(point) != request.Target)
@@ -403,6 +407,7 @@ public sealed class RealInputLease
         }
         for (var i = 0; i < request.Chunks.Count; i++)
         {
+            if (borrow.Permitted?.Invoke() == false) return RealInputOff();
             if (i > 0 && i - 1 < request.GapsMs.Count && request.GapsMs[i - 1] > 0)
                 await clock.Delay(request.GapsMs[i - 1], cancellationToken).ConfigureAwait(false);
             if (hold.AbortRequested) return new PcBorrowOutcome(PcBorrowStatus.Failed, "a key held before the borrow repeated; Tactus let go");
@@ -413,7 +418,9 @@ public sealed class RealInputLease
         return new PcBorrowOutcome(PcBorrowStatus.Done);
     }
 
-    private static PcBorrowOutcome Failed(Loan borrow) => borrow.Finished
+    private static PcBorrowOutcome RealInputOff() => new(PcBorrowStatus.NeedsRealInput, PcRealInputReason.Off);
+
+    private static PcBorrowOutcome Failed(Loan borrow) => borrow.Permitted?.Invoke() == false ? RealInputOff() : borrow.Finished
         ? new PcBorrowOutcome(PcBorrowStatus.Failed, "the borrow ran past its hold cap; Tactus let go") { Code = PcErrorCode.Timeout }
         : new PcBorrowOutcome(PcBorrowStatus.Failed, "Windows did not take all of the input");
 
@@ -422,7 +429,7 @@ public sealed class RealInputLease
     {
         lock (borrow.SendGate)
         {
-            if (borrow.Finished) return false;
+            if (borrow.Finished || borrow.Permitted?.Invoke() == false) return false;
             borrow.Pressed.Track(events);
             return host.Send(events, borrow.Tag) == events.Count;
         }
@@ -613,12 +620,14 @@ public sealed class RealInputLease
         public bool Shown { get; set; }
     }
 
-    private sealed class Loan(PcBorrowRequest request, PcBorrowSaved saved)
+    private sealed class Loan(PcBorrowRequest request, PcBorrowSaved saved, Func<bool>? permitted)
     {
         private int finished;
 
         /// <summary>Where the cursor is put back to (the saved point, moved by the user's held movement).</summary>
         public PcPoint Cursor { get; set; } = saved.Cursor;
+
+        public Func<bool>? Permitted { get; } = permitted;
 
         public PcBorrowRequest Request { get; } = request;
 
