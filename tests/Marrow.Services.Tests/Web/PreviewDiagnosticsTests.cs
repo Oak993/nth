@@ -43,4 +43,51 @@ public sealed class PreviewDiagnosticsTests
         Assert.Equal(2, view.CdpCalls.Count(x => x.Method == "Emulation.setDeviceMetricsOverride"));
         Assert.Contains("499", view.CdpCalls.Last(x => x.Method == "Emulation.setDeviceMetricsOverride").Params);
     }
+
+    [Fact]
+    public async Task Network_ring_failures_response_preview_and_preserve_log_are_per_tab()
+    {
+        using var rig = new WebRig();
+        var surface = rig.OpenLive(WebSurfaceKind.PreviewTab);
+        var view = WebRig.Fake(surface);
+        using var diagnostics = new PreviewDiagnostics(surface.Cdp!);
+        await diagnostics.StartAsync();
+        for (var i = 0; i < 1005; i++)
+            view.EmitCdp("Network.requestWillBeSent", "{\"requestId\":\"" + i + "\",\"request\":{\"url\":\"http://localhost/\",\"method\":\"GET\"}}");
+        Assert.Equal(1000, diagnostics.Network.Count); Assert.Equal("5", diagnostics.Network[0].Id);
+        view.EmitCdp("Network.loadingFailed", "{\"requestId\":\"1004\",\"errorText\":\"net::ERR_CONNECTION_REFUSED\"}");
+        Assert.True(diagnostics.Network[^1].Failed);
+        view.CdpHandler = (_, _, _) => Task.FromResult("{\"body\":\"Cookie: fake-cookie\\r\\nAuthorization: fake-secret\",\"base64Encoded\":false}");
+        var body = await diagnostics.ResponsePreviewAsync(diagnostics.Network[^1]);
+        Assert.DoesNotContain("fake-secret", body); Assert.DoesNotContain("fake-cookie", body);
+        diagnostics.PreserveLog = true; diagnostics.Navigation(); Assert.Equal(1000, diagnostics.Network.Count);
+        diagnostics.PreserveLog = false; diagnostics.Navigation(); Assert.Empty(diagnostics.Network);
+        view.EmitCdp("Runtime.exceptionThrown", "{\"exceptionDetails\":{\"text\":\"Uncaught\",\"exception\":{\"description\":\"TypeError: fixture\"}}}");
+        Assert.Contains("TypeError", Assert.Single(diagnostics.FindConsole("fixture", "error")).Text);
+    }
+
+    [Fact]
+    public async Task Element_pick_is_a_context_draft_with_styles_html_box_and_screenshot_never_a_model_send()
+    {
+        using var rig = new WebRig();
+        var surface = rig.OpenLive(WebSurfaceKind.PreviewTab);
+        var view = WebRig.Fake(surface);
+        view.CdpHandler = (method, _, _) => Task.FromResult(method switch
+        {
+            "DOM.describeNode" => "{\"node\":{\"nodeId\":7,\"localName\":\"div\",\"attributes\":[\"id\",\"hero\"]}}",
+            "DOM.getOuterHTML" => "{\"outerHTML\":\"<div id='hero'>fixture</div>\"}",
+            "CSS.getComputedStyleForNode" => "{\"computedStyle\":[{\"name\":\"width\",\"value\":\"390px\"}]}",
+            "DOM.getBoxModel" => "{\"model\":{\"width\":390,\"height\":100,\"border\":[0,0,390,0,390,100,0,100]}}",
+            "Page.captureScreenshot" => "{\"data\":\"" + Convert.ToBase64String(FakeWebEngine.OnePixelPng) + "\"}",
+            _ => "{}"
+        });
+        using var picker = new PreviewElementPicker(surface.Cdp!);
+        await picker.SetEnabledAsync(true);
+        view.EmitCdp("Overlay.inspectNodeRequested", "{\"backendNodeId\":7}");
+        await picker.WhenIdle;
+        Assert.Equal("#hero", picker.LastPick!.Selector); Assert.Equal(390, picker.LastPick.Width);
+        Assert.Contains("fixture", picker.LastPick.Html); Assert.Contains("390px", picker.LastPick.Styles);
+        Assert.Equal(FakeWebEngine.OnePixelPng, picker.LastPick.Screenshot);
+        Assert.False(picker.Enabled);
+    }
 }

@@ -30,14 +30,27 @@ public sealed class DevServerDetectorTests
             "listening on port 3000", "Listening on port 8888", "Now listening on: http://0.0.0.0:8080",
             "Local: https://app.localhost:5173/store", "Local: http://[::1]:4200/", "Local: http://192.168.7.25:8080/"
         ];
-        foreach (var line in lines) yield return [line];
+        string[] expected = [
+            "http://localhost:5173/", "http://localhost:5174/", "http://localhost:3000/", "http://localhost:3001/",
+            "http://localhost:3000/", "http://localhost:3001/", "http://localhost:4321/", "http://localhost:4322/",
+            "http://localhost:4200/", "http://localhost:4201/", "http://localhost:3000/", "http://localhost:3001/",
+            "http://localhost:3000/", "http://localhost:3002/", "http://localhost:5173/", "http://localhost:5174/",
+            "http://localhost:6006/", "http://localhost:6007/", "http://localhost:1313/", "http://127.0.0.1:1313/",
+            "http://127.0.0.1:4000/", "http://localhost:4001/", "http://127.0.0.1:5000/", "http://127.0.0.1:5001/",
+            "http://127.0.0.1:8000/", "http://localhost:8001/", "http://127.0.0.1:3000/", "http://[::1]:3000/",
+            "http://localhost:5000/", "https://localhost:5001/", "http://127.0.0.1:8080/", "http://localhost:8081/",
+            "http://localhost:8000/", "http://localhost:8001/", "http://localhost:3000/", "http://localhost:8888/",
+            "http://localhost:8080/", "https://app.localhost:5173/store", "http://[::1]:4200/", "http://192.168.7.25:8080/"
+        ];
+        for (var i = 0; i < lines.Length; i++) yield return [lines[i], expected[i]];
     }
 
     [Theory, MemberData(nameof(Banners))]
-    public void Corpus_finds_a_dev_server(string line)
+    public void Corpus_finds_a_dev_server(string line, string expected)
     {
         var found = DevServerDetector.Detect(line, ["192.168.7.25"]);
         Assert.NotEmpty(found);
+        Assert.Equal(expected, found[0]);
         Assert.All(found, url => Assert.True(Uri.TryCreate(url, UriKind.Absolute, out _)));
     }
 

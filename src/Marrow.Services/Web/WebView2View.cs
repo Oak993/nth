@@ -13,7 +13,7 @@ namespace Marrow.Services.Web;
 /// <c>NativeWebView</c> leaves the tree); this object adds nth's policy events beside Avalonia's own handlers. Every
 /// member runs on the UI thread, where WebView2 requires it.
 /// </summary>
-internal sealed class WebView2View : IWebEngineView
+internal sealed class WebView2View : IWebEngineView, IPreviewViewport
 {
     private const int VkShift = 0x10;
     private const int VkControl = 0x11;
@@ -24,6 +24,20 @@ internal sealed class WebView2View : IWebEngineView
     private readonly List<CdpSubscription> cdpSubscriptions = [];
     private CoreWebView2? core;
     private CoreWebView2Controller? controller;
+    private PreviewViewport? previewViewport;
+    public PreviewRegionInfo? PreviewRegion => previewViewport?.Info;
+    public void PlacePreview(double viewportWidth, double viewportHeight, double dpi, double x, double y, double width, double height)
+    {
+        if (controller is null) return;
+        (previewViewport ??= new PreviewViewport(controller)).Place(viewportWidth, viewportHeight, dpi, x, y, width, height);
+    }
+    public void ClearPreview()
+    {
+        try { previewViewport?.Dispose(); }
+        catch (COMException) { } // AdapterDestroyed may arrive after the platform closed its controller.
+        finally { previewViewport = null; }
+    }
+    public void OpenPreviewDevTools() { if (Creation.EnableDevTools) core?.OpenDevToolsWindow(); }
     private double scale = 1;
     private bool disposed;
     private readonly List<string> documentScripts = [];
@@ -126,6 +140,7 @@ internal sealed class WebView2View : IWebEngineView
         UnhookResources();
         Unhook();
         core = null;
+        ClearPreview();
         controller = null;
     }
 
