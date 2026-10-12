@@ -54,10 +54,8 @@ public sealed class RootView : Decorator
 {
     private readonly SidebarView sidebarView = new();
     private readonly Border sidebarClip;
-    private readonly SidebarResizeHandle trailingHandleConfig;
-    private readonly DragHandleView trailingHandle;
-    private readonly SidebarResizeHandle leadingHandleConfig;
-    private readonly DragHandleView leadingHandle;
+    private readonly SidebarResizeHandle sidebarHandleConfig;
+    private readonly Splitter sidebarSplitter;
     private readonly DetailView detailView = new();
 
     /// <summary>WV-1: the Welcome voice question the detail pane draws on the empty page (see <see cref="DetailView.VoiceQuestion"/>).</summary>
@@ -173,22 +171,8 @@ public sealed class RootView : Decorator
             model.Sidebar.NoteLaidOutWidth(e.NewSize.Width);
         };
 
-        // :22-31 the trailing resize handle, over the sidebar column's own trailing edge, active while visible.
-        trailingHandleConfig = new SidebarResizeHandle
-        {
-            OnBegin = () => AppEnvironment.GetAppModel(this).Sidebar.BeginDrag(),
-            OnChange = delta => AppEnvironment.GetAppModel(this).Sidebar.Drag(delta),
-            OnEnd = () => AppEnvironment.GetAppModel(this).Sidebar.EndDrag(),
-        };
-        trailingHandle = trailingHandleConfig.MakeNSView();
-        trailingHandle.Width = SidebarResizeHandle.HitWidth; // :29
-        trailingHandle.HorizontalAlignment = HorizontalAlignment.Right; // :22 overlay(alignment: .trailing)
-        trailingHandle.VerticalAlignment = VerticalAlignment.Stretch;
-        trailingHandle.Margin = new Thickness(0, Chrome.TrafficLightTop + Chrome.TrafficLightDiameter, 0, 0); // :30
-
         var sidebarSlot = new OverlayPanel { HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Stretch };
         sidebarSlot.Children.Add(sidebarClip);
-        sidebarSlot.Children.Add(trailingHandle);
 
         // :33-51 the detail column: stretches, clips its own bounds first (:40), then insets by the sheet inset on
         // every side but the leading one (:41-43; inert at Chrome.SheetInset == 0, PR-WIN-063).
@@ -221,22 +205,23 @@ public sealed class RootView : Decorator
         hstack.Children.Add(sidebarSlot);
         hstack.Children.Add(detailSlot);
 
-        // :53-63 the leading-edge strip, over the whole HStack, that pulls the hidden sidebar back out.
-        leadingHandleConfig = new SidebarResizeHandle
+        // :22-31 and :53-63 the two resize strips, the visible column's trailing edge and the leading edge that pulls the hidden
+        // column back out, are one shared splitter over the whole HStack (nth web surfaces W1, DESIGN.md 4.3, ED-NEW-web-w1-3):
+        // centred on the column's edge while it shows, at the window's leading edge while it is hidden (Recompute places it),
+        // starting under the traffic lights (:30, :62).
+        sidebarHandleConfig = new SidebarResizeHandle(() =>
         {
-            OnBegin = () => AppEnvironment.GetAppModel(this).Sidebar.BeginDrag(),
-            OnChange = delta => AppEnvironment.GetAppModel(this).Sidebar.Drag(delta),
-            OnEnd = () => AppEnvironment.GetAppModel(this).Sidebar.EndDrag(),
-        };
-        leadingHandle = leadingHandleConfig.MakeNSView();
-        leadingHandle.Width = SidebarResizeHandle.HitWidth; // :61
-        leadingHandle.HorizontalAlignment = HorizontalAlignment.Left; // :54 overlay(alignment: .leading)
-        leadingHandle.VerticalAlignment = VerticalAlignment.Stretch;
-        leadingHandle.Margin = new Thickness(0, Chrome.TrafficLightTop + Chrome.TrafficLightDiameter, 0, 0); // :62
+            try { return AppEnvironment.GetAppModel(this).Sidebar; }
+            catch (InvalidOperationException) { return null; }
+        });
+        sidebarSplitter = sidebarHandleConfig.MakeSplitter();
+        sidebarSplitter.HorizontalAlignment = HorizontalAlignment.Left;
+        sidebarSplitter.VerticalAlignment = VerticalAlignment.Stretch;
+        sidebarSplitter.Margin = new Thickness(0, Chrome.TrafficLightTop + Chrome.TrafficLightDiameter, 0, 0); // :30, :62
 
         var content = new Panel { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
         content.Children.Add(hstack);
-        content.Children.Add(leadingHandle);
+        content.Children.Add(sidebarSplitter);
 
         // :64-65 the backdrop and the window-chrome probe, both painted behind the content.
         backdrop = new WindowBackdrop(AppSettings.DefaultBackdropOpacity); // :64, placeholder until UpdateBackdrop's first real read below
@@ -321,10 +306,13 @@ public sealed class RootView : Decorator
         sidebarView.Width = sidebar.Width; // :18
         sidebarClip.Width = onlyFloats ? 0 : sidebar.RenderedWidth; // :19
 
-        trailingHandleConfig.IsActive = !onlyFloats && sidebar.IsVisible; // :24
-        trailingHandleConfig.UpdateNSView(trailingHandle);
-        leadingHandleConfig.IsActive = !onlyFloats && !sidebar.IsVisible; // :56
-        leadingHandleConfig.UpdateNSView(leadingHandle);
+        // :24 the trailing strip is active while the column shows, :56 the leading one while it is hidden: one splitter, active
+        // unless the sidebar only floats, centred on the column's edge or at the leading edge.
+        sidebarHandleConfig.IsActive = !onlyFloats;
+        var edge = !onlyFloats && sidebar.IsVisible ? sidebar.RenderedWidth : 0;
+        sidebarSplitter.Margin = new Thickness(
+            edge > 0 ? edge - Splitter.DividerThickness / 2 : 0, Chrome.TrafficLightTop + Chrome.TrafficLightDiameter, 0, 0);
+        sidebarHandleConfig.Update(sidebarSplitter);
 
         var leadingInset = sidebar.IsVisible && !onlyFloats ? 0 : Chrome.SheetInset; // :41
         detailPadded.Padding = new Thickness(leadingInset, Chrome.SheetInset, Chrome.SheetInset, Chrome.SheetInset); // :41-43

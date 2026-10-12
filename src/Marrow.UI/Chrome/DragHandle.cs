@@ -97,6 +97,10 @@ public sealed class DragHandleView : Canvas
     public Cursor? DragCursor { get; set; } // :46. Pushed while the pointer is held; null leaves the cursor in place.
     public double Slop { get; set; } // :48. How far the pointer must travel before a press becomes a drag.
 
+    /// <summary>PORT-ONLY (nth web surfaces W1, ED-NEW-web-w1-2): measure travel in screen DIP from any top level, not
+    /// in a Window's own space. A grip inside a popup needs it: a popup is no Window, and it moves as it is resized.</summary>
+    public bool TracksInScreenSpace { get; set; }
+
     private bool isActive = true; // :49 var isActive = true { didSet { ... } }
     public bool IsActive
     {
@@ -338,8 +342,7 @@ public sealed class DragHandleView : Canvas
     {
         base.OnPointerPressed(e);
         if (e.GetCurrentPoint(this).Properties.PointerUpdateKind != PointerUpdateKind.LeftButtonPressed) return;
-        var window = TopLevel.GetTopLevel(this) as Window;
-        pressOrigin = window is null ? default : e.GetPosition(window); // :199 event.locationInWindow
+        pressOrigin = PointerPosition(e) ?? default; // :199 event.locationInWindow
         if (e.ClickCount == 2) OnDoubleClick?.Invoke(); // :200
         isPressed = true;
         // AppKit's mouseDown/Dragged/Up trio is delivered to this view unconditionally once it gets the press,
@@ -363,9 +366,8 @@ public sealed class DragHandleView : Canvas
     {
         base.OnPointerMoved(e);
         if (!isPressed) return; // see the isPressed field comment: hover moves must not reach here.
-        var window = TopLevel.GetTopLevel(this) as Window;
-        if (window is null) return;
-        var travel = Travel(e.GetPosition(window)); // :211
+        if (PointerPosition(e) is not { } position) return;
+        var travel = Travel(position); // :211
         if (!isDragging) // :212
         {
             if (Math.Abs(travel.Width) < Slop && Math.Abs(travel.Height) < Slop) return; // :213
@@ -384,8 +386,7 @@ public sealed class DragHandleView : Canvas
         isPressed = false;
         if (isDragging) // :223 guard isDragging else return
         {
-            var window = TopLevel.GetTopLevel(this) as Window;
-            var travel = window is null ? new Size(0, 0) : Travel(e.GetPosition(window)); // :224
+            var travel = PointerPosition(e) is { } position ? Travel(position) : new Size(0, 0); // :224
             isDragging = false; // :225
             if (DragCursor is not null) Cursor = IsActive ? configuredCursor : null; // :226 NSCursor.pop()
             OnChange?.Invoke(travel); // :227
@@ -454,6 +455,17 @@ public sealed class DragHandleView : Canvas
         if (isDragging) return; // ED-202, the same reasoning as OnPointerEntered above.
         isHovering = false; // :253
         UpdateGrip(animated: true); // :254
+    }
+
+    // :199, :211, :224 event.locationInWindow: the pointer in its Window's space, or (TracksInScreenSpace) in screen DIP.
+    private Point? PointerPosition(PointerEventArgs e)
+    {
+        var top = TopLevel.GetTopLevel(this);
+        if (!TracksInScreenSpace) return top is Window window ? e.GetPosition(window) : null;
+        if (top is null) return null;
+        var screen = top.PointToScreen(e.GetPosition(top));
+        var scale = top.RenderScaling;
+        return new Point(screen.X / scale, screen.Y / scale);
     }
 
     /// <summary>:257-266 <c>travel(to:)</c>. AppKit's window-space y runs up; a free handle reports the panel's

@@ -1645,6 +1645,23 @@ public sealed class AppSettingsTests
         scope.OnMain(() => Assert.Null(new AppSettings().SidebarPanelSize));
     }
 
+    // web W1 (DESIGN 4.3, ED-NEW-web-w1-7): the Alt diff popover's size, PORT-ONLY, stored like sidebarPanelSize.
+    [Fact]
+    [Trait("Decision", "ED-NEW-web-w1-7")]
+    public void DiffPopoverSize_persists_as_a_two_element_array_and_nil_or_a_bad_array_reads_as_the_default() => WithSettings((scope, settings) =>
+    {
+        Assert.Null(settings.DiffPopoverSize);
+        settings.DiffPopoverSize = new Size(720, 480);
+        Assert.Equal(new List<object> { 720.0, 480.0 }, scope.Defaults.Object("diffPopoverSize"));
+        scope.Relaunch();
+        Assert.Equal(new Size(720, 480), new AppSettings().DiffPopoverSize);
+
+        new AppSettings().DiffPopoverSize = null;
+        Assert.Null(scope.Defaults.Object("diffPopoverSize"));
+        scope.Defaults.Seed("diffPopoverSize", new List<object> { 720.0 }); // `stored.count == 2` else nil
+        Assert.Null(new AppSettings().DiffPopoverSize);
+    });
+
     [Fact]
     [Trait("Req", "PR-SETTINGS-082")] // App/AppSettings.swift:175, :683-685, :783
     [Trait("Req", "PR-USAGE-075")] // App/AppSettings.swift:175, :683-685, :783 (usagePanelDock, default bottomLeading)
