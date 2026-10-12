@@ -87,6 +87,7 @@ public sealed class VisusPaneBody : Grid
     private readonly VisusFindController find;
     private readonly VisusPopover findPopover;
     private readonly VisusPopover zoomPopover;
+    private TextBlock? zoomLabel;
     private bool pdfBusy;
     private long exportEpoch;
     public VisusFindBar FindBar { get; }
@@ -111,7 +112,8 @@ public sealed class VisusPaneBody : Grid
         findPopover.Popup.HorizontalOffset = findCard.Margin.Right - 24;
         PopoverHost.SetSiteCard(findPopover.Popup, findCard);
         find.Changed += () => { if (!find.IsOpen) findPopover.SetOpen(false); };
-        zoomPopover = new VisusPopover(Toolbar.Address.ZoomChip, BuildZoom);
+        // The chip is hidden at 100 %, so the stepper hangs from the address field (always shown), at its right edge where the chip sits.
+        zoomPopover = new VisusPopover(Toolbar.Address, BuildZoom, placement: PlacementMode.BottomEdgeAlignedRight);
         web = new Border
         {
             Margin = new Thickness(VisusTokens.Bezel, 0, VisusTokens.Bezel, VisusTokens.Bezel),
@@ -328,6 +330,7 @@ public sealed class VisusPaneBody : Grid
         UpdateBlank(selected);
         UpdateCard();
         UpdateFullScreen();
+        UpdateZoomLabel();
         ApplyLook();
     }
 
@@ -501,19 +504,45 @@ public sealed class VisusPaneBody : Grid
         Dispatcher.UIThread.Post(() => { if (find.IsOpen) FindBar.FocusQuery(); }, DispatcherPriority.Input);
     }
     private void CloseFind() { find.Close(); findPopover.SetOpen(false); if (attached) FocusPage(); }
-    private void OpenZoom() { find.Close(); zoomPopover.SetOpen(true); }
+    private void OpenZoom()
+    {
+        find.Close();
+        // The stepper's tip points at the field's right end, where the chip sits when it is shown.
+        var field = Toolbar.Address.Bounds.Size;
+        var end = Math.Min(field.Width, ZoomTipReach);
+        zoomPopover.Popup.PlacementRect = new Rect(field.Width - end, 0, end, field.Height);
+        zoomPopover.SetOpen(true);
+    }
+    private const double ZoomTipReach = 56;
     private Control BuildZoom()
     {
-        var stack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(8) };
-        var percent = new TextBlock { FontSize = 13, VerticalAlignment = VerticalAlignment.Center };
-        void Update() => percent.Text = Math.Round((Session.Selected?.Zoom ?? 1) * 100).ToString(System.Globalization.CultureInfo.InvariantCulture) + " %";
-        Update();
-        var decrease = PlainControls.Button(new TextBlock { Text = "−", FontSize = 16 }, () => { Session.Perform(VisusCommand.ZoomOut); Update(); }).KeyboardFocus(6);
-        var reset = PlainControls.Button(percent, () => { Session.Perform(VisusCommand.ResetZoom); Update(); }).KeyboardFocus(6);
-        var increase = PlainControls.Button(new TextBlock { Text = "+", FontSize = 16 }, () => { Session.Perform(VisusCommand.ZoomIn); Update(); }).KeyboardFocus(6);
-        AutomationProperties.SetName(decrease, "Zoom out"); AutomationProperties.SetName(reset, "Reset zoom"); AutomationProperties.SetName(increase, "Zoom in");
-        stack.Children.Add(decrease); stack.Children.Add(reset); stack.Children.Add(increase);
+        var stack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, Margin = new Thickness(4) };
+        zoomLabel = new TextBlock { FontSize = 13, FontWeight = FontWeight.Medium, TextAlignment = TextAlignment.Center, MinWidth = 48 };
+        UpdateZoomLabel();
+        stack.Children.Add(ZoomStep(new TextBlock { Text = "−", FontSize = 17 }, "Zoom out", VisusCommand.ZoomOut, 30));
+        stack.Children.Add(ZoomStep(zoomLabel, "Reset zoom", VisusCommand.ResetZoom, 62));
+        stack.Children.Add(ZoomStep(new TextBlock { Text = "+", FontSize = 17 }, "Zoom in", VisusCommand.ZoomIn, 30));
         return stack;
+    }
+    // A stepper button: a 28 DIP face with the toolbar's hover fill and the theme's ink, named for assistive tools.
+    private Button ZoomStep(TextBlock text, string name, VisusCommand command, double width)
+    {
+        text.HorizontalAlignment = HorizontalAlignment.Center; text.VerticalAlignment = VerticalAlignment.Center;
+        var face = new Border { Width = width, Height = 28, CornerRadius = new CornerRadius(8), Background = Brushes.Transparent, Child = text };
+        var button = PlainControls.Button(face, () => Session.Perform(command)).KeyboardFocus(8);
+        button.Padding = default;
+        button.OnHover(on => face.Background = on ? PaneTokens.HoverFill.Brush(button) : Brushes.Transparent);
+        void Look() => text.Foreground = PaneTokens.Text1.Brush(button);
+        button.ActualThemeVariantChanged += (_, _) => Look();
+        Look();
+        AutomationProperties.SetName(button, name);
+        ToolTip.SetTip(button, name);
+        return button;
+    }
+    // The stepper shows the zoom as it is, also after Ctrl+Plus or a same-site tab changed it while the stepper is open.
+    private void UpdateZoomLabel()
+    {
+        if (zoomLabel is { } label) label.Text = Math.Round((Session.Selected?.Zoom ?? 1) * 100).ToString(System.Globalization.CultureInfo.InvariantCulture) + " %";
     }
     private void OnSavePdf() => _ = SavePdfAsync();
     public async Task SavePdfAsync()
