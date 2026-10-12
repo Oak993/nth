@@ -20,7 +20,22 @@ public static class SandboxHeaders
         "compute-pressure=(), direct-sockets=()";
 
     /// <summary>The headers of a sandboxed page or file served from its own site.</summary>
-    public static IReadOnlyList<KeyValuePair<string, string>> Document(string contentType, string csp) =>
+    public static IReadOnlyList<KeyValuePair<string, string>> Document(string contentType, string csp) => Document(contentType, csp, PermissionsPolicy);
+
+    /// <summary>
+    /// PORT-ONLY (web surfaces W19, DESIGN.md 7.6): the sandbox policy with <paramref name="features"/> (camera, microphone,
+    /// geolocation) open to the page's own origin only, for an MCP App that declared them; the request still prompts the user.
+    /// </summary>
+    public static string PermissionsPolicyAllowing(IEnumerable<string> features)
+    {
+        var policy = PermissionsPolicy;
+        foreach (var feature in features.Where(f => f is "camera" or "microphone" or "geolocation").Distinct(StringComparer.Ordinal))
+            policy = policy.Replace(feature + "=()", feature + "=(self)", StringComparison.Ordinal);
+        return policy;
+    }
+
+    /// <summary>The headers of a sandboxed page with its own Permissions-Policy.</summary>
+    public static IReadOnlyList<KeyValuePair<string, string>> Document(string contentType, string csp, string permissionsPolicy) =>
     [
         new("Content-Type", contentType),
         new("Content-Security-Policy", csp),
@@ -29,7 +44,7 @@ public static class SandboxHeaders
         new("Cross-Origin-Resource-Policy", "same-origin"),
         new("X-Content-Type-Options", "nosniff"),
         new("Referrer-Policy", "no-referrer"),
-        new("Permissions-Policy", PermissionsPolicy),
+        new("Permissions-Policy", permissionsPolicy),
         new("X-DNS-Prefetch-Control", "off"),
         new("Cache-Control", "no-store"),
     ];

@@ -46,6 +46,20 @@ public sealed class CdpBroker : IDisposable
         return run;
     }
 
+    /// <summary>
+    /// W8b (DESIGN 5.4, 5.5, 8.4; ED-NEW-web-w8b-3): a call a model step makes. Downloads, permissions, file choosers, file drops,
+    /// passkeys and nth's own guard switches stay the user's and nth's: such a call is refused before it reaches the page
+    /// (<see cref="Marrow.Core.Web.WebFeaturePolicy.ModelMayCall"/>), with <see cref="CdpModelCallRefusedException"/>.
+    /// </summary>
+    public Task<JsonElement> CallForModelAsync(string method, JsonObject? parameters = null, string? sessionId = null, CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        ArgumentException.ThrowIfNullOrEmpty(method);
+        var json = parameters?.ToJsonString(CdpRedactor.Wire) ?? "{}";
+        if (!Marrow.Core.Web.WebFeaturePolicy.ModelMayCall(method, json)) return Task.FromException<JsonElement>(new CdpModelCallRefusedException(method));
+        return CallAsync(method, parameters, sessionId, cancellationToken);
+    }
+
     /// <summary>Turns on flatten-mode auto-attach so iframes get their own sessions (DESIGN 5.10).</summary>
     public Task<JsonElement> AttachToFramesAsync(CancellationToken cancellationToken = default) =>
         CallAsync("Target.setAutoAttach", new JsonObject
@@ -111,4 +125,11 @@ public sealed class CdpBroker : IDisposable
         element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
             ? value.GetString() ?? string.Empty
             : string.Empty;
+}
+
+/// <summary>W8b: a model step asked for a DevTools call that stays the user's or nth's (8.4); nothing was sent.</summary>
+public sealed class CdpModelCallRefusedException(string method)
+    : InvalidOperationException($"{method} is not available to the model: downloads, permissions, files and sign-in stay the user's.")
+{
+    public string Method { get; } = method;
 }

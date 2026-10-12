@@ -87,6 +87,9 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Port/Settings/PreviewSwitchChip.cs", "14", 1, Capsule), // CZ-3 (ED-335): the 28 pt chip of the preview model switch, r = h / 2
         ("Marrow.App/Port/Settings/UpdatesMainButton.cs", "ButtonHeight / 2", 1, Capsule), // UE-4 (ED-343): the Updates page's 30 pt glass capsule; CzButton draws its focus ring from this radius, r = h / 2
         ("Marrow.App/Port/Voice/VoiceLanguageQuestion.cs", "CardRadius", 2, Circular), // VT-12 (V-12.11, ED-292): the design-page question card's 14 px border radius, not a Swift shape (glass and rim)
+        ("Marrow.App/Port/Web/McpApps/McpAppWindow.cs", "9", 1, Circular), // web W19 (ED-NEW-web-w19-5): the page inset under the pop-out strip (canvas .popw, .mweb), design-page layout (CSS border-radius 9)
+        ("Marrow.App/Port/Web/McpApps/McpAppWindow.cs", "14", 1, Circular), // web W19 (ED-NEW-web-w19-5): the pop-out window's frame (canvas .popw, CSS border-radius 14), not a Swift shape
+        ("Marrow.App/Port/Web/McpApps/McpAppWindow.cs", "7", 1, Circular), // web W19 (ED-NEW-web-w19-5): the 24 DIP pin and Back inline button (canvas .popw button), design-page layout (CSS border-radius 7)
         ("Marrow.App/Port/SettingsShell.cs", "8", 1, Circular), // RR-37 (ED-NEW-design-gaps-lead-1): the Settings window's shadow carrier, design-page layout (settings-open-rise-2-locked .glass, CSS border-radius 8 with its 0 34px 90px / 0 8px 24px shadows)
         ("Marrow.App/Views/Chat/ChatBadge.cs", "TimelineMetrics.PillRadius", 1, Other),
         ("Marrow.App/Views/Chat/HydraButton.cs", "999", 1, Capsule),
@@ -102,12 +105,20 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Views/Chat/HydraReportsPopover.cs", "10", 1, Fit),
         ("Marrow.App/Views/Chat/HydraReportsPopover.cs", "6", 1, Fit),
         ("Marrow.App/Views/Chat/HydraReportsPopover.cs", "999", 1, Capsule),
+        ("Marrow.App/Views/Chat/InlineWebWidget.cs", "3", 1, Circle), // web W19 (ED-NEW-web-w19-4): the Live pill's 6 x 6 dot (canvas .live i), a circle by construction
+        ("Marrow.App/Views/Chat/InlineWebWidget.cs", "10", 1, Capsule), // web W19 (ED-NEW-web-w19-4): the 20 DIP Live pill, r = h / 2 (canvas .live)
+        ("Marrow.App/Views/Chat/InlineWebWidget.cs", "9", 2, Circular), // web W19 (ED-NEW-web-w19-4): the page inset under the card header (canvas .mweb) and the Inline / Pane / Pop out switch (canvas .mseg), design-page layout (CSS border-radius 9)
+        ("Marrow.App/Views/Chat/InlineWebWidget.cs", "14", 1, Circular), // web W19 (ED-NEW-web-w19-4): the app card (canvas .mapp), design-page layout (CSS border-radius 14), not a Swift shape
+        ("Marrow.App/Views/Chat/InlineWebWidget.cs", "12", 1, Circular), // web W19 (ED-NEW-web-w19-4): the card's placeholder while the page is in the pane or window (canvas .inl-ph), design-page layout (CSS border-radius 12)
+        ("Marrow.App/Views/Chat/InlineWebWidget.cs", "7", 2, Circular), // web W19 (ED-NEW-web-w19-4): a segment of the display switch (canvas .mseg button) and the card's text button, design-page layout (CSS border-radius 7)
+        ("Marrow.App/Views/Chat/McpAppRows.cs", "12", 1, Circular), // web W19 (ED-NEW-web-w19-2): the "Message from shipyard" row, the placeholder's design-page layout (CSS border-radius 12)
         ("Marrow.App/Views/Chat/SubagentPanel.cs", "Chrome.CapsuleHeight / 2", 1, Capsule),
         ("Marrow.App/Views/Chat/SubagentPanel.cs", "CornerRadius", 2, Fit),
         ("Marrow.App/Views/Chat/ThreadTimeline.cs", "999", 1, Capsule),
         ("Marrow.App/Views/Chat/ThreadTimeline.cs", "TimelineMetrics.PillRadius", 2, Routed),
         ("Marrow.App/Views/Chat/TimelineMinimap.cs", "1", 1, Tiny),
         ("Marrow.App/Views/Chat/TimelineRows.cs", "14", 1, Circle),
+        ("Marrow.App/Views/Composer/AppContextChips.cs", "5", 1, Circular), // web W19 (ED-NEW-web-w19-2): the untrusted mark on an app context chip, a small outlined word, design-page layout (CSS border-radius 5)
         ("Marrow.App/Views/Composer/ComposerTextView.cs", "0", 1, Other),
         ("Marrow.App/Views/Composer/FollowUpQueueTab.cs", "12, 12, 0, 0", 1, Fit),
         ("Marrow.App/Views/Composer/FollowUpQueueTab.cs", "999", 1, Capsule),
@@ -132,6 +143,7 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Views/Terminal/TerminalPanel.cs", "999", 1, Capsule),
         ("Marrow.App/Views/Usage/UsageFloatingPanel.cs", "cornerRadius", 2, Fit), // :84, :92 the panel and its scrim, r 22 (HydraPanel.CornerRadius), tall panels
         ("Marrow.App/Views/Usage/UsageViews.cs", "2.5", 2, Tiny),
+        ("Marrow.App/Views/Panes/AppPane.cs", "9", 1, Circular), // web W19 (ED-NEW-web-w19-4): the page inset under the App pane header, design-page layout (canvas .mweb, CSS border-radius 9), not a Swift shape
         ("Marrow.App/Views/Panes/PaneCard.cs", "PaneTokens.CornerRadius", 1, Circular), // web W3a (ED-NEW-web-w3a-1): the pane card, design-page layout (canvas .gl, CSS border-radius 12), not a Swift shape
         ("Marrow.App/Views/Panes/PaneCard.cs", "PaneTokens.CornerRadius - 1", 1, Circular), // web W3a (ED-NEW-web-w3a-1): the card's content clip inside its 1 DIP rim, the same design-page corner
         ("Marrow.App/Views/Browser/DevicePresetBar.cs", "8", 3, Circular), // W9 (ED-NEW-web-w9-10): approved index.html:321,327 preset/rotate buttons and 16 DIP error badge, CSS circular corners

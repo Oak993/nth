@@ -6,37 +6,12 @@ namespace Marrow.Services.Tests.Port.Skills.Custom;
 // ED-NEW-mcpimport-6 (review of claude/mcp-import): Replace publishes the new copy first and swaps second, so an add that fails never loses the plugin nth had.
 public sealed class CustomSourcesReplaceTests
 {
-    // The in-memory files, with the failures a real disk can have.
-    private sealed class Files(CustomSourceFake inner) : ICustomSourceFiles, ICustomGitHubSource
-    {
-        public bool FailPublish { get; set; }
-        public string? LockedId { get; set; }
-        public int Publishes { get; private set; }
-        public Task<IReadOnlyDictionary<string, byte[]>> ReadFolder(string path, CancellationToken cancel) => inner.ReadFolder(path, cancel);
-        public Task<byte[]> ReadZip(string path, CancellationToken cancel) => inner.ReadZip(path, cancel);
-        public Task<CustomGitHubArchive> Fetch(string repository, CancellationToken cancel) => inner.Fetch(repository, cancel);
-        public byte[]? ReadRegistry(string root) => inner.ReadRegistry(root);
-        public IReadOnlyDictionary<string, byte[]> ReadInstalled(string root, string id) => inner.ReadInstalled(root, id);
-        public void Publish(string root, string id, IReadOnlyDictionary<string, byte[]> files)
-        {
-            Publishes++;
-            if (FailPublish) throw new IOException("Fixture disk is full");
-            inner.Publish(root, id, files);
-        }
-        public void Delete(string root, string id)
-        {
-            if (id == LockedId) throw new IOException("Fixture file is locked");
-            inner.Delete(root, id);
-        }
-        public void SaveRegistry(string root, byte[] bytes) => inner.SaveRegistry(root, bytes);
-    }
-
     private static byte[] Manifest(string name, string description = "A fixture plugin.") => Encoding.UTF8.GetBytes("{\"name\":\"" + name + "\",\"description\":\"" + description + "\"}");
 
-    private static async Task<(CustomSourceFake Rig, Files Files, CustomSources Service, OwnItem Old)> WithInstalled(string name = "foo")
+    private static async Task<(CustomSourceFake Rig, FailingCustomSourceFiles Files, CustomSources Service, OwnItem Old)> WithInstalled(string name = "foo")
     {
         var rig = new CustomSourceFake { Files = new() { [".claude-plugin/plugin.json"] = Manifest(name), ["hooks/old.txt"] = [1] } };
-        var files = new Files(rig);
+        var files = new FailingCustomSourceFiles(rig);
         var service = new CustomSources("/fake/own", files, files, TimeProvider.System);
         var candidate = Assert.Single(await service.Check(new(CustomAddKind.Plugins, CustomAddSource.Folder, "fixture", "", ""), CancellationToken.None));
         var old = await service.Add(candidate, new CustomSourceProgress(), CancellationToken.None);

@@ -161,7 +161,7 @@ public sealed class McpPlaceholderTests
     [Trait("Decision", "ED-NEW-mcpimport-5")]
     public void Import_never_saves_placeholder_text_and_reports_what_needs_a_value()
     {
-        var target = new McpImportTests.FakeTarget();
+        var target = new FakeMcpImportTarget();
         var outcome = McpImport.Import(
             [Stdio("github", env: [("GITHUB_PERSONAL_ACCESS_TOKEN", "${input:github_token}"), ("LOG", "${env:LOGLEVEL}"), ("REGION", "${AWS_REGION:-eu}")])],
             DuplicateChoice.Skip, target, Env(("LOGLEVEL", "debug")));
@@ -181,7 +181,7 @@ public sealed class McpPlaceholderTests
     [Trait("Decision", "ED-NEW-mcpimport-5")]
     public void Replace_reports_the_values_it_needs_under_the_name_already_in_nth()
     {
-        var target = new McpImportTests.FakeTarget();
+        var target = new FakeMcpImportTarget();
         McpImport.Import([Stdio("github")], DuplicateChoice.Skip, target, Env());
         var outcome = McpImport.Import([Stdio("github", env: [("TOKEN", "${input:t}")])], DuplicateChoice.Replace, target, Env());
         Assert.Equal(1, outcome.Replaced);
@@ -193,7 +193,7 @@ public sealed class McpPlaceholderTests
     [Trait("Decision", "ED-NEW-mcpimport-5")]
     public void A_blocked_server_is_a_failure_with_its_reason_and_nothing_of_it_is_saved()
     {
-        var target = new McpImportTests.FakeTarget();
+        var target = new FakeMcpImportTarget();
         var outcome = McpImport.Import([Stdio("a", args: ["${input:x}"]), Remote("old", "https://x.example.test/sse", sse: true), Stdio("fine")], DuplicateChoice.Skip, target, Env());
         Assert.Equal(1, outcome.Imported);
         Assert.Equal(["a", "old"], outcome.Failed.Select(f => f.Name));

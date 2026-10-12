@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Automation;
+using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
@@ -24,7 +25,10 @@ using Marrow.UI.Web;
 // Visus's while the keyboard is in the pane), 3.12 "in group mode the tab strip moves into the body", 2.4 airspace (anything
 // over the page is a top-level popup), 8.3, 10.1 F6 and prompts; the canvas's .privv; ED-NEW-web-w8a-2). No Swift
 // counterpart. Every tab that has a page keeps its WebViewHost in the tree and only the chosen one shows; a tab with no page
-// shows the start surface (or the private one). Closing the last tab closes the pane.
+// shows the start surface (or the private one). Closing the last tab closes the pane. W8b: the pane shows the chosen tab's
+// oldest question as its card (an app link, a permission, a download, a sign-in, a page dialog, an agent tab's file input), one
+// at a time, hanging from the trust strip; F6 reaches it and gives the keyboard back (10.1); a page's fullscreen expands the
+// pane to the workspace and Esc or Ctrl+Shift+\ ends it (8.4); ED-NEW-web-w8b-4.
 
 namespace Marrow.App.Views.Browser;
 
@@ -67,11 +71,14 @@ public sealed class VisusPaneBody : Grid
     private readonly Dictionary<VisusTab, WebViewHost> hosts = [];
     private readonly Dictionary<VisusTab, ProjectPreviewBody> previews = [];
     private readonly HashSet<VisusTab> watchedTabs = [];
-    private readonly Queue<VisusExternalLaunch> waiting = new();
     private readonly VisusNotice notice = new();
     private readonly VisusPopover noticePopover;
-    private VisusPopover? promptPopover;
-    private IDisposable? promptEntry;
+    private readonly TextBlock announcer;
+    private VisusPopover? cardPopover;
+    private IDisposable? cardEntry;
+    private VisusTab? fullScreenTab;
+    private bool expandedForFullScreen;
+    private PaneWorkspace? workspace;
     private Control? blankSurface;
     private VisusTab? blankFor;
     private bool focusAddressPending;
@@ -103,6 +110,25 @@ public sealed class VisusPaneBody : Grid
         noticePopover = new VisusPopover(Toolbar.Address, () => notice, lightDismiss: false, takesFocus: false);
         notice.Expired += () => noticePopover.SetOpen(false);
         Children.Add(noticePopover.Popup);
+        // 10.1: a card is read in full as it appears, with no focus taken: an assertive live region in the main window carries
+        // the card's announcement, which ends with "Press F6 to answer." (the card's own window never activates by itself).
+        announcer = new TextBlock
+        {
+            Width = 1,
+            Height = 1,
+            FontSize = 1,
+            MaxLines = 1,
+            ClipToBounds = true,
+            IsHitTestVisible = false,
+            Focusable = false,
+            Foreground = Brushes.Transparent,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            Text = "",
+        };
+        AutomationProperties.SetLiveSetting(announcer, AutomationLiveSetting.Assertive);
+        SetRow(announcer, 1);
+        Children.Add(announcer);
         Toolbar.Address.Went += FocusPage;
         // The browser keys are Visus's wherever the keyboard is in the pane: the body, and the strip, which sits in the header.
         Func<KeyEventArgs, bool> claims = e => VisusKeys.CommandFor(e) is not null;
@@ -133,11 +159,20 @@ public sealed class VisusPaneBody : Grid
     /// <summary>The start or private surface a tab with no page shows (null while a page shows).</summary>
     public Control? BlankSurface => blankSurface is { IsVisible: true } ? blankSurface : null;
 
-    /// <summary>The app-link prompt showing now.</summary>
-    public VisusPrompt? Prompt { get; private set; }
+    /// <summary>The card showing now (any kind of question), or null.</summary>
+    public VisusPromptCard? Card { get; private set; }
 
-    /// <summary>The prompts waiting behind it.</summary>
-    public int WaitingPrompts => waiting.Count;
+    /// <summary>The app-link prompt showing now (W8a's name for <see cref="Card"/> when it is one).</summary>
+    public VisusPrompt? Prompt => Card as VisusPrompt;
+
+    /// <summary>The questions of the chosen tab waiting behind the card.</summary>
+    public int WaitingPrompts => Math.Max(0, (Session.Selected?.Asks.Count ?? 0) - (Card is null ? 0 : 1));
+
+    /// <summary>The tab whose page fullscreen expanded the pane (null when none).</summary>
+    public VisusTab? FullScreenTab => fullScreenTab;
+
+    /// <summary>What the pane's live region said last (a card's announcement, 10.1), or "".</summary>
+    public string Announcement => announcer.Text ?? "";
 
     /// <summary>The notice showing now (null when none).</summary>
     public string? NoticeText => noticePopover.IsOpen ? notice.Text : null;
@@ -176,17 +211,20 @@ public sealed class VisusPaneBody : Grid
         Session.Notice += OnNotice;
         Session.LaunchRequested += OnLaunch;
         Session.PageKey += OnPageKey;
-        Session.ClaimsPageKey = chord => Prompt is not null && chord == EscapeChord;
+        // Esc from inside a page is the pane's while a card is open, the page is in fullscreen or holds the pointer (8.4, 10.1).
+        Session.ClaimsPageKey = chord => chord == EscapeChord && (Card is not null || Session.Selected is { IsFullScreen: true } or { IsPointerLocked: true });
         if (top is WindowBase window)
         {
             window.Activated += OnActivated;
             window.Deactivated += OnDeactivated;
         }
-        if (this.FindAncestorOfType<PaneWorkspace>() is { PromptFirst: null } workspace)
+        workspace = this.FindAncestorOfType<PaneWorkspace>();
+        if (workspace is { PromptFirst: null } panes)
         {
             var window2 = top;
-            workspace.PromptFirst = () => VisusPrompts.FocusNewest(window2);
+            panes.PromptFirst = () => VisusPrompts.FocusNewest(window2);
         }
+        if (workspace is not null) workspace.StateChanged += OnWorkspaceState;
         Sync();
         UpdateVisible();
         if (focusAddressPending) OnFocusAddress();
@@ -208,7 +246,10 @@ public sealed class VisusPaneBody : Grid
             window.Deactivated -= OnDeactivated;
         }
         top = null;
-        DismissPrompts();
+        CloseCard(); // the questions wait in their tabs (an app link is cancelled as its tab leaves the screen)
+        EndFullScreen();
+        if (workspace is not null) workspace.StateChanged -= OnWorkspaceState;
+        workspace = null;
         noticePopover.SetOpen(false);
         notice.Stop();
         Session.IsVisible = false;
@@ -262,7 +303,8 @@ public sealed class VisusPaneBody : Grid
         foreach (var (tab, preview) in previews) preview.IsVisible = ReferenceEquals(tab, selected) && !tab.IsBlank;
         web.Margin = selected?.Kind == VisusTabKind.Preview ? new Thickness(0) : new Thickness(VisusTokens.Bezel, 0, VisusTokens.Bezel, VisusTokens.Bezel);
         UpdateBlank(selected);
-        if (Prompt is { } prompt && (!ReferenceEquals(prompt.Launch.Tab, selected) || !Session.Tabs.Contains(prompt.Launch.Tab))) prompt.Dismiss();
+        UpdateCard();
+        UpdateFullScreen();
         ApplyLook();
     }
 
@@ -332,67 +374,143 @@ public sealed class VisusPaneBody : Grid
         noticePopover.SetOpen(true);
     }
 
+    // An app link is asked only while its tab is on screen (W8a); it then waits in its tab with the other questions.
     private bool OnLaunch(VisusExternalLaunch launch)
     {
         if (!attached || top is null || !Session.IsVisible || !ReferenceEquals(launch.Tab, Session.Selected)) return false;
-        if (Prompt is not null)
-        {
-            waiting.Enqueue(launch);
-            return true;
-        }
-        ShowPrompt(launch);
+        launch.Tab.AddAsk(launch);
         return true;
     }
 
-    private void ShowPrompt(VisusExternalLaunch launch)
+    // The card on screen is the chosen tab's oldest question while the pane is on screen; any other card goes (its question,
+    // unanswered, waits in its tab and comes back when the tab does).
+    private void UpdateCard()
     {
-        var app = ExternalProtocols.AppName(launch.Scheme, VisusHost.SystemAppName);
-        var prompt = new VisusPrompt(launch, app);
-        Prompt = prompt;
-        prompt.Done += OnPromptDone;
-        promptPopover = new VisusPopover(Toolbar.Trust, () => prompt, lightDismiss: false, takesFocus: false, dismissed: prompt.Dismiss);
-        Children.Add(promptPopover.Popup);
-        promptPopover.SetOpen(true);
-        if (top is not null) promptEntry = VisusPrompts.Add(top, prompt.FocusFirst);
+        var selected = Session.Selected;
+        var want = attached && top is not null && Session.IsVisible && selected is not null && Session.Tabs.Contains(selected)
+            ? selected.Asks.FirstOrDefault(ask => !ask.IsAnswered)
+            : null;
+        if (Card is { } card && (card.Ask.IsAnswered || !ReferenceEquals(card.Ask, want))) CloseCard();
+        if (Card is null && want is not null) ShowCard(want);
     }
 
-    private void OnPromptDone(VisusPrompt prompt)
+    private void ShowCard(VisusAsk ask)
     {
-        if (!ReferenceEquals(prompt, Prompt)) return;
-        prompt.Done -= OnPromptDone;
-        promptEntry?.Dispose();
-        promptEntry = null;
-        if (promptPopover is { } popover)
+        VisusPromptCard card = ask switch
+        {
+            VisusExternalLaunch launch => new VisusPrompt(launch, ExternalProtocols.AppName(launch.Scheme, VisusHost.SystemAppName)),
+            VisusPermissionAsk permission => new VisusPermissionPrompt(permission, ask.Tab.PageTitle),
+            VisusDownloadAsk download => new VisusDownloadPrompt(download, PickSavePathAsync),
+            VisusSignInAsk signIn => new VisusSignInCard(signIn),
+            VisusDialogAsk dialog => new VisusDialogCard(dialog),
+            VisusFileAsk file => new VisusFileCard(file, PickFilesAsync),
+            _ => throw new InvalidOperationException("A Visus question with no card: " + ask.GetType().Name),
+        };
+        Card = card;
+        card.Done += OnCardDone;
+        card.FocusReturned += OnFocusReturned;
+        cardPopover = new VisusPopover(Toolbar.Trust, () => card, lightDismiss: false, takesFocus: false, dismissed: card.Dismiss);
+        Children.Add(cardPopover.Popup);
+        cardPopover.SetOpen(true);
+        Announce(card.Announcement);
+        if (top is { } window) cardEntry = VisusPrompts.Add(window, () => card.FocusFirst(window.FocusManager?.GetFocusedElement()));
+    }
+
+    private void Announce(string words)
+    {
+        var old = announcer.Text ?? "";
+        // The same words twice (a second card of one kind) still have to be heard: the region is cleared first.
+        if (old == words) announcer.Text = "";
+        announcer.Text = words;
+        ControlAutomationPeer.CreatePeerForElement(announcer)?.RaisePropertyChangedEvent(AutomationElementIdentifiers.NameProperty, old, words);
+    }
+
+    private void CloseCard()
+    {
+        if (Card is not { } card) return;
+        // The keyboard was in the card (F6): it goes back where it came from before the card goes.
+        if (card.IsKeyboardFocusWithin) card.ReturnFocus();
+        card.Done -= OnCardDone;
+        card.FocusReturned -= OnFocusReturned;
+        cardEntry?.Dispose();
+        cardEntry = null;
+        if (cardPopover is { } popover)
         {
             popover.SetOpen(false);
             Children.Remove(popover.Popup);
         }
-        promptPopover = null;
-        Prompt = null;
-        while (waiting.Count > 0)
-        {
-            var next = waiting.Dequeue();
-            if (next.IsAnswered) continue;
-            if (attached && ReferenceEquals(next.Tab, Session.Selected))
-            {
-                ShowPrompt(next);
-                return;
-            }
-            next.Answer(false);
-        }
+        cardPopover = null;
+        Card = null;
     }
+
+    private void OnCardDone(VisusPromptCard card)
+    {
+        if (!ReferenceEquals(card, Card)) return;
+        CloseCard();
+        UpdateCard();
+    }
+
+    private void OnFocusReturned(VisusPromptCard card) => FocusPage();
+
+    private Task<string?> PickSavePathAsync(VisusDownloadAsk ask) => VisusHost.PickSavePath(top, ask.FileName, VisusHost.DownloadsFolder());
+
+    private Task<IReadOnlyList<string>?> PickFilesAsync(VisusFileAsk ask) => VisusHost.PickOpenFiles(top, ask.Multiple);
 
     private void OnPageKey(VisusTab tab, KeyChord chord)
     {
-        if (chord == EscapeChord) Prompt?.Dismiss();
+        if (chord != EscapeChord) return;
+        tab.View?.ReleasePointerLock(); // Esc always releases the pointer (8.4)
+        if (Card is { } card)
+        {
+            card.Dismiss();
+            return;
+        }
+        tab.ExitFullScreen();
     }
 
-    private void DismissPrompts()
+    // 8.4: a page's fullscreen is contained: the pane expands to the workspace (3.4) with the trust strip in view, and the
+    // page fills the web rectangle, never the screen. Another tab chosen, the pane closed or restored ends it.
+    private void UpdateFullScreen()
     {
-        while (waiting.Count > 0) waiting.Dequeue().Answer(false);
-        Prompt?.Dismiss();
+        var selected = Session.Selected;
+        var want = attached && Session.IsVisible && selected is { IsFullScreen: true } ? selected : null;
+        if (ReferenceEquals(want, fullScreenTab)) return;
+        if (fullScreenTab is { } old) old.ExitFullScreen();
+        fullScreenTab = want;
+        if (want is null)
+        {
+            RestoreExpanded();
+            return;
+        }
+        if (workspace is null || workspace.State.Expanded == PaneKind.Browser) return;
+        expandedForFullScreen = true;
+        workspace.SetState(workspace.State.Expand(PaneKind.Browser));
+    }
+
+    private void RestoreExpanded()
+    {
+        if (!expandedForFullScreen) return;
+        expandedForFullScreen = false;
+        if (workspace is { } panes && panes.State.Expanded == PaneKind.Browser) panes.SetState(panes.State.RestoreExpanded());
+    }
+
+    private void EndFullScreen()
+    {
+        fullScreenTab?.ExitFullScreen();
+        fullScreenTab = null;
+        RestoreExpanded();
+    }
+
+    // Ctrl+Shift+\ (or anything else that restores the pane) while the page is in fullscreen ends the page's fullscreen.
+    private void OnWorkspaceState(PaneWorkspaceState state)
+    {
+        if (fullScreenTab is not { } tab || state.Expanded == PaneKind.Browser) return;
+        expandedForFullScreen = false;
+        fullScreenTab = null;
+        tab.ExitFullScreen();
     }
 }
+
 
 /// <summary>A popover the pane opens itself (glass card, the window's Esc closes it), built each time it opens.</summary>
 public sealed class VisusPopover

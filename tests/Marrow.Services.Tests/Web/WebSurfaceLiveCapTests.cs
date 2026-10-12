@@ -72,11 +72,11 @@ public sealed class WebSurfaceLiveCapTests
         using var rig = new WebRig();
         var first = rig.OpenLive(shown: true);
         rig.Time.Advance(TimeSpan.FromSeconds(1));
-        for (var i = 0; i < 3; i++) rig.OpenLive();
+        for (var i = 0; i < 3; i++) rig.OpenLive(shown: true);
         rig.Time.Advance(TimeSpan.FromSeconds(1));
         var fake = WebRig.Fake(first);
 
-        rig.OpenLive();
+        rig.OpenLive(shown: true);
 
         // A current frame first, then the host is asked (Suspended) and the live view is still visible.
         Assert.Equal(WebLiveness.Suspended, first.Liveness);
@@ -98,7 +98,7 @@ public sealed class WebSurfaceLiveCapTests
         using var rig = new WebRig();
         var first = rig.OpenLive(shown: true);
         rig.Time.Advance(TimeSpan.FromSeconds(1));
-        for (var i = 0; i < 4; i++) rig.OpenLive();
+        for (var i = 0; i < 4; i++) rig.OpenLive(shown: true);
         var fake = WebRig.Fake(first);
         Assert.DoesNotContain("Suspend", fake.Log);
 
@@ -153,6 +153,86 @@ public sealed class WebSurfaceLiveCapTests
         Assert.Equal(8, options.MaxLiveViews);
         options.MaxLiveViews = 3;
         Assert.Equal(3, options.MaxLiveViews);
+    }
+
+    [Fact]
+    public void Eight_shown_views_stay_live_and_the_ninth_hidden_view_is_suspended()
+    {
+        using var rig = new WebRig();
+        rig.Surface.Options.MaxLiveViews = 8;
+        var shown = new List<WebSurfaceView>();
+        for (var i = 0; i < 8; i++)
+        {
+            shown.Add(rig.OpenLive(shown: true));
+            rig.Time.Advance(TimeSpan.FromSeconds(1));
+        }
+        var hidden = rig.OpenLive();
+        Assert.Equal(WebLiveness.Suspended, hidden.Liveness);
+        Assert.All(shown, v => Assert.Equal(WebLiveness.Live, v.Liveness));
+        Assert.All(shown, v => Assert.DoesNotContain("Suspend", WebRig.Fake(v).Log));
+    }
+
+    [Fact]
+    public void Adding_a_hidden_view_with_nine_shown_views_does_not_freeze_an_additional_shown_view()
+    {
+        using var rig = new WebRig();
+        rig.Surface.Options.MaxLiveViews = 8;
+        var shown = new List<WebSurfaceView>();
+        for (var i = 0; i < 9; i++)
+        {
+            shown.Add(rig.OpenLive(shown: true));
+            foreach (var view in shown.Where(v => v.Liveness == WebLiveness.Suspended)) view.SetLiveVisible(false);
+        }
+        var before = shown.Select(v => v.Liveness).ToArray();
+        var suspends = shown.Select(v => WebRig.Fake(v).Log.Count(l => l == "Suspend")).ToArray();
+        var hidden = rig.OpenLive();
+        Assert.Equal(WebLiveness.Suspended, hidden.Liveness);
+        Assert.Equal(before, shown.Select(v => v.Liveness));
+        Assert.Equal(suspends, shown.Select(v => WebRig.Fake(v).Log.Count(l => l == "Suspend")));
+        Assert.Equal(8, rig.Surface.LiveCount);
+    }
+
+    [Fact]
+    public void Content_arriving_during_capture_cancels_that_suspension_attempt()
+    {
+        using var rig = new WebRig();
+        var first = rig.OpenLive(shown: true);
+        var engine = WebRig.Fake(first);
+        engine.HeldCapture = new TaskCompletionSource<WebSnapshot?>();
+        for (var i = 0; i < 4; i++) rig.OpenLive(shown: true);
+        first.Navigate("https://a.test/new");
+        engine.HeldCapture.SetResult(engine.CannedFrame());
+        Assert.Equal(WebLiveness.Live, first.Liveness);
+        Assert.DoesNotContain("Suspend", engine.Log);
+    }
+
+    [Fact]
+    public void Content_arriving_during_engine_suspend_resumes_again_after_the_suspend_finishes()
+    {
+        using var rig = new WebRig();
+        var first = rig.OpenLive(shown: true);
+        var engine = WebRig.Fake(first);
+        engine.HeldSuspend = new TaskCompletionSource<bool>();
+        for (var i = 0; i < 4; i++) rig.OpenLive(shown: true);
+        first.SetLiveVisible(false);
+        Assert.Contains("Suspend", engine.Log);
+        first.Navigate("https://a.test/new");
+        engine.HeldSuspend.SetResult(true);
+        Assert.Equal(WebLiveness.Live, first.Liveness);
+        Assert.False(engine.IsSuspended);
+        Assert.Contains("Navigate https://a.test/new", engine.Log);
+    }
+
+    [Fact]
+    public void Four_shown_views_are_not_frozen_when_the_only_hidden_view_cannot_suspend()
+    {
+        using var rig = new WebRig();
+        var shown = Enumerable.Range(0, 4).Select(_ => rig.OpenLive(shown: true)).ToList();
+        var hidden = rig.Surface.Open(WebSurfaceKind.VisusTab, "w1", "https://a.test/audio");
+        WebRig.Fake(hidden).SuspendSucceeds = false;
+        hidden.AttachNative(1, 2);
+        Assert.All(shown, view => Assert.Equal(WebLiveness.Live, view.Liveness));
+        Assert.Equal(WebLiveness.Live, hidden.Liveness);
     }
 
     [Fact]

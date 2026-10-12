@@ -82,6 +82,8 @@ public sealed class WebViewHost : Panel
     private WebLiveness seenLiveness;
     private int gestures;
     private WebSnapshot? gestureFrame;
+    private int holds;
+    private WebSnapshot? holdFrame;
     private bool running;
     private bool dirty;
     private TaskCompletionSource? idle;
@@ -222,6 +224,32 @@ public sealed class WebViewHost : Panel
         }
     }
 
+    /// <summary>
+    /// PORT-ONLY (web surfaces W19, DESIGN.md 7.6 "Scrolling starts: snapshot in the same frame"; ED-NEW-web-w19-4): holds the
+    /// snapshot up without capturing first. The newest frame there is (the one on screen, else the intent cache's) goes up at
+    /// once and the live view hides once a frame carries it; disposing the last hold settles back to live. A thread that
+    /// scrolls holds every inline widget this way, because a capture would land a frame or two after the scroll began.
+    /// </summary>
+    public IDisposable HoldSnapshot()
+    {
+        holds++;
+        if (holds == 1) holdFrame = shownFrame ?? Surface.LastSnapshot;
+        _ = Kick();
+        return new Lease(EndHold);
+    }
+
+    /// <summary>True while a <see cref="HoldSnapshot"/> lease is out.</summary>
+    public bool IsHeld => holds > 0;
+
+    private void EndHold()
+    {
+        if (holds == 0) return;
+        holds--;
+        if (holds > 0) return;
+        holdFrame = null;
+        _ = Kick();
+    }
+
     /// <summary>Completes when no swap is in progress.</summary>
     public Task WhenIdleAsync() => running && idle is { } pending ? pending.Task : Task.CompletedTask;
 
@@ -326,8 +354,13 @@ public sealed class WebViewHost : Panel
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
-        // DESIGN 2.3: clicking a suspended or discarded view makes it live again.
-        if (Surface.Liveness is WebLiveness.Suspended or WebLiveness.Discarded && Surface.Failure is null) Surface.Activate();
+        if (Surface.Failure is null) Surface.Activate();
+    }
+
+    protected override void OnGotFocus(FocusChangedEventArgs e)
+    {
+        base.OnGotFocus(e);
+        if (Surface.Failure is null) Surface.Activate();
     }
 
     private bool IsAttached => TopLevel.GetTopLevel(this) is not null;
@@ -413,8 +446,9 @@ public sealed class WebViewHost : Panel
 
     private bool WantsSnapshot(out WebSnapshot? frame)
     {
-        frame = gestureFrame ?? Surface.LastSnapshot;
+        frame = gestureFrame ?? holdFrame ?? Surface.LastSnapshot;
         if (gestures > 0 && gestureFrame is not null) return true;
+        if (holds > 0) return true; // W19: held, with the newest frame there is (or the page's own colour)
         if (Surface.Failure is not null) return true;
         return Surface.Liveness switch
         {

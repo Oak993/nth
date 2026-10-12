@@ -16,7 +16,7 @@ public sealed class FakeWebEngineTests
     {
         using var rig = new WebRig();
         var view = rig.OpenLive();
-        var fake = WebRig.Fake(view);
+        var fake = WebRig.FakeAfterGuard(view); // W8b: the feature guard's own attach calls come first (ED-NEW-web-w8b-3)
 
         WebRig.Done(view.Cdp!.CallAsync("Page.enable"));
         WebRig.Done(view.Cdp!.CallAsync("DOM.getDocument", new JsonObject { ["depth"] = 1 }, sessionId: "frame-1"));

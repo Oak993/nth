@@ -126,6 +126,7 @@ public sealed class FakeWebView : IWebEngineView
 
     /// <summary>What <see cref="SuspendAsync"/> returns when the view is hidden (WebView2 refuses a visible view).</summary>
     public bool SuspendSucceeds { get; set; } = true;
+    public TaskCompletionSource<bool>? HeldSuspend { get; set; }
 
     public int Captures { get; private set; }
 
@@ -137,6 +138,7 @@ public sealed class FakeWebView : IWebEngineView
     public bool CanGoBack { get; set; }
     public bool CanGoForward { get; set; }
     public bool IsSuspended { get; private set; }
+    public bool IsPlayingAudio { get; set; }
     public uint? BackgroundArgb { get; set; } = 0xFFFFFFFF;
     public double Zoom { get; set; } = 1;
 
@@ -169,6 +171,8 @@ public sealed class FakeWebView : IWebEngineView
     public event EventHandler<WebScriptDialogRequest>? ScriptDialogOpening;
     public event EventHandler<WebCertificateErrorRequest>? CertificateErrorDetected;
     public event EventHandler<bool>? FullScreenChanged;
+    public event EventHandler<WebNotification>? NotificationReceived;
+    public event EventHandler<WebScreenCaptureRequest>? ScreenCaptureStarting;
 
     public void Attach(nint coreWebView2, nint controller)
     {
@@ -309,12 +313,13 @@ public sealed class FakeWebView : IWebEngineView
         pendingFrames.Clear();
     }
 
-    public Task<bool> SuspendAsync()
+    public async Task<bool> SuspendAsync()
     {
         Log.Add("Suspend");
-        if (IsVisible || !SuspendSucceeds) return Task.FromResult(false);
+        if (IsVisible || IsPlayingAudio || !SuspendSucceeds) return false;
+        if (HeldSuspend is { } held && !await held.Task) return false;
         IsSuspended = true;
-        return Task.FromResult(true);
+        return true;
     }
 
     public void Resume()
@@ -354,16 +359,57 @@ public sealed class FakeWebView : IWebEngineView
     public WebPermissionRequest RaisePermission(string origin, WebPermissionKind kind, bool userInitiated = true) =>
         Raise(new WebPermissionRequest(origin, kind, userInitiated), PermissionRequested);
 
-    public WebDownloadRequest RaiseDownload(string url, string fileName, long? bytes = null, string mime = "application/octet-stream", string origin = "https://a.test") =>
-        Raise(new WebDownloadRequest(url, fileName, bytes, mime, origin), DownloadStarting);
+    public WebDownloadRequest RaiseDownload(string url, string fileName, long? bytes = null, string mime = "application/octet-stream", string origin = "https://a.test")
+    {
+        var request = Raise(new WebDownloadRequest(url, fileName, bytes, mime, origin), DownloadStarting);
+        // W8b: as the real engine does, a Save starts a transfer to the chosen path (scripted with FakeDownload); a Cancel reports none.
+        void Apply(WebDownloadDecision decision)
+        {
+            if (decision.Save && decision.ResultFilePath is { } path)
+            {
+                var transfer = new FakeDownload(path, bytes);
+                Downloads.Add(transfer);
+                Log.Add($"Download {path}");
+                request.ReportStarted(transfer);
+            }
+            else
+            {
+                Log.Add($"Download cancelled {fileName}");
+                request.ReportStarted(null);
+            }
+        }
+
+        if (request.Decision.IsCompleted) Apply(request.Decision.Result);
+        else
+        {
+            var context = SynchronizationContext.Current;
+            var scheduler = context is null ? TaskScheduler.Default : TaskScheduler.FromCurrentSynchronizationContext();
+            _ = request.Decision.ContinueWith(task => Apply(task.Result), CancellationToken.None, TaskContinuationOptions.None, scheduler);
+        }
+        return request;
+    }
+
+    /// <summary>W8b: the transfers the view started for saved downloads, oldest first.</summary>
+    public List<FakeDownload> Downloads { get; } = [];
+
+    /// <summary>W8b: a page's notification; returns it after the handlers ran (Shown tells whether nth showed it).</summary>
+    public WebNotification RaiseNotification(string origin, string title, string body = "", string? tag = null, bool silent = false)
+    {
+        var e = new WebNotification(origin, title, body, tag, silent);
+        NotificationReceived?.Invoke(this, e);
+        return e;
+    }
+
+    /// <summary>W8b: a page asked to capture the screen (getDisplayMedia), before the picker.</summary>
+    public WebScreenCaptureRequest RaiseScreenCapture(string origin) => Raise(new WebScreenCaptureRequest(origin), ScreenCaptureStarting);
 
     public WebExternalUriRequest RaiseExternalUri(string uri, string origin, bool userInitiated) =>
         Raise(new WebExternalUriRequest(uri, origin, userInitiated), ExternalUriRequested);
 
     public WebAuthRequest RaiseAuth(string uri, string challenge = "Basic realm=\"test\"") => Raise(new WebAuthRequest(uri, challenge), AuthenticationRequested);
 
-    public WebScriptDialogRequest RaiseScriptDialog(string uri, WebScriptDialogKind kind, string message) =>
-        Raise(new WebScriptDialogRequest(uri, kind, message, string.Empty), ScriptDialogOpening);
+    public WebScriptDialogRequest RaiseScriptDialog(string uri, WebScriptDialogKind kind, string message, string defaultText = "") =>
+        Raise(new WebScriptDialogRequest(uri, kind, message, defaultText), ScriptDialogOpening);
 
     public WebCertificateErrorRequest RaiseCertificateError(string uri, string status = "CertificateIsInvalid") =>
         Raise(new WebCertificateErrorRequest(uri, status), CertificateErrorDetected);
@@ -427,9 +473,81 @@ public sealed class FakeWebView : IWebEngineView
     private WebAuthRequest Raise(WebAuthRequest r, EventHandler<WebAuthRequest>? h) => Raise<WebAuthRequest, WebCredentials?>(r, h);
     private WebScriptDialogRequest Raise(WebScriptDialogRequest r, EventHandler<WebScriptDialogRequest>? h) => Raise<WebScriptDialogRequest, WebScriptDialogDecision>(r, h);
     private WebCertificateErrorRequest Raise(WebCertificateErrorRequest r, EventHandler<WebCertificateErrorRequest>? h) => Raise<WebCertificateErrorRequest, bool>(r, h);
+    private WebScreenCaptureRequest Raise(WebScreenCaptureRequest r, EventHandler<WebScreenCaptureRequest>? h) => Raise<WebScreenCaptureRequest, bool>(r, h);
 
     private sealed class Unsubscribe(Action action) : IDisposable
     {
         public void Dispose() => action();
+    }
+}
+
+/// <summary>W8b: a scripted transfer (DESIGN 5.4): the test moves its bytes and state; Cancel, Pause and Resume are recorded.</summary>
+public sealed class FakeDownload(string path, long? total) : IWebDownloadOperation
+{
+    public string ResultFilePath { get; private set; } = path;
+
+    public long BytesReceived { get; private set; }
+
+    public long? TotalBytes { get; private set; } = total;
+
+    public WebDownloadState State { get; private set; } = WebDownloadState.InProgress;
+
+    public string? InterruptReason { get; private set; }
+
+    public bool CanResume { get; private set; } = true;
+
+    /// <summary>"Cancel", "Pause" and "Resume", in order.</summary>
+    public List<string> Calls { get; } = [];
+
+    public event EventHandler? Changed;
+
+    public void Cancel()
+    {
+        Calls.Add("Cancel");
+        if (State is WebDownloadState.Completed or WebDownloadState.Interrupted) return;
+        State = WebDownloadState.Interrupted;
+        InterruptReason = "UserCanceled";
+        CanResume = false;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void Pause()
+    {
+        Calls.Add("Pause");
+        if (State != WebDownloadState.InProgress) return;
+        State = WebDownloadState.Paused;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void Resume()
+    {
+        Calls.Add("Resume");
+        if (State != WebDownloadState.Paused) return;
+        State = WebDownloadState.InProgress;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>The transfer reached <paramref name="bytes"/>.</summary>
+    public void Progress(long bytes)
+    {
+        BytesReceived = bytes;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>The transfer finished.</summary>
+    public void Complete()
+    {
+        if (TotalBytes is { } size) BytesReceived = size;
+        State = WebDownloadState.Completed;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>The transfer failed (network, disk).</summary>
+    public void Fail(string reason = "NetworkFailed", bool canResume = false)
+    {
+        State = WebDownloadState.Interrupted;
+        InterruptReason = reason;
+        CanResume = canResume;
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 }

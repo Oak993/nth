@@ -21,6 +21,22 @@ public static class SandboxScripts
     /// <summary>DESIGN 6.5 and 8.1: closes the channels CSP does not (WebRTC, prefetch hints, clipboard writes, fullscreen ...).</summary>
     public static string Hardening => Read("hardening.js");
 
+    /// <summary>
+    /// PORT-ONLY (web surfaces W19, DESIGN.md 7.6): the hardening of an MCP App page that declared camera or microphone,
+    /// which keeps navigator.mediaDevices (the request still prompts the user; everything else stays closed).
+    /// </summary>
+    public static string HardeningKeepingMedia =>
+        Hardening.Replace("/*NTH_KEEP_MEDIA*/false", "/*NTH_KEEP_MEDIA*/true", StringComparison.Ordinal);
+
+    /// <summary>PORT-ONLY (web surfaces W19, DESIGN.md 7.6): the MCP Apps bridge and the window.openai shim.</summary>
+    public static string McpAppBridge => Read("mcp-app-bridge.js");
+
+    /// <summary>PORT-ONLY (web surfaces W19): the document scripts of an MCP App: hardening first, then the MCP Apps bridge.</summary>
+    public static IReadOnlyList<string> McpAppScripts(bool keepMedia) => [keepMedia ? HardeningKeepingMedia : Hardening, McpAppBridge];
+
+    /// <summary>PORT-ONLY (web surfaces W19): an inline HTML widget's size reporter.</summary>
+    public static string WidgetSize => Read("widget-size.js");
+
     /// <summary>DESIGN 6.5: window.nth and the compatibility shims.</summary>
     public static string Bridge => Read("bridge.js");
 

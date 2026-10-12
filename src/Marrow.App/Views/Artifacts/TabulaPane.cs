@@ -127,6 +127,9 @@ public sealed class TabulaContext
     /// <summary>Posts a turn in the thread (Ask to change, Ask to fix).</summary>
     public Action<string> SendTurn { get; init; } = static _ => { };
 
+    /// <summary>Acceptance receipt for a Tabula request; false keeps the user's draft.</summary>
+    public Func<TabulaPendingAsk, string, bool>? TrySendAsk { get; init; }
+
     /// <summary>Opens the version in a Visus tab on its own site; null until Visus binds it (the pane expands instead).</summary>
     public Action<ArtifactSnapshot>? OpenInVisus { get; init; }
 
@@ -223,6 +226,7 @@ public static class TabulaPane
             ThreadName = id => app.Thread(id)?.Title,
             ProjectFolder = () => app.Thread(thread) is { } chat ? chat.WorktreePath ?? app.Project(chat.ProjectID)?.Path : null,
             SendTurn = runtime.SendArtifactTurn,
+            TrySendAsk = runtime.TrySendArtifactAsk,
             OpenInVisus = OpenInVisus is { } open ? snapshot => open(runtime, snapshot) : null,
             Expand = () => runtime.Workspace = runtime.Workspace.Expand(PaneKind.Artifacts),
             Draft = runtime.DraftFromArtifact,
