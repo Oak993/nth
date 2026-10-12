@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    nth installer PLAN.md 10, unit U0 (ED-NEW-inst-u0-1): the tests of nth Setup (src/Marrow.Setup). It references the setup
+    project only. The setup compiles Marrow.Core's installer files as linked source (InstallerGate.cs, InstallOptions.cs,
+    IShellLinks.cs), so referencing Marrow.Core (or Marrow.Testing, which references it) here would give every one of those
+    types twice. The shared test helpers this project needs are linked the same way instead; each uses nothing from
+    Marrow.Core but those linked contract files. No test here runs the real installer, Setup.exe or Update.exe, or touches
+    the real Desktop, Start menu or HKCU.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Marrow.Setup.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Marrow.Setup\Marrow.Setup.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Marrow.Testing\Traceability.cs" Link="Linked\Traceability.cs" />
+    <Compile Include="..\Marrow.Testing\ManualTimeProvider.cs" Link="Linked\ManualTimeProvider.cs" />
+    <Compile Include="..\Marrow.Testing\FakeShellLinks.cs" Link="Linked\FakeShellLinks.cs" />
+  </ItemGroup>
+
+</Project>

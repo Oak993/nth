@@ -59,10 +59,10 @@ public sealed class WindowsToastTests(HeadlessSession headless)
     {
         var platform = new RecordingToastPlatform();
         platform.Registry[("Software\\Classes\\AppUserModelId\\MarrowCode.Marrow", "DisplayName")] = "Marrow";
-        platform.Registry[("Software\\Classes\\marrow-code-release\\shell\\open\\command", "")] = "\"C:\\Old\\Marrow.App.exe\" \"%1\"";
+        platform.Registry[("Software\\Classes\\marrow-code-release\\shell\\open\\command", "")] = "\"C:\\Old\\nth.exe\" \"%1\"";
         platform.Registry[("Software\\Classes\\marrow-code-dev", "URL Protocol")] = "";
         platform.Registry[("Software\\Classes\\marrow-release", "")] = "URL:Someone else";
-        WindowsToastRegistration.Register(platform, ReleaseIdentity, "C:\\nth\\Marrow.App.exe", "icon");
+        WindowsToastRegistration.Register(platform, ReleaseIdentity, "C:\\nth\\nth.exe", "icon");
         Assert.Equal(
             ["Software\\Classes\\AppUserModelId\\MarrowCode.Marrow", "Software\\Classes\\AppUserModelId\\MarrowCode.Marrow.Dev",
              "Software\\Classes\\marrow-code-release", "Software\\Classes\\marrow-code-dev"],
@@ -71,7 +71,7 @@ public sealed class WindowsToastTests(HeadlessSession headless)
             || entry.Key.Contains("marrow-code-", StringComparison.Ordinal));
         Assert.Equal("URL:Someone else", platform.Registry[("Software\\Classes\\marrow-release", "")]);
         Assert.Equal("nth", platform.Registry[("Software\\Classes\\AppUserModelId\\nth.App", "DisplayName")]);
-        Assert.Equal("\"C:\\nth\\Marrow.App.exe\" \"%1\"", platform.Registry[("Software\\Classes\\nth-release\\shell\\open\\command", "")]);
+        Assert.Equal("\"C:\\nth\\nth.exe\" \"%1\"", platform.Registry[("Software\\Classes\\nth-release\\shell\\open\\command", "")]);
     }
 
     [Fact]

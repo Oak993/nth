@@ -170,7 +170,7 @@ public sealed class ACPSession : ProviderSession, Port.Skills.Providers.ISkillSe
         if (configuration.Executable is not { } executable) throw new ProviderError(new ProviderError.Case.NotInstalled(configuration.Provider)); // :109
         if (configuration.Provider == ProviderKind.Cursor && configuration.SkillGeneration is { } skills)
         {
-            skillsMcp = new(skills, configuration.SkillMcpExecutable ?? Path.Combine(AppContext.BaseDirectory, "Marrow.App.exe"));
+            skillsMcp = new(skills, configuration.SkillMcpExecutable ?? AppExecutable.Path);
         }
         try
         {

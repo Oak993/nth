@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Marrow.Core.Support;
+using Microsoft.Win32;
 
 namespace Marrow.Setup;
 
@@ -32,8 +33,25 @@ public static class Program
 
     private static InstallerIdentity Identity()
     {
-        var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Metadata("InstallerAppId"));
-        return new InstallerIdentity(Metadata("InstallerTitle"), Metadata("InstallerVersion"), root, AppContext.BaseDirectory);
+        // nth installer PLAN.md override 10 (unit U7, ED-NEW-inst-u7-8): Velopack's default root (%LOCALAPPDATA%\<id>, where 1.0.0 lives) is where an
+        // existing install is looked for last; a fresh install goes to the default root the package script stamps (%LOCALAPPDATA%\Programs\nth).
+        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var appId = Metadata("InstallerAppId");
+        return new InstallerIdentity(Metadata("InstallerTitle"), Metadata("InstallerVersion"), Path.Combine(local, appId), AppContext.BaseDirectory,
+            FreshRoot(local), () => RegisteredRoot(appId));
+    }
+
+    private static string FreshRoot(string local)
+    {
+        var configured = Environment.ExpandEnvironmentVariables(Metadata("InstallerDefaultRoot"));
+        return configured.Length > 0 && Path.IsPathRooted(configured) ? configured : Path.Combine(local, "Programs", "nth");
+    }
+
+    // The folder Velopack records in the uninstall entry (HKCU\...\Uninstall\<package id>, InstallLocation).
+    private static string? RegisteredRoot(string appId)
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\" + appId);
+        return key?.GetValue("InstallLocation") as string;
     }
 
     private static string Metadata(string key) =>
@@ -50,7 +68,7 @@ public static class Program
         {
             using var payload = typeof(Program).Assembly.GetManifestResourceStream(PayloadName)
                 ?? throw new InvalidOperationException("This installer was built without Velopack's Setup.exe.");
-            var folder = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "MarrowSetup-" + Guid.NewGuid().ToString("N"))).FullName;
+            var folder = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "nth Setup-" + Guid.NewGuid().ToString("N"))).FullName;
             try
             {
                 var setup = Path.Combine(folder, "Setup.exe");
