@@ -31,6 +31,9 @@ public sealed class WindowRig
 
     public SetupWindow Window { get; }
 
+    /// <summary>What the screens did outside the window (unit U2).</summary>
+    public FakeSetupActions Actions { get; } = new();
+
     public static SystemLook Calm => SystemLook.Default with { Animations = false };
 
     public static SystemLook Light => SystemLook.Default with { Dark = false };
@@ -44,8 +47,8 @@ public sealed class WindowRig
         Settings.Refresh();
     }
 
-    /// <summary>A session on this window with interim screens, starting on <paramref name="screen"/>.</summary>
-    public SetupSession Session(SetupScreen screen, string? installed = null, bool canInstall = true)
+    /// <summary>A session on this window with the canvas's screens (unit U2), starting on <paramref name="screen"/>.</summary>
+    public SetupSession Session(SetupScreen screen, string? installed = null, bool canInstall = true, params string[] arguments)
     {
         var action = screen switch
         {
@@ -55,7 +58,7 @@ public sealed class WindowRig
             _ => InstallerAction.Install,
         };
         var route = new SetupRoute(screen, action, new InstalledRoot(Root, installed, installed is not null), Root);
-        return new SetupSession(Window, route, new InterimScreens(), "1.1.0", canInstall);
+        return new SetupSession(Window, route, new CanvasScreens(), "1.1.0", canInstall, Actions, arguments);
     }
 
     /// <summary>Lays the window out and lets the headless platform apply the size it asked for (it posts resizes to the dispatcher).</summary>

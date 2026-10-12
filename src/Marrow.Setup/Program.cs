@@ -65,7 +65,10 @@ public static class Program
             route = SetupFlow.Problem(localAppData);
             problem = SetupStrings.ProblemOther;
         }
-        var session = new SetupSession(window, route, new InterimScreens(), version, canInstall: smoke is null);
+        var session = new SetupSession(window, route, new CanvasScreens(), version, canInstall: smoke is null, arguments: args)
+        {
+            SizeMegabytes = long.TryParse(LegacyGateHost.Metadata("InstallerSizeMegabytes"), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var megabytes) && megabytes > 0 ? megabytes : null,
+        };
         if (problem is not null) session.Fail(problem);
         window.HandleReady += handle => instance?.Publish(handle, Environment.ProcessId);
         session.Start();
@@ -74,6 +77,8 @@ public static class Program
         window.Closed += (_, _) => done.Cancel();
         if (smoke is not null) window.Opened += (_, _) => _ = UiSmoke.RunAsync(session, smoke, started);
         else _ = CheckSignatureAsync(session);
+        // the previews' wallpaper is read after the first frame, off the UI thread (PLAN.md 8a)
+        window.Opened += (_, _) => Dispatcher.UIThread.Post(() => WallpaperLoader.Start(session), DispatcherPriority.Background);
         window.Show();
         Dispatcher.UIThread.MainLoop(done.Token);
         return (session.ExitCode, session.InstallChosen);

@@ -24,7 +24,7 @@ public sealed record SmokeCheck(string Name, bool Passed, string Detail);
 /// WM_QUERYENDSESSION with the shutdown reason Windows holds, a screen change settling, the signature check), writes a
 /// report (default <c>%TEMP%\nth-setup-ui-smoke.txt</c>) and exits 0 when every check passed, else 1. It cannot install:
 /// its session has no install, it takes no single-instance lock, and it never starts Setup.exe or Update.exe. Units U2 and
-/// U5 add the ShellLinks round trip in a temp folder and the wallpaper read here (PLAN.md 8a).
+/// U5 add the ShellLinks round trip in a temp folder and the wallpaper read here (PLAN.md 8a); U2's wallpaper read is in.
 /// </summary>
 public static class UiSmoke
 {
@@ -88,6 +88,7 @@ public static class UiSmoke
             var signature = await SignatureCheck.VerifySelfAsync();
             session.SignatureChecked(signature);
             checks.Add(new SmokeCheck("signature", signature.State != SignatureState.Unknown, $"{signature.State} {signature.Publisher} (0x{signature.Status:X8})"));
+            checks.Add(await WallpaperRead(window));
         }
         catch (Exception error)
         {
@@ -103,6 +104,21 @@ public static class UiSmoke
             checks.Add(new SmokeCheck("report", false, error.Message));
         }
         session.Finish(checks.All(c => c.Passed) ? 0 : 1);
+    }
+
+    /// <summary>The wallpaper chain through the real <c>IDesktopWallpaper</c> (unit U2): the AOT-compiled COM v-table is exercised here.</summary>
+    private static async Task<SmokeCheck> WallpaperRead(SetupWindow window)
+    {
+        try
+        {
+            var scene = await WallpaperLoader.ReadAsync(window);
+            var picture = Support.WallpaperPreview.Compose(scene, 352, 220);
+            return new SmokeCheck("wallpaper", true, string.Create(CultureInfo.InvariantCulture, $"{scene.Origin} {scene.Position} {scene.Monitor.Width}x{scene.Monitor.Height}") + (picture is null ? "" : " ink-labels " + picture.InkLabels));
+        }
+        catch (Exception error)
+        {
+            return new SmokeCheck("wallpaper", false, error.GetType().Name + ": " + error.Message);
+        }
     }
 
     private static void Describe(SetupWindow window, nint handle, IDictionary<string, string> facts)

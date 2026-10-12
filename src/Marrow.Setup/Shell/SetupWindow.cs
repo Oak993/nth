@@ -190,6 +190,7 @@ public sealed class SetupWindow : Window, ICaptionSurface
         applied = look;
         Palette = SetupPalette.For(look);
         SetupTheme.Apply(Resources, Palette, look.TextScale);
+        ScreenTokens.Apply(Resources, ScreenTokens.For(look)); // unit U2: the screens' own colours
         RequestedThemeVariant = look.HighContrast ? (Luminance(Palette.Solid) < 0.5 ? ThemeVariant.Dark : ThemeVariant.Light) : look.Dark ? ThemeVariant.Dark : ThemeVariant.Light;
         TransparencyLevelHint = SetupBackdrop.Levels(look);
         var radius = new CornerRadius(SetupBackdrop.CornerRadius(look));

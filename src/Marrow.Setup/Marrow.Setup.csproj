@@ -50,12 +50,15 @@
     <AssemblyMetadata Include="InstallerTitle" Value="$(InstallerTitle)" />
     <AssemblyMetadata Include="InstallerAppId" Value="$(InstallerAppId)" />
     <AssemblyMetadata Include="InstallerVersion" Value="$(InstallerVersion)" />
+    <AssemblyMetadata Include="InstallerSizeMegabytes" Value="$(InstallerSizeMegabytes)" />
     <AssemblyMetadata Include="SetupRenderingMode" Value="$(SetupRenderingMode)" />
     <EmbeddedResource Include="$(VelopackSetupExe)" LogicalName="VelopackSetup.exe" Condition="'$(VelopackSetupExe)' != ''" />
     <!-- PLAN.md 3, "Text": every string the window shows, one table per language. -->
     <EmbeddedResource Include="Text\en.strings" LogicalName="SetupStrings.en" />
     <!-- The caption's 16 px mark and the taskbar icon: the app's own icon (every frame is a PNG). -->
     <EmbeddedResource Include="..\Marrow.App\Assets\icon.ico" Link="Assets\icon.ico" LogicalName="SetupIcon.ico" />
+    <!-- unit U2: View license on Welcome opens the licence nth ships under -->
+    <EmbeddedResource Include="..\Marrow.App\Legal\LICENSE" Link="Legal\LICENSE" LogicalName="SetupLicense.txt" />
   </ItemGroup>
 
 </Project>

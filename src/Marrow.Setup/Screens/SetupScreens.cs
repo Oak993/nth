@@ -16,9 +16,21 @@ public interface ISetupScreen
 
     /// <summary>Welcome's signature line.</summary>
     SignatureLine? Signature { get; }
+
+    /// <summary>The screen becomes the shown one (unit U2): it is set up in its final state at once, before it fades in.</summary>
+    void Entered(SetupScreen? from) { }
+
+    /// <summary>The screen stops being the shown one (its timers stop; it keeps fading out with the screen change).</summary>
+    void Left() { }
 }
 
-/// <summary>Builds the screens (unit U2 replaces <see cref="InterimScreens"/> with the canvas's screens).</summary>
+/// <summary>A screen with Enter and Esc of its own (unit U2): true when it used the key.</summary>
+public interface IKeyedScreen
+{
+    bool OnKey(Avalonia.Input.Key key);
+}
+
+/// <summary>Builds the screens (unit U2: <see cref="CanvasScreens"/>, the approved canvas's screens).</summary>
 public interface ISetupScreens
 {
     ISetupScreen Create(SetupScreen screen, SetupSession session);
