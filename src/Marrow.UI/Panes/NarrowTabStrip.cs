@@ -255,8 +255,7 @@ public sealed class NarrowTabStrip : Panel
                 hovered = false;
                 Look(chosen);
             };
-            AutomationProperties.SetName(this, PaneKinds.AccessibleName(kind));
-            ToolTip.SetTip(this, PaneKinds.AccessibleName(kind));
+            AutomationProperties.SetName(this, PaneKinds.AccessibleName(kind)); // the label says the same in fewer words: no tooltip
         }
 
         public PaneKind Kind { get; }

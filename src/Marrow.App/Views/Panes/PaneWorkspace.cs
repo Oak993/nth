@@ -94,6 +94,7 @@ public sealed class PaneWorkspace : Panel
     private bool removalPosted;
     private WindowLiveResize? resizeOwner;
     private bool narrowMode;
+    private bool narrowReserve;
     private bool chatHiding;
     private double chatTop;
     private PaneKind? narrowShown;
@@ -104,9 +105,9 @@ public sealed class PaneWorkspace : Panel
         this.factory = factory ?? throw new ArgumentNullException(nameof(factory));
         chat.Content = chatColumn;
         chat.RenderTransform = chatTranslate;
-        Children.Add(chat);
         strip.TabChosen += Select;
-        Children.Add(strip);
+        Children.Add(strip); // first: the keyboard reaches the tabs before the surface they choose
+        Children.Add(chat);
         foreach (var key in PaneGutterKeys.All)
         {
             var axis = key is PaneGutterKeys.Row1 or PaneGutterKeys.Row2 ? SplitterOrientation.Horizontal : SplitterOrientation.Vertical;
@@ -316,7 +317,7 @@ public sealed class PaneWorkspace : Panel
                 MoveFocusToChat();
             };
             cards[kind] = motion;
-            Children.Insert(1, card);
+            Children.Insert(2, card);
         }
         foreach (var (kind, motion) in cards.ToList())
         {
@@ -419,7 +420,13 @@ public sealed class PaneWorkspace : Panel
             SetCaptionReserve(panes ? result.Chat.Right : size.Width, animates: false);
             reserveSet = true;
         }
-        if (narrow != narrowMode && !reserveSet) SetCaptionReserve(panes ? result.Chat.Right : size.Width, animates: false);
+        // The chat chrome row's trailing clearance follows the mode once the chat is the surface shown (a chat fading out keeps its own).
+        if (reserveSet) narrowReserve = narrow;
+        else if (chatWanted && narrow != narrowReserve)
+        {
+            SetCaptionReserve(panes ? result.Chat.Right : size.Width, animates: false);
+            narrowReserve = narrow;
+        }
         RetargetChat(narrow, chatWanted, slide, springs, reduce, size.Width);
 
         var front = tiles ? result.Expanded : null;
