@@ -215,6 +215,7 @@ public sealed class SidebarView : Decorator
     private readonly ForEach<ListEntry, string> layoutMotion;
     private readonly Dictionary<string, Control> scrollTargets = new(StringComparer.Ordinal);
     private ListMotion? lastMotion;
+    private int listPasses; // ED-NEW-lean-15: the list passes applied (ApplyList runs), read by SidebarLeanBudgetTests
     private Action<TimeSpan>? scrollFrame;
     private IFrameSource? scrollFrames;
     private readonly List<IDisposable> changes = [];
@@ -521,6 +522,7 @@ public sealed class SidebarView : Decorator
     {
         // :117-119 R-VIEW-4: a change of any of the three values animates the pass with Chrome.panelSlide; otherwise the
         // change's own transaction applies. ED-218 carries both the fades and surviving rows' positional motion.
+        listPasses++;
         var animation = lastMotion is not null && lastMotion != pass.Motion ? Chrome.PanelSlide : Transaction.Current;
         lastMotion = pass.Motion;
         Transaction.WithAnimation(animation, () => ApplyEntries(pass.Items is { } items
