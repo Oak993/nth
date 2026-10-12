@@ -41,11 +41,22 @@ public enum PaneGlyphKind
     /// <summary>A pane with its foot band marked: the chat's drawer (W4's "Move to the drawer").</summary>
     DockBottom,
 
-    // PORT-ONLY (web surfaces W19): the MCP App card's display modes, its trust strip and the pop-out's pin.
+    // Tabula (web W14): the canvas's i-copy, i-save, i-ext, i-spark, i-shield, i-search, i-edit, i-warn and i-back,
+    // and an export arrow drawn in the same hand.
+    Copy,
+    Save,
+    OpenExternal,
+    Spark,
+    Shield,
+    Search,
+    Edit,
+    Warning,
+    Back,
+    Export,
+    // PORT-ONLY (web surfaces W19): the MCP App card's display modes, the pop-out's pin.
     Inline,
     Pane,
     PopOut,
-    Shield,
     Pin,
 }
 
@@ -86,10 +97,19 @@ public sealed class PaneGlyph : Control
         [PaneGlyphKind.Check] = Parse("M5 12.5l4.5 4.5L19 7.5"),
         [PaneGlyphKind.Plus] = Parse("M12 5v14M5 12h14"),
         [PaneGlyphKind.DockBottom] = Parse("M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z M4 14.5h16"),
+        [PaneGlyphKind.Copy] = Parse("M10.5 8.5h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z M15.5 8.5V6.5a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2"),
+        [PaneGlyphKind.Save] = Parse("M12 4v10M8 10.5l4 4 4-4M4.5 15v2.5a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V15"),
+        [PaneGlyphKind.OpenExternal] = Parse("M14 4h6v6M20 4l-8.5 8.5M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"),
+        [PaneGlyphKind.Spark] = Parse("M12 3.5l1.7 5L18.5 10l-4.8 1.6L12 16.5l-1.7-4.9L5.5 10l4.8-1.5zM18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"),
+        [PaneGlyphKind.Shield] = Parse("M12 3.5l7 2.5v5.5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"),
+        [PaneGlyphKind.Search] = Parse(Circle(11, 11, 6) + "M20 20l-4.5-4.5"),
+        [PaneGlyphKind.Edit] = Parse("M4.5 19.5h4l10-10-4-4-10 10z"),
+        [PaneGlyphKind.Warning] = Parse("M12 4l9 16H3z M12 10v4M12 17h.01"),
+        [PaneGlyphKind.Back] = Parse("M15 18l-6-6 6-6"),
+        [PaneGlyphKind.Export] = Parse("M12 15V4M8 7.5l4-4 4 4M5 12.5v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"),
         [PaneGlyphKind.Inline] = Parse("M4 6h16M4 18h16M7.5 9h9a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 13.5v-3A1.5 1.5 0 0 1 7.5 9z"),
         [PaneGlyphKind.Pane] = Parse("M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM14 5v14"),
         [PaneGlyphKind.PopOut] = Parse("M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM13 11h5a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z"),
-        [PaneGlyphKind.Shield] = Parse("M12 3.5l7 2.5v5.5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"),
         [PaneGlyphKind.Pin] = Parse("M9.5 4h5l-.8 5.2 3.3 3.3H7l3.3-3.3zM12 12.5V20"),
     };
 

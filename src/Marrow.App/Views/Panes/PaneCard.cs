@@ -140,6 +140,7 @@ public sealed class PaneCard : Border
     {
         Header.SetTitle(Content.Title ?? PaneKinds.Title(Kind), Content.Subtitle);
         Header.SetActions(Content.Actions);
+        Header.TitleMenu = Content.TitleMenu;
     }
 
     private void UpdateFocus()
