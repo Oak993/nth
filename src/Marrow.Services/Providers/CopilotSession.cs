@@ -49,6 +49,7 @@ public sealed partial class CopilotSession : ProviderSession, ISkillSessionLifet
     private readonly SessionConfiguration configuration; // :40
     // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): the session's ask_advisor server, registered once; null for a chat with no advisor.
     private MCPResolvedServer? advisorServer;
+    private MCPResolvedServer? dextraServer; // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): the chat's nth-dextra server; null for a chat that is not Dextra's.
     private JSONRPCConnection? skillsReader;
     public Task SkillReadersExited => skillsReader?.ChildExited ?? Task.CompletedTask;
     private JSONRPCConnection? connection; // :41
@@ -182,7 +183,9 @@ public sealed partial class CopilotSession : ProviderSession, ISkillSessionLifet
         CopilotSkillWiring.AddDirectories(parameters, skillGeneration, configuration.Executable?.Path);
         // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): a Hydra head's ask_advisor server rides in its own session's
         // mcpServers (the SDK's per-session field); every other session's parameters are unchanged.
-        if (MCPProviderConfig.CopilotSessionServers(advisorServer ??= MCPProviderConfig.AdvisorServer(configuration)) is { } advisor) parameters["mcpServers"] = advisor;
+        // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): a Dextra chat's nth-dextra server joins it, in one merged object of the built-ins.
+        if (MCPProviderConfig.CopilotBuiltIns(MCPProviderConfig.BuiltInServers(advisorServer ??= MCPProviderConfig.AdvisorServer(configuration),
+                dextraServer ??= MCPProviderConfig.DextraServer(configuration))) is { } builtIns) parameters["mcpServers"] = builtIns;
         return parameters; // :157
     }
 
@@ -1044,6 +1047,12 @@ public sealed partial class CopilotSession : ProviderSession, ISkillSessionLifet
         if (data["requestId"]?.JSONValueString is not { } requestID || data["permissionRequest"] is not { } request) return; // :777
         if (data["resolvedByHook"]?.JSONValueBool == true) return; // :778
         var toolCallID = request["toolCallId"]?.JSONValueString; // :779
+        // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): the nth-dextra server asks nth's policy engine before every tool (DESIGN.md 12.3).
+        if (dextraServer is not null && Marrow.Services.Assistant.AssistantProviderWiring.IsCopilotRequest(request))
+        {
+            RespondPermission(requestID, Marrow.Services.Assistant.AssistantProviderWiring.CopilotApproval());
+            return;
+        }
         if (AutomaticDecision(request, data["promptRequest"]) is { } decision) // :780-783
         {
             RespondPermission(requestID, decision);

@@ -83,6 +83,7 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
     private IClaudeProcess? process;                        // :30
     // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): this launch's ask_advisor server; null for a chat with no advisor.
     private MCPResolvedServer? advisorServer;
+    private MCPResolvedServer? dextraServer; // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): the chat's nth-dextra server; null for a chat that is not Dextra's.
     private static readonly string AdvisorToolName = "mcp__" + Port.Advisor.AdvisorMcpServer.ServerName + "__" + Port.Advisor.AdvisorTool.Name;
     private TaskHandle? readTask;                          // :31
     private string? sessionID;                             // :32
@@ -224,7 +225,9 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): a Hydra head's ask_advisor server is merged into that one
         // config; a chat with no advisor gets exactly the connected servers' file, as before.
         advisorServer = MCPProviderConfig.AdvisorServer(configuration);
-        if (MCPProviderConfig.ClaudeSessionConfig(advisorServer, configuration.IgnisThreadID) is { } mcpConfig)
+        // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): a Dextra chat's nth-dextra server joins the same file.
+        dextraServer = MCPProviderConfig.DextraServer(configuration);
+        if (MCPProviderConfig.ClaudeBuiltInConfig(MCPProviderConfig.BuiltInServers(advisorServer, dextraServer), configuration.IgnisThreadID) is { } mcpConfig)
         {
             arguments.Add("--mcp-config");
             arguments.Add(mcpConfig.Path);
@@ -558,6 +561,12 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): nth's own ask_advisor runs without a card, as the skills relay's
         // read-only tools do on ACP (SkillsMcpBridge.AutomaticOption): it only asks the lead's model.
         if (advisorServer is not null && SwiftString.Equal(name, AdvisorToolName))
+        {
+            ResolveApproval(requestID, "allow");
+            return;
+        }
+        // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): the nth-dextra server asks nth's policy engine before every tool (12.3).
+        if (dextraServer is not null && Marrow.Services.Assistant.AssistantProviderWiring.IsClaudeTool(name))
         {
             ResolveApproval(requestID, "allow");
             return;
