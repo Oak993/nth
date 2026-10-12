@@ -93,7 +93,7 @@ public interface IRefreshFrameSource : IFrameSource
 /// frames on the compositor's render thread (<see cref="RenderFrames"/>: ambient and onRenderThread timelines) are
 /// <see cref="RenderFrameSource"/>'s and are not held back or parked here; they stop while their window cannot be seen by
 /// RenderFrameSource's own ambient gate (no frame while AmbientMotionController.Available is false: minimised, hidden, cloaked,
-/// covered or not in front), and every render-thread timeline is ambient (EffortSlider's track, the only one), so none of them
+/// covered or not in front), and every render-thread timeline is ambient (EffortSlider's track and jewel, KindleArt's canvas), so none of them
 /// runs while hidden (ED-NEW-lean-7 (render-thread frames)).
 /// </summary>
 public sealed class AvaloniaFrameSource : IWakeFrameSource, IRenderFrameSourceProvider
