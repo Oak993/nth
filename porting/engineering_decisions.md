@@ -6765,3 +6765,54 @@ ENGINEERING DECISION (C6c D7, 2026-10-12): Decode each damaged mission/assistant
 3. The owner's lists (personal-data recipients, allowlisted commands) are controller options read at every check; Settings feeds them (empty until it does).
 4. The injection self-check (ED-NEW-dextra-as7-6) decides each step as if the owner had already listed and confirmed whoever it names, so neither the first-message rule nor the personal-data block hides an engine or taint regression; OutwardPrivacyTests and MissionPrivacyTests test those two on their own.
 5. No third-party package is added.
+
+## ED-NEW-dextra-as7-12
+2026-10-13 - Only the owner's own sends clear the home chat's taint (Dextra unit AS-7, security review; DESIGN.md rev 5, 12.4 "Taint is cleared only by the owner's own message"; tests DextraTaintSeamTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. ThreadRuntime.Send, InterruptAndSend, QueueDraftAsFollowUp and SendFollowUpNow gain overloads with byOwner; the parameterless forms (the Swift-parity ones every other caller uses) pass false. Only the composer passes true: ComposerView's send and steer, the Queue chat command (AppCommands) and the queue tab's send button. nth's own sends never clear the taint: Hydra's launch-failure retry, SpawnSubagent's helper prompt, and AutoContinue's "continue" after a usage limit (it queues and sends its own message).
+2. A queued message counts as the owner's only when he wrote every part of its bundle in the composer (ThreadRuntime.ownerFollowUps, in memory only, so after a restart a queued message counts as nth's) and he pressed send on it. A queued message drained when a turn ends does not clear the taint: he wrote it before he saw what that turn read.
+3. When the owner's message goes to a Hydra head instead of the lead (Hydra's always-heads, or a queued message a head takes), the lead keeps its taint and the head starts with it (ED-NEW-dextra-as7-13). STRICTER: this replaces the list of send paths in ED-NEW-dextra-as7-9 item 2.
+4. No third-party package is added.
+
+## ED-NEW-dextra-as7-13
+2026-10-13 - Heads of the home chat carry its taint both ways (Dextra unit AS-7, security review; DESIGN.md rev 5, 12.4 "Taint follows text", "a merge is tainted if any input is"; tests HomeHeadTaintTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. A Hydra head of Dextra's home chat has the lead's AssistantID (AS-5 seam 3), so the controller treats it as a home chat: it gets the home chat's tools and its provider events are followed. When it is added (OnHeadAdded) it takes the lead's taint, because its brief carries the lead's last reply.
+2. What the head absorbs reaches its lead at once (the lead reads the head's report), and when the head finishes (AppModel.DextraHeadFinished, now called for heads of any Dextra chat) its whole taint merges into the lead again, so an owner's message in the lead does not lose what a head still at work read.
+3. The owner's own message clears only the chat it was typed in. A head of a chat that is not Dextra's is not followed.
+4. No third-party package is added.
+
+## ED-NEW-dextra-as7-14
+2026-10-13 - The home chats' taint survives a restart (Dextra unit AS-7, security review; DESIGN.md rev 5, 12.4, 15.3; tests HomeTaintRestartTests, HomeTaintJournalTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. AssistantStore keeps home-taint.json at its root (HomeTaintJournal, version 1: {"version":1,"chats":{"<thread>":[{"origin":...,"detail":...}]}}). The controller loads it when it starts (AssistantControllerOptions.LoadHomeTaint) and writes it after each change (SaveHomeTaint) under its own save lock, so the writes keep their order. A write happens only when a chat's taint grows or is cleared (bounded by TaintWiring.MaxSources per chat), temp-then-rename, on the caller's thread like the mission journal's: a deferred write could lose the taint to a crash right after a read.
+2. Fields nth does not know survive a load and save. A document a newer nth wrote is left untouched and not written in this session. A damaged one, or a load that throws, makes every home chat nth has (AssistantControllerOptions.HomeChats) carry AssistantController.UnknownAfterRestart until the owner's own message, and the document is written again from that. A source nth cannot read fails the whole document; it never reads as clean.
+3. A save that fails is reported (MissionRunner.ReportFault) and the taint still stands in memory. StartDextra must run after the library has loaded, since HomeChats reads the threads.
+4. No third-party package is added.
+
+## ED-NEW-dextra-as7-15
+2026-10-13 - A reused helper carries its opener's taint as it is now (Dextra unit AS-7, security review; DESIGN.md rev 5, 12.4 "Taint follows text"; tests MissionTaintTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. AppModel.SpawnSubagent's existing-helper branch calls DextraHelperPrompted before the parent's new prompt is queued or sent; for a mission's helper, MissionRunner.HelperPrompted makes it inherit the parent's own taint as it stands now, not only as it stood when the helper opened. A chat of another mission is no parent of it.
+2. No third-party package is added.
+
+## ED-NEW-dextra-as7-16
+2026-10-13 - A read that names no file is not placed as a file (Dextra unit AS-7, security review; DESIGN.md rev 5, 12.4 "Taint"; tests TaintWiringTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. TaintWiring places a Read call as a file only when its title names one: a folder separator, a drive, or a short file extension (".cs", ".gitignore"). A web address ("scheme://...", "www....") taints as Web; any other title taints as ToolOutput "a read nth could not place": Antigravity's tool names for browser and resource reads ("Read browser page", "View content chunk", "Read resource"), the providers' "Read file" fallback, Codex's "Image", or nothing.
+2. A bare relative name with neither folder nor extension ("Makefile") now taints too: fail closed; it costs a card, never a step nobody asked about. A path with a folder or a full path still reads clean inside the access folders.
+3. No third-party package is added.
+
+## ED-NEW-dextra-as7-17
+2026-10-13 - Untrusted output is read for instructions off the main thread (Dextra unit AS-7, security review; DESIGN.md rev 5, 12.4 "Instructions found in content"; tests InstructionScanThreadTests, AgentTaintTrackerTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. AgentTaintTracker no longer runs InstructionScanner: it hands back the bounded output of each call that tainted (UntrustedOutput; TaintObservation.ScanNow reads them on the caller's thread for the tracker's own tests). The controller takes the taint at once and reads the outputs on AssistantControllerOptions.ScanOn, by default one at a time on the thread pool (the exclusive scheduler of a ConcurrentExclusiveSchedulerPair), and reports what it finds back on the main thread (IMissionAgents.Post).
+2. At most 32 outputs wait to be read; past that a new one is not read and the backlog is reported once until it drains. Findings only make instructions visible; the taint is the gate and stands either way. A hostile page can cost at most one pool thread, never the UI.
+3. No third-party package is added.
+
+## ED-NEW-dextra-as7-18
+2026-10-13 - An nth-dextra call is decided after the chat's earlier events (Dextra unit AS-7, security review; DESIGN.md rev 5, 12.4 "Taint"; tests DextraSettleTests, AssistantToolTaintTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. IAssistantToolHost.Settle (a default method that completes at once) is awaited by AssistantToolRunner before it reads PolicyContext. The controller posts a marker to the main thread and waits for it, so every event queued there before the call (the ToolStarted of a page the chat read) has tainted the chat first; on the main thread itself it completes at once. It waits at most AssistantControllerOptions.SettleWait (10 s) on the controller's clock; past that, or when it throws, the call is refused and logged ("refused: the chat's earlier tool calls could not be checked first").
+2. UNVERIFIED for an event still inside the provider's pipe when the call arrives (read, but not yet posted to the main thread): that window is the reader thread's latency, far shorter than the model's own step between reading a page and calling a tool. The deterministic test covers events queued on the main thread.
+3. No third-party package is added.
+
+## ED-NEW-dextra-as7-19
+2026-10-13 - Recipients by field words and by whole addresses (Dextra unit AS-7, security review; DESIGN.md rev 5, 12.4 "Privacy shield on the way out", "the first message to any new third party is always confirmed"; tests OutwardPrivacyTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. OutwardPrivacy.RecipientsOf counts a JSON field as naming who receives the step when its name is on the list, or when one of its words (split at _, -, . and camelCase) is a recipient word (to, channel, room, chat, user, group, member, contact, handle, forward, invite...) and none is a content word (body, text, message, subject, title...).
+2. A string value that is a whole email address or phone number (as Scan marks one) is a recipient whatever its field is called, except in a sender's field (from, sender, author). So {"channel_name":"#external"} asks the first time, and {"to":"listed","forward_to":"x@evil"} with personal data is blocked.
+3. Dates, amounts and bare digit ids are not taken for recipients. A wider recipient list can only turn an Allow into an Ask or a block, never the other way.
+4. No third-party package is added.
