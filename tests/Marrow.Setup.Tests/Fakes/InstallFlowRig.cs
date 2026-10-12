@@ -21,7 +21,7 @@ public sealed class InstallFlowRig : IDisposable
         Window = new WindowRig(look);
         Scenario = new InstallScenario(timeline, update, free);
         Session = Window.Session(update ? SetupScreen.Update : SetupScreen.Welcome, installed: update ? InstallScenario.OldVersion : null);
-        Staging = new EngineStaging(Scenario.Staging, payload ? () => new MemoryStream(new byte[64 * 1024]) : () => null);
+        Staging = new EngineStaging(Scenario.Staging, payload ? () => new MemoryStream(new byte[64 * 1024]) : () => null, Scenario.Scope.Ensure);
         Flow = new InstallFlow(Session, NextRun, Staging, Poll, action => action(), beforeEngine);
         Session.InstallRequested = Flow.Begin;
         Session.Start();
@@ -93,7 +93,7 @@ public sealed class InstallFlowRig : IDisposable
             return Scenario.Run;
         }
         Runner = new FakeVelopackRunner(RetryTimeline ?? timeline, Scenario.Hive, Path.Combine(Scenario.Base, "Start Menu", "Programs"));
-        var run = new InstallRun(Scenario.Request, Runner, Scenario.Disk, Scenario.After, Scenario.Time);
+        var run = new InstallRun(Scenario.Request, Runner, Scenario.Disk, Scenario.After, Scenario.Time, releaseStaging: Scenario.Scope.Release);
         Runs.Add(run);
         return run;
     }

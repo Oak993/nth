@@ -1,4 +1,5 @@
 using Marrow.Core.Support;
+using Marrow.Setup.Flow;
 using Marrow.Setup.Install;
 using Marrow.Setup.Motion;
 using Marrow.Setup.Ui;
@@ -41,7 +42,11 @@ public sealed class InstallScenario : IDisposable
         Runner = new FakeVelopackRunner(timeline, Hive, Path.Combine(Base, "Start Menu", "Programs"));
         var options = update ? InstallOptions.ForUpdate : InstallOptions.ForInstall(desktopShortcut);
         Request = new InstallRequest(update, Root, update ? OldVersion : null, options, Staging, sizes ?? VelopackScenarios.Sizes);
-        Run = new InstallRun(Request, Runner, Disk, After, Time);
+        // ED-NEW-inst-merge-13: as in the window, the run's folder is claimed (unit U9) before anything is staged, and the
+        // finished run hands it back to the scope's guarded cleanup
+        Scope = StagingScope.Create(local, Path.Combine(Base, "Temp"), "1.1.0", lastChance: false);
+        Scope.Ensure();
+        Run = new InstallRun(Request, Runner, Disk, After, Time, releaseStaging: Scope.Release);
         Bar = new ProgressMotion(() => false);
         Bar.Attach(new Animator(frames));
     }
@@ -51,6 +56,9 @@ public sealed class InstallScenario : IDisposable
     public string Root { get; }
 
     public string Staging { get; }
+
+    /// <summary>The run's claimed staging folder and its guarded cleanup (unit U9).</summary>
+    public StagingScope Scope { get; }
 
     public ManualTimeProvider Time { get; } = new();
 
@@ -117,6 +125,7 @@ public sealed class InstallScenario : IDisposable
 
     public void Dispose()
     {
+        Scope.Dispose();
         try { Directory.Delete(Base, recursive: true); }
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }

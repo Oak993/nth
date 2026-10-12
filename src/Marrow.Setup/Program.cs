@@ -124,7 +124,8 @@ public static class Program
                 new InstallRequest(update, route.TargetRoot, route.Installed.Version, InstallOptions.ForAction(route.Action, session.DesktopShortcut), folder, sizes),
                 new ProcessVelopackRunner(),
                 new WindowsDiskSpace(),
-                new ProductionAfterSetupExit()),
+                new ProductionAfterSetupExit(),
+                releaseStaging: session.Staging is { } claimed ? claimed.Release : null), // U9's guarded cleanup (ED-NEW-inst-merge-13)
             staging,
             new BackgroundPollLoop(),
             action => Dispatcher.UIThread.Post(action));

@@ -40,12 +40,13 @@ public sealed class InstallRun
     private readonly IAfterSetupExit after;
     private readonly TimeProvider time;
     private readonly Func<DateTime> fileClock;
+    private readonly Func<SweepResult>? releaseStaging;
     private readonly long origin;
     private readonly Lock gate = new();
     private InstallObserver? observer;
     private IReadOnlyList<string> rollbackBefore = [];
 
-    public InstallRun(InstallRequest request, IVelopackRunner runner, IDiskSpace disk, IAfterSetupExit after, TimeProvider? time = null, Func<DateTime>? fileClock = null)
+    public InstallRun(InstallRequest request, IVelopackRunner runner, IDiskSpace disk, IAfterSetupExit after, TimeProvider? time = null, Func<DateTime>? fileClock = null, Func<SweepResult>? releaseStaging = null)
     {
         Request = request ?? throw new ArgumentNullException(nameof(request));
         this.runner = runner ?? throw new ArgumentNullException(nameof(runner));
@@ -53,6 +54,7 @@ public sealed class InstallRun
         this.after = after ?? throw new ArgumentNullException(nameof(after));
         this.time = time ?? TimeProvider.System;
         this.fileClock = fileClock ?? (() => DateTime.UtcNow);
+        this.releaseStaging = releaseStaging;
         origin = this.time.GetTimestamp();
         Progress = new InstallProgress(request.Update, request.Sizes, request.Options.DesktopShortcut);
         Frame = Progress.Advance(Evidence, TimeSpan.Zero);
@@ -230,16 +232,23 @@ public sealed class InstallRun
         }
     }
 
-    /// <summary>Removes the staging folder (the engine, the options, the result and the log), as every exit path the setup controls does.</summary>
+    /// <summary>What the staging cleanup after a finished install removed and kept (<see cref="DeleteStaging"/>).</summary>
+    public SweepResult StagingCleanup { get; private set; } = SweepResult.Nothing;
+
+    /// <summary>
+    /// Hands the staging folder (the engine, the options, the result and the log) to unit U9's guarded, bounded cleanup, the
+    /// scope that claimed it (ED-NEW-inst-merge-13; ED-NEW-inst-c7-8 to -11): it removes only what it proves is nth's, within
+    /// its budget, and reports what it kept in <see cref="StagingCleanup"/>. A run built without that cleanup deletes nothing,
+    /// because the folder's path alone gives no authority to delete; the next start's sweep removes what is left.
+    /// </summary>
     public void DeleteStaging()
     {
-        try
-        {
-            if (Directory.Exists(Request.StagingFolder)) Directory.Delete(Request.StagingFolder, recursive: true);
-        }
+        if (releaseStaging is null) return;
+        try { StagingCleanup = releaseStaging(); }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
-            // In use by a scanner this moment: unit U9's sweeps remove it at the next start.
+            // In use by a scanner this moment: the folder stays claimed-or-marked, and unit U9's sweeps remove it at the next start.
+            StagingCleanup = new SweepResult(0, [new SweepKept(Request.StagingFolder, SweepKeptReason.NotRemoved)]);
         }
     }
 
