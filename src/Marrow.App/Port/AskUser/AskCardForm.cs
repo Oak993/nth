@@ -170,6 +170,8 @@ internal sealed class AskCardForm : Border
     {
         var question = block.Question;
         var column = new StackPanel { Spacing = 6 };
+        AutomationProperties.SetName(column, question.Prompt); // the choices are one group, named by the question
+        AutomationProperties.SetControlTypeOverride(column, Avalonia.Automation.Peers.AutomationControlType.Group);
         var group = card.Id + "/" + question.Id;
         foreach (var option in question.Options)
         {
@@ -178,6 +180,7 @@ internal sealed class AskCardForm : Border
             plate.Toggled += () => Chose(block, plate);
             block.Plates.Add(plate);
             column.Children.Add(plate.Button);
+            if (question.Kind == AskKind.Single) plate.Button.AddHandler(InputElement.KeyDownEvent, (object? _, KeyEventArgs e) => Arrow(block, plate, e), RoutingStrategies.Tunnel);
         }
         if (question.AllowsOther)
         {
@@ -190,6 +193,19 @@ internal sealed class AskCardForm : Border
             column.Children.Add(field);
         }
         return column;
+    }
+
+    // A radio group moves with the arrow keys: the next choice is chosen and takes the focus.
+    private void Arrow(Block block, AskChoicePlate from, KeyEventArgs e)
+    {
+        var step = e.Key switch { Key.Down or Key.Right => 1, Key.Up or Key.Left => -1, _ => 0 };
+        if (step == 0 || e.KeyModifiers != KeyModifiers.None) return;
+        var count = block.Plates.Count;
+        var next = block.Plates[(block.Plates.IndexOf(from) + step + count) % count];
+        e.Handled = true;
+        next.IsSelected = true;
+        Chose(block, next);
+        next.Button.Focus(NavigationMethod.Directional);
     }
 
     private void Chose(Block block, AskChoicePlate plate)

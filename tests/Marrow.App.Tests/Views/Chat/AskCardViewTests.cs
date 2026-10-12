@@ -128,6 +128,22 @@ public sealed class AskCardViewTests(HeadlessSession headless)
     });
 
     [Fact]
+    public void The_arrow_keys_move_through_a_single_choice_and_choose_as_they_go() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        var (_, form) = Mounted(mount, Parse("""{"questions":[{"question":"Pick","options":["A","B","C"]}]}"""));
+        var plates = form.PlatesOf("q1");
+        void Press(AskChoicePlate plate, Key key) => plate.Button.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = key });
+        Press(plates[0], Key.Down);
+        Assert.Equal([false, true, false], plates.Select(plate => plate.IsSelected));
+        Press(plates[1], Key.Down);
+        Press(plates[2], Key.Down); // wraps to the first
+        Assert.Equal([true, false, false], plates.Select(plate => plate.IsSelected));
+        Press(plates[0], Key.Up); // and back to the last
+        Assert.Equal([false, false, true], plates.Select(plate => plate.IsSelected));
+        Assert.True(form.SendButton.IsEnabled);
+    });
+
+    [Fact]
     public void Something_else_is_the_answer_when_it_is_typed() => ThreadTimelineRig.Run(headless, mount =>
     {
         var (_, form) = Mounted(mount, Parse(Database));
@@ -308,6 +324,8 @@ public sealed class AskCardViewTests(HeadlessSession headless)
         Assert.Equal("PostgreSQL, A server", Avalonia.Automation.AutomationProperties.GetName(form.PlatesOf("q1")[0].Button));
         Assert.Equal("SQLite", Avalonia.Automation.AutomationProperties.GetName(form.PlatesOf("q1")[1].Button));
         Assert.Equal("Which database?", Avalonia.Automation.AutomationProperties.GetName(form.FieldOf("q1")!));
+        Assert.Contains(LogicalQuery.SelfAndDescendants<StackPanel>(form), panel => Avalonia.Automation.AutomationProperties.GetName(panel) == "Which database?"
+            && Avalonia.Automation.AutomationProperties.GetControlTypeOverride(panel) == Avalonia.Automation.Peers.AutomationControlType.Group); // the choices are one named group
         Assert.Equal("Send answer", Avalonia.Automation.AutomationProperties.GetName(form.SendButton));
         Assert.Equal("Skip", Avalonia.Automation.AutomationProperties.GetName(form.SkipButton));
         Assert.Contains(LogicalQuery.SelfAndDescendants<StackPanel>(form), panel => Avalonia.Automation.AutomationProperties.GetLiveSetting(panel) == Avalonia.Automation.AutomationLiveSetting.Polite
