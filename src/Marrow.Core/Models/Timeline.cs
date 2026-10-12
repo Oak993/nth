@@ -157,6 +157,10 @@ public sealed record UserMessage
     public ValueList<long>? HydraHeads { get; init; }                           // :63
     public bool? HydraBrief { get; init; }                                      // :66
 
+    // PORT-ONLY (web surfaces W19, DESIGN.md 7.6, ED-NEW-web-w19-3): the MCP server whose App posted this message (ui/message). The row
+    // reads "Message from <server>", never as the user's bubble, and the model gets it wrapped as untrusted app content. Null for the user's own.
+    public string? AppSource { get; init; }
+
     // :68
     public bool IsFromHydra => HydraHeads is not null;
 
@@ -166,10 +170,10 @@ public sealed record UserMessage
     // :58 Hashable: the synthesized equality and hash compare the String text canonically (R-STR-2), where a record's
     // own is ordinal, so "e" + U+0301 and U+00E9 are one text.
     public bool Equals(UserMessage? other) => other is not null && SwiftString.Equal(Text, other.Text) &&
-        Attachments.Equals(other.Attachments) && Equals(HydraHeads, other.HydraHeads) && HydraBrief == other.HydraBrief;
+        Attachments.Equals(other.Attachments) && Equals(HydraHeads, other.HydraHeads) && HydraBrief == other.HydraBrief && AppSource == other.AppSource;
 
     public override int GetHashCode() =>
-        HashCode.Combine(SwiftStringComparer.Instance.GetHashCode(Text), Attachments, HydraHeads, HydraBrief);
+        HashCode.Combine(SwiftStringComparer.Instance.GetHashCode(Text), Attachments, HydraHeads, HydraBrief, AppSource);
 }
 
 internal sealed class UserMessageConverter : JsonConverter<UserMessage>
@@ -186,6 +190,7 @@ internal sealed class UserMessageConverter : JsonConverter<UserMessage>
         Attachments = SwiftDecoding.Decode(element, "attachments", field => SwiftDecoding.ReadArray(field, AttachmentConverter.Decode)),
         HydraHeads = SwiftDecoding.DecodeIfPresent(element, "hydraHeads", field => SwiftDecoding.ReadArray(field, SwiftDecoding.ReadInt)),
         HydraBrief = SwiftDecoding.DecodeIfPresentValue(element, "hydraBrief", SwiftDecoding.ReadBool),
+        AppSource = SwiftDecoding.Value<string?>(element, "appSource", field => SwiftDecoding.ReadString(field), () => null), // PORT-ONLY (W19)
     };
 
     public override void Write(Utf8JsonWriter writer, UserMessage value, JsonSerializerOptions options) => WriteMembers(writer, value);
@@ -206,6 +211,7 @@ internal sealed class UserMessageConverter : JsonConverter<UserMessage>
             writer.WriteEndArray();
         }
         if (value.HydraBrief is { } brief) writer.WriteBoolean("hydraBrief", brief);
+        if (value.AppSource is { } app) writer.WriteString("appSource", app); // PORT-ONLY (W19)
         writer.WriteEndObject();
     }
 }
