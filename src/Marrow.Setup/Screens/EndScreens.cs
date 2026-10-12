@@ -242,7 +242,8 @@ public sealed class ProblemScreen : CanvasScreen
         mark = Mark(64);
         mark.Dim = true;
         var markHost = new Panel { Width = 64, Height = 64, HorizontalAlignment = HorizontalAlignment.Center, Children = { mark, new MarkBadge() } };
-        var title = ScreenText.Title(SetupStrings.ProblemTitle);
+        // uninstall mode (unit U6, ED-NEW-inst-u6-1): the same screen, worded for removing
+        var title = ScreenText.Title(session.Uninstalling ? SetupStrings.UninstallProblemTitle : SetupStrings.ProblemTitle);
         reason = ScreenText.Subtitle("");
         ending = ScreenText.Aside("");
         log = new LogBox { IsVisible = false };
@@ -282,8 +283,8 @@ public sealed class ProblemScreen : CanvasScreen
     protected override void Setup(SetupScreen? from)
     {
         mark.Show();
-        reason.Text = Session.ProblemReason ?? SetupStrings.ProblemOther;
-        ending.Text = Session.ProblemSafe ? SetupStrings.ProblemSafe : SetupStrings.ProblemLeft;
+        reason.Text = Session.ProblemReason ?? OtherWords;
+        ending.Text = EndingWords;
         log.Text.Text = Details();
         log.IsVisible = false;
         LogShown = false;
@@ -294,11 +295,15 @@ public sealed class ProblemScreen : CanvasScreen
 
     private bool RetryAllowed => Session.ProblemReason != SetupStrings.ProblemChanged;
 
+    private string OtherWords => Session.Uninstalling ? SetupStrings.UninstallProblemOther : SetupStrings.ProblemOther;
+
+    private string EndingWords => Session.ProblemSafe ? SetupStrings.ProblemSafe : Session.Uninstalling ? SetupStrings.UninstallProblemLeft : SetupStrings.ProblemLeft;
+
     private void OnProblem()
     {
         if (Session.Screen != SetupScreen.Problem || !Root.IsEffectivelyVisible) return;
-        Reveal.SetText(reason, Session.ProblemReason ?? SetupStrings.ProblemOther);
-        Reveal.SetText(ending, Session.ProblemSafe ? SetupStrings.ProblemSafe : SetupStrings.ProblemLeft);
+        Reveal.SetText(reason, Session.ProblemReason ?? OtherWords);
+        Reveal.SetText(ending, EndingWords);
         log.Text.Text = Details();
         Reveal.Set(Retry, RetryAllowed);
     }

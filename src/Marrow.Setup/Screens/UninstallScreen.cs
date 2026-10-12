@@ -29,8 +29,9 @@ public enum UninstallState
 /// the line first, then the block glides back; Cancel and Uninstall never move (the window keeps the warning's height). In
 /// Calm its place is kept and it only fades. Removing: the row, the warning and both buttons leave, an indeterminate bar
 /// and the Close-paused line arrive, the title and subtitle change. Removed: the bar leaves, the mark dims to 35 % and
-/// settles to 94 % (0.6 s), and Cancel comes back as the primary Close. Unit U6 answers <see cref="UninstallRequested"/> and
-/// calls <see cref="ShowRemoving"/> and <see cref="ShowRemoved"/>.
+/// settles to 94 % (0.6 s), and Cancel comes back as the primary Close. Unit U6 (ED-NEW-inst-u6-1, <see cref="UninstallFlow"/>)
+/// answers <see cref="UninstallRequested"/>, calls <see cref="ShowRemoving"/> and <see cref="ShowRemoved"/>, and after Problem's
+/// Retry enters the screen already removing (<see cref="EnterRemoving"/>).
 /// </summary>
 public sealed class UninstallScreen : CanvasScreen, IMotion
 {
@@ -108,11 +109,24 @@ public sealed class UninstallScreen : CanvasScreen, IMotion
     /// <summary>Raised when a line arrives in a polite live region (the warning): Narrator reads it once.</summary>
     public event Action<Control>? LiveRegionChanged;
 
-    /// <summary>Uninstall was clicked (STUB(U6): unit U6 removes nth, calling <see cref="ShowRemoving"/> and <see cref="ShowRemoved"/>).</summary>
+    /// <summary>Uninstall was clicked, with the switch's state (unit U6's <see cref="UninstallFlow"/> removes nth).</summary>
     public event Action<bool>? UninstallRequested;
+
+    private bool removingOnEntry;
+
+    /// <summary>
+    /// The next time the screen is entered (Problem's Retry) it is set up already removing, as <see cref="ShowRemoving"/>
+    /// leaves it, so coming back from Problem never shows the question again or reveals on arrival.
+    /// </summary>
+    public void EnterRemoving() => removingOnEntry = true;
 
     protected override void Setup(SetupScreen? from)
     {
+        if (removingOnEntry)
+        {
+            SetupRemoving();
+            return;
+        }
         State = UninstallState.Ask;
         mark.Show();
         dim.Snap(1);
@@ -132,6 +146,12 @@ public sealed class UninstallScreen : CanvasScreen, IMotion
 
     protected override void AfterSetup(SetupScreen? from)
     {
+        if (removingOnEntry)
+        {
+            removingOnEntry = false;
+            Session.PauseClose();
+            return;
+        }
         // Cancel has the focus, quietly (the ring comes with the keyboard); a window that is not open yet gives it as it opens
         if (Cancel.Focus(NavigationMethod.Unspecified)) return;
         void OnOpened(object? sender, EventArgs e)
@@ -140,6 +160,26 @@ public sealed class UninstallScreen : CanvasScreen, IMotion
             if (Session.Screen == SetupScreen.Uninstall) Cancel.Focus(NavigationMethod.Unspecified);
         }
         Session.Window.Opened += OnOpened;
+    }
+
+    /// <summary>The Removing state at once (inside the screen's set-up: no motion), the mark as on Ask.</summary>
+    private void SetupRemoving()
+    {
+        State = UninstallState.Removing;
+        mark.Show();
+        dim.Snap(1);
+        shrink.Snap(1);
+        Paint();
+        title.Text = SetupStrings.UninstallRemoving;
+        subtitle.Text = WipeData ? SetupStrings.UninstallRemovingWipe : SetupStrings.UninstallRemovingKeep;
+        Reveal.Hide(Group);
+        Reveal.Hide(Warning);
+        Reveal.Show(Bar);
+        Bar.Run();
+        Cancel.SetLabelNow(SetupStrings.UninstallCancel);
+        Cancel.Kind = ButtonKind.Secondary;
+        Reveal.Hide(Cancel);
+        Reveal.Hide(Remove);
     }
 
     /// <summary>Removing: the row, the warning and the buttons leave; the bar and the paused line arrive.</summary>

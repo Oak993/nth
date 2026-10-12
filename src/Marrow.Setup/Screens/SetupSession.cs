@@ -147,6 +147,12 @@ public sealed class SetupSession
 
     public SetupRoute Route { get; }
 
+    /// <summary>Uninstall mode (<c>--uninstall</c>): Problem is worded for removing and its Retry removes again (unit U6).</summary>
+    public bool Uninstalling => Route.Screen == SetupScreen.Uninstall;
+
+    /// <summary>Problem's Retry in uninstall mode (unit U6's <see cref="UninstallFlow"/> removes again).</summary>
+    public event Action? UninstallRetryRequested;
+
     /// <summary>The setup's own version.</summary>
     public string Version { get; }
 
@@ -236,6 +242,11 @@ public sealed class SetupSession
     /// </summary>
     public void Retry()
     {
+        if (Uninstalling)
+        {
+            if (!Window.Guard.IsPaused && Screen == SetupScreen.Problem) UninstallRetryRequested?.Invoke();
+            return;
+        }
         if (!CanInstall || SetupFlow.BlocksInstall(Signature) || Window.Guard.IsPaused || Screen != SetupScreen.Problem) return;
         InstallChosen = true;
         Window.CloseNow();

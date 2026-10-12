@@ -129,6 +129,10 @@ problem.retry = Retry
 problem.show = Show details
 problem.hide = Hide details
 problem.header = nth Setup {0} · Windows {1} {2} · {3}
+# Problem in uninstall mode (unit U6, ED-NEW-inst-u6-1: the canvas has no uninstall failure; Problem carries it)
+problem.uninstall.title = nth couldn’t be removed
+problem.uninstall.other = Something went wrong while removing nth.
+problem.uninstall.left = Some of nth’s files may be left. Retry removes them.
 
 # Uninstall, Removing, Removed
 uninstall.title = Uninstall nth?
