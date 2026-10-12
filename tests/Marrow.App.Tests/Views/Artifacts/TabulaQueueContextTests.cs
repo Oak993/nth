@@ -42,6 +42,7 @@ public sealed class TabulaQueueContextTests(HeadlessSession headless)
         rig.Invoke("Ask to change");
         rig.View.Ask.Text = "second";
         TabulaRig.Click(rig.View.Ask.SendButton);
+        rig.Layout();
         Assert.Contains("id orbit, v2,", sent[1], StringComparison.Ordinal);
         Assert.Equal(2, rig.State.Asks.Count);
         Assert.Equal("v3 queued", rig.View.Strip.Labels[^1].Label);
