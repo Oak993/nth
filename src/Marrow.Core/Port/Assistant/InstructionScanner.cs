@@ -167,9 +167,15 @@ public static partial class InstructionScanner
         _ => ch,
     };
 
+    // The quote is the content's own words, kept on the mission's card and shown in the feed: secrets in it are masked
+    // (FeedShield, then any long run of letters and digits, since the text is lower case here), before it is cut.
     private static string Quote(string match)
     {
-        var line = string.Join(' ', match.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        var masked = LongToken().Replace(FeedShield.Mask(match), m => m.Value.Any(char.IsAsciiDigit) && m.Value.Any(char.IsAsciiLetter) ? FeedShield.SecretMask : m.Value);
+        var line = string.Join(' ', masked.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
         return line.Length <= QuoteChars ? line : line[..QuoteChars].TrimEnd() + "…";
     }
+
+    [GeneratedRegex(@"[A-Za-z0-9_+/=-]{16,}", RegexOptions.CultureInvariant, TimeoutMs)]
+    private static partial Regex LongToken();
 }

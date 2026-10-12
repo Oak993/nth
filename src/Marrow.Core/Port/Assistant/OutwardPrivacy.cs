@@ -104,12 +104,32 @@ public static partial class OutwardPrivacy
 
     /// <summary>
     /// An engine decision with the check applied (12.4: "under any grant, personal data can go only to allowlisted
-    /// recipients"): an Allow whose step is blocked becomes Ask. Ask and Deny stay as they are.
+    /// recipients", and "the first message to any new third party is always confirmed"): an Allow whose step is blocked,
+    /// or that names a recipient neither on the owner's list nor confirmed by him before, becomes Ask and uses no grant.
+    /// Ask and Deny stay as they are.
     /// </summary>
-    public static PolicyDecision Apply(PolicyDecision decision, OutwardCheck check) =>
-        decision.Verdict == Verdict.Allow && check.Blocked
-            ? decision with { Verdict = Verdict.Ask, Rule = PolicyRule.PersonalData, Reason = check.Refusal!, GrantsUsed = ValueList<Guid>.Empty }
-            : decision;
+    public static PolicyDecision Apply(PolicyDecision decision, OutwardCheck check, IEnumerable<string>? confirmed = null)
+    {
+        if (decision.Verdict != Verdict.Allow) return decision;
+        if (check.Blocked)
+            return decision with { Verdict = Verdict.Ask, Rule = PolicyRule.PersonalData, Reason = check.Refusal!, GrantsUsed = ValueList<Guid>.Empty };
+        var fresh = New(check, confirmed);
+        return fresh.Count == 0
+            ? decision
+            : decision with
+            {
+                Verdict = Verdict.Ask, Rule = PolicyRule.NewRecipient, GrantsUsed = ValueList<Guid>.Empty,
+                Reason = "Asks: the first message to " + string.Join(", ", fresh) + " is always confirmed",
+            };
+    }
+
+    /// <summary>The recipients of the step that are neither on the owner's list nor confirmed by him on an earlier card.</summary>
+    public static IReadOnlyList<string> New(OutwardCheck check, IEnumerable<string>? confirmed)
+    {
+        ArgumentNullException.ThrowIfNull(check);
+        var known = (confirmed ?? []).Select(Normalize).Where(c => c.Length > 0).ToHashSet(StringComparer.Ordinal);
+        return [.. check.Unlisted.Where(r => !Listed(r, known))];
+    }
 
     /// <summary>The marked pieces of one input. A recipient's own address is not marked: it is who the step goes to.</summary>
     public static IReadOnlyList<PrivacySpan> Scan(string input, string text, IReadOnlyCollection<string>? recipients = null)

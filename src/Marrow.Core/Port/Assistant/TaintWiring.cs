@@ -151,4 +151,22 @@ public static class TaintWiring
     }
 
     public const int DetailChars = 160;
+
+    /// <summary>The most sources an agent's taint keeps (it is journaled with the mission at every change).</summary>
+    public const int MaxSources = 16;
+
+    /// <summary>The source that stands for every source past <see cref="MaxSources"/>.</summary>
+    public static readonly TaintSource More = new(ContentOrigin.ToolOutput, "and more untrusted sources");
+
+    /// <summary>
+    /// A taint cut to <see cref="MaxSources"/>: the first sources as they came, then <see cref="More"/>. It stays tainted,
+    /// and capping it again, or after a union with anything, gives the same taint, so a long run adds nothing more.
+    /// </summary>
+    public static Taint Capped(Taint taint)
+    {
+        ArgumentNullException.ThrowIfNull(taint);
+        if (taint.Sources.Count <= MaxSources) return taint;
+        var kept = taint.Sources.Where(s => s != More).Take(MaxSources - 1).Append(More);
+        return new Taint(new ValueList<TaintSource>(kept));
+    }
 }

@@ -1,7 +1,8 @@
 // PORT-ONLY: Dextra (DESIGN.md rev 5, 12.1a, 12.3 point 2, 12.4; unit AS-7; ED-NEW-dextra-as7-6). No Swift twin.
 // One decision for one provider approval of a Dextra agent, the same in the controller and in the injection self-check:
 // the classifier places the request in the agent's own folder, the engine decides it with the agent's taint and role,
-// and the outward privacy check turns an Allow that would send personal data to an unlisted recipient into Ask. Pure.
+// and the outward privacy check turns an Allow that would send personal data to an unlisted recipient, or reach a third
+// party the owner has not confirmed before, into Ask. Pure.
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 
@@ -14,10 +15,12 @@ public static class MissionApprovals
 {
     /// <summary>
     /// Decides one approval. <paramref name="decide"/> is the engine (PolicyEngine.Decide unless a test swaps it); a
-    /// policy that throws is the caller's to handle (it asks).
+    /// policy that throws is the caller's to handle (it asks). <paramref name="confirmedRecipients"/> are the third
+    /// parties the owner already confirmed a step to (none: every recipient off his list is new).
     /// </summary>
     public static ApprovalDecision Decide(ApprovalRequest request, ClassifierContext classifier, PolicyContext policy, ProviderKind? provider,
-        IEnumerable<string> personalDataRecipients, Func<Classification, PolicyContext, PolicyDecision>? decide = null)
+        IEnumerable<string> personalDataRecipients, Func<Classification, PolicyContext, PolicyDecision>? decide = null,
+        IEnumerable<string>? confirmedRecipients = null)
     {
         ArgumentNullException.ThrowIfNull(request);
         var classification = ActionClassifier.ClassifyApproval(request, classifier, provider: provider);
@@ -25,7 +28,7 @@ public static class MissionApprovals
         var outward = classification.Leaves.Any(l => OutwardPrivacy.Applies(l.Class))
             ? OutwardPrivacy.Check(Outgoing(request, provider), personalDataRecipients)
             : OutwardCheck.None;
-        return new ApprovalDecision(classification, OutwardPrivacy.Apply(decision, outward), outward);
+        return new ApprovalDecision(classification, OutwardPrivacy.Apply(decision, outward, confirmedRecipients), outward);
     }
 
     /// <summary>

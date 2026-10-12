@@ -94,6 +94,27 @@ public sealed class OutwardPrivacyTests
     }
 
     [Fact]
+    public void The_first_step_to_a_new_third_party_asks_until_the_owner_confirmed_one()
+    {
+        var allow = new PolicyDecision(Verdict.Allow, PolicyRule.Grant, "Allowed by a grant") { GrantsUsed = new([Guid.NewGuid()]) };
+        var plain = OutwardPrivacy.Check(Mail("{\"to\":\"Raj <raj@partner.example>\",\"body\":\"The build is green.\"}"), []);
+        Assert.False(plain.Blocked);
+        Assert.Equal(["raj@partner.example"], OutwardPrivacy.New(plain, null));
+        var fresh = OutwardPrivacy.Apply(allow, plain);
+        Assert.Equal(Verdict.Ask, fresh.Verdict);
+        Assert.Equal(PolicyRule.NewRecipient, fresh.Rule);
+        Assert.Empty(fresh.GrantsUsed);
+        Assert.Contains("raj@partner.example", fresh.Reason, StringComparison.Ordinal);
+        Assert.Same(allow, OutwardPrivacy.Apply(allow, plain, ["RAJ@partner.example"]));
+        Assert.Same(allow, OutwardPrivacy.Apply(allow, plain, ["@partner.example"]));
+        Assert.Same(allow, OutwardPrivacy.Apply(allow, OutwardPrivacy.Check(Mail("{\"to\":\"raj@partner.example\",\"body\":\"hi\"}"), ["raj@partner.example"])));
+        // A step with no recipient nth can name and no personal data is not a first message nth can see; a blocked step
+        // stays blocked even to a confirmed recipient.
+        Assert.Same(allow, OutwardPrivacy.Apply(allow, OutwardCheck.None));
+        Assert.Equal(PolicyRule.PersonalData, OutwardPrivacy.Apply(allow, OutwardPrivacy.Check(Mail(), []), ["raj@partner.example", "ops@partner.example"]).Rule);
+    }
+
+    [Fact]
     public void Approvals_are_checked_only_when_they_leave_the_pc()
     {
         var context = InjectionSelfCheck.Context(TaintContext.Clean, AgentRole.Actor, DateTimeOffset.UnixEpoch);
@@ -107,6 +128,9 @@ public sealed class OutwardPrivacyTests
         var listed = MissionApprovals.Decide(Request(ApprovalRequest.Kind.Tool, "mcp__calendar__create_event", "{\"attendees\":[\"x@y.example\"],\"notes\":\"Call +1 415 555 0134\"}"),
             InjectionSelfCheck.Classifier, context, ProviderKind.Claude, ["x@y.example"]);
         Assert.False(listed.Outward.Blocked);
+        var confirmed = MissionApprovals.Decide(Request(ApprovalRequest.Kind.Tool, "mcp__calendar__create_event", "{\"attendees\":[\"x@y.example\"],\"notes\":\"Lunch\"}"),
+            InjectionSelfCheck.Classifier, context, ProviderKind.Claude, [], confirmedRecipients: ["x@y.example"]);
+        Assert.Empty(OutwardPrivacy.New(confirmed.Outward, ["x@y.example"]));
         // The agent's own reason never leaves the PC, and a local command is not checked at all.
         var local = MissionApprovals.Decide(Request(ApprovalRequest.Kind.Command, "dotnet test"), InjectionSelfCheck.Classifier, context, ProviderKind.Claude, []);
         Assert.Same(OutwardCheck.None, local.Outward);

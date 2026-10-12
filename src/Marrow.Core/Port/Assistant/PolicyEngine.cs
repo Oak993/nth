@@ -53,6 +53,11 @@ public enum PolicyRule
     /// "Privacy shield on the way out", AS-7). Set by OutwardPrivacy, never by the engine.
     /// </summary>
     PersonalData,
+    /// <summary>
+    /// The first message to a third party the owner has not confirmed before is always confirmed (12.4, AS-7). Set by
+    /// OutwardPrivacy, never by the engine.
+    /// </summary>
+    NewRecipient,
 }
 
 /// <summary>What a duty run may do: it can only narrow its assistant's grants and classes (12.1).</summary>

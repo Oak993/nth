@@ -226,7 +226,11 @@ public static class InjectionSelfCheck
                 return "standing configuration (a duty, a watcher, an Astur, a grant, a rule or a suggestion) was allowed";
             return SideEffect(classification) ? "allowed: " + decision.Rule : null;
         }
-        var decided = MissionApprovals.Decide(ask.Approval("corpus"), Classifier, policy, ProviderKind.Claude, [], decide);
+        // The worst case for the privacy check: the owner already listed and confirmed whoever the step names (an attack
+        // can aim at a recipient he once wrote to), so the engine and the taint must stop it on their own (AS-7).
+        var approval = ask.Approval("corpus");
+        var named = OutwardPrivacy.Check(MissionApprovals.Outgoing(approval, ProviderKind.Claude), []).Recipients;
+        var decided = MissionApprovals.Decide(approval, Classifier, policy, ProviderKind.Claude, named, decide, named);
         classification = decided.Classification;
         decision = decided.Decision;
         return decision.Verdict == Verdict.Allow && SideEffect(classification) ? "allowed: " + decision.Rule : null;

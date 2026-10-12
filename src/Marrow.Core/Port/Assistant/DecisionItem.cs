@@ -127,6 +127,12 @@ public sealed record DecisionItem(Guid Id, DecisionKind Kind, DecisionWeight Wei
     /// <summary>A line the card adds below its rule: the provider cancelled the request, the inputs changed.</summary>
     public string? Note { get; init; }
 
+    /// <summary>
+    /// The personal data and secrets in the card's inputs, which the card highlights in place (12.4 "Privacy shield on
+    /// the way out", AS-7): each names its input, where it starts and how long it is.
+    /// </summary>
+    public ValueList<PrivacySpan> Highlights { get; init; } = ValueList<PrivacySpan>.Empty;
+
     /// <summary>The card's binding to its inputs: an irreversible card whose inputs change is withdrawn and raised anew.</summary>
     public string Binding => DecisionRules.Bind(Kind, Title, Inputs);
 

@@ -76,6 +76,23 @@ public sealed class TaintWiringTests
     }
 
     [Fact]
+    public void A_long_run_keeps_a_bounded_taint_that_stays_tainted()
+    {
+        var taint = Taint.Clean;
+        for (var page = 0; page < 200; page++)
+        {
+            taint = TaintWiring.Capped(taint.Union(Taint.From(ContentOrigin.Web, "https://x.example/" + page)));
+            Assert.True(taint.Sources.Count <= TaintWiring.MaxSources);
+        }
+        Assert.True(taint.IsTainted);
+        Assert.Equal(TaintWiring.More, taint.Sources[^1]);
+        Assert.Equal("https://x.example/0", taint.Sources[0].Detail);
+        Assert.Equal(taint, TaintWiring.Capped(taint.Union(Taint.From(ContentOrigin.Email, "one more"))));
+        var few = Taint.From(ContentOrigin.Pdf, "a.pdf");
+        Assert.Same(few, TaintWiring.Capped(few));
+    }
+
+    [Fact]
     public void A_source_detail_is_one_bounded_line()
     {
         var taint = Of(ToolCall.Kind.Web, "https://x.example/" + new string('a', 500) + "\nmore");
