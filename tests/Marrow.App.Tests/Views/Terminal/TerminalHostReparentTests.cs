@@ -15,7 +15,8 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 namespace Marrow.App.Tests.Views.Terminal;
 
 // Source: DroppyCode/App/Views/Terminal/TerminalPanel.swift (B3 52bc792) TerminalHost :191-251 (attach, updateNSView) and
-// TerminalStore.swift:44-57 applyAppearance. Real sessions (isolated PowerShell in a ConPTY), real windows.
+// TerminalStore.swift:44-57 applyAppearance. Real sessions and real windows; the shell behind a session is a stand-in,
+// except in the scrollback test, which reads the output of a real isolated PowerShell in a ConPTY.
 [Collection("Headless")]
 public sealed class TerminalHostReparentTests(HeadlessSession headless)
 {
@@ -33,7 +34,7 @@ public sealed class TerminalHostReparentTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-TERM-028")] // App/Views/Terminal/TerminalPanel.swift:188,225-250
-    public void Switching_tabs_moves_each_sessions_one_view_into_the_host_container_and_keeps_its_scrollback() => TerminalPanelRig.Run(headless, rig =>
+    public void Switching_tabs_moves_each_sessions_one_view_into_the_host_container_and_keeps_its_scrollback() => TerminalPanelRig.RunWithRealShell(headless, rig =>
     {
         var directory = TerminalPanelRig.Folder("reparent tabs");
         TerminalSession one = null!;

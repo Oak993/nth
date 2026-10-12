@@ -15,6 +15,7 @@ public sealed class AppModelTerminalPart3Tests(HeadlessSession headless)
     public void Bulk_discard_drops_the_runtime_closes_every_terminal_and_removes_documents_in_one_bulk_step() => headless.OnUiThread(() =>
     {
         using var h = new AppModelHarness(withRuntime: false);
+        h.UseFakeTerminalShell(); // the step reads the sessions' isRunning, which Terminate sets at once; no process is read
         var project = AppModelSamples.Project("Not loaded", h.NewFolder("not loaded"));
         var archived = AppModelSamples.Thread(project) with { IsArchived = true };
         var kept = AppModelSamples.Thread(project);
@@ -115,6 +116,7 @@ public sealed class AppModelTerminalPart3Tests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-TERM-066")] // App/AppModel.swift:1116-1137
+    [Trait("Decision", "ED-NEW-shellleak-1")] // its cleanup proves TerminateAll ends every real shell before anything kills them
     public async Task Worktree_creation_runs_flagged_scripts_in_project_order_at_the_new_path()
     {
         Task? scenario = null;
@@ -170,10 +172,12 @@ public sealed class AppModelTerminalPart3Tests(HeadlessSession headless)
                     .Select(session => session.View.ProcessId)
                     .ToArray();
                 model.Terminals.TerminateAll();
-                foreach (var processId in processIds) ShellProbe.KillIfAlive(processId);
-                Assert.True(UiPump.Until(
+                // ED-NEW-shellleak-1: TerminateAll alone ends every shell. Proof first; the kill after it is cleanup only.
+                var shellsEnded = UiPump.Until(
                     () => processIds.All(processId => !ShellProbe.IsAlive(processId)),
-                    AppModelHarness.Bound));
+                    AppModelHarness.Bound);
+                foreach (var processId in processIds) ShellProbe.KillIfAlive(processId);
+                Assert.True(shellsEnded, "TerminateAll left a shell running");
                 if (worktreePath is { } path && Directory.Exists(path))
                     repository.Git("worktree", "remove", "--force", path);
             }
