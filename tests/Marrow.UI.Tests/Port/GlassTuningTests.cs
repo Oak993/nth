@@ -152,6 +152,8 @@ public sealed class GlassTuningTests(HeadlessSession headless)
         // a piece's own look wins over its surface's, and draws with its knobs (the release's, kept for what names it)
         Assert.Equal(GlassLook.Liquid, GlassLooks.Of(regular.WithLook(GlassLook.Liquid)));
         Assert.Null(GlassLook.Release.Canvas);
+        Assert.Equal(new GlassLook(), GlassLook.Release);
+        Assert.Equal(0, GlassLook.Release.Clarity);
     }));
 
     [Fact]
@@ -243,6 +245,8 @@ public sealed class GlassTuningTests(HeadlessSession headless)
                 Assert.Equal(new GlassCanvas(GlassKind.Popover, expected), CanvasOf(panel));
                 Assert.Equal(new GlassCanvas(GlassKind.Flat, expected), CanvasOf(panel, nested: true));
                 Assert.Equal(GlassLooks.For(GlassSurface.Capsule, variant), GlassLooks.Of(capsule));
+                // a piece's own look still wins
+                Assert.Equal(GlassLook.Liquid, GlassLooks.Of(panel.WithLook(GlassLook.Liquid)));
             });
         Tuned(GlassSettings.Default, () => Assert.Equal(1.40, GlassLooks.For(GlassSurface.Composer, GlassVariant.Clear).Canvas!.Tuning.Refraction, 9));
     });
@@ -267,6 +271,8 @@ public sealed class GlassTuningTests(HeadlessSession headless)
             for (var step = 1; step <= 10; step++)
             {
                 GlassLooks.Blend(GlassSettings.Default, step / 10.0);
+                Assert.Equal(new GlassCanvas(GlassKind.Capsule, step < 10 ? GlassTuning.Of(GlassSettings.Default, new FixedGlassSystem()).Toward(GlassTuning.Of(target, new FixedGlassSystem()), step / 10.0)
+                    : GlassTuning.Of(target, new FixedGlassSystem())), CanvasOf(effect));
                 frames.Add(Capture(window));
             }
             Assert.Equal(new GlassCanvas(GlassKind.Capsule, GlassTuning.Of(target, new FixedGlassSystem())), CanvasOf(effect));
@@ -286,6 +292,26 @@ public sealed class GlassTuningTests(HeadlessSession headless)
             window.Close();
         }
     }));
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-glasslook-1")] // clamping: every knob of a look is held to its range, and the bend and ring together read at most 60 pt past the edge
+    public void A_look_past_its_ranges_is_held_and_its_bend_stays_inside_the_material_reach()
+    {
+        var wild = new GlassLook(Clarity: 4, Bend: 40, Band: 9, Fringe: 9, Rim: 9, Blur: 9, Tint: 9, Saturation: 9, Shadow: 9, Profile: 9, Glow: 9, Hairline: 9, FringeCap: 9, Lift: 9, Depth: 9);
+        Assert.Equal((1d, 4d, 1.25, 3d, 2d, 4d, 2d, 2d, 2d), (wild.ClarityValue, wild.BendValue, wild.BandValue, wild.FringeValue, wild.RimValue, wild.BlurValue, wild.TintValue, wild.SaturationValue, wild.ShadowValue));
+        Assert.Equal((1d, 2d, 1d, 4d, 0.25, 0.4), (wild.ProfileValue, wild.GlowValue, wild.HairlineValue, wild.FringeCapValue, wild.LiftValue, wild.DepthValue));
+        var low = new GlassLook(Clarity: -1, Bend: -1, Band: 0, Fringe: -1, Rim: -1, Blur: -1, Tint: -1, Saturation: -1, Shadow: -1, Profile: -1, Glow: -1, Hairline: -1, FringeCap: -1, Lift: -1, Depth: -1);
+        Assert.Equal((0d, 0d, 0.5, 0d, 0d, 0d, 0d, 0d, 0d), (low.ClarityValue, low.BendValue, low.BandValue, low.FringeValue, low.RimValue, low.BlurValue, low.TintValue, low.SaturationValue, low.ShadowValue));
+        Assert.Equal((0d, 0d, 0d, 0d, 0d, 0d), (low.ProfileValue, low.GlowValue, low.HairlineValue, low.FringeCapValue, low.LiftValue, low.DepthValue));
+        foreach (var size in new[] { new Size(280, 190), new Size(818, 46), new Size(400, 80), new Size(1200, 800) })
+        {
+            var o = GlassMaterial.Optics.For(size, wild);
+            Assert.True(o.Bend + o.Ring <= GlassMaterial.Optics.MaxLookReach + 1e-9, $"{size}: bend {o.Bend:F1} + ring {o.Ring:F1}");
+            Assert.True(o.Sigma <= 14, $"{size}: band {o.Sigma:F1}");
+            var release = GlassMaterial.Optics.For(size, GlassLook.Release);
+            Assert.Equal(GlassMaterial.Optics.For(size), release);
+        }
+    }
 
     [Theory]
     [Trait("Decision", "OD-0147")] // every setting reaches the material: the glass on screen changes, in both appearances
@@ -325,7 +351,7 @@ public sealed class GlassTuningTests(HeadlessSession headless)
             Tuned(GlassSettings.Default, () => before = Fresh(effect, light));
             Tuned(moved, () => after = Fresh(effect, light));
             var (most, parted) = Parting(before, after);
-            Assert.True(most >= 4 && parted >= 40, $"{id} at {value}, light {light}: the glass changes by {most} levels at most, {parted} pixels by more than 2");
+            Assert.True(most >= 8 && parted >= 40, $"{id} at {value}, light {light}: the glass changes by {most} levels at most, {parted} pixels by more than 2");
         }
     });
 

@@ -333,6 +333,95 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
         });
     }
 
+    // ED-NEW-glasslook-4 (the lead's ruling of 2026-10-12 on V-T133's pinned backdrop): the equal replacement that keeps the glass the app ships
+    // speck-checked. V-T133 compares at the backdrop its locked references were drawn over (every glass at the release look); this is V-T133 itself at
+    // the glass the app ships (OD-0147: the canvas composer and the flat controls on it): the same detector, area, ink, ball and rule, a speck failing
+    // unless the approved design (the locked references, OD-0125, never redrawn to make a failure pass) has one within 1 px. Before OD-0147 the shipped
+    // glass was the release look, so this is the check V-T133 made then; the identities it fails beyond the OD-0128/OD-0137 list, and why, are in
+    // ED-NEW-glasslook-4.
+    [Theory] // V-T133 over the shipped glass
+    [MemberData(nameof(Matrix))]
+    [Trait("Decision", "ED-292")]
+    public void Over_the_shipped_glass_the_pill_and_a_margin_round_it_have_no_specks(VoiceListeningStyle style, int diameter, bool dark, string state, double scale)
+    {
+        headless.OnUiThread(() =>
+        {
+            using var motion = new VoicePillMotion();
+            var scene = Open(style, diameter, dark, state, scale);
+            using var _ = scene;
+            var tag = $"{style}-{diameter}-{dark}-{state}-{scale}";
+            var (orb, _, _) = Marks(scene);
+            var frame = Shot(scene);
+            var pillRect = scene.Rig.Main.OnMain(() =>
+            {
+                var pill = Pill(scene.View);
+                var origin = pill.TranslatePoint(default, scene.Window)!.Value;
+                return new Rect(origin, pill.Bounds.Size);
+            });
+            pillRect = new Rect(pillRect.X * scale, pillRect.Y * scale, pillRect.Width * scale, pillRect.Height * scale);
+            orb *= scale;
+            var area = pillRect.Inflate(12 * scale);
+            var ink = scene.Rig.Main.OnMain(() => VoicePillInk.Render(scene, frame.Size, tag));
+            var ballRadius = scene.Rig.Main.OnMain(() => Slot(scene.View).Orb.Handler!.Scene!.Motion.Diameter * Slot(scene.View).Orb.Handler!.Scene!.Motion.Scale / 2);
+            bool InBall(int x, int y) => Math.Sqrt((x + 0.5 - orb.X) * (x + 0.5 - orb.X) + (y + 0.5 - orb.Y) * (y + 0.5 - orb.Y)) <= ballRadius * scale + 1;
+            var w = frame.Size.Width;
+            var specks = SpeckComponents(frame, area, (x, y) => ink[y * w + x] || InBall(x, y));
+            // diagnostics only: the frame and the generator's input over the shipped glass (the locked references are never redrawn from them)
+            if (Environment.GetEnvironmentVariable("VT12_DUMP") is { } dump) Save(frame, System.IO.Path.Combine(dump, $"shipped-{tag}.png"));
+            if (Environment.GetEnvironmentVariable("VT12_DESIGN_DUMP") is { } designDump) VoicePillDesignReference.Dump(scene, tag, designDump, area);
+            var designSpecks = specks.Count == 0 ? [] : VoicePillDesignReference.Has(tag) ? VoicePillDesignReference.Specks(tag, InBall) : [];
+            var notInTheDesign = specks
+                .Where(c => !c.Any(m => designSpecks.Any(d => Math.Abs(d.X - m.X) <= 1 && Math.Abs(d.Y - m.Y) <= 1)))
+                .Select(c => $"{c.Length} px at ({c[0].X}, {c[0].Y})").ToList();
+            Assert.True(notInTheDesign.Count == 0, "specks over the shipped glass the approved design does not have (within 1 px): " + string.Join("; ", notInTheDesign.Take(8)));
+        });
+    }
+
+    // a captured frame as a PNG (diagnostics only, VT12_DUMP)
+    private static void Save((int Stride, byte[] Bytes, PixelSize Size) frame, string path)
+    {
+        using var bitmap = new SkiaSharp.SKBitmap(new SkiaSharp.SKImageInfo(frame.Size.Width, frame.Size.Height, SkiaSharp.SKColorType.Bgra8888, SkiaSharp.SKAlphaType.Premul));
+        var pixels = bitmap.GetPixels();
+        for (var y = 0; y < frame.Size.Height; y++)
+            System.Runtime.InteropServices.Marshal.Copy(frame.Bytes, y * frame.Stride, pixels + y * bitmap.RowBytes, frame.Size.Width * 4);
+        using var data = bitmap.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+        System.IO.File.WriteAllBytes(path, data.ToArray());
+    }
+
+    // V-T133's detector (unchanged: Outliers, 8-connected components of at most 9 pixels) as a list of components, each skipped when one of its
+    // pixels is <paramref name="skip"/>ped (V-T133's ink and ball).
+    private static List<(int X, int Y)[]> SpeckComponents((int Stride, byte[] Bytes, PixelSize Size) frame, Rect area, Func<int, int, bool> skip)
+    {
+        var (outlier, w, h) = Outliers(frame, area);
+        var seen = new bool[w * h];
+        var components = new List<(int X, int Y)[]>();
+        for (var y = 0; y < h; y++)
+        for (var x = 0; x < w; x++)
+        {
+            if (!outlier[y * w + x] || seen[y * w + x]) continue;
+            var stack = new Stack<(int, int)>();
+            var members = new List<(int X, int Y)>();
+            stack.Push((x, y));
+            seen[y * w + x] = true;
+            while (stack.Count > 0)
+            {
+                var (cx, cy) = stack.Pop();
+                members.Add((cx, cy));
+                for (var dy = -1; dy <= 1; dy++)
+                for (var dx = -1; dx <= 1; dx++)
+                {
+                    var nx = cx + dx;
+                    var ny = cy + dy;
+                    if (nx < 0 || ny < 0 || nx >= w || ny >= h || seen[ny * w + nx] || !outlier[ny * w + nx]) continue;
+                    seen[ny * w + nx] = true;
+                    stack.Push((nx, ny));
+                }
+            }
+            if (members.Count <= 9 && !members.Any(m => skip(m.X, m.Y))) components.Add(members.ToArray());
+        }
+        return components;
+    }
+
     [Theory] // V-T133: the orb's 72 px view fades its glow to zero before its own edge
     [InlineData(32, 1.0)]
     [InlineData(26, 1.0)]

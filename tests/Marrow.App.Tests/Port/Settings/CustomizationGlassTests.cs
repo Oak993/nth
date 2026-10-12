@@ -222,6 +222,24 @@ public sealed class CustomizationGlassTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "ED-NEW-glasslook-2")] // under Reduce motion a Look is taken at once: the setting, the material and the store, with no frame advanced
+    public void Under_reduce_motion_a_look_is_taken_at_once() => headless.OnUiThread(() =>
+    {
+        using var rig = Rig(reduceMotion: true);
+        try
+        {
+            var glass = rig.Page.Glass!;
+            rig.Do(() => glass.Look.Control.Show("clear"));
+            var clear = GlassSettings.Default.At(GlassVariant.Clear);
+            Assert.Equal(clear, rig.Get(() => rig.App.Settings.Glass));
+            Assert.Equal(clear, GlassLooks.Tuning);
+            Assert.Equal(new GlassCanvas(GlassKind.Composer, GlassTuning.Of(clear, new FixedGlassSystem())), PillGlass(glass));
+            Assert.Equal("{\"transparency\":0}", Stored(rig));
+        }
+        finally { Restore(rig); }
+    });
+
+    [Fact]
     [Trait("Decision", "OD-0147")] // the fine-tuning Reset gives every value back to the Look's own and keeps the Look and the switches
     public void The_fine_tuning_reset_gives_back_the_looks_own_values() => headless.OnUiThread(() =>
     {

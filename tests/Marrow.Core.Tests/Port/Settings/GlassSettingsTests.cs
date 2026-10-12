@@ -129,6 +129,12 @@ public sealed class GlassSettingsTests
             GlassSettings.Default.At(12).With("bezel", 20) with { TintColour = GlassTintColour.Pink, ReducedMotion = true, IncreaseContrast = true, ReduceTransparency = false, TranslucentSidebar = false },
         })
             Assert.Equal(settings, Read(Json(settings)));
+        // every value custom at once, with the slider, the tint colour and every switch
+        var mixed = GlassSettings.Default.At(70).With("refraction", 1.85).With("bezel", 20).With("frost", 50).With("fringe", 0.8).With("rim", 0.9).With("tint", 0.3)
+            .With("saturation", 1.6).With("shadow", 1.5) with { TintColour = GlassTintColour.Purple, ReducedMotion = false, IncreaseContrast = true, ReduceTransparency = true, TranslucentSidebar = false };
+        Assert.Equal(mixed, Read(Json(mixed)));
+        Assert.Equal("{\"transparency\":70,\"refraction\":1.85,\"bezel\":20,\"frost\":50,\"fringe\":0.8,\"rim\":0.9,\"tint\":0.3,\"saturation\":1.6,\"shadow\":1.5,\"tintColour\":\"purple\","
+            + "\"motion\":\"full\",\"increaseContrast\":true,\"reduceTransparency\":true,\"translucentSidebar\":false}", Json(mixed));
         Assert.Equal("{\"transparency\":0}", Json(GlassSettings.Default.At(0d)));
         Assert.Equal("{\"tintColour\":\"silver\",\"motion\":\"full\",\"increaseContrast\":false,\"reduceTransparency\":true,\"translucentSidebar\":false}",
             Json(GlassSettings.Default with { TintColour = GlassTintColour.Silver, ReducedMotion = false, IncreaseContrast = false, ReduceTransparency = true, TranslucentSidebar = false }));
@@ -169,6 +175,15 @@ public sealed class GlassSettingsTests
         var held = wild.Held();
         Assert.Equal((100d, 2.4, 6d, 20d, 1d, 1d, 0.5, 1.8, 0d, GlassTintColour.None), (held.Transparency, held.Refraction, held.Bezel, held.Frost, held.Fringe, held.Rim, held.Tint, held.Saturation, held.Shadow, held.TintColour));
         Assert.Equal(held, Read(Json(wild)));
+        // what is written is the held record itself (ToJson holds; a read would hold it anyway)
+        Assert.Equal("{\"transparency\":100,\"refraction\":2.4,\"bezel\":6,\"frost\":20,\"fringe\":1,\"rim\":1,\"tint\":0.5,\"saturation\":1.8,\"shadow\":0}", Json(wild));
+        // a value that is not finite is the low end, set one at a time too
+        Assert.Equal(0d, GlassSettings.Default.With("tint", double.PositiveInfinity).Tint);
+        Assert.Equal(0.1, GlassSettings.Default.With("rim", double.NegativeInfinity).Rim);
+        Assert.Equal(0.1, GlassSettings.Default.With("rim", double.NaN).Rim);
+        // an id that is not a value of the glass is an error, never a silent default
+        Assert.Throws<ArgumentOutOfRangeException>(() => GlassSettings.Default.With("wobble", 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => GlassSettings.Default.Get("wobble"));
     }
 
     [Fact]
@@ -177,6 +192,8 @@ public sealed class GlassSettingsTests
     {
         foreach (var json in new[] { "", "not json", "[]", "7", "{\"refraction\":\"big\"}", "{\"transparency\":true}", "{\"tintColour\":\"plaid\"}", "{\"motion\":\"wild\"}", "{\"increaseContrast\":1}", "{\"translucentSidebar\":\"no\"}" })
             Assert.Equal(GlassSettings.Default, Read(json));
+        // a valid value survives its mistyped, null and unknown siblings
+        Assert.Equal(GlassSettings.Default.With("fringe", 0.5), Read("{\"tint\":\"lots\",\"rim\":true,\"frost\":null,\"wobble\":3,\"fringe\":0.5}"));
         Assert.NotEqual("glassLook", GlassSettings.StoreKey);
     }
 
