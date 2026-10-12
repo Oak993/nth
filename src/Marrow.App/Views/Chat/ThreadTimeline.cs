@@ -330,7 +330,10 @@ public sealed class ThreadTimeline : Decorator
                 var overlay = scrollOverlay!;
                 // ED-NEW-lean-14: a pass with the blocks, the flag and the height the rail was last asked for keeps it without making a new one to compare (InputsEqual
                 // holds for those: the same list, the same tracking, the same height), so a pass that changed nothing the rail reads costs it nothing.
-                var nextRail = railInputs is { } asked && ReferenceEquals(asked.Blocks, blocks) && asked.Shows == showsMinimap && asked.Height == columnHeight ? currentRail : CreateRail(blocks, showsMinimap, columnHeight);
+                // ED-NEW-perf-ui-thread-4: a pass that changed the blocks but not the ticks (a tool row or a reply in the running turn) keeps the rail, before any rail is made to be compared.
+                var nextRail = railInputs is { } asked && ReferenceEquals(asked.Blocks, blocks) && asked.Shows == showsMinimap && asked.Height == columnHeight ? currentRail
+                    : currentRail is TimelineMinimapColumn shownRail && ShouldShowMinimap(showsMinimap, blocks) && shownRail.Adopt(blocks, tracking, Math.Max(0, columnHeight - WindowChrome.TitlebarHeight)) ? shownRail
+                    : CreateRail(blocks, showsMinimap, columnHeight);
                 railInputs = (blocks, showsMinimap, columnHeight);
                 // :190 .equatable(): a rail whose inputs did not change is not drawn again, so its hover and its scrub go on across a redraw.
                 if (currentRail is TimelineMinimapColumn oldRail && nextRail is TimelineMinimapColumn newRail && TimelineMinimapColumn.InputsEqual(oldRail, newRail)) nextRail = oldRail;
@@ -605,7 +608,7 @@ public sealed class ThreadTimeline : Decorator
     private Control? CreateRail(IReadOnlyList<DisplayBlock> blocks, bool enabled, double columnHeight)
     {
         if (!ShouldShowMinimap(enabled, blocks)) return null;
-        var rail = new TimelineMinimapColumn(blocks, tracking, Math.Max(0, columnHeight - WindowChrome.TitlebarHeight), (id, animated) => Jump(id, blocks, animated)) { Width = 30, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, WindowChrome.TitlebarHeight, 0, 0) };
+        var rail = new TimelineMinimapColumn(blocks, tracking, Math.Max(0, columnHeight - WindowChrome.TitlebarHeight), (id, animated) => Jump(id, drawnBlocks, animated)) { Width = 30, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, WindowChrome.TitlebarHeight, 0, 0) };
         // :201-207 the rail belongs to the column's leading edge, not to the conversation that re-centres beside a docked panel: the padding the slide adds
         // (reserveSlideLeading, snapped at once) and the glide that carries the rows (reserveSlideOffset, every frame of it) are both cancelled, live.
         var cancel = new TranslateTransform(); rail.RenderTransform = cancel;
@@ -1387,11 +1390,11 @@ public sealed class TimelineBlockCache
             var entry = entries[index];
             if (entry.TimelineEntryKind == TimelineEntry.Kind.TurnEnd && entry.Item.TimelineItemContent is TimelineItem.Content.TurnEnd end && kept.Any(block => block.TurnID == end.Value.TurnID)) return null; // :1755-1762
         }
+        // ED-NEW-perf-ui-thread-3: the appended entries are folded into the meta in one pass (a copy of its maps per entry grew with the thread).
+        var grown = appendedFrom < entries.Count ? meta.AddRange(entries.Skip(appendedFrom)) : meta;
         var tail = DisplayBlock.Build(entries, built.LastRunStart, kept, grown, showReasoning, isRunning, hydraMergeID, pills); meta = grown; return tail; // :1764-1779
     }
 
-        // ED-NEW-perf-ui-thread-3: the appended entries are folded into the meta in one pass (a copy of its maps per entry grew with the thread).
-        var grown = appendedFrom < entries.Count ? meta.AddRange(entries.Skip(appendedFrom)) : meta;
     // :1775-1786 func mentionPersonas(for:roster:) -> [HydraPersona]
     private long?[] personaHeads = []; // :1712
     private bool personaRoster;
@@ -1415,12 +1418,12 @@ public sealed class TimelineBlockCache
 
         // :1689-1696 func extends(_:) -> Bool
         public bool Extends(Key old) => Entries.Count > old.Entries.Count && SameFlags(old) && SamePrefix(old); // :1698-1705
-        public bool SameFlags(Key old) => IsRunning == old.IsRunning && HydraMergeID == old.HydraMergeID && Pills == old.Pills && ShowReasoning == old.ShowReasoning;
-        public bool SamePrefix(Key old)
-        {
         // ED-NEW-perf-ui-thread-3: the same list or a longer one with the turn's phase flipped and nothing else different (no heads' pill before the running turn: see Blocks).
         public bool ExtendsOrIsAfterRunFlip(Key old) => Entries.Count >= old.Entries.Count && IsRunning != old.IsRunning && Pills.Earlier.Count == 0
             && HydraMergeID == old.HydraMergeID && Pills == old.Pills && ShowReasoning == old.ShowReasoning && SamePrefix(old);
+        public bool SameFlags(Key old) => IsRunning == old.IsRunning && HydraMergeID == old.HydraMergeID && Pills == old.Pills && ShowReasoning == old.ShowReasoning;
+        public bool SamePrefix(Key old)
+        {
             if (ReferenceEquals(Entries, old.Entries)) return true;
             if (Entries.Count < old.Entries.Count) return false;
             for (var index = old.Entries.Count - 1; index >= 0; index--) if (!ReferenceEquals(old.Entries[index], Entries[index])) return false; // from the end: a changed list differs there first
