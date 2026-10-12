@@ -64,7 +64,7 @@ public static class SignInEntry
     public const string Argument = "--at-sign-in";
 
     /// <summary>The Startup apps page's own on/off record for <c>Run</c> values.</summary>
-    public const string ApprovedKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
+    public const string ApprovedKeyPath = UninstallEntry.StartupApprovedRunKeyPath;
 
     /// <summary>The command the <c>Run</c> value holds: the quoted program, the launch target's own arguments (Start's, normally none), then <see cref="Argument"/>.</summary>
     public static string Command(LaunchTarget launch)
@@ -119,7 +119,8 @@ public static class SignInEntry
                 registry.SetString(UninstallEntry.RunKeyPath, UninstallEntry.SignInValueName, command);
                 changed = true;
             }
-            if (state.Status == SignInStatus.DisabledInWindows)
+            // C4b U8-1, ED-NEW-inst-cx-10: an absent Run value can still have a stale disabled approval from an old uninstall.
+            if (WindowsTurnedOff(registry))
             {
                 registry.DeleteValue(ApprovedKeyPath, UninstallEntry.SignInValueName);
                 changed = true;
