@@ -6,42 +6,41 @@ using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using Marrow.Core.Models;
 
-// PORT-ONLY: web surfaces W4, the pointer side of a header drag (E:/Droppy/work/design/web-surfaces/DESIGN.md 3.6 "Press on a
-// header's empty area and move 4 DIP: the pane lifts"; 4.2 touch and pen: "pointer capture on press ... slop 4 DIP so a tap is
-// not a drag"; ED-NEW-web-w4-1). No Swift counterpart. It watches one header: a press on its empty area (not a button, a tab
-// or a scroll bar) arms it, travel past the slop lifts the pane in the workspace and captures the pointer, every move
-// follows, and the release lands it. The workspace decides what is possible and what a drop does (PaneWorkspace.Dock.cs,
-// PaneDock); a drag that cannot lift (a narrow or expanded workspace) never starts, so the press stays an ordinary press.
+// PORT-ONLY: web surfaces W4, the pointer side of lifting the terminal's drawer (E:/Droppy/work/design/web-surfaces/DESIGN.md 3.6 "Press
+// on a header's empty area and move 4 DIP: the pane lifts"; 4.2 touch and pen: "pointer capture on press ... slop 4 DIP so a tap is
+// not a drag"; ED-NEW-web-w4-1). No Swift counterpart. A grid pane's header lifts it through PaneHeader's own drag events (W3b); the
+// drawer's header is the terminal panel's and has none, so this watches it: a press on its empty area (not a button, a tab or a scroll
+// bar) arms it, travel past the slop lifts the drawer in the workspace (PaneWorkspace.BeginDrawerRedock) and captures the pointer,
+// every move follows, and the release lands it. A lift that cannot start (a narrow or expanded workspace) never does, so the press
+// stays an ordinary press.
 
 namespace Marrow.App.Views.Panes;
 
-/// <summary>Lifts a pane from a header's empty area.</summary>
-internal sealed class PaneDockGesture
+/// <summary>Lifts the terminal's drawer from its header's empty area.</summary>
+internal sealed class DrawerLiftGesture
 {
     private readonly Control header;
-    private readonly PaneKind kind;
     private readonly Func<PaneWorkspace?> workspace;
-    private readonly Func<Control?>? drawer;
+    private readonly Func<Control> drawer;
     private PaneWorkspace? armedIn;
     private IPointer? pointer;
     private Point press;
     private bool lifted;
 
-    private PaneDockGesture(Control header, PaneKind kind, Func<PaneWorkspace?> workspace, Func<Control?>? drawer)
+    private DrawerLiftGesture(Control header, Func<PaneWorkspace?> workspace, Func<Control> drawer)
     {
         this.header = header;
-        this.kind = kind;
         this.workspace = workspace;
         this.drawer = drawer;
     }
 
     /// <summary>
-    /// Watches <paramref name="header"/>. <paramref name="workspace"/> finds the workspace to lift in (null: not in one);
-    /// <paramref name="drawer"/> is the drawer's control when the header is the drawer's, null for a card's own header.
+    /// Watches <paramref name="header"/>, the drawer\'s header row. <paramref name="workspace"/> finds the workspace to lift in (null: the
+    /// drawer is not in one); <paramref name="drawer"/> is the drawer itself, whose rectangle the ghost starts from.
     /// </summary>
-    public static IDisposable Attach(Control header, PaneKind kind, Func<PaneWorkspace?> workspace, Func<Control?>? drawer = null)
+    public static IDisposable Attach(Control header, Func<PaneWorkspace?> workspace, Func<Control> drawer)
     {
-        var gesture = new PaneDockGesture(header, kind, workspace, drawer);
+        var gesture = new DrawerLiftGesture(header, workspace, drawer);
         header.AddHandler(InputElement.PointerPressedEvent, gesture.OnPressed, RoutingStrategies.Bubble);
         header.AddHandler(InputElement.PointerMovedEvent, gesture.OnMoved, RoutingStrategies.Bubble, handledEventsToo: true);
         header.AddHandler(InputElement.PointerReleasedEvent, gesture.OnReleased, RoutingStrategies.Bubble, handledEventsToo: true);
@@ -55,7 +54,7 @@ internal sealed class PaneDockGesture
         });
     }
 
-    /// <summary>Whether a press that began at <paramref name="source"/> is on the header's empty area (nothing that takes a press itself).</summary>
+    /// <summary>Whether a press that began at <paramref name="source"/> is on the header\'s empty area (nothing that takes a press itself).</summary>
     internal static bool IsEmptyArea(Control header, object? source)
     {
         for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())
@@ -89,8 +88,8 @@ internal sealed class PaneDockGesture
                 return;
             }
             var travel = position - press;
-            if (Math.Sqrt(travel.X * travel.X + travel.Y * travel.Y) < PaneWorkspace.DockSlop) return;
-            if (!host.BeginDock(kind, press, drawer?.Invoke()))
+            if (Math.Sqrt(travel.X * travel.X + travel.Y * travel.Y) < PaneRedock.LiftDistance) return;
+            if (!host.BeginDrawerRedock(press, drawer()))
             {
                 Reset();
                 return;
@@ -98,7 +97,7 @@ internal sealed class PaneDockGesture
             lifted = true;
             e.Pointer.Capture(header);
         }
-        host.UpdateDock(position);
+        host.MoveDrawerRedock(position);
         e.Handled = true;
     }
 
@@ -108,8 +107,8 @@ internal sealed class PaneDockGesture
         var wasLifted = lifted;
         if (wasLifted)
         {
-            host.UpdateDock(e.GetPosition(host));
-            host.EndDock(commit: true);
+            host.MoveDrawerRedock(e.GetPosition(host));
+            host.ReleaseDrawerRedock(drop: true);
             e.Handled = true;
         }
         Reset();
@@ -121,7 +120,7 @@ internal sealed class PaneDockGesture
         if (armedIn is not { } host || !ReferenceEquals(e.Pointer, pointer)) return;
         var wasLifted = lifted;
         Reset();
-        if (wasLifted) host.EndDock(commit: false);
+        if (wasLifted) host.ReleaseDrawerRedock(drop: false);
     }
 
     private void Reset()

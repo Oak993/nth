@@ -23,7 +23,7 @@ public sealed class PaneCard : Border
     private readonly Border clip;
     private readonly Grid layout = new() { RowDefinitions = new RowDefinitions($"{PaneTokens.HeaderHeight},*") };
     private readonly ScaleTransform scale = new(1, 1);
-    private readonly TranslateTransform shift = new(0, 0);
+    private readonly TranslateTransform offset = new(0, 0);
     private bool focused;
     private bool expanded;
     private bool lifted;
@@ -36,8 +36,12 @@ public sealed class PaneCard : Border
         CornerRadius = new CornerRadius(PaneTokens.CornerRadius);
         BorderThickness = new Thickness(1);
         ClipToBounds = false;
-        RenderTransform = new TransformGroup { Children = { scale, shift } };
+        RenderTransform = new TransformGroup { Children = { scale, offset } };
         RenderTransformOrigin = RelativePoint.Center;
+        // F6 reaches a pane as a whole (DESIGN 3.7, 10: "Every pane is a landmark ... F6 cycles panes and splitters"); Tab skips the
+        // card itself and goes on into its body.
+        Focusable = true;
+        IsTabStop = false;
         clip = new Border { CornerRadius = new CornerRadius(PaneTokens.CornerRadius - 1), ClipToBounds = true, Child = layout };
         Child = clip;
         Grid.SetRow(Header, 0);
@@ -79,20 +83,20 @@ public sealed class PaneCard : Border
     }
 
     /// <summary>
-    /// A drag of the card's header moves the card (3.6): it follows the pointer by this much (a render transform, never layout).
+    /// Where a pane lifted by its header is, relative to its slot (3.6): a render transform only, so the drag costs no layout.
     /// </summary>
-    public Vector Shift
+    public Vector Offset
     {
-        get => new(shift.X, shift.Y);
+        get => new(offset.X, offset.Y);
         set
         {
-            if (shift.X == value.X && shift.Y == value.Y) return;
-            shift.X = value.X;
-            shift.Y = value.Y;
+            if (offset.X == value.X && offset.Y == value.Y) return;
+            offset.X = value.X;
+            offset.Y = value.Y;
         }
     }
 
-    /// <summary>The lifted look of a card in a drag (3.6): a deeper shadow.</summary>
+    /// <summary>The lifted look of a pane held by its header: the deeper shadow, the rim as it is (3.6, canvas .pane.lift).</summary>
     public bool IsLiftedLook
     {
         get => lifted;

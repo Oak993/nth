@@ -10,7 +10,6 @@ using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
-using Marrow.App.Port;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.UI.Port;
@@ -60,9 +59,6 @@ public sealed class TerminalHostView : Border
         Height = 240; // TerminalStore.swift:21
         Focusable = true;
         ClipToBounds = true;
-        // PORT-ONLY (web W4, ED-NEW-web-w4-2, DESIGN 3.7): the terminal is a content scope. Its keys are the shell's, so Ctrl+D
-        // reaches it as end of input and Ctrl+\ as the quit character; only the reserved list is nth's.
-        ChordScope.SetIsContent(this, true);
 
         scrollbackText = new TerminalSurface(MeasureCell)
         {
@@ -290,9 +286,6 @@ public sealed class TerminalHostView : Border
     /// <summary>Escape is handled by the parent host; every other special key reaches the ConPTY input.</summary>
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
-        // The reserved chords (F6, Ctrl+Shift+\, Ctrl+Alt+Arrow, ...) are nth's even from here: they are not the shell's, so they
-        // are neither sent to it nor handled here; the window's dispatch (or the workspace) takes them.
-        if (ChordScope.IsReservedKey(e)) return;
         // Selection belongs to the composed text control even while this view owns
         // focus. Route its copy/select-all chords before terminal input forwarding.
         scrollbackText.HandleSelectionKey(e);

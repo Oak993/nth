@@ -11,8 +11,10 @@ using Avalonia.Platform;
 using Avalonia.Rendering.Composition;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Web;
+using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 
 namespace Marrow.UI.Web;
@@ -106,6 +108,7 @@ public sealed class WebViewHost : Panel
         this.time = time ?? TimeProvider.System;
         seenLiveness = surface.Liveness;
         ClipToBounds = true; // the snapshot is clipped to the animating rectangle
+        ShortcutScopeHost.SetScope(this, ShortcutScope.Content); // a page gets every key first but the reserved chords (DESIGN 3.7)
         dim.Background = new SolidColorBrush(Colors.Black, FailureDimOpacity);
         fresher.Opacity = 0;
         Children.Add(liveSlot);
@@ -153,6 +156,14 @@ public sealed class WebViewHost : Panel
         return [.. Hosts.Select(entry => entry.TryGetTarget(out var host) ? host : null)
             .OfType<WebViewHost>()
             .Where(host => TopLevel.GetTopLevel(host) == topLevel)];
+    }
+
+    /// <summary>The host showing <paramref name="surface"/> now, or null (a reserved chord from a page finds its pane through it, 3.7).</summary>
+    public static WebViewHost? HostFor(IWebViewSurface surface)
+    {
+        ArgumentNullException.ThrowIfNull(surface);
+        Hosts.RemoveAll(entry => !entry.TryGetTarget(out _));
+        return Hosts.Select(entry => entry.TryGetTarget(out var host) ? host : null).OfType<WebViewHost>().FirstOrDefault(host => ReferenceEquals(host.Surface, surface));
     }
 
     /// <summary>

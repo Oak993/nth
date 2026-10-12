@@ -3,6 +3,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.UI.Chrome;
 
 namespace Marrow.App.Port;
 
@@ -37,7 +38,7 @@ namespace Marrow.App.Port;
 /// Zoom In "=" (AppCommands.swift:53-62).
 /// </summary>
 public sealed record MenuCommand(string Title, KeyboardShortcut? Shortcut, bool IsDisabled, Action Action,
-    bool MatchesTypedCharacter = false);
+    bool MatchesTypedCharacter = false, bool WorksInsideContent = false);
 
 /// <summary>The port's own dispatch of menu key equivalents (OD-0008 C3).</summary>
 public static class MenuKeyEquivalents
@@ -56,13 +57,17 @@ public static class MenuKeyEquivalents
     /// typed (<see cref="Typed"/>, read only when an item that matches by character is reached), matched against the
     /// literal-character items. One pass in body order, as a menu takes the first enabled item holding the chord.
     /// </summary>
-    public static bool Perform(IReadOnlyList<MenuCommand> commands, KeyboardShortcut? positional, Func<KeyboardShortcut?> typed)
+    public static bool Perform(IReadOnlyList<MenuCommand> commands, KeyboardShortcut? positional, Func<KeyboardShortcut?> typed,
+        ShortcutScope scope = ShortcutScope.Chrome)
     {
         var typedChord = default(KeyboardShortcut?);
         var typedRead = false;
         foreach (var command in commands)
         {
             if (command.Shortcut is not { } held || command.IsDisabled) continue;
+            // PORT-ONLY (web W3b, DESIGN 3.7): a web view or the terminal gets every key first; only the commands marked as
+            // working inside content are taken from there.
+            if (scope == ShortcutScope.Content && !command.WorksInsideContent) continue;
             KeyboardShortcut? pressed;
             if (command.MatchesTypedCharacter)
             {
@@ -123,16 +128,19 @@ public static class MenuKeyEquivalents
     /// The dispatch the app's windows carry (ED-270): <paramref name="perform"/> is given the key-down's chord by key
     /// position and, read only when asked, by the character typed (<see cref="Perform(IReadOnlyList{MenuCommand}, KeyboardShortcut?, Func{KeyboardShortcut?})"/>).
     /// </summary>
-    public static IDisposable Attach(TopLevel window, Func<KeyboardShortcut?, Func<KeyboardShortcut?>, bool> perform)
+    public static IDisposable Attach(TopLevel window, Func<KeyboardShortcut?, Func<KeyboardShortcut?>, bool> perform) =>
+        Attach(window, (positional, typed, _) => perform(positional, typed));
+
+    /// <summary>
+    /// The same, told the scope of the control holding focus (web W3b, DESIGN 3.7): <see cref="ShortcutScope.Content"/> in a web
+    /// view or the terminal, where the content gets every key first.
+    /// </summary>
+    public static IDisposable Attach(TopLevel window, Func<KeyboardShortcut?, Func<KeyboardShortcut?>, ShortcutScope, bool> perform)
     {
         EventHandler<KeyEventArgs> onKeyDown = (_, e) =>
         {
             if (e.Handled) return;
-            var positional = Shortcut(e);
-            // PORT-ONLY (web W4, ED-NEW-web-w4-2, DESIGN 3.7): a key from inside the terminal (or a page) belongs to it, except the
-            // short reserved list; Ctrl+D is the shell's end of input and Ctrl+\ its quit character, not Toggle changes or Close pane.
-            if (ChordScope.Withholds(e)) return;
-            if (perform(positional, () => Typed(e))) e.Handled = true;
+            if (perform(Shortcut(e), () => Typed(e), ShortcutScopeHost.ScopeOfFocus(window))) e.Handled = true;
         };
         window.AddHandler(InputElement.KeyDownEvent, onKeyDown, RoutingStrategies.Tunnel);
         return new Detachment(() => window.RemoveHandler(InputElement.KeyDownEvent, onKeyDown));

@@ -4,395 +4,322 @@ using Avalonia.Input;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Panes;
 using Marrow.Core.Models;
+using Marrow.UI.Panes;
 
 namespace Marrow.App.Tests.Views.Panes;
 
 // nth web surfaces, unit W4 (work/design/web-surfaces/DESIGN.md 3.1 "Terminal ... stays the chat's drawer by default; can be dragged
-// into the grid", 3.6 "Press on a header's empty area and move 4 DIP: the pane lifts (scale 1.02, deeper shadow). Drop targets
-// appear as outlines ... The target under the pointer fills softly. Release: the solver runs with the new order and everything
-// springs into place. Esc or releasing over nothing springs the pane home ... The terminal can be dragged out of its drawer into
-// the grid and back"; 14 W4 "terminal drags between drawer and grid"): a header press lifts the terminal after 4 DIP, it follows
-// the pointer 1:1, every place it can land is outlined and the one under the pointer is lit, and a release writes the state
-// PaneDock names and springs from where the pane was dropped.
+// into the grid", 3.6 "The terminal can be dragged out of its drawer into the grid and back"; 14 W4 "terminal drags between drawer
+// and grid"). W3b's header re-dock lifts a card of the grid; the terminal's card has one more outline in it, the drawer at the chat's
+// foot, and a release there sends it back. The drawer lifts as a ghost over the same machinery: it follows the pointer 1:1, every cell
+// and the empty grid are outlined, and a release springs the ghost into the cell the real pane fades in at.
 [Collection("Headless")]
 [Trait("Decision", "ED-NEW-web-w4-1")]
 public sealed class TerminalDockTests(HeadlessSession headless)
 {
-    // Layout rounds an edge to a device pixel, so a drawn coordinate is within a pixel of the number it was computed from.
-    private static void Near(double expected, double actual) =>
-        Assert.True(Math.Abs(expected - actual) <= 1, $"expected {expected}, got {actual}");
-
     private static PaneWorkspaceState InGrid(params PaneKind[] panes) =>
         panes.Aggregate(PaneWorkspaceState.Default with { TerminalPrefersGrid = true }, (state, kind) => state.Open(kind));
 
     private static PaneWorkspaceState InDrawer(params PaneKind[] panes) =>
         panes.Aggregate(PaneWorkspaceState.Default.Open(PaneKind.Terminal), (state, kind) => state.Open(kind));
 
-    private static Point HeaderPoint(PaneWorkspaceRig rig, PaneKind kind)
-    {
-        var header = rig.BoundsOf(rig.Card(kind).Header);
-        return new Point(header.X + header.Width * 0.5, header.Y + header.Height / 2);
-    }
+    // Layout rounds an edge to a device pixel, so a drawn coordinate is within a pixel of the number it was computed from.
+    private static void Near(double expected, double actual) =>
+        Assert.True(Math.Abs(expected - actual) <= 1, $"expected {expected}, got {actual}");
 
     private static Point Centre(Rect rect) => new(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
 
-    private static (Rect Tasks, Rect Terminal) TwoCells(PaneWorkspaceRig rig) =>
-        (rig.Workspace.BoundsOf(PaneKind.BackgroundTasks)!.Value, rig.Workspace.BoundsOf(PaneKind.Terminal)!.Value);
+    // A target's centre in window coordinates: its rectangle is the solver's, under the title band.
+    private static Point Over(PaneDropVisual visual) => new(visual.Target.Bounds.X + visual.Target.Bounds.Width / 2, PaneWorkspace.TopBand + visual.Target.Bounds.Y + visual.Target.Bounds.Height / 2);
+
+    private static void Settled(PaneWorkspaceRig rig)
+    {
+        for (var i = 0; i < 60 && rig.Workspace.IsMoving; i++) rig.Frame();
+    }
+
+    private static Point LiftTerminal(PaneWorkspaceRig rig)
+    {
+        var press = rig.HeaderPoint(PaneKind.Terminal);
+        rig.Down(press);
+        rig.Move(press + new Vector(6, 0));
+        Assert.True(rig.Workspace.IsRedocking);
+        Settled(rig);
+        return press;
+    }
+
+    private static Point LiftDrawer(PaneWorkspaceRig rig)
+    {
+        var from = Centre(rig.BoundsOf(rig.ChatColumn.DrawerHeader));
+        rig.Down(from);
+        rig.Move(from + new Vector(2, 1));
+        Assert.False(rig.Workspace.IsRedocking, "2 DIP is not a lift");
+        rig.Move(from + new Vector(10, -30));
+        Assert.True(rig.Workspace.IsRedocking);
+        Settled(rig);
+        return from;
+    }
+
+    private static PaneWorkspaceRig WithDrawer(PaneWorkspaceState state, int width = 1400)
+    {
+        var rig = new PaneWorkspaceRig(width: width, state: state);
+        rig.ChatColumn.Drawer.IsVisible = true;
+        rig.Layout();
+        return rig;
+    }
 
     [Fact]
-    public void A_terminal_header_lifts_the_card_after_4_dip_and_it_follows_the_pointer_one_to_one() => headless.OnUiThread(() =>
+    public void A_grid_terminals_header_drag_outlines_the_drawer_at_the_chats_foot_and_a_release_there_sends_it_back() => headless.OnUiThread(() =>
     {
         using var rig = new PaneWorkspaceRig(state: InGrid(PaneKind.BackgroundTasks, PaneKind.Terminal));
-        var card = rig.Card(PaneKind.Terminal);
-        var press = HeaderPoint(rig, PaneKind.Terminal);
-        rig.Down(press);
-        rig.Move(press + new Vector(3, 0));
-        Assert.False(rig.Workspace.IsDocking, "3 DIP is not a drag");
-        rig.Move(press + new Vector(0, 3.9));
-        Assert.False(rig.Workspace.IsDocking, "4 DIP is the slop");
-        rig.Move(press + new Vector(6, 2));
-        Assert.True(rig.Workspace.IsDocking);
-        Assert.Equal(new Vector(6, 2), card.Shift);
-        Assert.True(card.IsLiftedLook);
-        Assert.Equal(40, card.ZIndex);
-
-        // 1:1: the card is at the pointer on every move, with no frame run between them (no spring lags the pointer).
-        foreach (var delta in new[] { new Vector(-120, 80), new Vector(-300, 5), new Vector(40, -20) })
-        {
-            rig.Move(press + delta);
-            Assert.Equal(delta, card.Shift);
-        }
-        // The lift itself springs: scale 1 to 1.02.
-        rig.Settle();
-        Assert.Equal(PaneWorkspace.LiftScale, card.Scale, 3);
-        Assert.Equal(new Vector(40, -20), card.Shift);
-        rig.Up(press + new Vector(40, -20));
-        rig.Settle();
-        Assert.False(rig.Workspace.IsDocking);
-    });
-
-    [Fact]
-    public void Every_other_cell_and_the_drawer_are_outlined_and_only_the_one_under_the_pointer_is_lit() => headless.OnUiThread(() =>
-    {
-        using var rig = new PaneWorkspaceRig(state: InGrid(PaneKind.BackgroundTasks, PaneKind.Terminal));
-        var (tasks, _) = TwoCells(rig);
-        var press = HeaderPoint(rig, PaneKind.Terminal);
-        rig.Down(press);
-        rig.Move(press + new Vector(10, 10));
-        Assert.True(rig.Workspace.IsDocking);
-        var outlines = rig.Workspace.DockOutlines;
-        Assert.Equal(2, outlines.Count);
-        Assert.Contains(outlines, outline => outline.Kind == PaneDropKind.Body && outline.Pane == PaneKind.BackgroundTasks);
-        Assert.Contains(outlines, outline => outline.Kind == PaneDropKind.Drawer);
-        Assert.All(outlines, outline => Assert.Equal(0, outline.Level, 3));
-
-        rig.Move(Centre(tasks));
-        Assert.Equal(new PaneDrop(PaneDropKind.Body, PaneKind.BackgroundTasks), rig.Workspace.DockDrop);
-        rig.Settle();
-        Assert.Equal(1, rig.Workspace.DockOutlines.Single(outline => outline.Kind == PaneDropKind.Body).Level, 3);
-        Assert.Equal(0, rig.Workspace.DockOutlines.Single(outline => outline.Kind == PaneDropKind.Drawer).Level, 3);
-
-        // The header strip is its own target (join as a tab).
-        rig.Move(new Point(tasks.X + tasks.Width / 2, tasks.Y + 10));
-        Assert.Equal(new PaneDrop(PaneDropKind.Header, PaneKind.BackgroundTasks), rig.Workspace.DockDrop);
-
-        var inChat = new Point(tasks.X - 40, tasks.Y + 100);
-        rig.Move(inChat);
-        Assert.True(rig.Workspace.DockDrop.IsNone, "the chat column's upper half is nothing");
-        rig.Settle();
-        Assert.All(rig.Workspace.DockOutlines, outline => Assert.Equal(0, outline.Level, 3));
-        rig.Up(inChat);
-        rig.Settle();
-        Assert.Empty(rig.Workspace.DockOutlines);
-    });
-
-    [Fact]
-    public void Releasing_over_another_cell_swaps_and_the_card_springs_from_where_it_was_dropped() => headless.OnUiThread(() =>
-    {
-        using var rig = new PaneWorkspaceRig(width: 2000, height: 700, state: InGrid(PaneKind.BackgroundTasks, PaneKind.Terminal));
-        var before = rig.Workspace.State;
-        var (tasks, terminal) = TwoCells(rig);
-        Assert.True(terminal.X > tasks.X + 100, "a window this wide tiles the two cells side by side");
-        var card = rig.Card(PaneKind.Terminal);
-        var press = HeaderPoint(rig, PaneKind.Terminal);
-        rig.Down(press);
-        rig.Move(press + new Vector(-60, 30));
-        var drop = new Point(tasks.Right - 30, tasks.Y + tasks.Height / 2); // the cell's right part: the card is then well clear of its new place
-        rig.Move(drop);
-        var dropped = card.Bounds.TopLeft + card.Shift; // where the lifted card is drawn: its cell's corner and how far it was carried
-        rig.Up(drop);
-
-        var after = Assert.Single(rig.Changes);
-        Assert.Equal(before.Swap(PaneKind.Terminal, PaneKind.BackgroundTasks).GridPanes, after.GridPanes);
-        Assert.Equal(new[] { PaneKind.Terminal, PaneKind.BackgroundTasks }, after.GridPanes);
-        // The first drawn frame of the new layout is where the card was dropped, not its new place: the move springs from there.
-        Assert.True(Math.Abs(dropped.X - card.Bounds.X) <= 1 && Math.Abs(dropped.Y - card.Bounds.Y) <= 1, $"drawn at {card.Bounds.TopLeft}, dropped at {dropped}"); // layout rounds to a device pixel
-        var home = rig.ExpectedBounds(PaneKind.Terminal);
-        Assert.True(Math.Abs(card.Bounds.X - home.X) > 100, "it has still to travel");
-        Assert.True(rig.Workspace.IsMoving);
-        var seen = 0;
-        while (rig.Workspace.IsMoving && seen < 200)
-        {
-            rig.Frame();
-            seen++;
-        }
-        Assert.InRange(seen, 8, 80);
-        Assert.False(rig.Workspace.IsDocking);
-        Assert.Equal(default, card.Shift);
-        Assert.False(card.IsLiftedLook);
-        Assert.Equal(1, card.Scale, 3);
-        Near(home.X, card.Bounds.X);
-        Near(tasks.X, card.Bounds.X); // the terminal now holds the cell Tasks had
-        Near(tasks.Y, card.Bounds.Y);
-    });
-
-    [Fact]
-    public void Releasing_on_a_header_joins_that_cell_as_a_tab() => headless.OnUiThread(() =>
-    {
-        using var rig = new PaneWorkspaceRig(state: InGrid(PaneKind.BackgroundTasks, PaneKind.Terminal));
-        var (tasks, _) = TwoCells(rig);
-        var press = HeaderPoint(rig, PaneKind.Terminal);
-        rig.Down(press);
-        rig.Move(press + new Vector(-30, 0));
-        var over = new Point(tasks.X + tasks.Width / 2, tasks.Y + 12);
-        rig.Move(over);
-        rig.Up(over);
-        rig.Settle();
-        var after = Assert.Single(rig.Changes);
-        var slot = Assert.Single(after.Order);
-        Assert.True(slot.IsGroup);
-        Assert.Equal(new[] { PaneKind.BackgroundTasks, PaneKind.Terminal }, slot.Panes);
-        Assert.Equal(2, rig.Card(PaneKind.Terminal).Header.TabStrip.Children.Count);
-    });
-
-    [Fact]
-    public void Releasing_over_the_chats_lower_half_sends_the_terminal_back_to_the_drawer() => headless.OnUiThread(() =>
-    {
-        using var rig = new PaneWorkspaceRig(state: InGrid(PaneKind.BackgroundTasks, PaneKind.Terminal));
-        var press = HeaderPoint(rig, PaneKind.Terminal);
-        rig.Down(press);
-        rig.Move(press + new Vector(-5, -5));
+        rig.Workspace.DrawerHeight = () => 300;
+        LiftTerminal(rig);
+        var drawer = Assert.Single(rig.Workspace.DropVisuals, visual => visual.Target.Kind == PaneDropKind.Drawer);
+        Assert.Equal(PaneKind.Terminal, drawer.Target.Target);
         var chat = rig.Workspace.ChatBounds;
-        var over = new Point(chat.X + 120, chat.Bottom - 30);
+        Near(chat.Width, drawer.Target.Bounds.Width);
+        Near(300, drawer.Target.Bounds.Height);
+        Near(rig.Expected().Chat.Bottom, drawer.Target.Bounds.Bottom);
+        Assert.Contains(rig.Workspace.DropVisuals, visual => visual.Target.Kind == PaneDropKind.Body && visual.Target.Target == PaneKind.BackgroundTasks);
+
+        var over = Over(drawer);
         rig.Move(over);
-        Assert.Equal(new PaneDrop(PaneDropKind.Drawer), rig.Workspace.DockDrop);
-        rig.Settle();
-        Assert.Equal(1, rig.Workspace.DockOutlines.Single(outline => outline.Kind == PaneDropKind.Drawer).Level, 3);
+        Assert.Equal(PaneDropKind.Drawer, rig.Workspace.HotDrop!.Target.Kind);
+        Settled(rig);
+        Near(1, drawer.Hot);
         rig.Up(over);
         rig.Settle();
+
         var after = Assert.Single(rig.Changes);
         Assert.True(after.IsTerminalInDrawer);
         Assert.DoesNotContain(PaneKind.Terminal, after.GridPanes);
         Assert.False(after.TerminalPrefersGrid);
         Assert.Null(rig.Workspace.CardOf(PaneKind.Terminal));
-        Assert.False(rig.Workspace.IsDocking);
+        Assert.False(rig.Workspace.IsRedocking);
+        Assert.Empty(rig.Workspace.DropVisuals);
     });
 
     [Fact]
-    public void Releasing_over_nothing_springs_the_card_home_and_reports_no_change() => headless.OnUiThread(() =>
+    public void The_drawer_outline_keeps_its_own_minimum_and_leaves_the_chat_room_above_it() => headless.OnUiThread(() =>
     {
         using var rig = new PaneWorkspaceRig(state: InGrid(PaneKind.BackgroundTasks, PaneKind.Terminal));
-        var card = rig.Card(PaneKind.Terminal);
-        var home = card.Bounds;
-        var press = HeaderPoint(rig, PaneKind.Terminal);
-        rig.Down(press);
-        rig.Move(press + new Vector(-200, 60));
-        Assert.Equal(new Vector(-200, 60), card.Shift);
-        rig.Up(press + new Vector(-200, 60));
-        Assert.Empty(rig.Changes);
-        Assert.True(rig.Workspace.IsMoving);
-        var last = 200.0;
-        var frames = 0;
-        while (rig.Workspace.IsMoving && frames++ < 200)
-        {
-            rig.Frame();
-            Assert.True(Math.Abs(card.Shift.X) <= last + 4, "it goes home one way, up to the spring's ripple");
-            last = Math.Abs(card.Shift.X);
-        }
-        Assert.Equal(default, card.Shift);
-        Assert.Equal(home, card.Bounds);
-        Assert.False(rig.Workspace.IsDocking);
-        Assert.False(card.IsLiftedLook);
+        var chat = rig.Expected().Chat;
+        Assert.Equal(PaneRedock.DrawerMinimumHeight, PaneRedock.DrawerBounds(rig.Expected(), 20).Height);
+        Assert.Equal(chat.Height - PaneRedock.ChatReserveHeight, PaneRedock.DrawerBounds(rig.Expected(), 9000).Height, 6);
+        Assert.Equal(260, PaneRedock.DrawerBounds(rig.Expected(), PaneRedock.DefaultDrawerHeight).Height);
+        Assert.Equal(chat.Bottom, PaneRedock.DrawerBounds(rig.Expected(), 260).Bottom, 6);
     });
 
     [Fact]
-    public void Esc_springs_the_pane_home_from_wherever_the_keyboard_is_and_the_release_after_it_does_nothing() => headless.OnUiThread(() =>
+    public void A_drawers_header_lifts_a_ghost_of_the_pane_that_follows_the_pointer_one_to_one() => headless.OnUiThread(() =>
     {
-        using var rig = new PaneWorkspaceRig(state: InGrid(PaneKind.BackgroundTasks, PaneKind.Terminal));
-        var (tasks, _) = TwoCells(rig);
-        var card = rig.Card(PaneKind.Terminal);
-        var press = HeaderPoint(rig, PaneKind.Terminal);
-        rig.Down(press);
-        rig.Move(Centre(tasks));
-        Assert.Equal(PaneDropKind.Body, rig.Workspace.DockDrop.Kind);
-        rig.Key(Key.Escape);
-        Assert.Empty(rig.Changes);
-        rig.Settle();
-        Assert.False(rig.Workspace.IsDocking);
-        Assert.Equal(default, card.Shift);
-        rig.Move(press + new Vector(-300, 0)); // the pointer is still down: nothing follows it now
-        rig.Up(press);
-        rig.Settle();
-        Assert.Empty(rig.Changes);
-        Assert.Equal(default, card.Shift);
-    });
-
-    [Fact]
-    public void A_header_button_a_narrow_workspace_and_an_expanded_pane_never_start_a_drag() => headless.OnUiThread(() =>
-    {
-        using var rig = new PaneWorkspaceRig(state: InGrid(PaneKind.BackgroundTasks, PaneKind.Terminal));
-        var card = rig.Card(PaneKind.Terminal);
-        var close = rig.BoundsOf(card.Header.CloseButton);
-        var onClose = Centre(close);
-        rig.Down(onClose);
-        rig.Move(onClose + new Vector(-30, 0));
-        rig.Move(onClose + new Vector(-60, 0));
-        Assert.False(rig.Workspace.IsDocking, "the Close button takes its own press");
-        rig.Up(onClose + new Vector(-60, 0));
-        Assert.Empty(rig.Changes);
-
-        rig.Workspace.ToggleExpanded(PaneKind.Terminal);
-        rig.Settle();
-        var press = HeaderPoint(rig, PaneKind.Terminal);
-        rig.Down(press);
-        rig.Move(press + new Vector(30, 0));
-        rig.Move(press + new Vector(60, 0));
-        Assert.False(rig.Workspace.IsDocking, "an expanded pane is not re-docked");
-        rig.Up(press);
-        rig.Workspace.RestoreExpanded();
-        rig.Settle();
-
-        rig.Window.Width = 700;
-        rig.Layout();
-        rig.Settle();
-        Assert.Equal(PaneLayoutMode.Narrow, rig.Workspace.Layout!.Mode);
-        var narrow = HeaderPoint(rig, PaneKind.Terminal);
-        rig.Down(narrow);
-        rig.Move(narrow + new Vector(30, 0));
-        rig.Move(narrow + new Vector(60, 0));
-        Assert.False(rig.Workspace.IsDocking, "narrow mode has no grid to drop in");
-        rig.Up(narrow);
-    });
-
-    [Fact]
-    public void Under_Reduce_Motion_the_card_lifts_without_growing() => headless.OnUiThread(() =>
-    {
-        using var rig = new PaneWorkspaceRig(reduceMotion: true, state: InGrid(PaneKind.BackgroundTasks, PaneKind.Terminal));
-        var card = rig.Card(PaneKind.Terminal);
-        var press = HeaderPoint(rig, PaneKind.Terminal);
-        rig.Down(press);
-        rig.Move(press + new Vector(20, 20));
-        rig.Settle();
-        Assert.True(rig.Workspace.IsDocking);
-        Assert.Equal(1, card.Scale, 3);
-        Assert.True(card.IsLiftedLook, "the deeper shadow still shows it is lifted");
-        rig.Up(press + new Vector(20, 20));
-        rig.Settle();
-        Assert.False(rig.Workspace.IsDocking);
-    });
-
-    [Fact]
-    public void A_state_change_from_elsewhere_ends_the_drag_where_it_is() => headless.OnUiThread(() =>
-    {
-        using var rig = new PaneWorkspaceRig(state: InGrid(PaneKind.BackgroundTasks, PaneKind.Terminal));
-        var card = rig.Card(PaneKind.Terminal);
-        var press = HeaderPoint(rig, PaneKind.Terminal);
-        rig.Down(press);
-        rig.Move(press + new Vector(-50, 0));
-        Assert.True(rig.Workspace.IsDocking);
-        rig.Workspace.SetState(rig.Workspace.State.Open(PaneKind.Browser));
-        rig.Layout();
-        Assert.False(rig.Workspace.IsDocking);
-        Assert.Equal(default, card.Shift);
-        Assert.Empty(rig.Workspace.DockOutlines);
-        rig.Up(press);
-        rig.Settle();
-        Assert.True(rig.Workspace.State.IsOpen(PaneKind.Browser));
-        Assert.Empty(rig.Changes);
-    });
-
-    [Fact]
-    public void A_drawers_header_lifts_a_ghost_of_the_pane_and_a_drop_in_the_empty_grid_opens_it_there() => headless.OnUiThread(() =>
-    {
-        using var rig = new PaneWorkspaceRig(state: InDrawer());
-        rig.ChatColumn.Drawer.IsVisible = true;
-        rig.Layout();
-        using var gesture = PaneDockGesture.Attach(rig.ChatColumn.DrawerHeader, PaneKind.Terminal, () => rig.Workspace, () => rig.ChatColumn.Drawer);
+        using var rig = WithDrawer(InDrawer(PaneKind.BackgroundTasks));
+        using var gesture = DrawerLiftGesture.Attach(rig.ChatColumn.DrawerHeader, () => rig.Workspace, () => rig.ChatColumn.Drawer);
         var drawer = rig.BoundsOf(rig.ChatColumn.Drawer);
-        var header = rig.BoundsOf(rig.ChatColumn.DrawerHeader);
-        var press = Centre(header);
-        rig.Down(press);
-        rig.Move(press + new Vector(2, 1));
-        Assert.False(rig.Workspace.IsDocking);
-        rig.Move(press + new Vector(10, -30));
-        Assert.True(rig.Workspace.IsDocking);
-        var ghost = Assert.IsType<PaneCard>(rig.Workspace.DockGhost);
-        rig.Layout();
-        Assert.Equal(drawer.Size, ghost.Bounds.Size);
-        Near(drawer.X + 10, ghost.Bounds.X); // 1:1, like a card
-        Near(drawer.Y - 30, ghost.Bounds.Y);
+        var from = LiftDrawer(rig);
+        var ghost = Assert.IsType<PaneCard>(rig.Workspace.DrawerGhost);
+        Assert.Equal(new Vector(10, -30), ghost.Offset);
+        Near(drawer.Width, ghost.Bounds.Width);
+        Near(drawer.Height, ghost.Bounds.Height);
+        Near(drawer.X, ghost.Bounds.X);
+        Near(drawer.Y, ghost.Bounds.Y);
         Assert.False(ghost.IsHitTestVisible);
-        var outline = Assert.Single(rig.Workspace.DockOutlines);
-        Assert.Equal(PaneDropKind.Grid, outline.Kind);
-        Assert.True(rig.Workspace.DockDrop.IsNone);
-
-        var inGrid = new Point(rig.Window.Width - 100, 300);
-        rig.Move(inGrid);
-        Assert.Equal(new PaneDrop(PaneDropKind.Grid), rig.Workspace.DockDrop);
-        rig.Up(inGrid);
-        var after = Assert.Single(rig.Changes);
-        Assert.False(after.IsTerminalInDrawer);
-        Assert.Equal(new[] { PaneKind.Terminal }, after.GridPanes);
-        Assert.True(after.TerminalPrefersGrid);
-
-        // The ghost springs into the cell the pane fades in at, then goes.
-        var frames = 0;
-        rig.Layout();
-        var card = rig.Card(PaneKind.Terminal);
-        Assert.NotNull(rig.Workspace.DockGhost);
-        while ((rig.Workspace.IsMoving || rig.Workspace.IsDocking) && frames++ < 300) rig.Frame();
+        Assert.True(ghost.IsLiftedLook);
+        Assert.Equal(40, ghost.ZIndex);
+        Assert.Equal(PaneRedock.LiftScale, ghost.Scale, 2);
+        foreach (var delta in new[] { new Vector(-120, 80), new Vector(300, 5), new Vector(40, -20) })
+        {
+            rig.Move(from + delta);
+            Assert.Equal(delta, ghost.Offset);
+        }
+        Assert.False(rig.Workspace.SplitterOf(PaneGutterKeys.Chat).IsHitTestVisible, "no splitter takes the pointer while a pane is held");
+        rig.Up(from + new Vector(40, -20));
         rig.Settle();
-        Assert.Null(rig.Workspace.DockGhost);
-        Assert.False(rig.Workspace.IsDocking);
-        Assert.Equal(1, card.Opacity, 3);
-        Near(rig.ExpectedBounds(PaneKind.Terminal).X, card.Bounds.X);
-        Assert.Empty(rig.Workspace.DockOutlines);
+        Assert.False(rig.Workspace.IsRedocking);
+        Assert.Null(rig.Workspace.DrawerGhost);
+        Assert.Empty(rig.Changes);
     });
 
     [Fact]
-    public void A_drawer_dropped_over_a_cell_takes_that_slot_and_one_dropped_over_nothing_goes_home() => headless.OnUiThread(() =>
+    public void Every_cell_is_outlined_for_a_drawer_lift_and_a_release_over_a_body_takes_that_slot() => headless.OnUiThread(() =>
     {
-        using var rig = new PaneWorkspaceRig(state: InDrawer(PaneKind.BackgroundTasks, PaneKind.Browser));
-        rig.ChatColumn.Drawer.IsVisible = true;
-        rig.Layout();
-        using var gesture = PaneDockGesture.Attach(rig.ChatColumn.DrawerHeader, PaneKind.Terminal, () => rig.Workspace, () => rig.ChatColumn.Drawer);
-        var header = rig.BoundsOf(rig.ChatColumn.DrawerHeader);
-        var press = Centre(header);
-
-        // Nowhere: the chat column, then release.
-        rig.Down(press);
-        rig.Move(press + new Vector(30, -40));
-        Assert.True(rig.Workspace.IsDocking);
-        Assert.True(rig.Workspace.DockDrop.IsNone);
-        var ghost = rig.Workspace.DockGhost!;
-        rig.Up(press + new Vector(30, -40));
-        Assert.Empty(rig.Changes);
-        rig.Settle();
-        Assert.Null(rig.Workspace.DockGhost);
-        Assert.True(rig.Workspace.State.IsTerminalInDrawer);
-
-        // On the Visus cell's body: the terminal takes that slot, Visus shifts one later.
-        var visus = rig.Workspace.BoundsOf(PaneKind.Browser)!.Value;
-        rig.Down(press);
-        rig.Move(press + new Vector(50, -10));
-        rig.Move(Centre(visus));
-        Assert.Equal(new PaneDrop(PaneDropKind.Body, PaneKind.Browser), rig.Workspace.DockDrop);
-        rig.Up(Centre(visus));
-        rig.Settle();
+        using var rig = WithDrawer(InDrawer(PaneKind.BackgroundTasks, PaneKind.Browser));
+        using var gesture = DrawerLiftGesture.Attach(rig.ChatColumn.DrawerHeader, () => rig.Workspace, () => rig.ChatColumn.Drawer);
+        LiftDrawer(rig);
+        var visuals = rig.Workspace.DropVisuals;
+        Assert.Equal(4, visuals.Count); // Tasks and Visus, each a body and a header
+        Assert.DoesNotContain(visuals, visual => visual.Target.Kind is PaneDropKind.Grid or PaneDropKind.Drawer);
+        var visus = visuals.Single(visual => visual.Target.Kind == PaneDropKind.Body && visual.Target.Target == PaneKind.Browser);
+        rig.Move(Over(visus));
+        Assert.Equal((PaneDropKind.Body, PaneKind.Browser), (rig.Workspace.HotDrop!.Target.Kind, rig.Workspace.HotDrop.Target.Target));
+        Settled(rig);
+        Near(1, rig.Workspace.HotDrop.Hot);
+        rig.Up(Over(visus));
         var after = Assert.Single(rig.Changes);
         Assert.Equal(new[] { PaneKind.BackgroundTasks, PaneKind.Terminal, PaneKind.Browser }, after.GridPanes);
         Assert.False(after.IsTerminalInDrawer);
+        Assert.True(after.TerminalPrefersGrid);
         Assert.NotNull(rig.Workspace.CardOf(PaneKind.Terminal));
-        _ = ghost;
+        Assert.NotNull(rig.Workspace.DrawerGhost);
+        rig.Settle();
+        Assert.Null(rig.Workspace.DrawerGhost);
+        Assert.Equal(1, rig.Card(PaneKind.Terminal).Opacity, 3);
+        var expected = rig.ExpectedBounds(PaneKind.Terminal);
+        Near(expected.X, rig.Card(PaneKind.Terminal).Bounds.X);
+        Near(expected.Y, rig.Card(PaneKind.Terminal).Bounds.Y);
+    });
+
+    [Fact]
+    public void A_release_over_a_header_joins_that_cell_as_a_tab() => headless.OnUiThread(() =>
+    {
+        using var rig = WithDrawer(InDrawer(PaneKind.BackgroundTasks, PaneKind.Browser));
+        using var gesture = DrawerLiftGesture.Attach(rig.ChatColumn.DrawerHeader, () => rig.Workspace, () => rig.ChatColumn.Drawer);
+        LiftDrawer(rig);
+        var header = rig.Workspace.DropVisuals.Single(visual => visual.Target.Kind == PaneDropKind.Header && visual.Target.Target == PaneKind.Browser);
+        var over = new Point(header.Target.Bounds.X + header.Target.Bounds.Width / 2, PaneWorkspace.TopBand + header.Target.Bounds.Y + 12);
+        rig.Move(over);
+        Assert.Equal(PaneDropKind.Header, rig.Workspace.HotDrop!.Target.Kind);
+        rig.Up(over);
+        rig.Settle();
+        var after = Assert.Single(rig.Changes);
+        var slot = after.Order.Single(candidate => candidate.Contains(PaneKind.Terminal));
+        Assert.True(slot.IsGroup);
+        Assert.Equal(new[] { PaneKind.Browser, PaneKind.Terminal }, slot.Panes);
+        Assert.Equal(2, rig.Card(PaneKind.Terminal).Header.TabStrip.Children.Count);
+    });
+
+    [Fact]
+    public void With_no_cell_in_the_grid_the_right_of_the_workspace_opens_it_and_the_ghost_springs_there() => headless.OnUiThread(() =>
+    {
+        using var rig = WithDrawer(InDrawer());
+        using var gesture = DrawerLiftGesture.Attach(rig.ChatColumn.DrawerHeader, () => rig.Workspace, () => rig.ChatColumn.Drawer);
+        LiftDrawer(rig);
+        var grid = Assert.Single(rig.Workspace.DropVisuals);
+        Assert.Equal(PaneDropKind.Grid, grid.Target.Kind);
+        Assert.True(grid.Target.Bounds.X >= PaneKinds.ChatMinWidth, "beside a readable chat");
+        var over = Over(grid);
+        rig.Move(over);
+        Assert.Equal(PaneDropKind.Grid, rig.Workspace.HotDrop!.Target.Kind);
+        rig.Up(over);
+        var after = Assert.Single(rig.Changes);
+        Assert.False(after.IsTerminalInDrawer);
+        Assert.Equal(new[] { PaneKind.Terminal }, after.GridPanes);
+
+        // The ghost springs into the cell while the real pane fades in there, then the ghost goes.
+        var card = rig.Card(PaneKind.Terminal);
+        Assert.Equal(0, card.Opacity, 2);
+        var ghost = Assert.IsType<PaneCard>(rig.Workspace.DrawerGhost);
+        var seen = new List<double>();
+        while ((rig.Workspace.IsMoving || rig.Workspace.IsRedocking) && seen.Count < 300)
+        {
+            rig.Frame();
+            seen.Add(ghost.Opacity);
+        }
+        Assert.InRange(seen.Count, 8, 120);
+        Assert.Null(rig.Workspace.DrawerGhost);
+        Assert.Equal(1, card.Opacity, 3);
+        Assert.Equal(0, seen[^1], 2);
+        Near(rig.ExpectedBounds(PaneKind.Terminal).X, card.Bounds.X);
+        Assert.Empty(rig.Workspace.DropVisuals);
+    });
+
+    [Fact]
+    public void A_release_over_nothing_or_Esc_springs_the_ghost_home_and_changes_nothing() => headless.OnUiThread(() =>
+    {
+        using var rig = WithDrawer(InDrawer(PaneKind.BackgroundTasks));
+        using var gesture = DrawerLiftGesture.Attach(rig.ChatColumn.DrawerHeader, () => rig.Workspace, () => rig.ChatColumn.Drawer);
+        var from = LiftDrawer(rig);
+        Assert.NotNull(rig.Workspace.DrawerGhost);
+        rig.Move(from + new Vector(30, -60)); // in the chat column: no target
+        Assert.Null(rig.Workspace.HotDrop);
+        rig.Up(from + new Vector(30, -60));
+        Assert.Empty(rig.Changes);
+        rig.Settle();
+        Assert.Null(rig.Workspace.DrawerGhost);
+        Assert.True(rig.Workspace.State.IsTerminalInDrawer);
+
+        LiftDrawer(rig);
+        Assert.NotNull(rig.Workspace.DrawerGhost);
+        rig.Key(Key.Escape);
+        rig.Settle();
+        Assert.False(rig.Workspace.IsRedocking);
+        Assert.Null(rig.Workspace.DrawerGhost);
+        Assert.Empty(rig.Changes);
+    });
+
+    [Fact]
+    public void A_header_button_a_narrow_workspace_and_an_expanded_pane_never_lift_the_drawer() => headless.OnUiThread(() =>
+    {
+        using var rig = WithDrawer(InDrawer(PaneKind.BackgroundTasks));
+        using var gesture = DrawerLiftGesture.Attach(rig.ChatColumn.DrawerHeader, () => rig.Workspace, () => rig.ChatColumn.Drawer);
+        // A button in the header takes its own press.
+        var button = new Button { Width = 30, Height = 20, Content = "x", Background = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left }; // a background, so the press lands on the button
+        rig.ChatColumn.DrawerHeader.Child = button;
+        rig.Layout();
+        var onButton = Centre(rig.BoundsOf(button));
+        rig.Down(onButton);
+        rig.Move(onButton + new Vector(30, -5));
+        rig.Move(onButton + new Vector(60, -5));
+        Assert.False(rig.Workspace.IsRedocking);
+        rig.Up(onButton + new Vector(60, -5));
+        rig.ChatColumn.DrawerHeader.Child = null;
+
+        // An expanded pane has the whole workspace: nowhere to drop.
+        rig.Workspace.ToggleExpanded(PaneKind.BackgroundTasks);
+        rig.Settle();
+        var header = rig.BoundsOf(rig.ChatColumn.DrawerHeader);
+        var empty = new Point(header.X + 200, header.Y + 10);
+        rig.Down(empty);
+        rig.Move(empty + new Vector(30, 0));
+        rig.Move(empty + new Vector(60, 0));
+        Assert.False(rig.Workspace.IsRedocking, "an expanded workspace takes no drop");
+        rig.Up(empty);
+        rig.Workspace.RestoreExpanded();
+        rig.Settle();
+        rig.Changes.Clear(); // the expand and the restore were the test's own
+
+        // A window tiled but too tight for the terminal beside the chat (Tasks alone tiles from 688, with the terminal from 728) has no place
+        // to drop it: the lift is refused. So is one narrow enough to be tabs.
+        foreach (var width in new[] { 710, 600 })
+        {
+            rig.Window.Width = width;
+            rig.Layout();
+            rig.Settle();
+            var tight = Centre(rig.BoundsOf(rig.ChatColumn.DrawerHeader));
+            rig.Down(tight);
+            rig.Move(tight + new Vector(30, 0));
+            rig.Move(tight + new Vector(60, 0));
+            Assert.False(rig.Workspace.IsRedocking, $"{width} DIP");
+            rig.Up(tight);
+        }
+        Assert.Empty(rig.Changes);
+    });
+
+    [Fact]
+    public void A_cell_that_would_make_the_workspace_narrow_tabs_is_no_target_for_the_drawer() => headless.OnUiThread(() =>
+    {
+        // Tasks alone tiles from 688 DIP; the terminal beside it needs 728. At 710 the drawer has no cell to land on.
+        using var rig = new PaneWorkspaceRig(width: 710, state: InDrawer(PaneKind.BackgroundTasks));
+        Assert.Equal(PaneLayoutMode.Tiles, rig.Workspace.Layout!.Mode);
+        Assert.False(rig.Workspace.CanDockTerminalToGrid(rig.Workspace.State));
+        Assert.Empty(PaneRedock.DrawerTargets(rig.Workspace.State, rig.Workspace.Layout!));
+        rig.Window.Width = 900;
+        rig.Layout();
+        rig.Settle();
+        Assert.True(rig.Workspace.CanDockTerminalToGrid(rig.Workspace.State));
+        Assert.Equal(2, PaneRedock.DrawerTargets(rig.Workspace.State, rig.Workspace.Layout!).Count); // a body and a header of Tasks
+    });
+
+    [Fact]
+    public void A_thread_switch_ends_a_drawer_lift_where_it_is() => headless.OnUiThread(() =>
+    {
+        using var rig = WithDrawer(InDrawer(PaneKind.BackgroundTasks));
+        using var gesture = DrawerLiftGesture.Attach(rig.ChatColumn.DrawerHeader, () => rig.Workspace, () => rig.ChatColumn.Drawer);
+        LiftDrawer(rig);
+        Assert.NotNull(rig.Workspace.DrawerGhost);
+        rig.Workspace.Reload(_ => null, PaneWorkspaceState.Default);
+        rig.Settle();
+        Assert.False(rig.Workspace.IsRedocking);
+        Assert.Null(rig.Workspace.DrawerGhost);
+        Assert.Empty(rig.Workspace.DropVisuals);
     });
 }

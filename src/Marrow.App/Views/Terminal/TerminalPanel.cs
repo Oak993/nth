@@ -88,7 +88,7 @@ public sealed class TerminalPanel : Decorator
         header.Children.Add(add);
 
         // PORT-ONLY (web W4, DESIGN 3.1, 3.6): the drawer can go to the pane grid. A drag of the header's empty area does it by
-        // pointer (PaneDockGesture); this button is the way without one.
+        // pointer (DrawerLiftGesture); this button is the way without one.
         var dock = MakeIconButton("rectangle.righthalf.inset.fill", "Move to the panes", () =>
             runtime.Workspace = runtime.Workspace.MoveTerminalToGrid());
         dock.IsVisible = false;
@@ -115,7 +115,7 @@ public sealed class TerminalPanel : Decorator
             dockHost = null;
         };
         this.Track(() => runtime.Workspace, _ => UpdateDock());
-        PaneDockGesture.Attach(header, PaneKind.Terminal, () => this.FindAncestorOfType<PaneWorkspace>(), () => this);
+        DrawerLiftGesture.Attach(header, () => this.FindAncestorOfType<PaneWorkspace>(), () => this);
 
         // :52 .help("Hide terminal\(ShortcutStore.hint(for: .toggleTerminal))"): the chord is read live, so a remapped or
         // cleared Toggle terminal shortcut corrects the tooltip. :53 the accessibility label never carries it.
@@ -658,6 +658,10 @@ public sealed class TerminalHostContainer : Decorator
     private PropertyChangedEventHandler? resizeStarted;
     private PropertyChangedEventHandler? resizeEnded;
     private bool wasLiveResizing;
+
+    // PORT-ONLY (web W3b, DESIGN 3.7): the terminal is a content scope. The shell gets every key first (Ctrl+D is end of input,
+    // Ctrl+Backslash is quit); nth takes only the reserved chords from here.
+    public TerminalHostContainer() => ShortcutScopeHost.SetScope(this, ShortcutScope.Content);
 
     /// <summary>Actual registrations for the two will-start/did-end observers in Swift.</summary>
     internal int ResizeObserverCount => (resizeStarted is null ? 0 : 1) + (resizeEnded is null ? 0 : 1);
