@@ -8,6 +8,7 @@
 // No Swift counterpart.
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Marrow.Core.Web;
 
@@ -105,13 +106,39 @@ public sealed class McpAppModelContext
 }
 
 /// <summary>How app content is marked for the model: untrusted, attributed, never the user's.</summary>
-public static class McpAppUntrusted
+public static partial class McpAppUntrusted
 {
     /// <summary>The row's heading for a posted message: "Message from shipyard".</summary>
     public static string MessageHeading(string server) => "Message from " + server;
 
     /// <summary>The first-use question for posted messages.</summary>
     public static string MessagePermission(string server) => $"Let {server} post messages in this chat?";
+
+    /// <summary>
+    /// ED-NEW-web-w26-7 (W26 security review): app messages may start at most this many turns in a row. Allowing an app's
+    /// messages once per chat is not leave to keep the model running on its own: the user's own message resets the count.
+    /// </summary>
+    public const int MaxTurnsInARow = 3;
+
+    /// <summary>What an app is told when it reached <see cref="MaxTurnsInARow"/>.</summary>
+    public const string TurnsInARowRefusal = "Apps have started three answers in a row. The user's next message lets apps post again.";
+
+    /// <summary>
+    /// The turns app messages started since the user last wrote, from a chat's user messages in order. A Hydra head's or
+    /// brief's message neither counts nor resets.
+    /// </summary>
+    public static int TurnsInARow(IEnumerable<Marrow.Core.Models.UserMessage> messages)
+    {
+        ArgumentNullException.ThrowIfNull(messages);
+        var count = 0;
+        foreach (var message in messages)
+        {
+            if (message.AppSource is not null) count++;
+            else if (!message.IsFromHydra && !message.IsHydraBrief) count = 0;
+        }
+
+        return count;
+    }
 
     /// <summary>A message an app posted, as the model receives it.</summary>
     public static string WrapMessage(string server, string text)
@@ -142,9 +169,14 @@ public static class McpAppUntrusted
     }
 
     // A tag the app writes itself cannot close nth's wrapper early.
-    private static string Neutralise(string text) => (text ?? "")
+    // + ED-NEW-web-w26-6 (W26 security review): nor open a new one, in any case or spacing ("< /APP_MESSAGE >", "app-context"):
+    // every spelling of the two tag names gets a non-breaking hyphen, as WebAgentText.Defuse does for page content.
+    private static string Neutralise(string text) => TagName().Replace((text ?? "")
         .Replace("</app_message", "<\\/app_message", StringComparison.OrdinalIgnoreCase)
-        .Replace("</app_context", "<\\/app_context", StringComparison.OrdinalIgnoreCase);
+        .Replace("</app_context", "<\\/app_context", StringComparison.OrdinalIgnoreCase), match => match.Value[..3] + "‑" + match.Groups[1].Value);
+
+    [GeneratedRegex(@"(?<![\p{L}\p{N}])app[\s_\-‐-―−]{0,3}(message|context)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex TagName();
 
     private static string Clean(string name) => new((name ?? "").Where(c => !char.IsControl(c) && c is not ('"' or '<' or '>')).ToArray());
 }

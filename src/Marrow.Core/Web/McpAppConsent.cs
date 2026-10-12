@@ -59,7 +59,8 @@ public static class McpAppDomains
     public const string BroadAccessTitle = "Allow broad access";
 
     public const string BroadAccessRisk =
-        "Wildcard sites let this app reach any site that matches them, and 'unsafe-eval' lets it run text as code. " +
+        "Wildcard sites let this app reach any site that matches them, local addresses let it reach your computer and local network, " +
+        "and 'unsafe-eval' lets it run text as code. " +
         "Anything it shows, computes or you type into it can be sent to those sites.";
 
     public const string NotNowText = "Not now";
@@ -72,7 +73,7 @@ public static class McpAppDomains
         var all = declared.ConnectDomains.Concat(declared.ResourceDomains).Concat(declared.FrameDomains).Concat(declared.BaseUriDomains).ToList();
         var strict = CspBuilder.Clean(all, allowBroad: false);
         var broad = CspBuilder.Clean(all, allowBroad: true);
-        var broadOnly = strict.Dropped.Where(d => d.Reason is "a wildcard" or "lets the page run text as code").ToList();
+        var broadOnly = strict.Dropped.Where(d => d.Reason is "a wildcard" or "lets the page run text as code" or CspBuilder.LocalNetworkReason).ToList(); // + ED-NEW-web-w26-4
         var refused = broad.Dropped.ToList();
         var domains = strict.Kept.Select(Display).Distinct(StringComparer.Ordinal).ToList();
         if (domains.Count == 0 && broadOnly.Count == 0) return null;
@@ -113,7 +114,19 @@ public static class McpAppDomains
     public static IReadOnlyList<string> Hosts(McpUiCsp declared, McpAppDomainGrant? grant)
     {
         if (Allowed(declared, grant) is not { } allowed) return [];
-        var sources = CspBuilder.Clean(allowed.ConnectDomains.Concat(allowed.ResourceDomains).Concat(allowed.FrameDomains), grant!.Broad).Kept;
+        return HostsOf(allowed.ConnectDomains.Concat(allowed.ResourceDomains).Concat(allowed.FrameDomains), grant!.Broad);
+    }
+
+    /// <summary>
+    /// ED-NEW-web-w26-5 (W26 security review): the hosts a view may show in a frame after the grant: its declared frame
+    /// domains only, never a connect or resource domain (the CSP's frame-src says the same; this is nth's own check).
+    /// </summary>
+    public static IReadOnlyList<string> FrameHosts(McpUiCsp declared, McpAppDomainGrant? grant) =>
+        Allowed(declared, grant) is { } allowed ? HostsOf(allowed.FrameDomains, grant!.Broad) : [];
+
+    private static List<string> HostsOf(IEnumerable<string> declared, bool broad)
+    {
+        var sources = CspBuilder.Clean(declared, broad).Kept;
         var hosts = new List<string>();
         foreach (var source in sources)
         {

@@ -95,6 +95,12 @@ public interface IMcpAppHostUi
 
     /// <summary>A web link the app or the user in it asked to open, through the link setting.</summary>
     void OpenLink(McpAppMount app, string url);
+
+    /// <summary>
+    /// ED-NEW-web-w26-3: "shipyard wants to open shipyard.dev" with Open / Cancel, for a link the app asks to open by itself
+    /// (ui/open-link, no click in the view). True opens it.
+    /// </summary>
+    Task<bool> AskOpenLinkAsync(McpAppMount app, string url);
 }
 
 /// <summary>Which tool call an app draws, and where.</summary>
@@ -177,6 +183,7 @@ public sealed class McpAppMount : IWebResourceHandler, IDisposable
     private McpAppDomainGrant? grant;
     private bool askedDomains;
     private bool messagesRefused;
+    private bool linkAsking; // ED-NEW-web-w26-3: an open-link card is showing
     private bool disposed;
 
     internal McpAppMount(McpAppsHost host, WebSurfaceView view, McpAppLaunch launch)
@@ -388,9 +395,10 @@ public sealed class McpAppMount : IWebResourceHandler, IDisposable
     }
 
     // Frames reach only a host the user allowed (frame-src in the CSP keeps them to the declared frame domains).
+    // + ED-NEW-web-w26-5: and only a declared frame domain, never a connect or resource domain.
     private bool AllowsFrame(string url) =>
         page is { } current && current.Csp.FrameDomains.Count > 0 && Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps
-        && McpAppDomains.Matches(uri.IdnHost.ToLowerInvariant(), McpAppDomains.Hosts(current.Csp, grant));
+        && McpAppDomains.Matches(uri.IdnHost.ToLowerInvariant(), McpAppDomains.FrameHosts(current.Csp, grant));
 
     private WebResourceResponse Forbidden(WebResourceRequest request, string why)
     {
@@ -672,6 +680,9 @@ public sealed class McpAppMount : IWebResourceHandler, IDisposable
         bridge.Answer(request, []);
     }
 
+    // + ED-NEW-web-w26-3 (W26 security review): a link the app opens by itself carries no click, so it could send what the
+    // view holds to any site in its address, past the domain consent. It opens only after the user's own Open on a card
+    // that names the site; one card at a time, and a request made while one is showing is refused at once.
     private void OpenLink(McpAppRequest request)
     {
         var url = McpJson.Text(request.Params["url"]);
@@ -681,9 +692,44 @@ public sealed class McpAppMount : IWebResourceHandler, IDisposable
             return;
         }
 
-        host.Log($"mcp app {Server}: a link to {ArtifactMount.Redact(url)} was offered to the link setting");
-        host.Ui.OpenLink(this, uri.AbsoluteUri);
-        bridge.Answer(request, []);
+        if (linkAsking)
+        {
+            bridge.Fail(request, "Another link from " + Server + " is waiting for the user.");
+            return;
+        }
+
+        linkAsking = true;
+        Observe(OpenLinkAsync(request, uri.AbsoluteUri));
+    }
+
+    private async Task OpenLinkAsync(McpAppRequest request, string url)
+    {
+        try
+        {
+            var open = await host.Ui.AskOpenLinkAsync(this, url).ConfigureAwait(false);
+            Reply(() =>
+            {
+                linkAsking = false;
+                if (!open)
+                {
+                    host.Log($"mcp app {Server}: the user did not open a link to {ArtifactMount.Redact(url)}");
+                    bridge.Fail(request, "The user did not open the link.");
+                    return;
+                }
+
+                host.Log($"mcp app {Server}: a link to {ArtifactMount.Redact(url)} was offered to the link setting");
+                host.Ui.OpenLink(this, url);
+                bridge.Answer(request, []);
+            });
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            Reply(() =>
+            {
+                linkAsking = false;
+                bridge.Fail(request, error.Message);
+            });
+        }
     }
 
     private void RequestDisplayMode(McpAppRequest request)

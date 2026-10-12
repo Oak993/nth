@@ -183,6 +183,13 @@ internal sealed class FakeMcpAppUser : IMcpAppHostUi
 
     public List<string> Links { get; } = [];
 
+    // ED-NEW-web-w26-3: the open-link card's answer, the links it was shown for, and an answer the test gives later.
+    public bool LinkAnswer { get; set; }
+
+    public List<string> LinkCards { get; } = [];
+
+    public TaskCompletionSource<bool>? HeldLink { get; set; }
+
     public Task<McpAppDomainDecision> AskDomainsAsync(McpAppMount app, McpAppDomainRequest request)
     {
         DomainCards.Add(request);
@@ -219,4 +226,10 @@ internal sealed class FakeMcpAppUser : IMcpAppHostUi
     public void SetModelContext(McpAppMount app, string text) => Contexts.Add(text);
 
     public void OpenLink(McpAppMount app, string url) => Links.Add(url);
+
+    public Task<bool> AskOpenLinkAsync(McpAppMount app, string url)
+    {
+        LinkCards.Add(url);
+        return HeldLink?.Task ?? Task.FromResult(LinkAnswer);
+    }
 }

@@ -876,6 +876,7 @@ public class OpenAICompatibleSession : ProviderSession
     // orchestration tests independent of the network.
     protected virtual async Task<StreamRound> StreamOneRound(string model, string? effort, bool withTools = true)
     {
+        if (Configuration.NoTools) withTools = false; // PORT-ONLY (ED-NEW-web-w26-1): a no-tools session never offers one, keep-warm requests included.
         SanitizeHistory(); // :509
         // PORT-ONLY (W18): also when a server said its tool list changed since they were read (list_changed).
         if (withTools && (!didLoadMCPTools || MCPHub.Shared.ToolsRevision != loadedToolsRevision)) // :510

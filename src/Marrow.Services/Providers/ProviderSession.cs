@@ -81,6 +81,9 @@ public sealed record SessionConfiguration
     // PORT-ONLY (OD-0134 Ignis, ED-NEW-ignis-runtime): the chat this session serves, so Ignis can answer per chat (cache
     // lifetimes at a Claude launch, request-level cache levers). Null: legacy call sites and test fixtures.
     public Guid? IgnisThreadID { get; init; }
+    // PORT-ONLY (web surfaces W26, ED-NEW-web-w26-1): a session that must run no tool at all (an artifact's nth.complete):
+    // no built-in tools, no MCP servers, no plugins. Only providers that can guarantee it are given such a session.
+    public bool NoTools { get; init; }
 }
 
 // :50-58. One exchange of a conversation, for replaying it into a session that starts over.
