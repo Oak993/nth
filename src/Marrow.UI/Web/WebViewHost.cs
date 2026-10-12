@@ -689,7 +689,7 @@ public sealed class WebViewHost : Panel
     private void SyncLiveContent()
     {
         var liveness = Surface.Liveness;
-        var runtimeMissing = Surface.Failure?.Kind is WebFailureKind.RuntimeMissing or WebFailureKind.RuntimeTooOld;
+        var runtimeMissing = Surface.Failure is { } runtimeCard && runtimeCard.Kind.IsRuntime();
         var recreated = liveness == WebLiveness.Pending && seenLiveness != WebLiveness.Pending;
         seenLiveness = liveness;
         var keep = liveness is WebLiveness.Pending or WebLiveness.Live or WebLiveness.Suspended && !runtimeMissing;
@@ -823,7 +823,9 @@ public sealed class WebViewHost : Panel
             buttons.Children.Add(new Chrome.ChromeTextButton(Symbol(action), button.Title, button.Title, () => Surface.InvokeFailureAction(action)));
         }
 
-        var stack = new StackPanel { Orientation = Orientation.Vertical, Children = { title, body, buttons } };
+        // W23: the installing card has no buttons; an empty row would only add 14 DIP of blank under the text.
+        var stack = new StackPanel { Orientation = Orientation.Vertical, Children = { title, body } };
+        if (card.Buttons.Count > 0) stack.Children.Add(buttons);
         var surface = new Border { Padding = new Thickness(20, 18), MaxWidth = 380, Child = stack }
             .RoundedRectangle(16, RoundedCornerStyle.Continuous);
         SwiftGlass.SetEffect(surface, GlassEffect.Regular(GlassShape.RoundedRectangle(16, RoundedCornerStyle.Continuous)));
@@ -840,6 +842,7 @@ public sealed class WebViewHost : Panel
         WebFailureAction.CloseTab => "xmark",
         WebFailureAction.Wait => "hourglass",
         WebFailureAction.InstallRuntime or WebFailureAction.UpdateRuntime => "arrow.down.to.line",
+        WebFailureAction.OpenRuntimePage => "arrow.up.right",
         _ => "arrow.clockwise",
     };
 
