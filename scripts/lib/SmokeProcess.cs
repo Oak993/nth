@@ -16,6 +16,8 @@ namespace Nth.Build
     {
         private const uint CreateSuspended = 0x00000004;
         private const uint CreateNoWindow = 0x08000000;
+        private const uint StartFUseShowWindow = 0x00000001;
+        private const ushort SwHide = 0;
         private const uint KillOnJobClose = 0x00002000;
         private readonly SafeFileHandle job;
         private bool disposed;
@@ -44,7 +46,7 @@ namespace Nth.Build
                 limits.Basic.LimitFlags = KillOnJobClose;
                 if (!SetInformationJobObject(jobHandle, 9, ref limits, (uint)Marshal.SizeOf<ExtendedLimits>()))
                     throw LastError("Could not set kill-on-close for the smoke process job");
-                var startup = new StartupInfo { Size = (uint)Marshal.SizeOf<StartupInfo>() };
+                var startup = new StartupInfo { Size = (uint)Marshal.SizeOf<StartupInfo>(), Flags = StartFUseShowWindow, ShowWindow = SwHide };
                 if (!CreateProcess(path, command, IntPtr.Zero, IntPtr.Zero, false, CreateSuspended | CreateNoWindow,
                     IntPtr.Zero, null, ref startup, out child)) throw LastError("Could not start the smoke process");
                 created = true;

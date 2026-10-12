@@ -6241,3 +6241,13 @@ TEST EVIDENCE: Metadata_gate_rejects_an_execution_stub_with_foreign_resources an
 ## ED-NEW-inst-c4c-6: Align legacy publisher fixtures with the owner identity
 
 ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I6). ED-NEW-inst-cx-5 records the owner replacement of the original nth publisher by exact lower-case oak993. Update only the obsolete publisher literals in InstallerGateTests and SetupIdentityTests, preserving the original Contains and Equal assertion shapes and every root, package, title, transport and absent-metadata assertion. Both existing Facts failed alone twice on the C4b head with their original nth literals; both builds had zero warnings and errors. Root coordinates focused green and commits. This corrects fixtures contradicted by the owner decision and makes no production, packaging, installer or app change.
+
+
+## ED-NEW-inst-c4c-8: Request hidden smoke process startup
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I8). The owner resolves split I8: smoke must start hidden. STARTUPINFO sets STARTF_USESHOWWINDOW with SW_HIDE while retaining suspended launch, job-before-resume and CREATE_NO_WINDOW. Shared fix and identical single-Fact twice-alone red and green evidence with I14. Source checks prove the startup request; no actual Setup/app/installer visibility is exercised.
+
+
+## ED-NEW-inst-c4c-14: Keep GUI smoke first-show state hidden
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I14). Shared hidden smoke fix with I8 under the same owner instruction. STARTF_USESHOWWINDOW and SW_HIDE are set in the STARTUPINFO passed to CreateProcessW. The same one Fact fails alone twice before the change and passes after, through source checks with no Setup or installer launch.
