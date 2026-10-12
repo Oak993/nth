@@ -197,8 +197,7 @@ public static class MissionMachine
             State = agentsOpen ? MissionState.Stopping : MissionState.Stopped,
             ResumeTo = from,
             StoppedBy = cause,
-            // A reserve's hold survives a Stop: Resume never crosses a floor (12.6b, r4 G7), stopped or not.
-            PausedBy = m.PausedBy == PauseCause.Reserve ? PauseCause.Reserve : null,
+            PausedBy = null,
             Heads = new ValueList<MissionHead>(heads),
         });
     }
@@ -249,7 +248,7 @@ public static class MissionMachine
     {
         MissionState.Pausing => true,
         MissionState.Paused => m.PausedBy != PauseCause.Reserve,
-        MissionState.Stopped => m.StoppedBy == StopCause.StopAll && !m.Reverted && !m.StoppedAfterFailure && m.PausedBy != PauseCause.Reserve,
+        MissionState.Stopped => m.StoppedBy == StopCause.StopAll && !m.Reverted && !m.StoppedAfterFailure,
         _ => false,
     };
 

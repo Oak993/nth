@@ -22,6 +22,8 @@ public enum DecisionKind
     Merge,
     /// <summary>Helpers over the depth limit (13.2).</summary>
     Limit,
+    /// <summary>A task paused before it would touch a usage reserve (11.5): four options, the owner picks one. AS-13.</summary>
+    Reserve,
 }
 
 /// <summary>How a card is answered (4.2's table).</summary>
@@ -152,6 +154,8 @@ public static class DecisionRules
     /// <summary>The answers of a card (4.2's table). Always... and For this mission need a class a grant can cover.</summary>
     public static ValueList<DecisionAnswerKind> Answers(DecisionItem item)
     {
+        // A reserve's card is its four options and nothing else (11.5): a free-text answer would be an option nobody checked.
+        if (item.Kind == DecisionKind.Reserve) return new([DecisionAnswerKind.Pick]);
         if (item.Kind == DecisionKind.Merge)
             return new([DecisionAnswerKind.Merge, DecisionAnswerKind.RebaseFirst, DecisionAnswerKind.Discard]);
         if (item.Kind == DecisionKind.Question || item.Weight == DecisionWeight.Question)

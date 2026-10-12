@@ -29,6 +29,9 @@ public sealed record MissionRequest(string Title, string Brief, string Assistant
     public TaintContext Taint { get; init; } = TaintContext.Clean;
 
     public decimal? BudgetUsd { get; init; }
+
+    /// <summary>The task rules and the plan the owner saw (AS-13); null for a mission with neither (the standing rules still bind it).</summary>
+    public ReserveStart? Reserve { get; init; }
 }
 
 /// <summary>A mission that was started, and the work that launches its lead (it waits behind the gate).</summary>
@@ -78,8 +81,8 @@ public sealed class MissionRunnerOptions
     public IPcStreamHold? PcStreams { get; init; }
 
     /// <summary>
-    /// The reserve's card for a task a reserve holds (11.5; AS-13): Resume brings it back instead of resuming. Null while no
-    /// reserve exists, so a reserve-paused task (there is none) would be refused.
+    /// A fallback that raises the reserve's card for a task a reserve holds when none waits (11.5): normally AS-13's ReserveGuard
+    /// raised it when it held the task, and Resume only puts the task at Needs you with it. Null: Resume is refused when no card waits.
     /// </summary>
     public Func<MissionRecord, DecisionItem?>? ReserveCard { get; init; }
 
@@ -153,6 +156,12 @@ public sealed partial class MissionRunner
         o.Queue.KeepsAnswers = KeepsAnswer;
     }
 
+    /// <summary>
+    /// The usage reserve's gate (AS-13): asked before each turn the runner sends, told when turns start and end. Null: nothing is
+    /// held back (a runner with no reserve, or before the controller binds one). Set once, by the controller.
+    /// </summary>
+    public IReserveGate? Reserve { get; set; }
+
     /// <summary>Raised after a mission changed (on the main thread).</summary>
     public event Action<MissionRecord>? Changed;
 
@@ -224,6 +233,7 @@ public sealed partial class MissionRunner
         if (parent is not null) Update(parent.Id, r => r with { Mission = r.Mission with { ChildMissionIds = r.Mission.ChildMissionIds.Appending(mission.Id) } });
         Journal(record);
         Log(record, null, "start_mission", ActionClass.Agents, refused is null ? "started" : "blocked: " + refused);
+        if (refused is null) Reserve?.MissionBegan(record, request.Reserve);
         Raise(record);
         if (refused is not null) return new MissionStart(record, Task.CompletedTask);
         if (o.Hold?.StartsPaused(request.Origin) == true)
@@ -287,6 +297,12 @@ public sealed partial class MissionRunner
             return;
         }
         var folder = record.Workspace?.WorkingFolder ?? record.ProjectPath;
+        // The reserve is asked before the lead's first turn: a mission whose account has no room waits Paused, with its card.
+        if (Reserve is { } reserve && !reserve.BeforeTurn(record, null, record.Provider, record.Model, ReserveTurns.Start))
+        {
+            o.Gate.Leave(slot);
+            return;
+        }
         Guid thread;
         try
         {
@@ -312,6 +328,7 @@ public sealed partial class MissionRunner
         }
         Update(id, r => Moved(r with { LeadThread = thread, Mission = r.Mission with { ThreadIds = r.Mission.ThreadIds.Appending(thread) } }, MissionState.Working));
         Log(Find(id)!, thread, "spawn_chat", ActionClass.Agents, "lead started");
+        Reserve?.TurnStarted(id, thread, record.Model);
     }
 
     /// <summary>
@@ -404,34 +421,127 @@ public sealed partial class MissionRunner
     public Task AdmitHelper(Guid helper, ProviderKind provider, CancellationToken token = default) =>
         MissionOf(helper) is { } record ? Admit(record.Id, helper, provider, token) : Task.CompletedTask;
 
+    /// <summary>How often a head that waits on the usage reserve looks again (a new reading, a rule that changed).</summary>
+    public static readonly TimeSpan HeadReserveRecheck = TimeSpan.FromSeconds(5);
+
+    private readonly Dictionary<Guid, List<TaskCompletionSource>> reserveWaiters = [];
+
     /// <summary>
-    /// A head waits to start (12.6b): until it may (queued, and every head it waits on done; a paused or stopped head waits
-    /// for its Resume), then at the gate (the same 16-agent cap and memory floor as every agent). It returns once the head
-    /// has started, or its mission ended.
+    /// A head waits to start (12.6b): until it may (queued, and every head it waits on done; a paused head waits for its Resume), then
+    /// for the usage reserve (11.5: a new agent's first turn is a turn), then at the gate (the same 16-agent cap and memory floor as
+    /// every agent). A head whose account has no room waits Queued while its mission is paused for the reserve; it goes on when the
+    /// owner's answer lets the mission go on. True when the head started. False when it must not start now: its mission was stopped
+    /// or ended, or the head itself was stopped, while it waited. It took no slot and started nothing; the caller then asks
+    /// <see cref="AwaitHeadResume"/> and tries again once the owner resumes it.
     /// </summary>
-    public async Task AdmitHead(Guid head, ProviderKind provider, CancellationToken token = default)
+    public async Task<bool> AdmitHead(Guid head, ProviderKind provider, CancellationToken token = default)
     {
-        if (MissionOf(head) is not { } first) return;
+        if (MissionOf(head) is not { } first) return true;
         var mission = first.Id;
         while (!token.IsCancellationRequested)
         {
             Task changed;
             lock (gate) changed = LiveOf(mission).HeadsChanged.Task;
-            if (Find(mission) is not { } record || record.Mission.State is MissionState.Done or MissionState.Failed) return;
-            if (record.Mission.Heads.FirstOrDefault(h => h.Id == HeadId(head)) is not { } self) return;
+            if (Find(mission) is not { } record || record.Mission.State is MissionState.Done or MissionState.Failed) return false;
+            if (record.Mission.Heads.FirstOrDefault(h => h.Id == HeadId(head)) is not { } self) return false;
+            if (self.State is HeadState.Stopped or HeadState.Stopping) return false;
             if (!MissionMachine.CanStart(self, record.Mission.Heads))
             {
                 try { await changed.WaitAsync(token).ConfigureAwait(false); }
-                catch (OperationCanceledException) { return; }
+                catch (OperationCanceledException) { return false; }
                 continue;
             }
+            if (!await WaitForReserve(mission, head, provider, token).ConfigureAwait(false)) return false;
             await Admit(mission, head, provider, token).ConfigureAwait(false);
             var started = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             OnMain(() => started.TrySetResult(HeadStarted(head)));
-            if (await started.Task.ConfigureAwait(false)) return;
-            // It was paused or stopped while it waited at the gate: the slot goes back, and it waits for its Resume.
+            if (await started.Task.ConfigureAwait(false)) return true;
+            // It was paused or stopped while it waited at the gate: the slot goes back; the top of the loop says what happens next.
             o.Gate.Leave(head);
         }
+        return false;
+    }
+
+    /// <summary>
+    /// A head that did not start because its mission or it was stopped waits here for its Resume (12.6b): true once it is queued
+    /// again and may start (the caller then asks <see cref="AdmitHead"/> again), false when its mission ended or it is gone.
+    /// </summary>
+    public async Task<bool> AwaitHeadResume(Guid head, CancellationToken token = default)
+    {
+        if (MissionOf(head) is not { } first) return false;
+        var mission = first.Id;
+        while (!token.IsCancellationRequested)
+        {
+            Task changed;
+            lock (gate) changed = LiveOf(mission).HeadsChanged.Task;
+            if (Find(mission) is not { } record || record.Mission.State is MissionState.Done or MissionState.Failed) return false;
+            if (record.Mission.Heads.FirstOrDefault(h => h.Id == HeadId(head)) is not { } self) return false;
+            if (self.State is HeadState.Queued or HeadState.Paused && record.Mission.State is not (MissionState.Stopping or MissionState.Stopped)) return true;
+            try { await changed.WaitAsync(token).ConfigureAwait(false); }
+            catch (OperationCanceledException) { return false; }
+        }
+        return false;
+    }
+
+    // True when the reserve lets the head start (or there is none); false when the wait was cancelled.
+    private async Task<bool> WaitForReserve(Guid mission, Guid thread, ProviderKind provider, CancellationToken token)
+    {
+        if (Reserve is null) return true;
+        using var cancelled = CancellationTokenSource.CreateLinkedTokenSource(token, LiveOf(mission).Launch.Token);
+        while (!cancelled.IsCancellationRequested)
+        {
+            var allowed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var wake = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            OnMain(() =>
+            {
+                if (Find(mission) is not { } now || Reserve is not { } reserve)
+                {
+                    allowed.SetResult(true);
+                    return;
+                }
+                // Registered before the question, so an answer that lands between the question and the wait is not lost.
+                lock (gate)
+                {
+                    if (!reserveWaiters.TryGetValue(mission, out var list)) reserveWaiters[mission] = list = [];
+                    list.Add(wake);
+                }
+                try { allowed.SetResult(reserve.BeforeTurn(now, thread, provider, now.Model, ReserveTurns.Head)); }
+                catch (Exception error) when (error is not OperationCanceledException) { allowed.SetException(error); }
+            });
+            bool go;
+            try { go = await allowed.Task.ConfigureAwait(false); }
+            catch
+            {
+                ForgetWaiter(mission, wake);
+                throw;
+            }
+            if (go)
+            {
+                ForgetWaiter(mission, wake);
+                return true;
+            }
+            await Task.WhenAny(wake.Task, Task.Delay(HeadReserveRecheck, o.Time, cancelled.Token)).ConfigureAwait(false);
+            ForgetWaiter(mission, wake);
+        }
+        return false;
+    }
+
+    private void ForgetWaiter(Guid mission, TaskCompletionSource wake)
+    {
+        lock (gate)
+        {
+            if (!reserveWaiters.TryGetValue(mission, out var list)) return;
+            list.Remove(wake);
+            if (list.Count == 0) reserveWaiters.Remove(mission);
+        }
+    }
+
+    // The reserve let the mission go on: the heads that waited look again at once.
+    private void WakeReserveWaiters(Guid mission)
+    {
+        List<TaskCompletionSource> waiting;
+        lock (gate) waiting = reserveWaiters.TryGetValue(mission, out var list) ? [.. list] : [];
+        foreach (var wake in waiting) wake.TrySetResult();
     }
 
     private bool HeadStarted(Guid head)
@@ -701,6 +811,7 @@ public sealed partial class MissionRunner
     {
         if (MissionOf(thread) is not { } record || continues) return;
         var id = record.Id;
+        Reserve?.TurnEnded(thread);
         if (IsHelper(record, thread))
         {
             // A helper's turn is over: its gate slot is free (it waits again before nth starts its next turn).
@@ -752,11 +863,16 @@ public sealed partial class MissionRunner
         if (record.LeadThread is { } leadThread) SyncHeads(id, leadThread);
         if (state == MissionState.Working && record.LeadThread is { } lead && !o.Agents.TurnRunning(lead))
         {
-            if (record.PendingRedirect is { } redirect && o.Agents.Send(lead, redirect))
+            if (record.PendingRedirect is { } redirect)
             {
-                l.LeadDone = false;
-                Update(id, r => r with { PendingRedirect = null });
-                return;
+                if (Reserve is { } reserve && !reserve.BeforeTurn(record, lead, record.Provider, record.Model, ReserveTurns.Redirect)) return;
+                if (o.Agents.Send(lead, redirect))
+                {
+                    Reserve?.TurnStarted(id, lead, record.Model);
+                    l.LeadDone = false;
+                    Update(id, r => r with { PendingRedirect = null });
+                    return;
+                }
             }
             if (!l.LeadDone || o.Queue.Of(id).Count > 0) return;
             if (o.Agents.Heads(lead).Any(h => !h.Finished)) return;
@@ -777,7 +893,7 @@ public sealed partial class MissionRunner
 
     private async Task StartReview(Guid id)
     {
-        if (Find(id) is not { } record) return;
+        if (Find(id) is not { } record || record.ReviewerThread is not null) return;
         Update(id, r => Moved(r, MissionState.Reviewing));
         MergeReview? changes = null;
         if (record.Workspace is { } workspace)
@@ -791,12 +907,17 @@ public sealed partial class MissionRunner
         if (token.IsCancellationRequested) return;
         OnMain(() =>
         {
-            if (Find(id) is not { } now || now.Mission.State != MissionState.Reviewing)
+            if (Find(id) is not { } now || now.Mission.State != MissionState.Reviewing || now.ReviewerThread is not null)
             {
                 o.Gate.Leave(slot);
                 return;
             }
             var model = Reviewer.PickModel(now.Model, o.Agents.Models(now.Provider));
+            if (Reserve is { } reserve && !reserve.BeforeTurn(now, null, now.Provider, model ?? now.Model, ReserveTurns.Review))
+            {
+                o.Gate.Leave(slot);
+                return;
+            }
             Guid thread;
             try
             {
@@ -829,6 +950,7 @@ public sealed partial class MissionRunner
             });
             reviewerModels[thread] = model ?? now.Provider.DisplayName;
             Log(Find(id)!, thread, "spawn_chat", ActionClass.Agents, "reviewer started");
+            Reserve?.TurnStarted(id, thread, model ?? now.Model);
         });
     }
 
@@ -871,7 +993,10 @@ public sealed partial class MissionRunner
         if (record.LeadThread is { } lead)
         {
             var text = Reviewer.Redirect(verdict, fails + 1);
-            if (!o.Agents.Send(lead, text)) Update(id, r => r with { PendingRedirect = text });
+            if (Reserve is { } reserve && !reserve.BeforeTurn(Find(id) ?? record, lead, record.Provider, record.Model, ReserveTurns.Redirect))
+                Update(id, r => r with { PendingRedirect = text }); // it goes when the reserve lets the lead on
+            else if (!o.Agents.Send(lead, text)) Update(id, r => r with { PendingRedirect = text });
+            else Reserve?.TurnStarted(id, lead, record.Model);
         }
     }
 
@@ -881,6 +1006,7 @@ public sealed partial class MissionRunner
         if (Find(id) is not { } record) return;
         foreach (var thread in Threads(record)) EndAgent(thread);
         lock (gate) LiveOf(id).Launch.Cancel();
+        Reserve?.MissionEnded(id);
         Update(id, r => r with { Mission = r.Mission with { TaintContext = TaintContext.MissionEnded() } });
     }
 
@@ -897,6 +1023,7 @@ public sealed partial class MissionRunner
         o.Agents.StopSession(thread);
         o.Jobs.End(thread);
         o.Gate.Leave(thread);
+        Reserve?.TurnEnded(thread);
     }
 
     // ---- merge (12.6a) ----
@@ -1065,6 +1192,8 @@ public sealed partial class MissionRunner
             o.Queue.Withdraw(card.Id, card.Kind == DecisionKind.Approval ? Withdrawn : WithdrawnQuestion);
         o.Queue.Hold(c => c.MissionId == id, DecisionHold.Stop);
         foreach (var thread in threads) o.Agents.Interrupt(thread);
+        foreach (var thread in threads) Reserve?.TurnEnded(thread);
+        Reserve?.MissionStopped(id);
         if (record.LeadThread is { } lead) o.Agents.StopHeads(lead);
         foreach (var thread in threads)
         {
@@ -1146,6 +1275,42 @@ public sealed partial class MissionRunner
         return null;
     }
 
+    /// <summary>
+    /// The reserve pauses the mission (11.5): at the turn boundary, never mid-turn, like any Pause. Its cause is the reserve, so
+    /// Resume brings its card back and only the card's answer lets it go on. Null when paused (or already pausing for the
+    /// reserve); else why not (the owner paused or stopped it, it is done).
+    /// </summary>
+    public string? PauseForReserve(Guid id)
+    {
+        if (Find(id) is not { } record) return "There is no such mission.";
+        if (record.Mission.PausedBy == PauseCause.Reserve && record.Mission.State is MissionState.Pausing or MissionState.Paused) return null;
+        return Pause(id, PauseCause.Reserve);
+    }
+
+    /// <summary>
+    /// The owner answered the reserve's card in a way that lets the mission go on (11.5): the reserve's pause is lifted and the
+    /// mission goes back to what it was doing, its held turn running behind the gate. Null when it went on, or had nothing to
+    /// lift; else why not.
+    /// </summary>
+    public string? ResumeAfterReserve(Guid id)
+    {
+        if (Find(id) is not { } record) return "There is no such mission.";
+        if (record.Mission.PausedBy == PauseCause.Reserve && record.Mission.State is MissionState.Pausing or MissionState.Paused)
+        {
+            Update(id, r => r with { Mission = r.Mission with { PausedBy = null }, Waiting = null });
+            var resumed = Resume(id);
+            WakeReserveWaiters(id);
+            return resumed;
+        }
+        // The owner pressed Resume on a reserve-held task: Resume put it in Needs you and its card was raised again.
+        if (record.Mission.State == MissionState.NeedsYou && o.Queue.Of(id).Count == 0)
+            Update(id, r => r with { Mission = r.Mission with { State = NeedsYouFrom(r) }, Waiting = null });
+        return null;
+    }
+
+    /// <summary>The board's line for a task the reserve holds ("Paused before your Claude 20x reserve"); null clears it.</summary>
+    public void NoteWaiting(Guid id, string? line) => Update(id, r => r.Waiting == line ? r : r with { Waiting = line });
+
     /// <summary>Redirect (3.3): a short instruction to the lead, now when it is idle, else at the end of its turn.</summary>
     public string? Redirect(Guid id, string text)
     {
@@ -1159,10 +1324,18 @@ public sealed partial class MissionRunner
         var over = (record.PendingRedirect?.Length ?? 0) + text.Length > RedirectCap;
         if (!now && over) return TooMuch;
         Log(record, record.LeadThread, "message_agent", ActionClass.Agents, "redirect", text);
-        if (now && record.LeadThread is { } lead && o.Agents.Send(lead, text))
+        if (now && record.LeadThread is { } lead)
         {
-            LiveOf(id).LeadDone = false;
-            return null;
+            // The reserve may hold the turn this starts; the words then wait with the mission like any redirect.
+            if (Reserve is not { } reserve || reserve.BeforeTurn(record, lead, record.Provider, record.Model, ReserveTurns.Redirect))
+            {
+                if (o.Agents.Send(lead, text))
+                {
+                    Reserve?.TurnStarted(id, lead, record.Model);
+                    LiveOf(id).LeadDone = false;
+                    return null;
+                }
+            }
         }
         if (over) return TooMuch;
         Update(id, r => r with { PendingRedirect = r.PendingRedirect is { } earlier ? earlier + "\n\n" + text : text });
@@ -1356,6 +1529,9 @@ public sealed partial class MissionRunner
     private void Raise(MissionRecord record) => Changed?.Invoke(record);
 
     private void OnMain(Action work) => o.Agents.Post(work);
+
+    /// <summary>Runs work where the chats live (the app's main thread); at once when already there. For a timer's callback (the reserve's wait).</summary>
+    public void Post(Action work) => OnMain(work);
 
     /// <summary>
     /// Writes one activity log line; <paramref name="allowedBy"/> names the card or chat answer that allowed the action

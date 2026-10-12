@@ -179,6 +179,39 @@ public sealed class MissionControlsHeadTests : IDisposable
     }
 
     [Fact]
+    public async Task A_head_stopped_before_it_started_gives_up_its_wait_and_starts_when_the_owner_resumes_it()
+    {
+        var rig = Rig();
+        var record = rig.Started(rig.Rig.Request(team: true));
+        var early = rig.AddHead(record, "Early");
+        var late = rig.AddHead(record, "Late", false, early);
+        rig.StartHead(early);
+        var wait = rig.Runner.AdmitHead(late, ProviderKind.Claude);
+        Assert.False(wait.IsCompleted); // it waits on Early
+
+        Assert.Null(rig.Controls.StopHead(record.Id, late));
+        Assert.False(await wait.WaitAsync(TimeSpan.FromSeconds(10))); // it did not start: no slot, no chat
+        Assert.Equal(HeadState.Stopped, HeadOf(rig.Now(record), late).State);
+        Assert.False(rig.Rig.Gate.Holds(late));
+        var resumed = rig.Runner.AwaitHeadResume(late);
+        Assert.False(resumed.IsCompleted);
+
+        Assert.Null(rig.Controls.ResumeHead(record.Id, late));
+        Assert.True(await resumed.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.Equal(HeadState.Queued, HeadOf(rig.Now(record), late).State);
+        // It goes through the gate again, and still waits for Early.
+        var again = rig.Runner.AdmitHead(late, ProviderKind.Claude);
+        Assert.False(again.IsCompleted);
+        rig.Agents.Finish(early, "Early done.");
+        Assert.False(rig.Runner.HeadFinished(early, TurnStatus.Completed));
+        Assert.True(await again.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.Equal(HeadState.Working, HeadOf(rig.Now(record), late).State);
+        Assert.Empty(rig.Agents.HeadsRestarted); // it never ran, so it starts as new, not as a restart
+        // A mission that ended has no head left to wait for.
+        Assert.False(await rig.Runner.AwaitHeadResume(Guid.NewGuid()));
+    }
+
+    [Fact]
     public void Resuming_only_the_head_that_waits_on_a_paused_head_leaves_the_task_paused()
     {
         var rig = Rig();

@@ -163,15 +163,17 @@ public sealed class MissionControlsAllTests : IDisposable
         rig.EndProcesses();
         rig.Runner.CheckStopping();
         Assert.Equal(StopCause.StopAll, rig.Now(one).Mission.StoppedBy);
-        // Stop all stopped the reserve's task too (its state kept), but the floor still holds it.
-        Assert.Equal((MissionState.Stopped, PauseCause.Reserve), (rig.Now(held).Mission.State, rig.Now(held).Mission.PausedBy));
+        // Stop all stopped the reserve's task too (its state kept); the reserve lets go of what it waited for when its task stops,
+        // and asks the floor again before the cut turn runs again, so Resume all can pick it up like the rest.
+        Assert.Equal(MissionState.Stopped, rig.Now(held).Mission.State);
+        Assert.Null(rig.Now(held).Mission.PausedBy);
 
         var report = rig.Controls.ResumeAll();
 
         Assert.True(report.Result.AfterStop);
-        Assert.Equal(2, report.Result.PickedUp);
-        Assert.Equal(["Reserve job"], report.Result.HeldByReserve);
-        Assert.Equal(MissionState.Stopped, rig.Now(held).Mission.State);
+        Assert.Equal(3, report.Result.PickedUp);
+        Assert.Empty(report.Result.HeldByReserve);
+        Assert.NotEqual(MissionState.Stopped, rig.Now(held).Mission.State);
         Assert.NotEqual(MissionState.Stopped, rig.Now(one).Mission.State);
         Assert.NotEqual(MissionState.Stopped, rig.Now(two).Mission.State);
         Assert.Equal(MissionState.Stopped, rig.Now(hand).Mission.State);

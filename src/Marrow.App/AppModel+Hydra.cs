@@ -287,7 +287,11 @@ public sealed partial class AppModel
         // PORT-ONLY (Dextra AS-5, seam 3): a mission's head waits at the agent gate (16 local agents, the memory floor) first.
         MainActor.Spawn(async () =>
         {
-            await DextraAdmitHead(head);
+            // A head the owner stopped before it started waits for his Resume, then goes through the gate again (12.6b).
+            while (!await DextraAdmitHead(head))
+            {
+                if (!await DextraAwaitHeadResume(head)) return;
+            }
             await StartDroppyHead(id, attachments, brief);
         });
         return head;

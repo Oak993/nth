@@ -132,7 +132,8 @@ public sealed partial class MissionRunner
     // ---- kept answers (12.6b "Cards while paused") ----
 
     private bool KeepsAnswer(DecisionItem item) =>
-        item.MissionId is { } id && !DecisionRules.HeldByPause(item) && Find(id)?.Mission.State == MissionState.Paused;
+        item.MissionId is { } id && !DecisionRules.HeldByPause(item)
+        && Find(id)?.Mission is { State: MissionState.Paused, PausedBy: not PauseCause.Reserve };
 
     // ---- the agents of a paused task (12.6b "Paused tasks: slots, memory and cost") ----
 
@@ -207,8 +208,10 @@ public sealed partial class MissionRunner
         lock (gate) reverting = l.Reverting;
         if (reverting) return new ResumeOutcome("Its changes are being reverted; Restart opens once that is done.");
         var m = record.Mission;
-        var fromReserve = m.State is MissionState.Paused or MissionState.Stopped && m.PausedBy == PauseCause.Reserve;
-        if (fromReserve && (all || o.ReserveCard?.Invoke(record) is null))
+        var fromReserve = m.State is MissionState.Paused && m.PausedBy == PauseCause.Reserve;
+        // A task the reserve holds: Resume puts it at Needs you with the reserve's card (AS-13 raised it when it held the task; a
+        // fallback raises it when none waits) and never crosses the floor; only the card's answer lets it go on (ResumeAfterReserve).
+        if (fromReserve && (all || (o.Queue.Of(id).Count == 0 && o.ReserveCard?.Invoke(record) is null)))
             return new ResumeOutcome("Your reserve holds this task; answer its card to resume it.");
         var heldIrreversible = o.Queue.Of(id).FirstOrDefault(c => c.State == DecisionState.Held && DecisionRules.HeldByPause(c));
         var wasStopped = m.State == MissionState.Stopped || record.Interrupted || l.Restored;
@@ -266,6 +269,12 @@ public sealed partial class MissionRunner
             return outcome;
         }
         if (state == MissionState.NeedsYou) return outcome;
+        // A review the reserve (or a pause) held before its reviewer began starts afresh.
+        if (state == MissionState.Reviewing && record.ReviewerThread is null && record.LeadThread is not null)
+        {
+            _ = StartReview(id);
+            return outcome;
+        }
         if (wasStopped)
         {
             // The cut turn runs again: each agent that was working goes on behind the gate.
@@ -305,9 +314,20 @@ public sealed partial class MissionRunner
                 : stoppedPart
                     ? now.PendingRedirect ?? "The mission was stopped part way. Go on from where it stopped; do the last step again, since it may have been cut."
                     : now.PendingRedirect ?? ContinueText;
-            var sent = o.Agents.Send(thread, text);
-            if (sent && now.PendingRedirect is not null && state != MissionState.Reviewing) Update(id, r => r with { PendingRedirect = null });
             if (cold) Update(id, r => r.Waiting == coldLine ? r with { Waiting = null } : r);
+            // The usage reserve is asked before the turn runs again (11.5, 12.6b: Resume never crosses a floor): with no room, the
+            // slot goes back and the words wait with the mission.
+            if (Reserve is { } reserve && !reserve.BeforeTurn(now, thread, now.Provider, now.Model, ReserveTurns.Resume))
+            {
+                o.Gate.Leave(thread);
+                if (state != MissionState.Reviewing) Update(id, r => r with { PendingRedirect = text });
+                return;
+            }
+            if (o.Agents.Send(thread, text))
+            {
+                Reserve?.TurnStarted(id, thread, now.Model);
+                if (now.PendingRedirect is not null && state != MissionState.Reviewing) Update(id, r => r with { PendingRedirect = null });
+            }
         }), TaskScheduler.Default);
     }
 
@@ -662,6 +682,7 @@ public sealed partial class MissionRunner
             Interrupted = false,
         });
         Log(record, null, "restart", ActionClass.Agents, "restarted from the brief on a fresh branch");
+        if (Find(id) is { } restarted) Reserve?.MissionBegan(restarted, null);
         if (o.Hold?.StartsPaused(record.Mission.Origin) == true)
         {
             Update(id, r => r with { Mission = MissionMachine.Pause(r.Mission, turnRunning: false, PauseCause.PauseAll).Mission });

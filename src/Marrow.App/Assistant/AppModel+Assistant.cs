@@ -82,6 +82,9 @@ public sealed partial class AppModel
     /// <summary>Dextra's controller, while Dextra runs (AS-8 starts it from the home; null before).</summary>
     public AssistantController? Dextra { get; private set; }
 
+    /// <summary>The usage reserve (AS-13) of the running controller, if it has one: the taps feed it, the board and the plan card read it.</summary>
+    internal ReserveGuard? Reserve => Dextra?.Reserve;
+
     /// <summary>The Job Object of every mission agent (12.6), by chat. A test may swap the factory before any launch.</summary>
     public AgentJobs MissionJobs { get; internal set; } = new(WindowsAgentJobFactory.Instance);
 
@@ -96,14 +99,28 @@ public sealed partial class AppModel
     public AssistantController StartDextra(AssistantStore store, Action<AuditEntry> audit, Func<IReadOnlyList<Marrow.Core.Port.Assistant.AssistantProfile>> profiles,
         ProviderKind provider = ProviderKind.Claude, string? model = null, IReadOnlyList<string>? protectedRoots = null,
         GlobalStop? stopKey = null, AppTray? tray = null, IPcStreamHold? pcStreams = null,
-        Func<Marrow.Services.Assistant.MissionRecord, Marrow.Core.Port.Assistant.DecisionItem?>? reserveCard = null,
         IReadOnlyList<IStopScope>? stopScopes = null)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(audit);
         ArgumentNullException.ThrowIfNull(profiles);
+        // The usage reserve (AS-13): the owner's rules and what nth learned of his usage come from the store and go back to it.
+        var reserveSettings = new ReserveSettings();
+        var calibrator = new UsageCalibrator();
+        var turnCosts = new TurnCostHistory();
+        var reservePersistence = new ReservePersistence(store, reserveSettings, calibrator, turnCosts);
         var controller = new AssistantController(new AssistantControllerOptions
         {
+            Reserve = new ReserveSetup
+            {
+                Settings = reserveSettings,
+                Calibrator = calibrator,
+                Turns = turnCosts,
+                AccountOf = thread => ExistingRuntime(thread)?.UsageAccount is { } account ? AssistantTaps.AccountRef(account) : null,
+                AccountForNew = record => AssistantTaps.AccountRef(Marrow.Core.Port.UsageAccountKey.Default(record.Provider)),
+                AccountOfSnapshot = account => AssistantTaps.AccountRef(account),
+                Owned = reservePersistence,
+            },
             Agents = new AppMissionAgents(this),
             Thread = Thread,
             Projects = () => [.. Projects.Select(p => new MissionProject(p.Id, p.Name, p.Path))],
@@ -118,7 +135,6 @@ public sealed partial class AppModel
             ProtectedRoots = [store.Root, .. protectedRoots ?? []],
             StopKey = stopKey,
             PcStreams = pcStreams,
-            ReserveCard = reserveCard,
             StopScopes = stopScopes ?? [],
         });
         controller.Runner.Load(store.Missions().Select(stored => MissionJournal.FromJson(stored.Body)).OfType<MissionRecord>());
@@ -212,6 +228,13 @@ public sealed partial class AppModel
     internal void DextraHeadAdded(ChatThread lead, ChatThread head) => Dextra?.OnHeadAdded(lead, head);
 
     /// <summary>A head of a mission waits at the agent gate before its chat starts; at once for any other head.</summary>
-    internal Task DextraAdmitHead(ChatThread head) =>
-        head.MissionID is not null && Dextra is { } dextra ? dextra.Runner.AdmitHead(head.Id, head.Provider) : Task.CompletedTask;
+    internal Task<bool> DextraAdmitHead(ChatThread head) =>
+        head.MissionID is not null && Dextra is { } dextra ? dextra.Runner.AdmitHead(head.Id, head.Provider) : Task.FromResult(true);
+
+    /// <summary>
+    /// A head Stop kept from starting waits here until the owner resumes it (12.6b); false when its mission is over and it never
+    /// starts. Its chat is started by the caller once this says true and the head has been admitted again.
+    /// </summary>
+    internal Task<bool> DextraAwaitHeadResume(ChatThread head) =>
+        head.MissionID is not null && Dextra is { } dextra ? dextra.Runner.AwaitHeadResume(head.Id) : Task.FromResult(false);
 }

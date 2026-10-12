@@ -67,6 +67,7 @@ public sealed class DextraControlsSeamTests
             h.Main.Loop.RunUntil(() => controller.Runner.Find(mission)!.Mission.Heads.Any(x => x.Id == id && x.State == HeadState.Working), AppModelHarness.Bound);
 
             // The owner pauses the head while its turn runs: the head is Pausing, and nothing was cut.
+            h.Main.Loop.RunUntil(() => model.ExistingRuntime(head.Id)?.IsRunning == true, AppModelHarness.Bound);
             Assert.Null(h.Main.OnMain(() => controller.Controls.PauseHead(mission, head.Id)));
             Assert.Equal(HeadState.Pausing, controller.Runner.Find(mission)!.Mission.Heads.Single(x => x.Id == id).State);
 

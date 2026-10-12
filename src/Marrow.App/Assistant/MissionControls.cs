@@ -126,7 +126,7 @@ public sealed class MissionControls
                 case MissionState.Stopping:
                     stillStopping.Add(m.Title);
                     break;
-                case MissionState.Paused or MissionState.Stopped when m.PausedBy == PauseCause.Reserve:
+                case MissionState.Paused when m.PausedBy == PauseCause.Reserve:
                     held.Add(m.Title);
                     break;
                 case MissionState.Stopped when m.Reverted:
