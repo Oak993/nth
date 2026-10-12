@@ -15,6 +15,7 @@ public sealed class AppModelTerminalPart3Tests(HeadlessSession headless)
     public void Bulk_discard_drops_the_runtime_closes_every_terminal_and_removes_documents_in_one_bulk_step() => headless.OnUiThread(() =>
     {
         using var h = new AppModelHarness(withRuntime: false);
+        h.UseFakeTerminalShell(); // the step reads the sessions' isRunning, which Terminate sets at once; no process is read
         var project = AppModelSamples.Project("Not loaded", h.NewFolder("not loaded"));
         var archived = AppModelSamples.Thread(project) with { IsArchived = true };
         var kept = AppModelSamples.Thread(project);
