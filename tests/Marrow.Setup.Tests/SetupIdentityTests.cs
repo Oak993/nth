@@ -44,7 +44,8 @@ public sealed class SetupIdentityTests
     [Trait("Decision", "ED-247")]
     public void A_setup_built_outside_the_script_carries_the_publisher_and_the_default_root_and_no_measured_numbers()
     {
-        Assert.Equal("nth", Metadata("InstallerPublisher"));
+        // ED-NEW-inst-cx-5: the owner-selected publisher supersedes the original nth fixture.
+        Assert.Equal("oak993", Metadata("InstallerPublisher"));
         Assert.Equal(@"%LOCALAPPDATA%\Programs\nth", Metadata("InstallerDefaultRoot"));
         foreach (var key in new[] { "InstallerMainExe", "InstallerAumid", "InstallerPackageBytes", "InstallerAppBytes", "InstallerDiskBytes", "InstallerVelopackNeedBytes" })
             Assert.Null(Metadata(key));
