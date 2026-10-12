@@ -1121,6 +1121,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:835-848
     private void BundleFollowUpCore(Guid id, Guid target)
     {
+        if (IsArtifactFollowUp(id) || IsArtifactFollowUp(target)) return; // ED-NEW-web-nc6-1: one artifact edit per turn
         if (id == target) return;
         var sourceIndex = -1;
         var targetIndex = -1;
@@ -1279,6 +1280,12 @@ public sealed partial class ThreadRuntime : MainActorModel
     public void SendFollowUpNow(Guid id) // ThreadRuntime.swift:954-990
     {
         if (isReverting) return;
+        if (IsArtifactFollowUp(id))
+        {
+            if (phase == RuntimePhase.Idle && artifactDispatchPending is null && followUps.FirstOrDefault()?.Id == id)
+                DrainFollowUps(TurnStatus.Completed);
+            return;
+        }
         if (phase != RuntimePhase.Idle && skillsFollowUps.Contains(id)) return;
         var index = IndexOfFollowUp(id);
         if (index < 0) return;
@@ -1330,6 +1337,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:1013-1016.
     private bool DispatchQueuedHead(FollowUpPrompt prompt)
     {
+        if (IsArtifactFollowUp(prompt.Id)) return false; // ED-NEW-web-nc6-1: artifacts run serially on their owning thread
         if (skillsFollowUps.Contains(prompt.Id)) return false;
         if (appReference is null || !appReference.TryGetTarget(out var app)
             || (!app.Settings.HydraQueueHeads && !app.Settings.HydraAlwaysHeads)) return false;
@@ -1412,6 +1420,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     private void RemoveFollowUpCore(Guid id)
     {
         FollowUps = new ValueList<FollowUpPrompt>(followUps.Where(prompt => prompt.Id != id));
+        RemoveArtifactRequest(id);
         TidyBundles();
         saveRevision++;
         ScheduleSave();
@@ -1424,6 +1433,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:1085-1098
     private bool MoveFollowUpCore(Guid id, Guid target, bool placeAfter)
     {
+        if (IsArtifactFollowUp(id)) return false; // ED-NEW-web-nc6-2: preserve accepted artifact order
         var from = IndexOfFollowUp(id);
         var to = IndexOfFollowUp(target);
         if (id == target || from < 0 || to < 0) return false;
@@ -1455,6 +1465,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         if (trimmed.Length == 0 && attachments.Count == 0)
         {
             FollowUps = followUps.Mutating(items => items.RemoveAt(index));
+            RemoveArtifactRequest(id);
             TidyBundles();
         }
         else
@@ -1472,8 +1483,9 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:1114-1139.
     private bool DrainFollowUps(TurnStatus status)
     {
-        if (Phase != RuntimePhase.Idle || FollowUps.Count == 0) return false;
-        if (status != TurnStatus.Completed)
+        if (Phase != RuntimePhase.Idle || IsReverting || FollowUps.Count == 0 || artifactDispatchPending is not null) return false;
+        var artifactIndex = status == TurnStatus.Completed ? -1 : followUps.ToList().FindIndex(p => IsArtifactFollowUp(p.Id));
+        if (status != TurnStatus.Completed && artifactIndex < 0)
         {
             var index = followUps.ToList().FindIndex(p => skillsFollowUps.Contains(p.Id));
             if (index < 0) return false;
@@ -1487,8 +1499,9 @@ public sealed partial class ThreadRuntime : MainActorModel
             return true;
         }
 
-        var skillContinuation = skillsFollowUps.Remove(followUps[0].Id);
-        var next = TakeBundle(0);
+        var nextIndex = artifactIndex >= 0 ? artifactIndex : 0;
+        var skillContinuation = skillsFollowUps.Remove(followUps[nextIndex].Id);
+        var next = TakeBundle(nextIndex);
         saveRevision++;
         while (next.IsEmpty && FollowUps.Count != 0)
         {
@@ -1503,6 +1516,12 @@ public sealed partial class ThreadRuntime : MainActorModel
         }
 
         ScheduleSave();
+        if (IsArtifactFollowUp(next.Id))
+        {
+            AutoStartedTurnToken++;
+            StartArtifactFollowUp(next);
+            return true;
+        }
         if (HandleLocalCommand(FoundationText.Trim(next.Text, includeNewlines: true)))
             return DrainFollowUps(status);
 
@@ -1582,7 +1601,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         var ignisPing = ignisPingTurn.Value; // Ignis: a ping that cannot run now is dropped, never queued as a follow-up
         if (Phase != RuntimePhase.Idle || IsReverting)
         {
-            if (!ignisPing) EnqueueFollowUp(text, attachments);
+            if (!ignisPing && !RestoreArtifactFollowUp(text, attachments)) EnqueueFollowUp(text, attachments);
             return;
         }
 
@@ -1591,7 +1610,7 @@ public sealed partial class ThreadRuntime : MainActorModel
 
         if (initialThread.IsArchived)
         {
-            if (!ignisPing) EnqueueFollowUp(text, attachments);
+            if (!ignisPing && !RestoreArtifactFollowUp(text, attachments)) EnqueueFollowUp(text, attachments);
             return;
         }
 
@@ -1614,6 +1633,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         saveRevision++;
         limitedReplyTurnID = null;
         currentTurnID = turn.Id;
+        BindArtifactRequest(turn.Id); // ED-NEW-web-nc6-1: associate this request with this actual turn
         currentProviderDiff = null;
         currentProviderAnchor = null;
         Append(userItem);
@@ -2467,6 +2487,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                 Append(new TimelineItem(turnID, new TimelineItem.Content.TurnEnd(summary)));
 
                 if (status == TurnStatus.Completed && limitedReplyTurnID == turnID) limitedReplyTurnID = null;
+                FinishArtifactRequest(turnID); // ED-NEW-web-nc6-1: completed, failed and interrupted all release the next ask
                 Phase = RuntimePhase.Idle;
                 TurnStartedAt = null;
                 SaveNow();
@@ -2943,6 +2964,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         finally
         {
             IsReverting = false;
+            if (followUps.Any(p => IsArtifactFollowUp(p.Id))) FlushFollowUpsIfIdle(); // ED-NEW-web-nc6-2
         }
     }
 
@@ -3333,8 +3355,8 @@ public sealed partial class ThreadRuntime : MainActorModel
     // :1057-1072. The flag keeps multiple idle arrivals from taking the same queued prompt.
     private void FlushFollowUpsIfIdle()
     {
-        if (phase != RuntimePhase.Idle || followUpFlushScheduled || followUps.Count == 0
-            || Thread?.LastStatus == TurnStatus.Interrupted) return;
+        if (phase != RuntimePhase.Idle || IsReverting || followUpFlushScheduled || followUps.Count == 0 || artifactDispatchPending is not null
+            || (Thread?.LastStatus == TurnStatus.Interrupted && !followUps.Any(p => IsArtifactFollowUp(p.Id)))) return;
         followUpFlushScheduled = true;
         _ = MainActor.Spawn(StartQueuedFollowUpTurn);
     }
@@ -3344,7 +3366,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     {
         followUpFlushScheduled = false;
         if (phase != RuntimePhase.Idle) return Task.CompletedTask;
-        DrainFollowUps(TurnStatus.Completed);
+        DrainFollowUps(Thread?.LastStatus == TurnStatus.Interrupted ? TurnStatus.Interrupted : TurnStatus.Completed);
         return Task.CompletedTask;
     }
 

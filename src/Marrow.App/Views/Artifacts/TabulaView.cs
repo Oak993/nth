@@ -313,7 +313,7 @@ public sealed class TabulaView : Grid
     {
         if (state.PendingAsk is { } pending && pending.Id == change.Id && change.Version > pending.FromVersion)
         {
-            state.SetPendingAsk(null);
+            if (context.TrySendAsk is null) state.SetPendingAsk(null);
             context.Streams?.End(change.Thread, AskStreamPrefix + change.Id);
             if (context.Store.Find(change.Thread, change.Id)?.Version(change.Version) is { } version)
                 ShowStatus(string.Create(CultureInfo.InvariantCulture, $"v{change.Version} written{By(version.Author)} · “{pending.Prompt}”"));
@@ -334,7 +334,8 @@ public sealed class TabulaView : Grid
         if (stream.Thread != context.Thread) return;
         context.Post(() =>
         {
-            if (stream.Key.StartsWith(AskStreamPrefix, StringComparison.Ordinal) && state.PendingAsk?.Id == stream.Id) state.SetPendingAsk(null);
+            // Runtime receipts own their lifecycle even when another turn ends every stream (NC6).
+            if (context.TrySendAsk is null && stream.Key.StartsWith(AskStreamPrefix, StringComparison.Ordinal) && state.PendingAsk?.Id == stream.Id) state.SetPendingAsk(null);
             QueueRender();
         });
     }
@@ -495,10 +496,12 @@ public sealed class TabulaView : Grid
         }
         Rows(artifactRows: true);
         var readOnly = state.IsReadOnly;
-        var pending = state.PendingAsk is { } ask1 && ask1.Id == shown.Id && !readOnly ? ask1 : null;
+        state.RebaseAsks(shown.Id, shown.Current);
+        var pending = state.PendingAsk is { } ask1 && ask1.Id == shown.Id && ask1.Number > shown.Current && !readOnly ? ask1 : null;
         var view = state.View == TabulaViewMode.Diff && shown.Versions.Count < 2 ? TabulaViewMode.Preview : state.View;
         var compare = CompareVersion(shown, version);
-        strip.Show(shown, version, compare, view == TabulaViewMode.Diff, pending);
+        strip.Show(shown, version, compare, view == TabulaViewMode.Diff, pending,
+            readOnly ? [] : state.QueuedAsks.Where(a => a.Id == shown.Id).ToArray());
         modes.SetEnabled(TabulaViewMode.Diff, shown.Versions.Count > 1);
         modes.Choose(view);
         sandboxText.Text = SandboxWords(current);
@@ -749,10 +752,8 @@ public sealed class TabulaView : Grid
     private void SendAsk(string text)
     {
         if (artifact is not { } shown || state.IsReadOnly) return;
-        context.SendTurn(TabulaPane.AskMessage(shown, shownVersion, text, state.AskSelection));
-        state.SetPendingAsk(new TabulaPendingAsk(shown.Id, shown.Current, text, context.Time.GetUtcNow()));
+        if (!SubmitAsk(shown, text, TabulaPane.AskMessage(shown, state.Asks.Count > 0 ? shown.Current : shownVersion, text, state.AskSelection))) return;
         // The change ends with its turn (the fenced filter ends a chat's streams then) or when its version lands.
-        context.Streams?.Begin(shown.Thread, AskStreamPrefix + shown.Id, shown.Id, shown.Title, shown.Kind, isUpdate: true);
         ask.Text = "";
         state.AskText = "";
         state.OpenAsk(false);
@@ -762,11 +763,28 @@ public sealed class TabulaView : Grid
 
     private void AskToFix(ArtifactRuntimeError e)
     {
-        if (artifact is not { } shown) return;
-        context.SendTurn(TabulaPane.FixMessage(shown, shownVersion, e));
+        if (artifact is not { } shown || state.IsReadOnly) return;
+        if (!SubmitAsk(shown, e.Message, TabulaPane.FixMessage(shown, state.Asks.Count > 0 ? shown.Current : shownVersion, e))) return;
         error = null;
-        ShowStatus("Asked the chat to fix it");
+        if (!state.QueuedAsks.Any(a => a.Id == shown.Id)) ShowStatus("Asked the chat to fix it");
         Render();
+    }
+
+    private bool SubmitAsk(Artifact shown, string prompt, string message)
+    {
+        var request = new TabulaPendingAsk(shown.Id, shown.Current, prompt, context.Time.GetUtcNow()) { IsQueued = state.Asks.Count > 0 };
+        if (context.TrySendAsk is { } submit)
+        {
+            if (!submit(request, message)) return false;
+        }
+        else context.SendTurn(message);
+        state.AddAsk(request);
+        var accepted = state.Asks.FirstOrDefault(a => a.RequestId == request.RequestId);
+        if (accepted?.IsQueued == true)
+            ShowStatus(string.Create(CultureInfo.InvariantCulture, $"Queued after v{accepted.Number - 1}"));
+        else if (context.TrySendAsk is null)
+            context.Streams?.Begin(shown.Thread, AskStreamPrefix + shown.Id, shown.Id, shown.Title, shown.Kind, isUpdate: true);
+        return true;
     }
 
     /// <summary>The words a copied kind is called in the status ("Copied v4 · HTML · 6.2 KB").</summary>
