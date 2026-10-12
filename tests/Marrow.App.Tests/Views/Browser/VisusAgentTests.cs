@@ -21,61 +21,21 @@ public sealed class VisusAgentTests(HeadlessSession headless)
 {
     private const string Thread = "6f1d3c1e-0b7a-4a43-9d1e-2b8c4b8f6a11";
 
-    private sealed class FakeChats(VisusSession session) : IVisusAgentChats
-    {
-        public bool PaneOpen { get; set; }
-        public int PaneOpened { get; private set; }
-        public List<string> Wrote { get; } = [];
-        public string? ChatTitle { get; set; } = "Invite Dana";
-
-        public VisusSession? Session(string thread) => thread == Thread ? session : null;
-
-        public bool IsPaneOpen(string thread) => PaneOpen;
-
-        public void OpenPane(string thread)
-        {
-            PaneOpen = true;
-            PaneOpened++;
-        }
-
-        public string? Title(string thread) => ChatTitle;
-
-        public IReadOnlyList<string> UserMessages(string thread) => Wrote;
-
-        public string? ModelName(string model) => model == "claude-opus-5-5" ? "Opus 5.5" : null;
-    }
-
-    private sealed class Turns
-    {
-        public Dictionary<string, Action> Watched { get; } = [];
-
-        public void Watch(string thread, Action ended) => Watched[thread] = ended;
-    }
-
-    private sealed record Bound(VisusRig Visus, FakeChats Chats, WebAgentHub Hub, VisusAgentAsks Asks, PublishedJobSource Jobs, Turns Turns, VisusAgentBinding Binding) : IDisposable
-    {
-        public void Dispose()
-        {
-            Binding.Dispose();
-            Visus.Dispose();
-        }
-    }
-
-    private static Bound Bind(bool paneOpen = true)
+    private static VisusAgentBound Bind(bool paneOpen = true)
     {
         var visus = new VisusRig();
         visus.Session.AgentThread = Thread;
-        var chats = new FakeChats(visus.Session) { PaneOpen = paneOpen };
+        var chats = new VisusAgentChatsFake(visus.Session, Thread) { PaneOpen = paneOpen };
         var hub = new WebAgentHub(() => null, () => null);
         var asks = new VisusAgentAsks();
         var jobs = new PublishedJobSource("Published");
-        var turns = new Turns();
+        var turns = new VisusAgentTurns();
         var binding = new VisusAgentBinding(chats, hub, asks, () => jobs, settings: () => WebAgentSettings.Default, watchTurnEnd: turns.Watch,
             now: () => visus.Time.GetUtcNow());
-        return new Bound(visus, chats, hub, asks, jobs, turns, binding);
+        return new VisusAgentBound(visus, chats, hub, asks, jobs, turns, binding);
     }
 
-    private static WebToolResult Run(Bound b, string tool, string json = "{}")
+    private static WebToolResult Run(VisusAgentBound b, string tool, string json = "{}")
     {
         var call = b.Hub.Engine(Thread)!.Call(tool, JsonNode.Parse(json)!.AsObject(), new WebAgentCaller(Thread, "claude-opus-5-5", true), CancellationToken.None);
         HeadlessSession.RunDispatcherUntil(call, TimeSpan.FromSeconds(20));

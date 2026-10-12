@@ -4,6 +4,7 @@
 // and it waits on its own card while one shows in Visus.
 using System.Text.Json.Nodes;
 using Marrow.App.Port.PcControl;
+using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Browser;
 using Marrow.Core.Port.PcControl;
 using Marrow.Core.Web;
@@ -21,16 +22,6 @@ public sealed class TactusPillFeedVisusTests
 
     private double now = 10;
 
-    // Visus with no tabs: a search reports its step, then finds no tab to open.
-    private sealed class NoTabs : IWebAgentHost
-    {
-        public IReadOnlyList<IWebAgentTab> Tabs(string thread) => [];
-
-        public Task<IWebAgentTab?> OpenAgentTab(string thread, string url, CancellationToken cancellationToken) => Task.FromResult<IWebAgentTab?>(null);
-
-        public Task<T> OnUi<T>(Func<Task<T>> work) => work();
-    }
-
     private static async Task Search(WebAgentHub hub, string words) =>
         await hub.Engine(Thread)!.Call(WebToolSchemas.Open, new JsonObject { ["query"] = words }, new WebAgentCaller(Thread, "claude-opus-5-5", true), CancellationToken.None);
 
@@ -42,7 +33,7 @@ public sealed class TactusPillFeedVisusTests
         using var cards = new PillAskBridge(assembly.Asks);
         var hub = new WebAgentHub(() => assembly.Control, () => assembly.Pause);
         var asks = new VisusAgentAsks();
-        hub.Bind(new NoTabs(), asks);
+        hub.Bind(new NoWebTabs(), asks);
         using var feed = new TactusPillFeed(assembly, cards, () => now, web: hub, webAsks: asks);
 
         await Search(hub, "team settings");
@@ -70,7 +61,7 @@ public sealed class TactusPillFeedVisusTests
         using var cards = new PillAskBridge(assembly.Asks);
         var hub = new WebAgentHub(() => assembly.Control, () => assembly.Pause);
         var asks = new VisusAgentAsks();
-        hub.Bind(new NoTabs(), asks);
+        hub.Bind(new NoWebTabs(), asks);
         using var feed = new TactusPillFeed(assembly, cards, () => now, web: hub, webAsks: asks);
         await Search(hub, "team settings");
 
