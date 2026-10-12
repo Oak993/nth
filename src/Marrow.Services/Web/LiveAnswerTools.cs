@@ -102,9 +102,9 @@ public static class LiveAnswerTools
             if (!host.Enabled) return Failure("Live answers are turned off in Settings.");
             return name switch
             {
-                ShowName => Show(host, thread, lite, arguments),
+                ShowName => await Show(host, thread, lite, arguments).ConfigureAwait(false),
                 UpdateName => await Update(host, thread, lite, arguments).ConfigureAwait(false),
-                HtmlName => Html(host, thread, arguments),
+                HtmlName => await Html(host, thread, arguments).ConfigureAwait(false),
                 _ => Failure($"{name} is not a live-answer tool."),
             };
         }
@@ -113,7 +113,7 @@ public static class LiveAnswerTools
 
     // ---- ui_show ----
 
-    private static ArtifactToolResult Show(LiveAnswerHost host, Guid thread, bool lite, JsonNode? arguments)
+    private static async Task<ArtifactToolResult> Show(LiveAnswerHost host, Guid thread, bool lite, JsonNode? arguments)
     {
         var text = NthUiPatch.Clean(Text(arguments, "ui") ?? Text(arguments, "view") ?? Text(arguments, "content") ?? "").TrimStart('\n', '\r');
         if (text.Trim().Length == 0) return Failure("ui is required: the view's lines, one component per line. Call ui_reference for the language.");
@@ -126,6 +126,7 @@ public static class LiveAnswerTools
                 + " Write one component per line (card, text, stat, table, chart, stepper, slider, checklist ...); it is not JSON, HTML or Markdown. Call ui_reference for the language.");
         }
         var id = LiveViewIds.Normalize(Text(arguments, "id")) ?? host.NewId(thread);
+        _ = await host.Find(thread, id).ConfigureAwait(false); // a view of this id from an earlier session is replaced at its next version
         var change = host.Show(thread, new LiveViewRecord(id, LiveViewKind.Ui, text, NthUiPatch.TitleOf(document), 1, lite, null));
         var view = change.View;
         var summary = new StringBuilder();
@@ -167,7 +168,7 @@ public static class LiveAnswerTools
 
     // ---- html_widget ----
 
-    private static ArtifactToolResult Html(LiveAnswerHost host, Guid thread, JsonNode? arguments)
+    private static async Task<ArtifactToolResult> Html(LiveAnswerHost host, Guid thread, JsonNode? arguments)
     {
         var html = Text(arguments, "html") ?? Text(arguments, "content") ?? "";
         if (html.Trim().Length == 0) return Failure("html is required: one complete HTML page.");
@@ -176,6 +177,7 @@ public static class LiveAnswerTools
         var height = Math.Clamp(Integer(arguments, "height") ?? DefaultHeight, MinHeight, MaxHeight);
         var title = Text(arguments, "title") is { } named && named.Trim().Length > 0 ? Short(named) : HtmlTitle(html);
         var id = LiveViewIds.Normalize(Text(arguments, "id")) ?? LiveViewIds.Normalize(title) ?? host.NewId(thread);
+        _ = await host.Find(thread, id).ConfigureAwait(false);
         var change = host.Show(thread, new LiveViewRecord(id, LiveViewKind.Html, html, title, 1, false, height));
         var text = new StringBuilder(change.Replaced ? $"Replaced the HTML widget \"{id}\" (now version {change.View.Version})" : $"Showed the HTML widget \"{id}\"");
         text.Append(" in the chat, ").Append(height.ToString(CultureInfo.InvariantCulture)).Append(" pixels high.");

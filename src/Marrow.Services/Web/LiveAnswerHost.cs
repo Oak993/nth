@@ -31,7 +31,7 @@ public sealed class LiveAnswerHost
     /// <summary>The most views one chat's record keeps in memory (the oldest go first; the timeline keeps them all).</summary>
     public const int MaxViewsPerChat = 64;
 
-    private readonly Func<bool> enabled;
+    private Func<bool> enabled;
     private readonly Func<Guid, string, Task<LiveViewRecord?>>? lookup;
     private readonly object gate = new();
     private readonly Dictionary<Guid, List<LiveViewRecord>> views = [];
@@ -47,6 +47,9 @@ public sealed class LiveAnswerHost
     }
 
     public bool Enabled => enabled();
+
+    /// <summary>Settings binds the "Live answers in chat" switch here (W10); until it does the answer is on.</summary>
+    public void BindEnabled(Func<bool> source) => enabled = source;
 
     /// <summary>The view with <paramref name="id"/> in a chat, from the record or, failing that, the chat's saved timeline.</summary>
     public async Task<LiveViewRecord?> Find(Guid thread, string id)
