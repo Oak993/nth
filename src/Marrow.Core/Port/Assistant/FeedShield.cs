@@ -44,7 +44,7 @@ public static partial class FeedShield
     // and "max_tokens=4096" are not secrets: the secret word may not be followed by another letter.
     private const string SecretWord = @"(?:password|passwd|passphrase|pwd|secret|token|api[_ -]?key|apikey|access[_ -]?key|private[_ -]?key|client[_ -]?secret|credentials?|session[_ -]?id|cookie)";
 
-    [GeneratedRegex(@"(?i)(?<name>[A-Za-z0-9_.-]*?" + SecretWord + @"(?:[_-]?(?:value|string|hash|text))?)(?<sep>""?\s*[:=]\s*)(?:(?<q>[""'])(?<qv>[^""'\r\n]{1,200})\k<q>|(?<v>[^\s""'&,;]+))", Flags, TimeoutMs)]
+    [GeneratedRegex(@"(?i)(?<name>[A-Za-z0-9_.-]*?" + SecretWord + @"(?:[_-]?(?:value|string|hash|text))?)(?<sep>(?:\\?[""'])?\s*[:=]\s*)", Flags, TimeoutMs)]
     private static partial Regex NamedSecret();
 
     [GeneratedRegex(@"(?i)(?<name>(?<![A-Za-z0-9-])--?[A-Za-z0-9_-]*?" + SecretWord + @"(?:[_-]?(?:value|string|hash|text))?)(?<sep>\s+)(?<value>[^\s""'-][^\s""']*)", Flags, TimeoutMs)]
@@ -100,7 +100,7 @@ public static partial class FeedShield
             scan = AuthorizationValue().Replace(scan, match => match.Groups["scheme"].Value + " " + SecretMask);
             scan = UrlPassword().Replace(scan, match => match.Groups["head"].Value + SecretMask);
             scan = QuerySecret().Replace(scan, match => match.Groups["head"].Value + SecretMask);
-            scan = NamedSecret().Replace(scan, NamedValue);
+            scan = MaskNamedSecrets(scan);
             scan = FlagSecret().Replace(scan, match => match.Groups["name"].Value + match.Groups["sep"].Value + SecretMask);
             scan = SpokenPassword().Replace(scan, match => match.Groups["name"].Value + " " + match.Groups["link"].Value + " " + SecretMask);
             scan = SpokenKey().Replace(scan, match => match.Groups["name"].Value + " " + match.Groups["link"].Value + " " + SecretMask);
@@ -164,15 +164,94 @@ public static partial class FeedShield
         return text[..cut];
     }
 
-    private static string NamedValue(Match match)
+    // Only names/separators use the timed regex. Values are walked once within MaxScanChars,
+    // including quoted keys, escaped outer quotes and YAML's doubled single quote.
+    private static string MaskNamedSecrets(string scan)
     {
-        var value = match.Groups["qv"].Success ? match.Groups["qv"].Value : match.Groups["v"].Value;
-        if (value is SecretMask or CardMask or CodeMask or IdMask) return match.Value;
-        var name = match.Groups["name"].Value;
-        var sep = match.Groups["sep"].Value;
-        return match.Groups["q"].Success
-            ? name + sep + match.Groups["q"].Value + SecretMask + match.Groups["q"].Value
-            : name + sep + SecretMask;
+        var result = new StringBuilder(scan.Length);
+        var copied = 0;
+        var cursor = 0;
+        while (cursor < scan.Length)
+        {
+            var match = NamedSecret().Match(scan, cursor);
+            if (!match.Success) break;
+            var start = match.Index + match.Length;
+            var quoteLength = start < scan.Length && scan[start] is '"' or '\'' ? 1
+                : start + 1 < scan.Length && scan[start] == '\\' && scan[start + 1] is '"' or '\'' ? 2 : 0;
+            var quote = scan.Substring(start, quoteLength);
+            var valueStart = start + quoteLength;
+            var end = valueStart;
+            var valueEnd = valueStart;
+            if (quoteLength > 0)
+            {
+                while (end < scan.Length)
+                {
+                    if (quoteLength == 2 && scan[end] == '\\')
+                    {
+                        var runEnd = end;
+                        while (runEnd < scan.Length && scan[runEnd] == '\\') runEnd++;
+                        // One escaped wrapper layer: 1 mod 4 slashes closes the quote;
+                        // 3 mod 4 is an escaped inner quote and remains in the value.
+                        if (runEnd < scan.Length && scan[runEnd] == quote[1] && (runEnd - end) % 4 == 1)
+                        {
+                            end = runEnd - 1;
+                            break;
+                        }
+                        end = runEnd < scan.Length ? runEnd + 1 : runEnd;
+                        continue;
+                    }
+                    if (scan.AsSpan(end).StartsWith(quote, StringComparison.Ordinal))
+                    {
+                        if (quote == "'" && end + 1 < scan.Length && scan[end + 1] == '\'')
+                        {
+                            end += 2; // A doubled YAML quote belongs to the value.
+                            continue;
+                        }
+                        break;
+                    }
+                    if (quote == "'" && end + 2 < scan.Length && scan[end] == '\\'
+                        && scan[end + 1] == '\'' && scan[end + 2] == '\'')
+                    {
+                        end += 3; // YAML backslashes are literal, including before a doubled quote.
+                        continue;
+                    }
+                    // A literal Windows drive path may end in a backslash before its quote.
+                    // Restrict this exception to that path shape; other escaped/unterminated secrets
+                    // continue to fail closed, including C6-F4's escaped internal quotes.
+                    if (quoteLength == 1 && scan[end] == '\\' && end + 1 < scan.Length
+                        && scan[end + 1] == quote[0] && end - valueStart >= 3
+                        && char.IsAsciiLetter(scan[valueStart]) && scan[valueStart + 1] == ':'
+                        && scan[valueStart + 2] == '\\'
+                        && scan.AsSpan(valueStart, end - valueStart).IndexOf(quote[0]) < 0
+                        && scan.IndexOf(quote[0], end + 2) < 0
+                        && match.Groups["name"].Value.EndsWith("private_key", StringComparison.OrdinalIgnoreCase)
+                        && (scan.AsSpan(end + 2).StartsWith(" not found;", StringComparison.OrdinalIgnoreCase)
+                            || scan.AsSpan(end + 2).StartsWith(" not found ", StringComparison.OrdinalIgnoreCase)
+                            || scan.AsSpan(end + 2).Equals(" not found", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        end++; // The backslash belongs to the path; the following quote closes it.
+                        break;
+                    }
+                    end += scan[end] == '\\' && end + 1 < scan.Length ? 2 : 1;
+                }
+                valueEnd = end;
+                if (end < scan.Length) end += quoteLength;
+            }
+            else
+            {
+                while (end < scan.Length && !char.IsWhiteSpace(scan[end]) && scan[end] is not ('"' or '\'' or '&' or ',' or ';')) end++;
+                valueEnd = end;
+                if (end == start) { cursor = start; continue; }
+            }
+            var value = scan[valueStart..valueEnd];
+            if (value.Length > 0 && value is not (SecretMask or CardMask or CodeMask or IdMask))
+            {
+                result.Append(scan, copied, start - copied).Append(quote).Append(SecretMask).Append(quote);
+                copied = end;
+            }
+            cursor = end;
+        }
+        return result.Append(scan, copied, scan.Length - copied).ToString();
     }
 
     // A card number passes the Luhn check; a 13-digit timestamp or an order number mostly does not, and stays readable.

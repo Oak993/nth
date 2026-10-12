@@ -826,7 +826,7 @@ public sealed partial class AppModel : MainActorModel
         {
             Title = "Continued: " + resolved.Title,
             HasCustomTitle = true,
-            HiddenFromAssistant = resolved.HiddenFromAssistant, // PORT-ONLY (AS-3a, ED-NEW-dextra-as3a-2): it carries the hidden chat's words, so it stays hidden
+            HiddenFromAssistant = resolved.HiddenFromAssistant || Marrow.Core.Port.Assistant.FeedChatFacts.From(resolved, Thread).Hidden, // PORT-ONLY (ED-NEW-dextra-cx-1): preserve inherited hiding when the continuation loses its parent link
         };
         Threads = Threads.Appending(forwarded);
         UpdateProject(project.Id, value => value with { IsExpanded = true });
@@ -1482,6 +1482,7 @@ public sealed partial class AppModel : MainActorModel
 
     private void SaveSynchronouslyBeforeQuit()
     {
+        DisposeAssistantFeed(); // PORT-ONLY: owned feed/taps/watcher stop even when persistence is disabled (ED-NEW-dextra-cx-7)
         if (!persistenceEnabled) return; // AppModel.swift:1328
         persistenceEnabled = false; // AppModel.swift:1329
         saveTask?.Cancel(); // AppModel.swift:1330

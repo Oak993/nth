@@ -138,7 +138,8 @@ public sealed class FeedQueue(int limit = FeedQueue.DefaultLimit)
             foreach (var list in lists)
                 foreach (var node in list)
                 {
-                    if (node.Draft.ThreadId != thread || node.Draft.Chat is not { } chat) continue;
+                    if (node.Draft.Chat is not { } chat || chat.HidingExempt) continue;
+                    if (node.Draft.ThreadId != thread && !chat.HideAncestors.Contains(thread)) continue;
                     node.Draft = node.Draft with { Chat = chat with { Hidden = true }, Detail = null };
                     changed++;
                 }

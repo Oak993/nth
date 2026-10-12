@@ -13,7 +13,7 @@ using Marrow.Services.Providers;
 namespace Marrow.App.Assistant;
 
 /// <summary>The app's taps on the feed bus. Main thread only.</summary>
-internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus)
+internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus) : IDisposable
 {
     /// <summary>The most characters of a reply the tap copies (the shield reads no more than this anyway).</summary>
     private const int ReplyChars = FeedShield.MaxScanChars;
@@ -23,6 +23,7 @@ internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus)
 
     private readonly AccountWindowWatcher accounts = new();
     private Guid described;
+    private bool disposed;
 
     /// <summary>The owner's "Private account" mark for a chat's account (5.4). The app has no such mark yet; set by the unit that adds it.</summary>
     public Func<ChatThread, bool>? IsPrivateAccount { get; set; }
@@ -30,7 +31,7 @@ internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus)
     /// <summary>ThreadRuntime.Handle: the provider events that matter to the Assistant. Everything else is ignored.</summary>
     public void TapProvider(Guid threadId, ProviderEvent @event)
     {
-        if (!bus.HasSubscribers) return;
+        if (disposed || !bus.HasSubscribers) return;
         try
         {
             if (app.Thread(threadId) is not { } thread) return;
@@ -91,7 +92,7 @@ internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus)
     /// <summary>AppModel.TurnFinished: a chat's turn ended. A head reports through <see cref="TapHeadFinished"/> instead.</summary>
     public void TapTurnFinished(Guid threadId, TurnStatus status, bool continues)
     {
-        if (!bus.HasSubscribers) return;
+        if (disposed || !bus.HasSubscribers) return;
         try
         {
             if (app.Thread(threadId) is not { IsHydraHead: false } thread) return;
@@ -126,7 +127,7 @@ internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus)
             described = Guid.Empty;
             return;
         }
-        if (!bus.HasSubscribers) return;
+        if (disposed || !bus.HasSubscribers) return;
         try
         {
             if (app.Thread(threadId) is not { } thread) return;
@@ -140,7 +141,7 @@ internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus)
     /// <summary>ThreadRuntime.HydraHeadFinished: a head's report landed. The line belongs to the head's own chat when it has one.</summary>
     public void TapHeadFinished(Guid leadId, Guid headId, HydraHeadInfo info, HydraHeadInfo.Status status, string? summary)
     {
-        if (!bus.HasSubscribers) return;
+        if (disposed || !bus.HasSubscribers) return;
         try
         {
             if ((app.Thread(headId) ?? app.Thread(leadId)) is not { } thread) return;
@@ -162,7 +163,7 @@ internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus)
     /// <summary>MultiAccountRouting: an account's usage windows were polled.</summary>
     public void TapAccountSnapshot(AccountPlanLimitsSnapshot snapshot)
     {
-        if (!bus.HasSubscribers) return;
+        if (disposed || !bus.HasSubscribers) return;
         try
         {
             if (snapshot.Limits?.Windows is not { Count: > 0 } windows) return;
@@ -179,7 +180,7 @@ internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus)
     /// <summary>MultiAccountRouting.NoteLimit: a provider said an account hit its limit.</summary>
     public void TapAccountLimit(ThreadRuntime runtime, UsageAccountKey? observed, DateTimeOffset? resetsAt)
     {
-        if (!bus.HasSubscribers) return;
+        if (disposed || !bus.HasSubscribers) return;
         try
         {
             var account = observed;
@@ -209,6 +210,15 @@ internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus)
         };
         if (facts.Hidden && !draft.SurvivesHiding) return;
         bus.Publish(draft);
+    }
+
+    public void Dispose()
+    {
+        if (disposed) return;
+        disposed = true;
+        described = Guid.Empty;
+        IsPrivateAccount = null;
+        accounts.Dispose();
     }
 
     // What a tool is doing, by its kind. A tool's title and detail can hold a command line, so only an MCP tool's own

@@ -15,11 +15,17 @@ public sealed record FeedChatFacts(
     bool IsLocalModel,
     bool IsPrivateAccount)
 {
+    /// <summary>Valid Assistant work ignores hiding; damaged marks never grant this exemption.</summary>
+    public bool HidingExempt { get; init; }
+
+    /// <summary>Bounded ordinary ancestor IDs whose later hiding must redact this draft too.</summary>
+    public IReadOnlyList<Guid> HideAncestors { get; init; } = [];
+
     /// <summary>How deep a chain of heads is followed to find a hidden ancestor (a loop in the data cannot hang it).</summary>
     public const int MaxAncestors = 16;
 
     /// <summary>
-    /// The facts of a chat. Rules of ED-NEW-dextra-as3a-1 item 5: a chat that carries a MissionID or an AssistantID is
+    /// The facts of a chat. Rules of ED-NEW-dextra-as3a-1 item 5: a chat with valid MissionID/AssistantID marks is
     /// the Assistant's own work and is readable whatever HiddenFromAssistant says ("mission chats cannot be hidden");
     /// any other chat is hidden when its own mark is set or when an ancestor in its ParentThreadID chain is hidden, so
     /// a chat hidden after its heads were made hides them as well. A chat on the Local provider keeps its words on
@@ -28,25 +34,37 @@ public sealed record FeedChatFacts(
     /// </summary>
     public static FeedChatFacts From(ChatThread thread, Func<Guid, ChatThread?> lookup, Func<ChatThread, bool>? isPrivateAccount = null)
     {
-        var hidden = !IsAssistantWork(thread) && (thread.HiddenFromAssistant || AncestorHidden(thread, lookup));
+        var exempt = IsAssistantWork(thread);
+        var ancestors = exempt ? (Hidden: false, Sources: (IReadOnlyList<Guid>)Array.Empty<Guid>()) : Ancestors(thread, lookup);
+        var hidden = !exempt && (thread.HiddenFromAssistant || ancestors.Hidden);
         return new FeedChatFacts(thread.Title, thread.Provider, hidden, thread.Provider == ProviderKind.Local,
-            isPrivateAccount?.Invoke(thread) == true);
+            isPrivateAccount?.Invoke(thread) == true) { HidingExempt = exempt, HideAncestors = ancestors.Sources };
     }
 
-    private static bool IsAssistantWork(ChatThread thread) => thread.MissionID is not null || thread.AssistantID is not null;
+    // Guid.Empty is the decoder's damaged-key sentinel, never proof that the Assistant owns a chat.
+    // Any damaged mark fails closed, even beside a valid mark (ED-NEW-dextra-cx-2).
+    private static bool IsAssistantWork(ChatThread thread) =>
+        thread.MissionID != Guid.Empty && thread.AssistantID != Guid.Empty
+        && (thread.MissionID is not null || thread.AssistantID is not null);
 
-    private static bool AncestorHidden(ChatThread thread, Func<Guid, ChatThread?> lookup)
+    private static (bool Hidden, IReadOnlyList<Guid> Sources) Ancestors(ChatThread thread, Func<Guid, ChatThread?> lookup)
     {
         var seen = new HashSet<Guid> { thread.Id };
+        var sources = new List<Guid>();
+        var hidden = false;
         var current = thread;
         for (var depth = 0; depth < MaxAncestors; depth++)
         {
-            if (current.ParentThreadID is not { } parentId || !seen.Add(parentId)) return false;
-            if (lookup(parentId) is not { } parent) return false;
-            if (!IsAssistantWork(parent) && parent.HiddenFromAssistant) return true;
+            if (current.ParentThreadID is not { } parentId || !seen.Add(parentId)) break;
+            if (lookup(parentId) is not { } parent) break;
+            if (!IsAssistantWork(parent))
+            {
+                sources.Add(parentId);
+                hidden |= parent.HiddenFromAssistant;
+            }
             current = parent;
         }
-        return false;
+        return (hidden, sources.AsReadOnly());
     }
 }
 

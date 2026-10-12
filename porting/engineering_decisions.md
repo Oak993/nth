@@ -6464,6 +6464,80 @@ Branch claude/release-integration, 2026-10-10 (integrates Ignis part A, points s
 4. TEST SEAM. TerminalHostView.ShellFactory (PORT-ONLY Ambient, IShellProcess; production ConPtyShell makes the same ProcessLauncher calls in the same order) lets tests that read no real shell run on FakeShellProcess. A test that does not override it starts a real shell, which this Terminate now ends at its TerminateAll.
 5. TESTS (each carries Decision ED-NEW-shellleak-1). TerminalShellLifetimeTests, on the stand-in shell: Ctrl+C first and then one kill; the kill's exit is not reported; a shell that exited by itself is reported once and never killed; a view that never started a shell has nothing to end. TerminalStoreTests.Terminate_also_ends_the_shell_process_and_the_program_it_started_so_nothing_outlives_the_tab: a real PowerShell and a hidden program it started both exit after session.Terminate, and nothing kills them before the asserts. AppModelTerminalPart3Tests.Worktree_creation_runs_flagged_scripts_in_project_order_at_the_new_path: TerminateAll over two real script tabs ends both shells before the test's cleanup kill runs. Measured on the whole Marrow.App.Tests run (2367 tests, a sampler every 5 s on the test host's powershell.exe children): at most 2 live at once, 0 after the host exited.
 
+
+## ED-NEW-dextra-cx-1
+
+ENGINEERING DECISION. Owner accepted C6-F1 (2026-10-12); DESIGN.md 5.4 and 15.3, ED-NEW-dextra-as3a-2. ForwardThread preserves the stored hidden flag and also stores the source's effective FeedChatFacts.Hidden, including the bounded parent walk, on the new continuation. This is required because a continuation carries the source's words without retaining its ParentThreadID. Valid Assistant work keeps its existing exemption. Filtering remains after enqueue (ED-NEW-dextra-as2-6). Regression: DextraC6F1Tests.Continuation_of_an_inherited_hidden_head_stays_hidden; original repro failed alone twice at 37fe3e03f (codex-C6 logs).
+
+
+## ED-NEW-dextra-cx-2
+
+ENGINEERING DECISION. Owner accepted C6-F2 (2026-10-12); DESIGN.md 5.4 and ED-NEW-dextra-as3a-1 item 4. Guid.Empty remains the damaged-key sentinel in storage and mission/cap identity. FeedChatFacts grants the hiding exemption only when at least one mark exists and neither present mark is Guid.Empty. A damaged mark beside a valid mark also fails closed. Existing valid mission/Assistant work and provider filtering remain unchanged. Filtering stays after enqueue (ED-NEW-dextra-as2-6). Regression: DextraC6F2Tests; original malformed-mission repro failed alone twice at 37fe3e03f (codex-C6 logs); additional cases cover both fields, malformed JSON shapes and explicit empty UUIDs.
+
+
+## ED-NEW-dextra-cx-3
+
+ENGINEERING DECISION. Owner accepted C6-F3 (2026-10-12); DESIGN.md 5.4, ED-NEW-dextra-as2-2 items 3-4. FeedChatFacts captures read-only ordinary ancestor IDs in the existing bounded, cycle-safe 16-link walk. Queue.Hide matches the chat or these dependencies in both ready and held lists, clears Detail and marks Hidden; the builder still drops forbidden kinds and strips title/IDs from surviving hidden events. Valid Assistant work is explicitly exempt, including when Hide is called on its own ID. Mission ancestors do not contribute their own hidden mark but the walk continues through them, as before. No live AppModel reads occur on the pump and filtering stays after enqueue (ED-NEW-dextra-as2-6). Regression: original queued-child tap repro failed alone twice at 37fe3e03f; DextraC6F3QueueTests also cover held/ready grandchildren and the mission exemption.
+
+
+## ED-NEW-dextra-cx-4
+
+ENGINEERING DECISION. Owner accepted C6-F4 (2026-10-12); DESIGN.md 5.4 and ED-NEW-dextra-as2-4. Named quoted secrets consume the entire bounded scanned value, including escaped characters, opposite quotes and newlines, through the matching quote or end of scan. Missing closing quotes (including a value truncated at 4096 characters) are masked fail-closed. The 4096-character input bound and each 250 ms regex timeout remain; timeout still masks the entire scan. Already masked values remain idempotent. Filtering/shielding stays after enqueue (ED-NEW-dextra-as2-6). Regression: original 240-character feed repro failed alone twice at 37fe3e03f; DextraC6F4Tests cover both quote kinds, lengths beyond the scan and escaped/truncated tails.
+
+
+## ED-NEW-dextra-cx-5
+
+ENGINEERING DECISION. Owner accepted C6-F5 (2026-10-12); DESIGN.md 5.1 and ED-NEW-dextra-as2-6. Timeout subtraction uses one clock sample, clamps overdue windows to zero, and caps far-future windows to the timer-supported uint.MaxValue-1 milliseconds. The pump remains the single background task. Existing per-draft build guards, enqueue fault guard and per-subscriber guard retain isolation: a malformed coalescing timestamp is counted and does not strand subsequent protected events. No UI-thread filtering or provider work is added. Regression: original deadline-crossing wait repro failed alone twice at 37fe3e03f; DextraC6F5Tests also proves bounded Flush after an enqueue fault and after a deliberately corrupted draft throws inside the pump builder, with protected delivery in the same and later batches.
+
+
+## ED-NEW-dextra-cx-6
+
+ENGINEERING DECISION. Owner accepted C6-F6 (2026-10-12); DESIGN.md 5.1 and ED-NEW-dextra-as2-7. Limit deduplication retains every live account/reset episode, rather than the last account-wide time. Matching provider repeats within the existing one-minute slack are suppressed; unknown reports are suppressed while any episode is live and retain the existing 30-minute expiry. Expired entries are removed on the next limit check. A reset removes only its old episode and cannot remove an episode still held by another window with the same live reset time or an unknown reset time, including when its percent snapshot lags a provider report; unknown provider episodes cannot be attributed to a resetting window and stay until their existing 30-minute expiry. This refines as2-7 item 2's account-wide reset clearing as required by the accepted finding. Regression: the original weekly/short-window repro failed alone twice at 37fe3e03f; DextraC6F6Tests also covers two simultaneous limits, an early single-window reset, and known/unknown provider reports with lagging snapshots.
+
+
+## ED-NEW-dextra-cx-7
+
+ENGINEERING DECISION. Owner accepted C6-F7 (2026-10-12); DESIGN.md 5.1, 15.3 and ED-NEW-dextra-as2-6/-8. SaveBeforeQuit retires its Assistant feed before the persistence-enabled guard. Taps become inert, clear their private-account delegate and attention state, and dispose the account watcher; the watcher clears baseline and dedup state and rejects further observation. The bus then uses its existing bounded disposal. Repeated shutdown is harmless, and taps first requested after shutdown are immediately retired rather than creating an active watcher. No timer or hook existed in the watcher; this releases its owned state rather than inventing one. Regression: original bus-ownership repro failed alone twice at 37fe3e03f; DextraC6F7Tests covers watcher/delegate cleanup, late taps and repeated quit.
+
+
+## ED-NEW-dextra-cx-8
+
+ENGINEERING DECISION. Owner accepted C6-F8 (2026-10-12); ED-NEW-dextra-as2-6. Subscription dispatch checks retirement and invokes the handler under a per-subscription reentrant monitor. Normal subscription Dispose atomically retires, then joins that monitor before removing the registration: after an external Dispose returns, no callback can begin or remain running. Self-disposal is reentrant and its already running callback may continue; Publish never takes this monitor and remains independent of stalled listeners. A normal subscription Dispose can wait for an already executing callback. Whole-bus Dispose atomically retires all captured registrations without joining each monitor and retains its two-second task wait; for whole-bus shutdown callback dispatch begins upon entering the invocation critical section, and already dispatched callbacks may finish afterward. A literal delegate-first-instruction guarantee under arbitrary scheduler suspension cannot be combined with bounded bus shutdown. The independent lifecycle reviewer identified this distinction; it is recorded rather than hidden behind a check/invoke race. Regression: original earlier-listener/later-disposal repro failed alone twice at 37fe3e03f; DextraC6F8Tests also covers self-disposal, continuing delivery to another listener, and whole-bus retirement of a captured later listener while an earlier callback is stalled.
+
+
+## ED-NEW-dextra-cx-9
+
+ENGINEERING DECISION. Owner accepted C6-F9 (2026-10-12); ED-NEW-dextra-as2-6 item 4. TakeWaiters snapshots a drain's waiters without removing field ownership. Only completion of that drain removes and completes those snapshot members under the bus gate. Waiters registered later remain pending for the next drain. Dispose therefore sees every outstanding waiter, including captured ones during a stalled callback, and completes them before returning after its bounded wait. Completion races are idempotent and continuations remain asynchronous. Regression: DextraC6F9Tests.Dispose_completes_a_flush_already_captured_by_the_pump, using bounded barriers and a deterministic clock fixture, failed alone twice at 37fe3e03f.
+
+
+## ED-NEW-dextra-c6c-1
+
+ENGINEERING DECISION. Owner accepted verifier D1 (C6c, 2026-10-12). Keep the F8 reentrant subscription gate unchanged. The regression blocks a running callback, starts an external disposer on a dedicated thread, and observes that thread actually waiting for the join rather than merely scheduled before a call. Signals release the callback and positively prove it ended before Dispose returned; a later publish proves retirement. There are no sleep-based negative assertions. Temporary deletion of the Dispose join and of the Invoke lock are tested separately in this worktree and restored byte-exact before green. This refines ED-NEW-dextra-cx-8 verification, not its semantics.
+
+## ED-NEW-dextra-c6c-2
+
+ENGINEERING DECISION (C6c D2, 2026-10-12): Mask the entire value of single-quoted dictionary keys, backslash-quoted embedded JSON keys/values, escaped outer quotes and doubled YAML single quotes. A timed header regex finds secret names and separators; a single bounded value walk preserves the existing complete long/multiline/unterminated masking and idempotence. The six new shape tests fail twice alone before this change; plain JSON is an already-green control. No source/design string or provider behavior changes.
+
+## ED-NEW-dextra-c6c-3
+
+ENGINEERING DECISION (C6c D3, 2026-10-12): Leave empty quoted values unchanged and preserve the not-found diagnostic after a literal Windows drive path whose final backslash precedes its closing quote. The path exception requires private_key context, a drive-letter prefix, no other matching quote and a recognizable not-found tail. Ambiguous drive-shaped secrets remain fail-closed. Interpretation of the brief: restore the old 1..200 rule's non-empty lower bound, but keep the accepted C6-F4 requirement to mask whole values longer than 200 and through the bounded 4096-character scan; reinstating a total 200-character cap would leak secrets and contradict unchanged F4 tests. Two new diagnostic tests fail twice alone before this change; the ambiguous-secret control already passes. No OD or existing test expectation changes.
+
+## ED-NEW-dextra-c6c-4
+
+ENGINEERING DECISION (C6c D4, 2026-10-12): Strengthen the two supplemental F5 tests with a real pump deadline crossing after their original enqueue/build fault. Keep every original fault, delivery and sequence assertion. Hold a hidden coalescing draft, control pump reads with signals, and observe timer creation before Flush can erase the deadline. An additional overdue direct-wait phase pins the zero clamp specifically. All four F5 methods fail twice alone against the own-worktree temporary 37fe3e03f bus source; the overdue phase also kills removal of only the zero clamp. Restore every mutation byte-exact. Production code is unchanged.
+
+## ED-NEW-dextra-c6c-5
+
+ENGINEERING DECISION (C6c D5, 2026-10-12): Independently dispose each of the six tap kinds while its separate bus remains live and subscribed. Require an eligible before-disposal positive control, its output, no main-thread clock reads after disposal, and no additional output. The clock witness detects account guards even when their disposed watcher exception is swallowed. Also set persistenceEnabled false on a fresh model before its first SaveBeforeQuit, then require bus, taps and watcher retirement. Removing all six tap guards fails each tap test twice alone; moving disposal after the persistence guard fails the fresh-model test twice alone. Restore mutations byte-exact. Production code is unchanged.
+
+## ED-NEW-dextra-c6c-6
+
+ENGINEERING DECISION (C6c D6, 2026-10-12): Pin the liveness filter within the exact sub-minute boundary identified by both D6 votes: another shared window reset 30 seconds earlier, while the stored episode reset is still in the future. A stale reading cannot retain the episode after the owning window resets, and NoteLimit expiry pruning cannot hide this result. Removing only the others liveness filter fails this test twice alone; restore byte-exact. Production code is unchanged.
+
+## ED-NEW-dextra-c6c-7
+
+ENGINEERING DECISION (C6c D7, 2026-10-12): Decode each damaged mission/assistant parent mark as Guid.Empty and verify its ordinary child inherits hiding and emits only the fixed hidden summary with no IDs. Also retain that parent in HideAncestors while initially visible, so hiding it redacts already queued descendants. The old non-null Ancestors parent check fails each new test twice alone; restore byte-exact. Production code is unchanged.
+
 ## ED-NEW-dextra-as5-1
 2026-10-12 - The decision card and its rules (Dextra unit AS-5; DESIGN.md rev 5, 4.1, 4.2, 12.6, 12.6b; tests DecisionRulesTests). ENGINEERING DECISIONS. PORT-ONLY.
 1. PLACE: src/Marrow.Core/Port/Assistant/DecisionItem.cs, beside AS-1's Grant and PolicyEngine (the design's Marrow.Core/Assistant is this folder). Pure: the queue that holds cards and acts on answers is Marrow.App's DecisionQueue.

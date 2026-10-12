@@ -132,6 +132,7 @@ public sealed class AssistantEventBus : IDisposable
             if (disposed) return;
             disposed = true;
             running = pump;
+            foreach (var listener in subscribers) listener.Retire();
             subscribers = [];
         }
         stop.Cancel();
@@ -161,7 +162,11 @@ public sealed class AssistantEventBus : IDisposable
                     if (batch.Count == 0) break;
                     Deliver(batch);
                 }
-                foreach (var waiter in waiters) waiter.TrySetResult();
+                lock (gate)
+                {
+                    foreach (var waiter in waiters)
+                        if (flushWaiters.Remove(waiter)) waiter.TrySetResult();
+                }
 
                 await WaitForWorkAsync(token).ConfigureAwait(false);
             }
@@ -174,8 +179,17 @@ public sealed class AssistantEventBus : IDisposable
     // Sleeps until a draft arrives or the next coalescing window ends, whichever is first.
     private async Task WaitForWorkAsync(CancellationToken token)
     {
-        using var timeout = queue.NextDue is { } due
-            ? new CancellationTokenSource(due > clock.GetUtcNow() ? due - clock.GetUtcNow() : TimeSpan.Zero, clock)
+        var nextDue = queue.NextDue;
+        var delay = TimeSpan.Zero;
+        if (nextDue is { } due)
+        {
+            var now = clock.GetUtcNow(); // One sample: a deadline crossing cannot make the subtraction negative.
+            delay = due > now ? due - now : TimeSpan.Zero;
+        }
+        // A draft with a far-future stamp must not exceed the timer's supported range and fault the only pump.
+        var maxDelay = TimeSpan.FromMilliseconds(uint.MaxValue - 1);
+        using var timeout = nextDue is not null
+            ? new CancellationTokenSource(delay > maxDelay ? maxDelay : delay, clock)
             : new CancellationTokenSource();
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, timeout.Token);
         try
@@ -192,9 +206,8 @@ public sealed class AssistantEventBus : IDisposable
         lock (gate)
         {
             if (flushWaiters.Count == 0) return [];
-            var taken = flushWaiters.ToList();
-            flushWaiters.Clear();
-            return taken;
+            // Snapshot the drain's waiters, but retain ownership until completion so Dispose sees them too.
+            return flushWaiters.ToList();
         }
     }
 
@@ -226,7 +239,7 @@ public sealed class AssistantEventBus : IDisposable
         {
             try
             {
-                listener.Handler(shared);
+                listener.Invoke(shared);
             }
             catch (Exception)
             {
@@ -245,8 +258,28 @@ public sealed class AssistantEventBus : IDisposable
 
     private sealed class Subscription(AssistantEventBus bus, Action<IReadOnlyList<FeedEvent>> handler) : IDisposable
     {
-        public Action<IReadOnlyList<FeedEvent>> Handler { get; } = handler;
+        private readonly object invocationGate = new();
+        private int retired;
 
-        public void Dispose() => bus.Remove(this);
+        public void Invoke(IReadOnlyList<FeedEvent> batch)
+        {
+            // Dispatch and normal subscription disposal share a reentrant gate. Dispose cannot return
+            // between the last active check and handler entry; a handler may dispose itself.
+            lock (invocationGate)
+            {
+                if (Volatile.Read(ref retired) != 0) return;
+                handler(batch);
+            }
+        }
+
+        // Whole-bus shutdown must remain bounded even when an already dispatched callback is stalled.
+        public void Retire() => Interlocked.Exchange(ref retired, 1);
+
+        public void Dispose()
+        {
+            Retire();
+            lock (invocationGate) { } // Join any callback already dispatched; no publisher ever takes this gate.
+            bus.Remove(this);
+        }
     }
 }
