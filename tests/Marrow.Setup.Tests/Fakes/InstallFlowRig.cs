@@ -25,6 +25,8 @@ public sealed class InstallFlowRig : IDisposable
         Flow = new InstallFlow(Session, NextRun, Staging, Poll, action => action(), beforeEngine);
         Session.InstallRequested = Flow.Begin;
         Session.Start();
+        // ED-NEW-inst-merge-3: the window's signature check has answered (Install waits for it, ED-NEW-inst-cx-1)
+        Session.SignatureChecked(new SignatureResult(SignatureState.Unsigned, null, 0));
         Window.Window.Show();
     }
 

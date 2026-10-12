@@ -203,6 +203,8 @@ public sealed class UpdateScreenTests(SetupHeadlessSession headless)
             var rig2 = new WindowRig();
             var session = rig2.Session(SetupScreen.Update, installed: "1.0.0");
             session.Start();
+            // ED-NEW-inst-merge-3: Update installs only once the signature has answered (ED-NEW-inst-cx-1)
+            session.SignatureChecked(new Marrow.Setup.Platform.SignatureResult(Marrow.Setup.Platform.SignatureState.Unsigned, null, 0));
             rig2.Window.Show();
             rig2.Settle();
             Assert.IsType<UpdateScreen>(session.Current).Go.Invoke();

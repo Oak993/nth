@@ -215,6 +215,8 @@ public sealed class CanvasScreensTests(SetupHeadlessSession headless)
             var second = new WindowRig();
             var other = second.Session(SetupScreen.Options);
             other.Start();
+            // ED-NEW-inst-merge-3: Install takes Enter only once the signature has answered (ED-NEW-inst-cx-1)
+            other.SignatureChecked(new Marrow.Setup.Platform.SignatureResult(Marrow.Setup.Platform.SignatureState.Unsigned, null, 0));
             second.Window.Show();
             second.Settle();
             Key(second, Avalonia.Input.Key.Escape);
