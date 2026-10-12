@@ -5,6 +5,7 @@ using Avalonia.Controls.Documents;
 using Avalonia.Input;
 using Marrow.Core.Port;
 using Marrow.UI.Markdown;
+using Marrow.UI.Port;
 using N = Marrow.App.Tests.Window.Native.WindowManagerNativeMethods;
 
 namespace Marrow.App.Tests.Window.Native;
@@ -25,8 +26,14 @@ public sealed class WebW10NativeTests(WindowManagerNativeSession native)
         Avalonia.Controls.Window window = null!;
         SelectableTextBlock block = null!;
         var opened = new List<KeyModifiers>();
+        var previousOpen = ShellWorkspace.OpenWithDefaultApp;
+        var previousReveal = ShellWorkspace.RevealInFileExplorer;
+        var shell = new List<string>();
+        var controlDown = false;
         try
         {
+            ShellWorkspace.OpenWithDefaultApp = url => shell.Add("open:" + url);
+            ShellWorkspace.RevealInFileExplorer = path => shell.Add("reveal:" + path);
             native.OnUi(() =>
             {
                 subject.Main.Hide(); subject.Settings.Hide();
@@ -58,16 +65,20 @@ public sealed class WebW10NativeTests(WindowManagerNativeSession native)
             });
             N.Check(N.SetCursorPos(point.X, point.Y), "SetCursorPos");
             keybd_event(0x11, 0, 0, 0);
+            controlDown = true;
             try { N.Mouse(N.MOUSE_LEFTDOWN, N.MOUSE_LEFTUP); }
-            finally { keybd_event(0x11, 0, 2, 0); }
+            finally { keybd_event(0x11, 0, 2, 0); controlDown = false; }
             N.Until(() => native.OnUi(() => opened.Count == 1), "Control click did not reach the chat-link route");
             native.OnUi(() => Assert.Equal(KeyModifiers.Control, Assert.Single(opened)));
+            native.OnUi(() => Assert.Empty(shell));
         }
         finally
         {
-            keybd_event(0x11, 0, 2, 0);
+            if (controlDown) keybd_event(0x11, 0, 2, 0);
             if (window is not null) native.OnUi(window.Close);
             N.SetCursorPos(original.X, original.Y);
+            ShellWorkspace.OpenWithDefaultApp = previousOpen;
+            ShellWorkspace.RevealInFileExplorer = previousReveal;
         }
     }, factType: typeof(WebW10NativeTests));
 }
