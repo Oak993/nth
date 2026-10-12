@@ -298,7 +298,7 @@ public sealed class CommandPalette : Decorator
             actions.Add(new Item("terminal", "Toggle terminal", null, null, "terminal", ShortcutStore.Label(AppShortcut.ToggleTerminal), // :166-168
                 () => runtime.IsTerminalVisible = !runtime.IsTerminalVisible));
             actions.Add(new Item("changes", "Toggle changes", null, null, "plusminus", ShortcutStore.Label(AppShortcut.ToggleChanges), // :169-171
-                () => runtime.ToggleDiff()));
+                () => runtime.ToggleChanges())); // web W4: the Changes pane
             actions.Add(new Item("finish", model.FinishActionTitle, null, null, model.FinishActionSymbol, ShortcutStore.Label(AppShortcut.FinishThread), // :172-174
                 () => model.FinishSelectedThread()));
         }

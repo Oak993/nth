@@ -334,8 +334,17 @@ public static class MCPProviderConfig
         var builtIns = BuiltIns(advisor, ui);
         if (builtIns.Count == 0) return overrides;
         var merged = new Dictionary<string, JSONValue>(overrides?.JSONValueObject ?? new Dictionary<string, JSONValue>());
-        foreach (var (key, value) in Codex(builtIns)["mcp_servers"]!.JSONValueObject!) merged[key] = value;
+        foreach (var (key, value) in Codex(builtIns)["mcp_servers"]!.JSONValueObject!)
+            merged[key] = key == Web.UiMcpServer.ServerName ? WithToolTimeout(value, Web.AskUserTool.ToolTimeoutSeconds) : value;
         return ObjectOf(merged);
+    }
+
+    // PORT-ONLY (web surfaces W25, ED-NEW-web-w25-1): Codex ends an MCP tool call after 60 s unless the server's entry says otherwise
+    // (mcp_servers.<id>.tool_timeout_sec, the config reference's own key); an ask_user question waits for a person, so nth-ui's entry asks for a day.
+    private static JSONValue WithToolTimeout(JSONValue entry, long seconds)
+    {
+        var pairs = new Dictionary<string, JSONValue>(entry.JSONValueObject ?? new Dictionary<string, JSONValue>()) { ["tool_timeout_sec"] = seconds };
+        return ObjectOf(pairs);
     }
 
     /// <summary>Copilot: the advisor's and nth-ui's entries in the "mcpServers" shape a session's create parameters take; null without either.</summary>

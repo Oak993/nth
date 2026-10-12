@@ -21,11 +21,15 @@ public static class UiMcpBridge
     /// <summary>The executable the relay entry launches: the app's own (its Main hands <see cref="Command"/> to <see cref="RunClient"/>).</summary>
     public static Ambient<Func<string>> Executable { get; } = new(new Func<string>(() => Path.Combine(AppContext.BaseDirectory, "Marrow.App.exe")));
 
-    /// <summary>The session's registration: its chat, provider and model; null for a session of no chat or while artifacts are off.</summary>
+    /// <summary>
+    /// The session's registration: its chat, provider and model; null for a session of no chat, or while artifacts are off and no
+    /// ask_user host is bound (W25: ask_user needs only the host).
+    /// </summary>
     public static UiRegistration? For(SessionConfiguration configuration)
     {
         var host = ArtifactHost.Shared.Current;
-        return configuration.IgnisThreadID is { } thread && host.IsOn ? new UiRegistration(thread, configuration.Provider, configuration.Model, host) : null;
+        return configuration.IgnisThreadID is { } thread && (host.IsOn || AskUserDirectory.Shared.Current.IsBound)
+            ? new UiRegistration(thread, configuration.Provider, configuration.Model, host) : null;
     }
 
     /// <summary>The nth-ui server entry for a CLI session, registered for its chat; null when <see cref="For"/> is.</summary>

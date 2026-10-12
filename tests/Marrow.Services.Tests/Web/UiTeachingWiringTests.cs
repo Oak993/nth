@@ -49,7 +49,7 @@ public sealed class UiTeachingWiringTests
         var server = new UiMcpServer(UiMcpBridge.For(Config(ProviderKind.Claude, Chat)));
         var instructions = (await Mcp(server, "initialize", new { protocolVersion = "2025-06-18" }))["result"]!["instructions"]!.GetValue<string>();
         Assert.Equal(UiMcpServer.Instructions, instructions);
-        var options = UiTeaching.Options(UiMcpServer.ToolNames);
+        var options = UiTeaching.Options(UiMcpServer.Offered);
         Assert.Equal(NthUiTeaching.McpInstructions(options), instructions);
         Assert.StartsWith(NthUiTeaching.Core(options) + "\n\n", instructions, StringComparison.Ordinal);
         Assert.InRange(NthUiTeaching.Core(options).Length, 1_200, NthUiTeaching.McpCoreLimit);
@@ -96,7 +96,7 @@ public sealed class UiTeachingWiringTests
         }
         Assert.True(UiMcpServer.IsOwnTool("mcp__nth-ui__ui_reference"));
         foreach (var live in new[] { "ui_show", "ui_update", "html_widget" }) Assert.True(UiMcpServer.IsOwnTool("mcp__nth-ui__" + live)); // W24's tools are among ToolNames
-        Assert.False(UiMcpServer.IsOwnTool("mcp__nth-ui__ask_user")); // W25 adds its own
+        Assert.True(UiMcpServer.IsOwnTool("mcp__nth-ui__ask_user")); // W25's tool is the last of ToolNames
 
         var silent = new UiMcpServer(null);
         Assert.Equal(-32602, (await Mcp(silent, "tools/call", new { name = "ui_reference", arguments = new { topic = "language" } }))["error"]!["code"]!.GetValue<int>());
@@ -130,7 +130,7 @@ public sealed class UiTeachingWiringTests
         Assert.Equal("Live answers", NativeSkillTools.Title("ui_reference", JSONValue.Parse("{\"topic\":\"nope\"}")!));
 
         var block = tools.UiTeachingBlock()!;
-        Assert.Equal(NthUiTeaching.SystemBlock(UiTeaching.Options(ArtifactNativeTools.Names)), block);
+        Assert.Equal(NthUiTeaching.SystemBlock(UiTeaching.Options(tools.OfferedUiTools)), block);
         Assert.Contains("artifact_create", block, StringComparison.Ordinal);
         Assert.Contains("call ui_reference with a topic", block, StringComparison.Ordinal);
         Assert.Equal(NthUiExamples.Six.Count, Fences(block));

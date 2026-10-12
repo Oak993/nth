@@ -42,6 +42,7 @@ public sealed class TimelineEntry : MainActorModel
         Todos,
         Notice,
         TurnEnd,
+        Ask, // PORT-ONLY (web surfaces W25): appended last so the others keep their values
     }
 
     private TimelineItem item = null!;
@@ -68,6 +69,7 @@ public sealed class TimelineEntry : MainActorModel
             TimelineItem.Content.Todos => Kind.Todos,
             TimelineItem.Content.Notice => Kind.Notice,
             TimelineItem.Content.TurnEnd => Kind.TurnEnd,
+            TimelineItem.Content.Ask => Kind.Ask, // PORT-ONLY (web surfaces W25): an ask_user card
             _ => throw new ArgumentOutOfRangeException(nameof(item)),
         };
         TurnID = item.TurnID;
@@ -400,7 +402,6 @@ public sealed partial class ThreadRuntime : MainActorModel
     private PromptEdit? messageEdit;
     private ComposerDraft draft = new();
     private bool draftIsEmpty = true;
-    private bool isTerminalVisible = false;
     private bool isTerminalResizing = false;
     private bool isDiffVisible = false;
     private PanelDockCorner subagentPanelDock = PanelDockCorner.BottomTrailing;
@@ -598,15 +599,8 @@ public sealed partial class ThreadRuntime : MainActorModel
     // :238
     public bool DraftIsEmpty { get => Read(draftIsEmpty); private set => Set(ref draftIsEmpty, value); }
 
-    // :239-243
-    public bool IsTerminalVisible
-    {
-        get => Read(isTerminalVisible);
-        set => Set(ref isTerminalVisible, value, wasVisible =>
-        {
-            if (!wasVisible && isTerminalVisible) TerminalWantsFocus = true; // :241-243
-        });
-    }
+    // :239-243 isTerminalVisible. PORT-ONLY (web W4, ED-NEW-web-w4-1): the terminal's open state is the pane workspace's now;
+    // IsTerminalVisible is in ThreadRuntime+Workspace.cs, with the drawer and grid halves of it.
 
     // :244. @ObservationIgnored (R-OBS-5).
     public bool TerminalWantsFocus { get; set; } = false;
@@ -1687,7 +1681,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         treeEpoch++;
         var checkpoint = TaskHandle.Detached(async () =>
         {
-            if (ignisPing || !await git.IsRepository()) return false;
+            if (ignisPing || IsReadOnlySideChat(initialThread) || !await git.IsRepository()) return false; // PORT-ONLY (web surfaces W6): a read-only side chat has nothing to revert
             try
             {
                 await git.CaptureCheckpoint(checkpointRef);
@@ -1702,15 +1696,16 @@ public sealed partial class ThreadRuntime : MainActorModel
         try
         {
             if (warmup is { } pendingWarmup) await pendingWarmup.Completion;
+            if (initialThread.IsSideChat) BeginFreshSideChatSession(app); // PORT-ONLY (web surfaces W6): each side-chat turn starts in a fresh session
             var start = MainActor.SpawnThrowing(async () => await EnsureSession(directory));
             if (await checkpoint.Value) UpdateTurn(turn.Id, current => current with { BaseCheckpoint = checkpointRef });
             _ = await start.Value;
 
-            if (SlashCommand.NameIn(text) is not null) await app.Providers.LoadCommands(initialThread.Provider, directory);
+            if (!initialThread.IsSideChat && SlashCommand.NameIn(text) is not null) await app.Providers.LoadCommands(initialThread.Provider, directory);
 
             if (currentTurnID != turn.Id || session is not { } liveSession || app.Thread(ThreadID) is not { } thread) return;
 
-            var commandName = SlashCommand.NameIn(text);
+            var commandName = thread.IsSideChat ? null : SlashCommand.NameIn(text); // PORT-ONLY (web surfaces W6): a side chat's words are a question, never a command
             SlashCommand? command = null;
             if (commandName is not null
                 && app.Providers.Commands.TryGetValue(ProviderRegistry.CommandKey(thread.Provider, directory), out var commands))
@@ -1722,6 +1717,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             var files = attachments.Where(attachment => !attachment.IsImage).ToArray();
             if (files.Length != 0)
                 prompt += "\n\nAttached files:\n" + string.Join("\n", files.Select(file => "- " + file.Path));
+            if (thread.IsSideChat) prompt = await SideChatTurnText(prompt); // PORT-ONLY (web surfaces W6): the rules, the snapshot of the main thread now, the side chat so far
 
             // ThreadRuntime.swift:1282-1306. Carry the selected Hydra route to the actual provider input.
             if (!ignisPing && app.HydraLaunch(thread) is { } launch)
@@ -1887,6 +1883,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:1640-1686. Swift characters are counted as grapheme clusters.
     private ValueList<TranscriptMessage> ApiTranscript()
     {
+        if (Thread?.IsSideChat == true) return ValueList<TranscriptMessage>.Empty; // PORT-ONLY (web surfaces W6): a side chat's turn carries its own conversation so far (SideChatPrompt)
         var fragments = new List<(bool Assistant, string Text)>();
         foreach (var entry in Entries)
         {
@@ -2288,6 +2285,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     public void Interrupt()
     {
         if (Phase == RuntimePhase.Idle) return;
+        StopAsks(); // PORT-ONLY (web surfaces W25): Stop cancels the questions the turn waits on
 
         var turnID = currentTurnID;
         interruptWatchdog?.Cancel();
@@ -2375,6 +2373,8 @@ public sealed partial class ThreadRuntime : MainActorModel
                 FlushDeltas();
                 Approvals = ValueList<ApprovalRequest>.Empty;
                 Questions = ValueList<QuestionRequest>.Empty;
+                DetachAsksOfTurn(turnID); // PORT-ONLY (web surfaces W25): a card still waiting stays so; the call that waited on it is over
+                hiddenAskToolIds.Clear();
 
                 var reportedEdits = new List<FileEdit>();
                 foreach (var entry in Entries.Where(entry => entry.Item.TurnID == turnID))
@@ -3167,6 +3167,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:2082-2096.
     private void ReleaseSession(bool stop)
     {
+        DetachAllAsks(); // PORT-ONLY (web surfaces W25): no call of a released session still waits
         sessionEpoch++;
         sessionSignature = null;
         unsentSessionID = null;
@@ -3981,7 +3982,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     public bool HoldsOnlyPersistedState =>
         Phase == RuntimePhase.Idle && session is null && !IsReverting && pendingSend is null && !IsLoadingHistory
             && Draft.IsEmpty && FollowUpEdit is null && MessageEdit is null
-            && Approvals.Count == 0 && Questions.Count == 0
+            && Approvals.Count == 0 && Questions.Count == 0 && askWaits.Count == 0
             && hydraPendingReports.Count == 0 && hydraBatches.Count == 0 && hydraWaiting.Count == 0 && hydraNativeHeads.Count == 0
             && !hydraFlushScheduled && HydraLanding is null && !isHydraMerging && headBudget is null
             && commandTrees.Count == 0 && commandSettles.Count == 0;
@@ -4039,6 +4040,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             or ProviderEvent.Approval or ProviderEvent.Question) handoffMessageBoundary = false;
         CaptureHandoff(@event);
         if (@event is ProviderEvent.TurnCompleted or ProviderEvent.Exited) FlushHandoffJournal();
+        if (HidesAskToolRow(@event)) return; // PORT-ONLY (web surfaces W25): the ask_user card takes the place of the provider's row for the tool
         switch (@event)
         {
             case ProviderEvent.SessionReady value:
@@ -4100,6 +4102,8 @@ public sealed partial class ThreadRuntime : MainActorModel
                 UpsertTodos(value.Value);
                 break;
             case ProviderEvent.Approval value:
+                if (AutoApprovesAsk(value.Value)) break; // PORT-ONLY (web surfaces W25): the question card is the ask; a provider's "allow this tool?" before it is not asked
+                if (DeclinesInReadOnlySideChat(value.Value)) break; // PORT-ONLY (web surfaces W6): a read-only side chat never runs, changes or builds
                 SkillsOffers?.BindApproval(value.Value);
                 Approvals = Approvals.Mutating(items =>
                 {
@@ -4195,6 +4199,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                 ReleaseSession(stop: false);
                 Approvals = ValueList<ApprovalRequest>.Empty;
                 Questions = ValueList<QuestionRequest>.Empty;
+                DetachAllAsks(); // PORT-ONLY (web surfaces W25): the provider's calls are over; the cards stay waiting
                 StopNativeHeads();
                 if (currentTurnID is not null)
                 {

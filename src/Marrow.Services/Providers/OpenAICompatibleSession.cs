@@ -1762,8 +1762,9 @@ public class OpenAICompatibleSession : ProviderSession
     // PORT-ONLY (SK-11f, WU-12, DL-14). Runs one of Marrow's own tools. A stopped turn answers "Stopped." as the built-in tools do; nothing it produced is said.
     private async Task<string> ExecuteSkillTool(NativeSkillTools skillTools, PendingToolCall tool, JSONValue args)
     {
+        var showsRow = !NativeSkillTools.HidesRow(tool.Name); // PORT-ONLY (web surfaces W25): ask_user's card takes the row's place
         // PORT-ONLY (web surfaces W24, ED-NEW-web-w24-5): a live-answer call carries its arguments, which the live-answer flow turns into the row's view.
-        OnEvent?.Invoke(new ProviderEvent.ToolStarted(tool.Id, new ToolCall
+        if (showsRow) OnEvent?.Invoke(new ProviderEvent.ToolStarted(tool.Id, new ToolCall
         {
             ToolCallKind = ToolCall.Kind.Other,
             Title = NativeSkillTools.Title(tool.Name, args),
@@ -1777,11 +1778,11 @@ public class OpenAICompatibleSession : ProviderSession
             if (SwiftTask.IsCancelled || interrupted) return "Stopped.";
             // ED-366 7 (the per-site decision LocalizedDescription asks for): these tools are port code with no Swift twin, so an error that is not a Swift one speaks with its own message.
             var description = error is ILocalizedError or ISwiftErrorIdentity ? SwiftErrors.LocalizedDescription(error) : error.Message;
-            OnEvent?.Invoke(new ProviderEvent.ToolUpdated(tool.Id, new ToolUpdate { Output = description, Status = ToolCall.Status.Failed }));
+            if (showsRow) OnEvent?.Invoke(new ProviderEvent.ToolUpdated(tool.Id, new ToolUpdate { Output = description, Status = ToolCall.Status.Failed }));
             return $"Error: {description}";
         }
         if (SwiftTask.IsCancelled || interrupted) return "Stopped.";
-        OnEvent?.Invoke(new ProviderEvent.ToolUpdated(tool.Id, new ToolUpdate
+        if (showsRow) OnEvent?.Invoke(new ProviderEvent.ToolUpdated(tool.Id, new ToolUpdate
         {
             Output = Summary(result.Output, 4_000),
             Status = result.Failed ? ToolCall.Status.Failed : ToolCall.Status.Completed,

@@ -64,7 +64,13 @@ public sealed class CommandPaletteActionRowTests(HeadlessSession headless)
         harness.Main.OnMain(() =>
         {
             var runtime = model.Runtime(model.SelectedThreadID!.Value);
-            bool State() => shortcut == AppShortcut.ToggleChanges ? runtime.IsDiffVisible : runtime.IsTerminalVisible;
+            // Web W4 (ED-NEW-web-w4-1): Toggle changes opens the Changes pane (never the popover, which stays shut); Toggle terminal flips the terminal.
+            bool State()
+            {
+                if (shortcut != AppShortcut.ToggleChanges) return runtime.IsTerminalVisible;
+                Assert.False(runtime.IsDiffVisible);
+                return runtime.IsChangesPaneOpen;
+            }
             Assert.False(State());
 
             for (var pass = 1; pass <= 2; pass++)

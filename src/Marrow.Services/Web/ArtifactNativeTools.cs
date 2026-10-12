@@ -1,8 +1,9 @@
 // PORT-ONLY: web surfaces W12, Tabula (DESIGN.md 6.2 "as native tools (API providers)"; ED-NEW-web-w12-1). The artifact
 // tools in the API providers' own tool loop, beside use_skill and ask_advisor (NativeSkillTools offers and runs them).
-// Offered only to a chat's session while the artifact host is on. No Swift counterpart.
+// Offered only to a chat's session while the artifact host is on; ask_user (W25) while a host for it is bound. No Swift counterpart.
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.Port.Skills.Providers;
 using Marrow.Services.Providers;
@@ -17,22 +18,32 @@ public sealed class ArtifactNativeTools(UiRegistration registration)
 
     public UiRegistration Registration { get; } = registration;
 
-    /// <summary>Every tool this class can run, in order: the four artifact tools, the live-answer tools (W24), then the read-only live-view reference (W17).</summary>
-    public static IReadOnlyList<string> Names { get; } = [.. ArtifactTools.Names, .. LiveAnswerTools.Names, UiReferenceTool.Name];
+    /// <summary>The tools there are, in order: the four artifact tools, the live-answer tools (W24), the read-only live-view reference (W17), then ask_user (W25). Which are offered now: <see cref="Offered"/>.</summary>
+    public static IReadOnlyList<string> Names { get; } = [.. ArtifactTools.Names, .. LiveAnswerTools.Names, UiReferenceTool.Name, AskUserTool.Name];
 
-    /// <summary>The tools this chat's session is offered: the live-answer tools only while Settings has them on, and a small local model has no HTML widget.</summary>
-    public IReadOnlyList<string> Offered => Registration.Host.Live.Enabled
-        ? [.. ArtifactTools.Names, .. LiveAnswerTools.Offered(Registration.Lite), UiReferenceTool.Name]
-        : [.. ArtifactTools.Names, UiReferenceTool.Name];
+    private bool ArtifactsOn => Registration.Host.IsOn;
 
-    public IReadOnlyList<JSONValue> Definitions =>
-    [
-        .. ArtifactTools.Names.Select(ArtifactTools.FunctionDefinition),
-        .. Offered.Where(LiveAnswerTools.IsName).Select(LiveAnswerTools.FunctionDefinition),
-        UiReferenceTool.FunctionDefinition(),
-    ];
+    private static bool AskOn => AskUserDirectory.Shared.Current.IsBound;
 
-    public bool Owns(string toolName) => Offered.Contains(toolName);
+    /// <summary>
+    /// The tools offered to this chat now: the artifact tools and the reference while the artifact store is on, the live-answer tools
+    /// only while Settings has them on (and a small local model has no HTML widget), ask_user while a host is bound.
+    /// </summary>
+    public IReadOnlyList<string> Offered => [.. Names.Where(Offers)];
+
+    private bool Offers(string toolName) =>
+        toolName == AskUserTool.Name ? AskOn
+        : ArtifactsOn && (!LiveAnswerTools.IsName(toolName) || (Registration.Host.Live.Enabled && LiveAnswerTools.Offered(Registration.Lite).Contains(toolName)));
+
+    public IReadOnlyList<JSONValue> Definitions => [.. Offered.Select(Definition)];
+
+    private static JSONValue Definition(string toolName) =>
+        toolName == AskUserTool.Name ? AskUserTool.FunctionDefinition()
+        : toolName == UiReferenceTool.Name ? UiReferenceTool.FunctionDefinition()
+        : LiveAnswerTools.IsName(toolName) ? LiveAnswerTools.FunctionDefinition(toolName)
+        : ArtifactTools.FunctionDefinition(toolName);
+
+    public bool Owns(string toolName) => Names.Contains(toolName) && Offers(toolName);
 
     /// <summary>
     /// The teaching block for the system prompt (W17, ED-NEW-web-w17-1): when to use text, a live view or an artifact, then the view
@@ -44,13 +55,22 @@ public sealed class ArtifactNativeTools(UiRegistration registration)
 
     /// <summary>The timeline row's title for a call, known before it runs.</summary>
     public static string Title(string toolName, JSONValue arguments) =>
-        toolName == UiReferenceTool.Name ? UiReferenceTool.RowTitle(Node(arguments))
+        toolName == AskUserTool.Name ? AskUserTool.ProviderRowTitle
+        : toolName == UiReferenceTool.Name ? UiReferenceTool.RowTitle(Node(arguments))
         : LiveAnswerTools.IsName(toolName) ? LiveAnswerFlow.RowTitle(toolName) // the live-answer flow turns this row into the view (W24)
         : ArtifactTools.RowTitle(toolName, Node(arguments));
 
-    /// <summary>Runs one artifact tool; a refusal is a failed result, never a throw.</summary>
+    /// <summary>True for a tool the card replaces: the chat draws no row for it (W25).</summary>
+    public static bool HidesRow(string toolName) => toolName == AskUserTool.Name;
+
+    /// <summary>Runs one tool; a refusal is a failed result, never a throw. ask_user waits for the person and ends with the turn's own cancellation.</summary>
     public async Task<NativeToolResult> Execute(string toolName, JSONValue arguments)
     {
+        if (toolName == AskUserTool.Name)
+        {
+            var asked = await AskUserTool.Run(Node(arguments), AskUserDirectory.Shared.Current.Find(Registration.Thread), SwiftTask.CancellationToken).ConfigureAwait(true);
+            return new NativeToolResult(Title(toolName, arguments), asked.Text, asked.Failed, []);
+        }
         if (toolName == UiReferenceTool.Name)
         {
             var reference = UiReferenceTool.Run(Node(arguments));

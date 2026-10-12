@@ -282,6 +282,20 @@ public enum AppShortcut
     [RawValue("toggleActivityView")] ToggleActivityView, // :126
     [RawValue("showMainWindow")] ShowMainWindow, // :127
     [RawValue("openSettings")] OpenSettings, // :128
+
+    // PORT-ONLY: web surfaces W3b (DESIGN 3.7, ED-NEW-web-w3b-1). The pane workspace's commands, after the source's own,
+    // all in "Window and panels" and re-bindable like the rest.
+    [RawValue("toggleBrowser")] ToggleBrowser,
+    [RawValue("toggleSideChat")] ToggleSideChat,
+    [RawValue("toggleArtifacts")] ToggleArtifacts,
+    [RawValue("toggleBackgroundTasks")] ToggleBackgroundTasks,
+    [RawValue("closePane")] ClosePane,
+    [RawValue("expandPane")] ExpandPane,
+    [RawValue("nextPane")] NextPane,
+    [RawValue("previousPane")] PreviousPane,
+    [RawValue("movePaneEarlier")] MovePaneEarlier,
+    [RawValue("movePaneLater")] MovePaneLater,
+    [RawValue("joinPaneTabs")] JoinPaneTabs,
 }
 
 /// <summary>
@@ -335,7 +349,11 @@ public static class AppShortcutExtensions
             AppShortcutSection.Threads,
         // :161-162
         AppShortcut.CommandPalette or AppShortcut.ToggleSidebar or AppShortcut.ToggleTerminal or AppShortcut.ToggleChanges or
-            AppShortcut.ToggleActivityView or AppShortcut.ShowMainWindow or AppShortcut.OpenSettings =>
+            AppShortcut.ToggleActivityView or AppShortcut.ShowMainWindow or AppShortcut.OpenSettings or
+            // PORT-ONLY (W3b): the pane workspace's commands.
+            AppShortcut.ToggleBrowser or AppShortcut.ToggleSideChat or AppShortcut.ToggleArtifacts or
+            AppShortcut.ToggleBackgroundTasks or AppShortcut.ClosePane or AppShortcut.ExpandPane or AppShortcut.NextPane or
+            AppShortcut.PreviousPane or AppShortcut.MovePaneEarlier or AppShortcut.MovePaneLater or AppShortcut.JoinPaneTabs =>
             AppShortcutSection.Window,
     };
 
@@ -362,6 +380,18 @@ public static class AppShortcutExtensions
         // :185 DEVIATION OD-0002, OD-0012 F1 (PR-SETTINGS-210): upstream reads "Show Droppy Code".
         AppShortcut.ShowMainWindow => "Show nth",
         AppShortcut.OpenSettings => "Settings", // :186
+        // PORT-ONLY (W3b), DESIGN 3.7 (Visus and Tabula are the owner's names, 2026-10-11).
+        AppShortcut.ToggleBrowser => "Toggle Visus",
+        AppShortcut.ToggleSideChat => "Toggle side chat",
+        AppShortcut.ToggleArtifacts => "Toggle Tabula",
+        AppShortcut.ToggleBackgroundTasks => "Toggle background tasks",
+        AppShortcut.ClosePane => "Close pane",
+        AppShortcut.ExpandPane => "Expand or restore pane",
+        AppShortcut.NextPane => "Next pane",
+        AppShortcut.PreviousPane => "Previous pane",
+        AppShortcut.MovePaneEarlier => "Move pane earlier",
+        AppShortcut.MovePaneLater => "Move pane later",
+        AppShortcut.JoinPaneTabs => "Join or leave tabs",
     };
 
     // :190-212 var detail
@@ -386,6 +416,18 @@ public static class AppShortcutExtensions
         AppShortcut.ToggleActivityView => "Lists every thread by when it was last active.", // :208
         AppShortcut.ShowMainWindow => "Brings the main window to the front.", // :209
         AppShortcut.OpenSettings => "Opens this window.", // :210
+        // PORT-ONLY (W3b).
+        AppShortcut.ToggleBrowser => "Shows or hides the browser pane.",
+        AppShortcut.ToggleSideChat => "Shows or hides a side conversation about this thread.",
+        AppShortcut.ToggleArtifacts => "Shows or hides the artifacts pane.",
+        AppShortcut.ToggleBackgroundTasks => "Shows or hides the list of running jobs.",
+        AppShortcut.ClosePane => "Closes the focused pane.",
+        AppShortcut.ExpandPane => "Springs the focused pane over the workspace, or back.",
+        AppShortcut.NextPane => "Moves focus to the next pane, then the dividers.",
+        AppShortcut.PreviousPane => "Moves focus to the previous pane.",
+        AppShortcut.MovePaneEarlier => "Moves the focused pane one place earlier in the layout.",
+        AppShortcut.MovePaneLater => "Moves the focused pane one place later in the layout.",
+        AppShortcut.JoinPaneTabs => "Joins the focused pane to the one before it as a tab, or splits it out of its group.",
     };
 
     // :214-236 var defaultChord, a fresh value on every read. Each macOS key code is replaced by its scan code and
@@ -414,6 +456,18 @@ public static class AppShortcutExtensions
         // and "Show Marrow" has no default chord.
         AppShortcut.ShowMainWindow => null,
         AppShortcut.OpenSettings => new KeyChord(0x33, ChordModifiers.Control), // :234 (43 ",", .command)
+        // PORT-ONLY (W3b), DESIGN 3.7. None collides with a source default (checked by ShortcutScopeTests).
+        AppShortcut.ToggleBrowser => new KeyChord(0x30, ChordModifiers.Shift | ChordModifiers.Control), // Ctrl+Shift+B
+        AppShortcut.ToggleSideChat => new KeyChord(0x27, ChordModifiers.Control), // Ctrl+;
+        AppShortcut.ToggleArtifacts => new KeyChord(0x1E, ChordModifiers.Shift | ChordModifiers.Control), // Ctrl+Shift+A
+        AppShortcut.ToggleBackgroundTasks => new KeyChord(0x22, ChordModifiers.Shift | ChordModifiers.Control), // Ctrl+Shift+G
+        AppShortcut.ClosePane => new KeyChord(0x2B, ChordModifiers.Control), // Ctrl+Backslash
+        AppShortcut.ExpandPane => new KeyChord(0x2B, ChordModifiers.Shift | ChordModifiers.Control), // Ctrl+Shift+Backslash
+        AppShortcut.NextPane => new KeyChord(0x40, ChordModifiers.None), // F6
+        AppShortcut.PreviousPane => new KeyChord(0x40, ChordModifiers.Shift), // Shift+F6
+        AppShortcut.MovePaneEarlier => new KeyChord(0xE04B, ChordModifiers.Alt | ChordModifiers.Control), // Ctrl+Alt+Left
+        AppShortcut.MovePaneLater => new KeyChord(0xE04D, ChordModifiers.Alt | ChordModifiers.Control), // Ctrl+Alt+Right
+        AppShortcut.JoinPaneTabs => new KeyChord(0x14, ChordModifiers.Alt | ChordModifiers.Control), // Ctrl+Alt+T
     };
 }
 
@@ -592,6 +646,9 @@ public sealed class ShortcutStore : MainActorModel
             if (owner != shortcut && Chord(owner) == chord)
                 return owner.Title() + " already uses this chord.";
         }
+        // PORT-ONLY (W3b): Ctrl+Alt+Up and Down are the vertical twins of the move commands' arrows (DESIGN 3.6).
+        if (ShortcutScopes.AliasOwner(this, chord) is { } twin && twin != shortcut)
+            return twin.Title() + " already uses this chord.";
         return null; // :333
     }
 }
