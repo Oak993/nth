@@ -359,6 +359,32 @@ public sealed class LiveAnswerFlowTests
     }
 
     [Fact]
+    public void Calls_in_flight_at_once_bind_by_the_id_each_names()
+    {
+        var (flow, sim, host) = Make();
+        sim.Feed(flow, Started("tool-a", "ui_show", Json("card \"A\"\n  text \"a\"\n", "a")));
+        sim.Feed(flow, Started("tool-b", "ui_show", Json("card \"B\"\n  text \"b\"\n", "b")));
+        sim.Feed(flow, Shown(host, "b", "card \"B\"\n  text \"b\"\n")); // the second call's view is recorded first
+        sim.Feed(flow, Shown(host, "a", "card \"A\"\n  text \"a\"\n"));
+        Assert.Equal(("a", "b"), (sim.Rows["tool-a"].View!.Id, sim.Rows["tool-b"].View!.Id));
+        Assert.Equal(["tool-a", "tool-b"], sim.Order);
+        Assert.All(sim.LiveRows, row => Assert.True(row.View!.Complete));
+    }
+
+    [Fact]
+    public void An_update_for_a_row_the_chat_no_longer_holds_makes_a_row_of_its_own()
+    {
+        var (flow, sim, host) = Make();
+        sim.Feed(flow, Started("tool-1", "ui_show", Json(Hosting, "hosting")));
+        sim.Feed(flow, Shown(host, "hosting", Hosting));
+        sim.Remove("tool-1"); // the chat was rewound past it
+        sim.Feed(flow, host.Update(Chat, "hosting", Hosting.Replace("three", "five", StringComparison.Ordinal), null, null, raise: false));
+        var row = Assert.Single(sim.LiveRows);
+        Assert.Equal(("live-hosting-2", "hosting", 2, true), (row.Id, row.View!.Id, row.View.Version, row.View.Complete));
+        Assert.Contains("five", row.View.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_failed_call_leaves_a_calm_row_with_the_reason()
     {
         var (flow, sim, _) = Make();

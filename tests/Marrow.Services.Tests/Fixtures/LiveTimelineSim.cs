@@ -45,6 +45,13 @@ internal sealed class LiveTimelineSim
 
     public IReadOnlyList<Row> LiveRows => [.. order.Where(rows.ContainsKey).Select(id => rows[id]).Where(row => row.View is not null)];
 
+    /// <summary>The row goes (the chat was rewound past it).</summary>
+    public void Remove(string id)
+    {
+        rows.Remove(id);
+        order.Remove(id);
+    }
+
     public LiveEntryLookup Lookup => new()
     {
         EntryOf = viewId => order.Where(rows.ContainsKey).Reverse().FirstOrDefault(id => rows[id].View is { Superseded: false } view && string.Equals(view.Id, viewId, StringComparison.OrdinalIgnoreCase)),

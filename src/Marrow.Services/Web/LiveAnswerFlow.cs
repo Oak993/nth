@@ -253,7 +253,9 @@ public sealed class LiveAnswerFlow(Guid thread, LiveAnswerHost host, bool lite, 
         }
 
         var tool = view.Kind == LiveViewKind.Html ? Tool.Html : Tool.Show;
-        var waiting = rows.Values.FirstOrDefault(row => !row.Bound && row.Tool == tool);
+        // Calls in flight at once are matched by the id each names when it names one, else by order.
+        var open = rows.Values.Where(row => !row.Bound && row.Tool == tool).ToList();
+        var waiting = open.FirstOrDefault(row => string.Equals(LiveViewIds.Normalize(PartialJson.String(row.Json, "id")?.Text), view.Id, StringComparison.OrdinalIgnoreCase)) ?? open.FirstOrDefault();
         var fresh = new ToolLiveView
         {
             Id = view.Id, Kind = view.Kind, Title = view.Title, Text = view.Text, Version = view.Version, Complete = true, Lite = view.Lite, Height = view.Height,
