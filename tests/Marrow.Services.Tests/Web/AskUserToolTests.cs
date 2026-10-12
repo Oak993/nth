@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using Marrow.Core.Models;
+using Marrow.Core.Port;
 using Marrow.Services.Tests.Fixtures;
 using Marrow.Services.Web;
 
@@ -118,6 +119,19 @@ public sealed class AskUserToolTests
         Assert.Contains("one to four questions", AskUserTool.Description, StringComparison.Ordinal);
         Assert.Contains("two to twelve options", AskUserTool.Description, StringComparison.Ordinal);
         Assert.Equal("ask_user", AskUserTool.Name);
+    }
+
+    [Theory]
+    [InlineData("nth-ui · ask_user", null, true)]
+    [InlineData("Call nth-ui ask_user", null, true)]
+    [InlineData("Tool", "nth-ui:ask_user {\"questions\":[]}", true)]
+    [InlineData("nth-ui · artifact_create", null, false)]
+    [InlineData("github · ask_user", null, false)]
+    public void A_providers_request_to_allow_this_tool_is_known(string title, string? detail, bool expected)
+    {
+        var request = new ApprovalRequest("r", ApprovalRequest.Kind.Tool, title, new ValueList<ApprovalRequest.Option>([new("allow", "Approve", ApprovalRequest.Option.Role.Approve)]), detail);
+        Assert.Equal(expected, AskUserTool.IsApprovalFor(request));
+        Assert.False(AskUserTool.IsApprovalFor(request with { RequestKind = ApprovalRequest.Kind.Command }));
     }
 
     [Theory]

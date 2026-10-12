@@ -70,6 +70,14 @@ public static class AskUserTool
             || string.Equals(title, "mcp__" + UiMcpServer.ServerName + "__" + Name, StringComparison.Ordinal);
     }
 
+    /// <summary>True for a provider's request to allow this tool (its title or detail names nth-ui's ask_user): the card is the ask, so nothing more is asked.</summary>
+    public static bool IsApprovalFor(ApprovalRequest request)
+    {
+        if (request.RequestKind != ApprovalRequest.Kind.Tool) return false;
+        var text = string.Concat((request.Title + " " + request.Detail).Where(c => !char.IsWhiteSpace(c) && c != '\u00B7' && c != '_' && c != '-')).ToLowerInvariant();
+        return text.Contains("nthui", StringComparison.Ordinal) && text.Contains("askuser", StringComparison.Ordinal);
+    }
+
     /// <summary>
     /// Runs one call: reads the questions (errors go back to the model, which can call again), shows the card on the chat's
     /// <paramref name="host"/> and waits. A failure to read is a failed result, never a throw.

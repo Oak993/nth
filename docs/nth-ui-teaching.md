@@ -57,7 +57,9 @@ streaming a view depends on; those servers, and servers nth cannot identify, are
 - **W24 (live-answer tools).** Add `ui_show`, `ui_update` and `html_widget` to `UiMcpServer.ToolNames` and `ArtifactNativeTools.Names`; the
   instructions and the block then say "call ui_show" instead of "write a fenced block", with no change to the text. Use
   `NthUiTeaching.ShowToolDescription` for `ui_show`. The fenced `nth-ui` block is the fallback and stays in the text.
-- **W25 (`ask_user`).** Add `ask_user` to the same two lists; the rules then mention it.
+- **W25 (`ask_user`), done.** `ask_user` is the last name of both lists (`UiMcpServer.ToolNames`, `ArtifactNativeTools.Names`) and is offered only while
+  a host for the chat is bound (`AskUserDirectory`, bound at start-up), so the teaching follows `UiMcpServer.Offered` and `ArtifactNativeTools.Offered`
+  (what the session can really call) and the rules mention `ask_user` exactly when it exists.
 - **Settings (W10).** Bind the Visual answers setting with `UiTeaching.Visual.SetProcessDefault(() => level)`; it is read whenever a
   session starts.
 

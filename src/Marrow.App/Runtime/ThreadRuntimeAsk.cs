@@ -157,6 +157,17 @@ public sealed partial class ThreadRuntime
         }
     }
 
+    /// <summary>
+    /// A provider that asks the person to allow the ask_user tool before it runs it (Codex, Copilot, ACP in a supervised chat) is answered at
+    /// once: the tool only shows the person a question, and the question is the ask. True when <paramref name="request"/> was such a request.
+    /// </summary>
+    private bool AutoApprovesAsk(ApprovalRequest request)
+    {
+        if (!AskUserTool.IsApprovalFor(request) || request.Options.FirstOrDefault(option => option.OptionRole == ApprovalRequest.Option.Role.Approve) is not { } approve) return false;
+        session?.ResolveApproval(request.Id, approve.Id);
+        return true;
+    }
+
     private sealed class RuntimeAskHost(ThreadRuntime runtime) : IAskUserHost
     {
         public Task<AskOutcome> Ask(AskCard card, CancellationToken cancellation) => MainActor.Invoke(() => runtime.AskUser(card, cancellation));

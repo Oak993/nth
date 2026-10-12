@@ -308,6 +308,24 @@ public sealed class ThreadRuntimeAskTests
     }
 
     [Fact]
+    public void A_providers_request_to_allow_the_ask_tool_is_answered_at_once_and_other_requests_still_wait_for_the_person()
+    {
+        using var rig = new ThreadRuntimeTurnRig(ProviderKind.Codex);
+        RunningTurn(rig);
+        var options = new ValueList<ApprovalRequest.Option>([new("allow", "Approve", ApprovalRequest.Option.Role.Approve), new("deny", "Decline", ApprovalRequest.Option.Role.Decline)]);
+        rig.H.Main.OnMain(() =>
+        {
+            rig.Session.Emit(new ProviderEvent.Approval(new ApprovalRequest("r-ask", ApprovalRequest.Kind.Tool, "nth-ui · ask_user", options)));
+            rig.Session.Emit(new ProviderEvent.Approval(new ApprovalRequest("r-other", ApprovalRequest.Kind.Tool, "github · create_issue", options)));
+            rig.Session.Emit(new ProviderEvent.Approval(new ApprovalRequest("r-command", ApprovalRequest.Kind.Command, "nth-ui ask_user", options)));
+        });
+        rig.H.Main.RunUntilIdle();
+
+        Assert.Equal([("r-ask", "allow", (string?)null)], rig.Session.ApprovalAnswers);
+        Assert.Equal(["r-other", "r-command"], rig.H.Main.OnMain(() => rig.Runtime.Approvals.Select(a => a.Id).ToList()));
+    }
+
+    [Fact]
     public void A_card_that_waited_when_the_app_quit_is_still_waiting_when_the_thread_reopens()
     {
         var turn = Guid.NewGuid();
