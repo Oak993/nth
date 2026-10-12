@@ -6239,3 +6239,8 @@ ENGINEERING DECISION. Owner accepted C6-F3 (2026-10-12); DESIGN.md 5.4, ED-NEW-d
 ## ED-NEW-dextra-cx-4
 
 ENGINEERING DECISION. Owner accepted C6-F4 (2026-10-12); DESIGN.md 5.4 and ED-NEW-dextra-as2-4. Named quoted secrets consume the entire bounded scanned value, including escaped characters, opposite quotes and newlines, through the matching quote or end of scan. Missing closing quotes (including a value truncated at 4096 characters) are masked fail-closed. The 4096-character input bound and each 250 ms regex timeout remain; timeout still masks the entire scan. Already masked values remain idempotent. Filtering/shielding stays after enqueue (ED-NEW-dextra-as2-6). Regression: original 240-character feed repro failed alone twice at 37fe3e03f; DextraC6F4Tests cover both quote kinds, lengths beyond the scan and escaped/truncated tails.
+
+
+## ED-NEW-dextra-cx-5
+
+ENGINEERING DECISION. Owner accepted C6-F5 (2026-10-12); DESIGN.md 5.1 and ED-NEW-dextra-as2-6. Timeout subtraction uses one clock sample, clamps overdue windows to zero, and caps far-future windows to the timer-supported uint.MaxValue-1 milliseconds. The pump remains the single background task. Existing per-draft build guards, enqueue fault guard and per-subscriber guard retain isolation: a malformed coalescing timestamp is counted and does not strand subsequent protected events. No UI-thread filtering or provider work is added. Regression: original deadline-crossing wait repro failed alone twice at 37fe3e03f; DextraC6F5Tests also proves bounded Flush after an enqueue fault and after a deliberately corrupted draft throws inside the pump builder, with protected delivery in the same and later batches.

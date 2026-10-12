@@ -174,8 +174,17 @@ public sealed class AssistantEventBus : IDisposable
     // Sleeps until a draft arrives or the next coalescing window ends, whichever is first.
     private async Task WaitForWorkAsync(CancellationToken token)
     {
-        using var timeout = queue.NextDue is { } due
-            ? new CancellationTokenSource(due > clock.GetUtcNow() ? due - clock.GetUtcNow() : TimeSpan.Zero, clock)
+        var nextDue = queue.NextDue;
+        var delay = TimeSpan.Zero;
+        if (nextDue is { } due)
+        {
+            var now = clock.GetUtcNow(); // One sample: a deadline crossing cannot make the subtraction negative.
+            delay = due > now ? due - now : TimeSpan.Zero;
+        }
+        // A draft with a far-future stamp must not exceed the timer's supported range and fault the only pump.
+        var maxDelay = TimeSpan.FromMilliseconds(uint.MaxValue - 1);
+        using var timeout = nextDue is not null
+            ? new CancellationTokenSource(delay > maxDelay ? maxDelay : delay, clock)
             : new CancellationTokenSource();
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, timeout.Token);
         try
