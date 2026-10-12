@@ -307,7 +307,7 @@ public static class NthUiComponents
             "tabs" => new NthUiTabsView(context, node),
             "chips" => new NthUiChipsView(context, node),
             "followups" => new NthUiFollowupsView(context, node),
-            "map" => new NthUiMapListView(context, node),
+            "map" => new Map.NthUiMapView(context, node),
             "segmented" => new NthUiSegmentedView(context, node),
             "stepper" => new NthUiStepperView(context, node),
             "slider" => new NthUiSliderView(context, node),
