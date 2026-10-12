@@ -26,13 +26,8 @@ namespace Marrow.App;
 public static class DroppyCodeApp
 {
     // :7-19 init(): the ordered prologue, minus the three platform-boundary steps and the two inert/not-ported ones.
-    public static void RunPrologue()
-    {
+    public static void RunPrologue() =>
         HangWatchdog.Start(); // :17
-        // PORT-ONLY (web surfaces): the workspace panes this build can draw (DESIGN 3.1); each pane unit registers its own.
-        Marrow.App.Views.Diff.DiffPane.Register(); // W4
-        Marrow.App.Views.Terminal.TerminalPane.Register(); // W4
-    }
 
     // ED-002 [LAUNCH]: macOS gets single-instance behavior from Launch Services for free; the source contributes
     // no lock of its own, so doing nothing here would be a real divergence (two processes sharing one
