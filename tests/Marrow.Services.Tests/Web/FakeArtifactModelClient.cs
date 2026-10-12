@@ -16,12 +16,14 @@ internal sealed class FakeArtifactModelClient : IArtifactModelClient
 
     /// <summary>When set, calls wait on it (a call in flight).</summary>
     public TaskCompletionSource<ArtifactCompletionResult>? Held { get; set; }
+    public Action<string>? StreamDelta { get; private set; }
 
     public string? ModelName(Guid thread) => Name;
 
     public Task<ArtifactCompletionResult> CompleteAsync(Guid thread, ArtifactCompletionRequest request, Action<string>? onDelta, CancellationToken cancellationToken)
     {
         Requests.Add((thread, request));
+        StreamDelta = onDelta;
         foreach (var delta in Deltas) onDelta?.Invoke(delta);
         if (Held is { } held)
         {

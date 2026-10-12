@@ -328,7 +328,7 @@ public sealed class VisusTab
     private IWebEngineView? Engine()
     {
         if (view is null) return null;
-        if (view.Engine is null) view.Activate(); // a discarded tab comes back on use (2.3)
+        if (view.Engine is null || view.Liveness == WebLiveness.Suspended) view.Activate(); // a discarded or frozen tab comes back on use (2.3)
         return view.Engine;
     }
 

@@ -8,6 +8,8 @@ internal sealed class FakeArtifactBridgeHost : IArtifactBridgeHost
     public bool AllowModel { get; set; } = true;
 
     public bool AllowTools { get; set; } = true;
+    public TaskCompletionSource<bool>? HeldConsent { get; set; }
+    public TaskCompletionSource<IReadOnlyList<ArtifactPickedFile>>? HeldFiles { get; set; }
 
     public List<(ArtifactAddress Artifact, string Model)> ModelConsents { get; } = [];
 
@@ -26,19 +28,19 @@ internal sealed class FakeArtifactBridgeHost : IArtifactBridgeHost
     public Task<bool> ConfirmModelAsync(ArtifactAddress artifact, string modelName, CancellationToken cancellationToken)
     {
         ModelConsents.Add((artifact, modelName));
-        return Task.FromResult(AllowModel);
+        return HeldConsent is { } held ? held.Task.WaitAsync(cancellationToken) : Task.FromResult(AllowModel);
     }
 
     public Task<bool> ConfirmToolAsync(ArtifactAddress artifact, string server, string tool, CancellationToken cancellationToken)
     {
         ToolConsents.Add((artifact, server, tool));
-        return Task.FromResult(AllowTools);
+        return HeldConsent is { } held ? held.Task.WaitAsync(cancellationToken) : Task.FromResult(AllowTools);
     }
 
     public Task<IReadOnlyList<ArtifactPickedFile>> PickFilesAsync(ArtifactAddress artifact, string accept, bool multiple, bool fromDrop, CancellationToken cancellationToken)
     {
         Picks.Add((accept, multiple, fromDrop));
-        return Task.FromResult(Picked);
+        return HeldFiles is { } held ? held.Task.WaitAsync(cancellationToken) : Task.FromResult(Picked);
     }
 
     public void Draft(ArtifactAddress artifact, string text) => Drafts.Add((artifact, text));

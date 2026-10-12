@@ -25,6 +25,36 @@ public sealed class ArtifactStoreTests
     private static string Message(Action action) => Assert.Throws<ArtifactException>(action).Message;
 
     [Fact]
+    public void A_project_accepts_512_files_and_keeps_the_version_byte_limit()
+    {
+        using var scratch = new ArtifactScratchFolder();
+        var store = scratch.Store();
+        var files = Enumerable.Range(1, 511).Select(i => ($"f{i}.js", "x")).Prepend(("index.html", "x")).ToArray();
+        var made = store.Create(ThreadA, Site(files), Model, null);
+        Assert.Equal(512, store.Read(ThreadA, made.Artifact.Id).Files!.Count);
+        Assert.Contains("5 MB", Message(() => store.Create(ThreadA, Site(("index.html", new string('x', (int)ArtifactStore.MaxVersionBytes + 1))), Model, null)), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_1000th_same_long_title_has_a_normal_id_and_loads_from_its_folder()
+    {
+        using var scratch = new ArtifactScratchFolder();
+        var store = scratch.Store();
+        var title = new string('a', 60);
+        ArtifactSnapshot? last = null;
+        for (var i = 0; i < 1000; i++)
+        {
+            last = store.Create(ThreadA, Page(title, "content"), Model, null);
+            if (i == 0) Assert.Equal(new string('a', 44), last.Artifact.Id);
+            if (i == 998) Assert.Equal(new string('a', 44) + "-999", last.Artifact.Id);
+        }
+        Assert.NotNull(last);
+        Assert.Equal(new string('a', 43) + "-1000", last.Artifact.Id);
+        Assert.Equal(last.Artifact.Id, ArtifactStore.NormalizeId(last.Artifact.Id));
+        Assert.Equal("content", scratch.Store().Read(ThreadA, last.Artifact.Id).Text);
+    }
+
+    [Fact]
     public void Create_writes_v1_and_meta_json_in_the_thread_data_folder_and_reads_them_back()
     {
         using var scratch = new ArtifactScratchFolder();
@@ -195,8 +225,8 @@ public sealed class ArtifactStoreTests
         Assert.Contains("Two files have the path", Message(() => store.Create(ThreadA, Site(("index.html", "x"), ("A.js", "a"), ("a.js", "b")), Model, null)), StringComparison.Ordinal);
         Assert.Contains("needs an entry file", Message(() => store.Create(ThreadA, Site(("a.html", "a"), ("b.html", "b")), Model, null)), StringComparison.Ordinal);
         Assert.Equal("only.html", store.Create(ThreadA, Site(("only.html", "a"), ("style.css", "b")), Model, null).Version.Entry);
-        var many = Enumerable.Range(0, 65).Select(i => ($"f{i}.js", "x")).Append(("index.html", "x")).ToArray();
-        Assert.Contains("at most 64 files", Message(() => store.Create(ThreadA, Site(many), Model, null)), StringComparison.Ordinal);
+        var many = Enumerable.Range(0, ArtifactStore.MaxProjectFiles).Select(i => ($"f{i}.js", "x")).Append(("index.html", "x")).ToArray();
+        Assert.Contains($"at most {ArtifactStore.MaxProjectFiles} files", Message(() => store.Create(ThreadA, Site(many), Model, null)), StringComparison.Ordinal);
         var big = new string('x', 3 * 1024 * 1024);
         Assert.Contains("larger than 5 MB together", Message(() => store.Create(ThreadA, Site(("index.html", big), ("b.js", big)), Model, null)), StringComparison.Ordinal);
         Assert.Contains("larger than 5 MB", Message(() => store.Create(ThreadA, Page(content: big + big), Model, null)), StringComparison.Ordinal);

@@ -326,8 +326,13 @@ public sealed class WebViewHost : Panel
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
-        // DESIGN 2.3: clicking a suspended or discarded view makes it live again.
-        if (Surface.Liveness is WebLiveness.Suspended or WebLiveness.Discarded && Surface.Failure is null) Surface.Activate();
+        if (Surface.Failure is null) Surface.Activate();
+    }
+
+    protected override void OnGotFocus(FocusChangedEventArgs e)
+    {
+        base.OnGotFocus(e);
+        if (Surface.Failure is null) Surface.Activate();
     }
 
     private bool IsAttached => TopLevel.GetTopLevel(this) is not null;
