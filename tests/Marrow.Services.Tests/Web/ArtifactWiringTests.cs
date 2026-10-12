@@ -46,8 +46,11 @@ public sealed class ArtifactWiringTests
         var tools = SkillSessionFactory.NativeTools(Config(ProviderKind.Deepseek, Chat));
         // Added after the others, nothing else changes: the four artifact tools, then W17's read-only live-view reference.
         Assert.Equal(before.Concat(["artifact_create", "artifact_update", "artifact_read", "artifact_list", "ui_reference"]), FunctionNames(tools));
-        Assert.Equal(ArtifactTools.Names.Append("ui_reference"), ArtifactNativeTools.Names);
-        Assert.All(ArtifactNativeTools.Names, name => Assert.True(tools.Owns(name)));
+        // ask_user (W25) is the last of the tools there are, and is offered only while a host for it is bound (here none is).
+        Assert.Equal(ArtifactTools.Names.Append("ui_reference").Append("ask_user"), ArtifactNativeTools.Names);
+        Assert.Equal(ArtifactTools.Names.Append("ui_reference"), tools.OfferedUiTools);
+        Assert.All(tools.OfferedUiTools, name => Assert.True(tools.Owns(name)));
+        Assert.False(tools.Owns("ask_user"));
         Assert.False(tools.Owns("artifact_delete"));
         foreach (var definition in tools.Definitions.Where(d => ArtifactTools.IsName(d["function"]!["name"]!.JSONValueString)))
         {
