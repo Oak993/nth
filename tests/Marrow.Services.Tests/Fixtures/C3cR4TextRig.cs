@@ -29,15 +29,6 @@ internal sealed class C3cR4TextRig
         };
     }
 
-    public async Task<PcResult> Drive(Task<PcResult> action)
-    {
-        for (var i = 0; i < 500 && !action.IsCompleted; i++)
-        {
-            await PcTestWait.Until(() => action.IsCompleted || Borrow.Clock.Pending > 0);
-            if (action.IsCompleted) break;
-            Borrow.Clock.Advance(RealInputLease.PollMs);
-            await Task.Yield();
-        }
-        return await action.WaitAsync(TimeSpan.FromSeconds(5));
-    }
+    // These healthy immediate borrows need no fake time: callers advance only the explicit closed gate's poll.
+    public Task<PcResult> Drive(Task<PcResult> action) => action.WaitAsync(TimeSpan.FromSeconds(5));
 }

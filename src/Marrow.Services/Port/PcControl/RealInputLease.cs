@@ -36,6 +36,7 @@ public sealed class RealInputLease
     private readonly List<Entry> stills = [];
     private readonly AsyncLocal<Func<bool>?> actionPermission = new();
     private readonly AsyncLocal<Func<CancellationToken, Task<PcUiaOutcome>>?> actionValidation = new();
+    private readonly AsyncLocal<Func<PcBorrowRequest, PcBorrowRequest>?> actionRefresh = new();
     private readonly Dictionary<(nint Window, nint Focus), List<PcRawInput>> kept = [];
     private readonly IPhysicalInput input;
     private readonly IPcInputHold hold;
@@ -141,14 +142,16 @@ public sealed class RealInputLease
 
     // The engine's grant follows its async action into R4 without changing the shared request/assembly seams.
     internal async Task<PcUiaOutcome> RunWithPermission(Func<bool>? permitted, Func<Task<PcUiaOutcome>> run,
-        Func<CancellationToken, Task<PcUiaOutcome>>? validate = null)
+        Func<CancellationToken, Task<PcUiaOutcome>>? validate = null, Func<PcBorrowRequest, PcBorrowRequest>? refresh = null)
     {
         var previous = actionPermission.Value;
         var previousValidation = actionValidation.Value;
+        var previousRefresh = actionRefresh.Value;
         actionPermission.Value = permitted;
         actionValidation.Value = validate;
+        actionRefresh.Value = refresh;
         try { return await run().ConfigureAwait(false); }
-        finally { actionPermission.Value = previous; actionValidation.Value = previousValidation; }
+        finally { actionPermission.Value = previous; actionValidation.Value = previousValidation; actionRefresh.Value = previousRefresh; }
     }
 
     public async Task<PcBorrowOutcome> Borrow(PcBorrowRequest request, CancellationToken cancellationToken, Func<bool>? permitted = null)
@@ -289,6 +292,8 @@ public sealed class RealInputLease
             var checkedTarget = await validate(cancellationToken).ConfigureAwait(false);
             if (!checkedTarget.Done)
                 return new PcBorrowOutcome(PcBorrowStatus.NotSent, checkedTarget.Reason) { Code = checkedTarget.Error };
+            // ED-NEW-pcctl-cx-11: resolve before holding input, then use the newly resolved focus/point.
+            if (actionRefresh.Value is { } refresh) request = refresh(request);
             // The cold read held no input. If its wait reopened a safety gate, queue and validate again.
             if (ownCardUp() || HoldingKeys || !PcInputGate.Check(input.Snapshot(), clock.NowMs, input.Protection(), entry.Wait.DoItNowChosen).Open)
             {

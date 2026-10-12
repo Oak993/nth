@@ -209,13 +209,13 @@ public sealed partial class PcControlEngine
     {
         var handle = info.Handle;
         var textSent = 0;
+        var typedField = request.Element;
         if (request.Kind == PcInputKind.Type)
         {
-            var field = request.Element;
             request = request with { Boundary = (done, total, token) =>
             {
                 textSent = done;
-                return TextBoundary(info, field, done, total, call, token);
+                return TextBoundary(info, typedField, done, total, call, token);
             } };
         }
         // What changed on its own since Tactus last looked (a clock, a caret, an animation) is noise for the check.
@@ -275,6 +275,27 @@ public sealed partial class PcControlEngine
                     && await ChangedWhileWaiting(info, element, call).ConfigureAwait(false) is { } changed)
                     return changed;
             }
+            // ED-NEW-pcctl-cx-11: a moved window preserves a point's place inside it; a resize invalidates its grid.
+            if (request.Point is { } oldPoint)
+            {
+                if (parts.Catalog.Window(handle) is not { } liveWindow || !info.SameWindow(liveWindow))
+                    return PcResult.Fail(PcErrorCode.WindowGone, "the window was replaced while the step waited");
+                if (CoordinateMapper.Compare(request.Window.Frame, liveWindow.Frame) == PcFrameChange.Resized)
+                    return PcResult.Fail(PcErrorCode.StaleObs, "the window changed size while the step waited");
+                var dx = liveWindow.Frame.X - request.Window.Frame.X;
+                var dy = liveWindow.Frame.Y - request.Window.Frame.Y;
+                request = request with { Window = liveWindow, Point = new PcPoint(oldPoint.X + dx, oldPoint.Y + dy),
+                    Path = request.Path.Select(p => new PcPoint(p.X + dx, p.Y + dy)).ToList() };
+                info = liveWindow;
+                if (PointRefusal(request.Point.Value) is { } pointFailure) return pointFailure;
+                if (identity is null)
+                {
+                    var remapped = parts.Ladder.Plan(request);
+                    var mappedWay = remapped.Plans.FirstOrDefault(p => p.Rung == way.Rung && p.Method == way.Method);
+                    if (mappedWay is null) return PcResult.Fail(remapped.Refusal ?? PcErrorCode.StaleObs, remapped.Reason ?? "the point action is no longer available");
+                    way = mappedWay;
+                }
+            }
             // Confirmation/yield may have outlived the user's 2 s activity window. Revalidate content, not recency.
             if (identity is not null)
             {
@@ -296,6 +317,7 @@ public sealed partial class PcControlEngine
                 if (liveWay is null) return PcResult.Fail(PcErrorCode.StaleElement, "the intended action is no longer available on the target");
                 way = liveWay with { Target = live, Writes = way.Writes };
                 before = fresh;
+                request = refreshedRequest;
             }
             if (call.GrantLive?.Invoke() == false)
                 return PcResult.Fail(PcErrorCode.NotApproved, "the app was removed from Tactus's apps while the step waited");
@@ -310,10 +332,13 @@ public sealed partial class PcControlEngine
             var pressesAt = parts.Input.Presses(handle);
             AimPointer(info, request, way);
             Func<CancellationToken, Task<PcUiaOutcome>>? validateBorrow = null;
+            Func<PcBorrowRequest, PcBorrowRequest>? refreshBorrow = null;
             if (way.Rung == PcRung.R4 && (way.Target ?? request.Element) is { } borrowTarget
                 && before.IndexOf(borrowTarget.RuntimeId) is { } borrowIndex)
             {
                 var borrowIdentity = PcElementMatch.Identity(before, borrowIndex);
+                PcUiNode? resolvedBorrow = null;
+                PcPoint? resolvedPoint = null;
                 validateBorrow = async token =>
                 {
                     if (parts.Catalog.Window(handle) is not { } window || !info.SameWindow(window))
@@ -323,7 +348,7 @@ public sealed partial class PcControlEngine
                     if (textSent > 0)
                     {
                         var focused = await parts.Reader.Focused(handle, token).WaitAsync(token).ConfigureAwait(false);
-                        return focused?.RuntimeId == borrowTarget.RuntimeId ? PcUiaOutcome.Ok
+                        return focused?.RuntimeId == (resolvedBorrow?.RuntimeId ?? borrowTarget.RuntimeId) ? PcUiaOutcome.Ok
                             : PcUiaOutcome.Fail(PcErrorCode.StaleElement, "the typed field no longer holds focus; look again before typing the rest");
                     }
                     var fresh = await Tree(handle, fresh: true, token).ConfigureAwait(false);
@@ -332,15 +357,55 @@ public sealed partial class PcControlEngine
                     if (!match.Found) return PcUiaOutcome.Fail(match.Kind == PcMatchKind.Ambiguous ? PcErrorCode.AmbiguousTarget : PcErrorCode.StaleElement,
                         match.Detail ?? "the intended element changed while the borrow waited");
                     var live = fresh.Elements[match.Index];
-                    if (live.RuntimeId != borrowTarget.RuntimeId || live.Bounds != borrowTarget.Bounds)
-                        return PcUiaOutcome.Fail(PcErrorCode.StaleElement, "the target moved or was replaced while the borrow waited; look again before acting");
+                    if (request.Point is { } oldPoint)
+                    {
+                        if (CoordinateMapper.Compare(request.Window.Frame, window.Frame) == PcFrameChange.Resized)
+                            return PcUiaOutcome.Fail(PcErrorCode.StaleObs, "the window changed size while the borrow waited");
+                        resolvedPoint = new PcPoint(oldPoint.X + window.Frame.X - request.Window.Frame.X,
+                            oldPoint.Y + window.Frame.Y - request.Window.Frame.Y);
+                        if (PointRefusal(resolvedPoint.Value) is { } pointFailure)
+                            return PcUiaOutcome.Fail(pointFailure.Error!.Value, pointFailure.Reason!);
+                        if (!live.Bounds.IsEmpty && !live.Bounds.Contains(resolvedPoint.Value))
+                            return PcUiaOutcome.Fail(PcErrorCode.StaleObs, "the intended element is no longer under the point; look again before acting");
+                    }
+                    else if (!live.Bounds.IsEmpty)
+                        resolvedPoint = new PcPoint(live.Bounds.X + live.Bounds.Width / 2, live.Bounds.Y + live.Bounds.Height / 2);
                     if (Difference(borrowTarget, live, "the target changed while the borrow waited") is { } difference)
                         return PcUiaOutcome.Fail(PcErrorCode.ExpectFailed, difference);
+                    resolvedBorrow = live;
+                    way = way with { Target = live };
+                    if (request.Kind == PcInputKind.Type) typedField = live;
                     return new PcUiaOutcome(null, null);
                 };
+                refreshBorrow = pending =>
+                {
+                    if (resolvedBorrow is not { } live) return pending;
+                    if (pending.Kind == PcBorrowKind.Focus)
+                        return pending with { FocusControl = live.NativeWindow,
+                            Focus = async token => (await parts.Reader.Perform(handle, live.RuntimeId,
+                                new PcElementCommand(PcElementAction.Focus), token).ConfigureAwait(false)).Done };
+                    return resolvedPoint is { } point ? RepointBorrow(pending, point, parts.Lease!.Host.Desktop()) : pending;
+                };
+            }
+            else if (way.Rung == PcRung.R4 && request.Point is { } canvasPoint)
+            {
+                var resolvedPoint = canvasPoint;
+                validateBorrow = token =>
+                {
+                    token.ThrowIfCancellationRequested();
+                    if (parts.Catalog.Window(handle) is not { } window || !info.SameWindow(window))
+                        return Task.FromResult(PcUiaOutcome.Fail(PcErrorCode.WindowGone, "the window was replaced while the borrow waited"));
+                    if (CoordinateMapper.Compare(request.Window.Frame, window.Frame) == PcFrameChange.Resized)
+                        return Task.FromResult(PcUiaOutcome.Fail(PcErrorCode.StaleObs, "the window changed size while the borrow waited"));
+                    resolvedPoint = new PcPoint(canvasPoint.X + window.Frame.X - request.Window.Frame.X,
+                        canvasPoint.Y + window.Frame.Y - request.Window.Frame.Y);
+                    return Task.FromResult(PointRefusal(resolvedPoint) is { } pointFailure
+                        ? PcUiaOutcome.Fail(pointFailure.Error!.Value, pointFailure.Reason!) : PcUiaOutcome.Ok);
+                };
+                refreshBorrow = pending => RepointBorrow(pending, resolvedPoint, parts.Lease!.Host.Desktop());
             }
             var outcome = parts.Lease is { } lease
-                ? await lease.RunWithPermission(call.GrantLive, () => way.Run(call.Token), validateBorrow).WaitAsync(call.Token).ConfigureAwait(false)
+                ? await lease.RunWithPermission(call.GrantLive, () => way.Run(call.Token), validateBorrow, refreshBorrow).WaitAsync(call.Token).ConfigureAwait(false)
                 : await way.Run(call.Token).WaitAsync(call.Token).ConfigureAwait(false);
             if (call.GrantLive?.Invoke() == false)
                 return PcResult.Fail(PcErrorCode.NotApproved, "the app was removed from Tactus's apps while the step waited");
@@ -420,6 +485,23 @@ public sealed partial class PcControlEngine
             before = await Tree(handle, fresh: false, call.Token).ConfigureAwait(false) ?? before;
         }
         return last ?? PcResult.Fail(PcErrorCode.NeedsRealInput, plan.Reason ?? PcRealInputReason.Off, Line(info, Latest(handle)));
+    }
+
+    private PcResult? PointRefusal(PcPoint point) => parts.Own.Rects().Any(r => r.Contains(point))
+        ? PcResult.Fail(PcErrorCode.OwnWindow, "the point is on nth's own window")
+        : !parts.Catalog.Monitors().Any(m => m.Bounds.Contains(point)) ? PcResult.Fail(PcErrorCode.OffScreen, "the point is on no screen") : null;
+
+    private static PcBorrowRequest RepointBorrow(PcBorrowRequest pending, PcPoint point, PcRect desktop)
+    {
+        if (pending.Point is not { } oldPoint) return pending;
+        return pending with { Point = point, Chunks = pending.Chunks.Select(chunk =>
+            (IReadOnlyList<Native.PcInputEvent>)chunk.Select(e =>
+            {
+                if (e.Kind != Native.PcInputKind.Mouse || (e.Flags & Native.PcInputPlan.MOVE) == 0) return e;
+                var old = CoordinateMapper.FromAbsolute(e.Dx, e.Dy, desktop);
+                var mapped = Native.PcInputPlan.MoveTo(new PcPoint(old.X + point.X - oldPoint.X, old.Y + point.Y - oldPoint.Y), desktop);
+                return e with { Dx = mapped.Dx, Dy = mapped.Dy };
+            }).ToList()).ToList() };
     }
 
     /// <summary>
