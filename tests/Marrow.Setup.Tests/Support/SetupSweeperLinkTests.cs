@@ -3,9 +3,10 @@ using Marrow.Setup.Tests.Fixtures;
 
 namespace Marrow.Setup.Tests.Support;
 
-// PORT-ONLY (no Swift twin): nth installer PLAN.md 5 ("Leftovers"), unit U9 (ED-NEW-inst-u9-1). A sweep deletes only what is in
-// nth Setup's own folder: a directory junction inside it is removed as a link and never followed, and a junction standing where
-// the setup's folder should be is left alone. Junctions need no privilege; the targets are temporary folders.
+// PORT-ONLY (no Swift twin): nth installer PLAN.md 5 ("Leftovers"), unit U9 (ED-NEW-inst-u9-1, amended by ED-NEW-inst-c7-8 and -9).
+// A sweep deletes only what nth Setup can prove it made: a directory junction is never followed and never removed; the sweep
+// keeps it and reports where it stopped (ED-NEW-inst-merge-16 replaced the two older "removed as a link" facts, which
+// ED-NEW-inst-c7-8 reverses). Junctions need no privilege; the targets are temporary folders.
 public sealed class SetupSweeperLinkTests : IDisposable
 {
     private readonly SweepArea area = new();
@@ -14,32 +15,48 @@ public sealed class SetupSweeperLinkTests : IDisposable
 
     [Fact]
     [Trait("Decision", "ED-247")]
-    public void A_junction_inside_a_staging_folder_is_removed_as_a_link_and_its_target_is_left_whole()
+    public void A_junction_inside_a_staging_folder_is_never_followed_and_the_whole_unit_is_kept_and_reported()
     {
         var precious = area.Put(Path.Combine(area.Base, "precious", "keep.txt"), "not ours");
-        area.PutInSetup("1.0.0", "install-options.json");
-        SweepArea.MakeJunction(Path.Combine(area.SetupRoot, "1.0.0", "link"), Path.Combine(area.Base, "precious"));
+        var options = area.PutInSetup("1.0.0", "install-options.json");
+        var unit = Path.Combine(area.SetupRoot, "1.0.0");
+        var link = Path.Combine(unit, "link");
+        SweepArea.MakeJunction(link, Path.Combine(area.Base, "precious"));
 
         var result = SetupSweeper.Sweep(area.LocalAppData, area.Temp);
 
-        Assert.True(result.Clean);
-        Assert.False(Directory.Exists(area.SetupRoot));
+        Assert.False(result.Clean);
+        Assert.Equal(0, result.Removed);
+        var kept = Assert.Single(result.Kept);
+        Assert.Equal(unit, kept.Path);
+        Assert.Equal(SweepKeptReason.NotRemoved, kept.Reason);
+        Assert.True((File.GetAttributes(link) & FileAttributes.ReparsePoint) != 0, "the link stays a link");
+        Assert.True(File.Exists(options), "the preflight refuses the whole unit before it deletes anything");
+        Assert.True(File.Exists(Path.Combine(unit, ".nth-setup-owner")), "the unit stays marked for a later sweep");
         Assert.Equal("not ours", File.ReadAllText(precious));
+        Assert.Equal([precious], Directory.GetFileSystemEntries(Path.Combine(area.Base, "precious")));
+        Assert.Equal(kept, Assert.Single(SetupSweeper.Sweep(area.LocalAppData, area.Temp).Kept));
     }
 
     [Fact]
     [Trait("Decision", "ED-247")]
-    public void A_junction_as_a_unit_of_its_own_is_removed_without_following_it()
+    public void A_junction_as_a_unit_of_its_own_is_never_followed_and_is_kept_and_reported()
     {
         var precious = area.Put(Path.Combine(area.Base, "precious", "keep.txt"), "not ours");
         Directory.CreateDirectory(area.SetupRoot);
-        SweepArea.MakeJunction(Path.Combine(area.SetupRoot, "1.0.0"), Path.Combine(area.Base, "precious"));
+        var unit = Path.Combine(area.SetupRoot, "1.0.0");
+        SweepArea.MakeJunction(unit, Path.Combine(area.Base, "precious"));
 
         var result = SetupSweeper.Sweep(area.LocalAppData, area.Temp);
 
-        Assert.Equal(1, result.Removed);
+        Assert.False(result.Clean);
+        Assert.Equal(0, result.Removed);
+        var kept = Assert.Single(result.Kept);
+        Assert.Equal(area.SetupRoot, kept.Path);
+        Assert.Equal(SweepKeptReason.NotRemoved, kept.Reason);
+        Assert.True((File.GetAttributes(unit) & FileAttributes.ReparsePoint) != 0, "the link stays a link");
         Assert.Equal("not ours", File.ReadAllText(precious));
-        Assert.False(Directory.Exists(Path.Combine(area.SetupRoot, "1.0.0")));
+        Assert.Equal([precious], Directory.GetFileSystemEntries(Path.Combine(area.Base, "precious")));
     }
 
     [Fact]
