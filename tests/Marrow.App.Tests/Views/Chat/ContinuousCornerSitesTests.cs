@@ -154,6 +154,7 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Views/Browser/PreviewConsoleDrawer.cs", "7", 1, Circular), // W9: index.html:348 Console/Network tab loop, CSS border-radius 7
         ("Marrow.App/Views/Browser/PreviewConsoleDrawer.cs", "11", 1, Capsule), // W9: index.html:356 Send to chat, height 22 and radius = height / 2
         ("Marrow.App/Views/Browser/ProjectPreviewBody.cs", "6", 1, Circular), // W9: index.html:331 device frame, CSS border-radius 6; hidden in Fill (:332)
+        ("Marrow.UI/Chrome/Splitter.cs", "radius", 1, Circular), // W9 shared grips: index.html:98 .spl .tip (8), :103 .spl .rd (7), a CSS design-page factory, not a Swift shape
         ("Marrow.UI/Panes/PaneHeader.cs", "12", 1, Capsule), // web W3a (ED-NEW-web-w3a-1): a 24 DIP tab pill, r = h / 2 (canvas .tabg button)
         ("Marrow.UI/Panes/PaneHeader.cs", "8", 2, Circular), // web W3a (ED-NEW-web-w3a-1): a 26 DIP header button and text chip, design-page layout (canvas .hb, CSS border-radius 8)
         ("Marrow.UI/Panes/PaneHeader.cs", "11", 1, Capsule), // web W3a (ED-NEW-web-w3a-1): the 22 DIP "Chat is working" chip, r = h / 2 (canvas .pchip)
