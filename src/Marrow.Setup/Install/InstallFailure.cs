@@ -19,8 +19,11 @@ namespace Marrow.Setup.Install;
 /// <param name="Log">The log's last lines.</param>
 public sealed record InstallFailure(FailureReason Reason, bool NothingChanged, int? ExitCode, InstallStep Step, FreeSpaceVerdict? Space, IReadOnlyList<string> Log)
 {
+    /// <summary>Plain message from a required post-exit step that failed (ED-NEW-inst-c7-2).</summary>
+    public string? PlainMessage { get; init; }
+
     /// <summary>Problem's first sentence.</summary>
-    public string Sentence => Reason switch
+    public string Sentence => !string.IsNullOrWhiteSpace(PlainMessage) ? PlainMessage : Reason switch
     {
         FailureReason.NoSpace when Space?.Message is { } message => message,
         FailureReason.NoSpace when Space is { } space => SetupStrings.ProblemSpace(space.Drive, space.ShownMegabytes, space.FreeMegabytes),
@@ -43,6 +46,7 @@ public sealed record InstallFailure(FailureReason Reason, bool NothingChanged, i
         text.Append("Step: ").AppendLine(Step.ToString());
         text.Append("Exit code: ").AppendLine(ExitCode is { } code ? code.ToString(CultureInfo.InvariantCulture) : "none");
         text.Append("Reason: ").AppendLine(Reason.ToString());
+        if (!string.IsNullOrWhiteSpace(PlainMessage)) text.Append("Message: ").AppendLine(PlainMessage);
         foreach (var line in Log) text.AppendLine(line);
         return Scrub(text.ToString().TrimEnd(), userProfile);
     }

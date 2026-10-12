@@ -1,24 +1,19 @@
+using Marrow.Setup.Text;
+
 namespace Marrow.Setup.Install;
 
 /// <summary>
-/// The setup's own work once Velopack's <c>Setup.exe</c> has exited 0 (nth installer PLAN.md 3, step 8): re-point the
-/// uninstall entry to <c>&lt;root&gt;\nth Uninstall.exe</c>, re-stamp the Start shortcut's AppUserModelID if Velopack wrote a
-/// different one, and record that in <c>install-result.json</c>. Unit U5 builds it (<c>Support/AfterSetupExit.Run</c> with the
-/// real shell links and HKCU); the progress engine only calls it, on the window's thread (the shell links are STA COM),
-/// and lets the bar reach 100 only after it has returned. It must not throw.
+/// The setup's required work after engine exit zero: re-point the uninstall entry, re-stamp Start's AppUserModelID,
+/// and record the result (PLAN 3 step 8). Runs on the window thread for STA shell links. ED-NEW-inst-c7-2:
+/// return only when required steps succeeded; throw with the plain failure message otherwise. Returning certifies 100%.
 /// </summary>
 public interface IAfterSetupExit
 {
     void Run(string root, string resultPath);
 }
 
-/// <summary>
-/// STUB(U5): until unit U5's step is wired in at integration, nothing is done after exit 0 (nth's start-time self-heal,
-/// also U5's, re-points the entry at nth's next start). The progress engine's order is the real one either way.
-/// </summary>
+/// <summary>STUB(U5): an unbound integration cannot certify successful post-exit work.</summary>
 public sealed class NoAfterSetupExit : IAfterSetupExit
 {
-    public void Run(string root, string resultPath)
-    {
-    }
+    public void Run(string root, string resultPath) => throw new InvalidOperationException(SetupStrings.ProblemOther);
 }

@@ -155,6 +155,11 @@ public sealed class InstallFlow
     private void Finish(InstallRun run)
     {
         var frame = run.Finish();
+        if (run.Failure is not null)
+        {
+            Failed(run);
+            return;
+        }
         session.Result = run.Result;
         session.ResumeClose();
         if (view is null)

@@ -210,9 +210,15 @@ public sealed class InstallRun
     {
         if (!NeedsFinish) return Frame;
         try { after.Run(Request.Root, Request.ResultPath); }
-        catch (Exception)
+        catch (Exception error)
         {
-            // The step catches its own errors (unit U5); nth's start-time self-heal repeats it either way.
+            lock (gate)
+            {
+                // ED-NEW-inst-c7-2: successful engine exit does not certify the required shell work.
+                Fail(new InstallFailure(FailureReason.Other, NothingChanged: false, ExitCode: 0,
+                    InstallStep.Finishing, Space, observer?.RecentLog ?? []) { PlainMessage = error.Message });
+                return Frame;
+            }
         }
         lock (gate)
         {
