@@ -6364,3 +6364,9 @@ Branch claude/release-integration, 2026-10-10 (integrates Ignis part A, points s
 2026-10-12 - Tactus C2-A1: Revoke retained real-input plans. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; DESIGN.md 2.7 and 4.7).
 R4 passes a live Enabled/RealInput permit into each borrow. The queue checks it on every gate poll and immediately before saving user state; activation and each action array check it again. Release/restore traffic remains allowed so revocation cannot leave a pressed button or held input behind. The five R4 paths share this permit, including separate 64-character text borrows.
 Regression: C3A1Tests on fake hosts/manual clocks only. Red evidence reproduced twice before the fix (scratch/codex-c3/A1-red1.log and A1-red2.log); green verification: new tests 3/0/0; borrow area 43/0/0 (passed/failed/skipped). No native tests, real input, installed-app launch or network service exercised.
+
+
+## ED-NEW-pcctl-cx-3
+2026-10-12 - Tactus C2-A3: Cancel approved app launches. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; DESIGN.md 10.2).
+Launch registers the same scoped run-control watch used by window work before awaiting approval. It checks the watched token, the turn/app stop flags and fresh settings, attendance and app policy immediately before calling the launcher. Sleep returns locked without latching the next turn. The watch covers the subsequent first-window wait as well.
+Regression: C3A3Tests on fake hosts/manual clocks only. Red evidence reproduced twice before the fix (scratch/codex-c3/A3-red1.log and A3-red2.log); green verification: new tests 9/0/0; engine area 52/0/0 (passed/failed/skipped). No native tests, real input, installed-app launch or network service exercised.

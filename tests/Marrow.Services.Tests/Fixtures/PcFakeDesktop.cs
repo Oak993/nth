@@ -277,8 +277,11 @@ public sealed class PcFakeDesktop : IWindowCatalog, IUiaReader, IPcChangeFeed, I
 
     public IReadOnlyList<PcWindowInfo> Windows()
     {
+        BeforeWindows?.Invoke();
         lock (gate) return Apps.Select(a => a.Info).ToList();
     }
+
+    public Action? BeforeWindows { get; set; }
 
     public PcWindowInfo? Window(nint handle)
     {
