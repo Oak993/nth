@@ -6197,3 +6197,8 @@ ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I5). I5 shar
 ## ED-NEW-inst-c4c-2: Prove the install create allowance
 
 ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I2). Fake-clock tests exercise an exhausted create allowance and AfterInstall passing its actual remaining time while retaining the final uninstaller copy and persisted failure result. Temporary mutations omit the install allowance, remove all seven CreateLocked admission guards, and make CappedCreate claim Created. Each mutation fails alone twice, is restored byte-exact, and the original two facts pass. No production change is needed for this coverage finding.
+
+
+## ED-NEW-inst-c4c-7: Prove repair-result flags and HRESULT fallback
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I7). Failed update results retain IconsHidden and ScanCapped alongside the first failure HRESULT. A nonnegative exception HRESULT maps through the reachable HResultOf fallback to E_FAIL. Removing flags and returning the nonnegative HRESULT each fail the new fact alone twice, then are restored byte-exact. Repair always supplies HResultOf, so the outer null-coalescing fallback remains unreachable in this flow; no production change or artificial unreachable-path test is claimed.
