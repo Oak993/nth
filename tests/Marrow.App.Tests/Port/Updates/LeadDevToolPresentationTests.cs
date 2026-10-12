@@ -10,14 +10,14 @@ namespace Marrow.App.Tests.Port.Updates;
 public sealed class LeadDevToolPresentationTests
 {
     [Fact]
-    public void Git_in_use_message_is_plain_on_the_page_and_pill_and_both_offer_Retry()
+    public void Git_in_use_message_is_plain_on_the_page_and_pill_and_the_row_and_pill_offer_Retry()
     {
         const string message = "Git is in use by another app. Close it and try again.";
         var row = new UpdateRow("dev:Git.Git", "Git", UpdateItemKind.DevTool, UpdateRowState.Failed, "2.54.0", "2.55.0.5", null, message, false);
         var page = UpdatesProjector.Project([row], new(false, false, false, false, null, null));
         var projected = Assert.Single(page.Sections.SelectMany(s => s.Rows));
         Assert.Equal(message, projected.FailureLead); Assert.True(projected.CanRetry);
-        Assert.Equal("Retry", page.Header.ButtonLabel);
+        Assert.Equal(("Check for updates", UpdatesAction.Check), (page.Header.ButtonLabel, page.Header.Action)); // ED-NEW-providers-updates-1: the header checks again; Retry is the row's
         var pill = new UpdatePillProjector().Project([row], false);
         Assert.Equal(message, pill.BannerText); Assert.Equal(UpdatePillAction.Retry, pill.Action);
     }
@@ -28,10 +28,11 @@ public sealed class LeadDevToolPresentationTests
         var row = new UpdateRow("dev:office", "Office", UpdateItemKind.DevTool, UpdateRowState.UpdatingInBackground, "16.0.20430.20092", null, null, "Updating in the background", false);
         var page = UpdatesProjector.Project([row], new(false, false, false, false, null, null));
         var projected = Assert.Single(page.Sections.SelectMany(s => s.Rows));
-        Assert.Equal("Updating in the background", projected.StatusText);
+        Assert.Equal(("In the background", RowStatus.Updating), (projected.StatusText, projected.Status)); // ED-NEW-providers-updates-1: the row's words fit its column; the header says the rest
         Assert.Equal("Updating in the background", page.Header.Title);
+        Assert.Equal("—", projected.Latest); // Office has no proven public listing (OfficeC2RUpdater.LatestVersion): nothing is invented while it updates
         Assert.False(projected.CanUpdate); Assert.False(projected.CanRetry); Assert.Null(projected.FailureLead);
-        Assert.Equal("Check now", page.Header.ButtonLabel);
+        Assert.Equal(("Check for updates", UpdatesAction.Check), (page.Header.ButtonLabel, page.Header.Action)); // ED-NEW-providers-updates-1 (was U1's "Check now")
         var pill = new UpdatePillProjector().Project([row], false);
         Assert.Equal("Updating in the background", pill.PillText);
         Assert.Equal("Updating in the background", Assert.Single(pill.Rows).Status);
@@ -82,7 +83,7 @@ public sealed class LeadDevToolPresentationTests
             gitFailed ? "Git is in use by another app. Close it and try again." : null, false);
         var page = UpdatesProjector.Project([office, other], new(false, false, false, false, null, null));
         Assert.NotEqual(UpdatesPhase.Done, page.Header.Phase); Assert.NotEqual(UpdatesPhase.Current, page.Header.Phase);
-        Assert.Equal("Updating in the background", page.Sections.SelectMany(s => s.Rows).Single(r => r.Id == office.Id).StatusText);
+        Assert.Equal("In the background", page.Sections.SelectMany(s => s.Rows).Single(r => r.Id == office.Id).StatusText); // ED-NEW-providers-updates-1
         if (gitFailed) Assert.True(page.Sections.SelectMany(s => s.Rows).Single(r => r.Id == other.Id).CanRetry);
         var pill = new UpdatePillProjector().Project([office, other], false);
         Assert.NotEqual(UpdatePillPhase.Done, pill.Phase); Assert.NotEqual(UpdatePillPhase.Hidden, pill.Phase);

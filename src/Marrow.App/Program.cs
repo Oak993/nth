@@ -122,6 +122,7 @@ public static class Program
         var localAppData = DevDataRoot.LocalApplicationData();
         var settings = new SettingsStore(SettingsStore.ProductionPath(localAppData));
         UserDefaults.Standard.SetProcessDefault(settings);
+        Marrow.App.Port.Settings.ProviderSwitchRepair.RunOnce(settings); // ED-NEW-providersmerge-switch-repair-1: once, before AppSettings reads it, the providers the dead switch of older builds wrote off are on again
         Marrow.UI.Theme.Wallpapers.WallpaperLibraryStore.Shared.SetProcessDefault(new(settings));
         AppDomain.CurrentDomain.UnhandledException += (_, _) => settings.Synchronize();
         // Storage.swift:19-48's roots (OD-0008 C7: %LOCALAPPDATA%\Marrow Code; OD-0012 F1: %USERPROFILE%\.marrow)

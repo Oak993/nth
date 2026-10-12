@@ -161,7 +161,7 @@ public sealed class UpdatesSettingsPageTests(HeadlessSession headless)
             Assert.False(row.FailureFold.Open);
             page.MainButton.Activate();
             runtime.RunUntilIdle();
-            Assert.Equal(("Codex didn’t update", "Retry"), (page.TitleText.Text, page.MainButton.Label));
+            Assert.Equal(("Codex didn’t update", "Check for updates", UpdatesButtonMode.Quiet), (page.TitleText.Text, page.MainButton.Label, page.MainButton.Mode)); // ED-NEW-providers-updates-1: Retry is the row's
             Assert.True(row.FailureFold.Open);
             Assert.Equal("Codex is still 0.157.1 after its updater ran. Retry, or run codex update in a terminal.", row.FailureText);
             Assert.Equal((RowStatus.DidNotUpdate, "Didn’t update"), (row.StatusCell.Status, row.StatusCell.Text));
@@ -318,7 +318,7 @@ public sealed class UpdatesSettingsPageTests(HeadlessSession headless)
         Show(page, runtime, _ =>
         {
             var button = page.MainButton;
-            Assert.Equal(("Check now", UpdatesButtonMode.Quiet), (button.Label, button.Mode));
+            Assert.Equal(("Check for updates", UpdatesButtonMode.Quiet), (button.Label, button.Mode)); // ED-NEW-providers-updates-1 (was U1's "Check now")
             Assert.Equal((0.0, 1.0, 0.0), (button.PrimaryFill.Opacity, button.QuietFill.Opacity, button.BusyFill.Opacity));
             var plain = SwiftGlass.GetEffect(button.QuietFill);
             Assert.NotNull(plain);
@@ -364,7 +364,7 @@ public sealed class UpdatesSettingsPageTests(HeadlessSession headless)
             var row0 = page.RowControl("cli:claude");
             foreach (var (status, text) in new (RowStatus, string)[] {
                 (RowStatus.Available, "Update available"), (RowStatus.ChecksWhenUpdated, "Checks when updated"), (RowStatus.RestartToFinish, "Restart to finish"),
-                (RowStatus.Downloading, "Downloading 100%"), (RowStatus.DidNotUpdate, "Didn’t update"), (RowStatus.Updating, "Updating…"), (RowStatus.Checking, "Checking…"), (RowStatus.Waiting, "Waiting") })
+                (RowStatus.Downloading, "Downloading 100%"), (RowStatus.Updating, UpdatesProjector.InTheBackground) /* ED-NEW-providers-updates-1 */, (RowStatus.DidNotUpdate, "Didn’t update"), (RowStatus.Updating, "Updating…"), (RowStatus.Checking, "Checking…"), (RowStatus.Waiting, "Waiting") })
             {
                 row0.StatusCell.SetStatus(status, text);
                 Assert.True(row0.StatusCell.FaceDesiredWidth <= row0.StatusCell.Bounds.Width + 0.01, $"{text}: {row0.StatusCell.FaceDesiredWidth} against a column of {row0.StatusCell.Bounds.Width}");

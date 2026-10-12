@@ -1,5 +1,5 @@
 // PORT-ONLY: T11 step 2 (OD-0114, OD-0117). Settings > Pills: "Your pills" (the pills drawn as pills, New pill…, ⋯ Edit / Duplicate / Rename / Delete), "Use for new threads", and the pill editor one step in. The page is always in the sidebar.
-// With fewer than two accounts connected its controls are present but dimmed and inert under one short message that says what a pill is and what turns it on, with a button to Settings > Models; connecting a second account enables everything,
+// With fewer than two accounts connected its controls are present but dimmed and inert under one short message that says what a pill is and what turns it on, with a button to Settings > Providers (OD-0149: where accounts are connected); connecting a second account enables everything,
 // live, with a transition (the message folds away, the controls come up) (OD-0076; Reduce Motion lands it at once).
 using Avalonia;
 using Avalonia.Controls;
@@ -40,14 +40,14 @@ internal sealed class PillsPageView : Decorator
         info.VerticalAlignment = VerticalAlignment.Top;
         var what = LibraryUi.Text(model.WhatText, 13, wrap: true);
         var need = LibraryUi.Text(model.NeedText, 12.5, secondary: true, wrap: true);
-        var goModels = LibraryButtons.Make(MultiAccountWords.DisabledButton, context.OpenModels, ButtonLook.Primary, "pills-models");
-        goModels.HorizontalAlignment = HorizontalAlignment.Left;
+        var goProviders = LibraryButtons.Make(MultiAccountWords.DisabledButton, context.OpenProviders, ButtonLook.Primary, "pills-providers");
+        goProviders.HorizontalAlignment = HorizontalAlignment.Left;
         var text = new StackPanel { Spacing = 4, Children = { what, need } };
         var explain = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing = 10 };
         Grid.SetColumn(text, 1);
         explain.Children.Add(info);
         explain.Children.Add(text);
-        explainFold = new CzFoldRow(new Border { Padding = new Thickness(0, 0, 0, ChromeTokens.SectionSpacing), Child = LibraryUi.Panel(new StackPanel { Spacing = 10, Children = { explain, goModels } }, 12, 0.06, new Thickness(14, 12)) }, !model.Enabled);
+        explainFold = new CzFoldRow(new Border { Padding = new Thickness(0, 0, 0, ChromeTokens.SectionSpacing), Child = LibraryUi.Panel(new StackPanel { Spacing = 10, Children = { explain, goProviders } }, 12, 0.06, new Thickness(14, 12)) }, !model.Enabled);
 
         newPill = NewPillRow();
         var pillCard = new ChromeCard(() => new StackPanel { Children = { rows, newPill } });

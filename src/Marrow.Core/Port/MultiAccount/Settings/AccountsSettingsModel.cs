@@ -1,6 +1,7 @@
-// PORT-ONLY: T11 step 2 (OD-0114..OD-0117). The model behind Settings > Models for several accounts: the accounts of each connected service (rename, order, per-account on/off, the Handshake point, sign out), "When an account runs
+// PORT-ONLY: T11 step 2 (OD-0114..OD-0117; on Settings > Providers since OD-0149). The model behind the accounts of Settings > Providers: the accounts of each connected service (rename, order, per-account on/off, the Handshake point, sign out), "When an account runs
 // out" with its indented rows, and the Handshake group. It reads and writes the foundations (AccountStore, AccountDecisionStore, HandshakeSwitch) and holds no state of its own; the view draws it and calls it. Automatic switching starts
-// unset (OD-0116): nothing is written until the user chooses.
+// unset (OD-0116): nothing is written until the user chooses. A service kept by API keys keeps each key as one of its accounts (the engine's ApiKeyPool reads them in this order); AddKeyAsync and RemoveKeyAsync
+// add and remove them, the secret itself kept by the app (IAccountActions) in the Credential Manager (OD-0149, ED-NEW-providersmerge-1).
 using System.Globalization;
 using Marrow.Core.Accounts;
 using Marrow.Core.Models;
@@ -51,6 +52,9 @@ public sealed class AccountsSettingsModel
     /// <summary>The Local block: always there, so the first local server can be added; its rows are the local models found (each with no limit).</summary>
     public ServiceBlockView LocalBlock => Block(ProviderKind.Local)!;
 
+    /// <summary>The service's block, or null when nothing of it is connected (Local always has one). Settings > Providers draws it inside the service's card.</summary>
+    public ServiceBlockView? BlockFor(ProviderKind service) => Block(service);
+
     private IReadOnlyList<Account> Connected(ProviderKind service) => [.. accounts.ForService(service).Where(connected)];
 
     private ServiceBlockView? Block(ProviderKind service)
@@ -60,7 +64,9 @@ public sealed class AccountsSettingsModel
         if (list.Count == 0 && !local) return null;
         var keys = service.IsAPIKeyBased;
         var several = local ? list.Count > 0 : list.Count > 1;
-        var rows = several ? list.Select((a, i) => Row(a, i + 1)).ToArray() : [];
+        // a lone key that is not the original one is listed too: the card's "API key" box edits only the original key, so it would be out of sight otherwise
+        var listed = several || keys && list.Count == 1 && !list[0].UsesLegacyCredentials;
+        var rows = listed ? list.Select((a, i) => Row(a, i + 1)).ToArray() : [];
         var first = list.Count > 0 ? Row(list[0], 1) : null;
         string summary;
         if (local) summary = list.Count == 0 ? MultiAccountWords.LocalNone : MultiAccountWords.LocalCount(list.Count);
@@ -71,8 +77,8 @@ public sealed class AccountsSettingsModel
         }
         else summary = several ? MultiAccountWords.Several(list.Count) : MultiAccountWords.One(list[0].Plan);
         return new ServiceBlockView(service, local ? MultiAccountWords.LocalTitle : ServiceNames.Title(service), summary, several,
-            AccountCapabilities.SupportsMultipleAccounts(service) && !local && !keys, rows, several || first is null ? null : first.WeekFraction, several || first is null ? "" : first.UsageText,
-            ServerBox: local, ActionLabel: keys ? MultiAccountWords.KeysAndOrder : null);
+            CanAdd(service), rows, several || first is null ? null : first.WeekFraction, several || first is null ? "" : first.UsageText,
+            ServerBox: local, ActionLabel: keys ? MultiAccountWords.KeysAndOrder : null, Keys: keys, CanAddKey: CanAddKey(service));
     }
 
     private AccountRowView Row(Account account, int number)
@@ -83,8 +89,10 @@ public sealed class AccountsSettingsModel
         var point = account.Defaults.HandshakePoint;
         var week = line?.Week;
         var out5 = line is { FiveHour: >= 1 } || line is { Week: >= 1 };
+        var key = account.Service.IsAPIKeyBased;
         string subtitle;
-        if (!account.Enabled) subtitle = plan + " · " + MultiAccountWords.OffNotUsed;
+        if (key) subtitle = MultiAccountWords.KeyMasked(LastFour(account.Id)) + (!account.Enabled ? " · " + MultiAccountWords.OffNotUsed : account.CustomName is not null ? " · " + MultiAccountWords.CustomName : "");
+        else if (!account.Enabled) subtitle = plan + " · " + MultiAccountWords.OffNotUsed;
         else
         {
             subtitle = plan;
@@ -94,9 +102,13 @@ public sealed class AccountsSettingsModel
         }
         var usageText = account.Service == ProviderKind.Local || line is { NoLimit: true } ? MultiAccountWords.NoLimit : line is null ? ""
             : week is { } w && line.WeekReset is { } reset ? MultiAccountWords.WeekText((int)Math.Round(w * 100, MidpointRounding.AwayFromZero), ResetText(reset)) : "";
+        if (key && credits(account.Id) is { } left) usageText = MultiAccountWords.KeyCredits(left);
         var label = point is not null ? PointLabel(point) : DefaultLabel() + " · " + MultiAccountWords.UsesDefault;
-        return new AccountRowView(account.Id, number, name, plan, subtitle, account.Enabled, label, point is null, week, usageText, week >= 0.8, line?.NoFiveHour ?? false);
+        return new AccountRowView(account.Id, number, name, plan, subtitle, account.Enabled, label, point is null, week, usageText, week >= 0.8, line?.NoFiveHour ?? false, key);
     }
+
+    /// <summary>The last four characters of the account's key, shown after the dots; none for a key too short to keep anything hidden.</summary>
+    private string? LastFour(Guid id) => actions.KeySecret(id)?.Trim() is { Length: >= 8 } secret ? secret[^4..] : null;
 
     private static string PointLabel(HandshakePoint point) => point.Percentage is { } percent ? MultiAccountWords.WhenAt(percent) : MultiAccountWords.WhenSmart;
 
@@ -156,8 +168,9 @@ public sealed class AccountsSettingsModel
             new("rename", MultiAccountWords.Rename), MenuEntry.Line,
             new("up", MultiAccountWords.MoveUp, "Alt+↑", Disabled: index <= 0), new("top", MultiAccountWords.MoveToTop, Disabled: index <= 0),
             new("down", MultiAccountWords.MoveDown, "Alt+↓", Disabled: index < 0 || index >= list.Count - 1), MenuEntry.Line,
-            .. account.Service == ProviderKind.Local ? Array.Empty<MenuEntry>() : [new("handshake", MultiAccountWords.HandshakeAt, point is null ? MultiAccountWords.LikeAll : PointLabel(point).Replace("At ", "", StringComparison.Ordinal)), MenuEntry.Line],
-            new("signout", MultiAccountWords.SignOutOfThis, Disabled: list.Count < 2, Quiet: true),
+            // a key has no Handshake (the engine moves to the next key within the same turn, ApiKeyPool) and is removed rather than signed out of
+            .. account.Service == ProviderKind.Local || account.Service.IsAPIKeyBased ? Array.Empty<MenuEntry>() : [new("handshake", MultiAccountWords.HandshakeAt, point is null ? MultiAccountWords.LikeAll : PointLabel(point).Replace("At ", "", StringComparison.Ordinal)), MenuEntry.Line],
+            account.Service.IsAPIKeyBased ? new("remove", MultiAccountWords.RemoveKey, Quiet: true) : new("signout", MultiAccountWords.SignOutOfThis, Disabled: list.Count < 2, Quiet: true),
         ];
     }
 
@@ -175,10 +188,47 @@ public sealed class AccountsSettingsModel
         }
     }
 
+    /// <summary>Whether "Add another account" is offered for the service: it keeps several accounts, and it is neither Local (its servers are added in its own box) nor kept by API keys (they take "Add another key").
+    /// Settings > Providers asks this for the service's card (OD-0149).</summary>
+    public static bool CanAdd(ProviderKind service) => AccountCapabilities.SupportsMultipleAccounts(service) && service != ProviderKind.Local && !service.IsAPIKeyBased;
+
+    /// <summary>Whether "Add another key" is offered: the service is kept by API keys and keeps several of them (OD-0149).</summary>
+    public static bool CanAddKey(ProviderKind service) => service.IsAPIKeyBased && AccountCapabilities.SupportsMultipleAccounts(service);
+
+    /// <summary>Adds a key as a further account of the service, last in its order, and keeps its secret through the app. A key the app does not keep leaves no account behind. Null when it worked;
+    /// otherwise one plain line that says why not.</summary>
+    public async Task<string?> AddKeyAsync(ProviderKind service, string secret)
+    {
+        if (!CanAddKey(service)) throw new ArgumentException("The service does not keep several API keys.", nameof(service));
+        secret = (secret ?? "").Trim();
+        if (secret.Length == 0) return MultiAccountWords.KeyEmpty;
+        if (accounts.ForService(service).Any(a => string.Equals(actions.KeySecret(a.Id)?.Trim(), secret, StringComparison.Ordinal))) return MultiAccountWords.KeyTwice;
+        var account = accounts.Add(service);
+        string? problem;
+        try { problem = await actions.StoreKeyAsync(account.Id, secret); }
+        catch (InvalidOperationException e) { problem = e.Message; }
+        if (problem is not null) accounts.Remove(account.Id);
+        Changed?.Invoke();
+        return problem;
+    }
+
+    /// <summary>Removes a key: its secret goes from where it is kept; a further key's account goes with it, while the original account stays (its key box is then empty).</summary>
+    public async Task RemoveKeyAsync(Guid id)
+    {
+        var account = accounts.Get(id);
+        if (!account.Service.IsAPIKeyBased) throw new ArgumentException("The account is not an API key.", nameof(id));
+        await actions.ForgetKeyAsync(id);
+        if (!account.UsesLegacyCredentials) accounts.Remove(id);
+        Changed?.Invoke();
+    }
+
+    /// <summary>The whole key, for the row's eye; null when the account has none.</summary>
+    public string? RevealKey(Guid id) => accounts.Get(id).Service.IsAPIKeyBased ? actions.KeySecret(id)?.Trim() : null;
+
     public IReadOnlyList<MenuEntry> BlockMenu(ProviderKind service)
     {
         var list = Connected(service);
-        var canAdd = AccountCapabilities.SupportsMultipleAccounts(service) && service != ProviderKind.Local && !service.IsAPIKeyBased;
+        var canAdd = CanAdd(service);
         if (list.Count < 2)
         {
             var one = new List<MenuEntry> { new("usage", MultiAccountWords.UsageDetails), new("signout", MultiAccountWords.SignOut, Disabled: true), MenuEntry.Line };
@@ -213,10 +263,25 @@ public sealed class AccountsSettingsModel
         return HandedOverExample.For(decisions.GetSetting(DecisionKind.Bring), next, handshake.Enabled);
     }
 
+    private readonly HashSet<ProviderKind> adding = [];
+
+    /// <summary>Whether a sign-in for another account of <paramref name="service"/> is under way (ED-NEW-providersmerge-2): its add row waits, and a second click starts nothing.</summary>
+    public bool Adding(ProviderKind service) => adding.Contains(service);
+
+    /// <summary>Signs in another account of <paramref name="service"/> and says why when it could not; null when it was added, or when a sign-in of the service is already under way (one at a time,
+    /// so a double click never starts two sign-ins with two half-made accounts). A sign-in that throws says its message instead of being lost.</summary>
     public async Task<string?> AddAsync(ProviderKind service)
     {
-        var message = await actions.AddAccountAsync(service);
+        if (!adding.Add(service)) return null;
         Changed?.Invoke();
+        string? message;
+        try { message = await actions.AddAccountAsync(service); }
+        catch (Exception error) when (error is not OperationCanceledException) { message = error.Message; }
+        finally
+        {
+            adding.Remove(service);
+            Changed?.Invoke(); // a cancelled sign-in too: the row stops waiting
+        }
         return message;
     }
 
@@ -241,7 +306,7 @@ public sealed class AccountsSettingsModel
     }
 
     // ---------------------------------------------------------------- When an account runs out, Handshake
-    /// <summary>"When an account runs out" and the Handshake group appear once a service has two accounts or a pill exists; with one account per service Models looks as today.</summary>
+    /// <summary>"When an account runs out" and the Handshake group appear once a service has two accounts or a pill exists; with one account per service Providers looks as it did.</summary>
     public bool ShowRunOut => pillsExist() || SwiftEnum<ProviderKind>.AllCases.Any(s => Connected(s).Count > 1);
 
     public IReadOnlyList<SettingRow> RunRows => [.. RunKeys.Select(Row)];

@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Automation;
 using Avalonia.Layout;
+using Avalonia.VisualTree;
 using Avalonia.Input;
 using Avalonia.Media;
 using Marrow.Core.Models;
@@ -113,7 +114,9 @@ public static class SettingsPageExtensions
             SettingsPage.Appearance => new[] { "appearance", "theme", "transparency", "transparent", "opacity", "glass", "dark", "light", "accent", "tint", "catppuccin", "dracula", "tokyo", "nord", "gruvbox", "solarized", "github", "claude", "codex", "cursor", "matrix", "text", "size", "font", "zoom", "wallpaper", "sidebar" },
             SettingsPage.Models => new[] { "model", "effort", "reasoning", "fast", "slider", "picker" },
             SettingsPage.Hydra => new[] { "hydra", "heads", "subagents", "sub-agents", "agents", "team", "orchestrator", "worker", "pair", "pairs", "parallel", "delegate", "queue" },
-            SettingsPage.Providers => new[] { "codex", "claude", "cursor", "opencode", "opencode zen", "opencode go", "zen", "grok", "deepseek", "meta", "muse", "spark", "zai", "z.ai", "glm", "coding plan", "devin", "cognition", "antigravity", "agy", "google", "gemini", "copilot", "github", "command code", "commandcode", "cmd", "binary", "path", "sign in", "login", "api key", "usage", "limits", "limit", "plan", "quota", "credits", "balance" },
+            SettingsPage.Providers => new[] { "codex", "claude", "cursor", "opencode", "opencode zen", "opencode go", "zen", "grok", "deepseek", "meta", "muse", "spark", "zai", "z.ai", "glm", "coding plan", "devin", "cognition", "antigravity", "agy", "google", "gemini", "copilot", "github", "command code", "commandcode", "cmd", "binary", "path", "sign in", "login", "api key", "usage", "limits", "limit", "plan", "quota", "credits", "balance",
+                // PORT-ONLY (OD-0149): every login is kept here now, accounts, API keys and their order, the Handshake ("login" and "sign in" are the source's own above)
+                "account", "accounts", "key", "keys", "handshake", "order", "local server" },
             SettingsPage.Mcp => new[] { "mcp", "model context protocol", "servers", "tools", "connect", "integrations", "github", "playwright", "notion", "linear", "slack", "figma", "supabase", "stripe", "resend", "email", "context7", "sentry", "postgres", "browser", "netlify", "deploy", "hosting" },
             SettingsPage.SourceControl => new[] { "git", "commit", "pull request", "titles", "text generation" },
             SettingsPage.Shortcuts => new[] { "keyboard", "keys" }, SettingsPage.Archive => new[] { "archived", "restore" }, SettingsPage.About => new[] { "version", "license" },
@@ -158,7 +161,8 @@ public sealed class SettingsNavigation : MainActorModel
         set => Set(ref requestedPage, value);
     }
 
-    // PORT-ONLY (T11 step 2): a provider's section of the Providers page asked for from outside ("Usage details", "Keys and order"); set before RequestedPage, read and used up when the Providers page is built.
+    // PORT-ONLY (T11 step 2): a provider's section of the Providers page asked for from outside; set before RequestedPage, read and used up when the Providers page is built. (Models' "Usage details" and
+    // "Keys and order" asked for it until OD-0149 moved the accounts into the Providers cards.)
     private ProviderKind? requestedProvider;
 
     public ProviderKind? RequestedProvider
@@ -779,6 +783,11 @@ internal sealed class ProvidersSettingsPage : Decorator
     /// <summary>The service the page was asked to bring into view, once it has (PORT-ONLY, T11 step 2).</summary>
     internal ProviderKind? Revealed { get; private set; }
 
+    private Marrow.App.Port.MultiAccount.Settings.AccountRulesView? rules;
+
+    /// <summary>The account-wide group at the foot of the page (PORT-ONLY, OD-0149); null until the accounts are known.</summary>
+    internal Marrow.App.Port.MultiAccount.Settings.AccountRulesView? Rules => rules;
+
     internal bool IsOpen(ProviderKind provider) => shown is { } view && view.Expansion.TryGetValue(provider, out var open) && open;
 
     // :592-614 body
@@ -787,7 +796,7 @@ internal sealed class ProvidersSettingsPage : Decorator
         var state = new ViewState();
         shown = state;
         var stack = new StackPanel { Spacing = Chrome.SectionSpacing }; Child = stack; // :598-600
-        // PORT-ONLY (T11 step 2): a service asked for by "Usage details" or "Keys and order" is opened and brought into view; the request is used up here
+        // PORT-ONLY (T11 step 2): a service asked for from outside is opened and brought into view; the request is used up here
         var wanted = SettingsNavigation.Shared.RequestedProvider;
         if (wanted is { } asked)
         {
@@ -801,14 +810,71 @@ internal sealed class ProvidersSettingsPage : Decorator
         {
             bool Configured(ProviderKind provider) => AppEnvironment.GetAppModel(this).Providers.Status(provider).ProviderStatusAuth is ProviderStatus.Auth.SignedIn; // :593-597
             sections.Apply(SwiftEnum<ProviderKind>.AllCases.Where(Configured).Concat(SwiftEnum<ProviderKind>.AllCases.Where(provider => !Configured(provider))).ToArray()); // :604
+            // PORT-ONLY (OD-0149, ED-NEW-providersmerge-1): "When an account runs out" and the Handshake, the settings of every account, under the providers (they were Models' lower half). The rows above
+            // keep their places (ForEach places them from the top); folded, the group is the page's bottom space between sections and nothing more.
+            if (rules is null && Marrow.App.Port.MultiAccount.Settings.MultiAccountSettingsSeams.For(this) is { } context)
+            {
+                rules = new Marrow.App.Port.MultiAccount.Settings.AccountRulesView(context.Accounts);
+                stack.Children.Add(rules);
+            }
             if (wanted is { } reveal && stack.Children.OfType<ProviderSettingsSection>().FirstOrDefault(section => section.Provider == reveal) is { } target)
             {
                 wanted = null;
                 Revealed = reveal;
-                Avalonia.Threading.Dispatcher.UIThread.Post(() => target.BringIntoView());
+                ScrollToTop(target);
             }
         });
     }
+
+    /// <summary>PORT-ONLY (ED-NEW-providers-reveal-1): the asked-for section is scrolled to where a page's first section sits at rest, just under the chrome row, and kept there while its card
+    /// folds open (the page's height grows under it). A bare BringIntoView, posted while the page had not been laid out, did nothing: "Keys and order" landed at the top of the page. The page's
+    /// own scroll is left to the person the moment they move it.
+    /// ED-NEW-providersmerge-reveal-2: the section is kept there after its fold settles too, until the person acts on the page (a press, the wheel, a key, or a scroll of their own) or
+    /// <see cref="RevealHold"/> passes: the cards above it go on growing after it has settled (a signed-in service's plan limits and credits arrive from the network a second or more
+    /// later), and a ScrollViewer keeps no anchor of its own, so each of them pushed the section down.</summary>
+    private void ScrollToTop(ProviderSettingsSection target)
+    {
+        double? placed = null;
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
+        EventHandler? onLayout = null;
+        EventHandler<VisualTreeAttachmentEventArgs>? gone = null;
+        Action? unhook = null; // takes the hold's input handlers off the page's ScrollViewer
+        void Stop()
+        {
+            LayoutUpdated -= onLayout;
+            DetachedFromVisualTree -= gone;
+            unhook?.Invoke();
+            unhook = null;
+        }
+        gone = (_, _) => Stop();
+        onLayout = (_, _) =>
+        {
+            if (System.Diagnostics.Stopwatch.GetElapsedTime(started) > RevealHold) { Stop(); return; }
+            if (target.FindAncestorOfType<ScrollViewer>() is not { } scroll || scroll.Viewport.Height <= 0 || target.Bounds.Height <= 0 || target.TranslatePoint(default, scroll) is not { } at) return;
+            if (unhook is null)
+            {
+                const Avalonia.Interactivity.RoutingStrategies Both = Avalonia.Interactivity.RoutingStrategies.Tunnel | Avalonia.Interactivity.RoutingStrategies.Bubble;
+                EventHandler<PointerPressedEventArgs> pressed = (_, _) => Stop();
+                EventHandler<PointerWheelEventArgs> wheel = (_, _) => Stop();
+                EventHandler<KeyEventArgs> key = (_, _) => Stop();
+                scroll.AddHandler(PointerPressedEvent, pressed, Both, handledEventsToo: true);
+                scroll.AddHandler(PointerWheelChangedEvent, wheel, Both, handledEventsToo: true);
+                scroll.AddHandler(KeyDownEvent, key, Both, handledEventsToo: true);
+                unhook = () => { scroll.RemoveHandler(PointerPressedEvent, pressed); scroll.RemoveHandler(PointerWheelChangedEvent, wheel); scroll.RemoveHandler(KeyDownEvent, key); };
+            }
+            if (placed is { } last && Math.Abs(scroll.Offset.Y - last) > 0.5) { Stop(); return; } // the person scrolled: the page is theirs
+            var top = Chrome.ChromeTopPadding + Chrome.CapsuleHeight + 16; // the page's own top margin under the chrome row (RebuildDetail)
+            var offset = Math.Clamp(scroll.Offset.Y + at.Y - top, 0, Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height));
+            if (Math.Abs(offset - scroll.Offset.Y) > 0.5) scroll.Offset = scroll.Offset.WithY(offset);
+            placed = scroll.Offset.Y;
+        };
+        LayoutUpdated += onLayout;
+        DetachedFromVisualTree += gone;
+        InvalidateMeasure();
+    }
+
+    /// <summary>How long a revealed section is kept under the chrome row while the person leaves the page alone (ED-NEW-providersmerge-reveal-2): past the 25 s watchdog of a plan-limits load (ProviderRegistry.RefreshPlanLimits), the longest a card above it waits for its rows.</summary>
+    internal static readonly TimeSpan RevealHold = TimeSpan.FromSeconds(30);
 }
 
 /// <summary>:617-824 <c>private struct ProviderSettingsSection: View</c>: one provider's settings.</summary>
@@ -816,6 +882,15 @@ internal sealed class ProviderSettingsSection : Decorator
 {
     private readonly ProviderKind provider;
     internal ProviderKind Provider => provider; // PORT-ONLY (T11 step 2)
+    private Marrow.App.Port.MultiAccount.Settings.ServiceBlockControl? accountsPart;
+    /// <summary>PORT-ONLY (OD-0149): the service's accounts or keys at the foot of its card; null without the accounts.</summary>
+    internal Marrow.App.Port.MultiAccount.Settings.ServiceBlockControl? AccountsPart => accountsPart;
+    private Marrow.UI.Port.Settings.CzFoldRow? keyFold;
+    /// <summary>PORT-ONLY (ED-NEW-providersmerge-keys-2): the fold that holds an API-key service's single "API key" box, closed while its keys are listed; null without the accounts.</summary>
+    internal Marrow.UI.Port.Settings.CzFoldRow? KeyFold => keyFold;
+    private ChromeRevealLayout? revealLayout;
+    /// <summary>PORT-ONLY (ED-NEW-providers-reveal-1): the card is fully open and its fold has finished.</summary>
+    internal bool IsOpenAndSettled => revealLayout is { Fraction: >= 1 };
     private TaskHandle? keyCheck; // :627
     // :624-626
     private sealed class ViewState : MainActorModel
@@ -834,6 +909,7 @@ internal sealed class ProviderSettingsSection : Decorator
         var state = new ViewState();
         var cardRows = new StackPanel();
         var reveal = new ChromeRevealLayout(0) { ClipToBounds = true, Children = { new ChromeCard(() => cardRows) } }; // :648-649,763
+        revealLayout = reveal;
         var motion = new SettingsScalarAnimation(reveal, 0, value => reveal.Fraction = value);
         Child = new StackPanel { Spacing = Chrome.SectionHeaderSpacing, Children = { new CollapsibleProviderHeader(provider, isExpanded, "provider settings"), reveal } }; // :646-647
         this.Track(() => isExpanded.Value, expanded => // :764-766
@@ -869,14 +945,25 @@ internal sealed class ProviderSettingsSection : Decorator
                 usageSlot.Children.Add(new ChromeRowDivider()); usageSlot.Children.Add(usage);
                 model.Providers.RefreshPlanLimits(provider); model.Providers.RefreshCredits(provider); // :772-779
             });
+            // PORT-ONLY (ED-NEW-providersmerge-keys-2): with the accounts, an API-key service's key row sits in a fold that closes when its keys are listed below (two or more): the list, with each
+            // key's name, order, switch, eye and Remove, then stands in place of the single box. Without the accounts the rows are the card's own, as the source draws them.
+            var keyRows = cardRows;
+            Border? keySlot = null;
+            if (provider.IsAPIKeyBased && Marrow.App.Port.MultiAccount.Settings.MultiAccountSettingsSeams.For(this) is not null)
+            {
+                keySlot = new Border();
+                keyRows = new StackPanel();
+            }
             if (provider.AcceptsAPIKey)
             {
-                cardRows.Children.Add(new ChromeRowDivider()); // :689-690
+                if (keySlot is not null) cardRows.Children.Add(keySlot);
+                keyRows.Children.Add(new ChromeRowDivider()); // :689-690
                 var keyField = PlainControls.TextField("sk-\u2026", new Binding<string>(() => state.ApiKey, value =>
                 {
                     state.ApiKey = value;
                     if (SwiftString.Equal(value, model.Settings.ApiKeyInput(provider))) return; // :786
                     model.Settings.SetAPIKeyInput(value, provider); keyCheck?.Cancel(); // :787-788
+                    Marrow.App.Port.MultiAccount.Settings.MultiAccountSettingsSeams.For(this)?.Accounts.Refresh(); // PORT-ONLY (OD-0149): the key list below shows the first key's last characters
                     keyCheck = MainActor.Spawn(async () => { await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(600)); if (SwiftTask.IsCancelled) return; await model.Providers.Refresh(provider); await model.Providers.LoadCatalog(provider, force: true); }); // :789-794
                 }));
                 keyField.PasswordChar = '\u2022'; keyField.Width = 200; SwiftFont.System(12, design: SwiftFont.Design.Monospaced).Apply(keyField); // :700-707
@@ -892,7 +979,7 @@ internal sealed class ProviderSettingsSection : Decorator
                     if (keyControls.Children.Count > 1) keyControls.Children.RemoveAt(1);
                     if (refusal is not null) keyControls.Children.Add(new TextBlock { Text = refusal, TextWrapping = TextWrapping.Wrap, Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.System(SwiftFont.TextStyle.Subheadline))); // DEVIATION OD-0012 E5: exact line beneath the field, in the key row's own detail style (ED-090: .subheadline, Chrome.secondaryText, :1055-1079).
                 });
-                cardRows.Children.Add(new ChromeRow(provider.IsAPIKeyBased ? "API key" : "API key (optional)", () => keyControls, keyDetail)); // :691-717
+                keyRows.Children.Add(new ChromeRow(provider.IsAPIKeyBased ? "API key" : "API key (optional)", () => keyControls, keyDetail)); // :691-717
                 keyField.Track(() => StoredKey(model.Settings), value => { if (!SwiftString.Equal(state.ApiKey, value)) state.ApiKey = value; }); // :796-799
             }
             if (!provider.IsAPIKeyBased)
@@ -911,6 +998,23 @@ internal sealed class ProviderSettingsSection : Decorator
                 if (!status.IsInstalled) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Install", () => Link("Get " + provider.DisplayName, provider.InstallURL), provider.DisplayName + " was not found on your PATH.")); } // :738-745
                 else if (status.ProviderStatusAuth is not ProviderStatus.Auth.SignedIn && !status.IsChecking) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Sign in", () => SettingsGlassButtons.Text("Login", () => Marrow.App.Port.ProviderLoginWatch.Open(model.Providers, provider), labelHeight: Chrome.RowButtonLabelHeight), "Click here to login again.")); } // :638-641,747-756
             });
+            // PORT-ONLY (OD-0149, ED-NEW-providersmerge-1): Providers is the one place for every login. The service's accounts close its card: one account adds only the quiet "Add another account" row
+            // (ED-NEW-providers-add-1; offered once the service is signed in, its "Sign in" row being the way to the first), several fold open their list in the order nth uses them, an API-key service lists
+            // its further keys under "Keys and order" with "Add another key", and Local lists its models with "Add a local server". Nothing is drawn without the accounts (a test of another part).
+            if (Marrow.App.Port.MultiAccount.Settings.MultiAccountSettingsSeams.For(this) is { } accounts)
+            {
+                accountsPart = new Marrow.App.Port.MultiAccount.Settings.ServiceBlockControl(accounts.Accounts, provider,
+                    () => { _ = model.Providers.Statuses; return provider.IsAPIKeyBased || provider == ProviderKind.Local || model.Providers.Status(provider).ProviderStatusAuth is ProviderStatus.Auth.SignedIn; });
+                cardRows.Children.Add(accountsPart);
+                if (keySlot is not null)
+                {
+                    var part = accountsPart;
+                    var fold = new Marrow.UI.Port.Settings.CzFoldRow(keyRows, !part.KeysListed);
+                    keyFold = fold;
+                    keySlot.Child = fold;
+                    part.KeysListedChanged += listed => fold.Open = !listed;
+                }
+            }
         });
     }
 

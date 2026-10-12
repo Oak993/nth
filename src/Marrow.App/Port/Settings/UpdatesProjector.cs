@@ -19,6 +19,13 @@ internal static class UpdatesProjector
     private const string Ellipsis = "\u2026";
     private const string DidNot = "didn\u2019t update";
 
+    /// <summary>The header's quiet button when nothing is waiting (ED-NEW-providers-updates-1; was U1's "Check now").</summary>
+    internal const string CheckForUpdates = "Check for updates";
+
+    /// <summary>A row whose updater carries on by itself (Office's Click-to-Run): the status column's words. The header already says "Updating in the background" and names the item;
+    /// the row's 152 pt column holds the spinner and these words whole (ED-NEW-providers-updates-1; the longer phrase was cut to "Updating in the back...").</summary>
+    internal const string InTheBackground = "In the background";
+
     public static UpdatesPageView Project(IReadOnlyList<UpdateRow> rows, UpdatesFlags flags)
     {
         var listed = rows.Where(r => r.State != UpdateRowState.NotInstalled).ToList(); // nothing to update for what is not installed
@@ -104,19 +111,17 @@ internal static class UpdatesProjector
                 break;
             }
         }
+        // ED-NEW-providers-updates-1 (the owner, 2026-10-11): one rule for the button when nothing is running and no restart is due. While an update is waiting it is "Update everything";
+        // otherwise (everything current, or only failures left) it is "Check for updates", which checks every item again. A failed row keeps its own Retry; the header no longer says Retry.
+        var waiting = listed.Any(r => r.State is UpdateRowState.UpdateAvailable or UpdateRowState.ChecksWhenUpdated);
         var (label, action, busy, quiet) = phase switch
         {
             UpdatesPhase.Restarting => ($"Restarting{Ellipsis}", UpdatesAction.None, true, false),
             UpdatesPhase.Checking => ($"Checking{Ellipsis}", UpdatesAction.None, true, false),
-            UpdatesPhase.Running when background && restart is not null => ("Restart nth", UpdatesAction.Restart, false, false),
-            UpdatesPhase.Running when background && listed.Any(r => r.State is UpdateRowState.UpdateAvailable or UpdateRowState.ChecksWhenUpdated) => ("Update everything", UpdatesAction.UpdateAll, false, false),
-            UpdatesPhase.Running when background => ("Check now", UpdatesAction.Check, false, true),
-            UpdatesPhase.Running => ($"Updating{Ellipsis}", UpdatesAction.None, true, false),
-            UpdatesPhase.Failed => ("Retry", UpdatesAction.Retry, false, false),
-            UpdatesPhase.Done when restart is not null => ("Restart nth", UpdatesAction.Restart, false, false),
-            UpdatesPhase.Done => ("Check now", UpdatesAction.Check, false, true),
-            UpdatesPhase.Available or UpdatesPhase.Unsure => ("Update everything", UpdatesAction.UpdateAll, false, false),
-            _ => ("Check now", UpdatesAction.Check, false, true),
+            UpdatesPhase.Running when !background => ($"Updating{Ellipsis}", UpdatesAction.None, true, false),
+            UpdatesPhase.Running or UpdatesPhase.Done when restart is not null => ("Restart nth", UpdatesAction.Restart, false, false),
+            _ when waiting => ("Update everything", UpdatesAction.UpdateAll, false, false),
+            _ => (CheckForUpdates, UpdatesAction.Check, false, true),
         };
         return new UpdatesHeaderView(phase, title, detail, label, action, busy, quiet);
     }
@@ -161,7 +166,7 @@ internal static class UpdatesProjector
             UpdateRowState.Queued => (RowStatus.Waiting, "Waiting"),
             UpdateRowState.Updating when r.Progress is { } p => (RowStatus.Downloading, $"Downloading {(int)Math.Round(Math.Clamp(p, 0, 1) * 100, MidpointRounding.AwayFromZero)}%"),
             UpdateRowState.Updating => (RowStatus.Updating, $"Updating{Ellipsis}"),
-            UpdateRowState.UpdatingInBackground => (RowStatus.Updating, "Updating in the background"),
+            UpdateRowState.UpdatingInBackground => (RowStatus.Updating, InTheBackground),
             UpdateRowState.Updated when r.RestartRequired => (RowStatus.RestartToFinish, "Restart to finish"),
             UpdateRowState.Updated => (RowStatus.Updated, "Updated"),
             UpdateRowState.Failed => (RowStatus.DidNotUpdate, "Didn\u2019t update"),

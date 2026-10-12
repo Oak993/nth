@@ -1,3 +1,4 @@
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Marrow.App.Port.MultiAccount.Settings;
 using Marrow.App.Tests.Fixtures;
@@ -8,13 +9,15 @@ using Marrow.Testing.MultiAccountSettings;
 
 namespace Marrow.App.Tests.Views.Settings.MultiAccount;
 
-// MA-8 (step 2, the pieces the first report listed as missing): the OpenRouter "Keys and order" row, the Local block with "Add a local server" and Connect, "Usage details" for the right service and the "Show an example" sheet.
+// MA-8 (step 2, the pieces the first report listed as missing), in the service's own card on Settings > Providers since OD-0149 (ED-NEW-providersmerge-1): an API-key service's "Keys and order" (its keys listed in its
+// card, no jump to anywhere), the Local models with "Add a local server" and Connect, and the "Show an example" sheet. The Models page's "Usage details" and "Keys and order" jumps are gone: the card shows the usage and
+// the keys itself.
 [Collection("Headless")]
 public sealed class ServiceBlockPiecesTests(HeadlessSession headless)
 {
-    private void Run(AccountsRig rig, Action<MultiAccountHarness, ModelsAccountsView> check, bool motion = false, bool reduceMotion = false) =>
-        MultiAccountHarness.Run(headless, rig, () => new MultiAccountHost<ModelsAccountsView>(context => new ModelsAccountsView(context.Accounts, context.OpenUsage, context.OpenKeys)),
-            h => check(h, ((MultiAccountHost<ModelsAccountsView>)h.Page).View!), motion, reduceMotion);
+    private void Run(AccountsRig rig, Action<MultiAccountHarness, ProvidersAccountsPreview> check, params ProviderKind[] services) =>
+        MultiAccountHarness.Run(headless, rig, () => new MultiAccountHost<ProvidersAccountsPreview>(context => new ProvidersAccountsPreview(context.Accounts, services)),
+            h => check(h, ((MultiAccountHost<ProvidersAccountsPreview>)h.Page).View!));
 
     private static AccountsRig Keys()
     {
@@ -26,62 +29,75 @@ public sealed class ServiceBlockPiecesTests(HeadlessSession headless)
     [Fact]
     [Trait("Feature", "MA-8")]
     [Trait("Rule", "R-TEST-4")]
-    public void The_openrouter_row_counts_its_keys_and_Keys_and_order_opens_the_place_where_keys_are_kept() => Run(Keys(), (h, view) =>
+    public void The_openrouter_card_counts_its_keys_lists_them_under_Keys_and_order_and_offers_another_key_not_another_account() => Run(Keys(), (h, view) =>
     {
-        var block = view.Blocks[ProviderKind.OpenRouter];
+        var block = view.Block(ProviderKind.OpenRouter);
         Assert.Equal(MultiAccountWords.Keys(1, null), block.SummaryShown);
-        Assert.Contains(MultiAccountWords.KeysAndOrder, h.Words());
+        Assert.Equal(MultiAccountWords.KeysAndOrder, block.TitleShown);
+        Assert.False(block.ListOpen); // one key is the card's "API key" box
+        Assert.NotNull(h.TryFind("service-add-key-" + ProviderKind.OpenRouter.Id));
         Assert.Null(h.TryFind("service-add-" + ProviderKind.OpenRouter.Id));
-        Assert.True(h.Press("service-keys-" + ProviderKind.OpenRouter.Id));
-        Assert.Equal([ProviderKind.OpenRouter], h.KeysOpened);
+        Assert.Null(h.TryFind("service-keys-" + ProviderKind.OpenRouter.Id)); // the jump to Providers is gone: this is Providers
         h.Rig.ConnectAnother(ProviderKind.OpenRouter);
         h.Rig.Model.Refresh();
         h.Settle();
         Assert.True(block.ListOpen);
         Assert.Equal(MultiAccountWords.Keys(2, null), block.SummaryShown);
-    });
+        Assert.Equal(2, block.Rows.Count);
+        var words = h.Words();
+        foreach (var expected in new[] { MultiAccountWords.KeysAndOrder, MultiAccountWords.Keys(2, null), MultiAccountWords.KeysFoot, MultiAccountWords.AddKey })
+            Assert.Contains(expected, words);
+        Assert.DoesNotContain(MultiAccountWords.AddAnother, words);
+    }, ProviderKind.OpenRouter);
 
     [Fact]
     [Trait("Feature", "MA-8")]
     [Trait("Rule", "R-TEST-4")]
-    public void A_service_that_signs_in_has_no_keys_button() => Run(new AccountsRig(), (h, view) =>
+    public void A_service_that_signs_in_has_no_keys_button_and_no_key_row() => Run(new AccountsRig(), (h, view) =>
     {
         h.Rig.Connect(ProviderKind.Claude, "Max");
         h.Rig.Model.Refresh();
         h.Settle();
         Assert.Null(h.TryFind("service-keys-" + ProviderKind.Claude.Id));
-    });
+        Assert.Null(h.TryFind("service-add-key-" + ProviderKind.Claude.Id));
+        Assert.NotNull(h.TryFind("service-add-" + ProviderKind.Claude.Id));
+    }, ProviderKind.Claude);
 
     [Fact]
     [Trait("Feature", "MA-8")]
     [Trait("Rule", "R-TEST-4")]
-    public void Usage_details_opens_the_service_the_menu_belongs_to() => Run(Keys(), (h, view) =>
+    public void No_usage_details_or_keys_jump_or_service_menu_is_left_in_the_cards() => Run(Keys(), (h, view) =>
     {
         h.Rig.Connect(ProviderKind.Claude, "Max");
+        h.Rig.ConnectAnother(ProviderKind.Claude, "Max");
+        h.Rig.ConnectAnother(ProviderKind.OpenRouter);
         h.Rig.Model.Refresh();
         h.Settle();
-        view.Blocks[ProviderKind.Claude].Pick("usage");
-        view.Blocks[ProviderKind.OpenRouter].Pick("usage");
-        Assert.Equal([ProviderKind.Claude, ProviderKind.OpenRouter], h.UsageOpened);
-    });
+        Assert.Empty(h.Find(id => id.StartsWith("service-more-", StringComparison.Ordinal) || id.StartsWith("service-keys-", StringComparison.Ordinal)));
+        Assert.DoesNotContain(h.All().OfType<Button>(), b => AutomationProperties.GetName(b) is MultiAccountWords.UsageDetails or MultiAccountWords.KeysAndOrder);
+        Assert.DoesNotContain(MultiAccountWords.UsageDetails, h.Words());
+        Assert.True(view.Block(ProviderKind.Claude).ListOpen);
+        Assert.True(view.Block(ProviderKind.OpenRouter).ListOpen);
+    }, ProviderKind.Claude, ProviderKind.OpenRouter);
 
     [Fact]
     [Trait("Feature", "MA-8")]
     [Trait("Rule", "R-TEST-4")]
     public void The_local_block_is_there_with_nothing_found_and_its_box_folds_open() => Run(new AccountsRig(), (h, view) =>
     {
-        Assert.Contains(MultiAccountWords.LocalTitle, h.Words());
+        Assert.Contains(MultiAccountWords.LocalModelsHeading, h.Words());
         Assert.Contains(MultiAccountWords.LocalNone, h.Words());
         Assert.Contains(MultiAccountWords.AddLocal, h.Words());
-        Assert.False(view.LocalBox.Open);
+        var box = view.Block(ProviderKind.Local).ServerBox!;
+        Assert.False(box.Open);
         Assert.True(h.Press("local-add"));
-        Assert.True(view.LocalBox.Open);
+        Assert.True(box.Open);
         var address = h.Find<TextBox>("local-address");
         Assert.Equal(MultiAccountWords.LocalPlaceholder, address.PlaceholderText);
         Assert.Contains(MultiAccountWords.LocalNote, h.Words());
         Assert.True(h.Press("local-add"));
-        Assert.False(view.LocalBox.Open);
-    });
+        Assert.False(box.Open);
+    }, ProviderKind.Local);
 
     [Fact]
     [Trait("Feature", "MA-8")]
@@ -99,7 +115,7 @@ public sealed class ServiceBlockPiecesTests(HeadlessSession headless)
         h.Until(() => h.Words().Contains(MultiAccountWords.LocalFoundOn("192.168.1.20", 2)));
         Assert.Equal(["192.168.1.20:11434"], h.Rig.Actions.LocalAddresses);
         Assert.DoesNotContain(MultiAccountWords.LocalLooking, h.Words());
-    });
+    }, ProviderKind.Local);
 
     [Fact]
     [Trait("Feature", "MA-8")]
@@ -110,7 +126,7 @@ public sealed class ServiceBlockPiecesTests(HeadlessSession headless)
         Assert.True(h.Press("local-connect"));
         h.Until(() => h.Words().Contains(MultiAccountWords.LocalBadAddress));
         Assert.Empty(h.Rig.Actions.LocalAddresses);
-    });
+    }, ProviderKind.Local);
 
     [Fact]
     [Trait("Feature", "MA-8")]
@@ -121,12 +137,13 @@ public sealed class ServiceBlockPiecesTests(HeadlessSession headless)
         h.Rig.ConnectAnother(ProviderKind.Local);
         h.Rig.Model.Refresh();
         h.Settle();
-        var block = view.LocalBlockView;
+        var block = view.Block(ProviderKind.Local);
         Assert.Equal(MultiAccountWords.LocalCount(2), block.SummaryShown);
         Assert.True(block.ListOpen);
         Assert.Equal(2, block.Rows.Count);
         Assert.Null(h.TryFind("service-add-" + ProviderKind.Local.Id));
-    });
+        Assert.Contains(MultiAccountWords.LocalCount(2), h.Words());
+    }, ProviderKind.Local);
 
     [Fact]
     [Trait("Feature", "MA-8")]
@@ -138,11 +155,11 @@ public sealed class ServiceBlockPiecesTests(HeadlessSession headless)
         Assert.True(h.Press("setting-handed-button"));
         h.Until(() => h.TryFind("handed-sheet") is not null);
         var words = h.Words(h.Find<Control>("handed-sheet"));
-        foreach (var expected in new[] { MultiAccountWords.HandedTitle, "to Claude Max 2", MultiAccountWords.HandedSummaryIntro("Claude Max 2"), "Your messages", "File reads", "handoff-thread-0412.md", "\u00b7 " + MultiAccountWords.HandedFileLine })
+        foreach (var expected in new[] { MultiAccountWords.HandedTitle, "to Claude Max 2", MultiAccountWords.HandedSummaryIntro("Claude Max 2"), "Your messages", "File reads", "handoff-thread-0412.md", "· " + MultiAccountWords.HandedFileLine })
             Assert.Contains(expected, words);
         Assert.True(h.Press("handed-close"));
         h.Until(() => h.TryFind("handed-sheet") is null);
-    });
+    }, ProviderKind.Claude);
 
     [Fact]
     [Trait("Feature", "MA-8")]
@@ -160,7 +177,7 @@ public sealed class ServiceBlockPiecesTests(HeadlessSession headless)
         Assert.Contains("to Claude Max 2 · with a Handshake", words);
         Assert.Contains(MultiAccountWords.HandedHandshakeLine("Claude Max 2"), words);
         Assert.DoesNotContain("Your messages", words);
-    });
+    }, ProviderKind.Claude);
 
     private static AccountsRig Two()
     {

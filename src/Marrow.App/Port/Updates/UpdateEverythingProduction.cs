@@ -113,15 +113,17 @@ internal static class UpdateEverythingProduction
 
     /// <summary>The production inventory. The process/registry seams default to the real boundary; a test supplies recorded or fake answers, so no real tool ever runs.</summary>
     internal static async Task<(IReadOnlyList<IUpdateItem> Items, Action Restart)> Real(AppModel model,
-        Func<DevToolCommand, CancellationToken, Task<DevToolCommandResult>>? run = null, Func<CancellationToken, Task<OfficeInstallation?>>? office = null)
+        Func<DevToolCommand, CancellationToken, Task<DevToolCommandResult>>? run = null, Func<CancellationToken, Task<OfficeInstallation?>>? office = null,
+        Func<CancellationToken, Task<IReadOnlyList<GitLockingProcess>>>? gitLocks = null)
     {
+        gitLocks ??= run is null ? WindowsGitLocks.Find : null; // the real look goes with the real process boundary only: a test's recorded runner never reads this PC's processes
         run ??= new WindowsDevToolProcess(WindowsGitInstallerLog.Read).Run;
         office ??= WindowsOfficeInstallation.Read;
         var marrow = new MarrowUpdateItem(UpdateChecker.Shared, SelfUpdateEngine.Shared, (package, version) => AppUpdater.Shared.ApplyDownloaded(package, version));
         var items = ProviderCliUpdateItem.For(ProviderRegistry.UpdatableProviders, model.Providers, new FetchedVersionListing(HttpVersionFetch.Get)).Concat(ExtraItems()).Concat(IgnisItems()).Append(marrow).ToList();
         try
         {
-            items.AddRange(await DevToolUpdateCatalog.Discover(run, office, inventoryFailure: (tool, error) => Log.Error("Developer-tool inventory is incomplete for " + tool + ": " + error.GetType().Name)));
+            items.AddRange(await DevToolUpdateCatalog.Discover(run, office, inventoryFailure: (tool, error) => Log.Error("Developer-tool inventory is incomplete for " + tool + ": " + error.GetType().Name), gitLocks: gitLocks));
         }
         catch (Exception error) when (error is InvalidOperationException or IOException or InvalidDataException or UnauthorizedAccessException)
         {

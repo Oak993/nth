@@ -10,7 +10,8 @@ public static class DevToolUpdateCatalog
     private static readonly Regex PythonRegistration = new(@"\A\s*-V:(?<series>3\.[0-9]+)\s+\*?\s*(?<path>.+?python\.exe)\s*\z", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
     private static readonly Regex PythonDirectory = new(@"(?:\A|\\)Python(?:[0-9]+)?\\python\.exe\z", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
-    public static async Task<IReadOnlyList<IUpdateItem>> Discover(Func<DevToolCommand, CancellationToken, Task<DevToolCommandResult>>? run = null, Func<CancellationToken, Task<OfficeInstallation?>>? office = null, CancellationToken cancellation = default, Action<string, Exception>? inventoryFailure = null)
+    public static async Task<IReadOnlyList<IUpdateItem>> Discover(Func<DevToolCommand, CancellationToken, Task<DevToolCommandResult>>? run = null, Func<CancellationToken, Task<OfficeInstallation?>>? office = null, CancellationToken cancellation = default, Action<string, Exception>? inventoryFailure = null,
+        Func<CancellationToken, Task<IReadOnlyList<GitLockingProcess>>>? gitLocks = null)
     {
         run ??= DevToolProcess.Refuse;
         office ??= OfficeC2RUpdater.RefuseRegistry;
@@ -55,7 +56,7 @@ public static class DevToolUpdateCatalog
             cancellation.ThrowIfCancellationRequested();
             var packages = await Packages(title, query);
             var matches = packages.Where(p => exactId is null ? p.Id.StartsWith("OpenJS.NodeJS", StringComparison.Ordinal) : p.Id == exactId).ToArray();
-            foreach (var p in matches) items.Add(new WingetUpdater(p.Id, title, run, query));
+            foreach (var p in matches) items.Add(new WingetUpdater(p.Id, title, run, query, gitLocks)); // only Git's takes the look (ED-NEW-providers-git-1)
             if (matches.Length > 0) return;
             var probe = await Probe(new(executable, ["--version"]), title);
             var version = ProbeVersion(probe);

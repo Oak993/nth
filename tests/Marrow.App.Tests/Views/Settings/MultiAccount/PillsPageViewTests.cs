@@ -46,8 +46,8 @@ public sealed class PillsPageViewTests(HeadlessSession headless)
         Assert.Contains(MultiAccountWords.UseForNew, words);
         Assert.False(h.Press("pills-new"));
         Assert.Empty(h.Rig.Pills.Pills);
-        Assert.True(h.Press("pills-models"));
-        Assert.Equal(1, h.OpenedModels);
+        Assert.True(h.Press("pills-providers"));
+        Assert.Equal(1, h.OpenedProviders);
     });
 
     [Fact]
