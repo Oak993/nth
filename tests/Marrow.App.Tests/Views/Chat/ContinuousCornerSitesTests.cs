@@ -127,12 +127,17 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Views/Settings/ModelsSettingsPage.cs", "Chrome.CardCornerRadius", 1, Fit),
         ("Marrow.App/Views/Settings/TokenActivitySection.cs", "999", 1, Capsule),
         ("Marrow.App/Views/Settings/TokenActivitySection.cs", "TokenActivityStyle.CellRadius", 1, Tiny),
+        ("Marrow.App/Views/Settings/WallpaperLibrarySection.cs", "WallpaperThumbnail.Radius", 1, Circular), // WL-2 (ED-NEW-wltwo-1, ED-NEW-reltests-2): the hairline over a tile's live picture, which the engine draws with a circular 10 pt corner (WallpaperThumbnail.Radius; the design pages' tiles, CSS border-radius 12 to 13 px), a design-page layout, not a Swift shape
+        ("Marrow.App/Views/Settings/WallpaperLibrarySection.cs", "WallpaperThumbnail.Radius + 4", 1, Circular), // WL-2 (ED-NEW-wltwo-1): the accent ring 4 pt out round a chosen tile, concentric with the picture's circular corner (r + 4), the same design-page layout
+        ("Marrow.App/Views/Settings/WallpaperLibrarySection.cs", "Swatch / 2", 3, Circle), // WL-2 (ED-NEW-wltwo-1): a colour pack's 34 x 34 disc, its shine and its edge, each Swatch x Swatch with r = Swatch / 2, a circle by construction
+        ("Marrow.App/Views/Settings/WallpaperLibrarySection.cs", "Swatch / 2 + 4", 1, Circle), // WL-2 (ED-NEW-wltwo-1): the chosen swatch's halo, (Swatch + 8) x (Swatch + 8) with r = Swatch / 2 + 4, a circle by construction
         ("Marrow.App/Views/Sidebar/FloatingSidebarPanel.cs", "22", 2, Fit),
         ("Marrow.App/Views/Terminal/TerminalPanel.cs", "16, 16, 0, 0", 1, Fit),
         ("Marrow.App/Views/Terminal/TerminalPanel.cs", "999", 1, Capsule),
         ("Marrow.App/Views/Usage/UsageFloatingPanel.cs", "cornerRadius", 2, Fit), // :84, :92 the panel and its scrim, r 22 (HydraPanel.CornerRadius), tall panels
         ("Marrow.App/Views/Usage/UsageViews.cs", "2.5", 2, Tiny),
         ("Marrow.UI/Chrome/Chrome.cs", "side / 2", 1, Circle),
+        ("Marrow.UI/Chrome/Chrome.cs", "Chrome.CapsuleContentHeight / 2", 1, Circle), // ED-NEW-segmenthover-1 (ED-NEW-reltests-2): the hover plate behind one segment of a toolbar pill, in a Panel frame fixed at CapsuleContentHeight x CapsuleContentHeight (28 x 28) with r = side / 2, a circle by construction (PORT-ONLY, no Swift shape)
         ("Marrow.UI/Chrome/ChromeSegmentedPicker.cs", "11", 1, Capsule),
         ("Marrow.UI/Chrome/DragHandle.cs", "Metrics.GlowRadius", 1, Circular),
         ("Marrow.UI/Chrome/DragHandle.cs", "grip.Thickness / 2", 1, Capsule),
