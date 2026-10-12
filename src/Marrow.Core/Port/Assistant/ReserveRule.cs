@@ -182,6 +182,28 @@ public static class ReserveWords
         return $"{lifetime} \U000000B7 {what} \U000000B7 {who}";
     }
 
+    /// <summary>
+    /// How the plan says it read the owner's rules (11.3), so a wrong reading is visible: "Keeping 30% of what's left on each
+    /// account + your standing 30% on Claude 20x". With no rule: "No reserve is kept."
+    /// </summary>
+    public static string Reading(IEnumerable<ReserveRule> taskRules, IEnumerable<ReserveRule> standingRules)
+    {
+        var parts = new List<string>();
+        foreach (var rule in taskRules.Select(r => r.Normalized()))
+            parts.Add($"{Amount(rule)} {(rule.Basis == ReserveBasis.WhatIsLeft ? "of what's left" : "of the whole window")} {On(rule.Scope)}");
+        foreach (var rule in standingRules.Select(r => r.Normalized()))
+            parts.Add($"your standing {Amount(rule)} {On(rule.Scope)}");
+        return parts.Count == 0 ? "No reserve is kept." : "Keeping " + string.Join(" + ", parts);
+    }
+
+    private static string On(ReserveScope scope) => scope.Kind switch
+    {
+        ReserveScopeKind.Accounts when scope.AccountNames.Count > 0 => "on " + string.Join(" and ", scope.AccountNames),
+        ReserveScopeKind.Provider => "on each " + scope.ProviderId + " account",
+        ReserveScopeKind.Assistant => "for " + scope.AssistantId,
+        _ => "on each account",
+    };
+
     public static string Amount(ReserveRule rule) => rule.KeepDollars is { } dollars
         ? "$" + dollars.ToString("0.##", CultureInfo.InvariantCulture)
         : Math.Round(rule.KeepPercent, 1).ToString("0.#", CultureInfo.InvariantCulture) + "%";
