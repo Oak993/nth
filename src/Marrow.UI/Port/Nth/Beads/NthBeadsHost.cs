@@ -33,8 +33,9 @@ public sealed record NthBeadsFrame(
     public static readonly NthBeadsFrame Blank = new(18, null, false, 1, true, false, 0, NthBeadsState.Thinking, 0, 0, 0,
         0, NthBeadsEntrance.Ortus, 0, 0, NthBeadsExit.None, 0, 0, 0, 0, 0);
 
-    /// <summary>The frame rate rule (section 11): 60 Hz from 16 DIP, 30 Hz below it and at ambient sites.</summary>
-    public static int EveryFor(double size, bool ambient) => ambient || size < 16 ? 2 : 1;
+    /// <summary>The frame rate rule (section 11): 60 Hz from 16 DIP, 30 Hz below it and at ambient sites. A site the section 9 table
+    /// names 60 Hz below 16 DIP (the helper capsule and the Tactus pill, 14 DIP) asks for <paramref name="fullRate"/>.</summary>
+    public static int EveryFor(double size, bool ambient, bool fullRate = false) => fullRate && !ambient ? 1 : ambient || size < 16 ? 2 : 1;
 }
 
 /// <summary>

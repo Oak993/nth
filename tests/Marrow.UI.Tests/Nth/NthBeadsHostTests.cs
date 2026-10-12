@@ -93,6 +93,16 @@ public sealed class NthBeadsHostTests
     public void The_frame_rate_follows_the_size_and_the_site(double size, bool ambient, int every) =>
         Assert.Equal(every, NthBeadsFrame.EveryFor(size, ambient));
 
+    // Calculi WU6: the helper capsule and the Tactus pill are 14 DIP at 60 Hz in the section 9 table; an ambient site stays at 30 Hz whatever it asks.
+    [Theory]
+    [InlineData(14.0, false, true, 1)]
+    [InlineData(12.0, false, true, 1)]
+    [InlineData(14.0, true, true, 2)]
+    [InlineData(14.0, false, false, 2)]
+    [InlineData(18.0, false, true, 1)]
+    public void A_small_site_that_the_table_names_60_Hz_gets_every_slot(double size, bool ambient, bool fullRate, int every) =>
+        Assert.Equal(every, NthBeadsFrame.EveryFor(size, ambient, fullRate));
+
     // ---------------- the driver: events at their own times, pauses, re-anchoring ----------------
 
     [Fact]

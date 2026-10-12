@@ -25,7 +25,7 @@ public sealed class HydraButtonDelegationTests(HeadlessSession headless)
     private static bool Pulses(HydraButtonRig rig)
     {
         rig.Tick(0.6);
-        return rig.Badge is { } badge && LogicalQuery.SelfAndDescendants<MiniSpinner>(badge).Any();
+        return rig.Badge is { } badge && LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(badge).Any();
     }
 
     private static bool Absent(HydraButtonRig rig)

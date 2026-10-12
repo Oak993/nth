@@ -3458,7 +3458,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 runtime.IsHydraMerging = true;
                 runtime.HydraMergeStage = "Reviewing";
                 var runningBadge = Hosted(model, (Control)Activator.CreateInstance(Private("ThreadBadge"), pinned)!);
-                var spinner = LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.NthSpinner>(runningBadge).Single();
+                var spinner = LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(runningBadge).Single();
                 Assert.Equal("Reviewing\U00002026", ToolTip.GetTip(spinner));
 
                 // Needs input: the raised hand, orange, wins over everything else.
@@ -3541,7 +3541,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             harness.Main.OnMain(() =>
             {
                 Assert.Empty(LogicalQuery.SelfAndDescendants<SwiftImage>(host)); // the pin is gone
-                var spinner = LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.NthSpinner>(host).Single(); // :2156-2158
+                var spinner = LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(host).Single(); // :2156-2158
                 Assert.Equal("Reviewing\U00002026", ToolTip.GetTip(spinner));
             });
             harness.Main.OnMain(() =>
@@ -3552,7 +3552,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Avalonia.Threading.Dispatcher.UIThread.RunJobs();
             harness.Main.OnMain(() =>
             {
-                Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.NthSpinner>(host)); // the hand wins over the spinner
+                Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(host)); // the hand wins over the spinner
                 var hand = LogicalQuery.SelfAndDescendants<SwiftImage>(host).Single(); // :2153-2155
                 Assert.Equal("hand.raised.fill", hand.SymbolName);
                 Assert.Equal(Chrome.Orange.Resolve(hand.ActualThemeVariant), ((ISolidColorBrush)hand.Foreground!).Color);
@@ -3590,7 +3590,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 runtime.IsHydraMerging = true;
                 runtime.HydraMergeStage = "Stage";
                 var spinning = Hosted(model, (Control)Activator.CreateInstance(Private("ActivityStatus"), thread)!);
-                var spinner = LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.NthSpinner>(spinning).Single();
+                var spinner = LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(spinning).Single();
                 Assert.Equal("Stage\U00002026", ToolTip.GetTip(spinner));
 
                 typeof(ThreadRuntime).GetProperty("Approvals")!.SetValue(runtime,
@@ -3634,7 +3634,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Avalonia.Threading.Dispatcher.UIThread.RunJobs(); // the status's own re-layout, posted by Track's apply
             harness.Main.OnMain(() =>
             {
-                var spinner = LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.NthSpinner>(host).Single(); // :2418-2420
+                var spinner = LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(host).Single(); // :2418-2420
                 Assert.Equal("Stage\U00002026", ToolTip.GetTip(spinner));
             });
             harness.Main.OnMain(() =>
@@ -3645,7 +3645,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Avalonia.Threading.Dispatcher.UIThread.RunJobs();
             harness.Main.OnMain(() =>
             {
-                Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.NthSpinner>(host)); // the hand wins over the spinner
+                Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(host)); // the hand wins over the spinner
                 var hand = LogicalQuery.SelfAndDescendants<SwiftImage>(host).Single(); // :2415-2417
                 Assert.Equal("hand.raised.fill", hand.SymbolName);
                 Assert.Equal(Chrome.Warning.Resolve(hand.ActualThemeVariant), ((ISolidColorBrush)hand.Foreground!).Color);
@@ -5111,7 +5111,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         {
             var quiet = (Control)Activator.CreateInstance(Private("HelperStubRow"), parent, new[] { helperA, helperB }, (Action)(() => { }))!;
             Hosted(model, quiet);
-            Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.NthSpinner>(quiet)); // no live runtime for either helper: no spinner
+            Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(quiet)); // no live runtime for either helper: no spinner
             WindowOf(quiet).Close(); // closed before the next case opens another, rather than left to pile up
         });
 
@@ -5122,7 +5122,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         {
             var working = (Control)Activator.CreateInstance(Private("HelperStubRow"), parent, new[] { helperA, helperB }, (Action)(() => { }))!;
             Hosted(model, working);
-            var spinner = Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.NthSpinner>(working)); // :1594-1596
+            var spinner = Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(working)); // :1594-1596
             // :1585 HStack { chevron; label; Spacer(minLength: 4); spinner }: the spinner ends the row, at the trailing padding
             // (:1601 rowHorizontalPadding) less its own 4-point trailing pad, not in the middle of the spare width.
             var right = spinner.TranslatePoint(new Avalonia.Point(spinner.Bounds.Width, 0), working)!.Value.X;
@@ -5139,7 +5139,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         {
             var merging = (Control)Activator.CreateInstance(Private("HelperStubRow"), parent, new[] { helperA, helperB }, (Action)(() => { }))!;
             Hosted(model, merging);
-            Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.NthSpinner>(merging));
+            Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(merging));
             WindowOf(merging).Close();
         });
     });

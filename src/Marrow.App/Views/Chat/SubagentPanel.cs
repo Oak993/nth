@@ -18,6 +18,7 @@ using Marrow.Core.Support;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth.Beads;
 
 namespace Marrow.App.Views.Chat;
 
@@ -472,7 +473,7 @@ internal sealed class ClosePanelPresentationState : MainActorModel
 /// <summary>:359-413 <c>private struct SubagentWorkingBox: View</c>.</summary>
 internal sealed class SubagentWorkingBox : Decorator
 {
-    private readonly Marrow.UI.Port.Nth.NthSpinner spinner = new() { Width = 12, Height = 12, VerticalAlignment = VerticalAlignment.Center }; // OD-0136 amendment 2, step 1 B
+    private readonly NthBeadsSlot spinner = new(NthBeadsPlace.HelperCapsule, "helper", running: false) { VerticalAlignment = VerticalAlignment.Center }; // the thinking beads at 14 DIP, 60 Hz (Calculi WU6)
     private readonly TextBlock text = new();
     private string name = "Helper";
     private bool isRunning;
@@ -545,7 +546,8 @@ internal sealed class SubagentWorkingBox : Decorator
     {
         var visible = isRunning || isSending;
         IsVisible = visible;
-        if (!visible) return;
+        if (!visible) { spinner.End(); return; }
+        spinner.Begin();
         text.Text = isSending && !isRunning ? "Sending\u2026" : $"{name} working"; // U+2026 HORIZONTAL ELLIPSIS
         AutomationProperties.SetName(this, isSending && !isRunning ? "Sending" : $"{name} working");
     }

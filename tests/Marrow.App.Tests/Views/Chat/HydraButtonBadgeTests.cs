@@ -25,7 +25,7 @@ public sealed class HydraButtonBadgeTests(HeadlessSession headless)
         body(rig);
     });
 
-    private static bool Pulses(HydraSendWorkingBadge badge) => LogicalQuery.SelfAndDescendants<MiniSpinner>(badge).Any();
+    private static bool Pulses(HydraSendWorkingBadge badge) => LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(badge).Any();
 
     private static string? Count(HydraSendWorkingBadge badge) => LogicalQuery.SelfAndDescendants<TextBlock>(badge).SingleOrDefault()?.Text;
 
@@ -244,18 +244,22 @@ public sealed class HydraButtonBadgeTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-HYDRA-161")] // HydraButton.swift:627 MiniSpinner(cellSize: 2.4)
-    public void The_sending_pulse_is_the_mini_spinner_at_cell_size_two_point_four()
+    [Trait("Req", "PR-HYDRA-161")] // HydraButton.swift:627 the sending pulse; Calculi WU6 (ED-NEW-calculi-wu6-1) replaces MiniSpinner(cellSize: 2.4) with the quiet Tripus beads
+    public void The_sending_pulse_is_the_quiet_Tripus_beads_at_12_DIP_inside_the_badges_14_point_content()
     {
         Run(rig =>
         {
             rig.AddHead(HydraHeadInfo.Status.Running);
             rig.Tick(0.3);
-            var spinner = LogicalQuery.SelfAndDescendants<MiniSpinner>(Assert.IsType<HydraSendWorkingBadge>(rig.Badge)).Single();
-            var expected = new MiniSpinner(cellSize: 2.4);
-            expected.Measure(Size.Infinity);
-
-            Assert.Equal(expected.DesiredSize, spinner.DesiredSize);
+            var badge = Assert.IsType<HydraSendWorkingBadge>(rig.Badge);
+            var spinner = LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(badge).Single();
+            Assert.Equal(new Size(12, 12), spinner.DesiredSize);
+            Assert.True(spinner.Beads.Quiet);
+            Assert.True(spinner.Beads.Ambient);
+            Assert.Equal(Marrow.UI.Port.Nth.Beads.NthBeadsState.Hydra, spinner.Beads.Current.State);
+            Assert.True(spinner.IsRunning);
+            var content = LogicalQuery.SelfAndDescendants<Border>(badge).Single(border => ReferenceEquals(border.Child, spinner));
+            Assert.True(content.DesiredSize.Width >= 14 && content.DesiredSize.Height >= 14); // :635 minWidth/minHeight 14, never grown by the beads' overhang
         });
     }
 

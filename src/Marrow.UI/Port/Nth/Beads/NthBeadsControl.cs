@@ -22,6 +22,9 @@ public sealed class NthBeadsControl : NthMotionControl
     /// <summary>A background, sidebar or Hydra site: 30 Hz at any size (section 11).</summary>
     public static readonly StyledProperty<bool> AmbientProperty = AvaloniaProperty.Register<NthBeadsControl, bool>(nameof(Ambient));
 
+    /// <summary>A small site the design names 60 Hz (the helper capsule and the Tactus pill, 14 DIP): the full rate below 16 DIP (section 9).</summary>
+    public static readonly StyledProperty<bool> FullRateProperty = AvaloniaProperty.Register<NthBeadsControl, bool>(nameof(FullRate));
+
     private NthBeadsFrame state = NthBeadsFrame.Blank;
     private readonly NthBeadsDriver driver = new(); // outlives each visual: a re-attached control goes on, never replays
     private NthBeadsHostPainter? painter;
@@ -37,6 +40,7 @@ public sealed class NthBeadsControl : NthMotionControl
     public double GlyphSize { get => GetValue(GlyphSizeProperty); set => SetValue(GlyphSizeProperty, value); }
     public bool Quiet { get => GetValue(QuietProperty); set => SetValue(QuietProperty, value); }
     public bool Ambient { get => GetValue(AmbientProperty); set => SetValue(AmbientProperty, value); }
+    public bool FullRate { get => GetValue(FullRateProperty); set => SetValue(FullRateProperty, value); }
 
     /// <summary>The turn's state as last posted (or about to be).</summary>
     public NthBeadsFrame Current => state;
@@ -101,7 +105,7 @@ public sealed class NthBeadsControl : NthMotionControl
         var shown = IsEffectivelyVisible && (window?.Available ?? true);
         return f with
         {
-            Size = size, Quiet = Quiet, Every = NthBeadsFrame.EveryFor(size, Ambient), Shown = shown, Contrast = ContrastColor(),
+            Size = size, Quiet = Quiet, Every = NthBeadsFrame.EveryFor(size, Ambient, FullRate), Shown = shown, Contrast = ContrastColor(),
             Calm = calm, CalmAt = calm == f.Calm ? f.CalmAt : Now,
         };
     }
@@ -118,7 +122,7 @@ public sealed class NthBeadsControl : NthMotionControl
     {
         base.OnPropertyChanged(change);
         if (change.Property == GlyphSizeProperty) InvalidateMeasure();
-        if (change.Property == GlyphSizeProperty || change.Property == QuietProperty || change.Property == AmbientProperty
+        if (change.Property == GlyphSizeProperty || change.Property == QuietProperty || change.Property == AmbientProperty || change.Property == FullRateProperty
             || change.Property == IsVisibleProperty || change.Property == EnvironmentValues.AccessibilityReduceMotionProperty)
             Restamp();
     }

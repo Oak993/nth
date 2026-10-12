@@ -24,6 +24,7 @@ using Marrow.Core.Support;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth.Beads;
 
 namespace Marrow.App.Views.Chat;
 
@@ -503,6 +504,7 @@ internal sealed class HydraHeadsButton : Decorator
     private readonly Capsule capsule;
     private readonly AnimatedColor foreground;
     private readonly Popup popover;
+    private readonly NthBeadsSlot beads; // the chip's quiet Tripus beads: one for the chip's life, moved into each row Update builds (Calculi WU6)
     private IReadOnlyList<ChatThread> heads = [];
 
     // :223-225, :230-287
@@ -510,6 +512,7 @@ internal sealed class HydraHeadsButton : Decorator
     {
         this.runtime = runtime;
         this.dismiss = dismiss;
+        beads = new NthBeadsSlot(NthBeadsPlace.HydraChip, runtime.ThreadID.ToString(), running: false);
         capsule = new Capsule(() => state.IsPresented = !state.IsPresented)
         {
             // :244-246 padded horizontally by capsuleHorizontalPadding, framed to capsuleContentHeight, padded vertically by
@@ -548,7 +551,8 @@ internal sealed class HydraHeadsButton : Decorator
         var count = new TextBlock { Text = heads.Count.ToString(CultureInfo.InvariantCulture), Foreground = foreground.Brush };
         SwiftFont.System(12.5, SwiftFont.Weight.Semibold).MonospacedDigit().Apply(count); // :235
         row.Children.Add(Centred(count));
-        if (running > 0) row.Children.Add(Centred(new MiniSpinner())); // :236-238
+        (beads.Parent as Panel)?.Children.Remove(beads); // the row it was in is replaced below
+        if (running > 0) { row.Children.Add(Centred(beads)); beads.Begin(); } else beads.End(); // :236-238, the quiet beads in place of the accent MiniSpinner
         row.Children.Add(Centred(SwiftImage.SystemName("chevron.down").Font(Chrome.ChevronFont).ForegroundStyle(Chrome.SecondaryText))); // :239-241
         capsule.Child = row;
 
@@ -843,7 +847,7 @@ internal sealed class HydraHeadFooter : Decorator
         Control leading;
         if (info.HydraHeadInfoStatus == HydraHeadInfo.Status.Running)
         {
-            leading = new MiniSpinner();
+            leading = new NthBeadsSlot(NthBeadsPlace.HydraHeadFooter, "head-" + info.Index.ToString(System.Globalization.CultureInfo.InvariantCulture) + info.Task); // :447-449, the quiet beads in place of the accent MiniSpinner (Calculi WU6)
         }
         else
         {
