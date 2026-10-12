@@ -56,7 +56,8 @@ public static class Program
         // SK-17: private, headless MCP relay. It must precede Velopack, single-instance, settings and all desktop work.
         if (args.FirstOrDefault() == Marrow.Services.Port.Skills.Providers.SkillsMcpBridge.Command)
             return Marrow.Services.Port.Skills.Providers.SkillsMcpBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
-        // ED-NEW-ignisadvisor-2: the ask_advisor relay, the same kind of private headless child.
+        // ED-NEW-ignisadvisor-2: the ask_advisor relay, the same kind of private headless child. ED-NEW-mainorder-2: it shares
+        // SK-17's exact-prefix exception (ED-235, ED-636), so it too precedes Velopack, single-instance, settings and desktop work.
         if (args.FirstOrDefault() == Marrow.Services.Port.Advisor.AdvisorMcpBridge.Command)
             return Marrow.Services.Port.Advisor.AdvisorMcpBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
         // OD-0062, ED-235: Velopack's startup hook, before anything else (before the single-instance lock, the toast
