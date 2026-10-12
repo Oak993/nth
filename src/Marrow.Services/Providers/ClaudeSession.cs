@@ -87,6 +87,7 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
     private MCPResolvedServer? advisorServer;
     // PORT-ONLY (web surfaces W12, ED-NEW-web-w12-1): this launch's nth-ui server (Tabula's artifact tools); null for a session of no chat.
     private MCPResolvedServer? uiServer;
+    private MCPResolvedServer? pcServer; // PORT-ONLY (Tactus, ED-NEW-pcctl-41): the chat's nth-pc server while Tactus is on.
     private static readonly string AdvisorToolName = "mcp__" + Port.Advisor.AdvisorMcpServer.ServerName + "__" + Port.Advisor.AdvisorTool.Name;
     private TaskHandle? readTask;                          // :31
     private string? sessionID;                             // :32
@@ -190,6 +191,9 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         }
     }
 
+    /// <summary>PORT-ONLY (ED-NEW-web-w26-1): what a no-tools launch adds: no built-in tools, only the (absent) --mcp-config servers, no slash commands.</summary>
+    internal static readonly string[] NoToolsArguments = ["--tools", "", "--strict-mcp-config", "--disable-slash-commands"];
+
     private async Task<string> StartCore() // :82-167
     {
         if (configuration.Executable is not { } executable) throw new ProviderError(new ProviderError.Case.NotInstalled(configuration.Provider)); // :83
@@ -227,17 +231,28 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         // Connected servers from Settings are the only MCP servers the session sees. :94-96
         // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): a Hydra head's ask_advisor server is merged into that one
         // config; a chat with no advisor gets exactly the connected servers' file, as before.
-        advisorServer = MCPProviderConfig.AdvisorServer(configuration);
-        uiServer = MCPProviderConfig.UiServer(configuration); // + ED-NEW-web-w12-1: a chat's nth-ui server joins the same file
-        if (MCPProviderConfig.ClaudeSessionConfig(advisorServer, configuration.IgnisThreadID, uiServer) is { } mcpConfig)
+        if (configuration.NoTools)
         {
-            arguments.Add("--mcp-config");
-            arguments.Add(mcpConfig.Path);
-            if (mcpConfig.Strict) arguments.Add("--strict-mcp-config");
+            // PORT-ONLY (web surfaces W26, ED-NEW-web-w26-1): no built-in tool, no MCP server (not even the user's own
+            // config files) and no slash command, as TextGeneration launches its text-only calls.
+            arguments.AddRange(NoToolsArguments);
+        }
+        else
+        {
+            advisorServer = MCPProviderConfig.AdvisorServer(configuration);
+            uiServer = MCPProviderConfig.UiServer(configuration); // + ED-NEW-web-w12-1: a chat's nth-ui server joins the same file
+            // PORT-ONLY (Tactus, ED-NEW-pcctl-41): the nth-pc server joins the same file while Tactus is on.
+            pcServer = MCPProviderConfig.PcServer(configuration);
+            if (MCPProviderConfig.ClaudeBuiltInConfig(MCPProviderConfig.BuiltInServers(advisorServer, pcServer, uiServer), configuration.IgnisThreadID) is { } mcpConfig)
+            {
+                arguments.Add("--mcp-config");
+                arguments.Add(mcpConfig.Path);
+                if (mcpConfig.Strict) arguments.Add("--strict-mcp-config");
+            }
         }
         var environment = new ValueMap<string, string>(ProviderChildEnvironment.Apply(configuration.Environment), SwiftStringComparer.Instance); // DEVIATION OD-0099 DL-6: only PATH changes; an unbound Storage (a test) leaves the environment as it came.
         var options = await KnownOptions(executable, environment); // :98
-        if (options.Contains("--plugin-dir") && acquireSkills is not null)
+        if (!configuration.NoTools && options.Contains("--plugin-dir") && acquireSkills is not null) // ED-NEW-web-w26-1: no plugins without tools
         {
             generation = await Task.Run(acquireSkills);
             if (generation is not null)
@@ -570,6 +585,12 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         // PORT-ONLY (web surfaces W12, ED-NEW-web-w12-1): nth-ui's artifact tools write only into this chat's own artifacts
         // (sandboxed, versioned, nothing lost), so they run without a card as the advisor's does.
         if (uiServer is not null && Web.UiMcpServer.IsOwnTool(name))
+        {
+            ResolveApproval(requestID, "allow");
+            return;
+        }
+        // PORT-ONLY (Tactus, ED-NEW-pcctl-41): nth's own per-app approval governs the nth-pc tools (DESIGN.md 3.4, 4.1).
+        if (pcServer is not null && Port.PcControl.PcProviderWiring.IsClaudeTool(name))
         {
             ResolveApproval(requestID, "allow");
             return;

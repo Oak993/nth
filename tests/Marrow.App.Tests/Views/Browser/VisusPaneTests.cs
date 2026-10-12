@@ -387,7 +387,8 @@ public sealed class VisusPaneTests(HeadlessSession headless)
         var page = Go(visus, rig, "https://a.example/");
         string[] Titles() => body.Toolbar.MenuEntries().Where(row => row is not null).Select(row => row!.Title).ToArray();
 
-        Assert.Equal(new[] { "New tab", "New private tab", "Reopen closed tab", "Copy link", "Open in default browser" }, Titles());
+        // ED-NEW-web-w8c-3: DESIGN 5.1/5.3 adds four commands; keep the exact inventory and all W8a checks.
+        Assert.Equal(new[] { "New tab", "New private tab", "Reopen closed tab", "Find in page", "Zoom 100 %", "Print", "Save as PDF", "Copy link", "Open in default browser" }, Titles());
         Assert.False(body.Toolbar.MenuEntries().First(row => row?.Title == "Reopen closed tab")!.IsEnabled);
         body.Toolbar.MenuEntries().First(row => row?.Title == "Open in default browser")!.Run();
         Assert.Equal(new[] { page.Url }, visus.OpenedInBrowser);
@@ -482,6 +483,10 @@ public sealed class VisusPaneTests(HeadlessSession headless)
         Assert.NotNull(rig.Workspace.PromptFirst);
         Assert.True(VisusPrompts.AnyIn(rig.Window));
         Assert.True(rig.Workspace.CycleFocus(forward: true));
+        // ED-NEW-web-w8b-4: F6 lands on the prompt's words, read first (10.1 "focus moves to the prompt's text"), and Tab then
+        // reaches its first control; the earlier landing on the checkbox skipped the text a screen reader needs.
+        Assert.True(prompt.Lead.IsFocused);
+        rig.Key(Key.Tab);
         Assert.True(prompt.Remember!.IsFocused);
 
         visus.Session.Select(other);

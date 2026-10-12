@@ -54,6 +54,17 @@ public static class PopoverHost
 
     internal const string RimKey = "MarrowPort.PopoverRim";
 
+    /// <summary>Untipped glass for the approved Visus find/zoom rectangles; same material and presenter as popovers.</summary>
+    public static PopoverCard RectangularCard(Control content, Control anchor, double radius = 14)
+    {
+        var card = new PopoverCard { Child = content, Anchor = anchor, BodyCornerRadius = radius, ShowTip = false, ShadowRoom = true };
+        card.Bind(PopoverCard.BackgroundProperty, new DynamicResourceExtension(TintKey));
+        card.Bind(PopoverCard.BorderBrushProperty, new DynamicResourceExtension(EdgeKey));
+        card.Bind(PopoverCard.RimBrushProperty, new DynamicResourceExtension(RimKey));
+        card.Bind(PopoverCard.FallbackBrushProperty, new DynamicResourceExtension(FillKey));
+        return card;
+    }
+
     // Panels / Dark and Light, macOS 27 UI Kit.
     internal static SwiftColor Fill { get; } = SwiftColor.Dynamic(SwiftColor.White, SwiftColor.Rgb(0x1E1E1E));
 

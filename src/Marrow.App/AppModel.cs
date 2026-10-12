@@ -195,6 +195,7 @@ public sealed partial class AppModel : MainActorModel
         Providers = new ProviderRegistry(Settings); // AppModel.swift:122
         Mcp = new MCPStore(); // AppModel.swift:123
         Terminals = new TerminalStore(); // AppModel.swift:124
+        Terminals.PreviewReady += terminal => Views.Browser.ProjectPreviewHost.Found(this, terminal); // PORT-ONLY: DESIGN 5.6, ED-NEW-web-w9-3.
         Sidebar = new SidebarLayout(); // AppModel.swift:125
 
         var load = Storage.LoadLibrary(); // AppModel.swift:126
@@ -1120,6 +1121,7 @@ public sealed partial class AppModel : MainActorModel
 
     private void DiscardThreadState(ChatThread thread, bool deletingDocument = true)
     {
+        Marrow.App.Port.PcControl.TactusComposition.ChatClosed(thread.Id); // PORT-ONLY OD-0145 (Tactus, ED-NEW-pcctl-32): its engine, mirror rows and chat grants go
         if (idleSessionStops.Remove(thread.Id, out var stop)) stop.Cancel(); // AppModel.swift:1070-1071
         if (runtimes.Remove(thread.Id, out var runtime))
         {

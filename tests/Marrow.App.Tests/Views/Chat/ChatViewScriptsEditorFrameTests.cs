@@ -125,6 +125,7 @@ public sealed class ChatViewScriptsEditorFrameTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-TERM-076")] // App/Views/Chat/ChatView.swift:1666-1699, :1700; OD-0098 (no frame of the sheet), OD-0009 (Cascadia Mono) as the ledger names it
+    [Trait("Decision", "ED-NEW-web-w9-8")]
     public void Each_script_is_a_14_padded_card_of_a_Name_field_filling_the_row_beside_a_trash_button_a_monospaced_Command_field_and_a_worktree_checkbox_8_apart_in_cards_10_apart()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -143,8 +144,8 @@ public sealed class ChatViewScriptsEditorFrameTests(HeadlessSession headless)
                 var card = cards[0];
                 var inner = LogicalQuery.SelfAndDescendants<StackPanel>(card).First(panel => panel.Spacing == 8);
                 Assert.Equal(new Thickness(14), inner.Margin); // :1695 .padding(14)
-                // The three children, 8 apart (:1670 VStack(alignment: .leading, spacing: 8)): the Name row, the Command field, the worktree checkbox.
-                Assert.Equal(3, inner.Children.Count);
+                // DESIGN.md:705 adds optional PreviewUrl. Preserve the original three controls and their spacing, then append its field.
+                Assert.Equal(4, inner.Children.Count);
                 var nameField = LogicalQuery.SelfAndDescendants<TextBox>(inner).Single(box => box.PlaceholderText == "Name");
                 var trash = LogicalQuery.SelfAndDescendants<Button>(inner).Single(button => button.Content is not string);
                 // :1674-1678 Button(role: .destructive) { Image(systemName: "trash") }.buttonStyle(.borderless): the SF Symbol "trash", in the destructive colour, with no bezel, border or
@@ -159,6 +160,11 @@ public sealed class ChatViewScriptsEditorFrameTests(HeadlessSession headless)
                 Assert.Same(symbol, Assert.Single(trashParts.OfType<SwiftImage>()));
                 var commandField = LogicalQuery.SelfAndDescendants<TextBox>(inner).Single(box => box.PlaceholderText == "Command");
                 var checkbox = LogicalQuery.SelfAndDescendants<CheckBox>(inner).Single();
+                var previewField = Assert.IsType<TextBox>(inner.Children[3]);
+                Assert.Equal("Preview URL (optional)", previewField.PlaceholderText);
+                Assert.Equal("Preview URL", Avalonia.Automation.AutomationProperties.GetName(previewField)); // ED-NEW-web-w9cx-1
+                Assert.Null(editor.Scripts[0].PreviewUrl);
+                Assert.Equal("RoundedBorder", previewField.GetValue(ChatDialogControls.InputStyleProperty));
                 Assert.Equal("Build", nameField.Text);
                 Assert.Equal("make build", commandField.Text);
                 Assert.Equal("Run when a worktree is created", checkbox.Content);
@@ -166,6 +172,7 @@ public sealed class ChatViewScriptsEditorFrameTests(HeadlessSession headless)
                 var row = box(inner.Children[0]); var command = box(inner.Children[1]); var toggle = box(inner.Children[2]);
                 Assert.Equal(8, command.Y - row.Bottom, 0.5);
                 Assert.Equal(8, toggle.Y - command.Bottom, 0.5);
+                Assert.Equal(8, box(previewField).Y - toggle.Bottom, 0.5);
                 // The Name field is a flexible rounded-border field filling what the borderless trash button leaves of the card's inner width (512): the HStack's field takes the room.
                 var cardInner = box(card).Width - 28;
                 Assert.Equal(512, cardInner, 0.5);
@@ -174,12 +181,17 @@ public sealed class ChatViewScriptsEditorFrameTests(HeadlessSession headless)
                 Assert.Equal(box(nameField).Y + box(nameField).Height / 2, box(trash).Y + box(trash).Height / 2, 1); // centred on the same line
                 // The Command field fills the card's inner width too, in the .callout style in the monospaced design (12 points, Cascadia Mono, OD-0009).
                 Assert.Equal(cardInner, box(commandField).Width, 1);
+                Assert.Equal(cardInner, box(previewField).Width, 1);
                 Assert.Equal(12, commandField.FontSize);
                 Assert.Contains("Cascadia", commandField.FontFamily.Name, StringComparison.Ordinal);
                 // Both fields are rounded-border text fields; the card holds no icon picker (the trash is its only button without a text label).
                 Assert.Equal("RoundedBorder", nameField.GetValue(ChatDialogControls.InputStyleProperty));
                 Assert.Equal("RoundedBorder", commandField.GetValue(ChatDialogControls.InputStyleProperty));
                 Assert.Single(LogicalQuery.SelfAndDescendants<Button>(card), button => button.Content is not string);
+                previewField.Text = "  http://localhost:5173/  ";
+                Assert.Equal("http://localhost:5173/", editor.Scripts[0].PreviewUrl);
+                previewField.Text = " \t ";
+                Assert.Null(editor.Scripts[0].PreviewUrl);
             });
         });
     }

@@ -29,6 +29,83 @@ public sealed class ArtifactBridgeTests
     private static string? Error(FakeWebView view, long id) => ArtifactRuntimeRig.Reply(view, id)["error"]?["code"]?.GetValue<string>();
 
     [Fact]
+    public void A_streamed_bridge_reply_during_a_deferred_reload_keeps_its_requesting_document()
+    {
+        var (rig, mount, view) = Open();
+        using var _ = rig;
+        rig.Web.Surface.Options.MaxLiveViews = 2;
+        view.HeldSuspend = new TaskCompletionSource<bool>();
+        rig.Web.OpenLive();
+        rig.Web.OpenLive();
+        rig.Web.RunPosted();
+        Assert.Equal(Marrow.Core.Web.WebLiveness.Suspended, mount.View.Liveness);
+        rig.ModelClient.Held = new TaskCompletionSource<ArtifactCompletionResult>();
+        Call(mount, view, 1, "complete", new { stream = true, messages = new[] { new { role = "user", content = "fixture" } } });
+        view.HeldSuspend.SetResult(true);
+        Assert.Equal(Marrow.Core.Web.WebLiveness.Live, mount.View.Liveness);
+        view.Log.Clear();
+        mount.View.SetShown(true);
+        Assert.NotNull(rig.ModelClient.StreamDelta);
+        rig.ModelClient.StreamDelta("fixture delta");
+        Assert.DoesNotContain(view.Log, line => line.StartsWith("Navigate ", StringComparison.Ordinal));
+        Assert.False(rig.ModelClient.Held.Task.IsCompleted);
+        Assert.Contains(ArtifactRuntimeRig.Posts(view), p => p["delta"]?.GetValue<string>() == "fixture delta");
+        rig.ModelClient.Held.SetResult(rig.ModelClient.Reply);
+        Assert.True(ArtifactRuntimeRig.Reply(view, 1)["ok"]!.GetValue<bool>());
+        mount.View.Activate();
+        Assert.Contains("Navigate " + mount.Address, view.Log);
+    }
+
+    [Fact]
+    public void A_pending_bridge_call_holds_the_engine_without_model_step_or_rendering_side_effects()
+    {
+        var (rig, mount, view) = Open();
+        using var _ = rig;
+        rig.ModelClient.Held = new TaskCompletionSource<ArtifactCompletionResult>();
+        Call(mount, view, 1, "complete", new { messages = new[] { new { role = "user", content = "fixture" } } });
+        mount.View.SetShown(false);
+        for (var i = 0; i < 9; i++) rig.Web.OpenLive();
+        rig.Advance(TimeSpan.FromMinutes(11));
+        rig.Web.Surface.Tick();
+        Assert.Equal(Marrow.Core.Web.WebLiveness.Live, mount.View.Liveness);
+        Assert.Same(view, mount.View.Engine);
+        Assert.False(mount.View.IsModelStepRunning);
+        Assert.False(mount.View.IsLiveVisible);
+        Assert.DoesNotContain("Suspend", view.Log);
+        rig.ModelClient.Held.SetResult(rig.ModelClient.Reply);
+    }
+
+    [Theory]
+    [InlineData("complete")]
+    [InlineData("callTool")]
+    [InlineData("files.pick")]
+    public void Every_pending_bridge_kind_keeps_the_engine_through_consent_or_file_pick(string type)
+    {
+        using var rig = new ArtifactRuntimeRig();
+        var artifact = rig.Create(ArtifactKind.Html, "<p>widget</p>");
+        var surface = rig.Web.OpenLive(WebSurfaceKind.InlineWidget, url: null);
+        using var mount = rig.Runtime.Mount(surface, ArtifactRuntimeRig.Chat, artifact.Artifact.Id);
+        var view = WebRig.Fake(surface);
+        view.RaiseNavigationCompleted(mount.Address);
+        rig.Host.HeldConsent = new TaskCompletionSource<bool>();
+        rig.Host.HeldFiles = new TaskCompletionSource<IReadOnlyList<ArtifactPickedFile>>();
+        if (type == "complete") Call(mount, view, 1, type, new { messages = new[] { new { role = "user", content = "fixture" } } });
+        else if (type == "callTool") Call(mount, view, 1, type, new { server = "fixture", tool = "fixture" });
+        else Call(mount, view, 1, type);
+        surface.SetShown(false);
+        for (var i = 0; i < 9; i++) rig.Web.OpenLive();
+        rig.Advance(TimeSpan.FromMinutes(11));
+        rig.Web.Surface.Tick();
+        Assert.Equal(Marrow.Core.Web.WebLiveness.Live, surface.Liveness);
+        Assert.Same(view, surface.Engine);
+        Assert.False(surface.IsModelStepRunning);
+        Assert.False(surface.IsLiveVisible);
+        Assert.DoesNotContain("Suspend", view.Log);
+        rig.Host.HeldConsent.TrySetResult(false);
+        rig.Host.HeldFiles.TrySetResult([]);
+    }
+
+    [Fact]
     public void A_message_from_any_other_origin_is_ignored()
     {
         var (rig, mount, view) = Open();

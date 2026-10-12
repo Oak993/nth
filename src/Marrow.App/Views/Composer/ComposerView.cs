@@ -129,14 +129,21 @@ public sealed class ComposerArea : Decorator
 
         // :24 VStack(spacing: 12): the approval cards, then the group.
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 };
-        stack.Children.Add(layers);
+        // PORT-ONLY: Tactus (OD-0145, ED-NEW-pcctl-27; DESIGN.md 10.7): the strip above the composer, after the approval cards. It
+        // shares the group's row with the same 12-point gap (a hidden strip takes no room, its margin included), so the stack's rows
+        // stay :24's: the cards, then the group (ED-NEW-web-w11-1, point 11).
+        var strip = new Marrow.App.Views.Chat.TactusStrip(runtime) { Margin = new Thickness(0, 0, 0, 12) };
+        DockPanel.SetDock(strip, Dock.Top);
+        stack.Children.Add(new DockPanel { LastChildFill = true, Children = { strip, layers } });
         approvalStack = stack;
         var departures = new Canvas { IsHitTestVisible = false }; // over the stack: where a resolved card fades, out of the layout
         approvalGlide = new WindowGlide(stack, departures);
 
         // :23 GlassEffectContainer(spacing: 8), independent of the VStack's layout spacing.
         // :52 .frame(maxWidth: 820): at most 820 wide, centred in the room the padding leaves.
-        var container = new Decorator { Child = new Panel { Children = { stack, departures } }, MaxWidth = 820 };
+        // PORT-ONLY (W19, ED-NEW-web-w19-2): the apps' context chips sit above the approval stack, outside it, so the Swift stack still holds only the
+        // approval cards and the group (no slot, no spacing while no app has said anything: the row is not visible then).
+        var container = new Decorator { Child = new StackPanel { Orientation = Orientation.Vertical, Children = { new AppContextChips(runtime), new Panel { Children = { stack, departures } } } }, MaxWidth = 820 };
         SwiftGlass.SetContainerSpacing(container, 8);
         // :53-55 .padding(.horizontal, 20).padding(.bottom, 14).frame(maxWidth: .infinity)
         Child = new Border { Child = container, Padding = new Thickness(20, 0, 20, 14) };

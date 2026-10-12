@@ -269,6 +269,29 @@ public sealed class VisusSessionTests(HeadlessSession headless)
         Assert.Contains(page.Log, line => line.Contains("GoBack", StringComparison.Ordinal));
     });
 
+    // ED-NEW-web-nocap-8: a tab frozen while on screen (more tabs on screen than the live budget) comes back when the user
+    // uses the toolbar's back, forward or reload, not only when they click into the page.
+    [Fact]
+    public void Back_on_a_tab_frozen_while_on_screen_restores_it_first() => headless.OnUiThread(() =>
+    {
+        using var rig = new VisusRig();
+        var first = rig.Page("https://a.example/");
+        var page = VisusRig.Live(first);
+        page.CanGoBack = true;
+        VisusHost.Surface.Options.MaxLiveViews = 2;
+        first.View!.SetShown(true);
+        for (var i = 0; i < 2; i++) rig.Page("https://b" + i + ".example/").View!.SetShown(true);
+        first.View.SetLiveVisible(false);
+        Assert.Equal(WebLiveness.Suspended, first.View.Liveness);
+        page.Log.Clear();
+
+        first.GoBack();
+
+        Assert.Equal(WebLiveness.Live, first.View.Liveness);
+        Assert.Equal("Resume", page.Log[0]);
+        Assert.Contains(page.Log, line => line.Contains("GoBack", StringComparison.Ordinal));
+    });
+
     [Fact]
     public void A_link_to_a_new_window_opens_a_tab_beside_its_page_in_the_kind_the_rules_give() => headless.OnUiThread(() =>
     {

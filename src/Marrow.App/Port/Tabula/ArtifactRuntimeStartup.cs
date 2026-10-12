@@ -58,19 +58,9 @@ public static class ArtifactRuntimeStartup
         // Its own empty folder: the call sees no project, no thread and no memory.
         var directory = Path.Combine(Path.GetTempPath(), "nth-artifact-model");
         Directory.CreateDirectory(directory);
-        var configuration = new SessionConfiguration
-        {
-            Provider = choice.Provider,
-            Executable = executable,
-            WorkingDirectory = ThreadRuntime.SessionDirectoryUrl(directory),
-            AccountId = account.Id,
-            Environment = app.Providers.Environment(account.Id),
-            Model = choice.Model.Length == 0 ? null : choice.Model,
-            RuntimeMode = RuntimeMode.Supervised,
-            InteractionMode = InteractionMode.Plan,
-            ApiKey = apiKey,
-            AntiSlopEnabled = false,
-        };
+        // ED-NEW-web-w26-1: no tools, servers or plugins (the client refuses providers that cannot promise that).
+        var configuration = SessionArtifactModelClient.Configuration(choice, account.Id, executable, ThreadRuntime.SessionDirectoryUrl(directory),
+            app.Providers.Environment(account.Id), apiKey);
         return AccountSessionFactory.Create(app.Providers, configuration, account.Id).Session;
     }
 

@@ -94,6 +94,8 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
 
     /// <summary>A site-specific body radius; ordinary popovers retain the reference radius.</summary>
     public double BodyCornerRadius { get; init; } = BodyRadius;
+    /// <summary>DESIGN 5.3 find rectangle (ED-NEW-web-w8c-1); ordinary popovers retain their tip.</summary>
+    public bool ShowTip { get; init; } = true;
 
     // OD-0095: "one outline, one fill, one shadow". ENGINEERING DECISION (no number is published for NSPopover's window
     // shadow; the videos show it soft and faint, more a lift than a drop): a Gaussian falloff, 0.22 black at the outline,
@@ -139,7 +141,7 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
     internal bool ShadowRoom
     {
         get => shadowRoom;
-        set { shadowRoom = value; Margin = value ? ShadowMargin(TipEdge) : default; }
+        set { shadowRoom = value; Margin = value ? (ShowTip ? ShadowMargin(TipEdge) : new Thickness(ShadowReach + ShadowDrop)) : default; }
     }
 
     private bool shadowRoom;
@@ -216,7 +218,7 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
     private static double Reach => TipHeight + TipGap;
 
     // The card's own rectangle, inside the room the tip and its gap take.
-    private Rect Body(Size size) => TipEdge switch
+    private Rect Body(Size size) => !ShowTip ? new Rect(size) : TipEdge switch
     {
         PopoverTipEdge.Top => new Rect(0, Reach, size.Width, Math.Max(0, size.Height - Reach)),
         PopoverTipEdge.Bottom => new Rect(0, 0, size.Width, Math.Max(0, size.Height - Reach)),
@@ -231,7 +233,7 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        var room = RoomAround(TipEdge);
+        var room = ShowTip ? RoomAround(TipEdge) : new Size(2 * Edge, 2 * Edge);
         Child?.Measure(new Size(Math.Max(0, availableSize.Width - room.Width), Math.Max(0, availableSize.Height - room.Height)));
         var child = Child?.DesiredSize ?? default;
         return new Size(child.Width + room.Width, child.Height + room.Height);
@@ -277,6 +279,7 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
         get
         {
             var size = Bounds.Size;
+            if (!ShowTip) return new Point(size.Width / 2, size.Height / 2);
             var along = Along(size);
             return TipEdge switch
             {
@@ -294,6 +297,7 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
         get
         {
             var size = Bounds.Size;
+            if (!ShowTip) return new RelativePoint(0.5, 0.5, RelativeUnit.Relative);
             if (size.Width <= 0 || size.Height <= 0) return new RelativePoint(0.5, TipEdge == PopoverTipEdge.Top ? 0 : 1, RelativeUnit.Relative);
             var tip = TipPoint;
             return new RelativePoint(tip.X / size.Width, tip.Y / size.Height, RelativeUnit.Relative);
@@ -335,13 +339,13 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
             corners.Add((shoulderOut, shoulder));
         }
         corners.Add((body.TopLeft, corner));
-        if (TipEdge == PopoverTipEdge.Top) Tip(new Point(along - half, body.Top), new Point(along, body.Top - depth), new Point(along + half, body.Top));
+        if (ShowTip && TipEdge == PopoverTipEdge.Top) Tip(new Point(along - half, body.Top), new Point(along, body.Top - depth), new Point(along + half, body.Top));
         corners.Add((body.TopRight, corner));
-        if (TipEdge == PopoverTipEdge.Right) Tip(new Point(body.Right, along - half), new Point(body.Right + depth, along), new Point(body.Right, along + half));
+        if (ShowTip && TipEdge == PopoverTipEdge.Right) Tip(new Point(body.Right, along - half), new Point(body.Right + depth, along), new Point(body.Right, along + half));
         corners.Add((body.BottomRight, corner));
-        if (TipEdge == PopoverTipEdge.Bottom) Tip(new Point(along + half, body.Bottom), new Point(along, body.Bottom + depth), new Point(along - half, body.Bottom));
+        if (ShowTip && TipEdge == PopoverTipEdge.Bottom) Tip(new Point(along + half, body.Bottom), new Point(along, body.Bottom + depth), new Point(along - half, body.Bottom));
         corners.Add((body.BottomLeft, corner));
-        if (TipEdge == PopoverTipEdge.Left) Tip(new Point(body.Left, along + half), new Point(body.Left - depth, along), new Point(body.Left, along - half));
+        if (ShowTip && TipEdge == PopoverTipEdge.Left) Tip(new Point(body.Left, along + half), new Point(body.Left - depth, along), new Point(body.Left, along - half));
         return Rounded(corners);
     }
 
@@ -415,7 +419,7 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
             var wanted = Falloff(k - 0.5);
             var share = Math.Clamp(1 - (1 - wanted) / (1 - outside), 0, 1);
             outside = wanted;
-            pens[count - k] = new ImmutablePen(Fade(size, share), 2 * k, lineJoin: PenLineJoin.Round);
+            pens[count - k] = new ImmutablePen(ShowTip ? Fade(size, share) : new ImmutableSolidColorBrush(Color.FromArgb((byte)Math.Round(share * 255), 0, 0, 0)), 2 * k, lineJoin: PenLineJoin.Round);
         }
         return shadowPens = pens;
     }
@@ -470,6 +474,7 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
     // or slid to stay on screen) and points at its middle; the grow-in's origin follows the tip.
     private void FollowAnchor()
     {
+        if (!ShowTip) { SyncGlass(); return; }
         if (Anchor is not { } anchor || this.GetVisualParent() is not Visual parent || TopLevel.GetTopLevel(this) is not { } top
             || TopLevel.GetTopLevel(anchor) is not { } anchorTop) return;
         // A top-level that has closed (the anchor's row rebuilt while the popover showed) is no longer on screen: leave
@@ -529,7 +534,7 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == TipEdgeProperty && shadowRoom) Margin = ShadowMargin(TipEdge); // the card flipped
+        if (change.Property == TipEdgeProperty && shadowRoom) Margin = ShowTip ? ShadowMargin(TipEdge) : new Thickness(ShadowReach + ShadowDrop); // the card flipped
         if (glass is null) return;
         if (change.Property == RenderTransformProperty || change.Property == OpacityProperty || change.Property == TipOffsetProperty
             || change.Property == TipEdgeProperty || change.Property == BoundsProperty) SyncGlass();
@@ -596,8 +601,8 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
             if (!at.IsVisible) opacity = 0;
             opacity *= at.Opacity;
         }
-        return new PopoverGlass.Shape(new Rect(topLeft, bottomRight), BodyRadius * scale, centre.Transform(m),
-            TipHalfWidth * Math.Sqrt(2) * scale, TipApexRadius * scale, opacity);
+        return new PopoverGlass.Shape(new Rect(topLeft, bottomRight), (ShowTip ? BodyRadius : BodyCornerRadius) * scale, centre.Transform(m),
+            ShowTip ? TipHalfWidth * Math.Sqrt(2) * scale : 0, ShowTip ? TipApexRadius * scale : 0, opacity);
     }
 }
 

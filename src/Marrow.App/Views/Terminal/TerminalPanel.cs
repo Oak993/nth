@@ -460,12 +460,25 @@ internal sealed class TerminalTab : Border
         SwiftFont.Callout.Apply(title); // :172 .font(.callout), inherited by the title
         title.Foreground = (isSelected ? SwiftColor.Primary : SwiftColor.Secondary).Brush(title); // :175
         row.Children.Add(title);
+        // PORT-ONLY: DESIGN 5.6, ED-NEW-web-w9-3. The discovered address is an explicit Open preview gesture.
+        var previewLabel = new TextBlock { FontSize = 11 };
+        var preview = new Button { Content = previewLabel }.Chip();
+        ToolTip.SetTip(preview, "Open preview");
+        preview.Click += (_, e) => { session.OpenPreview?.Invoke(); e.Handled = true; };
+        void PreviewReady(string? address)
+        {
+            if (address is null) { row.Children.Remove(preview); return; }
+            previewLabel.Text = "Preview ready · " + Marrow.Core.Web.WebPolicy.SourceName(address);
+            AutomationProperties.SetName(preview, previewLabel.Text);
+            if (!row.Children.Contains(preview)) row.Children.Insert(row.Children.IndexOf(closeButton), preview);
+        }
 
         restartButton = IconAction("arrow.clockwise", "Start a new shell in this tab", restart);
 
         closeButton = IconAction("xmark", "Close terminal", close);
         AutomationProperties.SetName(closeButton, "Close " + session.Title);
         row.Children.Add(closeButton);
+        PreviewReady(session.PreviewUrl); this.Track(() => session.PreviewUrl, PreviewReady);
 
         Child = row;
         Padding = new Thickness(10, 5);

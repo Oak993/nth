@@ -90,6 +90,7 @@ public static class CspBuilder
     /// comma or a quote that could inject a directive; other schemes; keywords; wildcards (<c>*</c>, <c>*.example.com</c>)
     /// and <c>'unsafe-eval'</c> unless <paramref name="allowBroad"/>; IP addresses when <paramref name="allowIp"/> is false.
     /// </summary>
+    /// <remarks>ED-NEW-web-w26-4: localhost, *.local and the like, loopback, private and link-local addresses (WebPolicy.IsDevHost) are dropped unless <paramref name="allowBroad"/>, with <see cref="LocalNetworkReason"/>.</remarks>
     public static CspSourceList Clean(IEnumerable<string>? declared, bool allowBroad, bool allowIp = true)
     {
         if (declared is null) return CspSourceList.Empty;
@@ -141,6 +142,9 @@ public static class CspBuilder
         return mine.Where(yes.Contains).ToList();
     }
 
+    /// <summary>ED-NEW-web-w26-4: why a source on this computer or its local network needs broad access.</summary>
+    public const string LocalNetworkReason = "your computer or local network";
+
     private static (string? Source, string? Reason) CleanOne(string text, bool allowBroad, bool allowIp)
     {
         if (text.Any(c => char.IsWhiteSpace(c) || c is ';' or ',' or '"' or '\\' or '<' or '>'))
@@ -174,6 +178,8 @@ public static class CspBuilder
         }
         else if (uri.HostNameType != UriHostNameType.Dns || IPAddress.TryParse(uri.Host, out _)) return (null, "not a web address");
 
+        // + ED-NEW-web-w26-4 (W26 security review): a host on this computer or its local network is broad access too.
+        if (!allowBroad && WebPolicy.IsDevHost(uri.Host)) return (null, LocalNetworkReason);
         var host = uri.IdnHost.ToLowerInvariant();
         var port = uri.IsDefaultPort ? "" : ":" + uri.Port;
         var path = uri.AbsolutePath == "/" && !rest.EndsWith('/') ? "" : uri.AbsolutePath;

@@ -13,7 +13,7 @@ namespace Marrow.Services.Web;
 /// <c>NativeWebView</c> leaves the tree); this object adds nth's policy events beside Avalonia's own handlers. Every
 /// member runs on the UI thread, where WebView2 requires it.
 /// </summary>
-internal sealed class WebView2View : IWebEngineView
+internal sealed class WebView2View : IWebEngineView, IPreviewViewport
 {
     private const int VkShift = 0x10;
     private const int VkControl = 0x11;
@@ -24,12 +24,31 @@ internal sealed class WebView2View : IWebEngineView
     private readonly List<CdpSubscription> cdpSubscriptions = [];
     private CoreWebView2? core;
     private CoreWebView2Controller? controller;
+    private PreviewViewport? previewViewport;
+    public PreviewRegionInfo? PreviewRegion => previewViewport?.Info;
+    public void PlacePreview(double viewportWidth, double viewportHeight, double dpi, double x, double y, double width, double height)
+    {
+        if (controller is null) return;
+        (previewViewport ??= new PreviewViewport(controller)).Place(viewportWidth, viewportHeight, dpi, x, y, width, height);
+    }
+    public void ClearPreview()
+    {
+        try { previewViewport?.Dispose(); }
+        catch (COMException) { } // AdapterDestroyed may arrive after the platform closed its controller.
+        finally { previewViewport = null; }
+    }
+    public void OpenPreviewDevTools() { if (Creation.EnableDevTools) core?.OpenDevToolsWindow(); }
     private double scale = 1;
     private bool disposed;
     private readonly List<string> documentScripts = [];
     private IWebResourceHandler? resourceHandler;
     private bool resourcesHooked;
     private Task scriptsReady = Task.CompletedTask;
+    private CoreWebView2Find? find;
+    private WebFindFallback? findFallback;
+    private bool useFindFallback;
+    public event EventHandler? ZoomChanged;
+    public event EventHandler<WebFindResult>? FindResultChanged;
 
     public WebView2View(WebView2Engine engine, WebCreationOptions creation)
     {
@@ -47,6 +66,7 @@ internal sealed class WebView2View : IWebEngineView
     public bool CanGoBack => Try(() => core?.CanGoBack ?? false);
     public bool CanGoForward => Try(() => core?.CanGoForward ?? false);
     public bool IsSuspended => Try(() => core?.IsSuspended ?? false);
+    public bool IsPlayingAudio => Try(() => core?.IsDocumentPlayingAudio ?? false);
     public uint? BackgroundArgb { get; private set; }
 
     public double Zoom
@@ -86,6 +106,8 @@ internal sealed class WebView2View : IWebEngineView
     public event EventHandler<WebScriptDialogRequest>? ScriptDialogOpening;
     public event EventHandler<WebCertificateErrorRequest>? CertificateErrorDetected;
     public event EventHandler<bool>? FullScreenChanged;
+    public event EventHandler<WebNotification>? NotificationReceived;
+    public event EventHandler<WebScreenCaptureRequest>? ScreenCaptureStarting;
 
     /// <summary>Takes one reference on each pointer (the adapter's getters hand out owned references) and wraps them.</summary>
     public void Attach(nint coreWebView2, nint controllerPointer)
@@ -125,7 +147,16 @@ internal sealed class WebView2View : IWebEngineView
         foreach (var subscription in cdpSubscriptions) subscription.Disconnect();
         UnhookResources();
         Unhook();
+        if (find is { } search)
+        {
+            Safe(() => search.MatchCountChanged -= OnFindResult);
+            Safe(() => search.ActiveMatchIndexChanged -= OnFindResult);
+        }
+        find = null;
+        findFallback = null;
+        useFindFallback = false;
         core = null;
+        ClearPreview();
         controller = null;
     }
 
@@ -167,7 +198,9 @@ internal sealed class WebView2View : IWebEngineView
 
     public async Task<WebFindResult> FindAsync(string query, bool matchCase, CancellationToken cancellationToken)
     {
-        if (core is null) return new WebFindResult(0, -1);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (core is null) throw new InvalidOperationException("The web view is not attached.");
+        if (useFindFallback) return await (findFallback ??= new(this)).StartAsync(query, matchCase, cancellationToken);
         try
         {
             var options = core.Environment.CreateFindOptions();
@@ -175,19 +208,43 @@ internal sealed class WebView2View : IWebEngineView
             options.IsCaseSensitive = matchCase;
             options.SuppressDefaultFindDialog = true;
             options.ShouldHighlightAllMatches = true;
-            await core.Find.StartAsync(options).WaitAsync(cancellationToken);
-            return new WebFindResult(core.Find.MatchCount, core.Find.ActiveMatchIndex);
+            if (find is null)
+            {
+                find = core.Find;
+                find.MatchCountChanged += OnFindResult;
+                find.ActiveMatchIndexChanged += OnFindResult;
+            }
+            find.Stop(); // Identical Start options otherwise mean "next", rather than a fresh query.
+            await find.StartAsync(options).WaitAsync(cancellationToken);
+            return new WebFindResult(find.MatchCount, find.ActiveMatchIndex);
         }
-        catch (NotImplementedException)
+        catch (Exception e) when (e is NotImplementedException or InvalidCastException || e is COMException { HResult: unchecked((int)0x80004002) })
         {
-            // An older runtime without the Find API; the find bar's CDP fallback (W8c) takes over.
-            return new WebFindResult(0, -1);
+            useFindFallback = true;
+            return await (findFallback ??= new(this)).StartAsync(query, matchCase, cancellationToken);
         }
     }
 
-    public void FindNext() => Safe(() => core?.Find.FindNext());
-    public void FindPrevious() => Safe(() => core?.Find.FindPrevious());
-    public void StopFind() => Safe(() => core?.Find.Stop());
+    private void OnFindResult(object? sender, object e)
+    {
+        if (find is { } current) FindResultChanged?.Invoke(this, new(current.MatchCount, current.ActiveMatchIndex));
+    }
+    public void FindNext() { if (useFindFallback) _ = MoveFallbackAsync(false); else find?.FindNext(); }
+    public void FindPrevious() { if (useFindFallback) _ = MoveFallbackAsync(true); else find?.FindPrevious(); }
+    public void StopFind() { if (findFallback is not null) _ = StopFallbackAsync(); else find?.Stop(); }
+    private async Task MoveFallbackAsync(bool previous)
+    {
+        try
+        {
+            if (findFallback is { } fallback) FindResultChanged?.Invoke(this, await fallback.MoveAsync(previous, CancellationToken.None));
+        }
+        catch (Exception e) { log.Error($"web: find move failed: {e.Message}"); FindResultChanged?.Invoke(this, new(-1, -1)); }
+    }
+    private async Task StopFallbackAsync()
+    {
+        try { if (findFallback is { } fallback) await fallback.StopAsync(CancellationToken.None); }
+        catch (Exception e) { log.Error($"web: find cleanup failed: {e.Message}"); }
+    }
     public void ShowPrintUI() => core?.ShowPrintUI(CoreWebView2PrintDialogKind.System);
 
     public async Task<bool> PrintToPdfAsync(string path, CancellationToken cancellationToken) =>
@@ -349,10 +406,13 @@ internal sealed class WebView2View : IWebEngineView
         c.ScriptDialogOpening += OnScriptDialogOpening;
         c.ServerCertificateErrorDetected += OnServerCertificateErrorDetected;
         c.ContainsFullScreenElementChanged += OnFullScreenChanged;
+        Safe(() => c.NotificationReceived += OnNotificationReceived);
+        Safe(() => c.ScreenCaptureStarting += OnScreenCaptureStarting);
         if (controller is { } ctl)
         {
             ctl.AcceleratorKeyPressed += OnAcceleratorKeyPressed;
             ctl.MoveFocusRequested += OnMoveFocusRequested;
+            ctl.ZoomFactorChanged += OnZoomChanged;
         }
     }
 
@@ -379,6 +439,8 @@ internal sealed class WebView2View : IWebEngineView
                 c.ServerCertificateErrorDetected -= OnServerCertificateErrorDetected;
                 c.ContainsFullScreenElementChanged -= OnFullScreenChanged;
             });
+            Safe(() => c.NotificationReceived -= OnNotificationReceived);
+            Safe(() => c.ScreenCaptureStarting -= OnScreenCaptureStarting);
         }
 
         if (controller is { } ctl)
@@ -387,9 +449,12 @@ internal sealed class WebView2View : IWebEngineView
             {
                 ctl.AcceleratorKeyPressed -= OnAcceleratorKeyPressed;
                 ctl.MoveFocusRequested -= OnMoveFocusRequested;
+                ctl.ZoomFactorChanged -= OnZoomChanged;
             });
         }
     }
+
+    private void OnZoomChanged(object? sender, object e) => ZoomChanged?.Invoke(this, EventArgs.Empty);
 
     private void OnNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs args)
     {
@@ -457,7 +522,9 @@ internal sealed class WebView2View : IWebEngineView
         Settle(e, args.GetDeferral, decision =>
         {
             args.State = decision == WebPermissionDecision.Deny ? CoreWebView2PermissionState.Deny : CoreWebView2PermissionState.Allow;
-            Safe(() => args.SavesInProfile = decision == WebPermissionDecision.AllowAlways);
+            // W8b (ED-NEW-web-w8b-1): nth's PermissionStore is the only memory of an answer, so the profile never keeps one
+            // that Settings › Site permissions does not list (and Remove works with no view open).
+            Safe(() => args.SavesInProfile = false);
         });
     }
 
@@ -474,10 +541,12 @@ internal sealed class WebView2View : IWebEngineView
             {
                 args.ResultFilePath = path;
                 args.Cancel = false;
+                e.ReportStarted(new WebView2Download(operation, path));
             }
             else
             {
                 args.Cancel = true;
+                e.ReportStarted(null);
             }
         });
     }
@@ -631,6 +700,26 @@ internal sealed class WebView2View : IWebEngineView
             : CoreWebView2ServerCertificateErrorAction.Cancel);
     }
 
+    private void OnNotificationReceived(object? sender, CoreWebView2NotificationReceivedEventArgs args)
+    {
+        // W8b (DESIGN 5.5): never Windows' default notification; nth shows its own toast for browse tabs or drops it.
+        Safe(() => args.Handled = true);
+        var note = Try(() => args.Notification);
+        if (note is null) return;
+        var e = new WebNotification(Origin(Try(() => args.SenderOrigin)), Try(() => note.Title) ?? "", Try(() => note.Body) ?? "", Try(() => note.Tag), Try(() => note.IsSilent));
+        NotificationReceived?.Invoke(this, e);
+        if (e.Shown) Safe(note.ReportShown);
+    }
+
+    private void OnScreenCaptureStarting(object? sender, CoreWebView2ScreenCaptureStartingEventArgs args)
+    {
+        Safe(() => args.Handled = true);
+        args.Cancel = true; // denied unless the surface lets the browser's own picker show (W8b)
+        var e = new WebScreenCaptureRequest(Origin(Try(() => args.OriginalSourceFrameInfo?.Source)));
+        ScreenCaptureStarting?.Invoke(this, e);
+        Settle(e, args.GetDeferral, allow => args.Cancel = !allow);
+    }
+
     private void OnFullScreenChanged(object? sender, object e) => FullScreenChanged?.Invoke(this, Try(() => core?.ContainsFullScreenElement ?? false));
 
     private void OnAcceleratorKeyPressed(object? sender, CoreWebView2AcceleratorKeyPressedEventArgs args)
@@ -746,5 +835,90 @@ internal sealed class WebView2View : IWebEngineView
 
         private void OnEvent(object? sender, CoreWebView2DevToolsProtocolEventReceivedEventArgs args) =>
             handler(new WebCdpEvent(eventName, string.IsNullOrEmpty(args.SessionId) ? null : args.SessionId, args.ParameterObjectAsJson));
+    }
+}
+
+/// <summary>
+/// W8b (DESIGN 5.4): a saved WebView2 download as <see cref="IWebDownloadOperation"/>. A pause is the engine's Interrupted state
+/// with the UserPaused reason; nth never opens the file (no <c>OpenDefaultDownloadDialog</c>, no shell open).
+/// </summary>
+internal sealed class WebView2Download : IWebDownloadOperation
+{
+    private readonly CoreWebView2DownloadOperation operation;
+    private string path;
+
+    public WebView2Download(CoreWebView2DownloadOperation operation, string path)
+    {
+        this.operation = operation;
+        this.path = path;
+        operation.BytesReceivedChanged += OnChanged;
+        operation.StateChanged += OnStateChanged;
+    }
+
+    public string ResultFilePath => path;
+
+    public long BytesReceived => Read(() => operation.BytesReceived, 0L);
+
+    public long? TotalBytes => Read(() => operation.TotalBytesToReceive is > 0 and var total ? (long?)total : null, null);
+
+    public WebDownloadState State => Read(() => operation.State switch
+    {
+        CoreWebView2DownloadState.Completed => WebDownloadState.Completed,
+        CoreWebView2DownloadState.Interrupted when operation.InterruptReason == CoreWebView2DownloadInterruptReason.UserPaused => WebDownloadState.Paused,
+        CoreWebView2DownloadState.Interrupted => WebDownloadState.Interrupted,
+        _ => WebDownloadState.InProgress,
+    }, WebDownloadState.Interrupted);
+
+    public string? InterruptReason => Read(() => operation.State == CoreWebView2DownloadState.Interrupted ? operation.InterruptReason.ToString() : null, null);
+
+    public bool CanResume => Read(() => operation.CanResume, false);
+
+    public event EventHandler? Changed;
+
+    public void Cancel() => Run(operation.Cancel);
+
+    public void Pause() => Run(operation.Pause);
+
+    public void Resume() => Run(operation.Resume);
+
+    private void OnChanged(object? sender, object e) => Changed?.Invoke(this, EventArgs.Empty);
+
+    private void OnStateChanged(object? sender, object e)
+    {
+        var final = Read(() => operation.ResultFilePath, null);
+        if (!string.IsNullOrEmpty(final)) path = final;
+        Changed?.Invoke(this, EventArgs.Empty);
+        if (State is WebDownloadState.Completed || State == WebDownloadState.Interrupted && !CanResume)
+        {
+            Run(() =>
+            {
+                operation.BytesReceivedChanged -= OnChanged;
+                operation.StateChanged -= OnStateChanged;
+            });
+        }
+    }
+
+    private static T Read<T>(Func<T> read, T fallback)
+    {
+        try
+        {
+            return read();
+        }
+        catch (Exception ex) when (ex is COMException or InvalidOperationException or NotImplementedException)
+        {
+            return fallback;
+        }
+    }
+
+    private static void Run(Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (Exception ex) when (ex is COMException or InvalidOperationException or NotImplementedException)
+        {
+            // the operation is over or the browser is gone
+        }
     }
 }

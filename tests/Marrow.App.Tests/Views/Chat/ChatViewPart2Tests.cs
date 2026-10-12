@@ -319,6 +319,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     [Trait("Req", "UI-TERM-026")] // App/Views/Chat/ChatView.swift:1684-1691,1711-1718,1726-1729
     [Trait("Rule", "R-STR-7")] // App/Views/Chat/ChatView.swift:1726-1729, Foundation .whitespaces includes the tab.
     [Trait("Req", "UI-TERM-030")] // App/Views/Chat/ChatView.swift:1684-1691,1711-1718,1726-1729
+    [Trait("Decision", "ED-NEW-web-w9-8")]
     public void A_blank_command_is_outlined_in_danger_and_blocks_saving_while_a_real_command_is_not()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -346,10 +347,14 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
                 var fieldFrame = Assert.IsType<Panel>(frame.Parent);
                 var column = Assert.IsType<StackPanel>(fieldFrame.Parent);
                 Assert.Equal(8, column.Spacing);
-                Assert.Equal(3, column.Children.Count);
+                // DESIGN.md:705 adds optional PreviewUrl after the unchanged Name/Command/worktree controls.
+                Assert.Equal(4, column.Children.Count);
                 Assert.Same(fieldFrame, column.Children[1]);
                 Assert.IsType<Grid>(column.Children[0]); // the name row: an HStack whose field is flexible (a grid with a star column, ED-290-2)
                 Assert.IsType<CheckBox>(column.Children[2]);
+                var previewField = Assert.IsType<TextBox>(column.Children[3]);
+                Assert.Equal("Preview URL (optional)", previewField.PlaceholderText);
+                Assert.Null(editor.Scripts[0].PreviewUrl);
                 Assert.Equal(Chrome.Danger.Opacity(0.65).Resolve(frame.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(frame.BorderBrush).Color); // :1687-1689 danger at 0.65 while blank
                 Assert.False(editor.SaveButton.IsEnabled); // :1711,1717
                 Assert.Equal("Every script needs a command.", ToolTip.GetTip(editor.SaveButton)); // :1718
@@ -358,6 +363,10 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
                 Assert.Null(frame.BorderBrush);
                 Assert.True(editor.SaveButton.IsEnabled);
                 Assert.Equal("Save these scripts", ToolTip.GetTip(editor.SaveButton));
+                previewField.Text = "http://localhost:5173/";
+                Assert.True(editor.SaveButton.IsEnabled);
+                previewField.Text = "";
+                Assert.True(editor.SaveButton.IsEnabled); // optional PreviewUrl never substitutes for or blocks command validation
 
                 // A tab is U+0009 CHARACTER TABULATION. Apple documents CharacterSet.whitespaces as Unicode general
                 // category Zs plus that exact code point, so trimmingCharacters(in: .whitespaces) reduces a

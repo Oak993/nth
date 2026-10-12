@@ -65,6 +65,7 @@ public sealed class ThreadTimeline : Decorator
     private readonly Dictionary<string, Control> laidOutRows = [];
     private readonly Dictionary<string, (DisplayBlock Block, RowContext Context, Control Row)> rowViews = [];
     private readonly Dictionary<string, (QuestionRequest Request, Control Row)> questionViews = []; // :393-397, stable ForEach identity
+    private readonly Dictionary<string, (Marrow.Services.Port.PcControl.PcPendingAsk Ask, Control Row)> tactusViews = []; // PORT-ONLY: Tactus (ED-NEW-pcctl-27): its asks' badges
     private TimelineScrollState? state;
     private ThreadRuntime? ownerRuntime;
     private Action? redraw;
@@ -224,6 +225,21 @@ public sealed class ThreadTimeline : Decorator
                     // :396 .transition(.softAppear): an answered question's badge leaves with a quick fade where it stood (one answered while the timeline had gone is not in the one that comes back).
                     (comesWhole ? stale : leaving).Add(questionViews[gone].Row); questionViews.Remove(gone);
                 }
+                // PORT-ONLY: Tactus (OD-0145, ED-NEW-pcctl-27; DESIGN.md 10.7): each Tactus approval, confirm and show-window ask of
+                // this chat is a badge after the question badges, as they are; an answered one goes like an answered question.
+                foreach (var ask in runtime.TactusAsks)
+                {
+                    var id = "tactus-" + ask.Id; var hadIdentity = tactusViews.TryGetValue(id, out var existing);
+                    var same = hadIdentity && existing.Ask == ask;
+                    var badge = same ? existing.Row : new TactusAskBadgeRow(ask) { Name = id }.Transition(SoftAppearTransition);
+                    if (!same && hadIdentity) stale.Add(existing.Row);
+                    tactusViews[id] = (ask, badge);
+                    wanted.Add((badge, !same && !hadIdentity && !comesWhole));
+                }
+                foreach (var gone in tactusViews.Keys.Except(runtime.TactusAsks.Select(ask => "tactus-" + ask.Id)).ToArray())
+                {
+                    (comesWhole ? stale : leaving).Add(tactusViews[gone].Row); tactusViews.Remove(gone);
+                }
                 // A row whose place a new row takes in this pass (the running turn's line handed to the turn that began) is replaced, not folded: it goes at once, as
                 // before, and the new one arrives with its own transition; only rows that leave with nothing in their place fold shut.
                 var oldOrder = rows.Children.Where(view => !leavingViews.Contains(view)).ToList();
@@ -349,6 +365,7 @@ public sealed class ThreadTimeline : Decorator
         }
         this.Track(() => (runtime.IsLoadingHistory, runtime.Entries, runtime.IsRunning, runtime.IsHydraMerging, runtime.HydraMergeNoteID, AppEnvironment.GetAppModel(this).Settings.ShowReasoning), _ => Draw());
         this.Track(() => runtime.Questions, _ => Draw());
+        this.Track(() => runtime.TactusAsks, _ => Draw()); // PORT-ONLY: Tactus (ED-NEW-pcctl-27)
         // :99-131,167-172 the body reads the model as well as the runtime: the heads' finish times (the pills), their personas and chats (the
         // mentions), the roster flag, and the runtime's turn start and turn records (the turns a row may offer to revert). It runs again when
         // one of those moved; a head's token count, or another thread changing, is not one of them.
@@ -1144,6 +1161,8 @@ public abstract record TimelineGroup
             if (entry.TimelineEntryKind == TimelineEntry.Kind.Tool)
             {
                 if (IsHead(entry)) { heads.Add(entry); continue; }
+                // PORT-ONLY (W19, ED-NEW-web-w19-3): a call that draws an MCP App is its own row, its card under the tool row.
+                if (Marrow.App.Port.Web.McpApps.McpAppCatalog.IsApp(entry)) { Flush(); groups.Add(new Single(entry)); continue; }
                 if (LiveAnswerRows.IsLive(entry)) { Flush(); groups.Add(new Single(entry)); continue; } // PORT-ONLY (web surfaces W24): a live answer is drawn as the view, not as a step
                 if (work.Count > 0 && work[^1].TurnID != entry.TurnID) Flush();
                 if (work.Count == 0) start = index; work.Add(entry);
@@ -1582,6 +1601,7 @@ public sealed class TimelineGroupView : Decorator
                 TimelineEntry.Kind.User => new UserMessageRow(single.Value, runtime, context.CanRewind),
                 TimelineEntry.Kind.Assistant => new AssistantMessageRow(single.Value, summary, runtime),
                 TimelineEntry.Kind.Reasoning => null,
+                TimelineEntry.Kind.Tool when Marrow.App.Port.Web.McpApps.McpAppCatalog.IsApp(single.Value) => new McpAppRow(single.Value, runtime, context.WorkingDirectory), // PORT-ONLY (W19)
                 TimelineEntry.Kind.Tool => LiveAnswerRows.IsLive(single.Value) ? new LiveAnswerRow(single.Value, runtime) : new WorkGroup(new([single.Value]), runtime, context.WorkingDirectory), // + W24: a live answer
                 TimelineEntry.Kind.Plan => new PlanCard(single.Value, runtime), TimelineEntry.Kind.Todos => new TodoListRow(single.Value), TimelineEntry.Kind.Notice => new NoticeRow(single.Value),
                 TimelineEntry.Kind.Ask => new Marrow.App.Port.AskUser.AskCardRow(single.Value, runtime), // PORT-ONLY (web surfaces W25): an ask_user card
@@ -1612,6 +1632,7 @@ public sealed class TimelineGroupView : Decorator
                 {
                     case UserMessageRow user: user.SetCanRevert(context.CanRewind); break;
                     case AssistantMessageRow reply: reply.SetSummary(summary); break;
+                    case McpAppRow app when single.Value.TimelineEntryKind == TimelineEntry.Kind.Tool: app.Update(single.Value); break; // PORT-ONLY (W19)
                     case WorkGroup tool when single.Value.TimelineEntryKind == TimelineEntry.Kind.Tool: tool.Update(new([single.Value]), false); break;
                     case LiveAnswerRow: break; // PORT-ONLY (W24): the row reads its entry itself
                     case TurnEndRow when single.Value.Item.TimelineItemContent is TimelineItem.Content.TurnEnd end:

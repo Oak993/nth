@@ -64,6 +64,7 @@ public sealed class ACPSession : ProviderSession, Port.Skills.Providers.ISkillSe
     // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): the session's ask_advisor server, registered once; null for a chat with no advisor.
     private MCPResolvedServer? advisorServer;
     private MCPResolvedServer? uiServer; // PORT-ONLY (web surfaces W12, ED-NEW-web-w12-1): a chat's nth-ui server
+    private MCPResolvedServer? pcServer; // PORT-ONLY (Tactus, ED-NEW-pcctl-41): the chat's nth-pc server while Tactus is on.
     private bool canLoadSessions; // :34
     private bool supportsHTTPMCP; // :35
     private ValueList<string> authMethods = ValueList<string>.Empty; // :33
@@ -422,9 +423,10 @@ public sealed class ACPSession : ProviderSession, Port.Skills.Providers.ISkillSe
         var baseParams = new Dictionary<string, JSONValue>
         {
             ["cwd"] = WorkingDirectory, // :254
-            ["mcpServers"] = MCPProviderConfig.AcpServers(skillsMcp is { } bridge
+            ["mcpServers"] = MCPProviderConfig.AcpBuiltIns(skillsMcp is { } bridge
                 ? new JSONValue.Array(new ValueList<JSONValue>((MCPProviderConfig.AcpServers(supportsHTTPMCP).JSONValueArray ?? []).Append(bridge.Configuration)))
-                : MCPProviderConfig.AcpServers(supportsHTTPMCP), advisorServer ??= MCPProviderConfig.AdvisorServer(configuration), uiServer ??= MCPProviderConfig.UiServer(configuration)), // :254 + SK-17 live-proven per-session server + ED-NEW-ignisadvisor-2 a Hydra head's ask_advisor + ED-NEW-web-w12-1 nth-ui
+                : MCPProviderConfig.AcpServers(supportsHTTPMCP), MCPProviderConfig.BuiltInServers(advisorServer ??= MCPProviderConfig.AdvisorServer(configuration),
+                    pcServer ??= MCPProviderConfig.PcServer(configuration), uiServer ??= MCPProviderConfig.UiServer(configuration))), // :254 + SK-17 live-proven per-session server + ED-NEW-ignisadvisor-2 a Hydra head's ask_advisor + ED-NEW-pcctl-41 nth-pc while Tactus is on + ED-NEW-web-w12-1 nth-ui
         };
         if (configuration.ResumeID is { } resumeID && canLoadSessions) // :255
         {
@@ -841,7 +843,9 @@ public sealed class ACPSession : ProviderSession, Port.Skills.Providers.ISkillSe
         var options = parameters["options"]?.JSONValueArray ?? []; // :560
         var toolCall = parameters["toolCall"] ?? new JSONValue.Null(); // :561
         var call = MakeToolCall(toolCall); // :562
-        if ((skillsMcp?.AutomaticOption(toolCall, options) ?? AutomaticOption(call.ToolCallKind, options)) is { } optionID) // :563 + SK-17 owned read-only tools
+        if ((skillsMcp?.AutomaticOption(toolCall, options)
+            ?? (pcServer is not null ? Port.PcControl.PcProviderWiring.AcpAutomaticOption(toolCall, options) : null) // PORT-ONLY ED-NEW-pcctl-41: nth's approval governs nth-pc
+            ?? AutomaticOption(call.ToolCallKind, options)) is { } optionID) // :563 + SK-17 owned read-only tools
         {
             connection?.Respond(id, JSONValue.FromDictionaryLiteral( // :564-565
                 ("outcome", JSONValue.FromDictionaryLiteral(("outcome", "selected"), ("optionId", optionID)))));

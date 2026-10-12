@@ -558,6 +558,9 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
     {
         var frames = new ManualFrameSource();
         using var bound = FrameClock.Source.Override(frames);
+        // ED-NEW-jewelwarmup-1: the cap is read on a manual clock that never moves, so it never runs out here: a step the idle run
+        // asks while something animates can only be the hurry's
+        using var time = SwiftClock.Provider.Override(new ManualTimeProvider());
         var cap = GpuWarmup.IdleCap;
         GpuWarmup.IdleCap = TimeSpan.FromSeconds(60);
         GpuWarmup.PretendGpu = true;
@@ -573,10 +576,14 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
             var reports = new List<GpuWarmupStep>();
             var done = GpuWarmup.StepsDone;
             var task = GpuWarmup.WarmAsync(window, new SyncProgress<GpuWarmupStep>(reports.Add));
-            // hurried: it steps at once, the idle run first, then the first run's own pass, all of ED-NEW-warmupsplit-1's smaller
-            // parts within 5 s, well within the 60 s cap a run still waiting for idle frames would need
-            FramesFor(TimeSpan.FromSeconds(5), () => task.IsCompleted);
-            Assert.True(task.IsCompletedSuccessfully, task.Exception?.InnerException?.Message);
+            // hurried: it steps at once, the idle run first, then the first run's own pass, every ED-NEW-warmupsplit-1 part of both
+            // drawn in frames that each find a step waiting, where a run still waiting for idle frames asks none (ED-NEW-jewelwarmup-1:
+            // counted in frames, each drawn once the warm-up has asked its step, so the machine's speed and load never enter it)
+            var run = StepFrames(window, () => task.IsCompleted);
+            Assert.True(task.IsCompletedSuccessfully, task.Exception?.InnerException?.Message ?? run.ToString());
+            Assert.True(run.Idle == 0, $"{run}: it waited for idle frames");
+            Assert.Equal(2 * GpuWarmup.Steps, GpuWarmup.StepsDone - done);
+            Assert.True(run.Frames <= run.Waking + 2 * (2 * GpuWarmup.Steps), $"{run} for twice {GpuWarmup.Steps} parts: more than two frames a part (its own, and one behind the batch in flight)");
             Assert.Equal(GpuWarmup.Programs, reports.Select(r => r.Program));
             Assert.All(reports, r => Assert.False(r.Forced));
         }
@@ -1070,6 +1077,9 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
     {
         var frames = new ManualFrameSource();
         using var bound = FrameClock.Source.Override(frames);
+        // ED-NEW-jewelwarmup-1: the cap is read on a manual clock that never moves, so it never runs out here: a step the chip's
+        // run asks while something animates can only be the hurry's
+        using var time = SwiftClock.Provider.Override(new ManualTimeProvider());
         var cap = GpuWarmup.IdleCap;
         GpuWarmup.IdleCap = TimeSpan.FromSeconds(60);
         GpuWarmup.PretendGpu = true;
@@ -1084,10 +1094,13 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
             FramesFor(TimeSpan.FromMilliseconds(500), () => false);
             Assert.Equal(asked, GpuWarmup.StepsAsked);
             var task = GpuWarmup.WarmAsync(window);
-            // both runs step at once and end within 5 s (every ED-NEW-warmupsplit-1 part), well within the 60 s cap a run still
-            // waiting for idle frames would need
-            FramesFor(TimeSpan.FromSeconds(5), () => task.IsCompleted && GpuWarmup.StepsDone - done >= 2 * GpuWarmup.Steps);
-            Assert.True(task.IsCompletedSuccessfully, task.Exception?.InnerException?.Message);
+            // both runs step at once, side by side, every ED-NEW-warmupsplit-1 part of both drawn in frames that each find a step
+            // waiting, where a run still waiting for idle frames asks none (ED-NEW-jewelwarmup-1: counted in frames, not 5 s of the
+            // machine's time)
+            var run = StepFrames(window, () => task.IsCompleted && GpuWarmup.StepsDone - done >= 2 * GpuWarmup.Steps);
+            Assert.True(task.IsCompletedSuccessfully, task.Exception?.InnerException?.Message ?? run.ToString());
+            Assert.True(run.Idle == 0, $"{run}: a run waited for idle frames ({GpuWarmup.StepsDone - done} steps drawn)");
+            Assert.True(run.Frames <= run.Waking + 2 * (2 * GpuWarmup.Steps), $"{run} for twice {GpuWarmup.Steps} parts: more than two frames a part (its own, and one behind the batch in flight)");
             Assert.True(GpuWarmup.StepsDone - done == 2 * GpuWarmup.Steps, $"{GpuWarmup.StepsDone - done} steps: the chip's run still waits for idle frames");
         }
         finally { GpuWarmup.IdleCap = cap; GpuWarmup.PretendGpu = false; window.Close(); }
@@ -1178,6 +1191,47 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
             clock.Advance(TimeSpan.FromMilliseconds(16));
         }
     }
+
+    // ED-NEW-jewelwarmup-1: frames drawn one at a time, each only once a step waits to be drawn (asked and not drawn yet), until
+    // done. A step's answer reaches the UI thread through the thread pool and the dispatcher before the next is asked, which a
+    // loaded machine slows: the frames wait for that ask (Settle is a ceiling, never the measure), so the count is the warm-up's,
+    // not the machine's. A step's message can ride one frame behind the composition batch in flight (Avalonia 12.1.2's
+    // MediaContext lets one batch fly at a time), so a step takes one or two frames. First the waking: frames until an animation
+    // frame of the window's own has passed (the hurried run's frame comes with it), unless a step is asked before. No step asked
+    // within Settle is an idle frame, and it ends the run (a run waiting for idle frames asks none).
+    private static JewelWarmupStepRun StepFrames(TopLevel window, Func<bool> done)
+    {
+        var (asked, drawn) = (GpuWarmup.StepsAsked, GpuWarmup.StepsDone);
+        bool Waiting() => GpuWarmup.StepsAsked - asked > GpuWarmup.StepsDone - drawn;
+        var frames = 0;
+        var pulsed = false;
+        window.RequestAnimationFrame(_ => pulsed = true);
+        Dispatcher.UIThread.RunJobs();
+        while (!pulsed && !Waiting() && !done() && frames < 10)
+        {
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            frames++;
+            Dispatcher.UIThread.RunJobs();
+        }
+        var waking = frames;
+        while (true)
+        {
+            var since = System.Diagnostics.Stopwatch.GetTimestamp();
+            while (!done() && !Waiting())
+            {
+                if (System.Diagnostics.Stopwatch.GetElapsedTime(since) >= Settle) return new JewelWarmupStepRun(frames, waking, 1);
+                Thread.Sleep(1);
+                Dispatcher.UIThread.RunJobs();
+            }
+            if (done()) return new JewelWarmupStepRun(frames, waking, 0);
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            frames++;
+            Dispatcher.UIThread.RunJobs();
+        }
+    }
+
+    // how long StepFrames waits for a step to be asked, a ceiling only: it comes in a few ms (a thread pool hop, a dispatcher job)
+    private static readonly TimeSpan Settle = TimeSpan.FromSeconds(10);
 
     // frames about every 10 ms (the warm-up's checks take a timer's turn between frames) until done or the time is up
     private static void FramesFor(TimeSpan span, Func<bool> done)

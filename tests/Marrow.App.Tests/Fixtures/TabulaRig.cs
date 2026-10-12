@@ -78,7 +78,8 @@ public sealed class TabulaRig : IDisposable
     private readonly IDisposable motionScope;
     private DateTimeOffset now = new(2026, 10, 12, 9, 0, 0, TimeSpan.Zero);
 
-    public TabulaRig(double width = 640, double height = 720, bool reduceMotion = false, bool web = true)
+    public TabulaRig(double width = 640, double height = 720, bool reduceMotion = false, bool web = true,
+        Func<TabulaPendingAsk, string, bool>? trySendAsk = null)
     {
         Runtime = new TestRuntime();
         actorScope = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
@@ -117,6 +118,7 @@ public sealed class TabulaRig : IDisposable
             ThreadName = id => Names.GetValueOrDefault(id),
             ProjectFolder = () => ProjectFolder,
             SendTurn = Sent.Add,
+            TrySendAsk = trySendAsk,
             OpenInVisus = null,
             Expand = () => Expanded++,
             Draft = Drafts.Add,
