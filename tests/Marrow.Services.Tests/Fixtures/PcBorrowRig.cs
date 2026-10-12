@@ -17,8 +17,10 @@ public sealed class PcBorrowRig
     public const nint TargetControl = 0x201;
     public const nint Other = 0x300;
 
-    public PcBorrowRig(PcForegroundProtection protection = PcForegroundProtection.None)
+    /// <param name="inlineClock">The clock runs a due delay's continuation inside Advance (<see cref="PcManualClock"/>).</param>
+    public PcBorrowRig(PcForegroundProtection protection = PcForegroundProtection.None, bool inlineClock = false)
     {
+        Clock = new PcManualClock(inlineClock);
         Clock.Advance(10_000);
         Protection = new PcFixedProtection(protection);
         Monitor = new PhysicalInputMonitor(Clock, Protection);
@@ -35,7 +37,7 @@ public sealed class PcBorrowRig
         Lease = new RealInputLease(Monitor, Hold, Host, Clock, Capabilities, () => CardUp, Control);
     }
 
-    public PcManualClock Clock { get; } = new();
+    public PcManualClock Clock { get; }
 
     public PcFixedProtection Protection { get; }
 

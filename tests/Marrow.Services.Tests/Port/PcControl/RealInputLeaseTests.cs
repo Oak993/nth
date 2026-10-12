@@ -181,7 +181,9 @@ public sealed class RealInputLeaseTests
     [Fact]
     public async Task Borrows_are_served_first_come_first_served_one_waiting_per_stream()
     {
-        var rig = new PcBorrowRig().ProveAll();
+        // The first borrow's run starts inside a step of Drive (its gate opens there): an inline clock lets it reach its next
+        // wait before Drive steps again, so the steps never run its 250 ms watchdog out under it (ED-NEW-pcctl-35).
+        var rig = new PcBorrowRig(inlineClock: true).ProveAll();
         var queued = new List<(string Stream, bool Queued)>();
         rig.Lease.Waiting += wait => queued.Add((wait.Stream, wait.Queued));
         rig.UserInput(rig.Move(1, 1));
@@ -194,8 +196,10 @@ public sealed class RealInputLeaseTests
 
         Assert.Equal(PcBorrowStatus.NeedsRealInput, again.Status);
         Assert.Equal(new[] { PcBorrowRig.Paint, PcBorrowRig.Excel }, rig.Lease.Waits.Select(w => w.Stream));
-        Assert.True((await rig.Drive(first)).Done);
-        Assert.True((await rig.Drive(second)).Done);
+        var firstOutcome = await rig.Drive(first);
+        Assert.True(firstOutcome.Done, $"{firstOutcome.Status}: {firstOutcome.Reason}");
+        var secondOutcome = await rig.Drive(second);
+        Assert.True(secondOutcome.Done, $"{secondOutcome.Status}: {secondOutcome.Reason}");
         Assert.Equal(2, rig.Host.Sent.Count);
         Assert.Contains((PcBorrowRig.Excel, true), queued);
         Assert.DoesNotContain((PcBorrowRig.Paint, true), queued);

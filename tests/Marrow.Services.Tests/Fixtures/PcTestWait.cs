@@ -25,8 +25,12 @@ public static class PcTestWait
     }
 }
 
-/// <summary>A clock whose delays finish only when a test advances it (for timeouts that must not fire by themselves).</summary>
-public sealed class PcManualClock : IPcClock
+/// <summary>
+/// A clock whose delays finish only when a test advances it (for timeouts that must not fire by themselves). Inline: a due
+/// delay's continuation runs inside <see cref="Advance"/>, so the code under test has reached its next wait (or ended) when
+/// Advance returns, and a test that advances again at once never races it (ED-NEW-pcctl-35).
+/// </summary>
+public sealed class PcManualClock(bool inline = false) : IPcClock
 {
     private readonly Lock gate = new();
     private readonly List<(long Due, TaskCompletionSource Done)> waiting = [];
@@ -51,7 +55,7 @@ public sealed class PcManualClock : IPcClock
 
     public Task Delay(int milliseconds, CancellationToken cancellationToken)
     {
-        var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var done = new TaskCompletionSource(inline ? TaskCreationOptions.None : TaskCreationOptions.RunContinuationsAsynchronously);
         lock (gate) waiting.Add((now + milliseconds, done));
         cancellationToken.Register(() => done.TrySetCanceled(cancellationToken));
         return done.Task;

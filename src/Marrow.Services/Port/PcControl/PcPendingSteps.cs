@@ -273,9 +273,12 @@ public sealed class PcPendingSteps(IPcClock clock)
             }
             catch (OperationCanceledException) { return; }
             if (step.Turn != turn) return;
-            bool removed;
-            lock (gate) removed = steps.Remove(token);
-            if (removed) step.Cancel();
+            // Under the lock, so no one sees the step gone while its token is not cancelled yet (ED-NEW-pcctl-35). Cancel
+            // marks the token at once and runs its callbacks on the thread pool, so nothing re-enters the lock here.
+            lock (gate)
+            {
+                if (steps.Remove(token)) step.Cancel();
+            }
         }
     }
 
