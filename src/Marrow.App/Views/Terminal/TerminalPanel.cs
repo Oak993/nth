@@ -614,6 +614,10 @@ public sealed class TerminalHostContainer : Decorator
     private PropertyChangedEventHandler? resizeEnded;
     private bool wasLiveResizing;
 
+    // PORT-ONLY (web W3b, DESIGN 3.7): the terminal is a content scope. The shell gets every key first (Ctrl+D is end of input,
+    // Ctrl+Backslash is quit); nth takes only the reserved chords from here.
+    public TerminalHostContainer() => ShortcutScopeHost.SetScope(this, ShortcutScope.Content);
+
     /// <summary>Actual registrations for the two will-start/did-end observers in Swift.</summary>
     internal int ResizeObserverCount => (resizeStarted is null ? 0 : 1) + (resizeEnded is null ? 0 : 1);
 

@@ -11,8 +11,10 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Marrow.Core.Models;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
@@ -67,6 +69,11 @@ public sealed class PaneHeader : Panel
     private bool dirty = true;
     private double fitWidth = double.NaN;
     private bool menuOpen;
+    private bool canDrag;
+    private bool pressed;
+    private bool lifted;
+    private Point pressPoint;
+    private IPointer? pressPointer;
 
     public PaneHeader(PaneKind kind)
     {
@@ -95,6 +102,12 @@ public sealed class PaneHeader : Panel
         Children.Add(hairline);
         AutomationProperties.SetName(this, PaneKinds.AccessibleName(kind));
         Rebuild();
+        // The header is where a drag to re-dock starts (DESIGN 3.6): a press on its empty area, or on the chosen tab, that
+        // moves 4 DIP lifts the pane. Buttons keep their clicks; a press that never moves 4 DIP is nothing.
+        AddHandler(PointerPressedEvent, OnDragPress, RoutingStrategies.Bubble, handledEventsToo: true);
+        AddHandler(PointerMovedEvent, OnDragMove, RoutingStrategies.Bubble, handledEventsToo: true);
+        AddHandler(PointerReleasedEvent, OnDragRelease, RoutingStrategies.Bubble, handledEventsToo: true);
+        PointerCaptureLost += OnDragCaptureLost;
     }
 
     public PaneKind Kind { get; }
@@ -110,6 +123,41 @@ public sealed class PaneHeader : Panel
 
     /// <summary>The working chip was clicked (it restores).</summary>
     public event Action? WorkingChipClicked;
+
+    /// <summary>The pane was lifted by its header (the pointer moved 4 DIP with the button down).</summary>
+    public event Action<PointerEventArgs>? DragLifted;
+
+    /// <summary>The lifted pane follows the pointer.</summary>
+    public event Action<PointerEventArgs>? DragMoved;
+
+    /// <summary>The button was released over the workspace.</summary>
+    public event Action<PointerEventArgs>? DragDropped;
+
+    /// <summary>The drag ended without a release (the capture was taken away, or <see cref="CancelDrag"/>).</summary>
+    public event Action? DragCanceled;
+
+    /// <summary>Whether a press on the header may lift its pane (the workspace says: tiled, not expanded, a grid pane).</summary>
+    public bool CanDrag
+    {
+        get => canDrag;
+        set => canDrag = value;
+    }
+
+    /// <summary>The pane is lifted and follows the pointer now.</summary>
+    public bool IsLifted => lifted;
+
+    /// <summary>Ends a drag in progress without a drop (Esc, a closed pane); the pointer capture is released.</summary>
+    public void CancelDrag()
+    {
+        var was = lifted;
+        lifted = false;
+        pressed = false;
+        Cursor = null;
+        var pointer = pressPointer;
+        pressPointer = null;
+        if (pointer?.Captured == this) pointer.Capture(null);
+        if (was) DragCanceled?.Invoke();
+    }
 
     /// <summary>The fit in force: which parts stay in the row.</summary>
     public PaneHeaderFit Fit { get; private set; }
@@ -486,6 +534,75 @@ public sealed class PaneHeader : Panel
         if (canExpand && !Fit.ShowsExpand)
             stack.Children.Add(new PopoverItem(expanded ? "Restore" : "Expand", () => { SetMenuOpen(false); ExpandRequested?.Invoke(); }));
         return stack;
+    }
+
+    // A press on a button keeps its click, except on the chosen tab of a group, which lifts the pane like the empty area.
+    private static bool IsDraggableSource(Visual? source, PaneHeader header, out bool onButton)
+    {
+        onButton = false;
+        for (var at = source; at is not null && !ReferenceEquals(at, header); at = at.GetVisualParent())
+        {
+            if (at is not Button button) continue;
+            onButton = true;
+            return button.Classes.Contains("chosen");
+        }
+        return true;
+    }
+
+    private void OnDragPress(object? sender, PointerPressedEventArgs e)
+    {
+        if (!canDrag || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || e.ClickCount != 1) return;
+        pressed = false;
+        if (!IsDraggableSource(e.Source as Visual, this, out var onButton)) return;
+        pressed = true;
+        lifted = false;
+        pressPoint = e.GetPosition(this);
+        pressPointer = e.Pointer;
+        if (!onButton) e.Pointer.Capture(this); // moves over the empty area come here until the button is released
+    }
+
+    private void OnDragMove(object? sender, PointerEventArgs e)
+    {
+        if (!pressed || !ReferenceEquals(e.Pointer, pressPointer)) return;
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            pressed = false; // the release was missed (a lost capture, a deactivated window)
+            return;
+        }
+        if (!lifted)
+        {
+            var travel = e.GetPosition(this) - pressPoint;
+            if (Math.Sqrt(travel.X * travel.X + travel.Y * travel.Y) < PaneRedock.LiftDistance) return;
+            lifted = true;
+            e.Pointer.Capture(this); // a pressed tab gives its capture up: no click follows
+            Cursor = new Cursor(StandardCursorType.SizeAll);
+            DragLifted?.Invoke(e);
+            if (!lifted) return;
+        }
+        DragMoved?.Invoke(e);
+    }
+
+    private void OnDragRelease(object? sender, PointerReleasedEventArgs e)
+    {
+        if (!pressed) return;
+        pressed = false;
+        var was = lifted;
+        lifted = false;
+        Cursor = null;
+        var pointer = pressPointer;
+        pressPointer = null;
+        if (pointer?.Captured == this) pointer.Capture(null);
+        if (was) DragDropped?.Invoke(e);
+    }
+
+    private void OnDragCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+    {
+        pressed = false;
+        if (!lifted) return;
+        lifted = false;
+        Cursor = null;
+        pressPointer = null;
+        DragCanceled?.Invoke();
     }
 
     /// <summary>The trailing items, right-aligned and clipped at the title's minimum while a drag holds the set.</summary>

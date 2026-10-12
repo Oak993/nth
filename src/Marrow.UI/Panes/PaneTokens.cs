@@ -71,6 +71,18 @@ public static class PaneTokens
         light: new SwiftColor(red: 0.13, green: 0.55, blue: 0.30),
         dark: new SwiftColor(red: 91 / 255.0, green: 209 / 255.0, blue: 139 / 255.0));
 
+    /// <summary>A drop target's dashed outline at rest (canvas .pane.dz::before: 1.5 DIP dashed, white .22).</summary>
+    public static SwiftColor DropOutline { get; } = SwiftColor.Dynamic(light: Ink(.24), dark: Paper(.22));
+
+    /// <summary>The drop target under the pointer: its solid rim (canvas .pane.drop::before: white .6).</summary>
+    public static SwiftColor DropRim { get; } = SwiftColor.Dynamic(light: Ink(.50), dark: Paper(.60));
+
+    /// <summary>The drop target under the pointer: its soft fill (canvas .pane.drop::before: white .07).</summary>
+    public static SwiftColor DropFill { get; } = SwiftColor.Dynamic(light: Ink(.06), dark: Paper(.07));
+
+    /// <summary>A collapse rail's width and radius (DESIGN 3.5 "a 22 DIP rail", canvas .rail: 11 DIP radius).</summary>
+    public const double RailCornerRadius = 11;
+
     private static bool IsDark(ThemeVariant? theme) => theme == ThemeVariant.Dark;
 
     /// <summary>
