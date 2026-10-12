@@ -375,10 +375,11 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         model.Settings.ShowReasoning = false; Sync(); Assert.Equal(ToggleState.Off, ((IToggleProvider)ControlAutomationPeer.CreatePeerForElement(toggle)!).ToggleState);
         Press(toggle); Assert.True(model.Settings.ShowReasoning); Assert.True(toggle.Focus()); Assert.True(Key(toggle, Avalonia.Input.Key.Space).Handled); Assert.False(model.Settings.ShowReasoning);
         Key(toggle, Avalonia.Input.Key.Space); Assert.True(model.Settings.ShowReasoning);
-        // The switch's look is the Mac's, measured (ED-280); the source tint is exact once the track has crossfaded (0.25 s), read from rendered pixels.
-        Frame(h, 300); using var bitmap = new RenderTargetBitmap(new PixelSize((int)toggle.Bounds.Width, (int)toggle.Bounds.Height)); using (var dc = bitmap.CreateDrawingContext()) toggle.Render(dc);
-        using var stream = new MemoryStream(); bitmap.Save(stream, new PngBitmapEncoderOptions()); using var pixels = SKBitmap.Decode(stream.ToArray());
-        var accent = Chrome.Accent.Resolve(toggle.ActualThemeVariant); Assert.Contains(pixels.Pixels, p => p.Red == accent.R && p.Green == accent.G && p.Blue == accent.B && p.Alpha == accent.A);
+        // The switch's look is the owner's Nocta (OD-0143, ED-NEW-nocta-1); the source tint is the on switch's lit lume, the accent made light, exact once its
+        // lights have crossed over (0.28 s): the colour, and the brush the switch draws, and the lit dot's white core in the rendered pixels.
+        Frame(h, 1200); var accent = Marrow.App.Views.Settings.NoctaLook.Lume(Chrome.Accent.Resolve(toggle.ActualThemeVariant)); Assert.Equal(accent, toggle.LumeColor());
+        Assert.True(Marrow.App.Tests.Fixtures.NoctaProbe.DrawsLitLume(toggle, accent));
+        using (var pixels = Marrow.App.Tests.Fixtures.NoctaProbe.Snapshot(toggle, 3)) Assert.InRange(Marrow.App.Tests.Fixtures.NoctaProbe.Luma(Marrow.App.Tests.Fixtures.NoctaProbe.At(pixels, 3, 33, 13)), 0.85, 1);
         var disabled = Row(view, "Sound when settling"); model.Settings.ThreadFinishAction = ThreadFinishAction.Archive; Sync(); Assert.False(disabled.IsEnabled); Assert.Equal(0.5, disabled.Opacity);
         var child = Nodes<SmallSwitch>(disabled).Single(); var before = model.Settings.SettleSound; Key(child, Avalonia.Input.Key.Space); Assert.Equal(before, model.Settings.SettleSound);
     });

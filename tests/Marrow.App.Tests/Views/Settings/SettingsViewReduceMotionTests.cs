@@ -87,8 +87,8 @@ public sealed class SettingsViewReduceMotionTests(HeadlessSession headless) : Se
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // OD-0076 for UI-SETTINGS-012: a switch held down is the widened lens at once, and the plain knob again on release
-    public void Under_reduce_motion_a_pressed_switch_widens_into_its_lens_at_once()
+    [Trait("Rule", "R-TEST-4")] // OD-0076 for UI-SETTINGS-012 (Nocta, OD-0143): a switch held down is the dome scaled 1.08 at once, and 22 across again on release
+    public void Under_reduce_motion_a_pressed_switch_scales_its_dome_at_once()
     {
         using var motion = ReduceMotion();
         With(() => new GeneralSettingsPage(), (view, model, h, w) =>
@@ -97,9 +97,9 @@ public sealed class SettingsViewReduceMotionTests(HeadlessSession headless) : Se
             model.Settings.ShowReasoning = false; Drain(w);
             var toggle = Assert.Single(Nodes<SmallSwitch>(Row(view, "Show thinking"))); var at = At(toggle, w);
             w.MouseMove(at); Drain(w); w.MouseDown(at, MouseButton.Left); Drain(w);
-            Assert.Equal(new Size(SmallSwitch.PressedKnobWidth, SmallSwitch.PressedKnobHeight), toggle.KnobNow().Size); // no frame has run
+            Assert.Equal(new Size(22 * SmallSwitch.PressScale, 22 * SmallSwitch.PressScale), toggle.KnobNow().Size); Assert.Equal(13, toggle.KnobNow().Center.X, 6); // no frame has run
             w.MouseUp(at, MouseButton.Left); Drain(w); Assert.True(model.Settings.ShowReasoning);
-            Assert.Equal(new Rect(16, 2, 26, 16), toggle.KnobNow());
+            Assert.Equal(new Rect(22, 2, 22, 22), toggle.KnobNow());
         });
     }
 

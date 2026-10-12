@@ -28,6 +28,10 @@ public sealed class AnimatedScalar
         owner.DetachedFromVisualTree += (_, _) => Stop();
     }
 
+    /// <summary>PORT-ONLY (OD-0143, ED-NEW-nocta-1): a light that still crossfades under Reduce Motion (the caller passes the short fade it wants);
+    /// a position or a scale never sets this, so it jumps as OD-0076 asks.</summary>
+    public bool RunsUnderReduceMotion { get; init; }
+
     /// <summary>The value drawn now.</summary>
     public double Value { get; private set; }
 
@@ -35,7 +39,7 @@ public sealed class AnimatedScalar
     {
         Stop();
         var from = Value;
-        if (animation is null || from == target || !FrameClock.IsBound || ReduceMotion)
+        if (animation is null || from == target || !FrameClock.IsBound || (ReduceMotion && !RunsUnderReduceMotion))
         {
             Value = target;
             apply(target);
