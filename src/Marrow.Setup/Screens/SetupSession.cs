@@ -1,4 +1,6 @@
+using Marrow.Core.Support;
 using Marrow.Setup.Flow;
+using Marrow.Setup.Install;
 using Marrow.Setup.Platform;
 using Marrow.Setup.Shell;
 using Marrow.Setup.Text;
@@ -51,8 +53,23 @@ public sealed class SetupSession
     /// <summary>The setup's exit code if the window closes now.</summary>
     public int ExitCode => exitCode ?? SetupFlow.ExitCodeWhenClosed(Screen);
 
-    /// <summary>The person chose Install or Update (STUB(U3/U4): the interim screens hand the install to the unchanged gate).</summary>
+    /// <summary>The person chose Install or Update with no <see cref="InstallRequested"/> set: the window closes and the unchanged gate installs (the old path, kept for a session built without the progress engine).</summary>
     public bool InstallChosen { get; private set; }
+
+    /// <summary>Starts the in-window install (unit U3's <see cref="InstallFlow.Begin"/>); set by Program.</summary>
+    public Action? InstallRequested { get; set; }
+
+    /// <summary>The desktop-shortcut choice the install hook is asked for (on by default; unit U2's Welcome link and Options switch change it).</summary>
+    public bool DesktopShortcut { get; set; } = true;
+
+    /// <summary>Why the last install failed, with Problem's two lines and Copy details' text (unit U3).</summary>
+    public InstallFailure? Failure { get; private set; }
+
+    /// <summary>Problem's second line: "Nothing was changed on your PC." unless the failure left files.</summary>
+    public string ProblemSecondLine => Failure?.SecondLine ?? SetupStrings.ProblemSafe;
+
+    /// <summary>What the install hook reported (install-result.json), for Ready; set once the setup's own work after exit 0 is done.</summary>
+    public InstallResult? Result { get; set; }
 
     /// <summary>Shows the first screen with the window (no motion: the window's own appearance is the arrival).</summary>
     public void Start()
@@ -99,13 +116,37 @@ public sealed class SetupSession
         if (built.Count > 0) Go(SetupScreen.Problem);
     }
 
-    /// <summary>Install or Update was chosen. The window closes and the gate installs (STUB(U3/U4)).</summary>
+    /// <summary>
+    /// Install or Update was chosen: the in-window install starts (<see cref="InstallRequested"/>). Without it, the window
+    /// closes and the unchanged gate installs.
+    /// </summary>
     public void ChooseInstall()
     {
         if (!CanInstall || SetupFlow.BlocksInstall(Signature) || Window.Guard.IsPaused) return;
         if (Screen is not (SetupScreen.Welcome or SetupScreen.Update)) return;
+        if (InstallRequested is { } begin)
+        {
+            begin();
+            return;
+        }
         InstallChosen = true;
         Window.CloseNow();
+    }
+
+    /// <summary>Problem's Retry: the same install again, without going back to Welcome (PLAN.md 4; the canvas's Problem).</summary>
+    public void Retry()
+    {
+        if (Screen != SetupScreen.Problem || Failure is null || InstallRequested is not { } begin || !CanInstall || SetupFlow.BlocksInstall(Signature)) return;
+        begin();
+    }
+
+    /// <summary>An install failed: Problem with its reason and its second line (built again, so it shows this failure's words).</summary>
+    public void Fail(InstallFailure failure)
+    {
+        Failure = failure ?? throw new ArgumentNullException(nameof(failure));
+        ProblemReason = failure.Sentence;
+        if (Screen != SetupScreen.Problem) built.Remove(SetupScreen.Problem);
+        if (built.Count > 0) Go(SetupScreen.Problem);
     }
 
     /// <summary>Pauses Close on the current screen: its line shows why, and sign-out and shutdown wait.</summary>

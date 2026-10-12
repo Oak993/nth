@@ -29,18 +29,18 @@ public sealed class InterimScreens : ISetupScreens
         {
             SetupScreen.Welcome => Build(screen, SetupStrings.WelcomeTitle, null, hero: true, calm, signature: true, hold: false, action: (SetupStrings.WelcomeInstall, session.ChooseInstall)),
             SetupScreen.Options => Build(screen, SetupStrings.OptionsTitle, SetupStrings.OptionsSubtitle, hero: false, calm),
-            SetupScreen.Installing => Build(screen, SetupStrings.InstallingTitle, SetupStrings.InstallingSubtitle, hero: false, calm, hold: true),
+            SetupScreen.Installing => Build(screen, SetupStrings.InstallingTitle, null, hero: false, calm, hold: true, progress: new ProgressPanel(calm), progressSubtitle: true),
             SetupScreen.Ready => Build(screen, SetupStrings.ReadyTitle, null, hero: true, calm),
-            SetupScreen.Update => Build(screen, SetupStrings.UpdateTitle, SetupStrings.UpdateSubtitle(installed, session.Version), hero: false, calm, hold: true, action: (SetupStrings.UpdateGo, session.ChooseInstall)),
+            SetupScreen.Update => Build(screen, SetupStrings.UpdateTitle, SetupStrings.UpdateSubtitle(installed, session.Version), hero: false, calm, hold: true, action: (SetupStrings.UpdateGo, session.ChooseInstall), progress: new ProgressPanel(calm) { IsVisible = false }),
             SetupScreen.UpToDate => Build(screen, SetupStrings.CurrentTitle, SetupStrings.CurrentSubtitle(session.Version), hero: false, calm),
             SetupScreen.NewerInstalled => Build(screen, SetupStrings.NewerTitle, SetupStrings.NewerSubtitle(installed), hero: false, calm),
-            SetupScreen.Problem => Build(screen, SetupStrings.ProblemTitle, (session.ProblemReason ?? SetupStrings.ProblemOther) + " " + SetupStrings.ProblemSafe, hero: false, calm),
+            SetupScreen.Problem => Build(screen, SetupStrings.ProblemTitle, (session.ProblemReason ?? SetupStrings.ProblemOther) + " " + session.ProblemSecondLine, hero: false, calm),
             SetupScreen.Uninstall => Build(screen, SetupStrings.UninstallTitle, SetupStrings.UninstallSubtitle, hero: false, calm, hold: true),
             _ => throw new ArgumentOutOfRangeException(nameof(screen)),
         };
     }
 
-    private static InterimScreen Build(
+    private static ISetupScreen Build(
         SetupScreen kind,
         string title,
         string? subtitle,
@@ -48,7 +48,9 @@ public sealed class InterimScreens : ISetupScreens
         Func<bool> calm,
         bool signature = false,
         bool hold = false,
-        (string Label, Action Run)? action = null)
+        (string Label, Action Run)? action = null,
+        ProgressPanel? progress = null,
+        bool progressSubtitle = false)
     {
         var layout = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*,Auto,Auto"), Margin = new Thickness(40, 26, 40, 28) };
         var heading = SetupTheme.Text(new TextBlock { Text = title, TextWrapping = TextWrapping.Wrap }, hero ? TextRole.Hero : TextRole.Title);
@@ -58,6 +60,16 @@ public sealed class InterimScreens : ISetupScreens
             var sub = SetupTheme.Text(new TextBlock { Text = subtitle, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) }, TextRole.Body, SetupTheme.Ink2);
             Grid.SetRow(sub, 1);
             layout.Children.Add(sub);
+        }
+        if (progress is not null)
+        {
+            if (progressSubtitle)
+            {
+                Grid.SetRow(progress.Subtitle, 1);
+                layout.Children.Add(progress.Subtitle);
+            }
+            Grid.SetRow(progress, 2);
+            layout.Children.Add(progress);
         }
         SignatureLine? line = null;
         if (signature)
@@ -79,10 +91,12 @@ public sealed class InterimScreens : ISetupScreens
             Grid.SetRow(button, 5);
             layout.Children.Add(button);
         }
-        return new InterimScreen(kind, layout, holdLine, line);
+        return progress is null ? new InterimScreen(kind, layout, holdLine, line) : (ISetupScreen)new InterimProgressScreen(kind, layout, holdLine, line, progress);
     }
 
     private sealed record InterimScreen(SetupScreen Kind, Control View, HoldLine? Hold, SignatureLine? Signature) : ISetupScreen;
+
+    private sealed record InterimProgressScreen(SetupScreen Kind, Control View, HoldLine? Hold, SignatureLine? Signature, IProgressView Progress) : IProgressScreen;
 }
 
 /// <summary>
