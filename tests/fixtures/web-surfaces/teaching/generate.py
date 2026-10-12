@@ -7,6 +7,7 @@ import os
 import sys
 
 sys.dont_write_bytecode = True
+from live_data import LIVE_LEADS, LIVE_PROMPTS, SAVINGS_AGAIN, SAVINGS_AGAIN_LITE, UPDATE, WIDGET_ARGUMENTS, WIDGET_HTML
 from teaching_data import ARTIFACTS, LEADS, PLAIN, PROMPTS, STYLE, VIEWS
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -51,6 +52,10 @@ def tool_call(answer):
     """The tool and its arguments for a view or an artifact."""
     if answer[0] == "view":
         return "ui_show", {"ui": answer[2]}
+    if answer[0] == "update":
+        return "ui_update", UPDATE
+    if answer[0] == "widget":
+        return "html_widget", WIDGET_ARGUMENTS
     spec = dict(answer[2])
     spec.pop("id", None)
     return "artifact_create", spec
@@ -63,6 +68,10 @@ def fenced_text(answer):
     lead = answer[1]
     if answer[0] == "view":
         return lead + "\n\n```nth-ui\n" + answer[2].rstrip("\n") + "\n```"
+    if answer[0] == "update":
+        return lead + "\n\n```nth-ui id=savings\n" + answer[2].rstrip("\n") + "\n```"
+    if answer[0] == "widget":
+        return lead + "\n\n```nth-html height=300 title=\"Tap counter\"\n" + WIDGET_HTML.rstrip("\n") + "\n```"
     spec = answer[2]
     head = f'nth-artifact id={spec["id"]} kind={spec["kind"]} title="{spec["title"]}"'
     if spec["kind"] != "project":
@@ -164,7 +173,27 @@ def local(index, answer):
 FORMATS = {"claude": claude, "codex": codex, "copilot": copilot, "deepseek": deepseek, "local": local}
 
 
+def live_answer(provider, prompt_id, expect):
+    """The answer of a live-answer recording, or None where the provider cannot give it (a Local model has no HTML widget)."""
+    if provider == "local" and expect == "widget":
+        return None
+    lead = LIVE_LEADS[provider][prompt_id]
+    if expect == "update":
+        return ("update", lead, SAVINGS_AGAIN_LITE if provider == "local" else SAVINGS_AGAIN)
+    return ("widget", lead, WIDGET_HTML)
+
+
 def main():
+    for provider in PROVIDERS:
+        lines = []
+        for index, (prompt_id, prompt, expect) in enumerate(LIVE_PROMPTS, start=11):
+            answer = live_answer(provider, prompt_id, expect)
+            if answer is None:
+                continue
+            lines.append(compact({"id": prompt_id, "prompt": prompt, "expect": expect, "events": FORMATS[provider](index, answer)}))
+        with open(os.path.join(HERE, "live-" + provider + ".jsonl"), "w", encoding="ascii", newline="\n") as handle:
+            handle.write("\n".join(lines) + "\n")
+        print("live-" + provider, len(lines), "recordings")
     for provider in PROVIDERS:
         lines = []
         for index, (prompt_id, prompt, expect) in enumerate(PROMPTS, start=1):

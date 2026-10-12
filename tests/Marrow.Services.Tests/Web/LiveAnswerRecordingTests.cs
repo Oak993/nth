@@ -21,15 +21,16 @@ namespace Marrow.Services.Tests.Web;
 [Trait("Decision", "ED-NEW-web-w24-5")]
 public sealed class LiveAnswerRecordingTests
 {
-    private static readonly Guid Chat = Guid.Parse("7e5b2c44-1a90-4f3d-8c71-0d6a9b3e2f55");
+    internal static readonly Guid Chat = Guid.Parse("7e5b2c44-1a90-4f3d-8c71-0d6a9b3e2f55");
 
     /// <summary>What a replay made: the rows the chat shows, in order, and the texts of its messages.</summary>
-    private sealed record Replayed(LiveTimelineSim Sim, int Rows, IReadOnlyList<string> Growth);
+    internal sealed record Replayed(LiveTimelineSim Sim, int Rows, IReadOnlyList<string> Growth);
 
     /// <summary>Runs the events (and the tools' changes, where the provider's tools run) through the flow, noting how each live row grew.</summary>
-    private static Replayed Read(IEnumerable<object> script, LiveAnswerHost host, bool lite = false)
+    internal static Replayed Read(IEnumerable<object> script, LiveAnswerHost host, bool lite = false, Action<LiveTimelineSim>? setUp = null)
     {
         var sim = new LiveTimelineSim();
+        setUp?.Invoke(sim);
         var flow = new LiveAnswerFlow(Chat, host, lite, sim.Lookup);
         var growth = new List<string>();
         foreach (var item in script)
@@ -93,7 +94,7 @@ public sealed class LiveAnswerRecordingTests
     }
 
     /// <summary>The tools of the CLI providers run in the nth-ui server: the recorded call is made there, and what it records binds to the row.</summary>
-    private static async Task<List<object>> WithServer(IReadOnlyList<ProviderEvent> events, TeachingOutcome outcome, ArtifactHostScope scope, ProviderKind provider)
+    internal static async Task<List<object>> WithServer(IReadOnlyList<ProviderEvent> events, TeachingOutcome outcome, ArtifactHostScope scope, ProviderKind provider)
     {
         var script = new List<object>();
         var changes = new List<LiveViewChange>();

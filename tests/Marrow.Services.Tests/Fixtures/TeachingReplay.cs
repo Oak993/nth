@@ -38,8 +38,9 @@ internal static class TeachingReplay
     public static string FixtureFolder([System.Runtime.CompilerServices.CallerFilePath] string here = "") =>
         Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "..", "..", "fixtures", "web-surfaces", "teaching"));
 
-    public static IReadOnlyList<TeachingRecording> Load(string provider) =>
-        [.. File.ReadAllLines(Path.Combine(FixtureFolder(), provider + ".jsonl")).Where(line => line.Length > 0).Select(line =>
+    /// <summary>The recordings of a provider: the teaching ones, or with <paramref name="prefix"/> "live-" the live-answer ones (W24).</summary>
+    public static IReadOnlyList<TeachingRecording> Load(string provider, string prefix = "") =>
+        [.. File.ReadAllLines(Path.Combine(FixtureFolder(), prefix + provider + ".jsonl")).Where(line => line.Length > 0).Select(line =>
         {
             var row = JSONValue.Parse(Encoding.UTF8.GetBytes(line))!;
             return new TeachingRecording(row["id"]!.JSONValueString!, row["prompt"]!.JSONValueString!, row["expect"]!.JSONValueString!, [.. row["events"]!.JSONValueArray!]);
