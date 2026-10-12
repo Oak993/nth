@@ -50,6 +50,12 @@ public sealed record NthUiTeachingOptions
 
     public VisualAnswerLevel Visual { get; init; } = VisualAnswerLevel.Balanced;
 
+    /// <summary>
+    /// Settings > Tabula > "Live answers in chat" (W10). False: nth draws no live view in the chat, so the teaching says to answer in text or an
+    /// artifact and never writes a live view, a fenced nth-ui or nth-html block, or a call of ui_show, ui_update or html_widget.
+    /// </summary>
+    public bool LiveAnswers { get; init; } = true;
+
     public bool IsLite => Profile == NthUiProfile.Lite;
 }
 
@@ -57,6 +63,9 @@ public static class NthUiTeaching
 {
     /// <summary>The limit the MCP instructions' core stays under (bytes and characters alike: it is ASCII).</summary>
     public const int McpCoreLimit = 2_000;
+
+    /// <summary>The sentence the teaching carries while Settings > Tabula > "Live answers in chat" is off (W10).</summary>
+    public const string LiveOff = "Live views in the chat are turned off. Do not call ui_show, ui_update or html_widget, and do not write nth-ui or nth-html blocks in your answer. Use text, or an artifact when the reader will keep it.";
 
     public const string ShowTool = "ui_show";
     public const string UpdateTool = "ui_update";
@@ -125,6 +134,19 @@ public static class NthUiTeaching
     public static string Core(NthUiTeachingOptions options)
     {
         var text = new StringBuilder();
+        if (!options.LiveAnswers)
+        {
+            text.Append("nth shows answers two ways: plain text, or an artifact in the Tabula pane beside it.\n");
+            text.Append("- Text is the default: facts, explanations, opinions, short code.\n");
+            text.Append(options.ArtifactTools
+                ? "- An artifact (artifact_create; artifact_update for changes, edits for small ones) when the reader will keep, run or reuse it: a page or app, component, diagram, document, program or files.\n"
+                : "- An artifact, in a fenced block whose first line is ```nth-artifact id=name kind=html title=\"Title\", when the reader will keep, run or reuse it.\n");
+            if (options.AskUser) text.Append("- ask_user when you cannot go on without the reader's choice.\n");
+            text.Append(LiveOff).Append('\n');
+            text.Append("An artifact of kind nth-ui is written in the view language: one component per line, children indented two spaces; \"double quotes\"; name=value attributes; state n = 3 | let x = n * 2 | card \"Title\" | stat \"Label\" = x | table | chart.\n");
+            text.Append(options.Reference ? "Call ui_reference for the view language." : "The reference follows.");
+            return text.ToString();
+        }
         text.Append("nth shows answers three ways: plain text, a live view in the chat, or an artifact in the Tabula pane beside it.\n");
         text.Append("- Text is the default: facts, explanations, opinions, short code.\n");
         text.Append("- A live view when the reader changes numbers or options, compares items, sees a chart or map, ticks things off or steps through a plan. ")
@@ -179,6 +201,18 @@ public static class NthUiTeaching
     private static string Rules(NthUiTeachingOptions options)
     {
         var text = new StringBuilder();
+        if (!options.LiveAnswers)
+        {
+            text.Append("You can answer with plain text or an artifact in the Tabula pane beside the chat. Choose by what the reader will do with the answer.\n");
+            text.Append("- Plain text is the default: facts, explanations, opinions, short code, anything the reader just reads.\n");
+            text.Append(options.ArtifactTools
+                ? "- An artifact (artifact_create) when the reader will keep, run, edit or reuse what you make: a page or small app, a component, a diagram, a document, a program, several files. Short answers and small snippets stay in the chat.\n"
+                : "- An artifact, in a fenced nth-artifact block, when the reader will keep, run, edit or reuse what you make: a page or small app, a component, a diagram, a document, a program, several files. Short answers and small snippets stay in the chat.\n");
+            if (options.AskUser)
+                text.Append("- When you cannot go on without a choice from the reader, call ask_user (single choice, several choices, text or number) instead of asking in prose.\n");
+            text.Append(LiveOff);
+            return text.ToString();
+        }
         if (options.IsLite)
         {
             text.Append("You can answer with plain text or, when it helps, one small live view the reader can use.\n");
@@ -217,6 +251,15 @@ public static class NthUiTeaching
 
     private static string Showing(NthUiTeachingOptions options)
     {
+        if (!options.LiveAnswers)
+        {
+            var saving = new StringBuilder();
+            if (options.ArtifactTools)
+                saving.Append("SAVING AN ARTIFACT\nCall artifact_create with kind (html, react, svg, mermaid, markdown, code, nth-ui or project), a title and the whole content. Every change is a new version: call artifact_update.");
+            else
+                saving.Append("SAVING AN ARTIFACT\nWrite a fenced block whose first line is three backticks, nth-artifact, id=short-name kind=html title=\"Pricing calculator\" (kind is html, react, svg, mermaid, markdown, code or nth-ui); the whole content follows, then a line with three backticks.");
+            return saving.ToString();
+        }
         var text = new StringBuilder("SHOWING A VIEW\n");
         if (options.LiveTools)
             text.Append("Call ui_show with the view text as its ui argument. Write your sentence first, then call it, and add nothing after it that repeats the view. To change a view you already showed, call ui_update with its id (its description says how). If you cannot call tools, write the view in a fenced block instead: a line with three backticks and nth-ui, the view lines, then a line with three backticks.\n");
@@ -253,6 +296,7 @@ public static class NthUiTeaching
 
     private static string ExamplesSection(NthUiTeachingOptions options)
     {
+        if (!options.LiveAnswers) return "EXAMPLES\nNo view is needed in the chat. Answer in text; save an artifact when the reader will keep it.";
         var text = new StringBuilder();
         var examples = options.IsLite ? NthUiExamples.Lite : NthUiExamples.Six;
         text.Append("EXAMPLES\nEach shows the reader's question, what you write first, then the view as a fenced block");

@@ -16,6 +16,9 @@ public static class UiTeaching
     /// <summary>The reader's "Visual answers" setting, read when a session starts. Balanced until the settings page binds it.</summary>
     public static Ambient<Func<VisualAnswerLevel>> Visual { get; } = new(Balanced);
 
+    /// <summary>The reader's "Live answers in chat" switch (W10), read when a session starts. On until the settings bind it.</summary>
+    public static Ambient<Func<bool>> LiveAnswers { get; } = new(static () => true);
+
     /// <summary>
     /// The options for a session offered <paramref name="offered"/> tools. <paramref name="toolsUsable"/> is false for a model that
     /// cannot call tools (a small local one): it then gets fenced blocks for everything.
@@ -32,6 +35,7 @@ public static class UiTeaching
             AskUser = toolsUsable && names.Contains(NthUiTeaching.AskTool),
             Reference = toolsUsable && names.Contains(NthUiTeaching.ReferenceTool),
             Visual = Visual.Current(),
+            LiveAnswers = LiveAnswers.Current(),
         };
     }
 

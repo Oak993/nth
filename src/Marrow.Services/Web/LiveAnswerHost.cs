@@ -32,6 +32,7 @@ public sealed class LiveAnswerHost
     public const int MaxViewsPerChat = 64;
 
     private Func<bool> enabled;
+    private Func<bool> htmlEnabled = static () => true;
     private readonly Func<Guid, string, Task<LiveViewRecord?>>? lookup;
     private readonly object gate = new();
     private readonly Dictionary<Guid, List<LiveViewRecord>> views = [];
@@ -50,6 +51,12 @@ public sealed class LiveAnswerHost
 
     /// <summary>Settings binds the "Live answers in chat" switch here (W10); until it does the answer is on.</summary>
     public void BindEnabled(Func<bool> source) => enabled = source;
+
+    /// <summary>Settings › Tabula › "Inline HTML widgets" (on by default): off offers the model no html_widget and shows an nth-html block as code.</summary>
+    public bool HtmlEnabled => htmlEnabled();
+
+    /// <summary>Settings binds the "Inline HTML widgets" switch here (W10); until it does the widgets are on.</summary>
+    public void BindHtmlEnabled(Func<bool> source) => htmlEnabled = source;
 
     /// <summary>The view with <paramref name="id"/> in a chat, from the record or, failing that, the chat's saved timeline.</summary>
     public async Task<LiveViewRecord?> Find(Guid thread, string id)

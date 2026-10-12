@@ -25,11 +25,17 @@ public static class MCPWire
     // PORT-ONLY (W18, ED-NEW-web-w18-2): what nth says it can do. It hosts MCP Apps (the UI extension with its MIME
     // type) and reads resources. Nothing else is advertised: no roots, no sampling, no elicitation, so a server
     // never asks for them, and a server that asks anyway is answered "method not found" (Reply below).
-    public static JSONValue ClientCapabilities() => JSONValue.FromDictionaryLiteral(
-        ("extensions", JSONValue.FromDictionaryLiteral(
-            (UiExtension, JSONValue.FromDictionaryLiteral(
-                ("mimeTypes", JSONValue.FromArrayLiteral(new JSONValue.String(UiMimeType))))))),
-        ("resources", JSONValue.FromDictionaryLiteral()));
+    public static JSONValue ClientCapabilities() => AdvertiseApps()
+        ? JSONValue.FromDictionaryLiteral(
+            ("extensions", JSONValue.FromDictionaryLiteral(
+                (UiExtension, JSONValue.FromDictionaryLiteral(
+                    ("mimeTypes", JSONValue.FromArrayLiteral(new JSONValue.String(UiMimeType))))))),
+            ("resources", JSONValue.FromDictionaryLiteral()))
+        : JSONValue.FromDictionaryLiteral(("resources", JSONValue.FromDictionaryLiteral()));
+
+    // PORT-ONLY (web surfaces W10, ED-NEW-web-w10-3): Settings > Tabula > "MCP Apps" (on by default). Off, nth does not say it hosts MCP Apps, so a
+    // server that offers an app and a plain result gives the plain result. The app binds the switch; a server learns it as it connects.
+    public static Func<bool> AdvertiseApps { get; set; } = static () => true;
 
     // :9-15. DEVIATION OD-0012 F1: clientInfo.name is "Marrow", not the Swift literal "Droppy Code"; every
     // other member (protocolVersion, version "1.0") is verbatim. DEVIATION ED-NEW-web-w18-2: capabilities is no

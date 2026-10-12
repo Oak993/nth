@@ -571,6 +571,9 @@ public sealed class VisusTab
             return;
         }
         e.Respond(WebNewWindowDecision.HandledByNth);
+        // PORT-ONLY (web surfaces W10, DESIGN 8.1, ED-NEW-web-w10-2): with "Open links from chats in" set to Default browser, a normal tab's page
+        // sends its new windows there too; a private, agent or preview tab keeps its own page (a private tab's pages are never handed over, 8a-1).
+        if (Kind == VisusTabKind.Browse && VisusHost.PageWindowsInDefaultBrowser() && VisusHost.OpenInDefaultBrowser(target)) return;
         session.OpenFromPage(this, target);
     }
 

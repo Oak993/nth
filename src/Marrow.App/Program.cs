@@ -181,6 +181,8 @@ public static class Program
         InlineText.OpenUrl = url => Marrow.App.Port.Web.ChatLinks.OpenFromAnywhere(url);
         // PORT-ONLY (W19, ED-NEW-web-w19-3): MCP Apps over the hub, the App pane, the list of app tools (after the main actor and the link setting).
         Marrow.App.Port.Web.McpApps.McpAppsStartup.Bind();
+        // PORT-ONLY (W10, ED-NEW-web-w10-3): Settings > Visus and Settings > Tabula meet the seams the web units left; the settings attach once the app model exists (FinishStartup).
+        _ = Marrow.App.Port.Web.WebSettingsBinding.Bind(process: true);
 
         var shell = new AppShell(new AppDelegate(), exit: () => lifetime.Shutdown(), afterWillTerminate: () => settings.Synchronize());
         var launchReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -209,6 +211,7 @@ public static class Program
         await Marrow.App.Port.ModelsPalette.PaletteStartup.PrepareAsync(); // ED-622: verified authority before any model/content.
         if (shell.HasTerminated) return;
         Marrow.App.Port.MultiAccount.Thread.ThreadPortSeams.Bind(Marrow.App.Window.WindowManager.Shared.Model);
+        _ = Marrow.App.Port.Web.WebSettingsBinding.Attach(Marrow.App.Window.WindowManager.Shared.Model.Settings.Web); // W10: every web seam reads the reader's choices from here on
         shell.FinishLaunching();
         launchReady.TrySetResult();
         skills?.CollectInBackground(); // SK-13: the startup GC runs on the pool once the main window is up, never on the launch path (single-instance lock is already held)

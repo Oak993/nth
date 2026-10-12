@@ -6,16 +6,22 @@ public sealed class WebSurfaceOptions
     public const int MinLiveViews = 2;
     public const int MaxLiveViewsLimit = 8;
 
-    private int maxLiveViews = 4;
+    private int? maxLiveViews;
     private int? maxHeldViews;
 
     /// <summary>
+    /// Where a surface that was never given a number reads the reader's "Keep at most N live tabs" (Settings › Visus, W10): the app binds the
+    /// setting here once, so every surface of the process follows it at once. Null (a test, a host with no settings): four.
+    /// </summary>
+    public static Func<int>? DefaultMaxLiveViews { get; set; }
+
+    /// <summary>
     /// At most this many live web views across every window, pane and widget (DESIGN 2.3: 4; Settings › Visus "Keep at
-    /// most N live tabs", 2 to 8; the W0 memory gate may set 3).
+    /// most N live tabs", 2 to 8; the W0 memory gate may set 3). A number set here wins over the setting.
     /// </summary>
     public int MaxLiveViews
     {
-        get => maxLiveViews;
+        get => maxLiveViews ?? Math.Clamp(DefaultMaxLiveViews?.Invoke() ?? 4, MinLiveViews, MaxLiveViewsLimit);
         set => maxLiveViews = Math.Clamp(value, MinLiveViews, MaxLiveViewsLimit);
     }
 

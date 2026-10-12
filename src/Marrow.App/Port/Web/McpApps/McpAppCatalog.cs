@@ -71,11 +71,17 @@ public static class McpAppCatalog
         return definition;
     }
 
+    /// <summary>
+    /// Settings › Tabula › "MCP Apps" (W10, on by default). Off, a tool call that has an app draws as a plain tool call, whatever the server
+    /// offers; the app binds the switch.
+    /// </summary>
+    public static Func<bool> Enabled { get; set; } = static () => true;
+
     /// <summary>The app a tool call draws, or null for a plain tool call.</summary>
     public static McpAppToolEntry? For(ToolCall call)
     {
         ArgumentNullException.ThrowIfNull(call);
-        if (call.ToolCallKind != ToolCall.Kind.Mcp) return null;
+        if (call.ToolCallKind != ToolCall.Kind.Mcp || !Enabled()) return null;
         var (server, tool) = Split(call.Title);
         if (call.Payload is { UiResourceUri: { Length: > 0 } uri } payload)
         {

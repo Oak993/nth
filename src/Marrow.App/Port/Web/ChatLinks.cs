@@ -27,6 +27,7 @@ public static class ChatLinks
         public Control? Anchor { get; set; }
     }
 
+    private static readonly Logger Log = new(Logger.Subsystem, "web");
     private static readonly ConditionalWeakTable<ThreadRuntime, Holder> Holders = new();
     private static Holder? loose;
 
@@ -104,9 +105,30 @@ public static class ChatLinks
         var holder = new Holder(router, settings);
         router.PendingChanged += choice =>
         {
-            if (choice is not null) ShowChoice(choice, holder.Anchor);
+            if (choice is null) return;
+            try
+            {
+                ShowChoice(choice, holder.Anchor);
+            }
+            catch (InvalidOperationException error)
+            {
+                // No window to show the question in: the question is cancelled, so nothing opens and nothing is left waiting.
+                Log.Error("web: the link question could not be shown (" + error.GetType().Name + ")");
+                choice.Cancel();
+            }
         };
         return holder;
+    }
+
+    /// <summary>
+    /// The extra rows of the link popover for a link in this chat (DESIGN 5.11): "Open in Visus" for an HTML file inside the chat's project,
+    /// served on the project's preview site. Other links get none.
+    /// </summary>
+    public static IReadOnlyList<LinkMenuItem> MenuFor(SwiftURL url, ThreadRuntime runtime)
+    {
+        if (WorkspaceOwner(runtime) is not { App: { } app } owner || MarkdownLinkOpener.LocalPath(url) is not { } path) return [];
+        if (ProjectPreviewHost.SiteFor(app, owner) is not { } site || ProjectPreviewHost.HtmlFileAddress(site, path) is null) return [];
+        return [new LinkMenuItem("Open in Visus", "eye", () => ProjectPreviewHost.OpenFile(app, owner, path))];
     }
 
     // A side chat is a thread of its own, but its pane sits in the main thread's workspace, so a page opens there.

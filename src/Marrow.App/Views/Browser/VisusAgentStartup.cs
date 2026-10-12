@@ -24,18 +24,26 @@ public static class VisusAgentStartup
 
     private static VisusAgentBinding? bound;
 
+    /// <summary>The standing grants "Forget agent data" clears (Settings › Visus, W10); null until Bind.</summary>
+    public static WebAgentGrants? Grants { get; private set; }
+
     /// <summary>Program.Main: binds the web tools to Visus once.</summary>
     public static void Bind()
     {
         if (bound is not null) return;
-        var grants = new WebAgentGrants(VisusHost.DataFolder is { } folder ? Path.Combine(folder, GrantsFile) : null);
+        var grants = Grants = new WebAgentGrants(VisusHost.DataFolder is { } folder ? Path.Combine(folder, GrantsFile) : null);
         bound = new VisusAgentBinding(new RuntimeVisusChats(), WebAgentHub.Shared.Current, VisusAgentAsks.Shared,
             () => Marrow.App.Window.WindowManager.Shared.Model.PublishedJobs, grants, watchTurnEnd: WatchRuntimeTurnEnd);
         ThreadRuntime.TactusInterrupted += bound.ChatStopped;
     }
 
-    /// <summary>The settings Visus's web tools read (Settings › Visus's own page adds the switches; until then the defaults).</summary>
-    public static WebAgentSettings Settings() => WebAgentSettings.Default with
+    /// <summary>
+    /// The settings Visus's web tools read: "Let models use Visus" and "Ask before a model uses a new site" from Settings › Visus (W10) once the app
+    /// binds them; the designed defaults (both on) before that.
+    /// </summary>
+    public static WebAgentSettings Settings() => (Marrow.App.Port.Web.WebSettingsHost.Active is { } web
+        ? WebAgentSettings.Default with { Enabled = web.LetModelsUseVisus, AskNewSites = web.AskBeforeNewSite }
+        : WebAgentSettings.Default) with
     {
         ReduceMotion = Marrow.UI.Chrome.Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion,
     };

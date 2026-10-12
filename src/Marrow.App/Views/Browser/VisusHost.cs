@@ -68,6 +68,24 @@ public static class VisusHost
     /// <summary>The search engine (Settings › Visus › Search engine, W10); DuckDuckGo until the setting is wired.</summary>
     public static Func<SearchEngine> SearchEngine { get; set; } = () => SearchEngines.Default;
 
+    /// <summary>Settings › Visus › "Show search suggestions" (W10, off): the address field also asks the search engine for suggestions.</summary>
+    public static Func<bool> SearchSuggestions { get; set; } = () => false;
+
+    /// <summary>Asks the search engine for suggested searches (W10; only with "Show search suggestions" on, never for a private tab). Tests replace it.</summary>
+    public static Func<SearchEngine, string, CancellationToken, Task<IReadOnlyList<string>>> SuggestionSource { get; set; } =
+        static (engine, typed, token) => (suggestionAsker ??= new SearchSuggestionSource()).AskAsync(engine, typed, token, ExternalApps.IsRegistered);
+
+    /// <summary>How long the field waits after the last key before asking the search engine (so a word being typed is asked once).</summary>
+    public static TimeSpan SuggestionDelay { get; set; } = TimeSpan.FromMilliseconds(180);
+
+    private static SearchSuggestionSource? suggestionAsker;
+
+    /// <summary>
+    /// DESIGN 8.1: a page's user-initiated new window opens "a new Visus tab (or the default browser, per the link setting)". True while the
+    /// reader's "Open links from chats in" is Default browser (W10): a normal tab's new window then goes to the default browser.
+    /// </summary>
+    public static Func<bool> PageWindowsInDefaultBrowser { get; set; } = () => false;
+
     /// <summary>Whether an app on this PC handles a scheme (the registry's <c>URL Protocol</c> mark).</summary>
     public static Func<string, bool>? IsRegisteredScheme { get; set; } = ExternalApps.IsRegistered;
 
@@ -228,6 +246,9 @@ public static class VisusHost
         downloads = null;
         DownloadsFolder = () => Marrow.App.Views.Composer.RecentDownloads.DirectoryProvider.Current();
         AskWhereToSave = () => false;
+        SearchSuggestions = () => false;
+        PageWindowsInDefaultBrowser = () => false;
+        SuggestionDelay = TimeSpan.FromMilliseconds(180);
         PickSavePath = PickWithDialogAsync;
         PickOpenFiles = PickFilesWithDialogAsync;
         ShowInFolder = path => Marrow.UI.Port.ShellWorkspace.RevealInFileExplorer(path);

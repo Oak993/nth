@@ -37,6 +37,9 @@ public static class LiveAnswerTools
     /// <summary>The tools a session is offered: all three, but a small local model (lite) has no HTML widget.</summary>
     public static IReadOnlyList<string> Offered(bool lite) => lite ? [ShowName, UpdateName] : Names;
 
+    /// <summary>The tools a session is offered with Settings › Tabula › "Inline HTML widgets" (W10): off leaves out html_widget for everyone.</summary>
+    public static IReadOnlyList<string> Offered(bool lite, bool htmlWidgets) => htmlWidgets ? Offered(lite) : [ShowName, UpdateName];
+
     public static string Description(string name) => name switch
     {
         ShowName => NthUiTeaching.ShowToolDescription,
@@ -170,6 +173,7 @@ public static class LiveAnswerTools
 
     private static async Task<ArtifactToolResult> Html(LiveAnswerHost host, Guid thread, JsonNode? arguments)
     {
+        if (!host.HtmlEnabled) return Failure("Inline HTML widgets are turned off in Settings. Answer in text, a live view or an artifact instead.");
         var html = Text(arguments, "html") ?? Text(arguments, "content") ?? "";
         if (html.Trim().Length == 0) return Failure("html is required: one complete HTML page.");
         if (!html.Contains('<', StringComparison.Ordinal)) return Failure("html must be an HTML page (it has no tags).");

@@ -33,7 +33,7 @@ public sealed class ArtifactNativeTools(UiRegistration registration)
 
     private bool Offers(string toolName) =>
         toolName == AskUserTool.Name ? AskOn
-        : ArtifactsOn && (!LiveAnswerTools.IsName(toolName) || (Registration.Host.Live.Enabled && LiveAnswerTools.Offered(Registration.Lite).Contains(toolName)));
+        : ArtifactsOn && (!LiveAnswerTools.IsName(toolName) || (Registration.Host.Live.Enabled && LiveAnswerTools.Offered(Registration.Lite, Registration.Host.Live.HtmlEnabled).Contains(toolName)));
 
     public IReadOnlyList<JSONValue> Definitions => [.. Offered.Select(Definition)];
 

@@ -37,7 +37,8 @@ public sealed class UiMcpServer(UiRegistration? registration)
     /// </summary>
     public static IReadOnlyList<string> Offered =>
         [.. ToolNames.Where(name => name == AskUserTool.Name ? AskUserDirectory.Shared.Current.IsBound
-            : ArtifactHost.Shared.Current.IsOn && (!LiveAnswerTools.IsName(name) || ArtifactHost.Shared.Current.Live.Enabled))];
+            : ArtifactHost.Shared.Current.IsOn && (!LiveAnswerTools.IsName(name)
+                || (ArtifactHost.Shared.Current.Live.Enabled && (name != LiveAnswerTools.HtmlName || ArtifactHost.Shared.Current.Live.HtmlEnabled))))];
 
     /// <summary>True for a Claude Code tool name of this server's ("mcp__nth-ui__artifact_create").</summary>
     public static bool IsOwnTool(string? qualifiedName) =>
@@ -87,7 +88,7 @@ public sealed class UiMcpServer(UiRegistration? registration)
 
     private bool OffersTool(string name) =>
         name == AskUserTool.Name ? ServesAsk
-        : ServesArtifacts && (!LiveAnswerTools.IsName(name) || (registration!.Host.Live.Enabled && LiveAnswerTools.Offered(registration.Lite).Contains(name)));
+        : ServesArtifacts && (!LiveAnswerTools.IsName(name) || (registration!.Host.Live.Enabled && LiveAnswerTools.Offered(registration.Lite, registration.Host.Live.HtmlEnabled).Contains(name)));
 
     private JsonArray Tools()
     {
@@ -106,7 +107,7 @@ public sealed class UiMcpServer(UiRegistration? registration)
                     ["annotations"] = new JsonObject { ["readOnlyHint"] = reads, ["destructiveHint"] = false, ["openWorldHint"] = false },
                 });
             }
-            foreach (var name in LiveAnswerTools.Offered(registration!.Lite).Where(_ => registration.Host.Live.Enabled))
+            foreach (var name in LiveAnswerTools.Offered(registration!.Lite, registration.Host.Live.HtmlEnabled).Where(_ => registration.Host.Live.Enabled))
             {
                 tools.Add(new JsonObject
                 {
