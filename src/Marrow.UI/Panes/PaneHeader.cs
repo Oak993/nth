@@ -60,6 +60,8 @@ public sealed class PaneHeader : Panel
     private readonly List<Button> actionViews = [];
     private IReadOnlyList<PaneHeaderAction> actions = [];
     private IReadOnlyList<PaneHeaderTab> tabList = [];
+    private Control? titleContent;
+    private bool titleContentInHeader;
     private string titleText = "";
     private string? subtitleText;
     private bool expanded;
@@ -196,6 +198,38 @@ public sealed class PaneHeader : Panel
 
     public bool IsMenuOpen => menuOpen;
 
+    /// <summary>
+    /// W8a (DESIGN 3.12 "Visus puts its tab strip in the header row"): a pane's own control in place of the kind glyph and the
+    /// title (the canvas .bh: the strip starts 6 DIP in, with no glyph). When the cell holds a tab group, the group's tabs stand
+    /// there instead and the control leaves the header: <see cref="TitleContentPlacementChanged"/> tells the pane, which shows
+    /// it in its own body. Null puts the glyph and title back.
+    /// </summary>
+    public void SetTitleContent(Control? content)
+    {
+        if (ReferenceEquals(titleContent, content)) return;
+        if (titleContent is { } old && titleContentInHeader)
+        {
+            Children.Remove(old);
+            titleContentInHeader = false;
+        }
+        titleContent = content;
+        title.IsVisible = !HasTabs && content is null;
+        PlaceTitleContent();
+        Invalidate();
+    }
+
+    /// <summary>The pane's own title control (<see cref="SetTitleContent"/>), or null.</summary>
+    public Control? TitleContent => titleContent;
+
+    /// <summary>Whether the pane's title control is in the header row now (false while the cell shows its group's tabs).</summary>
+    public bool IsTitleContentInHeader => titleContentInHeader;
+
+    /// <summary>
+    /// The pane's title control is about to come into the header (true: the pane lets go of it first) or has just left it (false:
+    /// the pane may show it elsewhere).
+    /// </summary>
+    public event Action<bool>? TitleContentPlacementChanged;
+
     /// <summary>The title, and its detail after a middle dot ("Release notes · Markdown").</summary>
     public void SetTitle(string text, string? subtitle = null)
     {
@@ -294,14 +328,48 @@ public sealed class PaneHeader : Panel
 
     private bool HasTabs => tabList.Count > 1;
 
-    private Control TitlePart => HasTabs ? tabs : title;
+    private bool UsesTitleContent => titleContent is not null && !HasTabs;
+
+    private Control TitlePart => HasTabs ? tabs : UsesTitleContent ? titleContent! : title;
+
+    private double Leading => UsesTitleContent ? TitleContentLeading : PaneTokens.HeaderLeading + PaneTokens.GlyphSize + PaneTokens.HeaderGap;
+
+    /// <summary>The canvas .bh: a title control starts 6 DIP in.</summary>
+    public const double TitleContentLeading = 6;
+
+    // The control is in the header exactly when no group tabs stand there; the pane is told around each move so it is never in
+    // two parents.
+    private void PlaceTitleContent()
+    {
+        var want = UsesTitleContent;
+        glyph.IsVisible = !want;
+        if (titleContent is not { } content || want == titleContentInHeader)
+        {
+            if (titleContent is null) glyph.IsVisible = true;
+            return;
+        }
+        if (want)
+        {
+            TitleContentPlacementChanged?.Invoke(true);
+            if (content.Parent is Panel holder) holder.Children.Remove(content);
+            else if (content.Parent is Decorator decorator) decorator.Child = null;
+            Children.Insert(Children.IndexOf(trailing), content);
+            titleContentInHeader = true;
+        }
+        else
+        {
+            Children.Remove(content);
+            titleContentInHeader = false;
+            TitleContentPlacementChanged?.Invoke(false);
+        }
+    }
 
     // The parts as measured now. A hidden control measures to nothing, so each button's natural width is its face's,
     // measured on its own whether the button shows or not.
     private PaneHeaderParts Parts(double width)
     {
         foreach (var child in new Control[] { glyph, TitlePart }) child.Measure(Size.Infinity);
-        var fixedWidth = PaneTokens.HeaderLeading + PaneTokens.GlyphSize + PaneTokens.HeaderGap + PaneTokens.HeaderTrailing;
+        var fixedWidth = Leading + PaneTokens.HeaderTrailing;
         return new PaneHeaderParts(
             width, fixedWidth, PaneTokens.HeaderGap, PaneTokens.ButtonSize, TitlePart.DesiredSize.Width,
             actionViews.Select(NaturalWidth).ToArray(),
@@ -342,8 +410,8 @@ public sealed class PaneHeader : Panel
         var height = finalSize.Height;
         if (double.IsNaN(fitWidth) || (!held && (dirty || Math.Abs(width - fitWidth) > 0.25))) ApplyFit(width);
         var x = PaneTokens.HeaderLeading;
-        glyph.Arrange(Centred(x, PaneTokens.GlyphSize, PaneTokens.GlyphSize, height));
-        x += PaneTokens.GlyphSize + PaneTokens.HeaderGap;
+        glyph.Arrange(UsesTitleContent ? default : Centred(x, PaneTokens.GlyphSize, PaneTokens.GlyphSize, height));
+        x = Leading;
         var titleMinimum = Math.Min(TitlePart.DesiredSize.Width, PaneHeaderParts.TitleMinimum);
         var row = TrailingWidth();
         // The trailing row's width counts a gap before each item, so its first gap is the one after the title.
@@ -352,8 +420,8 @@ public sealed class PaneHeader : Panel
         trailing.Arrange(new Rect(trailingX, 0, trailingWidth, height));
         var titleWidth = Math.Max(0, Math.Min(TitlePart.DesiredSize.Width, trailingX - x));
         TitlePart.Arrange(Centred(x, titleWidth, TitlePart.DesiredSize.Height, height));
-        var other = HasTabs ? (Control)title : tabs;
-        other.Arrange(default);
+        foreach (var other in new Control?[] { title, tabs, titleContentInHeader ? titleContent : null })
+            if (other is not null && !ReferenceEquals(other, TitlePart)) other.Arrange(default);
         moreMenu.Arrange(default);
         hairline.Arrange(new Rect(0, height - 0.5, width, 0.5));
         return finalSize;
@@ -412,7 +480,8 @@ public sealed class PaneHeader : Panel
     {
         tabs.Children.Clear();
         tabs.IsVisible = HasTabs;
-        title.IsVisible = !HasTabs;
+        title.IsVisible = !HasTabs && titleContent is null;
+        PlaceTitleContent();
         if (!HasTabs) return;
         foreach (var tab in tabList)
         {

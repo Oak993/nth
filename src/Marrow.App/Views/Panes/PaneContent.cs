@@ -36,6 +36,27 @@ public sealed class PaneContent
     /// <summary>The pane's own header actions, in reading order (Expand and Close are the workspace's).</summary>
     public IReadOnlyList<PaneHeaderAction> Actions { get; private set; }
 
+    /// <summary>
+    /// W8a (DESIGN 3.12 "Visus puts its tab strip in the header row"): the pane's own control for the header row, in place of the
+    /// kind glyph and the title; null keeps them. The card puts it there (<see cref="Marrow.UI.Panes.PaneHeader.SetTitleContent"/>).
+    /// </summary>
+    public Control? HeaderContent { get; init; }
+
+    /// <summary>
+    /// Whether <see cref="HeaderContent"/> is in the header row now. It leaves while the cell shows its group's tabs, and the
+    /// pane may then show it in its body (it must let go of it again when <see cref="HeaderContentPlacementChanged"/> says true).
+    /// </summary>
+    public bool IsHeaderContentInHeader { get; private set; }
+
+    /// <summary>True: the header is about to take <see cref="HeaderContent"/> (let go of it now). False: it has just left the header.</summary>
+    public event Action<bool>? HeaderContentPlacementChanged;
+
+    internal void SetHeaderContentPlacement(bool inHeader)
+    {
+        IsHeaderContentInHeader = inHeader;
+        HeaderContentPlacementChanged?.Invoke(inHeader);
+    }
+
     /// <summary>Raised after <see cref="Update"/>.</summary>
     public event Action? Changed;
 

@@ -36,6 +36,36 @@ public enum PaneGlyphKind
 
     /// <summary>A pane with its foot band marked: the chat's drawer (W4's "Move to the drawer").</summary>
     DockBottom,
+
+    /// <summary>W8a, Visus's toolbar and chips: the canvas's i-back.</summary>
+    Back,
+
+    /// <summary>The canvas's i-fwd.</summary>
+    Forward,
+
+    /// <summary>The canvas's i-reload.</summary>
+    Reload,
+
+    /// <summary>The canvas's i-lock (the site chip of an https page).</summary>
+    Lock,
+
+    /// <summary>The canvas's i-mask (private tabs).</summary>
+    Mask,
+
+    /// <summary>The canvas's i-search.</summary>
+    Search,
+
+    /// <summary>The canvas's i-copy.</summary>
+    Copy,
+
+    /// <summary>The canvas's i-ext (open elsewhere).</summary>
+    External,
+
+    /// <summary>The canvas's i-warn.</summary>
+    Warn,
+
+    /// <summary>The canvas's i-shield (prompts).</summary>
+    Shield,
 }
 
 /// <summary>A line glyph in the inherited text colour.</summary>
@@ -69,6 +99,18 @@ public sealed class PaneGlyph : Control
         [PaneGlyphKind.More] = Parse(Circle(12, 5.5, 1.2) + Circle(12, 12, 1.2) + Circle(12, 18.5, 1.2)),
         [PaneGlyphKind.Chevron] = Parse("M7 10l5 5 5-5"),
         [PaneGlyphKind.Plus] = Parse("M12 5v14M5 12h14"),
+        [PaneGlyphKind.Back] = Parse("M15 18l-6-6 6-6"),
+        [PaneGlyphKind.Forward] = Parse("M9 18l6-6-6-6"),
+        [PaneGlyphKind.Reload] = Parse("M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4.5H15"),
+        [PaneGlyphKind.Lock] = Parse("M7.5 11h9a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2z M8.5 11V8a3.5 3.5 0 0 1 7 0v3"),
+        [PaneGlyphKind.Mask] = Parse(
+            "M3 9.5c3-2.5 15-2.5 18 0-.6 4.5-3.2 7-5.6 7-1.5 0-2-1.6-3.4-1.6S10.1 16.5 8.6 16.5C6.2 16.5 3.6 14 3 9.5z M7.5 11.5l2 .5M14.5 12l2-.5"),
+        [PaneGlyphKind.Search] = Parse(Circle(11, 11, 6) + "M20 20l-4.5-4.5"),
+        [PaneGlyphKind.Copy] = Parse(
+            "M10.5 8.5h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z M15.5 8.5V6.5a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2"),
+        [PaneGlyphKind.External] = Parse("M14 4h6v6M20 4l-8.5 8.5M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"),
+        [PaneGlyphKind.Warn] = Parse("M12 4l9 16H3z M12 10v4M12 17h.01"),
+        [PaneGlyphKind.Shield] = Parse("M12 3.5l7 2.5v5.5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"),
         [PaneGlyphKind.DockBottom] = Parse("M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z M4 14.5h16"),
     };
 

@@ -140,6 +140,7 @@ public static class MenuKeyEquivalents
         EventHandler<KeyEventArgs> onKeyDown = (_, e) =>
         {
             if (e.Handled) return;
+            if (ShortcutScopeHost.FocusClaims(window, e)) return; // W8a: the focused pane answers this key itself (Visus's browser keys)
             if (perform(Shortcut(e), () => Typed(e), ShortcutScopeHost.ScopeOfFocus(window))) e.Handled = true;
         };
         window.AddHandler(InputElement.KeyDownEvent, onKeyDown, RoutingStrategies.Tunnel);

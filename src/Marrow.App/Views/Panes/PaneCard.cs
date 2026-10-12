@@ -53,6 +53,11 @@ public sealed class PaneCard : Border
         layout.Children.Add(body);
         AutomationProperties.SetName(this, PaneKinds.AccessibleName(kind));
         AutomationProperties.SetLandmarkType(this, AutomationLandmarkType.Region);
+        if (content.HeaderContent is { } headerContent)
+        {
+            Header.TitleContentPlacementChanged += content.SetHeaderContentPlacement;
+            Header.SetTitleContent(headerContent);
+        }
         ApplyContent();
         content.Changed += ApplyContent;
         ActualThemeVariantChanged += (_, _) => ApplyLook();
@@ -123,7 +128,12 @@ public sealed class PaneCard : Border
     /// <summary>Whether keyboard focus is inside the card (its rim brightens).</summary>
     public bool IsFocusedLook => focused;
 
-    internal void Detach() => Content.Changed -= ApplyContent;
+    internal void Detach()
+    {
+        Content.Changed -= ApplyContent;
+        Header.TitleContentPlacementChanged -= Content.SetHeaderContentPlacement;
+        Header.SetTitleContent(null);
+    }
 
     private void ApplyContent()
     {
