@@ -57,6 +57,9 @@ public sealed class PaneContent
         HeaderContentPlacementChanged?.Invoke(inHeader);
     }
 
+    /// <summary>The control that takes keyboard focus when the person opens the pane (Side chat's composer); null: focus stays where it was.</summary>
+    public Control? FocusTarget { get; set; }
+
     /// <summary>Raised after <see cref="Update"/>.</summary>
     public event Action? Changed;
 
