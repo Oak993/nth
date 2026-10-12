@@ -36,7 +36,7 @@ public sealed class RealInputLease
     private readonly List<Entry> stills = [];
     private readonly AsyncLocal<Func<bool>?> actionPermission = new();
     private readonly AsyncLocal<Func<CancellationToken, Task<PcUiaOutcome>>?> actionValidation = new();
-    private readonly List<PcRawInput> kept = [];
+    private readonly Dictionary<(nint Window, nint Focus), List<PcRawInput>> kept = [];
     private readonly IPhysicalInput input;
     private readonly IPcInputHold hold;
     private readonly IRealInputHost host;
@@ -44,7 +44,6 @@ public sealed class RealInputLease
     private readonly PcCapabilities capabilities;
     private readonly Func<bool> ownCardUp;
     private readonly PcRunControl? control;
-    private nint keptWindow;
     private int holdingKeys;
 
     public RealInputLease(IPhysicalInput input, IPcInputHold hold, IRealInputHost host, IPcClock clock, PcCapabilities capabilities, Func<bool>? ownCardUp = null,
@@ -87,7 +86,7 @@ public sealed class RealInputLease
     {
         get
         {
-            lock (gate) return kept.Count(k => k.Kind == PcRawKind.Key && k.Down);
+            lock (gate) return kept.Values.Sum(keys => keys.Count(k => k.Kind == PcRawKind.Key && k.Down));
         }
     }
 
@@ -115,15 +114,16 @@ public sealed class RealInputLease
     public bool PutBack()
     {
         List<PcRawInput> keys;
+        (nint Window, nint Focus) origin;
         lock (gate)
         {
             if (kept.Count == 0 || HoldingKeys || queue.Any(e => e.Running)) return false;
-            if (host.Focus().Foreground != keptWindow) return false;
-            keys = kept.ToList();
-            kept.Clear();
+            origin = host.Focus();
+            if (!kept.Remove(origin, out keys!)) return false;
         }
-        Replay(keys, keptWindow, 0, out var left);
-        lock (gate) kept.InsertRange(0, left);
+        Replay(keys, origin.Window, origin.Focus, out var left);
+        // Replay has also retained these; C2-A5 closes that independent duplicate-ownership defect next.
+        if (left.Count > 0) Keep(left, origin.Window, origin.Focus);
         KeptChanged?.Invoke(KeptKeys);
         return left.Count == 0;
     }
@@ -133,7 +133,8 @@ public sealed class RealInputLease
     {
         lock (gate)
         {
-            for (var i = 0; i < kept.Count; i++) kept[i] = default;
+            foreach (var keys in kept.Values)
+                for (var i = 0; i < keys.Count; i++) keys[i] = default;
             kept.Clear();
         }
         KeptChanged?.Invoke(0);
@@ -571,7 +572,7 @@ public sealed class RealInputLease
             // The target still holds the foreground: the user's keys stay held (the mouse is free) until their own click
             // moves the foreground; every held key joins the kept keys and never reaches the target.
             var held = borrow.Held.Take();
-            Keep(held, saved.Foreground);
+            Keep(held, saved.Foreground, saved.Focus);
             SendReplay(held.Where(e => e.Kind != PcRawKind.Key).ToList(), PcInjectionLedger.NewTag());
             hold.BeginSwallow(keysOnly: true);
             Volatile.Write(ref holdingKeys, 1);
@@ -624,7 +625,7 @@ public sealed class RealInputLease
             {
                 var rest = held.Skip(start).ToList();
                 var keys = rest.Where(e => e.Kind == PcRawKind.Key).ToList();
-                Keep(keys, window);
+                Keep(keys, window, focus);
                 left = keys;
                 SendReplay(rest.Where(e => e.Kind != PcRawKind.Key).ToList(), tag);
                 return;
@@ -643,14 +644,15 @@ public sealed class RealInputLease
         input.Close(ledger);
     }
 
-    private void Keep(List<PcRawInput> keys, nint window)
+    private void Keep(List<PcRawInput> keys, nint window, nint focus)
     {
         var added = keys.Where(k => k.Kind == PcRawKind.Key).ToList();
         if (added.Count == 0) return;
         lock (gate)
         {
-            if (kept.Count == 0 || keptWindow != window) keptWindow = window;
-            kept.AddRange(added);
+            var origin = (window, focus);
+            if (!kept.TryGetValue(origin, out var pending)) kept[origin] = pending = [];
+            pending.AddRange(added);
         }
         KeptChanged?.Invoke(KeptKeys);
     }
@@ -667,7 +669,7 @@ public sealed class RealInputLease
                 Volatile.Write(ref escaped, 1);
                 return;
             }
-            Keep([raw], borrow.Saved.Foreground);
+            Keep([raw], borrow.Saved.Foreground, borrow.Saved.Focus);
         }
         input.Swallowed += OnSwallowed;
         try
