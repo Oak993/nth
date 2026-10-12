@@ -12,6 +12,7 @@ using System.Runtime.InteropServices;
 using Avalonia.Threading;
 using Marrow.Core.Port;
 using Marrow.Core.Port.PcControl;
+using Marrow.Core.Support;
 using Marrow.Services.Port.PcControl;
 using Marrow.Services.Port.PcControl.Native;
 
@@ -252,6 +253,10 @@ internal static class TactusDesktop
             RealHost = new RealInputHost(clock, reader.FocusControl),
             Capture = encoder is null ? null : new PcCapturePipeline(sources, encoder),
             Owned = [hooks, ime, events, feed, reader],
+            CapabilitiesFile = () => Path.Combine(StoragePaths.Directory("pc-control"), PcCapabilityFile.FileName),
+#if DEBUG
+            DevProofsFile = Path.Combine(Path.GetTempPath(), "tactus-smoke", "np4-proofs.json"),
+#endif
         };
     }
 

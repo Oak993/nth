@@ -4,7 +4,8 @@
 // SetForegroundWindow from nth) and the restore way (SetForegroundWindow back to the desk, then UI Automation focus on its
 // text box) on Notepad, Calculator, Explorer and Paint, timing each, with the foreground-lock timeout and each window's DPI
 // noted. A pair that passes every try is written to %TEMP%\tactus-smoke\np4-proofs.json in the capability store's import
-// format (rung R4, per exe); nothing loads that file by itself. It also times the hooks' callback with and without forced
+// format (rung R4, per exe, version and framework, ED-NEW-pcctl-45); only a development build imports it, once at start,
+// where nothing was learned yet; the app learns the same ways by itself. It also times the hooks' callback with and without forced
 // garbage collection. The script runs it once with the apps on the 100 % monitor and once on the 150 % one. Hands off the
 // mouse and keyboard while it runs.
 using System.Diagnostics;
@@ -18,6 +19,7 @@ using Marrow.Services.Port.PcControl.Native;
 namespace Marrow.App.Tests.Port.PcControl.Native;
 
 [Trait("Decision", "ED-NEW-pcctl-43")]
+[Trait("Decision", "ED-NEW-pcctl-45")]
 public sealed class PcBorrowProbeNativeTests
 {
     private const int Tries = 3;
@@ -66,6 +68,8 @@ public sealed class PcBorrowProbeNativeTests
         var restoreFails = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var (exe, handle) in targets)
         {
+            var target = await TargetOf(reader, handle);
+            rig.Note(exe + " proofs are for " + target.Exe + " " + target.Version + ", framework " + target.Framework);
             var bounds = PcSmokeRig.Bounds(handle);
             var dpi = GetDpiForWindow(handle);
             foreach (var (method, label) in new[] { (PcBorrowProofs.Pointer, "a pointer"), (PcBorrowProofs.Caption, "b caption"), (PcBorrowProofs.Foreground, "c foreground") })
@@ -107,9 +111,9 @@ public sealed class PcBorrowProbeNativeTests
                     await Task.Delay(300);
                 }
                 rig.Result(exe + " " + label + " + restore: " + passes + "/" + Tries + " passed, " + string.Join("/", times) + " ms; dpi " + dpi + ", lock timeout " + lockMs + " ms");
-                if (passes == Tries) proofs.Add(Proof(exe, method));
+                if (passes == Tries) proofs.Add(Proof(target, method));
             }
-            if (!restoreFails.ContainsKey(exe)) proofs.Add(Proof(exe, PcBorrowProofs.Restore));
+            if (!restoreFails.ContainsKey(exe)) proofs.Add(Proof(target, PcBorrowProofs.Restore));
             else rig.Result(exe + " restore failed " + restoreFails[exe] + " times: activation unproven for it");
         }
         var file = Path.Combine(Path.GetTempPath(), "tactus-smoke", "np4-proofs.json");
@@ -159,13 +163,21 @@ public sealed class PcBorrowProbeNativeTests
         }
     }
 
-    private static JsonObject Proof(string exe, string method) => new()
+    // The target's identity as the borrow rung keys it: the exe and file version, and the framework of its root element.
+    private static async Task<PcProofTarget> TargetOf(UiaReader reader, nint handle)
     {
-        ["exe"] = exe,
-        ["version"] = "",
+        var window = new WindowCatalog().Window(handle) ?? throw new InvalidOperationException("the target window is gone");
+        var root = await reader.Tree(handle, CancellationToken.None);
+        return PcProofTarget.Of(window, PcFrameworkGate.Of(window, root, null));
+    }
+
+    private static JsonObject Proof(PcProofTarget target, string method) => new()
+    {
+        ["exe"] = target.Exe,
+        ["version"] = target.Version,
         ["rung"] = (int)PcRung.R4,
         ["method"] = method,
-        ["control"] = "",
+        ["control"] = target.Framework.ToString(),
         ["state"] = nameof(PcLearned.Passed),
         ["at"] = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
     };

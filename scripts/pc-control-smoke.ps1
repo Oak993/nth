@@ -4,7 +4,8 @@
 # steps say, "chat" and "app" items are checks you do in nth itself, and "blocked" items wait for a later unit. Each test
 # writes RESULT lines to %TEMP%\tactus-smoke\<probe>.log; this script shows them live, asks for your verdict, and writes
 # everything to %TEMP%\tactus-smoke\summary-<time>.txt. Send that file to the Tactus unit owner: its RESULT lines go
-# into ED-NEW-pcctl-43, and np4-proofs.json (from NP-4) is what R4's per-app proofs are imported from.
+# into ED-NEW-pcctl-43, and np4-proofs.json (from NP-4) is an optional
+# import for development builds only (ED-NEW-pcctl-45): the app learns R4's ways per exe, version and framework itself.
 #   -List          print the checklist and exit
 #   -Only S1,NP-4  run only these items
 #   -NoBuild       skip the build (after a first run)

@@ -43,6 +43,15 @@ public sealed class PcBackends
 
     public Func<DateTimeOffset> Now { get; init; } = () => DateTimeOffset.Now;
 
+    /// <summary>
+    /// Where what Tactus learned is kept between runs (nth's data folder in the app, ED-NEW-pcctl-45); null keeps it in
+    /// memory only, as in tests.
+    /// </summary>
+    public Func<string?> CapabilitiesFile { get; init; } = () => null;
+
+    /// <summary>The NP-4 smoke's proofs file, imported once at start in development builds only; null in the app.</summary>
+    public string? DevProofsFile { get; init; }
+
     /// <summary>Native helpers that live as long as Tactus (hook and event threads); disposed with the assembly.</summary>
     public IReadOnlyList<IDisposable> Owned { get; init; } = [];
 }
@@ -68,6 +77,7 @@ public sealed class PcAssembly : IDisposable
     private readonly PcBackends backends;
     private readonly Func<PcSettings> settings;
     private readonly ConcurrentDictionary<string, PcEngineParts> perThread = new(StringComparer.Ordinal);
+    private readonly PcCapabilityFile? capabilityFile;
     private int disposed;
 
     /// <param name="stopKey">Makes the stop key from the shared parts (the app's chords need the stop paths, Pause and the lanes).</param>
@@ -88,6 +98,8 @@ public sealed class PcAssembly : IDisposable
         Asks = new PcAskBroker(backends.WaitClock ?? clock, Control);
         Stop = new PcStopControl(Control, interruptTurns);
         Capabilities = new PcCapabilities(backends.Now);
+        if (backends.CapabilitiesFile() is { Length: > 0 } learnedAt)
+            capabilityFile = PcCapabilityFile.Open(Capabilities, learnedAt, backends.Now, backends.DevProofsFile);
         Lease = new RealInputLease(backends.Input, backends.Hold, backends.RealHost, clock, Capabilities, Surface.OwnCardUp, Control);
         Ladder = new PcActionLadder([new PcUiaRung(backends.Reader), new PcMessageRung(backends.Messages), new PcBorrowRung(settings, Lease, backends.Reader)], Capabilities);
         Approver = new PcBrokerApprover(Asks, (app, capability) => Surface.Standing(app, capability));
@@ -139,6 +151,7 @@ public sealed class PcAssembly : IDisposable
     public void Dispose()
     {
         if (Interlocked.Exchange(ref disposed, 1) == 1) return;
+        capabilityFile?.Dispose();
         Pause.Dispose();
         Asks.Dispose();
         if (StopKey is IDisposable key) key.Dispose();
