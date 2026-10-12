@@ -345,13 +345,14 @@ public sealed partial class AppModel : MainActorModel
         return true;
     }
 
-    // PORT-ONLY (ED-NEW-lean-16): where two lists of the same length differ, ascending (an empty list when the lengths differ).
-    private static List<int> ChangedIndices(ValueList<ChatThread> held, ValueList<ChatThread> value)
+    // PORT-ONLY (ED-NEW-lean-16): where the held list with <paramref name="replaced"/> laid over it differs from the held list,
+    // ascending: the replaced places whose thread is not equal to the held one.
+    private static List<int> ChangedIndices(ValueList<ChatThread> held, Dictionary<int, ChatThread> replaced)
     {
-        var changed = new List<int>();
-        if (held.Count != value.Count) return changed;
-        for (var index = 0; index < value.Count; index++)
-            if (held[index] != value[index]) changed.Add(index);
+        var changed = new List<int>(replaced.Count);
+        foreach (var (index, value) in replaced)
+            if (held[index] != value) changed.Add(index);
+        changed.Sort();
         return changed;
     }
 
@@ -368,6 +369,29 @@ public sealed partial class AppModel : MainActorModel
         public IEnumerator<ChatThread> GetEnumerator()
         {
             for (var position = 0; position < source.Count; position++) yield return position == index ? value : source[position];
+        }
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        public bool Contains(ChatThread item) => throw new NotSupportedException();
+        public void Add(ChatThread item) => throw new NotSupportedException();
+        public void Clear() => throw new NotSupportedException();
+        public bool Remove(ChatThread item) => throw new NotSupportedException();
+    }
+
+    // PORT-ONLY (ED-NEW-lean-16, follow-up): the held list with the threads at some places replaced, copied once by ValueList's
+    // constructor.
+    private sealed class SomeReplaced(ValueList<ChatThread> source, Dictionary<int, ChatThread> replaced) : ICollection<ChatThread>
+    {
+        public int Count => source.Count;
+        public bool IsReadOnly => true;
+        public void CopyTo(ChatThread[] array, int arrayIndex)
+        {
+            source.CopyTo(array, arrayIndex);
+            foreach (var (index, value) in replaced) array[arrayIndex + index] = value;
+        }
+        public IEnumerator<ChatThread> GetEnumerator()
+        {
+            for (var position = 0; position < source.Count; position++)
+                yield return replaced.TryGetValue(position, out var value) ? value : source[position];
         }
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
         public bool Contains(ChatThread item) => throw new NotSupportedException();
@@ -747,19 +771,21 @@ public sealed partial class AppModel : MainActorModel
     // AppModel.swift:734-746
     private void UpdateThreads(IReadOnlyList<Guid> ids, Func<long, ChatThread, ChatThread> change)
     {
-        var updated = threads.ToList();
+        // ED-NEW-lean-16 (follow-up): the replaced threads only, laid over the held list in one copy (was a list copy, then the array)
+        var replaced = new Dictionary<int, ChatThread>();
         var changed = false;
         for (var position = 0; position < ids.Count; position++)
         {
             if (!threadIndex.Positions.TryGetValue(ids[position], out var storedIndex)) continue;
             var index = checked((int)storedIndex);
-            var previous = updated[index];
-            updated[index] = change(position, previous);
-            changed |= previous != updated[index];
+            var previous = replaced.TryGetValue(index, out var earlier) ? earlier : threads[index];
+            var next = change(position, previous);
+            replaced[index] = next;
+            changed |= previous != next;
         }
         if (!changed) return;
-        var value = new ValueList<ChatThread>(updated);
-        if (!AssignThreadsInPlace(value, ChangedIndices(threads, value))) Threads = value; // ED-NEW-lean-16
+        var value = new ValueList<ChatThread>(new SomeReplaced(threads, replaced));
+        if (!AssignThreadsInPlace(value, ChangedIndices(threads, replaced))) Threads = value; // ED-NEW-lean-16
         ScheduleSave();
     }
 
@@ -1441,17 +1467,16 @@ public sealed partial class AppModel : MainActorModel
     public void MarkRead(IReadOnlyList<Guid> ids) // AppModel.swift:1226-1238
     {
         var wanted = ids.ToHashSet();
-        var updated = threads.ToList();
-        var changed = false;
-        for (var index = 0; index < updated.Count; index++)
+        Dictionary<int, ChatThread>? replaced = null; // ED-NEW-lean-16 (follow-up): one copy of the list, as UpdateThreads
+        for (var index = 0; index < threads.Count; index++)
         {
-            if (!wanted.Contains(updated[index].Id) || !updated[index].HasUnread) continue;
-            updated[index] = updated[index] with { HasUnread = false };
-            changed = true;
+            var thread = threads[index];
+            if (!wanted.Contains(thread.Id) || !thread.HasUnread) continue;
+            (replaced ??= [])[index] = thread with { HasUnread = false };
         }
-        if (!changed) return;
-        var value = new ValueList<ChatThread>(updated);
-        if (!AssignThreadsInPlace(value, ChangedIndices(threads, value))) Threads = value; // ED-NEW-lean-16
+        if (replaced is null) return;
+        var value = new ValueList<ChatThread>(new SomeReplaced(threads, replaced));
+        if (!AssignThreadsInPlace(value, ChangedIndices(threads, replaced))) Threads = value; // ED-NEW-lean-16
         ScheduleSave();
         UpdateDockBadge();
     }
