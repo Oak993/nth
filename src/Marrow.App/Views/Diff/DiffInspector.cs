@@ -140,7 +140,7 @@ public sealed class DiffInspector : Decorator
                 Text = summary.Files.Count == 1
                     ? "1 file"
                     : summary.Files.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " files",
-                FontFamily = new FontFamily("fonts:Inter#Inter"),
+                FontFamily = DiffFaces.Inter,
                 FontSize = 11,
                 Foreground = Chrome.SecondaryText.Brush(this),
             }, 4);
@@ -499,7 +499,7 @@ internal sealed class DiffFileCard : Decorator
                     Text = file.IsBinary ? "Binary file" : "Diff details unavailable",
                     Margin = new Thickness(12, 0, 12, 10),
                     Foreground = Chrome.SecondaryText.Brush(this),
-                    FontFamily = new FontFamily("fonts:Inter#Inter"),
+                    FontFamily = DiffFaces.Inter,
                     FontSize = 10,
                 });
             }
@@ -606,7 +606,7 @@ internal sealed class DiffFilePathText : Panel
             Text = directory,
             Foreground = Chrome.SecondaryText.Brush(this),
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
-            FontFamily = new FontFamily("fonts:Inter#Inter"),
+            FontFamily = DiffFaces.Inter,
             FontSize = 12,
         };
         nameText = new TextBlock
@@ -614,7 +614,7 @@ internal sealed class DiffFilePathText : Panel
             Text = name,
             Foreground = SwiftColor.Primary.Brush(this),
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
-            FontFamily = new FontFamily("fonts:Inter#Inter"),
+            FontFamily = DiffFaces.Inter,
             FontSize = 12,
         };
         Children.Add(directoryText);
@@ -690,7 +690,7 @@ public sealed class DiffLinesView : Decorator
             var capsuleLabel = new TextBlock
             {
                 Text = "Show all " + totalLines.ToString(System.Globalization.CultureInfo.InvariantCulture) + " lines",
-                FontFamily = new FontFamily("fonts:Inter#Inter"),
+                FontFamily = DiffFaces.Inter,
                 FontSize = 10,
                 Foreground = Chrome.SecondaryText.Brush(showAll),
                 Margin = new Thickness(10, 6),
@@ -824,7 +824,7 @@ public sealed class DiffLinesView : Decorator
                     // sets the tint). OD-0088 (ED-253): not one of Chrome.accent's sites, so the pick does not reach it.
                     Background = SwiftColor.AccentColor.Opacity(0.06).Brush(rows),
                     // :406 .font(.system(size: 11.5, design: .monospaced)): the embedded face's key is fonts:CascadiaMono (SwiftFont.cs:79).
-                    FontFamily = new FontFamily("fonts:CascadiaMono#Cascadia Mono"),
+                    FontFamily = DiffFaces.Mono,
                     FontSize = 11.5,
                     HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
                 });
@@ -857,6 +857,18 @@ internal sealed record DiffLineBlock
     public long Id => Lines.Count == 0 ? 0 : Lines[0].Id;
 }
 
+/// <summary>
+/// ED-NEW-lean-17: the inspector's two faces, made once. A <see cref="FontFamily"/> is immutable, so every text block
+/// shares one instance instead of parsing the same name per line (three per diff row before).
+/// </summary>
+internal static class DiffFaces
+{
+    /// <summary>The embedded Inter face (SwiftFont.cs:79).</summary>
+    public static readonly FontFamily Inter = new("fonts:Inter#Inter");
+    /// <summary>:406 .font(.system(size: 11.5, design: .monospaced)): the embedded face's key is fonts:CascadiaMono (SwiftFont.cs:80).</summary>
+    public static readonly FontFamily Mono = new("fonts:CascadiaMono#Cascadia Mono");
+}
+
 /// <summary>:436-513 <c>private struct DiffLineRow: View</c>: one diff line in fixed-width columns.</summary>
 internal sealed class DiffLineRow : Decorator
 {
@@ -865,15 +877,38 @@ internal sealed class DiffLineRow : Decorator
     // :473
     private const double MarkerColumnWidth = 14;
 
+    // ED-NEW-lean-17: the gutter's colours were resolved per line against a throwaway control outside any window (one
+    // new Control per brush), so they never followed the appearance. They are resolved once, the same way, into one shared
+    // brush per line kind: the same colours, without a control and a brush per line.
+    private static readonly Avalonia.Styling.ThemeVariant DetachedTheme = new Control().ActualThemeVariant;
+    private static IBrush Detached(SwiftColor color) => new Avalonia.Media.Immutable.ImmutableSolidColorBrush(color.Resolve(DetachedTheme));
+    private static readonly IBrush NumberBrush = Detached(Chrome.SecondaryText);
+    private static readonly IBrush AdditionMarker = Detached(SwiftColor.Hex("#34C759"));
+    private static readonly IBrush DeletionMarker = Detached(SwiftColor.Hex("#FF3B30"));
+    private static readonly IBrush OtherMarker = Detached(SwiftColor.Secondary);
+    private static readonly IBrush AdditionBackground = Detached(SwiftColor.Hex("#34C759").Opacity(0.12));
+    private static readonly IBrush DeletionBackground = Detached(SwiftColor.Hex("#FF3B30").Opacity(0.12));
+
     // :437-442, :444-469
     public DiffLineRow(DiffLine line, bool showsLineNumbers, CornerRadius rounding = default)
     {
         var row = new Grid
         {
+            // ED-NEW-lean-17: the columns "30,30,14,*" or "14,*" and the row "Auto", built without parsing the strings per line.
             ColumnDefinitions = showsLineNumbers
-                ? new ColumnDefinitions("30,30,14,*")
-                : new ColumnDefinitions("14,*"),
-            RowDefinitions = new RowDefinitions("Auto"),
+                ? new ColumnDefinitions
+                {
+                    new ColumnDefinition(NumberColumnWidth, GridUnitType.Pixel),
+                    new ColumnDefinition(NumberColumnWidth, GridUnitType.Pixel),
+                    new ColumnDefinition(MarkerColumnWidth, GridUnitType.Pixel),
+                    new ColumnDefinition(1, GridUnitType.Star),
+                }
+                : new ColumnDefinitions
+                {
+                    new ColumnDefinition(MarkerColumnWidth, GridUnitType.Pixel),
+                    new ColumnDefinition(1, GridUnitType.Star),
+                },
+            RowDefinitions = new RowDefinitions { new RowDefinition(GridLength.Auto) },
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
         };
         var column = 0;
@@ -894,7 +929,7 @@ internal sealed class DiffLineRow : Decorator
             Width = MarkerColumnWidth,
             TextAlignment = TextAlignment.Center,
             Foreground = MarkerColor(line.LineKind),
-            FontFamily = new FontFamily("fonts:CascadiaMono#Cascadia Mono"),
+            FontFamily = DiffFaces.Mono,
             FontSize = 11.5,
         };
         Grid.SetColumn(marker, column++);
@@ -909,7 +944,7 @@ internal sealed class DiffLineRow : Decorator
             Foreground = line.LineKind == DiffLine.Kind.Note
                 ? SwiftColor.Secondary.Brush(this)
                 : SwiftColor.Primary.Brush(this),
-            FontFamily = new FontFamily("fonts:CascadiaMono#Cascadia Mono"),
+            FontFamily = DiffFaces.Mono,
             FontSize = 11.5,
         };
         Grid.SetColumn(text, column);
@@ -930,8 +965,8 @@ internal sealed class DiffLineRow : Decorator
         Text = number?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "",
         Width = width,
         TextAlignment = TextAlignment.Right,
-        Foreground = Chrome.SecondaryText.Brush(new Control()),
-        FontFamily = new FontFamily("fonts:CascadiaMono#Cascadia Mono"),
+        Foreground = NumberBrush,
+        FontFamily = DiffFaces.Mono,
         FontSize = 11.5,
     };
 
@@ -956,16 +991,16 @@ internal sealed class DiffLineRow : Decorator
     // :498-503
     private static IBrush MarkerColor(DiffLine.Kind kind) => kind switch
     {
-        DiffLine.Kind.Addition => SwiftColor.Hex("#34C759").Brush(new Control()),
-        DiffLine.Kind.Deletion => SwiftColor.Hex("#FF3B30").Brush(new Control()),
-        _ => SwiftColor.Secondary.Brush(new Control()),
+        DiffLine.Kind.Addition => AdditionMarker,
+        DiffLine.Kind.Deletion => DeletionMarker,
+        _ => OtherMarker,
     };
 
     // :506-511
     private static IBrush Background(DiffLine.Kind kind) => kind switch
     {
-        DiffLine.Kind.Addition => SwiftColor.Hex("#34C759").Opacity(0.12).Brush(new Control()),
-        DiffLine.Kind.Deletion => SwiftColor.Hex("#FF3B30").Opacity(0.12).Brush(new Control()),
+        DiffLine.Kind.Addition => AdditionBackground,
+        DiffLine.Kind.Deletion => DeletionBackground,
         _ => Brushes.Transparent,
     };
 }
