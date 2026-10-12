@@ -48,11 +48,11 @@ public sealed class ProjectPreviewNativeTests(WindowManagerNativeSession native)
             Assert.True(SpinWait.SpinUntil(() => native.OnUi(() => tab.View!.Engine!.IsAttached && !tab.IsLoading), TimeSpan.FromSeconds(15)), "real WebView2 did not attach/navigate");
             var controller = native.OnUi(() => body.Preview!);
             native.OnUi(() => controller.SetDevice(DevicePreset.Phone));
-            controller.WhenIdle.WaitAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
+            native.OnUi(() => controller.WhenIdle).WaitAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
             var result = native.OnUi(() => tab.View!.Cdp!.CallAsync("Runtime.evaluate", new() { ["expression"] = "JSON.stringify([innerWidth,innerHeight,devicePixelRatio])", ["returnByValue"] = true })).WaitAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
             Assert.Equal("[390,844,3]", result.GetProperty("result").GetProperty("value").GetString());
             native.OnUi(() => { controller.SetDevice(DevicePreset.Responsive); controller.BeginResponsive(); controller.ResizeResponsive(412, 860); });
-            controller.WhenIdle.WaitAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
+            native.OnUi(() => controller.WhenIdle).WaitAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
             var region = native.OnUi(() => ((WebView2View)tab.View!.Engine!).PreviewRegion);
             Assert.NotNull(region);
             Assert.Equal(412, controller.Bar.Metrics.Width); Assert.Equal(860, controller.Bar.Metrics.Height);

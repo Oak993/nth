@@ -32,6 +32,9 @@ public sealed class VisusToolbar : Border
 {
     private readonly VisusSession session;
     private readonly VisusPopover moreMenu;
+    private readonly VisusPopover serversMenu;
+    private readonly Button picker;
+    private readonly Button servers;
     private VisusTab? watched;
 
     public VisusToolbar(VisusSession session)
@@ -53,6 +56,10 @@ public sealed class VisusToolbar : Border
         More = new VisusToolbarButton(PaneGlyphKind.More, "Visus menu", null, _ => SetMoreOpen(!moreMenu!.IsOpen));
         moreMenu = new VisusPopover(More, () => new PopoverMenu(BuildMenu));
         Address = new VisusAddressField(session) { Margin = new Thickness(4, 0) };
+        if (!MenuProviders.Contains(ProjectPreviewHost.Menu)) MenuProviders.Add(ProjectPreviewHost.Menu);
+        picker = DevicePresetBar.Action("Pick element", () => session.Perform(VisusCommand.PickElement), new PreviewGlyph("Picker"));
+        servers = DevicePresetBar.Action("Dev servers", () => serversMenu!.SetOpen(!serversMenu.IsOpen));
+        serversMenu = new VisusPopover(servers, () => new PopoverMenu(BuildServers));
         var row = new DockPanel { LastChildFill = true, VerticalAlignment = VerticalAlignment.Center };
         foreach (var button in new[] { Back, Forward, Reload })
         {
@@ -61,8 +68,10 @@ public sealed class VisusToolbar : Border
         }
         DockPanel.SetDock(More, Dock.Right);
         row.Children.Add(More);
+        DockPanel.SetDock(servers, Dock.Right); row.Children.Add(servers);
+        DockPanel.SetDock(picker, Dock.Right); row.Children.Add(picker);
         row.Children.Add(Address);
-        Child = new Panel { Children = { row, moreMenu.Popup } };
+        Child = new Panel { Children = { row, moreMenu.Popup, serversMenu.Popup } };
         AutomationProperties.SetName(this, "Visus toolbar");
         SetValue(AutomationProperties.ControlTypeOverrideProperty, AutomationControlType.ToolBar);
         ActualThemeVariantChanged += (_, _) => ApplyLook();
@@ -100,6 +109,7 @@ public sealed class VisusToolbar : Border
         if (watched is not null) watched.Changed -= Apply;
         watched = null;
         moreMenu.SetOpen(false);
+        serversMenu.SetOpen(false);
         base.OnDetachedFromVisualTree(e);
     }
 
@@ -117,6 +127,8 @@ public sealed class VisusToolbar : Border
     private void Apply()
     {
         var tab = session.Selected;
+        picker.IsVisible = tab?.Kind == VisusTabKind.Preview;
+        servers.IsVisible = session.Runtime?.App is not null;
         Back.IsEnabled = tab?.CanGoBack == true;
         Forward.IsEnabled = tab?.CanGoForward == true;
         Reload.IsEnabled = tab is { IsBlank: false } || tab?.IsLoading == true;
@@ -151,6 +163,19 @@ public sealed class VisusToolbar : Border
     }
 
     private void SetMoreOpen(bool open) => moreMenu.SetOpen(open);
+    private Control BuildServers()
+    {
+        var stack = new StackPanel(); stack.Children.Add(new PopoverSectionHeader("Dev servers"));
+        var all = session.Runtime?.App?.Terminals.AllSessions.Where(s => s.IsRunning).ToArray() ?? [];
+        foreach (var terminal in all)
+            foreach (var address in terminal.PreviewServers)
+            {
+                var chosen = address;
+                stack.Children.Add(new PopoverItem(WebPolicy.SourceName(chosen), () => { serversMenu.SetOpen(false); if (session.Runtime is { } runtime) ProjectPreviewHost.Open(runtime, chosen); }, detail: terminal.Title));
+            }
+        if (stack.Children.Count == 1) stack.Children.Add(new PopoverItem("No dev servers", () => { }, isEnabled: false));
+        return stack;
+    }
 
     /// <summary>The ⋮ menu's rows (null is a divider): the tab commands, what later units add, the page's link, and the update restart.</summary>
     internal IReadOnlyList<VisusMenuEntry?> MenuEntries()

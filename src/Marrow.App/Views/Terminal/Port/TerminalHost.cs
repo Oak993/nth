@@ -374,9 +374,13 @@ public sealed class TerminalHostView : Border
         catch (ObjectDisposedException) { }
     }
 
+    // PORT-ONLY: DESIGN 5.6 / ED-NEW-web-w9-3. Every decoded chunk, before render coalescing, feeds preview detection.
+    public event Action<string>? DecodedOutput;
     private void OnOutput(byte[] bytes)
     {
         if (bytes.Length == 0) return;
+        string decoded;
+        bool post;
         lock (scrollbackGate)
         {
             // A pipe read can end inside a scalar or CSI. Decoder and screen parser retain
@@ -384,11 +388,13 @@ public sealed class TerminalHostView : Border
             var characters = new char[Encoding.UTF8.GetMaxCharCount(bytes.Length)];
             var count = outputDecoder.GetChars(bytes, 0, bytes.Length, characters, 0, flush: false);
             if (count == 0) return;
-            screen.Feed(new string(characters, 0, count));
-            if (outputUpdateQueued) return;
+            decoded = new string(characters, 0, count);
+            screen.Feed(decoded);
+            post = !outputUpdateQueued;
             outputUpdateQueued = true;
         }
-        Dispatcher.UIThread.Post(ApplyOutput, DispatcherPriority.Background);
+        DecodedOutput?.Invoke(decoded);
+        if (post) Dispatcher.UIThread.Post(ApplyOutput, DispatcherPriority.Background);
     }
 
     private void ApplyOutput()

@@ -35,6 +35,7 @@ public enum VisusCommand
     SelectTab7,
     SelectTab8,
     SelectLastTab,
+    PickElement,
 }
 
 /// <summary>DESIGN 3.7: Visus's browser keys.</summary>
@@ -47,6 +48,7 @@ public static class VisusKeys
     // ED-099 scan codes (Set 1; extended keys as 0xE000 | code).
     private static readonly Dictionary<KeyChord, VisusCommand> Table = new()
     {
+        [new KeyChord(0x12, Ctrl | Shift)] = VisusCommand.PickElement,
         [new KeyChord(0x14, Ctrl)] = VisusCommand.NewTab, // Ctrl+T
         [new KeyChord(0x31, Ctrl | Shift)] = VisusCommand.NewPrivateTab, // Ctrl+Shift+N
         [new KeyChord(0x11, Ctrl)] = VisusCommand.CloseTab, // Ctrl+W
@@ -89,6 +91,7 @@ public static class VisusKeys
     public static string? Label(VisusCommand command) => command switch
     {
         VisusCommand.NewTab => "Ctrl+T",
+        VisusCommand.PickElement => "Ctrl+Shift+E",
         VisusCommand.NewPrivateTab => "Ctrl+Shift+N",
         VisusCommand.CloseTab => "Ctrl+W",
         VisusCommand.ReopenClosedTab => "Ctrl+Shift+T",

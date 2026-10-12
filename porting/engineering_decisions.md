@@ -6816,3 +6816,10 @@ ENGINEERING DECISION, 2026-10-12. Owner's lead addition to W9, item 5, DESIGN 5.
 ### ED-NEW-web-w9-6 - interruptible console close
 
 ENGINEERING DECISION, 2026-10-12. DESIGN 0, 5.8 and OD-0076: the console remains visible while its height spring closes and while the browser snapshot is acquired; reversing the toggle preserves the current height. Visibility follows the drawn height, with the closed margin removed only at the settled zero height. A fake Avalonia.Headless TopLevel and fake WebView exercise the close/reverse ordering; real HWND captures and frame pacing remain scheduled Native evidence.
+
+
+### ED-NEW-web-w9-7 - preview layout stability and exact error badge
+
+ENGINEERING DECISION, 2026-10-12. A shown fake preview failed alone twice with an infinite layout loop. The size readout's theme brush is now resolved at construction/theme changes instead of allocating a replacement in every LayoutUpdated placement. The Console toolbar uses a separate 16 DIP error badge, matching approved index.html .badge (line 327) and con2 (line 931), rather than changing the Console label. Headless close/reverse and badge checks remain exact; no existing assertion is loosened.
+
+ED-NEW-web-w9-7 clarification: the preview bar also follows approved index.html 923-931 order (presets, size, icon-only Rotate, flexible space, Reload on save, Console), 13 DIP toggle glyphs, 6 DIP toggle spacing and 10 DIP padding. The badge test's lookup uses the common Panel base instead of assuming StackPanel; its Console label, exact 16 DIP badge and count assertions are unchanged. Demo-only Save a file is not a product action. Send to chat keeps the approved 11 DIP label.

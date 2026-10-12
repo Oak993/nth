@@ -65,6 +65,7 @@ public sealed class VisusPaneBody : Grid
     private readonly Border web;
     private readonly Panel pages = new() { ClipToBounds = true };
     private readonly Dictionary<VisusTab, WebViewHost> hosts = [];
+    private readonly Dictionary<VisusTab, ProjectPreviewBody> previews = [];
     private readonly HashSet<VisusTab> watchedTabs = [];
     private readonly Queue<VisusExternalLaunch> waiting = new();
     private readonly VisusNotice notice = new();
@@ -126,6 +127,8 @@ public sealed class VisusPaneBody : Grid
 
     /// <summary>The page hosts, by tab.</summary>
     public IReadOnlyDictionary<VisusTab, WebViewHost> Hosts => hosts;
+    public ProjectPreviewBody? Preview => Session.Selected is { } tab && previews.TryGetValue(tab, out var preview) ? preview : null;
+    public void RefreshPreview() => Sync();
 
     /// <summary>The start or private surface a tab with no page shows (null while a page shows).</summary>
     public Control? BlankSurface => blankSurface is { IsVisible: true } ? blankSurface : null;
@@ -239,6 +242,7 @@ public sealed class VisusPaneBody : Grid
             if (watchedTabs.Add(tab)) tab.Changed += Sync;
         foreach (var (tab, host) in hosts.Where(pair => !Session.Tabs.Contains(pair.Key) || !ReferenceEquals(pair.Key.View, pair.Value.Surface)).ToList())
         {
+            if (previews.Remove(tab, out var preview)) { preview.Dispose(); pages.Children.Remove(preview); }
             pages.Children.Remove(host);
             hosts.Remove(tab);
         }
@@ -247,10 +251,16 @@ public sealed class VisusPaneBody : Grid
             if (tab.View is not { } view || hosts.ContainsKey(tab)) continue;
             var host = VisusHost.CreateHost(view);
             hosts[tab] = host;
-            pages.Children.Insert(0, host);
+            if (tab.Kind == VisusTabKind.Preview && tab.Preview is not null)
+            {
+                var preview = new ProjectPreviewBody(tab, host); previews[tab] = preview; pages.Children.Insert(0, preview);
+            }
+            else pages.Children.Insert(0, host);
         }
         var selected = Session.Selected;
         foreach (var (tab, host) in hosts) host.IsVisible = ReferenceEquals(tab, selected) && !tab.IsBlank;
+        foreach (var (tab, preview) in previews) preview.IsVisible = ReferenceEquals(tab, selected) && !tab.IsBlank;
+        web.Margin = selected?.Kind == VisusTabKind.Preview ? new Thickness(0) : new Thickness(VisusTokens.Bezel, 0, VisusTokens.Bezel, VisusTokens.Bezel);
         UpdateBlank(selected);
         if (Prompt is { } prompt && (!ReferenceEquals(prompt.Launch.Tab, selected) || !Session.Tabs.Contains(prompt.Launch.Tab))) prompt.Dismiss();
         ApplyLook();

@@ -72,7 +72,7 @@ public sealed class VisusTab
     private bool shown;
     private int faviconRead;
 
-    internal VisusTab(VisusSession session, VisusTabKind kind, string? id = null, string? url = null, string? title = null, double zoom = 1)
+    internal VisusTab(VisusSession session, VisusTabKind kind, string? id = null, string? url = null, string? title = null, double zoom = 1, PreviewState? preview = null)
     {
         this.session = session;
         Kind = kind;
@@ -80,11 +80,15 @@ public sealed class VisusTab
         this.url = url is not null && WebPolicy.IsTopLevelAllowed(url) ? url : WebPolicy.Blank;
         this.title = title ?? "";
         Zoom = zoom;
+        PreviewState = (preview ?? new PreviewState { Preset = ProjectPreviewHost.DefaultDevice(), ReloadOnSave = ProjectPreviewHost.ReloadOnSave() }).Normalized();
     }
 
     public string Id { get; }
 
     public VisusTabKind Kind { get; }
+    public PreviewState PreviewState { get; private set; }
+    public ProjectPreviewRuntime? Preview { get; private set; }
+    public void SetPreviewState(PreviewState state) { PreviewState = state.Normalized(); session.TabStateChanged(); }
 
     /// <summary>The web view, once the tab has had a page to show (a new tab has none).</summary>
     public WebSurfaceView? View => view;
@@ -137,7 +141,7 @@ public sealed class VisusTab
     public event Action? Changed;
 
     /// <summary>The saveable form (3.11).</summary>
-    public VisusTabState State => new(Id, Kind, Url, title, Zoom);
+    public VisusTabState State => new(Id, Kind, Url, title, Zoom) { Preview = Kind == VisusTabKind.Preview ? PreviewState : null };
 
     /// <summary>Opens <paramref name="address"/> (an allowed page address; the address field resolved it) in this tab.</summary>
     public void Open(string address) => Open(address, restoring: false);
@@ -162,6 +166,11 @@ public sealed class VisusTab
         {
             view = VisusHost.Surface.Open(SurfaceKind(Kind), session.WindowId, address, session.ThreadFolder);
             Hook(view);
+            if (Kind == VisusTabKind.Preview)
+            {
+                Preview = new ProjectPreviewRuntime(this, session.Runtime);
+                ProjectPreviewHost.RestoreSite(this, session.Runtime);
+            }
             if (Zoom != 1 && view.Engine is { } engine) engine.Zoom = Zoom;
             view.SetShown(shown);
         }
@@ -295,6 +304,7 @@ public sealed class VisusTab
     internal void Release()
     {
         if (view is not { } released) return;
+        Preview?.Dispose(); Preview = null;
         Unhook(released);
         view = null;
         VisusHost.Surface.Close(released);

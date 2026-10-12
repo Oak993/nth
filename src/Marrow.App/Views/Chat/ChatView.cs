@@ -2090,6 +2090,9 @@ internal sealed class ScriptsMenu : Decorator
             stack.Children.Add(new PopoverDivider()); // :1450
         }
         // :1452-1454,1456-1463 editor presentation through R-VIEW-9.
+        // PORT-ONLY: DESIGN 5.6, ED-NEW-web-w9-3. Explicit gesture also opens rooted static projects.
+        if (Marrow.App.Views.Browser.ProjectPreviewHost.CanOpen(model, project, runtime))
+            stack.Children.Add(new PopoverItem("Open preview", () => Marrow.App.Views.Browser.ProjectPreviewHost.Open(model, project, runtime), symbol: "globe"));
         stack.Children.Add(new PopoverItem(
             project.Scripts.Count == 0 ? "Add a script…" : "Edit scripts…",
             () => MainActor.Post(() => PresentScriptsEditor(model, project.Id, anchor ?? stack)),
@@ -2564,6 +2567,10 @@ internal sealed class ScriptsEditor : Decorator
             UpdateSaveState();
         };
 
+        // PORT-ONLY: DESIGN 5.6, ED-NEW-web-w9-3. Empty stays null, preserving older script JSON.
+        var previewField = new TextBox { Text = script.PreviewUrl ?? "", PlaceholderText = "Preview URL (optional)" };
+        ChatDialogControls.TextEditor(previewField, style: "RoundedBorder");
+        previewField.PropertyChanged += (_, e) => { if (e.Property == TextBox.TextProperty) Update(script.Id, s => s with { PreviewUrl = string.IsNullOrWhiteSpace(previewField.Text) ? null : previewField.Text.Trim() }); };
         var worktreeToggle = new CheckBox { Content = "Run when a worktree is created", IsChecked = script.RunOnWorktreeCreate }; // :1692-1693
         ChatDialogControls.Checkbox(worktreeToggle);
         fields[script.Id] = (nameField, commandField, worktreeToggle);
@@ -2573,7 +2580,7 @@ internal sealed class ScriptsEditor : Decorator
         {
             HorizontalAlignment = HorizontalAlignment.Stretch, // :1670 VStack(alignment: .leading) inside a card that fills the scroll area: its fields are flexible and take the card's width
             Spacing = 8, // :1670
-            Children = { top, commandFrame, worktreeToggle },
+            Children = { top, commandFrame, previewField, worktreeToggle },
             Margin = new Thickness(14), // :1695
         };
         return new ChromeCard(() => body); // :1669

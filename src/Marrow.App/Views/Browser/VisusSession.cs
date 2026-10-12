@@ -18,6 +18,7 @@ public sealed class VisusSession
     private readonly List<VisusTab> tabs = [];
     private readonly Stack<(VisusTabState State, int Index)> closed = new();
     private readonly ThreadRuntime? runtime;
+    internal ThreadRuntime? Runtime => runtime;
     private VisusTab? selected;
     private bool visible;
     private bool restoring;
@@ -149,7 +150,7 @@ public sealed class VisusSession
     {
         if (closed.Count == 0) return false;
         var (state, index) = closed.Pop();
-        var tab = new VisusTab(this, state.Kind, url: state.Url, title: state.Title, zoom: state.Zoom);
+        var tab = new VisusTab(this, state.Kind, url: state.Url, title: state.Title, zoom: state.Zoom, preview: state.Preview);
         tabs.Insert(Math.Clamp(index, 0, tabs.Count), tab);
         selected = tab;
         tab.Reopen();
@@ -230,6 +231,10 @@ public sealed class VisusSession
         var tab = from ?? selected;
         switch (command)
         {
+            case VisusCommand.PickElement:
+                if (tab?.Kind != VisusTabKind.Preview || tab.Preview?.Picker is not { } picker) return false;
+                _ = picker.SetEnabledAsync(!picker.Enabled);
+                return true;
             case VisusCommand.NewTab:
                 NewTab(VisusTabKind.Browse);
                 return true;
@@ -388,7 +393,7 @@ public sealed class VisusSession
         {
             foreach (var state in saved.Normalized().Tabs)
             {
-                tabs.Add(new VisusTab(this, state.Kind, state.Id, state.Url, state.Title, state.Zoom));
+                tabs.Add(new VisusTab(this, state.Kind, state.Id, state.Url, state.Title, state.Zoom, state.Preview));
             }
             selected = tabs.FirstOrDefault(tab => tab.Id == saved.SelectedId) ?? tabs.FirstOrDefault();
         }

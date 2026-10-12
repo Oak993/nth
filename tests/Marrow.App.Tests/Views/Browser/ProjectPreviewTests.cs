@@ -2,6 +2,10 @@ using Avalonia.Controls;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Browser;
 using Marrow.Core.Web;
+using Marrow.Core.Port;
+using Marrow.UI.Port;
+using Marrow.Testing;
+using Avalonia.Threading;
 
 namespace Marrow.App.Tests.Views.Browser;
 
@@ -9,6 +13,49 @@ namespace Marrow.App.Tests.Views.Browser;
 [Trait("Decision", "ED-NEW-web-w9-3")]
 public sealed class ProjectPreviewTests(HeadlessSession headless)
 {
+    [Fact]
+    public void Closing_console_keeps_the_error_badge_separate_from_the_label() => headless.OnUiThread(() =>
+    {
+        using var rig = new VisusRig();
+        var tab = rig.Page("http://localhost:5173/", VisusTabKind.Preview);
+        var page = VisusRig.Live(tab);
+        page.EmitCdp("Runtime.consoleAPICalled", "{\"type\":\"error\",\"args\":[{\"value\":\"fixture\"}]}");
+        page.EmitCdp("Runtime.exceptionThrown", "{\"exceptionDetails\":{\"text\":\"fixture\"}}");
+        var body = new VisusPaneBody(rig.Session); var preview = body.Preview!;
+        preview.ToggleConsole(); preview.Bar.Refresh();
+        var row = (Panel)((ScrollViewer)preview.Bar.Child!).Content!;
+        var button = row.Children.OfType<Button>().Single(b => Avalonia.Automation.AutomationProperties.GetName(b) == "Console");
+        var label = Assert.IsType<StackPanel>(button.Content);
+        Assert.Equal("Console", Assert.Single(label.Children.OfType<TextBlock>()).Text);
+        var badge = Assert.Single(label.Children.OfType<Border>());
+        Assert.Equal(16, badge.Height); Assert.Equal("2", Assert.IsType<TextBlock>(badge.Child).Text);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-web-w9-6")]
+    public void Closing_console_keeps_the_drawer_visible_until_the_height_transition_can_run_and_can_reverse() => headless.OnUiThread(() =>
+    {
+        using var rig = new VisusRig();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var clock = SwiftClock.Provider.Override(rig.Time);
+        using var motion = Marrow.UI.Chrome.Chrome.ReduceMotionPlatform.Override(new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = false });
+        rig.Page("http://localhost:5173/", VisusTabKind.Preview);
+        var body = new VisusPaneBody(rig.Session);
+        // Avalonia.Headless owns this fake TopLevel; no native HWND or real window is created.
+        var window = new Avalonia.Controls.Window { Width = 1000, Height = 800, Content = body };
+        try
+        {
+            window.Show(); Dispatcher.UIThread.RunJobs();
+            var preview = body.Preview!; Assert.True(preview.Drawer.IsVisible);
+            preview.ToggleConsole();
+            Assert.False(preview.Drawer.State.Open);
+            Assert.True(preview.Drawer.IsVisible); Assert.True(preview.Drawer.Height > 0);
+            preview.ToggleConsole();
+            Assert.True(preview.Drawer.State.Open); Assert.True(preview.Drawer.IsVisible);
+        }
+        finally { window.Close(); }
+    });
+
     [Fact]
     public void Preview_tabs_have_the_bar_drawer_and_shared_splitters_browse_tabs_do_not() => headless.OnUiThread(() =>
     {
@@ -26,5 +73,19 @@ public sealed class ProjectPreviewTests(HeadlessSession headless)
         // Sync on an unattached body is explicit; no real/native window is used.
         body.RefreshPreview(); Assert.Null(body.Preview);
         rig.Session.Select(tab); body.RefreshPreview(); Assert.NotNull(body.Preview);
+    });
+
+    [Fact]
+    public void Preview_settings_survive_close_reopen_and_picker_chord_is_claimed() => headless.OnUiThread(() =>
+    {
+        using var rig = new VisusRig();
+        var tab = rig.Page("http://localhost:5173/", VisusTabKind.Preview);
+        var body = new VisusPaneBody(rig.Session);
+        body.Preview!.SetDevice(DevicePreset.Responsive);
+        body.Preview.ResizeResponsive(412, 860); body.Preview.EndResponsive();
+        Assert.Equal(412, tab.State.Preview!.Width); Assert.Equal(860, tab.State.Preview.Height);
+        rig.Session.Close(tab); Assert.True(rig.Session.ReopenClosed());
+        Assert.Equal(412, rig.Session.Selected!.State.Preview!.Width);
+        Assert.Equal(VisusCommand.PickElement, VisusKeys.CommandFor(new Marrow.Core.Models.KeyChord(0x12, Marrow.Core.Port.ChordModifiers.Control | Marrow.Core.Port.ChordModifiers.Shift)));
     });
 }

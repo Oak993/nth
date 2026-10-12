@@ -3,6 +3,8 @@ using Marrow.App.Views.Terminal.Port;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
+using Marrow.Core.Web;
+using Marrow.Services.Web;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 
@@ -36,6 +38,48 @@ public sealed class TerminalSession : MainActorModel
     private bool isRunning = true;
     public bool IsRunning { get => Read(isRunning); private set => Set(ref isRunning, value); }
 
+    // PORT-ONLY: DESIGN 5.6; ED-NEW-web-w9-3. Detection runs off the terminal decoder; only discoveries post to the main actor.
+    private readonly object previewGate = new();
+    private readonly DevServerDetector detector = new(lanAddresses: PreviewDiscovery.MachineAddresses());
+    private readonly CancellationTokenSource previewStop = new();
+    private string? explicitPreview;
+    private string? previewUrl;
+    public string? PreviewUrl { get => Read(previewUrl); private set => Set(ref previewUrl, value); }
+    public IReadOnlyList<string> PreviewServers { get { lock (previewGate) return detector.Servers.ToArray(); } }
+    public Action? OpenPreview { get; set; }
+    public event Action<TerminalSession>? PreviewFound;
+    private void PreviewOutput(string chunk)
+    {
+        lock (previewGate) detector.Feed(chunk);
+    }
+    private void PublishPreview()
+    {
+        string? address;
+        lock (previewGate) address = explicitPreview ?? detector.Primary;
+        if (!IsRunning || address is null || PreviewUrl == address) return;
+        PreviewUrl = address; PreviewFound?.Invoke(this);
+    }
+    internal void ConfigurePreview(string? preview)
+    {
+        explicitPreview = DevServerDetector.ValidExplicit(preview);
+        lock (previewGate) if (explicitPreview is not null) detector.Offer([explicitPreview]);
+        PublishPreview();
+        if (explicitPreview is null) _ = DiscoverPorts();
+    }
+    private async Task DiscoverPorts()
+    {
+        try
+        {
+            for (var attempt = 0; attempt < 60 && !previewStop.IsCancellationRequested; attempt++)
+            {
+                var urls = await Task.Run(() => new PreviewDiscovery().FindAsync(View.ProcessId, cancellationToken: previewStop.Token), previewStop.Token);
+                lock (previewGate) detector.Offer(urls);
+                await Task.Delay(500, previewStop.Token);
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
     // :14 @ObservationIgnored let view: LocalProcessTerminalView -- Swift's default (module-wide) access, needed by
     // the future terminal-panel host view that embeds it (not part of this unit); R-NAME-6.
     // PORT-ONLY type: Views/Terminal/Port/TerminalHost.cs (SwiftTerm has no Windows twin).
@@ -53,6 +97,8 @@ public sealed class TerminalSession : MainActorModel
         this.title = title;
         // :21 view = LocalProcessTerminalView(frame: NSRect(x: 0, y: 0, width: 640, height: 240))
         View = new TerminalHostView();
+        detector.Changed += () => MainActor.Post(PublishPreview);
+        View.DecodedOutput += PreviewOutput;
         // :22 view.font = TerminalFont.preferred()
         View.Font = TerminalFont.Preferred();
         // :23 view.optionAsMetaKey = true
@@ -119,6 +165,7 @@ public sealed class TerminalSession : MainActorModel
     {
         // :60
         if (!IsRunning) return;
+        previewStop.Cancel(); View.DecodedOutput -= PreviewOutput;
         EndedAt = SwiftDate.Now; // PORT-ONLY (web W5)
         EndedByUser = true;
         // :61
@@ -145,6 +192,7 @@ public sealed class TerminalSession : MainActorModel
     // internal (the narrowest level TerminalBridge, also internal, can call).
     internal void ProcessEnded()
     {
+        previewStop.Cancel(); View.DecodedOutput -= PreviewOutput;
         // :79
         EndedAt ??= SwiftDate.Now; // PORT-ONLY (web W5)
         IsRunning = false;
@@ -194,6 +242,9 @@ internal sealed class TerminalBridge : ITerminalProcessDelegate
 /// <summary>:103-176</summary>
 public sealed class TerminalStore : MainActorModel
 {
+    // PORT-ONLY: W9 / ED-NEW-web-w9-3, the app binds automatic preview opening and the cross-terminal toolbar menu.
+    public event Action<TerminalSession>? PreviewReady;
+    public IReadOnlyList<TerminalSession> AllSessions => SessionsByThread.Values.SelectMany(list => list).ToArray();
     // :106 private(set) var sessions: [UUID: [TerminalSession]] -- exposed only through Sessions(threadID) (:109);
     // the stored property and the method cannot share one C# name (R-NAME-2).
     private ValueMap<Guid, ValueList<TerminalSession>> sessionsByThread = ValueMap<Guid, ValueList<TerminalSession>>.Empty;
@@ -228,6 +279,7 @@ public sealed class TerminalStore : MainActorModel
         var number = Sessions(threadID).Count + 1;
         // :121
         var session = new TerminalSession(threadID, directory, title ?? $"Terminal {number}", command);
+        session.PreviewFound += terminal => PreviewReady?.Invoke(terminal);
         // :122
         SessionsByThread = SessionsByThread.Mutating(map =>
         {
@@ -241,8 +293,11 @@ public sealed class TerminalStore : MainActorModel
     }
 
     // :127-129
-    public void Run(ProjectScript script, Guid threadID, string directory) =>
-        Open(threadID, directory, title: script.Name, command: script.Command);
+    public void Run(ProjectScript script, Guid threadID, string directory)
+    {
+        var session = Open(threadID, directory, title: script.Name, command: script.Command);
+        session.ConfigurePreview(script.PreviewUrl);
+    }
 
     // :131-135
     public void EnsureTerminal(Guid threadID, string directory)
@@ -259,6 +314,7 @@ public sealed class TerminalStore : MainActorModel
         session.Terminate();
         // :142-147
         var fresh = new TerminalSession(session.ThreadID, session.Directory, session.Title, command: null);
+        fresh.PreviewFound += terminal => PreviewReady?.Invoke(terminal);
         // :148-152
         SessionsByThread = SessionsByThread.Mutating(map =>
         {

@@ -460,6 +460,11 @@ internal sealed class TerminalTab : Border
         SwiftFont.Callout.Apply(title); // :172 .font(.callout), inherited by the title
         title.Foreground = (isSelected ? SwiftColor.Primary : SwiftColor.Secondary).Brush(title); // :175
         row.Children.Add(title);
+        // PORT-ONLY: DESIGN 5.6, ED-NEW-web-w9-3. The discovered address is an explicit Open preview gesture.
+        var preview = new Button { FontSize = 11, Padding = new Thickness(6, 2), CornerRadius = new CornerRadius(5), Background = Chrome.PrimaryText.Opacity(.08).Brush(this), BorderThickness = new Thickness(0) };
+        preview.Click += (_, e) => { session.OpenPreview?.Invoke(); e.Handled = true; };
+        void PreviewReady(string? address) { preview.IsVisible = address is not null; preview.Content = "Preview ready · " + Marrow.Core.Web.WebPolicy.SourceName(address ?? ""); }
+        PreviewReady(session.PreviewUrl); this.Track(() => session.PreviewUrl, PreviewReady); row.Children.Add(preview);
 
         restartButton = IconAction("arrow.clockwise", "Start a new shell in this tab", restart);
 
