@@ -72,6 +72,17 @@ public sealed partial class MissionRunner
         Log(record, thread, "instructions", read, $"found in {TaintGates.OriginWord(found.Source.Origin)} ({found.Finding.Pattern}); ignored");
     }
 
+    /// <summary>
+    /// A chat of the mission sent the helper it opened a new prompt (AppModel.SpawnSubagent reusing it): the parent
+    /// wrote it, so the helper carries the parent's taint as it is now, not only as it was when the helper opened
+    /// (12.4 "Taint follows text"; ED-NEW-dextra-as7-15).
+    /// </summary>
+    public void HelperPrompted(Guid parent, Guid helper)
+    {
+        if (MissionOf(helper) is not { } record || MissionOf(parent)?.Id != record.Id) return;
+        Inherit(record.Id, parent, helper);
+    }
+
     private Taint TaintOfAgent(Guid mission, Guid thread) =>
         Find(mission)?.AgentTaint.GetValueOrDefault(thread) ?? Taint.Clean;
 

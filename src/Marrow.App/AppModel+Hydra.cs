@@ -566,7 +566,7 @@ public sealed partial class AppModel
     {
         if (head.Hydra is not { HydraHeadInfoKind: HydraHeadInfo.Kind.Droppy } info)
         {
-            if (head.MissionID is not null) Dextra?.OnHeadFinished(head.Id, status); // PORT-ONLY (Dextra AS-5): its gate slot is freed
+            DextraHeadFinished(head, status); // PORT-ONLY (Dextra AS-5, AS-7): its gate slot is freed, its taint reaches its lead
             return;
         }
         var runtime = Runtime(head.Id);
@@ -624,7 +624,7 @@ public sealed partial class AppModel
 
         // PORT-ONLY (Dextra AS-5): the head is done (a launch failure Hydra retries above keeps its slot): its gate slot is
         // freed and it counts as finished in its mission.
-        if (head.MissionID is not null) Dextra?.OnHeadFinished(head.Id, status);
+        DextraHeadFinished(head, status);
         MainActor.Spawn(async () =>
         {
             HydraLanding? landing = null;

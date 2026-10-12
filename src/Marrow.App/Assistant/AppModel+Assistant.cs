@@ -82,6 +82,10 @@ public sealed partial class AppModel
             PersonalDataRecipients = personalDataRecipients ?? (() => []),
             Allowlist = allowlist ?? (() => []),
             InstructionFound = (thread, source, finding) => AssistantTaps.TapInstructionFound(thread, source, finding),
+            // AS-7 (ED-NEW-dextra-as7-14): the home chats' taint survives a restart; StartDextra runs after the library loads.
+            LoadHomeTaint = store.HomeTaint,
+            SaveHomeTaint = store.SaveHomeTaint,
+            HomeChats = () => [.. Threads.Where(t => t.AssistantID is not null && t.MissionID is null).Select(t => t.Id)],
         });
         controller.Runner.Load(store.Missions().Select(stored => MissionJournal.FromJson(stored.Body)).OfType<MissionRecord>());
         BindDextra(controller);
@@ -137,8 +141,23 @@ public sealed partial class AppModel
     /// <summary>ThreadRuntime's send taps (AS-7): the owner's own message starts a fresh, untainted turn in Dextra's home chat.</summary>
     internal void DextraOwnerMessage(Guid thread) => Dextra?.OwnerMessage(thread);
 
-    /// <summary>Hydra seam 3: a head under a mission's lead is the mission's agent too.</summary>
+    /// <summary>A parent sent its open helper a new prompt (AS-7, ED-NEW-dextra-as7-15): the helper carries the parent's taint.</summary>
+    internal void DextraHelperPrompted(ChatThread parent, ChatThread helper)
+    {
+        if (helper.MissionID is not null) Dextra?.OnHelperPrompted(parent, helper);
+    }
+
+    /// <summary>Hydra seam 3: a head under a mission's lead is the mission's agent too; a head of the home chat carries its taint.</summary>
     internal void DextraHeadAdded(ChatThread lead, ChatThread head) => Dextra?.OnHeadAdded(lead, head);
+
+    /// <summary>
+    /// A head of a Dextra chat is done: a mission's frees its gate slot; the home chat's hands its lead its taint with its
+    /// report (AS-7, ED-NEW-dextra-as7-13).
+    /// </summary>
+    internal void DextraHeadFinished(ChatThread head, TurnStatus status)
+    {
+        if (head.MissionID is not null || head.AssistantID is not null) Dextra?.OnHeadFinished(head.Id, status);
+    }
 
     /// <summary>A head of a mission waits at the agent gate before its chat starts; at once for any other head.</summary>
     internal Task DextraAdmitHead(ChatThread head) =>

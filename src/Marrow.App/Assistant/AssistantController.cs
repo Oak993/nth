@@ -67,6 +67,24 @@ public sealed class AssistantControllerOptions
 
     /// <summary>An agent found instructions in untrusted content (the feed's tap: "Found instructions in ...; ignored").</summary>
     public Action<Guid, TaintSource, InstructionFinding>? InstructionFound { get; init; }
+
+    /// <summary>
+    /// The home chats' taint as nth last saved it (AS-7, ED-NEW-dextra-as7-14); null when none was saved. A throw counts
+    /// as a record nth cannot read (fail closed). Null: the taint is kept in memory only.
+    /// </summary>
+    public Func<JsonObject?>? LoadHomeTaint { get; init; }
+
+    /// <summary>Saves the home chats' taint after each change (a small atomic write); a throw is reported, the taint stands.</summary>
+    public Action<JsonObject>? SaveHomeTaint { get; init; }
+
+    /// <summary>The home chats nth has now (Dextra's chats in no mission), read only when the saved taint cannot be.</summary>
+    public Func<IReadOnlyList<Guid>> HomeChats { get; init; } = () => [];
+
+    /// <summary>Where untrusted output is read for instructions (AS-7, ED-NEW-dextra-as7-17): off the main thread, one at a time.</summary>
+    public Action<Action> ScanOn { get; init; } = AssistantController.SerialScanner();
+
+    /// <summary>How long an nth-dextra call waits for the main thread to take in the chat's earlier events (ED-NEW-dextra-as7-18).</summary>
+    public TimeSpan SettleWait { get; init; } = TimeSpan.FromSeconds(10);
 }
 
 public sealed partial class AssistantController : IAssistantToolHost, IDisposable
@@ -101,6 +119,7 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
             Deliver = Deliver,
         });
         WatchAutoAnswer();
+        LoadHomeTaint();
     }
 
     public DecisionQueue Queue { get; }
@@ -160,10 +179,21 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
         if (!continues) Flush(thread);
     }
 
-    public void OnHeadAdded(ChatThread lead, ChatThread head) => Runner.HeadAdded(lead.Id, head.Id, head.Hydra?.DisplayName ?? head.Title ?? "A head",
-        native: head.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Native);
+    public void OnHeadAdded(ChatThread lead, ChatThread head)
+    {
+        Runner.HeadAdded(lead.Id, head.Id, head.Hydra?.DisplayName ?? head.Title ?? "A head",
+            native: head.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Native);
+        HomeHeadAdded(lead, head); // AS-7: a head of the home chat starts with its lead's taint
+    }
 
-    public void OnHeadFinished(Guid head, TurnStatus status) => Runner.HeadFinished(head, status);
+    public void OnHeadFinished(Guid head, TurnStatus status)
+    {
+        Runner.HeadFinished(head, status);
+        HomeHeadFinished(head); // AS-7: a head of the home chat hands its lead its taint with its report
+    }
+
+    /// <summary>A mission chat sent its open helper a new prompt (AS-7): the helper carries what the parent carries now.</summary>
+    public void OnHelperPrompted(ChatThread parent, ChatThread helper) => Runner.HelperPrompted(parent.Id, helper.Id);
 
     /// <summary>A helper chat a mission's chat opened: false when it is no running mission's, and then it does not open.</summary>
     public bool OnHelperAdded(ChatThread parent, ChatThread helper) => Runner.HelperAdded(parent.Id, helper.Id);

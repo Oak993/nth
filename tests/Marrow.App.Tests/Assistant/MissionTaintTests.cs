@@ -120,6 +120,33 @@ public sealed class MissionTaintTests
     }
 
     [Fact]
+    [Trait("Decision", "ED-NEW-dextra-as7-15")]
+    public void A_helper_opened_while_its_parent_was_clean_carries_the_parents_later_taint_with_each_new_prompt()
+    {
+        using var rig = new DextraTaintRig();
+        var record = rig.Mission();
+        var lead = rig.Chats[record.LeadThread!.Value];
+        var helper = rig.Chat(Guid.NewGuid(), record, "Helper");
+        Assert.True(rig.Controller.OnHelperAdded(lead, helper));
+        Assert.False(rig.Controller.Runner.TaintOf(record.Id, helper.Id).IsTainted);
+
+        // The lead reads a hostile page, then sends its open helper a new prompt it wrote.
+        rig.Tool(lead.Id, ToolCall.Kind.Web, "https://hostile.example/page");
+        Assert.False(rig.Controller.Runner.TaintOf(record.Id, helper.Id).IsTainted);
+        rig.Controller.OnHelperPrompted(lead, helper);
+        Assert.Equal([ContentOrigin.Web], rig.Controller.Runner.TaintOf(record.Id, helper.Id).Taint.Sources.Select(s => s.Origin));
+        Assert.True(rig.Ask(helper.Id, "r1", "dotnet test"));
+        Assert.Equal(Tainted, Assert.Single(rig.Controller.Queue.Of(record.Id)).Rule);
+
+        // A chat of another mission is no parent of it.
+        var other = rig.Mission("Another");
+        var stranger = rig.Chats[other.LeadThread!.Value];
+        rig.Tool(stranger.Id, ToolCall.Kind.Read, Path.Combine(rig.Project.Path, "statement.pdf"));
+        rig.Controller.OnHelperPrompted(stranger, helper);
+        Assert.DoesNotContain(ContentOrigin.Pdf, rig.Controller.Runner.TaintOf(record.Id, helper.Id).Taint.Sources.Select(s => s.Origin));
+    }
+
+    [Fact]
     public void The_home_chats_taint_lasts_until_the_owners_own_message_and_a_mission_agents_does_not_end_with_one()
     {
         using var rig = new DextraTaintRig();

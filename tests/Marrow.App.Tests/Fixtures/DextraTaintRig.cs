@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Marrow.App.Assistant;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -12,7 +13,9 @@ namespace Marrow.App.Tests.Fixtures;
 /// <summary>
 /// Dextra AS-7: the controller over fake chats with the real classifier, engine and privacy check, and an auto-answer
 /// switch that has settled (passed unless the test says otherwise). "dotnet test" is on the owner's allowlist. It
-/// records the audit lines and the instructions found, and makes provider events for the chats it knows.
+/// records the audit lines and the instructions found, and makes provider events for the chats it knows. The home chats'
+/// taint is saved to <see cref="Saved"/> and read from <c>load</c>; untrusted output is read for instructions at once, or
+/// held in <see cref="HeldScans"/> while <see cref="HoldScans"/> is set.
 /// </summary>
 internal sealed class DextraTaintRig : IDisposable
 {
@@ -20,8 +23,10 @@ internal sealed class DextraTaintRig : IDisposable
 
     private readonly AssistantTempRoot temp = new();
 
-    public DextraTaintRig(bool autoAnswer = true, Func<InjectionReport>? check = null)
+    public DextraTaintRig(bool autoAnswer = true, Func<InjectionReport>? check = null, Func<JsonObject?>? load = null,
+        IEnumerable<ChatThread>? chats = null, TimeProvider? time = null)
     {
+        foreach (var chat in chats ?? []) Chats[chat.Id] = chat;
         Project = new MissionProject(MissionRig.Project, "App", Path.Combine(temp.Folder, "owner"));
         Workspaces = new FakeWorkspaces(Path.Combine(temp.Folder, "worktrees"));
         Switch = autoAnswer ? AutoAnswerSwitch.AfterCorpus(check ?? (() => Pass)) : AutoAnswerSwitch.Off;
@@ -48,7 +53,59 @@ internal sealed class DextraTaintRig : IDisposable
             {
                 lock (Found) Found.Add((thread, source, finding));
             },
+            LoadHomeTaint = load ?? (() => null),
+            SaveHomeTaint = body =>
+            {
+                if (SaveFails) throw new IOException("The store's disk is full.");
+                lock (Saved) Saved.Add((JsonObject)body.DeepClone());
+            },
+            HomeChats = () => [.. Chats.Values.Where(c => c.AssistantID is not null && c.MissionID is null).Select(c => c.Id)],
+            ScanOn = work =>
+            {
+                if (HoldScans) lock (HeldScans) HeldScans.Add(work);
+                else work();
+            },
+            Time = time ?? TimeProvider.System,
         });
+    }
+
+    /// <summary>The home chats' taint as the controller saved it, in order.</summary>
+    public List<JsonObject> Saved { get; } = [];
+
+    /// <summary>When set, saving the home chats' taint fails.</summary>
+    public bool SaveFails { get; set; }
+
+    /// <summary>When set, reading untrusted output for instructions waits in <see cref="HeldScans"/> (off the main thread).</summary>
+    public bool HoldScans { get; set; }
+
+    public List<Action> HeldScans { get; } = [];
+
+    /// <summary>Runs the held reads, in order.</summary>
+    public void RunScans()
+    {
+        List<Action> work;
+        lock (HeldScans)
+        {
+            work = [.. HeldScans];
+            HeldScans.Clear();
+        }
+        foreach (var item in work) item();
+    }
+
+    /// <summary>A head of a chat as Hydra makes one: Dextra's when its lead is, in the lead's mission if any.</summary>
+    public ChatThread HeadOf(ChatThread lead)
+    {
+        var head = MissionRig.NewChat(() => new ChatThread(Project.Id, ProviderKind.Claude, "model-a", null, lead.RuntimeMode)
+        {
+            ParentThreadID = lead.Id,
+            IsInPanel = true,
+            Title = "Head",
+            Hydra = new HydraHeadInfo(1, "Head", HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated),
+            MissionID = lead.MissionID,
+            AssistantID = lead.AssistantID,
+        });
+        Chats[head.Id] = head;
+        return head;
     }
 
     public MissionProject Project { get; }

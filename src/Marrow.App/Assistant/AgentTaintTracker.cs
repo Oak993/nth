@@ -2,8 +2,9 @@
 // ED-NEW-dextra-as7-7). No Swift twin. What one Dextra chat's tool calls bring in, read from its provider events: each
 // call is placed by TaintWiring when it starts (and again when the provider fills in its kind, title or detail), so the
 // chat is tainted before the call's output reaches the model. A head's own calls (AgentEvent) count as the chat's. The
-// output of a call that taints is kept, bounded, and read for instructions when the call ends. Main thread only, like
-// ThreadRuntime.Handle that feeds it; every buffer and count is capped.
+// output of a call that taints is kept, bounded, and handed back when the call ends, to be read for instructions off the
+// main thread (ED-NEW-dextra-as7-17). Main thread only, like ThreadRuntime.Handle that feeds it; every buffer and count
+// is capped.
 using System.Text;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -18,10 +19,20 @@ public sealed record TaintStep(Taint Taint, bool WritesFiles);
 /// <summary>Instructions found in the output of a call that read untrusted content, with that call's source.</summary>
 public sealed record InstructionsFound(InstructionFinding Finding, TaintSource Source);
 
-/// <summary>What one provider event brought in.</summary>
-public sealed record TaintObservation(IReadOnlyList<TaintStep> Steps, IReadOnlyList<InstructionsFound> Found)
+/// <summary>The bounded output of a call that read untrusted content, still to be read for instructions.</summary>
+public sealed record UntrustedOutput(string Text, TaintSource Source)
+{
+    /// <summary>Reads it for instructions (up to the scanner's time limits: keep it off the main thread).</summary>
+    public InstructionsFound? Scan() => InstructionScanner.Find(Text) is { } finding ? new InstructionsFound(finding, Source) : null;
+}
+
+/// <summary>What one provider event brought in: the calls' taint, and the outputs to read for instructions.</summary>
+public sealed record TaintObservation(IReadOnlyList<TaintStep> Steps, IReadOnlyList<UntrustedOutput> Outputs)
 {
     public static TaintObservation None { get; } = new([], []);
+
+    /// <summary>Reads every output now, on the caller's thread (the tests; the controller reads them off the main thread).</summary>
+    public IReadOnlyList<InstructionsFound> ScanNow() => [.. Outputs.Select(o => o.Scan()).OfType<InstructionsFound>()];
 }
 
 public sealed class AgentTaintTracker
@@ -60,22 +71,22 @@ public sealed class AgentTaintTracker
         ArgumentNullException.ThrowIfNull(@event);
         ArgumentNullException.ThrowIfNull(context);
         var steps = new List<TaintStep>();
-        var found = new List<InstructionsFound>();
+        var found = new List<UntrustedOutput>();
         Observe(thread, "", @event, context, provider, steps, found, 0);
         return steps.Count == 0 && found.Count == 0 ? TaintObservation.None : new TaintObservation(steps, found);
     }
 
-    /// <summary>The chat's turn ended or it is gone: what its open calls returned is read, and they are let go.</summary>
-    public IReadOnlyList<InstructionsFound> Close(Guid thread)
+    /// <summary>The chat's turn ended or it is gone: what its open calls returned is handed back, and they are let go.</summary>
+    public IReadOnlyList<UntrustedOutput> Close(Guid thread)
     {
         if (!chats.Remove(thread, out var calls)) return [];
-        var found = new List<InstructionsFound>();
+        var found = new List<UntrustedOutput>();
         foreach (var call in calls.Values.OrderBy(c => c.Order)) Read(call, found);
         return found;
     }
 
     private void Observe(Guid thread, string prefix, ProviderEvent @event, Func<ClassifierContext> context, ProviderKind provider,
-        List<TaintStep> steps, List<InstructionsFound> found, int depth)
+        List<TaintStep> steps, List<UntrustedOutput> found, int depth)
     {
         switch (@event)
         {
@@ -160,7 +171,7 @@ public sealed class AgentTaintTracker
         return calls;
     }
 
-    private static void Evict(Dictionary<string, Call> calls, List<InstructionsFound> found)
+    private static void Evict(Dictionary<string, Call> calls, List<UntrustedOutput> found)
     {
         while (calls.Count > OpenCalls)
         {
@@ -185,12 +196,12 @@ public sealed class AgentTaintTracker
         if (call.Tail.Length > TailChars + TailSlack) call.Tail.Remove(0, call.Tail.Length - TailChars);
     }
 
-    private static void Read(Call call, List<InstructionsFound> found)
+    private static void Read(Call call, List<UntrustedOutput> found)
     {
         if (!call.Taint.IsTainted || call.Head.Length == 0) return;
         var text = call.Tail.Length == 0 ? call.Head.ToString() : call.Head + "\n" + call.Tail;
         call.Head.Clear();
         call.Tail.Clear();
-        if (InstructionScanner.Find(text) is { } finding) found.Add(new InstructionsFound(finding, call.Taint.Sources[0]));
+        found.Add(new UntrustedOutput(text, call.Taint.Sources[0]));
     }
 }
