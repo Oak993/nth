@@ -601,13 +601,18 @@ public sealed partial class ThreadRuntime : MainActorModel
     public bool DraftIsEmpty { get => Read(draftIsEmpty); private set => Set(ref draftIsEmpty, value); }
 
     // :239-243
+    // PORT-ONLY (web surfaces W3c, DESIGN 3.11 "Pane state moves off ThreadRuntime flags ... onto PaneWorkspaceState"; ED-NEW-web-w3c-1):
+    // this is now the workspace's terminal drawer (Workspace.IsTerminalInDrawer) read and written as the flag it was, so the drawer,
+    // the toolbar button and the chords keep working unchanged while the state lives, and is saved, with the workspace
+    // (ThreadRuntime+Workspace.cs). The focus request still follows a drawer that opens (:241-243).
     public bool IsTerminalVisible
     {
         get => Read(isTerminalVisible);
-        set => Set(ref isTerminalVisible, value, wasVisible =>
+        set
         {
-            if (!wasVisible && isTerminalVisible) TerminalWantsFocus = true; // :241-243
-        });
+            if (value == isTerminalVisible) return;
+            Workspace = value ? Workspace.Open(PaneKind.Terminal) : Workspace.Close(PaneKind.Terminal);
+        }
     }
 
     // :244. @ObservationIgnored (R-OBS-5).
@@ -617,7 +622,17 @@ public sealed partial class ThreadRuntime : MainActorModel
     public bool IsTerminalResizing { get => Read(isTerminalResizing); set => Set(ref isTerminalResizing, value); }
 
     // :247
-    public bool IsDiffVisible { get => Read(isDiffVisible); set => Set(ref isDiffVisible, value); }
+    // PORT-ONLY (web surfaces W3c; ED-NEW-web-w3c-1): the Changes pane being open in the workspace, read and written as the flag it was
+    // (the diff popover keeps following it until the Changes pane unit gives it a pane to draw).
+    public bool IsDiffVisible
+    {
+        get => Read(isDiffVisible);
+        set
+        {
+            if (value == isDiffVisible) return;
+            Workspace = value ? Workspace.Open(PaneKind.Changes) : Workspace.Close(PaneKind.Changes);
+        }
+    }
 
     // :249
     public PanelDockCorner SubagentPanelDock { get => Read(subagentPanelDock); set => Set(ref subagentPanelDock, value); }
@@ -760,6 +775,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     {
         ThreadID = threadID;
         appReference = new WeakReference<AppModel>(app);
+        InitializeWorkspace(app); // PORT-ONLY (web surfaces W3c)
         if (DocumentPrefetch.Shared.Take(threadID) is { } prefetched)
         {
             Install(prefetched);

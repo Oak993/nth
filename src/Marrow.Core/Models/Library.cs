@@ -321,6 +321,12 @@ public sealed record ChatThread
     public ChatThread WithPillRelay(Marrow.Core.Accounts.Pills.PillThreadState? state) =>
         this with { PillID = state?.PillId, PillStepIndex = state?.StepIndex, PillStepAccountID = state?.AccountId };
 
+    // PORT-ONLY (web surfaces W3c, DESIGN 3.11; ED-NEW-web-w3c-1): the thread's pane workspace as saved, null until the user opens
+    // a pane or moves a gutter, and the text of a saved workspace the decoder could not read. The text is set only by the decoder,
+    // is never written back, and is taken off the thread when AppModel keeps it as workspace.bad.json.
+    public StoredWorkspace? Workspace { get; init; }
+    public string? DamagedWorkspace { get; init; }
+
     public bool IsHelper => ParentThreadID is not null; // :189
     public bool IsHydraHead => Hydra is not null;         // :192
 
@@ -483,7 +489,7 @@ internal sealed class ChatThreadConverter : JsonConverter<ChatThread>
             lastStatus, parentThreadID, isInPanel, expandsHelpers, hydraEnabled, hydraEnabledIsExplicit, hydraPairID,
             hydraSpawnCount, hydra);
         // PORT-ONLY (MA-7): absent or unreadable pill fields mean no pill.
-        return thread with
+        return WithSavedWorkspace(thread with
         {
             ProviderAccountID = element.TryGetProperty("providerAccountID", out var accountBinding) && accountBinding.ValueKind != JsonValueKind.Null
                 ? Coding.Value<Guid?>(element, "providerAccountID", field => SwiftDecoding.ReadUUID(field), () => Guid.Empty) : null,
@@ -492,7 +498,16 @@ internal sealed class ChatThreadConverter : JsonConverter<ChatThread>
             PillID = Coding.Value<Guid?>(element, "pillID", field => SwiftDecoding.ReadUUID(field), () => null),
             PillStepIndex = Coding.Value<int?>(element, "pillStepIndex", field => (int)SwiftDecoding.ReadInt(field), () => null),
             PillStepAccountID = Coding.Value<string?>(element, "pillStepAccountID", SwiftDecoding.ReadString, () => null),
-        };
+        }, element);
+    }
+
+    // PORT-ONLY (web W3c): a saved workspace that reads is the thread's; one that does not leaves the default layout and its text
+    // on DamagedWorkspace (JSON null is the same as absent).
+    private static ChatThread WithSavedWorkspace(ChatThread thread, JsonElement element)
+    {
+        if (!element.TryGetProperty("workspace", out var saved) || saved.ValueKind == JsonValueKind.Null) return thread;
+        var read = PaneWorkspaceJson.Read(saved);
+        return read.Stored is { } stored ? thread with { Workspace = stored } : thread with { DamagedWorkspace = saved.GetRawText() };
     }
 
     public override void Write(Utf8JsonWriter writer, ChatThread value, JsonSerializerOptions options) => WriteMembers(writer, value);
@@ -543,6 +558,11 @@ internal sealed class ChatThreadConverter : JsonConverter<ChatThread>
         if (value.PillID is { } pillID) writer.WriteString("pillID", SwiftUUID.UuidString(pillID)); // PORT-ONLY (MA-7)
         if (value.PillStepIndex is { } pillStepIndex) writer.WriteNumber("pillStepIndex", pillStepIndex);
         if (value.PillStepAccountID is { } pillStepAccountID) writer.WriteString("pillStepAccountID", pillStepAccountID);
+        if (value.Workspace is { IsEmpty: false } workspace) // PORT-ONLY (web W3c): a thread at the default layout writes nothing
+        {
+            writer.WritePropertyName("workspace");
+            PaneWorkspaceJson.Write(writer, workspace);
+        }
         writer.WriteEndObject();
     }
 }
