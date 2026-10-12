@@ -91,6 +91,12 @@ public sealed class PcBorrowRung(Func<PcSettings> settings, RealInputLease? leas
         return pieces;
     }
 
+    private bool RealInputAllowed()
+    {
+        var live = settings();
+        return live.Enabled && live.RealInput;
+    }
+
     private static string App(PcInputRequest request) => Path.GetFileNameWithoutExtension(request.Window.App.ExePath);
 
     private static PcPoint? PointOf(PcInputRequest request)
@@ -123,7 +129,7 @@ public sealed class PcBorrowRung(Func<PcSettings> settings, RealInputLease? leas
                 Chunks = [click],
                 Point = point,
             };
-            return Outcome(await lease.Borrow(borrow, token).ConfigureAwait(false));
+            return Outcome(await lease.Borrow(borrow, token, RealInputAllowed).ConfigureAwait(false));
         });
     }
 
@@ -135,7 +141,7 @@ public sealed class PcBorrowRung(Func<PcSettings> settings, RealInputLease? leas
             var host = lease.Host;
             var wheel = PcInputPlan.Wheel(point, host.Desktop(), request.Direction, Notches(request.Unit, request.Amount));
             var borrow = Base(request, PcBorrowKind.Pointer, "the wheel in " + App(request)) with { Chunks = [wheel], Point = point };
-            return Outcome(await lease.Borrow(borrow, token).ConfigureAwait(false));
+            return Outcome(await lease.Borrow(borrow, token, RealInputAllowed).ConfigureAwait(false));
         });
     }
 
@@ -159,7 +165,7 @@ public sealed class PcBorrowRung(Func<PcSettings> settings, RealInputLease? leas
                 Point = request.Path[0],
                 HoldCapMs = RealInputLease.DragCapMs,
             };
-            return Outcome(await lease.Borrow(borrow, token).ConfigureAwait(false));
+            return Outcome(await lease.Borrow(borrow, token, RealInputAllowed).ConfigureAwait(false));
         });
     }
 
@@ -186,7 +192,7 @@ public sealed class PcBorrowRung(Func<PcSettings> settings, RealInputLease? leas
                     Focus = Focuser(request),
                     FocusControl = element?.NativeWindow ?? 0,
                 };
-                var outcome = await lease.Borrow(borrow, token).ConfigureAwait(false);
+                var outcome = await lease.Borrow(borrow, token, RealInputAllowed).ConfigureAwait(false);
                 if (!outcome.Done) return Outcome(outcome);
                 done += pieces[i].Length;
             }
@@ -207,7 +213,7 @@ public sealed class PcBorrowRung(Func<PcSettings> settings, RealInputLease? leas
                 Focus = Focuser(request),
                 FocusControl = request.Element?.NativeWindow ?? 0,
             };
-            return Outcome(await lease.Borrow(borrow, token).ConfigureAwait(false));
+            return Outcome(await lease.Borrow(borrow, token, RealInputAllowed).ConfigureAwait(false));
         });
     }
 

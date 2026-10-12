@@ -73,9 +73,12 @@ public sealed partial class PcControlEngine
         var request = new PcInputRequest(PcInputKind.Type, info) { Element = element, Text = text, Insert = insert };
         var typed = await Act(info, request, submit ? null : expect, call, text).ConfigureAwait(false);
         if (!typed.Ok || !submit) return typed;
+        PcResult WithoutSubmit() => typed with { Body = typed.Body + "\nsubmit was not sent because the grant was then removed" };
+        if (call.GrantLive?.Invoke() == false) return WithoutSubmit();
         // submit: the field's default button (Enter on a dialog), or Enter to the field, by the same ladder and checked.
         var enter = new PcInputRequest(PcInputKind.Key, info) { Element = element, Chord = new KeyChord([], KeyChordParser.Return), KeysText = "enter" };
         var submitted = await Act(info, enter, expect, call).ConfigureAwait(false);
+        if (submitted.Error == PcErrorCode.NotApproved && call.GrantLive?.Invoke() == false) return WithoutSubmit();
         return submitted with { Body = typed.Body?.Split('\n')[0] + "\nthen " + submitted.Body };
     }
 
@@ -207,6 +210,9 @@ public sealed partial class PcControlEngine
             answer = await parts.Confirmer.Show(Source(info), AppName(info), info.Title, call.Token).ConfigureAwait(false);
         call.Timings.Mark("confirm");
         if (answer != PcShowAnswer.Show) return PcResult.Fail(PcErrorCode.DeclinedByUser, "the user chose Not now");
+        if (call.GrantLive?.Invoke() == false)
+            return PcResult.Fail(PcErrorCode.NotApproved, "the app was removed from Tactus's apps while the step waited");
+        call.Token.ThrowIfCancellationRequested();
         var shown = parts.Catalog.Show(info.Handle);
         call.Timings.Mark("act");
         return shown

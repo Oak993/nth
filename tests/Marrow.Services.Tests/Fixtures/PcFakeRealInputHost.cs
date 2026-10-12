@@ -35,6 +35,8 @@ public sealed class PcFakeRealInputHost(PhysicalInputMonitor monitor, IPcClock c
 
     public List<(IReadOnlyList<PcInputEvent> Events, ulong Tag)> Sent { get; } = [];
 
+    public List<(IReadOnlyList<PcInputEvent> Events, ulong Tag)> Accepted { get; } = [];
+
     /// <summary>The window in front when each array was sent.</summary>
     public List<nint> SentWhileFront { get; } = [];
 
@@ -42,6 +44,12 @@ public sealed class PcFakeRealInputHost(PhysicalInputMonitor monitor, IPcClock c
 
     /// <summary>Runs after each array is sent (a test's user acts during the borrow).</summary>
     public Action<IReadOnlyList<PcInputEvent>>? OnSend { get; set; }
+
+    public int? AcceptedCount { get; set; }
+
+    public Action? BeforeSetForeground { get; set; }
+    public Action? BeforeRaise { get; set; }
+    public Action? AfterSetCursor { get; set; }
 
     public PcBorrowSaved? Saved { get; private set; }
 
@@ -66,10 +74,11 @@ public sealed class PcFakeRealInputHost(PhysicalInputMonitor monitor, IPcClock c
 
     public PcPoint? Caption(nint target) => CaptionPoint;
 
-    public void Raise(nint target) => Calls.Add("raise");
+    public void Raise(nint target) { BeforeRaise?.Invoke(); Calls.Add("raise"); }
 
     public bool SetForeground(nint window)
     {
+        BeforeSetForeground?.Invoke();
         Calls.Add("set-foreground");
         if (!ForegroundAllowed) return false;
         Foreground = window;
@@ -81,7 +90,10 @@ public sealed class PcFakeRealInputHost(PhysicalInputMonitor monitor, IPcClock c
     {
         Sent.Add((events.ToList(), tag));
         SentWhileFront.Add(Foreground);
-        foreach (var e in events)
+        var count = Math.Clamp(AcceptedCount ?? events.Count, 0, events.Count);
+        var prefix = events.Take(count).ToList();
+        Accepted.Add((prefix, tag));
+        foreach (var e in prefix)
         {
             if (e.Kind == NativeKind.Mouse && (e.Flags & PcInputPlan.MOVE) != 0)
                 Cursor = PcPointFromAbsolute(e);
@@ -93,8 +105,8 @@ public sealed class PcFakeRealInputHost(PhysicalInputMonitor monitor, IPcClock c
             foreach (var hook in PcBorrowEvents.Ledger(e))
                 monitor.Record(new PcRawInput(clock.NowMs, hook.Kind, hook.Down, hook.Code, true, tag) { Window = Foreground });
         }
-        OnSend?.Invoke(events);
-        return events.Count;
+        OnSend?.Invoke(prefix);
+        return count;
     }
 
     public bool Restore(nint window, nint focus)
@@ -124,6 +136,7 @@ public sealed class PcFakeRealInputHost(PhysicalInputMonitor monitor, IPcClock c
     {
         Calls.Add("cursor");
         Cursor = point;
+        AfterSetCursor?.Invoke();
     }
 
     /// <summary>The tags of the arrays sent, in order.</summary>

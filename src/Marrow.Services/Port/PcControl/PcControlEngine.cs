@@ -124,10 +124,14 @@ public sealed class PcCall(PcTimings timings, PcAuditDraft audit, CancellationTo
     /// <summary>Whether the step has started an action: from then on a pause holds it in place instead of starting it again.</summary>
     public bool Acted { get; set; }
 
+    /// <summary>A standing grant must still exist after a queued or confirmed action waits.</summary>
+    public Func<bool>? GrantLive { get; set; }
+
     /// <summary>The resumed block of the step's latest hold, carried by its result.</summary>
     public PcResumed? Resumed { get; set; }
+    internal bool NeedsFreshTarget { get; set; }
 
-    public PcCall With(CancellationToken other) => new(Timings, Audit, other, Wait) { InBatch = InBatch, Base = Base, Output = Output, PauseEpoch = PauseEpoch };
+    public PcCall With(CancellationToken other) => new(Timings, Audit, other, Wait) { InBatch = InBatch, Base = Base, Output = Output, PauseEpoch = PauseEpoch, GrantLive = GrantLive, NeedsFreshTarget = NeedsFreshTarget };
 }
 
 /// <summary>What one step produced for later batch steps: the text a pc_read read, the windows an action opened.</summary>
@@ -383,7 +387,13 @@ public sealed partial class PcControlEngine : IDisposable
         using var watch = parts.Control.Watch(call.Token, caller.Thread, info.App.Key, handle);
         try
         {
-            return await parts.Lanes.Run(info.App.Key, laneToken => Stream(info, capability, approval, call.With(laneToken), run), watch.Token).ConfigureAwait(false);
+            var queuedAt = parts.Clock.NowMs;
+            return await parts.Lanes.Run(info.App.Key, laneToken =>
+            {
+                var queued = call.With(laneToken);
+                queued.NeedsFreshTarget |= parts.Clock.NowMs - queuedAt > WarmTreeMaxAgeMs;
+                return Stream(info, capability, approval, queued, run);
+            }, watch.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (watch.Stopped)
         {
@@ -413,6 +423,9 @@ public sealed partial class PcControlEngine : IDisposable
         PcAsking asking;
         lock (gate)
         {
+            if (approvals.TryGetValue(key, out var cached) && cached.Answer.IsCompletedSuccessfully
+                && cached.Answer.Result == PcApproval.Always && parts.Approver.Standing(app, capability) != PcApproval.Always)
+                approvals.Remove(key);
             if (!approvals.TryGetValue(key, out asking!))
             {
                 asking = new PcAsking();

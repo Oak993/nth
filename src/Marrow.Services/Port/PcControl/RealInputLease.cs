@@ -34,7 +34,11 @@ public sealed class RealInputLease
     private readonly Lock gate = new();
     private readonly List<Entry> queue = [];
     private readonly List<Entry> stills = [];
-    private readonly List<PcRawInput> kept = [];
+    private readonly AsyncLocal<Action<int>?> actionSent = new();
+    private readonly AsyncLocal<Func<bool>?> actionPermission = new();
+    private readonly AsyncLocal<Func<long, CancellationToken, Task<PcUiaOutcome>>?> actionValidation = new();
+    private readonly AsyncLocal<Func<PcBorrowRequest, PcBorrowRequest>?> actionRefresh = new();
+    private readonly Dictionary<(nint Window, nint Focus), List<PcRawInput>> kept = [];
     private readonly IPhysicalInput input;
     private readonly IPcInputHold hold;
     private readonly IRealInputHost host;
@@ -42,7 +46,6 @@ public sealed class RealInputLease
     private readonly PcCapabilities capabilities;
     private readonly Func<bool> ownCardUp;
     private readonly PcRunControl? control;
-    private nint keptWindow;
     private int holdingKeys;
 
     public RealInputLease(IPhysicalInput input, IPcInputHold hold, IRealInputHost host, IPcClock clock, PcCapabilities capabilities, Func<bool>? ownCardUp = null,
@@ -75,6 +78,8 @@ public sealed class RealInputLease
     /// <summary>The user's keys are held after a failed restore (the pill's "Click where you were working to keep typing").</summary>
     public event Action<bool>? HoldingKeysChanged;
 
+    internal Action<Task>? ActionStarted { get; set; }
+
     public IPcClock Clock => clock;
 
     public IRealInputHost Host => host;
@@ -85,7 +90,7 @@ public sealed class RealInputLease
     {
         get
         {
-            lock (gate) return kept.Count(k => k.Kind == PcRawKind.Key && k.Down);
+            lock (gate) return kept.Values.Sum(keys => keys.Count(k => k.Kind == PcRawKind.Key && k.Down));
         }
     }
 
@@ -113,15 +118,19 @@ public sealed class RealInputLease
     public bool PutBack()
     {
         List<PcRawInput> keys;
+        (nint Window, nint Focus) origin;
         lock (gate)
         {
             if (kept.Count == 0 || HoldingKeys || queue.Any(e => e.Running)) return false;
-            if (host.Focus().Foreground != keptWindow) return false;
-            keys = kept.ToList();
-            kept.Clear();
+            origin = host.Focus();
+            if (!kept.Remove(origin, out keys!))
+            {
+                origin = (origin.Window, 0);
+                if (!kept.Remove(origin, out keys!)) return false;
+            }
         }
-        Replay(keys, keptWindow, 0, out var left);
-        lock (gate) kept.InsertRange(0, left);
+        Replay(keys, origin.Window, origin.Focus, out var left);
+        // Replay alone owns retaining any unsent keys; left only reports completion.
         KeptChanged?.Invoke(KeptKeys);
         return left.Count == 0;
     }
@@ -131,15 +140,39 @@ public sealed class RealInputLease
     {
         lock (gate)
         {
-            for (var i = 0; i < kept.Count; i++) kept[i] = default;
+            foreach (var keys in kept.Values)
+                for (var i = 0; i < keys.Count; i++) keys[i] = default;
             kept.Clear();
         }
         KeptChanged?.Invoke(0);
     }
 
-    public async Task<PcBorrowOutcome> Borrow(PcBorrowRequest request, CancellationToken cancellationToken)
+    // The engine's grant follows its async action into R4 without changing the shared request/assembly seams.
+    internal async Task<PcUiaOutcome> RunWithPermission(Func<bool>? permitted, Func<Task<PcUiaOutcome>> run,
+        Func<long, CancellationToken, Task<PcUiaOutcome>>? validate = null, Func<PcBorrowRequest, PcBorrowRequest>? refresh = null, Action<int>? sent = null)
+    {
+        var previousSent = actionSent.Value;
+        actionSent.Value = sent;
+        var previous = actionPermission.Value;
+        var previousValidation = actionValidation.Value;
+        var previousRefresh = actionRefresh.Value;
+        actionPermission.Value = permitted;
+        actionValidation.Value = validate;
+        actionRefresh.Value = refresh;
+        try { return await run().ConfigureAwait(false); }
+        finally { actionSent.Value = previousSent; actionPermission.Value = previous; actionValidation.Value = previousValidation; actionRefresh.Value = previousRefresh; }
+    }
+
+    public async Task<PcBorrowOutcome> Borrow(PcBorrowRequest request, CancellationToken cancellationToken, Func<bool>? permitted = null)
     {
         ArgumentNullException.ThrowIfNull(request);
+        var validate = actionValidation.Value;
+        if (actionPermission.Value is { } grant)
+        {
+            var realInput = permitted;
+            permitted = () => grant() && realInput?.Invoke() != false;
+        }
+        if (permitted?.Invoke() == false) return RealInputOff();
         if (Unproven(request.Exe, request.Kind) is { } unproven) return new PcBorrowOutcome(PcBorrowStatus.NeedsRealInput, unproven);
         if (request.Chunks.Count == 0 || request.Chunks.Any(c => c.Count == 0)) throw new ArgumentException("a borrow sends at least one event in each array", nameof(request));
         var entry = new Entry(new PcBorrowWait(request.Stream, request.Detail));
@@ -151,6 +184,7 @@ public sealed class RealInputLease
         }
         IDisposable? mark = null;
         var waited = false;
+        var queuedAt = clock.NowMs;
         try
         {
             while (true)
@@ -159,9 +193,9 @@ public sealed class RealInputLease
                 {
                     waited = true;
                     mark ??= request.Waiting?.Invoke(PcWaitReason.HandsOff);
-                }).ConfigureAwait(false);
+                }, permitted).ConfigureAwait(false);
                 if (opened.Outcome is { } refused) return refused;
-                var outcome = await Run(entry, request, opened.Delivered, opened.Tick, cancellationToken).ConfigureAwait(false);
+                var outcome = await Run(entry, request, opened.Delivered, opened.Tick, cancellationToken, permitted, validate, waited ? clock.NowMs - queuedAt : -1).ConfigureAwait(false);
                 if (outcome is null) continue;
                 if (outcome.Done && !waited && request.Detail.Length > 0) Used?.Invoke(request.Stream, request.Detail);
                 return outcome;
@@ -211,12 +245,13 @@ public sealed class RealInputLease
 
     // The head of the queue waits for the gate (DESIGN.md 2.7 step 2). Returns the hook's delivered count and the input tick
     // read with the check that opened it, or the outcome that ends the borrow. A still wait is always its own head.
-    private async Task<(PcBorrowOutcome? Outcome, long Delivered, long? Tick)> Gate(Entry entry, bool still, CancellationToken cancellationToken, Action onWait)
+    private async Task<(PcBorrowOutcome? Outcome, long Delivered, long? Tick)> Gate(Entry entry, bool still, CancellationToken cancellationToken, Action onWait, Func<bool>? permitted = null)
     {
         long? unhealthySince = null;
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (!still && permitted?.Invoke() == false) return (RealInputOff(), 0, null);
             var now = clock.NowMs;
             var delivered = hold.Delivered;
             var tick = host.LastInputMs();
@@ -259,10 +294,45 @@ public sealed class RealInputLease
     }
 
     // Steps 3 to 7. Null: something arrived between the gate and the hold, so the borrow let go and waits again.
-    private async Task<PcBorrowOutcome?> Run(Entry entry, PcBorrowRequest request, long deliveredAtGate, long? tickAtGate, CancellationToken cancellationToken)
+    private async Task<PcBorrowOutcome?> Run(Entry entry, PcBorrowRequest request, long deliveredAtGate, long? tickAtGate, CancellationToken cancellationToken, Func<bool>? permitted,
+        Func<long, CancellationToken, Task<PcUiaOutcome>>? validate, long waitedMs)
     {
-        var borrow = new Loan(request, host.Save(request.Target));
+        if (validate is not null)
+        {
+            var checkedTarget = await validate(waitedMs, cancellationToken).ConfigureAwait(false);
+            if (!checkedTarget.Done)
+                return new PcBorrowOutcome(PcBorrowStatus.NotSent, checkedTarget.Reason) { Code = checkedTarget.Error };
+            // ED-NEW-pcctl-cx-11: resolve before holding input, then use the newly resolved focus/point.
+            if (actionRefresh.Value is { } refresh) request = refresh(request);
+            // The cold read held no input. If its wait reopened a safety gate, queue and validate again.
+            if (ownCardUp() || HoldingKeys || !PcInputGate.Check(input.Snapshot(), clock.NowMs, input.Protection(), entry.Wait.DoItNowChosen).Open)
+            {
+                lock (gate) entry.Running = false;
+                return null;
+            }
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        if (permitted?.Invoke() == false) return RealInputOff();
+        var borrow = new Loan(request, host.Save(request.Target), permitted);
         var escaped = 0;
+        using var actionCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var unhealthy = new TaskCompletionSource<PcBorrowOutcome>(TaskCreationOptions.RunContinuationsAsynchronously);
+        void HealthChanged(bool healthy)
+        {
+            if (healthy) return;
+            borrow.LoseMonitor();
+            if (!borrow.TryFinish()) return;
+            _ = actionCancellation.CancelAsync();
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var restored = await Release(borrow).ConfigureAwait(false);
+                    unhealthy.TrySetResult(MonitorUnhealthy() with { KeptKeys = restored.KeptKeys });
+                }
+                catch (Exception exception) { unhealthy.TrySetException(exception); }
+            });
+        }
         var chord = Chord;
         var dropped = new HashSet<ushort>();
         void OnSwallowed(PcRawInput raw)
@@ -321,9 +391,18 @@ public sealed class RealInputLease
             input.Open(borrow.Ledger);
             using var watchdog = new CancellationTokenSource();
             var dog = Watchdog(borrow, watchdog.Token);
-            var act = Act(borrow, activation, caption, cancellationToken);
+            input.HealthChanged += HealthChanged;
+            var act = Act(borrow, activation, caption, actionCancellation.Token);
+            ActionStarted?.Invoke(act);
             // Stop never waits on a worker: when the watchdog lets go first (a hung focus call), the worker is abandoned.
-            if (await Task.WhenAny(act, dog).ConfigureAwait(false) == dog && borrow.WatchdogOutcome is { } timedOut)
+            var winner = await Task.WhenAny(act, dog, unhealthy.Task).ConfigureAwait(false);
+            if (winner == unhealthy.Task)
+            {
+                await watchdog.CancelAsync().ConfigureAwait(false);
+                _ = act.ContinueWith(t => _ = t.Exception, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
+                return await unhealthy.Task.ConfigureAwait(false);
+            }
+            if (winner == dog && borrow.WatchdogOutcome is { } timedOut)
             {
                 _ = act.ContinueWith(t => _ = t.Exception, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
                 return timedOut;
@@ -337,7 +416,13 @@ public sealed class RealInputLease
             {
                 if (!borrow.TryFinish())
                 {
+                    await watchdog.CancelAsync().ConfigureAwait(false);
                     await dog.ConfigureAwait(false);
+                    if (borrow.WatchdogOutcome is null)
+                    {
+                        var ended = await unhealthy.Task.ConfigureAwait(false);
+                        if (!cancellationToken.IsCancellationRequested) return ended;
+                    }
                     throw;
                 }
                 await watchdog.CancelAsync().ConfigureAwait(false);
@@ -347,8 +432,9 @@ public sealed class RealInputLease
             if (!borrow.TryFinish())
             {
                 // The watchdog let go first: this result is abandoned.
+                await watchdog.CancelAsync().ConfigureAwait(false);
                 await dog.ConfigureAwait(false);
-                return borrow.WatchdogOutcome!;
+                return borrow.WatchdogOutcome ?? await unhealthy.Task.ConfigureAwait(false);
             }
             await watchdog.CancelAsync().ConfigureAwait(false);
             var restored = await Release(borrow).ConfigureAwait(false);
@@ -358,6 +444,7 @@ public sealed class RealInputLease
         }
         finally
         {
+            input.HealthChanged -= HealthChanged;
             input.Swallowed -= OnSwallowed;
             borrow.Held.Zero();
         }
@@ -376,11 +463,13 @@ public sealed class RealInputLease
     private async Task<PcBorrowOutcome> Act(Loan borrow, PcActivation activation, List<PcInputEvent> caption, CancellationToken cancellationToken)
     {
         var request = borrow.Request;
+        if (borrow.Permitted?.Invoke() == false) return RealInputOff();
+        if (borrow.MonitorLost || !input.Snapshot().Healthy) return MonitorUnhealthy();
         if (request.Kind == PcBorrowKind.Pointer)
         {
             if (request.Point is { } point && host.WindowAt(point) != request.Target)
             {
-                host.Raise(request.Target);
+                if (!Activate(borrow, () => host.Raise(request.Target))) return Failed(borrow);
                 if (host.WindowAt(point) != request.Target) return new PcBorrowOutcome(PcBorrowStatus.NotSent, "the point is covered by another window") { Code = PcErrorCode.OccludedPoint };
             }
         }
@@ -392,7 +481,7 @@ public sealed class RealInputLease
             }
             else
             {
-                host.SetForeground(request.Target);
+                if (!Activate(borrow, () => host.SetForeground(request.Target))) return Failed(borrow);
             }
             if (request.Focus is { } focus && !await focus(cancellationToken).ConfigureAwait(false))
                 return new PcBorrowOutcome(PcBorrowStatus.NotSent, "the control could not take the focus");
@@ -403,6 +492,8 @@ public sealed class RealInputLease
         }
         for (var i = 0; i < request.Chunks.Count; i++)
         {
+            if (borrow.Permitted?.Invoke() == false) return RealInputOff();
+            if (borrow.MonitorLost || !input.Snapshot().Healthy) return MonitorUnhealthy();
             if (i > 0 && i - 1 < request.GapsMs.Count && request.GapsMs[i - 1] > 0)
                 await clock.Delay(request.GapsMs[i - 1], cancellationToken).ConfigureAwait(false);
             if (hold.AbortRequested) return new PcBorrowOutcome(PcBorrowStatus.Failed, "a key held before the borrow repeated; Tactus let go");
@@ -413,18 +504,50 @@ public sealed class RealInputLease
         return new PcBorrowOutcome(PcBorrowStatus.Done);
     }
 
-    private static PcBorrowOutcome Failed(Loan borrow) => borrow.Finished
+    // Activation shares the send gate. A reentrant health callback can finish and restore during a host call;
+    // in that case the activation's late effects are restored once more before the abandoned worker exits.
+    private bool Activate(Loan borrow, Action activate)
+    {
+        lock (borrow.SendGate)
+        {
+            if (borrow.Finished || borrow.Permitted?.Invoke() == false || borrow.MonitorLost || !input.Snapshot().Healthy) return false;
+            activate();
+        }
+        if (!borrow.Finished) return true;
+        var saved = borrow.Saved;
+        for (var attempt = 0; attempt < RestoreTries && host.Focus().Foreground != saved.Foreground; attempt++)
+            host.Restore(saved.Foreground, saved.Focus);
+        host.RestoreZOrder(borrow.Request.Target, saved);
+        if (saved.Minimized) host.RestorePlacement(borrow.Request.Target, saved);
+        host.SetCursor(borrow.Cursor);
+        return false;
+    }
+
+    private static PcBorrowOutcome RealInputOff() => new(PcBorrowStatus.NeedsRealInput, PcRealInputReason.Off);
+
+    private static PcBorrowOutcome MonitorUnhealthy() => new(PcBorrowStatus.NeedsRealInput, PcRealInputReason.MonitorUnhealthy);
+
+    private PcBorrowOutcome Failed(Loan borrow) => borrow.Permitted?.Invoke() == false ? RealInputOff()
+        : borrow.MonitorLost || !input.Snapshot().Healthy ? MonitorUnhealthy() : borrow.Finished
         ? new PcBorrowOutcome(PcBorrowStatus.Failed, "the borrow ran past its hold cap; Tactus let go") { Code = PcErrorCode.Timeout }
         : new PcBorrowOutcome(PcBorrowStatus.Failed, "Windows did not take all of the input");
 
-    // One array, under the send lock, only while the borrow is not finished; the ups it owes are tracked before it goes.
+    // One array under the send lock. Provisional downs protect reentrant release; only accepted ups clear them.
     private bool Send(Loan borrow, IReadOnlyList<PcInputEvent> events)
     {
         lock (borrow.SendGate)
         {
-            if (borrow.Finished) return false;
-            borrow.Pressed.Track(events);
-            return host.Send(events, borrow.Tag) == events.Count;
+            if (borrow.Finished || borrow.Permitted?.Invoke() == false || borrow.MonitorLost || !input.Snapshot().Healthy) return false;
+            // ED-NEW-pcctl-cx-23: an unaccepted UP must not erase a release owed by an earlier DOWN.
+            var downs = events.Select(e => e.Kind == NativeKind.Mouse
+                ? e with { Flags = e.Flags & ~(PcInputPlan.LEFTUP | PcInputPlan.RIGHTUP | PcInputPlan.MIDDLEUP | PcBorrowEvents.XUP) } : e)
+                .Where(e => e.Kind != NativeKind.Key || (e.Flags & PcInputPlan.KEY_UP) == 0).ToList();
+            borrow.Pressed.Track(downs);
+            var accepted = host.Send(events, borrow.Tag);
+            if (!borrow.Finished) borrow.Pressed.Track(events.Take(accepted).ToList());
+            if (accepted > 0) actionSent.Value?.Invoke(events.Take(accepted).Count(e => e.Kind == NativeKind.Key
+                && (e.Flags & PcInputPlan.KEY_UNICODE) != 0 && (e.Flags & PcInputPlan.KEY_UP) == 0));
+            return accepted == events.Count;
         }
     }
 
@@ -491,7 +614,7 @@ public sealed class RealInputLease
             // The target still holds the foreground: the user's keys stay held (the mouse is free) until their own click
             // moves the foreground; every held key joins the kept keys and never reaches the target.
             var held = borrow.Held.Take();
-            Keep(held, saved.Foreground);
+            Keep(held, saved.Foreground, saved.Focus);
             SendReplay(held.Where(e => e.Kind != PcRawKind.Key).ToList(), PcInjectionLedger.NewTag());
             hold.BeginSwallow(keysOnly: true);
             Volatile.Write(ref holdingKeys, 1);
@@ -544,7 +667,7 @@ public sealed class RealInputLease
             {
                 var rest = held.Skip(start).ToList();
                 var keys = rest.Where(e => e.Kind == PcRawKind.Key).ToList();
-                Keep(keys, window);
+                Keep(keys, window, focus);
                 left = keys;
                 SendReplay(rest.Where(e => e.Kind != PcRawKind.Key).ToList(), tag);
                 return;
@@ -563,14 +686,15 @@ public sealed class RealInputLease
         input.Close(ledger);
     }
 
-    private void Keep(List<PcRawInput> keys, nint window)
+    private void Keep(List<PcRawInput> keys, nint window, nint focus)
     {
         var added = keys.Where(k => k.Kind == PcRawKind.Key).ToList();
         if (added.Count == 0) return;
         lock (gate)
         {
-            if (kept.Count == 0 || keptWindow != window) keptWindow = window;
-            kept.AddRange(added);
+            var origin = (window, focus);
+            if (!kept.TryGetValue(origin, out var pending)) kept[origin] = pending = [];
+            pending.AddRange(added);
         }
         KeptChanged?.Invoke(KeptKeys);
     }
@@ -587,7 +711,7 @@ public sealed class RealInputLease
                 Volatile.Write(ref escaped, 1);
                 return;
             }
-            Keep([raw], borrow.Saved.Foreground);
+            Keep([raw], borrow.Saved.Foreground, borrow.Saved.Focus);
         }
         input.Swallowed += OnSwallowed;
         try
@@ -613,12 +737,19 @@ public sealed class RealInputLease
         public bool Shown { get; set; }
     }
 
-    private sealed class Loan(PcBorrowRequest request, PcBorrowSaved saved)
+    private sealed class Loan(PcBorrowRequest request, PcBorrowSaved saved, Func<bool>? permitted)
     {
         private int finished;
+        private int monitorLost;
+
+        public bool MonitorLost => Volatile.Read(ref monitorLost) == 1;
+
+        public void LoseMonitor() => Volatile.Write(ref monitorLost, 1);
 
         /// <summary>Where the cursor is put back to (the saved point, moved by the user's held movement).</summary>
         public PcPoint Cursor { get; set; } = saved.Cursor;
+
+        public Func<bool>? Permitted { get; } = permitted;
 
         public PcBorrowRequest Request { get; } = request;
 

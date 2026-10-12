@@ -42,6 +42,8 @@ public sealed class PcEngineHarness
     public PcManualClock WaitClock { get; } = new();
     public PcCapabilities Capabilities { get; }
     public PcActionLadder Ladder { get; }
+    public PcActionLadder? OverrideLadder { get; set; }
+    public RealInputLease? OverrideLease { get; set; }
 
     /// <summary>The physical input monitor: healthy, with no input until a test plays the user's.</summary>
     public PhysicalInputMonitor Input { get; }
@@ -69,10 +71,10 @@ public sealed class PcEngineHarness
         Security = Desktop,
         Reader = Desktop,
         Feed = Desktop,
-        Ladder = Ladder,
+        Ladder = OverrideLadder ?? Ladder,
         Foreground = Desktop,
         Input = Input,
-        Lease = Lease,
+        Lease = OverrideLease ?? Lease,
         Own = Desktop,
         Approver = Approver,
         Confirmer = Confirmer,
@@ -197,6 +199,7 @@ public sealed class PcFakeConfirmer : IPcConfirmer
     public List<string> Asked { get; } = [];
     public List<string> Shown { get; } = [];
     public TaskCompletionSource<bool>? Hold { get; set; }
+    public TaskCompletionSource<PcShowAnswer>? ShowHold { get; set; }
 
     /// <summary>What the user typed with Cancel; given once.</summary>
     public string? Said { get; set; }
@@ -217,7 +220,7 @@ public sealed class PcFakeConfirmer : IPcConfirmer
     public Task<PcShowAnswer> Show(PcAskSource source, string appName, string windowTitle, CancellationToken cancellationToken)
     {
         lock (Shown) Shown.Add(appName + " " + windowTitle);
-        return Task.FromResult(ShowAnswer);
+        return ShowHold is { } hold ? hold.Task.WaitAsync(cancellationToken) : Task.FromResult(ShowAnswer);
     }
 }
 

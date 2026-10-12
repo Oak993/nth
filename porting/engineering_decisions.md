@@ -6543,3 +6543,144 @@ Branch claude/release-integration, 2026-10-10 (integrates Ignis part A, points s
 3. WHAT "ELSEWHERE" IS: the first button down decides it: a press on one of Tactus's own windows (the bands' input and shadow windows, handed over at each change of `PillOverlays.Handles`) is the pill's own (its drag, its buttons) and not elsewhere; any other window is; a button the hooks meet already held (they went in mid-press) is taken as another app's. More buttons and moves while held keep the first answer; it ends when every button is up.
 4. WIRING: `TactusScreenParts.Pointer` and `Overlays`; `TactusScreenDesktop` makes the state over the shared input monitor and the Win32 probe and disposes it with the screen.
 5. TESTS: Services `PhysicalInputUserPointerTests` (2); App `TactusPointerStateTests` (4), `TactusScreenPointerTests` (1, headless: the host's pointer in DIP and held button, a press in Word holding the band's region through an ask's narrowing, the one region at the release, the card's auto-expand waiting meanwhile).
+
+
+## ED-NEW-pcctl-cx-1
+2026-10-12 - Tactus C2-A1: Revoke retained real-input plans. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; DESIGN.md 2.7 and 4.7).
+R4 passes a live Enabled/RealInput permit into each borrow. The queue checks it on every gate poll and immediately before saving user state; activation and each action array check it again. Release/restore traffic remains allowed so revocation cannot leave a pressed button or held input behind. The five R4 paths share this permit, including separate 64-character text borrows.
+Regression: C3A1Tests on fake hosts/manual clocks only. Red evidence reproduced twice before the fix (scratch/codex-c3/A1-red1.log and A1-red2.log); green verification: new tests 3/0/0; borrow area 43/0/0 (passed/failed/skipped). No native tests, real input, installed-app launch or network service exercised.
+
+
+## ED-NEW-pcctl-cx-3
+2026-10-12 - Tactus C2-A3: Cancel approved app launches. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; DESIGN.md 10.2).
+Launch registers the same scoped run-control watch used by window work before awaiting approval. It checks the watched token, the turn/app stop flags and fresh settings, attendance and app policy immediately before calling the launcher. Sleep returns locked without latching the next turn. The watch covers the subsequent first-window wait as well.
+Regression: C3A3Tests on fake hosts/manual clocks only. Red evidence reproduced twice before the fix (scratch/codex-c3/A3-red1.log and A3-red2.log); green verification: new tests 9/0/0; engine area 52/0/0 (passed/failed/skipped). No native tests, real input, installed-app launch or network service exercised.
+
+
+## ED-NEW-pcctl-cx-6
+2026-10-12 - Tactus C2-A6: Cancel UIA before provider dispatch. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; DESIGN.md 4.4 and 10.2).
+Extract the existing lookup/build/dispatch sequence and dispatch entry as internal production helpers so fake blocking lookup/cache-build delegates can test cancellation without COM or Windows threads. Check the token before lookup, after lookup, after cache building and immediately before action dispatch, including on the sacrificial Invoke thread. Complete that thread as cancelled on OperationCanceledException. A provider action already dispatched cannot be recalled.
+Regression: C3A6Tests on fake hosts/manual clocks only. Red evidence reproduced twice before the fix (scratch/codex-c3/A6-red1.log and A6-red2.log); green verification: new tests 3/0/0; UIA area 10/0/0 (passed/failed/skipped). No native tests, real input, installed-app launch or network service exercised.
+
+
+## ED-NEW-pcctl-cx-7
+2026-10-12 - Tactus C2-A7: Fail closed on active-borrow hook failure. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; DESIGN.md 2.7 physical input monitor).
+Read monitor health before activation and each action send, and subscribe to the existing HealthChanged event for the active loan. An unhealthy notification claims the existing single release path and abandons a blocked provider action, releasing owed ups and restoring user state. Unsubscribe when the borrow ends. No monitor/hook implementation changes; cursor-free still waits retain their existing semantics.
+Regression: C3A7Tests on fake hosts/manual clocks only. Red evidence reproduced twice before the fix (scratch/codex-c3/A7-red1.log and A7-red2.log); green verification: new tests 2/0/0; borrow area 45/0/0 (passed/failed/skipped). No native tests, real input, installed-app launch or network service exercised.
+Follow-up within ED-NEW-pcctl-cx-7: independent review exposed deferred focus after restoration. Health loss now claims release and cancels a linked action token before restoration, preventing a pending cooperative focus provider from starting later. The added delayed-focus test failed alone twice (A7-review-red1/2.log); final new tests 3/0/0 and borrow area 46/0/0. Original caller cancellation remains cancellation.
+
+
+## ED-NEW-pcctl-cx-2
+2026-10-12 - Tactus C2-A2: Respect removed standing approvals. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; DESIGN.md 4.1 and 10.1).
+Completed Always approvals are revalidated against the current standing store before cache reuse. Removal evicts that cached answer and a later call asks again, within the same turn or after EndTurn. A queued stream also checks a standing grant before it starts. Chat grants retain their chat lifetime.
+Regression: C3A2Tests on fake hosts/manual clocks only. Red evidence reproduced twice before the fix (scratch/codex-c3/A2-red1.log and A2-red2.log); green verification: new tests 7/0/0; engine, pause and borrow area 118/0/0 (passed/failed/skipped). No native tests, real input, installed-app launch or network service exercised.
+Within ED-NEW-pcctl-cx-2: recheck standing grants after guarded-action and Show-window confirmations, between text chunks and after an in-place pause. A per-lease AsyncLocal action scope carries the same live grant into R4 without changing assembly/request seams; Borrow captures it with the real-input settings permit. Release/restore bypasses permits. Three supplemental wait-boundary regressions failed twice before correction (A2-review-red1/2.log), then passed.
+
+
+## ED-NEW-pcctl-cx-8
+2026-10-12 - Tactus C2-A8: Revalidate confirmed targets before acting. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; DESIGN.md 2.12 and critique C25).
+After confirmation/shared-state waits, compare the intended content identity against a fresh live tree, including a shortcut plan target when the original request has no element. Reject a recycled/gone target or ambiguous rematch; rebuild the same rung/method against a uniquely rematched live target before dispatch. No physical-input recency threshold substitutes for content identity.
+Regression: C3A8Tests on fake hosts/manual clocks only. Red evidence reproduced twice before the fix (scratch/codex-c3/A8-red1.log and A8-red2.log); green verification: new tests 4/0/0; engine/rungs area 103/0/0 (passed/failed/skipped). No native tests, real input, installed-app launch or network service exercised.
+Within ED-NEW-pcctl-cx-8: independent review added moved-point and queued-R4 regressions (A8-review-red1/2.log) and focused Enter/Space identity coverage (A8-focus-correct-red1/2.log), all red twice. Point targets must remain inside the matched control. Replanning binds the actual confirmed focused target. R4 captures an async cold target validator in the per-lease action scope, runs it after its queue gate before Save/swallow, rejects changed identity/runtime id/bounds/state, and refreshes safety gates after the read; a reopened gate queues and validates again. Final new tests 7/0/0; engine/rungs/borrow area 152/0/0.
+
+
+## ED-NEW-pcctl-cx-4
+2026-10-12 - Tactus C2-A4: Keep replay input by original window and control. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; DESIGN.md 2.7 replay rule).
+Retained raw keys are stored in separate queues by the saved user foreground and focused control. PutBack selects only the queue matching the current foreground and focus, and Replay checks both before each chunk. Keys belonging to another origin remain retained. Forget clears every queue.
+Regression: C3A4Tests on fake hosts/manual clocks only. Red evidence reproduced twice before the fix (scratch/codex-c3/A4-red1.log and A4-red2.log); green verification: new tests 2/0/0; final borrow area 48/0/0 (passed/failed/skipped); prior area raw 47/1/0 with queue-order case passing twice alone. No native tests, real input, installed-app launch or network service exercised.
+
+
+## ED-NEW-pcctl-cx-5
+2026-10-12 - Tactus C2-A5: Retain interrupted replay leftovers once. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; DESIGN.md 2.7 replay rule).
+Replay owns retaining unsent leftovers when the foreground or focus changes between chunks. PutBack uses its leftover result only to report completion; it does not insert those already retained keys a second time. Counts and eventual replay remain exact.
+Regression: C3A5Tests on fake hosts/manual clocks only. Red evidence reproduced twice before the fix (scratch/codex-c3/A5-red1.log and A5-red2.log); green verification: new test 1/0/0; final borrow area 49/0/0 (passed/failed/skipped); prior raw area 48/1/0 with queue-order case passing twice alone. No native tests, real input, installed-app launch or network service exercised.
+
+
+## ED-NEW-pcctl-cx-9
+2026-10-12 - Tactus C2-A6b: Cancel between pattern resolution and provider mutation. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; DESIGN.md 10.2, Stop paths; owner-authorized C3b follow-up).
+UiaReader passes the caller token to both ordinary pattern dispatch and sacrificial Invoke dispatch. UiaPatterns checks it on entry, before and after GetCurrentPattern resolution, and immediately before every provider mutation: Focus, Invoke, Toggle, Select, Expand, Collapse, ScrollIntoView, window state/Close, Value/RangeValue SetValue and each repeated Scroll. RangeValue's property reads cannot be followed by SetValue after cancellation. A managed resolver/focus delegate seam uses the production switch and COM pattern interfaces with managed fake implementations only; it constructs no native COM worker or real provider. Existing uncancelled dispatch and HRESULT mappings are retained. An already-dispatched provider mutation cannot be recalled by these barriers.
+Regression: C3bUiaPatternsTests. Stalled resolution (13 cases), cancellation during each RangeValue property read (3), repeated Scroll (1) and pre-cancelled Focus (1) each failed twice alone before the fix, with Assert.ThrowsAny() Failure: No exception was thrown. Green: new 36/0/0, UIA area 46/0/0, final full Services PC-control sweep 533/0/0 (passed/failed/skipped). Interim full sweep was raw 532/1/0 in existing PcStopControlTests.A_stop_while_paused_cancels_the_held_step_and_clears_the_pause; it passed both isolated reruns before the final clean sweep. Evidence: E:/Droppy/work/scratch/codex-c3b/*.log. Independent read-only review found no omitted mutation boundary. No native tests, real input, app launch or network service exercised.
+
+
+## ED-NEW-pcctl-cx-10
+2026-10-12 - Tactus C2-V1: preserve R4 text across its own value and bounds changes. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; DESIGN.md 2.7, 10.1).
+The engine records successful text progress at TextBoundary. R4 fully validates identity/value/bounds before the first piece; later pieces validate the original window identity and the app's focused RuntimeId only. This does not revalidate our own writes against the pre-action value. TextBoundary remains the guard between pieces.
+C3cV1Tests engine-level 200-character cases with live Value updates and auto-growing Bounds failed alone twice (V1-red1-corrected/V1-red2-corrected: 0/2/0; expect_failed after 64 chars and stale_element after growth). Green new 2/0/0, area 25/0/0. The initial fixture compile error used UNICODE instead of KEY_UNICODE; corrected before RED execution, unchanged assertions. Managed fakes only, official heavy/wrappers; no native/input/app/network activity.
+
+
+## ED-NEW-pcctl-cx-11
+2026-10-12 - Tactus C2-V10: re-resolve queued targets and follow moved window points. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; DESIGN.md 2.3, 2.12; C3c owner rulings).
+After a wait, a keyboard borrow follows the uniquely resolved live control without comparing bounds. The engine supplies refreshed focus/NativeWindow and pointer arrays to the lease after validation, before Save/hold. Point coordinates preserve their window-relative position across moves; resizes, own-window points and off-screen points are refused. Canvas points with no element are also remapped and their queued borrow refreshed. Later text pieces retain the first piece's resolved RuntimeId and TextBoundary reads that rematched field. The action metadata also tracks the live target for post-checks. Gone/ambiguous/recycled identities remain refused.
+C3cV10Tests: main keyboard/moved-window confirmation/moved-window queue cases red twice (V10-corrected-red1/2: 0/3/0); canvas and first-piece RuntimeId-rematch supplements red twice (V10-supplement-red1/2: 3/2/0, old coordinate delta100 and typed-field focus refused). Final new 5/0/0, area 30/0/0. Initial point fixture erroneously assumed origin0 while AddApp defaults100; fixed fixture origin, retained coordinate assertion and re-ran baseline red twice. Interim raw area V10-green-area26/2/0 was that fixture issue. V10-final-new-corrected was4/1/0 from over-advancing fake watchdog; the area passed30/0/0. Removing unnecessary clock advances (only explicit closed-gate polls advance) made the timed-out case pass twice alone; final area30/0/0. Nullable error-reason compile issue corrected before final tests. Managed fakes only; independent review exposed and closed canvas/rematch omissions.
+
+
+## ED-NEW-pcctl-cx-12
+2026-10-12 - Tactus C2-V11: refresh targets only after waits. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; DESIGN.md 2.11 and 2.12; C3c owner rulings).
+Track actual confirmation, Yield, Share and old lane queues. Consume one cold read after these waits, including empty point targets; no-wait paths keep the cheap Resolve lookup. R4 supplies its queue duration to validation: long waits read once cold, short waits use a cheap live element lookup and fall back to cold identity resolution when needed. First-piece value and state checks use that live result. No-wait borrows reuse the warm tree.
+New read-count tests RED twice 1/3/0 (extra R1 no-wait1, R4 no-wait2 and waited2); GREEN4/0/0. Independent review closed missed short waits without provider events and waited canvas freshness. Initial area543/1/0 failed existing stop/pause race; first alone failed, second passed, further reruns recorded in final report. Final intermediate area544/2/0 contains only the two pending V12 regressions, not V11 failures; the full area is re-run after V12. First V12 build had three CA1307 assertion-overload errors, corrected before red runs; jobs13/14 omitted tests on build failure.
+
+
+## ED-NEW-pcctl-cx-13
+2026-10-12 - Tactus C2-V12: preserve outcomes after a sent action loses its grant. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; DESIGN.md 2.12 and 10.1; C3c owner rulings).
+Preserve verification and actual failure after a grant removal, add a grant-removed note, and prevent fallback actions. The lease reports accepted planned arrays (release and replay excluded), including accepted Unicode character count, through its existing AsyncLocal action seam. Partial text reports typed N of M, including revocation during a later borrow queue. A successful type with submit requested returns the typing result and says submit was not sent when its grant disappears; a grant refused before a borrow sends anything still returns NotApproved. The prior paused-text assertion now follows the owner-approved partial outcome.
+Original two regressions RED twice0/2/0; drag supplement RED twice2/1/0, then full/partial Send RED twice2/2/0; submit and next-piece-queue supplement RED twice4/2/0. Final new6/0/0 and entire area550/0/0. Independent review found and closed partial drag, partial host acceptance, submit overwrite and delayed text progress omissions. Initial interim area546/0/0 then548/0/0; final550/0/0. V11 stop/pause race subsequently passed twice alone (V11-stop-alone3/4) and final area is green. Managed fakes only.
+
+
+## ED-NEW-pcctl-cx-14
+2026-10-12 - Tactus C2-V2: serialize activation with health release. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; DESIGN.md 2.7 and 10.2; C3c owner rulings).
+SetForeground and Raise share the borrow send gate and refuse activation after Finished/health/permission changes. A reentrant host health callback may finish release inside activation; check Finished after that call and restore its late foreground/Z-order/placement/cursor effects again. Emergency foreground recovery checks the result and retries up to RestoreTries. The managed host can expose deterministic activation/release points.
+Original focus/raise race RED twice0/2/0; initialGREEN2/0/0. Review added first-restore-failure supplement, RED twice2/1/0, correctedGREEN3/0/0. Before the 13:50 cadence update: raw area550/2/0, pause-expiry failed twice alone; queue first-alonefailed and secondpassed; final area552/0/0. These raw runs remain disclosed, not relabelled clean. No further per-finding area sweeps after the cadence update; final combined area is recorded at end. Fake health loss occurs after check and inside host activation, release is observed before activation returns; no input and saved foreground/Z-order recovered.
+
+
+## ED-NEW-pcctl-cx-15
+2026-10-12 - Tactus C2-V7: match kept keys saved with wildcard focus. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c owner rulings; DESIGN.md 2.7, 2.11, 2.12 and 10.2).
+PutBack first prefers an exact window/control key, then the saved window/focus-zero key. Replay retains its existing wildcard focus rule.
+C3cV7Tests saved focus zero regression RED twice0/1/0; GREEN1/0/0. No native input.
+
+
+## ED-NEW-pcctl-cx-21
+2026-10-12 - Tactus C2-V11: retain the cheap live snapshot on immediate R4 actions. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c owner rulings; DESIGN.md 2.7, 2.11, 2.12 and 10.2).
+An immediate R4 action validates and refreshes from its one cheap live target snapshot instead of replacing it with the older warm-tree node. Waited paths retain their cheap/cold rematching and window/point checks. Independent review identified app-only Value and Bounds changes without events.
+C3cV11Tests supplemental value/geometry cases RED twice4/2/0; corrected GREEN6/0/0. Insert preserves the app value; click follows live geometry; both retain zero extra fresh trees.
+
+
+## ED-NEW-pcctl-cx-16
+2026-10-12 - Tactus C2-V3: make stale-target post-message assertions effective. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c owner rulings; DESIGN.md 2.7, 2.11, 2.12 and 10.2).
+The stale confirmed target test asserts Messages == 0 and checks the real post key prefix. Temporary post-before-refusal dispatch must be detected.
+C3A8Tests restored GREEN7/0/0; temporary V3-post-before-refusal compiled and failed the tightened test twice; exact source bytes restored.
+
+
+## ED-NEW-pcctl-cx-17
+2026-10-12 - Tactus C2-V4: exercise public UIA token and sacrificial cancellation wiring. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c owner rulings; DESIGN.md 2.7, 2.11, 2.12 and 10.2).
+An internal delegate provider routes managed public Perform tests through the real PerformResolved and Sacrificial paths without creating UIA/COM workers. The native constructor retains native lookup/build/pattern/MTA behavior. Tests cover token forwarding, Invoke routing, thread entry cancellation, OCE catch and the wait token.
+C3cV4Tests restored GREEN9/0/0. Six compiling temporary mutations each failed a targeted assertion twice; exact source bytes restored after every mutation. Managed delegates only.
+
+
+## ED-NEW-pcctl-cx-22
+2026-10-12 - Tactus C2-V3: prove the real post-key prefix independently. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c V3 owner ruling; read-only evidence review).
+Keep both no-dispatch assertions and place the corrected post key prefix assertion first. The earlier dispatch mutation proved Messages == 0; repeating it now proves the real-prefix assertion itself catches the stale-target post. No production change.
+V3-prefix-before-refusal mutation RED twice0/1/0 at Assert.DoesNotContain Filter matched in collection; restored C3A8Tests GREEN7/0/0. Exact production source bytes restored. The earlier V3 red twice0/1/0 at Messages == 0 remains preserved, so each assertion has direct evidence.
+
+
+## ED-NEW-pcctl-cx-18
+2026-10-12 - Tactus C2-V5: cover changed live targets and in-borrow refusals. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c owner rulings; DESIGN.md 2.7, 2.11, 2.12 and 10.2).
+Managed engine tests cover same-identity changed value/state, liveWay null, queued first-piece value/recycled identity/point bounds and later RuntimeId focus. Assertions check refusal and zero dispatch before stale action.
+C3cV5Tests restored GREEN7/0/0. Seven compiling temporary mutations failed targeted assertions twice; exact source bytes restored after every mutation.
+
+
+## ED-NEW-pcctl-cx-19
+2026-10-12 - Tactus C2-V6: cover disabled real input and post-approval launch gates. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c owner rulings; DESIGN.md 2.7, 2.11, 2.12 and 10.2).
+Managed tests close Enabled while a real-input borrow is queued and change each launch gate after approval: Attended, SecureDesktop, live denied-app verdict and standing Always. They assert refusal and no input/launch.
+C3cV6Tests restored GREEN5/0/0. Five compiling temporary mutations failed targeted assertions twice; exact source bytes restored after every mutation.
+
+
+## ED-NEW-pcctl-cx-20
+2026-10-12 - Tactus C2-V8: make worker and kept-key regression checks deterministic. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c owner rulings; DESIGN.md 2.7, 2.11, 2.12 and 10.2).
+The managed lease observer publishes the actual action task so A7-3 waits for completion after health loss and observes any late send. Replay fixtures use twenty distinct keys and A5 checks the exact prefix and final event order across refusal and PutBack.
+Changed C3A5Tests/C3A7Tests restored GREEN4/0/0. Wrong retained-key slicing and combined ignored drag cancellation/late-send guard mutations each failed the tightened test twice. Exact source bytes restored.
+
+
+## ED-NEW-pcctl-cx-23
+2026-10-12 - Tactus C2-V12: retain owed releases when Windows rejects an up. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; DESIGN.md borrow release and 2.12; C3c owner rulings).
+The managed host now applies and records only the accepted prefix, captured before callbacks. A focused partial-text regression proves that typed N matches the field contents. Independent review of that evidence exposed a pre-existing send bookkeeping gap: a planned but rejected UP erased an owed DOWN. Keep provisional DOWNs before host.Send for reentrant health release, clear them only with accepted UPs afterward, and never resurrect pressed state after a finished borrow. Partial click and rejected final drag-UP regressions prove accepted release events and removal of the hold. Conservative provisional cleanup remains intentional. The queued-text test now waits for its poll delay to register before advancing fake time; expected outcomes stay unchanged.
+Accepted-prefix regression RED twice6/1/0 at field value h versus hello. Corrected fake plus partial-click and final-drag-UP regressions Targeted missing accepted LEFTUP assertions failed twice; raw7/2/0 then6/3/0, the second also containing an existing queued-text timeout. Focused C3cV12Tests GREEN9/0/0. Managed fakes only; no input or native workers. Preparation-only corrections restored original LF endings and used the required xUnit Single predicate overload; V12-release-analyzer-rejected.log retains the build rejection (0 warnings, 2 errors), which is not RED evidence. The extra queued-text timeout passed twice alone (V12-queue-alone1/2.log, 1/0/0 each), so it did not meet the lead failure threshold; the poll-registration race was removed from test setup.

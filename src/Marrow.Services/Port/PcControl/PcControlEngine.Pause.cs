@@ -18,6 +18,7 @@ public sealed partial class PcControlEngine
     {
         call.Timings.Mark("queue");
         var app = info.App.Key;
+        call.GrantLive = approval == PcApproval.Always ? () => parts.Approver.Standing(info.App, capability) == PcApproval.Always : null;
         while (true)
         {
             var epoch = parts.Pause.Epoch(app);
@@ -29,6 +30,8 @@ public sealed partial class PcControlEngine
             // The facts may have changed while the call waited for its turn.
             if (parts.Catalog.Window(info.Handle) is not { } live || !info.SameWindow(live))
                 return PcResult.Fail(PcErrorCode.WindowGone, "the window is gone") with { Resumed = call.Resumed };
+            if (call.GrantLive?.Invoke() == false)
+                return PcResult.Fail(PcErrorCode.NotApproved, "the app was removed from Tactus's apps while the step waited");
             call.PauseEpoch = epoch;
             try
             {
@@ -112,12 +115,20 @@ public sealed partial class PcControlEngine
     // typed only when the field reads as it did; otherwise the step ends, saying how much was typed.
     private async Task<string?> TextBoundary(PcWindowInfo info, PcUiNode? field, int typed, int total, PcCall call, CancellationToken cancellationToken)
     {
+        if (call.GrantLive?.Invoke() == false) return GrantCut(typed, total);
         if (!parts.Pause.PausedSince(info.App.Key, call.PauseEpoch)) return null;
         var before = await FieldText(info, field, cancellationToken).ConfigureAwait(false);
         await HoldInPlace(info, call).ConfigureAwait(false);
+        if (call.GrantLive?.Invoke() == false) return GrantCut(typed, total);
         var after = await FieldText(info, field, cancellationToken).ConfigureAwait(false);
         if (before is not null && after is not null && string.Equals(before, after, StringComparison.Ordinal)) return null;
         return "changed while paused: typed " + Count(typed) + " of " + Count(total) + " characters; look again before typing the rest";
+    }
+
+    private static string GrantCut(int typed, int total)
+    {
+        if (typed == 0) throw new PcGrantRemoved();
+        return "typed " + Count(typed) + " of " + Count(total) + " characters; the grant was then removed; look again before typing the rest";
     }
 
     private async Task<string?> FieldText(PcWindowInfo info, PcUiNode? field, CancellationToken cancellationToken)
@@ -144,4 +155,5 @@ public sealed partial class PcControlEngine
 
     // A step found its app paused before it acted: it holds in its stream and starts again.
     private sealed class PcHeld() : Exception("the app was paused before the step acted");
+    private sealed class PcGrantRemoved() : Exception("the app was removed from Tactus's apps while the step waited");
 }

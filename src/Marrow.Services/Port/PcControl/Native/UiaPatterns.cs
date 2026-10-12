@@ -1,8 +1,9 @@
 // PORT-ONLY: Tactus, PC control (OD-0140, OD-0141, ED-NEW-pcctl-1; DESIGN.md 2.2, 3.1). Element actions through UIA
 // patterns: Invoke, Toggle, SelectionItem, ExpandCollapse, Value and RangeValue, Scroll, ScrollItem, Window and focus; and
 // an element's whole text (TextPattern, else its value, else its children's names). Password and read-only fields refuse
-// values here too, not only in the engine. Runs only on UiaReader's worker thread; no automated test calls it, while the
-// HRESULT mapping (Outcome) is pure and tested.
+// values here too, not only in the engine. Native calls run on UiaReader workers; managed resolver delegates exercise
+// the same dispatch in fake-only tests. ED-NEW-pcctl-cx-9, DESIGN.md 10.2: check cancellation after resolution and
+// immediately before each mutation, including each Scroll and RangeValue after its provider property reads.
 using System.Globalization;
 using System.Runtime.InteropServices;
 using Marrow.Core.Port.PcControl;
@@ -26,64 +27,74 @@ public static class UiaPatterns
         _ => PcUiaOutcome.Fail(PcErrorCode.NotSupported, what + " failed (0x" + hresult.ToString("x8", CultureInfo.InvariantCulture) + ")"),
     };
 
-    internal static PcUiaOutcome Perform(IUIAutomationElement element, PcUiNode node, PcElementCommand command)
+    internal static PcUiaOutcome Perform(IUIAutomationElement element, PcUiNode node, PcElementCommand command,
+        CancellationToken cancellationToken) => Perform(id =>
+        {
+            var hresult = element.GetCurrentPattern(id, out var pattern);
+            return (hresult, pattern);
+        }, element.SetFocus, node, command, cancellationToken);
+
+    // Production dispatch with managed resolver/focus delegates for fake-only provider tests.
+    internal static PcUiaOutcome Perform(Func<int, (int HResult, object? Pattern)> resolve, Func<int> focus,
+        PcUiNode node, PcElementCommand command, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         switch (command.Action)
         {
             case PcElementAction.Focus:
-                return Outcome(element.SetFocus(), "focus");
+                return Outcome(Mutate(focus, cancellationToken), "focus");
             case PcElementAction.Invoke:
-                return With<IUIAutomationInvokePattern>(element, UiaIds.InvokePattern, "press", p => p.Invoke());
+                return With<IUIAutomationInvokePattern>(resolve, UiaIds.InvokePattern, "press", p => Mutate(() => p.Invoke(), cancellationToken), cancellationToken);
             case PcElementAction.Toggle:
-                return With<IUIAutomationTogglePattern>(element, UiaIds.TogglePattern, "toggle", p => p.Toggle());
+                return With<IUIAutomationTogglePattern>(resolve, UiaIds.TogglePattern, "toggle", p => Mutate(() => p.Toggle(), cancellationToken), cancellationToken);
             case PcElementAction.Select:
-                return With<IUIAutomationSelectionItemPattern>(element, UiaIds.SelectionItemPattern, "select", p => p.Select());
+                return With<IUIAutomationSelectionItemPattern>(resolve, UiaIds.SelectionItemPattern, "select", p => Mutate(() => p.Select(), cancellationToken), cancellationToken);
             case PcElementAction.Expand:
-                return With<IUIAutomationExpandCollapsePattern>(element, UiaIds.ExpandCollapsePattern, "expand", p => p.Expand());
+                return With<IUIAutomationExpandCollapsePattern>(resolve, UiaIds.ExpandCollapsePattern, "expand", p => Mutate(() => p.Expand(), cancellationToken), cancellationToken);
             case PcElementAction.Collapse:
-                return With<IUIAutomationExpandCollapsePattern>(element, UiaIds.ExpandCollapsePattern, "collapse", p => p.Collapse());
+                return With<IUIAutomationExpandCollapsePattern>(resolve, UiaIds.ExpandCollapsePattern, "collapse", p => Mutate(() => p.Collapse(), cancellationToken), cancellationToken);
             case PcElementAction.ScrollIntoView:
-                return With<IUIAutomationScrollItemPattern>(element, UiaIds.ScrollItemPattern, "scroll into view", p => p.ScrollIntoView());
+                return With<IUIAutomationScrollItemPattern>(resolve, UiaIds.ScrollItemPattern, "scroll into view", p => Mutate(() => p.ScrollIntoView(), cancellationToken), cancellationToken);
             case PcElementAction.Minimize:
-                return With<IUIAutomationWindowPattern>(element, UiaIds.WindowPattern, "minimize", p => p.SetWindowVisualState(UiaIds.VisualMinimized));
+                return With<IUIAutomationWindowPattern>(resolve, UiaIds.WindowPattern, "minimize", p => Mutate(() => p.SetWindowVisualState(UiaIds.VisualMinimized), cancellationToken), cancellationToken);
             case PcElementAction.Maximize:
-                return With<IUIAutomationWindowPattern>(element, UiaIds.WindowPattern, "maximize", p => p.SetWindowVisualState(UiaIds.VisualMaximized));
+                return With<IUIAutomationWindowPattern>(resolve, UiaIds.WindowPattern, "maximize", p => Mutate(() => p.SetWindowVisualState(UiaIds.VisualMaximized), cancellationToken), cancellationToken);
             case PcElementAction.Restore:
-                return With<IUIAutomationWindowPattern>(element, UiaIds.WindowPattern, "restore", p => p.SetWindowVisualState(UiaIds.VisualNormal));
+                return With<IUIAutomationWindowPattern>(resolve, UiaIds.WindowPattern, "restore", p => Mutate(() => p.SetWindowVisualState(UiaIds.VisualNormal), cancellationToken), cancellationToken);
             case PcElementAction.Close:
-                return With<IUIAutomationWindowPattern>(element, UiaIds.WindowPattern, "close", p => p.Close());
+                return With<IUIAutomationWindowPattern>(resolve, UiaIds.WindowPattern, "close", p => Mutate(() => p.Close(), cancellationToken), cancellationToken);
             case PcElementAction.SetValue:
-                return SetValue(element, node, command.Value ?? "");
+                return SetValue(resolve, node, command.Value ?? "", cancellationToken);
             case PcElementAction.Scroll:
-                return Scroll(element, command);
+                return Scroll(resolve, command, cancellationToken);
         }
         return PcUiaOutcome.Fail(PcErrorCode.NotSupported, "unknown action");
     }
 
-    private static PcUiaOutcome SetValue(IUIAutomationElement element, PcUiNode node, string value)
+    private static PcUiaOutcome SetValue(Func<int, (int HResult, object? Pattern)> resolve, PcUiNode node, string value, CancellationToken cancellationToken)
     {
         if (node.Has(PcStates.Password)) return PcUiaOutcome.Fail(PcErrorCode.PasswordField, "this is a password field");
         if (node.Can(PcActions.Value))
         {
             if (node.Has(PcStates.ReadOnly)) return PcUiaOutcome.Fail(PcErrorCode.Disabled, "this field is read-only");
-            return With<IUIAutomationValuePattern>(element, UiaIds.ValuePattern, "set value", p => p.SetValue(value));
+            return With<IUIAutomationValuePattern>(resolve, UiaIds.ValuePattern, "set value", p => Mutate(() => p.SetValue(value), cancellationToken), cancellationToken);
         }
         if (node.Can(PcActions.RangeValue))
         {
             if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) || !double.IsFinite(number))
                 return PcUiaOutcome.Fail(PcErrorCode.BadArgs, "this element takes a number");
-            return With<IUIAutomationRangeValuePattern>(element, UiaIds.RangeValuePattern, "set value", p =>
+            return With<IUIAutomationRangeValuePattern>(resolve, UiaIds.RangeValuePattern, "set value", p =>
             {
                 if (p.get_CurrentIsReadOnly(out var readOnly) == 0 && readOnly != 0) return ElementNotEnabled;
                 if (p.get_CurrentMinimum(out var min) == 0 && p.get_CurrentMaximum(out var max) == 0 && (number < min || number > max))
                     return unchecked((int)0x80070057);
-                return p.SetValue(number);
-            });
+                return Mutate(() => p.SetValue(number), cancellationToken);
+            }, cancellationToken);
         }
         return PcUiaOutcome.Fail(PcErrorCode.NotSupported, "this element has no value to set");
     }
 
-    private static PcUiaOutcome Scroll(IUIAutomationElement element, PcElementCommand command)
+    private static PcUiaOutcome Scroll(Func<int, (int HResult, object? Pattern)> resolve, PcElementCommand command, CancellationToken cancellationToken)
     {
         var increment = command.Unit == PcScrollUnit.Page ? UiaIds.LargeIncrement : UiaIds.SmallIncrement;
         var decrement = command.Unit == PcScrollUnit.Page ? UiaIds.LargeDecrement : UiaIds.SmallDecrement;
@@ -94,15 +105,15 @@ public static class UiaPatterns
             PcScrollDirection.Right => (increment, UiaIds.NoAmount),
             PcScrollDirection.Left => (decrement, UiaIds.NoAmount),
         };
-        return With<IUIAutomationScrollPattern>(element, UiaIds.ScrollPattern, "scroll", p =>
+        return With<IUIAutomationScrollPattern>(resolve, UiaIds.ScrollPattern, "scroll", p =>
         {
             for (var i = 0; i < Math.Clamp(command.Count, 1, 50); i++)
             {
-                var result = p.Scroll(horizontal, vertical);
+                var result = Mutate(() => p.Scroll(horizontal, vertical), cancellationToken);
                 if (result != 0) return i == 0 ? result : 0;
             }
             return 0;
-        });
+        }, cancellationToken);
     }
 
     internal static string? ReadText(IUIAutomationElement element, PcUiNode node)
@@ -118,9 +129,17 @@ public static class UiaPatterns
         return node.Has(PcStates.Password) ? null : node.Value ?? node.Name;
     }
 
-    private static PcUiaOutcome With<TPattern>(IUIAutomationElement element, int patternId, string what, Func<TPattern, int> call) where TPattern : class
+    private static int Mutate(Func<int> call, CancellationToken cancellationToken)
     {
-        var hresult = element.GetCurrentPattern(patternId, out var pattern);
+        cancellationToken.ThrowIfCancellationRequested();
+        return call();
+    }
+
+    private static PcUiaOutcome With<TPattern>(Func<int, (int HResult, object? Pattern)> resolve, int patternId, string what, Func<TPattern, int> call, CancellationToken cancellationToken) where TPattern : class
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var (hresult, pattern) = resolve(patternId);
+        cancellationToken.ThrowIfCancellationRequested();
         if (hresult != 0) return Outcome(hresult, what);
         if (pattern is not TPattern typed) return PcUiaOutcome.Fail(PcErrorCode.NotSupported, "the element cannot " + what);
         try { return Outcome(call(typed), what); }

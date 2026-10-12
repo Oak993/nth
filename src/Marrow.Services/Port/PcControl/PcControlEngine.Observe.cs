@@ -112,36 +112,60 @@ public sealed partial class PcControlEngine
             return PcResult.Fail(PcErrorCode.NotSupported, "the stop key " + parts.StopKey.Chord + " is taken by another app, so Tactus cannot start. Ask the user to pick another stop key in Settings, Tactus");
         call.Timings.Mark("guard");
         var name = app.ExeName.Length > 0 ? Path.GetFileNameWithoutExtension(app.ExeName) : target;
-        PcApproval approval;
-        using (call.Wait.Waiting(PcWaitReason.Approval)) approval = await Approve(app, name, PcCapability.Act, call.Token).ConfigureAwait(false);
-        call.Timings.Mark("approve");
-        if (approval is not (PcApproval.Chat or PcApproval.Always)) return PcResult.Fail(PcErrorCode.NotApproved, "the user did not allow Tactus to start this app");
-        var before = parts.Catalog.Windows().Select(w => w.Handle).ToHashSet();
-        parts.Feed.Watch(PcChangeFeed.Desktop, 0);
-        var launch = parts.Launcher.Launch(target);
-        call.Timings.Mark("launch");
-        if (!launch.Started) return PcResult.Fail(PcErrorCode.NotSupported, launch.Problem ?? "Windows could not start it");
-        // The app's first window, woken by "a window was shown" events, at most 10 s.
-        var deadline = parts.Clock.NowMs + 10_000;
-        List<PcWindowInfo> fresh;
-        while (true)
+        using var watch = parts.Control.Watch(call.Token, caller.Thread, app.Key, 0);
+        call = call.With(watch.Token);
+        try
         {
-            var version = parts.Feed.Version(PcChangeFeed.Desktop);
-            fresh = parts.Catalog.Windows().Where(w => !before.Contains(w.Handle) && !parts.Own.Owns(w.Handle)
-                && (launch.ProcessId is { } pid ? w.ProcessId == pid || w.App.Key == app.Key : w.App.Key == app.Key)).ToList();
-            var left = deadline - parts.Clock.NowMs;
-            if (fresh.Count > 0 || left <= 0) break;
-            await parts.Feed.Changed(PcChangeFeed.Desktop, version, (int)left, call.Token).ConfigureAwait(false);
+            if (StoppedHere(app.Key) is { } stopped) return stopped;
+            PcApproval approval;
+            using (call.Wait.Waiting(PcWaitReason.Approval)) approval = await Approve(app, name, PcCapability.Act, call.Token).ConfigureAwait(false);
+            call.Timings.Mark("approve");
+            if (approval is not (PcApproval.Chat or PcApproval.Always)) return PcResult.Fail(PcErrorCode.NotApproved, "the user did not allow Tactus to start this app");
+            var before = parts.Catalog.Windows().Select(w => w.Handle).ToHashSet();
+            parts.Feed.Watch(PcChangeFeed.Desktop, 0);
+            call.Token.ThrowIfCancellationRequested();
+            if (StoppedHere(app.Key) is { } stoppedAfterApproval) return stoppedAfterApproval;
+            var liveSettings = parts.Settings();
+            if (!liveSettings.Enabled) return PcResult.Fail(PcErrorCode.PcOff, "Tactus is off");
+            if (!caller.Attended()) return PcResult.Fail(PcErrorCode.Unattended, "this run is not one the user is watching");
+            if (parts.Security.SecureDesktop()) return PcResult.Fail(PcErrorCode.SecureDesktop, "a Windows security prompt is open");
+            var liveVerdict = PcPolicy.Classify(app, liveSettings.UserDeniedApps);
+            if (liveVerdict.Denied) return PcResult.Fail(PcErrorCode.DeniedApp, liveVerdict.Reason ?? "this app is not allowed");
+            call.Token.ThrowIfCancellationRequested();
+            if (approval == PcApproval.Always && parts.Approver.Standing(app, PcCapability.Act) != PcApproval.Always)
+                return PcResult.Fail(PcErrorCode.NotApproved, "the app was removed from Tactus's apps while the step waited");
+            call.Token.ThrowIfCancellationRequested();
+            var launch = parts.Launcher.Launch(target);
+            call.Timings.Mark("launch");
+            if (!launch.Started) return PcResult.Fail(PcErrorCode.NotSupported, launch.Problem ?? "Windows could not start it");
+            // The app's first window, woken by "a window was shown" events, at most 10 s.
+            var deadline = parts.Clock.NowMs + 10_000;
+            List<PcWindowInfo> fresh;
+            while (true)
+            {
+                var version = parts.Feed.Version(PcChangeFeed.Desktop);
+                fresh = parts.Catalog.Windows().Where(w => !before.Contains(w.Handle) && !parts.Own.Owns(w.Handle)
+                    && (launch.ProcessId is { } pid ? w.ProcessId == pid || w.App.Key == app.Key : w.App.Key == app.Key)).ToList();
+                var left = deadline - parts.Clock.NowMs;
+                if (fresh.Count > 0 || left <= 0) break;
+                await parts.Feed.Changed(PcChangeFeed.Desktop, version, (int)left, call.Token).ConfigureAwait(false);
+            }
+            call.Timings.Mark("wait");
+            if (fresh.Count == 0) return PcResult.Success(body: "started; no window yet. Call pc_list_apps in a moment.");
+            var text = new StringBuilder("started. new windows:");
+            foreach (var window in fresh)
+            {
+                Remember(window);
+                text.Append("\n  ").Append(PcWindowRef.Format(window.Handle)).Append(' ').Append(PcWindowLine.Quote(TreeFormatter.Clean(window.Title, 120)));
+            }
+            return PcResult.Success(body: text.ToString());
         }
-        call.Timings.Mark("wait");
-        if (fresh.Count == 0) return PcResult.Success(body: "started; no window yet. Call pc_list_apps in a moment.");
-        var text = new StringBuilder("started. new windows:");
-        foreach (var window in fresh)
+        catch (OperationCanceledException) when (watch.Stopped)
         {
-            Remember(window);
-            text.Append("\n  ").Append(PcWindowRef.Format(window.Handle)).Append(' ').Append(PcWindowLine.Quote(TreeFormatter.Clean(window.Title, 120)));
+            return watch.StoppedBy == PcStopSource.Sleep
+                ? PcResult.Fail(PcErrorCode.Locked, "the PC went to sleep")
+                : PcResult.Fail(PcErrorCode.StoppedByUser, "the user stopped Tactus");
         }
-        return PcResult.Success(body: text.ToString());
     }
 
     // ----- pc_observe, pc_zoom -----
