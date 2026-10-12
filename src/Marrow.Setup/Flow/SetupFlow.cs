@@ -89,8 +89,8 @@ public static class SetupFlow
         return new SetupRoute(SetupScreen.Problem, InstallerAction.Install, new InstalledRoot(root, null, false), root);
     }
 
-    /// <summary>A setup whose signature is there but does not hold shows Problem ("has been changed") and installs nothing.</summary>
-    public static bool BlocksInstall(SignatureResult signature) => signature.State == SignatureState.Invalid;
+    /// <summary>Install waits for an explicit Signed or Unsigned answer; an unknown or invalid check never grants permission.</summary>
+    public static bool BlocksInstall(SignatureResult signature) => signature.State is not (SignatureState.Signed or SignatureState.Unsigned);
 
     public static int ExitCodeWhenClosed(SetupScreen screen) => screen switch
     {

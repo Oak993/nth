@@ -147,12 +147,12 @@ public sealed class SetupFlowTests : IDisposable
 
     [Fact]
     [Trait("Decision", "OD-0072")]
-    public void Only_a_signature_that_does_not_hold_blocks_the_install()
+    public void Only_a_completed_signed_or_unsigned_check_allows_install()
     {
         Assert.True(SetupFlow.BlocksInstall(new SignatureResult(SignatureState.Invalid, null, unchecked((int)0x80096010))));
         Assert.False(SetupFlow.BlocksInstall(new SignatureResult(SignatureState.Unsigned, null, unchecked((int)0x800B0100))));
         Assert.False(SetupFlow.BlocksInstall(new SignatureResult(SignatureState.Signed, "Publisher", 0)));
-        Assert.False(SetupFlow.BlocksInstall(SignatureResult.Pending));
+        Assert.True(SetupFlow.BlocksInstall(SignatureResult.Pending));
     }
 
     private SetupRoute Route(string version) => SetupFlow.Route(version, PackageId, [], localAppData, localAppData, keys);

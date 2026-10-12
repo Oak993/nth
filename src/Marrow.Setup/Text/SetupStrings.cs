@@ -197,6 +197,7 @@ public static class SetupStrings
     public static string ProblemBlocked => S("problem.blocked");
     public static string ProblemOther => S("problem.other");
     public static string ProblemChanged => S("problem.changed");
+    public static string ProblemSignature => S("problem.signature");
     public static string ProblemSafe => S("problem.safe");
     public static string ProblemLeft => S("problem.left");
     public static string UninstallProblemTitle => S("problem.uninstall.title");

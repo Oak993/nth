@@ -91,7 +91,7 @@ public static class Program
         using var done = new CancellationTokenSource();
         window.Closed += (_, _) => done.Cancel();
         if (smoke is not null) window.Opened += (_, _) => _ = UiSmoke.RunAsync(session, smoke, started, () => new ShellLinks());
-        else _ = CheckSignatureAsync(session);
+        else _ = CheckSignatureAsync(session, done.Token);
         // the previews' wallpaper is read after the first frame, off the UI thread (PLAN.md 8a)
         window.Opened += (_, _) => Dispatcher.UIThread.Post(() => WallpaperLoader.Start(session), DispatcherPriority.Background);
         if (staging is not null) window.Opened += (_, _) => _ = staging.SweepStaleAsync();
@@ -136,10 +136,25 @@ public static class Program
     private static InstallSizes StampedSizes() => InstallSizes.FromMetadata(key => LegacyGateHost.Metadata(key) is { Length: > 0 } value ? value : null);
 
     /// <summary>The self-signature check hashes the whole file, so it runs off the UI thread after the window shows.</summary>
-    private static async Task CheckSignatureAsync(SetupSession session)
+    private static Task CheckSignatureAsync(SetupSession session, CancellationToken closed) =>
+        DispatchSignatureAsync(session, SignatureCheck.VerifySelfAsync(), TimeProvider.System,
+            action => Dispatcher.UIThread.Post(action), closed);
+
+    private static async Task DispatchSignatureAsync(SetupSession session, Task<SignatureResult> check,
+        TimeProvider clock, Action<Action> post, CancellationToken closed)
     {
-        var result = await SignatureCheck.VerifySelfAsync().ConfigureAwait(false);
-        Dispatcher.UIThread.Post(() => session.SignatureChecked(result));
+        try
+        {
+            var result = await SignatureCheck.WaitForAnswerAsync(check, clock, closed).ConfigureAwait(false);
+            if (closed.IsCancellationRequested) return;
+            post(() =>
+            {
+                if (closed.IsCancellationRequested) return;
+                if (result is null) session.SignatureCheckUnavailable();
+                else session.SignatureChecked(result);
+            });
+        }
+        catch (OperationCanceledException) when (closed.IsCancellationRequested) { }
     }
 
     /// <summary>

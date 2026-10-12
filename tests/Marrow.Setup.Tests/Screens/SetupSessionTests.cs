@@ -138,17 +138,19 @@ public sealed class SetupSessionTests(SetupHeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-247")]
-    public void Install_is_chosen_only_from_Welcome_or_Update_and_never_in_a_smoke_run()
+    public void Install_requires_a_completed_check_on_Welcome_or_Update_and_never_runs_in_smoke()
     {
         headless.OnUiThread(() =>
         {
             var smoke = new WindowRig().Session(SetupScreen.Welcome, canInstall: false);
             smoke.Start();
+            smoke.SignatureChecked(new SignatureResult(SignatureState.Unsigned, null, 0));
             smoke.ChooseInstall();
             Assert.False(smoke.InstallChosen);
 
             var current = new WindowRig().Session(SetupScreen.UpToDate, installed: "1.1.0");
             current.Start();
+            current.SignatureChecked(new SignatureResult(SignatureState.Signed, "Publisher", 0));
             current.ChooseInstall();
             Assert.False(current.InstallChosen);
 
@@ -158,6 +160,10 @@ public sealed class SetupSessionTests(SetupHeadlessSession headless)
             rig.Window.Show();
             var closed = false;
             rig.Window.Closed += (_, _) => closed = true;
+            welcome.ChooseInstall();
+            Assert.False(welcome.InstallChosen);
+            Assert.False(closed);
+            welcome.SignatureChecked(new SignatureResult(SignatureState.Unsigned, null, 0));
             welcome.ChooseInstall();
             Assert.True(welcome.InstallChosen);
             Assert.True(closed);
