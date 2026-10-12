@@ -118,6 +118,9 @@ internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus) : I
     /// <summary>An account as the reserve names it: the feed's key, the owner's name for it, its provider.</summary>
     public ReserveAccountRef AccountRef(UsageAccountKey account) => new(AccountKey(account), AccountName(account), account.Provider.Id);
 
+    /// <summary>The same for an account of the store, by its id (AS-14: the router's accounts).</summary>
+    public ReserveAccountRef AccountRef(ProviderKind provider, Guid id) => AccountRef(KeyOf(provider, id));
+
     /// <summary>AppModel.TurnFinished: a chat's turn ended. A head reports through <see cref="TapHeadFinished"/> instead.</summary>
     public void TapTurnFinished(Guid threadId, TurnStatus status, bool continues)
     {

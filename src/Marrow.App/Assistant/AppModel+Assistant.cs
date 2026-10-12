@@ -1,11 +1,15 @@
-// PORT-ONLY: Dextra (DESIGN.md rev 5, 5.1, 12.3, 15.1, 15.4; units AS-2 and AS-5; ED-NEW-dextra-as2-6, -8,
-// ED-NEW-dextra-as5-5, -6, -11). No Swift twin.
+// PORT-ONLY: Dextra (DESIGN.md rev 5, 5.1, 11.6, 12.3, 15.1, 15.4; units AS-2, AS-5 and AS-14; ED-NEW-dextra-as2-6, -8,
+// ED-NEW-dextra-as5-5, -6, -11, ED-NEW-dextra-as14-5, -8). No Swift twin.
 // The Assistant's live feed as the app holds it (one bus, one set of taps), and the seams Dextra's controller hangs on:
 // every launch of a mission chat is sealed and jobbed (MissionLaunchOf, whether or not the controller runs), and the
 // app's approvals, questions, turn ends and Hydra heads reach the controller when one is bound. With none bound, nothing
 // changes for any chat but a mission's, which stays sealed and capped.
 using Marrow.App.Assistant;
 using Marrow.Core.Models;
+using Marrow.Core.Port;
+using Marrow.Core.Port.Assistant;
+using Marrow.Core.Port.Ignis;
+using Marrow.Core.Port.MultiAccount;
 using Marrow.Services.Assistant;
 using Marrow.Services.Providers;
 
@@ -71,13 +75,14 @@ public sealed partial class AppModel
         var reservePersistence = new ReservePersistence(store, reserveSettings, calibrator, turnCosts);
         var controller = new AssistantController(new AssistantControllerOptions
         {
+            Router = new RouterSetup { Accounts = RouterAccounts, Models = RouterModelsOf },
             Reserve = new ReserveSetup
             {
                 Settings = reserveSettings,
                 Calibrator = calibrator,
                 Turns = turnCosts,
                 AccountOf = thread => ExistingRuntime(thread)?.UsageAccount is { } account ? AssistantTaps.AccountRef(account) : null,
-                AccountForNew = record => AssistantTaps.AccountRef(Marrow.Core.Port.UsageAccountKey.Default(record.Provider)),
+                AccountForNew = AccountForNewChat,
                 AccountOfSnapshot = account => AssistantTaps.AccountRef(account),
                 Owned = reservePersistence,
             },
@@ -97,6 +102,42 @@ public sealed partial class AppModel
         BindDextra(controller);
         return controller;
     }
+
+    /// <summary>
+    /// The account a chat the mission has yet to start would run on (the reserve's question): the one the router chose for it, else
+    /// the one the provider's own account order gives a new chat.
+    /// </summary>
+    private ReserveAccountRef AccountForNewChat(MissionRecord record)
+    {
+        var routed = record.AccountId is { } chosen
+            ? Settings.Accounts.Accounts.FirstOrDefault(candidate => candidate.Id == chosen && candidate.Service == record.Provider)
+            : null;
+        var account = routed ?? Settings.Accounts.Choose(record.Provider);
+        return account is null
+            ? AssistantTaps.AccountRef(UsageAccountKey.Default(record.Provider))
+            : AssistantTaps.AccountRef(record.Provider, account.Id);
+    }
+
+    /// <summary>
+    /// The accounts the router may use (AS-14): those enabled and connected, each with whether it can be used now (CanUseAccount) and
+    /// its place in the owner's pill order. The pill used for new threads comes first, then his other pills, then the rest by the
+    /// order he gave the accounts of each service.
+    /// </summary>
+    private IReadOnlyList<RouterAccount> RouterAccounts()
+    {
+        var connected = new HandshakeAccountStore(Settings.Accounts, IsAccountConnected);
+        var order = PillOrder.Sequence(Settings.Pills.Pills, Settings.Pills.UseForNewThreads, connected);
+        return [.. Settings.Accounts.Accounts.Where(row => row.Enabled && IsAccountConnected(row)).Select(row =>
+        {
+            var id = row.Id.ToString("D");
+            var place = order.ToList().FindIndex(item => string.Equals(item, id, StringComparison.OrdinalIgnoreCase));
+            return new RouterAccount(row.Id, AssistantTaps.AccountRef(row.Service, row.Id), row.Service, CanUseAccount(row.Id), place >= 0 ? place : order.Count + row.Priority);
+        })];
+    }
+
+    /// <summary>A provider's models with their tiers, read from the price the Ignis points know for each (no price: standard).</summary>
+    private IReadOnlyList<RouteModel> RouterModelsOf(ProviderKind provider) =>
+        RouterModels.Of(provider, Providers.Models(provider), IgnisRuntimeSeams.Points.Current());
 
     /// <summary>Binds Dextra's controller: the nth-dextra tools, approvals, questions and turn ends go to it.</summary>
     public void BindDextra(AssistantController controller)

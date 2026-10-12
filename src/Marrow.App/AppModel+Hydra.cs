@@ -92,7 +92,8 @@ public sealed partial class AppModel
     {
         if (!HydraIsOn(thread)) return null;
 
-        var pair = HydraPair(thread);
+        // PORT-ONLY (Dextra AS-14, 15.4): a mission lead's team runs on the pair its router filled, not on one of the owner's.
+        var pair = (thread.MissionID is not null ? Dextra?.TeamPair(thread) : null) ?? HydraPair(thread);
         var headsProvider = pair is null ? thread.Provider : HydraHeadsProvider(pair);
         var elsewhere = headsProvider != thread.Provider;
         var keepsModel = pair is null || !pair.SendsHeadsElsewhere || elsewhere;
@@ -389,6 +390,8 @@ public sealed partial class AppModel
             HiddenFromAssistant = parent.HiddenFromAssistant, // PORT-ONLY (AS-3a, ED-NEW-dextra-as3a-2): a head of a hidden chat is hidden too
             MissionID = parent.MissionID, // PORT-ONLY (AS-5, seam 3)
             AssistantID = parent.AssistantID,
+            // PORT-ONLY (AS-14): a mission's head on the lead's provider runs on the lead's account, the one the router chose and the reserve follows.
+            ProviderAccountID = parent.MissionID is not null && provider == parent.Provider ? parent.ProviderAccountID : null,
         };
 
         UpdateThread(parent.Id, value => value with { HydraSpawnCount = counter });

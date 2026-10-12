@@ -42,7 +42,7 @@ public sealed class AssistantControllerOptions
 
     public Func<MissionLimits> Limits { get; init; } = () => MissionLimits.Default;
 
-    /// <summary>The provider and model a mission's lead runs on until the router (AS-14) picks per step.</summary>
+    /// <summary>The provider and model a mission's lead runs on when the router (AS-14) has none to pick, or none is set up.</summary>
     public ProviderKind Provider { get; init; } = ProviderKind.Claude;
 
     public string? Model { get; init; }
@@ -57,6 +57,12 @@ public sealed class AssistantControllerOptions
 
     /// <summary>The usage reserve (AS-13): what it reads and keeps. Null: no reserve; nothing is held back for usage.</summary>
     public ReserveSetup? Reserve { get; init; }
+
+    /// <summary>
+    /// The usage-aware router (AS-14): what it reads of the owner's accounts and models. Null: a mission's lead runs on
+    /// <see cref="Provider"/> and <see cref="Model"/>, and the pause card has no "Move the rest to ...".
+    /// </summary>
+    public RouterSetup? Router { get; init; }
 }
 
 /// <summary>What the usage reserve is made of (11.2 to 11.5): the owner's rules, the calibration, and how a chat finds its account.</summary>
@@ -74,9 +80,10 @@ public sealed class ReserveSetup
 
     public required Func<Marrow.Core.Port.UsageAccountKey, ReserveAccountRef> AccountOfSnapshot { get; init; }
 
-    /// <summary>The router's seam (AS-14) for option 1 of the pause card.</summary>
+    /// <summary>Option 1 of the pause card, when something other than the router makes it (a test's fake); the router does by default.</summary>
     public IReserveMover? Mover { get; init; }
 
+    /// <summary>The mission's model was chosen by the owner; by default what its record says (<see cref="MissionRecord.ModelPinned"/>).</summary>
     public Func<MissionRecord, bool>? IsPinned { get; init; }
 
     public Func<ReserveAccountRef, Task>? Refresh { get; init; }
@@ -111,6 +118,11 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
             Granted = Granted,
             Time = o.Time,
         });
+        if (o.Router is { } routing)
+        {
+            Router = new AssistantRouter(routing, o.Time, Runner, o.Agents);
+            Runner.ReviewerRouter = Router;
+        }
         if (o.Reserve is { } reserve)
         {
             Reserve = new ReserveGuard(new ReserveGuardOptions
@@ -123,15 +135,29 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
                 AccountOf = reserve.AccountOf,
                 AccountForNew = reserve.AccountForNew,
                 AccountOfSnapshot = reserve.AccountOfSnapshot,
-                Mover = reserve.Mover,
-                IsPinned = reserve.IsPinned ?? (_ => false),
+                Mover = reserve.Mover ?? Router,
+                IsPinned = reserve.IsPinned ?? (record => record.ModelPinned),
                 Refresh = reserve.Refresh,
                 Audit = TryAudit,
                 Time = o.Time,
             });
             Runner.Reserve = Reserve;
+            Router?.Bind(Reserve);
         }
     }
+
+    /// <summary>The usage-aware router (AS-14), when one is set up: it picks a mission's lead, fills its team's profiles and moves it between accounts.</summary>
+    public AssistantRouter? Router { get; }
+
+    /// <summary>
+    /// The pair a mission lead's Hydra team runs on, filled by the router (15.4: "the router chooses HydraHeadProfiles"); null for
+    /// a chat that is not a lead (a head has a parent), a mission that runs no team, one whose model the owner pinned, or when nothing
+    /// can be chosen. It is asked when the lead's session launches, which can be before the runner has recorded the lead's id.
+    /// </summary>
+    public HydraPair? TeamPair(ChatThread lead) =>
+        lead.MissionID is { } mission && lead.ParentThreadID is null && Runner.Find(mission) is { Team: true } record && record.Provider == lead.Provider
+            ? Router?.TeamPair(record)
+            : null;
 
     /// <summary>The usage reserve (AS-13), when one is set up: it follows the accounts and gates every turn of a mission.</summary>
     public ReserveGuard? Reserve { get; }
@@ -303,9 +329,14 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
                 var title = team ? "Team: " + parent!.Mission.Title : Text("title") ?? "Mission";
                 // 12.4: from a tainted chat the brief goes as data only, and the mission starts tainted (its Taint below).
                 var brief = call.DataOnly ? AsData(Text("brief") ?? "") : Text("brief") ?? "";
-                var started = Runner.Start(new MissionRequest(title, brief, chat.AssistantId, project.Id, project.Path, parent?.Provider ?? o.Provider)
+                // The router picks the lead's account and model where the reserve leaves room; a team under a mission keeps its parent's
+                // (the same account and model), and with no pick the mission starts on the default and the reserve holds it if it must.
+                var routed = parent is null ? Router?.PickLead(chat.AssistantId) : null;
+                var started = Runner.Start(new MissionRequest(title, brief, chat.AssistantId, project.Id, project.Path, parent?.Provider ?? routed?.Provider ?? o.Provider)
                 {
-                    Model = parent?.Model ?? o.Model,
+                    Model = parent?.Model ?? routed?.Model ?? o.Model,
+                    AccountId = parent?.AccountId ?? routed?.AccountId,
+                    ModelPinned = parent?.ModelPinned ?? false,
                     Team = team,
                     Origin = chat.MissionId is null ? MissionOrigin.Owner : MissionOrigin.Delegation,
                     Parent = parent?.Id ?? chat.MissionId,
