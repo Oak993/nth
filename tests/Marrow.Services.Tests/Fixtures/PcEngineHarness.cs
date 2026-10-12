@@ -57,6 +57,9 @@ public sealed class PcEngineHarness
     public PcAskBroker Asks { get; }
 
     public PcManualClock AskClock { get; } = new();
+
+    /// <summary>Where each action lands, for the Tactus pointers.</summary>
+    public PcPointerFeed Pointer { get; } = new();
     public PcSettings Settings { get; set; } = PcSettings.Default with { Enabled = true };
     public DateTimeOffset Now { get; set; } = Today;
 
@@ -84,6 +87,7 @@ public sealed class PcEngineHarness
         Ownership = Ownership,
         Settings = () => Settings,
         Capture = Capture,
+        Pointer = Pointer,
         WaitClock = WaitClock,
         Now = () => Now,
     };

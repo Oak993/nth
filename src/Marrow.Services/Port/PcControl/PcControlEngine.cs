@@ -71,6 +71,9 @@ public sealed class PcEngineParts
     public required Func<PcSettings> Settings { get; init; }
     public PcCapturePipeline? Capture { get; init; }
 
+    /// <summary>Where each action lands, for the Tactus pointers (DESIGN.md 4.5); none when null.</summary>
+    public PcPointerFeed? Pointer { get; init; }
+
     /// <summary>The clock of the waits for the user (the 25 s budget, the 60 s token expiry); the engine clock when null.</summary>
     public IPcClock? WaitClock { get; init; }
 

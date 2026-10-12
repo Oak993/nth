@@ -267,8 +267,10 @@ public sealed partial class PcControlEngine
             var pre = parts.Foreground.Read();
             var started = parts.Clock.NowMs;
             var pressesAt = parts.Input.Presses(handle);
+            AimPointer(info, request, way);
             var outcome = await way.Run(call.Token).WaitAsync(call.Token).ConfigureAwait(false);
             call.Timings.Mark("act");
+            if (request.Kind == PcInputKind.Drag && request.Path.Count > 1) AimPointer(info, request, way, request.Path[^1]);
             call.Audit.Rung = way.Rung + " " + way.Method;
             var post = parts.Foreground.Read();
             var learned = Learn(info, way, pre, post, windowsBefore, started);
@@ -343,6 +345,39 @@ public sealed partial class PcControlEngine
             before = await Tree(handle, fresh: false, call.Token).ConfigureAwait(false) ?? before;
         }
         return last ?? PcResult.Fail(PcErrorCode.NeedsRealInput, plan.Reason ?? PcRealInputReason.Off, Line(info, Latest(handle)));
+    }
+
+    /// <summary>
+    /// The Tactus pointer shows where this way acts (DESIGN.md 4.5): the target's centre, else the given point, or a drag's
+    /// start (and, after it ran, its end). Whether the user can see it: the window is not minimized and is the root window
+    /// under the point. Raised before the action, never waited for.
+    /// </summary>
+    private void AimPointer(PcWindowInfo info, PcInputRequest request, PcRungPlan way, PcPoint? dropped = null)
+    {
+        if (parts.Pointer is not { } pointer || !parts.Settings().ShowPointer) return;
+        var node = way.Target ?? request.Element;
+        var at = dropped
+            ?? (request.Kind == PcInputKind.Drag && request.Path.Count > 0 ? request.Path[0]
+            : node is { Bounds: { Width: > 0, Height: > 0 } bounds } ? bounds.Center : request.Point);
+        if (at is not { } point) return;
+        var act = dropped is not null ? PcPointerAct.Move : request.Kind switch
+        {
+            PcInputKind.Click or PcInputKind.Command or PcInputKind.Drag => PcPointerAct.Press,
+            PcInputKind.Type or PcInputKind.Key => PcPointerAct.Type,
+            _ => PcPointerAct.Move,
+        };
+        var live = parts.Catalog.Window(info.Handle);
+        var under = parts.Catalog.RootAt(point);
+        var visible = live is { Minimized: false } && (under == info.Handle || (under != 0 && under == RootOwner(info)));
+        pointer.Aim(new PcPointerAim(info.App.Key, AppName(info), info.ExePath, info.Handle, point, act, visible));
+    }
+
+    // The top of a window's owner chain (an owned dialog's main window), as the catalog reports owners.
+    private nint RootOwner(PcWindowInfo info)
+    {
+        var root = info;
+        for (var i = 0; i < 8 && root.Owner != 0 && parts.Catalog.Window(root.Owner) is { } owner; i++) root = owner;
+        return root.Handle;
     }
 
     // Copy, cut and paste use the user's clipboard (DESIGN.md 2.8, critique C6): refused, whichever way they would run.
