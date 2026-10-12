@@ -112,3 +112,8 @@ No `.claude/` directory, no hooks, and no branch protections exist in either tre
     not block reading, specification, or implementation; it blocks final packaging identity only. Until the owner
     decides, the port keeps the pinned source's own product strings and marks internally so that parity is
     measurable, and no shipping artifact is produced under any name without an explicit instruction.
+  - **Owner amendment, 2026-10-11 (web surfaces; ED-NEW-web-w10-8):** the owner approved the in-app browser (Visus) and the artifacts panel
+    (Tabula). "2026-10-11 owner: in-app browser approved; PR-MCP-139 superseded for chat links (setting), kept for OAuth." Links from chats open
+    in Visus or the default browser as Settings > Visus > "Open links from chats in" says (Ask the first time by default; Ctrl+click opens the
+    other one). MCP OAuth sign-in (`MCPOAuth.cs:549`), nth's own account sign-ins, update and store links, `mailto:` and other non-web schemes
+    always open in the system browser, so the reason PR-MCP-139 protected (the user's own session and cookie context) is kept.

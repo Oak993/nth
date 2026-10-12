@@ -3855,6 +3855,7 @@
       ],
       "cancellation": "cancelling the probe cancels the callback listener through the task-cancellation handler, and the pending continuation resumes with MCPOAuthError.cancelled",
       "windows_path": "Same order. The browser is opened with the OS default-handler call; do not embed a web view, which would change the user's session and cookie context. Protected storage is Windows Credential Manager (OD-0008 B3), under the same account strings.",
+      "owner_amendment": "2026-10-11 owner: in-app browser approved; PR-MCP-139 superseded for chat links (setting), kept for OAuth. The sign-in browser is still the system browser; ED-NEW-web-w10-8.",
       "verification_method": "integration test with a stub authorization server driving the whole flow",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
