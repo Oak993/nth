@@ -18,8 +18,15 @@ public sealed class DownloadJobEntry(DownloadJob job, string title, DateTimeOffs
 
     public DateTimeOffset StartedAt { get; } = startedAt;
 
-    /// <summary>When the job ended, once it has.</summary>
-    public DateTimeOffset? FinishedAt { get; internal set; }
+    private readonly Lock gate = new();
+    private DateTimeOffset? finishedAt;
+
+    /// <summary>When the job ended, once it has. Set from the thread the job ended on, read on the main actor: a 24-byte value, so under a lock.</summary>
+    public DateTimeOffset? FinishedAt
+    {
+        get { lock (gate) return finishedAt; }
+        internal set { lock (gate) finishedAt = value; }
+    }
 }
 
 /// <summary>Every download job the app started lately, running or ended less than <see cref="Keep"/> ago.</summary>
