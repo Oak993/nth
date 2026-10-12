@@ -53,6 +53,7 @@ public sealed class ThreadTimeline : Decorator
     private Grid? scrollOverlay;
     private readonly BranchHost branches; // :134-144 the body's branches: the loading mark, the empty thread's prompt, the timeline (scrollOverlay)
     private Control? currentRail;
+    private (IReadOnlyList<DisplayBlock> Blocks, bool Shows, double Height)? railInputs; // what the rail on show was made from (ED-NEW-lean-14)
     private Control? drawnColumn;
     private StackPanel? drawnBody;
     private StackPanel? drawnRows; // :388 the stack of the rows, one for the life of the content: each pass diffs it (ED-255)
@@ -310,7 +311,10 @@ public sealed class ThreadTimeline : Decorator
                 drawnColumn = column; drawnSentinel = sentinel; drawnEarlier = earlier; drawnBlocks = blocks;
                 if (!ReferenceEquals(scroll.Content, column)) scroll.Content = column;
                 var overlay = scrollOverlay!;
-                var nextRail = CreateRail(blocks, showsMinimap, columnHeight);
+                // ED-NEW-lean-14: a pass with the blocks, the flag and the height the rail was last asked for keeps it without making a new one to compare (InputsEqual
+                // holds for those: the same list, the same tracking, the same height), so a pass that changed nothing the rail reads costs it nothing.
+                var nextRail = railInputs is { } asked && ReferenceEquals(asked.Blocks, blocks) && asked.Shows == showsMinimap && asked.Height == columnHeight ? currentRail : CreateRail(blocks, showsMinimap, columnHeight);
+                railInputs = (blocks, showsMinimap, columnHeight);
                 // :190 .equatable(): a rail whose inputs did not change is not drawn again, so its hover and its scrub go on across a redraw.
                 if (currentRail is TimelineMinimapColumn oldRail && nextRail is TimelineMinimapColumn newRail && TimelineMinimapColumn.InputsEqual(oldRail, newRail)) nextRail = oldRail;
                 if (!ReferenceEquals(nextRail, currentRail))
@@ -434,7 +438,8 @@ public sealed class ThreadTimeline : Decorator
     // :272-278
     private int WindowStartIndex(IReadOnlyList<DisplayBlock> blocks)
     {
-        if (windowStartID is not null) for (var index = 0; index < blocks.Count; index++) if (blocks[index].Id == windowStartID) return index;
+        // ED-NEW-lean-14: looked for from the end, where the window starts (block ids are unique: they key the rows), not across the whole timeline.
+        if (windowStartID is not null) for (var index = blocks.Count - 1; index >= 0; index--) if (blocks[index].Id == windowStartID) return index;
         return Math.Max(0, blocks.Count - TimelineWindow.FirstPaint);
     }
     // :257-268
@@ -512,7 +517,12 @@ public sealed class ThreadTimeline : Decorator
         Math.Max(48, viewportHeight / 4); // :833-835
 
     // :180-200. Width gating belongs to ChatView, which supplies showsMinimap.
-    private static bool ShouldShowMinimap(bool enabled, IReadOnlyList<DisplayBlock> blocks) => enabled && blocks.Count(block => block.HasUserMessage) > 1;
+    private static bool ShouldShowMinimap(bool enabled, IReadOnlyList<DisplayBlock> blocks)
+    {
+        if (!enabled) return false; var users = 0; // ED-NEW-lean-14: `count > 1` is known at the second block with a user message
+        for (var index = 0; index < blocks.Count; index++) if (blocks[index].HasUserMessage && ++users > 1) return true;
+        return false;
+    }
     // :179-208
     private Control? CreateRail(IReadOnlyList<DisplayBlock> blocks, bool enabled, double columnHeight)
     {
@@ -1271,11 +1281,20 @@ public sealed class TimelineBlockCache
     // Swift default HeadPills().
     public ValueList<DisplayBlock> Blocks(IReadOnlyList<TimelineEntry> @for, bool showReasoning, bool isRunning, string? hydraMergeID, HeadPills? pills = null)
     {
-        pills ??= new(); var wanted = new Key { Entries = @for.ToArray(), TurnEnds = @for.Count(entry => entry.TimelineEntryKind == TimelineEntry.Kind.TurnEnd), IsRunning = isRunning, HydraMergeID = hydraMergeID, Pills = pills, ShowReasoning = showReasoning }; // :1720-1737
-        if (key is not null && wanted.TurnEnds == key.TurnEnds && wanted.SameFlags(key) && wanted.SamePrefix(key) && wanted.Entries.Count == key.Entries.Count) return built.Blocks; // :1738
-        if (key is not null && wanted.Extends(key) && BuildTail(@for, key.Entries.Count, showReasoning, isRunning, hydraMergeID, pills) is { } tail) built = tail;
-        else { meta = TimelineMeta.Build(@for); built = DisplayBlock.Build(@for, 0, [], meta, showReasoning, isRunning, hydraMergeID, pills); }
+        // ED-NEW-lean-14: no pass over the whole timeline for a pass that finds it unchanged or grown at its end. A ValueList cannot change, so it is the key's snapshot
+        // as it is (any other list is copied, as before); the turn-end count is carried from the old key plus the appended tail (an entry's kind never changes, so
+        // equal references count the same); the prefix check compares references in a loop and is skipped for the very list the key holds.
+        pills ??= new(); var entries = @for as ValueList<TimelineEntry> ?? (IReadOnlyList<TimelineEntry>)@for.ToArray();
+        var wanted = new Key { Entries = entries, TurnEnds = 0, IsRunning = isRunning, HydraMergeID = hydraMergeID, Pills = pills, ShowReasoning = showReasoning }; // :1720-1737
+        if (key is not null && wanted.Entries.Count == key.Entries.Count && wanted.SameFlags(key) && wanted.SamePrefix(key)) return built.Blocks; // :1738 (equal references: the same turn ends)
+        if (key is not null && wanted.Extends(key) && BuildTail(@for, key.Entries.Count, showReasoning, isRunning, hydraMergeID, pills) is { } tail) { built = tail; wanted = wanted with { TurnEnds = key.TurnEnds + TurnEndsIn(entries, key.Entries.Count) }; }
+        else { meta = TimelineMeta.Build(@for); built = DisplayBlock.Build(@for, 0, [], meta, showReasoning, isRunning, hydraMergeID, pills); wanted = wanted with { TurnEnds = TurnEndsIn(entries, 0) }; }
         key = wanted; return built.Blocks; // :1739-1746
+    }
+
+    private static int TurnEndsIn(IReadOnlyList<TimelineEntry> entries, int from)
+    {
+        var count = 0; for (var index = from; index < entries.Count; index++) if (entries[index].TimelineEntryKind == TimelineEntry.Kind.TurnEnd) count++; return count;
     }
 
     // :1745-1770 private func buildTail(_:appendedFrom:showReasoning:isRunning:hydraMergeID:pills:) -> DisplayBlock.Built?
@@ -1314,7 +1333,13 @@ public sealed class TimelineBlockCache
         // :1689-1696 func extends(_:) -> Bool
         public bool Extends(Key old) => Entries.Count > old.Entries.Count && SameFlags(old) && SamePrefix(old); // :1698-1705
         public bool SameFlags(Key old) => IsRunning == old.IsRunning && HydraMergeID == old.HydraMergeID && Pills == old.Pills && ShowReasoning == old.ShowReasoning;
-        public bool SamePrefix(Key old) => Entries.Count >= old.Entries.Count && old.Entries.Select((entry, index) => ReferenceEquals(entry, Entries[index])).All(equal => equal);
+        public bool SamePrefix(Key old)
+        {
+            if (ReferenceEquals(Entries, old.Entries)) return true;
+            if (Entries.Count < old.Entries.Count) return false;
+            for (var index = old.Entries.Count - 1; index >= 0; index--) if (!ReferenceEquals(old.Entries[index], Entries[index])) return false; // from the end: a changed list differs there first
+            return true;
+        }
     }
 }
 
@@ -1780,7 +1805,17 @@ public sealed class WorkingIndicator : Decorator
                         MarkdownView.SetMarkdownPointSize(openedThinking, 12); MarkdownView.SetMarkdownDimmed(openedThinking, true);
                         SwiftTransition.Insert(details, 0, openedThinking.Transition(SoftAppearTransition));
                     }
-                    openedThinking.Children.Clear(); var stepPlace = 0; foreach (var step in thinkingSteps) openedThinking.Children.Add(new MarkdownView(step.Text, step.IsStreaming, thinkingVeils.Root.Child("s" + stepPlace++)));
+                    // ED-NEW-lean-14: each step is the view at its place (`ForEach` by offset); a step whose text and streaming flag are the same keeps its view (MarkdownView's
+                    // `==`, :21-23), and only a step that changed is made again, at its place, with the same veils (a streamed delta remakes the last step alone).
+                    var steps = openedThinking.Children; var stepPlace = 0;
+                    foreach (var step in thinkingSteps)
+                    {
+                        if (stepPlace < steps.Count && steps[stepPlace] is MarkdownView shown && shown.Text == step.Text && shown.IsStreaming == step.IsStreaming) { stepPlace++; continue; }
+                        var view = new MarkdownView(step.Text, step.IsStreaming, thinkingVeils.Root.Child("s" + stepPlace));
+                        if (stepPlace < steps.Count) steps.RemoveAt(stepPlace); steps.Insert(stepPlace, view);
+                        stepPlace++;
+                    }
+                    if (steps.Count > stepPlace) steps.RemoveRange(stepPlace, steps.Count - stepPlace);
                 }
                 else if (openedThinking is not null) { SwiftTransition.Remove(details, openedThinking); openedThinking = null; thinkingVeils.Reset(); }
                 if (liveWork.Count != 0) // :2169-2172
@@ -1984,8 +2019,9 @@ public sealed class WorkingBlockView : Decorator
     // :2278-2287 private static func turnEntries(of:) -> [TimelineEntry]
     private static ValueList<TimelineEntry> TurnEntries(ThreadRuntime of)
     {
-        if (of.Entries.LastOrDefault()?.TurnID is not { } turn) return new([]); var rows = new List<TimelineEntry>();
-        foreach (var entry in of.Entries.Reverse()) { if (entry.TurnID is not { } entryTurn) continue; if (entryTurn != turn) break; rows.Add(entry); } rows.Reverse(); return new(rows); // :2290-2299
+        // ED-NEW-lean-14: walked back from the end by index, with no copy of the whole timeline (Enumerable.Reverse buffered all of it).
+        var all = of.Entries; if (all.Count == 0 || all[^1].TurnID is not { } turn) return new([]); var rows = new List<TimelineEntry>();
+        for (var index = all.Count - 1; index >= 0; index--) { var entry = all[index]; if (entry.TurnID is not { } entryTurn) continue; if (entryTurn != turn) break; rows.Add(entry); } rows.Reverse(); return new(rows); // :2290-2299
     }
     // :2301-2314
     private static ValueList<ThinkingStep> Thinking(ThreadRuntime runtime) => new(TurnEntries(runtime).Where(entry => entry.TimelineEntryKind == TimelineEntry.Kind.Reasoning && entry.Item.TimelineItemContent is TimelineItem.Content.Reasoning { Value.Text.Length: > 0 }).Select(entry => { var reasoning = ((TimelineItem.Content.Reasoning)entry.Item.TimelineItemContent).Value; return new ThinkingStep(reasoning.Text, reasoning.IsStreaming); }));

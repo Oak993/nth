@@ -94,18 +94,16 @@ public sealed class ThreadTimelineLeanBudgetTests(HeadlessSession headless)
         return bytes;
     }
 
-    // Debug build. Measured on the base (claude/release-integration 0a946c558): 1,234,227 bytes per delta at 200 entries, 1,190,866 at 2,000. Limit about 1.5x.
-    private const long DeltaLimit = 1_800_000;
-    // Debug build, the rail off. Measured on the base: 754,368 bytes per appended entry at 200 entries, 849,309 at 2,000. Limit about 1.5x.
-    private const long AppendLimit = 1_275_000;
-    // Debug build, the rail on (the default). Measured on the base: 3,945,024 bytes at 200 entries, 37,413,216 at 2,000; the growth is the minimap's
-    // (TimelineMinimap.Entries remakes every tick once the thread has more user messages than its 400-entry cache holds), outside this file. Limit about 1.5x.
-    private const long RailAppendLimit = 56_000_000;
-
-    private static void Log(string line)
-    {
-        if (Environment.GetEnvironmentVariable("MARROW_LEAN_LOG") is { Length: > 0 } path) System.IO.File.AppendAllText(path, line + Environment.NewLine);
-    }
+    // Debug build. Measured on the base (claude/release-integration 0a946c558): 1,234,299 bytes per delta at 200 entries, 1,190,573 at 2,000 (limit 1,800,000).
+    // After ED-NEW-lean-14: 862,767 and 860,685. Limit about 1.3x the new number.
+    private const long DeltaLimit = 1_120_000;
+    // Debug build, the rail off. Measured on the base: 753,826 bytes per appended entry at 200 entries, 856,774 at 2,000 (limit 1,275,000).
+    // After ED-NEW-lean-14: 184,925 and 210,109. Limit about 1.3x the new number.
+    private const long AppendLimit = 275_000;
+    // Debug build, the rail on (the default). Measured on the base: 3,945,024 bytes at 200 entries, 37,490,535 at 2,000 (limit 56,000,000); the growth is the
+    // minimap's (TimelineMinimap.Entries remakes every tick once the thread has more user messages than its 400-entry cache holds), outside this unit's file.
+    // After ED-NEW-lean-14: 36,757,355 at 2,000. Limit about 1.3x the new number.
+    private const long RailAppendLimit = 47_800_000;
 
     [Fact]
     [Trait("Decision", "ED-NEW-lean-14")]
@@ -113,7 +111,6 @@ public sealed class ThreadTimelineLeanBudgetTests(HeadlessSession headless)
     {
         var small = BytesPerReasoningDelta(headless, 200);
         var large = BytesPerReasoningDelta(headless, 2000);
-        Log($"delta small={small} large={large}");
         Assert.True(large <= 2 * small, $"a delta with 2,000 entries costs {large} bytes, with 200 {small}");
         Assert.True(large <= DeltaLimit, $"a delta with 2,000 entries costs {large} bytes (limit {DeltaLimit})");
     }
@@ -124,7 +121,6 @@ public sealed class ThreadTimelineLeanBudgetTests(HeadlessSession headless)
     {
         var small = BytesPerAppendedEntry(headless, 200, minimap: false);
         var large = BytesPerAppendedEntry(headless, 2000, minimap: false);
-        Log($"append small={small} large={large}");
         Assert.True(large <= 2 * small, $"an appended entry with 2,000 entries costs {large} bytes, with 200 {small}");
         Assert.True(large <= AppendLimit, $"an appended entry with 2,000 entries costs {large} bytes (limit {AppendLimit})");
     }
@@ -134,7 +130,6 @@ public sealed class ThreadTimelineLeanBudgetTests(HeadlessSession headless)
     public void An_appended_entry_with_the_minimap_on_stays_within_its_budget_at_two_thousand_entries()
     {
         var large = BytesPerAppendedEntry(headless, 2000);
-        Log($"rail-append large={large}");
         Assert.True(large <= RailAppendLimit, $"an appended entry with 2,000 entries and the rail costs {large} bytes (limit {RailAppendLimit})");
     }
 }
