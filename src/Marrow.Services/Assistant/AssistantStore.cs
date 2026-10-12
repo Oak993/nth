@@ -244,6 +244,20 @@ public sealed partial class AssistantStore : IDisposable
 
     public JsonNode? Duties(string assistantId) => ReadDocument(AssistantFile(assistantId, "duties.json"));
 
+    /// <summary>The reserve rules the owner saved as standing defaults (<c>reserves.json</c>, AS-13), or null when there is none or it does not parse.</summary>
+    public JsonObject? Reserves() => ReadDocument(Path.Combine(Root, ReservesFile)) as JsonObject;
+
+    public void SaveReserves(JsonObject document) => SaveDocument(Path.Combine(Root, ReservesFile), document);
+
+    /// <summary>What the usage calibrator learned (<c>calibration.json</c>, AS-13): its intervals and the turn costs.</summary>
+    public JsonObject? Calibration() => ReadDocument(Path.Combine(Root, CalibrationFile)) as JsonObject;
+
+    public void SaveCalibration(JsonObject document) => SaveDocument(Path.Combine(Root, CalibrationFile), document);
+
+    public const string ReservesFile = "reserves.json";
+
+    public const string CalibrationFile = "calibration.json";
+
     /// <summary>The assistant's home folder (<c>assistants/&lt;id&gt;/folder</c>), created.</summary>
     public string AssistantFolder(string assistantId) => Created(Path.Combine(Root, "assistants", Checked(assistantId), "folder"));
 
@@ -570,7 +584,7 @@ public sealed partial class AssistantStore : IDisposable
     /// </summary>
     private int RemoveTempFiles()
     {
-        var folders = new List<string> { MissionsDirectory };
+        var folders = new List<string> { MissionsDirectory, Root };
         var assistants = Path.Combine(Root, "assistants");
         if (Directory.Exists(assistants)) folders.AddRange(Directory.EnumerateDirectories(assistants));
         var removed = 0;
