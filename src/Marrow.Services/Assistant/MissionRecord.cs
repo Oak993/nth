@@ -292,7 +292,7 @@ public static class MissionJournal
         return ToJson(record with { Mission = next, Interrupted = next.State == MissionState.Paused || record.Interrupted, Waiting = null });
     }
 
-    private static JsonArray TaintJson(Taint taint) =>
+    internal static JsonArray TaintJson(Taint taint) =>
         new([.. taint.Sources.Select(s => (JsonNode)new JsonObject { ["origin"] = s.Origin.ToString(), ["detail"] = s.Detail })]);
 
     // A taint as the journal keeps it: its sources in order. An absent key is clean; a damaged one fails the whole record.

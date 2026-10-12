@@ -105,4 +105,18 @@ public sealed class DextraFakeHost : IAssistantToolHost
         if (AbsorbThrows) throw new InvalidOperationException("fixture: the taint cannot be kept");
         lock (gate) { Log.Add("absorb:" + taint.Sources.Count); Absorbed.Add(taint); }
     }
+
+    /// <summary>What Settle waits on before the call is decided (AS-7); null settles at once.</summary>
+    public Func<Task>? Settling { get; set; }
+
+    /// <summary>How many calls settled first (kept out of <see cref="Log"/>, whose order the AS-4 tests read).</summary>
+    public int Settles => Volatile.Read(ref settles);
+
+    private int settles;
+
+    public Task Settle(AssistantChat chat, CancellationToken cancellationToken)
+    {
+        Interlocked.Increment(ref settles);
+        return Settling?.Invoke() ?? Task.CompletedTask;
+    }
 }

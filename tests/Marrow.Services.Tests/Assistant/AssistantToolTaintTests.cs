@@ -66,4 +66,38 @@ public sealed class AssistantToolTaintTests
         Assert.Throws<InvalidOperationException>(() => none.Absorb(new AssistantChat(Guid.NewGuid(), "dextra", null, AssistantChatRole.Home,
             Marrow.Core.Models.ProviderKind.Claude, "model-a"), Mail));
     }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-dextra-as7-18")]
+    public async Task A_call_is_decided_only_after_the_chat_has_settled_and_the_policy_reads_what_settling_brought_in()
+    {
+        var (host, runner) = Rig(Taint.Clean);
+        var held = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        host.Settling = () => held.Task;
+        var call = runner.Call("schedule_duty", AssistantToolCatalogFixture.Minimal("schedule_duty"), AssistantRoute.Mcp, CancellationToken.None);
+        Assert.False(call.IsCompleted);
+        Assert.DoesNotContain(host.Log, l => l.StartsWith("policy:", StringComparison.Ordinal));
+        host.Tainted = true; // the page the chat read before this call reaches its taint while it settles
+        held.SetResult();
+        var result = await call;
+        Assert.True(result.IsError);
+        Assert.StartsWith("Refused: needs an untainted request.", result.Text, StringComparison.Ordinal);
+        Assert.Empty(host.Runs);
+        Assert.Equal(1, host.Settles);
+        Assert.Contains(host.Log, l => l.StartsWith("policy:", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-dextra-as7-18")]
+    public async Task A_chat_that_cannot_settle_is_refused_and_logged_and_nothing_runs()
+    {
+        var (host, runner) = Rig(Taint.Clean);
+        host.Settling = () => Task.FromException(new TimeoutException("the main thread did not get to it"));
+        var result = await Recall(runner);
+        Assert.True(result.IsError);
+        Assert.Equal("Not run: nth could not check this chat's earlier tool calls first.", result.Text);
+        Assert.Empty(host.Runs);
+        Assert.Contains(host.Audits, a => a.Result == "refused: the chat's earlier tool calls could not be checked first");
+        Assert.DoesNotContain(host.Log, l => l.StartsWith("policy:", StringComparison.Ordinal));
+    }
 }

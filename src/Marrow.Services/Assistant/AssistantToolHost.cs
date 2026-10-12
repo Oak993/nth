@@ -88,6 +88,12 @@ public interface IAssistantToolHost
     /// result withheld (fail closed).
     /// </summary>
     void Absorb(AssistantChat chat, Taint taint);
+
+    /// <summary>
+    /// Before a call of the chat is decided (AS-7, ED-NEW-dextra-as7-18): the host takes in the chat's events that came
+    /// before it (a page the chat read taints it first). A host that throws or times out makes the call refused.
+    /// </summary>
+    Task Settle(AssistantChat chat, CancellationToken cancellationToken) => Task.CompletedTask;
 }
 
 /// <summary>The host while none is bound: no chat is Dextra's.</summary>
