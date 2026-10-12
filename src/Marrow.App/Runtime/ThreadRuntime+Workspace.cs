@@ -6,8 +6,9 @@ using Marrow.Core.Port;
 // window reads. Old flags map in once. Restart restores the exact layout. Each ThreadWindow has its own workspace for its
 // thread"; ED-NEW-web-w3a-1, ED-NEW-web-w3c-1). No Swift counterpart. The runtime is the one owner of a thread's workspace:
 // it starts from what the thread saved (or the old flags and the ratios the user set last), every change is written to the
-// thread in the library (the app saves it as it saves any thread change), and IsTerminalVisible and IsDiffVisible are the
-// workspace's terminal drawer and Changes pane read as the flags they were.
+// thread in the library (the app saves it as it saves any thread change), and IsTerminalVisible is the workspace's terminal
+// drawer read as the flag it was. IsDiffVisible stays the diff popover's own flag until the Changes pane unit (W4) gives Changes a
+// pane to draw and retires the popover's trigger: a Changes pane opened in the workspace must not also open the legacy popover.
 
 namespace Marrow.App.Runtime;
 
@@ -53,7 +54,6 @@ public sealed partial class ThreadRuntime
         stored = PaneWorkspaceMigration.Initial(saved, isTerminalVisible, isDiffVisible, app.Settings.PaneRatioDefaults);
         workspace = stored.State;
         isTerminalVisible = workspace.IsTerminalInDrawer;
-        isDiffVisible = workspace.IsOpen(PaneKind.Changes);
     }
 
     private void WorkspaceChanged(PaneWorkspaceState before)
@@ -67,8 +67,6 @@ public sealed partial class ThreadRuntime
             Set(ref isTerminalVisible, terminal, property: nameof(IsTerminalVisible));
             if (!wasVisible && terminal) TerminalWantsFocus = true; // :241-243
         }
-        var changes = after.IsOpen(PaneKind.Changes);
-        if (changes != isDiffVisible) Set(ref isDiffVisible, changes, property: nameof(IsDiffVisible));
         RememberRatios(before, after);
         Save();
     }

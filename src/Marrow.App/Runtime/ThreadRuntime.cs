@@ -622,17 +622,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     public bool IsTerminalResizing { get => Read(isTerminalResizing); set => Set(ref isTerminalResizing, value); }
 
     // :247
-    // PORT-ONLY (web surfaces W3c; ED-NEW-web-w3c-1): the Changes pane being open in the workspace, read and written as the flag it was
-    // (the diff popover keeps following it until the Changes pane unit gives it a pane to draw).
-    public bool IsDiffVisible
-    {
-        get => Read(isDiffVisible);
-        set
-        {
-            if (value == isDiffVisible) return;
-            Workspace = value ? Workspace.Open(PaneKind.Changes) : Workspace.Close(PaneKind.Changes);
-        }
-    }
+    public bool IsDiffVisible { get => Read(isDiffVisible); set => Set(ref isDiffVisible, value); }
 
     // :249
     public PanelDockCorner SubagentPanelDock { get => Read(subagentPanelDock); set => Set(ref subagentPanelDock, value); }

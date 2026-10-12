@@ -23,6 +23,7 @@ public sealed class PaneCard : Border
     private readonly Border clip;
     private readonly Grid layout = new() { RowDefinitions = new RowDefinitions($"{PaneTokens.HeaderHeight},*") };
     private readonly ScaleTransform scale = new(1, 1);
+    private readonly TranslateTransform slide = new();
     private bool focused;
     private bool expanded;
 
@@ -34,7 +35,7 @@ public sealed class PaneCard : Border
         CornerRadius = new CornerRadius(PaneTokens.CornerRadius);
         BorderThickness = new Thickness(1);
         ClipToBounds = false;
-        RenderTransform = scale;
+        RenderTransform = new TransformGroup { Children = { scale, slide } };
         RenderTransformOrigin = RelativePoint.Center;
         clip = new Border { CornerRadius = new CornerRadius(PaneTokens.CornerRadius - 1), ClipToBounds = true, Child = layout };
         Child = clip;
@@ -73,6 +74,16 @@ public sealed class PaneCard : Border
             if (scale.ScaleX == value) return;
             scale.ScaleX = value;
             scale.ScaleY = value;
+        }
+    }
+
+    /// <summary>The narrow slide in DIP along the strip's axis (3.8: 8 DIP while a surface fades in or out), a render transform only.</summary>
+    public double Slide
+    {
+        get => slide.X;
+        set
+        {
+            if (slide.X != value) slide.X = value;
         }
     }
 

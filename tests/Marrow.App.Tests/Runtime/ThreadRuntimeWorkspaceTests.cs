@@ -32,7 +32,7 @@ public sealed class ThreadRuntimeWorkspaceTests
     private static ChatThread Saved(Guid id) => AppModelHarness.LoadedLibrary().Threads.Single(thread => thread.Id == id);
 
     [Fact]
-    public void The_old_flags_are_the_workspaces_terminal_drawer_and_Changes_pane()
+    public void The_terminal_flag_is_the_workspaces_drawer_and_the_diff_flag_stays_the_popovers_own()
     {
         using var h = new AppModelHarness();
         var (model, threads) = Seed(h);
@@ -62,12 +62,13 @@ public sealed class ThreadRuntimeWorkspaceTests
             Assert.True(runtime.IsTerminalVisible);
             Assert.False(runtime.TerminalWantsFocus);
 
-            runtime.IsDiffVisible = true;
-            Assert.True(runtime.Workspace.IsOpen(PaneKind.Changes));
-            runtime.Workspace = runtime.Workspace.Close(PaneKind.Changes);
-            Assert.False(runtime.IsDiffVisible);
+            // The diff flag is the legacy popover's own until the Changes pane unit: a Changes pane opened in the workspace does not
+            // open the popover, and the popover does not open a pane.
             runtime.Workspace = runtime.Workspace.Open(PaneKind.Changes);
-            Assert.True(runtime.IsDiffVisible);
+            Assert.False(runtime.IsDiffVisible);
+            runtime.Workspace = runtime.Workspace.Close(PaneKind.Changes);
+            runtime.IsDiffVisible = true;
+            Assert.False(runtime.Workspace.IsOpen(PaneKind.Changes));
             runtime.IsDiffVisible = false;
             Assert.Equal(new[] { PaneKind.Browser }, runtime.Workspace.GridPanes);
         });
@@ -82,7 +83,7 @@ public sealed class ThreadRuntimeWorkspaceTests
         {
             var runtime = model.Runtime(threads[0].Id);
             var fired = 0;
-            void Arm() => ObservationTracking.Track(() => (runtime.IsTerminalVisible, runtime.IsDiffVisible), () =>
+            void Arm() => ObservationTracking.Track(() => runtime.IsTerminalVisible, () =>
             {
                 fired++;
                 Arm();
@@ -95,6 +96,8 @@ public sealed class ThreadRuntimeWorkspaceTests
             runtime.Workspace = runtime.Workspace.Expand(PaneKind.Browser);
             Assert.Equal(1, fired);
             runtime.Workspace = runtime.Workspace.Open(PaneKind.Changes);
+            Assert.Equal(1, fired);
+            runtime.Workspace = runtime.Workspace.Close(PaneKind.Terminal);
             Assert.Equal(2, fired);
         });
     }
