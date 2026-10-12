@@ -88,9 +88,12 @@ public sealed record OverlaySetup(bool HiddenFromCapture);
 public static class OverlayWindowSetup
 {
     /// <summary>Adds the role's styles to the window, hides it from capture and puts it on top. Nothing activates it.</summary>
-    public static OverlaySetup Apply(nint window, OverlayRole role, IOverlayNative native)
+    public static OverlaySetup Apply(nint window, OverlayRole role, IOverlayNative native) => Apply(window, OverlayStyles.Extended(role), native);
+
+    /// <summary>Adds <paramref name="extended"/> (a role's styles, or the input window's for a hit-test mode), hides the window from capture and puts it on top.</summary>
+    public static OverlaySetup Apply(nint window, uint extended, IOverlayNative native)
     {
-        native.SetExtendedStyle(window, native.ExtendedStyle(window) | OverlayStyles.Extended(role));
+        native.SetExtendedStyle(window, native.ExtendedStyle(window) | extended);
         var hidden = native.ExcludeFromCapture(window);
         native.BringToTop(window);
         return new OverlaySetup(hidden);
@@ -118,8 +121,15 @@ public class TactusOverlayWindow : Avalonia.Controls.Window
     private readonly IOverlayNative native;
 
     public TactusOverlayWindow(OverlayRole role, IOverlayNative? native = null)
+        : this(role, OverlayStyles.Extended(role), native)
+    {
+    }
+
+    /// <summary>A window of <paramref name="role"/> with <paramref name="extended"/> styles (the input window in a hit-test mode).</summary>
+    public TactusOverlayWindow(OverlayRole role, uint extended, IOverlayNative? native = null)
     {
         Role = role;
+        ExtendedStyles = extended;
         this.native = native ?? new Win32OverlayNative();
         WindowDecorations = WindowDecorations.None;
         ShowActivated = false;
@@ -128,13 +138,19 @@ public class TactusOverlayWindow : Avalonia.Controls.Window
         CanResize = false;
         Background = null;
         TransparencyLevelHint = [WindowTransparencyLevel.Transparent];
-        Win32Properties.AddWindowStylesCallback(this, (style, extended) => (style, extended | OverlayStyles.Extended(role)));
+        Win32Properties.AddWindowStylesCallback(this, (style, styles) => (style, styles | extended));
         if (role == OverlayRole.Input)
             NativeWindowHooks.AddFirst(this, (nint hwnd, uint message, nint wp, nint lp, ref bool handled) =>
                 OverlayWindowSetup.OnMessage(message, () => CursorDip(hwnd), point => OverlayActivation.Hit(this, point), ref handled));
     }
 
     public OverlayRole Role { get; }
+
+    /// <summary>The extended styles this window adds at creation and once it has a handle.</summary>
+    public uint ExtendedStyles { get; }
+
+    /// <summary>The window's handle once it is open; 0 before.</summary>
+    public nint Handle => TryGetPlatformHandle()?.Handle ?? 0;
 
     /// <summary>False when Windows refused to hide this window from capture (it is then never shown over a capture target).</summary>
     public bool HiddenFromCapture { get; private set; }
@@ -149,7 +165,7 @@ public class TactusOverlayWindow : Avalonia.Controls.Window
     {
         base.OnOpened(e);
         if (TryGetPlatformHandle()?.Handle is { } handle && handle != 0)
-            HiddenFromCapture = OverlayWindowSetup.Apply(handle, Role, native).HiddenFromCapture;
+            HiddenFromCapture = OverlayWindowSetup.Apply(handle, ExtendedStyles, native).HiddenFromCapture;
     }
 
     private Point? CursorDip(nint hwnd) =>

@@ -30,6 +30,9 @@ public readonly record struct PcRawInput(long TimeMs, PcRawKind Kind, bool Down,
     /// <summary>The hook held this event back (a borrow is swallowing); it reaches the user's window only by the replay.</summary>
     public bool Swallowed { get; init; }
 
+    /// <summary>The press, its up or a move between them grabbed the moving pill (DESIGN.md 10.3): the pill's drag, not the app's input.</summary>
+    public bool Grabbed { get; init; }
+
     /// <summary>A key-down of a key already held (auto-repeat).</summary>
     public bool Repeat { get; init; }
 
@@ -182,6 +185,9 @@ public interface IPhysicalInput
 
     /// <summary>A swallowed event, for the borrow that holds the user's input.</summary>
     event Action<PcRawInput>? Swallowed;
+
+    /// <summary>A record of a grab in flight (the press on the moving pill, the moves while it is held, its up), on the reader thread.</summary>
+    event Action<PcRawInput>? Grabbed;
 
     /// <summary>Starts matching Tactus-tagged events against a borrow's ledger.</summary>
     void Open(PcInjectionLedger ledger);
