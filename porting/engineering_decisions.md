@@ -6498,6 +6498,7 @@ Branch claude/release-integration, 2026-10-10 (integrates Ignis part A, points s
 6. The workspace round-trips through the mission journal (ToJson, FromJson).
 7. No third-party package is added.
 
+
 ## ED-NEW-dextra-as5-5
 2026-10-12 - Each mission agent runs in its own Job Object (Dextra unit AS-5; DESIGN.md rev 5, 12.6 "What Stop all does" and "Afterwards", 13.2, 15.4; tests JobObjectTests, MissionLaunchTests, MissionRunnerTests; owed native check JobObjectNativeTests). ENGINEERING DECISIONS. PORT-ONLY.
 1. PLACE: src/Marrow.Core/Port/JobObject.cs (the kill-on-close Windows job: Create, ActiveProcesses, Terminate, Dispose) beside ProcessLauncher, which already makes a job per child (ED-047 (a)); src/Marrow.App/Assistant/AgentJob.cs (IAgentJob, IAgentJobFactory, WindowsAgentJobFactory, AgentJobs: one job per mission chat, by chat id). AppModel.MissionJobs holds the app's; a test swaps the factory.
@@ -6506,3 +6507,21 @@ Branch claude/release-integration, 2026-10-10 (integrates Ignis part A, points s
 4. STOP AND CONFIRMATION: Stop terminates the job (TerminateJobObject, exit code 9 as KillTree); an agent counts as stopped only when its job has no live process and its chat no turn (AgentJobs.Settled), and a settled job is let go so the agent's next launch, on Resume, gets a fresh one. A mission that ends (Done, Failed) closes its agents' jobs: kill-on-close ends whatever still runs, and so does nth's own end or crash.
 5. LIMIT: a process started through another service (a scheduled task, a Windows service) is outside the job; the classifier makes such starts ask in the first place (12.1a). The real tree test (a child that starts ping -t, ended by Terminate and by closing the job) is the Native gate's (JobObjectNativeTests, owed to the lead); the unit's tests use where.exe, which exits at once, and fake jobs.
 6. No third-party package is added.
+
+## ED-NEW-dextra-as5-7
+2026-10-12 - The mission record and its journal (Dextra unit AS-5; DESIGN.md rev 5, 3.1, 15.3 "Missions are journaled"; tests MissionJournalTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. PLACE: src/Marrow.Services/Assistant/MissionRecord.cs: MissionRecord (AS-1's Mission plus the brief, the project, provider and model, team, level, workspace, lead and reviewer chats, report, artifacts, reviews, reason, the gate's waiting line, Interrupted, MergePending, KeepWorkspace, a waiting redirect, budget and times) and MissionJournal, the codec the store's journal holds (AS-3's AssistantStore.SaveMission), keyed by the mission id in 32 lowercase hex digits.
+2. CODEC: version 1, written with absent keys for null values; read strictly: a body of another version, a missing required field, an unknown state, origin or provider, or a damaged workspace reads as nothing (null), and the store keeps it as it is.
+3. INTERRUPTED RULE (the store's InterruptedMission option): a mission that was Planning, Working, Reviewing or Needs you when nth ended comes back Paused (by the owner, resuming to what it was doing; Needs you resumes to Working since the queue is not kept and the cut turn asks again), with its working and pausing heads Paused and Interrupted set so the board asks "Resume?"; a Pausing one comes back Paused; a Stopping one Stopped (nth's end closed every job). Paused, Stopped, Blocked, Done and Failed missions stay as they were.
+4. No third-party package is added.
+
+## ED-NEW-dextra-as5-8
+2026-10-12 - The reviewer before Done (Dextra unit AS-5; DESIGN.md rev 5, 3.4; tests ReviewVerdictTests, MissionRunnerTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. PLACE: src/Marrow.Core/Port/Assistant/ReviewVerdict.cs (the verdict and the fail rule, pure) and src/Marrow.App/Assistant/Reviewer.cs (model pick, brief, redirect text, what it may read).
+2. WHEN: when the lead's turn ends completed, no card of the mission waits and every Hydra head is finished, the runner takes the lead's last answer as the report and starts the reviewer in a fresh chat of the mission, behind the gate, sealed like every mission chat and in the provider's plan interaction mode.
+3. ONLY READS: an approval from the reviewer whose class is not ReadLocal or ReadWeb is answered no at once ("The reviewer only reads"); a read it asks for still waits for the owner like every approval until AS-7. It adds no permission.
+4. MODEL: by default another model of the same provider than the workers' (the first the provider lists that is not theirs), else theirs when the provider lists no other. DEVIATION from 3.4's "on the cheapest account with room": the account choice is the router's (AS-14), which does not exist yet; this unit picks within the mission's provider.
+5. BRIEF: the mission's brief, the lead's report, the deliverables, the workspace's change list and patch (cut at 20,000 characters) and the reasons earlier reviews failed it, ending with the instruction to end on "VERDICT: PASS" or "VERDICT: FAIL" and the reasons.
+6. VERDICT: the last line that starts with VERDICT: (any case, after Markdown emphasis or a quote mark). PASS passes only when nothing but punctuation follows it and no line comes after; FAIL takes the rest of its line and the lines after as the reasons; no verdict line, no answer, or a reviewer turn that failed is a Fail (fail closed).
+7. FAIL: the first and second Fail go back to the lead as a redirect naming the round ("review 1 of 3"); the third makes the mission Failed with the reasons, under Needs you. PASS makes it Done ("Reviewed by" the reviewer's model), ends its agents and raises the merge card when its workspace changed anything (ED-NEW-dextra-as5-4).
+8. No third-party package is added.

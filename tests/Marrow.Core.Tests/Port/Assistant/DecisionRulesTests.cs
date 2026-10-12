@@ -6,6 +6,8 @@ namespace Marrow.Core.Tests.Port.Assistant;
 // Dextra AS-5 (DESIGN.md rev 5, 4.2; ED-NEW-dextra-as5-1): the answers each card takes. An irreversible step only ever
 // takes Do it or Don't, never a grant; Always... needs a structured grant that covers what the card asks; a held,
 // answered or withdrawn card takes nothing; a card is bound to its exact inputs.
+[Trait("Decision", "ED-NEW-dextra-as5-1")]
+[Trait("Feature", "AS-5")]
 public sealed class DecisionRulesTests
 {
     private static readonly Guid Mission = Guid.NewGuid();

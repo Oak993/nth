@@ -5,6 +5,8 @@ namespace Marrow.Core.Tests.Port.Assistant;
 // Dextra AS-5 (DESIGN.md rev 5, 13.2; ED-NEW-dextra-as5-2): depth, concurrency and the free-memory gate. A mission is two
 // levels (lead and heads); helpers are a child mission one level down; the default depth is 3 and the setting goes up
 // to 4. Local CLI agents are capped at 16 and none starts under 15% free memory; API agents are not counted.
+[Trait("Decision", "ED-NEW-dextra-as5-2")]
+[Trait("Feature", "AS-5")]
 public sealed class MissionGateTests
 {
     private static MemoryReading Free(double fraction) => new(1000, (ulong)(1000 * fraction));
