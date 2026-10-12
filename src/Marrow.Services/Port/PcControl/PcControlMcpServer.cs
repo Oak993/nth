@@ -23,6 +23,13 @@ namespace Marrow.Services.Port.PcControl;
 public sealed record PcRegistration(string Thread, ProviderKind Provider, string? Model, bool Vision)
 {
     public string? Head { get; init; }
+
+    /// <summary>
+    /// For a client whose bridge drops image parts (Pi, Command Code; ED-NEW-pcctl-41): the chat's folder where the
+    /// screenshots are saved as JPEG files, named in the text so the model reads them with its own file tool. Null: the
+    /// images go as image parts.
+    /// </summary>
+    public string? ImageFolder { get; init; }
 }
 
 public sealed class PcControlMcpServer(PcRegistration? registration, Func<PcRegistration, PcControlEngine?> engines, Func<PcSettings> settings, Func<string, Task>? notify = null)
@@ -151,7 +158,7 @@ public sealed class PcControlMcpServer(PcRegistration? registration, Func<PcRegi
             {
                 content = web
                     ? await Web!.Call(registration!, name!, arguments, call.Token).ConfigureAwait(false)
-                    : Content(await engine!.Call(name!, arguments, call.Token).ConfigureAwait(false), registration!.Vision);
+                    : Content(await engine!.Call(name!, arguments, call.Token).ConfigureAwait(false), registration!.Vision, registration.ImageFolder);
             }
             catch (OperationCanceledException) when (call.IsCancellationRequested)
             {
@@ -217,14 +224,19 @@ public sealed class PcControlMcpServer(PcRegistration? registration, Func<PcRegi
     /// image parts for a model that takes images. An error is a tool error (isError), never a protocol error, so the model
     /// reads the recovery hint.
     /// </summary>
-    public static JsonObject Content(PcResult result, bool vision)
+    public static JsonObject Content(PcResult result, bool vision, string? imageFolder = null)
     {
-        var parts = new JsonArray { new JsonObject { ["type"] = "text", ["text"] = result.Render() } };
-        if (vision)
+        var text = result.Render();
+        var images = vision ? (result.Image is { } shot ? result.Details.Prepend(shot) : result.Details).ToList() : [];
+        if (imageFolder is not null && images.Count > 0)
         {
-            if (result.Image is { } image) parts.Add(Image(image));
-            foreach (var detail in result.Details) parts.Add(Image(detail));
+            // The client's bridge would turn an image part into "[image]": the files go in its place, named in the text.
+            var saved = PcImageFiles.Save(imageFolder, images);
+            foreach (var (obsId, path) in saved) text += "\nscreenshot " + obsId + " saved: " + path + " (open it with your file-reading tool to see it)";
+            images = [];
         }
+        var parts = new JsonArray { new JsonObject { ["type"] = "text", ["text"] = text } };
+        foreach (var image in images) parts.Add(Image(image));
         return new JsonObject { ["content"] = parts, ["isError"] = result.Error is not null };
     }
 

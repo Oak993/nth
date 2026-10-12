@@ -87,6 +87,7 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
     private MCPResolvedServer? advisorServer;
     // PORT-ONLY (web surfaces W12, ED-NEW-web-w12-1): this launch's nth-ui server (Tabula's artifact tools); null for a session of no chat.
     private MCPResolvedServer? uiServer;
+    private MCPResolvedServer? pcServer; // PORT-ONLY (Tactus, ED-NEW-pcctl-41): the chat's nth-pc server while Tactus is on.
     private static readonly string AdvisorToolName = "mcp__" + Port.Advisor.AdvisorMcpServer.ServerName + "__" + Port.Advisor.AdvisorTool.Name;
     private TaskHandle? readTask;                          // :31
     private string? sessionID;                             // :32
@@ -229,7 +230,9 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         // config; a chat with no advisor gets exactly the connected servers' file, as before.
         advisorServer = MCPProviderConfig.AdvisorServer(configuration);
         uiServer = MCPProviderConfig.UiServer(configuration); // + ED-NEW-web-w12-1: a chat's nth-ui server joins the same file
-        if (MCPProviderConfig.ClaudeSessionConfig(advisorServer, configuration.IgnisThreadID, uiServer) is { } mcpConfig)
+        // PORT-ONLY (Tactus, ED-NEW-pcctl-41): the nth-pc server joins the same file while Tactus is on.
+        pcServer = MCPProviderConfig.PcServer(configuration);
+        if (MCPProviderConfig.ClaudeBuiltInConfig(MCPProviderConfig.BuiltInServers(advisorServer, pcServer, uiServer), configuration.IgnisThreadID) is { } mcpConfig)
         {
             arguments.Add("--mcp-config");
             arguments.Add(mcpConfig.Path);
@@ -570,6 +573,12 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         // PORT-ONLY (web surfaces W12, ED-NEW-web-w12-1): nth-ui's artifact tools write only into this chat's own artifacts
         // (sandboxed, versioned, nothing lost), so they run without a card as the advisor's does.
         if (uiServer is not null && Web.UiMcpServer.IsOwnTool(name))
+        {
+            ResolveApproval(requestID, "allow");
+            return;
+        }
+        // PORT-ONLY (Tactus, ED-NEW-pcctl-41): nth's own per-app approval governs the nth-pc tools (DESIGN.md 3.4, 4.1).
+        if (pcServer is not null && Port.PcControl.PcProviderWiring.IsClaudeTool(name))
         {
             ResolveApproval(requestID, "allow");
             return;

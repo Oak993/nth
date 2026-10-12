@@ -65,6 +65,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
     private JSONRPCConnection? skillsReader;
     public Task SkillReadersExited => skillsReader?.ChildExited ?? Task.CompletedTask;
     private JSONRPCConnection? connection;                // :36
+    private MCPResolvedServer? pcServer; // PORT-ONLY (Tactus, ED-NEW-pcctl-41): the chat's nth-pc server while Tactus is on.
     private string? threadID;                             // :37
     private string? turnID;                               // :38
     private string? activeModel;                           // :39
@@ -728,12 +729,16 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
 
             // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): a Hydra head's ask_advisor server joins the connected ones.
             // + ED-NEW-web-w12-1: a chat's nth-ui server (Tabula's artifact tools) joins them too.
-            if (MCPProviderConfig.CodexServers(MCPProviderConfig.CodexOverrides(), MCPProviderConfig.AdvisorServer(configuration), MCPProviderConfig.UiServer(configuration)) is { } servers) // :262
+            // PORT-ONLY (Tactus, ED-NEW-pcctl-41): so does nth-pc while Tactus is on, with its tool timeout, and Codex's own
+            // bundled computer-use plugins are turned off in the same overrides, so two controllers never fight in one chat.
+            pcServer ??= MCPProviderConfig.PcServer(configuration);
+            if (MCPProviderConfig.CodexBuiltIns(MCPProviderConfig.CodexOverrides(), MCPProviderConfig.BuiltInServers(MCPProviderConfig.AdvisorServer(configuration), pcServer, MCPProviderConfig.UiServer(configuration))) is { } servers) // :262
             {
                 var mergedConfig = parameters.TryGetValue("config", out var currentConfig) && currentConfig.JSONValueObject is { } currentObject
                     ? new Dictionary<string, JSONValue>(currentObject, StringComparer.Ordinal)
                     : new Dictionary<string, JSONValue>(StringComparer.Ordinal); // :263
                 mergedConfig["mcp_servers"] = servers; // :264
+                if (pcServer is not null && Port.PcControl.PcControlBridge.TactusOn) Port.PcControl.PcProviderWiring.TurnOffCodexComputerUse(mergedConfig); // + ED-NEW-web-w11-1: only while Tactus itself is on
                 parameters["config"] = new JSONValue.Object(new ValueMap<string, JSONValue>(mergedConfig)); // :265
             }
 
@@ -1847,6 +1852,13 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
         }
         if (SwiftString.Equal(method, "mcpServer/elicitation/request")) // :989
         {
+            // PORT-ONLY (Tactus, ED-NEW-pcctl-41): nth-pc never asks for input itself, so its elicitation is Codex's own
+            // approval of one nth-pc call, which nth's per-app approval already governs (DESIGN.md 3.4, 4.1).
+            if (pcServer is not null && Port.PcControl.PcProviderWiring.IsCodexElicitation(parameters))
+            {
+                connection?.Respond(id, Port.PcControl.PcProviderWiring.CodexElicitationAccept());
+                return;
+            }
             connection?.Respond(id, new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
             {
                 ["action"] = "decline", // :990

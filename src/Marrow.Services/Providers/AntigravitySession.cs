@@ -103,7 +103,16 @@ public sealed class AntigravitySession : ProviderSession, Port.Skills.Providers.
         arguments.AddRange(ModeArguments(configuration.RuntimeMode, configuration.InteractionMode));
         if (configuration.ResumeID is { Length: > 0 } resumeID) arguments.AddRange(["--conversation", resumeID]); // :92-94
 
-        var process = new StdioProcess(executable.Path, arguments, configuration.WorkingDirectory.Path, configuration.Environment); // :96-101
+        // PORT-ONLY (Tactus, ED-NEW-pcctl-41; DESIGN.md 3.4): with built-in servers (nth-pc while Tactus is on, a head's
+        // advisor) the CLI reads a per-chat copy of the system settings with them added; without, the launch is as before.
+        var environment = configuration.Environment;
+        if (MCP.MCPProviderConfig.GeminiSessionSettings(MCP.MCPProviderConfig.BuiltInServers(configuration), configuration.IgnisThreadID) is { } settings)
+            environment = environment.Mutating(map =>
+            {
+                foreach (var key in map.Keys.Where(k => string.Equals(k, "GEMINI_CLI_SYSTEM_SETTINGS_PATH", StringComparison.OrdinalIgnoreCase)).ToList()) map.Remove(key);
+                map["GEMINI_CLI_SYSTEM_SETTINGS_PATH"] = settings;
+            });
+        var process = new StdioProcess(executable.Path, arguments, configuration.WorkingDirectory.Path, environment); // :96-101
         this.process = process; // :102
         isStopping = false;     // :103
         process.Start();        // :104

@@ -1,0 +1,4 @@
+data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call-pc2","function":{"name":"pc_observe","arguments":"{\"window\":\"w:1a\",\"screenshot\":\"yes\",\"full\":true}"}}]}}]}
+
+data: [DONE]
+

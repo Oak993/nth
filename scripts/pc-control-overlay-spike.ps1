@@ -1,4 +1,5 @@
-# Tactus overlay spike (unit P25a; ED-NEW-pcctl-22; DESIGN.md 10.6 and 10.13 NP-15, NP-16). Run by hand, alone, in a
+# Tactus overlay spike (units P25a and P18a; ED-NEW-pcctl-22, ED-NEW-pcctl-33; DESIGN.md 10.6 and 10.13 NP-15, NP-16, NP-18;
+# DESIGN.md 2.13 NP-11 for np11-rdp, which opens one normal window instead of bands). Run by hand, alone, in a
 # quiet window, on a DEBUG build. Nothing here sends input, captures the screen or drives another window: each probe
 # opens band windows at the top of the primary work area, logs to the console and %TEMP%\tactus-spike-<probe>.log, and
 # exits by itself after 90 s with a RESULT line. Send every RESULT line and every eye check to the Tactus unit owner:
@@ -38,6 +39,12 @@ $steps = [ordered]@{
         'Repeat with Word (caret in the body) and with a browser''s address bar.',
         'Click the field, type, then click Notepad: Notepad stays in front and the log says the overlay lost the keyboard.'
     )
+    'np11-rdp' = @(
+        'Nothing to do by hand: a window "Tactus NP-11" opens with the Remote Desktop control in it. It never turns child sessions on.',
+        'With child sessions off (this PC on 2026-10-11) it hosts the control and stops: the RESULT says hosted, extended and childSessions=False.',
+        'With child sessions on (after NP-5): it connects, then measures 10 s visible, 10 s cloaked, 10 s minimized. Watch that the window comes back.',
+        'If the control does not load, run again with --rdp-class and a newer class (for example MsTscAx.MsTscAx.10) and note which one loaded.'
+    )
 }
 
 $runs = @(
@@ -47,7 +54,8 @@ $runs = @(
     @{ Probe = 'np16'; Extra = @() },
     @{ Probe = 'np16'; Extra = @('--warm') },
     @{ Probe = 'np16'; Extra = @('--straddle') },
-    @{ Probe = 'np18-focus'; Extra = @() }
+    @{ Probe = 'np18-focus'; Extra = @() },
+    @{ Probe = 'np11-rdp'; Extra = @() }
 )
 
 foreach ($run in $runs) {

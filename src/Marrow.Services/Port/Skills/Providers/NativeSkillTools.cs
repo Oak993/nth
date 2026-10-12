@@ -74,6 +74,9 @@ public sealed class NativeSkillTools
     /// <summary>PORT-ONLY (web surfaces W11): the Visus tools' instructions for the system prompt, or null while they are not offered.</summary>
     public string? WebBlock() => web?.Instructions;
 
+    /// <summary>PORT-ONLY (web surfaces W11): the chat's Visus tools, for a session that sends their screenshots as pictures.</summary>
+    public Marrow.Services.Web.WebNativeTools? Web => web;
+
     /// <summary>PORT-ONLY (web surfaces W17): whether this chat's model is taught live views, which is when it has the artifact tools.</summary>
     public bool TeachesLiveViews => artifacts is not null;
 

@@ -78,7 +78,10 @@ public sealed class HotkeyThread : ITactusHotkeyHost
         return sent != 0 && open != 0;
     }
 
-    public bool TypesCharacter(PcHotkey chord)
+    public bool TypesCharacter(PcHotkey chord) => TypesAnyCharacter(chord);
+
+    /// <summary>Whether the chord types a printable character on any installed keyboard layout (no thread needed).</summary>
+    public static bool TypesAnyCharacter(PcHotkey chord)
     {
         var count = GetKeyboardLayoutList(0, null);
         if (count <= 0) return false;

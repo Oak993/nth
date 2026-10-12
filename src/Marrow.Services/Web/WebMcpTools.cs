@@ -33,16 +33,26 @@ public sealed class WebMcpTools(Func<WebAgentHub> hub)
         ArgumentNullException.ThrowIfNull(registration);
         var engine = hub().Engine(registration.Thread) ?? throw new ArgumentException("Visus is not available here.");
         var result = await engine.Call(name, arguments, new WebAgentCaller(registration.Thread, registration.Model, registration.Vision), cancellationToken).ConfigureAwait(false);
-        return Content(result, registration.Vision);
+        return Content(result, registration.Vision, registration.ImageFolder);
     }
 
-    /// <summary>A tool's MCP content: its text, and its JPEG for a model that sees images. waiting_for_user is not an error.</summary>
-    public static JsonObject Content(WebToolResult result, bool vision)
+    /// <summary>
+    /// A tool's MCP content: its text, and its JPEG for a model that sees images; for a client whose bridge drops image parts
+    /// (<paramref name="imageFolder"/>, ED-NEW-pcctl-41) the JPEG is saved there and named in the text instead, as Tactus does.
+    /// </summary>
+    public static JsonObject Content(WebToolResult result, bool vision, string? imageFolder = null)
     {
         ArgumentNullException.ThrowIfNull(result);
-        var parts = new JsonArray { new JsonObject { ["type"] = "text", ["text"] = result.Render() } };
-        if (vision && result.Jpeg is { Length: > 0 } jpeg)
-            parts.Add(new JsonObject { ["type"] = "image", ["data"] = Convert.ToBase64String(jpeg), ["mimeType"] = "image/jpeg" });
+        var text = result.Render();
+        var jpeg = vision && result.Jpeg is { Length: > 0 } shot ? shot : null;
+        if (jpeg is not null && imageFolder is not null)
+        {
+            foreach (var (_, path) in PcImageFiles.Save(imageFolder, [new Marrow.Core.Port.PcControl.PcImage(jpeg, result.ImageWidth, result.ImageHeight, "visus")]))
+                text += "\nscreenshot saved: " + path + " (open it with your file-reading tool to see it)";
+            jpeg = null;
+        }
+        var parts = new JsonArray { new JsonObject { ["type"] = "text", ["text"] = text } };
+        if (jpeg is not null) parts.Add(new JsonObject { ["type"] = "image", ["data"] = Convert.ToBase64String(jpeg), ["mimeType"] = "image/jpeg" });
         return new JsonObject { ["content"] = parts, ["isError"] = result.Failed };
     }
 }

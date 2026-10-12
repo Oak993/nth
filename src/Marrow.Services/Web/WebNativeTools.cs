@@ -1,8 +1,9 @@
 // PORT-ONLY: web surfaces W11, the web tools for API providers (E:/Droppy/work/design/web-surfaces/DESIGN.md 5.10 "as native
 // tools for API providers (WebNativeTools, like NativeSkillTools)"; ED-NEW-web-w11-1). No Swift counterpart. The same engine
 // and gates as the nth-pc server; the definitions are the OpenAI-style functions the API sessions send, offered while Visus
-// model access is on, with the model instructions in the system prompt. A native tool answers text only, so a screenshot's
-// answer says the model should read the page instead.
+// model access is on, with the model instructions in the system prompt. A tool message is text; an OpenAI-compatible session
+// sends a screenshot as a picture in the round's screenshot message when its model takes images (as Tactus's native tools do),
+// and a model that does not is told to read the page instead.
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Marrow.Core.Port;
@@ -42,18 +43,27 @@ public sealed class WebNativeTools(Func<WebAgentHub> hub, string thread, string?
     /// <summary>Runs one web tool; a refusal is a failed result, never a throw. A stop or the turn's end cancels it.</summary>
     public async Task<NativeToolResult> Execute(string toolName, JSONValue arguments, CancellationToken? cancellationToken = null)
     {
-        if (hub().Engine(Thread) is not { } engine) return new NativeToolResult(Title(toolName), WebErrorCodes.Off + ": Visus is not available here.", true, []);
+        var result = await Run(toolName, arguments, vision: false, cancellationToken ?? SwiftTask.CancellationToken).ConfigureAwait(true);
+        return new NativeToolResult(Title(toolName), result.Render(), result.Failed, []);
+    }
+
+    /// <summary>
+    /// Runs one web tool for a session that can send the screenshot as a picture after the round (<paramref name="vision"/>:
+    /// the model takes images), as Tactus's native tools do (ED-NEW-pcctl-42).
+    /// </summary>
+    public async Task<WebToolResult> Run(string toolName, JSONValue arguments, bool vision, CancellationToken cancellationToken)
+    {
+        if (hub().Engine(Thread) is not { } engine) return WebToolResult.Fail(WebErrorCodes.Off, "Visus is not available here.");
         JsonObject? args;
         try
         {
-            args = JsonNode.Parse(arguments.CompactString) as JsonObject;
+            args = JsonNode.Parse(arguments.IsNull ? "{}" : arguments.CompactString) as JsonObject;
         }
         catch (JsonException)
         {
             args = null;
         }
-        if (args is null) return new NativeToolResult(Title(toolName), WebErrorCodes.BadArgs + ": the arguments must be a JSON object.", true, []);
-        var result = await engine.Call(toolName, args, new WebAgentCaller(Thread, model, Vision: false), cancellationToken ?? SwiftTask.CancellationToken).ConfigureAwait(true);
-        return new NativeToolResult(Title(toolName), result.Render(), result.Failed, []);
+        if (args is null) return WebToolResult.Fail(WebErrorCodes.BadArgs, "the arguments must be a JSON object.");
+        return await engine.Call(toolName, args, new WebAgentCaller(Thread, model, vision), cancellationToken).ConfigureAwait(true);
     }
 }
