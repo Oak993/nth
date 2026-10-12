@@ -280,18 +280,21 @@ public sealed class NthUiRuntime
         var names = Values(chart, "series").Select(v => v.Display(Culture)).ToArray();
         var series = new List<NthUiSeries>();
         var x = Values(chart, "x");
+        // A scatter plots y against x: numbers in `x` are the points' positions (labels would only name them), shared by
+        // every series the chart's own `y` makes (W16b, ED-NEW-web-w16b-1).
+        var positions = type == "scatter" && x.Count > 0 && x.All(v => v.IsNumber) ? x.Select(v => v.AsNumber).ToArray() : null;
         if (!string.IsNullOrEmpty(bind))
         {
-            series.Add(new NthUiSeries(names.FirstOrDefault() ?? "", Numbers(Get(bind))));
+            series.Add(new NthUiSeries(names.FirstOrDefault() ?? "", Numbers(Get(bind)), positions));
         }
         else if (chart.Arg("y") is not null)
         {
             var y = Values(chart, "y");
             if (y.Count > 0 && y.All(v => v.IsList))
             {
-                for (var i = 0; i < y.Count; i++) series.Add(new NthUiSeries(i < names.Length ? names[i] : "", Numbers(y[i])));
+                for (var i = 0; i < y.Count; i++) series.Add(new NthUiSeries(i < names.Length ? names[i] : "", Numbers(y[i]), positions));
             }
-            else series.Add(new NthUiSeries(names.FirstOrDefault() ?? "", y.Select(v => v.IsNumber ? v.AsNumber : (double?)null).ToArray()));
+            else series.Add(new NthUiSeries(names.FirstOrDefault() ?? "", y.Select(v => v.IsNumber ? v.AsNumber : (double?)null).ToArray(), positions));
         }
         foreach (var child in chart.Children)
         {

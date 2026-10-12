@@ -43,6 +43,8 @@ public sealed record TimelineItem
         public sealed record Todos(ValueList<TodoStep> Value) : Content;                 // :23
         public sealed record Notice(global::Marrow.Core.Models.Notice Value) : Content;  // :24
         public sealed record TurnEnd(TurnSummary Value) : Content;                       // :25
+        // PORT-ONLY (web surfaces W25, ED-NEW-web-w25-1): an ask_user card, the model's blocking question to the person.
+        public sealed record Ask(AskCard Value) : Content;
     }
 
     // :28-32
@@ -104,6 +106,7 @@ internal static class TimelineContentCoding
             "todos" => new TimelineItem.Content.Todos(SwiftDecoding.Decode(payload, "_0", field => SwiftDecoding.ReadArray(field, TodoStepConverter.Decode))),
             "notice" => new TimelineItem.Content.Notice(SwiftDecoding.Decode(payload, "_0", NoticeConverter.Decode)),
             "turnEnd" => new TimelineItem.Content.TurnEnd(SwiftDecoding.Decode(payload, "_0", TurnSummaryConverter.Decode)),
+            "ask" => new TimelineItem.Content.Ask(SwiftDecoding.Decode(payload, "_0", AskCardCoding.Decode)), // PORT-ONLY (W25)
             _ => throw new DecodingError("typeMismatch", $"Unknown TimelineItem.Content case \"{caseName}\"."),
         };
     }
@@ -141,6 +144,9 @@ internal static class TimelineContentCoding
                 break;
             case TimelineItem.Content.TurnEnd v:
                 SwiftEnumCoding.WriteCase(writer, "turnEnd", w => { w.WritePropertyName("_0"); TurnSummaryConverter.WriteMembers(w, v.Value); });
+                break;
+            case TimelineItem.Content.Ask v: // PORT-ONLY (W25)
+                SwiftEnumCoding.WriteCase(writer, "ask", w => { w.WritePropertyName("_0"); AskCardCoding.WriteMembers(w, v.Value); });
                 break;
             default:
                 throw new UnreachableException();

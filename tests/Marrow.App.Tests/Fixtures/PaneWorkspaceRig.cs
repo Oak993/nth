@@ -32,6 +32,7 @@ public sealed class PaneWorkspaceRig : IDisposable
     private readonly IDisposable cursorScope;
     private readonly IDisposable snapshotScope;
     private readonly IDisposable actorScope;
+    private readonly IDisposable shortcutScope;
 
     public PaneWorkspaceRig(
         double width = 1400,
@@ -44,6 +45,9 @@ public sealed class PaneWorkspaceRig : IDisposable
         Runtime = new TestRuntime();
         // The window's models (WindowLiveResize) are main-actor isolated: the UI thread is the main actor here, as in the app.
         actorScope = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+        // The user's bindings (web W3b chords): a fresh store, so a test sees the defaults and may re-bind.
+        Shortcuts = (ShortcutStore)Activator.CreateInstance(typeof(ShortcutStore), nonPublic: true)!;
+        shortcutScope = ShortcutStore.Shared.Override(Shortcuts);
         Frames = new ManualFrameSource();
         frameScope = FrameClock.Source.Override(Frames);
         Motion = new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = reduceMotion };
@@ -67,6 +71,9 @@ public sealed class PaneWorkspaceRig : IDisposable
     }
 
     public TestRuntime Runtime { get; }
+
+    /// <summary>The shortcut store the workspace reads its chords from.</summary>
+    public ShortcutStore Shortcuts { get; }
 
     public ManualFrameSource Frames { get; }
 
@@ -190,6 +197,33 @@ public sealed class PaneWorkspaceRig : IDisposable
         Pump();
     }
 
+    /// <summary>A chord as the keyboard sends it: the key and its physical position (a chord is the scan code, ED-099).</summary>
+    public void Chord(Key key, PhysicalKey physical, RawInputModifiers modifiers = RawInputModifiers.None)
+    {
+        Window.KeyPress(key, modifiers, physical, null);
+        Window.KeyRelease(key, modifiers, physical, null);
+        Pump();
+    }
+
+    /// <summary>Marks a pane's body as a content scope (a page or a terminal): the content gets every key but the reserved ones.</summary>
+    public void MarkContent(PaneKind kind) => ShortcutScopeHost.SetScope(Bodies[kind], ShortcutScope.Content);
+
+    /// <summary>A point on a pane header's empty area (the kind glyph's cell, which takes no pointer), in window coordinates.</summary>
+    public Point HeaderPoint(PaneKind kind, double dx = 19, double dy = 18)
+    {
+        Layout();
+        var header = Card(kind).Header;
+        return header.TranslatePoint(new Point(dx, dy), Window) ?? default;
+    }
+
+    /// <summary>A point in the middle of a pane's body, in window coordinates.</summary>
+    public Point BodyPoint(PaneKind kind)
+    {
+        Layout();
+        var card = Card(kind);
+        return card.TranslatePoint(new Point(card.Bounds.Width / 2, PaneTokens.HeaderHeight + ((card.Bounds.Height - PaneTokens.HeaderHeight) / 2)), Window) ?? default;
+    }
+
     public static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
     public IInputElement? Focused => TopLevel.GetTopLevel(Workspace)?.FocusManager?.GetFocusedElement();
@@ -197,6 +231,7 @@ public sealed class PaneWorkspaceRig : IDisposable
     public void Dispose()
     {
         Window.Close();
+        shortcutScope.Dispose();
         snapshotScope.Dispose();
         cursorScope.Dispose();
         motionScope.Dispose();
@@ -212,10 +247,30 @@ public sealed class ChatColumnProbe : Border
     public ChatColumnProbe()
     {
         Background = Brushes.DimGray;
-        Child = Composer;
+        Child = new Grid { Children = { Composer, Drawer } };
+        // Web W4: a stand-in for the terminal's drawer (hidden until a test shows it): a 200 DIP block at the column's foot with a
+        // 38 DIP header row on top, which is where the drawer's header drag starts.
+        Drawer.Child = DrawerHeader;
     }
 
     public TextBox Composer { get; } = new() { Text = "composer", VerticalAlignment = Avalonia.Layout.VerticalAlignment.Bottom };
+
+    /// <summary>The terminal drawer's stand-in; <see cref="Control.IsVisible"/> is false until a test shows it.</summary>
+    public Border Drawer { get; } = new()
+    {
+        Height = 200,
+        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Bottom,
+        Background = Brushes.Black,
+        IsVisible = false,
+    };
+
+    /// <summary>The drawer's header row.</summary>
+    public Border DrawerHeader { get; } = new()
+    {
+        Height = 38,
+        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+        Background = Brushes.Transparent,
+    };
 
     public List<double> Widths { get; } = [];
 

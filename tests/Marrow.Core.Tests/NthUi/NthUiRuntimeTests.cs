@@ -319,4 +319,22 @@ public sealed class NthUiRuntimeTests
         t.SetInput(segmented, NthUiValue.Of("0.2"));
         Assert.Equal("$33.60", t.Display(tip.Nodes.Single(n => n.Kind == "stat"), "value"));
     }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-web-w16b-1")]
+    public void A_scatter_chart_plots_y_against_the_numbers_in_x_and_other_charts_keep_x_as_labels()
+    {
+        var inline = NthUiParser.Parse("chart scatter x=[10, 20, 40] y=[1, 2, 3]\nchart scatter series=\"A,B\" x=[1, 2] y=[[3, 4], [5, 6]]\nchart scatter x=\"a,b\" y=[1, 2]\nchart line x=[10, 20, 40] y=[1, 2, 3]\n");
+        var runtime = new NthUiRuntime(inline);
+        var charts = inline.Nodes.Where(n => n.Kind == "chart").ToArray();
+        Assert.Equal([10.0, 20, 40], runtime.Chart(charts[0]).Series[0].X);
+        var two = runtime.Chart(charts[1]);
+        Assert.Equal([[1.0, 2], [1.0, 2]], two.Series.Select(s => s.X));
+        Assert.Null(runtime.Chart(charts[2]).Series[0].X);
+        var line = runtime.Chart(charts[3]);
+        Assert.Null(line.Series[0].X);
+        Assert.Equal(["10", "20", "40"], line.Labels);
+        var seriesLines = NthUiParser.Parse(NthUiSamples.Scatter);
+        Assert.Equal([199.0, 349, 499, 799, 999], new NthUiRuntime(seriesLines).Chart(seriesLines.Nodes.Single(n => n.Kind == "chart")).Series[0].X);
+    }
 }

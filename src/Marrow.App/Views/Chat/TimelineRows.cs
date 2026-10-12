@@ -4214,6 +4214,7 @@ public sealed class TurnFinishedBlock : Decorator
                     TimelineEntry.Kind.Plan => new PlanCard(single.Value, runtime, "steps"), // :2642
                     TimelineEntry.Kind.Todos => new TodoListRow(single.Value), // :2644
                     TimelineEntry.Kind.Notice => new NoticeRow(single.Value), // :2646
+                    TimelineEntry.Kind.Ask => new Marrow.App.Port.AskUser.AskCardRow(single.Value, runtime), // PORT-ONLY (web surfaces W25): an ask_user card
                     TimelineEntry.Kind.User or TimelineEntry.Kind.Reasoning or TimelineEntry.Kind.TurnEnd => null, // :2647-2648
                 },
                 TimelineGroup.Work work => new WorkGroup(work.Entries, runtime, workingDirectory, work.StartsCollapsed), // :2650-2651
@@ -4244,6 +4245,7 @@ public sealed class TurnFinishedBlock : Decorator
             Spacing = TimelineMetrics.RowSpacing, // :2665
             Margin = new Thickness(0, 0, 0, TimelineMetrics.RowSpacing), // :2679
         };
+        foreach (var entry in turn.CollapsedAsks) column.Children.Add(new Marrow.App.Port.AskUser.AskCardRow(entry, runtime)); // PORT-ONLY (web surfaces W25): the questions asked come before the answer
         foreach (var entry in turn.AnswerEntries) // :2666-2671
         {
             if (entry.Item.TimelineItemContent is TimelineItem.Content.Assistant assistant && assistant.Value.Text.Length != 0)
@@ -4305,6 +4307,7 @@ public sealed class TurnFinishedBlock : Decorator
         public ValueList<TimelineEntry> AnswerEntries { get; init; } = ValueList<TimelineEntry>.Empty;    // :2530-2534 the replies after the last tool call
         public ValueList<TimelineEntry> CollapsedPlans { get; init; } = ValueList<TimelineEntry>.Empty;   // :2535
         public ValueList<TimelineEntry> CollapsedNotices { get; init; } = ValueList<TimelineEntry>.Empty; // :2536-2538 errors and warnings
+        public ValueList<TimelineEntry> CollapsedAsks { get; init; } = ValueList<TimelineEntry>.Empty;    // PORT-ONLY (web surfaces W25): the turn's ask_user cards
         public bool HasEdits { get; init; }                                                              // :2539
         public bool HasResponse { get; init; }                                                           // :2540
         public ValueList<TimelineEntry> HeadEntries { get; init; } = ValueList<TimelineEntry>.Empty;      // :2541-2542
@@ -4317,6 +4320,7 @@ public sealed class TurnFinishedBlock : Decorator
             var answerEntries = new List<TimelineEntry>();
             var collapsedPlans = new List<TimelineEntry>();
             var collapsedNotices = new List<TimelineEntry>();
+            var collapsedAsks = new List<TimelineEntry>();
             var hasEdits = false;
             var hasResponse = false;
             var headEntries = new List<TimelineEntry>();
@@ -4340,6 +4344,9 @@ public sealed class TurnFinishedBlock : Decorator
                         if (entry.Item.TimelineItemContent is TimelineItem.Content.Notice notice && notice.Value.NoticeLevel != Notice.Level.Info)
                             collapsedNotices.Add(entry);
                         break;
+                    case TimelineEntry.Kind.Ask: // PORT-ONLY (web surfaces W25): a question to the person stays in view when the turn is folded
+                        collapsedAsks.Add(entry);
+                        break;
                     case TimelineEntry.Kind.Tool: // :2566-2573 reaching for a tool ends the answer so far
                         answerEntries.Clear();
                         if (entry.Item.TimelineItemContent is not TimelineItem.Content.Tool tool) continue;
@@ -4351,11 +4358,12 @@ public sealed class TurnFinishedBlock : Decorator
                 }
             }
             if (answerEntries.Count == 0 && assistantEntries.Count != 0) answerEntries = [assistantEntries[^1]]; // :2578
-            if (collapsedPlans.Count != 0 || collapsedNotices.Count != 0) hasResponse = true; // :2579
+            if (collapsedPlans.Count != 0 || collapsedNotices.Count != 0 || collapsedAsks.Count != 0) hasResponse = true; // :2579
             AssistantEntries = new ValueList<TimelineEntry>(assistantEntries);
             AnswerEntries = new ValueList<TimelineEntry>(answerEntries);
             CollapsedPlans = new ValueList<TimelineEntry>(collapsedPlans);
             CollapsedNotices = new ValueList<TimelineEntry>(collapsedNotices);
+            CollapsedAsks = new ValueList<TimelineEntry>(collapsedAsks);
             HasEdits = hasEdits;
             HasResponse = hasResponse;
             HeadEntries = new ValueList<TimelineEntry>(headEntries);

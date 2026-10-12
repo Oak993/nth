@@ -298,7 +298,7 @@ public static class NthUiComponents
             "svg" => new Diagram.NthUiSvgView(context, node),
             "diagram" => new Diagram.NthUiDiagramView(context, node),
             "code" => new NthUiCodeView(context, node),
-            "chart" => new NthUiChartTableView(context, node),
+            "chart" => new Charts.NthUiChartView(context, node),
             "table" => new NthUiTableView(context, node),
             "list" => new NthUiListView(context, node),
             "checklist" => new NthUiChecklistView(context, node),

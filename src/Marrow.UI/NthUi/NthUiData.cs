@@ -3,8 +3,7 @@
 // right-aligned, the total row semibold; ED-NEW-web-w16a-1). No Swift counterpart. Rows and items are slots in a column, so
 // each arrives with a soft fade and its height opening, and a row a filter hides closes smoothly while the rows under it
 // slide up. Column widths are fixed by weight from the first row (the first column one and a half shares), so a later row
-// never widens an earlier column and nothing placed moves. The chart and map stand-ins (W16b and W16c replace them) reuse
-// the table and list.
+// never widens an earlier column and nothing placed moves. The map stand-in (W16c replaces it) reuses the table and list.
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Automation.Peers;
@@ -212,70 +211,6 @@ public sealed class NthUiTableView : NthUiNodeView
             if (visible) grid.Show(new NthUiGridRow(child.Key, cells, child.Has("total"), child.Has("muted")), true);
             else grid.Show(new NthUiGridRow(child.Key, Runtime.Cells(child).Select(v => v.Display(Runtime.Culture)).ToArray(), child.Has("total"), child.Has("muted")), false);
         }
-    }
-}
-
-/// <summary>The stand-in for `chart` until W16b: its data as a table under its title, one series after another (a named
-/// series under its name), each point a row of its label (or x) and its value. A series arriving later adds its rows at the
-/// end, so the rows already shown never move.</summary>
-public sealed class NthUiChartTableView : NthUiNodeView
-{
-    private readonly NthUiTableGrid grid;
-    private readonly List<string> order = [];
-
-    public NthUiChartTableView(NthUiContext context, NthUiNode node) : base(context, node)
-    {
-        var data = Runtime.Chart(node);
-        grid = new NthUiTableGrid(context, data.Title ?? NthUiStrings.Chart);
-        grid.SetColumns([], 2);
-        Show();
-    }
-
-    public override Control Control => grid.Control;
-
-    public override NthUiSlotMode SlotMode => NthUiSlotMode.Exact;
-
-    public override NthUiNodeView? Add(NthUiNode child)
-    {
-        if (child.Kind == "series") Context.Register(child, this);
-        Show();
-        return null;
-    }
-
-    public override void Refresh() => Show();
-
-    private void Show()
-    {
-        var data = Runtime.Chart(Node);
-        var rows = new List<NthUiGridRow>();
-        for (var j = 0; j < data.Series.Count; j++)
-        {
-            var series = data.Series[j];
-            if (series.Name.Length > 0 || j > 0)
-                rows.Add(new NthUiGridRow(Node.Key + "#s" + j, [series.Name.Length > 0 ? series.Name : (j + 1).ToString(Runtime.Culture), ""], Total: true));
-            for (var i = 0; i < series.Values.Count; i++)
-            {
-                var label = series.X is { } x && i < x.Count ? NthUiValue.FormatNumber(x[i], Runtime.Culture)
-                    : i < data.Labels.Count ? data.Labels[i]
-                    : (i + 1).ToString(Runtime.Culture);
-                rows.Add(new NthUiGridRow(Node.Key + "#" + j + "." + i, [label, NthUiNumbers.Format(series.Values[i], Runtime.Culture, data.Unit)]));
-            }
-        }
-        var keep = new HashSet<string>(StringComparer.Ordinal);
-        string? previous = null;
-        foreach (var row in rows)
-        {
-            keep.Add(row.Key);
-            if (!order.Contains(row.Key))
-            {
-                var at = previous is null ? 0 : order.IndexOf(previous) + 1;
-                order.Insert(at, row.Key);
-                grid.Show(row, true, at);
-            }
-            else grid.Show(row, true);
-            previous = row.Key;
-        }
-        grid.HideExcept(keep);
     }
 }
 

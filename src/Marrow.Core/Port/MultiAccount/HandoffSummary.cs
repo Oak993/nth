@@ -105,6 +105,9 @@ public sealed record HandoffSummary(string Text, string FullConversation, string
                 case TimelineItem.Content.TurnEnd end:
                     text.Append("Turn: ").Append(JsonSerializer.Serialize(end.Value)).Append('\n');
                     break;
+                case TimelineItem.Content.Ask ask: // PORT-ONLY (web surfaces W25): a question the model asked the person, and the answer
+                    text.Append(AskUserWords.Describe(ask.Value));
+                    break;
             }
         }
         text.Append("\nLast error:\n").Append(lastError ?? "None recorded").Append('\n');

@@ -69,6 +69,7 @@ public sealed class ThreadTimeline : Decorator
     private ThreadRuntime? ownerRuntime;
     private Action? redraw;
     private Action<string?, string?, bool, double, bool>? updateInputs;
+    private readonly Thickness? contentMargin; // null: the chat column's (20, ContentTopInset, 20, 18)
     private TaskHandle? initialHistoryTask; // :594-607
     private bool initialHistoryStarted;
     // :363,436-441. Own the scroll presenter, as SidebarView does, rather than depending on a themed template.
@@ -112,8 +113,10 @@ public sealed class ThreadTimeline : Decorator
         string? workingDirectory,
         bool supportsRewind,
         double columnHeight,
-        bool showsMinimap = true)
+        bool showsMinimap = true,
+        Thickness? contentMargin = null)
     {
+        this.contentMargin = contentMargin; // PORT-ONLY (web surfaces W6): the side chat's pane has no title bar over it and is narrow, so it sets its own
         state = scrollState; ownerRuntime = runtime;
         inputs = (runtime, scrollChrome, scrollState, projectName, workingDirectory, supportsRewind, columnHeight, showsMinimap);
         SetRevealTimelineEnd(this, revealBox); revealBox.Action = RevealEnd; revealBox.Follow = FollowEnd;
@@ -434,7 +437,7 @@ public sealed class ThreadTimeline : Decorator
     private Control CreateColumn(Control rows, double viewportHeight, double? layoutWidth)
     {
         var stack = new Grid { RowDefinitions = new RowDefinitions("*,Auto") }; Grid.SetRow(rows, 1); stack.Children.Add(new Border()); stack.Children.Add(rows);
-        var content = new Border { MaxWidth = 820, Margin = new Thickness(20, Chrome.ContentTopInset, 20, 18), Child = stack, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var content = new Border { MaxWidth = 820, Margin = contentMargin ?? new Thickness(20, Chrome.ContentTopInset, 20, 18), Child = stack, HorizontalAlignment = HorizontalAlignment.Stretch };
         var column = new Grid { MinHeight = viewportHeight, Children = { content } }; if (layoutWidth is { } width) column.Width = width; return column;
     }
     // :272-278
@@ -1579,6 +1582,7 @@ public sealed class TimelineGroupView : Decorator
                 TimelineEntry.Kind.Reasoning => null,
                 TimelineEntry.Kind.Tool => new WorkGroup(new([single.Value]), runtime, context.WorkingDirectory),
                 TimelineEntry.Kind.Plan => new PlanCard(single.Value, runtime), TimelineEntry.Kind.Todos => new TodoListRow(single.Value), TimelineEntry.Kind.Notice => new NoticeRow(single.Value),
+                TimelineEntry.Kind.Ask => new Marrow.App.Port.AskUser.AskCardRow(single.Value, runtime), // PORT-ONLY (web surfaces W25): an ask_user card
                 TimelineEntry.Kind.TurnEnd when single.Value.Item.TimelineItemContent is TimelineItem.Content.TurnEnd end => new TurnEndRow(end.Value, hasReply), _ => null,
             },
             _ => null,
@@ -1716,22 +1720,25 @@ public sealed class WorkingIndicator : Decorator
         void Draw(bool force = true)
         {
             var elapsed = Math.Max(0, (now - startedAt).TotalSeconds); var word = WorkingWords.Word(seed, (long)elapsed);
-            var label = liveWork.Any(entry => entry.TimelineEntryKind == TimelineEntry.Kind.Tool) ? WorkGroupSummary.Text(liveWork) : running ? word + "\u2026" : "Earlier steps"; // :2100-2105
-            if (!force && titleText == label && titleRunning == running) return;
+            // PORT-ONLY (web surfaces W25, DESIGN.md 7.3): while the turn waits for the person's answer to an ask_user card the line says so, still, in the design's words.
+            var waiting = running && runtime.IsWaitingForAnswer;
+            var label = waiting ? Marrow.App.Port.AskUser.AskCardStrings.Waiting : liveWork.Any(entry => entry.TimelineEntryKind == TimelineEntry.Kind.Tool) ? WorkGroupSummary.Text(liveWork) : running ? word + "\u2026" : "Earlier steps"; // :2100-2105
+            var breathing = running && !waiting; // the letters breathe while the agent works, not while it waits for the person
+            if (!force && titleText == label && titleRunning == breathing) return;
             // :2182 .animation(Self.change, value: label): a new label takes the place of the old one over the one motion for what changes on the line.
-            if (titleText != label || titleRunning != running)
+            if (titleText != label || titleRunning != breathing)
             {
                 // PORT-ONLY (OD-0136 amendment 2, step 2 B): a running line shows the thinking glyph and its word in breathing letters, one title that stays while the line
                 // runs (a new word arrives letter by letter inside it); a line that is not running shows its label as plain text, as before.
-                if (running && thinking is not null && ReferenceEquals(title, thinking)) thinking.Word = label;
+                if (breathing && thinking is not null && ReferenceEquals(title, thinking)) thinking.Word = label;
                 else
                 {
-                    var previous = title; thinking = running ? new NthWorkingTitle(label) : null;
+                    var previous = title; thinking = breathing ? new NthWorkingTitle(label) : null;
                     Control next = thinking is not null ? thinking : new HydraWorkingTitle(label, false, TextAlignment.Left); title = next; // :2104 the earlier segment's label at rest draws no breathing
                     if (previous is null) titleHost.Children.Add(next);
                     else Transaction.WithAnimation(Change, () => { SwiftTransition.Remove(titleHost, previous); SwiftTransition.Insert(titleHost, titleHost.Children.Count, next.Transition(SwiftTransition.Opacity)); });
                 }
-                titleText = label; titleRunning = running;
+                titleText = label; titleRunning = breathing;
             }
             // :2144-2147 the card keeps an even 14 on both sides so its bar sits centred; the badge is a pill like the others in the column.
             frame.Padding = showsCard ? new Thickness(14, 11) : new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical);
@@ -1814,6 +1821,7 @@ public sealed class WorkingIndicator : Decorator
             Draw();
         };
         Draw(); // :2185-2188. The source retains chronological, but ThreadTimeline always passes false.
+        this.Track(() => runtime.IsWaitingForAnswer, _ => Draw()); // PORT-ONLY (web surfaces W25): the line says "Waiting for your answer" while an ask_user card waits
         this.Task(() => FrontMonitor.Shared.Current.IsVisible && lineState.Running, async active =>
         {
             if (!active) return; // :2191 the elapsed-time label ticks only while someone can see it, and only while the line runs

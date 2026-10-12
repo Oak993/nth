@@ -38,6 +38,9 @@ public static class PaneKinds
     /// <summary>How far past a pane's minimum a gutter drag must go before that side collapses (3.5, 4.2).</summary>
     public const double CollapseThreshold = 56;
 
+    /// <summary>A pane header's height (3.12); a header drop target is this tall (3.6).</summary>
+    public const double HeaderHeight = 36;
+
     /// <summary>The narrow mode's segmented tab strip at the top of the detail area (3.8; the canvas's tabsH).</summary>
     public const double NarrowTabStrip = 44;
 

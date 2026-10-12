@@ -65,6 +65,18 @@ public sealed class ShortcutsTests
         (AppShortcut.ToggleActivityView, "toggleActivityView", AppShortcutSection.Window, "Activity view", "Lists every thread by when it was last active.", 0x16, Ctrl | Alt, "Ctrl+Alt+U", "u"),
         (AppShortcut.ShowMainWindow, "showMainWindow", AppShortcutSection.Window, "Show nth", "Brings the main window to the front.", null, default, null, null),
         (AppShortcut.OpenSettings, "openSettings", AppShortcutSection.Window, "Settings", "Opens this window.", 0x33, Ctrl, "Ctrl+,", ","),
+        // PORT-ONLY (web W3b, DESIGN 3.7, ED-NEW-web-w3b-1): the pane workspace's commands, after the source's own.
+        (AppShortcut.ToggleBrowser, "toggleBrowser", AppShortcutSection.Window, "Toggle Visus", "Shows or hides the browser pane.", 0x30, Ctrl | Shift, "Ctrl+Shift+B", "b"),
+        (AppShortcut.ToggleSideChat, "toggleSideChat", AppShortcutSection.Window, "Toggle side chat", "Shows or hides a side conversation about this thread.", 0x27, Ctrl, "Ctrl+;", ";"),
+        (AppShortcut.ToggleArtifacts, "toggleArtifacts", AppShortcutSection.Window, "Toggle Tabula", "Shows or hides the artifacts pane.", 0x1E, Ctrl | Shift, "Ctrl+Shift+A", "a"),
+        (AppShortcut.ToggleBackgroundTasks, "toggleBackgroundTasks", AppShortcutSection.Window, "Toggle background tasks", "Shows or hides the list of running jobs.", 0x22, Ctrl | Shift, "Ctrl+Shift+G", "g"),
+        (AppShortcut.ClosePane, "closePane", AppShortcutSection.Window, "Close pane", "Closes the focused pane.", 0x2B, Ctrl, "Ctrl+\\", "\\"),
+        (AppShortcut.ExpandPane, "expandPane", AppShortcutSection.Window, "Expand or restore pane", "Springs the focused pane over the workspace, or back.", 0x2B, Ctrl | Shift, "Ctrl+Shift+\\", "\\"),
+        (AppShortcut.NextPane, "nextPane", AppShortcutSection.Window, "Next pane", "Moves focus to the next pane, then the dividers.", 0x40, default, "F6", "F6"),
+        (AppShortcut.PreviousPane, "previousPane", AppShortcutSection.Window, "Previous pane", "Moves focus to the previous pane.", 0x40, Shift, "Shift+F6", "F6"),
+        (AppShortcut.MovePaneEarlier, "movePaneEarlier", AppShortcutSection.Window, "Move pane earlier", "Moves the focused pane one place earlier in the layout.", 0xE04B, Ctrl | Alt, "Ctrl+Alt+\u2190", "leftArrow"),
+        (AppShortcut.MovePaneLater, "movePaneLater", AppShortcutSection.Window, "Move pane later", "Moves the focused pane one place later in the layout.", 0xE04D, Ctrl | Alt, "Ctrl+Alt+\u2192", "rightArrow"),
+        (AppShortcut.JoinPaneTabs, "joinPaneTabs", AppShortcutSection.Window, "Join or leave tabs", "Joins the focused pane to the one before it as a tab, or splits it out of its group.", 0x14, Ctrl | Alt, "Ctrl+Alt+T", "t"),
     ];
 
     // The 18 reserved chords (:251-257) under ED-099: Ctrl with Q, H, M, C, V, X, A, Z; Ctrl+Shift+Z; Ctrl with
@@ -443,7 +455,7 @@ public sealed class ShortcutsTests
         Assert.Equal(Table.Where(r => r.Section == AppShortcutSection.Threads).Select(r => r.Shortcut), AppShortcutSection.Threads.Shortcuts());
         Assert.Equal(Table.Where(r => r.Section == AppShortcutSection.Window).Select(r => r.Shortcut), AppShortcutSection.Window.Shortcuts());
         Assert.Equal(12, AppShortcutSection.Threads.Shortcuts().Count());
-        Assert.Equal(7, AppShortcutSection.Window.Shortcuts().Count());
+        Assert.Equal(7 + 11, AppShortcutSection.Window.Shortcuts().Count()); // the source's seven and the eleven pane commands (W3b)
     }
 
     [Fact]
@@ -685,7 +697,7 @@ public sealed class ShortcutsTests
 
         runtime.Defaults.Writes.Clear();
         OnMain(runtime, store, () => store.Reset(AppShortcutSection.Window));
-        Assert.Equal(Enumerable.Repeat(Key, 7), runtime.Defaults.Writes);
+        Assert.Equal(Enumerable.Repeat(Key, 7 + 11), runtime.Defaults.Writes); // the source's seven and web W3b's eleven
         Assert.Equal(Utf8("{}"), Stored(runtime));
     }
 
@@ -1078,8 +1090,12 @@ public sealed class ShortcutsTests
         {
             foreach (var code in codes)
             {
-                Assert.Null(store.Refusal(new KeyChord(code, default), AppShortcut.NewThread));
-                Assert.Null(store.Refusal(new KeyChord(code, Shift), AppShortcut.NewThread));
+                // F6 and Shift+F6 are the pane workspace's own defaults (web W3b): they are refused as taken by "Next
+                // pane" and "Previous pane", never as typing keys.
+                var nextPane = code == 0x40 ? "Next pane already uses this chord." : null;
+                var previousPane = code == 0x40 ? "Previous pane already uses this chord." : null;
+                Assert.Equal(nextPane, store.Refusal(new KeyChord(code, default), AppShortcut.NewThread));
+                Assert.Equal(previousPane, store.Refusal(new KeyChord(code, Shift), AppShortcut.NewThread));
             }
         });
     }
@@ -1671,6 +1687,10 @@ public sealed class ShortcutsTests
         [
             AppShortcut.CommandPalette, AppShortcut.ToggleSidebar, AppShortcut.ToggleTerminal, AppShortcut.ToggleChanges,
             AppShortcut.ToggleActivityView, AppShortcut.ShowMainWindow, AppShortcut.OpenSettings,
+            // PORT-ONLY (web W3b): the pane workspace's commands follow the source's own.
+            AppShortcut.ToggleBrowser, AppShortcut.ToggleSideChat, AppShortcut.ToggleArtifacts, AppShortcut.ToggleBackgroundTasks,
+            AppShortcut.ClosePane, AppShortcut.ExpandPane, AppShortcut.NextPane, AppShortcut.PreviousPane,
+            AppShortcut.MovePaneEarlier, AppShortcut.MovePaneLater, AppShortcut.JoinPaneTabs,
         ]; // :161-162, declaration order
         Assert.Equal(expectedThreads, AppShortcutSection.Threads.Shortcuts());
         Assert.Equal(expectedWindow, AppShortcutSection.Window.Shortcuts());
@@ -1886,10 +1906,10 @@ public sealed class ShortcutsTests
             Assert.True(store.IsCustomized(AppShortcut.NewThread)); // untouched by the Window reset
             Assert.True(store.HasCustomizations(AppShortcutSection.Threads));
             // One write per command in the reset section (:309 fires the didSet on every assignment): the Window
-            // section holds exactly 7 commands (:161-162), so the reset grows Writes by exactly 7, not one for
-            // the whole reset (no recorded ruling authorizes coalescing).
-            Assert.Equal(7, AppShortcutSection.Window.Shortcuts().Count);
-            Assert.Equal(writesBeforeReset + 7, runtime.Defaults.Writes.Count);
+            // section holds exactly 7 commands (:161-162) and the pane workspace's 11 (web W3b), so the reset grows
+            // Writes by exactly 18, not one for the whole reset (no recorded ruling authorizes coalescing).
+            Assert.Equal(7 + 11, AppShortcutSection.Window.Shortcuts().Count);
+            Assert.Equal(writesBeforeReset + 7 + 11, runtime.Defaults.Writes.Count);
             store.Reset(AppShortcut.NewThread); // leave the store clean for the assertions below
 
             // A cleared (null) override still counts as customised (:313 `!= nil`).

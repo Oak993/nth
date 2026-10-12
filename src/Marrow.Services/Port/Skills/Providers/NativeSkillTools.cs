@@ -71,6 +71,9 @@ public sealed class NativeSkillTools
     /// <summary>PORT-ONLY (web surfaces W17): whether this chat's model is taught live views, which is when it has the artifact tools.</summary>
     public bool TeachesLiveViews => artifacts is not null;
 
+    /// <summary>PORT-ONLY (web surfaces W25): the names of the nth-ui tools offered now (artifact tools, the reference, ask_user); empty without them.</summary>
+    public IReadOnlyList<string> OfferedUiTools => artifacts?.Offered ?? [];
+
     /// <summary>The function-tool definitions to add to the request: only the tools that are offered at the moment.</summary>
     public IReadOnlyList<JSONValue> Definitions
     {
@@ -107,6 +110,9 @@ public sealed class NativeSkillTools
         if (artifacts is not null && artifacts.Owns(toolName)) return artifacts.Execute(toolName, arguments);
         throw new InvalidOperationException($"{toolName} is not a tool this object runs.");
     }
+
+    /// <summary>PORT-ONLY (web surfaces W25): true for a tool whose card replaces its row, so the loop emits no row events for it.</summary>
+    public static bool HidesRow(string toolName) => Marrow.Services.Web.ArtifactNativeTools.HidesRow(toolName);
 
     /// <summary>The timeline row's title for a call, known before it runs (U+00B7 MIDDLE DOT, as the MCP rows use).</summary>
     public static string Title(string toolName, JSONValue arguments) =>

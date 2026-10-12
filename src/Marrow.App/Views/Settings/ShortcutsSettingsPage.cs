@@ -259,9 +259,14 @@ public static class ShortcutRowMetrics
 /// <summary>ShortcutEntryRow (:137-145).</summary>
 public sealed class ShortcutEntryRow : Decorator
 {
+    /// <summary>The mark on a reserved chord (DESIGN 3.7): it works inside pages and the terminal.</summary>
+    public const string WorksInsidePages = "Works inside pages.";
+
     public ShortcutEntryRow(AppShortcut shortcut)
     {
-        Child = ShortcutRowMetrics.Row(shortcut.Title(), shortcut.Detail(), new ShortcutRecorder(shortcut));
+        // PORT-ONLY (web W3b, DESIGN 3.7): a chord nth takes even from a web page or the terminal says so.
+        var detail = shortcut.WorksInsidePages() ? shortcut.Detail() + " " + WorksInsidePages : shortcut.Detail();
+        Child = ShortcutRowMetrics.Row(shortcut.Title(), detail, new ShortcutRecorder(shortcut));
     }
 }
 
