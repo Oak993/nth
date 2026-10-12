@@ -227,7 +227,7 @@ public sealed partial class DownloadJob
             : new DownloadFailure(DownloadFailureKind.DiskFull, DownloadMessages.DiskFull(required, DownloadMessages.DriveLabel(partFolder)));
     }
 
-    private string PartPath(DownloadRequest file) => Path.Combine(partFolder, file.Sha256[..8].ToLowerInvariant() + ".part");
+    private string PartPath(DownloadRequest file) => Path.Combine(partFolder, file.PartFileName);
 
     // ---- one file, with pause, retries and the end of the set ------------------------------------------------------------------------------
 

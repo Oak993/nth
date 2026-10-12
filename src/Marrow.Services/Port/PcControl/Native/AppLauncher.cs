@@ -45,7 +45,9 @@ public sealed class AppLauncher : IAppLauncher
         return apps.OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
-    public PcLaunch Launch(string appIdOrPath)
+    public PcLaunch Launch(string appIdOrPath) => Launch(appIdOrPath, null);
+
+    public PcLaunch Launch(string appIdOrPath, string? arguments)
     {
         if (Target(appIdOrPath) is not { } target) return new PcLaunch(false, null, "give an app_id from pc_list_apps or the full path of an .exe");
         var info = new Win32.SHELLEXECUTEINFO
@@ -54,6 +56,7 @@ public sealed class AppLauncher : IAppLauncher
             Mask = Win32.SEE_MASK_NOCLOSEPROCESS | Win32.SEE_MASK_FLAG_NO_UI,
             Verb = "open",
             File = target,
+            Parameters = arguments,
             // Started without taking the user's focus (owner 2026-10-11: Tactus works in the background).
             Show = Win32.SW_SHOWNOACTIVATE,
         };
