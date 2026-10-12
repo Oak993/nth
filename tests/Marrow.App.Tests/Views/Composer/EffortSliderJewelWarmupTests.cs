@@ -573,9 +573,12 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
             var reports = new List<GpuWarmupStep>();
             var done = GpuWarmup.StepsDone;
             var task = GpuWarmup.WarmAsync(window, new SyncProgress<GpuWarmupStep>(reports.Add));
-            // hurried: it steps at once, the idle run first, then the first run's own pass, all of ED-NEW-warmupsplit-1's smaller
-            // parts within 5 s, well within the 60 s cap a run still waiting for idle frames would need
-            FramesFor(TimeSpan.FromSeconds(5), () => task.IsCompleted);
+            // ED-NEW-lean-c9b-2: two complete passes, with 25% frame slack and ten scheduling ticks.
+            // ED-NEW-warmupsplit-4/5 records the historical split and its rollback; use the live registry count.
+            var ticks = 0;
+            var budget = 2 * GpuWarmup.Programs.Count * 5 / 4 + 10;
+            FramesFor(TimeSpan.FromSeconds(60), () => task.IsCompleted || ticks >= budget, () => ticks++);
+            Assert.InRange(ticks, 0, budget);
             Assert.True(task.IsCompletedSuccessfully, task.Exception?.InnerException?.Message);
             Assert.Equal(GpuWarmup.Programs, reports.Select(r => r.Program));
             Assert.All(reports, r => Assert.False(r.Forced));
@@ -1180,12 +1183,13 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
     }
 
     // frames about every 10 ms (the warm-up's checks take a timer's turn between frames) until done or the time is up
-    private static void FramesFor(TimeSpan span, Func<bool> done)
+    private static void FramesFor(TimeSpan span, Func<bool> done, Action? ticked = null)
     {
         var since = DateTime.UtcNow;
         while (!done() && DateTime.UtcNow - since < span)
         {
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            ticked?.Invoke();
             Dispatcher.UIThread.RunJobs();
             Thread.Sleep(10);
             Dispatcher.UIThread.RunJobs();
