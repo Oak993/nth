@@ -206,6 +206,28 @@ public sealed class StagingScopeTests : IDisposable
 
     [Fact]
     [Trait("Decision", "ED-247")]
+    public async Task A_sweep_and_the_first_use_in_any_order_never_cost_the_run_its_files()
+    {
+        for (var round = 0; round < 30; round++)
+        {
+            area.PutInSetup("1.0.0", "install-result.json"); // an earlier run's folder, the same version
+            area.PutInSetup("0.9.0", "nth Setup Engine.exe");
+            using var scope = Scope();
+
+            var sweep = scope.SweepStaleAsync();
+            var folder = scope.Ensure();
+            var options = area.Put(Path.Combine(folder, InstallOptions.OptionsFileName), "{}");
+            _ = await sweep;
+
+            Assert.True(File.Exists(options), $"round {round}: the sweep took the run's options file");
+            Assert.False(File.Exists(Path.Combine(folder, InstallOptions.ResultFileName)), $"round {round}: a stale result was left");
+            Assert.False(Directory.Exists(Path.Combine(area.SetupRoot, "0.9.0")));
+            _ = scope.Release();
+        }
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-247")]
     public void A_build_without_a_version_has_nowhere_to_stage_and_nothing_to_release()
     {
         using var scope = Scope("");

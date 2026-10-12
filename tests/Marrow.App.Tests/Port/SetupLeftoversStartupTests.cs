@@ -67,10 +67,43 @@ public sealed class SetupLeftoversStartupTests : IDisposable
         var (staged, library, copy, _) = Leftovers();
         var probe = new FakeSetupProbe(running: true);
 
-        await SetupLeftoversStartup.SweepAtStart(VelopackCurrent(), Local, Temp, probe);
+        await SetupLeftoversStartup.SweepAtStart(VelopackCurrent(), Local, Temp, probe, patience: TimeSpan.Zero);
 
         Assert.All(new[] { staged, library, copy }, path => Assert.True(File.Exists(path)));
         Assert.Equal(1, probe.Asked);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-247")]
+    public async Task Nth_opened_from_the_setups_Ready_screen_sweeps_as_soon_as_the_setup_has_closed()
+    {
+        var (staged, library, copy, data) = Leftovers();
+        var probe = new FakeSetupProbe(running: true);
+
+        var sweep = SetupLeftoversStartup.SweepAtStart(VelopackCurrent(), Local, Temp, probe, patience: TimeSpan.FromSeconds(30), interval: TimeSpan.FromMilliseconds(10));
+        await Task.Delay(150);
+        Assert.False(sweep.IsCompleted, "nth waits while the setup is open");
+        Assert.True(probe.Asked > 1, "and asks again");
+        Assert.All(new[] { staged, library, copy }, path => Assert.True(File.Exists(path)));
+
+        probe.Running = false; // the setup window closed
+        await sweep.WaitAsync(TimeSpan.FromSeconds(20));
+
+        Assert.False(Directory.Exists(Path.Combine(Local, "nth Setup")));
+        Assert.False(Directory.Exists(Path.Combine(Temp, "nth Uninstall")));
+        Assert.True(File.Exists(data));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-247")]
+    public async Task Nth_gives_up_waiting_for_a_setup_that_stays_open_and_leaves_the_folders_for_the_next_start()
+    {
+        var (staged, library, _, _) = Leftovers();
+
+        await SetupLeftoversStartup.SweepAtStart(VelopackCurrent(), Local, Temp, new FakeSetupProbe(running: true), patience: TimeSpan.FromMilliseconds(60), interval: TimeSpan.FromMilliseconds(10));
+
+        Assert.True(File.Exists(staged));
+        Assert.True(File.Exists(library));
     }
 
     [Fact]

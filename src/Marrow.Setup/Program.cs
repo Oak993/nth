@@ -70,7 +70,7 @@ public static class Program
         // or Problem showing, Close on any screen, an unhandled exception); stale folders from earlier runs are swept once the
         // window is up. A smoke run stages nothing and sweeps nothing.
         using var staging = smoke is null && Path.IsPathFullyQualified(localAppData) ? StagingScope.Create(localAppData, Path.GetTempPath(), version) : null;
-        staging?.ReleaseWhenShown(session);
+        staging?.Attach(session);
         if (problem is not null) session.Fail(problem);
         window.HandleReady += handle => instance?.Publish(handle, Environment.ProcessId);
         session.Start();

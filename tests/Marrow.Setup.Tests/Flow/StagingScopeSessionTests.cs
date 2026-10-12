@@ -70,7 +70,7 @@ public sealed class StagingScopeSessionTests(SetupHeadlessSession headless) : ID
             {
                 using var scope = Staged(out var folder);
                 var session = new WindowRig().Session(SetupScreen.Welcome);
-                scope.ReleaseWhenShown(session);
+                scope.Attach(session);
                 session.Start();
                 session.Go(SetupScreen.Installing);
                 Assert.True(Directory.Exists(folder), "the folder stays while the install runs");
@@ -90,7 +90,7 @@ public sealed class StagingScopeSessionTests(SetupHeadlessSession headless) : ID
         {
             using var scope = Staged(out var folder);
             var session = new WindowRig().Session(SetupScreen.Welcome);
-            scope.ReleaseWhenShown(session);
+            scope.Attach(session);
             session.Start();
 
             foreach (var screen in new[] { SetupScreen.Options, SetupScreen.Installing, SetupScreen.Update, SetupScreen.UpToDate, SetupScreen.NewerInstalled, SetupScreen.Uninstall, SetupScreen.Welcome })
@@ -109,7 +109,7 @@ public sealed class StagingScopeSessionTests(SetupHeadlessSession headless) : ID
         {
             using var scope = StagingScope.Create(area.LocalAppData, area.Temp, "1.1.0", lastChance: false);
             var session = new WindowRig().Session(SetupScreen.Problem);
-            scope.ReleaseWhenShown(session);
+            scope.Attach(session);
 
             session.Start();
 
@@ -120,10 +120,26 @@ public sealed class StagingScopeSessionTests(SetupHeadlessSession headless) : ID
 
     [Fact]
     [Trait("Decision", "ED-247")]
+    public void Attaching_gives_the_session_the_scope_the_install_stages_through()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var scope = StagingScope.Create(area.LocalAppData, area.Temp, "1.1.0", lastChance: false);
+            var session = new WindowRig().Session(SetupScreen.Welcome);
+            Assert.Null(session.Staging);
+
+            scope.Attach(session);
+
+            Assert.Same(scope, session.Staging);
+        });
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-247")]
     public void A_session_is_required()
     {
         using var scope = StagingScope.Create(area.LocalAppData, area.Temp, "1.1.0", lastChance: false);
 
-        Assert.Throws<ArgumentNullException>(() => scope.ReleaseWhenShown(null!));
+        Assert.Throws<ArgumentNullException>(() => scope.Attach(null!));
     }
 }

@@ -147,6 +147,28 @@ public static class SetupSweeper
     }
 
     /// <summary>
+    /// <see cref="SweepUnlessSetupRuns"/>, but when a setup is running it waits for the setup to end (asking again every
+    /// <paramref name="interval"/>, for at most <paramref name="patience"/>) and sweeps then. For nth's start: nth is often opened
+    /// from the setup's Ready screen while the setup is still up, and the setup's own native libraries stay loaded until it exits,
+    /// so the sweep that nth could not do at its start is done as soon as the setup closes. Gives up quietly when the time is
+    /// up or <paramref name="cancel"/> is signalled; the next start sweeps. It waits without holding a thread.
+    /// </summary>
+    public static async Task<SweepResult> SweepWhenNoSetupRunsAsync(string localAppData, string tempPath, ISetupRunningProbe probe, TimeSpan patience, TimeSpan interval, CancellationToken cancel = default)
+    {
+        ArgumentNullException.ThrowIfNull(probe);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(interval, TimeSpan.Zero);
+        var until = Environment.TickCount64 + (long)patience.TotalMilliseconds;
+        while (true)
+        {
+            if (!Exists(SetupFolders.Root(localAppData)) && !Exists(SetupFolders.UninstallTemp(tempPath))) return SweepResult.Nothing;
+            if (!probe.IsSetupRunning()) return Sweep(localAppData, tempPath);
+            if (Environment.TickCount64 >= until || cancel.IsCancellationRequested) return SweepResult.Nothing;
+            try { await Task.Delay(interval, cancel).ConfigureAwait(false); }
+            catch (OperationCanceledException) { return SweepResult.Nothing; }
+        }
+    }
+
+    /// <summary>
     /// Removes one folder inside <c>%LOCALAPPDATA%\nth Setup</c> (a run's own staging folder) unless something in it is in use,
     /// then each parent that is left empty, up to and including <c>nth Setup</c> itself.
     /// </summary>

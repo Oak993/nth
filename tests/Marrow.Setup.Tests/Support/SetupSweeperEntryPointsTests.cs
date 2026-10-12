@@ -86,6 +86,93 @@ public sealed class SetupSweeperEntryPointsTests : IDisposable
 
     [Fact]
     [Trait("Decision", "ED-247")]
+    public async Task Nth_waiting_for_a_setup_sweeps_the_moment_the_setup_has_ended()
+    {
+        var staged = area.PutInSetup("1.0.0", "nth Setup Engine.exe");
+        var library = area.PutInSetup("runtime", "4f9c2a", "libSkiaSharp.dll");
+        var probe = new FakeSetupProbe(running: true);
+
+        var waiting = SetupSweeper.SweepWhenNoSetupRunsAsync(area.LocalAppData, area.Temp, probe, TimeSpan.FromSeconds(30), TimeSpan.FromMilliseconds(10));
+        await Task.Delay(120);
+        Assert.False(waiting.IsCompleted);
+        Assert.True(File.Exists(staged) && File.Exists(library));
+        Assert.True(probe.Asked > 1);
+
+        probe.Running = false;
+        var result = await waiting.WaitAsync(TimeSpan.FromSeconds(20));
+
+        Assert.Equal(2, result.Removed);
+        Assert.True(result.Clean);
+        Assert.False(Directory.Exists(area.SetupRoot));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-247")]
+    public async Task Nth_waiting_for_a_setup_gives_up_when_the_time_is_up()
+    {
+        var staged = area.PutInSetup("1.0.0", "nth Setup Engine.exe");
+        var probe = new FakeSetupProbe(running: true);
+
+        var result = await SetupSweeper.SweepWhenNoSetupRunsAsync(area.LocalAppData, area.Temp, probe, TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(10));
+
+        Assert.Same(SweepResult.Nothing, result);
+        Assert.True(File.Exists(staged));
+        Assert.True(probe.Asked >= 1);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-247")]
+    public async Task Nth_waiting_for_a_setup_asks_once_and_goes_when_given_no_patience()
+    {
+        var staged = area.PutInSetup("1.0.0", "nth Setup Engine.exe");
+        var probe = new FakeSetupProbe(running: true);
+
+        var result = await SetupSweeper.SweepWhenNoSetupRunsAsync(area.LocalAppData, area.Temp, probe, TimeSpan.Zero, TimeSpan.FromSeconds(5));
+
+        Assert.Same(SweepResult.Nothing, result);
+        Assert.Equal(1, probe.Asked);
+        Assert.True(File.Exists(staged));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-247")]
+    public async Task Nth_waiting_for_a_setup_stops_when_asked_to()
+    {
+        var staged = area.PutInSetup("1.0.0", "nth Setup Engine.exe");
+        using var cancel = new CancellationTokenSource();
+
+        var waiting = SetupSweeper.SweepWhenNoSetupRunsAsync(area.LocalAppData, area.Temp, new FakeSetupProbe(running: true), TimeSpan.FromMinutes(10), TimeSpan.FromSeconds(30), cancel.Token);
+        await Task.Delay(50);
+        Assert.False(waiting.IsCompleted);
+        await cancel.CancelAsync();
+        var result = await waiting.WaitAsync(TimeSpan.FromSeconds(20));
+
+        Assert.Same(SweepResult.Nothing, result);
+        Assert.True(File.Exists(staged));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-247")]
+    public async Task Nth_waiting_for_a_setup_does_not_wait_or_ask_when_there_is_nothing_to_sweep()
+    {
+        var probe = new FakeSetupProbe(running: true);
+
+        var result = await SetupSweeper.SweepWhenNoSetupRunsAsync(area.LocalAppData, area.Temp, probe, TimeSpan.FromMinutes(10), TimeSpan.FromSeconds(30));
+
+        Assert.Same(SweepResult.Nothing, result);
+        Assert.Equal(0, probe.Asked);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-247")]
+    public async Task Waiting_needs_a_probe_and_an_interval_above_zero()
+    {
+        await Assert.ThrowsAsync<ArgumentNullException>(() => SetupSweeper.SweepWhenNoSetupRunsAsync(area.LocalAppData, area.Temp, null!, TimeSpan.Zero, TimeSpan.FromSeconds(1)));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => SetupSweeper.SweepWhenNoSetupRunsAsync(area.LocalAppData, area.Temp, new FakeSetupProbe(running: false), TimeSpan.Zero, TimeSpan.Zero));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-247")]
     public void The_uninstaller_removes_the_setup_folder_and_its_temporary_folder_when_it_is_not_itself_running_there()
     {
         area.PutInSetup("1.0.0", "install-options.json");

@@ -18,6 +18,7 @@ public sealed class StagingScope : IDisposable
     private readonly string localAppData;
     private readonly string tempPath;
     private readonly bool lastChance;
+    private static readonly object SweepGate = new(); // one sweep or one claim at a time in this process: a sweep never meets a folder half made
     private readonly object gate = new();
     private FolderClaim? claim;
     private bool disposed;
@@ -73,8 +74,11 @@ public sealed class StagingScope : IDisposable
             ObjectDisposedException.ThrowIf(disposed, this);
             var folder = Folder ?? throw new InvalidOperationException("This setup was built without a version, so there is nowhere to stage.");
             if (claim is not null) return folder;
-            _ = SetupSweeper.RemoveFolder(localAppData, folder); // a folder in use by another run is left; its claim then fails below
-            claim = FolderClaim.Take(folder);
+            lock (SweepGate)
+            {
+                _ = SetupSweeper.RemoveFolder(localAppData, folder); // a folder in use by another run is left; its claim then fails below
+                claim = FolderClaim.Take(folder);
+            }
             return folder;
         }
     }
@@ -89,13 +93,15 @@ public sealed class StagingScope : IDisposable
     }
 
     /// <summary>
-    /// Releases the folder whenever <paramref name="session"/> shows Ready (step 8 of PLAN.md 3: the result is read, then the folder
-    /// goes) or Problem (nothing more is staged until Retry). The screen is built before it is shown, so what it needs from the
-    /// folder (the result file, the log tail) must already be read.
+    /// Binds this scope to the window's session: <see cref="SetupSession.Staging"/> returns it (everything the install stages goes
+    /// through <see cref="Ensure"/>, so that this scope can delete it), and the folder is released whenever the session shows Ready
+    /// (step 8 of PLAN.md 3: the result is read, then the folder goes) or Problem (nothing more is staged until Retry). The screen
+    /// is built before it is shown, so what it needs from the folder (the result file, the log tail) must already be read.
     /// </summary>
-    public void ReleaseWhenShown(SetupSession session)
+    public void Attach(SetupSession session)
     {
         ArgumentNullException.ThrowIfNull(session);
+        session.Staging = this;
         session.ScreenShown += screen =>
         {
             if (screen is SetupScreen.Ready or SetupScreen.Problem) _ = Release();
@@ -104,12 +110,15 @@ public sealed class StagingScope : IDisposable
 
     /// <summary>
     /// Step 4 of PLAN.md 3: sweeps stale folders from earlier runs (<see cref="SetupSweeper.Sweep"/>) on a pool thread. This
-    /// run's own folder is claimed and its native libraries are loaded, so they are kept; the order against <see cref="Ensure"/>
-    /// does not matter.
+    /// run's own folder is claimed and its native libraries are loaded, so they are kept. It and <see cref="Ensure"/> take turns
+    /// (a sweep never meets a folder that is half made), so the order between them does not matter.
     /// </summary>
     public Task<SweepResult> SweepStaleAsync() => Task.Run(() =>
     {
-        try { return SetupSweeper.Sweep(localAppData, tempPath); }
+        try
+        {
+            lock (SweepGate) return SetupSweeper.Sweep(localAppData, tempPath);
+        }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException) { return SweepResult.Nothing; }
     });
 

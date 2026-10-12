@@ -48,6 +48,13 @@ public sealed class SetupSession
     /// </summary>
     public event Action<SetupScreen>? ScreenShown;
 
+    /// <summary>
+    /// This run's staging folder (unit U9, <see cref="StagingScope.Attach"/>); null in a smoke run. Whatever the install writes
+    /// outside the install root goes in it through <see cref="StagingScope.Ensure"/>, which claims it, so that it is deleted on
+    /// every exit path and no sweep takes it while the run uses it.
+    /// </summary>
+    public StagingScope? Staging { get; internal set; }
+
     public ISetupScreen? Current => built.GetValueOrDefault(Screen);
 
     public SignatureResult Signature { get; private set; } = SignatureResult.Pending;
