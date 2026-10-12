@@ -139,6 +139,7 @@ public sealed class PhysicalInputMonitor : IPhysicalInput
     private nint pressedWindow;
     private PcPoint pressedPoint;
     private int kept;
+    private long? lastClosed;
 
     public PhysicalInputMonitor(IPcClock clock, IForegroundProtection? protection = null)
     {
@@ -236,7 +237,9 @@ public sealed class PhysicalInputMonitor : IPhysicalInput
     public void Close(PcInjectionLedger ledger)
     {
         ArgumentNullException.ThrowIfNull(ledger);
-        ledger.Close(clock.NowMs);
+        var now = clock.NowMs;
+        ledger.Close(now);
+        lock (gate) lastClosed = lastClosed is { } before ? Math.Max(before, now) : now;
     }
 
     /// <summary>The hooks went in (fresh: healthy at the first heartbeat that shows nothing they missed) or came out.</summary>
@@ -268,8 +271,12 @@ public sealed class PhysicalInputMonitor : IPhysicalInput
         lock (gate)
         {
             if (!installed) return false;
-            var seen = newest ?? installedMs;
-            reinstall = tickMs > Math.Max(seen, installedMs) + HealthSlackMs;
+            var seen = Math.Max(newest ?? installedMs, installedMs);
+            // Tactus's own input moves GetLastInputInfo too, and the reader hands its events on a few milliseconds late:
+            // while a borrow's ledger is open, and up to the moment the last one closed, the tick is Tactus's.
+            if (ledgers.Any(l => l.ClosedMs is null)) seen = Math.Max(seen, clock.NowMs);
+            else if (lastClosed is { } closed) seen = Math.Max(seen, closed);
+            reinstall = tickMs > seen + HealthSlackMs;
             if (reinstall)
             {
                 lastUnseen = lastUnseen is { } before ? Math.Max(before, tickMs) : tickMs;

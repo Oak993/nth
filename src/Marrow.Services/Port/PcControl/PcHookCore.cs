@@ -20,6 +20,9 @@ public struct PcHookRecord
     public bool Injected;
     public bool Repeat;
     public bool Swallowed;
+
+    /// <summary>LLKHF_EXTENDED: the right-hand Ctrl and Alt, the arrows and the editing keys (kept for the replay).</summary>
+    public bool Extended;
     public byte Modifiers;
     public byte HeldKeys;
     public byte HeldButtons;
@@ -81,7 +84,28 @@ public sealed class PcInputRing
     }
 }
 
-public sealed class PcHookCore
+/// <summary>
+/// The borrow's hold on the user's input (DESIGN.md 2.7 step 4): swallowing on and off, keys only after a failed restore,
+/// the counts the re-verify and the catch-up read, and the abort an auto-repeat asks for.
+/// </summary>
+public interface IPcInputHold
+{
+    bool Swallowing { get; }
+
+    bool AbortRequested { get; }
+
+    /// <summary>Physical events the hooks let through so far (any change since the gate means input arrived in the gap).</summary>
+    long Delivered { get; }
+
+    /// <summary>Events swallowed so far (the borrow waits until it has received them all before it replays).</summary>
+    long SwallowedCount { get; }
+
+    void BeginSwallow(bool keysOnly = false);
+
+    void EndSwallow();
+}
+
+public sealed class PcHookCore : IPcInputHold
 {
     public const ushort Escape = 0x1B;
 
@@ -93,12 +117,21 @@ public sealed class PcHookCore
     private int heldKeys;
     private int swallowing;
     private int abort;
+    private long delivered;
+    private long swallowedCount;
     private int lastX;
     private int lastY;
     private bool positionKnown;
 
     /// <summary>Holding the user's input for a borrow (set by the borrow, read by the callback).</summary>
     public bool Swallowing => Volatile.Read(ref swallowing) != 0;
+
+    /// <summary>Holding the user's keys only: the mouse is free (after a failed restore, DESIGN.md 2.7 step 7).</summary>
+    public bool KeysOnly => Volatile.Read(ref swallowing) == 2;
+
+    public long Delivered => Interlocked.Read(ref delivered);
+
+    public long SwallowedCount => Interlocked.Read(ref swallowedCount);
 
     /// <summary>An auto-repeat of a key held before the hold arrived: the borrow must abort and replay.</summary>
     public bool AbortRequested => Volatile.Read(ref abort) != 0;
@@ -118,13 +151,19 @@ public sealed class PcHookCore
         }
     }
 
-    /// <summary>Swallowing on: from now every physical event is held back until EndSwallow.</summary>
-    public void BeginSwallow()
+    /// <summary>
+    /// Swallowing on: from now every physical event (or, keys only, every key) is held back until EndSwallow. Switching an
+    /// active hold to keys only keeps the keys it holds, so their ups are still swallowed.
+    /// </summary>
+    public void BeginSwallow(bool keysOnly = false)
     {
-        Array.Clear(swallowedKeys);
-        Volatile.Write(ref swallowedButtons, 0);
-        Volatile.Write(ref abort, 0);
-        Volatile.Write(ref swallowing, 1);
+        if (!Swallowing)
+        {
+            Array.Clear(swallowedKeys);
+            Volatile.Write(ref swallowedButtons, 0);
+            Volatile.Write(ref abort, 0);
+        }
+        Volatile.Write(ref swallowing, keysOnly ? 2 : 1);
     }
 
     public void EndSwallow()
@@ -136,7 +175,7 @@ public sealed class PcHookCore
     }
 
     /// <summary>A keyboard event. <paramref name="swallow"/> tells the callback to return 1 (held for the replay).</summary>
-    public PcHookRecord Key(uint vk, uint scan, bool isDown, bool injected, ulong extra, uint time, out bool swallow)
+    public PcHookRecord Key(uint vk, uint scan, bool isDown, bool injected, ulong extra, uint time, out bool swallow, bool extended = false)
     {
         var key = (int)(vk & 0xFF);
         var word = key >> 6;
@@ -176,6 +215,7 @@ public sealed class PcHookCore
                 swallow = true;
             }
         }
+        Count(physical, swallow);
         var keep = key == Escape || (Volatile.Read(ref watched[word]) & bit) != 0 || Modifier(key) != 0 || swallow || (injected && extra != 0);
         return new PcHookRecord
         {
@@ -185,6 +225,7 @@ public sealed class PcHookCore
             Injected = injected,
             Repeat = repeat,
             Swallowed = swallow,
+            Extended = extended,
             Modifiers = Modifiers(),
             HeldKeys = (byte)Math.Clamp(heldKeys, 0, 255),
             HeldButtons = (byte)buttons,
@@ -204,7 +245,7 @@ public sealed class PcHookCore
         swallow = false;
         var dx = kind == PcRawKind.Wheel ? wheel : 0;
         var dy = 0;
-        if (Swallowing && (physical || extra == 0))
+        if (Swallowing && !KeysOnly && (physical || extra == 0))
         {
             switch (kind)
             {
@@ -229,6 +270,7 @@ public sealed class PcHookCore
                     break;
             }
         }
+        Count(physical, swallow);
         if (!swallow)
         {
             // A swallowed move does not move the cursor, so later deltas are measured from the last delivered position.
@@ -264,6 +306,12 @@ public sealed class PcHookCore
         if (Down(0x10) || Down(0xA0) || Down(0xA1)) bits |= 4;
         if (Down(0x5B) || Down(0x5C)) bits |= 8;
         return (byte)bits;
+    }
+
+    private void Count(bool physical, bool swallow)
+    {
+        if (swallow) Interlocked.Increment(ref swallowedCount);
+        else if (physical) Interlocked.Increment(ref delivered);
     }
 
     private bool Down(int key) => (down[key >> 6] & (1UL << (key & 63))) != 0;

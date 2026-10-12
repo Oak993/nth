@@ -3,7 +3,7 @@
 // pointer, no keyboard, no focus). R2 sends one message to one child window: BM_CLICK on a stock button, EM_REPLACESEL into
 // a stock edit (insert at the caret, undoable), a WM_CHAR stream (Unicode windows only, never while a modifier is held),
 // a plain posted key, posted mouse messages at a point inside the window, and a menu command after the menu-state check.
-// R4 (borrowing the real pointer or focus) is not built yet; it answers needs_real_input with its reason. Shortcuts become
+// R4 (borrowing the real pointer or focus) is PcBorrowRung (ED-NEW-pcctl-18). Shortcuts become
 // commands first (the element whose AcceleratorKey or AccessKey matches, Alt+F4 as Close, Enter and Esc on a dialog as its
 // OK and Cancel buttons); a chord is never posted, because apps read the real modifier state.
 using Marrow.Core.Port.PcControl;
@@ -380,18 +380,6 @@ public sealed class PcMessageRung(IPcMessageSink sink) : IPcInputRung
     }
 
     private static string PcArgsCount(int value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-}
-
-/// <summary>
-/// Rung R4, the borrow of the real pointer or focus (DESIGN.md 2.7). It is built in unit P3 with the physical-input gate
-/// (P2); until then every request that reaches it gets needs_real_input with its reason, and nothing is ever injected.
-/// </summary>
-public sealed class PcBorrowRung(Func<PcSettings> settings) : IPcInputRung
-{
-    public PcRung Rung => PcRung.R4;
-
-    public PcRungOffer Offer(PcInputRequest request, PcFramework framework) =>
-        PcRungOffer.Refuse(PcErrorCode.NeedsRealInput, settings().RealInput ? PcRealInputReason.ActivationUnproven : PcRealInputReason.Off);
 }
 
 /// <summary>The clipboard chords and commands Tactus refuses (DESIGN.md 2.8, critique C6): the clipboard is the user's.</summary>

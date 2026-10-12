@@ -235,4 +235,54 @@ public sealed class TactusHotkeysTests
         Assert.Equal(new PcHotkey(PcHotkeyModifiers.Control | PcHotkeyModifiers.Alt, 'A'), rig.Host.Registered[TactusHotkeys.AnswerId]);
         Assert.Equal(1, answered);
     }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-pcctl-18")]
+    public void A_stop_chord_a_borrow_swallows_stops_from_the_hook()
+    {
+        using var rig = new TactusHotkeysRig();
+        rig.Hotkeys.Arm();
+        const int CtrlAlt = (int)(PcHotkeyModifiers.Control | PcHotkeyModifiers.Alt);
+
+        rig.Host.Key(new PcHookKeyDown(PcHookKey.Escape, PcHotkey.Escape, false, false) { Swallowed = true, Modifiers = CtrlAlt });
+
+        Assert.Equal(new[] { (PcScope.All, PcStopSource.StopKey) }, rig.Stops);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-pcctl-18")]
+    public void A_pause_chord_a_borrow_swallows_pauses_and_injected_repeated_or_delivered_ones_do_not()
+    {
+        using var rig = new TactusHotkeysRig();
+        using var call = rig.Pause.Join("chat-1", Excel, new PcWaitState());
+        rig.Hotkeys.Arm();
+        const int CtrlAlt = (int)(PcHotkeyModifiers.Control | PcHotkeyModifiers.Alt);
+        var press = new PcHookKeyDown(PcHookKey.Chord, PcHotkey.Space, false, false) { Swallowed = true, Modifiers = CtrlAlt };
+
+        rig.Host.Key(press with { Injected = true });
+        rig.Host.Key(press with { Repeat = true });
+        rig.Host.Key(press with { Swallowed = false });
+        rig.Host.Key(press with { Modifiers = (int)PcHotkeyModifiers.Control });
+        Assert.False(rig.Pause.IsPaused(Excel));
+
+        rig.Now += 1_000;
+        rig.Host.Key(press);
+        Assert.True(rig.Pause.IsPaused(Excel));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-pcctl-18")]
+    public void A_borrow_asks_whether_a_key_is_an_armed_chord()
+    {
+        using var rig = new TactusHotkeysRig();
+        const int CtrlAlt = (int)(PcHotkeyModifiers.Control | PcHotkeyModifiers.Alt);
+
+        Assert.False(rig.Hotkeys.IsChord(PcHotkey.Space, CtrlAlt));
+        rig.Hotkeys.Arm();
+
+        Assert.True(rig.Hotkeys.IsChord(PcHotkey.Space, CtrlAlt));
+        Assert.True(rig.Hotkeys.IsChord(PcHotkey.Escape, CtrlAlt));
+        Assert.False(rig.Hotkeys.IsChord(PcHotkey.Space, (int)PcHotkeyModifiers.Alt));
+        Assert.False(rig.Hotkeys.IsChord('A', CtrlAlt));
+    }
 }

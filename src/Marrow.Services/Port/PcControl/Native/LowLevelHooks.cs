@@ -34,6 +34,7 @@ public sealed unsafe class PcLowLevelHooks : IDisposable
     private const int WM_XBUTTONDOWN = 0x020B;
     private const int WM_XBUTTONUP = 0x020C;
     private const int WM_MOUSEHWHEEL = 0x020E;
+    private const uint LLKHF_EXTENDED = 0x01;
     private const uint LLKHF_INJECTED = 0x10;
     private const uint LLMHF_INJECTED = 0x01;
     private const uint WorkMessage = 0x8000 + 0x52; // WM_APP + 0x52
@@ -217,6 +218,7 @@ public sealed unsafe class PcLowLevelHooks : IDisposable
             Swallowed = record.Swallowed,
             Repeat = record.Repeat,
             Scan = record.Scan,
+            Extended = record.Extended,
             Modifiers = record.Modifiers,
             HeldKeys = record.HeldKeys,
             HeldButtons = record.HeldButtons,
@@ -241,7 +243,8 @@ public sealed unsafe class PcLowLevelHooks : IDisposable
             var down = message is WM_KEYDOWN or WM_SYSKEYDOWN;
             if (down || message is WM_KEYUP or WM_SYSKEYUP)
             {
-                var record = Core.Key(info->Code, info->Scan, down, (info->Flags & LLKHF_INJECTED) != 0, info->Extra, info->Time, out var swallow);
+                var record = Core.Key(info->Code, info->Scan, down, (info->Flags & LLKHF_INJECTED) != 0, info->Extra, info->Time, out var swallow,
+                    (info->Flags & LLKHF_EXTENDED) != 0);
                 Ring.Write(in record);
                 if (swallow) return 1;
             }

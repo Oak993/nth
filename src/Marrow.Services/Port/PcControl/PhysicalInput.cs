@@ -36,6 +36,9 @@ public readonly record struct PcRawInput(long TimeMs, PcRawKind Kind, bool Down,
     /// <summary>The scan code, kept only for a swallowed key (for the replay).</summary>
     public ushort Scan { get; init; }
 
+    /// <summary>The key's extended flag (right Ctrl and Alt, arrows, editing keys), for the replay.</summary>
+    public bool Extended { get; init; }
+
     /// <summary>A move's delta from the last position the cursor reached (a swallowed move does not move it).</summary>
     public PcPoint Moved { get; init; }
 

@@ -215,7 +215,7 @@ public sealed partial class PcControlEngine
         var active = inFront && user.InputAgeMs < UserActiveMs;
         var noise = cached is not null && !ReferenceEquals(cached, before) ? PcVerify.Changed(cached, before) : new HashSet<string>(StringComparer.Ordinal);
         if (active && before.Focused is { } focusedIndex) noise.Add(before.Elements[focusedIndex].RuntimeId);
-        request = request with { Tree = before, InFront = inFront, UserActive = active, ModifiersDown = user.ModifiersDown };
+        request = request with { Tree = before, InFront = inFront, UserActive = active, ModifiersDown = user.ModifiersDown, Waiting = call.Wait.Waiting };
         var plan = parts.Ladder.Plan(request);
         call.Timings.Mark("plan");
         if (plan.Refused)

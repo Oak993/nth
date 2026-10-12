@@ -208,14 +208,36 @@ public sealed class TactusHotkeys : IPcStopKey, IDisposable
         }
     }
 
+    /// <summary>
+    /// Whether a key-down (its key and the modifiers physically down, PcHotkeyModifiers bits) is one of the chords armed now.
+    /// A borrow that swallows it does not replay it: the chord acts from the hook instead (DESIGN.md 2.7 step 4, 4.4).
+    /// </summary>
+    public bool IsChord(ushort key, int modifiers)
+    {
+        lock (gate) return Pressed(key, modifiers) is not null;
+    }
+
+    // Under gate: the armed chord this press is, or null.
+    private int? Pressed(ushort key, int modifiers)
+    {
+        if (!armed) return null;
+        bool Is(PcHotkey? chord) => chord is { } c && c.Key == key && (int)c.Modifiers == modifiers;
+        return Is(stopChord) ? StopId : Is(pauseChord) ? PauseId : Is(answerChord) ? AnswerId : null;
+    }
+
     private void OnKeyDown(PcHookKeyDown key)
     {
-        if (key.Kind == PcHookKey.Chord)
+        // Esc reports as Escape even when it is a chord's key (the stop chord Ctrl+Alt+Esc), so both kinds are checked.
+        if (key.Kind != PcHookKey.Other)
         {
+            int? swallowed = null;
             lock (gate)
             {
                 if (key.Key == pauseChord?.Key) pauseInjected = key.Injected;
+                // RegisterHotKey never sees a key a borrow swallows: the hook's report stands in for WM_HOTKEY.
+                if (key.Swallowed && !key.Injected && !key.Repeat) swallowed = Pressed(key.Key, key.Modifiers);
             }
+            if (swallowed is { } id) OnPressed(id);
         }
         var inTactusWindow = false;
         var ime = false;

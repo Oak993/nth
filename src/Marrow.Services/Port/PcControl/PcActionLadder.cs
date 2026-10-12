@@ -1,7 +1,7 @@
 // PORT-ONLY: Tactus, PC control (OD-0140, OD-0144, ED-NEW-pcctl-6, ED-NEW-pcctl-7, ED-NEW-pcctl-8; DESIGN.md 2.6, 2.8,
 // critique C7, C16). The action ladder. Every input is planned as an ordered list of ways to do it, highest rung first:
 // R1 the element's own UI Automation pattern, R2 a message to one child window, R4 a borrow of the real pointer or focus
-// (not built yet: it answers needs_real_input with its reason). Each rung is used only where the framework gate allows it
+// (once its activation is proven; else it answers needs_real_input with its reason). Each rung is used only where the framework gate allows it
 // for the app's framework; "probe" ways run with the self-check, and a pass promotes them for that exe. What Tactus learns
 // is kept per exe, version, rung, method and control type (PcCapabilities): a way that moved the user's foreground or
 // cursor is never used again for 7 days, and one that moved focus is not used while the user is active in that window.
@@ -64,6 +64,9 @@ public sealed record PcInputRequest(PcInputKind Kind, PcWindowInfo Window)
 
     /// <summary>A physical modifier key is down: posted keys and characters are never used then (DESIGN.md 2.8).</summary>
     public bool ModifiersDown { get; init; }
+
+    /// <summary>The step's wait mark (the 25 s rule): a borrow waiting for the gate calls it with "hands_off".</summary>
+    public Func<string, IDisposable>? Waiting { get; init; }
 }
 
 /// <summary>
