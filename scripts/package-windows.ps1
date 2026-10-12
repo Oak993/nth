@@ -41,7 +41,7 @@
   NthApp, not nth: Velopack deletes its whole install folder on uninstall and the data folder is %LOCALAPPDATA%\nth, so the two
   must never be one folder. A fresh install goes to %LOCALAPPDATA%\Programs\nth (--installto, chosen by the setup); an earlier
   install at %LOCALAPPDATA%\NthApp is updated where it is. The shortcut is Start Menu\Programs\nth.lnk. The publisher
-  (-PackAuthors, decision A, open) is one value: vpk's --packAuthors, the Company of every exe and the setup's copyright.
+  (-PackAuthors, decision A: oak993) is one value: vpk's --packAuthors, the Company of every exe and the setup's copyright.
 
   Release notes (OD-0111 / UE-6): a ## [version] entry in CHANGELOG.md with populated ### New features, ### Bug fixes or
   ### Refinements. -ReleaseNotesFile can override it with a file containing only that exact version. Missing, empty,
@@ -65,7 +65,7 @@ param(
     [string]$Runtime = 'win-x64',
     [string]$PackId = 'NthApp',
     [string]$PackTitle = 'nth',
-    [string]$PackAuthors = 'nth',
+    [string]$PackAuthors = 'oak993',
     [string]$MainExe = 'nth.exe',
     [string]$ReleaseNotesFile = '',
     [string]$ArtifactsDir = '',

@@ -17,7 +17,7 @@ namespace Marrow.Setup.Screens;
 /// engine drives the steps, the bar, the stall line and the pause through <see cref="Steps"/>, <see cref="Bar"/>,
 /// <see cref="ShowSlow"/> and the session.
 /// </summary>
-public sealed class InstallingScreen : CanvasScreen
+public sealed class InstallingScreen : CanvasScreen, IProgressScreen
 {
     private readonly SetupMark mark;
     private readonly TextBlock subtitle;
@@ -34,7 +34,11 @@ public sealed class InstallingScreen : CanvasScreen
         Bar.Attach(Frames);
         Hold = new HoldLine(Calm);
         Column.With(mark, title, subtitleBox, Steps, Bar, Space(), Hold);
+        Progress = new CanvasProgress(Steps, Bar, Steps.SetSteps, ShowSlow);
     }
+
+    /// <summary>What unit U3's progress engine draws into (the rows, the bar and the stall line above).</summary>
+    public IProgressView Progress { get; }
 
     public StepList Steps { get; }
 
@@ -104,7 +108,7 @@ public enum UpdateState
 /// Busy, Waiting and Updating (<see cref="ShowBusy"/>, <see cref="ShowWaiting"/>, <see cref="ShowUpdating"/>) and answers
 /// the buttons through <see cref="UpdateRequested"/>, <see cref="StopRequested"/> and <see cref="WaitRequested"/>.
 /// </summary>
-public sealed class UpdateScreen : CanvasScreen
+public sealed class UpdateScreen : CanvasScreen, IProgressScreen
 {
     private readonly SetupMark mark;
     private readonly TextBlock title;
@@ -130,7 +134,11 @@ public sealed class UpdateScreen : CanvasScreen
         Go = Button(SetupStrings.UpdateGo, ButtonKind.Primary, OnGo);
         DefaultButton = Go;
         Column.With(mark, title, subtitle, notes, busy, Steps, Bar, fine, Space(ButtonGap), Hold, Buttons(Later, Go));
+        Progress = new CanvasProgress(Steps, Bar, steps => ShowUpdating(UpdateRun.Closed, 0, steps), slow => SetSubtitle(slow ? SetupStrings.InstallingSlow : SetupStrings.InstallingSubtitle));
     }
+
+    /// <summary>What unit U3's progress engine draws into once the update runs (the rows, the bar and the stall line).</summary>
+    public IProgressView Progress { get; }
 
     public UpdateState State { get; private set; }
 
@@ -242,23 +250,27 @@ public sealed class UpdateScreen : CanvasScreen
         Labels(SetupStrings.UpdateWaitStop, null);
     }
 
-    /// <summary>Updating: the steps and the bar; no buttons (Close pauses from copying on).</summary>
-    public void ShowUpdating(UpdateRun run, int threads = 0)
+    /// <summary>
+    /// Updating: the steps and the bar; no buttons (Close pauses from copying on). The progress engine passes the rows of
+    /// its run in <paramref name="steps"/>; without them the canvas's list for <paramref name="run"/> is used.
+    /// </summary>
+    public void ShowUpdating(UpdateRun run, int threads = 0, IReadOnlyList<StepSpec>? steps = null)
     {
         var fromWaiting = State == UpdateState.Waiting;
         State = UpdateState.Updating;
         Reveal.SetText(title, SetupStrings.UpdateRunningTitle(Session.Version));
         SetSubtitle(SetupStrings.InstallingSubtitle);
-        if (!fromWaiting) Running(run, threads);
+        if (!fromWaiting || steps is not null) Running(run, threads, steps);
         Labels(null, null);
     }
 
-    private void Running(UpdateRun run, int threads)
+    private void Running(UpdateRun run, int threads, IReadOnlyList<StepSpec>? steps = null)
     {
         Reveal.Hide(notes);
         Reveal.Hide(busy);
         Reveal.Hide(fine);
-        if (!Steps.IsVisible) Steps.SetSteps(UpdateSteps(run, threads, Session.SizeMegabytes));
+        if (steps is not null) Steps.SetSteps(steps);
+        else if (!Steps.IsVisible) Steps.SetSteps(UpdateSteps(run, threads, Session.SizeMegabytes));
         Reveal.Show(Steps);
         Reveal.Show(Bar);
         if (!Bar.IsVisible) Bar.Reset();

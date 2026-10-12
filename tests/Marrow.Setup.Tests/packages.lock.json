@@ -264,7 +264,7 @@
           "xunit.extensibility.core": "[2.9.3]"
         }
       },
-      "marrow.setup": {
+      "nth-Setup": {
         "type": "Project",
         "dependencies": {
           "Avalonia.Desktop": "[12.1.2, )",

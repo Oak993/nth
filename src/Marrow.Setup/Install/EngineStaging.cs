@@ -21,13 +21,21 @@ public sealed class EngineStaging
     private long staged;
     private long total = -1;
 
+    private readonly Func<string>? claim;
+
     /// <param name="folder">The staging folder for this version.</param>
     /// <param name="openPayload">Opens the payload (the embedded resource), or null when this build has none.</param>
-    public EngineStaging(string folder, Func<Stream?> openPayload)
+    /// <param name="claim">
+    /// Unit U9's contract (ED-NEW-inst-u9-1): the run's staging folder is made and claimed (<c>StagingScope.Ensure</c>) before anything
+    /// is written into it, so no sweep takes it while the engine is written and run, and Ready or Problem can delete it. Runs on the
+    /// staging thread; an <see cref="IOException"/> (another setup holds the folder) is this staging's <see cref="Error"/>.
+    /// </param>
+    public EngineStaging(string folder, Func<Stream?> openPayload, Func<string>? claim = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(folder);
         Folder = folder;
         this.openPayload = openPayload ?? throw new ArgumentNullException(nameof(openPayload));
+        this.claim = claim;
     }
 
     public string Folder { get; }
@@ -79,6 +87,7 @@ public sealed class EngineStaging
         {
             using var payload = openPayload() ?? throw new InvalidOperationException("This installer was built without Velopack's Setup.exe.");
             Interlocked.Exchange(ref total, payload.CanSeek ? payload.Length : -1);
+            claim?.Invoke();
             Directory.CreateDirectory(Folder);
             using (var file = new FileStream(partial, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 16, FileOptions.SequentialScan))
             {

@@ -1,3 +1,4 @@
+using Marrow.Core.Support;
 using Marrow.Setup.Flow;
 using Marrow.Setup.Install;
 using Marrow.Setup.Motion;
@@ -155,7 +156,7 @@ public sealed class InstallFlow
     private void Finish(InstallRun run)
     {
         var frame = run.Finish();
-        session.Result = run.Result;
+        session.SetResult(run.Result ?? InstallResult.Missing, run.Request.Update);
         session.ResumeClose();
         if (view is null)
         {
@@ -163,7 +164,7 @@ public sealed class InstallFlow
             return;
         }
         view.Render(frame);
-        session.Window.Animator.Start(new ReadyWhenFull(view.Bar, session.Window.Settings.Current.Calm ? ReadyAfterCalm : ReadyAfter, Done));
+        session.Window.Animator.Start(new ReadyWhenFull(view, session.Window.Settings.Current.Calm ? ReadyAfterCalm : ReadyAfter, Done));
     }
 
     private void Done()
@@ -187,13 +188,13 @@ public sealed class InstallFlow
     }
 
     /// <summary>Waits for the bar to be drawn full, then for the canvas's pause, then calls Ready (on the frame loop).</summary>
-    private sealed class ReadyWhenFull(Ui.ProgressMotion bar, double pause, Action ready) : IMotion
+    private sealed class ReadyWhenFull(IProgressView bar, double pause, Action ready) : IMotion
     {
         private double left = pause;
 
         public bool Advance(double seconds)
         {
-            if (bar.Value < 100) return true;
+            if (bar.BarValue < 100) return true;
             left -= seconds;
             if (left > 0) return true;
             ready();

@@ -88,7 +88,7 @@ function Assert-NthVersionResource {
     if ($problems) { throw "${Path}: $($problems -join '; ')" }
 }
 
-# PLAN.md section 7: what each exe says. The publisher is decision A (open); it is one value, passed in.
+# PLAN.md section 7: what each exe says. The publisher is decision A (oak993); it is one value, passed in.
 function Get-NthIdentity {
     param(
         [Parameter(Mandatory)][string]$Publisher, [Parameter(Mandatory)][string]$Version, [Parameter(Mandatory)][string]$Build,
@@ -313,12 +313,12 @@ function Get-NthUnsignedMessage { 'UNSIGNED, not for sharing' }
 
 # ---- the old exe name and foreign names ------------------------------------------------------------------------------------
 
-# Files in the repository that still say the old exe name, minus the decision ledgers and the named evidence records in
-# scripts/lib/old-exe-name-allowlist.json. A path is relative with forward slashes.
+# Files in the repository that still say the old exe name, minus the decision ledgers, the named evidence records and the legacy files
+# (code and tests that handle an install made before the rename on purpose) in scripts/lib/old-exe-name-allowlist.json. A path is relative with forward slashes.
 function Find-NthOldExeNameReferences {
     param([Parameter(Mandatory)][string]$Root, [string]$AllowListPath = (Join-Path $script:NthLibDir 'old-exe-name-allowlist.json'))
     $allow = Get-Content -LiteralPath $AllowListPath -Raw | ConvertFrom-Json
-    $allowed = @($allow.ledgers) + @($allow.evidence | ForEach-Object { $_.path })
+    $allowed = @($allow.ledgers) + @($allow.evidence | ForEach-Object { $_.path }) + @($allow.legacy | ForEach-Object { $_.path })
     $hits = $null
     & git -C $Root rev-parse --is-inside-work-tree 2>&1 | Out-Null
     if ($LASTEXITCODE -eq 0) {

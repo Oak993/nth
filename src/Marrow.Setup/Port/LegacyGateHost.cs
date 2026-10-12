@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Marrow.Core.Support;
+using Marrow.Setup.Support;
 using Microsoft.Win32;
 
 namespace Marrow.Setup.Port;
@@ -11,8 +12,8 @@ namespace Marrow.Setup.Port;
 /// was before it had a window: it checks what is installed (InstallerGate, unit tested in Marrow.Core.Tests) and only for a
 /// new install or an upgrade copies the embedded Velopack Setup.exe to a temporary folder, runs it with the same
 /// arguments, waits, deletes the copy and returns its exit code. The same version or a newer one installed: a message box
-/// (none when silent), nothing run, nothing written. It still serves <c>--silent</c> and <c>--help</c>, and the interim
-/// screens' Install (STUB(U3/U4): the progress engine and the silent Setup.exe run replace it).
+/// (none when silent), nothing run, nothing written. It serves <c>--silent</c> and <c>--help</c>, and an Install chosen in a
+/// session built without the in-window progress engine (Problem's Retry after a problem that was not an install run).
 /// </summary>
 public sealed partial class LegacyGateHost : IInstallerGateHost
 {
@@ -26,7 +27,7 @@ public sealed partial class LegacyGateHost : IInstallerGateHost
         var host = new LegacyGateHost();
         try
         {
-            host.InstallRoot = Identity().DefaultInstallRoot;
+            host.InstallRoot = RootToInstall(args);
             return InstallerGate.Run(host, Identity(), args);
         }
         catch (Exception error)
@@ -44,6 +45,16 @@ public sealed partial class LegacyGateHost : IInstallerGateHost
         var appId = Metadata("InstallerAppId");
         return new InstallerIdentity(Metadata("InstallerTitle"), Metadata("InstallerVersion"), Path.Combine(local, appId), AppContext.BaseDirectory,
             FreshRoot(local), () => RegisteredRoot(appId));
+    }
+
+    /// <summary>
+    /// The folder the gate decides about and Setup.exe installs into (unit U7: a fresh install is not at Velopack's default root), where
+    /// unit U5's post-exit steps run.
+    /// </summary>
+    private static string RootToInstall(IReadOnlyList<string> args)
+    {
+        var identity = Identity();
+        return InstallerGate.FindInstall(identity, InstallerGate.ReadInstallTo(args, identity.LaunchDirectory)).Root;
     }
 
     private static string FreshRoot(string local)
@@ -70,6 +81,12 @@ public sealed partial class LegacyGateHost : IInstallerGateHost
 
     public int RunVelopackSetup(IReadOnlyList<string> arguments)
     {
+        // nth installer PLAN.md 3a (unit U4, ED-NEW-inst-u4-2, bound at integration): a --silent setup takes the install hold and asks a running nth
+        // to quit when idle before Velopack runs; busy or refusing nth exits 3, another setup on the root 4. The hold stays until Setup.exe has exited.
+        using var preflight = InstallerGate.IsSilent(arguments) && InstallRoot is { } holdRoot
+            ? SilentPreflight.RunAsync(holdRoot, ProductionRunningNth.Create(holdRoot)).GetAwaiter().GetResult()
+            : null;
+        if (preflight?.ExitCode is { } refused) return refused;
         using var payload = typeof(LegacyGateHost).Assembly.GetManifestResourceStream(PayloadName)
             ?? throw new InvalidOperationException("This installer was built without Velopack's Setup.exe.");
         var folder = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "nth Setup-" + Guid.NewGuid().ToString("N"))).FullName;

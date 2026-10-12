@@ -28,9 +28,9 @@ public sealed class InstallFlowTests(SetupHeadlessSession headless)
             Assert.Equal(SetupScreen.Installing, rig.Session.Screen);
             Assert.True(rig.Flow.Busy);
             Assert.False(rig.Paused);
-            Assert.Equal(4, rig.Panel.Rows.Count);
-            Assert.Equal(StepState.Working, rig.Panel.Rows[0].Step!.State);
-            Assert.All(rig.Panel.Rows.Skip(1), row => Assert.Equal(StepState.Waiting, row.Step!.State));
+            Assert.Equal(4, rig.Panel.Steps.Rows.Count);
+            Assert.Equal(StepState.Working, rig.Panel.RowStates[0]);
+            Assert.All(rig.Panel.RowStates.Skip(1), state => Assert.Equal(StepState.Waiting, state));
             Assert.Equal(0, rig.Runner.Starts);
 
             rig.Window.Window.Close();
@@ -65,7 +65,7 @@ public sealed class InstallFlowTests(SetupHeadlessSession headless)
             var clock = 0.0;
             rig.Until(() => !rig.Poll.Running, each: () =>
             {
-                Assert.True(rig.Panel.Bar.Value < 100 || rig.Scenario.Hive.IsRepointed(rig.Scenario.Root), "100 before the uninstall key points at nth");
+                Assert.True(rig.Panel.BarValue < 100 || rig.Scenario.Hive.IsRepointed(rig.Scenario.Root), "100 before the uninstall key points at nth");
             });
             Assert.Equal(1, rig.Scenario.After.Calls);
             Assert.False(rig.Paused);
@@ -76,14 +76,14 @@ public sealed class InstallFlowTests(SetupHeadlessSession headless)
             {
                 rig.Window.Frames.Frame();
                 clock += 1.0 / 60;
-                if (fullAt < 0 && rig.Panel.Bar.Value >= 100) fullAt = clock;
+                if (fullAt < 0 && rig.Panel.BarValue >= 100) fullAt = clock;
                 if (rig.Session.Screen == SetupScreen.Ready) readyAt = clock;
             }
 
             Assert.True(fullAt >= 0, "the bar reached 100");
             Assert.InRange(readyAt - fullAt, InstallFlow.ReadyAfter - 0.02, InstallFlow.ReadyAfter + 0.05);
             Assert.Equal("100%", rig.Panel.PercentText);
-            Assert.All(rig.Panel.Rows, row => Assert.Equal(StepState.Done, row.Step!.State));
+            Assert.All(rig.Panel.RowStates, state => Assert.Equal(StepState.Done, state));
             Assert.False(rig.Flow.Busy);
         });
     }
@@ -98,7 +98,7 @@ public sealed class InstallFlowTests(SetupHeadlessSession headless)
             rig.Session.ChooseInstall();
             rig.Staged();
             rig.Until(() => !rig.Poll.Running);
-            Assert.Equal(100, rig.Panel.Bar.Value);
+            Assert.Equal(100, rig.Panel.BarValue);
             var frames = 0;
             while (rig.Session.Screen != SetupScreen.Ready && frames < 120)
             {
@@ -168,8 +168,8 @@ public sealed class InstallFlowTests(SetupHeadlessSession headless)
             rig.Session.Retry();
             Assert.Equal(SetupScreen.Installing, rig.Session.Screen);
             Assert.Equal(2, rig.Runs.Count);
-            Assert.Equal(StepState.Working, rig.Panel.Rows[0].Step!.State);
-            Assert.True(rig.Panel.Bar.Value < 5, "a fresh run starts its bar again");
+            Assert.Equal(StepState.Working, rig.Panel.RowStates[0]);
+            Assert.True(rig.Panel.BarValue < 5, "a fresh run starts its bar again");
             rig.Staged();
             rig.Until(() => !rig.Poll.Running);
             rig.Window.Run(2);
@@ -263,12 +263,13 @@ public sealed class InstallFlowTests(SetupHeadlessSession headless)
         headless.OnUiThread(() =>
         {
             using var rig = new InstallFlowRig(VelopackScenarios.Build("upgrade"), update: true);
-            Assert.False(rig.Panel.IsVisible);
+            Assert.False(rig.Panel.Steps.IsVisible);
             rig.Session.ChooseInstall();
 
             Assert.Equal(SetupScreen.Update, rig.Session.Screen);
-            Assert.True(rig.Panel.IsVisible);
-            Assert.Equal([SetupStrings.StepChecking, SetupStrings.StepCopyingNew, SetupStrings.StepFinishing], rig.Panel.Rows.Select(r => r.Label));
+            rig.Window.Run(0.6); // the notes and the footnote fade out, then the rows and the bar are put in (Reveal, PLAN.md 3b)
+            Assert.True(rig.Panel.Steps.IsVisible);
+            Assert.Equal([SetupStrings.StepChecking, SetupStrings.StepCopyingNew, SetupStrings.StepFinishing], rig.Panel.Steps.Rows.Select(r => r.Label));
             rig.Staged();
             rig.Step();
             Assert.True(rig.Paused);

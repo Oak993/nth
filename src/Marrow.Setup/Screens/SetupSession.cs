@@ -66,6 +66,9 @@ public sealed class SetupSession
     /// <summary>Problem's ending: "Nothing was changed on your PC." (true) or "Some of nth's files may be left." (false).</summary>
     public bool ProblemSafe { get; private set; } = true;
 
+    /// <summary>Problem's second line: "Nothing was changed on your PC." unless files may be left (the failure's, or <see cref="Fail(string, bool, string?)"/>'s).</summary>
+    public string ProblemSecondLine => ProblemSafe ? SetupStrings.ProblemSafe : Uninstalling ? SetupStrings.UninstallProblemLeft : SetupStrings.ProblemLeft;
+
     /// <summary>Problem's details under the header line (the step, the exit code and the log's last lines; unit U3 fills them).</summary>
     public string ProblemDetails { get; private set; } = "";
 
@@ -192,17 +195,8 @@ public sealed class SetupSession
     /// <summary>Starts the in-window install (unit U3's <see cref="InstallFlow.Begin"/>); set by Program.</summary>
     public Action? InstallRequested { get; set; }
 
-    /// <summary>The desktop-shortcut choice the install hook is asked for (on by default; unit U2's Welcome link and Options switch change it).</summary>
-    public bool DesktopShortcut { get; set; } = true;
-
     /// <summary>Why the last install failed, with Problem's two lines and Copy details' text (unit U3).</summary>
     public InstallFailure? Failure { get; private set; }
-
-    /// <summary>Problem's second line: "Nothing was changed on your PC." unless the failure left files.</summary>
-    public string ProblemSecondLine => Failure?.SecondLine ?? SetupStrings.ProblemSafe;
-
-    /// <summary>What the install hook reported (install-result.json), for Ready; set once the setup's own work after exit 0 is done.</summary>
-    public InstallResult? Result { get; set; }
 
     /// <summary>Shows the first screen with the window (no motion: the window's own appearance is the arrival).</summary>
     public void Start()
@@ -253,8 +247,10 @@ public sealed class SetupSession
     }
 
     /// <summary>
-    /// Problem's Retry: the same install again, without going back to Welcome (STUB(U3): like Install, it hands the run to
-    /// the unchanged gate until unit U3's progress engine runs it in this window). A changed copy of the setup never retries.
+    /// Problem's Retry: the same install again, without going back to Welcome (PLAN.md 4; the canvas's Problem). After a failed
+    /// in-window install (<see cref="Failure"/>) the progress engine runs it again here; in uninstall mode the removal runs
+    /// again (unit U6); a Problem that did not come from a run, in a session built without the progress engine, hands the
+    /// install to the unchanged gate. A changed copy of the setup never retries.
     /// </summary>
     public void Retry()
     {
@@ -264,6 +260,12 @@ public sealed class SetupSession
             return;
         }
         if (!CanInstall || SetupFlow.BlocksInstall(Signature) || Window.Guard.IsPaused || Screen != SetupScreen.Problem) return;
+        if (Failure is not null && InstallRequested is { } begin)
+        {
+            begin();
+            return;
+        }
+        if (InstallRequested is not null) return;
         InstallChosen = true;
         Window.CloseNow();
     }
@@ -295,20 +297,14 @@ public sealed class SetupSession
         Window.CloseNow();
     }
 
-    /// <summary>Problem's Retry: the same install again, without going back to Welcome (PLAN.md 4; the canvas's Problem).</summary>
-    public void Retry()
-    {
-        if (Screen != SetupScreen.Problem || Failure is null || InstallRequested is not { } begin || !CanInstall || SetupFlow.BlocksInstall(Signature)) return;
-        begin();
-    }
-
-    /// <summary>An install failed: Problem with its reason and its second line (built again, so it shows this failure's words).</summary>
+    /// <summary>
+    /// An install failed (unit U3): Problem with the failure's sentence, its ending ("Nothing was changed on your PC." only when
+    /// that is true) and the details Copy details copies (the step, the exit code, the reason and the log's last lines).
+    /// </summary>
     public void Fail(InstallFailure failure)
     {
         Failure = failure ?? throw new ArgumentNullException(nameof(failure));
-        ProblemReason = failure.Sentence;
-        if (Screen != SetupScreen.Problem) built.Remove(SetupScreen.Problem);
-        if (built.Count > 0) Go(SetupScreen.Problem);
+        Fail(failure.Sentence, failure.NothingChanged, failure.DetailLines(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
     }
 
     /// <summary>Pauses Close on the current screen: its line shows why, and sign-out and shutdown wait.</summary>

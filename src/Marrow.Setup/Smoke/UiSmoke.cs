@@ -4,6 +4,7 @@ using System.Text;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
+using Marrow.Core.Support;
 using Marrow.Setup.Flow;
 using Marrow.Setup.Platform;
 using Marrow.Setup.Screens;
@@ -23,8 +24,9 @@ public sealed record SmokeCheck(string Name, bool Passed, string Detail);
 /// caption's hit-testing through WM_NCHITTEST, that nothing maximises it, Close pausing against WM_SYSCOMMAND and
 /// WM_QUERYENDSESSION with the shutdown reason Windows holds, a screen change settling, the signature check), writes a
 /// report (default <c>%TEMP%\nth-setup-ui-smoke.txt</c>) and exits 0 when every check passed, else 1. It cannot install:
-/// its session has no install, it takes no single-instance lock, and it never starts Setup.exe or Update.exe. Units U2 and
-/// U5 add the ShellLinks round trip in a temp folder and the wallpaper read here (PLAN.md 8a); U2's wallpaper read is in.
+/// its session has no install, it takes no single-instance lock, and it never starts Setup.exe or Update.exe. It also reads the
+/// wallpaper chain (unit U2) and round-trips a shortcut through the real shell links in a temp folder (unit U5, PLAN.md 8a):
+/// both exercise the AOT-compiled COM v-tables.
 /// </summary>
 public static class UiSmoke
 {
@@ -60,7 +62,11 @@ public static class UiSmoke
     }
 
     /// <summary>Runs the checks on the shown window, writes the report and closes the window with the smoke's exit code.</summary>
-    public static async Task RunAsync(SetupSession session, UiSmokeOptions options, long startedTimestamp)
+    /// <param name="session">The smoke session.</param>
+    /// <param name="options">Where the report goes.</param>
+    /// <param name="startedTimestamp">When Main began (the first-frame figure).</param>
+    /// <param name="shellLinks">The real shell links, bound by Program only (ShellLinksBindingTests); null leaves the round trip out.</param>
+    public static async Task RunAsync(SetupSession session, UiSmokeOptions options, long startedTimestamp, Func<IShellLinks>? shellLinks = null)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(options);
@@ -89,6 +95,7 @@ public static class UiSmoke
             session.SignatureChecked(signature);
             checks.Add(new SmokeCheck("signature", signature.State != SignatureState.Unknown, $"{signature.State} {signature.Publisher} (0x{signature.Status:X8})"));
             checks.Add(await WallpaperRead(window));
+            if (shellLinks is not null) checks.Add(ShellLinksRoundTrip(shellLinks));
         }
         catch (Exception error)
         {
@@ -104,6 +111,44 @@ public static class UiSmoke
             checks.Add(new SmokeCheck("report", false, error.Message));
         }
         session.Finish(checks.All(c => c.Passed) ? 0 : 1);
+    }
+
+    /// <summary>
+    /// A shortcut written, read back, changed and deleted through the shell links, in a temp folder of its own (never the Desktop or
+    /// the Start menu): the marker and the AppUserModelID survive the change, as PLAN.md 8a says a repair must leave them. Runs on the
+    /// window's thread, which is the single-threaded apartment the shell's COM objects need.
+    /// </summary>
+    internal static SmokeCheck ShellLinksRoundTrip(Func<IShellLinks> shellLinks, string? workFolder = null)
+    {
+        var folder = workFolder ?? Path.Combine(Path.GetTempPath(), "nth-setup-smoke-" + Guid.NewGuid().ToString("N")[..8]);
+        IShellLinks? shell = null;
+        try
+        {
+            shell = shellLinks();
+            Directory.CreateDirectory(folder);
+            var path = Path.Combine(folder, ShellLinkKeys.LinkFileName);
+            var made = new ShellLink(Environment.ProcessPath ?? Path.Combine(Environment.SystemDirectory, "cmd.exe"), Arguments: "--smoke", WorkingDirectory: folder,
+                Description: ShellLinkKeys.Description, AppUserModelId: "nth.setup.smoke", CreatedBy: ShellLinkKeys.CreatedByPrefix + "smoke");
+            shell.WriteLink(path, made);
+            var read = shell.ReadLink(path);
+            var same = read.Target == made.Target && read.Arguments == made.Arguments && read.AppUserModelId == made.AppUserModelId && read.IsMadeByNth;
+            shell.UpdateLink(path, new ShellLinkChange(WorkingDirectory: Path.GetTempPath()));
+            var changed = shell.ReadLink(path);
+            var kept = Path.TrimEndingDirectorySeparator(changed.WorkingDirectory) == Path.TrimEndingDirectorySeparator(Path.GetTempPath()) && changed.AppUserModelId == made.AppUserModelId && changed.IsMadeByNth;
+            shell.DeleteLink(path);
+            var gone = !shell.FileExists(path);
+            return new SmokeCheck("shell-links", same && kept && gone, $"written and read back {same}, changed with the marker and AppUserModelID kept {kept}, deleted {gone}");
+        }
+        catch (Exception error)
+        {
+            return new SmokeCheck("shell-links", false, error.GetType().Name + ": " + error.Message);
+        }
+        finally
+        {
+            (shell as IDisposable)?.Dispose();
+            try { Directory.Delete(folder, recursive: true); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+        }
     }
 
     /// <summary>The wallpaper chain through the real <c>IDesktopWallpaper</c> (unit U2): the AOT-compiled COM v-table is exercised here.</summary>

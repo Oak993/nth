@@ -51,8 +51,8 @@ public sealed class InstallFlowRig : IDisposable
 
     public bool Paused => Window.Window.Guard.IsPaused;
 
-    /// <summary>The panel the flow draws on (Installing's, or Update's on the update route).</summary>
-    public ProgressPanel Panel => (ProgressPanel)((IProgressScreen)Session.Get(InstallFlow.ScreenFor(Scenario.Request.Update))).Progress;
+    /// <summary>The canvas's rows and bar the flow draws on (Installing's, or Update's on the update route).</summary>
+    public CanvasProgress Panel => (CanvasProgress)((IProgressScreen)Session.Get(InstallFlow.ScreenFor(Scenario.Request.Update))).Progress;
 
     /// <summary>Waits for the payload to be written (staging runs on its own task).</summary>
     public void Staged() => Staging.StageAsync().Wait(TimeSpan.FromSeconds(20));

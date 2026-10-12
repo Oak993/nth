@@ -7,6 +7,7 @@ using Marrow.Setup.Tests.Fixtures;
 using Marrow.Setup.Text;
 using Marrow.Setup.Theme;
 using Marrow.Setup.Ui;
+using StepState = Marrow.Setup.Install.StepState;
 
 namespace Marrow.Setup.Tests.Ui;
 

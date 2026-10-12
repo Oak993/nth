@@ -40,11 +40,27 @@ public sealed record InstallFailure(FailureReason Reason, bool NothingChanged, i
     {
         var text = new StringBuilder();
         text.AppendLine(SetupStrings.ProblemHeader(setupVersion, windows, build, architecture));
+        AppendDetailLines(text);
+        return Scrub(text.ToString().TrimEnd(), userProfile);
+    }
+
+    /// <summary>
+    /// What <see cref="Details"/> holds below its header line (the step, the exit code, the reason and the log's last lines): the
+    /// session hands this to Problem, whose Copy details writes the header line itself.
+    /// </summary>
+    public string DetailLines(string? userProfile)
+    {
+        var text = new StringBuilder();
+        AppendDetailLines(text);
+        return Scrub(text.ToString().TrimEnd(), userProfile);
+    }
+
+    private void AppendDetailLines(StringBuilder text)
+    {
         text.Append("Step: ").AppendLine(Step.ToString());
         text.Append("Exit code: ").AppendLine(ExitCode is { } code ? code.ToString(CultureInfo.InvariantCulture) : "none");
         text.Append("Reason: ").AppendLine(Reason.ToString());
         foreach (var line in Log) text.AppendLine(line);
-        return Scrub(text.ToString().TrimEnd(), userProfile);
     }
 
     /// <summary><paramref name="text"/> with the user's profile folder (any case) written as <c>%USERPROFILE%</c>.</summary>

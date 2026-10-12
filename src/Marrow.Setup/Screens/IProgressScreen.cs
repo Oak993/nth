@@ -1,18 +1,17 @@
 using Marrow.Setup.Install;
 using Marrow.Setup.Motion;
-using Marrow.Setup.Ui;
 
 namespace Marrow.Setup.Screens;
 
 /// <summary>
 /// What the progress engine draws into (nth installer PLAN.md 4; unit U3, ED-NEW-inst-u3-1): the step rows, the bar, the
-/// percentage and the line under the title. Installing implements it, and Update in its updating state; unit U2's canvas
-/// screens implement it with the approved rows and bar B. Every call is on the window's thread.
+/// percentage and the line under the title. Installing implements it, and Update in its updating state, on the canvas's
+/// approved rows and bar B (<see cref="CanvasProgress"/>). Every call is on the window's thread.
 /// </summary>
 public interface IProgressView
 {
-    /// <summary>The bar's drawn value (the screen draws it through a transform).</summary>
-    ProgressMotion Bar { get; }
+    /// <summary>The bar's drawn value, 0 to 100 (the screen draws it through a transform).</summary>
+    double BarValue { get; }
 
     /// <summary>Puts the view's motions (the bar, the stall line's cross-fade, the byte count's fade) on the window's frame loop.</summary>
     void Attach(Animator animator);

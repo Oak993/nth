@@ -103,9 +103,15 @@ public sealed class FreeSpaceCheckTests
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Marrow.sln"))) directory = directory.Parent;
         Assert.NotNull(directory);
+        // the stamping moved to Directory.Build.targets (unit U7, ED-NEW-inst-u7-5): one entry per key, only when the packaging script passes a value; the project
+        // must not add the same keys again (a second entry would be a duplicate key in the exe, and an empty one for a build outside the script)
         var project = File.ReadAllText(Path.Combine(directory.FullName, "src", "Marrow.Setup", "Marrow.Setup.csproj"));
+        var targets = File.ReadAllText(Path.Combine(directory.FullName, "Directory.Build.targets"));
         foreach (var key in new[] { InstallSizes.PackageKey, InstallSizes.AppKey, InstallSizes.DiskKey, InstallSizes.VelopackNeedKey })
-            Assert.Contains($"<AssemblyMetadata Include=\"{key}\" Value=\"$({key})\" />", project, StringComparison.Ordinal);
+        {
+            Assert.Contains($"<AssemblyMetadata Include=\"{key}\" Value=\"$({key})\" Condition=\"'$({key})' != ''\" />", targets, StringComparison.Ordinal);
+            Assert.DoesNotContain($"Include=\"{key}\"", project, StringComparison.Ordinal);
+        }
     }
 
     [Fact]

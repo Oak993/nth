@@ -13,9 +13,9 @@
     <InformationalVersion>$(MarrowReleaseVersion)</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Product>nth</Product>
-    <!-- Decision A (the publisher's name) is OPEN (nth installer PLAN.md 2): the one value shown as Company in file Properties, as the
-         Apps list's Publisher (what vpk pack takes as packAuthors) and in the setup's copyright. Until the owner names it, it stays nth. -->
-    <NthPublisher>nth</NthPublisher>
+    <!-- Decision A (owner, 2026-10-11): the publisher is oak993, lower case, everywhere (nth installer PLAN.md 2). The one value shown as Company in file Properties, as the
+         Apps list's Publisher (what vpk pack takes as packAuthors) and in the setup's copyright. The setup's Welcome line (SetupProduct.Publisher) says the same. -->
+    <NthPublisher>oak993</NthPublisher>
     <Company>$(NthPublisher)</Company>
   </PropertyGroup>
   <Target Name="ValidateMarrowReleaseMetadata" BeforeTargets="PrepareForBuild;CoreGenerateAssemblyInfo">

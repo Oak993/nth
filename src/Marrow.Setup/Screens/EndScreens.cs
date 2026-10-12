@@ -297,7 +297,7 @@ public sealed class ProblemScreen : CanvasScreen
 
     private string OtherWords => Session.Uninstalling ? SetupStrings.UninstallProblemOther : SetupStrings.ProblemOther;
 
-    private string EndingWords => Session.ProblemSafe ? SetupStrings.ProblemSafe : Session.Uninstalling ? SetupStrings.UninstallProblemLeft : SetupStrings.ProblemLeft;
+    private string EndingWords => Session.ProblemSecondLine;
 
     private void OnProblem()
     {

@@ -356,7 +356,7 @@ public sealed class InstallerGateTests
         // folder's own name "nth" (Velopack deletes its install folder on uninstall)
         Assert.Contains("[string]$PackTitle = 'nth',", script, StringComparison.Ordinal);
         Assert.Contains("[string]$PackId = 'NthApp',", script, StringComparison.Ordinal);
-        Assert.Contains("[string]$PackAuthors = 'nth',", script, StringComparison.Ordinal);
+        Assert.Contains("[string]$PackAuthors = 'oak993',", script, StringComparison.Ordinal);
         Assert.Contains("<InstallerTitle Condition=\"'$(InstallerTitle)' == ''\">nth</InstallerTitle>", project, StringComparison.Ordinal);
         Assert.Contains("<InstallerAppId Condition=\"'$(InstallerAppId)' == ''\">NthApp</InstallerAppId>", project, StringComparison.Ordinal);
         Assert.Equal("NthApp", Marrow.Core.Port.SelfUpdate.MarrowReleaseFeed.PackageId);

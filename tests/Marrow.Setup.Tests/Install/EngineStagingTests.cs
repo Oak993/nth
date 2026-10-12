@@ -39,6 +39,33 @@ public sealed class EngineStagingTests : IDisposable
 
     [Fact]
     [Trait("Decision", "ED-247")]
+    public async Task The_run_s_folder_is_claimed_before_anything_is_written_in_it()
+    {
+        var seen = new List<string>();
+        var staging = new EngineStaging(folder, () => new MemoryStream(new byte[1000]), () =>
+        {
+            seen.Add(Directory.Exists(folder) ? "folder existed" : "folder not yet made");
+            return folder;
+        });
+        await staging.StageAsync();
+        Assert.Equal(["folder not yet made"], seen);
+        Assert.True(staging.IsComplete);
+        Assert.True(File.Exists(staging.EnginePath));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-247")]
+    public async Task A_folder_another_setup_holds_is_not_written_and_says_why()
+    {
+        var staging = new EngineStaging(folder, () => new MemoryStream(new byte[1000]), () => throw new IOException("held by another setup"));
+        await staging.StageAsync();
+        Assert.False(staging.IsComplete);
+        Assert.IsType<IOException>(staging.Error);
+        Assert.False(Directory.Exists(folder));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-247")]
     public async Task A_build_without_the_payload_stages_nothing_and_says_why()
     {
         var staging = new EngineStaging(folder, () => null);

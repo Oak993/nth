@@ -12,7 +12,7 @@ $source = Get-Content (Join-Path $root 'src/Marrow.App/AssemblyInfo.cs') -Raw
 $version = [regex]::Match($source, 'AssemblyMetadata\("CFBundleShortVersionString",\s*"([^"]+)"\)').Groups[1].Value
 $build = [regex]::Match($source, 'AssemblyMetadata\("CFBundleVersion",\s*"([^"]+)"\)').Groups[1].Value
 $copyright = [regex]::Match($source, 'AssemblyCopyright\("([^"]+)"\)').Groups[1].Value
-# nth installer PLAN.md 2 (override 7) and 7, unit U7: the publisher is one value (decision A, open) and the product version reads like the version.
+# nth installer PLAN.md 2 (override 7) and 7, unit U7: the publisher is one value (decision A: oak993) and the product version reads like the version.
 $publisher = [regex]::Match((Get-Content (Join-Path $root 'Directory.Release.props') -Raw), '<NthPublisher>([^<]+)</NthPublisher>').Groups[1].Value
 if (-not $publisher) { throw 'NthPublisher is not set in Directory.Release.props.' }
 function Artifact([string]$Path) {

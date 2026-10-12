@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using Marrow.Core.Support;
 using Marrow.Setup.Port;
+using Marrow.Setup.Screens;
 
 namespace Marrow.Setup.Tests;
 
@@ -44,7 +45,7 @@ public sealed class SetupIdentityTests
     [Trait("Decision", "ED-247")]
     public void A_setup_built_outside_the_script_carries_the_publisher_and_the_default_root_and_no_measured_numbers()
     {
-        Assert.Equal("nth", Metadata("InstallerPublisher"));
+        Assert.Equal("oak993", Metadata("InstallerPublisher"));
         Assert.Equal(@"%LOCALAPPDATA%\Programs\nth", Metadata("InstallerDefaultRoot"));
         foreach (var key in new[] { "InstallerMainExe", "InstallerAumid", "InstallerPackageBytes", "InstallerAppBytes", "InstallerDiskBytes", "InstallerVelopackNeedBytes" })
             Assert.Null(Metadata(key));
@@ -53,9 +54,22 @@ public sealed class SetupIdentityTests
 
     [Fact]
     [Trait("Decision", "ED-247")]
+    public void The_publisher_is_oak993_in_the_props_the_setup_s_metadata_and_Welcome_s_line()
+    {
+        // owner decision A (2026-10-11): one lower-case name everywhere; the props are what the packaging script and every exe read
+        var props = File.ReadAllText(Path.Combine(Repository(), "Directory.Release.props"));
+        var publisher = Regex.Match(props, "<NthPublisher>([^<]+)</NthPublisher>", RegexOptions.CultureInvariant).Groups[1].Value;
+
+        Assert.Equal("oak993", publisher);
+        Assert.Equal(SetupProduct.Publisher, publisher);
+        Assert.Equal(Metadata("InstallerPublisher"), publisher);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-247")]
     public void The_identity_the_setup_builds_looks_for_an_install_at_the_old_default_root_and_sends_a_fresh_one_to_Programs_nth()
     {
-        var identity = (InstallerIdentity)Setup.GetType("Marrow.Setup.Program")!.GetMethod("Identity", BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, null)!;
+        var identity = LegacyGateHost.Identity(); // the gate moved from Program to Port/LegacyGateHost with the window (unit U1)
         var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
 
         Assert.Equal(Path.Combine(local, "NthApp"), identity.DefaultInstallRoot);
@@ -71,7 +85,9 @@ public sealed class SetupIdentityTests
         var folder = Path.Combine(Repository(), "src", "Marrow.Setup");
 
         Assert.DoesNotContain("Marrow", File.ReadAllText(Path.Combine(folder, "app.manifest")), StringComparison.Ordinal);
+        var gate = File.ReadAllText(Path.Combine(folder, "Port", "LegacyGateHost.cs"));
         Assert.DoesNotContain("\"MarrowSetup-", File.ReadAllText(Path.Combine(folder, "Program.cs")), StringComparison.Ordinal);
-        Assert.Contains("\"nth Setup-\"", File.ReadAllText(Path.Combine(folder, "Program.cs")), StringComparison.Ordinal);
+        Assert.DoesNotContain("\"MarrowSetup-", gate, StringComparison.Ordinal);
+        Assert.Contains("\"nth Setup-\"", gate, StringComparison.Ordinal);
     }
 }

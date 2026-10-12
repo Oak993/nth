@@ -73,7 +73,7 @@ public static class Program
         }
         var session = new SetupSession(window, route, new CanvasScreens(), version, canInstall: smoke is null, arguments: args)
         {
-            SizeMegabytes = long.TryParse(LegacyGateHost.Metadata("InstallerSizeMegabytes"), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var megabytes) && megabytes > 0 ? megabytes : null,
+            SizeMegabytes = StampedSizes().DiskMegabytes, // T_disk, the one size shown everywhere (PLAN.md 4); the plan's 420 MB for a build the script did not measure
         };
         // PLAN.md 3 step 4 and 5, "Leftovers" (unit U9, ED-NEW-inst-u9-1): this run's staging folder goes on every exit path (Ready
         // or Problem showing, Close on any screen, an unhandled exception); stale folders from earlier runs are swept once the
@@ -90,7 +90,7 @@ public static class Program
 
         using var done = new CancellationTokenSource();
         window.Closed += (_, _) => done.Cancel();
-        if (smoke is not null) window.Opened += (_, _) => _ = UiSmoke.RunAsync(session, smoke, started);
+        if (smoke is not null) window.Opened += (_, _) => _ = UiSmoke.RunAsync(session, smoke, started, () => new ShellLinks());
         else _ = CheckSignatureAsync(session);
         // the previews' wallpaper is read after the first frame, off the UI thread (PLAN.md 8a)
         window.Opened += (_, _) => Dispatcher.UIThread.Post(() => WallpaperLoader.Start(session), DispatcherPriority.Background);
@@ -113,9 +113,9 @@ public static class Program
         string folder;
         try { folder = InstallOptions.StagingFolder(localAppData, version); }
         catch (ArgumentException) { return null; }
-        session.DesktopShortcut = InstallOptions.DesktopShortcutChoice(args);
-        var staging = new EngineStaging(folder, EngineStaging.EmbeddedPayload);
-        var sizes = InstallSizes.FromMetadata(key => LegacyGateHost.Metadata(key) is { Length: > 0 } value ? value : null);
+        // PLAN.md 5, "Leftovers" (unit U9): the engine is staged only after the run's folder is claimed, so no sweep takes it and Ready or Problem can delete it.
+        var staging = new EngineStaging(folder, EngineStaging.EmbeddedPayload, session.Staging is { } scope ? scope.Ensure : null);
+        var sizes = StampedSizes();
         var update = route.Action == InstallerAction.Upgrade;
         // Unit U5 (integrated): the real shell links and HKCU after Setup.exe exits 0 (ProductionAfterSetupExit).
         var flow = new InstallFlow(
@@ -131,6 +131,9 @@ public static class Program
         session.InstallRequested = flow.Begin;
         return staging;
     }
+
+    /// <summary>The sizes the packaging script stamped into this setup (unit U7), or the plan's figures.</summary>
+    private static InstallSizes StampedSizes() => InstallSizes.FromMetadata(key => LegacyGateHost.Metadata(key) is { Length: > 0 } value ? value : null);
 
     /// <summary>The self-signature check hashes the whole file, so it runs off the UI thread after the window shows.</summary>
     private static async Task CheckSignatureAsync(SetupSession session)

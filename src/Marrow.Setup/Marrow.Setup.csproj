@@ -26,7 +26,7 @@
     <IsAotCompatible>true</IsAotCompatible>
     <Product>nth</Product>
     <AssemblyTitle>nth Setup</AssemblyTitle>
-    <!-- PLAN.md 7: "(c) 2026 (publisher). Includes Droppy Code by Jordy Spruit (Droppy), GNU AGPL v3.0." The publisher is decision A (open): Directory.Release.props. -->
+    <!-- PLAN.md 7: "(c) 2026 (publisher). Includes Droppy Code by Jordy Spruit (Droppy), GNU AGPL v3.0." The publisher is decision A (oak993): Directory.Release.props. -->
     <Copyright>© 2026 $(NthPublisher). Includes Droppy Code by Jordy Spruit (Droppy), GNU AGPL v3.0.</Copyright>
     <InstallerTitle Condition="'$(InstallerTitle)' == ''">nth</InstallerTitle>
     <InstallerAppId Condition="'$(InstallerAppId)' == ''">NthApp</InstallerAppId>
@@ -66,13 +66,9 @@
     <AssemblyMetadata Include="InstallerTitle" Value="$(InstallerTitle)" />
     <AssemblyMetadata Include="InstallerAppId" Value="$(InstallerAppId)" />
     <AssemblyMetadata Include="InstallerVersion" Value="$(InstallerVersion)" />
-    <AssemblyMetadata Include="InstallerSizeMegabytes" Value="$(InstallerSizeMegabytes)" />
     <AssemblyMetadata Include="SetupRenderingMode" Value="$(SetupRenderingMode)" />
-    <!-- PLAN.md 4, unit U3: the measured sizes (bytes) the packaging step passes in; unset, the setup uses the plan's figures. -->
-    <AssemblyMetadata Include="InstallerPackageBytes" Value="$(InstallerPackageBytes)" />
-    <AssemblyMetadata Include="InstallerAppBytes" Value="$(InstallerAppBytes)" />
-    <AssemblyMetadata Include="InstallerDiskBytes" Value="$(InstallerDiskBytes)" />
-    <AssemblyMetadata Include="InstallerVelopackNeedBytes" Value="$(InstallerVelopackNeedBytes)" />
+    <!-- PLAN.md 4, unit U3: the measured sizes (InstallerPackageBytes, InstallerAppBytes, InstallerDiskBytes, InstallerVelopackNeedBytes) are stamped by
+         Directory.Build.targets (unit U7), and only when the packaging script passes them, so a build outside it has none and uses the plan's figures. -->
     <EmbeddedResource Include="$(VelopackSetupExe)" LogicalName="VelopackSetup.exe" Condition="'$(VelopackSetupExe)' != ''" />
     <!-- PLAN.md 3, "Text": every string the window shows, one table per language. -->
     <EmbeddedResource Include="Text\en.strings" LogicalName="SetupStrings.en" />

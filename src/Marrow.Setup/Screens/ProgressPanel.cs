@@ -67,6 +67,8 @@ public sealed class ProgressPanel : StackPanel, IProgressView
 
     public ProgressMotion Bar { get; }
 
+    public double BarValue => Bar.Value;
+
     /// <summary>The rows drawn now (tests read them).</summary>
     public IReadOnlyList<StepRowView> Rows => rowViews;
 
@@ -177,9 +179,9 @@ public sealed class StepRowView : Grid, IMotion
     public void Now(StepView step)
     {
         Apply(step);
-        ringFade.Snap(step.State == StepState.Waiting ? 1 : 0);
-        arcFade.Snap(step.State == StepState.Working ? 1 : 0);
-        discFade.Snap(step.State == StepState.Done ? 1 : 0);
+        ringFade.Snap(step.State == Install.StepState.Waiting ? 1 : 0);
+        arcFade.Snap(step.State == Install.StepState.Working ? 1 : 0);
+        discFade.Snap(step.State == Install.StepState.Done ? 1 : 0);
         Draw();
     }
 
@@ -190,9 +192,9 @@ public sealed class StepRowView : Grid, IMotion
         Apply(step);
         if (!changed) return;
         var seconds = calm() ? 0.15 : 0.2;
-        ringFade.Retarget(step.State == StepState.Waiting ? 1 : 0, seconds, CubicBezier.Ease);
-        arcFade.Retarget(step.State == StepState.Working ? 1 : 0, seconds, CubicBezier.Ease);
-        discFade.Retarget(step.State == StepState.Done ? 1 : 0, seconds, CubicBezier.Ease);
+        ringFade.Retarget(step.State == Install.StepState.Waiting ? 1 : 0, seconds, CubicBezier.Ease);
+        arcFade.Retarget(step.State == Install.StepState.Working ? 1 : 0, seconds, CubicBezier.Ease);
+        discFade.Retarget(step.State == Install.StepState.Done ? 1 : 0, seconds, CubicBezier.Ease);
         if (animator is null)
         {
             Now(step);
@@ -212,7 +214,7 @@ public sealed class StepRowView : Grid, IMotion
     {
         Step = step;
         label.Text = step.Label;
-        var ink = step.State switch { StepState.Working => SetupTheme.Ink1, StepState.Done => SetupTheme.Ink2, _ => SetupTheme.Ink3 };
+        var ink = step.State switch { Install.StepState.Working => SetupTheme.Ink1, Install.StepState.Done => SetupTheme.Ink2, _ => SetupTheme.Ink3 };
         label.Bind(TextBlock.ForegroundProperty, label.GetResourceObservable(ink));
         Count.Set(step.Detail, step.DetailLongest, step.DetailShown);
         AutomationProperties.SetName(this, step.Detail is not null && step.DetailShown ? step.Label + ", " + step.Detail : step.Label);

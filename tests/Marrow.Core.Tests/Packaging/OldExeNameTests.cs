@@ -76,7 +76,8 @@ public sealed class OldExeNameTests
         Assert.True(process.ExitCode is 0 or 1, "git grep failed");
 
         var allowed = AllowList().GetProperty("ledgers").EnumerateArray().Select(e => e.GetString()!)
-            .Concat(AllowList().GetProperty("evidence").EnumerateArray().Select(e => e.GetProperty("path").GetString()!)).ToHashSet(StringComparer.Ordinal);
+            .Concat(AllowList().GetProperty("evidence").EnumerateArray().Select(e => e.GetProperty("path").GetString()!))
+            .Concat(AllowList().GetProperty("legacy").EnumerateArray().Select(e => e.GetProperty("path").GetString()!)).ToHashSet(StringComparer.Ordinal);
 
         Assert.All(listed, path => Assert.Contains(path.Replace('\\', '/'), allowed));
     }
@@ -94,6 +95,24 @@ public sealed class OldExeNameTests
         }
         foreach (var ledger in AllowList().GetProperty("ledgers").EnumerateArray())
             Assert.True(File.Exists(Path.Combine(PackagingRig.Repository, ledger.GetString()!.Replace('/', Path.DirectorySeparatorChar))), ledger.GetString() + " is not a file");
+    }
+
+    [Fact]
+    [Trait("Decision", "OD-0135")]
+    public void Every_legacy_entry_is_source_or_a_test_has_a_reason_and_still_names_the_old_exe()
+    {
+        // integration of units U4, U5 and U8 with U7 (ED-NEW-inst-integ-1): the installer must find and re-point what an install made before the rename left
+        // (PLAN.md 3a, 7 and 8a), so this code names the old exe on purpose; each such file is listed with its reason, and a stale entry would let a new hit in
+        var entries = AllowList().GetProperty("legacy").EnumerateArray().ToArray();
+        Assert.NotEmpty(entries);
+        foreach (var entry in entries)
+        {
+            var path = entry.GetProperty("path").GetString()!;
+            Assert.True(path.StartsWith("src/", StringComparison.Ordinal) || path.StartsWith("tests/", StringComparison.Ordinal), path + " is a legacy entry only under src/ or tests/");
+            Assert.False(string.IsNullOrWhiteSpace(entry.GetProperty("reason").GetString()), path + " has no reason");
+            Assert.Contains(OldName, File.ReadAllText(Path.Combine(PackagingRig.Repository, path.Replace('/', Path.DirectorySeparatorChar))), StringComparison.Ordinal);
+        }
+        Assert.Equal(entries.Length, entries.Select(e => e.GetProperty("path").GetString()).Distinct(StringComparer.Ordinal).Count());
     }
 
     [Fact]
