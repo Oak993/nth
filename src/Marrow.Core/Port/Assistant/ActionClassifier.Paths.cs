@@ -199,8 +199,18 @@ public static partial class ActionClassifier
             return CredentialPathParts.Any(part => full.Contains(part, StringComparison.OrdinalIgnoreCase));
         }
 
+        /// <summary>
+        /// Whether the path is in nth's own folders. nth's store holds the missions' worktrees, so the asking chat's own
+        /// worktree is its work, not nth's settings (ED-NEW-dextra-as5-13): the carve-out covers that worktree only, never a
+        /// sibling (its .no-hooks folder, another mission's worktree), and never when a protected root lies inside it.
+        /// </summary>
         public static bool IsProtected(string full, ClassifierContext context) =>
-            context.ProtectedRoots.Any(root => PathRules.IsInside(full, root, strict: false));
+            context.ProtectedRoots.Any(root => PathRules.IsInside(full, root, strict: false)) && !InOwnWorktree(full, context);
+
+        private static bool InOwnWorktree(string full, ClassifierContext context) =>
+            context.MissionWorktree is { } worktree
+            && PathRules.IsInside(full, worktree, strict: false)
+            && !context.ProtectedRoots.Any(root => PathRules.IsInside(root, worktree, strict: false));
 
         private static bool SensitiveHive(string text) =>
             text.Contains(@"\SAM", StringComparison.OrdinalIgnoreCase) || text.Contains(@"\SECURITY", StringComparison.OrdinalIgnoreCase)

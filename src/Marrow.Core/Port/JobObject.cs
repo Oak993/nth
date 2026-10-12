@@ -81,7 +81,11 @@ public sealed class JobObject : IDisposable
             handle.DangerousAddRef(ref added);
             TerminateJobObject(handle, TerminatedExitCode);
         }
-        catch (ObjectDisposedException) { }
+        catch (ObjectDisposedException)
+        {
+            // Closed between the check and the reference: closing it already ended every process (kill-on-close), so there is
+            // nothing left to end (ED-NEW-dextra-as5-13).
+        }
         finally
         {
             if (added) handle.DangerousRelease();
