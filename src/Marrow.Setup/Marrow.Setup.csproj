@@ -29,6 +29,9 @@
     <!-- nth installer PLAN.md 8a, unit U0: the install-options/result files and the shell-link contract, linked like the gate (no Marrow project reference). -->
     <Compile Include="..\Marrow.Core\Support\InstallOptions.cs" Link="InstallOptions.cs" />
     <Compile Include="..\Marrow.Core\Support\IShellLinks.cs" Link="IShellLinks.cs" />
+    <!-- nth installer PLAN.md 3a, unit U4 (ED-NEW-inst-u4-1, -3): the control pipe's wire format and the install hold, linked the same way. -->
+    <Compile Include="..\Marrow.Core\Support\NthControl.cs" Link="NthControl.cs" />
+    <Compile Include="..\Marrow.Core\Support\InstallHold.cs" Link="InstallHold.cs" />
     <AssemblyMetadata Include="InstallerTitle" Value="$(InstallerTitle)" />
     <AssemblyMetadata Include="InstallerAppId" Value="$(InstallerAppId)" />
     <AssemblyMetadata Include="InstallerVersion" Value="$(InstallerVersion)" />
