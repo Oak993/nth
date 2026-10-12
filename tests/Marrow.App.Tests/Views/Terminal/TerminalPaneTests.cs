@@ -144,7 +144,7 @@ public sealed class TerminalPaneTests(HeadlessSession headless)
     });
 
     [Fact]
-    public void Escape_at_the_shell_prompt_reaches_the_shell_in_a_pane_where_the_drawer_would_close() => TerminalPanelRig.Run(headless, rig =>
+    public void Escape_at_the_shell_prompt_reaches_the_shell_in_a_pane_where_the_drawer_would_close() => TerminalPanelRig.RunWithRealShell(headless, rig =>
     {
         // A shell that waits for one key and prints its code: 27 is Escape. In the drawer a bare Escape at the prompt is the drawer's
         // (TerminalPanelHighRiskTests); in a pane there is no "close at the prompt", so the byte goes to the shell.

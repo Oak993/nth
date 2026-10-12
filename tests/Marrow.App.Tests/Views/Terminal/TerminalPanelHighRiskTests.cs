@@ -55,6 +55,8 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
             // foreground, the host must leave Escape for the terminal rather than closing the drawer.
             var childCommand = "$exe=(Get-Process -Id $PID).Path; Start-Process -FilePath $exe -ArgumentList '-NoLogo','-NoProfile','-Command','Start-Sleep -Seconds 10' -NoNewWindow; Start-Sleep -Seconds 2";
             var childSession = new TerminalSession(Guid.NewGuid(), TerminalTestFolders.Create("escape child"), "PowerShell", childCommand);
+            // An open handle keeps the shell's pid from being given to a new process before the checks after Terminate.
+            using var heldShell = System.Diagnostics.Process.GetProcessById(childSession.View.ProcessId);
             var childHost = new TerminalHost(childSession, runtime, () => closeCount++);
             var childRoot = new Border { Child = childHost };
             var childWindow = new AvaloniaWindow { Content = childRoot, Width = 640, Height = 240 };
@@ -71,6 +73,8 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
                 Assert.True(childSession.View.IsFocused);
                 childWindow.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
                 Assert.Equal(1, closeCount);
+                // The source guard's own answer while the child holds the foreground (a live descendant).
+                Assert.False(TerminalSession.ForegroundJobIsTheShell(childSession.View.ProcessId));
             }
             finally
             {
@@ -79,8 +83,15 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
                 Dispatcher.UIThread.RunJobs();
             }
 
+            // ED-NEW-shellleak-1: Terminate ends the shell and its child. While the job's processes are being ended, the
+            // process snapshot can still hold the shell after its child has gone (an explicit "no live child"), so the guard
+            // is read once the shell has left the snapshot; the live-child answer is pinned inside the try above.
+            var shellId = childSession.View.ProcessId;
+            Assert.True(ShellProbe.WaitForExit(shellId, TimeSpan.FromSeconds(15)), "Terminate left the shell running");
+            var shellLeft = UiPump.Until(() => ProcessDescendants.HasLiveDescendant(shellId) is null, TimeSpan.FromSeconds(15));
+            Assert.True(shellLeft, shellLeft ? "" : $"pid {shellId} stayed in the process snapshot ({ShellProbe.TryRead(shellId)?.ImagePath ?? "unreadable"})");
             // Keep this assertion tied to the source guard, rather than merely to the callback count.
-            Assert.False(TerminalSession.ForegroundJobIsTheShell(childSession.View.ProcessId));
+            Assert.False(TerminalSession.ForegroundJobIsTheShell(shellId));
         }, (session, _, _, _, _) => { }, () => closeCount++);
     }
 

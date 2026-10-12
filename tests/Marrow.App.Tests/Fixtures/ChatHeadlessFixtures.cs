@@ -18,6 +18,10 @@ internal static class ChatHeadlessFixtures
         // A chat view that opens a popover on its own (the Hydra mark's first-chat intro, HydraButton.swift:93) must not try
         // the real Popup, which headless cannot create; a test that reads what was presented overrides this with its own.
         using var presentation = Presentation.Presenter.Override(new RecordingPresenter());
+        // A chat view whose terminal drawer opens (runtime.IsTerminalVisible) opens a shell in it. These tests read the
+        // drawer's push, its place and its height, never what a shell does, so the shell is a stand-in and no PowerShell
+        // or conhost is started for them (and none can outlive a test that forgets to end its terminals).
+        using var shells = TerminalShells.Fake();
         try { body(); }
         finally
         {
