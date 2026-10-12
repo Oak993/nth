@@ -402,7 +402,6 @@ public sealed partial class ThreadRuntime : MainActorModel
     private PromptEdit? messageEdit;
     private ComposerDraft draft = new();
     private bool draftIsEmpty = true;
-    private bool isTerminalVisible = false;
     private bool isTerminalResizing = false;
     private bool isDiffVisible = false;
     private PanelDockCorner subagentPanelDock = PanelDockCorner.BottomTrailing;
@@ -600,15 +599,8 @@ public sealed partial class ThreadRuntime : MainActorModel
     // :238
     public bool DraftIsEmpty { get => Read(draftIsEmpty); private set => Set(ref draftIsEmpty, value); }
 
-    // :239-243
-    public bool IsTerminalVisible
-    {
-        get => Read(isTerminalVisible);
-        set => Set(ref isTerminalVisible, value, wasVisible =>
-        {
-            if (!wasVisible && isTerminalVisible) TerminalWantsFocus = true; // :241-243
-        });
-    }
+    // :239-243 isTerminalVisible. PORT-ONLY (web W4, ED-NEW-web-w4-1): the terminal's open state is the pane workspace's now;
+    // IsTerminalVisible is in ThreadRuntime+Workspace.cs, with the drawer and grid halves of it.
 
     // :244. @ObservationIgnored (R-OBS-5).
     public bool TerminalWantsFocus { get; set; } = false;

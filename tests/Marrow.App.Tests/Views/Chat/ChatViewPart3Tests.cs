@@ -89,7 +89,8 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
                 Assert.False(HasActiveCircle(changesButton));
 
                 Click(changesButton);
-                Assert.True(runtime.IsDiffVisible); // :1170 through toggleDiff, not a direct flip
+                Assert.True(runtime.IsChangesPaneOpen); // web W4 (ED-NEW-web-w4-1): :1170 now opens the Changes pane through toggleChanges (Alt+click is toggleDiff's popover)
+                Assert.False(runtime.IsDiffVisible);
             });
 
             // Tracked<T>.Schedule (ViewSupport.cs) posts the rebuild through MainActor.Post rather than running it
