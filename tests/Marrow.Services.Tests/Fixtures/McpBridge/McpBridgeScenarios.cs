@@ -86,6 +86,26 @@ public static class McpBridgeScenarios
     /// "stdioNormal"'s own JSON-RPC dialogue log (dialect assertions: :ED-042 and PR-MCP-196/197).</summary>
     public static StdioScenario Stdio => StdioValue.Value;
 
+    // W18: one server ("rich") whose tools answer images, structuredContent, links and an app-only tool.
+    private static readonly Lazy<NodeHarness.HarnessResult> RichResult = new(() =>
+    {
+        var dir = NewScratchDir("rich");
+        var config = "{\"mcpServers\": {\"rich\": {\"command\": " + Json(NodeExecutablePath) + ", \"args\": [" + Json(NodeHarness.FakeRichServerPath) + "]}}}";
+        var configPath = Path.Combine(dir, "config.json");
+        File.WriteAllText(configPath, config);
+        return NodeHarness.Run(BridgeUri, configPath: configPath,
+            calls:
+            [
+                new NodeHarness.ToolCall("shown", new { }),
+                new NodeHarness.ToolCall("structure", new { }),
+                new NodeHarness.ToolCall("links", new { }),
+                new NodeHarness.ToolCall("failing", new { }),
+            ]);
+    });
+
+    /// <summary>The "rich" server's tools as the bridge hands them out, each called once (W18).</summary>
+    public static NodeHarness.HarnessResult Rich => RichResult.Value;
+
     private static readonly Lazy<NodeHarness.HarnessResult> CmdWrapperResult = new(() =>
     {
         var dir = NewScratchDir("cmd-wrapper");

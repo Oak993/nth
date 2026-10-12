@@ -51,8 +51,10 @@ public sealed class UiMcpServerTests
         Assert.Equal("2025-11-25", (await Mcp(server, "initialize", new { protocolVersion = "1999-01-01" }))["result"]!["protocolVersion"]!.GetValue<string>());
 
         var tools = (await Mcp(server, "tools/list"))["result"]!["tools"]!.AsArray();
-        Assert.Equal(new[] { "artifact_create", "artifact_update", "artifact_read", "artifact_list" }, tools.Select(t => t!["name"]!.GetValue<string>()));
-        foreach (var tool in tools)
+        // The four artifact tools, then W17's read-only live-view reference.
+        Assert.Equal(new[] { "artifact_create", "artifact_update", "artifact_read", "artifact_list", "ui_reference" }, tools.Select(t => t!["name"]!.GetValue<string>()));
+        Assert.Equal(UiMcpServer.ToolNames, tools.Select(t => t!["name"]!.GetValue<string>()));
+        foreach (var tool in tools.Where(t => ArtifactTools.IsName(t!["name"]!.GetValue<string>())))
         {
             var name = tool!["name"]!.GetValue<string>();
             Assert.Equal(ArtifactTools.Description(name), tool["description"]!.GetValue<string>());

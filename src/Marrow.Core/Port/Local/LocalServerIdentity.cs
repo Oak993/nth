@@ -29,6 +29,14 @@ public static class LocalServerIdentity
             ? LocalServerKind.LMStudio : LocalServerKind.Unknown;
     }
 
+    // PORT-ONLY (web surfaces W17, ED-NEW-web-w17-1): llama.cpp's server answers GET /props with default_generation_settings (holding
+    // the slot's n_ctx) and total_slots. An LM Studio or Ollama server has no /props, and an unfamiliar or partial reply stays Unknown.
+    public static LocalServerKind FromPropsReply(JsonElement reply) =>
+        Property(reply, "default_generation_settings") is { ValueKind: JsonValueKind.Object } settings
+        && Property(settings, "n_ctx") is { ValueKind: JsonValueKind.Number } context && context.TryGetInt32(out var window) && window > 0
+        && Property(reply, "total_slots") is { ValueKind: JsonValueKind.Number } slots && slots.TryGetInt32(out var count) && count > 0
+            ? LocalServerKind.LlamaCpp : LocalServerKind.Unknown;
+
     private static JsonElement? Property(JsonElement value, string key) =>
         value.ValueKind == JsonValueKind.Object && value.TryGetProperty(key, out var property) ? property : null;
     private static string? Text(JsonElement value, string key) =>

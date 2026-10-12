@@ -15,6 +15,12 @@ public interface ICustomAddBackend
 {
     Task<IReadOnlyList<CustomAddCandidate>> Check(CustomAddRequest request, CancellationToken cancel);
     Task<OwnItem> Add(CustomAddCandidate candidate, IProgress<double> progress, CancellationToken cancel);
+
+    /// <summary>
+    /// Adds the checked candidate in place of the own item <paramref name="replacingId"/>, safely: the new copy is published and registered first, the old one is dropped only after that
+    /// succeeded, so a failure at any step leaves the old item listed, with its files and its enabled state. The new item takes the old one's enabled state.
+    /// </summary>
+    Task<OwnItem> Replace(string replacingId, CustomAddCandidate candidate, IProgress<double> progress, CancellationToken cancel);
 }
 
 /// <summary>All filesystem effects; tests use an in-memory implementation. Publish must create a new immutable item directory, SaveRegistry must atomically replace the registry.</summary>

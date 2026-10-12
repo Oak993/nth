@@ -4683,6 +4683,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         {
             Detail = call.Detail ?? existing.Detail,
             ToolCallKind = call.ToolCallKind,
+            Payload = call.Payload ?? existing.Payload, // PORT-ONLY (W18)
         };
         var landed = call.Edits.Count != 0 && existing.Edits.Count == 0 ? call.Edits.Count : 0;
         if (call.Edits.Count != 0) existing = existing with { Edits = call.Edits };
@@ -4741,6 +4742,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             call = call with { Edits = Capped(edits) };
         }
         if (update.Output is { } output) call = call.SetOutput(output);
+        if (update.Payload is { } payload) call = call with { Payload = payload }; // PORT-ONLY (W18)
         if (update.ExitCode is { } exitCode) call = call with { ExitCode = exitCode };
         if (update.Status is { } status)
             call = status == ToolCall.Status.Running ? call with { ToolCallStatus = status } : call.Finish(status);
