@@ -31,6 +31,27 @@ internal static class NthBeadsStress
         public required List<NthBeadsSample> Rec { get; init; }
         public required List<double> Handoffs { get; init; }
         public required List<double> Gone { get; init; }
+        /// <summary>Per sample: the engine's Reduce Motion flag (the reference's rec[i].calm) and, in reflow sessions, the glyph's
+        /// layout origin (the sum of every reflow so far), so the gates can judge where the beads are on screen.</summary>
+        public required List<bool> CalmAt { get; init; }
+        public required List<double> OriginX { get; init; }
+        public required List<double> OriginY { get; init; }
+        /// <summary>Managed bytes allocated by the sampling loop (events, Update, Frame and the recording into presized lists).</summary>
+        public required long LoopAllocated { get; init; }
+        /// <summary>The first sample whose iteration allocated (-1 for none), for the allocation gate's message.</summary>
+        public required int FirstAllocSample { get; init; }
+        /// <summary>Whether a garbage collection ran during that iteration (other threads' collections can move this thread's
+        /// allocation count by its unused allocation quantum, about 8 KB, without anything being allocated).</summary>
+        public required bool FirstAllocWithGc { get; init; }
+        /// <summary>The first gone at or after the last exit, minus the last exit (null when it never went).</summary>
+        public double? Latency
+        {
+            get
+            {
+                foreach (var g in Gone) if (g >= LastExit - 1e-9) return g - LastExit;
+                return null;
+            }
+        }
     }
 
     /// <summary>The reference's mulberry32 (stress.js's rng).</summary>
@@ -97,35 +118,54 @@ internal static class NthBeadsStress
             ev.Add((le, at => DoExit(ex2, at)));
             end = Math.Max(end, lastExit + 3);
         }
+        double ox = 0, oy = 0;
         if (reflow)
         {
             var q = Rng((uint)(seed * 31 + 7));
             for (var t = .4 + q(); t < end - .5; t += .3 + q() * 2.5)
             {
                 double dx = (q() - .5) * 2, dy = (q() - .5) * 4;
-                ev.Add((t, at => e.Reflow(dx, dy, at)));
+                ev.Add((t, at => { e.Reflow(dx, dy, at); ox += dx; oy += dy; }));
             }
         }
         var sorted = ev.OrderBy(x => x.T).ToList(); // stable, as the reference's sort
-        var hand = new List<double>();
-        var gone = new List<double>();
+        var hand = new List<double>(4096);
+        var gone = new List<double>(16);
         e.MoveBegan += t => hand.Add(t);
         e.Gone += t => gone.Add(t);
         e.Enter(EntranceOf(en), 0);
         var n = (int)Math.Floor(end * fs + .5);
         var rec = new List<NthBeadsSample>(n + 1);
+        var calmAt = new List<bool>(n + 1);
+        List<double> oxAt = new(reflow ? n + 1 : 0), oyAt = new(reflow ? n + 1 : 0);
         var j = 0;
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var mark = before;
+        var firstAlloc = -1;
+        var gcMark = GC.CollectionCount(0);
+        var allocWithGc = false;
         for (var i = 0; i <= n; i++)
         {
             var t = (double)i / fs;
             while (j < sorted.Count && sorted[j].T <= t) { sorted[j].A(sorted[j].T); j++; }
             e.Update(t);
             rec.Add(e.Frame());
+            calmAt.Add(e.Calm);
+            if (reflow) { oxAt.Add(ox); oyAt.Add(oy); }
+            if (firstAlloc < 0)
+            {
+                var now = GC.GetAllocatedBytesForCurrentThread();
+                var gcs = GC.CollectionCount(0);
+                if (now != mark) { firstAlloc = i; allocWithGc = gcs != gcMark; }
+                mark = now; gcMark = gcs;
+            }
         }
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         return new Session
         {
             Seed = seed, En = en, En2 = en2, Ex = lastKind, Early = early, Reenter = reenter, Calm = e.Calm, Fs = fs,
-            LastExit = lastExit, Rec = rec, Handoffs = hand, Gone = gone,
+            LastExit = lastExit, Rec = rec, Handoffs = hand, Gone = gone, CalmAt = calmAt, OriginX = oxAt, OriginY = oyAt,
+            LoopAllocated = allocated, FirstAllocSample = firstAlloc, FirstAllocWithGc = allocWithGc,
         };
     }
 }
