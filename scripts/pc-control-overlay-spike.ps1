@@ -1,8 +1,10 @@
-# Tactus overlay spike (units P25a and P18a; ED-NEW-pcctl-22, ED-NEW-pcctl-33; DESIGN.md 10.6 and 10.13 NP-15, NP-16, NP-18;
-# DESIGN.md 2.13 NP-11 for np11-rdp, which opens one normal window instead of bands). Run by hand, alone, in a
-# quiet window, on a DEBUG build. Nothing here sends input, captures the screen or drives another window: each probe
-# opens band windows at the top of the primary work area, logs to the console and %TEMP%\tactus-spike-<probe>.log, and
-# exits by itself after 90 s with a RESULT line. Send every RESULT line and every eye check to the Tactus unit owner:
+# Tactus overlay spike (units P25a, P18a and P18; ED-NEW-pcctl-22, ED-NEW-pcctl-33, ED-NEW-pcws-11; DESIGN.md 10.6 and
+# 10.13 NP-15, NP-16, NP-18; DESIGN.md 2.13 NP-11 for np11-rdp, which opens one normal window instead of bands, and NP-6
+# and NP-7 for np6-workspace and np7-cloaked). Run by hand, alone, in a quiet window, on a DEBUG build. Nothing here
+# sends input to your desk, captures it or drives another window of yours: each probe opens its own windows, logs to the
+# console and %TEMP%\tactus-spike-<probe>.log, and exits by itself after 90 s with a RESULT line. np6-workspace and
+# np7-cloaked type only into their own Notepad inside the separate workspace; they need child sessions on (NP-5 in
+# scripts/pc-control-smoke.ps1, which you turn on yourself) and change no setting. Send every RESULT line and every eye check to the Tactus unit owner:
 # they go into ED-NEW-pcctl-22 and set P25's one hit-test switch and driver path (ED-NEW-pcctl-22 item 5).
 param(
     [Parameter(Mandatory = $true)][string]$Exe,
@@ -45,6 +47,18 @@ $steps = [ordered]@{
         'With child sessions on (after NP-5): it connects, then measures 10 s visible, 10 s cloaked, 10 s minimized. Watch that the window comes back.',
         'If the control does not load, run again with --rdp-class and a newer class (for example MsTscAx.MsTscAx.10) and note which one loaded.'
     )
+    'np6-workspace' = @(
+        'Child sessions must be on (NP-5). Open Notepad on your own desk and click into it before you press Enter.',
+        'Keep typing in your desk Notepad the whole time. Within 30 s the "Separate workspace" window appears on top with Notepad inside.',
+        'Every 3 s Tactus types np6-1 to np6-8 into the workspace Notepad. Your desk Notepad must get only your own typing, whole, with no np6 text.',
+        'The RESULT says started, agentMs, typed and readBack (8/8 each) and deskFrontChanges: say whether any front-window change was not yours.',
+        'Also try "Take over" in the workspace window: type there, then "Give back"; Esc hides the view (the workspace keeps running until the probe ends).'
+    )
+    'np7-cloaked' = @(
+        'Child sessions must be on (NP-5). Nothing to do by hand: the workspace runs with its window hidden (cloaked) the whole time.',
+        'Tactus types np7-1 to np7-8 into the workspace Notepad and takes a screenshot inside after each. At the end the window shows: Notepad must hold all eight markers.',
+        'The RESULT says typed and readBack (8/8 each) and frames=changed/compared: the session kept rendering while hidden only if most screenshots changed.'
+    )
 }
 
 $runs = @(
@@ -55,7 +69,9 @@ $runs = @(
     @{ Probe = 'np16'; Extra = @('--warm') },
     @{ Probe = 'np16'; Extra = @('--straddle') },
     @{ Probe = 'np18-focus'; Extra = @() },
-    @{ Probe = 'np11-rdp'; Extra = @() }
+    @{ Probe = 'np11-rdp'; Extra = @() },
+    @{ Probe = 'np6-workspace'; Extra = @() },
+    @{ Probe = 'np7-cloaked'; Extra = @() }
 )
 
 foreach ($run in $runs) {
