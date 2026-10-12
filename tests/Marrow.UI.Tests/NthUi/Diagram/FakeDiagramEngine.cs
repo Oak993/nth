@@ -19,6 +19,10 @@ internal sealed class FakeDiagramEngine : IDiagramEngine
 
     public event Action? AvailabilityChanged;
 
+    public int Prepared { get; private set; }
+
+    public void Prepare() => Prepared++;
+
     public void RaiseAvailability() => AvailabilityChanged?.Invoke();
 
     public Task<DiagramRenderResult> RenderAsync(DiagramRenderRequest request, CancellationToken cancellationToken)

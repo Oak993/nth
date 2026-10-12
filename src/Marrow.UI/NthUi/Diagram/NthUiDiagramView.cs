@@ -111,6 +111,7 @@ public sealed class NthUiDiagramView : NthUiNodeView
         root.DetachedFromVisualTree += (_, _) => Detached();
         root.ActualThemeVariantChanged += (_, _) => ThemeChanged();
         ApplyMode();
+        if (engine.IsAvailable) engine.Prepare(); // the renderer starts while the first lines stream in
     }
 
     public override Control Control => root;

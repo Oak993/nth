@@ -85,9 +85,24 @@ public interface IDiagramEngine
     /// <summary>Raised when <see cref="IsAvailable"/> changes.</summary>
     event Action? AvailabilityChanged;
 
+    /// <summary>Starts the renderer ahead of the first drawing (a diagram line has just appeared), so its start-up overlaps with the
+    /// stream. Never throws; does nothing when nothing can be drawn.</summary>
+    void Prepare();
+
     /// <summary>Draws one diagram. Throws <see cref="DiagramRenderException"/> when it cannot, and
     /// <see cref="OperationCanceledException"/> when <paramref name="cancellationToken"/> ends it first.</summary>
     Task<DiagramRenderResult> RenderAsync(DiagramRenderRequest request, CancellationToken cancellationToken);
+}
+
+/// <summary>An engine whose hidden web view needs a window to live in (the UI puts the surface in an off-screen host, as it does
+/// for any web view, and takes it out again when the engine closes the view).</summary>
+public interface IDiagramEngineHost
+{
+    /// <summary>The view to host now, or null while none is open.</summary>
+    IWebViewSurface? Hosted { get; }
+
+    /// <summary>Raised on the UI thread when <see cref="Hosted"/> changes.</summary>
+    event Action? HostedChanged;
 }
 
 /// <summary>The process's diagram renderer, bound at start-up; until then nothing can be drawn and every diagram shows its
@@ -107,6 +122,10 @@ public static class DiagramEngines
         {
             add { }
             remove { }
+        }
+
+        public void Prepare()
+        {
         }
 
         public Task<DiagramRenderResult> RenderAsync(DiagramRenderRequest request, CancellationToken cancellationToken) =>
