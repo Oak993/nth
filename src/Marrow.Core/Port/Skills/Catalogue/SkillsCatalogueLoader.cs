@@ -81,7 +81,17 @@ public static class SkillsCatalogueLoader
             Check(item.Skills, at + "skills");
             Check(item.Folders, at + "folders");
             Check(item.Packages, at + "packages");
+            Check(item.Skipped, at + "skipped");
             foreach (var skill in item.Skills) Check(skill.Needs, at + "skills " + skill.Folder + " needs");
+            if (item.Install is { } install)
+            {
+                Check(install.Archives, at + "install archives");
+                Check(install.NodeTree, at + "install nodeTree");
+                Check(install.Markers, at + "install markers");
+                Check(install.Shims, at + "install shims");
+                Check(install.Exports, at + "install exports");
+                foreach (var shim in install.Shims) Check(shim.Arguments, at + "install shim " + shim.Name + " arguments");
+            }
         }
     }
 

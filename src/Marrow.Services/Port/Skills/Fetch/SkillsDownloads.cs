@@ -13,7 +13,7 @@ namespace Marrow.Services.Port.Skills.Fetch;
 /// fetches them first, each its own shared download, and its one progress bar runs across the need and the item weighted by their pinned bytes; (4) a failure reaches every asker and frees the item
 /// so the next ask is a new download (Retry); (5) nothing starts on its own: a download is a call, never a restart's doing (the pipeline writes nothing of a download in flight to state.json).
 /// </summary>
-public sealed class SkillsDownloads(SkillsPipeline pipeline, SkillsCatalogue catalogue)
+public sealed class SkillsDownloads(SkillsPipeline pipeline, SkillsCatalogue catalogue, Func<CatalogueItem, bool>? installable = null)
 {
     private readonly object gate = new();
     private readonly Dictionary<string, FetchFlight> flights = new(StringComparer.Ordinal);
@@ -29,8 +29,11 @@ public sealed class SkillsDownloads(SkillsPipeline pipeline, SkillsCatalogue cat
     /// <summary>True when the download and binding seams are bound, so a download can be tried at all (see <see cref="CanFetch"/> for one item).</summary>
     public bool Available => pipeline.FetchingBound;
 
-    /// <summary>True when the seams are bound and the item and every item it still needs have a complete pin (a pinned file is what is fetched; nothing is guessed).</summary>
-    public bool CanFetch(CatalogueItem item) => Available && Chain(item).All(i => i.PinState == PinState.Pinned && CatalogueGate.Missing(i).Count == 0);
+    /// <summary>
+    /// True when the seams are bound and the item and every item it still needs have a complete pin (a pinned file is what is fetched; nothing is guessed) and an install plan the bound seam can make
+    /// (ED-NEW-dlhonest-1: the options' <see cref="Marrow.Services.Port.Skills.Host.SkillsHostOptions.Installable"/>; null allows every pinned item).
+    /// </summary>
+    public bool CanFetch(CatalogueItem item) => Available && Chain(item).All(i => i.PinState == PinState.Pinned && CatalogueGate.Missing(i).Count == 0 && (installable?.Invoke(i) ?? true));
 
     /// <summary>The needs not installed, dependencies first, and the item itself.</summary>
     private List<CatalogueItem> Chain(CatalogueItem item)

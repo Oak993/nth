@@ -99,6 +99,60 @@ test('redirected/injected byte sources, empty artifacts and wrong published size
     await assert.rejects(generatePins(manifest, { sources, request: async url => ({ url, chunks: (async function* () {})() }) }), /empty/);
 });
 
+test('an empty body is pinned only for a file the resolver recorded as empty, and still against its expected digest', async () => {
+    const empty = async url => url.endsWith('.artifact') ? { url, chunks: (async function* () {})() } : request(url);
+    const resolved = structuredClone(manifest);
+    for (const item of resolved.items) item.entries[0].expectedSize = 0;
+    const result = await generatePins(resolved, { sources, request: empty, now: () => new Date(date) });
+    assert.ok(result.items.every(item => item.entries[0].size === 0 && item.entries[0].sha256 === sha(Buffer.alloc(0))));
+    resolved.items[0].entries[0].expectedSha256 = sha(bytes);
+    await assert.rejects(generatePins(resolved, { sources, request: empty }), /digest/);
+    const unexpected = structuredClone(manifest);
+    unexpected.items[0].entries[0].expectedSize = 3;
+    await assert.rejects(generatePins(unexpected, { sources, request: empty }), /empty/);
+});
+
+test('a mirror redirect is accepted only for a mirrored item artifact with an established digest, which its bytes must match', async () => {
+    const t3 = manifest.items.findIndex(item => item.id === 'T3');
+    const viaMirror = async (url, policy) => {
+      if (!url.endsWith('T3.artifact')) return request(url, policy);
+      const mirror = 'https://mirror.example.org/tdf/T3.artifact';
+      assert.ok(policy(url));
+      if (!(policy.redirect ?? policy)(mirror)) throw new Error('URL is outside this item\'s official sources: ' + mirror);
+      return { url: mirror, chunks: (async function* () { yield bytes; })() };
+    };
+    await assert.rejects(generatePins(manifest, { sources, request: viaMirror }), /official sources/);
+    const pinned = structuredClone(manifest);
+    pinned.items[t3].entries[0].expectedSha256 = sha(bytes);
+    const result = await generatePins(pinned, { sources, request: viaMirror, now: () => new Date(date) });
+    assert.equal(result.items[t3].entries[0].finalUrl, 'https://mirror.example.org/tdf/T3.artifact');
+    assert.equal(result.items[t3].entries[0].sha256, sha(bytes));
+    pinned.items[t3].entries[0].expectedSha256 = sha(Buffer.from('other'));
+    await assert.rejects(generatePins(pinned, { sources, request: viaMirror }), /digest/);
+    const other = structuredClone(manifest);
+    const t2 = other.items.findIndex(item => item.id === 'T2');
+    other.items[t2].entries[0].expectedSha256 = sha(bytes);
+    const t2Mirror = async (url, policy) => url.endsWith('T2.artifact') ? ((policy.redirect ?? policy)('https://mirror.example.org/T2.artifact') ? { url: 'https://mirror.example.org/T2.artifact', chunks: (async function* () { yield bytes; })() } : (() => { throw new Error('URL is outside this item\'s official sources'); })()) : request(url, policy);
+    await assert.rejects(generatePins(other, { sources, request: t2Mirror }), /official sources/);
+});
+
+test('the Chrome for Testing bucket is only a redirect destination for T10 under its public path', async () => {
+    const { sourcePolicy } = await import('./pin-generator.mjs');
+    const allowed = sourcePolicy('T10', sources.items.T10);
+    const cft = 'https://storage.googleapis.com/chrome-for-testing-public/1.0/win64/chrome-win64.zip';
+    assert.equal(allowed(cft), false);
+    assert.equal(allowed.redirect(cft), true);
+    assert.equal(allowed.redirect('https://storage.googleapis.com/other-bucket/chrome-win64.zip'), false);
+    assert.equal(sourcePolicy('T9', sources.items.T9).redirect(cft), false);
+    const seen = [];
+    const reply = await requestOfficial('https://cdn.playwright.dev/builds/cft/1.0/win64/chrome-win64.zip', allowed, async url => {
+      seen.push(url);
+      return seen.length === 1 ? new Response(null, { status: 302, headers: { Location: cft } }) : new Response(bytes);
+    });
+    assert.equal(reply.url, cft);
+    await assert.rejects(requestOfficial(cft, allowed, async () => new Response(bytes)), /official/);
+});
+
 test('official array metadata is selected by an observed field, with ambiguity rejected', () => {
     const selector = { format: 'json', pointer: '/versions', match: { field: 'version', value: 'fixture' }, valuePointer: '/version' };
     assert.equal(readMetadata(Buffer.from('{"versions":[{"version":"other"},{"version":"fixture"}]}'), selector), 'fixture');
@@ -166,4 +220,39 @@ test('each artifact and cached source metadata records its actual read time acro
     assert.equal(pin.version.readAt, '2026-10-08T00:01:00.000Z');
     assert.equal(pin.licence.readAt, pin.version.readAt);
     assert.equal(pin.readAt, '2026-10-08T00:02:00.000Z');
+});
+
+test('a partial run covers exactly the items it names, each one of the 29, and says so in its result (ED-NEW-dl-13)', async () => {
+    const only = ['A3', 'T4'];
+    const partial = { schema: 1, items: manifest.items.filter(i => only.includes(i.id)) };
+    const result = await generatePins(partial, { sources, request, only });
+    assert.deepEqual(result.partial, ['A3', 'T4']);
+    assert.deepEqual(result.items.map(i => i.id), ['A3', 'T4']);
+    await assert.rejects(generatePins(partial, { sources, request }), /29|coverage/);
+    await assert.rejects(generatePins(partial, { sources, request, only: ['A3'] }), /partial run's items/);
+    await assert.rejects(generatePins(partial, { sources, request, only: ['A3', 'T4', 'Z9'] }), /distinct catalogue item IDs/);
+    await assert.rejects(generatePins(partial, { sources, request, only: ['A3', 'A3', 'T4'] }), /distinct catalogue item IDs/);
+    await assert.rejects(generatePins(partial, { sources, request, only: [] }), /distinct catalogue item IDs/);
+    const doubled = { schema: 1, items: [...partial.items, partial.items[0]] };
+    await assert.rejects(generatePins(doubled, { sources, request, only }), /partial run's items/);
+    const full = await generatePins(manifest, { sources, request });
+    assert.equal(full.partial, undefined);
+});
+
+test('an item reads its licence from the licence source prefixes sources.json names for it, and from no other (ED-NEW-dl-13)', async () => {
+    const { sourcePolicy } = await import('./pin-generator.mjs');
+    assert.deepEqual(sources.items.T4.licenceSources, ['https://gitlab.freedesktop.org/poppler/poppler/-/raw/']);
+    const t4 = sourcePolicy('T4', sources.items.T4);
+    assert.equal(t4('https://gitlab.freedesktop.org/poppler/poppler/-/raw/poppler-26.09.0/COPYING'), true);
+    assert.equal(t4('https://raw.githubusercontent.com/oschwartz10612/poppler-windows/v26.09.0-0/LICENSE'), true);
+    assert.equal(t4('https://gitlab.freedesktop.org/poppler/poppler-data/-/raw/x/COPYING'), false);
+    assert.equal(t4('https://gitlab.freedesktop.org/poppler/poppler/-/raw/../../../evil/x/-/raw/COPYING'), false);
+    assert.equal(t4('https://gitlab.freedesktop.org/poppler/poppler/-/archive/poppler-26.09.0/x.zip'), false);
+    assert.throws(() => t4('http://gitlab.freedesktop.org/poppler/poppler/-/raw/poppler-26.09.0/COPYING'), /HTTPS/);
+    assert.equal(t4('https://gitlab.freedesktop.org.evil.example/poppler/poppler/-/raw/poppler-26.09.0/COPYING'), false);
+    assert.equal(t4('https://raw.githubusercontent.com/evil/poppler/x/COPYING'), false);
+    const t5 = sourcePolicy('T5', sources.items.T5);
+    assert.equal(t5('https://gitlab.freedesktop.org/poppler/poppler/-/raw/poppler-26.09.0/COPYING'), false);
+    for (const bad of ['http://gitlab.freedesktop.org/poppler/', 'https://gitlab.freedesktop.org/poppler', 'https://gitlab.freedesktop.org/', 'https://gitlab.freedesktop.org/a/../b/', 'https://gitlab.freedesktop.org/a/b/?x=1'])
+        assert.throws(() => sourcePolicy('T4', { ...sources.items.T4, licenceSources: [bad] }), /HTTPS|Invalid licence source prefix/, bad);
 });

@@ -14,6 +14,12 @@ using Avalonia.VisualTree;
 
 namespace Marrow.App.Port;
 
+/// <summary>
+/// ED-NEW-dlhonest-1: a sheet that dims the whole window (the skills pages' Download all dialog) is centred on the window, not on its anchor. A page's anchor can be taller than the window or scrolled (the Tools
+/// library sits far down Settings › Updates), and its middle then put the dialog over whatever part of the page happened to be there.
+/// </summary>
+internal interface IWindowCentredSheet;
+
 internal sealed class WindowSheetLayer : Panel, ICustomHitTest
 {
     private readonly Control anchor;
@@ -64,7 +70,8 @@ internal sealed class WindowSheetLayer : Panel, ICustomHitTest
     protected override Size ArrangeOverride(Size finalSize)
     {
         var size = Sheet.DesiredSize;
-        var center = anchor.TranslatePoint(new Point(anchor.Bounds.Width / 2, anchor.Bounds.Height / 2), this) ?? new Point(finalSize.Width / 2, finalSize.Height / 2);
+        var middle = new Point(finalSize.Width / 2, finalSize.Height / 2);
+        var center = Sheet is IWindowCentredSheet ? middle : anchor.TranslatePoint(new Point(anchor.Bounds.Width / 2, anchor.Bounds.Height / 2), this) ?? middle;
         var x = Math.Clamp(center.X - size.Width / 2, 0, Math.Max(0, finalSize.Width - size.Width));
         var y = Math.Clamp(center.Y - size.Height / 2, 0, Math.Max(0, finalSize.Height - size.Height));
         Sheet.Arrange(new Rect(new Point(x, y), size));

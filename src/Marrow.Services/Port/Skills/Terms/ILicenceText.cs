@@ -10,4 +10,11 @@ namespace Marrow.Services.Port.Skills.Terms;
 public interface ILicenceText
 {
     Task<byte[]> ReadAsync(CatalogueItem item, CancellationToken cancellation);
+
+    /// <summary>
+    /// ED-NEW-dl-13: one of the licence files of a plugin item whose licences are recorded per plugin (<see cref="PluginLicences.Files"/>), and nothing else of the item. A reader
+    /// that does not override it reads only the item's own licence file.
+    /// </summary>
+    Task<byte[]> ReadFileAsync(CatalogueItem item, string path, CancellationToken cancellation) =>
+        item.LicenceFile is not null && path == item.LicenceFile ? ReadAsync(item, cancellation) : throw new InvalidOperationException("This licence reader reads only the item's own licence file.");
 }

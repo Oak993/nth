@@ -97,15 +97,27 @@ public sealed class ProductionSeamsTests
         Assert.All(requests, r => Assert.StartsWith(Path.Combine(rig.Root, "addons", "downloads", "items"), r.DestinationPath, StringComparison.OrdinalIgnoreCase));
     }
 
+    // ED-NEW-dl-7 (RR-14) replaces ED-368 (5)'s interim test, which also held a set at per-skill pins closed: a tool without installer parameters still fails closed with the one message, and a
+    // set at per-skill pins (O3) now fetches each file at its own skill's commit, while a file no listed skill holds keeps the set from being offered.
     [Fact]
-    public async Task What_the_catalogue_gives_no_install_parameters_for_fails_closed_with_the_one_unavailable_message()
+    public async Task A_tool_without_installer_parameters_fails_closed_and_a_set_at_per_skill_pins_fetches_each_file_at_its_own_skill_s_commit()
     {
         await using var rig = new LoopbackRig();
         var plans = new CatalogueInstallPlans(rig.Root, rig.RawBase);
+        Assert.False(CatalogueInstallPlans.CanPlan(rig.Tool));
         var tool = Assert.Throws<FirstInstallUnavailableException>(() => plans.Plan(rig.Tool, new ItemRecord("T1", ItemState.Checking, null, LoopbackRig.Pin, null)));
         Assert.Equal(LibraryWords.DownloadsUnavailable, tool.Message);
-        var multiPin = rig.Item with { Pin = null, Skills = [new Marrow.Core.Port.Skills.Catalogue.CatalogueSkill { Folder = "skill", Name = "skill", Path = "skill", Needs = [], Pin = LoopbackRig.Pin }] };
-        Assert.Throws<FirstInstallUnavailableException>(() => plans.Plan(multiPin, new ItemRecord("L1", ItemState.Checking, null, "skill=" + LoopbackRig.Pin, null)));
+
+        const string Other = "89abcdef0123456789abcdef0123456789abcdef";
+        var multiPin = rig.Item with { Pin = null, Skills = [new Marrow.Core.Port.Skills.Catalogue.CatalogueSkill { Folder = "skill", Name = "skill", Path = "skill", Needs = [], Pin = Other }] };
+        Assert.True(CatalogueInstallPlans.CanPlan(multiPin));
+        var plan = plans.Plan(multiPin, new ItemRecord("L1", ItemState.Checking, null, Marrow.Core.Port.Skills.State.UpdateCheck.CataloguePin(multiPin), null));
+        var at = rig.RawBase.GetLeftPart(UriPartial.Authority) + "/example/L1/" + Other + "/";
+        Assert.Equal([rig.Item.LicenceUrl!, at + "skill/SKILL.md", at + "skill/refs/a%20b.md"], plans.Requests(plan).Select(r => r.Url.AbsoluteUri).ToArray());
+
+        var stray = multiPin with { Files = [.. multiPin.Files, LoopbackRig.Pinned("other/README.md", rig.Small)] };
+        Assert.False(CatalogueInstallPlans.CanPlan(stray));
+        Assert.Throws<FirstInstallUnavailableException>(() => plans.Plan(stray, new ItemRecord("L1", ItemState.Checking, null, Marrow.Core.Port.Skills.State.UpdateCheck.CataloguePin(stray), null)));
         Assert.Empty(rig.Server.Requests);
     }
 

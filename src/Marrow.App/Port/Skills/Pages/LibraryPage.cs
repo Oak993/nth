@@ -21,7 +21,11 @@ namespace Marrow.App.Port.Skills.Pages;
 internal abstract class LibraryPage : Decorator, ISettingsPageChrome
 {
     internal const double PaneHeight = 340;
-    internal const double ListWidth = 188;
+    /// <summary>
+    /// ED-NEW-dlhonest-1 (owner 2026-10-11): wide enough for the foot's longest "Download all plugins · 132 MB" in its capsule and for the titles to read in at most two lines (Inter 12.5) beside the row's mark. 188 cut
+    /// both ("1.08 Gl", "Anthropic know…"); the design's 236 is for its 960 point window, which leaves the 780 point Settings window's detail too narrow.
+    /// </summary>
+    internal const double ListWidth = 224;
 
     private readonly LibraryModel? model;
     private readonly LibrarySection section;
@@ -221,6 +225,7 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
 
         downloadAllWords.SetText(model.DownloadAllLabel);
         downloadAll.IsEnabled = controller.CanDownloadAll;
+        ToolTip.SetTip(downloadAll, controller.DownloadAllNote); // ED-NEW-dl-6: an off button says why
         providers.Apply(controller.Providers);
         reset!.Apply(controller.ResetAsked);
         SyncDialog(model.Dialog);

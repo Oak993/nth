@@ -39,8 +39,10 @@ public static class LibraryRows
 
     private static IReadOnlyList<SwitchLine> Switches(CatalogueItem item, ISwitchReader switches, bool onPc)
     {
+        // ED-NEW-dl-13: a plugin folder is the plugin's path in the repository (its switch key); the line shows its last part, and its licences where they are recorded per plugin.
         if (item.Kind == ItemKind.Plugin)
-            return item.Folders.Select(f => new SwitchLine(SwitchKind.PluginFolder, item.Id, item.Id + "/" + f.Name, f.Name, LibraryWords.FolderSkills(f.SkillCount),
+            return item.Folders.Select(f => new SwitchLine(SwitchKind.PluginFolder, item.Id, item.Id + "/" + f.Name, f.Name[(f.Name.LastIndexOf('/') + 1)..],
+                string.Join(Dot, new[] { LibraryWords.FolderSkills(f.SkillCount) }.Concat(PluginLicences.NamesOf(item, f))),
                 onPc && switches.PluginFolder(item.Id, f.Name), onPc)).ToList();
         return item.Skills.Where(s => s.Path is not null).Select(s => new SwitchLine(SwitchKind.Skill, item.Id, item.Id + "/" + s.Path, "/" + (s.Name ?? s.Folder), "",
             onPc && switches.Skill(item.Id, s.Path!), onPc)).ToList();

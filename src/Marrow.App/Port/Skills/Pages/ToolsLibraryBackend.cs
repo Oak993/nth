@@ -27,6 +27,8 @@ internal sealed class ToolsLibraryBackend : ISkillsLibraryBackend
         public Task InstallAsync(CatalogueItem item, IProgress<double?> progress, CancellationToken cancellation) => backend.Installs.InstallAsync(backend.Catalogue.Items.Single(i => i.Id == item.Id), progress, cancellation);
     }
     public bool CanFetch => backend.CanFetch;
+    public bool CanFetchItem(string itemId) => backend.CanFetchItem(itemId); // the authentic item (a tool, not the presentation's skill set)
+    public ManualFallback? ManualFallbackOf(string itemId) => backend.ManualFallbackOf(itemId); // ED-NEW-dlhonest-1: a tool's fallback names its file, never "the repository at commit"
     public SkillsCatalogue Catalogue { get; }
     public AddonsState State => backend.State;
     public ISwitchReader Switches => backend.Switches;

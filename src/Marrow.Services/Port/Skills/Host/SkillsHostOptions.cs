@@ -29,6 +29,12 @@ public sealed record SkillsHostOptions
     /// <summary>The download seam of SK-8: fetches an item's pinned inputs and returns the installer's plan. Unbound: updates, repairs and installs refuse ("Pipeline seams are not bound").</summary>
     public Func<CatalogueItem, ItemRecord, IProgress<double?>, CancellationToken, Task<InstallPlan>>? Downloads { get; init; }
 
+    /// <summary>
+    /// Which items the bound download seam can make an install plan for (ED-NEW-dlhonest-1). Null: every item with a complete pin. The production seams (SkillsProductionSeams.WithDownloads) bind
+    /// CatalogueInstallPlans.CanPlan, so an item whose plan would fail closed is never offered as a download.
+    /// </summary>
+    public Func<CatalogueItem, bool>? Installable { get; init; }
+
     /// <summary>The binding seam of SK-8: the routes (shims and spares) a verified install is published with.</summary>
     public Func<CatalogueItem, InstallResult, PipelineRoute>? Bindings { get; init; }
 
@@ -42,6 +48,9 @@ public sealed record SkillsHostOptions
     public Func<StorePaths, SkillsCatalogue, AddonsState, TrustedInstalls>? Trust { get; init; }
 
     public TimeProvider? Clock { get; init; }
+
+    /// <summary>RR-14 (ED-NEW-dl-10): the NativeAOT launcher <c>addons\bin</c> holds copies of; null: the one shipped beside the app (<see cref="PipelineShimSync.Launcher"/>).</summary>
+    public string? ShimLauncher { get; init; }
 
     public ICustomSourceFiles? CustomFiles { get; init; }
 

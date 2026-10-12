@@ -38,9 +38,12 @@ internal static class LibraryUi
         return block;
     }
 
+    /// <summary>The family of the pages' code text.</summary>
+    public static FontFamily MonoFamily { get; } = new("Cascadia Mono, Consolas, monospace");
+
     public static TextBlock Mono(string text, double size)
     {
-        var block = new TextBlock { Text = text, FontFamily = new FontFamily("Cascadia Mono, Consolas, monospace"), FontSize = size };
+        var block = new TextBlock { Text = text, FontFamily = MonoFamily, FontSize = size };
         block.Foreground = ChromeTokens.PrimaryText.Brush(block);
         block.TextWrapping = TextWrapping.NoWrap;
         return block;

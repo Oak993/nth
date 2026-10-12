@@ -1,5 +1,6 @@
 // PORT-ONLY: SK-13 / DL-15 (text test). "No vendor logo or image referenced anywhere": the skills code, the Skills and Plugins page shells, the terms step and the embedded
-// catalogue name no image file, no icon or logo field and no image type; vendor names are plain text (skills-PLAN.md 3.1 wording rules, ONDEMAND-PLAN.md 2.5).
+// catalogue name no image file, no icon or logo field and no image type (outside the unmodified payload a vendor set pins, ED-NEW-dl-11 (8)); vendor names are plain text
+// (skills-PLAN.md 3.1 wording rules, ONDEMAND-PLAN.md 2.5).
 using System.Text.RegularExpressions;
 using Marrow.Core.Port.Skills.Catalogue;
 
@@ -45,12 +46,28 @@ public sealed partial class NoVendorImageTests
 
     [Fact]
     [Trait("Rule", "R-TEST-4")]
-    public void The_embedded_catalogue_carries_no_image_reference_and_no_icon_or_logo_field()
+    public void The_embedded_catalogue_carries_no_image_reference_outside_the_pinned_files_of_its_sets_and_no_icon_or_logo_field()
     {
         using var stream = typeof(SkillsCatalogue).Assembly.GetManifestResourceStream(SkillsCatalogueLoader.ResourceName)!;
         var text = new StreamReader(stream).ReadToEnd();
-        Assert.Empty(ImageReference().Matches(text).Select(m => m.Value));
         Assert.Empty(ImageKey().Matches(text).Select(m => m.Value));
+        // ED-NEW-dl-11 (8): a vendor set is downloaded unmodified (ONDEMAND-PLAN.md section 1), so its pinned files may include the vendor's own icon files (OpenAI's
+        // assets/*.png and *.svg); they are payload nth stores for the agents and never draws. Every other value (titles, summaries, vendors, licence names and notes, skill
+        // names, addresses) carries no image reference, and no image is a tool's or package set's file.
+        var catalogue = System.Text.Json.Nodes.JsonNode.Parse(text)!;
+        var payload = new List<string>();
+        foreach (var item in catalogue["items"]!.AsArray())
+        {
+            var files = item!["files"]!.AsArray();
+            if (item["kind"]!.GetValue<string>() is "skillset" or "plugin") payload.AddRange(files.Select(f => f!["path"]!.GetValue<string>()).Where(p => ImageReference().IsMatch(p)));
+            item.AsObject().Remove("files");
+        }
+        Assert.Empty(ImageReference().Matches(catalogue.ToJsonString()).Select(m => m.Value));
+        // ED-NEW-dl-13: pin run 4 pinned A6 and O5 unmodified too, so three README example images of A6's plugins and a test golden of O5's are payload of the same kind.
+        Assert.Equal(["plugins/claude-code-setup/automation-recommender-example.png", "plugins/claude-md-management/claude-md-improver-example.png",
+            "plugins/claude-md-management/revise-claude-md-example.png", "plugins/public-equity-investing/tests/goldens/dashboard-production-complete.png"],
+            payload.Where(p => !p.Contains("/assets/", StringComparison.Ordinal)));
+        Assert.NotEmpty(payload);
     }
 
     [Fact]

@@ -43,6 +43,11 @@ public sealed class DownloaderPolicyTests
         Assert.Equal(["www.python.org", "nodejs.org", "download.documentfoundation.org", "github.com", "raw.githubusercontent.com",
             "files.pythonhosted.org", "registry.npmjs.org", "cdn.playwright.dev"], DownloadPolicy.CatalogueHosts);
         Assert.True(DownloadPolicy.Catalogue().AllowsFirstUrl(new Uri("https://cdn.playwright.dev/builds/x.zip")));
+        // ED-NEW-dl-13: the catalogue's licence-only host (its gate refuses it in every field but a licence URL) is the one host the catalogue policy adds to the plan's list.
+        Assert.Equal(["gitlab.freedesktop.org"], DownloadPolicy.CatalogueLicenceHosts);
+        Assert.Equal(DownloadPolicy.CatalogueHosts.Concat(DownloadPolicy.CatalogueLicenceHosts).Order(StringComparer.Ordinal), DownloadPolicy.Catalogue().AllowedHosts.Order(StringComparer.Ordinal));
+        Assert.True(DownloadPolicy.Catalogue().AllowsFirstUrl(new Uri("https://gitlab.freedesktop.org/poppler/poppler/-/raw/poppler-26.09.0/COPYING")));
+        Assert.False(DownloadPolicy.Catalogue().AllowsFirstUrl(new Uri("https://gitlab.com/x")));
     }
 
     [Fact]

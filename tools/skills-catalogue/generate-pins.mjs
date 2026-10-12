@@ -8,8 +8,10 @@ import { generatePins, requestOfficial } from './pin-generator.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
-if (argv.length !== 5 || argv[0] !== '--manifest' || argv[2] !== '--out' || argv[4] !== '--run-real-source-fetch') {
-  console.error('usage: node tools/skills-catalogue/generate-pins.mjs --manifest <reviewed official-source manifest.json> --out <new folder> --run-real-source-fetch');
+// ED-NEW-dl-13: --items A3,T4 runs only those items (the manifest then covers exactly them); the other items keep the pins of the run they came from.
+const partial = argv.length === 7 && argv[4] === '--items' ? argv[5].split(',').map(s => s.trim()) : undefined;
+if (!(argv.length === 5 || partial) || argv[0] !== '--manifest' || argv[2] !== '--out' || argv[argv.length - 1] !== '--run-real-source-fetch') {
+  console.error('usage: node tools/skills-catalogue/generate-pins.mjs --manifest <reviewed official-source manifest.json> --out <new folder> [--items A3,T4] --run-real-source-fetch');
   process.exit(2);
 }
 const manifest = JSON.parse(fs.readFileSync(argv[1], 'utf8'));
@@ -20,7 +22,7 @@ const staging = out + '.tmp-' + randomUUID();
 fs.mkdirSync(staging, { recursive: true });
 try {
   const result = await generatePins(manifest, {
-    sources, request: requestOfficial,
+    sources, request: requestOfficial, only: partial,
     saveMetadata: async (url, bytes) => {
       const folder = path.join(staging, "metadata");
       fs.mkdirSync(folder, { recursive: true });

@@ -19,6 +19,10 @@ public enum RunLineState
     AlreadyHere,
     NeedsTerms,
     NoSize,
+    CantFetch,
+
+    /// <summary>ED-NEW-dl-13: a skill its set leaves out; never fetched (<see cref="PlanLineKind.SkippedSkill"/>).</summary>
+    SkippedSkill,
     Waiting,
     Downloading,
     Checking,

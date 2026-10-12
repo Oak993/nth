@@ -21,6 +21,9 @@ public enum ChangeCategory
     Skills,
     State,
     Text,
+
+    /// <summary>ED-NEW-dl-7: the item's installer parameters (how a tool or package set is unpacked, and the shims, links and exports it publishes).</summary>
+    Install,
 }
 
 /// <summary>What the owner must look at (ONDEMAND-PLAN.md 2.5, 3.7).</summary>
@@ -227,6 +230,21 @@ public sealed record CatalogueChangeReport(
             if (from is not null && to is not null)
                 foreach (var c in Scalar(ChangeCategory.Licence, $"packages[{name}].licence", from.Licence, to.Licence)) yield return c;
         }
+        // ED-NEW-dl-13: licences recorded per plugin and per skill, including those of a plugin folder or skill that is new or gone.
+        foreach (var name in Union(old.Folders.Select(f => f.Name), now.Folders.Select(f => f.Name)))
+        {
+            var from = old.Folders.FirstOrDefault(f => f.Name == name);
+            var to = now.Folders.FirstOrDefault(f => f.Name == name);
+            foreach (var c in Scalar(ChangeCategory.Licence, $"folders[{name}].licenceName", from?.LicenceName, to?.LicenceName)) yield return c;
+            foreach (var c in Scalar(ChangeCategory.Licence, $"folders[{name}].licenceFile", from?.LicenceFile, to?.LicenceFile)) yield return c;
+        }
+        foreach (var folder in Union(old.Skills.Select(s => s.Folder), now.Skills.Select(s => s.Folder)))
+        {
+            var from = old.Skills.FirstOrDefault(s => s.Folder == folder);
+            var to = now.Skills.FirstOrDefault(s => s.Folder == folder);
+            foreach (var c in Scalar(ChangeCategory.Licence, $"skills[{folder}].licenceName", from?.LicenceName, to?.LicenceName)) yield return c;
+            foreach (var c in Scalar(ChangeCategory.Licence, $"skills[{folder}].licenceFile", from?.LicenceFile, to?.LicenceFile)) yield return c;
+        }
 
         foreach (var c in Scalar(ChangeCategory.Terms, "termsClass", Word(old.TermsClass), Word(now.TermsClass))) yield return c;
         foreach (var folder in Union(old.Skills.Select(s => s.Folder), now.Skills.Select(s => s.Folder)))
@@ -264,6 +282,19 @@ public sealed record CatalogueChangeReport(
         }
         if (old.SkillsListed != now.SkillsListed)
             yield return Make(ChangeCategory.Skills, "skillsListed", old.SkillsListed ? "true" : "false", now.SkillsListed ? "true" : "false");
+        // ED-NEW-dl-13: the skills an item leaves out, each with its reason.
+        foreach (var path in Union(old.Skipped.Select(s => s.Path), now.Skipped.Select(s => s.Path)))
+        {
+            var from = old.Skipped.FirstOrDefault(s => s.Path == path);
+            var to = now.Skipped.FirstOrDefault(s => s.Path == path);
+            if (from is null) yield return Make(ChangeCategory.Skills, $"skipped[{path}]", null, to!.Reason, $"skipped[{path}]: left out ({to.Reason})");
+            else if (to is null) yield return Make(ChangeCategory.Skills, $"skipped[{path}]", from.Reason, null, $"skipped[{path}]: no longer left out (was: {from.Reason})");
+            else
+            {
+                foreach (var c in Scalar(ChangeCategory.Skills, $"skipped[{path}].name", from.Name, to.Name)) yield return c;
+                foreach (var c in Scalar(ChangeCategory.Skills, $"skipped[{path}].reason", from.Reason, to.Reason)) yield return c;
+            }
+        }
 
         foreach (var c in Scalar(ChangeCategory.State, "pinState", Word(old.PinState), Word(now.PinState))) yield return c;
         foreach (var c in Scalar(ChangeCategory.State, "countState", Word(old.CountState), Word(now.CountState))) yield return c;
@@ -272,6 +303,18 @@ public sealed record CatalogueChangeReport(
         foreach (var c in Scalar(ChangeCategory.Text, "summary", old.Summary, now.Summary)) yield return c;
         foreach (var c in Scalar(ChangeCategory.Text, "vendor", old.Vendor, now.Vendor)) yield return c;
         foreach (var c in Scalar(ChangeCategory.Text, "licenceNotes", old.LicenceNotes, now.LicenceNotes)) yield return c;
+
+        var oldInstall = SkillsCatalogueWriter.InstallText(old.Install);
+        var newInstall = SkillsCatalogueWriter.InstallText(now.Install);
+        if (oldInstall != newInstall)
+        {
+            static string Kind(InstallKind kind) => System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(kind.ToString());
+            yield return Make(ChangeCategory.Install, "install", oldInstall, newInstall,
+                old.Install is null ? $"install: added ({Kind(now.Install!.Kind)})"
+                : now.Install is null ? $"install: removed (was {Kind(old.Install.Kind)})"
+                : old.Install.Kind != now.Install.Kind ? $"install: {Kind(old.Install.Kind)} -> {Kind(now.Install.Kind)}"
+                : $"install: the {Kind(now.Install.Kind)} parameters changed");
+        }
     }
 
     private static string Provided(CatalogueProvide provide)

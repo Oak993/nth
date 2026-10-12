@@ -12,6 +12,15 @@ public interface ISkillsLibraryBackend
     /// <summary>True only when a real first-install path is bound. An unbound seam must never queue a download.</summary>
     bool CanFetch { get; }
 
+    /// <summary>
+    /// ED-NEW-dlhonest-1: whether this one item can be downloaded now (the seam is bound, the item and what it needs are pinned, and the bound seam can install it). A page offers Download, Retry and Download all
+    /// only for such an item; any other shows why it cannot, instead of failing after the press. The default is the page-wide <see cref="CanFetch"/>.
+    /// </summary>
+    bool CanFetchItem(string itemId) => CanFetch;
+
+    /// <summary>Step 1 of the "Download it yourself" block for the item, from its own catalogue entry (its real kind), or null when there is none.</summary>
+    ManualFallback? ManualFallbackOf(string itemId) => Catalogue.Items.FirstOrDefault(i => i.Id == itemId) is { } item ? ManualFallbacks.For(item) : null;
+
     SkillsCatalogue Catalogue { get; }
 
     /// <summary>The state the pipeline holds now (installed items, accepted terms, found-on-this-PC).</summary>

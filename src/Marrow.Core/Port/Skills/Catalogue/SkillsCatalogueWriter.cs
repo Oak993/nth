@@ -11,7 +11,8 @@ namespace Marrow.Core.Port.Skills.Catalogue;
 /// <summary>
 /// ENGINEERING DECISIONS (ED-298): the text is indented with two spaces, line feeds only, ends in one line feed, writes the keys in the order the schema declares
 /// them, writes a required key that has no value as an explicit null (SK-1's loader refuses a missing key) and leaves an optional key out when it has nothing (no pin hint,
-/// no notes, no skill count, no false <c>skillsListed</c>, no empty skills, folders or packages, no per-artifact hash hint, no per-skill terms class or pin), writes enums as
+/// no notes, no skill count, no false <c>skillsListed</c>, no empty skills, folders, packages or skipped skills, no per-artifact hash hint, no per-skill terms class, pin or
+/// licence, no per-plugin licence), writes enums as
 /// their camelCase words and numbers the invariant way, and does not escape letters that need no escape (an apostrophe stays an apostrophe). One catalogue, one text.
 /// </summary>
 public static class SkillsCatalogueWriter
@@ -28,9 +29,13 @@ public static class SkillsCatalogueWriter
 
     private static readonly Dictionary<Type, string[]> Optional = new()
     {
-        [typeof(CatalogueItem)] = ["pinHint", "licenceNotes", "skillCount", "skillsListed", "skills", "folders", "packages"],
+        [typeof(CatalogueItem)] = ["pinHint", "licenceNotes", "skillCount", "skillsListed", "skills", "folders", "packages", "skipped", "install"],
         [typeof(CatalogueArtifact)] = ["sha256Hint"],
-        [typeof(CatalogueSkill)] = ["termsClass", "pin"],
+        [typeof(CatalogueSkill)] = ["termsClass", "pin", "licenceName", "licenceFile"],
+        [typeof(CatalogueFolder)] = ["licenceName", "licenceFile"],
+        [typeof(CatalogueInstall)] = ["archives", "python", "nodeTree", "markers", "shims", "exports", "pythonPackages"],
+        [typeof(CatalogueInstallArchive)] = ["prefix"],
+        [typeof(CatalogueShim)] = ["target", "item", "shim", "arguments", "python", "libreOffice"],
     };
 
     private static void LeaveOutOptionalWhenEmpty(JsonTypeInfo info)
@@ -51,6 +56,9 @@ public static class SkillsCatalogueWriter
         ArgumentNullException.ThrowIfNull(catalogue);
         return JsonSerializer.Serialize(catalogue, Options) + "\n";
     }
+
+    /// <summary>ED-NEW-dl-7: an item's installer parameters in the catalogue's own canonical text (null when it has none), so the change report can name any change of them.</summary>
+    public static string? InstallText(CatalogueInstall? install) => install is null ? null : JsonSerializer.Serialize(install, Options);
 
     /// <summary>
     /// Sets every item's <see cref="PinState"/> to what its values say (SK-1's rule, <see cref="CatalogueGate.Missing"/>): pinned only when nothing is missing. The builder

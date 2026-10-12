@@ -10,4 +10,9 @@ public sealed record InstallCommand(string Executable, IReadOnlyList<string> Arg
     /// spaces, instead of the whole-argument quoting ArgumentList applies (ED-323 (1)).
     /// </summary>
     public bool QuotePropertyValues { get; init; }
+
+    /// <summary>
+    /// ED-NEW-dl-8: variables the installer sets for this child on top of the cleaned environment the process seam starts it with (the staging TEMP, pip's own settings).
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Environment { get; init; } = new Dictionary<string, string>(StringComparer.Ordinal);
 }

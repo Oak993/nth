@@ -26,7 +26,7 @@ public sealed class WindowsInstallProcess(IReadOnlyList<LocalExecutable> executa
     }
 
     // ED-323 (1): NAME=value becomes NAME="value"; every other argument keeps ArgumentList's quoting.
-    private static string QuoteForWindowsInstaller(string argument)
+    internal static string QuoteForWindowsInstaller(string argument)
     {
         var property = Regex.Match(argument, @"\A([A-Z_][A-Z0-9_.]*)=(.*)\z", RegexOptions.CultureInvariant | RegexOptions.Singleline);
         if (!property.Success) return Quote(argument);
@@ -36,7 +36,7 @@ public sealed class WindowsInstallProcess(IReadOnlyList<LocalExecutable> executa
     }
 
     // The MSVC / CommandLineToArgvW rules that ArgumentList applies.
-    private static string Quote(string argument)
+    internal static string Quote(string argument)
     {
         if (argument.Length > 0 && argument.IndexOfAny([' ', '\t', '\n', '\v', '"']) < 0) return argument;
         var quoted = new StringBuilder("\"");

@@ -12,6 +12,7 @@ internal static class PysetInstaller
         var local = Path.Combine(plan.DataRoot, "addons", "downloads", "tmp-" + Guid.NewGuid().ToString("N"));
         InstallPaths.NoReparseAncestors(local);
         Directory.CreateDirectory(local);
+        IReadOnlyDictionary<string, string> environment = new Dictionary<string, string>(StringComparer.Ordinal);
         try
         {
             var requirements = new List<string>();
@@ -25,6 +26,16 @@ internal static class PysetInstaller
             }
             var lockFile = Path.Combine(local, "requirements.lock");
             File.WriteAllText(lockFile, string.Join("\n", requirements) + "\n", new UTF8Encoding(false));
+            // ED-NEW-dl-8: pip's temporary files stay in this staging folder; an empty config file of its own stands in for the user's pip.ini (PIP_CONFIG_FILE, when the file exists,
+            // replaces the per-user file), no cache is written and nothing is asked or checked online.
+            var temp = Directory.CreateDirectory(Path.Combine(local, "temp")).FullName;
+            var config = Path.Combine(local, "pip-isolated.ini");
+            File.WriteAllText(config, "", new UTF8Encoding(false));
+            environment = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["TEMP"] = temp, ["TMP"] = temp, ["PIP_CONFIG_FILE"] = config, ["PIP_NO_CACHE_DIR"] = "1", ["PIP_DISABLE_PIP_VERSION_CHECK"] = "1", ["PIP_NO_INPUT"] = "1",
+                ["PYTHONUTF8"] = "1",
+            };
             await Run(["-m", "pip", "install", "--no-index", "--find-links", local, "--require-hashes", "--no-deps", "--target", target, "-r", lockFile]);
             await Run(["-m", "compileall", "--invalidation-mode", "unchecked-hash", target]);
         }
@@ -37,7 +48,7 @@ internal static class PysetInstaller
         }
         async Task Run(string[] argv)
         {
-            var exit = await process.RunAsync(new InstallCommand(options.PythonExecutable, argv, local), cancellationToken);
+            var exit = await process.RunAsync(new InstallCommand(options.PythonExecutable, argv, local) { Environment = environment }, cancellationToken);
             if (exit != 0) throw new InstallProcessException(exit);
         }
     }

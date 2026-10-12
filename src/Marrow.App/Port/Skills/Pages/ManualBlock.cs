@@ -3,7 +3,9 @@
 // "Check again", which gives way to Checking… and Installed). The words are ManualFallbackWords' and LibraryWords'; the step texts come from the catalogue (ManualFallbacks). Dimensions are the CSS's: padding 9 and 11,
 // rows 7 apart, the number a 18 point circle in an 18 point column, 8 between columns, buttons 24 high with 11.5 labels, code 11 and broken anywhere (word-break:break-all) inside the column.
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Views.Settings;
@@ -30,7 +32,7 @@ internal sealed class ManualBlock : Border
         if (fallback is null) return;
         var rows = new StackPanel { Spacing = 7 };
         rows.Children.Add(LibraryUi.Text(ManualFallbackWords.Heading, 12, weight: SwiftFont.Weight.Semibold));
-        rows.Children.Add(Step("1", [LibraryUi.Text(ManualFallbackWords.Get, 12, secondary: true, wrap: true), Code(fallback.File), LibraryUi.Text(fallback.Source, 11, secondary: true, wrap: true)],
+        rows.Children.Add(Step("1", [StepOne(fallback), LibraryUi.Text(fallback.Source, 11, secondary: true, wrap: true)],
             Small(ManualFallbackWords.OpenPage, () => controller.OpenManualPage(id), ButtonLook.Plain, "manual-open-page")));
         rows.Children.Add(Step("2", [LibraryUi.Text(ManualFallbackWords.PutIn, 12, secondary: true, wrap: true), Code(controller.ManualFolderText)],
             Small(ManualFallbackWords.OpenFolder, controller.OpenManualFolder, ButtonLook.Plain, "manual-open-folder")));
@@ -44,6 +46,32 @@ internal sealed class ManualBlock : Border
     }
 
     private static Button Small(string text, Action action, ButtonLook look, string buttonId) => LibraryButtons.Make(text, action, look, buttonId, size: 11.5, height: 24);
+
+    /// <summary>
+    /// Step 1 as one wrapping line of prose (ED-NEW-dlhonest-1, owner 2026-10-11, over the design's whole phrase in code): "Get " and the words in the step's 12 point secondary text, and only the literal values
+    /// (the file name, the commit, wheels.txt) in the design's code look, 11 point mono in the primary colour on its tint.
+    /// </summary>
+    internal static TextBlock StepOne(ManualFallback fallback)
+    {
+        var line = LibraryUi.Text("", 12, secondary: true, wrap: true);
+        line.Text = null;
+        line.Inlines ??= new InlineCollection();
+        line.Inlines.Add(new Run(ManualFallbackWords.Get));
+        foreach (var part in fallback.Parts)
+        {
+            var run = new Run(part.Text);
+            if (part.Code)
+            {
+                run.FontFamily = LibraryUi.MonoFamily;
+                run.FontSize = 11;
+                run.Foreground = ChromeTokens.PrimaryText.Brush(line);
+                run.Background = ChromeTokens.Overlay(0.06).Brush(line);
+            }
+            line.Inlines.Add(run);
+        }
+        AutomationProperties.SetName(line, ManualFallbackWords.Get + fallback.File);
+        return line;
+    }
 
     /// <summary>The design's code: 11 points, on its own tint, broken anywhere to stay inside the column.</summary>
     private static Border Code(string text)
@@ -103,7 +131,7 @@ internal sealed class ManualBlock : Border
             };
             state.Show(control, first ? null : LibraryUi.Ease(this, LibraryUi.Fade));
         }
-        if (state.Live is Button again) again.IsEnabled = controller.CanFetch;
+        if (state.Live is Button again) again.IsEnabled = controller.CanFetchItem(id);
     }
 
     private static StackPanel Line(Control mark, Control text)

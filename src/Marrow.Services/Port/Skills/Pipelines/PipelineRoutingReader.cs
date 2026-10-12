@@ -15,7 +15,7 @@ public static class PipelineRoutingReader
         NoLinks(stateFile);
         using var state = JsonDocument.Parse(File.ReadAllBytes(stateFile), new JsonDocumentOptions { AllowDuplicateProperties = false });
         if (state.RootElement.GetProperty("schema").GetInt32() != 1) throw new InvalidDataException("Unsupported routing state.");
-        ShimDefinition? found = null;
+        var routes = new List<PipelineRoute>();
         foreach (var item in state.RootElement.GetProperty("items").EnumerateArray())
         {
             if (item.GetProperty("installedPin").ValueKind == JsonValueKind.Null || item.GetProperty("state").GetString() is "removing" or "damaged") continue;
@@ -25,22 +25,69 @@ public static class PipelineRoutingReader
             NoLinks(file);
             var route = JsonSerializer.Deserialize(File.ReadAllBytes(file), PipelineJsonContext.Default.PipelineRoute) ?? throw new InvalidDataException();
             if (route.Id != id || route.Pin != pin || route.Shims is null) throw new InvalidDataException("Routing pin mismatch.");
+            routes.Add(route);
+        }
+        return Resolve(routes, name, Path.GetDirectoryName(Path.GetDirectoryName(stateFile))!);
+    }
+
+    /// <summary>
+    /// The definition <paramref name="name"/> runs with, from the routes of one state read: the item's own shim, or (ED-NEW-dl-7) the linked shim of another selected item with the
+    /// link's arguments first; a Python shim lists every selected Python package set; every selected item's exports are added to the child's environment (the shim's own values win).
+    /// </summary>
+    public static ShimDefinition Resolve(IReadOnlyList<PipelineRoute> routes, string name, string root)
+    {
+        var tools = Path.Combine(root, "addons", "tools");
+        string Folder(PipelineRoute route)
+        {
+            var folder = Path.GetFullPath(route.Folder);
+            if (!Path.IsPathFullyQualified(route.Folder) || !(Under(folder, tools) || Under(folder, Path.Combine(root, "skills", "store")))) throw new InvalidDataException("Invalid shim routing.");
+            return folder;
+        }
+        ShimDefinition Own(PipelineRoute route, ShimDefinition? definition)
+        {
+            var folder = Folder(route);
+            if (definition is null || !Path.IsPathFullyQualified(definition.Target) || !Under(Path.GetFullPath(definition.Target), folder) || definition.RoutingStateFile is not null ||
+                definition.PythonPathFile is { } pth && (!Path.IsPathFullyQualified(pth) || !Under(Path.GetFullPath(pth), folder)))
+                throw new InvalidDataException("Invalid shim routing.");
+            NoLinks(definition.Target);
+            return definition;
+        }
+        ShimDefinition? found = null;
+        foreach (var route in routes)
+        {
             foreach (var (key, definition) in route.Shims)
             {
                 if (!key.Equals(name, StringComparison.OrdinalIgnoreCase)) continue;
-                var root = Path.GetDirectoryName(Path.GetDirectoryName(stateFile))!;
-                var folder = Path.GetFullPath(route.Folder);
-                if (!Path.IsPathFullyQualified(route.Folder) ||
-                    !(Under(folder, Path.Combine(root, "addons", "tools")) || Under(folder, Path.Combine(root, "skills", "store"))) ||
-                    definition is null || !Path.IsPathFullyQualified(definition.Target) || !Under(Path.GetFullPath(definition.Target), folder) ||
-                    definition.RoutingStateFile is not null) throw new InvalidDataException("Invalid shim routing.");
-                NoLinks(definition.Target);
+                var own = Own(route, definition);
                 if (found is not null) throw new InvalidDataException("Duplicate shim routing.");
-                found = definition;
+                found = own;
+            }
+            foreach (var (key, link) in route.Links ?? [])
+            {
+                if (!key.Equals(name, StringComparison.OrdinalIgnoreCase)) continue;
+                _ = Folder(route);
+                if (link is null || link.Arguments is null) throw new InvalidDataException("Invalid shim routing.");
+                var target = routes.SingleOrDefault(r => r.Id == link.Item) ?? throw new InvalidOperationException("The shim's item is not installed.");
+                var linked = target.Shims.SingleOrDefault(p => p.Key.Equals(link.Shim, StringComparison.OrdinalIgnoreCase)).Value ?? throw new InvalidDataException("Invalid shim routing.");
+                var own = Own(target, linked);
+                if (found is not null) throw new InvalidDataException("Duplicate shim routing.");
+                found = own with { PrefixArguments = [.. own.PrefixArguments ?? [], .. link.Arguments] };
             }
         }
-        return found ?? throw new InvalidOperationException("The shim's item is not installed.");
+        if (found is null) throw new InvalidOperationException("The shim's item is not installed.");
+        var environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var route in routes.OrderBy(r => r.Id, StringComparer.Ordinal))
+            foreach (var (key, value) in route.Exports ?? [])
+            {
+                if (key.Length == 0 || value is null || key.Equals("PATH", StringComparison.OrdinalIgnoreCase) || !environment.TryAdd(key, value)) throw new InvalidDataException("Invalid exported environment.");
+                _ = Folder(route);
+            }
+        foreach (var (key, value) in found.Environment ?? []) environment[key] = value;
+        var packages = found.PythonPathFile is null ? found.PackagePaths ?? [] :
+            [.. found.PackagePaths ?? [], .. routes.Where(r => r.PythonPackages).OrderBy(r => r.Id, StringComparer.Ordinal).Select(Folder)];
+        return found with { Environment = new Dictionary<string, string>(environment, StringComparer.Ordinal), PackagePaths = packages };
     }
+
     private static bool Under(string path, string root) => path.StartsWith(root + Path.DirectorySeparatorChar, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
     private static void NoLinks(string path)
     {

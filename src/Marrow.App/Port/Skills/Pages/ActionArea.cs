@@ -21,6 +21,8 @@ internal sealed class ActionArea : Decorator
     private LibraryProgressBar? bar;
     private TextBlock? percent;
     private Button? primary;
+    private TextBlock? reason;
+    private bool? fetchable;
 
     public ActionArea(LibraryModel model, string id)
     {
@@ -39,16 +41,18 @@ internal sealed class ActionArea : Decorator
     public void Apply(LibraryRow row, bool removeAsked)
     {
         var next = KindOf(row, removeAsked);
-        if (kind != next)
+        var canFetch = model.Controller.CanFetchItem(id);
+        if (kind != next || canFetch != fetchable) // ED-NEW-dlhonest-1: the reason comes and goes with the item's own fetchability, not only with its state
         {
+            fetchable = canFetch;
             var first = kind is null;
             kind = next;
-            bar = null; percent = null; primary = null;
+            bar = null; percent = null; primary = null; reason = null;
             slot.Show(Build(next, row), first ? null : LibraryUi.Ease(this, LibraryUi.Fade));
         }
         if (bar is not null) bar.Set(row.Progress ?? 0, animated: true);
         if (percent is not null) percent.Text = (int)Math.Floor((row.Progress ?? 0) * 100) + "%";
-        if (primary is not null) primary.IsEnabled = !row.TermsOwed && model.Controller.CanFetch;
+        if (primary is not null) primary.IsEnabled = !row.TermsOwed && model.Controller.CanFetchItem(id);
     }
 
     private static string KindOf(LibraryRow row, bool removeAsked) => row.State switch
@@ -74,7 +78,7 @@ internal sealed class ActionArea : Decorator
         {
             case "download":
                 primary = LibraryButtons.Make(LibraryWords.Download(row.SizeMb), () => _ = controller.Download(id), ButtonLook.Primary, "action-download");
-                primary.IsEnabled = !row.TermsOwed && controller.CanFetch;
+                primary.IsEnabled = !row.TermsOwed && controller.CanFetchItem(id);
                 Add(primary);
                 break;
             case "waiting":
@@ -102,7 +106,7 @@ internal sealed class ActionArea : Decorator
                 Add(LibraryUi.Glyph("exclamationmark.triangle.fill", 13, ChromeTokens.Warning));
                 Add(LibraryUi.Text(LibraryWords.DidNotDownload, 12.5));
                 primary = LibraryButtons.Make(LibraryWords.Retry, () => _ = controller.Download(id), ButtonLook.Accent, "action-retry");
-                primary.IsEnabled = !row.TermsOwed && controller.CanFetch;
+                primary.IsEnabled = !row.TermsOwed && controller.CanFetchItem(id);
                 Add(primary);
                 break;
             case "remove":
@@ -128,8 +132,24 @@ internal sealed class ActionArea : Decorator
                 Add(LibraryButtons.Glyph("trash", LibraryWords.Remove, "action-trash", () => controller.AskRemove(id)));
                 break;
         }
-        // The reason beside the disabled button, in the same line, so the action's controls stay the line's own children.
-        if (!controller.CanFetch && what is "download" or "failed") Add(LibraryUi.Text(LibraryWords.DownloadsUnavailable, 11.5, secondary: true, trim: true));
+        // The reason beside the disabled button, in the same line, so the action's controls stay the line's own children. ED-NEW-dlhonest-1: per item, so an item the bound seam cannot fetch says so before a press.
+        if (!controller.CanFetchItem(id) && what is "download" or "failed") Add(reason = LibraryUi.Text(LibraryWords.DownloadsUnavailable, 11.5, secondary: true, wrap: true));
         return line;
+    }
+
+    /// <summary>
+    /// ED-NEW-dlhonest-1: the reason beside the button wraps in the room the detail leaves it instead of running past the pane's edge (a horizontal line gives its children unbounded width). The room is set only
+    /// when it changes, so a measure that sets it settles at once.
+    /// </summary>
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var size = base.MeasureOverride(availableSize);
+        if (reason is not { Parent: StackPanel line } || !double.IsFinite(availableSize.Width)) return size;
+        // what the rest of the line takes, from its children (a desired size is clamped to what was available, so the line's own says less than it holds)
+        var others = line.Children.Where(c => c != reason && c.IsVisible).ToList();
+        var room = Math.Max(60, availableSize.Width - others.Sum(c => c.DesiredSize.Width) - line.Spacing * others.Count);
+        if (Math.Abs(reason.MaxWidth - room) < 0.5) return size;
+        reason.MaxWidth = room;
+        return base.MeasureOverride(availableSize);
     }
 }

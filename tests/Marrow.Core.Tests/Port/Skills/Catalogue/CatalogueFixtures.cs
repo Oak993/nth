@@ -83,9 +83,63 @@ internal static class CatalogueFixtures
         ],
     };
 
+    // ED-NEW-dl-13: a pinned plugin item whose licences are recorded per plugin. Two plugins (each marked by its plugin.json, each with its own licence file); the skill "beta" is
+    // loaded by its frontmatter name from the folder "beta-folder" and carries a licence file of its own; one skill is left out with its reason and none of its files is pinned.
+    public static CatalogueItem PinnedPlugin(string id = "X4") => new()
+    {
+        Id = id, Kind = ItemKind.Plugin, Title = "Fixture plugins", Summary = "Two fixture plugins for the gate tests.", Vendor = "Fixture",
+        CountState = CountState.Plan, PinState = PinState.Pinned, Pin = FixturePin, SourceUrl = "https://github.com/example/fixtureplugins",
+        LicenceName = "MIT, Apache-2.0", LicenceFile = null, LicenceUrl = null,
+        TermsClass = TermsClass.Open, ApproxSizeMb = 0.1, Needs = [], Provides = [], Artifacts = [],
+        SkillCount = 3, SkillsListed = true,
+        Folders =
+        [
+            new CatalogueFolder { Name = "plugins/one", SkillCount = 2, LicenceName = "MIT", LicenceFile = "plugins/one/LICENSE" },
+            new CatalogueFolder { Name = "plugins/two", SkillCount = 1, LicenceName = "Apache-2.0", LicenceFile = "plugins/two/LICENSE" },
+        ],
+        Skills =
+        [
+            new CatalogueSkill { Folder = "alpha", Name = "alpha", Path = "plugins/one/skills/alpha", Needs = [] },
+            new CatalogueSkill { Folder = "beta-folder", Name = "beta", Path = "plugins/one/skills/beta-folder", Needs = [], LicenceName = "Apache-2.0", LicenceFile = "plugins/one/skills/beta-folder/LICENSE.txt" },
+            new CatalogueSkill { Folder = "gamma", Name = "gamma", Path = "plugins/two/skills/gamma", Needs = [] },
+        ],
+        Skipped = [new CatalogueSkipped { Path = "plugins/two/skills/delta", Name = "delta", Reason = "No clear licence of its own" }],
+        Files =
+        [
+            new CatalogueFile { Path = "plugins/one/.claude-plugin/plugin.json", Size = 4, Sha256 = Sha("one.json") },
+            new CatalogueFile { Path = "plugins/one/LICENSE", Size = 3, Sha256 = Sha("MIT") },
+            new CatalogueFile { Path = "plugins/one/skills/alpha/SKILL.md", Size = 5, Sha256 = Sha("alpha") },
+            new CatalogueFile { Path = "plugins/one/skills/beta-folder/LICENSE.txt", Size = 6, Sha256 = Sha("Apache") },
+            new CatalogueFile { Path = "plugins/one/skills/beta-folder/SKILL.md", Size = 4, Sha256 = Sha("beta") },
+            new CatalogueFile { Path = "plugins/two/.codex-plugin/plugin.json", Size = 4, Sha256 = Sha("two.json") },
+            new CatalogueFile { Path = "plugins/two/LICENSE", Size = 6, Sha256 = Sha("Apache") },
+            new CatalogueFile { Path = "plugins/two/skills/gamma/SKILL.md", Size = 5, Sha256 = Sha("gamma") },
+        ],
+    };
+
     public static SkillsCatalogue Pinned() => new()
     {
         Schema = SkillsCatalogueCounts.SchemaVersion, ReadOn = "2026-10-04",
         Items = [PinnedTool(), PinnedPyset(), PinnedSkillset()],
     };
+
+    // ED-NEW-dl-7: the pinned fixture as the release gate wants it, with each runnable item's installer parameters and its licence file pinned in files.
+    public static CatalogueItem InstallableTool(string id = "X1", string exeName = "fixturetool") => PinnedTool(id, exeName) with
+    {
+        Files = [new CatalogueFile { Path = "LICENSE", Size = 3, Sha256 = Sha("MIT") }],
+        Install = new CatalogueInstall
+        {
+            Kind = InstallKind.Zip, Archives = [new CatalogueInstallArchive { Artifact = "tool.zip", Prefix = "tool" }],
+            Shims = [new CatalogueShim { Name = exeName + ".exe", Target = "tool/bin/" + exeName + ".exe" }],
+            Exports = [new CatalogueExport { Name = "FIXTURETOOL_HOME", Value = "{folder}/tool" }],
+        },
+    };
+
+    public static CatalogueItem InstallablePyset(string id = "X2", string moduleName = "fixturemod") => PinnedPyset(id, moduleName) with
+    {
+        Files = [new CatalogueFile { Path = "LICENSE", Size = 3, Sha256 = Sha("MIT") }],
+        Install = new CatalogueInstall { Kind = InstallKind.Pyset, PythonPackages = true },
+    };
+
+    public static SkillsCatalogue Installable() => Pinned() with { Items = [InstallableTool(), InstallablePyset(), PinnedSkillset()] };
 }

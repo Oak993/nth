@@ -122,7 +122,7 @@ internal sealed class SkillsProgressPill : Decorator
         primed = true;
         if (!shown) return;
         var done = view.Lines.Count(l => l.State == RunLineState.Downloaded);
-        var count = view.Lines.Count(l => l.State is not (RunLineState.AlreadyHere or RunLineState.NeedsTerms or RunLineState.NoSize));
+        var count = view.Lines.Count(l => l.State is not (RunLineState.AlreadyHere or RunLineState.NeedsTerms or RunLineState.NoSize or RunLineState.CantFetch or RunLineState.SkippedSkill));
         var label = view.Phase switch
         {
             RunPhase.Downloading => "Downloading " + Math.Min(count, done + 1) + " of " + count,

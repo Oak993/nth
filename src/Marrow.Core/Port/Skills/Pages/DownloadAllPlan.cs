@@ -17,9 +17,19 @@ public enum PlanLineKind
 
     /// <summary>The catalogue holds no size for it yet, so the confirmation could not state it: the run leaves it out.</summary>
     NoSize,
+
+    /// <summary>ED-NEW-dl-6 (review of ED-NEW-dlhonest-1): not on this PC and this build cannot fetch it; the confirmation lists it with the reason instead of dropping it, and the run leaves it out.</summary>
+    CantFetch,
+
+    /// <summary>
+    /// ED-NEW-dl-13: a skill of the set on the line above that its catalogue entry leaves out (no clear licence of its own, a name the name rule refuses, a name another skill of the set
+    /// already uses, ...). It is never fetched; the line says why. It is not an item, so the counts, sizes and hosts leave it out.
+    /// </summary>
+    SkippedSkill,
 }
 
-public sealed record PlanLine(string Id, string Title, double? SizeMb, PlanLineKind Kind, string? TermsLabel);
+/// <summary>One line of the confirmation. <see cref="Reason"/> is why a <see cref="PlanLineKind.SkippedSkill"/> is left out.</summary>
+public sealed record PlanLine(string Id, string Title, double? SizeMb, PlanLineKind Kind, string? TermsLabel, string? Reason = null);
 
 /// <summary>
 /// What the confirmation says. The totals are the sums of the sizes of the items the run would fetch (<see cref="Lines"/> of kind Download). The disk figure is the download figure: a
@@ -73,12 +83,13 @@ public sealed class DownloadAllPlan
     public string Sub => LibraryWords.ItemsFrom(ToDownload.Count, HostsText(Hosts));
 
     /// <summary>The line in the tinted box: the large-download warning, the plain size, or that nothing is left to fetch.</summary>
-    public string Statement => IsEmpty ? LibraryWords.EverythingHere : Large ? LibraryWords.LargeWarning(DownloadMb, DiskMb) : LibraryWords.Plain(DownloadMb);
+    public string Statement => IsEmpty ? (Lines.Any(l => l.Kind == PlanLineKind.CantFetch) ? LibraryWords.NothingToDownload : LibraryWords.EverythingHere) : Large ? LibraryWords.LargeWarning(DownloadMb, DiskMb) : LibraryWords.Plain(DownloadMb);
 
     public string? RoomNote => EnoughRoom || Free is null ? null : LibraryWords.NeedsRoom(SizeText.Required(NeedBytes), Free.Label);
 
-    public string IncludedHeading => LibraryWords.Included(Lines.Count, Lines.Count(l => l.Kind == PlanLineKind.AlreadyHere), Lines.Count(l => l.Kind == PlanLineKind.NeedsTerms),
-        Lines.Count(l => l.Kind == PlanLineKind.NoSize));
+    public string IncludedHeading => LibraryWords.Included(Lines.Count(l => l.Kind != PlanLineKind.SkippedSkill), Lines.Count(l => l.Kind == PlanLineKind.AlreadyHere),
+        Lines.Count(l => l.Kind == PlanLineKind.NeedsTerms), Lines.Count(l => l.Kind == PlanLineKind.NoSize), Lines.Count(l => l.Kind == PlanLineKind.CantFetch),
+        Lines.Count(l => l.Kind == PlanLineKind.SkippedSkill));
 
     public string DownloadFact => SizeText.Exact(DownloadMb);
 
@@ -97,9 +108,11 @@ public sealed class DownloadAllPlan
 
     /// <summary>
     /// Builds the plan from the page's rows. A row that is being fetched already (queued, downloading, checking) is not part of it. <paramref name="catalogue"/> gives each item's
-    /// host; <paramref name="free"/> is the data root's volume, or null when it cannot be read.
+    /// host; <paramref name="free"/> is the data root's volume, or null when it cannot be read. <paramref name="canFetch"/>, when given, says whether this build can fetch an item: one that is not here
+    /// and cannot be fetched stays in the list as <see cref="PlanLineKind.CantFetch"/>, so the confirmation says it is skipped and why (ED-NEW-dl-6). ED-NEW-dl-13: under the line of a set
+    /// that is not here yet come the skills its catalogue entry leaves out, each with its reason (<see cref="PlanLineKind.SkippedSkill"/>).
     /// </summary>
-    public static DownloadAllPlan Build(LibrarySection section, IReadOnlyList<LibraryRow> rows, SkillsCatalogue catalogue, DriveSpace? free)
+    public static DownloadAllPlan Build(LibrarySection section, IReadOnlyList<LibraryRow> rows, SkillsCatalogue catalogue, DriveSpace? free, Func<string, bool>? canFetch = null)
     {
         ArgumentNullException.ThrowIfNull(rows);
         ArgumentNullException.ThrowIfNull(catalogue);
@@ -109,12 +122,18 @@ public sealed class DownloadAllPlan
         {
             PlanLineKind kind;
             if (row.OnThisPc) kind = PlanLineKind.AlreadyHere;
+            else if (canFetch is not null && !canFetch(row.Id)) kind = PlanLineKind.CantFetch;
             else if (row.TermsOwed) kind = PlanLineKind.NeedsTerms;
             else if (row.SizeMb is null) kind = PlanLineKind.NoSize;
             else kind = PlanLineKind.Download;
             lines.Add(new PlanLine(row.Id, row.Title, row.SizeMb, kind, row.TermsLabel));
-            if (kind == PlanLineKind.Download && catalogue.Items.FirstOrDefault(i => i.Id == row.Id) is { } item && LibraryRows.Host(item) is { } host && !hosts.Contains(host))
+            var item = catalogue.Items.FirstOrDefault(i => i.Id == row.Id);
+            if (kind == PlanLineKind.Download && item is not null && LibraryRows.Host(item) is { } host && !hosts.Contains(host))
                 hosts.Add(host);
+            if (kind != PlanLineKind.AlreadyHere && item is not null)
+                foreach (var skipped in item.Skipped)
+                    lines.Add(new PlanLine(row.Id + "/" + skipped.Path, LibraryWords.SkippedSkillTitle(skipped.Name ?? skipped.Path[(skipped.Path.LastIndexOf('/') + 1)..]), null,
+                        PlanLineKind.SkippedSkill, null, skipped.Reason));
         }
         return new DownloadAllPlan(section, lines, hosts, free);
     }

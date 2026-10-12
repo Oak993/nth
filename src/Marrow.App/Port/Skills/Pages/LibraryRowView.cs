@@ -25,9 +25,12 @@ internal sealed class LibraryRowView : Decorator
     public LibraryRowView(LibraryModel model, LibraryRow row, Action? selecting = null)
     {
         Id = row.Id;
-        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("22,*,Auto"), ColumnSpacing = 9, Height = RowHeight };
+        // ED-NEW-dlhonest-1 (owner 2026-10-11): a title wraps instead of being cut ("Anthropic know…"); a one-line row stays 30 high, a longer title makes its row taller.
+        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("22,*,Auto"), ColumnSpacing = 9, MinHeight = RowHeight };
         var tile = LibraryUi.Tile(model.Tools ? "wrench.and.screwdriver" : row.Plugins ? "powerplug" : "wand.and.sparkles", 22, 6);
-        title = LibraryUi.Text(row.Title, 12.5, trim: true);
+        title = LibraryUi.Text(row.Title, 12.5, trim: true, wrap: true);
+        title.MaxLines = 3;
+        title.Margin = new Thickness(0, 6);
         title.VerticalAlignment = VerticalAlignment.Center;
         Grid.SetColumn(title, 1);
         Grid.SetColumn(mark, 2);

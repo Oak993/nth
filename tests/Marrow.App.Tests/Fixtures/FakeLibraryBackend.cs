@@ -21,6 +21,11 @@ internal sealed class FakeLibraryBackend(SkillsCatalogue catalogue, IFirstInstal
 
     public bool CanFetch { get; set; } = installs is not FailClosedFirstInstall;
 
+    /// <summary>ED-NEW-dlhonest-1: items the bound seam could not fetch (a tool no plan can install, an unpinned item). Empty: every item answers <see cref="CanFetch"/>.</summary>
+    public HashSet<string> Unfetchable { get; } = [];
+
+    public bool CanFetchItem(string itemId) => CanFetch && !Unfetchable.Contains(itemId);
+
     public DriveSpace? FreeSpace { get; set; }
 
     public List<IReadOnlyList<ProviderSkillGroup>> Reports { get; } = [];

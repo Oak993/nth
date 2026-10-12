@@ -23,6 +23,7 @@ public static class CatalogueRules
     public const string ValueFormat = "value-format";
     public const string Licence = "licence";
     public const string Unpinned = "unpinned";
+    public const string Install = "install";
 }
 
 public sealed record CatalogueViolation(string Rule, string? ItemId, string Message);
@@ -56,6 +57,9 @@ public static partial class CatalogueGate
 
     [GeneratedRegex("^[0-9a-f]{8,64}$")] private static partial Regex Sha256Prefix();
 
+    /// <summary>A plugin's manifest below the repository root, as GenerationItem finds plugin roots.</summary>
+    [GeneratedRegex(@"^.+/\.(claude|codex|cursor)-plugin/plugin\.json$")] private static partial Regex PluginManifest();
+
     public static CatalogueGateReport Check(SkillsCatalogue catalogue, CatalogueGateOptions? options = null)
     {
         var violations = new List<CatalogueViolation>();
@@ -84,7 +88,9 @@ public static partial class CatalogueGate
             CheckSkills(item, Item);
             CheckCounts(item, Item);
             CheckProvides(item, Item);
+            CheckInstall(item, Item);
         }
+        CheckShimLinks(catalogue, violations);
 
         CheckNeeds(catalogue, violations);
         foreach (var problem in ProvidesIndex.Build(catalogue).Problems) Fail(CatalogueRules.Provides, null, problem);
@@ -96,7 +102,11 @@ public static partial class CatalogueGate
             var derived = missing.Count == 0 ? PinState.Pinned : PinState.Unpinned;
             if (item.PinState != derived)
                 Fail(CatalogueRules.PinState, item.Id, $"declared {item.PinState} but its values say {derived}" + (missing.Count == 0 ? "" : ": lacks " + string.Join(", ", missing)));
-            if (missing.Count == 0) continue;
+            if (missing.Count == 0)
+            {
+                if (options?.RequireAllPinned == true && InstallMissing(item) is { } why) Fail(CatalogueRules.Install, item.Id, why);
+                continue;
+            }
             unpinned.Add(new UnpinnedItem(item.Id, missing));
             if (options?.RequireAllPinned == true) Fail(CatalogueRules.Unpinned, item.Id, "lacks real values: " + string.Join(", ", missing));
         }
@@ -115,8 +125,13 @@ public static partial class CatalogueGate
         if (string.IsNullOrEmpty(item.Pin) && !perSkillPins) missing.Add("pin");
         if (item.SourceUrl is null) missing.Add("sourceUrl");
         if (item.LicenceName is null) missing.Add("licenceName");
-        if (item.LicenceFile is null) missing.Add("licenceFile");
-        if (item.LicenceUrl is null) missing.Add("licenceUrl");
+        // ED-NEW-dl-13: a plugin item whose every plugin names its own licence file has no single one (PluginLicences); every other item needs its licence file and URL.
+        var perPlugin = PluginLicences.PerPlugin(item);
+        if (item.LicenceFile is null && !perPlugin) missing.Add("licenceFile");
+        if (item.LicenceUrl is null && !perPlugin) missing.Add("licenceUrl");
+        if (perPlugin)
+            foreach (var path in PluginLicences.Files(item))
+                if (!item.Files.Any(f => f.Path == path)) missing.Add($"files[{path}]");
         switch (item.Kind)
         {
             case ItemKind.Tool:
@@ -151,6 +166,18 @@ public static partial class CatalogueGate
         return missing;
     }
 
+    /// <summary>
+    /// ED-NEW-dl-7: what a fully pinned tool or package set still lacks before it can be installed: its installer parameters and its licence file pinned in <c>files</c> (the installer
+    /// checks the licence bytes against that pin). Null when nothing is lacking or the item is a skill set or plugin. Only the release gate treats it as a failure.
+    /// </summary>
+    public static string? InstallMissing(CatalogueItem item)
+    {
+        if (item.Kind is ItemKind.Skillset or ItemKind.Plugin) return null;
+        if (item.Install is null) return "has no installer parameters";
+        if (item.LicenceFile is null || !item.Files.Any(f => f.Path == item.LicenceFile)) return "its licence file is not pinned in files";
+        return null;
+    }
+
     private static bool IsRelativePath(string path) =>
         path.Length > 0 && path[0] != '/' && !path.Contains('\\', StringComparison.Ordinal) && path.Split('/').All(s => s.Length > 0 && s != "." && s != "..");
 
@@ -166,7 +193,11 @@ public static partial class CatalogueGate
 
     private static void CheckKind(CatalogueItem item, Action<string, string> fail)
     {
-        var hasSkillFields = item.SkillCount is not null || item.Skills.Count > 0 || item.Folders.Count > 0 || item.Files.Count > 0 || item.SkillsListed;
+        var hasSkillFields = item.SkillCount is not null || item.Skills.Count > 0 || item.Folders.Count > 0 || item.SkillsListed;
+        // ED-NEW-dl-7: a tool or package set may list one file, its licence file, so the installer can check the licence bytes it lays down against a pin.
+        if (item.Kind is ItemKind.Tool or ItemKind.Pyset or ItemKind.Nodeset && item.Files.Count > 0 && (item.Files.Count != 1 || item.Files[0].Path != item.LicenceFile))
+            fail(CatalogueRules.Kind, "a tool or package set lists only its licence file in files");
+        if (item.Kind is ItemKind.Skillset or ItemKind.Plugin && item.Install is not null) fail(CatalogueRules.Kind, "a skill set or plugin carries no installer parameters");
         switch (item.Kind)
         {
             case ItemKind.Tool:
@@ -236,12 +267,37 @@ public static partial class CatalogueGate
     {
         if (item.LicenceName is not null && string.IsNullOrWhiteSpace(item.LicenceName)) fail(CatalogueRules.Licence, "licenceName is blank");
         if (item.LicenceFile is not null && !IsRelativePath(item.LicenceFile)) fail(CatalogueRules.Licence, "licenceFile is not a plain relative path");
+        CheckPluginLicences(item, fail);
         if (item.LicenceUrl is null || item.LicenceFile is null || item.Pin is null || item.SourceUrl is null) return;
         if (!FullCommit().IsMatch(item.Pin) || !Uri.TryCreate(item.SourceUrl, UriKind.Absolute, out var source) || source.Host != "github.com") return;
         var parts = source.AbsolutePath.Trim('/').Split('/');
         if (parts.Length != 2) return;
         var expected = $"https://raw.githubusercontent.com/{parts[0]}/{parts[1]}/{item.Pin}/{item.LicenceFile}";
         if (item.LicenceUrl != expected) fail(CatalogueRules.Licence, $"licenceUrl is not the licence file at the pin: expected {expected}");
+    }
+
+    /// <summary>
+    /// ED-NEW-dl-13: licences recorded per plugin. Only a plugin item records them, and then for every plugin folder (name and file together) and with no item licence file or URL;
+    /// a skill names its own licence (name and file together) only inside such an item; every named file is a plain relative path pinned in the item's files.
+    /// </summary>
+    private static void CheckPluginLicences(CatalogueItem item, Action<string, string> fail)
+    {
+        var folders = item.Folders.Where(f => f.LicenceName is not null || f.LicenceFile is not null).ToList();
+        var skills = item.Skills.Where(s => s.LicenceName is not null || s.LicenceFile is not null).ToList();
+        if (folders.Count == 0 && skills.Count == 0) return;
+        if (item.Kind != ItemKind.Plugin) { fail(CatalogueRules.Licence, "only a plugin records licences per plugin or per skill"); return; }
+        if (folders.Count != item.Folders.Count) fail(CatalogueRules.Licence, "licences recorded per plugin name one for every plugin folder");
+        if (item.LicenceFile is not null || item.LicenceUrl is not null) fail(CatalogueRules.Licence, "an item with licences per plugin has no item licence file or URL");
+        void One(string what, string? name, string? file)
+        {
+            if (name is null || file is null) { fail(CatalogueRules.Licence, $"{what}: a licence names both its name and its file"); return; }
+            if (string.IsNullOrWhiteSpace(name) || name.Any(c => c is '\n' or '\r')) fail(CatalogueRules.Licence, $"{what}: the licence name is blank or not one line");
+            if (!IsRelativePath(file)) fail(CatalogueRules.Licence, $"{what}: the licence file '{file}' is not a plain relative path");
+            else if (!item.Files.Any(f => f.Path == file) && item.Files.Count > 0) fail(CatalogueRules.Licence, $"{what}: the licence file '{file}' is not in files");
+        }
+        foreach (var folder in folders) One("plugin " + folder.Name, folder.LicenceName, folder.LicenceFile);
+        if (skills.Count > 0 && folders.Count == 0) fail(CatalogueRules.Licence, "a skill names its own licence only where every plugin names one");
+        foreach (var skill in skills) One("skill " + (skill.Path ?? skill.Folder), skill.LicenceName, skill.LicenceFile);
     }
 
     private static void CheckUrls(CatalogueItem item, Action<string, string> fail)
@@ -251,21 +307,74 @@ public static partial class CatalogueGate
             if (url is not null && !CatalogueHosts.IsAllowed(url)) fail(CatalogueRules.Host, $"{field} '{url}' is not an https URL on the host list");
         }
         Url("sourceUrl", item.SourceUrl);
-        Url("licenceUrl", item.LicenceUrl);
+        // ED-NEW-dl-13: a licence URL may also be on the licence-only hosts; no other field may.
+        if (item.LicenceUrl is not null && !CatalogueHosts.IsAllowedLicence(item.LicenceUrl)) fail(CatalogueRules.Host, $"licenceUrl '{item.LicenceUrl}' is not an https URL on the host list");
         foreach (var artifact in item.Artifacts) Url("artifact " + artifact.Name, artifact.Url);
     }
 
     private static void CheckSkills(CatalogueItem item, Action<string, string> fail)
     {
         var folders = new HashSet<string>(StringComparer.Ordinal);
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var skill in item.Skills)
         {
             if (!SkillName.IsValid(skill.Folder)) fail(CatalogueRules.SkillName, $"skill folder '{skill.Folder}' does not follow the name rule");
             else if (!folders.Add(skill.Folder)) fail(CatalogueRules.SkillName, $"skill folder '{skill.Folder}' is listed twice");
-            if (skill.Name is not null && (!SkillName.IsValid(skill.Name) || skill.Name != skill.Folder))
+            // ED-NEW-dl-13: a plugin's skill is loaded by its frontmatter name, as the plugin's own tools load it (nth's skills view names its folder after it too), so in a plugin
+            // that name may differ from the folder; it must still follow the name rule, and no two skills of the item may share it (a generation keeps one skill per name).
+            if (skill.Name is not null && (!SkillName.IsValid(skill.Name) || (skill.Name != skill.Folder && item.Kind != ItemKind.Plugin)))
                 fail(CatalogueRules.SkillName, $"skill '{skill.Folder}': the frontmatter name '{skill.Name}' is not the folder name in the name rule's form");
+            else if (skill.Name is not null && item.Kind == ItemKind.Plugin && !names.Add(skill.Name))
+                fail(CatalogueRules.SkillName, $"skill '{skill.Folder}': the frontmatter name '{skill.Name}' is used by another skill of the item");
             if (skill.Path is not null && (!IsRelativePath(skill.Path) || skill.Path.Split('/')[^1] != skill.Folder))
                 fail(CatalogueRules.SkillName, $"skill '{skill.Folder}': the path '{skill.Path}' does not end in the folder name");
+        }
+        CheckSkipped(item, fail);
+        if (!item.SkillsListed || item.Files.Count == 0) return;
+        // ED-NEW-dl-13: what a generation refuses (GenerationItem) is refused here first. Every SKILL.md the item pins is a listed skill's own, so no skill nested in another skill's
+        // folder (and none the item leaves out) is fetched. In a pinned plugin the folders are exactly the plugin roots its plugin.json files mark (the keys its switches are
+        // stored under), each skill lies in exactly one of them and each folder's count is the number of its skills.
+        var declared = item.Skills.Where(s => s.Path is not null).Select(s => s.Path + "/SKILL.md").ToHashSet(StringComparer.Ordinal);
+        foreach (var file in item.Files)
+            if ((file.Path.EndsWith("/SKILL.md", StringComparison.OrdinalIgnoreCase) || file.Path.Equals("SKILL.md", StringComparison.OrdinalIgnoreCase)) && !declared.Contains(file.Path))
+                fail(CatalogueRules.SkillName, $"the file {file.Path} is a skill the item does not list");
+        if (item.Kind != ItemKind.Plugin || item.Folders.Count == 0) return;
+        var roots = item.Files.Select(f => f.Path).Where(p => PluginManifest().IsMatch(p)).Select(p => p[..p.LastIndexOf("/.", StringComparison.Ordinal)])
+            .ToHashSet(StringComparer.Ordinal);
+        // A plugin.json at the repository root makes the whole set one plugin to a generation, so no folder of it could be switched on its own.
+        foreach (var file in item.Files)
+            if (file.Path is ".claude-plugin/plugin.json" or ".codex-plugin/plugin.json" or ".cursor-plugin/plugin.json")
+                fail(CatalogueRules.Count, $"{file.Path} makes the whole set one plugin, so its plugin folders cannot be listed");
+        foreach (var folder in item.Folders)
+            if (!roots.Contains(folder.Name)) fail(CatalogueRules.Count, $"plugin folder {folder.Name} holds no plugin.json");
+        foreach (var root in roots)
+            if (!item.Folders.Any(f => f.Name == root)) fail(CatalogueRules.Count, $"the plugin at {root} is not listed as a plugin folder");
+        foreach (var skill in item.Skills.Where(s => s.Path is not null))
+        {
+            var owners = item.Folders.Count(f => skill.Path!.StartsWith(f.Name + "/", StringComparison.Ordinal));
+            if (owners != 1) fail(CatalogueRules.Count, $"skill {skill.Path} lies in {owners.ToString(CultureInfo.InvariantCulture)} plugin folders, not one");
+        }
+        foreach (var folder in item.Folders)
+        {
+            var count = item.Skills.Count(s => s.Path is not null && s.Path.StartsWith(folder.Name + "/", StringComparison.Ordinal));
+            if (count != folder.SkillCount) fail(CatalogueRules.Count, $"plugin folder {folder.Name} counts {folder.SkillCount.ToString(CultureInfo.InvariantCulture)} skills but holds {count.ToString(CultureInfo.InvariantCulture)}");
+        }
+    }
+
+    /// <summary>ED-NEW-dl-13: a skipped skill is a plain path that is no listed skill, listed once, with a one-line reason, and none of its files is pinned.</summary>
+    private static void CheckSkipped(CatalogueItem item, Action<string, string> fail)
+    {
+        if (item.Skipped.Count == 0) return;
+        if (item.Kind is not (ItemKind.Skillset or ItemKind.Plugin)) { fail(CatalogueRules.Kind, "only a skill set or plugin leaves skills out"); return; }
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var skipped in item.Skipped)
+        {
+            if (!IsRelativePath(skipped.Path)) { fail(CatalogueRules.SkillName, $"skipped skill '{skipped.Path}' is not a plain relative path"); continue; }
+            if (!seen.Add(skipped.Path)) fail(CatalogueRules.SkillName, $"skipped skill {skipped.Path} is listed twice");
+            if (item.Skills.Any(s => s.Path == skipped.Path)) fail(CatalogueRules.SkillName, $"skipped skill {skipped.Path} is also listed as a skill");
+            if (string.IsNullOrWhiteSpace(skipped.Reason) || skipped.Reason.Any(c => c is '\n' or '\r')) fail(CatalogueRules.Text, $"skipped skill {skipped.Path}: the reason is blank or not one line");
+            if (item.Files.Any(f => f.Path.StartsWith(skipped.Path + "/", StringComparison.Ordinal)))
+                fail(CatalogueRules.SkillName, $"skipped skill {skipped.Path}: its files are pinned, so it would be fetched");
         }
     }
 
@@ -307,6 +416,129 @@ public static partial class CatalogueGate
             else if (!names.Add((provide.Kind, provide.Kind == ProvideKind.Exe ? provide.Name.ToLowerInvariant() : provide.Name)))
                 fail(CatalogueRules.Provides, $"{provide.Kind} '{provide.Name}' is listed twice");
         }
+    }
+
+    [GeneratedRegex("^[A-Za-z_][A-Za-z0-9_]*$")] private static partial Regex EnvironmentName();
+
+    [GeneratedRegex("^[0-9]+\\.[0-9]+$")] private static partial Regex PythonVersion();
+
+    private static bool IsFileName(string name) => name.Length > 0 && IsRelativePath(name) && !name.Contains('/', StringComparison.Ordinal);
+
+    /// <summary>ED-NEW-dl-7: the installer parameters agree with the item's kind, artifacts, needs and provides (ONDEMAND-PLAN.md 3.4 and 3.6).</summary>
+    private static void CheckInstall(CatalogueItem item, Action<string, string> fail)
+    {
+        if (item.Install is not { } install) return;
+        void Fail(string message) => fail(CatalogueRules.Install, message);
+        InstallKind[] allowed = item.Kind switch
+        {
+            ItemKind.Tool => [InstallKind.Zip, InstallKind.PythonEmbed, InstallKind.MsiAdmin, InstallKind.Sfx7z],
+            ItemKind.Pyset => [InstallKind.Pyset],
+            ItemKind.Nodeset => [InstallKind.Nodeset],
+            _ => [],
+        };
+        if (!allowed.Contains(install.Kind)) { Fail($"a {item.Kind} is not installed as {install.Kind}"); return; }
+        var artifacts = item.Artifacts.Select(a => a.Name).ToHashSet(StringComparer.Ordinal);
+        var used = new HashSet<string>(StringComparer.Ordinal);
+        void Use(string name, string what)
+        {
+            if (!artifacts.Contains(name)) Fail($"{what} '{name}' is not an artifact of the item");
+            else if (!used.Add(name)) Fail($"artifact '{name}' is installed twice");
+        }
+        foreach (var archive in install.Archives)
+        {
+            Use(archive.Artifact, "the archive");
+            if (archive.Prefix is not null && !IsRelativePath(archive.Prefix)) Fail($"the folder of archive '{archive.Artifact}' is not a plain relative path");
+        }
+        if (install.Python is not null && install.Kind != InstallKind.PythonEmbed) Fail("only a Python embed install names a pip wheel");
+        if (install.NodeTree.Count > 0 && install.Kind != InstallKind.Nodeset) Fail("only a Node package set lists a node tree");
+        if (install.PythonPackages != (install.Kind == InstallKind.Pyset)) Fail("exactly the Python package sets put their folder on the Python path");
+        switch (install.Kind)
+        {
+            case InstallKind.Zip:
+                if (install.Archives.Count == 0) Fail("a zip install lists its archives");
+                break;
+            case InstallKind.PythonEmbed:
+                if (install.Archives.Count != 1 || install.Archives[0].Prefix is not null) Fail("a Python embed install unpacks exactly one archive into its folder");
+                if (install.Python is not { } python) Fail("a Python embed install names its pip wheel and its ._pth layout");
+                else
+                {
+                    Use(python.PipArtifact, "the pip wheel");
+                    if (!python.PipArtifact.EndsWith(".whl", StringComparison.Ordinal)) Fail("the pip artifact is not a wheel");
+                    if (!IsFileName(python.PthFile) || !python.PthFile.EndsWith("._pth", StringComparison.Ordinal)) Fail("the ._pth file is not a file name ending in ._pth");
+                    if (!IsFileName(python.StandardLibraryZip) || !python.StandardLibraryZip.EndsWith(".zip", StringComparison.Ordinal)) Fail("the standard library is not a zip file name");
+                    if (!PythonVersion().IsMatch(python.AgentVersion)) Fail("the agent folder version is not major.minor");
+                }
+                break;
+            case InstallKind.Pyset:
+                if (install.Archives.Count > 0) Fail("a Python package set installs its wheels, not archives");
+                foreach (var artifact in item.Artifacts)
+                {
+                    if (!artifact.Name.EndsWith(".whl", StringComparison.Ordinal) || artifact.Name.Split('-').Length is < 5 or > 6) Fail($"artifact '{artifact.Name}' is not a wheel file name");
+                    used.Add(artifact.Name);
+                }
+                break;
+            case InstallKind.Nodeset:
+                if (install.Archives.Count > 0) Fail("a Node package set installs its tarballs by the node tree, not archives");
+                var trees = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var package in install.NodeTree)
+                {
+                    Use(package.Artifact, "the node package");
+                    if (!IsRelativePath(package.Path) || !package.Path.StartsWith("node_modules/", StringComparison.Ordinal)) Fail($"node package '{package.Artifact}' is not placed under node_modules");
+                    else if (!trees.Add(package.Path)) Fail($"node path '{package.Path}' is listed twice");
+                    if (!package.Integrity.StartsWith("sha512-", StringComparison.Ordinal) || package.Integrity.Length != 95) Fail($"node package '{package.Artifact}' has no sha512 integrity");
+                }
+                break;
+            case InstallKind.MsiAdmin:
+            case InstallKind.Sfx7z:
+                if (install.Archives.Count > 0 || item.Artifacts.Count != 1) Fail($"a {install.Kind} install runs its one artifact");
+                else used.Add(item.Artifacts[0].Name);
+                break;
+        }
+        foreach (var name in artifacts.Except(used, StringComparer.Ordinal).Order(StringComparer.Ordinal)) Fail($"artifact '{name}' is downloaded but never installed");
+        var markers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var marker in install.Markers)
+            if (!IsRelativePath(marker) || !markers.Add(marker)) Fail($"marker '{marker}' is not a plain relative path listed once");
+        var shims = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var shim in install.Shims)
+        {
+            var extension = Path.GetExtension(shim.Name);
+            if (!IsFileName(shim.Name) || shim.Name.IndexOfAny(['"', '%', '\\', ':', ' ']) >= 0 || !(extension == ".exe" || extension == ".cmd")) Fail($"shim '{shim.Name}' is not an .exe or .cmd file name");
+            else if (!shims.Add(shim.Name)) Fail($"shim '{shim.Name}' is listed twice");
+            if ((shim.Target is null) == (shim.Item is null)) Fail($"shim '{shim.Name}' names either a target of its own or a shim of a needed item");
+            if (shim.Target is not null && !IsRelativePath(shim.Target)) Fail($"shim '{shim.Name}': the target is not a plain relative path");
+            if (shim.Item is not null && (shim.Shim is null || !item.Needs.Contains(shim.Item, StringComparer.Ordinal))) Fail($"shim '{shim.Name}': the linked item is not a need or names no shim");
+            if (shim.Item is null && shim.Shim is not null) Fail($"shim '{shim.Name}': a shim name without an item");
+            if (shim.Item is not null && (shim.Python || shim.LibreOffice)) Fail($"shim '{shim.Name}': a linked shim takes its kind from the shim it links");
+            if (shim.Python && install.Python is null) Fail($"shim '{shim.Name}': only the Python embed install has the ._pth a Python shim rewrites");
+            if (shim.Python && shim.LibreOffice) Fail($"shim '{shim.Name}' is not both Python and LibreOffice");
+            if (shim.Arguments.Any(a => a.Length == 0 || a.Any(char.IsControl))) Fail($"shim '{shim.Name}': an argument is empty or holds a control character");
+        }
+        var exes = item.Provides.Where(p => p.Kind == ProvideKind.Exe).Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var shimmed = install.Shims.Select(s => Path.GetFileNameWithoutExtension(s.Name)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (!exes.SetEquals(shimmed)) Fail("the shims are not exactly the executables the item provides");
+        var exports = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var export in install.Exports)
+        {
+            if (!EnvironmentName().IsMatch(export.Name) || export.Name.Equals("PATH", StringComparison.OrdinalIgnoreCase)) Fail($"'{export.Name}' is not an environment name an item may export");
+            else if (!exports.Add(export.Name)) Fail($"'{export.Name}' is exported twice");
+            if (export.Value.Length == 0 || export.Value.Any(char.IsControl)) Fail($"the value of '{export.Name}' is empty or holds a control character");
+        }
+    }
+
+    /// <summary>ED-NEW-dl-7: a linked shim (pip runs Python's interpreter) names a shim the needed item publishes with a target of its own; an exported name belongs to one item.</summary>
+    private static void CheckShimLinks(SkillsCatalogue catalogue, List<CatalogueViolation> violations)
+    {
+        var byId = new Dictionary<string, CatalogueItem>(StringComparer.Ordinal);
+        foreach (var item in catalogue.Items) byId.TryAdd(item.Id, item);
+        foreach (var item in catalogue.Items)
+            foreach (var shim in item.Install?.Shims ?? [])
+            {
+                if (shim.Item is null || shim.Shim is null) continue;
+                if (!byId.TryGetValue(shim.Item, out var target) || target.Install?.Shims.SingleOrDefault(s => s.Name.Equals(shim.Shim, StringComparison.OrdinalIgnoreCase)) is not { Target: not null })
+                    violations.Add(new CatalogueViolation(CatalogueRules.Install, item.Id, $"shim '{shim.Name}' links '{shim.Item}' shim '{shim.Shim}', which that item does not publish with a target of its own"));
+            }
+        foreach (var name in catalogue.Items.SelectMany(i => (i.Install?.Exports ?? []).Select(e => (i.Id, e.Name))).GroupBy(e => e.Name, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1))
+            violations.Add(new CatalogueViolation(CatalogueRules.Install, null, $"'{name.Key}' is exported by {string.Join(" and ", name.Select(e => e.Id))}"));
     }
 
     private static void CheckNeeds(SkillsCatalogue catalogue, List<CatalogueViolation> violations)

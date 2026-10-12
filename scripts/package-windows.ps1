@@ -130,6 +130,23 @@ Invoke-Native 'dotnet publish' {
 }
 if (-not (Test-Path -LiteralPath (Join-Path $publishDir $MainExe))) { throw "$MainExe was not published to $publishDir." }
 
+# RR-14 (ONDEMAND-PLAN.md 3.6, ED-NEW-dl-10): every addons\bin shim is a copy of one NativeAOT launcher, shipped beside the app.
+$shimProject = Join-Path $root 'src/Marrow.Shim/Marrow.Shim.csproj'
+$shimBuildDir = Join-Path $root 'artifacts/shim-build'
+if (Test-Path -LiteralPath $shimBuildDir) { Remove-Item -LiteralPath $shimBuildDir -Recurse -Force }
+# NativeAOT finds the C++ linker through vswhere and vcvarsall, which need the "(x86)" folder variables; a shell such as Git Bash drops
+# variables whose names hold parentheses, so restore them for this process (and its children) only. No global setting changes.
+if (-not ${env:ProgramFiles(x86)}) { ${env:ProgramFiles(x86)} = [Environment]::GetFolderPath('ProgramFilesX86') }
+if (-not ${env:CommonProgramFiles(x86)}) { ${env:CommonProgramFiles(x86)} = [Environment]::GetFolderPath('CommonProgramFilesX86') }
+$vsInstaller = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer'
+if ((Test-Path -LiteralPath (Join-Path $vsInstaller 'vswhere.exe')) -and ($env:Path -notlike "*$vsInstaller*")) { $env:Path = "$vsInstaller;$env:Path" }
+Invoke-Native 'dotnet publish (Marrow.Shim)' {
+    dotnet publish $shimProject -c $Configuration -r $Runtime -o $shimBuildDir --nologo -v q
+}
+$shimExe = Join-Path $shimBuildDir 'Marrow.Shim.exe'
+if (-not (Test-Path -LiteralPath $shimExe)) { throw "Marrow.Shim.exe was not published to $shimBuildDir." }
+Copy-Item -LiteralPath $shimExe -Destination (Join-Path $publishDir 'Marrow.Shim.exe')
+
 # No --signParams (nothing is signed), no vpk upload/publish. --shortcuts: the Start menu entry only, in the
 # "nth" folder, named after --packAuthors (ED-247: never Programs\Marrow.lnk, the Electron app's).
 # OD-0111: every package carries its validated markdown notes in releases.win.json.

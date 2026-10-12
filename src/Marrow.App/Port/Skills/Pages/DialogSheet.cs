@@ -6,7 +6,7 @@ using Avalonia.Media;
 
 namespace Marrow.App.Port.Skills.Pages;
 
-internal sealed class DialogSheet : Panel
+internal sealed class DialogSheet : Panel, IWindowCentredSheet // centred on the window it dims, whatever part of the page is in view
 {
     private const double Reach = 3000;
     private readonly Border wash = new() { IsHitTestVisible = false, Background = new SolidColorBrush(Color.FromArgb(0x52, 0, 0, 0)) };

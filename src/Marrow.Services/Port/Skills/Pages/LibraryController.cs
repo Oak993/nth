@@ -172,6 +172,7 @@ public sealed class LibraryController : IDisposable
         lock (gate)
         {
             if (!backend.CanFetch) return Task.CompletedTask;
+            if (!backend.CanFetchItem(id)) return Task.CompletedTask; // ED-NEW-dlhonest-1: an item that cannot be fetched is not tried (it would only fail)
             if (run is { Phase: RunPhase.Downloading or RunPhase.Paused }) return Task.CompletedTask;
             var row = Rows.FirstOrDefault(r => r.Id == id);
             if (row is null || row.TermsOwed || row.OnThisPc || row.Busy) return Task.CompletedTask;
@@ -412,7 +413,14 @@ public sealed class LibraryController : IDisposable
 
     // ---- Download all
 
-    public DownloadAllPlan Plan => DownloadAllPlan.Build(section, Rows, backend.Catalogue, backend.Free());
+    /// <summary>
+    /// ED-NEW-dlhonest-1, ED-NEW-dl-6: while fetching is bound, an item not here that cannot be fetched (<see cref="CanFetchItem"/>) is not downloaded by Download all (the run would only fail on it), and the
+    /// confirmation lists it as skipped with the reason instead of leaving it out silently. Its row says why too.
+    /// </summary>
+    public DownloadAllPlan Plan => DownloadAllPlan.Build(section, Rows, backend.Catalogue, backend.Free(), backend.CanFetch ? backend.CanFetchItem : null);
+
+    /// <summary>ED-NEW-dlhonest-1: whether the item can be downloaded now (the page's Download, Retry and Check again are on only then; otherwise the row shows that downloading isn't available).</summary>
+    public bool CanFetchItem(string id) => backend.CanFetch && backend.CanFetchItem(id);
 
     /// <summary>The button at the foot of the list: "Download all plugins · 32 MB", or "All plugins are here".</summary>
     public string DownloadAllLabel
@@ -421,7 +429,7 @@ public sealed class LibraryController : IDisposable
         {
             var plan = Plan;
             if (!plan.IsEmpty) return LibraryWords.DownloadAllButton(section, plan.DownloadMb);
-            return plan.Lines.Any(l => l.Kind is PlanLineKind.NeedsTerms or PlanLineKind.NoSize) ? "Download all " + section.Noun() : LibraryWords.DownloadAllButton(section, null);
+            return plan.Lines.Any(l => l.Kind is PlanLineKind.NeedsTerms or PlanLineKind.NoSize or PlanLineKind.CantFetch) ? "Download all " + section.Noun() : LibraryWords.DownloadAllButton(section, null);
         }
     }
 
@@ -430,7 +438,7 @@ public sealed class LibraryController : IDisposable
     // ---- "Download it yourself" (the design's fallback block under a failed item)
 
     /// <summary>Step 1 of the fallback for the item (its file and where from, the design's words), or null when the design draws none for it.</summary>
-    public ManualFallback? ManualFallbackOf(string id) => backend.Catalogue.Items.FirstOrDefault(i => i.Id == id) is { } item ? ManualFallbacks.For(item) : null;
+    public ManualFallback? ManualFallbackOf(string id) => backend.ManualFallbackOf(id); // the item's own entry (the Tools page shows tools as sets; its fallback is still a tool's)
 
     /// <summary>The folder step 2 names, as the design writes it.</summary>
     public string ManualFolderText => ManualFallbackWords.Folder;
@@ -446,7 +454,7 @@ public sealed class LibraryController : IDisposable
         CancellationTokenSource placement;
         lock (gate)
         {
-            if (!backend.CanFetch) return Task.CompletedTask; // unbound: nothing is placed and nothing is asked of the install
+            if (!backend.CanFetch || !backend.CanFetchItem(id)) return Task.CompletedTask; // unbound, or not fetchable: nothing is placed and nothing is asked of the install
             if (backend.State.Get(id).State != ItemState.Failed && !(overlay.TryGetValue(id, out var mine) && mine.State == ItemState.Failed)) return Task.CompletedTask;
             if (Rows.FirstOrDefault(row => row.Id == id) is not { Busy: false }) return Task.CompletedTask;
             item = backend.Catalogue.Items.First(i => i.Id == id);
@@ -502,6 +510,17 @@ public sealed class LibraryController : IDisposable
     public void OpenManualFolder() => backend.OpenManualFolder();
 
     public bool CanDownloadAll => backend.CanFetch && (run is { Phase: RunPhase.Downloading or RunPhase.Paused or RunPhase.Done or RunPhase.Partial } || !Plan.IsEmpty);
+
+    /// <summary>ED-NEW-dl-6: why Download all is off when items are not here but none of them can be fetched by this build (null otherwise), so the off button is never silent.</summary>
+    public string? DownloadAllNote
+    {
+        get
+        {
+            if (CanDownloadAll) return null;
+            var plan = Plan;
+            return plan.Lines.Any(l => l.Kind == PlanLineKind.CantFetch) ? LibraryWords.DownloadsUnavailable : null;
+        }
+    }
 
     /// <summary>Opens the confirmation. Nothing downloads until <see cref="Continue"/>. While a run goes on, its dialog is what opens again.</summary>
     public void OpenDownloadAll()
@@ -679,6 +698,8 @@ public sealed class LibraryController : IDisposable
             PlanLineKind.AlreadyHere => new RunLine(l.Id, l.Title, RunLineState.AlreadyHere, 0, LibraryWords.AlreadyHere),
             PlanLineKind.NeedsTerms => new RunLine(l.Id, l.Title, RunLineState.NeedsTerms, 0, l.TermsLabel ?? ""),
             PlanLineKind.NoSize => new RunLine(l.Id, l.Title, RunLineState.NoSize, 0, LibraryWords.SizeUnknown),
+            PlanLineKind.CantFetch => new RunLine(l.Id, l.Title, RunLineState.CantFetch, 0, LibraryWords.NotAvailable),
+            PlanLineKind.SkippedSkill => new RunLine(l.Id, l.Title, RunLineState.SkippedSkill, 0, LibraryWords.SkippedSkill(l.Reason ?? "")),
             _ => new RunLine(l.Id, l.Title, RunLineState.Waiting, 0, SizeText.Short(l.SizeMb ?? 0)),
         }).ToList();
         return new RunView(RunPhase.Confirm, plan.Title, plan.Sub, plan.Statement, plan.Large && !plan.IsEmpty, LibraryWords.ConfirmFoot, null, 0, lines, plan.IncludedHeading, plan.DownloadFact,
@@ -700,6 +721,8 @@ public sealed class LibraryController : IDisposable
                 {
                     PlanLineKind.AlreadyHere => new RunLine(l.Id, l.Title, RunLineState.AlreadyHere, 0, LibraryWords.AlreadyHere),
                     PlanLineKind.NeedsTerms => new RunLine(l.Id, l.Title, RunLineState.NeedsTerms, 0, l.TermsLabel ?? ""),
+                    PlanLineKind.CantFetch => new RunLine(l.Id, l.Title, RunLineState.CantFetch, 0, LibraryWords.NotAvailable),
+                    PlanLineKind.SkippedSkill => new RunLine(l.Id, l.Title, RunLineState.SkippedSkill, 0, LibraryWords.SkippedSkill(l.Reason ?? "")),
                     _ => new RunLine(l.Id, l.Title, RunLineState.NoSize, 0, LibraryWords.SizeUnknown),
                 });
                 continue;
