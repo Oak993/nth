@@ -60,6 +60,9 @@ public static class Program
         // SK-17's exact-prefix exception (ED-235, ED-636), so it too precedes Velopack, single-instance, settings and desktop work.
         if (args.FirstOrDefault() == Marrow.Services.Port.Advisor.AdvisorMcpBridge.Command)
             return Marrow.Services.Port.Advisor.AdvisorMcpBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
+        // Tactus (OD-0140, ED-NEW-pcctl-10): the nth-pc relay, the same kind of private headless child.
+        if (args.FirstOrDefault() == Marrow.Services.Port.PcControl.PcControlBridge.Command)
+            return Marrow.Services.Port.PcControl.PcControlBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
         // OD-0062, ED-235: Velopack's startup hook, before anything else (before the single-instance lock, the toast
         // identity, every binding). When Update.exe runs the app to install, update or uninstall it (--veloapp-*
         // arguments) this handles the event and exits the process; started normally it returns at once.
@@ -81,6 +84,10 @@ public static class Program
         // desktop or data binding: the single-instance lock, toast identity, settings and the app lifetime.
         if(args.FirstOrDefault()=="--colour-bake")return Marrow.Services.Port.ModelsPalette.PaletteBake.Run(args,new Marrow.UI.Port.ModelsPalette.SkiaLogoDecoder());
         if(args.FirstOrDefault()=="--colour-bake-live")return Marrow.Services.Port.ModelsPalette.PaletteLiveBake.Run(args,new Marrow.UI.Port.ModelsPalette.SkiaLogoDecoder());
+#if DEBUG
+        // ED-NEW-pcctl-22: Tactus's overlay spike (P25a, debug builds only): NP-15 and NP-16, run by hand, never by a test.
+        if (args.FirstOrDefault() == Marrow.App.Port.PcControl.Overlay.OverlaySpike.Command) return Marrow.App.Port.PcControl.Overlay.OverlaySpike.Run(args);
+#endif
         WindowsToastStartup.RestoreDevRoot(args); // ED-212/ED-220: retain protocol launch's instance identity
 #if DEBUG
         // ED-212, review fix: a mistyped or since-deleted MARROW_DEV_DATA_ROOT must not silently fall back to the
@@ -141,6 +148,7 @@ public static class Program
         Marrow.App.Port.MultiAccount.Capsule.ComposerCapsuleSeams.Bind(); // step 3a: the composer shows the account capsule
         Marrow.App.Port.Ignis.Runtime.IgnisRuntimeStartup.Bind(); // Ignis (ED-NEW-ignis-runtime): the controller, made on first use once the U1 parts are bound
         Marrow.App.Port.Advisor.AdvisorRuntimeStartup.Bind(); // ED-NEW-ignisadvisor-2: a Droppy Hydra head asks its lead's model (ask_advisor)
+        Marrow.App.Port.PcControl.PcControlStartup.Bind(); // Tactus (OD-0140, ED-NEW-pcctl-9): the capture seams, Windows.Graphics.Capture and the Skia JPEG encoder
         if (skills is not null) SkillsUpdateRows.Attach(skills); // SK-16: the installed items are the Updates page's "Skills and tools" rows (ED-343's hook)
 
         var lifetime = new ClassicDesktopStyleApplicationLifetime

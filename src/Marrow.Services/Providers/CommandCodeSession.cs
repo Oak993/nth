@@ -90,6 +90,7 @@ public sealed class CommandCodeSession : ProviderSession, Marrow.Services.Port.S
     /// shared with Antigravity; B3, re-cites PR-PROVCLI-229/230). :47-49</summary>
     private readonly EditSnapshots editSnapshots = new();
     private readonly Dictionary<string, string> toolNames = new(SwiftStringComparer.Instance);
+    private bool pcTools; // PORT-ONLY (Tactus, ED-NEW-pcctl-41): this launch was given the nth-pc server.
     private readonly Dictionary<string, JSONValue> toolInputs = new(SwiftStringComparer.Instance);
 
     private RunResult? runResult;                            // :66
@@ -227,7 +228,15 @@ public sealed class CommandCodeSession : ProviderSession, Marrow.Services.Port.S
         {
             environment = SetEnvironment(environment, "DROPPY_CODE_MCP_BRIDGE", bridge.LocalPath);
         }
-        if (File.Exists(MCPPaths.ClaudeConfigURL)) // :177-179
+        // PORT-ONLY (Tactus, ED-NEW-pcctl-41; DESIGN.md 3.4): with built-in servers (nth-pc while Tactus is on, a head's
+        // advisor) the bridge reads the chat's own merged file; without, exactly as before.
+        var builtIns = MCPProviderConfig.BuiltInServers(configuration);
+        pcTools = builtIns.Any(server => server.Id == Port.PcControl.PcProviderWiring.ServerName);
+        if (builtIns.Count > 0 && MCPProviderConfig.ClaudeBuiltInConfig(builtIns, configuration.IgnisThreadID) is { } merged && merged.Path != MCPPaths.ClaudeConfigURL)
+        {
+            environment = SetEnvironment(environment, "DROPPY_CODE_MCP_CONFIG", merged.Path);
+        }
+        else if (File.Exists(MCPPaths.ClaudeConfigURL)) // :177-179
         {
             environment = SetEnvironment(environment, "DROPPY_CODE_MCP_CONFIG", MCPPaths.ClaudeConfigURL);
         }
@@ -945,7 +954,8 @@ public sealed class CommandCodeSession : ProviderSession, Marrow.Services.Port.S
         var name = request["toolName"]?.JSONValueString ?? "";
         var input = request["input"] ?? new JSONValue.Null();
         var approval = MakeApproval(id, name, input);
-        if (AutoApproves(name, input) || sessionGrants.Contains(approval.RequestKind.GrantKey()))
+        // PORT-ONLY (Tactus, ED-NEW-pcctl-41): nth's own per-app approval governs the nth-pc tools (DESIGN.md 3.4, 4.1).
+        if (AutoApproves(name, input) || sessionGrants.Contains(approval.RequestKind.GrantKey()) || (pcTools && Port.PcControl.PcProviderWiring.IsClaudeTool(name)))
         {
             Reply(id, allow: true);
             return;

@@ -130,6 +130,8 @@ public sealed class ComposerArea : Decorator
 
         // :24 VStack(spacing: 12): the approval cards, then the group.
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 };
+        // PORT-ONLY: Tactus (OD-0145, ED-NEW-pcctl-27; DESIGN.md 10.7): the strip above the composer, after the approval cards
+        stack.Children.Add(new Marrow.App.Views.Chat.TactusStrip(runtime));
         stack.Children.Add(layers);
         approvalStack = stack;
         var departures = new Canvas { IsHitTestVisible = false }; // over the stack: where a resolved card fades, out of the layout
