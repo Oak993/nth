@@ -93,15 +93,28 @@ internal static class KindleFlame
     private static readonly Lazy<SKPath> OuterPath = new(() => SKPath.ParseSvgPathData(Outer));
     private static readonly Lazy<SKPath> CorePath = new(() => SKPath.ParseSvgPathData(Core));
 
-    /// <summary>Draws the flame into <paramref name="box"/> at <paramref name="heat"/> (0 cold ... 1 hot), with its drop-shadow glow.</summary>
-    public static void Draw(SKCanvas canvas, SKRect box, KindlePalette palette, double heat, double brightness = 1)
+    /// <summary>Draws the flame into <paramref name="box"/> at <paramref name="heat"/> (0 cold ... 1 hot), with its drop-shadow glow.
+    /// ED-NEW-kindlehover-1: <paramref name="lift"/> lifts the cold base toward the secondary text tone, <paramref name="kindle"/>
+    /// lights a faint core over it (a cold capsule under the pointer).</summary>
+    public static void Draw(SKCanvas canvas, SKRect box, KindlePalette palette, double heat, double brightness = 1, double lift = 0, double kindle = 0)
     {
         var saved = canvas.Save();
         canvas.Translate(box.Left, box.Top);
         canvas.Scale(box.Width / 24f, box.Height / 24f);
         var scale = box.Width / 24f;
-        using (var paint = new SKPaint { IsAntialias = true, Color = KindlePalette.Sk(palette.EmberCold) })
+        using (var paint = new SKPaint { IsAntialias = true, Color = KindlePalette.Sk(ColdBase(palette, lift)) })
             canvas.DrawPath(OuterPath.Value, paint);
+        var faint = Math.Clamp(kindle, 0, 1) * (1 - Math.Clamp(heat, 0, 1));
+        if (faint > 0.001)
+        {
+            // the kindling: a faint warm wash on the drop, its core lit, a small glow (never the warm flame's full strength)
+            using (var glow = new SKPaint { IsAntialias = true, Color = KindlePalette.Sk(palette.EmberGlow, .35 * faint), MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, (float)(1.2 / scale)) })
+                canvas.DrawPath(CorePath.Value, glow);
+            using (var warm = new SKPaint { IsAntialias = true, Color = KindlePalette.Sk(palette.EmberOuter, KindleOuter * faint) })
+                canvas.DrawPath(OuterPath.Value, warm);
+            using (var core = new SKPaint { IsAntialias = true, Color = KindlePalette.Sk(palette.EmberCore, KindleCore * faint) })
+                canvas.DrawPath(CorePath.Value, core);
+        }
         if (heat > 0.001)
         {
             using (var glow = new SKPaint { IsAntialias = true, Color = KindlePalette.Sk(palette.EmberGlow, heat), MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, (float)(4 * heat / 2 / scale)) })
@@ -113,6 +126,12 @@ internal static class KindleFlame
         }
         canvas.RestoreToCount(saved);
     }
+
+    /// <summary>The kindled core's and outer wash's opacity at a full kindle (faint: well under the warm flame's).</summary>
+    public const double KindleCore = .7, KindleOuter = .16;
+
+    /// <summary>The cold drop's base at <paramref name="lift"/>: the design's cold grey, lifted toward its secondary text tone.</summary>
+    public static Color ColdBase(KindlePalette palette, double lift) => KindlePalette.Mix(palette.EmberCold, palette.Text2, lift);
 
     public static Color Brighten(Color color, double by)
     {
