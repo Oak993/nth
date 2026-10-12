@@ -14,7 +14,6 @@ namespace Marrow.App.Tests.Views.Browser;
 public sealed class ProjectPreviewTests(HeadlessSession headless)
 {
     [Fact]
-    [Trait("Decision", "ED-NEW-web-w9cx-1")]
     public void Only_small_hot_update_frames_are_read_as_a_hot_reload_witness()
     {
         static string Frame(string payload) => System.Text.Json.JsonSerializer.Serialize(new { response = new { payloadData = payload } });

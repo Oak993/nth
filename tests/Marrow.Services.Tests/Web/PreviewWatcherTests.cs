@@ -31,7 +31,6 @@ public sealed class PreviewWatcherTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-web-w9cx-1")]
     public async Task Changes_only_in_hidden_files_never_reload_a_page_the_site_does_not_serve_them_in()
     {
         using var folder = new ScratchFolder(); using var rig = new WebRig(); var surface = rig.OpenLive(WebSurfaceKind.PreviewTab);
@@ -44,9 +43,11 @@ public sealed class PreviewWatcherTests
         reload.OnBatch(new FileWatcherBatch([folder.Child(".git", "index"), folder.Child("assets", "app.min.js")], false));
         rig.Time.Advance(TimeSpan.FromMilliseconds(150)); await reload.WhenIdle;
         Assert.Equal(1, fake.Log.Count(s => s == "Reload"));
+        fake.RaiseNavigationCompleted(surface.Url!); await reload.WhenIdle;
         reload.OnBatch(new FileWatcherBatch([Path.Combine(Path.GetTempPath(), ".outside", "x.txt")], false));
         rig.Time.Advance(TimeSpan.FromMilliseconds(150)); await reload.WhenIdle;
         Assert.Equal(2, fake.Log.Count(s => s == "Reload"));
+        fake.RaiseNavigationCompleted(surface.Url!); await reload.WhenIdle;
         // An overflow means anything changed, hidden or not.
         reload.OnBatch(new FileWatcherBatch([], true));
         rig.Time.Advance(TimeSpan.FromMilliseconds(150)); await reload.WhenIdle;

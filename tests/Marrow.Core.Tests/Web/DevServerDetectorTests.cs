@@ -87,7 +87,6 @@ public sealed class DevServerDetectorTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-web-w9cx-1")]
     public void Lan_addresses_are_asked_once_and_only_when_a_line_names_a_host_that_is_not_loopback()
     {
         // A terminal builds its detector on the UI thread; listing the network adapters there costs a frame (10 to 20 ms).

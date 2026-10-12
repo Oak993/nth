@@ -43,7 +43,6 @@ public sealed class PreviewDiscoveryTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-web-w9cx-1")]
     public void Hidden_files_and_folders_and_files_over_the_cap_are_never_served()
     {
         var root = Path.Combine(Path.GetTempPath(), "w9-static-" + Guid.NewGuid().ToString("N"));
