@@ -6682,3 +6682,46 @@ ENGINEERING DECISION (C6c D7, 2026-10-12): Decode each damaged mission/assistant
 3. CONNECTIONS: a sealed session is offered only the MCP tools of the servers its SealedLaunch.Connections lists (names compared case-insensitively), and refuses a call to any other server whatever name the model sends ("Error: <server> is not available in this mission chat."). An unsealed chat is as before.
 4. REJECTED PART: the finding also asked that the hub's MCP servers run inside the mission's Job Object. They are the owner's shared, long-lived connections (one process serves every chat), so a mission's job would kill them for every other chat when that mission stops. Each call a mission chat makes is classified and asked per call (12.3), now only to the listed servers, and Interrupt cancels a call in flight; this is the same exposure a Claude-provider mission chat has with its MCP connections. The lead keeps it as a seam for the connectors unit.
 5. No third-party package is added.
+
+## ED-NEW-dextra-as7-1
+2026-10-12 - What each tool call brings into an agent's context (Dextra unit AS-7; DESIGN.md rev 5, 12.4 "Taint", "Taint follows text"; tests TaintWiringTests, AgentRoleTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. TaintWiring.Of places every tool call a Dextra chat makes (ToolCall kind, title, detail; the provider) and returns the taint it brings in. Clean: edits; reads and searches inside the access folders; the project's own commands the classifier calls work; nth-dextra's own tools; Claude's own sub-agents (their tool calls arrive as their own events and are placed one by one); the provider's housekeeping tools (TodoWrite, plan mode, shell output, Skill).
+2. Tainted, with the origin: a web fetch or search (Web); a PDF (Pdf) or a mail file (.eml, .msg, .mbox, .emlx: Email) anywhere, also inside the access folders, because their text is someone else's; a file or folder outside the access folders (OutsideFile); any MCP tool but nth-dextra's (Connector); a command the classifier places as reading the network, installing, sending, signing in, or that it cannot place (ToolOutput, or Connector for a connector target).
+3. FAIL CLOSED: a tool nth cannot place (an unknown "Other" tool, an empty title, another provider's sub-agent whose calls nth cannot see) taints with ToolOutput.
+4. MayWriteFiles: every call but a read, a search and a web fetch may leave text in the mission's files; the controller uses it for the workspace floor (ED-NEW-dextra-as7-7).
+5. A source's detail is one line of at most 160 characters. No third-party package is added.
+
+## ED-NEW-dextra-as7-2
+2026-10-12 - Readers and the reviewer only read (Dextra unit AS-7; DESIGN.md rev 5, 12.4 "Reader and actor split"; tests AgentRoleTests, InjectionCorpusTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. AgentRole (Actor, Reader, Reviewer) is a new PolicyContext field, Actor by default, so every earlier caller decides as before.
+2. In PolicyEngine.DecideLeaf, right after the owner's never-list and before everything else, a Reader or Reviewer leaf that is not a local read, a web read, or one of nth-dextra's report, ask_owner, recall and usage_status is denied with the new rule PolicyRule.ReadsOnly ("A reader only reads: it cannot act"). A hard deny stays a hard deny (it is decided first).
+3. The rule is appended at the end of PolicyRule, so stored rule numbers do not move. No third-party package is added.
+
+## ED-NEW-dextra-as7-3
+2026-10-12 - Instructions found in untrusted content (Dextra unit AS-7; DESIGN.md rev 5, 12.4 "Instructions found in content"; tests InstructionScannerTests, InjectionCorpusTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. InstructionScanner.Find is informational only: taint is the gate, the scanner only tells the owner. A finding is a quote of at most 40 characters on one line and the pattern that matched.
+2. The text is normalized first: NFKC (full-width forms), format characters removed (zero-width, bidi marks, soft hyphens), lowercased, look-alike Cyrillic and Greek letters mapped to Latin, runs of spaces collapsed.
+3. Patterns, in order: English (ignore the rules, new instructions, role change, role markers, send to an address or link, cc or send this, run this or pipe to a shell or an install from another package index, an approval claim, a line addressed to the model that tells it to act, a standing change such as a memory note, a duty or a reserve rule, secrecy from the owner, a money ask), then Hindi in Devanagari, Urdu in Arabic script, and both in Latin letters.
+4. BOUNDS: the first and the last 32,000 characters are read; every pattern has a 250 ms timeout, and a timeout is itself a finding ("text too tangled to read").
+5. FeedEventKind.InstructionFound is appended at the end of the enum. No third-party package is added.
+
+## ED-NEW-dextra-as7-4
+2026-10-12 - The outward privacy check (Dextra unit AS-7; DESIGN.md rev 5, 12.1 "Personal data out", 12.4 "Privacy shield on the way out"; tests OutwardPrivacyTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. It applies to a leaf of class Outward, PersonalDataOut, ConnectorWrite or Commitment. It reads what leaves the PC: the card's command or request and its detail, not the agent's reason (its words to the owner) and not Claude's description of a command.
+2. It marks in place: secrets, card and bank numbers, codes and ids through FeedShield's own patterns (FeedShield.SecretSpans, on the original text), plus id numbers (Aadhaar, CNIC, PAN, passport and labelled ids), birth dates, labelled and street addresses, phone numbers, and email addresses that are not recipients.
+3. RECIPIENTS: from JSON fields that name who receives it (to, cc, bcc, recipients, attendees, channel, chat_id, phone and the like; a recipient object's display name is skipped), else the hosts of URLs in a command. Compared normalized (mailto, display name, phone digits, www) against the owner's list; an "@domain" entry covers its addresses.
+4. BLOCKED: personal data with no recipient nth can name, or with a recipient not on the list. Text past 64,000 characters counts as unchecked and blocks too. A blocked Allow becomes Ask with the new rule PolicyRule.PersonalData and uses no grant; the card refuses approval until every recipient is listed. Deny and Ask stay as they are.
+5. No third-party package is added.
+
+## ED-NEW-dextra-as7-5
+2026-10-12 - Memory quarantine and data fencing (Dextra unit AS-7; DESIGN.md rev 5, 12.4 "Memory quarantine", "Taint follows text"; tests AgentRoleTests, InjectionCorpusTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. TaintGates.AdmitNote: a note captured in a tainted turn, or from tainted text, is quarantined, with the union of both taints as its sources; only the owner's own clean words are used. AS-12 (memory) must admit every captured note through it.
+2. TaintGates.AsData: tainted text handed to another agent (a summary, a report, a helper's task) is fenced as data: a header naming where it came from ("a web page", "an email") and saying it is data, not instructions, then the text inside <<<data ... >>>, with any ">>>" in the text broken up so it cannot close the fence. Clean text passes as it is.
+3. No third-party package is added.
+
+## ED-NEW-dextra-as7-6
+2026-10-12 - The injection corpus, the self-check and one approval path (Dextra unit AS-7; DESIGN.md rev 5, 12.4 "Injection corpus", 16 "Ordering rule"; tests InjectionCorpusTests, OutwardPrivacyTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. InjectionCorpus holds 79 hostile cases (at least 60 are required): web pages, hidden text, alt text, PDFs, email signatures and bodies, messages, code comments, tool output, outside files, summaries of summaries, Hindi, Urdu, "the owner already approved", encoded payloads and connectors. Every address in it is under collect.example.
+2. InjectionSelfCheck.Run places each case's read with TaintWiring (it must taint), then tries a battery of 40 side effects plus the case's own ask in seven contexts: the reader, an actor given its summary, an actor given summaries of summaries, the lead after the merge, Dextra's brain after the digest, a child the brain delegated to, and the reviewer. It runs with generous standing grants, the allowlist and purchases on. It fails on any Allow for a side effect, a used memory note, an allowed delegation that does not hand over data only, any allowed duty, suggestion, capability or grant change, and on a corpus under 60 cases or a control (a clean actor's allowlisted build) that is not allowed.
+3. MissionApprovals.Decide is the one decision for a Dextra agent's provider approval: classify, decide with the agent's taint and role, then the outward privacy check. The controller and the self-check both use it, so the check tests what runs.
+4. Auto-answering turns on only when this passes at run time (ED-NEW-dextra-as7-8). No third-party package is added.
