@@ -49,6 +49,12 @@ public sealed partial class ThreadRuntime
         foreach (var @event in liveFlow.Apply(change)) Handle(@event);
     }
 
+    /// <summary>For tests: an event as the chat's session delivers it, through the artifact fallback and the live-answer flow.</summary>
+    internal void DeliverSessionEvent(ProviderEvent @event)
+    {
+        foreach (var shown in ArtifactEvents(@event)) Handle(shown);
+    }
+
     /// <summary>The id of the row showing the view with <paramref name="viewId"/> (the newest that is not superseded), or null.</summary>
     private string? LiveEntryOf(string viewId)
     {
@@ -95,7 +101,7 @@ public sealed partial class ThreadRuntime
     private string? TakeLiveContext()
     {
         if (liveContext.Count == 0) return null;
-        var lines = liveContext.Select(pair => "\"" + pair.Key.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal) + "\": " + pair.Value);
+        var lines = liveContext.Select(pair => "\"" + pair.Key.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal) + "\": " + pair.Value).ToList();
         liveContext.Clear();
         return "The reader's live view carries this with their message (set by their own controls):\n{" + string.Join(", ", lines) + "}";
     }

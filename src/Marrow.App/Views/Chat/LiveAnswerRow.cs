@@ -35,6 +35,9 @@ public static class LiveAnswerEffects
 {
     /// <summary>Opens a web address from a view. True when it was handed on.</summary>
     public static Ambient<Func<string, bool>> OpenLink { get; } = new(url => SwiftURL.Create(url) is { } address && Marrow.Services.Port.Workspace.Open.Current(address));
+
+    /// <summary>Sends a message of the reader's from a view (a button's or a chip's send, and a call, which the model makes); tests replace it.</summary>
+    public static Ambient<Action<ThreadRuntime, string>> Send { get; } = new(static (runtime, text) => runtime.SendLiveText(text));
 }
 
 /// <summary>Lets the inline widget host (W19) draw an HTML live answer in the thread; null (the default) draws the card that opens it in Tabula.</summary>
@@ -203,7 +206,7 @@ public sealed class LiveAnswerRow : Decorator
                 e.Handled = LiveAnswerEffects.OpenLink.Current(effect.Text);
                 break;
             case NthUiEffectKind.Send:
-                runtime.SendLiveText(effect.Text);
+                LiveAnswerEffects.Send.Current(runtime, effect.Text);
                 e.Handled = true;
                 break;
             case NthUiEffectKind.Context:
@@ -212,7 +215,7 @@ public sealed class LiveAnswerRow : Decorator
                 break;
             case NthUiEffectKind.Call:
                 // The model makes the call itself, so the reader's normal tool approvals and guards apply (MCP Apps call directly, W19).
-                runtime.SendLiveText($"Call the tool {effect.Server}.{effect.Tool}" + (effect.Json is { Length: > 0 } json && json != "{}" ? $" with {json}" : "") + ".");
+                LiveAnswerEffects.Send.Current(runtime, $"Call the tool {effect.Server}.{effect.Tool}" + (effect.Json is { Length: > 0 } json && json != "{}" ? $" with {json}" : "") + ".");
                 e.Handled = true;
                 break;
             case NthUiEffectKind.Export:
