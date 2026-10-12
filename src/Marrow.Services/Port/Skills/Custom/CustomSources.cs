@@ -135,7 +135,17 @@ public sealed class CustomSources : ICustomAddBackend, IImportedSkillSource, IOw
         }
     }
 
-    public Task<OwnItem> Add(CustomAddCandidate candidate, IProgress<double> progress, CancellationToken cancel) => Task.Run(() =>
+    public Task<OwnItem> Add(CustomAddCandidate candidate, IProgress<double> progress, CancellationToken cancel) => Install(null, candidate, progress, cancel);
+
+    public Task<OwnItem> Replace(string replacingId, CustomAddCandidate candidate, IProgress<double> progress, CancellationToken cancel)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(replacingId);
+        return Install(replacingId, candidate, progress, cancel);
+    }
+
+    // Add and Replace. Replace publishes the new copy first (its own new id), registers it in the same registry write that drops the old one, and only then deletes the old files: a failure before that
+    // write deletes only the new copy, so the old item is still there, enabled as it was. A leftover old folder after the write is an orphan nobody lists, never a loss.
+    private Task<OwnItem> Install(string? replacingId, CustomAddCandidate candidate, IProgress<double> progress, CancellationToken cancel) => Task.Run(() =>
     {
         cancel.ThrowIfCancellationRequested();
         CheckedCustomItem checkedItem;
@@ -144,13 +154,15 @@ public sealed class CustomSources : ICustomAddBackend, IImportedSkillSource, IOw
             cancel.ThrowIfCancellationRequested();
             if (!pending.TryGetValue(candidate.Key, out checkedItem!) || checkedItem.Candidate != candidate || candidate.Problem is not null || publishing.ContainsKey(candidate.Key))
                 throw new InvalidOperationException("Check this item again before adding it.");
-            if (items.Any(i => i.Kind == checkedItem.Kind && (i.Name.Equals(candidate.Name, StringComparison.OrdinalIgnoreCase) || checkedItem.Command is not null && i.Command == checkedItem.Command)) ||
-                publishing.Values.Any(i => i.Kind == checkedItem.Kind && (i.Candidate.Name.Equals(candidate.Name, StringComparison.OrdinalIgnoreCase) || checkedItem.Command is not null && i.Command == checkedItem.Command)))
+            if (replacingId is not null && items.FirstOrDefault(i => i.Id == replacingId) is { } old && old.Kind != checkedItem.Kind)
+                throw new InvalidOperationException("Only an item of the same kind can be replaced.");
+            if (Conflicts(items, checkedItem, replacingId) || publishing.Values.Any(i => i.Kind == checkedItem.Kind && (i.Candidate.Name.Equals(candidate.Name, StringComparison.OrdinalIgnoreCase) || checkedItem.Command is not null && i.Command == checkedItem.Command)))
                 throw new InvalidOperationException("An own item already uses that name or command.");
             publishing.Add(candidate.Key, checkedItem);
         }
         var id = Guid.NewGuid().ToString("N");
         OwnItem installed;
+        var replaced = false;
         try
         {
             var content = checkedItem.Files.ToDictionary(p => "payload/" + p.Key, p => p.Value);
@@ -164,18 +176,28 @@ public sealed class CustomSources : ICustomAddBackend, IImportedSkillSource, IOw
             lock (gate)
             {
                 cancel.ThrowIfCancellationRequested();
-                var next = items.Append(installed).ToArray();
+                var old = replacingId is null ? null : items.FirstOrDefault(i => i.Id == replacingId);
+                // the world may have moved since the check above: the old item's neighbours are looked at again with it left out
+                if (replacingId is not null && Conflicts(items, checkedItem, replacingId)) throw new InvalidOperationException("An own item already uses that name or command.");
+                if (old is not null) installed = installed with { Enabled = old.Enabled };
+                var next = items.Where(i => i.Id != replacingId).Append(installed).ToArray();
                 files.SaveRegistry(root, JsonSerializer.SerializeToUtf8Bytes(next, CustomSourceJsonContext.Default.OwnItemArray));
                 items = next;
                 pending.Remove(candidate.Key);
+                replaced = old is not null;
             }
         }
         catch { files.Delete(root, id); throw; }
         finally { lock (gate) publishing.Remove(candidate.Key); }
+        // committed: the old copy's files can go. A failure here leaves an orphan folder, which nothing lists or loads, and must not undo the replacement.
+        if (replaced) try { files.Delete(root, replacingId!); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         // User code is never invoked under the registry gate or allowed to undo an already committed install.
         try { progress.Report(1); } catch (Exception) { }
         return installed;
     }, cancel);
+
+    private static bool Conflicts(IEnumerable<OwnItem> list, CheckedCustomItem item, string? except) =>
+        list.Any(i => i.Id != except && i.Kind == item.Kind && (i.Name.Equals(item.Candidate.Name, StringComparison.OrdinalIgnoreCase) || item.Command is not null && i.Command == item.Command));
 
     public IReadOnlyList<OwnItem> List(CustomAddKind kind) { lock (gate) return items.Where(i => i.Kind == kind).Select(Copy).ToArray(); }
     public void Discard(IEnumerable<CustomAddCandidate> candidates) { lock (gate) foreach (var c in candidates) pending.Remove(c.Key); }
