@@ -132,6 +132,7 @@ public sealed class AssistantEventBus : IDisposable
             if (disposed) return;
             disposed = true;
             running = pump;
+            foreach (var listener in subscribers) listener.Retire();
             subscribers = [];
         }
         stop.Cancel();
@@ -235,7 +236,7 @@ public sealed class AssistantEventBus : IDisposable
         {
             try
             {
-                listener.Handler(shared);
+                listener.Invoke(shared);
             }
             catch (Exception)
             {
@@ -254,8 +255,28 @@ public sealed class AssistantEventBus : IDisposable
 
     private sealed class Subscription(AssistantEventBus bus, Action<IReadOnlyList<FeedEvent>> handler) : IDisposable
     {
-        public Action<IReadOnlyList<FeedEvent>> Handler { get; } = handler;
+        private readonly object invocationGate = new();
+        private int retired;
 
-        public void Dispose() => bus.Remove(this);
+        public void Invoke(IReadOnlyList<FeedEvent> batch)
+        {
+            // Dispatch and normal subscription disposal share a reentrant gate. Dispose cannot return
+            // between the last active check and handler entry; a handler may dispose itself.
+            lock (invocationGate)
+            {
+                if (Volatile.Read(ref retired) != 0) return;
+                handler(batch);
+            }
+        }
+
+        // Whole-bus shutdown must remain bounded even when an already dispatched callback is stalled.
+        public void Retire() => Interlocked.Exchange(ref retired, 1);
+
+        public void Dispose()
+        {
+            Retire();
+            lock (invocationGate) { } // Join any callback already dispatched; no publisher ever takes this gate.
+            bus.Remove(this);
+        }
     }
 }
