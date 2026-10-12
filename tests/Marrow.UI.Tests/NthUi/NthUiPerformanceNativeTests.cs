@@ -13,7 +13,7 @@ public sealed class NthUiPerformanceNativeTests(HeadlessSession headless)
     [Trait("Decision", "ED-NEW-web-w16a-1")]
     public void Each_streamed_node_is_placed_in_under_two_milliseconds_on_average() => headless.OnUiThread(() =>
     {
-        var (average, worst) = NthUiPerformanceTests.StreamLongAnswer();
+        var (average, worst, _) = NthUiPerformanceTests.StreamLongAnswer();
         NthUiPerformanceTests.Record("native stream average", average);
         Assert.True(average < 2, $"average {average:0.00} ms per node, worst {worst:0.0} ms");
     });
@@ -22,7 +22,7 @@ public sealed class NthUiPerformanceNativeTests(HeadlessSession headless)
     [Trait("Decision", "ED-NEW-web-w16a-1")]
     public void A_state_change_across_a_three_hundred_node_view_takes_under_four_milliseconds() => headless.OnUiThread(() =>
     {
-        var median = NthUiPerformanceTests.RecomputeMedian();
+        var (median, _) = NthUiPerformanceTests.Recompute();
         NthUiPerformanceTests.Record("native recompute median", median);
         Assert.True(median < 4, $"median {median:0.00} ms per change");
     });
