@@ -205,7 +205,7 @@ public sealed class PackageWindowsNthTests
         var props = File.ReadAllText(Path.Combine(PackagingRig.Repository, "Directory.Release.props"));
         var publisher = Regex.Match(props, "<NthPublisher>([^<]+)</NthPublisher>", RegexOptions.CultureInvariant).Groups[1].Value;
 
-        Assert.Equal("nth", publisher); // decision A (the publisher's name) is open
+        Assert.Equal("oak993", publisher); // owner-selected publisher, decision A
         Assert.Contains($"[string]$PackAuthors = '{publisher}',", Script, StringComparison.Ordinal);
         Assert.Contains("\"-p:NthPublisher=$PackAuthors\"", Script, StringComparison.Ordinal);
         Assert.Contains("<Company>$(NthPublisher)</Company>", props, StringComparison.Ordinal);
