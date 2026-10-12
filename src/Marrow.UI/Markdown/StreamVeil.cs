@@ -39,6 +39,9 @@ public sealed class StreamVeil
     private const double GapCeiling = 1.0; // StreamVeil.swift:44
 
     private IReadOnlyList<string>? previous; // StreamVeil.swift:47
+    // ENGINEERING DECISION (ED-NEW-lean-12): the string `previous` was cut from. Every veil-clock tick feeds the paragraph's text again
+    // (VeiledText's redraw, :273-279); a text equal to it unit for unit has the same Characters, so the tick skips cutting and comparing them.
+    private string? previousText;
     private List<Chunk> chunks = []; // StreamVeil.swift:48
     private double cadence = CadenceSeed; // StreamVeil.swift:49
     private DateTimeOffset? lastAppend; // StreamVeil.swift:50
@@ -46,10 +49,17 @@ public sealed class StreamVeil
     // StreamVeil.swift:55-85.
     public void Advance(string text, DateTimeOffset at)
     {
+        if (previous is not null && string.Equals(text, previousText, StringComparison.Ordinal))
+        {
+            Prune(at); // :56 the same characters: nothing to register
+            return;
+        }
+
         var characters = SwiftString.Characters(text).ToArray();
         if (previous is null)
         {
             previous = characters;
+            previousText = text;
             return;
         }
 
@@ -87,6 +97,7 @@ public sealed class StreamVeil
             }
 
             previous = characters;
+            previousText = text;
         }
 
         Prune(at);
@@ -152,6 +163,7 @@ public sealed class StreamVeil
     public void Reset()
     {
         previous = null;
+        previousText = null;
         chunks = [];
         lastAppend = null;
         cadence = CadenceSeed;
@@ -494,7 +506,6 @@ public sealed class VeiledText : Decorator
             Plain plain => new StyledText(plain.String),
             Attributed attributed => Styled(
                 attributed.Value,
-                0,
                 attributed.Value.PlainText,
                 ValueList<StreamVeil.Span>.Empty,
                 SwiftColor.Primary),
@@ -553,6 +564,13 @@ public sealed class VeiledText : Decorator
     private readonly bool hasSegments;
     private bool isRedrawing;
     private bool wasFading;
+    // ENGINEERING DECISION (ED-NEW-lean-12): a VeiledText's text never changes (a flush builds a new one), so its Characters are read and cut
+    // once: `characters` is the source's text (an attributed source builds its plain text anew on every read), `pieces` keeps where each
+    // Character starts and the pieces of the text no chunk touches, so a veil-clock tick rebuilds only the runs of the tail still dissolving.
+    private readonly string characters;
+    private readonly Func<string> readCharacters;
+    private VeilPieces? pieces;
+    private readonly StyledText.Painted shown = new(); // what the last redraw put in the text block, so a tick only recolours (StyledText.Render)
 
     // StreamVeil.swift:241.
     public ValueList<int> ProseEnds { get; } = ValueList<int>.Empty;
@@ -563,6 +581,8 @@ public sealed class VeiledText : Decorator
         this.segments = segments;
         hasSegments = true;
         source = new Source.Attributed(JoinProse(segments, out var ends));
+        characters = source.Characters;
+        readCharacters = () => characters;
         ProseEnds = new ValueList<int>(ends);
         this.veils = veils;
         veil = veils?.ClaimText(this) ?? new StreamVeil();
@@ -578,6 +598,8 @@ public sealed class VeiledText : Decorator
     public VeiledText(string verbatim, MarkdownVeilScope? veils = null)
     {
         source = new Source.Plain(verbatim);
+        characters = source.Characters;
+        readCharacters = () => characters;
         this.veils = veils;
         veil = veils?.ClaimText(this) ?? new StreamVeil();
         Build();
@@ -626,7 +648,7 @@ public sealed class VeiledText : Decorator
         {
             var at = SwiftDate.Now;
             var veiled = environmentKnown && StreamVeil.GetMarkdownVeiled(this);
-            var fading = veil.Step(() => source.Characters, veiled, at);
+            var fading = veil.Step(readCharacters, veiled, at);
             wasFading = fading;
             StyledText result;
             if (fading)
@@ -640,7 +662,7 @@ public sealed class VeiledText : Decorator
                 result = SettledText();
             }
 
-            result.Render(textBlock);
+            result.Render(textBlock, shown);
         }
         finally
         {
@@ -664,7 +686,6 @@ public sealed class VeiledText : Decorator
                 Segment.Fixed fixedRun => output + fixedRun.Text,
                 Segment.Prose prose => output + Styled(
                     prose.Value,
-                    0,
                     prose.Value.PlainText,
                     ValueList<StreamVeil.Span>.Empty,
                     SwiftColor.Primary),
@@ -682,23 +703,26 @@ public sealed class VeiledText : Decorator
         var baseColor = MarkdownView.GetMarkdownDimmed(this)
             ? SwiftColor.Primary.Opacity(0.7)
             : SwiftColor.Primary;
+        var cut = pieces ??= new VeilPieces(characters, source is Source.Attributed attributedSource ? attributedSource.Value : null);
 
         if (!hasSegments)
         {
-            if (source is Source.Plain plain) return Plain(plain.String, spans, baseColor);
-            if (source is Source.Attributed attributed)
-                return Styled(attributed.Value, 0, source.Characters, spans, baseColor);
+            if (source is Source.Plain) return cut.Plain(spans, baseColor);
+            if (source is Source.Attributed)
+            {
+                var whole = StyledText.FromRuns(cut.Styled(spans, baseColor));
+                cut.Turn();
+                return whole;
+            }
+
             throw new UnreachableException();
         }
 
-        var joinedText = source.Characters;
-        var joinedStyled = Styled(
-            ((Source.Attributed)source).Value,
-            0,
-            joinedText,
-            spans,
-            baseColor);
-        var output = new StyledText("");
+        // :326-331 the joined prose styled once, then sliced at the joined string's grapheme boundaries between the fixed runs.
+        var joinedStyled = cut.Styled(spans, baseColor);
+        var output = cut.Output;
+        output.Clear();
+        output.Add(VeilPieces.EmptyRun); // the empty Text the joined value starts from
         var cursor = 0;
         var prose = 0;
         foreach (var segment in segments!)
@@ -706,11 +730,11 @@ public sealed class VeiledText : Decorator
             switch (segment)
             {
                 case Segment.Fixed fixedRun:
-                    output += fixedRun.Text;
+                    output.AddRange(fixedRun.Text.Runs);
                     break;
                 case Segment.Prose:
                     var end = ProseEnds[prose++];
-                    output += SliceStyled(joinedStyled, joinedText, cursor, end);
+                    cut.Slice(joinedStyled, cursor, end, output);
                     cursor = end;
                     break;
                 default:
@@ -718,7 +742,8 @@ public sealed class VeiledText : Decorator
             }
         }
 
-        return output;
+        cut.Turn();
+        return StyledText.FromRuns(output);
     }
 
     // StreamVeil.swift:253-265.
@@ -738,147 +763,16 @@ public sealed class VeiledText : Decorator
         return new AttributedText(runs);
     }
 
-    // StreamVeil.swift:326-331. Slice at the joined string's grapheme boundaries, not at each prose run's count.
-    private static StyledText SliceStyled(StyledText styled, string joinedText, int lowerCharacter, int upperCharacter)
-    {
-        var characters = SwiftString.Characters(joinedText).ToArray();
-        var lower = Utf16Offset(characters, lowerCharacter);
-        var upper = Utf16Offset(characters, upperCharacter);
-        var output = new StyledText("");
-        var offset = 0;
-
-        foreach (var run in styled.Runs)
-        {
-            var runEnd = offset + run.Text.Length;
-            var start = Math.Max(offset, lower);
-            var end = Math.Min(runEnd, upper);
-            if (end > start)
-            {
-                var text = run.Text.Substring(start - offset, end - start);
-                output += StyledRun(run, text);
-            }
-            offset = runEnd;
-        }
-
-        return output;
-    }
-
-    // StreamVeil.swift:326-331.
-    private static int Utf16Offset(IReadOnlyList<string> characters, int characterIndex)
-    {
-        var offset = 0;
-        for (var index = 0; index < characterIndex; index++) offset += characters[index].Length;
-        return offset;
-    }
-
-    // StreamVeil.swift:326-331.
-    private static StyledText StyledRun(StyledText.Run run, string text)
-    {
-        var result = new StyledText(text);
-        if (run.Font is { } font) result = result.Font(font);
-        if (run.Color is { } color) result = result.ForegroundColor(color);
-        if (run.Weight is { } weight) result = result.FontWeight(weight);
-        if (run.IsItalic is true) result = result.Italic();
-        if (run.IsUnderlined is true) result = result.Underline();
-        if (run.IsStrikethrough is true) result = result.Strikethrough();
-        if (run.HasMonospacedDigits is true) result = result.MonospacedDigit();
-        if (run.BaselineOffset is { } baseline) result = result.BaselineOffset(baseline);
-        if (run.Link is { } link) result = result.Link(link);
-        return result;
-    }
-
-    // StreamVeil.swift:309-320.
-    private static StyledText Plain(string text, ValueList<StreamVeil.Span> spans, SwiftColor baseColor)
-    {
-        var characters = SwiftString.Characters(text).ToArray();
-        var output = new StyledText("");
-        var start = 0;
-        while (start < characters.Length)
-        {
-            var alpha = AlphaAt(start, spans);
-            var end = start + 1;
-            while (end < characters.Length && AlphaAt(end, spans) == alpha) end++;
-            var value = string.Concat(characters.Skip(start).Take(end - start));
-            var run = new StyledText(value);
-            if (alpha is { } opacity) run = run.ForegroundColor(baseColor.Opacity(opacity));
-            output += run;
-            start = end;
-        }
-
-        return output;
-    }
-
-    // StreamVeil.swift:309-338.
+    // StreamVeil.swift:309-338: a whole attributed text in the veil's colours (the settled text, :294-307, with no spans).
     private static StyledText Styled(
         AttributedText attributed,
-        int utf16Offset,
         string joinedText,
         ValueList<StreamVeil.Span> spans,
-        SwiftColor baseColor)
-    {
-        var output = new StyledText("");
-        var characterRanges = new List<(int Start, int End, double? Alpha)>();
-        var globalOffset = 0;
-        foreach (var character in SwiftString.Characters(joinedText))
-        {
-            var end = globalOffset + character.Length;
-            characterRanges.Add((globalOffset, end, AlphaAt(characterRanges.Count, spans)));
-            globalOffset = end;
-        }
-
-        var runOffset = utf16Offset;
-        foreach (var attributedRun in attributed.Runs)
-        {
-            var localCharacters = SwiftString.Characters(attributedRun.Text).ToArray();
-            if (localCharacters.Length == 0)
-            {
-                output += StyledRun(attributedRun, null, baseColor);
-                continue;
-            }
-
-            var alphas = new double?[localCharacters.Length];
-            var localOffset = runOffset;
-            for (var index = 0; index < localCharacters.Length; index++)
-            {
-                var end = localOffset + localCharacters[index].Length;
-                alphas[index] = AlphaForRange(localOffset, end, characterRanges);
-                localOffset = end;
-            }
-
-            var start = 0;
-            while (start < localCharacters.Length)
-            {
-                var alpha = alphas[start];
-                var end = start + 1;
-                while (end < localCharacters.Length && alphas[end] == alpha) end++;
-
-                var text = string.Concat(localCharacters.Skip(start).Take(end - start));
-                output += StyledRun(attributedRun with { Text = text }, alpha, baseColor);
-                start = end;
-            }
-
-            runOffset += attributedRun.Text.Length;
-        }
-
-        return output;
-    }
+        SwiftColor baseColor) =>
+        StyledText.FromRuns(new VeilPieces(joinedText, attributed).Styled(spans, baseColor));
 
     // StreamVeil.swift:309-338.
-    private static double? AlphaForRange(
-        int lower,
-        int upper,
-        IReadOnlyList<(int Start, int End, double? Alpha)> characters)
-    {
-        foreach (var character in characters)
-        {
-            if (character.Start < upper && character.End > lower) return character.Alpha;
-        }
-
-        return null;
-    }
-
-    // StreamVeil.swift:309-338.
-    private static StyledText StyledRun(AttributedRun run, double? alpha, SwiftColor baseColor)
+    private static StyledText.Run StyledRun(AttributedRun run, double? alpha, SwiftColor baseColor)
     {
         var text = new StyledText(run.Text);
         if (run.IsBold == true) text = text.FontWeight(SwiftFont.Weight.Bold);
@@ -892,7 +786,7 @@ public sealed class VeiledText : Decorator
         else if (run.Link is not null)
             text = text.ForegroundColor(Chrome.Chrome.Accent);
 
-        return text;
+        return text.Runs[0]; // a Text of one run keeps one run through its modifiers
     }
 
     // StreamVeil.swift:314-320.
@@ -906,6 +800,220 @@ public sealed class VeiledText : Decorator
 
         return null;
     }
+
+    /// <summary>
+    /// ENGINEERING DECISION (ED-NEW-lean-12). The Characters of one veiled text, cut once, and the runs StreamVeil.swift:309-338 paints them
+    /// in. A Character's alpha is that of the first chunk holding it (:314-320); between two chunk bounds every Character has the same alpha,
+    /// so a run is split only where a bound falls (found by binary search) instead of by asking every Character. An attributed run's own
+    /// Character takes the alpha of the first Character of the whole text it overlaps (:321-325), which is the one holding its first UTF-16
+    /// unit. The pieces no chunk touches do not change from tick to tick and are kept for the next one; only the dissolving tail is rebuilt.
+    /// The runs come out exactly as the per-Character form built them: an empty Text first, equal neighbours merged within a run.
+    /// </summary>
+    private sealed class VeilPieces
+    {
+        public static readonly StyledText.Run EmptyRun = new("");
+
+        private readonly string text;
+        private readonly int[] starts; // where each Character of the text starts (UTF-16), and the text's length last
+        private readonly AttributedText? attributed;
+        private readonly int[][] runStarts = []; // per attributed run: where each of its own Characters starts in it, and its length last
+        private readonly int[][] runFirst = []; // per attributed run: per own Character, the text's Character it overlaps first (int.MaxValue: none)
+        private readonly List<int> bounds = [];
+        private readonly List<StyledText.Run> runs = [];
+        private Dictionary<(int Run, int Lower, int Upper), StyledText.Run> kept = [];
+        private Dictionary<(int Run, int Lower, int Upper), StyledText.Run> used = [];
+
+        public VeilPieces(string text, AttributedText? attributed)
+        {
+            this.text = text;
+            starts = Starts(text);
+            this.attributed = attributed;
+            if (attributed is null) return;
+
+            runStarts = new int[attributed.Runs.Count][];
+            runFirst = new int[attributed.Runs.Count][];
+            var runOffset = 0;
+            for (var index = 0; index < attributed.Runs.Count; index++)
+            {
+                var run = attributed.Runs[index];
+                var local = Starts(run.Text);
+                var first = new int[local.Length - 1];
+                for (var character = 0; character < first.Length; character++)
+                {
+                    var lower = runOffset + local[character];
+                    first[character] = lower < text.Length ? Holding(lower) : int.MaxValue;
+                }
+
+                runStarts[index] = local;
+                runFirst[index] = first;
+                runOffset += run.Text.Length;
+            }
+        }
+
+        /// <summary>The list the segmented text is assembled in, kept between ticks.</summary>
+        public List<StyledText.Run> Output { get; } = [];
+
+        private int Count => starts.Length - 1;
+
+        // StreamVeil.swift:309-320: a plain string, split where the alpha changes.
+        public StyledText Plain(ValueList<StreamVeil.Span> spans, SwiftColor baseColor)
+        {
+            Bounds(spans);
+            Output.Clear();
+            Output.Add(EmptyRun);
+            var character = 0;
+            while (character < Count)
+            {
+                var alpha = AlphaAt(character, spans);
+                var end = Math.Min(NextBound(character), Count);
+                while (end < Count && AlphaAt(end, spans) == alpha) end = Math.Min(NextBound(end), Count);
+                if (alpha is { } opacity)
+                {
+                    Output.Add(new StyledText(Substring(text, starts, character, end)).ForegroundColor(baseColor.Opacity(opacity)).Runs[0]);
+                }
+                else
+                {
+                    var key = (-1, character, end);
+                    if (!Reuse(key, out var piece)) used[key] = piece = new StyledText.Run(Substring(text, starts, character, end));
+                    Output.Add(piece);
+                }
+
+                character = end;
+            }
+
+            Turn();
+            return StyledText.FromRuns(Output);
+        }
+
+        // StreamVeil.swift:309-338: every attributed run, split where the alpha of the Characters it overlaps changes. The list is kept
+        // between ticks (a caller that keeps the runs copies them) and the caller ends the build with Turn.
+        public List<StyledText.Run> Styled(ValueList<StreamVeil.Span> spans, SwiftColor baseColor)
+        {
+            Bounds(spans);
+            runs.Clear();
+            runs.Add(EmptyRun);
+            for (var index = 0; index < runFirst.Length; index++)
+            {
+                var run = attributed!.Runs[index];
+                var first = runFirst[index];
+                if (first.Length == 0)
+                {
+                    runs.Add(Piece(index, 0, 0, run, null, baseColor));
+                    continue;
+                }
+
+                var character = 0;
+                while (character < first.Length)
+                {
+                    var alpha = Alpha(first[character], spans);
+                    var end = NextChange(first, character);
+                    while (end < first.Length && Alpha(first[end], spans) == alpha) end = NextChange(first, end);
+                    runs.Add(Piece(index, character, end, run, alpha, baseColor));
+                    character = end;
+                }
+            }
+
+            return runs;
+        }
+
+        // StreamVeil.swift:326-331: the runs of the joined value between two of its Characters, after an empty Text.
+        public void Slice(List<StyledText.Run> styled, int lowerCharacter, int upperCharacter, List<StyledText.Run> into)
+        {
+            var lower = starts[lowerCharacter];
+            var upper = starts[upperCharacter];
+            into.Add(EmptyRun);
+            var offset = 0;
+            foreach (var run in styled)
+            {
+                var runEnd = offset + run.Text.Length;
+                var start = Math.Max(offset, lower);
+                var end = Math.Min(runEnd, upper);
+                if (end > start)
+                    into.Add(start == offset && end == runEnd ? run : run with { Text = run.Text.Substring(start - offset, end - start) });
+                offset = runEnd;
+            }
+        }
+
+        /// <summary>The build is done: the pieces it used are the ones kept for the next tick.</summary>
+        public void Turn()
+        {
+            kept.Clear();
+            (kept, used) = (used, kept);
+        }
+
+        private StyledText.Run Piece(int index, int lower, int upper, AttributedRun run, double? alpha, SwiftColor baseColor)
+        {
+            var local = runStarts[index];
+            string Text() => lower == 0 && upper == local.Length - 1 ? run.Text : Substring(run.Text, local, lower, upper);
+            if (alpha is not null) return StyledRun(run with { Text = Text() }, alpha, baseColor);
+
+            var key = (index, lower, upper);
+            if (!Reuse(key, out var piece)) used[key] = piece = StyledRun(run with { Text = Text() }, null, baseColor);
+            return piece;
+        }
+
+        private bool Reuse((int, int, int) key, out StyledText.Run piece)
+        {
+            if (used.TryGetValue(key, out piece!)) return true;
+            if (!kept.Remove(key, out piece!)) return false;
+            used[key] = piece;
+            return true;
+        }
+
+        private static double? Alpha(int character, ValueList<StreamVeil.Span> spans) =>
+            character == int.MaxValue ? null : AlphaAt(character, spans);
+
+        // The chunk bounds, in order: the alpha of a Character changes only where one falls.
+        private void Bounds(ValueList<StreamVeil.Span> spans)
+        {
+            bounds.Clear();
+            foreach (var span in spans)
+            {
+                bounds.Add(span.Range.LowerBound);
+                bounds.Add(span.Range.UpperBound);
+            }
+
+            bounds.Sort();
+        }
+
+        private int NextBound(int character)
+        {
+            foreach (var bound in bounds)
+            {
+                if (bound > character) return bound;
+            }
+
+            return int.MaxValue;
+        }
+
+        // The first own Character after `character` whose text Character lies at or past the next bound (they never go down).
+        private int NextChange(int[] first, int character)
+        {
+            if (first[character] == int.MaxValue) return first.Length;
+            var bound = NextBound(first[character]);
+            var lower = character + 1;
+            var upper = first.Length;
+            while (lower < upper)
+            {
+                var middle = (lower + upper) >>> 1;
+                if (first[middle] >= bound) upper = middle;
+                else lower = middle + 1;
+            }
+
+            return lower;
+        }
+
+        // The Character of the text that holds this UTF-16 offset.
+        private int Holding(int offset)
+        {
+            var found = Array.BinarySearch(starts, offset);
+            return found >= 0 ? found : ~found - 1;
+        }
+
+        private static string Substring(string of, int[] at, int lower, int upper) => of.Substring(at[lower], at[upper] - at[lower]);
+
+        private static int[] Starts(string of) => CharacterStarts.Of(of);
+    }
 }
 
 /// <summary>DroppyCode/UI/Markdown/StreamVeil.swift:344-431.</summary>
@@ -918,6 +1026,19 @@ public sealed class LinkTextVeil
     // of accumulating splits, and Clear() can restore them exactly.
     private readonly Dictionary<TextBlock, List<Inline>> painted = new();
     private WeakReference<LinkTextView>? tickTarget; // StreamVeil.swift:374
+    // ENGINEERING DECISION (ED-NEW-lean-12): what the last Paint() cut and set, so the next tick does not join and cut the paragraph's text
+    // again while it has not changed. `paintedText` is the text of the views as it read then and `paintedStarts` where each of its
+    // Characters starts; `shownBlocks` and `shownInlines` are the text blocks and the inlines (with each run's text) that Paint() set. The
+    // text is reused only while every text block still holds exactly those inlines with those texts; anything else reads it afresh.
+    private string? paintedText;
+    private int[] paintedStarts = [];
+    private readonly List<TextBlock> shownBlocks = [];
+    private readonly List<List<(Inline Inline, string? Text)>> shownInlines = [];
+    private readonly List<(int Start, int End, double Alpha)> characterRanges = [];
+    private readonly List<int> bounds = [];
+    private readonly List<Inline> rebuilt = [];
+    private Dictionary<(Run Run, int Lower, int Upper), (string Source, string Slice)> keptSlices = [];
+    private Dictionary<(Run Run, int Lower, int Upper), (string Source, string Slice)> usedSlices = [];
     // PORT-ONLY (UI-THEME-047): a veil kept by a MarkdownVeils outlives the text views that draw it, since the port builds a new one for every
     // flush; see Detach and Reset.
     private bool retained;
@@ -944,6 +1065,7 @@ public sealed class LinkTextVeil
         displayLink?.Invalidate();
         displayLink = null;
         painted.Clear();
+        Forget();
         tickTarget = null;
         veil.Reset();
     }
@@ -952,6 +1074,7 @@ public sealed class LinkTextVeil
     public void Update(LinkTextView view, bool active)
     {
         var now = SwiftDate.Now;
+        Forget(); // a new render: the view's text is read afresh
         // PORT-ONLY (UI-THEME-047): a view that is leaving is told the environment it no longer has (the reply is not streaming for it) on its way
         // out; it must not take a kept veil away from the view that feeds it. Only a view that feeds the veil takes it over from another.
         if (retained && !active && tickTarget is { } held && held.TryGetTarget(out var holder) && !ReferenceEquals(holder, view)) return;
@@ -988,6 +1111,7 @@ public sealed class LinkTextVeil
         displayLink?.Invalidate();
         displayLink = null;
         painted.Clear();
+        Forget();
         tickTarget = null;
     }
 
@@ -1000,6 +1124,7 @@ public sealed class LinkTextVeil
             displayLink?.Invalidate();
             displayLink = null;
             painted.Clear();
+            Forget();
             tickTarget = null;
             return;
         }
@@ -1030,6 +1155,7 @@ public sealed class LinkTextVeil
         }
 
         painted.Clear();
+        Forget();
     }
 
     // StreamVeil.swift:409-430. AppKit paints by enumerating attribute runs WITHIN the veil's nsRange, so only
@@ -1048,45 +1174,28 @@ public sealed class LinkTextVeil
             return;
         }
 
-        var joinedText = TextOf(view);
-        var perCharacter = new List<(int Start, int End, double Alpha)>();
-        var globalOffset = 0;
-        var characterIndex = 0;
-        foreach (var character in SwiftString.Characters(joinedText))
+        if (!Unchanged(textBlocks))
         {
-            var end = globalOffset + character.Length;
-            var alpha = AlphaAt(characterIndex, spans);
-            if (alpha is { } opacity) perCharacter.Add((globalOffset, end, opacity));
-            globalOffset = end;
-            characterIndex++;
+            paintedText = TextOf(view);
+            paintedStarts = CharacterStarts.Of(paintedText);
         }
 
-        // Coalesce adjacent same-alpha characters into one range, so a Run is split at most at a real chunk
-        // boundary, never at every character of a multi-character chunk.
-        var characterRanges = new List<(int Start, int End, double Alpha)>();
-        foreach (var character in perCharacter)
-        {
-            if (characterRanges.Count > 0)
-            {
-                var last = characterRanges[^1];
-                if (last.End == character.Start && last.Alpha == character.Alpha)
-                {
-                    characterRanges[^1] = (last.Start, character.End, last.Alpha);
-                    continue;
-                }
-            }
-            characterRanges.Add(character);
-        }
+        // The Characters with an alpha as UTF-16 ranges, adjacent same-alpha Characters coalesced into one range, so a Run is split at
+        // most at a real chunk boundary, never at every character of a multi-character chunk. Between two chunk bounds every Character
+        // has the same alpha (:314-320), so the ranges come from the bounds rather than from every Character (ED-NEW-lean-12).
+        Ranges(spans);
 
-        foreach (var textBlock in textBlocks)
+        shownBlocks.Clear();
+        for (var index = 0; index < textBlocks.Length; index++)
         {
+            var textBlock = textBlocks[index];
             if (!painted.TryGetValue(textBlock, out var clean))
             {
                 clean = textBlock.Inlines is { } current ? [.. current] : [];
                 painted.Add(textBlock, clean);
             }
 
-            var rebuilt = new List<Inline>();
+            rebuilt.Clear();
             var runOffset = 0;
             foreach (var inline in clean)
             {
@@ -1104,14 +1213,142 @@ public sealed class LinkTextVeil
                 }
             }
 
-            textBlock.Inlines!.Clear();
-            foreach (var piece in rebuilt) textBlock.Inlines!.Add(piece);
+            // ED-NEW-lean-12: every inline added to or removed from the SelectableTextBlock makes it rebuild its whole text twice (Avalonia
+            // 12.1.2 coerces the selection against it). When the pieces are the ones it holds and only the colour of a split piece moved,
+            // that piece takes the new brush in place: the block ends up holding the same runs either way.
+            if (!Recolour(textBlock.Inlines!, clean))
+            {
+                textBlock.Inlines!.Clear();
+                foreach (var piece in rebuilt) textBlock.Inlines!.Add(piece);
+            }
+
+            Remember(index, textBlock);
         }
+
+        keptSlices.Clear();
+        (keptSlices, usedSlices) = (usedSlices, keptSlices);
+    }
+
+    // ED-NEW-lean-12: whether the block's inlines are this paint's pieces but for the brush of split pieces (CloneRun's, from the same run
+    // and the same slice of its text), and if so gives them the new brushes.
+    private bool Recolour(InlineCollection inlines, List<Inline> clean)
+    {
+        if (inlines.Count != rebuilt.Count) return false;
+        for (var index = 0; index < rebuilt.Count; index++)
+        {
+            var current = inlines[index];
+            var piece = rebuilt[index];
+            if (ReferenceEquals(current, piece)) continue;
+            if (current is not Run now || piece is not Run fresh || Holds(clean, now) || Holds(clean, fresh)) return false;
+            if (!string.Equals(now.Text, fresh.Text, StringComparison.Ordinal) || !now.FontSize.Equals(fresh.FontSize) || !Equals(now.FontFamily, fresh.FontFamily)
+                || now.FontWeight != fresh.FontWeight || now.FontStyle != fresh.FontStyle)
+                return false;
+        }
+
+        for (var index = 0; index < rebuilt.Count; index++)
+        {
+            if (inlines[index] is Run now && !ReferenceEquals(now, rebuilt[index])) now.Foreground = ((Run)rebuilt[index]).Foreground;
+        }
+
+        return true;
+    }
+
+    private static bool Holds(List<Inline> clean, Inline inline)
+    {
+        foreach (var piece in clean)
+        {
+            if (ReferenceEquals(piece, inline)) return true;
+        }
+
+        return false;
+    }
+
+    // ED-NEW-lean-12: Paint() set these inlines on this text block.
+    private void Remember(int index, TextBlock textBlock)
+    {
+        shownBlocks.Add(textBlock);
+        if (shownInlines.Count <= index) shownInlines.Add([]);
+        var shown = shownInlines[index];
+        shown.Clear();
+        foreach (var piece in textBlock.Inlines!) shown.Add((piece, piece is Run run ? run.Text : null));
+    }
+
+    // ED-NEW-lean-12: whether the text blocks are the ones Paint() last set, each still holding exactly the inlines it set, with their texts.
+    private bool Unchanged(TextBlock[] textBlocks)
+    {
+        if (paintedText is null || shownBlocks.Count != textBlocks.Length) return false;
+        for (var index = 0; index < textBlocks.Length; index++)
+        {
+            if (!ReferenceEquals(shownBlocks[index], textBlocks[index])) return false;
+            var shown = shownInlines[index];
+            var inlines = textBlocks[index].Inlines;
+            if (shown.Count == 0 || inlines is null || inlines.Count != shown.Count) return false;
+            for (var piece = 0; piece < shown.Count; piece++)
+            {
+                var inline = inlines[piece];
+                if (!ReferenceEquals(inline, shown[piece].Inline)) return false;
+                if (inline is Run run && !ReferenceEquals(run.Text, shown[piece].Text)) return false;
+            }
+        }
+
+        return true;
+    }
+
+    // ED-NEW-lean-12: forgets what the last Paint() cut and set.
+    private void Forget()
+    {
+        paintedText = null;
+        shownBlocks.Clear();
+        keptSlices.Clear();
+        usedSlices.Clear();
+    }
+
+    // StreamVeil.swift:409-430 (and :314-320): the UTF-16 ranges of the painted text's Characters that a chunk holds, with its alpha, in order.
+    private void Ranges(ValueList<StreamVeil.Span> spans)
+    {
+        characterRanges.Clear();
+        bounds.Clear();
+        foreach (var span in spans)
+        {
+            bounds.Add(span.Range.LowerBound);
+            bounds.Add(span.Range.UpperBound);
+        }
+
+        bounds.Sort();
+        var count = paintedStarts.Length - 1;
+        var lower = 0;
+        foreach (var bound in bounds)
+        {
+            var upper = Math.Min(bound, count);
+            if (upper <= lower) continue;
+            Range(lower, upper, spans);
+            lower = upper;
+        }
+
+        if (lower < count) Range(lower, count, spans);
+    }
+
+    private void Range(int lower, int upper, ValueList<StreamVeil.Span> spans)
+    {
+        if (AlphaAt(lower, spans) is not { } alpha) return;
+        var start = paintedStarts[lower];
+        var end = paintedStarts[upper];
+        if (characterRanges.Count > 0)
+        {
+            var last = characterRanges[^1];
+            if (last.End == start && last.Alpha == alpha)
+            {
+                characterRanges[^1] = (last.Start, end, last.Alpha);
+                return;
+            }
+        }
+
+        characterRanges.Add((start, end, alpha));
     }
 
     /// <summary>Appends `run`'s pieces to `into`, splitting at any span boundary that falls inside it so only
     /// the overlapping characters carry the veil colour; the rest keep the run's own, unpainted colour.</summary>
-    private static void PaintRun(
+    private void PaintRun(
         Run run,
         string runText,
         int runOffset,
@@ -1121,11 +1358,18 @@ public sealed class LinkTextVeil
     {
         var length = runText.Length;
         var end = runOffset + length;
-        var overlapping = characterRanges
-            .Where(range => range.Start < end && range.End > runOffset)
-            .OrderBy(range => range.Start)
-            .ToList();
-        if (overlapping.Count == 0)
+        // The ranges are in order and apart (ED-NEW-lean-12: no list is built for a run no range touches).
+        var overlaps = false;
+        foreach (var range in characterRanges)
+        {
+            if (range.Start < end && range.End > runOffset)
+            {
+                overlaps = true;
+                break;
+            }
+        }
+
+        if (!overlaps)
         {
             into.Add(run);
             return;
@@ -1138,25 +1382,45 @@ public sealed class LinkTextVeil
         var opaqueColor = Color.FromArgb(255, color.R, color.G, color.B);
 
         var cursor = runOffset;
-        foreach (var range in overlapping)
+        foreach (var range in characterRanges)
         {
+            if (range.Start >= end || range.End <= runOffset) continue;
             var segStart = Math.Max(range.Start, runOffset);
             var segEnd = Math.Min(range.End, end);
-            if (segStart > cursor) into.Add(CloneRun(run, runText[(cursor - runOffset)..(segStart - runOffset)], run.Foreground));
+            if (segStart > cursor) into.Add(CloneRun(run, Slice(run, runText, cursor - runOffset, segStart - runOffset), run.Foreground));
             if (range.Alpha < 1)
             {
                 into.Add(CloneRun(
                     run,
-                    runText[(segStart - runOffset)..(segEnd - runOffset)],
+                    Slice(run, runText, segStart - runOffset, segEnd - runOffset),
                     new SolidColorBrush(opaqueColor) { Opacity = range.Alpha }));
             }
             else
             {
-                into.Add(CloneRun(run, runText[(segStart - runOffset)..(segEnd - runOffset)], run.Foreground));
+                into.Add(CloneRun(run, Slice(run, runText, segStart - runOffset, segEnd - runOffset), run.Foreground));
             }
             cursor = segEnd;
         }
-        if (cursor < end) into.Add(CloneRun(run, runText[(cursor - runOffset)..], run.Foreground));
+        if (cursor < end) into.Add(CloneRun(run, Slice(run, runText, cursor - runOffset, length), run.Foreground));
+    }
+
+    // ED-NEW-lean-12: runText[lower..upper], the same string object as the last paint's for the same run, text and slice (the piece before
+    // the dissolving tail is most of a long paragraph and does not change from tick to tick).
+    private string Slice(Run run, string runText, int lower, int upper)
+    {
+        var key = (run, lower, upper);
+        if (usedSlices.TryGetValue(key, out var known) || keptSlices.Remove(key, out known))
+        {
+            if (ReferenceEquals(known.Source, runText))
+            {
+                usedSlices[key] = known;
+                return known.Slice;
+            }
+        }
+
+        var slice = runText[lower..upper];
+        usedSlices[key] = (runText, slice);
+        return slice;
     }
 
     private static Run CloneRun(Run original, string text, IBrush? foreground) => new(text)
@@ -1202,5 +1466,24 @@ public sealed class LinkTextVeil
         }
 
         return null;
+    }
+}
+
+/// <summary>ED-NEW-lean-12: where each Character (SwiftString.Characters, the `for character in` of StreamVeil.swift:309-338) of a string
+/// starts, in UTF-16 units, and the string's length last.</summary>
+file static class CharacterStarts
+{
+    public static int[] Of(string text)
+    {
+        var result = new List<int>();
+        var offset = 0;
+        foreach (var character in SwiftString.Characters(text))
+        {
+            result.Add(offset);
+            offset += character.Length;
+        }
+
+        result.Add(offset);
+        return [.. result];
     }
 }
