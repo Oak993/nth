@@ -258,7 +258,24 @@ public sealed partial class PaneWorkspace : Panel
         }
     }
 
-    public void Open(PaneKind kind) => Commit(state.Open(kind));
+    public void Open(PaneKind kind)
+    {
+        var wasOpen = state.IsOpen(kind);
+        Commit(state.Open(kind));
+        if (!wasOpen) FocusOnOpen(kind);
+    }
+
+    // A pane the person opens takes the keyboard when its content names a place for it (Side chat's composer, Visus's address
+    // field): the reflow does not move focus (3.3), opening is the person's own act. A pane restored with a thread never does.
+    private void FocusOnOpen(PaneKind kind)
+    {
+        if (!cards.TryGetValue(kind, out var motion) || motion.Card.Content.FocusTarget is not { } target) return;
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (cards.TryGetValue(kind, out var live) && !live.Leaving && live.Card.IsVisible && ReferenceEquals(live.Card.Content.FocusTarget, target) && target.IsEffectivelyVisible)
+                target.Focus(NavigationMethod.Unspecified);
+        }, DispatcherPriority.Background);
+    }
 
     public void Close(PaneKind kind)
     {

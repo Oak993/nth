@@ -69,6 +69,7 @@ public sealed class ThreadTimeline : Decorator
     private ThreadRuntime? ownerRuntime;
     private Action? redraw;
     private Action<string?, string?, bool, double, bool>? updateInputs;
+    private readonly Thickness? contentMargin; // null: the chat column's (20, ContentTopInset, 20, 18)
     private TaskHandle? initialHistoryTask; // :594-607
     private bool initialHistoryStarted;
     // :363,436-441. Own the scroll presenter, as SidebarView does, rather than depending on a themed template.
@@ -112,8 +113,10 @@ public sealed class ThreadTimeline : Decorator
         string? workingDirectory,
         bool supportsRewind,
         double columnHeight,
-        bool showsMinimap = true)
+        bool showsMinimap = true,
+        Thickness? contentMargin = null)
     {
+        this.contentMargin = contentMargin; // PORT-ONLY (web surfaces W6): the side chat's pane has no title bar over it and is narrow, so it sets its own
         state = scrollState; ownerRuntime = runtime;
         inputs = (runtime, scrollChrome, scrollState, projectName, workingDirectory, supportsRewind, columnHeight, showsMinimap);
         SetRevealTimelineEnd(this, revealBox); revealBox.Action = RevealEnd; revealBox.Follow = FollowEnd;
@@ -434,7 +437,7 @@ public sealed class ThreadTimeline : Decorator
     private Control CreateColumn(Control rows, double viewportHeight, double? layoutWidth)
     {
         var stack = new Grid { RowDefinitions = new RowDefinitions("*,Auto") }; Grid.SetRow(rows, 1); stack.Children.Add(new Border()); stack.Children.Add(rows);
-        var content = new Border { MaxWidth = 820, Margin = new Thickness(20, Chrome.ContentTopInset, 20, 18), Child = stack, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var content = new Border { MaxWidth = 820, Margin = contentMargin ?? new Thickness(20, Chrome.ContentTopInset, 20, 18), Child = stack, HorizontalAlignment = HorizontalAlignment.Stretch };
         var column = new Grid { MinHeight = viewportHeight, Children = { content } }; if (layoutWidth is { } width) column.Width = width; return column;
     }
     // :272-278

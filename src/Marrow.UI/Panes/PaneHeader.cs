@@ -28,7 +28,8 @@ namespace Marrow.UI.Panes;
 /// <param name="Text">A text chip's label ("v3"); drawn with a small chevron when <paramref name="Menu"/> is set.</param>
 /// <param name="Shortcut">The chord shown in the More menu and the tooltip ("Ctrl+Shift+C"), if any.</param>
 /// <param name="Menu">The action opens a menu (a chevron follows the text).</param>
-public sealed record PaneHeaderAction(string Name, Action Invoke, PaneGlyphKind? Glyph = null, string? Text = null, string? Shortcut = null, bool Menu = false);
+/// <param name="Pressed">A toggle's state (web W6, Side chat's Can act): null for a plain action; otherwise the chip is lit while on, and its accessible name says on or off.</param>
+public sealed record PaneHeaderAction(string Name, Action Invoke, PaneGlyphKind? Glyph = null, string? Text = null, string? Shortcut = null, bool Menu = false, bool? Pressed = null);
 
 /// <summary>A tab of a cell that holds several panes.</summary>
 public sealed record PaneHeaderTab(PaneKind Kind, string Name, bool IsChosen);
@@ -534,24 +535,26 @@ public sealed class PaneHeader : Panel
             chevron = new PaneGlyph(PaneGlyphKind.Chevron, 11) { Foreground = PaneTokens.Text2.Brush(this) };
             row.Children.Add(chevron);
         }
+        var lit = action.Pressed == true; // a toggle that is on keeps its chip lit (canvas .tabg button.on: --fill2 and --t1)
         var face = new Border
         {
             Height = PaneTokens.ButtonSize,
             Padding = new Thickness(7, 0),
             CornerRadius = new CornerRadius(8),
-            Background = Brushes.Transparent,
+            Background = lit ? PaneTokens.HoverFill.Brush(this) : Brushes.Transparent,
             Child = row,
         };
+        if (lit) label.Foreground = PaneTokens.Text1.Brush(this);
         var button = PlainControls.Button(face, action.Invoke).KeyboardFocus(8);
         button.OnHover(on =>
         {
-            face.Background = on ? PaneTokens.HoverFill.Brush(this) : Brushes.Transparent;
-            label.Foreground = (on ? PaneTokens.Text1 : PaneTokens.Text2).Brush(this);
+            face.Background = on || lit ? PaneTokens.HoverFill.Brush(this) : Brushes.Transparent;
+            label.Foreground = (on || lit ? PaneTokens.Text1 : PaneTokens.Text2).Brush(this);
             if (chevron is not null) chevron.Foreground = label.Foreground;
             if (leading is not null) leading.Foreground = label.Foreground;
         });
         ToolTip.SetTip(button, action.Shortcut is null ? action.Name : action.Name + "  " + action.Shortcut);
-        AutomationProperties.SetName(button, action.Name);
+        AutomationProperties.SetName(button, action.Pressed is { } state ? action.Name + (state ? ", on" : ", off") : action.Name);
         return button;
     }
 

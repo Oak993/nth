@@ -39,6 +39,9 @@ public sealed class PaneContent
     /// <summary>A menu the header's title opens (Tabula's artifacts, web W14); null for a plain title.</summary>
     public Action? TitleMenu { get; private set; }
 
+    /// <summary>The control that takes keyboard focus when the person opens the pane (Side chat's composer); null: focus stays where it was.</summary>
+    public Control? FocusTarget { get; set; }
+
     /// <summary>Raised after <see cref="Update"/>.</summary>
     public event Action? Changed;
 

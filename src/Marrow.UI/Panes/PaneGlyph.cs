@@ -30,6 +30,10 @@ public enum PaneGlyphKind
     Close,
     More,
     Chevron,
+    Eye,
+    Send,
+    Stop,
+    Check,
 
     /// <summary>The canvas's i-plus (New terminal; later units' New tab).</summary>
     Plus,
@@ -37,13 +41,12 @@ public enum PaneGlyphKind
     /// <summary>A pane with its foot band marked: the chat's drawer (W4's "Move to the drawer").</summary>
     DockBottom,
 
-    // Tabula (web W14): the canvas's i-copy, i-save, i-ext, i-spark, i-send, i-shield, i-search, i-edit, i-warn and i-back,
+    // Tabula (web W14): the canvas's i-copy, i-save, i-ext, i-spark, i-shield, i-search, i-edit, i-warn and i-back,
     // and an export arrow drawn in the same hand.
     Copy,
     Save,
     OpenExternal,
     Spark,
-    Send,
     Shield,
     Search,
     Edit,
@@ -82,13 +85,17 @@ public sealed class PaneGlyph : Control
         [PaneGlyphKind.Close] = Parse("M6 6l12 12M18 6L6 18"),
         [PaneGlyphKind.More] = Parse(Circle(12, 5.5, 1.2) + Circle(12, 12, 1.2) + Circle(12, 18.5, 1.2)),
         [PaneGlyphKind.Chevron] = Parse("M7 10l5 5 5-5"),
+        // Web surfaces W6 (the canvas's i-eye, i-send, i-stop and i-check): the side chat's note, its composer and its confirmation.
+        [PaneGlyphKind.Eye] = Parse("M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" + Circle(12, 12, 3)),
+        [PaneGlyphKind.Send] = Parse("M12 19V5M6.5 10.5L12 5l5.5 5.5"),
+        [PaneGlyphKind.Stop] = Parse("M8.6 7h6.8A1.6 1.6 0 0 1 17 8.6v6.8a1.6 1.6 0 0 1-1.6 1.6H8.6A1.6 1.6 0 0 1 7 15.4V8.6A1.6 1.6 0 0 1 8.6 7z"),
+        [PaneGlyphKind.Check] = Parse("M5 12.5l4.5 4.5L19 7.5"),
         [PaneGlyphKind.Plus] = Parse("M12 5v14M5 12h14"),
         [PaneGlyphKind.DockBottom] = Parse("M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z M4 14.5h16"),
         [PaneGlyphKind.Copy] = Parse("M10.5 8.5h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z M15.5 8.5V6.5a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2"),
         [PaneGlyphKind.Save] = Parse("M12 4v10M8 10.5l4 4 4-4M4.5 15v2.5a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V15"),
         [PaneGlyphKind.OpenExternal] = Parse("M14 4h6v6M20 4l-8.5 8.5M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"),
         [PaneGlyphKind.Spark] = Parse("M12 3.5l1.7 5L18.5 10l-4.8 1.6L12 16.5l-1.7-4.9L5.5 10l4.8-1.5zM18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"),
-        [PaneGlyphKind.Send] = Parse("M12 19V5M6.5 10.5L12 5l5.5 5.5"),
         [PaneGlyphKind.Shield] = Parse("M12 3.5l7 2.5v5.5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"),
         [PaneGlyphKind.Search] = Parse(Circle(11, 11, 6) + "M20 20l-4.5-4.5"),
         [PaneGlyphKind.Edit] = Parse("M4.5 19.5h4l10-10-4-4-10 10z"),
