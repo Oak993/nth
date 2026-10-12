@@ -414,6 +414,17 @@ public sealed class VisusTabView : Button
     private readonly Border face;
     private readonly Border icon = new() { Width = VisusTokens.FaviconSize, Height = VisusTokens.FaviconSize, CornerRadius = new CornerRadius(4), ClipToBounds = true };
     private readonly VisusSpinner spinner = new() { Width = VisusTokens.FaviconSize, Height = VisusTokens.FaviconSize, IsVisible = false };
+    // W8b: a tab off screen that waits on a question (a download, a permission, a dialog) shows a small dot on its icon.
+    private readonly Avalonia.Controls.Shapes.Ellipse waitingDot = new()
+    {
+        Width = 6,
+        Height = 6,
+        HorizontalAlignment = HorizontalAlignment.Right,
+        VerticalAlignment = VerticalAlignment.Top,
+        Margin = new Thickness(0, -2, -3, 0),
+        IsVisible = false,
+        IsHitTestVisible = false,
+    };
     private readonly TextBlock title = new()
     {
         FontSize = VisusTokens.TabFontSize,
@@ -455,7 +466,7 @@ public sealed class VisusTabView : Button
         });
         ToolTip.SetTip(close, "Close tab  Ctrl+W");
         AutomationProperties.SetName(close, "Close tab");
-        var leading = new Panel { Width = VisusTokens.FaviconSize, Height = VisusTokens.FaviconSize, Children = { icon, spinner } };
+        var leading = new Panel { Width = VisusTokens.FaviconSize, Height = VisusTokens.FaviconSize, Children = { icon, spinner, waitingDot } };
         var row = new DockPanel { LastChildFill = true };
         DockPanel.SetDock(leading, Dock.Left);
         DockPanel.SetDock(close, Dock.Right);
@@ -650,13 +661,19 @@ public sealed class VisusTabView : Button
             shownFavicon = Tab.Favicon;
             icon.Child = IconFor(Tab);
         }
-        var name = Tab.Title + (Tab.Kind == VisusTabKind.Private ? ", private" : "") + (Tab.IsLoading ? ", loading" : "");
+        waitingDot.IsVisible = Tab.Asks.Count > 0 && !Tab.IsShown;
+        waitingDot.Fill = Marrow.UI.Chrome.Chrome.Accent.Brush(this);
+        var name = Tab.Title + (Tab.Kind == VisusTabKind.Private ? ", private" : "") + (Tab.IsLoading ? ", loading" : "")
+            + (waitingDot.IsVisible ? ", waiting for your answer" : "");
         AutomationProperties.SetName(this, name);
         ToolTip.SetTip(this, Tab.IsBlank ? Tab.Title : Tab.Title + "\n" + VisusAddress.Display(Tab.Url));
         ApplyLook();
         InvalidateMeasure();
         strip.InvalidateMeasure();
     }
+
+    /// <summary>The tab is off screen and waits on a question (the dot on its icon).</summary>
+    public bool ShowsWaiting => waitingDot.IsVisible;
 
     private Control IconFor(VisusTab tab)
     {

@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Avalonia.Controls;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Panes;
@@ -17,6 +18,8 @@ using Marrow.UI.Web;
 // No Swift counterpart. The one WebSurface of the process, made the first time a Visus tab needs a page (so a session that
 // never opens Visus starts no browser), its 250 ms tick, the chord binding W3b left as a seam, the history and the remembered
 // app choices on disk, and the per-thread sessions. Tests replace the engine and the live view and keep everything in memory.
+// W8b adds the site permissions on disk (5.5), the downloads of this run and where they go (5.4), and the system seams the
+// prompts use (the save dialog, Show in folder, nth's toast for a page notification); ED-NEW-web-w8b-1, -2.
 
 namespace Marrow.App.Views.Browser;
 
@@ -48,6 +51,8 @@ public static class VisusHost
             return siteZoom;
         }
     }
+    private static PermissionStore? permissions;
+    private static VisusDownloads? downloads;
     private static int windows;
 
     /// <summary>Makes the process's WebSurface (the real engine in the app; tests put a fake engine here).</summary>
@@ -127,6 +132,42 @@ public static class VisusHost
         }
     }
 
+    /// <summary>DESIGN 5.5: the answers kept per profile and site (browse and preview; private tabs keep none).</summary>
+    public static PermissionStore Permissions
+    {
+        get
+        {
+            if (permissions is not null) return permissions;
+            permissions = PermissionStore.FromJson(ReadFile("permissions.json"));
+            permissions.Changed += ScheduleSave;
+            return permissions;
+        }
+    }
+
+    /// <summary>DESIGN 5.4: the files Visus tabs saved in this run.</summary>
+    public static VisusDownloads Downloads => downloads ??= new VisusDownloads();
+
+    /// <summary>Where Save puts a file: the user's Downloads folder, the one the composer's recent-downloads list reads.</summary>
+    public static Func<string?> DownloadsFolder { get; set; } = () => Marrow.App.Views.Composer.RecentDownloads.DirectoryProvider.Current();
+
+    /// <summary>Settings › Visus "Ask where to save" (W10 wires the setting): Save opens the system dialog too. Off.</summary>
+    public static Func<bool> AskWhereToSave { get; set; } = () => false;
+
+    /// <summary>Save as…: the system save dialog over a window, starting in a folder with a name; the chosen path or null.</summary>
+    public static Func<TopLevel?, string, string?, Task<string?>> PickSavePath { get; set; } = PickWithDialogAsync;
+
+    /// <summary>The guarded file upload card's Choose (8.4): the system open dialog; the chosen paths or null.</summary>
+    public static Func<TopLevel?, bool, Task<IReadOnlyList<string>?>> PickOpenFiles { get; set; } = PickFilesWithDialogAsync;
+
+    /// <summary>Show in folder: File Explorer with the file selected (the file itself is never opened).</summary>
+    public static Action<string> ShowInFolder { get; set; } = path => Marrow.UI.Port.ShellWorkspace.RevealInFileExplorer(path);
+
+    /// <summary>A browse tab's page notification as nth's own toast: source, title, body, sound.</summary>
+    public static Action<string, string, string, bool> ShowNotification { get; set; } = SystemToast;
+
+    /// <summary>Whether a file exists (Save picks a free name: "report (1).csv").</summary>
+    public static Func<string, bool> FileExists { get; set; } = File.Exists;
+
     /// <summary>The Visus session of a thread (its tabs live as long as the thread's runtime).</summary>
     public static VisusSession SessionFor(ThreadRuntime runtime)
     {
@@ -155,6 +196,7 @@ public static class VisusHost
         WriteFile("history.json", history?.ToJson());
         WriteFile("external-apps.json", schemeChoices?.ToJson());
         WriteFile("site-zoom.json", siteZoom?.ToJson());
+        WriteFile("permissions.json", permissions?.ToJson());
     }
 
     /// <summary>Tests: a fresh host over the given surface and live view, nothing on disk.</summary>
@@ -182,6 +224,15 @@ public static class VisusHost
         history = null;
         schemeChoices = null;
         siteZoom = null;
+        permissions = null;
+        downloads = null;
+        DownloadsFolder = () => Marrow.App.Views.Composer.RecentDownloads.DirectoryProvider.Current();
+        AskWhereToSave = () => false;
+        PickSavePath = PickWithDialogAsync;
+        PickOpenFiles = PickFilesWithDialogAsync;
+        ShowInFolder = path => Marrow.UI.Port.ShellWorkspace.RevealInFileExplorer(path);
+        ShowNotification = SystemToast;
+        FileExists = File.Exists;
         IsUpdateReady = false;
         Sessions.Clear();
         SurfaceFactory = CreateSurface;
@@ -203,6 +254,48 @@ public static class VisusHost
     }
 
     private static void OnNewRuntime(object? sender, EventArgs e) => IsUpdateReady = true;
+
+    private static async Task<string?> PickWithDialogAsync(TopLevel? top, string fileName, string? folder)
+    {
+        if (top?.StorageProvider is not { CanSave: true } storage) return null;
+        var options = new FilePickerSaveOptions
+        {
+            Title = "Save as",
+            SuggestedFileName = fileName,
+            ShowOverwritePrompt = true,
+        };
+        if (folder is not null) options.SuggestedStartLocation = await storage.TryGetFolderFromPathAsync(folder);
+        var file = await storage.SaveFilePickerAsync(options);
+        return file?.TryGetLocalPath();
+    }
+
+    private static async Task<IReadOnlyList<string>?> PickFilesWithDialogAsync(TopLevel? top, bool multiple)
+    {
+        if (top?.StorageProvider is not { CanOpen: true } storage) return null;
+        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions { Title = "Choose a file for the page", AllowMultiple = multiple });
+        var paths = files.Select(file => file.TryGetLocalPath()).OfType<string>().ToList();
+        return paths.Count == 0 ? null : paths;
+    }
+
+    // DESIGN 5.5: "in browse they map to nth's own toast". The title names the site, so a page cannot pose as nth or another app.
+    private static void SystemToast(string source, string title, string body, bool sound)
+    {
+        var request = new Marrow.App.Port.ToastRequest("visus:" + Guid.NewGuid().ToString("N"), source + " · " + title, body, sound,
+            new Dictionary<string, object>(StringComparer.Ordinal) { ["visus"] = source });
+        _ = AddToastAsync(Marrow.App.Port.ToastNotifications.Center.Current, request);
+    }
+
+    private static async Task AddToastAsync(Marrow.App.Port.IToastCenter center, Marrow.App.Port.ToastRequest request)
+    {
+        try
+        {
+            await center.Add(request);
+        }
+        catch (Exception)
+        {
+            // a toast that could not show is dropped (the page's own notification is gone either way)
+        }
+    }
 
     private static void ScheduleSave()
     {

@@ -57,6 +57,7 @@ internal sealed class ArtifactRuntimeRig : IDisposable
     {
         var view = Web.OpenLive(WebSurfaceKind.Artifact, url: null);
         var mount = Runtime.Mount(view, snapshot.Artifact.Thread, snapshot.Artifact.Id);
+        WebRig.Fake(view).RaiseNavigationCompleted(mount.Address);
         return (mount, WebRig.Fake(view));
     }
 

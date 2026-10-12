@@ -168,6 +168,8 @@ public static class Program
         DesktopPerformanceProbe.Start();
         // SwiftUI's default @Environment(\.openURL): the system opens the link (MarkdownView.swift:1110, :1148).
         InlineText.OpenUrl = url => Marrow.Services.Port.Workspace.Open.Current(url);
+        // PORT-ONLY (W19, ED-NEW-web-w19-3): MCP Apps over the hub, the App pane, the list of app tools (after the main actor and the link setting).
+        Marrow.App.Port.Web.McpApps.McpAppsStartup.Bind();
 
         var shell = new AppShell(new AppDelegate(), exit: () => lifetime.Shutdown(), afterWillTerminate: () => settings.Synchronize());
         var launchReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

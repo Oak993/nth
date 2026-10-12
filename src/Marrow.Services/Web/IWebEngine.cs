@@ -83,6 +83,8 @@ public interface IWebEngineView : IDisposable
     bool CanGoBack { get; }
     bool CanGoForward { get; }
     bool IsSuspended { get; }
+    /// <summary>Whether this document is playing audio (including muted audio).</summary>
+    bool IsPlayingAudio { get; }
 
     /// <summary>The page's own background colour, read once per navigation (DESIGN 2.5), or null.</summary>
     uint? BackgroundArgb { get; }
@@ -175,4 +177,10 @@ public interface IWebEngineView : IDisposable
     event EventHandler<WebScriptDialogRequest>? ScriptDialogOpening;
     event EventHandler<WebCertificateErrorRequest>? CertificateErrorDetected;
     event EventHandler<bool>? FullScreenChanged;
+
+    /// <summary>W8b: a page's notification (<c>NotificationReceived</c>); always held from Windows' default.</summary>
+    event EventHandler<WebNotification>? NotificationReceived;
+
+    /// <summary>W8b: <c>ScreenCaptureStarting</c>; cancelled unless answered true.</summary>
+    event EventHandler<WebScreenCaptureRequest>? ScreenCaptureStarting;
 }

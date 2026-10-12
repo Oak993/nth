@@ -483,6 +483,10 @@ public sealed class VisusPaneTests(HeadlessSession headless)
         Assert.NotNull(rig.Workspace.PromptFirst);
         Assert.True(VisusPrompts.AnyIn(rig.Window));
         Assert.True(rig.Workspace.CycleFocus(forward: true));
+        // ED-NEW-web-w8b-4: F6 lands on the prompt's words, read first (10.1 "focus moves to the prompt's text"), and Tab then
+        // reaches its first control; the earlier landing on the checkbox skipped the text a screen reader needs.
+        Assert.True(prompt.Lead.IsFocused);
+        rig.Key(Key.Tab);
         Assert.True(prompt.Remember!.IsFocused);
 
         visus.Session.Select(other);

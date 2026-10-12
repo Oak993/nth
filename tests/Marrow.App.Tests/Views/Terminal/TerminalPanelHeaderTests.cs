@@ -19,8 +19,8 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 namespace Marrow.App.Tests.Views.Terminal;
 
 // Source: DroppyCode/App/Views/Terminal/TerminalPanel.swift (B3 52bc792), the header row :19-56 and the appear hook :109.
-// Every test attaches a real panel to a real (headless) window; the only process involved is the isolated PowerShell
-// the store opens for a session, terminated by the rig on every path.
+// Every test attaches a real panel to a real (headless) window. The shell the store opens for a session is a stand-in
+// (no process starts), and the rig terminates every session on every path.
 [Collection("Headless")]
 public sealed class TerminalPanelHeaderTests(HeadlessSession headless)
 {

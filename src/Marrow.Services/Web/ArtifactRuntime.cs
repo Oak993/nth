@@ -112,11 +112,13 @@ public sealed class ArtifactMount : IWebResourceHandler, IDisposable
     private readonly object gate = new();
     private ArtifactSnapshot? snapshot;
     private bool disposed;
+    private bool paneOpen;
 
     internal ArtifactMount(ArtifactRuntime runtime, WebSurfaceView view, ArtifactAddress artifact, int? version)
     {
         this.runtime = runtime;
         View = view;
+        SetPaneOpen(view.Kind == WebSurfaceKind.Artifact);
         Artifact = artifact;
         Version = version;
         Host = SandboxSites.ArtifactHost(artifact.Thread, artifact.Id);
@@ -124,6 +126,7 @@ public sealed class ArtifactMount : IWebResourceHandler, IDisposable
         bridge = new ArtifactBridge(runtime, this);
         view.SetSandbox(new WebSandbox(Origin, this, SandboxScripts.DocumentScripts));
         view.WebMessageReceived += OnMessage;
+        view.BecameLive += OnViewLive;
         view.NavigationStarting += OnNavigationStarting;
         view.SandboxNavigationBlocked += OnBlocked;
         runtime.Store.Changed += OnStoreChanged;
@@ -134,6 +137,14 @@ public sealed class ArtifactMount : IWebResourceHandler, IDisposable
     }
 
     public WebSurfaceView View { get; }
+
+    /// <summary>The pane lifecycle keeps its artifact's engine while open, even when its preview is hidden.</summary>
+    public void SetPaneOpen(bool open)
+    {
+        if (disposed || paneOpen == open) return;
+        paneOpen = open;
+        View.HoldArtifactPane(open);
+    }
 
     public ArtifactAddress Artifact { get; }
 
@@ -175,6 +186,7 @@ public sealed class ArtifactMount : IWebResourceHandler, IDisposable
     /// <summary>Shows another version (null for the latest) and reloads.</summary>
     public void Show(int? version)
     {
+        View.CancelPendingMorph();
         lock (gate)
         {
             Version = version;
@@ -199,7 +211,8 @@ public sealed class ArtifactMount : IWebResourceHandler, IDisposable
         ArgumentNullException.ThrowIfNull(html);
         if (disposed) return;
         var json = new System.Text.Json.Nodes.JsonObject { ["nth"] = 1, ["event"] = "morph", ["html"] = html }.ToJsonString();
-        runtime.Post(() => View.Engine?.PostMessage(json));
+        // Through the view, so a frozen on-screen artifact is restored first and a loading document gets the newest text after its load.
+        runtime.Post(() => View.PostMessage(json));
     }
 
     /// <summary>The version the mount serves, read once and kept until the artifact changes.</summary>
@@ -236,36 +249,7 @@ public sealed class ArtifactMount : IWebResourceHandler, IDisposable
         return Forbidden(request, "not one of nth's sites");
     }
 
-    private WebResourceResponse Library(WebResourceRequest request, Uri uri)
-    {
-        if (request.Method is not ("GET" or "HEAD")) return Status(405, "Method Not Allowed", SandboxHeaders.Blocked());
-        var path = Uri.UnescapeDataString(uri.AbsolutePath.TrimStart('/'));
-        var libraries = runtime.Libraries;
-        string? text = null;
-        if (path.StartsWith(ArtifactLibraryCatalog.RuntimePrefix, StringComparison.Ordinal))
-        {
-            var name = path[ArtifactLibraryCatalog.RuntimePrefix.Length..];
-            var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
-            text = name switch
-            {
-                "loader.js" => SandboxScripts.Loader(libraries.Catalog),
-                "missing.js" => Missing(query["u"] ?? "", script: true),
-                "missing.css" => Missing(query["u"] ?? "", script: false),
-                _ when SandboxScripts.RuntimeFiles.Contains(name) => SandboxScripts.Read(name),
-                _ => null,
-            };
-        }
-
-        var bytes = text is not null ? Encoding.UTF8.GetBytes(text) : libraries.Read(path);
-        if (bytes is null) return Status(404, "Not Found", SandboxHeaders.Blocked(), "Not in nth's offline libraries: " + path);
-        return new WebResourceResponse(200, "OK", SandboxHeaders.Library(SandboxHeaders.ContentType(path)), request.Method == "HEAD" ? [] : bytes);
-    }
-
-    private string Missing(string url, bool script)
-    {
-        Report(url);
-        return script ? SandboxScripts.Missing(url) : "/* nth has no offline copy of " + url.Replace("*/", "* /", StringComparison.Ordinal) + " */\n";
-    }
+    private WebResourceResponse Library(WebResourceRequest request, Uri uri) => SandboxLibrarySite.Answer(runtime.Libraries, request, uri, Report);
 
     private WebResourceResponse Own(WebResourceRequest request, Uri uri)
     {
@@ -346,6 +330,15 @@ public sealed class ArtifactMount : IWebResourceHandler, IDisposable
 
     private void OnMessage(object? sender, WebMessage message) => bridge.Receive(message);
 
+    private void OnViewLive()
+    {
+        if (disposed) return;
+        lock (gate) snapshot = null;
+        // A view that just attached is already loading this address (it reads the current version when the page asks for it).
+        if (string.Equals(View.NavigationTarget, Address, StringComparison.Ordinal)) return;
+        Reload();
+    }
+
     private void OnNavigationStarting(object? sender, WebNavigationStarting e)
     {
         if (e.IsMainFrame) bridge.NewDocument();
@@ -388,8 +381,10 @@ public sealed class ArtifactMount : IWebResourceHandler, IDisposable
     public void Dispose()
     {
         if (disposed) return;
+        SetPaneOpen(false);
         disposed = true;
         View.WebMessageReceived -= OnMessage;
+        View.BecameLive -= OnViewLive;
         View.NavigationStarting -= OnNavigationStarting;
         View.SandboxNavigationBlocked -= OnBlocked;
         runtime.Store.Changed -= OnStoreChanged;
