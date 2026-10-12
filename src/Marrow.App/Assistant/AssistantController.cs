@@ -1,8 +1,9 @@
-// PORT-ONLY: Dextra (DESIGN.md rev 5, 0 points 1 and 4, 12.3, 15.1, 15.4, 15.5; unit AS-5; ED-NEW-dextra-as5-11). No
-// Swift twin. Dextra's controller inside nth's process: it owns the decision queue, the mission runner, the agent gate
-// and the grants; it is the host behind the nth-dextra tools (IAssistantToolHost), and the policy engine's caller for
-// every provider approval of a mission chat. Auto-answering is off (16, the ordering rule): AS-7 turns it on only after
-// its injection corpus passes, so until then the engine's Allow still lands on a card.
+// PORT-ONLY: Dextra (DESIGN.md rev 5, 0 points 1 and 4, 12.3, 12.4, 15.1, 15.4, 15.5; units AS-5 and AS-7;
+// ED-NEW-dextra-as5-11, ED-NEW-dextra-as7-7 to -10). No Swift twin. Dextra's controller inside nth's process: it owns the
+// decision queue, the mission runner, the agent gate and the grants; it is the host behind the nth-dextra tools
+// (IAssistantToolHost), and the policy engine's caller for every provider approval of a mission chat, which it decides
+// with the agent's own taint and role and the outward privacy check. Auto-answering (16, the ordering rule) is off until
+// the switch says the injection self-check passed (AS-7); until then the engine's Allow still lands on a card.
 using System.Text.Json.Nodes;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -54,9 +55,21 @@ public sealed class AssistantControllerOptions
 
     /// <summary>The environment the classifier places paths with; null reads nth's own (MissionClassifier.CurrentEnvironment).</summary>
     public ValueMap<string, string>? Environment { get; init; }
+
+    /// <summary>Whether the engine's Allow may answer alone (AS-7). Off unless Dextra's start gives the self-check's switch.</summary>
+    public AutoAnswerSwitch AutoAnswer { get; init; } = AutoAnswerSwitch.Off;
+
+    /// <summary>The owner's list of recipients personal data may go to (12.4; Settings > Assistant). Read at every check.</summary>
+    public Func<IReadOnlyList<string>> PersonalDataRecipients { get; init; } = () => [];
+
+    /// <summary>The owner's allowlisted commands (12.1 "Run"; Settings > Assistant). Read at every approval.</summary>
+    public Func<IReadOnlyList<string>> Allowlist { get; init; } = () => [];
+
+    /// <summary>An agent found instructions in untrusted content (the feed's tap: "Found instructions in ...; ignored").</summary>
+    public Action<Guid, TaintSource, InstructionFinding>? InstructionFound { get; init; }
 }
 
-public sealed class AssistantController : IAssistantToolHost, IDisposable
+public sealed partial class AssistantController : IAssistantToolHost, IDisposable
 {
     private readonly AssistantControllerOptions o;
     private readonly object gate = new();
@@ -78,10 +91,16 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
             Policy = ApprovalPolicy,
             Limits = o.Limits,
             Save = o.Save,
-            Audit = TryAudit,
+            // The runner writes its own lines and refuses a step whose line cannot be written (12.3 point 2: logged first,
+            // then answered); swallowing the failure here would let an auto-answer run unlogged (AS-7).
+            Audit = o.Audit,
             Granted = Granted,
             Time = o.Time,
+            AutoAnswering = () => AutoAnswering,
+            GrantsUsed = UseGrants,
+            Deliver = Deliver,
         });
+        WatchAutoAnswer();
     }
 
     public DecisionQueue Queue { get; }
@@ -91,10 +110,10 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
     public MissionRunner Runner { get; }
 
     /// <summary>
-    /// Off until AS-7's injection corpus passes (16): the engine's Allow runs no tool and answers no approval alone. Only
-    /// the read-only and stop tools marked RunsBeforeAutoAnswer run on an Allow.
+    /// Off until AS-7's injection corpus passes in this process (16): until then the engine's Allow runs no tool and
+    /// answers no approval alone, and only the read-only and stop tools marked RunsBeforeAutoAnswer run on an Allow.
     /// </summary>
-    public bool AutoAnswering => false;
+    public bool AutoAnswering => o.AutoAnswer.IsOn;
 
     /// <summary>The grants the owner made from cards (For this mission, Always...).</summary>
     public IReadOnlyList<Grant> Grants
@@ -154,14 +173,28 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
     private ApprovalVerdict ApprovalPolicy(MissionRecord record, Guid thread, ApprovalRequest request)
     {
         // Each chat is classified in its own folder (its session's working folder), so a relative path is placed where
-        // that chat really works (ED-NEW-dextra-as5-14); a chat nth cannot place gets no folder at all.
+        // that chat really works (ED-NEW-dextra-as5-14); a chat nth cannot place gets no folder at all. It is decided with
+        // its own taint and role, and what it would send out is checked for personal data (AS-7).
         var chat = o.Thread(thread);
-        var folder = chat is null ? null : chat.WorktreePath ?? o.Projects().FirstOrDefault(p => p.Id == chat.ProjectID)?.Path;
-        var context = MissionClassifier.ForAgent(record, o.ProtectedRoots, folder, o.Environment);
+        var context = MissionClassifierOf(record, chat);
         var provider = chat?.Provider ?? record.Provider;
-        var classification = ActionClassifier.ClassifyApproval(request, context, provider: provider);
-        var decision = PolicyEngine.Decide(classification, MissionContext(record.Mission.AssistantId, record.Id, record.Mission.TaintContext));
-        return new ApprovalVerdict(classification, decision);
+        var policy = MissionContext(record.Mission.AssistantId, record.Id, Runner.TaintOf(record.Id, thread)) with { Role = MissionRunner.RoleOf(record, thread) };
+        var decided = MissionApprovals.Decide(request, context, policy, provider, o.PersonalDataRecipients(), confirmedRecipients: ConfirmedRecipients());
+        var outgoing = MissionApprovals.Outgoing(request, provider);
+        var recipients = decided.Outward.Recipients;
+        return new ApprovalVerdict(decided.Classification, decided.Decision)
+        {
+            Outward = decided.Outward,
+            StillBlocked = decided.Outward.HasPersonalData ? () => OutwardPrivacy.Check(outgoing, o.PersonalDataRecipients()).Refusal : null,
+            OnAllowed = recipients.Count > 0 ? () => Confirm(recipients) : null,
+        };
+    }
+
+    /// <summary>The classifier's view of one chat of the mission, in its own folder, with the owner's allowlist.</summary>
+    private ClassifierContext MissionClassifierOf(MissionRecord record, ChatThread? chat)
+    {
+        var folder = chat is null ? null : chat.WorktreePath ?? o.Projects().FirstOrDefault(p => p.Id == chat.ProjectID)?.Path;
+        return MissionClassifier.ForAgent(record, o.ProtectedRoots, folder, o.Environment) with { Allowlist = new ValueList<string>(o.Allowlist()) };
     }
 
     private PolicyContext MissionContext(string assistantId, Guid? mission, TaintContext taint)
@@ -220,12 +253,19 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
 
     public PolicyContext PolicyContext(AssistantChat chat)
     {
-        var taint = chat.MissionId is { } mission && Runner.Find(mission) is { } record ? record.Mission.TaintContext : TaintContext.Clean;
-        return MissionContext(chat.AssistantId, chat.MissionId, taint);
+        // A mission's chat decides with its own taint and role; the home chat with its own taint until the owner's next
+        // message (12.4; AS-7).
+        if (chat.MissionId is { } mission && Runner.Find(mission) is { } record)
+            return MissionContext(chat.AssistantId, mission, Runner.TaintOf(mission, chat.Thread)) with { Role = MissionRunner.RoleOf(record, chat.Thread) };
+        return MissionContext(chat.AssistantId, chat.MissionId, chat.MissionId is null ? HomeTaint(chat.Thread) : TaintContext.Clean);
     }
 
-    public Task<AssistantToolResult> Run(AssistantToolCall call, CancellationToken cancellationToken) =>
-        Task.FromResult(RunNow(call));
+    public Task<AssistantToolResult> Run(AssistantToolCall call, CancellationToken cancellationToken)
+    {
+        var result = RunNow(call);
+        if (call.Decision.GrantsUsed.Count > 0) UseGrants(call.Decision.GrantsUsed, "call:" + call.Id);
+        return Task.FromResult(result);
+    }
 
     private AssistantToolResult RunNow(AssistantToolCall call)
     {
@@ -259,6 +299,10 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
                     Parent = parent?.Id ?? chat.MissionId,
                     Taint = PolicyContext(chat).TaintContext,
                     BudgetUsd = args["budget_usd"]?.JSONValueDouble is { } budget ? (decimal)budget : null,
+                    // 12.4 "Reader and actor split": a reader mission only reads and reports (AS-7).
+                    Readers = !team && Text("role") == "reader",
+                    // A mission's chat that starts one gets its report back (AS-7).
+                    RequestedBy = chat.MissionId is null ? null : chat.Thread,
                 });
                 var r = started.Record;
                 return r.Mission.State == MissionState.Blocked
@@ -307,7 +351,8 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
             case "request_helpers":
             {
                 if (chat.MissionId is not { } mission) return AssistantToolResult.Failed("Not run: only a mission's chat can ask for helpers.");
-                var started = Runner.RequestHelpers(mission, Text("task") ?? "", (int)(Whole("helpers") ?? 1), Text("reason") ?? "", out var refused);
+                var started = Runner.RequestHelpers(mission, Text("task") ?? "", (int)(Whole("helpers") ?? 1), Text("reason") ?? "", out var refused,
+                    requester: chat.Thread, readers: Text("role") == "reader");
                 return started is null
                     ? AssistantToolResult.Done(refused ?? "Not started.")
                     : AssistantToolResult.Done($"Helpers started as mission {started.Record.Id:D}; their report comes back to this mission.");
@@ -395,6 +440,8 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
                 }
                 var result = RunNow(call);
                 TryAudit(AssistantToolRunner.Entry(call, (result.IsError ? "failed" : "done") + " on the owner's answer") with { AllowedBy = by });
+                // 12.4: what the result carries in taints the chat before it reads it (AS-7).
+                if (result.Taint.IsTainted) Absorb(call.Chat, result.Taint);
                 Deliver(call.Chat.Thread, $"{AssistantNames.Server} {call.Tool.Name} (the owner allowed it): {result.Text}");
             }
             else

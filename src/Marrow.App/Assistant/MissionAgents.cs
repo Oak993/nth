@@ -19,6 +19,9 @@ public sealed record AgentLaunch(Guid Mission, string AssistantId, string Title,
     /// <summary>The reviewer: it only reads (the provider's plan mode, and every write it asks for is refused).</summary>
     public bool Reviewer { get; init; }
 
+    /// <summary>A reader mission's lead (12.4 "Reader and actor split", AS-7): plan mode too, and it may only read.</summary>
+    public bool Reader { get; init; }
+
     public string? Branch { get; init; }
 }
 
@@ -63,6 +66,12 @@ public interface IMissionAgents
 
     /// <summary>The models of a provider, for the reviewer's pick.</summary>
     IReadOnlyList<string> Models(ProviderKind provider);
+
+    /// <summary>
+    /// Shows a line in the chat (12.3 point 2: an approval nth answered for the owner is labelled where it was asked).
+    /// A chat that is gone shows nothing.
+    /// </summary>
+    void Note(Guid thread, string text);
 }
 
 /// <summary>The mission workspaces (12.6a), behind a seam so the runner's tests need no git.</summary>
@@ -119,7 +128,7 @@ public sealed class AppMissionAgents(AppModel app) : IMissionAgents
             Branch = ownFolder ? launch.Branch : null,
             HydraEnabled = launch.Team,
             HydraEnabledIsExplicit = true,
-            InteractionMode = launch.Reviewer ? InteractionMode.Plan : InteractionMode.Build,
+            InteractionMode = launch.Reviewer || launch.Reader ? InteractionMode.Plan : InteractionMode.Build,
         };
         app.InsertThread(thread);
         app.Runtime(thread.Id).SendMissionMessage(launch.Brief);
@@ -165,4 +174,6 @@ public sealed class AppMissionAgents(AppModel app) : IMissionAgents
     ];
 
     public IReadOnlyList<string> Models(ProviderKind provider) => [.. app.Providers.Models(provider).Select(m => m.Id)];
+
+    public void Note(Guid thread, string text) => app.ExistingRuntime(thread)?.AppendDextraNote(text);
 }

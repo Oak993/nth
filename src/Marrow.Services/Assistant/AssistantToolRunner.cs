@@ -4,6 +4,7 @@
 // then does anything act: Run on Allow, a card on Ask, nothing on Deny. A policy that cannot be read, a log that cannot
 // be written or a host that throws refuses the call (fail closed). Until AS-7 turns auto-answering on, an Allow runs
 // alone only for the tools that read nth's own state, stop work, or put something in front of the owner or the parent.
+// A result that carries untrusted material taints the chat before the model reads it (AS-7).
 using Marrow.Core.Port;
 using Marrow.Core.Port.Assistant;
 using Marrow.Core.Support;
@@ -89,6 +90,17 @@ public sealed class AssistantToolRunner(AssistantRegistration registration, Func
                     result = AssistantToolResult.Failed("Failed: " + error.Message);
                 }
                 TryAudit(host, Entry(call, result.IsError ? "failed" : "done"));
+                // 12.4: what the result carries in taints the chat before the model reads it; when the taint cannot be
+                // taken, the result is withheld (AS-7).
+                if (result.Taint.IsTainted)
+                {
+                    try { host.Absorb(chat, result.Taint); }
+                    catch (Exception error) when (error is not OperationCanceledException)
+                    {
+                        TryAudit(host, Entry(call, "withheld: its taint could not be recorded"));
+                        return AssistantToolResult.Failed("Not shown: nth could not mark this result as untrusted content.");
+                    }
+                }
                 return result;
         }
     }

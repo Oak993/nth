@@ -150,6 +150,14 @@ internal sealed class FakeMissionAgents : IMissionAgents
 
     public IReadOnlyList<string> Models(ProviderKind provider) => ModelList;
 
+    /// <summary>The lines nth showed in chats (AS-7: an approval it answered for the owner).</summary>
+    public List<(Guid Thread, string Text)> Notes { get; } = [];
+
+    public void Note(Guid thread, string text)
+    {
+        lock (gate) Notes.Add((thread, text));
+    }
+
     /// <summary>The chat's turn ends with this answer.</summary>
     public void Finish(Guid thread, string? answer)
     {

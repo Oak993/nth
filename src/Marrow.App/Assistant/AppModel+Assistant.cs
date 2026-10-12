@@ -1,9 +1,10 @@
-// PORT-ONLY: Dextra (DESIGN.md rev 5, 5.1, 12.3, 15.1, 15.4; units AS-2 and AS-5; ED-NEW-dextra-as2-6, -8,
-// ED-NEW-dextra-as5-5, -6, -11). No Swift twin.
+// PORT-ONLY: Dextra (DESIGN.md rev 5, 5.1, 12.3, 12.4, 15.1, 15.4; units AS-2, AS-5 and AS-7; ED-NEW-dextra-as2-6, -8,
+// ED-NEW-dextra-as5-5, -6, -11, ED-NEW-dextra-as7-7 to -9). No Swift twin.
 // The Assistant's live feed as the app holds it (one bus, one set of taps), and the seams Dextra's controller hangs on:
 // every launch of a mission chat is sealed and jobbed (MissionLaunchOf, whether or not the controller runs), and the
-// app's approvals, questions, turn ends and Hydra heads reach the controller when one is bound. With none bound, nothing
-// changes for any chat but a mission's, which stays sealed and capped.
+// app's approvals, questions, turn ends and Hydra heads reach the controller when one is bound, and so do every Dextra
+// chat's tool events (its taint) and the owner's own messages (which clear the home chat's taint). With none bound,
+// nothing changes for any chat but a mission's, which stays sealed and capped.
 using Marrow.App.Assistant;
 using Marrow.Core.Models;
 using Marrow.Services.Assistant;
@@ -53,10 +54,13 @@ public sealed partial class AppModel
     /// missions the store held come back (a live one Paused and asking "Resume?", 15.3, when the store was opened with
     /// <see cref="MissionJournal.Interrupted"/> as its rule), and the controller is bound. The store's folder and
     /// <paramref name="protectedRoots"/> (the audit folder, nth's settings) are never written by an agent. Returns the
-    /// controller; the caller owns it.
+    /// controller; the caller owns it. Auto-answering turns on only once the injection self-check passes in this
+    /// process (AS-7); <paramref name="autoAnswer"/> swaps that switch (a test's). <paramref name="personalDataRecipients"/>
+    /// and <paramref name="allowlist"/> are the owner's lists from Settings (empty until Settings has them).
     /// </summary>
     public AssistantController StartDextra(AssistantStore store, Action<AuditEntry> audit, Func<IReadOnlyList<Marrow.Core.Port.Assistant.AssistantProfile>> profiles,
-        ProviderKind provider = ProviderKind.Claude, string? model = null, IReadOnlyList<string>? protectedRoots = null)
+        ProviderKind provider = ProviderKind.Claude, string? model = null, IReadOnlyList<string>? protectedRoots = null,
+        AutoAnswerSwitch? autoAnswer = null, Func<IReadOnlyList<string>>? personalDataRecipients = null, Func<IReadOnlyList<string>>? allowlist = null)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(audit);
@@ -74,6 +78,10 @@ public sealed partial class AppModel
             Provider = provider,
             Model = model,
             ProtectedRoots = [store.Root, .. protectedRoots ?? []],
+            AutoAnswer = autoAnswer ?? AutoAnswerSwitch.AfterCorpus(),
+            PersonalDataRecipients = personalDataRecipients ?? (() => []),
+            Allowlist = allowlist ?? (() => []),
+            InstructionFound = (thread, source, finding) => AssistantTaps.TapInstructionFound(thread, source, finding),
         });
         controller.Runner.Load(store.Missions().Select(stored => MissionJournal.FromJson(stored.Body)).OfType<MissionRecord>());
         BindDextra(controller);
@@ -122,6 +130,12 @@ public sealed partial class AppModel
     /// <summary>A mission's helper waits at the agent gate before nth starts its turn.</summary>
     internal Task DextraAdmitHelper(ChatThread helper) =>
         helper.MissionID is not null && Dextra is { } dextra ? dextra.Runner.AdmitHelper(helper.Id, helper.Provider) : Task.CompletedTask;
+
+    /// <summary>ThreadRuntime.Handle's tap (AS-7): what a Dextra chat's tool calls bring in taints it.</summary>
+    internal void DextraEvent(Guid thread, ProviderEvent @event) => Dextra?.OnProviderEvent(thread, @event);
+
+    /// <summary>ThreadRuntime's send taps (AS-7): the owner's own message starts a fresh, untainted turn in Dextra's home chat.</summary>
+    internal void DextraOwnerMessage(Guid thread) => Dextra?.OwnerMessage(thread);
 
     /// <summary>Hydra seam 3: a head under a mission's lead is the mission's agent too.</summary>
     internal void DextraHeadAdded(ChatThread lead, ChatThread head) => Dextra?.OnHeadAdded(lead, head);

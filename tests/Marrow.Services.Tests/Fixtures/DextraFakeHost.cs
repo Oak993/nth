@@ -94,4 +94,15 @@ public sealed class DextraFakeHost : IAssistantToolHost
         if (AuditThrows) throw new IOException("fixture: the log is busy");
         lock (gate) { Log.Add("audit:" + entry.Tool + ":" + entry.Result); Audits.Add(entry); }
     }
+
+    /// <summary>The taints the runner handed the host (AS-7), in order.</summary>
+    public List<Taint> Absorbed { get; } = [];
+
+    public bool AbsorbThrows { get; set; }
+
+    public void Absorb(AssistantChat chat, Taint taint)
+    {
+        if (AbsorbThrows) throw new InvalidOperationException("fixture: the taint cannot be kept");
+        lock (gate) { Log.Add("absorb:" + taint.Sources.Count); Absorbed.Add(taint); }
+    }
 }

@@ -14,6 +14,12 @@ namespace Marrow.Services.Assistant;
 /// <summary>One verdict of the reviewer (3.4).</summary>
 public sealed record MissionReview(bool Passed, string Reasons, string Reviewer, DateTimeOffset At);
 
+/// <summary>
+/// Instructions an agent of the mission found in untrusted content and nth ignored (12.4, AS-7): when, which agent,
+/// where the text came from, a short quote and the pattern that matched. The mission card lists them.
+/// </summary>
+public sealed record MissionFinding(DateTimeOffset At, Guid? Agent, ContentOrigin Origin, string Detail, string Quote, string Pattern);
+
 /// <summary>A mission as the runner keeps it.</summary>
 public sealed record MissionRecord(Mission Mission)
 {
@@ -75,6 +81,26 @@ public sealed record MissionRecord(Mission Mission)
 
     public DateTimeOffset? Ended { get; init; }
 
+    /// <summary>
+    /// What each of its agents read that nth cannot vouch for (12.4, AS-7): an agent's own taint, on top of the mission's
+    /// (Mission.TaintContext, the floor every agent shares once a tainted agent may have left text in the workspace).
+    /// </summary>
+    public ValueMap<Guid, Taint> AgentTaint { get; init; } = ValueMap<Guid, Taint>.Empty;
+
+    /// <summary>The taint its report carries to whoever reads it (the parent's agent, Dextra's brain), kept when it ends.</summary>
+    public Taint ReportTaint { get; init; } = Taint.Clean;
+
+    /// <summary>Instructions its agents found in untrusted content, newest last, at most <see cref="MaxFindings"/>.</summary>
+    public ValueList<MissionFinding> Findings { get; init; } = ValueList<MissionFinding>.Empty;
+
+    /// <summary>A reader mission (12.4 "Reader and actor split"): its agents only read and report; no reviewer, no merge.</summary>
+    public bool Readers { get; init; }
+
+    /// <summary>The parent mission's chat that asked for it (request_helpers, start_mission from a mission): its report goes there.</summary>
+    public Guid? RequestedBy { get; init; }
+
+    public const int MaxFindings = 20;
+
     /// <summary>The model that reviewed it last ("Reviewed by ...").</summary>
     public string? ReviewedBy => Reviews.Count > 0 ? Reviews[^1].Reviewer : null;
 }
@@ -104,7 +130,7 @@ public static class MissionJournal
             ["heads"] = new JsonArray([.. m.Heads.Select(HeadJson)]),
             ["children"] = new JsonArray([.. m.ChildMissionIds.Select(c => (JsonNode)c.ToString("D"))]),
             ["threads"] = new JsonArray([.. m.ThreadIds.Select(t => (JsonNode)t.ToString("D"))]),
-            ["taint"] = new JsonArray([.. m.TaintContext.Taint.Sources.Select(s => (JsonNode)new JsonObject { ["origin"] = s.Origin.ToString(), ["detail"] = s.Detail })]),
+            ["taint"] = TaintJson(m.TaintContext.Taint),
             ["brief"] = record.Brief,
             ["project"] = record.ProjectId.ToString("D"),
             ["projectPath"] = record.ProjectPath,
@@ -138,6 +164,26 @@ public static class MissionJournal
         Put("ended", record.Ended is { } ended ? Time(ended) : null);
         if (record.BudgetUsd is { } budget) body["budgetUsd"] = budget;
         if (record.Workspace is { } workspace) body["workspace"] = MissionWorkspaces.ToJson(workspace);
+        // AS-7: optional keys of version 1 (absent in a journal written before them: clean, no findings, an actor mission).
+        if (record.AgentTaint.Count > 0)
+        {
+            var agents = new JsonObject();
+            foreach (var (agent, taint) in record.AgentTaint.OrderBy(p => p.Key)) agents[agent.ToString("D")] = TaintJson(taint);
+            body["agentTaint"] = agents;
+        }
+        if (record.ReportTaint.IsTainted) body["reportTaint"] = TaintJson(record.ReportTaint);
+        if (record.Findings.Count > 0)
+            body["findings"] = new JsonArray([.. record.Findings.Select(f =>
+            {
+                var o = new JsonObject
+                {
+                    ["at"] = Time(f.At), ["origin"] = f.Origin.ToString(), ["detail"] = f.Detail, ["quote"] = f.Quote, ["pattern"] = f.Pattern,
+                };
+                if (f.Agent is { } agent) o["agent"] = agent.ToString("D");
+                return (JsonNode)o;
+            })]);
+        if (record.Readers) body["readers"] = true;
+        Put("requestedBy", record.RequestedBy?.ToString("D"));
         return body;
     }
 
@@ -162,8 +208,7 @@ public static class MissionJournal
                 ParentMissionId = Text(body, "parent") is { } parent ? Guid.Parse(parent) : null,
                 ChildMissionIds = new ValueList<Guid>(Array(body, "children").Select(c => Guid.Parse(c!.GetValue<string>()))),
                 ThreadIds = new ValueList<Guid>(Array(body, "threads").Select(t => Guid.Parse(t!.GetValue<string>()))),
-                TaintContext = new TaintContext(new Taint(new ValueList<TaintSource>(Array(body, "taint").Select(t =>
-                    new TaintSource(Enum.Parse<ContentOrigin>(Text((JsonObject)t!, "origin")!), Text((JsonObject)t!, "detail") ?? ""))))),
+                TaintContext = new TaintContext(TaintOf(body, "taint")),
                 WorktreePath = Text(body, "worktreePath"),
                 Branch = Text(body, "branch"),
             };
@@ -195,6 +240,18 @@ public static class MissionJournal
                 BudgetUsd = body["budgetUsd"] is { } budget ? budget.GetValue<decimal>() : null,
                 Created = ParseTime(Text(body, "created")!),
                 Ended = Text(body, "ended") is { } ended ? ParseTime(ended) : null,
+                AgentTaint = body["agentTaint"] is JsonObject agents
+                    ? new ValueMap<Guid, Taint>(agents.ToDictionary(p => Guid.Parse(p.Key), p => TaintOf(agents, p.Key)))
+                    : ValueMap<Guid, Taint>.Empty,
+                ReportTaint = TaintOf(body, "reportTaint"),
+                Findings = new ValueList<MissionFinding>(Array(body, "findings").Take(MissionRecord.MaxFindings).Select(f =>
+                {
+                    var o = (JsonObject)f!;
+                    return new MissionFinding(ParseTime(Text(o, "at")!), Text(o, "agent") is { } agent ? Guid.Parse(agent) : null,
+                        Enum.Parse<ContentOrigin>(Text(o, "origin")!), Text(o, "detail") ?? "", Text(o, "quote") ?? "", Text(o, "pattern") ?? "");
+                })),
+                Readers = Bool(body, "readers"),
+                RequestedBy = Text(body, "requestedBy") is { } requester ? Guid.Parse(requester) : null,
             };
         }
         catch (Exception error) when (error is FormatException or InvalidOperationException or ArgumentException or InvalidCastException
@@ -234,6 +291,14 @@ public static class MissionJournal
         if (next is null) return null;
         return ToJson(record with { Mission = next, Interrupted = next.State == MissionState.Paused || record.Interrupted, Waiting = null });
     }
+
+    private static JsonArray TaintJson(Taint taint) =>
+        new([.. taint.Sources.Select(s => (JsonNode)new JsonObject { ["origin"] = s.Origin.ToString(), ["detail"] = s.Detail })]);
+
+    // A taint as the journal keeps it: its sources in order. An absent key is clean; a damaged one fails the whole record.
+    private static Taint TaintOf(JsonObject o, string name) =>
+        new(new ValueList<TaintSource>(Array(o, name).Select(t =>
+            new TaintSource(Enum.Parse<ContentOrigin>(Text((JsonObject)t!, "origin")!), Text((JsonObject)t!, "detail") ?? ""))));
 
     private static JsonNode HeadJson(MissionHead head)
     {

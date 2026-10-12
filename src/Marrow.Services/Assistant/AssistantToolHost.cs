@@ -81,6 +81,13 @@ public interface IAssistantToolHost
 
     /// <summary>Writes one audit line (12.5), through the single writer. Throws when it cannot, and then nothing runs.</summary>
     void Audit(AuditEntry entry);
+
+    /// <summary>
+    /// A result is about to reach the chat with untrusted material in it (12.4 "Taint follows text", AS-7): the chat's
+    /// context takes its taint first. Called only with a tainted <paramref name="taint"/>; a host that throws makes the
+    /// result withheld (fail closed).
+    /// </summary>
+    void Absorb(AssistantChat chat, Taint taint);
 }
 
 /// <summary>The host while none is bound: no chat is Dextra's.</summary>
@@ -101,4 +108,6 @@ public sealed class NoAssistantToolHost : IAssistantToolHost
     public void Offer(AssistantToolCall call) { }
 
     public void Audit(AuditEntry entry) => throw new InvalidOperationException("No Dextra controller is running.");
+
+    public void Absorb(AssistantChat chat, Taint taint) => throw new InvalidOperationException("No Dextra controller is running.");
 }

@@ -1028,6 +1028,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         }
 
         Draft = new ComposerDraft();
+        App?.DextraOwnerMessage(ThreadID); // PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-9): the owner's own message
         if (DispatchSentHead(text, attachments)) return; // ThreadRuntime.swift:753
         _ = MainActor.Spawn(() => StartTurn(text, attachments));
     }
@@ -1111,6 +1112,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     public void InterruptAndSend() // ThreadRuntime.swift:809-830
     {
         if (IsReverting || Draft.IsEmpty || Phase == RuntimePhase.Idle) return;
+        App?.DextraOwnerMessage(ThreadID); // PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-9): the owner's own message
 
         if (DispatchSentHead(Draft.OutgoingText, Draft.Attachments))
         {
@@ -1307,10 +1309,12 @@ public sealed partial class ThreadRuntime : MainActorModel
         if (followUps[index].BundleID is { } bundle)
             while (start > 0 && followUps[start - 1].BundleID == bundle) start--;
 
+        var skills = skillsFollowUps.Contains(id);
         var prompt = TakeBundle(start);
         saveRevision++;
         ScheduleSave();
         if (prompt.IsEmpty) return;
+        if (!skills) App?.DextraOwnerMessage(ThreadID); // PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-9): the owner's queued message
 
         if (phase == RuntimePhase.Idle)
         {
@@ -4056,6 +4060,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     private void Handle(ProviderEvent @event)
     {
         App?.AssistantTaps.TapProvider(ThreadID, @event); // PORT-ONLY (AS-2, ED-NEW-dextra-as2-8): the Assistant's live feed
+        App?.DextraEvent(ThreadID, @event); // PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-7): what a Dextra chat's tools bring in taints it
         if (@event is ProviderEvent.MessageCompleted) handoffMessageBoundary = true;
         else if (@event is ProviderEvent.MessageDelta or ProviderEvent.TurnStarted or ProviderEvent.ToolStarted
             or ProviderEvent.Approval or ProviderEvent.Question) handoffMessageBoundary = false;
@@ -4791,6 +4796,9 @@ public sealed partial class ThreadRuntime : MainActorModel
             new TimelineItem.Content.Notice(new Notice { NoticeLevel = level, Message = message })));
         ScheduleSave();
     }
+
+    /// <summary>PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-8): a line nth shows in a mission chat (an approval it answered for the owner).</summary>
+    internal void AppendDextraNote(string message) => AppendNotice(Notice.Level.Info, message);
 
     // :3523-3547. The cache avoids a scan on repeated updates; the fallback scan stops at the turn boundary.
     private void UpsertTodos(IReadOnlyList<TodoStep> steps)

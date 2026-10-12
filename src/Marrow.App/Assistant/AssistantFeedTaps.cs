@@ -160,6 +160,20 @@ internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus) : I
         }
     }
 
+    /// <summary>
+    /// Dextra's controller (AS-7): an agent found instructions in untrusted content and nth ignored them (12.4 "Found
+    /// instructions in ⟨source⟩; ignored"). The quote is the content's words (masked by the scanner), so the shield and the
+    /// privacy filter apply. Unlike the runtime taps it may throw: the controller that calls it reports the fault.
+    /// </summary>
+    public void TapInstructionFound(Guid threadId, TaintSource source, InstructionFinding finding)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(finding);
+        if (disposed || !bus.HasSubscribers || app.Thread(threadId) is not { } thread) return;
+        Publish(thread, FeedEventKind.InstructionFound, FeedSeverity.Info,
+            "found instructions in " + TaintGates.OriginWord(source.Origin) + "; ignored", "“" + finding.Quote + "”");
+    }
+
     /// <summary>MultiAccountRouting: an account's usage windows were polled.</summary>
     public void TapAccountSnapshot(AccountPlanLimitsSnapshot snapshot)
     {
