@@ -6162,3 +6162,8 @@ Runs (heavy slot, native tests excluded): Marrow.Setup.Tests 160/160 (two full r
 - Welcome and Update share a session permission: only a completed Signed or Unsigned answer enables the command and ChooseInstall. Unknown and Invalid refuse installation. Close-paused and smoke runs also refuse.
 - PLAN sets no patience limit for a missing signature answer. The owner explicitly authorizes a bounded wait and plain failure: allow 30 seconds, then keep Unknown and show "nth Setup could not check its signature. Close it and try again." Faulted/unknown answers fail closed. Window close cancels the wait. WinVerifyTrust's existing background worker cannot be cancelled; its late result is never applied after timeout or close.
 - Replace the two owner-named assertions that allowed Pending with equal-or-stricter Signed/Unsigned/Invalid/Pending and smoke coverage. Seven new headless UI/session and fake-clock deadline/cancellation facts failed twice alone on 1fac7000b before the fix. Green: nine focused facts and all 143 existing pure Setup facts, no skips. No native signature call, installer, registry, or real app was run.
+
+
+## ED-NEW-inst-c4c-3: Signature unavailability preserves non-install routes
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I3). A timed-out or faulted signature check keeps installation unavailable, but redirects only Welcome, Update and Options. Uninstall, UpToDate and NewerInstalled keep their route and exit code. Six independent route facts retain exact state, exit and gate assertions; the three broken routes fail alone twice on C4b.

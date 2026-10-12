@@ -109,7 +109,8 @@ public sealed class SetupSession
         signatureUnavailable = true;
         Signature = SignatureResult.Pending;
         InstallAvailabilityChanged?.Invoke();
-        Fail(SetupStrings.ProblemSignature);
+        ProblemReason = SetupStrings.ProblemSignature;
+        if (built.Count > 0 && Screen is SetupScreen.Welcome or SetupScreen.Update or SetupScreen.Options) Go(SetupScreen.Problem);
     }
 
     /// <summary>Shows Problem with <paramref name="reason"/> (before <see cref="Start"/>, it becomes the first screen's sentence).</summary>
