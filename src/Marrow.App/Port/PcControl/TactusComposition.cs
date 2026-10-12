@@ -19,6 +19,7 @@ using Marrow.Core.Port.PcControl;
 using Marrow.Core.Support;
 using Marrow.Services.Port.PcControl;
 using Marrow.Services.Port.PcControl.Native;
+using Marrow.UI.Port.PcControl;
 
 namespace Marrow.App.Port.PcControl;
 
@@ -103,6 +104,9 @@ public sealed class TactusComposition : IDisposable
         PcControlBridge.PartsFor.SetProcessDefault(composition.PartsFor);
         PcControlBridge.Attended.SetProcessDefault(composition.Attended);
         PcControlSettingsPage.Bound = TactusDesktop.SettingsParts;
+        // the apps' own icons in the pill, its card, the strip and Settings, read from the shell (ED-NEW-pcctl-46)
+        var catalog = new WindowCatalog();
+        PcAppIcons.Source.SetProcessDefault(new TactusAppIcons(key => TactusAppIcons.Where(key, catalog.Windows), TactusAppIcons.Shell));
     }
 
     /// <summary>The shared parts while Tactus is on; null while it is off. The first "on" builds everything.</summary>

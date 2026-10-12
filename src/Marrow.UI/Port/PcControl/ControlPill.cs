@@ -405,6 +405,9 @@ public sealed class ControlPill : Canvas, IPillTargets
 
     internal Border HitArea => hitArea;
 
+    /// <summary>Each row's app icon as drawn, in row order (for checks).</summary>
+    internal IReadOnlyList<Control?> RowIcons => [.. rowList.Children.OfType<PillRow>().Select(r => r.Icon)];
+
     /// <summary>Reduce Motion: every pose change becomes a 150 ms fade, and nothing breathes.</summary>
     public bool ReduceMotion
     {
@@ -1285,11 +1288,14 @@ public sealed class ControlPill : Canvas, IPillTargets
         private readonly PillButton pause;
         private readonly PillButton stop;
         private readonly ContentControl pauseIcon = new();
+        private readonly ContentControl tile = new() { Width = 20, Height = 20, VerticalAlignment = VerticalAlignment.Center };
+        private readonly string key;
         private bool paused;
 
         public PillRow(ControlPill owner, string key, bool rule)
         {
             Tag = key;
+            this.key = key;
             Height = 42;
             CornerRadius = new CornerRadius(12);
             Padding = new Thickness(10, 0, 5, 0);
@@ -1298,21 +1304,29 @@ public sealed class ControlPill : Canvas, IPillTargets
             pause.Click += (_, _) => owner.Raise(paused ? PillCommandKind.ResumeApp : PillCommandKind.PauseApp, key);
             stop = new PillButton(PillButtonLook.Round30) { Content = PillIcons.Close(13, Text1) };
             stop.Click += (_, _) => owner.Raise(PillCommandKind.StopApp, key);
-            var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*,Auto,Auto"), ColumnSpacing = 10 };
+            // the app's icon (20 DIP, canvas `tile(k,20)`), its name, "working behind", its step, Pause and Stop
+            var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,Auto,*,Auto,Auto"), ColumnSpacing = 10 };
+            grid.Children.Add(tile);
+            Grid.SetColumn(name, 1);
             grid.Children.Add(name);
-            Grid.SetColumn(behind, 1);
+            Grid.SetColumn(behind, 2);
             grid.Children.Add(behind);
-            Grid.SetColumn(text, 2);
+            Grid.SetColumn(text, 3);
             grid.Children.Add(text);
-            Grid.SetColumn(pause, 3);
+            Grid.SetColumn(pause, 4);
             grid.Children.Add(pause);
-            Grid.SetColumn(stop, 4);
+            Grid.SetColumn(stop, 5);
             grid.Children.Add(stop);
             Child = grid;
         }
 
+        /// <summary>The app's icon as drawn (its lettered tile when none can be read).</summary>
+        public Control? Icon => tile.Content as Control;
+
         public void Show(PillRowView view)
         {
+            // the row is made per app: its icon once its name is known (the tile's letter comes from it)
+            if (tile.Content is null || name.Text != view.Name) tile.Content = PcAppIcons.Tile(view.Name, key, 20);
             name.Text = view.Name;
             text.Text = view.Line;
             behind.IsVisible = view.Behind;

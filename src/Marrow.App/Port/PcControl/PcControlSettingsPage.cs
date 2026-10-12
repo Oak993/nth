@@ -1,6 +1,6 @@
 // PORT-ONLY: Tactus, Settings › Tactus (OD-0140, OD-0145, ED-NEW-pcctl-29; DESIGN.md 4.7 and its 2026-10-11 updates, 10.1,
 // 10.10; units P16, P29, unit 13). No Swift twin. The page: the master switch with the lead sentence; Apps (each allowed app
-// with Use, its scope and its remove button, or the empty line); Never allowed (the built-in kinds, read-only, and the
+// with its icon, Use, its scope and its remove button, or the empty line); Never allowed (the built-in kinds, read-only, and the
 // user's own blocked apps with "Block another app"); Safety (confirm guarded actions, keep screenshots, real mouse and
 // keyboard, which stays off until the user turns it on, its privacy line, the sound, the Stop key, the Pause key and Answer
 // Tactus with their Change buttons, and every stop path in one line); Activity log; Pill (Position, Show on, answer in the
@@ -22,6 +22,7 @@ using Marrow.Core.Port.PcControl.Pill;
 using Marrow.Services.Port.PcControl;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
+using Marrow.UI.Port.PcControl;
 using Marrow.UI.Port.Settings;
 
 namespace Marrow.App.Port.PcControl;
@@ -364,7 +365,11 @@ public sealed class PcControlSettingsPage : Decorator
                 controls.Children.Add(use);
             }
             controls.Children.Add(remove);
-            appsRows.Children.Add(new ChromeRow(grant.Name, () => controls, detail));
+            // the app's icon (32 DIP) before its row (DESIGN.md 4.7 "Apps: list with icon"; ED-NEW-pcctl-46)
+            var icon = PcAppIcons.Tile(grant.Name, grant.Key, 32);
+            icon.Margin = new Thickness(16, 0, 0, 0);
+            DockPanel.SetDock(icon, Dock.Left);
+            appsRows.Children.Add(new DockPanel { Children = { icon, new ChromeRow(grant.Name, () => controls, detail) } });
         }
     }
 

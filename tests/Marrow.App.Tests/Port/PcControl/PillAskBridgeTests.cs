@@ -44,7 +44,7 @@ public sealed class PillAskBridgeTests
         Assert.Equal(new PillAsk(ask.Id, PillAskKind.Approval, "Outlook", "Quarterly report", "GPT-6.1 Sol"), shown);
         Assert.Equal("Head 2", bridge.Asks[1].Head);
         Assert.Equal(
-            new PillApprovalBody(ask.Id, 0, "Outlook", "c:\\office\\outlook.exe", Risky: true, UseAsked: true, AllowAlways: true, "This chat", "GPT-6.1 Mini"),
+            new PillApprovalBody(ask.Id, 0, "Outlook", "c:\\office\\outlook.exe", Risky: true, UseAsked: true, AllowAlways: true, "This chat", "GPT-6.1 Mini", AppKey: "exe:c:\\office\\outlook.exe"),
             bridge.Body(ask.Id));
         Assert.Equal("Head 2", Assert.IsType<PillApprovalBody>(bridge.Body(head.Id)).Who);
         Assert.False(Assert.IsType<PillApprovalBody>(bridge.Body(head.Id)).AllowAlways);

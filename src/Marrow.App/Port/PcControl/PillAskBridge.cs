@@ -151,7 +151,7 @@ public sealed class PillAskBridge : IDisposable
         {
             case PcApprovalAsk approval:
                 return new PillApprovalBody(ask.Id, ask.Revision, ask.AppName ?? "", PathOf(ask.App), approval.Risky, approval.Capability == PcCapability.Act, approval.AllowAlways,
-                    ask.Head is { Length: > 0 } head ? head : "This chat", helper());
+                    ask.Head is { Length: > 0 } head ? head : "This chat", helper(), AppKey: ask.App);
             case PcConfirmContent content:
             {
                 IReadOnlyList<string> marks;

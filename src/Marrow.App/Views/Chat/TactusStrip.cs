@@ -1,6 +1,6 @@
 // PORT-ONLY: Tactus, the chat's strip (OD-0145, ED-NEW-pcctl-27; DESIGN.md 10.7). No Swift twin. A 32 DIP glass row above
 // the composer of each chat with a working or paused Tactus stream: "Tactus. Using Excel and Outlook", a chip per app (its
-// state dot, its name, its x: stop path 7), the asks badge, and Pause or Resume for this chat. It opens by growing to its
+// icon, its state dot, its name, its x: stop path 7), the asks badge, and Pause or Resume for this chat. It opens by growing to its
 // height under a clip and closes the same way (no fade); Reduce Motion: at once. It reads the running chat mirror, so it
 // shows nothing while Tactus is off.
 using Avalonia;
@@ -17,6 +17,7 @@ using Marrow.App.Runtime;
 using Marrow.Services.Port.PcControl;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
+using Marrow.UI.Port.PcControl;
 
 namespace Marrow.App.Views.Chat;
 
@@ -150,7 +151,8 @@ public sealed class TactusStrip : Decorator
             AutomationProperties.SetName(stop, "Stop " + app.Name);
             var key = app.Key;
             stop.Click += (_, _) => feed?.StopApp(key);
-            chips.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { dot, name, stop } });
+            // the app's icon (16 DIP; ED-NEW-pcctl-46), its state dot, its name and its x
+            chips.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { PcAppIcons.Tile(app.Name, app.Key, 16), dot, name, stop } });
         }
     }
 

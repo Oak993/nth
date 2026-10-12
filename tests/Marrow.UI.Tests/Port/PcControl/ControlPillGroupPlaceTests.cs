@@ -39,6 +39,9 @@ public sealed class ControlPillGroupPlaceTests(HeadlessSession headless)
             pill.Arrive();
             Dispatcher.UIThread.RunJobs();
             window.UpdateLayout();
+            // two frames: a group that has just appeared reaches the composition one frame after its layout (ED-NEW-pcctl-46)
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 
             var run = Assert.IsType<StackPanel>(pill.GroupOf(PillGroupKind.Run));

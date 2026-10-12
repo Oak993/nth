@@ -24,7 +24,8 @@ public abstract record PillCardBody(string AskId, int Revision);
 /// <summary>An app approval (DESIGN.md 4.1, 10.4 "Approval body").</summary>
 /// <param name="Who">"This chat", or the Hydra head that asks ("Head 3"), as the summary line names it.</param>
 /// <param name="Helper">The fast helper's model when it is on ("Also seen by GLM-5 Vision (fast helper)", section 2.12).</param>
-public sealed record PillApprovalBody(string AskId, int Revision, string App, string Path, bool Risky, bool UseAsked, bool AllowAlways, string Who = "This chat", string? Helper = null)
+/// <param name="AppKey">The app's key ("exe:&lt;path&gt;" or "aumid:&lt;id&gt;"), for its icon; none: its lettered tile.</param>
+public sealed record PillApprovalBody(string AskId, int Revision, string App, string Path, bool Risky, bool UseAsked, bool AllowAlways, string Who = "This chat", string? Helper = null, string? AppKey = null)
     : PillCardBody(AskId, Revision);
 
 /// <summary>One row of a confirm's content: its label, the value read from the window (or "Could not read"), and whether it changed.</summary>

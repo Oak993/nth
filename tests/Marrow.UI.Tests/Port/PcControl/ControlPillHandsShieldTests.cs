@@ -43,10 +43,14 @@ public sealed class ControlPillHandsShieldTests(HeadlessSession headless)
     private static PillButton Button(ControlPill pill, PillGroupKind group, int index) =>
         Assert.IsType<PillButton>(Assert.IsType<StackPanel>(pill.GroupOf(group)).Children[index]);
 
-    // the layout and the composition the hit test reads, as a rendered frame leaves them
+    // the layout and the composition the hit test reads, as the frames after a change leave them: a part that has just
+    // appeared reaches the composition one frame after its layout (its visual still has no size after the first), so two
+    // frames, as a live window always draws (ED-NEW-pcctl-46)
     private static void Flush(Window window)
     {
         window.UpdateLayout();
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         Dispatcher.UIThread.RunJobs();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
     }

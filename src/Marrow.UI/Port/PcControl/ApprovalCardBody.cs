@@ -1,5 +1,6 @@
 // PORT-ONLY: Tactus pill v2, the approval card's body (OD-0144, OD-0145, ED-NEW-pcctl-20, ED-NEW-pcctl-26; DESIGN.md 4.1, 10.4
-// "Approval body", 2.12 the helper's egress line; canvas `bodyOf` 'ap', `apSum`). The app's tile, name and path (middle-
+// "Approval body", 2.12 the helper's egress line; canvas `bodyOf` 'ap', `apSum`). The app's icon (PcAppIcons, its lettered
+// tile when none can be read; ED-NEW-pcctl-46), name and path (middle-
 // truncated), the risky-category line, the helper egress line when the fast helper is on, the See and Use chips (they start
 // as the model asked; Use implies See) and the line that says what they mean, then "Don't allow" and "Allow for this
 // chat", and a second row with "Reply instead" and "Always allow" (heads never see it). "Always allow" is laid out at its
@@ -51,11 +52,11 @@ public sealed class ApprovalCardBody : CardBody
         : base(model)
     {
         this.model = model;
-        // the app: its tile, name and path (canvas `.kap`)
+        // the app: its icon, name and path (canvas `.kap`)
         var name = CardLook.Line(model.App, 15, CardLook.Text1, FontWeight.SemiBold, wrap: TextWrapping.NoWrap);
         var path = new TextBlock { Text = MiddleTruncate(model.Path, 52), FontFamily = CardLook.Mono, FontSize = 11.5, Foreground = CardLook.Path, Margin = new Thickness(0, 1, 0, 0), MaxWidth = 300, TextTrimming = TextTrimming.CharacterEllipsis };
         AutomationProperties.SetName(path, model.Path);
-        var app = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { Tile(model.App, 34), new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = { name, path } } } };
+        var app = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { PcAppIcons.Tile(model.App, model.AppKey, 34), new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = { name, path } } } };
         Above.Children.Add(app);
         if (model.Risky) Above.Children.Add(Risk(RiskyLine));
         if (model.Helper is { Length: > 0 } helper) Above.Children.Add(CardLook.Line($"Also seen by {helper} (fast helper)", 13, CardLook.Text2, lineHeight: 19).With(m => m.Margin = new Thickness(0, 9, 0, 0)));
@@ -237,18 +238,6 @@ public sealed class ApprovalCardBody : CardBody
         return chip;
     }
 
-    internal static Control Tile(string app, double size)
-    {
-        var tile = new Border
-        {
-            Width = size, Height = size, CornerRadius = new CornerRadius(size * 0.24), BoxShadow = CardLook.TileRim,
-            Background = AppTile.Brush(app),
-            Child = new TextBlock { Text = app.Length > 0 ? app[..1].ToUpperInvariant() : "?", FontFamily = CardLook.Text, FontSize = size * 0.5, FontWeight = FontWeight.Bold, Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
-        };
-        AutomationProperties.SetAccessibilityView(tile, AccessibilityView.Raw);
-        return tile;
-    }
-
     internal static Control Risk(string text)
     {
         var risk = new Border
@@ -272,19 +261,6 @@ public sealed class ApprovalCardBody : CardBody
         var tail = keep - head;
         return path[..head] + "…" + path[^tail..];
     }
-}
-
-/// <summary>A neutral app tile colour from the app's name (the real icon is the App's to supply; this is its stand-in).</summary>
-internal static class AppTile
-{
-    private static readonly Color[] Tiles =
-    [
-        Color.FromRgb(0x1D, 0x6F, 0x42), Color.FromRgb(0x0F, 0x6C, 0xBD), Color.FromRgb(0x5B, 0x5F, 0x6A),
-        Color.FromRgb(0x8A, 0x4B, 0x2E), Color.FromRgb(0x5C, 0x3D, 0x8F), Color.FromRgb(0x2F, 0x6B, 0x7A),
-    ];
-
-    // A stable pick (string hash codes change per process): the sum of the name's lower-cased characters.
-    public static IBrush Brush(string app) => new Avalonia.Media.Immutable.ImmutableSolidColorBrush(Tiles[app.ToLowerInvariant().Sum(c => c) % Tiles.Length]);
 }
 
 internal static class ControlWith
