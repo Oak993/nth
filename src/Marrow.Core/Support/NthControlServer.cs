@@ -4,11 +4,13 @@ namespace Marrow.Core.Support;
 
 /// <summary>
 /// What nth decided about one request: the answer, and what to do once the answer is on the pipe (a quit goes ahead only
-/// after the installer has read "ok", so the installer never sees the pipe vanish before its answer).
+/// after the installer has read "ok"; an idle quit can prepare and return a final Busy/refusal on the same bounded connection).
 /// </summary>
 /// <param name="Response">The answer to write.</param>
 /// <param name="AfterReply">Runs once, after the answer was written and the client acknowledged reading it (<see cref="NthControl.AckByte"/>); never runs when the other side left first or did not acknowledge.</param>
-public sealed record NthControlAnswer(NthControlResponse Response, Action? AfterReply = null);
+public sealed record NthControlAnswer(NthControlResponse Response, Action? AfterReply = null,
+    Func<CancellationToken, Task<NthControlAnswer>>? PrepareCommit = null, Action? Abort = null,
+    Func<CancellationToken, Task<NthControlResponse?>>? Commit = null);
 
 /// <summary>
 /// PORT-ONLY (no Swift twin; nth installer PLAN.md 3a, unit U4, ED-NEW-inst-u4-1). The part of nth that decides what a
@@ -23,7 +25,7 @@ public interface INthControlHost
 
 /// <summary>
 /// PORT-ONLY (no Swift twin; nth installer PLAN.md 3a, unit U4, ED-NEW-inst-u4-1). Listens on nth's control pipe
-/// (<see cref="NthControl.PipeName"/>) for the signed-in user alone. One request and one reply per connection
+/// (<see cref="NthControl.PipeName"/>) for the signed-in user alone. One request per connection, with acknowledged quit phases
 /// (<see cref="NthControl.Frame"/>); a connection that sends nothing within <see cref="RequestTimeout"/>, sends a length that is
 /// not 1 byte to 64 KiB, or leaves is dropped without touching the host. A request that is not version 1 gets
 /// <c>refused</c> with the reason <c>unsupported</c>. Each connection has its own task, so a slow or silent client never holds
@@ -144,6 +146,8 @@ public sealed class NthControlServer : IDisposable
     {
         await using (pipe.ConfigureAwait(false))
         {
+            Action? abort = null;
+            var committed = false;
             try
             {
                 using var window = CancellationTokenSource.CreateLinkedTokenSource(stop.Token);
@@ -154,19 +158,41 @@ public sealed class NthControlServer : IDisposable
                 var answer = request is null
                     ? new NthControlAnswer(NthControlResponse.Refused(Environment.ProcessId, Environment.ProcessPath ?? string.Empty, "unsupported"))
                     : await host.HandleAsync(request, stop.Token).ConfigureAwait(false);
+                abort = answer.Abort;
                 await NthControl.WriteFrameAsync(pipe, answer.Response.ToJson(), stop.Token).ConfigureAwait(false);
-                if (answer.AfterReply is not { } after)
+                if (answer.PrepareCommit is { } prepare)
                 {
-                    await Drained(pipe).ConfigureAwait(false); // keep the pipe open until the answer was read, so it is not lost
-                    return;
+                    if (!await Acknowledged(pipe).ConfigureAwait(false)) return;
+                    using var prepareWindow = CancellationTokenSource.CreateLinkedTokenSource(stop.Token);
+                    prepareWindow.CancelAfter(AckTimeout);
+                    answer = await prepare(prepareWindow.Token).WaitAsync(prepareWindow.Token).ConfigureAwait(false);
+                    await NthControl.WriteFrameAsync(pipe, answer.Response.ToJson(), stop.Token).ConfigureAwait(false);
                 }
-                if (await Acknowledged(pipe).ConfigureAwait(false)) after();
+                if (answer.Commit is { } commit)
+                {
+                    if (!await Acknowledged(pipe).ConfigureAwait(false)) return;
+                    using var commitWindow = CancellationTokenSource.CreateLinkedTokenSource(stop.Token);
+                    commitWindow.CancelAfter(AckTimeout);
+                    var outcome = await commit(commitWindow.Token).WaitAsync(commitWindow.Token).ConfigureAwait(false);
+                    if (outcome is not null)
+                    {
+                        await NthControl.WriteFrameAsync(pipe, outcome.ToJson(), commitWindow.Token).ConfigureAwait(false);
+                        if (!await Acknowledged(pipe).ConfigureAwait(false)) return;
+                    }
+                    committed = true;
+                }
+                else if (answer.AfterReply is { } after)
+                {
+                    if (await Acknowledged(pipe).ConfigureAwait(false)) { after(); committed = true; }
+                }
+                else await Drained(pipe).ConfigureAwait(false);
             }
             catch (Exception)
             {
                 // The other side left, was too slow, or the server is closing, or the host failed: nothing more to say to it
                 // (a host that throws must not take nth down, and the installer then falls back to asking before it ends nth).
             }
+            finally { if (!committed) abort?.Invoke(); }
         }
     }
 

@@ -52,10 +52,18 @@ public sealed class NthControlRig : IDisposable
     public NthControlAnswer Ask(NthControlRequest request) => H.Main.OnMain(() => Host.Answer(request));
 
     /// <summary>What the pipe server does once the answer was read.</summary>
-    public void Finish(NthControlAnswer answer)
+    public NthControlResponse Finish(NthControlAnswer answer)
     {
-        answer.AfterReply?.Invoke();
+        if (answer.PrepareCommit is { } prepare)
+            answer = H.Main.OnMain(() => prepare(CancellationToken.None)).GetAwaiter().GetResult();
+        if (answer.Commit is { } commit)
+        {
+            var outcome = H.Main.OnMain(() => commit(CancellationToken.None)).GetAwaiter().GetResult();
+            if (outcome is not null) answer = new NthControlAnswer(outcome);
+        }
+        else answer.AfterReply?.Invoke();
         H.Main.RunUntilIdle();
+        return answer.Response;
     }
 
     public void Dispose() => H.Dispose();

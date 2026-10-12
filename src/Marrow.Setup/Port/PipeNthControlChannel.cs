@@ -60,7 +60,30 @@ public sealed class PipeNthControlChannel(string pipeName, TimeSpan connectTimeo
         if (bytes is null) return NthControlExchange.Failed(NthControlFailure.NoAnswer);
         if (NthControlResponse.Parse(bytes) is not { } response) return NthControlExchange.Failed(NthControlFailure.BadAnswer);
         if (response.Pid != peer.ProcessId || !samePeer(peer)) return NthControlExchange.Failed(NthControlFailure.NoAnswer);
-        await AcknowledgeAsync(client, cancellationToken).ConfigureAwait(false);
+        if (response.CommitRequired)
+        {
+            if (request.Command != NthControlCommand.Quit || response.Reply != NthControlReply.Ok)
+                return NthControlExchange.Failed(NthControlFailure.BadAnswer);
+            // First ACK proves receipt of idle-and-quit. The host then rechecks idle and answers Busy or final Ok.
+            await NthControl.WriteAckAsync(client, cancellationToken).ConfigureAwait(false);
+            bytes = await NthControl.ReadFrameAsync(client, cancellationToken).ConfigureAwait(false);
+            if (bytes is null) return NthControlExchange.Failed(NthControlFailure.NoAnswer);
+            if (NthControlResponse.Parse(bytes) is not { CommitRequired: false } final)
+                return NthControlExchange.Failed(NthControlFailure.BadAnswer);
+            if (final.Reply is not (NthControlReply.Ok or NthControlReply.Busy or NthControlReply.Refused))
+                return NthControlExchange.Failed(NthControlFailure.BadAnswer);
+            if (final.Pid != peer.ProcessId || !samePeer(peer)) return NthControlExchange.Failed(NthControlFailure.NoAnswer);
+            response = final;
+            await NthControl.WriteAckAsync(client, cancellationToken).ConfigureAwait(false);
+        }
+        else if (request.Command == NthControlCommand.Quit && response.Reply == NthControlReply.Ok)
+            await NthControl.WriteAckAsync(client, cancellationToken).ConfigureAwait(false);
+        else await AcknowledgeAsync(client, cancellationToken).ConfigureAwait(false);
+        if (request.Command == NthControlCommand.Quit && response.Reply == NthControlReply.Ok)
+        {
+            var completion = await PipeNthQuitCompletion.ReadAsync(client, peer, samePeer, request, cancellationToken).ConfigureAwait(false);
+            if (completion is not null) return completion;
+        }
         return NthControlExchange.Answered(response with { Exe = peer.ExecutablePath });
     }
 

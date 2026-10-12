@@ -137,7 +137,8 @@ public sealed record NthControlResponse(
     IReadOnlyList<NthWorkItem> Work,
     int WorkCount,
     NthWorkKind? Deferred = null,
-    string? Reason = null)
+    string? Reason = null,
+    bool CommitRequired = false)
 {
     public static NthControlResponse Refused(int pid, string exe, string reason) =>
         new(NthControlReply.Refused, pid, exe, [], 0, Reason: reason);
@@ -167,6 +168,7 @@ public sealed record NthControlResponse(
             Count = Reply is NthControlReply.Status or NthControlReply.Busy ? WorkCount : null,
             Deferred = Deferred is { } kind ? (kind == NthWorkKind.Merge ? "merge" : "thread") : null,
             Reason = Reason,
+            CommitRequired = CommitRequired ? true : null,
         },
         NthControlJsonContext.Default.NthControlResponseJson);
 
@@ -224,7 +226,8 @@ public sealed record NthControlResponse(
             work,
             Math.Max(work.Count, document.Count ?? work.Count),
             deferred,
-            document.Reason is { } reason ? NthControl.CleanName(reason) : null);
+            document.Reason is { } reason ? NthControl.CleanName(reason) : null,
+            document.CommitRequired ?? false);
     }
 }
 
@@ -403,6 +406,9 @@ internal sealed class NthControlResponseJson
 
     [JsonPropertyName("reason")]
     public string? Reason { get; set; }
+
+    [JsonPropertyName("commit")]
+    public bool? CommitRequired { get; set; }
 }
 
 /// <summary>Source-generated, so the trimmed AOT setup and the app read and write the same bytes without reflection.</summary>

@@ -1201,6 +1201,7 @@ public sealed class ComposerView : Decorator
     // :370-382
     private void Send()
     {
+        if (Model.InstallerHoldsNewTurns) return;
         if (runtime.Draft.IsEmpty) return; // :371
         historyIndex = null; // :372
         state.Suggestions = new SuggestionState(); // :373
@@ -1208,7 +1209,7 @@ public sealed class ComposerView : Decorator
         {
             opinionDraft = runtime.Draft;
             var message = opinionDraft.OutgoingText;
-            _ = MainActor.Spawn(() => askOthers.SendAsync(message));
+            _ = runtime.SpawnInstallerTurn(() => askOthers.SendAsync(message));
             return;
         }
         // :375-378 Return while the turn runs stops it and sends right away. With heads at work it queues instead (a
