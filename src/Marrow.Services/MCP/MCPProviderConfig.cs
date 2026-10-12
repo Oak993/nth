@@ -319,22 +319,52 @@ public static class MCPProviderConfig
     public static MCPResolvedServer? AdvisorServer(Providers.SessionConfiguration configuration) =>
         Port.Advisor.AdvisorMcpBridge.Server(configuration);
 
+    // PORT-ONLY (Tactus, ED-NEW-pcctl-41): no Swift counterpart. A session's nth-pc server, null unless Tactus is on and
+    // the app has bound its parts (PcControlBridge.Server); like the advisor's, it joins the shapes below only then.
+    public static MCPResolvedServer? PcServer(Providers.SessionConfiguration configuration) =>
+        Port.PcControl.PcControlBridge.Server(configuration);
+
+    /// <summary>
+    /// The session's built-in servers (DESIGN.md 3.4): the advisor's and nth-pc's, each only when it applies. Empty for
+    /// every chat that has neither, so its launch is exactly as before.
+    /// </summary>
+    public static IReadOnlyList<MCPResolvedServer> BuiltInServers(MCPResolvedServer? advisor, MCPResolvedServer? pc) =>
+        [.. new[] { advisor, pc }.OfType<MCPResolvedServer>()];
+
+    /// <summary>The built-in servers of a session that keeps no reference to them (Antigravity, Pi, Command Code).</summary>
+    public static IReadOnlyList<MCPResolvedServer> BuiltInServers(Providers.SessionConfiguration configuration) =>
+        BuiltInServers(AdvisorServer(configuration), PcServer(configuration));
+
     /// <summary>Codex: the connected servers (CodexOverrides) with the advisor's entry added; null when there are neither.</summary>
-    public static JSONValue? CodexServers(JSONValue? overrides, MCPResolvedServer? advisor)
+    public static JSONValue? CodexServers(JSONValue? overrides, MCPResolvedServer? advisor) => CodexBuiltIns(overrides, BuiltInServers(advisor, null));
+
+    /// <summary>
+    /// Codex: the connected servers with the built-ins added; the overrides themselves when there are no built-ins. The
+    /// nth-pc entry carries tool_timeout_sec 120 (DESIGN.md 3.4, critique C10), so a 25 s wait plus a slow app step never
+    /// reaches Codex's own default limit.
+    /// </summary>
+    public static JSONValue? CodexBuiltIns(JSONValue? overrides, IReadOnlyList<MCPResolvedServer> builtIns)
     {
-        if (advisor is null) return overrides;
+        if (builtIns.Count == 0) return overrides;
         var merged = new Dictionary<string, JSONValue>(overrides?.JSONValueObject ?? new Dictionary<string, JSONValue>());
-        foreach (var (key, value) in Codex([advisor])["mcp_servers"]!.JSONValueObject!) merged[key] = value;
+        foreach (var (key, value) in Codex(builtIns)["mcp_servers"]!.JSONValueObject!)
+            merged[key] = key == Port.PcControl.PcProviderWiring.ServerName ? With(value, "tool_timeout_sec", (long)Port.PcControl.PcProviderWiring.CodexToolTimeoutSec) : value;
         return ObjectOf(merged);
     }
 
     /// <summary>Copilot: the advisor's entry in the "mcpServers" shape a session's create parameters take; null without one.</summary>
-    public static JSONValue? CopilotSessionServers(MCPResolvedServer? advisor) =>
-        advisor is null ? null : Copilot([advisor])["mcpServers"];
+    public static JSONValue? CopilotSessionServers(MCPResolvedServer? advisor) => CopilotBuiltIns(BuiltInServers(advisor, null));
+
+    /// <summary>Copilot: one merged "mcpServers" object of the built-ins; null when there are none.</summary>
+    public static JSONValue? CopilotBuiltIns(IReadOnlyList<MCPResolvedServer> builtIns) =>
+        builtIns.Count == 0 ? null : Copilot(builtIns)["mcpServers"];
 
     /// <summary>ACP: the connected servers with the advisor's entry appended (the skills relay's form).</summary>
-    public static JSONValue AcpServers(JSONValue servers, MCPResolvedServer? advisor) => advisor is null ? servers
-        : new JSONValue.Array(new ValueList<JSONValue>((servers.JSONValueArray ?? []).Append(Port.Advisor.AdvisorMcpBridge.AcpEntry(advisor))));
+    public static JSONValue AcpServers(JSONValue servers, MCPResolvedServer? advisor) => AcpBuiltIns(servers, BuiltInServers(advisor, null));
+
+    /// <summary>ACP: the connected servers with each built-in's entry appended; the same value when there are none.</summary>
+    public static JSONValue AcpBuiltIns(JSONValue servers, IReadOnlyList<MCPResolvedServer> builtIns) => builtIns.Count == 0 ? servers
+        : new JSONValue.Array(new ValueList<JSONValue>((servers.JSONValueArray ?? []).Concat(builtIns.Select(Port.Advisor.AdvisorMcpBridge.AcpEntry))));
 
     /// <summary>
     /// Claude: the session's one --mcp-config file and whether --strict-mcp-config follows it. Without an advisor it is
@@ -342,22 +372,63 @@ public static class MCPProviderConfig
     /// the advisor's entry are merged into a file of the chat's own, strict only when there were connected servers (as
     /// before: with none, the user's own servers stay on). A file that cannot be written leaves the launch as before.
     /// </summary>
-    public static (string Path, bool Strict)? ClaudeSessionConfig(MCPResolvedServer? advisor, Guid? thread)
+    public static (string Path, bool Strict)? ClaudeSessionConfig(MCPResolvedServer? advisor, Guid? thread) => ClaudeBuiltInConfig(BuiltInServers(advisor, null), thread);
+
+    /// <summary>
+    /// Claude (and the JS bridge of Pi and Command Code, which reads the same shape): ClaudeSessionConfig for any set of
+    /// built-ins. With none it is exactly ClaudeConfigPath() with strict (or null); with some, one merged file per chat.
+    /// </summary>
+    public static (string Path, bool Strict)? ClaudeBuiltInConfig(IReadOnlyList<MCPResolvedServer> builtIns, Guid? thread)
     {
         var connected = ClaudeConfigPath();
         (string, bool)? plain = connected is null ? null : (connected, true);
-        if (advisor is null) return plain;
+        if (builtIns.Count == 0) return plain;
         var merged = SwiftTry.Optional(() =>
         {
             var servers = new Dictionary<string, JSONValue>();
             if (connected is not null && ReadOptionalConfig(connected) is { } data && JSONValue.Parse(data)?["mcpServers"]?.JSONValueObject is { } existing)
                 foreach (var (key, value) in existing) servers[key] = value;
-            servers[advisor.Id] = Claude([advisor])["mcpServers"]![advisor.Id]!;
+            foreach (var (key, value) in Claude(builtIns)["mcpServers"]!.JSONValueObject!) servers[key] = value;
             var path = SwiftPath.AppendingPathComponent(MCPPaths.Directory, "advisor-" + (thread ?? Guid.NewGuid()).ToString("N") + ".json");
             FileOps.WriteAtomic(path, ObjectOf(new Dictionary<string, JSONValue> { ["mcpServers"] = ObjectOf(servers) }).Data(pretty: true));
             return path;
         });
         return merged is null ? plain : (merged, connected is not null);
+    }
+
+    /// <summary>
+    /// PORT-ONLY (Tactus, ED-NEW-pcctl-41). Antigravity: a per-chat copy of the system settings the CLI reads from
+    /// GEMINI_CLI_SYSTEM_SETTINGS_PATH (the connected servers' file, when there is one) with the built-ins added, nth's own
+    /// entries trusted (nth's approval governs them, DESIGN.md 3.4); null when there are no built-ins, so the launch is as
+    /// before, or when the file cannot be written.
+    /// </summary>
+    public static string? GeminiSessionSettings(IReadOnlyList<MCPResolvedServer> builtIns, Guid? thread)
+    {
+        if (builtIns.Count == 0) return null;
+        return SwiftTry.Optional(() =>
+        {
+            var root = new Dictionary<string, JSONValue>();
+            if (GeminiSettingsPath() is { } connected && ReadOptionalConfig(connected) is { } data && JSONValue.Parse(data)?.JSONValueObject is { } existing)
+                foreach (var (key, value) in existing) root[key] = value;
+            var servers = new Dictionary<string, JSONValue>();
+            if (root.TryGetValue("mcpServers", out var present) && present.JSONValueObject is { } listed)
+                foreach (var (key, value) in listed) servers[key] = value;
+            foreach (var (key, value) in Gemini(builtIns)["mcpServers"]!.JSONValueObject!) servers[key] = With(value, "trust", true);
+            root["mcpServers"] = ObjectOf(servers);
+            var path = SwiftPath.AppendingPathComponent(MCPPaths.Directory, "gemini-" + (thread ?? Guid.NewGuid()).ToString("N") + ".json");
+            FileOps.WriteAtomic(path, ObjectOf(root).Data(pretty: true));
+            return path;
+        });
+    }
+
+    // The entry with one more key (a built-in's provider-specific option).
+    private static JSONValue With(JSONValue entry, string key, JSONValue value)
+    {
+        var fields = new Dictionary<string, JSONValue>();
+        if (entry.JSONValueObject is { } existing)
+            foreach (var (name, field) in existing) fields[name] = field;
+        fields[key] = value;
+        return ObjectOf(fields);
     }
 
     // :230. private static let geminiSettingsURL. ENGINEERING DECISION: like MCPPaths.Directory (MCP.cs, ED-177),

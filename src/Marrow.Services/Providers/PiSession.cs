@@ -79,6 +79,7 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
     /// <summary>Gate kinds approved for the rest of the session ("Allow for session").</summary>
     private readonly HashSet<string> sessionGrants = new(SwiftStringComparer.Instance); // :46-47
     private readonly Dictionary<string, string> toolNames = new(SwiftStringComparer.Instance); // :48
+    private bool pcTools; // PORT-ONLY (Tactus, ED-NEW-pcctl-41): this launch was given the nth-pc server.
     private readonly Dictionary<string, JSONValue> toolInputs = new(SwiftStringComparer.Instance); // :49
     /// <summary>Files a <c>write</c> is about to replace, read as the call starts, so the row's diff is the file
     /// before against the content written. B3 (N7): the shared SessionSupport type, replacing this file's own
@@ -183,7 +184,13 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
             // ERR_UNSUPPORTED_ESM_URL_SCHEME, so the port passes pathToFileURL(bridgePath).href; the Swift
             // source's `bridge.path` becomes the file:// URL string InstallBridge already returns.
             environment["DROPPY_CODE_MCP_BRIDGE"] = bridge.AbsoluteUri;
-        if (!textOnlyHead && File.Exists(MCPPaths.ClaudeConfigURL))
+        // PORT-ONLY (Tactus, ED-NEW-pcctl-41; DESIGN.md 3.4): with built-in servers (nth-pc while Tactus is on, a head's
+        // advisor) the bridge reads the chat's own merged file; without, exactly as before.
+        IReadOnlyList<MCPResolvedServer> builtIns = textOnlyHead ? [] : MCPProviderConfig.BuiltInServers(configuration);
+        pcTools = builtIns.Any(server => server.Id == Port.PcControl.PcProviderWiring.ServerName);
+        if (builtIns.Count > 0 && MCPProviderConfig.ClaudeBuiltInConfig(builtIns, configuration.IgnisThreadID) is { } merged && merged.Path != MCPPaths.ClaudeConfigURL)
+            environment["DROPPY_CODE_MCP_CONFIG"] = merged.Path;
+        else if (!textOnlyHead && File.Exists(MCPPaths.ClaudeConfigURL))
             environment["DROPPY_CODE_MCP_CONFIG"] = MCPPaths.ClaudeConfigURL;
 
         // :113-134
@@ -905,6 +912,12 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
         }
         var kindString = payload["kind"]?.JSONValueString ?? "tool";
         if (sessionGrants.Contains(kindString))
+        {
+            process?.Send(Obj(("type", "extension_ui_response"), ("id", id), ("value", "Allow")));
+            return;
+        }
+        // PORT-ONLY (Tactus, ED-NEW-pcctl-41): nth's own per-app approval governs the nth-pc tools (DESIGN.md 3.4, 4.1).
+        if (pcTools && Port.PcControl.PcProviderWiring.IsClaudeTool(payload["toolName"]?.JSONValueString))
         {
             process?.Send(Obj(("type", "extension_ui_response"), ("id", id), ("value", "Allow")));
             return;

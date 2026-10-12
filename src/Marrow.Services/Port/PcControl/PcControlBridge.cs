@@ -69,6 +69,7 @@ public static class PcControlBridge
         return new PcRegistration(thread, configuration.Provider, configuration.Model, configuration.Provider.SupportsImages)
         {
             Head = configuration.IsHydraHead ? "a Hydra head" : null,
+            ImageFolder = PcProviderWiring.ImageFolder(configuration.Provider, thread),
         };
     }
 
