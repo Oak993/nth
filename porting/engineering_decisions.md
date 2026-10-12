@@ -6219,3 +6219,8 @@ Branch claude/release-integration, 2026-10-10 (integrates Ignis part A, points s
 3. HIDING. The chat menu and project settings (AS-8) call AssistantEventBus.Hide(threadId) when the owner hides a chat. The project-level hidden flag has no field yet (ED-NEW-dextra-as3a-1 item 5): a project's chats are hidden when each chat is marked.
 4. PRIVATE ACCOUNT. AssistantFeedTaps.IsPrivateAccount is set when the account mark exists (ED-NEW-dextra-as2-3).
 5. NOT IN THIS UNIT. The Feed tab, the settings page and the first-run card (AS-8); the delegate responder and the digest, which read the same lines (AS-22, AS-11); the Tactus tap.
+
+
+## ED-NEW-dextra-cx-1
+
+ENGINEERING DECISION. Owner accepted C6-F1 (2026-10-12); DESIGN.md 5.4 and 15.3, ED-NEW-dextra-as3a-2. ForwardThread preserves the stored hidden flag and also stores the source's effective FeedChatFacts.Hidden, including the bounded parent walk, on the new continuation. This is required because a continuation carries the source's words without retaining its ParentThreadID. Valid Assistant work keeps its existing exemption. Filtering remains after enqueue (ED-NEW-dextra-as2-6). Regression: DextraC6F1Tests.Continuation_of_an_inherited_hidden_head_stays_hidden; original repro failed alone twice at 37fe3e03f (codex-C6 logs).

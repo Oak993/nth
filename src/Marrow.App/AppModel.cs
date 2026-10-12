@@ -826,7 +826,7 @@ public sealed partial class AppModel : MainActorModel
         {
             Title = "Continued: " + resolved.Title,
             HasCustomTitle = true,
-            HiddenFromAssistant = resolved.HiddenFromAssistant, // PORT-ONLY (AS-3a, ED-NEW-dextra-as3a-2): it carries the hidden chat's words, so it stays hidden
+            HiddenFromAssistant = resolved.HiddenFromAssistant || Marrow.Core.Port.Assistant.FeedChatFacts.From(resolved, Thread).Hidden, // PORT-ONLY (ED-NEW-dextra-cx-1): preserve inherited hiding when the continuation loses its parent link
         };
         Threads = Threads.Appending(forwarded);
         UpdateProject(project.Id, value => value with { IsExpanded = true });
