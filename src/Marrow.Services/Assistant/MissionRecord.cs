@@ -14,6 +14,9 @@ namespace Marrow.Services.Assistant;
 /// <summary>One verdict of the reviewer (3.4).</summary>
 public sealed record MissionReview(bool Passed, string Reasons, string Reviewer, DateTimeOffset At);
 
+/// <summary>The workspace of an earlier attempt that Restart left for review, with when it was set aside (12.6b, 12.6a).</summary>
+public sealed record PreviousWorkspace(MissionWorkspace Workspace, DateTimeOffset At);
+
 /// <summary>A mission as the runner keeps it.</summary>
 public sealed record MissionRecord(Mission Mission)
 {
@@ -38,6 +41,27 @@ public sealed record MissionRecord(Mission Mission)
     public int Level { get; init; } = MissionLimits.TopLevel;
 
     public MissionWorkspace? Workspace { get; init; }
+
+    /// <summary>Which try this is: 1, then one more for each Restart (its branch and folder carry it, 12.6b).</summary>
+    public int Attempt { get; init; } = 1;
+
+    /// <summary>Revert changes took its work out of the workspace; the Activity log can restore it for 7 days (12.6b).</summary>
+    public RevertedWork? RevertedWork { get; init; }
+
+    /// <summary>Workspaces of earlier attempts a Restart left for review: swept 7 days after (12.6a, 12.6b).</summary>
+    public ValueList<PreviousWorkspace> Previous { get; init; } = ValueList<PreviousWorkspace>.Empty;
+
+    /// <summary>
+    /// Its agents were let go after 10 minutes paused (12.6b "Paused tasks"): the line says "agents released", and
+    /// Resume starts them again through the provider's own session resume, behind the memory gate.
+    /// </summary>
+    public bool AgentsReleased { get; init; }
+
+    /// <summary>
+    /// Tokens the lead read again at the uncached price because its agents were let go while paused (12.6b): they count in the
+    /// task's spend (AS-13 adds them to the ledger's figure).
+    /// </summary>
+    public long ColdStartTokens { get; init; }
 
     public Guid? LeadThread { get; init; }
 
@@ -121,6 +145,16 @@ public static class MissionJournal
             ["keepWorkspace"] = record.KeepWorkspace,
             ["created"] = Time(record.Created),
         };
+        // Added in AS-6 (ED-NEW-dextra-as6-7): optional keys, so a file written before them loads, and none is written unless set.
+        if (record.Attempt > 1) body["attempt"] = record.Attempt;
+        if (record.AgentsReleased) body["agentsReleased"] = true;
+        if (record.ColdStartTokens > 0) body["coldStartTokens"] = record.ColdStartTokens;
+        if (record.RevertedWork is { } revertedWork) body["revertedWork"] = MissionWorkspaces.ToJson(revertedWork);
+        if (record.Previous.Count > 0)
+            body["previous"] = new JsonArray([.. record.Previous.Select(p => (JsonNode)new JsonObject
+            {
+                ["workspace"] = MissionWorkspaces.ToJson(p.Workspace), ["at"] = Time(p.At),
+            })]);
         void Put(string name, string? value) { if (value is not null) body[name] = value; }
         Put("resumeTo", m.ResumeTo?.ToString());
         Put("pausedBy", m.PausedBy?.ToString());
@@ -195,6 +229,15 @@ public static class MissionJournal
                 BudgetUsd = body["budgetUsd"] is { } budget ? budget.GetValue<decimal>() : null,
                 Created = ParseTime(Text(body, "created")!),
                 Ended = Text(body, "ended") is { } ended ? ParseTime(ended) : null,
+                Attempt = body["attempt"] is { } attempt ? Math.Max(1, attempt.GetValue<int>()) : 1,
+                AgentsReleased = Bool(body, "agentsReleased"),
+                ColdStartTokens = body["coldStartTokens"] is { } cold ? Math.Max(0, cold.GetValue<long>()) : 0,
+                RevertedWork = body["revertedWork"] is { } revertedWork ? MissionWorkspaces.RevertedFromJson(revertedWork) ?? throw new FormatException("revertedWork") : null,
+                Previous = new ValueList<PreviousWorkspace>(Array(body, "previous").Select(p =>
+                {
+                    var o = (JsonObject)p!;
+                    return new PreviousWorkspace(MissionWorkspaces.FromJson(o["workspace"]) ?? throw new FormatException("previous"), ParseTime(Text(o, "at")!));
+                })),
             };
         }
         catch (Exception error) when (error is FormatException or InvalidOperationException or ArgumentException or InvalidCastException

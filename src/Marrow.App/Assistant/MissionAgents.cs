@@ -63,12 +63,28 @@ public interface IMissionAgents
 
     /// <summary>The models of a provider, for the reviewer's pick.</summary>
     IReadOnlyList<string> Models(ProviderKind provider);
+
+    /// <summary>How many tokens of context the chat holds (what a cold start reads again at the uncached price); null when unknown.</summary>
+    long? ContextTokens(Guid thread);
+
+    /// <summary>
+    /// A head whose finish a Pause held (it paused at its turn boundary, 12.6b) is released: Hydra finishes it now, with
+    /// the status its turn ended with, and tells the lead.
+    /// </summary>
+    void FinishHeld(Guid head, TurnStatus status);
+
+    /// <summary>
+    /// Starts a stopped head's chat again with <paramref name="text"/> (Resume on a head Stop cut): Hydra counts it as
+    /// running again. False when the chat cannot take a message now.
+    /// </summary>
+    bool RestartHead(Guid head, string text);
 }
 
 /// <summary>The mission workspaces (12.6a), behind a seam so the runner's tests need no git.</summary>
 public interface IMissionWorkspaces
 {
-    Task<MissionWorkspace> Create(Guid mission, string title, string source);
+    /// <summary>Makes the workspace; <paramref name="attempt"/> is 1, then one more for each Restart (a fresh branch and folder).</summary>
+    Task<MissionWorkspace> Create(Guid mission, string title, string source, int attempt = 1);
 
     Task<MergeReview> Review(MissionWorkspace workspace);
 
@@ -78,12 +94,50 @@ public interface IMissionWorkspaces
     Task<MergeResult> RebaseFirst(MissionWorkspace workspace);
 
     Task Discard(MissionWorkspace workspace);
+
+    /// <summary>Revert changes (12.6b): the work comes out of the workspace and is kept, restorable, for 7 days.</summary>
+    Task<RevertedWork> Revert(MissionWorkspace workspace, Guid mission, DateTimeOffset now, int changedFiles);
+
+    /// <summary>Puts reverted work back where it was (the Activity log's restore, within 7 days).</summary>
+    Task<MissionWorkspace> Restore(RevertedWork reverted, Guid mission);
+
+    /// <summary>Forgets reverted work for good.</summary>
+    Task DropReverted(RevertedWork reverted, Guid mission);
 }
 
-/// <summary>The real workspaces, under the store's <c>worktrees/&lt;mission-id&gt;</c>.</summary>
-public sealed class StoreMissionWorkspaces(Func<Guid, string> folder) : IMissionWorkspaces
+/// <summary>
+/// The real workspaces, under the store's <c>worktrees/&lt;mission-id&gt;</c> (and <c>-2</c>, <c>-3</c> for a Restart's fresh
+/// folder). <paramref name="folder"/> gives a mission's folder for an attempt. Revert, Restore and Discard act only on a
+/// folder strictly under the worktrees folder, fully resolved, with no link on the way (the lean rules, item 10).
+/// </summary>
+public sealed class StoreMissionWorkspaces(Func<Guid, int, string> folder) : IMissionWorkspaces
 {
-    public Task<MissionWorkspace> Create(Guid mission, string title, string source) => MissionWorkspaces.Create(mission, title, source, folder(mission));
+    public Task<MissionWorkspace> Create(Guid mission, string title, string source, int attempt = 1) =>
+        MissionWorkspaces.Create(mission, title, source, folder(mission, attempt), attempt: attempt);
+
+    private string Root(Guid mission) => Path.GetDirectoryName(folder(mission, 1))!;
+
+    private MissionWorkspace Checked(Guid mission, MissionWorkspace workspace)
+    {
+        if (!MissionWorkspaces.StrictlyUnder(Root(mission), workspace.Path))
+            throw new MissionWorkspaceError("The mission's workspace is not under nth's own worktrees folder, so nth does not touch it.");
+        return workspace;
+    }
+
+    public Task<RevertedWork> Revert(MissionWorkspace workspace, Guid mission, DateTimeOffset now, int changedFiles) =>
+        MissionWorkspaces.Revert(Checked(mission, workspace), mission, now, changedFiles);
+
+    public Task<MissionWorkspace> Restore(RevertedWork reverted, Guid mission) =>
+        MissionWorkspaces.Restore(reverted with { Workspace = Checked(mission, reverted.Workspace) });
+
+    public Task DropReverted(RevertedWork reverted, Guid mission)
+    {
+        Checked(mission, reverted.Workspace);
+        // A set-aside copy is deleted from disk, so it too must lie under the worktrees folder.
+        if (reverted.Workspace.Kind == MissionWorkspaceKind.Snapshot && !MissionWorkspaces.StrictlyUnder(Root(mission), reverted.Ref))
+            throw new MissionWorkspaceError("The reverted copy is not under nth's own worktrees folder, so nth does not delete it.");
+        return MissionWorkspaces.DropReverted(reverted);
+    }
 
     public Task<MergeReview> Review(MissionWorkspace workspace) => MissionWorkspaces.Review(workspace);
 
@@ -165,4 +219,13 @@ public sealed class AppMissionAgents(AppModel app) : IMissionAgents
     ];
 
     public IReadOnlyList<string> Models(ProviderKind provider) => [.. app.Providers.Models(provider).Select(m => m.Id)];
+
+    public long? ContextTokens(Guid thread) => app.ExistingRuntime(thread)?.Usage?.UsedTokens;
+
+    public void FinishHeld(Guid head, TurnStatus status)
+    {
+        if (app.Thread(head) is { } chat) app.DextraFinishHeldHead(chat, status);
+    }
+
+    public bool RestartHead(Guid head, string text) => app.Thread(head) is not null && app.DextraRestartHead(head, text);
 }

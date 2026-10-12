@@ -624,7 +624,9 @@ public sealed partial class AppModel
 
         // PORT-ONLY (Dextra AS-5): the head is done (a launch failure Hydra retries above keeps its slot): its gate slot is
         // freed and it counts as finished in its mission.
-        if (head.MissionID is not null) Dextra?.OnHeadFinished(head.Id, status);
+        // PORT-ONLY (Dextra AS-6, 12.6b): a head the owner paused ends its turn at its boundary and is Paused, not finished: Hydra
+        // does not finish it or tell the lead until Resume (DextraFinishHeldHead runs this tail again).
+        if (head.MissionID is not null && Dextra?.OnHeadFinished(head.Id, status) == true) return;
         MainActor.Spawn(async () =>
         {
             HydraLanding? landing = null;
