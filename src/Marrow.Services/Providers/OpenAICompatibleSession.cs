@@ -1,4 +1,6 @@
+using System.Buffers;
 using System.Diagnostics;
+using System.Text;
 using System.Text.RegularExpressions;
 using Marrow.Core.Accounts.Keys;
 using Marrow.Core.Models;
@@ -221,6 +223,11 @@ public class OpenAICompatibleSession : ProviderSession
     // real ExecuteTool body directly, the same way OpenAICompatibleSessionTestSeam overrides it for
     // the earlier parts' turn-loop tests.
     internal Task<string> ExecuteToolForTests(PendingToolCall tool) => ExecuteTool(tool);
+
+    // Test-only seam (InternalsVisibleTo Marrow.Services.Tests, ED-NEW-lean-4): called with each file
+    // search_text is about to read, on the thread the walk runs on, so a test can see where the walk
+    // runs and hold it mid-walk.
+    internal Action<string>? SearchFileProbeForTests { get; set; }
 
     // Test-only seam (InternalsVisibleTo Marrow.Services.Tests, PR-PROVAPI-113, PR-PROVAPI-114):
     // registers a pending approval continuation exactly as ApproveIfNeeded does at :1080, without
@@ -735,6 +742,59 @@ public class OpenAICompatibleSession : ProviderSession
         public sealed record TransportErrorChunk(Exception Value) : StreamChunk;                      // :147
     }
 
+    // PORT-ONLY (ED-NEW-lean-4): PerformStream's `content`, `reasoning` and per-index tool-call
+    // accumulators (:612-617, :675-688), kept together so the stream loop can append without copying
+    // what came before and a budget test can drive the buffers headlessly. The text is flattened
+    // once at message end (Content, Reasoning, ToolCalls); the values are the plain concatenation the
+    // Swift's `+=` builds.
+    internal sealed class StreamRoundText
+    {
+        private readonly StringBuilder content = new();   // :612
+        private readonly StringBuilder reasoning = new(); // :613
+        private readonly Dictionary<int, ToolCallText> accumulators = new(); // :616-617
+
+        private sealed class ToolCallText
+        {
+            public string Id = "";
+            public string Name = "";
+            public readonly StringBuilder Arguments = new();
+        }
+
+        public int ContentLength => content.Length;
+
+        public int ReasoningLength => reasoning.Length;
+
+        public void AppendContent(string delta) => content.Append(delta); // :676
+
+        public void AppendReasoning(string delta) => reasoning.Append(delta); // :680
+
+        public void AppendToolCall(int index, string id, string name, string arguments) // :684-688
+        {
+            if (!accumulators.TryGetValue(index, out var acc))
+            {
+                acc = new ToolCallText();
+                accumulators[index] = acc; // :688
+            }
+            if (id.Length > 0) acc.Id = id;         // :685
+            if (name.Length > 0) acc.Name = name;   // :686
+            acc.Arguments.Append(arguments);        // :687
+        }
+
+        public string Content() => content.ToString();
+
+        public string Reasoning() => reasoning.ToString();
+
+        /// <summary>:724-732: the accumulated calls in index order, as (id, name, arguments).</summary>
+        public IEnumerable<(string Id, string Name, string Arguments)> ToolCalls()
+        {
+            foreach (var index in accumulators.Keys.OrderBy(key => key)) // :724-725
+            {
+                var acc = accumulators[index]; // :726
+                yield return (acc.Id, acc.Name, acc.Arguments.ToString());
+            }
+        }
+    }
+
     // :152-227. Holds consecutive text off the main actor and yields it as one larger delta, at
     // most 30 ms after the first piece, so the main actor hops less (R-TASK-6: Actor + Spawn +
     // TrySleep for this file's flush pattern).
@@ -1239,11 +1299,9 @@ public class OpenAICompatibleSession : ProviderSession
 
         var messageID = NextID("message"); // :610
         var thoughtID = NextID("thought"); // :611
-        var content = "";                  // :612
-        var reasoning = "";                // :613
+        var streamed = new StreamRoundText(); // :612-613, :616-617 (ED-NEW-lean-4)
         var sawContent = false;            // :614
         var sawReasoning = false;          // :615
-        var accumulators = new Dictionary<int, (string Id, string Name, string Arguments)>(); // :616-617
         ContextUsage? usage = null;             // :618
         ReportedTokenUsage? tokenUsage = null;  // :619
         string? streamError = null;             // :620
@@ -1295,22 +1353,18 @@ public class OpenAICompatibleSession : ProviderSession
                 if (SwiftTask.IsCancelled || interrupted) throw new CancellationError(); // :673
                 switch (chunk)
                 {
-                    case StreamChunk.TextChunk text: // :675
-                        content += text.Value;
+                    case StreamChunk.TextChunk textChunk: // :675
+                        streamed.AppendContent(textChunk.Value);
                         if (!sawContent) sawContent = true;
-                        OnEvent?.Invoke(new ProviderEvent.MessageDelta(messageID, text.Value)); // :678
+                        OnEvent?.Invoke(new ProviderEvent.MessageDelta(messageID, textChunk.Value)); // :678
                         break;
                     case StreamChunk.ReasoningChunk think: // :679
-                        reasoning += think.Value;
+                        streamed.AppendReasoning(think.Value);
                         if (!sawReasoning) sawReasoning = true;
                         OnEvent?.Invoke(new ProviderEvent.ReasoningDelta(thoughtID, think.Value)); // :682
                         break;
-                    case StreamChunk.ToolCallChunk toolCall: // :683
-                        (string Id, string Name, string Arguments) acc = accumulators.TryGetValue(toolCall.Index, out var existing) ? existing : ("", "", "");
-                        if (toolCall.Id.Length > 0) acc.Id = toolCall.Id;         // :685
-                        if (toolCall.Name.Length > 0) acc.Name = toolCall.Name;   // :686
-                        acc.Arguments += toolCall.Arguments;                      // :687
-                        accumulators[toolCall.Index] = acc;                       // :688
+                    case StreamChunk.ToolCallChunk toolCall: // :683-688
+                        streamed.AppendToolCall(toolCall.Index, toolCall.Id, toolCall.Name, toolCall.Arguments);
                         break;
                     case StreamChunk.UsageChunk usageChunk: // :690
                         usage = usageChunk.Value;
@@ -1322,7 +1376,7 @@ public class OpenAICompatibleSession : ProviderSession
                         streamError = streamErrorChunk.Value;
                         break;
                     case StreamChunk.TransportErrorChunk transportErrorChunk: // :695
-                        throw TransportErrorFailure(transportErrorChunk.Value, streamError, content, sawContent, sawReasoning, statusCode);
+                        throw TransportErrorFailure(transportErrorChunk.Value, streamError, streamed.Content(), sawContent, sawReasoning, statusCode);
                     default:
                         throw new UnreachableException();
                 }
@@ -1333,6 +1387,8 @@ public class OpenAICompatibleSession : ProviderSession
             sseDrain = null; // :671 defer
         }
 
+        var content = streamed.Content();     // :612, flattened once at message end (ED-NEW-lean-4)
+        var reasoning = streamed.Reasoning(); // :613
         var round = new StreamRound
         {
             Content = content,       // :712
@@ -1345,9 +1401,8 @@ public class OpenAICompatibleSession : ProviderSession
         if (sawContent || content.Length > 0) OnEvent?.Invoke(new ProviderEvent.MessageCompleted(messageID, content)); // :718-719
         if (sawReasoning || reasoning.Length > 0) OnEvent?.Invoke(new ProviderEvent.ReasoningCompleted(thoughtID, reasoning)); // :721-722
         var toolCalls = new List<PendingToolCall>(); // :711 (declared with round in Swift)
-        foreach (var index in accumulators.Keys.OrderBy(key => key)) // :724-725
+        foreach (var acc in streamed.ToolCalls()) // :724-726
         {
-            var acc = accumulators[index]; // :726
             if (acc.Name.Length == 0) continue; // :727
             toolCalls.Add(new PendingToolCall(acc.Id.Length == 0 ? NextID("tool") : acc.Id, acc.Name, acc.Arguments)); // :728-732
         }
@@ -1917,11 +1972,13 @@ public class OpenAICompatibleSession : ProviderSession
                 return "Search failed."; // :1143, an invalid pattern is a grep launch failure's counterpart.
             }
         }
-        bool Matches(string line) => compiled is { } expression ? expression.IsMatch(line) : line.Contains(trimmed, StringComparison.Ordinal); // :1136
+        bool Matches(ReadOnlySpan<char> line) => compiled is { } expression ? expression.IsMatch(line) : line.Contains(trimmed, StringComparison.Ordinal); // :1136
+        var root = WorkingDirectory;
         List<string> matches;
         try
         {
-            matches = SearchWalk(target, Matches); // :1134-1141
+            // ED-NEW-lean-4: the walk runs off the main actor, like NativeFileTools' reads (R-ISO-2).
+            matches = await Task.Run(() => SearchWalk(target, root, Matches)); // :1134-1141
         }
         catch (Exception error) when (SwiftTry.IsThrownError(error))
         {
@@ -1935,12 +1992,14 @@ public class OpenAICompatibleSession : ProviderSession
             : string.Join("\n", matches);
     }
 
-    private List<string> SearchWalk(string target, Func<string, bool> matches)
+    private delegate bool SearchLineMatch(ReadOnlySpan<char> line);
+
+    private List<string> SearchWalk(string target, string root, SearchLineMatch matches)
     {
         var results = new List<string>();
         if (File.Exists(target))
         {
-            SearchFile(target, matches, results);
+            SearchFile(target, root, matches, results);
             return results;
         }
         if (!Directory.Exists(target)) return results;
@@ -1967,30 +2026,90 @@ public class OpenAICompatibleSession : ProviderSession
                     stack.Push(entry);
                     continue;
                 }
-                SearchFile(entry, matches, results);
+                SearchFile(entry, root, matches, results);
             }
         }
         return results;
     }
 
-    private void SearchFile(string filePath, Func<string, bool> matches, List<string> results)
+    private static readonly UTF8Encoding SearchStrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+    private const int SearchReadBytes = 64 * 1024;
+
+    // ED-NEW-lean-4: each file is read and decoded in 64 KB pieces and matched one line at a time, instead of
+    // File.ReadAllBytes + SwiftText.DecodeUtf8OrNil + SwiftString.Split; the output is identical:
+    // - a line ends at a "\n" that does not follow "\r" (SwiftString.Split's "\n" Character: "\r\n" is one grapheme
+    //   cluster, and LF always stands alone otherwise, UAX #29 GB3-GB5), and the piece after the last "\n" is a
+    //   line even when empty;
+    // - the strict decoder throws at the same invalid or cut-off bytes as the whole-file decode, and the file's
+    //   matches found so far are dropped, so a file that is not UTF-8 is still skipped whole; a BOM stays U+FEFF;
+    // - a file File.ReadAllBytes refused (an open failure, longer than Array.MaxLength) is skipped as before.
+    private void SearchFile(string filePath, string root, SearchLineMatch matches, List<string> results)
     {
-        byte[] bytes;
+        SearchFileProbeForTests?.Invoke(filePath);
+        var first = results.Count;
+        string? relative = null;
+        var matching = false;
+        var bytes = ArrayPool<byte>.Shared.Rent(SearchReadBytes);
+        var chars = ArrayPool<char>.Shared.Rent(SearchStrictUtf8.GetMaxCharCount(SearchReadBytes + 4));
+        var line = ArrayPool<char>.Shared.Rent(256);
         try
         {
-            bytes = File.ReadAllBytes(filePath);
+            using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 1, FileOptions.SequentialScan);
+            if (stream.Length > Array.MaxLength) return; // File.ReadAllBytes' own "file too long" refusal.
+            var decoder = SearchStrictUtf8.GetDecoder(); // :1135 -I, see the block comment above.
+            var lineLength = 0;
+            var lineNumber = 1; // :1140 -n
+            var previous = '\0';
+            while (true)
+            {
+                var read = stream.Read(bytes, 0, SearchReadBytes);
+                var count = decoder.GetChars(bytes, 0, read, chars, 0, flush: read == 0);
+                for (var index = 0; index < count; index++)
+                {
+                    var unit = chars[index];
+                    if (unit == '\n' && previous != '\r') // :1147
+                    {
+                        Emit(lineLength, lineNumber);
+                        lineNumber++;
+                        lineLength = 0;
+                    }
+                    else
+                    {
+                        if (lineLength == line.Length)
+                        {
+                            var grown = ArrayPool<char>.Shared.Rent(line.Length * 2);
+                            line.AsSpan(0, lineLength).CopyTo(grown);
+                            ArrayPool<char>.Shared.Return(line);
+                            line = grown;
+                        }
+                        line[lineLength++] = unit;
+                    }
+                    previous = unit;
+                }
+                if (read == 0) break;
+            }
+            Emit(lineLength, lineNumber);
         }
-        catch (Exception)
+        catch (Exception) when (!matching)
         {
-            return;
+            results.RemoveRange(first, results.Count - first);
         }
-        var text = SwiftText.DecodeUtf8OrNil(bytes); // :1135 -I, see the block comment above.
-        if (text is null) return;
-        var relative = ToolTitles.RelativePath(filePath, WorkingDirectory); // :1139 the path shown to the model.
-        var lines = SwiftString.Split(text, "\n", omittingEmptySubsequences: false); // :1147
-        for (var index = 0; index < lines.Count; index++) // :1140 -n
+        finally
         {
-            if (matches(lines[index])) results.Add($"{relative}:{index + 1}:{lines[index]}");
+            ArrayPool<char>.Shared.Return(line);
+            ArrayPool<char>.Shared.Return(chars);
+            ArrayPool<byte>.Shared.Return(bytes);
+        }
+
+        void Emit(int length, int number)
+        {
+            var text = line.AsSpan(0, length);
+            matching = true;
+            var found = matches(text);
+            matching = false;
+            if (!found) return;
+            relative ??= ToolTitles.RelativePath(filePath, root); // :1139 the path shown to the model.
+            results.Add($"{relative}:{number}:{text}");
         }
     }
 
