@@ -34,6 +34,22 @@ public static class HangWatchdog
     // :52. The watchdog thread's sleep between pings.
     internal static readonly TimeSpan PingInterval = TimeSpan.FromMilliseconds(500);
 
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-lean-6). Where the watchdog asks whether the app is quiet: no window of it can be seen and none has
+    /// stopped answering (Marrow.UI's WindowPresence sets it). A type of its own, so <see cref="HangWatchdog"/>'s public
+    /// methods stay <see cref="Start"/> alone; the signal is published and read with full fences.
+    /// </summary>
+    public static class Quiet
+    {
+        private static Func<bool>? signal;
+
+        /// <summary>The app's quiet signal (null: never quiet). Any thread; the watchdog's thread reads it every beat.</summary>
+        public static void Use(Func<bool>? quiet) => Volatile.Write(ref signal, quiet);
+
+        /// <summary>Whether the app is quiet now (the watchdog's thread).</summary>
+        internal static bool Now => Volatile.Read(ref signal)?.Invoke() == true;
+    }
+
     // :34. The process's one watchdog, made on first use as the Swift static is.
     private static readonly Lazy<Runner> shared =
         new(() => new Runner(StackSampler.Capture, LocalApplicationData, BundleValue), LazyThreadSafetyMode.ExecutionAndPublication);
@@ -84,6 +100,9 @@ public static class HangWatchdog
             value.MainThreadOsId = StackSampler.CurrentOsThreadId();
         });
 
+        // ED-NEW-lean-6: watching resumes after a quiet spell; the wait for main's answer starts again now.
+        internal void Resume(DateTimeOffset now) => fields.WithLock((ref Fields value) => { value.LastPong = now; });
+
         // :72-77
         internal double? Check(DateTimeOffset now) => fields.WithLock((ref Fields value) =>
         {
@@ -101,8 +120,11 @@ public static class HangWatchdog
     /// the Info dictionary lookup.
     /// </summary>
     internal sealed class Runner(Func<TimeSpan, uint?, string> capture, Func<string> localApplicationData,
-        Func<string, string?> bundleValue)
+        Func<string, string?> bundleValue, Func<bool>? quiet = null)
     {
+        /// <summary>ED-NEW-lean-6: whether the app is quiet (tests pass their own; else <see cref="HangWatchdog.Quiet"/>).</summary>
+        internal Func<bool> IsQuiet { get; } = quiet ?? (static () => HangWatchdog.Quiet.Now);
+
         // :37 `var lastPong = Date()`.
         internal State State { get; } = new(SwiftDate.Now);
 
@@ -122,9 +144,15 @@ public static class HangWatchdog
         // :51-55. `while true`: no exit and no cancellation; the thread ends with the process (PR-LAUNCH-021).
         private void Loop()
         {
+            var wasQuiet = false;
             while (true)
             {
                 Sleep(PingInterval);
+                // ED-NEW-lean-6: while no window of the app can be seen, main is neither pinged nor checked (nothing wakes
+                // it); seen again, main's time to answer counts from now, so the quiet spell is never taken for a stall. A main
+                // thread that stops answering while unseen ends the quiet (Windows' own hung-window check), and is reported.
+                if (IsQuiet()) { wasQuiet = true; continue; }
+                if (wasQuiet) { wasQuiet = false; State.Resume(SwiftDate.Now); }
                 Ping();
                 Check();
             }

@@ -112,6 +112,7 @@ internal sealed class NthElapsedTime : Decorator, IBaselineProvider
     private ITimer? nextTick;
     private bool attached;
     private int ticking; // the generation of the tick in force: a tick of an earlier one does nothing
+    private WindowPresence? presence; // ED-NEW-lean-6: no tick while the window cannot be seen
 
     public NthElapsedTime(DateTimeOffset startedAt, DateTimeOffset? finishedAt, bool isRunning)
     {
@@ -120,8 +121,8 @@ internal sealed class NthElapsedTime : Decorator, IBaselineProvider
         Child = letters;
         this.startedAt = startedAt; this.finishedAt = finishedAt; this.isRunning = isRunning;
         if (!isRunning) letters.SetTextInstantly(Finished());
-        letters.AttachedToVisualTree += (_, _) => { attached = true; if (this.isRunning) Tick(++ticking); };
-        letters.DetachedFromVisualTree += (_, _) => { attached = false; ticking++; nextTick?.Dispose(); nextTick = null; };
+        letters.AttachedToVisualTree += (_, _) => { attached = true; Watch(); if (this.isRunning) Tick(++ticking); };
+        letters.DetachedFromVisualTree += (_, _) => { attached = false; Unwatch(); ticking++; nextTick?.Dispose(); nextTick = null; };
     }
 
     /// <summary>The time's digits (tests).</summary>
@@ -142,8 +143,34 @@ internal sealed class NthElapsedTime : Decorator, IBaselineProvider
         var n = Math.Floor((now - startedAt).TotalSeconds);
         var gridDate = startedAt.AddSeconds(n);
         letters.Text = RelativeTime.Duration(gridDate - startedAt);
+        if (presence is { Seen: false }) return; // ED-NEW-lean-6: unseen, the next tick waits for the window to be seen
         nextTick = SwiftClock.Provider.Current.CreateTimer(_ => MainActor.Post(() => Tick(generation)), null,
             startedAt.AddSeconds(n + 1) - now, Timeout.InfiniteTimeSpan);
+    }
+
+    // ED-NEW-lean-6: while the window cannot be seen the clock does not tick (nothing would see the digits roll, and each
+    // tick wakes main); seen again, it shows the current time at once and ticks on the same one-second grid.
+    private void Watch()
+    {
+        Unwatch();
+        presence = WindowPresence.For(this);
+        if (presence is not null) presence.Changed += PresenceChanged;
+    }
+
+    private void Unwatch()
+    {
+        if (presence is null) return;
+        presence.Changed -= PresenceChanged;
+        presence = null;
+    }
+
+    private void PresenceChanged()
+    {
+        var generation = ++ticking; nextTick?.Dispose(); nextTick = null;
+        if (!attached || !isRunning || presence is not { Seen: true }) return;
+        var shown = RelativeTime.Duration(startedAt.AddSeconds(Math.Floor((SwiftDate.Now - startedAt).TotalSeconds)) - startedAt);
+        if (shown != letters.Text) letters.SetTextInstantly(shown);
+        Tick(generation);
     }
 
     /// <summary>The clock handed its inputs again: the same text, now counting from <paramref name="nextStartedAt"/>, ticking only while it runs.
