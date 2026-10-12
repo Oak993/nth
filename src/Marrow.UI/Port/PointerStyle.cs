@@ -8,6 +8,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Marrow.Core.Port;
 
 namespace Marrow.UI.Port;
 
@@ -45,8 +46,32 @@ public static class PointerStyleControl
     /// that never shows a window).</summary>
     public static T PointerStyle<T>(this T control, PointerStyle? style) where T : Control
     {
-        control.Cursor = style is null ? null : PointerStyleCursors.Get(style.Value, TopLevel.GetTopLevel(control)?.RenderScaling ?? 1);
+        control.Cursor = style is null ? null : PointerStyleCursors.Get(style.Value, TopLevel.GetTopLevel(control)?.RenderScaling ?? 1, SystemCursorSize.Setting.Current.Pixels);
         return control;
+    }
+}
+
+/// <summary>ED-NEW-lean-19: the side of the system cursor at 100 % in pixels, as the Windows cursor size setting (Settings > Accessibility >
+/// Mouse pointer and touch > Size) sets it: <c>HKCU\Control Panel\Cursors\CursorBaseSize</c>, 32 by default and 16 more for each step of
+/// the slider, up to 256. Windows draws an app's own cursor at its bitmap's size whatever the setting, so the grab cursors read it and are
+/// drawn at that size. Read once, the first time a grab cursor is shown: a change of the setting reaches them at the next launch. A value
+/// outside 32-256, a missing one, or another platform reads as the default.</summary>
+public sealed record SystemCursorSize(double Pixels)
+{
+    public static Ambient<SystemCursorSize> Setting { get; } = new(() => new SystemCursorSize(ReadWindowsSetting()));
+
+    private static double ReadWindowsSetting()
+    {
+        if (!OperatingSystem.IsWindows()) return PointerStyleCursors.BaseSize;
+        try
+        {
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Control Panel\Cursors");
+            return key?.GetValue("CursorBaseSize") is int size && size is >= 32 and <= 256 ? size : PointerStyleCursors.BaseSize;
+        }
+        catch (Exception error) when (error is System.Security.SecurityException or IOException or UnauthorizedAccessException)
+        {
+            return PointerStyleCursors.BaseSize;
+        }
     }
 }
 
@@ -81,19 +106,26 @@ public static class PointerStyleCursors
     private static readonly Lazy<SvgIcon> GrabActiveIcon = new(() => LoadIcon("hand-fist"));
     private static readonly Lazy<Cursor> LinkCursor = new(() => new Cursor(StandardCursorType.Hand));
 
-    private static readonly ConcurrentDictionary<(PointerStyle Style, double Scale), Bitmap> RenderCache = new();
-    private static readonly ConcurrentDictionary<(PointerStyle Style, double Scale), Cursor> CursorCache = new();
+    private static readonly ConcurrentDictionary<(PointerStyle Style, double Scale, double Size), Bitmap> RenderCache = new();
+    private static readonly ConcurrentDictionary<(PointerStyle Style, double Scale, double Size), Cursor> CursorCache = new();
 
     /// <summary>The rendered cursor's side in pixels at <paramref name="scale"/> (<see cref="BaseSize"/> scaled
     /// and rounded to the nearest whole pixel).</summary>
-    public static int PixelSize(double scale) => (int)Math.Round(BaseSize * scale);
+    public static int PixelSize(double scale) => PixelSize(scale, BaseSize);
+
+    /// <summary>ED-NEW-lean-19: the side in pixels of a cursor <paramref name="size"/> px at 100 % (<see cref="SystemCursorSize"/>),
+    /// at <paramref name="scale"/>.</summary>
+    public static int PixelSize(double scale, double size) => (int)Math.Round(size * scale);
 
     /// <summary>The hotspot <see cref="Get"/> gives its <see cref="Cursor"/>: the centre of the square
     /// <see cref="PixelSize"/> renders, matching AppKit's openHand/closedHand hotspot at the centre of their own
     /// image.</summary>
-    public static PixelPoint Hotspot(double scale)
+    public static PixelPoint Hotspot(double scale) => Hotspot(scale, BaseSize);
+
+    /// <summary>ED-NEW-lean-19: <see cref="Hotspot(double)"/> for a cursor <paramref name="size"/> px at 100 %.</summary>
+    public static PixelPoint Hotspot(double scale, double size)
     {
-        var side = PixelSize(scale);
+        var side = PixelSize(scale, size);
         return new PixelPoint(side / 2, side / 2);
     }
 
@@ -101,20 +133,29 @@ public static class PointerStyleCursors
     /// <see cref="StandardCursorType.Hand"/> (PA-0019: no custom art needed, and no scale dependence either);
     /// the two grab styles are this class's rendered art, wrapped with <see cref="Hotspot"/>. The same
     /// <see cref="Cursor"/> instance comes back for a repeated (style, scale) pair.</summary>
-    public static Cursor Get(PointerStyle style, double scale) => style == PointerStyle.Link
+    public static Cursor Get(PointerStyle style, double scale) => Get(style, scale, BaseSize);
+
+    /// <summary>ED-NEW-lean-19: <see cref="Get(PointerStyle, double)"/> at the system cursor size <paramref name="size"/> (px at 100 %);
+    /// at <see cref="BaseSize"/> it is the same cursor.</summary>
+    public static Cursor Get(PointerStyle style, double scale, double size) => style == PointerStyle.Link
         ? LinkCursor.Value
-        : CursorCache.GetOrAdd((style, scale), key => new Cursor(Render(key.Style, key.Scale), Hotspot(key.Scale)));
+        : CursorCache.GetOrAdd((style, scale, size), key => new Cursor(Render(key.Style, key.Scale, key.Size), Hotspot(key.Scale, key.Size)));
 
     /// <summary>Rasterizes <paramref name="style"/>'s glyph at <paramref name="scale"/>: a black stroke over a
     /// wider white halo, both at the Lucide icon's own line cap and join, into a square <see cref="PixelSize"/>
     /// on a side. The same <see cref="Bitmap"/> instance comes back for a repeated (style, scale) pair.
     /// <see cref="PointerStyle.Link"/> has no rendered art of its own (throws); use <see cref="Get"/> for it.</summary>
-    public static Bitmap Render(PointerStyle style, double scale)
+    public static Bitmap Render(PointerStyle style, double scale) => Render(style, scale, BaseSize);
+
+    /// <summary>ED-NEW-lean-19: <see cref="Render(PointerStyle, double)"/> at the system cursor size <paramref name="size"/> (px at
+    /// 100 %): the same glyph in the same proportions, on a square <see cref="PixelSize(double, double)"/> on a side. At
+    /// <see cref="BaseSize"/> it is the same bitmap, pixel for pixel.</summary>
+    public static Bitmap Render(PointerStyle style, double scale, double size)
     {
         if (style == PointerStyle.Link)
             throw new ArgumentOutOfRangeException(nameof(style), style, "Link has no rendered art; it is StandardCursorType.Hand.");
-        return RenderCache.GetOrAdd((style, scale),
-            key => Rasterize(key.Style == PointerStyle.GrabIdle ? GrabIdleIcon.Value : GrabActiveIcon.Value, key.Scale));
+        return RenderCache.GetOrAdd((style, scale, size),
+            key => Rasterize(key.Style == PointerStyle.GrabIdle ? GrabIdleIcon.Value : GrabActiveIcon.Value, key.Scale, key.Size));
     }
 
     // ED-205 fix (coordinator review): the glyph is arranged once, at the FIXED logical BaseSize x BaseSize square
@@ -123,10 +164,10 @@ public static class PointerStyleCursors
     // pixels with dpi 96*scale). Arranging at `pixels` DIPs while ALSO setting dpi to 96*scale double-applied the
     // scale factor, so at scale 2 the render target only had room for the glyph's top-left quarter (caught by
     // The_whole_glyph_stays_inside_the_square_with_a_margin_and_the_same_proportions_at_every_scale).
-    private static Bitmap Rasterize(SvgIcon icon, double scale)
+    private static Bitmap Rasterize(SvgIcon icon, double scale, double size)
     {
-        var pixels = PixelSize(scale);
-        var logical = new Size(BaseSize, BaseSize);
+        var pixels = PixelSize(scale, size);
+        var logical = new Size(size, size);
         var glyph = new HaloGlyph(icon);
         glyph.Measure(logical);
         glyph.Arrange(new Rect(logical));
