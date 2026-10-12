@@ -6281,3 +6281,7 @@ ENGINEERING DECISION (C6c D3, 2026-10-12): Leave empty quoted values unchanged a
 ## ED-NEW-dextra-c6c-4
 
 ENGINEERING DECISION (C6c D4, 2026-10-12): Strengthen the two supplemental F5 tests with a real pump deadline crossing after their original enqueue/build fault. Keep every original fault, delivery and sequence assertion. Hold a hidden coalescing draft, control pump reads with signals, and observe timer creation before Flush can erase the deadline. An additional overdue direct-wait phase pins the zero clamp specifically. All four F5 methods fail twice alone against the own-worktree temporary 37fe3e03f bus source; the overdue phase also kills removal of only the zero clamp. Restore every mutation byte-exact. Production code is unchanged.
+
+## ED-NEW-dextra-c6c-5
+
+ENGINEERING DECISION (C6c D5, 2026-10-12): Independently dispose each of the six tap kinds while its separate bus remains live and subscribed. Require an eligible before-disposal positive control, its output, no main-thread clock reads after disposal, and no additional output. The clock witness detects account guards even when their disposed watcher exception is swallowed. Also set persistenceEnabled false on a fresh model before its first SaveBeforeQuit, then require bus, taps and watcher retirement. Removing all six tap guards fails each tap test twice alone; moving disposal after the persistence guard fails the fresh-model test twice alone. Restore mutations byte-exact. Production code is unchanged.
