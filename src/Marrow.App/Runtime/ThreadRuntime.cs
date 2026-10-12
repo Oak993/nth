@@ -42,6 +42,7 @@ public sealed class TimelineEntry : MainActorModel
         Todos,
         Notice,
         TurnEnd,
+        Ask, // PORT-ONLY (web surfaces W25): appended last so the others keep their values
     }
 
     private TimelineItem item = null!;
@@ -68,6 +69,7 @@ public sealed class TimelineEntry : MainActorModel
             TimelineItem.Content.Todos => Kind.Todos,
             TimelineItem.Content.Notice => Kind.Notice,
             TimelineItem.Content.TurnEnd => Kind.TurnEnd,
+            TimelineItem.Content.Ask => Kind.Ask, // PORT-ONLY (web surfaces W25): an ask_user card
             _ => throw new ArgumentOutOfRangeException(nameof(item)),
         };
         TurnID = item.TurnID;
@@ -2287,6 +2289,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     public void Interrupt()
     {
         if (Phase == RuntimePhase.Idle) return;
+        StopAsks(); // PORT-ONLY (web surfaces W25): Stop cancels the questions the turn waits on
 
         var turnID = currentTurnID;
         interruptWatchdog?.Cancel();
@@ -2374,6 +2377,8 @@ public sealed partial class ThreadRuntime : MainActorModel
                 FlushDeltas();
                 Approvals = ValueList<ApprovalRequest>.Empty;
                 Questions = ValueList<QuestionRequest>.Empty;
+                DetachAsksOfTurn(turnID); // PORT-ONLY (web surfaces W25): a card still waiting stays so; the call that waited on it is over
+                hiddenAskToolIds.Clear();
 
                 var reportedEdits = new List<FileEdit>();
                 foreach (var entry in Entries.Where(entry => entry.Item.TurnID == turnID))
@@ -3166,6 +3171,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:2082-2096.
     private void ReleaseSession(bool stop)
     {
+        DetachAllAsks(); // PORT-ONLY (web surfaces W25): no call of a released session still waits
         sessionEpoch++;
         sessionSignature = null;
         unsentSessionID = null;
@@ -3980,7 +3986,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     public bool HoldsOnlyPersistedState =>
         Phase == RuntimePhase.Idle && session is null && !IsReverting && pendingSend is null && !IsLoadingHistory
             && Draft.IsEmpty && FollowUpEdit is null && MessageEdit is null
-            && Approvals.Count == 0 && Questions.Count == 0
+            && Approvals.Count == 0 && Questions.Count == 0 && askWaits.Count == 0
             && hydraPendingReports.Count == 0 && hydraBatches.Count == 0 && hydraWaiting.Count == 0 && hydraNativeHeads.Count == 0
             && !hydraFlushScheduled && HydraLanding is null && !isHydraMerging && headBudget is null
             && commandTrees.Count == 0 && commandSettles.Count == 0;
@@ -4038,6 +4044,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             or ProviderEvent.Approval or ProviderEvent.Question) handoffMessageBoundary = false;
         CaptureHandoff(@event);
         if (@event is ProviderEvent.TurnCompleted or ProviderEvent.Exited) FlushHandoffJournal();
+        if (HidesAskToolRow(@event)) return; // PORT-ONLY (web surfaces W25): the ask_user card takes the place of the provider's row for the tool
         switch (@event)
         {
             case ProviderEvent.SessionReady value:
@@ -4194,6 +4201,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                 ReleaseSession(stop: false);
                 Approvals = ValueList<ApprovalRequest>.Empty;
                 Questions = ValueList<QuestionRequest>.Empty;
+                DetachAllAsks(); // PORT-ONLY (web surfaces W25): the provider's calls are over; the cards stay waiting
                 StopNativeHeads();
                 if (currentTurnID is not null)
                 {
