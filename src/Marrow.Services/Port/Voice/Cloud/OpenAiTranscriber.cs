@@ -67,6 +67,12 @@ public sealed class OpenAiTranscriber : IProcessingSpeechEngine, IDisposable
     /// <summary>V-18.1: stream true where the model supports it. ED-311: the gpt- models do; whisper-1 does not.</summary>
     public static bool SupportsStreaming(string model) => model.StartsWith("gpt-", StringComparison.Ordinal);
 
+    /// <summary>
+    /// ED-NEW-voicefix-4: the endpoint has no language detection of its own to ask; the cloud engine is processing-only and its one request transcribes (never translates).
+    /// </summary>
+    public Task<LanguageOdds?> DetectLanguageAsync(ReadOnlyMemory<float> audio16k, IReadOnlyList<string> runnersUp, CancellationToken cancellationToken) =>
+        Task.FromResult<LanguageOdds?>(null);
+
     public async Task<Hypothesis> TranscribeAsync(ReadOnlyMemory<float> audio16k, DecodeRequest request, CancellationToken cancellationToken)
     {
         var key = keys.Read() ?? throw new OpenAiTranscriptionException(CloudNote.KeyMissing);

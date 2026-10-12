@@ -191,6 +191,7 @@
       "WhisperProcessor.ProcessAsync(ReadOnlyMemory`1,CancellationToken)",
       "WhisperProcessor.DetectLanguage(Single[])",
       "WhisperProcessor.DetectLanguageWithProbability(Single[])",
+      "WhisperProcessor.DetectLanguageWithProbability(ReadOnlySpan`1,ReadOnlySpan`1)",
       "WhisperProcessor.ChangeLanguage(String)",
       "WhisperProcessor.Dispose()",
       "SegmentData.Start",

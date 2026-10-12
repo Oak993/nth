@@ -17,6 +17,7 @@ public sealed class WhisperNetBackend : IWhisperBackend
         "WhisperProcessorBuilder.WithGreedySamplingStrategy(Action`1)", "WhisperProcessorBuilder.WithBeamSearchSamplingStrategy(Action`1)", "WhisperProcessorBuilder.WithPrompt(String)",
         "WhisperProcessorBuilder.WithTokenTimestamps()", "WhisperProcessorBuilder.WithTemperature(Single)", "GreedySamplingStrategyBuilder.WithBestOf(Int32)",
         "BeamSearchSamplingStrategyBuilder.WithBeamSize(Int32)", "WhisperProcessor.ProcessAsync(ReadOnlyMemory`1,CancellationToken)", "WhisperProcessor.Dispose()",
+        "WhisperProcessor.DetectLanguageWithProbability(ReadOnlySpan`1,ReadOnlySpan`1)",
         "SegmentData.Text", "SegmentData.Language", "SegmentData.Tokens", "WhisperToken.Text", "WhisperToken.Start", "WhisperToken.End",
         "WhisperVadFactory.FromPath(String,WhisperFactoryOptions)", "WhisperVadFactory.CreateBuilder()", "WhisperVadFactory.Dispose()", "WhisperVadProcessorBuilder.Build()",
         "WhisperVadProcessorBuilder.WithThreads(Int32)", "WhisperVadProcessor.DetectSpeech(ReadOnlySpan`1)", "WhisperVadProcessor.Dispose()",

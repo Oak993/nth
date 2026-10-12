@@ -67,7 +67,12 @@ internal sealed class VoiceGlowPainter : IDisposable
     /// </summary>
     public void Draw(SKCanvas canvas, GRContext? gpu, VoiceGlowLook look, VoiceGlowFrame frame, double width, double height, double dpr, double opacity, double z = HalfSize)
     {
-        if (disposed || !(opacity > 0) || !(width > 0) || !(height > 0)) return;
+        if (disposed || !(opacity > 0) || !Finite(width) || !Finite(height) || !(width > 0) || !(height > 0)) return;
+        if (!Finite(dpr) || !(dpr > 0)) dpr = 1;
+        if (!Finite(z) || !(z > 0)) z = HalfSize;
+        // ED-NEW-voicefix-1: the cached round rectangles are trimmed here, between frames, never in the middle of one (a mid-frame trim disposed the inset shadow's outer
+        // rectangle after it was looked up and before it was drawn: the AccessViolation in sk_canvas_draw_drrect)
+        TrimRoundRects();
         var recipe = look.Recipe;
         var strength = look.Strength;
         var layerSet = frame.HasBand;
@@ -96,6 +101,8 @@ internal sealed class VoiceGlowPainter : IDisposable
 
     private static double Clamp01(double v) => v < 0 ? 0 : v > 1 ? 1 : v;
 
+    private static bool Finite(double v) => double.IsFinite(v);
+
     // ---- the band line's polygons (yn): `below` is the area under the line, `above` the rest, in canvas units and, for the epicentre, scaled to the soft layers
     private void BuildPolygons(VoiceGlowFrame f, double width, double height, double z)
     {
@@ -119,20 +126,42 @@ internal sealed class VoiceGlowPainter : IDisposable
         belowZ.Close();
     }
 
-    // the rounded rectangles the layers clip and shadow with, made once per geometry (a resize adds a few; past sixteen the set is rebuilt)
+    // the rounded rectangles the layers clip and shadow with, made once per geometry (a resize adds a few; past sixteen the set is rebuilt at the start of the next frame).
+    // ED-NEW-voicefix-1: a rectangle handed out stays alive for the whole frame. The set used to be rebuilt inside RoundRect, so the inset shadow's second lookup could dispose
+    // the first one's rectangle before DrawRoundRectDifference drew it (a null native handle: the release's AccessViolation in sk_canvas_draw_drrect, every voice use once
+    // the composer had changed size a few times). Everything here is made, used and disposed on the one thread that draws (the render thread).
     private readonly Dictionary<(float, float, float, float, float), SKRoundRect> roundRects = new();
     private readonly Dictionary<float, SKMaskFilter> maskBlurs = new();
+
+    /// <summary>The most round rectangles kept between frames.</summary>
+    internal const int RoundRectCacheLimit = 16;
+
+    /// <summary>How many round rectangles are cached (tests).</summary>
+    internal int CachedRoundRects => roundRects.Count;
+
+    /// <summary>How many times a native object about to be drawn was found already disposed (and the draw skipped). Always 0; a test seam for use after dispose.</summary>
+    internal int UseAfterDispose { get; private set; }
+
+    private void TrimRoundRects()
+    {
+        if (roundRects.Count < RoundRectCacheLimit) return;
+        foreach (var old in roundRects.Values) old.Dispose();
+        roundRects.Clear();
+    }
 
     private SKRoundRect RoundRect(float left, float top, float right, float bottom, float radius)
     {
         var key = (left, top, right, bottom, radius);
         if (roundRects.TryGetValue(key, out var made)) return made;
-        if (roundRects.Count >= 16)
-        {
-            foreach (var old in roundRects.Values) old.Dispose();
-            roundRects.Clear();
-        }
         return roundRects[key] = new SKRoundRect(new SKRect(left, top, right, bottom), radius);
+    }
+
+    // a native object that is about to go to the canvas: still alive (a disposed SkiaSharp object has a null handle, which native Skia dereferences)
+    private bool Live(SKObject? o)
+    {
+        if (o is null || o.Handle != IntPtr.Zero) return true;
+        UseAfterDispose += 1;
+        return false;
     }
 
     private SKMaskFilter MaskBlur(float sigma)
@@ -171,7 +200,9 @@ internal sealed class VoiceGlowPainter : IDisposable
     /// </summary>
     public void Prepare(GRContext? gpu, double width, double height, double dpr, double z = HalfSize)
     {
-        if (disposed || !(width > 0) || !(height > 0)) return;
+        if (disposed || !Finite(width) || !Finite(height) || !(width > 0) || !(height > 0)) return;
+        if (!Finite(dpr) || !(dpr > 0)) dpr = 1;
+        if (!Finite(z) || !(z > 0)) z = HalfSize;
         Surface(gpu, Math.Max(1, (int)Math.Ceiling(width * z * dpr - Epsilon)), Math.Max(1, (int)Math.Ceiling(height * z * dpr - Epsilon)));
     }
 
@@ -277,12 +308,17 @@ internal sealed class VoiceGlowPainter : IDisposable
     private void DrawInsetShadow(SKCanvas c, VoiceGlowRecipe r, double wl, double hl, double z)
     {
         if (r.InnerShadow.Alpha == 0) return;
+        // a layer narrower or shorter than its 1 px inset has no inside to shadow: the inner rectangle would be inverted (Skia skips it, but nothing should reach it)
+        if (!Finite(wl) || !Finite(hl) || !(wl > 2) || !(hl > 2)) return;
         const float reach = 64;
         var sigma = (float)(r.ShadowBlur * z / 2);
         var radius = (float)(r.Radius * z);
+        if (!float.IsFinite(sigma)) sigma = 0;
+        if (!float.IsFinite(radius) || radius < 0) radius = 0;
         var outer = RoundRect(-reach, -reach, (float)wl + reach, (float)hl + reach, 0);
         var inner = RoundRect(1, 1, (float)wl - 1, (float)hl - 1, Math.Max(0, radius - 1));
         var blur = sigma > 0 ? MaskBlur(sigma) : null;
+        if (!Live(outer) || !Live(inner) || !Live(blur)) return;
         paint.Color = r.InnerShadow;
         paint.MaskFilter = blur;
         c.DrawRoundRectDifference(outer, inner, paint);

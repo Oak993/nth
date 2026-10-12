@@ -27,6 +27,23 @@ public sealed class StreamingTranscriber
     public const double FinalSilenceSeconds = 0.3;
     public const int PromptCharacters = 200;
 
+    /// <summary>
+    /// ED-NEW-voicefix-3, ED-NEW-voicefix-4: with Auto-detect, a live or long-pause pass settles the session's language only on this much decoded speech (VAD speech in
+    /// the decoded window, whatever the pass), and only in a language <see cref="AutoLanguagePolicy"/> trusts; until then nothing is committed. Whisper told "en" for
+    /// Hindi or Urdu speech writes an English translation, and a short window is too little to tell the language from; a committed word never changes, so one early wrong
+    /// guess used to stay in the text and steer every later pass through the prompt. The final pass settles on the language it decoded in.
+    /// </summary>
+    public const double SettleSeconds = 3.0;
+
+    /// <summary>ED-NEW-voicefix-4: on this much decoded speech the language is settled on the policy's decision even when it is not trusted (waiting longer gains little).</summary>
+    public const double ForceSettleSeconds = 10.0;
+
+    /// <summary>ED-NEW-voicefix-4: an unsettled buffer this long (speech and pauses) is committed without settling, so the 30 s window never drops held words.</summary>
+    public const double HeldBufferSeconds = 20.0;
+
+    /// <summary>ED-NEW-voicefix-4: a held long pause whose silence lasts this long is committed without settling (the speech before it is not heard again).</summary>
+    public const double HeldPauseSeconds = 10.0;
+
     private const double SameWordTolerance = 1e-3;
 
     private readonly ISpeechEngine engine;
@@ -47,13 +64,19 @@ public sealed class StreamingTranscriber
     private bool running;
     private bool cleared;
     private string? detectedLanguage;
+    private string? settledLanguage;
+    private readonly string? hindustaniBefore;
+    private string? sessionHindustani;
+    private long heldPauseSpeechEnd = -1;
 
-    public StreamingTranscriber(ISpeechEngine engine, string language, bool liveWords = true, bool processingOnly = false)
+    /// <param name="hindustaniBefore">ED-NEW-voicefix-4: the Hindustani code ("hi" or "ur") the user has dictated in before, or null; Auto-detect weighs it.</param>
+    public StreamingTranscriber(ISpeechEngine engine, string language, bool liveWords = true, bool processingOnly = false, string? hindustaniBefore = null)
     {
         this.engine = engine;
         this.language = language;
         this.liveWords = liveWords;
         this.processingOnly = processingOnly;
+        this.hindustaniBefore = AutoLanguagePolicy.IsHindustani(hindustaniBefore) ? hindustaniBefore : null;
     }
 
     /// <summary>All the audio appended so far.</summary>
@@ -76,6 +99,20 @@ public sealed class StreamingTranscriber
     public int CommittedCount => committed.Count;
 
     public string? DetectedLanguage => detectedLanguage;
+
+    /// <summary>With Auto-detect, the language the session settled on (<see cref="SettleSeconds"/>); every later pass is decoded in it. Null before, and for a forced language.</summary>
+    public string? SettledLanguage => settledLanguage;
+
+    /// <summary>The language this session's text is written in: the forced language, or with Auto-detect the settled one (null until it settles).</summary>
+    public string? SessionLanguage => AutoDetect ? settledLanguage : language;
+
+    /// <summary>
+    /// ED-NEW-voicefix-4: the Hindustani code ("hi" or "ur") this session wrote in: the forced or settled language when it is one, or with Auto-detect not yet settled the
+    /// Hindi or Urdu the policy trusted; null otherwise.
+    /// </summary>
+    public string? HindustaniWritten => AutoLanguagePolicy.IsHindustani(SessionLanguage) ? SessionLanguage : AutoDetect && settledLanguage is null ? sessionHindustani : null;
+
+    private bool AutoDetect => string.Equals(language, VoiceLanguage.AutoCode, StringComparison.Ordinal);
 
     private bool SpeechInBuffer => speechSpans.Count > 0 && speechSpans[^1].End > bufferStart;
 
@@ -109,7 +146,11 @@ public sealed class StreamingTranscriber
         get
         {
             if (processingOnly || cleared || running || !SpeechInBuffer) return null;
-            if (silenceRun >= (long)Math.Round(LongPauseSeconds * SampleRate)) return TranscriberPass.LongPause;
+            if (silenceRun >= Samples(LongPauseSeconds))
+            {
+                // ED-NEW-voicefix-4: a pause whose pass held its words is not decoded again while the same silence goes on, until it has lasted HeldPauseSeconds
+                return speechSpans[^1].End > heldPauseSpeechEnd || silenceRun >= Samples(HeldPauseSeconds) ? TranscriberPass.LongPause : null;
+            }
             if (total - lastPassStartTotal >= (long)Math.Round(MinNewAudioSeconds * SampleRate)) return TranscriberPass.Live;
             return null;
         }
@@ -126,9 +167,24 @@ public sealed class StreamingTranscriber
         {
             var end = pass == TranscriberPass.LongPause ? speechSpans[^1].End : total; // V-7.4: silence never reaches Whisper
             var (start, samples) = Window(end, padSilence: false);
-            var hypothesis = await engine.TranscribeAsync(samples, Request(start, DecodeMode.Live), cancellationToken);
+            var speech = SpeechSeconds(start, end);
+            // ED-NEW-voicefix-4: held words wait for more audio only so long; then they are committed (and the language settled only on enough speech)
+            var overdue = speech >= ForceSettleSeconds || ToTime(end - start).TotalSeconds >= HeldBufferSeconds
+                || (pass == TranscriberPass.LongPause && silenceRun >= Samples(HeldPauseSeconds));
+            var choice = await Choose(samples, cancellationToken);
             if (cleared) return Unchanged();
-            return ApplyLive(hypothesis, start, pass, end);
+            if (choice.Odds && !choice.Trusted && !overdue)
+            {
+                // ED-NEW-voicefix-4: not a language the policy trusts: nothing is decoded or shown; the next pass hears this audio again with more after it
+                Hold(pass);
+                return Unchanged();
+            }
+            var hypothesis = await engine.TranscribeAsync(samples, Request(choice.Language, start, DecodeMode.Live), cancellationToken);
+            if (cleared) return Unchanged();
+            var settles = Settles(choice, hypothesis, speech);
+            var hold = choice.Pending && !settles && !overdue && (choice.Odds || hypothesis.Language is not null);
+            if (hold) Hold(pass);
+            return ApplyLive(hypothesis, start, pass, end, hold, Reported(choice, hypothesis));
         }
         catch
         {
@@ -152,17 +208,23 @@ public sealed class StreamingTranscriber
             // V-18.1/V-18.2: the cloud gets the complete recording once, after stop, including pauses. Local window/padding and VAD timestamp filtering do not apply to
             // cloud words (OpenAI returns no word times). The cap limits this in-memory recording to five minutes.
             var (start, samples) = processingOnly ? (0L, audio.ToArray()) : Window(total, padSilence: true);
-            var hypothesis = await engine.TranscribeAsync(samples, Request(start, DecodeMode.Final), cancellationToken);
-            if (cleared) return Unchanged();
             if (processingOnly)
             {
-                detectedLanguage = hypothesis.Language;
-                var next = hypothesis.Words.Select(word => new TranscriptWord(word.Text, true)).ToList();
+                var heard = await engine.TranscribeAsync(samples, Request(language, start, DecodeMode.Final), cancellationToken);
+                if (cleared) return Unchanged();
+                detectedLanguage = heard.Language;
+                var next = heard.Words.Select(word => new TranscriptWord(word.Text, true)).ToList();
                 var ops = TranscriptOps.Diff(words, next);
                 words = next;
                 return new TranscriptDelta(ops, words, 0, detectedLanguage);
             }
-            return ApplyFinal(hypothesis, start);
+            var choice = await Choose(samples, cancellationToken);
+            if (cleared) return Unchanged();
+            // the final pass decodes in the policy's language, trusted or not: its words are the session's answer, and it settles on that language
+            var hypothesis = await engine.TranscribeAsync(samples, Request(choice.Language, start, DecodeMode.Final), cancellationToken);
+            if (cleared) return Unchanged();
+            if (choice.Pending) settledLanguage = choice.Odds ? choice.Language : hypothesis.Language;
+            return ApplyFinal(hypothesis, start, Reported(choice, hypothesis));
         }
         finally
         {
@@ -188,7 +250,63 @@ public sealed class StreamingTranscriber
 
     private TranscriptDelta Unchanged() => new([], words, committed.Count, null);
 
-    private DecodeRequest Request(long start, DecodeMode mode) => new(language, Prompt(), mode, ToTime(start));
+    private static long Samples(double seconds) => (long)Math.Round(seconds * SampleRate);
+
+    private DecodeRequest Request(string requestLanguage, long start, DecodeMode mode) => new(requestLanguage, Prompt(), mode, ToTime(start));
+
+    // The language a pass decodes in. Forced or settled: that one. Auto-detect before it settles: AutoLanguagePolicy's decision on the engine's detection (ED-NEW-voicefix-4),
+    // or "auto" when the engine has no detection (then the language the decode reports is the guess).
+    private readonly record struct LanguageChoice(string Language, bool Pending, bool Odds, bool Trusted);
+
+    private async Task<LanguageChoice> Choose(float[] samples, CancellationToken cancellationToken)
+    {
+        if (!AutoDetect) return new(language, false, false, true);
+        if (settledLanguage is { } settled) return new(settled, false, false, true);
+        if (await engine.DetectLanguageAsync(samples, AutoLanguagePolicy.Hindustani, cancellationToken) is not { } odds) return new(language, true, false, true);
+        var decision = AutoLanguagePolicy.Decide(odds, sessionHindustani ?? hindustaniBefore);
+        // the session's own Hindustani (and its script) counts from its first trusted decision for Hindi or Urdu
+        if (decision.Trusted && AutoLanguagePolicy.IsHindustani(decision.Language)) sessionHindustani ??= decision.Language;
+        return new(decision.Language, true, true, decision.Trusted);
+    }
+
+    // Auto-detect: a live or long-pause pass settles the session's language on SettleSeconds of decoded speech in a language the policy trusts, or on ForceSettleSeconds in
+    // the one it decided (ED-NEW-voicefix-4); without detection, on the language the decode reported (a decode that reports none is not held, as before).
+    private bool Settles(LanguageChoice choice, Hypothesis hypothesis, double speech)
+    {
+        if (!choice.Pending || speech < SettleSeconds) return false;
+        if (choice.Odds)
+        {
+            if (!choice.Trusted && speech < ForceSettleSeconds) return false;
+            settledLanguage = choice.Language;
+            return true;
+        }
+        if (hypothesis.Language is not { } heard) return false;
+        settledLanguage = heard;
+        return true;
+    }
+
+    // The language the pill names for a pass (V-12.10). With detection it is the policy's: a pass in a language the policy does not trust is never decoded before it
+    // is overdue, so no untrusted guess is named while the words are held (ED-NEW-voicefix-4). Without detection, the one the engine reported.
+    private string? Reported(LanguageChoice choice, Hypothesis hypothesis) => choice.Odds ? choice.Language : hypothesis.Language ?? settledLanguage;
+
+    // A held long-pause pass: the same silence does not start another pass until it has lasted HeldPauseSeconds.
+    private void Hold(TranscriberPass pass)
+    {
+        if (pass == TranscriberPass.LongPause && speechSpans.Count > 0) heldPauseSpeechEnd = speechSpans[^1].End;
+    }
+
+    // The VAD speech in [start, end), in seconds.
+    private double SpeechSeconds(long start, long end)
+    {
+        long sum = 0;
+        foreach (var (spanStart, spanEnd) in speechSpans)
+        {
+            var from = Math.Max(start, spanStart);
+            var to = Math.Min(end, spanEnd);
+            if (to > from) sum += to - from;
+        }
+        return (double)sum / SampleRate;
+    }
 
     // V-7.3 step 2: the prompt is the last 200 characters of committed text.
     private string Prompt()
@@ -212,7 +330,6 @@ public sealed class StreamingTranscriber
 
     private List<(string Text, double Start, double End)> NewWords(Hypothesis hypothesis, long windowStart)
     {
-        if (hypothesis.Language is { } detected) detectedLanguage = detected;
         var offset = (double)windowStart / SampleRate;
         var committedEnd = committed.Count == 0 ? double.NegativeInfinity : committed[^1].End;
         var result = new List<(string Text, double Start, double End)>();
@@ -225,10 +342,15 @@ public sealed class StreamingTranscriber
         return result;
     }
 
-    private TranscriptDelta ApplyLive(Hypothesis hypothesis, long windowStart, TranscriberPass pass, long decodedEnd)
+    private TranscriptDelta ApplyLive(Hypothesis hypothesis, long windowStart, TranscriberPass pass, long decodedEnd, bool hold, string? reported)
     {
         var fresh = NewWords(hypothesis, windowStart);
-        if (pass == TranscriberPass.LongPause)
+        if (hold)
+        {
+            // the language is not settled: every word stays tentative, and the next pass hears this audio again
+            tail = fresh;
+        }
+        else if (pass == TranscriberPass.LongPause)
         {
             // V-7.4: a pause of 1.5 s commits every word and drops the silent audio.
             committed.AddRange(fresh);
@@ -249,7 +371,7 @@ public sealed class StreamingTranscriber
             MoveBufferStart();
             CapUncommitted();
         }
-        return Publish(hypothesis.Language);
+        return Publish(reported);
     }
 
     // V-7.4: over 25 s uncommitted, tentative words ending more than 10 s before the newest audio are committed and the buffer is cut after the last.
@@ -274,16 +396,17 @@ public sealed class StreamingTranscriber
         TrimFront();
     }
 
-    private TranscriptDelta ApplyFinal(Hypothesis hypothesis, long windowStart)
+    private TranscriptDelta ApplyFinal(Hypothesis hypothesis, long windowStart, string? reported)
     {
         var fresh = NewWords(hypothesis, windowStart);
         // V-7.8: a word that lies wholly in VAD-silent spans (the padding included) is not a word.
         tail = fresh.Where(w => speechSpans.Any(span => w.Start < (double)span.End / SampleRate && w.End > (double)span.Start / SampleRate)).ToList();
-        return Publish(hypothesis.Language, finalTail: true);
+        return Publish(reported, finalTail: true);
     }
 
     private TranscriptDelta Publish(string? language, bool finalTail = false)
     {
+        if (language is not null) detectedLanguage = language;
         _ = finalTail;
         var wanted = committed.Select(c => new TranscriptWord(c.Text, false)).Concat(tail.Select(t => new TranscriptWord(t.Text, true))).ToList();
         var ops = TranscriptOps.Diff(words, wanted);

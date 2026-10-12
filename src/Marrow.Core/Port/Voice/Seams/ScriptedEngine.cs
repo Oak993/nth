@@ -31,6 +31,15 @@ public sealed class ScriptedEngine(Func<ScriptedDecode, Hypothesis> script, Time
 
     public List<ScriptedDecode> Decodes { get; } = [];
 
+    /// <summary>
+    /// What language detection answers for the audio and the runners-up asked about (ED-NEW-voicefix-4); null (the default) is an engine without detection, which is
+    /// what every script before it was written against.
+    /// </summary>
+    public Func<ScriptedDecode, IReadOnlyList<string>, LanguageOdds?>? Detect { get; set; }
+
+    /// <summary>The detections asked for: the audio (as a decode with the request "auto") and the runners-up.</summary>
+    public List<(ScriptedDecode Audio, IReadOnlyList<string> RunnersUp)> Detections { get; } = [];
+
     /// <summary>Decodes started and not yet finished.</summary>
     public int InFlight { get; private set; }
 
@@ -79,5 +88,14 @@ public sealed class ScriptedEngine(Func<ScriptedDecode, Hypothesis> script, Time
         {
             InFlight -= 1;
         }
+    }
+
+    public Task<LanguageOdds?> DetectLanguageAsync(ReadOnlyMemory<float> audio16k, IReadOnlyList<string> runnersUp, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (Detect is not { } detect) return Task.FromResult<LanguageOdds?>(null);
+        var audio = new ScriptedDecode(TimeSpan.FromSeconds(audio16k.Length / 16000.0), new DecodeRequest("auto", "", DecodeMode.Live, TimeSpan.Zero), audio16k);
+        Detections.Add((audio, runnersUp));
+        return Task.FromResult(detect(audio, runnersUp));
     }
 }

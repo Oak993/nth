@@ -17,4 +17,7 @@ internal sealed class VerifiedSpeechEngine(ISpeechEngine engine, IVoiceModelSour
 
     public Task<Hypothesis> TranscribeAsync(ReadOnlyMemory<float> audio16k, DecodeRequest request, CancellationToken cancellationToken) =>
         engine.TranscribeAsync(audio16k, request, cancellationToken);
+
+    public Task<LanguageOdds?> DetectLanguageAsync(ReadOnlyMemory<float> audio16k, IReadOnlyList<string> runnersUp, CancellationToken cancellationToken) =>
+        engine.DetectLanguageAsync(audio16k, runnersUp, cancellationToken);
 }

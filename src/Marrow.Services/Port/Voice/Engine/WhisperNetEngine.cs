@@ -82,6 +82,33 @@ public sealed class WhisperNetEngine(IWhisperBackend backend, Func<RuntimeFacts>
         }
     }
 
+    /// <summary>
+    /// ED-NEW-voicefix-4: Whisper's language detection with probabilities, under the same one-at-a-time lock as a pass (it runs the encoder). Loads the model again after an
+    /// idle release, as a pass does. Null for empty audio or a failed detection.
+    /// </summary>
+    public async Task<LanguageOdds?> DetectLanguageAsync(ReadOnlyMemory<float> audio16k, IReadOnlyList<string> runnersUp, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(runnersUp);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (audio16k.IsEmpty) return null;
+        await gate.WaitAsync(cancellationToken);
+        try
+        {
+            if (model is null)
+            {
+                if (lastModel is null || lastOptions is null) throw new InvalidOperationException("No model is loaded (V-7.9: loading starts on the pointer-enter or the click).");
+                await LoadLocked(lastModel, lastOptions, cancellationToken);
+            }
+            StopIdle();
+            return await model!.DetectLanguageAsync(audio16k, runnersUp, threads, cancellationToken);
+        }
+        finally
+        {
+            if (model is not null && !disposed) Rearm();
+            gate.Release();
+        }
+    }
+
     /// <summary>Releases the model now. Waits for a pass in flight.</summary>
     public void Unload()
     {

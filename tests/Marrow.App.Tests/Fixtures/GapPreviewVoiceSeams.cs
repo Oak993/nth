@@ -23,5 +23,7 @@ internal sealed class GapPreviewVoiceSeams : IMicrophoneAccess, IAudioCapture, I
 
     public Task<Hypothesis> TranscribeAsync(ReadOnlyMemory<float> audio16k, DecodeRequest request, CancellationToken cancellationToken) => throw Touched("transcription");
 
+    public Task<LanguageOdds?> DetectLanguageAsync(ReadOnlyMemory<float> audio16k, IReadOnlyList<string> runnersUp, CancellationToken cancellationToken) => throw Touched("language detection");
+
     public Task<ModelTransportResponse> GetRange(Uri uri, long offset, CancellationToken cancellationToken) => throw Touched("model download");
 }

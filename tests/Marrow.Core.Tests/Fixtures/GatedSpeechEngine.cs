@@ -21,4 +21,8 @@ public sealed class GatedSpeechEngine : ISpeechEngine
         }
         return Task.FromResult(Hypothesis.Empty);
     }
+
+    // Without detection (ED-NEW-voicefix-4): an "auto" session decodes with "auto", as before.
+    public Task<LanguageOdds?> DetectLanguageAsync(ReadOnlyMemory<float> audio16k, IReadOnlyList<string> runnersUp, CancellationToken cancellationToken) =>
+        Task.FromResult<LanguageOdds?>(null);
 }
