@@ -81,7 +81,12 @@ public sealed class NthUiMapCanvas : Control
         ClipToBounds = true;
         Cursor = new Cursor(StandardCursorType.Arrow);
         ActualThemeVariantChanged += (_, _) => InvalidateVisual();
+        // W10 (ED-NEW-web-w10-5): a street tile that arrives, or a tile source the reader adds or removes, draws the map again.
+        AttachedToVisualTree += (_, _) => NthUiMapTiles.Changed += OnTilesChanged;
+        DetachedFromVisualTree += (_, _) => NthUiMapTiles.Changed -= OnTilesChanged;
     }
+
+    private void OnTilesChanged() => Avalonia.Threading.Dispatcher.UIThread.Post(InvalidateVisual, Avalonia.Threading.DispatcherPriority.Render);
 
     public NthUiMapModel Model => model;
 

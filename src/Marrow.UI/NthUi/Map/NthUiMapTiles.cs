@@ -49,4 +49,29 @@ public static class NthUiMapTiles
 
     /// <summary>Whether a source other than none is bound.</summary>
     public static bool IsBound => Source.Current is not NoTiles;
+
+    private static INthUiMapTiles? forwarding;
+
+    /// <summary>
+    /// Raised when a tile arrived or the source was replaced (<see cref="Use"/>); the maps draw again. It may be raised on any thread, and a
+    /// listener posts to the UI thread. (W10, ED-NEW-web-w10-5.)
+    /// </summary>
+    public static event Action? Changed;
+
+    /// <summary>
+    /// Binds the reader's tile source for the process, or none (null): the maps draw the offline basemap alone. The source it replaces is
+    /// let go, so its pending fetches stop (a source that is disposable is disposed). Settings calls this when the address changes.
+    /// </summary>
+    public static void Use(INthUiMapTiles? tiles)
+    {
+        var previous = forwarding;
+        if (previous is not null) previous.TilesChanged -= Forward;
+        forwarding = tiles;
+        Source.SetProcessDefault(tiles ?? NoTiles.Instance);
+        if (tiles is not null) tiles.TilesChanged += Forward;
+        (previous as IDisposable)?.Dispose();
+        Changed?.Invoke();
+    }
+
+    private static void Forward() => Changed?.Invoke();
 }
