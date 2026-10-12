@@ -193,10 +193,17 @@ public sealed class NthUiChartModel
                 }
             }
         }
-        // Bars and areas rest on zero; a line or scatter reaches zero when the values are not far above it.
-        var rest = Kind is NthUiChartKind.Bar or NthUiChartKind.Area || (vmin >= 0 && vmin <= .5 * vmax);
+        // Bars and areas rest on zero; a line or scatter reaches zero when the values are not far above it; an editable chart
+        // always does, and leaves a quarter of its height above the data (and below, under zero) for the reader to drag into.
+        var rest = Kind is NthUiChartKind.Bar or NthUiChartKind.Area || Editable || (vmin >= 0 && vmin <= .5 * vmax);
         var lo = Data.Min ?? (rest ? Math.Min(0, vmin) : vmin);
         var hi = Data.Max ?? (rest ? Math.Max(0, vmax) : vmax);
+        if (Editable)
+        {
+            var span = Math.Max(hi - lo, 1);
+            if (Data.Max is null) hi += .25 * span;
+            if (Data.Min is null && lo < 0) lo -= .25 * span;
+        }
         return NthUiChartMath.Domain(lo, hi, Data.Min is not null, Data.Max is not null, breathe: Kind == NthUiChartKind.Scatter && seen);
     }
 

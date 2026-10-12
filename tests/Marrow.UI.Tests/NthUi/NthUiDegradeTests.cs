@@ -10,8 +10,8 @@ namespace Marrow.UI.Tests.NthUi;
 
 // DESIGN.md 7.2 "Unknown or invalid lines degrade to their text" and 14 W16b/W16c (web surfaces W16a; ED-NEW-web-w16a-1):
 // a line the parser cannot use shows as its own words in the secondary colour; kinds later units draw (chart, map, svg,
-// diagram) show a readable stand-in until their renderer registers, and a registered renderer takes the kind and its parts,
-// never a degraded line.
+// diagram) show a readable stand-in until their renderer arrives (the charts' came with W16b, ED-NEW-web-w16b-1), and a
+// registered renderer takes the kind and its parts, never a degraded line.
 [Collection("Headless")]
 public sealed class NthUiDegradeTests(HeadlessSession headless)
 {
@@ -34,21 +34,6 @@ public sealed class NthUiDegradeTests(HeadlessSession headless)
         }
         Assert.Contains("Fine", rig.Texts());
         Assert.Equal(NthUiTokens.Text1.Resolve(rig.Window.ActualThemeVariant), ((ISolidColorBrush)((TextBlock)rig.Control("text")).Foreground!).Color);
-    });
-
-    [Fact]
-    [Trait("Decision", "ED-NEW-web-w16a-1")]
-    public void Charts_show_their_data_as_a_table_one_series_after_another_until_their_renderer_arrives() => headless.OnUiThread(() =>
-    {
-        using var rig = new NthUiRig(NthUiView.Show(NthUiSamples.Area, culture: NthUiRig.English));
-        var texts = rig.TextsOf("chart");
-        Assert.Equal("Chart", texts[0]);
-        Assert.Equal(["Web", "Q1", "120", "Q2", "140", "Q3", "160", "Q4", "210", "Mobile", "Q1", "80", "Q2", "95", "Q3", "130", "Q4", "170"], texts.Skip(1));
-        using var scatter = new NthUiRig(NthUiView.Show(NthUiSamples.Scatter, culture: NthUiRig.English));
-        Assert.Equal(["Price and rating", "Phones", "199", "3.9", "349", "4.2"], scatter.TextsOf("chart").Take(6));
-        using var pie = new NthUiRig(NthUiView.Show(NthUiSamples.Pie, culture: NthUiRig.English));
-        Assert.Contains("Needs", pie.TextsOf("chart"));
-        Assert.Contains("2100", pie.TextsOf("chart"));
     });
 
     [Fact]
@@ -95,7 +80,7 @@ public sealed class NthUiDegradeTests(HeadlessSession headless)
         }
         Assert.False(NthUiRenderers.IsRegistered("chart"));
         using var after = new NthUiRig(NthUiView.Show(NthUiSamples.Scatter, culture: NthUiRig.English));
-        Assert.IsType<NthUiChartTableView>(after.ViewOf("chart"));
+        Assert.IsType<Marrow.UI.NthUi.Charts.NthUiChartView>(after.ViewOf("chart"));
     });
 
     [Fact]
