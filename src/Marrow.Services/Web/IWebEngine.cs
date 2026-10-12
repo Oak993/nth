@@ -172,4 +172,10 @@ public interface IWebEngineView : IDisposable
     event EventHandler<WebScriptDialogRequest>? ScriptDialogOpening;
     event EventHandler<WebCertificateErrorRequest>? CertificateErrorDetected;
     event EventHandler<bool>? FullScreenChanged;
+
+    /// <summary>W8b: a page's notification (<c>NotificationReceived</c>); always held from Windows' default.</summary>
+    event EventHandler<WebNotification>? NotificationReceived;
+
+    /// <summary>W8b: <c>ScreenCaptureStarting</c>; cancelled unless answered true.</summary>
+    event EventHandler<WebScreenCaptureRequest>? ScreenCaptureStarting;
 }
