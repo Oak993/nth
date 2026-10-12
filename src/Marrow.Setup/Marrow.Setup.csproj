@@ -47,6 +47,9 @@
     <!-- nth installer PLAN.md 8a, unit U0: the install-options/result files and the shell-link contract, linked like the gate (no Marrow project reference). -->
     <Compile Include="..\Marrow.Core\Support\InstallOptions.cs" Link="InstallOptions.cs" />
     <Compile Include="..\Marrow.Core\Support\IShellLinks.cs" Link="IShellLinks.cs" />
+    <!-- PLAN.md 3 step 4 and 5, unit U9: the folders the setup writes outside the install root and the sweeps that remove what it leaves. -->
+    <Compile Include="..\Marrow.Core\Support\SetupFolders.cs" Link="SetupFolders.cs" />
+    <Compile Include="..\Marrow.Core\Support\SetupSweeper.cs" Link="SetupSweeper.cs" />
     <AssemblyMetadata Include="InstallerTitle" Value="$(InstallerTitle)" />
     <AssemblyMetadata Include="InstallerAppId" Value="$(InstallerAppId)" />
     <AssemblyMetadata Include="InstallerVersion" Value="$(InstallerVersion)" />

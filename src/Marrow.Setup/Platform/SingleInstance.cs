@@ -1,4 +1,5 @@
 using System.IO.MemoryMappedFiles;
+using Marrow.Core.Support;
 
 namespace Marrow.Setup.Platform;
 
@@ -19,7 +20,7 @@ public interface IWindowFocuser
 public sealed class SingleInstance : IDisposable
 {
     /// <summary>The lock's name (PLAN.md 3, step 1).</summary>
-    public const string SetupLockName = @"Local\nth Setup";
+    public const string SetupLockName = SetupFolders.SetupLockName; // one name for the lock and for the sweeps that look for it (unit U9)
 
     private const int SectionSize = 16; // the window handle (8 bytes) and the process id (4), little-endian
 
