@@ -146,6 +146,7 @@ public static class Program
         Marrow.App.Port.Advisor.AdvisorRuntimeStartup.Bind(); // ED-NEW-ignisadvisor-2: a Droppy Hydra head asks its lead's model (ask_advisor)
         Marrow.App.Port.Tabula.ArtifactRuntimeStartup.Bind(); // ED-NEW-web-w12-1: Tabula's artifacts, on disk per thread, for every model
         Marrow.App.Port.AskUser.AskUserStartup.Bind(); // ED-NEW-web-w25-1: ask_user, a blocking question card in the thread, for every model
+        Marrow.App.Views.Panes.SideChatPane.Register(); // ED-NEW-web-w6-1: Ctrl+; opens Side chat, a second conversation about the thread
         if (skills is not null) SkillsUpdateRows.Attach(skills); // SK-16: the installed items are the Updates page's "Skills and tools" rows (ED-343's hook)
 
         var lifetime = new ClassicDesktopStyleApplicationLifetime
