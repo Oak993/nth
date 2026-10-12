@@ -17,6 +17,9 @@
 //   5 s, folds 10 s later and expands again every 20 s; --warm draws the card once at 1 % first. --straddle opens one band per monitor on one
 //   clock, the travel crossing the seam. The RESULT gives frame pacing against the monitor's refresh rate, whether the
 //   render timer follows it, and the longest frame after each expand.
+// - np18-focus: the card's keyboard (ED-NEW-pcctl-26 item 8). An input band shows a card with the reply field; CardFocus
+//   runs on the real calls (CardFocusWin32): a click in the field saves the window the keyboard comes from, Enter hands it
+//   back, a click elsewhere while typing only takes it away. It logs each save, each 100 ms check and each hand-back.
 #if DEBUG
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -50,7 +53,7 @@ public static class OverlaySpike
     /// <summary>How long a probe runs before it writes its RESULT and exits.</summary>
     public const double RunSeconds = 90;
 
-    public static IReadOnlyList<string> Probes { get; } = ["np15-region", "np15-pixel", "np15-flip", "np16"];
+    public static IReadOnlyList<string> Probes { get; } = ["np15-region", "np15-pixel", "np15-flip", "np16", "np18-focus"];
 
     public static int Run(string[] args)
     {
@@ -72,6 +75,7 @@ public static class OverlaySpike
                 "np15-region" => new RegionProbe(log, options),
                 "np15-pixel" => new PixelProbe(log, options),
                 "np15-flip" => new FlipProbe(log, options),
+                "np18-focus" => new FocusProbe(log, options),
                 _ => new MotionProbe(log, options),
             };
             log.Line($"probe {probe} warm={options.Warm} straddle={options.Straddle} lwa={options.Lwa} refresh={SpikeNative.RefreshHz()} Hz");
@@ -224,6 +228,82 @@ internal abstract class SpikeProbe(SpikeLog log, SpikeOptions options)
     protected static bool Inside(PillRect rect, double x, double y) => x >= rect.X && x < rect.X + rect.Width && y >= rect.Y && y < rect.Y + rect.Height;
 
     private static bool Bit(nint handle, uint bit) => (SpikeNative.ExtendedStyle(handle) & bit) != 0;
+}
+
+/// <summary>NP-18: the card's keyboard. A card with the reply field in an input band; CardFocus on the real calls.</summary>
+internal sealed class FocusProbe(SpikeLog log, SpikeOptions options) : SpikeProbe(log, options)
+{
+    private readonly Dictionary<CardHandBack, int> backs = [];
+    private TactusOverlayWindow? window;
+    private int activations;
+    private int failed;
+
+    public override void Open()
+    {
+        var band = new TactusOverlayWindow(OverlayRole.Input);
+        window = band;
+        var place = SpikeBand.All(band, every: false)[0];
+        place.Place(band, 260);
+        var composer = new Marrow.UI.Port.PcControl.MiniComposer("Type, then Enter: the keyboard goes back");
+        var card = new Border
+        {
+            Width = OverlaySpike.PillWidth, Padding = new Thickness(16), CornerRadius = new CornerRadius(22),
+            Background = new SolidColorBrush(Color.FromRgb(0x2A, 0x2A, 0x30)),
+            Child = new StackPanel
+            {
+                Spacing = 10,
+                Children =
+                {
+                    new TextBlock { Text = "NP-18: click the field, type, press Enter", Foreground = Brushes.White, FontSize = 13 },
+                    composer,
+                },
+            },
+        };
+        Canvas.SetLeft(card, (place.Width - OverlaySpike.PillWidth) / 2);
+        Canvas.SetTop(card, OverlaySpike.PillTop);
+        band.Content = new Canvas { Children = { card } };
+        var focus = new CardFocus(new CardFocusWin32(), () => Handle(band), _ => false, TimeProvider.System,
+            (seconds, run) => DispatcherTimer.RunOnce(run, TimeSpan.FromSeconds(seconds)));
+        focus.ActivationFailed += () =>
+        {
+            failed++;
+            Log.Line("100 ms check: the overlay is not in front (the card would say Type your answer in the chat)");
+        };
+        band.Activating += () =>
+        {
+            activations++;
+            focus.Activating();
+            Log.Line(focus.Saved is { } saved ? $"activating: saved 0x{saved.Window:x} process {saved.ProcessId} class {saved.ClassName}" : "activating: nothing saved");
+        };
+        band.Activated += (_, _) =>
+        {
+            focus.Activated();
+            Log.Line("the overlay has the keyboard");
+        };
+        band.Deactivated += (_, _) =>
+        {
+            focus.Deactivated();
+            Log.Line("the overlay lost the keyboard (a later hand-back does nothing)");
+        };
+        composer.Field.KeyDown += (_, _) => focus.Typed();
+        composer.KeyPressed += e =>
+        {
+            if (e.Key != Key.Enter || e.KeyModifiers.HasFlag(KeyModifiers.Shift)) return;
+            var back = focus.HandBack();
+            backs[back] = backs.GetValueOrDefault(back) + 1;
+            composer.Field.Text = "";
+            Log.Line($"Enter: hand-back {back}");
+            e.Handled = true;
+        };
+        band.Opened += (_, _) => Opened(band, "card band");
+        band.Show();
+    }
+
+    public override void Finish()
+    {
+        Log.Line($"RESULT np18-focus: activations {activations}, activation failed {failed}, hand-backs {string.Join(", ", backs.Select(b => $"{b.Key} {b.Value}"))}. Check by eye: after Enter the keyboard is back in Notepad, Word and a browser's address bar with the caret where it was; a click on another app while typing leaves that app in front and Enter later activates nothing; the overlay took the keyboard only from a click in the field.");
+        window?.Close();
+    }
 }
 
 /// <summary>NP-15, implementation 1: the window region at rest, empty while moving, with a click-through shadow band.</summary>

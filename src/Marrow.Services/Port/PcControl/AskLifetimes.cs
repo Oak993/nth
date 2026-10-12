@@ -77,7 +77,7 @@ public static class AskLifetimes
         {
             PcAskKind.Approval => (answer is PcApprovalReply reply ? reply.Approval : answer) is PcApproval.Denied or PcApproval.Chat
                 || ((answer is PcApprovalReply always ? always.Approval : answer) is PcApproval.Always && ask.Payload is PcApprovalAsk { AllowAlways: true }),
-            PcAskKind.Confirm => answer is bool,
+            PcAskKind.Confirm => answer is bool or PcConfirmReply,
             PcAskKind.ShowWindow => answer is PcShowAnswer,
             PcAskKind.Question => answer is PcAnswer reply && ask.Payload is PcAskRequest request && Fits(request, reply),
             _ => true,
@@ -117,6 +117,7 @@ public static class AskLifetimes
         if (ask.Kind == PcAskKind.Approval && answer is PcApprovalReply { Use: false, Approval: PcApproval.Chat or PcApproval.Always } seeOnly)
             return (seeOnly.Approval == PcApproval.Always ? "You let every chat see " : "You let this chat see ") + app + from;
         if (answer is PcApprovalReply plain) answer = plain.Approval;
+        if (answer is PcConfirmReply confirm) answer = confirm.Confirmed;
         return (ask.Kind, answer) switch
         {
             (PcAskKind.Approval, PcApproval.Chat) => "You allowed " + app + " for this chat" + from,

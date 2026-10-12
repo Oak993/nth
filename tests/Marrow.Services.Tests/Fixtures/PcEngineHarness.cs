@@ -198,6 +198,16 @@ public sealed class PcFakeConfirmer : IPcConfirmer
     public List<string> Shown { get; } = [];
     public TaskCompletionSource<bool>? Hold { get; set; }
 
+    /// <summary>What the user typed with Cancel; given once.</summary>
+    public string? Said { get; set; }
+
+    public string? Note(string thread)
+    {
+        var said = Said;
+        Said = null;
+        return said;
+    }
+
     public Task<bool> Confirm(PcAskSource source, string word, string elementName, string appName, CancellationToken cancellationToken)
     {
         lock (Asked) Asked.Add(word + " " + elementName);

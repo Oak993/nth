@@ -88,6 +88,14 @@ public sealed class TactusPillHost : IDisposable
     private readonly HashSet<string> knownAsks = [];
     private PillFacts facts = new();
     private bool rowsOpen;
+    private bool cardOpen;
+    private string? openId;
+    private int openIndex;
+    private (string Id, int Revision)? shownCard;
+    private int shownIndex;
+    private readonly PillAutoExpand autoExpand = new();
+    private double cardShift;
+    private bool dodgePending;
     private bool dragging;
     private bool reduceMotion;
     private bool highContrast;
@@ -115,6 +123,30 @@ public sealed class TactusPillHost : IDisposable
         this.driver = driver;
         overlays.HandlesChanged += Collect;
     }
+
+    /// <summary>The card body for an ask id (PillAskBridge.Body); null shows the header alone.</summary>
+    public Func<string, PillCardBody?>? Bodies { get; set; }
+
+    /// <summary>The user chose something on the card (PillAskBridge.Answer takes it).</summary>
+    public event Action<PillCardAnswer>? CardAnswered;
+
+    /// <summary>The card's reply field changed for an ask (ask id, text; PillAskBridge.Draft keeps it).</summary>
+    public event Action<string, string>? DraftChanged;
+
+    /// <summary>The card opened (true) or folded into the pill (false): CardFocus hands the keyboard back at a fold.</summary>
+    public event Action<bool>? CardChanged;
+
+    /// <summary>The card is open.</summary>
+    public bool CardOpen => cardOpen;
+
+    /// <summary>The pointer in a monitor's work-area DIP (null: on another monitor or unknown), for the card's dodge.</summary>
+    public Func<OverlayMonitor, PillVector?>? PointerAt { get; set; }
+
+    /// <summary>A mouse button is held anywhere (the user may be dragging in an app): an auto-expand waits.</summary>
+    public Func<bool>? ButtonHeld { get; set; }
+
+    /// <summary>The ask the card shows; null when it is folded.</summary>
+    public string? OpenAsk => cardOpen ? openId : null;
 
     /// <summary>The anchor the pill rests at (Settings and the last drag; the caller saves it).</summary>
     public PillAnchor Anchor { get; set; } = PillAnchor.Centre;
@@ -166,7 +198,12 @@ public sealed class TactusPillHost : IDisposable
         knownAsks.Clear();
         foreach (var ask in next.Asks) knownAsks.Add(ask.Id);
         facts = next;
+        foreach (var _ in fresh) autoExpand.AskArrived();
+        autoExpand.QueueChanged(next.Asks.Count);
+        Queue();
         Refresh();
+        // after the refresh: a card folded by it keeps its draft first, and an ended ask's draft goes here
+        foreach (var pair in pairs.Values) pair.Each(p => p.Card.Forget(next.Asks.Select(a => a.Id)));
         if (fresh.Count == 0) return;
         // a new ask: the bands go on top again and assistive technology hears it (assertive)
         overlays.Reassert();
@@ -206,7 +243,8 @@ public sealed class TactusPillHost : IDisposable
         if (disposed) return;
         var now = Now;
         var shown = Visible(facts, now);
-        var card = facts.Card;
+        var expanded = AutoExpand(now);
+        var card = facts.Card || cardOpen;
         var held = dragging || card || pairs.Values.Any(p => p.Wanted && p.Input.IsPointerOver);
         var screen = shown ? screens.Choose(map, shade, now, held) : PillScreen.Nowhere;
         var target = screen.Monitor;
@@ -214,14 +252,22 @@ public sealed class TactusPillHost : IDisposable
             if (pair.Wanted && !string.Equals(pair.Monitor.Id, target?.Id, StringComparison.OrdinalIgnoreCase)) Leave(pair, now);
         if (target is not null)
         {
-            var view = PillStates.Compute(Merged(), now);
+            var merged = Merged();
+            var view = PillStates.Compute(merged, now);
             if (PairFor(target, view, now) is { } pair)
             {
+                CardFor(pair, merged);
                 pair.Show(view, now);
                 if (!pair.Wanted) Arrive(pair, now);
+                if (dodgePending)
+                {
+                    dodgePending = false;
+                    Dodge(pair);
+                }
             }
         }
         Tick();
+        if (expanded) CardChanged?.Invoke(true);
     }
 
     // ---- the pairs ----
@@ -240,6 +286,12 @@ public sealed class TactusPillHost : IDisposable
         input.Moving += motion => Moved(pair, motion, held: false);
         input.Dragged += motion => Moved(pair, motion, held: true);
         input.Command += command => Pressed(command);
+        input.CardAnswered += answer => CardAnswered?.Invoke(answer);
+        input.DraftChanged += (id, text) =>
+        {
+            shadow?.Card.SetDraft(text);
+            DraftChanged?.Invoke(id, text);
+        };
         input.DragStarted += () => DragStarted(pair);
         input.DragEnded += (at, anchor, speed) => Released(pair, at, anchor, speed);
         Paint(pair, moving: false);
@@ -410,13 +462,131 @@ public sealed class TactusPillHost : IDisposable
 
     internal void Pressed(PillCommand command)
     {
-        if (command.Kind == PillCommandKind.Click && facts.Asks.Count == 0)
+        switch (command.Kind)
         {
-            rowsOpen = !rowsOpen;
-            Refresh();
-            return;
+            case PillCommandKind.Click when facts.Asks.Count == 0:
+                rowsOpen = !rowsOpen;
+                Refresh();
+                return;
+            case PillCommandKind.Click when !cardOpen && Bodies is not null:
+                // a click with asks waiting opens the card on the ask that was open, or the first one (DESIGN.md 10.5)
+                openId ??= facts.Asks[Math.Clamp(facts.OpenAsk, 0, facts.Asks.Count - 1)].Id;
+                autoExpand.Expanded();
+                Card(true);
+                break;
+            case PillCommandKind.Later when cardOpen:
+                // Later disarms the auto-expand until the queue empties
+                autoExpand.Later();
+                Card(false);
+                break;
+            case PillCommandKind.PreviousAsk or PillCommandKind.NextAsk when cardOpen && facts.Asks.Count > 1:
+                var at = Math.Clamp(Index() + (command.Kind == PillCommandKind.NextAsk ? 1 : -1), 0, facts.Asks.Count - 1);
+                openId = facts.Asks[at].Id;
+                Refresh();
+                break;
         }
         Command?.Invoke(command);
+    }
+
+    /// <summary>The overlay could not take the keyboard after the reply field's click (CardFocus.ActivationFailed).</summary>
+    public void KeyboardRefused()
+    {
+        foreach (var pair in pairs.Values.Where(p => p.Wanted)) pair.Each(p => p.Card.KeyboardRefused());
+    }
+
+    // ---- the card ----
+
+    private void Card(bool open)
+    {
+        if (open == cardOpen) return;
+        cardOpen = open;
+        if (!open) shownCard = null;
+        dodgePending = open;
+        Refresh();
+        if (!open) Undodge();
+        CardChanged?.Invoke(open);
+    }
+
+    // An owed auto-expand runs once the pill is still, not hovered, and no mouse button is held anywhere; it never takes
+    // focus (DESIGN.md 10.5).
+    private bool AutoExpand(double now)
+    {
+        if (cardOpen || Bodies is null || facts.Asks.Count == 0 || pairs.Values.FirstOrDefault(p => p.Wanted) is not { } shown) return false;
+        var travelling = !shown.Input.Motion.Done(now);
+        if (!autoExpand.ShouldExpand(dragging, travelling, shown.Input.IsPointerOver, ButtonHeld?.Invoke() == true)) return false;
+        autoExpand.Expanded();
+        openId ??= facts.Asks[Math.Clamp(facts.OpenAsk, 0, facts.Asks.Count - 1)].Id;
+        cardOpen = true;
+        dodgePending = true;
+        return true;
+    }
+
+    // A card that opened with a button or chip under the resting pointer moves sideways with the pill, at most half its
+    // width and inside the work area; a control no shift clears waits until the pointer has left it once (DESIGN.md 10.3,
+    // 10.4 C12). The pill goes back to its anchor when the card folds.
+    private void Dodge(Pair pair)
+    {
+        if (PointerAt?.Invoke(pair.Monitor) is not { } pointer) return;
+        var pill = pair.Input;
+        var final = pill.Motion.Final;
+        var left = final.Anchor.X - (final.Factor * PillMorph.CardWidth);
+        var shift = CardPlacement.Shift(left, final.Anchor.Y + PillLayout.Height, PillMorph.CardWidth, pill.Card.Layout(), pointer, pair.Monitor.WorkDip);
+        if (shift.Inert.Count > 0) pair.Each(p => p.Card.MarkInert(shift.Inert));
+        if (Math.Abs(shift.Dx) < 1e-9) return;
+        cardShift = shift.Dx;
+        pill.TravelTo(new PillVector(final.Anchor.X + shift.Dx, final.Anchor.Y), final.Factor, at: Now);
+    }
+
+    private void Undodge()
+    {
+        if (cardShift == 0) return;
+        cardShift = 0;
+        foreach (var pair in pairs.Values.Where(p => p.Wanted)) pair.Input.TravelTo(RestAnchor(pair.Monitor), Factor(Anchor), at: Now);
+    }
+
+    // The queue changed: the card keeps its ask; when that ask ended, the one now in its place shows (sliding in from the
+    // right), or the card folds when none waits.
+    private void Queue()
+    {
+        var asks = facts.Asks;
+        if (asks.Count == 0)
+        {
+            openId = null;
+            openIndex = 0;
+            if (cardOpen)
+            {
+                cardOpen = false;
+                shownCard = null;
+                Undodge();
+                CardChanged?.Invoke(false);
+            }
+            return;
+        }
+        if (openId is not null && asks.Any(a => a.Id == openId)) return;
+        openId = cardOpen ? asks[Math.Clamp(openIndex, 0, asks.Count - 1)].Id : null;
+    }
+
+    private int Index()
+    {
+        var asks = facts.Asks;
+        for (var i = 0; i < asks.Count; i++)
+            if (asks[i].Id == openId) return openIndex = i;
+        return Math.Clamp(openIndex, 0, Math.Max(0, asks.Count - 1));
+    }
+
+    // The open ask's body goes to both pills of the pair when the ask or its revision changed: in place for the same ask,
+    // sliding from the right for a later one and from the left for an earlier one.
+    private void CardFor(Pair pair, PillFacts merged)
+    {
+        if (!merged.Card || openId is null || Bodies?.Invoke(openId) is not { } body) return;
+        var index = Index();
+        if (shownCard is { } shown && shown.Id == body.AskId && shown.Revision == body.Revision) return;
+        var direction = shownCard is not { } before ? 0 : before.Id == body.AskId ? 0 : index >= shownIndex ? 1 : -1;
+        shownCard = (body.AskId, body.Revision);
+        shownIndex = index;
+        var work = pair.Monitor.WorkDip;
+        var cap = PillMorph.CardHeight(PillMorph.MaxCardHeight, work.Height, RestAnchor(pair.Monitor).Y - work.Top);
+        pair.Each(p => p.ShowCard(body, direction, cap));
     }
 
     private void DragStarted(Pair pair)
@@ -491,7 +661,11 @@ public sealed class TactusPillHost : IDisposable
         return new PillVector(band.ScreenOrigin.X + ((dip.X - band.DipOrigin.X) * band.Scale), band.ScreenOrigin.Y + ((dip.Y - band.DipOrigin.Y) * band.Scale));
     }
 
-    private PillFacts Merged() => facts with { RowsOpen = rowsOpen, Dragging = dragging, ReduceMotion = reduceMotion };
+    private PillFacts Merged() => facts with
+    {
+        RowsOpen = rowsOpen && !cardOpen, Dragging = dragging, ReduceMotion = reduceMotion,
+        Card = cardOpen && facts.Asks.Count > 0, OpenAsk = cardOpen ? Index() : facts.OpenAsk,
+    };
 
     // Something to show: an app still working or paused, an ask, a stop in its 2 s, or a notice.
     private static bool Visible(PillFacts facts, double now) =>

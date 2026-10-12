@@ -85,6 +85,14 @@ public sealed class PcBrokerApprover : IPcApprover
 
 public sealed class PcBrokerConfirmer(PcAskBroker broker) : IPcConfirmer
 {
+    private readonly Lock gate = new();
+    private readonly Dictionary<string, string> notes = new(StringComparer.Ordinal);
+
+    public string? Note(string thread)
+    {
+        lock (gate) return notes.Remove(thread, out var note) ? note : null;
+    }
+
     public async Task<bool> Confirm(PcAskSource source, string word, string elementName, string appName, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -92,6 +100,14 @@ public sealed class PcBrokerConfirmer(PcAskBroker broker) : IPcConfirmer
         var content = new PcConfirmContent(PcConfirmContent.CategoryOf(word), word, elementName, appName, []);
         var ask = broker.Add(new PcAskDraft(PcAskKind.Confirm, source.Thread, content) { AppName = appName, Head = source.Head }, cancellationToken);
         var outcome = await ask.Outcome.WaitAsync(cancellationToken).ConfigureAwait(false);
+        if (outcome is { Status: PcAskStatus.Answered, Answer: PcConfirmReply reply })
+        {
+            if (!reply.Confirmed && reply.Note is { Length: > 0 } note)
+            {
+                lock (gate) notes[source.Thread] = note;
+            }
+            return reply.Confirmed;
+        }
         return outcome is { Status: PcAskStatus.Answered, Answer: true };
     }
 

@@ -33,6 +33,11 @@ $steps = [ordered]@{
         'With two monitors of different DPI or refresh rate, run once with --straddle and watch the seam as the pill crosses.',
         'Run once on a 60 Hz and once on a 144 Hz monitor if one is available (move it to primary). Read "render timer follows it".'
     )
+    'np18-focus' = @(
+        'Click in Notepad and type a word. Click the card''s field, type, press Enter: Notepad is in front again with the caret after your word.',
+        'Repeat with Word (caret in the body) and with a browser''s address bar.',
+        'Click the field, type, then click Notepad: Notepad stays in front and the log says the overlay lost the keyboard.'
+    )
 }
 
 $runs = @(
@@ -41,7 +46,8 @@ $runs = @(
     @{ Probe = 'np15-flip'; Extra = @() },
     @{ Probe = 'np16'; Extra = @() },
     @{ Probe = 'np16'; Extra = @('--warm') },
-    @{ Probe = 'np16'; Extra = @('--straddle') }
+    @{ Probe = 'np16'; Extra = @('--straddle') },
+    @{ Probe = 'np18-focus'; Extra = @() }
 )
 
 foreach ($run in $runs) {

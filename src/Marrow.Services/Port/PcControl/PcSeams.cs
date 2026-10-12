@@ -48,6 +48,12 @@ public interface IPcConfirmer
 
     /// <summary>The pill asks "Show Outlook?" with Show and Not now; the window is shown only after Show.</summary>
     Task<PcShowAnswer> Show(PcAskSource source, string appName, string windowTitle, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// What the user typed when they cancelled a confirm card with "Reply instead", once; null when nothing was said. It goes
+    /// to the model in the needs_confirmation result (DESIGN.md 10.4 "Confirm body").
+    /// </summary>
+    string? Note(string thread) => null;
 }
 
 /// <summary>

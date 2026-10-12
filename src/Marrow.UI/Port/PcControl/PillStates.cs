@@ -37,7 +37,11 @@ public enum PillAskKind
 /// One waiting ask: for a provider's own ask <paramref name="Title"/> is its title ("Run a command"); a withdrawn ask that
 /// kept a draft stays until the draft is opened (canvas `q.withdrawn`).
 /// </summary>
-public sealed record PillAsk(string Id, PillAskKind Kind, string AppName, string Chat, string Model, string Title = "", bool Withdrawn = false);
+public sealed record PillAsk(string Id, PillAskKind Kind, string AppName, string Chat, string Model, string Title = "", bool Withdrawn = false)
+{
+    /// <summary>The Hydra head that asks ("Head 2"); null for the lead chat.</summary>
+    public string? Head { get; init; }
+}
 
 /// <summary>The transient and blocking notices of DESIGN.md 4.5's table, each with its exact text.</summary>
 public enum PillNoticeKind
@@ -301,7 +305,7 @@ public static class PillStates
         {
             var q = asks[Math.Clamp(facts.OpenAsk, 0, n - 1)];
             title = AskTitle(q);
-            line = q.Kind == PillAskKind.Provider ? $"{q.Model} · review it in the chat" : $"{q.Chat} · {q.Model}";
+            line = q.Kind == PillAskKind.Provider ? $"{q.Model} · review it in the chat" : q.Head is { Length: > 0 } head ? $"{q.Chat} · {q.Model} · {head}" : $"{q.Chat} · {q.Model}";
             group = PillGroupKind.Card;
             pager = n > 1 ? $"{Math.Clamp(facts.OpenAsk, 0, n - 1) + 1} of {n}" : null;
             announcement = $"{title}. {n} waiting";

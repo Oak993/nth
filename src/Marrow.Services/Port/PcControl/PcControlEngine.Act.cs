@@ -421,7 +421,11 @@ public sealed partial class PcControlEngine
         using (call.Wait.Waiting(PcWaitReason.ConfirmCard))
             allowed = await parts.Confirmer.Confirm(Source(info), word, name, AppName(info), call.Token).ConfigureAwait(false);
         call.Timings.Mark("confirm");
-        if (!allowed) return PcResult.Fail(PcErrorCode.NeedsConfirmation, "the user did not confirm " + PcWindowLine.Quote(name));
+        if (!allowed)
+        {
+            var note = parts.Confirmer.Note(caller.Thread);
+            return PcResult.Fail(PcErrorCode.NeedsConfirmation, "the user did not confirm " + PcWindowLine.Quote(name) + (note is null ? "" : ". The user said: " + note));
+        }
         confirmed.Add(key);
         return null;
     }

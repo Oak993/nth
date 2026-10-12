@@ -141,10 +141,20 @@ public class TactusOverlayWindow : Avalonia.Controls.Window
         Win32Properties.AddWindowStylesCallback(this, (style, styles) => (style, styles | extended));
         if (role == OverlayRole.Input)
             NativeWindowHooks.AddFirst(this, (nint hwnd, uint message, nint wp, nint lp, ref bool handled) =>
-                OverlayWindowSetup.OnMessage(message, () => CursorDip(hwnd), point => OverlayActivation.Hit(this, point), ref handled));
+            {
+                var result = OverlayWindowSetup.OnMessage(message, () => CursorDip(hwnd), point => OverlayActivation.Hit(this, point), ref handled);
+                if (handled && result == OverlayStyles.MaActivate) Activating?.Invoke();
+                return result;
+            });
     }
 
     public OverlayRole Role { get; }
+
+    /// <summary>
+    /// A click on an activating field was answered with MA_ACTIVATE, before Windows activates this window: the card saves
+    /// the window the keyboard comes from (CardFocus.Activating, ED-NEW-pcctl-26).
+    /// </summary>
+    public event Action? Activating;
 
     /// <summary>The extended styles this window adds at creation and once it has a handle.</summary>
     public uint ExtendedStyles { get; }

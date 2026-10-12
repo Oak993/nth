@@ -767,6 +767,15 @@ public interface IPillTargets
 
     PillSurface StopSurface { get; }
 
+    /// <summary>
+    /// The card's clip under the header (ED-NEW-pcctl-26): a fixed layout size; its visible size follows the body below the
+    /// header, so the card is revealed by the morph, never faded. Null: no card.
+    /// </summary>
+    Control? CardClip => null;
+
+    /// <summary>The card inside the clip: it holds its place under the anchor while the clip's edge moves.</summary>
+    Control? CardContent => null;
+
     /// <summary>Lays the controls out at <paramref name="pose"/>'s places (the stage at its anchor), once per change.</summary>
     void Layout(PillPose pose, PillPlaces places);
 }
@@ -831,6 +840,17 @@ public sealed class PillMotionDriver(IPillTargets targets, IPillAnimator animato
         animator.Translate(targets.StopSlot, Track(p => PillPlaces.Of(p, parts).StopLeft - places.StopLeft), zero);
         animator.Resize(targets.StopClip, Track(p => Math.Max(0, PillPlaces.Of(p, parts).StopVisible - StopClipInset)), Track(_ => PillSurfacePainter.StopHeight));
         animator.Resize(targets.TextClip, Track(p => PillPlaces.Of(p, parts).TextClip), Track(_ => TextClipHeight));
+        if (targets.CardClip is { } cardClip && targets.CardContent is { } card)
+        {
+            // the clip's left edge follows the body's; the card counter-moves so it stays under the anchor; on an expand it
+            // rises its last 6 DIP as the clip opens (DESIGN.md 10.4's rise, kept without the fade)
+            var rising = end.Height > PillLayout.Height + 0.5 && motion.At(now).Height < end.Height - 0.5;
+            animator.Translate(cardClip, Track(p => PillPlaces.Of(p, parts).BodyLeft - places.BodyLeft), zero);
+            animator.Translate(card,
+                Track(p => places.BodyLeft - PillPlaces.Of(p, parts).BodyLeft),
+                rising ? Track(p => PillMorph.BodyRise * (1 - Math.Clamp((p.Height - PillLayout.Height) / (end.Height - PillLayout.Height), 0, 1))) : zero);
+            animator.Resize(cardClip, Track(p => p.Width), Track(p => Math.Max(0, p.Height - PillLayout.Height)));
+        }
         targets.Body.Run(motion, parts, now);
         targets.StopSurface.Run(motion, parts, now);
     }
@@ -856,6 +876,12 @@ public sealed class PillMotionDriver(IPillTargets targets, IPillAnimator animato
         animator.SetTranslation(targets.StopSlot, 0, 0);
         animator.SetSize(targets.StopClip, Math.Max(0, places.StopVisible - StopClipInset), PillSurfacePainter.StopHeight);
         animator.SetSize(targets.TextClip, places.TextClip, TextClipHeight);
+        if (targets.CardClip is { } cardClip && targets.CardContent is { } card)
+        {
+            animator.SetTranslation(cardClip, 0, 0);
+            animator.SetTranslation(card, 0, 0);
+            animator.SetSize(cardClip, pose.Width, Math.Max(0, pose.Height - PillLayout.Height));
+        }
         targets.Body.Hold(pose, parts, now);
         targets.StopSurface.Hold(pose, parts, now);
     }

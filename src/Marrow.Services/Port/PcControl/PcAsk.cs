@@ -84,6 +84,12 @@ public sealed record PcApprovalAsk(PcCapability Capability, bool Risky, bool All
 /// </summary>
 public sealed record PcApprovalReply(PcApproval Approval, bool Use, string? Reason = null);
 
+/// <summary>
+/// The confirm card's answer from the pill (ED-NEW-pcctl-26): Confirm, or Cancel with what the user typed in "Reply
+/// instead" ("Cancel, and tell the model what to change"). The chat's own answer stays a bare bool.
+/// </summary>
+public sealed record PcConfirmReply(bool Confirmed, string? Note = null);
+
 /// <summary>A show-window ask's subject: the window and why it would show.</summary>
 public sealed record PcShowAsk(string WindowTitle, string? Why = null);
 

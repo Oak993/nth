@@ -146,6 +146,8 @@ public sealed class ControlPill : Canvas, IPillTargets
     private readonly LiveStatusText alert = new();
     private readonly TextBlock measure = new() { FontFamily = TextFont };
     private readonly PillVelocityEstimator velocity = new();
+    // the card under the header: a fixed layout size, revealed by its visible size (ED-NEW-pcctl-26)
+    private readonly Canvas cardClip = new() { ClipToBounds = true, Width = PillMorph.CardWidth, Height = PillMorph.MaxCardHeight - PillLayout.Height, IsVisible = false };
     private readonly Dictionary<Control, int> hides = [];
 
     private PillGroupKind shownGroup = (PillGroupKind)(-1);
@@ -154,6 +156,7 @@ public sealed class ControlPill : Canvas, IPillTargets
     private bool stopShown;
     private bool hintOpen;
     private bool rowsOpen;
+    private bool cardOpen;
     private bool reduceMotion;
     private double rowsHeight;
     private PillParts parts;
@@ -179,6 +182,15 @@ public sealed class ControlPill : Canvas, IPillTargets
         StopSurface = new PillSurface(PillSurfaceKind.Stop, kind);
         driver = new PillMotionDriver(this, this.animator);
         ClipToBounds = false;
+        Card = new PillCard(this.animator, () => Now, After);
+        Card.HeightChanged += CardResized;
+        Card.Answered += answer => CardAnswered?.Invoke(answer);
+        Card.DraftChanged += (id, text) => DraftChanged?.Invoke(id, text);
+        Card.Command += command =>
+        {
+            if (command == PillCardCommand.Fold) Raise(PillCommandKind.Later);
+        };
+        cardClip.Children.Add(Card);
 
         badgeText = new TextBlock { FontFamily = TextFont, FontSize = 11, FontWeight = FontWeight.Bold, Foreground = Ink, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         badge = new Border
@@ -251,6 +263,7 @@ public sealed class ControlPill : Canvas, IPillTargets
         contentLayer.Children.Add(row);
         contentLayer.Children.Add(group);
         contentLayer.Children.Add(stopSlot);
+        contentLayer.Children.Add(cardClip);
         // the rows and hint first, so the pill is always drawn over them (canvas order); then the body, then its content
         stage.Children.Add(below);
         stage.Children.Add(Body);
@@ -297,6 +310,13 @@ public sealed class ControlPill : Canvas, IPillTargets
     public PillSurface Body { get; }
 
     public PillSurface StopSurface { get; }
+
+    public Control? CardClip => cardClip;
+
+    public Control? CardContent => Card;
+
+    /// <summary>The card under the header: its body for the open ask, its shield and its keys.</summary>
+    public PillCard Card { get; }
 
     /// <summary>The pill's motion now (its pose at any time, the shape the overlays read), in the monitor's DIP.</summary>
     public PillMotion Motion { get; private set; }
@@ -382,6 +402,12 @@ public sealed class ControlPill : Canvas, IPillTargets
     /// <summary>A drag ended: the release point (band DIP), the anchor point there, and the release velocity (DIP/s).</summary>
     public event Action<PillVector, PillVector, PillVector>? DragEnded;
 
+    /// <summary>The user chose something on the card.</summary>
+    public event Action<PillCardAnswer>? CardAnswered;
+
+    /// <summary>The card's reply field changed for an ask (ask id, text).</summary>
+    public event Action<string, string>? DraftChanged;
+
     /// <summary>Which layers this window draws (the mirror in the shadow band draws the shadow, or everything while moving).</summary>
     public PillPaint Paint
     {
@@ -442,10 +468,17 @@ public sealed class ControlPill : Canvas, IPillTargets
         }
         var measured = parts;
         Fit(view);
+        // the card: the pill's widest, its height the header plus the body (DESIGN.md 10.4 "Morph")
+        var carding = view.Group == PillGroupKind.Card && Card.Current is not null;
+        if (carding) Fitted = Fitted! with { Width = PillMorph.CardWidth };
+        var height = carding ? PillLayout.Height + Card.BodyHeight : PillLayout.Height;
         // the same size and parts as the motion already goes to: nothing to move (a view refreshed with no change)
-        var unchanged = !instant && parts == measured && Math.Abs(Motion.Final.Width - Fitted!.Width) < 1e-9 && Math.Abs(Motion.Final.Cap - (Fitted.CapFolded ? 1 : 0)) < 1e-9;
-        var next = unchanged ? Motion : Motion.Widen(now, Fitted!.Width, reduce || instant).Fold(now, Fitted.CapFolded, reduce || instant);
+        var unchanged = !instant && parts == measured && Math.Abs(Motion.Final.Width - Fitted!.Width) < 1e-9 && Math.Abs(Motion.Final.Cap - (Fitted.CapFolded ? 1 : 0)) < 1e-9
+            && Math.Abs(Motion.Final.Height - height) < 1e-9;
+        var response = height >= Motion.Final.Height ? PillCurve.ExpandResponse : PillCurve.CollapseResponse;
+        var next = unchanged ? Motion : Motion.Widen(now, Fitted!.Width, reduce || instant).Fold(now, Fitted.CapFolded, reduce || instant).Heighten(now, height, response, reduce || instant);
         if (instant) next = PillMotion.Still(next.Final, now);
+        CardTo(carding, next, now);
         var stop = PillPlaces.Of(next.Final, parts).StopVisible;
         stopButton.IsEnabled = view.ShowsStop;
         Swap(stopSlot, view.ShowsStop, stopShown, instant, reduce, now, BadgeResponse, new Point(stop / 2, PillSurfacePainter.StopHeight / 2));
@@ -631,6 +664,10 @@ public sealed class ControlPill : Canvas, IPillTargets
     // ---- IPillTargets.Layout: the final places, once per change ----
     public void Layout(PillPose pose, PillPlaces places)
     {
+        SetLeft(cardClip, places.BodyLeft);
+        SetTop(cardClip, PillLayout.Height);
+        SetLeft(Card, (-pose.Factor * PillMorph.CardWidth) - places.BodyLeft);
+        SetTop(Card, 0);
         layoutAnchor = pose.Anchor;
         SetLeft(stage, pose.Anchor.X - origin.X);
         SetTop(stage, pose.Anchor.Y - origin.Y);
@@ -970,6 +1007,39 @@ public sealed class ControlPill : Canvas, IPillTargets
         };
         AutomationProperties.SetAccessibilityView(piece, AccessibilityView.Raw);
         return piece;
+    }
+
+    // ---- the card ----
+
+    /// <summary>
+    /// Shows <paramref name="body"/> in the card (laid out once at its final size); the pill takes its height at the next
+    /// <see cref="Show(PillView, double?)"/> with the card's view, or at once when the card is already open.
+    /// </summary>
+    /// <param name="direction">0: in place; 1: the next ask slides in from the right; -1: the previous from the left.</param>
+    /// <param name="cap">The card's height cap in this work area (PillMorph.CardHeight).</param>
+    /// <param name="pointer">The pointer in the card's DIP when it shows, so controls under it start inert.</param>
+    public void ShowCard(PillCardBody body, int direction = 0, double? cap = null, PillVector? pointer = null) =>
+        Card.Show(body, direction, cap ?? PillMorph.MaxCardHeight, pointer, ReduceMotion);
+
+    // The reply field opened or grew, or a new body came: the open card takes the new height.
+    private void CardResized()
+    {
+        if (cardOpen && View is { Group: PillGroupKind.Card } view) Show(view);
+    }
+
+    // The card opens with the morph (its clip shows) and folds with it: its body goes once the collapse is over.
+    private void CardTo(bool carding, PillMotion next, double now)
+    {
+        if (carding == cardOpen) return;
+        cardOpen = carding;
+        if (carding)
+        {
+            Reveal(cardClip);
+            return;
+        }
+        var seconds = Math.Max(0, next.DoneAt() - now);
+        Card.Clear(seconds + HideMargin);
+        ConcealAfter(cardClip, seconds);
     }
 
     // ---- hiding what has left ----
