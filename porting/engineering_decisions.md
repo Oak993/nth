@@ -6234,3 +6234,8 @@ ENGINEERING DECISION. Owner accepted C6-F2 (2026-10-12); DESIGN.md 5.4 and ED-NE
 ## ED-NEW-dextra-cx-3
 
 ENGINEERING DECISION. Owner accepted C6-F3 (2026-10-12); DESIGN.md 5.4, ED-NEW-dextra-as2-2 items 3-4. FeedChatFacts captures read-only ordinary ancestor IDs in the existing bounded, cycle-safe 16-link walk. Queue.Hide matches the chat or these dependencies in both ready and held lists, clears Detail and marks Hidden; the builder still drops forbidden kinds and strips title/IDs from surviving hidden events. Valid Assistant work is explicitly exempt, including when Hide is called on its own ID. Mission ancestors do not contribute their own hidden mark but the walk continues through them, as before. No live AppModel reads occur on the pump and filtering stays after enqueue (ED-NEW-dextra-as2-6). Regression: original queued-child tap repro failed alone twice at 37fe3e03f; DextraC6F3QueueTests also cover held/ready grandchildren and the mission exemption.
+
+
+## ED-NEW-dextra-cx-4
+
+ENGINEERING DECISION. Owner accepted C6-F4 (2026-10-12); DESIGN.md 5.4 and ED-NEW-dextra-as2-4. Named quoted secrets consume the entire bounded scanned value, including escaped characters, opposite quotes and newlines, through the matching quote or end of scan. Missing closing quotes (including a value truncated at 4096 characters) are masked fail-closed. The 4096-character input bound and each 250 ms regex timeout remain; timeout still masks the entire scan. Already masked values remain idempotent. Filtering/shielding stays after enqueue (ED-NEW-dextra-as2-6). Regression: original 240-character feed repro failed alone twice at 37fe3e03f; DextraC6F4Tests cover both quote kinds, lengths beyond the scan and escaped/truncated tails.

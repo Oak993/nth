@@ -44,7 +44,7 @@ public static partial class FeedShield
     // and "max_tokens=4096" are not secrets: the secret word may not be followed by another letter.
     private const string SecretWord = @"(?:password|passwd|passphrase|pwd|secret|token|api[_ -]?key|apikey|access[_ -]?key|private[_ -]?key|client[_ -]?secret|credentials?|session[_ -]?id|cookie)";
 
-    [GeneratedRegex(@"(?i)(?<name>[A-Za-z0-9_.-]*?" + SecretWord + @"(?:[_-]?(?:value|string|hash|text))?)(?<sep>""?\s*[:=]\s*)(?:(?<q>[""'])(?<qv>[^""'\r\n]{1,200})\k<q>|(?<v>[^\s""'&,;]+))", Flags, TimeoutMs)]
+    [GeneratedRegex(@"(?i)(?<name>[A-Za-z0-9_.-]*?" + SecretWord + @"(?:[_-]?(?:value|string|hash|text))?)(?<sep>""?\s*[:=]\s*)(?:(?<q>[""'])(?<qv>(?:\\(?:[\s\S]|\z)|(?!\k<q>)[^\\])*)(?:\k<q>|\z)|(?<v>[^\s""'&,;]+))", Flags, TimeoutMs)]
     private static partial Regex NamedSecret();
 
     [GeneratedRegex(@"(?i)(?<name>(?<![A-Za-z0-9-])--?[A-Za-z0-9_-]*?" + SecretWord + @"(?:[_-]?(?:value|string|hash|text))?)(?<sep>\s+)(?<value>[^\s""'-][^\s""']*)", Flags, TimeoutMs)]
