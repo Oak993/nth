@@ -36,6 +36,25 @@ public sealed class ArtifactStoreTests
     }
 
     [Fact]
+    public void The_1000th_same_long_title_has_a_normal_id_and_loads_from_its_folder()
+    {
+        using var scratch = new ArtifactScratchFolder();
+        var store = scratch.Store();
+        var title = new string('a', 60);
+        ArtifactSnapshot? last = null;
+        for (var i = 0; i < 1000; i++)
+        {
+            last = store.Create(ThreadA, Page(title, "content"), Model, null);
+            if (i == 0) Assert.Equal(new string('a', 44), last.Artifact.Id);
+            if (i == 998) Assert.Equal(new string('a', 44) + "-999", last.Artifact.Id);
+        }
+        Assert.NotNull(last);
+        Assert.Equal(new string('a', 43) + "-1000", last.Artifact.Id);
+        Assert.Equal(last.Artifact.Id, ArtifactStore.NormalizeId(last.Artifact.Id));
+        Assert.Equal("content", scratch.Store().Read(ThreadA, last.Artifact.Id).Text);
+    }
+
+    [Fact]
     public void Create_writes_v1_and_meta_json_in_the_thread_data_folder_and_reads_them_back()
     {
         using var scratch = new ArtifactScratchFolder();

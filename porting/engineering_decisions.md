@@ -6647,3 +6647,8 @@ C8-1 race verification: content messages wait for successful document navigation
 ## ED-NEW-web-nocap-3
 
 ENGINEERING DECISION, owner C8 packet 2026-10-12 (DESIGN 6.1): project versions accept up to 512 files. Keep the existing 5 MB aggregate byte limit and all path/entry validation. Overflow tests derive their input and message from MaxProjectFiles; the acceptance test independently fixes 512 as the required limit. Tests: ArtifactStoreTests.
+
+
+## ED-NEW-web-nocap-5
+
+ENGINEERING DECISION, owner C8 packet 2026-10-12 (DESIGN 6.1): preserve the legacy 44-character pre-cut stem and suffixes below 1000. Each candidate additionally cuts that stem to make room for the actual decimal suffix, trimming any trailing hyphen, so the result is already a normal id. Tests: ArtifactStoreTests (1000 real same-title artifacts and fresh-store reload).

@@ -326,7 +326,9 @@ public sealed class ArtifactStore
         if (!IsTaken(thread, stem)) return stem;
         for (var n = 2; ; n++)
         {
-            var candidate = stem + "-" + n.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var suffix = "-" + n.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var available = MaxIdLength - suffix.Length;
+            var candidate = (stem.Length > available ? stem[..available].TrimEnd('-') : stem) + suffix;
             if (!IsTaken(thread, candidate)) return candidate;
         }
     }
