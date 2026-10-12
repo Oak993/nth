@@ -75,6 +75,30 @@ public static class SetupFolders
         return true;
     }
 
+    /// <summary>Refuses every reparse-point ancestor, including ancestors outside the setup root. Missing leaves may be created later.</summary>
+    internal static void RequireNoLinks(string path, Action? checkpoint = null)
+    {
+        RequireFull(path, nameof(path));
+        var full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+        var levels = 0;
+        for (var at = full; at is not null; at = Path.GetDirectoryName(at))
+        {
+            checkpoint?.Invoke();
+            if (++levels > 256) throw new IOException("The setup path has too many ancestors.");
+            try
+            {
+                var attributes = File.GetAttributes(at);
+                checkpoint?.Invoke();
+                if ((attributes & FileAttributes.ReparsePoint) != 0) throw new IOException($"The setup path contains a link: '{at}'.");
+                if (!string.Equals(at, full, StringComparison.OrdinalIgnoreCase) && (attributes & FileAttributes.Directory) == 0)
+                    throw new IOException($"The setup path has a file where an ancestor folder is needed: '{at}'.");
+            }
+            catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException)
+            {
+                checkpoint?.Invoke(); // missing leaves are safe only if every existing ancestor is safe too
+            }
+        }
+    }
     internal static void RequireFull(string path, string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path, name);

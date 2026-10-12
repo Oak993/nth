@@ -186,10 +186,24 @@ public static class SetupSweeper
         if (!SetupFolders.IsInsideRoot(localAppData, full) || string.Equals(full, Path.TrimEndingDirectorySeparator(Path.GetFullPath(root)), StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException($"'{folder}' is not a folder inside '{root}'.", nameof(folder));
         var tally = new Tally();
-        try { if (Exists(full) && !IsLinkInPath(root, full)) RemoveUnit(full, tally); }
+        try { SetupFolders.RequireNoLinks(full); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            tally.Keep(full, SweepKeptReason.NotRemoved);
+            return tally.ToResult();
+        }
+        try { if (Exists(full)) RemoveUnit(full, tally); }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) { tally.Keep(full, SweepKeptReason.NotRemoved); }
         for (var parent = Path.GetDirectoryName(full); parent is not null && SetupFolders.IsInsideRoot(localAppData, parent); parent = Path.GetDirectoryName(parent))
+        {
+            try { SetupFolders.RequireNoLinks(parent); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            {
+                tally.Keep(parent, SweepKeptReason.NotRemoved);
+                break;
+            }
             TryRemoveEmptyDirectory(parent, tally);
+        }
         return tally.ToResult();
     }
 
