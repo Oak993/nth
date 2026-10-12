@@ -4,7 +4,6 @@ using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Media.Immutable;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Chrome;
@@ -169,6 +168,10 @@ public sealed class HydraBreathRingView : Control
     // :97 restingOpacity: Float = 0.9
     public const double RestingOpacity = 0.9;
 
+    // ED-NEW-lean-8 review: the swell's ease-out over one period, made once (an immutable timing curve; a new one each frame
+    // was the frame's only allocation of its own).
+    private static readonly Marrow.UI.Port.Animation BreathCurve = Marrow.UI.Port.Animation.EaseOut(Period);
+
     private readonly Action<TimeSpan> frame;
     private IFrameSource? source;
     private bool waiting;
@@ -177,10 +180,11 @@ public sealed class HydraBreathRingView : Control
     private DecorationPace pace;
 
     // ED-NEW-lean-8: the stroke, made once per colour and width rather than once per frame (a new brush per frame also bound
-    // itself to the control's theme changes, one subscription per frame). An immutable pen of the same colour and width
-    // draws the same pixels.
-    private ImmutablePen? pen;
-    private Color penColor;
+    // itself to the control's theme changes, one subscription per frame). It is the pen each frame made before, of the brush
+    // StrokeColor.Brush(this) makes: that brush follows this view's theme and the system accent by itself (BrushBinding), so
+    // the resting ring under Reduce Motion, which asks for no frames, still takes a theme or accent change at once.
+    private Pen? pen;
+    private SwiftColor? penColor;
     private double penWidth;
 
     public HydraBreathRingView()
@@ -241,7 +245,7 @@ public sealed class HydraBreathRingView : Control
         var period = Period;
         var phase = elapsedSeconds % period;
         if (phase < 0) phase += period;
-        var progress = Marrow.UI.Port.Animation.EaseOut(period).Progress(phase);
+        var progress = BreathCurve.Progress(phase);
         return (RestingScale + (SwollenScale - RestingScale) * progress, RestingOpacity * (1 - progress));
     }
 
@@ -292,12 +296,10 @@ public sealed class HydraBreathRingView : Control
         var inset = StrokeWidth / 2; // :180 bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2)
         var rect = new Rect(inset, inset, Math.Max(0, Bounds.Width - StrokeWidth), Math.Max(0, Bounds.Height - StrokeWidth));
         var centre = new Point(Bounds.Width / 2, Bounds.Height / 2);
-        // the colour as a brush made now would resolve it: in this view's appearance, with the current accent
-        var color = StrokeColor.Resolve(ActualThemeVariant);
-        if (pen is null || color != penColor || StrokeWidth != penWidth)
+        if (pen is null || !ReferenceEquals(StrokeColor, penColor) || StrokeWidth != penWidth)
         {
-            pen = new ImmutablePen(new ImmutableSolidColorBrush(color), StrokeWidth);
-            penColor = color;
+            pen = new Pen(StrokeColor.Brush(this), StrokeWidth);
+            penColor = StrokeColor;
             penWidth = StrokeWidth;
         }
         using (context.PushOpacity(opacity))

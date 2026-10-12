@@ -7,7 +7,6 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
-using Avalonia.Media.Immutable;
 using Avalonia.Styling;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Tour;
@@ -629,7 +628,9 @@ public sealed class HydraProgressBar : Decorator
 
         // ED-NEW-lean-8: the staves' shapes, kept while what they are made of holds and no stave is still rising; the brushes,
         // one per role, made again only when its colour changes; the sweep's band brush, made once. The same shapes and the
-        // same colours, so the same pixels.
+        // same colours, so the same pixels. Each role's brush is the one SwiftColor.Brush(this) made at every paint before: it
+        // follows this control's theme and the system accent by itself (BrushBinding), so a bar that stands still and draws
+        // nothing still takes a theme or accent change at once, as it did when every paint made it again.
         private GeometryGroup? filled;
         private readonly GeometryGroup?[] kinds = new GeometryGroup?[4]; // Lookup, Command, Edit, Reply: the order they are drawn in
         private Geometry? ending;
@@ -644,24 +645,26 @@ public sealed class HydraProgressBar : Decorator
         private SwiftColor? kindTint;
         private readonly SwiftColor[] kindColors = new SwiftColor[4];
         private readonly BrushSlot[] kindBrushes = [new(), new(), new(), new()];
-        private readonly BrushSlot endingBrush = new();
+        private readonly BrushSlot failedBrush = new();
+        private readonly BrushSlot stoppedBrush = new();
         private readonly BrushSlot hoverBrush = new();
         private readonly BrushSlot slotsBrush = new();
         private LinearGradientBrush? bandBrush;
 
-        /// <summary>A solid brush for one role, made again only when its colour changes (an immutable brush of the same colour
-        /// draws what a new SolidColorBrush did).</summary>
+        /// <summary>The brush of one role: SwiftColor.Brush(owner), made again only when the role's colour is another
+        /// SwiftColor (a new tint, a new theme's danger colour). The brush itself follows the owner's appearance and the
+        /// accent (BrushBinding), as each paint's new brush did.</summary>
         private sealed class BrushSlot
         {
-            private Color color;
+            private SwiftColor? color;
             private IBrush? brush;
 
-            public IBrush For(Color next)
+            public IBrush For(SwiftColor next, Control owner)
             {
-                if (brush is null || next != color)
+                if (brush is null || !ReferenceEquals(next, color))
                 {
                     color = next;
-                    brush = new ImmutableSolidColorBrush(next);
+                    brush = next.Brush(owner);
                 }
                 return brush;
             }
@@ -800,23 +803,22 @@ public sealed class HydraProgressBar : Decorator
             base.Render(context);
             var bottom = Bounds.Height;
             Shape(bottom);
-            var theme = ActualThemeVariant;
 
             for (var kind = 0; kind < kinds.Length; kind++)
                 if (kinds[kind] is { } paths)
-                    context.DrawGeometry(kindBrushes[kind].For(KindColor(kind).Resolve(theme)), null, paths);
+                    context.DrawGeometry(kindBrushes[kind].For(KindColor(kind), this), null, paths);
 
             if (ending is not null)
             {
-                var color = status == HydraHeadInfo.Status.Failed ? Chrome.Danger : Chrome.SecondaryText;
-                context.DrawGeometry(endingBrush.For(color.Resolve(theme)), null, ending);
+                var brush = status == HydraHeadInfo.Status.Failed ? failedBrush.For(Chrome.Danger, this) : stoppedBrush.For(Chrome.SecondaryText, this);
+                context.DrawGeometry(brush, null, ending);
             }
 
             if (hover is not null)
-                context.DrawGeometry(hoverBrush.For(HoverColor.Resolve(theme)), null, hover);
+                context.DrawGeometry(hoverBrush.For(HoverColor, this), null, hover);
 
             if (slots is not null)
-                context.DrawGeometry(slotsBrush.For(SlotColor.Resolve(theme)), null, slots);
+                context.DrawGeometry(slotsBrush.For(SlotColor, this), null, slots);
 
             if (!sweeping || staves.Count == 0) return;
 

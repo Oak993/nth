@@ -141,33 +141,30 @@ internal static class SpinnerGeometry
 
 /// <summary>
 /// PORT-ONLY (ED-NEW-lean-8, the lead's 60 Hz decorative cap): decides which frames of the main-thread frame clock repaint a
-/// decoration whose picture moves continuously. Draws are due 1/60 s apart on a grid of due times, a millisecond early at
-/// most, the way AmbientRefreshPacer paces a display whose refresh period is unknown (ED-117 (2), ED-232); a run more than two
-/// slots behind (a pause) starts again at the frame it is at. On a 60 Hz display every frame is due; at 120 and 240 Hz every
-/// second and fourth; at 144 Hz two or three refreshes apart.
+/// decoration whose picture moves continuously. It is the ambient pacer's rule (AmbientRefreshPacer, ED-NEW-frame-pacing),
+/// one pacer per run of frames: the frames are counted as the display's refreshes on a grid locked to the frames themselves,
+/// so a frame's timing jitter does not move a slot, and every 60 Hz slot repaints once: every refresh at 60 Hz (and on a
+/// 60.1 Hz panel), every second at 120 Hz, every fourth at 240 Hz, two or three apart, evenly, at 144 and 165 Hz. A display
+/// whose refresh period is unknown is paced on a 1/60 s grid of due times (the pacer's own fallback, ED-117 (2), ED-232). A
+/// pause longer than a quarter second starts the count again, and the first frame of a run always repaints.
 /// </summary>
 public struct DecorationPace
 {
-    private const long Span = TimeSpan.TicksPerSecond / 60; // 1/60 s, to the tick
-    private long due;
-    private bool started;
+    private AmbientRefreshPacer? pacer;
+    private long frame;
+
+    /// <summary>Where a new run reads the display's refresh period: the render frame source's (DWM's); tests set a fixed one.</summary>
+    internal static Ambient<Func<TimeSpan?>> Period { get; } = new((Func<TimeSpan?>)(() => RenderFrameSource.PeriodSource()));
 
     /// <summary>Whether the frame at <paramref name="now"/> repaints; the first frame of a run always does.</summary>
     public bool Due(ContinuousInstant now)
     {
-        if (!started)
-        {
-            started = true;
-            due = now.Ticks + Span;
-            return true;
-        }
-        if (now.Ticks + TimeSpan.TicksPerMillisecond < due) return false;
-        due = now.Ticks - due >= 2 * Span ? now.Ticks + Span : due + Span;
-        return true;
+        pacer ??= new AmbientRefreshPacer(Period.Current);
+        return pacer.Beat(++frame, now.Ticks / (double)TimeSpan.TicksPerSecond);
     }
 
-    /// <summary>Starts a new run: the next frame repaints.</summary>
-    public void Reset() => started = false;
+    /// <summary>Starts a new run: the next frame repaints, and the count starts there.</summary>
+    public void Reset() => pacer = null;
 }
 
 /// <summary>

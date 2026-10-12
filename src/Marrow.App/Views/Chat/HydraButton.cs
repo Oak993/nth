@@ -1006,8 +1006,12 @@ public sealed class HydraChargeLayerView : Control
         var turn = elapsed % TurnDuration / TurnDuration;
         var leg = elapsed % (2 * BreathDuration); // autoreverses
         var forward = leg <= BreathDuration ? leg : 2 * BreathDuration - leg;
-        return (turn, Animation.EaseInOut(BreathDuration).Progress(forward));
+        return (turn, BreathCurve.Progress(forward));
     }
+
+    // ED-NEW-lean-8 review: the breath's curve, made once (an immutable timing curve; a new one each frame was the frame's
+    // only allocation of its own).
+    private static readonly Animation BreathCurve = Animation.EaseInOut(BreathDuration);
 
     // What the layers show now: each attached animation's value at the shared clock, the model value where none is attached.
     private void Refresh()
