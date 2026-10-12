@@ -125,16 +125,28 @@ public sealed class PillMotion
     /// <summary>True when nothing changes with time.</summary>
     public bool AtRest => travel is null && width.Still && height.Still && cap.Still && lift.Still && presence.Still && dpi.Still && opacity.Still;
 
-    public PillPose At(double now) => new(
-        travel?.Presented(now, 1) ?? anchor,
-        Factor,
-        width.Value(now),
-        height.Value(now),
-        cap.Value(now),
-        lift.Value(now),
-        presence.Value(now),
-        dpi.Value(now),
-        opacity.Value(now) * (travel?.Opacity(now) ?? 1));
+    /// <remarks>
+    /// The curves land together, once the whole motion is done (ED-NEW-pcctl-30): a spring that landed on its own would
+    /// step its last 0.1 DIP while another curve still moves, and a place two of them make (the text column: the width less
+    /// Stop's folding cap) would turn back by that step.
+    /// </remarks>
+    public PillPose At(double now)
+    {
+        var done = Done(now);
+        return new(
+            travel?.Presented(now, 1) ?? anchor,
+            Factor,
+            width.Shown(now, done),
+            height.Shown(now, done),
+            cap.Shown(now, done),
+            lift.Shown(now, done),
+            presence.Shown(now, done),
+            dpi.Shown(now, done),
+            opacity.Shown(now, done) * (travel?.Opacity(now) ?? 1));
+    }
+
+    /// <summary>The anchor's velocity at <paramref name="now"/> (DIP/s): the travel's, zero when it does not travel or eases.</summary>
+    public PillVector Velocity(double now) => travel?.Velocity(now) ?? PillVector.Zero;
 
     /// <summary>Where every curve ends.</summary>
     public PillPose Final => new(travel?.Target ?? anchor, Factor, width.Final, height.Final, cap.Final, lift.Final, presence.Final, dpi.Final, opacity.Final);
@@ -180,7 +192,9 @@ public sealed class PillMotion
         var pose = At(now);
         var body = pose.Body;
         var at = new PillVector(body.X + (factor * body.Width), body.Y);
-        return new PillMotion(now, null, at, factor, width.From(now), height.From(now), cap.From(now), lift.From(now), presence.From(now), dpi.From(now), opacity.From(now));
+        // held at the values it shows (a curve still running toward the others' landing holds where it is drawn)
+        return new PillMotion(now, null, at, factor, width.Set(pose.Width), height.Set(pose.Height), cap.Set(pose.Cap), lift.Set(pose.Lift),
+            presence.Set(pose.Presence), dpi.Set(pose.Dpi), opacity.From(now));
     }
 
     /// <summary>The width springs to <paramref name="to"/> (DESIGN.md 10.3's width spring; Reduce Motion its ease).</summary>
@@ -253,6 +267,9 @@ public sealed class PillMotion
         public Channel With(PillCurve next) => new(next, next.To, unit);
 
         public double Value(double now) => curve is { } c ? (Done(now) ? c.To : c.Value(now)) : value;
+
+        /// <summary>The value a pose shows: the curve's own, until the whole motion is <paramref name="landed"/>.</summary>
+        public double Shown(double now, bool landed) => curve is { } c ? (landed ? c.To : c.Value(now)) : value;
 
         public double Speed(double now)
         {

@@ -149,6 +149,10 @@ public sealed class ControlPill : Canvas, IPillTargets
     // the card under the header: a fixed layout size, revealed by its visible size (ED-NEW-pcctl-26)
     private readonly Canvas cardClip = new() { ClipToBounds = true, Width = PillMorph.CardWidth, Height = PillMorph.MaxCardHeight - PillLayout.Height, IsVisible = false };
     private readonly Dictionary<Control, int> hides = [];
+    // An interrupted pose starts where its part is (ED-NEW-pcctl-30): each part's spring, slide and fade in flight.
+    private readonly Dictionary<Control, (PillCurve Curve, double Unit)> springs = [];
+    private readonly Dictionary<Control, PillTrack> slides = [];
+    private readonly Dictionary<Control, PillTrack> fades = [];
 
     private PillGroupKind shownGroup = (PillGroupKind)(-1);
     private PillGlyph shownGlyph = PillGlyph.None;
@@ -743,6 +747,7 @@ public sealed class ControlPill : Canvas, IPillTargets
         if (on) Reveal(part);
         if (instant)
         {
+            Forget(part);
             animator.SetOpacity(part, 1);
             animator.SetScale(part, 1);
             if (!on) Conceal(part);
@@ -752,26 +757,62 @@ public sealed class ControlPill : Canvas, IPillTargets
         if (reduce)
         {
             animator.SetScale(part, 1);
-            animator.Fade(part, Faded(now, on));
+            animator.Fade(part, Faded(part, now, on));
             if (!on) ConcealAfter(part, PillCurve.ReducedFade);
             return;
         }
         animator.SetOpacity(part, 1);
-        var curve = PillCurve.Spring(on ? 0 : 1, on ? 1 : 0, 0, response, now, cap: 0.001);
-        var end = SpringEnd(curve, now);
-        animator.Scale(part, PillTrack.Of(now, end, t => curve.Done(t) ? curve.To : Math.Max(0, curve.Value(t))));
+        // a swap back before the last one is over starts at the scale the part has (no jump), from rest: its speed points
+        // away from the new end, and the 0.001 cap would stiffen the turn into a snap of a few milliseconds
+        var (from, _) = Resumed(part, on ? 0 : 1, now);
+        var curve = PillCurve.Spring(from, on ? 1 : 0, 0, response, now, cap: 0.001);
+        // a scale lands where a size would: one unit is the widest pill's 440 DIP (PillMotion's scales), so its last step is
+        // under 0.1 DIP; a curve's own end rule (within 0.1 of a unit) would snap the last tenth of the glyph's size
+        springs[part] = (curve, ScaleUnit);
+        var end = SpringEnd(curve, now, ScaleUnit);
+        animator.Scale(part, PillTrack.Of(now, end, t => Landed(curve, t, ScaleUnit) ? curve.To : Math.Max(0, curve.Value(t))));
         if (!on) ConcealAfter(part, end - now);
     }
 
-    private static PillTrack Faded(double now, bool on) =>
-        PillTrack.Of(now, now + PillCurve.ReducedFade, t => Ease(on ? 0 : 1, on ? 1 : 0, now, t, PillCurve.ReducedFade));
+    // Reduce Motion's 150 ms fade; one that turns back before the last is over starts at the opacity the part has.
+    private PillTrack Faded(Control part, double now, bool on)
+    {
+        var from = fades.TryGetValue(part, out var was) && now < was.Start + was.Duration ? was.Interpolate(now) : on ? 0 : 1;
+        var track = PillTrack.Of(now, now + PillCurve.ReducedFade, t => Ease(from, on ? 1 : 0, now, t, PillCurve.ReducedFade));
+        fades[part] = track;
+        return track;
+    }
 
-    private static double SpringEnd(PillCurve curve, double now)
+    // Where a part's spring is and how fast it moves, while one is in flight; else its designed start, at rest.
+    private (double From, double Speed) Resumed(Control part, double designed, double now) =>
+        springs.TryGetValue(part, out var spring) && !Landed(spring.Curve, now, spring.Unit) ? (spring.Curve.Value(now), spring.Curve.Velocity(now)) : (designed, 0);
+
+    // Where a part's slide is, while one is in flight; else its designed start.
+    private double Slid(Control part, double designed, double now) =>
+        slides.TryGetValue(part, out var track) && now < track.Start + track.Duration ? track.Interpolate(now) : designed;
+
+    // A part set at once: nothing of it is in flight any more.
+    private void Forget(Control part)
+    {
+        springs.Remove(part);
+        slides.Remove(part);
+        fades.Remove(part);
+    }
+
+    // The DIP one unit of a scale moves (PillMotion's ScaleUnit).
+    private const double ScaleUnit = PillLayout.MaxWidth;
+
+    private static double SpringEnd(PillCurve curve, double now, double unit = 1)
     {
         var end = now;
-        while (!curve.Done(end) && end < now + PillMotion.LongestSeconds) end += PillTrack.Step;
+        while (!Landed(curve, end, unit) && end < now + PillMotion.LongestSeconds) end += PillTrack.Step;
         return end;
     }
+
+    // A spring's end in DIP (within 0.1 DIP and under 5 DIP/s, PillSpring's end) when one unit moves unit DIP.
+    private static bool Landed(PillCurve curve, double t, double unit) =>
+        (curve.From == curve.To && curve.Velocity0 == 0)
+        || (t > curve.Start && Math.Abs(curve.Value(t) - curve.To) * unit < PillSpring.EndPixels && Math.Abs(curve.Velocity(t)) * unit < PillSpring.EndSpeed);
 
     private static double Ease(double from, double to, double start, double t, double duration) =>
         from + ((to - from) * PillEase.Standard(Math.Clamp((t - start) / duration, 0, 1)));
@@ -793,18 +834,23 @@ public sealed class ControlPill : Canvas, IPillTargets
         part.IsEnabled = false;
         if (instant)
         {
+            Forget(part);
             Conceal(part);
             return;
         }
         if (reduce)
         {
             animator.SetTranslation(part, 0, 0);
-            animator.Fade(part, Faded(now, on: false));
+            animator.Fade(part, Faded(part, now, on: false));
             ConcealAfter(part, PillCurve.ReducedFade);
             return;
         }
         animator.SetOpacity(part, 1);
-        animator.Translate(part, PillTrack.Of(now, now + TextSwapSeconds, _ => 0), PillTrack.Of(now, now + TextSwapSeconds, t => -PillLayout.Height * Swept(now, t)));
+        // up and out from where it is (a group that was still sliding in leaves from its place, no jump)
+        var from = Slid(part, 0, now);
+        var slide = PillTrack.Of(now, now + TextSwapSeconds, t => from + ((-PillLayout.Height - from) * Swept(now, t)));
+        slides[part] = slide;
+        animator.Translate(part, PillTrack.Of(now, now + TextSwapSeconds, _ => 0), slide);
         ConcealAfter(part, TextSwapSeconds);
     }
 
@@ -818,6 +864,7 @@ public sealed class ControlPill : Canvas, IPillTargets
         Reveal(part);
         if (instant)
         {
+            Forget(part);
             animator.SetTranslation(part, 0, 0);
             animator.SetOpacity(part, 1);
             return;
@@ -825,11 +872,15 @@ public sealed class ControlPill : Canvas, IPillTargets
         if (reduce)
         {
             animator.SetTranslation(part, 0, 0);
-            animator.Fade(part, Faded(now, on: true));
+            animator.Fade(part, Faded(part, now, on: true));
             return;
         }
         animator.SetOpacity(part, 1);
-        animator.Translate(part, PillTrack.Of(now, now + TextSwapSeconds, _ => 0), PillTrack.Of(now, now + TextSwapSeconds, t => PillLayout.Height * (1 - Swept(now, t))));
+        // in from below, or back from where it is when it was still leaving (no jump)
+        var from = Slid(part, PillLayout.Height, now);
+        var slide = PillTrack.Of(now, now + TextSwapSeconds, t => from * (1 - Swept(now, t)));
+        slides[part] = slide;
+        animator.Translate(part, PillTrack.Of(now, now + TextSwapSeconds, _ => 0), slide);
     }
 
     private static double Swept(double start, double t) => PillEase.CubicBezier(0.32, 0.72, 0, 1, Math.Clamp((t - start) / TextSwapSeconds, 0, 1));
@@ -961,6 +1012,7 @@ public sealed class ControlPill : Canvas, IPillTargets
         if (next) Reveal(part);
         if (instant)
         {
+            Forget(part);
             animator.SetOpacity(part, 1);
             animator.SetTranslation(part, 0, next ? 0 : hidden);
             if (!next) Conceal(part);
@@ -969,12 +1021,15 @@ public sealed class ControlPill : Canvas, IPillTargets
         if (reduce)
         {
             animator.SetTranslation(part, 0, 0);
-            animator.Fade(part, Faded(now, next));
+            animator.Fade(part, Faded(part, now, next));
             if (!next) ConcealAfter(part, PillCurve.ReducedFade);
             return;
         }
         animator.SetOpacity(part, 1);
-        var curve = PillCurve.Spring(next ? hidden : 0, next ? 0 : hidden, 0, next ? PillCurve.ExpandResponse : PillCurve.CollapseResponse, now);
+        // a fold that turns back before the last is over starts where the part is, at its speed (no jump)
+        var (from, speed) = Resumed(part, next ? hidden : 0, now);
+        var curve = PillCurve.Spring(from, next ? 0 : hidden, speed, next ? PillCurve.ExpandResponse : PillCurve.CollapseResponse, now);
+        springs[part] = (curve, 1);
         var end = SpringEnd(curve, now);
         animator.Translate(part, PillTrack.Of(now, end, _ => 0), PillTrack.Of(now, end, t => curve.Done(t) ? curve.To : curve.Value(t)));
         if (!next) ConcealAfter(part, end - now);
@@ -1160,6 +1215,10 @@ internal sealed class PillLineSlot : Canvas
     private TextBlock current;
     private TextBlock previous;
     private int generation;
+    // a change that comes while a slide runs waits for its end (the newest only), so no line ever jumps (ED-NEW-pcctl-30)
+    private string? waiting;
+    private bool waitingReduce;
+    private double slideEnd = double.NegativeInfinity;
 
     public PillLineSlot(IPillAnimator animator, Action<double, Action> after, double height, double size, FontWeight weight, IBrush brush, double seconds)
     {
@@ -1181,7 +1240,8 @@ internal sealed class PillLineSlot : Canvas
         AutomationProperties.SetAccessibilityView(previous, AccessibilityView.Raw);
     }
 
-    public string Text => current.Text ?? "";
+    /// <summary>The line it shows, or the one waiting for the running slide's end.</summary>
+    public string Text => waiting ?? current.Text ?? "";
 
     /// <summary>The line before the latest change, until its slide is over (tests).</summary>
     public string Previous => previous.Text ?? "";
@@ -1195,7 +1255,23 @@ internal sealed class PillLineSlot : Canvas
 
     public void Set(string text, bool instant, bool reduce, double now)
     {
-        if (text == Text)
+        if (!instant && now < slideEnd)
+        {
+            var scheduled = waiting is not null;
+            waiting = text == (current.Text ?? "") ? null : text;
+            waitingReduce = reduce;
+            if (waiting is null || scheduled) return;
+            var at = slideEnd;
+            after(at - now, () =>
+            {
+                if (waiting is not { } next) return;
+                waiting = null;
+                Set(next, false, waitingReduce, at);
+            });
+            return;
+        }
+        waiting = null;
+        if (text == (current.Text ?? ""))
         {
             if (instant) Snap();
             return;
@@ -1219,12 +1295,14 @@ internal sealed class PillLineSlot : Canvas
             animator.SetTranslation(current, 0, 0);
             animator.SetTranslation(previous, 0, 0);
             var end = now + PillCurve.ReducedFade;
+            slideEnd = end;
             animator.Fade(current, PillTrack.Of(now, end, t => PillEase.Standard(Math.Clamp((t - now) / PillCurve.ReducedFade, 0, 1))));
             animator.Fade(previous, PillTrack.Of(now, end, t => 1 - PillEase.Standard(Math.Clamp((t - now) / PillCurve.ReducedFade, 0, 1))));
             return;
         }
         animator.SetOpacity(current, 1);
         animator.SetOpacity(previous, 1);
+        slideEnd = now + seconds;
         var x = PillTrack.Of(now, now + seconds, _ => 0);
         double Eased(double t) => PillEase.CubicBezier(0.32, 0.72, 0, 1, Math.Clamp((t - now) / seconds, 0, 1));
         animator.Translate(previous, x, PillTrack.Of(now, now + seconds, t => -height * Eased(t)));
@@ -1234,6 +1312,7 @@ internal sealed class PillLineSlot : Canvas
     private void Snap()
     {
         ++generation;
+        slideEnd = double.NegativeInfinity;
         previous.Text = "";
         animator.SetTranslation(current, 0, 0);
         animator.SetOpacity(current, 1);

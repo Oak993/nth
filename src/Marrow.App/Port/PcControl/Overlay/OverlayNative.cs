@@ -91,10 +91,16 @@ public static class OverlayWindowSetup
     public static OverlaySetup Apply(nint window, OverlayRole role, IOverlayNative native) => Apply(window, OverlayStyles.Extended(role), native);
 
     /// <summary>Adds <paramref name="extended"/> (a role's styles, or the input window's for a hit-test mode), hides the window from capture and puts it on top.</summary>
-    public static OverlaySetup Apply(nint window, uint extended, IOverlayNative native)
+    public static OverlaySetup Apply(nint window, uint extended, IOverlayNative native) => Apply(window, extended, native, TactusCaptureTest.Enabled);
+
+    /// <summary>
+    /// <see cref="Apply(nint, uint, IOverlayNative)"/>; with <paramref name="captureTest"/> (a debug build's
+    /// <c>--tactus-capture-test</c>, P30's native frame capture) the window stays capturable.
+    /// </summary>
+    public static OverlaySetup Apply(nint window, uint extended, IOverlayNative native, bool captureTest)
     {
         native.SetExtendedStyle(window, native.ExtendedStyle(window) | extended);
-        var hidden = native.ExcludeFromCapture(window);
+        var hidden = !captureTest && native.ExcludeFromCapture(window);
         native.BringToTop(window);
         return new OverlaySetup(hidden);
     }
