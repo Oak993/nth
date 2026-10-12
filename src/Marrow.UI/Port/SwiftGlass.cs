@@ -89,11 +89,18 @@ public static class SwiftGlass
     public static readonly AttachedProperty<double?> ContainerSpacingProperty =
         AvaloniaProperty.RegisterAttached<Control, double?>("ContainerSpacing", typeof(SwiftGlass));
 
+    // PORT-ONLY (ED-NEW-voicefix-ui-1, OD-0132): a piece that draws its own material even inside a GlassEffectContainer, so it never melts into the
+    // container's other pieces. The voice pill sits 3 points inside the composer pill; merged at the container's spacing, the composer's outline swelled
+    // round it above and below. Off for every other consumer.
+    public static readonly AttachedProperty<bool> StandsAloneProperty =
+        AvaloniaProperty.RegisterAttached<Control, bool>("StandsAlone", typeof(SwiftGlass));
+
     static SwiftGlass()
     {
         EffectProperty.Changed.AddClassHandler<Control>((control, _) => GlassMaterial.Attach(control));
         UsesDesktopBackdropProperty.Changed.AddClassHandler<Control>((control, _) => GlassMaterial.Attach(control));
         ContainerSpacingProperty.Changed.AddClassHandler<Control>((control, _) => GlassMaterial.Attach(control));
+        StandsAloneProperty.Changed.AddClassHandler<Control>((control, _) => GlassMaterial.Attach(control));
     }
 
     public static GlassEffect? GetEffect(Control control) => control.GetValue(EffectProperty);
@@ -104,6 +111,8 @@ public static class SwiftGlass
     public static void SetUsesDesktopBackdrop(Control control, bool value) => control.SetValue(UsesDesktopBackdropProperty, value);
     public static double? GetContainerSpacing(Control control) => control.GetValue(ContainerSpacingProperty);
     public static void SetContainerSpacing(Control control, double? spacing) => control.SetValue(ContainerSpacingProperty, spacing);
+    public static bool GetStandsAlone(Control control) => control.GetValue(StandsAloneProperty);
+    public static void SetStandsAlone(Control control, bool value) => control.SetValue(StandsAloneProperty, value);
 
     // Native SwiftUI .buttonStyle(.glass/.glassProminent), using the port's existing capsule recipe.
     // ModelsSettingsPage.swift:334-337; HydraCookbookPanel.swift:120-127. Native metrics UNVERIFIED (OD-0001).

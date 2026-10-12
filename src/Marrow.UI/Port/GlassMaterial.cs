@@ -29,7 +29,8 @@ internal static partial class GlassMaterial
     private static readonly ConditionalWeakTable<Control, Attachment> attachments = new();
     public static void Attach(Control control) => AttachmentFor(control).Queue();
     private static Attachment AttachmentFor(Control control) => attachments.GetValue(control, static c => new Attachment(c));
-    private static Control? ContainerOf(Control control) => control.GetVisualAncestors().OfType<Control>()
+    // A piece that stands alone (ED-NEW-voicefix-ui-1) has no container: it draws its own material, and no container gathers it.
+    private static Control? ContainerOf(Control control) => SwiftGlass.GetStandsAlone(control) ? null : control.GetVisualAncestors().OfType<Control>()
         .FirstOrDefault(c => SwiftGlass.GetContainerSpacing(c) is not null);
 
     private sealed class Attachment

@@ -128,7 +128,8 @@ public sealed class OrbSceneTests
     [Trait("Feature", "VT-8")]
     [Trait("Decision", "ED-267")]
     [Trait("Spec", "V-T51")]
-    public void A_new_device_ratio_lays_the_orb_out_again_at_2x_or_1x()
+    [Trait("Decision", "ED-NEW-voicefix-ui-7")]
+    public void A_new_device_ratio_lays_the_orb_out_again_at_2x()
     {
         var scene = new OrbScene(VoiceOrbKind.Siri, 32, true);
         var now = 0.0;
@@ -136,8 +137,8 @@ public sealed class OrbSceneTests
         Assert.Equal((72, 2), (scene.Runtime(VoiceOrbKind.Siri)!.DevicePx, scene.Runtime(VoiceOrbKind.Siri)!.RenderScale));
         now += 1.0 / 60;
         scene.Advance(now, Input(VoiceOrbKind.Siri), 2);
-        Assert.Equal((144, 1), (scene.Runtime(VoiceOrbKind.Siri)!.DevicePx, scene.Runtime(VoiceOrbKind.Siri)!.RenderScale));
-        Assert.Equal(144, scene.Runtime(VoiceOrbKind.Siri)!.Values[0]);
+        Assert.Equal((144, 2), (scene.Runtime(VoiceOrbKind.Siri)!.DevicePx, scene.Runtime(VoiceOrbKind.Siri)!.RenderScale)); // every scale (ED-NEW-voicefix-ui-7)
+        Assert.Equal(288, scene.Runtime(VoiceOrbKind.Siri)!.Values[0]);
     }
 
     [Fact]

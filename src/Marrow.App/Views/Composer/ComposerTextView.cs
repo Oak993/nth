@@ -554,8 +554,28 @@ public sealed class ComposerNSTextView : TextBox
         if (!placeholderShown) return;
         var formatted = CreatePlaceholderText(); // :203-204 font, .placeholderTextColor
         var origin = new Point(Padding.Left, Padding.Top + placeholderRise); // :206-209 inset.width + lineFragmentPadding, inset.height
-        using (context.PushOpacity(placeholderOpacity)) context.DrawText(formatted, origin); // :210
+        using (context.PushOpacity(placeholderOpacity))
+        {
+            // ED-NEW-voicefix-ui-3: a placeholder longer than the field no longer stops in a hard cut at the field's edge (beside the orb): its last 24 points
+            // fade out, as the text beside the open pill does (OD-0130). One that fits is drawn as it was.
+            var right = Bounds.Width - Padding.Right;
+            if (formatted.Width > right - origin.X && right > origin.X)
+            {
+                var fade = Math.Min(PlaceholderFadeWidth, right - origin.X);
+                var mask = new LinearGradientBrush
+                {
+                    StartPoint = new RelativePoint(right - fade, 0, RelativeUnit.Absolute),
+                    EndPoint = new RelativePoint(right, 0, RelativeUnit.Absolute),
+                    GradientStops = { new GradientStop(Colors.Black, 0), new GradientStop(Colors.Transparent, 1) },
+                };
+                using (context.PushOpacityMask(mask, new Rect(Bounds.Size))) context.DrawText(formatted, origin);
+            }
+            else context.DrawText(formatted, origin); // :210
+        }
     }
+
+    // The width over which a placeholder too long for the field fades out before its edge (ED-NEW-voicefix-ui-3; OD-0130's fade beside the pill).
+    internal const double PlaceholderFadeWidth = 24;
 }
 
 /// <summary>The Avalonia twin of the NSViewRepresentable ComposerTextView. :214-379</summary>

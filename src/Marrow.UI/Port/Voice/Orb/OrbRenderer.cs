@@ -5,8 +5,8 @@ using SkiaSharp;
 namespace Marrow.UI.Port.Voice.Orb;
 
 /// <summary>
-/// Runs the orb shader over a square and puts it on a canvas. Below 128 device pixels the shader runs into ONE reused offscreen surface at 2x and is filtered down
-/// (voice-orbs.js:493-497: <c>scale = dev &lt; 128 ? 2 : 1</c>); from 128 it draws straight onto the canvas. The surface is made once and only remade when the
+/// Runs the orb shader over a square and puts it on a canvas. When the block's render size is twice the slot's the shader runs into ONE reused offscreen surface at 2x
+/// and is filtered down (voice-orbs.js:493-497 does so below 128 device pixels; the view does so at every scale, ED-NEW-voicefix-ui-7); at 1x it draws straight onto the canvas. The surface is made once and only remade when the
 /// render size or the GPU context changes. A frame allocates nothing the port owns: the uniform array, the paint and the surface are reused. What a frame still
 /// makes is SkiaSharp's: it copies the uniform array it is handed (one set a frame), and wraps the frame's shader and the surface's snapshot.
 /// </summary>

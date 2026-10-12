@@ -14,6 +14,12 @@ public sealed class OrbScene
     /// <summary>The view's edge in view pixels (V-11.3: 72 x 72, room for the glow and the pop).</summary>
     public const double ViewPx = 72;
 
+    /// <summary>
+    /// ED-NEW-voicefix-ui-7 (owner 2026-10-11: a rough white edge round the orb): the view runs the shader into a 2x surface at every scale, where the design stops at
+    /// 128 device pixels (voice-orbs.js:496); at 200% (144 device pixels) the straight draw's rim aliased. On the GPU a 2x frame at 300% costs about 0.1 ms.
+    /// </summary>
+    public const int SupersampleBelow = int.MaxValue;
+
     private readonly OrbMotion motion;
     private readonly OrbCrossfade fade;
     private readonly VoiceOrbRuntime?[] runtimes = new VoiceOrbRuntime?[2];
@@ -98,5 +104,5 @@ public sealed class OrbScene
     }
 
     private VoiceOrbRuntime Make(VoiceOrbKind kind, double phase) =>
-        new(kind, new VoiceOrbRuntimeOptions(viewSize, ball, dpr, dark, Phase: phase));
+        new(kind, new VoiceOrbRuntimeOptions(viewSize, ball, dpr, dark, Phase: phase, SupersampleBelow: SupersampleBelow));
 }

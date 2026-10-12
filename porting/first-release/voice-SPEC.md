@@ -608,8 +608,9 @@ V-11.2 **Marrow's state layer** (voice-orbs.js:16-23, 495-520), exactly as the d
 - output is premultiplied (the shader multiplies colour by its fit alpha), as Skia expects.
 
 V-11.3 **Rendering** (ED, after `ComposerLightView`): `VoiceOrbView`, a composition custom visual, 72 x 72 view px
-centred on the orb slot (room for the glow and the pop), drawing the ball at `D` px; below 128 device px the shader runs
-into a reused offscreen surface at 2x and is filtered down (voice-orbs.js:493-497); no per-frame allocation; one 136-float
+centred on the orb slot (room for the glow and the pop), drawing the ball at `D` px; the shader runs
+into a reused offscreen surface at 2x and is filtered down (voice-orbs.js:493-497, below 128 device px; the port at every scale,
+ED-NEW-voicefix-ui-7); no per-frame allocation; one 136-float
 uniform block per frame (SkSL `uniform float4 u[34]` or named members: the builder's choice, with a layout test); frames
 only while the view is visible and something moves (always true at rest, since the orb moves slowly; none when the
 window is minimised or occluded); no GPU (software rasterizer): one still frame as under reduce motion (ED-251 rule).
@@ -1160,7 +1161,7 @@ runtime, glow driver, live-words schedule, analyser) are produced offline by nod
 | # | Test | Clause |
 |---|---|---|
 | V-T50 | Orb fidelity: Siri Wave and Voice Membrane x {rest at t 0, 1.3, 4.0; hover; listening with three band sets; processing; blocked} x {32, 26} x {dark, light}, against the reference PNGs, <= 2/255 at >= 99.5 % of pixels | V-11.7, V-11.1, V-11.2 |
-| V-T51 | 2x supersampling below 128 device px; one reused surface; 0 B per frame | V-11.3 |
+| V-T51 | 2x supersampling at every scale (ED-NEW-voicefix-ui-7; the design: below 128 device px); one reused surface; 0 B per frame | V-11.3 |
 | V-T52 | Frames only while visible; none when minimised; still frame without a GPU and under reduce motion | V-11.3 |
 | V-T53 | Orb swap crossfade (tau 0.12) and phase hand-over | V-11.5 |
 | V-T54 | Programs registered with `GpuWarmup`; compile on ANGLE/D3D11 (native, quiet PC) | V-11.3 |

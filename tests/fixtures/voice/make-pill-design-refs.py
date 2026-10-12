@@ -8,8 +8,8 @@
 #
 # How to run (two steps):
 #   1. dump the port's frames and pill states:  VT12_DESIGN_DUMP=<dump folder> through E:/Droppy/work/claude-verify/one-names-long.sh <worktree> Marrow.App.Tests
-#        "(FullyQualifiedName~ComposerVoiceCleanPillTests.The_pill_and_a_margin_round_it_have_no_specks)&FullyQualifiedName!~Native"   (writes pillless-<identity>.png and state-<identity>.json
-#        for each identity whose pill has specks under V-T133's unchanged detector)
+#        "(FullyQualifiedName~ComposerVoiceCleanPillAt100Tests.The_pill_and_a_margin_round_it_have_no_specks)&FullyQualifiedName!~Native"   (writes pillless-<identity>.png and state-<identity>.json
+#        for each identity whose pill has specks under V-T133's unchanged detector; one run per scale class, At100, At125, At150 and At200, ED-NEW-voicefix-ui-10)
 #   2. python make-pill-design-refs.py <dump folder> [<design html> <options html>]
 # Needs Chrome (C:/Program Files/Google/Chrome/Application/chrome.exe), numpy and Pillow. It starts only its own Chrome processes (each exits after its screenshot).
 import sys, os, re, json, math, hashlib, subprocess, tempfile, shutil, base64

@@ -15,6 +15,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Port.Voice;
 using Marrow.App.Runtime;
@@ -413,6 +414,12 @@ public sealed class ComposerView : Decorator
     private readonly AnimatedScalar insetPlace;
     private readonly AnimatedScalar fadePlace;
     private readonly AnimatedScalar scalePlace;
+    // ED-NEW-voicefix-ui-9: 0 in place, 1 out of the open inline pill's way (a narrow composer): the inside attach button and the ask-others button, each on a spring
+    private AnimatedScalar? attachYield;
+    private AnimatedScalar? askYield;
+    private bool attachYielding;
+    private bool askYielding;
+    private readonly ScaleTransform askYieldScale = new();
     private readonly Canvas outsideHost = new() { ClipToBounds = false };
     private readonly ComposerVoiceController? voice;
     private readonly VoicePillSlot? pillSlot; // PORT-ONLY (VT-12): the listening pill's layer, under the text and the controls
@@ -503,6 +510,7 @@ public sealed class ComposerView : Decorator
         fadePlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
         scalePlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
         askOthers = Marrow.App.Port.MultiAccount.Opinions.AskOthersComposerMount.Install(textColumn, runtime);
+        if (askOthers is not null) ApplyAttachPlace(); // its place beside the attach button (ED-NEW-voicefix-ui-6)
         if (askOthers is not null) askOthers.Sent += (_, _) =>
         {
             // A confirmation may finish after the user edits the draft. Clear only the draft actually submitted.
@@ -521,6 +529,11 @@ public sealed class ComposerView : Decorator
             insetRight = new AnimatedScalar(this, 0, inset => { textColumn.Margin = new Thickness(0, 4, inset, 4); FadeBesidePill(inset); });
             textColumn.SizeChanged += (_, _) => FadeBesidePill(textColumn.Margin.Right);
             pillSlot.InsetTargetChanged += target => insetRight.Set(target, LookCurve.Ez(0.42), preserveFrameProgress: true); // T46: keep inset and pill on the same clock, including stalled paint callbacks.
+            attachYield = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
+            askYield = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
+            pillSlot.InlineTargetChanged += YieldToPill;
+            pillSlot.Pill.PropertyChanged += (_, e) => { if (e.Property == BoundsProperty) YieldToPill(); };
+            if (askOthers is not null) askOthers.PropertyChanged += (_, e) => { if (e.Property == BoundsProperty) YieldToPill(); };
             question = new VoiceLanguageQuestion();
             questionHost.Children.Add(question);
             root.Children.Add(questionHost);
@@ -785,6 +798,10 @@ public sealed class ComposerView : Decorator
     // The text starts 14 in from the pill's edge; the button inside it takes 34 and 6 more.
     private const double InsideAttachInset = 34;
 
+    // ED-NEW-voicefix-ui-6: ink gaps measured at 100% and 125% were 23.2/24 points attach glyph to ask-others glyph and 7.2/7 ask-others glyph to text; moving the
+    // ask-others glyph this far left makes the two gaps equal (15 to 15.5 points) at both scales.
+    internal const double AskOthersPull = 8.25;
+
     private void MakeAttachButtons(bool recentDownloadsPicker)
     {
         if (insideAttach is not null)
@@ -823,9 +840,23 @@ public sealed class ComposerView : Decorator
     // width and the text's inset ease between their two values. A button nobody sees is not in the tree, so Named(view, "Attach files") finds the one that shows.
     private void ApplyAttachPlace()
     {
+        Yield();
         var shown = attachShown && insideAttach is not null && outsideAttach is not null;
         Margin = new Thickness(shown ? OutsideAttachWidth * widthPlace.Value : 0, Margin.Top, Margin.Right, Margin.Bottom);
         padded.Padding = new Thickness(14 + (shown ? InsideAttachInset * (1 - insetPlace.Value) : 0), 8, 8, 8);
+        // ED-NEW-voicefix-ui-6 (owner 2026-10-11): beside the inside attach button the ask-others button sits AskOthersPull to the left of the text's start, so its
+        // glyph is as far from the attach glyph as from the text; the text keeps its place
+        var pull = shown ? AskOthersPull * (1 - insetPlace.Value) : 0;
+        if (askOthers is not null)
+        {
+            askOthers.Margin = new Thickness(-pull, 0, pull, 0);
+            // ED-NEW-voicefix-ui-9: out of the open pill's way, as the attach buttons cross over (opacity, and a scale from 0.6)
+            var gone = AskGone;
+            askOthers.Opacity = Math.Clamp(1 - gone, 0, 1);
+            askYieldScale.ScaleX = askYieldScale.ScaleY = 1 - 0.4 * gone;
+            if (!ReferenceEquals(askOthers.RenderTransform, askYieldScale)) askOthers.RenderTransform = askYieldScale;
+            askOthers.IsHitTestVisible = gone < 0.5;
+        }
         if (!shown)
         {
             if (insideAttach is not null) layers!.Children.Remove(insideAttach);
@@ -842,7 +873,8 @@ public sealed class ComposerView : Decorator
         if (insideHere)
         {
             if (!layers!.Children.Contains(inside)) layers.Children.Add(inside);
-            inside.Show(1 - fade, 1 - scale);
+            var stay = 1 - AttachGone; // ED-NEW-voicefix-ui-9: out of the open pill's way
+            inside.Show(Math.Clamp((1 - fade) * stay, 0, 1), (1 - scale) * stay);
         }
         else layers!.Children.Remove(inside);
         if (outsideHere)
@@ -851,6 +883,62 @@ public sealed class ComposerView : Decorator
             outside.Show(fade, scale);
         }
         else outsideHost.Children.Remove(outside);
+    }
+
+    // ED-NEW-voicefix-ui-9 (lead 2026-10-11, after the owner's narrow-composer finding): the open inline pill never runs over the buttons at the composer's left (they
+    // draw over it). When the left end of the inline pill (at the width it is easing to, or where it is drawn while it folds) comes within PillClearance of a button's
+    // layout box, that button goes out of its way as the attach buttons cross over (opacity, and a scale from 0.6): the ask-others button, and the attach button too
+    // when the pill reaches it. Two motions hold it, the larger wins: a spring (0 in place, 1 gone), and the pill's own travel, so it is gone by the time the pill's end
+    // reaches its clearance however fast the pill opens (the pill's end, on its way from the closed pill round the orb to the button's clearance, 0 to 1). It comes back
+    // on the spring once the pill's end has folded back past its clearance, from wherever it shows then.
+    private const double PillClearance = 6;
+    private static readonly Animation YieldSpring = Animation.Spring(duration: 0.4, bounce: 0.12);
+    private double attachNear;
+    private double askNear;
+
+    private double AttachGone => Math.Max(attachYield?.Value ?? 0, attachNear);
+    private double AskGone => Math.Max(askYield?.Value ?? 0, askNear);
+
+    private void YieldToPill()
+    {
+        if (Yield()) ApplyAttachPlace();
+    }
+
+    /// <summary>Brings the two buttons' yield up to date with the pill; true when what they show changed.</summary>
+    private bool Yield()
+    {
+        if (pillSlot is null || attachYield is null || askYield is null) return false;
+        var pill = pillSlot.Pill;
+        double Here(double? slotX) => slotX is { } x && pillSlot.TranslatePoint(new Point(x, 0), this) is { } at ? at.X : double.PositiveInfinity;
+        var target = Here(pillSlot.InlineLeftTarget);
+        var home = Here(pillSlot.InlineHomeLeft);
+        var drawn = pill.Style == VoiceListeningStyle.Pill && pill.ShownOpacity > 0 && pill.TranslatePoint(default, this) is { } end ? end.X : double.PositiveInfinity;
+        var left = Math.Min(target, drawn);
+        // the buttons' layout boxes decide (a button on its way out never changes the answer)
+        double? Edge(Control? control) =>
+            control is { IsVisible: true } && control.GetVisualParent() is Visual parent && parent.TranslatePoint(new Point(control.Bounds.Right, 0), this) is { } at ? at.X + PillClearance : null;
+        var attachEdge = insideAttach is not null && attachShown && layers is not null && layers.Children.Contains(insideAttach) ? Edge(insideAttach) : null;
+        var askEdge = askOthers is { Button.IsVisible: true } ? Edge(askOthers) : null;
+        var attach = attachEdge is { } a && left < a;
+        var ask = attach || askEdge is { } k && left < k;
+        double Travel(double? edge) =>
+            edge is not { } e || double.IsInfinity(drawn) || double.IsInfinity(home) ? 0 : home <= e ? 1 : Math.Clamp((home - drawn) / (home - e), 0, 1);
+        var changed = false;
+        void Follow(ref bool yielding, ref double near, AnimatedScalar spring, bool now, double? edge)
+        {
+            var travel = Travel(edge);
+            var from = Math.Max(spring.Value, Math.Max(near, travel));
+            var next = now ? travel : 0;
+            if (next != near) { near = next; changed = true; }
+            if (now == yielding) return;
+            yielding = now;
+            changed = true;
+            if (!now) spring.Set(from, null); // back from wherever it shows
+            spring.Set(now ? 1 : 0, YieldSpring);
+        }
+        Follow(ref attachYielding, ref attachNear, attachYield, attach, attachEdge);
+        Follow(ref askYielding, ref askNear, askYield, ask, askEdge);
+        return changed;
     }
 
     // ---- the voice views (voice-SPEC V-14.3, V-14.4, V-14.6, V-8.5) ----
@@ -1083,8 +1171,11 @@ public sealed class ComposerView : Decorator
     private void FadeBesidePill(double inset)
     {
         var width = textColumn.Bounds.Width;
-        if (inset < 0.5 || width <= PillFadeWidth) { textColumn.OpacityMask = null; return; }
-        var start = (width - PillFadeWidth) / width;
+        if (inset < 0.5) { textColumn.OpacityMask = null; return; }
+        // ED-NEW-voicefix-ui-2: a column no wider than the fade (a narrow window, the pill open) fades from its left edge, and one the pill has squeezed to
+        // nothing shows nothing (its content would only run on under the pill); both used to drop the mask and draw at full strength up to and under the pill
+        if (width <= 0) { textColumn.OpacityMask = new SolidColorBrush(Colors.Transparent); return; }
+        var start = Math.Max(0, (width - PillFadeWidth) / width);
         textColumn.OpacityMask = new LinearGradientBrush
         {
             StartPoint = new RelativePoint(0, 0.5, RelativeUnit.Relative),
