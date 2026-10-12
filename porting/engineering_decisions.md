@@ -6821,3 +6821,18 @@ ENGINEERING DECISION, owner C8 packet 2026-10-12 (DESIGN 6.2): refused fenced ar
 ENGINEERING DECISION, owner C8 packet 2026-10-12 (DESIGN 2.3): pressure, audio, bridge-call and open-pane protections govern discard; the held-engine budget defaults dynamically to twice the configured live budget. Discard considers oldest hidden views first and stops when pressure is relieved. Bridge leases span model/tool consent and file picking, with no model-step failure or rendering effects. Artifact mounts hold the open-pane protection until disposal or SetPaneOpen(false). Before discarding, resume the original document and notify it with nth willDiscard. Sandboxed pages acknowledge a fresh token after lifecycle listeners and dynamically added storage saves finish; failed or missing acknowledgments retain the engine, cancel that operation, and retry after five seconds. Late storage replies remain deliverable to the original hidden engine. A normal activation still reloads the store current version after this temporary resume. Ordinary tabs receive a best-effort message-dispatch round trip. New lifecycle listener methods are non-enumerable and keep the original frozen bridge key contract. Tests: WebSurfaceDiscardTests, ArtifactBridgeTests, ArtifactRuntimeTests, SandboxScriptBehaviourTests.
 
 C8 review addendum: a deferred store reload must not navigate away from a document while a bridge lease is active, including a late native suspension followed by a streaming reply. Resume the original engine, preserve the reload flag through replies, and consume it on a later activation or content update after the call finishes. Do not reload on lease disposal before the page receives its final reply. ArtifactBridgeTests covers the held-suspension and streaming-delta race; the fixture uses the existing minimum live budget of two.
+
+
+## ED-NEW-web-nocap-6
+
+ENGINEERING DECISION, lead check of the C8 packet after the merge with W14 (DESIGN 2.3, 6.4): Tabula's streaming preview (ArtifactMount.Morph) posted straight to the engine, so it bypassed the C8-1 rule that content for a frozen on-screen view restores the view first and that a loading document receives only the newest text after its load. Morph now goes through WebSurfaceView.PostMessage like the bridge replies and theme pushes. Tests: ArtifactRuntimeTests (the mount's own Morph restores a frozen shown artifact and posts only the newest text after the load; a morph for a hidden frozen artifact is dropped and the store version shows when it goes live).
+
+
+## ED-NEW-web-nocap-7
+
+ENGINEERING DECISION, lead check of the C8 packet (DESIGN 2.3, 6.5): C8-1 made every artifact view reload from the store when it goes live again. A view that attaches after the mount (the pane opens the view before the platform view exists) or that is restored after a discard already starts loading the artifact address on attach, so that reload was a second navigation of the same address on every first open. ArtifactMount skips the live-again reload while the view is already loading its own address; a page that was alive and frozen (resume) still reloads. Tests: ArtifactRuntimeTests (a mount on a view that attaches later loads its address once; a discarded artifact restored by the pane loads the current version with one navigation).
+
+
+## ED-NEW-web-nocap-8
+
+ENGINEERING DECISION, lead check of the C8 packet (DESIGN 2.3, 5.3): a Visus tab can be frozen while on screen when more tabs are on screen than the live budget. VisusTab.Engine() (back, forward, reload, stop, history) restored only a discarded tab; it now also restores a suspended one first, so the toolbar works on it the way a click into the page does. Test: VisusSessionTests (back on a tab frozen while on screen restores it first).
