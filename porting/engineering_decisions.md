@@ -6792,3 +6792,30 @@ ForeignMcpServer.Key is app | file | owner | name, where the owner is the new Sc
 8. PAGES: every tab with a page keeps its WebViewHost in the tree; only the chosen one shows, inside the 6 DIP bezel. A new tab opens no web view until it has a page; restored tabs come back as addresses and go live on first sight (3.11). A blank tab shows the start surface (New tab, how to search, the hint "Ctrl+T opens a new tab · Ctrl+Shift+N a private one", the latest six visits); a private blank tab shows the canvas's private surface ("Private tab", "Nothing you do here is kept: no history, cookies or site data.", "The model cannot see private tabs."). A page's new window opens as a Visus tab beside it when the user clicked (in the kind the rules give); a pop-up the page opened by itself is blocked and offered by the "Pop-up blocked" chip. Closing the last tab closes the pane.
 9. LEFT TO LATER UNITS: find, zoom controls and print (W8c; the zoom chip shows and resets here); downloads, permissions and the other prompts (W8b); the picker, console and Ask (W9, W11); "Open links from chats in" and the search-engine setting (W10; page new-windows follow the link setting there); Tabula's "Open in Visus" (TabulaPane.OpenInVisus needs a Visus tab on the artifacts profile with the artifact mounted, a tab kind of its own); Pop out (5.12, no unit yet); DevTools needs an engine API.
 10. TESTS (Decision ED-NEW-web-w8a-2): VisusSessionTests and VisusPaneTests (App, headless over the fake engine: tabs, kinds, refusals, close and reopen, private rules, the browser keys from the field and from a page, new windows and pop-ups, frame and top-level scheme checks, history, titles and favicons, the history menus, every external-protocol path, the header placement and group mode, the address field rules, the trust strip's name, the strip's mouse and drag, the start and private surfaces, the menu, and the prompt rules) and WebClaimedChordTests (Services). Native checks of the real engine (favicon, launch request, accelerator claim, prompt focus) are the lead's W21 pass.
+
+## ED-NEW-web-w10-1 - W10 chat-link and web-settings acceptance contracts
+
+Owner authority: CU-W10.md (lead relay, 2026-10-12), and the approved
+E:/Droppy/work/design/web-surfaces/DESIGN.md (2026-10-11), sections 5.11, 9,
+13 and W10. This is the owner's added web-surfaces scope, not a claim about
+the pinned macOS source.
+
+The acceptance tests require: Ask the first time by default; remembered
+Visus/default-browser choice; Ctrl opening the opposite route; cancellation
+opening neither; external sign-in/non-web routing and preserved local-file
+handling; the approved settings defaults and persisted choices; self-contained
+Visus and Tabula section classes. Actual prose-pointer input must reach the
+inherited chat route with modifiers. Existing non-chat Markdown behavior and
+the Workspace.Open OAuth/system-browser boundary remain protected.
+
+Status: TESTS WRITTEN, IMPLEMENTATION NOT APPLIED. The shared heavy-slot
+queue prevented the red build from starting during the first 30-minute wait.
+Tests must be observed red twice before applying the prepared implementation.
+There is no verification or feature-completion claim in this decision.
+
+Required-base dependencies absent at 9975afdb44906d5629ac82ca761dfb73f9503a1f:
+W8b permission/data-clear/download services; W9 preview watcher; W11 model-site
+policy; W19 HTML/MCP Apps hosts. No inert privacy action or unsafe deletion of
+the shared browser-data folder may stand in for these services. The map-tile
+source also needs its fetching/cache/consent implementation. W10 remains
+incomplete until its functional settings and end-of-unit project sweeps pass.
