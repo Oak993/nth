@@ -40,7 +40,7 @@ public sealed class TerminalSession : MainActorModel
 
     // PORT-ONLY: DESIGN 5.6; ED-NEW-web-w9-3. Detection runs off the terminal decoder; only discoveries post to the main actor.
     private readonly object previewGate = new();
-    private readonly DevServerDetector detector = new(lanAddresses: PreviewDiscovery.MachineAddresses());
+    private readonly DevServerDetector detector = new(null, PreviewDiscovery.MachineAddresses); // the adapters are listed on first need, off the UI thread (ED-NEW-web-w9cx-1)
     private readonly CancellationTokenSource previewStop = new();
     private string? explicitPreview;
     private string? previewUrl;

@@ -63,7 +63,16 @@ public sealed class PreviewReload : IDisposable
         if (disposed) return;
         // ED-114: every Error is Everything, including an overflow with no paths. Recover the watcher too.
         if (batch.Everything) RecreateWatch();
+        // ED-NEW-web-w9cx-1: the static site never serves a hidden file or folder (.git, .env), so a batch of nothing else cannot change the
+        // page. Without this, every git command the model runs in a project folder reloads the preview, and so does the turn's end.
+        else if (root is { } watched && batch.Paths.Count > 0 && batch.Paths.All(path => Hidden(watched, path))) return;
         FileChanged();
+    }
+    private static bool Hidden(string root, string path)
+    {
+        var relative = Path.GetRelativePath(root, path);
+        if (Path.IsPathRooted(relative) || relative == ".." || relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal)) return false;
+        return relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).Any(segment => segment.Length > 1 && segment[0] == '.' && segment != "..");
     }
     public void FileChanged()
     {

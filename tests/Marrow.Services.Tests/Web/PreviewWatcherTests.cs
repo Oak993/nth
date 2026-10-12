@@ -30,6 +30,29 @@ public sealed class PreviewWatcherTests
         rig.Time.Advance(TimeSpan.FromMilliseconds(1)); await reload.WhenIdle; Assert.Equal(1, WebRig.Fake(surface).Log.Count(s => s == "Reload"));
     }
 
+    [Fact]
+    [Trait("Decision", "ED-NEW-web-w9cx-1")]
+    public async Task Changes_only_in_hidden_files_never_reload_a_page_the_site_does_not_serve_them_in()
+    {
+        using var folder = new ScratchFolder(); using var rig = new WebRig(); var surface = rig.OpenLive(WebSurfaceKind.PreviewTab);
+        using var reload = new PreviewReload(surface, rig.Time); reload.Watch(folder.Root);
+        var fake = WebRig.Fake(surface);
+        reload.OnBatch(new FileWatcherBatch([folder.Child(".git", "index"), folder.Child(".git", "refs", "heads", "main.lock"), folder.Child(".env")], false));
+        rig.Time.Advance(TimeSpan.FromMilliseconds(400)); await reload.WhenIdle;
+        Assert.DoesNotContain("Reload", fake.Log);
+        // One served file among them is a change; a dot inside a name (app.min.js) is not a hidden file; a path outside the root counts.
+        reload.OnBatch(new FileWatcherBatch([folder.Child(".git", "index"), folder.Child("assets", "app.min.js")], false));
+        rig.Time.Advance(TimeSpan.FromMilliseconds(150)); await reload.WhenIdle;
+        Assert.Equal(1, fake.Log.Count(s => s == "Reload"));
+        reload.OnBatch(new FileWatcherBatch([Path.Combine(Path.GetTempPath(), ".outside", "x.txt")], false));
+        rig.Time.Advance(TimeSpan.FromMilliseconds(150)); await reload.WhenIdle;
+        Assert.Equal(2, fake.Log.Count(s => s == "Reload"));
+        // An overflow means anything changed, hidden or not.
+        reload.OnBatch(new FileWatcherBatch([], true));
+        rig.Time.Advance(TimeSpan.FromMilliseconds(150)); await reload.WhenIdle;
+        Assert.Equal(3, fake.Log.Count(s => s == "Reload"));
+    }
+
     [Theory]
     [InlineData(WebLiveness.Suspended)]
     [InlineData(WebLiveness.Discarded)]

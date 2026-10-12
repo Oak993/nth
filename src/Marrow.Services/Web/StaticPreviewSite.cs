@@ -13,6 +13,8 @@ public sealed class StaticPreviewSite : IWebResourceHandler
         // SandboxSites supplies the same DNS-safe identity hashing used by the other synthetic sites.
         Origin = "https://p-" + SandboxSites.Label(project, 61) + ".invalid";
     }
+    /// <summary>ED-NEW-web-w9cx-1: a file is answered whole from memory on the thread that asked, so a larger one is refused (413) and never read.</summary>
+    public const long MaxFileBytes = 128L * 1024 * 1024;
     public string Origin { get; }
     public string Root => root;
     public WebResourceResponse? Answer(WebResourceRequest request)
@@ -25,7 +27,8 @@ public sealed class StaticPreviewSite : IWebResourceHandler
             var encoded = request.Uri[(Origin.Length + 1)..].Split('?', '#')[0];
             var decoded = Uri.UnescapeDataString(encoded);
             var segments = decoded.Replace('\\', '/').Split('/');
-            if (segments.Any(s => s is "." or ".." || s.Contains(':', StringComparison.Ordinal) || s.Contains('\0', StringComparison.Ordinal))) return Error(403, "Forbidden");
+            // ED-NEW-web-w9cx-1: a leading dot is a hidden file or folder (.env, .git, .npmrc, .ssh), never served, so a previewed page cannot read the project's secrets.
+            if (segments.Any(s => s.StartsWith('.') || s.Contains(':', StringComparison.Ordinal) || s.Contains('\0', StringComparison.Ordinal))) return Error(403, "Forbidden");
             var relative = decoded.Length == 0 ? "index.html" : decoded;
             var path = Path.GetFullPath(Path.Combine(root, relative.Replace('/', Path.DirectorySeparatorChar)));
             if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) return Error(403, "Forbidden");
@@ -38,6 +41,7 @@ public sealed class StaticPreviewSite : IWebResourceHandler
                 if (File.GetAttributes(current).HasFlag(FileAttributes.ReparsePoint)) return Error(403, "Forbidden");
             }
             if (Directory.Exists(path)) return Error(404, "Not Found");
+            if (new FileInfo(path).Length > MaxFileBytes) return Error(413, "Payload Too Large");
             var bytes = request.Method == "HEAD" ? [] : File.ReadAllBytes(path);
             return new WebResourceResponse(200, "OK", [new("Content-Type", Mime(path)), new("X-Content-Type-Options", "nosniff"), new("Cache-Control", "no-store")], bytes);
         }

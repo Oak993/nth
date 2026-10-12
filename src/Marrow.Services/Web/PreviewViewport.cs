@@ -26,6 +26,9 @@ internal sealed class PreviewViewport(CoreWebView2Controller controller) : IDisp
     private double viewportWidth;
     private double viewportHeight;
     private double scale;
+    // ED-NEW-web-w9cx-1: the pixel placement last applied. The preview body places on every layout pass (any change anywhere in the
+    // window), and a SetWindowRgn with the same rectangle still repaints the page's window, so an unchanged placement is not applied again.
+    private (int X, int Y, int Width, int Height)? placed;
 
     public void Place(double viewportWidth, double viewportHeight, double dpi, double x, double y, double width, double height)
     {
@@ -45,15 +48,19 @@ internal sealed class PreviewViewport(CoreWebView2Controller controller) : IDisp
             this.viewportHeight = viewportHeight;
             scale = dpi;
             var origin = original!.Value;
+            placed = null;
             controller.Bounds = new Rectangle(origin.X, origin.Y, Pixels(viewportWidth, dpi), Pixels(viewportHeight, dpi));
             if (!GetClientRect(child, out var rect)) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
             initialWidth = rect.Right - rect.Left;
             initialHeight = rect.Bottom - rect.Top;
         }
         var baseline = original!.Value;
-        if (!SetWindowPos(child, 0, baseline.X + Pixels(x, dpi), baseline.Y + Pixels(y, dpi), 0, 0, 0x0001 | 0x0004 | 0x0010)) // NOSIZE, NOZORDER, NOACTIVATE
+        var target = (X: Pixels(x, dpi), Y: Pixels(y, dpi), Width: Pixels(width, dpi), Height: Pixels(height, dpi));
+        if (placed == target) return;
+        placed = null; // a failure below leaves the window half placed: the next call applies it again
+        if (!SetWindowPos(child, 0, baseline.X + target.X, baseline.Y + target.Y, 0, 0, 0x0001 | 0x0004 | 0x0010)) // NOSIZE, NOZORDER, NOACTIVATE
             throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
-        var region = CreateRectRgn(0, 0, Pixels(width, dpi), Pixels(height, dpi));
+        var region = CreateRectRgn(0, 0, target.Width, target.Height);
         if (region == 0) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
         if (SetWindowRgn(child, region, true) == 0)
         {
@@ -61,6 +68,7 @@ internal sealed class PreviewViewport(CoreWebView2Controller controller) : IDisp
             throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
         }
         controller.NotifyParentWindowPositionChanged();
+        placed = target;
     }
 
     public PreviewRegionInfo? Info
@@ -81,6 +89,7 @@ internal sealed class PreviewViewport(CoreWebView2Controller controller) : IDisp
         if (original is { } rect) controller.Bounds = rect;
         child = 0;
         original = null;
+        placed = null;
         viewportWidth = viewportHeight = scale = 0;
     }
 

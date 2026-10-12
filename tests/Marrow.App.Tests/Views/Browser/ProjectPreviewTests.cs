@@ -14,6 +14,22 @@ namespace Marrow.App.Tests.Views.Browser;
 public sealed class ProjectPreviewTests(HeadlessSession headless)
 {
     [Fact]
+    [Trait("Decision", "ED-NEW-web-w9cx-1")]
+    public void Only_small_hot_update_frames_are_read_as_a_hot_reload_witness()
+    {
+        static string Frame(string payload) => System.Text.Json.JsonSerializer.Serialize(new { response = new { payloadData = payload } });
+        Assert.True(ProjectPreviewRuntime.IsHotUpdate(Frame("{\"type\":\"update\",\"updates\":[]}")));
+        Assert.True(ProjectPreviewRuntime.IsHotUpdate(Frame("{\"action\":\"built\"}")));
+        Assert.False(ProjectPreviewRuntime.IsHotUpdate(Frame("{\"type\":\"ping\"}")));
+        Assert.False(ProjectPreviewRuntime.IsHotUpdate(Frame("not json")));
+        Assert.False(ProjectPreviewRuntime.IsHotUpdate("{\"response\":{}}"));
+        Assert.False(ProjectPreviewRuntime.IsHotUpdate("[]"));
+        // The page's own websocket traffic reaches this handler on the UI thread: a frame over 64 KiB is not parsed, even with the witness in it.
+        Assert.True(ProjectPreviewRuntime.IsHotUpdate(Frame("{\"type\":\"update\",\"pad\":\"" + new string('x', 20_000) + "\"}")));
+        Assert.False(ProjectPreviewRuntime.IsHotUpdate(Frame("{\"type\":\"update\",\"pad\":\"" + new string('x', 70_000) + "\"}")));
+    }
+
+    [Fact]
     [Trait("Decision", "ED-NEW-web-w9-11")]
     public void Drawer_exposes_named_filters_empty_state_selected_tabs_and_long_RTL_console_text() => headless.OnUiThread(() =>
     {

@@ -162,6 +162,7 @@ public sealed class ChatViewScriptsEditorFrameTests(HeadlessSession headless)
                 var checkbox = LogicalQuery.SelfAndDescendants<CheckBox>(inner).Single();
                 var previewField = Assert.IsType<TextBox>(inner.Children[3]);
                 Assert.Equal("Preview URL (optional)", previewField.PlaceholderText);
+                Assert.Equal("Preview URL", Avalonia.Automation.AutomationProperties.GetName(previewField)); // ED-NEW-web-w9cx-1
                 Assert.Null(editor.Scripts[0].PreviewUrl);
                 Assert.Equal("RoundedBorder", previewField.GetValue(ChatDialogControls.InputStyleProperty));
                 Assert.Equal("Build", nameField.Text);

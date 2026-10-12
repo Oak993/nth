@@ -2570,6 +2570,7 @@ internal sealed class ScriptsEditor : Decorator
         // PORT-ONLY: DESIGN 5.6, ED-NEW-web-w9-3. Empty stays null, preserving older script JSON.
         var previewField = new TextBox { Text = script.PreviewUrl ?? "", PlaceholderText = "Preview URL (optional)" };
         ChatDialogControls.TextEditor(previewField, style: "RoundedBorder");
+        AutomationProperties.SetName(previewField, "Preview URL"); // ED-NEW-web-w9cx-1: a screen reader reads the field's purpose, not only its placeholder
         previewField.PropertyChanged += (_, e) => { if (e.Property == TextBox.TextProperty) Update(script.Id, s => s with { PreviewUrl = string.IsNullOrWhiteSpace(previewField.Text) ? null : previewField.Text.Trim() }); };
         var worktreeToggle = new CheckBox { Content = "Run when a worktree is created", IsChecked = script.RunOnWorktreeCreate }; // :1692-1693
         ChatDialogControls.Checkbox(worktreeToggle);

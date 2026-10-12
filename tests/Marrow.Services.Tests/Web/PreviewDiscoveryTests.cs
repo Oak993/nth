@@ -43,6 +43,37 @@ public sealed class PreviewDiscoveryTests
     }
 
     [Fact]
+    [Trait("Decision", "ED-NEW-web-w9cx-1")]
+    public void Hidden_files_and_folders_and_files_over_the_cap_are_never_served()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "w9-static-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "index.html"), "<p>fixture</p>");
+            File.WriteAllText(Path.Combine(root, ".env"), "TOKEN=sentinel-secret");
+            Directory.CreateDirectory(Path.Combine(root, ".git"));
+            File.WriteAllText(Path.Combine(root, ".git", "config"), "url = https://user:sentinel-secret@example.test/repo.git");
+            Directory.CreateDirectory(Path.Combine(root, "assets"));
+            File.WriteAllText(Path.Combine(root, "assets", ".hidden.css"), "sentinel-secret");
+            using (var big = File.Create(Path.Combine(root, "big.bin"))) big.SetLength(StaticPreviewSite.MaxFileBytes + 1);
+            using (var small = File.Create(Path.Combine(root, "small.bin"))) small.SetLength(1024);
+            var site = new StaticPreviewSite("fixture", root);
+            foreach (var hidden in new[] { "/.env", "/%2eenv", "/.git/config", "/assets/.hidden.css", "/.well-known/x", "/assets/%2E%2Ehidden/.env" })
+            {
+                var answer = site.Answer(new(site.Origin + hidden, "GET", WebResourceKind.Fetch))!;
+                Assert.Equal(403, answer.StatusCode);
+                Assert.DoesNotContain("sentinel-secret", System.Text.Encoding.UTF8.GetString(answer.Body), StringComparison.Ordinal);
+            }
+            Assert.Equal(413, site.Answer(new(site.Origin + "/big.bin", "GET", WebResourceKind.Fetch))!.StatusCode);
+            Assert.Equal(413, site.Answer(new(site.Origin + "/big.bin", "HEAD", WebResourceKind.Fetch))!.StatusCode);
+            Assert.Equal(1024, site.Answer(new(site.Origin + "/small.bin", "GET", WebResourceKind.Fetch))!.Body.Length);
+            Assert.Equal(200, site.Answer(new(site.Origin + "/index.html", "GET", WebResourceKind.Document))!.StatusCode);
+        }
+        finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
     public async Task Static_reload_is_debounced_preserves_scroll_and_a_hot_reload_suppresses_turn_end_reload()
     {
         using var rig = new WebRig();

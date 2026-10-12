@@ -54,25 +54,31 @@ public sealed class ProjectPreviewRuntime : IDisposable
             Picker = bound is null ? null : new PreviewElementPicker(bound);
             if (Diagnostics is not null) Diagnostics.Changed += () => DiagnosticsChanged?.Invoke();
             if (Picker is not null) Picker.Picked += Picked;
-            hotSubscription = bound?.Subscribe("Network.webSocketFrameReceived", e =>
-            {
-                // Vite update/full-reload and webpack/Next built/hot-update messages witness successful HMR, not pings.
-                try
-                {
-                    using var packet = System.Text.Json.JsonDocument.Parse(e.ParamsJson);
-                    var payload = packet.RootElement.GetProperty("response").GetProperty("payloadData").GetString();
-                    using var message = System.Text.Json.JsonDocument.Parse(payload ?? "{}");
-                    var value = message.RootElement;
-                    var type = value.TryGetProperty("type", out var t) ? t.GetString() : value.TryGetProperty("action", out var a) ? a.GetString() : null;
-                    if (type is "update" or "full-reload" or "built" or "sync" or "hot-update") Reload.HotReloaded();
-                }
-                catch (Exception ex) when (ex is System.Text.Json.JsonException or KeyNotFoundException or InvalidOperationException) { }
-            });
+            hotSubscription = bound?.Subscribe("Network.webSocketFrameReceived", e => { if (IsHotUpdate(e.ParamsJson)) Reload.HotReloaded(); });
             Raise();
         }
         if (Site is not null && !ReferenceEquals(engine, view.Engine)) { engine = view.Engine; engine?.SetResourceHandler(Site); }
         if (!started && view.Engine is { IsAttached: true } && Diagnostics is not null) { started = true; _ = Start(); }
         Reload.Enabled = tab.PreviewState.ReloadOnSave;
+    }
+    /// <summary>
+    /// Vite update/full-reload and webpack/Next built/hot-update messages witness successful HMR, not pings. ED-NEW-web-w9cx-1: this runs on
+    /// the UI thread for every websocket frame of the page, and an HMR message is a few hundred bytes to a few KiB, so a frame over 64 KiB (the page's own
+    /// traffic) is not parsed at all.
+    /// </summary>
+    internal static bool IsHotUpdate(string paramsJson)
+    {
+        if (paramsJson.Length > 64 * 1024) return false;
+        try
+        {
+            using var packet = System.Text.Json.JsonDocument.Parse(paramsJson);
+            var payload = packet.RootElement.GetProperty("response").GetProperty("payloadData").GetString();
+            using var message = System.Text.Json.JsonDocument.Parse(payload ?? "{}");
+            var value = message.RootElement;
+            var type = value.TryGetProperty("type", out var t) ? t.GetString() : value.TryGetProperty("action", out var a) ? a.GetString() : null;
+            return type is "update" or "full-reload" or "built" or "sync" or "hot-update";
+        }
+        catch (Exception ex) when (ex is System.Text.Json.JsonException or KeyNotFoundException or InvalidOperationException) { return false; }
     }
     private async Task Start()
     {

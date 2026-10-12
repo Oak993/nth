@@ -85,4 +85,22 @@ public sealed class DevServerDetectorTests
         detector.Feed(new string('x', 100_000));
         Assert.InRange(detector.BufferedCharacters, 0, 16_384);
     }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-web-w9cx-1")]
+    public void Lan_addresses_are_asked_once_and_only_when_a_line_names_a_host_that_is_not_loopback()
+    {
+        // A terminal builds its detector on the UI thread; listing the network adapters there costs a frame (10 to 20 ms).
+        var asked = 0;
+        var detector = new DevServerDetector(null, () => { asked++; return ["192.168.7.25"]; });
+        Assert.Equal(0, asked);
+        detector.Feed("Local: http://localhost:5173/\n");
+        detector.Feed("Local: http://[::1]:5174/\n");
+        Assert.Equal(0, asked);
+        detector.Feed("Network: http://192.168.7.25:5173/\n");
+        detector.Feed("Network: http://192.168.7.25:3000/\n");
+        detector.Feed("Network: http://10.9.9.9:3000/\n");
+        Assert.Equal(1, asked);
+        Assert.Equal(new[] { "http://localhost:5173/", "http://[::1]:5174/", "http://192.168.7.25:5173/", "http://192.168.7.25:3000/" }, detector.Servers);
+    }
 }
