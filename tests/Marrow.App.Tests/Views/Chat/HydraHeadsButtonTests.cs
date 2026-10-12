@@ -54,7 +54,7 @@ public sealed class HydraHeadsButtonTests(HeadlessSession headless)
         Assert.Equal(32, capsule.Height);
         var mark = c.Where(Assert.Single(LogicalQuery.SelfAndDescendants<HydraMarkImage>(Capsule(c))));
         var count = c.Where(Count(Capsule(c)));
-        var spinner = c.Where(Assert.Single(LogicalQuery.SelfAndDescendants<MiniSpinner>(Capsule(c))));
+        var spinner = c.Where(Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(Capsule(c))));
         var chevron = c.Where(Assert.Single(LogicalQuery.SelfAndDescendants<SwiftImage>(Capsule(c)), i => i.SymbolName == "chevron.down"));
         Assert.Equal(capsule.X + 12, mark.X, 0.01);
         Assert.Equal(mark.Right + 6, count.X, 0.01);
@@ -107,17 +107,23 @@ public sealed class HydraHeadsButtonTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-HYDRA-173")] // HydraPanel.swift:236-238 if running > 0 { MiniSpinner() }
-    [Trait("Req", "UI-HYDRA-013")] // UI-HYDRA-013 states: any head running, a MiniSpinner between the count and the chevron
+    [Trait("Req", "PR-HYDRA-173")] // HydraPanel.swift:236-238 if running > 0 { MiniSpinner() }; Calculi WU6 (ED-NEW-calculi-wu6-1): the quiet Tripus beads
+    [Trait("Req", "UI-HYDRA-013")] // UI-HYDRA-013 states: any head running, the working mark between the count and the chevron
     public void The_spinner_shows_while_any_head_runs_and_only_then() => Run((c, _) =>
     {
-        Assert.Single(LogicalQuery.SelfAndDescendants<MiniSpinner>(Capsule(c)));
+        var beads = Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(Capsule(c)));
+        Assert.Equal(Marrow.UI.Port.Nth.Beads.NthBeadsPlace.HydraChip, beads.Place);
+        Assert.True(beads.Beads.Quiet); Assert.True(beads.Beads.Ambient);
+        Assert.Equal(Marrow.UI.Port.Nth.Beads.NthBeadsState.Hydra, beads.Beads.Current.State);
+        Assert.Equal(1, beads.Beads.Current.Turn);
         c.Status(c.First, HydraHeadInfo.Status.Completed);
-        Assert.Single(LogicalQuery.SelfAndDescendants<MiniSpinner>(Capsule(c))); // one still runs
+        // the capsule is rebuilt on each change, but the beads are the same ones and go on (no second entrance)
+        Assert.Same(beads, Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(Capsule(c)))); // one still runs
+        Assert.Equal(1, beads.Beads.Current.Turn); Assert.True(beads.IsRunning);
         c.Status(c.Second, HydraHeadInfo.Status.Failed);
-        Assert.Empty(LogicalQuery.SelfAndDescendants<MiniSpinner>(Capsule(c)));
+        Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(Capsule(c)));
         c.Status(c.Second, HydraHeadInfo.Status.Running);
-        Assert.Single(LogicalQuery.SelfAndDescendants<MiniSpinner>(Capsule(c)));
+        Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(Capsule(c)));
     });
 
     [Fact]

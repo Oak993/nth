@@ -24,6 +24,7 @@ using Marrow.Core.Support;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth.Beads;
 
 namespace Marrow.App.Views.Chat;
 
@@ -503,6 +504,7 @@ internal sealed class HydraHeadsButton : Decorator
     private readonly Capsule capsule;
     private readonly AnimatedColor foreground;
     private readonly Popup popover;
+    private readonly NthBeadsSlot beads; // the chip's quiet Tripus beads: one for the chip's life, moved into each row Update builds (Calculi WU6)
     private IReadOnlyList<ChatThread> heads = [];
 
     // :223-225, :230-287
@@ -510,6 +512,7 @@ internal sealed class HydraHeadsButton : Decorator
     {
         this.runtime = runtime;
         this.dismiss = dismiss;
+        beads = new NthBeadsSlot(NthBeadsPlace.HydraChip, runtime.ThreadID.ToString(), running: false);
         capsule = new Capsule(() => state.IsPresented = !state.IsPresented)
         {
             // :244-246 padded horizontally by capsuleHorizontalPadding, framed to capsuleContentHeight, padded vertically by
@@ -548,7 +551,8 @@ internal sealed class HydraHeadsButton : Decorator
         var count = new TextBlock { Text = heads.Count.ToString(CultureInfo.InvariantCulture), Foreground = foreground.Brush };
         SwiftFont.System(12.5, SwiftFont.Weight.Semibold).MonospacedDigit().Apply(count); // :235
         row.Children.Add(Centred(count));
-        if (running > 0) row.Children.Add(Centred(new MiniSpinner())); // :236-238
+        (beads.Parent as Panel)?.Children.Remove(beads); // the row it was in is replaced below
+        if (running > 0) { row.Children.Add(Centred(beads)); beads.Begin(); } else beads.End(); // :236-238, the quiet beads in place of the accent MiniSpinner
         row.Children.Add(Centred(SwiftImage.SystemName("chevron.down").Font(Chrome.ChevronFont).ForegroundStyle(Chrome.SecondaryText))); // :239-241
         capsule.Child = row;
 
@@ -760,7 +764,16 @@ internal sealed class HydraHeadTranscript : Decorator
     {
         if (progressHost.Child is not null) progressHost.Child=new HydraHeadProgress(head,runtime);
         if (footerHost.Child is not null && head.Hydra is { } info)
-            footerHost.Child=new HydraHeadFooter(HydraLiveInfo.Shown(info,runtime));
+            footerHost.Child=Footer(HydraLiveInfo.Shown(info,runtime));
+    }
+
+    // Calculi (ED-NEW-calculi-rv-1): the footer is built again whenever the head's stored record changes; its quiet beads are one slot for the
+    // transcript's life, moved into each new footer, so a running head's beads go on and never re-enter (as the Hydra chip's do).
+    private NthBeadsSlot? footerBeads;
+    private HydraHeadFooter Footer(HydraHeadInfo info)
+    {
+        if (info.HydraHeadInfoStatus == HydraHeadInfo.Status.Running) footerBeads ??= HydraHeadFooter.Beads(info);
+        return new HydraHeadFooter(info, footerBeads);
     }
     // :388-391, :396-436
     public HydraHeadTranscript(ChatThread head, double height, string? workingDirectory, string? projectName)
@@ -806,7 +819,7 @@ internal sealed class HydraHeadTranscript : Decorator
         else if (head.Hydra is { } info)
         {
             var footer = new Grid();
-            footerHost.Child = new HydraHeadFooter(HydraLiveInfo.Shown(info, runtime));
+            footerHost.Child = Footer(HydraLiveInfo.Shown(info, runtime));
             footer.Children.Add(footerHost);
             footer.Children.Add(new JumpToLatestButton(scrollState) { VerticalAlignment = VerticalAlignment.Top }); // :430-432 overlay(alignment: .top)
             DockPanel.SetDock(footer, Dock.Bottom);
@@ -826,7 +839,13 @@ internal sealed class HydraHeadTranscript : Decorator
 internal sealed class HydraHeadFooter : Decorator
 {
     // :443, :445-472
-    public HydraHeadFooter(HydraHeadInfo info)
+    /// <summary>A running head's quiet beads (Calculi WU6), keyed by the head.</summary>
+    internal static NthBeadsSlot Beads(HydraHeadInfo info) =>
+        new(NthBeadsPlace.HydraHeadFooter, "head-" + info.Index.ToString(System.Globalization.CultureInfo.InvariantCulture) + info.Task);
+
+    /// <param name="beads">The beads to show while the head runs (a transcript keeps one slot through its footer's rebuilds); a new slot when null.
+    /// A footer of a head that no longer runs ends them (they leave with their slot, ED-NEW-calculi-wu6-1 item 3 (c)).</param>
+    public HydraHeadFooter(HydraHeadInfo info, NthBeadsSlot? beads = null)
     {
         var row = new Grid
         {
@@ -843,10 +862,15 @@ internal sealed class HydraHeadFooter : Decorator
         Control leading;
         if (info.HydraHeadInfoStatus == HydraHeadInfo.Status.Running)
         {
-            leading = new MiniSpinner();
+            // :447-449, the quiet beads in place of the accent MiniSpinner (Calculi WU6); a kept slot leaves the footer it was in (being replaced)
+            var slot = beads ?? Beads(info);
+            (slot.Parent as Panel)?.Children.Remove(slot);
+            slot.Begin();
+            leading = slot;
         }
         else
         {
+            beads?.End();
             var symbol = info.HydraHeadInfoStatus == HydraHeadInfo.Status.Completed
                 ? "checkmark.circle.fill"
                 : info.HydraHeadInfoStatus == HydraHeadInfo.Status.Failed

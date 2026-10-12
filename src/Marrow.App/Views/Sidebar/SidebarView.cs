@@ -28,6 +28,7 @@ using Marrow.App.Views.Settings;
 using Marrow.App.Window;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.UI.Port.Nth.Beads;
 using Marrow.Core.Support;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
@@ -3292,7 +3293,7 @@ internal sealed class HelperStubRow : Decorator
         var label = new TextBlock { TextWrapping = TextWrapping.NoWrap }; // :1588-1589
         SwiftFont.Subheadline.Apply(label); // :1590
 
-        var spinner = NthWorkingMarks.Working(); spinner.Margin = new Thickness(0, 0, 4, 0); spinner.HorizontalAlignment = HorizontalAlignment.Right; // :1592-1594, the nth spinner (OD-0136 amendment 2, step 1 B)
+        var spinner = NthWorkingMarks.Working(parentSnapshot.Id.ToString(), hydra: helperSnapshots.All(helper => helper.IsHydraHead)); spinner.Margin = new Thickness(0, 0, 4, 0); spinner.HorizontalAlignment = HorizontalAlignment.Right; // :1592-1594, the quiet working beads (Calculi WU6); they begin when the row shows them
         var leading = new StackPanel // :1585 HStack(spacing: 5) { chevron; label; Spacer(minLength: 4); [spinner] }
         {
             Orientation = Orientation.Horizontal,
@@ -3361,14 +3362,17 @@ internal sealed class HelperStubRow : Decorator
             fill.Set(hovering ? Chrome.Overlay(0.06) : SwiftColor.Clear, Transaction.Current); // :1607
             if (working) // :1592-1594
             {
+                spinner.SetState(noun == "head" ? NthBeadsState.Hydra : NthBeadsState.Tool);
                 if (!contentRow.Children.Contains(spinner))
                 {
                     DockPanel.SetDock(spinner, Dock.Right);
                     contentRow.Children.Add(spinner);
                 }
+                spinner.Begin();
             }
             else
             {
+                spinner.End();
                 contentRow.Children.Remove(spinner);
             }
             var tip = count == 1 ? $"Show the {noun}" : $"Show {count} {noun}s"; // :1615
@@ -4641,7 +4645,7 @@ internal sealed class ThreadGhostBadge : Decorator
             NeedsInput
                 ? Tinted(new SidebarSymbol("hand.raised.fill"), Chrome.Orange) // :2097-2099
                 : IsRunning
-                    ? NthWorkingMarks.Still() // :2100-2101 isStill: the calm still trace (a ghost is carried as a picture)
+                    ? NthWorkingMarks.Still(runtime is { IsHydraMerging: true }) // :2100-2101 isStill: the beads' still pose (a ghost is carried as a picture)
                     : thread.IsPinned
                         ? Tinted(new SidebarSymbol("pin.fill", scale: 0.9), Chrome.Danger.Opacity(0.85)) // :2102-2104
                         : new ProviderIcon { Provider = thread.Provider, Size = 14 }); // :2105-2106
@@ -4792,7 +4796,7 @@ internal sealed class ThreadBadge : Decorator
             }
             else if (isRunning) // :2156
             {
-                var spinner = NthWorkingMarks.Working(); // :2157, the nth spinner (OD-0136 amendment 2, step 1 B)
+                var spinner = NthWorkingMarks.Working(thread.Id.ToString(), hydra: mergeStage is not null); // :2157, the quiet working beads (Calculi WU6)
                 spinner.IsHitTestVisible = true; // it carries the merge stage as its tooltip
                 ToolTip.SetTip(spinner, mergeStage ?? ""); // :2158
                 glyph = spinner;
@@ -5246,7 +5250,7 @@ internal sealed class ActivityStatus : Decorator
             }
             else if (isRunning) // :2418
             {
-                var spinner = NthWorkingMarks.Working(); // :2419, the nth spinner (OD-0136 amendment 2, step 1 B)
+                var spinner = NthWorkingMarks.Working(thread.Id.ToString(), hydra: mergeStage is not null); // :2419, the quiet working beads (Calculi WU6)
                 spinner.IsHitTestVisible = true; // it carries the merge stage as its tooltip
                 ToolTip.SetTip(spinner, mergeStage ?? ""); // :2420
                 content = spinner;

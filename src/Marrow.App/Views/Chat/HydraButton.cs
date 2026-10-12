@@ -20,6 +20,7 @@ using Marrow.Services.Providers;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth.Beads;
 using Marrow.UI.Theme;
 
 namespace Marrow.App.Views.Chat;
@@ -1131,7 +1132,7 @@ internal sealed class HydraSendWorkingBadge : Decorator
     private readonly Border capsule = new();
     private readonly AnimatedColor tint;
     private readonly TextBlock count = new();
-    private readonly MiniSpinner spinner = new(cellSize: 2.4); // :627
+    private readonly NthBeadsSlot spinner = new(NthBeadsPlace.HydraBadge, "hydra-send-badge", running: false); // :627, the quiet Tripus beads in place of the accent MiniSpinner (Calculi WU6)
     private long running;
     private bool isSending;
 
@@ -1176,9 +1177,11 @@ internal sealed class HydraSendWorkingBadge : Decorator
         {
             count.Text = null;
             content.Child = spinner;
+            spinner.Begin();
         }
         else
         {
+            spinner.End();
             count.Text = running.ToString(CultureInfo.InvariantCulture); // :629 Text(verbatim: "\(running)")
             content.Child = count;
         }

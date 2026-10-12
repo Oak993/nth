@@ -5,6 +5,7 @@ using Marrow.Core.Port;
 using Marrow.Testing;
 using Marrow.UI.Port;
 using Marrow.UI.Port.Nth;
+using Marrow.UI.Port.Nth.Beads;
 using Marrow.UI.Tests.Fixtures;
 
 namespace Marrow.UI.Tests.Nth;
@@ -48,6 +49,56 @@ public sealed class NthUnseenFrameBudgetTests(HeadlessSession headless)
             Step(time, 240);
             var requests = spinner.FrameRequests - before;
             Assert.InRange(requests, 0, UnseenRequestsPerSecond);
+        }
+        finally
+        {
+            window.Close(); Dispatcher.UIThread.RunJobs(); WindowPresence.TestFactory = null;
+            RenderFrameSource.RefreshSource = refresh; RenderFrameSource.PeriodSource = period;
+        }
+    });
+
+    // ED-NEW-calcmerge-1: the working beads (an advancing painter: the engine keeps state) go idle in an unseen window like every other
+    // nth primitive: no frame requests, the engine's clock frozen, a turn that ends meanwhile cut to gone; seen again they go on from
+    // where they were, with no catch-up burst.
+    [Fact]
+    [Trait("Decision", "ED-NEW-calcmerge-1")]
+    public void An_unseen_window_asks_no_frames_for_its_working_beads_and_they_go_on_where_they_were() => headless.OnUiThread(() =>
+    {
+        var time = new ManualTimeProvider(); using var clock = SwiftClock.Provider.Override(time);
+        var refresh = RenderFrameSource.RefreshSource; var period = RenderFrameSource.PeriodSource;
+        RenderFrameSource.RefreshSource = () => null; RenderFrameSource.PeriodSource = () => TimeSpan.FromSeconds(1.0 / 240);
+        WindowPresence.TestFactory = w => new WindowPresence(w, true);
+        var beads = new NthBeadsControl { HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
+        var window = new Window { Width = 80, Height = 80, Content = beads, Background = Avalonia.Media.Brushes.Black };
+        try
+        {
+            window.Show(); Step(time, 8);
+            beads.Enter(NthBeadsEntrance.Ortus, "t1");
+            Step(time, 240);
+            var driver = beads.Painter!.Driver;
+            Assert.Equal(NthBeadsMode.Running, driver.Engine!.Mode);
+            Assert.True(driver.Moving, "a seen turn moves");
+            var presence = WindowPresence.For(beads)!;
+            presence.SetSeen(false); Step(time, 24);
+            var before = beads.FrameRequests;
+            var frozen = driver.Engine.Clock;
+            Step(time, 240);
+            Assert.InRange(beads.FrameRequests - before, 0, UnseenRequestsPerSecond);
+            Assert.Equal(frozen, driver.Engine.Clock); // the clock did not run
+            Assert.False(beads.IsMoving);
+            presence.SetSeen(true); Step(time, 8);
+            Assert.True(beads.FrameRequests > before, "seen again, the beads ask for frames");
+            Assert.True(driver.Engine.Clock > frozen, "the clock runs again");
+            Assert.InRange(driver.Engine.Clock, frozen, frozen + 5 / 60.0); // went on from the frozen clock, no 1 s catch-up
+            Assert.Equal(NthBeadsMode.Running, driver.Engine.Mode);
+            Assert.True(beads.IsMoving);
+            presence.SetSeen(false); Step(time, 24);
+            before = beads.FrameRequests;
+            beads.Finish(); // the turn ends while unseen: its exit is cut to gone at once, nothing waits on a frame that never comes
+            Step(time, 24);
+            Assert.Equal(NthBeadsMode.Gone, driver.Engine.Mode);
+            Assert.True(beads.IsGone);
+            Assert.Equal(before, beads.FrameRequests);
         }
         finally
         {

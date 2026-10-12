@@ -91,10 +91,13 @@ public sealed class HydraHeadFooterTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-HYDRA-178")] // HydraPanel.swift:447-449 if info.status == .running { MiniSpinner() }
-    public void A_running_head_shows_the_mini_spinner_and_no_outcome_mark() => Run(Info(HydraHeadInfo.Status.Running), (footer, _) =>
+    [Trait("Req", "PR-HYDRA-178")] // HydraPanel.swift:447-449 if info.status == .running { MiniSpinner() }; Calculi WU6 (ED-NEW-calculi-wu6-1): the quiet Tripus beads
+    public void A_running_head_shows_the_quiet_beads_and_no_outcome_mark() => Run(Info(HydraHeadInfo.Status.Running), (footer, _) =>
     {
-        Assert.Single(LogicalQuery.SelfAndDescendants<MiniSpinner>(footer));
+        var beads = Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(footer));
+        Assert.Equal(Marrow.UI.Port.Nth.Beads.NthBeadsPlace.HydraHeadFooter, beads.Place);
+        Assert.True(beads.Beads.Quiet);
+        Assert.Equal(Marrow.UI.Port.Nth.Beads.NthBeadsState.Hydra, beads.Beads.Current.State);
         Assert.Empty(LogicalQuery.SelfAndDescendants<SwiftImage>(footer));
     });
 
@@ -106,7 +109,7 @@ public sealed class HydraHeadFooterTests(HeadlessSession headless)
     public void A_finished_head_shows_a_filled_circle_mark_in_green_red_or_grey(HydraHeadInfo.Status status, string symbol, int colourIndex) =>
         Run(Info(status), (footer, _) =>
         {
-            Assert.Empty(LogicalQuery.SelfAndDescendants<MiniSpinner>(footer));
+            Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(footer));
             var mark = Assert.Single(LogicalQuery.SelfAndDescendants<SwiftImage>(footer));
             Assert.Equal(symbol, mark.SymbolName);
             Assert.Equal(SwiftFont.System(SwiftFont.TextStyle.Callout), SwiftImage.GetFont(mark));

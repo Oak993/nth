@@ -1,5 +1,5 @@
 // PORT-ONLY: OD-0136 amendment 2, step 2 option B ("Thinking line", ED-NEW-nth-motion). The main working line under a turn
-// (ThreadTimeline's WorkingIndicator): the three-arc glyph (14 px), the line's word in breathing letters (a new word arrives letter
+// (ThreadTimeline's WorkingIndicator): the Calculi beads (an 18 DIP n box; the three-arc glyph is retired, ED-NEW-calculi-wu8-1), the line's word in breathing letters (a new word arrives letter
 // by letter) and the time since the turn started in rolling digits (mono, tabular, right-aligned, quieter than the word). The
 // words, the summaries and the time's text are the line's own; only the drawing changes. The Hydra head panels keep
 // HydraWorkingTitle, HydraElapsedTime and the activity chart as they are.
@@ -14,6 +14,7 @@ using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
 using Marrow.UI.Port.Nth;
+using Marrow.UI.Port.Nth.Beads;
 
 namespace Marrow.App.Views.Chat;
 
@@ -55,26 +56,54 @@ internal static class NthLineType
     }
 }
 
-/// <summary>The running working line's title: the thinking glyph and the line's word in breathing letters.</summary>
+/// <summary>The running working line's title: the working beads (Calculi) and the line's word in breathing letters.</summary>
+// PORT-ONLY: Calculi WU5 (ED-NEW-calculi-wu5-1; DESIGN.md sections 5.1, 6, 9 and 12). The beads replace the three-arc glyph: an 18 DIP n box in its
+// 18.9 x 22.1 DIP motion envelope, centred on the word's line as the canvas's flex row centres it; the pill around the line is taller than the envelope
+// (the row makes room with the pill's padding). The slot is always the envelope's size, whether the beads are in it yet or not, so the line's layout never depends on the beads.
 internal sealed class NthWorkingTitle : Panel, IBaselineProvider
 {
-    private const double GlyphSize = 14, Gap = 8;
+    private const double Gap = 8;
     private static readonly SwiftFont Font = SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Medium); // :2123 the title's type, kept
+    private static readonly Size Envelope = NthBeadsPainter.EnvelopeSize(NthWorkingBeads.GlyphSize);
 
-    private readonly NthThinkingGlyph glyph = new();
+    private readonly NthWorkingBeads? beads;
+    private readonly Panel slot = new() { Width = Envelope.Width, Height = Envelope.Height };
     private readonly NthLetters letters = new(NthLettersMode.Breathe);
+    private readonly WordClip word = new();
 
-    public NthWorkingTitle(string word)
+    public NthWorkingTitle(string word, NthWorkingBeads? beads = null)
     {
-        ClipToBounds = true; // the word is clipped to its box, as the page's .wd is, so a long summary never leaves the pill
+        // The word is clipped to its box, as the page's .wd is, so a long summary never leaves the pill. Only the word: the beads' visual draws past its
+        // box while it glides after a layout move (ED-NEW-calculi-wu4-1 item 5), and no parent of theirs may cut a bead.
+        this.beads = beads;
         NthLineType.Apply(letters, Font);
         NthLineType.Follow(this, letters, Chrome.SecondaryText);
         letters.SetTextInstantly(word);
-        Children.Add(glyph); Children.Add(letters);
+        this.word.Child = letters;
+        Children.Add(slot); Children.Add(this.word);
+        if (beads is not null)
+        {
+            slot.AttachedToVisualTree += (_, _) => beads.Claim(slot);
+            slot.DetachedFromVisualTree += (_, _) => beads.Unclaim(slot);
+        }
     }
 
-    /// <summary>The glyph (tests).</summary>
-    public NthThinkingGlyph Glyph => glyph;
+    /// <summary>The beads' slot (tests): it holds the thread's beads once they are here.</summary>
+    public Panel Slot => slot;
+
+    /// <summary>The beads, when they are in this title (tests).</summary>
+    public NthBeadsControl? Glyph => beads is not null && ReferenceEquals(beads.Beads.Parent, slot) ? beads.Beads : null;
+
+    /// <summary>Gives the beads up: this title is leaving with a fade they must not share. If they are here they move, at their place, into
+    /// <paramref name="hold"/>, which does not fade (ED-NEW-calculi-wu5-2): they never leave the screen for a frame, and the next running line
+    /// claims them from there.</summary>
+    public void ReleaseBeads(Panel? hold)
+    {
+        if (beads is null) return;
+        beads.Unclaim(slot);
+        if (!ReferenceEquals(beads.Beads.Parent, slot)) return;
+        if (hold is not null) beads.Host(hold); else slot.Children.Remove(beads.Beads);
+    }
 
     /// <summary>The word's letters (tests).</summary>
     public NthLetters Letters => letters;
@@ -84,18 +113,60 @@ internal sealed class NthWorkingTitle : Panel, IBaselineProvider
 
     public double Baseline => (DesiredSize.Height - letters.DesiredSize.Height) / 2 + NthLineType.Baseline(Font);
 
+    // The title lays out as the word's line (its height is the word's, as before), and the beads' envelope is centred on that line, reaching past the
+    // title's top and bottom by half the difference (3.2 DIP for the 13 pt word): the pill's own padding (8 or 11 DIP) is the room the row makes for it,
+    // so the line's height, its baselines and everything under it stay where they were.
     protected override Size MeasureOverride(Size availableSize)
     {
-        glyph.Measure(new Size(GlyphSize, GlyphSize));
-        letters.Measure(Size.Infinity);
-        var width = GlyphSize + Gap + letters.DesiredSize.Width;
-        return new Size(Math.Min(width, availableSize.Width), Math.Max(GlyphSize, letters.DesiredSize.Height));
+        slot.Measure(Envelope);
+        word.Measure(Size.Infinity);
+        var width = Envelope.Width + Gap + letters.DesiredSize.Width;
+        return new Size(Math.Min(width, availableSize.Width), letters.DesiredSize.Height);
     }
 
     protected override Size ArrangeOverride(Size finalSize)
     {
-        glyph.Arrange(new Rect(0, (finalSize.Height - GlyphSize) / 2, GlyphSize, GlyphSize));
-        letters.Arrange(new Rect(GlyphSize + Gap, (finalSize.Height - letters.DesiredSize.Height) / 2, letters.DesiredSize.Width, letters.DesiredSize.Height));
+        slot.Arrange(new Rect(0, (finalSize.Height - Envelope.Height) / 2, Envelope.Width, Envelope.Height));
+        var left = Envelope.Width + Gap;
+        word.Arrange(new Rect(left, (finalSize.Height - letters.DesiredSize.Height) / 2, Math.Max(0, Math.Min(letters.DesiredSize.Width, finalSize.Width - left)), letters.DesiredSize.Height));
+        return finalSize;
+    }
+
+    // Clips the word to the room the title has, and lays the letters out at their own width as the title did (the old title clipped them itself).
+    private sealed class WordClip : Decorator
+    {
+        public WordClip() => ClipToBounds = true;
+        protected override Size MeasureOverride(Size availableSize) { Child?.Measure(Size.Infinity); return Child?.DesiredSize ?? default; }
+        protected override Size ArrangeOverride(Size finalSize) { Child?.Arrange(new Rect(Child.DesiredSize)); return finalSize; }
+    }
+}
+
+/// <summary>PORT-ONLY: Calculi WU5 (ED-NEW-calculi-wu5-2). Where a working line that stops running mid-turn (a Hydra note splits it off) keeps the
+/// beads while its running title fades out and its label fades in: a slot at the title's own place (the line's start, centred on the line), outside
+/// both fading titles, so the beads stay whole and unfaded while they leave. It lays out at no height (the line's height stays the label's), and
+/// the label after it stands where the running word stood (<see cref="Indent"/>), for the line's life: nothing moves when the beads have left.</summary>
+internal sealed class NthBeadsHold : Panel
+{
+    private static readonly Size Envelope = NthBeadsPainter.EnvelopeSize(NthWorkingBeads.GlyphSize);
+
+    /// <summary>The leading room the label leaves for the hold: the envelope and the title's gap.</summary>
+    public static double Indent => Envelope.Width + 8;
+
+    /// <summary>The slot the beads sit in.</summary>
+    public Panel Slot { get; } = new() { Width = Envelope.Width, Height = Envelope.Height };
+
+    public NthBeadsHold()
+    {
+        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
+        IsHitTestVisible = false;
+        Children.Add(Slot);
+    }
+
+    protected override Size MeasureOverride(Size availableSize) { Slot.Measure(Envelope); return new Size(Indent, 0); }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        Slot.Arrange(new Rect(0, (finalSize.Height - Envelope.Height) / 2, Envelope.Width, Envelope.Height));
         return finalSize;
     }
 }

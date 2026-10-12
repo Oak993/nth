@@ -5,7 +5,8 @@
 // something moves, and stops asking when it is not drawn (a hidden or scrolled-away primitive costs nothing until it is drawn
 // again). Painters keep their paints and paths: nothing is allocated per frame. ED-NEW-lean-6: while the window cannot be seen
 // (WindowPresence) the handler asks for no frames at all; seen again, its next frame is the painter at the current time (a
-// painter is a pure function of the frame and the time, so every loop resumes in phase).
+// painter is a pure function of the frame and the time, so every loop resumes in phase). An advancing painter (the beads, whose
+// engine keeps state) pauses instead as one not drawn and goes on from its frozen pose when drawn again (ED-NEW-calcmerge-1).
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -32,6 +33,9 @@ public abstract class NthPainter : IDisposable
 
     /// <summary>The area drawn, in the control's coordinates (a disc's overshoot may pass the control's edge).</summary>
     public virtual Rect Bounds(NthFrame frame) => new(frame.Size);
+
+    /// <summary>Whether the visual clips its drawing to the control's size (the beads' reflow glide must not be cut).</summary>
+    public virtual bool ClipsToSize => true;
 
     internal abstract void Render(ImmediateDrawingContext context, NthFrame frame, double now);
 
@@ -76,9 +80,39 @@ public abstract class NthSkiaPainter : NthPainter
     }
 }
 
+/// <summary>
+/// Calculi WU4 (ED-NEW-calculi-wu4-1): a painter whose state lives on the render thread (the beads' engine). It advances only in
+/// <see cref="CompositionCustomVisualHandler.OnAnimationFrameUpdate"/>, on its own pacer slots; <c>OnRender</c> only samples it.
+/// The UI thread's frames carry timestamped events, applied at their own times on the next slot. A painter that is paused (its
+/// window unavailable or unseen, or it was not drawn: scrolled away or hidden) asks for no frames and its clock does not run.
+/// </summary>
+public abstract class NthAdvancingPainter : NthSkiaPainter
+{
+    /// <summary>60 Hz slots per frame: 1 for 60 Hz, 2 for 30 Hz.</summary>
+    internal abstract int Every(NthFrame frame);
+
+    /// <summary>True while the painter's clock is stopped (nothing is asked for).</summary>
+    internal abstract bool Paused { get; }
+
+    /// <summary>A frame from the UI thread arrived at <paramref name="now"/> (clock seconds).</summary>
+    internal abstract void Receive(NthFrame frame, double now);
+
+    /// <summary>A pacer slot at <paramref name="now"/>: apply what arrived, advance to the slot's time.</summary>
+    internal abstract void Advance(NthFrame frame, double now);
+
+    /// <summary>The last slot's frame was not drawn: the visual is not on screen. Pause.</summary>
+    internal abstract void Unseen();
+
+    /// <summary>The visual is being drawn at <paramref name="now"/>: resume if it was paused for not being drawn.</summary>
+    internal abstract void Seen(double now);
+}
+
 /// <summary>The visual's handler: the painter on the compositor's frame clock, paced to the shared 60 Hz slots.</summary>
 internal sealed class NthMotionHandler(NthPainter painter, AmbientRefreshPacer? pacer) : CompositionCustomVisualHandler
 {
+    private readonly NthAdvancingPainter? advancing = painter as NthAdvancingPainter;
+    private bool expect; // an advancing painter's slot frame was asked for and is not drawn yet
+
     internal sealed class Stop
     {
         internal static readonly Stop Instance = new();
@@ -108,13 +142,24 @@ internal sealed class NthMotionHandler(NthPainter painter, AmbientRefreshPacer? 
 
     public override void OnMessage(object message)
     {
-        if (message is NthFrame next) { frame = next; Invalidate(); Request(); }
+        if (message is NthFrame next)
+        {
+            frame = next;
+            expect = false; // the frame this message invalidates is drawn after the next update, not before it
+            advancing?.Receive(next, NthFrame.Seconds(next.Clock));
+            if (hidden) advancing?.Unseen(); // ED-NEW-calcmerge-1: a turn that starts while the window is unseen waits, paused
+            Invalidate();
+            if (advancing is not { Paused: true }) Request();
+        }
         else if (message is Stop) { stopped = true; painter.Dispose(); }
         else if (message is Presence presence && hidden == presence.IsSeen)
         {
             hidden = !presence.IsSeen;
+            // ED-NEW-calcmerge-1: an advancing painter (the beads) pauses as one not drawn: its clock stops and an exit in progress is
+            // cut; it resumes from its frozen pose when it is drawn again (OnRender), with no catch-up burst
+            if (hidden) { expect = false; advancing?.Unseen(); }
             // seen again: draw the next frame at the current time, and ask for frames again while it moves
-            if (!hidden && frame is not null) { Invalidate(); Request(); }
+            else if (frame is not null) { Invalidate(); Request(); }
         }
     }
 
@@ -126,9 +171,21 @@ internal sealed class NthMotionHandler(NthPainter painter, AmbientRefreshPacer? 
         if (stopped || hidden || frame is not { } current) return;
         var now = NthFrame.Seconds(current.Clock);
         // ED-NEW-frame-pacing: decorative motion advances once per 1/60 s slot, on the same refresh as every other source
-        if (pacer is not null && !pacer.Beat(CompositionNow.Ticks, now)) { Register(); return; }
+        if (pacer is not null && !pacer.Beat(CompositionNow.Ticks, now, advancing?.Every(current) ?? 1)) { Register(); return; }
+        if (advancing is not null) { AdvanceSlot(advancing, current, now); return; }
         Invalidate();
         if (drawn && painter.Moving(current, now)) Request();
+    }
+
+    // Calculi WU4: the engine advances here and only here. A slot whose frame was never drawn means the visual is off screen.
+    private void AdvanceSlot(NthAdvancingPainter beads, NthFrame current, double now)
+    {
+        if (expect) { expect = false; beads.Unseen(); Invalidate(); return; }
+        if (beads.Paused) return;
+        beads.Advance(current, now);
+        Invalidate();
+        expect = true;
+        if (beads.Moving(current, now)) Request();
     }
 
     private void Request()
@@ -149,7 +206,9 @@ internal sealed class NthMotionHandler(NthPainter painter, AmbientRefreshPacer? 
     {
         if (stopped || frame is not { } current) return;
         drawn = true;
+        expect = false;
         var now = NthFrame.Seconds(current.Clock);
+        if (!hidden) advancing?.Seen(now); // a frame drawn while the window is unseen does not resume the beads
         painter.Render(context, current, now);
         Volatile.Write(ref lastDrawn, now);
         Interlocked.Increment(ref frames);
@@ -210,10 +269,13 @@ public sealed class NthVisualHost
     public int FramesDrawn => handler?.Frames ?? 0;
 
     /// <summary>Animation frames the render thread has asked for (tests).</summary>
-    internal int FrameRequests => handler?.Requests ?? 0;
+    public int FrameRequests => handler?.Requests ?? 0;
 
     /// <summary>The time the render thread last drew at, clock seconds (tests).</summary>
     internal double LastDrawnAt => handler?.LastDrawn ?? double.NaN;
+
+    /// <summary>Frames sent to the render thread (tests: only on change).</summary>
+    public int FramesPosted { get; private set; }
 
     /// <summary>Whether any nth primitive on screen is moving (the idle GPU warm-up waits for none, as for AuroraLoader).</summary>
     public static bool AnyAnimating()
@@ -241,6 +303,7 @@ public sealed class NthVisualHost
         probe = frame => painter.Moving(frame, NthFrame.Seconds(frame.Clock));
         handler = new NthMotionHandler(painter, AmbientRefreshPacer.For(host.Compositor));
         visual = host.Compositor.CreateCustomVisual(handler);
+        if (!painter.ClipsToSize) visual.ClipToBounds = false;
         ElementComposition.SetElementChildVisual(owner, visual);
         presence = WindowPresence.For(owner);
         if (presence is not null)
@@ -266,6 +329,7 @@ public sealed class NthVisualHost
         sent = frame;
         visual.Size = new Vector(owner.Bounds.Width, owner.Bounds.Height);
         visual.SendHandlerMessage(frame);
+        FramesPosted++;
     }
 
     private void Remove()
@@ -301,8 +365,9 @@ public abstract class NthMotionControl : Control
     public bool Dark => host.Dark;
     public NthFrame? Frame => host.Frame;
     public int FramesDrawn => host.FramesDrawn;
-    internal int FrameRequests => host.FrameRequests;
+    public int FrameRequests => host.FrameRequests;
     internal double LastDrawnAt => host.LastDrawnAt;
+    public int FramesPosted => host.FramesPosted;
     public bool IsMoving => host.IsMoving;
     public NthFrame Snapshot() => host.Snapshot();
 

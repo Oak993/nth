@@ -187,7 +187,7 @@ public sealed class ThreadTimeline : Decorator
                         // The turn ends: the running block's row is replaced by the finished block's (the Mac cuts here, 2-chat-use.mov 125.743 -> 125.762 s). OD-0076, PR-CHAT-104: the
                         // finished block takes the running block's height and eases to its own, its rows fading in; the running rows are gone at once. Reduce Motion: the end state.
                         if (hadIdentity && existing.Block is DisplayBlock.Turn { Summary: null } && block is DisplayBlock.Turn { Summary: not null })
-                            fresh.BeginTurnEnd(SwiftTransition.Container(existing.Row).Bounds.Height, EnvironmentValues.GetAccessibilityReduceMotion(this));
+                            fresh.BeginTurnEnd(SwiftTransition.Container(existing.Row).Bounds.Height, EnvironmentValues.GetAccessibilityReduceMotion(this), NthWorkingBeads.Existing(runtime) is { } beads && beads.IsIn(existing.Row, out var inset) ? (beads, inset) : null); // Calculi WU5: the beads' exit plays in the finished header
                         row = fresh.Transition(Transition(block));
                     }
                     var made = !same && !(hadIdentity && ReferenceEquals(row, existing.Row));
@@ -493,6 +493,7 @@ public sealed class ThreadTimeline : Decorator
     {
         var stack = new Grid { RowDefinitions = new RowDefinitions("*,Auto") }; Grid.SetRow(rows, 1); stack.Children.Add(new Border()); stack.Children.Add(rows);
         var content = new Border { MaxWidth = 820, Margin = new Thickness(20, Chrome.ContentTopInset, 20, 18), Child = stack, HorizontalAlignment = HorizontalAlignment.Stretch };
+        NthWorkingBeads.SetReflowAnchor(content, true); // Calculi WU5: the working glyph's layout moves are measured inside the scrolled content (a scroll is not a move)
         var column = new Grid { MinHeight = viewportHeight, Children = { content } }; if (layoutWidth is { } width) column.Width = width; return column;
     }
     // :272-278
@@ -1476,9 +1477,9 @@ public sealed class DisplayBlockView : Decorator
     private RowContext shownContext;
 
     /// <summary>PORT-ONLY (OD-0076, PR-CHAT-104): this view replaces a running turn's at the turn's end; see <see cref="TurnFinishedBlock.BeginTurnEnd"/>.</summary>
-    internal void BeginTurnEnd(double fromHeight, bool reduceMotion)
+    internal void BeginTurnEnd(double fromHeight, bool reduceMotion, (NthWorkingBeads Beads, double Inset)? beads = null)
     {
-        if (Child is TurnFinishedBlock finished) finished.BeginTurnEnd(fromHeight, reduceMotion);
+        if (Child is TurnFinishedBlock finished) finished.BeginTurnEnd(fromHeight, reduceMotion, beads);
     }
 
     /// <summary>:1896-1936, :332-334 the same view with a new block or a new context under the same id (`.id(block.id)` on an `.equatable()` row: the body runs again and every
@@ -1775,7 +1776,7 @@ public sealed class WorkingIndicator : Decorator
         var chevronFade = new AnimatedDouble(opacity => chevron.Opacity = opacity);
         var inner = new StackPanel { Spacing = 10, Children = { header } };
         var frame = new Border { CornerRadius = new CornerRadius(TimelineMetrics.PillRadius), Background = Brushes.Transparent, Child = inner, HorizontalAlignment = HorizontalAlignment.Left }.RoundedRectangle(TimelineMetrics.PillRadius, RoundedCornerStyle.Continuous); // :2148 .contentShape(RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))
-        Control? title = null; NthWorkingTitle? thinking = null; string? titleText = null; bool? titleRunning = null; HydraProgressBar? bar = null; ValueList<TimelineEntry>? barEntries = null; bool? barCard = null; var chevronShown = false; var drawn = false; var leaving = 0;
+        Control? title = null; NthWorkingTitle? thinking = null; NthBeadsHold? hold = null; var holdRoom = 1.0; string? titleText = null; bool? titleRunning = null; HydraProgressBar? bar = null; ValueList<TimelineEntry>? barEntries = null; bool? barCard = null; var chevronShown = false; var drawn = false; var leaving = 0;
         GrowingBody? opened = null; StackPanel? openedDetails = null; StackPanel? openedThinking = null; WorkSteps? openedSteps = null;
         // PORT-ONLY (UI-THEME-047): every draw builds the thinking markdown again, so the veils of its steps (SwiftUI's @State, kept by the ForEach's
         // offsets, :2158) live here for as long as the steps stay open on screen.
@@ -1805,10 +1806,24 @@ public sealed class WorkingIndicator : Decorator
                 if (running && thinking is not null && ReferenceEquals(title, thinking)) thinking.Word = label;
                 else
                 {
-                    var previous = title; thinking = running ? new NthWorkingTitle(label) : null;
+                    var previous = title;
+                    // Calculi WU5 (ED-NEW-calculi-wu5-2): a title that leaves with a fade gives its beads up first, into a hold at their place that does not fade
+                    // (the beads never fade, never leave the screen for a frame); the label stands after the hold, where the running word stood.
+                    // ED-NEW-calculi-rv-1: once the beads are done in the hold, its room closes and the label glides to the place a view made again gives it.
+                    if (previous is NthWorkingTitle leaving)
+                    {
+                        var made = false;
+                        if (leaving.Glyph is not null && hold is null) { titleHost.Children.Add(hold = new NthBeadsHold()); made = true; }
+                        leaving.ReleaseBeads(hold?.Slot);
+                        if (made && hold is not null)
+                            NthWorkingBeads.For(runtime).CloseRoom(hold.Slot, titleHost, room => { holdRoom = room; if (title is HydraWorkingTitle shown) shown.Margin = new Thickness(NthBeadsHold.Indent * room, 0, 0, 0); });
+                    }
+                    thinking = running ? new NthWorkingTitle(label, NthWorkingBeads.For(runtime)) : null;
                     Control next = thinking is not null ? thinking : new HydraWorkingTitle(label, false, TextAlignment.Left); title = next; // :2104 the earlier segment's label at rest draws no breathing
-                    if (previous is null) titleHost.Children.Add(next);
-                    else Transaction.WithAnimation(Change, () => { SwiftTransition.Remove(titleHost, previous); SwiftTransition.Insert(titleHost, titleHost.Children.Count, next.Transition(SwiftTransition.Opacity)); });
+                    if (hold is not null && thinking is null) next.Margin = new Thickness(NthBeadsHold.Indent * holdRoom, 0, 0, 0);
+                    int Before() => hold is not null && titleHost.Children.IndexOf(hold) is var at && at >= 0 ? at : titleHost.Children.Count; // the hold stays last (the header reads the first child's baseline)
+                    if (previous is null) titleHost.Children.Insert(Before(), next);
+                    else Transaction.WithAnimation(Change, () => { SwiftTransition.Remove(titleHost, previous); SwiftTransition.Insert(titleHost, Before(), next.Transition(SwiftTransition.Opacity)); });
                 }
                 titleText = label; titleRunning = running;
             }

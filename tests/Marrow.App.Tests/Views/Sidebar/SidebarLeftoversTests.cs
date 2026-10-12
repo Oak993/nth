@@ -515,18 +515,18 @@ public sealed class SidebarLeftoversTests(HeadlessSession headless)
             Assert.Equal(new Size(7, 7), dotFrame.Size);
             Assert.Equal(badgeFrame.Right + 2.5, dotFrame.Right, 3); // :2170-2171 topTrailing, offset x +2.5
             Assert.Equal(badgeFrame.Top - 2.5, dotFrame.Top, 3); // y -2.5
-            // the spinner is the nth tile trace at 12 pt (OD-0136 amendment 2, step 1 B), the same in the status (:2157, :2419)
+            // the mark is the quiet working beads at 12 pt (Calculi WU6, ED-NEW-calculi-wu6-1), the same in the status (:2157, :2419)
             var runtime = model.Runtime(plain.Id); runtime.IsHydraMerging = true; runtime.HydraMergeStage = "S";
             var runningHost = HostBadge(plain);
-            var spinner = LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.NthSpinner>(runningHost).Single();
+            var spinner = LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(runningHost).Single();
             Assert.Equal(new Size(12, 12), spinner.DesiredSize);
             Assert.Equal("Working", Avalonia.Automation.AutomationProperties.GetName(spinner)); // MiniSpinner's accessible name (PR-THEME-171) is kept
-            // the ghost's badge is the same marks with the spinner held still (:2100): the calm trace, a plain drawing a snapshot carries
+            // the ghost's badge is the same marks with the spinner held still (:2100): the beads' still pose, a plain drawing a snapshot carries
             var ghost = (Control)Activator.CreateInstance(Private("ThreadGhostBadge"), model.Thread(plain.Id)!, model.ExistingRuntime(plain.Id))!;
             WindowOf(Hosted(model, ghost)).UpdateLayout();
-            var still = LogicalQuery.SelfAndDescendants<Control>(ghost).Single(c => c.GetType().Name == "NthStillSpinner");
+            var still = LogicalQuery.SelfAndDescendants<Control>(ghost).Single(c => c.GetType().Name == "NthBeadsStill");
             Assert.Equal(spinner.DesiredSize, still.DesiredSize);
-            Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.NthSpinner>(ghost)); // no moving visual in a picture
+            Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.Beads.NthBeadsControl>(ghost)); // no moving visual in a picture
         });
     });
 
@@ -550,8 +550,8 @@ public sealed class SidebarLeftoversTests(HeadlessSession headless)
             var okDot = Status<Avalonia.Controls.Shapes.Ellipse>(done);
             Assert.Equal(Chrome.Accent.Resolve(okDot.ActualThemeVariant), ((ISolidColorBrush)okDot.Fill!).Color);
             var runtime = model.Runtime(done.Id); runtime.IsHydraMerging = true; runtime.HydraMergeStage = "S";
-            var spinner = Status<Marrow.UI.Port.Nth.NthSpinner>(done);
-            Assert.Equal(new Size(12, 12), spinner.DesiredSize); // :2419, the nth spinner at 12 pt
+            var spinner = Status<Marrow.UI.Port.Nth.Beads.NthBeadsSlot>(done);
+            Assert.Equal(new Size(12, 12), spinner.DesiredSize); // :2419, the quiet beads at 12 pt
             typeof(ThreadRuntime).GetProperty("Approvals")!.SetValue(runtime,
                 new ValueList<ApprovalRequest>([new ApprovalRequest("a1", ApprovalRequest.Kind.Tool, "Allow?", ValueList<ApprovalRequest.Option>.Empty)]));
             var hand = Status<SwiftImage>(done);

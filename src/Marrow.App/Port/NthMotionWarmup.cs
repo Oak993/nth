@@ -2,6 +2,7 @@ using Avalonia;
 using Marrow.App.Port.FirstRun;
 using Marrow.App.Views.Composer;
 using Marrow.UI.Port.Nth;
+using Marrow.UI.Port.Nth.Beads;
 using SkiaSharp;
 
 namespace Marrow.App.Port;
@@ -44,7 +45,7 @@ public static class NthMotionWarmup
         [
             new NthSpinnerPainter(), new NthBarPainter(), new NthBarPainter(), new NthRingPainter(), new NthStatusPainter(),
             new NthSkeletonPainter(), new NthSkeletonPainter(), new NthSkeletonPainter(), new NthSkeletonPainter(),
-            new NthSendPainter(), new NthSendPainter(), new NthTubePainter(), new NthLinkPainter(), new NthThinkingGlyphPainter(),
+            new NthSendPainter(), new NthSendPainter(), new NthTubePainter(), new NthLinkPainter(),
             new NthFlickPainter(), new NthFlickPainter(),
         ];
         (Size Size, object? State)[] scenes =
@@ -62,7 +63,6 @@ public static class NthMotionWarmup
             (new Size(32, 32), new NthSendState(true, 0, true, 0, 1)),
             (new Size(168, 12), new NthTubeState(null, null)),
             (new Size(120, 16), new NthLinkState(null)),
-            (new Size(14, 14), null),
             (new Size(48, 48), new NthFlickState(null)),
             (new Size(48, 48), new NthFlickState(null)),
         ];
@@ -79,6 +79,7 @@ public static class NthMotionWarmup
                         var now = painters[i] is NthFlickPainter ? (i == painters.Length - 1 ? 2.3 : 1.4) : .3;
                         painters[i].Draw(canvas, new NthFrame(scenes[i].Size, dark, calm, clock, 0, scenes[i].State), now);
                     }
+            WarmBeads(canvas);
             // the text light: a layer kept only through a horizontal ramp (DstIn), as NthShinePainter composites it
             using var ramp = SKShader.CreateLinearGradient(new SKPoint(-30, 0), new SKPoint(30, 0), [SKColors.Transparent, SKColors.White, SKColors.Transparent], [0, .5f, 1], SKShaderTileMode.Clamp);
             using var mask = new SKPaint { BlendMode = SKBlendMode.DstIn, Shader = ramp };
@@ -91,5 +92,25 @@ public static class NthMotionWarmup
             surface.Flush();
         }
         finally { foreach (var painter in painters) painter.Dispose(); }
+    }
+
+    // Calculi (ED-NEW-calculi-wu3-1): the beads' programs, per theme. A merged pair with a neck (the bounded layer, lighten or
+    // darken inside it, the unit radial), Scriptio's cut stroke (the linear silver, round caps), the flat fill, and a faded
+    // frame with a glint (option C's layer alpha and the glint's radial), so the first working line compiles nothing on screen.
+    private static void WarmBeads(SKCanvas canvas)
+    {
+        using var painter = new NthBeadsPainter();
+        var merged = new NthBeadsSample { Present = true, Glint = -1, B0 = new(-.2, .3, 1, 1), B1 = new(.2, .3, .95, 1), B2 = new(1, NthBeadsGeometry.Foot, 1, 1) };
+        var stroke = new NthBeadsSample { Present = true, Hidden = true, Glint = -1, StrokeCount = 1, Stroke0To = NthBeadsGeometry.SCrown };
+        var faded = merged with { Glint = .5, B0 = merged.B0 with { O = .5 }, B1 = merged.B1 with { O = .5 }, B2 = merged.B2 with { O = .5 } };
+        foreach (var dark in new[] { true, false })
+        {
+            canvas.Clear(SKColors.Transparent);
+            painter.Paint(canvas, merged, 18, dark);
+            painter.Paint(canvas, stroke, 18, dark);
+            painter.Paint(canvas, merged, 12, dark);
+            painter.Paint(canvas, faded, 32, dark);
+        }
+        painter.Paint(canvas, merged, 18, true, SKColors.White);
     }
 }
