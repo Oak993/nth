@@ -1786,6 +1786,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             var (nextHydraBudget, dropNotice) = hydraBudget.TakeDropNotice();
             hydraBudget = nextHydraBudget;
             if (dropNotice is not null) prompt = dropNotice + prompt;
+            if (commandName is null && TakeLiveContext() is { } carried) prompt = carried + "\n\n" + prompt; // PORT-ONLY (web surfaces W24, ED-NEW-web-w24-6): what a live view carries rides with the message
 
             Phase = RuntimePhase.Running;
             await liveSession.Send(new TurnInput

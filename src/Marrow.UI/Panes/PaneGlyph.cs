@@ -58,6 +58,13 @@ public enum PaneGlyphKind
     Pane,
     PopOut,
     Pin,
+
+    // Visus (web W8a): the canvas's i-fwd, i-reload, i-lock and i-mask (Back, Search, Copy, OpenExternal, Warning and Shield
+    // are Tabula's, above).
+    Forward,
+    Reload,
+    Lock,
+    Mask,
 }
 
 /// <summary>A line glyph in the inherited text colour.</summary>
@@ -96,6 +103,11 @@ public sealed class PaneGlyph : Control
         [PaneGlyphKind.Stop] = Parse("M8.6 7h6.8A1.6 1.6 0 0 1 17 8.6v6.8a1.6 1.6 0 0 1-1.6 1.6H8.6A1.6 1.6 0 0 1 7 15.4V8.6A1.6 1.6 0 0 1 8.6 7z"),
         [PaneGlyphKind.Check] = Parse("M5 12.5l4.5 4.5L19 7.5"),
         [PaneGlyphKind.Plus] = Parse("M12 5v14M5 12h14"),
+        [PaneGlyphKind.Forward] = Parse("M9 18l6-6-6-6"),
+        [PaneGlyphKind.Reload] = Parse("M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4.5H15"),
+        [PaneGlyphKind.Lock] = Parse("M7.5 11h9a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2z M8.5 11V8a3.5 3.5 0 0 1 7 0v3"),
+        [PaneGlyphKind.Mask] = Parse(
+            "M3 9.5c3-2.5 15-2.5 18 0-.6 4.5-3.2 7-5.6 7-1.5 0-2-1.6-3.4-1.6S10.1 16.5 8.6 16.5C6.2 16.5 3.6 14 3 9.5z M7.5 11.5l2 .5M14.5 12l2-.5"),
         [PaneGlyphKind.DockBottom] = Parse("M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z M4 14.5h16"),
         [PaneGlyphKind.Copy] = Parse("M10.5 8.5h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z M15.5 8.5V6.5a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2"),
         [PaneGlyphKind.Save] = Parse("M12 4v10M8 10.5l4 4 4-4M4.5 15v2.5a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V15"),

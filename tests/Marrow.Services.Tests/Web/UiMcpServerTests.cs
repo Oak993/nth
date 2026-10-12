@@ -51,8 +51,8 @@ public sealed class UiMcpServerTests
         Assert.Equal("2025-11-25", (await Mcp(server, "initialize", new { protocolVersion = "1999-01-01" }))["result"]!["protocolVersion"]!.GetValue<string>());
 
         var tools = (await Mcp(server, "tools/list"))["result"]!["tools"]!.AsArray();
-        // The four artifact tools, then W17's read-only live-view reference.
-        Assert.Equal(new[] { "artifact_create", "artifact_update", "artifact_read", "artifact_list", "ui_reference" }, tools.Select(t => t!["name"]!.GetValue<string>()));
+        // The four artifact tools, W24's three live-answer tools, then W17's read-only live-view reference.
+        Assert.Equal(new[] { "artifact_create", "artifact_update", "artifact_read", "artifact_list", "ui_show", "ui_update", "html_widget", "ui_reference" }, tools.Select(t => t!["name"]!.GetValue<string>()));
         // ask_user (W25) is served only while a host for it is bound (here none is): the list is exactly what the process offers, and nothing else is held back.
         Assert.Equal(UiMcpServer.Offered, tools.Select(t => t!["name"]!.GetValue<string>()));
         Assert.Equal(UiMcpServer.ToolNames.Where(name => name != "ask_user"), UiMcpServer.Offered);

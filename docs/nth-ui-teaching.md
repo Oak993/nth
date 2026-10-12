@@ -54,9 +54,10 @@ streaming a view depends on; those servers, and servers nth cannot identify, are
 
 ## Joining the other units
 
-- **W24 (live-answer tools).** Add `ui_show`, `ui_update` and `html_widget` to `UiMcpServer.ToolNames` and `ArtifactNativeTools.Names`; the
-  instructions and the block then say "call ui_show" instead of "write a fenced block", with no change to the text. Use
-  `NthUiTeaching.ShowToolDescription` for `ui_show`. The fenced `nth-ui` block is the fallback and stays in the text.
+- **W24 (live-answer tools), landed.** `ui_show`, `ui_update` and `html_widget` are in `UiMcpServer.ToolNames` and `ArtifactNativeTools.Names`, so the
+  instructions and the block now say "call ui_show" with no change to the text; `ShowToolDescription` is `ui_show`'s own description. They are
+  offered (`UiMcpServer.Offered`, `ArtifactNativeTools.Offered`) only while the artifact store and Settings' "Live answers in chat" are on, and a small
+  local model has no `html_widget`. The fenced `nth-ui` block stays as the fallback, and `nth-html` for a widget. See `nth-ui-live-answers.md`.
 - **W25 (`ask_user`), done.** `ask_user` is the last name of both lists (`UiMcpServer.ToolNames`, `ArtifactNativeTools.Names`) and is offered only while
   a host for the chat is bound (`AskUserDirectory`, bound at start-up), so the teaching follows `UiMcpServer.Offered` and `ArtifactNativeTools.Offered`
   (what the session can really call) and the rules mention `ask_user` exactly when it exists.

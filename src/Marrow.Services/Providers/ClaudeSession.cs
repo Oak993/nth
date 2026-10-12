@@ -75,6 +75,8 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         public Dictionary<long, string> BlockIDs = new();        // :24 Swift Int is 64-bit
         public Dictionary<string, List<string>> OpenText = new(SwiftStringComparer.Instance);     // :25
         public Dictionary<string, List<string>> OpenThinking = new(SwiftStringComparer.Instance); // :26
+        /// <summary>PORT-ONLY (web surfaces W24, ED-NEW-web-w24-3): the arguments so far of a live-answer tool call being streamed, by content block index.</summary>
+        public Dictionary<long, (string ToolId, System.Text.StringBuilder Json)> LiveInputs = new();
 
         public StreamState() { }
     }
@@ -647,6 +649,7 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
             case "message_start": // :457-459
                 stream.CurrentMessageID = @event["message"]?["id"]?.JSONValueString ?? SwiftUUID.UuidString(Guid.NewGuid());
                 stream.BlockIDs.Clear();
+                stream.LiveInputs.Clear();
                 break;
             case "content_block_start": // :460-481
             {
@@ -671,6 +674,8 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
                     case "tool_use": // :473-478
                         if (block["id"]?.JSONValueString is not { } toolID || block["name"]?.JSONValueString is not { } name) return;
                         toolNames[toolID] = name;
+                        // PORT-ONLY (W24): the arguments of a live-answer call are followed as they stream.
+                        if (Web.UiMcpServer.IsOwnTool(name) && Web.LiveAnswerTools.IsName(name[("mcp__" + Web.UiMcpServer.ServerName + "__").Length..])) stream.LiveInputs[index] = (toolID, new System.Text.StringBuilder());
                         if (ToolCall(name, JSONValue.FromDictionaryLiteral()) is { } call)
                             sink(new ProviderEvent.ToolStarted(toolID, call));
                         break;
@@ -679,8 +684,22 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
                 }
                 break;
             }
+            case "content_block_stop":
+                if (@event["index"]?.JSONValueInt is { } stoppedIndex) stream.LiveInputs.Remove(stoppedIndex);
+                break;
             case "content_block_delta": // :482-491
             {
+                // PORT-ONLY (web surfaces W24, ED-NEW-web-w24-3): a piece of a live-answer call's arguments is reported on the call's row.
+                if (@event["index"]?.JSONValueInt is { } liveIndex && stream.LiveInputs.TryGetValue(liveIndex, out var live)
+                    && @event["delta"] is { } liveDelta && liveDelta["type"]?.JSONValueString == "input_json_delta")
+                {
+                    if (liveDelta["partial_json"]?.JSONValueString is { Length: > 0 } piece)
+                    {
+                        live.Json.Append(piece);
+                        sink(new ProviderEvent.ToolUpdated(live.ToolId, new ToolUpdate { Detail = live.Json.ToString() }));
+                    }
+                    return;
+                }
                 if (@event["index"]?.JSONValueInt is not { } deltaIndexLong || !stream.BlockIDs.TryGetValue(deltaIndexLong, out var deltaID) || @event["delta"] is not { } delta) return;
                 switch (delta["type"]?.JSONValueString)
                 {

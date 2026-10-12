@@ -258,6 +258,11 @@ public sealed class FakeWebView : IWebEngineView
 
     public void PostMessage(string json) => Log.Add($"Post {json}");
 
+    /// <summary>W8a: what <see cref="GetFaviconAsync"/> returns (the browser's cached favicon).</summary>
+    public byte[]? FaviconBytes { get; set; }
+
+    public Task<byte[]?> GetFaviconAsync(CancellationToken cancellationToken) => Task.FromResult(FaviconBytes);
+
     public Task<WebSnapshot?> CaptureSnapshotAsync(CancellationToken cancellationToken)
     {
         Captures++;

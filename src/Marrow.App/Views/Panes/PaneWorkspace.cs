@@ -1153,6 +1153,7 @@ public sealed partial class PaneWorkspace : Panel
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Handled || keyTop is null || PaneShortcuts.ChordOf(e) is not { } chord) return;
+        if (ShortcutScopeHost.FocusClaims(keyTop, e)) return; // the focused pane answers it (Visus's browser keys, W8a)
         var store = ShortcutStore.Shared.Current;
         if (ShortcutScopes.Resolve(store, chord) is not { } command || !PaneShortcuts.IsPaneCommand(command)) return;
         if (!ShortcutScopes.Takes(ShortcutScopeHost.ScopeOfFocus(keyTop), store, chord)) return;

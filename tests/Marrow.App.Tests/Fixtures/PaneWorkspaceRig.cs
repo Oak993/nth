@@ -40,7 +40,8 @@ public sealed class PaneWorkspaceRig : IDisposable
         ChatReflow reflow = ChatReflow.Live,
         bool reduceMotion = false,
         Func<PaneKind, PaneContent?>? contents = null,
-        PaneWorkspaceState? state = null)
+        PaneWorkspaceState? state = null,
+        bool popupLayers = false)
     {
         Runtime = new TestRuntime();
         // The window's models (WindowLiveResize) are main-actor isolated: the UI thread is the main actor here, as in the app.
@@ -66,6 +67,7 @@ public sealed class PaneWorkspaceRig : IDisposable
         Resize = new WindowLiveResize(Window);
         AppEnvironment.SetWindowLiveResize(Window, Resize);
         if (state is not null) Workspace.SetState(state, animate: false);
+        if (popupLayers) SettingsProviderPopupLayers.Install(Window); // web W8a: the pane's popovers open in the window
         Window.Show();
         Layout();
     }

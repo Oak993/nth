@@ -32,6 +32,7 @@ public static class DroppyCodeApp
         // PORT-ONLY (web surfaces): the workspace panes this build can draw (DESIGN 3.1); each pane unit registers its own.
         Marrow.App.Views.Diff.DiffPane.Register(); // W4
         Marrow.App.Views.Terminal.TerminalPane.Register(); // W4
+        Marrow.App.Views.Browser.VisusPane.Register(); // W8a
     }
 
     // ED-002 [LAUNCH]: macOS gets single-instance behavior from Launch Services for free; the source contributes
