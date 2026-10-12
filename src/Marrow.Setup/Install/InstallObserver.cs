@@ -1,52 +1,40 @@
+using Marrow.Setup.Port;
+
 namespace Marrow.Setup.Install;
 
-/// <summary>One look at what Velopack's <c>Setup.exe</c> has done so far.</summary>
-/// <param name="CopiedBytes">Bytes of this run's files in the root's folders (<c>packages\</c>, <c>current\</c> and any folder it extracts through).</param>
-/// <param name="ResultWritten">The install hook has written <c>install-result.json</c>.</param>
-/// <param name="Log">What the log has said so far (the same object every time).</param>
+/// <summary>One look at what Velopack's Setup.exe has done so far.</summary>
 public sealed record InstallObservation(long CopiedBytes, bool ResultWritten, VelopackLogSignals Log);
 
 /// <summary>
-/// PORT-ONLY (nth installer PLAN.md 4, "Copying"; VELOPACK_CHECK.md check 5; unit U3, ED-NEW-inst-u3-1). Watches the install
-/// root while <c>Setup.exe</c> runs. Copying counts the bytes in every folder under the root (Velopack writes
-/// <c>packages\NthApp-&lt;v&gt;-full.nupkg</c>, then extracts <c>current\</c> in place; a version that extracts through a
-/// folder and renames it is still counted, because the folder is inside the root) and leaves out the root's own files
-/// (Update.exe and the stub, which T_pkg + T_app do not hold). Only files made during this run count: before an upgrade
-/// Velopack renames the old root away, and until then the old install's files are still there, so a file whose creation
-/// time is before the run (less a 2 s allowance for the file system's clock) is not this run's. A file the directory
-/// listing shows as recently written is asked for its size again by path (<c>GetFileAttributesEx</c>, no handle kept),
-/// because NTFS updates a directory entry's size only when the writer closes it, and the 118 MB package is written as one
-/// file. The walk is about 250 files.
+/// PORT-ONLY: PLAN 4, ED-NEW-inst-c7-1. Snapshot the old file identities before the runner starts, then count only new
+/// identities in the root's folders. Recent timestamps, a rename, or a hard link never turn leftover files into new
+/// attempt bytes. A replaced root can reuse the same paths, sizes and timestamps while holding different files.
+/// Identity uncertainty withholds copied-byte evidence; log/hook/exit evidence remains available.
 /// </summary>
 public sealed class InstallObserver
 {
     private static readonly TimeSpan Allowance = TimeSpan.FromSeconds(2);
-    private static readonly TimeSpan Recent = TimeSpan.FromSeconds(5);
     private readonly string root;
     private readonly string? resultPath;
     private readonly VelopackLogTail? log;
     private readonly DateTime runStartUtc;
-    private readonly Func<DateTime> fileClock;
+    private readonly Func<string, InstallFileSnapshot?> snapshot;
+    private readonly HashSet<InstallFileIdentity> baseline = [];
+    private readonly bool baselineKnown;
 
-    /// <param name="root">The install root Setup.exe was given.</param>
-    /// <param name="logPath">The <c>--log</c> file, or null.</param>
-    /// <param name="logStart">The log's length before the run.</param>
-    /// <param name="resultPath">The hook's <c>install-result.json</c> (deleted before the run).</param>
-    /// <param name="runStartUtc">When Setup.exe was started, on the file system's clock.</param>
-    /// <param name="fileClock">The file system's clock (UTC now).</param>
-    public InstallObserver(string root, string? logPath, long logStart, string? resultPath, DateTime runStartUtc, Func<DateTime>? fileClock = null)
+    public InstallObserver(string root, string? logPath, long logStart, string? resultPath, DateTime runStartUtc,
+        Func<DateTime>? fileClock = null, Func<string, InstallFileSnapshot?>? snapshot = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(root);
         this.root = root;
         this.resultPath = resultPath;
         this.runStartUtc = runStartUtc;
-        this.fileClock = fileClock ?? (() => DateTime.UtcNow);
+        this.snapshot = snapshot ?? WindowsInstallFileIdentity.Read;
         log = logPath is null ? null : new VelopackLogTail(logPath, logStart);
+        baselineKnown = ReadBaseline();
     }
 
     public VelopackLogSignals Signals { get; } = new();
-
-    /// <summary>The log's last 40 lines (for Copy details).</summary>
     public IReadOnlyList<string> RecentLog => log?.Recent ?? [];
 
     public InstallObservation Observe()
@@ -55,38 +43,61 @@ public sealed class InstallObserver
         return new InstallObservation(CopiedBytes(), ResultWritten(), Signals);
     }
 
-    private long CopiedBytes()
+    private bool ReadBaseline()
     {
-        var total = 0L;
         try
         {
-            var top = new DirectoryInfo(root);
-            if (!top.Exists) return 0;
-            var since = runStartUtc - Allowance;
-            var recent = fileClock() - Recent;
-            var options = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint, ReturnSpecialDirectories = false };
-            foreach (var folder in top.EnumerateDirectories("*", new EnumerationOptions { IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint }))
+            foreach (var file in Files(ignoreInaccessible: false, includeRoot: true))
             {
-                foreach (var file in folder.EnumerateFiles("*", options))
-                {
-                    if (file.CreationTimeUtc < since) continue;
-                    var length = file.Length;
-                    if (file.LastWriteTimeUtc >= recent) length = Math.Max(length, FreshLength(file.FullName));
-                    total += length;
-                }
+                if (snapshot(file.FullName) is not { } seen) return false;
+                baseline.Add(seen.Identity);
+            }
+            return true;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return false; }
+    }
+
+    private long CopiedBytes()
+    {
+        if (!baselineKnown) return 0;
+        var total = 0L;
+        var counted = new HashSet<InstallFileIdentity>();
+        try
+        {
+            foreach (var file in Files(ignoreInaccessible: true, includeRoot: false))
+            {
+                if (snapshot(file.FullName) is not { } seen || baseline.Contains(seen.Identity) || !counted.Add(seen.Identity)) continue;
+                var length = Math.Max(0, seen.Length);
+                total = length > long.MaxValue - total ? long.MaxValue : total + length;
             }
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
-            // Velopack is renaming or emptying the root at this moment; the next look counts it.
+            // Velopack is replacing the root; the next look counts it. No old identity ever becomes eligible.
         }
         return total;
     }
 
-    private static long FreshLength(string path)
+    private IEnumerable<FileInfo> Files(bool ignoreInaccessible, bool includeRoot)
     {
-        try { return new FileInfo(path).Length; }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return 0; }
+        FileAttributes attributes;
+        try { attributes = File.GetAttributes(root); }
+        catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException) { yield break; }
+        if ((attributes & FileAttributes.Directory) == 0) throw new IOException("The install root is not a directory.");
+        var top = new DirectoryInfo(root);
+        var options = new EnumerationOptions
+        {
+            RecurseSubdirectories = true, IgnoreInaccessible = ignoreInaccessible,
+            AttributesToSkip = FileAttributes.ReparsePoint, ReturnSpecialDirectories = false,
+        };
+        if (includeRoot)
+        {
+            foreach (var file in top.EnumerateFiles("*", options)) yield return file;
+            yield break;
+        }
+        foreach (var folder in top.EnumerateDirectories("*", new EnumerationOptions
+                 { IgnoreInaccessible = ignoreInaccessible, AttributesToSkip = FileAttributes.ReparsePoint }))
+            foreach (var file in folder.EnumerateFiles("*", options)) yield return file;
     }
 
     private bool ResultWritten()
