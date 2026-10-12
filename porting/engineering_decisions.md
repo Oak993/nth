@@ -6269,3 +6269,7 @@ ENGINEERING DECISION. Owner accepted C6-F9 (2026-10-12); ED-NEW-dextra-as2-6 ite
 ## ED-NEW-dextra-c6c-1
 
 ENGINEERING DECISION. Owner accepted verifier D1 (C6c, 2026-10-12). Keep the F8 reentrant subscription gate unchanged. The regression blocks a running callback, starts an external disposer on a dedicated thread, and observes that thread actually waiting for the join rather than merely scheduled before a call. Signals release the callback and positively prove it ended before Dispose returned; a later publish proves retirement. There are no sleep-based negative assertions. Temporary deletion of the Dispose join and of the Invoke lock are tested separately in this worktree and restored byte-exact before green. This refines ED-NEW-dextra-cx-8 verification, not its semantics.
+
+## ED-NEW-dextra-c6c-2
+
+ENGINEERING DECISION (C6c D2, 2026-10-12): Mask the entire value of single-quoted dictionary keys, backslash-quoted embedded JSON keys/values, escaped outer quotes and doubled YAML single quotes. A timed header regex finds secret names and separators; a single bounded value walk preserves the existing complete long/multiline/unterminated masking and idempotence. The six new shape tests fail twice alone before this change; plain JSON is an already-green control. No source/design string or provider behavior changes.
