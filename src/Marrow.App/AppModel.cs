@@ -78,6 +78,7 @@ public sealed partial class AppModel : MainActorModel
     private Dictionary<Guid, ObservedValue<ChatThread?>> threadCells = []; // AppModel.swift:63
     private Dictionary<Guid, ObservedValue<ValueList<Guid>>> childCells = []; // AppModel.swift:67
     private Dictionary<Guid, ObservedValue<bool>> selectionCells = []; // AppModel.swift:71
+    private readonly HashSet<Guid> strayChildCells = []; // ED-NEW-lean-16: child cells asked for a parent that does not exist
     private Guid? selectedThreadID;
     private Guid? sidebarRevealThreadID;
     private bool isCommandPalettePresented = false;
@@ -280,6 +281,7 @@ public sealed partial class AppModel : MainActorModel
         }
         foreach (var (parentID, ids) in children) // AppModel.swift:200-202
             if (!childCells.ContainsKey(parentID)) childCells[parentID] = new ObservedValue<ValueList<Guid>>(new ValueList<Guid>(ids));
+        strayChildCells.Clear(); // ED-NEW-lean-16: what follows drops every cell of a parent that neither exists nor has children
         if (childCells.Count == children.Count) return; // AppModel.swift:203
         var live = values.Select(thread => thread.Id).ToHashSet(); // AppModel.swift:204
         foreach (var parentID in childCells.Keys.ToArray()) // AppModel.swift:205-207
@@ -288,9 +290,91 @@ public sealed partial class AppModel : MainActorModel
 
     private ValueList<Guid> ChildIDs(Guid parentID)
     {
-        if (!childCells.TryGetValue(parentID, out var cell)) childCells[parentID] = cell = new ObservedValue<ValueList<Guid>>(ValueList<Guid>.Empty);
+        if (!childCells.TryGetValue(parentID, out var cell))
+        {
+            childCells[parentID] = cell = new ObservedValue<ValueList<Guid>>(ValueList<Guid>.Empty);
+            if (!threadCells.ContainsKey(parentID)) strayChildCells.Add(parentID); // ED-NEW-lean-16: the next thread event drops it
+        }
         return cell.Value;
     } // AppModel.swift:212-219
+
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-lean-16). Assigns <paramref name="value"/> to <see cref="Threads"/> when it differs from the list held
+    /// only at <paramref name="changed"/> (ascending, each a real change), and every one of those keeps its id, project and
+    /// parent: the cells, the child cells and the index then stay as they are but for the changed threads' own cells, so the
+    /// event costs no pass over the library. Writes the cells and drops the stray child cells exactly as the setter's full
+    /// sync (AppModel.swift:33-45, :157-210) would for such a list. Returns false, assigning nothing, for any other change
+    /// (a thread added, removed, moved to another project or parent, a repeated id, or no net change), which takes the setter.
+    /// </summary>
+    private bool AssignThreadsInPlace(ValueList<ChatThread> value, IReadOnlyList<int> changed)
+    {
+        if (changed.Count == 0) return false; // the lists are equal (changes that cancel out): the setter, whose Set tells no one
+        var held = threads;
+        if (value.Count != held.Count || threadCells.Count != held.Count) return false; // threadCells holds one cell per distinct id
+        foreach (var index in changed)
+        {
+            var before = held[index];
+            var after = value[index];
+            if (after.Id != before.Id || after.ProjectID != before.ProjectID || after.ParentThreadID != before.ParentThreadID) return false;
+        }
+        SetAlways(ref threads, value, _ =>
+        {
+            if (changed.Count == 1)
+            {
+                var thread = value[changed[0]];
+                var cell = threadCells[thread.Id];
+                if (!EqualityComparer<ChatThread?>.Default.Equals(cell.Value, thread)) cell.Value = thread;
+            }
+            else
+            {
+                var writes = new List<(ObservedValue<ChatThread?> Cell, ChatThread? Value)>(changed.Count);
+                foreach (var index in changed)
+                {
+                    var thread = value[index];
+                    var cell = threadCells[thread.Id];
+                    if (!EqualityComparer<ChatThread?>.Default.Equals(cell.Value, thread)) writes.Add((cell, thread));
+                }
+                Write(writes);
+            }
+            if (strayChildCells.Count == 0) return;
+            foreach (var parentID in strayChildCells) // AppModel.swift:203-207
+                if (!threadCells.ContainsKey(parentID) && childCells.TryGetValue(parentID, out var stray) && stray.Value.Count == 0)
+                    childCells.Remove(parentID);
+            strayChildCells.Clear();
+        }, nameof(Threads));
+        return true;
+    }
+
+    // PORT-ONLY (ED-NEW-lean-16): where two lists of the same length differ, ascending (an empty list when the lengths differ).
+    private static List<int> ChangedIndices(ValueList<ChatThread> held, ValueList<ChatThread> value)
+    {
+        var changed = new List<int>();
+        if (held.Count != value.Count) return changed;
+        for (var index = 0; index < value.Count; index++)
+            if (held[index] != value[index]) changed.Add(index);
+        return changed;
+    }
+
+    // PORT-ONLY (ED-NEW-lean-16): the held list with one thread replaced, copied once by ValueList's constructor.
+    private sealed class OneReplaced(ValueList<ChatThread> source, int index, ChatThread value) : ICollection<ChatThread>
+    {
+        public int Count => source.Count;
+        public bool IsReadOnly => true;
+        public void CopyTo(ChatThread[] array, int arrayIndex)
+        {
+            source.CopyTo(array, arrayIndex);
+            array[arrayIndex + index] = value;
+        }
+        public IEnumerator<ChatThread> GetEnumerator()
+        {
+            for (var position = 0; position < source.Count; position++) yield return position == index ? value : source[position];
+        }
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        public bool Contains(ChatThread item) => throw new NotSupportedException();
+        public void Add(ChatThread item) => throw new NotSupportedException();
+        public void Clear() => throw new NotSupportedException();
+        public bool Remove(ChatThread item) => throw new NotSupportedException();
+    }
 
     private ObservedValue<bool> SelectionCell(Guid id)
     {
@@ -674,7 +758,8 @@ public sealed partial class AppModel : MainActorModel
             changed |= previous != updated[index];
         }
         if (!changed) return;
-        Threads = new ValueList<ChatThread>(updated);
+        var value = new ValueList<ChatThread>(updated);
+        if (!AssignThreadsInPlace(value, ChangedIndices(threads, value))) Threads = value; // ED-NEW-lean-16
         ScheduleSave();
     }
 
@@ -850,7 +935,8 @@ public sealed partial class AppModel : MainActorModel
         if (changed.Provider != threads[index].Provider && !accountSwitch) changed = changed with { ProviderAccountID = null };
         if (changed == threads[index]) return; // AppModel.swift:711: nothing changed, nothing assigned or saved
         var before = threads[index];
-        Threads = threads.SetItem(index, changed); // AppModel.swift:712
+        var value = new ValueList<ChatThread>(new OneReplaced(threads, index, changed)); // threads.SetItem(index, changed), one copy
+        if (!AssignThreadsInPlace(value, [index])) Threads = value; // AppModel.swift:712; ED-NEW-lean-16
         ScheduleSave(); // AppModel.swift:713
         IgnisThreadChanged(before, changed); // PORT-ONLY ED-NEW-ignis-guards: a model switch's cost notice
     }
@@ -1364,7 +1450,8 @@ public sealed partial class AppModel : MainActorModel
             changed = true;
         }
         if (!changed) return;
-        Threads = new ValueList<ChatThread>(updated);
+        var value = new ValueList<ChatThread>(updated);
+        if (!AssignThreadsInPlace(value, ChangedIndices(threads, value))) Threads = value; // ED-NEW-lean-16
         ScheduleSave();
         UpdateDockBadge();
     }
