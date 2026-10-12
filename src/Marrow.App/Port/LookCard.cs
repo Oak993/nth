@@ -53,7 +53,8 @@ public sealed class LookCard : Decorator
     /// LEAD RULING (rec-linebox, 2026-10-04; ED-316 (6)): the rows are Swift ChromeRows, which the Mac draws 58 tall (ED-290 (1),
     /// 1-settings-tour.mov S 23.5 and S 194.0), so the rows are 58 and the card follows its content; the owner-approved board was drawn with
     /// 54-point rows, so its other geometry is kept and only the row height changes: each control keeps the board's offset from its own row
-    /// top, the segments 13 (SPEC 2.3) and the Classic line 15 (SPEC 2.5), and the 4 extra points fall below them.
+    /// top, the segments 13 (SPEC 2.3) and the Classic line 15 (SPEC 2.5), and the 4 extra points fall below them. At the Settings
+    /// sizes of ED-NEW-textsize-2 the rows are 18 + 17 + 2 + 16 + 18 = 71 and the offsets hold the same way.
     /// </summary>
     public const double SegmentsTop = 13, LineTop = 15;
 
@@ -462,11 +463,14 @@ public sealed class LookCard : Decorator
     private static ChromeRow Row(string title, Control control, CrossfadeText detail, double controlTop)
     {
         var row = new ChromeRow(title, () => control, " ");
-        // The control at the board's offset from the row's top (LEAD RULING above), not centred in the taller row: the row's padding is 11.
+        var shell = (Border)row.Child!;
+        // The control at the board's offset from the row's top (LEAD RULING above), not centred in the taller row: measured from
+        // the row's own top padding (the source's 11; the Settings rows' 18, ED-NEW-textsize-2), so the segments and the Classic
+        // line sit beside the title's line and the taller text falls below them.
         control.VerticalAlignment = VerticalAlignment.Top;
-        control.Margin = new Thickness(0, controlTop - 11, 0, 0);
+        control.Margin = new Thickness(0, controlTop - shell.Padding.Top, 0, 0);
         // The row's own detail slot (ChromeRow: Border > Grid > the title and detail stack) takes the crossfading line.
-        var grid = (Grid)((Border)row.Child!).Child!;
+        var grid = (Grid)shell.Child!;
         var labels = (StackPanel)grid.Children[0];
         labels.Children[1] = detail;
         // SPEC 2.1: the board's 28 between the text column and the control (ChromeRow's HStack gives 16 + 12 + 16), so the

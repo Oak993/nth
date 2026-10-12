@@ -15,6 +15,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.VisualTree;
 using Marrow.Core.Port;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
@@ -121,6 +122,19 @@ namespace Marrow.UI.Chrome
         public const double ContentHorizontalPadding = 16; // :61
         public const double RowControlTrailingPadding = 10; // :63
         public const double RowButtonLabelHeight = 16; // :67
+
+        // ED-NEW-textsize-2 (owner, 2026-10-11: "Try to match this text size that Claude uses"): the Settings type, drawn under
+        // AppZoom.BaseScale (1.3) at the size of the Claude desktop app's Settings at 96 DPI (claude-settings-windowed.png, 1:1):
+        // section headers 20 px semibold, row titles 18 px, descriptions 17 px on a 26 px line, navigation items 18 px on a
+        // 43 px pitch, rows about 24 px from their hairlines. 15 x 1.3 = 19.5, 14 x 1.3 = 18.2, 13 x 1.3 = 16.9, 20 x 1.3 = 26,
+        // 33 x 1.3 = 42.9, 18 x 1.3 = 23.4. The source's are .body semibold (13), .body (13), .subheadline (11), 28 and 11.
+        public const double SettingsSectionTitleSize = 15;
+        public const double SettingsRowTitleSize = 14;
+        public const double SettingsRowDetailSize = 13;
+        public const double SettingsRowDetailLineHeight = 20;
+        public const double SettingsRowVerticalPadding = 18;
+        public const double SettingsNavRowHeight = 33;
+        public const double SettingsNavTitleSize = 14;
 
         // MARK: Color and motion
 
@@ -1393,7 +1407,9 @@ namespace Marrow.UI.Chrome
             bool isSelected = false,
             bool isEmphasized = false,
             double accessoryWidth = 0,
-            bool pressLook = false)
+            bool pressLook = false,
+            double rowHeight = Chrome.RowHeight,
+            double? titleSize = null)
         {
             selected = isSelected;
             var state = new ViewState();
@@ -1404,7 +1420,8 @@ namespace Marrow.UI.Chrome
             var text = new TextBlock { Text = title, MaxLines = 1, TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis }; // :714, :718-719 .lineLimit(1).truncationMode(.tail)
             void ApplyText()
             {
-                SwiftFont.System(SwiftFont.TextStyle.Body, weight: selected || isEmphasized ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(text); // :717
+                var weight = selected || isEmphasized ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular;
+                (titleSize is { } size ? SwiftFont.System(size, weight) : SwiftFont.System(SwiftFont.TextStyle.Body, weight: weight)).Apply(text); // :717; a Settings navigation row's own size (ED-NEW-textsize-2)
                 text.Foreground = Chrome.PrimaryText.Opacity(selected ? 1 : 0.92).Brush(text); // :718
             }
             ApplyText();
@@ -1420,7 +1437,7 @@ namespace Marrow.UI.Chrome
             var shape = new Border // :722 RoundedRectangle(cornerRadius: rowCornerRadius, style: .continuous).fill(fill)
             {
                 Padding = new Thickness(Chrome.RowHorizontalPadding, 0, Chrome.RowHorizontalPadding + accessoryWidth, 0), // :725-726
-                Height = Chrome.RowHeight, // :727
+                Height = rowHeight, // :727 Chrome.RowHeight; a Settings navigation row's own (ED-NEW-textsize-2)
                 HorizontalAlignment = HorizontalAlignment.Stretch, // :728
                 Background = Brushes.Transparent,
                 Child = row,
@@ -2082,7 +2099,7 @@ namespace Marrow.UI.Chrome
         public ChromeSection(string title, Func<Control> content, Control? accessory = null, Control? trailing = null)
         {
             var heading = new TextBlock { Text = title, TextWrapping = TextWrapping.Wrap }; // :1040 no lineLimit: a long title wraps
-            SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold).Apply(heading); // :1041
+            SwiftFont.System(Chrome.SettingsSectionTitleSize, SwiftFont.Weight.Semibold).Apply(heading); // :1041 .body semibold; ED-NEW-textsize-2
             heading.Foreground = Chrome.SecondaryText.Brush(heading); // :1042
             var header = new ChromeSectionHeaderPanel { Orientation = Orientation.Horizontal, Spacing = 4 }; // :1039 HStack(spacing: 4)
             header.Children.Add(heading);
@@ -2105,6 +2122,26 @@ namespace Marrow.UI.Chrome
     // :1055-1080 struct ChromeRow<Control: View>: View
     public sealed class ChromeRow : Decorator
     {
+        /// <summary>
+        /// ED-NEW-textsize-1 (owner, 2026-10-11): the narrowest the title column may be beside its control, unless its title and detail
+        /// each fit a narrower one on one line (a short title and a fitted line keep the source's layout). Below it the row stacks: the
+        /// title and detail across the whole row, the control under them at the leading edge.
+        /// </summary>
+        public const double MinimumLabelWidth = 190;
+
+        /// <summary>The gap between the text and a control stacked under it.</summary>
+        public const double StackedControlSpacing = 8;
+
+        private readonly Grid row;
+        private readonly StackPanel textStack;
+        private readonly Control controlView;
+        private readonly AnimatedScalar progress;
+        private bool? stacked;
+        private bool measuring;
+        private double fromHeight;
+        private Point fromControl;
+        private ITransform? flipTransform;
+
         /// <param name="title">:1056 <c>let title: String</c>.</param>
         /// <param name="control">:1058 <c>@ViewBuilder var control: Control</c>.</param>
         /// <param name="detail">:1057 <c>var detail: String?</c>.</param>
@@ -2112,23 +2149,25 @@ namespace Marrow.UI.Chrome
         // at the trailing edge.
         public ChromeRow(string title, Func<Control> control, string? detail = null)
         {
-            var titleText = new TextBlock { Text = title, TextWrapping = TextWrapping.Wrap }; // :1064-1065 normal Text wrapping
-            SwiftFont.System(SwiftFont.TextStyle.Body).Apply(titleText); // :1064
+            // ED-NEW-textsize-1: words wrap whole; a single word wider than the row ends in an ellipsis, never a break inside it.
+            var titleText = new TextBlock { Text = title, TextWrapping = TextWrapping.WrapWithOverflow, TextTrimming = TextTrimming.CharacterEllipsis }; // :1064-1065 normal Text wrapping
+            SwiftFont.System(Chrome.SettingsRowTitleSize).Apply(titleText); // :1064 .body; ED-NEW-textsize-2
             titleText.Foreground = Chrome.PrimaryText.Brush(titleText); // :1065
-            var textStack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2, HorizontalAlignment = HorizontalAlignment.Left }; // :1063, :1066
+            textStack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2, HorizontalAlignment = HorizontalAlignment.Left }; // :1063, :1066
             textStack.Children.Add(titleText);
             if (!string.IsNullOrEmpty(detail)) // :1067 `if let detail, !detail.isEmpty`
             {
-                var detailText = new TextBlock { Text = detail, TextWrapping = TextWrapping.Wrap }; // :1068-1070
-                SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(detailText); // :1068
+                var detailText = new TextBlock { Text = detail, TextWrapping = TextWrapping.WrapWithOverflow, TextTrimming = TextTrimming.CharacterEllipsis }; // :1068-1070
+                SwiftFont.System(Chrome.SettingsRowDetailSize).Apply(detailText); // :1068 .subheadline; ED-NEW-textsize-2
+                detailText.LineHeight = Chrome.SettingsRowDetailLineHeight;
                 detailText.Foreground = Chrome.SecondaryText.Brush(detailText); // :1069
                 textStack.Children.Add(detailText);
             }
-            var controlView = control(); // :1073
+            controlView = control(); // :1073
             controlView.HorizontalAlignment = HorizontalAlignment.Right;
             controlView.VerticalAlignment = VerticalAlignment.Center;
             // :1062, :1072 HStack has two 16-point gaps around Spacer(minLength: 12).
-            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,16,12,16,Auto") };
+            row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,16,12,16,Auto") };
             textStack.HorizontalAlignment = HorizontalAlignment.Stretch;
             Grid.SetColumn(textStack, 0);
             Grid.SetColumn(controlView, 4);
@@ -2137,10 +2176,129 @@ namespace Marrow.UI.Chrome
             row.VerticalAlignment = VerticalAlignment.Center;
             var border = new Border
             {
-                Padding = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11), // :1074-1076
+                Padding = new Thickness(16, Chrome.SettingsRowVerticalPadding, Chrome.RowControlTrailingPadding, Chrome.SettingsRowVerticalPadding), // :1074-1076 (11); ED-NEW-textsize-2
                 Child = row,
             };
             Child = border;
+            progress = new AnimatedScalar(this, 1, _ => { if (!measuring) InvalidateMeasure(); });
+        }
+
+        /// <summary>ED-NEW-textsize-1: whether the control sits under the text (the title column would be too narrow beside it).</summary>
+        public bool IsStacked => stacked == true;
+
+        // The title column beside the control at this width: the row less its padding, the HStack's gaps and the control.
+        private bool Wants(double width)
+        {
+            if (!double.IsFinite(width)) return false;
+            var gaps = 0.0; // the HStack's 16 + 12 + 16, or what a card that builds on the row set them to
+            for (var column = 1; column <= 3; column++)
+                if (row.ColumnDefinitions[column].Width.IsAbsolute) gaps += row.ColumnDefinitions[column].Width.Value;
+            controlView.Measure(Size.Infinity);
+            var label = width - 16 - Chrome.RowControlTrailingPadding - gaps - controlView.DesiredSize.Width;
+            if (label >= MinimumLabelWidth) return false;
+            // Narrower still, the row stacks when any of its words would wrap there: the title, or a detail (a card's own fitted
+            // line, as the Look card's, keeps the source's layout).
+            foreach (var words in textStack.Children)
+            {
+                if (!words.IsVisible) continue;
+                words.Measure(Size.Infinity);
+                if (words.DesiredSize.Width > label) return true;
+            }
+            return false;
+        }
+
+        // How the control sits beside the text, as the row (or a card that builds on it) set it, put back when the row unstacks.
+        private bool placedStacked;
+        private Thickness besideMargin;
+        private HorizontalAlignment besideAlignment;
+
+        private void Place(bool stack)
+        {
+            if (stack == placedStacked) return; // the constructor laid the row out beside
+            if (stack) { besideMargin = controlView.Margin; besideAlignment = controlView.HorizontalAlignment; }
+            placedStacked = stack;
+            Grid.SetRow(controlView, stack ? 1 : 0);
+            Grid.SetColumn(controlView, stack ? 0 : 4);
+            Grid.SetColumnSpan(controlView, stack ? 5 : 1);
+            Grid.SetColumnSpan(textStack, stack ? 5 : 1);
+            controlView.HorizontalAlignment = stack ? HorizontalAlignment.Left : besideAlignment;
+            controlView.Margin = stack ? new Thickness(0, StackedControlSpacing, 0, 0) : besideMargin;
+            if (stack && row.RowDefinitions.Count == 0) row.RowDefinitions = new RowDefinitions("Auto,Auto");
+            else if (!stack && row.RowDefinitions.Count > 0) row.RowDefinitions = new RowDefinitions();
+        }
+
+        // Where the control is laid out in the row now, without the move this row draws it with.
+        private Point ControlOrigin()
+        {
+            var at = controlView.Bounds.Position;
+            for (var up = controlView.GetVisualParent(); up is not null && !ReferenceEquals(up, this); up = up.GetVisualParent())
+                at += up.Bounds.Position;
+            return at;
+        }
+
+        private Vector CurrentShift() =>
+            controlView.RenderTransform is TranslateTransform shift && ReferenceEquals(shift, flipTransform) ? new Vector(shift.X, shift.Y) : default;
+
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            measuring = true;
+            try
+            {
+                var want = Wants(availableSize.Width);
+                if (stacked != want)
+                {
+                    // A row already laid out eases into its other layout, so a resize across the threshold never snaps; the
+                    // first layout, and Reduce Motion, take it at once.
+                    var animate = stacked is not null && Bounds.Height > 0 && this.IsAttachedToVisualTree()
+                        && !Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion;
+                    if (animate)
+                    {
+                        fromHeight = progress.Value < 1 ? DesiredSize.Height : Bounds.Height;
+                        fromControl = ControlOrigin() + CurrentShift();
+                    }
+                    stacked = want;
+                    Place(want);
+                    if (animate)
+                    {
+                        progress.Set(0, null);
+                        progress.Set(1, Animation.EaseInOut(0.25));
+                    }
+                }
+                var natural = base.MeasureOverride(availableSize);
+                var p = progress.Value;
+                ClipToBounds = p < 1;
+                if (p >= 1) return natural;
+                return new Size(natural.Width, fromHeight + (natural.Height - fromHeight) * p);
+            }
+            finally { measuring = false; }
+        }
+
+        protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            progress.Finish(); // a row taken away mid-ease comes back at rest
+            base.OnDetachedFromVisualTree(e);
+        }
+
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            // While the row eases to its new height the content keeps its own (clipped meanwhile), so nothing in it is squeezed.
+            if (Child is { } child) child.Arrange(new Rect(0, 0, finalSize.Width, Math.Max(finalSize.Height, child.DesiredSize.Height)));
+            var p = progress.Value;
+            if (controlView.RenderTransform is null || ReferenceEquals(controlView.RenderTransform, flipTransform))
+            {
+                if (p >= 1)
+                {
+                    if (flipTransform is not null) controlView.RenderTransform = null;
+                    flipTransform = null;
+                }
+                else
+                {
+                    // The control travels from where it was drawn to its new place along the same ease.
+                    var delta = fromControl - ControlOrigin();
+                    controlView.RenderTransform = flipTransform = new TranslateTransform(delta.X * (1 - p), delta.Y * (1 - p));
+                }
+            }
+            return finalSize;
         }
     }
 

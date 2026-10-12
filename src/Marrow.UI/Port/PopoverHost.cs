@@ -203,7 +203,9 @@ public static class PopoverHost
             if (Facing(popup) is not null) Wrap(popup);
             // What Popup.Open's SetChild does: both hosts (PopupRoot, OverlayPopupHost) show their Content. A child taken away
             // for a while (a site measures it elsewhere) leaves the host showing what it shows.
-            if (popup.Child is { } child && host is ContentControl hosted && !ReferenceEquals(hosted.Content, child)) hosted.Content = child;
+            // ED-NEW-textsize-1: through the popup's zoom, so the new content is drawn at the app zoom too.
+            if (popup.Child is { } child && host is ContentControl hosted && !ReferenceEquals(Marrow.UI.Common.PopupZoom.Shown(hosted), child))
+                Marrow.UI.Common.PopupZoom.Show(popup, hosted, child);
         };
         // The window the popover hangs over keeps the keyboard (a native popup window is not activated: Windows sends every key to the window under it), so the keys a popover
         // owns reach it from there: Escape closes it and Return is its default button (see ForwardKey).

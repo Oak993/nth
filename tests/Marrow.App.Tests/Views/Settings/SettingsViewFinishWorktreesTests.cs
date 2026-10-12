@@ -27,7 +27,7 @@ public sealed class SettingsViewFinishWorktreesTests(HeadlessSession headless) :
             // :808,:818,:836 the page's sections in order; the last is headed "Worktrees and pull requests".
             var sections = Nodes<ChromeSection>(page); Assert.Equal(new[] { "Text generation", "Commit message instructions", "Worktrees and pull requests" }, sections.Select(s => Text(s).First())); var section = sections[2];
             // Chrome.swift:1037-1044 the header .body semibold in secondary text, 10pt above the card (sectionHeaderSpacing); :1011-1026 the card a 16pt continuous shape filled with overlay(0.03).
-            var header = Nodes<TextBlock>(section).First(); Assert.Equal("Worktrees and pull requests", header.Text); Font(header, 13, FontWeight.SemiBold); Ink(header, header.Foreground, Chrome.SecondaryText);
+            var header = Nodes<TextBlock>(section).First(); Assert.Equal("Worktrees and pull requests", header.Text); Font(header, Chrome.SettingsSectionTitleSize, FontWeight.SemiBold); Ink(header, header.Foreground, Chrome.SecondaryText);
             var card = Assert.Single(Nodes<ChromeCard>(section)); Assert.Equal(10, TopLeft(card, section).Y - (TopLeft(header, section).Y + header.Bounds.Height), 3); var shape = Assert.IsType<Border>(card.Child); Assert.Equal(new CornerRadius(16), shape.CornerRadius); Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(shape)); Ink(shape, shape.Background, Chrome.Overlay(0.03));
             // :837-846 two rows with a divider between them, in that order.
             var rows = Nodes<ChromeRow>(card); Assert.Equal(new[] { "Worktrees", "Pull requests" }, rows.Select(r => Text(r).First())); var divider = Assert.Single(Nodes<ChromeRowDivider>(card));

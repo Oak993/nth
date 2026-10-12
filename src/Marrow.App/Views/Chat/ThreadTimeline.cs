@@ -264,6 +264,7 @@ public sealed class ThreadTimeline : Decorator
                 Control column;
                 if (drawnColumn is Grid kept) { column = kept; kept.Width = width ?? double.NaN; }
                 else column = CreateColumn(body, SteppedHeight(columnHeight, 0, 0), width);
+                HoldText(column); // ED-NEW-textsize-3
                 // :384-440 one ScrollView for the life of the timeline. A new scroll view per draw started its geometry
                 // history from zero, which read as "the reader was at the end": the first change re-pinned a reader who
                 // had scrolled up and snapped them down on every new row (Swift :686-709 leaves them where they are).
@@ -353,7 +354,8 @@ public sealed class ThreadTimeline : Decorator
             inputs = (runtime, scrollChrome, scrollState, nextProject, nextDirectory, nextRewind, nextHeight, nextMinimap);
             Draw();
         };
-        DetachedFromVisualTree += (_, _) => { initialHistoryTask?.Cancel(); initialHistoryTask = null; initialHistoryStarted = false; tracking.EndActivity(); };
+        DetachedFromVisualTree += (_, _) => { initialHistoryTask?.Cancel(); initialHistoryTask = null; initialHistoryStarted = false; tracking.EndActivity(); FollowZoom(null); };
+        AttachedToVisualTree += (_, _) => FollowZoom(ZoomMotion.For(this)); // ED-NEW-textsize-3
         this.Track(() => scrollState.JumpRequest, _ => { tracking.IsPinnedToBottom = anchorsBottomOnGrowth = true; EndWithAnimation(scrollState.JumpRequest == 0 ? null : Animation.Smooth(0.35)); });
         this.Track(() => runtime.IsRunning, running => { if (seenRunning is { } previous && previous != running) NoteTurnChange(running, runtime.AutoStartedTurnToken); seenRunning = running; });
         this.Track(() => scrollState.AreaGrowthRequest, _ => { if (scrollState.AreaGrowthRequest != 0) ComposerGrew(AppEnvironment.GetWindowLiveResize(this).IsActive); });
@@ -400,11 +402,51 @@ public sealed class ThreadTimeline : Decorator
         return SteppedWidth(AppEnvironment.GetWindowLiveResize(this).IsReshaping, paneWidth, model.Sidebar.IsSliding, paneWidthAtSlideStart, model.Sidebar.SlideDelta);
     }
 
+    // PORT-ONLY (ED-NEW-textsize-3): the window root's zoom motion, followed while the timeline is in a window. While it moves,
+    // the column's text keeps the width it has at the new scale: it wraps once, on the frame of the press, and is drawn at each
+    // frame's scale, instead of rewrapping every frame (9-12 ms a frame for a narrow column, measured) or at the end (a jump).
+    // The column around it takes each frame's width, so the text starts where it does at rest at every scale on the way.
+    private ZoomMotion? zoom;
+
+    // The text's width at the zoom's target scale, taken at each press; null where it is 820 points at every scale on the way
+    // (nothing rewraps). Kept at rest until the pane's own text width differs from it by a point (layout rounding aside).
+    private double? zoomHeld;
+
+    private void FollowZoom(ZoomMotion? next)
+    {
+        if (ReferenceEquals(zoom, next)) return;
+        if (zoom is { } old) { old.Retargeted -= ZoomChanged; old.Rested -= ZoomChanged; }
+        zoom = next;
+        if (next is not null) { next.Retargeted += ZoomChanged; next.Rested += ZoomChanged; }
+    }
+
+    private void ZoomChanged(double _)
+    {
+        if (zoom is { IsMoving: true } moving && paneWidth > 0 && !AppEnvironment.GetWindowLiveResize(this).IsReshaping)
+        {
+            var target = paneWidth * moving.Value / moving.Target; // the pane at the target scale (its pixels do not change)
+            zoomHeld = Math.Min(paneWidth, target) < 860 ? TextWidth(target) : null;
+        }
+        RefreshLayoutWidth();
+    }
+
+    // :416 the text's width in a pane: 820 points at most, 20 points in from each side.
+    private static double TextWidth(double pane) => Math.Min(820, pane - 40);
+
+    private void HoldText(Control column)
+    {
+        if (column is not Grid { Children.Count: > 0 } grid || grid.Children[0] is not Border { Child: Grid stack }) return;
+        if (zoomHeld is { } held && (AppEnvironment.GetWindowLiveResize(this).IsReshaping || zoom is not { IsMoving: true } && Math.Abs(TextWidth(paneWidth) - held) >= 1)) zoomHeld = null;
+        stack.Width = zoomHeld ?? double.NaN;
+        stack.HorizontalAlignment = zoomHeld is null ? HorizontalAlignment.Stretch : HorizontalAlignment.Left;
+    }
+
     // :418 .frame(width: layoutWidth, alignment: .leading), taken again whenever one of layoutWidth's inputs changed.
     private void RefreshLayoutWidth()
     {
         if (drawnColumn is not { } column) return;
         column.Width = CurrentLayoutWidth() ?? double.NaN;
+        HoldText(column);
     }
 
     // :446-449,891-893

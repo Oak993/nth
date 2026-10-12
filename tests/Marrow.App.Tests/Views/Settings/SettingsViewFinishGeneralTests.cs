@@ -61,7 +61,7 @@ public sealed class SettingsViewFinishGeneralTests(HeadlessSession headless) : S
             try { var thinking = Assert.Single(Nodes<SmallSwitch>(Row(view, "Show thinking"))); s.ShowReasoning = true; Drain(w); Tick(h, 1200); var system = NoctaLook.Lume(Chrome.Accent.Resolve(thinking.ActualThemeVariant)); // the lights cross over 0.28 s (OD-0143), so the colours are read once they have settled
             Assert.Equal(system, thinking.LumeColor()); Assert.True(NoctaProbe.DrawsLitLume(thinking, system)); s.ShowReasoning = false; Drain(w); Tick(h, 1200); Assert.False(NoctaProbe.DrawsLitLume(thinking, system)); s.ShowReasoning = true; s.Theme = AppTheme.Nord; Drain(w); Tick(h, 1200);
             var nord = Chrome.Accent.Resolve(thinking.ActualThemeVariant); Assert.Equal(SwiftColor.Hex("88C0D0").Resolve(thinking.ActualThemeVariant), nord); Assert.True(NoctaProbe.DrawsLitLume(thinking, NoctaLook.Lume(nord))); Assert.False(NoctaProbe.DrawsLitLume(thinking, system)); Assert.NotEqual(system, NoctaLook.Lume(nord)); } finally { s.Theme = AppTheme.System; }
-        });
+        }, height: 2600);
     }
 
     [Fact]

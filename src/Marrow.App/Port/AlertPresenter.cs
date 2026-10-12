@@ -146,6 +146,8 @@ public sealed class WindowsAlertPresenter : IAlertPresenter
                 var owner = request.Owner ?? desktop?.Windows.FirstOrDefault(candidate => candidate.IsActive) ?? desktop?.MainWindow
                     ?? throw new InvalidOperationException("A modal alert requires an owner window.");
                 window = BuildWindow(request, session);
+                // ED-NEW-textsize-1: drawn at the app zoom of the window it is asked over.
+                if (window.Content is Control content) window.Content = Marrow.UI.Common.AppZoom.Zoomed(content, Marrow.UI.Common.AppZoom.ScaleOfWindow(owner));
                 _ = window.ShowDialog(owner);
             }
             catch (Exception error) { session.Failed(error); }

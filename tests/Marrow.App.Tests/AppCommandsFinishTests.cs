@@ -619,19 +619,20 @@ public sealed class AppCommandsFinishTests(HeadlessSession headless)
             return new[] { launch.MainContent, launch.SettingsContent }
                 .Select(content => Assert.IsType<ScaleTransform>(content.RenderTransform).ScaleX).ToArray();
         });
+        static double Of(int percent) => percent / 100.0 * Marrow.UI.Common.AppZoom.BaseScale; // ED-NEW-textsize-1
         void PressIn(AvaloniaWindow window, Key key, PhysicalKey physical) =>
             launch.Harness.Main.OnMain(() => Press(window, key, physical, RawInputModifiers.Control));
         try
         {
-            Assert.Equal([1d, 1d], Scales());
+            Assert.Equal([Of(100), Of(100)], Scales());
             PressIn(main, Key.OemPlus, PhysicalKey.Equal); // Ctrl with the "=" key: the second Zoom In (:60-61), 100 -> 110
             Assert.Equal(110, launch.Harness.Main.OnMain(() => launch.Manager.Model.Settings.AppZoom));
-            Assert.Equal([1.1, 1.1], Scales()); // WindowManager.swift:173-175 AppZoomModifier(percent:), AppZoom.swift:19-23 scale = percent / 100
+            Assert.Equal([Of(110), Of(110)], Scales()); // WindowManager.swift:173-175 AppZoomModifier(percent:), AppZoom.swift:19-23 scale = percent / 100, times the base scale (ED-NEW-textsize-1)
             PressIn(settings, Key.OemMinus, PhysicalKey.Minus); // Zoom Out (:55-56), 110 -> 100
             PressIn(settings, Key.OemMinus, PhysicalKey.Minus); // 100 -> 90
-            Assert.Equal([0.9, 0.9], Scales());
+            Assert.Equal([Of(90), Of(90)], Scales());
             PressIn(main, Key.D0, PhysicalKey.Digit0); // Actual Size (:57-58)
-            Assert.Equal([1d, 1d], Scales());
+            Assert.Equal([Of(100), Of(100)], Scales());
         }
         finally { launch.Harness.Main.OnMain(() => { settings.Hide(); main.Hide(); Dispatcher.UIThread.RunJobs(); }); }
     });

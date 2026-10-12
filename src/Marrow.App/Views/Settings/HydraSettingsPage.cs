@@ -65,7 +65,8 @@ public sealed class HydraSettingsPage : Decorator
         titleRow.Children.Add(MakeText("Hydra", SwiftFont.System(SwiftFont.TextStyle.Title3, weight: SwiftFont.Weight.Semibold), Chrome.PrimaryText));
         titleRow.Children.Add(new InfoHoverButton("How Hydra works", () => new HydraInfoPopover(HydraInfoPopover.Topic.Hydra)));
 
-        var subtitle = MakeText("One chat leads a team of heads on big jobs.", SwiftFont.Subheadline, Chrome.SecondaryText, 1);
+        // ED-NEW-textsize-1 (owner, 2026-10-11): the subtitle wraps onto more lines in a narrow window instead of being cut off.
+        var subtitle = MakeText("One chat leads a team of heads on big jobs.", SwiftFont.Subheadline, Chrome.SecondaryText);
 
         var textColumn = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2 };
         textColumn.Children.Add(titleRow);
@@ -281,7 +282,8 @@ public sealed class HydraSettingsPage : Decorator
         var text = new Avalonia.Controls.TextBlock
         {
             Text = value,
-            TextWrapping = TextWrapping.Wrap,
+            TextWrapping = TextWrapping.WrapWithOverflow, // ED-NEW-textsize-1: whole words only; a word wider than the line ends in an ellipsis
+            TextTrimming = TextTrimming.CharacterEllipsis,
             MaxLines = maxLines ?? 0,
             Margin = margin ?? default,
         };

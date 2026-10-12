@@ -47,7 +47,7 @@ public sealed class SettingsRestAboutTests(HeadlessSession headless) : SettingsR
         {
             var root = Assert.IsType<StackPanel>(((AboutSettingsPage)view).Child); Assert.Equal(20, root.Spacing);
             var section = Assert.IsType<ChromeSection>(root.Children[2]); var stack = Assert.IsType<StackPanel>(section.Child); Assert.Equal(10, stack.Spacing); Assert.Equal(2, stack.Children.Count);
-            var header = Assert.IsAssignableFrom<StackPanel>(stack.Children[0]); Assert.Equal(4, header.Spacing); var text = Assert.IsType<TextBlock>(Assert.Single(header.Children)); Assert.Equal("Credits", text.Text); Font(text, 13, FontWeight.SemiBold); Ink(text, text.Foreground, Chrome.SecondaryText);
+            var header = Assert.IsAssignableFrom<StackPanel>(stack.Children[0]); Assert.Equal(4, header.Spacing); var text = Assert.IsType<TextBlock>(Assert.Single(header.Children)); Assert.Equal("Credits", text.Text); Font(text, Chrome.SettingsSectionTitleSize, FontWeight.SemiBold); Ink(text, text.Foreground, Chrome.SecondaryText);
             Assert.IsType<ChromeCard>(stack.Children[1]); Assert.Empty(Nodes<Button>(header));
         });
     }

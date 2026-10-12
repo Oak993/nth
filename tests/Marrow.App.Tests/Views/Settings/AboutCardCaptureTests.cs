@@ -67,14 +67,17 @@ public sealed class AboutCardCaptureTests(HeadlessSession headless) : SettingsFi
             Assert.InRange(showBox.Width, 45, 52); Near(20, showBox.Height, 1); // the small accent capsule; the reference's 48 is its label's width plus 21, so the Inter label moves it by a point or two
             Near(520 - 10, showBox.Right, 1); // Chrome.rowControlTrailingPadding
             Assert.InRange(showBox.Y + showBox.Height / 2, tourBox.Y + tourBox.Height / 2 - 0.5, tourBox.Y + tourBox.Height / 2 + 0.5); // centred in its row (to the layout's half point)
-            // The text rows (ED-290 (1)): a ChromeRow is 11 + body 18 + 2 + 16 per subheadline line + 11 (Chrome.swift:1055-1078), a paragraph 11 + its lines + 11.
+            // The text rows (ED-290 (1)): a ChromeRow is its padding + its title's line + 2 + a line per detail line + its padding (Chrome.swift:1055-1078; the source's
+            // 11 + body 18 + 2 + 16 per subheadline line + 11, at the Settings sizes of ED-NEW-textsize-2), a paragraph 11 + its lines + 11.
             static int Lines(TextBlock text) => text.TextLayout.TextLines.Count;
-            var tourDetail = Nodes<TextBlock>(tour).Except(Nodes<TextBlock>(show)).Single(t => t.FontSize == 11); // the detail, not the Show label
+            var tourDetail = Nodes<TextBlock>(tour).Except(Nodes<TextBlock>(show)).Single(t => t.FontSize == Chrome.SettingsRowDetailSize); // the detail, not the Show label
             Assert.Equal(2, Lines(tourDetail)); // as in the still
-            Near(74, tourBox.Height, 1); Near(163, BoxIn(Assert.IsType<ChromeRowDivider>(rows.Children[3]), card).Y, 1); // S 213.0: 88 + 1 + 74
+            var tourTitle = Nodes<TextBlock>(tour)[0]; Assert.Equal(Chrome.SettingsRowTitleSize, tourTitle.FontSize); Assert.Equal(1, Lines(tourTitle)); var titleLine = tourTitle.Bounds.Height;
+            var tourHeight = 2 * Chrome.SettingsRowVerticalPadding + titleLine + 2 + Chrome.SettingsRowDetailLineHeight * Lines(tourDetail); // S 213.0: 74
+            Near(tourHeight, tourBox.Height, 1); Near(88 + 1 + tourHeight, BoxIn(Assert.IsType<ChromeRowDivider>(rows.Children[3]), card).Y, 1); // S 213.0: 88 + 1 + 74
             var update = Assert.IsType<AboutUpdateCheckRow>(rows.Children[4]); // a ChromeRow inside (AboutUpdateViews.swift:826-844)
-            var updateDetail = Nodes<TextBlock>(update).Except(Nodes<Button>(update).SelectMany(b => Nodes<TextBlock>(b))).Where(t => t.FontSize == 11 && t.Opacity > 0 && t.IsVisible).First(); // the drawn sentence
-            Near(22 + 18 + 2 + 16 * Lines(updateDetail), BoxIn(update, card).Height, 1); // S 212.0 to 213.0: 74 with two lines, 58 with one
+            var updateDetail = Nodes<TextBlock>(update).Except(Nodes<Button>(update).SelectMany(b => Nodes<TextBlock>(b))).Where(t => t.FontSize == Chrome.SettingsRowDetailSize && t.Opacity > 0 && t.IsVisible).First(); // the drawn sentence
+            Near(2 * Chrome.SettingsRowVerticalPadding + titleLine + 2 + Chrome.SettingsRowDetailLineHeight * Lines(updateDetail), BoxIn(update, card).Height, 1); // S 212.0 to 213.0: 74 with two lines, 58 with one
             var what = Assert.IsType<TextBlock>(rows.Children[6]); var licence = Assert.IsType<TextBlock>(rows.Children[8]);
             Near(22 + 18 * Lines(what), BoxIn(what, card).Height + 22, 1); // S 213.0: the paragraph row 707..764 = 58 = 22 + two body lines
             Near(22 + 17 * Lines(licence), BoxIn(licence, card).Height + 22, 1); // callout lines of 17

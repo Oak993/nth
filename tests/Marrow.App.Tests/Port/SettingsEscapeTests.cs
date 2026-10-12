@@ -31,6 +31,7 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
             var presenter = new RecordingPresenter();
             using var presentation = Presentation.Presenter.Override(presenter);
             using var rig = new SettingsRiseRig { Accepts = false };
+            rise = rig;
             manager.Model.Settings.Theme = AppTheme.Dark;
             arrange?.Invoke(manager.Model);
             manager.SettingsCloak = rig.Cloak;
@@ -41,6 +42,12 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
             for (var i = 0; i < 60; i++) { rig.Frame(1.0 / 60); Drain(window); }
             check(window, View(manager), presenter);
         });
+
+    private SettingsRiseRig? rise;
+
+    // At the Settings sizes (ED-NEW-textsize-2) a control can sit below the 446-point page's first screen: scrolled into view as a
+    // person scrolls it, past the page's 150 ms scroll freeze (SettingsScrollTracker), so the click meets it.
+    private void Reveal(HostWindow window, Control control) { control.BringIntoView(); Drain(window); rise!.Frame(0.16); Drain(window); }
 
     private static void Escape(HostWindow window) => Press(window, Key.Escape, PhysicalKey.Escape);
 
@@ -86,6 +93,7 @@ public sealed class SettingsEscapeTests(HeadlessSession headless) : SettingsWind
     public void Escape_with_a_page_popover_open_dismisses_the_popover_and_the_window_stays() => Open(SettingsPage.General, (window, view, presenter) =>
     {
         var picker = view.GetVisualDescendants().OfType<Control>().First(c => c.GetType().Name.StartsWith("GlassPickerButton", StringComparison.Ordinal) && c.IsEffectivelyVisible);
+        Reveal(window, picker); // at the Settings sizes (ED-NEW-textsize-2) the first picker is below the window's first screen
         Click(window, picker);
         var popup = Assert.Single(presenter.Calls, c => c.Presented).Popup;
         Escape(window);

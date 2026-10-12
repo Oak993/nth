@@ -57,7 +57,7 @@ public sealed class MCPSettingsPageSecondTests(HeadlessSession headless)
     public void Connected_card_has_source_radius_and_dividers_and_header_style()
     {
         Ui((model, _) => { State(model, "github", new MCPConnectionState.Connected(1)); State(model, "gitlab", new MCPConnectionState.Connected(2)); var page = new MCPSettingsPage("absent"); using var window = Attach(page, model);
-            var header = Nodes<TextBlock>(page).Single(x => x.Text == "Connected"); Assert.Equal(13, header.FontSize); Assert.Equal(FontWeight.SemiBold, header.FontWeight); Assert.Single(Nodes<ChromeCard>(page)); Assert.Single(Nodes<ChromeRowDivider>(page));
+            var header = Nodes<TextBlock>(page).Single(x => x.Text == "Connected"); Assert.Equal(Chrome.SettingsSectionTitleSize, header.FontSize); Assert.Equal(FontWeight.SemiBold, header.FontWeight); Assert.Single(Nodes<ChromeCard>(page)); Assert.Single(Nodes<ChromeRowDivider>(page));
             Assert.Contains(Nodes<Border>(Nodes<ChromeCard>(page).Single()), b => b.CornerRadius == new CornerRadius(16));
         });
     }

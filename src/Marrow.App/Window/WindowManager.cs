@@ -408,13 +408,27 @@ public sealed class WindowManager
     private void AttachContent(AvaloniaWindow window, Func<Control> content)
     {
         var liveResize = new WindowLiveResize(window); // :103
-        var hosting = new FrameHostingView(new HostedRoot(Model, liveResize, content())); // :104
+        var root = new HostedRoot(Model, liveResize, content());
+        var hosting = new FrameHostingView(root); // :104
         // :105 hosting.frame = frame, :106 NSView(frame: frame): the plain container fills the client area and lays
         // its one child out over the whole of it.
         var container = new Panel();
-        container.Track(() => Model.Settings.AppZoom, percent =>
-            WindowChrome.SetCaptionScale(window, AppZoom.Normalized(percent is >= int.MinValue and <= int.MaxValue ? (int)percent : 100) / 100.0));
         container.Children.Add(hosting); // :107
+        // ED-NEW-textsize-2/3: the caption keeps to the scale the content is drawn at, frame by frame while the zoom moves,
+        // and the zoom's indicator shows over the content (at the app's 100 %, under the caption buttons).
+        if (root.Child is Control hosted && ZoomMotion.Of(hosted) is { } motion)
+        {
+            WindowChrome.SetCaptionScale(window, motion.Value);
+            motion.Moved += scale => WindowChrome.SetCaptionScale(window, scale);
+            container.Children.Add(new LayoutTransformControl
+            {
+                LayoutTransform = new Avalonia.Media.ScaleTransform(AppZoom.BaseScale, AppZoom.BaseScale),
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+                IsHitTestVisible = false,
+                Child = new ZoomIndicator(motion, scale => (int)Math.Round(scale / AppZoom.BaseScale * 100)),
+            });
+        }
         container.Children.Add(WindowChrome.CaptionLayer(window)); // OD-0044: the caption buttons over the content
         window.Content = container; // :108
         // PORT-ONLY (OD-0008 C3): DroppyCodeApp.swift:21-25 installs `AppCommands(model: WindowManager.shared.model)` as
@@ -861,34 +875,42 @@ public sealed record HostedEnvironment(AppModel Model, WindowLiveResize LiveResi
         AppEnvironment.SetAppModel(content, Model); // :171 .environment(model)
         AppEnvironment.SetWindowLiveResize(content, LiveResize); // :172 .environment(liveResize)
         // ED-NEW-T45: Settings' fixed frame describes the visible card. Its inner layout must fit the zoom proposal.
-        void FitSettings(long percent)
+        // ED-NEW-textsize-2: the zoom level over the base scale that draws 100 % at the Claude desktop app's sizes.
+        static double ScaleOf(long percent) => AppZoom.Normalized(Percent(percent)) / 100.0 * AppZoom.BaseScale;
+        void FitSettings(double scale)
         {
             if (!Zooms || content is not SettingsView settings) return;
-            var scale = AppZoom.Normalized(Percent(percent)) / 100.0;
             settings.UseLayoutRounding = false; // round after scaling, rather than rounding the inverse frame's fractional size
             var viewport = TopLevel.GetTopLevel(settings)?.Content is SettingsShell shell
                 ? new Avalonia.Size(shell.Client.Width, shell.Client.Height) : new Avalonia.Size(780, 580);
             settings.Width = viewport.Width / scale;
             settings.Height = viewport.Height / scale;
         }
-        FitSettings(Model.Settings.AppZoom);
+        FitSettings(ScaleOf(Model.Settings.AppZoom));
         // :173-175 The zoom in Settings scales the whole app: every window root and every chat column carries it, so the
         // sidebar, settings and composer move together.
         // Lead (native gallery at 200 %, 2026-10-08): on the Mac a chat column is an NSHostingView of its own, which the window
         // root's scaleEffect does not reach, so the column applies the zoom itself. Here the column is a child of the window root's
         // already zoomed tree, and zooming it again drew the chat at the square of the setting (4x at 200 %). The column passes
         // Zooms: false and takes the root's zoom; the environment and the theme tint stay its own.
-        var zoomed = Zooms ? new AppZoomModifier(Percent(Model.Settings.AppZoom)).Body(content) : content;
+        // ED-NEW-textsize-2: under the zoom level, the base scale that draws 100 % at the Claude desktop app's sizes.
+        var zoomed = Zooms ? new AppZoomModifier(Percent(Model.Settings.AppZoom)) { BaseScale = AppZoom.BaseScale }.Body(content) : content;
         Popovers.SetIsCapsuleButtonBorderShape(zoomed, true); // :176 .buttonBorderShape(.capsule)
         var tinted = new ThemeTint(Model.Settings.Theme, Model.Settings.Accent).Body(zoomed); // :177
-        if (Zooms && content is SettingsView) tinted.SizeChanged += (_, _) => FitSettings(Model.Settings.AppZoom);
         // The body reads model.settings.appZoom (:175) and model.settings.theme (:177), so SwiftUI evaluates it again
         // when either changes; AppZoomModifier keeps its layout and ThemeTint its view when they are evaluated again.
-        if (Zooms) tinted.Track(() => Model.Settings.AppZoom, percent =>
+        // PORT-ONLY (ED-NEW-textsize-3, owner 2026-10-11: "zoom in and out must also be smooth"): the new scale is reached
+        // along ZoomMotion's spring, laid out at each frame's scale with the reading position kept; at once under Reduce Motion.
+        if (Zooms)
         {
-            FitSettings(percent);
-            new AppZoomModifier(Percent(percent)).Body(content);
-        });
+            var motion = new ZoomMotion(tinted, ScaleOf(Model.Settings.AppZoom), scale =>
+            {
+                FitSettings(scale);
+                new AppZoomModifier(100) { BaseScale = scale }.Body(content);
+            });
+            if (content is SettingsView) tinted.SizeChanged += (_, _) => FitSettings(motion.Value);
+            tinted.Track(() => Model.Settings.AppZoom, percent => motion.To(ScaleOf(percent)));
+        }
         tinted.Track(() => (Model.Settings.Theme, Model.Settings.Accent), pair => new ThemeTint(pair.Theme, pair.Accent).Body(zoomed)); // and the accent (OD-0088)
         return tinted;
     }

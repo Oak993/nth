@@ -278,6 +278,7 @@ public static class PortControlThemes
         RegisterPrimaryTextDefault(application);
         GreyscaleText.Register(application); // OD-0099 Q-TEXT A: text is greyscale everywhere (GreyscaleText.cs)
         PopoverHost.Register(application); // the panel a presented popover's top-level draws (PopoverHost.cs, ED-238)
+        Marrow.UI.Common.PopupZoom.Install(); // ED-NEW-textsize-1: every popup at the app zoom of what it hangs from
     }
 
     // SwiftUI draws a Text, and any glyph, with no foreground style of its own in `.primary`: labelColor, which follows

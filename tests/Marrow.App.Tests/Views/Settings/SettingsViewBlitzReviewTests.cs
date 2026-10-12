@@ -93,6 +93,6 @@ public sealed class SettingsViewBlitzReviewTests(HeadlessSession headless) : Set
             Click(w, archive); Drain(w);
             Assert.Equal(ThreadFinishAction.Archive, model.Settings.ThreadFinishAction);
             Assert.Equal(0.5, row.Opacity); // no frame has run
-        });
+        }, height: 2600);
     }
 }

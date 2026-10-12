@@ -308,7 +308,8 @@ public sealed class SettingsView : Decorator
                 else if (!available && dot is not null) icon.Children.Remove(dot);
             });
             return icon;
-        }, _ => none, isSelected: state.Page == page, pressLook: true); // the plain button's pressed look (press.row-tile-dim, ED-280)
+        }, _ => none, isSelected: state.Page == page, pressLook: true, // the plain button's pressed look (press.row-tile-dim, ED-280)
+            rowHeight: Chrome.SettingsNavRowHeight, titleSize: Chrome.SettingsNavTitleSize); // ED-NEW-textsize-2: Claude's Settings navigation
         pageRows[page] = row;
         return row;
     }

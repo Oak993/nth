@@ -70,7 +70,7 @@ public sealed class MCPSetupPanel : FloatingGuidePanel
     }
 
     // PORT-ONLY: whether the visible panel is showing this content (a view in another window is never fitted to it).
-    internal bool Shows(Control content) => panel?.IsVisible == true && ReferenceEquals(panel.Content, content);
+    internal bool Shows(Control content) => panel?.IsVisible == true && ReferenceEquals(Marrow.UI.Common.AppZoom.Unzoomed(panel.Content), content);
 
     // :42-50 func fit(height: CGFloat)
     public void Fit(double height)
