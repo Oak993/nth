@@ -1477,6 +1477,7 @@ public sealed partial class AppModel : MainActorModel
 
     private void SaveSynchronouslyBeforeQuit()
     {
+        DisposeAssistantFeed(); // PORT-ONLY: owned feed/taps/watcher stop even when persistence is disabled (ED-NEW-dextra-cx-7)
         if (!persistenceEnabled) return; // AppModel.swift:1328
         persistenceEnabled = false; // AppModel.swift:1329
         saveTask?.Cancel(); // AppModel.swift:1330

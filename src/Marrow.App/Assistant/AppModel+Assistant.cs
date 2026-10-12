@@ -8,10 +8,30 @@ namespace Marrow.App;
 public sealed partial class AppModel
 {
     private AssistantFeedTaps? assistantTaps;
+    private bool assistantFeedStopped;
 
     /// <summary>The read-only feed of everything the Assistant may watch (5.1). Subscribe to it; publish only through the taps.</summary>
     public AssistantEventBus AssistantEvents { get; } = new();
 
     /// <summary>The one-line taps the app's own code calls (ThreadRuntime, AppModel, MultiAccountRouting).</summary>
-    internal AssistantFeedTaps AssistantTaps => assistantTaps ??= new AssistantFeedTaps(this, AssistantEvents);
+    internal AssistantFeedTaps AssistantTaps
+    {
+        get
+        {
+            if (assistantTaps is null)
+            {
+                assistantTaps = new AssistantFeedTaps(this, AssistantEvents);
+                if (assistantFeedStopped) assistantTaps.Dispose();
+            }
+            return assistantTaps;
+        }
+    }
+
+    private void DisposeAssistantFeed()
+    {
+        if (assistantFeedStopped) return;
+        assistantFeedStopped = true;
+        assistantTaps?.Dispose();
+        AssistantEvents.Dispose();
+    }
 }

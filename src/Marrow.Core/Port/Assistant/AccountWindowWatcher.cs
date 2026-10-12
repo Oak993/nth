@@ -16,7 +16,7 @@ public sealed record AccountWindowReading(
     DateTimeOffset? ResetsAt);
 
 /// <summary>Compares each poll with the one before and says what changed.</summary>
-public sealed class AccountWindowWatcher
+public sealed class AccountWindowWatcher : IDisposable
 {
     /// <summary>"Account window percent changed (at least 1 point)" (5.1).</summary>
     public const double MinChange = 1.0;
@@ -27,12 +27,14 @@ public sealed class AccountWindowWatcher
     /// <summary>A limit with no known reset time is not reported again for this long.</summary>
     public static readonly TimeSpan UnknownResetQuiet = TimeSpan.FromMinutes(30);
 
+    private bool disposed;
     private readonly Dictionary<(string Account, string Window), AccountWindowReading> last = [];
     private readonly Dictionary<(string Account, DateTimeOffset? Reset), DateTimeOffset> limitedUntil = [];
 
     /// <summary>The events for one poll of one account. The first reading of a window only sets the baseline.</summary>
     public IReadOnlyList<FeedDraft> Observe(IEnumerable<AccountWindowReading> readings, DateTimeOffset now)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         var drafts = new List<FeedDraft>();
         foreach (var reading in readings)
         {
@@ -69,6 +71,7 @@ public sealed class AccountWindowWatcher
     /// </summary>
     public FeedDraft? NoteLimit(string accountKey, string accountName, DateTimeOffset? resetsAt, DateTimeOffset now)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         foreach (var key in limitedUntil.Keys.Where(key => key.Account == accountKey && limitedUntil[key] <= now).ToArray())
             limitedUntil.Remove(key);
         if (limitedUntil.Keys.Any(key => key.Account == accountKey
@@ -76,6 +79,14 @@ public sealed class AccountWindowWatcher
         limitedUntil[(accountKey, resetsAt)] = resetsAt ?? now + UnknownResetQuiet;
         var tail = resetsAt is { } reset ? $", resets in {Relative(reset - now)}" : "";
         return new FeedDraft(FeedEventKind.AccountLimitReached, FeedSeverity.Info, now, $"{accountName}: usage limit reached{tail}");
+    }
+
+    public void Dispose()
+    {
+        if (disposed) return;
+        disposed = true;
+        last.Clear();
+        limitedUntil.Clear();
     }
 
     // Remove only this window's old reset episode. A different window may still own a live limit,
