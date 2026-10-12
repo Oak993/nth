@@ -96,6 +96,74 @@ public sealed class VisusAskTests(HeadlessSession headless)
     });
 
     [Fact]
+    public void A_card_is_read_in_full_as_it_appears_without_taking_the_keyboard() => headless.OnUiThread(() =>
+    {
+        using var visus = new VisusRig();
+        var (rig, body) = Open(visus);
+        using var _ = rig;
+        var tab = Go(visus, rig, "http://localhost:5173/", "Scan a receipt");
+        body.Toolbar.Address.Box.Focus();
+        var focused = rig.Window.FocusManager!.GetFocusedElement();
+
+        VisusRig.Live(tab).RaisePermission("http://localhost:5173", WebPermissionKind.Camera);
+        rig.Layout();
+        var card = CardOf<VisusPermissionPrompt>(body);
+        // 10.1: the live region carries the whole card and ends with how to reach it; the keyboard stays where it was.
+        Assert.Equal("localhost:5173 wants to use your camera. For \"Scan a receipt\" on this page. Press F6 to answer.", body.Announcement);
+        Assert.Equal(card.Announcement, body.Announcement);
+        Assert.Same(focused, rig.Window.FocusManager!.GetFocusedElement());
+        Assert.False(card.IsKeyboardFocusWithin);
+
+        visus.Time.Advance(VisusPromptCard.Shield);
+        Press(card.BlockButton);
+        VisusRig.Live(tab).RaiseDownload("http://localhost:5173/plans.csv", "plans.csv", 12 * 1024, "text/csv", "http://localhost:5173");
+        rig.Layout();
+        Assert.Equal("plans.csv. 12 KB · CSV · from localhost:5173. Press F6 to answer.", body.Announcement);
+    });
+
+    [Fact]
+    public void A_waiting_question_holds_its_page_and_a_crash_or_a_restart_withdraws_it() => headless.OnUiThread(() =>
+    {
+        using var visus = new VisusRig();
+        var (rig, body) = Open(visus);
+        using var _ = rig;
+        var tab = Go(visus, rig, "https://a.test/");
+        var page = VisusRig.Live(tab);
+        var view = tab.View!;
+
+        var download = page.RaiseDownload("https://a.test/f.zip", "f.zip");
+        var camera = page.RaisePermission("https://a.test", WebPermissionKind.Camera);
+        var dialog = page.RaiseScriptDialog("https://a.test/", WebScriptDialogKind.Alert, "Hello");
+        rig.Layout();
+        Assert.Equal(3, tab.Asks.Count);
+        // The page's side of each question lives in its engine: never suspended or discarded while they wait, and a page inside
+        // its own dialog is not probed as hung.
+        Assert.True(view.IsHeldForUser);
+        Assert.True(view.IsScriptHeldForUser);
+
+        // A renderer crash takes the page's questions; the download, held by the browser, waits on. Nothing is kept or said.
+        page.RaiseProcessFailed(WebProcessFailureKind.RenderProcessExited);
+        rig.Layout();
+        Assert.Equal(WebPermissionDecision.Deny, camera.Decision.Result);
+        Assert.False(dialog.Decision.Result.Accept);
+        Assert.False(download.Decision.IsCompleted);
+        Assert.False(view.IsScriptHeldForUser);
+        Assert.True(view.IsHeldForUser);
+        Assert.IsType<VisusDownloadPrompt>(body.Card);
+        Assert.Empty(VisusHost.Permissions.All);
+        Assert.Null(body.NoticeText);
+
+        // Restart Visus: the engine goes, and the download's question with it.
+        VisusHost.Surface.Restart();
+        rig.Layout();
+        Assert.Equal(WebDownloadDecision.Cancel, download.Decision.Result);
+        Assert.Empty(tab.Asks);
+        Assert.Null(body.Card);
+        Assert.False(view.IsHeldForUser);
+        Assert.Null(body.NoticeText);
+    });
+
+    [Fact]
     public void Always_is_kept_answered_at_once_next_time_and_shown_in_the_site_note_with_Reset() => headless.OnUiThread(() =>
     {
         using var visus = new VisusRig();
@@ -282,6 +350,109 @@ public sealed class VisusAskTests(HeadlessSession headless)
         Assert.False(VisusPrompts.AnyIn(rig.Window));
     });
 
+    private static Func<bool> When<T>(WebDeferredRequest<T> request, Func<T, bool> safe) => () => request.Decision.IsCompleted && safe(request.Decision.Result);
+
+    // 10.1 for every kind of card, not only permissions: F6 lands on the words, Tab reaches a button, Enter does nothing, Shift+Tab
+    // stays inside, Esc gives the safe answer and the keyboard goes back where it was.
+    [Theory]
+    [InlineData("download")]
+    [InlineData("risky download")]
+    [InlineData("sign-in")]
+    [InlineData("alert")]
+    [InlineData("confirm")]
+    [InlineData("prompt")]
+    [InlineData("leave")]
+    [InlineData("pointer lock")]
+    [InlineData("clipboard")]
+    [InlineData("file")]
+    public void Every_card_has_the_keyboard_path(string kind) => headless.OnUiThread(() =>
+    {
+        using var visus = new VisusRig();
+        var (rig, body) = Open(visus);
+        using var _ = rig;
+        VisusTab tab;
+        if (kind == "file")
+        {
+            tab = visus.Session.NewTab(VisusTabKind.Agent, "https://a.test/");
+            VisusRig.Live(tab).RaiseNavigationCompleted("https://a.test/");
+            rig.Layout();
+        }
+        else
+        {
+            tab = Go(visus, rig, "https://a.test/");
+        }
+        var page = VisusRig.Live(tab);
+        body.Toolbar.Address.Box.Focus();
+        rig.Layout();
+        var before = rig.Window.FocusManager?.GetFocusedElement();
+        Assert.NotNull(before);
+
+        Func<bool> answeredSafely;
+        switch (kind)
+        {
+            case "download":
+                answeredSafely = When(page.RaiseDownload("https://a.test/f.csv", "f.csv", 10, "text/csv"), d => !d.Save);
+                break;
+            case "risky download":
+                answeredSafely = When(page.RaiseDownload("https://a.test/setup.exe", "setup.exe", 10), d => !d.Save);
+                break;
+            case "sign-in":
+                answeredSafely = When(page.RaiseAuth("https://a.test/admin"), credentials => credentials is null);
+                break;
+            case "alert":
+                answeredSafely = When(page.RaiseScriptDialog("https://a.test/", WebScriptDialogKind.Alert, "Hi"), d => !d.Accept);
+                break;
+            case "confirm":
+                answeredSafely = When(page.RaiseScriptDialog("https://a.test/", WebScriptDialogKind.Confirm, "Sure?"), d => !d.Accept);
+                break;
+            case "prompt":
+                answeredSafely = When(page.RaiseScriptDialog("https://a.test/", WebScriptDialogKind.Prompt, "Name?", "x"), d => !d.Accept && d.Text is null);
+                break;
+            case "leave":
+                answeredSafely = When(page.RaiseScriptDialog("https://a.test/", WebScriptDialogKind.BeforeUnload, ""), d => !d.Accept);
+                break;
+            case "clipboard":
+                answeredSafely = When(page.RaisePermission("https://a.test", WebPermissionKind.ClipboardRead), d => d == WebPermissionDecision.Deny);
+                break;
+            case "pointer lock":
+                page.EmitCdp("Runtime.bindingCalled", "{\"name\":\"__nthPointerLock\",\"payload\":\"{\\\"kind\\\":\\\"ask\\\",\\\"id\\\":5}\",\"executionContextId\":3}");
+                answeredSafely = () => page.CdpCalls.Any(call => call.Method == "Runtime.evaluate"
+                    && System.Text.Json.Nodes.JsonNode.Parse(call.Params)!["expression"]!.GetValue<string>() == WebFeatureGuard.AnswerExpression(5, allow: false));
+                break;
+            default:
+                page.EmitCdp("Page.fileChooserOpened", "{\"frameId\":\"F\",\"mode\":\"selectSingle\",\"backendNodeId\":9}");
+                var asked = tab.Asks.OfType<VisusFileAsk>().Single();
+                answeredSafely = () => asked.Given == false;
+                break;
+        }
+        rig.Layout();
+        var card = Assert.IsAssignableFrom<VisusPromptCard>(body.Card);
+        Assert.Same(before, rig.Window.FocusManager?.GetFocusedElement()); // never takes the keyboard by itself
+        Assert.EndsWith(VisusPromptCard.F6Hint, body.Announcement, StringComparison.Ordinal);
+        visus.Time.Advance(VisusPromptCard.Shield);
+
+        Assert.True(rig.Workspace.CycleFocus(forward: true));
+        Assert.True(card.Lead.IsFocused);
+        for (var i = 0; i < 4 && rig.Window.FocusManager?.GetFocusedElement() is not Button; i++) rig.Key(Key.Tab);
+        var button = Assert.IsType<Button>(rig.Window.FocusManager?.GetFocusedElement());
+        Assert.Contains(button, card.Buttons);
+        rig.Key(Key.Enter);
+        Assert.False(answeredSafely());
+        Assert.Same(card, body.Card); // Enter does nothing on a button
+        rig.Key(Key.Tab, RawInputModifiers.Shift);
+        Assert.True(card.IsKeyboardFocusWithin); // Shift+Tab stays in the card
+
+        rig.Key(Key.Escape);
+        Assert.True(answeredSafely());
+        Assert.Null(body.Card);
+        Assert.Same(before, rig.Window.FocusManager?.GetFocusedElement()); // the keyboard goes back where it was
+        // Esc on a permission is Block, kept for the site (5.5); every other card keeps nothing.
+        var profile = VisusTabRules.Profile(tab.Kind); // a.test is a dev host: a preview tab
+        if (kind == "clipboard") Assert.Equal(SitePermissionState.Block, VisusHost.Permissions.StateOf(profile, "https://a.test", SitePermissionKind.ClipboardRead));
+        else if (kind == "pointer lock") Assert.Equal(SitePermissionState.Block, VisusHost.Permissions.StateOf(profile, "https://a.test", SitePermissionKind.PointerLock));
+        else Assert.Empty(VisusHost.Permissions.All);
+    });
+
     // ---- downloads (5.4) ----
 
     [Fact]
@@ -302,7 +473,11 @@ public sealed class VisusAskTests(HeadlessSession headless)
         Assert.Null(card.Warning);
         Assert.Equal(["Save", "Save as…", "Cancel"], card.Buttons.Select(Label));
         Assert.Equal("Save plans-2026-10.csv to Downloads", AutomationProperties.GetName(card.SaveButton));
-        Assert.False(body.Toolbar.Downloads.IsVisible);
+        // The canvas's toolbar always has Downloads (an .opt2 button: gone only when the toolbar is 420 DIP or narrower).
+        Assert.True(body.Toolbar.Downloads.IsVisible);
+        Assert.Null(body.Toolbar.DownloadsProgress);
+        Assert.Equal(["Open the Downloads folder", "Clear finished"], body.Toolbar.DownloadEntries().OfType<VisusMenuEntry>().Select(entry => entry.Title));
+        Assert.False(body.Toolbar.DownloadEntries().OfType<VisusMenuEntry>().Last().IsEnabled);
 
         visus.Time.Advance(VisusPromptCard.Shield);
         Press(card.SaveButton);
@@ -325,6 +500,13 @@ public sealed class VisusAskTests(HeadlessSession headless)
         Assert.Equal(("plans-2026-10 (1).csv", "12 KB · from localhost:5173", true), (row.Title, row.Shortcut, row.IsEnabled));
         row.Run();
         Assert.Equal([VisusRig.DownloadsFolder + @"\plans-2026-10 (1).csv"], visus.ShownInFolder); // Show in folder, not open
+
+        body.Toolbar.Width = VisusToolbar.NarrowWidth;
+        rig.Layout();
+        Assert.False(body.Toolbar.Downloads.IsVisible);
+        body.Toolbar.Width = double.NaN;
+        rig.Layout();
+        Assert.True(body.Toolbar.Downloads.IsVisible);
     });
 
     [Fact]

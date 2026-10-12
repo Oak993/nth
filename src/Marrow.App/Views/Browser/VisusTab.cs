@@ -75,6 +75,8 @@ public sealed class VisusTab
     private bool shown;
     private int faviconRead;
     private readonly List<VisusAsk> asks = [];
+    private readonly Dictionary<VisusAsk, IDisposable> holds = [];
+    private WebFailureKind? failure;
     private readonly HashSet<(string Origin, SitePermissionKind Kind)> tabBlocks = [];
     private int documentDialogs;
     private bool dialogsStopped;
@@ -361,7 +363,8 @@ public sealed class VisusTab
         v.PointerLockRequested += OnPointerLockRequested;
         v.PointerLockChanged += OnPointerLockChanged;
         v.FileChooserIntercepted += OnFileChooser;
-        v.Changed += Raise;
+        v.EngineReleased += OnEngineReleased;
+        v.Changed += OnViewChanged;
     }
 
     private void Unhook(WebSurfaceView v)
@@ -385,7 +388,8 @@ public sealed class VisusTab
         v.PointerLockRequested -= OnPointerLockRequested;
         v.PointerLockChanged -= OnPointerLockChanged;
         v.FileChooserIntercepted -= OnFileChooser;
-        v.Changed -= Raise;
+        v.EngineReleased -= OnEngineReleased;
+        v.Changed -= OnViewChanged;
     }
 
     private void OnClaimedChord(Marrow.Core.Models.KeyChord chord)
@@ -533,14 +537,35 @@ public sealed class VisusTab
         if (ask.IsAnswered || asks.Contains(ask)) return;
         asks.Add(ask);
         ask.Answered += OnAskAnswered;
+        // The page's side of the question lives in its engine: the view is neither suspended nor discarded while it waits.
+        if (ask.Kind != VisusAskKind.App && view is { } page) holds[ask] = page.HoldForUser(blocksScript: ask.Kind == VisusAskKind.Dialog);
         Raise();
     }
 
     private void OnAskAnswered(VisusAsk ask)
     {
         ask.Answered -= OnAskAnswered;
+        if (holds.Remove(ask, out var hold)) hold.Dispose();
         if (asks.Remove(ask)) Raise();
     }
+
+    // 2.7: a crashed page's questions went with its renderer (a download, held by the browser, waits on); a browser that went
+    // away or a missing runtime takes every question of the page with it. A hung page keeps them (it may be waiting on its reader).
+    private void OnViewChanged()
+    {
+        var now = view?.Failure?.Kind;
+        if (now != failure)
+        {
+            failure = now;
+            if (now == WebFailureKind.RendererCrashed) AnswerAsks(ask => ask.EndsWithDocument);
+            else if (now is { } gone && gone != WebFailureKind.RendererHung) AnswerAsks(ask => ask.Kind != VisusAskKind.App);
+        }
+        Raise();
+    }
+
+    // The engine went (a crash, a missing runtime, a closed view): the page's questions died with it, so they are withdrawn
+    // (nothing kept, nothing announced). An app link was the user's own and waits on.
+    private void OnEngineReleased() => AnswerAsks(ask => ask.Kind != VisusAskKind.App);
 
     /// <summary>Withdraws every waiting ask that <paramref name="which"/> picks, oldest first (the safe answer, nothing kept).</summary>
     private void AnswerAsks(Func<VisusAsk, bool> which)

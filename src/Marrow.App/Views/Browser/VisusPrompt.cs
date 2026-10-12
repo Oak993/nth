@@ -99,7 +99,7 @@ public abstract class VisusPromptCard : Border
             BorderBrush = Brushes.Transparent,
             Child = top,
         };
-        AutomationProperties.SetName(lead, detail.Length > 0 ? title + ". " + detail : title);
+        AutomationProperties.SetName(lead, detail.Length > 0 ? Sentence(title) + " " + detail : title);
         lead.GotFocus += (_, _) => lead.BorderBrush = Marrow.UI.Chrome.Chrome.Accent.Opacity(0.25).Brush(lead);
         lead.LostFocus += (_, _) => lead.BorderBrush = Brushes.Transparent;
         buttons = new WrapPanel { Orientation = Orientation.Horizontal, ItemSpacing = 6, LineSpacing = 6, Margin = new Thickness(0, 12, 0, 0) };
@@ -131,7 +131,10 @@ public abstract class VisusPromptCard : Border
     public string Detail { get; }
 
     /// <summary>What a screen reader hears when the card appears (10.1).</summary>
-    public string Announcement => (Detail.Length > 0 ? Title + ". " + Detail : Title) + ". " + F6Hint;
+    public string Announcement => Sentence(Detail.Length > 0 ? Sentence(Title) + " " + Detail : Title) + " " + F6Hint;
+
+    /// <summary>The text as a sentence: a full stop added unless it already ends in one (no "page.." read aloud).</summary>
+    internal static string Sentence(string text) => text.Length == 0 || text[^1] is '.' or '!' or '?' or '…' ? text : text + ".";
 
     /// <summary>The card's text, where F6 puts the keyboard (10.1).</summary>
     public Control Lead => lead;

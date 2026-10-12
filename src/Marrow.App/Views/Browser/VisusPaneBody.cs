@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Automation;
+using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
@@ -71,6 +72,7 @@ public sealed class VisusPaneBody : Grid
     private readonly HashSet<VisusTab> watchedTabs = [];
     private readonly VisusNotice notice = new();
     private readonly VisusPopover noticePopover;
+    private readonly TextBlock announcer;
     private VisusPopover? cardPopover;
     private IDisposable? cardEntry;
     private VisusTab? fullScreenTab;
@@ -107,6 +109,25 @@ public sealed class VisusPaneBody : Grid
         noticePopover = new VisusPopover(Toolbar.Address, () => notice, lightDismiss: false, takesFocus: false);
         notice.Expired += () => noticePopover.SetOpen(false);
         Children.Add(noticePopover.Popup);
+        // 10.1: a card is read in full as it appears, with no focus taken: an assertive live region in the main window carries
+        // the card's announcement, which ends with "Press F6 to answer." (the card's own window never activates by itself).
+        announcer = new TextBlock
+        {
+            Width = 1,
+            Height = 1,
+            FontSize = 1,
+            MaxLines = 1,
+            ClipToBounds = true,
+            IsHitTestVisible = false,
+            Focusable = false,
+            Foreground = Brushes.Transparent,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            Text = "",
+        };
+        AutomationProperties.SetLiveSetting(announcer, AutomationLiveSetting.Assertive);
+        SetRow(announcer, 1);
+        Children.Add(announcer);
         Toolbar.Address.Went += FocusPage;
         // The browser keys are Visus's wherever the keyboard is in the pane: the body, and the strip, which sits in the header.
         Func<KeyEventArgs, bool> claims = e => VisusKeys.CommandFor(e) is not null;
@@ -146,6 +167,9 @@ public sealed class VisusPaneBody : Grid
 
     /// <summary>The tab whose page fullscreen expanded the pane (null when none).</summary>
     public VisusTab? FullScreenTab => fullScreenTab;
+
+    /// <summary>What the pane's live region said last (a card's announcement, 10.1), or "".</summary>
+    public string Announcement => announcer.Text ?? "";
 
     /// <summary>The notice showing now (null when none).</summary>
     public string? NoticeText => noticePopover.IsOpen ? notice.Text : null;
@@ -378,7 +402,17 @@ public sealed class VisusPaneBody : Grid
         cardPopover = new VisusPopover(Toolbar.Trust, () => card, lightDismiss: false, takesFocus: false, dismissed: card.Dismiss);
         Children.Add(cardPopover.Popup);
         cardPopover.SetOpen(true);
+        Announce(card.Announcement);
         if (top is { } window) cardEntry = VisusPrompts.Add(window, () => card.FocusFirst(window.FocusManager?.GetFocusedElement()));
+    }
+
+    private void Announce(string words)
+    {
+        var old = announcer.Text ?? "";
+        // The same words twice (a second card of one kind) still have to be heard: the region is cleared first.
+        if (old == words) announcer.Text = "";
+        announcer.Text = words;
+        ControlAutomationPeer.CreatePeerForElement(announcer)?.RaisePropertyChangedEvent(AutomationElementIdentifiers.NameProperty, old, words);
     }
 
     private void CloseCard()

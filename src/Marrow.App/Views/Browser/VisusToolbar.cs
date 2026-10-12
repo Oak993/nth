@@ -54,9 +54,9 @@ public sealed class VisusToolbar : Border
         Forward.HistoryRequested += at => ShowHistory(Forward, back: false, at);
         More = new VisusToolbarButton(PaneGlyphKind.More, "Visus menu", null, _ => SetMoreOpen(!moreMenu!.IsOpen));
         moreMenu = new VisusPopover(More, () => new PopoverMenu(BuildMenu));
-        // W8b (5.4; the canvas's data-act="dls"): the downloads of this run, shown once there is one; a ring shows the progress
-        // of the transfers still running.
-        Downloads = new VisusToolbarButton(PaneGlyphKind.Download, "Downloads", null, _ => SetDownloadsOpen(!downloadsMenu!.IsOpen)) { IsVisible = false };
+        // W8b (5.4; the canvas's data-act="dls", an .opt2 button): the downloads of this run, always in the toolbar unless it is
+        // narrower than 420 DIP; a ring shows the progress of the transfers still running.
+        Downloads = new VisusToolbarButton(PaneGlyphKind.Download, "Downloads", null, _ => SetDownloadsOpen(!downloadsMenu!.IsOpen));
         downloadsMenu = new VisusPopover(Downloads, () => new PopoverMenu(BuildDownloads));
         downloadsRing = new Avalonia.Controls.Shapes.Arc
         {
@@ -89,6 +89,7 @@ public sealed class VisusToolbar : Border
         AutomationProperties.SetName(this, "Visus toolbar");
         SetValue(AutomationProperties.ControlTypeOverrideProperty, AutomationControlType.ToolBar);
         ActualThemeVariantChanged += (_, _) => ApplyLook();
+        SizeChanged += (_, _) => ApplyDownloads();
         Sync();
     }
 
@@ -100,7 +101,13 @@ public sealed class VisusToolbar : Border
 
     public VisusToolbarButton More { get; }
 
-    /// <summary>The downloads of this run (5.4), shown once there is one.</summary>
+    /// <summary>The canvas's container rule: at this width or less the optional Downloads button gives its room to the address.</summary>
+    public const double NarrowWidth = 420;
+
+    /// <summary>The downloads popover's line while nothing was saved in this run.</summary>
+    public const string NoDownloads = "No downloads yet. Files you save from Visus show here.";
+
+    /// <summary>The downloads of this run (5.4), in the toolbar unless it is narrow.</summary>
     public VisusToolbarButton Downloads { get; }
 
     /// <summary>The ring's share of the live transfers' bytes (null when none runs with a known size).</summary>
@@ -192,7 +199,7 @@ public sealed class VisusToolbar : Border
     private void ApplyDownloads()
     {
         var downloads = VisusHost.Downloads;
-        Downloads.IsVisible = downloads.Items.Count > 0;
+        Downloads.IsVisible = !(Bounds.Width is > 0 and <= NarrowWidth);
         var live = downloads.LiveCount;
         var progress = downloads.LiveProgress;
         downloadsRing.IsVisible = Downloads.IsVisible && live > 0 && progress is not null;
@@ -221,7 +228,7 @@ public sealed class VisusToolbar : Border
                 rows.Add(new("Resume " + download.FileName, download.Resume));
             if (download.IsLive) rows.Add(new("Cancel " + download.FileName, download.Cancel));
         }
-        rows.Add(null);
+        if (rows.Count > 0) rows.Add(null);
         var folder = VisusHost.DownloadsFolder();
         rows.Add(new("Open the Downloads folder", () =>
         {
@@ -235,6 +242,7 @@ public sealed class VisusToolbar : Border
     {
         var stack = new StackPanel { Orientation = Orientation.Vertical };
         stack.Children.Add(new PopoverSectionHeader("Downloads"));
+        if (VisusHost.Downloads.Items.Count == 0) stack.Children.Add(new PopoverNote(NoDownloads));
         foreach (var row in DownloadEntries())
         {
             if (row is null)
