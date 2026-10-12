@@ -117,6 +117,10 @@ if ($toolVersion -notmatch [regex]::Escape($libraryVersion)) {
 }
 
 Write-Host "nth $version (build $build) -> Velopack package $PackId, local only."
+# Web surfaces W23: WebView2Loader.dll is architecture-specific; an arm64 package needs the restore graph to include win-arm64 (said plainly,
+# before anything is built). After the notes check above, which has to work in a bare repository.
+. (Join-Path $PSScriptRoot 'lib/NthWebView2.ps1')
+Assert-NthRuntimeRestorable -Root $root -Runtime $Runtime
 
 if (Test-Path -LiteralPath $publishDir) { Remove-Item -LiteralPath $publishDir -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $releasesDir | Out-Null
@@ -172,6 +176,8 @@ try {
     }
 } finally { $archive.Dispose() }
 Write-Host "$($fullPackage.Name) holds LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md beside $MainExe, byte for byte as published."
+# Web surfaces W23 (DESIGN 2.1): the package holds the WebView2 loader of the runtime it is for (x64 or arm64), the managed Core assembly, no WPF or WinForms.
+Write-Host (Assert-NthWebView2Package -Package $fullPackage.FullName -Runtime $Runtime -PublishDir $publishDir)
 
 # OD-0072, ED-247: the installer to share is the version gate around Velopack's Setup.exe, given the same title, id and
 # version as vpk pack, so its check and the package it installs cannot disagree.

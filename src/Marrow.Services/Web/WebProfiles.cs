@@ -44,8 +44,13 @@ public sealed class WebProfiles
     public const string ArtifactsProfile = "artifacts";
     public const string PrivateProfile = "private";
 
-    /// <summary>The browser arguments every environment shares (none: SmartScreen and the defaults stay on, DESIGN 5.4).</summary>
-    public const string? BrowserArguments = null;
+    /// <summary>
+    /// The browser arguments every environment shares (DESIGN 6.5, ED-NEW-web-w13-1): site isolation kept on for every
+    /// site, so each sandboxed surface (its own site under <c>.invalid</c>) gets its own renderer process; and WebRTC
+    /// never sends UDP outside a proxy, which closes the WebRTC channel CSP cannot (harmless for browsing). Nothing else:
+    /// SmartScreen and the defaults stay on (DESIGN 5.4).
+    /// </summary>
+    public const string BrowserArguments = "--site-per-process --force-webrtc-ip-handling-policy=disable_non_proxied_udp";
 
     /// <param name="userDataFolder">The one user data folder; <see cref="DefaultUserDataFolder"/> in the app.</param>
     /// <param name="language">The UI language every environment is created with (one value for the whole process).</param>
@@ -57,9 +62,8 @@ public sealed class WebProfiles
         Language = language;
     }
 
-    /// <summary><c>%LOCALAPPDATA%\nth\WebView2</c> (DESIGN 2.3; the Velopack uninstall hook removes it, W23).</summary>
-    public static string DefaultUserDataFolder =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "nth", "WebView2");
+    /// <summary><c>%LOCALAPPDATA%\nth\WebView2</c> (DESIGN 2.3; the Velopack uninstall hook removes it, W23: <see cref="WebDataRoot"/>).</summary>
+    public static string DefaultUserDataFolder => WebDataRoot.Resolve();
 
     public string UserDataFolder { get; }
 

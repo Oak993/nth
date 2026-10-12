@@ -397,6 +397,57 @@ public sealed class WebViewHostTests(HeadlessSession headless)
         });
     }
 
+    // Web surfaces W23 (ED-NEW-web-w23-2): the runtime flow's two cards. The installing card is text only (no empty button row, no live
+    // content under it); the failed card offers another go and Microsoft's page, and both buttons reach the surface.
+    [Fact]
+    [Trait("Decision", "ED-NEW-web-w23-2")]
+    public void The_runtime_flow_cards_keep_the_pane_empty_of_live_content_and_the_failed_cards_buttons_reach_the_surface()
+    {
+        headless.OnUiThread(() =>
+        {
+            var surface = new FakeWebViewSurface();
+            surface.Fail(WebFailureCard.RuntimeInstalling(updating: false));
+            surface.Set(WebLiveness.Closed);
+            var made = 0;
+            var host = new WebViewHost(surface, _ =>
+            {
+                made++;
+                return new Border();
+            });
+            var window = new Window { Width = 400, Height = 300, Content = host };
+            window.Show();
+            try
+            {
+                FakeWebViewSurface.Pump(host.WhenIdleAsync());
+                Assert.Equal(0, made);
+                Assert.Null(host.LiveContent);
+                Assert.Equal(WebFailureKind.RuntimeInstalling, host.ShownCard?.Kind);
+                var texts = host.FailureLayer.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text).ToList();
+                Assert.Equal(["Installing the WebView2 runtime.", "nth is getting it from Microsoft. This takes a moment."], texts);
+                Assert.Empty(host.FailureLayer.GetVisualDescendants().OfType<Button>());
+
+                surface.Fail(WebFailureCard.RuntimeInstallFailed(updating: false, "nth could not reach Microsoft. Check your connection and try again."));
+                FakeWebViewSurface.Pump(host.WhenIdleAsync());
+                Assert.Equal(0, made);
+                Assert.Equal(WebFailureKind.RuntimeInstallFailed, host.ShownCard?.Kind);
+                window.UpdateLayout(); // the new card's buttons take their templates (and so their labels) in a layout pass
+                texts = host.FailureLayer.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text).ToList();
+                Assert.Contains("The WebView2 runtime did not install.", texts);
+                Assert.Contains("Try again", texts);
+                Assert.Contains("Open Microsoft's page", texts);
+                var buttons = host.FailureLayer.GetVisualDescendants().OfType<Button>().ToList();
+                Assert.Equal(2, buttons.Count);
+                buttons[0].RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                buttons[1].RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Assert.Equal([WebFailureAction.InstallRuntime, WebFailureAction.OpenRuntimePage], surface.Actions);
+            }
+            finally
+            {
+                window.Close();
+            }
+        });
+    }
+
     [Fact]
     public void A_window_transition_swaps_every_web_view_in_that_window_and_no_other()
     {

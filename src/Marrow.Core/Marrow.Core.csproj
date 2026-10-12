@@ -14,6 +14,8 @@
     <EmbeddedResource Include="Port\ModelsPalette\palette-source1.json" LogicalName="Marrow.Core.ModelsPalette.Source1.json" />
     <EmbeddedResource Include="Port\ModelsPalette\psl-icann.txt" LogicalName="Marrow.Core.ModelsPalette.PslIcann.txt" />
     <EmbeddedResource Include="Port\ModelsPalette\toc-source1.json" LogicalName="Marrow.Core.ModelsPalette.Toc.json" />
+    <!-- ED-NEW-web-w17-1 (unit W17): the nth-ui reference page, compiled in as the on-demand skill (ui_reference) models read. -->
+    <EmbeddedResource Include="..\..\docs\nth-ui.md" LogicalName="Marrow.Core.NthUiReference.md" />
   </ItemGroup>
 
 </Project>

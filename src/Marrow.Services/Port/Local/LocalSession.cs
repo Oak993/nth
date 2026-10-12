@@ -35,6 +35,10 @@ public sealed class LocalSession : OpenAICompatibleSession
         return base.StreamOneRound(current.Id, effort, withTools && current.Capabilities.ToolCalling == true);
     }
 
+    // PORT-ONLY (web surfaces W17, ED-NEW-web-w17-1): a local model is taught the lite subset of live views, and fenced blocks in place of tools when it cannot call them.
+    protected override Marrow.Core.NthUi.NthUiProfile TeachingProfile => Marrow.Core.NthUi.NthUiProfile.Lite;
+    protected override bool TeachingToolsUsable => current.Capabilities.ToolCalling == true;
+
     protected override string ModelForInput(string model) => target.Models.FirstOrDefault(item => item.Id == model || item.SelectionId == model)?.Id
         ?? throw new ProviderError(new ProviderError.Case.Failed("That local model is not on this server. Refresh the model list and select it again."));
 
@@ -44,6 +48,8 @@ public sealed class LocalSession : OpenAICompatibleSession
     {
         payload["max_tokens"] = Math.Max(1, Math.Min(2048, ContextWindowFor(model) / 4));
         if (current.Capabilities.ToolCalling != true) { payload.Remove("tools"); payload.Remove("tool_choice"); }
+        // PORT-ONLY (web surfaces W17, ED-NEW-web-w17-1): a llama.cpp server writes the lite view from a grammar when the chat teaches live answers.
+        if (SkillTools?.TeachesLiveViews == true) LocalViewGrammar.Apply(payload, target.Kind);
     }
 
     protected override Task<string> ExecuteTool(PendingToolCall tool) => current.Capabilities.ToolCalling == true
