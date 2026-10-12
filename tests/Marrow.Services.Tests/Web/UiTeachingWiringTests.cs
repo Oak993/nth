@@ -101,7 +101,7 @@ public sealed class UiTeachingWiringTests
     }
 
     [Fact]
-    public async Task API_providers_get_the_reference_as_a_native_tool_and_the_block_for_their_system_prompt()
+    public async Task API_providers_get_the_reference_as_a_function_tool_and_the_block_for_their_system_prompt()
     {
         var off = SkillSessionFactory.NativeTools(Config(ProviderKind.Deepseek, Chat));
         Assert.Null(off.UiTeachingBlock());
