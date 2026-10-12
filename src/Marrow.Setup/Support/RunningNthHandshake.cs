@@ -170,9 +170,10 @@ public sealed class RunningNthHandshake : IRunningNth
 
         if (answer.Reply == NthControlReply.Refused) return Refuse(answer.Reason ?? "refused");
         if (answer.Reply != NthControlReply.Status) return Refuse("unexpected");
-        var inside = found.Any(process => process.ProcessId == answer.Pid) || RunningNthPaths.IsInside(root, answer.Exe);
-        if (!inside) return Set(RunningNthState.Clear); // an nth from elsewhere (portable, development) answers; what is inside the root is Velopack's to stop
-        watched = found.Any(process => process.ProcessId == answer.Pid) ? found : [.. found, new RunningNthProcess(answer.Pid, answer.Exe)];
+        watched = found; // Only the processes discovered in this attempt can clear its guard.
+        if (!found.Any(process => process.ProcessId == answer.Pid) || !RunningNthPaths.IsInside(root, answer.Exe))
+            return await WaitForExitAsync(finishingMerge: false, token).ConfigureAwait(false);
+        // A different nth cannot give consent for these processes, even if its executable is also in the root.
         return await QuitAsync(NthControlRequest.QuitIfIdle, token).ConfigureAwait(false);
     }
 

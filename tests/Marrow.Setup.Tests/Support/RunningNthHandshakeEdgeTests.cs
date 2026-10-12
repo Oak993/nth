@@ -74,15 +74,18 @@ public sealed class RunningNthHandshakeEdgeTests
 
     [Fact]
     [Trait("Decision", "ED-247")]
-    public async Task An_nth_that_answers_from_outside_the_root_is_none_of_the_setups_business_and_is_not_told_to_quit()
+    public async Task An_outside_answer_is_left_alone_and_the_discovered_in_root_process_is_still_guarded()
     {
+        // ED-NEW-inst-c7-3 retires the former Clear assertion: the owner requires the discovered process's exit or consent.
         var rig = new HandshakeRig();
         rig.Nth.AnswerPid = 9001;
-        rig.Nth.AnswerExe = @"E:\Droppy\Installer\portable\nth.exe"; // a portable copy owns the pipe; what runs inside the root is a stray relay
+        rig.Nth.AnswerExe = @"E:\Droppy\Installer\portable\nth.exe";
 
         var status = await rig.AskAsync();
 
-        Assert.Equal(RunningNthState.Clear, status.State);
+        Assert.Equal(RunningNthState.NotResponding, status.State);
+        Assert.False(status.CanProceed);
+        Assert.True(rig.Nth.Running);
         Assert.Equal(["status"], rig.Nth.Sent);
         Assert.Empty(rig.Nth.Ended);
     }
