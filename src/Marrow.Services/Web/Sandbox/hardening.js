@@ -2,9 +2,13 @@
 // of a sandboxed view, and only on nth's own sandboxed origins. It closes what the Content-Security-Policy cannot:
 // WebRTC, DNS prefetch and preconnect hints, script-initiated clipboard writes, fullscreen and pointer lock, service
 // workers, windows. Every request that still leaves goes through nth's resource handler, which answers only nth's hosts.
+// + ED-NEW-web-w26-2 (W26 security review): also in a sandboxed frame inside one (its origin is opaque, "null"), and a
+// frame this script never ran in (an iframe's first about:blank) is scrubbed as soon as the page can reach it.
 (() => {
   'use strict';
-  if (!/^https:\/\/[amw]-[a-z0-9-]+\.invalid$/.test(location.origin)) return;
+  const nth = /^https:\/\/[amw]-[a-z0-9-]+\.invalid$/;
+  const ancestors = () => { try { return Array.from(location.ancestorOrigins || []); } catch (_) { return []; } };
+  if (!/^https:\/\/[amw]-[a-z0-9-]+\.invalid$/.test(location.origin) && !(location.origin === 'null' && ancestors().some((origin) => nth.test(origin)))) return;
   const define = (target, name, value) => {
     try { Object.defineProperty(target, name, { value, writable: false, configurable: false, enumerable: false }); } catch (_) { /* already locked */ }
   };
@@ -43,6 +47,54 @@
     });
   }
 
+  // ED-NEW-web-w26-2: window[0], window.frames and named frames reach a child without the getters above. Every frame
+  // this page can reach is scrubbed right after anything that can add one (each DOM insertion, document.write, an HTML
+  // setter), at a frame's load before the page's own handler, and on every mutation record.
+  const scrubFrames = (win) => {
+    let count = 0;
+    try { count = win.length; } catch (_) { return; }
+    for (let i = 0; i < count; i++) {
+      let child = null;
+      try { child = win[i]; } catch (_) { continue; }
+      if (!child || child === win) continue;
+      scrub(child);
+      scrubFrames(child);
+    }
+  };
+  const after = (type, name) => {
+    const proto = type && type.prototype;
+    const original = proto && Object.getOwnPropertyDescriptor(proto, name);
+    if (!original || typeof original.value !== 'function') return;
+    define(proto, name, function (...args) { try { return original.value.apply(this, args); } finally { scrubFrames(window); } });
+  };
+  const setter = (type, name) => {
+    const proto = type && type.prototype;
+    const original = proto && Object.getOwnPropertyDescriptor(proto, name);
+    if (!original || !original.set || !original.configurable) return;
+    Object.defineProperty(proto, name, {
+      configurable: false, enumerable: original.enumerable, get: original.get,
+      set(value) { try { original.set.call(this, value); } finally { scrubFrames(window); } },
+    });
+  };
+  for (const name of ['appendChild', 'insertBefore', 'replaceChild']) after(window.Node, name);
+  for (const type of [window.Element, window.Document, window.DocumentFragment]) {
+    for (const name of ['append', 'prepend', 'replaceChildren', 'moveBefore']) after(type, name);
+  }
+  for (const type of [window.Element, window.CharacterData, window.DocumentType]) {
+    for (const name of ['after', 'before', 'replaceWith']) after(type, name);
+  }
+  for (const name of ['insertAdjacentElement', 'insertAdjacentHTML', 'setHTMLUnsafe']) after(window.Element, name);
+  after(window.ShadowRoot, 'setHTMLUnsafe');
+  for (const name of ['write', 'writeln', 'open']) after(window.Document, name);
+  after(window.Range, 'insertNode');
+  for (const name of ['innerHTML', 'outerHTML']) setter(window.Element, name);
+  setter(window.ShadowRoot, 'innerHTML');
+  if (document.addEventListener) {
+    document.addEventListener('load', (event) => {
+      if (event.target && /^(IFRAME|FRAME|OBJECT|EMBED)$/.test(event.target.tagName || '')) scrubFrames(window);
+    }, true);
+  }
+
   // DNS prefetch, preconnect, prefetch, prerender and speculation rules: removed as they are added, before they act.
   const hint = /(^|\s)(dns-prefetch|preconnect|prefetch|prerender)(\s|$)/i;
   const strip = (node) => {
@@ -58,13 +110,14 @@
       if (record.type === 'attributes') strip(record.target);
       else record.addedNodes.forEach(strip);
     }
+    scrubFrames(window);
   }).observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['rel', 'http-equiv', 'type'] });
 
   // Clipboard writes from script, fullscreen and pointer lock: denied (Permissions-Policy denies them too).
   const execCommand = Document.prototype.execCommand;
   define(Document.prototype, 'execCommand', function (command, ...rest) {
     if (/^(copy|cut)$/i.test(String(command))) return false;
-    return execCommand.call(this, command, ...rest);
+    try { return execCommand.call(this, command, ...rest); } finally { scrubFrames(window); } // insertHTML can add a frame
   });
   if (window.Clipboard) {
     define(Clipboard.prototype, 'write', () => Promise.reject(new DOMException('Copy with nth’s Copy button.', 'NotAllowedError')));
