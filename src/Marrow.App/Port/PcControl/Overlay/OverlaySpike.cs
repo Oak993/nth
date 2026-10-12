@@ -20,6 +20,9 @@
 // - np18-focus: the card's keyboard (ED-NEW-pcctl-26 item 8). An input band shows a card with the reply field; CardFocus
 //   runs on the real calls (CardFocusWin32): a click in the field saves the window the keyboard comes from, Enter hands it
 //   back, a click elsewhere while typing only takes it away. It logs each save, each 100 ms check and each hand-back.
+// - np11-rdp: the separate workspace's Remote Desktop control (unit P18a, ED-NEW-pcctl-33, NP-11), in
+//   Workspace/RdpHostSpike.cs: hosted in a native child window, connected to a child session when they are on, and its
+//   drawing and the session's heartbeat measured while visible, cloaked and minimized.
 #if DEBUG
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -53,7 +56,7 @@ public static class OverlaySpike
     /// <summary>How long a probe runs before it writes its RESULT and exits.</summary>
     public const double RunSeconds = 90;
 
-    public static IReadOnlyList<string> Probes { get; } = ["np15-region", "np15-pixel", "np15-flip", "np16", "np18-focus"];
+    public static IReadOnlyList<string> Probes { get; } = ["np15-region", "np15-pixel", "np15-flip", "np16", "np18-focus", Workspace.RdpProbe.Probe];
 
     public static int Run(string[] args)
     {
@@ -76,6 +79,7 @@ public static class OverlaySpike
                 "np15-pixel" => new PixelProbe(log, options),
                 "np15-flip" => new FlipProbe(log, options),
                 "np18-focus" => new FocusProbe(log, options),
+                Workspace.RdpProbe.Probe => new Workspace.RdpProbe(log, options),
                 _ => new MotionProbe(log, options),
             };
             log.Line($"probe {probe} warm={options.Warm} straddle={options.Straddle} lwa={options.Lwa} refresh={SpikeNative.RefreshHz()} Hz");
