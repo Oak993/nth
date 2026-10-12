@@ -15,6 +15,12 @@ public sealed record FeedChatFacts(
     bool IsLocalModel,
     bool IsPrivateAccount)
 {
+    /// <summary>Valid Assistant work ignores hiding; damaged marks never grant this exemption.</summary>
+    public bool HidingExempt { get; init; }
+
+    /// <summary>Bounded ordinary ancestor IDs whose later hiding must redact this draft too.</summary>
+    public IReadOnlyList<Guid> HideAncestors { get; init; } = [];
+
     /// <summary>How deep a chain of heads is followed to find a hidden ancestor (a loop in the data cannot hang it).</summary>
     public const int MaxAncestors = 16;
 
@@ -28,9 +34,11 @@ public sealed record FeedChatFacts(
     /// </summary>
     public static FeedChatFacts From(ChatThread thread, Func<Guid, ChatThread?> lookup, Func<ChatThread, bool>? isPrivateAccount = null)
     {
-        var hidden = !IsAssistantWork(thread) && (thread.HiddenFromAssistant || AncestorHidden(thread, lookup));
+        var exempt = IsAssistantWork(thread);
+        var ancestors = exempt ? (Hidden: false, Sources: (IReadOnlyList<Guid>)Array.Empty<Guid>()) : Ancestors(thread, lookup);
+        var hidden = !exempt && (thread.HiddenFromAssistant || ancestors.Hidden);
         return new FeedChatFacts(thread.Title, thread.Provider, hidden, thread.Provider == ProviderKind.Local,
-            isPrivateAccount?.Invoke(thread) == true);
+            isPrivateAccount?.Invoke(thread) == true) { HidingExempt = exempt, HideAncestors = ancestors.Sources };
     }
 
     // Guid.Empty is the decoder's damaged-key sentinel, never proof that the Assistant owns a chat.
@@ -39,18 +47,24 @@ public sealed record FeedChatFacts(
         thread.MissionID != Guid.Empty && thread.AssistantID != Guid.Empty
         && (thread.MissionID is not null || thread.AssistantID is not null);
 
-    private static bool AncestorHidden(ChatThread thread, Func<Guid, ChatThread?> lookup)
+    private static (bool Hidden, IReadOnlyList<Guid> Sources) Ancestors(ChatThread thread, Func<Guid, ChatThread?> lookup)
     {
         var seen = new HashSet<Guid> { thread.Id };
+        var sources = new List<Guid>();
+        var hidden = false;
         var current = thread;
         for (var depth = 0; depth < MaxAncestors; depth++)
         {
-            if (current.ParentThreadID is not { } parentId || !seen.Add(parentId)) return false;
-            if (lookup(parentId) is not { } parent) return false;
-            if (!IsAssistantWork(parent) && parent.HiddenFromAssistant) return true;
+            if (current.ParentThreadID is not { } parentId || !seen.Add(parentId)) break;
+            if (lookup(parentId) is not { } parent) break;
+            if (!IsAssistantWork(parent))
+            {
+                sources.Add(parentId);
+                hidden |= parent.HiddenFromAssistant;
+            }
             current = parent;
         }
-        return false;
+        return (hidden, sources.AsReadOnly());
     }
 }
 

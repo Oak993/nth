@@ -6229,3 +6229,8 @@ ENGINEERING DECISION. Owner accepted C6-F1 (2026-10-12); DESIGN.md 5.4 and 15.3,
 ## ED-NEW-dextra-cx-2
 
 ENGINEERING DECISION. Owner accepted C6-F2 (2026-10-12); DESIGN.md 5.4 and ED-NEW-dextra-as3a-1 item 4. Guid.Empty remains the damaged-key sentinel in storage and mission/cap identity. FeedChatFacts grants the hiding exemption only when at least one mark exists and neither present mark is Guid.Empty. A damaged mark beside a valid mark also fails closed. Existing valid mission/Assistant work and provider filtering remain unchanged. Filtering stays after enqueue (ED-NEW-dextra-as2-6). Regression: DextraC6F2Tests; original malformed-mission repro failed alone twice at 37fe3e03f (codex-C6 logs); additional cases cover both fields, malformed JSON shapes and explicit empty UUIDs.
+
+
+## ED-NEW-dextra-cx-3
+
+ENGINEERING DECISION. Owner accepted C6-F3 (2026-10-12); DESIGN.md 5.4, ED-NEW-dextra-as2-2 items 3-4. FeedChatFacts captures read-only ordinary ancestor IDs in the existing bounded, cycle-safe 16-link walk. Queue.Hide matches the chat or these dependencies in both ready and held lists, clears Detail and marks Hidden; the builder still drops forbidden kinds and strips title/IDs from surviving hidden events. Valid Assistant work is explicitly exempt, including when Hide is called on its own ID. Mission ancestors do not contribute their own hidden mark but the walk continues through them, as before. No live AppModel reads occur on the pump and filtering stays after enqueue (ED-NEW-dextra-as2-6). Regression: original queued-child tap repro failed alone twice at 37fe3e03f; DextraC6F3QueueTests also cover held/ready grandchildren and the mission exemption.
