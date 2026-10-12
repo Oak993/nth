@@ -53,6 +53,25 @@ public sealed class SetupTestProjectTests
         Assert.True(shell.ReadLink(FakeShellLinks.DesktopLink).IsMadeByNth);
     }
 
+    [Fact]
+    [Trait("Decision", "ED-247")]
+    public void The_tests_lock_file_names_the_setup_by_its_assembly_name_so_a_locked_restore_passes()
+    {
+        // ED-NEW-inst-merge-5: U7 renamed the setup assembly to nth-Setup; NuGet keys a project reference by that name, and
+        // Directory.Build.props restores in locked mode, so a lock file that still names marrow.setup fails with NU1004.
+        var repository = Repository();
+        var setup = File.ReadAllText(Path.Combine(repository, "src", "Marrow.Setup", "Marrow.Setup.csproj"));
+        var name = System.Text.RegularExpressions.Regex.Match(setup, "<AssemblyName>([^<]+)</AssemblyName>").Groups[1].Value;
+        var lockFile = File.ReadAllText(Path.Combine(repository, "tests", "Marrow.Setup.Tests", "packages.lock.json"));
+
+        Assert.Equal("nth-Setup", name);
+        Assert.Matches("\"" + System.Text.RegularExpressions.Regex.Escape(name) + @""": \{\s*""type"": ""Project""", lockFile);
+        Assert.DoesNotContain("\"marrow.setup\"", lockFile, StringComparison.OrdinalIgnoreCase);
+        // the merged project keeps U5's unsafe code (generated COM and LibraryImport) and U1's AOT analyzers, once each
+        Assert.Equal(1, Count(setup, "<AllowUnsafeBlocks>true</AllowUnsafeBlocks>"));
+        Assert.Equal(1, Count(setup, "<IsAotCompatible>true</IsAotCompatible>"));
+    }
+
     private static int Count(string text, string part)
     {
         var count = 0;
