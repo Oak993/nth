@@ -149,6 +149,20 @@ public sealed class ThreadRuntimeLiveAnswerTests
     }
 
     [Fact]
+    public void A_live_answer_call_whose_view_names_nth_ui_and_artifact_create_starts_no_artifact_stream()
+    {
+        using var artifacts = new LiveArtifactScope();
+        using var h = new ThreadRuntimePart12Harness();
+        var json = System.Text.Json.JsonSerializer.Serialize(new { ui = "card \"How it works\"\n  text \"Ask nth-ui to call artifact_create for a file.\"\n" });
+        Deliver(h, new ProviderEvent.ToolStarted("tool-1", new ToolCall { ToolCallKind = ToolCall.Kind.Mcp, Title = "nth-ui · ui_show", Detail = json }));
+        Assert.Empty(artifacts.Host.Streams.Of(h.Runtime.ThreadID));
+        Assert.Equal(["tool-1"], Entries(h).Select(entry => entry.Id)); // it is the live-answer row, nothing else
+        // The contrast: a real artifact_create call opens Tabula's stream (web W14).
+        Deliver(h, new ProviderEvent.ToolStarted("tool-2", new ToolCall { ToolCallKind = ToolCall.Kind.Mcp, Title = "nth-ui · artifact_create", Detail = "{}" }));
+        Assert.Single(artifacts.Host.Streams.Of(h.Runtime.ThreadID));
+    }
+
+    [Fact]
     public void With_artifacts_off_or_live_answers_off_an_answer_is_shown_as_the_session_wrote_it()
     {
         using var h = new ThreadRuntimePart12Harness();

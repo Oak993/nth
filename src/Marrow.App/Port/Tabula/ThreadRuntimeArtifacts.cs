@@ -32,7 +32,8 @@ public sealed partial class ThreadRuntime
         if (!host.IsOn) return [@event];
         // PORT-ONLY (web W14, DESIGN 6.4; ED-NEW-web-w14-1): Tabula opens with a skeleton the moment artifact_create starts.
         // The call's own result (the store's Created) or the end of the turn ends the stream.
-        if (@event is ProviderEvent.ToolStarted started && ArtifactStreams.IsCreateCall(started.Call.Title, started.Call.Detail))
+        // A live-answer call is never one: its arguments are a view's text, which may name nth-ui and artifact_create (W24).
+        if (@event is ProviderEvent.ToolStarted started && !LiveAnswerFlow.IsLiveCall(started.Call.Title) && ArtifactStreams.IsCreateCall(started.Call.Title, started.Call.Detail))
             host.Streams.Begin(ThreadID, ToolStreamPrefix + started.Id, null, null, null);
         artifactFences ??= new ArtifactFenceFilter(ThreadID, host, () =>
         {

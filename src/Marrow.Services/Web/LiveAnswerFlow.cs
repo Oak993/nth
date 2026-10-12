@@ -117,6 +117,9 @@ public sealed class LiveAnswerFlow(Guid thread, LiveAnswerHost host, bool lite, 
         }
     }
 
+    /// <summary>True when a provider's row title names one of the live-answer tools (ui_show, ui_update or html_widget).</summary>
+    public static bool IsLiveCall(string? title) => Match(title) is not null;
+
     /// <summary>The tool a provider's row title names, or null for any other row.</summary>
     internal static Tool? Match(string? title)
     {
