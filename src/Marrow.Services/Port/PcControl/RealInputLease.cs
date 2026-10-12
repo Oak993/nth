@@ -35,7 +35,7 @@ public sealed class RealInputLease
     private readonly List<Entry> queue = [];
     private readonly List<Entry> stills = [];
     private readonly AsyncLocal<Func<bool>?> actionPermission = new();
-    private readonly AsyncLocal<Func<CancellationToken, Task<PcUiaOutcome>>?> actionValidation = new();
+    private readonly AsyncLocal<Func<long, CancellationToken, Task<PcUiaOutcome>>?> actionValidation = new();
     private readonly AsyncLocal<Func<PcBorrowRequest, PcBorrowRequest>?> actionRefresh = new();
     private readonly Dictionary<(nint Window, nint Focus), List<PcRawInput>> kept = [];
     private readonly IPhysicalInput input;
@@ -142,7 +142,7 @@ public sealed class RealInputLease
 
     // The engine's grant follows its async action into R4 without changing the shared request/assembly seams.
     internal async Task<PcUiaOutcome> RunWithPermission(Func<bool>? permitted, Func<Task<PcUiaOutcome>> run,
-        Func<CancellationToken, Task<PcUiaOutcome>>? validate = null, Func<PcBorrowRequest, PcBorrowRequest>? refresh = null)
+        Func<long, CancellationToken, Task<PcUiaOutcome>>? validate = null, Func<PcBorrowRequest, PcBorrowRequest>? refresh = null)
     {
         var previous = actionPermission.Value;
         var previousValidation = actionValidation.Value;
@@ -175,6 +175,7 @@ public sealed class RealInputLease
         }
         IDisposable? mark = null;
         var waited = false;
+        var queuedAt = clock.NowMs;
         try
         {
             while (true)
@@ -185,7 +186,7 @@ public sealed class RealInputLease
                     mark ??= request.Waiting?.Invoke(PcWaitReason.HandsOff);
                 }, permitted).ConfigureAwait(false);
                 if (opened.Outcome is { } refused) return refused;
-                var outcome = await Run(entry, request, opened.Delivered, opened.Tick, cancellationToken, permitted, validate).ConfigureAwait(false);
+                var outcome = await Run(entry, request, opened.Delivered, opened.Tick, cancellationToken, permitted, validate, waited ? clock.NowMs - queuedAt : -1).ConfigureAwait(false);
                 if (outcome is null) continue;
                 if (outcome.Done && !waited && request.Detail.Length > 0) Used?.Invoke(request.Stream, request.Detail);
                 return outcome;
@@ -285,11 +286,11 @@ public sealed class RealInputLease
 
     // Steps 3 to 7. Null: something arrived between the gate and the hold, so the borrow let go and waits again.
     private async Task<PcBorrowOutcome?> Run(Entry entry, PcBorrowRequest request, long deliveredAtGate, long? tickAtGate, CancellationToken cancellationToken, Func<bool>? permitted,
-        Func<CancellationToken, Task<PcUiaOutcome>>? validate)
+        Func<long, CancellationToken, Task<PcUiaOutcome>>? validate, long waitedMs)
     {
         if (validate is not null)
         {
-            var checkedTarget = await validate(cancellationToken).ConfigureAwait(false);
+            var checkedTarget = await validate(waitedMs, cancellationToken).ConfigureAwait(false);
             if (!checkedTarget.Done)
                 return new PcBorrowOutcome(PcBorrowStatus.NotSent, checkedTarget.Reason) { Code = checkedTarget.Error };
             // ED-NEW-pcctl-cx-11: resolve before holding input, then use the newly resolved focus/point.

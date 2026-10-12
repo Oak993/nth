@@ -129,8 +129,9 @@ public sealed class PcCall(PcTimings timings, PcAuditDraft audit, CancellationTo
 
     /// <summary>The resumed block of the step's latest hold, carried by its result.</summary>
     public PcResumed? Resumed { get; set; }
+    internal bool NeedsFreshTarget { get; set; }
 
-    public PcCall With(CancellationToken other) => new(Timings, Audit, other, Wait) { InBatch = InBatch, Base = Base, Output = Output, PauseEpoch = PauseEpoch, GrantLive = GrantLive };
+    public PcCall With(CancellationToken other) => new(Timings, Audit, other, Wait) { InBatch = InBatch, Base = Base, Output = Output, PauseEpoch = PauseEpoch, GrantLive = GrantLive, NeedsFreshTarget = NeedsFreshTarget };
 }
 
 /// <summary>What one step produced for later batch steps: the text a pc_read read, the windows an action opened.</summary>
@@ -381,7 +382,13 @@ public sealed partial class PcControlEngine : IDisposable
         using var watch = parts.Control.Watch(call.Token, caller.Thread, info.App.Key, handle);
         try
         {
-            return await parts.Lanes.Run(info.App.Key, laneToken => Stream(info, capability, approval, call.With(laneToken), run), watch.Token).ConfigureAwait(false);
+            var queuedAt = parts.Clock.NowMs;
+            return await parts.Lanes.Run(info.App.Key, laneToken =>
+            {
+                var queued = call.With(laneToken);
+                queued.NeedsFreshTarget |= parts.Clock.NowMs - queuedAt > WarmTreeMaxAgeMs;
+                return Stream(info, capability, approval, queued, run);
+            }, watch.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (watch.Stopped)
         {

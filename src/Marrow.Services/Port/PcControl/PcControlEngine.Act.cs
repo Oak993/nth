@@ -26,6 +26,11 @@ public sealed partial class PcControlEngine
     private async Task<(PcTarget? Target, PcResult? Failure)> Resolve(PcWindowInfo info, JsonObject args, bool pointAllowed, bool required, PcCall call)
     {
         await Boundary(info, call).ConfigureAwait(false);
+        if (call.NeedsFreshTarget)
+        {
+            await Tree(info.Handle, fresh: true, call.Token).ConfigureAwait(false);
+            call.NeedsFreshTarget = false;
+        }
         var element = PcArgs.Int(args, "element");
         var locator = PcArgs.Locator(args);
         var point = PcArgs.Pair(args["point"], "point");
@@ -265,15 +270,21 @@ public sealed partial class PcControlEngine
             // A pause while the confirmation (or the typing wait) was up: an answer given then is asked again after the
             // Resume, with the target read again (DESIGN.md 10.1).
             if (tried == 0 && parts.Pause.PausedSince(info.App.Key, call.PauseEpoch)) throw new PcHeld();
+            call.NeedsFreshTarget |= waited;
             if (waited)
             {
                 // The user worked while the step waited: the window is read again (their input made it dirty), and a target
                 // they changed stops the step.
-                before = await Tree(handle, fresh: false, call.Token).ConfigureAwait(false) ?? before;
                 if (active && before.Focused is { } userFocus) noise.Add(before.Elements[userFocus].RuntimeId);
                 if (request.Element is { } element && parts.Input.Presses(handle) != pressesBefore
                     && await ChangedWhileWaiting(info, element, call).ConfigureAwait(false) is { } changed)
                     return changed;
+            }
+            if (identity is null && call.NeedsFreshTarget)
+            {
+                before = await Tree(handle, fresh: true, call.Token).ConfigureAwait(false) ?? before;
+                request = request with { Tree = before };
+                call.NeedsFreshTarget = false;
             }
             // ED-NEW-pcctl-cx-11: a moved window preserves a point's place inside it; a resize invalidates its grid.
             if (request.Point is { } oldPoint)
@@ -297,7 +308,7 @@ public sealed partial class PcControlEngine
                 }
             }
             // Confirmation/yield may have outlived the user's 2 s activity window. Revalidate content, not recency.
-            if (identity is not null)
+            if (identity is not null && call.NeedsFreshTarget)
             {
                 var fresh = await Tree(handle, fresh: true, call.Token).ConfigureAwait(false);
                 if (fresh is null) return PcResult.Fail(PcErrorCode.WindowGone, "the window is gone");
@@ -318,6 +329,7 @@ public sealed partial class PcControlEngine
                 way = liveWay with { Target = live, Writes = way.Writes };
                 before = fresh;
                 request = refreshedRequest;
+                call.NeedsFreshTarget = false;
             }
             if (call.GrantLive?.Invoke() == false)
                 return PcResult.Fail(PcErrorCode.NotApproved, "the app was removed from Tactus's apps while the step waited");
@@ -331,7 +343,7 @@ public sealed partial class PcControlEngine
             var started = parts.Clock.NowMs;
             var pressesAt = parts.Input.Presses(handle);
             AimPointer(info, request, way);
-            Func<CancellationToken, Task<PcUiaOutcome>>? validateBorrow = null;
+            Func<long, CancellationToken, Task<PcUiaOutcome>>? validateBorrow = null;
             Func<PcBorrowRequest, PcBorrowRequest>? refreshBorrow = null;
             if (way.Rung == PcRung.R4 && (way.Target ?? request.Element) is { } borrowTarget
                 && before.IndexOf(borrowTarget.RuntimeId) is { } borrowIndex)
@@ -339,7 +351,7 @@ public sealed partial class PcControlEngine
                 var borrowIdentity = PcElementMatch.Identity(before, borrowIndex);
                 PcUiNode? resolvedBorrow = null;
                 PcPoint? resolvedPoint = null;
-                validateBorrow = async token =>
+                validateBorrow = async (waitedMs, token) =>
                 {
                     if (parts.Catalog.Window(handle) is not { } window || !info.SameWindow(window))
                         return PcUiaOutcome.Fail(PcErrorCode.WindowGone, "the window was replaced while the borrow waited");
@@ -351,12 +363,17 @@ public sealed partial class PcControlEngine
                         return focused?.RuntimeId == (resolvedBorrow?.RuntimeId ?? borrowTarget.RuntimeId) ? PcUiaOutcome.Ok
                             : PcUiaOutcome.Fail(PcErrorCode.StaleElement, "the typed field no longer holds focus; look again before typing the rest");
                     }
-                    var fresh = await Tree(handle, fresh: true, token).ConfigureAwait(false);
+                    // Long queue waits need one cold read. Short waits use the cheap element check; a changed
+                    // identity then resolves on a cold tree even when a provider missed its change event.
+                    var checkedLive = waitedMs >= 0 && waitedMs <= WarmTreeMaxAgeMs
+                        ? await parts.Reader.Element(handle, borrowIdentity.RuntimeId, token).WaitAsync(token).ConfigureAwait(false) : null;
+                    var cold = waitedMs > WarmTreeMaxAgeMs || (waitedMs >= 0 && (checkedLive is null || !PcElementMatch.Matches(checkedLive, borrowIdentity)));
+                    var fresh = await Tree(handle, fresh: cold, token).ConfigureAwait(false);
                     if (fresh is null) return PcUiaOutcome.Fail(PcErrorCode.WindowGone, "the window is gone");
                     var match = PcElementMatch.Resolve(fresh, borrowIdentity);
                     if (!match.Found) return PcUiaOutcome.Fail(match.Kind == PcMatchKind.Ambiguous ? PcErrorCode.AmbiguousTarget : PcErrorCode.StaleElement,
                         match.Detail ?? "the intended element changed while the borrow waited");
-                    var live = fresh.Elements[match.Index];
+                    var live = checkedLive is not null && PcElementMatch.Matches(checkedLive, borrowIdentity) ? checkedLive : fresh.Elements[match.Index];
                     if (request.Point is { } oldPoint)
                     {
                         if (CoordinateMapper.Compare(request.Window.Frame, window.Frame) == PcFrameChange.Resized)
@@ -390,7 +407,7 @@ public sealed partial class PcControlEngine
             else if (way.Rung == PcRung.R4 && request.Point is { } canvasPoint)
             {
                 var resolvedPoint = canvasPoint;
-                validateBorrow = token =>
+                validateBorrow = (_, token) =>
                 {
                     token.ThrowIfCancellationRequested();
                     if (parts.Catalog.Window(handle) is not { } window || !info.SameWindow(window))
@@ -575,6 +592,7 @@ public sealed partial class PcControlEngine
         var key = word + "\u0001" + name;
         if (confirmed.Contains(key)) return null;
         bool allowed;
+        call.NeedsFreshTarget = true;
         using (call.Wait.Waiting(PcWaitReason.ConfirmCard))
             allowed = await parts.Confirmer.Confirm(Source(info), word, name, AppName(info), call.Token).ConfigureAwait(false);
         call.Timings.Mark("confirm");
@@ -605,6 +623,7 @@ public sealed partial class PcControlEngine
                 if (parts.Pause.PausedSince(info.App.Key, call.PauseEpoch)) throw new PcHeld();
                 var waited = now - start;
                 if (waited >= YieldMs) return PcResult.Fail(PcErrorCode.UserTypingHere, UsersControl(check.Hold, target, info));
+                call.NeedsFreshTarget = true;
                 waiting ??= call.Wait.Waiting(PcWaitReason.TypingHere);
                 // A timeout tied to the condition: the moment the user's last key there is 2 s old, or the 10 s limit.
                 var until = (int)Math.Max(1, Math.Min(check.AgainMs - now, YieldMs - waited));
