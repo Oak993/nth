@@ -63,6 +63,12 @@ public sealed class WebW10NativeTests(WindowManagerNativeSession native)
                 }
                 return block.PointToScreen(block.TextLayout.HitTestTextRange(offset + 1, 1).First().Center);
             });
+            var handle = native.OnUi(() => window.TryGetPlatformHandle()!.Handle);
+            foreach (var key in new[] { 0x01, 0x02, 0x04, 0x10, 0x11, 0x12, 0x5B, 0x5C })
+                if ((N.GetAsyncKeyState(key) & 0x8000) != 0)
+                    throw new InvalidOperationException("NATIVE_PRECONDITION: an input button/modifier is held; no input was sent.");
+            if (N.GetForegroundWindow() != handle || N.RootAt(new NativeWindowPoint(point.X, point.Y)) != handle)
+                throw new InvalidOperationException("NATIVE_PRECONDITION: the owned test window lost foreground or the link is covered; no input was sent.");
             N.Check(N.SetCursorPos(point.X, point.Y), "SetCursorPos");
             keybd_event(0x11, 0, 0, 0);
             controlDown = true;
@@ -75,10 +81,16 @@ public sealed class WebW10NativeTests(WindowManagerNativeSession native)
         finally
         {
             if (controlDown) keybd_event(0x11, 0, 2, 0);
-            if (window is not null) native.OnUi(window.Close);
-            N.SetCursorPos(original.X, original.Y);
-            ShellWorkspace.OpenWithDefaultApp = previousOpen;
-            ShellWorkspace.RevealInFileExplorer = previousReveal;
+            try { if (window is not null) native.OnUi(window.Close); }
+            finally
+            {
+                try { N.SetCursorPos(original.X, original.Y); }
+                finally
+                {
+                    ShellWorkspace.OpenWithDefaultApp = previousOpen;
+                    ShellWorkspace.RevealInFileExplorer = previousReveal;
+                }
+            }
         }
     }, factType: typeof(WebW10NativeTests));
 }
