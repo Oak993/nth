@@ -27,6 +27,10 @@ public sealed partial class NthUiChartPlot
     private NthUiTween focusAlpha = NthUiTween.At(0);
     private int focusSeries;
     private Size readoutSize;
+    private double readoutHeading;
+    private double readoutLine;
+    private (int Series, int Index)? readoutFor;
+    private NthUiChartModel? readoutModel;
     private double dragValue;
 
     private readonly record struct Inks(Color Strong, Color Accent, Color Text1, Color Text2, Color Text3, Color Face, Color Grid, Color Axis, Color Band, Color Menu, Color MenuRim, Color Shadow);
@@ -508,14 +512,21 @@ public sealed partial class NthUiChartPlot
             return;
         }
         var a = active.Value;
-        var content = model.Kind == NthUiChartKind.Scatter ? NthUiChartSummary.ScatterReadout(model, a.Series, a.Index, culture) : NthUiChartSummary.Readout(model, a.Index, culture);
+        // The words and their size change only when the point or the data does, not every frame the readout glides.
+        if (readout is null || readoutFor != active || !ReferenceEquals(readoutModel, model))
+        {
+            readout = model.Kind == NthUiChartKind.Scatter ? NthUiChartSummary.ScatterReadout(model, a.Series, a.Index, culture) : NthUiChartSummary.Readout(model, a.Index, culture);
+            (readoutSize, readoutHeading, readoutLine) = Measure(readout);
+            readoutFor = active;
+            readoutModel = model;
+        }
+        var size = readoutSize;
         var frame = MakeFrame(now);
         if (Anchor(frame, now) is not { } anchor)
         {
             Unfocus(now);
             return;
         }
-        var (size, _, _) = Measure(content);
         // The readout sits above the point; with no room above (a point near the top of the plot) it stands beside it, on the
         // right when there is room, so it never covers the point it is about, and never goes below it onto the axis labels.
         var x = Math.Clamp(anchor.X - size.Width / 2, 0, Math.Max(0, Bounds.Width - size.Width));
@@ -526,8 +537,6 @@ public sealed partial class NthUiChartPlot
             x = right + size.Width <= Bounds.Width ? right : Math.Max(0, anchor.X - 16 - size.Width);
             y = Math.Clamp(anchor.Y - size.Height / 2, 0, Math.Max(0, Bounds.Height - size.Height));
         }
-        readout = content;
-        readoutSize = size;
         focusSeries = a.Series;
         var calm = Calm;
         var fade = calm ? NthUiTokens.CalmFadeSeconds : .14;
@@ -584,7 +593,7 @@ public sealed partial class NthUiChartPlot
         if (readout is not { } content) return;
         var alpha = Math.Clamp(readoutAlpha.Value(now), 0, 1);
         if (alpha <= .01) return;
-        var (size, headingHeight, line) = Measure(content);
+        var (size, headingHeight, line) = (readoutSize, readoutHeading, readoutLine);
         var x = Math.Round(readoutX.Rest(now));
         var y = Math.Round(readoutY.Rest(now));
         var rect = new Rect(x, y, size.Width, size.Height);

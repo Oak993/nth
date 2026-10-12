@@ -24,6 +24,9 @@ public sealed class NthUiChartView : NthUiNodeView
     private readonly NthUiSeriesKey key = new();
     private readonly ToggleButton toggle;
     private readonly TextBlock toggleText;
+    private readonly StackPanel toggleContent;
+    private readonly NthUiIcon? tableIcon = NthUiText.Icon("table", 13);
+    private readonly NthUiIcon? chartIcon = NthUiText.Icon("chart-line", 13);
     private readonly NthUiChartTable table = new();
     private readonly List<Fade> fades = [];
     private NthUiChartModel model;
@@ -46,11 +49,16 @@ public sealed class NthUiChartView : NthUiNodeView
         root.Children.Add(host);
         toggle = NthUiPress.Plain(new ToggleButton());
         var face = new NthUiFace(toggle, NthUiFaceStyle.Segment, 13) { Height = 26, Padding = new Thickness(9, 0) };
-        var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
+        toggleContent = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
         toggleText = NthUiText.Block(NthUiStrings.ShowAsTable, NthUiTokens.Small, null, wrap: false);
         toggleText.VerticalAlignment = VerticalAlignment.Center;
-        content.Children.Add(toggleText);
-        face.Child = content;
+        if (tableIcon is not null)
+        {
+            tableIcon.VerticalAlignment = VerticalAlignment.Center;
+            toggleContent.Children.Add(tableIcon);
+        }
+        toggleContent.Children.Add(toggleText);
+        face.Child = toggleContent;
         toggle.Content = face;
         toggle.HorizontalAlignment = HorizontalAlignment.Right;
         toggle.Click += (_, _) => ShowTable(toggle.IsChecked == true);
@@ -187,6 +195,12 @@ public sealed class NthUiChartView : NthUiNodeView
         tableShown = on;
         toggle.IsChecked = on;
         toggleText.Text = on ? NthUiStrings.ShowAsChart : NthUiStrings.ShowAsTable;
+        var icon = on ? chartIcon : tableIcon;
+        if (icon is not null && toggleContent.Children.Count > 0 && !ReferenceEquals(toggleContent.Children[0], icon))
+        {
+            icon.VerticalAlignment = VerticalAlignment.Center;
+            toggleContent.Children[0] = icon;
+        }
         if (!tableBuilt)
         {
             tableBuilt = true;
