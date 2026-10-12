@@ -6,6 +6,10 @@
 // system text (after nth's untrusted-app line) and its own messages. Streaming text goes to the page as it arrives; the
 // reply stops at the call's output cap. Tokens are the session's reported usage, or an estimate (four characters a token)
 // where a provider reports none. No Swift counterpart.
+// + ED-NEW-web-w26-1 (W26 security review): plan mode alone still let a Claude session read files with no approval and
+// reach the user's MCP servers, so the session runs with SessionConfiguration.NoTools, and only on providers that can
+// guarantee it (Claude through --tools "", the API providers by sending no tool list). Any other provider has no model
+// an artifact can use.
 using System.Text;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -21,12 +25,38 @@ namespace Marrow.Services.Web;
 public sealed class SessionArtifactModelClient(Func<Guid, AdvisorChoice?> choice, Func<AdvisorChoice, string> name, Func<AdvisorChoice, ProviderSession> makeSession)
     : IArtifactModelClient
 {
-    public string? ModelName(Guid thread) => choice(thread) is { } chosen ? name(chosen) : null;
+    public string? ModelName(Guid thread) => choice(thread) is { } chosen && RunsWithoutTools(chosen.Provider) ? name(chosen) : null;
+
+    /// <summary>ED-NEW-web-w26-1: the providers whose sessions honour <see cref="SessionConfiguration.NoTools"/>.</summary>
+    public static bool RunsWithoutTools(ProviderKind provider) =>
+        provider == ProviderKind.Claude || provider == ProviderKind.Local || provider.IsAPIKeyBased;
+
+    /// <summary>
+    /// ED-NEW-web-w26-1: the one configuration an artifact call runs on: the account's login or key, an empty folder,
+    /// supervised plan mode, and no tools, servers, plugins, Hydra or history.
+    /// </summary>
+    public static SessionConfiguration Configuration(AdvisorChoice chosen, Guid account, SwiftURL? executable, SwiftURL folder,
+        ValueMap<string, string> environment, string? apiKey) => new()
+    {
+        Provider = chosen.Provider,
+        Executable = executable,
+        WorkingDirectory = folder,
+        AccountId = account,
+        Environment = environment,
+        Model = chosen.Model.Length == 0 ? null : chosen.Model,
+        RuntimeMode = RuntimeMode.Supervised,
+        InteractionMode = InteractionMode.Plan,
+        ApiKey = apiKey,
+        AntiSlopEnabled = false,
+        NoTools = true,
+    };
 
     public async Task<ArtifactCompletionResult> CompleteAsync(Guid thread, ArtifactCompletionRequest request, Action<string>? onDelta, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var chosen = choice(thread) ?? throw new ArtifactBridgeException(ArtifactBridgeErrors.Unavailable, "This chat has no model an artifact can use.");
+        if (!RunsWithoutTools(chosen.Provider))
+            throw new ArtifactBridgeException(ArtifactBridgeErrors.Unavailable, chosen.Provider.DisplayName + " cannot answer an artifact without tools; use Claude or an API provider.");
         var prompt = Prompt(request);
         var maxCharacters = (long)request.MaxTokens * 4;
         var session = makeSession(chosen);
