@@ -342,6 +342,7 @@ public sealed class WebSurfaceView : IWebViewSurface
     private bool BlockSandboxNavigation(WebNavigationStarting e)
     {
         if (!IsSandboxed || SandboxAllows(e.Url)) return false;
+        if (!e.IsMainFrame && sandbox?.AllowsFrame?.Invoke(e.Url) == true) return false; // W19: a frame domain the user allowed
         e.Cancel = true;
         SandboxNavigationBlocked?.Invoke(this, new WebSandboxNavigation(e.Url, e.IsUserInitiated, e.IsMainFrame, IsNewWindow: false));
         return true;
@@ -370,7 +371,8 @@ public sealed class WebSurfaceView : IWebViewSurface
     {
         // DESIGN 5.5: agent profile and artifacts are always denied, no prompt; notifications are blocked in preview; a
         // kind outside the design's list is denied with no prompt everywhere (ED-NEW-web-w7-1).
-        if (Creation.Kind is WebProfileKind.Agent or WebProfileKind.Artifacts) e.Respond(WebPermissionDecision.Deny);
+        // W19: an MCP App's declared kinds go to its host, which asks the user (DESIGN 7.6); every other sandboxed request is denied.
+        if (Creation.Kind is WebProfileKind.Agent or WebProfileKind.Artifacts && !(Kind == WebSurfaceKind.McpApp && sandbox?.Prompts?.Invoke(e.Kind) == true)) e.Respond(WebPermissionDecision.Deny);
         else if (e.Kind is WebPermissionKind.Unknown or WebPermissionKind.PersistentStorage) e.Respond(WebPermissionDecision.Deny);
         else if (Creation.Kind == WebProfileKind.Preview && e.Kind == WebPermissionKind.Notifications) e.Respond(WebPermissionDecision.Deny);
         PermissionRequested?.Invoke(this, e);

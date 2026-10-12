@@ -8,6 +8,8 @@
   const define = (target, name, value) => {
     try { Object.defineProperty(target, name, { value, writable: false, configurable: false, enumerable: false }); } catch (_) { /* already locked */ }
   };
+  // W19: an MCP App that declared camera or microphone keeps navigator.mediaDevices (each use still asks the user).
+  const keepMedia = /*NTH_KEEP_MEDIA*/false;
   const block = (name) => () => { throw new DOMException(name + ' is not available in nth’s sandbox.', 'NotAllowedError'); };
 
   // WebRTC: gone before any page script runs, here and in every frame this page reaches.
@@ -17,7 +19,7 @@
     if (!win) return win;
     try {
       for (const name of RTC) { try { delete win[name]; } catch (_) { } define(win, name, undefined); }
-      if (win.navigator && win.navigator.mediaDevices) define(win.navigator, 'mediaDevices', undefined);
+      if (!keepMedia && win.navigator && win.navigator.mediaDevices) define(win.navigator, 'mediaDevices', undefined);
       if (win.ServiceWorkerContainer) define(win.ServiceWorkerContainer.prototype, 'register', () => Promise.reject(new DOMException('Service workers are not available in nth’s sandbox.', 'SecurityError')));
       define(win, 'open', () => null);
       define(win, 'showOpenFilePicker', undefined);

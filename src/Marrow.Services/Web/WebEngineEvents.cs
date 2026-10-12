@@ -269,7 +269,21 @@ public interface IWebResourceHandler
 }
 
 /// <summary>DESIGN 6.5: a sandboxed view's site: its origin, its request handler and its document scripts.</summary>
-public sealed record WebSandbox(string Origin, IWebResourceHandler Resources, IReadOnlyList<string> DocumentScripts);
+public sealed record WebSandbox(string Origin, IWebResourceHandler Resources, IReadOnlyList<string> DocumentScripts)
+{
+    /// <summary>
+    /// PORT-ONLY (web surfaces W19, DESIGN.md 7.6 "Permissions from _meta.ui.permissions still prompt the user (5.5)"): the
+    /// permission kinds this site may ask the user for (an MCP App's declared camera, microphone and location). Every other
+    /// kind stays denied with no prompt, as for every sandboxed view. Null: none.
+    /// </summary>
+    public Func<WebPermissionKind, bool>? Prompts { get; init; }
+
+    /// <summary>
+    /// PORT-ONLY (web surfaces W19, DESIGN.md 7.6 frameDomains): a frame (never the top document) this site may load from
+    /// another origin, because the user allowed the MCP App's declared frame domains. Null: none, as for every sandboxed view.
+    /// </summary>
+    public Func<string, bool>? AllowsFrame { get; init; }
+}
 
 /// <summary>DESIGN 6.5: a navigation (or new window) a sandboxed view was not allowed to make.</summary>
 public sealed record WebSandboxNavigation(string Url, bool IsUserInitiated, bool IsMainFrame, bool IsNewWindow);
