@@ -129,8 +129,13 @@ public static class SetupSweeper
         var root = SetupFolders.Root(localAppData);
         var uninstallTemp = SetupFolders.UninstallTemp(tempPath);
         var tally = new Tally();
-        SweepSetupRoot(root, tally);
-        if (Exists(uninstallTemp)) RemoveUnit(uninstallTemp, tally);
+        try { SweepSetupRoot(root, tally); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            if (!ConfirmedMissing(root)) tally.Keep(root, SweepKeptReason.NotRemoved);
+        }
+        try { if (Exists(uninstallTemp)) RemoveUnit(uninstallTemp, tally); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { tally.Keep(uninstallTemp, SweepKeptReason.NotRemoved); }
         return tally.ToResult();
     }
 
@@ -142,7 +147,8 @@ public static class SetupSweeper
     public static SweepResult SweepUnlessSetupRuns(string localAppData, string tempPath, ISetupRunningProbe probe)
     {
         ArgumentNullException.ThrowIfNull(probe);
-        if (!Exists(SetupFolders.Root(localAppData)) && !Exists(SetupFolders.UninstallTemp(tempPath))) return SweepResult.Nothing;
+        try { if (!Exists(SetupFolders.Root(localAppData)) && !Exists(SetupFolders.UninstallTemp(tempPath))) return SweepResult.Nothing; }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return probe.IsSetupRunning() ? SweepResult.Nothing : Sweep(localAppData, tempPath); }
         return probe.IsSetupRunning() ? SweepResult.Nothing : Sweep(localAppData, tempPath);
     }
 
@@ -160,7 +166,8 @@ public static class SetupSweeper
         var until = Environment.TickCount64 + (long)Math.Clamp(patience.TotalMilliseconds, 0, 1e12);
         while (true)
         {
-            if (!Exists(SetupFolders.Root(localAppData)) && !Exists(SetupFolders.UninstallTemp(tempPath))) return SweepResult.Nothing;
+            try { if (!Exists(SetupFolders.Root(localAppData)) && !Exists(SetupFolders.UninstallTemp(tempPath))) return SweepResult.Nothing; }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { /* uncertain existence: obey the setup probe before sweeping */ }
             if (!probe.IsSetupRunning()) return Sweep(localAppData, tempPath);
             if (Environment.TickCount64 >= until || cancel.IsCancellationRequested) return SweepResult.Nothing;
             try { await Task.Delay(interval, cancel).ConfigureAwait(false); }
@@ -179,9 +186,10 @@ public static class SetupSweeper
         if (!SetupFolders.IsInsideRoot(localAppData, full) || string.Equals(full, Path.TrimEndingDirectorySeparator(Path.GetFullPath(root)), StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException($"'{folder}' is not a folder inside '{root}'.", nameof(folder));
         var tally = new Tally();
-        if (Exists(full) && !IsLinkInPath(root, full)) RemoveUnit(full, tally);
+        try { if (Exists(full) && !IsLinkInPath(root, full)) RemoveUnit(full, tally); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { tally.Keep(full, SweepKeptReason.NotRemoved); }
         for (var parent = Path.GetDirectoryName(full); parent is not null && SetupFolders.IsInsideRoot(localAppData, parent); parent = Path.GetDirectoryName(parent))
-            TryRemoveEmptyDirectory(parent);
+            TryRemoveEmptyDirectory(parent, tally);
         return tally.ToResult();
     }
 
@@ -198,11 +206,11 @@ public static class SetupSweeper
             if (string.Equals(Path.GetFileName(entry), SetupFolders.RuntimeFolderName, StringComparison.OrdinalIgnoreCase) && Directory.Exists(entry) && !IsLink(entry))
             {
                 foreach (var build in Entries(entry)) RemoveUnit(build, tally);
-                TryRemoveEmptyDirectory(entry);
+                TryRemoveEmptyDirectory(entry, tally);
             }
             else RemoveUnit(entry, tally);
         }
-        TryRemoveEmptyDirectory(root);
+        TryRemoveEmptyDirectory(root, tally);
     }
 
     private static void RemoveUnit(string path, Tally tally)
@@ -241,7 +249,7 @@ public static class SetupSweeper
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
-            if (!Exists(path)) return; // it went while we looked
+            if ((error is FileNotFoundException or DirectoryNotFoundException) && ConfirmedMissing(path)) return; // the unit itself disappeared
             tally.Keep(path, IsSharing(error) ? SweepKeptReason.InUse : SweepKeptReason.NotRemoved);
         }
     }
@@ -276,9 +284,7 @@ public static class SetupSweeper
     {
         foreach (var entry in Entries(directory))
         {
-            FileAttributes attributes;
-            try { attributes = File.GetAttributes(entry); }
-            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { continue; }
+            var attributes = File.GetAttributes(entry);
             if ((attributes & FileAttributes.ReparsePoint) != 0) continue; // a link is removed as a link, never opened or followed
             if ((attributes & FileAttributes.Directory) != 0) CollectFiles(entry, files);
             else files.Add(entry);
@@ -326,23 +332,36 @@ public static class SetupSweeper
         }
     }
 
-    private static List<string> Entries(string directory)
-    {
-        try { return [.. Directory.EnumerateFileSystemEntries(directory)]; }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return []; }
-    }
+    private static List<string> Entries(string directory) => [.. Directory.EnumerateFileSystemEntries(directory)];
 
-    private static void TryRemoveEmptyDirectory(string directory)
+    private static void TryRemoveEmptyDirectory(string directory, Tally tally)
     {
-        if (IsLink(directory)) return; // removing a link would succeed even when what it points at is full
-        try { Directory.Delete(directory, recursive: false); }
+        if (IsLink(directory)) return;
+        try
+        {
+            if (Directory.EnumerateFileSystemEntries(directory).Any()) return; // deliberately retained contents are not a deletion failure
+            Directory.Delete(directory, recursive: false);
+        }
+        catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException)
+        {
+            // it disappeared before we looked
+        }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
-            // not empty (something is in use or was left), or already gone
+            tally.Keep(directory, SweepKeptReason.NotRemoved);
         }
     }
-
-    private static bool Exists(string path) => Directory.Exists(path) || File.Exists(path);
+    private static bool ConfirmedMissing(string path)
+    {
+        try { _ = File.GetAttributes(path); return false; }
+        catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException) { return true; }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return false; }
+    }
+    private static bool Exists(string path)
+    {
+        try { _ = File.GetAttributes(path); return true; }
+        catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException) { return false; }
+    }
 
     private static bool IsLink(string path)
     {
