@@ -24,9 +24,10 @@ public static class ModelTiers
     {
         ArgumentNullException.ThrowIfNull(models);
         var distinct = new List<PricedModel>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var model in models)
         {
-            if (!distinct.Any(known => string.Equals(known.Id, model.Id, StringComparison.OrdinalIgnoreCase))) distinct.Add(model);
+            if (seen.Add(model.Id)) distinct.Add(model);
         }
         var top = distinct.Select(m => m.OutputPrice).Where(price => price is > 0).DefaultIfEmpty(0).Max() ?? 0;
         return [.. distinct.Select(m => new RouteModel(m.Id, TierOf(m.OutputPrice, top), m.IsDefault, m.OutputPrice))];

@@ -22,7 +22,14 @@ public sealed class AssistantRouter(RouterSetup setup, TimeProvider time, Missio
     public const int TeamsKept = 64;
 
     private ReserveGuard? guard;
-    private readonly Dictionary<Guid, (DateTimeOffset At, HydraPair? Pair)> teams = [];
+    // The pairs kept, by mission. An entry also names the inputs it was worked out from (the mission's provider, account and model), so
+    // a mission that moved to another account is never answered with the pair of the one it left.
+    private readonly Dictionary<Guid, KeptTeam> teams = [];
+
+    private readonly record struct KeptTeam(DateTimeOffset At, ProviderKind Provider, Guid? Account, string? Model, HydraPair? Pair)
+    {
+        public bool Fits(MissionRecord mission) => Provider == mission.Provider && Account == mission.AccountId && string.Equals(Model, mission.Model, StringComparison.Ordinal);
+    }
 
     /// <summary>The reserve guard that says where each account stands; without one every account is unread and the pill order decides.</summary>
     public void Bind(ReserveGuard reserve) => guard = reserve;
@@ -39,12 +46,16 @@ public sealed class AssistantRouter(RouterSetup setup, TimeProvider time, Missio
     private RouteDecision Decide(RouteRequest request, IReadOnlyList<RouterAccount> accounts)
     {
         var options = new List<RouteOption>();
+        // The models worth trying are the provider's, not the account's: worked out once per provider for this question (the catalogue
+        // is classified model by model, which is not work to repeat for every account of a provider on the app's main thread).
+        var tried = new Dictionary<ProviderKind, IReadOnlyList<RouteModel?>>();
         foreach (var account in accounts)
         {
             if (request.Provider is { } only && account.Provider != only) continue;
             if (request.AccountId is { } mine && account.Id != mine) continue;
             var refusal = setup.Refusal(account.Provider);
-            foreach (var model in Candidates(account.Provider, request.Step))
+            if (!tried.TryGetValue(account.Provider, out var candidates)) tried[account.Provider] = candidates = Candidates(account.Provider, request.Step);
+            foreach (var model in candidates)
             {
                 var standing = guard?.Standing(account.Ref, request.AssistantId, request.Mission, request.TaskRules, model?.Id, request.TokensP90);
                 options.Add(new RouteOption(account.Ref.Key, account.Ref.Name, account.Provider, model?.Id, model?.Tier ?? ModelTier.Standard)
@@ -108,11 +119,12 @@ public sealed class AssistantRouter(RouterSetup setup, TimeProvider time, Missio
         ArgumentNullException.ThrowIfNull(mission);
         if (mission.ModelPinned) return null;
         var now = time.GetUtcNow();
-        if (teams.TryGetValue(mission.Id, out var kept) && now - kept.At < TeamKept) return kept.Pair;
+        if (teams.TryGetValue(mission.Id, out var kept) && now - kept.At < TeamKept && kept.Fits(mission)) return kept.Pair;
         var pair = BuildTeam(mission);
         foreach (var stale in teams.Where(t => now - t.Value.At >= TeamKept).Select(t => t.Key).ToList()) teams.Remove(stale);
+        teams.Remove(mission.Id);
         while (teams.Count >= TeamsKept) teams.Remove(teams.OrderBy(t => t.Value.At).First().Key);
-        teams[mission.Id] = (now, pair);
+        teams[mission.Id] = new KeptTeam(now, mission.Provider, mission.AccountId, mission.Model, pair);
         return pair;
     }
 

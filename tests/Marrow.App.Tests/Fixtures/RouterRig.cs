@@ -34,7 +34,11 @@ internal sealed class RouterRig : IDisposable
         Setup = new RouterSetup
         {
             Accounts = () => Accounts,
-            Models = provider => ModelsOf.GetValueOrDefault(provider) ?? [],
+            Models = provider =>
+            {
+                ModelListings++;
+                return ModelsOf.GetValueOrDefault(provider) ?? [];
+            },
             Refusal = provider => Refused.GetValueOrDefault(provider),
         };
         Reserve = new ReserveRig(root, movers: (missions, clock) => Router = new AssistantRouter(Setup, clock, missions.Runner, missions.Agents));
@@ -57,6 +61,9 @@ internal sealed class RouterRig : IDisposable
     public RouterSetup Setup { get; }
 
     public List<RouterAccount> Accounts { get; }
+
+    /// <summary>How many times the router asked for a provider's models (it should be once per provider for one question).</summary>
+    public int ModelListings { get; private set; }
 
     public Dictionary<ProviderKind, string> Refused { get; } = [];
 

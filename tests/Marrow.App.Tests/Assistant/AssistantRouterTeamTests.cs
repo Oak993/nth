@@ -68,6 +68,26 @@ public sealed class AssistantRouterTeamTests : IDisposable
     }
 
     [Fact]
+    public void A_pair_kept_for_a_mission_is_never_given_to_the_same_mission_on_another_account_provider_or_model()
+    {
+        using var rig = Rig(claudeB: true);
+        rig.Read(ReserveRig.Claude20, 30);
+        rig.Read(ClaudeB, 30);
+        var onClaude20 = Team(rig) with { AccountId = RouterRig.ClaudeId };
+        var first = rig.Router.TeamPair(onClaude20)!;
+        Assert.Same(first, rig.Router.TeamPair(onClaude20));
+
+        // The mission moved to another account (the pause card's first option) a moment later: no waiting for the five seconds to pass.
+        var moved = onClaude20 with { AccountId = RouterRig.ClaudeBId };
+        var afterMove = rig.Router.TeamPair(moved)!;
+        Assert.NotSame(first, afterMove);
+        Assert.Same(afterMove, rig.Router.TeamPair(moved));
+        // The same goes for a mission whose model or provider is not the one the pair was worked out for.
+        Assert.NotSame(afterMove, rig.Router.TeamPair(moved with { Model = "sonnet" }));
+        Assert.Null(rig.Router.TeamPair(moved with { Provider = ProviderKind.Codex }));   // Claude B is no account of Codex: nothing to fill the team with
+    }
+
+    [Fact]
     public void The_team_follows_the_room_the_accounts_have_when_it_is_worked_out()
     {
         using var rig = Rig();

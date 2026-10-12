@@ -114,6 +114,20 @@ public sealed class AssistantRouterTests : IDisposable
         Assert.Equal(RouterRig.ClaudeId, none.AccountId);
     }
 
+    [Fact]
+    public void A_providers_models_are_listed_and_classified_once_for_a_question_however_many_accounts_it_has()
+    {
+        using var rig = Rig(claudeB: true);
+        rig.Read(ReserveRig.Claude20, 30);
+        rig.Read(ClaudeB, 30);
+        rig.Read(ReserveRig.CodexA, 30);
+        var before = rig.ModelListings;
+        var decision = rig.Router.Decide(rig.Request(StepWork.Edit));
+        Assert.Equal(2, rig.ModelListings - before);               // Claude (two accounts) and Codex: one listing each
+        Assert.Contains(decision.Ranked, r => r.Option.AccountKey == "claude:b");
+        Assert.Contains(decision.Ranked, r => r.Option.AccountKey == "claude:20x");
+    }
+
     // ---- a model the owner pinned ----
 
     [Fact]
