@@ -39,8 +39,8 @@ public sealed record ArtifactRevision
 
 public sealed class ArtifactStore
 {
-    /// <summary>A project version holds at most 64 files (6.1).</summary>
-    public const int MaxProjectFiles = 64;
+    /// <summary>A project version holds at most 512 files (owner C8 amendment to 6.1).</summary>
+    public const int MaxProjectFiles = 512;
     /// <summary>A version holds at most 5 MB, its files together (6.1).</summary>
     public const long MaxVersionBytes = 5L * 1024 * 1024;
     /// <summary>Short enough that "a-" plus the id and a disambiguating suffix stays one DNS label (6.5's synthetic origins).</summary>

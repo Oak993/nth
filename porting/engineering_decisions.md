@@ -6642,3 +6642,8 @@ ForeignMcpServer.Key is app | file | owner | name, where the owner is the new Sc
 ENGINEERING DECISION, owner C8 packet 2026-10-12 (DESIGN 2.3, 2.5, 6.4): retain the live budget; prefer hidden views before shown views, then recency and open order. The newest hidden view is eligible too. Shown frozen views activate before navigation or page messages, including bridge/theme/morph traffic. Artifact mounts reload from the store whenever an engine becomes live; explicit historical-version selection remains honored. Pointer presses and key focus touch live views. An activity generation cancels suspension if activation/content arrived while capture was awaited. Tests: WebSurfaceLiveCapTests, ArtifactRuntimeTests, WebViewHostTests. Eight shown plus one hidden is the feasible nine-view case; nine shown necessarily exceeds the option maximum eight.
 
 C8-1 race verification: content messages wait for successful document navigation before delivery; session replies never queue across replacement engines. Explicit historical-version selection drops obsolete queued morphs. Activation during the native suspend await resumes again after it completes, preventing service Live/native Suspended divergence. Fake-engine race tests exclude no native runtime and use engine_suspend in their names so the non-native test filter runs them.
+
+
+## ED-NEW-web-nocap-3
+
+ENGINEERING DECISION, owner C8 packet 2026-10-12 (DESIGN 6.1): project versions accept up to 512 files. Keep the existing 5 MB aggregate byte limit and all path/entry validation. Overflow tests derive their input and message from MaxProjectFiles; the acceptance test independently fixes 512 as the required limit. Tests: ArtifactStoreTests.
