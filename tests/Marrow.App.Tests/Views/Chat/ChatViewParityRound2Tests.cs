@@ -126,8 +126,8 @@ public sealed class ChatViewParityRound2Tests(HeadlessSession headless)
     // control is somewhere between its two places 64 ms in; here the New thread circle is sampled on the curve (mutants M7b, a glide on
     // .easeOut(duration: 0.32), and M20, a linear glide, survived the ChatView suite before this test). Written by the round 2 review.
     [Theory]
-    [InlineData(false)] // the window buttons move to the sidebar: the Threads button leaves and the row closes up.
-    [InlineData(true)] // the sidebar lets them go: the Threads button arrives and the row opens.
+    [InlineData(false)] // Panel only (ED-NEW-sidebarmodes-1): the Threads button leaves and the row closes up.
+    [InlineData(true)] // back to Column: the Threads button arrives and the row opens.
     [Trait("Req", "PR-CHAT-172")] // App/Views/Chat/ChatView.swift:1179 .animation(Chrome.panelSlide, value: sidebarVisible)
     [Trait("Req", "PR-CHAT-173")] // App/Views/Chat/ChatView.swift:1125-1131,1179
     public void The_row_glides_on_the_panel_slide_curve_itself(bool arrives)
@@ -144,9 +144,8 @@ public sealed class ChatViewParityRound2Tests(HeadlessSession headless)
             using var frameScope = FrameClock.Source.Override(frames);
             var (row, window) = h.Main.OnMain(() =>
             {
-                model.Settings.SidebarFloats = false;
+                model.Settings.SidebarMode = arrives ? SidebarMode.PanelOnly : SidebarMode.Column;
                 model.Settings.HydraEnabled = false;
-                if (arrives) model.Sidebar.NoteLaidOutWidth(400);
                 var runtime = model.Runtime(model.NewThread(model.AddProject(new Project("P", h.NewFolder("p")).Url))!.Id);
                 var built = new ChatChromeRow(model, runtime, new ChromeScrollModel(), "T", null, h.Scratch, new GitStatusModel());
                 var shown = new AvaloniaWindow { Content = built, Width = 1400, Height = 300 };
@@ -170,7 +169,7 @@ public sealed class ChatViewParityRound2Tests(HeadlessSession headless)
             Step(500);
             var from = NewThreadX();
             var to = from + (arrives ? 42 : -42);
-            h.Main.OnMain(() => model.Sidebar.NoteLaidOutWidth(arrives ? 0 : 400));
+            h.Main.OnMain(() => model.Settings.SidebarMode = arrives ? SidebarMode.Column : SidebarMode.PanelOnly);
             Step(0);
             Assert.Equal(from, NewThreadX(), 0.5); // the first frame: where it was.
             var elapsed = 0;

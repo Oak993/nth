@@ -37,7 +37,7 @@ public sealed class TourPagesTests(HeadlessSession headless)
             ("tour-hydra", "Meet Hydra", "One chat, many heads. The lead writes the briefs, sends helper agents out in parallel, each in a copy of your project, and their work lands back in your checkout."),
             ("tour-pairs", "Pair a strong lead with quick heads", "Put a Claude lead over Gemini or OpenCode heads. Pick the pair from the model picker, cap how many heads run at once, and give each side its own effort."),
             ("tour-slider", "Effort, on a slider", "Drag from low to max on any model. In a pair the track blends the lead's colour into the heads', fast mode streaks toward the knob, and the title opens the model picker."),
-            ("tour-threads", "Threads, when you want them", "Hide the sidebar and the chat has the whole window. The Threads button brings the list back as a floating panel: the same search, the same rows, and it goes away as soon as you pick one."),
+            ("tour-threads", "Threads, when you want them", "Hide the sidebar and the chat has the whole window. The list button in the toolbar, or Ctrl+B, slides it back. Set it to Floating and the list floats as a panel over the chat instead: the same search, the same rows."),
             ("tour-recipes", "Recipes for a team", "Hydra's cookbook holds ready-made pairs: a lead, its heads and the effort each side gets, from the providers you have signed in. Pick one in Settings and every new chat starts on it."),
             ("tour-panels", "Panels that float", "Changes, the terminal and the team's panel dock to any corner and can pop out on their own. The conversation makes room, and everything stays in one window."),
             ("tour-themes", "Make it yours", "Twenty-six themes, from Catppuccin to Kanagawa, in real glass. Built in C#, so it scrolls smoothly and starts in a blink."),
@@ -46,6 +46,27 @@ public sealed class TourPagesTests(HeadlessSession headless)
         Assert.Equal(8, TourPages.Pages.Count);
         Assert.Equal(expected, TourPages.Pages.Select(page => (page.ImageName, page.Title, page.Description)));
     }
+
+    // ED-NEW-sidebarmodes-11: page 5 names the Toggle sidebar chord the owner has set, not a Ctrl+B written into its words, and leaves the
+    // chord out once it is cleared.
+    [Fact]
+    [Trait("Req", "UI-UPDATE-050")] // App/Views/Tour/TourPages.swift:9; DEVIATION ED-NEW-sidebarmodes-7
+    public void Page_five_names_the_Toggle_sidebar_chord_as_remapped_and_none_once_it_is_cleared() => headless.OnUiThread(() =>
+    {
+        using var h = new AppModelHarness(withRuntime: false); // R-TEST-9: the store reads and writes a throwaway settings store
+        var shortcuts = (global::Marrow.Core.Models.ShortcutStore)System.Activator.CreateInstance(typeof(global::Marrow.Core.Models.ShortcutStore), nonPublic: true)!;
+        using var store = global::Marrow.Core.Models.ShortcutStore.Shared.Override(shortcuts);
+        string Words() => TourPages.Pages.Single(page => page.ImageName == "tour-threads").Description;
+        Assert.Contains("The list button in the toolbar, or Ctrl+B, slides it back.", Words(), System.StringComparison.Ordinal);
+        var rebound = new global::Marrow.Core.Models.KeyChord(0x15, global::Marrow.Core.Port.ChordModifiers.Control | global::Marrow.Core.Port.ChordModifiers.Alt);
+        shortcuts.Set(rebound, global::Marrow.Core.Models.AppShortcut.ToggleSidebar);
+        Assert.Equal(rebound.Description, global::Marrow.Core.Models.ShortcutStore.Label(global::Marrow.Core.Models.AppShortcut.ToggleSidebar));
+        Assert.Contains("The list button in the toolbar, or " + rebound.Description + ", slides it back.", Words(), System.StringComparison.Ordinal);
+        Assert.DoesNotContain("Ctrl+B", Words(), System.StringComparison.Ordinal);
+        shortcuts.Set(null, global::Marrow.Core.Models.AppShortcut.ToggleSidebar);
+        Assert.Contains("The list button in the toolbar slides it back.", Words(), System.StringComparison.Ordinal);
+        Assert.StartsWith("Hide the sidebar and the chat has the whole window.", Words(), System.StringComparison.Ordinal);
+    });
 
     [Fact]
     [Trait("Req", "PR-UPDATE-088")] // App/Views/Tour/TourPages.swift:4-13

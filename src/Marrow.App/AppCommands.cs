@@ -79,7 +79,9 @@ public sealed class AppCommands
                 // :37-51 CommandGroup(after: .sidebar)
                 new("Toggle sidebar", // :38
                     shortcuts.KeyboardShortcut(AppShortcut.ToggleSidebar), // :39
-                    false,
+                    // DEVIATION (ED-NEW-sidebarmodes-3): disabled in Panel only, which has no column. On the Mac the item stays live there
+                    // and flips a column state nothing draws, which then decides, unseen, whether Floating opens docked or as the panel.
+                    Model.Settings.SidebarMode == SidebarMode.PanelOnly,
                     Model.Sidebar.Toggle), // :38
                 new("Command palette", // :40
                     shortcuts.KeyboardShortcut(AppShortcut.CommandPalette), // :41

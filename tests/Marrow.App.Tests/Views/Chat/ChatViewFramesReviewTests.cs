@@ -172,17 +172,18 @@ public sealed class ChatViewFramesReviewTests(HeadlessSession headless)
     // A piece fading is on screen at some frame with an opacity strictly between nothing and full (so a pass that kept the opacity of its last layout would be seen to differ).
     private static bool SawFade(List<List<(double Opacity, double X, double Y)>> frames) => frames.Any(f => f.Any(r => r.Opacity is > 0.05 and < 0.95));
 
-    // The Threads button comes and goes in two ways. When the sidebar takes or gives back the window buttons (sidebarVisible) the whole row glides and its padding animates, so a
-    // layout pass follows every frame; when the floating list becomes or stops being the only sidebar nothing else moves, so only the button's own soft appear changes anything.
+    // The Threads button comes and goes with Panel only (ED-NEW-sidebarmodes-1; it used to follow the window buttons into and out of the sidebar), and the
+    // whole row glides on the panel slide as it does, so a layout pass follows every frame. Whether the column holds the window buttons or not, its glass
+    // fades with it.
     [Theory]
     [Trait("Req", "PR-CHAT-171")] // App/Views/Chat/ChatView.swift:1120-1124 GlassEffectContainer(spacing: 2), :1129-1131,1139-1140 .transition(.softAppear); Chrome.swift:933-960
     [Trait("Req", "UI-CHAT-073")] // App/Views/Chat/ChatView.swift:1120-1124
     [InlineData(true)]
     [InlineData(false)]
-    public void REVIEW_The_Threads_buttons_glass_fades_and_rises_with_it_when_it_arrives(bool withTheRowGliding)
+    public void REVIEW_The_Threads_buttons_glass_fades_and_rises_with_it_when_it_arrives(bool columnHoldsTheWindowButtons)
     {
-        var frames = withTheRowGliding
-            ? Frames(headless, holdsAtStart: true, hydraAtStart: false, model => model.Sidebar.NoteLaidOutWidth(0))
+        var frames = columnHoldsTheWindowButtons
+            ? Frames(headless, holdsAtStart: true, hydraAtStart: false, model => model.Settings.SidebarMode = SidebarMode.Column, model => model.Settings.SidebarMode = SidebarMode.PanelOnly)
             : Frames(headless, holdsAtStart: false, hydraAtStart: false, model => model.Settings.SidebarOnlyFloats = false, model => { model.Settings.SidebarFloats = true; model.Settings.SidebarOnlyFloats = true; });
         Assert.True(SawFade(frames), "the arrival was seen mid-fade");
         Assert.True(frames[^1].Count > frames[0].Count, "the Threads circle is drawn once it has settled");
@@ -193,10 +194,10 @@ public sealed class ChatViewFramesReviewTests(HeadlessSession headless)
     [Trait("Req", "UI-CHAT-073")] // App/Views/Chat/ChatView.swift:1120-1124
     [InlineData(true)]
     [InlineData(false)]
-    public void REVIEW_The_Threads_buttons_glass_fades_out_with_it_when_it_leaves(bool withTheRowGliding)
+    public void REVIEW_The_Threads_buttons_glass_fades_out_with_it_when_it_leaves(bool columnHoldsTheWindowButtons)
     {
-        var frames = withTheRowGliding
-            ? Frames(headless, holdsAtStart: false, hydraAtStart: false, model => model.Sidebar.NoteLaidOutWidth(400))
+        var frames = columnHoldsTheWindowButtons
+            ? Frames(headless, holdsAtStart: true, hydraAtStart: false, model => model.Settings.SidebarMode = SidebarMode.PanelOnly)
             : Frames(headless, holdsAtStart: false, hydraAtStart: false, model => model.Settings.SidebarOnlyFloats = true, model => { model.Settings.SidebarFloats = true; model.Settings.SidebarOnlyFloats = false; });
         Assert.True(SawFade(frames), "the departure was seen mid-fade");
         Assert.True(frames[^1].Count < frames[0].Count, "the Threads circle is gone at the end of the fade");

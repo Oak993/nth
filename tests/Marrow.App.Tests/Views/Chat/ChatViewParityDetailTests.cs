@@ -153,9 +153,9 @@ public sealed class ChatViewParityDetailTests(HeadlessSession headless)
     // ---- PR-CHAT-173 / UI-CHAT-074: the Threads button arrives through soft appear --------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-CHAT-173")] // App/Views/Chat/ChatView.swift:1125-1131 "the button arrives with the window buttons"
+    [Trait("Req", "PR-CHAT-173")] // App/Views/Chat/ChatView.swift:1125-1131; ED-NEW-sidebarmodes-1: the button arrives as Panel only is left
     [Trait("Req", "UI-CHAT-074")] // App/Views/Chat/ChatView.swift:1130 .transition(.softAppear)
-    public void The_Threads_button_arrives_faded_in_when_the_sidebar_lets_go_of_the_window_buttons()
+    public void The_Threads_button_arrives_faded_in_when_Panel_only_is_left_even_with_the_column_holding_the_window_buttons()
     {
         ChatHeadlessFixtures.Run(headless, () =>
         {
@@ -169,12 +169,12 @@ public sealed class ChatViewParityDetailTests(HeadlessSession headless)
             ChatChromeRow row = null!;
             h.Main.OnMain(() =>
             {
-                model.Settings.SidebarFloats = false;
+                model.Settings.SidebarMode = SidebarMode.PanelOnly;
                 model.Sidebar.NoteLaidOutWidth(400);
                 row = new ChatChromeRow(model, NewRuntime(model, h.NewFolder("p")), new ChromeScrollModel(), "T", null, h.Scratch, new GitStatusModel());
                 Show(row, 1400);
                 Assert.Empty(LogicalQuery.SelfAndDescendants<ThreadsButton>(row));
-                model.Sidebar.NoteLaidOutWidth(0);
+                model.Settings.SidebarMode = SidebarMode.Floating; // the window buttons stay in the sidebar; the button arrives all the same
             });
             h.Main.RunUntilIdle();
             Dispatcher.UIThread.RunJobs();

@@ -78,6 +78,8 @@ public sealed class RootView : Decorator
     private readonly Panel paletteHost = new();
     private CommandPalette? palette;
     private FloatingSidebarPanel? floatingPanel;
+    private readonly AnimatedScalar columnWidth;
+    private double? columnTarget;
     private Size detailSize;
     private bool? lastFloats;
     private bool lastOnlyFloats;
@@ -94,6 +96,12 @@ public sealed class RootView : Decorator
 
     /// <summary>Test-only: the window's own rounded clip (PR-WIN-062, :66-68).</summary>
     internal SwiftShapeBorder WindowClip => windowClip;
+
+    /// <summary>Test-only: the sidebar column's clip, whose width is the column's drawn (sliding) width (:19-20).</summary>
+    internal Border SidebarColumn => sidebarClip;
+
+    /// <summary>Test-only: the floating sidebar panel over the detail, null while the list is in the column or away (:44-51).</summary>
+    internal FloatingSidebarPanel? FloatingPanel => floatingPanel;
 
     /// <summary>Test-only: the detail column's own clip, before its (inert) padding (PR-WIN-063, :40).</summary>
     internal Border DetailClip => detailClip;
@@ -165,13 +173,24 @@ public sealed class RootView : Decorator
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Stretch,
         };
-        sidebarClip.SizeChanged += (_, e) => // :21
+        // :19 `.frame(width: onlyFloats ? 0 : sidebar.renderedWidth)` reached on the transaction of the change: SidebarLayout.Toggle and
+        // EndDrag write it inside withAnimation(Chrome.panelSlide) (WindowChrome.swift:347,352,362), so the Mac's column slides in from
+        // the window's leading edge and the detail beside it makes room on the same frames. A drag writes it with no animation, so the
+        // column follows the pointer; Reduce Motion takes it at once (AnimatedScalar). The rows are laid out once at the full width (:18)
+        // and only the clip moves; the chat lays its text out once at the width it is heading for (SidebarLayout.IsSliding/SlideDelta).
+        // ED-NEW-sidebarmodes-5 (PR-WIN-046): this width used to be set outright, so the column was cut in and out rather than slid.
+        // A press while it slides turns it round without a stop: the runs add up as SwiftUI's springs do (ED-NEW-sidebarmodes-8).
+        columnWidth = new AnimatedScalar(sidebarClip, 0, width => sidebarClip.Width = Math.Max(0, width)); // a spring may dip under 0 as it closes
+        // ED-NEW-sidebarmodes-8: a window whose tree is taken away mid-slide (hidden and shown again, re-parented) stops the slide where it
+        // was; on its return the column stands at the width the model says, never stuck part-way.
+        sidebarClip.AttachedToVisualTree += (_, _) =>
         {
-            AppModel model;
-            try { model = AppEnvironment.GetAppModel(this); }
-            catch (InvalidOperationException) { return; }
-            model.Sidebar.NoteLaidOutWidth(e.NewSize.Width);
+            if (columnTarget is { } settled && !columnWidth.IsRunning && columnWidth.Value != settled) columnWidth.Set(settled, null);
         };
+        // :21 `.onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { sidebar.noteLaidOutWidth($0) }` is reported from Recompute below,
+        // with the width the column is laid out at: SwiftUI's layout gives the clip its new width at once and only the drawing slides, so the
+        // Mac reports the settled width once per change (ED-NEW-sidebarmodes-8). The slide's every frame used to be reported here, which
+        // flipped HoldsTrafficLights part-way through a slide and rebuilt the chat's toolbar in the middle of it.
 
         // :22-31 the trailing resize handle, over the sidebar column's own trailing edge, active while visible.
         trailingHandleConfig = new SidebarResizeHandle
@@ -293,10 +312,14 @@ public sealed class RootView : Decorator
         // nothing above may read the model, and nothing below may either until each Track's first callback fires.
         // Independent, sibling Track calls (WelcomeView.cs's own identical note): each fires once immediately at
         // attach (Port/ViewLifetime.cs's Tracked&lt;T&gt;) and again on its own change alone.
-        this.Track(() => AppEnvironment.GetAppModel(this).Settings.SidebarFloats, _ => Recompute()); // :12-13
-        this.Track(() => AppEnvironment.GetAppModel(this).Settings.SidebarOnlyFloats, _ => Recompute()); // :12
-        this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.IsVisible, _ => Recompute()); // :13
-        this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.Width, _ => Recompute()); // :18
+        // :12-13,18 one body read of the four inputs, so a burst of writes (a mode picked in Settings, a toggle that also restores the
+        // width) is one recompute on the transaction of the burst's animated write, as SwiftUI renders it once, rather than a first
+        // recompute that cuts the column to its new width before the animated one arrives.
+        this.Track(() =>
+        {
+            var model = AppEnvironment.GetAppModel(this);
+            return (model.Settings.SidebarFloats, model.Settings.SidebarOnlyFloats, model.Sidebar.IsVisible, model.Sidebar.Width);
+        }, _ => Recompute());
         this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.HoldsTrafficLights, _ => UpdateChrome()); // :65
         this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.IsDragging, _ => UpdateChrome()); // :65
         this.Track(() => AppEnvironment.GetAppModel(this).Settings.BackdropOpacity, _ => UpdateBackdrop()); // :64
@@ -319,7 +342,17 @@ public sealed class RootView : Decorator
         var floats = model.Settings.SidebarFloats && (onlyFloats || !sidebar.IsVisible); // :13
 
         sidebarView.Width = sidebar.Width; // :18
-        sidebarClip.Width = onlyFloats ? 0 : sidebar.RenderedWidth; // :19
+        var target = onlyFloats ? 0 : sidebar.RenderedWidth; // :19
+        // A recompute with the same target (the detail's size, another input) never restarts a slide in flight; one that finds the column
+        // standing somewhere else with nothing moving it (a slide stopped by the tree going away) puts it right.
+        if (columnTarget != target || (!columnWidth.IsRunning && columnWidth.Value != target))
+        {
+            columnTarget = target;
+            // Every animated write of the column's width on the Mac is on Chrome.panelSlide (Toggle, EndDrag); a Settings pick reaches here
+            // on the picker's own hover transaction, which animates its tiles, so any animated change slides on panelSlide.
+            columnWidth.Set(target, Transaction.Current is null ? null : Chrome.PanelSlide, additive: true);
+            sidebar.NoteLaidOutWidth(target); // :21
+        }
 
         trailingHandleConfig.IsActive = !onlyFloats && sidebar.IsVisible; // :24
         trailingHandleConfig.UpdateNSView(trailingHandle);
@@ -344,15 +377,21 @@ public sealed class RootView : Decorator
         var onlyFloats = model.Settings.SidebarFloats && model.Settings.SidebarOnlyFloats; // :12
         var floats = model.Settings.SidebarFloats && (onlyFloats || !model.Sidebar.IsVisible); // :13
         var shouldShow = floats && detailSize != default; // :46 detailSize != .zero
+        var area = FloatArea();
 
-        if (shouldShow == (floatingPanel is not null) && onlyFloats == lastOnlyFloats)
+        if (shouldShow == (floatingPanel is not null))
         {
-            if (detailSize != lastFloatDetailSize) floatingPanel?.UpdateArea(detailSize);
-            lastFloatDetailSize = detailSize;
+            // ED-NEW-sidebarmodes-4: Floating and Panel only differ, for a panel already up, only in its close button (:47 canClose:
+            // !onlyFloats). SwiftUI keeps the panel's identity across that input, so it neither leaves nor arrives, keeps its place,
+            // its search and a drag in progress; it used to be removed and built again here.
+            if (onlyFloats != lastOnlyFloats) floatingPanel?.UpdateCanClose(!onlyFloats);
+            lastOnlyFloats = onlyFloats;
+            if (area != lastFloatDetailSize) floatingPanel?.UpdateArea(area);
+            lastFloatDetailSize = area;
             return;
         }
         lastOnlyFloats = onlyFloats;
-        lastFloatDetailSize = detailSize;
+        lastFloatDetailSize = area;
 
         void Apply()
         {
@@ -363,7 +402,7 @@ public sealed class RootView : Decorator
             }
             if (shouldShow)
             {
-                var panel = new FloatingSidebarPanel(detailSize, !onlyFloats, () => model.Sidebar.Toggle()) // :47
+                var panel = new FloatingSidebarPanel(area, !onlyFloats, () => model.Sidebar.Toggle()) // :47
                     .Transition(SwiftTransition.Scale(0.94).Combined(SwiftTransition.Opacity)); // :48
                 panel.HorizontalAlignment = HorizontalAlignment.Left;
                 panel.VerticalAlignment = VerticalAlignment.Top; // :45 overlay(alignment: .topLeading)
@@ -374,6 +413,13 @@ public sealed class RootView : Decorator
 
         if (animated) Transaction.WithAnimation(Chrome.PanelSlide, Apply); else Apply(); // :51
     }
+
+    // :44 `detailSize` as SwiftUI's layout reports it: the detail's size with the column at the width it is laid out at. The column's slide
+    // is drawn, not laid out, so while it runs the detail drawn here is narrower or wider than that by what the slide has still to cover
+    // (ED-NEW-sidebarmodes-8): a floating panel made as the column closes is made at its final place, not clamped into the narrow detail and
+    // then chasing the widening edge across the slide.
+    private Size FloatArea() =>
+        detailSize == default ? default : new Size(Math.Max(0, detailSize.Width + sidebarClip.Bounds.Width - (columnTarget ?? sidebarClip.Bounds.Width)), detailSize.Height);
 
     // :64 the backdrop updates in place (WindowBackdrop.Update's own doc comment: "The parent passing new inputs...
     // built again from RootView.swift:64").
@@ -795,7 +841,11 @@ public sealed class DetailView : Decorator
         Control content = model.Projects.Count == 0 ? new WelcomeView(voiceQuestion) : new NoThreadView();
         content.HorizontalAlignment = HorizontalAlignment.Stretch;
         content.VerticalAlignment = VerticalAlignment.Stretch;
-        Child = content.DetailSheet();
+        // ED-NEW-sidebarmodes-9: the toolbar's sidebar button stands over the empty pages too, where no chat toolbar is drawn.
+        var page = new Panel { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
+        page.Children.Add(content);
+        page.Children.Add(new EmptyPageSidebarButton());
+        Child = page.DetailSheet();
     }
 }
 

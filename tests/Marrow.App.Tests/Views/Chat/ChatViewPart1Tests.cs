@@ -469,10 +469,12 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
 
     // ---- ThreadsButton: PR-CHAT-173 ----
 
+    // ED-NEW-sidebarmodes-1: the words say what the press does, in Column as in Floating (the Mac said "Threads" in Column, whose
+    // press hung a popover; that popover is gone).
     [Fact]
     [Trait("Req", "PR-CHAT-173")] // App/Views/Chat/ChatView.swift:1252
     [Trait("Req", "UI-CHAT-074")] // App/Views/Chat/ChatView.swift:1252
-    public void The_tooltip_is_Show_the_sidebar_when_floating_and_Threads_otherwise()
+    public void The_tooltip_is_Show_the_sidebar_while_the_column_is_away_and_Hide_the_sidebar_while_it_is_open_in_both_modes()
     {
         ChatHeadlessFixtures.Run(headless, () =>
         {
@@ -480,21 +482,29 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
             var model = harness.MakeModel();
             harness.Main.OnMain(() =>
             {
-                model.Settings.SidebarFloats = false;
-                var notFloating = new ThreadsButton(model);
-                Assert.Equal("Threads", ToolTip.GetTip(LogicalQuery.SelfAndDescendants<Button>(notFloating).Single()));
-
-                model.Settings.SidebarFloats = true;
-                var floating = new ThreadsButton(model);
-                Assert.Equal("Show the sidebar", ToolTip.GetTip(LogicalQuery.SelfAndDescendants<Button>(floating).Single()));
+                var hint = ShortcutStore.Hint(AppShortcut.ToggleSidebar);
+                foreach (var floats in new[] { false, true })
+                {
+                    model.Settings.SidebarFloats = floats;
+                    Assert.False(model.Sidebar.IsVisible);
+                    var away = new ThreadsButton(model);
+                    Assert.Equal("Show the sidebar" + hint, ToolTip.GetTip(LogicalQuery.SelfAndDescendants<Button>(away).Single()));
+                    Assert.Equal("Show the sidebar" + hint, ThreadsButton.Help(model));
+                    model.Sidebar.Toggle();
+                    var open = new ThreadsButton(model);
+                    Assert.Equal("Hide the sidebar" + hint, ToolTip.GetTip(LogicalQuery.SelfAndDescendants<Button>(open).Single()));
+                    model.Sidebar.Toggle();
+                }
             });
         });
     }
 
-    [Fact]
+    [Theory]
+    [InlineData(false)] // Column
+    [InlineData(true)] // Floating
     [Trait("Req", "PR-CHAT-173")] // App/Views/Chat/ChatView.swift:1253
     [Trait("Req", "UI-CHAT-074")] // App/Views/Chat/ChatView.swift:1253
-    public void Clicking_toggles_the_sidebar_when_it_floats_instead_of_opening_a_popover()
+    public void Clicking_toggles_the_column_both_ways_in_Column_and_Floating(bool floats)
     {
         ChatHeadlessFixtures.Run(headless, () =>
         {
@@ -502,11 +512,14 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
             var model = harness.MakeModel();
             harness.Main.OnMain(() =>
             {
-                model.Settings.SidebarFloats = true;
-                var wasVisible = model.Sidebar.IsVisible;
+                model.Settings.SidebarFloats = floats;
+                Assert.False(model.Sidebar.IsVisible);
                 var button = new ThreadsButton(model);
                 Click(LogicalQuery.SelfAndDescendants<Button>(button).Single());
-                Assert.NotEqual(wasVisible, model.Sidebar.IsVisible);
+                Assert.True(model.Sidebar.IsVisible);
+                Click(LogicalQuery.SelfAndDescendants<Button>(button).Single());
+                Assert.False(model.Sidebar.IsVisible);
+                Assert.Equal(floats ? SidebarMode.Floating : SidebarMode.Column, model.Settings.SidebarMode); // the press never changes the mode
             });
         });
     }
@@ -616,7 +629,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
                 // never awaited), so the branch menu and the git-actions capsule item are correctly absent.
                 var tooltips = LogicalQuery.SelfAndDescendants<Button>(row)
                     .Select(b => ToolTip.GetTip(b) as string).Where(t => t is not null).ToArray()!;
-                Assert.Contains("Threads", tooltips);
+                Assert.Contains(tooltips, t => t!.StartsWith("Show the sidebar", StringComparison.Ordinal)); // ED-NEW-sidebarmodes-1
                 Assert.Contains(tooltips, t => t!.StartsWith("New thread", StringComparison.Ordinal));
                 Assert.Contains("Open in another app", tooltips);
                 Assert.Contains("Run a project script", tooltips);

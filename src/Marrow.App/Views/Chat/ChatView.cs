@@ -1314,7 +1314,7 @@ internal sealed class ChatChromeRow : Decorator
     // Animation.softAppear, leaves with .opacity.animation(.easeOut(duration: 0.12)). SwiftUI animates the opacity and offset
     // the modifier's body sets; the shared SoftAppear (a modifier with no animatable data) switched them at once, so the
     // insertion is decomposed into those layer effects, as ThreadTimeline's SoftAppearTransition does.
-    private static SwiftTransition SoftAppear => SwiftTransition.Asymmetric(
+    internal static SwiftTransition SoftAppear => SwiftTransition.Asymmetric(
         SwiftTransition.Opacity.Combined(SwiftTransition.Offset(y: 4)).Animation(Animation.SoftAppear),
         SwiftTransition.Opacity.Animation(Animation.EaseOut(duration: 0.12)));
 
@@ -1343,7 +1343,6 @@ internal sealed class ChatChromeRow : Decorator
         var container = new GlassEffectContainer(2, () => row); // :1123
         host.Children.Add(container);
         ThreadsButton? threadsButton = null;
-        var threadsFloats = false;
         HydraButton? hydraButton = null;
         var placed = new List<Control>();
         var leaving = new HashSet<Control>();
@@ -1353,21 +1352,13 @@ internal sealed class ChatChromeRow : Decorator
         ChromeIconButton? terminalToggle = null, diffToggle = null;
         (string, string) toggleHelps = default;
 
-        var clearanceAnimation = new ChatFrameAnimation(this);
-        clearanceAnimation.AttachLifetime();
-        double? clearance = null;
-        bool? previousSidebarVisible = null;
+        bool? previousThreadsShown = null;
         updateInputs = (nextTitle, nextProject, nextDirectory) =>
         {
             title = nextTitle; project = nextProject; directory = nextDirectory;
             titleView.UpdateTitle(title); // :1147-1151 no title animation on the Mac; the words crossfade (OD-0076, ED-278 (14)).
             Build();
         };
-        void Drop(Control old)
-        {
-            placed.Remove(old);
-            row.Children.Remove(SwiftTransition.Container(old));
-        }
         void Reconcile(List<Control> desired, HashSet<Control> transitioning, HashSet<Control> silent)
         {
             leaving.RemoveWhere(control => !row.Children.Contains(SwiftTransition.Container(control)));
@@ -1421,30 +1412,29 @@ internal sealed class ChatChromeRow : Decorator
         }
         void Build()
         {
-            var sidebarVisible = model.Sidebar.HoldsTrafficLights; // :1119
-            // :1179 `.animation(Chrome.panelSlide, value: sidebarVisible)` is on the whole row: when the buttons move to or from the
-            // sidebar, every control's new place in the HStack is reached by gliding on panelSlide, from where it was drawn.
-            if (built && previousSidebarVisible is { } wasVisible && wasVisible != sidebarVisible) row.Glide(Chrome.PanelSlide);
+            // :1119 `let sidebarVisible = model.sidebar.holdsTrafficLights` and :1179 `.animation(Chrome.panelSlide, value: sidebarVisible)`:
+            // on the Mac the window buttons lead the row while the sidebar does not hold them, so the row glides when they come or go.
+            // DEVIATION OD-0044 (ED-NEW-sidebarmodes-8): the caption buttons are Windows ones at the top right, nothing leads the row and
+            // the list button no longer follows them (ED-NEW-sidebarmodes-1), so the row neither reads nor glides on that flag: it used
+            // to rebuild and glide part-way through every column slide for nothing. The list button comes and goes with Panel only, and
+            // the row closes up or opens for it on panelSlide (the same glide).
+            var threadsShown = !(model.Settings.SidebarFloats && model.Settings.SidebarOnlyFloats);
+            if (built && previousThreadsShown is { } wasShown && wasShown != threadsShown)
+                row.Glide(Chrome.PanelSlide);
+            previousThreadsShown = threadsShown;
             var desired = new List<Control>();
             var transitioning = new HashSet<Control>();
             var silent = new HashSet<Control>();
 
-            if (!sidebarVisible && !(model.Settings.SidebarFloats && model.Settings.SidebarOnlyFloats)) // :1128
+            // :1128 DEVIATION (ED-NEW-sidebarmodes-1): the Mac draws the list button only while the column is away
+            // (`!sidebarVisible && !onlyFloats`) and hides an open column from its menu bar's View > Toggle sidebar (AppCommands.swift:38).
+            // The port has no menu bar (OD-0008 C3), so with the Mac's rule an open column had no visible way to close. The button
+            // stays in Column and Floating whether the column is open or not, and leaves (through .softAppear) only in Panel only,
+            // which the setting's own words say has "no toolbar button". Column and Floating share the one button: switching
+            // between them keeps it in place.
+            if (threadsShown)
             {
-                var floats = model.Settings.SidebarFloats;
-                var renewed = false;
-                if (threadsButton is not null && threadsFloats != floats)
-                {
-                    Drop(threadsButton); // the same view with another label: no arrival or exit of its own
-                    threadsButton = null;
-                    renewed = true;
-                }
-                if (threadsButton is null)
-                {
-                    threadsButton = new ThreadsButton(model).Transition(SoftAppear); // :1129-1131
-                    threadsFloats = floats;
-                    if (renewed) silent.Add(threadsButton);
-                }
+                threadsButton ??= new ThreadsButton(model).Transition(SoftAppear); // :1129-1131
                 desired.Add(threadsButton);
                 transitioning.Add(threadsButton);
             }
@@ -1534,29 +1524,16 @@ internal sealed class ChatChromeRow : Decorator
             built = true;
 
             // :1177-1180 padding follows ownership of the caption buttons through panelSlide frames. DEVIATION OD-0044: the
-            // caption buttons are Windows ones at the window's top right, so nothing leads the row; its trailing end keeps
-            // clear of them instead (WindowChrome.CaptionTrailingReserve, below).
-            var target = Chrome.ChromeHorizontalPadding;
-            void ApplyClearance(double leading)
-            {
-                clearance = leading;
-                foreach (var group in host.Children.OfType<GlassEffectContainer>())
-                    group.Margin = new Thickness(leading, Chrome.ChromeTopPadding, WindowChrome.CaptionTrailingReserve, 0);
-                container.Margin = new Thickness(leading, Chrome.ChromeTopPadding, WindowChrome.CaptionTrailingReserve, 0);
-            }
-            if (previousSidebarVisible is { } previous && previous != sidebarVisible)
-            {
-                var from = clearance ?? target;
-                clearanceAnimation.Start(Chrome.PanelSlide, progress => ApplyClearance(from + (target - from) * progress));
-            }
-            else ApplyClearance(clearance ?? target);
-            previousSidebarVisible = sidebarVisible;
+            // caption buttons are Windows ones at the window's top right, so nothing leads the row and the leading inset is the
+            // padding whoever holds them; its trailing end keeps clear of them instead (WindowChrome.CaptionTrailingReserve).
+            foreach (var group in host.Children.OfType<GlassEffectContainer>())
+                group.Margin = new Thickness(Chrome.ChromeHorizontalPadding, Chrome.ChromeTopPadding, WindowChrome.CaptionTrailingReserve, 0);
         }
 
         // :1165-1170 the terminal and changes buttons read runtime.isTerminalVisible/isDiffVisible directly inside
         // the SwiftUI body, so a toggle re-renders the whole row there; tracked here too so isActive (PR-TERM-072)
         // stays live rather than frozen at the value captured when this row was last built.
-        this.Track(() => (model.Sidebar.HoldsTrafficLights, model.Settings.SidebarFloats, model.Settings.SidebarOnlyFloats, model.Settings.HydraEnabled, model.Thread(runtime.ThreadID), git.IsRepository, git.Activity, git.Status, git.Branches, git.RemoteURL, runtime.IsTerminalVisible, runtime.IsDiffVisible, ShortcutStore.Hint(AppShortcut.NewThread), ShortcutStore.Hint(AppShortcut.ToggleTerminal), ShortcutStore.Hint(AppShortcut.ToggleChanges)), _ => Build());
+        this.Track(() => (model.Settings.SidebarFloats, model.Settings.SidebarOnlyFloats, model.Settings.HydraEnabled, model.Thread(runtime.ThreadID), git.IsRepository, git.Activity, git.Status, git.Branches, git.RemoteURL, runtime.IsTerminalVisible, runtime.IsDiffVisible, ShortcutStore.Hint(AppShortcut.NewThread), ShortcutStore.Hint(AppShortcut.ToggleTerminal), ShortcutStore.Hint(AppShortcut.ToggleChanges)), _ => Build());
         Build();
     }
 }
@@ -1703,49 +1680,67 @@ internal sealed class ChatChromeTitle : Decorator
     });
 }
 
-/// <summary>:1242-1265 <c>private struct ThreadsButton: View</c>. Its capture-frame hook (:1261-1263) is not ported
-/// (ED-001: WebsiteCaptures.isEnabled is always false, porting/dead_code.md entry 44).</summary>
+/// <summary>:1242-1265 <c>private struct ThreadsButton: View</c>, the toolbar's sidebar button. Its capture-frame hook (:1261-1263)
+/// is not ported (ED-001: WebsiteCaptures.isEnabled is always false, porting/dead_code.md entry 44).
+/// DEVIATION (ED-NEW-sidebarmodes-1): the Mac's press (:1251-1254) docks the column in Floating but, in Column, hangs a 560-pt
+/// popover of the sidebar from the button (:1255-1259) and never shows or hides the column, against the Mac's own words for
+/// Column ("the list button in the toolbar shows and hides it", AppSettings.swift:63; SettingsView.swift:445). Here the press
+/// always shows or hides the window's sidebar column (SidebarLayout.Toggle, the Mac's own Floating press and its View >
+/// Toggle sidebar), so Column does what its words say; the popover is gone. Its words follow the column on the same button.</summary>
 internal sealed class ThreadsButton : Decorator
 {
-    private sealed class ViewState : MainActorModel
-    {
-        private bool isPresented;
-
-        public bool IsPresented { get => Read(isPresented); set => Set(ref isPresented, value); }
-    }
-
     // :1248-1264 body
     public ThreadsButton() => ChatSheetPresentation.BuildWhenAttached(this, (model, _) => new ThreadsButton(model));
 
     // :1243 @Environment(AppModel.self).
     public ThreadsButton(AppModel model)
     {
-        var state = new ViewState();
-        // :1251 let floats = model.settings.sidebarFloats
-        var floats = model.Settings.SidebarFloats;
-        var button = new ChromeCircleButton(
-            "list.bullet",
-            floats ? "Show the sidebar" : "Threads", // :1252
-            () =>
-            {
-                if (floats) model.Sidebar.Toggle(); // :1253
-                else state.IsPresented = !state.IsPresented;
-            });
-        var popover = PlainControls.Popover(
-            button,
-            new Binding<bool>(() => state.IsPresented, value => state.IsPresented = value),
-            () => BuildSidebarPopover(model, () => state.IsPresented = false)); // :1255-1259
-        Child = new Panel { Children = { button, popover } };
-        // :1260-1263 the capture-frame publish (WebsiteCaptures.threadsButtonFrame) is not ported (ED-001).
+        var button = new ChromeCircleButton("list.bullet", Help(model), () => model.Sidebar.Toggle()); // :1249-1253
+        Child = button;
+        this.Track(() => Help(model), help => button.Help = help); // in place: no rebuild, no arrival, the hover kept
     }
 
-    // :1255-1259 lazy popover content, also independently testable without presenting the sidebar's window.
-    internal static Control BuildSidebarPopover(AppModel model, Action dismiss)
+    /// <summary>:1252 the button's words: what the press does now, with the Toggle sidebar chord (Ctrl+B unless remapped).</summary>
+    internal static string Help(AppModel model) =>
+        (model.Sidebar.IsVisible ? "Hide the sidebar" : "Show the sidebar") + ShortcutStore.Hint(AppShortcut.ToggleSidebar);
+}
+
+/// <summary>PORT-ONLY (ED-NEW-sidebarmodes-9): the toolbar's sidebar button on the window's empty pages (WelcomeView, NoThreadView), where
+/// no thread is open and so no chat toolbar is drawn. Column's words promise "the list button in the toolbar shows and hides it"; on the
+/// Mac the empty pages have the menu bar's View &gt; Toggle sidebar, and the port has no menu bar (OD-0008 C3), so a fresh install, or a
+/// window whose last thread was archived, with the column collapsed had no button to bring the column out. The same button, in the same
+/// place as the chat toolbar's first slot (14 from the leading edge, 12 from the top, ChatView.swift:1177-1178), on the same glass; it
+/// leaves through .softAppear in Panel only, as the toolbar's does.</summary>
+internal sealed class EmptyPageSidebarButton : Decorator
+{
+    public EmptyPageSidebarButton()
     {
-        var sidebar = new SidebarView(inPopover: true, dismiss: dismiss); // :1256
-        sidebar.Width = model.Sidebar.Width; // :1257
-        sidebar.Height = 560;
-        return sidebar.PresentedChrome(); // :1258
+        HorizontalAlignment = HorizontalAlignment.Left;
+        VerticalAlignment = VerticalAlignment.Top;
+        Margin = new Thickness(Chrome.ChromeHorizontalPadding, Chrome.ChromeTopPadding, 0, 0);
+        var slot = new Panel();
+        Child = new GlassEffectContainer(2, () => slot); // :1123 the row's own glass container
+        ThreadsButton? button = null;
+        var built = false;
+        this.Track(() =>
+        {
+            var model = AppEnvironment.GetAppModel(this);
+            return !(model.Settings.SidebarFloats && model.Settings.SidebarOnlyFloats); // the toolbar's own rule (ChatChromeRow)
+        }, shown =>
+        {
+            if (shown && button is null)
+            {
+                button = new ThreadsButton(AppEnvironment.GetAppModel(this)).Transition(ChatChromeRow.SoftAppear);
+                if (built) SwiftTransition.Insert(slot, slot.Children.Count, button);
+                else SwiftTransition.Place(slot, slot.Children.Count, button);
+            }
+            else if (!shown && button is { } leaving)
+            {
+                SwiftTransition.Remove(slot, leaving);
+                button = null;
+            }
+            built = true;
+        });
     }
 }
 

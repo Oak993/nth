@@ -391,6 +391,11 @@ public sealed class SidebarLayout : MainActorModel
     private double slideDelta; // :271 private(set) var slideDelta: CGFloat = 0
     public double SlideDelta { get => Read(slideDelta); private set => Set(ref slideDelta, value); }
 
+    private int slideEpoch; // PORT-ONLY (ED-NEW-sidebarmodes-8)
+    /// <summary>PORT-ONLY (ED-NEW-sidebarmodes-8): counts the slides begun, so a slide that begins while another runs (a press that turns
+    /// the column round, which leaves <see cref="IsSliding"/> true) is seen as a new slide by the chat that lays its text out for it.</summary>
+    public int SlideEpoch { get => Read(slideEpoch); private set => Set(ref slideEpoch, value); }
+
     private TaskHandle? slideTask; // :272 @ObservationIgnored private var slideTask: Task<Void, Never>?
     private double anchorWidth; // :282 @ObservationIgnored private var anchorWidth: CGFloat = 0
     private double restingWidth; // :283 @ObservationIgnored private var restingWidth: CGFloat
@@ -434,6 +439,7 @@ public sealed class SidebarLayout : MainActorModel
     /// <summary>:310-320 <c>private func beginSlide(delta:)</c>.</summary>
     private void BeginSlide(double delta)
     {
+        SlideEpoch++; // ED-NEW-sidebarmodes-8, first: a reader that hears each write alone sees the new slide while the delta is the old one's
         SlideDelta = delta; // :311
         IsSliding = true; // :312
         slideTask?.Cancel(); // :313
@@ -445,6 +451,11 @@ public sealed class SidebarLayout : MainActorModel
             SlideDelta = 0; // :318
         });
     }
+
+    /// <summary>PORT-ONLY (ED-NEW-sidebarmodes-6): a Settings › Sidebar change that brings the column in or takes it away (Panel only
+    /// and back) moves the chat's leading edge by <paramref name="delta"/> just as <see cref="Toggle"/> does, so it opens the same slide
+    /// window (:310-320), in which the chat lays its text out once at the width it is heading for rather than on every frame.</summary>
+    public void NoteColumnSlide(double delta) => BeginSlide(delta);
 
     /// <summary>:322-338 <c>func beginDrag()</c>.</summary>
     public void BeginDrag()

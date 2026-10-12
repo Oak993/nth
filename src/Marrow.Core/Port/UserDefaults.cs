@@ -30,6 +30,10 @@ public static class UserDefaults
 {
     public static Ambient<ISettingsStore> Standard { get; } = new(new UnboundStore());
 
+    /// <summary>PORT-ONLY (ED-NEW-sidebarmodes-11): whether a store is bound for this flow, for a reader that has a truthful answer
+    /// without one (no store, no remapped chord) and must not trip the trap on a process-wide lazy default.</summary>
+    public static bool IsBound => Standard.Current is not UnboundStore;
+
     private sealed class UnboundStore : ISettingsStore
     {
         private const string Message = "UserDefaults.Standard is not bound: Marrow.App sets it at start-up; tests override it.";

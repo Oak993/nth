@@ -79,10 +79,11 @@ public sealed class AppCommandsFinishTests(HeadlessSession headless)
         {
             // :151-178 with a thread selected and an empty query: the thread, then New thread, New thread in worktree,
             // Add project, Toggle terminal, Toggle changes, the finish action (Settle by default) and Settings, then the
-            // Welcome tour row OD-0012 G5 adds (placed by OD-0053).
+            // Welcome tour row OD-0012 G5 adds (placed by OD-0053). OD-0008 C3 keeps the menu's Toggle sidebar reachable here too,
+            // after Add project (ED-NEW-sidebarmodes-2; Column, the default, has a column to toggle).
             var all = Rows("");
-            Assert.Equal(9, all.Length);
-            Assert.Equal(["New thread", "New thread in worktree", "Add project", "Toggle terminal", "Toggle changes", "Settle thread", "Settings", "Welcome tour"], all.Skip(1));
+            Assert.Equal(10, all.Length);
+            Assert.Equal(["New thread", "New thread in worktree", "Add project", "Toggle sidebar", "Toggle terminal", "Toggle changes", "Settle thread", "Settings", "Welcome tour"], all.Skip(1));
             // A query is a plain title substring test (:180): nothing carries these commands' titles.
             foreach (var query in new[] { "zoom", "actual size", "activity", "archive", AppInfo.Current.Name.ToLowerInvariant() })
                 Assert.Empty(Rows(query));

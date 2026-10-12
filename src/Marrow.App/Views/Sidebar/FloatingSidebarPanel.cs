@@ -36,6 +36,7 @@ public sealed class FloatingSidebarPanel : Decorator
     private Point? grab;
     private Size? resizeStart;
     private Action<Size> updateArea = null!;
+    private Action<bool> updateCanClose = null!;
 
     // :13-15, :27-105
     public FloatingSidebarPanel(Size area, bool canClose, Action close)
@@ -185,7 +186,6 @@ public sealed class FloatingSidebarPanel : Decorator
             EndMove)
         {
             Height = StripHeight,
-            Margin = new Thickness(0, 0, canClose ? 8 : 0, 0),
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top
         };
@@ -197,16 +197,36 @@ public sealed class FloatingSidebarPanel : Decorator
         strip.Children.Add(titleHolder);
         strip.Children.Add(dragHandle);
 
-        if (canClose)
+        // :60-66 `if canClose { ChromeCircleButton(symbol: "xmark", help: "Back into the column") }`. The input can change while the panel stays (Floating and Panel only
+        // differ only in it, ED-NEW-sidebarmodes-4), so the button comes and goes in the same strip rather than the panel being built again.
+        // ED-NEW-sidebarmodes-10: it arrives and leaves through .softAppear (a fade with a 4-point rise in, a quick fade out), as the
+        // toolbar's own buttons do, never cut in or out; a button still fading out stands in its column until it has gone.
+        ChromeCircleButton? closeButton = null;
+        var stripBuilt = false;
+        void SetCanClose(bool value)
         {
-            var closeButton = new ChromeCircleButton("xmark", "Back into the column", close)
+            CanClose = value;
+            dragHandle.Margin = new Thickness(0, 0, value ? 8 : 0, 0); // the drag strip is not drawn: its reach changes, nothing seen moves
+            if (value && closeButton is null)
             {
-                Margin = new Thickness(0, Chrome.ChromeTopPadding, Chrome.ChromeHorizontalPadding, 0),
-                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top
-            };
-            Grid.SetColumn(closeButton, 2);
-            strip.Children.Add(closeButton);
+                closeButton = new ChromeCircleButton("xmark", "Back into the column", close)
+                {
+                    Margin = new Thickness(0, Chrome.ChromeTopPadding, Chrome.ChromeHorizontalPadding, 0),
+                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top
+                }.Transition(Marrow.App.Views.Chat.ChatChromeRow.SoftAppear);
+                if (stripBuilt) SwiftTransition.Insert(strip, strip.Children.Count, closeButton);
+                else SwiftTransition.Place(strip, strip.Children.Count, closeButton);
+                Grid.SetColumn(SwiftTransition.Container(closeButton), 2);
+            }
+            else if (!value && closeButton is { } shown)
+            {
+                SwiftTransition.Remove(strip, shown);
+                closeButton = null;
+            }
+            stripBuilt = true;
         }
+        SetCanClose(canClose);
+        updateCanClose = SetCanClose;
 
         void Move(Size translation)
         {
@@ -274,6 +294,12 @@ public sealed class FloatingSidebarPanel : Decorator
 
     // :13,23-35 The parent changes the input while this instance retains its @State.
     internal void UpdateArea(Size area) => updateArea(area);
+
+    /// <summary>:14 <c>let canClose: Bool</c>, as drawn now.</summary>
+    internal bool CanClose { get; private set; }
+
+    // :14 the parent changes `canClose` (Floating to Panel only and back) while this instance keeps its place and its state.
+    internal void UpdateCanClose(bool canClose) => updateCanClose(canClose);
 
     // :28-32
     private static Size ReadSize(Size stored, Size area) =>

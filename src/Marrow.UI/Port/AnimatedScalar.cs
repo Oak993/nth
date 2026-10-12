@@ -35,14 +35,36 @@ public sealed class AnimatedScalar
     /// <summary>The value drawn now.</summary>
     public double Value { get; private set; }
 
-    public void Set(double target, Animation? animation, bool preserveFrameProgress = false)
+    /// <summary>A run is moving the value towards <see cref="Target"/>: a frame is still wanted.</summary>
+    public bool IsRunning => pending is not null;
+
+    /// <summary>Where the value is heading: the last target set (the value itself once it has landed).</summary>
+    public double Target => pending is null ? Value : goal;
+
+    /// <param name="additive">PORT-ONLY (ED-NEW-sidebarmodes-8): SwiftUI's springs are additive, so a new target set while a run is in flight
+    /// adds a run of its own on top of the one already moving and the value keeps its speed: a reversal turns round smoothly instead of
+    /// stopping dead and starting again from rest. Off, a new target replaces the run from the value reached, at rest.</param>
+    public void Set(double target, Animation? animation, bool preserveFrameProgress = false, bool additive = false)
     {
+        if (additive && animation is not null && pending is not null && FrameClock.IsBound && !ReduceMotion)
+        {
+            Retarget(target, animation);
+            return;
+        }
         Stop();
+        runs.Clear();
         var from = Value;
         if (animation is null || from == target || !FrameClock.IsBound || (ReduceMotion && !RunsUnderReduceMotion))
         {
             Value = target;
             apply(target);
+            return;
+        }
+        if (additive)
+        {
+            goal = target;
+            runs.Add(new Run(target - from, SwiftClock.Now, animation));
+            StartRuns();
             return;
         }
         goal = target;
@@ -69,6 +91,44 @@ public sealed class AnimatedScalar
         frames.RequestFrame(tick);
     }
 
+    // One additive run: what it still has to add is (1 - progress) of its delta, counted back from the goal.
+    private sealed record Run(double Delta, ContinuousInstant Start, Animation Animation);
+    private readonly List<Run> runs = [];
+
+    private void Retarget(double target, Animation animation)
+    {
+        if (runs.Count == 0) // a plain (replacing) run is in flight: the additive one takes over from the value it reached
+        {
+            Stop();
+            goal = target;
+            runs.Add(new Run(target - Value, SwiftClock.Now, animation));
+            StartRuns();
+            return;
+        }
+        runs.Add(new Run(target - goal, SwiftClock.Now, animation)); // the runs in flight keep moving; this one adds the change of goal
+        goal = target;
+    }
+
+    private void StartRuns()
+    {
+        var frames = FrameClock.Source.Current;
+        Action<TimeSpan>? tick = null;
+        tick = _ =>
+        {
+            var now = SwiftClock.Now;
+            var value = goal;
+            runs.RemoveAll(run => FrameClock.IsComplete(run.Start, now, TimeSpan.FromSeconds(run.Animation.Duration)));
+            foreach (var run in runs) value -= run.Delta * (1 - run.Animation.Progress((now - run.Start).TotalSeconds));
+            Value = value;
+            apply(Value);
+            if (runs.Count == 0) pending = null;
+            else frames.RequestFrame(tick!);
+        };
+        source = frames;
+        pending = tick;
+        frames.RequestFrame(tick);
+    }
+
     /// <summary>A run in progress lands on its target at once (the owner's Reduce Motion turned on while it ran); nothing is left waiting for a frame.</summary>
     public void Finish()
     {
@@ -85,5 +145,6 @@ public sealed class AnimatedScalar
     {
         if (pending is { } frame) source?.CancelFrame(frame);
         pending = null;
+        runs.Clear();
     }
 }
