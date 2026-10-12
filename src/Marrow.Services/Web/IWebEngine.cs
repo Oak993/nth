@@ -116,6 +116,12 @@ public interface IWebEngineView : IDisposable
     Task<string> ExecuteScriptAsync(string script, CancellationToken cancellationToken);
     void PostMessage(string json);
 
+    /// <summary>
+    /// W8a (DESIGN 5.1 "tab strip (favicon, title ...)"): the page's favicon as PNG bytes, read by the browser from its own
+    /// cache in the tab's profile (<c>GetFaviconAsync</c>), so nth never fetches it itself; null when the page has none.
+    /// </summary>
+    Task<byte[]?> GetFaviconAsync(CancellationToken cancellationToken);
+
     /// <summary>DESIGN 2.5: one capture of the visible viewport (CDP, then the preview fallback).</summary>
     Task<WebSnapshot?> CaptureSnapshotAsync(CancellationToken cancellationToken);
 
