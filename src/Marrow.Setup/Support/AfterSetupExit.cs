@@ -9,13 +9,24 @@ namespace Marrow.Setup.Support;
 /// <param name="Desktop">The alignment of the desktop shortcut nth made to Start (a repair; it never creates).</param>
 /// <param name="UninstallKey">The uninstall entry re-point.</param>
 /// <param name="ResultUpdated"><c>install-result.json</c> was rewritten to record the re-stamp.</param>
+/// <param name="ResultWriteFailed">The re-stamp needed recording in <c>install-result.json</c> and the write failed.</param>
 public sealed record AfterSetupExitReport(
     bool StartPresent,
     OldStartLinkResult OldStart,
     StartLinkResult Start,
     ShortcutChangeResult? Desktop,
     UninstallRepointResult? UninstallKey,
-    bool ResultUpdated);
+    bool ResultUpdated,
+    bool ResultWriteFailed = false)
+{
+    /// <summary>
+    /// ED-NEW-inst-c7-2 and ED-NEW-inst-merge-12: the steps the window may not certify 100 without. The uninstall entry was
+    /// found and is this root's (so it is re-pointed), Start's re-stamp hit no shell error and no busy writer, and a re-stamp
+    /// that needed recording was recorded. The old Start clean-up and the desktop alignment are repairs that nth's start-time
+    /// self-heal repeats, so they do not hold the install back.
+    /// </summary>
+    public bool RequiredStepsDone => UninstallKey is { KeyFound: true, Ours: true } && Start is { HResult: null, Busy: false } && !ResultWriteFailed;
+}
 
 /// <summary>
 /// PORT-ONLY (no Swift twin; nth installer PLAN.md 8, item 1, and 8a's table row "After Setup.exe exits 0"; unit U5,
@@ -45,13 +56,17 @@ public static class AfterSetupExit
         var key = Safe(() => UninstallEntry.Repoint(registry, root, measure(root), exists(InstallLayout.UninstallerPath(root))));
 
         var resultUpdated = false;
+        var resultNeeded = false;
         if (start.Restamped && resultPath is not null && InstallResult.Read(resultPath) is { StartAppIdRestamped: false } result)
+        {
+            resultNeeded = true;
             resultUpdated = Safe(() =>
             {
                 (result with { StartAppIdRestamped = true }).Write(resultPath);
                 return true;
             });
-        return new AfterSetupExitReport(startPresent, oldStart, start, desktop, key, resultUpdated);
+        }
+        return new AfterSetupExitReport(startPresent, oldStart, start, desktop, key, resultUpdated, ResultWriteFailed: resultNeeded && !resultUpdated);
     }
 
     private static T? Safe<T>(Func<T> step)

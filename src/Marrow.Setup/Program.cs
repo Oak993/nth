@@ -244,18 +244,21 @@ public static class Program
     /// <summary>
     /// Unit U5 (PLAN.md 8, item 1; 8a): after Velopack's Setup.exe exits 0, Start's AppUserModelID, the desktop shortcut's
     /// alignment and the uninstall entry, which Velopack writes after the install hook. The real shell and HKCU are bound
-    /// here only (ShellLinksBindingTests). Best effort: Setup.exe succeeded, and nth's start-time self-heal repeats these.
+    /// here only (ShellLinksBindingTests). Returns what was done, or null when the shell or HKCU could not be reached at all.
+    /// The silent gate takes it as best effort (Setup.exe succeeded, and nth's start-time self-heal repeats these); the
+    /// window's install does not certify 100 without the required steps (ProductionAfterSetupExit, ED-NEW-inst-merge-12).
     /// </summary>
-    internal static void FinishAfterSetupExit(string root, string? resultPath = null)
+    internal static AfterSetupExitReport? FinishAfterSetupExit(string root, string? resultPath = null)
     {
         try
         {
             using var shell = new ShellLinks();
-            AfterSetupExit.Run(shell, new RegistryUserHive(Registry.CurrentUser), root, resultPath);
+            return AfterSetupExit.Run(shell, new RegistryUserHive(Registry.CurrentUser), root, resultPath);
         }
         catch (Exception)
         {
-            // Best effort: Setup.exe succeeded, and nth's start-time self-heal repeats these steps.
+            // No shell or no HKCU: nothing was done; the caller decides what that means.
+            return null;
         }
     }
 }
