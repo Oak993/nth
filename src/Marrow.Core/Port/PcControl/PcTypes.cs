@@ -212,6 +212,27 @@ public sealed record PcSettings
     /// <summary>"Answer Tactus", empty when not set (DESIGN.md 10.10 `pcControl.answerChord`).</summary>
     public string AnswerChord { get; init; } = "";
 
+    /// <summary>The pill's anchor: "left", "centre" or "right" (DESIGN.md 10.10 `pcControl.pill.anchor`).</summary>
+    public string PillAnchor { get; init; } = "centre";
+
+    /// <summary>Where the pill shows: "latest", "main", or a monitor device path (DESIGN.md 10.10 `pcControl.pill.monitor`).</summary>
+    public string PillMonitor { get; init; } = "latest";
+
+    /// <summary>The chosen monitor's name, for display only (DESIGN.md 10.10 `pcControl.pill.monitorName`).</summary>
+    public string? PillMonitorName { get; init; }
+
+    /// <summary>"Answer approvals and questions in the pill" (DESIGN.md 10.10 `pcControl.pill.answerInPill`).</summary>
+    public bool AnswerInPill { get; init; } = true;
+
+    /// <summary>"When you resume, continue the chat" (DESIGN.md 10.1, 10.10 `pcControl.resumeContinuesChat`).</summary>
+    public bool ResumeContinuesChat { get; init; } = true;
+
+    /// <summary>"Sound when Tactus needs a moment" (DESIGN.md 4.7), off (`pcControl.sound`, ED-NEW-pcctl-29).</summary>
+    public bool Sound { get; init; }
+
+    /// <summary>"Use for new apps" in Separate workspace (DESIGN.md 4.7): "auto", "always" or "never" (`pcControl.workspace.use`).</summary>
+    public string WorkspaceUse { get; init; } = "auto";
+
     /// <summary>The model grid for this setting (DESIGN.md 2.3, critique C27).</summary>
     public PcGridProfile Grid => Detail == PcDetail.High ? PcGridProfile.High : PcGridProfile.Standard;
 
