@@ -56,13 +56,14 @@ public static class Program
         // SK-17: private, headless MCP relay. It must precede Velopack, single-instance, settings and all desktop work.
         if (args.FirstOrDefault() == Marrow.Services.Port.Skills.Providers.SkillsMcpBridge.Command)
             return Marrow.Services.Port.Skills.Providers.SkillsMcpBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
-        // ED-NEW-ignisadvisor-2: the ask_advisor relay, the same kind of private headless child.
-        if (args.FirstOrDefault() == Marrow.Services.Port.Advisor.AdvisorMcpBridge.Command)
-            return Marrow.Services.Port.Advisor.AdvisorMcpBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
         // OD-0062, ED-235: Velopack's startup hook, before anything else (before the single-instance lock, the toast
         // identity, every binding). When Update.exe runs the app to install, update or uninstall it (--veloapp-*
         // arguments) this handles the event and exits the process; started normally it returns at once.
         RunVelopackHook(AppContext.BaseDirectory);
+        // ED-NEW-ignisadvisor-2: the ask_advisor relay, the same kind of private headless child. ED-NEW-mainorder-1 (ED-235,
+        // ED-636): only the SK-17 relay may precede the hook, so it runs right after it, before every other dispatch and binding.
+        if (args.FirstOrDefault() == Marrow.Services.Port.Advisor.AdvisorMcpBridge.Command)
+            return Marrow.Services.Port.Advisor.AdvisorMcpBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
         // ED-NEW-T44: an explicitly marked copied profile, including Release, never the owner's live roots.
         if (args.Contains("--performance-profile", StringComparer.Ordinal))
         {
