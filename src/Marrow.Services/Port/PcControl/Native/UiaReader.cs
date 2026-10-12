@@ -3,8 +3,8 @@
 // needs and every pattern's availability), RuntimeIds as dotted text, bounds in physical pixels. Several apps at once
 // (ED-NEW-pcctl-6): each window gets its own MTA worker thread (per-monitor DPI aware v2), so a slow or hung app never
 // holds up another; the one UIA client object is free-threaded and shared. IUIAutomation2's connection and transaction
-// timeouts are 2 s, and the reader gives up on a call after 4 s; a worker still stuck in a hung app is replaced. Never
-// used by automated tests; the pure mapping from UIA values to a PcUiNode (UiaNodes) is.
+// timeouts are 2 s, and the reader gives up on a call after 4 s; a worker still stuck in a hung app is replaced. The
+// native provider is never used by automated tests; managed provider delegates exercise public Perform and cancellation.
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Runtime.InteropServices;
@@ -31,14 +31,19 @@ public sealed class UiaReader : IUiaReader, IDisposable
         UiaIds.LegacyIAccessibleDefaultAction,
     ];
 
-    private readonly PcWorkerPool workers = new("nth Tactus UIA");
+    private readonly PcWorkerPool? workers;
+    private readonly UiaPerformProvider? performProvider;
+
+    public UiaReader() => workers = new("nth Tactus UIA");
+    internal UiaReader(UiaPerformProvider provider) => performProvider = provider;
+    private PcWorkerPool Workers => workers ?? throw new InvalidOperationException("this managed provider only supports Perform");
     private readonly Lock gate = new();
     private UiaClient? client;
 
     // The client object and its two cache requests, made once and shared by every worker (all MTA).
     private sealed record UiaClient(IUIAutomation2 Automation, IUIAutomationCacheRequest Tree, IUIAutomationCacheRequest Element);
 
-    public Task<PcUiNode?> Tree(nint window, CancellationToken cancellationToken) => workers.For(window).Run(() =>
+    public Task<PcUiNode?> Tree(nint window, CancellationToken cancellationToken) => Workers.For(window).Run(() =>
     {
         var root = Check(Client().Automation.ElementFromHandleBuildCache(window, Client().Tree, out var element), element);
         if (root is null) return null;
@@ -46,10 +51,10 @@ public sealed class UiaReader : IUiaReader, IDisposable
         return Build(root, ref budget, withChildren: true);
     }, CallTimeout, cancellationToken);
 
-    public Task<PcUiNode?> Element(nint window, string runtimeId, CancellationToken cancellationToken) => workers.For(window).Run(() =>
+    public Task<PcUiNode?> Element(nint window, string runtimeId, CancellationToken cancellationToken) => Workers.For(window).Run(() =>
         Find(window, runtimeId, Client().Element) is { } element ? Build(element) : null, CallTimeout, cancellationToken);
 
-    public Task<PcUiNode?> Focused(nint window, CancellationToken cancellationToken) => workers.For(window).Run(() =>
+    public Task<PcUiNode?> Focused(nint window, CancellationToken cancellationToken) => Workers.For(window).Run(() =>
     {
         if (Check(Client().Automation.GetFocusedElement(out var focused), focused) is not { } element) return null;
         if (Check(element.BuildUpdatedCache(Client().Element, out var cached), cached) is not { } updated) return null;
@@ -58,10 +63,18 @@ public sealed class UiaReader : IUiaReader, IDisposable
         return process is int pid && pid == windowProcess ? Build(updated) : null;
     }, CallTimeout, cancellationToken);
 
-    public Task<PcUiaOutcome> Perform(nint window, string runtimeId, PcElementCommand command, CancellationToken cancellationToken) => workers.For(window).Run(() =>
-        PerformResolved(() => Find(window, runtimeId, Client().Element), Build,
-            (element, node) => command.Action == PcElementAction.Invoke ? Sacrificial(element, node, command, cancellationToken) : UiaPatterns.Perform(element, node, command, cancellationToken),
-            cancellationToken), CallTimeout, cancellationToken);
+    public Task<PcUiaOutcome> Perform(nint window, string runtimeId, PcElementCommand command, CancellationToken cancellationToken)
+    {
+        var provider = performProvider ?? new UiaPerformProvider(
+            (handle, id) => Find(handle, id, Client().Element),
+            element => Build((IUIAutomationElement)element),
+            (element, node, action, token) => UiaPatterns.Perform((IUIAutomationElement)element, node, action, token),
+            (handle, action, token) => Workers.For(handle).Run(action, CallTimeout, token), StartInvoke);
+        return provider.Run(window, () => PerformResolved(() => provider.Lookup(window, runtimeId), provider.Build,
+            (element, node) => command.Action == PcElementAction.Invoke
+                ? Sacrificial(() => provider.Action(element, node, command, cancellationToken), cancellationToken, provider.Start)
+                : provider.Action(element, node, command, cancellationToken), cancellationToken), cancellationToken);
+    }
 
     // The production lookup/build/dispatch sequence, also usable with fake providers without a COM client.
     internal static PcUiaOutcome PerformResolved<T>(Func<T?> lookup, Func<T, PcUiNode> build,
@@ -84,35 +97,39 @@ public sealed class UiaReader : IUiaReader, IDisposable
 
     // Invoke can stay inside the app until a modal dialog it opened closes (critique C31). It runs on a thread of its own;
     // after ModalMs the answer is "still running" and the window's worker is free again. The thread ends with the dialog.
-    private static PcUiaOutcome Sacrificial(IUIAutomationElement element, PcUiNode node, PcElementCommand command, CancellationToken cancellationToken)
+    internal static PcUiaOutcome Sacrificial(Func<PcUiaOutcome> action, CancellationToken cancellationToken, Action<Action> start)
     {
         var done = new TaskCompletionSource<PcUiaOutcome>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var thread = new Thread(() =>
+        start(() =>
         {
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                done.TrySetResult(PerformAction(() => UiaPatterns.Perform(element, node, command, cancellationToken), cancellationToken));
+                done.TrySetResult(action());
             }
             catch (OperationCanceledException) { done.TrySetCanceled(cancellationToken); }
             catch (COMException exception) { done.TrySetException(exception); }
             catch (InvalidOperationException exception) { done.TrySetException(exception); }
-        })
-        { IsBackground = true, Name = "nth Tactus invoke" };
-        thread.SetApartmentState(ApartmentState.MTA);
-        thread.Start();
+        });
         try { return done.Task.WaitAsync(TimeSpan.FromMilliseconds(PcUiaOutcome.ModalMs), cancellationToken).GetAwaiter().GetResult(); }
         catch (TimeoutException) { return PcUiaOutcome.Running; }
     }
 
-    public Task<string?> ReadText(nint window, string runtimeId, CancellationToken cancellationToken) => workers.For(window).Run(() =>
+    private static void StartInvoke(Action action)
+    {
+        var thread = new Thread(() => action()) { IsBackground = true, Name = "nth Tactus invoke" };
+        thread.SetApartmentState(ApartmentState.MTA);
+        thread.Start();
+    }
+
+    public Task<string?> ReadText(nint window, string runtimeId, CancellationToken cancellationToken) => Workers.For(window).Run(() =>
     {
         if (Find(window, runtimeId, Client().Tree) is not { } element) return null;
         var budget = NodeBudget;
         return UiaPatterns.ReadText(element, Build(element, ref budget, withChildren: true));
     }, CallTimeout, cancellationToken);
 
-    public void Dispose() => workers.Dispose();
+    public void Dispose() => workers?.Dispose();
 
     private UiaClient Client()
     {
@@ -169,6 +186,11 @@ public sealed class UiaReader : IUiaReader, IDisposable
 
     private static T? Check<T>(int hresult, T? value) where T : class => hresult == 0 ? value : null;
 }
+
+// The provider and scheduling seam exercises public Perform and invoke cancellation without a COM object or native worker.
+internal sealed record UiaPerformProvider(Func<nint, string, object?> Lookup, Func<object, PcUiNode> Build,
+    Func<object, PcUiNode, PcElementCommand, CancellationToken, PcUiaOutcome> Action,
+    Func<nint, Func<PcUiaOutcome>, CancellationToken, Task<PcUiaOutcome>> Run, Action<Action> Start);
 
 /// <summary>The pure mapping from cached UIA values to a node; tested without UIA.</summary>
 public static class UiaNodes

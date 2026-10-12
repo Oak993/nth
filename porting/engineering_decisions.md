@@ -6463,3 +6463,9 @@ C3cV11Tests supplemental value/geometry cases RED twice4/2/0; corrected GREEN6/0
 2026-10-12 - Tactus C2-V3: make stale-target post-message assertions effective. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c owner rulings; DESIGN.md 2.7, 2.11, 2.12 and 10.2).
 The stale confirmed target test asserts Messages == 0 and checks the real post key prefix. Temporary post-before-refusal dispatch must be detected.
 C3A8Tests restored GREEN7/0/0; temporary V3-post-before-refusal compiled and failed the tightened test twice; exact source bytes restored.
+
+
+## ED-NEW-pcctl-cx-17
+2026-10-12 - Tactus C2-V4: exercise public UIA token and sacrificial cancellation wiring. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c owner rulings; DESIGN.md 2.7, 2.11, 2.12 and 10.2).
+An internal delegate provider routes managed public Perform tests through the real PerformResolved and Sacrificial paths without creating UIA/COM workers. The native constructor retains native lookup/build/pattern/MTA behavior. Tests cover token forwarding, Invoke routing, thread entry cancellation, OCE catch and the wait token.
+C3cV4Tests restored GREEN9/0/0. Six compiling temporary mutations each failed a targeted assertion twice; exact source bytes restored after every mutation. Managed delegates only.
