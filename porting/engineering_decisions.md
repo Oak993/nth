@@ -6256,3 +6256,8 @@ ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I14). Shared
 ## ED-NEW-inst-c4c-9: Prove smoke defaults job disposal and bounded polling
 
 ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I9). Real Stop calls the shared internal polling loop. Fake-clock Facts pin repeated polls, bounded sleeps and exact timeout. Fake owned objects require 30000 ms exit and 5000 ms cleanup defaults. A nonowning synthetic job handle and disposable process observer prove independent handle closure. Exit/argv disposable fixtures use the production exit default for cold starts, assertions unchanged. Default-exit, default-stop, job-dispose, polling, timeout and real-caller omission mutations fail alone twice and restore byte-exact before focused green. No installer, package or actual application runs.
+
+
+## ED-NEW-inst-c4c-10: Prove stub identity language and signing activation
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I10). The metadata fixture requires exact identity.App and CheckLanguage for the stub while retaining foreign-resource rejection. Signing fixtures execute the real surrounding if AST: None reads no signatures, SignTool/Azure each check six exes including the stub once. Wrong-Setup identity, removed language switch and inverted signing condition mutations fail selected Facts alone twice and restore byte-exact. Synthetic paths and resource/signature mocks only; no signer or packaging/installer execution.
