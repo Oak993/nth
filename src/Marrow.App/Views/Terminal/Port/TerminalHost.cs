@@ -35,8 +35,16 @@ public interface ITerminalProcessDelegate
 /// </summary>
 public sealed class TerminalHostView : Border
 {
+    /// <summary>
+    /// PORT-ONLY seam (no Swift twin): how a view gets the process that runs its shell. Production starts a real ConPTY
+    /// child (<see cref="ConPtyShell"/>). A test that has no use for a real PowerShell overrides this with a stand-in for
+    /// its own flow, so that testing the drawer's layout or the store's bookkeeping does not start a PowerShell and a
+    /// conhost that would outlive the test. Read once, when the view is made.
+    /// </summary>
+    internal static Ambient<Func<IShellProcess>> ShellFactory { get; } = new((Func<IShellProcess>)(() => new ConPtyShell()));
+
     // TerminalStore.swift:21 creates a 640x240 view before the host immediately gives it its container frame.
-    private readonly ProcessLauncher launcher = new();
+    private readonly IShellProcess shell = ShellFactory.Current();
     private readonly TerminalSurface scrollbackText;
     private readonly object scrollbackGate = new();
     private readonly TerminalScreenBuffer screen = new(80, 25);
@@ -167,10 +175,10 @@ public sealed class TerminalHostView : Border
     public ITerminalProcessDelegate? ProcessDelegate { get; set; }
 
     /// <summary>Swift <c>process.isRunning</c>, read through the view as SwiftTerm exposes it.</summary>
-    public bool IsRunning => launcher.IsRunning;
+    public bool IsRunning => shell.IsRunning;
 
     /// <summary>The real OS process id of the launched shell; 0 before <see cref="StartProcess"/>.</summary>
-    public int ProcessId => launcher.ProcessIdentifier;
+    public int ProcessId => shell.ProcessIdentifier;
 
     /// <summary>The screen and retained history after interpreting the child's terminal output.</summary>
     public string ScrollbackText
@@ -204,35 +212,44 @@ public sealed class TerminalHostView : Border
     {
         _ = execName; // PR-TERM-042: dropped on Windows.
         inputGeneration++;
-        launcher.ExecutableURL = executable;
-        launcher.Arguments = args;
-        launcher.Environment = environment;
-        launcher.CurrentDirectoryURL = currentDirectory;
         // SwiftTerm 1.20.0 AppleTerminalView.swift:329-345 derives the initial
         // grid from the 640x240 frame and the selected font before spawning.
         lastPseudoConsoleSize = MeasureGrid(InitialFrame);
         lock (scrollbackGate) screen.Resize(lastPseudoConsoleSize.Columns, lastPseudoConsoleSize.Rows);
         ApplyOutput();
-        launcher.PseudoConsole = lastPseudoConsoleSize;
         input = new ProcessPipe();
         output = new ProcessPipe();
-        launcher.StandardInput = input;
-        launcher.StandardOutput = output;
-        launcher.UsesJobObject = true;
         output.ReadabilityHandler = OnOutput;
-        launcher.TerminationHandler = host => ProcessDelegate?.ProcessTerminated(host.TerminationStatus);
-        launcher.Run();
+        shell.Start(
+            new ShellLaunch(executable, args, environment, currentDirectory, lastPseudoConsoleSize),
+            input,
+            output,
+            status => ProcessDelegate?.ProcessTerminated(status));
     }
 
-    /// <summary>:61 <c>view.terminate()</c>: the graceful step only, no escalation.</summary>
+    /// <summary>
+    /// :61 <c>view.terminate()</c>: the graceful step (Ctrl+C into the pseudoconsole), then, PORT-ONLY, the end of the shell
+    /// and of everything it started. On macOS the surface's pty is closed with the view and the hang-up ends the shell; a
+    /// ConPTY has no such hang-up, and an idle PowerShell prompt ignores Ctrl+C, so a closed tab, a restarted tab and a quit
+    /// all left the shell (with its conhost) running for as long as the app did. The shell's job is killed here, which ends the
+    /// shell and every program in its tree; the launcher's own watcher then closes the pseudoconsole, which ends the conhost.
+    /// </summary>
     public void Terminate()
     {
         inputGeneration++; // A delayed clipboard read must not write after termination.
         // TerminalSession.Terminate already marks the session stopped. Disarm callbacks before the asynchronous
         // process exit, since its former UI dispatcher may have been disposed when the view is torn down.
         ProcessDelegate = null;
-        if (output is not null) output.ReadabilityHandler = null;
-        launcher.Terminate();
+        var running = shell.IsRunning;
+        // A shell that is still running keeps its output pipe emptied, though nothing is shown from it any more: a conhost
+        // that cannot write its last bytes would hold up ClosePseudoConsole on a Windows that waits for the reader.
+        if (output is not null) output.ReadabilityHandler = running ? DiscardOutput : null;
+        shell.Terminate();
+        if (running) shell.KillTree();
+    }
+
+    private static void DiscardOutput(byte[] bytes)
+    {
     }
 
     /// <summary>Moves the existing surface to a new frame without rebuilding its process or scrollback.</summary>
@@ -246,7 +263,7 @@ public sealed class TerminalHostView : Border
         lock (scrollbackGate) screen.Resize(next.Columns, next.Rows);
         ApplyOutput();
         ResizeCount++;
-        try { launcher.ResizePseudoConsole(next); }
+        try { shell.ResizePseudoConsole(next); }
         catch (InvalidOperationException) { }
         catch (System.ComponentModel.Win32Exception) { }
         ProcessDelegate?.SizeChanged(next.Columns, next.Rows);

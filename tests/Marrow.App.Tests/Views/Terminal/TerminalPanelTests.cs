@@ -39,11 +39,12 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
     private static string AllText(Control control) =>
         string.Join("\n", LogicalQuery.SelfAndDescendants<TextBlock>(control).Select(block => block.Text ?? ""));
 
-    // The tab chip does not require an ANSI render surface. Use a real, isolated shell session, and terminate it
-    // on every path; ProcessEnded/Terminate supply the dead-shell state without waiting on a real process.
+    // The tab chip does not require an ANSI render surface. Use a real TerminalSession on a stand-in shell (no process
+    // starts), and terminate it on every path; ProcessEnded/Terminate supply the dead-shell state without waiting on one.
     private void WithTabSession(Action<TerminalSession> body) => headless.OnUiThread(() =>
     {
         using var h = new AppModelHarness();
+        h.UseFakeTerminalShell();
         h.Main.OnMain(() =>
         {
             var session = new TerminalSession(Guid.NewGuid(), TerminalTestFolders.Create("tab sweep"), "PowerShell", null);
@@ -530,6 +531,7 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
     private static (AppModel App, ThreadRuntime Runtime, AppModelHarness Store, ChatThread Thread) MakeFixture()
     {
         var store = new AppModelHarness();
+        store.UseFakeTerminalShell();
         var project = AppModelSamples.Project("Thread runtime", store.NewFolder("thread-runtime"));
         var thread = AppModelSamples.Thread(project);
         store.WriteLibrary([project], [thread]);
@@ -539,8 +541,8 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
         return (app, runtime, store, thread);
     }
 
-    // TerminalPanel.EnsureTerminal really spawns a shell (TerminalStoreTests's own convention: :17-41 always
-    // starts a real PowerShell in a throwaway folder), so every test needs a real directory and TerminateAll
+    // TerminalPanel.EnsureTerminal opens a session, and a session always starts its shell (:17-41); here that shell is
+    // a stand-in (MakeFixture), so no process starts. Every test still needs a real directory and TerminateAll
     // cleanup, matching TerminalStoreTests.cs's WithStore pattern.
     private Control Build(AppModel model, ThreadRuntime runtime, string directory)
     {
