@@ -75,6 +75,68 @@ public static class SetupFolders
         return true;
     }
 
+    /// <summary>Persistent provenance written before nth creates a unit's payload; unmarked legacy content is never adopted.</summary>
+    public const string OwnerFileName = ".nth-setup-owner";
+    internal const string OwnerMarker = "nth Setup owned unit v1\n";
+    internal const string ClaimMarker = "nth Setup claim v1\n";
+
+    internal static void PrepareOwnedUnit(string folder)
+    {
+        RequireNoLinks(folder);
+        var parent = Path.GetDirectoryName(folder);
+        if (parent is not null && string.Equals(Path.GetFileName(parent), RuntimeFolderName, StringComparison.OrdinalIgnoreCase)
+            && Path.GetDirectoryName(parent) is { } root && string.Equals(Path.GetFileName(root), InstallOptions.SetupFolderName, StringComparison.OrdinalIgnoreCase))
+        {
+            PrepareOwnedFolder(root, adoptNonempty: false, requireOwnership: false);
+            PrepareOwnedFolder(parent, adoptNonempty: false, requireOwnership: false);
+        }
+        else if (parent is not null && string.Equals(Path.GetFileName(parent), InstallOptions.SetupFolderName, StringComparison.OrdinalIgnoreCase))
+            PrepareOwnedFolder(parent, adoptNonempty: false, requireOwnership: false);
+        PrepareOwnedFolder(folder, adoptNonempty: false, requireOwnership: true);
+    }
+
+    private static void PrepareOwnedFolder(string folder, bool adoptNonempty, bool requireOwnership)
+    {
+        RequireNoLinks(folder);
+        Directory.CreateDirectory(folder);
+        RequireNoLinks(folder);
+        if (HasOwnMarker(folder)) return;
+        if (!adoptNonempty && Directory.EnumerateFileSystemEntries(folder).Any())
+        {
+            if (requireOwnership) throw new IOException($"The setup folder has content without nth's ownership marker: '{folder}'.");
+            return; // an unowned container may hold owned units, but is never itself removed
+        }
+        var marker = Path.Combine(folder, OwnerFileName);
+        RequireNoLinks(marker);
+        using var created = new FileStream(marker, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+        created.Write(System.Text.Encoding.UTF8.GetBytes(OwnerMarker));
+        created.Flush(flushToDisk: true);
+    }
+
+    internal static bool HasOwnMarker(string folder, Action? checkpoint = null) =>
+        MatchesMarker(Path.Combine(folder, OwnerFileName), OwnerMarker, checkpoint);
+
+    internal static bool MatchesMarker(string file, string expected, Action? checkpoint = null)
+    {
+        checkpoint?.Invoke();
+        RequireNoLinks(file, checkpoint);
+        try
+        {
+            using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read);
+            checkpoint?.Invoke();
+            var bytes = System.Text.Encoding.UTF8.GetBytes(expected);
+            if (stream.Length != bytes.Length) return false;
+            var actual = new byte[bytes.Length];
+            stream.ReadExactly(actual);
+            checkpoint?.Invoke();
+            return actual.AsSpan().SequenceEqual(bytes);
+        }
+        catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException)
+        {
+            checkpoint?.Invoke();
+            return false;
+        }
+    }
     /// <summary>Refuses every reparse-point ancestor, including ancestors outside the setup root. Missing leaves may be created later.</summary>
     internal static void RequireNoLinks(string path, Action? checkpoint = null)
     {

@@ -43,8 +43,8 @@ public sealed class FolderClaimTests : IDisposable
     public void Letting_go_removes_the_claim_file_and_nothing_else_and_can_be_done_twice()
     {
         var folder = Path.Combine(area.SetupRoot, "1.0.0");
-        var engine = area.Put(Path.Combine(folder, "nth Setup Engine.exe"));
         var claim = FolderClaim.Take(folder);
+        var engine = area.Put(Path.Combine(folder, "nth Setup Engine.exe"));
 
         claim.Dispose();
         claim.Dispose();
@@ -58,7 +58,8 @@ public sealed class FolderClaimTests : IDisposable
     public void A_claim_over_a_claim_file_a_dead_run_left_behind_works()
     {
         var folder = Path.Combine(area.SetupRoot, "1.0.0");
-        area.Put(Path.Combine(folder, SetupFolders.ClaimFileName));
+        area.MarkOwnedSetup("1.0.0");
+        area.Put(Path.Combine(folder, SetupFolders.ClaimFileName), "nth Setup claim v1\n");
 
         using var claim = FolderClaim.Take(folder);
 

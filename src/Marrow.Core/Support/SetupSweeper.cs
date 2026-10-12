@@ -54,44 +54,57 @@ public sealed class NamedLockSetupProbe(string name = SetupFolders.SetupLockName
 
 /// <summary>
 /// PORT-ONLY (nth installer PLAN.md 5, "Leftovers"; unit U9, ED-NEW-inst-u9-1). A folder a running setup is using, marked so
-/// no sweep touches it: it keeps <see cref="SetupFolders.ClaimFileName"/> open exclusively, with delete-on-close. A sweep that
-/// finds the file open leaves the whole folder alone. When the holder ends (it releases the claim, exits or crashes) Windows
-/// closes the handle, the file goes, and the folder is plain leftovers for the next sweep.
+/// no sweep touches it: it holds <see cref="SetupFolders.ClaimFileName"/> exclusively. Only a newly created claim uses
+/// delete-on-close; an existing exact nth claim is validated without deletion flags and remains for an ownership-checked
+/// sweep after release. Foreign claims and nonempty unmarked units are refused.
 /// </summary>
 public sealed class FolderClaim : IDisposable
 {
     private FileStream? held;
-
-    private FolderClaim(string folder, FileStream held)
-    {
-        Folder = folder;
-        this.held = held;
-    }
-
+    private FolderClaim(string folder, FileStream stream) { Folder = folder; held = stream; }
     public string Folder { get; }
 
-    /// <summary>Creates <paramref name="folder"/> if needed and claims it. Throws <see cref="IOException"/> if another run already holds it.</summary>
+    /// <summary>Claims a new/empty or already nth-owned unit. Foreign content and every reparse-point ancestor are refused.</summary>
     public static FolderClaim Take(string folder)
     {
         SetupFolders.RequireFull(folder, nameof(folder));
-        for (var attempt = 0; ; attempt++)
+        SetupFolders.PrepareOwnedUnit(folder);
+        var path = Path.Combine(folder, SetupFolders.ClaimFileName);
+        SetupFolders.RequireNoLinks(path);
+        FileStream stream;
+        try
         {
+            stream = new FileStream(path, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 1, FileOptions.DeleteOnClose);
             try
             {
-                Directory.CreateDirectory(folder);
-                var claim = new FileStream(Path.Combine(folder, SetupFolders.ClaimFileName), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None, 1, FileOptions.DeleteOnClose);
-                return new FolderClaim(folder, claim);
+                stream.Write(System.Text.Encoding.UTF8.GetBytes(SetupFolders.ClaimMarker));
+                stream.Flush(flushToDisk: true);
+                SetupFolders.RequireNoLinks(path);
+                return new FolderClaim(folder, stream);
             }
-            catch (DirectoryNotFoundException) when (attempt < 3)
+            catch { stream.Dispose(); throw; }
+        }
+        catch (IOException) when (File.Exists(path))
+        {
+            SetupFolders.RequireNoLinks(path);
+            // An existing file is never opened for delete. Read and hold only a claim that nth actually marked.
+            stream = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None, 1, FileOptions.None);
+            try
             {
-                // an empty parent was swept between the two calls: make it again
+                var marker = System.Text.Encoding.UTF8.GetBytes(SetupFolders.ClaimMarker);
+                if (stream.Length != marker.Length) throw new IOException($"The claim is not nth's: '{path}'.");
+                var actual = new byte[marker.Length];
+                stream.ReadExactly(actual);
+                if (!actual.AsSpan().SequenceEqual(marker)) throw new IOException($"The claim is not nth's: '{path}'.");
+                SetupFolders.RequireNoLinks(path);
+                return new FolderClaim(folder, stream);
             }
+            catch { stream.Dispose(); throw; }
         }
     }
 
     public void Dispose() => Interlocked.Exchange(ref held, null)?.Dispose();
 }
-
 /// <summary>
 /// PORT-ONLY (nth installer PLAN.md 3 step 4, 5 "Leftovers" and 8; unit U9, ED-NEW-inst-u9-1). The sweeps for what nth Setup
 /// leaves outside the install root: <c>%LOCALAPPDATA%\nth Setup\</c> (staging folders, the native runtime) and
@@ -99,12 +112,11 @@ public sealed class FolderClaim : IDisposable
 /// its start (step 4), nth at its start, nth's before-uninstall hook and the uninstaller remove them. No <c>RunOnce</c> entry
 /// or delayed <c>cmd</c> is used.
 /// <para>
-/// A <b>unit</b> is a staging folder, a build's folder under <c>runtime\</c>, the uninstaller's temporary folder or a loose
-/// file. A unit is removed whole or not at all: if any file in it is open or loaded (a running engine, a library in use,
-/// another setup's <see cref="FolderClaim"/>) the whole unit is left, so a run in progress never loses its options file.
-/// Nothing outside the two folders is touched (the data folder <c>%LOCALAPPDATA%\nth</c> and the install root are never
-/// swept), a link inside is removed without following it, and a link standing where the setup's folder should be is left alone.
-/// No method here throws for a file-system failure: it reports what it left in <see cref="SweepResult.Kept"/>.
+/// An owned <b>unit</b> is a marked staging folder, a build's folder under <c>runtime\</c>, or the uninstaller's temporary
+/// folder. Preflight preserves the unit if known payload is open or loaded, including another setup's <see cref="FolderClaim"/>.
+/// Loose files, unknown content and links are retained and reported; the data folder <c>%LOCALAPPDATA%\nth</c> and the
+/// install root are never swept. Deletion is not atomic: a filesystem failure or cleanup cutoff can leave partly removed
+/// owned payload. Cleanup reports affected retained units or remnants in <see cref="SweepResult.Kept"/> for a later sweep.
 /// </para>
 /// </summary>
 public static class SetupSweeper
@@ -210,6 +222,9 @@ public static class SetupSweeper
     private static void SweepSetupRoot(string root, Tally tally)
     {
         if (!Exists(root)) return;
+        try { SetupFolders.RequireNoLinks(root); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        { tally.Keep(root, SweepKeptReason.NotRemoved); return; }
         if (IsLink(root))
         {
             tally.Keep(root, SweepKeptReason.NotRemoved); // a link where our folder should be: not ours to follow or remove
@@ -217,9 +232,11 @@ public static class SetupSweeper
         }
         foreach (var entry in Entries(root))
         {
+            if (Path.GetFileName(entry) == SetupFolders.OwnerFileName && SetupFolders.HasOwnMarker(root)) continue;
             if (string.Equals(Path.GetFileName(entry), SetupFolders.RuntimeFolderName, StringComparison.OrdinalIgnoreCase) && Directory.Exists(entry) && !IsLink(entry))
             {
-                foreach (var build in Entries(entry)) RemoveUnit(build, tally);
+                foreach (var build in Entries(entry))
+                    if (Path.GetFileName(build) != SetupFolders.OwnerFileName || !SetupFolders.HasOwnMarker(entry)) RemoveUnit(build, tally);
                 TryRemoveEmptyDirectory(entry, tally);
             }
             else RemoveUnit(entry, tally);
@@ -231,26 +248,14 @@ public static class SetupSweeper
     {
         try
         {
+            SetupFolders.RequireNoLinks(path);
             var attributes = File.GetAttributes(path);
-            if ((attributes & FileAttributes.ReparsePoint) != 0)
+            if ((attributes & FileAttributes.Directory) == 0 || !SetupFolders.HasOwnMarker(path))
             {
-                DeleteLink(path, attributes);
-                tally.Removed++;
+                tally.Keep(path, SweepKeptReason.NotRemoved); // a name or location alone never proves that nth created it
                 return;
-            }
-            if ((attributes & FileAttributes.Directory) == 0)
-            {
-                var state = Probe(path);
-                if (state != FileState.Free) tally.Keep(path, state == FileState.InUse ? SweepKeptReason.InUse : SweepKeptReason.NotRemoved);
-                else
-                {
-                    File.Delete(path);
-                    tally.Removed++;
-                }
-                return;
-            }
-            var files = new List<string>();
-            CollectFiles(path, files);
+            }            var files = new List<string>();
+            CollectFiles(path, files, path);
             foreach (var file in files)
             {
                 var state = Probe(file);
@@ -258,7 +263,7 @@ public static class SetupSweeper
                 tally.Keep(path, state == FileState.InUse ? SweepKeptReason.InUse : SweepKeptReason.NotRemoved);
                 return;
             }
-            DeleteTree(path);
+            DeleteTree(path, path);
             tally.Removed++;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
@@ -294,34 +299,109 @@ public static class SetupSweeper
         }
     }
 
-    private static void CollectFiles(string directory, List<string> files)
+    private static bool KnownPayload(string unit, string file)
     {
+        var relative = Path.GetRelativePath(unit, file);
+        var name = Path.GetFileName(relative);
+        if (Path.GetFileName(unit) == SetupFolders.UninstallTempFolderName)
+            return !relative.Contains(Path.DirectorySeparatorChar, StringComparison.Ordinal) && name is "nth Uninstall.exe" or "setup.log" or "install.log";
+        if (Path.GetFileName(Path.GetDirectoryName(unit)) == SetupFolders.RuntimeFolderName)
+            return !relative.Contains(Path.DirectorySeparatorChar, StringComparison.Ordinal) && name is "libSkiaSharp.dll" or "libHarfBuzzSharp.dll" or "av_libglesv2.dll";
+        if (relative.Contains(Path.DirectorySeparatorChar, StringComparison.Ordinal))
+        {
+            var directories = relative.Split(Path.DirectorySeparatorChar)[..^1];
+            return directories[0] == "logs" && directories.Skip(1).All(part => part.All(char.IsAsciiDigit))
+                && name is "setup.log" or "install.log" or "nth Setup Engine.log";
+        }
+        if (name is SetupFolders.EngineFileName or "nth Setup Engine.exe.partial" or "install-options.json" or "install-result.json"
+            or "nth Setup Engine.log" or "setup.log" or "install.log") return true;
+        foreach (var target in new[] { "install-options.json", "install-result.json" })
+        {
+            var prefix = "." + target + ".";
+            if (name.StartsWith(prefix, StringComparison.Ordinal) && name.EndsWith(".tmp", StringComparison.Ordinal)
+                && name.Length == prefix.Length + 32 + 4 && name.AsSpan(prefix.Length, 32).ContainsAnyExcept("0123456789abcdef") == false) return true;
+        }
+        return false;
+    }
+
+    private static bool KnownDirectory(string unit, string directory)
+    {
+        var parts = Path.GetRelativePath(unit, directory).Split(Path.DirectorySeparatorChar);
+        return parts[0] == "logs" && parts.Skip(1).All(part => part.Length > 0 && part.All(char.IsAsciiDigit));
+    }
+
+    private static void RequireOwnedFile(string unit, string file)
+    {
+        SetupFolders.RequireNoLinks(file);
+        if (string.Equals(file, Path.Combine(unit, SetupFolders.OwnerFileName), StringComparison.OrdinalIgnoreCase))
+        {
+            if (SetupFolders.HasOwnMarker(unit)) return;
+        }
+        else if (string.Equals(file, Path.Combine(unit, SetupFolders.ClaimFileName), StringComparison.OrdinalIgnoreCase))
+        {
+            if (SetupFolders.MatchesMarker(file, SetupFolders.ClaimMarker)) return;
+        }
+        else if (KnownPayload(unit, file)) return;
+        throw new IOException($"The sweep cannot prove nth owns '{file}'.");
+    }
+
+    private static void CollectFiles(string directory, List<string> files, string unit)
+    {
+        SetupFolders.RequireNoLinks(directory);
         foreach (var entry in Entries(directory))
         {
+            SetupFolders.RequireNoLinks(entry);
             var attributes = File.GetAttributes(entry);
-            if ((attributes & FileAttributes.ReparsePoint) != 0) continue; // a link is removed as a link, never opened or followed
-            if ((attributes & FileAttributes.Directory) != 0) CollectFiles(entry, files);
-            else files.Add(entry);
+            if ((attributes & FileAttributes.Directory) != 0)
+            {
+                if (!KnownDirectory(unit, entry)) throw new IOException($"The sweep cannot prove nth owns '{entry}'.");
+                CollectFiles(entry, files, unit);
+            }
+            else
+            {
+                RequireOwnedFile(unit, entry);
+                var state = Probe(entry);
+                if (state == FileState.InUse) throw new IOException("A proven-owned payload is in use.", unchecked((int)0x80070020));
+                if (state == FileState.Denied) throw new UnauthorizedAccessException("A proven-owned payload cannot be probed.");
+                files.Add(entry);
+            }
         }
     }
 
-    private static void DeleteTree(string directory)
+    private static void DeleteTree(string directory, string unit)
     {
+        SetupFolders.RequireNoLinks(directory);
         foreach (var entry in Entries(directory))
         {
+            if (string.Equals(entry, Path.Combine(unit, SetupFolders.OwnerFileName), StringComparison.OrdinalIgnoreCase)) continue; // provenance goes last
+            SetupFolders.RequireNoLinks(entry);
             var attributes = File.GetAttributes(entry);
-            if ((attributes & FileAttributes.ReparsePoint) != 0) DeleteLink(entry, attributes);
-            else if ((attributes & FileAttributes.Directory) != 0) DeleteTree(entry);
+            if ((attributes & FileAttributes.Directory) != 0)
+            {
+                if (!KnownDirectory(unit, entry)) throw new IOException($"The sweep cannot prove nth owns '{entry}'.");
+                DeleteTree(entry, unit);
+            }
             else
             {
+                RequireOwnedFile(unit, entry);
                 ClearReadOnly(entry);
+                SetupFolders.RequireNoLinks(entry);
                 File.Delete(entry);
             }
         }
+        SetupFolders.RequireNoLinks(directory);
+        if (directory == unit)
+        {
+            var marker = Path.Combine(unit, SetupFolders.OwnerFileName);
+            RequireOwnedFile(unit, marker);
+            ClearReadOnly(marker);
+            SetupFolders.RequireNoLinks(marker);
+            File.Delete(marker);
+        }
         File.SetAttributes(directory, FileAttributes.Normal);
+        SetupFolders.RequireNoLinks(directory);
         Directory.Delete(directory, recursive: false);
     }
-
     /// <summary>Removes the link and nothing it points at: a folder link by RemoveDirectory, a file link by DeleteFile.</summary>
     private static void DeleteLink(string path, FileAttributes attributes)
     {
@@ -350,20 +430,23 @@ public static class SetupSweeper
 
     private static void TryRemoveEmptyDirectory(string directory, Tally tally)
     {
-        if (IsLink(directory)) return;
         try
         {
-            if (Directory.EnumerateFileSystemEntries(directory).Any()) return; // deliberately retained contents are not a deletion failure
+            SetupFolders.RequireNoLinks(directory);
+            var entries = Entries(directory);
+            if (entries.Any(entry => Path.GetFileName(entry) != SetupFolders.OwnerFileName)) return;
+            if (!SetupFolders.HasOwnMarker(directory)) { tally.Keep(directory, SweepKeptReason.NotRemoved); return; }
+            var marker = Path.Combine(directory, SetupFolders.OwnerFileName);
+            ClearReadOnly(marker);
+            if (!SetupFolders.HasOwnMarker(directory)) { tally.Keep(directory, SweepKeptReason.NotRemoved); return; }
+            File.Delete(marker);
+            SetupFolders.RequireNoLinks(directory);
+            File.SetAttributes(directory, FileAttributes.Normal);
             Directory.Delete(directory, recursive: false);
         }
         catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException)
-        {
-            // it disappeared before we looked
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-        {
-            tally.Keep(directory, SweepKeptReason.NotRemoved);
-        }
+        { if (!ConfirmedMissing(directory)) tally.Keep(directory, SweepKeptReason.NotRemoved); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { tally.Keep(directory, SweepKeptReason.NotRemoved); }
     }
     private static bool ConfirmedMissing(string path)
     {

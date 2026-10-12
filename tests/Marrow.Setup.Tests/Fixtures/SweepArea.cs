@@ -44,7 +44,43 @@ public sealed class SweepArea : IDisposable
     }
 
     /// <summary>Writes a file under <c>nth Setup</c> from path parts.</summary>
-    public string PutInSetup(params string[] parts) => Put(Path.Combine([SetupRoot, .. parts]));
+    public string PutInSetup(params string[] parts)
+    {
+        if (parts.Length >= 2)
+        {
+            if (parts[0] == SetupFolders.RuntimeFolderName && parts.Length >= 3) MarkOwnedSetup(parts[0], parts[1]);
+            else if (parts[0] != SetupFolders.RuntimeFolderName) MarkOwnedSetup(parts[0]);
+        }
+        return Put(Path.Combine([SetupRoot, .. parts]));
+    }
+
+    /// <summary>Seeds provenance only for fixtures expressly representing nth-created units, before payload.</summary>
+    public void MarkOwnedSetup(params string[] parts)
+    {
+        MarkOwnedFolder(SetupRoot);
+        if (parts.Length > 1 && parts[0] == SetupFolders.RuntimeFolderName) MarkOwnedFolder(Path.Combine(SetupRoot, parts[0]));
+        MarkOwnedFolder(Path.Combine([SetupRoot, .. parts]));
+    }
+
+    public string PutInUninstall(string name)
+    {
+        MarkOwnedFolder(UninstallTemp);
+        return Put(Path.Combine(UninstallTemp, name));
+    }
+
+    private void MarkOwnedFolder(string directory)
+    {
+        RequireWithinBase(directory);
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, ".nth-setup-owner"), "nth Setup owned unit v1\n");
+    }
+
+    private void RequireWithinBase(string path)
+    {
+        var full = Path.GetFullPath(path);
+        if (!full.StartsWith(Path.GetFullPath(Base) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Fixture cleanup/write escaped its disposable base.");
+    }
 
     /// <summary>Opens a file for writing with no sharing until the area is disposed (or <see cref="Release"/>): to a sweep it is in use.</summary>
     public FileStream Hold(string path)
@@ -76,11 +112,26 @@ public sealed class SweepArea : IDisposable
     {
         foreach (var stream in holds) stream.Dispose();
         holds.Clear();
-        if (!Directory.Exists(Base)) return;
-        foreach (var junction in Directory.EnumerateDirectories(Base, "*", SearchOption.AllDirectories).Where(d => new DirectoryInfo(d).Attributes.HasFlag(FileAttributes.ReparsePoint)).ToList())
-            if (Directory.Exists(junction)) Directory.Delete(junction, recursive: false); // the link, never what it points at
-        foreach (var file in Directory.EnumerateFiles(Base, "*", SearchOption.AllDirectories))
-            File.SetAttributes(file, FileAttributes.Normal);
-        Directory.Delete(Base, recursive: true);
+        if (Directory.Exists(Base)) DeleteDisposableTree(Base, isRoot: true);
+    }
+
+    private void DeleteDisposableTree(string directory, bool isRoot = false)
+    {
+        if (!isRoot) RequireWithinBase(directory);
+        else if (Path.GetFullPath(directory) != Path.GetFullPath(Base)) throw new InvalidOperationException("Invalid disposable root.");
+        if ((File.GetAttributes(directory) & FileAttributes.ReparsePoint) != 0) { Directory.Delete(directory, recursive: false); return; }
+        foreach (var entry in Directory.EnumerateFileSystemEntries(directory))
+        {
+            RequireWithinBase(entry);
+            var attributes = File.GetAttributes(entry);
+            if ((attributes & FileAttributes.Directory) != 0) DeleteDisposableTree(entry);
+            else
+            {
+                if ((attributes & FileAttributes.ReparsePoint) == 0) File.SetAttributes(entry, FileAttributes.Normal);
+                File.Delete(entry);
+            }
+        }
+        File.SetAttributes(directory, FileAttributes.Normal);
+        Directory.Delete(directory, recursive: false);
     }
 }

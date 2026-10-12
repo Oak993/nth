@@ -37,12 +37,21 @@ public sealed class SetupLeftoversStartupTests : IDisposable
         return Directory.CreateDirectory(Path.Combine(root, "current")).FullName + Path.DirectorySeparatorChar;
     }
 
-    private (string Staged, string Library, string UninstallCopy, string Data) Leftovers() => (
-        Put(Path.Combine(Local, "nth Setup", "1.0.0", "nth Setup Engine.exe")),
-        Put(Path.Combine(Local, "nth Setup", "runtime", "4f9c2a", "libSkiaSharp.dll")),
-        Put(Path.Combine(Temp, "nth Uninstall", "nth Uninstall.exe")),
-        Put(Path.Combine(Local, "nth", "chats.db")));
-
+    private (string Staged, string Library, string UninstallCopy, string Data) Leftovers()
+    {
+        // ED-NEW-inst-c7-8: these fixtures represent actual nth-created payload, with provenance written first.
+        foreach (var folder in new[] { Path.Combine(Local, "nth Setup"), Path.Combine(Local, "nth Setup", "1.0.0"),
+            Path.Combine(Local, "nth Setup", "runtime"), Path.Combine(Local, "nth Setup", "runtime", "4f9c2a"), Path.Combine(Temp, "nth Uninstall") })
+        {
+            Directory.CreateDirectory(folder);
+            File.WriteAllText(Path.Combine(folder, ".nth-setup-owner"), "nth Setup owned unit v1\n");
+        }
+        return (
+            Put(Path.Combine(Local, "nth Setup", "1.0.0", "nth Setup Engine.exe")),
+            Put(Path.Combine(Local, "nth Setup", "runtime", "4f9c2a", "libSkiaSharp.dll")),
+            Put(Path.Combine(Temp, "nth Uninstall", "nth Uninstall.exe")),
+            Put(Path.Combine(Local, "nth", "chats.db")));
+    }
     [Fact]
     [Trait("Decision", "ED-247")]
     public async Task Nth_started_from_a_Velopack_install_removes_the_leftovers_when_no_setup_runs()

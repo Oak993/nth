@@ -20,7 +20,7 @@ public sealed class SetupSweeperEntryPointsTests : IDisposable
     {
         area.PutInSetup("1.0.0", "nth Setup Engine.exe");
         area.PutInSetup("runtime", "4f9c2a", "libSkiaSharp.dll");
-        area.Put(Path.Combine(area.UninstallTemp, "nth Uninstall.exe"));
+        area.PutInUninstall("nth Uninstall.exe");
         var chats = area.Put(Path.Combine(area.LocalAppData, "nth", "chats.db"));
         var probe = new FakeSetupProbe(running: false);
 
@@ -40,7 +40,7 @@ public sealed class SetupSweeperEntryPointsTests : IDisposable
     {
         var staged = area.PutInSetup("1.0.0", "nth Setup Engine.exe");
         var library = area.PutInSetup("runtime", "4f9c2a", "libSkiaSharp.dll");
-        var copy = area.Put(Path.Combine(area.UninstallTemp, "nth Uninstall.exe"));
+        var copy = area.PutInUninstall("nth Uninstall.exe");
         var probe = new FakeSetupProbe(running: true);
 
         var result = SetupSweeper.SweepUnlessSetupRuns(area.LocalAppData, area.Temp, probe);
@@ -178,7 +178,7 @@ public sealed class SetupSweeperEntryPointsTests : IDisposable
         area.PutInSetup("1.0.0", "install-options.json");
         area.PutInSetup("1.0.0", "install-result.json");
         area.PutInSetup("runtime", "4f9c2a", "libSkiaSharp.dll");
-        area.Put(Path.Combine(area.UninstallTemp, "nth Uninstall.exe"));
+        area.PutInUninstall("nth Uninstall.exe");
 
         var result = SetupSweeper.Sweep(area.LocalAppData, area.Temp);
 
@@ -191,8 +191,8 @@ public sealed class SetupSweeperEntryPointsTests : IDisposable
     [Trait("Decision", "ED-247")]
     public void The_uninstaller_running_from_its_temporary_copy_finds_that_folder_in_use_and_reports_it_for_the_caller()
     {
-        var copy = area.Put(Path.Combine(area.UninstallTemp, "nth Uninstall.exe"));
-        area.Put(Path.Combine(area.UninstallTemp, "readme.txt"));
+        var copy = area.PutInUninstall("nth Uninstall.exe");
+        area.PutInUninstall("readme.txt");
         area.PutInSetup("1.0.0", "install-options.json");
         using var running = area.Hold(copy);
 

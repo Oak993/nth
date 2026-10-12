@@ -76,7 +76,10 @@ public sealed class StagingScope : IDisposable
             if (claim is not null) return folder;
             lock (SweepGate)
             {
-                _ = SetupSweeper.RemoveFolder(localAppData, folder); // a folder in use by another run is left; its claim then fails below
+                var cleanup = SetupSweeper.RemoveFolder(localAppData, folder);
+                if (cleanup.Kept.Any(kept => string.Equals(kept.Path, folder, StringComparison.OrdinalIgnoreCase)
+                    || kept.Path.StartsWith(folder + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)))
+                    throw new IOException("The staging folder could not be safely cleared: '" + folder + "'.");
                 claim = FolderClaim.Take(folder);
             }
             return folder;
