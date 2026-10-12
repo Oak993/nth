@@ -7,7 +7,7 @@ namespace Marrow.Services.Tests.Port.Updates;
 // ED-NEW-providers-git-1: Git's failed row says what holds Git ("Git Bash is running (used by Claude Code). Close it and try again."), and an update or its Retry looks at what holds Git
 // before it starts winget. No real process is read here: the look is a test function.
 [Trait("Feature", "UE-3")]
-[Trait("Decision", "ED-NEW-providers-git-1")]
+[Trait("Decision", "ED-NEW-reltrace-1")] // ED-NEW-providers-git-1
 public sealed class GitInUseTests
 {
     private static Func<CancellationToken, Task<IReadOnlyList<GitLockingProcess>>> Look(Func<IReadOnlyList<GitLockingProcess>> now) => _ => Task.FromResult(now());
@@ -24,7 +24,7 @@ public sealed class GitInUseTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-providersmerge-git-1")]
+    // ED-NEW-providersmerge-git-1
     public void An_agent_keeps_its_process_name_at_the_start_of_the_sentence()
     {
         Assert.Equal("ssh-agent is running. Close it and try again.", GitInUse.Message([new("ssh-agent.exe")]));
@@ -73,7 +73,7 @@ public sealed class GitInUseTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-providersmerge-git-2")]
+    // ED-NEW-providersmerge-git-2
     public async Task A_Git_process_that_is_gone_at_the_second_look_does_not_stop_the_update()
     {
         // nth's own source control ran git.exe, an agent's Bash tool ran bash.exe: both exit before the second look, and winget runs
@@ -83,7 +83,7 @@ public sealed class GitInUseTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-providersmerge-git-2")]
+    // ED-NEW-providersmerge-git-2
     public async Task Only_a_process_seen_at_both_looks_holds_Git()
     {
         // the first git.exe exited and a new one reused its id (another start time); a bash.exe started after the first look: neither held Git the whole time
@@ -98,7 +98,7 @@ public sealed class GitInUseTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-providersmerge-git-2")]
+    // ED-NEW-providersmerge-git-2
     public void The_same_process_is_the_same_id_start_time_and_executable()
     {
         GitLockingProcess a = new("bash.exe", "Claude Code", 42, 1000);

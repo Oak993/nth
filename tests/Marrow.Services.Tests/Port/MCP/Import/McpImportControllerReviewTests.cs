@@ -24,7 +24,7 @@ public sealed class McpImportControllerReviewTests
     [Trait("Decision", "ED-NEW-mcpimport-7")]
     public async Task The_import_gives_the_thread_back_between_servers_and_says_how_far_it_is()
     {
-        var target = new McpImportTests.FakeTarget();
+        var target = new FakeMcpImportTarget();
         var scan = new ForeignMcpScan([Stdio("one"), Stdio("two"), Stdio("three")], []);
         var phases = new List<(McpImportPhase Phase, int Done, int Total, int Saved)>();
         McpImportController? controller = null;
@@ -53,7 +53,7 @@ public sealed class McpImportControllerReviewTests
     [Trait("Decision", "ED-NEW-mcpimport-7")]
     public async Task While_importing_nothing_else_can_start_or_change()
     {
-        var target = new McpImportTests.FakeTarget();
+        var target = new FakeMcpImportTarget();
         var scan = new ForeignMcpScan([Stdio("one"), Stdio("two")], []);
         Task<McpImportOutcome?>? second = null;
         McpImportController? controller = null;
@@ -77,7 +77,7 @@ public sealed class McpImportControllerReviewTests
     [Trait("Decision", "ED-NEW-mcpimport-7")]
     public async Task Closing_the_sheet_mid_import_stops_after_the_server_it_is_on_and_keeps_what_was_done()
     {
-        var target = new McpImportTests.FakeTarget();
+        var target = new FakeMcpImportTarget();
         var scan = new ForeignMcpScan([Stdio("one"), Stdio("two"), Stdio("three")], []);
         var yields = 0;
         McpImportController? controller = null;
@@ -99,7 +99,7 @@ public sealed class McpImportControllerReviewTests
     [Trait("Decision", "ED-NEW-mcpimport-7")]
     public async Task Opening_the_sheet_again_while_it_is_stopping_brings_the_import_back_and_it_finishes()
     {
-        var target = new McpImportTests.FakeTarget();
+        var target = new FakeMcpImportTarget();
         var scan = new ForeignMcpScan([Stdio("one"), Stdio("two")], []);
         var yields = 0;
         McpImportController? controller = null;
@@ -119,7 +119,7 @@ public sealed class McpImportControllerReviewTests
     [Trait("Decision", "ED-NEW-mcpimport-5")]
     public async Task A_blocked_server_is_listed_with_its_reason_cannot_be_ticked_and_is_left_out_of_import_all()
     {
-        var target = new McpImportTests.FakeTarget();
+        var target = new FakeMcpImportTarget();
         var scan = new ForeignMcpScan([Stdio("fine"), Remote("old", "https://x.example.test/sse", sse: true), Stdio("prompted", env: [("TOKEN", "${input:t}")])], []);
         var controller = new McpImportController(() => scan, target, Env());
         await controller.OpenAsync();
@@ -150,7 +150,7 @@ public sealed class McpImportControllerReviewTests
     [Trait("Decision", "ED-NEW-mcpimport-5")]
     public async Task A_found_server_is_a_duplicate_by_what_it_becomes_once_its_placeholders_are_filled_in()
     {
-        var target = new McpImportTests.FakeTarget();
+        var target = new FakeMcpImportTarget();
         McpImport.Import([new ForeignMcpServer(ForeignMcpApp.Cursor, "", "base", MCPCustomServer.Kind.Stdio, "npx", ["-y", @"C:\data"], "", [], @"C:\x")], DuplicateChoice.Skip, target);
         var scan = new ForeignMcpScan([new ForeignMcpServer(ForeignMcpApp.VSCode, "", "renamed", MCPCustomServer.Kind.Stdio, "npx", ["-y", "${env:DATA}"], "", [], @"C:\y")], []);
         var controller = new McpImportController(() => scan, target, Env(("DATA", @"C:\data")));
@@ -164,7 +164,7 @@ public sealed class McpImportControllerReviewTests
     [Trait("Decision", "ED-NEW-mcpimport-10")]
     public async Task Two_rows_that_look_alike_are_ticked_and_counted_one_by_one()
     {
-        var target = new McpImportTests.FakeTarget();
+        var target = new FakeMcpImportTarget();
         var scan = new ForeignMcpScanner([new(ForeignMcpApp.ClaudeCode, @"C:\fixture\.claude.json", ForeignMcpFormat.ClaudeJson)], path => path == @"C:\fixture\.claude.json" ? """
             { "projects": {
                 "C:/work/app": { "mcpServers": { "db": { "command": "npx", "args": ["-y", "@fixture/one"] } } },
@@ -189,7 +189,7 @@ public sealed class McpImportControllerReviewTests
     [Trait("Decision", "ED-NEW-mcpimport-7")]
     public async Task Nothing_to_import_returns_null_and_stays_choosing()
     {
-        var controller = new McpImportController(() => new ForeignMcpScan([Remote("old", "https://x.example.test/sse", sse: true)], []), new McpImportTests.FakeTarget(), Env());
+        var controller = new McpImportController(() => new ForeignMcpScan([Remote("old", "https://x.example.test/sse", sse: true)], []), new FakeMcpImportTarget(), Env());
         await controller.OpenAsync();
         Assert.Null(await controller.ImportAllAsync());
         Assert.Null(await controller.ImportSelectedAsync());

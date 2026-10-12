@@ -96,6 +96,6 @@ public sealed class VoiceSessionHindustaniTests
         Assert.All(rig.Engine.Decodes, d => Assert.Equal(code, d.Request.Language));
         var stored = Assert.Single(rig.Stored);
         Assert.Equal(code, stored.LastHindustani);
-        Assert.Equal(code, stored.Lang); // the rest of the record is kept
+        Assert.Equal(code, stored.Lang); // the rest of the stored entry is kept
     }
 }

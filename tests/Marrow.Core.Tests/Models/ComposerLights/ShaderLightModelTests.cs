@@ -21,7 +21,7 @@ public sealed class ShaderLightModelTests
         (s ?? ComposerLightSettings.Default) with { Style = ComposerLightStyle.Shader, ShaderId = id };
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-4")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-4
     public void Every_light_is_listed_with_every_control_and_the_pages_defaults()
     {
         Assert.Equal(Ids, ShaderLightCatalog.All.Select(d => d.Id));
@@ -43,7 +43,7 @@ public sealed class ShaderLightModelTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-4")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-4
     public void Each_lights_options_custom_colours_and_the_text_and_dimming_settings_persist()
     {
         var custom = new ShaderLightColours("#112233", "#445566", "#778899", "#AABBCC");
@@ -78,7 +78,7 @@ public sealed class ShaderLightModelTests
         new(s, phase, dark: true, reduce, ComposerLightPalette.Default);
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-2")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-2
     public void The_loop_moves_with_the_speed_and_the_rate_and_reduce_motion_holds_the_still()
     {
         foreach (var id in new[] { "lumen", "unda", "fulgor" })
@@ -100,7 +100,7 @@ public sealed class ShaderLightModelTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-2")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-2
     public void The_state_eases_with_no_jumps_and_keystrokes_lift_and_age_as_the_pages_do()
     {
         var a = Animate(On("nebula"));
@@ -128,7 +128,7 @@ public sealed class ShaderLightModelTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-8")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-8
     public void The_readability_guard_follows_a_brighter_light_at_once_and_lets_go_over_150_ms()
     {
         var a = Animate(On("nebula"), phase: ComposerLightPhase.Running);
@@ -161,7 +161,7 @@ public sealed class ShaderLightModelTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-2")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-2
     public void Pulses_are_born_at_a_state_change_and_at_keystrokes_and_settle_under_reduce_motion()
     {
         var a = Animate(On("unda"));
@@ -185,7 +185,7 @@ public sealed class ShaderLightModelTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-5")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-5
     public void The_text_modes_cross_over_and_their_sliders_transition()
     {
         var a = Animate(On("lumen"));
@@ -207,7 +207,7 @@ public sealed class ShaderLightModelTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-6")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-6
     public void The_wallpaper_veil_is_off_with_no_light_no_wallpaper_or_the_setting_off()
     {
         var wallpaper = new WallpaperState(Showing: true);
@@ -223,7 +223,7 @@ public sealed class ShaderLightModelTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-lightv2-6")]
+    [Trait("Decision", "OD-0150")] // ED-NEW-lightv2-6
     public void A_bright_busy_wallpaper_is_dimmed_more_than_a_dark_calm_one()
     {
         const int w = WallpaperDim.GridWidth, h = WallpaperDim.GridHeight;
