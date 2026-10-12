@@ -59,25 +59,50 @@ public sealed class UiaReader : IUiaReader, IDisposable
     }, CallTimeout, cancellationToken);
 
     public Task<PcUiaOutcome> Perform(nint window, string runtimeId, PcElementCommand command, CancellationToken cancellationToken) => workers.For(window).Run(() =>
-        Find(window, runtimeId, Client().Element) is { } element
-            ? command.Action == PcElementAction.Invoke ? Sacrificial(element, Build(element), command) : UiaPatterns.Perform(element, Build(element), command)
-            : PcUiaOutcome.Fail(PcErrorCode.StaleElement, "the element is gone"), CallTimeout, cancellationToken);
+        PerformResolved(() => Find(window, runtimeId, Client().Element), Build,
+            (element, node) => command.Action == PcElementAction.Invoke ? Sacrificial(element, node, command, cancellationToken) : UiaPatterns.Perform(element, node, command),
+            cancellationToken), CallTimeout, cancellationToken);
+
+    // The production lookup/build/dispatch sequence, also usable with fake providers without a COM client.
+    internal static PcUiaOutcome PerformResolved<T>(Func<T?> lookup, Func<T, PcUiNode> build,
+        Func<T, PcUiNode, PcUiaOutcome> action, CancellationToken cancellationToken) where T : class
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var element = lookup();
+        cancellationToken.ThrowIfCancellationRequested();
+        if (element is null) return PcUiaOutcome.Fail(PcErrorCode.StaleElement, "the element is gone");
+        var node = build(element);
+        cancellationToken.ThrowIfCancellationRequested();
+        return PerformAction(() => action(element, node), cancellationToken);
+    }
+
+    internal static PcUiaOutcome PerformAction(Func<PcUiaOutcome> action, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return action();
+    }
 
     // Invoke can stay inside the app until a modal dialog it opened closes (critique C31). It runs on a thread of its own;
     // after ModalMs the answer is "still running" and the window's worker is free again. The thread ends with the dialog.
-    private static PcUiaOutcome Sacrificial(IUIAutomationElement element, PcUiNode node, PcElementCommand command)
+    private static PcUiaOutcome Sacrificial(IUIAutomationElement element, PcUiNode node, PcElementCommand command, CancellationToken cancellationToken)
     {
         var done = new TaskCompletionSource<PcUiaOutcome>(TaskCreationOptions.RunContinuationsAsynchronously);
         var thread = new Thread(() =>
         {
-            try { done.TrySetResult(UiaPatterns.Perform(element, node, command)); }
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                done.TrySetResult(PerformAction(() => UiaPatterns.Perform(element, node, command), cancellationToken));
+            }
+            catch (OperationCanceledException) { done.TrySetCanceled(cancellationToken); }
             catch (COMException exception) { done.TrySetException(exception); }
             catch (InvalidOperationException exception) { done.TrySetException(exception); }
         })
         { IsBackground = true, Name = "nth Tactus invoke" };
         thread.SetApartmentState(ApartmentState.MTA);
         thread.Start();
-        return done.Task.Wait(PcUiaOutcome.ModalMs) ? done.Task.Result : PcUiaOutcome.Running;
+        try { return done.Task.WaitAsync(TimeSpan.FromMilliseconds(PcUiaOutcome.ModalMs), cancellationToken).GetAwaiter().GetResult(); }
+        catch (TimeoutException) { return PcUiaOutcome.Running; }
     }
 
     public Task<string?> ReadText(nint window, string runtimeId, CancellationToken cancellationToken) => workers.For(window).Run(() =>

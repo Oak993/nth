@@ -6370,3 +6370,9 @@ Regression: C3A1Tests on fake hosts/manual clocks only. Red evidence reproduced 
 2026-10-12 - Tactus C2-A3: Cancel approved app launches. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; DESIGN.md 10.2).
 Launch registers the same scoped run-control watch used by window work before awaiting approval. It checks the watched token, the turn/app stop flags and fresh settings, attendance and app policy immediately before calling the launcher. Sleep returns locked without latching the next turn. The watch covers the subsequent first-window wait as well.
 Regression: C3A3Tests on fake hosts/manual clocks only. Red evidence reproduced twice before the fix (scratch/codex-c3/A3-red1.log and A3-red2.log); green verification: new tests 9/0/0; engine area 52/0/0 (passed/failed/skipped). No native tests, real input, installed-app launch or network service exercised.
+
+
+## ED-NEW-pcctl-cx-6
+2026-10-12 - Tactus C2-A6: Cancel UIA before provider dispatch. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; DESIGN.md 4.4 and 10.2).
+Extract the existing lookup/build/dispatch sequence and dispatch entry as internal production helpers so fake blocking lookup/cache-build delegates can test cancellation without COM or Windows threads. Check the token before lookup, after lookup, after cache building and immediately before action dispatch, including on the sacrificial Invoke thread. Complete that thread as cancelled on OperationCanceledException. A provider action already dispatched cannot be recalled.
+Regression: C3A6Tests on fake hosts/manual clocks only. Red evidence reproduced twice before the fix (scratch/codex-c3/A6-red1.log and A6-red2.log); green verification: new tests 3/0/0; UIA area 10/0/0 (passed/failed/skipped). No native tests, real input, installed-app launch or network service exercised.
