@@ -245,10 +245,11 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
         var line = Line(mount); var seed = WorkingWords.Seed(SwiftUUID.UuidString(mount.Runtime.ThreadID));
         // Typography (:2123 the title .system(.body, .medium), HydraProgressBar.swift:504; :2125 the time .system(.subheadline), :558; :2131 the chevron).
         var header = Header(line); var theme = line.ActualThemeVariant;
-        // OD-0136 amendment 2, step 2 B: the title is the thinking glyph (14) and the word in breathing letters (the title's type kept, the secondary colour: the page's --text2),
+        // OD-0136 amendment 2, step 2 B: the title is the glyph (Calculi WU5: the 18 DIP beads) and the word in breathing letters (the title's type kept, the secondary colour: the page's --text2),
         // the time rolling digits in the mono face at the subheadline size, quieter than the word (the page's --text3).
         var titleLine = Assert.IsType<NthWorkingTitle>(Assert.Single(Assert.IsType<Grid>(header.Children[0]).Children)); var title = titleLine.Letters; var time = Assert.IsType<NthElapsedTime>(header.Children[1]).Letters;
-        Assert.Equal(14, titleLine.Glyph.Width); Assert.Equal(14, titleLine.Glyph.Height); Assert.Equal(NthLettersMode.Breathe, title.Mode); Assert.Equal(NthLettersMode.Roll, time.Mode);
+        // Calculi WU5 (ED-NEW-calculi-wu5-1): the glyph is the working beads, an 18 DIP n box in its 18.9 x 22.1 DIP envelope (DESIGN.md section 9).
+        var glyph = Assert.IsType<Marrow.UI.Port.Nth.Beads.NthBeadsControl>(titleLine.Glyph); Assert.Equal(18, glyph.GlyphSize); Assert.Equal(18.9, glyph.Bounds.Width, 1); Assert.Equal(22.1, glyph.Bounds.Height, 1); Assert.Equal(NthLettersMode.Breathe, title.Mode); Assert.Equal(NthLettersMode.Roll, time.Mode);
         Assert.Equal(13, TextElement.GetFontSize(title)); Assert.Equal(Avalonia.Media.FontWeight.Medium, TextElement.GetFontWeight(title)); Assert.Equal(11, TextElement.GetFontSize(time));
         Assert.Equal(SwiftFont.System(SwiftFont.TextStyle.Subheadline, SwiftFont.Design.Monospaced, SwiftFont.Weight.Medium).Resolve().FontFamily, TextElement.GetFontFamily(time));
         Assert.Equal(Marrow.UI.Chrome.Chrome.SecondaryText.Resolve(theme), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(title.Foreground).Color);

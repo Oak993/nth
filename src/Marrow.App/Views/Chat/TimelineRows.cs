@@ -24,6 +24,7 @@ using Marrow.UI.Common;
 using Marrow.UI.Markdown;
 using Marrow.UI.Port;
 using Marrow.UI.Port.Nth;
+using Marrow.UI.Port.Nth.Beads;
 
 // Source: DroppyCode/App/Views/Chat/TimelineRows.swift (B3 52bc792), :1-2859.
 // All six parts, including the inherited cloud bodies, audited against the pinned 1.7.0 source.
@@ -3906,6 +3907,7 @@ public sealed class TurnFinishedBlock : Decorator
     // PORT-ONLY (OD-0076, PR-CHAT-104): the finished block's height at the turn-end swap, and the rows that fade in with it.
     private readonly HeightEase ease;
     private Button? headerButton;
+    private StackPanel? headerColumn; // Calculi WU5: the column the header stands in
     private HeightFoldHost? bodyHost;
     private Decorator? headsHostRow, cardHostRow;
 
@@ -3962,6 +3964,7 @@ public sealed class TurnFinishedBlock : Decorator
         SyncUserRows(stack); // :2599-2602
         headerButton = Header();
         stack.Children.Add(headerButton); // :2603-2622
+        headerColumn = stack;
 
         // :2624-2701 if showsBody { the rule; the steps or the answer; the heads; the file card }
         var ruleHost = new Decorator();
@@ -4088,8 +4091,9 @@ public sealed class TurnFinishedBlock : Decorator
     /// (2-chat-use.mov 125.743 s to 125.762 s; ThreadTimeline.swift:1907-1926 <c>.transition(.identity)</c>); the port takes the running block's place at its height and eases to its own
     /// in about 0.3 s, its header, body, heads and file card fading in over about 0.2 s while the prompt, which was on screen already, stays as it is. The running block's rows are gone
     /// at once, so the two are never drawn together. Reduce Motion shows the end state (Q-RM A, OD-0099).</summary>
-    internal void BeginTurnEnd(double fromHeight, bool reduceMotion)
+    internal void BeginTurnEnd(double fromHeight, bool reduceMotion, (NthWorkingBeads Beads, double Inset)? beads = null)
     {
+        if (beads is { } live) HostBeads(live.Beads, live.Inset);
         if (reduceMotion || !(fromHeight > 0)) return;
         ease.Begin(fromHeight, Animation.Smooth(duration: 0.3));
         var fade = Animation.EaseOut(duration: 0.2);
@@ -4100,6 +4104,27 @@ public sealed class TurnFinishedBlock : Decorator
             opacity.Set(1, fade);
         }
     }
+
+    /// <summary>PORT-ONLY: Calculi WU5 (ED-NEW-calculi-wu5-1). The running line's beads play their exit here, beside the label that already says how the
+    /// turn ended (the UI never waits for them, DESIGN.md section 5.1). Their slot keeps the place they had in the running line (<paramref name="inset"/>
+    /// from the leading edge), and the label stands after it where the line's word stood, from the first frame and for this view's life: nothing moves
+    /// when the exit ends. The slot is outside the header button, whose turn-end fade the beads must not share (they never fade).</summary>
+    private void HostBeads(NthWorkingBeads beads, double inset)
+    {
+        if (headerColumn is not { } column || headerButton is not { } header || column.Children.IndexOf(header) is var at && at < 0) return;
+        var envelope = NthBeadsPainter.EnvelopeSize(NthWorkingBeads.GlyphSize);
+        var slot = new Panel { Width = envelope.Width, Height = envelope.Height, Margin = new Thickness(Math.Max(0, inset), 0, BeadsGap, 0), VerticalAlignment = VerticalAlignment.Center };
+        column.Children.RemoveAt(at);
+        header.VerticalAlignment = VerticalAlignment.Center;
+        column.Children.Insert(at, new StackPanel { Orientation = Orientation.Horizontal, Children = { slot, header } });
+        BeadsSlot = slot;
+        beads.Host(slot);
+    }
+
+    private const double BeadsGap = 8; // NthWorkingTitle's gap between the beads and the word
+
+    /// <summary>The slot the running line's beads moved to at the turn's end (tests; null for a turn that did not end live here).</summary>
+    internal Panel? BeadsSlot { get; private set; }
 
     protected override Size MeasureOverride(Size availableSize)
     {
