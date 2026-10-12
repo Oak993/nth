@@ -90,6 +90,13 @@ public sealed class ControlPill : Canvas, IPillTargets
     /// <summary>A part is hidden this long after its leave ends (the compositor's last frame of it is drawn first).</summary>
     public const double HideMargin = 0.05;
 
+    /// <summary>
+    /// Into the full-screen dot the content leaves first and the body follows this much later; out of it the body grows first
+    /// and the group and Stop come in this much later, so nothing visible ever crosses the mark: Stop's scale-out (response
+    /// 0.30 s) is under a quarter DIP wide by the time the closing right edge brings it to the mark (ED-NEW-pcctl-36).
+    /// </summary>
+    public const double DotStagger = 0.3;
+
     public static readonly FontFamily TextFont = new("Segoe UI Variable Text, Segoe UI, fonts:Inter#Inter");
     public static readonly FontFamily MonoFont = new("fonts:CascadiaMono#Cascadia Mono");
 
@@ -123,6 +130,7 @@ public sealed class ControlPill : Canvas, IPillTargets
     private readonly TextBlock badgeText;
     private readonly Ellipse dot;
     private readonly StackPanel bars;
+    private readonly Canvas glyph = new() { Width = 10, Height = 10 };
     private readonly Canvas textClip = new() { ClipToBounds = true, Width = TextBox, Height = PillMotionDriver.TextClipHeight };
     private readonly PillLineSlot title;
     private readonly PillLineSlot line;
@@ -158,6 +166,8 @@ public sealed class ControlPill : Canvas, IPillTargets
     private PillGlyph shownGlyph = PillGlyph.None;
     private int shownBadge;
     private bool stopShown;
+    private bool dotShown;
+    private double dotSince = double.NegativeInfinity;
     private bool hintOpen;
     private bool rowsOpen;
     private bool cardOpen;
@@ -212,10 +222,12 @@ public sealed class ControlPill : Canvas, IPillTargets
         title = new PillLineSlot(this.animator, After, 18, 13.5, FontWeight.SemiBold, Text1, TextSwapSeconds);
         line = new PillLineSlot(this.animator, After, 17, 13, FontWeight.Normal, Text2, TextSwapSeconds);
 
-        foreach (var part in new Control[] { mark, badge, dot, bars }) AutomationProperties.SetAccessibilityView(part, AccessibilityView.Raw);
+        foreach (var part in new Control[] { mark, badge, dot, bars, glyph }) AutomationProperties.SetAccessibilityView(part, AccessibilityView.Raw);
         Place(row, mark, 0, (PillLayout.Height - TactusMark.SlotSize) / 2);
-        Place(row, dot, 40 + 2, (PillLayout.Height / 2) - 3);
-        Place(row, bars, 40, (PillLayout.Height / 2) - 5);
+        // the glyph's box is centred on its place (PillPlaces.Glyph), which rides into the dot's corner
+        Place(glyph, dot, 2, 2);
+        Place(glyph, bars, 0, 0);
+        Place(row, glyph, PillPlaces.GlyphHome.X - 5, PillPlaces.GlyphHome.Y - 5);
         Place(row, badge, TactusMark.SlotSize + 7 - 18, ((PillLayout.Height - TactusMark.SlotSize) / 2) - 5);
         Place(textClip, title, 0, PillMotionDriver.TextClipBleed);
         Place(textClip, line, 0, PillMotionDriver.TextClipBleed + 18);
@@ -278,6 +290,8 @@ public sealed class ControlPill : Canvas, IPillTargets
         Children.Add(alert);
 
         hitArea.PointerPressed += Pressed;
+        PointerEntered += (_, _) => HoverChanged?.Invoke(true);
+        PointerExited += (_, _) => HoverChanged?.Invoke(false);
         hitArea.PointerMoved += Moved;
         hitArea.PointerReleased += Released;
         hitArea.PointerCaptureLost += CaptureLost;
@@ -368,6 +382,9 @@ public sealed class ControlPill : Canvas, IPillTargets
 
     internal Control Dot => dot;
 
+    /// <summary>The live glyph's box (the dot and the bars), placed on <see cref="PillPlaces.Glyph"/>.</summary>
+    public Control? Glyph => glyph;
+
     internal Control Bars => bars;
 
     internal Control BadgePart => badge;
@@ -408,6 +425,9 @@ public sealed class ControlPill : Canvas, IPillTargets
 
     /// <summary>The user chose something on the card.</summary>
     public event Action<PillCardAnswer>? CardAnswered;
+
+    /// <summary>The pointer came onto the pill (true) or left it (false): the dot grows back under it (ED-NEW-pcctl-36).</summary>
+    public event Action<bool>? HoverChanged;
 
     /// <summary>The card's reply field changed for an ask (ask id, text).</summary>
     public event Action<string, string>? DraftChanged;
@@ -452,12 +472,24 @@ public sealed class ControlPill : Canvas, IPillTargets
         var instant = View is null || Motion.Presence == PillPresence.Gone;
         var reduce = ReduceMotion;
         View = view;
+        // the dot (ED-NEW-pcctl-36): into it the body waits DotStagger for the content to leave; out of it the group and
+        // Stop wait DotStagger for the body to grow past the mark; then the same view is shown again
+        if (view.Dot != dotShown)
+        {
+            dotShown = view.Dot;
+            dotSince = now;
+            if (!instant && !reduce) After(DotStagger, () => Show(View!));
+        }
+        var staggered = !instant && !reduce && now < dotSince + DotStagger;
+        var entering = staggered && !view.Dot && Motion.At(now).Width < PillLayout.MinWidth;
+        var shown = entering ? view with { Group = PillGroupKind.None } : view;
         title.Set(view.Title, instant, reduce, now);
         line.Set(view.Line, instant, reduce, now);
-        Glyph(view.Glyph, instant, reduce, now);
+        ShowGlyph(view.Glyph, instant, reduce, now);
         mark.State = view.Mark;
         Badge(view.Badge, instant, reduce, now);
-        GroupTo(view, instant, reduce, now);
+        if (entering) GroupFor(view.Group, view);
+        GroupTo(shown, instant, reduce, now);
         AutomationProperties.SetName(stopButton, view.StopName);
         AutomationProperties.SetHelpText(stopButton, Chord(view.StopName));
         capText.Text = string.Join(' ', Chord(view.StopName).Split('+'));
@@ -476,6 +508,12 @@ public sealed class ControlPill : Canvas, IPillTargets
         var carding = view.Group == PillGroupKind.Card && Card.Current is not null;
         if (carding) Fitted = Fitted! with { Width = PillMorph.CardWidth };
         var height = carding ? PillLayout.Height + Card.BodyHeight : PillLayout.Height;
+        if (view.Dot)
+        {
+            // the content leaves where the body is; then the body closes round the mark
+            Fitted = Fitted! with { Width = staggered ? Motion.Final.Width : PillLayout.DotSize };
+            height = staggered ? Motion.Final.Height : PillLayout.DotSize;
+        }
         // the same size and parts as the motion already goes to: nothing to move (a view refreshed with no change)
         var unchanged = !instant && parts == measured && Math.Abs(Motion.Final.Width - Fitted!.Width) < 1e-9 && Math.Abs(Motion.Final.Cap - (Fitted.CapFolded ? 1 : 0)) < 1e-9
             && Math.Abs(Motion.Final.Height - height) < 1e-9;
@@ -484,9 +522,9 @@ public sealed class ControlPill : Canvas, IPillTargets
         if (instant) next = PillMotion.Still(next.Final, now);
         CardTo(carding, next, now);
         var stop = PillPlaces.Of(next.Final, parts).StopVisible;
-        stopButton.IsEnabled = view.ShowsStop;
-        Swap(stopSlot, view.ShowsStop, stopShown, instant, reduce, now, BadgeResponse, new Point(stop / 2, PillSurfacePainter.StopHeight / 2));
-        stopShown = view.ShowsStop;
+        stopButton.IsEnabled = shown.ShowsStop;
+        Swap(stopSlot, shown.ShowsStop, stopShown, instant, reduce, now, BadgeResponse, new Point(stop / 2, PillSurfacePainter.StopHeight / 2));
+        stopShown = shown.ShowsStop;
         if (unchanged) return;
         if (Follower) driver.Run(Motion, parts, now);
         else Run(next, now);
@@ -680,6 +718,9 @@ public sealed class ControlPill : Canvas, IPillTargets
         hitArea.Width = pose.Width;
         hitArea.Height = pose.Height;
         SetLeft(row, places.RowLeft);
+        SetTop(row, places.RowTop);
+        SetLeft(glyph, places.Glyph.X - 5);
+        SetTop(glyph, places.Glyph.Y - 5);
         SetLeft(group, places.GroupLeft + parts.GroupWidth - GroupBox);
         SetLeft(stopSlot, places.StopLeft);
         SetTop(stopSlot, (PillLayout.Height - PillSurfacePainter.StopHeight) / 2);
@@ -714,7 +755,7 @@ public sealed class ControlPill : Canvas, IPillTargets
         return measure.DesiredSize.Width;
     }
 
-    private void Glyph(PillGlyph next, bool instant, bool reduce, double now)
+    private void ShowGlyph(PillGlyph next, bool instant, bool reduce, double now)
     {
         if (next == shownGlyph && !instant) return;
         var dotOn = next == PillGlyph.Live;

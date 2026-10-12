@@ -11,8 +11,18 @@ public sealed class PcFakeCaptionButtons : ICaptionButtonSource
 
     public int? Taskbar { get; set; }
 
-    public nint TopWindowOver(PcRect area, IReadOnlySet<nint> ignore) =>
-        ZOrder.FirstOrDefault(w => !ignore.Contains(w.Window) && w.Rect.X < area.Right && area.X < w.Rect.Right && w.Rect.Y < area.Bottom && area.Y < w.Rect.Bottom).Window;
+    /// <summary>How many times the dodge read under the pill (each read walks the Z order once).</summary>
+    public int Reads { get; private set; }
+
+    /// <summary>The windows the last read skipped as Tactus's own.</summary>
+    public IReadOnlySet<nint> Ignored { get; private set; } = new HashSet<nint>();
+
+    public nint TopWindowOver(PcRect area, IReadOnlySet<nint> ignore)
+    {
+        Reads++;
+        Ignored = ignore.ToHashSet();
+        return ZOrder.FirstOrDefault(w => !ignore.Contains(w.Window) && w.Rect.X < area.Right && area.X < w.Rect.Right && w.Rect.Y < area.Bottom && area.Y < w.Rect.Bottom).Window;
+    }
 
     public IReadOnlyList<PcRect> Buttons(nint window) => ZOrder.FirstOrDefault(w => w.Window == window).Buttons ?? [];
 

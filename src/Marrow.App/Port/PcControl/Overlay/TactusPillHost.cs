@@ -76,6 +76,12 @@ public sealed class TactusPillHost : IDisposable
     /// <summary>A settled motion is handed back this long after its last frame (the compositor draws it first).</summary>
     public const double SettleMargin = 0.02;
 
+    /// <summary>The dot comes back once the pointer has been off the pill this long (ED-NEW-pcctl-36; the dodge's 300 ms return).</summary>
+    public const double DotReturnSeconds = 0.3;
+
+    /// <summary>The pointer counts as on the pill this far outside its drawn body (a moving pill has no hit region).</summary>
+    public const double HoverMargin = 4;
+
     private readonly PillOverlays overlays;
     private readonly IPillBandSurfaces surfaces;
     private readonly MonitorMap map;
@@ -100,6 +106,9 @@ public sealed class TactusPillHost : IDisposable
     private bool reduceMotion;
     private bool highContrast;
     private PillDodge dodge = PillDodge.None;
+    private bool dotScreen;
+    private double hoveredAt = double.NegativeInfinity;
+    private bool wasHovered;
     private ITimer? ticker;
     private bool disposed;
 
@@ -191,6 +200,30 @@ public sealed class TactusPillHost : IDisposable
 
     private double Now => clock.GetTimestamp() / (double)clock.TimestampFrequency;
 
+    /// <summary>Raised at the end of each look (Refresh): the dodge checks whether the pill's resting place changed.</summary>
+    public event Action? Refreshed;
+
+    /// <summary>The pill is being dragged.</summary>
+    public bool Dragging => dragging;
+
+    /// <summary>The shown pill travels (an anchor change, a dodge, a card's shift) and has not landed.</summary>
+    public bool Travelling => pairs.Values.Any(p => p.Wanted && p.Input.Motion.Travels && !p.Input.Motion.Done(Now));
+
+    /// <summary>
+    /// The pointer is on the shown pill or card: over its hit area, or (while it moves and has no hit region) within 4 DIP
+    /// of its drawn body. The dodge waits while it is, and the dot grows back under it.
+    /// </summary>
+    public bool Hovered => pairs.Values.Any(p => p.Wanted && (p.Input.IsPointerOver || PointerNear(p)));
+
+    /// <summary>The shown pill's monitor and its resting rect at the chosen anchor, undodged and one pill high: what the dodge reads under.</summary>
+    public (OverlayMonitor Monitor, PillRect Place)? DodgeArea()
+    {
+        if (pairs.Values.FirstOrDefault(p => p.Wanted) is not { } pair) return null;
+        var at = PillAnchors.Position(Anchor, pair.Monitor.WorkDip, 0);
+        var final = pair.Input.Motion.Final;
+        return (pair.Monitor, new PillRect(at.X - (Factor(Anchor) * final.Width), at.Y, final.Width, Math.Min(final.Height, PillLayout.Height)));
+    }
+
     /// <summary>New facts from the engine: the view follows at once.</summary>
     public void Update(PillFacts next)
     {
@@ -248,6 +281,11 @@ public sealed class TactusPillHost : IDisposable
         var held = dragging || card || pairs.Values.Any(p => p.Wanted && p.Input.IsPointerOver);
         var screen = shown ? screens.Choose(map, shade, now, held) : PillScreen.Nowhere;
         var target = screen.Monitor;
+        dotScreen = screen.Dot;
+        // the time the pointer was last seen on the pill, or seen leaving it: the dot waits 300 ms from there
+        var hovered = Hovered;
+        if (hovered || wasHovered) hoveredAt = now;
+        wasHovered = hovered;
         foreach (var pair in pairs.Values.ToList())
             if (pair.Wanted && !string.Equals(pair.Monitor.Id, target?.Id, StringComparison.OrdinalIgnoreCase)) Leave(pair, now);
         if (target is not null)
@@ -268,6 +306,7 @@ public sealed class TactusPillHost : IDisposable
         }
         Tick();
         if (expanded) CardChanged?.Invoke(true);
+        Refreshed?.Invoke();
     }
 
     // ---- the pairs ----
@@ -293,6 +332,7 @@ public sealed class TactusPillHost : IDisposable
             DraftChanged?.Invoke(id, text);
         };
         input.DragStarted += () => DragStarted(pair);
+        input.HoverChanged += _ => Refresh();
         input.DragEnded += (at, anchor, speed) => Released(pair, at, anchor, speed);
         Paint(pair, moving: false);
         // the first frames: the content drawn once off screen and once invisibly in the band (DESIGN.md 10.6)
@@ -665,7 +705,18 @@ public sealed class TactusPillHost : IDisposable
     {
         RowsOpen = rowsOpen && !cardOpen, Dragging = dragging, ReduceMotion = reduceMotion,
         Card = cardOpen && facts.Asks.Count > 0, OpenAsk = cardOpen ? Index() : facts.OpenAsk,
+        // the dot: over a borderless full screen with nowhere else to go; it grows back while hovered and an ask still opens
+        // the card (DESIGN.md 10.3 "Auto-dodge" row 4)
+        Dot = dotScreen && !cardOpen && !dragging && Now - hoveredAt >= DotReturnSeconds,
     };
+
+    // The pointer within HoverMargin of the pill's drawn body (its monitor's DIP, as PointerAt gives it).
+    private bool PointerNear(Pair pair)
+    {
+        if (PointerAt?.Invoke(pair.Monitor) is not { } pointer) return false;
+        var drawn = pair.Input.Motion.At(Now).Drawn.Inflate(HoverMargin);
+        return pointer.X >= drawn.X && pointer.X < drawn.Right && pointer.Y >= drawn.Y && pointer.Y < drawn.Bottom;
+    }
 
     // Something to show: an app still working or paused, an ask, a stop in its 2 s, or a notice.
     private static bool Visible(PillFacts facts, double now) =>

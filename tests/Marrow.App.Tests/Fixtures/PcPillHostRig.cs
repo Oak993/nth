@@ -8,7 +8,7 @@ namespace Marrow.App.Tests.Fixtures;
 public sealed record PcPillHostRig(TactusPillHost Host, PillOverlays Overlays, PcFakePillBands Bands, PcFakeBandNative Native, PcFakePillSurfaces Surfaces, PillScreens Screens, ManualTimeProvider Clock)
 {
     /// <summary>The host on two fake monitors (main and right) with fake bands, Win32 calls and surfaces, on a manual clock.</summary>
-    public static PcPillHostRig Create(OverlayHitTestKind kind = OverlayHitTestKind.Region, bool glass = true)
+    public static PcPillHostRig Create(OverlayHitTestKind kind = OverlayHitTestKind.Region, bool glass = true, Func<OverlayMonitor, MonitorShade>? shade = null)
     {
         var clock = new ManualTimeProvider();
         var bands = new PcFakePillBands();
@@ -19,7 +19,7 @@ public sealed record PcPillHostRig(TactusPillHost Host, PillOverlays Overlays, P
         map.Refresh();
         var surfaces = new PcFakePillSurfaces(shadowWindow: kind != OverlayHitTestKind.StyleFlip, glass: glass);
         var screens = new PillScreens();
-        var host = new TactusPillHost(overlays, surfaces, map, screens, clock: clock, driver: Marrow.UI.Port.PcControl.PillDriverKind.RenderThread);
+        var host = new TactusPillHost(overlays, surfaces, map, screens, shade, clock: clock, driver: Marrow.UI.Port.PcControl.PillDriverKind.RenderThread);
         return new PcPillHostRig(host, overlays, bands, native, surfaces, screens, clock);
     }
 

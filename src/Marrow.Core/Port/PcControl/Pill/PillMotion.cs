@@ -331,11 +331,24 @@ public readonly record struct PillParts(double GroupWidth, double StopWidth, dou
 /// <summary>
 /// The content's places in the anchor's coordinates for one pose (canvas `frame()`): the row from the body's left edge,
 /// the state's group and Stop riding the right edge, Stop's visible width as its cap folds, and the text column's clip.
+/// Into the full-screen dot (ED-NEW-pcctl-36) the row's mark stays centred in a body narrower than 48 DIP or lower than
+/// 48 DIP (<see cref="RowTop"/>), and the live glyph rides the body's right edge once it reaches it, up to the dot's top
+/// right corner (canvas `.sdot .dt`: right 1, top 1); at every pill size these are the pill's own places.
 /// </summary>
-public readonly record struct PillPlaces(double BodyLeft, double BodyRight, double RowLeft, double GroupLeft, double StopLeft, double StopVisible, double TextClip)
+public readonly record struct PillPlaces(double BodyLeft, double BodyRight, double RowLeft, double GroupLeft, double StopLeft, double StopVisible, double TextClip,
+    double RowTop = 0, PillVector Glyph = default)
 {
     /// <summary>The text column starts this far right of the body's left edge (8 + the 50 DIP mark and glyph + 8).</summary>
     public const double TextStart = 66;
+
+    /// <summary>The row's left inset (the mark's slot sits this far in from the body's left edge).</summary>
+    public const double RowInset = 8;
+
+    /// <summary>The live glyph's centre in the row at the pill's sizes (the 6 DIP dot at 42, 21; the 10 DIP bars at 40, 19).</summary>
+    public static readonly PillVector GlyphHome = new(45, 24);
+
+    /// <summary>The live glyph's centre in the dot, from the body's top-left corner (32 - 1 - 3, 1 + 3).</summary>
+    public static readonly PillVector GlyphInDot = new(PillLayout.DotSize - 4, 4);
 
     /// <summary>
     /// The places at <paramref name="pose"/>. Stop's capsule keeps its width at the right edge even when it does not show (so
@@ -350,7 +363,15 @@ public readonly record struct PillPlaces(double BodyLeft, double BodyRight, doub
         var stopLeft = right - PillLayout.Gap - visible;
         var groupLeft = right - PillLayout.Gap - (taken > 0 ? taken + PillLayout.Gap : 0) - parts.GroupWidth;
         var text = pose.Width - PillLayout.Chrome - (parts.GroupWidth > 0 ? parts.GroupWidth + PillLayout.Gap : 0) - (taken > 0 ? taken + PillLayout.Gap : 0);
-        return new PillPlaces(left, right, left + 8, groupLeft, stopLeft, visible, Math.Max(0, text));
+        var inset = Math.Clamp((pose.Width - PillLayout.DotSize) / 2, 0, RowInset);
+        var rowTop = (Math.Min(pose.Height, PillLayout.Height) - PillLayout.Height) / 2;
+        // the glyph's centre from the body's top-left: home until the right edge comes within 4 DIP of it, then on that edge,
+        // rising to the dot's corner over the last 25 DIP of width
+        var home = new PillVector(GlyphHome.X + RowInset, GlyphHome.Y);
+        var glyphX = Math.Min(home.X, pose.Width - (PillLayout.DotSize - GlyphInDot.X));
+        var rise = Math.Clamp((pose.Width - PillLayout.DotSize) / (home.X - GlyphInDot.X), 0, 1);
+        var glyphY = GlyphInDot.Y + ((home.Y - GlyphInDot.Y) * rise);
+        return new PillPlaces(left, right, left + inset, groupLeft, stopLeft, visible, Math.Max(0, text), rowTop, new PillVector(glyphX - inset, glyphY - rowTop));
     }
 }
 

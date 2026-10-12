@@ -3,7 +3,9 @@
 // Win32, the hit test in force), the monitors, the pill host, the card's bridge to the broker, the chat mirror
 // (TactusChatBridge.Current, over the app's runtimes), the card's keyboard (CardFocus over Win32: the band window's
 // activation, the reply field's focus, the hand-back), the pointers, the user's pointer and buttons (the hooks', else
-// GetCursorPos and GetAsyncKeyState), and the app's own calls (Settings at Tactus, a chat opened at its asks). Never run by automated tests; the composition's tests bind fakes through TactusHost.Screen.
+// GetCursorPos and GetAsyncKeyState), the auto-dodge (window events, caption buttons and the top taskbar, read off the UI
+// thread) and the full-screen watch as the pill's shade (another monitor, or the dot), and the app's own calls (Settings at
+// Tactus, a chat opened at its asks). Never run by automated tests; the composition's tests bind fakes through TactusHost.Screen.
 using Avalonia.Threading;
 using Marrow.App.Port.PcControl.Overlay;
 using Marrow.Core.Port;
@@ -23,7 +25,15 @@ internal static class TactusScreenDesktop
         var map = new MonitorMap(new Win32OverlayMonitors());
         map.Refresh();
         var screens = new PillScreens();
-        var host = new TactusPillHost(overlays, surfaces, map, screens, clock: clock);
+        // the full-screen shade of each monitor (the bands are never the full-screen window)
+        var fullscreen = new FullscreenWatch(new Win32FullscreenSource(), Now);
+        overlays.HandlesChanged += () =>
+        {
+            fullscreen.Ignore.Clear();
+            fullscreen.Ignore.UnionWith(overlays.Handles);
+            fullscreen.Invalidate();
+        };
+        var host = new TactusPillHost(overlays, surfaces, map, screens, fullscreen.State, clock: clock);
         var cards = new PillAskBridge(assembly.Asks);
         var feed = new TactusPillFeed(assembly, cards, Now, () => hotkeys.PauseProblem is not null);
         var chatFeed = new PcChatFeed(assembly.Pause, assembly.Stop, assembly.Asks, assembly.Clock);
@@ -51,6 +61,10 @@ internal static class TactusScreenDesktop
         };
         var pointers = new PointerOverlays(new PointerWindows(), new Win32PointerScreens(assembly.Shared.Catalog, Now), Now, () => host.ReduceMotion);
         var pointer = new TactusPointerState(assembly.Input, new Win32PointerProbe(), Now);
+        var dodgeEvents = new Win32DodgeEvents();
+        var dodge = new TactusDodge(dodgeEvents, new CaptionButtons(new Win32CaptionButtonSource(assembly.Shared.Reader)), host, overlays, Now,
+            action => Dispatcher.UIThread.Post(action), (seconds, run) => DispatcherTimer.RunOnce(run, TimeSpan.FromSeconds(seconds)),
+            invalidate: fullscreen.Invalidate);
 
         return new TactusScreen(new TactusScreenParts
         {
@@ -81,7 +95,7 @@ internal static class TactusScreenDesktop
             Owned = [new Releasing(() =>
             {
                 if (ReferenceEquals(TactusChatBridge.Current, chat)) TactusChatBridge.Current = null;
-            }), chat, chatFeed, overlays, pointer],
+            }), chat, chatFeed, dodge, dodgeEvents, overlays, pointer],
         });
     }
 

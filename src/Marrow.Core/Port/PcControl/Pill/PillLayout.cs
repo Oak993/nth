@@ -26,6 +26,9 @@ public static class PillLayout
     public const double MinWidth = 200;
     public const double MaxWidth = 440;
 
+    /// <summary>The full-screen dot (DESIGN.md 10.3 "Auto-dodge" row 4; canvas `.sdot`): 32 DIP across, a circle.</summary>
+    public const double DotSize = 32;
+
     /// <summary>The left padding, the mark and glyph, and the text margins and right padding around the text column.</summary>
     public const double Chrome = 8 + 50 + 8 + 8 + 6;
 

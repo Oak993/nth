@@ -763,6 +763,9 @@ public interface IPillTargets
     /// <summary>The text column's clip.</summary>
     Control TextClip { get; }
 
+    /// <summary>The live glyph's box (the dot and the pause bars) in the row; it rides into the dot's corner (ED-NEW-pcctl-36). Null: none.</summary>
+    Control? Glyph => null;
+
     PillSurface Body { get; }
 
     PillSurface StopSurface { get; }
@@ -835,7 +838,9 @@ public sealed class PillMotionDriver(IPillTargets targets, IPillAnimator animato
         }
 
         var zero = Track(_ => 0);
-        animator.Translate(targets.Row, Track(p => PillPlaces.Of(p, parts).RowLeft - places.RowLeft), zero);
+        animator.Translate(targets.Row, Track(p => PillPlaces.Of(p, parts).RowLeft - places.RowLeft), Track(p => PillPlaces.Of(p, parts).RowTop - places.RowTop));
+        if (targets.Glyph is { } glyph)
+            animator.Translate(glyph, Track(p => PillPlaces.Of(p, parts).Glyph.X - places.Glyph.X), Track(p => PillPlaces.Of(p, parts).Glyph.Y - places.Glyph.Y));
         animator.Translate(targets.Group, Track(p => PillPlaces.Of(p, parts).GroupLeft - places.GroupLeft), zero);
         animator.Translate(targets.StopSlot, Track(p => PillPlaces.Of(p, parts).StopLeft - places.StopLeft), zero);
         animator.Resize(targets.StopClip, Track(p => Math.Max(0, PillPlaces.Of(p, parts).StopVisible - StopClipInset)), Track(_ => PillSurfacePainter.StopHeight));
@@ -872,6 +877,7 @@ public sealed class PillMotionDriver(IPillTargets targets, IPillAnimator animato
         animator.SetOpacity(targets.Content, pose.Opacity);
         animator.SetOpacity(targets.Below, pose.Opacity);
         animator.SetTranslation(targets.Row, 0, 0);
+        if (targets.Glyph is { } glyph) animator.SetTranslation(glyph, 0, 0);
         animator.SetTranslation(targets.Group, 0, 0);
         animator.SetTranslation(targets.StopSlot, 0, 0);
         animator.SetSize(targets.StopClip, Math.Max(0, places.StopVisible - StopClipInset), PillSurfacePainter.StopHeight);

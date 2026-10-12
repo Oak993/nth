@@ -30,12 +30,14 @@ public sealed class PillFrames(ControlPill pill, RecordingPillAnimator animator)
     /// Lets <paramref name="seconds"/> pass on the pill's clock and runs what its timers posted, keeping what that drew from
     /// each track's own start (a line that waited for a slide's end starts at that end), else from the new time.
     /// </summary>
-    public void Pass(ManualTimeProvider clock, double seconds)
+    public void Pass(ManualTimeProvider clock, double seconds, bool motions = false)
     {
         var before = animator.Calls.Count;
         clock.Advance(TimeSpan.FromSeconds(seconds));
         Dispatcher.UIThread.RunJobs();
         foreach (var call in animator.Calls.Skip(before)) calls.Add((call.X?.Start ?? pill.Now, call));
+        // with motions: a motion a timer started (the dot's stagger, ED-NEW-pcctl-36) is in force from the new time
+        if (motions && !ReferenceEquals(pill.Motion, segments[^1].Motion)) segments.Add((pill.Now, pill.Motion, pill.Motion.Final, pill.Parts));
     }
 
     /// <summary>Every call the gestures made, in order.</summary>

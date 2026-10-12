@@ -169,6 +169,12 @@ public sealed record PillFacts
     public bool Dragging { get; init; }
 
     public bool ReduceMotion { get; init; }
+
+    /// <summary>
+    /// The full-screen dot: a borderless full-screen window on the pill's monitor and no other monitor to go to, the pill not
+    /// hovered, dragged or showing a card (DESIGN.md 10.3 "Auto-dodge" row 4; ED-NEW-pcctl-36).
+    /// </summary>
+    public bool Dot { get; init; }
 }
 
 /// <summary>The live glyph beside the mark (DESIGN.md 10.1): the dot, the pause bars (breathing while pausing), or nothing.</summary>
@@ -256,7 +262,8 @@ public sealed record PillView(
     string PauseName,
     string ResumeName,
     bool Stopped,
-    IReadOnlyList<PillHintPart>? HintParts = null)
+    IReadOnlyList<PillHintPart>? HintParts = null,
+    bool Dot = false)
 {
     /// <summary>The hint row as drawn: its pieces, or the hint's text alone.</summary>
     public IReadOnlyList<PillHintPart> HintPieces => HintParts ?? [new PillHintPart(Hint)];
@@ -404,7 +411,11 @@ public static class PillStates
         var rowsShown = facts.RowsOpen && !facts.Card && !facts.Dragging && live.Count > 0;
         hintShown = hintShown || rowsShown || (ask && facts.RowsOpen && !facts.Dragging);
         if (facts.Card || (stopped && group == PillGroupKind.None)) hintShown = false;
-        return new PillView(title, line, glyph, mark, group, ask, isWorking, n, announcement, hint, hintShown, rows, rowsShown, pager, stopName, pauseName, resumeName, stopped || live.Count == 0, hintParts);
+        var view = new PillView(title, line, glyph, mark, group, ask, isWorking, n, announcement, hint, hintShown, rows, rowsShown, pager, stopName, pauseName, resumeName, stopped || live.Count == 0, hintParts);
+        // the dot: the mark and the live glyph only (canvas `.sdot`); what it says stays for assistive technology
+        return facts.Dot && !facts.Card
+            ? view with { Title = "", Line = "", Group = PillGroupKind.None, Badge = 0, HintShown = false, RowsShown = false, Pager = null, Dot = true }
+            : view;
     }
 
     /// <summary>The collapsed pill's and the card header's title for an ask (DESIGN.md 4.5: "Needs your OK. Outlook").</summary>
