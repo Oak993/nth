@@ -28,6 +28,9 @@ public sealed class Downloader
         clock = SwiftClock.Provider.Current;
     }
 
+    /// <summary>Where this downloader keeps the partial file of <paramref name="file"/> (<see cref="DownloadRequest.PartFileName"/> in its part folder).</summary>
+    public string PartPathOf(DownloadRequest file) => Path.Combine(partFolder, file.PartFileName);
+
     /// <summary>Starts one file.</summary>
     public DownloadJob Start(DownloadRequest file, Action<DownloadProgress>? progress = null) => StartSet([file], progress);
 
