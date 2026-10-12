@@ -81,7 +81,7 @@ public sealed partial class PcControlEngine
         if (observe is not ("diff" or "full" or "screenshot" or "none")) throw new PcArgsException("observe must be diff, full, screenshot or none");
         var parallel = PcArgs.Bool(args, "parallel", false);
         var steps = actions.Select((node, i) => (JsonObject)node!).Select((step, i) =>
-            new BatchStep(i + 1, PcArgs.Str(step, "tool")!, step, PcArgs.Str(step, "window") ?? PcWindowRef.Format(main))).ToList();
+            new BatchStep(i + 1, PcArgs.Str(step, "tool")!, step, PcArgs.Str(step, "window") ?? Ref(main))).ToList();
         var binds = new BatchBinds();
         var outcomes = new BatchOutcome?[steps.Count];
         if (parallel)
@@ -109,15 +109,15 @@ public sealed partial class PcControlEngine
             {
                 if (parts.Catalog.Window(window) is not { } info)
                 {
-                    report.Append(PcWindowRef.Format(window)).Append(": the window closed\n");
+                    report.Append(Ref(window)).Append(": the window closed\n");
                     continue;
                 }
                 await settle.Quiet(window, PcSettle.CapMs, call.Token).ConfigureAwait(false);
                 if (observe == "screenshot" && window == main)
                 {
-                    var looked = await InWindow(window, PcCapability.See, call, (live, inner) => Observe(live, new JsonObject { ["window"] = PcWindowRef.Format(window), ["screenshot"] = "yes" }, inner))
+                    var looked = await InWindow(window, PcCapability.See, call, (live, inner) => Observe(live, new JsonObject { ["window"] = Ref(window), ["screenshot"] = "yes" }, inner))
                         .ConfigureAwait(false);
-                    report.Append(PcWindowRef.Format(window)).Append(":\n").Append(looked.Body).Append('\n');
+                    report.Append(Ref(window)).Append(":\n").Append(looked.Body).Append('\n');
                     image = looked.Image;
                     details = looked.Details;
                     line = looked.Window;
@@ -128,7 +128,7 @@ public sealed partial class PcControlEngine
                 var start = binds.StartOf(window);
                 var observation = Record(info, tree, CachedVersion(window), null);
                 var tail = observe == "full" || start is null ? tree.Render(null, 120) : TreeDiff.Compute(start.Tree, tree, start.Id) ?? "many changes: call pc_observe with full";
-                report.Append(PcWindowRef.Format(window)).Append(' ').Append(PcWindowLine.Quote(TreeFormatter.Clean(info.Title, 80))).Append(":\n").Append(tail).Append('\n');
+                report.Append(Ref(window)).Append(' ').Append(PcWindowLine.Quote(TreeFormatter.Clean(info.Title, 80))).Append(":\n").Append(tail).Append('\n');
                 if (window == main) line = Line(info, observation);
             }
             call.Timings.Mark("observe");
@@ -192,7 +192,7 @@ public sealed partial class PcControlEngine
         var args = (JsonObject)step.Args.DeepClone();
         args.Remove("tool");
         args.Remove("bind");
-        args["window"] = PcWindowRef.Format(handle);
+        args["window"] = Ref(handle);
         foreach (var field in new[] { "text", "value" })
         {
             if (args[field] is JsonValue value && value.TryGetValue<string>(out var name) && PcArgs.IsName(name))
@@ -218,7 +218,7 @@ public sealed partial class PcControlEngine
         if (result.Ok && PcArgs.Expect(step.Args)?.WindowOpens is null && inner.Output.Opened.Count > 0)
         {
             var first = inner.Output.Opened[0];
-            result = PcResult.Fail(PcErrorCode.ExpectFailed, "a window opened that the step did not expect: " + PcWindowRef.Format(first.Handle) + " "
+            result = PcResult.Fail(PcErrorCode.ExpectFailed, "a window opened that the step did not expect: " + Ref(first.Handle) + " "
                 + PcWindowLine.Quote(TreeFormatter.Clean(first.Title, 80)) + "; look at it before going on", result.Window) with { Body = result.Body };
         }
         WriteAudit(inner, result);
