@@ -122,8 +122,7 @@ public sealed class RealInputLease
             if (!kept.Remove(origin, out keys!)) return false;
         }
         Replay(keys, origin.Window, origin.Focus, out var left);
-        // Replay has also retained these; C2-A5 closes that independent duplicate-ownership defect next.
-        if (left.Count > 0) Keep(left, origin.Window, origin.Focus);
+        // Replay alone owns retaining any unsent keys; left only reports completion.
         KeptChanged?.Invoke(KeptKeys);
         return left.Count == 0;
     }

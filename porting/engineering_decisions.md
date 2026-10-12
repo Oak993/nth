@@ -6403,3 +6403,9 @@ Within ED-NEW-pcctl-cx-8: independent review added moved-point and queued-R4 reg
 2026-10-12 - Tactus C2-A4: Keep replay input by original window and control. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; DESIGN.md 2.7 replay rule).
 Retained raw keys are stored in separate queues by the saved user foreground and focused control. PutBack selects only the queue matching the current foreground and focus, and Replay checks both before each chunk. Keys belonging to another origin remain retained. Forget clears every queue.
 Regression: C3A4Tests on fake hosts/manual clocks only. Red evidence reproduced twice before the fix (scratch/codex-c3/A4-red1.log and A4-red2.log); green verification: new tests 2/0/0; final borrow area 48/0/0 (passed/failed/skipped); prior area raw 47/1/0 with queue-order case passing twice alone. No native tests, real input, installed-app launch or network service exercised.
+
+
+## ED-NEW-pcctl-cx-5
+2026-10-12 - Tactus C2-A5: Retain interrupted replay leftovers once. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; DESIGN.md 2.7 replay rule).
+Replay owns retaining unsent leftovers when the foreground or focus changes between chunks. PutBack uses its leftover result only to report completion; it does not insert those already retained keys a second time. Counts and eventual replay remain exact.
+Regression: C3A5Tests on fake hosts/manual clocks only. Red evidence reproduced twice before the fix (scratch/codex-c3/A5-red1.log and A5-red2.log); green verification: new test 1/0/0; final borrow area 49/0/0 (passed/failed/skipped); prior raw area 48/1/0 with queue-order case passing twice alone. No native tests, real input, installed-app launch or network service exercised.
