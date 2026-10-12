@@ -21,7 +21,7 @@ namespace Marrow.App.Port;
 public sealed class ShellLinks : IShellLinks, IDisposable
 {
     /// <summary>How long a caller waits for one shell call before giving up on the shell.</summary>
-    public static readonly TimeSpan CallTimeout = TimeSpan.FromSeconds(5);
+    public static readonly TimeSpan CallTimeout = ShellLinkKeys.CallTimeout;
 
     private const int TimeoutHResult = unchecked((int)0x800705B4);
     private const uint ClsctxInprocServer = 0x1;
@@ -99,18 +99,20 @@ public sealed class ShellLinks : IShellLinks, IDisposable
     public IEnumerable<ShellLinkFile> EnumerateLinks(string folder, string searchPattern = "*.lnk")
     {
         var directory = new DirectoryInfo(folder);
-        if (!directory.Exists) return [];
+        if (!directory.Exists) yield break;
         var options = new EnumerationOptions { MatchType = MatchType.Win32, AttributesToSkip = 0, IgnoreInaccessible = true, RecurseSubdirectories = false };
         // The listing's own data (FindFirstFile): no link is opened, so a cloud placeholder stays one.
-        return [.. directory.EnumerateFiles(searchPattern, options)
-            .Where(file => file.Name.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase))
-            .Select(file => new ShellLinkFile(file.FullName, file.Attributes, file.LastWriteTimeUtc))];
+        foreach (var file in directory.EnumerateFiles(searchPattern, options))
+            if (file.Name.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase))
+                yield return new ShellLinkFile(file.FullName, file.Attributes, file.LastWriteTimeUtc);
     }
 
-    public ShellLink ReadLink(string path)
+    public ShellLink ReadLink(string path) => ReadLink(path, CallTimeout);
+
+    public ShellLink ReadLink(string path, TimeSpan timeout)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return Invoke(() => WithLink(path, StgmRead, Read));
+        return Invoke(() => WithLink(path, StgmRead, Read), timeout);
     }
 
     public void WriteLink(string path, ShellLink link)
@@ -249,14 +251,18 @@ public sealed class ShellLinks : IShellLinks, IDisposable
         if (!broken && worker.Join(CallTimeout)) queue.Dispose();
     }
 
-    private T Invoke<T>(Func<T> work)
+    private T Invoke<T>(Func<T> work) => Invoke(work, CallTimeout);
+
+    private T Invoke<T>(Func<T> work, TimeSpan timeout)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
+        if (timeout <= TimeSpan.Zero) throw new COMException("The shell call has no time left.", TimeoutHResult);
+        if (timeout > CallTimeout) timeout = CallTimeout;
         if (Thread.CurrentThread == worker) return work();
         if (broken) throw new COMException("An earlier shell call did not answer.", TimeoutHResult);
         var call = new Call<T>(work);
         queue.Add(call.Run);
-        if (!call.Done.Wait(CallTimeout))
+        if (!call.Done.Wait(timeout))
         {
             broken = true;
             throw new COMException("The shell did not answer in time.", TimeoutHResult);

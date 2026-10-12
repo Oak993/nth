@@ -101,7 +101,7 @@ public sealed class InstallHooks
             try { optionsPath = OptionsPath(context); }
             catch (ArgumentException) { return "no options file"; }
             if (InstallOptions.Read(optionsPath) is not { } options) return "no options file";
-            result = (shortcut.Apply(options, ShortcutScan.Hook) ?? InstallResult.Missing) with { StartAppIdRestamped = restamped };
+            result = (shortcut.Apply(options, ShortcutScan.Hook, run.Allowance(CopyStepNeed)) ?? InstallResult.Missing) with { StartAppIdRestamped = restamped };
             result.Write(InstallOptions.ResultPathFor(optionsPath));
             return Describe(result);
         });
@@ -116,7 +116,7 @@ public sealed class InstallHooks
         var shortcut = new DesktopShortcut(shell, context.Root, time);
         run.Step("start-move", QuickStepNeed, () => Describe(shortcut.MoveOldStartLink()));
         run.Step("start-restamp", QuickStepNeed, () => Describe(shortcut.RestampStart()));
-        run.Step("desktop-repair", DesktopStepNeed, () => Describe(shortcut.Repair(ShortcutScan.Hook)));
+        run.Step("desktop-repair", DesktopStepNeed, () => Describe(shortcut.Repair(ShortcutScan.Hook, run.Allowance(CopyStepNeed + KeyStepNeed))));
         run.Step("uninstaller-copy", CopyStepNeed, () => Describe(copyUninstaller(context.Root)));
         run.Step("uninstall-key", KeyStepNeed, () => Describe(RepointKey(context.Root)));
         return run.Report(null);
@@ -127,7 +127,7 @@ public sealed class InstallHooks
         ArgumentNullException.ThrowIfNull(context);
         var run = new Run(time, UninstallBudget);
         var shortcut = new DesktopShortcut(shell, context.Root, time);
-        run.Step("desktop-remove", DesktopStepNeed, () => Describe(shortcut.RemoveIntoRoot(ShortcutScan.Hook)));
+        run.Step("desktop-remove", DesktopStepNeed, () => Describe(shortcut.RemoveIntoRoot(ShortcutScan.Hook, run.Allowance(QuickStepNeed))));
         run.Step("sign-in", QuickStepNeed, () => UninstallEntry.RemoveSignInEntry(registry, context.Root) ? "removed" : "none");
         return run.Report(null);
     }
@@ -178,6 +178,11 @@ public sealed class InstallHooks
     {
         private readonly long started = time.GetTimestamp();
         private readonly List<string> steps = [];
+
+        // Desktop mutations share the hook's remaining time instead of restarting its deadline.
+        // Reserve later steps and a small margin so the last step finishes before Velopack's limit.
+        public TimeSpan Allowance(TimeSpan reserve) => TimeSpan.FromTicks(Math.Max(0,
+            (budget - time.GetElapsedTime(started) - reserve - TimeSpan.FromMilliseconds(100)).Ticks));
 
         public void Step(string name, TimeSpan need, Func<string> step)
         {
