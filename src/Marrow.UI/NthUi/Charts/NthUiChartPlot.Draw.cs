@@ -516,9 +516,16 @@ public sealed partial class NthUiChartPlot
             return;
         }
         var (size, _, _) = Measure(content);
+        // The readout sits above the point; with no room above (a point near the top of the plot) it stands beside it, on the
+        // right when there is room, so it never covers the point it is about, and never goes below it onto the axis labels.
         var x = Math.Clamp(anchor.X - size.Width / 2, 0, Math.Max(0, Bounds.Width - size.Width));
         var y = anchor.Y - size.Height - 12;
-        if (y < 0) y = Math.Min(anchor.Y + 14, Math.Max(0, Bounds.Height - size.Height));
+        if (y < 0)
+        {
+            var right = anchor.X + 16;
+            x = right + size.Width <= Bounds.Width ? right : Math.Max(0, anchor.X - 16 - size.Width);
+            y = Math.Clamp(anchor.Y - size.Height / 2, 0, Math.Max(0, Bounds.Height - size.Height));
+        }
         readout = content;
         readoutSize = size;
         focusSeries = a.Series;
