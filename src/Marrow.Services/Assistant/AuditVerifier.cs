@@ -20,6 +20,9 @@ public enum AuditVerificationStatus
 
     /// <summary>Lines exist but no key is held, so nothing can be verified.</summary>
     KeyMissing,
+
+    /// <summary>Credential Manager refused to give the key or the anchor, so nothing was verified this time.</summary>
+    KeyUnavailable,
 }
 
 /// <summary>A line of the log: its day file's name, its line number in that file (from 1) and its number in the chain.</summary>
@@ -38,6 +41,7 @@ public sealed record AuditVerification(
         AuditVerificationStatus.Verified => "Verified",
         AuditVerificationStatus.Empty => "No activity yet",
         AuditVerificationStatus.KeyMissing => "Not verified: the log's key is missing",
+        AuditVerificationStatus.KeyUnavailable => "Not verified: Credential Manager did not give the log's key",
         _ => FirstFailure is { } at
             ? $"Line {at.Line.ToString(CultureInfo.InvariantCulture)} of {at.File} fails: {Reason}"
             : $"Fails: {Reason}",
@@ -51,7 +55,7 @@ public sealed record AuditLogLine(AuditLineRef At, JsonObject Fields, string Hma
 /// Reads and verifies the audit log (12.5) while its writer may hold it (files are opened with read-write sharing).
 /// Verification walks every complete line of every day file in order and checks the line's shape, its number (one more
 /// than the line before, from 1), its <c>prev</c> (the line before's HMAC) and its HMAC under the key; then that the
-/// Credential Manager anchor's line is present with the anchor's HMAC; then that each day final the digest printed is
+/// Credential Manager anchor's line is present with the anchor's HMAC, in the day file it names; then that each day final the digest printed is
 /// still the day's final HMAC. A line that fails is passed over only when the next line is a valid <c>tornLine</c> (or
 /// <c>keyReplaced</c>) record naming its SHA-256: the writer's own repair of a line a crash cut off. A <c>logCut</c>
 /// record fails verification at its line, every time. A piece after the last newline of the last file (a line being
@@ -71,13 +75,29 @@ public static class AuditVerifier
         ArgumentNullException.ThrowIfNull(keys);
         // The anchor first: the writer flushes its lines before it copies the anchor, so files read after it hold at
         // least the anchored line, even while the writer is appending.
-        var anchor = keys.ReadAnchor();
+        AuditAnchor? anchor;
+        try
+        {
+            anchor = keys.ReadAnchor();
+        }
+        catch (AuditKeyUnavailableException)
+        {
+            return new(AuditVerificationStatus.KeyUnavailable, 0, null, null, []);
+        }
         var lines = Collect(directory, out var earlyTail);
         if (lines.Count == 0 && earlyTail is null)
             return anchor is null
                 ? new(AuditVerificationStatus.Empty, 0, null, null, [])
                 : Fail(0, null, $"The log is empty, but the anchor in Credential Manager names line {anchor.Sequence}.", []);
-        var key = keys.ReadKey();
+        byte[]? key;
+        try
+        {
+            key = keys.ReadKey(out _);
+        }
+        catch (AuditKeyUnavailableException)
+        {
+            return new(AuditVerificationStatus.KeyUnavailable, 0, null, null, []);
+        }
         if (key is null) return new(AuditVerificationStatus.KeyMissing, 0, null, null, []);
         try
         {
@@ -112,15 +132,6 @@ public static class AuditVerifier
         return rows;
     }
 
-    /// <summary>The HMAC of the line numbered <paramref name="sequence"/>, or null when no such line opens.</summary>
-    internal static string? HmacOf(string directory, long sequence)
-    {
-        foreach (var line in Collect(directory, out _))
-            if (AuditLine.TryOpen(line.Text, out var core, out var hmac) && AuditLine.ParseCore(core) is { } fields
-                && AuditLine.Long(fields, "seq") == sequence) return hmac;
-        return null;
-    }
-
     private sealed record RawLine(AuditLineRef At, byte[] Bytes, string Text);
 
     /// <summary>Every complete line in order; <paramref name="earlyTail"/> is a cut piece in a file that is not the last.</summary>
@@ -143,7 +154,7 @@ public static class AuditVerifier
         string directory, IReadOnlyDictionary<DateOnly, string>? printedDayFinals)
     {
         var recovered = new List<AuditLineRef>();
-        var hmacs = new Dictionary<long, string>();
+        var hmacs = new Dictionary<long, (string Hmac, string File)>();
         var expectedPrevious = AuditLine.ZeroHmac;
         long expectedSequence = 1;
         var verified = 0;
@@ -164,12 +175,12 @@ public static class AuditVerifier
                     + lines[keyReplacedAt].At.Line.ToString(CultureInfo.InvariantCulture) + " of " + lines[keyReplacedAt].At.File + ").";
                 return Fail(verified, line.At with { Sequence = fields is null ? null : AuditLine.Long(fields, "seq") }, problem, recovered);
             }
-            var sequence = AuditLine.Long(fields!, "seq")!.Value;
+            var sequence = AuditLine.Sequence(fields!)!.Value;
             if (AuditLine.Text(fields!, "event") == AuditLine.LogCut)
                 return Fail(verified, line.At with { Sequence = sequence },
                     $"the log was cut: line {AuditLine.Long(fields!, "anchorSeq")} had been written, but the files ended at line {AuditLine.Long(fields!, "foundSeq")}.",
                     recovered);
-            hmacs[sequence] = hmac;
+            hmacs[sequence] = (hmac, line.At.File);
             expectedPrevious = hmac;
             expectedSequence = sequence + 1;
             verified++;
@@ -179,8 +190,10 @@ public static class AuditVerifier
         {
             if (!hmacs.TryGetValue(anchor.Sequence, out var held))
                 return Fail(verified, null, $"lines after {expectedSequence - 1} are missing: the anchor in Credential Manager names line {anchor.Sequence}.", recovered);
-            if (!string.Equals(held, anchor.Hmac, StringComparison.Ordinal))
+            if (!string.Equals(held.Hmac, anchor.Hmac, StringComparison.Ordinal))
                 return Fail(verified, Find(lines, anchor.Sequence), "the line does not match the anchor kept in Credential Manager.", recovered);
+            if (!string.Equals(held.File, anchor.File, StringComparison.Ordinal))
+                return Fail(verified, Find(lines, anchor.Sequence), $"the line is not in {anchor.File}, the day file the anchor in Credential Manager names (a line was moved).", recovered);
         }
         if (printedDayFinals is not null)
         {
@@ -202,7 +215,7 @@ public static class AuditVerifier
         fields = AuditLine.ParseCore(core);
         if (fields is null) return "it does not parse.";
         if (AuditLine.Long(fields, "v") != AuditLine.Version) return "its format version is unknown.";
-        if (AuditLine.Long(fields, "seq") is not { } sequence) return "it has no line number.";
+        if (AuditLine.Sequence(fields) is not { } sequence) return "it has no line number.";
         var previous = AuditLine.Text(fields, "prev");
         if (!AuditLine.IsHmac(previous)) return "it names no previous HMAC.";
         var start = chainStart && AuditLine.Text(fields, "event") == AuditLine.KeyReplaced;

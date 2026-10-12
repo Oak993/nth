@@ -34,7 +34,7 @@ public sealed class AuditKeyNativeTests : IDisposable
         var clock = new ManualTimeProvider(new DateTimeOffset(2026, 10, 12, 9, 0, 0, TimeSpan.Zero));
         using (var log = AuditLog.Open(temp.AuditDirectory, keys, clock))
             log.Append(new AuditEntry { Assistant = "dextra", Tool = "shell", ActionClass = "Run", Result = "native" });
-        var key = keys.ReadKey();
+        var key = keys.ReadKey(out _);
         Assert.NotNull(key);
         Assert.Equal(AuditKeyStore.KeyBytes, key.Length);
         Assert.Equal(0, backend.Read(SecretStore.TargetName(service, "hmac-key"), out var held));
@@ -45,7 +45,7 @@ public sealed class AuditKeyNativeTests : IDisposable
         foreach (var path in Directory.EnumerateFiles(temp.Folder, "*", SearchOption.AllDirectories))
             foreach (var form in forms) Assert.Equal(-1, File.ReadAllBytes(path).AsSpan().IndexOf(form));
         keys.DeleteAll();
-        Assert.Null(keys.ReadKey());
+        Assert.Null(keys.ReadKey(out _));
         Assert.Null(keys.ReadAnchor());
         Assert.Equal(1168, backend.Read(SecretStore.TargetName(service, "hmac-key"), out _));
     }

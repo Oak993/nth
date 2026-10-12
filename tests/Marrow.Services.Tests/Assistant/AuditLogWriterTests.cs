@@ -126,7 +126,7 @@ public sealed class AuditLogWriterTests : IDisposable
         Assert.Equal(JsonNode.Parse(Lines(Today)[^1])!["hmac"]!.GetValue<string>(), printed[day12]);
         Assert.Equal(AuditVerificationStatus.Verified, Verify(printed).Status);
         // The stated limit (12.5): something holding the key can reseal the whole chain and move the head anchor too.
-        var key = temp.Keys.ReadKey()!;
+        var key = temp.Keys.ReadKey(out _)!;
         var previous = new string('0', 64);
         var files = new[] { Today, Path.Combine(temp.AuditDirectory, "2026-10-13.jsonl") };
         string last = "";

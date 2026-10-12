@@ -528,14 +528,7 @@ public sealed partial class AssistantStore : IDisposable
         {
             ThrowIfClosed();
             if (!File.Exists(path)) return null;
-            try
-            {
-                return JsonNode.Parse(File.ReadAllText(path, Utf8));
-            }
-            catch (JsonException)
-            {
-                return null;
-            }
+            return AssistantJson.Parse(File.ReadAllText(path, Utf8)); // null when it does not parse or repeats a name
         }
     }
 
@@ -629,18 +622,8 @@ public sealed partial class AssistantStore : IDisposable
         if (!IsId(id)) throw new ArgumentException($"\"{id}\" is not an assistant store id.", nameof(id));
     }
 
-    private static JsonObject? TryParseObject(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text)) return null;
-        try
-        {
-            return JsonNode.Parse(text) as JsonObject;
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-    }
+    /// <summary>The object, or null when the text does not parse or repeats a property name (ED-NEW-dextra-as3-6).</summary>
+    private static JsonObject? TryParseObject(string text) => AssistantJson.ParseObject(text);
 }
 
 /// <summary>The exception a test's fault hook throws to stop a write where a crash would.</summary>

@@ -135,17 +135,64 @@ internal static partial class AuditLine
         return true;
     }
 
-    /// <summary>A line's core as JSON, or null when it does not parse to an object.</summary>
-    public static JsonObject? ParseCore(string core)
+    /// <summary>
+    /// A line's core as JSON, or null when it does not parse to one object with distinct property names (a repeated
+    /// name anywhere is a damaged line, never an exception; ED-NEW-dextra-as3-6).
+    /// </summary>
+    public static JsonObject? ParseCore(string core) => AssistantJson.ParseObject(core);
+
+    /// <summary>The largest line number a line may carry (2^53 - 1, exact in every JSON reader), so seq + 1 never overflows.</summary>
+    public const long MaxSequence = (1L << 53) - 1;
+
+    /// <summary>A line's number: its <c>seq</c> when that is a whole number from 1 to <see cref="MaxSequence"/>, else null.</summary>
+    public static long? Sequence(JsonObject fields) => Long(fields, "seq") is { } sequence && sequence is >= 1 and <= MaxSequence ? sequence : null;
+
+    /// <summary>
+    /// Whether a line is sealed under <paramref name="key"/>: its version, number and <c>prev</c> are well formed and its
+    /// HMAC is the keyed hash of its core and its own <c>prev</c> (fixed-time compare). A line that does not seal under the
+    /// key was not written by the writer holding it, so the writer never takes it as the chain's head (ED-NEW-dextra-as3-6).
+    /// </summary>
+    public static bool Seals(ReadOnlySpan<byte> key, string core, JsonObject fields, string hmac)
     {
-        try
+        if (Long(fields, "v") != Version || Sequence(fields) is null || Text(fields, "prev") is not { } previous || !IsHmac(previous)) return false;
+        return CryptographicOperations.FixedTimeEquals(Convert.FromHexString(Mac(key, core, previous)), Convert.FromHexString(hmac));
+    }
+
+    /// <summary>The local day a day file is named for, or null when the name is not a day file's.</summary>
+    public static DateOnly? DayOf(string fileName) =>
+        IsDayFile(fileName) && DateOnly.TryParseExact(fileName[..10], "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var day)
+            ? day : null;
+
+    /// <summary>
+    /// The SHA-256 of the piece after the last newline of a file (a line cut off before its newline), or null when the
+    /// file is empty or ends with a newline. Reads backwards in blocks and hashes forwards, so a huge piece costs no memory.
+    /// </summary>
+    public static string? PieceHash(string path)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        var length = stream.Length;
+        if (length == 0) return null;
+        var block = new byte[65536];
+        var start = length;
+        while (start > 0)
         {
-            return JsonNode.Parse(core) as JsonObject;
+            var size = (int)Math.Min(block.Length, start);
+            stream.Position = start - size;
+            stream.ReadExactly(block, 0, size);
+            var newline = Array.LastIndexOf(block, (byte)'\n', size - 1, size);
+            if (newline >= 0)
+            {
+                start = start - size + newline + 1;
+                break;
+            }
+            start -= size;
         }
-        catch (JsonException)
-        {
-            return null;
-        }
+        if (start == length) return null;
+        stream.Position = start;
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        int read;
+        while ((read = stream.Read(block, 0, block.Length)) > 0) hash.AppendData(block, 0, read);
+        return Convert.ToHexStringLower(hash.GetHashAndReset());
     }
 
     public static long? Long(JsonObject fields, string name) =>

@@ -88,7 +88,7 @@ public sealed class AuditLogChainTests : IDisposable
         var hmac = JsonNode.Parse(second)!["hmac"]!.GetValue<string>();
         var prev = JsonNode.Parse(second)!["prev"]!.GetValue<string>();
         var core = second[..second.IndexOf(",\"hmac\":\"", StringComparison.Ordinal)] + "}";
-        var key = temp.Keys.ReadKey()!;
+        var key = temp.Keys.ReadKey(out _)!;
         var expected = HMACSHA256.HashData(key, Joined(Encoding.UTF8.GetBytes(core), Convert.FromHexString(prev)));
         Assert.Equal(Convert.ToHexStringLower(expected), hmac);
     }
@@ -213,7 +213,7 @@ public sealed class AuditLogChainTests : IDisposable
     {
         WriteLines(5);
         using (var store = AssistantStore.Open(temp.Roots)) store.SaveMission("m-1", new JsonObject { ["state"] = "working" });
-        var key = temp.Keys.ReadKey()!;
+        var key = temp.Keys.ReadKey(out _)!;
         var forms = new[]
         {
             key,

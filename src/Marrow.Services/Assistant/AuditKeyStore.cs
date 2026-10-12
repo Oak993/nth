@@ -14,6 +14,19 @@ public sealed record AuditAnchor(long Sequence, string Hmac, string File);
 /// <summary>Credential Manager refused to give or keep the audit key: the log cannot be written (fail closed).</summary>
 public sealed class AuditKeyUnavailableException(string message) : InvalidOperationException(message);
 
+/// <summary>What Credential Manager answered for the audit key.</summary>
+internal enum AuditKeyState
+{
+    /// <summary>A 32-byte key is held.</summary>
+    Held,
+
+    /// <summary>No such item (ItemNotFound): the key is gone.</summary>
+    Missing,
+
+    /// <summary>The item is there but is not 32 bytes: it is no key of ours.</summary>
+    Damaged,
+}
+
 /// <summary>
 /// The audit log's two Credential Manager items (12.5), through the app's <see cref="SecretStore"/> (ED-093): the
 /// 256-bit HMAC key (CRED_TYPE_GENERIC, encrypted per user by Windows' DPAPI; never written to disk in the clear) and
@@ -33,30 +46,56 @@ public sealed class AuditKeyStore(SecretStore secrets, string service = AuditKey
     /// <summary>The production store: the real Credential Manager.</summary>
     public static AuditKeyStore Production() => new(SecretStore.Shared.Current);
 
-    /// <summary>Whether a usable key is held (for the Activity view's "Key missing").</summary>
+    /// <summary>
+    /// Whether a usable key is held (for the Activity view's "Key missing"). Throws
+    /// <see cref="AuditKeyUnavailableException"/> when Credential Manager refuses the read: that is not "missing".
+    /// </summary>
     public bool HasKey()
     {
-        var key = ReadKey();
+        var key = ReadKey(out _);
         if (key is null) return false;
         CryptographicOperations.ZeroMemory(key);
         return true;
     }
 
-    /// <summary>The key, or null when none is held or the held one is not 32 bytes.</summary>
-    internal byte[]? ReadKey()
+    /// <summary>
+    /// The key; or null with <paramref name="state"/> <see cref="AuditKeyState.Missing"/> when Credential Manager holds
+    /// no such item, or <see cref="AuditKeyState.Damaged"/> when the held item is not 32 bytes (it is no key of ours).
+    /// Any other answer (a refused read, ERROR_NO_SUCH_LOGON_SESSION, a store not ready yet) throws
+    /// <see cref="AuditKeyUnavailableException"/>: a read that failed is never taken for a key that is gone, so a
+    /// moment's failure can never replace the one key that verifies the history (12.5; ED-NEW-dextra-as3-6).
+    /// </summary>
+    internal byte[]? ReadKey(out AuditKeyState state)
     {
-        if (secrets.CopyMatching(Service, KeyAccount, out var data) != SecretStoreStatus.Success || data is null) return null;
-        if (data.Length == KeyBytes) return data;
+        var status = secrets.CopyMatching(Service, KeyAccount, out var data);
+        if (status == SecretStoreStatus.ItemNotFound)
+        {
+            state = AuditKeyState.Missing;
+            return null;
+        }
+        if (status != SecretStoreStatus.Success || data is null)
+            throw new AuditKeyUnavailableException($"Credential Manager did not give the audit key (status {(int)status}).");
+        if (data.Length == KeyBytes)
+        {
+            state = AuditKeyState.Held;
+            return data;
+        }
         CryptographicOperations.ZeroMemory(data);
+        state = AuditKeyState.Damaged;
         return null;
     }
 
-    /// <summary>Makes and stores a new random key, replacing any held one, and returns it.</summary>
-    internal byte[] CreateKey()
+    /// <summary>
+    /// Makes and stores a new random key and returns it. For a <see cref="AuditKeyState.Missing"/> key it only adds:
+    /// an item that is there after all (DuplicateItem) is never overwritten, the call fails closed. Only a
+    /// <see cref="AuditKeyState.Damaged"/> item (not 32 bytes) is replaced.
+    /// </summary>
+    internal byte[] CreateKey(AuditKeyState state)
     {
+        if (state == AuditKeyState.Held) throw new InvalidOperationException("A key is held; it is never replaced.");
         var key = RandomNumberGenerator.GetBytes(KeyBytes);
-        var status = secrets.Update(Service, KeyAccount, key);
-        if (status == SecretStoreStatus.ItemNotFound) status = secrets.Add(Service, KeyAccount, key);
+        var status = state == AuditKeyState.Damaged ? secrets.Update(Service, KeyAccount, key) : secrets.Add(Service, KeyAccount, key);
+        if (state == AuditKeyState.Damaged && status == SecretStoreStatus.ItemNotFound) status = secrets.Add(Service, KeyAccount, key);
         if (status != SecretStoreStatus.Success)
         {
             CryptographicOperations.ZeroMemory(key);
@@ -65,20 +104,19 @@ public sealed class AuditKeyStore(SecretStore secrets, string service = AuditKey
         return key;
     }
 
+    /// <summary>
+    /// The head anchor, or null when none is held or the held one is not a well-formed anchor. A refused read throws
+    /// <see cref="AuditKeyUnavailableException"/>, so the writer never opens without the evidence of a cut log.
+    /// </summary>
     public AuditAnchor? ReadAnchor()
     {
-        if (secrets.CopyMatching(Service, AnchorAccount, out var data) != SecretStoreStatus.Success || data is null) return null;
-        try
-        {
-            var node = JsonNode.Parse(Encoding.UTF8.GetString(data)) as JsonObject;
-            if (node?["seq"]?.GetValue<long>() is not { } sequence || node["hmac"]?.GetValue<string>() is not { } hmac
-                || node["file"]?.GetValue<string>() is not { } file) return null;
-            return new AuditAnchor(sequence, hmac, file);
-        }
-        catch (Exception error) when (error is System.Text.Json.JsonException or InvalidOperationException or FormatException)
-        {
-            return null;
-        }
+        var status = secrets.CopyMatching(Service, AnchorAccount, out var data);
+        if (status == SecretStoreStatus.ItemNotFound) return null;
+        if (status != SecretStoreStatus.Success || data is null)
+            throw new AuditKeyUnavailableException($"Credential Manager did not give the audit anchor (status {(int)status}).");
+        if (AssistantJson.ParseObject(Encoding.UTF8.GetString(data)) is not { } node || AuditLine.Long(node, "seq") is not { } sequence
+            || AuditLine.Text(node, "hmac") is not { } hmac || AuditLine.Text(node, "file") is not { } file) return null;
+        return new AuditAnchor(sequence, hmac, file);
     }
 
     internal void WriteAnchor(AuditAnchor anchor)
