@@ -1228,7 +1228,6 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 - **Owner, verbatim (asked whether to accept 6 new V-T133 failures caused by the approved 32 px send button moving the pill 4 DIP left; then on why an approved design fails):** "Why is the pill moving 4px a failure? If that is an approved design from me, it shouldn't fail anyways right?" then "Do not lengthen it for now, just accept with the 6 failures for this release, mark it for the next time we release more features. Next test would be updated."
 - **Effect:** amends OD-0128's "any NEW V-T133 failure still blocks" for this release only: the ComposerVoiceCleanPillTests failures at head 39b9dd99d (183 of 470; 173 as at 00858e24f plus the tip-only cases from OD-0136 step 9's send disc growing 4 DIP to the left, which shifts the trailing-aligned orb and pill) do not block the nth 1.0 installer. The test is not changed, skipped or loosened. Evidence: scratchpad res-base/res-tip trx sets (stable across two runs each).
 - **Next feature release (must be done before it ships):** V-T133 is re-anchored to the pill's actual rendered position (same speck rules, tolerances and coverage, equal-or-stricter, "design wins" ED), so approved layout moves no longer read as specks; then the remaining failures are re-classified against the OD-0128/OD-0132 lists.
-- **Amended by OD-0152 (2026-10-12):** one more V-T133 case joins this accepted list, ComposerVoiceCleanPillAt200Tests.The_pill_and_a_margin_round_it_have_no_specks(Float, 26, dark, "pop", 2.0); the list is now 184 cases.
 
 ## OD-0138 Ignis keep-warm cooling: idle limit, learning, and the sidebar ember (variant B) are approved for nth 1.0 (2026-10-10)
 
@@ -1275,6 +1274,7 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 - **The case:** V-T133, ComposerVoiceCleanPillAt200Tests.The_pill_and_a_margin_round_it_have_no_specks(style Float, diameter 26, dark true, state "pop", scale 2.0). claude/fix-voice-ui (e2273ab81) renders the orb at 2x (bac26d458), which moves a 2 px stretch of the pill rim by one level; the speck test reads it as a speck the approved design does not have.
 - **Effect:** this case joins the OD-0128/OD-0137 owner-accepted list (183 + 1 = 184 cases) and does not block merging or the nth 1.0 installer. V-T133 is not changed, skipped or loosened; the case keeps failing on record until the re-anchor that OD-0137 schedules for the next feature release, and is re-classified then. Any other new V-T133 failure, and any V-T132 failure, still blocks.
 - **Merged at:** claude/fix-voice-ui into claude/release-integration (group g5).
+- **Amended by OD-0152 (2026-10-12):** one more V-T133 case joins this accepted list, ComposerVoiceCleanPillAt200Tests.The_pill_and_a_margin_round_it_have_no_specks(Float, 26, dark, "pop", 2.0); the list is now 184 cases.
 
 ## OD-0150 Composer Light v2, v3 and v4: every light ships as an option in Settings > Customization (2026-10-11)
 
