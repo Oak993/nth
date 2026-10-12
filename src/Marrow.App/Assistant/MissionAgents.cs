@@ -20,6 +20,9 @@ public sealed record AgentLaunch(Guid Mission, string AssistantId, string Title,
     public bool Reviewer { get; init; }
 
     public string? Branch { get; init; }
+
+    /// <summary>The account of the provider the chat runs on (the router's choice, AS-14); null: the provider's first enabled account.</summary>
+    public Guid? AccountId { get; init; }
 }
 
 /// <summary>A head of a mission's lead, as Hydra reports it.</summary>
@@ -63,6 +66,12 @@ public interface IMissionAgents
 
     /// <summary>The models of a provider, for the reviewer's pick.</summary>
     IReadOnlyList<string> Models(ProviderKind provider);
+
+    /// <summary>
+    /// Moves a live chat to another account of its provider (AS-14: the pause card's "Move the rest to ..."), bringing nth's own
+    /// summary of it, at the chat's next safe point. False when it could not be moved; the chat then stays where it is.
+    /// </summary>
+    Task<bool> MoveAccount(Guid thread, Guid account);
 }
 
 /// <summary>The mission workspaces (12.6a), behind a seam so the runner's tests need no git.</summary>
@@ -114,6 +123,7 @@ public sealed class AppMissionAgents(AppModel app) : IMissionAgents
             Title = launch.Title,
             HasCustomTitle = true,
             MissionID = launch.Mission,
+            ProviderAccountID = launch.AccountId,
             AssistantID = Guid.TryParse(launch.AssistantId, out var assistant) ? assistant : null,
             WorktreePath = ownFolder ? launch.Folder : null,
             Branch = ownFolder ? launch.Branch : null,
@@ -165,4 +175,7 @@ public sealed class AppMissionAgents(AppModel app) : IMissionAgents
     ];
 
     public IReadOnlyList<string> Models(ProviderKind provider) => [.. app.Providers.Models(provider).Select(m => m.Id)];
+
+    public Task<bool> MoveAccount(Guid thread, Guid account) =>
+        app.Thread(thread) is null ? Task.FromResult(false) : app.TryPinThreadAccountAsync(thread, account, Marrow.Core.Accounts.Bring.MarrowSummary);
 }

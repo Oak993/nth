@@ -150,6 +150,18 @@ internal sealed class FakeMissionAgents : IMissionAgents
 
     public IReadOnlyList<string> Models(ProviderKind provider) => ModelList;
 
+    /// <summary>The moves of a live chat to another account that were asked of it (AS-14).</summary>
+    public List<(Guid Thread, Guid Account)> AccountMoves { get; } = [];
+
+    /// <summary>What a move answers; null: it is done at once. A test returns an unfinished task to make a move take time.</summary>
+    public Func<Guid, Guid, Task<bool>>? MoveAnswer { get; set; }
+
+    public Task<bool> MoveAccount(Guid thread, Guid account)
+    {
+        lock (gate) AccountMoves.Add((thread, account));
+        return MoveAnswer?.Invoke(thread, account) ?? Task.FromResult(true);
+    }
+
     /// <summary>The chat's turn ends with this answer.</summary>
     public void Finish(Guid thread, string? answer)
     {

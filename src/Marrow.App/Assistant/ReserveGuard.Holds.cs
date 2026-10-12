@@ -185,15 +185,15 @@ public sealed partial class ReserveGuard
         {
             case ReserveOptionKind.Move:
             {
-                var refusal = record is null || hold.Offer is null || o.Mover is null ? "that move is not available now" : o.Mover.Move(record, hold.Offer);
-                // The log says that it did not work; why is the mover's own text, for the card the owner reads, not for a log line.
-                Log(m.AssistantId, missionId, "reserve_answer", refusal is null ? chosen.Text : $"{chosen.Text}: did not work");
-                if (refusal is null)
+                // A live chat changes account at its next safe point (AS-14), so a mover may need time: the task stays held until it is
+                // done. A mover that does not is asked, as before, and answers at once.
+                if (record is not null && hold.Offer is not null && o.Mover is { MovesAsync: true } slow)
                 {
-                    Release(m, hold);
-                    o.Runner.ResumeAfterReserve(missionId);
+                    _ = FinishMoveLater(slow, missionId, record, hold.Offer, m, hold, chosen);
+                    break;
                 }
-                else Ask(m, hold, record, $"Moving the rest did not work: {refusal}.");
+                var refusal = record is null || hold.Offer is null || o.Mover is null ? "that move is not available now" : o.Mover.Move(record, hold.Offer);
+                FinishMove(missionId, m, hold, record, chosen, refusal);
                 break;
             }
             case ReserveOptionKind.Wait:
@@ -229,6 +229,48 @@ public sealed partial class ReserveGuard
                 break;
         }
         Changed?.Invoke();
+    }
+
+    // A move's result: the log says that it did not work; why is the mover's own text, for the card the owner reads, not for a log line.
+    private void FinishMove(Guid missionId, MissionReserve m, HoldState hold, MissionRecord? record, ReserveOption chosen, string? refusal)
+    {
+        // The task ended, or the owner's Stop came while the move ran: the hold is no longer this one's to release.
+        lock (gate)
+        {
+            if (!ReferenceEquals(m.Hold, hold)) return;
+        }
+        Log(m.AssistantId, missionId, "reserve_answer", refusal is null ? chosen.Text : $"{chosen.Text}: did not work");
+        if (refusal is null)
+        {
+            Release(m, hold);
+            o.Runner.ResumeAfterReserve(missionId);
+        }
+        else Ask(m, hold, record, $"Moving the rest did not work: {refusal}.");
+    }
+
+    // The slow move: awaited, then finished on the app's main thread. What a mover throws is for the fault line, never for the card or the log.
+    private async Task FinishMoveLater(IReserveMover mover, Guid missionId, MissionRecord record, ReserveMoveOffer offer, MissionReserve m, HoldState hold, ReserveOption chosen)
+    {
+        string? refusal;
+        try { refusal = await mover.MoveAsync(record, offer); }
+        catch (OperationCanceledException) { refusal = "that move was cancelled"; }
+        catch (Exception error)
+        {
+            o.Runner.ReportFault("A move to another account failed (" + error.GetType().Name + ").");
+            refusal = "that move failed";
+        }
+        o.Runner.Post(() =>
+        {
+            try
+            {
+                FinishMove(missionId, m, hold, record, chosen, refusal);
+                Changed?.Invoke();
+            }
+            catch (Exception error) when (error is not OperationCanceledException)
+            {
+                o.Runner.ReportFault("The answer to the reserve card could not be carried out (" + error.GetType().Name + ").");
+            }
+        });
     }
 
     // The hold is over: the task is no longer waited for.

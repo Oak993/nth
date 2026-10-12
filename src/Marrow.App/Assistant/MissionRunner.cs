@@ -31,6 +31,12 @@ public sealed record MissionRequest(string Title, string Brief, string Assistant
 
     /// <summary>The task rules and the plan the owner saw (AS-13); null for a mission with neither (the standing rules still bind it).</summary>
     public ReserveStart? Reserve { get; init; }
+
+    /// <summary>The account of <see cref="Provider"/> the router chose (AS-14); null: the provider's first enabled account.</summary>
+    public Guid? AccountId { get; init; }
+
+    /// <summary>The owner chose <see cref="Model"/> for this mission: nothing switches it, silently or at a reserve (11.5, 11.6).</summary>
+    public bool ModelPinned { get; init; }
 }
 
 /// <summary>A mission that was started, and the work that launches its lead (it waits behind the gate).</summary>
@@ -108,6 +114,9 @@ public sealed class MissionRunner
     /// </summary>
     public IReserveGate? Reserve { get; set; }
 
+    /// <summary>The router's seam for the reviewer (AS-14, 3.4): a model other than the workers', on the cheapest account with room. Null: the provider's first account.</summary>
+    public IReviewerRouter? ReviewerRouter { get; set; }
+
     /// <summary>Raised after a mission changed (on the main thread).</summary>
     public event Action<MissionRecord>? Changed;
 
@@ -163,6 +172,8 @@ public sealed class MissionRunner
             ProjectPath = request.ProjectPath,
             Provider = request.Provider,
             Model = request.Model,
+            AccountId = request.AccountId,
+            ModelPinned = request.ModelPinned,
             Team = request.Team,
             Level = level,
             BudgetUsd = request.BudgetUsd,
@@ -247,6 +258,7 @@ public sealed class MissionRunner
                 Model = record.Model,
                 Team = record.Team,
                 Branch = record.Workspace?.Branch,
+                AccountId = record.AccountId,
             });
         }
         catch (Exception error) when (error is not OperationCanceledException)
@@ -767,8 +779,10 @@ public sealed class MissionRunner
                 o.Gate.Leave(slot);
                 return;
             }
-            var model = Reviewer.PickModel(now.Model, o.Agents.Models(now.Provider));
-            if (Reserve is { } reserve && !reserve.BeforeTurn(now, null, now.Provider, model ?? now.Model, ReserveTurns.Review))
+            var models = o.Agents.Models(now.Provider);
+            var routed = ReviewerRouter?.Pick(now, models);
+            var model = routed?.Model ?? Reviewer.PickModel(now.Model, models);
+            if (Reserve is { } reserve && !reserve.BeforeTurn(now, null, now.Provider, model ?? now.Model, ReserveTurns.Review, routed?.Account))
             {
                 o.Gate.Leave(slot);
                 return;
@@ -782,6 +796,7 @@ public sealed class MissionRunner
                     Model = model,
                     Reviewer = true,
                     Branch = now.Workspace?.Branch,
+                    AccountId = routed?.AccountId ?? now.AccountId,
                 });
             }
             catch (Exception error) when (error is not OperationCanceledException)
@@ -1119,6 +1134,19 @@ public sealed class MissionRunner
         if (record.Mission.State == MissionState.NeedsYou && o.Queue.Of(id).Count == 0)
             Update(id, r => r with { Mission = r.Mission with { State = NeedsYouFrom(r) }, Waiting = null });
         return null;
+    }
+
+    /// <summary>
+    /// The router moved the mission to another account of its provider (AS-14, the pause card's first option): every chat it starts
+    /// from now on runs there. False when there is no such mission. The activity log says that it moved and to which account key.
+    /// </summary>
+    public bool MoveAccount(Guid id, Guid? account, string accountKey)
+    {
+        if (Find(id) is not { } record) return false;
+        if (record.AccountId == account) return true;
+        Update(id, r => r with { AccountId = account });
+        if (Find(id) is { } now) Log(now, now.LeadThread, "move_account", ActionClass.Agents, account is null ? "back to the provider's own account" : "moved to " + accountKey);
+        return true;
     }
 
     /// <summary>The board's line for a task the reserve holds ("Paused before your Claude 20x reserve"); null clears it.</summary>

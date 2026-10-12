@@ -209,10 +209,10 @@ public sealed partial class ReserveGuard : IReserveGate, IDisposable
     /// the mission is held; if its reserve is the reason, it is Paused (a turn running elsewhere in it finishes first) and the
     /// owner's card is in the queue.
     /// </summary>
-    public bool BeforeTurn(MissionRecord mission, Guid? thread, ProviderKind provider, string? model, string purpose)
+    public bool BeforeTurn(MissionRecord mission, Guid? thread, ProviderKind provider, string? model, string purpose, ReserveAccountRef? onAccount = null)
     {
         ArgumentNullException.ThrowIfNull(mission);
-        var account = (thread is { } t ? o.AccountOf(t) : null) ?? o.AccountForNew(mission);
+        var account = (thread is { } t ? o.AccountOf(t) : null) ?? onAccount ?? o.AccountForNew(mission);
         var now = clock.GetUtcNow();
         ReserveCheck check;
         double p90;
