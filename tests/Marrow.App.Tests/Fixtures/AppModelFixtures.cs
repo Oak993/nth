@@ -120,6 +120,13 @@ public sealed class AppModelHarness : IDisposable
         scopes.Add(AppModel.PaletteLifetimeForTesting.Override(model => { lock (paletteGate) paletteModels.Add(model); }));
     }
 
+    /// <summary>
+    /// From now until this harness is disposed, the terminal views made in the calling flow start a <see cref="FakeShellProcess"/>
+    /// in place of a real PowerShell and conhost. For a test that opens terminal sessions or shows the drawer without reading
+    /// what a real shell does.
+    /// </summary>
+    public void UseFakeTerminalShell() => scopes.Add(TerminalShells.Fake());
+
     public TestRuntime? Runtime { get; }
 
     /// <summary>The runtime; fails the test when the harness was made without one.</summary>
