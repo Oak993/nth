@@ -6652,3 +6652,8 @@ ENGINEERING DECISION, owner C8 packet 2026-10-12 (DESIGN 6.1): project versions 
 ## ED-NEW-web-nocap-5
 
 ENGINEERING DECISION, owner C8 packet 2026-10-12 (DESIGN 6.1): preserve the legacy 44-character pre-cut stem and suffixes below 1000. Each candidate additionally cuts that stem to make room for the actual decimal suffix, trimming any trailing hyphen, so the result is already a normal id. Tests: ArtifactStoreTests (1000 real same-title artifacts and fresh-store reload).
+
+
+## ED-NEW-web-nocap-4
+
+ENGINEERING DECISION, owner C8 packet 2026-10-12 (DESIGN 6.2): refused fenced artifact saves retain the artifact chip and warning, and show the complete raw block as a plain code fence in streamed deltas and the completed persisted message. Choose a delimiter longer than any run of backticks in the raw content. If completed provider text changes an already processed block, retain that new raw content with a warning in the answer while preserving the streamed artifact; unchanged blocks still save and warn only once. Tests: ArtifactFenceFilterTests.

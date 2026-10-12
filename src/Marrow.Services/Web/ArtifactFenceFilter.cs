@@ -27,12 +27,16 @@ public sealed class ArtifactFenceFilter(Guid thread, ArtifactHost host, Func<(Ar
             {
                 var message = Of(delta.Id, store);
                 message.Raw.Append(delta.Text);
-                var step = message.Parser.Feed(delta.Text);
-                Commit(store, message, step.Events, output);
-                if (step.Display.Length > 0)
+                // Commit at each line boundary, before later answer text can pass the refused block.
+                var at = 0;
+                while (at < delta.Text.Length)
                 {
-                    message.Shown.Append(step.Display);
-                    output.Insert(0, delta with { Text = step.Display });
+                    var end = delta.Text.IndexOf('\n', at);
+                    end = end < 0 ? delta.Text.Length : end + 1;
+                    var step = message.Parser.Feed(delta.Text[at..end]);
+                    Show(message, step.Display, output);
+                    Commit(store, message, step.Events, output);
+                    at = end;
                 }
                 return output;
             }
@@ -42,18 +46,23 @@ public sealed class ArtifactFenceFilter(Guid thread, ArtifactHost host, Func<(Ar
                 if (messages.Remove(completed.Id, out var message) && string.Equals(message.Raw.ToString(), completed.Text, StringComparison.Ordinal))
                 {
                     var step = message.Parser.Finish();
+                    Show(message, step.Display, output);
                     Commit(store, message, step.Events, output);
-                    display = message.Shown.Append(step.Display).ToString();
+                    display = message.Shown.ToString();
                 }
                 else
                 {
                     // No deltas, or a final text that differs from them: parse it whole; blocks already saved stay saved.
-                    message ??= new Message(this, store);
-                    var (shown, blocks) = ArtifactFenceParser.Parse(completed.Text, message.Chip);
+                    message ??= new Message(this, store, completed.Id);
+                    var (_, blocks) = ArtifactFenceParser.Parse(completed.Text, message.Chip);
                     Commit(store, message, blocks, output);
-                    display = shown;
+                    var contents = blocks.ToDictionary(b => b.Index, b => b.Content);
+                    display = ArtifactFenceParser.Parse(completed.Text, (index, header) =>
+                        message.Chip(index, message.Processed.TryGetValue(index, out var original) ? original.Header : header)
+                        + (message.Refused.Contains(index) ? "\n" + PlainCode(contents[index]) : "")).Display;
                 }
-                output.Insert(0, completed with { Text = display });
+                // The completed text replaces accumulated deltas, so it must follow fallback deltas.
+                output.Add(completed with { Text = display });
                 return output;
             }
             case ProviderEvent.TurnCompleted or ProviderEvent.Exited:
@@ -62,7 +71,7 @@ public sealed class ArtifactFenceFilter(Guid thread, ArtifactHost host, Func<(Ar
                 foreach (var (id, message) in messages)
                 {
                     var step = message.Parser.Finish();
-                    if (step.Display.Length > 0) output.Add(new ProviderEvent.MessageDelta(id, step.Display));
+                    Show(message, step.Display, output);
                     Commit(store, message, step.Events, output);
                 }
                 messages.Clear();
@@ -76,15 +85,45 @@ public sealed class ArtifactFenceFilter(Guid thread, ArtifactHost host, Func<(Ar
 
     private Message Of(string id, ArtifactStore store)
     {
-        if (!messages.TryGetValue(id, out var message)) messages[id] = message = new Message(this, store);
+        if (!messages.TryGetValue(id, out var message)) messages[id] = message = new Message(this, store, id);
         return message;
+    }
+
+    private static void Show(Message message, string text, List<ProviderEvent> output)
+    {
+        if (text.Length == 0) return;
+        message.Shown.Append(text);
+        output.Add(new ProviderEvent.MessageDelta(message.MessageId, text));
+    }
+
+    private static string PlainCode(string content)
+    {
+        var longest = 0;
+        var run = 0;
+        foreach (var c in content)
+        {
+            run = c == '`' ? run + 1 : 0;
+            longest = Math.Max(longest, run);
+        }
+        var fence = new string('`', Math.Max(3, longest + 1));
+        return fence + "\n" + content + (content.EndsWith('\n') ? "" : "\n") + fence + "\n\n";
     }
 
     private void Commit(ArtifactStore store, Message message, IEnumerable<ArtifactFenceEvent> events, List<ProviderEvent> output)
     {
         foreach (var closed in events.OfType<ArtifactFenceEvent.Closed>())
         {
-            if (!message.Saved.Add(closed.Index)) continue;
+            if (message.Processed.TryGetValue(closed.Index, out var previous))
+            {
+                if (previous.Header == closed.Header && previous.Content == closed.Content) continue;
+                // Completion may revise an already-processed block. Keep that new content without replacing its saved artifact.
+                message.Refused.Add(closed.Index);
+                Show(message, PlainCode(closed.Content), output);
+                output.Add(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning,
+                    Message = "Tabula kept changed final artifact content in the answer because its streamed block was already processed." }));
+                continue;
+            }
+            message.Processed.Add(closed.Index, closed);
             var header = closed.Header;
             var id = message.Id(closed.Index, header);
             var known = store.Find(Thread, id);
@@ -134,6 +173,8 @@ public sealed class ArtifactFenceFilter(Guid thread, ArtifactHost host, Func<(Ar
             }
             catch (Exception error) when (error is ArtifactException or IOException or UnauthorizedAccessException)
             {
+                message.Refused.Add(closed.Index);
+                Show(message, PlainCode(closed.Content), output);
                 output.Add(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = $"Tabula could not save “{ArtifactStore.CleanTitle(title)}”: {error.Message}" }));
             }
         }
@@ -154,17 +195,20 @@ public sealed class ArtifactFenceFilter(Guid thread, ArtifactHost host, Func<(Ar
         private readonly ArtifactStore store;
         private readonly Dictionary<int, string> ids = [];
 
-        public Message(ArtifactFenceFilter owner, ArtifactStore store)
+        public Message(ArtifactFenceFilter owner, ArtifactStore store, string messageId)
         {
             this.owner = owner;
             this.store = store;
+            MessageId = messageId;
             Parser = new ArtifactFenceParser(Chip);
         }
 
         public ArtifactFenceParser Parser { get; }
+        public string MessageId { get; }
         public StringBuilder Raw { get; } = new();
         public StringBuilder Shown { get; } = new();
-        public HashSet<int> Saved { get; } = [];
+        public Dictionary<int, ArtifactFenceEvent.Closed> Processed { get; } = [];
+        public HashSet<int> Refused { get; } = [];
 
         /// <summary>The chip for a block, under the id it will be saved with (resolved once, when the block opens).</summary>
         public string Chip(int index, ArtifactFenceHeader header)
