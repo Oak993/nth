@@ -4,6 +4,7 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Media;
 
 namespace Marrow.App.Port.Ignis.Settings;
@@ -23,13 +24,35 @@ public sealed class IgnisFlameMark : Control
     private static readonly IBrush OuterBrush = new Avalonia.Media.Immutable.ImmutableSolidColorBrush(Outer);
     private static readonly IBrush CoreBrush = new Avalonia.Media.Immutable.ImmutableSolidColorBrush(Core);
 
-    public IgnisFlameMark()
+    /// <summary>The ink of a one-colour flame, inherited from enclosing views as SwiftUI's foregroundStyle passes down (the sidebar badge
+    /// sets it); the other symbols' <c>SwiftImage.Foreground</c> is the same property, so the flame repaints with them (ED-NEW-ignismono-2).</summary>
+    public static readonly StyledProperty<IBrush?> ForegroundProperty = TextElement.ForegroundProperty.AddOwner<IgnisFlameMark>();
+
+    // ED-NEW-ignismono-1: the sidebar draws the flame in the other symbols' silver (the core cut out of the outer flame, no glow).
+    private static readonly Geometry MonoGeometry = new CombinedGeometry(GeometryCombineMode.Exclude, OuterGeometry, CoreGeometry);
+    private readonly bool mono;
+
+    static IgnisFlameMark() => AffectsRender<IgnisFlameMark>(ForegroundProperty);
+
+    public IgnisFlameMark() : this(false) { }
+
+    /// <param name="monochrome">True for a one-colour flame drawn in the inherited <see cref="Foreground"/> (the Settings sidebar), false for the design's lit flame.</param>
+    public IgnisFlameMark(bool monochrome)
     {
+        mono = monochrome;
         IsHitTestVisible = false;
         AutomationProperties.SetAccessibilityView(this, AccessibilityView.Raw); // aria-hidden: the row's text names it
         // The design's drop-shadow(0 0 4px var(--ember-glow)) at heat 1.
-        Effect = new DropShadowEffect { OffsetX = 0, OffsetY = 0, BlurRadius = 4, Color = Color.FromArgb(0x8c, 0xff, 0x6a, 0x1f) };
+        if (!mono) Effect = new DropShadowEffect { OffsetX = 0, OffsetY = 0, BlurRadius = 4, Color = Color.FromArgb(0x8c, 0xff, 0x6a, 0x1f) };
     }
+
+    public IBrush? Foreground
+    {
+        get => GetValue(ForegroundProperty);
+        set => SetValue(ForegroundProperty, value);
+    }
+
+    internal bool IsMonochrome => mono;
 
     protected override Size MeasureOverride(Size availableSize) =>
         new(double.IsNaN(Width) ? 16 : Width, double.IsNaN(Height) ? 16 : Height);
@@ -42,6 +65,7 @@ public sealed class IgnisFlameMark : Control
         var offset = new Point((Bounds.Width - side) / 2, (Bounds.Height - side) / 2);
         using (context.PushTransform(Matrix.CreateScale(scale, scale) * Matrix.CreateTranslation(offset.X, offset.Y)))
         {
+            if (mono) { if (Foreground is { } ink) context.DrawGeometry(ink, null, MonoGeometry); return; }
             context.DrawGeometry(OuterBrush, null, OuterGeometry);
             context.DrawGeometry(CoreBrush, null, CoreGeometry);
         }

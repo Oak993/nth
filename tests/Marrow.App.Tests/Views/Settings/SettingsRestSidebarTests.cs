@@ -46,6 +46,15 @@ public sealed class SettingsRestSidebarTests(HeadlessSession headless) : Setting
                 // Selecting rebuilds the page; current selection must survive moving the pointer away.
                 w.MouseMove(new Point(1, 1)); Drain(w); Tick(h, 100); Check(row, index, true);
             }
+            // ED-NEW-ignismono-2: the flame is drawn in the colour the other symbols are, and follows the appearance with them (the turn eases over 0.32 s).
+            var ignisIndex = Array.IndexOf(titles, "Ignis");
+            foreach (var theme in new[] { Avalonia.Styling.ThemeVariant.Dark, Avalonia.Styling.ThemeVariant.Light })
+            {
+                w.RequestedThemeVariant = theme; Drain(w); Tick(h, 600);
+                var row = Nodes<SidebarRow>(view)[ignisIndex]; var flame = Assert.Single(Nodes<Marrow.App.Port.Ignis.Settings.IgnisFlameMark>(row));
+                Assert.Equal(theme, flame.ActualThemeVariant); Ink(flame, flame.Foreground, Chrome.PrimaryText.Opacity(0.85));
+                var other = Nodes<SwiftImage>(Nodes<SidebarRow>(view)[0]).First(); Ink(other, other.Foreground, Chrome.PrimaryText.Opacity(0.85));
+            }
             var search = Assert.Single(Nodes<TextBox>(Assert.Single(Nodes<SidebarSearchField>(view))));
             foreach (var title in titles) { search.Text = title; Drain(w); Assert.Contains(Nodes<SidebarRow>(view), r => Text(r).Contains(title)); search.Text = "no-matching-settings-value"; Drain(w); Assert.Empty(Nodes<SidebarRow>(view)); search.Text = ""; Drain(w); }
             // SettingsView.swift:182 applies the shared scroll freeze to the sidebar, even for page scrolling.
@@ -59,7 +68,7 @@ public sealed class SettingsRestSidebarTests(HeadlessSession headless) : Setting
                 var badge = Assert.Single(Nodes<SidebarIconBadge>(row)); var frame = Assert.IsType<Panel>(badge.Child); Assert.Equal(20, frame.Width); Assert.Equal(20, frame.Height);
                 var glyph = frame.Children[0]; Ink(glyph, Avalonia.Controls.Documents.TextElement.GetForeground(glyph), Chrome.PrimaryText.Opacity(0.85));
                 if (index == 1) { var mark = Assert.Single(Nodes<HydraMarkImage>(row)); Assert.Equal(16.1, mark.Width, 5); Assert.Equal(16.1, mark.Height, 5); Assert.Empty(Nodes<SidebarSymbol>(row)); }
-                else if (titles[index] == "Ignis") { var flame = Assert.Single(Nodes<Marrow.App.Port.Ignis.Settings.IgnisFlameMark>(row)); Assert.Equal(16.1, flame.Width, 5); Assert.Equal(16.1, flame.Height, 5); Assert.Empty(Nodes<SidebarSymbol>(row)); } // OD-0134: the lit flame, Hydra's size
+                else if (titles[index] == "Ignis") { var flame = Assert.Single(Nodes<Marrow.App.Port.Ignis.Settings.IgnisFlameMark>(row)); Assert.Equal(16.1, flame.Width, 5); Assert.Equal(16.1, flame.Height, 5); Assert.True(flame.IsMonochrome); Assert.Null(flame.Effect); Ink(flame, flame.Foreground, Chrome.PrimaryText.Opacity(0.85)); Assert.Empty(Nodes<SidebarSymbol>(row)); } // OD-0134, ED-NEW-ignismono-1: the flame in the sidebar silver, Hydra's size
                 else { var image = Assert.Single(Nodes<SwiftImage>(row)); Assert.Equal(symbols[index], image.SymbolName); Assert.Equal(index == 0 ? 16.1 : 14, image.Width, 5); Assert.Equal(index == 0 ? 16.1 : 14, image.Height, 5); }
                 Assert.Empty(Nodes<UpdateAvailableDot>(row));
             }
