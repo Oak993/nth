@@ -2030,6 +2030,12 @@ public class OpenAICompatibleSession : ProviderSession
         messages[0] = JSONValue.FromDictionaryLiteral(("role", "system"), ("content", SystemPrompt())); // :1172
     }
 
+    // PORT-ONLY (web surfaces W17, ED-NEW-web-w17-1): what the live-answers teaching in the system prompt is written for. Every provider
+    // gets the full language and calls the tools; a Local session overrides both (the lite subset, and fenced blocks when the model
+    // cannot call tools).
+    protected virtual Marrow.Core.NthUi.NthUiProfile TeachingProfile => Marrow.Core.NthUi.NthUiProfile.Full;
+    protected virtual bool TeachingToolsUsable => true;
+
     // :1175-1214
     private string SystemPrompt()
     {
@@ -2063,6 +2069,7 @@ public class OpenAICompatibleSession : ProviderSession
         {
             policy.Length == 0 ? null : policy,
             SkillTools?.CatalogueBlock(),
+            SkillTools?.UiTeachingBlock(TeachingProfile, TeachingToolsUsable), // PORT-ONLY (web surfaces W17, ED-NEW-web-w17-1): live answers and artifacts, null without the chat's artifact tools
             guidance.SystemPromptBlock(),
         }.Where(value => value is not null));
         // DEVIATION OD-0012 F1 (PR-PROVAPI-141): upstream :1200 reads
