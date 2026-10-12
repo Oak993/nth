@@ -6852,3 +6852,73 @@ ForeignMcpServer.Key is app | file | owner | name, where the owner is the new Sc
 2. ONE WIDGET PER CHAT, ID AND VERSION (WidgetKey = the chat's first eight hex digits, the view's id, "-v" and its version): the rows of a thread are drawn again and again and get the same widget, not a second page; a newer view with the same id is a new page on its own site (W24 shrinks the older row to a note); two chats that use the same id never share a page or a site.
 3. A PAGE CHANGING WINDOWS (McpAppSession.TakeOut): the card, the App pane and the pop-out window can be different Avalonia roots. Taking the page out of a slot queues its controls with that root's layout manager; if the page is then put into another root, the first root's next pass throws "Attempt to call InvalidateArrange on wrong LayoutManager". TakeOut therefore takes the child out and runs that root's layout pass at once, before the page goes in elsewhere; every removal of the page from a slot (moves, the pane leaving, the window closing, the app closing) goes through it. Found by the pane and pop-out tests, which hold the App pane in a window of its own.
 4. TESTS (Decision ED-NEW-web-w19-6): App McpAppsAppTests (an HTML live answer is the widget card, one per chat, id and version; the existing pane and pop-out switch tests now run the cross-window moves).
+
+## ED-NEW-termwin-1
+
+2026-10-12 - ENGINEERING DECISION by the lead. TerminalPanelHighRiskTests.Bare_Escape_closes_at_the_shell_prompt_but_modified_Escape_and_a_foreground_child_do_not started its foreground child with Start-Process and no -NoNewWindow, so the child got a new console of its own; with Windows Terminal as the default terminal each run opened a visible Terminal window on the owner's desktop, which showed error 0x800700e8 when the test ended the child. The owner saw these windows on 2026-10-12.
+1. The child now starts with -NoNewWindow, as every other Start-Process in the test projects already does (MCPWireTests, StdioProcessTests, StdioProcessJobTests, ProcessLauncherSpawnTests, ProbeProcessScripts, ShimWindowsTests).
+2. This is not a looser test: the comment above the line already says the child is launched by the same PowerShell process inside the ConPTY, and with -NoNewWindow it really is. ForegroundJobIsTheShell reads the shell's live descendants (ProcessDescendants.HasLiveDescendant), and the child is still a live descendant of the shell while it sleeps, so every assertion checks the same thing.
+3. As a side effect the child now ends with the ConPTY when the session is terminated, instead of living on for up to 10 s in a console of its own.
+
+## ED-NEW-shellleak-1
+
+2026-10-12 - Terminating a terminal tab ends its shell on Windows: the graceful Ctrl+C, then the shell's job tree is killed. ENGINEERING DECISION. DEVIATION (PR-TERM-046; TerminalStore.swift:59-63 view.terminate(); TerminalHostView.Terminate, Marrow.App/Views/Terminal/Port/TerminalHost.cs).
+1. SOURCE. TerminalSession.terminate() guards isRunning, calls view.terminate() once and sets isRunning false. PR-TERM-046 says the source has no escalation here ("the source has no kill ladder here", unlike Shell.terminate and StdioProcess.terminate) and asks the port to record whatever escalation it needs. On macOS the pty session dies with the view, and its hang-up (SIGHUP) ends the shell and its children (PR-TERM-046 windows_path). SwiftTerm's own terminate is not in the pinned tree; the record is the evidence for the macOS side.
+2. WHY THE PORT ESCALATES. A ConPTY gives the shell no hang-up when the view is terminated: ProcessLauncher closes the pseudoconsole only after the shell has exited (P5's order), and the graceful step is 0x03 into the shell's input, which an idle PowerShell prompt ignores. So every closed tab, restarted tab, TerminateAll and quit left a powershell.exe and its conhost.exe running until the app (or the test host) exited; the App tests held about 18 per test host at once, 150+ per run.
+3. THE STEP. TerminalHostView.Terminate keeps the Ctrl+C (the source's graceful step; a foreground program that handles it still sees it first), then, only if the shell is still running, calls KillTree: TerminateJobObject on the shell's job (ED-047 (a)), which ends the shell and every program it started in that job, including a hidden program on a console of its own. The launcher's watcher then closes the pseudoconsole (P5's order), which ends the conhost. The output pipe is still drained until then (its bytes are dropped), so ClosePseudoConsole is never held up by an unread conhost. A shell that already exited by itself is not killed (PR-TERM-046's idempotence holds, and PR-TERM-047 reports its exit once); the exit the kill causes is not reported, since the delegate is disarmed first. Only a program outside the shell's job (started through another service, such as a scheduled task) outlives the tab.
+4. TEST SEAM. TerminalHostView.ShellFactory (PORT-ONLY Ambient, IShellProcess; production ConPtyShell makes the same ProcessLauncher calls in the same order) lets tests that read no real shell run on FakeShellProcess. A test that does not override it starts a real shell, which this Terminate now ends at its TerminateAll.
+5. TESTS (each carries Decision ED-NEW-shellleak-1). TerminalShellLifetimeTests, on the stand-in shell: Ctrl+C first and then one kill; the kill's exit is not reported; a shell that exited by itself is reported once and never killed; a view that never started a shell has nothing to end. TerminalStoreTests.Terminate_also_ends_the_shell_process_and_the_program_it_started_so_nothing_outlives_the_tab: a real PowerShell and a hidden program it started both exit after session.Terminate, and nothing kills them before the asserts. AppModelTerminalPart3Tests.Worktree_creation_runs_flagged_scripts_in_project_order_at_the_new_path: TerminateAll over two real script tabs ends both shells before the test's cleanup kill runs. Measured on the whole Marrow.App.Tests run (2367 tests, a sampler every 5 s on the test host's powershell.exe children): at most 2 live at once, 0 after the host exited.
+
+
+## ED-NEW-web-nocap-1
+
+ENGINEERING DECISION, owner C8 packet 2026-10-12 (DESIGN 2.3, 2.5, 6.4): retain the live budget; prefer hidden views before shown views, then recency and open order. The newest hidden view is eligible too. Shown frozen views activate before navigation or page messages, including bridge/theme/morph traffic. Artifact mounts reload from the store whenever an engine becomes live; explicit historical-version selection remains honored. Pointer presses and key focus touch live views. An activity generation cancels suspension if activation/content arrived while capture was awaited. Tests: WebSurfaceLiveCapTests, ArtifactRuntimeTests, WebViewHostTests. Eight shown plus one hidden is the feasible nine-view case; nine shown necessarily exceeds the option maximum eight.
+
+C8-1 race verification: content messages wait for successful document navigation before delivery; session replies never queue across replacement engines. Explicit historical-version selection drops obsolete queued morphs. Activation during the native suspend await resumes again after it completes, preventing service Live/native Suspended divergence. Fake-engine race tests exclude no native runtime and use engine_suspend in their names so the non-native test filter runs them.
+
+
+## ED-NEW-web-nocap-3
+
+ENGINEERING DECISION, owner C8 packet 2026-10-12 (DESIGN 6.1): project versions accept up to 512 files. Keep the existing 5 MB aggregate byte limit and all path/entry validation. Overflow tests derive their input and message from MaxProjectFiles; the acceptance test independently fixes 512 as the required limit. Tests: ArtifactStoreTests.
+
+
+## ED-NEW-web-nocap-5
+
+ENGINEERING DECISION, owner C8 packet 2026-10-12 (DESIGN 6.1): preserve the legacy 44-character pre-cut stem and suffixes below 1000. Each candidate additionally cuts that stem to make room for the actual decimal suffix, trimming any trailing hyphen, so the result is already a normal id. Tests: ArtifactStoreTests (1000 real same-title artifacts and fresh-store reload).
+
+
+## ED-NEW-web-nocap-4
+
+ENGINEERING DECISION, owner C8 packet 2026-10-12 (DESIGN 6.2): refused fenced artifact saves retain the artifact chip and warning, and show the complete raw block as a plain code fence in streamed deltas and the completed persisted message. Choose a delimiter longer than any run of backticks in the raw content. If completed provider text changes an already processed block, retain that new raw content with a warning in the answer while preserving the streamed artifact; unchanged blocks still save and warn only once. Tests: ArtifactFenceFilterTests.
+
+
+## ED-NEW-web-nocap-2
+
+ENGINEERING DECISION, owner C8 packet 2026-10-12 (DESIGN 2.3): pressure, audio, bridge-call and open-pane protections govern discard; the held-engine budget defaults dynamically to twice the configured live budget. Discard considers oldest hidden views first and stops when pressure is relieved. Bridge leases span model/tool consent and file picking, with no model-step failure or rendering effects. Artifact mounts hold the open-pane protection until disposal or SetPaneOpen(false). Before discarding, resume the original document and notify it with nth willDiscard. Sandboxed pages acknowledge a fresh token after lifecycle listeners and dynamically added storage saves finish; failed or missing acknowledgments retain the engine, cancel that operation, and retry after five seconds. Late storage replies remain deliverable to the original hidden engine. A normal activation still reloads the store current version after this temporary resume. Ordinary tabs receive a best-effort message-dispatch round trip. New lifecycle listener methods are non-enumerable and keep the original frozen bridge key contract. Tests: WebSurfaceDiscardTests, ArtifactBridgeTests, ArtifactRuntimeTests, SandboxScriptBehaviourTests.
+
+C8 review addendum: a deferred store reload must not navigate away from a document while a bridge lease is active, including a late native suspension followed by a streaming reply. Resume the original engine, preserve the reload flag through replies, and consume it on a later activation or content update after the call finishes. Do not reload on lease disposal before the page receives its final reply. ArtifactBridgeTests covers the held-suspension and streaming-delta race; the fixture uses the existing minimum live budget of two.
+
+
+## ED-NEW-web-nocap-6
+
+ENGINEERING DECISION, lead check of the C8 packet after the merge with W14 (DESIGN 2.3, 6.4): Tabula's streaming preview (ArtifactMount.Morph) posted straight to the engine, so it bypassed the C8-1 rule that content for a frozen on-screen view restores the view first and that a loading document receives only the newest text after its load. Morph now goes through WebSurfaceView.PostMessage like the bridge replies and theme pushes. Tests: ArtifactRuntimeTests (the mount's own Morph restores a frozen shown artifact and posts only the newest text after the load; a morph for a hidden frozen artifact is dropped and the store version shows when it goes live).
+
+
+## ED-NEW-web-nocap-7
+
+ENGINEERING DECISION, lead check of the C8 packet (DESIGN 2.3, 6.5): C8-1 made every artifact view reload from the store when it goes live again. A view that attaches after the mount (the pane opens the view before the platform view exists) or that is restored after a discard already starts loading the artifact address on attach, so that reload was a second navigation of the same address on every first open. ArtifactMount skips the live-again reload while the view is already loading its own address; a page that was alive and frozen (resume) still reloads. Tests: ArtifactRuntimeTests (a mount on a view that attaches later loads its address once; a discarded artifact restored by the pane loads the current version with one navigation).
+
+
+## ED-NEW-web-nocap-8
+
+ENGINEERING DECISION, lead check of the C8 packet (DESIGN 2.3, 5.3): a Visus tab can be frozen while on screen when more tabs are on screen than the live budget. VisusTab.Engine() (back, forward, reload, stop, history) restored only a discarded tab; it now also restores a suspended one first, so the toolbar works on it the way a click into the page does. Test: VisusSessionTests (back on a tab frozen while on screen restores it first).
+
+
+## ED-NEW-web-nocap-9
+
+ENGINEERING DECISION, lead check of the C8 packet after the merge with W14 (DESIGN 6.2, 6.4): C8-4 feeds the fence parser one line at a time so a refused block's content is committed before later answer text passes it. W14's stream text read (ArtifactStreams.Update, at most every 250 ms) ran after every line, so the first line used up the read budget and the tail of the delta, the partial line of the open block, was not seen. ArtifactFenceFilter now reports opens and closes per line and reads the open block's text once per delta, after its last line. Test: ArtifactStreamsTests.A_fenced_block_streams_from_its_opener_with_its_id_title_and_kind_and_ends_when_it_closes (unchanged; it failed after the merge and passes again).
+
+
+## ED-NEW-web-nocap-10
+
+ENGINEERING DECISION, lead check of the C8 packet after the merge with W14 (DESIGN 6.4): with C8-1 the newest streaming text waits while the artifact page is still loading and is posted when the load finishes (a morph sent to a document that has no bridge yet would be lost). TabulaFlowTests.A_page_being_written_keeps_its_skeleton_until_it_exists_and_a_new_version_morphs_the_shown_page never finished the page's load, which the real engine always does; it now asserts that no morph is posted while the page loads (stricter) and keeps its original assertion after the load finishes.

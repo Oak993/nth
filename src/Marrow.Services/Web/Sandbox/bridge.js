@@ -12,6 +12,8 @@
   const listen = webview.addEventListener.bind(webview);
   const define = (target, name, value) => Object.defineProperty(target, name, { value, writable: false, configurable: false, enumerable: true });
   const pending = new Map();
+  let discardSaves = null;
+  let discardOperation = null;
   let next = 1;
   // A token per document: replies meant for an earlier document of this view (before a reload) are ignored.
   const session = Array.from(crypto.getRandomValues(new Uint32Array(3)), (n) => n.toString(36)).join('');
@@ -22,12 +24,45 @@
     out.code = code;
     return out;
   };
-  const request = (type, payload, onDelta) => new Promise((resolve, reject) => {
+  const request = (type, payload, onDelta) => {
+    const call = new Promise((resolve, reject) => {
     const id = next++;
     pending.set(id, { resolve, reject, onDelta });
     post(Object.assign({}, payload, { nth: 1, s: session, id, type }));
-  });
-  const listeners = { theme: new Set() };
+    });
+    if (discardSaves && type.startsWith('storage.')) discardSaves.push(call);
+    return call;
+  };
+  const listeners = { theme: new Set(), willDiscard: new Set() };
+  const beforeDiscard = async (token) => {
+    if (typeof token !== 'string') return;
+    if (discardOperation) discardOperation.cancel();
+    const saves = [];
+    const operation = { token, cancelled: false, cancel: null };
+    const cancelled = new Promise(resolve => { operation.cancel = () => { operation.cancelled = true; resolve(); }; });
+    discardOperation = operation;
+    discardSaves = saves;
+    let ok = true;
+    const detail = Object.freeze({ waitUntil: (save) => saves.push(Promise.resolve(save)) });
+    try {
+      for (const fn of listeners.willDiscard) {
+        const result = fn(detail);
+        if (result && typeof result.then === 'function') saves.push(Promise.resolve(result));
+      }
+      if (typeof CustomEvent === 'function' && typeof window.dispatchEvent === 'function')
+        window.dispatchEvent(new CustomEvent('nth:willDiscard', { detail }));
+      let cursor = 0;
+      while (cursor < saves.length && !operation.cancelled) {
+        const batch = saves.slice(cursor);
+        cursor = saves.length;
+        await Promise.race([Promise.all(batch), cancelled]);
+      }
+    } catch (_) { ok = false; }
+    finally {
+      if (discardOperation === operation) { discardOperation = null; discardSaves = null; }
+    }
+    if (!operation.cancelled) post({ nth: 1, s: session, type: 'discard.ready', token, ok });
+  };
   let theme = { dark: matchMedia('(prefers-color-scheme: dark)').matches, variables: {} };
   const applyTheme = (value) => {
     theme = { dark: !!value.dark, variables: Object.assign({}, value.variables || {}) };
@@ -44,6 +79,11 @@
   listen('message', (event) => {
     const message = event.data;
     if (!message || message.nth !== 1) return;
+    if (message.event === 'willDiscard') { beforeDiscard(message.token); return; }
+    if (message.event === 'discard.cancel') {
+      if (discardOperation && discardOperation.token === message.token) discardOperation.cancel();
+      return;
+    }
     if (message.event === 'theme') { applyTheme(message.theme || {}); return; }
     if (message.event === 'morph' && typeof message.html === 'string') { morph(message.html); return; }
     if (message.s !== session) return;
@@ -118,14 +158,19 @@
     removeEventListener(type, fn) { if (type === 'change') listeners.theme.delete(fn); },
   });
 
-  const nth = Object.freeze({
+  const nth = {
     storage,
     complete,
     callTool: (server, tool, args) => request('callTool', { server: String(server), tool: String(tool), args: args === undefined ? {} : args }),
     files: Object.freeze({ pick }),
     send: (text) => request('send', { text: String(text) }).then(() => undefined),
     theme: themeApi,
+  };
+  Object.defineProperties(nth, {
+    addEventListener: { value(type, fn) { if (type === 'willDiscard' && typeof fn === 'function') listeners.willDiscard.add(fn); } },
+    removeEventListener: { value(type, fn) { if (type === 'willDiscard') listeners.willDiscard.delete(fn); } },
   });
+  Object.freeze(nth);
   define(window, 'nth', nth);
 
   // Compatibility shims, so artifacts made for other apps run (vendor names never appear in nth's UI).

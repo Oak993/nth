@@ -13,9 +13,12 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 namespace Marrow.App.Tests.Fixtures;
 
 // Shared rig for the TerminalPanel record tests (DroppyCode/App/Views/Terminal/TerminalPanel.swift). Helper types
-// live here, never inside a test class (R-TEST-3). The only process a rig ever starts is the isolated PowerShell
-// that TerminalStore itself opens for a session (ConPTY, no window of its own); Dispose terminates every session of
-// the store and closes every window the rig showed.
+// live here, never inside a test class (R-TEST-3). A rig run through Run starts no process at all: the shell that
+// TerminalStore opens for a session is a FakeShellProcess, because these tests read the drawer's layout, tabs and
+// bookkeeping, not what a shell does. A test that reads a real shell's output, process or exit runs through
+// RunWithRealShell, where the only process the rig starts is the isolated PowerShell that TerminalStore itself opens
+// for a session (ConPTY, no window of its own). Either way, Dispose terminates every session of the store (which ends a
+// real shell and its whole tree) and closes every window the rig showed.
 public sealed class TerminalPanelRig : IDisposable
 {
     private readonly List<AvaloniaWindow> windows = [];
@@ -25,9 +28,10 @@ public sealed class TerminalPanelRig : IDisposable
     public AppModelHarness Store { get; }
     public ChatThread Thread { get; }
 
-    private TerminalPanelRig()
+    private TerminalPanelRig(bool realShell)
     {
         Store = new AppModelHarness();
+        if (!realShell) Store.UseFakeTerminalShell();
         var project = AppModelSamples.Project("Terminal panel", Store.NewFolder("terminal-panel"));
         Thread = AppModelSamples.Thread(project);
         Store.WriteLibrary([project], [Thread]);
@@ -39,9 +43,17 @@ public sealed class TerminalPanelRig : IDisposable
     /// <summary>Runs <paramref name="body"/> on the headless UI thread. The body makes each step of its own through
     /// <see cref="Step"/>: a Track-driven rebuild of the panel is posted to the main actor and only runs once that step
     /// ends, exactly as the existing terminal tests do it.</summary>
-    public static void Run(HeadlessSession headless, Action<TerminalPanelRig> body) => headless.OnUiThread(() =>
+    public static void Run(HeadlessSession headless, Action<TerminalPanelRig> body) => RunIn(headless, realShell: false, body);
+
+    /// <summary>
+    /// <see cref="Run"/> with a real PowerShell behind every session, for the few tests that read what a real shell prints,
+    /// its process or its exit. The rig ends every one of them when it is disposed.
+    /// </summary>
+    public static void RunWithRealShell(HeadlessSession headless, Action<TerminalPanelRig> body) => RunIn(headless, realShell: true, body);
+
+    private static void RunIn(HeadlessSession headless, bool realShell, Action<TerminalPanelRig> body) => headless.OnUiThread(() =>
     {
-        using var rig = new TerminalPanelRig();
+        using var rig = new TerminalPanelRig(realShell);
         body(rig);
     });
 

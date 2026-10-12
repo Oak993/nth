@@ -287,6 +287,10 @@ public sealed class TabulaFlowTests(HeadlessSession headless)
         rig.Streams.Begin(TabulaRig.Chat, "fence:m2:0", first.Artifact.Id, null, null, isUpdate: true);
         rig.Streams.Update(TabulaRig.Chat, "fence:m2:0", () => "<!doctype html><html><body><h3>Orbit Pro</h3>", force: true);
         rig.Layout();
+        // ED-NEW-web-nocap-10 (C8-1): while the page is still loading the newest text waits for the load; a morph sent to a
+        // document that has no bridge yet would be lost. The page shows it as soon as it finished loading.
+        Assert.DoesNotContain(fake.Log, line => line.StartsWith("Post ", StringComparison.Ordinal) && line.Contains("\"event\":\"morph\"", StringComparison.Ordinal));
+        fake.RaiseNavigationCompleted(rig.View.Preview.Mount!.Address);
         Assert.Contains(fake.Log, line => line.StartsWith("Post ", StringComparison.Ordinal) && line.Contains("\"event\":\"morph\"", StringComparison.Ordinal) && line.Contains("Orbit Pro", StringComparison.Ordinal));
         Assert.False(rig.View.EditButton.IsVisible && rig.State.View == TabulaViewMode.Code);
     });

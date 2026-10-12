@@ -1,5 +1,6 @@
 using Marrow.Core.Models;
 using Marrow.Core.Web;
+using System.Text.Json;
 
 namespace Marrow.Services.Web;
 
@@ -20,6 +21,14 @@ public sealed class WebSurfaceView : IWebViewSurface
     private string? pendingUrl;
     private string? lastUrl;
     private int modelSteps;
+    private int bridgeCalls;
+    private int openArtifactPanes;
+    private readonly List<(string Json, string? Event)> pendingMessages = [];
+    private string? navigationTarget;
+    private (string Token, IWebEngineView Engine, TaskCompletionSource<bool> Ready)? discardNotice;
+    internal bool IsDocumentReady => navigationTarget is null && engine is { IsAttached: true };
+    /// <summary>The address the main frame is loading now, or null once it finished.</summary>
+    internal string? NavigationTarget => navigationTarget;
     private TaskCompletionSource? liveHidden;
     private WebSandbox? sandbox;
 
@@ -75,12 +84,19 @@ public sealed class WebSurfaceView : IWebViewSurface
     public bool IsModelStepRunning => modelSteps > 0;
 
     internal bool IsSuspending { get; set; }
+    internal bool IsDiscarding { get; set; }
+    internal bool NeedsLiveReload { get; set; }
+    internal bool IsBridgeCallRunning => bridgeCalls > 0;
+    internal bool HasOpenArtifactPane => openArtifactPanes > 0;
+    internal DateTimeOffset? DiscardRetryAt { get; set; }
+    internal long ActivityVersion { get; set; }
     internal bool IsProbing { get; set; }
     internal DateTimeOffset? LastProbeAt { get; set; }
     internal DateTimeOffset? HungSince { get; set; }
     internal bool StepHangReported { get; set; }
 
     public event Action? Changed;
+    internal event Action? BecameLive;
     public event Action<bool>? FocusExitRequested;
     public event EventHandler<WebNavigationStarting>? NavigationStarting;
     public event EventHandler<WebNavigationStarting>? FrameNavigationStarting;
@@ -147,13 +163,60 @@ public sealed class WebSurfaceView : IWebViewSurface
     {
         ArgumentException.ThrowIfNullOrEmpty(url);
         lastUrl = url;
-        if (engine is { IsAttached: true } live) live.Navigate(url);
+        ActivateForContent();
+        if (engine is { IsAttached: true } live)
+        {
+            CancelDiscardNotice();
+            navigationTarget = url;
+            live.Navigate(url);
+        }
         else pendingUrl = url;
     }
 
     /// <summary>W8a: the page's favicon (PNG), read by the browser from the tab's own profile; null when there is none.</summary>
     public Task<byte[]?> GetFaviconAsync(CancellationToken cancellationToken = default) =>
         engine is { IsAttached: true } live ? live.GetFaviconAsync(cancellationToken) : Task.FromResult<byte[]?>(null);
+
+    /// <summary>Content for an on-screen view first restores it; pending engines receive it on attach.</summary>
+    public void PostMessage(string json)
+    {
+        var sessionReply = false;
+        string? contentEvent = null;
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            if (document.RootElement.ValueKind == JsonValueKind.Object)
+            {
+                sessionReply = document.RootElement.TryGetProperty("s", out _);
+                if (document.RootElement.TryGetProperty("event", out var ev) && ev.ValueKind == JsonValueKind.String) contentEvent = ev.GetString();
+            }
+        }
+        catch (JsonException) { }
+        var oldEngine = engine;
+        ActivateForContent();
+        // A reply belongs to the requesting document, never to a replacement engine. Its bridge is already listening.
+        if (sessionReply)
+        {
+            if (engine == oldEngine && engine is { IsAttached: true } replyEngine) replyEngine.PostMessage(json);
+            return;
+        }
+        if (liveness is WebLiveness.Suspended or WebLiveness.Discarded or WebLiveness.Closed) return;
+        if (engine is { IsAttached: true } live && navigationTarget is null) live.PostMessage(json);
+        else
+        {
+            // Streaming previews and themes need only their newest value while the document is loading.
+            if (contentEvent is "morph" or "theme")
+                pendingMessages.RemoveAll(m => m.Event == contentEvent);
+            pendingMessages.Add((json, contentEvent));
+        }
+    }
+
+    private void ActivateForContent()
+    {
+        if (IsShown && (NeedsLiveReload || IsSuspending || liveness is WebLiveness.Suspended or WebLiveness.Discarded)) owner.Activate(this);
+    }
+
+    internal void CancelPendingMorph() => pendingMessages.RemoveAll(m => m.Event == "morph");
 
     /// <summary>The pane shows or hides the view (DESIGN 2.3: hidden views run at low memory and may be discarded).</summary>
     public void SetShown(bool shown) => owner.SetShown(this, shown);
@@ -164,6 +227,28 @@ public sealed class WebSurfaceView : IWebViewSurface
         modelSteps++;
         owner.Touch(this);
         return new StepScope(this);
+    }
+
+    internal IDisposable BeginBridgeCall()
+    {
+        bridgeCalls++;
+        owner.Touch(this);
+        return new BridgeScope(this);
+    }
+
+    internal void HoldArtifactPane(bool hold) => openArtifactPanes += hold ? 1 : -1;
+
+    private sealed class BridgeScope(WebSurfaceView view) : IDisposable
+    {
+        private bool done;
+        public void Dispose()
+        {
+            if (done) return;
+            done = true;
+            view.bridgeCalls--;
+            view.owner.Touch(view);
+            view.owner.EnforceCapSoon();
+        }
     }
 
     /// <summary>
@@ -243,6 +328,8 @@ public sealed class WebSurfaceView : IWebViewSurface
     internal void ReleaseEngine()
     {
         if (engine is null) return;
+        CancelDiscardNotice();
+        navigationTarget = null;
         if (engine.Url is { } url) lastUrl = url;
         Unhook(engine);
         cdp?.Dispose();
@@ -266,6 +353,7 @@ public sealed class WebSurfaceView : IWebViewSurface
     }
 
     internal void RaiseChanged() => Changed?.Invoke();
+    internal void RaiseBecameLive() => BecameLive?.Invoke();
 
     private void Hook(IWebEngineView view)
     {
@@ -320,10 +408,12 @@ public sealed class WebSurfaceView : IWebViewSurface
         if (pendingUrl is { } url)
         {
             pendingUrl = null;
+            navigationTarget = url;
             engine.Navigate(url);
         }
 
         owner.OnViewLive(this);
+        if (navigationTarget is null) FlushMessages();
     }
 
     private void OnProcessFailed(object? sender, WebProcessFailed e) => owner.OnProcessFailed(this, e);
@@ -345,6 +435,11 @@ public sealed class WebSurfaceView : IWebViewSurface
     private void OnNavigationStarting(object? sender, WebNavigationStarting e)
     {
         if (BlockSandboxNavigation(e)) return;
+        if (e.IsMainFrame)
+        {
+            CancelDiscardNotice();
+            navigationTarget = e.Url;
+        }
         NavigationStarting?.Invoke(this, e);
     }
 
@@ -369,6 +464,18 @@ public sealed class WebSurfaceView : IWebViewSurface
         lastUrl = e.Url;
         owner.OnNavigated(this);
         NavigationCompleted?.Invoke(this, e);
+        if (e.IsSuccess && (navigationTarget is null || navigationTarget == e.Url))
+        {
+            navigationTarget = null;
+            FlushMessages();
+        }
+    }
+
+    private void FlushMessages()
+    {
+        if (engine is not { IsAttached: true } live || liveness != WebLiveness.Live) return;
+        foreach (var message in pendingMessages) live.PostMessage(message.Json);
+        pendingMessages.Clear();
     }
 
     private void OnNewWindow(object? sender, WebNewWindowRequest e)
@@ -407,7 +514,58 @@ public sealed class WebSurfaceView : IWebViewSurface
 
     private void OnHistory(object? sender, EventArgs e) => HistoryChanged?.Invoke(this, e);
 
-    private void OnMessage(object? sender, WebMessage e) => WebMessageReceived?.Invoke(this, e);
+    private void OnMessage(object? sender, WebMessage e)
+    {
+        if (discardNotice is { } notice && sender == notice.Engine && engine == notice.Engine
+            && string.Equals(e.SourceOrigin?.TrimEnd('/'), SandboxOrigin, StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(e.Json);
+                var root = document.RootElement;
+                if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("nth", out var nth) && nth.ValueKind == JsonValueKind.Number && nth.TryGetInt32(out var n) && n == 1
+                    && root.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String && type.GetString() == "discard.ready"
+                    && root.TryGetProperty("token", out var token) && token.ValueKind == JsonValueKind.String && token.GetString() == notice.Token)
+                    notice.Ready.TrySetResult(root.TryGetProperty("ok", out var ok) && ok.ValueKind == JsonValueKind.True);
+            }
+            catch (JsonException) { }
+        }
+        WebMessageReceived?.Invoke(this, e);
+    }
+
+    internal void CancelDiscardNotice() => discardNotice?.Ready.TrySetResult(false);
+
+    internal async Task<bool> NotifyDiscardAsync(TimeProvider time)
+    {
+        if (engine is not { IsAttached: true } live) return false;
+        using var stop = new CancellationTokenSource();
+        var timeout = Task.Delay(TimeSpan.FromSeconds(1), time, stop.Token);
+        try
+        {
+            if (!IsSandboxed)
+            {
+                live.PostMessage("{\"nth\":1,\"event\":\"willDiscard\"}");
+                // Ordinary tabs have no nth bridge; wait for the page-message dispatch round trip.
+                var dispatched = live.ExecuteScriptAsync("void 0", CancellationToken.None);
+                if (await Task.WhenAny(dispatched, timeout) != dispatched) return false;
+                await dispatched;
+                return true;
+            }
+            var token = Guid.NewGuid().ToString("N");
+            var ready = new TaskCompletionSource<bool>();
+            discardNotice = (token, live, ready);
+            live.PostMessage(JsonSerializer.Serialize(new { nth = 1, @event = "willDiscard", token }));
+            return await Task.WhenAny(ready.Task, timeout) == ready.Task && await ready.Task;
+        }
+        finally
+        {
+            if (discardNotice is { } notice && engine == live
+                && !(notice.Ready.Task.IsCompletedSuccessfully && notice.Ready.Task.Result))
+                live.PostMessage(JsonSerializer.Serialize(new { nth = 1, @event = "discard.cancel", token = notice.Token }));
+            discardNotice = null;
+            stop.Cancel();
+        }
+    }
 
     private void OnExternalUri(object? sender, WebExternalUriRequest e)
     {
