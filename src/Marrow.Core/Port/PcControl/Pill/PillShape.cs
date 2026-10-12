@@ -22,6 +22,7 @@ public sealed class PillShape
     private readonly PillCurve? height;
     private readonly double fixedWidth;
     private readonly double fixedHeight;
+    private readonly PillMotion? motion;
 
     private PillShape(PillTravel? travel, PillVector fixedAt, PillCurve? width, double fixedWidth, PillCurve? height, double fixedHeight)
     {
@@ -32,6 +33,14 @@ public sealed class PillShape
         this.height = height;
         this.fixedHeight = fixedHeight;
     }
+
+    private PillShape(PillMotion motion)
+    {
+        this.motion = motion;
+    }
+
+    /// <summary>The shape of the pill's whole motion (ED-NEW-pcctl-24): the drawn body, every scale applied.</summary>
+    public static PillShape Of(PillMotion motion) => new(motion);
 
     /// <summary>A shape at rest.</summary>
     public static PillShape Resting(PillRect rect) => new(null, new PillVector(rect.X, rect.Y), null, rect.Width, null, rect.Height);
@@ -45,11 +54,12 @@ public sealed class PillShape
         new(null, at, width, fixedWidth, height, fixedHeight);
 
     /// <summary>True when nothing about the shape changes with time.</summary>
-    public bool AtRest => travel is null && width is null && height is null;
+    public bool AtRest => motion?.AtRest ?? (travel is null && width is null && height is null);
 
     /// <summary>The shape's rectangle at <paramref name="now"/>.</summary>
     public PillRect At(double now)
     {
+        if (motion is not null) return motion.At(now).Drawn;
         var at = travel?.Value(now) ?? fixedAt;
         return new PillRect(at.X, at.Y, width?.Value(now) ?? fixedWidth, height?.Value(now) ?? fixedHeight);
     }
@@ -58,10 +68,10 @@ public sealed class PillShape
     /// True when every part of the shape is visually settled at <paramref name="now"/> (within 1 DIP and under 20 DIP/s for
     /// the travel; the size springs settled): the region may be set, policies may run.
     /// </summary>
-    public bool Settled(double now) => (travel?.VisuallySettled(now) ?? true) && (width?.Settled(now) ?? true) && (height?.Settled(now) ?? true);
+    public bool Settled(double now) => motion?.Settled(now) ?? (travel?.VisuallySettled(now) ?? true) && (width?.Settled(now) ?? true) && (height?.Settled(now) ?? true);
 
     /// <summary>The shape's final rectangle (where it rests once every curve ends).</summary>
-    public PillRect Final => new(travel?.Target.X ?? fixedAt.X, travel?.Target.Y ?? fixedAt.Y, width?.To ?? fixedWidth, height?.To ?? fixedHeight);
+    public PillRect Final => motion is not null ? motion.Final.Drawn : new(travel?.Target.X ?? fixedAt.X, travel?.Target.Y ?? fixedAt.Y, width?.To ?? fixedWidth, height?.To ?? fixedHeight);
 
     /// <summary>
     /// True when <paramref name="point"/> (DIP, the shape's monitor) is inside the rounded shape at <paramref name="now"/>,

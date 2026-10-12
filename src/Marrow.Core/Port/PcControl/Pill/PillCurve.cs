@@ -17,6 +17,9 @@ public enum PillCurveKind
 
     /// <summary>Reduce Motion's fade through: the value steps at the middle while the opacity dips to zero.</summary>
     FadeThrough,
+
+    /// <summary>An accelerating ease, cubic-bezier(0.4, 0, 1, 1): a leave that ends at its full speed (ED-NEW-pcctl-21, 24).</summary>
+    EaseIn,
 }
 
 /// <summary>One scalar motion: a spring from a value and velocity to a target, or one of Reduce Motion's timed changes. Seconds throughout.</summary>
@@ -50,6 +53,9 @@ public sealed record PillCurve(double From, double To, double Velocity0, double 
     /// <summary>Reduce Motion's ease over <paramref name="duration"/> seconds, no velocity.</summary>
     public static PillCurve Ease(double from, double to, double now, double duration = ReducedEase) => new(from, to, 0, 0, now, PillCurveKind.Ease, duration);
 
+    /// <summary>An accelerating ease over <paramref name="duration"/> seconds, cubic-bezier(0.4, 0, 1, 1), no velocity.</summary>
+    public static PillCurve EaseIn(double from, double to, double now, double duration) => new(from, to, 0, 0, now, PillCurveKind.EaseIn, duration);
+
     /// <summary>Reduce Motion's fade through over <paramref name="duration"/> seconds: the value steps at the middle.</summary>
     public static PillCurve FadeThrough(double from, double to, double now, double duration) => new(from, to, 0, 0, now, PillCurveKind.FadeThrough, duration);
 
@@ -66,6 +72,8 @@ public sealed record PillCurve(double From, double To, double Velocity0, double 
                 return From + ((To - From) * PillEase.Standard(Math.Clamp(t / Duration, 0, 1)));
             case PillCurveKind.FadeThrough:
                 return t < Duration / 2 ? From : To;
+            case PillCurveKind.EaseIn:
+                return From + ((To - From) * PillEase.CubicBezier(0.4, 0, 1, 1, Math.Clamp(t / Duration, 0, 1)));
             default:
                 if (t <= 0) return From;
                 return To + (Math.Exp(-Omega * t) * ((From - To) + ((Velocity0 + (Omega * (From - To))) * t)));
