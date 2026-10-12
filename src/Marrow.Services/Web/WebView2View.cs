@@ -26,6 +26,10 @@ internal sealed class WebView2View : IWebEngineView
     private CoreWebView2Controller? controller;
     private double scale = 1;
     private bool disposed;
+    private readonly List<string> documentScripts = [];
+    private IWebResourceHandler? resourceHandler;
+    private bool resourcesHooked;
+    private Task scriptsReady = Task.CompletedTask;
 
     public WebView2View(WebView2Engine engine, WebCreationOptions creation)
     {
@@ -103,6 +107,7 @@ internal sealed class WebView2View : IWebEngineView
             if (controller is null) log.Error("web: controller wrap unavailable; reserved chords from pages and focus exit stay off");
             Apply(WebView2Engine.SettingsFor(Creation));
             Hook();
+            RegisterSandbox();
             foreach (var subscription in cdpSubscriptions) subscription.Connect(core);
         }
         finally
@@ -118,12 +123,32 @@ internal sealed class WebView2View : IWebEngineView
     {
         if (core is null) return;
         foreach (var subscription in cdpSubscriptions) subscription.Disconnect();
+        UnhookResources();
         Unhook();
         core = null;
         controller = null;
     }
 
-    public void Navigate(string url) => core?.Navigate(url);
+    public void Navigate(string url)
+    {
+        if (core is null) return;
+        if (scriptsReady.IsCompletedSuccessfully) core.Navigate(url);
+        else NavigateWhenScriptsReady(scriptsReady, url);
+    }
+
+    public void AddDocumentCreatedScript(string script)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(script);
+        documentScripts.Add(script);
+        if (core is { } c) scriptsReady = Task.WhenAll(scriptsReady, c.AddScriptToExecuteOnDocumentCreatedAsync(script));
+    }
+
+    public void SetResourceHandler(IWebResourceHandler? handler)
+    {
+        resourceHandler = handler;
+        if (handler is null) UnhookResources();
+        else HookResources();
+    }
     public void GoBack() => core?.GoBack();
     public void GoForward() => core?.GoForward();
     public void Stop() => core?.Stop();
@@ -446,6 +471,91 @@ internal sealed class WebView2View : IWebEngineView
 
     private void OnProcessFailed(object? sender, CoreWebView2ProcessFailedEventArgs args) =>
         ProcessFailed?.Invoke(this, new WebProcessFailed(WebView2Engine.Map(args.ProcessFailedKind), args.Reason.ToString(), args.ExitCode));
+
+    /// <summary>
+    /// DESIGN 6.5: the document scripts go in before the first navigation (which waits for them), and every request goes
+    /// to the resource handler.
+    /// </summary>
+    private void RegisterSandbox()
+    {
+        if (core is not { } c) return;
+        var pending = documentScripts.Select(script => (Task)c.AddScriptToExecuteOnDocumentCreatedAsync(script)).ToList();
+        scriptsReady = pending.Count == 0 ? Task.CompletedTask : Task.WhenAll(pending);
+        resourcesHooked = false;
+        if (resourceHandler is not null) HookResources();
+    }
+
+    private async void NavigateWhenScriptsReady(Task ready, string url)
+    {
+        try
+        {
+            await ready;
+        }
+        catch (Exception error) when (SwiftTry.IsThrownError(error))
+        {
+            // Fail closed: a sandboxed page never loads without its hardening and bridge scripts.
+            log.Error($"web: document scripts could not be added; the page stays blank: {error.Message}");
+            return;
+        }
+
+        core?.Navigate(url);
+    }
+
+    private void HookResources()
+    {
+        if (core is not { } c || resourcesHooked) return;
+        c.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All, CoreWebView2WebResourceRequestSourceKinds.All);
+        c.WebResourceRequested += OnWebResourceRequested;
+        resourcesHooked = true;
+    }
+
+    private void UnhookResources()
+    {
+        if (core is not { } c || !resourcesHooked) return;
+        resourcesHooked = false;
+        Safe(() =>
+        {
+            c.WebResourceRequested -= OnWebResourceRequested;
+            c.RemoveWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All, CoreWebView2WebResourceRequestSourceKinds.All);
+        });
+    }
+
+    private void OnWebResourceRequested(object? sender, CoreWebView2WebResourceRequestedEventArgs args)
+    {
+        if (resourceHandler is not { } handler || core is not { } c) return;
+        WebResourceResponse? answer;
+        try
+        {
+            answer = handler.Answer(new WebResourceRequest(args.Request.Uri, args.Request.Method, Map(args.ResourceContext)));
+        }
+        catch (Exception error) when (SwiftTry.IsThrownError(error))
+        {
+            // Fail closed: a handler that throws blocks the request.
+            log.Error($"web: resource handler failed, request blocked: {error.Message}");
+            answer = new WebResourceResponse(403, "Forbidden", [], []);
+        }
+
+        if (answer is null) return;
+        var headers = string.Join("\r\n", answer.Headers.Select(h => h.Key + ": " + h.Value));
+        args.Response = c.Environment.CreateWebResourceResponse(new MemoryStream(answer.Body, writable: false), answer.StatusCode, answer.ReasonPhrase, headers);
+    }
+
+    internal static WebResourceKind Map(CoreWebView2WebResourceContext context) => context switch
+    {
+        CoreWebView2WebResourceContext.Document => WebResourceKind.Document,
+        CoreWebView2WebResourceContext.Stylesheet => WebResourceKind.Stylesheet,
+        CoreWebView2WebResourceContext.Image => WebResourceKind.Image,
+        CoreWebView2WebResourceContext.Media => WebResourceKind.Media,
+        CoreWebView2WebResourceContext.Font => WebResourceKind.Font,
+        CoreWebView2WebResourceContext.Script => WebResourceKind.Script,
+        CoreWebView2WebResourceContext.XmlHttpRequest => WebResourceKind.XmlHttpRequest,
+        CoreWebView2WebResourceContext.Fetch => WebResourceKind.Fetch,
+        CoreWebView2WebResourceContext.EventSource => WebResourceKind.EventSource,
+        CoreWebView2WebResourceContext.Websocket => WebResourceKind.WebSocket,
+        CoreWebView2WebResourceContext.Manifest => WebResourceKind.Manifest,
+        CoreWebView2WebResourceContext.Ping => WebResourceKind.Ping,
+        _ => WebResourceKind.Other,
+    };
 
     private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs args) =>
         WebMessageReceived?.Invoke(this, new WebMessage(Origin(args.Source), args.WebMessageAsJson));
