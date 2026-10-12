@@ -6266,3 +6266,8 @@ ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I10). The me
 ## ED-NEW-inst-c4c-11: Prove case-sensitive Release preflight
 
 ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I11). ED-NEW-inst-cx-6 requires exact Release. Separate lowercase release, uppercase RELEASE and mixed ReLeAsE Facts keep the same plain preflight rejection and require canonical Release to pass. The cne-to-ne mutation fails each variant alone twice, restores byte-exact, then all four configuration Facts pass. Original Debug remains. Only AST-extracted preflight before the first path assignment runs, with no packaging/build/signing command.
+
+
+## ED-NEW-inst-c4c-15: Keep primary smoke and failed-start errors during cleanup failures
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I15). Invoke-NthUiSmoke captures its primary ErrorRecord and attempts Stop and Dispose separately. Secondary cleanup errors aggregate with the original timeout/nonzero-exit error; cleanup failure after success fails closed. Native Start captures its primary failure and invokes tested cleanup that always disposes, aggregates stop/wait/disposal failures and retains the outer raw-handle close finally. Six original Facts fail alone twice before the fix; synthetic tests cover secondary Stop and Dispose errors. Real-start-caller omission also fails alone twice and restores byte-exact. Focused green uses fakes only, no actual Setup/installer/package/app launch.

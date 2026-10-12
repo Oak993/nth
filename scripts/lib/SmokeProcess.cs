@@ -2,6 +2,7 @@
 // C4b U7: only the packaging smoke process and its descendants belong to this local build-tool job.
 // Create suspended -> assign to kill-on-close job -> resume. No process outside this job is enumerated or terminated.
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -39,6 +40,7 @@ namespace Nth.Build
             Process process = null;
             var created = false;
             var transferred = false;
+            Exception startFailure = null;
             try
             {
                 if (jobHandle.IsInvalid) throw LastError("Could not create the smoke process job");
@@ -59,13 +61,18 @@ namespace Nth.Build
                 transferred = true;
                 return owned;
             }
+            catch (Exception error)
+            {
+                startFailure = error;
+                throw;
+            }
             finally
             {
                 try
                 {
                     if (!transferred)
                     {
-                        try
+                        CleanupFailedStart(startFailure, () =>
                         {
                             // Assignment or resume failure must not leave a suspended child. Terminate uses our creation handle.
                             if (created && child.Process != IntPtr.Zero)
@@ -73,8 +80,10 @@ namespace Nth.Build
                                 if (!TerminateProcess(child.Process, 1)) throw LastError("Could not stop the failed smoke start");
                                 if (WaitForSingleObject(child.Process, 5000) != 0) throw new TimeoutException("The failed smoke start did not stop within 5000 ms.");
                             }
-                        }
-                        finally { jobHandle.Dispose(); process?.Dispose(); }
+                        }, () =>
+                        {
+                            try { jobHandle.Dispose(); } finally { process?.Dispose(); }
+                        });
                     }
                 }
                 finally
@@ -83,6 +92,17 @@ namespace Nth.Build
                     if (created && child.Process != IntPtr.Zero) CloseHandle(child.Process);
                 }
             }
+        }
+
+        // Preserve a failed launch's cause if termination/wait/disposal also fails; always attempt disposal.
+        internal static void CleanupFailedStart(Exception primary, Action stop, Action dispose)
+        {
+            var errors = new List<Exception>();
+            if (primary != null) errors.Add(primary);
+            try { stop(); } catch (Exception error) { errors.Add(error); }
+            try { dispose(); } catch (Exception error) { errors.Add(error); }
+            if (errors.Count > (primary == null ? 0 : 1))
+                throw new AggregateException("The smoke start or its cleanup failed.", errors);
         }
 
         public bool WaitForExit(int milliseconds) => Process.WaitForExit(milliseconds);

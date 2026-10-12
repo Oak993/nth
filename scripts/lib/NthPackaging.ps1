@@ -37,6 +37,7 @@ function Invoke-NthUiSmoke {
         [ValidateRange(1, 2147483647)][int]$StopTimeoutMilliseconds = 5000
     )
     $owned = $null
+    $failure = $null
     try {
         $owned = & $StartProcess
         if ($null -eq $owned) { throw 'The UI smoke process could not be started.' }
@@ -44,10 +45,18 @@ function Invoke-NthUiSmoke {
             throw "nth-Setup.exe --ui-smoke timed out after $TimeoutMilliseconds ms."
         }
         if ($owned.ExitCode -ne 0) { throw "nth-Setup.exe --ui-smoke exited with code $($owned.ExitCode)." }
+    } catch {
+        $failure = $_
+        throw
     } finally {
         if ($null -ne $owned) {
-            try { $owned.Stop($StopTimeoutMilliseconds) }
-            finally { $owned.Dispose() }
+            $cleanupErrors = [Collections.Generic.List[Exception]]::new()
+            try { $owned.Stop($StopTimeoutMilliseconds) } catch { $cleanupErrors.Add($_.Exception) }
+            try { $owned.Dispose() } catch { $cleanupErrors.Add($_.Exception) }
+            if ($cleanupErrors.Count -gt 0) {
+                if ($null -ne $failure) { $cleanupErrors.Insert(0, $failure.Exception) }
+                throw [AggregateException]::new('The UI smoke run or its cleanup failed.', $cleanupErrors.ToArray())
+            }
         }
     }
 }
