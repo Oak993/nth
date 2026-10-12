@@ -316,6 +316,24 @@ public sealed class PcFakeDesktop : IWindowCatalog, IUiaReader, IPcChangeFeed, I
         return true;
     }
 
+    /// <summary>Whether a minimized window can be shown for a moment (false: Windows did not show it).</summary>
+    public bool Peeks { get; set; } = true;
+
+    public IDisposable? Peek(nint handle)
+    {
+        var app = Apps.FirstOrDefault(a => a.Handle == handle);
+        if (app is null || !app.Minimized || !Peeks) return null;
+        Log1("peek " + PcWindowRef.Format(handle));
+        app.Minimized = false;
+        Notify(handle);
+        return new PcFakePeek(() =>
+        {
+            Log1("unpeek " + PcWindowRef.Format(handle));
+            app.Minimized = true;
+            Notify(handle);
+        });
+    }
+
     // ----- IUiaReader -----
 
     public Task<PcUiNode?> Tree(nint window, CancellationToken cancellationToken)

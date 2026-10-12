@@ -221,9 +221,19 @@ public sealed class PcFakeConfirmer : IPcConfirmer
         return Hold is { } hold ? hold.Task.WaitAsync(cancellationToken) : Task.FromResult(Answer);
     }
 
-    public Task<PcShowAnswer> Show(PcAskSource source, string appName, string windowTitle, CancellationToken cancellationToken)
+    public Task<PcShowAnswer> Show(PcAskSource source, string appName, string windowTitle, CancellationToken cancellationToken) =>
+        Show(source, appName, windowTitle, null, cancellationToken);
+
+    /// <summary>Why each ask to show a window was made (null for pc_focus_window), in order.</summary>
+    public List<string?> ShownWhy { get; } = [];
+
+    public Task<PcShowAnswer> Show(PcAskSource source, string appName, string windowTitle, string? why, CancellationToken cancellationToken)
     {
-        lock (Shown) Shown.Add(appName + " " + windowTitle);
+        lock (Shown)
+        {
+            Shown.Add(appName + " " + windowTitle);
+            ShownWhy.Add(why);
+        }
         return ShowHold is { } hold ? hold.Task.WaitAsync(cancellationToken) : Task.FromResult(ShowAnswer);
     }
 }

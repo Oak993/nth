@@ -2,7 +2,8 @@
 // 2.3, 2.10, 2.11, 2.12). Seeing: pc_list_apps, pc_launch_app, pc_observe and pc_zoom. A look is the window's tree first
 // (a diff against the last look, from the warm cache when nothing changed); a screenshot only when asked, or when the tree
 // is weak, on the model's own grid with element numbers drawn on it, plus full-resolution detail crops where targets are
-// small or crowded and native tiles for a weak tree. A locked PC gives the tree only.
+// small or crowded and native tiles for a weak tree. A locked PC gives the tree only. A minimized window's screenshot asks
+// "Show <app> for a moment?" first and is taken inside the quiet peek (ED-NEW-pcctl-46); with Not now, the tree only.
 using System.Text;
 using System.Text.Json.Nodes;
 using Marrow.Core.Port.PcControl;
@@ -193,6 +194,24 @@ public sealed partial class PcControlEngine
         if (region is not null || mode == "yes" || (mode == "auto" && (!wantTree || weak)))
         {
             var why = NoPixels(info);
+            // a minimized window: asked first, then shown for this look and read again where the screenshot shows it
+            if (why is null && info.Minimized)
+            {
+                var (shown, refused) = await Peek(info, ScreenshotReason, call).ConfigureAwait(false);
+                if (refused is not null)
+                {
+                    if (region is not null || !wantTree) return refused;
+                    why = "no screenshot: " + refused.Reason;
+                }
+                else
+                {
+                    info = shown!;
+                    tree = await Tree(info.Handle, fresh: true, call.Token).ConfigureAwait(false) ?? tree;
+                    version = CachedVersion(info.Handle);
+                    weak = Actionable(tree) < WeakTree || canvasClasses.Contains(info.ClassName);
+                    notes.Add("the window was shown under the others for this screenshot and is minimized again after it");
+                }
+            }
             if (why is not null)
             {
                 if (region is not null || !wantTree) return PcResult.Fail(PcErrorCode.CaptureFailed, why);
@@ -250,7 +269,6 @@ public sealed partial class PcControlEngine
     {
         if (!caller.Vision) return "no screenshot: this model does not take images";
         if (parts.Security.Locked()) return "screen locked: tree only";
-        if (info.Minimized) return "no screenshot: the window is minimized (the tree still works)";
         if (parts.Capture is null) return "no screenshot: capture is not available";
         return null;
     }

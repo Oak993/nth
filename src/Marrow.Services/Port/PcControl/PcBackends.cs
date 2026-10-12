@@ -65,6 +65,15 @@ public interface IWindowCatalog
     /// (SW_SHOWNOACTIVATE) and raised (SetWindowPos HWND_TOP, SWP_NOACTIVATE). The user's foreground and focus stay.
     /// </summary>
     bool Show(nint handle);
+
+    /// <summary>
+    /// The quiet peek (DESIGN.md 2.10, critique C18; ED-NEW-pcctl-46): a minimized window restored without being activated
+    /// (SW_SHOWNOACTIVATE) and put at the bottom of the Z-order (HWND_BOTTOM, SWP_NOACTIVATE), where it can still be
+    /// captured and acted on; disposing it minimizes the window again without activation (SW_SHOWMINNOACTIVE) and puts
+    /// back its exact placement. Null when the window is gone, is not minimized, or could not be shown. Tactus asks the
+    /// user first ("Show Outlook for a moment?") until NP-12 proves a peek unseen.
+    /// </summary>
+    IDisposable? Peek(nint handle) => null;
 }
 
 /// <summary>

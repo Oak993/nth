@@ -1,7 +1,8 @@
 // PORT-ONLY: Tactus, PC control (OD-0140, OD-0141, OD-0144, ED-NEW-pcctl-6, ED-NEW-pcctl-7, ED-NEW-pcctl-8; DESIGN.md 2.2,
 // 2.8, 2.12). The tools that act and wait in one window: pc_click, pc_type, pc_set_value, pc_key, pc_scroll, pc_drag,
 // pc_action, pc_focus_window (asks on the pill, then shows the window without activating it), pc_read and pc_wait. Each
-// builds one input request for the action ladder; the checks, the rung choice and the report are shared (Act).
+// builds one input request for the action ladder; the checks, the rung choice and the report are shared (Act). A point or
+// a drag in a minimized window asks first and runs inside the quiet peek (ED-NEW-pcctl-46).
 using System.Text.Json.Nodes;
 using Marrow.Core.Port.PcControl;
 
@@ -16,6 +17,25 @@ public sealed partial class PcControlEngine
             if (stoppedForTurn || stoppedApps.Contains(info.App.Key)) return PcResult.Fail(PcErrorCode.StoppedByUser, "the user stopped Tactus");
         }
         if (!parts.Settings().Enabled) return PcResult.Fail(PcErrorCode.PcOff, "Tactus was switched off");
+        try
+        {
+            // a point or a drag in a minimized window needs it on screen: asked first, then shown for the step (ED-NEW-pcctl-46)
+            if (info.Minimized && PeekReason(tool, info, args) is { } why)
+            {
+                var (shown, refused) = await Peek(info, why, call).ConfigureAwait(false);
+                if (refused is not null) return refused;
+                info = shown!;
+            }
+            return await Dispatch(tool, info, args, call).ConfigureAwait(false);
+        }
+        finally
+        {
+            EndPeek(call);
+        }
+    }
+
+    private async Task<PcResult> Dispatch(string tool, PcWindowInfo info, JsonObject args, PcCall call)
+    {
         return tool switch
         {
             PcToolSchemas.Observe => await Observe(info, args, call).ConfigureAwait(false),

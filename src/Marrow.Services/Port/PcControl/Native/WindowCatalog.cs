@@ -1,7 +1,8 @@
 // PORT-ONLY: PC control (OD-0140, ED-NEW-pcctl-1; DESIGN.md 3.1). The Win32 window list: EnumWindows, skipping hidden,
 // cloaked, tool and empty windows; process exe and AUMID; DWM extended frame bounds in physical pixels; monitors; hit
-// tests by root owner; activation. A packaged app's window belongs to ApplicationFrameHost, so its identity is read from
-// the hosted core window's process. Never used by automated tests.
+// tests by root owner; activation; the quiet peek of a minimized window (ED-NEW-pcctl-46: restored without activation at
+// the bottom of the Z-order, then minimized again in its exact placement). A packaged app's window belongs to
+// ApplicationFrameHost, so its identity is read from the hosted core window's process. Never used by automated tests.
 using System.Runtime.InteropServices;
 using System.Text;
 using Marrow.Core.Port.PcControl;
@@ -87,6 +88,32 @@ public sealed class WindowCatalog : IWindowCatalog
         if (!Win32.IsWindow(handle)) return false;
         if (Win32.IsIconic(handle)) Win32.ShowWindow(handle, Win32.SW_SHOWNOACTIVATE);
         return Win32.SetWindowPos(handle, Win32.HWND_TOP, 0, 0, 0, 0, Win32.SWP_NOMOVE | Win32.SWP_NOSIZE | Win32.SWP_NOACTIVATE);
+    }
+
+    public IDisposable? Peek(nint handle)
+    {
+        if (!Win32.IsWindow(handle) || !Win32.IsIconic(handle)) return null;
+        var saved = new Win32.WINDOWPLACEMENT { Length = Marshal.SizeOf<Win32.WINDOWPLACEMENT>() };
+        if (!Win32.GetWindowPlacement(handle, ref saved)) return null;
+        Win32.ShowWindow(handle, Win32.SW_SHOWNOACTIVATE);
+        Win32.SetWindowPos(handle, Win32.HWND_BOTTOM, 0, 0, 0, 0, Win32.SWP_NOMOVE | Win32.SWP_NOSIZE | Win32.SWP_NOACTIVATE);
+        return Win32.IsIconic(handle) ? null : new Peeked(handle, saved);
+    }
+
+    // The peek's end: minimized again without activation, then the exact placement it had (its restored rect and whether it
+    // restores maximized), applied while it stays minimized.
+    private sealed class Peeked(nint handle, Win32.WINDOWPLACEMENT saved) : IDisposable
+    {
+        private int ended;
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref ended, 1) != 0 || !Win32.IsWindow(handle)) return;
+            Win32.ShowWindow(handle, Win32.SW_SHOWMINNOACTIVE);
+            var placement = saved;
+            placement.ShowCmd = Win32.SW_SHOWMINNOACTIVE;
+            Win32.SetWindowPlacement(handle, ref placement);
+        }
     }
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> Versions = new(StringComparer.OrdinalIgnoreCase);

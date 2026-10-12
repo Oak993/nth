@@ -50,6 +50,13 @@ public interface IPcConfirmer
     Task<PcShowAnswer> Show(PcAskSource source, string appName, string windowTitle, CancellationToken cancellationToken);
 
     /// <summary>
+    /// The same ask for one step that needs the minimized window shown (the quiet peek, DESIGN.md 2.10): "Show Outlook for
+    /// a moment?", with why it is needed (<paramref name="why"/>: "to take a screenshot of it").
+    /// </summary>
+    Task<PcShowAnswer> Show(PcAskSource source, string appName, string windowTitle, string? why, CancellationToken cancellationToken) =>
+        Show(source, appName, windowTitle, cancellationToken);
+
+    /// <summary>
     /// What the user typed when they cancelled a confirm card with "Reply instead", once; null when nothing was said. It goes
     /// to the model in the needs_confirmation result (DESIGN.md 10.4 "Confirm body").
     /// </summary>

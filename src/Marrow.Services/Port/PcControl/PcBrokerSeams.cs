@@ -111,10 +111,13 @@ public sealed class PcBrokerConfirmer(PcAskBroker broker) : IPcConfirmer
         return outcome is { Status: PcAskStatus.Answered, Answer: true };
     }
 
-    public async Task<PcShowAnswer> Show(PcAskSource source, string appName, string windowTitle, CancellationToken cancellationToken)
+    public Task<PcShowAnswer> Show(PcAskSource source, string appName, string windowTitle, CancellationToken cancellationToken) =>
+        Show(source, appName, windowTitle, null, cancellationToken);
+
+    public async Task<PcShowAnswer> Show(PcAskSource source, string appName, string windowTitle, string? why, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(source);
-        var ask = broker.Add(new PcAskDraft(PcAskKind.ShowWindow, source.Thread, new PcShowAsk(windowTitle)) { AppName = appName, Head = source.Head }, cancellationToken);
+        var ask = broker.Add(new PcAskDraft(PcAskKind.ShowWindow, source.Thread, new PcShowAsk(windowTitle, why)) { AppName = appName, Head = source.Head }, cancellationToken);
         var outcome = await ask.Outcome.WaitAsync(cancellationToken).ConfigureAwait(false);
         return outcome is { Status: PcAskStatus.Answered, Answer: PcShowAnswer.Show } ? PcShowAnswer.Show : PcShowAnswer.NotNow;
     }

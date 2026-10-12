@@ -264,6 +264,14 @@ public sealed partial class PcControlEngine
             if (tried > 0 && parts.Pause.PausedSince(info.App.Key, call.PauseEpoch)) return last!;
             if (Clipboard(request, way) is { } clipboard) return clipboard;
             if (await Guard(info, request, way, before, confirmed, call).ConfigureAwait(false) is { } refused) return refused;
+            // the real mouse or keyboard in a minimized window: asked first, then shown for the step (ED-NEW-pcctl-46); the
+            // borrow reads its target again where it now is
+            if (way.Rung == PcRung.R4 && info.Minimized && call.Peek is null)
+            {
+                var (shown, notShown) = await Peek(info, RealInputReason, call).ConfigureAwait(false);
+                if (notShown is not null) return notShown;
+                info = shown!;
+            }
             var pressesBefore = parts.Input.Presses(handle);
             var (deferred, waited) = await Share(info, request, way, call).ConfigureAwait(false);
             if (deferred is not null) return deferred;

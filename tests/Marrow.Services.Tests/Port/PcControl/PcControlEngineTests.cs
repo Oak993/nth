@@ -104,7 +104,7 @@ public sealed class PcControlEngineTests
     }
 
     [Fact]
-    public async Task Screenshots_come_only_when_needed_and_never_for_a_minimized_window_or_a_text_only_model()
+    public async Task Screenshots_come_only_when_needed_and_never_for_a_minimized_window_the_user_keeps_minimized_or_a_text_only_model()
     {
         var (harness, app, engine) = await Ready();
         Assert.Equal(0, harness.CaptureSource.Calls);
@@ -116,12 +116,19 @@ public sealed class PcControlEngineTests
         var blind = await PcEngineHarness.Call(harness.Engine("chat-2", vision: false), "pc_observe", "{\"window\":\"w:1a\",\"screenshot\":\"yes\"}");
         Assert.Null(blind.Image);
         Assert.Contains("does not take images", blind.Body, StringComparison.Ordinal);
+        Assert.Empty(harness.Confirmer.Shown);
+        // a minimized window is shown for a screenshot only after the user's Show (ED-NEW-pcctl-46); with Not now, no pixels
+        harness.Confirmer.ShowAnswer = PcShowAnswer.NotNow;
         app.Minimized = true;
         var minimized = await PcEngineHarness.Call(engine, "pc_observe", "{\"window\":\"w:1a\",\"screenshot\":\"yes\"}");
         Assert.True(minimized.Ok);
         Assert.Null(minimized.Image);
         Assert.Contains("minimized", minimized.Body, StringComparison.Ordinal);
+        Assert.Contains("chose Not now", minimized.Body, StringComparison.Ordinal);
         Assert.Equal(1, harness.CaptureSource.Calls);
+        Assert.Single(harness.Confirmer.Shown);
+        Assert.True(app.Minimized);
+        Assert.DoesNotContain(harness.Desktop.Log, l => l.StartsWith("peek", StringComparison.Ordinal));
     }
 
     [Fact]

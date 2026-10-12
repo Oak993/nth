@@ -134,6 +134,9 @@ public sealed class PcCall(PcTimings timings, PcAuditDraft audit, CancellationTo
     public PcResumed? Resumed { get; set; }
     internal bool NeedsFreshTarget { get; set; }
 
+    /// <summary>The quiet peek the step holds (DESIGN.md 2.10): the minimized window shown for the step, minimized again when it ends.</summary>
+    internal IDisposable? Peek { get; set; }
+
     public PcCall With(CancellationToken other) => new(Timings, Audit, other, Wait) { InBatch = InBatch, Base = Base, Output = Output, PauseEpoch = PauseEpoch, GrantLive = GrantLive, NeedsFreshTarget = NeedsFreshTarget };
 }
 
