@@ -30,8 +30,12 @@ public sealed partial class ThreadRuntime
         if (text.Length == 0 || IsReverting || Thread is not { IsArchived: false } thread
             || App?.Project(thread.ProjectID) is null) return false;
         var prompt = new FollowUpPrompt { Id = request?.RequestId ?? Guid.NewGuid(), Text = text };
+        // ED-NEW-web-nc6land-1: "queued" means something is ahead of it (a running turn, another accepted artifact
+        // request, a start already on its way). The first request on an idle chat is the pending one at once, even
+        // though the follow-up queue starts it one main-loop hop later.
+        var queuedBehind = request is { IsQueued: true } || phase != RuntimePhase.Idle || artifactDispatchPending is not null || artifactFollowUps.Count > 0;
         artifactFollowUps.Add(prompt.Id, request);
-        if (request is not null) TabulaPane.StateOf(this).AddAsk(request with { IsQueued = true });
+        if (request is not null) TabulaPane.StateOf(this).AddAsk(request with { IsQueued = queuedBehind });
         FollowUps = followUps.Appending(prompt);
         saveRevision++;
         ScheduleSave();
