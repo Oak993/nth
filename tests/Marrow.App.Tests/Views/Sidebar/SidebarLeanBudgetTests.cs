@@ -27,9 +27,10 @@ public sealed class SidebarLeanBudgetTests(HeadlessSession headless)
     private const int Warmup = 16;
     private const int Measured = 40;
 
-    // Debug build. Measured on the base (claude/release-integration 0a946c558): 2,310,737 bytes per keystroke (2,310,258 and 2,310,262 on
-    // reruns). Limit about 1.5x.
-    private const long SearchKeystrokeLimit = 3_450_000;
+    // Debug build. Measured on the base (claude/release-integration 0a946c558): 668,267 bytes per keystroke (668,268 on a rerun), with the
+    // search field found once (a first cut found it again on every keystroke, a walk of the whole tree that cost 1.64 MB of the 2.31 MB it
+    // read). Limit about 1.5x.
+    private const long SearchKeystrokeLimit = 1_000_000;
     // Measured on the base: 20 list passes for 20 changes the list does not show (10 spaces, 10 keystrokes that keep the results). Limit
     // about 1.5x; the fix's target is 0.
     private const int NoOpPassLimit = 30;
@@ -51,9 +52,11 @@ public sealed class SidebarLeanBudgetTests(HeadlessSession headless)
             harness.Main.OnMain(() => { frames.Advance(TimeSpan.FromMilliseconds(milliseconds)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
         }
 
+        private TextBox? box; // found once: a search of the whole tree per keystroke would be the test's own cost, not the list's
+
         public void Type(string text, int then = 16)
         {
-            harness.Main.OnMain(() => SearchBox(view).Text = text);
+            harness.Main.OnMain(() => (box ??= SearchBox(view)).Text = text);
             Tick(then);
         }
 
