@@ -22,7 +22,8 @@ public sealed class PaletteOfflineRetryBudgetTests
             if(poll+TimeSpan.FromMilliseconds(250)>TimeSpan.FromHours(1))break;
             fake.Time.Advance(poll-fake.Time.Elapsed);fake.Time.Advance(TimeSpan.FromMilliseconds(250));
         }
-        // Measured on the unchanged base: 30 (a flat 120 s retry). Limit about 1.5x.
-        Assert.InRange(Catalogue(fake),1,45);
+        // Measured on the unchanged base: 30 (a flat 120 s retry; limit was 45). After the backoff (120, 240, 480, 960, then
+        // 1800 s): 5. Limit about 1.3x.
+        Assert.InRange(Catalogue(fake),1,6);
     }
 }

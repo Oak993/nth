@@ -40,6 +40,7 @@ public sealed partial class PaletteEngine : Actor,IDisposable
     private PaletteSnapshot current;
     private Task<PaletteCheckResult>? running;
     private ITimer? triggerTimer,pollTimer,publicationTimer;
+    private int offlineFailures;
     private bool started,disposed;
     public PaletteSnapshot Current=>Volatile.Read(ref current);
     public string SeedsPath=>store.SeedsPath;
@@ -97,7 +98,10 @@ public sealed partial class PaletteEngine : Actor,IDisposable
         network.AvailabilityChanged+=NetworkAvailable;
         QueueCheck();
     }
-    private void NetworkAvailable(bool available){if(available)QueueCheck();}
+    // ED-NEW-lean-18b: a network-available event ends the offline backoff, so the next check retries at 120 s again.
+    private void NetworkAvailable(bool available){if(available){Volatile.Write(ref offlineFailures,0);QueueCheck();}}
+    // ED-NEW-lean-18b: offline retries back off from 120 s, doubling to 30 min; any catalogue success resets it.
+    internal static int OfflineRetrySeconds(int failures)=>Math.Min(1800,120<<Math.Clamp(failures-1,0,4));
     private void QueueCheck()
     {
         if(disposed)return;
@@ -137,10 +141,12 @@ public sealed partial class PaletteEngine : Actor,IDisposable
         }
         if(!catalogueOk)
         {
-            if(started){pollTimer?.Dispose();pollTimer=time.CreateTimer(_=>QueueCheck(),null,TimeSpan.FromSeconds(120),Timeout.InfiniteTimeSpan);}
+            var failures=Interlocked.Increment(ref offlineFailures);
+            if(started){pollTimer?.Dispose();pollTimer=time.CreateTimer(_=>QueueCheck(),null,TimeSpan.FromSeconds(OfflineRetrySeconds(failures)),Timeout.InfiniteTimeSpan);}
             Progress?.Invoke(new(PaletteRefreshPhase.Done,1,1));
             return new(false,Current.Models.Count,ValueList<string>.Empty,ValueList<string>.Empty,ValueList<string>.Empty,Current.Boundary,Current.Digest);
         }
+        Volatile.Write(ref offlineFailures,0);
         if(!manual)Publish();
         Progress?.Invoke(new(PaletteRefreshPhase.Providers,1,1));
         var day=ServerNow/86400;
@@ -249,7 +255,7 @@ public sealed partial class PaletteEngine : Actor,IDisposable
         if(started)
         {
             pollTimer?.Dispose();var nextBoundary=(ServerNow/21600+1)*21600;
-            var seconds=!catalogueOk?120:Math.Max(1,nextBoundary+Random.Shared.Next(60,601)-ServerNow);
+            var seconds=!catalogueOk?OfflineRetrySeconds(Volatile.Read(ref offlineFailures)):Math.Max(1,nextBoundary+Random.Shared.Next(60,601)-ServerNow);
             pollTimer=time.CreateTimer(_=>QueueCheck(),null,TimeSpan.FromSeconds(seconds),Timeout.InfiniteTimeSpan);
         }
         return new(catalogueOk,Current.Models.Count,new(added.Where(m=>!before.Models.Values.Any(x=>x.Maker==m&&x.State is PaletteState.Ready or PaletteState.Known)).Order(StringComparer.Ordinal)),new(Current.Models.Values.Where(m=>m.State==PaletteState.Pending).Select(m=>m.Maker).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)),new(Current.Models.Values.Where(m=>m.Crowded).Select(m=>m.Maker).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)),Current.Boundary,Current.Digest)
