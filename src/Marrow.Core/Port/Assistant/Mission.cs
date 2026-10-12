@@ -264,14 +264,29 @@ public static class MissionMachine
             _ => (h, $"{h.Name} cannot pause while {MissionStates.Label(h.State)}."),
         });
 
-    public static MissionMove ResumeHead(Mission m, string headId) =>
-        Head(m, headId, h => h.State switch
+    public static MissionMove ResumeHead(Mission m, string headId)
+    {
+        // Resuming one head may not undo a task that is stopping, failed, or had its changes reverted, nor a reserve
+        // pause: those go through the task's own Resume or Restart (and its card), so Stop all and the reserve hold
+        // (12.6b). A task that summed to Stopped from a head stopped by hand is still resumed head by head.
+        switch (m.State)
+        {
+            case MissionState.Stopping:
+                return No(m, "The task is stopping; Resume the task once it has stopped.");
+            case MissionState.Failed:
+                return No(m, "The task failed; Restart it to begin again.");
+            case MissionState.Stopped when m.Reverted:
+                return No(m, "Its changes were reverted; Restart begins again from the brief.");
+        }
+        if (m.PausedBy == PauseCause.Reserve) return No(m, "Your reserve holds this task; answer its card.");
+        return Head(m, headId, h => h.State switch
         {
             _ when h.HeldByReserve => (h, $"{h.Name} is held by your reserve; answer its card."),
             HeadState.Pausing => (h with { State = HeadState.Working, ResumeTo = null }, null),
             HeadState.Paused or HeadState.Stopped => (h with { State = h.ResumeTo ?? HeadState.Queued, ResumeTo = null, StoppedByHand = false }, null),
             _ => (h, $"{h.Name} has nothing to resume."),
         });
+    }
 
     public static MissionMove StopHead(Mission m, string headId, bool agentOpen) =>
         Head(m, headId, h => h.State switch

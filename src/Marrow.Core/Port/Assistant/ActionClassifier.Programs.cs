@@ -64,7 +64,42 @@ public static partial class ActionClassifier
 
         if (sub is "bisect" && first == "run" || sub is "rebase" && (Has("-x", "--exec") || rest.Any(a => a.Text.StartsWith("--exec=", StringComparison.Ordinal))))
             return Unknown("runs a command it names");
-        if (GitRead.Contains(sub)) return Work("reads the repository");
+        // Options that make git run a program git is handed, whatever the subcommand: --exec (archive --remote),
+        // --upload-pack / --receive-pack (fetch, ls-remote, push, to a local "." too), git grep -O / --open-files-in-pager.
+        foreach (var a in rest)
+        {
+            var t = a.Text;
+            var eq = t.IndexOf('=', StringComparison.Ordinal);
+            var optName = eq > 0 ? t[..eq] : t;
+            if (optName is "--exec" or "--upload-pack" or "--receive-pack" or "--open-files-in-pager"
+                || (sub == "grep" && (t == "-O" || (t.StartsWith("-O", StringComparison.Ordinal) && t.Length > 2))))
+                return Unknown("runs a program git is handed");
+        }
+        // --output on a reading command writes a file the classifier must place (a protected root is then a hard deny).
+        CommandWord? outFile = null;
+        for (var j = 0; j < rest.Count; j++)
+        {
+            var t = rest[j].Text;
+            if (t.StartsWith("--output=", StringComparison.Ordinal)) outFile = rest[j] with { Text = t[9..] };
+            else if (t == "--output" && j + 1 < rest.Count) outFile = rest[j + 1];
+        }
+        Classification WithOutput(Classification c) => outFile is null ? c : Classification.Of([c, Paths.Write(outFile, cwd, call.Context)]);
+        if (GitRead.Contains(sub))
+        {
+            // git diff/grep/show --no-index reads the files it is handed directly, credential stores included.
+            if (Has("--no-index") && rest.Any(a => !a.Text.StartsWith('-')))
+            {
+                var reads = rest.Where(a => !a.Text.StartsWith('-')).Select(a => Paths.Read(a, cwd, call.Context)).ToList();
+                reads.Add(Work("reads the repository"));
+                if (outFile is not null) reads.Add(Paths.Write(outFile, cwd, call.Context));
+                return Classification.Of(reads);
+            }
+            return WithOutput(Work("reads the repository"));
+        }
+        if (sub == "maintenance")
+            return first is "start" or "register" or "stop" or "unregister"
+                ? Leaf(ActionClass.HardDeny, "registers or removes a Task Scheduler job")
+                : Local("runs repository maintenance");
         if (GitLocal.Contains(sub)) return Local("changes the repository");
         switch (sub)
         {
@@ -190,6 +225,8 @@ public static partial class ActionClassifier
                 {
                     "login" or "refresh" or "setup-git" or "switch" => Leaf(ActionClass.Login, "signs in to GitHub"),
                     "token" => Leaf(ActionClass.HardDeny, "prints a sign-in token"),
+                    // gh auth status -t / --show-token prints the token into the agent's tool output.
+                    "status" when call.HasIgnoreCase("-t", "--show-token") => Leaf(ActionClass.HardDeny, "prints a sign-in token"),
                     "status" or "logout" => Work("reads or ends the GitHub sign-in"),
                     _ => Unknown("a gh auth command"),
                 };
@@ -225,7 +262,7 @@ public static partial class ActionClassifier
                 return sub2 switch
                 {
                     "view" or "list" => read,
-                    "download" => Classification.Of([read, call.Write(call.CwdWord)]),
+                    "download" => Classification.Of([read, GhDownloadWrite(call)]),
                     "delete" or "delete-asset" => Leaf(ActionClass.Destructive, "deletes a release"),
                     _ => Out("publishes a release"),
                 };
@@ -250,7 +287,7 @@ public static partial class ActionClassifier
                 return sub2 switch
                 {
                     "view" or "list" or "watch" => read,
-                    "download" => Classification.Of([read, call.Write(call.CwdWord)]),
+                    "download" => Classification.Of([read, GhDownloadWrite(call)]),
                     "delete" => Leaf(ActionClass.Destructive, "deletes a run"),
                     _ => Out("starts or changes a workflow on GitHub"),
                 };
@@ -281,6 +318,21 @@ public static partial class ActionClassifier
             default:
                 return Unknown($"gh {sub} is not a command the classifier knows");
         }
+    }
+
+    // gh release/run download writes into a folder or file it names (-D/--dir, -O/--output), which can be outside the
+    // worktree (the Startup folder, say); with none it writes into the working folder.
+    private static Classification GhDownloadWrite(Call call)
+    {
+        var args = call.Args;
+        for (var k = 0; k + 1 < args.Count; k++)
+            if (args[k].Text is "-D" or "--dir" or "-O" or "--output") return call.Write(args[k + 1]);
+        foreach (var a in args)
+        {
+            if (a.Text.StartsWith("--dir=", StringComparison.Ordinal)) return call.Write(a with { Text = a.Text[6..] });
+            if (a.Text.StartsWith("--output=", StringComparison.Ordinal)) return call.Write(a with { Text = a.Text[9..] });
+        }
+        return call.Write(call.CwdWord);
     }
 
     // ---- packages ----
@@ -865,7 +917,9 @@ public static partial class ActionClassifier
     {
         var target = command[0];
         if (!target.Dynamic && GrantTarget.OriginOf(target.Text) is not null)
-            return Fetch(target.Text) with { Reason = "opens a page in the browser" };
+            // Opening a page in the owner's own browser carries data (the URL) and uses his signed-in session, which
+            // "Read web: no logins" rules out: Outward, so it is always confirmed.
+            return Leaf(ActionClass.Outward, "opens a page in the owner's signed-in browser") with { Target = target.Text, CarriesData = true };
         return call.Inner(command, cwd);
     }
 

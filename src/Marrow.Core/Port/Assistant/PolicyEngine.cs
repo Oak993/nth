@@ -141,6 +141,11 @@ public static class PolicyEngine
         if (leaf.Guard is AssistantToolGuard.PermanentConfiguration or AssistantToolGuard.Suggestion && context.Tainted)
             return Make(Verdict.Deny, PolicyRule.NeedsUntaintedRequest, NeedsUntaintedRequest);
 
+        // Deleting a memory note from a tainted context asks: hostile content must not erase a standing preference or
+        // safety note on its own (a deletion cannot be quarantined and undone, unlike a write).
+        if (leaf.Guard == AssistantToolGuard.MemoryDelete && context.Tainted)
+            return Make(Verdict.Ask, PolicyRule.Tainted, "Asks: this agent read untrusted content");
+
         // What a tainted context may still do, with its limits attached to the verdict whatever it is.
         var quarantine = leaf.Guard == AssistantToolGuard.MemoryWrite && context.Tainted;
         var dataOnly = leaf.Guard == AssistantToolGuard.Delegation && context.Tainted;

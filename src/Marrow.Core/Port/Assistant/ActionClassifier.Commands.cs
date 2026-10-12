@@ -182,20 +182,24 @@ public static partial class ActionClassifier
         Add(_ => Work("prints or computes"),
             "echo", "write-output", "write", "write-host", "write-error", "write-warning", "write-verbose", "write-debug",
             "write-information", "out-null", "out-string", "out-host", "out-default", "format-table", "ft", "format-list", "fl",
-            "format-wide", "fw", "format-custom", "sort-object", "select-object", "select", "where-object", "?", "foreach-object",
-            "foreach", "%", "measure-object", "measure", "group-object", "group", "convertto-json", "convertfrom-json",
+            "format-wide", "fw", "format-custom", "sort-object", "select-object", "select", "where-object", "?",
+            "measure-object", "measure", "group-object", "group", "convertto-json", "convertfrom-json",
             "convertto-csv", "convertfrom-csv", "convertto-html", "convertto-xml", "convertfrom-stringdata", "get-member", "gm",
             "get-variable", "gv", "get-location", "gl", "pwd", "get-date", "date", "get-host", "get-culture", "get-uiculture",
             "get-random", "get-command", "gcm", "get-help", "help", "man", "get-alias", "gal", "get-module", "get-psdrive", "gdr",
             "get-process", "gps", "ps", "get-service", "gsv", "get-history", "history", "get-computerinfo", "get-timezone",
-            "get-uptime", "get-error", "get-job", "receive-job", "wait-job", "start-job", "start-threadjob", "start-sleep", "sleep",
+            "get-uptime", "get-error", "get-job", "receive-job", "wait-job", "start-sleep", "sleep",
             "new-guid", "new-timespan", "test-json", "clear-host", "cls", "clear", "exit", "true", "false", ":", "test", "[",
-            "expr", "seq", "printf", "basename", "dirname", "yes", "wait", "whoami", "hostname", "id", "uname", "nproc", "arch",
+            "expr", "seq", "basename", "dirname", "yes", "wait", "whoami", "hostname", "id", "uname", "nproc", "arch",
             "ver", "vol", "systeminfo", "tasklist", "ipconfig", "netstat", "getmac", "setlocal", "endlocal", "title", "color",
-            "chcp", "where", "which", "whereis", "hash", "shift", "read", "getopts", "umask", "ulimit", "jobs", "fg", "bg",
+            "chcp", "where", "which", "whereis", "shift", "umask", "ulimit", "jobs", "fg", "bg",
             "disown", "tput", "stty", "tty", "locale", "printenv", "df", "free", "uptime", "get-netadapter", "get-netipaddress",
             "get-netipconfiguration", "pause", "choice", "remove-variable", "rv", "clear-variable", "clv",
             "get-executionpolicy", "tr");
+
+        Add(ForEachObject, "foreach-object", "foreach", "%");
+        Add(ShellVarBuiltin, "read", "printf", "hash", "getopts", "mapfile", "readarray");
+        Add(StartJob, "start-job", "start-threadjob");
 
         Add(ReadFiles(Slash.Path),
             "get-content", "gc", "cat", "less", "head", "tail", "get-childitem", "gci", "ls", "ll", "select-string", "sls",
@@ -375,6 +379,75 @@ public static partial class ActionClassifier
         }
         call.State.Cwd = Paths.Full(target, call.Cwd, call.Context);
         return Work("changes folder");
+    }
+
+    // ForEach-Object (% and foreach as a pipeline cmdlet): a -MemberName, or any bare positional that is not a script
+    // block, invokes that method on each item ("% Stop", "% Kill", "% Delete"), which can do anything. A script block
+    // is parsed on its own, so the call around it is plain work.
+    private static Classification ForEachObject(Call call)
+    {
+        var parsed = call.Parse(["membername", "process", "begin", "end", "argumentlist", "args", "inputobject"]);
+        if (parsed.Named.ContainsKey("membername")) return Unknown("calls a method named only when it runs");
+        if (parsed.Splatted) return Unknown("its parameters are hidden in a splat");
+        foreach (var w in parsed.Positional.Concat(parsed.InlineValues))
+            if (!(w.Dynamic && w.Text.StartsWith('{'))) return Unknown("calls a method named only when it runs");
+        return Work("runs a script block for each item");
+    }
+
+    // Start-Job / Start-ThreadJob run work in the background: -FilePath runs a script (which the script rule places),
+    // -ScriptBlock is parsed on its own as a nested block. A job with neither is plain work.
+    private static Classification StartJob(Call call)
+    {
+        var parsed = call.Parse(["filepath", "scriptblock", "initializationscript", "argumentlist", "args", "name", "credential", "authentication", "psversion", "throttlelimit", "inputobject"]);
+        if (parsed.Splatted) return Unknown("its parameters are hidden in a splat");
+        if (parsed.Named.GetValueOrDefault("filepath") is { } file)
+            return Script([file], call.Part, new RunState(call.Cwd), call.Context, call.Words);
+        return Work("runs a background job");
+    }
+
+    // Shell builtins that choose a program or assign a variable: hash -p pins a command to a file (shadows it), and
+    // read / printf -v / getopts / mapfile assign to a variable. Assigning PATH or another sensitive variable decides
+    // what later commands run, so it is Unknown; anything else prints or assigns a plain variable (Work).
+    private static Classification ShellVarBuiltin(Call call)
+    {
+        var args = call.Args;
+        if (call.Name == "hash")
+            return args.Any(a => a.Text == "-p" || (a.Text.StartsWith("-p", StringComparison.Ordinal) && a.Text.Length > 2))
+                ? Unknown("pins a command name to a file of its choosing")
+                : Work("prints or clears the command hash");
+
+        // The variable names a builtin writes to: bare words, minus the values of options that take one.
+        string[] valued = call.Name switch
+        {
+            "read" => ["-p", "-a", "-d", "-n", "-N", "-t", "-u", "-i"],
+            "printf" => ["-v"],
+            "mapfile" or "readarray" => ["-d", "-n", "-O", "-s", "-c", "-C"],
+            _ => [],
+        };
+        var names = new List<CommandWord>();
+        for (var k = 0; k < args.Count; k++)
+        {
+            var t = args[k].Text;
+            if (t.StartsWith('-') && t.Length > 1)
+            {
+                if (valued.Contains(t, StringComparer.Ordinal)) k++;
+                continue;
+            }
+            // getopts' variable is its second positional; printf's format is positional and not a variable.
+            if (call.Name == "getopts") { if (names.Count == 0) { names.Add(new CommandWord("")); continue; } }
+            else if (call.Name == "printf" && !call.Has("-v")) { names.Clear(); break; }
+            names.Add(args[k]);
+        }
+        // printf -v names only the variable right after -v.
+        if (call.Name == "printf")
+        {
+            names.Clear();
+            for (var k = 0; k + 1 < args.Count; k++)
+                if (args[k].Text == "-v") names.Add(args[k + 1]);
+        }
+        return names.Any(n => n.Dynamic || SensitiveVariables.Contains(VariableName(n.Text)))
+            ? Unknown("assigns a variable that decides what later commands run")
+            : Work("reads into or assigns a variable");
     }
 
     private static Classification Network(Call call) =>
@@ -733,7 +806,7 @@ public static partial class ActionClassifier
         }
         var args = call.Args;
         var outward = false;
-        var carries = false;
+
         string? why = null;
         CommandWord? output = null;
         var urls = new List<CommandWord>();
@@ -742,6 +815,33 @@ public static partial class ActionClassifier
             var w = args[k];
             var t = w.Text;
             if (w.Dynamic && t.StartsWith('@')) { outward = true; why = "its parameters are hidden in a splat"; continue; }
+            // curl/wget bundle boolean short options with one value-taking option last: -sd @f = -s -d @f,
+            // -sX POST = -s -X POST, -sT secrets = -s -T secrets. Walk the cluster to the first value-taking option.
+            if (call.Name is "curl" or "wget" && t.Length > 1 && t[0] == '-' && t[1] != '-')
+            {
+                for (var c = 1; c < t.Length; c++)
+                {
+                    var opt = t[c];
+                    const string valued = "dFTXoubEHAeKC";
+                    if (opt == 'O') { if (call.Name == "wget") { output = c + 1 < t.Length ? w with { Text = t[(c + 1)..] } : k + 1 < args.Count ? args[++k] : null; } else output = call.CwdWord; break; }
+                    if (!valued.Contains(opt, StringComparison.Ordinal)) continue; // a boolean flag (-s, -L, -k, -v, -f, ...)
+                    var inline = c + 1 < t.Length ? t[(c + 1)..] : null;
+                    var val = inline is not null ? w with { Text = inline } : k + 1 < args.Count ? args[++k] : null;
+                    switch (opt)
+                    {
+                        case 'd' or 'F' or 'T': outward = true; why = "sends data in the request body"; break;
+                        case 'X':
+                            if (val is null || val.Dynamic || !IsReadMethod(val.Text)) { outward = true; why = $"sends a {val?.Text ?? "non-GET"} request"; }
+                            break;
+                        case 'o': output = val; break;
+                        case 'K': return Unknown("reads its requests from a file");
+                        case 'u' or 'b' or 'E' or 'H' or 'A' or 'e': break; // credentials; the read carries data anyway
+                        case 'C': break; // --continue-at: resumes a download
+                    }
+                    break;
+                }
+                continue;
+            }
             if (t is "-X" or "--request" && k + 1 < args.Count)
             {
                 var method = args[++k];
@@ -773,7 +873,7 @@ public static partial class ActionClassifier
             {
                 outward = true; why = "sends data in the request body"; continue;
             }
-            if (CredentialFlags.Contains(t, StringComparer.Ordinal)) { carries = true; k++; continue; }
+            if (CredentialFlags.Contains(t, StringComparer.Ordinal)) { k++; continue; }
             if ((t is "-o" or "--output" or "--output-document" or "--output-file" || (t == "-O" && call.Name == "wget")) && k + 1 < args.Count)
             {
                 output = args[++k];
@@ -796,7 +896,7 @@ public static partial class ActionClassifier
                 if (Prefix(name, "headers") || Prefix(name, "credential") || Prefix(name, "token") || Prefix(name, "authentication")
                     || Prefix(name, "websession") || Prefix(name, "certificate") || Prefix(name, "usedefaultcredentials"))
                 {
-                    carries = true; if (param.Inline is null && !Prefix(name, "usedefaultcredentials")) k++; continue;
+                    if (param.Inline is null && !Prefix(name, "usedefaultcredentials")) k++; continue; // credentials; the read carries data anyway
                 }
                 if (Prefix(name, "outfile")) { output = value; if (param.Inline is null) k++; continue; }
                 if (Prefix(name, "uri")) { if (value is not null) urls.Add(value); if (param.Inline is null) k++; continue; }
@@ -805,24 +905,48 @@ public static partial class ActionClassifier
             if (!t.StartsWith('-')) urls.Add(w);
         }
         var leaves = new List<Classification>();
-        var origins = urls.Select(u => u.Dynamic ? null : GrantTarget.OriginOf(u.Text)).ToList();
-        var target = urls.Count > 0 ? urls[0].Text : null;
+        // A file: URL reads a local file (a credential store is a hard deny); a non-http remote scheme (gopher, dict,
+        // ftp, scp, smb, tftp, telnet, ldap...) sends raw payloads out. http(s) reads the web.
+        foreach (var u in urls.Where(u => !u.Dynamic))
+        {
+            if (u.Text.StartsWith("file:", StringComparison.OrdinalIgnoreCase)) leaves.Add(Fetch(u.Text, call.Context));
+            else if (GrantTarget.OriginOf(u.Text) is null && NonHttpScheme(u.Text))
+                leaves.Add(Leaf(ActionClass.Outward, "connects to another computer and can send anything") with { Target = u.Text, CarriesData = true });
+        }
+        var webUrls = urls.Where(u => u.Dynamic || (!u.Text.StartsWith("file:", StringComparison.OrdinalIgnoreCase) && !(GrantTarget.OriginOf(u.Text) is null && NonHttpScheme(u.Text)))).ToList();
+        var origins = webUrls.Select(u => u.Dynamic ? null : GrantTarget.OriginOf(u.Text)).ToList();
+        var target = webUrls.Count > 0 ? webUrls[0].Text : urls.Count > 0 ? urls[0].Text : null;
         if (outward)
             leaves.Add(new Classification(ActionClass.Outward, why ?? "sends data") { Target = target, CarriesData = true });
-        else
+        else if (webUrls.Count > 0 || leaves.Count == 0)
         {
             var known = origins.Count > 0 && origins.All(o => o is not null);
             leaves.Add(new Classification(ActionClass.ReadWeb, known ? $"reads {origins[0]}" : "reads the web")
             {
                 Target = target,
                 GrantTarget = known ? GrantTarget.Site(origins[0]!) : null,
-                CarriesData = carries || !known || urls.Any(u => u.Text.Contains('?', StringComparison.Ordinal) || u.Text.Contains('@', StringComparison.Ordinal)),
+                // Every web read carries data: a path or a host name can hold a secret as readily as a query can (12.4).
+                CarriesData = true,
                 ReadsUntrusted = true,
                 Field = "read",
             });
         }
         if (output is not null) leaves.Add(call.Write(output));
         return Classification.Of(leaves);
+    }
+
+    private static readonly HashSet<string> RemoteSchemes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "ftp", "ftps", "scp", "sftp", "smb", "smbs", "gopher", "gophers", "dict", "telnet", "tftp", "ldap", "ldaps",
+        "imap", "imaps", "pop3", "pop3s", "smtp", "smtps", "rtsp", "rtmp", "mqtt",
+    };
+
+    /// <summary>Whether a URL names a known non-http remote scheme that can send raw payloads: ftp:, scp:, gopher:, dict:...</summary>
+    private static bool NonHttpScheme(string url)
+    {
+        var sep = url.IndexOf("://", StringComparison.Ordinal);
+        var scheme = sep > 0 ? url[..sep] : url.IndexOf(':', StringComparison.Ordinal) is var c and > 1 ? url[..c] : "";
+        return RemoteSchemes.Contains(scheme);
     }
 
     private static bool IsReadMethod(string method) =>

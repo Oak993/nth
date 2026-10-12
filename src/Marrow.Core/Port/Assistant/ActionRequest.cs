@@ -80,6 +80,8 @@ public enum AssistantToolGuard
     Suggestion,
     /// <summary>Writes a memory note: quarantined when tainted.</summary>
     MemoryWrite,
+    /// <summary>Deletes a memory note: asks when tainted (a deletion cannot be quarantined and undone, 8.2).</summary>
+    MemoryDelete,
     /// <summary>Hands work to an Astur: data only, and the child starts tainted, when tainted.</summary>
     Delegation,
 }

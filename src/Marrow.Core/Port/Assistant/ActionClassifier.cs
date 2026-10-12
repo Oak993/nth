@@ -22,7 +22,7 @@ public static partial class ActionClassifier
             ActionRequest.McpTool tool => ClassifyMcp(tool),
             ActionRequest.FileRead read => Paths.Read(new CommandWord(read.Path), cwd, context),
             ActionRequest.FileWrite write => Paths.Write(new CommandWord(write.Path), cwd, context),
-            ActionRequest.WebFetch fetch => Fetch(fetch.Url),
+            ActionRequest.WebFetch fetch => Fetch(fetch.Url, context),
             ActionRequest.WebSearch search => new Classification(ActionClass.ReadWeb, "searches the web")
             {
                 Target = search.Query, CarriesData = true, ReadsUntrusted = true, Field = "read",
@@ -37,16 +37,39 @@ public static partial class ActionClassifier
     /// title, a file change names its file relative to the chat's folder, a tool its name. Prefer
     /// <see cref="Classify"/> with the call's own input when it is at hand.
     /// </summary>
-    public static Classification ClassifyApproval(ApprovalRequest approval, ClassifierContext context, ShellKind shell = ShellKind.Auto)
+    /// <param name="provider">
+    /// The provider that sent it, which says what its Detail holds. Codex: a command's own folder (relative to the
+    /// chat's folder) and a file change's extra write root. Claude: a description, ignored. Null or another provider:
+    /// the detail is read both ways and the stricter reading kept.
+    /// </param>
+    /// <param name="changedPaths">The files a file change touches, when the caller has them (Codex lists them on the item).</param>
+    public static Classification ClassifyApproval(ApprovalRequest approval, ClassifierContext context, ShellKind shell = ShellKind.Auto,
+        Marrow.Core.Models.ProviderKind? provider = null, IReadOnlyList<string>? changedPaths = null)
     {
+        var detail = provider == Marrow.Core.Models.ProviderKind.Claude || string.IsNullOrWhiteSpace(approval.Detail) ? null : approval.Detail.Trim();
+        var cwd = context.WorkingDirectory ?? context.MissionWorktree;
         switch (approval.RequestKind)
         {
             case ApprovalRequest.Kind.Command:
-                return Classify(new ActionRequest.ShellCommand(approval.Title, shell), context);
+            {
+                if (detail is null) return Classify(new ActionRequest.ShellCommand(approval.Title, shell), context);
+                // The command runs in its own folder; a folder that cannot be placed is read as unknown (null).
+                var own = detail is "." ? cwd : Paths.Full(new CommandWord(detail), cwd, context);
+                var inOwn = ClassifyShell(approval.Title, shell, own, context, 0);
+                return provider == Marrow.Core.Models.ProviderKind.Codex
+                    ? inOwn
+                    : Classification.Of([Classify(new ActionRequest.ShellCommand(approval.Title, shell), context), inOwn]);
+            }
             case ApprovalRequest.Kind.FileChange:
-                return approval.Title is "Write file" or "Edit file" or "Edit notebook" || string.IsNullOrWhiteSpace(approval.Title)
-                    ? Unknown("a file change that names no file")
-                    : Classify(new ActionRequest.FileWrite(approval.Title), context);
+            {
+                var leaves = new List<Classification>();
+                if (changedPaths is { Count: > 0 }) leaves.AddRange(changedPaths.Select(p => Classify(new ActionRequest.FileWrite(p), context)));
+                else if (NamesNoFile(approval.Title)) leaves.Add(Unknown("a file change that names no file"));
+                else leaves.Add(Classify(new ActionRequest.FileWrite(approval.Title), context));
+                // Codex's grantRoot: the change asks to write anywhere under one more folder.
+                if (detail is not null) leaves.Add(Paths.Write(new CommandWord(detail), cwd, context));
+                return Classification.Of(leaves);
+            }
             case ApprovalRequest.Kind.Tool:
             {
                 var title = approval.Title;
@@ -58,7 +81,7 @@ public static partial class ActionClassifier
                 }
                 return title switch
                 {
-                    "WebFetch" => Fetch(approval.Detail ?? ""),
+                    "WebFetch" => Fetch(approval.Detail ?? "", context),
                     "WebSearch" => Classify(new ActionRequest.WebSearch(approval.Detail ?? ""), context),
                     _ => Unknown("a tool the classifier does not know"),
                 };
@@ -70,6 +93,10 @@ public static partial class ActionClassifier
     }
 
     internal static Classification Unknown(string reason) => new(ActionClass.Unknown, reason);
+
+    /// <summary>The titles providers give a file change when they name no file (Claude, Command Code, Copilot, Codex).</summary>
+    private static bool NamesNoFile(string title) =>
+        string.IsNullOrWhiteSpace(title) || title is "Write file" or "Edit file" or "Edit notebook" or "Apply file changes";
 
     // ---- shells ----
 
@@ -132,6 +159,12 @@ public static partial class ActionClassifier
         "PATH", "PATHEXT", "PSModulePath", "BASH_ENV", "ENV", "LD_PRELOAD", "LD_LIBRARY_PATH", "GIT_SSH", "GIT_SSH_COMMAND",
         "GIT_EXEC_PATH", "GIT_CONFIG", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM", "GIT_DIR", "GIT_WORK_TREE", "PROMPT_COMMAND",
         "NODE_OPTIONS", "PYTHONSTARTUP", "PYTHONPATH", "COMSPEC", "PSDefaultParameterValues", "ExecutionContext",
+        // Programs git, less and tools run as helpers, and hooks the runtime loads: each can run an arbitrary program.
+        "GIT_EXTERNAL_DIFF", "GIT_EDITOR", "GIT_SEQUENCE_EDITOR", "GIT_PAGER", "GIT_ASKPASS", "GIT_PROXY_COMMAND",
+        "GIT_ALLOW_PROTOCOL", "GIT_ATTR_SYSTEM", "GIT_NAMESPACE", "GIT_TEMPLATE_DIR", "GIT_TRACE", "EDITOR", "VISUAL", "PAGER",
+        "SSH_ASKPASS", "SUDO_ASKPASS", "LESSOPEN", "LESSCLOSE", "LESS", "DOTNET_STARTUP_HOOKS", "DOTNET_ADDITIONAL_DEPS",
+        "DOTNET_CLI_HOME", "CORECLR_PROFILER", "CORECLR_ENABLE_PROFILING", "NODE_REPL_EXTERNAL_MODULE", "PERL5OPT", "PERL5LIB",
+        "RUBYOPT", "RUBYLIB", "PYTHONHOME", "PIP_INDEX_URL", "npm_config_registry", "BASH_FUNC", "IFS", "GLOBIGNORE",
     };
 
     private static bool IsAssignmentWord(string text, out string name)
@@ -174,6 +207,11 @@ public static partial class ActionClassifier
             {
                 if (words[0].Text.Equals("function", StringComparison.OrdinalIgnoreCase) || words[0].Text.Equals("filter", StringComparison.OrdinalIgnoreCase))
                     return Unknown("defines a function, which can stand in for a command");
+                // "foreach ($x in $y) {…}" is a statement (control flow); "… | foreach Stop" is ForEach-Object, whose
+                // member name invokes a method. The statement always has a group "(…)" next; the cmdlet never does.
+                if (words[0].Text.Equals("foreach", StringComparison.OrdinalIgnoreCase)
+                    && !(words.Count > 1 && words[1].Text.StartsWith('(')))
+                    return Command("foreach", words, part, state, context, depth);
                 if (PowerShellKeywords.Contains(words[0].Text)) return new Classification(ActionClass.Work, "control flow");
             }
             if (shell == ShellKind.Cmd && words.Count > 0) return CmdControl(words, part, state, context, depth);
@@ -209,10 +247,9 @@ public static partial class ActionClassifier
 
         if (first.Dynamic)
         {
-            var text = first.Text;
-            var expression = text.Length > 1 && (text[0] is '(' or '{' || text.StartsWith("$(", StringComparison.Ordinal) || text.StartsWith("@(", StringComparison.Ordinal))
-                             && text[^1] is ')' or '}';
-            if (words.Count == 1 && expression) return new Classification(ActionClass.Work, "evaluates an expression");
+            // A bare group — (…), $(…), @(…), {…} — that is the whole word evaluates an expression. A method or
+            // member call pinned to it ("(Get-Service x).Stop()", "$x.Kill()") can do anything, so it is Unknown.
+            if (words.Count == 1 && IsWholeGroup(first.Text)) return new Classification(ActionClass.Work, "evaluates an expression");
             return Unknown("the command is only known when it runs");
         }
         if (first.Text.StartsWith('[') && shell != ShellKind.Posix) return Unknown("calls .NET directly");
@@ -235,6 +272,26 @@ public static partial class ActionClassifier
                 return Unknown($"cmd would run a file named {name} from the working folder first");
         }
         return Command(name, words, part, state, context, depth);
+    }
+
+    /// <summary>
+    /// Whether the text is one balanced bracket group — <c>(…)</c>, <c>{…}</c>, <c>$(…)</c>, <c>@(…)</c>, <c>@{…}</c> —
+    /// that spans the whole word. "(a).b()" and "(a)(b)" are not: something follows the group's own close.
+    /// </summary>
+    internal static bool IsWholeGroup(string text)
+    {
+        var start = 0;
+        if (text.Length > 1 && (text[0] is '$' or '@')) start = 1;
+        if (start >= text.Length || text[start] is not ('(' or '{')) return false;
+        var open = text[start];
+        var close = open == '(' ? ')' : '}';
+        var level = 0;
+        for (var k = start; k < text.Length; k++)
+        {
+            if (text[k] == open) level++;
+            else if (text[k] == close && --level == 0) return k == text.Length - 1;
+        }
+        return false;
     }
 
     private static bool Shadowed(string name, string? cwd, ClassifierContext context)
@@ -417,20 +474,41 @@ public static partial class ActionClassifier
 
     // ---- web ----
 
-    internal static Classification Fetch(string url)
+    /// <remarks>
+    /// Every fetch carries data (ED-NEW-dextracore-7): a URL's path and host name can hold anything a query can, so
+    /// once the context is tainted every fetch asks (12.4).
+    /// </remarks>
+    internal static Classification Fetch(string url, ClassifierContext? context = null)
     {
         var trimmed = url.Trim();
         if (trimmed.StartsWith("file:", StringComparison.OrdinalIgnoreCase))
-            return new Classification(ActionClass.ReadLocal, "reads a local file through a URL") { Target = trimmed, OutsideAccess = true, ReadsUntrusted = true };
+        {
+            // The file is read like any other: a credential store is never read, and outside the folders it asks.
+            var path = FileUrlPath(trimmed);
+            if (path is null || context is null)
+                return new Classification(ActionClass.ReadLocal, "reads a local file through a URL") { Target = trimmed, OutsideAccess = true, ReadsUntrusted = true, Field = "read" };
+            var read = Paths.Read(new CommandWord(path), null, context);
+            return read.Class == ActionClass.ReadLocal ? read with { Reason = "reads a local file through a URL" } : read;
+        }
         var origin = GrantTarget.OriginOf(trimmed);
         if (origin is null) return Unknown($"fetches something that is not a web address: {trimmed}");
         return new Classification(ActionClass.ReadWeb, $"reads {origin}")
         {
             Target = trimmed,
             GrantTarget = GrantTarget.Site(origin),
-            CarriesData = trimmed.Contains('?', StringComparison.Ordinal) || trimmed.Contains('@', StringComparison.Ordinal),
+            CarriesData = true,
             ReadsUntrusted = true,
             Field = "read",
         };
+    }
+
+    /// <summary>The Windows path of a file: URL (file:///C:/a/b, file://C:/a, file:/C:/a), or null.</summary>
+    internal static string? FileUrlPath(string url)
+    {
+        var rest = url[5..].Replace('/', '\\');
+        rest = rest.TrimStart('\\');
+        rest = Uri.UnescapeDataString(rest);
+        if (rest.Length >= 2 && char.IsAsciiLetter(rest[0]) && rest[1] is ':' or '|') return rest[0] + ":" + rest[2..];
+        return null;
     }
 }

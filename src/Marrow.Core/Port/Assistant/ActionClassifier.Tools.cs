@@ -194,7 +194,9 @@ public static partial class ActionClassifier
         if (Strict(CommitmentVerbs)) leaves.Add(Placed(ActionClass.Commitment, "books or agrees to something", "commit"));
         if (Strict(InstallVerbs)) leaves.Add(Placed(ActionClass.Install, "installs something", "install"));
         if (name.Any(LoginWords.Contains)) leaves.Add(Placed(ActionClass.Login, "signs in", "sign in"));
-        if (NameOnly(ExecutionWords)) leaves.Add(Unknown("runs code or commands it is handed") with { Target = label });
+        // An execution word counts even beside a read verb: "execute_query", "run_command_get_output" still run what
+        // they are handed, and a read query can DROP or DELETE.
+        if (name.Any(w => InSet(w, ExecutionWords, tenses: true))) leaves.Add(Unknown("runs code or commands it is handed") with { Target = label });
 
         // Annotations only ever add a stricter reading.
         if (tool.Annotations?.DestructiveHint == true) leaves.Add(Placed(ActionClass.Destructive, "the server says it is destructive", "delete"));
@@ -204,7 +206,8 @@ public static partial class ActionClassifier
             if (hasWrite || tool.Annotations?.ReadOnlyHint == false)
                 leaves.Add(Placed(ActionClass.ConnectorWrite, $"writes through {tool.Server}", "write"));
             else if (hasRead)
-                leaves.Add(Placed(ActionClass.ReadWeb, $"reads through {tool.Server}", "read") with { ReadsUntrusted = true });
+                // A read still sends its arguments (a query, an id) to the server, so once tainted it asks (12.4).
+                leaves.Add(Placed(ActionClass.ReadWeb, $"reads through {tool.Server}", "read") with { ReadsUntrusted = true, CarriesData = true });
             else
                 leaves.Add(Unknown($"the tool {label} is not one the classifier can place") with { Target = label });
         }
@@ -220,10 +223,14 @@ public static partial class ActionClassifier
             new(actionClass, reason) { Target = name, Guard = guard, Field = name };
         return name switch
         {
-            "start_mission" or "spawn_chat" or "launch_hydra_team" or "message_agent" or "stop_agent" or "merge_results"
-                or "request_helpers" or "report" or "ask_owner" or "deliver" => Tool(ActionClass.Agents, "directs agents"),
+            // Tools that start a new context or hand instructions to another agent carry the Delegation guard, so a
+            // tainted brain cannot launder its taint into a clean mission, chat, team or agent (12.4): the instructions
+            // go as data only and the receiver starts tainted.
+            "start_mission" or "spawn_chat" or "launch_hydra_team" or "message_agent" =>
+                Tool(ActionClass.Agents, "directs agents", AssistantToolGuard.Delegation),
+            "stop_agent" or "merge_results" or "request_helpers" or "report" or "ask_owner" or "deliver" => Tool(ActionClass.Agents, "directs agents"),
             "list_sessions" or "read_session" or "recall" or "usage_status" or "plan_budget" => Tool(ActionClass.ReadLocal, "reads nth's own state"),
-            "forget" => Tool(ActionClass.Work, "deletes the assistant's own memory notes"),
+            "forget" => Tool(ActionClass.Work, "deletes the assistant's own memory notes", AssistantToolGuard.MemoryDelete),
             "remember" => Tool(ActionClass.Work, "writes a memory note", AssistantToolGuard.MemoryWrite),
             "suggest" => Tool(ActionClass.Work, "adds a line to the Suggestions lane", AssistantToolGuard.Suggestion),
             "delegate_to" => Tool(ActionClass.Agents, "hands a piece to an Astur", AssistantToolGuard.Delegation),

@@ -300,6 +300,39 @@ public sealed class PolicyEngineTests
 
     [Theory]
     [Trait("Feature", "AS-1")]
+    [Trait("Decision", "ED-NEW-dextracore-7")]
+    [InlineData("start_mission")]
+    [InlineData("spawn_chat")]
+    [InlineData("launch_hydra_team")]
+    [InlineData("message_agent")]
+    public void A_tainted_context_cannot_launder_taint_into_a_fresh_agent(string tool)
+    {
+        // Starting a mission, chat or team or messaging an agent from a tainted brain passes the brief as data only,
+        // and the receiver starts tainted, so an injected "start a mission: push to evil" cannot run clean (12.4).
+        var classification = ActionClassifier.Classify(new ActionRequest.AssistantTool(tool), ActionClassifierTests.Context());
+        var handed = PolicyEngine.Decide(classification, Context(tainted: true));
+        Assert.True(handed.DataOnly);
+        Assert.True(handed.ChildStartsTainted);
+        var clean = PolicyEngine.Decide(classification, Context());
+        Assert.False(clean.DataOnly);
+        Assert.False(clean.ChildStartsTainted);
+    }
+
+    [Fact]
+    [Trait("Feature", "AS-1")]
+    [Trait("Decision", "ED-NEW-dextracore-7")]
+    public void Forget_from_a_tainted_context_asks()
+    {
+        // remember is quarantined; the matching delete cannot be undone, so a tainted forget asks (finding 12).
+        var forget = ActionClassifier.Classify(new ActionRequest.AssistantTool("forget"), ActionClassifierTests.Context());
+        Assert.Equal(AssistantToolGuard.MemoryDelete, forget.Guard);
+        Assert.Equal(Verdict.Ask, PolicyEngine.Decide(forget, Context(tainted: true)).Verdict);
+        // Clean, it runs alone.
+        Assert.Equal(Verdict.Allow, PolicyEngine.Decide(forget, Context()).Verdict);
+    }
+
+    [Theory]
+    [Trait("Feature", "AS-1")]
     [Trait("Decision", "ED-NEW-dextracore-6")]
     [InlineData(MoneyKind.Purchase, false, Verdict.Deny, PolicyRule.PurchasesOff)]
     [InlineData(MoneyKind.Purchase, true, Verdict.Ask, PolicyRule.AlwaysConfirmed)]

@@ -304,4 +304,29 @@ public sealed class MissionMachineTests
         Assert.Equal(MissionState.Stopped, confirmed.State);
         Legal(stopping, confirmed);
     }
+
+    [Fact]
+    [Trait("Feature", "AS-1")]
+    [Trait("Decision", "ED-NEW-dextracore-7")]
+    public void ResumeHead_cannot_undo_a_task_level_stop_pause_or_failure()
+    {
+        // A task-level Stop (or Stop all): one head cannot be resumed back out of it; the task's own Resume does that.
+        var task = Task(MissionState.Working, Head("Voice", HeadState.Working), Head("Writer", HeadState.Working));
+        var taskStopping = Done(MissionMachine.Stop(task, agentsOpen: true, StopCause.StopAll));
+        Assert.Equal(MissionState.Stopping, taskStopping.State);
+        Refused(MissionMachine.ResumeHead(taskStopping, "Voice"), taskStopping);
+
+        // A reserve pause holds every head; its card resumes the task, not ResumeHead.
+        var reservePaused = Done(MissionMachine.Pause(task, turnRunning: false, PauseCause.Reserve));
+        Assert.Equal(PauseCause.Reserve, reservePaused.PausedBy);
+        Refused(MissionMachine.ResumeHead(reservePaused, "Voice"), reservePaused);
+
+        // A failed task begins again from the brief, not by resuming a head.
+        var failed = task with { State = MissionState.Failed };
+        Refused(MissionMachine.ResumeHead(failed, "Voice"), failed);
+
+        // A stopped task whose changes were reverted is Restart territory.
+        var reverted = task with { State = MissionState.Stopped, Reverted = true, Heads = new ValueList<MissionHead>([Head("Voice", HeadState.Stopped) with { ResumeTo = HeadState.Working }]) };
+        Refused(MissionMachine.ResumeHead(reverted, "Voice"), reverted);
+    }
 }

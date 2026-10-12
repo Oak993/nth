@@ -112,8 +112,8 @@ public sealed class TaintTests
 
     [Fact]
     [Trait("Feature", "AS-1")]
-    [Trait("Decision", "ED-NEW-dextracore-4")]
-    public void A_tainted_context_loses_auto_allow_for_side_effects_but_not_for_plain_reads()
+    [Trait("Decision", "ED-NEW-dextracore-7")]
+    public void A_tainted_context_loses_auto_allow_for_side_effects_and_network_but_not_for_local_reads()
     {
         var chain = new ValueList<AssistantProfile>([new AssistantProfile("dextra", "Dextra")]);
         var context = new PolicyContext(chain, new DateTimeOffset(2026, 10, 12, 9, 0, 0, TimeSpan.Zero))
@@ -128,6 +128,9 @@ public sealed class TaintTests
         Assert.Equal(Verdict.Ask, Decide(new ActionRequest.FileWrite(@"C:\Users\owner\a.txt")));
         Assert.Equal(Verdict.Allow, Decide(new ActionRequest.ShellCommand("git status")));
         Assert.Equal(Verdict.Allow, Decide(new ActionRequest.FileWrite(@"C:\nth\worktrees\m1\a.txt")));
-        Assert.Equal(Verdict.Allow, Decide(new ActionRequest.WebFetch("https://docs.example/page")));
+        // A local read (no outbound request) keeps auto-allow; a web fetch now asks, because its URL path and host
+        // can carry a secret out just as a query can (ED-NEW-dextracore-7, finding 5).
+        Assert.Equal(Verdict.Allow, Decide(new ActionRequest.FileRead(@"C:\nth\worktrees\m1\notes.txt")));
+        Assert.Equal(Verdict.Ask, Decide(new ActionRequest.WebFetch("https://docs.example/page")));
     }
 }
