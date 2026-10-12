@@ -75,6 +75,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# C4b owner decision: package only the Release identity, before paths, commands or outputs are created.
+if ($Configuration -cne 'Release') { throw 'Only Release builds can be packaged. Use -Configuration Release.' }
 $root = Split-Path -Parent $PSScriptRoot
 $project = Join-Path $root 'src/Marrow.App/Marrow.App.csproj'
 $icon = Join-Path $root 'src/Marrow.App/Assets/icon.ico'
