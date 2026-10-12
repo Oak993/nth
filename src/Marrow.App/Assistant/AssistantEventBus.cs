@@ -162,7 +162,11 @@ public sealed class AssistantEventBus : IDisposable
                     if (batch.Count == 0) break;
                     Deliver(batch);
                 }
-                foreach (var waiter in waiters) waiter.TrySetResult();
+                lock (gate)
+                {
+                    foreach (var waiter in waiters)
+                        if (flushWaiters.Remove(waiter)) waiter.TrySetResult();
+                }
 
                 await WaitForWorkAsync(token).ConfigureAwait(false);
             }
@@ -202,9 +206,8 @@ public sealed class AssistantEventBus : IDisposable
         lock (gate)
         {
             if (flushWaiters.Count == 0) return [];
-            var taken = flushWaiters.ToList();
-            flushWaiters.Clear();
-            return taken;
+            // Snapshot the drain's waiters, but retain ownership until completion so Dispose sees them too.
+            return flushWaiters.ToList();
         }
     }
 
