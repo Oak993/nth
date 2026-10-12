@@ -37,11 +37,16 @@ internal sealed class InstallerClosingNotice : Decorator
         ZIndex = 100;
         SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(message);
         message.Foreground = Chrome.Warning.Brush(message);
-        Child = message;
+        // ED-NEW-inst-merge-14: the message joins the tree the first time the notice is shown, so a notice that never
+        // shows keeps no hidden, never-measured text block for the renderer to lay out.
         this.Track(() => AppEnvironment.GetAppModel(this).InstallerHoldsNewTurns, value =>
         {
             held = value;
-            if (held) IsVisible = true;
+            if (held)
+            {
+                Child ??= message;
+                IsVisible = true;
+            }
             shown.Set(held ? 1 : 0, Animation.Smooth(0.15));
         });
     }

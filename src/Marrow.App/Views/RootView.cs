@@ -244,6 +244,9 @@ public sealed class RootView : Decorator
         behindContent.Children.Add(chromeProbe); // :65, no visual output (WindowChromeProbe.IsHitTestVisible false)
         behindContent.Children.Add(backdrop); // :64
         behindContent.Children.Add(content);
+        // PORT-ONLY (ED-NEW-inst-c7-5, placed by ED-NEW-inst-merge-14): the installer's closing notice sits over the body, so it shows with no
+        // selected chat too, and stays out of the source's four outer layers (:66-76) that the genie, glide and palette code index.
+        behindContent.Children.Add(new InstallerClosingNotice());
 
         // :66-68 clipped to the window's own shape only after the backdrop is painted (PR-WIN-062, "Clip the composited window to the same squircle... so
         // the DWM shadow follows the same curve" - the native region/DWM preference and four-corner capture remain STOP #4 in RootViewTests.cs; this
@@ -277,7 +280,6 @@ public sealed class RootView : Decorator
         outerRoot.Children.Add(windowClip);
         outerRoot.Children.Add(genieLayer);
         outerRoot.Children.Add(rowGlideLayer);
-        outerRoot.Children.Add(new InstallerClosingNotice()); // ED-NEW-inst-c7-5: visible with no selected chat too
         outerRoot.Children.Add(paletteHost); // :72-76, CommandPalette added/removed by UpdatePalette below
         HorizontalAlignment = HorizontalAlignment.Stretch;
         VerticalAlignment = VerticalAlignment.Stretch;
