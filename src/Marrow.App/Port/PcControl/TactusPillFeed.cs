@@ -3,7 +3,9 @@
 // paused ones (first seen first), each with its pause phase and its latest step in the timeline's words ("Clicked Save"),
 // the app of the latest step, the broker's asks (PillAskBridge), Stopped for 2 s after a stop of everything, each stopped
 // app "Stopped by you" on its row until a new step runs there or the turn ends, "<app> opened <title>" for 2 s, "Pause key
-// is taken" once (4 s), and the chords as Settings has them (the pause chord left out while it does not work). Changed is raised on any thread; the screen posts the facts.
+// is taken" once (4 s), the chords as Settings has them (the pause chord left out while it does not work), a write that
+// waits while the user types ("Waiting while you type", the field and the app) and, while an app pauses, the step it waits
+// for ("dragging in Paint", ED-NEW-pcctl-37). Changed is raised on any thread; the screen posts the facts.
 using Marrow.Core.Port.PcControl;
 using Marrow.Services.Port.PcControl;
 using Marrow.UI.Port.PcControl;
@@ -50,6 +52,7 @@ public sealed class TactusPillFeed : IDisposable
         assembly.Control.WindowOpened += OnOpened;
         assembly.Pointer.Aimed += OnAimed;
         cards.Changed += Raise;
+        assembly.Typing.Changed += Raise;
     }
 
     /// <summary>The facts changed (any thread).</summary>
@@ -98,6 +101,7 @@ public sealed class TactusPillFeed : IDisposable
         var settings = assembly.Settings;
         var asks = cards.Asks;
         var broken = pauseKeyBroken();
+        var typing = assembly.Typing.Current;
         lock (gate)
         {
             // in the engine's order (chats by key, each chat's apps by key, then the paused ones in the order they paused), so
@@ -119,6 +123,7 @@ public sealed class TactusPillFeed : IDisposable
                     : PillAppPhase.Working;
                 var since = phase == PillAppPhase.Stopped ? stoppedApps[key] : status is { } s ? at - ((s.ElapsedMs) / 1000.0) : 0;
                 list.Add(new PillApp(key, name, steps.GetValueOrDefault(key, ""), phase, since,
+                    Busy: phase == PillAppPhase.Pausing && status?.Busy is { Length: > 0 } busy ? $"{busy} in {name}" : null,
                     WaitsOnAsk: asks.Any(a => !a.Withdrawn && string.Equals(a.AppName, name, StringComparison.OrdinalIgnoreCase))));
             }
             return new PillFacts
@@ -130,6 +135,7 @@ public sealed class TactusPillFeed : IDisposable
                 Notices = [.. notices],
                 PauseChord = broken || notices.Any(n => n.Kind == PillNoticeKind.PauseKeyTaken) ? "" : settings.PauseChord,
                 StopChord = settings.StopChord,
+                Typing = typing is { } wait ? new PillTyping(wait.Field, NameOf(wait.App)) : null,
             };
         }
     }
@@ -147,6 +153,7 @@ public sealed class TactusPillFeed : IDisposable
         assembly.Control.WindowOpened -= OnOpened;
         assembly.Pointer.Aimed -= OnAimed;
         cards.Changed -= Raise;
+        assembly.Typing.Changed -= Raise;
     }
 
     // Under gate: a key joins the order and its exe name maps to it.

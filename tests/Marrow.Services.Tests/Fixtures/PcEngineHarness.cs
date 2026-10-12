@@ -62,6 +62,9 @@ public sealed class PcEngineHarness
 
     /// <summary>Where each action lands, for the Tactus pointers.</summary>
     public PcPointerFeed Pointer { get; } = new();
+
+    /// <summary>The writes waiting while the user types (the pill's "Waiting while you type").</summary>
+    public PcTypingWaits Typing { get; } = new();
     public PcSettings Settings { get; set; } = PcSettings.Default with { Enabled = true };
     public DateTimeOffset Now { get; set; } = Today;
 
@@ -90,6 +93,7 @@ public sealed class PcEngineHarness
         Settings = () => Settings,
         Capture = Capture,
         Pointer = Pointer,
+        Typing = Typing,
         WaitClock = WaitClock,
         Now = () => Now,
     };

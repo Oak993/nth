@@ -7,6 +7,7 @@
 // them. With "Answer approvals and questions in the pill" off the card is not offered: a click opens the ask's chat. The
 // user's pointer reaches the host (where it is, for the card's shift; a held button, for the auto-expand) and the bands'
 // hit test (a press that began in another app holds the region; each record for the style-flip test) (ED-NEW-pcctl-34).
+// An app whose pointer is parked (its target cannot be seen) reads "working behind" on its row (ED-NEW-pcctl-37).
 using Marrow.Core.Port.PcControl;
 using Marrow.Core.Port.PcControl.Pill;
 using Marrow.App.Port.PcControl.Overlay;
@@ -194,6 +195,10 @@ public sealed class TactusScreen : IDisposable
         lock (gate) pullPosted = false;
         if (disposed) return;
         var facts = parts.Feed.Facts();
+        // an app whose pointer works where the user cannot see it reads "working behind" on its row (ED-NEW-pcctl-21 item 5,
+        // ED-NEW-pcctl-37); the pointers live on this thread
+        if (parts.Pointers is { } parked && facts.Apps.Any(a => parked.Parked(a.Key)))
+            facts = facts with { Apps = [.. facts.Apps.Select(a => parked.Parked(a.Key) ? a with { Behind = true } : a)] };
         host.Bodies = assembly.Settings.AnswerInPill ? parts.Cards.Body : null;
         host.Update(facts);
         if (parts.Pointers is { } pointers)
@@ -330,8 +335,11 @@ public sealed class TactusScreen : IDisposable
         if (disposed) return;
         if (parts.Map.At(aim.Point) is { } monitor) parts.Screens.Step(monitor.Id, parts.Now());
         if (parts.Pointers is not { } pointers) return;
+        var parked = pointers.Parked(aim.App);
         pointers.Aimed(aim);
         WantFrames();
+        // parked or back in view: the row's "working behind" follows
+        if (pointers.Parked(aim.App) != parked) PullLater();
     });
 
     private void OnAppPaused(string app, PcPauseSource source) => parts.Post(() =>

@@ -74,6 +74,9 @@ public sealed class PcEngineParts
     /// <summary>Where each action lands, for the Tactus pointers (DESIGN.md 4.5); none when null.</summary>
     public PcPointerFeed? Pointer { get; init; }
 
+    /// <summary>The writes waiting while the user types, for the pill's "Waiting while you type" (ED-NEW-pcctl-37); none when null.</summary>
+    public PcTypingWaits? Typing { get; init; }
+
     /// <summary>The clock of the waits for the user (the 25 s budget, the 60 s token expiry); the engine clock when null.</summary>
     public IPcClock? WaitClock { get; init; }
 

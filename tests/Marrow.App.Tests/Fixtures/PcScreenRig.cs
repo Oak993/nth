@@ -1,7 +1,7 @@
 // PORT-ONLY: Tactus (ED-NEW-pcctl-32). The pill on screen as one test uses it: the shared parts on fakes (PcAssemblyRig), the
 // pill host on fake bands and monitors (PcPillHostRig), the card's bridge and the feed, the card's keyboard over fake Win32
 // calls, the chords on a fake hotkey thread, the user's pointer over the shared input monitor and a fake probe (ED-NEW-pcctl-34),
-// and what the screen asks the app to do (settings saved, a chat opened,
+// the Tactus pointers when a test gives them (ED-NEW-pcctl-37), and what the screen asks the app to do (settings saved, a chat opened,
 // Settings opened, the keyboard put in the card). Everything runs inline on the test's UI thread.
 using Marrow.App.Port.PcControl;
 using Marrow.App.Port.PcControl.Overlay;
@@ -16,7 +16,7 @@ public sealed class PcScreenRig : IDisposable
     public const nint Overlay = 0x50;
     public const nint Word = 0x10;
 
-    public PcScreenRig(PcSettings? settings = null)
+    public PcScreenRig(PcSettings? settings = null, PointerOverlays? pointers = null)
     {
         Parts = new PcAssemblyRig(settings);
         Assembly = Parts.Build();
@@ -42,6 +42,7 @@ public sealed class PcScreenRig : IDisposable
             Hotkeys = Hotkeys,
             Focus = Focus,
             Pointer = Pointer,
+            Pointers = pointers,
             Overlays = Pill.Overlays,
             Save = next =>
             {

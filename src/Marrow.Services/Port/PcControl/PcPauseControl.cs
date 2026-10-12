@@ -34,6 +34,12 @@ public enum PcPausePhase
 /// </summary>
 public sealed record PcPauseStatus(string App, PcPausePhase Phase, PcPauseSource Source, long PausedAtMs, long ElapsedMs)
 {
+    /// <summary>
+    /// While pausing: the step the pause waits for, in the pill's words without the app ("dragging", PcBusyWords; the
+    /// oldest named step still in flight, ED-NEW-pcctl-37); null when it has no words or the app is paused.
+    /// </summary>
+    public string? Busy { get; init; }
+
     public bool LongUnit => Phase == PcPausePhase.Pausing && ElapsedMs >= PcPauseControl.LongUnitMs;
     public bool OffersStop => Phase == PcPausePhase.Pausing && ElapsedMs >= PcPauseControl.OfferStopMs;
 }
@@ -64,7 +70,7 @@ public sealed class PcPauseControl : IDisposable
     private readonly Dictionary<string, Hold> holds = new(StringComparer.Ordinal);
     private readonly Dictionary<string, PcPauseSpan> ended = new(StringComparer.Ordinal);
     private readonly Dictionary<string, long> epochs = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, int> acting = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, List<Unit>> acting = new(StringComparer.Ordinal);
     private readonly Dictionary<string, CancellationTokenSource> pausing = new(StringComparer.Ordinal);
     private readonly Dictionary<string, HashSet<string>> used = new(StringComparer.Ordinal);
     private readonly List<Joined> joined = [];
@@ -161,8 +167,12 @@ public sealed class PcPauseControl : IDisposable
         lock (gate)
         {
             if (!holds.TryGetValue(app, out var hold)) return null;
-            var phase = acting.GetValueOrDefault(app) > 0 ? PcPausePhase.Pausing : PcPausePhase.Paused;
-            return new PcPauseStatus(app, phase, hold.Source, hold.Since, clock.NowMs - hold.Since);
+            var units = acting.GetValueOrDefault(app);
+            var phase = units is { Count: > 0 } ? PcPausePhase.Pausing : PcPausePhase.Paused;
+            return new PcPauseStatus(app, phase, hold.Source, hold.Since, clock.NowMs - hold.Since)
+            {
+                Busy = units?.Select(unit => unit.What).FirstOrDefault(what => what is { Length: > 0 }),
+            };
         }
     }
 
@@ -287,11 +297,19 @@ public sealed class PcPauseControl : IDisposable
         }
     }
 
-    /// <summary>A step of the app is running (an atomic unit in flight): the pill reads "Pausing" until every one ends.</summary>
-    public IDisposable Acting(string app)
+    /// <summary>
+    /// A step of the app is running (an atomic unit in flight): the pill reads "Pausing" until every one ends, naming
+    /// <paramref name="what"/> (PcBusyWords) for the oldest one that has words.
+    /// </summary>
+    public IDisposable Acting(string app, string? what = null)
     {
-        lock (gate) acting[app] = acting.GetValueOrDefault(app) + 1;
-        return new Unit(this, app);
+        var unit = new Unit(this, app, what);
+        lock (gate)
+        {
+            if (!acting.TryGetValue(app, out var units)) acting[app] = units = [];
+            units.Add(unit);
+        }
+        return unit;
     }
 
     /// <summary>The chat's turn ended: it forgets the apps it used that are not paused (a paused one stays the chat's until resumed).</summary>
@@ -422,15 +440,20 @@ public sealed class PcPauseControl : IDisposable
         Changed?.Invoke();
     }
 
-    private void Finish(string app)
+    private void Finish(Unit unit)
     {
+        var app = unit.App;
         var phase = false;
         lock (gate)
         {
-            var left = acting.GetValueOrDefault(app) - 1;
-            if (left <= 0) acting.Remove(app);
-            else acting[app] = left;
-            phase = left <= 0 && holds.ContainsKey(app);
+            var left = 0;
+            if (acting.TryGetValue(app, out var units))
+            {
+                units.Remove(unit);
+                left = units.Count;
+                if (left == 0) acting.Remove(app);
+            }
+            phase = left == 0 && holds.ContainsKey(app);
         }
         // "Pausing" became "Paused".
         if (phase) Changed?.Invoke();
@@ -460,13 +483,17 @@ public sealed class PcPauseControl : IDisposable
         }
     }
 
-    private sealed class Unit(PcPauseControl owner, string app) : IDisposable
+    private sealed class Unit(PcPauseControl owner, string app, string? what) : IDisposable
     {
         private int done;
 
+        public string App { get; } = app;
+
+        public string? What { get; } = what;
+
         public void Dispose()
         {
-            if (Interlocked.Exchange(ref done, 1) == 0) owner.Finish(app);
+            if (Interlocked.Exchange(ref done, 1) == 0) owner.Finish(this);
         }
     }
 }

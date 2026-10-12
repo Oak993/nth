@@ -134,6 +134,9 @@ public sealed class PcAssembly : IDisposable
     /// <summary>Where each action lands, for the Tactus pointers (the pill's pointer view reads it).</summary>
     public PcPointerFeed Pointer { get; } = new();
 
+    /// <summary>The writes waiting while the user types, for the pill's "Waiting while you type".</summary>
+    public PcTypingWaits Typing { get; } = new();
+
     public PhysicalInputMonitor Input => backends.Input;
     public IPcClock Clock => backends.Clock;
 
@@ -201,6 +204,7 @@ public sealed class PcAssembly : IDisposable
         Settings = settings,
         Capture = backends.Capture,
         Pointer = Pointer,
+        Typing = Typing,
         WaitClock = backends.WaitClock,
         Now = backends.Now,
     };

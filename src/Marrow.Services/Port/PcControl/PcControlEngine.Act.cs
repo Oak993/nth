@@ -336,7 +336,7 @@ public sealed partial class PcControlEngine
             tried++;
             call.Acted = true;
             // An action in flight: the pill reads "Pausing" until it and its check end.
-            using var unit = parts.Pause.Acting(info.App.Key);
+            using var unit = parts.Pause.Acting(info.App.Key, PcBusyWords.Of(request));
             var structureSeen = parts.Feed.StructureVersion(handle);
             var windowsBefore = AppWindows(info);
             var pre = parts.Foreground.Read();
@@ -624,6 +624,7 @@ public sealed partial class PcControlEngine
         var start = parts.Clock.NowMs;
         var focused = target is null || target.Has(PcStates.Focused);
         IDisposable? waiting = null;
+        IDisposable? typing = null;
         try
         {
             while (true)
@@ -638,6 +639,8 @@ public sealed partial class PcControlEngine
                 if (waited >= YieldMs) return PcResult.Fail(PcErrorCode.UserTypingHere, UsersControl(check.Hold, target, info));
                 call.NeedsFreshTarget = true;
                 waiting ??= call.Wait.Waiting(PcWaitReason.TypingHere);
+                // the pill's "Waiting while you type" names the field and the app (ED-NEW-pcctl-37)
+                typing ??= parts.Typing?.Begin(new PcTypingWait(info.App.Key, TypingField(target)));
                 // A timeout tied to the condition: the moment the user's last key there is 2 s old, or the 10 s limit.
                 var until = (int)Math.Max(1, Math.Min(check.AgainMs - now, YieldMs - waited));
                 using (var cut = CancellationTokenSource.CreateLinkedTokenSource(call.Token, parts.Pause.PausedToken(info.App.Key)))
@@ -656,9 +659,14 @@ public sealed partial class PcControlEngine
         }
         finally
         {
+            typing?.Dispose();
             waiting?.Dispose();
         }
     }
+
+    // The field a write waits on, as the pill names it: its UIA name, else what it is.
+    private static string TypingField(PcUiNode? target) =>
+        target is null ? "the focused field" : target.Name.ReplaceLineEndings(" ").Trim() is { Length: > 0 } name ? name : "the field";
 
     private string UsersControl(PcUserHold hold, PcUiNode? target, PcWindowInfo info)
     {
