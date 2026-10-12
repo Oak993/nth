@@ -157,7 +157,7 @@ public static class SetupSweeper
     {
         ArgumentNullException.ThrowIfNull(probe);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(interval, TimeSpan.Zero);
-        var until = Environment.TickCount64 + (long)patience.TotalMilliseconds;
+        var until = Environment.TickCount64 + (long)Math.Clamp(patience.TotalMilliseconds, 0, 1e12);
         while (true)
         {
             if (!Exists(SetupFolders.Root(localAppData)) && !Exists(SetupFolders.UninstallTemp(tempPath))) return SweepResult.Nothing;
