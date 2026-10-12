@@ -198,8 +198,19 @@ public sealed class ComposerViewBlitzChipTests(HeadlessSession headless)
                 var at = scroller.TranslatePoint(new Point(scroller.Bounds.Width / 2, scroller.Bounds.Height / 2), window)!.Value;
                 window.MouseWheel(at, new Vector(-3, 0));
                 Settle(window);
-                Assert.True(scroller.Offset.X > 0, $"the row scrolls with a sideways wheel: {scroller.Offset.X}");
+                Assert.Equal(0, scroller.Offset.X); // ED-NEW-softscroll-1: the row glides (OD-0071), nothing moves in the report's own frame
             });
+            // The glide on the frame clock, the Swift clock with it: under way after one 60 Hz frame, at rest three notches (300 points at
+            // the default 3 lines, ED-NEW-softscroll-2) on, or at the row's end.
+            var most = h.Main.OnMain(() => scroller.Extent.Width - scroller.Viewport.Width);
+            var trace = new List<double>();
+            for (var frame = 0; frame < 60; frame++)
+            {
+                h.Main.Advance(TimeSpan.FromTicks(TimeSpan.TicksPerSecond / 60));
+                h.Main.OnMain(() => { frames.Advance(TimeSpan.FromTicks(TimeSpan.TicksPerSecond / 60)); Settle(window); trace.Add(scroller.Offset.X); });
+            }
+            Assert.InRange(trace[0], 0.01, Math.Min(300, most) - 0.01);
+            Assert.Equal(Math.Min(300, most), trace[^1], 3);
             Close(h, window);
         });
     }

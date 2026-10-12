@@ -1,32 +1,54 @@
-// PORT-ONLY (OD-0071, ED-246): the one soft, weighted scrolling behaviour every scroll area of the app uses.
-// Taken from unit/premium-scroll (9964d3af4, not merged) for the chat timeline only (UI-CHAT-001, ED-333): a
-// ScrollViewer takes it when SoftScroll.IsEnabled is set on it (the timeline's); every other scroll view keeps Avalonia's
-// own until the shared unit lands (its overlay indicator, ScrollIndicator, is not taken: the timeline hides its indicators).
+// PORT-ONLY (OD-0071, ED-246, ED-NEW-softscroll-1, ED-NEW-softscroll-2): the one soft, weighted scrolling behaviour every
+// scroll area of the app uses.
+// Taken from unit/premium-scroll (9964d3af4, not merged), first for the chat timeline only (UI-CHAT-001, ED-333); since
+// ED-NEW-softscroll-1 it is the default of EVERY ScrollViewer of the process (SoftScroll.IsEnabled defaults to true): the
+// chat timeline, the diff panel, Settings' pages and sidebar, the thread sidebar, popovers, menus, sheets and panels,
+// text editors' own scroll views (their caret scrolling moves the offset at once, which a motion carries along, see
+// ScrollDriver). The opt-outs, each named where it is made:
+//   * SoftScroll.SetIsEnabled(viewer, false): the viewer (and the scroll views inside it, the property inherits) keeps
+//     Avalonia's own stepping; no scroll view of the app sets it today;
+//   * a viewer presenting ILogicalScrollable content (logical units, not points: a 100-point notch would be 100 items) is
+//     left to Avalonia's logical stepping automatically; none exists in the app today;
+//   * SoftScroll.OwnsWheel on a control that takes the wheel itself: the scroll views around it leave its wheel alone.
+//     The terminal sets it (TerminalSurface): it scrolls its ConPTY history by whole lines and reports the wheel to a
+//     program that asked for the mouse (SwiftTerm, MacTerminalView.swift:3204-3254), so it is no ScrollViewer to glide;
+//   * no frame clock bound (FrameClock.IsBound false, never in the app): nothing could animate, so input steps at once.
+// The overlay indicator of unit/premium-scroll (ScrollIndicator) is not taken.
 //
 // Avalonia's ScrollViewer jumps its offset on every input (a wheel notch is 50 points at once, Page Up/Down a page at
 // once, a touch flick stops dead on release), which the owner ruled is not the Mac's feel (OD-0071). Here every
 // ScrollViewer, whatever its template, is driven by one model on the frame clock (FrameClock.Source, ED-237). Every
-// input is a distance delivered over time, and the view follows it through one first-order lag, solved exactly
-// between the input's breakpoints, so a motion is the same curve at 60 and at 240 Hz:
-//   * wheel input (a notch, or a high-resolution wheel's fraction of one) is spread over the interval since the
-//     previous report (a stream's first over 8 ms) and the view follows it with the lag 0.071 s, the Mac's measured
-//     flick decay (mac-physics.md section 4). The view moves in the first frame after a notch, its speed is highest as
-//     a burst of notches ends, and a 50 ms flick travels 0.1 s x its peak speed (the Mac's 0.0998 s);
+// input is a distance delivered over time, and the view follows it, solved exactly between the input's breakpoints, so a
+// motion is the same curve at 60 and at 240 Hz:
+//   * a wheel (a notch, or a high-resolution wheel's fraction of one; ED-NEW-softscroll-2, the owner's "smooth premium
+//     weighted scrolling"): a notch is Windows' "lines to scroll" setting x 33 1/3 points (SystemWheel: 100 points at the
+//     default 3 lines, a page for "one screen at a time"). The notches add up to one target, and the view follows it
+//     through two critically damped stages of 0.050 s each: x(t) = D (1 - (1 + t/0.05) e^(-t/0.05)) for one notch of D,
+//     from no speed, its speed highest at 50 ms (D / (0.05 e), 736 points a second for 100 points), half way at 84 ms,
+//     90 % at 194 ms, resting at 0.46 s. At 60 Hz a 100-point notch's frames move 4.5, 10.0, 12.0, 12.1, 11.2, 9.8, ...
+//     points. A notch during a glide moves its target with no step in position or speed; a notch the other way turns it
+//     round from where the view is, from rest;
 //   * a precision touchpad's stream (Windows sends it as WHEEL_DELTA fractions that share no wheel quantum, see
-//     WheelClassifier) is spread the same way and followed with a 4 ms lag: a steady stroke moves steadily from its
-//     first frame. The port adds no coast of its own to it: Windows continues the stream with its own inertial deltas
-//     after a lift, and fingers resting on the pad send nothing, so the stream itself says when to stop (ED-246,
-//     UNVERIFIED on a recording, probe in E:/Droppy/work/review-scroll-physics/probe);
+//     WheelClassifier), 50 points per WHEEL_DELTA as ED-246 set it, is spread over the interval since its previous
+//     report (a stream's first over 8 ms) and followed through a first-order lag of 4 ms: a steady stroke moves steadily
+//     from its first frame. The port adds no coast of its own to it: Windows continues the stream with its own inertial
+//     deltas after a lift, and fingers resting on the pad send nothing, so the stream itself says when to stop (ED-246,
+//     UNVERIFIED on a recording, probe in E:/Droppy/work/review-scroll-physics/probe). A stream whose first reports looked
+//     like a wheel's (and took a notch's weight) takes the excess back when it shows itself a touchpad's;
 //   * a touch flick (the presenter moves the view itself while the finger is down) coasts on after the release with
 //     UIKit's normal deceleration rate, 0.998 per ms (UNVERIFIED, parked: no trackpad in the reference videos);
-//   * every motion ends exactly on its stop: the lag aims a hair past it (2 points a second's worth) and rests the
-//     moment it gets there, so the last step is the smallest, never a settle jump;
+//   * every motion ends exactly on its stop: it aims a hair past it (2 points a second's worth) and rests the moment it
+//     gets there, so the last step is the smallest, never a settle jump;
 //   * the ends: no overscroll (every Mac case measured stops at the end, section 6). A motion headed past an end keeps
 //     its speed until it is within 12 ms of it and then brakes onto it (about 40 ms), where the Mac stops in one frame;
 //   * keyboard (Page Up/Down, Home/End, when the focused control leaves them unhandled) and programmatic scrolls animate
 //     along a SwiftUI curve, `.smooth(duration: 0.25)` for keys, and carry a running speed in;
-//   * reduce motion (\.accessibilityReduceMotion, ED-084): every input steps the offset at once.
-// Work per frame is O(1): a few exponentials per axis and one Offset write.
+//   * reduce motion (\.accessibilityReduceMotion, ED-084): every input steps the offset at once;
+//   * nested scroll views: the innermost on the wheel's route that can still move that way takes it, and one resting at
+//     its end hands it to the one around it (Avalonia's scroll chaining, ScrollViewer.IsScrollChainingEnabled);
+//   * a scroll bar's thumb taken by the pointer stops the motion where it is (the thumb moves the offset itself).
+// Work per frame is O(1): a few exponentials per axis (sampled every 1 ms while headed past an end) and one Offset
+// write. Work per wheel report is a walk up its route.
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
@@ -75,10 +97,13 @@ public sealed class WheelClassifier
     private long divisor;
     private WheelKind kind;
 
+    /// <summary>Whether the last report classified started a new stream.</summary>
+    public bool IsFresh { get; private set; }
+
     /// <summary>The kind of a report of <paramref name="lines"/> (Avalonia's delta: units / 120) at <paramref name="now"/>.</summary>
     public WheelKind Classify(double lines, double now)
     {
-        var fresh = now - last > ScrollPhysics.StreamGap || now < last;
+        var fresh = IsFresh = now - last > ScrollPhysics.StreamGap || now < last;
         last = now;
         if (fresh)
         {
@@ -108,11 +133,13 @@ public sealed class WheelClassifier
 /// </summary>
 public sealed class ScrollPhysics
 {
-    /// <summary>Points per wheel line: Avalonia's own wheel step (ScrollContentPresenter, 50 per 1.0 of delta).</summary>
+    /// <summary>Points per WHEEL_DELTA of a precision touchpad's stream: Avalonia's own wheel step (ScrollContentPresenter, 50
+    /// per 1.0 of delta), as ED-246 set it. A wheel's notch is Windows' lines setting's instead (<see cref="SystemWheel"/>).</summary>
     public const double WheelLine = 50;
 
-    /// <summary>The wheel's lag: the Mac's measured flick decay (mac-physics.md section 4).</summary>
-    public const double GlideDecay = 0.071;
+    /// <summary>Each of the wheel glide's two critically damped stages (ED-NEW-softscroll-2): the view follows a point that
+    /// follows the notches' one target, both with this time constant, so a glide starts from no speed and peaks at it.</summary>
+    public const double GlideStage = 0.050;
 
     /// <summary>The touchpad's lag behind its spread-out stream (keeps the report and display cadences apart).</summary>
     public const double FollowLag = 0.004;
@@ -164,8 +191,12 @@ public sealed class ScrollPhysics
     private double min;
     private double max = double.MaxValue;
     // Lag: the input path (where the input has got to at Time, unclamped), its spreads still delivering, the lag.
-    private double tau = GlideDecay;
-    private double baseTau = GlideDecay;
+    private double tau = GlideStage;
+    private double baseTau = GlideStage;
+    // The wheel's two-stage glide (staged): the first stage, which follows the aim while the view follows it. Its input has
+    // all arrived (the notches' sum is `total`), so it is always resting on its stop.
+    private bool staged;
+    private double inner;
     private double input;
     private double total; // where the input path ends, summed exactly from the reports
     private readonly double[] rates = new double[SpreadSlots];
@@ -211,6 +242,7 @@ public sealed class ScrollPhysics
     /// <summary>The speed at <see cref="Time"/> (points per second).</summary>
     public double Velocity => mode switch
     {
+        Mode.Lag when staged => (inner - Position) / tau,
         Mode.Lag => ((resting ? aim : input) - Position) / tau,
         Mode.Held => Speed(Time),
         Mode.Animate => (AnimatedAt(Time - start + 1e-6) - AnimatedAt(Time - start)) / 1e-6,
@@ -255,7 +287,8 @@ public sealed class ScrollPhysics
         max = Math.Max(minimum, maximum);
         Position = Clamp(Position);
         finger = Clamp(finger);
-        if (mode == Mode.Lag && resting && (stop < min || stop > max))
+        if (mode == Mode.Lag && staged) Aim(); // the stop the notches' sum comes to in the new range
+        else if (mode == Mode.Lag && resting && (stop < min || stop > max))
         {
             stop = Clamp(stop);
             aim = stop + Math.Sign(stop - Position) * RestSpeed * tau;
@@ -266,6 +299,7 @@ public sealed class ScrollPhysics
     public void Shift(double delta)
     {
         Position += delta;
+        inner += delta;
         input += delta;
         total += delta;
         stop += delta;
@@ -304,8 +338,14 @@ public sealed class ScrollPhysics
             if (direction == landing) return; // already braking onto the end it is going to
             Rebase();
         }
-        else if (mode == Mode.Lag && Heading() == -direction) Rebase(); // turned back: from where the view is
-        var lag = next == Kind.Follow ? FollowLag : GlideDecay;
+        else if (mode == Mode.Lag && Heading() == -direction) Rebase(); // turned back: from where the view is, from rest
+        if (next == Kind.Glide)
+        {
+            Glide(distance);
+            return;
+        }
+        if (mode == Mode.Lag && staged) Unstage(FollowLag);
+        const double lag = FollowLag; // the spread path below is the touchpad's (the wheel's glide is Glide's)
         if (mode != Mode.Lag) Enter(lag, carry: Math.Sign(Velocity) != -direction);
         else if (lag != baseTau || resting) Retune(lag);
         kind = next;
@@ -331,10 +371,78 @@ public sealed class ScrollPhysics
     // Where the input path ends once its spreads have delivered.
     private double Pending() => spreads > 0 ? total : input;
 
+    // A wheel's report (a notch, or a fine wheel's fraction of one): the notches add up to one target, which the view
+    // follows through two critically damped stages (ED-NEW-softscroll-2). A glide under way takes the notch into its
+    // target with no step in position or speed; anything else hands over where it was going and the speed it has (a notch
+    // that turns it back started from where the view is, at rest, above).
+    private void Glide(double distance)
+    {
+        if (mode != Mode.Lag || !staged)
+        {
+            var speed = mode == Mode.Idle ? 0 : Velocity;
+            var target = mode == Mode.Idle ? Position : Target;
+            if (Math.Sign(speed) == -Math.Sign(distance) || Math.Sign(target - Position) == -Math.Sign(distance))
+            {
+                speed = 0;
+                target = Position;
+            }
+            mode = Mode.Lag;
+            kind = Kind.Glide;
+            staged = true;
+            tau = baseTau = GlideStage;
+            inner = Position + speed * tau; // the view's speed is (inner - Position) / tau
+            input = total = target;
+            spreads = 0;
+            landing = 0;
+            curve = null;
+        }
+        total += distance;
+        Aim();
+    }
+
+    // The glide's one target: the notches' sum (the next whole row ahead, for the terminal's rows), the stop it rests on,
+    // and the aim a hair past it, RestSpeed's worth over a stage, so the view reaches its stop and rests there at about
+    // that speed. Headed past an end, it aims where it was going (braking onto the end is Brakes' and Land's).
+    private void Aim()
+    {
+        resting = true;
+        input = settledInput = total;
+        var side = Math.Sign(total - Position);
+        reach = Quantize(total, side != 0 ? side : Math.Sign(Velocity));
+        stop = Clamp(reach);
+        aim = (reach != stop ? reach : stop) + Math.Sign(stop - Position) * RestSpeed * tau;
+    }
+
+    // The glide hands over to the touchpad's first-order follow (a stream taken for a fine wheel's turned out to be a
+    // touchpad's): position and speed carry on, and what the glide still had to go is spread over a stage, nothing lost.
+    private void Unstage(double lag)
+    {
+        var speed = Velocity;
+        var pending = total;
+        staged = false;
+        resting = false;
+        spreads = 0;
+        tau = baseTau = lag;
+        input = total = Position + speed * lag;
+        var rest = pending - input;
+        if (rest != 0 && Math.Sign(rest) != -Math.Sign(speed)) AddSpread(rest, GlideStage);
+    }
+
+    /// <summary>Wheel input already given was weighed as a wheel's and turned out to be a touchpad's: where the glide is
+    /// going moves by <paramref name="delta"/> points; position and speed carry on.</summary>
+    public void Amend(double delta, double now)
+    {
+        Advance(now);
+        if (delta == 0 || mode != Mode.Lag || !staged) return;
+        total += delta;
+        Aim();
+    }
+
     // Input taking over from rest, a touch or an animation: its speed carries on, unless the input turns it back.
     private void Enter(double lag, bool carry)
     {
         var speed = mode == Mode.Idle || !carry ? 0 : Velocity;
+        staged = false;
         mode = Mode.Lag;
         tau = baseTau = lag;
         input = total = Position + speed * lag; // the speed carries on
@@ -371,7 +479,8 @@ public sealed class ScrollPhysics
 
     private void Rebase()
     {
-        input = total = Position;
+        staged = false;
+        inner = input = total = Position;
         tau = baseTau;
         spreads = 0;
         resting = false;
@@ -408,6 +517,7 @@ public sealed class ScrollPhysics
             finger = Position;
         }
         mode = Mode.Held;
+        staged = false;
         curve = null;
         AddSample(now, position - finger);
         finger = Position = Clamp(position);
@@ -440,6 +550,7 @@ public sealed class ScrollPhysics
         start = now;
         curve = animation;
         mode = Mode.Animate;
+        staged = false;
         // A spring never quite arrives (SwiftUI's .smooth(0.25) is 0.8 % short at its settling duration): it is run on,
         // scaled to arrive exactly once it is within AnimationRest, so it ends on its destination with no snap.
         scale = 1;
@@ -513,7 +624,8 @@ public sealed class ScrollPhysics
         return from + (to - from) * Math.Min(1, scale * curve.Progress(t)) + carry * t * left * left * Math.Exp(-t / fade);
     }
 
-    // The lag, solved exactly from one breakpoint (a spread ending, braking onto an end, reaching the stop) to the next.
+    // The lag, solved exactly from one breakpoint (a spread ending, braking onto an end, reaching the stop) to the next. The
+    // wheel's glide (staged) has none but the last two: it is one exact step per frame.
     private void AdvanceLag(double now)
     {
         while (mode == Mode.Lag && Time < now)
@@ -561,10 +673,27 @@ public sealed class ScrollPhysics
     private void Integrate(double a0, double slope, double h)
     {
         var decay = Math.Exp(-h / tau);
-        Position = Clamp(a0 + slope * (h - tau) + (Position - a0 + slope * tau) * decay);
+        if (staged)
+        {
+            var lead = inner - a0;
+            Position = Clamp(a0 + (Position - a0 + lead * h / tau) * decay);
+            inner = a0 + lead * decay;
+        }
+        else Position = Clamp(a0 + slope * (h - tau) + (Position - a0 + slope * tau) * decay);
         if (spreads > 0) input += slope * h;
         Time += h;
     }
+
+    // Where the view is u seconds on, following a0 (and the input path's slope), and its speed there. First order:
+    // x(u) = a0 + slope (u - tau) + (x0 - a0 + slope tau) e^(-u/tau). The two stages, toward a0 (no slope: the glide's input
+    // has all arrived): x(u) = a0 + (x0 - a0 + (z0 - a0) u/tau) e^(-u/tau), z the first stage.
+    private double PathAt(double a0, double slope, double u) => staged
+        ? a0 + (Position - a0 + (inner - a0) * u / tau) * Math.Exp(-u / tau)
+        : a0 + slope * (u - tau) + (Position - a0 + slope * tau) * Math.Exp(-u / tau);
+
+    private double SpeedAt(double a0, double slope, double u) => staged
+        ? (inner - Position - (inner - a0) * u / tau) * Math.Exp(-u / tau) / tau
+        : slope - (Position - a0 + slope * tau) / tau * Math.Exp(-u / tau);
 
     // The input has all arrived: rest on its end (the next whole row ahead, for the terminal), aiming a hair past it.
     private void Rest()
@@ -591,11 +720,14 @@ public sealed class ScrollPhysics
         aim = (past ? reach : stop) + side * RestSpeed * tau;
     }
 
-    // Whether the view reaches its stop within h, from the aim past it: x(u) = aim + (x0 - aim) e^(-u/tau).
+    // Whether the view reaches its stop within h, from the aim past it: x(u) = aim + (x0 - aim) e^(-u/tau). The two stages'
+    // x(u) - aim is (a line) times e^(-u/tau), which has one turning point and dies out on the aim's side of the stop: from
+    // before the stop it crosses it once, so where it is at h tells.
     private bool Arrives(double h)
     {
         var side = Math.Sign(aim - stop);
         if (side == 0 || side * (stop - Position) <= 0) return true;
+        if (staged) return side * (PathAt(aim, 0, h) - stop) >= 0;
         var u = tau * Math.Log((aim - Position) / (aim - stop));
         return u <= h + 1e-12;
     }
@@ -612,13 +744,11 @@ public sealed class ScrollPhysics
         if (side == 0) return false;
         var end = side > 0 ? max : min;
         var brake = Math.Min(LandingDecay, tau);
-        var c = Position - a0 + slope * tau;
-        var lag = tau;
         var s = side;
-        double Margin(double u) => s * (end - (a0 + slope * (u - lag) + c * Math.Exp(-u / lag))) - brake * s * (slope - c / lag * Math.Exp(-u / lag));
+        double Margin(double u) => s * (end - PathAt(a0, slope, u)) - brake * s * SpeedAt(a0, slope, u);
         if (Margin(0) <= 0)
         {
-            speed = slope - c / tau;
+            speed = SpeedAt(a0, slope, 0);
             return true;
         }
         // Sampled every millisecond (frame-rate independent), then bisected.
@@ -640,7 +770,7 @@ public sealed class ScrollPhysics
                 else high = mid;
             }
             at = high;
-            speed = slope - c / tau * Math.Exp(-high / tau);
+            speed = SpeedAt(a0, slope, high);
             return true;
         }
         return false;
@@ -651,6 +781,7 @@ public sealed class ScrollPhysics
     {
         var end = side > 0 ? max : min;
         landing = side;
+        staged = false; // the landing is first order, from the speed the glide has here
         spreads = 0;
         resting = true;
         settledInput = input;
@@ -700,7 +831,8 @@ public sealed class ScrollPhysics
     private void Settle(double position)
     {
         mode = Mode.Idle;
-        Position = input = total = stop = aim = reach = settledInput = finger = position;
+        Position = inner = input = total = stop = aim = reach = settledInput = finger = position;
+        staged = false;
         spreads = 0;
         resting = false;
         landing = 0;
@@ -791,6 +923,17 @@ public sealed class ScrollDriver
             if (kind == WheelKind.Touchpad) axis.Precise(d, now, instant);
             else axis.Notch(d, now, instant);
         }
+    }
+
+    /// <summary>Wheel input already given turns out to have been weighed wrong (see <see cref="ScrollPhysics.Amend"/>):
+    /// where the glide is going moves by <paramref name="delta"/> points per axis.</summary>
+    public void Amend(Vector delta)
+    {
+        if (!running) return;
+        var now = Begin();
+        x.Amend(delta.X, now);
+        y.Amend(delta.Y, now);
+        Commit(now);
     }
 
     /// <summary>The host was moved by a touch drag (Avalonia's presenter moves it itself).</summary>
@@ -984,6 +1127,10 @@ public static class SoftScroll
 {
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<ScrollViewer, ScrollDriver> Drivers = new();
     private static readonly WheelClassifier Classifier = new();
+    // What the current stream's wheel reports were given beyond a touchpad's weight, and the motion they went to: a stream
+    // that turns out to be a touchpad's (its first reports can look like a fine wheel's) takes that back.
+    private static Vector overweight;
+    private static WeakReference<ScrollDriver>? overweighted;
     private static bool installed;
     // A touchpad stream stays with the scroll view it started on (as macOS latches a gesture), its inertia included.
     private static WeakReference<ScrollViewer>? latched;
@@ -997,30 +1144,51 @@ public static class SoftScroll
     /// <summary>The curve keyboard scrolls take: <c>.smooth(duration: 0.25)</c> (see the file note).</summary>
     public static Animation KeyAnimation { get; } = Animation.Smooth(0.25);
 
-    /// <summary>Whether the ScrollViewer scrolls softly, inherited by the scroll views inside it (ED-333: the chat timeline's, until every
-    /// scroll view does).</summary>
+    /// <summary>Whether the ScrollViewer scrolls softly, inherited by the scroll views inside it. True by default: every scroll
+    /// view does (OD-0071, ED-NEW-softscroll-1); false is an opt-out, justified where it is set (see the file note).</summary>
     public static readonly AttachedProperty<bool> IsEnabledProperty =
-        AvaloniaProperty.RegisterAttached<Control, bool>("SoftScrollIsEnabled", typeof(SoftScroll), inherits: true);
+        AvaloniaProperty.RegisterAttached<Control, bool>("SoftScrollIsEnabled", typeof(SoftScroll), defaultValue: true, inherits: true);
 
-    public static bool GetIsEnabled(ScrollViewer viewer) => viewer.GetValue(IsEnabledProperty);
+    public static bool GetIsEnabled(Control control) => control.GetValue(IsEnabledProperty);
 
-    public static void SetIsEnabled(ScrollViewer viewer, bool value) => viewer.SetValue(IsEnabledProperty, value);
+    public static void SetIsEnabled(Control control, bool value) => control.SetValue(IsEnabledProperty, value);
+
+    /// <summary>A control that takes the wheel itself (the terminal): the scroll views around it leave its wheel to it, and to
+    /// Avalonia's own handling after it (see the file note). Not inherited.</summary>
+    public static readonly AttachedProperty<bool> OwnsWheelProperty =
+        AvaloniaProperty.RegisterAttached<Control, bool>("SoftScrollOwnsWheel", typeof(SoftScroll));
+
+    public static bool GetOwnsWheel(Control control) => control.GetValue(OwnsWheelProperty);
+
+    public static void SetOwnsWheel(Control control, bool value) => control.SetValue(OwnsWheelProperty, value);
+
+    // Whether the behaviour drives `viewer`: enabled, and not a logical scroller (its offset is in items, not points).
+    private static bool Drives(ScrollViewer viewer) =>
+        GetIsEnabled(viewer) && viewer.Presenter is not ScrollContentPresenter { Child: ILogicalScrollable { IsLogicalScrollEnabled: true } };
 
     /// <summary>Raised on a ScrollViewer when its phase changes.</summary>
     public static readonly RoutedEvent<ScrollPhaseChangedEventArgs> PhaseChangedEvent =
         RoutedEvent.Register<ScrollViewer, ScrollPhaseChangedEventArgs>("SoftScrollPhaseChanged", RoutingStrategies.Direct);
 
-    /// <summary>Puts the behaviour on every ScrollViewer of the process that has <see cref="IsEnabledProperty"/> set (once; PortControlThemes.Register calls it).</summary>
+    /// <summary>Puts the behaviour on every ScrollViewer of the process that has not opted out of it (once; PortControlThemes.Register calls it).</summary>
     public static void Install()
     {
         if (installed) return;
         installed = true;
+        // Tunnelling (InputElement.PointerWheelChangedEvent routes Tunnel | Bubble in Avalonia 12.1.2): the scroll view sees the
+        // report before its ScrollContentPresenter's own wheel handling (bubbling, OnPointerWheelChanged) can jump the offset.
         InputElement.PointerWheelChangedEvent.AddClassHandler<ScrollViewer>(OnWheel, RoutingStrategies.Tunnel);
         InputElement.KeyDownEvent.AddClassHandler<InputElement>(BeforeKey, RoutingStrategies.Tunnel, handledEventsToo: true);
         InputElement.KeyDownEvent.AddClassHandler<InputElement>(AfterKey, RoutingStrategies.Bubble, handledEventsToo: true);
         InputElement.ScrollGestureEvent.AddClassHandler<ScrollViewer>((viewer, e) =>
         {
-            if (NearestViewer(e.Source) == viewer && GetIsEnabled(viewer)) For(viewer).Touch();
+            if (NearestViewer(e.Source) == viewer && Drives(viewer)) For(viewer).Touch();
+        }, RoutingStrategies.Bubble, handledEventsToo: true);
+        // A scroll bar's thumb taken by the pointer: the thumb moves the offset itself, so the motion stops where it is.
+        Thumb.DragStartedEvent.AddClassHandler<ScrollViewer>((viewer, e) =>
+        {
+            if (e.Source is Visual thumb && thumb.FindAncestorOfType<ScrollBar>() is { } bar && bar.FindAncestorOfType<ScrollViewer>() == viewer
+                && Drivers.TryGetValue(viewer, out var driver)) driver.Stop();
         }, RoutingStrategies.Bubble, handledEventsToo: true);
         InputElement.ScrollGestureEndedEvent.AddClassHandler<ScrollViewer>((viewer, e) =>
         {
@@ -1052,7 +1220,8 @@ public static class SoftScroll
             () => new Vector(
                 viewer.HorizontalScrollBarVisibility == ScrollBarVisibility.Disabled ? 0 : viewer.Extent.Width - viewer.Viewport.Width,
                 viewer.VerticalScrollBarVisibility == ScrollBarVisibility.Disabled ? 0 : viewer.Extent.Height - viewer.Viewport.Height),
-            () => EnvironmentValues.GetAccessibilityReduceMotion(viewer));
+            // No frame clock (never in the app, which binds one at start-up): nothing could animate, so input steps at once.
+            () => EnvironmentValues.GetAccessibilityReduceMotion(viewer) || !FrameClock.IsBound);
         driver.PhaseChanged += phase => viewer.RaiseEvent(new ScrollPhaseChangedEventArgs(phase));
         viewer.DetachedFromVisualTree += (_, _) => driver.Stop();
         return driver;
@@ -1071,7 +1240,10 @@ public static class SoftScroll
         var now = ScrollDriver.Now;
         var kind = Classifier.Classify(Math.Abs(delta.Y) >= Math.Abs(delta.X) ? delta.Y : delta.X, now);
         var owner = Owner(e.Source, delta, kind);
-        if (owner is not null && !GetIsEnabled(owner)) return; // a scroll view that does not scroll softly keeps Avalonia's own wheel
+        if (owner is not null && !Drives(owner)) return; // a scroll view that opted out keeps Avalonia's own wheel
+        // A control on the way that takes the wheel itself (the terminal's history) keeps it: nothing here handles it.
+        for (var visual = e.Source as Visual; visual is not null && visual != owner; visual = visual.GetVisualParent())
+            if (visual is Control control && GetOwnsWheel(control)) return;
         if (owner is null)
         {
             // Nobody can move that way. A view still gliding to that end keeps the report from its presenter (which
@@ -1082,10 +1254,29 @@ public static class SoftScroll
             return;
         }
         e.Handled = true;
-        var distance = new Vector(
-            CanScroll(owner, horizontal: true) ? -delta.X * ScrollPhysics.WheelLine : 0,
-            CanScroll(owner, horizontal: false) ? -delta.Y * ScrollPhysics.WheelLine : 0);
-        For(owner).Wheel(distance, kind);
+        // A wheel's notch is Windows' lines setting's distance (a page for "one screen at a time"); a touchpad's stream keeps
+        // ED-246's 50 points per WHEEL_DELTA (ED-NEW-softscroll-2).
+        var wheel = SystemWheel.Shared.Current;
+        var horizontal = CanScroll(owner, horizontal: true);
+        var vertical = CanScroll(owner, horizontal: false);
+        var touchpad = new Vector(horizontal ? -delta.X * ScrollPhysics.WheelLine : 0, vertical ? -delta.Y * ScrollPhysics.WheelLine : 0);
+        var distance = kind == WheelKind.Touchpad ? touchpad : new Vector(
+            horizontal ? -delta.X * wheel.Notch(owner.Viewport.Width) : 0,
+            vertical ? -delta.Y * wheel.Notch(owner.Viewport.Height) : 0);
+        var glide = For(owner);
+        if (Classifier.IsFresh || overweighted is null || !overweighted.TryGetTarget(out var weighed) || weighed != glide) overweight = default;
+        if (kind == WheelKind.Touchpad)
+        {
+            if (overweight != default) glide.Amend(-overweight);
+            overweight = default;
+        }
+        else
+        {
+            overweight += distance - touchpad;
+            if (overweighted is null) overweighted = new WeakReference<ScrollDriver>(glide);
+            else overweighted.SetTarget(glide);
+        }
+        glide.Wheel(distance, kind);
     }
 
     // The scroll view that takes a report: the innermost on its route that can still move that way, or is still moving
@@ -1102,7 +1293,7 @@ public static class SoftScroll
         for (var visual = source as Visual; visual is not null && owner is null; visual = visual.GetVisualParent())
         {
             if (visual is not ScrollViewer viewer || !CanScrollAlong(viewer, delta)) continue;
-            if (!GetIsEnabled(viewer))
+            if (!Drives(viewer))
             {
                 if (CanMoveNow(viewer, direction) || !ScrollViewer.GetIsScrollChainingEnabled(viewer)) owner = viewer;
                 continue;
@@ -1110,7 +1301,7 @@ public static class SoftScroll
             var driver = For(viewer);
             if (driver.CanMove(direction) || driver.IsHeading(direction) || !ScrollViewer.GetIsScrollChainingEnabled(viewer)) owner = viewer;
         }
-        latched = kind == WheelKind.Touchpad && owner is not null && GetIsEnabled(owner) ? new WeakReference<ScrollViewer>(owner) : null;
+        latched = kind == WheelKind.Touchpad && owner is not null && Drives(owner) ? new WeakReference<ScrollViewer>(owner) : null;
         return owner;
     }
 
@@ -1172,7 +1363,7 @@ public static class SoftScroll
             // ScrollViewer.PageDown, a jump): the page is taken over and glides.
             if (e.Handled && e.Key is Key.PageUp or Key.PageDown)
                 foreach (var (own, was) in KeyOffsets.ToArray())
-                    if (GetIsEnabled(own) && ReferenceEquals(own.TemplatedParent, element) && own.Offset != was)
+                    if (Drives(own) && ReferenceEquals(own.TemplatedParent, element) && own.Offset != was)
                     {
                         own.Offset = was;
                         if (ReferenceEquals(waiting, own)) waiting = null;
@@ -1187,9 +1378,9 @@ public static class SoftScroll
             handledBelow = e.Handled;
             return;
         }
-        if (!GetIsEnabled(viewer))
+        if (!Drives(viewer))
         {
-            handledBelow = e.Handled; // a scroll view that does not scroll softly pages itself, as Avalonia does
+            handledBelow = e.Handled; // a scroll view that opted out pages itself, as Avalonia does
             return;
         }
         // Avalonia's own Page Up/Down jump (it runs only on a key that arrived unhandled) is undone: the key is ours.

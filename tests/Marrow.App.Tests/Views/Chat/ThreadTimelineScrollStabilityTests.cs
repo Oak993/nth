@@ -336,10 +336,11 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")] // Partial proof of what the lazy stack's repairs protect (F-1, ED-255; not PR-CHAT-170, which is a static scan): ThreadTimeline.swift:2320-2325 ScrollFreeze turns off hit-testing on the rows only; the NSScrollView still takes every wheel event
     public void Every_wheel_notch_scrolls_even_while_the_rows_are_frozen() => WithLongThread(30, (view, _, window, frames) =>
     {
-        // One notch is 50 points; the first freezes the rows for 150 ms, and the other nine come inside that window.
+        // One notch is 100 points (3 lines, ED-NEW-softscroll-2); the first freezes the rows for 150 ms, and the other nine come
+        // inside that window.
         var moved = Wheel(view, window, 10, frames);
         Assert.True(IsReaderScrolling(view), "the rows should be frozen while the wheel turns");
-        Assert.Equal(500, moved, 0);
+        Assert.Equal(1000, moved, 0);
     });
 
     private static bool Tracked(ThreadTimeline view, string property)
@@ -438,24 +439,28 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
         }
         clock?.Advance(TimeSpan.FromSeconds(1)); // a new stream
 
-        // 1. One notch up glides: nothing in the report's own frame, part of the way in the first frame, every frame a step
-        // no longer than the one before it once the glide decays, and it rests exactly 50 points up with no settle jump.
+        // 1. One notch up glides (ED-NEW-softscroll-2): nothing in the report's own frame, from rest in the first frame (a third of
+        // a point at 240 Hz), no frame further than the curve's peak speed allows, and it rests exactly 100 points up (3 lines)
+        // with no settle jump.
         var start = scroller.Offset.Y;
         window.MouseWheel(point, new Vector(0, 1));
         Dispatcher.UIThread.RunJobs();
         Assert.Equal(start, scroller.Offset.Y, 3);
         var glide = Frames(240);
         var moved = glide.Select(y => start - y).ToArray();
-        Assert.InRange(moved[0], 0.01, 25);
-        Assert.True(Math.Abs(moved[^1] - 50) < 1e-3, "the notch came to rest " + moved[^1].ToString("F3", System.Globalization.CultureInfo.InvariantCulture) + " up; frames: " + string.Join(" ", moved.Take(40).Select(m => m.ToString("F2", System.Globalization.CultureInfo.InvariantCulture))) + " " + Where(scroller));
+        Assert.InRange(moved[0], 0.01, 1);
+        Assert.True(Math.Abs(moved[^1] - 100) < 1e-3, "the notch came to rest " + moved[^1].ToString("F3", System.Globalization.CultureInfo.InvariantCulture) + " up; frames: " + string.Join(" ", moved.Take(40).Select(m => m.ToString("F2", System.Globalization.CultureInfo.InvariantCulture))) + " " + Where(scroller));
         var steps = moved.Zip(moved.Skip(1), (a, b) => b - a).ToArray();
         Assert.All(steps, step => Assert.True(step >= -1e-6, $"the glide turned back by {-step:F3}"));
-        var settled = Array.FindIndex(moved, m => Math.Abs(m - 50) < 1e-6);
+        var settled = Array.FindIndex(moved, m => Math.Abs(m - 100) < 1e-6);
         Assert.True(settled > 6, $"the notch landed in {settled + 1} frames, not a glide");
-        Assert.True(steps.Take(settled).Skip(3).All(step => step < 50 * 0.25), "a frame jumped a quarter of the notch at once");
+        var peakStep = 100.1 / (ScrollPhysics.GlideStage * Math.E) / 240; // the curve's top speed over a 240 Hz frame: 3.07 points
+        Assert.True(steps.Take(settled).All(step => step <= peakStep + 1e-3), "a frame jumped further than the curve's top speed allows");
+        var peakAt = Array.IndexOf(steps, steps.Max());
+        Assert.InRange(peakAt, 9, 12); // the speed peaks one stage (50 ms, 12 frames) in, give or take the frame grid
 
-        // 2. A burst of notches runs on after its last report (the measured flick: the view is still moving after the notches end,
-        // its speed decaying) and comes to rest on the sum.
+        // 2. A burst of notches runs on after its last report (the notches add up to one target the view follows through two
+        // stages: still speeding up as they end, then decaying) and comes to rest on the sum.
         clock?.Advance(TimeSpan.FromSeconds(1));
         start = scroller.Offset.Y;
         for (var notch = 0; notch < 6; notch++)
@@ -465,16 +470,17 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
             Frames(2); // 120 Hz reports, 8 ms apart
         }
         var atLast = start - scroller.Offset.Y;
-        Assert.True(atLast < 300 * 0.8, $"the burst was {atLast:F1} of 300 points in by its last notch: no glide");
+        Assert.True(atLast < 600 * 0.15, $"the burst was {atLast:F1} of 600 points in by its last notch: no glide");
         var tail = Frames(480).Select(y => start - y).ToArray();
-        Assert.True(tail[10] > atLast + 5, "the view stopped with the notches: no momentum");
+        Assert.True(tail[10] > atLast + 100, "the view stopped with the notches: no momentum");
         var tailSteps = tail.Zip(tail.Skip(1), (a, b) => b - a).ToArray();
         Assert.True(tailSteps.Skip(20).Take(40).Zip(tailSteps.Skip(21).Take(40), (a, b) => b <= a + 1e-6).All(decays => decays), "the run-on does not decay");
-        Assert.Equal(300, tail[^1], 3);
+        Assert.Equal(600, tail[^1], 3);
 
-        // 3. A flick down towards the end arrives from speed and stops on it: never past it, the last frames still moving, and at rest exactly there.
+        // 3. A flick down towards the end (four notches short of it, eight asked) arrives from speed and stops on it: never past
+        // it, the last frames still moving, and at rest exactly there.
         clock?.Advance(TimeSpan.FromSeconds(1));
-        scroller.Offset = new Vector(0, most - 120);
+        scroller.Offset = new Vector(0, most - 400);
         Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
         for (var notch = 0; notch < 8; notch++)
         {
@@ -490,5 +496,58 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
         Assert.True(arrived > 0, "the end was reached in the notches' own frames");
         var last = landing.Take(arrived + 1).ToList();
         if (last.Count >= 2) Assert.True(last[^1] - last[^2] > 0, "the view crept onto the end instead of arriving from speed");
+    });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-001")]
+    [Trait("Decision", "ED-NEW-softscroll-1")] // the owner, 2026-10-11: "Every scroll looks harsh and static movements": a notch is a glide over many frames, not a jump
+    [Trait("Decision", "ED-NEW-softscroll-2")] // the weighted curve: two critically damped stages of 0.050 s, 100 points a notch at 3 lines
+    public void A_wheel_notch_on_the_timeline_glides_the_two_stage_curve_over_many_frames_at_60_Hz() => WithLongThread(30, (view, _, window, frames) =>
+    {
+        var scroller = Scroller(view);
+        var lift = System.Diagnostics.Stopwatch.StartNew();
+        while (IsReaderScrolling(view) && lift.ElapsedMilliseconds < 3000) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(20); }
+        var target = TextsOnScreen(view, scroller).First();
+        var point = target.TranslatePoint(new Point(4, target.Bounds.Height / 2), window)!.Value;
+        window.MouseMove(point);
+        clock?.Advance(TimeSpan.FromSeconds(1)); // a new stream
+        var start = scroller.Offset.Y;
+        window.MouseWheel(point, new Vector(0, 1));
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(start, scroller.Offset.Y, 3); // nothing in the report's own frame
+        var frame = TimeSpan.FromTicks(TimeSpan.TicksPerSecond / 60);
+        var moved = new List<double>();
+        for (var k = 0; k < 60; k++)
+        {
+            clock?.Advance(frame);
+            frames.Advance(frame);
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+            moved.Add(start - scroller.Offset.Y);
+        }
+        var steps = moved.Zip(moved.Prepend(0.0), (now, was) => now - was).ToArray();
+        var shown = string.Join(" ", moved.Take(30).Select(m => m.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)));
+        // Frame by frame the curve x(t) = 100.1 (1 - (1 + t/0.05) e^(-t/0.05)) (aimed 2 points a second's worth past the
+        // notch, resting on it): 4.5, 14.4, 26.5, 38.5, 49.7, 59.5, ... points.
+        for (var k = 0; k < moved.Count; k++)
+        {
+            var t = (k + 1) * frame.TotalSeconds;
+            var curve = Math.Min(100, 100.1 * (1 - (1 + t / ScrollPhysics.GlideStage) * Math.Exp(-t / ScrollPhysics.GlideStage)));
+            Assert.True(Math.Abs(moved[k] - curve) < 1e-2, $"frame {k + 1} ({t * 1000:F1} ms): {moved[k]:F3}, the curve {curve:F3}: " + shown);
+        }
+        // From no speed: the first frame moves under 5 % of the notch, and the frames speed up before they slow down.
+        Assert.InRange(moved[0], 4.4, 4.5);
+        Assert.True(steps[0] < steps[1] && steps[1] < steps[2], "the glide did not start from rest: " + shown);
+        // The speed peaks near 50 ms: the largest 60 Hz step is one of the two frames either side of it.
+        Assert.InRange(Array.IndexOf(steps, steps.Max()), 2, 3);
+        // About 90 % at 195 ms: under 90 points at the 183 ms frame, over it at the 200 ms frame.
+        Assert.True(moved[10] < 90 && moved[11] >= 90, "90 % was not reached between 183 and 200 ms: " + shown);
+        Assert.True(steps.Count(step => step >= 0.5) >= 6, "the notch moved half a point or more in fewer than six 60 Hz frames: " + shown);
+        Assert.All(steps, step => Assert.True(step >= -1e-6 && step <= 100 / 8.0, $"a 60 Hz frame moved {step:F2} of the 100-point notch: " + shown));
+        // At rest on the notch by the 0.47 s frame, exactly.
+        Assert.True(moved[26] < 100, "it rested before 0.45 s: " + shown);
+        Assert.Equal(100, moved[27], 3);
+        Assert.Equal(100, moved[^1], 3);
+        Assert.False(SoftScroll.For(scroller).IsMoving);
     });
 }
