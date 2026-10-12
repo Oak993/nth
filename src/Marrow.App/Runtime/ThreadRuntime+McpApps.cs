@@ -85,7 +85,8 @@ public sealed partial class ThreadRuntime
     // Resolve's first step: an app's card answers the app, never the provider (and leaves no handoff record).
     private bool ResolveAppPrompt(ApprovalRequest request, ApprovalRequest.Option option)
     {
-        if (!appPrompts.Remove(request.Id, out var answer)) return false;
+        // The table is null in a runtime built without its initialisers (tests that skip the constructor); no app asked for anything there.
+        if (appPrompts is null || !appPrompts.Remove(request.Id, out var answer)) return false;
         Approvals = Approvals.Mutating(items => items.RemoveAll(item => item.Id == request.Id));
         answer(option);
         return true;
@@ -93,5 +94,5 @@ public sealed partial class ThreadRuntime
 
     // A turn's end clears the provider's cards; an app's cards stay until the user answers them.
     private ValueList<ApprovalRequest> AppPromptsOnly() =>
-        appPrompts.Count == 0 ? ValueList<ApprovalRequest>.Empty : new ValueList<ApprovalRequest>(Approvals.Where(item => appPrompts.ContainsKey(item.Id)));
+        appPrompts is null || appPrompts.Count == 0 ? ValueList<ApprovalRequest>.Empty : new ValueList<ApprovalRequest>(Approvals.Where(item => appPrompts.ContainsKey(item.Id)));
 }
