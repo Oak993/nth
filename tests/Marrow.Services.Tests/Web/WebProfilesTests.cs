@@ -32,7 +32,8 @@ public sealed class WebProfilesTests
         // different options, so only the controller options (profile, InPrivate) differ.
         var keys = Enum.GetValues<WebSurfaceKind>().Select(kind => Profiles.For(kind, @"C:\threads\one").EnvironmentKey).Distinct().ToList();
         var key = Assert.Single(keys);
-        Assert.Equal((WebRig.UserData, "en-US", (string?)null), key);
+        // DESIGN 6.5 (ED-NEW-web-w13-1): the shared arguments are exactly site isolation and the WebRTC UDP block.
+        Assert.Equal((WebRig.UserData, "en-US", (string?)"--site-per-process --force-webrtc-ip-handling-policy=disable_non_proxied_udp"), key);
     }
 
     [Fact]

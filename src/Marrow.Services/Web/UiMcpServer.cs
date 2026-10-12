@@ -17,16 +17,19 @@ public sealed class UiMcpServer(UiRegistration? registration)
 {
     public const string ServerName = "nth-ui";
 
-    /// <summary>The server's instructions (initialize), a short version of the teaching block W17 writes in full.</summary>
-    public const string Instructions =
-        "nth shows artifacts in its Tabula pane beside the chat. Create one with artifact_create when the user will keep, run or reuse what you make "
-        + "(a page or small app, a component, a diagram, a document, a program, several files that work together); keep short answers in the chat. "
-        + "Every change is a new version: use artifact_update, with edits for small changes. artifact_list and artifact_read show what exists.";
+    /// <summary>
+    /// The server's instructions (initialize): the teaching Marrow.Core.NthUi.NthUiTeaching writes for the tools this server serves
+    /// (W17, ED-NEW-web-w17-1): when to use text, a live view or an artifact, then the view language and worked examples.
+    /// </summary>
+    public static string Instructions => UiTeaching.Instructions(ToolNames);
+
+    /// <summary>The tools the server serves, in the order it lists them. The live-answer tools of W24 join this list.</summary>
+    public static IReadOnlyList<string> ToolNames { get; } = [.. ArtifactTools.Names, UiReferenceTool.Name];
 
     /// <summary>True for a Claude Code tool name of this server's ("mcp__nth-ui__artifact_create").</summary>
     public static bool IsOwnTool(string? qualifiedName) =>
         qualifiedName is not null && qualifiedName.StartsWith("mcp__" + ServerName + "__", StringComparison.Ordinal)
-        && ArtifactTools.IsName(qualifiedName[("mcp__" + ServerName + "__").Length..]);
+        && ToolNames.Contains(qualifiedName[("mcp__" + ServerName + "__").Length..]);
 
     public async Task<string?> Handle(string line, CancellationToken cancellationToken)
     {
@@ -77,17 +80,31 @@ public sealed class UiMcpServer(UiRegistration? registration)
                 ["annotations"] = new JsonObject { ["readOnlyHint"] = reads, ["destructiveHint"] = false, ["openWorldHint"] = false },
             });
         }
+        // PORT-ONLY (W17, ED-NEW-web-w17-1): the on-demand reference of the live-view language, read only.
+        tools.Add(new JsonObject
+        {
+            ["name"] = UiReferenceTool.Name,
+            ["title"] = UiReferenceTool.Title,
+            ["description"] = UiReferenceTool.Description,
+            ["inputSchema"] = UiReferenceTool.InputSchema(),
+            ["annotations"] = new JsonObject { ["readOnlyHint"] = true, ["destructiveHint"] = false, ["openWorldHint"] = false },
+        });
         return tools;
     }
 
     private async Task<JsonNode> Call(JsonNode? parameters, CancellationToken cancellationToken)
     {
         var name = (parameters?["name"] as JsonValue)?.GetValue<string>();
-        if (!Serves || !ArtifactTools.IsName(name)) throw new ArgumentException("Unknown nth-ui tool.");
+        if (!Serves || !ToolNames.Contains(name ?? "")) throw new ArgumentException("Unknown nth-ui tool.");
         var (thread, provider, model, host) = registration!;
-        var (author, prompt) = await host.Caller(thread, provider, model).ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-        var result = ArtifactTools.Run(host.Store!, thread, name!, parameters?["arguments"], author, prompt);
+        ArtifactToolResult result;
+        if (name == UiReferenceTool.Name) result = UiReferenceTool.Run(parameters?["arguments"]);
+        else
+        {
+            var (author, prompt) = await host.Caller(thread, provider, model).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            result = ArtifactTools.Run(host.Store!, thread, name!, parameters?["arguments"], author, prompt);
+        }
         var reply = new JsonObject
         {
             ["isError"] = result.Failed,

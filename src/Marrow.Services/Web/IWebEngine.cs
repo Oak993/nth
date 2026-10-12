@@ -135,6 +135,19 @@ public interface IWebEngineView : IDisposable
 
     WebMemoryLevel MemoryLevel { get; set; }
 
+    /// <summary>
+    /// DESIGN 6.5, 8.1 (ED-NEW-web-w13-1): a script that runs in every document of the view, before the page's own
+    /// scripts (<c>AddScriptToExecuteOnDocumentCreatedAsync</c>). Scripts added before the platform view attaches are
+    /// registered when it does, and the first navigation waits until they are.
+    /// </summary>
+    void AddDocumentCreatedScript(string script);
+
+    /// <summary>
+    /// DESIGN 6.5 (ED-NEW-web-w13-1): every request the view makes, from any frame or worker, goes to
+    /// <paramref name="handler"/> first (<c>WebResourceRequested</c> with a filter for all addresses); null removes it.
+    /// </summary>
+    void SetResourceHandler(IWebResourceHandler? handler);
+
     event EventHandler<WebNavigationStarting>? NavigationStarting;
     event EventHandler<WebNavigationStarting>? FrameNavigationStarting;
     event EventHandler<WebNavigationCompleted>? NavigationCompleted;

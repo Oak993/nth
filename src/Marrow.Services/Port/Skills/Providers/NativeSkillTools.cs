@@ -60,6 +60,17 @@ public sealed class NativeSkillTools
         return listing.Count == 0 ? null : Header + "\n" + string.Join("\n", listing.Select(s => s.Name + ": " + s.Description));
     }
 
+    /// <summary>
+    /// PORT-ONLY (web surfaces W17, ED-NEW-web-w17-1): the teaching block for the system prompt, or null when the chat has no artifact
+    /// tools (so a prompt without them stays exactly as it was). <paramref name="profile"/> is Lite for a small local model, and
+    /// <paramref name="toolsUsable"/> false when it cannot call tools.
+    /// </summary>
+    public string? UiTeachingBlock(Marrow.Core.NthUi.NthUiProfile profile = Marrow.Core.NthUi.NthUiProfile.Full, bool toolsUsable = true) =>
+        artifacts?.TeachingBlock(profile, toolsUsable);
+
+    /// <summary>PORT-ONLY (web surfaces W17): whether this chat's model is taught live views, which is when it has the artifact tools.</summary>
+    public bool TeachesLiveViews => artifacts is not null;
+
     /// <summary>The function-tool definitions to add to the request: only the tools that are offered at the moment.</summary>
     public IReadOnlyList<JSONValue> Definitions
     {
@@ -101,7 +112,7 @@ public sealed class NativeSkillTools
     public static string Title(string toolName, JSONValue arguments) =>
         toolName == UseSkillName ? "Skill" + (arguments["name"]?.JSONValueString is { Length: > 0 } name ? " \u00B7 " + name : "")
         : toolName == Marrow.Services.Port.Advisor.AdvisorTool.Name ? Marrow.Services.Port.Advisor.AdvisorTool.Title
-        : Marrow.Services.Web.ArtifactTools.IsName(toolName) ? Marrow.Services.Web.ArtifactNativeTools.Title(toolName, arguments) : toolName;
+        : Marrow.Services.Web.ArtifactNativeTools.Names.Contains(toolName) ? Marrow.Services.Web.ArtifactNativeTools.Title(toolName, arguments) : toolName;
 
     // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): one piece of advice from the head's lead; an error is a failed row, never a throw.
     private static async Task<NativeToolResult> AskAdvisor(Marrow.Services.Port.Advisor.AdvisorRegistration advisor, JSONValue arguments)

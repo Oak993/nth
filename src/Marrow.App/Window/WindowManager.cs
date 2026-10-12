@@ -749,6 +749,7 @@ public sealed class WindowLiveResize : MainActorModel
 
     private bool isActive; // :120
     private bool isPaneResizing; // :125
+    private bool isWorkspaceResizing; // PORT-ONLY, web W3a
     private bool inSizeMove;
     private bool resizing;
     private readonly AvaloniaWindow window; // ED-224: publish to the UI signal on this window only.
@@ -772,8 +773,19 @@ public sealed class WindowLiveResize : MainActorModel
         set => Set(ref isPaneResizing, value);
     }
 
-    // :126-127 var isReshaping: Bool { isActive || isPaneResizing }
-    public bool IsReshaping => Computed(() => IsActive || IsPaneResizing);
+    /// <summary>
+    /// PORT-ONLY (web surfaces W3a, DESIGN.md 2.6, 4.2 "Live reflow"; ED-NEW-web-w3a-1): a workspace gutter is being dragged
+    /// or the chat column's width is springing, so the chat reshapes as it does under a sidebar drag; when it turns false
+    /// the timeline settles its reading position once. Written by PaneWorkspace.
+    /// </summary>
+    public bool IsWorkspaceResizing
+    {
+        get => Read(isWorkspaceResizing);
+        set => Set(ref isWorkspaceResizing, value);
+    }
+
+    // :126-127 var isReshaping: Bool { isActive || isPaneResizing }; a workspace gutter drag is a pane resize too (web W3a).
+    public bool IsReshaping => Computed(() => IsActive || IsPaneResizing || IsWorkspaceResizing);
 
     // :129-139 init(window: NSWindow). NSWindow.willStartLiveResizeNotification and didEndLiveResizeNotification for
     // this window only (`object: window`) are the messages of this window's own procedure. Windows brackets a size

@@ -1,0 +1,190 @@
+// PORT-ONLY: web surfaces W13 (DESIGN.md 6.5, 7.6, 8.1; ED-NEW-web-w13-1). The Content-Security-Policy of every
+// sandboxed response: the design's fixed policy for artifacts and inline widgets, widened only by exact domains the user
+// allowed (an artifact's "Allow network"), and for MCP Apps by the domains the server declared in _meta.ui.csp that the
+// user allowed, never wider than declared. No Swift counterpart.
+using System.Net;
+using System.Text;
+
+namespace Marrow.Core.Web;
+
+/// <summary>An MCP App's declared <c>_meta.ui.csp</c> (MCP Apps, io.modelcontextprotocol/ui, 2026-01-26).</summary>
+public sealed record McpUiCsp(
+    IReadOnlyList<string> ConnectDomains,
+    IReadOnlyList<string> ResourceDomains,
+    IReadOnlyList<string> FrameDomains,
+    IReadOnlyList<string> BaseUriDomains)
+{
+    public static McpUiCsp None { get; } = new([], [], [], []);
+
+    /// <summary>True when the server declared any domain outside its own origin, which needs the user's OK first.</summary>
+    public bool DeclaresAny => ConnectDomains.Count + ResourceDomains.Count + FrameDomains.Count + BaseUriDomains.Count > 0;
+}
+
+/// <summary>One declared source and why it was dropped (shown in the consent card's details).</summary>
+public sealed record CspDroppedSource(string Source, string Reason);
+
+/// <summary>The sources kept from a declaration, normalised, and the ones dropped.</summary>
+public sealed record CspSourceList(IReadOnlyList<string> Kept, IReadOnlyList<CspDroppedSource> Dropped)
+{
+    public static CspSourceList Empty { get; } = new([], []);
+}
+
+public static class CspBuilder
+{
+    /// <summary>
+    /// DESIGN 6.5, verbatim: what an artifact or an inline widget may load. Scripts and styles from itself, inline, and the
+    /// library host; images and media from itself and data or blob URLs; fonts from the library host; nothing else.
+    /// </summary>
+    public const string ArtifactDefault =
+        "default-src 'none'; script-src 'self' 'unsafe-inline' https://lib-nth.invalid; " +
+        "style-src 'self' 'unsafe-inline' https://lib-nth.invalid; img-src 'self' data: blob:; " +
+        "font-src https://lib-nth.invalid data:; connect-src 'none'; frame-src 'none'; form-action 'none'; " +
+        "base-uri 'none'; worker-src 'none'; manifest-src 'none'; media-src 'self' data: blob:";
+
+    /// <summary>The library host's own responses: scripts, styles and fonts that run nothing as a page.</summary>
+    public const string Library = "default-src 'none'; frame-ancestors 'none'";
+
+    /// <summary>
+    /// An artifact's policy. <paramref name="network"/> holds the exact hosts the user allowed for the current version
+    /// ("Allow network"); they join connect-src and img-src as https sources, nothing else changes (WebRTC and navigation
+    /// stay blocked by other means).
+    /// </summary>
+    public static string Artifact(IReadOnlyCollection<string>? network = null)
+    {
+        if (network is not { Count: > 0 }) return ArtifactDefault;
+        var sources = network.Select(host => "https://" + host.ToLowerInvariant()).Distinct(StringComparer.Ordinal).ToList();
+        var directives = Parse(ArtifactDefault);
+        directives["connect-src"] = sources;
+        directives["img-src"] = [.. directives["img-src"], .. sources];
+        return Write(directives);
+    }
+
+    /// <summary>
+    /// An MCP App's policy (DESIGN 7.6): the artifact policy, plus the declared sources the user allowed. Resource domains
+    /// join script, style, image, font and media sources; connect domains connect-src; frame domains frame-src; base-URI
+    /// domains base-uri. A source is used only when the server declared it and <paramref name="allowed"/> holds it, so
+    /// the result is never wider than the declaration. Until the user allows, pass nothing and the directives stay closed.
+    /// </summary>
+    public static string McpApp(McpUiCsp declared, McpUiCsp? allowed, bool allowBroad)
+    {
+        if (allowed is null) return ArtifactDefault;
+        var directives = Parse(ArtifactDefault);
+        var resources = Granted(declared.ResourceDomains, allowed.ResourceDomains, allowBroad);
+        var connect = Granted(declared.ConnectDomains, allowed.ConnectDomains, allowBroad);
+        var frames = Granted(declared.FrameDomains, allowed.FrameDomains, allowBroad);
+        var bases = Granted(declared.BaseUriDomains, allowed.BaseUriDomains, allowBroad);
+        foreach (var name in new[] { "script-src", "style-src", "img-src", "font-src", "media-src" })
+            if (resources.Count > 0) directives[name] = [.. directives[name], .. resources.Where(s => name == "script-src" || !s.StartsWith('\''))];
+        if (connect.Count > 0) directives["connect-src"] = connect.Where(s => !s.StartsWith('\'')).ToList();
+        if (frames.Count > 0) directives["frame-src"] = frames.Where(s => !s.StartsWith('\'')).ToList();
+        if (bases.Count > 0) directives["base-uri"] = bases.Where(s => !s.StartsWith('\'')).ToList();
+        foreach (var name in directives.Keys.ToList())
+            if (directives[name].Count == 0) directives[name] = ["'none'"];
+            else if (directives[name].Count > 1) directives[name] = directives[name].Where(s => s != "'none'").Distinct(StringComparer.Ordinal).ToList();
+        return Write(directives);
+    }
+
+    /// <summary>
+    /// Cleans declared sources. Kept: absolute http, https, ws and wss origins (with an optional path) and bare host
+    /// names (taken as https), host names lower-cased. Dropped, with the reason: anything with a space, a semicolon, a
+    /// comma or a quote that could inject a directive; other schemes; keywords; wildcards (<c>*</c>, <c>*.example.com</c>)
+    /// and <c>'unsafe-eval'</c> unless <paramref name="allowBroad"/>; IP addresses when <paramref name="allowIp"/> is false.
+    /// </summary>
+    public static CspSourceList Clean(IEnumerable<string>? declared, bool allowBroad, bool allowIp = true)
+    {
+        if (declared is null) return CspSourceList.Empty;
+        var kept = new List<string>();
+        var dropped = new List<CspDroppedSource>();
+        foreach (var raw in declared)
+        {
+            var text = raw?.Trim() ?? "";
+            if (text.Length == 0) continue;
+            var (source, reason) = CleanOne(text, allowBroad, allowIp);
+            if (source is null) dropped.Add(new CspDroppedSource(text, reason!));
+            else if (!kept.Contains(source, StringComparer.Ordinal)) kept.Add(source);
+        }
+
+        return new CspSourceList(kept, dropped);
+    }
+
+    /// <summary>Splits a policy into its directives, in order (names lower case).</summary>
+    public static Dictionary<string, List<string>> Parse(string policy)
+    {
+        var directives = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        foreach (var part in policy.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var tokens = part.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (tokens.Length == 0) continue;
+            directives[tokens[0].ToLowerInvariant()] = tokens.Skip(1).ToList();
+        }
+
+        return directives;
+    }
+
+    private static string Write(Dictionary<string, List<string>> directives)
+    {
+        var builder = new StringBuilder();
+        foreach (var (name, sources) in directives)
+        {
+            if (builder.Length > 0) builder.Append("; ");
+            builder.Append(name);
+            foreach (var source in sources) builder.Append(' ').Append(source);
+        }
+
+        return builder.ToString();
+    }
+
+    private static List<string> Granted(IReadOnlyList<string> declared, IReadOnlyList<string> allowed, bool allowBroad)
+    {
+        var mine = Clean(declared, allowBroad).Kept;
+        var yes = Clean(allowed, allowBroad).Kept.ToHashSet(StringComparer.Ordinal);
+        return mine.Where(yes.Contains).ToList();
+    }
+
+    private static (string? Source, string? Reason) CleanOne(string text, bool allowBroad, bool allowIp)
+    {
+        if (text.Any(c => char.IsWhiteSpace(c) || c is ';' or ',' or '"' or '\\' or '<' or '>'))
+            return (null, "not a single source");
+        if (text.StartsWith('\''))
+        {
+            if (text == "'unsafe-eval'" && allowBroad) return (text, null);
+            return (null, text == "'unsafe-eval'" ? "lets the page run text as code" : "not a domain");
+        }
+
+        if (text.Contains('\'', StringComparison.Ordinal)) return (null, "not a single source");
+        if (text == "*") return allowBroad ? (text, null) : (null, "a wildcard");
+        var schemeEnd = text.IndexOf("://", StringComparison.Ordinal);
+        var scheme = schemeEnd < 0 ? "https" : text[..schemeEnd].ToLowerInvariant();
+        if (schemeEnd < 0 && text.Contains(':', StringComparison.Ordinal) && !HasPortOnly(text)) return (null, "not a web address");
+        if (scheme is not ("https" or "http" or "wss" or "ws")) return (null, "not a web address");
+        var rest = schemeEnd < 0 ? text : text[(schemeEnd + 3)..];
+        if (rest.StartsWith("*.", StringComparison.Ordinal) || rest.Contains('*', StringComparison.Ordinal))
+        {
+            if (!allowBroad) return (null, "a wildcard");
+            var after = rest.TrimStart('*', '.');
+            return after.Length > 0 && Uri.CheckHostName(after.Split('/', ':')[0]) == UriHostNameType.Dns
+                ? (scheme + "://*." + after.ToLowerInvariant(), null) : (null, "a wildcard");
+        }
+
+        if (!Uri.TryCreate(scheme + "://" + rest, UriKind.Absolute, out var uri) || uri.UserInfo.Length > 0 || uri.Query.Length > 0 || uri.Fragment.Length > 0)
+            return (null, "not a web address");
+        if (uri.HostNameType is UriHostNameType.IPv4 or UriHostNameType.IPv6)
+        {
+            if (!allowIp) return (null, "an IP address");
+        }
+        else if (uri.HostNameType != UriHostNameType.Dns || IPAddress.TryParse(uri.Host, out _)) return (null, "not a web address");
+
+        var host = uri.IdnHost.ToLowerInvariant();
+        var port = uri.IsDefaultPort ? "" : ":" + uri.Port;
+        var path = uri.AbsolutePath == "/" && !rest.EndsWith('/') ? "" : uri.AbsolutePath;
+        return (scheme + "://" + host + port + (path == "/" ? "" : path), null);
+    }
+
+    private static bool HasPortOnly(string text)
+    {
+        var colon = text.IndexOf(':', StringComparison.Ordinal);
+        var end = text.IndexOf('/', StringComparison.Ordinal);
+        var port = end < 0 ? text[(colon + 1)..] : text[(colon + 1)..end];
+        return port.Length > 0 && port.All(char.IsAsciiDigit);
+    }
+}

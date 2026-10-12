@@ -189,6 +189,32 @@ public sealed class FakeWebView : IWebEngineView
         Log.Add($"Navigate {url}");
     }
 
+    /// <summary>The document scripts, in the order added (DESIGN 6.5).</summary>
+    public List<string> DocumentScripts { get; } = [];
+
+    /// <summary>The resource handler the surface installed, or null.</summary>
+    public IWebResourceHandler? ResourceHandler { get; private set; }
+
+    public void AddDocumentCreatedScript(string script)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(script);
+        DocumentScripts.Add(script);
+        Log.Add("AddDocumentScript");
+    }
+
+    public void SetResourceHandler(IWebResourceHandler? handler)
+    {
+        ResourceHandler = handler;
+        Log.Add(handler is null ? "ResourceHandler off" : "ResourceHandler on");
+    }
+
+    /// <summary>
+    /// Models the page asking for an address: the handler's answer, or null when the request would go to the network
+    /// (also when no handler is installed).
+    /// </summary>
+    public WebResourceResponse? Request(string url, WebResourceKind kind = WebResourceKind.Other, string method = "GET") =>
+        ResourceHandler?.Answer(new WebResourceRequest(url, method, kind));
+
     public void GoBack() => Log.Add("GoBack");
     public void GoForward() => Log.Add("GoForward");
     public void Reload(bool hard) => Log.Add(hard ? "Reload hard" : "Reload");

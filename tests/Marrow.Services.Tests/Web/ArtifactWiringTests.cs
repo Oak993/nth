@@ -44,10 +44,12 @@ public sealed class ArtifactWiringTests
         using var scope = new ArtifactHostScope(new ArtifactTurn(null, "Draw the release flow.", null));
         Assert.DoesNotContain(FunctionNames(SkillSessionFactory.NativeTools(Config(ProviderKind.Deepseek, null))), ArtifactTools.IsName);
         var tools = SkillSessionFactory.NativeTools(Config(ProviderKind.Deepseek, Chat));
-        Assert.Equal(before.Concat(ArtifactTools.Names), FunctionNames(tools)); // added after the others, nothing else changes
-        Assert.All(ArtifactTools.Names, name => Assert.True(tools.Owns(name)));
+        // Added after the others, nothing else changes: the four artifact tools, then W17's read-only live-view reference.
+        Assert.Equal(before.Concat(["artifact_create", "artifact_update", "artifact_read", "artifact_list", "ui_reference"]), FunctionNames(tools));
+        Assert.Equal(ArtifactTools.Names.Append("ui_reference"), ArtifactNativeTools.Names);
+        Assert.All(ArtifactNativeTools.Names, name => Assert.True(tools.Owns(name)));
         Assert.False(tools.Owns("artifact_delete"));
-        foreach (var definition in tools.Definitions)
+        foreach (var definition in tools.Definitions.Where(d => ArtifactTools.IsName(d["function"]!["name"]!.JSONValueString)))
         {
             var name = definition["function"]!["name"]!.JSONValueString!;
             Assert.Equal(JsonNode.Parse(ArtifactTools.InputSchema(name).ToJsonString())!.ToJsonString(), JsonNode.Parse(definition["function"]!["parameters"]!.CompactString)!.ToJsonString());
