@@ -176,7 +176,7 @@ public sealed class SettingsViewBlitzBTests(HeadlessSession headless) : Settings
             Click(w, reset, new Point(1.5, 20.5)); Assert.Equal(100, model.Settings.AppZoom);
             model.Settings.AppZoom = 75; Drain(w); Tick(h, 400); Drain(w); Assert.False(smaller.IsEnabled); Click(w, smaller, new Point(11, 11)); Assert.Equal(75, model.Settings.AppZoom);
             model.Settings.AppZoom = 200; Drain(w); Tick(h, 400); Drain(w); Assert.False(larger.IsEnabled); Click(w, larger, new Point(11, 11)); Assert.Equal(200, model.Settings.AppZoom);
-        });
+        }, height: 3600); // WL-2 (ED-NEW-wltwo-1): the wallpaper library above the zoom card makes the unscrolled page taller than 1600
     }
 
     [Fact]
