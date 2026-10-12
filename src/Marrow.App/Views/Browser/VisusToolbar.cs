@@ -625,6 +625,7 @@ public sealed class VisusAddressField : Border
     private readonly VisusPopover popupMenu;
     private readonly TextBlock zoomText = new() { FontSize = 11, FontFamily = new FontFamily("Cascadia Mono, Consolas, monospace"), VerticalAlignment = VerticalAlignment.Center };
     private IReadOnlyList<VisusSuggestion> suggestions = [];
+    private CancellationTokenSource? remoteSuggestions;
     private int highlight = -1;
     private bool editing;
     private bool programmatic;
@@ -819,6 +820,40 @@ public sealed class VisusAddressField : Border
         BuildRows();
         if (suggestions.Count == 0) CloseSuggestions();
         else OpenSuggestions();
+        AskRemoteSuggestions(text, tab);
+    }
+
+    // PORT-ONLY (web surfaces W10, DESIGN 5.2 and 9, ED-NEW-web-w10-7): with "Show search suggestions" on, a search phrase is also asked of the search
+    // engine, a moment after the last key, and its suggestions join the list under the typed row. Never for a private or agent tab, never for an
+    // address or app link, and the answer is dropped if the text moved on.
+    private void AskRemoteSuggestions(string text, VisusTab? tab)
+    {
+        remoteSuggestions?.Cancel();
+        remoteSuggestions = null;
+        if (!VisusHost.SearchSuggestions() || tab is null || tab.Kind is VisusTabKind.Private or VisusTabKind.Agent) return;
+        var engine = VisusHost.SearchEngine();
+        if (!SearchSuggestionRules.MaySend(text, engine, VisusHost.IsRegisteredScheme)) return;
+        var source = remoteSuggestions = new CancellationTokenSource();
+        _ = AskRemoteSuggestionsAsync(text, engine, source.Token);
+    }
+
+    private async Task AskRemoteSuggestionsAsync(string text, SearchEngine engine, CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(VisusHost.SuggestionDelay, VisusHost.Time, token);
+            var found = await VisusHost.SuggestionSource(engine, text, token);
+            if (token.IsCancellationRequested || !string.Equals(box.Text, text, StringComparison.Ordinal) || !editing) return;
+            var merged = VisusSuggestions.WithRemote(suggestions, found, engine);
+            if (merged.Count == suggestions.Count && merged.SequenceEqual(suggestions)) return;
+            suggestions = merged;
+            BuildRows();
+            OpenSuggestions();
+        }
+        catch (OperationCanceledException)
+        {
+            return; // a newer key, or the field closed: the newer ask (or none) owns the list
+        }
     }
 
     private void BuildRows()
@@ -838,6 +873,8 @@ public sealed class VisusAddressField : Border
     private void CloseSuggestions()
     {
         highlight = -1;
+        remoteSuggestions?.Cancel();
+        remoteSuggestions = null;
         suggestionsPopup.SetOpen(false);
     }
 

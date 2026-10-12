@@ -180,6 +180,26 @@ public static class VisusSuggestions
         return rows;
     }
 
+    /// <summary>
+    /// W10, "Show search suggestions": the search engine's own suggested searches (at most <see cref="SearchSuggestionRules.MaxShown"/>) go under the
+    /// typed row, above the reader's tabs and history; the list stays within <see cref="Limit"/>. A suggestion already in the list is not repeated.
+    /// With no typed search row (an address, an app link) there is nothing to add to.
+    /// </summary>
+    public static IReadOnlyList<VisusSuggestion> WithRemote(IReadOnlyList<VisusSuggestion> local, IReadOnlyList<string> remote, SearchEngine engine)
+    {
+        if (local.Count == 0 || remote.Count == 0 || local[0].Kind != VisusSuggestionKind.Search) return local;
+        var seen = new HashSet<string>(local.Where(row => row.Kind == VisusSuggestionKind.Search).Select(row => row.Title), StringComparer.OrdinalIgnoreCase);
+        var rows = new List<VisusSuggestion> { local[0] };
+        foreach (var text in remote)
+        {
+            if (rows.Count - 1 >= SearchSuggestionRules.MaxShown) break;
+            if (!seen.Add(text)) continue;
+            rows.Add(new VisusSuggestion(VisusSuggestionKind.Search, SearchEngines.QueryUrl(engine, text), text, "Search " + SearchEngines.Name(engine)));
+        }
+        rows.AddRange(local.Skip(1));
+        return [.. rows.Take(Limit)];
+    }
+
     private static string Title(string title, string url) => string.IsNullOrWhiteSpace(title) ? VisusAddress.Display(url) : title.Trim();
 
     // Every word typed must appear in the address or the title. A host that starts with what was typed ranks first, then an
