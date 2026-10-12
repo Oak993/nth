@@ -7,9 +7,6 @@ using Xunit;
 
 namespace Marrow.Setup.Tests.Fixtures;
 
-/// <summary>One element's drawn place and opacity in one frame.</summary>
-public readonly record struct Drawn(Rect Box, double Opacity);
-
 /// <summary>
 /// Frame capture for the reveal and spring tests (nth installer PLAN.md 3b and 8a): each element's drawn box (its layout
 /// box through every render transform up to the screen) and its drawn opacity (the product of the opacities above it),
