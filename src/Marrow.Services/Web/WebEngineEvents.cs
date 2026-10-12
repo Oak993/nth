@@ -230,3 +230,46 @@ public sealed class WebCertificateErrorRequest(string uri, string errorStatus) :
 
 /// <summary>A DevTools Protocol event (DESIGN 5.8, 5.10): its name, the session it came from (null for the page), its params.</summary>
 public sealed record WebCdpEvent(string Name, string? SessionId, string ParamsJson);
+
+/// <summary>DESIGN 6.5: what a resource request is for (the engine's resource context).</summary>
+public enum WebResourceKind
+{
+    Document,
+    Stylesheet,
+    Image,
+    Media,
+    Font,
+    Script,
+    Fetch,
+    XmlHttpRequest,
+    EventSource,
+    WebSocket,
+    Manifest,
+    Ping,
+    Other,
+}
+
+/// <summary>One request a sandboxed view is about to make (<c>WebResourceRequested</c>), before it reaches the network.</summary>
+public sealed record WebResourceRequest(string Uri, string Method, WebResourceKind Kind);
+
+/// <summary>nth's answer to a request: status, headers and the whole body.</summary>
+public sealed record WebResourceResponse(int StatusCode, string ReasonPhrase, IReadOnlyList<KeyValuePair<string, string>> Headers, byte[] Body)
+{
+    /// <summary>The value of a header (case-insensitive), or null.</summary>
+    public string? Header(string name) => Headers.FirstOrDefault(h => h.Key.Equals(name, StringComparison.OrdinalIgnoreCase)).Value;
+}
+
+/// <summary>
+/// DESIGN 6.5: answers a sandboxed view's requests. Return a response to answer it (nth's own hosts, or a block), or
+/// null to let it go to the network (only hosts the user allowed for that surface). Runs on the UI thread.
+/// </summary>
+public interface IWebResourceHandler
+{
+    WebResourceResponse? Answer(WebResourceRequest request);
+}
+
+/// <summary>DESIGN 6.5: a sandboxed view's site: its origin, its request handler and its document scripts.</summary>
+public sealed record WebSandbox(string Origin, IWebResourceHandler Resources, IReadOnlyList<string> DocumentScripts);
+
+/// <summary>DESIGN 6.5: a navigation (or new window) a sandboxed view was not allowed to make.</summary>
+public sealed record WebSandboxNavigation(string Url, bool IsUserInitiated, bool IsMainFrame, bool IsNewWindow);

@@ -670,6 +670,30 @@ public sealed class ChatView : Decorator
 
     public static void SetReserveSlideOffset(Control control, double value) => control.SetValue(ReserveSlideOffsetProperty, value);
 
+    // PORT-ONLY: web surfaces W3a (E:/Droppy/work/design/web-surfaces/DESIGN.md 3.2, 3.12; ED-NEW-web-w3a-1). How far the
+    // chat chrome row's trailing end keeps clear of the window's caption buttons. NaN (the default) is the whole caption
+    // reserve, as before; the pane workspace sets less when panes take the window's right edge, so the row runs to the
+    // chat column's own end. Inherited, so the workspace sets it once on the chat column's slot.
+    public static readonly AttachedProperty<double> ChromeTrailingReserveProperty =
+        AvaloniaProperty.RegisterAttached<Control, double>("ChromeTrailingReserve", typeof(ChatView), double.NaN, inherits: true);
+
+    public static double GetChromeTrailingReserve(Control control) => control.GetValue(ChromeTrailingReserveProperty);
+
+    public static void SetChromeTrailingReserve(Control control, double value) => control.SetValue(ChromeTrailingReserveProperty, value);
+
+    // PORT-ONLY: web surfaces W3a. Whether a change of ChromeTrailingReserve moves on Chrome.PanelSlide (a live reflow) or
+    // lands at once (the clip reflow's settle, under its cross-fade, a thread switch, a window resize).
+    public static readonly AttachedProperty<bool> ChromeTrailingReserveAnimatesProperty =
+        AvaloniaProperty.RegisterAttached<Control, bool>("ChromeTrailingReserveAnimates", typeof(ChatView), false, inherits: true);
+
+    public static bool GetChromeTrailingReserveAnimates(Control control) => control.GetValue(ChromeTrailingReserveAnimatesProperty);
+
+    public static void SetChromeTrailingReserveAnimates(Control control, bool value) => control.SetValue(ChromeTrailingReserveAnimatesProperty, value);
+
+    /// <summary>The trailing clearance the chat chrome row keeps for a reserve value (NaN: the whole caption reserve).</summary>
+    internal static double ChromeTrailingFor(double reserve) =>
+        double.IsFinite(reserve) ? Math.Clamp(reserve, Chrome.ChromeHorizontalPadding, WindowChrome.CaptionTrailingReserve) : WindowChrome.CaptionTrailingReserve;
+
     // :36-52 private var isMovingAPanel: Bool. The mounted body reads its own drag fields through this helper.
     internal static bool IsMovingAPanel(
         PanelDragState subagentDrag,
@@ -1345,6 +1369,11 @@ internal sealed class ChatChromeRow : Decorator
         var clearanceAnimation = new ChatFrameAnimation(this);
         clearanceAnimation.AttachLifetime();
         double? clearance = null;
+        // PORT-ONLY: web surfaces W3a, the trailing clearance (ChatView.ChromeTrailingReserve).
+        var trailingAnimation = new ChatFrameAnimation(this);
+        trailingAnimation.AttachLifetime();
+        var trailingClearance = ChatView.ChromeTrailingFor(ChatView.GetChromeTrailingReserve(this));
+        Action applyMargins = () => { };
         bool? previousSidebarVisible = null;
         updateInputs = (nextTitle, nextProject, nextDirectory) =>
         {
@@ -1530,9 +1559,10 @@ internal sealed class ChatChromeRow : Decorator
             {
                 clearance = leading;
                 foreach (var group in host.Children.OfType<GlassEffectContainer>())
-                    group.Margin = new Thickness(leading, Chrome.ChromeTopPadding, WindowChrome.CaptionTrailingReserve, 0);
-                container.Margin = new Thickness(leading, Chrome.ChromeTopPadding, WindowChrome.CaptionTrailingReserve, 0);
+                    group.Margin = new Thickness(leading, Chrome.ChromeTopPadding, trailingClearance, 0);
+                container.Margin = new Thickness(leading, Chrome.ChromeTopPadding, trailingClearance, 0);
             }
+            applyMargins = () => ApplyClearance(clearance ?? target);
             if (previousSidebarVisible is { } previous && previous != sidebarVisible)
             {
                 var from = clearance ?? target;
@@ -1545,6 +1575,27 @@ internal sealed class ChatChromeRow : Decorator
         // :1165-1170 the terminal and changes buttons read runtime.isTerminalVisible/isDiffVisible directly inside
         // the SwiftUI body, so a toggle re-renders the whole row there; tracked here too so isActive (PR-TERM-072)
         // stays live rather than frozen at the value captured when this row was last built.
+        // PORT-ONLY: web surfaces W3a. The workspace moves the trailing clearance with the chat column's end: on the
+        // panel slide during a live reflow, at once otherwise.
+        PropertyChanged += (_, e) =>
+        {
+            if (e.Property != ChatView.ChromeTrailingReserveProperty) return;
+            var to = ChatView.ChromeTrailingFor(ChatView.GetChromeTrailingReserve(this));
+            if (Math.Abs(to - trailingClearance) < 0.01) return;
+            trailingAnimation.Stop();
+            if (ChatView.GetChromeTrailingReserveAnimates(this) && built)
+            {
+                var from = trailingClearance;
+                trailingAnimation.Start(Chrome.PanelSlide, progress =>
+                {
+                    trailingClearance = from + (to - from) * progress;
+                    applyMargins();
+                });
+                return;
+            }
+            trailingClearance = to;
+            applyMargins();
+        };
         this.Track(() => (model.Sidebar.HoldsTrafficLights, model.Settings.SidebarFloats, model.Settings.SidebarOnlyFloats, model.Settings.HydraEnabled, model.Thread(runtime.ThreadID), git.IsRepository, git.Activity, git.Status, git.Branches, git.RemoteURL, runtime.IsTerminalVisible, runtime.IsDiffVisible, ShortcutStore.Hint(AppShortcut.NewThread), ShortcutStore.Hint(AppShortcut.ToggleTerminal), ShortcutStore.Hint(AppShortcut.ToggleChanges)), _ => Build());
         Build();
     }

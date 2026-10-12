@@ -20,6 +20,7 @@ public sealed class WebSurfaceView : IWebViewSurface
     private string? lastUrl;
     private int modelSteps;
     private TaskCompletionSource? liveHidden;
+    private WebSandbox? sandbox;
 
     internal WebSurfaceView(WebSurface owner, int sequence, WebSurfaceKind kind, string windowId, WebCreationOptions creation, string? url)
     {
@@ -96,8 +97,38 @@ public sealed class WebSurfaceView : IWebViewSurface
     public event EventHandler<WebCertificateErrorRequest>? CertificateErrorDetected;
     public event EventHandler<bool>? FullScreenChanged;
 
+    /// <summary>
+    /// DESIGN 6.5 (ED-NEW-web-w13-1): a sandboxed view tried to leave its own origin (a link, a script, a refresh, a form, a
+    /// new window). The navigation is already cancelled; a user's click is offered to the link setting by the surface.
+    /// </summary>
+    public event EventHandler<WebSandboxNavigation>? SandboxNavigationBlocked;
+
     /// <summary>Sandboxed content: Tabula, inline HTML widgets and MCP Apps (DESIGN 6.5, 7.6).</summary>
     public bool IsSandboxed => Kind is WebSurfaceKind.Artifact or WebSurfaceKind.InlineWidget or WebSurfaceKind.McpApp;
+
+    /// <summary>The sandbox's own origin, or null before <see cref="SetSandbox"/> (then every navigation is blocked).</summary>
+    public string? SandboxOrigin => sandbox?.Origin;
+
+    /// <summary>
+    /// DESIGN 6.5: binds a sandboxed view to its site: the requests it makes go to the handler, the document scripts run
+    /// before the page's own in every document, and it may never navigate away from <see cref="WebSandbox.Origin"/>. The
+    /// binding outlives engine views (a discarded view is restored with it). Call before the platform view attaches.
+    /// </summary>
+    public void SetSandbox(WebSandbox value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        if (!IsSandboxed) throw new InvalidOperationException("Only artifacts, inline widgets and MCP Apps run in a sandbox.");
+        sandbox = value;
+        if (engine is not null) ApplySandbox(engine);
+    }
+
+    /// <summary>True when a sandboxed view may go to <paramref name="url"/>: its own origin, or a blank or srcdoc frame.</summary>
+    public bool SandboxAllows(string url)
+    {
+        if (url is "about:blank" or "about:srcdoc") return true;
+        var address = url.StartsWith("blob:", StringComparison.OrdinalIgnoreCase) ? url[5..] : url;
+        return sandbox is { } own && SandboxSites.OriginOf(address) is { } origin && origin.Equals(own.Origin, StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <summary>Navigates now, or when the platform view attaches; the address is remembered for a discard.</summary>
     public void Navigate(string url)
@@ -188,6 +219,7 @@ public sealed class WebSurfaceView : IWebViewSurface
         engine = owner.Engine.CreateView(Creation);
         cdp = new CdpBroker(engine);
         Hook(engine);
+        if (sandbox is not null) ApplySandbox(engine);
         if (pendingUrl is null && lastUrl is not null) pendingUrl = lastUrl;
         SetLiveness(WebLiveness.Pending);
     }
@@ -288,9 +320,32 @@ public sealed class WebSurfaceView : IWebViewSurface
         FocusExitRequested?.Invoke(e.Forward);
     }
 
-    private void OnNavigationStarting(object? sender, WebNavigationStarting e) => NavigationStarting?.Invoke(this, e);
+    private void ApplySandbox(IWebEngineView view)
+    {
+        view.SetResourceHandler(sandbox!.Resources);
+        foreach (var script in sandbox.DocumentScripts) view.AddDocumentCreatedScript(script);
+    }
 
-    private void OnFrameNavigationStarting(object? sender, WebNavigationStarting e) => FrameNavigationStarting?.Invoke(this, e);
+    private void OnNavigationStarting(object? sender, WebNavigationStarting e)
+    {
+        if (BlockSandboxNavigation(e)) return;
+        NavigationStarting?.Invoke(this, e);
+    }
+
+    private void OnFrameNavigationStarting(object? sender, WebNavigationStarting e)
+    {
+        if (BlockSandboxNavigation(e)) return;
+        FrameNavigationStarting?.Invoke(this, e);
+    }
+
+    /// <summary>DESIGN 6.5, 8.1: a sandboxed view never leaves its own origin, top level or frame, whoever starts it.</summary>
+    private bool BlockSandboxNavigation(WebNavigationStarting e)
+    {
+        if (!IsSandboxed || SandboxAllows(e.Url)) return false;
+        e.Cancel = true;
+        SandboxNavigationBlocked?.Invoke(this, new WebSandboxNavigation(e.Url, e.IsUserInitiated, e.IsMainFrame, IsNewWindow: false));
+        return true;
+    }
 
     private void OnNavigationCompleted(object? sender, WebNavigationCompleted e)
     {
@@ -301,8 +356,13 @@ public sealed class WebSurfaceView : IWebViewSurface
 
     private void OnNewWindow(object? sender, WebNewWindowRequest e)
     {
-        // DESIGN 8.1: sandboxed views never open windows, no exceptions.
-        if (IsSandboxed) e.Respond(WebNewWindowDecision.Block);
+        // DESIGN 8.1: sandboxed views never open windows, no exceptions; a user's click is still offered as a link.
+        if (IsSandboxed)
+        {
+            e.Respond(WebNewWindowDecision.Block);
+            SandboxNavigationBlocked?.Invoke(this, new WebSandboxNavigation(e.Url, e.IsUserInitiated, IsMainFrame: true, IsNewWindow: true));
+        }
+
         NewWindowRequested?.Invoke(this, e);
     }
 
