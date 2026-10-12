@@ -752,6 +752,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     {
         ThreadID = threadID;
         appReference = new WeakReference<AppModel>(app);
+        InitializeWorkspace(app); // PORT-ONLY (web surfaces W3c)
         if (DocumentPrefetch.Shared.Take(threadID) is { } prefetched)
         {
             Install(prefetched);

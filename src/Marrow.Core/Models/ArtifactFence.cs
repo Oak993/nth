@@ -119,6 +119,27 @@ public sealed class ArtifactFenceParser
     /// <summary>The block being streamed now (its index, header and content so far), or null outside one.</summary>
     public (int Index, ArtifactFenceHeader Header, string Content)? Open => block is { } open ? (open.Index, open.Header, open.Content.ToString()) : null;
 
+    /// <summary>The index of the block being streamed now, or null outside one; unlike <see cref="Open"/> it copies no text.</summary>
+    public int? OpenIndex => block?.Index;
+
+    /// <summary>
+    /// The open block's text as it arrives (web W14, Tabula's streaming render): its lines so far and the partial last
+    /// line, unless that line could still become the block's closing fence; null outside a block.
+    /// </summary>
+    public string? Streaming
+    {
+        get
+        {
+            if (block is not { } open) return null;
+            if (line.Length == 0) return open.Content.ToString();
+            var partial = line.ToString();
+            var at = 0;
+            while (at < partial.Length && at < 3 && partial[at] == ' ') at++;
+            var couldClose = at == partial.Length || partial[at] == open.Mark;
+            return couldClose ? open.Content.ToString() : open.Content + partial;
+        }
+    }
+
     /// <summary>
     /// The answer's chip for an artifact: a Markdown link on its own line with the nth-artifact scheme, which the
     /// timeline opens in Tabula, reading "Title · Kind" so it says what it is even where no chip is drawn.

@@ -217,6 +217,12 @@ public sealed partial class AppModel : MainActorModel
             var hydra = threads[index].Hydra! with { HydraHeadInfoStatus = HydraHeadInfo.Status.Stopped, FinishedAt = SwiftDate.Now };
             threads = threads.SetItem(index, threads[index] with { Hydra = hydra });
         }
+        for (var index = 0; index < threads.Count; index++) // PORT-ONLY (web surfaces W3c, DESIGN 3.11): an unreadable saved pane layout is kept as workspace.bad.json
+        {
+            if (threads[index].DamagedWorkspace is not { } damaged) continue;
+            Marrow.Services.Store.WorkspaceRecovery.Keep(threads[index].Id, damaged);
+            threads = threads.SetItem(index, threads[index] with { DamagedWorkspace = null });
+        }
         Write(Sync(ref projectCells, projects, project => project.Id)); // AppModel.swift:137-139
         Write(Sync(ref threadCells, threads, thread => thread.Id)); // AppModel.swift:137-140
         SyncChildCells(threads);
