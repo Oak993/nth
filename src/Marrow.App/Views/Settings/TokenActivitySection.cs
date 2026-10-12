@@ -43,6 +43,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.Immutable;
 using Marrow.Core.Port;
 using Marrow.App.Views.Usage;
 using Marrow.Services.Store;
@@ -64,17 +65,34 @@ internal static class TokenActivityStyle
     internal const double MinLabelAdvance = 30; // :11
 
     /// :17-28 color(for:maxValue:future:). PR-SETTINGS-133.
-    internal static SwiftColor Color(long value, long maxValue, bool future)
+    internal static SwiftColor Color(long value, long maxValue, bool future) => LevelColor(Level(value, maxValue, future), Chrome.Accent); // :20
+
+    /// The number of colours <see cref="Level"/> tells apart (ED-NEW-lean-21).
+    internal const int Levels = 6;
+
+    /// ED-NEW-lean-21: which of :17-28's six colours a cell takes, so a drawing resolves each colour once, not once per cell.
+    internal static int Level(long value, long maxValue, bool future)
     {
-        if (future) return Chrome.Overlay(0.035); // :18
-        if (!(value > 0 && maxValue > 0)) return Chrome.Overlay(0.07); // :19
-        var accent = Chrome.Accent; // :20
+        if (future) return 0; // :18
+        if (!(value > 0 && maxValue > 0)) return 1; // :19
         var fraction = (double)value / maxValue; // :21
-        if (fraction < 0.25) return accent.Opacity(0.32); // :23
-        if (fraction < 0.5) return accent.Opacity(0.55); // :24
-        if (fraction < 0.75) return accent.Opacity(0.8); // :25
-        return accent; // :26 default
+        if (fraction < 0.25) return 2; // :23
+        if (fraction < 0.5) return 3; // :24
+        if (fraction < 0.75) return 4; // :25
+        return 5; // :26 default
     }
+
+    /// :18-26 the colour of each <see cref="Level"/>, made with :20's accent.
+    internal static SwiftColor LevelColor(int level, SwiftColor accent) => level switch
+    {
+        0 => Chrome.Overlay(0.035), // :18
+        1 => Chrome.Overlay(0.07), // :19
+        2 => accent.Opacity(0.32), // :23
+        3 => accent.Opacity(0.55), // :24
+        4 => accent.Opacity(0.8), // :25
+        5 => accent, // :26 default
+        _ => throw new UnreachableException(),
+    };
 }
 
 /// The section's private computed helpers (:174-197), extracted so they are directly testable (internal, not
@@ -131,10 +149,20 @@ internal sealed class TokenActivityHeatmapCanvas : Control
     private int switchIndex;
 
     // ED-253 (OD-0076, SPEC 6.5): the cells as last drawn, and an appearance or theme change easing from them.
+    // ED-NEW-lean-21: both are buffers kept between frames; a turn copies the cells as drawn into its own.
     private Color[,]? drawn;
     private Color[,]? turnFrom;
+    private Color[,]? turnCells;
     private double turn = 1;
     private Action stopTurn = static () => { };
+
+    // ED-NEW-lean-21: :257's six colours as made with the accent of the last frame, the six resolved for this frame, and one
+    // immutable brush per colour drawn (a blend's in-between colours included; emptied once it holds BrushCap of them).
+    private const int BrushCap = 512;
+    private readonly SwiftColor[] levelColors = new SwiftColor[TokenActivityStyle.Levels];
+    private readonly Color[] levels = new Color[TokenActivityStyle.Levels];
+    private SwiftColor? levelAccent;
+    private readonly Dictionary<Color, IImmutableSolidColorBrush> brushes = [];
 
     internal TokenActivityHeatmapCanvas(TokenActivityGrid grid)
     {
@@ -157,13 +185,34 @@ internal sealed class TokenActivityHeatmapCanvas : Control
     private void Turn()
     {
         stopTurn();
-        turnFrom = drawn;
+        turnFrom = Snapshot(drawn);
         stopTurn = AppearanceTurn.Run(this, progress =>
         {
             turn = progress;
             if (progress >= 1) turnFrom = null;
             InvalidateVisual();
         });
+    }
+
+    // ED-NEW-lean-21: the cells as drawn now, copied into the turn's own buffer (the drawn buffer is drawn into again next frame).
+    private Color[,]? Snapshot(Color[,]? cells)
+    {
+        if (cells is null) return null;
+        if (turnCells is null || turnCells.GetLength(0) != cells.GetLength(0) || turnCells.GetLength(1) != cells.GetLength(1))
+            turnCells = new Color[cells.GetLength(0), cells.GetLength(1)];
+        Array.Copy(cells, turnCells, cells.Length);
+        return turnCells;
+    }
+
+    private IBrush BrushFor(Color color)
+    {
+        if (!brushes.TryGetValue(color, out var brush))
+        {
+            if (brushes.Count >= BrushCap) brushes.Clear();
+            brush = new ImmutableSolidColorBrush(color);
+            brushes.Add(color, brush);
+        }
+        return brush;
     }
 
     internal void Update(TokenActivityGrid newGrid, TokenActivityGrid? newPrevious, double newBlend, int newSwitchIndex)
@@ -204,24 +253,36 @@ internal sealed class TokenActivityHeatmapCanvas : Control
         var rows = TokenActivityGrid.Rows;
         var previousGrid = previous;
         var from = turnFrom;
-        var shown = new Color[columns, rows];
+        var shown = drawn is { } kept && kept.GetLength(0) == columns ? kept : new Color[columns, rows]; // ED-NEW-lean-21
+        // :257, :259 the colours resolve as the canvas draws: each of the six once for the frame (ED-NEW-lean-21).
+        var accent = Chrome.Accent; // :20
+        if (!ReferenceEquals(accent, levelAccent))
+        {
+            for (var level = 0; level < levelColors.Length; level++) levelColors[level] = TokenActivityStyle.LevelColor(level, accent);
+            levelAccent = accent;
+        }
+        for (var level = 0; level < levels.Length; level++) levels[level] = levelColors[level].Resolve(theme);
         for (var c = 0; c < columns; c++) // :253
         {
             for (var r = 0; r < rows; r++) // :254
             {
                 var date = grid.Columns[c][r];
-                if (date is null) continue; // :255 guard let date
+                if (date is null) // :255 guard let date
+                {
+                    shown[c, r] = default;
+                    continue;
+                }
                 var future = date.Value >= grid.Tomorrow; // :256
-                var color = TokenActivityStyle.Color(grid.Values[c][r], grid.MaxValue, future).Resolve(theme); // :257
+                var color = levels[TokenActivityStyle.Level(grid.Values[c][r], grid.MaxValue, future)]; // :257
                 if (previousGrid is { } prev && progress < 1 && c < prev.Values.Count) // :258
                 {
-                    var old = TokenActivityStyle.Color(prev.Values[c][r], prev.MaxValue, future).Resolve(theme); // :259
+                    var old = levels[TokenActivityStyle.Level(prev.Values[c][r], prev.MaxValue, future)]; // :259
                     color = progress <= 0 ? old : Mix(old, color, progress); // :260
                 }
                 if (from is not null && c < from.GetLength(0) && turn < 1) color = SwiftColor.PremultipliedMix(from[c, r], color, turn); // ED-253
                 shown[c, r] = color;
                 var rect = new Rect(c * pitch, r * pitch, cell, cell); // :262
-                context.DrawRectangle(new SolidColorBrush(color), null, rect, TokenActivityStyle.CellRadius, TokenActivityStyle.CellRadius); // :263-266
+                context.DrawRectangle(BrushFor(color), null, rect, TokenActivityStyle.CellRadius, TokenActivityStyle.CellRadius); // :263-266
             }
         }
         drawn = shown;
