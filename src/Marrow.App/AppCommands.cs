@@ -95,7 +95,7 @@ public sealed class AppCommands
                 new("Toggle changes", // :45
                     shortcuts.KeyboardShortcut(AppShortcut.ToggleChanges), // :46
                     Model.SelectedThreadID is null, // :47
-                    () => Runtime?.ToggleDiff()), // :45
+                    () => Runtime?.ToggleChanges()), // :45; web W4: the pane (Alt+click on the toolbar button is the popover, ToggleDiff)
                 new("Toggle activity view", // :48
                     shortcuts.KeyboardShortcut(AppShortcut.ToggleActivityView), // :51
                     false,
@@ -208,8 +208,8 @@ public sealed class AppCommands
     /// A key-down read two ways (ED-270): by key position for the ordinary items and, only when a literal-character item
     /// (the zoom items) is reached, by the character it types. The windows' dispatch calls this one.
     /// </summary>
-    public bool PerformKeyDown(KeyboardShortcut? positional, Func<KeyboardShortcut?> typed) =>
-        MenuKeyEquivalents.Perform(Body, positional, typed);
+    public bool PerformKeyDown(KeyboardShortcut? positional, Func<KeyboardShortcut?> typed, ShortcutScope scope = ShortcutScope.Chrome) =>
+        MenuKeyEquivalents.Perform(Body, positional, typed, scope);
 
     // :53, :55, :60 pass model.settings.appZoom, a Swift Int (long here), to AppZoom.next(_:increasing:), whose port
     // takes an int (UI/Common/AppZoom.cs). next reads the value only through normalized(_:) (AppZoom.swift:8-10, :13),

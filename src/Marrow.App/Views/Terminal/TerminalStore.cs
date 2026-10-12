@@ -20,6 +20,14 @@ public sealed class TerminalSession : MainActorModel
     // :10 let directory: String
     public string Directory { get; }
 
+    // PORT-ONLY (web surfaces W5, ED-NEW-web-w5-1): what the Background tasks pane reads of a session. When the shell
+    // started, the command it was started with (a project script or dev server; null for a plain shell), when it ended,
+    // and whether the person ended it (Terminate) rather than the process (ProcessEnded).
+    public DateTimeOffset StartedAt { get; } = SwiftDate.Now;
+    public string? Command { get; }
+    public DateTimeOffset? EndedAt { get; private set; }
+    public bool EndedByUser { get; private set; }
+
     // :11 var title: String
     private string title;
     public string Title { get => Read(title); set => Set(ref title, value); }
@@ -41,6 +49,7 @@ public sealed class TerminalSession : MainActorModel
     {
         ThreadID = threadID;
         Directory = directory;
+        Command = command;
         this.title = title;
         // :21 view = LocalProcessTerminalView(frame: NSRect(x: 0, y: 0, width: 640, height: 240))
         View = new TerminalHostView();
@@ -110,6 +119,8 @@ public sealed class TerminalSession : MainActorModel
     {
         // :60
         if (!IsRunning) return;
+        EndedAt = SwiftDate.Now; // PORT-ONLY (web W5)
+        EndedByUser = true;
         // :61
         View.Terminate();
         // :62
@@ -135,6 +146,7 @@ public sealed class TerminalSession : MainActorModel
     internal void ProcessEnded()
     {
         // :79
+        EndedAt ??= SwiftDate.Now; // PORT-ONLY (web W5)
         IsRunning = false;
     }
 }

@@ -81,10 +81,13 @@ public sealed class DiffInspectorRig : IDisposable
     /// <summary>A new inspector on the runtime; it has loaded nothing yet.</summary>
     public DiffInspector NewInspector() => Store.Main.OnMain(() => new DiffInspector(Runtime));
 
-    /// <summary>Puts the inspector in a headless window of its own size, as the popover does; this starts its first load.</summary>
-    public AvaloniaWindow Present(DiffInspector inspector)
+    /// <summary>A new inspector in pane mode (web W4), the Changes pane's body; it has loaded nothing yet.</summary>
+    public DiffInspector NewPaneInspector() => Store.Main.OnMain(() => new DiffInspector(Runtime, DiffInspectorMode.Pane));
+
+    /// <summary>Puts the inspector in a headless window of its own size, as the popover does (640 by 540, or the pane cell's); this starts its first load.</summary>
+    public AvaloniaWindow Present(DiffInspector inspector, double width = 640, double height = 540)
     {
-        var window = new AvaloniaWindow { Width = 640, Height = 540, Content = inspector };
+        var window = new AvaloniaWindow { Width = width, Height = height, Content = inspector };
         windows.Add(window);
         Store.Main.OnMain(() =>
         {

@@ -402,7 +402,6 @@ public sealed partial class ThreadRuntime : MainActorModel
     private PromptEdit? messageEdit;
     private ComposerDraft draft = new();
     private bool draftIsEmpty = true;
-    private bool isTerminalVisible = false;
     private bool isTerminalResizing = false;
     private bool isDiffVisible = false;
     private PanelDockCorner subagentPanelDock = PanelDockCorner.BottomTrailing;
@@ -600,20 +599,8 @@ public sealed partial class ThreadRuntime : MainActorModel
     // :238
     public bool DraftIsEmpty { get => Read(draftIsEmpty); private set => Set(ref draftIsEmpty, value); }
 
-    // :239-243
-    // PORT-ONLY (web surfaces W3c, DESIGN 3.11 "Pane state moves off ThreadRuntime flags ... onto PaneWorkspaceState"; ED-NEW-web-w3c-1):
-    // this is now the workspace's terminal drawer (Workspace.IsTerminalInDrawer) read and written as the flag it was, so the drawer,
-    // the toolbar button and the chords keep working unchanged while the state lives, and is saved, with the workspace
-    // (ThreadRuntime+Workspace.cs). The focus request still follows a drawer that opens (:241-243).
-    public bool IsTerminalVisible
-    {
-        get => Read(isTerminalVisible);
-        set
-        {
-            if (value == isTerminalVisible) return;
-            Workspace = value ? Workspace.Open(PaneKind.Terminal) : Workspace.Close(PaneKind.Terminal);
-        }
-    }
+    // :239-243 isTerminalVisible. PORT-ONLY (web W4, ED-NEW-web-w4-1): the terminal's open state is the pane workspace's now;
+    // IsTerminalVisible is in ThreadRuntime+Workspace.cs, with the drawer and grid halves of it.
 
     // :244. @ObservationIgnored (R-OBS-5).
     public bool TerminalWantsFocus { get; set; } = false;

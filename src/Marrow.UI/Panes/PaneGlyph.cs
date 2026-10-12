@@ -30,6 +30,12 @@ public enum PaneGlyphKind
     Close,
     More,
     Chevron,
+
+    /// <summary>The canvas's i-plus (New terminal; later units' New tab).</summary>
+    Plus,
+
+    /// <summary>A pane with its foot band marked: the chat's drawer (W4's "Move to the drawer").</summary>
+    DockBottom,
 }
 
 /// <summary>A line glyph in the inherited text colour.</summary>
@@ -62,6 +68,8 @@ public sealed class PaneGlyph : Control
         [PaneGlyphKind.Close] = Parse("M6 6l12 12M18 6L6 18"),
         [PaneGlyphKind.More] = Parse(Circle(12, 5.5, 1.2) + Circle(12, 12, 1.2) + Circle(12, 18.5, 1.2)),
         [PaneGlyphKind.Chevron] = Parse("M7 10l5 5 5-5"),
+        [PaneGlyphKind.Plus] = Parse("M12 5v14M5 12h14"),
+        [PaneGlyphKind.DockBottom] = Parse("M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z M4 14.5h16"),
     };
 
     static PaneGlyph()

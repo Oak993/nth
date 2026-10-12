@@ -8,6 +8,7 @@
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Marrow.Core.Models;
 using Marrow.UI.Port;
 
 namespace Marrow.UI.Panes;
@@ -19,7 +20,7 @@ public static class PaneTokens
     public const double CornerRadius = 12;
 
     /// <summary>The header's height (3.12).</summary>
-    public const double HeaderHeight = 36;
+    public const double HeaderHeight = PaneKinds.HeaderHeight;
 
     /// <summary>A header button (canvas .hb).</summary>
     public const double ButtonSize = 26;
@@ -72,6 +73,18 @@ public static class PaneTokens
     public static SwiftColor ChipDot { get; } = SwiftColor.Dynamic(
         light: new SwiftColor(red: 0.13, green: 0.55, blue: 0.30),
         dark: new SwiftColor(red: 91 / 255.0, green: 209 / 255.0, blue: 139 / 255.0));
+
+    /// <summary>A drop target's dashed outline at rest (canvas .pane.dz::before: 1.5 DIP dashed, white .22).</summary>
+    public static SwiftColor DropOutline { get; } = SwiftColor.Dynamic(light: Ink(.24), dark: Paper(.22));
+
+    /// <summary>The drop target under the pointer: its solid rim (canvas .pane.drop::before: white .6).</summary>
+    public static SwiftColor DropRim { get; } = SwiftColor.Dynamic(light: Ink(.50), dark: Paper(.60));
+
+    /// <summary>The drop target under the pointer: its soft fill (canvas .pane.drop::before: white .07).</summary>
+    public static SwiftColor DropFill { get; } = SwiftColor.Dynamic(light: Ink(.06), dark: Paper(.07));
+
+    /// <summary>A collapse rail's width and radius (DESIGN 3.5 "a 22 DIP rail", canvas .rail: 11 DIP radius).</summary>
+    public const double RailCornerRadius = 11;
 
     private static bool IsDark(ThemeVariant? theme) => theme == ThemeVariant.Dark;
 

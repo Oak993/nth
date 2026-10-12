@@ -571,7 +571,8 @@ public sealed class ChatViewParityTests(HeadlessSession headless)
                     .Invoke(runtime, [new FileEdit[] { new("a.txt") }]);
                 Assert.NotEmpty(runtime.DiffFocusEdits);
                 ChatGitFixtures.Click(ButtonWithTip(row, changesTip));
-                Assert.True(runtime.IsDiffVisible);
+                Assert.True(runtime.IsChangesPaneOpen); // web W4 (ED-NEW-web-w4-1): the click opens the pane, still clearing the focus first
+                Assert.False(runtime.IsDiffVisible);
                 Assert.Empty(runtime.DiffFocusEdits);
             });
         });

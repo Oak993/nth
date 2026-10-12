@@ -24,8 +24,10 @@ public sealed class PaneCard : Border
     private readonly Grid layout = new() { RowDefinitions = new RowDefinitions($"{PaneTokens.HeaderHeight},*") };
     private readonly ScaleTransform scale = new(1, 1);
     private readonly TranslateTransform slide = new();
+    private readonly TranslateTransform offset = new(0, 0);
     private bool focused;
     private bool expanded;
+    private bool lifted;
 
     public PaneCard(PaneKind kind, PaneContent content)
     {
@@ -35,8 +37,12 @@ public sealed class PaneCard : Border
         CornerRadius = new CornerRadius(PaneTokens.CornerRadius);
         BorderThickness = new Thickness(1);
         ClipToBounds = false;
-        RenderTransform = new TransformGroup { Children = { scale, slide } };
+        RenderTransform = new TransformGroup { Children = { scale, slide, offset } };
         RenderTransformOrigin = RelativePoint.Center;
+        // F6 reaches a pane as a whole (DESIGN 3.7, 10: "Every pane is a landmark ... F6 cycles panes and splitters"); Tab skips the
+        // card itself and goes on into its body.
+        Focusable = true;
+        IsTabStop = false;
         clip = new Border { CornerRadius = new CornerRadius(PaneTokens.CornerRadius - 1), ClipToBounds = true, Child = layout };
         Child = clip;
         Grid.SetRow(Header, 0);
@@ -87,6 +93,32 @@ public sealed class PaneCard : Border
         }
     }
 
+    /// <summary>
+    /// Where a pane lifted by its header is, relative to its slot (3.6): a render transform only, so the drag costs no layout.
+    /// </summary>
+    public Vector Offset
+    {
+        get => new(offset.X, offset.Y);
+        set
+        {
+            if (offset.X == value.X && offset.Y == value.Y) return;
+            offset.X = value.X;
+            offset.Y = value.Y;
+        }
+    }
+
+    /// <summary>The lifted look of a pane held by its header: the deeper shadow, the rim as it is (3.6, canvas .pane.lift).</summary>
+    public bool IsLiftedLook
+    {
+        get => lifted;
+        set
+        {
+            if (lifted == value) return;
+            lifted = value;
+            ApplyLook();
+        }
+    }
+
     /// <summary>The expanded look: denser and lifted (3.4).</summary>
     public bool IsExpandedLook
     {
@@ -123,6 +155,6 @@ public sealed class PaneCard : Border
         ThemeVariant theme = ActualThemeVariant;
         Background = PaneTokens.CardFill(theme, expanded);
         BorderBrush = PaneTokens.Rim(theme, focused);
-        BoxShadow = PaneTokens.Shadow(theme, expanded);
+        BoxShadow = PaneTokens.Shadow(theme, expanded || lifted);
     }
 }
