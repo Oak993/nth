@@ -462,7 +462,7 @@ public sealed class RealInputLease
         {
             if (request.Point is { } point && host.WindowAt(point) != request.Target)
             {
-                host.Raise(request.Target);
+                if (!Activate(borrow, () => host.Raise(request.Target))) return Failed(borrow);
                 if (host.WindowAt(point) != request.Target) return new PcBorrowOutcome(PcBorrowStatus.NotSent, "the point is covered by another window") { Code = PcErrorCode.OccludedPoint };
             }
         }
@@ -474,7 +474,7 @@ public sealed class RealInputLease
             }
             else
             {
-                host.SetForeground(request.Target);
+                if (!Activate(borrow, () => host.SetForeground(request.Target))) return Failed(borrow);
             }
             if (request.Focus is { } focus && !await focus(cancellationToken).ConfigureAwait(false))
                 return new PcBorrowOutcome(PcBorrowStatus.NotSent, "the control could not take the focus");
@@ -495,6 +495,25 @@ public sealed class RealInputLease
             if (!Send(borrow, request.Chunks[i])) return Failed(borrow);
         }
         return new PcBorrowOutcome(PcBorrowStatus.Done);
+    }
+
+    // Activation shares the send gate. A reentrant health callback can finish and restore during a host call;
+    // in that case the activation's late effects are restored once more before the abandoned worker exits.
+    private bool Activate(Loan borrow, Action activate)
+    {
+        lock (borrow.SendGate)
+        {
+            if (borrow.Finished || borrow.Permitted?.Invoke() == false || borrow.MonitorLost || !input.Snapshot().Healthy) return false;
+            activate();
+        }
+        if (!borrow.Finished) return true;
+        var saved = borrow.Saved;
+        for (var attempt = 0; attempt < RestoreTries && host.Focus().Foreground != saved.Foreground; attempt++)
+            host.Restore(saved.Foreground, saved.Focus);
+        host.RestoreZOrder(borrow.Request.Target, saved);
+        if (saved.Minimized) host.RestorePlacement(borrow.Request.Target, saved);
+        host.SetCursor(borrow.Cursor);
+        return false;
     }
 
     private static PcBorrowOutcome RealInputOff() => new(PcBorrowStatus.NeedsRealInput, PcRealInputReason.Off);

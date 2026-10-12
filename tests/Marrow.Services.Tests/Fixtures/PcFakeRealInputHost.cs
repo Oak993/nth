@@ -45,6 +45,10 @@ public sealed class PcFakeRealInputHost(PhysicalInputMonitor monitor, IPcClock c
 
     public int? AcceptedCount { get; set; }
 
+    public Action? BeforeSetForeground { get; set; }
+    public Action? BeforeRaise { get; set; }
+    public Action? AfterSetCursor { get; set; }
+
     public PcBorrowSaved? Saved { get; private set; }
 
     public PcRect Desktop() => new(0, 0, 1920, 1080);
@@ -68,10 +72,11 @@ public sealed class PcFakeRealInputHost(PhysicalInputMonitor monitor, IPcClock c
 
     public PcPoint? Caption(nint target) => CaptionPoint;
 
-    public void Raise(nint target) => Calls.Add("raise");
+    public void Raise(nint target) { BeforeRaise?.Invoke(); Calls.Add("raise"); }
 
     public bool SetForeground(nint window)
     {
+        BeforeSetForeground?.Invoke();
         Calls.Add("set-foreground");
         if (!ForegroundAllowed) return false;
         Foreground = window;
@@ -126,6 +131,7 @@ public sealed class PcFakeRealInputHost(PhysicalInputMonitor monitor, IPcClock c
     {
         Calls.Add("cursor");
         Cursor = point;
+        AfterSetCursor?.Invoke();
     }
 
     /// <summary>The tags of the arrays sent, in order.</summary>
