@@ -481,6 +481,37 @@ public static class GpuWarmup
         if (TopLevel.GetTopLevel(host) is not null) driver.Attached();
     }
 
+    /// <summary>
+    /// ED-NEW-lightv2-3 (OD-0150): warms <paramref name="programs"/>, which are not in the registry (a Composer Light v2 light: the one
+    /// selected at launch, one previewed or picked), in <paramref name="host"/>'s window, gated exactly as the idle fallback is (two
+    /// calm frames, never within InputQuiet of input or while held, forced one step a frame after IdleCap), each program compiled first
+    /// on the worker's own GPU context (ED-NEW-warmupsplit-2) so the render thread's step loads its binary. It writes no marker and
+    /// adds no family (IsWarm is the registry's), waits while a registry pass runs in that window, and runs once a process per program
+    /// and scaling (a run that failed may run again). <paramref name="host"/> gets the warm-up's 1 px visual as its child visual, so it
+    /// must be a control of its own (not one that draws through a child visual). Completes when the steps are drawn.
+    /// </summary>
+    public static Task WarmWhenIdle(Control host, IReadOnlyList<GpuProgram> programs)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        if (programs.Count == 0 || programs.Any(p => p.IsWork)) throw new ArgumentException("GPU warm-up: on-demand programs draw.", nameof(programs));
+        if (TopLevel.GetTopLevel(host) is not { } top) return Task.FromException(new InvalidOperationException("GPU warm-up: its host is not in a window."));
+        var key = string.Join("|", programs.Select(p => p.Name)) + "@" + top.RenderScaling.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        lock (onDemand)
+        {
+            if (onDemand.TryGetValue(key, out var going) && !going.IsFaulted && !going.IsCanceled) return going;
+            WatchInput();
+            var driver = onDemandDrivers.GetValue(host, _ => new Driver(host, FrameClock.Source.Current, SwiftClock.Provider.Current));
+            var run = driver.RunOnly(programs.ToArray());
+            onDemand[key] = run;
+            return run;
+        }
+    }
+
+    private static readonly Dictionary<string, Task> onDemand = [];
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Visual, Driver> onDemandDrivers = new();
+    private static readonly Dictionary<(string, double), Task> onDemandWorker = [];
+    private static int registryPasses; // registry passes under way (an on-demand pass waits for them: their marker counts cache entries)
+
     /// <summary>True when <paramref name="host"/> has its idle fallback scheduled (tests).</summary>
     internal static bool IsScheduled(Control host) => drivers.TryGetValue(host, out _);
 
@@ -493,6 +524,8 @@ public static class GpuWarmup
         private Task? running;
         private bool again, hurry, runningIdle;
         private int quiet; // calm frames in a row, kept from step to step in a pass (ED-NEW-warmupsplit-1)
+        private GpuProgram[]? only; // ED-NEW-lightv2-3: an on-demand pass's programs (not the registry's)
+        private bool onDemandDriver; // ED-NEW-lightv2-3: this driver only ever runs on-demand passes (a new scaling or context does not start a registry pass in it)
         private IProgress<GpuWarmupStep>? progress;
 
         // WhenIdle's host is in a window: follow its scaling; warm after the window's first frame, then at idle (never in
@@ -520,6 +553,7 @@ public static class GpuWarmup
         // a new scaling or a new GPU context: warm again, idle-gated (in the run going, or a new one)
         private void Again()
         {
+            if (onDemandDriver) return;
             again = true;
             if (running is { IsCompleted: true }) Start();
         }
@@ -536,6 +570,16 @@ public static class GpuWarmup
             if (running is { IsCompleted: false }) return;
             Run(idle: true, null, default).ContinueWith(static run => LastGiveUp = run.Exception?.InnerException?.Message,
                 CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+        }
+
+        /// <summary>ED-NEW-lightv2-3: an idle-gated pass over <paramref name="programs"/> alone (after the one going, if any).</summary>
+        public async Task RunOnly(GpuProgram[] programs)
+        {
+            onDemandDriver = true;
+            if (running is { IsCompleted: false } going) { try { await going; } catch (Exception) { } }
+            only = programs;
+            try { await Run(idle: true, null, CancellationToken.None); }
+            finally { only = null; }
         }
 
         public Task Run(bool idle, IProgress<GpuWarmupStep>? progress, CancellationToken cancellation)
@@ -586,6 +630,19 @@ public static class GpuWarmup
 
         private async Task Steps(TopLevel top, bool idle, CancellationToken cancellation)
         {
+            var mine = only;
+            if (mine is not null)
+            {
+                // ED-NEW-lightv2-3: a registry pass counts the cache's new entries for its marker, so an on-demand pass never runs beside one
+                while (Volatile.Read(ref registryPasses) > 0) await Task.Delay(50, cancellation);
+            }
+            else Interlocked.Increment(ref registryPasses);
+            try { await StepsOf(top, idle, mine, cancellation); }
+            finally { if (mine is null) Interlocked.Decrement(ref registryPasses); }
+        }
+
+        private async Task StepsOf(TopLevel top, bool idle, GpuProgram[]? mine, CancellationToken cancellation)
+        {
             var worked = new HashSet<GpuProgram>(); // work steps done in this run: a pass started again does not repeat them
             do
             {
@@ -594,7 +651,7 @@ public static class GpuWarmup
                 // after a new GPU context installs the cache on it naming the adapter as it is then)
                 await Task.Run(() => { JewelKnobShader.Prepare(); ComposerLightRenderer.Prepare(); GpuProgramCache.Prepare(); }, cancellation);
                 // GR-1: the registry as it is as the pass begins; the idle fallback draws only (a work step is a first run's)
-                var items = Registered.Where(p => !idle || !p.IsWork).ToArray();
+                var items = mine ?? Registered.Where(p => !idle || !p.IsWork).ToArray();
                 var drawn = FamiliesOf(items);
                 var scaling = top.RenderScaling;
                 var since = clock.GetTimestamp(); // the cap counts from the warm-up's start: once it ran out, one step a frame
@@ -603,6 +660,8 @@ public static class GpuWarmup
                     await GpuBootPreparation.Run(items, scaling, cancellation);
                     since = clock.GetTimestamp(); // (Boot B holds the steps while it draws: its cap from here, as before)
                 }
+                else if (idle && mine is not null)
+                    await OnDemandWorkerPass(mine, scaling, cancellation); // ED-NEW-lightv2-3: its own worker pass, not the registry's
                 else if (idle)
                     await WorkerPass(items, scaling, cancellation); // ED-NEW-warmupsplit-2: compiles and first runs off the render thread, inside the cap
                 var entries = GpuProgramCache.Entries;
@@ -662,7 +721,7 @@ public static class GpuWarmup
                 // (the marker and the clean-up of other builds' folders on a pool thread, the UI thread's frames untouched), and
                 // every registered step of other work has been done (an idle pass never runs one: it leaves the machine unprepared
                 // for a first run to do it)
-                if (!restarted && passFolder is { } cached)
+                if (mine is null && !restarted && passFolder is { } cached)
                 {
                     await GpuProgramCache.Drain(cached); // persistence completes before Entries is assessed, also in idle/non-Boot passes
                     if (GpuProgramCache.Entries - entries >= drawn && WorkIsDone())
@@ -799,6 +858,22 @@ public static class GpuWarmup
     // programs compile to (Skia's caches are shared by both), so no part of the warm-up is drawn on the CPU. Shared by every
     // idle run; a failure (no ANGLE, no cache folder) only means the steps do it all as before.
     private static readonly Dictionary<double, Task> workerPasses = [];
+
+    // ED-NEW-lightv2-3: an on-demand pass's worker pass, once a process per program and scaling (a failed one may run again)
+    private static async Task OnDemandWorkerPass(GpuProgram[] items, double scaling, CancellationToken cancellation)
+    {
+        var passes = new List<Task>();
+        lock (onDemandWorker)
+            foreach (var item in items)
+            {
+                if (!onDemandWorker.TryGetValue((item.Name, scaling), out var pass) || pass.IsFaulted || pass.IsCanceled)
+                    onDemandWorker[(item.Name, scaling)] = pass = GpuBootPreparation.Run([item], scaling, CancellationToken.None);
+                passes.Add(pass);
+            }
+        try { await Task.WhenAll(passes).WaitAsync(cancellation); }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { throw; }
+        catch (Exception) { }
+    }
 
     private static async Task WorkerPass(GpuProgram[] items, double scaling, CancellationToken cancellation)
     {

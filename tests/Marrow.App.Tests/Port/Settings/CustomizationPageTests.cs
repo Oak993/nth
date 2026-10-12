@@ -98,9 +98,9 @@ public sealed class CustomizationPageTests(HeadlessSession headless)
         Assert.Equal(["Style"], Texts(kids[1]).Where(t => t == "Style"));
         var sections = kids.OfType<CzSection>().ToList();
         Assert.Equal(
-            ["Look", "Pace and strength", null, null, "Look", "Motion", "Brightness by moment", null, null, null, "Voice orb", "Working dots"],
+            ["Look", "Pace and strength", null, null, "Look", "Motion", "Brightness by moment", null, null, "Look", "Text and light", "Wallpaper", null, null, "Voice orb", "Working dots"],
             sections.Select(s => s.Title));
-        Assert.Equal(sections, page.Beam!.Sections.Concat(page.Aura!.Sections).Append(page.Off!).Append(page.Voice!.Section).Append(page.Dots!.Section)); // CZ-5 adds the Working dots section at the end of the sticky container
+        Assert.Equal(sections, page.Beam!.Sections.Concat(page.Aura!.Sections).Concat(page.Shader!.Sections).Append(page.Off!).Append(page.Voice!.Section).Append(page.Dots!.Section)); // CZ-5 adds the Working dots section at the end of the sticky container; OD-0150 the shader lights' sections after the Uiverse light's
         // the rest after the sticky container holds the Speech section and then the capsule section (CZ-8)
         Assert.NotNull(page.Rest);
         Assert.Collection(page.Rest.Children, // CZ-8: the Speech section is first after the sticky container, then "Pill in the composer" (multi-account step 3a)

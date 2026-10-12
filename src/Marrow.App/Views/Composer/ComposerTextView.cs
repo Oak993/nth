@@ -304,6 +304,20 @@ public sealed class ComposerNSTextView : TextBox
     // :191 private var placeholderShown = false: the last draw's emptiness, gating whole-view invalidation.
     private bool placeholderShown;
 
+    // PORT-ONLY, OD-0150 (ED-NEW-lightv2-7): while a composer light is on, the dark appearance's placeholder is 55 % white (the
+    // parity 25 % cannot keep its contrast over the light's capped inner glow); with the lights off it is the parity colour.
+    private static readonly SwiftColor LitPlaceholderColor = SwiftColor.Dynamic(
+        light: new SwiftColor(red: 0, green: 0, blue: 0, opacity: 0.25),
+        dark: new SwiftColor(red: 1, green: 1, blue: 1, opacity: 0.55));
+    private bool lightOn;
+
+    /// <summary>OD-0150: true while a composer light is on (the placeholder is lifted in the dark appearance).</summary>
+    public bool LightOn
+    {
+        get => lightOn;
+        set { if (lightOn == value) return; lightOn = value; if (placeholderShown) InvalidateVisual(); }
+    }
+
     public ComposerNSTextView()
     {
         // :242-243 isRichText = false, importsGraphics = false: TextBox is plain text only, nothing to set.
@@ -545,7 +559,7 @@ public sealed class ComposerNSTextView : TextBox
     internal FormattedText CreatePlaceholderText() => new(
         placeholder, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
         new Typeface(FontFamily, FontStyle, FontWeight), FontSize,
-        SwiftColor.PlaceholderTextColor.Brush(this));
+        (lightOn ? LitPlaceholderColor : SwiftColor.PlaceholderTextColor).Brush(this));
 
     public override void Render(DrawingContext context)
     {

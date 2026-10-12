@@ -13,8 +13,13 @@ public static class PreviewCaption
     {
         ComposerLightStyle.Beam => "Border beam" + Separator + Shape(settings.Beam) + Separator + CzText.PaletteNames[PaletteId(settings.Beam.Palette)],
         ComposerLightStyle.Aura => "Uiverse light" + Separator + Colours(settings.Aura.Scheme, makerName) + Separator + CzText.Fmt(settings.Aura.Speed, 1) + " s a turn",
+        ComposerLightStyle.Shader when settings.ActiveShader is { } light => Shader(light, settings.ShaderOptions(light.Id)),
         _ => "No light",
     };
+
+    // OD-0150: a shader light's name, its pack and its spread
+    private static string Shader(ShaderLightDef light, ShaderLightOptions options) =>
+        light.Name + Separator + (ShaderLightCatalog.Pack(options.Pack)?.Name ?? options.Pack) + Separator + CzText.Fmt(options.Spread, 0) + " px";
 
     // b.family === 'pulse' ? 'Pulse ' + (inner ? 'inside' : 'outside') : { md: 'Large', line: 'Line', sm: 'Small' }[size]
     private static string Shape(BorderBeamOptions beam) => beam.Type switch

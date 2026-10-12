@@ -1,4 +1,5 @@
-// PORT-ONLY CZ-1: three Light radio cards (CZ-5), exact locked titles/descriptions and animated glyphs.
+// PORT-ONLY CZ-1: the Light radio cards (CZ-5), exact locked titles/descriptions and animated glyphs. OD-0150: Border beam, the Uiverse light,
+// the shader lights of the catalogue (Composer Light v2) and Off, three to a row.
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -52,16 +53,28 @@ public sealed class CzStyleCards : CzRadioGroup
             shell.BorderBrush = CzTheme.Brush(CzTheme.Token(this, "sel")); rings[i].To(b.Picked ? 2 : 0, CzMotion.Ease(.2));
         }
     }
+    /// <summary>Cards in a row (OD-0150: the rows wrap, each as tall as its tallest card).</summary>
+    public const int PerRow = 3;
+    private const double Gap = 8;
+    private double RowHeight(int row) => Buttons.Skip(row * PerRow).Take(PerRow).Max(b => b.DesiredSize.Height);
+    private int Rows => (Buttons.Count + PerRow - 1) / PerRow;
     protected override Size MeasureOverride(Size availableSize)
     {
-        var column = double.IsFinite(availableSize.Width) ? Math.Max(0, (availableSize.Width - 16) / 3) : 160;
-        foreach (var b in Buttons) b.Measure(new Size(column, availableSize.Height));
-        return new Size(column * 3 + 16, Buttons.Max(b => b.DesiredSize.Height));
+        var column = double.IsFinite(availableSize.Width) ? Math.Max(0, (availableSize.Width - Gap * (PerRow - 1)) / PerRow) : 160;
+        foreach (var b in Buttons) b.Measure(new Size(column, double.PositiveInfinity));
+        var height = Enumerable.Range(0, Rows).Sum(RowHeight) + Gap * (Rows - 1);
+        return new Size(column * PerRow + Gap * (PerRow - 1), height);
     }
     protected override Size ArrangeOverride(Size finalSize)
     {
-        var column = Math.Max(0, (finalSize.Width - 16) / 3);
-        for (var i = 0; i < 3; i++) Buttons[i].Arrange(new Rect(i * (column + 8), 0, column, finalSize.Height));
+        var column = Math.Max(0, (finalSize.Width - Gap * (PerRow - 1)) / PerRow);
+        var y = 0.0;
+        for (var row = 0; row < Rows; row++)
+        {
+            var h = RowHeight(row);
+            for (var k = 0; k < PerRow && row * PerRow + k < Buttons.Count; k++) Buttons[row * PerRow + k].Arrange(new Rect(k * (column + Gap), y, column, h));
+            y += h + Gap;
+        }
         return finalSize;
     }
 }

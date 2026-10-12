@@ -222,7 +222,7 @@ public sealed class CzControlsTests(HeadlessSession headless)
     {
         var cards = new CzStyleCards("beam");
         Assert.Equal("Light", AutomationProperties.GetName(cards));
-        Assert.Equal(new[] { "Border beam", "Uiverse light", "Off" }, cards.Buttons.Select(b => AutomationProperties.GetName(b)));
+        Assert.Equal(new[] { "Border beam", "Uiverse light", "Lumen", "Fluxa", "Lacus", "Caustica", "Borea", "Quies", "Nebula", "Serica", "Favilla", "Unda", "Argenta", "Vesper", "Neonis", "Crystallum", "Radiantia", "Nacrea", "Aurum", "Stellaris", "Velum", "Lamina", "Fulgor", "Off" }, cards.Buttons.Select(b => AutomationProperties.GetName(b)));
         cards.Select("aura"); Assert.Single(cards.Buttons, b => b.Focusable);
         Assert.Equal("A soft two-tone glow turns around it", AutomationProperties.GetHelpText(cards.Buttons[1]));
         Assert.Equal(3.4, cards.Glyphs[0].Period); Assert.Equal(9, cards.Glyphs[1].Period);
