@@ -10,8 +10,12 @@ namespace Marrow.Setup.Tests.Install;
 // ED-NEW-inst-merge-12: the integration bound the real U5 step (ProductionAfterSetupExit) and removed the NoAfterSetupExit
 // stub, so the C7b fact that an unbound adapter fails closed is held on the production adapter: a step that reached no shell
 // or registry, or left a required step undone, throws Problem's plain sentence; only a finished one returns. Fakes only.
-public sealed partial class C7U3AttemptIdentityTests
+public sealed class C7U3UnboundPostExitTests : IDisposable
 {
+    private readonly string area = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "nth-c7-unbound-" + Guid.NewGuid().ToString("N"))).FullName;
+
+    public void Dispose() => Directory.Delete(area, recursive: true);
+
     [Fact]
     [Trait("Decision", "ED-247")]
     public void An_unbound_post_exit_adapter_cannot_report_success()

@@ -4,7 +4,7 @@ using Marrow.Setup.Tests.Fakes;
 namespace Marrow.Setup.Tests.Install;
 
 // C7 independent review: only fakes and disposable folders; no installer or app process.
-public sealed partial class C7U3ReviewReproTests
+public sealed class C7U3ReviewReproTests
 {
     [Fact]
     [Trait("Decision", "ED-247")]

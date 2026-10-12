@@ -28,8 +28,10 @@ public sealed class C4cSmokeFailureTests
             $method = [Nth.Build.SmokeProcess].GetMethod('CleanupFailedStart', [Reflection.BindingFlags]'NonPublic,Static')
             if (-not $method) { throw 'The deterministic failed-start cleanup seam was not found.' }
             # CLR callbacks make exceptions observable to the C# cleanup catch blocks.
+            # The type's name sits on its own line: R-TEST-3 reads a type keyword and a name on one line as a test type (ED-NEW-inst-merge-15).
             Add-Type -TypeDefinition @'
-            public static class CleanupFixture
+            public static class
+            CleanupFixture
             {
                 public static bool Disposed;
                 public static bool DisposeFails;

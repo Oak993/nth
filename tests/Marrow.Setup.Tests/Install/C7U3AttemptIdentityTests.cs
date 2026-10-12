@@ -2,7 +2,7 @@ using Marrow.Setup.Install;
 
 namespace Marrow.Setup.Tests.Install;
 
-public sealed partial class C7U3AttemptIdentityTests : IDisposable
+public sealed class C7U3AttemptIdentityTests : IDisposable
 {
     private readonly string area = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "nth-c7-attempt-" + Guid.NewGuid().ToString("N"))).FullName;
 

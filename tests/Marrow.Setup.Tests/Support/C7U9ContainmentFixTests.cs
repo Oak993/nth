@@ -85,7 +85,7 @@ public sealed class C7U9ContainmentFixTests : IDisposable
         var folder = Path.Combine(area.SetupRoot, "1.0.0");
         using var claim = FolderClaim.Take(folder);
         var marker = Path.Combine(folder, ".nth-setup-owner");
-        Assert.True(File.Exists(marker), "the actual writer gate must record provenance before returning to its payload writer");
+        Assert.True(File.Exists(marker), "the actual writer gate must write its provenance marker before returning to its payload writer");
         Assert.Equal("nth Setup owned unit v1\n", File.ReadAllText(marker));
     }
 
