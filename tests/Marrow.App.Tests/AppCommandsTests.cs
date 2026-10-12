@@ -2484,7 +2484,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
             var activity = body.Select(command => command.Title).ToList().IndexOf("Toggle activity view");
             var start = ThreadMenuStart(body);
             // Each item's place, its command, its default key equivalent, and a free Ctrl+Alt chord to record for it
-            // (ED-099 (2) scan codes: F 0x21, G 0x22, E 0x12, I 0x17, Y 0x15, T 0x14, L 0x26, [ 0x1A, ] 0x1B, ; 0x27).
+            // (ED-099 (2) scan codes: F 0x21, G 0x22, E 0x12, I 0x17, Y 0x15, H 0x23, L 0x26, [ 0x1A, ] 0x1B, ; 0x27; T is the pane workspace's Ctrl+Alt+T since web W3b).
             (int Index, AppShortcut Shortcut, KeyboardShortcut Default, long Code, string Key)[] rows =
             [
                 (activity, AppShortcut.ToggleActivityView, CtrlAltU, 0x21, "f"),
@@ -2492,7 +2492,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
                 (start + 1, AppShortcut.QueueChat, CtrlReturn, 0x12, "e"),
                 (start + 2, AppShortcut.TogglePlanMode, CtrlShiftP, 0x17, "i"),
                 (start + 3, AppShortcut.PreviousThread, CtrlShiftTab, 0x15, "y"),
-                (start + 4, AppShortcut.NextThread, CtrlTab, 0x14, "t"),
+                (start + 4, AppShortcut.NextThread, CtrlTab, 0x23, "h"),
                 (start + 5, AppShortcut.RunScript, CtrlR, 0x26, "l"),
                 (start + 15, AppShortcut.FinishThread, CtrlShiftDelete, 0x1A, "["),
                 (start + 16, AppShortcut.ArchiveThread, CtrlW, 0x1B, "]"),

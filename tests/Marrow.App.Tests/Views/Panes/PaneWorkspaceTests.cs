@@ -36,7 +36,7 @@ public sealed class PaneWorkspaceTests(HeadlessSession headless)
     {
         Assert.False(rig.Workspace.IsMoving, $"{context}: still moving");
         var expected = rig.Expected();
-        var panes = expected.Shown.Any(kind => kind != PaneKind.Chat);
+        var panes = expected.Shown.Any(kind => kind != PaneKind.Chat) || expected.Rails.Count > 0; // a rail is the panes, folded
         Assert.Equal(panes ? expected.Chat.Width : rig.Workspace.Bounds.Width, rig.Workspace.ChatBounds.Width, 6);
         Assert.True(Math.Abs(rig.Workspace.ChatBounds.Width - rig.Workspace.Chat.Bounds.Width) <= 1, $"{context}: the chat slot drew {rig.Workspace.Chat.Bounds.Width}");
         foreach (var kind in Panes)
@@ -294,8 +294,11 @@ public sealed class PaneWorkspaceTests(HeadlessSession headless)
         rig.Settle();
         Assert.Equal(start + SplitterLimits.DefaultStep - SplitterLimits.DefaultLargeStep, rig.Workspace.ChatBounds.Width, 1);
         var range = Assert.IsAssignableFrom<IRangeValueProvider>(ControlAutomationPeer.CreatePeerForElement(splitter));
-        Assert.Equal(gutter.NormalMinimum, range.Minimum, 3);
-        Assert.Equal(gutter.NormalMaximum, range.Maximum, 3);
+        // The range includes the collapsed position (4.2, web W3b): the chat gutter runs from the chat minimum to the width at
+        // which the panes are folded into their rail.
+        Assert.Equal(gutter.Minimum, range.Minimum, 3);
+        Assert.Equal(gutter.Maximum, range.Maximum, 3);
+        Assert.True(range.Maximum > gutter.NormalMaximum, "the collapsed position lies past the widest open chat");
         Assert.InRange(range.Value, range.Minimum, range.Maximum);
         rig.Key(Key.Home);
         rig.Settle();
@@ -303,8 +306,8 @@ public sealed class PaneWorkspaceTests(HeadlessSession headless)
         Assert.Equal(range.Minimum, range.Value, 3);
         rig.Key(Key.End);
         rig.Settle();
-        Assert.Equal(range.Maximum, range.Value, 3);
-        Assert.Equal(range.Maximum, rig.Workspace.ChatBounds.Width, 1);
+        Assert.Equal(gutter.NormalMaximum, range.Value, 3); // End is the widest open chat, not the fold
+        Assert.Equal(gutter.NormalMaximum, rig.Workspace.ChatBounds.Width, 1);
         rig.Key(Key.Enter);
         rig.Settle();
         Assert.Equal(gutter.DefaultValue, rig.Workspace.ChatBounds.Width, 1);

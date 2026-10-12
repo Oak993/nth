@@ -652,6 +652,9 @@ public sealed class DetailView : Decorator
     /// <summary>The pane workspace around the chat columns while a thread is shown.</summary>
     internal Marrow.App.Views.Panes.PaneWorkspace? Workspace => workspace;
 
+    /// <summary>Whether a pane kind can be opened by a chord: the pane unit registered its content (tests with their own factory: every kind).</summary>
+    internal Func<PaneKind, bool> PaneAvailable { get; set; } = Marrow.App.Views.Panes.PaneContents.IsAvailable;
+
     /// <summary>What each pane kind draws (the pane units register theirs); tests replace it.</summary>
     internal Marrow.App.Views.Panes.PaneContentFactory PaneFactory { get; set; } = Marrow.App.Views.Panes.PaneContents.Create;
     private Marrow.App.Port.Voice.VoiceSpeedQuestion? voiceQuestion;
@@ -810,7 +813,11 @@ public sealed class DetailView : Decorator
             {
                 columnModel = model;
                 columns = new ThreadColumns(threadID, prebuilt, running, model, liveResize);
-                workspace = new Marrow.App.Views.Panes.PaneWorkspace(columns, _ => null);
+                workspace = new Marrow.App.Views.Panes.PaneWorkspace(columns, _ => null)
+                {
+                    // A chord for a pane kind this build cannot draw is not taken (web W3b, DESIGN 3.7).
+                    IsKindAvailable = kind => PaneAvailable(kind),
+                };
                 workspace.StateChanged += state =>
                 {
                     if (workspaceRuntime is { } owner) owner.Workspace = state;
