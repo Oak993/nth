@@ -1,5 +1,6 @@
 using Marrow.Setup.Platform;
 using Marrow.Setup.Tests.Fakes;
+using Marrow.Setup.Tests.Fixtures;
 
 namespace Marrow.Setup.Tests.Platform;
 
@@ -79,6 +80,49 @@ public sealed class SingleInstanceTests
 
         Assert.Empty(focuser.Focused);
         Assert.InRange(watch.Elapsed.TotalMilliseconds, 150, 3000);
+    }
+
+    [Fact]
+    [Trait("Decision", "OD-0072")]
+    [Trait("Platform", "WINDOWS-ONLY")]
+    public void A_second_start_focuses_the_first_window_and_exits_0()
+    {
+        var name = UniqueName();
+        using var first = SingleInstance.TryAcquire(name)!;
+        first.Publish(0x4242, 99);
+        var focuser = new FakeWindowFocuser();
+
+        Assert.Null(SingleInstance.TryAcquire(name)); // the second start is turned away by the lock
+        var exitCode = Program.SecondStart(focuser, TimeSpan.FromSeconds(1), name);
+
+        Assert.Equal(0, exitCode);
+        Assert.Equal(new[] { ((nint)0x4242, 99) }, focuser.Focused);
+    }
+
+    [Fact]
+    [Trait("Decision", "OD-0072")]
+    [Trait("Platform", "WINDOWS-ONLY")]
+    public void A_second_start_exits_0_even_when_the_first_window_never_appeared_and_focuses_nothing()
+    {
+        var name = UniqueName();
+        using var first = SingleInstance.TryAcquire(name)!;
+        var focuser = new FakeWindowFocuser();
+
+        Assert.Equal(0, Program.SecondStart(focuser, TimeSpan.FromMilliseconds(150), name));
+
+        Assert.Empty(focuser.Focused);
+    }
+
+    [Fact]
+    [Trait("Decision", "OD-0072")]
+    public void Both_entry_points_end_a_second_start_through_SecondStart_with_the_real_focuser_and_nothing_else_first()
+    {
+        // Program.Main cannot be called from a test (it would open a real window when no setup runs), so the wiring is read from its source
+        var source = File.ReadAllText(Path.Combine(RepositoryRoot.Path, "src", "Marrow.Setup", "Program.cs"));
+
+        Assert.Contains("instance = SingleInstance.TryAcquire();\n            if (instance is null) return SecondStart(new WindowsFocuser(), FocusPatience);", source.Replace("\r\n", "\n", StringComparison.Ordinal), StringComparison.Ordinal);
+        Assert.Contains("if (silent) return InstallerGate.InProgressExitCode;\n                return SecondStart(new WindowsFocuser(), FocusPatience);", source.Replace("\r\n", "\n", StringComparison.Ordinal), StringComparison.Ordinal);
+        Assert.DoesNotContain("SingleInstance.FocusExisting(new WindowsFocuser()", source, StringComparison.Ordinal);
     }
 
     private static string UniqueName() => @"Local\nth Setup test " + Guid.NewGuid().ToString("N");

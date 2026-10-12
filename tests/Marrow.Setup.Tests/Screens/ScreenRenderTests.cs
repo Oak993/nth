@@ -28,12 +28,12 @@ public sealed class ScreenRenderTests(SetupHeadlessSession headless)
 
     public static readonly string[] States =
     [
-        "welcome", "welcome-no-desktop", "options", "options-off", "options-onedrive", "options-light-wallpaper",
+        "welcome", "welcome-no-desktop", "welcome-signed", "welcome-unsigned", "options", "options-off", "options-onedrive", "options-light-wallpaper",
         "installing", "installing-slow",
         "ready-created", "ready-off", "ready-name-taken", "ready-failed", "ready-hidden", "ready-updated", "ready-wallpaper",
         "update-ask", "update-ask-open", "update-busy", "update-busy-one", "update-waiting", "update-updating",
         "up-to-date", "newer-installed",
-        "problem-safe", "problem-left", "problem-changed", "problem-details",
+        "problem-safe", "problem-left", "problem-changed", "problem-details", "problem-blocked", "problem-other", "problem-signature",
         "uninstall", "uninstall-wipe", "uninstall-removing", "uninstall-removed",
     ];
 
@@ -111,9 +111,14 @@ public sealed class ScreenRenderTests(SetupHeadlessSession headless)
         {
             case "welcome":
             case "welcome-no-desktop":
+            case "welcome-signed":
+            case "welcome-unsigned":
                 session = rig.Session(SetupScreen.Welcome);
                 session.SizeMegabytes = 420;
                 if (state == "welcome-no-desktop") session.SetDesktopShortcut(false);
+                // unit U10: the canvas's Signed and Unsigned test build toggle (the line under the maker)
+                if (state == "welcome-signed") session.SignatureChecked(new SignatureResult(SignatureState.Signed, "oak993", 0));
+                if (state == "welcome-unsigned") session.SignatureChecked(new SignatureResult(SignatureState.Unsigned, null, unchecked((int)0x800B0100)));
                 break;
             case "options":
             case "options-off":
@@ -174,11 +179,17 @@ public sealed class ScreenRenderTests(SetupHeadlessSession headless)
             case "problem-left":
             case "problem-changed":
             case "problem-details":
+            case "problem-blocked":
+            case "problem-other":
+            case "problem-signature":
                 session = rig.Session(SetupScreen.Problem);
                 var reason = state switch
                 {
                     "problem-left" => SetupStrings.ProblemInUse,
                     "problem-changed" => SetupStrings.ProblemChanged,
+                    "problem-blocked" => SetupStrings.ProblemBlocked, // unit U10: the rest of the canvas's reasons
+                    "problem-other" => SetupStrings.ProblemOther,
+                    "problem-signature" => SetupStrings.ProblemSignature,
                     _ => SetupStrings.ProblemSpace("C:", 420, 112),
                 };
                 session.Fail(reason, safe: state != "problem-left", "step: copying · Setup.exe exit 1\n[12:04:31] Velopack Setup 1.2.161\n[12:04:33] copying files to " + WindowRig.Root + "\n[12:04:34] error 0x80070020: the file is in use");
@@ -236,7 +247,7 @@ public sealed class ScreenRenderTests(SetupHeadlessSession headless)
         return new WallpaperScene(WallpaperOrigin.Wallpaper, FakeWallpaperSource.Solid(320, 200, r, g, b), WallpaperPosition.Fill, default, monitor, monitor);
     }
 
-    private static IEnumerable<string> Check(WindowRig rig, CanvasScreen screen)
+    internal static IEnumerable<string> Check(WindowRig rig, CanvasScreen screen)
     {
         var window = rig.Window;
         var client = new Rect(window.ClientSize);
@@ -355,7 +366,7 @@ public sealed class ScreenRenderTests(SetupHeadlessSession headless)
         _ => control.GetType().Name,
     };
 
-    private static RenderTargetBitmap Render(Window window, double scale)
+    internal static RenderTargetBitmap Render(Window window, double scale)
     {
         var size = window.ClientSize;
         var bitmap = new RenderTargetBitmap(new PixelSize((int)Math.Ceiling(size.Width * scale), (int)Math.Ceiling(size.Height * scale)), new Vector(96 * scale, 96 * scale));
@@ -363,7 +374,7 @@ public sealed class ScreenRenderTests(SetupHeadlessSession headless)
         return bitmap;
     }
 
-    private static bool Draws(Bitmap bitmap)
+    internal static bool Draws(Bitmap bitmap)
     {
         var size = bitmap.PixelSize;
         var stride = size.Width * 4;

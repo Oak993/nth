@@ -40,17 +40,23 @@ public static class Program
         if (smoke is null)
         {
             instance = SingleInstance.TryAcquire();
-            if (instance is null)
-            {
-                SingleInstance.FocusExisting(new WindowsFocuser(), FocusPatience);
-                return 0;
-            }
+            if (instance is null) return SecondStart(new WindowsFocuser(), FocusPatience);
         }
         using (instance)
         {
             var (exitCode, installChosen) = RunWindow(args, instance, smoke, started);
             return installChosen ? LegacyGateHost.Run(args) : exitCode; // only a session without the in-window install (see InstallFlowFor)
         }
+    }
+
+    /// <summary>
+    /// A second start (PLAN.md 3, step 1; tested by SingleInstanceTests, unit U10): the first window is brought to the front
+    /// and this process ends at once with 0, whether or not that window could be found.
+    /// </summary>
+    internal static int SecondStart(IWindowFocuser focuser, TimeSpan patience, string name = SingleInstance.SetupLockName)
+    {
+        _ = SingleInstance.FocusExisting(focuser, patience, name);
+        return 0;
     }
 
     private static (int ExitCode, bool InstallChosen) RunWindow(string[] args, SingleInstance? instance, UiSmokeOptions? smoke, long started, string? uninstallRoot = null)
@@ -187,8 +193,7 @@ public static class Program
             if (instance is null)
             {
                 if (silent) return InstallerGate.InProgressExitCode;
-                SingleInstance.FocusExisting(new WindowsFocuser(), FocusPatience);
-                return 0;
+                return SecondStart(new WindowsFocuser(), FocusPatience);
             }
             if (UninstallLaunch.NeedsCopy(args, process, root))
             {
@@ -198,19 +203,25 @@ public static class Program
             }
             if (!silent) return RunWindow(args, instance, null, started, root).ExitCode;
             var report = RemoveAsync(root, wipe: false, silent: true, localAppData, temp).GetAwaiter().GetResult();
-            return report.Outcome switch
-            {
-                UninstallOutcome.Removed => 0,
-                UninstallOutcome.InProgress => InstallerGate.InProgressExitCode,
-                UninstallOutcome.NthNotClosed => InstallerGate.NotClosedExitCode,
-                _ => 1,
-            };
+            return UninstallExitCode(report.Outcome);
         }
         finally
         {
             if (copy) UninstallLaunch.ScheduleCopyRemoval(process, temp, RestartRemoval.DeleteAtRestart);
         }
     }
+
+    /// <summary>
+    /// The exit code of a silent uninstall (PLAN.md 3a and 8; tested by UninstallExitCodeTests, unit U10): 0 removed, 3 nth busy or
+    /// refusing, 4 another setup on the root, and 1 for everything that failed (no uninstaller, it did not start, Velopack failed).
+    /// </summary>
+    internal static int UninstallExitCode(UninstallOutcome outcome) => outcome switch
+    {
+        UninstallOutcome.Removed => 0,
+        UninstallOutcome.InProgress => InstallerGate.InProgressExitCode,
+        UninstallOutcome.NthNotClosed => InstallerGate.NotClosedExitCode,
+        _ => 1,
+    };
 
     /// <summary>A silent uninstall from the root asks nth before it hands off, so the caller still gets 3 or 4 (the copy's own code is not seen).</summary>
     private static int? SilentRefusal(string root)

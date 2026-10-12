@@ -28,11 +28,12 @@ public sealed class InstallScenario : IDisposable
     private readonly ManualFrameSource frames = new();
     private readonly List<PlayedFrame> played = [];
 
-    public InstallScenario(VelopackTimeline timeline, bool update, long? free = 100_000_000_000, bool desktopShortcut = true, InstallSizes? sizes = null)
+    public InstallScenario(VelopackTimeline timeline, bool update, long? free = 100_000_000_000, bool desktopShortcut = true, InstallSizes? sizes = null, string? rootUnderLocal = null)
     {
         Base = Path.Combine(Path.GetTempPath(), "nth-u3-" + Guid.NewGuid().ToString("N")[..8]);
         var local = Path.Combine(Base, "Users", "Ana-María Østergård-Fernández", "AppData", "Local");
-        Root = Path.Combine(local, "Programs", "nth");
+        Local = local;
+        Root = rootUnderLocal is null ? Path.Combine(local, "Programs", "nth") : Path.Combine(local, rootUnderLocal); // unit U10: "NthApp" is where nth 1.0.0 lives and is updated in place
         Staging = InstallOptions.StagingFolder(local, "1.1.0");
         Directory.CreateDirectory(Path.Combine(local, "Programs"));
         if (update) WriteOldInstall(Root);
@@ -52,6 +53,9 @@ public sealed class InstallScenario : IDisposable
     }
 
     public string Base { get; }
+
+    /// <summary>The fake %LOCALAPPDATA% the scenario lives under.</summary>
+    public string Local { get; }
 
     public string Root { get; }
 

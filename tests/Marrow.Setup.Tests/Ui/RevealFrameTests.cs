@@ -172,7 +172,45 @@ public sealed class RevealFrameTests(SetupHeadlessSession headless)
         });
     }
 
-    public static TheoryData<string> Reveals => new() { "welcome-line", "options-path", "installing-slow", "ready-note", "update-busy", "update-wait", "current-case", "problem-log", "problem-reason" };
+    // unit U10 (ED-NEW-inst-u10-1): "update-updating" (Ask to Updating) and "update-stop" (Busy to Updating) complete the table's Update row
+    public static TheoryData<string> Reveals => new() { "welcome-line", "options-path", "installing-slow", "ready-note", "update-busy", "update-wait", "update-updating", "update-stop", "current-case", "problem-log", "problem-reason" };
+
+    [Theory]
+    [MemberData(nameof(Reveals))]
+    [Trait("Decision", "OD-0072")]
+    public void In_Calm_every_reveal_moves_only_what_has_faded_out_and_no_element_pops(string reveal)
+    {
+        headless.OnUiThread(() =>
+        {
+            var rig = new WindowRig(WindowRig.Calm);
+            var (screen, change, back) = Arrange(rig, reveal);
+            var elements = Elements(screen).Concat(Buttons(screen)).ToList();
+            var probe = new FrameProbe(rig, screen.View, Elements(screen), Buttons(screen)) { ButtonsFixed = false };
+            foreach (var element in elements) probe.Unchecked.Add(element); // the step rule here is the strict Calm one, below
+
+            change();
+            probe.Run(0.15);
+            back();
+            probe.Run(1.2);
+            change();
+            probe.Run(1.4);
+
+            Assert.False(screen.Reveal.IsBusy);
+            for (var frame = 1; frame < probe.Frames.Count; frame++)
+                foreach (var element in elements)
+                {
+                    var before = probe.Frames[frame - 1][element];
+                    var after = probe.Frames[frame][element];
+                    if (before.Box.Height <= 0 || after.Box.Height <= 0) continue;
+                    var step = FrameProbe.Step(before.Box, after.Box);
+                    // an element that moves does so from the design's gone level (it has faded out); its fade back in then starts in its new place
+                    if (step > .5)
+                        Assert.True(before.Opacity <= Reveal.Gone + 1e-9,
+                            $"{reveal}: {probe.Chain(element)} moved {step:F2} DIP in frame {frame} while drawn at {before.Opacity:F3} (Calm moves only what has faded out)");
+                }
+            rig.Window.CloseNow();
+        });
+    }
 
     [Theory]
     [MemberData(nameof(Reveals))]
@@ -239,6 +277,22 @@ public sealed class RevealFrameTests(SetupHeadlessSession headless)
                 session = Shown(rig, SetupScreen.Update, "1.0.0");
                 var update = (UpdateScreen)session.Current!;
                 return (update, () => update.ShowWaiting(2), update.ShowAsk);
+            }
+            case "update-updating":
+            {
+                session = Shown(rig, SetupScreen.Update, "1.0.0");
+                var update = (UpdateScreen)session.Current!;
+                return (update, () => update.ShowUpdating(UpdateRun.Open), update.ShowAsk);
+            }
+            case "update-stop":
+            {
+                session = rig.Session(SetupScreen.Update, installed: "1.0.0");
+                Show(rig, session);
+                var update = (UpdateScreen)session.Current!;
+                var running = new[] { ("Refactor the sign-in module", 4), ("Write the release notes", 1) };
+                update.ShowBusy(running);
+                rig.Run(1.5);
+                return (update, () => update.ShowUpdating(UpdateRun.Stop, 2), update.ShowAsk); // Busy goes on to Updating; Ask is the way back
             }
             case "current-case":
             {
