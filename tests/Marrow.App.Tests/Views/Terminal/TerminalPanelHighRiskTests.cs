@@ -53,7 +53,7 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
 
             // The real child is launched by the same PowerShell process inside the ConPTY. While it owns the
             // foreground, the host must leave Escape for the terminal rather than closing the drawer.
-            var childCommand = "$exe=(Get-Process -Id $PID).Path; Start-Process -FilePath $exe -ArgumentList '-NoLogo','-NoProfile','-Command','Start-Sleep -Seconds 10'; Start-Sleep -Seconds 2";
+            var childCommand = "$exe=(Get-Process -Id $PID).Path; Start-Process -FilePath $exe -ArgumentList '-NoLogo','-NoProfile','-Command','Start-Sleep -Seconds 10' -NoNewWindow; Start-Sleep -Seconds 2";
             var childSession = new TerminalSession(Guid.NewGuid(), TerminalTestFolders.Create("escape child"), "PowerShell", childCommand);
             var childHost = new TerminalHost(childSession, runtime, () => closeCount++);
             var childRoot = new Border { Child = childHost };
