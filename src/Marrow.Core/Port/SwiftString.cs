@@ -28,7 +28,13 @@ public static class SwiftString
     }
 
     /// <summary><c>text.count</c>: Characters, not UTF-16 units.</summary>
-    public static int Count(string text) => text.Length == 0 ? 0 : new StringInfo(text).LengthInTextElements;
+    public static int Count(string text)
+    {
+        if (text.Length == 0) return 0;
+        // ED-NEW-lean-1: in ASCII text every unit is one Character except the one multi-unit ASCII Character, "\r\n".
+        if (Ascii.IsValid(text)) return text.Length - text.AsSpan().Count("\r\n".AsSpan());
+        return new StringInfo(text).LengthInTextElements;
+    }
 
     /// <summary><c>text.utf8.count</c>.</summary>
     public static int Utf8Count(string text) => Encoding.UTF8.GetByteCount(text);
@@ -52,16 +58,16 @@ public static class SwiftString
     public static string Suffix(string text, int maxLength)
     {
         RequireNonNegative(maxLength, "Can't take a suffix of negative length from a collection");
-        var starts = Starts(text);
-        return maxLength >= starts.Count ? text : text[starts[starts.Count - maxLength]..];
+        var start = TailStart(text, maxLength);
+        return start == 0 ? text : text[start..];
     }
 
     /// <summary><c>String(text.dropLast(k))</c>.</summary>
     public static string DropLast(string text, int k = 1)
     {
         RequireNonNegative(k, "Can't drop a negative number of elements from a collection");
-        var starts = Starts(text);
-        return k >= starts.Count ? "" : text[..starts[starts.Count - k]];
+        var start = TailStart(text, k);
+        return start == 0 ? "" : text[..start];
     }
 
     /// <summary>True when a UTF-16 offset falls between two Characters (for regex post-checks, R-RE-2).</summary>
@@ -76,9 +82,10 @@ public static class SwiftString
     // ---- Equality, ordering, prefix and suffix ----
 
     /// <summary>Swift <c>==</c>: canonical equivalence (<c>"\u{E9}" == "e\u{301}"</c>).</summary>
+    /// <remarks>ED-NEW-lean-1: two ASCII strings are their own NFC forms, so the ordinal answer is the whole answer.</remarks>
     public static bool Equal(string left, string right) =>
         string.Equals(left, right, StringComparison.Ordinal) ||
-        string.Equals(Nfc(left), Nfc(right), StringComparison.Ordinal);
+        (!(Ascii.IsValid(left) && Ascii.IsValid(right)) && string.Equals(Nfc(left), Nfc(right), StringComparison.Ordinal));
 
     /// <summary>Swift <c>&lt;</c> as a comparison: Unicode scalar order of the NFC forms (not UTF-16 order).</summary>
     public static int Compare(string left, string right)
@@ -100,12 +107,14 @@ public static class SwiftString
     /// <summary>
     /// Swift <c>hasPrefix</c>: <c>starts(with:)</c> over Characters, each compared canonically, so the prefix
     /// must end on a Character boundary. On two ASCII strings that is a byte compare plus the one ASCII
-    /// multi-scalar Character, "\r\n" (UNVERIFIED O-06 against Swift's NFC fast path).
+    /// multi-scalar Character, "\r\n" (UNVERIFIED O-06 against Swift's NFC fast path). ED-NEW-lean-1: only the text's first
+    /// prefix.Length + 1 units decide that path: when they are ASCII, the text's Characters up to the prefix's end are those units, and
+    /// the one boundary that can fail between two ASCII units is the one inside "\r\n".
     /// </summary>
     public static bool HasPrefix(string text, string prefix)
     {
         if (prefix.Length == 0) return true;
-        if (Ascii.IsValid(text) && Ascii.IsValid(prefix))
+        if (Ascii.IsValid(prefix) && Ascii.IsValid(text.AsSpan(0, Math.Min(text.Length, prefix.Length + 1))))
             return text.StartsWith(prefix, StringComparison.Ordinal) &&
                    (prefix.Length == text.Length || !(text[prefix.Length - 1] == '\r' && text[prefix.Length] == '\n'));
         using var whole = Characters(text).GetEnumerator();
@@ -114,11 +123,14 @@ public static class SwiftString
         return true;
     }
 
-    /// <summary>Swift <c>hasSuffix</c>: <c>reversed().starts(with: suffix.reversed())</c> over Characters.</summary>
+    /// <summary>
+    /// Swift <c>hasSuffix</c>: <c>reversed().starts(with: suffix.reversed())</c> over Characters. ED-NEW-lean-1: only the text's last
+    /// suffix.Length + 1 units decide the ASCII path (no grapheme rule joins two ASCII units except CR LF).
+    /// </summary>
     public static bool HasSuffix(string text, string suffix)
     {
         if (suffix.Length == 0) return true;
-        if (Ascii.IsValid(text) && Ascii.IsValid(suffix))
+        if (Ascii.IsValid(suffix) && Ascii.IsValid(text.AsSpan(text.Length - Math.Min(text.Length, suffix.Length + 1))))
         {
             var start = text.Length - suffix.Length;
             return text.EndsWith(suffix, StringComparison.Ordinal) &&
@@ -143,6 +155,15 @@ public static class SwiftString
     public static bool Contains(string text, string needle)
     {
         if (needle.Length == 0) return true;
+        // ED-NEW-lean-1: two ASCII strings match Character for Character where they match ordinally and the match starts and ends on
+        // Character boundaries. The only ASCII non-boundary is inside "\r\n", so only a needle starting with "\n" or ending with "\r" is checked.
+        if (Ascii.IsValid(needle) && Ascii.IsValid(text))
+        {
+            if (needle[0] != '\n' && needle[^1] != '\r') return text.Contains(needle, StringComparison.Ordinal);
+            for (var at = text.IndexOf(needle, StringComparison.Ordinal); at >= 0; at = text.IndexOf(needle, at + 1, StringComparison.Ordinal))
+                if (IsAsciiBoundary(text, at) && IsAsciiBoundary(text, at + needle.Length)) return true;
+            return false;
+        }
         var haystack = Characters(text).ToArray();
         var pattern = Characters(needle).ToArray();
         for (var start = 0; start <= haystack.Length - pattern.Length; start++)
@@ -183,6 +204,25 @@ public static class SwiftString
         if (maxSplits == 0 || text.Length == 0)
         {
             Append(text.Length);
+            return result;
+        }
+        if (asciiSeparator && Ascii.IsValid(text))
+        {
+            // ED-NEW-lean-1: in ASCII text each unit is its own Character except "\r\n", whose halves are never a one-unit separator.
+            var unit = separator[0];
+            var from = 0;
+            while (from < text.Length)
+            {
+                var at = text.IndexOf(unit, from);
+                if (at < 0) break;
+                from = at + 1;
+                if ((unit == '\n' && at > 0 && text[at - 1] == '\r') || (unit == '\r' && from < text.Length && text[from] == '\n')) continue;
+                var didAppend = Append(at);
+                subsequenceStart = from;
+                if (didAppend && result.Count == maxSplits) break;
+            }
+            if (subsequenceStart != text.Length || !omittingEmptySubsequences)
+                result.Add(text[subsequenceStart..]);
             return result;
         }
         var subsequenceEnd = 0;
@@ -279,17 +319,30 @@ public static class SwiftString
         return index;
     }
 
-    private static List<int> Starts(string text)
+    // ED-NEW-lean-1: the UTF-16 offset where the last `characters` Characters start (0 when the text has no more). It walks back from the
+    // end while the units are ASCII ("\r\n" is one Character) and the unit before the stop is ASCII too, so no non-ASCII grapheme rule can
+    // remove that boundary; otherwise it counts forward, which allocates nothing either (the old code listed every Character start).
+    private static int TailStart(string text, int characters)
     {
-        var starts = new List<int>();
-        var index = 0;
-        while (index < text.Length)
+        var index = text.Length;
+        for (var i = 0; i < characters && index > 0; i++)
         {
-            starts.Add(index);
-            index += StringInfo.GetNextTextElementLength(text.AsSpan(index));
+            if (text[index - 1] >= 0x80) return TailStartByCount(text, characters);
+            index -= index >= 2 && text[index - 1] == '\n' && text[index - 2] == '\r' ? 2 : 1;
         }
-        return starts;
+        if (index > 0 && text[index - 1] >= 0x80) return TailStartByCount(text, characters);
+        return index;
     }
+
+    private static int TailStartByCount(string text, int characters)
+    {
+        var count = 0;
+        for (var index = 0; index < text.Length; count++) index += StringInfo.GetNextTextElementLength(text.AsSpan(index));
+        return characters >= count ? 0 : OffsetAfter(text, count - characters);
+    }
+
+    private static bool IsAsciiBoundary(string text, int offset) =>
+        offset == 0 || offset == text.Length || !(text[offset - 1] == '\r' && text[offset] == '\n');
 
     private static void RequireNonNegative(int value, string trap)
     {
