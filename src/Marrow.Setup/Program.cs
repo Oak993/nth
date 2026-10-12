@@ -30,6 +30,8 @@ public static class Program
     public static int Main(string[] args)
     {
         var started = Stopwatch.GetTimestamp();
+        // nth installer PLAN.md 8, unit U6 (ED-NEW-inst-u6-1): uninstall mode, with its window or --silent (QuietUninstallString)
+        if (SetupFlow.IsUninstall(args) && !InstallerGate.IsHelp(args) && UiSmoke.Read(args) is null) return Uninstall(args, started);
         if (InstallerGate.IsSilent(args) || InstallerGate.IsHelp(args)) return LegacyGateHost.Run(args);
 
         var smoke = UiSmoke.Read(args);
@@ -50,7 +52,7 @@ public static class Program
         }
     }
 
-    private static (int ExitCode, bool InstallChosen) RunWindow(string[] args, SingleInstance? instance, UiSmokeOptions? smoke, long started)
+    private static (int ExitCode, bool InstallChosen) RunWindow(string[] args, SingleInstance? instance, UiSmokeOptions? smoke, long started, string? uninstallRoot = null)
     {
         SetupApp.Build().SetupWithoutStarting();
         var settings = new SystemSettings(new WindowsSystemLookSource());
@@ -74,12 +76,14 @@ public static class Program
         };
         // PLAN.md 3 step 4 and 5, "Leftovers" (unit U9, ED-NEW-inst-u9-1): this run's staging folder goes on every exit path (Ready
         // or Problem showing, Close on any screen, an unhandled exception); stale folders from earlier runs are swept once the
-        // window is up. A smoke run stages nothing and sweeps nothing.
-        using var staging = smoke is null && Path.IsPathFullyQualified(localAppData) ? StagingScope.Create(localAppData, Path.GetTempPath(), version) : null;
+        // window is up. A smoke run stages nothing and sweeps nothing; uninstall mode stages nothing (its removal sweeps, unit U6).
+        using var staging = smoke is null && uninstallRoot is null && Path.IsPathFullyQualified(localAppData) ? StagingScope.Create(localAppData, Path.GetTempPath(), version) : null;
         staging?.Attach(session);
         if (problem is not null) session.Fail(problem);
         window.HandleReady += handle => instance?.Publish(handle, Environment.ProcessId);
         session.Start();
+        if (uninstallRoot is not null && smoke is null && session.Uninstalling)
+            UninstallFlow.Attach(session, wipe => RemoveAsync(uninstallRoot, wipe, silent: false, localAppData, Path.GetTempPath()));
 
         using var done = new CancellationTokenSource();
         window.Closed += (_, _) => done.Cancel();
@@ -99,6 +103,90 @@ public static class Program
         var result = await SignatureCheck.VerifySelfAsync().ConfigureAwait(false);
         Dispatcher.UIThread.Post(() => session.SignatureChecked(result));
     }
+
+    /// <summary>
+    /// Uninstall mode (unit U6, ED-NEW-inst-u6-1; PLAN.md 8). A run from inside the root hands off to a temporary copy before
+    /// any window (UninstallLaunch) and exits; the copy, or a run from elsewhere, holds the setup lock for the whole uninstall
+    /// (so nth's start sweep and before-uninstall hook stand aside, unit U9) and shows the window, or with --silent removes
+    /// nth with no window: busy, refusing or silent nth exits 3, another setup on the root 4, a Velopack failure 1. The copy
+    /// gives its own file to Windows for removal as it ends.
+    /// </summary>
+    private static int Uninstall(string[] args, long started)
+    {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var temp = Path.GetTempPath();
+        var process = Environment.ProcessPath;
+        var silent = InstallerGate.IsSilent(args);
+        var copy = UninstallLaunch.IsCopy(args);
+        string root;
+        try
+        {
+            root = UninstallLaunch.FindRoot(args, process, new RegistryUninstallKeys(), localAppData, AppContext.BaseDirectory);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or SecurityException or ArgumentException or NotSupportedException)
+        {
+            root = Path.Combine(localAppData, InstallLayout.AppId);
+        }
+        try
+        {
+            using var instance = copy ? SingleInstance.TryAcquire(UninstallLaunch.HandOffPatience) : SingleInstance.TryAcquire();
+            if (instance is null)
+            {
+                if (silent) return InstallerGate.InProgressExitCode;
+                SingleInstance.FocusExisting(new WindowsFocuser(), FocusPatience);
+                return 0;
+            }
+            if (UninstallLaunch.NeedsCopy(args, process, root))
+            {
+                if (silent && SilentRefusal(root) is { } refused) return refused;
+                // the copy waits for this process to let go of the lock; if no copy can be made, this one goes on in place
+                if (UninstallLaunch.HandOff(process!, root, temp, silent, StartCopy) is not null) return 0;
+            }
+            if (!silent) return RunWindow(args, instance, null, started, root).ExitCode;
+            var report = RemoveAsync(root, wipe: false, silent: true, localAppData, temp).GetAwaiter().GetResult();
+            return report.Outcome switch
+            {
+                UninstallOutcome.Removed => 0,
+                UninstallOutcome.InProgress => InstallerGate.InProgressExitCode,
+                UninstallOutcome.NthNotClosed => InstallerGate.NotClosedExitCode,
+                _ => 1,
+            };
+        }
+        finally
+        {
+            if (copy) UninstallLaunch.ScheduleCopyRemoval(process, temp, RestartRemoval.DeleteAtRestart);
+        }
+    }
+
+    /// <summary>A silent uninstall from the root asks nth before it hands off, so the caller still gets 3 or 4 (the copy's own code is not seen).</summary>
+    private static int? SilentRefusal(string root)
+    {
+        using var preflight = SilentPreflight.RunAsync(root, ProductionRunningNth.Create(root)).GetAwaiter().GetResult();
+        return preflight.ExitCode;
+    }
+
+    private static bool StartCopy(string path, IReadOnlyList<string> arguments, string folder)
+    {
+        var start = new ProcessStartInfo(path) { UseShellExecute = false, WorkingDirectory = folder };
+        foreach (var argument in arguments) start.ArgumentList.Add(argument);
+        using var process = Process.Start(start);
+        return process is not null;
+    }
+
+    /// <summary>The removal itself, off the UI thread; the real shell, HKCU and Credential Manager are bound here only.</summary>
+    private static Task<UninstallReport> RemoveAsync(string root, bool wipe, bool silent, string localAppData, string temp) => Task.Run(async () =>
+    {
+        using var shell = new ShellLinks();
+        var uninstaller = new Uninstaller(new UninstallPorts(
+            new ProcessVelopackRunner(),
+            shell,
+            new RegistryUserHive(Registry.CurrentUser),
+            new WindowsCredentialStore(),
+            localAppData,
+            temp,
+            RunningNth: ProductionRunningNth.Create));
+        return await uninstaller.RunAsync(root, wipe, silent).ConfigureAwait(false);
+    });
 
     /// <summary>
     /// Unit U5 (PLAN.md 8, item 1; 8a): after Velopack's Setup.exe exits 0, Start's AppUserModelID, the desktop shortcut's

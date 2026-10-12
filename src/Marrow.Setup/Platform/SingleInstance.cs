@@ -46,6 +46,21 @@ public sealed class SingleInstance : IDisposable
     }
 
     /// <summary>Publishes the first window so a second start can bring it forward.</summary>
+    /// <summary>
+    /// <see cref="TryAcquire(string)"/>, asking again every 25 ms for up to <paramref name="patience"/>: the uninstaller's
+    /// temporary copy takes the lock as the first process lets go of it (unit U6, ED-NEW-inst-u6-1).
+    /// </summary>
+    public static SingleInstance? TryAcquire(TimeSpan patience, string name = SetupLockName)
+    {
+        var deadline = Environment.TickCount64 + (long)Math.Clamp(patience.TotalMilliseconds, 0, int.MaxValue);
+        while (true)
+        {
+            if (TryAcquire(name) is { } instance) return instance;
+            if (Environment.TickCount64 >= deadline) return null;
+            Thread.Sleep(25);
+        }
+    }
+
     public void Publish(nint window, int processId)
     {
         section ??= MemoryMappedFile.CreateNew(SectionName(name), SectionSize, MemoryMappedFileAccess.ReadWrite);
