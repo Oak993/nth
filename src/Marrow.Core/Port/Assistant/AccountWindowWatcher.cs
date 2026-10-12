@@ -28,7 +28,7 @@ public sealed class AccountWindowWatcher
     public static readonly TimeSpan UnknownResetQuiet = TimeSpan.FromMinutes(30);
 
     private readonly Dictionary<(string Account, string Window), AccountWindowReading> last = [];
-    private readonly Dictionary<string, DateTimeOffset> limitedUntil = [];
+    private readonly Dictionary<(string Account, DateTimeOffset? Reset), DateTimeOffset> limitedUntil = [];
 
     /// <summary>The events for one poll of one account. The first reading of a window only sets the baseline.</summary>
     public IReadOnlyList<FeedDraft> Observe(IEnumerable<AccountWindowReading> readings, DateTimeOffset now)
@@ -50,7 +50,7 @@ public sealed class AccountWindowWatcher
 
             if (IsReset(previous!, reading, now))
             {
-                limitedUntil.Remove(reading.AccountKey);
+                ForgetResetLimit(previous!, now);
                 drafts.Add(new FeedDraft(FeedEventKind.AccountWindowReset, FeedSeverity.Info, now,
                     $"{reading.AccountName}: {reading.WindowTitle} reset, from {Percent(previous!.Percent)} to {Percent(reading.Percent)}"));
             }
@@ -69,11 +69,32 @@ public sealed class AccountWindowWatcher
     /// </summary>
     public FeedDraft? NoteLimit(string accountKey, string accountName, DateTimeOffset? resetsAt, DateTimeOffset now)
     {
-        if (limitedUntil.TryGetValue(accountKey, out var until) && until > now
-            && (resetsAt is null || (resetsAt.Value - until).Duration() <= ResetSlack)) return null;
-        limitedUntil[accountKey] = resetsAt ?? now + UnknownResetQuiet;
+        foreach (var key in limitedUntil.Keys.Where(key => key.Account == accountKey && limitedUntil[key] <= now).ToArray())
+            limitedUntil.Remove(key);
+        if (limitedUntil.Keys.Any(key => key.Account == accountKey
+            && (resetsAt is null || (key.Reset is { } reset && (resetsAt.Value - reset).Duration() <= ResetSlack)))) return null;
+        limitedUntil[(accountKey, resetsAt)] = resetsAt ?? now + UnknownResetQuiet;
         var tail = resetsAt is { } reset ? $", resets in {Relative(reset - now)}" : "";
         return new FeedDraft(FeedEventKind.AccountLimitReached, FeedSeverity.Info, now, $"{accountName}: usage limit reached{tail}");
+    }
+
+    // Remove only this window's old reset episode. A different window may still own a live limit,
+    // even with the same reset time and a lagging snapshot; an unidentified provider limit stays until its quiet period expires.
+    private void ForgetResetLimit(AccountWindowReading previous, DateTimeOffset now)
+    {
+        var others = last.Values.Where(reading => reading.AccountKey == previous.AccountKey
+            && reading.WindowId != previous.WindowId
+            && (reading.ResetsAt is null || reading.ResetsAt > now)).ToArray();
+        foreach (var key in limitedUntil.Keys.Where(key => key.Account == previous.AccountKey).ToArray())
+        {
+            if (key.Reset is { } reset)
+            {
+                if (previous.ResetsAt is not { } before || (reset - before).Duration() > ResetSlack) continue;
+                if (others.Any(reading => reading.ResetsAt is not { } other || (reset - other).Duration() <= ResetSlack)) continue;
+            }
+            else continue; // Unknown provider episodes have no window provenance; retain until expiry.
+            limitedUntil.Remove(key);
+        }
     }
 
     // A window reset when its percent fell and its reset time moved on (or had already passed). A rolling window whose
