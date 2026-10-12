@@ -4,7 +4,8 @@ using Marrow.Services.Tests.Fixtures;
 
 namespace Marrow.Services.Tests.Port.PcControl;
 
-[Trait("Decision", "ED-NEW-pcctl-cx-5")]
+// ED-NEW-pcctl-cx-5: the trait names the owner decision, as a two-word ED id is not a well-formed trait id (ED-NEW-pcctl-35).
+[Trait("Decision", "OD-0144")]
 public sealed class C3A5Tests
 {
     [Fact]
