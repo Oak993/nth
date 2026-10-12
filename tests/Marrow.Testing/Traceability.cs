@@ -18,8 +18,9 @@ public static partial class Traceability
 
     [GeneratedRegex(@"\AR-[A-Z]+-[0-9]+\z")] private static partial Regex RuleId();
 
-    // Unnumbered first-release decisions use their append-only heading (ED-360) until the lead numbers them.
-    [GeneratedRegex(@"\A(?:ED-(?:[0-9]{3}|NEW-[a-z]+-[0-9]+)|OD-[0-9]{4})\z")] private static partial Regex DecisionId();
+    // Unnumbered first-release decisions use their append-only heading (ED-360) until the lead numbers them; a team's
+    // heading may name its unit too, as ED-NEW-dextra-as3-1 (ED-NEW-dextra-as3-5).
+    [GeneratedRegex(@"\A(?:ED-(?:[0-9]{3}|NEW-[a-z]+(?:-[a-z]+[0-9]+[a-z]?)?-[0-9]+)|OD-[0-9]{4})\z")] private static partial Regex DecisionId();
 
     [GeneratedRegex(@"\AO-[0-9]{2}\z")] private static partial Regex OracleId();
 
