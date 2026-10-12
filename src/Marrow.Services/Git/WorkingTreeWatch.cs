@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using Microsoft.Win32.SafeHandles;
 using Marrow.Core.Port;
 using Marrow.Services.Port;
@@ -24,6 +25,9 @@ public sealed class WorkingTreeWatch
     private readonly string rootPrefix;
     private readonly string gitPrefix;
     private readonly string cookiePrefix;
+    // ED-NEW-lean-18: the git directory's name under the root, with its separator, when the root is drive rooted and
+    // that name is ASCII, so NoteBatch can answer a path the stream reported with ordinal checks before normalising.
+    private readonly string? fastGitTail;
     private readonly List<(ulong Id, ulong Cookie, TaskCompletionSource<bool> Completion)> waiters = [];
     private readonly TaskCompletionSource teardownCompleted = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private HashSet<string>? changed = new(StringComparer.Ordinal);
@@ -96,10 +100,11 @@ public sealed class WorkingTreeWatch
         rootPrefix = root + "\\";
         gitPrefix = gitRoot + "\\";
         cookiePrefix = gitPrefix + "droppy-code-sync-";
+        fastGitTail = FastGitTail(rootPrefix, gitPrefix);
         ScratchPath = System.IO.Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR") ?? System.IO.Path.GetTempPath(),
             "droppy-code-index-" + SwiftUUID.UuidString(Guid.NewGuid()));
         if (SwiftPath.TailUnder(gitRoot, root) is { Length: > 0 })
-            stream = FileWatcher.WatchTree([root], queue, batch => NoteBatch(batch.Paths, batch.Everything));
+            stream = FileWatcher.WatchTree([root], queue, batch => NoteBatch(batch.Paths, batch.Everything), skip: SkipsName);
     }
 
     public string DirectoryPath { get; } // :110
@@ -170,10 +175,27 @@ public sealed class WorkingTreeWatch
     internal void NoteBatch(IReadOnlyList<string> paths, bool everything)
     {
         var didChange = everything;
-        var directories = new List<string>();
+        List<string>? directories = null;
+        DirectoryCache recent = default;
         ulong cookie = 0;
         foreach (var path in paths)
         {
+            // ED-NEW-lean-18: the paths the stream reports (the root, a backslash, the name) are answered by ordinal
+            // prefix checks with no allocation, and a new directory string only when it differs from the last few.
+            // Every other shape takes the path below, unchanged; WorkingTreeWatchNoteBudgetTests pins the equality.
+            switch (Classify(path, out var start, out var length))
+            {
+                case Fast.Cookie:
+                    if (ulong.TryParse(path.AsSpan(start), NumberStyles.None, CultureInfo.InvariantCulture, out var parsed))
+                        cookie = Math.Max(cookie, parsed);
+                    continue;
+                case Fast.GitInternal:
+                    continue;
+                case Fast.WorkingTree:
+                    didChange = true;
+                    (directories ??= []).Add(recent.Directory(path, start, length));
+                    continue;
+            }
             var normalized = SwiftPath.Normalize(path).Replace('/', '\\');
             if (normalized.StartsWith(cookiePrefix, StringComparison.OrdinalIgnoreCase))
             {
@@ -190,24 +212,127 @@ public sealed class WorkingTreeWatch
                 continue;
             }
             var separator = relative.LastIndexOfAny(['\\', '/']);
-            directories.Add((separator < 0 ? relative : relative[..separator]).Replace('\\', '/'));
+            (directories ??= []).Add((separator < 0 ? relative : relative[..separator]).Replace('\\', '/'));
         }
         if (!didChange && cookie == 0) return;
-        List<TaskCompletionSource<bool>> ready;
+        List<TaskCompletionSource<bool>>? ready = null;
         lock (gate)
         {
             if (didChange) generation = unchecked(generation + 1);
             cookieSeen = Math.Max(cookieSeen, cookie);
             if (everything) changed = null;
-            else if (changed is not null)
+            else if (changed is not null && directories is not null)
             {
                 foreach (var directory in directories) changed.Add(changed.Count >= ChangedLimit ? TopLevel(directory) : directory);
                 if (changed.Count > ChangedLimit) changed = new(changed.Select(TopLevel), StringComparer.Ordinal);
             }
-            ready = waiters.Where(w => w.Cookie <= cookieSeen).Select(w => w.Completion).ToList();
-            waiters.RemoveAll(w => w.Cookie <= cookieSeen);
+            for (var i = 0; i < waiters.Count; i++)
+            {
+                if (waiters[i].Cookie > cookieSeen) continue;
+                (ready ??= []).Add(waiters[i].Completion);
+                waiters.RemoveAt(i--);
+            }
         }
+        if (ready is null) return;
         foreach (var completion in ready) completion.TrySetResult(true);
+    }
+
+    private enum Fast { No, Cookie, GitInternal, WorkingTree }
+
+    // ED-NEW-lean-18. A path that starts with the root prefix exactly (ordinal) and holds no forward slash normalises
+    // to itself but for the drive letter's case, so every answer below is the one the normalising path gives: the
+    // cookie test is the same OrdinalIgnoreCase test; the git test compares ASCII with ASCII (where an ASCII
+    // case-insensitive match is also what CompareStringOrdinal answers) and gives up on any other character; and the
+    // path's own text after the root prefix is TailUnder's tail. Anything else answers No.
+    private Fast Classify(string path, out int start, out int length)
+    {
+        start = 0;
+        length = 0;
+        if (fastGitTail is not { } gitTail || path.Length <= rootPrefix.Length ||
+            !path.StartsWith(rootPrefix, StringComparison.Ordinal) || path.AsSpan(rootPrefix.Length).Contains('/'))
+            return Fast.No;
+        if (path.StartsWith(cookiePrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            start = cookiePrefix.Length;
+            return Fast.Cookie;
+        }
+        var name = path.AsSpan(rootPrefix.Length);
+        if (name.Length >= gitTail.Length)
+        {
+            var window = name[..gitTail.Length];
+            if (!Ascii.IsValid(window)) return Fast.No;
+            if (Ascii.EqualsIgnoreCase(window, gitTail))
+                return name.Length > gitTail.Length ? Fast.GitInternal : Fast.No;
+        }
+        var separator = name.LastIndexOf('\\');
+        start = rootPrefix.Length;
+        length = separator < 0 ? name.Length : separator;
+        return Fast.WorkingTree;
+    }
+
+    // ED-NEW-lean-18: a drive-rooted root (no \\?\ or UNC form for Normalize to rewrite) and an ASCII git directory
+    // name directly under it; otherwise no fast path.
+    private static string? FastGitTail(string rootPrefix, string gitPrefix)
+    {
+        if (rootPrefix.Length < 4 || !char.IsAsciiLetter(rootPrefix[0]) || rootPrefix[1] != ':' || rootPrefix[2] != '\\' ||
+            rootPrefix[^2] is '\\' or '/')
+            return null;
+        if (gitPrefix.Length <= rootPrefix.Length || !gitPrefix.StartsWith(rootPrefix, StringComparison.Ordinal)) return null;
+        var tail = gitPrefix[rootPrefix.Length..];
+        return Ascii.IsValid(tail) && !tail.Contains('/', StringComparison.Ordinal) ? tail : null;
+    }
+
+    // ED-NEW-lean-18: git's own writes (objects, refs, the index), which NoteBatch passes over with no effect, are
+    // dropped by the stream before it joins the path or asks whether it is a directory. The answer is Classify's
+    // GitInternal for the path the stream would join (the root, a backslash, the name); a cookie is never dropped.
+    private bool SkipsName(string watchedRoot, string? name)
+    {
+        if (name is null || fastGitTail is not { } gitTail || !ReferenceEquals(watchedRoot, root)) return false;
+        if (name.Length <= gitTail.Length || name.Contains('/', StringComparison.Ordinal)) return false;
+        var window = name.AsSpan(0, gitTail.Length);
+        if (!Ascii.IsValid(window) || !Ascii.EqualsIgnoreCase(window, gitTail)) return false;
+        return !name.AsSpan().StartsWith(cookiePrefix.AsSpan(rootPrefix.Length), StringComparison.OrdinalIgnoreCase);
+    }
+
+    // ED-NEW-lean-18: the last few directory strings one batch made, so a build writing many files into the same few
+    // folders makes each folder's string once per batch. A repeat is the same text, so the set sees what it saw.
+    private struct DirectoryCache
+    {
+        private string? a, b, c, d;
+        private int next;
+
+        public string Directory(string path, int start, int length)
+        {
+            var raw = path.AsSpan(start, length);
+            if (Same(raw, a)) return a!;
+            if (Same(raw, b)) return b!;
+            if (Same(raw, c)) return c!;
+            if (Same(raw, d)) return d!;
+            var made = string.Create(length, (path, start), static (span, state) =>
+            {
+                state.path.AsSpan(state.start, span.Length).CopyTo(span);
+                span.Replace('\\', '/');
+            });
+            switch (next++ & 3)
+            {
+                case 0: a = made; break;
+                case 1: b = made; break;
+                case 2: c = made; break;
+                default: d = made; break;
+            }
+            return made;
+        }
+
+        private static bool Same(ReadOnlySpan<char> raw, string? made)
+        {
+            if (made is null || made.Length != raw.Length) return false;
+            for (var i = 0; i < raw.Length; i++)
+            {
+                var c = raw[i] == '\\' ? '/' : raw[i];
+                if (c != made[i]) return false;
+            }
+            return true;
+        }
     }
 
     // :228-239
@@ -302,7 +427,12 @@ public sealed class WorkingTreeWatch
     public async Task<string> CurrentTree(string indexPath, Func<string?, IReadOnlyList<string>?, Task<string>> captureTree)
     {
         var settled = await SettledGeneration();
-        if (settled is not { } generationAtStart) return await captureTree(null, null);
+        if (settled is not { } generationAtStart)
+        {
+            // ED-NEW-lean-18: git captures the working tree below normal priority with EcoQoS.
+            using var background = ProcessPriorityGroup.Background.Enter();
+            return await captureTree(null, null);
+        }
         var index = IndexStamp.Read(indexPath);
         while (true)
         {
@@ -324,6 +454,8 @@ public sealed class WorkingTreeWatch
                     changed = new(StringComparer.Ordinal);
                     task = Task.Run(async () =>
                     {
+                        // ED-NEW-lean-18: git captures the working tree below normal priority with EcoQoS.
+                        using var background = ProcessPriorityGroup.Background.Enter();
                         try
                         {
                             return await captureTree(ScratchPath, paths); // :319 tearDown never invalidates the capture task

@@ -419,7 +419,8 @@ public sealed partial class AppModel
 
         var persona = info.Persona;
         var text = brief(persona, workplace);
-        Runtime(id).SendHydraBrief(text, attachments);
+        // ED-NEW-lean-18: the head's session starts inside its priority group.
+        using (HydraHeadPriority(id).Enter()) Runtime(id).SendHydraBrief(text, attachments);
     }
 
     private async Task<(string Path, string Tree)?> MakeHydraCopy(ChatThread head, string checkout)
@@ -457,6 +458,7 @@ public sealed partial class AppModel
     public void FinishHydraHead(Guid id, TurnStatus status, string? summary = null, HydraLanding? landing = null)
     {
         if (Thread(id) is not { Hydra: { } info } head || info.IsFinished) return;
+        ReleaseHydraHeadPriority(id);
         if (HydraWatchdog.StalledHeadIDs.Remove(id))
             summary = string.Join("\n\n", new[] { HydraWatchdog.StalledNote, summary }.Where(text => !string.IsNullOrEmpty(text)));
 
@@ -559,7 +561,8 @@ public sealed partial class AppModel
                     return;
                 // AppModel+Hydra.swift:696-697 retries through the composer's ordinary send path.
                 retryRuntime.Draft = new ComposerDraft { Text = brief.Text, Attachments = ValueList<Attachment>.Empty };
-                retryRuntime.Send();
+                // ED-NEW-lean-18: the retried session starts inside the head's priority group too.
+                using (HydraHeadPriority(head.Id).Enter()) retryRuntime.Send();
             });
             return;
         }
@@ -1019,6 +1022,55 @@ public sealed partial class AppModel
     // :310-313
     private string? HydraCheckout(ChatThread lead) => lead.WorktreePath ?? Project(lead.ProjectID)?.Path;
 
+    // ED-NEW-lean-18 (lean unit L18a): a Droppy head's own processes (its provider session and what runs in its
+    // workplace) run below normal priority with EcoQoS while the head is not on screen, and at normal priority again
+    // when it comes on screen or finishes. The lead, the chat being waited on, never joins a group, and a process
+    // started in another folder (a shared MCP server in the home folder) never joins a head's group.
+    private readonly Dictionary<Guid, (ProcessPriorityGroup Group, Guid? Lead, ObservationTracker? Tracker)> hydraHeadPriorities = [];
+
+    private ProcessPriorityGroup HydraHeadPriority(Guid id)
+    {
+        if (hydraHeadPriorities.TryGetValue(id, out var existing)) return existing.Group;
+        var head = Thread(id);
+        var directory = head?.WorktreePath ?? (head is null ? null : Project(head.ProjectID)?.Path);
+        // A head with no folder gets a group no process can join (an empty folder admits nothing).
+        var group = new ProcessPriorityGroup(background: !HydraHeadIsOnScreen(id, head?.ParentThreadID), directory ?? "");
+        hydraHeadPriorities[id] = (group, head?.ParentThreadID, null);
+        TrackHydraHeadPriority(id);
+        return group;
+    }
+
+    private void TrackHydraHeadPriority(Guid id)
+    {
+        if (!hydraHeadPriorities.TryGetValue(id, out var entry)) return;
+        // Only the selection and the lead's panel are read, so a head's own updates never re-run this.
+        var (onScreen, tracker) = ObservationTracking.Track(() => HydraHeadIsOnScreen(id, entry.Lead),
+            () => MainActor.Post(() => TrackHydraHeadPriority(id)));
+        hydraHeadPriorities[id] = (entry.Group, entry.Lead, tracker);
+        entry.Group.IsBackground = !onScreen;
+    }
+
+    private void ReleaseHydraHeadPriority(Guid id)
+    {
+        if (!hydraHeadPriorities.Remove(id, out var entry)) return;
+        entry.Tracker?.Cancel();
+        entry.Group.IsBackground = false;
+    }
+
+    /// <summary>
+    /// ED-NEW-lean-18: a head is on screen when its own chat is the selected one, or when its lead's chat is selected
+    /// with the Hydra panel shown (every head of that lead counts then: the panel's strip, its stage and its popped
+    /// panels show them). Anything unknown counts as on screen, so a head is never lowered by doubt.
+    /// </summary>
+    internal bool HydraHeadIsOnScreen(Guid id, Guid? lead)
+    {
+        var selected = SelectedThreadID;
+        if (selected == id) return true;
+        if (lead is not { } parentID) return true;
+        if (selected != parentID) return false;
+        return ExistingRuntime(parentID) is not { IsHydraPanelHidden: true };
+    }
+
     // :344-347. The checkout a head's copy is made from and its work lands in: the lead's own for a head in the
     // lead's project (which may be the lead's own worktree, not the bare project path), else the head's project folder.
     private string? HydraCheckout(ChatThread head, ChatThread lead) =>
@@ -1072,6 +1124,8 @@ public sealed partial class AppModel
                         {
                             capture = Task.Run(async () =>
                             {
+                                // ED-NEW-lean-18: a head's starting point is captured by git below normal priority.
+                                using var background = ProcessPriorityGroup.Background.Enter();
                                 var tree = await git.CurrentTree();
                                 var commit = await git.CommitTree(tree, "nth: a Hydra head's starting point");
                                 return new CaptureResult(tree, commit);

@@ -259,6 +259,9 @@ public sealed class ProcessLauncher : IProcessControl
     private volatile bool running;
     private int processIdentifier;
     private int terminationStatus;
+    private ProcessPriorityGroup? priorityGroup;
+    private bool priorityClosed;
+    private bool? ecoQoSApplied;
 
     /// <summary>Swift <c>executableURL</c>, as a path.</summary>
     public string? ExecutableURL { get; set; }
@@ -293,6 +296,15 @@ public sealed class ProcessLauncher : IProcessControl
 
     /// <summary>Swift <c>terminationHandler</c>: once after exit, off the main actor and outside any task.</summary>
     public Action<ProcessLauncher>? TerminationHandler { get; set; }
+
+    /// <summary>
+    /// PORT-ONLY, ED-NEW-lean-18: the priority group this child runs in, taken from
+    /// <see cref="ProcessPriorityGroup.Current"/> when the launcher is made. While the group is in the background the
+    /// child runs below normal priority (through its job, so the whole tree follows) with EcoQoS; when the group comes
+    /// back to the foreground it runs at normal priority again. Null, or a group that does not admit this child's
+    /// directory: the child is launched exactly as before, at the parent's priority.
+    /// </summary>
+    public ProcessPriorityGroup? PriorityGroup { get; set; } = ProcessPriorityGroup.Current;
 
     /// <summary>Swift <c>isRunning</c>.</summary>
     public bool IsRunning => running;
@@ -582,6 +594,10 @@ public sealed class ProcessLauncher : IProcessControl
         SafeWaitHandle? newJob = null;
         IntPtr newPseudoConsole = IntPtr.Zero;
         var started = false;
+        // ED-NEW-lean-18: a child of a background group starts below normal (its job's limit, or the creation flag when
+        // it has no job) and gets EcoQoS once it exists.
+        var group = PriorityGroup is { } candidate && candidate.Admits(CurrentDirectoryURL) ? candidate : null;
+        var lowered = group?.IsBackground == true;
         try
         {
             var startup = new ProcessNative.StartupInfoEx();
@@ -589,6 +605,7 @@ public sealed class ProcessLauncher : IProcessControl
             startup.StartupInfo.dwFlags = ProcessNative.STARTF_USESTDHANDLES;
             var inheritHandles = false;
             var flags = ProcessNative.EXTENDED_STARTUPINFO_PRESENT | ProcessNative.CREATE_UNICODE_ENVIRONMENT;
+            if (lowered && !UsesJobObject) flags |= ProcessPriorityNative.BELOW_NORMAL_PRIORITY_CLASS;
             var attributeCount = 1 + (UsesJobObject ? 1 : 0);
             var inherited = new List<IntPtr>();
             if (size is { } console)
@@ -634,6 +651,7 @@ public sealed class ProcessLauncher : IProcessControl
             {
                 newJob = ProcessNative.CreateJobObjectW(IntPtr.Zero, null);
                 if (newJob.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error());
+                if (lowered) ProcessPriorityNative.SetJobPriority(newJob, background: true);
             }
 
             var listSize = IntPtr.Zero;
@@ -672,6 +690,14 @@ public sealed class ProcessLauncher : IProcessControl
             job = newJob;
             pseudoConsole = newPseudoConsole;
             Volatile.Write(ref processIdentifier, information.dwProcessId);
+            if (lowered) ecoQoSApplied = ProcessPriorityNative.SetEcoQoS(process, on: true);
+            if (group is not null)
+            {
+                // A group that changed sides since the decision above is followed at once (Run holds the gate, which
+                // ApplyPriority takes, so no change is lost between the two).
+                priorityGroup = group;
+                if (group.Join(this) != lowered) ApplyPriorityLocked(!lowered);
+            }
         }
         finally
         {
@@ -695,6 +721,46 @@ public sealed class ProcessLauncher : IProcessControl
         if (size is null) StandardError?.CloseWriteEndInParent();
     }
 
+    /// <summary>ED-NEW-lean-18: follows the group's current side; called by the group when it changes.</summary>
+    internal void ApplyPriority()
+    {
+        lock (gate)
+        {
+            if (priorityGroup is not { } group || process is null || priorityClosed) return;
+            ApplyPriorityLocked(group.IsBackground);
+        }
+    }
+
+    private void ApplyPriorityLocked(bool background)
+    {
+        if (process is null) return;
+        if (job is { IsInvalid: false } live) ProcessPriorityNative.SetJobPriority(live, background);
+        else ProcessPriorityNative.SetPriorityClass(process, background
+            ? ProcessPriorityNative.BELOW_NORMAL_PRIORITY_CLASS
+            : ProcessPriorityNative.NORMAL_PRIORITY_CLASS);
+        ecoQoSApplied = ProcessPriorityNative.SetEcoQoS(process, background);
+    }
+
+    /// <summary>Test seam (ED-NEW-lean-18): the job's basic limit flags and priority class while the child runs.</summary>
+    internal (uint LimitFlags, uint PriorityClass)? JobPriorityForTesting()
+    {
+        lock (gate)
+            return job is { IsInvalid: false } live && !priorityClosed ? ProcessPriorityNative.QueryJobPriority(live) : null;
+    }
+
+    /// <summary>Test seam (ED-NEW-lean-18): the child's own priority class (GetPriorityClass), 0 when unknown.</summary>
+    internal uint PriorityClassForTesting()
+    {
+        lock (gate)
+            return process is { } live && !priorityClosed ? ProcessPriorityNative.GetPriorityClass(live) : 0;
+    }
+
+    /// <summary>Test seam (ED-NEW-lean-18): what the last EcoQoS request answered; null when none was made.</summary>
+    internal bool? EcoQoSAppliedForTesting
+    {
+        get { lock (gate) return ecoQoSApplied; }
+    }
+
     private void Watch()
     {
         SafeProcessHandle child;
@@ -712,9 +778,11 @@ public sealed class ProcessLauncher : IProcessControl
             // The job ends with the child: a grandchild that outlives a child which was never killed lives on, as
             // on macOS, where only the kill steps reach the group. The job sets no kill-on-close limit.
             job?.Dispose();
+            priorityClosed = true;
             Volatile.Write(ref terminationStatus, status);
             running = false;
         }
+        priorityGroup?.Leave(this);
         exited.Set();
         if (TerminationHandler is { } handler) SwiftTask.RunOutsideTask(() => handler(this));
     }
@@ -1160,5 +1228,198 @@ internal sealed class CtrlBreakHelper
         public nuint JobMemoryLimit;
         public nuint PeakProcessMemoryUsed;
         public nuint PeakJobMemoryUsed;
+    }
+}
+
+/// <summary>
+/// PORT-ONLY, ED-NEW-lean-18 (lean unit L18a): processes that stay out of the way of the one the user waits on. A child
+/// launched while a group is <see cref="Current"/> (and, for a group made for one folder, launched in that folder)
+/// joins it; while the group is in the background its children run below normal priority, through the job each child
+/// already runs in (JOB_OBJECT_LIMIT_PRIORITY_CLASS, so grandchildren follow), with EcoQoS
+/// (PROCESS_POWER_THROTTLING_EXECUTION_SPEED) on the child itself. Bringing the group to the foreground puts every
+/// live child back at normal priority and hands EcoQoS back to Windows. A child leaves its group when it exits.
+/// Priority only matters when the machine is busy: on an idle machine every child runs as fast as before.
+/// </summary>
+public sealed class ProcessPriorityGroup
+{
+    private static readonly AsyncLocal<ProcessPriorityGroup?> Ambient = new();
+
+    private readonly Lock gate = new();
+    private readonly List<ProcessLauncher> members = [];
+    private readonly string? directory;
+    private bool background;
+
+    /// <param name="background">The side the group starts on.</param>
+    /// <param name="directory">When set, only children launched in this folder join (compared normalised, ignoring
+    /// case and a trailing separator); others launched under the group run as if it were not there.</param>
+    public ProcessPriorityGroup(bool background, string? directory = null)
+    {
+        this.background = background;
+        this.directory = directory is null ? null : Key(directory);
+    }
+
+    /// <summary>Work nobody waits on as it happens (git's working-tree captures): always in the background.</summary>
+    public static ProcessPriorityGroup Background { get; } = new(background: true);
+
+    /// <summary>The group a launcher made here takes; flows with the execution context.</summary>
+    public static ProcessPriorityGroup? Current => Ambient.Value;
+
+    /// <summary>Whether the group's children run below normal priority with EcoQoS.</summary>
+    public bool IsBackground
+    {
+        get
+        {
+            lock (gate) return background;
+        }
+        set
+        {
+            ProcessLauncher[] live;
+            lock (gate)
+            {
+                if (background == value) return;
+                background = value;
+                live = [.. members];
+            }
+            foreach (var member in live) member.ApplyPriority();
+        }
+    }
+
+    /// <summary>Makes this group <see cref="Current"/> until the returned scope is disposed.</summary>
+    public Scope Enter()
+    {
+        var previous = Ambient.Value;
+        Ambient.Value = this;
+        return new Scope(previous);
+    }
+
+    /// <summary>The number of live children in the group.</summary>
+    public int Count
+    {
+        get
+        {
+            lock (gate) return members.Count;
+        }
+    }
+
+    internal bool Admits(string? currentDirectory) =>
+        directory is null || (currentDirectory is not null && string.Equals(Key(currentDirectory), directory, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Adds a launched child and answers the side it must be on now.</summary>
+    internal bool Join(ProcessLauncher launcher)
+    {
+        lock (gate)
+        {
+            members.Add(launcher);
+            return background;
+        }
+    }
+
+    internal void Leave(ProcessLauncher launcher)
+    {
+        lock (gate) members.Remove(launcher);
+    }
+
+    private static string Key(string path) => SwiftPath.Normalize(path).TrimEnd('/');
+
+    /// <summary>Restores the group that was current before <see cref="Enter"/>.</summary>
+    public readonly struct Scope(ProcessPriorityGroup? previous) : IDisposable
+    {
+        public void Dispose() => Ambient.Value = previous;
+    }
+}
+
+/// <summary>The Win32 calls behind <see cref="ProcessPriorityGroup"/> (ED-NEW-lean-18).</summary>
+internal static class ProcessPriorityNative
+{
+    public const uint NORMAL_PRIORITY_CLASS = 0x00000020;
+    public const uint BELOW_NORMAL_PRIORITY_CLASS = 0x00004000;
+    public const uint JOB_OBJECT_LIMIT_PRIORITY_CLASS = 0x00000020;
+    private const int JobObjectBasicLimitInformation = 2;
+    private const int ProcessPowerThrottling = 4;
+    private const uint PROCESS_POWER_THROTTLING_CURRENT_VERSION = 1;
+    private const uint PROCESS_POWER_THROTTLING_EXECUTION_SPEED = 0x1;
+
+    /// <summary>
+    /// Background: every process in the job below normal. Foreground: every process at normal, then the limit lifted,
+    /// so the job is again the limitless job ProcessLauncher always made. Failures are ignored: priority never fails a
+    /// launch.
+    /// </summary>
+    public static void SetJobPriority(SafeWaitHandle job, bool background)
+    {
+        var limits = new BasicLimits
+        {
+            LimitFlags = JOB_OBJECT_LIMIT_PRIORITY_CLASS,
+            PriorityClass = background ? BELOW_NORMAL_PRIORITY_CLASS : NORMAL_PRIORITY_CLASS,
+        };
+        SetInformationJobObject(job, JobObjectBasicLimitInformation, ref limits, Marshal.SizeOf<BasicLimits>());
+        if (background) return;
+        limits = default;
+        SetInformationJobObject(job, JobObjectBasicLimitInformation, ref limits, Marshal.SizeOf<BasicLimits>());
+    }
+
+    public static (uint LimitFlags, uint PriorityClass)? QueryJobPriority(SafeWaitHandle job)
+    {
+        var limits = default(BasicLimits);
+        return QueryInformationJobObject(job, JobObjectBasicLimitInformation, ref limits, Marshal.SizeOf<BasicLimits>(), IntPtr.Zero)
+            ? (limits.LimitFlags, limits.PriorityClass)
+            : null;
+    }
+
+    /// <summary>On: EcoQoS (execution speed throttled). Off: the system decides again, as for any process.</summary>
+    public static bool SetEcoQoS(SafeProcessHandle process, bool on)
+    {
+        var state = new PowerThrottlingState
+        {
+            Version = PROCESS_POWER_THROTTLING_CURRENT_VERSION,
+            ControlMask = on ? PROCESS_POWER_THROTTLING_EXECUTION_SPEED : 0,
+            StateMask = on ? PROCESS_POWER_THROTTLING_EXECUTION_SPEED : 0,
+        };
+        return SetProcessInformation(process, ProcessPowerThrottling, ref state, Marshal.SizeOf<PowerThrottlingState>());
+    }
+
+    public static uint GetPriorityClass(SafeProcessHandle process) => GetPriorityClassNative(process);
+
+    public static void SetPriorityClass(SafeProcessHandle process, uint priorityClass) => SetPriorityClassNative(process, priorityClass);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern bool SetInformationJobObject(SafeWaitHandle job, int kind, ref BasicLimits info, int length);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern bool QueryInformationJobObject(SafeWaitHandle job, int kind, ref BasicLimits info, int length, IntPtr returned);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern bool SetProcessInformation(SafeProcessHandle process, int kind, ref PowerThrottlingState info, int length);
+
+    [DllImport("kernel32.dll", EntryPoint = "GetPriorityClass", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern uint GetPriorityClassNative(SafeProcessHandle process);
+
+    [DllImport("kernel32.dll", EntryPoint = "SetPriorityClass", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern bool SetPriorityClassNative(SafeProcessHandle process, uint priorityClass);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct BasicLimits
+    {
+        public long PerProcessUserTimeLimit;
+        public long PerJobUserTimeLimit;
+        public uint LimitFlags;
+        public nuint MinimumWorkingSetSize;
+        public nuint MaximumWorkingSetSize;
+        public uint ActiveProcessLimit;
+        public nuint Affinity;
+        public uint PriorityClass;
+        public uint SchedulingClass;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PowerThrottlingState
+    {
+        public uint Version;
+        public uint ControlMask;
+        public uint StateMask;
     }
 }
