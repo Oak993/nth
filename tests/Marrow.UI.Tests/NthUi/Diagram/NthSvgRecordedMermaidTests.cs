@@ -33,8 +33,8 @@ public sealed class NthSvgRecordedMermaidTests(HeadlessSession headless)
             Assert.True(result.Ok, Path.GetFileName(file) + ": " + result.Error);
             var document = result.Document!;
             // The runner already removed styles and foreign objects; the sanitiser must not have had to.
-            Assert.DoesNotContain(document.Removed, note => note.Contains("<style>", StringComparison.Ordinal) || note.Contains("foreignObject", StringComparison.Ordinal)
-                || note.Contains("script", StringComparison.Ordinal), Path.GetFileName(file));
+            Assert.True(!document.Removed.Any(note => note.Contains("<style>", StringComparison.Ordinal) || note.Contains("foreignObject", StringComparison.Ordinal) || note.Contains("script", StringComparison.Ordinal)),
+                Path.GetFileName(file) + ": " + string.Join("; ", document.Removed));
             Assert.True(document.NodeCount >= 3, Path.GetFileName(file));
             using var rig = new SvgRig(markup, limits: NthSvgLimits.Renderer, window: 1200, height: 900);
             rig.Capture();
