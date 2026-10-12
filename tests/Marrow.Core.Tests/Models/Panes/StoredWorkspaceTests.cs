@@ -130,7 +130,7 @@ public sealed class StoredWorkspaceTests
         Assert.Null(stored.State.Expanded);
         Assert.Equal(PaneKind.Chat, stored.State.NarrowSelection);
         Assert.Equal(2, stored.UnknownSlots.Count);
-        Assert.Equal(new[] { "notes" }, stored.UnknownRecent);
+        Assert.Equal(new[] { new UnknownRecent("notes", 0) }, stored.UnknownRecents);
         // Saved again unchanged, the slot of only "notes" is back at its place and "calendar" is still tabbed with Visus.
         var written = PaneWorkspaceJson.Read(PaneWorkspaceJson.Write(stored)).Stored!;
         Assert.Equal(stored, written);

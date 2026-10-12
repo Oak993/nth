@@ -11,10 +11,17 @@ using Marrow.Core.Port;
 namespace Marrow.Core.Models;
 
 /// <summary>Pane ids a newer build wrote that this one does not know: kept on disk, never drawn.</summary>
-/// <param name="Anchor">The id of a known pane that shared the slot (a tab group), or null for a slot of only unknown panes.</param>
-/// <param name="Index">Where the slot stood in the saved order (a slot of only unknown panes goes back there).</param>
+/// <param name="Anchor">
+/// The id of a known pane the unknown ones are tied to: the pane they shared a tab group with (<paramref name="Within"/>), or the first
+/// pane of the nearest known slot before them in the saved order. Null when no known slot came before.
+/// </param>
+/// <param name="Within">The ids are tabs of the slot that holds <paramref name="Anchor"/>; otherwise they are a slot of their own after it.</param>
+/// <param name="Index">Where the slot stood among all the slots saved; used when the anchor is gone or there was none.</param>
 /// <param name="Ids">The unknown ids, in their order.</param>
-public sealed record UnknownSlot(string? Anchor, int Index, ValueList<string> Ids);
+public sealed record UnknownSlot(string? Anchor, bool Within, int Index, ValueList<string> Ids);
+
+/// <summary>An unknown pane id in the most-recent list, and the place it held among all the ids saved there.</summary>
+public sealed record UnknownRecent(string Id, int Index);
 
 /// <summary>A thread's saved pane workspace.</summary>
 public sealed record StoredWorkspace
@@ -35,14 +42,14 @@ public sealed record StoredWorkspace
     public ValueList<UnknownSlot> UnknownSlots { get; init; } = ValueList<UnknownSlot>.Empty;
 
     /// <summary>Unknown pane ids in the most-recent list.</summary>
-    public ValueList<string> UnknownRecent { get; init; } = ValueList<string>.Empty;
+    public ValueList<UnknownRecent> UnknownRecents { get; init; } = ValueList<UnknownRecent>.Empty;
 
     /// <summary>Top-level fields this build does not know, as JSON text by name.</summary>
     public ValueMap<string, string> UnknownFields { get; init; } = ValueMap<string, string>.Empty;
 
     /// <summary>Nothing worth a file: the default layout and nothing kept.</summary>
     public bool IsEmpty =>
-        State.Equals(PaneWorkspaceState.Default) && PaneData.Count == 0 && UnknownSlots.Count == 0 && UnknownRecent.Count == 0
+        State.Equals(PaneWorkspaceState.Default) && PaneData.Count == 0 && UnknownSlots.Count == 0 && UnknownRecents.Count == 0
         && UnknownFields.Count == 0 && Version <= CurrentVersion;
 
     /// <summary>The same record with a new layout.</summary>
@@ -131,7 +138,8 @@ public static class PaneWorkspaceJson
         var pre = new Dictionary<string, double>(StringComparer.Ordinal);
         PaneKind? expanded = null;
         var recent = new List<PaneKind>();
-        var unknownRecent = new List<string>();
+        var unknownRecent = new List<UnknownRecent>();
+        var recentSeen = 0;
         var narrow = PaneKind.Chat;
         var paneData = new Dictionary<string, string>(StringComparer.Ordinal);
         var unknownFields = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -183,7 +191,8 @@ public static class PaneWorkspaceJson
                         if (id.ValueKind != JsonValueKind.String) throw new FormatException("recent holds a non-string");
                         var text = id.GetString()!;
                         if (PaneKinds.FromId(text) is { } kind) recent.Add(kind);
-                        else unknownRecent.Add(text);
+                        else unknownRecent.Add(new UnknownRecent(text, recentSeen));
+                        recentSeen++;
                     }
                     break;
                 case "narrow":
@@ -203,15 +212,17 @@ public static class PaneWorkspaceJson
 
         var order = new List<PaneSlot>();
         var unknownSlots = new List<UnknownSlot>();
+        string? before = null; // the first pane of the last known slot seen
         for (var i = 0; i < slots.Count; i++)
         {
             var (known, unknown) = slots[i];
             if (known.Count > 0)
             {
                 order.Add(new PaneSlot(new ValueList<PaneKind>(known)));
-                if (unknown.Count > 0) unknownSlots.Add(new UnknownSlot(PaneKinds.Id(known[0]), i, new ValueList<string>(unknown)));
+                before = PaneKinds.Id(known[0]);
+                if (unknown.Count > 0) unknownSlots.Add(new UnknownSlot(before, true, i, new ValueList<string>(unknown)));
             }
-            else if (unknown.Count > 0) unknownSlots.Add(new UnknownSlot(null, i, new ValueList<string>(unknown)));
+            else if (unknown.Count > 0) unknownSlots.Add(new UnknownSlot(before, false, i, new ValueList<string>(unknown)));
         }
 
         var state = new PaneWorkspaceState
@@ -233,7 +244,7 @@ public static class PaneWorkspaceJson
             PaneData = new ValueMap<string, string>(paneData),
             Version = version,
             UnknownSlots = new ValueList<UnknownSlot>(unknownSlots),
-            UnknownRecent = new ValueList<string>(unknownRecent),
+            UnknownRecents = new ValueList<UnknownRecent>(unknownRecent),
             UnknownFields = new ValueMap<string, string>(unknownFields),
         };
         return new WorkspaceRead(version > StoredWorkspace.CurrentVersion ? WorkspaceReadOutcome.Newer : WorkspaceReadOutcome.Ok, stored);
@@ -349,12 +360,13 @@ public static class PaneWorkspaceJson
         }
         WriteNumbers(writer, "pre", state.PreCollapse);
         if (state.Expanded is { } expanded) writer.WriteString("expanded", PaneKinds.Id(expanded));
-        if (state.RecentTabs.Count > 0 || stored.UnknownRecent.Count > 0)
+        var recent = state.RecentTabs.Select(PaneKinds.Id).ToList();
+        foreach (var unknown in stored.UnknownRecents.OrderBy(unknown => unknown.Index)) recent.Insert(Math.Min(unknown.Index, recent.Count), unknown.Id);
+        if (recent.Count > 0)
         {
             writer.WritePropertyName("recent");
             writer.WriteStartArray();
-            foreach (var kind in state.RecentTabs) writer.WriteStringValue(PaneKinds.Id(kind));
-            foreach (var id in stored.UnknownRecent) writer.WriteStringValue(id);
+            foreach (var id in recent) writer.WriteStringValue(id);
             writer.WriteEndArray();
         }
         if (state.NarrowSelection != PaneKind.Chat) writer.WriteString("narrow", PaneKinds.Id(state.NarrowSelection));
@@ -387,24 +399,31 @@ public static class PaneWorkspaceJson
         writer.WriteEndObject();
     }
 
-    // The slots as ids: the state's slots (a tab group's unknown panes follow its known ones), then each slot of only
-    // unknown panes back at its saved place (or at the end when that place is gone).
+    // The slots as ids: the state's slots (a tab group's unknown panes follow its known ones), then each slot of only unknown panes
+    // right after the slot of the pane it followed (or back at its saved place when that pane is gone or none came before it).
     private static List<List<string>> SlotsToWrite(PaneWorkspaceState state, StoredWorkspace stored)
     {
         var slots = new List<List<string>>();
-        var placed = new HashSet<UnknownSlot>();
-        foreach (var slot in state.Order)
+        foreach (var slot in state.Order) slots.Add(slot.Panes.Select(PaneKinds.Id).ToList());
+        int SlotOf(string? anchor) => anchor is null ? -1 : slots.FindIndex(ids => ids.Contains(anchor, StringComparer.Ordinal));
+        var alone = new List<UnknownSlot>();
+        foreach (var extra in stored.UnknownSlots)
         {
-            var ids = slot.Panes.Select(PaneKinds.Id).ToList();
-            foreach (var extra in stored.UnknownSlots)
-            {
-                if (extra.Anchor is null || !ids.Contains(extra.Anchor, StringComparer.Ordinal) || !placed.Add(extra)) continue;
-                ids.AddRange(extra.Ids);
-            }
-            slots.Add(ids);
+            if (extra.Within && SlotOf(extra.Anchor) is var at and >= 0) slots[at].AddRange(extra.Ids);
+            else alone.Add(extra);
         }
-        foreach (var extra in stored.UnknownSlots.Where(extra => !placed.Contains(extra)).OrderBy(extra => extra.Index))
-            slots.Insert(Math.Min(extra.Index, slots.Count), [.. extra.Ids]);
+        var after = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var extra in alone.OrderBy(extra => extra.Index))
+        {
+            var anchor = SlotOf(extra.Anchor);
+            if (!extra.Within && anchor >= 0)
+            {
+                var placed = after.GetValueOrDefault(extra.Anchor!);
+                after[extra.Anchor!] = placed + 1;
+                slots.Insert(Math.Min(anchor + 1 + placed, slots.Count), [.. extra.Ids]);
+            }
+            else slots.Insert(Math.Min(extra.Index, slots.Count), [.. extra.Ids]);
+        }
         return slots;
     }
 }
