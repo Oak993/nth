@@ -18,6 +18,7 @@ public sealed class SetupSession
     private readonly ISetupScreens screens;
     private readonly Dictionary<SetupScreen, ISetupScreen> built = [];
     private int? exitCode;
+    private bool signatureUnavailable;
 
     public SetupSession(SetupWindow window, SetupRoute route, ISetupScreens screens, string installerVersion, bool canInstall = true)
     {
@@ -27,6 +28,7 @@ public sealed class SetupSession
         Version = installerVersion ?? "";
         CanInstall = canInstall;
         Screen = route.Screen;
+        Window.Guard.PausedChanged += _ => InstallAvailabilityChanged?.Invoke();
     }
 
     public SetupWindow Window { get; }
@@ -38,6 +40,12 @@ public sealed class SetupSession
 
     /// <summary>False in a smoke run: nothing can be installed from this window.</summary>
     public bool CanInstall { get; }
+
+    /// <summary>The UI command and the session gate share this permission; Unknown never installs.</summary>
+    public bool CanChooseInstall => CanInstall && !signatureUnavailable && !SetupFlow.BlocksInstall(Signature)
+        && !Window.Guard.IsPaused && (Screen is SetupScreen.Welcome or SetupScreen.Update);
+
+    public event Action? InstallAvailabilityChanged;
 
     public SetupScreen Screen { get; private set; }
 
@@ -82,14 +90,26 @@ public sealed class SetupSession
     /// <summary>The self-signature check's answer (it finishes after the window shows).</summary>
     public void SignatureChecked(SignatureResult result)
     {
-        Signature = result ?? throw new ArgumentNullException(nameof(result));
-        if (SetupFlow.BlocksInstall(result))
+        ArgumentNullException.ThrowIfNull(result);
+        if (signatureUnavailable) return;
+        Signature = result;
+        InstallAvailabilityChanged?.Invoke();
+        if (result.State == SignatureState.Invalid)
         {
             ProblemReason = SetupStrings.ProblemChanged;
             if (Screen is SetupScreen.Welcome or SetupScreen.Update or SetupScreen.Options) Go(SetupScreen.Problem);
             return;
         }
         foreach (var screen in built.Values) screen.Signature?.Set(result);
+    }
+
+    /// <summary>A bounded check did not produce an answer. Keep Unknown and show the plain failure; late results cannot reopen Install.</summary>
+    public void SignatureCheckUnavailable()
+    {
+        signatureUnavailable = true;
+        Signature = SignatureResult.Pending;
+        InstallAvailabilityChanged?.Invoke();
+        Fail(SetupStrings.ProblemSignature);
     }
 
     /// <summary>Shows Problem with <paramref name="reason"/> (before <see cref="Start"/>, it becomes the first screen's sentence).</summary>
@@ -102,8 +122,7 @@ public sealed class SetupSession
     /// <summary>Install or Update was chosen. The window closes and the gate installs (STUB(U3/U4)).</summary>
     public void ChooseInstall()
     {
-        if (!CanInstall || SetupFlow.BlocksInstall(Signature) || Window.Guard.IsPaused) return;
-        if (Screen is not (SetupScreen.Welcome or SetupScreen.Update)) return;
+        if (!CanChooseInstall) return;
         InstallChosen = true;
         Window.CloseNow();
     }
@@ -140,5 +159,6 @@ public sealed class SetupSession
         var next = Get(screen);
         Screen = screen;
         Window.Body.Show(next.View, immediately);
+        InstallAvailabilityChanged?.Invoke();
     }
 }

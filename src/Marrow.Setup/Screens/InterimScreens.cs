@@ -27,11 +27,11 @@ public sealed class InterimScreens : ISetupScreens
         var installed = session.Route.Installed.Version ?? "";
         return screen switch
         {
-            SetupScreen.Welcome => Build(screen, SetupStrings.WelcomeTitle, null, hero: true, calm, signature: true, hold: false, action: (SetupStrings.WelcomeInstall, session.ChooseInstall)),
+            SetupScreen.Welcome => Build(screen, SetupStrings.WelcomeTitle, null, hero: true, calm, signature: true, hold: false, action: (SetupStrings.WelcomeInstall, session.ChooseInstall), install: session),
             SetupScreen.Options => Build(screen, SetupStrings.OptionsTitle, SetupStrings.OptionsSubtitle, hero: false, calm),
             SetupScreen.Installing => Build(screen, SetupStrings.InstallingTitle, SetupStrings.InstallingSubtitle, hero: false, calm, hold: true),
             SetupScreen.Ready => Build(screen, SetupStrings.ReadyTitle, null, hero: true, calm),
-            SetupScreen.Update => Build(screen, SetupStrings.UpdateTitle, SetupStrings.UpdateSubtitle(installed, session.Version), hero: false, calm, hold: true, action: (SetupStrings.UpdateGo, session.ChooseInstall)),
+            SetupScreen.Update => Build(screen, SetupStrings.UpdateTitle, SetupStrings.UpdateSubtitle(installed, session.Version), hero: false, calm, hold: true, action: (SetupStrings.UpdateGo, session.ChooseInstall), install: session),
             SetupScreen.UpToDate => Build(screen, SetupStrings.CurrentTitle, SetupStrings.CurrentSubtitle(session.Version), hero: false, calm),
             SetupScreen.NewerInstalled => Build(screen, SetupStrings.NewerTitle, SetupStrings.NewerSubtitle(installed), hero: false, calm),
             SetupScreen.Problem => Build(screen, SetupStrings.ProblemTitle, (session.ProblemReason ?? SetupStrings.ProblemOther) + " " + SetupStrings.ProblemSafe, hero: false, calm),
@@ -48,7 +48,8 @@ public sealed class InterimScreens : ISetupScreens
         Func<bool> calm,
         bool signature = false,
         bool hold = false,
-        (string Label, Action Run)? action = null)
+        (string Label, Action Run)? action = null,
+        SetupSession? install = null)
     {
         var layout = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*,Auto,Auto"), Margin = new Thickness(40, 26, 40, 28) };
         var heading = SetupTheme.Text(new TextBlock { Text = title, TextWrapping = TextWrapping.Wrap }, hero ? TextRole.Hero : TextRole.Title);
@@ -76,6 +77,11 @@ public sealed class InterimScreens : ISetupScreens
         if (action is { } chosen)
         {
             var button = new InterimButton(chosen.Label, chosen.Run) { HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
+            if (install is not null)
+            {
+                button.IsEnabled = install.CanChooseInstall;
+                install.InstallAvailabilityChanged += () => button.IsEnabled = install.CanChooseInstall;
+            }
             Grid.SetRow(button, 5);
             layout.Children.Add(button);
         }
@@ -118,7 +124,7 @@ public sealed class InterimButton : Border
     public bool ShowsFocusRing => ring.Opacity > 0;
 
     /// <summary>Runs the button's action (a click, Enter or Space).</summary>
-    public void Invoke() => run();
+    public void Invoke() { if (IsEffectivelyEnabled) run(); }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {

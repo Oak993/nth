@@ -73,16 +73,26 @@ public static class Program
         using var done = new CancellationTokenSource();
         window.Closed += (_, _) => done.Cancel();
         if (smoke is not null) window.Opened += (_, _) => _ = UiSmoke.RunAsync(session, smoke, started);
-        else _ = CheckSignatureAsync(session);
+        else _ = CheckSignatureAsync(session, done.Token);
         window.Show();
         Dispatcher.UIThread.MainLoop(done.Token);
         return (session.ExitCode, session.InstallChosen);
     }
 
     /// <summary>The self-signature check hashes the whole file, so it runs off the UI thread after the window shows.</summary>
-    private static async Task CheckSignatureAsync(SetupSession session)
+    private static async Task CheckSignatureAsync(SetupSession session, CancellationToken closed)
     {
-        var result = await SignatureCheck.VerifySelfAsync().ConfigureAwait(false);
-        Dispatcher.UIThread.Post(() => session.SignatureChecked(result));
+        try
+        {
+            var result = await SignatureCheck.WaitForAnswerAsync(SignatureCheck.VerifySelfAsync(), TimeProvider.System, closed).ConfigureAwait(false);
+            if (closed.IsCancellationRequested) return;
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (closed.IsCancellationRequested) return;
+                if (result is null) session.SignatureCheckUnavailable();
+                else session.SignatureChecked(result);
+            });
+        }
+        catch (OperationCanceledException) when (closed.IsCancellationRequested) { }
     }
 }

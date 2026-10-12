@@ -30,6 +30,22 @@ public sealed record SignatureResult(SignatureState State, string? Publisher, in
 /// </summary>
 public static class SignatureCheck
 {
+    // ED-NEW-inst-cx-1: bounded UI wait. WinVerifyTrust's worker cannot be cancelled; a late answer never reaches the session.
+    public static readonly TimeSpan AnswerPatience = TimeSpan.FromSeconds(30);
+
+    public static async Task<SignatureResult?> WaitForAnswerAsync(Task<SignatureResult> check, TimeProvider clock, CancellationToken closed)
+    {
+        ArgumentNullException.ThrowIfNull(check);
+        ArgumentNullException.ThrowIfNull(clock);
+        try
+        {
+            var result = await check.WaitAsync(AnswerPatience, clock, closed).ConfigureAwait(false);
+            return result.State == SignatureState.Unknown ? null : result;
+        }
+        catch (OperationCanceledException) when (closed.IsCancellationRequested) { throw; }
+        catch (Exception) { return null; } // an uncompleted or failed check cannot authorize installation
+    }
+
     public static unsafe SignatureResult Verify(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);

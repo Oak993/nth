@@ -121,6 +121,7 @@ problem.inUse = Some of nth’s files are in use. Close any window showing nth�
 problem.blocked = Security software stopped the install. Allow nth Setup, then retry.
 problem.other = Something went wrong while installing.
 problem.changed = This copy of nth Setup has been changed. Download it again.
+problem.signature = nth Setup could not check its signature. Close it and try again.
 problem.safe = Nothing was changed on your PC.
 problem.left = Some of nth’s files may be left. Retry repairs them.
 problem.copy = Copy details
