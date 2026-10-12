@@ -41,7 +41,7 @@ public sealed class LiveAnswerToolsTests
 
         var change = Assert.Single(changes);
         Assert.Equal((LiveChangeKind.Shown, false, "hosting-plan", LiveViewKind.Ui, 1), (change.Kind, change.Replaced, change.View.Id, change.View.Kind, change.View.Version));
-        Assert.Equal(Hosting.TrimEnd('\n'), change.View.Text);
+        Assert.Equal(Hosting, change.View.Text); // as written: the text of the view is kept whole
         Assert.Equal("Hosting estimate", change.View.Title);
 
         // The same id again replaces it, at the next version.

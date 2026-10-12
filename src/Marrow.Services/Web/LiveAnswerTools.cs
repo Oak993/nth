@@ -115,7 +115,7 @@ public static class LiveAnswerTools
 
     private static ArtifactToolResult Show(LiveAnswerHost host, Guid thread, bool lite, JsonNode? arguments)
     {
-        var text = NthUiPatch.Clean(Text(arguments, "ui") ?? Text(arguments, "view") ?? Text(arguments, "content") ?? "").Trim('\n', '\r');
+        var text = NthUiPatch.Clean(Text(arguments, "ui") ?? Text(arguments, "view") ?? Text(arguments, "content") ?? "").TrimStart('\n', '\r');
         if (text.Trim().Length == 0) return Failure("ui is required: the view's lines, one component per line. Call ui_reference for the language.");
         if (text.Length > ToolLiveView.MaxTextLength) return Failure($"The view is longer than {ToolLiveView.MaxTextLength.ToString("N0", CultureInfo.InvariantCulture)} characters; show less of it.");
         var profile = lite ? NthUiProfile.Lite : NthUiProfile.Full;

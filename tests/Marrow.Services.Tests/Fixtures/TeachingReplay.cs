@@ -93,7 +93,10 @@ internal static class TeachingReplay
     // The CLI providers.
     // ------------------------------------------------------------------------------------------------------------------
 
-    public static TeachingOutcome Claude(TeachingRecording recording)
+    public static TeachingOutcome Claude(TeachingRecording recording) => Outcome(ClaudeEvents(recording));
+
+    /// <summary>The events ClaudeSession emits for a recording (W24 reads them again through the live-answer flow).</summary>
+    public static List<ProviderEvent> ClaudeEvents(TeachingRecording recording)
     {
         var configuration = new SessionConfiguration
         {
@@ -107,25 +110,29 @@ internal static class TeachingReplay
         var events = new List<ProviderEvent>();
         session.OnEvent = events.Add;
         foreach (var message in recording.Events) session.Handle(message);
-        return Outcome(events);
+        return events;
     }
 
-    public static TeachingOutcome Codex(TeachingRecording recording)
+    public static TeachingOutcome Codex(TeachingRecording recording) => Outcome(CodexEvents(recording));
+
+    public static List<ProviderEvent> CodexEvents(TeachingRecording recording)
     {
         var session = CodexWiringFixture.Session();
         var events = new List<ProviderEvent>();
         session.OnEvent = events.Add;
         foreach (var notification in recording.Events)
             CodexWiringFixture.Call(session, "HandleNotification", notification["method"]!.JSONValueString!, notification["params"]!);
-        return Outcome(events);
+        return events;
     }
 
-    public static TeachingOutcome Copilot(TeachingRecording recording, TestRuntime runtime)
+    public static TeachingOutcome Copilot(TeachingRecording recording, TestRuntime runtime) => Outcome(CopilotEvents(recording, runtime));
+
+    public static IReadOnlyList<ProviderEvent> CopilotEvents(TeachingRecording recording, TestRuntime runtime)
     {
         var (session, events) = CopilotSessionHarness.Offline();
         foreach (var notification in recording.Events)
             CopilotSessionHarness.Notify(runtime, session, notification["params"]!, notification["method"]!.JSONValueString!);
-        return Outcome(events);
+        return events;
     }
 
     // ------------------------------------------------------------------------------------------------------------------

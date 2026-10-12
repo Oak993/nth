@@ -85,6 +85,9 @@ public sealed class NthUiView : Decorator
     /// <summary>An action asked for something outside the view.</summary>
     public event EventHandler<NthUiEffectEventArgs>? EffectRequested;
 
+    /// <summary>PORT-ONLY (W24, ED-NEW-web-w24-6): a state changed (the reader moved a control, an action ran, or saved states were loaded), so a host that keeps the reader's choices can save them.</summary>
+    public event EventHandler? StateChanged;
+
     /// <summary>Adds streamed text: each completed line is placed at once.</summary>
     public void Append(string chunk)
     {
@@ -189,6 +192,7 @@ public sealed class NthUiView : Decorator
     {
         var list = keys as IReadOnlyCollection<string> ?? keys.ToArray();
         if (list.Count == 0) return;
+        StateChanged?.Invoke(this, EventArgs.Empty);
         var done = new HashSet<NthUiNodeView>();
         foreach (var key in list)
         {

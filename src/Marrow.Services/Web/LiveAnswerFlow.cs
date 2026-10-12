@@ -197,7 +197,7 @@ public sealed class LiveAnswerFlow(Guid thread, LiveAnswerHost host, bool lite, 
         var members = PartialJson.Members(row.Json);
         string? Member(params string[] keys) => keys.Select(key => members.TryGetValue(key, out var member) && member.IsString ? member.Value : null).FirstOrDefault(value => value is not null);
         var html = row.Tool == Tool.Html;
-        var text = html ? Member("html", "content") ?? "" : NthUiPatch.Clean(Member("ui", "view", "content") ?? "");
+        var text = html ? Member("html", "content") ?? "" : NthUiPatch.Clean(Member("ui", "view", "content") ?? "").TrimStart('\n', '\r');
         var complete = html
             ? members.TryGetValue("html", out var h) && h.Complete
             : (members.TryGetValue("ui", out var u) && u.Complete) || (members.TryGetValue("view", out var v) && v.Complete) || (members.TryGetValue("content", out var c) && c.Complete);

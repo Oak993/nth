@@ -21,7 +21,7 @@ public sealed partial class ThreadRuntime
 
     /// <summary>
     /// The events the timeline handles for one event of the session: answers with nth-artifact blocks show chips and save
-    /// the blocks (ArtifactFenceFilter); with artifacts off, the event itself.
+    /// the blocks (ArtifactFenceFilter), then fenced live views and the live-answer tools' rows are read (LiveAnswerFlow, W24); with artifacts off, the event itself.
     /// </summary>
     private IReadOnlyList<ProviderEvent> ArtifactEvents(ProviderEvent @event)
     {
@@ -33,6 +33,6 @@ public sealed partial class ThreadRuntime
             var provider = Thread?.Provider ?? ProviderKind.Claude;
             return (new ArtifactAuthor(provider.Id, turn?.Model, turn?.Turn), turn?.Prompt);
         });
-        return artifactFences.Filter(@event);
+        return LiveEvents(host, artifactFences.Filter(@event)); // + W24: the live-answer flow reads what is left
     }
 }

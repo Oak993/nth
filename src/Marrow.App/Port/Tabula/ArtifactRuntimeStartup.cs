@@ -15,5 +15,7 @@ public static class ArtifactRuntimeStartup
 {
     public static void Bind() =>
         ArtifactHost.Shared.SetProcessDefault(new ArtifactHost(new ArtifactStore(() => Storage.ThreadsDirectory),
-            thread => MainActor.Run(() => Marrow.App.Window.WindowManager.Shared.Model.ExistingRuntime(thread)?.ArtifactTurn())));
+            thread => MainActor.Run(() => Marrow.App.Window.WindowManager.Shared.Model.ExistingRuntime(thread)?.ArtifactTurn()),
+            // W24 (ED-NEW-web-w24-1): a view shown before the app started is found in the chat's saved timeline.
+            new LiveAnswerHost(lookup: (thread, id) => MainActor.Run(() => Marrow.App.Window.WindowManager.Shared.Model.ExistingRuntime(thread)?.FindLiveView(id)))));
 }
