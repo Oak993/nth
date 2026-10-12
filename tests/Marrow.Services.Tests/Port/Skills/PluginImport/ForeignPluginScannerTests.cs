@@ -72,27 +72,11 @@ public sealed class ForeignPluginScannerTests
         Assert.Single(scan.Problems); // the missing folder
     }
 
-    private sealed class FakeTarget : IPluginImportTarget
-    {
-        public List<(string Id, string Name)> Own { get; } = [];
-        public List<(string Folder, string Name, string? Replacing)> Calls { get; } = [];
-
-        public Task<IReadOnlyList<(string Id, string Name)>> ExistingAsync() => Task.FromResult<IReadOnlyList<(string Id, string Name)>>([.. Own]);
-
-        public Task<string?> AddAsync(string folder, string name, string? replacingId, CancellationToken cancel)
-        {
-            Calls.Add((folder, name, replacingId));
-            if (replacingId is not null) Own.RemoveAll(o => o.Id == replacingId);
-            Own.Add(("id-" + name + Calls.Count, name));
-            return Task.FromResult<string?>(null);
-        }
-    }
-
     [Fact]
     [Trait("Decision", "ED-NEW-mcpimport-2")]
     public async Task The_controller_skips_a_plugin_nth_has_until_replace_is_chosen()
     {
-        var target = new FakeTarget();
+        var target = new FakePluginImportTarget();
         target.Own.Add(("own-1", "Alpha"));
         var scan = new ForeignPluginScan([new(ForeignPluginApp.ClaudeCode, "alpha", "", "market", @"C:\fixture\alpha"), new(ForeignPluginApp.Codex, "beta", "", "x", @"C:\fixture\beta")], []);
         var controller = new PluginImportController(_ => scan, target);

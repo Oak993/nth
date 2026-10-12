@@ -58,6 +58,9 @@ public sealed class VisusSession
 
     /// <summary>The address field should take the keyboard (a new tab, Ctrl+L).</summary>
     public event Action? FocusAddressRequested;
+    public event Action? FindRequested;
+    public event Action? ZoomRequested;
+    public event Action? SavePdfRequested;
 
     /// <summary>The last tab closed: the pane closes (a browser window closes with its last tab).</summary>
     public event Action? Emptied;
@@ -261,6 +264,30 @@ public sealed class VisusSession
         var tab = from ?? selected;
         switch (command)
         {
+            case VisusCommand.Find:
+            case VisusCommand.ShowZoom:
+            case VisusCommand.SavePdf:
+                if (tab is null || tab.IsBlank || !tabs.Contains(tab)) return false;
+                Select(tab);
+                if (command == VisusCommand.Find) FindRequested?.Invoke();
+                else if (command == VisusCommand.ShowZoom) ZoomRequested?.Invoke();
+                else SavePdfRequested?.Invoke();
+                return true;
+            case VisusCommand.ZoomIn:
+            case VisusCommand.ZoomOut:
+            case VisusCommand.ResetZoom:
+                if (tab is null || tab.IsBlank) return false;
+                tab.SetZoom(command == VisusCommand.ResetZoom ? 1 : VisusSiteZoom.Step(tab.Zoom, command == VisusCommand.ZoomIn));
+                return true;
+            case VisusCommand.Print:
+                if (tab is null || tab.IsBlank) return false;
+                try
+                {
+                    if (tab.ReadyEngine() is { IsAttached: true } printEngine) printEngine.ShowPrintUI();
+                    else Notify(tab, "Could not print this page");
+                }
+                catch (Exception) { Notify(tab, "Could not print this page"); }
+                return true;
             case VisusCommand.NewTab:
                 NewTab(VisusTabKind.Browse);
                 return true;

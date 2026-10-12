@@ -249,36 +249,7 @@ public sealed class ArtifactMount : IWebResourceHandler, IDisposable
         return Forbidden(request, "not one of nth's sites");
     }
 
-    private WebResourceResponse Library(WebResourceRequest request, Uri uri)
-    {
-        if (request.Method is not ("GET" or "HEAD")) return Status(405, "Method Not Allowed", SandboxHeaders.Blocked());
-        var path = Uri.UnescapeDataString(uri.AbsolutePath.TrimStart('/'));
-        var libraries = runtime.Libraries;
-        string? text = null;
-        if (path.StartsWith(ArtifactLibraryCatalog.RuntimePrefix, StringComparison.Ordinal))
-        {
-            var name = path[ArtifactLibraryCatalog.RuntimePrefix.Length..];
-            var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
-            text = name switch
-            {
-                "loader.js" => SandboxScripts.Loader(libraries.Catalog),
-                "missing.js" => Missing(query["u"] ?? "", script: true),
-                "missing.css" => Missing(query["u"] ?? "", script: false),
-                _ when SandboxScripts.RuntimeFiles.Contains(name) => SandboxScripts.Read(name),
-                _ => null,
-            };
-        }
-
-        var bytes = text is not null ? Encoding.UTF8.GetBytes(text) : libraries.Read(path);
-        if (bytes is null) return Status(404, "Not Found", SandboxHeaders.Blocked(), "Not in nth's offline libraries: " + path);
-        return new WebResourceResponse(200, "OK", SandboxHeaders.Library(SandboxHeaders.ContentType(path)), request.Method == "HEAD" ? [] : bytes);
-    }
-
-    private string Missing(string url, bool script)
-    {
-        Report(url);
-        return script ? SandboxScripts.Missing(url) : "/* nth has no offline copy of " + url.Replace("*/", "* /", StringComparison.Ordinal) + " */\n";
-    }
+    private WebResourceResponse Library(WebResourceRequest request, Uri uri) => SandboxLibrarySite.Answer(runtime.Libraries, request, uri, Report);
 
     private WebResourceResponse Own(WebResourceRequest request, Uri uri)
     {

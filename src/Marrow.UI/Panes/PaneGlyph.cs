@@ -53,6 +53,11 @@ public enum PaneGlyphKind
     Warning,
     Back,
     Export,
+    // PORT-ONLY (web surfaces W19): the MCP App card's display modes, the pop-out's pin.
+    Inline,
+    Pane,
+    PopOut,
+    Pin,
 
     // Visus (web W8a): the canvas's i-fwd, i-reload, i-lock and i-mask (Back, Search, Copy, OpenExternal, Warning and Shield
     // are Tabula's, above).
@@ -126,6 +131,10 @@ public sealed class PaneGlyph : Control
         [PaneGlyphKind.Warning] = Parse("M12 4l9 16H3z M12 10v4M12 17h.01"),
         [PaneGlyphKind.Back] = Parse("M15 18l-6-6 6-6"),
         [PaneGlyphKind.Export] = Parse("M12 15V4M8 7.5l4-4 4 4M5 12.5v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"),
+        [PaneGlyphKind.Inline] = Parse("M4 6h16M4 18h16M7.5 9h9a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 13.5v-3A1.5 1.5 0 0 1 7.5 9z"),
+        [PaneGlyphKind.Pane] = Parse("M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM14 5v14"),
+        [PaneGlyphKind.PopOut] = Parse("M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM13 11h5a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z"),
+        [PaneGlyphKind.Pin] = Parse("M9.5 4h5l-.8 5.2 3.3 3.3H7l3.3-3.3zM12 12.5V20"),
         [PaneGlyphKind.Camera] = Parse("M4 8h3l1.8-2.5h6.4L17 8h3v11H4z" + Circle(12, 13, 3.4)),
         [PaneGlyphKind.Download] = Parse("M12 4v11M7.5 10.5L12 15l4.5-4.5M5 20h14"),
         [PaneGlyphKind.Folder] = Parse("M3.5 7a1.5 1.5 0 0 1 1.5-1.5h4l2 2h8a1.5 1.5 0 0 1 1.5 1.5v8.5a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5z"),

@@ -291,6 +291,8 @@ public sealed class UserMessageRow : Decorator
         hoverLine = null;
         if (content is TimelineItem.Content.User { Value.IsFromHydra: true } report) return new HydraReportRow(report.Value); // :79-80
         if (content is TimelineItem.Content.User { Value.IsHydraBrief: true } brief) return new HydraBriefRow(brief.Value, entry, runtime); // :81-82
+        // PORT-ONLY (W19, ED-NEW-web-w19-2): a message an MCP App posted is the app's row, never the user's bubble.
+        if (content is TimelineItem.Content.User { Value.AppSource: { Length: > 0 } source } posted) return new AppMessageRow(posted.Value, source);
         if (content is not TimelineItem.Content.User user) return null; // :83
         var message = user.Value;
 
@@ -4212,6 +4214,7 @@ public sealed class TurnFinishedBlock : Decorator
                 TimelineGroup.Single single => single.Value.TimelineEntryKind switch // :2635-2649
                 {
                     TimelineEntry.Kind.Assistant => new AssistantMessageRow(single.Value, null, runtime), // :2638
+                    TimelineEntry.Kind.Tool when Marrow.App.Port.Web.McpApps.McpAppCatalog.IsApp(single.Value) => new McpAppRow(single.Value, runtime, workingDirectory), // PORT-ONLY (W19)
                     TimelineEntry.Kind.Tool => LiveAnswerRows.IsLive(single.Value) ? new LiveAnswerRow(single.Value, runtime) : new WorkGroup(new ValueList<TimelineEntry>([single.Value]), runtime, workingDirectory), // :2640 + W24: a live answer
                     TimelineEntry.Kind.Plan => new PlanCard(single.Value, runtime, "steps"), // :2642
                     TimelineEntry.Kind.Todos => new TodoListRow(single.Value), // :2644
@@ -4248,6 +4251,8 @@ public sealed class TurnFinishedBlock : Decorator
             Margin = new Thickness(0, 0, 0, TimelineMetrics.RowSpacing), // :2679
         };
         foreach (var entry in turn.CollapsedAsks) column.Children.Add(new Marrow.App.Port.AskUser.AskCardRow(entry, runtime)); // PORT-ONLY (web surfaces W25): the questions asked come before the answer
+        // PORT-ONLY (W19, ED-NEW-web-w19-3): the turn's MCP Apps stay in the folded turn, above its answer.
+        foreach (var entry in turn.AppEntries) column.Children.Add(new McpAppRow(entry, runtime, workingDirectory));
         foreach (var entry in turn.AnswerEntries) // :2666-2671
         {
             if (entry.Item.TimelineItemContent is TimelineItem.Content.Assistant assistant && assistant.Value.Text.Length != 0)
@@ -4316,6 +4321,7 @@ public sealed class TurnFinishedBlock : Decorator
         public bool HasResponse { get; init; }                                                           // :2540
         public ValueList<TimelineEntry> HeadEntries { get; init; } = ValueList<TimelineEntry>.Empty;      // :2541-2542
         public ValueList<TimelineGroup> DetailGroups { get; init; } = ValueList<TimelineGroup>.Empty;     // :2543-2545
+        public ValueList<TimelineEntry> AppEntries { get; init; } = ValueList<TimelineEntry>.Empty;       // PORT-ONLY (W19): the calls that draw an MCP App
 
         // :2547-2586 @MainActor init(content:expanded:)
         public Derived(IReadOnlyList<TimelineEntry> content, bool expanded)
@@ -4329,6 +4335,7 @@ public sealed class TurnFinishedBlock : Decorator
             var hasEdits = false;
             var hasResponse = false;
             var headEntries = new List<TimelineEntry>();
+            var appEntries = new List<TimelineEntry>();
             foreach (var entry in content) // :2549
             {
                 switch (entry.TimelineEntryKind) // :2550
@@ -4360,6 +4367,7 @@ public sealed class TurnFinishedBlock : Decorator
                         answerEntries.Clear();
                         if (entry.Item.TimelineItemContent is not TimelineItem.Content.Tool tool) continue;
                         if (tool.Value.ToolCallKind == ToolCall.Kind.Agent) headEntries.Add(entry);
+                        if (Marrow.App.Port.Web.McpApps.McpAppCatalog.IsApp(entry)) appEntries.Add(entry); // PORT-ONLY (W19)
                         if (tool.Value.Edits.Count != 0) hasEdits = true;
                         break;
                     default: // :2574-2575
@@ -4368,6 +4376,8 @@ public sealed class TurnFinishedBlock : Decorator
             }
             if (answerEntries.Count == 0 && assistantEntries.Count != 0) answerEntries = [assistantEntries[^1]]; // :2578
             if (collapsedPlans.Count != 0 || collapsedNotices.Count != 0 || collapsedAsks.Count != 0) hasResponse = true; // :2579
+            if (appEntries.Count != 0) hasResponse = true; // PORT-ONLY (W19): an app is part of what the turn answered
+            AppEntries = new ValueList<TimelineEntry>(appEntries);
             AssistantEntries = new ValueList<TimelineEntry>(assistantEntries);
             AnswerEntries = new ValueList<TimelineEntry>(answerEntries);
             LiveEntries = new ValueList<TimelineEntry>(liveEntries);

@@ -1161,6 +1161,8 @@ public abstract record TimelineGroup
             if (entry.TimelineEntryKind == TimelineEntry.Kind.Tool)
             {
                 if (IsHead(entry)) { heads.Add(entry); continue; }
+                // PORT-ONLY (W19, ED-NEW-web-w19-3): a call that draws an MCP App is its own row, its card under the tool row.
+                if (Marrow.App.Port.Web.McpApps.McpAppCatalog.IsApp(entry)) { Flush(); groups.Add(new Single(entry)); continue; }
                 if (LiveAnswerRows.IsLive(entry)) { Flush(); groups.Add(new Single(entry)); continue; } // PORT-ONLY (web surfaces W24): a live answer is drawn as the view, not as a step
                 if (work.Count > 0 && work[^1].TurnID != entry.TurnID) Flush();
                 if (work.Count == 0) start = index; work.Add(entry);
@@ -1599,6 +1601,7 @@ public sealed class TimelineGroupView : Decorator
                 TimelineEntry.Kind.User => new UserMessageRow(single.Value, runtime, context.CanRewind),
                 TimelineEntry.Kind.Assistant => new AssistantMessageRow(single.Value, summary, runtime),
                 TimelineEntry.Kind.Reasoning => null,
+                TimelineEntry.Kind.Tool when Marrow.App.Port.Web.McpApps.McpAppCatalog.IsApp(single.Value) => new McpAppRow(single.Value, runtime, context.WorkingDirectory), // PORT-ONLY (W19)
                 TimelineEntry.Kind.Tool => LiveAnswerRows.IsLive(single.Value) ? new LiveAnswerRow(single.Value, runtime) : new WorkGroup(new([single.Value]), runtime, context.WorkingDirectory), // + W24: a live answer
                 TimelineEntry.Kind.Plan => new PlanCard(single.Value, runtime), TimelineEntry.Kind.Todos => new TodoListRow(single.Value), TimelineEntry.Kind.Notice => new NoticeRow(single.Value),
                 TimelineEntry.Kind.Ask => new Marrow.App.Port.AskUser.AskCardRow(single.Value, runtime), // PORT-ONLY (web surfaces W25): an ask_user card
@@ -1629,6 +1632,7 @@ public sealed class TimelineGroupView : Decorator
                 {
                     case UserMessageRow user: user.SetCanRevert(context.CanRewind); break;
                     case AssistantMessageRow reply: reply.SetSummary(summary); break;
+                    case McpAppRow app when single.Value.TimelineEntryKind == TimelineEntry.Kind.Tool: app.Update(single.Value); break; // PORT-ONLY (W19)
                     case WorkGroup tool when single.Value.TimelineEntryKind == TimelineEntry.Kind.Tool: tool.Update(new([single.Value]), false); break;
                     case LiveAnswerRow: break; // PORT-ONLY (W24): the row reads its entry itself
                     case TurnEndRow when single.Value.Item.TimelineItemContent is TimelineItem.Content.TurnEnd end:

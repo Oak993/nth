@@ -140,7 +140,17 @@ public sealed class FakeWebView : IWebEngineView
     public bool IsSuspended { get; private set; }
     public bool IsPlayingAudio { get; set; }
     public uint? BackgroundArgb { get; set; } = 0xFFFFFFFF;
-    public double Zoom { get; set; } = 1;
+    public double Zoom
+    {
+        get => zoom;
+        set { if (zoom == value) return; zoom = value; ZoomChanged?.Invoke(this, EventArgs.Empty); }
+    }
+    private double zoom = 1;
+    public event EventHandler? ZoomChanged;
+    public event EventHandler<WebFindResult>? FindResultChanged;
+    public Func<string, bool, CancellationToken, Task<WebFindResult>>? FindHandler { get; set; }
+    public Func<string, CancellationToken, Task<bool>>? PdfHandler { get; set; }
+    public void RaiseFindResult(WebFindResult result) => FindResultChanged?.Invoke(this, result);
 
     public WebMemoryLevel MemoryLevel
     {
@@ -227,7 +237,7 @@ public sealed class FakeWebView : IWebEngineView
     public Task<WebFindResult> FindAsync(string query, bool matchCase, CancellationToken cancellationToken)
     {
         Log.Add($"Find {query}");
-        return Task.FromResult(new WebFindResult(0, -1));
+        return FindHandler?.Invoke(query, matchCase, cancellationToken) ?? Task.FromResult(new WebFindResult(0, -1));
     }
 
     public void FindNext() => Log.Add("FindNext");
@@ -238,7 +248,7 @@ public sealed class FakeWebView : IWebEngineView
     public Task<bool> PrintToPdfAsync(string path, CancellationToken cancellationToken)
     {
         Log.Add($"PrintToPdf {path}");
-        return Task.FromResult(true);
+        return PdfHandler?.Invoke(path, cancellationToken) ?? Task.FromResult(true);
     }
 
     public Task<string> CallCdpAsync(string method, string paramsJson, string? sessionId, CancellationToken cancellationToken)

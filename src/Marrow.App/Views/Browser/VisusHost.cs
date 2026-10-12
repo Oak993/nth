@@ -40,6 +40,17 @@ public static class VisusHost
     private static DispatcherTimer? saver;
     private static VisusHistory? history;
     private static ExternalSchemeChoices? schemeChoices;
+    private static VisusSiteZoom? siteZoom;
+    public static VisusSiteZoom SiteZoom
+    {
+        get
+        {
+            if (siteZoom is not null) return siteZoom;
+            siteZoom = VisusSiteZoom.FromJson(ReadFile("site-zoom.json"));
+            siteZoom.Changed += (_, _) => ScheduleSave();
+            return siteZoom;
+        }
+    }
     private static PermissionStore? permissions;
     private static VisusDownloads? downloads;
     private static int windows;
@@ -184,6 +195,7 @@ public static class VisusHost
         saver?.Stop();
         WriteFile("history.json", history?.ToJson());
         WriteFile("external-apps.json", schemeChoices?.ToJson());
+        WriteFile("site-zoom.json", siteZoom?.ToJson());
         WriteFile("permissions.json", permissions?.ToJson());
     }
 
@@ -211,6 +223,7 @@ public static class VisusHost
         surface = null;
         history = null;
         schemeChoices = null;
+        siteZoom = null;
         permissions = null;
         downloads = null;
         DownloadsFolder = () => Marrow.App.Views.Composer.RecentDownloads.DirectoryProvider.Current();

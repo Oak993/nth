@@ -20,6 +20,7 @@ using Marrow.UI.Chrome;
 using Marrow.UI.Panes;
 using Marrow.UI.Port;
 using Marrow.UI.Web;
+using Marrow.App.Views.Artifacts;
 
 // PORT-ONLY: web surfaces W8a, the Visus pane (E:/Droppy/work/design/web-surfaces/DESIGN.md 5.1 pane anatomy: "Header row: tab
 // strip ... Toolbar row ... Content: the page, inside a 6 DIP bezel", 3.7 the keyboard scope rule (the browser keys are
@@ -91,6 +92,14 @@ public sealed class VisusPaneBody : Grid
     private bool focusAddressPending;
     private bool attached;
     private TopLevel? top;
+    private readonly VisusFindController find;
+    private readonly VisusPopover findPopover;
+    private readonly VisusPopover zoomPopover;
+    private TextBlock? zoomLabel;
+    private bool pdfBusy;
+    private long exportEpoch;
+    public VisusFindBar FindBar { get; }
+    public ITabulaFiles Files { get; set; } = TabulaSystem.Instance;
 
     public VisusPaneBody(VisusSession session, ThreadRuntime? runtime = null, bool focusAddress = false)
     {
@@ -101,6 +110,18 @@ public sealed class VisusPaneBody : Grid
         Strip = new VisusTabStrip(session);
         stripRow = new Border { Height = StripRowHeight, Padding = new Thickness(6, 3, 6, 3), Child = Strip };
         Toolbar = new VisusToolbar(session);
+        find = new VisusFindController(session);
+        find.Suspend();
+        FindBar = new VisusFindBar(find, CloseFind);
+        findPopover = new VisusPopover(Toolbar, () => FindBar, lightDismiss: false, dismissed: CloseFind, placement: PlacementMode.BottomEdgeAlignedRight);
+        var findCard = PopoverHost.RectangularCard(FindBar, Toolbar);
+        findPopover.Popup.Child = findCard;
+        findPopover.Popup.VerticalOffset = 10 - findCard.Margin.Top;
+        findPopover.Popup.HorizontalOffset = findCard.Margin.Right - 24;
+        PopoverHost.SetSiteCard(findPopover.Popup, findCard);
+        find.Changed += () => { if (!find.IsOpen) findPopover.SetOpen(false); };
+        // The chip is hidden at 100 %, so the stepper hangs from the address field (always shown), at its right edge where the chip sits.
+        zoomPopover = new VisusPopover(Toolbar.Address, BuildZoom, placement: PlacementMode.BottomEdgeAlignedRight);
         web = new Border
         {
             Margin = new Thickness(VisusTokens.Bezel, 0, VisusTokens.Bezel, VisusTokens.Bezel),
@@ -114,6 +135,8 @@ public sealed class VisusPaneBody : Grid
         Children.Add(stripRow);
         Children.Add(Toolbar);
         Children.Add(web);
+        Children.Add(findPopover.Popup);
+        Children.Add(zoomPopover.Popup);
         noticePopover = new VisusPopover(Toolbar.Address, () => notice, lightDismiss: false, takesFocus: false);
         notice.Expired += () => noticePopover.SetOpen(false);
         Children.Add(noticePopover.Popup);
@@ -217,16 +240,20 @@ public sealed class VisusPaneBody : Grid
     {
         base.OnAttachedToVisualTree(e);
         attached = true;
+        find.Resume();
         top = TopLevel.GetTopLevel(this);
         Session.WindowId = VisusHost.WindowIdOf(top);
         Session.Changed += Sync;
         Session.FocusAddressRequested += OnFocusAddress;
+        Session.FindRequested += OpenFind;
+        Session.ZoomRequested += OpenZoom;
+        Session.SavePdfRequested += OnSavePdf;
         Session.Emptied += OnEmptied;
         Session.Notice += OnNotice;
         Session.LaunchRequested += OnLaunch;
         Session.PageKey += OnPageKey;
         // Esc from inside a page is the pane's while a card is open, the page is in fullscreen or holds the pointer (8.4, 10.1).
-        Session.ClaimsPageKey = chord => chord == EscapeChord && (Card is not null || agentCard is not null || Session.Selected is { IsFullScreen: true } or { IsPointerLocked: true });
+        Session.ClaimsPageKey = chord => chord == EscapeChord && (Card is not null || agentCard is not null || find.IsOpen || Session.Selected is { IsFullScreen: true } or { IsPointerLocked: true });
         VisusAgentAsks.Shared.Changed += OnAsksChanged;
         if (top is WindowBase window)
         {
@@ -248,8 +275,15 @@ public sealed class VisusPaneBody : Grid
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         attached = false;
+        exportEpoch++;
         Session.Changed -= Sync;
         Session.FocusAddressRequested -= OnFocusAddress;
+        Session.FindRequested -= OpenFind;
+        Session.ZoomRequested -= OpenZoom;
+        Session.SavePdfRequested -= OnSavePdf;
+        find.Suspend(); findPopover.SetOpen(false); zoomPopover.SetOpen(false);
+        foreach (var tab in watchedTabs) tab.Changed -= Sync;
+        watchedTabs.Clear();
         Session.Emptied -= OnEmptied;
         Session.Notice -= OnNotice;
         Session.LaunchRequested -= OnLaunch;
@@ -276,6 +310,7 @@ public sealed class VisusPaneBody : Grid
     private void UpdateVisible()
     {
         var visible = attached && IsEffectivelyVisible;
+        if (!visible) { find.Close(); findPopover.SetOpen(false); zoomPopover.SetOpen(false); }
         if (Session.IsVisible == visible) return;
         Session.IsVisible = visible;
         SyncAgentCard();
@@ -317,6 +352,7 @@ public sealed class VisusPaneBody : Grid
         UpdateBlank(selected);
         UpdateCard();
         UpdateFullScreen();
+        UpdateZoomLabel();
         ApplyLook();
         SyncAgentCard();
     }
@@ -474,6 +510,7 @@ public sealed class VisusPaneBody : Grid
     {
         if (chord != EscapeChord) return;
         tab.View?.ReleasePointerLock(); // Esc always releases the pointer (8.4)
+        if (find.IsOpen) { CloseFind(); return; }
         if (Card is { } card)
         {
             card.Dismiss();
@@ -599,6 +636,78 @@ public sealed class VisusPaneBody : Grid
             UpdateCard();
             SyncAgentCard();
         }, DispatcherPriority.Background);
+    }
+
+    private void OpenFind()
+    {
+        zoomPopover.SetOpen(false);
+        if (!find.Open()) return;
+        FindBar.Search();
+        findPopover.SetOpen(true);
+        Dispatcher.UIThread.Post(() => { if (find.IsOpen) FindBar.FocusQuery(); }, DispatcherPriority.Input);
+    }
+    private void CloseFind() { find.Close(); findPopover.SetOpen(false); if (attached) FocusPage(); }
+    private void OpenZoom()
+    {
+        find.Close();
+        // The stepper's tip points at the field's right end, where the chip sits when it is shown.
+        var field = Toolbar.Address.Bounds.Size;
+        var end = Math.Min(field.Width, ZoomTipReach);
+        zoomPopover.Popup.PlacementRect = new Rect(field.Width - end, 0, end, field.Height);
+        zoomPopover.SetOpen(true);
+    }
+    private const double ZoomTipReach = 56;
+    private Control BuildZoom()
+    {
+        var stack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, Margin = new Thickness(4) };
+        zoomLabel = new TextBlock { FontSize = 13, FontWeight = FontWeight.Medium, TextAlignment = TextAlignment.Center, MinWidth = 48 };
+        UpdateZoomLabel();
+        stack.Children.Add(ZoomStep(new TextBlock { Text = "−", FontSize = 17 }, "Zoom out", VisusCommand.ZoomOut, 30));
+        stack.Children.Add(ZoomStep(zoomLabel, "Reset zoom", VisusCommand.ResetZoom, 62));
+        stack.Children.Add(ZoomStep(new TextBlock { Text = "+", FontSize = 17 }, "Zoom in", VisusCommand.ZoomIn, 30));
+        return stack;
+    }
+    // A stepper button: a 28 DIP face with the toolbar's hover fill and the theme's ink, named for assistive tools.
+    private Button ZoomStep(TextBlock text, string name, VisusCommand command, double width)
+    {
+        text.HorizontalAlignment = HorizontalAlignment.Center; text.VerticalAlignment = VerticalAlignment.Center;
+        var face = new Border { Width = width, Height = 28, CornerRadius = new CornerRadius(8), Background = Brushes.Transparent, Child = text };
+        var button = PlainControls.Button(face, () => Session.Perform(command)).KeyboardFocus(8);
+        button.Padding = default;
+        button.OnHover(on => face.Background = on ? PaneTokens.HoverFill.Brush(button) : Brushes.Transparent);
+        void Look() => text.Foreground = PaneTokens.Text1.Brush(button);
+        button.ActualThemeVariantChanged += (_, _) => Look();
+        Look();
+        AutomationProperties.SetName(button, name);
+        ToolTip.SetTip(button, name);
+        return button;
+    }
+    // The stepper shows the zoom as it is, also after Ctrl+Plus or a same-site tab changed it while the stepper is open.
+    private void UpdateZoomLabel()
+    {
+        if (zoomLabel is { } label) label.Text = Math.Round((Session.Selected?.Zoom ?? 1) * 100).ToString(System.Globalization.CultureInfo.InvariantCulture) + " %";
+    }
+    private void OnSavePdf() => _ = SavePdfAsync();
+    public async Task SavePdfAsync()
+    {
+        if (pdfBusy || Session.Selected is not { IsBlank: false } tab || tab.ReadyEngine() is not { IsAttached: true } engine) return;
+        var url = tab.Url;
+        var document = tab.DocumentVersion;
+        var epoch = exportEpoch;
+        var selectionChanged = false;
+        void OnSelection() { if (!ReferenceEquals(Session.Selected, tab)) selectionChanged = true; }
+        pdfBusy = true;
+        Session.Changed += OnSelection;
+        try
+        {
+            var name = string.Concat(tab.Title.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c)).Trim().TrimEnd('.');
+            if (string.IsNullOrEmpty(name)) name = "page";
+            var path = await Files.SaveAsync(this, new TabulaSaveRequest("Save as PDF", null, name + ".pdf", "PDF", "pdf"));
+            if (path is null || selectionChanged || epoch != exportEpoch || document != tab.DocumentVersion || !ReferenceEquals(Session.Selected, tab) || tab.Url != url || !ReferenceEquals(tab.View?.Engine, engine) || !engine.IsAttached) return;
+            if (!await engine.PrintToPdfAsync(path, CancellationToken.None)) Session.Notify(tab, "Could not save PDF");
+        }
+        catch (Exception) { Session.Notify(tab, "Could not save PDF"); }
+        finally { Session.Changed -= OnSelection; pdfBusy = false; }
     }
 
     // 8.4: a page's fullscreen is contained: the pane expands to the workspace (3.4) with the trust strip in view, and the

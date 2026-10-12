@@ -232,8 +232,10 @@ public sealed class SandboxScriptBehaviourTests
             const vm = require('vm'); const fs = require('fs');
             const run = (origin) => {
               let observer = null;
-              class DOMException extends Error { constructor(m, n) { super(m); this.name = n; } }
-              class MutationObserver { constructor(f) { this.f = f; observer = this; } observe(target, options) { this.target = target; this.options = options; } }
+              function DOMException(m, n) { const e = Reflect.construct(Error, [m], new.target || DOMException); e.name = n; return e; }
+              Object.setPrototypeOf(DOMException.prototype, Error.prototype);
+              function MutationObserver(f) { this.f = f; observer = this; }
+              MutationObserver.prototype.observe = function (target, options) { this.target = target; this.options = options; };
               const frameProto = () => { const p = {}; Object.defineProperty(p, 'contentWindow', { configurable: true, get() { return this.inner; } }); return p; };
               const win = {
                 location: { origin }, DOMException, MutationObserver,
