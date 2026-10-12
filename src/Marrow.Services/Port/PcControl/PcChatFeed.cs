@@ -90,6 +90,9 @@ public sealed class PcChatFeed : IDisposable
         return new PcChatStrip(PcChatMirror.StripLine(apps), apps, asks.Waiting(thread).Count(a => a.Kind is not (PcAskKind.ProviderApproval or PcAskKind.ProviderQuestion)));
     }
 
+    /// <summary>The chats with Tactus in use: apps used this turn, or kept paused.</summary>
+    public IReadOnlyList<string> Chats => [.. pause.Chats(PcScope.All).Keys];
+
     /// <summary>The strip's Pause: that chat's apps.</summary>
     public void Pause(string thread) => pause.Pause(PcScope.Thread(thread), PcPauseSource.Chat);
 

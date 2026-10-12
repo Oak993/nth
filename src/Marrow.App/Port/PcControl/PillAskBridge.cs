@@ -87,7 +87,7 @@ public sealed class PillAskBridge : IDisposable
     /// Applies a choice from the card: Done when it answered, Changed when a confirm's content changed (asked again),
     /// TooLate when the ask had ended (the pill says so), Refused when the ask does not take it from the pill.
     /// </summary>
-    public PcResolve Answer(PillCardAnswer answer)
+    public PcResolve Answer(PillCardAnswer answer, PcAnswerSource source = PcAnswerSource.Pill)
     {
         ArgumentNullException.ThrowIfNull(answer);
         if (Kept(answer) is { } done) return done;
@@ -111,7 +111,7 @@ public sealed class PillAskBridge : IDisposable
         }
         var reply = Reply(ask, answer);
         if (reply is null) return PcResolve.Refused;
-        var result = broker.Resolve(ask.Id, answer.Revision, reply, PcAnswerSource.Pill);
+        var result = broker.Resolve(ask.Id, answer.Revision, reply, source);
         if (result == PcResolve.TooLate) Late(ask.Id);
         return result == PcResolve.Done ? Forget(ask.Id, result) : result;
     }

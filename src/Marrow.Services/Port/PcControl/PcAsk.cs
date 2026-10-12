@@ -97,6 +97,9 @@ public sealed record PcShowAsk(string WindowTitle, string? Why = null);
 public sealed record PcProviderAsk(string Title, string FirstLine, bool Secret = false)
 {
     public IReadOnlyList<string> Choices { get; init; } = [];
+
+    /// <summary>The provider asks several questions at once: its sheet in the chat answers them (the pill points there).</summary>
+    public bool Several { get; init; }
 }
 
 /// <summary>A new ask before the broker numbers it.</summary>

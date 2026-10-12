@@ -74,7 +74,8 @@ public static class PcChatMirror
     /// <summary>
     /// The answer row of an ask (DESIGN.md 10.4 "Resolution"): "You allowed Outlook for this chat (from the pill)", "You
     /// answered from the pill: Use the March file", "You cancelled Send in Outlook (from the pill)". An answer in the chat
-    /// reads the same without the source. A secret answer never shows; a provider approval keeps its own chat row (null).
+    /// reads the same without the source. A secret answer never shows; a provider's own ask answered in the chat, and any
+    /// provider approval, keep the chat's own rows (null).
     /// </summary>
     public static string? AnswerRow(PcPendingAsk ask, object answer, PcAnswerSource source)
     {
@@ -99,9 +100,11 @@ public static class PcChatMirror
             case PcAskKind.ShowWindow:
                 var window = ask.Payload is PcShowAsk show && show.WindowTitle.Length > 0 ? "\u201C" + show.WindowTitle + "\u201D" : app;
                 return answer is PcShowAnswer.Show ? $"You showed {window}{tail}" : $"You kept {window} hidden{tail}";
+            case PcAskKind.ProviderQuestion when !pill:
+                return null;
             case PcAskKind.Question:
             case PcAskKind.ProviderQuestion:
-                var secret = ask.Payload is PcProviderAsk { Secret: true };
+                var secret = ask.ChatOnly;
                 var said = answer is PcAnswer typed ? typed.Text ?? typed.Choice : null;
                 if (secret || said is not { Length: > 0 }) return pill ? "You answered from the pill" : "You answered in the chat";
                 return pill ? "You answered from the pill: " + said : "You answered in the chat: " + said;

@@ -42,7 +42,7 @@ public static class AskLifetimes
     {
         PcAskKind.ProviderApproval => true,
         PcAskKind.Question => payload is PcAskRequest { AsksForSecret: true },
-        PcAskKind.ProviderQuestion => payload is PcProviderAsk { Secret: true },
+        PcAskKind.ProviderQuestion => payload is PcProviderAsk { Secret: true } or PcProviderAsk { Several: true },
         _ => false,
     };
 

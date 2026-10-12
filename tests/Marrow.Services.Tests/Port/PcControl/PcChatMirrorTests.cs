@@ -76,8 +76,12 @@ public sealed class PcChatMirrorTests
         var question = Ask(PcAskKind.Question, new PcAskRequest("Which file?", ["March", "April"], true, null));
         Assert.Equal("You answered from the pill: Use the March file", PcChatMirror.AnswerRow(question, PcAnswer.Typed("Use the March file"), PcAnswerSource.Pill));
         Assert.Equal("You answered in the chat: April", PcChatMirror.AnswerRow(question, PcAnswer.Chose("April"), PcAnswerSource.Chat));
-        var secret = Ask(PcAskKind.ProviderQuestion, new PcProviderAsk("Sign in", "Password", Secret: true));
-        Assert.Equal("You answered in the chat", PcChatMirror.AnswerRow(secret, PcAnswer.Typed("hunter2"), PcAnswerSource.Chat));
+        var secret = Ask(PcAskKind.Question, new PcAskRequest("What is the PIN for the card?", [], true, null));
+        Assert.Equal("You answered in the chat", PcChatMirror.AnswerRow(secret, PcAnswer.Typed("1234"), PcAnswerSource.Chat));
+        var provider = Ask(PcAskKind.ProviderQuestion, new PcProviderAsk("Pick a branch", "Which branch?") { Choices = ["main", "dev"] });
+        Assert.Equal("You answered from the pill: dev", PcChatMirror.AnswerRow(provider, PcAnswer.Chose("dev"), PcAnswerSource.Pill));
+        Assert.Null(PcChatMirror.AnswerRow(provider, PcAnswer.Chose("dev"), PcAnswerSource.Chat));
+        Assert.True(Ask(PcAskKind.ProviderQuestion, new PcProviderAsk("Two questions", "Which branch?") { Several = true }).ChatOnly);
         Assert.Null(PcChatMirror.AnswerRow(Ask(PcAskKind.ProviderApproval, new PcProviderAsk("Run a command", "npm test")), true, PcAnswerSource.Chat));
     }
 
