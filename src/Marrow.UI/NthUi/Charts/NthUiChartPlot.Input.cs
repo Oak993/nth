@@ -127,8 +127,23 @@ public sealed partial class NthUiChartPlot
             SetHover(Pick(at));
             return;
         }
+        // A finger scrolling the thread across an editable chart must not edit it: a touch has to start on a mark.
+        if (e.Pointer.Type == PointerType.Touch && !OnMark(at)) return;
         BeginDrag(at, e.Pointer);
         e.Handled = true;
+    }
+
+    /// <summary>Whether <paramref name="at"/> is on the mark of the column under it, or within a fingertip of it (the whole bar
+    /// and a fingertip above it for a bar).</summary>
+    private bool OnMark(Point at)
+    {
+        var now = Now;
+        var f = MakeFrame(now);
+        var index = Math.Clamp((int)Math.Floor((at.X - f.Plot.Left) / Math.Max(1, f.Band)), 0, Math.Max(0, model.Count - 1));
+        if (PointOf(0, index) is not { } mark) return false;
+        if (model.Kind != NthUiChartKind.Bar) return Math.Abs(mark.Y - at.Y) <= 28;
+        var baseline = f.Y(Math.Clamp(0, f.YLo, f.YHi));
+        return at.Y >= Math.Min(mark.Y, baseline) - 28 && at.Y <= Math.Max(mark.Y, baseline) + 8;
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
@@ -156,6 +171,7 @@ public sealed partial class NthUiChartPlot
         if (!Present(0, index)) return;
         yLo = NthSpring.At(f.YLo);
         yHi = NthSpring.At(f.YHi);
+        margin = NthSpring.At(f.Plot.Left);
         hover = null;
         cursor = null;
         DragIndex = index;
@@ -190,6 +206,7 @@ public sealed partial class NthUiChartPlot
             series[0].Y[index] = Animate ? new NthSpring(dragValue, 0, kept, now, Calm) : NthSpring.At(kept);
         yLo = yLo.Retarget(model.YLo, now, Calm);
         yHi = yHi.Retarget(model.YHi, now, Calm);
+        margin = margin.Retarget(LeftMargin(), now, Calm);
         hover = at is { } p ? Pick(p, now) : null;
         Refresh();
         if (Moving(now)) context.Motion.Start(this);

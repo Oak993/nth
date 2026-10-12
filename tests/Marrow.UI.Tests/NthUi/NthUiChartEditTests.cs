@@ -89,12 +89,15 @@ public sealed class NthUiChartEditTests(HeadlessSession headless)
         var plot = rig.Chart().Plot!;
         Assert.Equal((0.0, 8.0), plot.ShownRange);
         var at = plot.PointOf(0, 1)!.Value;
+        var left = plot.PlotArea.Left;
         rig.Window.MouseDown(rig.InWindow(plot, at), MouseButton.Left, RawInputModifiers.None);
         rig.Window.MouseMove(rig.InWindow(plot, new Point(at.X, -50)), RawInputModifiers.LeftMouseButton);
         rig.Pump();
         Assert.Equal(8, rig.View.Runtime.Get("v").Items[1].AsNumber);
         rig.Run(.5);
         Assert.Equal((0.0, 8.0), plot.ShownRange);
+        Assert.Equal(left, plot.PlotArea.Left);
+        Assert.Equal(at.X, plot.PointOf(0, 1)!.Value.X);
         rig.Window.MouseUp(rig.InWindow(plot, new Point(at.X, -50)), MouseButton.Left, RawInputModifiers.None);
         rig.Run(5 * NthUiRig.Frame);
         var (_, midway) = plot.ShownRange;
@@ -102,6 +105,7 @@ public sealed class NthUiChartEditTests(HeadlessSession headless)
         rig.Settle();
         Assert.Equal((0.0, 10.0), plot.ShownRange);
         Assert.Equal(8, plot.ShownValue(0, 1)!.Value, 3);
+        Assert.True(plot.PlotArea.Left > left, "the room for the wider label \"10\" opens once the finger is up");
     });
 
     [Fact]
@@ -210,6 +214,30 @@ public sealed class NthUiChartEditTests(HeadlessSession headless)
         Assert.Equal(31d, range.Value);
         Assert.Equal("31 units", AutomationProperties.GetItemStatus(handle));
         Assert.Equal(plot.Handles.Select((_, i) => rig.Chart().Model.Label(i)), plot.Handles.Select(h => ControlAutomationPeer.CreatePeerForElement(h).GetName()));
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-web-w16b-1")]
+    public void A_finger_has_to_start_on_a_mark_so_scrolling_the_thread_across_a_chart_does_not_edit_it() => headless.OnUiThread(() =>
+    {
+        using var rig = new NthUiRig(NthUiView.Show(NthUiSamples.EditableChart, culture: NthUiRig.English));
+        rig.Settle();
+        var plot = rig.Chart().Plot!;
+        void Press(IPointer pointer, Point at) => plot.RaiseEvent(new PointerPressedEventArgs(plot, pointer, rig.Window, rig.InWindow(plot, at), 1,
+            new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None)
+        { RoutedEvent = InputElement.PointerPressedEvent });
+        var mark = plot.PointOf(0, 2)!.Value;
+        var touch = new Pointer(Pointer.GetNextFreeId(), PointerType.Touch, true);
+        Press(touch, new Point(mark.X, mark.Y + 90));
+        Assert.False(plot.IsDragging);
+        Press(touch, new Point(mark.X, mark.Y + 20));
+        Assert.True(plot.IsDragging);
+        Assert.Equal(2, plot.DragIndex);
+        plot.EndDrag(null);
+        var mouse = new Pointer(Pointer.GetNextFreeId(), PointerType.Mouse, true);
+        Press(mouse, new Point(mark.X, mark.Y + 90));
+        Assert.True(plot.IsDragging);
+        plot.EndDrag(null);
     });
 
     [Fact]

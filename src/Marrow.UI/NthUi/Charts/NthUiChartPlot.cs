@@ -194,14 +194,15 @@ public sealed partial class NthUiChartPlot : Control, INthUiAnimated
         }
         else
         {
+            // Under a finger the plot holds still, axis range and left margin both, so the point stays where it was pressed.
             if (!IsDragging)
             {
                 yLo = yLo.Retarget(model.YLo, now, calm);
                 yHi = yHi.Retarget(model.YHi, now, calm);
+                margin = margin.Retarget(LeftMargin(), now, calm);
             }
             xLo = xLo.Retarget(model.XLo, now, calm);
             xHi = xHi.Retarget(model.XHi, now, calm);
-            margin = margin.Retarget(LeftMargin(), now, calm);
         }
         yTicks.Set(model.YTicks, now, animate, calm);
         xTicks.Set(model.XTicks, now, animate, calm);
