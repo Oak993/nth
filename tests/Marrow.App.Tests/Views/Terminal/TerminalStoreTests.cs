@@ -628,7 +628,7 @@ public sealed class TerminalStoreTests(HeadlessSession headless)
         // :60-63: terminate() does not wait for the shell to actually exit and has no escalation (unlike
         // Shell.terminate's ladder) -- an idle prompt can ignore the graceful signal (PR-TERM-046 failure_cases),
         // so this proves the idempotency the record actually promises, not that the OS process has died (the port's view
-        // ends the shell too, as macOS's closed pty does; the next test proves that).
+        // ends the shell too, as macOS's closed pty does, ED-NEW-shellleak-1; the next test proves that).
         var thread = Guid.NewGuid();
         var directory = TerminalTestFolders.Create("terminate idempotent");
         var session = store.Open(thread, directory);
@@ -644,6 +644,7 @@ public sealed class TerminalStoreTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-TERM-046")] // App/Views/Terminal/TerminalStore.swift:59-63; on macOS the closed pty hangs the shell up, a ConPTY has no hang-up
+    [Trait("Decision", "ED-NEW-shellleak-1")]
     public void Terminate_also_ends_the_shell_process_and_the_program_it_started_so_nothing_outlives_the_tab() => headless.OnUiThread(() => WithRealStore(store =>
     {
         // An idle PowerShell prompt ignores the graceful step, and a tab that was closed, restarted or quit with the app

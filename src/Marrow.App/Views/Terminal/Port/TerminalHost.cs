@@ -228,11 +228,13 @@ public sealed class TerminalHostView : Border
     }
 
     /// <summary>
-    /// :61 <c>view.terminate()</c>: the graceful step (Ctrl+C into the pseudoconsole), then, PORT-ONLY, the end of the shell
-    /// and of everything it started. On macOS the surface's pty is closed with the view and the hang-up ends the shell; a
-    /// ConPTY has no such hang-up, and an idle PowerShell prompt ignores Ctrl+C, so a closed tab, a restarted tab and a quit
-    /// all left the shell (with its conhost) running for as long as the app did. The shell's job is killed here, which ends the
-    /// shell and every program in its tree; the launcher's own watcher then closes the pseudoconsole, which ends the conhost.
+    /// :61 <c>view.terminate()</c>: the graceful step (Ctrl+C into the pseudoconsole), then, PORT-ONLY (ED-NEW-shellleak-1),
+    /// the end of the shell and of everything it started. On macOS the pty session dies with the view, and the hang-up ends
+    /// the shell (PR-TERM-046). Nothing hangs a ConPTY shell up at this point: the launcher closes the pseudoconsole only
+    /// after the shell has exited (P5's order), and an idle PowerShell prompt ignores Ctrl+C, so a closed tab, a restarted
+    /// tab and a quit all left the shell (with its conhost) running for as long as the app did. The shell's job is killed
+    /// here, which ends the shell and every program in its tree; the launcher's own watcher then closes the pseudoconsole,
+    /// which ends the conhost.
     /// </summary>
     public void Terminate()
     {
