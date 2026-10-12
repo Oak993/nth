@@ -217,7 +217,7 @@ public sealed class SignInEntryTests
 
         Assert.Equal(SignInChangeOutcome.Changed, result.Outcome);
         Assert.Null(registry.GetValue(Approved, "nth"));
-        Assert.NotNull(registry.GetValue(Approved, "OneDrive")); // another entry's record is not ours to touch
+        Assert.NotNull(registry.GetValue(Approved, "OneDrive")); // another entry's flag is not ours to touch
         Assert.True(SignInEntry.Read(registry, Root).IsOn);
     }
 
@@ -317,34 +317,12 @@ public sealed class SignInEntryTests
     public void A_registry_that_refuses_gives_failed_with_its_HRESULT_and_never_throws()
     {
         const int accessDenied = unchecked((int)0x80070005);
-        var registry = new RefusingRegistry(Profile(), new UnauthorizedAccessException("denied") { HResult = accessDenied });
+        var registry = new RefusingUserRegistry(Profile(), new UnauthorizedAccessException("denied") { HResult = accessDenied });
 
         var on = SignInEntry.Enable(registry, Root, Launch);
         var off = SignInEntry.Disable(registry.Seeded(Run, "nth", OursCommand), Root);
 
         Assert.Equal(new SignInChangeResult(SignInChangeOutcome.Failed, accessDenied), on);
         Assert.Equal(new SignInChangeResult(SignInChangeOutcome.Failed, accessDenied), off);
-    }
-
-    // a registry that throws on every write, as a locked-down profile does
-    private sealed class RefusingRegistry(FakeUserRegistry inner, Exception error) : IUserRegistry
-    {
-        public RefusingRegistry Seeded(string subKey, string name, object value)
-        {
-            inner.Seed(subKey, name, value);
-            return this;
-        }
-
-        public bool KeyExists(string subKey) => inner.KeyExists(subKey);
-
-        public void CreateKey(string subKey) => throw error;
-
-        public object? GetValue(string subKey, string name) => inner.GetValue(subKey, name);
-
-        public void SetString(string subKey, string name, string value) => throw error;
-
-        public void SetDword(string subKey, string name, int value) => throw error;
-
-        public void DeleteValue(string subKey, string name) => throw error;
     }
 }

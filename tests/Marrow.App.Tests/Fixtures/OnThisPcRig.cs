@@ -83,24 +83,6 @@ public sealed class OnThisPcRig
     public static ShellLink Users() => new(CurrentExe, "--mine", Current, CurrentExe, 0, "nth");
 }
 
-/// <summary>A registry that refuses every write, as a locked-down profile does; reads pass through.</summary>
-public sealed class RefusingUserRegistry(IUserRegistry inner) : IUserRegistry
-{
-    private const int AccessDenied = unchecked((int)0x80070005);
-
-    public bool KeyExists(string subKey) => inner.KeyExists(subKey);
-
-    public void CreateKey(string subKey) => throw new UnauthorizedAccessException("denied") { HResult = AccessDenied };
-
-    public object? GetValue(string subKey, string name) => inner.GetValue(subKey, name);
-
-    public void SetString(string subKey, string name, string value) => throw new UnauthorizedAccessException("denied") { HResult = AccessDenied };
-
-    public void SetDword(string subKey, string name, int value) => throw new UnauthorizedAccessException("denied") { HResult = AccessDenied };
-
-    public void DeleteValue(string subKey, string name) => throw new UnauthorizedAccessException("denied") { HResult = AccessDenied };
-}
-
 /// <summary>An <see cref="IUserRegistry"/> that notes the thread of every call, then does it on the inner registry.</summary>
 public sealed class ThreadSpyUserRegistry(IUserRegistry inner) : IUserRegistry
 {
