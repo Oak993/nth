@@ -49,7 +49,7 @@ public sealed class C7InstallerAdmissionTests
             rig.H.Main.OnMain(() =>
             {
                 rig.Runtimes[0].SpawnInstallerTurn(async () => { entered = true; await release.Task; });
-                var answer = rig.Host.Answer(NthControlRequest.QuitIfIdle);
+                var answer = rig.Host.Answer(NthControlRequest.QuitIfIdle with { Id = Guid.NewGuid().ToString("N") });
                 Assert.Equal(NthControlReply.Busy, answer.Response.Reply);
                 Assert.Equal("Captured send", Assert.Single(answer.Response.Work).Name);
                 Assert.False(rig.Model.InstallerHoldsNewTurns);

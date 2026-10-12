@@ -38,7 +38,7 @@ public sealed class C7InstallerLaunchPolicyTests
             var control = new NthControlHost(new AppShell(new AppDelegate { Model = rig.App },
                 () => { recorder.Exit(); rig.App.SaveBeforeQuit(); }, recorder.AfterWillTerminate),
                 processId: 4242, executable: @"C:\Apps\nth\current\nth.exe");
-            var answer = control.Answer(NthControlRequest.QuitAndStop);
+            var answer = control.Answer(NthControlRequest.QuitAndStop with { Id = Guid.NewGuid().ToString("N") });
             Assert.Equal(NthControlReply.Ok, answer.Response.Reply);
             var prepared = answer.PrepareCommit!(CancellationToken.None).GetAwaiter().GetResult();
             Assert.Equal(NthControlReply.Ok, prepared.Response.Reply);

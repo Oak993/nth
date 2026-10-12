@@ -60,6 +60,8 @@ public sealed class PipeNthControlChannel(string pipeName, TimeSpan connectTimeo
         if (bytes is null) return NthControlExchange.Failed(NthControlFailure.NoAnswer);
         if (NthControlResponse.Parse(bytes) is not { } response) return NthControlExchange.Failed(NthControlFailure.BadAnswer);
         if (response.Pid != peer.ProcessId || !samePeer(peer)) return NthControlExchange.Failed(NthControlFailure.NoAnswer);
+        if (request.Id is not null && !string.Equals(response.Id, request.Id, StringComparison.Ordinal))
+            return NthControlExchange.Failed(NthControlFailure.BadAnswer);
         if (response.CommitRequired)
         {
             if (request.Command != NthControlCommand.Quit || response.Reply != NthControlReply.Ok)
@@ -73,6 +75,8 @@ public sealed class PipeNthControlChannel(string pipeName, TimeSpan connectTimeo
             if (final.Reply is not (NthControlReply.Ok or NthControlReply.Busy or NthControlReply.Refused))
                 return NthControlExchange.Failed(NthControlFailure.BadAnswer);
             if (final.Pid != peer.ProcessId || !samePeer(peer)) return NthControlExchange.Failed(NthControlFailure.NoAnswer);
+            if (request.Id is not null && !string.Equals(final.Id, request.Id, StringComparison.Ordinal))
+                return NthControlExchange.Failed(NthControlFailure.BadAnswer);
             response = final;
             await NthControl.WriteAckAsync(client, cancellationToken).ConfigureAwait(false);
         }

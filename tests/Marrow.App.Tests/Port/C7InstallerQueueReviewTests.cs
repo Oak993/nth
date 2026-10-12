@@ -27,7 +27,7 @@ public sealed class C7InstallerQueueReviewTests
             var recorder = new ShellRecorder();
             var host = new NthControlHost(new AppShell(new AppDelegate { Model = rig.App }, recorder.Exit, recorder.AfterWillTerminate),
                 processId: 4242, executable: @"C:\Apps\nth\current\nth.exe");
-            Assert.Equal(NthControlReply.Ok, host.Answer(NthControlRequest.QuitIfIdle).Response.Reply);
+            Assert.Equal(NthControlReply.Ok, host.Answer(NthControlRequest.QuitIfIdle with { Id = Guid.NewGuid().ToString("N") }).Response.Reply);
             using var captured = new CapturedInstallerExecutor(MainActor.Executor.Current);
             using var scope = MainActor.Executor.Override(captured);
             ThreadRuntimeReflection.Call<object>(rig.Runtime, "SpawnWaitingHeads", new object?[] { null });
@@ -61,7 +61,7 @@ public sealed class C7InstallerQueueReviewTests
             var recorder = new ShellRecorder();
             var host = new NthControlHost(new AppShell(new AppDelegate { Model = model }, recorder.Exit, recorder.AfterWillTerminate),
                 processId: 4242, executable: @"C:\Apps\nth\current\nth.exe");
-            Assert.Equal(NthControlReply.Ok, host.Answer(NthControlRequest.QuitIfIdle).Response.Reply);
+            Assert.Equal(NthControlReply.Ok, host.Answer(NthControlRequest.QuitIfIdle with { Id = Guid.NewGuid().ToString("N") }).Response.Reply);
             using var captured = new CapturedInstallerExecutor(MainActor.Executor.Current);
             using var scope = MainActor.Executor.Override(captured);
             model.SpawnSubagent(parent.Id, "Review", "Clicked new prompt");

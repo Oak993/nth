@@ -5,14 +5,16 @@ using Marrow.Core.Support;
 
 namespace Marrow.App.Port;
 
-// PORT-ONLY: installer handshake; ED-NEW-inst-c7-5 reserves admission and checks idle twice.
+// PORT-ONLY: installer handshake. ED-NEW-inst-c7-5 admission; ED-NEW-inst-c7-6 exact-ID retirement.
 public sealed class NthControlHost : INthControlHost
 {
     private readonly AppShell shell;
     private readonly Task launchReady;
     private readonly int processId;
     private readonly string executable;
-    private readonly HashSet<NthInstallerQuit> idleQuits = [];
+    private readonly Dictionary<string, NthInstallerQuit> quits = new(StringComparer.Ordinal);
+    private readonly HashSet<string> retired = new(StringComparer.Ordinal);
+    private readonly Queue<string> retirementOrder = [];
 
     public NthControlHost(AppShell shell, Task? launchReady = null, int? processId = null, string? executable = null)
     {
@@ -31,64 +33,82 @@ public sealed class NthControlHost : INthControlHost
     internal NthControlAnswer Answer(NthControlRequest request)
     {
         var work = RunningWork();
-        switch (request.Command)
+        if (request.Command == NthControlCommand.Status) return new NthControlAnswer(Reply(NthControlReply.Status, work));
+        var id = request.Id is { } candidate && Guid.TryParseExact(candidate, "N", out var parsed) ? parsed.ToString("N") : null;
+        if (request.Command == NthControlCommand.Withdraw)
         {
-            case NthControlCommand.Status:
-                return new NthControlAnswer(Reply(NthControlReply.Status, work));
-            case NthControlCommand.Withdraw:
-                foreach (var quit in idleQuits.ToArray()) Abort(quit);
-                _ = shell.WithdrawInstallerQuit();
-                return new NthControlAnswer(Reply(NthControlReply.Ok, []));
-            default:
-                if (!shell.HasTerminated)
-                {
-                    if (request.Mode == NthQuitMode.IfIdle && work.Count > 0 || shell.Delegate.Model?.HasUndurableInstallerTurns == true)
-                        return new NthControlAnswer(Reply(NthControlReply.Busy, work));
-                    var quit = new NthInstallerQuit { NeedsIdle = request.Mode == NthQuitMode.IfIdle };
-                    idleQuits.Add(quit);
-                    shell.Delegate.Model?.HoldInstallerTurns(quit);
-                    var deferred = work.Any(item => item.Kind == NthWorkKind.Merge) ? NthWorkKind.Merge : (NthWorkKind?)null;
-                    return new NthControlAnswer(Reply(NthControlReply.Ok, [], deferred) with { CommitRequired = true },
-                        PrepareCommit: token => Prepare(quit, token), Abort: () => MainActor.Post(() => Abort(quit)));
-                }
-                var merge = work.Any(item => item.Kind == NthWorkKind.Merge);
-                return new NthControlAnswer(Reply(NthControlReply.Ok, [], merge ? NthWorkKind.Merge : null),
-                    () => MainActor.Post(shell.TerminateForInstaller));
+            if (id is not null)
+            {
+                Retire(id);
+                if (quits.TryGetValue(id, out var pending)) Withdraw(pending);
+            }
+            return new NthControlAnswer(Reply(NthControlReply.Ok, []) with { Id = id });
         }
+        if (id is null) return new NthControlAnswer(Reply(NthControlReply.Refused, []) with { Reason = "missing-id" });
+        if (retired.Contains(id) || quits.ContainsKey(id))
+            return new NthControlAnswer(Reply(NthControlReply.Refused, []) with { Reason = "retired-id", Id = id });
+        if (shell.HasTerminated) return new NthControlAnswer(Reply(NthControlReply.Ok, []) with { Id = id });
+        if (request.Mode == NthQuitMode.IfIdle && work.Count != 0 || shell.Delegate.Model?.HasUndurableInstallerTurns == true)
+            return new NthControlAnswer(Reply(NthControlReply.Busy, work) with { Id = id });
+
+        var quit = new NthInstallerQuit { Id = id, NeedsIdle = request.Mode == NthQuitMode.IfIdle };
+        quits.Add(id, quit);
+        shell.Delegate.Model?.HoldInstallerTurns(quit);
+        var merge = work.Any(item => item.Kind == NthWorkKind.Merge);
+        return new NthControlAnswer(Reply(NthControlReply.Ok, [], merge ? NthWorkKind.Merge : null) with { Id = id, CommitRequired = true },
+            PrepareCommit: token => Prepare(quit, token), Abort: () => MainActor.Post(() => Abort(quit)));
+    }
+
+    private void Retire(string id)
+    {
+        if (!retired.Add(id)) return;
+        retirementOrder.Enqueue(id);
+        // Outstanding callbacks also retain their own Cancelled bit; pruning the lookup cannot revive one.
+        while (retirementOrder.Count > 1024) retired.Remove(retirementOrder.Dequeue());
+    }
+
+    private void Withdraw(NthInstallerQuit quit)
+    {
+        if (quit.Cancelled) return;
+        quit.Cancelled = true;
+        Retire(quit.Id);
+        quits.Remove(quit.Id);
+        shell.Delegate.Model?.ReleaseInstallerTurns(quit);
+        _ = shell.WithdrawInstallerQuit(quit.Id);
     }
 
     private void Abort(NthInstallerQuit quit)
     {
-        if (quit.Committed || quit.Cancelled) return;
-        quit.Cancelled = true;
-        idleQuits.Remove(quit);
-        shell.Delegate.Model?.ReleaseInstallerTurns(quit);
+        if (!quit.Committed) Withdraw(quit);
     }
 
     private Task<NthControlAnswer> Prepare(NthInstallerQuit quit, CancellationToken token) => MainActor.Run(() =>
+    {
+        token.ThrowIfCancellationRequested();
+        if (quit.Cancelled) return new NthControlAnswer(Reply(NthControlReply.Refused, []) with { Reason = "withdrawn", Id = quit.Id });
+        var work = RunningWork();
+        if (quit.NeedsIdle && work.Count != 0 || shell.Delegate.Model?.HasUndurableInstallerTurns == true)
         {
-            token.ThrowIfCancellationRequested();
-            if (quit.Cancelled) return new NthControlAnswer(Reply(NthControlReply.Refused, []) with { Reason = "withdrawn" });
-            var work = RunningWork();
-            if (quit.NeedsIdle && work.Count != 0 || shell.Delegate.Model?.HasUndurableInstallerTurns == true)
-            {
-                Abort(quit);
-                return new NthControlAnswer(Reply(NthControlReply.Busy, work));
-            }
-            var deferred = work.Any(item => item.Kind == NthWorkKind.Merge) ? NthWorkKind.Merge : (NthWorkKind?)null;
-            return new NthControlAnswer(Reply(NthControlReply.Ok, [], deferred), Commit: cancellation => MainActor.Run<NthControlResponse?>(() =>
-            {
-                cancellation.ThrowIfCancellationRequested();
-                if (quit.Cancelled) return Reply(NthControlReply.Refused, []) with { Reason = "withdrawn" };
-                var current = RunningWork();
-                if (quit.NeedsIdle && current.Count != 0 || shell.Delegate.Model?.HasUndurableInstallerTurns == true)
-                { Abort(quit); return Reply(NthControlReply.Busy, current); }
-                quit.Committed = true;
-                if (!quit.NeedsIdle) shell.Delegate.Model?.CancelInstallerPrivateWork();
-                shell.TerminateForInstaller();
-                return null;
-            }), Abort: () => MainActor.Post(() => Abort(quit)));
-        });
+            Withdraw(quit);
+            return new NthControlAnswer(Reply(NthControlReply.Busy, work) with { Id = quit.Id });
+        }
+        var merge = work.Any(item => item.Kind == NthWorkKind.Merge);
+        return new NthControlAnswer(Reply(NthControlReply.Ok, [], merge ? NthWorkKind.Merge : null) with { Id = quit.Id },
+            Commit: cancellation => Commit(quit, cancellation), Abort: () => MainActor.Post(() => Abort(quit)));
+    });
+
+    private Task<NthControlResponse?> Commit(NthInstallerQuit quit, CancellationToken token) => MainActor.Run<NthControlResponse?>(() =>
+    {
+        token.ThrowIfCancellationRequested();
+        if (quit.Cancelled) return Reply(NthControlReply.Refused, []) with { Reason = "withdrawn", Id = quit.Id };
+        var current = RunningWork();
+        if (quit.NeedsIdle && current.Count != 0 || shell.Delegate.Model?.HasUndurableInstallerTurns == true)
+        { Withdraw(quit); return Reply(NthControlReply.Busy, current) with { Id = quit.Id }; }
+        if (!quit.NeedsIdle) shell.Delegate.Model?.CancelInstallerPrivateWork();
+        if (shell.TerminateForInstaller(quit.Id, quit)) { quit.Committed = true; return null; }
+        Withdraw(quit);
+        return Reply(NthControlReply.Refused, []) with { Reason = "pending-quit", Id = quit.Id };
+    });
 
     private NthControlResponse Reply(NthControlReply reply, IReadOnlyList<NthWorkItem> work, NthWorkKind? deferred = null) =>
         new(reply, processId, executable, work, work.Count, deferred);

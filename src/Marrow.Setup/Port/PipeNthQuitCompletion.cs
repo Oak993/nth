@@ -25,6 +25,7 @@ internal static class PipeNthQuitCompletion
             || outcome.Reply is not (NthControlReply.Busy or NthControlReply.Refused))
             return NthControlExchange.Failed(NthControlFailure.BadAnswer);
         if (outcome.Pid != peer.ProcessId || !samePeer(peer)) return NthControlExchange.Failed(NthControlFailure.NoAnswer);
+        if (request.Id is not null && outcome.Id != request.Id) return NthControlExchange.Failed(NthControlFailure.BadAnswer);
         await NthControl.WriteAckAsync(pipe, token).ConfigureAwait(false);
         var end = new byte[1];
         try

@@ -46,7 +46,7 @@ public sealed class C7InstallerPrivateWorkReviewTests
                 Assert.False(rig.Runtime.IsRunning);
                 var recorder = new ShellRecorder();
                 var control = Control(rig.App, recorder);
-                Assert.Equal(NthControlReply.Busy, control.Answer(NthControlRequest.QuitIfIdle).Response.Reply);
+                Assert.Equal(NthControlReply.Busy, control.Answer(NthControlRequest.QuitIfIdle with { Id = Guid.NewGuid().ToString("N") }).Response.Reply);
                 Assert.Empty(recorder.Calls);
             });
         }
@@ -77,7 +77,7 @@ public sealed class C7InstallerPrivateWorkReviewTests
                 (configuration, _) => { launches++; return new(configuration, scripted); });
             var target = rig.App.Settings.Accounts.ForService(ProviderKind.Meta)[0];
             var recorder = new ShellRecorder();
-            Assert.Equal(NthControlReply.Ok, Control(rig.App, recorder).Answer(NthControlRequest.QuitIfIdle).Response.Reply);
+            Assert.Equal(NthControlReply.Ok, Control(rig.App, recorder).Answer(NthControlRequest.QuitIfIdle with { Id = Guid.NewGuid().ToString("N") }).Response.Reply);
             IStandbySession? standby = null;
             Exception? error;
             try
@@ -121,7 +121,7 @@ public sealed class C7InstallerPrivateWorkReviewTests
                 Assert.False(pending.IsCompleted);
                 Assert.Empty(sessions);
                 var recorder = new ShellRecorder();
-                Assert.Equal(NthControlReply.Busy, Control(rig.App, recorder).Answer(NthControlRequest.QuitIfIdle).Response.Reply);
+                Assert.Equal(NthControlReply.Busy, Control(rig.App, recorder).Answer(NthControlRequest.QuitIfIdle with { Id = Guid.NewGuid().ToString("N") }).Response.Reply);
                 Assert.Empty(recorder.Calls);
             });
         }
@@ -162,7 +162,7 @@ public sealed class C7InstallerPrivateWorkReviewTests
             Assert.True(APIKeychain.SetKey("offline-next", target));
             using var owner = new LiveThreadPorts(rig.App, decorateHeads: inner => new C7ConversationContext(inner, _ => Task.FromResult("Recorded offline context.")));
             var recorder = new ShellRecorder();
-            Assert.Equal(NthControlReply.Ok, Control(rig.App, recorder).Answer(NthControlRequest.QuitIfIdle).Response.Reply);
+            Assert.Equal(NthControlReply.Ok, Control(rig.App, recorder).Answer(NthControlRequest.QuitIfIdle with { Id = Guid.NewGuid().ToString("N") }).Response.Reply);
             Guid? round = null;
             var error = await Record.ExceptionAsync(async () => round = await owner.Opinions.AskAsync(rig.InitialThread.Id, "Held private opinion", [target.Id]));
             if (round is { } started)

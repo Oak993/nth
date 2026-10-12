@@ -36,6 +36,8 @@ public sealed class NthControlRig : IDisposable
 
     public NthControlHost Host { get; }
 
+    public string? LastQuitId { get; private set; }
+
     public void SetRunning(int index, TimeSpan runningFor, bool running = true) => H.Main.OnMain(() =>
     {
         typeof(ThreadRuntime).GetProperty(nameof(ThreadRuntime.Phase))!.SetValue(Runtimes[index], running ? RuntimePhase.Running : RuntimePhase.Idle);
@@ -49,7 +51,20 @@ public sealed class NthControlRig : IDisposable
     });
 
     /// <summary>The host's decision for one request, made on the main actor.</summary>
-    public NthControlAnswer Ask(NthControlRequest request) => H.Main.OnMain(() => Host.Answer(request));
+    public NthControlAnswer Ask(NthControlRequest request) => H.Main.OnMain(() => Host.Answer(Prepare(request)));
+
+    internal NthControlRequest Prepare(NthControlRequest request)
+    {
+        MainActor.AssumeIsolated();
+        if (request.Command == NthControlCommand.Quit)
+        {
+            request = request with { Id = request.Id ?? Guid.NewGuid().ToString("N") };
+            LastQuitId = request.Id;
+        }
+        else if (request.Command == NthControlCommand.Withdraw && request.Id is null)
+            request = request with { Id = LastQuitId };
+        return request;
+    }
 
     /// <summary>What the pipe server does once the answer was read.</summary>
     public NthControlResponse Finish(NthControlAnswer answer)

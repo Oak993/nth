@@ -45,7 +45,7 @@ public sealed class C7InstallerAccountResumeReviewTests
             var host = new NthControlHost(new AppShell(new AppDelegate { Model = rig.App }, recorder.Exit, recorder.AfterWillTerminate),
                 processId: 4242, executable: @"C:\Apps\nth\current\nth.exe");
             var original = rig.App.Thread(rig.InitialThread.Id);
-            Assert.Equal(NthControlReply.Ok, host.Answer(NthControlRequest.QuitIfIdle).Response.Reply);
+            Assert.Equal(NthControlReply.Ok, host.Answer(NthControlRequest.QuitIfIdle with { Id = Guid.NewGuid().ToString("N") }).Response.Reply);
 
             Assert.Throws<InvalidOperationException>(() => rig.Runtime.AdoptHandshakeSession(incoming, "offline-incoming", configuration, resumeReply: true));
 

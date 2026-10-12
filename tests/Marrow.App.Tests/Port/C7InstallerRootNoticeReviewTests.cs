@@ -41,7 +41,7 @@ public sealed class C7InstallerRootNoticeReviewTests(HeadlessSession headless)
                     var notice = Assert.Single(RootViewRig.All<InstallerClosingNotice>(root));
                     Assert.True(notice.IsAttachedToVisualTree());
                     Assert.Same(rig.Model, AppEnvironment.GetAppModel(notice));
-                    var answer = rig.Host.Answer(NthControlRequest.QuitIfIdle);
+                    var answer = rig.Host.Answer(NthControlRequest.QuitIfIdle with { Id = Guid.NewGuid().ToString("N") });
                     Assert.Equal(NthControlReply.Ok, answer.Response.Reply);
                     Assert.True(rig.Model.InstallerHoldsNewTurns);
                 }); // drains the posted notice observation before advancing the animation clock

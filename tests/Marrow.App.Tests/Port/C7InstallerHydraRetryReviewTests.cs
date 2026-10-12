@@ -55,7 +55,7 @@ public sealed class C7InstallerHydraRetryReviewTests
             var host = new NthControlHost(new AppShell(new AppDelegate { Model = model }, recorder.Exit, recorder.AfterWillTerminate),
                 processId: 4242, executable: @"C:\Apps\nth\current\nth.exe");
 
-            Assert.Equal(NthControlReply.Busy, host.Answer(NthControlRequest.QuitIfIdle).Response.Reply);
+            Assert.Equal(NthControlReply.Busy, host.Answer(NthControlRequest.QuitIfIdle with { Id = Guid.NewGuid().ToString("N") }).Response.Reply);
 
             Assert.Same(draft, runtime.Draft);
             Assert.False(runtime.IsRunning);

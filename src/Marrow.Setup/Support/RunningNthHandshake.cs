@@ -31,7 +31,7 @@ public sealed class RunningNthHandshake : IRunningNth
     private CancellationTokenSource? run;
     private TaskCompletionSource? runDone;
     private IReadOnlyList<RunningNthProcess> watched = [];
-    private bool quitSent;
+    private readonly HashSet<string> outstandingQuitIds = new(StringComparer.Ordinal);
     private static readonly IReadOnlyList<NthWorkItem> NoWork = Array.Empty<NthWorkItem>();
 
     /// <param name="installRoot">The Velopack install root the setup is about to replace files in.</param>
@@ -102,8 +102,12 @@ public sealed class RunningNthHandshake : IRunningNth
             if (pending is not null) await pending.ConfigureAwait(false);
         }
         RunningNthState state;
-        lock (gate) state = status.State;
-        if (state is RunningNthState.Cancelled or RunningNthState.Clear or RunningNthState.Closed or RunningNthState.NotAsked) return;
+        bool outstanding;
+        lock (gate) { state = status.State; outstanding = outstandingQuitIds.Count != 0; }
+        if (state is RunningNthState.Clear or RunningNthState.Closed or RunningNthState.NotAsked) return;
+        // An active run already attempted its one bounded withdrawal batch in Execute.catch.
+        // Only a separate later CancelAsync call retries IDs whose withdrawal was uncertain.
+        if (state == RunningNthState.Cancelled && (pending is not null || !outstanding)) return;
         await CancelledAsync().ConfigureAwait(false);
     }
 
@@ -145,7 +149,6 @@ public sealed class RunningNthHandshake : IRunningNth
 
     private async Task<RunningNthStatus> AskCoreAsync(CancellationToken token)
     {
-        quitSent = false;
         Set(RunningNthState.Asking);
         var found = await RefreshWatchedAsync(token).ConfigureAwait(false);
         if (found.Count == 0) return Set(RunningNthState.Clear);
@@ -180,12 +183,13 @@ public sealed class RunningNthHandshake : IRunningNth
 
     private async Task<RunningNthStatus> QuitAsync(NthControlRequest request, CancellationToken token)
     {
-        quitSent = true;
-        var reply = await channel.SendAsync(request, token).ConfigureAwait(false);
-        return await ReadQuitReplyAsync(reply, token).ConfigureAwait(false);
+        var id = Guid.NewGuid().ToString("N");
+        lock (gate) outstandingQuitIds.Add(id); // even a lost answer may follow an accepted quit
+        var reply = await channel.SendAsync(request with { Id = id }, token).ConfigureAwait(false);
+        return await ReadQuitReplyAsync(reply, token, id).ConfigureAwait(false);
     }
 
-    private async Task<RunningNthStatus> ReadQuitReplyAsync(NthControlExchange reply, CancellationToken token)
+    private async Task<RunningNthStatus> ReadQuitReplyAsync(NthControlExchange reply, CancellationToken token, string requestId)
     {
         if (reply.Response is not { } answer)
         {
@@ -198,14 +202,13 @@ public sealed class RunningNthHandshake : IRunningNth
             case NthControlReply.Ok:
                 return await WaitForExitAsync(answer.Deferred == NthWorkKind.Merge, token).ConfigureAwait(false);
             case NthControlReply.Busy:
-                quitSent = false;
+                ForgetQuit(requestId);
                 return Set(RunningNthState.Busy, answer.Work, answer.WorkCount);
             case NthControlReply.Refused:
-                quitSent = false;
+                ForgetQuit(requestId);
                 return Refuse(answer.Reason ?? "refused");
             default:
-                quitSent = false;
-                return Refuse("unexpected");
+                return Refuse("unexpected"); // unknown response does not prove that this quit was rejected
         }
     }
 
@@ -217,20 +220,22 @@ public sealed class RunningNthHandshake : IRunningNth
         while (true)
         {
             await Delay(timings.WorkPoll, token).ConfigureAwait(false);
-            quitSent = true; // an "ok" below means nth is quitting; a cancel after it calls that off
-            var reply = await channel.SendAsync(NthControlRequest.QuitIfIdle, token).ConfigureAwait(false);
+            var id = Guid.NewGuid().ToString("N");
+            lock (gate) outstandingQuitIds.Add(id);
+            var reply = await channel.SendAsync(NthControlRequest.QuitIfIdle with { Id = id }, token).ConfigureAwait(false);
             if (reply.Response is { } answer)
             {
                 failures = 0;
                 if (answer.Reply == NthControlReply.Busy)
                 {
+                    ForgetQuit(id);
                     var now = Shape(answer.Work);
                     if (now != shape) Set(RunningNthState.Waiting, answer.Work, answer.WorkCount);
                     shape = now;
                     continue;
                 }
                 await RefreshWatchedAsync(token).ConfigureAwait(false);
-                return await ReadQuitReplyAsync(reply, token).ConfigureAwait(false);
+                return await ReadQuitReplyAsync(reply, token, id).ConfigureAwait(false);
             }
             if (reply.Failure == NthControlFailure.NotAllowed) return Refuse("not-allowed");
             var left = await RefreshWatchedAsync(token).ConfigureAwait(false);
@@ -294,20 +299,33 @@ public sealed class RunningNthHandshake : IRunningNth
 
     private async Task<RunningNthStatus> CancelledAsync()
     {
-        if (quitSent)
+        string[] ids;
+        lock (gate) ids = outstandingQuitIds.ToArray();
+        if (ids.Length != 0)
         {
-            quitSent = false;
-            try
-            {
-                using var window = new CancellationTokenSource(timings.WithdrawTimeout, time);
-                _ = await channel.SendAsync(NthControlRequest.Withdraw, window.Token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // Calling it off is best effort: a nth that does not answer is not going to quit on a request it never read.
-            }
+            // One bound for the entire batch, rather than one full timeout per uncertain earlier request.
+            using var window = new CancellationTokenSource(timings.WithdrawTimeout, time);
+            await Task.WhenAll(ids.Select(id => WithdrawQuitAsync(id, window.Token))).ConfigureAwait(false);
         }
         return Set(RunningNthState.Cancelled);
+    }
+
+    private async Task WithdrawQuitAsync(string id, CancellationToken token)
+    {
+        try
+        {
+            var reply = await channel.SendAsync(NthControlRequest.Withdraw with { Id = id }, token).ConfigureAwait(false);
+            if (reply.Response is { Reply: NthControlReply.Ok } answer && answer.Id == id) ForgetQuit(id);
+        }
+        catch (OperationCanceledException)
+        {
+            // Retain the ID: timeout/disconnect is not proof that a previously accepted quit was withdrawn.
+        }
+    }
+
+    private void ForgetQuit(string id)
+    {
+        lock (gate) outstandingQuitIds.Remove(id);
     }
 
     // ---- helpers ----

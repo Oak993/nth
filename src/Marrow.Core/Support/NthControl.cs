@@ -34,7 +34,7 @@ public enum NthQuitMode
 /// <c>{"v":1,"cmd":"quit","mode":"stop"}</c> or <c>{"v":1,"cmd":"withdraw"}</c>. Anything else (another version, another
 /// command, a quit without its mode, trailing content) is not a request.
 /// </summary>
-public sealed record NthControlRequest(NthControlCommand Command, NthQuitMode Mode = NthQuitMode.IfIdle)
+public sealed record NthControlRequest(NthControlCommand Command, NthQuitMode Mode = NthQuitMode.IfIdle, string? Id = null)
 {
     public static NthControlRequest Status { get; } = new(NthControlCommand.Status);
 
@@ -55,6 +55,7 @@ public sealed record NthControlRequest(NthControlCommand Command, NthQuitMode Mo
                 _ => "withdraw",
             },
             Mode = Command == NthControlCommand.Quit ? (Mode == NthQuitMode.Stop ? "stop" : "if-idle") : null,
+            Id = Id,
         },
         NthControlJsonContext.Default.NthControlRequestJson);
 
@@ -71,14 +72,16 @@ public sealed record NthControlRequest(NthControlCommand Command, NthQuitMode Mo
             return null;
         }
         if (document is null || document.Version != NthControl.ProtocolVersion) return null;
+        if (document.Id is not null && !Guid.TryParseExact(document.Id, "N", out _)) return null;
+        var id = document.Id?.ToLowerInvariant();
         return document.Command switch
         {
             "status" => Status,
-            "withdraw" => Withdraw,
+            "withdraw" => Withdraw with { Id = id },
             "quit" => document.Mode switch
             {
-                "if-idle" => QuitIfIdle,
-                "stop" => QuitAndStop,
+                "if-idle" => QuitIfIdle with { Id = id },
+                "stop" => QuitAndStop with { Id = id },
                 _ => null,
             },
             _ => null,
@@ -138,7 +141,8 @@ public sealed record NthControlResponse(
     int WorkCount,
     NthWorkKind? Deferred = null,
     string? Reason = null,
-    bool CommitRequired = false)
+    bool CommitRequired = false,
+    string? Id = null)
 {
     public static NthControlResponse Refused(int pid, string exe, string reason) =>
         new(NthControlReply.Refused, pid, exe, [], 0, Reason: reason);
@@ -169,6 +173,7 @@ public sealed record NthControlResponse(
             Deferred = Deferred is { } kind ? (kind == NthWorkKind.Merge ? "merge" : "thread") : null,
             Reason = Reason,
             CommitRequired = CommitRequired ? true : null,
+            Id = Id,
         },
         NthControlJsonContext.Default.NthControlResponseJson);
 
@@ -227,7 +232,8 @@ public sealed record NthControlResponse(
             Math.Max(work.Count, document.Count ?? work.Count),
             deferred,
             document.Reason is { } reason ? NthControl.CleanName(reason) : null,
-            document.CommitRequired ?? false);
+            document.CommitRequired ?? false,
+            document.Id);
     }
 }
 
@@ -367,6 +373,9 @@ internal sealed class NthControlRequestJson
 
     [JsonPropertyName("mode")]
     public string? Mode { get; set; }
+
+    [JsonPropertyName("id")]
+    public string? Id { get; set; }
 }
 
 internal sealed class NthWorkItemJson
@@ -409,6 +418,9 @@ internal sealed class NthControlResponseJson
 
     [JsonPropertyName("commit")]
     public bool? CommitRequired { get; set; }
+
+    [JsonPropertyName("id")]
+    public string? Id { get; set; }
 }
 
 /// <summary>Source-generated, so the trimmed AOT setup and the app read and write the same bytes without reflection.</summary>

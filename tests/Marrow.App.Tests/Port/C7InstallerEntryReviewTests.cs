@@ -25,7 +25,7 @@ public sealed class C7InstallerEntryReviewTests
             Assert.Equal(1, captured.QueuedCount);
             Assert.False(runtime.IsRunning); // No turn/provider body was allowed to execute.
 
-            var answer = rig.Host.Answer(NthControlRequest.QuitIfIdle);
+            var answer = rig.Host.Answer(NthControlRequest.QuitIfIdle with { Id = Guid.NewGuid().ToString("N") });
 
             Assert.Equal(NthControlReply.Busy, answer.Response.Reply);
             Assert.Equal("Captured typed prompt", Assert.Single(answer.Response.Work).Name);
@@ -45,7 +45,7 @@ public sealed class C7InstallerEntryReviewTests
             var draft = new ComposerDraft { Text = "/plan" };
             runtime.Draft = draft;
             var mode = runtime.Thread!.InteractionMode;
-            var answer = rig.Host.Answer(NthControlRequest.QuitIfIdle);
+            var answer = rig.Host.Answer(NthControlRequest.QuitIfIdle with { Id = Guid.NewGuid().ToString("N") });
             Assert.Equal(NthControlReply.Ok, answer.Response.Reply);
 
             runtime.Send(); // /plan toggles a local field; it starts no provider, actor task or process.

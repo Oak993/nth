@@ -34,7 +34,7 @@ public sealed class C7InstallerDurabilityReviewTests
             Assert.Empty(runtime.Turns);
             Assert.True(runtime.Draft.IsEmpty);
 
-            var answer = rig.Host.Answer(NthControlRequest.QuitAndStop);
+            var answer = rig.Host.Answer(NthControlRequest.QuitAndStop with { Id = Guid.NewGuid().ToString("N") });
 
             Assert.Equal(NthControlReply.Busy, answer.Response.Reply);
             Assert.Equal("Captured exact prompt", Assert.Single(answer.Response.Work).Name);
@@ -81,7 +81,7 @@ public sealed class C7InstallerDurabilityReviewTests
                 var control = new NthControlHost(new AppShell(new AppDelegate { Model = rig.App },
                     () => { recorder.Exit(); rig.App.SaveBeforeQuit(); }, recorder.AfterWillTerminate),
                     processId: 4242, executable: @"C:\Apps\nth\current\nth.exe");
-                var answer = control.Answer(NthControlRequest.QuitAndStop);
+                var answer = control.Answer(NthControlRequest.QuitAndStop with { Id = Guid.NewGuid().ToString("N") });
                 Assert.Equal(NthControlReply.Ok, answer.Response.Reply);
                 // ED-NEW-inst-c7-5: exercise both actual ACK stages before temp SaveBeforeQuit.
                 Assert.True(answer.Response.CommitRequired);
