@@ -301,9 +301,10 @@ Invoke-NthCheck 'every exe is a GUI-subsystem exe (no console window)' {
         Assert-NthGuiExe -Path $exe
     }
 }
-Invoke-NthCheck 'version resources match PLAN.md section 7 (nth.exe, nth-Setup, nth Updater, Velopack Setup)' {
+Invoke-NthCheck 'version resources match PLAN.md section 7 (nth.exe, execution stub, nth-Setup, nth Updater, Velopack Setup)' {
     Assert-NthVersionResource -Path (Join-Path $publishDir $MainExe) -Expected $identity.App -CheckLanguage
     Assert-NthVersionResource -Path (Join-Path $checkDir "lib/app/$MainExe") -Expected $identity.App -CheckLanguage
+    Assert-NthVersionResource -Path (Join-Path $checkDir $stubName) -Expected $identity.App -CheckLanguage
     Assert-NthVersionResource -Path $setupFree -Expected $identity.Setup -CheckLanguage
     Assert-NthVersionResource -Path $setupShared -Expected $identity.Setup -CheckLanguage
     Assert-NthVersionResource -Path (Join-Path $checkDir 'lib/app/nth-Setup.exe') -Expected $identity.Setup -CheckLanguage
@@ -354,7 +355,7 @@ Invoke-NthCheck 'the shared file adds at most 30 MiB to the Velopack Setup.exe i
 if ($Sign -ne 'None') {
     Invoke-NthCheck 'every exe is signed with a valid, timestamped signature' {
         foreach ($exe in @($setupShared, (Join-Path $checkDir "lib/app/$MainExe"), (Join-Path $checkDir 'lib/app/nth-Setup.exe'), (Join-Path $checkDir 'lib/app/Squirrel.exe'),
-                $velopackSetup.FullName)) {
+                (Join-Path $checkDir $stubName), $velopackSetup.FullName)) {
             $state = Get-NthSignatureState -Path $exe
             if (-not $state.Signed -or -not $state.Timestamped) { throw "$exe is $($state.Status)$(if (-not $state.Timestamped) { ', not timestamped' })." }
         }
