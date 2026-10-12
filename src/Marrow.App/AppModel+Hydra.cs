@@ -269,7 +269,12 @@ public sealed partial class AppModel
         var head = InsertHydraHead(parent, task, origin, batchID, preferredIndex, project, profile, null);
         if (head is null) return null;
         var id = head.Id;
-        MainActor.Spawn(() => StartDroppyHead(id, attachments, brief));
+        // PORT-ONLY (Dextra AS-5, seam 3): a mission's head waits at the agent gate (16 local agents, the memory floor) first.
+        MainActor.Spawn(async () =>
+        {
+            await DextraAdmitHead(head);
+            await StartDroppyHead(id, attachments, brief);
+        });
         return head;
     }
 
@@ -304,10 +309,26 @@ public sealed partial class AppModel
         var provider = nativeSpawn is not null
             ? parent.Provider
             : routedProfile?.Provider ?? launch?.HeadsProvider ?? parent.Provider;
+        // PORT-ONLY (Dextra AS-5, seam 3, 12.3 point 3; ED-NEW-dextra-as5-3 point 3): a mission's head runs only on a
+        // provider nth can seal. A profile or pair that routes it to another one falls back to the lead's provider and
+        // model; a head that can only run on the lead's own unsealable provider is refused.
+        var fellBack = false;
+        if (parent.MissionID is not null && Marrow.Services.Assistant.SealedProviderConfig.Refusal(provider) is { } unsealable)
+        {
+            if (nativeSpawn is not null || Marrow.Services.Assistant.SealedProviderConfig.Refusal(parent.Provider) is not null)
+            {
+                Runtime(parent.Id).AppendHydraNote("Hydra: " + unsealable);
+                return null;
+            }
+            Runtime(parent.Id).AppendHydraNote(
+                $"Hydra: {provider.DisplayName} cannot run mission work yet, so {persona.Name} runs on {parent.Provider.DisplayName}.");
+            provider = parent.Provider;
+            fellBack = true;
+        }
         var elsewhere = provider != parent.Provider;
-        var model = nativeSpawn?.Model ?? routedProfile?.Model ?? launch?.WorkerModel ??
+        var model = fellBack ? parent.Model : nativeSpawn?.Model ?? routedProfile?.Model ?? launch?.WorkerModel ??
             (elsewhere ? Providers.DefaultModel(provider)?.Id : parent.Model);
-        var effort = routedProfile?.Effort ?? launch?.WorkerEffort ?? (elsewhere ? null : parent.Effort);
+        var effort = fellBack ? parent.Effort : routedProfile?.Effort ?? launch?.WorkerEffort ?? (elsewhere ? null : parent.Effort);
         var title = task.Length == 0
             ? persona.Name
             : !sameProject && targetProject is not null
@@ -325,8 +346,12 @@ public sealed partial class AppModel
             IsBackground = nativeSpawn?.IsBackground ?? true,
             CanStop = nativeSpawn is null || nativeSpawn.TaskID is not null || parent.Provider == ProviderKind.Codex,
         };
+        // PORT-ONLY (Dextra AS-5, seam 3, 12.3 point 3): a head under a mission's lead inherits its MissionID and starts in
+        // the mission's capped mode, never Full access; ThreadRuntime seals it and gives it its own Job Object at launch,
+        // and its approvals reach the policy engine like the lead's. Hydra outside missions keeps its modes.
         var head = new ChatThread(projectID, provider, model, effort,
-            nativeSpawn is null ? RuntimeMode.FullAccess : parent.RuntimeMode)
+            parent.MissionID is not null ? Marrow.Services.Assistant.SealedProviderConfig.CappedMode
+            : nativeSpawn is null ? RuntimeMode.FullAccess : parent.RuntimeMode)
         {
             ParentThreadID = parent.Id,
             IsInPanel = true,
@@ -337,10 +362,13 @@ public sealed partial class AppModel
             WorktreePath = sameProject ? parent.WorktreePath : null,
             Branch = sameProject ? parent.Branch : null,
             HiddenFromAssistant = parent.HiddenFromAssistant, // PORT-ONLY (AS-3a, ED-NEW-dextra-as3a-2): a head of a hidden chat is hidden too
+            MissionID = parent.MissionID, // PORT-ONLY (AS-5, seam 3)
+            AssistantID = parent.AssistantID,
         };
 
         UpdateThread(parent.Id, value => value with { HydraSpawnCount = counter });
         InsertThread(head);
+        DextraHeadAdded(parent, head); // PORT-ONLY (Dextra AS-5, seam 3)
         var parentRuntime = Runtime(parent.Id);
         parentRuntime.IsHydraPanelHidden = false;
         parentRuntime.HydraSelectedHeadID = head.Id;
@@ -511,7 +539,11 @@ public sealed partial class AppModel
     // :634-716
     public void HydraHeadTurnFinished(ChatThread head, TurnStatus status)
     {
-        if (head.Hydra is not { HydraHeadInfoKind: HydraHeadInfo.Kind.Droppy } info) return;
+        if (head.Hydra is not { HydraHeadInfoKind: HydraHeadInfo.Kind.Droppy } info)
+        {
+            if (head.MissionID is not null) Dextra?.OnHeadFinished(head.Id, status); // PORT-ONLY (Dextra AS-5): its gate slot is freed
+            return;
+        }
         var runtime = Runtime(head.Id);
         var finishedAt = SwiftDate.Now;
         UpdateHydraHead(head.Id, value => value with { ExecutionFinishedAt = finishedAt });
@@ -565,6 +597,9 @@ public sealed partial class AppModel
             return;
         }
 
+        // PORT-ONLY (Dextra AS-5): the head is done (a launch failure Hydra retries above keeps its slot): its gate slot is
+        // freed and it counts as finished in its mission.
+        if (head.MissionID is not null) Dextra?.OnHeadFinished(head.Id, status);
         MainActor.Spawn(async () =>
         {
             HydraLanding? landing = null;

@@ -1178,6 +1178,10 @@ public sealed partial class AppModel : MainActorModel
             Title = title, // AppModel.swift:1043
             HasCustomTitle = true, // AppModel.swift:1044
             HiddenFromAssistant = parent.HiddenFromAssistant, // PORT-ONLY (AS-3a, ED-NEW-dextra-as3a-2): a helper of a hidden chat is hidden too
+            // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-12): a subagent a mission's chat opens is the mission's too, so it is
+            // sealed, capped and in its own job like every mission descendant (12.3: never Full access, never the owner's rules).
+            MissionID = parent.MissionID,
+            AssistantID = parent.MissionID is null ? null : parent.AssistantID,
         };
         Threads = Threads.Appending(thread); // AppModel.swift:1045
         ScheduleSave(); // AppModel.swift:1046
@@ -1303,6 +1307,7 @@ public sealed partial class AppModel : MainActorModel
     {
         if (IgnisTurnFinished(id, status)) return; // PORT-ONLY: Ignis (ED-NEW-ignis-runtime): a hidden keep-warm ping ends silently
         AssistantTaps.TapTurnFinished(id, status, continues); // PORT-ONLY (AS-2, ED-NEW-dextra-as2-8): the Assistant's live feed
+        Dextra?.OnTurnFinished(id, status, continues); // PORT-ONLY (AS-5): a mission's lead or reviewer moves its mission on
         var thread = Thread(id);
         var isVisible = IsApplicationActive() && thread is not null && IsOnScreen(thread);
         var isHead = thread?.IsHydraHead == true;

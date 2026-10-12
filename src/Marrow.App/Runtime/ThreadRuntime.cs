@@ -1033,6 +1033,21 @@ public sealed partial class ThreadRuntime : MainActorModel
     }
 
     // :758-765. Swift: sendHydraBrief(_:attachments:).
+    /// <summary>
+    /// PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-6): the mission runner's message to one of its chats (the brief, a
+    /// redirect, the reviewer's findings). False when the chat cannot take it now: the text is blank or a turn runs.
+    /// </summary>
+    public bool SendMissionMessage(string text)
+    {
+        if (FoundationText.Trim(text, includeNewlines: true).Length == 0 || phase != RuntimePhase.Idle || IsReverting) return false;
+        _ = MainActor.Spawn(async () =>
+        {
+            await EnsureLoaded();
+            await StartTurn(text, []);
+        });
+        return true;
+    }
+
     public void SendHydraBrief(string text, IReadOnlyList<Attachment> attachments)
     {
         // ThreadRuntime.swift:758-765: reject empty/busy sends before touching the composer or head clock.
@@ -1799,7 +1814,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                 Effort = thread.Effort,
                 ServiceTier = ServiceTier(thread),
                 FastMode = thread.FastMode,
-                RuntimeMode = thread.RuntimeMode,
+                RuntimeMode = Marrow.App.Assistant.MissionLaunch.TurnMode(thread), // PORT-ONLY (Dextra AS-5): a mission chat stays in the ask mode
                 InteractionMode = thread.InteractionMode,
                 IsFinalReport = isFinalReport,
                 Command = command,
@@ -2088,6 +2103,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                         IgnisThreadID = ThreadID, // PORT-ONLY: Ignis (ED-NEW-ignis-runtime)
                     };
 
+                    configuration = app.MissionLaunchOf(thread, configuration); // PORT-ONLY (Dextra AS-5): a mission chat is sealed and jobbed
                     var created = AccountSessionFactory.Create(app.Providers, configuration, account.Id).Session;
                     if (created is OpenAICompatibleSession api) api.SkillTools = Marrow.Services.Port.Skills.Providers.SkillSessionFactory.NativeTools(configuration);
                     if (skills is not null) sessionSkills.Add(created, skills);
@@ -2186,6 +2202,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                     IgnisThreadID = ThreadID, // PORT-ONLY: Ignis (ED-NEW-ignis-runtime)
                 };
 
+                configuration = app.MissionLaunchOf(thread, configuration); // PORT-ONLY (Dextra AS-5): a mission chat is sealed and jobbed
                 var created = AccountSessionFactory.Create(app.Providers, configuration, account.Id).Session;
                 if (skills is not null) sessionSkills.Add(created, skills);
                 Observe(created, account.UsesLegacyCredentials ? UsageAccountKey.Default(account.Service) : new(account.Service, account.Id.ToString("D")));
@@ -2630,6 +2647,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             ScheduleSave();
         }
         session?.ResolveApproval(request.Id, option.Id);
+        App?.DextraRequestResolved(ThreadID, request.Id); // PORT-ONLY (Dextra AS-5): answered in the chat, its card goes
     }
 
     // :1733-1736. Swift: answer(_:answers:); the map is ProviderSession.AnswerQuestion's.
@@ -2638,6 +2656,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         BufferHandoff(HandoffJournal.EncodeResolution(request.Id, new { Request = request, Answers = answers }), preserve: true);
         Questions = Questions.Mutating(items => items.RemoveAll(item => item.Id == request.Id));
         session?.AnswerQuestion(request.Id, answers);
+        App?.DextraRequestResolved(ThreadID, request.Id); // PORT-ONLY (Dextra AS-5)
     }
 
     // :1738-1757
@@ -4107,6 +4126,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                     items.Add(value.Value);
                 });
                 App?.ThreadNeedsAttention(ThreadID);
+                App?.DextraApproval(ThreadID, value.Value); // PORT-ONLY (Dextra AS-5): a mission chat's approval goes to the queue
                 break;
             case ProviderEvent.Question value:
                 Questions = Questions.Mutating(items =>
@@ -4115,10 +4135,12 @@ public sealed partial class ThreadRuntime : MainActorModel
                     items.Add(value.Value);
                 });
                 App?.ThreadNeedsAttention(ThreadID);
+                App?.DextraQuestion(ThreadID, value.Value); // PORT-ONLY (Dextra AS-5)
                 break;
             case ProviderEvent.RequestResolved value:
                 Approvals = Approvals.Mutating(items => items.RemoveAll(item => item.Id == value.Id));
                 Questions = Questions.Mutating(items => items.RemoveAll(item => item.Id == value.Id));
+                App?.DextraRequestResolved(ThreadID, value.Id); // PORT-ONLY (Dextra AS-5): its card says the agent cancelled it
                 break;
             case ProviderEvent.TokenSpend value:
                 if (currentTurnID is { } tokenTurnID)
