@@ -6917,11 +6917,16 @@ ENGINEERING DECISION, lead check of the C8 packet after the merge with W14 (DESI
 2026-10-12 - ENGINEERING DECISION, CU-NC6 independent review. After Failed/Interrupted, take the oldest artifact request even behind ordinary follow-ups; retain ordinary rows paused, as the existing skills-continuation exception does. Completed turns keep normal thread FIFO. Revert pauses artifact dispatch and resumes accepted asks on settlement. Keep runtime-owned active ask context through intermediate updates; suppress its landed pending node and rebase queued numbers above all written versions. Artifact rows cannot be dragged ahead of one another; ordinary rows retain their existing controls. Tests: ThreadRuntimeArtifactMixedQueueTests, ThreadRuntimeArtifactRevertTests, TabulaQueueContextTests. No original expectation is changed or weakened.
 
 
-## ED-NEW-web-nc6land-1
+## ED-NEW-web-nc6l-1
 
 ENGINEERING DECISION, lead's landing check of CU-NC6 (DESIGN 6.3, the pending node and the "Queued after v<n>" receipt): ED-NEW-web-nc6-1 marked every accepted request as queued until its turn bound, which is one main-loop hop after acceptance, so the first Ask to change on an idle chat showed "v<n> queued" and "Queued after v<n-1>" with nothing ahead of it. A request is now queued only when something is ahead of it: a running turn, another accepted artifact request, a start already on its way, or a request the pane already marked queued. The first request on an idle chat is the pending one from the moment it is accepted (the pulsing node, no queued receipt) and every later one is queued. Acceptance tests: ThreadRuntimeArtifactAcceptTests. No existing expectation changed.
 
 
-## ED-NEW-web-nc6land-2
+## ED-NEW-web-nc6l-2
 
 ENGINEERING DECISION, lead's landing check of CU-NC6: two tests added under ED-NEW-web-nc6-2 had never run green. (a) ThreadRuntimeArtifactRevertTests.A_request_deferred_during_revert_resumes_when_revert_settles installed its offline provider seam after the OnMain call that ran Revert, but OnMain also runs everything Revert posted (the resumed startup) before it returns, so the startup ran with no seam and tried to start the real provider ("Claude is not installed"); the seam now goes in inside the same main-loop action as a fresh scripted session (ThreadRuntimeTurnRig.Install installs in place when it is already on the main loop) and the assertion is the same (the provider's input carries the request text). Its red run is the same test with the flush in Revert's finally block removed. (b) TabulaQueueContextTests.An_update_before_turn_completion_does_not_make_a_queued_change_start_from_a_scrubbed_old_version read the strip before the pane's queued render had run; it now lays the pane out first, as every TabulaQueueTests step does. Every assertion is unchanged.
+
+
+## ED-NEW-web-nc6l-3
+
+ENGINEERING DECISION, lead's landing check of CU-NC6: (a) the spelling of this check's ids. The lead's packet asked for ED-NEW-web-nc6land-<n>; the traceability meta-test (Traceability.DecisionId) accepts a unit name of letters, digits and at most one trailing letter, so the ids are ED-NEW-web-nc6l-1 to -3 and the tests carry the same ids. (b) ThreadRuntimePart7Tests.Follow_ups_wait_after_failed_or_interrupted_turns and Send_now_for_an_unknown_queue_item_is_a_no_op build their runtime with RuntimeHelpers.GetUninitializedObject, which skips field initializers, and ED-NEW-web-nc6-1 read its queue maps in DrainFollowUps and SendFollowUpNow, so both threw a NullReferenceException. The artifact queue maps (and the request context) are now created on first use; the two tests are unchanged and pass.

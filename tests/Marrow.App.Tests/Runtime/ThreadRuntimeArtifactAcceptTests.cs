@@ -6,11 +6,11 @@ using Marrow.Services.Providers;
 namespace Marrow.App.Tests.Runtime;
 
 /// <summary>
-/// ED-NEW-web-nc6land-1: an accepted Ask to change / Ask to fix is "queued" only when something is ahead of it. The
+/// ED-NEW-web-nc6l-1: an accepted Ask to change / Ask to fix is "queued" only when something is ahead of it. The
 /// first request on an idle chat is the pending one from the moment it is accepted (the strip pulses "v5", the toast
 /// is "Asked the chat to fix it"), even though the follow-up queue starts it one main-loop hop later.
 /// </summary>
-[Trait("Decision", "ED-NEW-web-nc6land-1")]
+[Trait("Decision", "ED-NEW-web-nc6l-1")]
 public sealed class ThreadRuntimeArtifactAcceptTests
 {
     [Fact]

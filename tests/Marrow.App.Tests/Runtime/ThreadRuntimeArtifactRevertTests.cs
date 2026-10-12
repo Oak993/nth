@@ -28,7 +28,7 @@ public sealed class ThreadRuntimeArtifactRevertTests
             Assert.True(rig.Runtime.Revert(turn.Id, restoreFiles: false).GetAwaiter().GetResult());
             // OnMain runs everything Revert posted (the resumed startup) before it returns, so the offline seam goes in
             // here, in the same action: Revert released the old session, and a startup without a seam would try to
-            // launch the real provider (ED-NEW-web-nc6land-2).
+            // launch the real provider (ED-NEW-web-nc6l-2).
             rig.Install(next);
         });
         rig.H.Main.Loop.RunUntil(() => next.Inputs.Count == 1, TimeSpan.FromSeconds(8));

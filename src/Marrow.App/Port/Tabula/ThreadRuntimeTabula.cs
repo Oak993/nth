@@ -14,10 +14,18 @@ public sealed partial class ThreadRuntime
 {
     // ED-NEW-web-nc6-1: the follow-up queue owns accepted artifact requests. Their UI state belongs to
     // the runtime, so closing the pane cannot erase them. Bind completion to the actual turn identity.
-    private readonly Dictionary<Guid, TabulaPendingAsk?> artifactFollowUps = [];
-    private readonly Dictionary<Guid, Guid> artifactRequestTurns = [];
-    private readonly AsyncLocal<Guid?> artifactRequestContext = new();
+    // ED-NEW-web-nc6l-3: created on first use, not by field initializers: the runtime tests that build a runtime
+    // without its constructor (RuntimeHelpers.GetUninitializedObject) reach the queue paths too.
+    private Dictionary<Guid, TabulaPendingAsk?>? artifactFollowUpMap;
+    private Dictionary<Guid, Guid>? artifactRequestTurnMap;
+    private AsyncLocal<Guid?>? artifactContext;
     private Guid? artifactDispatchPending;
+
+    private Dictionary<Guid, TabulaPendingAsk?> artifactFollowUps => artifactFollowUpMap ??= [];
+
+    private Dictionary<Guid, Guid> artifactRequestTurns => artifactRequestTurnMap ??= [];
+
+    private AsyncLocal<Guid?> artifactRequestContext => artifactContext ??= new();
 
     /// <summary>Posts <paramref name="text"/> as the user's next turn: now when idle, else as a queued follow-up.</summary>
     public void SendArtifactTurn(string text) => QueueArtifactTurn(text, null);
@@ -30,7 +38,7 @@ public sealed partial class ThreadRuntime
         if (text.Length == 0 || IsReverting || Thread is not { IsArchived: false } thread
             || App?.Project(thread.ProjectID) is null) return false;
         var prompt = new FollowUpPrompt { Id = request?.RequestId ?? Guid.NewGuid(), Text = text };
-        // ED-NEW-web-nc6land-1: "queued" means something is ahead of it (a running turn, another accepted artifact
+        // ED-NEW-web-nc6l-1: "queued" means something is ahead of it (a running turn, another accepted artifact
         // request, a start already on its way). The first request on an idle chat is the pending one at once, even
         // though the follow-up queue starts it one main-loop hop later.
         var queuedBehind = request is { IsQueued: true } || phase != RuntimePhase.Idle || artifactDispatchPending is not null || artifactFollowUps.Count > 0;
