@@ -34,11 +34,14 @@ public sealed class ArtifactFenceFilter(Guid thread, ArtifactHost host, Func<(Ar
                     var end = delta.Text.IndexOf('\n', at);
                     end = end < 0 ? delta.Text.Length : end + 1;
                     var step = message.Parser.Feed(delta.Text[at..end]);
-                    Stream(store, delta.Id, message, step.Events);
+                    Stream(store, delta.Id, message, step.Events, readText: false);
                     Show(message, step.Display, output);
                     Commit(store, message, step.Events, output);
                     at = end;
                 }
+                // The open block's text is read once per delta, after every line of it was fed (a read per line would
+                // use up the 250 ms read budget on the first line and leave the tail of the delta unseen).
+                StreamText(delta.Id, message);
                 return output;
             }
             case ProviderEvent.MessageCompleted completed:
@@ -94,7 +97,7 @@ public sealed class ArtifactFenceFilter(Guid thread, ArtifactHost host, Func<(Ar
     // pane swaps the skeleton for the saved version.
     private static string StreamPrefix(string messageId) => "fence:" + messageId + ":";
 
-    private void Stream(ArtifactStore store, string messageId, Message message, IReadOnlyList<ArtifactFenceEvent> events)
+    private void Stream(ArtifactStore store, string messageId, Message message, IReadOnlyList<ArtifactFenceEvent> events, bool readText = true)
     {
         var streams = host.Streams;
         foreach (var @event in events)
@@ -109,12 +112,15 @@ public sealed class ArtifactFenceFilter(Guid thread, ArtifactHost host, Func<(Ar
             }
             else streams.End(Thread, key);
         }
-        if (message.Parser.OpenIndex is { } index)
-        {
-            var key = StreamPrefix(messageId) + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            var parser = message.Parser;
-            streams.Update(Thread, key, () => parser.Streaming ?? "");
-        }
+        if (readText) StreamText(messageId, message);
+    }
+
+    private void StreamText(string messageId, Message message)
+    {
+        if (message.Parser.OpenIndex is not { } index) return;
+        var key = StreamPrefix(messageId) + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var parser = message.Parser;
+        host.Streams.Update(Thread, key, () => parser.Streaming ?? "");
     }
 
     private Message Of(string id, ArtifactStore store)
