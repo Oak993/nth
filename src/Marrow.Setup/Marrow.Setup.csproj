@@ -21,6 +21,7 @@
     <ApplicationIcon>..\Marrow.App\Assets\icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Unit U5 (ED-NEW-inst-u5-1): the linked ShellLinks.cs uses [GeneratedComInterface], whose generated code needs unsafe. -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IsAotCompatible>true</IsAotCompatible>
     <Product>nth</Product>
@@ -56,6 +57,12 @@
     <!-- PLAN.md 3 step 4 and 5, unit U9: the folders the setup writes outside the install root and the sweeps that remove what it leaves. -->
     <Compile Include="..\Marrow.Core\Support\SetupFolders.cs" Link="SetupFolders.cs" />
     <Compile Include="..\Marrow.Core\Support\SetupSweeper.cs" Link="SetupSweeper.cs" />
+    <!-- Unit U5: the shortcut logic, the install layout and the uninstall entry, plus the real shell and registry (app Port). -->
+    <Compile Include="..\Marrow.Core\Support\DesktopShortcut.cs" Link="DesktopShortcut.cs" />
+    <Compile Include="..\Marrow.Core\Support\InstallLayout.cs" Link="InstallLayout.cs" />
+    <Compile Include="..\Marrow.Core\Support\UninstallEntry.cs" Link="UninstallEntry.cs" />
+    <Compile Include="..\Marrow.App\Port\ShellLinks.cs" Link="Port\ShellLinks.cs" />
+    <Compile Include="..\Marrow.App\Port\RegistryUserHive.cs" Link="Port\RegistryUserHive.cs" />
     <AssemblyMetadata Include="InstallerTitle" Value="$(InstallerTitle)" />
     <AssemblyMetadata Include="InstallerAppId" Value="$(InstallerAppId)" />
     <AssemblyMetadata Include="InstallerVersion" Value="$(InstallerVersion)" />

@@ -181,6 +181,16 @@ public interface IShellLinks
     /// <summary>Deletes the link file. A file that is already gone is not an error.</summary>
     void DeleteLink(string path);
 
+    /// <summary>
+    /// Moves a link file to a new path as a plain file move, so every field and property moves with it (unit U5: 1.0.0's
+    /// <c>Programs\nth\nth.lnk</c> becomes <c>Programs\nth.lnk</c>, VELOPACK_CHECK.md check 14). Throws when the source is
+    /// missing or the destination already exists; it never replaces a file.
+    /// </summary>
+    void MoveLink(string from, string to);
+
+    /// <summary>Deletes the folder only when it holds nothing at all; returns whether it was deleted. A missing folder returns false.</summary>
+    bool DeleteEmptyFolder(string folder);
+
     /// <summary>Explorer's "Show desktop icons" is off (<c>SHGetSetSettings(SSF_HIDEICONS)</c>).</summary>
     bool DesktopIconsHidden();
 
