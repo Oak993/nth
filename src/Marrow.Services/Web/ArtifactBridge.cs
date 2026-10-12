@@ -99,6 +99,7 @@ internal sealed class ArtifactBridge(ArtifactRuntime runtime, ArtifactMount moun
 
     private async Task Handle(string type, JsonObject root, string session, long id)
     {
+        var hold = type is "complete" or "callTool" or "files.pick" ? mount.View.BeginBridgeCall() : null;
         CancellationTokenSource call;
         lock (gate)
         {
@@ -128,6 +129,7 @@ internal sealed class ArtifactBridge(ArtifactRuntime runtime, ArtifactMount moun
         {
             lock (gate) running.Remove((session, id));
             call.Dispose();
+            if (hold is not null) runtime.Post(hold.Dispose);
         }
     }
 
@@ -309,7 +311,7 @@ internal sealed class ArtifactBridge(ArtifactRuntime runtime, ArtifactMount moun
     private void PostJson(JsonObject body)
     {
         var json = body.ToJsonString();
-        runtime.Post(() => mount.View.Engine?.PostMessage(json));
+        runtime.Post(() => mount.View.PostMessage(json));
     }
 
     private string Key(JsonObject root) => Text(root["key"]) ?? throw Invalid("A storage key is a non-empty string.");

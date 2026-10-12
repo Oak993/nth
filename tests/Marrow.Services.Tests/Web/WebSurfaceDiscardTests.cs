@@ -10,6 +10,159 @@ namespace Marrow.Services.Tests.Web;
 [Trait("Feature", "W-7")]
 public sealed class WebSurfaceDiscardTests
 {
+    [Fact]
+    public void The_held_budget_defaults_to_twice_the_live_budget_and_can_be_overridden()
+    {
+        var options = new WebSurfaceOptions();
+        Assert.Equal(8, options.MaxHeldViews);
+        options.MaxLiveViews = 2;
+        Assert.Equal(4, options.MaxHeldViews);
+        options.MaxHeldViews = 3;
+        options.MaxLiveViews = 8;
+        Assert.Equal(3, options.MaxHeldViews);
+    }
+
+    [Fact]
+    public void A_playing_audio_page_keeps_its_engine_even_above_the_held_budget()
+    {
+        using var rig = new WebRig();
+        rig.Surface.Options.MaxHeldViews = 0;
+        var view = HiddenAfterUse(rig);
+        var engine = WebRig.Fake(view);
+        engine.IsPlayingAudio = true;
+        rig.Time.Advance(TimeSpan.FromMinutes(11));
+        rig.Surface.Tick();
+        Assert.Equal(WebLiveness.Live, view.Liveness);
+        Assert.False(engine.IsDisposed);
+        Assert.DoesNotContain("Suspend", engine.Log);
+    }
+
+    [Fact]
+    public void Repeated_hidden_updates_do_not_restart_the_ten_minute_age()
+    {
+        using var rig = new WebRig();
+        rig.Surface.Options.MaxHeldViews = 0;
+        var view = HiddenAfterUse(rig);
+        rig.Time.Advance(TimeSpan.FromMinutes(8));
+        view.SetShown(false);
+        rig.Time.Advance(TimeSpan.FromMinutes(2));
+        rig.Surface.Tick();
+        Assert.Equal(WebLiveness.Discarded, view.Liveness);
+    }
+
+    [Fact]
+    public void A_sandbox_can_finish_its_storage_save_before_discard_and_stale_acknowledgments_are_ignored()
+    {
+        using var rig = new ArtifactRuntimeRig();
+        var artifact = rig.Create(Marrow.Core.Models.ArtifactKind.Html, "<p>widget</p>");
+        var surface = rig.Web.OpenLive(WebSurfaceKind.InlineWidget, url: null);
+        using var mount = rig.Runtime.Mount(surface, ArtifactRuntimeRig.Chat, artifact.Artifact.Id);
+        var engine = WebRig.Fake(surface);
+        engine.RaiseNavigationCompleted(mount.Address);
+        surface.SetShown(false);
+        for (var i = 0; i < 9; i++) rig.Web.OpenLive();
+        rig.Advance(TimeSpan.FromMinutes(11));
+        rig.Web.Surface.Tick();
+        Assert.False(engine.IsDisposed);
+        var notice = ArtifactRuntimeRig.Posts(engine).Last(p => p["event"]?.GetValue<string>() == "willDiscard");
+        var token = notice["token"]!.GetValue<string>();
+        ArtifactRuntimeRig.Send(mount, engine, new { nth = "invalid", type = "discard.ready", token, ok = true });
+        ArtifactRuntimeRig.Send(mount, engine, new { nth = 1, type = "discard.ready", token, ok = true }, "https://wrong.invalid");
+        Assert.False(engine.IsDisposed);
+        ArtifactRuntimeRig.Send(mount, engine, new { nth = 1, type = "discard.ready", token = "old", ok = true });
+        Assert.False(engine.IsDisposed);
+        ArtifactRuntimeRig.Send(mount, engine, new { nth = 1, s = "doc", id = 1, type = "storage.set", key = "state", value = "saved" });
+        Assert.Equal("saved", rig.Runtime.Data.Get(mount.Artifact, "state"));
+        Assert.False(engine.IsDisposed);
+        ArtifactRuntimeRig.Send(mount, engine, new { nth = 1, type = "discard.ready", token, ok = true });
+        Assert.True(engine.IsDisposed);
+        Assert.Equal("saved", rig.Runtime.Data.Get(mount.Artifact, "state"));
+    }
+
+    [Fact]
+    public void A_sandbox_that_does_not_acknowledge_the_discard_notice_keeps_its_content()
+    {
+        using var rig = new ArtifactRuntimeRig();
+        var artifact = rig.Create(Marrow.Core.Models.ArtifactKind.Html, "<p>widget</p>");
+        var surface = rig.Web.OpenLive(WebSurfaceKind.InlineWidget, url: null);
+        using var mount = rig.Runtime.Mount(surface, ArtifactRuntimeRig.Chat, artifact.Artifact.Id);
+        var engine = WebRig.Fake(surface);
+        engine.RaiseNavigationCompleted(mount.Address);
+        surface.SetShown(false);
+        for (var i = 0; i < 9; i++) rig.Web.OpenLive();
+        rig.Advance(TimeSpan.FromMinutes(11));
+        rig.Web.Surface.Tick();
+        var token = ArtifactRuntimeRig.Posts(engine).Last(p => p["event"]?.GetValue<string>() == "willDiscard")["token"]!.GetValue<string>();
+        rig.Advance(TimeSpan.FromSeconds(2));
+        Assert.NotEqual(WebLiveness.Discarded, surface.Liveness);
+        Assert.NotNull(surface.Engine);
+        Assert.Contains(ArtifactRuntimeRig.Posts(engine), p => p["event"]?.GetValue<string>() == "discard.cancel" && p["token"]?.GetValue<string>() == token);
+        const string lateReply = "{\"nth\":1,\"s\":\"old\",\"id\":1,\"ok\":true,\"result\":null}";
+        surface.PostMessage(lateReply);
+        Assert.Contains("Post " + lateReply, engine.Log);
+        rig.Web.OpenLive(); // renew pressure after the other eligible tabs relieved it
+        rig.Advance(TimeSpan.FromSeconds(5));
+        rig.Web.Surface.Tick();
+        var fresh = ArtifactRuntimeRig.Posts(engine).Last(p => p["event"]?.GetValue<string>() == "willDiscard")["token"]!.GetValue<string>();
+        Assert.NotEqual(token, fresh);
+        ArtifactRuntimeRig.Send(mount, engine, new { nth = 1, type = "discard.ready", token, ok = true });
+        Assert.False(engine.IsDisposed);
+        ArtifactRuntimeRig.Send(mount, engine, new { nth = 1, type = "discard.ready", token = fresh, ok = true });
+        Assert.True(engine.IsDisposed);
+    }
+    [Fact]
+    public void An_open_artifact_mount_is_never_discarded_even_when_its_preview_is_hidden()
+    {
+        using var rig = new ArtifactRuntimeRig();
+        var (mount, engine) = rig.Mount(rig.Create(Marrow.Core.Models.ArtifactKind.Html, "<p>open</p>"));
+        mount.View.SetShown(false);
+        for (var i = 0; i < 9; i++) rig.Web.OpenLive();
+        rig.Advance(TimeSpan.FromMinutes(11));
+        rig.Web.Surface.Tick();
+        Assert.NotEqual(WebLiveness.Discarded, mount.View.Liveness);
+        Assert.Same(engine, mount.View.Engine);
+    }
+    [Fact]
+    public void A_page_that_refuses_suspension_is_not_discarded_under_pressure()
+    {
+        using var rig = new WebRig();
+        var view = HiddenAfterUse(rig);
+        var engine = WebRig.Fake(view);
+        engine.SuspendSucceeds = false; // the engine's playing-audio refusal
+        for (var i = 0; i < 9; i++) rig.OpenLive();
+        rig.Time.Advance(TimeSpan.FromMinutes(11));
+        rig.Surface.Tick();
+        Assert.Equal(WebLiveness.Live, view.Liveness);
+        Assert.False(engine.IsDisposed);
+    }
+    [Fact]
+    public void Ten_minutes_hidden_without_engine_pressure_keeps_the_page()
+    {
+        using var rig = new WebRig();
+        var view = HiddenAfterUse(rig);
+        rig.Time.Advance(TimeSpan.FromMinutes(11));
+        rig.Surface.Tick();
+        Assert.Equal(WebLiveness.Live, view.Liveness);
+        Assert.False(WebRig.Fake(view).IsDisposed);
+    }
+
+    [Fact]
+    public void Pressure_discards_only_the_longest_hidden_until_the_held_budget_is_met_and_warns_first()
+    {
+        using var rig = new WebRig();
+        var first = HiddenAfterUse(rig);
+        var engine = WebRig.Fake(first);
+        rig.Time.Advance(TimeSpan.FromSeconds(1));
+        var second = HiddenAfterUse(rig);
+        for (var i = 0; i < 7; i++) rig.OpenLive();
+        rig.Time.Advance(TimeSpan.FromMinutes(11));
+        rig.Surface.Tick();
+        Assert.Equal(WebLiveness.Discarded, first.Liveness);
+        Assert.NotEqual(WebLiveness.Discarded, second.Liveness);
+        Assert.Equal(8, rig.Surface.Views.Count(v => v.Engine is not null));
+        Assert.Contains("Post {\"nth\":1,\"event\":\"willDiscard\"}", engine.Log);
+        Assert.True(engine.Log.FindIndex(l => l.StartsWith("Post ", StringComparison.Ordinal)) < engine.Log.IndexOf("Dispose"));
+    }
     private static WebSurfaceView HiddenAfterUse(WebRig rig, WebSurfaceKind kind = WebSurfaceKind.VisusTab)
     {
         var view = rig.OpenLive(kind, shown: true);
@@ -22,6 +175,7 @@ public sealed class WebSurfaceDiscardTests
     public void A_tab_hidden_for_ten_minutes_is_discarded_to_its_snapshot_and_address()
     {
         using var rig = new WebRig();
+        rig.Surface.Options.MaxHeldViews = 0; // this timing test deliberately keeps one engine above budget
         var view = HiddenAfterUse(rig);
         var fake = WebRig.Fake(view);
         rig.Surface.Cache.Put(view, fake.CannedFrame()!);
@@ -44,6 +198,7 @@ public sealed class WebSurfaceDiscardTests
     public void Showing_a_discarded_tab_creates_a_new_view_and_restores_its_address()
     {
         using var rig = new WebRig();
+        rig.Surface.Options.MaxHeldViews = 0;
         var view = HiddenAfterUse(rig);
         rig.Time.Advance(TimeSpan.FromMinutes(11));
         rig.Surface.Tick();
@@ -63,6 +218,7 @@ public sealed class WebSurfaceDiscardTests
     public void A_private_tab_is_never_discarded()
     {
         using var rig = new WebRig();
+        rig.Surface.Options.MaxHeldViews = 0;
         var view = HiddenAfterUse(rig, WebSurfaceKind.VisusPrivateTab);
         rig.Time.Advance(TimeSpan.FromHours(2));
         rig.Surface.Tick();
@@ -74,6 +230,7 @@ public sealed class WebSurfaceDiscardTests
     public void A_tab_a_model_step_drives_is_never_discarded()
     {
         using var rig = new WebRig();
+        rig.Surface.Options.MaxHeldViews = 0;
         var view = HiddenAfterUse(rig);
         using var step = view.BeginModelStep();
         rig.Time.Advance(TimeSpan.FromMinutes(30));
@@ -85,6 +242,7 @@ public sealed class WebSurfaceDiscardTests
     public void A_shown_tab_is_never_discarded()
     {
         using var rig = new WebRig();
+        rig.Surface.Options.MaxHeldViews = 0;
         var view = rig.OpenLive(shown: true);
         rig.Time.Advance(TimeSpan.FromHours(1));
         rig.Surface.Tick();

@@ -104,6 +104,75 @@ public sealed class SandboxScriptBehaviourTests
         """;
 
     [Fact]
+    public void The_discard_acknowledgment_waits_for_storage_and_reports_a_refused_save()
+    {
+        const string harness = BridgeStubs + """
+            const bridge = fs.readFileSync(process.argv[2], 'utf8');
+            (async () => {
+              const s = make('https://a-test.invalid');
+              vm.runInContext(bridge, s.ctx);
+              const handler = (e) => e.waitUntil(s.win.nth.storage.set('state', 'saved'));
+              s.win.nth.addEventListener('willDiscard', handler);
+              s.deliver({ nth: 1, event: 'willDiscard', token: 'first' });
+              await Promise.resolve();
+              const early = s.posted.filter(m => m.type === 'discard.ready').length;
+              const save = s.posted.find(m => m.type === 'storage.set');
+              s.deliver({ nth: 1, s: save.s, id: save.id, ok: true, result: null });
+              await new Promise(setImmediate);
+              const first = s.posted.find(m => m.type === 'discard.ready');
+              s.deliver({ nth: 1, event: 'willDiscard', token: 'second' });
+              const last = s.posted.filter(m => m.type === 'storage.set').at(-1);
+              s.deliver({ nth: 1, s: last.s, id: last.id, ok: false, error: { code: 'too_large' } });
+              await new Promise(setImmediate);
+              const second = s.posted.filter(m => m.type === 'discard.ready').at(-1);
+              console.log(JSON.stringify({ early, first, second }));
+            })().catch(e => { console.error(e); process.exitCode = 1; });
+            """;
+        var result = RunNode(harness, Embedded("bridge.js"));
+        Assert.Equal(0, result["early"]!.GetValue<int>());
+        Assert.Equal("first", result["first"]!["token"]!.GetValue<string>());
+        Assert.True(result["first"]!["ok"]!.GetValue<bool>());
+        Assert.Equal("second", result["second"]!["token"]!.GetValue<string>());
+        Assert.False(result["second"]!["ok"]!.GetValue<bool>());
+    }
+
+    [Fact]
+    public void Discard_drains_async_storage_writes_and_a_cancelled_save_does_not_block_retry()
+    {
+        const string harness = BridgeStubs + """
+            const bridge = fs.readFileSync(process.argv[2], 'utf8');
+            (async () => {
+              const s = make('https://a-test.invalid');
+              vm.runInContext(bridge, s.ctx);
+              let attempt = 0;
+              s.win.nth.addEventListener('willDiscard', async () => {
+                const own = ++attempt;
+                await s.win.nth.storage.get('state');
+                await s.win.nth.storage.set('state', 'saved-' + own);
+              });
+              s.deliver({ nth: 1, event: 'willDiscard', token: 'old' });
+              s.deliver({ nth: 1, event: 'discard.cancel', token: 'old' });
+              await new Promise(setImmediate);
+              s.deliver({ nth: 1, event: 'willDiscard', token: 'new' });
+              const reads = s.posted.filter(m => m.type === 'storage.get');
+              for (const m of reads) s.deliver({ nth: 1, s: m.s, id: m.id, ok: true, result: null });
+              await new Promise(setImmediate);
+              const early = s.posted.filter(m => m.type === 'discard.ready').length;
+              const writes = s.posted.filter(m => m.type === 'storage.set');
+              for (const m of writes) s.deliver({ nth: 1, s: m.s, id: m.id, ok: true, result: null });
+              await new Promise(setImmediate);
+              console.log(JSON.stringify({ early, writes: writes.length, acks: s.posted.filter(m => m.type === 'discard.ready') }));
+            })().catch(e => { console.error(e); process.exitCode = 1; });
+            """;
+        var result = RunNode(harness, Embedded("bridge.js"));
+        Assert.Equal(0, result["early"]!.GetValue<int>());
+        Assert.Equal(2, result["writes"]!.GetValue<int>());
+        var ack = Assert.Single(result["acks"]!.AsArray());
+        Assert.Equal("new", ack!["token"]!.GetValue<string>());
+        Assert.True(ack["ok"]!.GetValue<bool>());
+    }
+
+    [Fact]
     public void The_bridge_talks_only_through_webview_messages_with_its_document_token()
     {
         const string harness = BridgeStubs + """

@@ -24,6 +24,26 @@ public sealed class ArtifactFenceFilterTests
     private static ArtifactFenceFilter Filter(ArtifactHostScope scope) =>
         new(Chat, scope.Host, () => (new ArtifactAuthor("claude", "sonnet", TurnId), "Make a pricing calculator"));
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(500)]
+    public void A_refused_project_keeps_all_its_raw_content_in_the_completed_message(int piece)
+    {
+        using var scope = new ArtifactHostScope();
+        var filter = Filter(scope);
+        const string content = "```js path=src/app.js\nconst x = 'keep me';\n```\n";
+        var raw = "Before\n````nth-artifact id=broken kind=project title=Broken\n" + content + "````\nAfter";
+        var events = piece == 0 ? filter.Filter(new ProviderEvent.MessageCompleted("m1", raw)) : Stream(filter, "m1", raw, piece).Events;
+        var saved = Assert.Single(events.OfType<ProviderEvent.MessageCompleted>()).Text;
+        Assert.Contains("nth-artifact://broken", saved, StringComparison.Ordinal);
+        Assert.Contains(content, saved, StringComparison.Ordinal);
+        Assert.Contains("After", saved, StringComparison.Ordinal);
+        Assert.Single(events.OfType<ProviderEvent.Notice>());
+        if (piece > 0) Assert.Contains(content, string.Concat(events.OfType<ProviderEvent.MessageDelta>().Select(d => d.Text)), StringComparison.Ordinal);
+        Assert.Empty(scope.Store.List(Chat));
+    }
+
     private static (string Shown, List<ProviderEvent> Events) Stream(ArtifactFenceFilter filter, string id, string text, int piece)
     {
         var events = new List<ProviderEvent>();
@@ -32,6 +52,65 @@ public sealed class ArtifactFenceFilterTests
         var shown = string.Concat(events.OfType<ProviderEvent.MessageDelta>().Select(d => d.Text));
         events.AddRange(filter.Filter(new ProviderEvent.MessageCompleted(id, text)));
         return (shown, events);
+    }
+
+    [Fact]
+    public void A_refused_block_survives_a_changed_final_answer_without_a_duplicate_warning()
+    {
+        using var scope = new ArtifactHostScope();
+        var filter = Filter(scope);
+        const string raw = "```nth-artifact kind=project title=Broken\nkeep all of this\n```\n";
+        var deltas = filter.Filter(new ProviderEvent.MessageDelta("m1", raw));
+        Assert.Single(deltas.OfType<ProviderEvent.Notice>());
+        var final = filter.Filter(new ProviderEvent.MessageCompleted("m1", raw + "Changed final line"));
+        var text = Assert.Single(final.OfType<ProviderEvent.MessageCompleted>()).Text;
+        Assert.Contains("keep all of this", text, StringComparison.Ordinal);
+        Assert.Contains("Changed final line", text, StringComparison.Ordinal);
+        Assert.Empty(final.OfType<ProviderEvent.Notice>());
+    }
+
+    [Fact]
+    public void Changed_final_block_content_is_visible_when_the_streamed_block_was_already_saved()
+    {
+        using var scope = new ArtifactHostScope();
+        var filter = Filter(scope);
+        filter.Filter(new ProviderEvent.MessageDelta("m1", Answer));
+        const string content = "```js path=src/app.js\nkeep this changed final content\n```\n";
+        var final = filter.Filter(new ProviderEvent.MessageCompleted("m1",
+            "````nth-artifact id=pricing kind=project title=Broken\n" + content + "````\n"));
+        Assert.Contains(content, Assert.Single(final.OfType<ProviderEvent.MessageCompleted>()).Text, StringComparison.Ordinal);
+        Assert.Contains("[Pricing calculator · HTML app](nth-artifact://pricing)", Assert.Single(final.OfType<ProviderEvent.MessageCompleted>()).Text, StringComparison.Ordinal);
+        Assert.Single(final.OfType<ProviderEvent.Notice>());
+        Assert.Equal("<h3>Orbit pricing</h3>\n", scope.Store.Read(Chat, "pricing").Text);
+    }
+
+    [Fact]
+    public void An_interrupted_refused_block_reappears_in_deltas_before_turn_completion()
+    {
+        using var scope = new ArtifactHostScope();
+        var filter = Filter(scope);
+        filter.Filter(new ProviderEvent.MessageDelta("m1", "```nth-artifact kind=project title=Broken\nunfinished content"));
+        var ended = filter.Filter(new ProviderEvent.TurnCompleted(TurnStatus.Interrupted, null));
+        Assert.Contains("unfinished content", string.Concat(ended.OfType<ProviderEvent.MessageDelta>().Select(d => d.Text)), StringComparison.Ordinal);
+        Assert.Single(ended.OfType<ProviderEvent.Notice>());
+        Assert.IsType<ProviderEvent.TurnCompleted>(ended[^1]);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(1000)]
+    public void A_refused_block_stays_between_its_chip_and_the_following_successful_block(int piece)
+    {
+        using var scope = new ArtifactHostScope();
+        var filter = Filter(scope);
+        const string raw = "```nth-artifact kind=project title=Broken\nkeep this\n```\n"
+            + "Then\n```nth-artifact kind=html title=Good\n<p>saved</p>\n```\n";
+        var (shown, events) = Stream(filter, "m1", raw, piece);
+        Assert.True(shown.IndexOf("nth-artifact://broken", StringComparison.Ordinal) < shown.IndexOf("keep this", StringComparison.Ordinal));
+        Assert.True(shown.IndexOf("keep this", StringComparison.Ordinal) < shown.IndexOf("Then", StringComparison.Ordinal));
+        Assert.Single(events.OfType<ProviderEvent.Notice>());
+        Assert.Equal("<p>saved</p>\n", scope.Store.Read(Chat, "good").Text);
+        Assert.Equal(shown, Assert.Single(events.OfType<ProviderEvent.MessageCompleted>()).Text);
     }
 
     [Fact]
@@ -126,7 +205,7 @@ public sealed class ArtifactFenceFilterTests
         using var scope = new ArtifactHostScope();
         var filter = Filter(scope);
         var (shown, events) = Stream(filter, "m1", "```nth-artifact kind=project title=\"Empty site\"\nno files here\n```\n", 8);
-        Assert.Equal("[Empty site · Project](nth-artifact://empty-site)\n\n", shown);
+        Assert.Equal("[Empty site · Project](nth-artifact://empty-site)\n\n```\nno files here\n```\n\n", shown);
         var notice = Assert.IsType<ProviderEvent.Notice>(Assert.Single(events, e => e is ProviderEvent.Notice)).Value;
         Assert.Equal(Notice.Level.Warning, notice.NoticeLevel);
         Assert.StartsWith("Tabula could not save “Empty site”: the project block has no files", notice.Message, StringComparison.Ordinal);

@@ -24,6 +24,25 @@ namespace Marrow.UI.Tests.Web;
 [Trait("Feature", "W-7")]
 public sealed class WebViewHostTests(HeadlessSession headless)
 {
+    [Fact]
+    public void Pointer_press_and_key_focus_touch_even_an_already_live_view()
+    {
+        headless.OnUiThread(() =>
+        {
+            var (window, host, surface, _) = Shown();
+            try
+            {
+                surface.Log.Clear();
+                host.RaiseEvent(new FocusChangedEventArgs(InputElement.GotFocusEvent) { NavigationMethod = NavigationMethod.Tab });
+                Assert.Contains("Activate", surface.Log);
+                surface.Log.Clear();
+                window.MouseDown(new Point(10, 10), MouseButton.Left);
+                Assert.Contains("Activate", surface.Log);
+            }
+            finally { window.Close(); }
+        });
+    }
+
     private static readonly Color Page = Color.FromRgb(0x20, 0x80, 0xC0);
 
     private static (Window Window, WebViewHost Host, FakeWebViewSurface Surface, List<string> Steps) Shown(TimeProvider? time = null, double width = 400, double height = 300)
