@@ -373,7 +373,8 @@ public sealed partial class PcControlEngine
                     var match = PcElementMatch.Resolve(fresh, borrowIdentity);
                     if (!match.Found) return PcUiaOutcome.Fail(match.Kind == PcMatchKind.Ambiguous ? PcErrorCode.AmbiguousTarget : PcErrorCode.StaleElement,
                         match.Detail ?? "the intended element changed while the borrow waited");
-                    var live = checkedLive is not null && PcElementMatch.Matches(checkedLive, borrowIdentity) ? checkedLive : fresh.Elements[match.Index];
+                    var live = waitedMs < 0 ? borrowTarget
+                        : checkedLive is not null && PcElementMatch.Matches(checkedLive, borrowIdentity) ? checkedLive : fresh.Elements[match.Index];
                     if (request.Point is { } oldPoint)
                     {
                         if (CoordinateMapper.Compare(request.Window.Frame, window.Frame) == PcFrameChange.Resized)

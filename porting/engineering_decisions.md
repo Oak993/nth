@@ -6451,3 +6451,9 @@ Original focus/raise race RED twice0/2/0; initialGREEN2/0/0. Review added first-
 2026-10-12 - Tactus C2-V7: match kept keys saved with wildcard focus. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c owner rulings; DESIGN.md 2.7, 2.11, 2.12 and 10.2).
 PutBack first prefers an exact window/control key, then the saved window/focus-zero key. Replay retains its existing wildcard focus rule.
 C3cV7Tests saved focus zero regression RED twice0/1/0; GREEN1/0/0. No native input.
+
+
+## ED-NEW-pcctl-cx-21
+2026-10-12 - Tactus C2-V11: retain the cheap live snapshot on immediate R4 actions. ENGINEERING DECISION. PORT-ONLY (OD-0144, OD-0145; owner-authorized C3c packet; C3c owner rulings; DESIGN.md 2.7, 2.11, 2.12 and 10.2).
+An immediate R4 action validates and refreshes from its one cheap live target snapshot instead of replacing it with the older warm-tree node. Waited paths retain their cheap/cold rematching and window/point checks. Independent review identified app-only Value and Bounds changes without events.
+C3cV11Tests supplemental value/geometry cases RED twice4/2/0; corrected GREEN6/0/0. Insert preserves the app value; click follows live geometry; both retain zero extra fresh trees.
