@@ -820,7 +820,13 @@ public sealed record PanelResize
     public required Action<Size, PanelResizeAxes> OnResize { get; init; } // :563
     public required Action OnResizeEnd { get; init; } // :564
     public required Action OnReset { get; init; } // :566
+
+    /// <summary>PORT-ONLY (web W1, ED-NEW-web-w1-5): the size now, its floor and ceiling, for Home, End and automation.</summary>
+    public Func<PanelResizeExtent>? Extent { get; init; }
 }
+
+/// <summary>PORT-ONLY (web W1): a floating panel's size now, its smallest and its largest.</summary>
+public readonly record struct PanelResizeExtent(Size Current, Size Minimum, Size Maximum);
 
 /// <summary>:569-589 <c>@Observable @MainActor final class PanelResizeState</c>.</summary>
 public sealed class PanelResizeState : MainActorModel
@@ -853,69 +859,127 @@ public sealed class PanelResizeState : MainActorModel
     public void End() => Start = null;
 }
 
-/// <summary>:591-638 <c>private struct PanelResizeGrips: View</c>.</summary>
+/// <summary>
+/// :591-638 <c>private struct PanelResizeGrips: View</c>, now the shared <see cref="Splitter"/> (DESIGN 4.3, web W1,
+/// ED-NEW-web-w1-5): the free edges are 8 DIP grips (6 before, :596) and the free corner the 16 DIP grip (:597); a
+/// double-click still resets to the automatic size, the tooltip is "Resize" and the reset hint is the accessible help
+/// text. Arrow keys move the focused edge or corner 8 DIP (Shift 48), Home and End go to the smallest and largest size.
+/// </summary>
 internal sealed class PanelResizeGrips : Decorator
 {
-    private const double Edge = 6; // :596
-    private const double Corner = 16; // :597
+    private const double Edge = Splitter.EdgeThickness; // :596 (6 before the shared splitter)
+    private const double Corner = Splitter.CornerSize; // :597
+    internal const string ResetHint = "Double-click for the automatic size";
+    private const double Far = 100_000;
+
+    private readonly PanelResize resize;
+    private readonly Splitter widthGrip;
+    private readonly Splitter heightGrip;
+    private readonly Splitter cornerGrip;
+    private PanelDockCorner dock;
 
     // :594, :599-615
     public PanelResizeGrips(PanelResize resize)
     {
-        var dock = resize.Corner;
-        var freeHorizontal = dock.Side == PanelDockSide.Leading
-            ? HorizontalAlignment.Right
-            : HorizontalAlignment.Left;
-        var freeVertical = dock.IsTop ? VerticalAlignment.Bottom : VerticalAlignment.Top;
-
-        var panel = new Grid();
-        var widthCursor = new Cursor(StandardCursorType.SizeWestEast);
-        var heightCursor = new Cursor(StandardCursorType.SizeNorthSouth);
-        var cornerCursor = new Cursor(dock switch
-        {
-            PanelDockCorner.TopLeading => StandardCursorType.BottomRightCorner,
-            PanelDockCorner.TopTrailing => StandardCursorType.BottomLeftCorner,
-            PanelDockCorner.BottomLeading => StandardCursorType.TopRightCorner,
-            PanelDockCorner.BottomTrailing => StandardCursorType.TopLeftCorner,
-            _ => throw new UnreachableException(),
-        });
-
-        var widthGrip = MakeGrip(PanelResizeAxes.Width, widthCursor);
+        this.resize = resize;
+        dock = resize.Corner;
+        widthGrip = MakeGrip(PanelResizeAxes.Width, SplitterOrientation.Vertical, "Resize panel width");
         widthGrip.Width = Edge;
-        widthGrip.HorizontalAlignment = freeHorizontal;
         widthGrip.VerticalAlignment = VerticalAlignment.Stretch;
-        panel.Children.Add(widthGrip);
-
-        var heightGrip = MakeGrip(PanelResizeAxes.Height, heightCursor);
+        heightGrip = MakeGrip(PanelResizeAxes.Height, SplitterOrientation.Horizontal, "Resize panel height");
         heightGrip.Height = Edge;
         heightGrip.HorizontalAlignment = HorizontalAlignment.Stretch;
-        heightGrip.VerticalAlignment = freeVertical;
-        panel.Children.Add(heightGrip);
-
-        var cornerGrip = MakeGrip(PanelResizeAxes.Both, cornerCursor);
+        cornerGrip = MakeGrip(PanelResizeAxes.Both, SplitterOrientation.Both, "Resize panel");
         cornerGrip.Width = Corner;
         cornerGrip.Height = Corner;
-        cornerGrip.HorizontalAlignment = freeHorizontal;
-        cornerGrip.VerticalAlignment = freeVertical;
-        panel.Children.Add(cornerGrip);
+        Child = new Grid { Children = { widthGrip, heightGrip, cornerGrip } };
+        SetDock(dock);
+    }
 
-        Child = panel;
+    internal Splitter WidthGrip => widthGrip;
 
-        Control MakeGrip(PanelResizeAxes axes, Cursor cursor)
+    internal Splitter HeightGrip => heightGrip;
+
+    internal Splitter CornerGrip => cornerGrip;
+
+    /// <summary>:599-615 The free edges and corner face away from the dock; a move to another dock moves them.</summary>
+    public void SetDock(PanelDockCorner corner)
+    {
+        dock = corner;
+        var horizontal = corner.Side == PanelDockSide.Leading ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+        var vertical = corner.IsTop ? VerticalAlignment.Bottom : VerticalAlignment.Top;
+        widthGrip.HorizontalAlignment = horizontal;
+        heightGrip.VerticalAlignment = vertical;
+        cornerGrip.HorizontalAlignment = horizontal;
+        cornerGrip.VerticalAlignment = vertical;
+        cornerGrip.SetCorner(corner switch
         {
-            var handle = new PanelDragHandle(
-                travel => resize.OnResize(travel, axes),
-                resize.OnResizeEnd,
-                cursor,
-                cursor,
-                resize.OnReset)
-            {
-                Cursor = cursor,
-            };
-            ToolTip.SetTip(handle, "Drag to resize \u00B7 Double-click for the automatic size"); // U+00B7 MIDDLE DOT
-            AutomationProperties.SetName(handle, "Drag to resize");
-            return handle;
-        }
+            PanelDockCorner.TopLeading => SplitterCorner.BottomRight,
+            PanelDockCorner.TopTrailing => SplitterCorner.BottomLeft,
+            PanelDockCorner.BottomLeading => SplitterCorner.TopRight,
+            _ => SplitterCorner.TopLeft,
+        });
+    }
+
+    private Splitter MakeGrip(PanelResizeAxes axes, SplitterOrientation orientation, string label)
+    {
+        var target = new SplitterTarget
+        {
+            OnReport = () => Report(axes),
+            OnMove = travel => resize.OnResize(new Size(travel.X, travel.Y), axes), // :603-607 the window-space travel
+            OnEnd = _ => resize.OnResizeEnd(),
+            OnReset = resize.OnReset, // :609 double-click
+            OnStepTo = maximum => GoTo(axes, maximum),
+            OnSetValue = resize.Extent is null || axes == PanelResizeAxes.Both ? null : value => SetValue(axes, value),
+        };
+        return new Splitter(orientation, target)
+        {
+            Label = label,
+            HelpHint = ResetHint,
+            MirrorsInRightToLeft = false, // placed and measured in window coordinates, as before
+            FineInset = 0,
+        };
+    }
+
+    // The size grows by the travel times these: a trailing dock's free edge is its leading one, a bottom dock's its top.
+    private (int Across, int Down) Signs() => (dock.Side == PanelDockSide.Trailing ? -1 : 1, dock.IsTop ? 1 : -1);
+
+    private SplitterReport Report(PanelResizeAxes axes)
+    {
+        if (resize.Extent?.Invoke() is not { } extent) return SplitterMath.Report(0, false, new SplitterLimits(0, 0, 0));
+        var height = axes == PanelResizeAxes.Height;
+        var value = height ? extent.Current.Height : extent.Current.Width;
+        var minimum = height ? extent.Minimum.Height : extent.Minimum.Width;
+        var maximum = Math.Max(minimum, height ? extent.Maximum.Height : extent.Maximum.Width);
+        var limits = new SplitterLimits(minimum, maximum, Math.Clamp(value, minimum, maximum));
+        if (axes != PanelResizeAxes.Both) return SplitterMath.Report(value, false, limits);
+        var both = $"{Math.Round(extent.Current.Width)} \u00D7 {Math.Round(extent.Current.Height)}"; // U+00D7 MULTIPLICATION SIGN
+        return SplitterMath.Report(value, false, limits, both, both + " DIP");
+    }
+
+    // Home and End: the smallest or the largest size, as one resize (the resizer clamps; without an extent, as far as it goes).
+    private void GoTo(PanelResizeAxes axes, bool maximum)
+    {
+        var (across, down) = Signs();
+        var sign = maximum ? 1 : -1;
+        var travel = resize.Extent?.Invoke() is { } extent
+            ? new Size(
+                ((maximum ? extent.Maximum.Width : extent.Minimum.Width) - extent.Current.Width) * across,
+                ((maximum ? extent.Maximum.Height : extent.Minimum.Height) - extent.Current.Height) * down)
+            : new Size(sign * across * Far, sign * down * Far);
+        resize.OnResize(travel, axes);
+        resize.OnResizeEnd();
+    }
+
+    private void SetValue(PanelResizeAxes axes, double value)
+    {
+        if (resize.Extent?.Invoke() is not { } extent) return;
+        var (across, down) = Signs();
+        var travel = axes == PanelResizeAxes.Height
+            ? new Size(0, (Math.Clamp(value, extent.Minimum.Height, Math.Max(extent.Minimum.Height, extent.Maximum.Height)) - extent.Current.Height) * down)
+            : new Size((Math.Clamp(value, extent.Minimum.Width, Math.Max(extent.Minimum.Width, extent.Maximum.Width)) - extent.Current.Width) * across, 0);
+        resize.OnResize(travel, axes);
+        resize.OnResizeEnd();
     }
 }
 

@@ -23,6 +23,12 @@
     <PackageVersion Include="Whisper.net.Runtime" Version="1.9.1" />
     <PackageVersion Include="Whisper.net.Runtime.Vulkan" Version="1.9.1" />
     <PackageVersion Include="NAudio.Wasapi" Version="3.1.0" />
+    <!-- Web surfaces W7 (DESIGN 2.1, ED-NEW-web-W7-1): Avalonia's MIT web view in HWND mode (12.1.0 is the newest 12.1.x; it
+         depends on Avalonia >= 12.0.0, so the pinned 12.1.2 holds) and the managed WebView2 SDK, whose CoreWebView2 wraps the
+         adapter's raw ICoreWebView2 for permissions, downloads and the DevTools Protocol. Pinned by W7 on the lead's delegation
+         (owner approval of the web surfaces, 2026-10-11); spikes (a) and (i) confirm them on the owner's PC. -->
+    <PackageVersion Include="Avalonia.Controls.WebView" Version="12.1.0" />
+    <PackageVersion Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />

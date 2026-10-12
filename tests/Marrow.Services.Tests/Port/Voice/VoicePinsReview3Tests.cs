@@ -172,7 +172,8 @@ public sealed class VoicePinsReview3Tests
     {
         // The real file of this checkout, whichever way it was last restored (plain build, or a restore with a runtime identifier).
         var assets = JsonDocument.Parse(File.ReadAllText(RepositoryFile("src", "Marrow.Services", "obj", "project.assets.json"))).RootElement;
-        var direct = new[] { "Whisper.net", "Whisper.net.Runtime", "Whisper.net.Runtime.Vulkan", "NAudio.Wasapi" };
+        // The Services project's direct packages: the four voice ones and Microsoft.Web.WebView2 (W7, ED-NEW-web-w7-1; pinned by WebPackagePinsTests).
+        var direct = new[] { "Whisper.net", "Whisper.net.Runtime", "Whisper.net.Runtime.Vulkan", "NAudio.Wasapi", "Microsoft.Web.WebView2" };
         Assert.Equal(["Microsoft.Extensions.AI.Abstractions 10.2.0", "NAudio.Core 3.1.0", "System.Numerics.Tensors 9.0.0", "Whisper.net.Runtime.Metal 1.9.1"], VoicePinsTests.ResolvedTransitivePackages(assets, direct));
     }
 }

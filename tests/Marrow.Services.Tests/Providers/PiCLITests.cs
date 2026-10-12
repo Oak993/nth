@@ -161,10 +161,13 @@ public sealed class PiCLITests
     public void The_extension_source_is_the_Swift_literal_byte_for_byte()
     {
         // The UTF-8 bytes of the #"""...""" literal at :136-216 with its four-space indentation removed and no final
-        // newline, as Swift builds it: 3,731 bytes (one U+00B7 MIDDLE DOT), SHA-256 below.
+        // newline, as Swift builds it: 3,731 bytes (one U+00B7 MIDDLE DOT). DEVIATION ED-NEW-web-w18-3: the two lines of
+        // execute() that read the bridge's answer as one string became two lines that read it as content blocks (55 more
+        // bytes: 3,786 in all), so an MCP image reaches Pi as an image. The length and the SHA-256 stay pinned to the new
+        // text, and the next test pins the two changed lines themselves, so the deviation is exactly these two lines.
         var bytes = Encoding.UTF8.GetBytes(PiCLI.ExtensionSource);
-        Assert.Equal(3731, bytes.Length);
-        Assert.Equal("3754ed39aad060edd150f21f7c82ad2179c131f8e3076bb72490b4132f0cd5f8", Convert.ToHexStringLower(SHA256.HashData(bytes)));
+        Assert.Equal(3786, bytes.Length);
+        Assert.Equal("d2c7b5841107eb21abfdb98d00790f22f05a4af107aedd1e6973586e9fd621ba", Convert.ToHexStringLower(SHA256.HashData(bytes)));
         Assert.StartsWith("import fs from \"node:fs\";\nimport { Type } from \"typebox\";\n\n", PiCLI.ExtensionSource, StringComparison.Ordinal);
         Assert.EndsWith("\"tool call\") };\n  });\n}", PiCLI.ExtensionSource, StringComparison.Ordinal);
         Assert.DoesNotContain("\r", PiCLI.ExtensionSource, StringComparison.Ordinal);
@@ -179,7 +182,9 @@ public sealed class PiCLITests
         Assert.Contains("name: \"mcp__\" + tool.server + \"__\" + tool.name,", source, StringComparison.Ordinal);
         Assert.Contains("label: tool.server + \" \U000000B7 \" + tool.name,", source, StringComparison.Ordinal); // U+00B7 MIDDLE DOT
         Assert.Contains("parameters: Type.Unsafe(tool.inputSchema),", source, StringComparison.Ordinal);
-        Assert.Contains("return { content: [{ type: \"text\", text }], details: {} };", source, StringComparison.Ordinal);
+        // DEVIATION ED-NEW-web-w18-3: the bridge answers as content blocks (text and images); a bridge without callContent still works.
+        Assert.Contains("const content = tool.callContent ? await tool.callContent(params) : [{ type: \"text\", text: await tool.call(params) }];\n            return { content, details: {} };", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("return { content: [{ type: \"text\", text }], details: {} };", source, StringComparison.Ordinal);
         Assert.Contains("console.error(\"droppy mcp: \" + (error instanceof Error ? error.message : String(error)));", source, StringComparison.Ordinal);
     }
 

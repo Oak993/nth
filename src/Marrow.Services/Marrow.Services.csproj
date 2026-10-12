@@ -10,6 +10,19 @@
     <PackageReference Include="Whisper.net.Runtime" />
     <PackageReference Include="Whisper.net.Runtime.Vulkan" />
     <PackageReference Include="NAudio.Wasapi" />
+    <!-- Web surfaces W7 (ED-NEW-web-w7-1): only the managed Core assembly and the x64 loader. The package's build targets
+         also reference its WPF and WinForms assemblies, whose WindowsBase conflicts with this project (MSB3277), and its
+         native assets put a WebView2Loader.dll for every platform under runtimes\ (win-arm64 and win-x86 too); both are
+         excluded. Core is referenced directly, and the win-x64 loader is copied beside the app, where the Core assembly's
+         DllImport of WebView2Loader.dll finds it. The package has no dependencies. -->
+    <PackageReference Include="Microsoft.Web.WebView2" ExcludeAssets="build;buildTransitive;native" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Microsoft.Web.WebView2.Core">
+      <HintPath>$(PkgMicrosoft_Web_WebView2)\lib_manual\netcoreapp3.0\Microsoft.Web.WebView2.Core.dll</HintPath>
+    </Reference>
+    <None Include="$(PkgMicrosoft_Web_WebView2)\runtimes\win-x64\native\WebView2Loader.dll" Link="WebView2Loader.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Visible="false" />
   </ItemGroup>
 
   <ItemGroup>

@@ -47,6 +47,9 @@ public sealed class DiffPopoverRig : IDisposable
     public DiffPopoverCoordinator Coordinator { get; }
     public RecordingPresenter Recorder { get; }
 
+    /// <summary>The app model behind both runtimes; its settings hold the popover's size (web W1).</summary>
+    public AppModel App => app;
+
     /// <summary>The changes tab's own view, in the window.</summary>
     public Border Tab { get; }
 

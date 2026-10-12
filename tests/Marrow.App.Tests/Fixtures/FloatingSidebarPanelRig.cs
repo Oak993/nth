@@ -98,7 +98,7 @@ public sealed class FloatingSidebarPanelRig : IDisposable
         for (var step = 0; step < 5; step++)
         {
             launch.Harness.Main.Advance(TimeSpan.FromSeconds(0.5));
-            Frames.Advance(TimeSpan.FromSeconds(0.5));
+            launch.Harness.Main.OnMain(() => Frames.Advance(TimeSpan.FromSeconds(0.5))); // frames run on the main actor, as in the app
             Layout();
         }
     }
@@ -117,7 +117,10 @@ public sealed class FloatingSidebarPanelRig : IDisposable
     {
         get
         {
-            Assert.DoesNotContain(All<Border>(), border => border.BoxShadow.Count > 0);
+            // The panel's own borders carry none; the only box shadows are the shared splitters' grip pills and their Resize
+            // and readout chips (web W1, the canvas's `.spl .grip` and `.spl .tip`), each inside its Splitter.
+            Assert.All(All<Border>().Where(border => border.BoxShadow.Count > 0), border =>
+                Assert.NotNull(Avalonia.LogicalTree.LogicalExtensions.FindLogicalAncestorOfType<Splitter>(border)));
             return Assert.Single(All<Marrow.UI.Port.SwiftShadow.Caster>());
         }
     }
@@ -130,13 +133,20 @@ public sealed class FloatingSidebarPanelRig : IDisposable
 
     public TextBlock Title => RootViewRig.Text(Panel, "Threads");
 
-    /// <summary>The handle with the given tooltip (the strip: "Drag to move", the grip: "Drag to resize").</summary>
+    /// <summary>The handle with the given tooltip (the strip: "Drag to move").</summary>
     public PanelDragHandle HandleTipped(string tip) =>
         Assert.Single(All<PanelDragHandle>(), handle => ToolTip.GetTip(handle) as string == tip);
 
     public PanelDragHandle StripHandle => HandleTipped("Drag to move");
 
-    public PanelDragHandle Grip => HandleTipped("Drag to resize");
+    /// <summary>The bottom-right corner grip, the shared Splitter (web W1).</summary>
+    public Splitter Grip => Assert.Single(All<Splitter>(), splitter => splitter.Orientation == SplitterOrientation.Both);
+
+    /// <summary>The right edge's grip (web W1).</summary>
+    public Splitter RightGrip => Assert.Single(All<Splitter>(), splitter => splitter.Orientation == SplitterOrientation.Vertical);
+
+    /// <summary>The bottom edge's grip (web W1).</summary>
+    public Splitter BottomGrip => Assert.Single(All<Splitter>(), splitter => splitter.Orientation == SplitterOrientation.Horizontal);
 
     /// <summary>The handle laid over the title capsule (it has no tooltip of its own).</summary>
     public PanelDragHandle TitleHandle => Assert.Single(All<PanelDragHandle>(), handle => ToolTip.GetTip(handle) is null);
@@ -203,7 +213,7 @@ public sealed class FloatingSidebarPanelRig : IDisposable
 
     public void TouchPress(Control target)
     {
-        touchTarget = Assert.IsType<DragHandleView>(Assert.IsType<PanelDragHandle>(target).Child);
+        touchTarget = target is Splitter splitter ? splitter.Handle : Assert.IsType<DragHandleView>(Assert.IsType<PanelDragHandle>(target).Child);
         touchDown = Centre(target);
         launch.Harness.Main.OnMain(() =>
         {

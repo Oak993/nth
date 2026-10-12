@@ -146,6 +146,7 @@ public class OpenAICompatibleSession : ProviderSession
     private readonly Dictionary<string, CheckedContinuation<bool>> pendingApprovals = []; // :58
     private List<MCPHub.Tool> mcpTools = [];                // :59
     private bool didLoadMCPTools;                            // :60
+    private int loadedToolsRevision;                         // PORT-ONLY (W18): MCPHub.ToolsRevision when mcpTools was read
 
     // PORT-ONLY (SK-11f): Marrow's own tools (use_skill, request_tool), empty unless SkillTools offers them, so the request is the Mac's byte for byte by default.
     private IReadOnlyList<JSONValue> SkillToolDefinitions => SkillTools?.Definitions ?? [];
@@ -188,6 +189,7 @@ public class OpenAICompatibleSession : ProviderSession
     {
         mcpTools = [.. tools];
         didLoadMCPTools = true;
+        loadedToolsRevision = MCPHub.Shared.ToolsRevision;
     }
 
     // Test-only seam (InternalsVisibleTo Marrow.Services.Tests): drives PerformStream directly
@@ -857,8 +859,10 @@ public class OpenAICompatibleSession : ProviderSession
     protected virtual async Task<StreamRound> StreamOneRound(string model, string? effort, bool withTools = true)
     {
         SanitizeHistory(); // :509
-        if (withTools && !didLoadMCPTools) // :510
+        // PORT-ONLY (W18): also when a server said its tool list changed since they were read (list_changed).
+        if (withTools && (!didLoadMCPTools || MCPHub.Shared.ToolsRevision != loadedToolsRevision)) // :510
         {
+            loadedToolsRevision = MCPHub.Shared.ToolsRevision;
             mcpTools = [.. await MCPHub.Shared.Tools()];
             didLoadMCPTools = true;
         }
@@ -1525,11 +1529,17 @@ public class OpenAICompatibleSession : ProviderSession
         if (MCPHub.Parse(tool.Name) is { } parsed) // :898
         {
             var (server, name) = (parsed.Server, parsed.Tool);
+            // PORT-ONLY (W18): a tool that names an MCP App view says so on its row from the start, so the host can fetch
+            // the view while the arguments are still streaming (DESIGN.md 7.6).
+            var startedPayload = mcpTools.FirstOrDefault(known => known.CallName == tool.Name)?.UiResourceUri is { } uiResource
+                ? new ToolPayload { Server = server, Tool = name, UiResourceUri = uiResource }
+                : null;
             OnEvent?.Invoke(new ProviderEvent.ToolStarted(callID, new ToolCall // :899
             {
                 ToolCallKind = ToolCall.Kind.Mcp,
                 Title = $"{server} \U000000B7 {name}", // U+00B7 MIDDLE DOT
                 Detail = args.IsNull ? null : args.PrettyString,
+                Payload = startedPayload,
             }));
             if (!await ApproveIfNeeded(ToolCall.Kind.Mcp, $"Call {server} {name}", args.CompactString, null)) // :900-902
             {
@@ -1541,10 +1551,10 @@ public class OpenAICompatibleSession : ProviderSession
                 if (SwiftTask.IsCancelled || interrupted) return "Stopped."; // :905
                 if (result.IsError) // :906
                 {
-                    OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = result.Text, Status = ToolCall.Status.Failed })); // :907
+                    OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = result.Text, Status = ToolCall.Status.Failed, Payload = result.ToPayload() })); // :907
                     return result.Text.Length == 0 ? "Error: the MCP tool reported failure with no output." : result.Text; // :908
                 }
-                OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = Summary(result.Text, 12_000), Status = ToolCall.Status.Completed })); // :910
+                OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = Summary(result.Text, 12_000), Status = ToolCall.Status.Completed, Payload = result.ToPayload() })); // :910
                 return result.Text.Length == 0 ? "(no output)" : result.Text; // :911
             }
             catch (Exception error) when (SwiftTry.IsThrownError(error)) // :912
