@@ -7,7 +7,7 @@ namespace Marrow.Core.Support;
 /// after the installer has read "ok", so the installer never sees the pipe vanish before its answer).
 /// </summary>
 /// <param name="Response">The answer to write.</param>
-/// <param name="AfterReply">Runs once, after the answer was written and read; never runs when the other side left first.</param>
+/// <param name="AfterReply">Runs once, after the answer was written and the client acknowledged reading it (<see cref="NthControl.AckByte"/>); never runs when the other side left first or did not acknowledge.</param>
 public sealed record NthControlAnswer(NthControlResponse Response, Action? AfterReply = null);
 
 /// <summary>
@@ -37,6 +37,9 @@ public sealed class NthControlServer : IDisposable
 
     /// <summary>How long the server waits for the other side to read the answer before it lets go of the pipe.</summary>
     private static readonly TimeSpan DrainTimeout = TimeSpan.FromSeconds(2);
+
+    /// <summary>How long the server waits for the acknowledgement of an answer that a quit follows.</summary>
+    public static readonly TimeSpan AckTimeout = TimeSpan.FromSeconds(2);
 
     private readonly string pipeName;
     private readonly INthControlHost host;
@@ -152,14 +155,36 @@ public sealed class NthControlServer : IDisposable
                     ? new NthControlAnswer(NthControlResponse.Refused(Environment.ProcessId, Environment.ProcessPath ?? string.Empty, "unsupported"))
                     : await host.HandleAsync(request, stop.Token).ConfigureAwait(false);
                 await NthControl.WriteFrameAsync(pipe, answer.Response.ToJson(), stop.Token).ConfigureAwait(false);
-                if (!await Drained(pipe).ConfigureAwait(false)) return;
-                answer.AfterReply?.Invoke();
+                if (answer.AfterReply is not { } after)
+                {
+                    await Drained(pipe).ConfigureAwait(false); // keep the pipe open until the answer was read, so it is not lost
+                    return;
+                }
+                if (await Acknowledged(pipe).ConfigureAwait(false)) after();
             }
             catch (Exception)
             {
                 // The other side left, was too slow, or the server is closing, or the host failed: nothing more to say to it
                 // (a host that throws must not take nth down, and the installer then falls back to asking before it ends nth).
             }
+        }
+    }
+
+    // True when the other side wrote its acknowledgement (NthControl.AckByte) within AckTimeout: it holds the answer. A client that left
+    // first, died before reading, or never acknowledges gets no quit. (Draining is not enough: Windows may report a pipe drained after
+    // the other side closed it with the answer unread.)
+    private async Task<bool> Acknowledged(NamedPipeServerStream pipe)
+    {
+        using var window = CancellationTokenSource.CreateLinkedTokenSource(stop.Token);
+        window.CancelAfter(AckTimeout);
+        var one = new byte[1];
+        try
+        {
+            return await pipe.ReadAsync(one, window.Token).ConfigureAwait(false) == 1 && one[0] == NthControl.AckByte;
+        }
+        catch (Exception error) when (error is OperationCanceledException or IOException or ObjectDisposedException)
+        {
+            return false;
         }
     }
 

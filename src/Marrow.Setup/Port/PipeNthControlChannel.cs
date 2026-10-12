@@ -46,9 +46,9 @@ public sealed class PipeNthControlChannel(string pipeName, TimeSpan connectTimeo
                 await NthControl.WriteFrameAsync(client, request.ToJson(), reply.Token).ConfigureAwait(false);
                 var bytes = await NthControl.ReadFrameAsync(client, reply.Token).ConfigureAwait(false);
                 if (bytes is null) return NthControlExchange.Failed(NthControlFailure.NoAnswer);
-                return NthControlResponse.Parse(bytes) is { } response
-                    ? NthControlExchange.Answered(response)
-                    : NthControlExchange.Failed(NthControlFailure.BadAnswer);
+                if (NthControlResponse.Parse(bytes) is not { } response) return NthControlExchange.Failed(NthControlFailure.BadAnswer);
+                await AcknowledgeAsync(client, reply.Token).ConfigureAwait(false);
+                return NthControlExchange.Answered(response);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
@@ -62,6 +62,20 @@ public sealed class PipeNthControlChannel(string pipeName, TimeSpan connectTimeo
         catch (IOException)
         {
             return NthControlExchange.Failed(NthControlFailure.NoAnswer);
+        }
+    }
+
+    // nth quits for a quit request only once it has seen this byte (NthControl.AckByte), so it never quits for a setup that did not get the "ok".
+    // A pipe that closed already (an answer that needed no acknowledgement) is not a failure.
+    private static async Task AcknowledgeAsync(NamedPipeClientStream client, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await NthControl.WriteAckAsync(client, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception error) when (error is IOException or ObjectDisposedException or OperationCanceledException)
+        {
+            // Nothing to acknowledge to.
         }
     }
 }

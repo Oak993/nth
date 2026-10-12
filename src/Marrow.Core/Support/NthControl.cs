@@ -233,7 +233,9 @@ public sealed record NthControlResponse(
 /// nth Setup uses to ask a running nth whether it may quit: <c>\\.\pipe\nth-&lt;user SID&gt;-control</c> (a development build
 /// adds <c>dev-</c>, so it never answers an installer). One request and one reply per connection, each a 4-byte
 /// little-endian length and that many bytes of UTF-8 JSON (the framing of the toast pipe), at most
-/// <see cref="MaxMessageBytes"/>. The pipe is for the signed-in user alone (<c>PipeOptions.CurrentUserOnly</c> on both
+/// <see cref="MaxMessageBytes"/>. After it has read a reply the client writes one byte, <see cref="AckByte"/>: the server
+/// acts on a quit only once it has seen it, so nth never quits for an installer that did not receive the "ok" (a client that
+/// left first, or died before reading). The pipe is for the signed-in user alone (<c>PipeOptions.CurrentUserOnly</c> on both
 /// sides). This file is also compiled into src/Marrow.Setup (like InstallerGate.cs), so it uses nothing else from
 /// Marrow.Core, and its JSON goes through a source-generated context (AOT-safe). The listening side is
 /// <c>NthControlServer.cs</c> (Marrow.Core only); the asking side is src/Marrow.Setup.
@@ -242,6 +244,9 @@ public static class NthControl
 {
     /// <summary>The only protocol version; any other number is not understood.</summary>
     public const int ProtocolVersion = 1;
+
+    /// <summary>The one byte a client writes after it has read a reply (ASCII ACK). See <see cref="WriteAckAsync"/>.</summary>
+    public const byte AckByte = 0x06;
 
     /// <summary>A message is a few hundred bytes; anything over this is not ours and ends the connection.</summary>
     public const int MaxMessageBytes = 64 * 1024;
@@ -316,6 +321,13 @@ public static class NthControl
     public static async Task WriteFrameAsync(Stream stream, string json, CancellationToken cancellationToken)
     {
         await stream.WriteAsync(Frame(json), cancellationToken).ConfigureAwait(false);
+        await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Tells the server the reply was read: one <see cref="AckByte"/>, flushed. Best effort: the caller ignores a pipe that has already closed.</summary>
+    public static async Task WriteAckAsync(Stream stream, CancellationToken cancellationToken)
+    {
+        await stream.WriteAsync(new[] { AckByte }, cancellationToken).ConfigureAwait(false);
         await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 

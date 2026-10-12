@@ -21,7 +21,16 @@ public sealed class InstallerQuitOverPipeTests
         await client.ConnectAsync(window.Token);
         await NthControl.WriteFrameAsync(client, request.ToJson(), window.Token);
         var bytes = await NthControl.ReadFrameAsync(client, window.Token);
-        return bytes is null ? null : NthControlResponse.Parse(bytes);
+        if (bytes is null) return null;
+        try
+        {
+            await NthControl.WriteAckAsync(client, window.Token); // what the installer does after it read the reply: nth quits only after it
+        }
+        catch (IOException)
+        {
+            // The server needed no acknowledgement and let go.
+        }
+        return NthControlResponse.Parse(bytes);
     }
 
     // The request waits for the app's main loop, which only runs when the test lets it.

@@ -129,7 +129,7 @@ public sealed class NthControlServerTests
     [Fact]
     [Trait("Decision", "ED-247")]
     [Trait("Platform", "WINDOWS-ONLY")]
-    public async Task What_follows_a_quit_runs_after_the_answer_was_read_and_not_before()
+    public async Task What_follows_a_quit_runs_only_after_the_client_read_the_answer_and_acknowledged_it()
     {
         var name = NthControlTestClient.NewPipeName();
         var order = new List<string>();
@@ -146,11 +146,61 @@ public sealed class NthControlServerTests
         await Task.Delay(300); // the answer is waiting in the pipe, unread
         lock (order) Assert.Empty(order);
         var bytes = await NthControl.ReadFrameAsync(client, CancellationToken.None);
+        await Task.Delay(300); // read, and not yet acknowledged: nth does not quit for an answer nobody confirmed
+        lock (order) Assert.Empty(order);
         lock (order) order.Add("read");
+        await NthControlTestClient.AcknowledgeAsync(client, CancellationToken.None);
         await after.Task.WaitAsync(Patient);
 
         Assert.NotNull(NthControlResponse.Parse(bytes!));
         lock (order) Assert.Equal(["read", "after"], order);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-247")]
+    [Trait("Platform", "WINDOWS-ONLY")]
+    public async Task A_client_that_reads_the_answer_but_leaves_without_acknowledging_does_not_trigger_the_quit()
+    {
+        var name = NthControlTestClient.NewPipeName();
+        var afterRan = 0;
+        var host = Host(_ => new NthControlAnswer(ScriptedControlHost.Ok(), () => Interlocked.Increment(ref afterRan)));
+        using var server = NthControlServer.Start(name, host);
+
+        using (var client = await NthControlTestClient.ConnectAsync(name))
+        {
+            await NthControl.WriteFrameAsync(client, NthControlRequest.QuitAndStop.ToJson(), CancellationToken.None);
+            Assert.NotNull(await NthControl.ReadFrameAsync(client, CancellationToken.None));
+        } // read it, then gone
+        await Task.Delay(500);
+
+        Assert.Equal(0, Volatile.Read(ref afterRan));
+        Assert.Equal(NthControlReply.Ok, (await NthControlTestClient.AskAsync(name, NthControlRequest.Status))!.Reply);
+    }
+
+    [Theory]
+    [Trait("Decision", "ED-247")]
+    [Trait("Platform", "WINDOWS-ONLY")]
+    [InlineData((byte)0x00)]
+    [InlineData((byte)0x07)]
+    [InlineData((byte)'y')]
+    public async Task Any_byte_but_the_acknowledgement_does_not_trigger_the_quit(byte other)
+    {
+        var name = NthControlTestClient.NewPipeName();
+        var afterRan = 0;
+        var host = Host(_ => new NthControlAnswer(ScriptedControlHost.Ok(), () => Interlocked.Increment(ref afterRan)));
+        using var server = NthControlServer.Start(name, host);
+
+        using (var client = await NthControlTestClient.ConnectAsync(name))
+        {
+            await NthControl.WriteFrameAsync(client, NthControlRequest.QuitAndStop.ToJson(), CancellationToken.None);
+            Assert.NotNull(await NthControl.ReadFrameAsync(client, CancellationToken.None));
+            await client.WriteAsync(new[] { other });
+            await client.FlushAsync();
+            await Task.Delay(300);
+        }
+        await Task.Delay(300);
+
+        Assert.Equal(0, Volatile.Read(ref afterRan));
     }
 
     [Fact]

@@ -219,4 +219,16 @@ public sealed class NthControlWireTests
         using var huge = new MemoryStream([0x01, 0x00, 0x01, 0x00, 1]); // 65,537 bytes
         Assert.Null(await NthControl.ReadFrameAsync(huge, CancellationToken.None));
     }
+
+    [Fact]
+    [Trait("Decision", "ED-247")]
+    public async Task The_acknowledgement_is_one_ACK_byte_written_after_a_reply_was_read()
+    {
+        Assert.Equal(0x06, NthControl.AckByte);
+        using var wire = new MemoryStream();
+
+        await NthControl.WriteAckAsync(wire, CancellationToken.None);
+
+        Assert.Equal([NthControl.AckByte], wire.ToArray());
+    }
 }
