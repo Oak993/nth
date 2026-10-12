@@ -33,6 +33,7 @@ public sealed class WebSurface : IDisposable
     private DateTimeOffset? prewarmDueAt;
     private DateTimeOffset? prewarmedAt;
     private bool enforcing;
+    private bool discarding;
     private bool disposed;
 
     /// <param name="engine">The engine (WebView2 in the app, the fake in tests).</param>
@@ -67,6 +68,7 @@ public sealed class WebSurface : IDisposable
 
     /// <summary>Views that are live pages now (the cap counts these, across every window).</summary>
     public int LiveCount => views.Count(v => v.Liveness == WebLiveness.Live);
+    public int HeldCount => views.Count(v => v.Engine is not null && (v.Liveness is WebLiveness.Live or WebLiveness.Suspended));
 
     /// <summary>
     /// The reserved chords that reach nth from inside a page (DESIGN 3.7). The shortcut layer (W3b) sets this from the
@@ -141,6 +143,7 @@ public sealed class WebSurface : IDisposable
         var view = new WebSurfaceView(this, ++sequence, kind, windowId, Profiles.For(kind, threadFolder), url)
         {
             LastUsedAt = time.GetUtcNow(),
+            HiddenSince = time.GetUtcNow(),
         };
         views.Add(view);
         // W23: a runtime that was missing may have been installed since (by the flow, or by the user from Microsoft's page);
@@ -200,10 +203,7 @@ public sealed class WebSurface : IDisposable
             log.Info("web: pre-warmed environment unused for 10 minutes, closed");
         }
 
-        foreach (var view in views.ToList())
-        {
-            if (ShouldDiscard(view, now)) Discard(view);
-        }
+        _ = DiscardUnderPressureAsync(now);
 
         foreach (var view in views.ToList())
         {
@@ -254,6 +254,7 @@ public sealed class WebSurface : IDisposable
 
     internal void Touch(WebSurfaceView view)
     {
+        view.CancelDiscardNotice();
         view.LastUsedAt = time.GetUtcNow();
         view.ActivityVersion++;
     }
@@ -268,7 +269,7 @@ public sealed class WebSurface : IDisposable
             return;
         }
 
-        view.HiddenSince = time.GetUtcNow();
+        view.HiddenSince ??= time.GetUtcNow();
         if (view.Engine is not { } engine) return;
         engine.MemoryLevel = WebMemoryLevel.Low;
         // A hidden tab stops painting; a model-driven tab keeps rendering (DESIGN 5.10, spike e picks the hidden host).
@@ -285,7 +286,12 @@ public sealed class WebSurface : IDisposable
                 return;
             case WebLiveness.Suspended:
                 view.Engine?.Resume();
+                view.NeedsLiveReload = view.IsBridgeCallRunning;
                 view.SetLiveness(WebLiveness.Live);
+                if (!view.IsBridgeCallRunning) view.RaiseBecameLive();
+                break;
+            case WebLiveness.Live when view.NeedsLiveReload && !view.IsBridgeCallRunning:
+                view.NeedsLiveReload = false;
                 view.RaiseBecameLive();
                 break;
         }
@@ -305,6 +311,7 @@ public sealed class WebSurface : IDisposable
             Engine.ReleasePrewarm();
         }
 
+        view.NeedsLiveReload = false;
         view.RaiseBecameLive();
         EnforceCapSoon(except: view);
     }
@@ -445,7 +452,7 @@ public sealed class WebSurface : IDisposable
             {
                 var shownOverCap = views.Count(v => v.IsShown) > Options.MaxLiveViews;
                 var candidate = views
-                    .Where(v => v.Liveness == WebLiveness.Live && !v.IsSuspending && !v.IsModelStepRunning && (v != except || !v.IsShown) && !tried.Contains(v)
+                    .Where(v => v.Liveness == WebLiveness.Live && !v.IsSuspending && !v.IsDiscarding && !v.IsModelStepRunning && !v.IsBridgeCallRunning && (v != except || !v.IsShown) && !tried.Contains(v)
                                 && (!v.IsShown || shownOverCap)
                                 && v.Engine is { IsAttached: true })
                     .OrderBy(v => v.IsShown)
@@ -500,8 +507,9 @@ public sealed class WebSurface : IDisposable
                 if (suspended || engine.IsSuspended) engine.Resume();
                 if (view.Liveness == WebLiveness.Suspended)
                 {
+                    view.NeedsLiveReload = view.IsBridgeCallRunning;
                     view.SetLiveness(WebLiveness.Live);
-                    view.RaiseBecameLive();
+                    if (!view.IsBridgeCallRunning) view.RaiseBecameLive();
                 }
                 return;
             }
@@ -534,9 +542,69 @@ public sealed class WebSurface : IDisposable
         view.Liveness is WebLiveness.Live or WebLiveness.Suspended
         && !view.IsShown
         && !view.IsModelStepRunning
+        && !disposed && views.Contains(view)
+        && !view.IsBridgeCallRunning
+        && !view.HasOpenArtifactPane
+        && view.Engine is { IsAttached: true, IsPlayingAudio: false }
+        && (!view.IsSandboxed || view.IsDocumentReady)
         && view.Kind != WebSurfaceKind.VisusPrivateTab // ED-NEW-web-w7-2: discarding would end its InPrivate session
         && view.HiddenSince is { } hidden
         && now - hidden >= Options.DiscardAfter;
+
+    private async Task DiscardUnderPressureAsync(DateTimeOffset now)
+    {
+        if (discarding || HeldCount <= Options.MaxHeldViews) return;
+        discarding = true;
+        try
+        {
+            var tried = new HashSet<WebSurfaceView>();
+            while (!disposed && HeldCount > Options.MaxHeldViews)
+            {
+                var view = views.Where(v => !tried.Contains(v) && !v.IsSuspending && !v.IsDiscarding
+                        && (v.DiscardRetryAt is not { } retry || now >= retry) && ShouldDiscard(v, now))
+                    .OrderBy(v => v.HiddenSince).ThenBy(v => v.Sequence).FirstOrDefault();
+                if (view is null) break;
+                tried.Add(view);
+                var engine = view.Engine!;
+                var wasSuspended = view.Liveness == WebLiveness.Suspended;
+                view.IsDiscarding = true;
+                try
+                {
+                    // Retain the engine's refusal protection as well as the explicit audio check.
+                    if (!wasSuspended) await SuspendAsync(view);
+                    if (view.Engine != engine || view.Liveness != WebLiveness.Suspended || !ShouldDiscard(view, time.GetUtcNow())) continue;
+                    engine.Resume();
+                    // Keep the same document for its storage save; a normal activation reloads the latest version.
+                    view.NeedsLiveReload = true;
+                    view.SetLiveness(WebLiveness.Live);
+                    var activity = view.ActivityVersion;
+                    var saved = await view.NotifyDiscardAsync(time);
+                    if (saved && view.Engine == engine && view.ActivityVersion == activity
+                        && HeldCount > Options.MaxHeldViews && ShouldDiscard(view, time.GetUtcNow()))
+                        Discard(view);
+                    else view.DiscardRetryAt = time.GetUtcNow() + TimeSpan.FromSeconds(5);
+                }
+                catch (Exception error) when (error is InvalidOperationException or OperationCanceledException or System.Runtime.InteropServices.COMException)
+                {
+                    view.DiscardRetryAt = time.GetUtcNow() + TimeSpan.FromSeconds(5);
+                    log.Info($"web: view {view.Sequence} kept its engine because discard notification failed: {error.Message}");
+                }
+                finally
+                {
+                    view.IsDiscarding = false;
+                    if (!disposed && views.Contains(view) && view.Engine == engine && view.Liveness == WebLiveness.Live && !view.IsShown
+                        && !view.IsModelStepRunning && !view.IsBridgeCallRunning && !engine.IsPlayingAudio
+                        && (wasSuspended || LiveCount > Options.MaxLiveViews))
+                    {
+                        try { await SuspendAsync(view); }
+                        catch (Exception error) when (error is InvalidOperationException or OperationCanceledException or System.Runtime.InteropServices.COMException)
+                        { log.Info($"web: view {view.Sequence} could not return to suspension: {error.Message}"); }
+                    }
+                }
+            }
+        }
+        finally { discarding = false; }
+    }
 
     private void Discard(WebSurfaceView view)
     {

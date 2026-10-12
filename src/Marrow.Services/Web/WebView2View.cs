@@ -47,6 +47,7 @@ internal sealed class WebView2View : IWebEngineView
     public bool CanGoBack => Try(() => core?.CanGoBack ?? false);
     public bool CanGoForward => Try(() => core?.CanGoForward ?? false);
     public bool IsSuspended => Try(() => core?.IsSuspended ?? false);
+    public bool IsPlayingAudio => Try(() => core?.IsDocumentPlayingAudio ?? false);
     public uint? BackgroundArgb { get; private set; }
 
     public double Zoom

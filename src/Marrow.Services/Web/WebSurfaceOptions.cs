@@ -7,6 +7,7 @@ public sealed class WebSurfaceOptions
     public const int MaxLiveViewsLimit = 8;
 
     private int maxLiveViews = 4;
+    private int? maxHeldViews;
 
     /// <summary>
     /// At most this many live web views across every window, pane and widget (DESIGN 2.3: 4; Settings › Visus "Keep at
@@ -16,6 +17,13 @@ public sealed class WebSurfaceOptions
     {
         get => maxLiveViews;
         set => maxLiveViews = Math.Clamp(value, MinLiveViews, MaxLiveViewsLimit);
+    }
+
+    /// <summary>Hidden engines are discarded only above this budget; default twice the live budget (owner C8).</summary>
+    public int MaxHeldViews
+    {
+        get => maxHeldViews ?? 2 * MaxLiveViews;
+        set => maxHeldViews = Math.Max(0, value);
     }
 
     /// <summary>The gesture-start capture budget (DESIGN 2.5: planning value 30 ms; spike b sets it from its p95).</summary>

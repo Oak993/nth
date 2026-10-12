@@ -20,8 +20,12 @@ public sealed class WebSurfaceView : IWebViewSurface
     private string? pendingUrl;
     private string? lastUrl;
     private int modelSteps;
+    private int bridgeCalls;
+    private int openArtifactPanes;
     private readonly List<(string Json, string? Event)> pendingMessages = [];
     private string? navigationTarget;
+    private (string Token, IWebEngineView Engine, TaskCompletionSource<bool> Ready)? discardNotice;
+    internal bool IsDocumentReady => navigationTarget is null && engine is { IsAttached: true };
     private TaskCompletionSource? liveHidden;
     private WebSandbox? sandbox;
 
@@ -77,6 +81,11 @@ public sealed class WebSurfaceView : IWebViewSurface
     public bool IsModelStepRunning => modelSteps > 0;
 
     internal bool IsSuspending { get; set; }
+    internal bool IsDiscarding { get; set; }
+    internal bool NeedsLiveReload { get; set; }
+    internal bool IsBridgeCallRunning => bridgeCalls > 0;
+    internal bool HasOpenArtifactPane => openArtifactPanes > 0;
+    internal DateTimeOffset? DiscardRetryAt { get; set; }
     internal long ActivityVersion { get; set; }
     internal bool IsProbing { get; set; }
     internal DateTimeOffset? LastProbeAt { get; set; }
@@ -143,6 +152,7 @@ public sealed class WebSurfaceView : IWebViewSurface
         ActivateForContent();
         if (engine is { IsAttached: true } live)
         {
+            CancelDiscardNotice();
             navigationTarget = url;
             live.Navigate(url);
         }
@@ -166,13 +176,13 @@ public sealed class WebSurfaceView : IWebViewSurface
         catch (JsonException) { }
         var oldEngine = engine;
         ActivateForContent();
-        if (liveness is WebLiveness.Suspended or WebLiveness.Discarded or WebLiveness.Closed) return;
         // A reply belongs to the requesting document, never to a replacement engine. Its bridge is already listening.
         if (sessionReply)
         {
             if (engine == oldEngine && engine is { IsAttached: true } replyEngine) replyEngine.PostMessage(json);
             return;
         }
+        if (liveness is WebLiveness.Suspended or WebLiveness.Discarded or WebLiveness.Closed) return;
         if (engine is { IsAttached: true } live && navigationTarget is null) live.PostMessage(json);
         else
         {
@@ -185,7 +195,7 @@ public sealed class WebSurfaceView : IWebViewSurface
 
     private void ActivateForContent()
     {
-        if (IsShown && (IsSuspending || liveness is WebLiveness.Suspended or WebLiveness.Discarded)) owner.Activate(this);
+        if (IsShown && (NeedsLiveReload || IsSuspending || liveness is WebLiveness.Suspended or WebLiveness.Discarded)) owner.Activate(this);
     }
 
     internal void CancelPendingMorph() => pendingMessages.RemoveAll(m => m.Event == "morph");
@@ -199,6 +209,28 @@ public sealed class WebSurfaceView : IWebViewSurface
         modelSteps++;
         owner.Touch(this);
         return new StepScope(this);
+    }
+
+    internal IDisposable BeginBridgeCall()
+    {
+        bridgeCalls++;
+        owner.Touch(this);
+        return new BridgeScope(this);
+    }
+
+    internal void HoldArtifactPane(bool hold) => openArtifactPanes += hold ? 1 : -1;
+
+    private sealed class BridgeScope(WebSurfaceView view) : IDisposable
+    {
+        private bool done;
+        public void Dispose()
+        {
+            if (done) return;
+            done = true;
+            view.bridgeCalls--;
+            view.owner.Touch(view);
+            view.owner.EnforceCapSoon();
+        }
     }
 
     /// <summary>
@@ -278,6 +310,7 @@ public sealed class WebSurfaceView : IWebViewSurface
     internal void ReleaseEngine()
     {
         if (engine is null) return;
+        CancelDiscardNotice();
         navigationTarget = null;
         if (engine.Url is { } url) lastUrl = url;
         Unhook(engine);
@@ -384,7 +417,11 @@ public sealed class WebSurfaceView : IWebViewSurface
     private void OnNavigationStarting(object? sender, WebNavigationStarting e)
     {
         if (BlockSandboxNavigation(e)) return;
-        if (e.IsMainFrame) navigationTarget = e.Url;
+        if (e.IsMainFrame)
+        {
+            CancelDiscardNotice();
+            navigationTarget = e.Url;
+        }
         NavigationStarting?.Invoke(this, e);
     }
 
@@ -457,7 +494,58 @@ public sealed class WebSurfaceView : IWebViewSurface
 
     private void OnHistory(object? sender, EventArgs e) => HistoryChanged?.Invoke(this, e);
 
-    private void OnMessage(object? sender, WebMessage e) => WebMessageReceived?.Invoke(this, e);
+    private void OnMessage(object? sender, WebMessage e)
+    {
+        if (discardNotice is { } notice && sender == notice.Engine && engine == notice.Engine
+            && string.Equals(e.SourceOrigin?.TrimEnd('/'), SandboxOrigin, StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(e.Json);
+                var root = document.RootElement;
+                if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("nth", out var nth) && nth.ValueKind == JsonValueKind.Number && nth.TryGetInt32(out var n) && n == 1
+                    && root.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String && type.GetString() == "discard.ready"
+                    && root.TryGetProperty("token", out var token) && token.ValueKind == JsonValueKind.String && token.GetString() == notice.Token)
+                    notice.Ready.TrySetResult(root.TryGetProperty("ok", out var ok) && ok.ValueKind == JsonValueKind.True);
+            }
+            catch (JsonException) { }
+        }
+        WebMessageReceived?.Invoke(this, e);
+    }
+
+    internal void CancelDiscardNotice() => discardNotice?.Ready.TrySetResult(false);
+
+    internal async Task<bool> NotifyDiscardAsync(TimeProvider time)
+    {
+        if (engine is not { IsAttached: true } live) return false;
+        using var stop = new CancellationTokenSource();
+        var timeout = Task.Delay(TimeSpan.FromSeconds(1), time, stop.Token);
+        try
+        {
+            if (!IsSandboxed)
+            {
+                live.PostMessage("{\"nth\":1,\"event\":\"willDiscard\"}");
+                // Ordinary tabs have no nth bridge; wait for the page-message dispatch round trip.
+                var dispatched = live.ExecuteScriptAsync("void 0", CancellationToken.None);
+                if (await Task.WhenAny(dispatched, timeout) != dispatched) return false;
+                await dispatched;
+                return true;
+            }
+            var token = Guid.NewGuid().ToString("N");
+            var ready = new TaskCompletionSource<bool>();
+            discardNotice = (token, live, ready);
+            live.PostMessage(JsonSerializer.Serialize(new { nth = 1, @event = "willDiscard", token }));
+            return await Task.WhenAny(ready.Task, timeout) == ready.Task && await ready.Task;
+        }
+        finally
+        {
+            if (discardNotice is { } notice && engine == live
+                && !(notice.Ready.Task.IsCompletedSuccessfully && notice.Ready.Task.Result))
+                live.PostMessage(JsonSerializer.Serialize(new { nth = 1, @event = "discard.cancel", token = notice.Token }));
+            discardNotice = null;
+            stop.Cancel();
+        }
+    }
 
     private void OnExternalUri(object? sender, WebExternalUriRequest e)
     {

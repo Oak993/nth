@@ -99,6 +99,7 @@ internal sealed class ArtifactBridge(ArtifactRuntime runtime, ArtifactMount moun
 
     private async Task Handle(string type, JsonObject root, string session, long id)
     {
+        var hold = type is "complete" or "callTool" or "files.pick" ? mount.View.BeginBridgeCall() : null;
         CancellationTokenSource call;
         lock (gate)
         {
@@ -128,6 +129,7 @@ internal sealed class ArtifactBridge(ArtifactRuntime runtime, ArtifactMount moun
         {
             lock (gate) running.Remove((session, id));
             call.Dispose();
+            if (hold is not null) runtime.Post(hold.Dispose);
         }
     }
 

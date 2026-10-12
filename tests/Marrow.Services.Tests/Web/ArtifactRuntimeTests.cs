@@ -13,6 +13,51 @@ public sealed class ArtifactRuntimeTests
 {
     private const string Weather = "<!doctype html><html><head><title>Weather</title></head><body><h1>Weather</h1></body></html>";
 
+    [Fact]
+    public void Showing_an_artifact_during_a_discard_wait_reloads_the_current_store_version()
+    {
+        using var rig = new ArtifactRuntimeRig();
+        var (mount, engine) = rig.Mount(rig.Create(ArtifactKind.Html, "<p>one</p>"));
+        using var heldMount = mount;
+        mount.SetPaneOpen(false);
+        mount.View.SetShown(false);
+        for (var i = 0; i < 9; i++) rig.Web.OpenLive();
+        rig.Advance(TimeSpan.FromMinutes(11));
+        rig.Web.Surface.Tick();
+        Assert.Contains(ArtifactRuntimeRig.Posts(engine), p => p["event"]?.GetValue<string>() == "willDiscard");
+        rig.Store.Update(ArtifactRuntimeRig.Chat, "weather", new ArtifactRevision { Content = "<p>two</p>" }, ArtifactRuntimeRig.Model, null);
+        engine.Log.Clear();
+        mount.View.SetShown(true);
+        Assert.Contains("Navigate " + mount.Address, engine.Log);
+        Assert.Same(engine, mount.View.Engine);
+        Assert.Contains("<p>two</p>", ArtifactRuntimeRig.Body(ArtifactRuntimeRig.Get(engine, mount.Address)), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Restoring_a_closed_panes_discarded_artifact_reads_the_current_version()
+    {
+        using var rig = new ArtifactRuntimeRig();
+        var (mount, engine) = rig.Mount(rig.Create(ArtifactKind.Html, "<p>one</p>"));
+        using var heldMount = mount;
+        Assert.Contains("<p>one</p>", ArtifactRuntimeRig.Body(ArtifactRuntimeRig.Get(engine, mount.Address)), StringComparison.Ordinal);
+        mount.SetPaneOpen(false);
+        mount.View.SetShown(false);
+        for (var i = 0; i < 9; i++) rig.Web.OpenLive();
+        rig.Advance(TimeSpan.FromMinutes(11));
+        rig.Web.Surface.Tick();
+        var notice = ArtifactRuntimeRig.Posts(engine).Last(p => p["event"]?.GetValue<string>() == "willDiscard");
+        ArtifactRuntimeRig.Send(mount, engine, new { nth = 1, type = "discard.ready", token = notice["token"]!.GetValue<string>(), ok = true });
+        Assert.Equal(WebLiveness.Discarded, mount.View.Liveness);
+        rig.Store.Update(ArtifactRuntimeRig.Chat, "weather", new ArtifactRevision { Content = "<p>two</p>" }, ArtifactRuntimeRig.Model, null);
+        mount.SetPaneOpen(true);
+        mount.View.SetShown(true);
+        var fresh = WebRig.Fake(mount.View);
+        mount.View.AttachNative(3, 4);
+        Assert.NotSame(engine, fresh);
+        Assert.Contains("Navigate " + mount.Address, fresh.Log);
+        Assert.Contains("<p>two</p>", ArtifactRuntimeRig.Body(ArtifactRuntimeRig.Get(fresh, mount.Address)), StringComparison.Ordinal);
+    }
+
 
     [Fact]
     public void Resuming_an_artifact_that_missed_a_version_reloads_the_current_store_version()

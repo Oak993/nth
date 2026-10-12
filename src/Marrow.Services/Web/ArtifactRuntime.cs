@@ -112,11 +112,13 @@ public sealed class ArtifactMount : IWebResourceHandler, IDisposable
     private readonly object gate = new();
     private ArtifactSnapshot? snapshot;
     private bool disposed;
+    private bool paneOpen;
 
     internal ArtifactMount(ArtifactRuntime runtime, WebSurfaceView view, ArtifactAddress artifact, int? version)
     {
         this.runtime = runtime;
         View = view;
+        SetPaneOpen(view.Kind == WebSurfaceKind.Artifact);
         Artifact = artifact;
         Version = version;
         Host = SandboxSites.ArtifactHost(artifact.Thread, artifact.Id);
@@ -135,6 +137,14 @@ public sealed class ArtifactMount : IWebResourceHandler, IDisposable
     }
 
     public WebSurfaceView View { get; }
+
+    /// <summary>The pane lifecycle keeps its artifact's engine while open, even when its preview is hidden.</summary>
+    public void SetPaneOpen(bool open)
+    {
+        if (disposed || paneOpen == open) return;
+        paneOpen = open;
+        View.HoldArtifactPane(open);
+    }
 
     public ArtifactAddress Artifact { get; }
 
@@ -385,6 +395,7 @@ public sealed class ArtifactMount : IWebResourceHandler, IDisposable
     public void Dispose()
     {
         if (disposed) return;
+        SetPaneOpen(false);
         disposed = true;
         View.WebMessageReceived -= OnMessage;
         View.BecameLive -= OnViewLive;

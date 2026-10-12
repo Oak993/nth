@@ -138,6 +138,7 @@ public sealed class FakeWebView : IWebEngineView
     public bool CanGoBack { get; set; }
     public bool CanGoForward { get; set; }
     public bool IsSuspended { get; private set; }
+    public bool IsPlayingAudio { get; set; }
     public uint? BackgroundArgb { get; set; } = 0xFFFFFFFF;
     public double Zoom { get; set; } = 1;
 
@@ -308,7 +309,7 @@ public sealed class FakeWebView : IWebEngineView
     public async Task<bool> SuspendAsync()
     {
         Log.Add("Suspend");
-        if (IsVisible || !SuspendSucceeds) return false;
+        if (IsVisible || IsPlayingAudio || !SuspendSucceeds) return false;
         if (HeldSuspend is { } held && !await held.Task) return false;
         IsSuspended = true;
         return true;
