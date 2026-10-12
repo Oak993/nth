@@ -84,7 +84,7 @@ public sealed class EffortSliderPanelTests(HeadlessSession headless)
         Assert.Equal(1, card.Opacity);
         Assert.Empty(panel.GetVisualDescendants().OfType<ModelList>());
 
-        // the title is tapped: the list comes in as the slider goes
+        // the model line is tapped: the list comes in as the slider goes
         Invoke(ButtonWithTip(card, "Choose a model"));
         var list = Assert.Single(panel.GetVisualDescendants().OfType<ModelList>());
         Assert.Equal(0, list.Opacity, 3); // the incoming page starts clear

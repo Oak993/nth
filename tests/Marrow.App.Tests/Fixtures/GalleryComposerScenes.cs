@@ -53,18 +53,21 @@ internal static class GalleryComposerScenes
             stage.Native.OnUi(() => Apply(model, data, "high", false, false));
             Thread.Sleep(600);
             OpenChip(stage, window);
-            var title = stage.Native.OnUi(() => stage.Popups.Open.Select(popup => popup.Child).OfType<Control>().SelectMany(child => child.GetVisualDescendants().OfType<Button>())
-                .FirstOrDefault(button => button.GetVisualDescendants().OfType<MorphingTextBlock>().Any()));
-            if (title is not null)
-            {
-                stage.Click(stage.CenterOf(title));
-                Thread.Sleep(1200);
-                stage.Shoot(window, "composer-model-picker", label, 1000, 4000, GalleryCrop.PopupsOnly);
-                stage.Shoot(window, "composer-model-picker-in-window", label, 600, 4000, GalleryCrop.WithPopups);
-            }
+            var modelButton = ModelButton(stage);
+            stage.Click(stage.CenterOf(modelButton));
+            Thread.Sleep(1200);
+            stage.Shoot(window, "composer-model-picker", label, 1000, 4000, GalleryCrop.PopupsOnly);
+            stage.Shoot(window, "composer-model-picker-in-window", label, 600, 4000, GalleryCrop.WithPopups);
             CloseChip(stage, window);
         });
     }
+
+    /// <summary>The model button of the open chip popover, found by its identity (the "Choose a model" tooltip, as the interaction recorder does). Throws when it is missing, so a rename can never silently skip a scene.</summary>
+    internal static Button ModelButton(GalleryStage stage) =>
+        stage.Native.OnUi(() => stage.Popups.Open.Select(popup => popup.Child).OfType<Control>()
+            .SelectMany(child => child.GetVisualDescendants().OfType<Button>())
+            .FirstOrDefault(button => Equals(ToolTip.GetTip(button), "Choose a model")))
+        ?? throw new InvalidOperationException("The open composer popover has no \"Choose a model\" button; the model-picker scenes cannot run.");
 
     // The thread's effort, fast mode and pair as a look needs them (through the model's own update, as the slider does).
     private static void Apply(AppModel model, GalleryData data, string effort, bool fast, bool pair)

@@ -61,7 +61,8 @@ public sealed class ModelsSettingsPagePopoverTests(HeadlessSession headless)
 
     private static Button BlockButton(ModelsSettingsPage page, string title = "Fixture") =>
         LogicalQuery.SelfAndDescendants<Button>(page).Single(button =>
-            LogicalQuery.SelfAndDescendants<TextBlock>(button).Any(text => text.Text == title));
+            LogicalQuery.SelfAndDescendants<TextBlock>(button).Any(text => text.Text == title)
+            && !LogicalQuery.SelfAndDescendants<EffortSliderCard>(page).Any(card => LogicalQuery.SelfAndDescendants<Button>(card).Contains(button))); // the open card's own model line (OD-0139) shows the name too, and is no block
 
     private static void Click(Button button, Control? target = null)
     {
@@ -141,7 +142,8 @@ public sealed class ModelsSettingsPagePopoverTests(HeadlessSession headless)
             Assert.Equal(Pin.Provider, Assert.Single(LogicalQuery.SelfAndDescendants<ProviderIcon>(card)).Provider);
             Assert.Empty(LogicalQuery.SelfAndDescendants<HydraMarkImage>(card));
             Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<SwiftImage>(card), image => image.SymbolName == "chevron.right");
-            Assert.False(LogicalQuery.SelfAndDescendants<Button>(card).Single(button => LogicalQuery.SelfAndDescendants<TextBlock>(button).Any(text => text.Text == "High")).IsEnabled);
+            Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<Button>(card), button => LogicalQuery.SelfAndDescendants<TextBlock>(button).Any(text => text.Text == "High")); // OD-0139: the effort title is no button
+            Assert.False(LogicalQuery.SelfAndDescendants<Button>(card).Single(button => LogicalQuery.SelfAndDescendants<TextBlock>(button).Any(text => text.Text == "Fixture")).IsEnabled); // the model line is the disabled button, without a handler
             Assert.Contains("High", titles); // :221-222 the catalog's efforts and defaultEffort "high": no chosen effort, so the default is the stop (the fallback would read Medium)
             Assert.Contains(card.GetVisualDescendants().OfType<Button>(), b => ToolTip.GetTip(b) is "Fast mode"); // :223 supportsFast
         }
@@ -234,8 +236,9 @@ public sealed class ModelsSettingsPagePopoverTests(HeadlessSession headless)
             Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<Button>(card), b => ToolTip.GetTip(b) is "Fast mode" or "Fast mode is on" or "Choose a model");
             Assert.Empty(LogicalQuery.SelfAndDescendants<HydraMarkImage>(card));
             Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<SwiftImage>(card), image => image.SymbolName == "chevron.right");
+            Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<Button>(card), button => LogicalQuery.SelfAndDescendants<TextBlock>(button).Any(text => text.Text == "Standard")); // OD-0139: the effort title is no button
             Assert.False(LogicalQuery.SelfAndDescendants<Button>(card).Single(button =>
-                LogicalQuery.SelfAndDescendants<TextBlock>(button).Any(text => text.Text == "Standard")).IsEnabled);
+                LogicalQuery.SelfAndDescendants<TextBlock>(button).Any(text => text.Text == "fixture")).IsEnabled); // the model line is the disabled button, without a handler
             Assert.Equal(Pin.Provider, Assert.Single(LogicalQuery.SelfAndDescendants<ProviderIcon>(card)).Provider);
         }
         finally { rig.Main.OnMain(window.Close); }

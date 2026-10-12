@@ -58,7 +58,7 @@ public sealed class EffortSliderCardTests(HeadlessSession headless)
     [InlineData("low,max", "max", null, "Max")]                         // only the first character is upper-cased
     [InlineData("low,ultraThink", "ultraThink", null, "UltraThink")]    // the rest is kept as it is
     [InlineData("", null, null, "Standard")]                            // a model with no efforts
-    public void The_title_is_the_resolved_efforts_title_or_standard_and_the_title_button_still_renders(string levels, string? chosen, string? defaultEffort, string expected) =>
+    public void The_title_is_the_resolved_efforts_title_or_standard_and_the_model_line_button_still_renders(string levels, string? chosen, string? defaultEffort, string expected) =>
         headless.OnUiThread(() =>
         {
             using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -69,7 +69,10 @@ public sealed class EffortSliderCardTests(HeadlessSession headless)
             {
                 Assert.Equal(expected, Title(card).Text);
                 var button = card.GetVisualDescendants().OfType<Button>().Single(b => Equals(ToolTip.GetTip(b), "Choose a model"));
-                Assert.True(button.IsEnabled); // "Standard" too: the title button still renders
+                Assert.True(button.IsEnabled); // "Standard" too: the model line button still renders
+                Assert.DoesNotContain(Title(card).GetVisualAncestors(), ancestor => ancestor is Button); // the title is plain text, not the button
+                Assert.DoesNotContain(button.GetVisualDescendants(), visual => visual is MorphingTextBlock);
+                Assert.Single(button.GetVisualDescendants().OfType<SwiftImage>(), image => image.SymbolName == "chevron.right"); // the chevron after the line
                 button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 Assert.Equal(1, tapped);
             }

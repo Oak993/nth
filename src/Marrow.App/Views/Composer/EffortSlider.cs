@@ -643,7 +643,7 @@ public sealed partial class EffortSliderCard : Decorator
     /// <param name="fastMode">:515 <c>@Binding var fastMode: Bool</c>.</param>
     /// <param name="onReset">:517 <c>let onReset: () -> Void</c>; moves before onTitleTap (ED-095).</param>
     /// <param name="pair">:510 <c>var pair: EffortPairLook? = nil</c>.</param>
-    /// <param name="onTitleTap">:516 <c>var onTitleTap: (() -> Void)?</c>.</param>
+    /// <param name="onTitleTap">:516 <c>var onTitleTap: (() -> Void)?</c>; the handler of the model line under the title, which is the button (OD-0139).</param>
     // :510 `var pair: EffortPairLook?` is read again each time the parent's body runs: the chat may enter or leave a pair, and
     // the pair's heads effort may resolve differently, while the card is on screen. The panel hands the new look to the card
     // that stays (UpdatePair), and everything the pair reaches follows it in place.
@@ -700,20 +700,12 @@ public sealed partial class EffortSliderCard : Decorator
         var title = new MorphingTextBlock { Text = "", MaxLines = 1, VerticalAlignment = VerticalAlignment.Center, GrowthAnchor = 0.5, DriftPeriod = 7 };
         SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Medium).Apply(title);
         title.Foreground = Chrome.PrimaryText.Brush(title);
-        var titleRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { title } };
-        if (onTitleTap is not null) titleRow.Children.Add(SwiftImage.SystemName("chevron.right").Font(SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.SecondaryText)); // :575-578
-        // :589 the plain button draws its label past the plate (the leaving letters, below): the plate's clip must not cut beyond its sides (ED-317).
-        var titlePlate = new Border { Padding = new Thickness(8, 2), Child = titleRow }.RoundedRectangle(7, RoundedCornerStyle.Continuous).ContentBeyondSides();
-        var titleFill = new AnimatedColor(titlePlate); titlePlate.Background = titleFill.Brush;
-        var titleButton = PlainControls.Button(titlePlate, () => onTitleTap?.Invoke()); // :568-597
-        titleButton.IsEnabled = onTitleTap is not null;
-        // :589 .buttonStyle(.plain) draws its label unclipped: the title's leaving letters, carried right past the chevron
-        // as the label narrows, fade there (reference runtime, 2-chat-use.mov 35.12-35.29 s).
-        titleButton.ClipToBounds = false;
-        titleButton.OnHover(hovering => titleFill.Set(hovering && onTitleTap is not null ? Chrome.Overlay(0.08) : SwiftColor.Clear, Chrome.Hover));
-        ToolTip.SetTip(titleButton, onTitleTap is null ? "" : "Choose a model");
-        titleButton.HorizontalAlignment = HorizontalAlignment.Center; // :567 a VStack centres each child at its own width, so the hover plate fits the title
-        centre.Children.Add(titleButton);
+        // DEVIATION OD-0139 (owner ruling, 2026-10-11): the effort title is plain text, the slider below it sets the effort; the model line
+        // under it is the button that opens the model chooser (the source's EffortSlider.swift:568-597 makes the title that button).
+        // The 2 point top margin and the model button's -2 bottom margin keep the title's and the line's ink, and the header's height,
+        // where the title's 8 x 2 plate used to put them.
+        title.HorizontalAlignment = HorizontalAlignment.Center; title.Margin = new Thickness(0, 2, 0, 0);
+        centre.Children.Add(title);
         var subtitle = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), HorizontalAlignment = HorizontalAlignment.Center };
         string? subtitleOf = null; // the title the line under it shows now: a pair's, or null for the model's
         bool subtitleMade = false;
@@ -736,7 +728,25 @@ public sealed partial class EffortSliderCard : Decorator
             Grid.SetColumn(scaledName, 1); subtitle.Children.Add(scaledName);
         }
         Subtitle(pair);
-        centre.Children.Add(subtitle); header.Children.Add(centre); rows.Children.Add(header);
+        // The model line is the button (OD-0139), :568-597 moved from the title: the line and, when there is a handler, a chevron after it
+        // (4 pt, Footnote semibold in Chrome.secondaryText), on a 7 pt continuous plate padded 8 x 2 that fades in over Chrome.hover.
+        var modelRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), HorizontalAlignment = HorizontalAlignment.Center };
+        modelRow.Children.Add(subtitle);
+        if (onTitleTap is not null)
+        {
+            var chevron = SwiftImage.SystemName("chevron.right").Font(SwiftFont.System(SwiftFont.TextStyle.Footnote, weight: SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.SecondaryText);
+            chevron.Margin = new Thickness(4, 0, 0, 0); chevron.VerticalAlignment = VerticalAlignment.Center;
+            Grid.SetColumn(chevron, 1); modelRow.Children.Add(chevron);
+        }
+        var modelPlate = new Border { Padding = new Thickness(8, 2), Child = modelRow }.RoundedRectangle(7, RoundedCornerStyle.Continuous);
+        var modelFill = new AnimatedColor(modelPlate); modelPlate.Background = modelFill.Brush;
+        var modelButton = PlainControls.Button(modelPlate, () => onTitleTap?.Invoke());
+        modelButton.IsEnabled = onTitleTap is not null;
+        modelButton.OnHover(hovering => modelFill.Set(hovering && onTitleTap is not null ? Chrome.Overlay(0.08) : SwiftColor.Clear, Chrome.Hover));
+        ToolTip.SetTip(modelButton, onTitleTap is null ? "" : "Choose a model");
+        modelButton.HorizontalAlignment = HorizontalAlignment.Center; // a VStack centres each child at its own width, so the hover plate fits the line
+        modelButton.Margin = new Thickness(0, 0, 0, -2);
+        centre.Children.Add(modelButton); header.Children.Add(centre); rows.Children.Add(header);
         var sliderSlot = new Panel(); rows.Children.Add(sliderSlot);
         if (efforts.Count == 0)
         {

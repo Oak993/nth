@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -29,7 +30,7 @@ namespace Marrow.App.Tests.Views.Composer;
 public sealed class EffortTitleMaximumReviewTests(HeadlessSession headless)
 {
     // The card as the effort popover shows it (a title-tap handler, so the chevron is there), its efforts with a maximum.
-    private static (EffortSliderCard Card, ObservableStringBox Effort, Avalonia.Controls.Window Window, MorphingTextBlock Title, Visual Chevron) Card(string effortValue)
+    private static (EffortSliderCard Card, ObservableStringBox Effort, Avalonia.Controls.Window Window, MorphingTextBlock Title, Control Chevron) Card(string effortValue)
     {
         var effort = new ObservableStringBox { Value = effortValue };
         var card = new EffortSliderCard("Sonnet", ProviderKind.Claude, new ValueList<string>(["low", "medium", "high", "xhigh", "max"]), "medium", false,
@@ -38,12 +39,15 @@ public sealed class EffortTitleMaximumReviewTests(HeadlessSession headless)
         window.Show();
         Dispatcher.UIThread.RunJobs();
         var title = Assert.Single(card.GetVisualDescendants().OfType<MorphingTextBlock>());
-        var chevron = Assert.Single(card.GetVisualDescendants().OfType<SwiftImage>(), image => image.SymbolName == "chevron.right");
-        return (card, effort, window, title, chevron);
+        // OD-0139: the chevron is on the model line now and no longer rides the title; what moves with the title's frame, half its width's way,
+        // is the title's right edge, which is what these tests track in the chevron's place (the card has its chevron, on the line, and the title has none).
+        Assert.Single(card.GetVisualDescendants().OfType<SwiftImage>(), image => image.SymbolName == "chevron.right");
+        Assert.DoesNotContain(title.GetVisualAncestors(), ancestor => ancestor is Button);
+        return (card, effort, window, title, title);
     }
 
     // The chevron's x every millisecond from the change (index 0) to <paramref name="until"/> ms, as the label's frame moves it.
-    private static List<double> ChevronTrack(Avalonia.Controls.Window window, Visual chevron, ManualTimeProvider clock, ManualFrameSource frames, int until)
+    private static List<double> ChevronTrack(Avalonia.Controls.Window window, Control chevron, ManualTimeProvider clock, ManualFrameSource frames, int until)
     {
         var xs = new List<double>();
         for (var ms = 0; ms <= until; ms++)
@@ -55,7 +59,7 @@ public sealed class EffortTitleMaximumReviewTests(HeadlessSession headless)
             }
             Dispatcher.UIThread.RunJobs();
             window.UpdateLayout();
-            xs.Add(chevron.TranslatePoint(default, window)!.Value.X);
+            xs.Add(chevron.TranslatePoint(new Point(chevron.Bounds.Width, 0), window)!.Value.X); // the title's right edge, where the chevron rode before OD-0139
         }
         return xs;
     }
