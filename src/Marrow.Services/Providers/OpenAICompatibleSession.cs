@@ -116,6 +116,14 @@ public class OpenAICompatibleSession : ProviderSession
     // this session sends exactly as the Mac's.
     public NativeSkillTools? SkillTools { get; set; }
 
+    // PORT-ONLY (Dextra, ED-NEW-dextra-as4-5): the nth-dextra tools, set at construction for a chat the Dextra controller
+    // knows as Dextra's; null, the default, leaves every byte this session sends exactly as before.
+    public Marrow.Services.Assistant.AssistantNativeTools? DextraTools { get; set; }
+
+    // PORT-ONLY (Dextra, ED-NEW-dextra-as4-6): whether the model takes tool calls. A model that does not (a local model with
+    // tool calling off) asks for the nth-dextra tools in fenced blocks instead.
+    protected virtual bool ToolCallingAvailable => true;
+
     // PORT-ONLY (SK-11f, DL-12): the normalized tool events (CommandHeld, CommandFinished, SkillUsed, ToolRequested) the missing-tool detector reads.
     public Action<ToolEvent>? OnToolEvent { get; set; }
 
@@ -150,6 +158,9 @@ public class OpenAICompatibleSession : ProviderSession
     // PORT-ONLY (SK-11f): Marrow's own tools (use_skill, request_tool), empty unless SkillTools offers them, so the request is the Mac's byte for byte by default.
     private IReadOnlyList<JSONValue> SkillToolDefinitions => SkillTools?.Definitions ?? [];
 
+    // PORT-ONLY (Dextra, ED-NEW-dextra-as4-5): the nth-dextra tools, empty unless DextraTools offers them.
+    private IReadOnlyList<JSONValue> DextraToolDefinitions => DextraTools?.Definitions ?? [];
+
     // :61-65
     private IReadOnlyList<JSONValue> McpToolDefinitions => [.. mcpTools.Select(tool => JSONValue.FromDictionaryLiteral(
         ("type", "function"),
@@ -166,6 +177,7 @@ public class OpenAICompatibleSession : ProviderSession
         runtimeMode = configuration.RuntimeMode;
         interactionMode = configuration.InteractionMode;
         currentModel = configuration.Model ?? config.DefaultModel;
+        DextraTools = Marrow.Services.Assistant.AssistantNativeTools.For(configuration); // PORT-ONLY (Dextra, ED-NEW-dextra-as4-5): null for a chat that is not Dextra's
         // RR-50: production binding is exact and dated. Unfilled data never supplies a guessed estimator.
         if (ModelPriceCatalog.Current.Current.Find(configuration.Provider, currentModel, SwiftClock.Provider.Current.GetUtcNow()) is not null)
             KeySpendEstimator = defaultSpendEstimator = usage => ModelPriceCatalog.Current.Current.Find(Configuration.Provider, currentModel, SwiftClock.Provider.Current.GetUtcNow())?.Estimate(usage);
@@ -413,6 +425,15 @@ public class OpenAICompatibleSession : ProviderSession
                 {
                     // Keep the reply in history, or the next turn forgets it. :351
                     if (round.Content.Length > 0) messages.Add(AssistantTurn(round.Content, round.Reasoning, [])); // :352-353 PR-PROVAPI-103
+                    // PORT-ONLY (Dextra, ED-NEW-dextra-as4-6): a model with no tool calls asks for nth-dextra tools in fenced
+                    // blocks; they run, their results go back as one message, and the turn goes on (within MaxRoundsPerTurn).
+                    if (DextraTools is { } dextra && !ToolCallingAvailable && dextra.FencedCalls(round.Content) is { Count: > 0 } fenced)
+                    {
+                        if (await ExecuteFencedDextra(dextra, fenced) is not { } reply || SwiftTask.IsCancelled || interrupted) break;
+                        messages.Add(JSONValue.FromDictionaryLiteral(("role", "user"), ("content", reply)));
+                        TrimHistory();
+                        continue;
+                    }
                     break; // :355
                 }
                 // Record the assistant turn with its tool calls so the next request keeps the
@@ -1169,7 +1190,7 @@ public class OpenAICompatibleSession : ProviderSession
         };
         if (withTools) // :575
         {
-            payload["tools"] = JSONValue.FromArrayLiteral([.. ToolDefinitions, .. SkillToolDefinitions, .. McpToolDefinitions]); // :576
+            payload["tools"] = JSONValue.FromArrayLiteral([.. ToolDefinitions, .. SkillToolDefinitions, .. DextraToolDefinitions, .. McpToolDefinitions]); // :576 (+ PORT-ONLY ED-NEW-dextra-as4-5)
             payload["tool_choice"] = "auto"; // :577
         }
         ApplyProviderPayload(payload, model, effort, withTools); // :579
@@ -1728,6 +1749,7 @@ public class OpenAICompatibleSession : ProviderSession
             default: // :1027
             {
                 if (SkillTools is { } skillTools && skillTools.Owns(tool.Name)) return await ExecuteSkillTool(skillTools, tool, args); // PORT-ONLY (SK-11f)
+                if (DextraTools is { } dextraTools && dextraTools.Owns(tool.Name)) return await ExecuteDextraTool(tool.Id, tool.Name, () => dextraTools.Execute(tool.Name, args, SwiftTask.CancellationToken)); // PORT-ONLY (ED-NEW-dextra-as4-5)
                 var call = new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = tool.Name }; // :1028
                 OnEvent?.Invoke(new ProviderEvent.ToolStarted(callID, call)); // :1029
                 OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = "Unknown tool.", Status = ToolCall.Status.Failed })); // :1030
@@ -1759,6 +1781,40 @@ public class OpenAICompatibleSession : ProviderSession
         }));
         if (OnToolEvent is { } tap) foreach (var toolEvent in result.Events) tap(toolEvent);
         return result.Output;
+    }
+
+    // PORT-ONLY (Dextra, ED-NEW-dextra-as4-5). Runs one nth-dextra call; the tool's own policy check governs it, so it never
+    // asks through ApproveIfNeeded. A stopped turn answers "Stopped." as the built-in tools do; nothing it produced is said.
+    private async Task<string> ExecuteDextraTool(string callID, string name, Func<Task<Marrow.Services.Assistant.AssistantToolResult>> run)
+    {
+        OnEvent?.Invoke(new ProviderEvent.ToolStarted(callID, new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = Marrow.Services.Assistant.AssistantNativeTools.Title(name) }));
+        Marrow.Services.Assistant.AssistantToolResult result;
+        try { result = await run(); }
+        catch (OperationCanceledException) when (SwiftTask.IsCancelled || interrupted) { return "Stopped."; }
+        if (SwiftTask.IsCancelled || interrupted) return "Stopped.";
+        OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate
+        {
+            Output = Summary(result.Text, 4_000),
+            Status = result.IsError ? ToolCall.Status.Failed : ToolCall.Status.Completed,
+        }));
+        return result.Text;
+    }
+
+    // PORT-ONLY (Dextra, ED-NEW-dextra-as4-6). The fenced-text fallback: runs the nth-dextra blocks of an answer from a model
+    // with no tool calls, each as a timeline row, and returns the one message that carries their results back; null when
+    // the turn stopped.
+    private async Task<string?> ExecuteFencedDextra(Marrow.Services.Assistant.AssistantNativeTools dextra, IReadOnlyList<Marrow.Core.Port.Assistant.AssistantFencedCall> calls)
+    {
+        var results = new List<(Marrow.Core.Port.Assistant.AssistantFencedCall, Marrow.Services.Assistant.AssistantToolResult)>();
+        for (var index = 0; index < calls.Count; index++)
+        {
+            var call = calls[index];
+            Marrow.Services.Assistant.AssistantToolResult result = Marrow.Services.Assistant.AssistantToolResult.Failed("Stopped.");
+            var text = await ExecuteDextraTool(NextID("dextra"), call.Tool, async () => result = await dextra.ExecuteFenced(call, index, SwiftTask.CancellationToken));
+            if (SwiftTask.IsCancelled || interrupted) return null;
+            results.Add((call, result with { Text = text }));
+        }
+        return Marrow.Services.Assistant.AssistantNativeTools.FencedReply(results);
     }
 
     // :1035-1038. Used by the later part's approveIfNeeded/executeTool bodies; kept here because
@@ -2063,6 +2119,7 @@ public class OpenAICompatibleSession : ProviderSession
         {
             policy.Length == 0 ? null : policy,
             SkillTools?.CatalogueBlock(),
+            DextraTools?.InstructionsBlock(fenced: !ToolCallingAvailable), // PORT-ONLY (ED-NEW-dextra-as4-5, -6): null for a chat that is not Dextra's
             guidance.SystemPromptBlock(),
         }.Where(value => value is not null));
         // DEVIATION OD-0012 F1 (PR-PROVAPI-141): upstream :1200 reads
