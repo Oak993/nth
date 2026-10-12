@@ -17,12 +17,22 @@ public sealed class ArtifactNativeTools(UiRegistration registration)
 
     public UiRegistration Registration { get; } = registration;
 
-    /// <summary>The tools offered, in order: the four artifact tools, then the read-only live-view reference (W17). The live-answer tools of W24 join them.</summary>
-    public static IReadOnlyList<string> Names { get; } = [.. ArtifactTools.Names, UiReferenceTool.Name];
+    /// <summary>Every tool this class can run, in order: the four artifact tools, the live-answer tools (W24), then the read-only live-view reference (W17).</summary>
+    public static IReadOnlyList<string> Names { get; } = [.. ArtifactTools.Names, .. LiveAnswerTools.Names, UiReferenceTool.Name];
 
-    public IReadOnlyList<JSONValue> Definitions => [.. ArtifactTools.Names.Select(ArtifactTools.FunctionDefinition), UiReferenceTool.FunctionDefinition()];
+    /// <summary>The tools this chat's session is offered: the live-answer tools only while Settings has them on, and a small local model has no HTML widget.</summary>
+    public IReadOnlyList<string> Offered => Registration.Host.Live.Enabled
+        ? [.. ArtifactTools.Names, .. LiveAnswerTools.Offered(Registration.Lite), UiReferenceTool.Name]
+        : [.. ArtifactTools.Names, UiReferenceTool.Name];
 
-    public bool Owns(string toolName) => Names.Contains(toolName);
+    public IReadOnlyList<JSONValue> Definitions =>
+    [
+        .. ArtifactTools.Names.Select(ArtifactTools.FunctionDefinition),
+        .. Offered.Where(LiveAnswerTools.IsName).Select(LiveAnswerTools.FunctionDefinition),
+        UiReferenceTool.FunctionDefinition(),
+    ];
+
+    public bool Owns(string toolName) => Offered.Contains(toolName);
 
     /// <summary>
     /// The teaching block for the system prompt (W17, ED-NEW-web-w17-1): when to use text, a live view or an artifact, then the view
@@ -30,11 +40,13 @@ public sealed class ArtifactNativeTools(UiRegistration registration)
     /// (<paramref name="profile"/>), and fenced blocks in place of tools when it cannot call them.
     /// </summary>
     public string TeachingBlock(Marrow.Core.NthUi.NthUiProfile profile = Marrow.Core.NthUi.NthUiProfile.Full, bool toolsUsable = true) =>
-        UiTeaching.SystemBlock(Names, profile, toolsUsable);
+        UiTeaching.SystemBlock(Offered, profile, toolsUsable);
 
     /// <summary>The timeline row's title for a call, known before it runs.</summary>
     public static string Title(string toolName, JSONValue arguments) =>
-        toolName == UiReferenceTool.Name ? UiReferenceTool.RowTitle(Node(arguments)) : ArtifactTools.RowTitle(toolName, Node(arguments));
+        toolName == UiReferenceTool.Name ? UiReferenceTool.RowTitle(Node(arguments))
+        : LiveAnswerTools.IsName(toolName) ? LiveAnswerFlow.RowTitle(toolName) // the live-answer flow turns this row into the view (W24)
+        : ArtifactTools.RowTitle(toolName, Node(arguments));
 
     /// <summary>Runs one artifact tool; a refusal is a failed result, never a throw.</summary>
     public async Task<NativeToolResult> Execute(string toolName, JSONValue arguments)
@@ -45,6 +57,11 @@ public sealed class ArtifactNativeTools(UiRegistration registration)
             return new NativeToolResult(Title(toolName, arguments), reference.Text, reference.Failed, []);
         }
         var (thread, provider, model, host) = Registration;
+        if (LiveAnswerTools.IsName(toolName))
+        {
+            var live = await LiveAnswerTools.Run(host.Live, thread, Registration.Lite, toolName, Node(arguments)).ConfigureAwait(true);
+            return new NativeToolResult(LiveAnswerTools.Title, live.Text, live.Failed, []);
+        }
         var (author, prompt) = await host.Caller(thread, provider, model).ConfigureAwait(true);
         var result = ArtifactTools.Run(host.Store!, thread, toolName, Node(arguments), author, prompt);
         return new NativeToolResult(Title(toolName, arguments), result.Text, result.Failed, []);

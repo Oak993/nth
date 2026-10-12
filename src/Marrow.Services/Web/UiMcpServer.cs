@@ -2,7 +2,7 @@
 // "nth-ui", which CLI providers reach through the stdio relay (UiMcpBridge): one JSON-RPC line in, one line out, in the
 // shape of the advisor's and the skills' servers. A connection carries the registration of the session it serves (its
 // chat, provider and model); one without a registration lists no tools and runs none. The artifact tools are its first;
-// the live-answer tools (ui_show, ui_update, html_widget) join them in W24. No Swift counterpart.
+// the live-answer tools (ui_show, ui_update, html_widget) join them in W24 (LiveAnswerTools). No Swift counterpart.
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Marrow.Core.Models;
@@ -11,7 +11,11 @@ using Marrow.Core.Port;
 namespace Marrow.Services.Web;
 
 /// <summary>A session the nth-ui server serves: its chat, its provider and model, and the artifact host at its launch.</summary>
-public sealed record UiRegistration(Guid Thread, ProviderKind Provider, string? Model, ArtifactHost Host);
+public sealed record UiRegistration(Guid Thread, ProviderKind Provider, string? Model, ArtifactHost Host)
+{
+    /// <summary>A small local model gets the lite subset of live views and no HTML widget (DESIGN.md 7.3).</summary>
+    public bool Lite => Provider == ProviderKind.Local;
+}
 
 public sealed class UiMcpServer(UiRegistration? registration)
 {
@@ -23,8 +27,8 @@ public sealed class UiMcpServer(UiRegistration? registration)
     /// </summary>
     public static string Instructions => UiTeaching.Instructions(ToolNames);
 
-    /// <summary>The tools the server serves, in the order it lists them. The live-answer tools of W24 join this list.</summary>
-    public static IReadOnlyList<string> ToolNames { get; } = [.. ArtifactTools.Names, UiReferenceTool.Name];
+    /// <summary>The tools the server serves, in the order it lists them: the artifact tools, the live-answer tools (W24), then the read-only reference.</summary>
+    public static IReadOnlyList<string> ToolNames { get; } = [.. ArtifactTools.Names, .. LiveAnswerTools.Names, UiReferenceTool.Name];
 
     /// <summary>True for a Claude Code tool name of this server's ("mcp__nth-ui__artifact_create").</summary>
     public static bool IsOwnTool(string? qualifiedName) =>
@@ -49,7 +53,7 @@ public sealed class UiMcpServer(UiRegistration? registration)
                     ["protocolVersion"] = ProtocolVersion(parameters),
                     ["capabilities"] = new JsonObject { ["tools"] = new JsonObject() },
                     ["serverInfo"] = new JsonObject { ["name"] = ServerName, ["version"] = "1.0.0" },
-                    ["instructions"] = Serves ? Instructions : "Artifacts are not available in this session.",
+                    ["instructions"] = Serves ? UiTeaching.Instructions(OfferedNames) : "Artifacts are not available in this session.",
                 },
                 "ping" => new JsonObject(),
                 "tools/list" => new JsonObject { ["tools"] = Tools() },
@@ -63,6 +67,11 @@ public sealed class UiMcpServer(UiRegistration? registration)
     }
 
     private bool Serves => registration is { Host.IsOn: true };
+
+    /// <summary>The tools this connection lists: the live-answer tools only while Settings has them on, and a small local model has no HTML widget.</summary>
+    private IReadOnlyList<string> OfferedNames => registration is { } known && known.Host.Live.Enabled
+        ? [.. ArtifactTools.Names, .. LiveAnswerTools.Offered(known.Lite), UiReferenceTool.Name]
+        : [.. ArtifactTools.Names, UiReferenceTool.Name];
 
     private JsonArray Tools()
     {
@@ -78,6 +87,17 @@ public sealed class UiMcpServer(UiRegistration? registration)
                 ["description"] = ArtifactTools.Description(name),
                 ["inputSchema"] = ArtifactTools.InputSchema(name),
                 ["annotations"] = new JsonObject { ["readOnlyHint"] = reads, ["destructiveHint"] = false, ["openWorldHint"] = false },
+            });
+        }
+        foreach (var name in LiveAnswerTools.Offered(registration!.Lite).Where(_ => registration.Host.Live.Enabled))
+        {
+            tools.Add(new JsonObject
+            {
+                ["name"] = name,
+                ["title"] = LiveAnswerTools.Title,
+                ["description"] = LiveAnswerTools.Description(name),
+                ["inputSchema"] = LiveAnswerTools.InputSchema(name),
+                ["annotations"] = new JsonObject { ["readOnlyHint"] = false, ["destructiveHint"] = false, ["openWorldHint"] = false },
             });
         }
         // PORT-ONLY (W17, ED-NEW-web-w17-1): the on-demand reference of the live-view language, read only.
@@ -99,6 +119,12 @@ public sealed class UiMcpServer(UiRegistration? registration)
         var (thread, provider, model, host) = registration!;
         ArtifactToolResult result;
         if (name == UiReferenceTool.Name) result = UiReferenceTool.Run(parameters?["arguments"]);
+        else if (LiveAnswerTools.IsName(name))
+        {
+            // PORT-ONLY (W24, ED-NEW-web-w24-1): the live-answer tools write only into this chat's own timeline (a view, sandboxed), so they run without a card.
+            if (!LiveAnswerTools.Offered(registration.Lite).Contains(name!)) throw new ArgumentException("Unknown nth-ui tool.");
+            result = await LiveAnswerTools.Run(host.Live, thread, registration.Lite, name!, parameters?["arguments"]).ConfigureAwait(false);
+        }
         else
         {
             var (author, prompt) = await host.Caller(thread, provider, model).ConfigureAwait(false);

@@ -54,12 +54,13 @@ public sealed class UiTeachingWiringTests
         Assert.StartsWith(NthUiTeaching.Core(options) + "\n\n", instructions, StringComparison.Ordinal);
         Assert.InRange(NthUiTeaching.Core(options).Length, 1_200, NthUiTeaching.McpCoreLimit);
 
-        // The tools this server serves today: artifacts and the reference. The live-answer tools of W24 are not among them, so a view goes in a fence.
-        Assert.True(options.ArtifactTools && options.Reference);
-        Assert.False(options.LiveTools || options.HtmlWidget || options.AskUser);
+        // The tools this server serves: artifacts, the live-answer tools of W24 and the reference. A view is shown with ui_show, and the fence stays as the fallback.
+        Assert.True(options.ArtifactTools && options.Reference && options.LiveTools && options.HtmlWidget);
+        Assert.False(options.AskUser); // W25 adds ask_user
         Assert.Contains("artifact_create", instructions, StringComparison.Ordinal);
         Assert.Contains("ui_reference", instructions, StringComparison.Ordinal);
-        Assert.DoesNotContain("ui_show", instructions, StringComparison.Ordinal);
+        Assert.Contains("Show a view with ui_show", instructions, StringComparison.Ordinal);
+        Assert.Contains("html_widget", instructions, StringComparison.Ordinal);
         Assert.Equal(NthUiExamples.Six.Count, Fences(instructions));
 
         var silent = new UiMcpServer(null);
@@ -94,7 +95,8 @@ public sealed class UiTeachingWiringTests
             Assert.Contains("Topics: language, components, actions, examples, lite, errors.", refused["content"]![0]!["text"]!.GetValue<string>(), StringComparison.Ordinal);
         }
         Assert.True(UiMcpServer.IsOwnTool("mcp__nth-ui__ui_reference"));
-        Assert.False(UiMcpServer.IsOwnTool("mcp__nth-ui__ui_show")); // W24 adds its tools to ToolNames when it adds them
+        foreach (var live in new[] { "ui_show", "ui_update", "html_widget" }) Assert.True(UiMcpServer.IsOwnTool("mcp__nth-ui__" + live)); // W24's tools are among ToolNames
+        Assert.False(UiMcpServer.IsOwnTool("mcp__nth-ui__ask_user")); // W25 adds its own
 
         var silent = new UiMcpServer(null);
         Assert.Equal(-32602, (await Mcp(silent, "tools/call", new { name = "ui_reference", arguments = new { topic = "language" } }))["error"]!["code"]!.GetValue<int>());
