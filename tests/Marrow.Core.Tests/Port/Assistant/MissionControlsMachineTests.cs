@@ -50,6 +50,29 @@ public sealed class MissionControlsMachineTests
     [Fact]
     [Trait("Feature", "AS-6")]
     [Trait("Decision", "ED-NEW-dextra-as6-8")]
+    public void A_task_Resume_brings_back_every_hand_stopped_head_when_nothing_else_could_go_on_but_Resume_all_does_not()
+    {
+        var task = new Mission(Guid.NewGuid(), "Next video", "dextra", MissionOrigin.Owner, MissionState.Stopped)
+        {
+            ResumeTo = MissionState.Working,
+            StoppedBy = StopCause.Owner,
+            Heads = new ValueList<MissionHead>([
+                Head("Writer", HeadState.Stopped) with { StoppedByHand = true, ResumeTo = HeadState.Working },
+                Head("Voice", HeadState.Stopped) with { StoppedByHand = true, ResumeTo = HeadState.Working },
+            ]),
+        };
+        var own = MissionMachine.Resume(task);
+        Assert.True(own.Done);
+        Assert.Equal([HeadState.Working, HeadState.Working], own.Mission.Heads.Select(h => h.State));
+        Assert.Equal(MissionState.Working, own.Mission.State);
+        var all = MissionMachine.Resume(task, resumeNeededHandStopped: false);
+        Assert.Equal([HeadState.Stopped, HeadState.Stopped], all.Mission.Heads.Select(h => h.State));
+        Assert.Equal(MissionState.Stopped, all.Mission.State);
+    }
+
+    [Fact]
+    [Trait("Feature", "AS-6")]
+    [Trait("Decision", "ED-NEW-dextra-as6-8")]
     public void A_task_stopped_after_it_failed_offers_Restart_and_Revert_never_Resume()
     {
         var stopped = Stopped(MissionState.Working, failed: true);

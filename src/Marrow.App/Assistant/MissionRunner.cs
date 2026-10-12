@@ -1029,7 +1029,7 @@ public sealed partial class MissionRunner
             if (record.Mission.State is MissionState.Stopping or MissionState.Stopped && !wholeAlready && open)
             {
                 lock (gate) LiveOf(id).WholeStop = true;
-                CutAgents(id, record, threads);
+                CutAgents(id, record, threads, cause);
                 return null;
             }
             return move.Refused;
@@ -1043,13 +1043,13 @@ public sealed partial class MissionRunner
         // Its approval cards are answered Deny below, so on Resume it goes back to what it was doing, not to Needs you.
         if (stopping.ResumeTo == MissionState.NeedsYou) stopping = stopping with { ResumeTo = NeedsYouFrom(record) };
         Update(id, r => r with { Mission = stopping, Waiting = null });
-        CutAgents(id, record, threads);
+        CutAgents(id, record, threads, cause);
         return null;
     }
 
     // The effects of a Stop on the task's agents: its pending requests die, its cards are held, every turn is interrupted, the
     // heads stopped, every job terminated and every slot freed.
-    private void CutAgents(Guid id, MissionRecord record, List<Guid> threads)
+    private void CutAgents(Guid id, MissionRecord record, List<Guid> threads, StopCause cause)
     {
         // The provider's own requests die with the cut turn: approvals are answered Deny, questions withdrawn. Every request
         // still pending is denied, also one whose card the owner answered a moment ago and whose answer has not reached the
@@ -1071,7 +1071,7 @@ public sealed partial class MissionRunner
             o.Jobs.Terminate(thread);
             o.Gate.Leave(thread);
         }
-        Log(record, null, "stop", ActionClass.Agents, "stop sent");
+        Log(record, null, "stop", ActionClass.Agents, cause == StopCause.StopAll ? "stop sent by Stop all" : "stop sent");
         CheckStopping();
         if (Find(id)?.Mission.State == MissionState.Stopping) stopTimer ??= o.Time.CreateTimer(_ => OnMain(CheckStopping), null, StopCheck, StopCheck);
     }

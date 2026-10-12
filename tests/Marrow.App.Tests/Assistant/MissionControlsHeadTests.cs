@@ -280,6 +280,43 @@ public sealed class MissionControlsHeadTests : IDisposable
     }
 
     [Fact]
+    public void A_task_that_summed_to_Stopped_from_its_heads_while_its_lead_runs_is_cut_by_its_own_Stop_and_by_Stop_all()
+    {
+        foreach (var byStopAll in new[] { false, true })
+        {
+            var (rig, record, lead, a, b) = Team();
+            foreach (var head in new[] { a, b })
+            {
+                Assert.Null(rig.Controls.StopHead(record.Id, head));
+                rig.Agents.Finish(head, null);
+                rig.Runner.HeadFinished(head, TurnStatus.Interrupted);
+                rig.Runner.CheckStopping();
+            }
+            // Every head the task could run is stopped: it reads Stopped, though its lead has not been told anything.
+            Assert.Equal(MissionState.Stopped, rig.Now(record).Mission.State);
+            Assert.Equal(0, rig.Agents.Of(lead).Interrupts);
+            Assert.True(rig.Agents.TurnRunning(lead));
+
+            if (byStopAll) rig.Controls.StopAll(Marrow.App.Safety.StopSource.Header);
+            else Assert.Null(rig.Controls.Stop(record.Id));
+
+            Assert.Equal(1, rig.Agents.Of(lead).Interrupts);
+            Assert.Equal("The task was stopped as a whole; resume the task.", rig.Controls.ResumeHead(record.Id, a));
+            rig.EndTurn(lead, null, TurnStatus.Interrupted);
+            rig.EndProcesses();
+            rig.Runner.CheckStopping();
+            Assert.Equal(MissionState.Stopped, rig.Now(record).Mission.State);
+            // Now it is stopped as a whole: Stop has nothing more to do, and the task's Resume brings it back.
+            Assert.Equal("The task is already stopping or stopped.", rig.Controls.Stop(record.Id));
+            // Every head was stopped on its own and nothing else could go on, so the task's Resume brings them back with it.
+            Assert.Null(rig.Controls.Resume(record.Id));
+            var back = rig.Now(record).Mission;
+            Assert.Equal(MissionState.Working, back.State);
+            Assert.All(back.Heads, h => Assert.Equal(HeadState.Working, h.State));
+        }
+    }
+
+    [Fact]
     public void A_task_that_has_been_pausing_for_five_seconds_names_the_head_it_waits_for_and_what_it_does()
     {
         var (rig, record, lead, a, b) = Team("Voice", "Subtitles");

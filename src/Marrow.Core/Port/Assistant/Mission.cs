@@ -153,7 +153,10 @@ public static class MissionMachine
         if (resumeNeededHandStopped && heads.Count > 0 && TaskRollup.Sum(heads).Sum != TaskSum.Running)
         {
             var needed = heads.Where(h => h.State != HeadState.Done).SelectMany(h => h.DependsOn).ToHashSet(StringComparer.Ordinal);
-            heads = heads.Select(h => h.State == HeadState.Stopped && h.StoppedByHand && needed.Contains(h.Id)
+            // No head that is waited on? Then the task cannot go on without any of them: every one stopped by hand comes back.
+            var handStopped = heads.Where(h => h.State == HeadState.Stopped && h.StoppedByHand).ToList();
+            var all = !handStopped.Any(h => needed.Contains(h.Id)) && heads.All(h => h.State is HeadState.Done or HeadState.Stopped);
+            heads = heads.Select(h => h.State == HeadState.Stopped && h.StoppedByHand && (all || needed.Contains(h.Id))
                 ? h with { State = h.ResumeTo ?? HeadState.Queued, ResumeTo = null, StoppedByHand = false }
                 : h).ToList();
         }

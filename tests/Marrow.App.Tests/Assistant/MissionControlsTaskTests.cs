@@ -599,7 +599,7 @@ public sealed class MissionControlsTaskTests : IDisposable
         Assert.Equal(0, done.Mission.ChangedFiles);
         Assert.Null(done.Workspace);
         Assert.False(done.RevertIntent);
-        Assert.Equal(3, done.RevertedWork!.ChangedFiles); // the record knows how many files; the ref does not
+        Assert.Equal(3, done.RevertedWork!.ChangedFiles); // the journal knows how many files; the ref does not
         Assert.Equal(["find reverted"], rig.Rig.Workspaces.Calls); // it was looked for, not done again
         Assert.Contains(rig.Rig.Audit, e => e.Tool == "revert");
     }

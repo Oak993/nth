@@ -216,6 +216,9 @@ public sealed partial class MissionRunner
         var move = MissionMachine.Resume(m, heldIrreversible is not null, resumeNeededHandStopped: !all);
         if (!move.Done) return new ResumeOutcome(move.Refused);
         var mission = move.Mission;
+        // Nothing could run (every head that could go on was stopped on its own, and Resume all leaves those alone): it stays as it is.
+        if (m.State == MissionState.Stopped && mission.State is MissionState.Stopped or MissionState.Stopping)
+            return new ResumeOutcome("Every head that could go on was stopped on its own; resume one of them.");
         // It waited on cards it no longer has (lost with nth's end): it goes back to what it was doing and asks again.
         if (mission.State == MissionState.NeedsYou && !fromReserve && o.Queue.Of(id).Count == 0) mission = mission with { State = NeedsYouFrom(record) };
         // The stop key must work for anything that runs (12.6): a Resume that cannot take it changes nothing.
@@ -232,7 +235,8 @@ public sealed partial class MissionRunner
             if (fromReserve) l.NeedsYouFrom = m.ResumeTo is { } back && MissionStates.IsRunning(back) ? back : MissionState.Working;
         }
         var keptHeads = mission.Heads.Where(h => h.State == HeadState.Stopped && h.StoppedByHand).Select(h => $"{h.Name} in {ControlWords.Quote(m.Title)}").ToList();
-        Update(id, r => r with { Mission = mission, Interrupted = false });
+        // Its agents run again (or are about to): "agents released" no longer describes it. The cold start below still knows.
+        Update(id, r => r with { Mission = mission, Interrupted = false, AgentsReleased = false });
         ApplyHeadResumes(id, m, mission);
         o.Queue.Release(c => c.MissionId == id, o.CurrentInputs);
         o.Queue.ApplyKept(c => c.MissionId == id);
@@ -265,31 +269,29 @@ public sealed partial class MissionRunner
         if (wasStopped)
         {
             // The cut turn runs again: each agent that was working goes on behind the gate.
-            ContinueLead(id, record, state, stoppedPart: true);
+            ContinueLead(id, record, state, stoppedPart: true, cold: released);
             return outcome;
         }
         if (continueMessage)
         {
             // The turn ended because Tactus was held, not because the lead was done: it goes on, whatever it last said.
             lock (gate) l.LeadDone = false;
-            ContinueLead(id, record, state, stoppedPart: false);
+            ContinueLead(id, record, state, stoppedPart: false, cold: released);
             return outcome;
         }
         Advance(id);
         if (released && Find(id) is { } now && now.Mission.State == MissionState.Working && now.LeadThread is { } lead
             && !o.Agents.TurnRunning(lead) && !LiveOf(id).LeadDone && now.PendingRedirect is null
             && o.Agents.Heads(lead).All(h => h.Finished) && !Threads(now).Any(o.Agents.TurnRunning))
-            ContinueLead(id, now, now.Mission.State, stoppedPart: false);
-        else if (released) Update(id, r => r with { AgentsReleased = false });
+            ContinueLead(id, now, now.Mission.State, stoppedPart: false, cold: true);
         return outcome;
     }
 
     // Starts the lead (or the reviewer) again behind the gate and tells it to go on.
-    private void ContinueLead(Guid id, MissionRecord record, MissionState state, bool stoppedPart)
+    private void ContinueLead(Guid id, MissionRecord record, MissionState state, bool stoppedPart, bool cold)
     {
         var again = state == MissionState.Reviewing ? record.ReviewerThread : record.LeadThread;
         if (again is not { } thread) return;
-        var cold = record.AgentsReleased && !stoppedPart;
         var context = o.Agents.ContextTokens(thread);
         var coldLine = ControlWords.ColdCache(context);
         // The first turn reads the whole context again at the uncached price, and that cost counts in the task's spend.
@@ -305,7 +307,7 @@ public sealed partial class MissionRunner
                     : now.PendingRedirect ?? ContinueText;
             var sent = o.Agents.Send(thread, text);
             if (sent && now.PendingRedirect is not null && state != MissionState.Reviewing) Update(id, r => r with { PendingRedirect = null });
-            if (cold || now.AgentsReleased) Update(id, r => r with { AgentsReleased = false, Waiting = r.Waiting == coldLine ? null : r.Waiting });
+            if (cold) Update(id, r => r.Waiting == coldLine ? r with { Waiting = null } : r);
         }), TaskScheduler.Default);
     }
 

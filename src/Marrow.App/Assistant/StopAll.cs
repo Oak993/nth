@@ -176,8 +176,10 @@ public sealed class StopAll : IDisposable
     // The main thread: stop every live mission, remember the agents that were stopping, and watch them confirm.
     private void Settle()
     {
+        // Every task that is not over. One already stopped as a whole answers that it is (nothing happens); one that only summed to
+        // Stopped from its heads, with its lead still running, is cut now (12.6b).
         var live = o.Runner.Missions
-            .Where(r => r.Mission.State is not (MissionState.Done or MissionState.Failed or MissionState.Stopped or MissionState.Stopping))
+            .Where(r => r.Mission.State is not (MissionState.Done or MissionState.Failed))
             .ToList();
         var ids = live.Select(r => r.Id).ToHashSet();
         // The agents with something to stop (a turn or a live process), counted before the stop reaches them.

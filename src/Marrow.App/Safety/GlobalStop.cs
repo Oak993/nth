@@ -91,7 +91,7 @@ public sealed class GlobalStop : IDisposable
         }
     }
 
-    /// <param name="host">The chord's thread.</param>
+    /// <param name="host">The chord's thread. The service owns it and disposes it with itself.</param>
     /// <param name="chordSetting">The owner's chord text from Settings ("Ctrl+Alt+Esc"); null, empty or unreadable text means the default.</param>
     /// <param name="time">The clock the retry timer runs on.</param>
     public GlobalStop(IStopChordHost host, Func<string?> chordSetting, TimeProvider? time = null)
@@ -263,6 +263,7 @@ public sealed class GlobalStop : IDisposable
             }
             if (wasArmed) host.Unregister(StopId);
         }
+        host.Dispose(); // the service owns its host: the chord's thread ends with it
         List<Waiter> left;
         lock (gate)
         {
