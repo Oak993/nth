@@ -212,7 +212,9 @@ public sealed class ReservesView : Decorator
             {
                 if (e.Key != Key.Escape) return;
                 model.Cancel();
-                ruleBox.Focus();
+                // The question's buttons are gone and the focus they held with them: the owner is put back in the field once
+                // this key has been dealt with.
+                Dispatcher.UIThread.Post(() => ruleBox.Focus(), DispatcherPriority.Input);
                 e.Handled = true;
             };
             question.Children.Add(text);
