@@ -51,6 +51,9 @@ public sealed class WelcomeScreen : CanvasScreen, IMotion
             .Add(FactIcon.Kind.Package, SetupStrings.WelcomeOffline);
         Install = Button(SetupStrings.WelcomeInstall, ButtonKind.Primary, session.ChooseInstall, wide: true);
         DefaultButton = Install;
+        // ED-NEW-inst-merge-2: Install follows the session's shared permission (no install before the signature answers)
+        Install.IsEnabled = session.CanChooseInstall;
+        session.InstallAvailabilityChanged += () => Install.IsEnabled = session.CanChooseInstall;
         OptionsLink = new LinkButton(SetupStrings.WelcomeOptions, TextRole.Hint, () => session.Go(SetupScreen.Options));
         var installs = ScreenText.Fine("", 12);
         var installsInlines = ScreenText.Inlines(installs);

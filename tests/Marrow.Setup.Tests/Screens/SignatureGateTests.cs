@@ -1,7 +1,6 @@
 using Marrow.Setup.Flow;
 using Marrow.Setup.Platform;
 using Marrow.Setup.Tests.Fixtures;
-using Avalonia.LogicalTree;
 using Marrow.Setup.Screens;
 
 namespace Marrow.Setup.Tests.Screens;
@@ -27,7 +26,7 @@ public sealed class SignatureGateTests(SetupHeadlessSession headless)
             rig.Window.Show();
             try
             {
-                var button = session.Current!.View.GetLogicalDescendants().OfType<InterimButton>().Single();
+                var button = session.Current is WelcomeScreen welcome ? welcome.Install : Assert.IsType<UpdateScreen>(session.Current).Go;
                 Assert.False(button.IsEnabled);
                 button.Invoke();
                 Assert.False(session.InstallChosen);

@@ -133,6 +133,8 @@ public sealed class UpdateScreen : CanvasScreen, IProgressScreen
         Later = Button(SetupStrings.UpdateLater, ButtonKind.Secondary, OnLater);
         Go = Button(SetupStrings.UpdateGo, ButtonKind.Primary, OnGo);
         DefaultButton = Go;
+        RefreshGo();
+        session.InstallAvailabilityChanged += RefreshGo;
         Column.With(mark, title, subtitle, notes, busy, Steps, Bar, fine, Space(ButtonGap), Hold, Buttons(Later, Go));
         Progress = new CanvasProgress(Steps, Bar, steps => ShowUpdating(UpdateRun.Closed, 0, steps), slow => SetSubtitle(slow ? SetupStrings.InstallingSlow : SetupStrings.InstallingSubtitle));
     }
@@ -140,7 +142,23 @@ public sealed class UpdateScreen : CanvasScreen, IProgressScreen
     /// <summary>What unit U3's progress engine draws into once the update runs (the rows, the bar and the stall line).</summary>
     public IProgressView Progress { get; }
 
-    public UpdateState State { get; private set; }
+    public UpdateState State
+    {
+        get => state;
+        private set
+        {
+            state = value;
+            RefreshGo();
+        }
+    }
+
+    private UpdateState state;
+
+    /// <summary>
+    /// ED-NEW-inst-merge-2: in Ask, Update installs, so it follows the session's shared permission (no install before the
+    /// signature answers); in Busy the same button is Wait, which stays live.
+    /// </summary>
+    private void RefreshGo() => Go.IsEnabled = state != UpdateState.Ask || Session.CanChooseInstall;
 
     /// <summary>nth is open now (the footnote says it saves and closes for a moment); unit U4 sets it.</summary>
     public bool NthOpen { get; set; }
