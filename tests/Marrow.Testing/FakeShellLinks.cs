@@ -352,10 +352,12 @@ public sealed partial class FakeShellLinks : IShellLinks
         }
     }
 
-    public void UpdateLink(string path, ShellLinkChange change)
+    public void UpdateLink(string path, ShellLinkChange change) => UpdateLink(path, change, TimeSpan.MaxValue);
+
+    public void UpdateLink(string path, ShellLinkChange change, TimeSpan timeout)
     {
         ArgumentNullException.ThrowIfNull(change);
-        Enter(Call.UpdateLink, path);
+        Enter(Call.UpdateLink, path, timeout);
         lock (gate)
         {
             if (!links.TryGetValue(path, out var entry)) throw new FileNotFoundException("No link.", path);
@@ -442,13 +444,18 @@ public sealed partial class FakeShellLinks : IShellLinks
         return null;
     }
 
-    private void Enter(Call call, string? path)
+    private void Enter(Call call, string? path, TimeSpan? timeout = null)
     {
         TimeSpan delay;
         lock (gate)
         {
             calls[call] = calls.GetValueOrDefault(call) + 1;
             delay = delays.GetValueOrDefault(call);
+        }
+        if (timeout is { } allowance && (allowance <= TimeSpan.Zero || delay > allowance))
+        {
+            if (allowance > TimeSpan.Zero) wait(allowance);
+            throw new COMException("The fake shell call exhausted its allowance.", unchecked((int)0x800705B4));
         }
         if (delay > TimeSpan.Zero) wait(delay);
         lock (gate)

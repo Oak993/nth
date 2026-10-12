@@ -184,6 +184,9 @@ public interface IShellLinks
     /// <summary>Loads the link, sets only the change's non-null fields, commits and saves; every other field and property survives.</summary>
     void UpdateLink(string path, ShellLinkChange change);
 
+    /// <summary>Updates within the remaining hook allowance; blocking implementations must honor it.</summary>
+    void UpdateLink(string path, ShellLinkChange change, TimeSpan timeout) => UpdateLink(path, change);
+
     /// <summary>Deletes the link file. A file that is already gone is not an error.</summary>
     void DeleteLink(string path);
 

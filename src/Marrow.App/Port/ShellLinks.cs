@@ -146,7 +146,9 @@ public sealed class ShellLinks : IShellLinks, IDisposable
         });
     }
 
-    public void UpdateLink(string path, ShellLinkChange change)
+    public void UpdateLink(string path, ShellLinkChange change) => UpdateLink(path, change, CallTimeout);
+
+    public void UpdateLink(string path, ShellLinkChange change, TimeSpan timeout)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(change);
@@ -169,7 +171,7 @@ public sealed class ShellLinks : IShellLinks, IDisposable
             }
             ((IPersistFile)instance).Save(path, 1);
             return 0;
-        }));
+        }), timeout);
     }
 
     public void DeleteLink(string path)

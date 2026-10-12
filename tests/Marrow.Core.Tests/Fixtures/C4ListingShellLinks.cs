@@ -34,6 +34,7 @@ public sealed class C4ListingShellLinks(FakeShellLinks fake, ManualTimeProvider 
     }
     public void WriteLink(string path, ShellLink link) => fake.WriteLink(path, link);
     public void UpdateLink(string path, ShellLinkChange change) => fake.UpdateLink(path, change);
+    public void UpdateLink(string path, ShellLinkChange change, TimeSpan timeout) => fake.UpdateLink(path, change, timeout);
     public void DeleteLink(string path) => fake.DeleteLink(path);
     public void MoveLink(string from, string to) => fake.MoveLink(from, to);
     public bool DeleteEmptyFolder(string folder) => fake.DeleteEmptyFolder(folder);

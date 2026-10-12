@@ -149,13 +149,15 @@ public sealed class DesktopShortcut
     }
 
     /// <summary>The launch target on this machine now: Start is read if it exists.</summary>
-    public LaunchTarget CurrentLaunchTarget(TimeSpan? readTimeout = null)
+    public LaunchTarget CurrentLaunchTarget(TimeSpan? readTimeout = null) => ReadLaunchTarget(() => readTimeout);
+
+    private LaunchTarget ReadLaunchTarget(Func<TimeSpan?> readTimeout)
     {
         ShellLink? start = null;
         var startPath = StartLinkPath;
         if (shell.FileExists(startPath))
         {
-            try { start = readTimeout is { } timeout ? shell.ReadLink(startPath, timeout) : shell.ReadLink(startPath); }
+            try { var allowance = readTimeout(); start = allowance is { } timeout ? shell.ReadLink(startPath, timeout) : shell.ReadLink(startPath); }
             catch (Exception error) when (IsShellFailure(error)) { } // an unreadable Start link counts as missing
         }
         return LaunchTarget(Root, start, shell.FileExists, shell.ExpandEnvironment);
@@ -325,16 +327,16 @@ public sealed class DesktopShortcut
         var found = Scan(link => link.IsMadeByNth || IntoRoot(link), scan, budget);
         if (found.Links.Count == 0) return new ShortcutChangeResult(0, 0, found.Capped, Busy: false, Failed: 0);
         var capped = found.Capped;
-        if (!budget.CanStartCall) return new ShortcutChangeResult(0, found.Links.Count(l => l.Link.IsMadeByNth), Capped: true, Busy: false, Failed: 0);
-        var launch = CurrentLaunchTarget(budget.ReadTimeout);
+        if (!budget.CanStartMutation) return new ShortcutChangeResult(0, found.Links.Count(l => l.Link.IsMadeByNth), Capped: true, Busy: false, Failed: 0);
+        var launch = ReadLaunchTarget(() => budget.ReadTimeout);
         int changed = 0, failed = 0;
         int? hresult = null;
         foreach (var link in found.Links)
         {
-            if (!budget.CanStartCall) { capped = true; break; }
+            if (!budget.CanStartMutation) { capped = true; break; }
             try
             {
-                if (link.Link.IsMadeByNth ? RepairMade(link.Path, link.Link, launch) : FixGoneTarget(link.Path, link.Link, launch)) changed++;
+                if (link.Link.IsMadeByNth ? RepairMade(link.Path, link.Link, launch, budget) : FixGoneTarget(link.Path, link.Link, launch, budget)) changed++;
             }
             catch (Exception error) when (IsShellFailure(error)) { failed++; hresult ??= HResultOf(error); }
         }
@@ -457,7 +459,7 @@ public sealed class DesktopShortcut
         }
     }
 
-    private bool RepairMade(string path, ShellLink link, LaunchTarget launch)
+    private bool RepairMade(string path, ShellLink link, LaunchTarget launch, ShortcutBudget? budget = null)
     {
         var expected = Expected(launch);
         var sameIcon = SamePath(link.IconPath, expected.IconPath) && link.IconIndex == expected.IconIndex;
@@ -468,16 +470,19 @@ public sealed class DesktopShortcut
             IconIndex: sameIcon ? null : expected.IconIndex,
             AppUserModelId: string.Equals(link.AppUserModelId, expected.AppUserModelId, StringComparison.Ordinal) ? null : expected.AppUserModelId);
         if (change.IsEmpty) return false;
-        shell.UpdateLink(path, change);
+        if (budget is not null) shell.UpdateLink(path, change, budget.ReadTimeout);
+        else shell.UpdateLink(path, change);
         Notify(ShellChange.Updated, path);
         return true;
     }
 
-    private bool FixGoneTarget(string path, ShellLink link, LaunchTarget launch)
+    private bool FixGoneTarget(string path, ShellLink link, LaunchTarget launch, ShortcutBudget? budget = null)
     {
         if (shell.FileExists(shell.ExpandEnvironment(link.Target))) return false;
         var expected = Expected(launch);
-        shell.UpdateLink(path, new ShellLinkChange(Target: expected.Target, WorkingDirectory: expected.WorkingDirectory));
+        var change = new ShellLinkChange(Target: expected.Target, WorkingDirectory: expected.WorkingDirectory);
+        if (budget is not null) shell.UpdateLink(path, change, budget.ReadTimeout);
+        else shell.UpdateLink(path, change);
         Notify(ShellChange.Updated, path);
         return true;
     }
@@ -541,6 +546,7 @@ public sealed class DesktopShortcut
 
         public TimeSpan Remaining => limit == Timeout.InfiniteTimeSpan ? TimeSpan.MaxValue : TimeSpan.FromTicks(Math.Max(0, (limit - time.GetElapsedTime(started)).Ticks));
         public bool CanStartCall => Remaining >= ShellLinkKeys.CallTimeout;
+        public bool CanStartMutation => Remaining > TimeSpan.Zero;
         public TimeSpan ReadTimeout => Remaining < ShellLinkKeys.CallTimeout ? Remaining : ShellLinkKeys.CallTimeout;
         public TimeSpan WriterWait => Remaining < ShellLinkKeys.WriterWait ? Remaining : ShellLinkKeys.WriterWait;
     }

@@ -6202,3 +6202,8 @@ ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I2). Fake-cl
 ## ED-NEW-inst-c4c-7: Prove repair-result flags and HRESULT fallback
 
 ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I7). Failed update results retain IconsHidden and ScanCapped alongside the first failure HRESULT. A nonnegative exception HRESULT maps through the reachable HResultOf fallback to E_FAIL. Removing flags and returning the nonnegative HRESULT each fail the new fact alone twice, then are restored byte-exact. Repair always supplies HResultOf, so the outer null-coalescing fallback remains unreachable in this flow; no production change or artificial unreachable-path test is claimed.
+
+
+## ED-NEW-inst-c4c-16: Use the remaining repair allowance
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I16). A completed scan below the designed three-second cap may repair with less than a full five-second call wait left. Repair alone admits a mutation while positive time remains and recalculates the allowance after path/expected-field preparation immediately before each Start read or update through IShellLinks to the real STA queue. Zero remaining time cannot queue or claim a write. Create and removal keep their existing admission checks. Fake-clock hook evidence retains uninstaller copy and key steps inside fifteen seconds; slow updates and preparation are bounded with timeout HRESULT and no claimed write. Pure source wiring proves the production update overload uses the supplied wait.
