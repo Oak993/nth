@@ -19,7 +19,7 @@ public sealed class VelopackStartupHookTests
         var main = typeof(Program).GetMethod(nameof(Program.Main), BindingFlags.Public | BindingFlags.Static)!;
         var il = main.GetMethodBody()!.GetILAsByteArray()!;
         var calls = new List<MethodBase>();
-        for (var at = 0; at < il.Length && calls.Count < 9;)
+        for (var at = 0; at < il.Length && calls.Count < 16;)
         {
             var code = il[at] == 0xFE ? Codes[(short)(0xFE00 | il[at + 1])] : Codes[il[at]];
             var operandAt = at + (il[at] == 0xFE ? 2 : 1);
@@ -29,8 +29,11 @@ public sealed class VelopackStartupHookTests
         }
 
         // SK-17 owner-authorized headless exception: this exact private dispatch may precede the desktop hook.
+        // ED-NEW-mainorder-2: the ask_advisor relay (ED-NEW-ignisadvisor-2) shares it, as this exact second dispatch.
         // No settings, lock, toast, app lifetime or other calls can be inserted before the hook.
         Assert.Equal(new[] { "FirstOrDefault", "op_Equality", "OpenStandardInput", "OpenStandardOutput",
+            "RunClient", "GetAwaiter", "GetResult",
+            "FirstOrDefault", "op_Equality", "OpenStandardInput", "OpenStandardOutput",
             "RunClient", "GetAwaiter", "GetResult", "get_BaseDirectory", nameof(Program.RunVelopackHook) },
             calls.Select(call => call.Name));
         Assert.Equal(typeof(Enumerable), calls[0].DeclaringType);
@@ -38,8 +41,13 @@ public sealed class VelopackStartupHookTests
         Assert.Equal(typeof(Console), calls[2].DeclaringType);
         Assert.Equal(typeof(Console), calls[3].DeclaringType);
         Assert.Equal(typeof(Marrow.Services.Port.Skills.Providers.SkillsMcpBridge), calls[4].DeclaringType);
-        Assert.Equal(typeof(AppContext), calls[7].DeclaringType);
-        Assert.Equal(typeof(Program), calls[8].DeclaringType);
+        Assert.Equal(typeof(Enumerable), calls[7].DeclaringType);
+        Assert.Equal(typeof(string), calls[8].DeclaringType);
+        Assert.Equal(typeof(Console), calls[9].DeclaringType);
+        Assert.Equal(typeof(Console), calls[10].DeclaringType);
+        Assert.Equal(typeof(Marrow.Services.Port.Advisor.AdvisorMcpBridge), calls[11].DeclaringType);
+        Assert.Equal(typeof(AppContext), calls[14].DeclaringType);
+        Assert.Equal(typeof(Program), calls[15].DeclaringType);
     }
 
     [Fact]
