@@ -115,14 +115,20 @@ public sealed partial class PcControlEngine
     // typed only when the field reads as it did; otherwise the step ends, saying how much was typed.
     private async Task<string?> TextBoundary(PcWindowInfo info, PcUiNode? field, int typed, int total, PcCall call, CancellationToken cancellationToken)
     {
-        if (call.GrantLive?.Invoke() == false) throw new PcGrantRemoved();
+        if (call.GrantLive?.Invoke() == false) return GrantCut(typed, total);
         if (!parts.Pause.PausedSince(info.App.Key, call.PauseEpoch)) return null;
         var before = await FieldText(info, field, cancellationToken).ConfigureAwait(false);
         await HoldInPlace(info, call).ConfigureAwait(false);
-        if (call.GrantLive?.Invoke() == false) throw new PcGrantRemoved();
+        if (call.GrantLive?.Invoke() == false) return GrantCut(typed, total);
         var after = await FieldText(info, field, cancellationToken).ConfigureAwait(false);
         if (before is not null && after is not null && string.Equals(before, after, StringComparison.Ordinal)) return null;
         return "changed while paused: typed " + Count(typed) + " of " + Count(total) + " characters; look again before typing the rest";
+    }
+
+    private static string GrantCut(int typed, int total)
+    {
+        if (typed == 0) throw new PcGrantRemoved();
+        return "typed " + Count(typed) + " of " + Count(total) + " characters; the grant was then removed; look again before typing the rest";
     }
 
     private async Task<string?> FieldText(PcWindowInfo info, PcUiNode? field, CancellationToken cancellationToken)

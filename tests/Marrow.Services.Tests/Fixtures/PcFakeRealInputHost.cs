@@ -43,6 +43,8 @@ public sealed class PcFakeRealInputHost(PhysicalInputMonitor monitor, IPcClock c
     /// <summary>Runs after each array is sent (a test's user acts during the borrow).</summary>
     public Action<IReadOnlyList<PcInputEvent>>? OnSend { get; set; }
 
+    public int? AcceptedCount { get; set; }
+
     public PcBorrowSaved? Saved { get; private set; }
 
     public PcRect Desktop() => new(0, 0, 1920, 1080);
@@ -94,7 +96,7 @@ public sealed class PcFakeRealInputHost(PhysicalInputMonitor monitor, IPcClock c
                 monitor.Record(new PcRawInput(clock.NowMs, hook.Kind, hook.Down, hook.Code, true, tag) { Window = Foreground });
         }
         OnSend?.Invoke(events);
-        return events.Count;
+        return Math.Min(AcceptedCount ?? events.Count, events.Count);
     }
 
     public bool Restore(nint window, nint focus)

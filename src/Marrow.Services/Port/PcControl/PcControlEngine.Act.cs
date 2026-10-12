@@ -421,21 +421,29 @@ public sealed partial class PcControlEngine
                 };
                 refreshBorrow = pending => RepointBorrow(pending, resolvedPoint, parts.Lease!.Host.Desktop());
             }
+            var sent = false;
             var outcome = parts.Lease is { } lease
-                ? await lease.RunWithPermission(call.GrantLive, () => way.Run(call.Token), validateBorrow, refreshBorrow).WaitAsync(call.Token).ConfigureAwait(false)
+                ? await lease.RunWithPermission(call.GrantLive, () => way.Run(call.Token), validateBorrow, refreshBorrow, count => { sent = true; textSent += count; }).WaitAsync(call.Token).ConfigureAwait(false)
                 : await way.Run(call.Token).WaitAsync(call.Token).ConfigureAwait(false);
-            if (call.GrantLive?.Invoke() == false)
+            var grantRemoved = call.GrantLive?.Invoke() == false;
+            // An action already dispatched keeps its actual outcome. A refused borrow sent nothing.
+            if (grantRemoved && !outcome.Done && !sent && textSent == 0 && way.Rung == PcRung.R4 && outcome.Error == PcErrorCode.NeedsRealInput)
                 return PcResult.Fail(PcErrorCode.NotApproved, "the app was removed from Tactus's apps while the step waited");
+            PcResult GrantNote(PcResult result) => grantRemoved || call.GrantLive?.Invoke() == false
+                ? result with { Body = (result.Body is null ? "" : result.Body + "\n") + "the grant was then removed; no further action was sent" } : result;
             call.Timings.Mark("act");
             if (request.Kind == PcInputKind.Drag && request.Path.Count > 1) AimPointer(info, request, way, request.Path[^1]);
             call.Audit.Rung = way.Rung + " " + way.Method;
             var post = parts.Foreground.Read();
             var learned = Learn(info, way, pre, post, windowsBefore, started);
+            grantRemoved |= call.GrantLive?.Invoke() == false;
+            if (grantRemoved && !outcome.Done && request.Kind == PcInputKind.Type && textSent > 0)
+                return GrantNote(PcResult.Fail(PcErrorCode.ExpectFailed, GrantCut(textSent, typed?.Length ?? request.Text!.Length)));
             if (!outcome.Done)
             {
                 last = PcResult.Fail(outcome.Error ?? PcErrorCode.NotSupported, outcome.Reason ?? "the app refused the action", Line(info, Latest(handle)));
                 // A text stopped by a change while paused is partly typed: no other way types it again.
-                if (outcome.Error is PcErrorCode.Disabled or PcErrorCode.PasswordField or PcErrorCode.StaleElement or PcErrorCode.ExpectFailed) return last;
+                if (grantRemoved || outcome.Error is PcErrorCode.Disabled or PcErrorCode.PasswordField or PcErrorCode.StaleElement or PcErrorCode.ExpectFailed) return GrantNote(last);
                 if (way.Probe && way.Key is { } failedKey) parts.Ladder.Capabilities.Refuse(failedKey);
                 continue;
             }
@@ -497,7 +505,7 @@ public sealed partial class PcControlEngine
                 else if (!verdict.Passed && way.Probe) parts.Ladder.Capabilities.Refuse(key);
             }
             last = await Conclude(info, request, way, check!, verdict, settled, post, call).ConfigureAwait(false);
-            if (verdict.Passed || tried == 2 || check!.WindowClosed) return last;
+            if (grantRemoved || call.GrantLive?.Invoke() == false || verdict.Passed || tried == 2 || check!.WindowClosed) return GrantNote(last);
             // A failed check tries the next way once (DESIGN.md 2.12); the window is read again first.
             before = await Tree(handle, fresh: false, call.Token).ConfigureAwait(false) ?? before;
         }

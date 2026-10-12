@@ -34,6 +34,7 @@ public sealed class RealInputLease
     private readonly Lock gate = new();
     private readonly List<Entry> queue = [];
     private readonly List<Entry> stills = [];
+    private readonly AsyncLocal<Action<int>?> actionSent = new();
     private readonly AsyncLocal<Func<bool>?> actionPermission = new();
     private readonly AsyncLocal<Func<long, CancellationToken, Task<PcUiaOutcome>>?> actionValidation = new();
     private readonly AsyncLocal<Func<PcBorrowRequest, PcBorrowRequest>?> actionRefresh = new();
@@ -142,8 +143,10 @@ public sealed class RealInputLease
 
     // The engine's grant follows its async action into R4 without changing the shared request/assembly seams.
     internal async Task<PcUiaOutcome> RunWithPermission(Func<bool>? permitted, Func<Task<PcUiaOutcome>> run,
-        Func<long, CancellationToken, Task<PcUiaOutcome>>? validate = null, Func<PcBorrowRequest, PcBorrowRequest>? refresh = null)
+        Func<long, CancellationToken, Task<PcUiaOutcome>>? validate = null, Func<PcBorrowRequest, PcBorrowRequest>? refresh = null, Action<int>? sent = null)
     {
+        var previousSent = actionSent.Value;
+        actionSent.Value = sent;
         var previous = actionPermission.Value;
         var previousValidation = actionValidation.Value;
         var previousRefresh = actionRefresh.Value;
@@ -151,7 +154,7 @@ public sealed class RealInputLease
         actionValidation.Value = validate;
         actionRefresh.Value = refresh;
         try { return await run().ConfigureAwait(false); }
-        finally { actionPermission.Value = previous; actionValidation.Value = previousValidation; actionRefresh.Value = previousRefresh; }
+        finally { actionSent.Value = previousSent; actionPermission.Value = previous; actionValidation.Value = previousValidation; actionRefresh.Value = previousRefresh; }
     }
 
     public async Task<PcBorrowOutcome> Borrow(PcBorrowRequest request, CancellationToken cancellationToken, Func<bool>? permitted = null)
@@ -510,7 +513,10 @@ public sealed class RealInputLease
         {
             if (borrow.Finished || borrow.Permitted?.Invoke() == false || borrow.MonitorLost || !input.Snapshot().Healthy) return false;
             borrow.Pressed.Track(events);
-            return host.Send(events, borrow.Tag) == events.Count;
+            var accepted = host.Send(events, borrow.Tag);
+            if (accepted > 0) actionSent.Value?.Invoke(events.Take(accepted).Count(e => e.Kind == NativeKind.Key
+                && (e.Flags & PcInputPlan.KEY_UNICODE) != 0 && (e.Flags & PcInputPlan.KEY_UP) == 0));
+            return accepted == events.Count;
         }
     }
 

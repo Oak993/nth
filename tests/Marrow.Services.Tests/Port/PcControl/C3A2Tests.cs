@@ -72,7 +72,9 @@ public sealed class C3A2Tests
         h.Approver.Standings.Remove(("legacy.exe", PcCapability.Act));
         h.Pause.Resume(PcScope.All, PcPauseSource.Pill);
         var done = await PcEngineHarness.Call(engine, "pc_wait", "{\"window\":\"w:2c\",\"until\":\"step\",\"token\":\"" + paused.Token + "\"}");
-        Assert.Equal(PcErrorCode.NotApproved, done.Error);
+        Assert.Equal(PcErrorCode.ExpectFailed, done.Error);
+        Assert.Contains("typed 64 of 200", done.Reason, StringComparison.Ordinal);
+        Assert.Contains("grant was then removed", done.Body, StringComparison.Ordinal);
         Assert.Equal(64, field.Value.Length);
     }
 
