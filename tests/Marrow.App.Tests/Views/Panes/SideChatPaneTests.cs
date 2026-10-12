@@ -281,6 +281,13 @@ public sealed class SideChatPaneTests(HeadlessSession headless)
         var composer = rig.Pane!.Composer;
         var origin = composer.TranslatePoint(default, card)!.Value;
         Assert.True(origin.X >= 0 && origin.X + composer.Bounds.Width <= card.Bounds.Width + 0.5, "the composer is inside the card");
+        // The longest note (Can act on) wraps inside the card instead of running past it.
+        rig.H.Main.OnMain(() => rig.Model.SetSideChatCanAct(rig.ThreadId, true));
+        rig.Settle();
+        var note = rig.Pane.NoteBlock;
+        var noteAt = note.TranslatePoint(default, card)!.Value;
+        Assert.True(noteAt.X + note.Bounds.Width <= card.Bounds.Width + 0.5, "the note is inside the card");
+        Assert.True(note.Bounds.Height > 16, "the note wraps to a second line at this width");
         var send = rig.Pane.Composer.SendButton;
         var at = send.TranslatePoint(default, card)!.Value;
         Assert.True(at.X + send.Bounds.Width <= card.Bounds.Width + 0.5 && at.X >= 0);

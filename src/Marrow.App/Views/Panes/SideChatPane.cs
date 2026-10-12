@@ -86,11 +86,13 @@ public sealed class SideChatPane : Grid
         RowDefinitions = new RowDefinitions("Auto,*,Auto");
 
         // The note: what this pane is, in one line (canvas .note2).
-        note = new TextBlock { Text = SideChatStrings.Note, FontSize = 11.5, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
+        note = new TextBlock { Text = SideChatStrings.Note, FontSize = 11.5, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Top };
         note.Foreground = PaneTokens.Text3.Brush(note);
-        var eye = new PaneGlyph(PaneGlyphKind.Eye, 12) { VerticalAlignment = VerticalAlignment.Center };
+        var eye = new PaneGlyph(PaneGlyphKind.Eye, 12) { VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 2, 0, 0) };
         eye.Foreground = PaneTokens.Text3.Brush(eye);
-        var noteRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(14, 10, 14, 0) };
+        // A grid, not a row of two: the note wraps at the pane's width instead of running past it.
+        var noteRow = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing = 6, Margin = new Thickness(14, 10, 14, 0) };
+        Grid.SetColumn(note, 1);
         noteRow.Children.Add(eye);
         noteRow.Children.Add(note);
         Grid.SetRow(noteRow, 0);
@@ -155,6 +157,9 @@ public sealed class SideChatPane : Grid
 
     /// <summary>The note line.</summary>
     public string NoteText => note.Text ?? "";
+
+    /// <summary>The note's text block (it wraps at the pane's width).</summary>
+    public TextBlock NoteBlock => note;
 
     /// <summary>Whether the empty state shows (no question has been asked).</summary>
     public bool ShowsEmptyState => !showingTimeline;

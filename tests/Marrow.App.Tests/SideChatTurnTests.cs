@@ -1,3 +1,4 @@
+using Marrow.App.Jobs;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Models;
@@ -223,5 +224,20 @@ public sealed class SideChatTurnTests
         rig.Answer(session, "Fine.");
         Assert.Equal(AppModel.SideChatTitle, rig.Side!.Title);
         Assert.All(rig.SideRuntime.Turns, turn => Assert.Null(turn.BaseCheckpoint));
+    }
+
+    [Fact]
+    public void A_side_chat_is_never_listed_as_a_background_task_running_or_finished()
+    {
+        using var rig = new SideChatRig(script: session => session.SendScript = _ => new TaskCompletionSource().Task);
+        Assert.True(rig.Ask("Still working"));
+        var session = rig.Launch(1);
+        Assert.True(rig.SideRuntime.IsRunning);
+        Assert.Empty(rig.H.Main.OnMain(() => new HelperJobSource(rig.App).Snapshot(SwiftDate.Now)));
+        rig.H.Main.OnMain(() => rig.App.StopSideChat(rig.ParentId));
+        rig.Until(() => session.InterruptCalls >= 1);
+        rig.H.Main.OnMain(() => session.Emit(new ProviderEvent.TurnCompleted(TurnStatus.Interrupted, null)));
+        rig.Until(() => rig.SideRuntime.Phase == RuntimePhase.Idle);
+        Assert.Empty(rig.H.Main.OnMain(() => new HelperJobSource(rig.App).Snapshot(SwiftDate.Now)));
     }
 }
