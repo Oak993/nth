@@ -38,8 +38,16 @@ public static class SwiftDate
     public static DateTimeOffset Now => SwiftClock.Provider.Current.GetUtcNow().ToUniversalTime();
 
     /// <summary><c>date.timeIntervalSinceReferenceDate</c>: the Double nearest to the tick count (exact rounding).</summary>
-    public static double ReferenceSeconds(DateTimeOffset date) =>
-        date.UtcTicks == 0 ? DistantPastSeconds : NearestDouble(date.UtcTicks - ReferenceTicks, TimeSpan.TicksPerSecond);
+    public static double ReferenceSeconds(DateTimeOffset date)
+    {
+        if (date.UtcTicks == 0) return DistantPastSeconds;
+        var offset = date.UtcTicks - ReferenceTicks;
+        // Within 2^53 ticks (1972 to mid-2029) the offset and 10^7 are exact Doubles and IEEE division is correctly rounded, ties to
+        // even: the nearest Double with no BigInteger work (ED-NEW-lean-2). Further out the exact neighbour comparison stays.
+        return offset is >= -ExactTicks and <= ExactTicks ? offset / (double)TimeSpan.TicksPerSecond : NearestDouble(offset, TimeSpan.TicksPerSecond);
+    }
+
+    private const long ExactTicks = 1L << 53;
 
     /// <summary><c>Date(timeIntervalSinceReferenceDate:)</c>: the tick nearest to the Double (exact, ties to even).</summary>
     public static DateTimeOffset FromReferenceSeconds(double seconds) =>
@@ -57,18 +65,29 @@ public static class SwiftDate
     /// <summary><c>a.timeIntervalSince(b)</c>: a Double difference, not a TimeSpan.</summary>
     public static double TimeIntervalSince(DateTimeOffset date, DateTimeOffset other) => ReferenceSeconds(date) - ReferenceSeconds(other);
 
-    // seconds = m x 2^e exactly; ticks = round(m x 10^7 x 2^e), half to even, in exact integer arithmetic.
+    // seconds = m x 2^e exactly; ticks = round(m x 10^7 x 2^e), half to even, in exact integer arithmetic. m < 2^53, so m x 10^7 < 2^77
+    // fits UInt128 with no BigInteger (ED-NEW-lean-2).
     private static long NearestTicks(double seconds)
     {
         if (!double.IsFinite(seconds)) throw new SwiftTrapException("A Date cannot hold a non-finite interval.");
-        var (mantissa, exponent) = Decompose(seconds);
-        var scaled = mantissa * TimeSpan.TicksPerSecond;
-        if (exponent >= 0) return checked((long)(scaled << exponent));
-        var denominator = BigInteger.One << -exponent;
-        var quotient = BigInteger.DivRem(BigInteger.Abs(scaled), denominator, out var remainder);
-        var twice = remainder * 2;
-        if (twice > denominator || (twice == denominator && !quotient.IsEven)) quotient += 1;
-        return checked((long)(scaled.Sign < 0 ? -quotient : quotient));
+        var bits = BitConverter.DoubleToInt64Bits(seconds);
+        var biased = (int)((bits >> 52) & 0x7FF);
+        var fraction = (ulong)(bits & 0xFFFFFFFFFFFFFL);
+        var scaled = (UInt128)(biased == 0 ? fraction : fraction | (1UL << 52)) * (ulong)TimeSpan.TicksPerSecond;
+        var exponent = biased == 0 ? -1074 : biased - 1075;
+        // A non-negative exponent means a normal value of at least 2^52 s, over 4 x 10^22 ticks: never an Int64.
+        if (exponent >= 0) throw new OverflowException("Value was either too large or too small for an Int64.");
+        var shift = -exponent;
+        UInt128 quotient = 0;
+        // From a shift of 78 the value is below half a tick (twice the remainder < 2^78 <= 2^shift), so it rounds to 0.
+        if (shift < 78)
+        {
+            quotient = scaled >> shift;
+            var twice = (scaled - (quotient << shift)) << 1;
+            var denominator = UInt128.One << shift;
+            if (twice > denominator || (twice == denominator && (quotient & 1) != 0)) quotient += 1;
+        }
+        return checked((long)(bits < 0 ? -(Int128)quotient : (Int128)quotient));
     }
 
     // The Double nearest to numerator / denominator, ties to even: the division is within a few ulps, so its

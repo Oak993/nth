@@ -1,0 +1,100 @@
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Threading;
+using Marrow.Core.Port;
+using Marrow.Testing;
+using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
+using Marrow.UI.Tests.Fixtures;
+
+namespace Marrow.UI.Tests.Nth;
+
+// ED-NEW-lean-6 (a): an nth primitive in a window that cannot be seen asks the compositor for no frames, and the first frame
+// after the window is seen again is the painter at the current time (painters are pure functions of time: no phase is lost).
+// Headless, Debug; a 240 Hz display and a manual clock, no wall clock.
+[Collection("Headless")]
+[Trait("Decision", "ED-NEW-lean-6")]
+public sealed class NthUnseenFrameBudgetTests(HeadlessSession headless)
+{
+    // Frame requests in one simulated second at 240 Hz while the window is unseen. Measured (Debug, headless): 240 before the fix (one
+    // per refresh), so the first limit was 360; 0 after, the limit now.
+    private const int UnseenRequestsPerSecond = 0;
+
+    private static void Step(ManualTimeProvider time, int refreshes)
+    {
+        for (var i = 0; i < refreshes; i++)
+        {
+            time.Advance(TimeSpan.FromSeconds(1.0 / 240));
+            Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Dispatcher.UIThread.RunJobs();
+        }
+    }
+
+    [Fact]
+    public void An_unseen_window_asks_no_frames_for_its_moving_primitive_at_240_hz() => headless.OnUiThread(() =>
+    {
+        var time = new ManualTimeProvider(); using var clock = SwiftClock.Provider.Override(time);
+        var refresh = RenderFrameSource.RefreshSource; var period = RenderFrameSource.PeriodSource;
+        RenderFrameSource.RefreshSource = () => null; RenderFrameSource.PeriodSource = () => TimeSpan.FromSeconds(1.0 / 240);
+        WindowPresence.TestFactory = w => new WindowPresence(w, true);
+        var spinner = new NthSpinner { Width = 16, Height = 16 };
+        var window = new Window { Width = 60, Height = 60, Content = spinner };
+        try
+        {
+            window.Show(); Step(time, 24);
+            var presence = WindowPresence.For(spinner)!;
+            Assert.True(spinner.FrameRequests > 0, "a seen spinner asks for frames");
+            presence.SetSeen(false); Step(time, 24);
+            var before = spinner.FrameRequests;
+            Step(time, 240);
+            var requests = spinner.FrameRequests - before;
+            Assert.InRange(requests, 0, UnseenRequestsPerSecond);
+        }
+        finally
+        {
+            window.Close(); Dispatcher.UIThread.RunJobs(); WindowPresence.TestFactory = null;
+            RenderFrameSource.RefreshSource = refresh; RenderFrameSource.PeriodSource = period;
+        }
+    });
+
+    [Fact]
+    public void After_hidden_then_seen_the_first_frame_is_the_painter_at_the_current_time() => headless.OnUiThread(() =>
+    {
+        var time = new ManualTimeProvider(); using var clock = SwiftClock.Provider.Override(time);
+        var refresh = RenderFrameSource.RefreshSource; var period = RenderFrameSource.PeriodSource;
+        RenderFrameSource.RefreshSource = () => null; RenderFrameSource.PeriodSource = () => TimeSpan.FromSeconds(1.0 / 240);
+        WindowPresence.TestFactory = w => new WindowPresence(w, true);
+        var hiddenSpinner = new NthSpinner { Width = 16, Height = 16 };
+        var seenSpinner = new NthSpinner { Width = 16, Height = 16 };
+        var hiddenWindow = new Window { Width = 60, Height = 60, Content = hiddenSpinner, Background = Avalonia.Media.Brushes.Black };
+        var seenWindow = new Window { Width = 60, Height = 60, Content = seenSpinner, Background = Avalonia.Media.Brushes.Black };
+        try
+        {
+            hiddenWindow.Show(); seenWindow.Show(); Step(time, 24);
+            Assert.Equal(hiddenSpinner.Started, seenSpinner.Started);
+            var presence = WindowPresence.For(hiddenSpinner)!;
+            presence.SetSeen(false); Step(time, 24);
+            Step(time, 3 * 240 + 77);
+            var drawn = hiddenSpinner.FramesDrawn;
+            presence.SetSeen(true); Step(time, 1);
+            Assert.True(hiddenSpinner.FramesDrawn > drawn, "the restored window draws on the next refresh");
+            Assert.Equal(NthFrame.Seconds(time), hiddenSpinner.LastDrawnAt);
+            Assert.Equal(hiddenSpinner.Snapshot(), hiddenSpinner.Frame);
+            // the windows share the compositor's 60 Hz slots: compare the two when both last drew at the same time
+            for (var i = 0; i < 8 && (hiddenSpinner.LastDrawnAt != NthFrame.Seconds(time) || seenSpinner.LastDrawnAt != NthFrame.Seconds(time)); i++) Step(time, 1);
+            Assert.Equal(NthFrame.Seconds(time), seenSpinner.LastDrawnAt);
+            Assert.Equal(NthFrame.Seconds(time), hiddenSpinner.LastDrawnAt);
+            var restored = RenderedPixels.Capture(hiddenWindow); var reference = RenderedPixels.Capture(seenWindow);
+            var differing = 0;
+            for (var y = 0; y < restored.Height; y++)
+                for (var x = 0; x < restored.Width; x++)
+                    if (restored.At(x, y) != reference.At(x, y)) differing++;
+            Assert.Equal(0, differing);
+            Assert.True(hiddenSpinner.FrameRequests > 0);
+        }
+        finally
+        {
+            hiddenWindow.Close(); seenWindow.Close(); Dispatcher.UIThread.RunJobs(); WindowPresence.TestFactory = null;
+            RenderFrameSource.RefreshSource = refresh; RenderFrameSource.PeriodSource = period;
+        }
+    });
+}

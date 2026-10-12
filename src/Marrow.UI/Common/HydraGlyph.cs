@@ -168,11 +168,24 @@ public sealed class HydraBreathRingView : Control
     // :97 restingOpacity: Float = 0.9
     public const double RestingOpacity = 0.9;
 
+    // ED-NEW-lean-8 review: the swell's ease-out over one period, made once (an immutable timing curve; a new one each frame
+    // was the frame's only allocation of its own).
+    private static readonly Marrow.UI.Port.Animation BreathCurve = Marrow.UI.Port.Animation.EaseOut(Period);
+
     private readonly Action<TimeSpan> frame;
     private IFrameSource? source;
     private bool waiting;
     private double scale = RestingScale;
     private double opacity = RestingOpacity;
+    private DecorationPace pace;
+
+    // ED-NEW-lean-8: the stroke, made once per colour and width rather than once per frame (a new brush per frame also bound
+    // itself to the control's theme changes, one subscription per frame). It is the pen each frame made before, of the brush
+    // StrokeColor.Brush(this) makes: that brush follows this view's theme and the system accent by itself (BrushBinding), so
+    // the resting ring under Reduce Motion, which asks for no frames, still takes a theme or accent change at once.
+    private Pen? pen;
+    private SwiftColor? penColor;
+    private double penWidth;
 
     public HydraBreathRingView()
     {
@@ -193,6 +206,19 @@ public sealed class HydraBreathRingView : Control
             waiting = false;
             source = null;
         };
+        // :192 under Reduce Motion the ring rests and asks for no frames (ED-NEW-lean-8); turned off again, it breathes.
+        PropertyChanged += (_, e) =>
+        {
+            if (e.Property != EnvironmentValues.AccessibilityReduceMotionProperty || source is null) return;
+            Update();
+            InvalidateVisual();
+            if (!Reduced) Request();
+            else if (waiting)
+            {
+                source.CancelFrame(frame);
+                waiting = false;
+            }
+        };
     }
 
     /// <summary>:73, :135 <c>let color: CGColor</c> / <c>ring.strokeColor</c>.</summary>
@@ -200,6 +226,8 @@ public sealed class HydraBreathRingView : Control
 
     /// <summary>:74, :136 <c>let lineWidth: CGFloat</c> / <c>ring.lineWidth</c>.</summary>
     public double StrokeWidth { get; set; } = 1.5;
+
+    private bool Reduced => EnvironmentValues.GetAccessibilityReduceMotion(this);
 
     public double CurrentScale => scale;
 
@@ -217,24 +245,40 @@ public sealed class HydraBreathRingView : Control
         var period = Period;
         var phase = elapsedSeconds % period;
         if (phase < 0) phase += period;
-        var progress = Marrow.UI.Port.Animation.EaseOut(period).Progress(phase);
+        var progress = BreathCurve.Progress(phase);
         return (RestingScale + (SwollenScale - RestingScale) * progress, RestingOpacity * (1 - progress));
     }
 
     private void Request()
     {
-        if (waiting || source is null) return;
+        if (waiting || source is null || Reduced) return;
+        pace.Reset(); // a new run of frames repaints at its first
         waiting = true;
         source.RequestFrame(frame);
     }
 
+    /// <summary>ED-NEW-lean-8 (tests): how many frames have repainted the ring.</summary>
+    internal int Invalidations { get; private set; }
+
+    // ED-NEW-lean-8: the breath repaints at the 60 Hz cap (DecorationPace); the frames between only ask again.
     private void OnFrame(TimeSpan _)
     {
         waiting = false;
         if (source is null) return;
-        Update();
-        InvalidateVisual();
-        Request();
+        if (Reduced)
+        {
+            Update(); // the resting frame, and no more frames
+            InvalidateVisual();
+            return;
+        }
+        if (pace.Due(SwiftClock.Now))
+        {
+            Update();
+            Invalidations++;
+            InvalidateVisual();
+        }
+        waiting = true;
+        source.RequestFrame(frame);
     }
 
     private void Update()
@@ -252,10 +296,16 @@ public sealed class HydraBreathRingView : Control
         var inset = StrokeWidth / 2; // :180 bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2)
         var rect = new Rect(inset, inset, Math.Max(0, Bounds.Width - StrokeWidth), Math.Max(0, Bounds.Height - StrokeWidth));
         var centre = new Point(Bounds.Width / 2, Bounds.Height / 2);
+        if (pen is null || !ReferenceEquals(StrokeColor, penColor) || StrokeWidth != penWidth)
+        {
+            pen = new Pen(StrokeColor.Brush(this), StrokeWidth);
+            penColor = StrokeColor;
+            penWidth = StrokeWidth;
+        }
         using (context.PushOpacity(opacity))
         using (context.PushTransform(Matrix.CreateTranslation(-centre.X, -centre.Y) * Matrix.CreateScale(scale, scale) * Matrix.CreateTranslation(centre.X, centre.Y)))
         {
-            context.DrawEllipse(null, new Pen(StrokeColor.Brush(this), StrokeWidth), rect.Center, rect.Width / 2, rect.Height / 2);
+            context.DrawEllipse(null, pen, rect.Center, rect.Width / 2, rect.Height / 2);
         }
     }
 }

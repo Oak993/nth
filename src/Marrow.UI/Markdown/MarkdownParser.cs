@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Marrow.Core.Port;
 
@@ -79,9 +80,50 @@ public static class MarkdownParser
     // Swift: private static func parse(_ text: Substring) -> Parse
     private static Parse ParseSubstring(string text)
     {
-        var utf8 = Encoding.UTF8.GetBytes(text);
         var lines = new List<string>();
         var starts = new List<int>();
+        if (IsWellFormed(text)) SplitLines(text, lines, starts);
+        else SplitLinesUtf8(text, lines, starts);
+
+        var parsed = ParseLines(lines, 0);
+        var stable = -1;
+        for (var i = parsed.BlockLines.Count - 1; i >= 0; i--)
+        {
+            if (parsed.BlockLines[i] <= lines.Count - 3) { stable = i; break; }
+        }
+        if (stable < 0)
+        {
+            return new Parse(new ValueList<MarkdownBlock>(parsed.Blocks), 0, 0);
+        }
+        return new Parse(new ValueList<MarkdownBlock>(parsed.Blocks), stable, starts[parsed.BlockLines[stable]]);
+    }
+
+    // ENGINEERING DECISION (ED-NEW-lean-13): the same split over the UTF-16 text, without encoding it. 0x0A and
+    // 0x0D are never part of a longer UTF-8 sequence, so splitting the characters on '\n' gives the same pieces,
+    // and on well-formed UTF-16 decoding the encoded piece gives the piece back; each piece's UTF-8 length is
+    // counted to keep `starts` in bytes. A text with a lone surrogate (which UTF-8 turns into U+FFFD) keeps the
+    // byte path below.
+    private static void SplitLines(string text, List<string> lines, List<int> starts)
+    {
+        var lineStart = 0;
+        var byteStart = 0;
+        while (true)
+        {
+            var newline = text.IndexOf('\n', lineStart);
+            var end = newline < 0 ? text.Length : newline;
+            starts.Add(byteStart);
+            var contentEnd = end > lineStart && text[end - 1] == '\r' ? end - 1 : end;
+            lines.Add(text.Substring(lineStart, contentEnd - lineStart));
+            if (newline < 0) return;
+            byteStart += Encoding.UTF8.GetByteCount(text.AsSpan(lineStart, end - lineStart)) + 1;
+            lineStart = end + 1;
+        }
+    }
+
+    // :53-64 as first ported: the split over the UTF-8 bytes, kept for text that is not well-formed UTF-16.
+    private static void SplitLinesUtf8(string text, List<string> lines, List<int> starts)
+    {
+        var utf8 = Encoding.UTF8.GetBytes(text);
         var pieceStart = 0;
         for (var i = 0; i < utf8.Length; i++)
         {
@@ -100,18 +142,6 @@ public static class MarkdownParser
             if (span.Length > 0 && span[^1] == 0x0D) span = span[..^1];
             lines.Add(Encoding.UTF8.GetString(span));
         }
-
-        var parsed = ParseLines(lines, 0);
-        var stable = -1;
-        for (var i = parsed.BlockLines.Count - 1; i >= 0; i--)
-        {
-            if (parsed.BlockLines[i] <= lines.Count - 3) { stable = i; break; }
-        }
-        if (stable < 0)
-        {
-            return new Parse(new ValueList<MarkdownBlock>(parsed.Blocks), 0, 0);
-        }
-        return new Parse(new ValueList<MarkdownBlock>(parsed.Blocks), stable, starts[parsed.BlockLines[stable]]);
     }
 
     // :74-76. Quotes and list items nest by recursion, one level per '>' or indent step, which
@@ -164,7 +194,8 @@ public static class MarkdownParser
                 while (index < lines.Count)
                 {
                     var candidate = TrimmedLine(lines[index]);
-                    if (SwiftString.HasPrefix(candidate, fence) && AllSameCharacter(candidate, FirstCharacter(fence)))
+                    if (!CannotStartWith(candidate, fence) && SwiftString.HasPrefix(candidate, fence)
+                        && AllSameCharacter(candidate, FirstCharacter(fence)))
                     {
                         index += 1;
                         break;
@@ -199,7 +230,7 @@ public static class MarkdownParser
             }
 
             // :138-152
-            if (SwiftString.HasPrefix(trimmed, ">") && depth < MaxDepth)
+            if (StartsWithCharacter(trimmed, 0, '>') && depth < MaxDepth)
             {
                 FlushParagraph();
                 blockLines.Add(index);
@@ -207,9 +238,9 @@ public static class MarkdownParser
                 while (index < lines.Count)
                 {
                     var candidate = TrimmedLine(lines[index]);
-                    if (!SwiftString.HasPrefix(candidate, ">")) break;
+                    if (!StartsWithCharacter(candidate, 0, '>')) break;
                     var content = SwiftString.DropFirst(candidate, 1);
-                    if (SwiftString.HasPrefix(content, " ")) content = SwiftString.DropFirst(content, 1);
+                    if (StartsWithCharacter(content, 0, ' ')) content = SwiftString.DropFirst(content, 1);
                     quoted.Add(content);
                     index += 1;
                 }
@@ -281,15 +312,20 @@ public static class MarkdownParser
             if (!hasItem) return;
             var text = FoundationText.Trim(string.Join("\n", currentText));
             bool? isChecked = null;
-            if (SwiftString.HasPrefix(text, "[ ] "))
+            // A text that starts with an ASCII character other than '[' (lowercased: the same character) has neither
+            // prefix, so the lowercased copy is made only when it can matter (ED-NEW-lean-13).
+            if (!CannotStartWith(text, "[ ] "))
             {
-                isChecked = false;
-                text = SwiftString.DropFirst(text, 4);
-            }
-            else if (SwiftString.HasPrefix(SwiftString.Lowercased(text), "[x] "))
-            {
-                isChecked = true;
-                text = SwiftString.DropFirst(text, 4);
+                if (SwiftString.HasPrefix(text, "[ ] "))
+                {
+                    isChecked = false;
+                    text = SwiftString.DropFirst(text, 4);
+                }
+                else if (SwiftString.HasPrefix(SwiftString.Lowercased(text), "[x] "))
+                {
+                    isChecked = true;
+                    text = SwiftString.DropFirst(text, 4);
+                }
             }
             items.Add(new MarkdownListItem(text, isChecked, new ValueList<MarkdownBlock>(ParseLines(childLines, depth + 1).Blocks)));
             currentText.Clear();
@@ -334,21 +370,20 @@ public static class MarkdownParser
             // :243-252
             if (Indentation(line) > first.Indent)
             {
-                var dropped = SwiftString.DropFirst(line, Math.Min(Indentation(line), first.ContentOffset));
                 if (childLines.Count == 0 && ListMarkerAt(line) is null && FenceMarker(trimmed) is null)
                 {
                     currentText.Add(trimmed);
                 }
                 else
                 {
-                    childLines.Add(dropped);
+                    childLines.Add(SwiftString.DropFirst(line, Math.Min(Indentation(line), first.ContentOffset)));
                 }
                 index += 1;
                 continue;
             }
 
             // :253-257
-            if (childLines.Count == 0 && HeadingLevel(trimmed) is null && FenceMarker(trimmed) is null && !SwiftString.HasPrefix(trimmed, ">"))
+            if (childLines.Count == 0 && HeadingLevel(trimmed) is null && FenceMarker(trimmed) is null && !StartsWithCharacter(trimmed, 0, '>'))
             {
                 currentText.Add(trimmed);
                 index += 1;
@@ -363,20 +398,66 @@ public static class MarkdownParser
     // :264-270. `trimmingCharacters(in: .whitespaces)`, skipped for the usual line that starts
     // and ends with printable ASCII: no space or tab there, and no lead byte of a Unicode space
     // either. Swift: private static func trimmed(_ line: String) -> String
+    // ENGINEERING DECISION (ED-NEW-lean-13): the first and last UTF-16 characters are checked instead of the first and
+    // last UTF-8 bytes: a byte in 0x21-0x7E there is exactly an ASCII character in that range there (every byte of a
+    // longer sequence, and of the U+FFFD a lone surrogate becomes, is 0x80 or above).
     private static string TrimmedLine(string line)
     {
-        var utf8 = Encoding.UTF8.GetBytes(line);
-        if (utf8.Length > 0)
+        if (line.Length > 0)
         {
-            var first = utf8[0];
-            var last = utf8[^1];
+            var first = line[0];
+            var last = line[^1];
             if (first > 0x20 && first < 0x7F && last > 0x20 && last < 0x7F) return line;
         }
         return FoundationText.Trim(line);
     }
 
     // :272-289. Swift: private static func listMarker(_ line: String) -> ListMarker?
+    // ENGINEERING DECISION (ED-NEW-lean-13): when the body's first Character is one ASCII character, the marker is read
+    // from offsets into `line` (no list of Characters, no substrings but the content); every other line takes the
+    // Character-list reading below, unchanged. An ASCII Character other than a digit is not isNumber, so a line
+    // that starts with a letter is no marker at once.
     private static ListMarker? ListMarkerAt(string line)
+    {
+        var indent = Indentation(line);
+        var bodyStart = OffsetAfterCharacters(line, 0, indent);
+        if (bodyStart == line.Length) return null; // :275 no first Character, :283 no digits
+        var head = line[bodyStart];
+        if (head >= 0x80 || CharacterLength(line, bodyStart) != 1) return ListMarkerAtCharacters(line);
+        if (head is '-' or '*' or '+')
+        {
+            var rest = bodyStart + 1;
+            if (!(StartsWithCharacter(line, rest, ' ') || StartsWithCharacter(line, rest, '\t'))) return null;
+            return new ListMarker(indent, false, 1, indent + 2, line[SkipCharacters(line, rest, ' ', '\t')..]);
+        }
+        if (head is < '0' or > '9') return null;
+
+        var digitCount = 0;
+        var digitEnd = bodyStart;
+        while (digitEnd < line.Length)
+        {
+            var length = CharacterLength(line, digitEnd);
+            var character = line[digitEnd];
+            var isNumber = length == 1 && character < 0x80
+                ? character is >= '0' and <= '9'
+                : SwiftCharacter.IsNumber(line.Substring(digitEnd, length));
+            if (!isNumber) break;
+            digitCount += 1;
+            digitEnd += length;
+        }
+        if (digitCount > 9) return null;
+        if (digitEnd == line.Length) return null;
+        if (CharacterLength(line, digitEnd) != 1 || line[digitEnd] is not ('.' or ')')) return null;
+        var afterDelimiter = digitEnd + 1;
+        if (!(StartsWithCharacter(line, afterDelimiter, ' ') || afterDelimiter == line.Length)) return null;
+        var content = line[SkipCharacters(line, afterDelimiter, ' ', ' ')..];
+        var startValue = SwiftNumber.ParseInt(line[bodyStart..digitEnd]) is { } n ? (int)n : 1;
+        return new ListMarker(indent, true, startValue, indent + digitCount + 2, content);
+    }
+
+    // :272-289 read over a list of the body's Characters: lines whose body starts with a Character that is not one
+    // ASCII character (a combining mark on the marker, a non-ASCII digit or letter, an emoji, CRLF).
+    private static ListMarker? ListMarkerAtCharacters(string line)
     {
         var indent = Indentation(line);
         var body = SwiftString.DropFirst(line, indent);
@@ -405,22 +486,28 @@ public static class MarkdownParser
     }
 
     // :291-297. Swift: private static func indentation(_ line: String) -> Int
+    // Counted over Character lengths: a space or tab followed by a combining mark is one other Character.
     private static int Indentation(string line)
     {
         var count = 0;
-        foreach (var character in SwiftString.Characters(line))
+        var index = 0;
+        while (index < line.Length && CharacterLength(line, index) == 1)
         {
-            if (character == " ") count += 1;
-            else if (character == "\t") count += 4;
+            if (line[index] == ' ') count += 1;
+            else if (line[index] == '\t') count += 4;
             else break;
+            index += 1;
         }
         return count;
     }
 
+    private static readonly string[] FenceMarkers = ["```", "~~~"];
+
     // :299-305. Swift: private static func fenceMarker(_ trimmed: String) -> String?
     private static string? FenceMarker(string trimmed)
     {
-        foreach (var marker in new[] { "```", "~~~" })
+        if (CannotStartWith(trimmed, FenceMarkers[0]) && CannotStartWith(trimmed, FenceMarkers[1])) return null;
+        foreach (var marker in FenceMarkers)
         {
             if (SwiftString.HasPrefix(trimmed, marker))
             {
@@ -436,37 +523,44 @@ public static class MarkdownParser
     {
         var hashes = CountLeadingHashes(trimmed);
         if (hashes is < 1 or > 6) return null;
-        var rest = SwiftString.DropFirst(trimmed, hashes);
-        return rest.Length == 0 || SwiftString.HasPrefix(rest, " ") ? hashes : null;
+        // Each leading "#" Character is one UTF-16 character, so the rest starts at offset `hashes`.
+        return hashes == trimmed.Length || StartsWithCharacter(trimmed, hashes, ' ') ? hashes : null;
     }
 
-    private static int CountLeadingHashes(string trimmed) =>
-        SwiftString.Characters(trimmed).TakeWhile(c => c == "#").Count();
+    private static int CountLeadingHashes(string trimmed)
+    {
+        var count = 0;
+        while (count < trimmed.Length && trimmed[count] == '#' && CharacterLength(trimmed, count) == 1) count += 1;
+        return count;
+    }
 
     // :314-323. Three or more of one of '-', '*', '_', spaces between them allowed. Every bullet
-    // line starts with one of those, so this checks bytes rather than building a string.
+    // line starts with one of those, so this checks characters rather than building a string.
     // Swift: private static func isRule(_ trimmed: String) -> Bool
+    // The UTF-16 characters stand in for the UTF-8 bytes (ED-NEW-lean-13): every byte the test accepts is ASCII, and
+    // a non-ASCII character fails it in both forms.
     private static bool IsRule(string trimmed)
     {
-        var utf8 = Encoding.UTF8.GetBytes(trimmed);
-        if (utf8.Length == 0) return false;
-        var first = utf8[0];
-        if (first != 0x2D && first != 0x2A && first != 0x5F) return false;
+        if (trimmed.Length == 0) return false;
+        var first = trimmed[0];
+        if (first != '-' && first != '*' && first != '_') return false;
         var count = 0;
-        foreach (var b in utf8)
+        foreach (var c in trimmed)
         {
-            if (b == first) count += 1;
-            else if (b != 0x20) return false;
+            if (c == first) count += 1;
+            else if (c != ' ') return false;
         }
         return count >= 3;
     }
 
     // :325-329. Swift: private static func isTableDelimiter(_ line: String) -> Bool
+    // Every Character is one of "|:- " exactly when every UTF-16 character is (those are single ASCII Characters,
+    // and a Character holding any other character is no substring of "|:- ").
     private static bool IsTableDelimiter(string line)
     {
         var trimmed = TrimmedLine(line);
         if (!trimmed.Contains('-', StringComparison.Ordinal)) return false;
-        return SwiftString.Characters(trimmed).All(c => "|:- ".Contains(c, StringComparison.Ordinal));
+        return trimmed.AsSpan().IndexOfAnyExcept("|:- ".AsSpan()) < 0;
     }
 
     // :331-337. Swift: private static func tableCells(_ line: String) -> [String]
@@ -496,9 +590,70 @@ public static class MarkdownParser
         return text[start..end];
     }
 
+    // ---- ED-NEW-lean-13: Character checks on offsets instead of substrings ----
+
+    // The length in UTF-16 characters of the Character starting at `offset` (SwiftString.Characters' step).
+    private static int CharacterLength(string text, int offset) => StringInfo.GetNextTextElementLength(text.AsSpan(offset));
+
+    // SwiftString.DropFirst's offset: `count` Characters on from `start`, clamped at the end.
+    private static int OffsetAfterCharacters(string text, int start, int count)
+    {
+        var index = start;
+        for (var i = 0; i < count && index < text.Length; i++) index += CharacterLength(text, index);
+        return index;
+    }
+
+    // The offset of the first Character from `start` that is neither `a` nor `b` alone (SkipWhile over Characters).
+    private static int SkipCharacters(string text, int start, char a, char b)
+    {
+        var index = start;
+        while (index < text.Length && (text[index] == a || text[index] == b) && CharacterLength(text, index) == 1) index += 1;
+        return index;
+    }
+
+    // SwiftString.HasPrefix(text[offset..], character) for one ASCII character. When the text's Character there is one
+    // ASCII character, canonical equivalence is identity and the answer is a compare; any other Character (a mark
+    // after it, CRLF, non-ASCII) is handed to SwiftString.HasPrefix itself, so its result and its exceptions stay.
+    private static bool StartsWithCharacter(string text, int offset, char character)
+    {
+        if (offset >= text.Length) return false;
+        var first = text[offset];
+        if (first < 0x80 && CharacterLength(text, offset) == 1) return first == character;
+        return SwiftString.HasPrefix(text[offset..], character.ToString());
+    }
+
+    // True only where SwiftString.HasPrefix(text, prefix) is false without comparing anything that could throw: the
+    // text is empty, or its first character and the prefix's are different ASCII characters. A Character that starts
+    // with an ASCII character decomposes to one that starts with it, so it is never canonically equal to a Character
+    // starting with another one, and the compare stops at that first Character.
+    private static bool CannotStartWith(string text, string prefix) =>
+        prefix.Length > 0 && (text.Length == 0 || text[0] < 0x80 && prefix[0] < 0x80 && text[0] != prefix[0]);
+
+    // True when `text` has no lone surrogate, so its UTF-8 form decodes back to it exactly.
+    private static bool IsWellFormed(ReadOnlySpan<char> text)
+    {
+        for (var i = 0; i < text.Length; i++)
+        {
+            var c = text[i];
+            if (char.IsHighSurrogate(c))
+            {
+                if (i + 1 >= text.Length || !char.IsLowSurrogate(text[i + 1])) return false;
+                i += 1;
+            }
+            else if (char.IsLowSurrogate(c))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
     // :41. Swift: text.utf8.starts(with: previous.text.utf8)
+    // On well-formed UTF-16 the UTF-8 forms start with each other exactly when the texts do (UTF-8 is prefix-free and
+    // the prefix ends on a scalar), so no copy is made; a text with a lone surrogate compares its encoded bytes.
     private static bool Utf8StartsWith(string text, string prefix)
     {
+        if (IsWellFormed(text) && IsWellFormed(prefix)) return text.StartsWith(prefix, StringComparison.Ordinal);
         var textBytes = Encoding.UTF8.GetBytes(text);
         var prefixBytes = Encoding.UTF8.GetBytes(prefix);
         if (prefixBytes.Length > textBytes.Length) return false;
@@ -506,9 +661,25 @@ public static class MarkdownParser
     }
 
     // :45. Swift: text.utf8.index(text.utf8.startIndex, offsetBy: restart)...
+    // On well-formed UTF-16 the byte offset is walked to its character offset (the restart is a line start, so it
+    // falls on a scalar) and the text is sliced there; otherwise, or off a scalar, the bytes are decoded as before.
     private static string SubstringFromUtf8Offset(string text, int byteOffset)
     {
-        var bytes = Encoding.UTF8.GetBytes(text);
-        return Encoding.UTF8.GetString(bytes, byteOffset, bytes.Length - byteOffset);
+        if (IsWellFormed(text))
+        {
+            var bytes = 0;
+            var index = 0;
+            while (bytes < byteOffset && index < text.Length)
+            {
+                var c = text[index];
+                if (c < 0x80) { bytes += 1; index += 1; }
+                else if (c < 0x800) { bytes += 2; index += 1; }
+                else if (char.IsHighSurrogate(c)) { bytes += 4; index += 2; }
+                else { bytes += 3; index += 1; }
+            }
+            if (bytes == byteOffset) return text[index..];
+        }
+        var encoded = Encoding.UTF8.GetBytes(text);
+        return Encoding.UTF8.GetString(encoded, byteOffset, encoded.Length - byteOffset);
     }
 }

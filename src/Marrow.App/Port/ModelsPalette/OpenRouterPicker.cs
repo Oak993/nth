@@ -224,12 +224,26 @@ public sealed class OpenRouterPicker : Decorator
         var overflow=contentHeight>440;
         var top=overflow&&scroll.Offset.Y>1 ? 16d:0d;
         var bottom=overflow&&scroll.Offset.Y+scroll.Viewport.Height<scroll.Extent.Height-1 ? 22d:0d;
-        topFade?.Set(top,Animation.TimingCurve(.25,.1,.25,1,.2));bottomFade?.Set(bottom,Animation.TimingCurve(.25,.1,.25,1,.2));UpdateMask();
+        if (!AtRest(topFade,topTarget,top)) topFade?.Set(top,TopFadeCurve);
+        if (!AtRest(bottomFade,bottomTarget,bottom)) bottomFade?.Set(bottom,BottomFadeCurve);
+        topTarget=top;bottomTarget=bottom;UpdateMask();
     }
+    // ED-NEW-lean-19: a fade already standing at the value it was last sent to is not sent it again (Set would only land it where it
+    // stands); a fade still on its way is sent it again, so it starts its curve again from where it is, as every scroll did before.
+    private double topTarget=double.NaN,bottomTarget=double.NaN;
+    private static bool AtRest(AnimatedScalar? fade,double sent,double target) => fade is not null && sent==target && fade.Value==target;
+    // ED-NEW-lean-19: the edge fades' curves are made once, and the mask is made again only when a value it is drawn from changes (the
+    // top fade, the bottom fade or the list's height), so a scroll that leaves both fades where they stand makes no new brush.
+    private static readonly Animation TopFadeCurve = Animation.TimingCurve(.25,.1,.25,1,.2), BottomFadeCurve = Animation.TimingCurve(.25,.1,.25,1,.2);
+    internal static bool ReuseMask = true; // tests compare with a mask made on every call
+    private (double Top,double Bottom,double Height) maskDrawnFrom;
+    private IBrush? mask;
     private void UpdateMask()
     {
         if(scroll is null)return;var top=topFade?.Value??0;var bottom=bottomFade?.Value??0;var h=Math.Max(1,scroll.Height);
-        scroll.OpacityMask = new LinearGradientBrush { StartPoint=new RelativePoint(0,0,RelativeUnit.Relative), EndPoint=new RelativePoint(0,1,RelativeUnit.Relative),
+        if (ReuseMask && mask is not null && ReferenceEquals(scroll.OpacityMask,mask) && maskDrawnFrom==(top,bottom,h)) return;
+        maskDrawnFrom=(top,bottom,h);
+        scroll.OpacityMask = mask = new LinearGradientBrush { StartPoint=new RelativePoint(0,0,RelativeUnit.Relative), EndPoint=new RelativePoint(0,1,RelativeUnit.Relative),
             GradientStops=[new(Colors.Transparent,0),new(Colors.Black,top/h),new(Colors.Black,Math.Max(top/h,1-bottom/h)),new(Colors.Transparent,1)] };
     }
     internal static Button Button(Control content,Action click)

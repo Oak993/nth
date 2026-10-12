@@ -3,7 +3,9 @@
 // custom visual only when something changes; the visual's handler draws on the compositor's frame clock at the 60 Hz slots
 // every ambient source shares (AmbientRefreshPacer, ED-NEW-frame-pacing), asks for frames only while its painter says
 // something moves, and stops asking when it is not drawn (a hidden or scrolled-away primitive costs nothing until it is drawn
-// again). Painters keep their paints and paths: nothing is allocated per frame.
+// again). Painters keep their paints and paths: nothing is allocated per frame. ED-NEW-lean-6: while the window cannot be seen
+// (WindowPresence) the handler asks for no frames at all; seen again, its next frame is the painter at the current time (a
+// painter is a pure function of the frame and the time, so every loop resumes in phase).
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -82,17 +84,38 @@ internal sealed class NthMotionHandler(NthPainter painter, AmbientRefreshPacer? 
         internal static readonly Stop Instance = new();
     }
 
+    /// <summary>ED-NEW-lean-6: whether the window can be seen (WindowPresence), sent when it changes.</summary>
+    internal sealed class Presence
+    {
+        internal static readonly Presence Seen = new(true), Unseen = new(false);
+        private Presence(bool seen) => IsSeen = seen;
+        internal bool IsSeen { get; }
+    }
+
     private NthFrame? frame;
-    private bool requested, stopped, drawn = true;
-    private int frames;
+    private bool requested, stopped, hidden, drawn = true;
+    private int frames, requests;
+    private double lastDrawn = double.NaN;
 
     /// <summary>Frames drawn (tests).</summary>
     internal int Frames => Volatile.Read(ref frames);
+
+    /// <summary>Animation frames asked of the compositor (tests: ED-NEW-lean-6's budget).</summary>
+    internal int Requests => Volatile.Read(ref requests);
+
+    /// <summary>The time the last frame was drawn at, clock seconds (tests).</summary>
+    internal double LastDrawn => Volatile.Read(ref lastDrawn);
 
     public override void OnMessage(object message)
     {
         if (message is NthFrame next) { frame = next; Invalidate(); Request(); }
         else if (message is Stop) { stopped = true; painter.Dispose(); }
+        else if (message is Presence presence && hidden == presence.IsSeen)
+        {
+            hidden = !presence.IsSeen;
+            // seen again: draw the next frame at the current time, and ask for frames again while it moves
+            if (!hidden && frame is not null) { Invalidate(); Request(); }
+        }
     }
 
     public override Rect GetRenderBounds() => frame is { } value ? painter.Bounds(value) : default;
@@ -100,7 +123,7 @@ internal sealed class NthMotionHandler(NthPainter painter, AmbientRefreshPacer? 
     public override void OnAnimationFrameUpdate()
     {
         requested = false;
-        if (stopped || frame is not { } current) return;
+        if (stopped || hidden || frame is not { } current) return;
         var now = NthFrame.Seconds(current.Clock);
         // ED-NEW-frame-pacing: decorative motion advances once per 1/60 s slot, on the same refresh as every other source
         if (pacer is not null && !pacer.Beat(CompositionNow.Ticks, now)) { Register(); return; }
@@ -110,7 +133,7 @@ internal sealed class NthMotionHandler(NthPainter painter, AmbientRefreshPacer? 
 
     private void Request()
     {
-        if (requested || stopped) return;
+        if (requested || stopped || hidden) return;
         drawn = false;
         Register();
     }
@@ -118,6 +141,7 @@ internal sealed class NthMotionHandler(NthPainter painter, AmbientRefreshPacer? 
     private void Register()
     {
         requested = true;
+        Interlocked.Increment(ref requests);
         RegisterForNextAnimationFrameUpdate();
     }
 
@@ -127,6 +151,7 @@ internal sealed class NthMotionHandler(NthPainter painter, AmbientRefreshPacer? 
         drawn = true;
         var now = NthFrame.Seconds(current.Clock);
         painter.Render(context, current, now);
+        Volatile.Write(ref lastDrawn, now);
         Interlocked.Increment(ref frames);
         if (painter.Moving(current, now)) Request();
     }
@@ -149,10 +174,13 @@ public sealed class NthVisualHost
     private TimeProvider? clock;
     private double? started;
     private NthFrame? sent;
+    private WindowPresence? presence;
+    private readonly Action presenceChanged;
 
     public NthVisualHost(Control owner, Func<NthPainter> create, Func<object?> state)
     {
         this.owner = owner; this.create = create; this.state = state;
+        presenceChanged = PresenceChanged;
         owner.AttachedToVisualTree += (_, _) => Install();
         owner.DetachedFromVisualTree += (_, _) => Remove();
         owner.ActualThemeVariantChanged += (_, _) => Send();
@@ -181,6 +209,12 @@ public sealed class NthVisualHost
     /// <summary>Frames the render thread has drawn (tests).</summary>
     public int FramesDrawn => handler?.Frames ?? 0;
 
+    /// <summary>Animation frames the render thread has asked for (tests).</summary>
+    internal int FrameRequests => handler?.Requests ?? 0;
+
+    /// <summary>The time the render thread last drew at, clock seconds (tests).</summary>
+    internal double LastDrawnAt => handler?.LastDrawn ?? double.NaN;
+
     /// <summary>Whether any nth primitive on screen is moving (the idle GPU warm-up waits for none, as for AuroraLoader).</summary>
     public static bool AnyAnimating()
     {
@@ -208,8 +242,19 @@ public sealed class NthVisualHost
         handler = new NthMotionHandler(painter, AmbientRefreshPacer.For(host.Compositor));
         visual = host.Compositor.CreateCustomVisual(handler);
         ElementComposition.SetElementChildVisual(owner, visual);
+        presence = WindowPresence.For(owner);
+        if (presence is not null)
+        {
+            presence.Changed += presenceChanged;
+            if (!presence.Seen) visual.SendHandlerMessage(NthMotionHandler.Presence.Unseen);
+        }
         sent = null;
         Send();
+    }
+
+    private void PresenceChanged()
+    {
+        if (presence is { } current) visual?.SendHandlerMessage(current.Seen ? NthMotionHandler.Presence.Seen : NthMotionHandler.Presence.Unseen);
     }
 
     /// <summary>Send the current frame to the render thread (call when the state changes).</summary>
@@ -226,6 +271,7 @@ public sealed class NthVisualHost
     private void Remove()
     {
         mounted.Remove(this);
+        if (presence is not null) { presence.Changed -= presenceChanged; presence = null; }
         visual?.SendHandlerMessage(NthMotionHandler.Stop.Instance);
         ElementComposition.SetElementChildVisual(owner, null);
         visual = null; handler = null; sent = null; probe = null;
@@ -255,6 +301,8 @@ public abstract class NthMotionControl : Control
     public bool Dark => host.Dark;
     public NthFrame? Frame => host.Frame;
     public int FramesDrawn => host.FramesDrawn;
+    internal int FrameRequests => host.FrameRequests;
+    internal double LastDrawnAt => host.LastDrawnAt;
     public bool IsMoving => host.IsMoving;
     public NthFrame Snapshot() => host.Snapshot();
 

@@ -150,7 +150,55 @@ public sealed class SidebarView : Decorator
         public string Search { get => Read(search); set => Set(ref search, value); }
 
         // :31-33 @State private var drag = RowDrag<UUID>(): the live reorder; the grabbed row follows the pointer.
-        public RowDrag<Guid> Drag { get => Read(drag); set => Set(ref drag, value); }
+        public RowDrag<Guid> Drag
+        {
+            get => Read(drag);
+            set
+            {
+                var before = drag.Id;
+                Set(ref drag, value);
+                SyncDragCells(before);
+                if (value.Id != before) SyncDragCells(value.Id);
+            }
+        }
+
+        // ED-NEW-lean-15: per-id cells beside the drag, as AppModel.SelectionCell is beside the selection. A row reads only its own
+        // lift (:758-761) and a helper, head card or folded stub only its parent's ride (:1622-1632), so a pointer move re-evaluates
+        // the grabbed row and what rides it instead of every row in the list. Each cell holds exactly what its reader drew from the
+        // drag (a row not grabbed: not dragged, no offset; a rider of a parent not grabbed: no offset, zIndex 0) and is written in the
+        // same assignment as the drag, under the same transaction, so every change still moves along the change's own animation.
+        private readonly Dictionary<Guid, ObservedValue<(bool IsDragged, double Offset)>> lifts = new();
+        private readonly Dictionary<Guid, ObservedValue<(double Offset, int ZIndex)>> rides = new();
+
+        public (bool IsDragged, double Offset) Lift(Guid id)
+        {
+            if (!lifts.TryGetValue(id, out var cell)) lifts[id] = cell = new ObservedValue<(bool IsDragged, double Offset)>(LiftOf(id));
+            return cell.Value;
+        }
+
+        public (double Offset, int ZIndex) Ride(Guid parentID)
+        {
+            if (!rides.TryGetValue(parentID, out var cell)) rides[parentID] = cell = new ObservedValue<(double Offset, int ZIndex)>(RideOf(parentID));
+            return cell.Value;
+        }
+
+        private (bool IsDragged, double Offset) LiftOf(Guid id) => drag.Id == id ? (true, drag.VisualOffset) : (false, 0);
+
+        private (double Offset, int ZIndex) RideOf(Guid parentID)
+        {
+            var ride = new RidesWithDraggedParent(parentID, drag);
+            return (ride.Offset, ride.ZIndex);
+        }
+
+        // Only the grab's old and new ids can change a cell: every other row reads "not dragged" before and after.
+        private void SyncDragCells(Guid? id)
+        {
+            if (id is not { } changed) return;
+            // ObservedValue tells its readers of every write (SetAlways); a cell is written only when its value changes, as the drag
+            // itself tells its readers only of a change.
+            if (lifts.TryGetValue(changed, out var lift) && LiftOf(changed) is var nextLift && !lift.Value.Equals(nextLift)) lift.Value = nextLift;
+            if (rides.TryGetValue(changed, out var ride) && RideOf(changed) is var nextRide && !ride.Value.Equals(nextRide)) ride.Value = nextRide;
+        }
 
         // :56 @State private var isListScrolling = false
         public bool IsListScrolling { get => Read(isListScrolling); set => Set(ref isListScrolling, value); }
@@ -211,10 +259,12 @@ public sealed class SidebarView : Decorator
     private readonly StackPanel list;
 
     // The list's rows by the id their ForEach keys them with (R-VIEW-8), and the ids ScrollViewReader can reach.
-    private readonly Dictionary<string, ListRow> listRows = new(StringComparer.Ordinal);
-    private readonly ForEach<ListEntry, string> layoutMotion;
+    private readonly Dictionary<ListKey, ListRow> listRows = new();
+    private readonly ForEach<ListEntry, ListKey> layoutMotion;
     private readonly Dictionary<string, Control> scrollTargets = new(StringComparer.Ordinal);
     private ListMotion? lastMotion;
+    private ListPass? lastPass; // ED-NEW-lean-15: the pass the list last applied; an equal pass changes nothing and is not applied again
+    private int listPasses; // ED-NEW-lean-15: the list passes applied (ApplyList runs), read by SidebarLeanBudgetTests
     private Action<TimeSpan>? scrollFrame;
     private IFrameSource? scrollFrames;
     private readonly List<IDisposable> changes = [];
@@ -281,7 +331,7 @@ public sealed class SidebarView : Decorator
             Margin = new Thickness(Chrome.ListInset, 12, Chrome.ListInset, 8), // :120-122
         };
         // :117-119 ED-218: the shared keyed layout glide also carries this caller's update-or-rebuild pass.
-        layoutMotion = new ForEach<ListEntry, string>(list, entry => entry.Key, entry => entry.Make(), (_, _) => { });
+        layoutMotion = new ForEach<ListEntry, ListKey>(list, entry => entry.Key, entry => entry.Make(), (_, _) => { });
         scroll = new ScrollViewer
         {
             Template = ListScrollTemplate, // :139 .scrollIndicators(.never)
@@ -337,7 +387,15 @@ public sealed class SidebarView : Decorator
         Child = root;
 
         // :104-113 the list, in either layout or as search results, rebuilt when what it reads changes.
-        list.Track(ListPassNow, ApplyList);
+        // ED-NEW-lean-15: a re-evaluation that yields the pass already applied (a change the list does not show: a space in the
+        // empty search field, a keystroke that keeps the same results) is not applied again. Tracked<T> applies every
+        // re-evaluation (ViewSupport.cs), and an equal pass would only walk every row again to change nothing.
+        list.Track(ListPassNow, pass =>
+        {
+            if (lastPass is not null && lastPass.Equals(pass)) return;
+            lastPass = pass;
+            ApplyList(pass);
+        });
         // :115 .allowsHitTesting(!isListScrolling)
         list.Track(() => state.IsListScrolling, scrolling => list.IsHitTestVisible = !scrolling);
 
@@ -563,6 +621,7 @@ public sealed class SidebarView : Decorator
     {
         // :117-119 R-VIEW-4: a change of any of the three values animates the pass with Chrome.panelSlide; otherwise the
         // change's own transaction applies. ED-218 carries both the fades and surviving rows' positional motion.
+        listPasses++;
         var animation = lastMotion is not null && lastMotion != pass.Motion ? Chrome.PanelSlide : Transaction.Current;
         lastMotion = pass.Motion;
         Transaction.WithAnimation(animation, () => ApplyEntries(pass.Items is { } items
@@ -580,12 +639,20 @@ public sealed class SidebarView : Decorator
 
     // One entry a pass wants: its ForEach id, the value that builds it, the id ScrollViewReader finds it by, the
     // control, and how a surviving row takes a new value in place (false: it is rebuilt where it stands).
-    private sealed record ListEntry(string Key, object Value, string? Target, Func<Control> Make, Func<Control, object, bool>? Update);
+    private sealed record ListEntry(ListKey Key, object Value, string? Target, Func<Control> Make, Func<Control, object, bool>? Update);
+
+    // ED-NEW-lean-15: one key space for the list and the search results, a value key with no string built per row per pass. The
+    // list's rows and the search's rows stay apart (Space), as the two branches of :104-113 are apart in SwiftUI, so entering or
+    // leaving a search still fades the one set out and the other in; each key maps one to one onto the string id it replaces
+    // ("item:<id>", "search:empty", "search:<project>:gap", "search:<project>:project", "search:<project>:<sidebar item id>").
+    private enum KeySpace : byte { Item, SearchEmpty, SearchGap, SearchProject, SearchThread }
+
+    private readonly record struct ListKey(KeySpace Space, Guid Group, string? Id);
 
     // :107-110 ForEach(listItems(...)) { item in itemView(item).transition(rowTransition(item)) }
     private List<ListEntry> ItemEntries(ValueList<SidebarItem> items) =>
         items.Select(item => new ListEntry(
-            "item:" + item.Id,
+            new ListKey(KeySpace.Item, default, item.Id),
             item,
             item.Id,
             () => ItemView(item).Transition(RowTransition(item)),
@@ -597,16 +664,16 @@ public sealed class SidebarView : Decorator
         var entries = new List<ListEntry>();
         if (results.Count == 0) // :693
         {
-            entries.Add(new ListEntry("search:empty", "empty", null, NoResults, null)); // :694-703
+            entries.Add(new ListEntry(new ListKey(KeySpace.SearchEmpty, default, null), "empty", null, NoResults, null)); // :694-703
             return entries;
         }
         for (var index = 0; index < results.Count; index++) // :705 ForEach(..., id: \.element.project.id)
         {
             var result = results[index];
-            var group = "search:" + SwiftUUID.UuidString(result.Project.Id);
+            var group = result.Project.Id;
             if (index > 0) // :706-708
-                entries.Add(new ListEntry(group + ":gap", Chrome.GroupGap, null, () => new Border { Height = Chrome.GroupGap }, null));
-            entries.Add(new ListEntry(group + ":project", (result.Project, result.Count), null, // :709
+                entries.Add(new ListEntry(new ListKey(KeySpace.SearchGap, group, null), Chrome.GroupGap, null, () => new Border { Height = Chrome.GroupGap }, null));
+            entries.Add(new ListEntry(new ListKey(KeySpace.SearchProject, group, null), (result.Project, result.Count), null, // :709
                 () => new ProjectRow(result.Project, result.Count, togglesExpansion: false),
                 (control, value) => // :709 the same row under the same ForEach id takes its new snapshot and count in place
                 {
@@ -617,7 +684,8 @@ public sealed class SidebarView : Decorator
             foreach (var thread in result.Threads) // :711 ForEach(result.threads, id: \.sidebarItemID)
             {
                 var hasHelpers = !thread.IsSettled && helpers.TryGetValue(thread.Id, out var own) && own.Count > 0; // :712
-                entries.Add(new ListEntry(group + ":" + thread.SidebarItemID, (thread, hasHelpers), thread.SidebarItemID,
+                var itemID = thread.SidebarItemID;
+                entries.Add(new ListEntry(new ListKey(KeySpace.SearchThread, group, itemID), (thread, hasHelpers), itemID,
                     () => ThreadRow(thread, projectName: null, projectIcon: null, hasHelpers: hasHelpers), null));
             }
         }
@@ -647,13 +715,13 @@ public sealed class SidebarView : Decorator
     // enters with its own, a surviving id keeps its control and takes the new value, and the rows follow the order.
     // Every transition here is an opacity one, so no row is wrapped and each control is the list's own child.
     private void ApplyEntries(List<ListEntry> entries) => layoutMotion.ApplyLayout(
-        () => listRows.ToDictionary(pair => pair.Key, pair => pair.Value.Control, StringComparer.Ordinal),
+        () => listRows.ToDictionary(pair => pair.Key, pair => pair.Value.Control),
         () => ReconcileEntries(entries));
 
     private void ReconcileEntries(List<ListEntry> entries)
     {
-        var wanted = new List<ListEntry>();
-        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var wanted = new List<ListEntry>(entries.Count);
+        var seen = new HashSet<ListKey>();
         foreach (var entry in entries)
             if (seen.Add(entry.Key)) wanted.Add(entry); // a duplicate id keeps its first entry (UNVERIFIED O-18)
         foreach (var gone in listRows.Keys.Where(key => !seen.Contains(key)).ToArray())
@@ -662,11 +730,17 @@ public sealed class SidebarView : Decorator
             listRows.Remove(gone);
         }
         scrollTargets.Clear();
-        Control? previous = null;
+        var children = list.Children;
+        // ED-NEW-lean-15: the children are indexed once. The slot after the previous entry's control is carried from one entry to
+        // the next (it is where that control was just placed) instead of searched for, and a control is searched for only when it
+        // is not in the slot expected of it, so a pass that moves nothing reads each child once.
+        int IndexOf(Control control, int expected) =>
+            expected >= 0 && expected < children.Count && ReferenceEquals(children[expected], control) ? expected : children.IndexOf(control);
+        var target = 0; // the slot after the previous entry's control
         foreach (var entry in wanted)
         {
-            var target = previous is null ? 0 : list.Children.IndexOf(previous) + 1;
             Control control;
+            var placed = target;
             if (listRows.TryGetValue(entry.Key, out var row))
             {
                 if (!Equals(row.Value, entry.Value))
@@ -675,14 +749,18 @@ public sealed class SidebarView : Decorator
                     else
                     {
                         var fresh = entry.Make();
-                        list.Children[list.Children.IndexOf(row.Control)] = fresh;
+                        children[IndexOf(row.Control, target)] = fresh;
                         row.Control = fresh;
                         row.Value = entry.Value;
                     }
                 }
                 control = row.Control;
-                var current = list.Children.IndexOf(control);
-                if (current != target) list.Children.Move(current, current < target ? target - 1 : target);
+                var current = IndexOf(control, target);
+                if (current != target)
+                {
+                    placed = current < target ? target - 1 : target;
+                    children.Move(current, placed);
+                }
             }
             else
             {
@@ -691,7 +769,7 @@ public sealed class SidebarView : Decorator
                 SwiftTransition.Insert(list, target, control);
             }
             if (entry.Target is { } id) scrollTargets[id] = control;
-            previous = control;
+            target = IndexOf(control, placed) + 1;
         }
     }
 
@@ -846,9 +924,9 @@ public sealed class SidebarView : Decorator
         double target = 0;
         IFrameSource? frames = null;
         Action<TimeSpan>? pending = null;
-        host.Track(() => state.Drag, drag =>
+        // ED-NEW-lean-15: the parent's own ride cell, not the whole drag (a rider of no parent never rides: no offset, zIndex 0).
+        host.Track(() => parentID is { } parent ? state.Ride(parent) : (Offset: 0d, ZIndex: 0), rides =>
         {
-            var rides = new RidesWithDraggedParent(parentID, drag);
             host.ZIndex = rides.ZIndex; // :1630
             var to = rides.Offset; // :1629
             if (to == target) return;
@@ -924,7 +1002,8 @@ public sealed class SidebarView : Decorator
         double target = 0;
         IFrameSource? frames = null;
         Action<TimeSpan>? pending = null;
-        host.Track(() => (IsDragged: state.Drag.Id == id, Offset: state.Drag.VisualOffset), value =>
+        // ED-NEW-lean-15: this row's own lift cell (whether it is the grabbed one and, if so, the drag's visual offset), not the drag.
+        host.Track(() => state.Lift(id), value =>
         {
             var isDragged = value.IsDragged; // :758
             if (builtDragged != isDragged)
@@ -3550,6 +3629,10 @@ internal sealed class SidebarThreadRow : Decorator, IGlideRow
         var menuPresented = new Binding<bool>(() => state.IsMenuPresented, value => state.IsMenuPresented = value);
         ChatThread shown = snapshot; // the thread the face is told of, for the badge it builds
         bool? selectedBefore = null, actionsBefore = null;
+        // ED-NEW-lean-15: what the trailing and fold overlays were last built from; an apply that changes neither keeps them.
+        ChatThread? trailingThread = null;
+        bool trailingActions = false, trailingSettles = false, foldShows = false, foldFolded = false, overlaysBuilt = false;
+        var tail = new Control?[3];
         this.Track(() =>
         {
             var thread = Thread();
@@ -3607,6 +3690,7 @@ internal sealed class SidebarThreadRow : Decorator, IGlideRow
             // update of the same branch and replaces in place.
             var hoverFlip = actionsBefore is { } before && before != actions && Transaction.Current is not null;
             actionsBefore = actions;
+            var tailCount = 0;
             void Swap(ref Control? slot, Control? next, bool branchChanged)
             {
                 var crossfade = hoverFlip && branchChanged;
@@ -3619,6 +3703,11 @@ internal sealed class SidebarThreadRow : Decorator, IGlideRow
                 if (next is null) return;
                 if (crossfade) SwiftTransition.Insert(overlays, overlays.Children.Count, next);
                 else overlays.Children.Add(next);
+                tail[tailCount++] = SwiftTransition.Container(next);
+            }
+            void Keep(Control? slot)
+            {
+                if (slot is not null) tail[tailCount++] = SwiftTransition.Container(slot);
             }
             // :1763-1771. A check the row already shows for the same state is kept and told whether it pops (SwiftUI keeps
             // the view under its identity and re-reads `isPopping`), so the pop (:1909) is the spring it rides.
@@ -3631,10 +3720,35 @@ internal sealed class SidebarThreadRow : Decorator, IGlideRow
                 var nextCheck = BuildSettleCheckOverlay(settled, settles, actions, settling, settling, settled ? ReopenRow : SettleRow); // :1763-1771
                 Swap(ref check, nextCheck, (check is null) != (nextCheck is null)); // a settled row keeps its check: same branch
             }
-            Swap(ref trailing, BuildTrailingOverlay(thread, actions, detailed, settled, projectIcon is not null, settles, ArchiveRow,
-                actions ? MakeActions() : [], menuPresented), branchChanged: true); // :1772-1801 the hover always changes the branch
-            var nextFold = BuildFoldOverlay(showsFold, onToggleFold, thread.FoldsHelpers); // :1804-1814
-            Swap(ref fold, nextFold, (fold is null) != (nextFold is null));
+            // ED-NEW-lean-15: the trailing overlay reads the thread, whether the hover's buttons show and the finish action (its
+            // other inputs are this row's constants), so an apply that changes none of them (a selection, a merge stage, the
+            // settle pop, the ghost hiding the row) keeps the overlay it has instead of building an equal one in its place.
+            if (!overlaysBuilt || actions != trailingActions || settles != trailingSettles || !Equals(thread, trailingThread))
+            {
+                Swap(ref trailing, BuildTrailingOverlay(thread, actions, detailed, settled, projectIcon is not null, settles, ArchiveRow,
+                    actions ? MakeActions() : [], menuPresented), branchChanged: true); // :1772-1801 the hover always changes the branch
+                (trailingThread, trailingActions, trailingSettles) = (thread, actions, settles);
+            }
+            else Keep(trailing);
+            if (!overlaysBuilt || showsFold != foldShows || thread.FoldsHelpers != foldFolded)
+            {
+                var nextFold = BuildFoldOverlay(showsFold, onToggleFold, thread.FoldsHelpers); // :1804-1814
+                Swap(ref fold, nextFold, (fold is null) != (nextFold is null));
+                (foldShows, foldFolded) = (showsFold, thread.FoldsHelpers);
+            }
+            else Keep(fold);
+            overlaysBuilt = true;
+            // A rebuilt overlay joins the end of the stack, in this order (check, trailing, fold); a kept one takes the same place,
+            // so what draws over what is as a rebuild would leave it.
+            var stack = overlays.Children;
+            var ordered = tailCount <= stack.Count;
+            for (var i = 0; ordered && i < tailCount; i++) ordered = ReferenceEquals(stack[stack.Count - tailCount + i], tail[i]);
+            for (var i = 0; !ordered && i < tailCount; i++)
+            {
+                var at = stack.IndexOf(tail[i]!);
+                if (at >= 0 && at != stack.Count - 1) stack.Move(at, stack.Count - 1);
+            }
+            Array.Clear(tail);
             SetHidden(hidden); // :1834-1838
             AutomationProperties.SetName(selectButton, thread.Title); // :1871-1872
             PlaceKeycap(settled, detailed);
@@ -3656,7 +3770,10 @@ internal sealed class SidebarThreadRow : Decorator, IGlideRow
             windowFrame.Note(frame); // :1828,2433-2440 suppress only the holder write, never the following Land
             animator.Land(Thread().Id, snapshot.IsSettled, frame); // :1830 snapshot describes this row's destination
         }
-        LayoutUpdated += (_, _) => ReportFrame();
+        // ED-NEW-lean-15: one LayoutUpdated subscriber per window for all its thread rows (FrameReports), not one per row.
+        FrameReports.Entry? frameReport = null;
+        AttachedToVisualTree += (_, _) => frameReport ??= TopLevel.GetTopLevel(this) is { } top ? FrameReports.Join(top, ReportFrame) : null;
+        DetachedFromVisualTree += (_, _) => { frameReport?.Leave(); frameReport = null; };
         OnChange<AppModel.FinishRequest?>? finish = null;
         AttachedToVisualTree += (_, _) => finish ??= new OnChange<AppModel.FinishRequest?>(() => Model.AppModelFinishRequest,
             (_, _) => FinishRequestReceived(Model, Thread(), Thread().IsSettled, SettleRow, ReopenRow)); // :1863-1870
@@ -3680,6 +3797,49 @@ internal sealed class SidebarThreadRow : Decorator, IGlideRow
 
     /// <summary>PORT-ONLY (ED-NEW-ignis-guards): the row's Ignis keep-warm mark; null when Ignis is not bound.</summary>
     internal Marrow.App.Port.Ignis.Views.IgnisSidebarMark? Ember { get; }
+
+    // ED-NEW-lean-15: the thread rows' frame reports, one LayoutUpdated subscriber per window. Avalonia raises a control's
+    // LayoutUpdated from its layout manager's pass event (a Layoutable subscribes itself there for its first handler), so a list of
+    // N rows meant N subscribers called after every layout pass. Here the window carries one, and it calls the rows' reports in the
+    // order the rows attached, the order their own subscriptions had; the rows taking part in a pass are the ones attached when it
+    // started, as a multicast event's are.
+    private sealed class FrameReports
+    {
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<TopLevel, FrameReports> windows = new();
+        private readonly TopLevel top;
+        private readonly LinkedList<Action> reports = new();
+        private Action[] pass = [];
+
+        private FrameReports(TopLevel top) => this.top = top;
+
+        internal sealed class Entry(FrameReports owner, LinkedListNode<Action> node)
+        {
+            public void Leave() => owner.Leave(node);
+        }
+
+        public static Entry Join(TopLevel top, Action report)
+        {
+            var hub = windows.GetValue(top, window => new FrameReports(window));
+            if (hub.reports.Count == 0) top.LayoutUpdated += hub.Passed;
+            return new Entry(hub, hub.reports.AddLast(report));
+        }
+
+        private void Leave(LinkedListNode<Action> node)
+        {
+            if (node.List != reports) return;
+            reports.Remove(node);
+            if (reports.Count == 0) top.LayoutUpdated -= Passed;
+        }
+
+        private void Passed(object? sender, EventArgs e)
+        {
+            var count = reports.Count;
+            if (pass.Length < count) pass = new Action[Math.Max(count, pass.Length * 2)];
+            reports.CopyTo(pass, 0);
+            for (var i = 0; i < count; i++) pass[i]();
+            Array.Clear(pass, 0, count);
+        }
+    }
 
     /// <summary>PORT-ONLY (ED-NEW-ignis-guards): the context menu's "Turn off" (lit) or "Turn on" (cooled), last: the mark's pill by keyboard.</summary>
     internal IReadOnlyList<RowAction> WithIgnis(IReadOnlyList<RowAction> actions)
@@ -5222,16 +5382,47 @@ internal sealed class PlacementCache
             HydraIndex = thread.Hydra?.Index;
             HasUnread = thread.HasUnread; // :2522
         }
+
+        // ED-NEW-lean-15: whether `new Fingerprint(thread)` would equal this one, field by field under the record's own equality
+        // (EqualityComparer<T>.Default per field), without making it.
+        public bool Matches(ChatThread thread) =>
+            Id == thread.Id
+            && ProjectID == thread.ProjectID
+            && EqualityComparer<Guid?>.Default.Equals(ParentThreadID, thread.ParentThreadID)
+            && IsArchived == thread.IsArchived
+            && IsInPanel == thread.IsInPanel
+            && IsSettled == thread.IsSettled
+            && EqualityComparer<DateTimeOffset?>.Default.Equals(SettledAt, thread.SettledAt)
+            && IsPinned == thread.IsPinned
+            && EqualityComparer<double?>.Default.Equals(SortOrder, thread.SortOrder)
+            && EqualityComparer<double?>.Default.Equals(ActivityOrder, thread.ActivityOrder)
+            && EqualityComparer<DateTimeOffset?>.Default.Equals(ActivityOrderDay, thread.ActivityOrderDay)
+            && EqualityComparer<DateTimeOffset>.Default.Equals(CreatedAt, thread.CreatedAt)
+            && EqualityComparer<DateTimeOffset>.Default.Equals(UpdatedAt, thread.UpdatedAt)
+            && FoldsHelpers == thread.FoldsHelpers
+            && IsHydraHead == thread.IsHydraHead
+            && EqualityComparer<long?>.Default.Equals(HydraIndex, thread.Hydra?.Index)
+            && HasUnread == thread.HasUnread;
     }
 
     // :2529-2535 func placements(for threads: [ChatThread]) -> [ThreadPlacement]
     public ValueList<ThreadPlacement> Placements(IReadOnlyList<ChatThread> @for)
     {
+        // ED-NEW-lean-15: the threads are checked against the kept fingerprints where they stand; a new set of fingerprints is made
+        // only when one of them differs (the answer is the :2530-2531 comparison's, without a fingerprint per thread per read).
+        if (fingerprint is { } kept && kept.Count == @for.Count && Unchanged(kept, @for)) return cached;
         var next = new ValueList<Fingerprint>(@for.Select(thread => new Fingerprint(thread))); // :2530
         if (next.Equals(fingerprint)) return cached; // :2531
         fingerprint = next; // :2532
         cached = new ValueList<ThreadPlacement>(@for.Select(thread => new ThreadPlacement(thread))); // :2533
         return cached; // :2534
+    }
+
+    private static bool Unchanged(ValueList<Fingerprint> kept, IReadOnlyList<ChatThread> threads)
+    {
+        for (var index = 0; index < threads.Count; index++)
+            if (!kept[index].Matches(threads[index])) return false;
+        return true;
     }
 
     private ValueList<Fingerprint>? fingerprint; // :2526
@@ -5410,13 +5601,24 @@ internal sealed class RelativeTimeLabel : Decorator
     // :2689-2694 body. PR-SIDEBAR-075.
     public RelativeTimeLabel(DateTimeOffset date)
     {
+        // ED-NEW-lean-15: one text block for the label's life; the minute's tick sets its text only when the words change (a
+        // thread an hour old reads "1h" for sixty ticks), instead of building a new block every minute.
+        TextBlock? text = null;
         this.Track(() => MinuteClock.Shared.Now, now => // :2690, the minute's tick re-renders this label alone
         {
-            var text = new TextBlock { Text = RelativeTime.Short(date, now) }; // :2690
-            SwiftFont.Subheadline.MonospacedDigit().Apply(text); // :2691
-            text.Foreground = Chrome.SecondaryText.Opacity(0.8).Brush(text); // :2692
-            text.Margin = new Thickness(0, 0, 4, 0); // :2693 .padding(.trailing, 4)
-            Child = text;
+            var words = RelativeTime.Short(date, now); // :2690
+            if (text is null)
+            {
+                text = new TextBlock { Text = words };
+                SwiftFont.Subheadline.MonospacedDigit().Apply(text); // :2691
+                text.Foreground = Chrome.SecondaryText.Opacity(0.8).Brush(text); // :2692
+                text.Margin = new Thickness(0, 0, 4, 0); // :2693 .padding(.trailing, 4)
+                Child = text;
+            }
+            else if (!string.Equals(text.Text, words, StringComparison.Ordinal))
+            {
+                text.Text = words;
+            }
         });
     }
 }

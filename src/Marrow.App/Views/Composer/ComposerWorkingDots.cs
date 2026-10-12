@@ -211,22 +211,39 @@ public sealed class DotFieldControl : Canvas
             ? Math.Max(1, (int)Math.Ceiling(size.Height / Pitch))
             : Math.Min(MaxRows, Math.Max(1, (int)Math.Ceiling(size.Height / Pitch)));
 
-        // Clear and recreate the dot layers
-        dotCanvas?.Children.Clear();
+        // ED-NEW-lean-9 (hidden grid): the dot layers are laid out again in place: the dots already there are kept, moved and given
+        // the new fill and opacity, the missing ones are added at the end and the extra ones removed from it, so a new size makes no
+        // new dot but those it adds (it cleared and recreated every dot, 1.87 MB a one-point resize). The same dots in the same
+        // order, at the same places, fills and opacities as a fresh layout (ComposerWorkingDotsResizeBudgetTests).
         var fill = StillBrush();
-
-        // :139-148 Position dots based on grid
-        for (int row = 0; row < rowCount; row++)
+        var count = rowCount * columnCount;
+        if (dotCanvas is { } canvas)
         {
-            for (int col = 0; col < columnCount; col++)
+            var dots = canvas.Children;
+            if (dots.Count > count) dots.RemoveRange(count, dots.Count - count);
+            // :139-148 Position dots based on grid
+            for (int row = 0, place = 0; row < rowCount; row++)
             {
-                var x = Pitch / 2 + col * Pitch;
-                // :137-145 AppKit's origin is bottom-left. Avalonia's is top-left.
-                var y = size.Height - (Pitch / 2 + row * Pitch);
-                var dot = CreateDot(row, rowCount, fill);
-                dotCanvas?.Children.Add(dot);
-                Canvas.SetLeft(dot, x - DotSize / 2);
-                Canvas.SetTop(dot, y - DotSize / 2);
+                for (int col = 0; col < columnCount; col++, place++)
+                {
+                    var x = Pitch / 2 + col * Pitch;
+                    // :137-145 AppKit's origin is bottom-left. Avalonia's is top-left.
+                    var y = size.Height - (Pitch / 2 + row * Pitch);
+                    Ellipse dot;
+                    if (place < dots.Count)
+                    {
+                        dot = (Ellipse)dots[place];
+                        dot.Fill = fill;
+                        dot.Opacity = DotOpacity(row, rowCount);
+                    }
+                    else
+                    {
+                        dot = CreateDot(row, rowCount, fill);
+                        dots.Add(dot);
+                    }
+                    Canvas.SetLeft(dot, x - DotSize / 2);
+                    Canvas.SetTop(dot, y - DotSize / 2);
+                }
             }
         }
 
@@ -242,12 +259,16 @@ public sealed class DotFieldControl : Canvas
             Fill = fill,
         };
 
+        ellipse.Opacity = DotOpacity(row, rowCount);
+        return ellipse;
+    }
+
+    private double DotOpacity(int row, int rowCount)
+    {
         // :148 Apply per-row alpha offset
         var baseOpacity = animated ? 0.08 : (sweeps ? 0 : 0.28);
         // :148 Replicator instance alpha modulates the base layer's opacity.
-        ellipse.Opacity = baseOpacity * (sweeps ? 1 : 1.0 - (double)row / rowCount);
-
-        return ellipse;
+        return baseOpacity * (sweeps ? 1 : 1.0 - (double)row / rowCount);
     }
 
     // ED-253 (round 4): the colour is resolved here and sent as it is (an immutable brush); a SwiftColor brush made at each
@@ -298,7 +319,7 @@ public sealed class DotFieldControl : Canvas
         if (compositionVisual is null)
         {
             if (ElementComposition.GetElementVisual(this) is not { } host) return;
-            compositionHandler = new DotFieldCompositionHandler();
+            compositionHandler = new DotFieldCompositionHandler(Marrow.UI.Port.AmbientRefreshPacing.For(host.Compositor));
             compositionVisual = host.Compositor.CreateCustomVisual(compositionHandler);
             compositionVisual.ClipToBounds = false;
             ElementComposition.SetElementChildVisual(this, compositionVisual);

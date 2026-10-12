@@ -4266,7 +4266,13 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             h.Main.OnMain(() =>
             {
                 Settle(window!);
-                Assert.NotSame(before, row!.Child);
+                // ED-NEW-lean-11 replaces Assert.NotSame(before, row!.Child) here: a reply that streams on keeps its body and its markdown takes the flush
+                // (MarkdownView.Stream), so what moved with the text is the body on show, which now holds and draws the new text and not the old.
+                var markdown = row!.GetVisualDescendants().OfType<MarkdownView>().Single();
+                Assert.Equal("more words", markdown.Text);
+                var drawn = string.Concat(row!.GetVisualDescendants().OfType<TextBlock>().SelectMany(block => block.Inlines?.OfType<Run>() ?? []).Select(run => run.Text));
+                Assert.Contains("more words", drawn, StringComparison.Ordinal);
+                Assert.DoesNotContain("first words", drawn, StringComparison.Ordinal);
             });
         }
         finally { h.Main.OnMain(() => Close(window!)); }

@@ -50,7 +50,13 @@ internal sealed record DotFieldCompositionFrame(Size Size, IImmutableBrush Brush
     }
 
     /// <summary>Whether the blend to <see cref="Target"/> still runs at <see cref="Now"/>.</summary>
-    public bool Blending => From is not null && !Complete(BlendStart, Now);
+    public bool Blending => BlendingAt(Now);
+
+    /// <summary>Whether the blend to <see cref="Target"/> still runs at <paramref name="now"/>.</summary>
+    internal bool BlendingAt(ContinuousInstant now) => From is not null && !Complete(BlendStart, now);
+
+    /// <summary>The colour this field shows at <paramref name="now"/>.</summary>
+    internal Color ShownAt(ContinuousInstant now) => Shown(Target, From, BlendStart, now);
     private const double DotSize = 2;
     private const double Pitch = 8;
     private const int MaxRows = 3;
@@ -66,62 +72,95 @@ internal sealed record DotFieldCompositionFrame(Size Size, IImmutableBrush Brush
     public Rect RenderBounds => Size.Width > 0 && Size.Height > 0
         ? new Rect(Pitch / 2 - DotSize / 2, Size.Height - Pitch / 2 - (Rows - 1) * Pitch - DotSize / 2,
             (Columns - 1) * Pitch + DotSize, (Rows - 1) * Pitch + DotSize) : default;
-    public double Elapsed => Sweeps ? (Now - Start).TotalSeconds : Now.Ticks / (double)TimeSpan.TicksPerSecond - 1;
-    public bool NeedsFrame => Animated && Size.Width > 0 && Size.Height > 0
-        && (!Sweeps || (Now - Start) < TimeSpan.FromSeconds(SweepPeriod + (Columns - 1) * SweepColumnDelay) || Blending);
+    public double Elapsed => ElapsedAt(Now);
+    private double ElapsedAt(ContinuousInstant now) => Sweeps ? (now - Start).TotalSeconds : now.Ticks / (double)TimeSpan.TicksPerSecond - 1;
+    public bool NeedsFrame => NeedsFrameAt(Now);
 
-    public DotFieldCompositionFrame Sample()
+    /// <summary>Whether the field still moves at <paramref name="now"/> (a frame sampled then would need another).</summary>
+    internal bool NeedsFrameAt(ContinuousInstant now) => Animated && Size.Width > 0 && Size.Height > 0
+        && (!Sweeps || (now - Start) < TimeSpan.FromSeconds(SweepPeriod + (Columns - 1) * SweepColumnDelay) || BlendingAt(now));
+
+    /// <summary>
+    /// Now on the clock this field captured. The compositor does not inherit the UI async flow. Retain this field's captured clock
+    /// binding; the shared timestamp/conversion remains SwiftClock's, including a ManualTimeProvider in headless. ED-NEW-lean-9: a
+    /// flow that already reads that clock (the render thread reads the process default, which production's fields capture) reads it
+    /// as it is, without installing the same provider again (an AsyncLocal change, a closure and a restorer at every sample).
+    /// </summary>
+    internal ContinuousInstant ClockNow()
     {
-        // The compositor does not inherit the UI async flow. Retain this field's captured clock binding;
-        // the shared timestamp/conversion remains SwiftClock's, including a ManualTimeProvider in headless.
+        if (ReferenceEquals(SwiftClock.Provider.Current, Clock)) return SwiftClock.Now;
         using var clock = SwiftClock.Provider.Override(Clock);
-        var now = SwiftClock.Now;
+        return SwiftClock.Now;
+    }
+
+    public DotFieldCompositionFrame Sample() => At(ClockNow());
+
+    /// <summary>This field sampled at <paramref name="now"/>; while it blends, drawn in <paramref name="brush"/> when given.</summary>
+    internal DotFieldCompositionFrame At(ContinuousInstant now, IImmutableBrush? brush = null)
+    {
         if (From is null) return this with { Now = now };
         // ED-253: the accent's blend, sampled here; once done the frame is the target's and blends no more.
-        var blending = !Complete(BlendStart, now);
         return this with
         {
             Now = now,
-            Brush = new ImmutableSolidColorBrush(Shown(Target, From, BlendStart, now)),
-            From = blending ? From : null,
+            Brush = brush ?? new ImmutableSolidColorBrush(Shown(Target, From, BlendStart, now)),
+            From = BlendingAt(now) ? From : null,
         };
     }
 
     public Point PositionAt(int row, int column) => new(Pitch / 2 + column * Pitch, Size.Height - (Pitch / 2 + row * Pitch));
-    public double OpacityAt(int row, int column)
+    public double OpacityAt(int row, int column) => OpacityAt(row, column, Elapsed, Rows);
+
+    private double OpacityAt(int row, int column, double elapsed, int rows)
     {
         var opacity = Sweeps ? 0 : 0.28;
         if (Animated)
         {
-            var seconds = Elapsed - column * (Sweeps ? SweepColumnDelay : ColumnDelay) - row * (Sweeps ? 0 : RowDelay);
+            var seconds = elapsed - column * (Sweeps ? SweepColumnDelay : ColumnDelay) - row * (Sweeps ? 0 : RowDelay);
             var period = Sweeps ? SweepPeriod : Period;
             if (!Sweeps && seconds >= 0) seconds %= period;
-            opacity = KeyframeOpacity(seconds, period, Sweeps ? 0.4 : 0.35, Sweeps ? 0 : 0.08, Sweeps ? 0.7 : 0.75);
+            opacity = KeyframeOpacity(seconds, period, Sweeps ? SweepPeak : LoopPeak, Sweeps ? 0 : 0.08, Sweeps ? 0.7 : 0.75,
+                Sweeps ? SweepRise : LoopRise, Sweeps ? SweepFall : LoopFall);
         }
-        return opacity * (Sweeps ? 1 : 1.0 - (double)row / Rows);
+        return opacity * (Sweeps ? 1 : 1.0 - (double)row / rows);
     }
 
-    private static double KeyframeOpacity(double seconds, double duration, double peakTime, double start, double peak)
+    // ED-NEW-lean-9: the four curves of the keyframes, made once (each dot of each draw made its own before, 56 B a dot); the same
+    // durations, computed as before (split = duration * peakTime; the fall lasts duration - split).
+    private const double LoopPeak = 0.35;
+    private const double SweepPeak = 0.4;
+    private static readonly Animation LoopRise = Animation.EaseOut(Period * LoopPeak);
+    private static readonly Animation LoopFall = Animation.EaseIn(Period - Period * LoopPeak);
+    private static readonly Animation SweepRise = Animation.EaseOut(SweepPeriod * SweepPeak);
+    private static readonly Animation SweepFall = Animation.EaseIn(SweepPeriod - SweepPeriod * SweepPeak);
+
+    private static double KeyframeOpacity(double seconds, double duration, double peakTime, double start, double peak, Animation rise, Animation fall)
     {
         if (seconds <= 0 || seconds >= duration) return start;
         var split = duration * peakTime;
         return seconds <= split
-            ? start + (peak - start) * Animation.EaseOut(split).Progress(seconds)
-            : peak + (start - peak) * Animation.EaseIn(duration - split).Progress(seconds - split);
+            ? start + (peak - start) * rise.Progress(seconds)
+            : peak + (start - peak) * fall.Progress(seconds - split);
     }
 
-    public void Draw(ImmediateDrawingContext context)
+    public void Draw(ImmediateDrawingContext context) => Draw(context, Now, Brush);
+
+    /// <summary>The field as sampled at <paramref name="now"/>, in <paramref name="brush"/> (ED-NEW-lean-9: no sampled frame made).</summary>
+    internal void Draw(ImmediateDrawingContext context, ContinuousInstant now, IImmutableBrush brush)
     {
         if (Size.Width <= 0 || Size.Height <= 0) return;
-        for (var row = 0; row < Rows; row++)
-            for (var column = 0; column < Columns; column++)
+        var elapsed = ElapsedAt(now);
+        var rows = Rows;
+        var columns = Columns;
+        for (var row = 0; row < rows; row++)
+            for (var column = 0; column < columns; column++)
             {
-                var opacity = OpacityAt(row, column);
+                var opacity = OpacityAt(row, column, elapsed, rows);
                 if (opacity <= 0) continue;
                 var center = PositionAt(row, column);
                 var bounds = new Rect(center.X - DotSize / 2, center.Y - DotSize / 2, DotSize, DotSize);
                 using var alpha = context.PushOpacity(opacity, bounds);
-                context.DrawEllipse(Brush, null, center, DotSize / 2, DotSize / 2);
+                context.DrawEllipse(brush, null, center, DotSize / 2, DotSize / 2);
             }
     }
 }

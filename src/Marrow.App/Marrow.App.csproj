@@ -23,7 +23,12 @@
     <!-- Owner finding F6 (2026-10-08): the installed app felt laggy, first animations stuttered. A published build is
          precompiled (ReadyToRun) so screens, animations and Skia paths do not JIT on first use; TieredPGO stays on. -->
     <PublishReadyToRun>true</PublishReadyToRun>
+    <!-- ED-NEW-lean-22: composite ReadyToRun stays off until the native N4 run shows a boot gain of 10 % or more with no
+         more than 30 % installer growth. N4 publishes the candidate with -p:MarrowReadyToRunComposite=true. -->
+    <PublishReadyToRunComposite Condition="'$(MarrowReadyToRunComposite)' == 'true'">true</PublishReadyToRunComposite>
     <TieredPGO>true</TieredPGO>
+    <!-- ED-NEW-lean-22: the segment heap for native heaps plus the Windows 10/11 supportedOS entry; no DPI settings. -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <!-- OD-0112: icon D Aurora, generated from the locked Canvas source by porting/tools/generate_app_icon_d.py. -->
     <ApplicationIcon>Assets/icon.ico</ApplicationIcon>
     <AssemblyTitle>nth</AssemblyTitle>

@@ -92,7 +92,14 @@ public sealed class ComposerWorkingDotsTests(HeadlessSession headless)
         Assert.Same(first, Dots(control)[0]);
         control.InvalidateArrange();
         control.Arrange(new Rect(0, 0, 100, 60)); // a changed size lays out anew
-        Assert.NotSame(first, Dots(control)[0]);
+        // ED-NEW-lean-9 (hidden grid) replaces Assert.NotSame(first, Dots(control)[0]) here: a new size now moves the dots it keeps,
+        // so "anew" is checked as what is laid out: every dot at the new size's place, fill and opacity, the grid a fresh field of
+        // that size lays out (the first dot moved from the 100-point field's bottom row to the 60-point field's)
+        var fresh = new DotFieldControl(Chrome.AccentNSColor, animated: false, sweeps: false);
+        Lay(fresh, 100, 60);
+        static string Place(Ellipse dot) => $"{Canvas.GetLeft(dot):R},{Canvas.GetTop(dot):R},{dot.Width:R},{dot.Height:R},{dot.Opacity:R},{((Avalonia.Media.ISolidColorBrush)dot.Fill!).Color}";
+        Assert.Equal(Dots(fresh).Select(Place), Dots(control).Select(Place));
+        Assert.Equal(60.0 - 4 - 1, Canvas.GetTop(Dots(control)[0]));
     });
 
     [Fact]
