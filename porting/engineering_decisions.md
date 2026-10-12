@@ -6192,3 +6192,8 @@ ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I1). A misse
 ## ED-NEW-inst-c4c-5: A scan timeout leaves the shell retryable
 
 ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I5). I5 shares the I1 root cause and fix. A healthy read that finishes after the shortened scan wait must allow the following call to answer. C4cShellReadRetryTests guards short and full read timeouts and bounded teardown; the scan forwarding assertions remain unchanged.
+
+
+## ED-NEW-inst-c4c-2: Prove the install create allowance
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I2). Fake-clock tests exercise an exhausted create allowance and AfterInstall passing its actual remaining time while retaining the final uninstaller copy and persisted failure result. Temporary mutations omit the install allowance, remove all seven CreateLocked admission guards, and make CappedCreate claim Created. Each mutation fails alone twice, is restored byte-exact, and the original two facts pass. No production change is needed for this coverage finding.
