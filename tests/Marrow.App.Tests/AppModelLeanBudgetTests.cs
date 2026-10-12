@@ -58,7 +58,7 @@ public sealed class AppModelLeanBudgetTests
     public void A_thread_event_with_500_threads_stays_within_its_byte_budget()
     {
         var bytes = BytesPerThreadEvent(500);
-        Assert.True(bytes <= 377_000, $"a thread event with 500 threads allocates {bytes:F0} B (limit 377,000; 251,544 measured on the unchanged code)");
+        Assert.True(bytes <= 6_200, $"a thread event with 500 threads allocates {bytes:F0} B (limit 6,200; 251,544 before ED-NEW-lean-16, 4,752 after)");
     }
 
     [Fact]
@@ -66,6 +66,16 @@ public sealed class AppModelLeanBudgetTests
     public void A_thread_event_with_50_threads_stays_within_its_byte_budget()
     {
         var bytes = BytesPerThreadEvent(50);
-        Assert.True(bytes <= 39_900, $"a thread event with 50 threads allocates {bytes:F0} B (limit 39,900; 26,616 measured on the unchanged code)");
+        Assert.True(bytes <= 1_500, $"a thread event with 50 threads allocates {bytes:F0} B (limit 1,500; 26,616 before ED-NEW-lean-16, 1,152 after)");
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-lean-16")] // budget: what one more thread in the library adds to a thread event
+    public void A_thread_event_grows_by_no_more_than_the_new_lists_reference_per_thread()
+    {
+        // The event hands Threads a new list (a Swift array value, AppModel.swift:712), one 8-byte reference per thread;
+        // nothing else in it may grow with the library. 499.8 B per thread before ED-NEW-lean-16, 8.0 after.
+        var perThread = (BytesPerThreadEvent(500) - BytesPerThreadEvent(50)) / 450;
+        Assert.True(perThread <= 10.4, $"each thread in the library adds {perThread:F1} B to a thread event (limit 10.4)");
     }
 }
