@@ -108,6 +108,9 @@ public sealed class DesktopShortcutProbe
             if (reads >= ShellLinkKeys.ScanCapLinks || time.GetElapsedTime(started) >= ShellLinkKeys.ScanCapTime)
             {
                 folderCapped = true; // not opened yet; the next probe carries on from the cache
+                // C4c I4, ED-NEW-inst-c4c-4: a cap cannot prove a still-listed cached marker absent.
+                // Keep its old timestamp so the changed file is retried when the next probe has budget.
+                if (cache.Links.TryGetValue(file.Path, out var previous)) next[file.Path] = previous;
                 continue;
             }
             reads++;
