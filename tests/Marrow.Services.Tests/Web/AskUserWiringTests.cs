@@ -167,6 +167,20 @@ public sealed class AskUserWiringTests
     }
 
     [Fact]
+    public void Codex_is_told_to_let_an_nth_ui_call_wait_for_a_person_and_only_that_server()
+    {
+        using var scope = new AskUserScope();
+        var server = MCPProviderConfig.UiServer(Config(ProviderKind.Codex, Chat))!;
+        var connected = JSONValue.FromDictionaryLiteral(("github", JSONValue.FromDictionaryLiteral(("url", "https://example.test/mcp"))));
+        var codex = MCPProviderConfig.CodexServers(connected, null, server)!;
+        Assert.Equal(AskUserTool.ToolTimeoutSeconds, codex["nth-ui"]!["tool_timeout_sec"]!.JSONValueInt);
+        Assert.Equal(86400, AskUserTool.ToolTimeoutSeconds);
+        Assert.Equal(server.Args.ToArray(), codex["nth-ui"]!["args"]!.JSONValueArray!.Select(a => a.JSONValueString!)); // nothing else of the entry changes
+        Assert.Null(codex["github"]!["tool_timeout_sec"]); // the person's own servers keep Codex's limit
+        Assert.Same(connected, MCPProviderConfig.CodexServers(connected, null, null));
+    }
+
+    [Fact]
     public void Every_CLI_shape_carries_the_nth_ui_relay_entry_when_only_ask_user_is_bound()
     {
         Assert.Null(MCPProviderConfig.UiServer(Config(ProviderKind.Codex, Chat)));

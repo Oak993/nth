@@ -193,6 +193,27 @@ public sealed class ThreadRuntimeAskTests
     }
 
     [Fact]
+    public async Task A_model_that_asks_again_after_its_first_call_ended_gets_one_card_not_two()
+    {
+        using var rig = new ThreadRuntimeTurnRig(ProviderKind.Claude);
+        RunningTurn(rig);
+        using var cancel = new CancellationTokenSource();
+        var first = Ask(rig, Pick("first"), cancel.Token);
+        cancel.Cancel();
+        Settle(rig);
+        Assert.Equal(AskOutcomeKind.Detached, (await first).Kind); // a provider time limit ended the call; the card stays
+
+        var second = Ask(rig, Pick("second"));
+        var cards = rig.H.Main.OnMain(() => rig.Runtime.Entries.Select(e => e.Item.TimelineItemContent).OfType<TimelineItem.Content.Ask>().Select(a => a.Value.Id).ToList());
+        Assert.Equal(["second"], cards); // the same questions: the new card took the stale one's place
+        Assert.False(second.IsCompleted);
+
+        var other = Ask(rig, AskUserSchema.Parse(JsonNode.Parse("""{"questions":[{"question":"Something else entirely?"}]}"""), "third").Card!);
+        Assert.Equal(["second", "third"], rig.H.Main.OnMain(() => rig.Runtime.Entries.Select(e => e.Item.TimelineItemContent).OfType<TimelineItem.Content.Ask>().Select(a => a.Value.Id).ToList()));
+        Assert.False(other.IsCompleted);
+    }
+
+    [Fact]
     public async Task A_turn_that_finishes_while_a_call_still_waits_detaches_it_and_keeps_the_card()
     {
         using var rig = new ThreadRuntimeTurnRig(ProviderKind.Claude);

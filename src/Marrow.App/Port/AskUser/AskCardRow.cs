@@ -25,6 +25,7 @@ public sealed class AskCardRow : Decorator
     {
         this.entry = entry;
         this.runtime = runtime;
+        slot.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left; // the slot is as wide as the card on show, at the column's left edge
         Child = slot;
         Refresh(first: true);
         this.Track(() => entry.Item.TimelineItemContent, _ => Refresh(first: false));

@@ -43,6 +43,10 @@ public sealed partial class ThreadRuntime
         var wait = new TaskCompletionSource<AskOutcome>(TaskCreationOptions.RunContinuationsAsynchronously);
         askWaits[card.Id] = wait;
         LiveAskCount = askWaits.Count;
+        // A model whose first call ended early (a provider's own tool time limit) asks the same questions again: the new card takes the stale one's place.
+        foreach (var stale in Entries.Where(entry => entry.Item.TimelineItemContent is TimelineItem.Content.Ask { Value.IsWaiting: true } old
+                     && !askWaits.ContainsKey(old.Value.Id) && SameQuestions(old.Value, card)).ToArray())
+            Remove(stale.Id);
         Append(new TimelineItem(TurnIDForNewRows, new TimelineItem.Content.Ask(card)));
         SaveNow(); // a quit a moment later still finds the question
         App?.ThreadNeedsAttention(ThreadID);
@@ -110,6 +114,10 @@ public sealed partial class ThreadRuntime
         wait.TrySetResult(new AskOutcome(kind, held));
         return true;
     }
+
+    private static bool SameQuestions(AskCard a, AskCard b) =>
+        a.Questions.Count == b.Questions.Count
+        && a.Questions.Zip(b.Questions).All(pair => string.Equals(pair.First.Prompt.Trim(), pair.Second.Prompt.Trim(), StringComparison.OrdinalIgnoreCase));
 
     private TimelineEntry? AskEntry(string cardId) =>
         Entries.FirstOrDefault(entry => entry.Item.TimelineItemContent is TimelineItem.Content.Ask ask && ask.Value.Id == cardId);

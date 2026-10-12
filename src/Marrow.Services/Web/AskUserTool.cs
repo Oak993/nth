@@ -17,6 +17,12 @@ public static class AskUserTool
     /// <summary>The row a CLI provider would draw for this tool ("nth-ui", a middle dot, the tool); the card takes its place, so the chat draws no row for it.</summary>
     public const string ProviderRowTitle = UiMcpServer.ServerName + " · " + Name;
 
+    /// <summary>
+    /// How long a CLI provider is asked to let one call of the nth-ui server run: a question waits for a person (Codex's own limit is 60 s
+    /// unless its config says more; a call that ends early leaves the card waiting, and a late answer starts a new turn).
+    /// </summary>
+    public const long ToolTimeoutSeconds = 24 * 60 * 60;
+
     public static string Description { get; } =
         "Ask the person one to four questions and wait for the answers. nth shows a card in the chat and the turn pauses until they answer, skip or stop. "
         + "Use it only when you cannot go on without a choice or a fact that only they can give and you cannot reasonably decide for them; "

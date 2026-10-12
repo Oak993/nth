@@ -8,6 +8,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Views.Chat;
@@ -27,7 +28,9 @@ internal sealed class AskCardForm : Border
         public AskQuestion Question { get; } = question;
         public List<AskChoicePlate> Plates { get; } = [];
         public TextBox? Field { get; set; }
-        public TextBlock Problem { get; } = TimelineRows.ChatText("", SwiftFont.TextStyle.Subheadline, color: ChromeTokens.Danger);
+        // The words in the primary colour, for contrast; the danger colour marks the mark beside them, so nothing rests on colour alone.
+        public TextBlock Problem { get; } = TimelineRows.ChatText("", SwiftFont.TextStyle.Subheadline, color: ChromeTokens.PrimaryText);
+        public StackPanel ProblemRow { get; } = new() { Orientation = Orientation.Horizontal, Spacing = 6, IsVisible = false };
         public bool Touched { get; set; }
     }
 
@@ -78,6 +81,13 @@ internal sealed class AskCardForm : Border
 
     /// <summary>The card this form asks.</summary>
     public AskCard Card => card;
+
+    // The card is as wide as the column allows up to a paragraph's width, so it keeps one width whatever it holds (nothing jumps as answers are typed).
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var width = Math.Min(double.IsFinite(availableSize.Width) ? availableSize.Width : AskCardRow.CardMaxWidth, AskCardRow.CardMaxWidth);
+        return new Size(width, base.MeasureOverride(new Size(width, availableSize.Height)).Height);
+    }
 
     /// <summary>The Send button (the default action).</summary>
     internal Button SendButton => send;
@@ -146,8 +156,13 @@ internal sealed class AskCardForm : Border
                 column.Children.Add(NumberField(block));
                 break;
         }
+        var warning = SwiftImage.SystemName("exclamationmark.triangle").Font(SwiftFont.System(12)).ForegroundStyle(ChromeTokens.Danger);
+        warning.VerticalAlignment = VerticalAlignment.Center;
+        block.Problem.VerticalAlignment = VerticalAlignment.Center;
         block.Problem.IsVisible = false;
-        column.Children.Add(block.Problem);
+        block.ProblemRow.Children.Add(warning);
+        block.ProblemRow.Children.Add(block.Problem);
+        column.Children.Add(block.ProblemRow);
         return column;
     }
 
@@ -167,11 +182,11 @@ internal sealed class AskCardForm : Border
         if (question.AllowsOther)
         {
             var field = Field(block, AskCardStrings.SomethingElse, multiline: false);
-            field.TextChanged += (_, _) =>
+            OnText(field, () =>
             {
                 if (question.Kind == AskKind.Single && !string.IsNullOrEmpty(field.Text))
                     foreach (var plate in block.Plates) plate.IsSelected = false;
-            };
+            });
             column.Children.Add(field);
         }
         return column;
@@ -200,18 +215,22 @@ internal sealed class AskCardForm : Border
         field.HorizontalAlignment = HorizontalAlignment.Left;
         field.Width = 140;
         if (AskUserSchema.TryNumber(question.Default, CultureInfo.InvariantCulture, out var start)) field.Text = AskUserWords.Shown(start, culture);
-        field.KeyDown += (_, e) =>
+        field.AddHandler(InputElement.KeyDownEvent, (object? _, KeyEventArgs e) =>
         {
             if (e.Key is not (Key.Up or Key.Down) || e.KeyModifiers != KeyModifiers.None) return;
             Nudge(block, e.Key == Key.Up ? 1 : -1);
             e.Handled = true;
-        };
+        }, RoutingStrategies.Tunnel);
 
         var down = Stepper("minus", AskCardStrings.Decrease, () => Nudge(block, -1));
         var up = Stepper("plus", AskCardStrings.Increase, () => Nudge(block, 1));
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center, Children = { field, down, up } };
         if (question.Unit is { Length: > 0 } unit)
-            row.Children.Insert(1, TimelineRows.ChatText(unit, SwiftFont.TextStyle.Callout, color: ChromeTokens.SecondaryText));
+        {
+            var shownUnit = TimelineRows.ChatText(unit, SwiftFont.TextStyle.Callout, color: ChromeTokens.SecondaryText);
+            shownUnit.VerticalAlignment = VerticalAlignment.Center;
+            row.Children.Insert(1, shownUnit);
+        }
         var column = new StackPanel { Spacing = 4, Children = { row } };
         if (AskCardStrings.Range(question, culture) is { Length: > 0 } range)
             column.Children.Add(TimelineRows.ChatText(range, SwiftFont.TextStyle.Subheadline, color: ChromeTokens.SecondaryText));
@@ -260,17 +279,22 @@ internal sealed class AskCardForm : Border
         };
         Marrow.App.Port.ChatDialogControls.TextEditor(field, style: "RoundedBorder");
         AutomationProperties.SetName(field, question.Prompt);
-        field.TextChanged += (_, _) => { block.Touched = true; Refresh(); };
-        field.KeyDown += (_, e) =>
+        OnText(field, () => { block.Touched = true; Refresh(); });
+        // Tunnelled, so the field's own handling of Return (a new line) does not get there first.
+        field.AddHandler(InputElement.KeyDownEvent, (object? _, KeyEventArgs e) =>
         {
             if (e.Key != Key.Enter) return;
             if (multiline && e.KeyModifiers != KeyModifiers.Control) return; // a plain Return writes a new line; Ctrl+Return sends
             e.Handled = true;
             Send();
-        };
+        }, RoutingStrategies.Tunnel);
         block.Field = field;
         return field;
     }
+
+    // The change of a field's text as it happens (the TextChanged event follows the dispatcher, a beat late).
+    private static void OnText(TextBox field, Action changed) =>
+        field.PropertyChanged += (_, e) => { if (e.Property == TextBox.TextProperty) changed(); };
 
     private Control Footer()
     {
@@ -315,6 +339,7 @@ internal sealed class AskCardForm : Border
             var shown = problem is not null && block.Touched && (typed || block.Plates.Any(plate => plate.IsSelected));
             block.Problem.Text = shown ? problem! : "";
             block.Problem.IsVisible = shown;
+            block.ProblemRow.IsVisible = shown;
         }
         send.IsEnabled = check.IsValid && !closing;
         hint.Text = check.IsValid ? "" : AskCardStrings.StillToAnswer(check.Problems.Count);
