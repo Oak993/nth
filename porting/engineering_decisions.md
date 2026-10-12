@@ -6224,3 +6224,8 @@ Branch claude/release-integration, 2026-10-10 (integrates Ignis part A, points s
 ## ED-NEW-dextra-cx-1
 
 ENGINEERING DECISION. Owner accepted C6-F1 (2026-10-12); DESIGN.md 5.4 and 15.3, ED-NEW-dextra-as3a-2. ForwardThread preserves the stored hidden flag and also stores the source's effective FeedChatFacts.Hidden, including the bounded parent walk, on the new continuation. This is required because a continuation carries the source's words without retaining its ParentThreadID. Valid Assistant work keeps its existing exemption. Filtering remains after enqueue (ED-NEW-dextra-as2-6). Regression: DextraC6F1Tests.Continuation_of_an_inherited_hidden_head_stays_hidden; original repro failed alone twice at 37fe3e03f (codex-C6 logs).
+
+
+## ED-NEW-dextra-cx-2
+
+ENGINEERING DECISION. Owner accepted C6-F2 (2026-10-12); DESIGN.md 5.4 and ED-NEW-dextra-as3a-1 item 4. Guid.Empty remains the damaged-key sentinel in storage and mission/cap identity. FeedChatFacts grants the hiding exemption only when at least one mark exists and neither present mark is Guid.Empty. A damaged mark beside a valid mark also fails closed. Existing valid mission/Assistant work and provider filtering remain unchanged. Filtering stays after enqueue (ED-NEW-dextra-as2-6). Regression: DextraC6F2Tests; original malformed-mission repro failed alone twice at 37fe3e03f (codex-C6 logs); additional cases cover both fields, malformed JSON shapes and explicit empty UUIDs.

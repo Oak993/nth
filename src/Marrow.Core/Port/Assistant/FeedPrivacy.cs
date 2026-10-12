@@ -19,7 +19,7 @@ public sealed record FeedChatFacts(
     public const int MaxAncestors = 16;
 
     /// <summary>
-    /// The facts of a chat. Rules of ED-NEW-dextra-as3a-1 item 5: a chat that carries a MissionID or an AssistantID is
+    /// The facts of a chat. Rules of ED-NEW-dextra-as3a-1 item 5: a chat with valid MissionID/AssistantID marks is
     /// the Assistant's own work and is readable whatever HiddenFromAssistant says ("mission chats cannot be hidden");
     /// any other chat is hidden when its own mark is set or when an ancestor in its ParentThreadID chain is hidden, so
     /// a chat hidden after its heads were made hides them as well. A chat on the Local provider keeps its words on
@@ -33,7 +33,11 @@ public sealed record FeedChatFacts(
             isPrivateAccount?.Invoke(thread) == true);
     }
 
-    private static bool IsAssistantWork(ChatThread thread) => thread.MissionID is not null || thread.AssistantID is not null;
+    // Guid.Empty is the decoder's damaged-key sentinel, never proof that the Assistant owns a chat.
+    // Any damaged mark fails closed, even beside a valid mark (ED-NEW-dextra-cx-2).
+    private static bool IsAssistantWork(ChatThread thread) =>
+        thread.MissionID != Guid.Empty && thread.AssistantID != Guid.Empty
+        && (thread.MissionID is not null || thread.AssistantID is not null);
 
     private static bool AncestorHidden(ChatThread thread, Func<Guid, ChatThread?> lookup)
     {
