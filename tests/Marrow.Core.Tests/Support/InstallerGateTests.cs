@@ -375,9 +375,12 @@ public sealed class InstallerGateTests
         Assert.Contains("<Compile Include=\"..\\Marrow.Core\\Support\\InstallerGate.cs\"", project, StringComparison.Ordinal);
         Assert.DoesNotContain("<ProjectReference", project, StringComparison.Ordinal);
         Assert.Contains("LogicalName=\"VelopackSetup.exe\"", project, StringComparison.Ordinal);
+        // nth installer PLAN.md 3 (unit U1): the gate moved beside the window unchanged; --silent and --help still go to it
         var program = File.ReadAllText(Path.Combine(repository.FullName, "src", "Marrow.Setup", "Program.cs"));
-        Assert.Contains("private const string PayloadName = \"VelopackSetup.exe\";", program, StringComparison.Ordinal);
-        Assert.Contains("return InstallerGate.Run(host, Identity(), args);", program, StringComparison.Ordinal);
+        Assert.Contains("if (InstallerGate.IsSilent(args) || InstallerGate.IsHelp(args)) return LegacyGateHost.Run(args);", program, StringComparison.Ordinal);
+        var gate = File.ReadAllText(Path.Combine(repository.FullName, "src", "Marrow.Setup", "Port", "LegacyGateHost.cs"));
+        Assert.Contains("private const string PayloadName = \"VelopackSetup.exe\";", gate, StringComparison.Ordinal);
+        Assert.Contains("return InstallerGate.Run(host, Identity(), args);", gate, StringComparison.Ordinal);
     }
 
     private static InstallerIdentity Identity(string root, string version) =>
