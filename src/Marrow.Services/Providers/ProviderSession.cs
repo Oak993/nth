@@ -84,6 +84,9 @@ public sealed record SessionConfiguration
     // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-3): set for every chat of a mission. The session launches in the ask mode
     // with none of the owner's allow rules, hooks or bypasses, and only the MCP servers the seal lists. Null: as before.
     public Marrow.Services.Assistant.SealedLaunch? Sealed { get; init; }
+    // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-5): a mission agent's kill-on-close job. The provider's process and every
+    // process it or nth starts for this chat run in it, so Stop ends the whole tree. Null: as before.
+    public Marrow.Core.Port.JobObject? AgentJob { get; init; }
 }
 
 // :50-58. One exchange of a conversation, for replaying it into a session that starts over.

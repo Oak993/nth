@@ -132,7 +132,8 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
                 c.OnRequest = HandleRequest;            // :74
                 c.OnClose = HandleClose;                // :75
             },
-            skills is null ? null : new SkillRoot(skills.ExtraRoot, ListFirst: true));
+            skills is null ? null : new SkillRoot(skills.ExtraRoot, ListFirst: true),
+            job: configuration.AgentJob); // PORT-ONLY (AS-5): a mission agent runs in its job
         connection = connected; // :77
         var started = false;    // :78
         try
@@ -358,7 +359,8 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
                 c.OnClose = HandleClose;
             },
             skills is null ? null : new SkillRoot(skills.ExtraRoot, ListFirst: true),
-            initialized: result => initializeResult = result);
+            initialized: result => initializeResult = result,
+            job: configuration.AgentJob); // PORT-ONLY (AS-5)
         connection = connected;
         var started = false;
         try
@@ -1134,9 +1136,10 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
         IReadOnlyDictionary<string, string> environment,
         Action<JSONRPCConnection> configure,
         SkillRoot? skillRoot = null,
-        Action<JSONValue>? initialized = null)
+        Action<JSONValue>? initialized = null,
+        Marrow.Core.Port.JobObject? job = null)
     {
-        var process = new StdioProcess(executable.Path, AppServerArguments, directory.Path, CodexChildEnvironment.Apply(environment)); // :511. PORT-ONLY (SK-11b, DL-11): the PATH rule, nothing else.
+        var process = new StdioProcess(executable.Path, AppServerArguments, directory.Path, CodexChildEnvironment.Apply(environment)) { Job = job }; // :511. PORT-ONLY (SK-11b, DL-11): the PATH rule, nothing else. PORT-ONLY (AS-5): a mission agent's job.
         var connection = new JSONRPCConnection(process, sendsVersion: false); // :512
         configure(connection); // :513
         connection.Start(); // :514

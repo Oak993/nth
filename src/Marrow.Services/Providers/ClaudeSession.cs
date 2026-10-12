@@ -326,6 +326,7 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         }
 
         var process = ClaudeProviderRuntime.Process.Current(executable.Path, arguments, configuration.WorkingDirectory.Path, environment); // :136-141
+        if (configuration.AgentJob is { } agentJob) process.JoinJob(agentJob); // PORT-ONLY (AS-5): a mission agent runs in its job
         this.process = process;
         process.Start(); // :143
         skillReadersExited = process.WaitForExit(); // RR-15: EOF is not exit

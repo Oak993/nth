@@ -288,6 +288,13 @@ public sealed class ProcessLauncher : IProcessControl
     /// </summary>
     public bool UsesJobObject { get; set; } = true;
 
+    /// <summary>
+    /// PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-5): a mission agent's own kill-on-close job. The child is put in it at
+    /// CreateProcess time, before its own job (which then nests inside it), so every process the child starts is in it
+    /// too. A closed or terminated job refuses the launch: a mission agent never runs outside its job.
+    /// </summary>
+    public JobObject? OuterJob { get; set; }
+
     /// <summary>Set: the child runs on a pseudoconsole of this size, fed by StandardInput and read on StandardOutput (P5).</summary>
     public PseudoConsoleSize? PseudoConsole { get; set; }
 
@@ -582,6 +589,8 @@ public sealed class ProcessLauncher : IProcessControl
         SafeWaitHandle? newJob = null;
         IntPtr newPseudoConsole = IntPtr.Zero;
         var started = false;
+        var outer = OuterJob;
+        var outerReferenced = false;
         try
         {
             var startup = new ProcessNative.StartupInfoEx();
@@ -589,7 +598,7 @@ public sealed class ProcessLauncher : IProcessControl
             startup.StartupInfo.dwFlags = ProcessNative.STARTF_USESTDHANDLES;
             var inheritHandles = false;
             var flags = ProcessNative.EXTENDED_STARTUPINFO_PRESENT | ProcessNative.CREATE_UNICODE_ENVIRONMENT;
-            var attributeCount = 1 + (UsesJobObject ? 1 : 0);
+            var attributeCount = 1 + (UsesJobObject || outer is not null ? 1 : 0);
             var inherited = new List<IntPtr>();
             if (size is { } console)
             {
@@ -652,12 +661,22 @@ public sealed class ProcessLauncher : IProcessControl
                 for (var i = 0; i < inherited.Count; i++) Marshal.WriteIntPtr(handleArray, i * IntPtr.Size, inherited[i]);
                 ProcessNative.Update(attributeList, ProcessNative.PROC_THREAD_ATTRIBUTE_HANDLE_LIST, handleArray, IntPtr.Size * inherited.Count);
             }
-            if (newJob is not null)
+            if (outer is not null)
             {
-                // The array of job handles must stay valid until CreateProcessW returns (P5).
-                jobArray = Marshal.AllocHGlobal(IntPtr.Size);
-                Marshal.WriteIntPtr(jobArray, newJob.DangerousGetHandle());
-                ProcessNative.Update(attributeList, ProcessNative.PROC_THREAD_ATTRIBUTE_JOB_LIST, jobArray, IntPtr.Size);
+                // PORT-ONLY (AS-5): the agent's job, held for the launch; a job that ended refuses it (fail closed).
+                if (outer.IsClosed) throw new InvalidOperationException("The agent's job has ended; nothing more starts in it.");
+                outer.Handle.DangerousAddRef(ref outerReferenced);
+            }
+            if (newJob is not null || outer is not null)
+            {
+                // The array of job handles must stay valid until CreateProcessW returns (P5). The agent's job comes first,
+                // so the child's own (empty) job nests inside it.
+                var jobs = new List<IntPtr>(2);
+                if (outer is not null) jobs.Add(outer.Handle.DangerousGetHandle());
+                if (newJob is not null) jobs.Add(newJob.DangerousGetHandle());
+                jobArray = Marshal.AllocHGlobal(IntPtr.Size * jobs.Count);
+                for (var i = 0; i < jobs.Count; i++) Marshal.WriteIntPtr(jobArray, i * IntPtr.Size, jobs[i]);
+                ProcessNative.Update(attributeList, ProcessNative.PROC_THREAD_ATTRIBUTE_JOB_LIST, jobArray, IntPtr.Size * jobs.Count);
             }
             startup.lpAttributeList = attributeList;
 
@@ -679,6 +698,7 @@ public sealed class ProcessLauncher : IProcessControl
             if (attributeList != IntPtr.Zero) Marshal.FreeHGlobal(attributeList);
             if (handleArray != IntPtr.Zero) Marshal.FreeHGlobal(handleArray);
             if (jobArray != IntPtr.Zero) Marshal.FreeHGlobal(jobArray);
+            if (outerReferenced) outer!.Handle.DangerousRelease();
             if (environmentBlock != IntPtr.Zero) Marshal.FreeHGlobal(environmentBlock);
             foreach (var handle in toClose) handle.Dispose();
             if (!started)

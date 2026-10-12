@@ -14,4 +14,5 @@ internal sealed class ClaudeProcess(string executable, IReadOnlyList<string> arg
     public void Send(JSONValue message) => process.Send(message);
     public void Terminate() => process.Terminate();
     public Task<int> WaitForExit() => process.WaitForExit();
+    public void JoinJob(JobObject job) => process.Job = job;
 }

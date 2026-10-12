@@ -69,22 +69,25 @@ public static class Shell
     /// the boundary (R-ISO-2).
     /// </summary>
     public static Task<ShellResult> Run(string executable, IReadOnlyList<string> arguments, string? @in = null,
-        IReadOnlyDictionary<string, string>? environment = null, byte[]? input = null, double timeout = 120, int? outputLimit = null)
+        IReadOnlyDictionary<string, string>? environment = null, byte[]? input = null, double timeout = 120, int? outputLimit = null,
+        JobObject? job = null)
     {
         // PORT-ONLY (ED-207): a test's observer sees the call as its site made it; the app installs none.
         ShellObserver.Current?.Invoke(new ShellInvocation(executable, [.. arguments], @in, environment, input, timeout, outputLimit));
         if (RunForTesting.Current is { } offline) return offline(new ShellInvocation(executable, [.. arguments], @in, environment, input, timeout, outputLimit));
-        return Task.Run(() => RunBody(executable, arguments, @in, environment, input, timeout, outputLimit));
+        return Task.Run(() => RunBody(executable, arguments, @in, environment, input, timeout, outputLimit, job));
     }
 
     private static async Task<ShellResult> RunBody(string executable, IReadOnlyList<string> arguments, string? directory,
-        IReadOnlyDictionary<string, string>? environment, byte[]? input, double timeout, int? outputLimit)
+        IReadOnlyDictionary<string, string>? environment, byte[]? input, double timeout, int? outputLimit, JobObject? job)
     {
-        // :45-49. The child gets its own job and process group (ED-047 (a)).
+        // :45-49. The child gets its own job and process group (ED-047 (a)). PORT-ONLY (Dextra AS-5): a mission agent's
+        // command also runs in that agent's kill-on-close job (ED-NEW-dextra-as5-5).
         var process = new ProcessLauncher
         {
             ExecutableURL = executable,
             Arguments = arguments,
+            OuterJob = job,
         };
         if (directory is { } given) process.CurrentDirectoryURL = given;
         process.Environment = environment ?? LoginEnvironment.Current;

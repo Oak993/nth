@@ -2063,7 +2063,7 @@ public class OpenAICompatibleSession : ProviderSession
         if (trimmed.Length == 0) return ("Error: a command is required.", 1); // :1154
         var shell = WindowsShellForCommands.Resolve(); // :1155 DEVIATION OD-0008 C5
         async Task<ShellResult?> Attempt() => await Shell.Run(
-            shell, ["-NoProfile", "-NonInteractive", "-Command", trimmed], WorkingDirectory, ProviderChildEnvironment.Apply(Configuration.AccountId is not null ? Configuration.Environment : LoginEnvironment.Current), timeout: 120, outputLimit: 24_000); // :1157 DEVIATION ED-309 (SK-11f): addons\bin on PATH
+            shell, ["-NoProfile", "-NonInteractive", "-Command", trimmed], WorkingDirectory, ProviderChildEnvironment.Apply(Configuration.AccountId is not null ? Configuration.Environment : LoginEnvironment.Current), timeout: 120, outputLimit: 24_000, job: Configuration.AgentJob); // :1157 DEVIATION ED-309 (SK-11f): addons\bin on PATH. PORT-ONLY (AS-5): a mission agent's job
         var result = await SwiftTry.OptionalAsync(Attempt);
         if (result is null) return ("The command could not start.", 1); // :1158-1159
         var output = (result.Output + (result.ErrorOutput.Length == 0 ? "" : "\n" + result.ErrorOutput)).Trimmed(); // :1160

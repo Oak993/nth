@@ -51,6 +51,16 @@ public sealed class StdioProcess
     // MCPLiveProcesses (A15) can track this child and KillTree() it at quit; never used by Terminate() below.
     public IProcessControl ProcessControl => process;
 
+    /// <summary>
+    /// PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-5): a mission agent's kill-on-close job; the process and everything it
+    /// starts run in it. Set before Start.
+    /// </summary>
+    public JobObject? Job
+    {
+        get => process.OuterJob;
+        set => process.OuterJob = value;
+    }
+
     // :50-53 (B3)
     public string ErrorTail
     {
