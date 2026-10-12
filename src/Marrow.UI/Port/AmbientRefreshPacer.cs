@@ -52,7 +52,7 @@ internal sealed class AmbientRefreshPacer
             if (!started || now < last || now - last > ResetSeconds || !ReferenceEquals(source, readFrom) || now - periodRead >= 1 && PeriodChanged(source))
             {
                 Start(source, now);
-                return lastGo = true;
+                return Go();
             }
             last = now;
             if (period <= 0)
@@ -60,7 +60,7 @@ internal sealed class AmbientRefreshPacer
                 // no refresh period known: a 1/60 s grid of due times, a millisecond early at most (ED-117 (2), ED-232)
                 if (now + .001 < due) return lastGo = false;
                 due = now - due >= 2 * AmbientMotionClock.FrameSeconds ? now + AmbientMotionClock.FrameSeconds : due + AmbientMotionClock.FrameSeconds;
-                return lastGo = true;
+                return Go();
             }
             var n = (long)Math.Round((now - anchor) / period);
             if (n <= count)
@@ -79,7 +79,7 @@ internal sealed class AmbientRefreshPacer
             var at = whole is { } w ? n / w : (long)Math.Floor(n / perSlot + 1e-9);
             if (at <= slot) return lastGo = false;
             slot = at;
-            return lastGo = true;
+            return Go();
         }
     }
 
@@ -103,5 +103,30 @@ internal sealed class AmbientRefreshPacer
         anchor = last = periodRead = now;
         due = now + AmbientMotionClock.FrameSeconds;
         count = slot = 0;
+        beats = 0;
+    }
+
+    // ---- Calculi WU4 (ED-NEW-calculi-wu4-1): the 30 Hz divisor. Kept apart so the 60 Hz pacing above reads as before. ----
+
+    private long beats; // the 60 Hz slots of the current run, the first one being 1
+
+    private bool Go()
+    {
+        beats++;
+        return lastGo = true;
+    }
+
+    /// <summary>
+    /// Whether the refresh tick is a slot of a client that runs at 60 / <paramref name="every"/> Hz (2: 30 Hz): it takes every
+    /// <paramref name="every"/>-th 60 Hz slot of the run, the run's first slot included, and advances at that slot's time. Every
+    /// such client of one compositor gets the same slots (one shared parity), and asking still keeps the shared count.
+    /// </summary>
+    internal bool Beat(long tick, double now, int every)
+    {
+        lock (gate)
+        {
+            if (!Beat(tick, now)) return false;
+            return every <= 1 || (beats - 1) % every == 0;
+        }
     }
 }
