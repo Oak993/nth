@@ -24,8 +24,8 @@ public sealed class WorkingTreeWatchNoteBudgetTests
         var (watch, root, _) = Watch(folder);
         var paths = BuildOutput(root);
         var bytes = BytesPerEvent(watch, paths);
-        // Before the fix (0a946c558, Debug): 4,960.7 B per event. Limit ~1.5x of that.
-        Assert.True(bytes <= 7440, $"{bytes.ToString("F1", CultureInfo.InvariantCulture)} B per build-output event");
+        // Before the fix (0a946c558, Debug): 4,960.7 B per event (limit then 7440). After the fix: 52.5 B; limit ~1.3x.
+        Assert.True(bytes <= 70, $"{bytes.ToString("F1", CultureInfo.InvariantCulture)} B per build-output event");
     }
 
     [Fact]
@@ -36,8 +36,9 @@ public sealed class WorkingTreeWatchNoteBudgetTests
         var (watch, _, gitRoot) = Watch(folder);
         var paths = GitInternal(gitRoot);
         var bytes = BytesPerEvent(watch, paths);
-        // Before the fix (0a946c558, Debug): 2,862.2 B per event. Limit ~1.5x of that.
-        Assert.True(bytes <= 4290, $"{bytes.ToString("F1", CultureInfo.InvariantCulture)} B per git-internal event");
+        // Before the fix (0a946c558, Debug): 2,862.2 B per event (limit then 4290). After the fix: 0.1 B (the batch's own
+        // bookkeeping spread over its 300 paths); limit 0.5, target 0.
+        Assert.True(bytes <= 0.5, $"{bytes.ToString("F1", CultureInfo.InvariantCulture)} B per git-internal event");
     }
 
     [Fact]
@@ -67,6 +68,40 @@ public sealed class WorkingTreeWatchNoteBudgetTests
                 Assert.Null(watch.ChangedPaths);
             }
         }
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-lean-18")]
+    public void The_stream_drops_only_names_the_pre_lean_note_passes_over_without_effect()
+    {
+        using var folder = new ScratchFolder();
+        var (watch, root, gitRoot) = Watch(folder);
+        var skips = typeof(WorkingTreeWatch).GetMethod("SkipsName", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .CreateDelegate<Func<string, string?, bool>>(watch);
+        var gitTail = gitRoot[(root.Length + 1)..];
+        var names = Pool(root, gitRoot, folder.Root)
+            .Where(path => path.StartsWith(root + "\\", StringComparison.Ordinal) && path.Length > root.Length + 1)
+            .Select(path => path[(root.Length + 1)..])
+            .Concat([gitTail, gitTail + "\\", gitTail + "\\a", gitTail.ToUpperInvariant() + "\\objects\\x", gitTail + "\\droppy-code-sync-9",
+                gitTail + "\\DROPPY-code-SYNC-9", gitTail + "\\droppy-code-sync-", gitTail + "/a", gitTail + "\\é", "é" + gitTail + "\\a"])
+            .ToList();
+        var dropped = 0;
+        foreach (var name in names)
+        {
+            if (!skips(root, name)) continue;
+            dropped++;
+            var oracle = new WorkingTreeNoteOracle(root, gitRoot);
+            oracle.NoteBatch([root + "\\" + name], false);
+            Assert.True(oracle.Generation == 1 && oracle.CookieSeen == 0 && oracle.Changed is { Count: 0 }, name);
+        }
+        Assert.True(skips(root, gitTail + "\\objects\\ab\\cd"));
+        Assert.True(skips(root, gitTail.ToUpperInvariant() + "\\HEAD"));
+        Assert.False(skips(root, gitTail + "\\droppy-code-sync-4"));
+        Assert.False(skips(root, gitTail + "x\\a"));
+        Assert.False(skips(root, gitTail));
+        Assert.False(skips(root, null));
+        Assert.False(skips(new string(root.AsSpan()), gitTail + "\\objects\\ab\\cd"));
+        Assert.True(dropped >= 5, $"{dropped} names dropped");
     }
 
     private static (WorkingTreeWatch Watch, string Root, string GitRoot) Watch(ScratchFolder folder)

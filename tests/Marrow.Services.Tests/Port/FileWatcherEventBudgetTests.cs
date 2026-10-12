@@ -35,8 +35,9 @@ public sealed class FileWatcherEventBudgetTests
             events.Add((created, new FileSystemEventArgs(WatcherChangeTypes.Created, root, "node_modules\\package" + (i % 5).ToString(CultureInfo.InvariantCulture) + "\\lib\\file" + n + ".js")));
         }
         var bytes = BytesPerEvent(events);
-        // Before the fix (0a946c558, Debug): 558.2 B per event. Limit ~1.5x of that.
-        Assert.True(bytes <= 840, $"{bytes.ToString("F1", CultureInfo.InvariantCulture)} B per build-output event");
+        // Before the fix (0a946c558, Debug): 558.2 B per event (limit then 840). After the fix: 418.8 B, mostly
+        // the delivered path itself; limit ~1.3x.
+        Assert.True(bytes <= 545, $"{bytes.ToString("F1", CultureInfo.InvariantCulture)} B per build-output event");
     }
 
     [Fact]
@@ -63,8 +64,47 @@ public sealed class FileWatcherEventBudgetTests
                 : (changed, new FileSystemEventArgs(WatcherChangeTypes.Changed, root, name)));
         }
         var bytes = BytesPerEvent(events);
-        // Before the fix (0a946c558, Debug): 590.5 B per event. Limit ~1.5x of that.
-        Assert.True(bytes <= 890, $"{bytes.ToString("F1", CultureInfo.InvariantCulture)} B per git-internal event");
+        // Before the fix (0a946c558, Debug): 590.5 B per event (limit then 890). After the fix: 0.0 B (git's own
+        // writes are dropped before the path is joined); limit 0.5, target 0.
+        Assert.True(bytes <= 0.5, $"{bytes.ToString("F1", CultureInfo.InvariantCulture)} B per git-internal event");
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-lean-18")]
+    public void The_watch_ends_where_the_pre_lean_note_of_every_raised_path_ends()
+    {
+        // Same events delivered: whatever the stream now drops before joining, the watch's generation, cookie and
+        // changed folders come out as the pre-lean NoteBatch gives for every path raised, dropped or not.
+        using var folder = new ScratchFolder();
+        var (watcher, root, gitTail) = Watcher(folder);
+        var watch = WorkingTreeWatch.Shared(folder.Root, folder.Child(".git"))!;
+        var gitRoot = root + "\\" + gitTail;
+        var git = gitTail + "\\";
+        var created = Raiser(watcher, "OnCreated");
+        var changed = Raiser(watcher, "OnChanged");
+        var deleted = Raiser(watcher, "OnDeleted");
+        var names = new[]
+        {
+            git + "objects\\ab\\cdef", git + "index.lock", "src\\a.cs", git + "droppy-code-sync-41", "obj\\Debug\\x.cs",
+            git.ToUpperInvariant() + "HEAD", "node_modules\\p\\i.js", git + "refs\\heads\\main", git + "DROPPY-CODE-SYNC-42",
+            "bin\\Debug\\y.dll", git + "logs\\HEAD",
+        };
+        var oracle = new WorkingTreeNoteOracle(root, gitRoot);
+        var startGeneration = watch.Generation;
+        var raises = new[] { created, changed, deleted };
+        for (var i = 0; i < names.Length; i++)
+        {
+            var kind = i % 3 == 0 ? WatcherChangeTypes.Created : i % 3 == 1 ? WatcherChangeTypes.Changed : WatcherChangeTypes.Deleted;
+            raises[i % 3](new FileSystemEventArgs(kind, root, names[i]));
+            oracle.NoteBatch([root + "\\" + names[i]], false);
+        }
+        var expected = oracle.Changed!.Order(StringComparer.Ordinal).ToArray();
+        // Delivery runs on the watch's own queue; wait for it, bounded, on the state itself.
+        Assert.True(SpinWait.SpinUntil(() => watch.CookieSeen == oracle.CookieSeen &&
+            watch.ChangedPaths is { } paths && paths.SequenceEqual(expected), TimeSpan.FromSeconds(30)));
+        Assert.Equal(oracle.CookieSeen, watch.CookieSeen);
+        Assert.Equal(expected, watch.ChangedPaths);
+        Assert.InRange(watch.Generation - startGeneration, (ulong)1, oracle.Generation - 1);
     }
 
     private static (FileSystemWatcher Watcher, string Root, string GitTail) Watcher(ScratchFolder folder)

@@ -54,9 +54,16 @@ public sealed class FileWatcher
     /// Answers null where the stream could not be made or started (:144-146, :148-154) or the directory does not
     /// exist (:94-95), so no watch is kept. Each batch runs as one <c>queue.Async</c> item, FIFO, outside any Swift
     /// task (ED-116, R-GCD-1).
+    /// <para>
+    /// ED-NEW-lean-18: <paramref name="skip"/>, when given, is asked first with the root and the name Windows reported;
+    /// an event whose every path it answers true is dropped before the path is joined or the file system is asked
+    /// anything. A caller passes only names its handler would ignore without effect (WorkingTreeWatch: git's own
+    /// writes), so what the handler does is unchanged. Errors are never skipped.
+    /// </para>
     /// </summary>
     // WorkingTreeWatch.swift:139-155
-    public static FileWatcher? WatchTree(IReadOnlyList<string> roots, SerialQueue queue, Action<FileWatcherBatch> onEvents, int bufferSize = 65536)
+    public static FileWatcher? WatchTree(IReadOnlyList<string> roots, SerialQueue queue, Action<FileWatcherBatch> onEvents, int bufferSize = 65536,
+        Func<string, string?, bool>? skip = null)
     {
         // :144-146: FSEventStreamCreate over no path makes no stream, and the guard returns.
         if (roots.Count == 0) return null;
@@ -87,20 +94,33 @@ public sealed class FileWatcher
                 var root = roots[i];
                 var watcher = watchers[i];
                 // :172-176 the callback's paths, each the changed entry's own path (:142 FileEvents).
-                watcher.Created += (_, e) => tree.Note([Join(root, e.Name)], lost: false);
-                watcher.Deleted += (_, e) => tree.Note([Join(root, e.Name)], lost: false);
+                watcher.Created += (_, e) =>
+                {
+                    if (skip?.Invoke(root, e.Name) == true) return;
+                    tree.Note(Join(root, e.Name));
+                };
+                watcher.Deleted += (_, e) =>
+                {
+                    if (skip?.Invoke(root, e.Name) == true) return;
+                    tree.Note(Join(root, e.Name));
+                };
                 // ED-166 (oracle O-56): ReadDirectoryChangesW reports a directory as Changed (its last write) whenever
                 // an entry inside it is created or deleted; FSEvents file events report only the entries (:142), and
                 // the cookie inside the git directory (:195-196) relies on that. A Changed event whose path is an
                 // existing directory is dropped; the directory's own create, delete and rename still arrive.
                 watcher.Changed += (_, e) =>
                 {
+                    if (skip?.Invoke(root, e.Name) == true) return;
                     var path = Join(root, e.Name);
                     if (Directory.Exists(path)) return;
-                    tree.Note([path], lost: false);
+                    tree.Note(path);
                 };
                 // FSEvents reports ItemRenamed on both the old and the new path.
-                watcher.Renamed += (_, e) => tree.Note([Join(root, e.OldName), Join(root, e.Name)], lost: false);
+                watcher.Renamed += (_, e) =>
+                {
+                    if (skip is not null && skip(root, e.OldName) && skip(root, e.Name)) return;
+                    tree.Note([Join(root, e.OldName), Join(root, e.Name)], lost: false);
+                };
                 // :180-189 the loss flags, and ED-114 (a): an overflow (InternalBufferOverflowException, P8) and every
                 // other Error mean everything may have changed.
                 watcher.Error += (_, _) => tree.Note([], lost: true);
@@ -212,20 +232,40 @@ public sealed class FileWatcher
     /// </summary>
     private sealed class TreeDelivery(FileWatcher owner, SerialQueue queue, Action<FileWatcherBatch> onEvents, ExecutionContext? context)
     {
-        private readonly Mutex<Pending> pending = new(new Pending { Paths = [] });
+        // ED-NEW-lean-18: a plain lock over the pending batch, so noting a path captures nothing (Mutex<T>.WithLock
+        // takes a closure, one allocation per event).
+        private readonly Lock gate = new();
+        private List<string> paths = [];
+        private bool everything;
+        private bool scheduled;
 
-        // WorkingTreeWatch.swift:172-176 callback, on a FileSystemWatcher thread.
-        public void Note(string[] paths, bool lost)
+        // ED-NEW-lean-18: one path, with no array around it.
+        public void Note(string path)
         {
             if (owner.IsCancelled) return;
-            var schedule = pending.WithLock((ref Pending p) =>
+            bool schedule;
+            lock (gate)
             {
-                p.Paths.AddRange(paths);
-                if (lost) p.Everything = true;
-                if (p.Scheduled) return false;
-                p.Scheduled = true;
-                return true;
-            });
+                paths.Add(path);
+                schedule = !scheduled;
+                scheduled = true;
+            }
+            // :147 FSEventStreamSetDispatchQueue(stream, queue): one queue.Async item per batch (ED-116).
+            if (schedule) RunUnder(context, () => queue.Async(Deliver));
+        }
+
+        // WorkingTreeWatch.swift:172-176 callback, on a FileSystemWatcher thread.
+        public void Note(string[] noted, bool lost)
+        {
+            if (owner.IsCancelled) return;
+            bool schedule;
+            lock (gate)
+            {
+                paths.AddRange(noted);
+                if (lost) everything = true;
+                schedule = !scheduled;
+                scheduled = true;
+            }
             // :147 FSEventStreamSetDispatchQueue(stream, queue): one queue.Async item per batch (ED-116).
             if (schedule) RunUnder(context, () => queue.Async(Deliver));
         }
@@ -233,25 +273,20 @@ public sealed class FileWatcher
         // WorkingTreeWatch.swift:179-226 note(paths:flags:) receives the batch.
         private void Deliver()
         {
-            var (paths, everything) = pending.WithLock((ref Pending p) =>
+            List<string> taken;
+            bool all;
+            lock (gate)
             {
-                var taken = (p.Paths, p.Everything);
-                p.Paths = [];
-                p.Everything = false;
-                p.Scheduled = false;
-                return taken;
-            });
+                taken = paths;
+                all = everything;
+                paths = [];
+                everything = false;
+                scheduled = false;
+            }
             if (owner.IsCancelled) return;
             // FSEvents never calls back with no event.
-            if (paths.Count == 0 && !everything) return;
-            onEvents(new FileWatcherBatch(paths, everything));
-        }
-
-        private struct Pending
-        {
-            public List<string> Paths;
-            public bool Everything;
-            public bool Scheduled;
+            if (taken.Count == 0 && !all) return;
+            onEvents(new FileWatcherBatch(taken, all));
         }
     }
 
