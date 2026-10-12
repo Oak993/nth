@@ -209,6 +209,7 @@ public sealed class WebSurface : IDisposable
         {
             if (view.Liveness == WebLiveness.Live && view.IsShown && view.IsLiveVisible && IsFocused(view.WindowId)
                 && view.Engine is { IsAttached: true, IsSuspended: false } && !view.IsProbing && view.Failure is null
+                && !view.IsScriptHeldForUser // W8b: a page inside its own dialog waits on the user, not hung
                 && (view.LastProbeAt is not { } probed || now - probed >= Options.ProbeInterval))
             {
                 view.LastProbeAt = now;
@@ -258,6 +259,12 @@ public sealed class WebSurface : IDisposable
         view.LastUsedAt = time.GetUtcNow();
         view.ActivityVersion++;
     }
+
+    /// <summary>W8b: runs work after the current engine event, on the UI thread (the post seam).</summary>
+    internal void Post(Action work) => post(work);
+
+    /// <summary>W8b: now, on the surface's clock.</summary>
+    internal DateTimeOffset Now => time.GetUtcNow();
 
     internal void SetShown(WebSurfaceView view, bool shown)
     {
@@ -370,7 +377,12 @@ public sealed class WebSurface : IDisposable
 
         // W8a (3.7 "Visus's own browser keys are handled by Visus, not the page, as a browser does"): the view's own claim. A
         // held key's repeats are kept from the page too, but run nothing (holding Ctrl+W must not close every tab).
-        if (view.ClaimsChord?.Invoke(chord) != true) return;
+        if (view.ClaimsChord?.Invoke(chord) != true)
+        {
+            // W8b: the page has the key; Esc still releases a locked pointer (8.4), after the key event.
+            if (!e.IsRepeat && view.IsPointerLocked) post(() => view.OnPageKeyDown(chord));
+            return;
+        }
         e.Handled = true;
         if (!e.IsRepeat) post(() => view.RaiseClaimedChord(chord));
     }
@@ -462,7 +474,7 @@ public sealed class WebSurface : IDisposable
             {
                 var shownOverCap = views.Count(v => v.IsShown) > Options.MaxLiveViews;
                 var candidate = views
-                    .Where(v => v.Liveness == WebLiveness.Live && !v.IsSuspending && !v.IsDiscarding && !v.IsModelStepRunning && !v.IsBridgeCallRunning && (v != except || !v.IsShown) && !tried.Contains(v)
+                    .Where(v => v.Liveness == WebLiveness.Live && !v.IsSuspending && !v.IsDiscarding && !v.IsModelStepRunning && !v.IsBridgeCallRunning && !v.IsHeldForUser && (v != except || !v.IsShown) && !tried.Contains(v)
                                 && (!v.IsShown || shownOverCap)
                                 && v.Engine is { IsAttached: true })
                     .OrderBy(v => v.IsShown)
@@ -555,6 +567,7 @@ public sealed class WebSurface : IDisposable
         && !disposed && views.Contains(view)
         && !view.IsBridgeCallRunning
         && !view.HasOpenArtifactPane
+        && !view.IsHeldForUser // W8b: a download, permission, sign-in or dialog waits for the user
         && view.Engine is { IsAttached: true, IsPlayingAudio: false }
         && (!view.IsSandboxed || view.IsDocumentReady)
         && view.Kind != WebSurfaceKind.VisusPrivateTab // ED-NEW-web-w7-2: discarding would end its InPrivate session
@@ -603,7 +616,7 @@ public sealed class WebSurface : IDisposable
                 {
                     view.IsDiscarding = false;
                     if (!disposed && views.Contains(view) && view.Engine == engine && view.Liveness == WebLiveness.Live && !view.IsShown
-                        && !view.IsModelStepRunning && !view.IsBridgeCallRunning && !engine.IsPlayingAudio
+                        && !view.IsModelStepRunning && !view.IsBridgeCallRunning && !view.IsHeldForUser && !engine.IsPlayingAudio
                         && (wasSuspended || LiveCount > Options.MaxLiveViews))
                     {
                         try { await SuspendAsync(view); }
