@@ -313,6 +313,33 @@ public sealed class PaneWorkspaceNarrowTests(HeadlessSession headless)
     });
 
     [Fact]
+    public void F6_visits_the_tab_strip_and_then_the_one_surface_shown() => headless.OnUiThread(() =>
+    {
+        using var rig = NarrowRig();
+        var strip = rig.Workspace.NarrowStrip;
+        var tasks = rig.Card(PaneKind.BackgroundTasks);
+        Assert.Equal(new Control[] { strip, tasks }, rig.Workspace.FocusStops());
+        rig.Workspace.CycleFocus(forward: true);
+        rig.Layout();
+        Assert.True(strip.IsKeyboardFocusWithin, "F6 reaches the strip, at its chosen tab");
+        Assert.Same(strip.TabButtons[1], rig.Focused);
+        rig.Workspace.CycleFocus(forward: true);
+        rig.Layout();
+        Assert.True(tasks.IsKeyboardFocusWithin);
+        rig.Workspace.CycleFocus(forward: true); // wraps
+        rig.Layout();
+        Assert.True(strip.IsKeyboardFocusWithin);
+
+        // With the chat chosen, the chat is the surface (and a hidden chat is never a stop).
+        rig.Workspace.Select(PaneKind.Chat);
+        rig.Settle();
+        Assert.Equal(new Control[] { strip, rig.Workspace.Chat }, rig.Workspace.FocusStops());
+        rig.Workspace.Select(PaneKind.BackgroundTasks);
+        rig.Settle();
+        Assert.DoesNotContain(rig.Workspace.Chat, rig.Workspace.FocusStops());
+    });
+
+    [Fact]
     public void Choosing_a_tab_moves_focus_out_of_the_surface_that_is_leaving() => headless.OnUiThread(() =>
     {
         using var rig = NarrowRig();
