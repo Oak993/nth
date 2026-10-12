@@ -94,8 +94,16 @@ internal sealed class NthWorkingTitle : Panel, IBaselineProvider
     /// <summary>The beads, when they are in this title (tests).</summary>
     public NthBeadsControl? Glyph => beads is not null && ReferenceEquals(beads.Beads.Parent, slot) ? beads.Beads : null;
 
-    /// <summary>Gives the beads up (this title is leaving with a fade they must not share).</summary>
-    public void ReleaseBeads() { if (beads is not null) { beads.Unclaim(slot); if (ReferenceEquals(beads.Beads.Parent, slot)) slot.Children.Remove(beads.Beads); } }
+    /// <summary>Gives the beads up: this title is leaving with a fade they must not share. If they are here they move, at their place, into
+    /// <paramref name="hold"/>, which does not fade (ED-NEW-calculi-wu5-2): they never leave the screen for a frame, and the next running line
+    /// claims them from there.</summary>
+    public void ReleaseBeads(Panel? hold)
+    {
+        if (beads is null) return;
+        beads.Unclaim(slot);
+        if (!ReferenceEquals(beads.Beads.Parent, slot)) return;
+        if (hold is not null) beads.Host(hold); else slot.Children.Remove(beads.Beads);
+    }
 
     /// <summary>The word's letters (tests).</summary>
     public NthLetters Letters => letters;
@@ -130,6 +138,36 @@ internal sealed class NthWorkingTitle : Panel, IBaselineProvider
         public WordClip() => ClipToBounds = true;
         protected override Size MeasureOverride(Size availableSize) { Child?.Measure(Size.Infinity); return Child?.DesiredSize ?? default; }
         protected override Size ArrangeOverride(Size finalSize) { Child?.Arrange(new Rect(Child.DesiredSize)); return finalSize; }
+    }
+}
+
+/// <summary>PORT-ONLY: Calculi WU5 (ED-NEW-calculi-wu5-2). Where a working line that stops running mid-turn (a Hydra note splits it off) keeps the
+/// beads while its running title fades out and its label fades in: a slot at the title's own place (the line's start, centred on the line), outside
+/// both fading titles, so the beads stay whole and unfaded while they leave. It lays out at no height (the line's height stays the label's), and
+/// the label after it stands where the running word stood (<see cref="Indent"/>), for the line's life: nothing moves when the beads have left.</summary>
+internal sealed class NthBeadsHold : Panel
+{
+    private static readonly Size Envelope = NthBeadsPainter.EnvelopeSize(NthWorkingBeads.GlyphSize);
+
+    /// <summary>The leading room the label leaves for the hold: the envelope and the title's gap.</summary>
+    public static double Indent => Envelope.Width + 8;
+
+    /// <summary>The slot the beads sit in.</summary>
+    public Panel Slot { get; } = new() { Width = Envelope.Width, Height = Envelope.Height };
+
+    public NthBeadsHold()
+    {
+        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
+        IsHitTestVisible = false;
+        Children.Add(Slot);
+    }
+
+    protected override Size MeasureOverride(Size availableSize) { Slot.Measure(Envelope); return new Size(Indent, 0); }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        Slot.Arrange(new Rect(0, (finalSize.Height - Envelope.Height) / 2, Envelope.Width, Envelope.Height));
+        return finalSize;
     }
 }
 

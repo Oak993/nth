@@ -55,12 +55,13 @@ public sealed class NthBeadsDriver
     private readonly Ev[] evs = new Ev[6];
     private int count;
     private NthBeadsFrame applied = NthBeadsFrame.Blank;
-    private NthBeadsFrame? latest;
+    private volatile NthBeadsFrame? latest;
     private NthBeadsEngine? engine;
     private NthBeadsSample sample;
     private double shift, last = double.NaN;
     private bool hidden, unseen, wasMoving;
     private volatile bool moving;
+    private volatile bool gone = true;
     private volatile object? owner;
 
     public NthBeadsDriver() => sample.Glint = -1;
@@ -82,6 +83,10 @@ public sealed class NthBeadsDriver
 
     /// <summary>Whether frames are wanted: running and not still. Safe to read from the UI thread.</summary>
     public bool Moving => moving;
+
+    /// <summary>Whether the beads draw nothing: no engine yet, or no turn, or an exit that has ended (reference <c>gone</c>). Safe to read from the
+    /// UI thread, where it moves the beads only (a hand-over to a far slot waits for it, ED-NEW-calculi-wu5-2); no UI waits for it.</summary>
+    public bool Gone => gone;
 
     /// <summary>The painter that drives this driver now (the last to <see cref="Adopt"/> it).</summary>
     public object? Owner => owner;
@@ -168,7 +173,11 @@ public sealed class NthBeadsDriver
         last = now; wasMoving = false;
     }
 
-    private void Publish() => moving = engine is { IsStill: false } && !Paused;
+    private void Publish()
+    {
+        moving = engine is { IsStill: false } && !Paused;
+        gone = engine is not { Mode: not NthBeadsMode.Gone };
+    }
 
     private void Resample() => sample = engine!.Frame();
 

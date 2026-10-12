@@ -1,5 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
@@ -17,7 +19,10 @@ namespace Marrow.App.Tests.Nth;
 // Calculi WU5 (DESIGN.md sections 5, 5.1, 5.2, 6, 9 and 14; ED-NEW-calculi-wu5-1): the working line's beads. The state mapping and the entrance rule,
 // then the line in a real timeline: the 18 DIP beads in the running line's title, a step for each new tool description, the turn's end (the composer
 // shows Send and the label says how it ended on the same frame, while the exit plays in the finished header), a new turn while the last is leaving
-// (Enter on the same beads, never a reset) and the glyph's layout moves reported as reflows (a scroll is not one).
+// (Enter on the same beads, never a reset) and the glyph's layout moves reported as reflows (a scroll is not one). ED-NEW-calculi-wu5-2: frame by
+// frame, with the render thread's engine running, the beads never leave the screen, never draw under a fade and never move further than a reflow in
+// a frame in which they draw: a queued follow-up (the exit ends in the old header, then the new line's entrance), a mid-turn split (the old line
+// holds them unfaded while they leave) and the first turn (it enters once its arriving line is whole).
 [Collection("Headless")]
 public sealed class NthSitesBeadsTests(HeadlessSession headless)
 {
@@ -169,25 +174,119 @@ public sealed class NthSitesBeadsTests(HeadlessSession headless)
             finally { composer.Close(); }
         });
 
-    [Fact]
-    [Trait("Design", "Calculi WU5")] // section 5.2: a new turn while the last is leaving calls Enter (Rejoin), never a reset
-    public void A_new_turn_while_the_last_is_leaving_enters_on_the_same_beads_and_takes_them_to_the_new_line() => ThreadTimelineRig.Run(headless, mount =>
+    // One 60 Hz frame: the clock, the frames and layout, then a render tick (the render thread's engine applies what was posted and advances).
+    private static void Frame(TimelineMount mount) { mount.Advance(16); AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Dispatcher.UIThread.RunJobs(); }
+
+    // Whether the beads draw anything this frame (the render thread's engine is on a turn).
+    private static bool Draws(NthBeadsControl beads) =>
+        beads.IsAttachedToVisualTree() && beads.IsEffectivelyVisible && beads.Painter?.Driver.Engine is { Mode: not NthBeadsMode.Gone };
+
+    // Frame by frame (ED-NEW-calculi-wu5-2): the beads never leave the screen, never draw under a fade (every ancestor at opacity 1), and never move
+    // further than a reflow (whose glide keeps their place on screen) in a frame in which they draw, before or after it. Returns how many frames drew.
+    private static int Watch(TimelineMount mount, NthBeadsControl beads, int frames, Action<int>? each = null)
     {
-        var entries = new List<TimelineEntry> { User("prompt", Turn, "go"), ToolEntry("Running a command", Turn) };
+        Point? last = null; var lastDrew = false; var drawn = 0;
+        for (var i = 0; i < frames; i++)
+        {
+            each?.Invoke(i);
+            Frame(mount);
+            Assert.True(beads.IsAttachedToVisualTree(), $"frame {i}: the beads left the screen");
+            var drew = Draws(beads); if (drew) drawn++;
+            if (drew)
+                for (Visual? at = beads; at is not null; at = at.GetVisualParent())
+                    Assert.True(at.Opacity == 1, $"frame {i}: the beads draw under a fade ({at.GetType().Name} at {at.Opacity})");
+            var place = beads.TranslatePoint(default, mount.Column)!.Value;
+            if (last is { } was && (drew || lastDrew))
+            {
+                Assert.True(Math.Abs(place.X - was.X) <= NthWorkingBeads.ReflowLimit && Math.Abs(place.Y - was.Y) <= NthWorkingBeads.ReflowLimit,
+                    $"frame {i}: the drawn beads jumped from {was} to {place}");
+            }
+            last = place; lastDrew = drew;
+        }
+        return drawn;
+    }
+
+    [Fact]
+    [Trait("Design", "Calculi WU5")] // sections 5, 5.2 and 9: a queued follow-up; the beads never jump and never fade (ED-NEW-calculi-wu5-2)
+    public void A_queued_follow_up_lets_the_exit_end_in_the_old_header_and_enters_the_same_beads_in_the_new_line_without_a_jump() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        var entries = Turns(1, "old-", sentences: 4).ToList();
+        entries.Add(User("prompt", Turn, "go")); entries.Add(ToolEntry("Running a command", Turn));
         Start(mount, entries);
         var beads = Title(mount).Glyph!;
+        Watch(mount, beads, 10);
+        Assert.True(Draws(beads), "the turn draws");
         entries.Add(EndEntry("end", Turn, TurnStatus.Completed));
-        End(mount, entries); mount.Advance(50);
+        entries.Add(Reply("answer", Turn, "Done. " + string.Join(" ", Enumerable.Repeat("The answer runs over several lines of the finished block.", 8))));
+        End(mount, entries);
+        var header = LogicalQuery.SelfAndDescendants<TurnFinishedBlock>(mount.View).Single(block => block.BeadsSlot is not null).BeadsSlot;
+        Assert.Same(header, beads.Parent);
+        Watch(mount, beads, 3); // 50 ms into the exit
         Assert.Equal(NthBeadsExit.Finish, beads.Current.Exit);
-        // a queued follow-up starts the next turn 50 ms into the exit
+        // a queued follow-up starts the next turn: the UI shows it at once; the beads finish where they are, then the new line's entrance plays
         entries.Add(User("prompt-2", Next, "and then"));
         mount.SetEntries(entries); mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running);
-        Assert.Equal(2, beads.Current.Turn); Assert.Equal(NthBeadsExit.None, beads.Current.Exit); Assert.Equal(NthBeadsEntrance.Ortus, beads.Current.Entrance);
-        // the new line arrives with its fade; the beads come to it once it is whole (they never fade), the same control
-        mount.Advance(1000);
+        var goneInHeader = false;
+        Watch(mount, beads, 150, _ => goneInHeader |= ReferenceEquals(beads.Parent, header) && !Draws(beads) && beads.Painter?.Driver.Engine is { Mode: NthBeadsMode.Gone });
+        Assert.True(goneInHeader, "the exit ended in the old header before the beads moved");
         var title = Title(mount);
-        Assert.Same(beads, title.Glyph);
-        Assert.Equal(2, beads.Current.Turn);
+        Assert.Same(beads, title.Glyph); // the same control, in the new line
+        Assert.Equal(2, beads.Current.Turn); Assert.Equal(NthBeadsExit.None, beads.Current.Exit); Assert.Equal(NthBeadsEntrance.Ortus, beads.Current.Entrance);
+        Assert.True(Draws(beads), "the new turn draws in the new line");
+        var gap = Math.Abs(beads.TranslatePoint(default, mount.Column)!.Value.Y - header!.TranslatePoint(default, mount.Column)!.Value.Y);
+        Assert.True(gap > NthWorkingBeads.ReflowLimit, $"the new line is far from the old header ({gap} DIP): this is the far case");
+    });
+
+    [Fact]
+    [Trait("Design", "Calculi WU5")] // sections 5 and 9: a Hydra note splits the running line; the beads never fade and never jump (ED-NEW-calculi-wu5-2)
+    public void A_line_split_off_mid_turn_holds_its_beads_unfaded_while_they_leave_and_the_new_line_enters_them() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        var t0 = SwiftDate.Now.AddSeconds(-30);
+        TimelineEntry Dated(string id, TimelineItem.Content content, Guid? turn, int second) => new(new TimelineItem(turn, content, id, t0.AddSeconds(second)));
+        TimelineItem.Content Tool(string title) => new TimelineItem.Content.Tool(new ToolCall { Title = title, ToolCallKind = ToolCall.Kind.Command, ToolCallStatus = ToolCall.Status.Running });
+        var entries = new List<TimelineEntry> { Dated("prompt", new TimelineItem.Content.User(new UserMessage { Text = "go" }), Turn, 0), Dated("tool-1", Tool("Reading ThreadTimeline.cs"), Turn, 1) };
+        mount.SetEntries(entries); mount.SetTurnStartedAt(t0); mount.SetPhase(RuntimePhase.Running); mount.Settle();
+        var beads = Title(mount).Glyph!;
+        Watch(mount, beads, 10);
+        Assert.True(Draws(beads), "the turn draws");
+        // a note (no turn) arrives mid-turn and the turn goes on after it: the running line is split off and a new segment's line runs below the note
+        entries.Add(Dated("note", new TimelineItem.Content.Assistant(new AssistantMessage { Text = "A head reports back. " + string.Join(" ", Enumerable.Repeat("Its note runs over a few lines.", 6)) }), null, 2));
+        entries.Add(Dated("tool-2", Tool("Editing NthBeadsPainter.cs"), Turn, 3));
+        var exited = false;
+        Watch(mount, beads, 150, i => { if (i == 0) mount.SetEntries(entries); exited |= beads.Current.Exit == NthBeadsExit.Finish; });
+        Assert.True(exited, "the beads left the split-off line with their exit");
+        var running = mount.View.GetVisualDescendants().OfType<NthWorkingTitle>().Single();
+        Assert.Same(beads, running.Glyph); // the same control, in the new segment's line
+        Assert.Equal(2, beads.Current.Turn); Assert.Equal(NthBeadsExit.None, beads.Current.Exit); Assert.Equal(NthBeadsEntrance.Ortus, beads.Current.Entrance);
+        Assert.Equal(NthBeadsState.Tool, beads.Current.State);
+        Assert.True(Draws(beads), "the turn draws in the new line");
+        // the split-off line keeps its hold (at no height) and its label stands where the running word stood
+        var hold = mount.View.GetVisualDescendants().OfType<NthBeadsHold>().Single();
+        Assert.Empty(hold.Slot.Children);
+        var label = ((Panel)hold.GetVisualParent()!).Children.OfType<HydraWorkingTitle>().Single();
+        Assert.Equal(NthBeadsHold.Indent, label.Bounds.X, 1);
+    });
+
+    [Fact]
+    [Trait("Design", "Calculi WU5")] // section 5: pair A's entrance draws at opacity 1; the first turn enters once its arriving line is whole (ED-NEW-calculi-wu5-2)
+    public void The_first_turn_enters_once_its_arriving_line_is_whole_so_Scriptio_never_draws_under_a_fade() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.Settle();
+        var beads = NthWorkingBeads.For(mount.Runtime).Beads;
+        var faded = false;
+        mount.SetEntries([User("prompt", Turn, "go")]); mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running);
+        for (var i = 0; i < 90; i++)
+        {
+            Frame(mount);
+            if (!beads.IsAttachedToVisualTree()) continue;
+            var whole = true;
+            for (Visual? at = beads; at is not null; at = at.GetVisualParent()) whole &= at.Opacity == 1;
+            if (!whole) { faded = true; Assert.Equal(0, beads.Current.Turn); } // the line is still arriving: not entered yet
+            if (Draws(beads)) Assert.True(whole, $"frame {i}: the entrance draws under the line's arrival fade");
+        }
+        Assert.True(faded, "the line arrived with a fade (the case under test)");
+        Assert.Equal(1, beads.Current.Turn); Assert.Equal(NthBeadsEntrance.Scriptio, beads.Current.Entrance);
+        Assert.Same(beads, Title(mount).Glyph);
     });
 
     // Where layout put a visual in an ancestor: its arranged places only (a render transform, such as a row's arrival offset, moves the beads rigidly

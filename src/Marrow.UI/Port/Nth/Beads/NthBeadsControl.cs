@@ -44,6 +44,13 @@ public sealed class NthBeadsControl : NthMotionControl
     /// <summary>The render thread's painter (tests; null until shown).</summary>
     public NthBeadsHostPainter? Painter => painter;
 
+    /// <summary>Whether the beads draw nothing now: no turn has entered, or the render thread has applied the latest frame and its exit has ended
+    /// (or was cut). The site moves the beads on it (a far hand-over, ED-NEW-calculi-wu5-2); no UI waits for it (section 5.1).</summary>
+    public bool IsGone => state.Turn == 0 || (state.Exit != NthBeadsExit.None && driver.Gone && ReferenceEquals(driver.Latest, state));
+
+    /// <summary>Now on the clock every call is stamped with, in seconds (the frame's times: <see cref="NthBeadsFrame.ExitAt"/> and the rest).</summary>
+    public double Time => Now;
+
     /// <summary>Starts a turn (a new one while the last is leaving plays Rejoin, never a reset). The seed is the turn id's FNV-1a.</summary>
     public void Enter(NthBeadsEntrance entrance, string turnId) =>
         Post(state with { Turn = state.Turn + 1, Entrance = entrance, Seed = NthBeadsEngine.SeedFrom(turnId), EnterAt = Now, Exit = NthBeadsExit.None });
