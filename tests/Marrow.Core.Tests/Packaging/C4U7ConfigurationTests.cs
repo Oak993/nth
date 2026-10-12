@@ -6,7 +6,21 @@ public sealed class C4U7ConfigurationTests
 {
     [Fact]
     [Trait("Decision", "ED-235")]
-    public void Debug_is_rejected_with_a_plain_error_in_the_preflight_before_any_path_or_side_effect()
+    public void Debug_is_rejected_with_a_plain_error_in_the_preflight_before_any_path_or_side_effect() => CheckPreflight("Debug");
+
+    [Fact]
+    [Trait("Decision", "ED-235")]
+    public void Lowercase_release_is_rejected_before_any_path_or_side_effect() => CheckPreflight("release");
+
+    [Fact]
+    [Trait("Decision", "ED-235")]
+    public void Uppercase_RELEASE_is_rejected_before_any_path_or_side_effect() => CheckPreflight("RELEASE");
+
+    [Fact]
+    [Trait("Decision", "ED-235")]
+    public void Mixed_case_ReLeAsE_is_rejected_before_any_path_or_side_effect() => CheckPreflight("ReLeAsE");
+
+    private static void CheckPreflight(string rejected)
     {
         var path = Path.Combine(PackagingRig.Scripts, "package-windows.ps1").Replace("'", "''", StringComparison.Ordinal);
         var result = PackagingRig.RunJson($$"""
@@ -19,7 +33,7 @@ public sealed class C4U7ConfigurationTests
             $preflightText = $ast.ParamBlock.Extent.Text + $source.Substring($ast.ParamBlock.Extent.EndOffset, $rootStatement.Extent.StartOffset - $ast.ParamBlock.Extent.EndOffset)
             $preflight = [scriptblock]::Create($preflightText)
             $message = ''
-            try { & $preflight -Configuration Debug } catch { $message = $_.Exception.Message }
+            try { & $preflight -Configuration '{{rejected}}' } catch { $message = $_.Exception.Message }
             & $preflight -Configuration Release
             Write-Output '#JSON'
             [pscustomobject]@{ message = $message } | ConvertTo-Json -Compress

@@ -6261,3 +6261,8 @@ ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I9). Real St
 ## ED-NEW-inst-c4c-10: Prove stub identity language and signing activation
 
 ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I10). The metadata fixture requires exact identity.App and CheckLanguage for the stub while retaining foreign-resource rejection. Signing fixtures execute the real surrounding if AST: None reads no signatures, SignTool/Azure each check six exes including the stub once. Wrong-Setup identity, removed language switch and inverted signing condition mutations fail selected Facts alone twice and restore byte-exact. Synthetic paths and resource/signature mocks only; no signer or packaging/installer execution.
+
+
+## ED-NEW-inst-c4c-11: Prove case-sensitive Release preflight
+
+ENGINEERING DECISION (owner C4c order, 2026-10-12; accepted finding I11). ED-NEW-inst-cx-6 requires exact Release. Separate lowercase release, uppercase RELEASE and mixed ReLeAsE Facts keep the same plain preflight rejection and require canonical Release to pass. The cne-to-ne mutation fails each variant alone twice, restores byte-exact, then all four configuration Facts pass. Original Debug remains. Only AST-extracted preflight before the first path assignment runs, with no packaging/build/signing command.
