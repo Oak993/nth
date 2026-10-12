@@ -128,7 +128,11 @@ public static class MenuKeyEquivalents
         EventHandler<KeyEventArgs> onKeyDown = (_, e) =>
         {
             if (e.Handled) return;
-            if (perform(Shortcut(e), () => Typed(e))) e.Handled = true;
+            var positional = Shortcut(e);
+            // PORT-ONLY (web W4, ED-NEW-web-w4-2, DESIGN 3.7): a key from inside the terminal (or a page) belongs to it, except the
+            // short reserved list; Ctrl+D is the shell's end of input and Ctrl+\ its quit character, not Toggle changes or Close pane.
+            if (ChordScope.Withholds(e)) return;
+            if (perform(positional, () => Typed(e))) e.Handled = true;
         };
         window.AddHandler(InputElement.KeyDownEvent, onKeyDown, RoutingStrategies.Tunnel);
         return new Detachment(() => window.RemoveHandler(InputElement.KeyDownEvent, onKeyDown));
