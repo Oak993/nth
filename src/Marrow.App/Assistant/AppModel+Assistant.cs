@@ -157,7 +157,11 @@ public sealed partial class AppModel
                 Watch = memoryWatch,
                 Owned = memoryWatch,
             },
-            Router = new RouterSetup { Accounts = RouterAccounts, Models = RouterModelsOf },
+            Router = new RouterSetup
+            {
+                Accounts = RouterAccounts, Models = RouterModelsOf,
+                Rank = (id, account) => AsturPillRank.Of(profiles().FirstOrDefault(p => p.Id == id)?.PillOrder ?? ValueList<string>.Empty, account),
+            },
             Reserve = new ReserveSetup
             {
                 Settings = reserveSettings,
@@ -294,18 +298,25 @@ public sealed partial class AppModel
     /// </summary>
     internal IReadOnlyList<Marrow.Core.Port.Assistant.BrainModel> TriageModels()
     {
+        // Operational picks run on MainActor through the adapter. Off-actor inspections may use the brain's metadata,
+        // but cannot refresh account connectivity (which can lazily load settings) or claim cheap candidates usable.
+        if (!MainActor.IsIsolated) return [];
         var list = new List<Marrow.Core.Port.Assistant.BrainModel>();
         foreach (var kind in Marrow.Core.Port.SwiftEnum<ProviderKind>.AllCases)
         {
             if (!Providers.CountsAsInstalled(kind)) continue;
-            foreach (var option in Providers.Models(kind)) list.Add(BrainModelOf(kind, option.Id));
+            foreach (var account in Settings.Accounts.Accounts.Where(a => a.Service == kind && a.Enabled))
+                foreach (var option in Providers.Models(kind)) list.Add(BrainModelOf(kind, option.Id, account.Id));
         }
         return list;
     }
 
-    private Marrow.Core.Port.Assistant.BrainModel BrainModelOf(ProviderKind kind, string? model)
+    private Marrow.Core.Port.Assistant.BrainModel BrainModelOf(ProviderKind kind, string? model, Guid? onAccount = null)
     {
-        var account = AssistantTaps.AccountRef(Marrow.Core.Port.UsageAccountKey.Default(kind));
+        var pin = onAccount ?? AssistantHost.Settings.Value.BrainAccount;
+        var selected = pin is { } id ? Settings.Accounts.Accounts.FirstOrDefault(a => a.Id == id && a.Service == kind) : Settings.Accounts.Choose(kind);
+        var account = AssistantTaps.AccountRef(selected is { UsesLegacyCredentials: false } named
+            ? new Marrow.Core.Port.UsageAccountKey(kind, named.Id.ToString("D")) : Marrow.Core.Port.UsageAccountKey.Default(kind));
         var prices = IgnisRuntimeSeams.Points.Current()?.Find(kind, model);
         return new Marrow.Core.Port.Assistant.BrainModel(kind.Id, model ?? "", account.Key, account.Name)
         {
@@ -313,6 +324,9 @@ public sealed partial class AppModel
             OutputPerMillion = prices?.Prices.Output,
             ContextWindow = prices?.ContextWindow,
             RunsLocally = kind == ProviderKind.Local,
+            Usable = MainActor.IsIsolated && selected is { Enabled: true } && IsAccountConnected(selected) && CanUseAccount(selected.Id)
+                && (kind == ProviderKind.Codex || Marrow.Services.Port.MultiAccount.TextOnlyAccountHead.Supports(kind)),
+            Room = Reserve?.Standing(account, AssistantHost.AssistantId, null, null, model, 0)?.Windows.Select(w => w.Room).DefaultIfEmpty().Min(),
         };
     }
 
@@ -336,6 +350,7 @@ public sealed partial class AppModel
         dextraTray?.Dispose();
         dextraTray = null;
         Dextra = null;
+        DisposeAsturs();
         AssistantMcpBridge.Host.SetProcessDefault(NoAssistantToolHost.Instance);
     }
 

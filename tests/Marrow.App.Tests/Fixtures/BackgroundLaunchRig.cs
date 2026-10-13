@@ -42,6 +42,7 @@ internal sealed class BackgroundLaunchRig : IDisposable
     public AssistantTempRoot Temp { get; }
 
     public AppModel Model { get; }
+    public TestRuntime Main => harness.Main;
 
     public Marrow.App.Safety.GlobalStop Key { get; }
 

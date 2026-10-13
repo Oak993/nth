@@ -7,6 +7,7 @@
 using System.Text.Json.Nodes;
 using Marrow.App.Tray;
 using Marrow.Core.Port.Assistant;
+using Marrow.Core.Port;
 using Marrow.Services.Assistant;
 
 namespace Marrow.App.Assistant;
@@ -80,6 +81,13 @@ public static class BackgroundStart
     public static DutyHost? Run(AppModel model, StartupMode mode, Func<bool> windowHidden, Action open, Action quit, out string? problem, BackgroundStartSeams? seams = null)
     {
         ArgumentNullException.ThrowIfNull(model);
+        if (seams is null)
+        {
+            problem = null;
+            if (!model.AssistantHost.MayRun) return null;
+            _ = StartWhenDutiesAsync(model, mode, windowHidden, open, quit);
+            return model.Duties;
+        }
         seams ??= new BackgroundStartSeams();
         problem = null;
         var roots = seams.Roots();
@@ -94,11 +102,13 @@ public static class BackgroundStart
             if (model.Dextra is null)
             {
                 log = AuditLog.Open(roots, seams.Keys());
-                var profiles = Profiles(store, ids);
+                var team = model.BindAsturs(store);
                 var held = log;
-                model.StartDextra(store, entry => held.Append(entry), () => profiles, stopKey: seams.StopKey ?? model.EnsureStopKey(),
-                    tray: seams.Tray ?? model.EnsureTray(windowHidden, null, open), duties: model.DutyToolsGate);
-                log = null; // the controller's audit callback owns it for the life of the app
+                model.StartDextra(store, entry => held.Append(entry), () => team.Profiles, stopKey: seams.StopKey ?? model.EnsureStopKey(),
+                    tray: seams.Tray ?? model.EnsureTray(windowHidden, null, open), duties: model.DutyToolsGate,
+                    team: team, homes: new AppAssistantHomes(model, store));
+                model.AssistantHost.OwnStartup(new DextraStartStorage(roots, store, log, team));
+                log = null; // ownership transferred to the host's stop/dispose path
             }
             var controller = model.Dextra!;
             // The launch brings back what is there: the digest is bound only when the Morning digest duty already is (so it is composed, not started as a
@@ -116,5 +126,16 @@ public static class BackgroundStart
             if (model.DextraStore is null) store?.Dispose();
             return null;
         }
+    }
+
+    private static async Task StartWhenDutiesAsync(AppModel model, StartupMode mode, Func<bool> windowHidden, Action open, Action quit)
+    {
+        if (!await Task.Run(() => HasDuties(AssistantStorage.Roots.Current)).ConfigureAwait(false)) return;
+        await MainActor.Run(() =>
+        {
+            if (!model.AssistantHost.MayRun) return;
+            model.EnsureTray(windowHidden, null, open);
+            _ = model.AssistantHost.EnsureStartedAsync(mode: mode, quit: quit, restoringDuties: true);
+        }).ConfigureAwait(false);
     }
 }
