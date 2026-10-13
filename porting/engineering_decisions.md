@@ -8377,3 +8377,10 @@ The lean regression DigestLaunchTests.Starting_the_duties_the_way_turning_Dextra
 1. DextraSmoothAllocationTests failed alone twice in normal and Reduce Motion: 72,000 B over 600 warmed frames, 120 B/frame. The clover temporary tuple array accounts for 56 B/frame; Array.Sort converts the gap comparer to a delegate for another 64 B/frame.
 2. Clover uses the same four AddCircle calls in the same order. A bounded six-entry insertion sort gives the same angular ordering as the former small-array sort, without its comparer delegate. Geometry, spring integration, cadence and ReducedMotion poses are unchanged.
 3. The same warm all-six-shape probe now passes both cases: 0 B over 600 Tick/Draw frames. Existing raster/motion guards remain intact. This is managed headless evidence, not GPU or physical-frame acceptance; existing AssistantHomeNativeTests and OrgChartNativeTests remain owed to the lead. No package.
+
+
+## ED-NEW-dextra-smooth-3
+2026-10-13 - Fill the tall narrow Home while retaining short-window scrolling (CU-DX-SMOOTH F8; DESIGN 2.2/3.1, assistant index 191-193). PORT-ONLY.
+1. DextraSmoothNarrowTests failed alone twice for 800x1200 and 500x1400: the Board did not reach the bottom of the available Home area. Both short-window scroll controls already passed. Auto/Auto rows only gave the conversation its desired/minimum height.
+2. The stacked grid uses */Auto. Avalonia's existing ScrollViewer arranges the content to at least its viewport height, so the conversation receives spare space and the Board stays natural height. The 420 px conversation minimum still produces overflow in short windows; no new viewport callback, per-frame layout or fixed board height. The 900 px breakpoint and 12 px gap stay unchanged.
+3. The same four tests pass: both tall cases fill to the bottom, and both short cases reach the last of twelve missions, including RTL and repeated wide/narrow resizing. Existing Home native frame/keyboard checks remain owed, never run by this worker. No package.
