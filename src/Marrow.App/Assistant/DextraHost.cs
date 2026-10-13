@@ -9,6 +9,7 @@ using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Assistant;
 using Marrow.Services.Assistant;
+using Marrow.UI.Port;
 
 namespace Marrow.App.Assistant;
 
@@ -36,14 +37,28 @@ public sealed class DextraHost : IDisposable
     private bool starting;
     private Task<AssistantController?>? initialization;
     private int startEpoch;
+    private readonly Marrow.UI.Port.IFrameSource? voiceFrames;
+    private readonly Action<TimeSpan> voiceFrame;
+    private Marrow.UI.Port.IFrameSource? waitingVoice;
+    private readonly bool explicitVoice;
+    private readonly Func<AppModel, DextraHost, VoiceStopScope, CancellationToken, Task<DextraVoice?>>? asyncVoice;
+    private CancellationTokenSource? startingVoice;
+    private bool voiceFrameSeen;
+    private int voiceStartEpoch;
+    private Task voiceTeardown = Task.CompletedTask;
 
     /// <param name="voice">AS-18: the voice of a running controller. Null with the app's own starter gives the real one (the chord, the microphone, the PC's voices); null with a test's starter gives none.</param>
-    public DextraHost(AppModel model, DextraSettings settings, DextraStarter? starter = null, Func<IReadOnlyList<AssistantProfile>>? asturs = null, DextraVoiceStarter? voice = null, BackgroundStartSeams? startup = null)
+    public DextraHost(AppModel model, DextraSettings settings, DextraStarter? starter = null, Func<IReadOnlyList<AssistantProfile>>? asturs = null, DextraVoiceStarter? voice = null, BackgroundStartSeams? startup = null, Marrow.UI.Port.IFrameSource? voiceFrames = null, Func<AppModel, DextraHost, VoiceStopScope, CancellationToken, Task<DextraVoice?>>? voiceAsync = null)
     {
         this.model = model ?? throw new ArgumentNullException(nameof(model));
         Settings = settings ?? throw new ArgumentNullException(nameof(settings));
         this.starter = starter ?? ((app, prefs, id) => Production(app, prefs, id, startup, StartupMode.Normal, null, false));
         production = starter is null;
+        this.voiceFrames = voiceFrames;
+        voiceFrame = OnVoiceFrame;
+        explicitVoice = voice is not null || voiceAsync is not null;
+        asyncVoice = voiceAsync ?? (production && !explicitVoice && startup is null
+            ? static (app, host, scope, token) => DextraVoice.CreateDeferred(app, host, scope, token) : null);
         this.startup = startup;
         this.asturs = asturs;
         voiceStarter = voice ?? (starter is null && startup is null ? static (app, host, scope) => DextraVoice.Create(app, host, scope) : null);
@@ -74,6 +89,7 @@ public sealed class DextraHost : IDisposable
 
     /// <summary>Dextra's voice (AS-18): the talk chord and the conversation of the running controller, or null (off, not started, or no voice in this build).</summary>
     public DextraVoice? Voice { get; private set; }
+    internal Task VoiceStartup { get; private set; } = Task.CompletedTask;
 
     /// <summary>The morning digest and the Suggestions lane (AS-11) while Dextra's duties run; null before they start.</summary>
     public DigestService? Digests => model.Duties?.Digests;
@@ -134,10 +150,10 @@ public sealed class DextraHost : IDisposable
             owned = null;
             return null;
         }
-        return Publish(controller);
+        return Publish(controller, seams, mode);
     }
 
-    private AssistantController Publish(AssistantController controller)
+    private AssistantController Publish(AssistantController controller, BackgroundStartSeams? seams = null, StartupMode? mode = null)
     {
         StartFault = null;
         started = controller;
@@ -145,8 +161,26 @@ public sealed class DextraHost : IDisposable
         controller.GrantsChanged += KeepGrants;
         Live = DextraLive.For(model, controller, NameOf);
         model.AssistantEvents.Brain = Settings.Brain(BrainProvider());
-        try { Voice = startup is null ? voiceStarter?.Invoke(model, this, voiceScope ?? new VoiceStopScope()) : null; }
-        catch (Exception error) when (error is not OperationCanceledException) { StartFault = "Voice could not start: " + error.Message; }
+        if ((startup ?? seams) is null || explicitVoice)
+        {
+            // ED-NEW-dextra-smooth-11: a hidden launch has no presentation to wait for.
+            // Yield startup to a later main turn, then prepare the native chord off main as usual.
+            var frames = voiceFrames ?? (production && FrameClock.IsBound ? FrameClock.Source.Current : null);
+            if (mode?.Hidden == true && asyncVoice is not null)
+            {
+                var epoch = ++voiceStartEpoch;
+                MainActor.Post(() =>
+                {
+                    if (disposed || epoch != voiceStartEpoch || started != controller) return;
+                    StartVoice();
+                });
+            }
+            else if ((voiceStarter is not null || asyncVoice is not null) && frames is not null)
+            {
+                voiceFrameSeen = false; waitingVoice = frames; frames.RequestFrame(voiceFrame);
+            }
+            else StartVoice();
+        }
         Changed?.Invoke();
         return controller;
     }
@@ -161,10 +195,19 @@ public sealed class DextraHost : IDisposable
     {
         startEpoch++;
         initialization = null;
+        ++voiceStartEpoch;
+        waitingVoice?.CancelFrame(voiceFrame);
+        waitingVoice = null;
+        startingVoice?.Cancel();
+        startingVoice = null;
         if ((started ?? model.Dextra) is not { } controller) { owned?.Dispose(); owned = null; return; }
         started = null;
         controller.GrantsChanged -= KeepGrants;
-        Voice?.Dispose();
+        if (Voice is { } oldVoice)
+        {
+            oldVoice.Dispose();
+            TrackVoiceCleanup(oldVoice.NativeCleanup);
+        }
         Voice = null;
         var live = Live;
         Live = DextraLive.Idle;
@@ -226,6 +269,102 @@ public sealed class DextraHost : IDisposable
         Changed?.Invoke();
     }
 
+    private void StartVoice()
+    {
+        if (disposed || started is null || !MayRun) return;
+        if (asyncVoice is not null)
+        {
+            var cancellation = new CancellationTokenSource();
+            startingVoice = cancellation;
+            var prior = JoinVoiceWork(voiceTeardown, VoiceStartup);
+            VoiceStartup = StartVoiceAsync(started, voiceScope ?? new VoiceStopScope(), cancellation, prior);
+            return;
+        }
+        try { Voice = voiceStarter?.Invoke(model, this, voiceScope ?? new VoiceStopScope()); }
+        catch (Exception error) when (error is not OperationCanceledException) { StartFault = "Voice could not start: " + error.Message; }
+    }
+
+    private void OnVoiceFrame(TimeSpan time)
+    {
+        if (waitingVoice is null) return;
+        // Let the first frame finish before starting native preparation on a later frame.
+        if (!voiceFrameSeen) { voiceFrameSeen = true; waitingVoice.RequestFrame(voiceFrame); return; }
+        waitingVoice = null; StartVoice();
+        if (asyncVoice is null) Changed?.Invoke();
+    }
+
+    private static Task JoinVoiceWork(Task left, Task right) =>
+        left.IsCompletedSuccessfully ? right : right.IsCompletedSuccessfully ? left : Task.WhenAll(left, right);
+
+    private async Task StartVoiceAsync(AssistantController controller, VoiceStopScope scope, CancellationTokenSource cancellation, Task prior)
+    {
+        DextraVoice? made = null;
+        try
+        {
+            // An abandoned generation must actually release its OS chord before another prepares/registers.
+            // The barrier itself is never canceled; repeated stop/start cannot forget an older reservation.
+            await prior.ConfigureAwait(false);
+            // Canceled preparation can record its cleanup after this generation captured prior.
+            var teardown = await MainActor.Run(() => voiceTeardown).ConfigureAwait(false);
+            await teardown.ConfigureAwait(false);
+            cancellation.Token.ThrowIfCancellationRequested();
+            var preparation = await MainActor.Run(() =>
+            {
+                cancellation.Token.ThrowIfCancellationRequested();
+                return asyncVoice!(model, this, scope, cancellation.Token);
+            }).ConfigureAwait(false);
+            made = await preparation.ConfigureAwait(false);
+            DextraVoice? published = null;
+            await MainActor.Run(() =>
+            {
+                if (disposed || cancellation.IsCancellationRequested || !ReferenceEquals(startingVoice, cancellation) || started != controller) return;
+                Voice = made; made = null;
+                Voice?.Activate();
+                published = Voice;
+                Changed?.Invoke();
+            }).ConfigureAwait(false);
+            if (published is not null) await published.ChordRefresh.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { /* stopped generation */ }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            await MainActor.Run(() =>
+            {
+                if (disposed || cancellation.IsCancellationRequested || !ReferenceEquals(startingVoice, cancellation)) return;
+                StartFault = "Voice could not start: " + error.Message; Changed?.Invoke();
+            }).ConfigureAwait(false);
+        }
+        finally
+        {
+            try
+            {
+                if (made is not null)
+                {
+                    await MainActor.Run(() => { made.Dispose(); TrackVoiceCleanup(made.NativeCleanup); }).ConfigureAwait(false);
+                    await made.NativeCleanup.ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                await MainActor.Run(() => { if (ReferenceEquals(startingVoice, cancellation)) startingVoice = null; }).ConfigureAwait(false);
+                cancellation.Dispose();
+            }
+        }
+    }
+
+    internal void VoiceFault(DextraVoice voice, Exception error)
+    {
+        if (disposed || !ReferenceEquals(Voice, voice)) return;
+        StartFault = "Voice could not start: " + error.Message; Changed?.Invoke();
+    }
+
+    internal void TrackVoiceCleanup(Task cleanup)
+    {
+        if (cleanup.IsCompletedSuccessfully) return;
+        MainActor.AssumeIsolated();
+        voiceTeardown = JoinVoiceWork(voiceTeardown, cleanup);
+    }
+
     private void KeepGrants()
     {
         if (started is { } controller) Settings.KeepGrants(controller.Grants, SwiftClock.Provider.Current.GetUtcNow());
@@ -245,16 +384,16 @@ public sealed class DextraHost : IDisposable
     {
         if (disposed || !MayRun) return Task.FromResult<AssistantController?>(null);
         if (started is not null) return Task.FromResult<AssistantController?>(started);
-        if (model.Dextra is { } running) return Task.FromResult<AssistantController?>(Publish(running));
+        if (model.Dextra is { } running) return Task.FromResult<AssistantController?>(Publish(running, seams, mode));
         if (initialization is not null) return initialization;
         var wasStarting = starting;
         starting = true;
-        try { initialization = InitializeAsync(Id, seams ?? startup ?? new BackgroundStartSeams(), mode ?? StartupMode.Normal, quit, restoringDuties, startEpoch); }
+        try { initialization = InitializeAsync(Id, seams ?? startup ?? new BackgroundStartSeams(), mode ?? StartupMode.Normal, quit, restoringDuties, startEpoch, seams is not null || startup is not null); }
         finally { starting = wasStarting; }
         return initialization;
     }
 
-    private async Task<AssistantController?> InitializeAsync(Guid id, BackgroundStartSeams seams, StartupMode mode, Action? quit, bool restoringDuties, int epoch)
+    private async Task<AssistantController?> InitializeAsync(Guid id, BackgroundStartSeams seams, StartupMode mode, Action? quit, bool restoringDuties, int epoch, bool explicitSeams)
     {
         DextraStartStorage? storage = null;
         AssistantController? controller = null;
@@ -302,11 +441,13 @@ public sealed class DextraHost : IDisposable
                 owned = opened;
                 model.CompleteDextraStart(builtController, opened.Store, () => builtController.Profiles, seams.Tray ?? model.Tray);
                 model.CompleteDutyStart(builtDuties);
-                var published = Publish(builtController);
+                // A publication listener may stop immediately. The published host owns cleanup before notifying it.
+                storage = null; controller = null; duties = null;
+                var published = Publish(builtController, explicitSeams ? seams : null, mode);
+                if (disposed || !MayRun || epoch != startEpoch || started != builtController) return null;
                 builtController.ResumeDelegations();
                 Volatile.Write(ref activated, true);
                 _ = Task.Run(() => { builtDuties.Activate(); builtDuties.Scheduler.Reevaluate(); });
-                storage = null; controller = null; duties = null;
                 if (notes.Count > 0) StartFault = string.Join(" ", notes);
                 foreach (var note in notes) model.AssistantEvents.Publish(FeedDraft.About(FeedEventKind.WatcherChanged, FeedSeverity.Error, TimeProvider.System.GetUtcNow(), note));
                 return published;

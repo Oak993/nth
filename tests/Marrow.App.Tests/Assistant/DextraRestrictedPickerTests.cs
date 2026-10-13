@@ -24,6 +24,7 @@ public sealed class DextraRestrictedPickerTests(HeadlessSession headless)
             var rows = new AssistantRows(settings, new BrainChoices(() => [ProviderKind.Claude, ProviderKind.Codex], _ => [], _ => []));
             rows.SetModelScope(DelegateModelScope.Everywhere);
             var window = new Avalonia.Controls.Window { Width = 700, Height = 240, Content = rows.WithRow };
+            SettingsProviderPopupLayers.Install(window);
             try
             {
                 window.Show(); window.UpdateLayout(); rows.WithMenu.OpenMenu();

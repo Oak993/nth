@@ -99,7 +99,7 @@ public static class BackgroundStart
         if (model.Duties is { } running) return running;
         var probe = seams ?? new BackgroundStartSeams();
         if (!await Task.Run(() => HasDuties(probe.Roots())).ConfigureAwait(false)) return null;
-        var start = await MainActor.Run<Task<AssistantController?>>(() => model.AssistantHost.EnsureStartedAsync(probe, mode, quit, restoringDuties: true)).ConfigureAwait(false);
+        var start = await MainActor.Run<Task<AssistantController?>>(() => model.AssistantHost.EnsureStartedAsync(seams, mode, quit, restoringDuties: true)).ConfigureAwait(false);
         await start.ConfigureAwait(false);
         return await MainActor.Run(() => model.Duties).ConfigureAwait(false);
     }

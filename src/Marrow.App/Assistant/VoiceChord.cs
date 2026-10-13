@@ -59,19 +59,17 @@ public sealed class VoiceChord : IDisposable
     /// <summary>The chord registered, or stopped working (any thread).</summary>
     public event Action<VoiceChordStatus>? StatusChanged;
 
-    public VoiceChordStatus Status
-    {
-        get
-        {
-            lock (gate) return status;
-        }
-    }
+    // ED-NEW-dextra-smooth-7: Settings reads the last completed immutable snapshot without native waits.
+    public VoiceChordStatus Status => Volatile.Read(ref status);
 
     /// <summary>
     /// Registers the chord as the setting has it now: the old registration is released first, so a changed setting takes the new chord at once. Returns
     /// whether it works; the status says why not.
     /// </summary>
-    public bool Register()
+    public bool Register() => RegisterSnapshot(null, null);
+
+    // Deferred voice captures settings on main; workers never read the mutable settings store.
+    internal bool RegisterSnapshot(string? text, IEnumerable<PcHotkey>? conflicts)
     {
         VoiceChordStatus now;
         lock (gate)
@@ -82,12 +80,12 @@ public sealed class VoiceChord : IDisposable
                 host.Unregister(ChordId);
                 isRegistered = false;
             }
-            var chord = Parse(setting());
-            var problem = ChordValidator.Check(chord, others(), host.TypesCharacter);
+            var chord = Parse(conflicts is null ? setting() : text);
+            var problem = ChordValidator.Check(chord, conflicts ?? others(), host.TypesCharacter);
             var ok = problem == PcChordProblem.None && host.Register(ChordId, chord);
             isRegistered = ok;
-            status = new VoiceChordStatus(ok, chord.Format(), problem == PcChordProblem.None && !ok, problem);
-            now = status;
+            now = new VoiceChordStatus(ok, chord.Format(), problem == PcChordProblem.None && !ok, problem);
+            Volatile.Write(ref status, now);
         }
         StatusChanged?.Invoke(now);
         return now.Works;

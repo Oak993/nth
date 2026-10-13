@@ -47,6 +47,14 @@ internal sealed class BackgroundLaunchRig : IDisposable
 
     public void OnMain(Action work) => harness.Main.OnMain(work);
 
+    public void Run(Func<Task> work) => harness.Main.Loop.Run(work);
+
+    public AssistantController? Start(DextraHost? host = null, StartupMode? mode = null)
+    {
+        var pending = OnMain(() => (host ?? Model.AssistantHost).EnsureStartedAsync(mode: mode));
+        return Main.Loop.Run(() => pending);
+    }
+
     public AssistantTempRoot Temp { get; }
 
     public AppModel Model { get; }

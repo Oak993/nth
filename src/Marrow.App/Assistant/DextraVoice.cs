@@ -6,6 +6,7 @@
 // production parts are the default; a test gives its own. The Tactus pill is not in this tree: the conversation's state is plain properties and a Changed
 // event, which the pill reads when it lands (the lead connects it at the merge), and until then the chord brings nth to the front and opens the sheet.
 using System.Globalization;
+using Marrow.Core.Port;
 using Marrow.App.Assistant.Views;
 using Marrow.App.Port.Voice;
 using Marrow.App.Safety;
@@ -89,13 +90,23 @@ public sealed class DextraVoice : IDisposable
     private readonly VoiceStopScope scope;
     private readonly DextraVoiceParts parts;
     private bool disposed;
+    private bool active;
+    private readonly bool nativeAsync;
+    private readonly CancellationTokenSource stopping = new();
+    internal Task NativeCleanup { get; private set; } = Task.CompletedTask;
+    internal Task ChordRefresh { get; private set; } = Task.CompletedTask;
+    private (string? Talk, PcHotkey[] Others) requestedChord;
+    private bool registeringChord;
+    private bool chordDirty;
 
-    private DextraVoice(AppModel model, DextraHost host, VoiceStopScope scope, DextraVoiceParts parts, SpeechOut speech)
+    private DextraVoice(AppModel model, DextraHost host, VoiceStopScope scope, DextraVoiceParts parts, SpeechOut speech, IStopChordHost? prepared = null, bool deferred = false)
     {
         this.model = model;
         this.host = host;
         this.scope = scope;
         this.parts = parts;
+        nativeAsync = deferred;
+        requestedChord = ChordInputs();
         Speech = speech;
         var live = host.Live;
         var controller = host.Controller;
@@ -120,12 +131,9 @@ public sealed class DextraVoice : IDisposable
             PreemptDictation = parts.PreemptDictation,
             Post = action => parts.Post(action),
         });
-        scope.Bind(Conversation);
-        Chord = new VoiceChord(parts.ChordHost(), () => host.Settings.Value.TalkChord, () => [ParseOrDefault(host.Settings.Chord), .. parts.OtherChords]);
-        Chord.Pressed += OnChord;
-        host.Settings.Changed += OnSettings;
+        Chord = new VoiceChord(prepared ?? parts.ChordHost(), () => host.Settings.Value.TalkChord, () => [ParseOrDefault(host.Settings.Chord), .. parts.OtherChords]);
         _ = controller; // the controller outlives this: the host disposes the voice first
-        Chord.Register();
+        if (!deferred) { Activate(); Chord.Register(); }
     }
 
     /// <summary>The conversation the sheet shows and the chord, the header's Talk and the talk button start.</summary>
@@ -153,6 +161,57 @@ public sealed class DextraVoice : IDisposable
         return new DextraVoice(model, host, scope, use, speech);
     }
 
+    // ED-NEW-dextra-smooth-7: only native readiness/registration runs on workers; the conversation is built/published on main.
+    internal static async Task<DextraVoice?> CreateDeferred(AppModel model, DextraHost host, VoiceStopScope scope, CancellationToken token, DextraVoiceParts? parts = null)
+    {
+        var use = parts ?? new DextraVoiceParts();
+        IStopChordHost? chord = null;
+        DextraVoice? made = null;
+        try
+        {
+            chord = await Task.Run(use.ChordHost, token).ConfigureAwait(false);
+            token.ThrowIfCancellationRequested();
+            made = await MainActor.Run(() =>
+            {
+                token.ThrowIfCancellationRequested();
+                var speech = new SpeechOut(use.Synth(), use.Player, new VoiceEchoReference(), new SpeechOutOptions { Language = CultureInfo.CurrentUICulture.Name },
+                    voice: () => host.Settings.Value.VoiceName);
+                try { return new DextraVoice(model, host, scope, use, speech, chord, deferred: true); }
+                catch { speech.Dispose(); throw; }
+            }).ConfigureAwait(false);
+            chord = null; // the made voice now owns it, even when registration is canceled
+            var snapshot = made.requestedChord;
+            made.ChordRefresh = Task.Run(() => made.Chord.RegisterSnapshot(snapshot.Talk, snapshot.Others), token);
+            await made.ChordRefresh.ConfigureAwait(false);
+            token.ThrowIfCancellationRequested();
+            var result = made; made = null; return result;
+        }
+        finally
+        {
+            if (made is not null)
+            {
+                await MainActor.Run(() => { made.Dispose(); host.TrackVoiceCleanup(made.NativeCleanup); }).ConfigureAwait(false);
+                await made.NativeCleanup.ConfigureAwait(false);
+            }
+            if (chord is not null)
+            {
+                var cleanup = Task.Run(chord.Dispose);
+                await MainActor.Run(() => host.TrackVoiceCleanup(cleanup)).ConfigureAwait(false);
+                await cleanup.ConfigureAwait(false);
+            }
+        }
+    }
+
+    internal void Activate()
+    {
+        if (disposed || active) return;
+        active = true;
+        scope.Bind(Conversation);
+        Chord.Pressed += OnChord;
+        host.Settings.Changed += OnSettings;
+        if (nativeAsync) QueueChord(); // reconcile a change made during inactive preparation
+    }
+
     /// <summary>The chord was pressed (any thread): nth comes to the front, the home shows, and the conversation toggles (2.4, 16.2).</summary>
     public void PressChord() => OnChord();
 
@@ -160,17 +219,19 @@ public sealed class DextraVoice : IDisposable
     {
         if (disposed) return;
         disposed = true;
+        stopping.Cancel();
         host.Settings.Changed -= OnSettings;
         Chord.Pressed -= OnChord;
-        scope.Bind(null);
-        Chord.Dispose();
+        if (active) scope.Bind(null);
+        if (nativeAsync) NativeCleanup = DisposeChord();
+        else { Chord.Dispose(); stopping.Dispose(); }
         Conversation.Dispose();
         Speech.Dispose();
     }
 
     private void OnChord() => parts.Post(() =>
     {
-        if (disposed) return;
+        if (disposed || (nativeAsync && !ReferenceEquals(host.Voice, this))) return;
         parts.BringForward(model);
         Conversation.Toggle();
     });
@@ -178,8 +239,61 @@ public sealed class DextraVoice : IDisposable
     // The owner changed a chord or the voice in Settings: the talk chord registers again; the voice is read at the next reply.
     private void OnSettings() => parts.Post(() =>
     {
-        if (!disposed) Chord.Register();
+        if (disposed) return;
+        if (nativeAsync) QueueChord();
+        else Chord.Register();
     });
+
+    private (string? Talk, PcHotkey[] Others) ChordInputs()
+    {
+        var settings = host.Settings.Value;
+        return (settings.TalkChord, [ParseOrDefault(settings.StopChord ?? DextraSettings.DefaultStopChord), .. parts.OtherChords]);
+    }
+
+    private void QueueChord()
+    {
+        if (disposed) return;
+        var next = ChordInputs();
+        if (next.Talk == requestedChord.Talk && next.Others.SequenceEqual(requestedChord.Others) && Chord.Status.Works) return;
+        requestedChord = next;
+        chordDirty = true;
+        if (registeringChord) return; // one worker and one latest snapshot, even during a burst of Settings events
+        registeringChord = true;
+        ChordRefresh = RegisterChord();
+    }
+
+    private async Task RegisterChord()
+    {
+        try
+        {
+            while (true)
+            {
+                var next = await MainActor.Run(() =>
+                {
+                    if (disposed || !chordDirty) { registeringChord = false; return ((string? Talk, PcHotkey[] Others)?)null; }
+                    chordDirty = false;
+                    return ((string? Talk, PcHotkey[] Others)?)requestedChord;
+                }).ConfigureAwait(false);
+                if (next is not { } snapshot) return;
+                await Task.Run(() => { if (!stopping.IsCancellationRequested) Chord.RegisterSnapshot(snapshot.Talk, snapshot.Others); }).ConfigureAwait(false);
+            }
+        }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            await MainActor.Run(() => { registeringChord = false; host.VoiceFault(this, error); }).ConfigureAwait(false);
+        }
+    }
+
+    private async Task DisposeChord()
+    {
+        try { await Task.Run(Chord.Dispose).ConfigureAwait(false); }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            await MainActor.Run(() => host.VoiceFault(this, error)).ConfigureAwait(false);
+            throw; // failed teardown is not an ownership barrier for the next generation
+        }
+        finally { stopping.Dispose(); }
+    }
 
     private static PcHotkey ParseOrDefault(string text) => PcHotkey.TryParse(text, out var chord) ? chord : PcHotkey.StopDefault;
 

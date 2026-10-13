@@ -33,6 +33,8 @@ public sealed class MissionBoard : Decorator
     private readonly Dictionary<Guid, MissionJob> shown = [];
     private readonly StackPanel body = new() { Orientation = Orientation.Vertical, Spacing = 14 };
     private ITimer? timer;
+    private TimeSpan? timerPeriod;
+    private DextraViewWatch? availability;
     private MotionScope.Entry? budget;
     private bool narrow;
     private bool calm;
@@ -105,6 +107,8 @@ public sealed class MissionBoard : Decorator
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
+        availability = new DextraViewWatch(this);
+        availability.Changed += OnAvailability;
         jobs.Changed += Refresh;
         digestSubscription = watchDigest?.Invoke(Refresh);
         if (TopLevel.GetTopLevel(this) is { } top)
@@ -119,25 +123,48 @@ public sealed class MissionBoard : Decorator
         jobs.Changed -= Refresh;
         digestSubscription?.Dispose();
         digestSubscription = null;
+        if (availability is not null) { availability.Changed -= OnAvailability; availability.Dispose(); availability = null; }
         budget?.Leave();
         budget = null;
         timer?.Dispose();
-        timer = null;
+        timer = null; timerPeriod = null;
     }
 
     private void Arm()
     {
-        var want = IsEffectivelyVisible && VisualRoot is not null;
+        var want = IsEffectivelyVisible && VisualRoot is not null && availability?.Available != false && cards.Count > 0;
+        var period = shown.Values.Any(j => j.Group != BoardGroup.DoneToday) ? TickEvery : Timeout.InfiniteTimeSpan;
+        if (!want || timerPeriod != period) { timer?.Dispose(); timer = null; timerPeriod = null; }
         if (want && timer is null)
-            timer = SwiftClock.Provider.Current.CreateTimer(_ => Dispatcher.UIThread.Post(Tick), null, TickEvery, TickEvery);
-        else if (!want && timer is not null) { timer.Dispose(); timer = null; }
+        {
+            var now = Now;
+            var local = TaskWords.Local(now).Date.AddDays(1);
+            var midnight = new DateTimeOffset(local, SwiftClock.Provider.Current.LocalTimeZone.GetUtcOffset(local));
+            var due = period == TickEvery ? TickEvery : midnight - now;
+            timer = SwiftClock.Provider.Current.CreateTimer(_ => Dispatcher.UIThread.Post(OnClockTick), null, due, period);
+            timerPeriod = period;
+        }
     }
 
     private DateTimeOffset Now => SwiftClock.Provider.Current.GetUtcNow();
 
+    private void OnClockTick()
+    {
+        if (timerPeriod == Timeout.InfiniteTimeSpan) { timer?.Dispose(); timer = null; timerPeriod = null; }
+        Tick(); Arm();
+    }
+
+    private void OnAvailability()
+    {
+        budget?.Changed();
+        if (availability?.Available == true) Refresh();
+        Arm();
+    }
+
     /// <summary>The 4 Hz tick: live values in place when nothing else changed, a full refresh otherwise.</summary>
     public void Tick()
     {
+        if (availability?.Available == false) return;
         var now = Now;
         var list = Visible(jobs.Snapshot(now), now);
         if (list.Count != shown.Count || list.Any(j => !shown.TryGetValue(j.Id, out var was) || !SameShape(was, j))) { Place(list, now); return; }
@@ -163,6 +190,7 @@ public sealed class MissionBoard : Decorator
     /// <summary>Reads the missions again and places every card.</summary>
     public void Refresh()
     {
+        if (availability?.Available == false) return; // the next visible transition reads the newest snapshot once
         var now = Now;
         Place(Visible(jobs.Snapshot(now), now), now);
     }
@@ -232,6 +260,7 @@ public sealed class MissionBoard : Decorator
         }
         budget?.Changed();
         if (moved && before is not null) Flip(before);
+        Arm();
     }
 
     private Dictionary<MissionCard, Point>? Positions()

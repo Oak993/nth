@@ -129,7 +129,10 @@ internal sealed class ArmillaSkiaCanvas : IArmillaCanvas, IDisposable
             {
                 var rc = (float)(r * .5);
                 var d = (float)(r * .5);
-                foreach (var (dx, dy) in new[] { (d, 0f), (-d, 0f), (0f, d), (0f, -d) }) path.AddCircle(fx + dx, fy + dy, rc);
+                path.AddCircle(fx + d, fy, rc);
+                path.AddCircle(fx - d, fy, rc);
+                path.AddCircle(fx, fy + d, rc);
+                path.AddCircle(fx, fy - d, rc);
                 break;
             }
             case ArmillaShape.Star:

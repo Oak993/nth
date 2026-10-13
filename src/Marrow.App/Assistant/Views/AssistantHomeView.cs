@@ -544,7 +544,7 @@ public sealed class AssistantHomeView : Decorator
         if (narrow)
         {
             // stacked: the conversation, then the Board under it
-            columns.RowDefinitions = new RowDefinitions("Auto,Auto");
+            columns.RowDefinitions = new RowDefinitions("*,Auto");
             columns.ColumnDefinitions = new ColumnDefinitions("*");
             columns.RowSpacing = 12;
             columns.ColumnSpacing = 0;
