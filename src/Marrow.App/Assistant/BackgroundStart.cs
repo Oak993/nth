@@ -96,7 +96,8 @@ public static class BackgroundStart
                 log = AuditLog.Open(roots, seams.Keys());
                 var profiles = Profiles(store, ids);
                 var held = log;
-                model.StartDextra(store, entry => held.Append(entry), () => profiles, stopKey: seams.StopKey ?? model.EnsureStopKey(),
+                // The same roots as the window's start (DextraHost.Production): the audit folder, beside what StartDextra always protects (ED-NEW-dextra-f4-1).
+                model.StartDextra(store, entry => held.Append(entry), () => profiles, protectedRoots: [roots.AuditDirectory], stopKey: seams.StopKey ?? model.EnsureStopKey(),
                     tray: seams.Tray ?? model.EnsureTray(windowHidden, null, open), duties: model.DutyToolsGate);
                 log = null; // the controller's audit callback owns it for the life of the app
             }

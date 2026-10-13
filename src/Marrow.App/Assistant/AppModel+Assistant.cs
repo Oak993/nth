@@ -107,8 +107,9 @@ public sealed partial class AppModel
     /// Starts Dextra over its store (AS-8 calls this when the owner turns Dextra on): a controller whose chats are this
     /// app's, whose workspaces live under the store's worktrees folder and whose missions are journaled in the store; the
     /// missions the store held come back (a live one Paused and asking "Resume?", 15.3, when the store was opened with
-    /// <see cref="MissionJournal.Interrupted"/> as its rule), and the controller is bound. The store's folder and
-    /// <paramref name="protectedRoots"/> (the audit folder, nth's settings) are never written by an agent. Returns the
+    /// <see cref="MissionJournal.Interrupted"/> as its rule), and the controller is bound. The store's folder, nth's own files
+    /// (<see cref="NthOwnFiles"/>: its data root and its settings file, whatever the caller passes) and
+    /// <paramref name="protectedRoots"/> (the audit folder) are never written by an agent. Returns the
     /// controller; the caller owns it. Auto-answering turns on only once the injection self-check passes in this
     /// process (AS-7); <paramref name="autoAnswer"/> swaps that switch (a test's). <paramref name="personalDataRecipients"/>
     /// and <paramref name="allowlist"/> are the owner's lists from Settings (empty until Settings has them).
@@ -204,7 +205,7 @@ public sealed partial class AppModel
             Save = record => store.SaveMission(MissionJournal.StoreId(record.Id), MissionJournal.ToJson(record)),
             Provider = provider,
             Model = model,
-            ProtectedRoots = [store.Root, .. protectedRoots ?? []],
+            ProtectedRoots = [store.Root, .. NthOwnFiles(), .. protectedRoots ?? []],
             AutoAnswer = autoAnswer ?? AutoAnswerSwitch.AfterCorpus(),
             PersonalDataRecipients = personalDataRecipients ?? (() => []),
             Allowlist = allowlist ?? (() => []),
@@ -239,6 +240,20 @@ public sealed partial class AppModel
         BindDecisionToasts(controller, id => profiles().FirstOrDefault(profile => profile.Id == id)?.Name is { Length: > 0 } name ? name : AssistantNames.Assistant);
         BindDextra(controller);
         return controller;
+    }
+
+    /// <summary>
+    /// nth's own files, which no agent of Dextra's writes (12.1a "changes nth's own settings and grants"; ED-NEW-dextra-f4-1): the data root
+    /// as bound now (library.json, UserDefaults.json with Dextra's switches and grants, the threads, mcp.json, and the store and the activity
+    /// log under it) and the settings file where the app keeps it, named on its own so a data root bound elsewhere still leaves it protected.
+    /// A mission's own worktree inside the store stays its work (ActionClassifier's own-worktree carve-out).
+    /// </summary>
+    internal static IReadOnlyList<string> NthOwnFiles()
+    {
+        var local = Marrow.Core.Support.DevDataRoot.LocalApplicationData();
+        return string.IsNullOrEmpty(local)
+            ? [Marrow.Services.Store.Storage.Root]
+            : [Marrow.Services.Store.Storage.Root, Marrow.Services.Port.SettingsStore.ProductionPath(local)];
     }
 
     /// <summary>

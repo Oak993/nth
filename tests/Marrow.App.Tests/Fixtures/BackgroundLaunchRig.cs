@@ -51,6 +51,9 @@ internal sealed class BackgroundLaunchRig : IDisposable
 
     public int Quits { get; private set; }
 
+    /// <summary>Runs on the model's main thread, as the app's taps do.</summary>
+    public T OnMain<T>(Func<T> body) => harness.Main.OnMain(body);
+
     public DutyHost? Run(StartupMode mode, out string? problem)
     {
         string? why = null;
