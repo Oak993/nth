@@ -137,9 +137,12 @@ public static class MCPProviderConfig
     // environment, home) convention).
     public static ValueList<string> CodexUserServerNames() => CodexUserServerNames(LoginEnvironment.HomeDirectory); // :164
 
-    internal static ValueList<string> CodexUserServerNames(string home) // :163-164
+    internal static ValueList<string> CodexUserServerNames(string home) => // :163-164
+        CodexServerNamesAt(SwiftPath.AppendingPathComponent(home, ".codex/config.toml")); // :164
+
+    /// <summary>PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-3): the [mcp_servers.*] names of one Codex config.toml (CODEX_HOME's).</summary>
+    public static ValueList<string> CodexServerNamesAt(string path)
     {
-        var path = SwiftPath.AppendingPathComponent(home, ".codex/config.toml"); // :164
         string? text = SwiftTry.Optional(() => SwiftText.DecodeUtf8OrNil(File.ReadAllBytes(path))); // :165, R-STR-8
         if (text is null) return ValueList<string>.Empty; // :165
 
@@ -313,6 +316,17 @@ public static class MCPProviderConfig
         return GeminiSettingsURL; // :227
     }
 
+    /// <summary>
+    /// PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-3): the mcpServers object of nth's own claude.json (the servers connected in
+    /// Settings), or null when there is none; a sealed mission chat keeps only the ones its assistant's profile lists.
+    /// </summary>
+    public static JSONValue? ClaudeConnectedServers() =>
+        ReadOptionalConfig(MCPPaths.ClaudeConfigURL) is { } data ? JSONValue.Parse(data)?["mcpServers"] : null;
+
+    /// <summary>PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-3): the mcp_servers object of nth's own codex.json, or null.</summary>
+    public static JSONValue? CodexConnectedServers() =>
+        ReadOptionalConfig(MCPPaths.CodexConfigURL) is { } data ? JSONValue.Parse(data)?["mcp_servers"] : null;
+
     // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): no Swift counterpart. A session's ask_advisor server, null unless
     // its chat has an advisor (a Hydra head, whose lead advises); the per-provider shapes below add it beside the
     // connected servers only then, so a chat with no advisor launches exactly as before.
@@ -334,12 +348,12 @@ public static class MCPProviderConfig
     /// The session's built-in servers (DESIGN.md 3.4): the advisor's, nth-pc's and nth-ui's, each only when it applies. Empty
     /// for every chat that has none, so its launch is exactly as before.
     /// </summary>
-    public static IReadOnlyList<MCPResolvedServer> BuiltInServers(MCPResolvedServer? advisor, MCPResolvedServer? pc, MCPResolvedServer? ui = null) =>
-        [.. new[] { advisor, pc, ui }.OfType<MCPResolvedServer>()];
+    public static IReadOnlyList<MCPResolvedServer> BuiltInServers(params MCPResolvedServer?[] servers) =>
+        [.. servers.OfType<MCPResolvedServer>()];
 
     /// <summary>The built-in servers of a session that keeps no reference to them (Antigravity, Pi, Command Code).</summary>
     public static IReadOnlyList<MCPResolvedServer> BuiltInServers(Providers.SessionConfiguration configuration) =>
-        BuiltInServers(AdvisorServer(configuration), PcServer(configuration));
+        configuration.NoTools ? [] : BuiltInServers(AdvisorServer(configuration), PcServer(configuration), UiServer(configuration), DextraServer(configuration));
 
     /// <summary>Codex: the connected servers (CodexOverrides) with the advisor's and nth-ui's entries added; null when there are none.</summary>
     public static JSONValue? CodexServers(JSONValue? overrides, MCPResolvedServer? advisor, MCPResolvedServer? ui = null) =>
@@ -351,6 +365,12 @@ public static class MCPProviderConfig
     /// reaches Codex's own default limit; nth-ui's asks for a day (web surfaces W25, ED-NEW-web-w25-1: an ask_user question
     /// waits for a person, and Codex ends an MCP tool call after 60 s unless the server's entry says otherwise).
     /// </summary>
+    // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): no Swift counterpart. A session's nth-dextra server, null unless the
+    // Dextra controller knows its chat as Dextra's home thread, an Astur's, or a mission's (AssistantMcpBridge.Server); like
+    // the advisor's, it joins the shapes below only then.
+    public static MCPResolvedServer? DextraServer(Providers.SessionConfiguration configuration) =>
+        Marrow.Services.Assistant.AssistantMcpBridge.Server(configuration);
+
     public static JSONValue? CodexBuiltIns(JSONValue? overrides, IReadOnlyList<MCPResolvedServer> builtIns)
     {
         if (builtIns.Count == 0) return overrides;

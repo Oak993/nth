@@ -45,6 +45,8 @@ public sealed partial class ThreadRuntime : IIgnisRuntimePort, IIgnisRuntimeTime
             if (hydraPendingReports.Count != 0 || hydraBatches.Count != 0 || hydraWaiting.Count != 0) return false;
             if (App is not { } app || app.Thread(ThreadID) is not { } thread) return false;
             if (thread.IsArchived || thread.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Droppy) return false;
+            // AS-15 (13.2): a mission's chat is mid-task until its mission is done, whatever it is doing this second.
+            if (app.AssistantUseOf(thread) == IgnisAssistantUse.MissionMidTask) return false;
             return !app.HydraTeam(ThreadID).Any(head => head.Hydra is { IsFinished: false });
         }
     }
@@ -60,9 +62,12 @@ public sealed partial class ThreadRuntime : IIgnisRuntimePort, IIgnisRuntimeTime
     /// <summary>Whether a turn of this runtime was a hidden ping.</summary>
     internal bool IgnisIsPingTurn(Guid turnID) => ignisPingTurns.Contains(turnID);
 
+    // AS-15 (13.2): Dextra's home thread is never kept warm, by a ping or silently, whoever asks (the controller never does; this is the second lock).
+    private bool IgnisKeepsWarmHere => App is not { } app || app.Thread(ThreadID) is not { } thread || app.AssistantUseOf(thread) == IgnisAssistantUse.None;
+
     bool IIgnisRuntimePort.SendHiddenPing()
     {
-        if (!IgnisIsBetweenTasks || session is null) return false;
+        if (!IgnisIsBetweenTasks || !IgnisKeepsWarmHere || session is null) return false;
         ignisLastRequestAt = SwiftDate.Now;
         _ = SpawnInstallerTurn(StartIgnisPingTurn);
         return true;
@@ -83,7 +88,7 @@ public sealed partial class ThreadRuntime : IIgnisRuntimePort, IIgnisRuntimeTime
 
     bool IIgnisRuntimePort.KeepWarmSilently()
     {
-        if (!IgnisIsBetweenTasks || session is not { } live || IgnisSessionHooks.KeepWarm.Current(live) is not { } keepWarm) return false;
+        if (!IgnisIsBetweenTasks || !IgnisKeepsWarmHere || session is not { } live || IgnisSessionHooks.KeepWarm.Current(live) is not { } keepWarm) return false;
         ignisLastRequestAt = SwiftDate.Now;
         _ = SpawnInstallerTurn(async () =>
         {

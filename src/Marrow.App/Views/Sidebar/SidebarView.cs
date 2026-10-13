@@ -324,6 +324,10 @@ public sealed class SidebarView : Decorator
             Children = { field, toggle },
         }, GridLength.Auto);
 
+        // PORT-ONLY (Dextra AS-8, DESIGN.md 2.1, ED-NEW-dextra-as8-8): the pinned Assistant row at the top of the list, above
+        // "Needs attention", with its Missions group.
+        Add(new Marrow.App.Assistant.Views.AssistantSidebarSlot(), GridLength.Auto);
+
         // :101-124 ScrollView(.vertical) { LazyVStack(alignment: .leading, spacing: 1) { ... } }
         list = new StackPanel
         {
@@ -1207,7 +1211,7 @@ public sealed class SidebarView : Decorator
     // MARK: Where the threads sit
 
     // :385-389 Where every thread sits in the list, kept while a cheap fingerprint of the threads stands.
-    private ValueList<ThreadPlacement> ThreadPlacements => placementCache.Placements(Model.Threads);
+    private ValueList<ThreadPlacement> ThreadPlacements => placementCache.Placements(Marrow.App.Assistant.AssistantChats.Listed(Model.Threads)); // PORT-ONLY AS-8: the Assistant's own chats sit under its row, not in the day groups
 
     // :406-422 Every helper by the thread it hangs under, worked out once for the whole list.
     private ValueMap<Guid, ValueList<ChatThread>> HelpersByParent(ValueList<ThreadPlacement> placements) =>
@@ -4891,6 +4895,8 @@ internal static class ThreadActions
             Symbol = "arrowshape.turn.up.right",
             Action = () => MainActor.Spawn(async () => { await model.ForwardThread(thread.Id); return; }),
         });
+        if (Marrow.App.Assistant.AssistantChats.HideAction(model, thread) is { } hide) items.Add(hide); // PORT-ONLY AS-8 (DESIGN.md 5.4): while Dextra runs
+        if (Marrow.App.Assistant.AssistantChats.DelegateAction(model, thread) is { } answer) items.Add(answer); // PORT-ONLY AS-22 (DESIGN.md 4.3): "Answer questions for me", while Dextra runs
         if (thread.WorktreePath is { } path) // :2214
         {
             items.Add(new RowAction // :2215, OD-0008 B1: the label deviates from upstream's "Reveal worktree in Finder"
@@ -4974,6 +4980,8 @@ internal static class ThreadActions
                 MainActor.Spawn(async () => { await live.ForwardThread(threadID); return; }); // :2279
             },
         });
+        if (Marrow.App.Assistant.AssistantChats.HideAction(model, thread) is { } hide) items.Add(hide); // PORT-ONLY AS-8 (DESIGN.md 5.4): while Dextra runs
+        if (Marrow.App.Assistant.AssistantChats.DelegateAction(model, thread) is { } answer) items.Add(answer); // PORT-ONLY AS-22 (DESIGN.md 4.3): "Answer questions for me", while Dextra runs
         if (thread.WorktreePath is { } path) // :2282
         {
             items.Add(new RowAction // :2283-2286

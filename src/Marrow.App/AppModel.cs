@@ -151,6 +151,7 @@ public sealed partial class AppModel : MainActorModel
             {
                 if (oldValue is { } oldID) SelectionCell(oldID).Value = false;
                 if (value is { } newID) SelectionCell(newID).Value = true;
+                if (value is not null && assistantHomeShown) AssistantHomeShown = false; // PORT-ONLY (AS-8, ED-NEW-dextra-as8-8): picking a chat leaves the Assistant home
                 SwitchLatency.NoteSwitch(value is { } selectedID ? Thread(selectedID)?.Title ?? "none" : "none");
             }
             if (value is { } selected)
@@ -945,6 +946,7 @@ public sealed partial class AppModel : MainActorModel
         {
             Title = "Continued: " + resolved.Title,
             HasCustomTitle = true,
+            HiddenFromAssistant = resolved.HiddenFromAssistant || Marrow.Core.Port.Assistant.FeedChatFacts.From(resolved, Thread).Hidden, // PORT-ONLY (ED-NEW-dextra-cx-1): preserve inherited hiding when the continuation loses its parent link
         };
         Threads = Threads.Appending(forwarded);
         UpdateProject(project.Id, value => value with { IsExpanded = true });
@@ -1276,6 +1278,9 @@ public sealed partial class AppModel : MainActorModel
         if (Subagent(parentID) is { } existing) // AppModel.swift:1023
         {
             var existingRuntime = Runtime(existing.Id); // AppModel.swift:1024
+            // PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-15): the parent wrote this prompt, so the helper carries the
+            // parent's taint as it stands now, not only as it stood when the helper opened.
+            DextraHelperPrompted(parent, existing);
             if (existingRuntime.IsRunning) // AppModel.swift:1025
             {
                 existingRuntime.EnqueueFollowUp(prompt, []); // AppModel.swift:1026
@@ -1283,7 +1288,13 @@ public sealed partial class AppModel : MainActorModel
             else
             {
                 existingRuntime.Draft = new ComposerDraft { Text = prompt }; // AppModel.swift:1028-1029
-                existingRuntime.Send(); // AppModel.swift:1030
+                // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-14): a mission's helper waits at the agent gate first.
+                if (existing.MissionID is null) existingRuntime.Send(); // AppModel.swift:1030
+                else MainActor.Spawn(async () =>
+                {
+                    await DextraAdmitHelper(existing);
+                    existingRuntime.Send();
+                });
             }
             return existing; // AppModel.swift:1032
         }
@@ -1300,12 +1311,33 @@ public sealed partial class AppModel : MainActorModel
             IsInPanel = true, // AppModel.swift:1042
             Title = title, // AppModel.swift:1043
             HasCustomTitle = true, // AppModel.swift:1044
+            HiddenFromAssistant = parent.HiddenFromAssistant, // PORT-ONLY (AS-3a, ED-NEW-dextra-as3a-2): a helper of a hidden chat is hidden too
+            // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-12): a subagent a mission's chat opens is the mission's too, so it is
+            // sealed, capped and in its own job like every mission descendant (12.3: never Full access, never the owner's rules).
+            MissionID = parent.MissionID,
+            AssistantID = parent.MissionID is null ? null : parent.AssistantID,
+            // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-14): it works in the mission's own folder, never the owner's tree.
+            WorktreePath = parent.MissionID is null ? null : parent.WorktreePath,
+            Branch = parent.MissionID is null ? null : parent.Branch,
         };
+        // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-14): a mission chat's helper is one of Dextra's agents of a running
+        // mission (its approvals through the policy engine and the queue, Stop and Finish reaching it, the gate counting
+        // it); with no running mission to take it, it does not open.
+        if (thread.MissionID is not null && !DextraHelperAdded(parent, thread))
+        {
+            Runtime(parentID).AppendHydraNote("Dextra: a helper of a mission opens only while Dextra runs that mission.");
+            return null;
+        }
         Threads = Threads.Appending(thread); // AppModel.swift:1045
         ScheduleSave(); // AppModel.swift:1046
         var runtime = Runtime(thread.Id); // AppModel.swift:1047
         runtime.Draft = new ComposerDraft { Text = prompt }; // AppModel.swift:1048-1049
-        runtime.Send(); // AppModel.swift:1050
+        if (thread.MissionID is null) runtime.Send(); // AppModel.swift:1050
+        else MainActor.Spawn(async () => // PORT-ONLY (Dextra AS-5): a mission's helper waits at the agent gate first
+        {
+            await DextraAdmitHelper(thread);
+            runtime.Send();
+        });
         return thread; // AppModel.swift:1051
     }
 
@@ -1423,19 +1455,30 @@ public sealed partial class AppModel : MainActorModel
     // AppModel.swift:1158-1169
     public void ThreadNeedsAttention(Guid id) // AppModel.swift:1158-1169
     {
+        AssistantTaps.TapNeedsAttention(id); // PORT-ONLY (AS-2, ED-NEW-dextra-as2-8): the Assistant's live feed
         if (Thread(id) is not { } thread) return;
         if (IsApplicationActive() && IsOnScreen(thread))
         {
             MarkRead(id);
             return;
         }
+        if (DecisionToastCovers(thread)) return; // PORT-ONLY (AS-9, ED-NEW-dextra-as9-1): a mission chat's decision makes its toast from Dextra's queue
         Notify(id, thread.Title, "Waiting for your decision.");
     }
+
+    /// <summary>
+    /// PORT-ONLY (Dextra AS-18, ED-NEW-dextra-as18-8): a chat's turn ended (the thread, how it ended, whether another turn follows). Raised on the main
+    /// thread, after the Assistant's own taps. The voice conversation waits on it for the answer it speaks.
+    /// </summary>
+    public event Action<Guid, TurnStatus, bool>? ThreadTurnFinished;
 
     // AppModel.swift:1173-1216. Swift: turnFinished(_:status:continues:).
     public void TurnFinished(Guid id, TurnStatus status, bool continues) // AppModel.swift:1173-1216
     {
         if (IgnisTurnFinished(id, status)) return; // PORT-ONLY: Ignis (ED-NEW-ignis-runtime): a hidden keep-warm ping ends silently
+        AssistantTaps.TapTurnFinished(id, status, continues); // PORT-ONLY (AS-2, ED-NEW-dextra-as2-8): the Assistant's live feed
+        Dextra?.OnTurnFinished(id, status, continues); // PORT-ONLY (AS-5): a mission's lead or reviewer moves its mission on
+        ThreadTurnFinished?.Invoke(id, status, continues); // PORT-ONLY (AS-18, ED-NEW-dextra-as18-8): the voice conversation waits on its chat's turn
         if (Thread(id) is { IsSideChat: true }) { SideChatTurnFinished(id, status); return; } // PORT-ONLY (web surfaces W6): a side chat's turn ends quietly
         var thread = Thread(id);
         var isVisible = IsApplicationActive() && thread is not null && IsOnScreen(thread);
@@ -1460,7 +1503,7 @@ public sealed partial class AppModel : MainActorModel
         if (continues) return;
         var chimed = Settings.ChimeWhenFinished && status != TurnStatus.Interrupted;
         if (chimed) FinishChime.Play();
-        if (isVisible || !Settings.NotifyWhenFinished || thread is null) return;
+        if (isVisible || !Settings.NotifyWhenFinished || thread is null || DecisionToastCovers(thread)) return; // AS-9: a mission's end is a status, never a push (13.1)
         var body = status switch
         {
             TurnStatus.Completed => "Finished.",
@@ -1611,6 +1654,7 @@ public sealed partial class AppModel : MainActorModel
 
     private void SaveSynchronouslyBeforeQuit()
     {
+        DisposeAssistantFeed(); // PORT-ONLY: owned feed/taps/watcher stop even when persistence is disabled (ED-NEW-dextra-cx-7)
         if (!persistenceEnabled) return; // AppModel.swift:1328
         persistenceEnabled = false; // AppModel.swift:1329
         saveTask?.Cancel(); // AppModel.swift:1330

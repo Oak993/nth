@@ -1,3 +1,4 @@
+using Marrow.App.Assistant;
 using Marrow.App.Port;
 using Marrow.App.Port.Updates;
 using Marrow.App.Views.Chat;
@@ -5,6 +6,7 @@ using Marrow.App.Views.Settings;
 using Marrow.App.Views.Tour;
 using Marrow.App.Window;
 using Marrow.Core.Port;
+using Marrow.Core.Port.Assistant;
 using Marrow.Services.MCP;
 using Marrow.Services.Store;
 using Marrow.UI.Markdown;
@@ -56,6 +58,15 @@ public sealed class AppDelegate
 
     internal Func<AppModel, Task> BootstrapModel { get; set; } = model => model.Bootstrap();
 
+    /// <summary>
+    /// PORT-ONLY (AS-10, ED-NEW-dextra-as10-13): nth was started hidden (<c>--hidden</c> at sign-in, <c>--duty id</c> by Task Scheduler's wake): no
+    /// boot stage, no main window, no tour; the model is bootstrapped and <see cref="AfterBootstrap"/> starts the duties. Set by the entry point only.
+    /// </summary>
+    internal bool StartHidden { get; set; }
+
+    /// <summary>PORT-ONLY (AS-10): runs once the model is bootstrapped, with the window shown or not (the duties start here). Set by the entry point only.</summary>
+    internal Action<AppModel>? AfterBootstrap { get; set; }
+
     /// <summary>GR-2: the first-run preparation the Getting ready sheet shows (OD-0096). Settable only so the launch tests can script it; nothing in the app sets it.</summary>
     internal Marrow.App.Port.FirstRun.FirstRunPreparation FirstRun { get; set; } = Marrow.App.Port.FirstRun.FirstRunPreparation.Default;
 
@@ -73,6 +84,19 @@ public sealed class AppDelegate
         var windows = WindowManager.Shared; // :16
         Model = windows.Model; // :17
         Marrow.App.Port.Voice.VoiceComposition.Attach(windows.Model.Settings); // VT-15: register hardware before GR-1 takes its plan; consent still gates all downloads
+        if (StartHidden)
+        {
+            // AS-10: nothing is shown. The model is bootstrapped (providers, projects, threads) and the duties start; the owner's
+            // window is made when he asks for it (the tray's Open nth, a second launch), by the same ShowMain.
+            MainActor.Spawn(async () =>
+            {
+                await BootstrapModel(windows.Model);
+                AfterBootstrap?.Invoke(windows.Model);
+            });
+            UpdateChecker.Shared.StartBackgroundChecks();
+            UpdateEverythingProduction.Configure(windows.Model);
+            return;
+        }
         // PORT-ONLY (OD-0096, GR-2): when the machine is not prepared (the first run, a new build, a new graphics card or driver) the main
         // window is made with the Getting ready sheet over its RootView, so the sheet is in its first frame; armed before :22 makes the window.
         var firstRun = Marrow.App.Port.FirstRun.GettingReadyLaunch.Arm(windows, FirstRun);
@@ -115,6 +139,7 @@ public sealed class AppDelegate
             if (boot is not null) await firstRunDone.Task;
             boot?.Ready(); // OD-0108 / OD-0113: bootstrap (to its provider refresh) AND preparation must finish before B reveals the window
             await bootstrap;
+            AfterBootstrap?.Invoke(windows.Model); // AS-10: the duties start with the window up too
         });
         UpdateChecker.Shared.StartBackgroundChecks(); // :28
         UpdateEverythingProduction.Configure(windows.Model); // UE-5 (OD-0100): Update everything's items and its background check; no Swift twin
@@ -188,6 +213,13 @@ public sealed class AppDelegate
     /// and in front, a banner with sound for everything else.</summary>
     public async Task<UNNotificationPresentationOptions> UserNotificationCenter(UNNotification willPresent)
     {
+        // PORT-ONLY (AS-9, ED-NEW-dextra-as9-3): a decision toast is not shown while the Assistant home is in front, checked once more here,
+        // right before the Windows call, in case the owner opened the home between the request and now.
+        if (willPresent.UserInfo.ContainsKey(DecisionToastKeys.Decision) || willPresent.UserInfo.ContainsKey(DecisionToastKeys.Mission))
+        {
+            var onHome = await MainActor.Run(() => Model is { } home && ToastNotifications.IsSurfaceOnScreen(home, AppSurface.AssistantHome));
+            return onHome ? UNNotificationPresentationOptions.None : UNNotificationPresentationOptions.Banner | UNNotificationPresentationOptions.Sound;
+        }
         var threadIDString = willPresent.UserInfo.TryGetValue("threadID", out var threadID) ? threadID as string : null; // :67
         if (threadIDString is not null && SwiftUUID.Parse(threadIDString) is { } notifiedID) // :68
         {
@@ -206,6 +238,30 @@ public sealed class AppDelegate
         var identifier = userInfo.TryGetValue("threadID", out var threadID) ? threadID as string : null; // :82
         var isUpdate = userInfo.TryGetValue("update", out var update) && update is not null; // :83
         var windows = ToastActivationWindows.Current.Current;
+        // PORT-ONLY (AS-9, ED-NEW-dextra-as9-5): a press on a decision toast. A button that answers its card does so without bringing nth forward;
+        // every other press (the body, Open, Review, an answer the toast cannot give) brings nth forward on the card.
+        if (userInfo.TryGetValue(DecisionToastKeys.Decision, out var decisionText) && decisionText is string decision && Guid.TryParse(decision, out var target))
+        {
+            var action = DecisionNoticeWords.Parse(userInfo.TryGetValue(DecisionToastKeys.Action, out var key) ? key as string : null) ?? NoticeAction.Review;
+            var nonce = userInfo.TryGetValue(DecisionToastKeys.Nonce, out var spent) ? spent as string : null;
+            return MainActor.Run(() =>
+            {
+                if (Model is { } assistant && assistant.DecisionToastActivated(target, nonce, action) == DecisionToastOutcome.Answered) return;
+                windows.ShowMain();
+                Model?.ReviewAssistantDecision(target);
+                windows.Activate();
+            });
+        }
+        // PORT-ONLY (AS-9, ED-NEW-dextra-as9-9): a press on a duty's toast (a "Notify me" finding) brings nth forward on the mission; it answers nothing.
+        if (userInfo.TryGetValue(DecisionToastKeys.Mission, out var missionText) && missionText is string mission && Guid.TryParse(mission, out var run))
+        {
+            return MainActor.Run(() =>
+            {
+                windows.ShowMain();
+                Model?.ReviewAssistantMission(run);
+                windows.Activate();
+            });
+        }
         return MainActor.Run(() =>
         {
             if (!isUpdate) windows.ShowMain(); // :85

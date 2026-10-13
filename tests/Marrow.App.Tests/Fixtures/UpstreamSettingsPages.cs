@@ -14,7 +14,7 @@ public static class UpstreamSettingsPages
         [SettingsPage.Customization, SettingsPage.VoiceTyping, SettingsPage.Updates, SettingsPage.Plugins, SettingsPage.Skills, SettingsPage.Pills];
 
     /// <summary>PORT-ONLY features with a page of their own (OD-0134 Ignis, directly below Hydra; OD-0140 Tactus, directly after Skills, ED-NEW-pcctl-29): not upstream's either; web surfaces W10 adds Visus and Tabula directly after Tactus (ED-NEW-web-w10-4).</summary>
-    public static readonly IReadOnlyList<SettingsPage> FeatureAdded = [SettingsPage.Ignis, SettingsPage.PcControl, SettingsPage.Visus, SettingsPage.Tabula];
+    public static readonly IReadOnlyList<SettingsPage> FeatureAdded = [SettingsPage.Ignis, SettingsPage.Assistant, SettingsPage.PcControl, SettingsPage.Visus, SettingsPage.Tabula];
 
     public static IReadOnlyList<SettingsPage> All { get; } = SwiftEnum<SettingsPage>.AllCases.Where(page => !PortAdded.Contains(page) && !FeatureAdded.Contains(page)).ToList();
 }

@@ -125,6 +125,13 @@ public class OpenAICompatibleSession : ProviderSession
     // PORT-ONLY (Tactus, ED-NEW-pcctl-42): the screenshots of this round's nth-pc calls, sent in one user message after the
     // round's tool messages when the model takes images.
     private readonly List<(string Tool, Marrow.Core.Port.PcControl.PcImage Image)> pcShots = [];
+    // PORT-ONLY (Dextra, ED-NEW-dextra-as4-5): the nth-dextra tools, set at construction for a chat the Dextra controller
+    // knows as Dextra's; null, the default, leaves every byte this session sends exactly as before.
+    public Marrow.Services.Assistant.AssistantNativeTools? DextraTools { get; set; }
+
+    // PORT-ONLY (Dextra, ED-NEW-dextra-as4-6): whether the model takes tool calls. A model that does not (a local model with
+    // tool calling off) asks for the nth-dextra tools in fenced blocks instead.
+    protected virtual bool ToolCallingAvailable => true;
 
     // PORT-ONLY (SK-11f, DL-12): the normalized tool events (CommandHeld, CommandFinished, SkillUsed, ToolRequested) the missing-tool detector reads.
     public Action<ToolEvent>? OnToolEvent { get; set; }
@@ -163,6 +170,8 @@ public class OpenAICompatibleSession : ProviderSession
 
     // PORT-ONLY (Tactus, ED-NEW-pcctl-42): the nth-pc tools, empty unless PcTools offers them.
     private IReadOnlyList<JSONValue> PcToolDefinitions => PcTools?.Definitions ?? [];
+    // PORT-ONLY (Dextra, ED-NEW-dextra-as4-5): the nth-dextra tools, empty unless DextraTools offers them.
+    private IReadOnlyList<JSONValue> DextraToolDefinitions => DextraTools?.Definitions ?? [];
 
     // :61-65
     private IReadOnlyList<JSONValue> McpToolDefinitions => [.. mcpTools.Select(tool => JSONValue.FromDictionaryLiteral(
@@ -177,10 +186,12 @@ public class OpenAICompatibleSession : ProviderSession
         Configuration = configuration;
         fileTools = new NativeFileTools(configuration.WorkingDirectory.Path);
         guidance = new ProjectGuidance(configuration.WorkingDirectory.Path);
-        runtimeMode = configuration.RuntimeMode;
+        // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-16): a sealed chat is in the ask mode from the start.
+        runtimeMode = configuration.Sealed is null ? configuration.RuntimeMode : Marrow.Services.Assistant.SealedProviderConfig.CappedMode;
         interactionMode = configuration.InteractionMode;
         currentModel = configuration.Model ?? config.DefaultModel;
         PcTools = Port.PcControl.PcNativeTools.For(configuration, config.IsVisionModel(currentModel)); // PORT-ONLY (Tactus, ED-NEW-pcctl-42): null while Tactus is off
+        DextraTools = configuration.NoTools ? null : Marrow.Services.Assistant.AssistantNativeTools.For(configuration); // PORT-ONLY (Dextra, ED-NEW-dextra-as4-5): null for a chat that is not Dextra's
         // RR-50: production binding is exact and dated. Unfilled data never supplies a guessed estimator.
         if (ModelPriceCatalog.Current.Current.Find(configuration.Provider, currentModel, SwiftClock.Provider.Current.GetUtcNow()) is not null)
             KeySpendEstimator = defaultSpendEstimator = usage => ModelPriceCatalog.Current.Current.Find(Configuration.Provider, currentModel, SwiftClock.Provider.Current.GetUtcNow())?.Estimate(usage);
@@ -355,7 +366,7 @@ public class OpenAICompatibleSession : ProviderSession
         if (sessionID is null || isStopping) throw new ProviderError(new ProviderError.Case.NotRunning());   // :286
         if (OpenAICompatibleSessionConfig.RequiresAPIKey && ApiKey.Length == 0 && KeyRotation is null) throw new ProviderError(new ProviderError.Case.NotInstalled(OpenAICompatibleSessionConfig.Kind)); // :287; ED-410
         turnAccountRevision = apiAccountRevision;
-        runtimeMode = input.RuntimeMode;             // :288
+        runtimeMode = Configuration.Sealed is null ? input.RuntimeMode : Marrow.Services.Assistant.SealedProviderConfig.CappedMode; // :288; PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-16): a sealed chat stays in the ask mode
         interactionMode = input.InteractionMode;     // :289
         if (input.Model is { Length: > 0 } model) currentModel = ModelForInput(model); // :290; ED-410
         lastEffort = input.Effort; // DEVIATION (OD-0134 Ignis)
@@ -439,6 +450,15 @@ public class OpenAICompatibleSession : ProviderSession
                 {
                     // Keep the reply in history, or the next turn forgets it. :351
                     if (round.Content.Length > 0) messages.Add(AssistantTurn(round.Content, round.Reasoning, [])); // :352-353 PR-PROVAPI-103
+                    // PORT-ONLY (Dextra, ED-NEW-dextra-as4-6): a model with no tool calls asks for nth-dextra tools in fenced
+                    // blocks; they run, their results go back as one message, and the turn goes on (within MaxRoundsPerTurn).
+                    if (DextraTools is { } dextra && !ToolCallingAvailable && dextra.FencedCalls(round.Content) is { Count: > 0 } fenced)
+                    {
+                        if (await ExecuteFencedDextra(dextra, fenced) is not { } reply || SwiftTask.IsCancelled || interrupted) break;
+                        messages.Add(JSONValue.FromDictionaryLiteral(("role", "user"), ("content", reply)));
+                        TrimHistory();
+                        continue;
+                    }
                     break; // :355
                 }
                 // Record the assistant turn with its tool calls so the next request keeps the
@@ -563,10 +583,19 @@ public class OpenAICompatibleSession : ProviderSession
         await Task.CompletedTask;
     }
 
+    /// <summary>PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-16): whether this chat may use the MCP server (a sealed chat: only the listed ones).</summary>
+    internal bool SealAllows(string server) =>
+        Configuration.Sealed is not { } seal || seal.Connections.Any(listed => string.Equals(listed, server, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-16): the hub's tools this chat is offered.</summary>
+    internal IEnumerable<MCPHub.Tool> SealedTools(IEnumerable<MCPHub.Tool> tools) => tools.Where(tool => SealAllows(tool.Server));
+
     // :448-453
     public void ResolveApproval(string requestID, string optionID)
     {
         if (!pendingApprovals.Remove(requestID, out var continuation)) return; // :449
+        // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-16): a sealed (mission) chat keeps no rule: "Approve for turn" is once.
+        if (Configuration.Sealed is not null && optionID == "always") optionID = "allow";
         if (optionID == "always") approveAllRemaining = true; // :450
         continuation.Resume(optionID is "allow" or "always"); // :451
         OnEvent?.Invoke(new ProviderEvent.RequestResolved(requestID)); // :452
@@ -949,7 +978,9 @@ public class OpenAICompatibleSession : ProviderSession
         if (withTools && (!didLoadMCPTools || MCPHub.Shared.ToolsRevision != loadedToolsRevision)) // :510
         {
             loadedToolsRevision = MCPHub.Shared.ToolsRevision;
-            mcpTools = [.. await MCPHub.Shared.Tools()];
+            // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-16): a sealed (mission) chat sees only the servers its assistant's
+            // profile lists (12.1a); any other chat sees every connected server, as before.
+            mcpTools = [.. SealedTools(await MCPHub.Shared.Tools())];
             didLoadMCPTools = true;
         }
         await UseRotationKeyAsync(); // PORT-ONLY (MA-6)
@@ -1259,7 +1290,7 @@ public class OpenAICompatibleSession : ProviderSession
         };
         if (withTools) // :575
         {
-            payload["tools"] = JSONValue.FromArrayLiteral([.. ToolDefinitions, .. SkillToolDefinitions, .. PcToolDefinitions, .. McpToolDefinitions]); // :576 (+ PORT-ONLY ED-NEW-pcctl-42)
+            payload["tools"] = JSONValue.FromArrayLiteral([.. ToolDefinitions, .. SkillToolDefinitions, .. PcToolDefinitions, .. DextraToolDefinitions, .. McpToolDefinitions]); // :576 (+ PORT-ONLY ED-NEW-pcctl-42)
             payload["tool_choice"] = "auto"; // :577
         }
         ApplyProviderPayload(payload, model, effort, withTools); // :579
@@ -1611,6 +1642,9 @@ public class OpenAICompatibleSession : ProviderSession
         if (MCPHub.Parse(tool.Name) is { } parsed) // :898
         {
             var (server, name) = (parsed.Server, parsed.Tool);
+            // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-16): a sealed chat cannot call a server its profile does not list,
+            // whatever name the model sends.
+            if (!SealAllows(server)) return $"Error: {server} is not available in this mission chat.";
             // PORT-ONLY (W18): a tool that names an MCP App view says so on its row from the start, so the host can fetch
             // the view while the arguments are still streaming (DESIGN.md 7.6).
             var startedPayload = mcpTools.FirstOrDefault(known => known.CallName == tool.Name)?.UiResourceUri is { } uiResource
@@ -1822,6 +1856,7 @@ public class OpenAICompatibleSession : ProviderSession
                 if (PcTools is { } pcTools && pcTools.Owns(tool.Name)) return await ExecutePcTool(pcTools, tool, args); // PORT-ONLY (Tactus, ED-NEW-pcctl-42)
                 if (SkillTools?.Web is { } webTools && webTools.Owns(tool.Name)) return await ExecuteWebTool(webTools, tool, args); // PORT-ONLY (web surfaces W11, ED-NEW-web-w11-1)
                 if (SkillTools is { } skillTools && skillTools.Owns(tool.Name)) return await ExecuteSkillTool(skillTools, tool, args); // PORT-ONLY (SK-11f)
+                if (DextraTools is { } dextraTools && dextraTools.Owns(tool.Name)) return await ExecuteDextraTool(tool.Id, tool.Name, () => dextraTools.Execute(tool.Name, args, SwiftTask.CancellationToken)); // PORT-ONLY (ED-NEW-dextra-as4-5)
                 var call = new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = tool.Name }; // :1028
                 OnEvent?.Invoke(new ProviderEvent.ToolStarted(callID, call)); // :1029
                 OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = "Unknown tool.", Status = ToolCall.Status.Failed })); // :1030
@@ -1949,6 +1984,40 @@ public class OpenAICompatibleSession : ProviderSession
         return result.Output;
     }
 
+    // PORT-ONLY (Dextra, ED-NEW-dextra-as4-5). Runs one nth-dextra call; the tool's own policy check governs it, so it never
+    // asks through ApproveIfNeeded. A stopped turn answers "Stopped." as the built-in tools do; nothing it produced is said.
+    private async Task<string> ExecuteDextraTool(string callID, string name, Func<Task<Marrow.Services.Assistant.AssistantToolResult>> run)
+    {
+        OnEvent?.Invoke(new ProviderEvent.ToolStarted(callID, new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = Marrow.Services.Assistant.AssistantNativeTools.Title(name) }));
+        Marrow.Services.Assistant.AssistantToolResult result;
+        try { result = await run(); }
+        catch (OperationCanceledException) when (SwiftTask.IsCancelled || interrupted) { return "Stopped."; }
+        if (SwiftTask.IsCancelled || interrupted) return "Stopped.";
+        OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate
+        {
+            Output = Summary(result.Text, 4_000),
+            Status = result.IsError ? ToolCall.Status.Failed : ToolCall.Status.Completed,
+        }));
+        return result.Text;
+    }
+
+    // PORT-ONLY (Dextra, ED-NEW-dextra-as4-6). The fenced-text fallback: runs the nth-dextra blocks of an answer from a model
+    // with no tool calls, each as a timeline row, and returns the one message that carries their results back; null when
+    // the turn stopped.
+    private async Task<string?> ExecuteFencedDextra(Marrow.Services.Assistant.AssistantNativeTools dextra, IReadOnlyList<Marrow.Core.Port.Assistant.AssistantFencedCall> calls)
+    {
+        var results = new List<(Marrow.Core.Port.Assistant.AssistantFencedCall, Marrow.Services.Assistant.AssistantToolResult)>();
+        for (var index = 0; index < calls.Count; index++)
+        {
+            var call = calls[index];
+            Marrow.Services.Assistant.AssistantToolResult result = Marrow.Services.Assistant.AssistantToolResult.Failed("Stopped.");
+            var text = await ExecuteDextraTool(NextID("dextra"), call.Tool, async () => result = await dextra.ExecuteFenced(call, index, SwiftTask.CancellationToken));
+            if (SwiftTask.IsCancelled || interrupted) return null;
+            results.Add((call, result with { Text = text }));
+        }
+        return Marrow.Services.Assistant.AssistantNativeTools.FencedReply(results);
+    }
+
     // :1035-1038. Used by the later part's approveIfNeeded/executeTool bodies; kept here because
     // it is a one-line, self-contained event plus return value with no missing dependency.
     private string Declined(string callID)
@@ -1998,11 +2067,19 @@ public class OpenAICompatibleSession : ProviderSession
             _ => ApprovalRequest.Kind.Tool,                        // :1066
         };
         var options = new ValueList<ApprovalRequest.Option>( // :1068-1072
-        [
-            new ApprovalRequest.Option("allow", "Approve", ApprovalRequest.Option.Role.Approve),          // :1069
-            new ApprovalRequest.Option("always", "Approve for turn", ApprovalRequest.Option.Role.ApproveAlways), // :1070
-            new ApprovalRequest.Option("decline", "Decline", ApprovalRequest.Option.Role.Decline),         // :1071
-        ]);
+            Configuration.Sealed is null
+                ?
+                [
+                    new ApprovalRequest.Option("allow", "Approve", ApprovalRequest.Option.Role.Approve),          // :1069
+                    new ApprovalRequest.Option("always", "Approve for turn", ApprovalRequest.Option.Role.ApproveAlways), // :1070
+                    new ApprovalRequest.Option("decline", "Decline", ApprovalRequest.Option.Role.Decline),         // :1071
+                ]
+                :
+                [
+                    // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-16): a sealed chat offers no "Approve for turn".
+                    new ApprovalRequest.Option("allow", "Approve", ApprovalRequest.Option.Role.Approve),
+                    new ApprovalRequest.Option("decline", "Decline", ApprovalRequest.Option.Role.Decline),
+                ]);
         OnEvent?.Invoke(new ProviderEvent.Approval(new ApprovalRequest(id, approvalKind, title, options, Detail: detail, ToolItemID: toolItemID))); // :1073
         return await SwiftTask.WithCancellationHandler( // :1074-1081
             () => CheckedContinuation<bool>.With(continuation =>
@@ -2259,7 +2336,7 @@ public class OpenAICompatibleSession : ProviderSession
         if (trimmed.Length == 0) return ("Error: a command is required.", 1); // :1154
         var shell = WindowsShellForCommands.Resolve(); // :1155 DEVIATION OD-0008 C5
         async Task<ShellResult?> Attempt() => await Shell.Run(
-            shell, ["-NoProfile", "-NonInteractive", "-Command", trimmed], WorkingDirectory, ProviderChildEnvironment.Apply(Configuration.AccountId is not null ? Configuration.Environment : LoginEnvironment.Current), timeout: 120, outputLimit: 24_000); // :1157 DEVIATION ED-309 (SK-11f): addons\bin on PATH
+            shell, ["-NoProfile", "-NonInteractive", "-Command", trimmed], WorkingDirectory, ProviderChildEnvironment.Apply(Configuration.AccountId is not null ? Configuration.Environment : LoginEnvironment.Current), timeout: 120, outputLimit: 24_000, job: Configuration.AgentJob); // :1157 DEVIATION ED-309 (SK-11f): addons\bin on PATH. PORT-ONLY (AS-5): a mission agent's job
         var result = await SwiftTry.OptionalAsync(Attempt);
         if (result is null) return ("The command could not start.", 1); // :1158-1159
         var output = (result.Output + (result.ErrorOutput.Length == 0 ? "" : "\n" + result.ErrorOutput)).Trimmed(); // :1160
@@ -2324,6 +2401,7 @@ public class OpenAICompatibleSession : ProviderSession
             SkillTools?.UiTeachingBlock(TeachingProfile, TeachingToolsUsable), // PORT-ONLY (web surfaces W17, ED-NEW-web-w17-1): live answers and artifacts, null without the chat's artifact tools
             SkillTools?.WebBlock(), // PORT-ONLY (web surfaces W11, ED-NEW-web-w11-1): the Visus tools' rules, null while they are not offered
             PcTools?.PromptBlock(), // PORT-ONLY (Tactus, ED-NEW-pcctl-42): null while Tactus is off
+            DextraTools?.InstructionsBlock(fenced: !ToolCallingAvailable), // PORT-ONLY (ED-NEW-dextra-as4-5, -6): null for a chat that is not Dextra's
             guidance.SystemPromptBlock(),
         }.Where(value => value is not null));
         // DEVIATION OD-0012 F1 (PR-PROVAPI-141): upstream :1200 reads

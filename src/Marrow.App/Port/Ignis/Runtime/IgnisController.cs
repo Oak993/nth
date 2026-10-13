@@ -33,6 +33,12 @@ public interface IIgnisEnvironment
     /// <summary>The installed CLI's version as the provider check read it ("2.1.296"); null: unknown (ED-NEW-ignis-runtime).</summary>
     string? CliVersion(ProviderKind provider) => null;
 
+    /// <summary>
+    /// What Dextra makes of the chat (AS-15, 13.2): its home thread (never kept warm) or a mission's chat before the mission is done
+    /// (never touched). A chat that belongs to no assistant is <see cref="IgnisAssistantUse.None"/>, which is every chat before Dextra.
+    /// </summary>
+    IgnisAssistantUse AssistantUse(Guid thread) => IgnisAssistantUse.None;
+
     /// <summary>The user's own prompt-cache lifetime choices in the Claude settings files a launch reads (read only).</summary>
     IReadOnlySet<string> ClaudeCacheSettings(IReadOnlyDictionary<string, string> environment, string? workingDirectory) => new HashSet<string>();
 }
@@ -563,6 +569,9 @@ public sealed class IgnisController : IIgnisController
         }
         if (chat.Provider is { } provider && environment.FullestPlanWindow(provider) is { } percent && percent >= PlanPausePercent)
             return IgnisPause.PlanNearlyFull;
+        // AS-15 (13.2): Dextra's home thread reads as the owner's own conversation, so no ping is added to it (a cold cache costs one slower
+        // first reply); a mission's chat is left alone until its mission is done. Both read as "no keep-warm here".
+        if (environment.AssistantUse(thread) != IgnisAssistantUse.None) return IgnisPause.NotSupported;
         if (chat.Provider is not null && !SupportsKeepWarm(chat)) return IgnisPause.NotSupported;
         return IgnisPause.None;
     }
@@ -582,6 +591,9 @@ public sealed class IgnisController : IIgnisController
         if (chat.Runtime is not { } runtime) return;
         var preference = Settings.ForChat(thread);
         if (preference.Mode == IgnisMode.Off) return;
+        // AS-15 (13.2): a mission's chat is left alone mid-task. No timer, no ping, and no tidy-up: compacting it would take away what
+        // the mission's agent has just been told (Ignis "compacts only between tasks", and a mission is one task from start to Done).
+        if (environment.AssistantUse(thread) == IgnisAssistantUse.MissionMidTask) return;
 
         var now = SwiftDate.Now;
         var pause = Pause(thread, chat);
@@ -892,10 +904,13 @@ public sealed class IgnisController : IIgnisController
         var expires = chat.ExpiresAt;
         var cache = off ? IgnisCacheState.Off : expires is { } at && at > now ? IgnisCacheState.Warm : IgnisCacheState.Cold;
         var pause = Pause(thread, chat);
+        var assistantUse = environment.AssistantUse(thread);
         var runtime = chat.Runtime;
         var between = runtime?.IsBetweenTasks == true;
         var next = off ? IgnisNext.Off
             : chat.Tidying ? IgnisNext.Tidying
+            : assistantUse == IgnisAssistantUse.MissionMidTask ? IgnisNext.MissionRunning                 // AS-15: say what is true of these chats
+            : assistantUse == IgnisAssistantUse.HomeThread ? (preference.Mode == IgnisMode.WarmAndTidy ? IgnisNext.HomeThreadTidy : IgnisNext.HomeThread)
             : !preference.Auto ? (preference.Mode == IgnisMode.KeepWarm ? IgnisNext.AutoOffKeepWarm : IgnisNext.AutoOffWarmAndTidy)
             : cache == IgnisCacheState.Cold && chat.WarmAt is not null ? IgnisNext.Cold
             : preference.Mode == IgnisMode.KeepWarm ? IgnisNext.KeepWarm : IgnisNext.WarmAndTidy;
@@ -946,8 +961,8 @@ public sealed class IgnisController : IIgnisController
             KeepingWarm = chat.PingInFlight,
             Tidying = chat.Tidying,
             JustTidied = chat.JustTidiedUntil is { } until && until > now,
-            CanKeepWarm = !off && between && !chat.PingInFlight && !chat.Tidying && SupportsKeepWarm(chat) && pause != IgnisPause.UsageLimit,
-            CanTidy = preference.Mode == IgnisMode.WarmAndTidy && between && !chat.Tidying && !chat.PingInFlight,
+            CanKeepWarm = !off && between && !chat.PingInFlight && !chat.Tidying && SupportsKeepWarm(chat) && pause != IgnisPause.UsageLimit && assistantUse == IgnisAssistantUse.None,
+            CanTidy = preference.Mode == IgnisMode.WarmAndTidy && between && !chat.Tidying && !chat.PingInFlight && assistantUse != IgnisAssistantUse.MissionMidTask,
             Account = account,
             Heads = heads,
         };

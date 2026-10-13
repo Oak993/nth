@@ -116,6 +116,9 @@ internal sealed class FakeIgnisEnvironment : IIgnisEnvironment
     public bool Draft { get; set; }
     public bool OnScreen { get; set; }
     public bool IsArchived(Guid thread) => Archived.Contains(thread);
+    /// <summary>What Dextra makes of a chat (AS-15, 13.2); a chat not listed is an ordinary one.</summary>
+    public Dictionary<Guid, IgnisAssistantUse> Uses { get; } = [];
+    public IgnisAssistantUse AssistantUse(Guid thread) => Uses.GetValueOrDefault(thread);
     public bool IsOnScreen(Guid thread) => OnScreen;
     public bool HasDraft(Guid thread) => Draft;
     public double? FullestPlanWindow(ProviderKind provider) => PlanPercent;

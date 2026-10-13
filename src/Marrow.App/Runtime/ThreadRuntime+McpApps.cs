@@ -40,8 +40,7 @@ public sealed partial class ThreadRuntime
         if (McpAppUntrusted.TurnsInARow(Entries.Select(entry => entry.Item.TimelineItemContent).OfType<TimelineItem.Content.User>().Select(user => user.Value))
             >= McpAppUntrusted.MaxTurnsInARow) return McpAppUntrusted.TurnsInARowRefusal;
         if (App?.Thread(ThreadID) is not { IsArchived: false }) return "This chat cannot take messages now.";
-        _ = MainActor.Spawn(() => StartAppTurn(server, text));
-        return null;
+        return SpawnInstallerTurn(() => StartAppTurn(server, text)) is null ? AppMessageBusy : null;
     }
 
     private async Task StartAppTurn(string server, string text)

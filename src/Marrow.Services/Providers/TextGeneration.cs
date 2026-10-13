@@ -156,6 +156,12 @@ public static class TextGeneration
         return message.Length == 0 ? null : message;
     }
 
+    /// <summary>
+    /// PORT-ONLY (Dextra AS-22, 4.3, ED-NEW-dextra-as22-10): the engine's one-shot reply to a prompt, with no tools and no session, in the user temporary
+    /// directory. The delegate responder reads a question through it. Null when the engine failed or said nothing.
+    /// </summary>
+    public static Task<string?> Complete(string prompt, Engine engine) => Run(prompt, engine, TemporaryDirectory);
+
     // :76-100
     private static async Task<string?> Run(string prompt, Engine engine, string directory)
     {

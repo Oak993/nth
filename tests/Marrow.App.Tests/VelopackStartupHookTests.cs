@@ -20,12 +20,13 @@ public sealed class VelopackStartupHookTests
 {
     [Fact]
     [Trait("Decision", "ED-235")]
+    [Trait("Decision", "ED-NEW-dextra-land-1")]
     public void Main_runs_the_Velopack_hook_before_any_desktop_work_after_the_private_MCP_dispatch()
     {
         var main = typeof(Program).GetMethod(nameof(Program.Main), BindingFlags.Public | BindingFlags.Static)!;
         var il = main.GetMethodBody()!.GetILAsByteArray()!;
         var calls = new List<MethodBase>();
-        for (var at = 0; at < il.Length && calls.Count < 34;)
+        for (var at = 0; at < il.Length && calls.Count < 41;)
         {
             var code = il[at] == 0xFE ? Codes[(short)(0xFE00 | il[at + 1])] : Codes[il[at]];
             var operandAt = at + (il[at] == 0xFE ? 2 : 1);
@@ -49,7 +50,9 @@ public sealed class VelopackStartupHookTests
             "RunClient", "GetAwaiter", "GetResult",
             "FirstOrDefault", "op_Equality", "OpenStandardInput", "OpenStandardOutput",
             "RunClient", "GetAwaiter", "GetResult",
-            "Handles", "Run", "GetAwaiter", "GetResult", "get_BaseDirectory", nameof(Program.RunVelopackHook) },
+            "Handles", "Run", "GetAwaiter", "GetResult",
+            "FirstOrDefault", "op_Equality", "OpenStandardInput", "OpenStandardOutput",
+            "RunClient", "GetAwaiter", "GetResult", "get_BaseDirectory", nameof(Program.RunVelopackHook) },
             calls.Select(call => call.Name));
         Assert.Equal(typeof(Enumerable), calls[0].DeclaringType);
         Assert.Equal(typeof(string), calls[1].DeclaringType);
@@ -73,8 +76,14 @@ public sealed class VelopackStartupHookTests
         Assert.Equal(typeof(Marrow.Services.Port.PcControl.PcControlBridge), calls[25].DeclaringType);
         Assert.Equal(typeof(Marrow.App.Port.PcControl.Workspace.WorkspaceCommands), calls[28].DeclaringType);
         Assert.Equal(typeof(Marrow.App.Port.PcControl.Workspace.WorkspaceCommands), calls[29].DeclaringType);
-        Assert.Equal(typeof(AppContext), calls[32].DeclaringType);
-        Assert.Equal(typeof(Program), calls[33].DeclaringType);
+        // ED-NEW-finalint-3 and ED-NEW-dextra-land-1: the additional private Dextra child, after the existing dispatches.
+        Assert.Equal(typeof(Enumerable), calls[32].DeclaringType);
+        Assert.Equal(typeof(string), calls[33].DeclaringType);
+        Assert.Equal(typeof(Console), calls[34].DeclaringType);
+        Assert.Equal(typeof(Console), calls[35].DeclaringType);
+        Assert.Equal(typeof(Marrow.Services.Assistant.AssistantMcpBridge), calls[36].DeclaringType);
+        Assert.Equal(typeof(AppContext), calls[39].DeclaringType);
+        Assert.Equal(typeof(Program), calls[40].DeclaringType);
     }
 
     [Fact]

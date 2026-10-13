@@ -2,6 +2,8 @@ using Marrow.App.Runtime;
 using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Port.Assistant;
+using Marrow.Services.Assistant;
 
 // PORT-ONLY: web surfaces W6, the side chat (E:/Droppy/work/design/web-surfaces/DESIGN.md 3.9; ED-NEW-web-w6-1). No Swift counterpart.
 // A side chat is a thread of its own under the main thread (ParentThreadID, IsInPanel, IsSideChat): its own ThreadRuntime and provider
@@ -48,7 +50,11 @@ public sealed partial class AppModel
             WorktreePath = parent.WorktreePath,
             Branch = parent.Branch,
             ProviderAccountID = parent.ProviderAccountID,
+            MissionID = parent.MissionID,
+            AssistantID = parent.MissionID is null ? null : parent.AssistantID,
         };
+        // ED-NEW-finalint-4: a mission's panel chat is one of its registered agents too.
+        if (side.MissionID is not null && (!SealedProviderConfig.CanSeal(side.Provider) || !DextraHelperAdded(parent, side))) return null;
         InsertThread(side);
         return side;
     }
@@ -63,11 +69,11 @@ public sealed partial class AppModel
     public void SetSideChatCanAct(Guid parentID, bool canAct)
     {
         if (EnsureSideChat(parentID) is not { } side || Thread(parentID) is not { } parent) return;
-        if (!canAct && side.InteractionMode == InteractionMode.Build && ExistingRuntime(side.Id) is { IsRunning: true } running) running.Interrupt();
+        if (!canAct && side.InteractionMode == InteractionMode.Build) ExistingRuntime(side.Id)?.StopSideChatTurn();
         UpdateThread(side.Id, current => current with
         {
             InteractionMode = canAct ? InteractionMode.Build : InteractionMode.Plan,
-            RuntimeMode = canAct ? parent.RuntimeMode : RuntimeMode.Supervised,
+            RuntimeMode = canAct && parent.MissionID is null ? parent.RuntimeMode : RuntimeMode.Supervised,
         });
     }
 
@@ -77,10 +83,23 @@ public sealed partial class AppModel
     /// </summary>
     public bool SendSideChat(Guid parentID, string text)
     {
-        if (EnsureSideChat(parentID) is not { } side) return false;
-        if (side.InteractionMode == InteractionMode.Build && Thread(parentID) is { } parent && side.RuntimeMode != parent.RuntimeMode)
-            UpdateThread(side.Id, current => current with { RuntimeMode = parent.RuntimeMode });
+        if (EnsureSideChat(parentID) is not { } side || !CanStartSideChatTurn(side)) return false;
+        if (side.InteractionMode == InteractionMode.Build && Thread(parentID) is { } parent)
+        {
+            var mode = parent.MissionID is null ? parent.RuntimeMode : SealedProviderConfig.CappedMode;
+            if (side.RuntimeMode != mode) UpdateThread(side.Id, current => current with { RuntimeMode = mode });
+        }
         return Runtime(side.Id).SendSideChat(text);
+    }
+
+    // A saved side conversation may outlive Stop or Restart; it cannot revive a finished mission's agent.
+    internal bool CanStartSideChatTurn(ChatThread side)
+    {
+        if (side.ParentThreadID is not { } parentID || Thread(parentID) is not { } parent) return false;
+        if (parent.MissionID is null && side.MissionID is null) return true;
+        return parent.MissionID is { } mission && side.MissionID == mission
+            && Dextra?.Runner.MissionOf(side.Id) is { } record && record.Id == mission
+            && (MissionStates.IsRunning(record.Mission.State) || record.Mission.State == MissionState.NeedsYou);
     }
 
     /// <summary>
@@ -92,6 +111,7 @@ public sealed partial class AppModel
         if (SideChat(parentID) is not { } side) return;
         var canAct = side.InteractionMode == InteractionMode.Build;
         sideChatSnapshotCounts.Remove(side.Id);
+        ExistingRuntime(side.Id)?.StopSideChatTurn();
         Delete(side.Id);
         EnsureSideChat(parentID);
         if (canAct) SetSideChatCanAct(parentID, true);
@@ -100,7 +120,7 @@ public sealed partial class AppModel
     /// <summary>Stops the side chat's running turn, if there is one.</summary>
     public void StopSideChat(Guid parentID)
     {
-        if (SideChat(parentID) is { } side && ExistingRuntime(side.Id) is { IsRunning: true } running) running.Interrupt();
+        if (SideChat(parentID) is { } side) ExistingRuntime(side.Id)?.StopSideChatTurn();
     }
 
     /// <summary>
@@ -110,7 +130,7 @@ public sealed partial class AppModel
     internal void SideChatClosed(Guid parentID)
     {
         if (SideChat(parentID) is not { InteractionMode: InteractionMode.Build } side) return;
-        if (ExistingRuntime(side.Id) is { IsRunning: true } running) running.Interrupt();
+        ExistingRuntime(side.Id)?.StopSideChatTurn();
         UpdateThread(side.Id, current => current with { InteractionMode = InteractionMode.Plan, RuntimeMode = RuntimeMode.Supervised });
     }
 
@@ -138,6 +158,11 @@ public sealed partial class AppModel
         if (Thread(sideID) is not { IsSideChat: true, ParentThreadID: { } parentID } side || Thread(parentID) is not { } parent) return null;
         var main = Runtime(parentID);
         await main.EnsureLoaded();
+        if (SwiftTask.IsCancelled || Thread(sideID) is not { IsSideChat: true } currentSide || currentSide.ParentThreadID != parentID
+            || Thread(parentID) is not { } currentParent || !CanStartSideChatTurn(currentSide)) return null;
+        side = currentSide;
+        parent = currentParent;
+        DextraHelperPrompted(parent, side);
         if (!sideChatDigests.TryGetValue(parentID, out var digest)) sideChatDigests[parentID] = digest = new SideChatDigest();
         var project = Project(parent.ProjectID);
         var snapshot = SideChatSeed.Build(new SideChatMain(

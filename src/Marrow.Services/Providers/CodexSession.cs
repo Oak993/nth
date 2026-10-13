@@ -66,6 +66,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
     public Task SkillReadersExited => skillsReader?.ChildExited ?? Task.CompletedTask;
     private JSONRPCConnection? connection;                // :36
     private MCPResolvedServer? pcServer; // PORT-ONLY (Tactus, ED-NEW-pcctl-41): the chat's nth-pc server while Tactus is on.
+    private MCPResolvedServer? dextraServer; // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): the chat's nth-dextra server; null for a chat that is not Dextra's.
     private string? threadID;                             // :37
     private string? turnID;                               // :38
     private string? activeModel;                           // :39
@@ -115,6 +116,11 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
         {
             throw new ProviderError(new ProviderError.Case.NotInstalled(configuration.Provider)); // :67
         }
+        // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-3): Codex's own "Always allow" rules run commands without asking whatever
+        // a thread's policy says, and nth cannot switch them off for one thread, so a sealed chat does not start beside them.
+        if (configuration.Sealed is not null
+            && Marrow.Services.Assistant.SealedProviderConfig.CodexRefusal(configuration.Environment, LoginEnvironment.HomeDirectory) is { } refused)
+            throw new ProviderError(new ProviderError.Case.Failed(refused));
 
         var connected = await Connect(
             executable,
@@ -127,7 +133,8 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
                 c.OnRequest = HandleRequest;            // :74
                 c.OnClose = HandleClose;                // :75
             },
-            skills is null ? null : new SkillRoot(skills.ExtraRoot, ListFirst: true));
+            skills is null ? null : new SkillRoot(skills.ExtraRoot, ListFirst: true),
+            job: configuration.AgentJob); // PORT-ONLY (AS-5): a mission agent runs in its job
         connection = connected; // :77
         var started = false;    // :78
         try
@@ -260,7 +267,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
             }
         }
 
-        var policy = PolicySettingsFor(input.RuntimeMode); // :135
+        var policy = PolicySettingsFor(configuration.Sealed is null ? input.RuntimeMode : Marrow.Services.Assistant.SealedProviderConfig.CappedMode); // :135; PORT-ONLY (AS-5): a sealed chat stays in the ask mode
         var parameters = new Dictionary<string, JSONValue>(StringComparer.Ordinal)
         {
             ["threadId"] = currentThreadID,                                      // :137
@@ -353,7 +360,8 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
                 c.OnClose = HandleClose;
             },
             skills is null ? null : new SkillRoot(skills.ExtraRoot, ListFirst: true),
-            initialized: result => initializeResult = result);
+            initialized: result => initializeResult = result,
+            job: configuration.AgentJob); // PORT-ONLY (AS-5)
         connection = connected;
         var started = false;
         try
@@ -679,7 +687,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
     {
         get
         {
-            var policy = PolicySettingsFor(configuration.RuntimeMode); // :227
+            var policy = PolicySettingsFor(configuration.Sealed is null ? configuration.RuntimeMode : Marrow.Services.Assistant.SealedProviderConfig.CappedMode); // :227; PORT-ONLY (AS-5)
             var parameters = new Dictionary<string, JSONValue>(StringComparer.Ordinal)
             {
                 ["cwd"] = WorkingDirectory,               // :229
@@ -732,7 +740,23 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
             // PORT-ONLY (Tactus, ED-NEW-pcctl-41): so does nth-pc while Tactus is on, with its tool timeout, and Codex's own
             // bundled computer-use plugins are turned off in the same overrides, so two controllers never fight in one chat.
             pcServer ??= MCPProviderConfig.PcServer(configuration);
-            if (MCPProviderConfig.CodexBuiltIns(MCPProviderConfig.CodexOverrides(), MCPProviderConfig.BuiltInServers(MCPProviderConfig.AdvisorServer(configuration), pcServer, MCPProviderConfig.UiServer(configuration))) is { } servers) // :262
+            // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): so does a Dextra chat's nth-dextra server.
+            dextraServer ??= MCPProviderConfig.DextraServer(configuration);
+            if (configuration.Sealed is { } seal)
+            {
+                // PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-3): only the servers the mission's profile lists; every other
+                // connected server and every server of the account's own config.toml is switched off for this thread.
+                var userNames = MCPProviderConfig.CodexUserServerNames()
+                    .Concat(MCPProviderConfig.CodexServerNamesAt(Path.Combine(Marrow.Services.Assistant.SealedProviderConfig.CodexHome(configuration.Environment, LoginEnvironment.HomeDirectory), "config.toml")));
+                var sealedConfig = parameters.TryGetValue("config", out var present) && present.JSONValueObject is { } presentObject
+                    ? new Dictionary<string, JSONValue>(presentObject, StringComparer.Ordinal)
+                    : new Dictionary<string, JSONValue>(StringComparer.Ordinal);
+                sealedConfig["mcp_servers"] = Marrow.Services.Assistant.SealedProviderConfig.CodexServers(MCPProviderConfig.CodexConnectedServers(), userNames, seal,
+                    MCPProviderConfig.BuiltInServers(MCPProviderConfig.AdvisorServer(configuration), pcServer, MCPProviderConfig.UiServer(configuration), dextraServer));
+                if (pcServer is not null && Port.PcControl.PcControlBridge.TactusOn) Port.PcControl.PcProviderWiring.TurnOffCodexComputerUse(sealedConfig);
+                parameters["config"] = new JSONValue.Object(new ValueMap<string, JSONValue>(sealedConfig));
+            }
+            else if (MCPProviderConfig.CodexBuiltIns(MCPProviderConfig.CodexOverrides(), MCPProviderConfig.BuiltInServers(MCPProviderConfig.AdvisorServer(configuration), pcServer, MCPProviderConfig.UiServer(configuration), dextraServer)) is { } servers) // :262
             {
                 var mergedConfig = parameters.TryGetValue("config", out var currentConfig) && currentConfig.JSONValueObject is { } currentObject
                     ? new Dictionary<string, JSONValue>(currentObject, StringComparer.Ordinal)
@@ -750,6 +774,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
     public void ResolveApproval(string requestID, string optionID)
     {
         if (!pendingRequests.Remove(requestID, out var pending)) return; // :306
+        if (configuration.Sealed is not null) optionID = Marrow.Services.Assistant.SealedProviderConfig.CodexOnce(optionID); // PORT-ONLY (AS-5): a sealed chat keeps no rule
         switch (pending)
         {
             case PendingRequest.Decision(var id, var payloads):
@@ -1118,9 +1143,10 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
         IReadOnlyDictionary<string, string> environment,
         Action<JSONRPCConnection> configure,
         SkillRoot? skillRoot = null,
-        Action<JSONValue>? initialized = null)
+        Action<JSONValue>? initialized = null,
+        Marrow.Core.Port.JobObject? job = null)
     {
-        var process = new StdioProcess(executable.Path, AppServerArguments, directory.Path, CodexChildEnvironment.Apply(environment)); // :511. PORT-ONLY (SK-11b, DL-11): the PATH rule, nothing else.
+        var process = new StdioProcess(executable.Path, AppServerArguments, directory.Path, CodexChildEnvironment.Apply(environment)) { Job = job }; // :511. PORT-ONLY (SK-11b, DL-11): the PATH rule, nothing else. PORT-ONLY (AS-5): a mission agent's job.
         var connection = new JSONRPCConnection(process, sendsVersion: false); // :512
         configure(connection); // :513
         await connection.StartAsync(); // :514. ED-NEW-perf-ui-thread-6: the child is created on the pool
@@ -1857,6 +1883,13 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
             if (pcServer is not null && Port.PcControl.PcProviderWiring.IsCodexElicitation(parameters))
             {
                 connection?.Respond(id, Port.PcControl.PcProviderWiring.CodexElicitationAccept());
+                return;
+            }
+            // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): nth-dextra never asks for input itself, so its elicitation is Codex's
+            // own approval of one call, which the server's policy check already governs (DESIGN.md 12.3).
+            if (dextraServer is not null && Marrow.Services.Assistant.AssistantProviderWiring.IsCodexElicitation(parameters))
+            {
+                connection?.Respond(id, Marrow.Services.Assistant.AssistantProviderWiring.CodexElicitationAccept());
                 return;
             }
             connection?.Respond(id, new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>

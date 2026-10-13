@@ -65,6 +65,7 @@ public sealed class ACPSession : ProviderSession, Port.Skills.Providers.ISkillSe
     private MCPResolvedServer? advisorServer;
     private MCPResolvedServer? uiServer; // PORT-ONLY (web surfaces W12, ED-NEW-web-w12-1): a chat's nth-ui server
     private MCPResolvedServer? pcServer; // PORT-ONLY (Tactus, ED-NEW-pcctl-41): the chat's nth-pc server while Tactus is on.
+    private MCPResolvedServer? dextraServer; // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): the chat's nth-dextra server; null for a chat that is not Dextra's.
     private bool canLoadSessions; // :34
     private bool supportsHTTPMCP; // :35
     private ValueList<string> authMethods = ValueList<string>.Empty; // :33
@@ -426,7 +427,7 @@ public sealed class ACPSession : ProviderSession, Port.Skills.Providers.ISkillSe
             ["mcpServers"] = MCPProviderConfig.AcpBuiltIns(skillsMcp is { } bridge
                 ? new JSONValue.Array(new ValueList<JSONValue>((MCPProviderConfig.AcpServers(supportsHTTPMCP).JSONValueArray ?? []).Append(bridge.Configuration)))
                 : MCPProviderConfig.AcpServers(supportsHTTPMCP), MCPProviderConfig.BuiltInServers(advisorServer ??= MCPProviderConfig.AdvisorServer(configuration),
-                    pcServer ??= MCPProviderConfig.PcServer(configuration), uiServer ??= MCPProviderConfig.UiServer(configuration))), // :254 + SK-17 live-proven per-session server + ED-NEW-ignisadvisor-2 a Hydra head's ask_advisor + ED-NEW-pcctl-41 nth-pc while Tactus is on + ED-NEW-web-w12-1 nth-ui
+                    pcServer ??= MCPProviderConfig.PcServer(configuration), uiServer ??= MCPProviderConfig.UiServer(configuration), dextraServer ??= MCPProviderConfig.DextraServer(configuration))), // :254 + SK-17 live-proven per-session server + ED-NEW-ignisadvisor-2 a Hydra head's ask_advisor + ED-NEW-pcctl-41 nth-pc while Tactus is on + ED-NEW-web-w12-1 nth-ui
         };
         if (configuration.ResumeID is { } resumeID && canLoadSessions) // :255
         {
@@ -845,6 +846,7 @@ public sealed class ACPSession : ProviderSession, Port.Skills.Providers.ISkillSe
         var call = MakeToolCall(toolCall); // :562
         if ((skillsMcp?.AutomaticOption(toolCall, options)
             ?? (pcServer is not null ? Port.PcControl.PcProviderWiring.AcpAutomaticOption(toolCall, options) : null) // PORT-ONLY ED-NEW-pcctl-41: nth's approval governs nth-pc
+            ?? (dextraServer is not null ? Marrow.Services.Assistant.AssistantProviderWiring.AcpAutomaticOption(toolCall, options) : null) // PORT-ONLY ED-NEW-dextra-as4-7: the server's policy check governs nth-dextra
             ?? AutomaticOption(call.ToolCallKind, options)) is { } optionID) // :563 + SK-17 owned read-only tools
         {
             connection?.Respond(id, JSONValue.FromDictionaryLiteral( // :564-565

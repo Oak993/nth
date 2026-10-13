@@ -1312,8 +1312,8 @@ public sealed class ComposerView : Decorator
         }
         // :375-378 Return while the turn runs stops it and sends right away. With heads at work it queues instead (a
         // head takes it, or it waits for the lead): the heads run inside the lead's session, and a stop would kill them.
-        if (runtime.IsRunning) runtime.InterruptAndSend();
-        else runtime.Send(); // :380
+        if (runtime.IsRunning) runtime.InterruptAndSend(byOwner: true);
+        else runtime.Send(byOwner: true); // :380 (byOwner: Dextra AS-7, ED-NEW-dextra-as7-12)
     }
 
     // :384-398 Command-Return: steer the running turn by queueing the draft behind it. Idle, there is nothing to steer
@@ -1328,11 +1328,11 @@ public sealed class ComposerView : Decorator
         // is compared, not the key event.
         if (runtime.CanQueue && ShortcutStore.Shared.Current.Chord(AppShortcut.QueueChat) == new KeyChord(0x1C, ChordModifiers.Control))
         {
-            runtime.QueueDraftAsFollowUp(); // :394
+            runtime.QueueDraftAsFollowUp(byOwner: true); // :394
         }
         else
         {
-            runtime.Send(); // :396
+            runtime.Send(byOwner: true); // :396
         }
     }
 
@@ -2011,7 +2011,9 @@ internal sealed class ComposerControls : Decorator
         ComposerVoiceController? voice = null)
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 }; // :626
-        if (voice is not null) row.Children.Add(OrbSlot = new VoiceOrbSlot(voice)); // V-14.2: the orb, where the attachment was
+        // PORT-ONLY (Dextra AS-18, DESIGN.md rev 5, 2.4, ED-NEW-dextra-as18-10): Dextra's own home composer has Armilla's talk button here, not the orb; every other composer keeps the orb
+        if (Marrow.App.Assistant.Views.DextraTalkSlot.For(runtime, thread) is { } talk) row.Children.Add(talk);
+        else if (voice is not null) row.Children.Add(OrbSlot = new VoiceOrbSlot(voice)); // V-14.2: the orb, where the attachment was
         // PORT-ONLY (OD-0115 composer=A, step 3a): the account capsule, only with a second account of the service or a pill relay; it sits before the model chip
         if (Marrow.App.Port.MultiAccount.Capsule.ComposerCapsuleSeams.Offer.Current(runtime) is { } capsuleSlot) { capsuleSlot.VerticalAlignment = VerticalAlignment.Center; row.Children.Add(Marrow.App.Port.MultiAccount.Handshake.HandshakeCapsuleHost.With(Marrow.App.Port.MultiAccount.Link.LinkComposerHost.With(capsuleSlot, runtime), capsuleSlot, runtime)); }
         row.Children.Add(slot = new ModelEffortSlot(runtime, thread, compact)); // :647

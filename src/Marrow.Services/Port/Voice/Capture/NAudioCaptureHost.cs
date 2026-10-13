@@ -32,7 +32,11 @@ public sealed class NAudioCaptureHost : ICaptureHost
         using (device) return device.ID;
     }
 
-    public ICaptureDevice Open(string? endpointId)
+    public ICaptureDevice Open(string? endpointId) => OpenEndpoint(endpointId, communications: false);
+
+    public ICaptureDevice OpenCommunications(string? endpointId) => OpenEndpoint(endpointId, communications: true);
+
+    private static NAudioCaptureDevice OpenEndpoint(string? endpointId, bool communications)
     {
         MMDevice device;
         try
@@ -60,7 +64,7 @@ public sealed class NAudioCaptureHost : ICaptureHost
             device.Dispose();
             throw new CaptureDeviceException(CaptureDeviceFailure.NotFound, "The endpoint is not an active capture endpoint.");
         }
-        return new NAudioCaptureDevice(device);
+        return new NAudioCaptureDevice(device, communications);
     }
 
     public IDisposable Watch(Action<EndpointNotice> handler)

@@ -110,6 +110,6 @@ public sealed partial class ThreadRuntime
     public void SendLiveText(string text)
     {
         if (FoundationText.Trim(text, includeNewlines: true).Length == 0) return;
-        _ = MainActor.Spawn(() => StartTurn(text, []));
+        _ = SpawnInstallerTurn(() => StartTurn(text, []));
     }
 }

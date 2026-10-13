@@ -377,10 +377,11 @@ public sealed class MCPStdioConnection
     /// PORT-ONLY (ED-NEW-perf-ui-thread-7). <see cref="Launch"/> with the child created on the pool (<see cref="StdioProcess.StartAsync"/>), for a caller on the UI thread's turn
     /// (the connection probe). A launch failure reaches the awaiting caller as the same exception. The hub's own clients run on an actor strand over the pool, not the UI thread, and keep Launch.
     /// </summary>
-    public static async Task<MCPStdioConnection> LaunchAsync(string executable, IReadOnlyList<string> arguments, IReadOnlyDictionary<string, string> environment)
+    public static async Task<MCPStdioConnection> LaunchAsync(string executable, IReadOnlyList<string> arguments, IReadOnlyDictionary<string, string> environment,
+        Action<JSONValue>? onNotification = null)
     {
         var process = new StdioProcess(executable, arguments, LoginEnvironment.HomeDirectory, environment);
-        var connection = new MCPStdioConnection(process);
+        var connection = new MCPStdioConnection(process, onNotification);
         await process.StartAsync();
         connection.Read();
         return connection;

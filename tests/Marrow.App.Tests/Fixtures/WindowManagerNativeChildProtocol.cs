@@ -24,7 +24,7 @@ internal static class WindowManagerNativeChildProtocol
         // CallerMemberName supplies a real, parameterless Fact in an explicitly permitted top-level type.
         // Do not accept arbitrary filter syntax or a class-wide fallback that could recurse.
         var type = factType ?? typeof(WindowManagerNativeTests);
-        if (type != typeof(WindowManagerNativeTests) && type != typeof(SettingsOwnershipNativeTests) && type != typeof(ToolTipBackdropNativeTests) && type != typeof(WindowManagerFactoryStretchTests) &&
+        if (type != typeof(WindowManagerNativeTests) && type != typeof(ToolTipBackdropNativeTests) && type != typeof(WindowManagerFactoryStretchTests) &&
             type != typeof(VisusFindZoomPrintNativeTests) && type != typeof(SandboxEscapeNativeTests) &&
             type != typeof(EffortSliderNativeFrameTests) && type != typeof(GlassWindowNativeTests) && type != typeof(HandshakeNativeFrameTests) &&
             type != typeof(WindowManagerNativeCentringTests) && type != typeof(WindowManagerNativeChromeTests) && type != typeof(WebW10NativeTests) &&

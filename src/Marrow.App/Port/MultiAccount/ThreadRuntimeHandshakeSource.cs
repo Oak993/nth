@@ -74,13 +74,14 @@ public sealed partial class ThreadRuntime
             Effort = useComposerSettings ? source.Effort : target.Settings.Effort ?? account.Defaults.Effort,
             FastMode = useComposerSettings ? source.FastMode : target.Settings.Fast ?? account.Defaults.FastMode,
         };
-        return new()
+        // PORT-ONLY (Dextra AS-5): a mission chat that changes account is sealed and jobbed like every other launch.
+        return app.MissionLaunchOf(destination, new()
         {
             Provider = account.Service, AccountId = id, Executable = app.Providers.Executable(account.Service),
             WorkingDirectory = SessionDirectoryUrl(directory), Environment = ValueMap<string, string>.Empty,
             Model = destination.Model, Effort = destination.Effort, FastMode = destination.FastMode,
             RuntimeMode = source.RuntimeMode, InteractionMode = source.InteractionMode, AntiSlopEnabled = app.Settings.AntiSlopEnabled,
             Hydra = KeepsHydraPolicyInSystemPrompt(account.Service) ? app.HydraLaunch(destination) : null,
-        };
+        });
     }
 }

@@ -32,14 +32,15 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
     {
         var pages = SwiftEnum<SettingsPage>.AllCases;
         Assert.Equal(
-            ["general", "hydra", "ignis", "appearance", "customization", "voiceTyping", "providers", "updates", "mcp", "plugins", "skills", "pcControl", "visus", "tabula", "models", "pills", "sourceControl", "shortcuts", "archive", "about"],
+            ["general", "hydra", "ignis", "assistant", "appearance", "customization", "voiceTyping", "providers", "updates", "mcp", "plugins", "skills", "pcControl", "visus", "tabula", "models", "pills", "sourceControl", "shortcuts", "archive", "about"],
             pages.Select(page => page.Id));
         Assert.Equal(["customization", "voiceTyping", "updates", "plugins", "skills", "pills"], NewPages.Select(page => page.Id));
         Assert.Equal(pages.ToList().IndexOf(SettingsPage.Plugins) + 1, pages.ToList().IndexOf(SettingsPage.Skills));
         Assert.Equal(SettingsPage.Ignis, pages[2]); // OD-0134 (ED-NEW-ignis-settings): Ignis directly below Hydra
-        Assert.Equal(SettingsPage.Appearance, pages[3]);
-        Assert.Equal(SettingsPage.Customization, pages[4]);
-        Assert.Equal(SettingsPage.VoiceTyping, pages[5]);
+        Assert.Equal(SettingsPage.Assistant, pages[3]); // Dextra AS-8 (ED-NEW-dextra-as8-8): Settings › Assistant directly after Ignis
+        Assert.Equal(SettingsPage.Appearance, pages[4]);
+        Assert.Equal(SettingsPage.Customization, pages[5]);
+        Assert.Equal(SettingsPage.VoiceTyping, pages[6]);
     }
 
     [Fact]
@@ -133,8 +134,9 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
         }
         Assert.All(SwiftEnum<SettingsPage>.AllCases.Where(page => !NewPages.Contains(page)), page => Assert.True(page.IsReady, page.Title));
         Assert.Equal(SwiftEnum<SettingsPage>.AllCases.Where(page => page.IsReady).Select(page => page.Id), SettingsSidebar.Pages("").Select(page => page.Id));
-        Assert.Equal(SettingsPage.Appearance, SettingsSidebar.Pages("")[3]); // [2] is Ignis (OD-0134)
-        Assert.Equal(SettingsPage.Customization, SettingsSidebar.Pages("")[4]);
+        Assert.Equal(SettingsPage.Assistant, SettingsSidebar.Pages("")[3]); // [2] is Ignis (OD-0134), [3] the Assistant (Dextra AS-8)
+        Assert.Equal(SettingsPage.Appearance, SettingsSidebar.Pages("")[4]);
+        Assert.Equal(SettingsPage.Customization, SettingsSidebar.Pages("")[5]);
     }
 
     [Fact]

@@ -247,7 +247,7 @@ public sealed class SideChatPane : Grid
         drawnHeader = null;
         Composer.ChipHost.Child = side is not null && model.Thread(sideId!.Value) is { } thread ? new ModelEffortSlot(side, thread, compact: true) : null;
         Composer.Text = side?.Draft.Text ?? "";
-        Composer.IsRunning = side?.IsRunning ?? false;
+        Composer.IsRunning = side is { } current && (current.IsRunning || current.IsSideChatTurnPending);
         ClearApprovals();
         StartSideTrackers();
         UpdateTranscript();
@@ -264,7 +264,7 @@ public sealed class SideChatPane : Grid
             UpdateTranscript();
             UpdateHeader();
         }));
-        sideTrackers.Add(new Tracked<bool>(() => runtime.IsRunning, running => Composer.IsRunning = running));
+        sideTrackers.Add(new Tracked<bool>(() => runtime.IsRunning || runtime.IsSideChatTurnPending, running => Composer.IsRunning = running));
         sideTrackers.Add(new Tracked<ValueList<ApprovalRequest>>(() => runtime.Approvals, ShowApprovals));
         sideTrackers.Add(new Tracked<(int, int, RuntimePhase)>(() => (runtime.Entries.Count, runtime.Turns.Count, runtime.Phase), _ => UpdateChip()));
     }

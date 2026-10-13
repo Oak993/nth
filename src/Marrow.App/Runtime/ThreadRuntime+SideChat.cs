@@ -13,6 +13,10 @@ namespace Marrow.App.Runtime;
 
 public sealed partial class ThreadRuntime
 {
+    private TaskHandle? sideChatTurnTask;
+    private bool sideChatTurnPending;
+    public bool IsSideChatTurnPending { get => Read(sideChatTurnPending); private set => Set(ref sideChatTurnPending, value); }
+
     /// <summary>
     /// Sends the person's message to the model as the side chat's next turn. Unlike <see cref="Send"/> it takes no local command (a
     /// side chat has no /plan or /compact: Can act is its one mode switch) and no attachment. False when the side chat is busy or the
@@ -21,10 +25,44 @@ public sealed partial class ThreadRuntime
     public bool SendSideChat(string text)
     {
         text = FoundationText.Trim(text ?? "", includeNewlines: true);
-        if (text.Length == 0 || IsReverting || Phase != RuntimePhase.Idle) return false;
+        if (text.Length == 0 || IsReverting || Phase != RuntimePhase.Idle || IsSideChatTurnPending || InstallerHoldsNewTurns) return false;
+        if (Thread is { IsSideChat: true } side && App?.CanStartSideChatTurn(side) != true) return false;
+        IsSideChatTurnPending = true;
+        sideChatTurnTask = SpawnInstallerTurn(() => StartSideChatTurn(text));
+        if (sideChatTurnTask is null) { IsSideChatTurnPending = false; return false; }
         Draft = new ComposerDraft();
-        _ = MainActor.Spawn(() => StartTurn(text, Array.Empty<Attachment>()));
         return true;
+    }
+
+    internal void StopSideChatTurn()
+    {
+        sideChatTurnTask?.Cancel();
+        if (IsRunning) Interrupt();
+    }
+
+    private async Task StartSideChatTurn(string text)
+    {
+        try
+        {
+            if (SwiftTask.IsCancelled) return;
+            if (Thread is { IsSideChat: true } side && App is { } app)
+            {
+                if (!app.CanStartSideChatTurn(side)) return;
+                if (side.MissionID is not null)
+                {
+                    var dextra = app.Dextra;
+                    await app.DextraAdmitHelper(side, SwiftTask.CancellationToken);
+                    await EnsureLoaded();
+                    if (SwiftTask.IsCancelled || app.Thread(ThreadID) is not { } current || !app.CanStartSideChatTurn(current))
+                    {
+                        dextra?.Gate.Leave(side.Id);
+                        return;
+                    }
+                }
+            }
+            await StartTurn(text, Array.Empty<Attachment>());
+        }
+        finally { sideChatTurnTask = null; IsSideChatTurnPending = false; }
     }
 
     /// <summary>A read-only side chat (plan mode): nothing it does changes the project, so a turn needs no checkpoint to revert to.</summary>

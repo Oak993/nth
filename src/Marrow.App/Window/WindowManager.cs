@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.LogicalTree;
 using Avalonia.Layout;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -137,6 +138,69 @@ public sealed class WindowManager
     // shell), the main window is ordered out like every other window (:98).
     internal Action? MainWindowClose { get; set; }
 
+    // PORT-ONLY (AS-10, ED-NEW-dextra-as10-13): "Keep working when the window is closed" (DESIGN.md 7.4). When the owner turned it on, a close of
+    // the main window itself (its close control, Alt+F4) hides the window and drops its visual tree instead of quitting; the app, its sessions and
+    // the scheduler go on, and the tray (AppTray) brings the window back. Off, or unset, the close quits as before. MainWindowClose is not
+    // touched: the updater and the Quit command still end the app through it.
+    internal Func<bool>? KeepWorkingOnClose { get; set; }
+
+    /// <summary>PORT-ONLY (AS-10): runs when the main window has been made again after ParkMain closed it, so the shell can put its hooks on the new one.</summary>
+    internal Action<AvaloniaWindow>? MainWindowMade { get; set; }
+
+    /// <summary>How ParkMain keeps the window out of the way (DESIGN.md 7.4): close it and make it again, or the fallback of hiding it.</summary>
+    internal enum ParkKind
+    {
+        /// <summary>Close the window for real and build a new one at the next show: the memory of its views is free.</summary>
+        Close,
+        /// <summary>The design's fallback if closing cannot be made to free the views: hide the window and keep its tree (a higher RAM cost, measured by the Native soak).</summary>
+        Hide,
+    }
+
+    /// <summary>PORT-ONLY (AS-10): the way the window is parked. Close until the Native memory check says it frees nothing, then Hide.</summary>
+    internal ParkKind Park { get; set; } = ParkKind.Close;
+
+    /// <summary>
+    /// PORT-ONLY (AS-10): takes the main window out of the way while the model, its sessions, its timers and the scheduler go on (ED-NEW-dextra-as10-13).
+    /// Close (the default): the window is closed for real and ShowMain makes a new one at the frame it had, its content built from the model, so the
+    /// memory of its views comes back; an Avalonia listener on a window (the touch selection handles of a text box) can keep the old view reachable
+    /// through that window, and a window that is gone takes it along. Hide: the window is only hidden, with its tree. Any popover that is open is
+    /// closed first and the in-window Settings panel is closed. False when there is no main window.
+    /// </summary>
+    internal bool ParkMain()
+    {
+        if (mainWindow is not { } window) return false;
+        // ED-NEW-finalint-8: Settings is now inside this window (OD-0151).
+        settingsOverlay?.Close();
+        if (Park == ParkKind.Close) settingsOverlay = null; // do not retain the closed window through its panel
+        if (Park == ParkKind.Hide)
+        {
+            window.Hide();
+            parked = true;
+            Model.Tray?.Refresh();
+            return true;
+        }
+        // A popover that is open lives in the window's overlay layer and holds the control it points at: it closes first.
+        foreach (var popup in window.GetLogicalDescendants().OfType<Avalonia.Controls.Primitives.Popup>().ToList())
+            if (popup.IsOpen) popup.IsOpen = false;
+        window.FocusManager?.Focus(null);
+        window.Content = null;
+        closingForPark = true;
+        try { window.Close(); }
+        finally { closingForPark = false; }
+        mainWindow = null;
+        parked = true;
+        hasShownBefore = true;
+        Model.Tray?.Refresh();
+        return true;
+    }
+
+    private bool closingForPark;
+    private bool hasShownBefore;
+    private bool parked;
+
+    /// <summary>PORT-ONLY (AS-10): the main window was parked and has not been shown again.</summary>
+    internal bool MainParked => parked && (mainWindow is null || !mainWindow.IsVisible);
+
     /// <summary>PORT-ONLY: the main window once <see cref="ShowMain"/> has made it (:15), for the application shell's
     /// reopen (ED-002) and session-end hook (ED-004); null before.</summary>
     internal AvaloniaWindow? MainWindow => mainWindow;
@@ -157,8 +221,11 @@ public sealed class WindowManager
     internal AvaloniaWindow PrepareMainShell() => mainWindow ??= MakeMainWindowCore(deferContent: true);
     internal AvaloniaWindow PrepareMain()
     {
+        var made = mainWindow is null;
         var window = mainWindow ??= MakeMainWindow();
+        parked = false;
         if (window.Content is null) AttachContent(window, MainContent);
+        if (made && hasShownBefore) MainWindowMade?.Invoke(window); // AS-10: a window made again after ParkMain; the first is the shell's own business
         return window;
     }
 
@@ -168,6 +235,7 @@ public sealed class WindowManager
         var window = PrepareMain(); // :27
         mainWindow = window; // :28
         Present(window); // :29
+        Model.Tray?.Refresh(); // AS-10: the tray icon goes when the window is up
     }
 
     // :32-38 func showSettings(page: SettingsPage? = nil). DEVIATION OD-0151 (ED-NEW-settingsinapp-1): the page is asked for (:33) as
@@ -326,7 +394,15 @@ public sealed class WindowManager
         window.Closing += (_, e) =>
         {
             if (e.CloseReason != WindowCloseReason.WindowClosing) return;
+            if (closingForPark && ReferenceEquals(window, mainWindow)) return; // AS-10: ParkMain's own close goes through
             e.Cancel = true;
+            // PORT-ONLY (AS-10): with "Keep working when the window is closed" on, the close parks the window and the app goes on.
+            // The window cannot be closed from inside its own Closing: the close is made once this one has returned.
+            if (ReferenceEquals(window, mainWindow) && KeepWorkingOnClose?.Invoke() == true)
+            {
+                Dispatcher.UIThread.Post(() => ParkMain(), DispatcherPriority.Background);
+                return;
+            }
             // DEVIATION OD-0008 C1: the main window's own close quits the app through the shell (PR-LAUNCH-074).
             if (ReferenceEquals(window, mainWindow) && MainWindowClose is { } quit)
             {

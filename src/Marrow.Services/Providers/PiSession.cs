@@ -104,6 +104,7 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
 
     // PORT-ONLY RR-49: permanent no-tools mode; never used or adopted as a working session.
     private bool textOnlyHead;
+    private bool dextraTools; // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): this launch was given the nth-dextra server.
     private bool textOnlyVerified;
     private bool textOnlyCommandAvailable;
 
@@ -189,6 +190,7 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
         // advisor) the bridge reads the chat's own merged file; without, exactly as before.
         IReadOnlyList<MCPResolvedServer> builtIns = textOnlyHead ? [] : MCPProviderConfig.BuiltInServers(configuration);
         pcTools = builtIns.Any(server => server.Id == Port.PcControl.PcProviderWiring.ServerName);
+        dextraTools = builtIns.Any(server => server.Id == Marrow.Services.Assistant.AssistantProviderWiring.ServerName);
         if (builtIns.Count > 0 && MCPProviderConfig.ClaudeBuiltInConfig(builtIns, configuration.IgnisThreadID) is { } merged && merged.Path != MCPPaths.ClaudeConfigURL)
             environment["DROPPY_CODE_MCP_CONFIG"] = merged.Path;
         else if (!textOnlyHead && File.Exists(MCPPaths.ClaudeConfigURL))
@@ -927,7 +929,8 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
             return;
         }
         // PORT-ONLY (Tactus, ED-NEW-pcctl-41): nth's own per-app approval governs the nth-pc tools (DESIGN.md 3.4, 4.1).
-        if (pcTools && Port.PcControl.PcProviderWiring.IsClaudeTool(payload["toolName"]?.JSONValueString))
+        if ((pcTools && Port.PcControl.PcProviderWiring.IsClaudeTool(payload["toolName"]?.JSONValueString))
+            || (dextraTools && Marrow.Services.Assistant.AssistantProviderWiring.IsClaudeTool(payload["toolName"]?.JSONValueString)))
         {
             process?.Send(Obj(("type", "extension_ui_response"), ("id", id), ("value", "Allow")));
             return;

@@ -28,6 +28,9 @@ public sealed class LocalSession : OpenAICompatibleSession
         IsVisionModel = id => target.Models.FirstOrDefault(model => model.Id == id)?.Capabilities.Vision == true,
     };
 
+    // PORT-ONLY (Dextra, ED-NEW-dextra-as4-6): a model with tool calling off asks for the nth-dextra tools in fenced blocks.
+    protected override bool ToolCallingAvailable => current.Capabilities.ToolCalling == true;
+
     protected override Task<StreamRound> StreamOneRound(string model, string? effort, bool withTools = true)
     {
         current = target.Models.FirstOrDefault(item => item.Id == model || item.SelectionId == model)

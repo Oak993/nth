@@ -53,10 +53,11 @@ public sealed class ScriptedCapture : IAudioCapture
     /// <summary>Delivers interleaved samples now. Nothing is delivered when the capture is stopped.</summary>
     public void Push(ReadOnlySpan<float> interleavedSamples)
     {
-        if (sink is null) return;
+        var target = sink; // a sink may stop its own capture from inside the tap (Dextra AS-18: the conversation shuts the microphone when nothing is said)
+        if (target is null) return;
         FramesDelivered += interleavedSamples.Length / Format.Channels;
-        sink.OnAudioBlock(Format, interleavedSamples); // the processing thread's tap, which a scripted capture runs on its caller's
-        sink.OnAudio(interleavedSamples);
+        target.OnAudioBlock(Format, interleavedSamples); // the processing thread's tap, which a scripted capture runs on its caller's
+        if (sink is not null) target.OnAudio(interleavedSamples);
     }
 
     /// <summary>Delivers <paramref name="duration"/> of <paramref name="signal"/> now, from this capture's own frame counter.</summary>

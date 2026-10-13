@@ -51,6 +51,7 @@ public sealed partial class CopilotSession : ProviderSession, ISkillSessionLifet
     private MCPResolvedServer? advisorServer;
     private MCPResolvedServer? uiServer; // PORT-ONLY (web surfaces W12, ED-NEW-web-w12-1): a chat's nth-ui server
     private MCPResolvedServer? pcServer; // PORT-ONLY (Tactus, ED-NEW-pcctl-41): the chat's nth-pc server while Tactus is on.
+    private MCPResolvedServer? dextraServer; // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): the chat's nth-dextra server; null for a chat that is not Dextra's.
     private JSONRPCConnection? skillsReader;
     public Task SkillReadersExited => skillsReader?.ChildExited ?? Task.CompletedTask;
     private JSONRPCConnection? connection; // :41
@@ -186,7 +187,7 @@ public sealed partial class CopilotSession : ProviderSession, ISkillSessionLifet
         // mcpServers (the SDK's per-session field); every other session's parameters are unchanged.
         // PORT-ONLY (Tactus, ED-NEW-pcctl-41): nth-pc joins it while Tactus is on, in one merged object of the built-ins (+ ED-NEW-web-w12-1 nth-ui).
         if (MCPProviderConfig.CopilotBuiltIns(MCPProviderConfig.BuiltInServers(advisorServer ??= MCPProviderConfig.AdvisorServer(configuration),
-                pcServer ??= MCPProviderConfig.PcServer(configuration), uiServer ??= MCPProviderConfig.UiServer(configuration))) is { } builtIns) parameters["mcpServers"] = builtIns;
+                pcServer ??= MCPProviderConfig.PcServer(configuration), uiServer ??= MCPProviderConfig.UiServer(configuration), dextraServer ??= MCPProviderConfig.DextraServer(configuration))) is { } builtIns) parameters["mcpServers"] = builtIns;
         return parameters; // :157
     }
 
@@ -1052,6 +1053,12 @@ public sealed partial class CopilotSession : ProviderSession, ISkillSessionLifet
         if (pcServer is not null && Port.PcControl.PcProviderWiring.IsCopilotRequest(request))
         {
             RespondPermission(requestID, Port.PcControl.PcProviderWiring.CopilotApproval());
+            return;
+        }
+        // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): the nth-dextra server asks nth's policy engine before every tool (DESIGN.md 12.3).
+        if (dextraServer is not null && Marrow.Services.Assistant.AssistantProviderWiring.IsCopilotRequest(request))
+        {
+            RespondPermission(requestID, Marrow.Services.Assistant.AssistantProviderWiring.CopilotApproval());
             return;
         }
         if (AutomaticDecision(request, data["promptRequest"]) is { } decision) // :780-783

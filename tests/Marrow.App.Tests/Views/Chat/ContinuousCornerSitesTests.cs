@@ -266,7 +266,6 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.UI/NthUi/NthUiInputs.cs", "NthUiTokens.ControlRadius", 2, Circular), // web W16a: the 32 DIP stepper capsule (canvas .stp, CSS border-radius 12px) and the text field (32 DIP, or 76 for several lines), design-page layouts (a circular arc), no Swift counterpart
         ("Marrow.UI/Panes/PaneHeader.cs", "7", 1, Fit), // web W3a: the title menu button, 24 DIP high, with r = 7: 24 > 3.057 x 7
         ("Marrow.UI/Port/PcControl/ApprovalCardBody.cs", "12", 1, Circular), // Tactus pill v2 (OD-0145, ED-NEW-pcctl-26): the risk box (9 DIP of padding round its lines), a card part drawn from the pc-control-ui canvas, no Swift twin
-        ("Marrow.UI/Port/PcControl/ApprovalCardBody.cs", "size * 0.24", 1, Fit), // Tactus pill v2: the app's tile, size x size with r = 0.24 size: the height is 4.2 radii at every size
         ("Marrow.UI/Port/PcControl/CardParts.cs", "5", 1, Circular), // Tactus pill v2: a key chip (canvas kbd, CSS border-radius 5px), 14.5 DIP high, a design-page layout
         ("Marrow.UI/Port/PcControl/CardParts.cs", "radius", 1, Capsule), // Tactus pill v2: a card button, 30 or 34 DIP high with r = h / 2 (the link look has no box and radius 0)
         ("Marrow.UI/Port/PcControl/CardParts.cs", "radius + 4", 1, Capsule), // Tactus pill v2: the card button's focus ring, 4 DIP out round a capsule, r = (h + 8) / 2

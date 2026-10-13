@@ -56,7 +56,7 @@ public sealed partial class ThreadRuntime
     private void StartArtifactFollowUp(FollowUpPrompt prompt)
     {
         artifactDispatchPending = prompt.Id;
-        _ = MainActor.Spawn(async () =>
+        var child = SpawnInstallerTurn(async () =>
         {
             var previous = artifactRequestContext.Value;
             artifactRequestContext.Value = prompt.Id;
@@ -76,17 +76,28 @@ public sealed partial class ThreadRuntime
                 if (artifactDispatchPending == prompt.Id) artifactDispatchPending = null;
             }
         });
+        if (child is null)
+        {
+            RestoreArtifactFollowUp(prompt.Id, prompt.Text, prompt.Attachments);
+            if (artifactDispatchPending == prompt.Id) artifactDispatchPending = null;
+        }
     }
 
     private bool RestoreArtifactFollowUp(string text, IReadOnlyList<Attachment> attachments)
     {
-        if (artifactRequestContext.Value is not { } id || !IsArtifactFollowUp(id)) return false;
+        return artifactRequestContext.Value is { } id && RestoreArtifactFollowUp(id, text, attachments);
+    }
+
+    private bool RestoreArtifactFollowUp(Guid id, string text, IReadOnlyList<Attachment> attachments)
+    {
+        if (!IsArtifactFollowUp(id)) return false;
         if (!followUps.Any(p => p.Id == id))
         {
             FollowUps = followUps.Mutating(items => items.Insert(0, new FollowUpPrompt { Id = id, Text = text, Attachments = new ValueList<Attachment>(attachments) }));
             saveRevision++;
             ScheduleSave();
         }
+        MarkInstallerPromptDurable(null);
         return true;
     }
 
