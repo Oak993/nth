@@ -452,7 +452,7 @@ public sealed class VisusPaneTests(HeadlessSession headless)
         var first = page.RaiseExternalUri("zoommtg://zoom.us/join", "https://a.test", userInitiated: true);
         var prompt = body.Prompt!;
         Assert.Null(prompt.Remember);
-        Assert.Equal(VisusPrompt.Foot, "Enter does nothing here. Esc cancels.");
+        Assert.Equal("Enter does nothing here. Esc cancels.", VisusPrompt.Foot);
         var esc = KeyArgs(Key.Escape, PhysicalKey.Escape);
         prompt.CancelButton.RaiseEvent(esc);
         Assert.True(esc.Handled);

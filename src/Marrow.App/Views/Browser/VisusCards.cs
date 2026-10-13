@@ -6,6 +6,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Marrow.App.Port;
+using Marrow.Core.Localisation;
 using Marrow.Core.Web;
 using Marrow.Services.Web;
 using Marrow.UI.Panes;
@@ -54,8 +55,8 @@ public sealed class VisusPermissionPrompt : VisusPromptCard
     private static string DetailFor(VisusPermissionAsk ask, string? pageTitle)
     {
         var title = pageTitle?.ReplaceLineEndings(" ").Trim() ?? "";
-        if (title.Length > 0) return $"For \"{Shorten(title, 60)}\" on this page.";
-        return ask.Tab.Kind == VisusTabKind.Private ? "In this private tab only." : "On this page.";
+        if (title.Length > 0) return UiText.Format("visus.card.permission_for_page", Shorten(title, 60));
+        return ask.Tab.Kind == VisusTabKind.Private ? UiText.Get("visus.card.permission_private_tab") : UiText.Get("visus.card.permission_this_page");
     }
 
     internal static PaneGlyphKind GlyphFor(SitePermissionKind kind) => kind switch
@@ -192,20 +193,20 @@ public sealed class VisusDownloadPrompt : VisusPromptCard
 /// <summary>8.4: "example.com asks you to sign in", user name and password, the realm in small text, Sign in and Cancel.</summary>
 public sealed class VisusSignInCard : VisusPromptCard
 {
-    /// <summary>The card's foot: where the values go.</summary>
-    public const string Foot = "Sent to this site only; nth keeps none of it. Esc cancels.";
+    /// <summary>The card's foot: where the values go (resource key visus.card.sign_in_foot).</summary>
+    public static string Foot => UiText.Get("visus.card.sign_in_foot");
 
-    /// <summary>The warning on a page without encryption (not a local server).</summary>
-    public const string PlainWarning = "This page is not encrypted: the password is sent as typed.";
+    /// <summary>The warning on a page without encryption (not a local server; resource key visus.card.sign_in_plain_warning).</summary>
+    public static string PlainWarning => UiText.Get("visus.card.sign_in_plain_warning");
 
     public VisusSignInCard(VisusSignInAsk ask)
-        : base(ask, $"{ask.Source} asks you to sign in", ask.Realm ?? "", PaneGlyphKind.Lock)
+        : base(ask, UiText.Format("visus.card.sign_in_title", ask.Source), ask.Realm ?? "", PaneGlyphKind.Lock)
     {
         SignIn = ask;
-        UserName = Field("User name", secret: false);
-        Password = Field("Password", secret: true);
-        AutomationProperties.SetName(UserName, $"User name for {ask.Source}");
-        AutomationProperties.SetName(Password, $"Password for {ask.Source}");
+        UserName = Field(UiText.Get("visus.card.user_name"), secret: false);
+        Password = Field(UiText.Get("visus.card.password"), secret: true);
+        AutomationProperties.SetName(UserName, UiText.Format("visus.card.user_name_for", ask.Source));
+        AutomationProperties.SetName(Password, UiText.Format("visus.card.password_for", ask.Source));
         Body.Children.Add(Frame(UserName, new Thickness(30, 10, 0, 0)));
         Body.Children.Add(Frame(Password, new Thickness(30, 6, 0, 0)));
         if (IsPlain(ask.Uri))
@@ -213,8 +214,8 @@ public sealed class VisusSignInCard : VisusPromptCard
             Warning = Text(PlainWarning, 12, VisusTokens.NotSecureText, wrap: true, margin: new Thickness(30, 8, 0, 0));
             Body.Children.Add(Warning);
         }
-        SignInButton = AddButton("Sign in", $"Sign in to {ask.Source}", primary: true, Send);
-        CancelButton = AddButton("Cancel", $"Don't sign in to {ask.Source}", primary: false, ask.Cancel);
+        SignInButton = AddButton(UiText.Get("visus.card.sign_in"), UiText.Format("visus.card.sign_in_name", ask.Source), primary: true, Send);
+        CancelButton = AddButton(UiText.Get("visus.card.cancel"), UiText.Format("visus.card.sign_in_cancel_name", ask.Source), primary: false, ask.Cancel);
         Finish(Foot);
     }
 
@@ -305,8 +306,8 @@ public sealed class VisusSignInCard : VisusPromptCard
 /// <summary>8.4: a page's alert, confirm, prompt or leave-page dialog, as nth's card labelled with the site.</summary>
 public sealed class VisusDialogCard : VisusPromptCard
 {
-    /// <summary>"Don't let this page show more dialogs" (from the page's second dialog).</summary>
-    public const string StopLabel = "Don't let this page show more dialogs";
+    /// <summary>"Don't let this page show more dialogs" (from the page's second dialog; resource key visus.card.dialog_stop).</summary>
+    public static string StopLabel => UiText.Get("visus.card.dialog_stop");
 
     /// <summary>The longest page message a card shows (the rest is cut with an ellipsis).</summary>
     public const int MessageLimit = 600;
@@ -319,35 +320,35 @@ public sealed class VisusDialogCard : VisusPromptCard
         {
             Answer = VisusSignInCard.Field("", secret: false);
             Answer.Text = ask.DefaultText;
-            AutomationProperties.SetName(Answer, $"Your answer to {ask.Source}");
+            AutomationProperties.SetName(Answer, UiText.Format("visus.card.dialog_answer_name", ask.Source));
             Body.Children.Add(VisusSignInCard.Frame(Answer, new Thickness(30, 10, 0, 0)));
         }
         if (ask.OffersStop)
         {
             Stop = new CheckBox { Content = Text(StopLabel, 12.5, PaneTokens.Text1, wrap: true), Margin = new Thickness(30, 10, 0, 0) };
             ChatDialogControls.Checkbox(Stop);
-            AutomationProperties.SetName(Stop, $"Don't let {ask.Source} show more dialogs");
+            AutomationProperties.SetName(Stop, UiText.Format("visus.card.dialog_stop_name", ask.Source));
             Body.Children.Add(Stop);
         }
         switch (ask.DialogKind)
         {
             case WebScriptDialogKind.Alert:
-                AcceptButton = AddButton("OK", $"Close {ask.Source}'s message", primary: true, Accept);
+                AcceptButton = AddButton(UiText.Get("visus.card.ok"), UiText.Format("visus.card.dialog_alert_ok_name", ask.Source), primary: true, Accept);
                 break;
             case WebScriptDialogKind.BeforeUnload:
-                AcceptButton = AddButton("Leave", $"Leave {ask.Source}", primary: false, Accept);
-                DismissButton = AddButton("Stay", $"Stay on {ask.Source}", primary: true, Refuse);
+                AcceptButton = AddButton(UiText.Get("visus.card.dialog_leave"), UiText.Format("visus.card.dialog_leave_name", ask.Source), primary: false, Accept);
+                DismissButton = AddButton(UiText.Get("visus.card.dialog_stay"), UiText.Format("visus.card.dialog_stay_name", ask.Source), primary: true, Refuse);
                 break;
             case WebScriptDialogKind.Prompt:
-                AcceptButton = AddButton("OK", $"Send your answer to {ask.Source}", primary: true, Accept);
-                DismissButton = AddButton("Cancel", $"Don't answer {ask.Source}", primary: false, Refuse);
+                AcceptButton = AddButton(UiText.Get("visus.card.ok"), UiText.Format("visus.card.dialog_prompt_ok_name", ask.Source), primary: true, Accept);
+                DismissButton = AddButton(UiText.Get("visus.card.cancel"), UiText.Format("visus.card.dialog_prompt_cancel_name", ask.Source), primary: false, Refuse);
                 break;
             default:
-                AcceptButton = AddButton("OK", $"Answer OK to {ask.Source}", primary: true, Accept);
-                DismissButton = AddButton("Cancel", $"Answer Cancel to {ask.Source}", primary: false, Refuse);
+                AcceptButton = AddButton(UiText.Get("visus.card.ok"), UiText.Format("visus.card.dialog_confirm_ok_name", ask.Source), primary: true, Accept);
+                DismissButton = AddButton(UiText.Get("visus.card.cancel"), UiText.Format("visus.card.dialog_confirm_cancel_name", ask.Source), primary: false, Refuse);
                 break;
         }
-        Finish(ask.DialogKind == WebScriptDialogKind.BeforeUnload ? "Enter does nothing here. Esc stays." : "Enter does nothing here. Esc closes it.");
+        Finish(ask.DialogKind == WebScriptDialogKind.BeforeUnload ? UiText.Get("visus.card.dialog_foot_leave") : UiText.Get("visus.card.dialog_foot"));
     }
 
     public VisusDialogAsk Dialog { get; }
@@ -376,14 +377,14 @@ public sealed class VisusDialogCard : VisusPromptCard
 
     private static string TitleFor(VisusDialogAsk ask) => ask.DialogKind switch
     {
-        WebScriptDialogKind.BeforeUnload => "Leave this page?",
-        WebScriptDialogKind.Alert => $"{ask.Source} says",
-        _ => $"{ask.Source} asks",
+        WebScriptDialogKind.BeforeUnload => UiText.Get("visus.card.dialog_leave_title"),
+        WebScriptDialogKind.Alert => UiText.Format("visus.card.dialog_says", ask.Source),
+        _ => UiText.Format("visus.card.dialog_asks", ask.Source),
     };
 
     private static string DetailFor(VisusDialogAsk ask)
     {
-        if (ask.DialogKind == WebScriptDialogKind.BeforeUnload) return $"Changes you made on {ask.Source} may not be saved.";
+        if (ask.DialogKind == WebScriptDialogKind.BeforeUnload) return UiText.Format("visus.card.dialog_unsaved", ask.Source);
         var message = new string(ask.Message.Where(c => !char.IsControl(c) || c is '\n' or '\t').ToArray()).Trim();
         return Shorten(message, MessageLimit);
     }
@@ -392,19 +393,20 @@ public sealed class VisusDialogCard : VisusPromptCard
 /// <summary>8.4 and 5.10: the guarded file upload card of an agent tab: only the user's Choose gives the page a file.</summary>
 public sealed class VisusFileCard : VisusPromptCard
 {
-    /// <summary>The card's detail: who chooses, and what the model sees.</summary>
-    public const string Explanation = "Only you can choose it. The model never sees where it is on your PC.";
+    /// <summary>The card's detail: who chooses, and what the model sees (resource key visus.card.file_explanation).</summary>
+    public static string Explanation => UiText.Get("visus.card.file_explanation");
 
     private readonly Func<VisusFileAsk, Task<IReadOnlyList<string>?>> pick;
     private bool picking;
 
     public VisusFileCard(VisusFileAsk ask, Func<VisusFileAsk, Task<IReadOnlyList<string>?>> pick)
-        : base(ask, $"The model's page on {ask.Source} wants {(ask.Multiple ? "files" : "a file")} from your PC", Explanation, PaneGlyphKind.Folder)
+        : base(ask, ask.Multiple ? UiText.Format("visus.card.file_title_many", ask.Source) : UiText.Format("visus.card.file_title_one", ask.Source), Explanation, PaneGlyphKind.Folder)
     {
         File = ask;
         this.pick = pick;
-        ChooseButton = AddButton(ask.Multiple ? "Choose files…" : "Choose file…", $"Choose {(ask.Multiple ? "files" : "a file")} for {ask.Source} yourself", primary: true, () => _ = ChooseAsync());
-        CancelButton = AddButton("Cancel", $"Don't give {ask.Source} a file", primary: false, ask.Cancel);
+        ChooseButton = AddButton(ask.Multiple ? UiText.Get("visus.card.file_choose_many") : UiText.Get("visus.card.file_choose_one"),
+            ask.Multiple ? UiText.Format("visus.card.file_choose_many_name", ask.Source) : UiText.Format("visus.card.file_choose_one_name", ask.Source), primary: true, () => _ = ChooseAsync());
+        CancelButton = AddButton(UiText.Get("visus.card.cancel"), UiText.Format("visus.card.file_cancel_name", ask.Source), primary: false, ask.Cancel);
         Finish(VisusPrompt.Foot);
     }
 

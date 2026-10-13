@@ -111,11 +111,11 @@ public sealed class VisusSessionTests(HeadlessSession headless)
     });
 
     [Theory]
-    [InlineData("file:///C:/Users/dana/notes.html", VisusAddress.LocalFileRefusal)]
-    [InlineData(@"C:\Users\dana\notes.html", VisusAddress.LocalFileRefusal)]
-    [InlineData("javascript:alert(1)", VisusAddress.ScriptRefusal)]
-    [InlineData("data:text/html,x", VisusAddress.DataRefusal)]
-    [InlineData("edge://settings", VisusAddress.InternalRefusal)]
+    [InlineData("file:///C:/Users/dana/notes.html", "Visus does not open files from your PC here. Use Open in Visus in the file tree.")]
+    [InlineData(@"C:\Users\dana\notes.html", "Visus does not open files from your PC here. Use Open in Visus in the file tree.")]
+    [InlineData("javascript:alert(1)", "Visus does not run script addresses.")]
+    [InlineData("data:text/html,x", "Visus does not open data: addresses as a page.")]
+    [InlineData("edge://settings", "Browser pages like this one are not part of Visus.")]
     [InlineData("ms-msdt:/id", "Visus does not open ms-msdt: links.")]
     public void A_refused_address_leaves_the_tab_and_says_why(string typed, string why) => headless.OnUiThread(() =>
     {

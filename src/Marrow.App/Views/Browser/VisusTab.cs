@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Marrow.Core.Localisation;
 using Marrow.Core.Web;
 using Marrow.Services.Web;
 
@@ -121,7 +122,7 @@ public sealed class VisusTab
         {
             if (!string.IsNullOrWhiteSpace(title)) return title.Trim();
             if (!IsBlank) return VisusAddress.Display(Url);
-            return Kind == VisusTabKind.Private ? "Private tab" : "New tab";
+            return Kind == VisusTabKind.Private ? UiText.Get("visus.tabs.title_private") : UiText.Get("visus.tabs.title_new");
         }
     }
 
@@ -604,7 +605,7 @@ public sealed class VisusTab
         "file" => VisusAddress.LocalFileRefusal,
         "javascript" or "vbscript" => VisusAddress.ScriptRefusal,
         "data" => VisusAddress.DataRefusal,
-        { } scheme when ExternalProtocols.BlockList.Contains(scheme) => $"Visus does not open {scheme}: links.",
+        { } scheme when ExternalProtocols.BlockList.Contains(scheme) => UiText.Format("visus.address.refusal_scheme", scheme),
         _ => VisusAddress.InternalRefusal,
     };
 
@@ -612,8 +613,8 @@ public sealed class VisusTab
 
     // ---- W8b: the questions this tab waits on (5.4, 5.5, 8.4; ED-NEW-web-w8b-1, -2, -4) ----
 
-    /// <summary>The notice while the pointer is locked (8.4), word for word.</summary>
-    public const string PointerLockNotice = "Press Esc to release your pointer";
+    /// <summary>The notice while the pointer is locked (8.4), word for word (resource key visus.tab.pointer_lock_notice).</summary>
+    public static string PointerLockNotice => UiText.Get("visus.tab.pointer_lock_notice");
 
     /// <summary>A queued ask joins the tab's list; the pane shows the oldest while the tab is on screen.</summary>
     internal void AddAsk(VisusAsk ask)
@@ -815,7 +816,7 @@ public sealed class VisusTab
             if (string.IsNullOrEmpty(folder))
             {
                 e.Respond(WebDownloadDecision.Cancel);
-                session.Notify(this, "Visus could not find your Downloads folder. Use Save as… to pick a place.");
+                session.Notify(this, UiText.Get("visus.downloads.no_folder"));
                 return;
             }
             path = DownloadGate.UniquePath(folder, ask.FileName, VisusHost.FileExists);

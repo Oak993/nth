@@ -7,6 +7,7 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Panes;
+using Marrow.Core.Localisation;
 using Marrow.Core.Port;
 using Marrow.Core.Web;
 using Marrow.Services.Web;
@@ -284,7 +285,7 @@ public static class VisusHost
         if (top?.StorageProvider is not { CanSave: true } storage) return null;
         var options = new FilePickerSaveOptions
         {
-            Title = "Save as",
+            Title = UiText.Get("visus.downloads.save_as_title"),
             SuggestedFileName = fileName,
             ShowOverwritePrompt = true,
         };
@@ -296,7 +297,7 @@ public static class VisusHost
     private static async Task<IReadOnlyList<string>?> PickFilesWithDialogAsync(TopLevel? top, bool multiple)
     {
         if (top?.StorageProvider is not { CanOpen: true } storage) return null;
-        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions { Title = "Choose a file for the page", AllowMultiple = multiple });
+        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions { Title = UiText.Get("visus.card.file_picker_title"), AllowMultiple = multiple });
         var paths = files.Select(file => file.TryGetLocalPath()).OfType<string>().ToList();
         return paths.Count == 0 ? null : paths;
     }
@@ -304,7 +305,7 @@ public static class VisusHost
     // DESIGN 5.5: "in browse they map to nth's own toast". The title names the site, so a page cannot pose as nth or another app.
     private static void SystemToast(string source, string title, string body, bool sound)
     {
-        var request = new Marrow.App.Port.ToastRequest("visus:" + Guid.NewGuid().ToString("N"), source + " · " + title, body, sound,
+        var request = new Marrow.App.Port.ToastRequest("visus:" + Guid.NewGuid().ToString("N"), UiText.Format("visus.site.toast_title", source, title), body, sound,
             new Dictionary<string, object>(StringComparer.Ordinal) { ["visus"] = source });
         _ = AddToastAsync(Marrow.App.Port.ToastNotifications.Center.Current, request);
     }

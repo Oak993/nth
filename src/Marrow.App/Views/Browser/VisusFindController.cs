@@ -1,3 +1,4 @@
+using Marrow.Core.Localisation;
 using Marrow.Services.Web;
 
 namespace Marrow.App.Views.Browser;
@@ -67,7 +68,7 @@ public sealed class VisusFindController : IDisposable
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
         catch (Exception)
         {
-            if (current == version && IsOpen) { CountText = "Find unavailable"; Result = new(-1, -1); Changed?.Invoke(); }
+            if (current == version && IsOpen) { CountText = UiText.Get("visus.find.unavailable"); Result = new(-1, -1); Changed?.Invoke(); }
         }
         finally { if (entered) { searching = false; serial.Release(); } }
     }
@@ -75,9 +76,9 @@ public sealed class VisusFindController : IDisposable
     {
         if (!IsOpen || searching || Result.MatchCount <= 0 || engine is not { } page) return;
         try { if (previous) page.FindPrevious(); else page.FindNext(); }
-        catch (Exception) { CountText = "Find unavailable"; Changed?.Invoke(); }
+        catch (Exception) { CountText = UiText.Get("visus.find.unavailable"); Changed?.Invoke(); }
     }
-    private static string Format(WebFindResult result) => result.MatchCount < 0 ? "Find unavailable" : result.MatchCount == 0 ? "No matches" : $"{result.ActiveMatchIndex + 1} of {result.MatchCount}";
+    private static string Format(WebFindResult result) => result.MatchCount < 0 ? UiText.Get("visus.find.unavailable") : result.MatchCount == 0 ? UiText.Get("visus.find.no_matches") : UiText.Format("visus.find.count", result.ActiveMatchIndex + 1, result.MatchCount);
     private void OnResult(object? sender, WebFindResult result)
     {
         if (!IsOpen || searching || !ReferenceEquals(sender, engine)) return;

@@ -9,6 +9,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Marrow.Core.Localisation;
 using Marrow.Core.Web;
 using Marrow.UI.Chrome;
 using Marrow.UI.Panes;
@@ -47,9 +48,9 @@ public sealed class VisusToolbar : Border
         Padding = new Thickness(6, 0);
         BorderThickness = new Thickness(0, 0, 0, 0.5);
         // + ED-NEW-web-w11-1: each press is the user's own action on the tab (a tab the model drives pauses for it, DESIGN 5.10).
-        Back = new VisusToolbarButton(PaneGlyphKind.Back, "Back", "Alt+Left", _ => session.Perform(VisusCommand.Back));
-        Forward = new VisusToolbarButton(PaneGlyphKind.Forward, "Forward", "Alt+Right", _ => session.Perform(VisusCommand.Forward));
-        Reload = new VisusToolbarButton(PaneGlyphKind.Reload, "Reload", "F5", modifiers =>
+        Back = new VisusToolbarButton(PaneGlyphKind.Back, UiText.Get("visus.toolbar.back"), "Alt+Left", _ => session.Perform(VisusCommand.Back));
+        Forward = new VisusToolbarButton(PaneGlyphKind.Forward, UiText.Get("visus.toolbar.forward"), "Alt+Right", _ => session.Perform(VisusCommand.Forward));
+        Reload = new VisusToolbarButton(PaneGlyphKind.Reload, UiText.Get("visus.toolbar.reload"), "F5", modifiers =>
         {
             if (session.Selected is not { } tab) return;
             session.Acted(tab);
@@ -58,11 +59,11 @@ public sealed class VisusToolbar : Border
         });
         Back.HistoryRequested += at => ShowHistory(Back, back: true, at);
         Forward.HistoryRequested += at => ShowHistory(Forward, back: false, at);
-        More = new VisusToolbarButton(PaneGlyphKind.More, "Visus menu", null, _ => SetMoreOpen(!moreMenu!.IsOpen));
+        More = new VisusToolbarButton(PaneGlyphKind.More, UiText.Get("visus.toolbar.menu"), null, _ => SetMoreOpen(!moreMenu!.IsOpen));
         moreMenu = new VisusPopover(More, () => new PopoverMenu(BuildMenu));
         // W8b (5.4; the canvas's data-act="dls", an .opt2 button): the downloads of this run, always in the toolbar unless it is
         // narrower than 420 DIP; a ring shows the progress of the transfers still running.
-        Downloads = new VisusToolbarButton(PaneGlyphKind.Download, "Downloads", null, _ => SetDownloadsOpen(!downloadsMenu!.IsOpen));
+        Downloads = new VisusToolbarButton(PaneGlyphKind.Download, UiText.Get("visus.toolbar.downloads"), null, _ => SetDownloadsOpen(!downloadsMenu!.IsOpen));
         downloadsMenu = new VisusPopover(Downloads, () => new PopoverMenu(BuildDownloads));
         downloadsRing = new Avalonia.Controls.Shapes.Arc
         {
@@ -81,8 +82,8 @@ public sealed class VisusToolbar : Border
         var downloadsSlot = new Panel { Children = { Downloads, downloadsRing }, VerticalAlignment = VerticalAlignment.Center };
         Address = new VisusAddressField(session) { Margin = new Thickness(4, 0) };
         if (!MenuProviders.Contains(ProjectPreviewHost.Menu)) MenuProviders.Add(ProjectPreviewHost.Menu);
-        picker = DevicePresetBar.Action("Pick element", () => session.Perform(VisusCommand.PickElement), new PreviewGlyph("Picker"));
-        servers = DevicePresetBar.Action("Dev servers", () => serversMenu!.SetOpen(!serversMenu.IsOpen));
+        picker = DevicePresetBar.Action(UiText.Get("visus.preview.pick_element"), () => session.Perform(VisusCommand.PickElement), new PreviewGlyph("Picker"));
+        servers = DevicePresetBar.Action(UiText.Get("visus.preview.dev_servers"), () => serversMenu!.SetOpen(!serversMenu.IsOpen));
         serversMenu = new VisusPopover(servers, () => new PopoverMenu(BuildServers));
         var row = new DockPanel { LastChildFill = true, VerticalAlignment = VerticalAlignment.Center };
         foreach (var button in new[] { Back, Forward, Reload })
@@ -98,7 +99,7 @@ public sealed class VisusToolbar : Border
         row.Children.Add(downloadsSlot);
         row.Children.Add(Address);
         Child = new Panel { Children = { row, moreMenu.Popup, serversMenu.Popup, downloadsMenu.Popup } };
-        AutomationProperties.SetName(this, "Visus toolbar");
+        AutomationProperties.SetName(this, UiText.Get("visus.toolbar.name"));
         SetValue(AutomationProperties.ControlTypeOverrideProperty, AutomationControlType.ToolBar);
         ActualThemeVariantChanged += (_, _) => ApplyLook();
         SizeChanged += (_, _) => ApplyDownloads();
@@ -116,8 +117,8 @@ public sealed class VisusToolbar : Border
     /// <summary>The canvas's container rule: at this width or less the optional Downloads button gives its room to the address.</summary>
     public const double NarrowWidth = 420;
 
-    /// <summary>The downloads popover's line while nothing was saved in this run.</summary>
-    public const string NoDownloads = "No downloads yet. Files you save from Visus show here.";
+    /// <summary>The downloads popover's line while nothing was saved in this run (resource key visus.downloads.none).</summary>
+    public static string NoDownloads => UiText.Get("visus.downloads.none");
 
     /// <summary>The downloads of this run (5.4), in the toolbar unless it is narrow.</summary>
     public VisusToolbarButton Downloads { get; }
@@ -178,7 +179,7 @@ public sealed class VisusToolbar : Border
         Forward.IsEnabled = tab?.CanGoForward == true;
         Reload.IsEnabled = tab is { IsBlank: false } || tab?.IsLoading == true;
         var loading = tab?.IsLoading == true;
-        Reload.SetGlyph(loading ? PaneGlyphKind.Close : PaneGlyphKind.Reload, loading ? "Stop" : "Reload", loading ? "Esc" : "F5");
+        Reload.SetGlyph(loading ? PaneGlyphKind.Close : PaneGlyphKind.Reload, loading ? UiText.Get("visus.toolbar.stop") : UiText.Get("visus.toolbar.reload"), loading ? "Esc" : "F5");
         ApplyLook();
     }
 
@@ -210,7 +211,7 @@ public sealed class VisusToolbar : Border
     private void SetMoreOpen(bool open) => moreMenu.SetOpen(open);
     private Control BuildServers()
     {
-        var stack = new StackPanel(); stack.Children.Add(new PopoverSectionHeader("Dev servers"));
+        var stack = new StackPanel(); stack.Children.Add(new PopoverSectionHeader(UiText.Get("visus.preview.dev_servers")));
         var all = session.Runtime?.App?.Terminals.AllSessions.Where(s => s.IsRunning).ToArray() ?? [];
         foreach (var terminal in all)
             foreach (var address in terminal.PreviewServers)
@@ -218,7 +219,7 @@ public sealed class VisusToolbar : Border
                 var chosen = address;
                 stack.Children.Add(new PopoverItem(WebPolicy.SourceName(chosen), () => { serversMenu.SetOpen(false); if (session.Runtime is { } runtime) ProjectPreviewHost.Open(runtime, chosen); }, detail: terminal.Title));
             }
-        if (stack.Children.Count == 1) stack.Children.Add(new PopoverItem("No dev servers", () => { }, isEnabled: false));
+        if (stack.Children.Count == 1) stack.Children.Add(new PopoverItem(UiText.Get("visus.preview.no_dev_servers"), () => { }, isEnabled: false));
         return stack;
     }
 
@@ -233,9 +234,9 @@ public sealed class VisusToolbar : Border
         downloadsRing.IsVisible = Downloads.IsVisible && live > 0 && progress is not null;
         downloadsRing.SweepAngle = (progress ?? 0) * 360;
         downloadsRing.Stroke = Marrow.UI.Chrome.Chrome.Accent.Brush(this);
-        var name = live == 0 ? "Downloads" : progress is { } share
-            ? $"Downloads, {live} in progress, {Math.Round(share * 100)} %"
-            : $"Downloads, {live} in progress";
+        var name = live == 0 ? UiText.Get("visus.toolbar.downloads") : progress is { } share
+            ? UiText.Format("visus.downloads.in_progress_percent", live, Math.Round(share * 100))
+            : UiText.Format("visus.downloads.in_progress", live);
         AutomationProperties.SetName(Downloads, name);
         ToolTip.SetTip(Downloads, name);
         if (!Downloads.IsVisible && downloadsMenu.IsOpen) SetDownloadsOpen(false);
@@ -251,25 +252,25 @@ public sealed class VisusToolbar : Border
             var download = item;
             // The row shows the file in its folder; nothing here ever opens it (5.4 "Files are never opened automatically").
             rows.Add(new(download.FileName, () => VisusHost.ShowInFolder(download.Path), download.Status, download.State == VisusDownloadState.Done));
-            if (download.State == VisusDownloadState.Running) rows.Add(new("Pause " + download.FileName, download.Pause));
+            if (download.State == VisusDownloadState.Running) rows.Add(new(UiText.Format("visus.downloads.pause", download.FileName), download.Pause));
             if (download.State == VisusDownloadState.Paused || download.State == VisusDownloadState.Failed && download.CanResume)
-                rows.Add(new("Resume " + download.FileName, download.Resume));
-            if (download.IsLive) rows.Add(new("Cancel " + download.FileName, download.Cancel));
+                rows.Add(new(UiText.Format("visus.downloads.resume", download.FileName), download.Resume));
+            if (download.IsLive) rows.Add(new(UiText.Format("visus.downloads.cancel", download.FileName), download.Cancel));
         }
         if (rows.Count > 0) rows.Add(null);
         var folder = VisusHost.DownloadsFolder();
-        rows.Add(new("Open the Downloads folder", () =>
+        rows.Add(new(UiText.Get("visus.downloads.open_folder"), () =>
         {
             if (folder is not null) Marrow.UI.Port.ShellWorkspace.OpenWithDefaultApp(folder);
         }, IsEnabled: folder is not null));
-        rows.Add(new("Clear finished", downloads.ClearFinished, IsEnabled: downloads.Items.Any(item => !item.IsLive)));
+        rows.Add(new(UiText.Get("visus.downloads.clear_finished"), downloads.ClearFinished, IsEnabled: downloads.Items.Any(item => !item.IsLive)));
         return rows;
     }
 
     private Control BuildDownloads()
     {
         var stack = new StackPanel { Orientation = Orientation.Vertical };
-        stack.Children.Add(new PopoverSectionHeader("Downloads"));
+        stack.Children.Add(new PopoverSectionHeader(UiText.Get("visus.toolbar.downloads")));
         if (VisusHost.Downloads.Items.Count == 0) stack.Children.Add(new PopoverNote(NoDownloads));
         foreach (var row in DownloadEntries())
         {
@@ -290,9 +291,9 @@ public sealed class VisusToolbar : Border
         var tab = session.Selected;
         var rows = new List<VisusMenuEntry?>
         {
-            new("New tab", () => session.NewTab(), "Ctrl+T"),
-            new("New private tab", () => session.NewTab(VisusTabKind.Private), "Ctrl+Shift+N"),
-            new("Reopen closed tab", () => session.ReopenClosed(), "Ctrl+Shift+T", session.CanReopenClosed),
+            new(UiText.Get("visus.tabs.new_tab"), () => session.NewTab(), "Ctrl+T"),
+            new(UiText.Get("visus.tabs.new_private_tab"), () => session.NewTab(VisusTabKind.Private), "Ctrl+Shift+N"),
+            new(UiText.Get("visus.tabs.reopen_closed"), () => session.ReopenClosed(), "Ctrl+Shift+T", session.CanReopenClosed),
         };
         var added = MenuProviders.SelectMany(provider => provider(session, tab)).ToList();
         if (added.Count > 0)
@@ -302,19 +303,19 @@ public sealed class VisusToolbar : Border
         }
         rows.Add(null);
         var web = tab is not null && WebPolicy.IsWeb(tab.Url);
-        rows.Add(new("Find in page", () => session.Perform(VisusCommand.Find), "Ctrl+F", web));
-        rows.Add(new("Zoom " + Math.Round((tab?.Zoom ?? 1) * 100).ToString(CultureInfo.InvariantCulture) + " %", () => session.Perform(VisusCommand.ShowZoom), IsEnabled: web));
-        rows.Add(new("Print", () => session.Perform(VisusCommand.Print), "Ctrl+P", web));
-        rows.Add(new("Save as PDF", () => session.Perform(VisusCommand.SavePdf), IsEnabled: web));
+        rows.Add(new(UiText.Get("visus.find.find_in_page"), () => session.Perform(VisusCommand.Find), "Ctrl+F", web));
+        rows.Add(new(UiText.Format("visus.zoom.menu_row", Math.Round((tab?.Zoom ?? 1) * 100).ToString(CultureInfo.InvariantCulture)), () => session.Perform(VisusCommand.ShowZoom), IsEnabled: web));
+        rows.Add(new(UiText.Get("visus.print.print"), () => session.Perform(VisusCommand.Print), "Ctrl+P", web));
+        rows.Add(new(UiText.Get("visus.print.save_pdf"), () => session.Perform(VisusCommand.SavePdf), IsEnabled: web));
         rows.Add(null);
-        rows.Add(new("Copy link", () => VisusPaneBody.CopyText(this, tab!.Url), IsEnabled: web));
+        rows.Add(new(UiText.Get("visus.menu.copy_link"), () => VisusPaneBody.CopyText(this, tab!.Url), IsEnabled: web));
         // A private tab's page is not handed to the default browser, which would keep it in its history (5.1 "Nothing you do
         // here is kept").
-        rows.Add(new("Open in default browser", () => VisusHost.OpenInDefaultBrowser(tab!.Url), IsEnabled: web && tab!.Kind != VisusTabKind.Private));
+        rows.Add(new(UiText.Get("visus.menu.open_default_browser"), () => VisusHost.OpenInDefaultBrowser(tab!.Url), IsEnabled: web && tab!.Kind != VisusTabKind.Private));
         if (VisusHost.IsUpdateReady)
         {
             rows.Add(null);
-            rows.Add(new("Restart Visus to update", VisusHost.Restart));
+            rows.Add(new(UiText.Get("visus.menu.restart_to_update"), VisusHost.Restart));
         }
         return rows;
     }
@@ -392,7 +393,7 @@ public sealed class VisusToolbarButton : Button
             glyph = new PaneGlyph(kind, VisusTokens.ToolbarGlyph);
             face.Child = glyph;
         }
-        ToolTip.SetTip(this, shortcut is null ? name : name + "  " + shortcut);
+        ToolTip.SetTip(this, shortcut is null ? name : UiText.Format("visus.toolbar.tip_with_shortcut", name, shortcut));
         AutomationProperties.SetName(this, name);
         if (shortcut is null) ClearValue(AutomationProperties.AcceleratorKeyProperty);
         else AutomationProperties.SetAcceleratorKey(this, shortcut);
@@ -522,9 +523,9 @@ public sealed class VisusTrustStrip : Button
         var words = editing && shown is { IsBlank: false } ? shown.Source : chip.Label;
         label.Text = words;
         label.IsVisible = words.Length > 0;
-        var source = shown is null || shown.IsBlank ? "new tab" : shown.Source;
-        AutomationProperties.SetName(this, shown is null || shown.IsBlank ? "Visus · new tab" : $"Visus · {source}, {chip.Spoken}");
-        ToolTip.SetTip(this, shown is null || shown.IsBlank ? null : "Site information");
+        var source = shown is null || shown.IsBlank ? "" : shown.Source;
+        AutomationProperties.SetName(this, shown is null || shown.IsBlank ? UiText.Get("visus.site.new_tab_name") : UiText.Format("visus.site.name", source, chip.Spoken));
+        ToolTip.SetTip(this, shown is null || shown.IsBlank ? null : UiText.Get("visus.site.info_tip"));
         IsHitTestVisible = shown is { IsBlank: false };
         Focusable = shown is { IsBlank: false };
         if (info.IsOpen && (shown is null || shown.IsBlank)) SetInfoOpen(false);
@@ -559,17 +560,17 @@ public sealed class VisusTrustStrip : Button
         var stack = new StackPanel { Orientation = Orientation.Vertical };
         if (tab is null) return stack;
         stack.Children.Add(new PopoverSectionHeader(tab.Source));
+        // A preview, private or agent tab over plain http says so after its own line (one string each, never glued).
+        var unencrypted = chip.NotSecure && chip.Kind is SiteChipKind.Private or SiteChipKind.Agent or SiteChipKind.Preview;
         var note = chip.Kind switch
         {
-            SiteChipKind.Secure => "The connection to this site is encrypted.",
-            SiteChipKind.NotSecure => "This page is not encrypted. Do not type passwords or card numbers here.",
-            SiteChipKind.Preview => "A project preview: a server on this PC or your network.",
-            SiteChipKind.Private => "A private tab: nothing you do here is kept, and the model cannot see it.",
-            SiteChipKind.Agent => "The model's tab: the model reads and drives this page.",
+            SiteChipKind.Secure => UiText.Get("visus.site.note_secure"),
+            SiteChipKind.NotSecure => UiText.Get("visus.site.note_not_secure"),
+            SiteChipKind.Preview => unencrypted ? UiText.Get("visus.site.note_preview_not_secure") : UiText.Get("visus.site.note_preview"),
+            SiteChipKind.Private => unencrypted ? UiText.Get("visus.site.note_private_not_secure") : UiText.Get("visus.site.note_private"),
+            SiteChipKind.Agent => unencrypted ? UiText.Get("visus.site.note_agent_not_secure") : UiText.Get("visus.site.note_agent"),
             _ => "",
         };
-        if (chip.NotSecure && chip.Kind is SiteChipKind.Private or SiteChipKind.Agent or SiteChipKind.Preview)
-            note += " This page is not encrypted.";
         if (note.Length > 0) stack.Children.Add(new PopoverNote(note));
         var shown = tab;
         // W8b (5.5): what this site may do, as nth keeps it (browse and preview), with Reset.
@@ -577,12 +578,12 @@ public sealed class VisusTrustStrip : Button
         if (kept.Count > 0)
         {
             stack.Children.Add(new PopoverDivider());
-            stack.Children.Add(new PopoverSectionHeader("Permissions"));
+            stack.Children.Add(new PopoverSectionHeader(UiText.Get("visus.site.permissions")));
             stack.Children.Add(new PopoverNote(PermissionsLine(kept)));
-            stack.Children.Add(new PopoverItem("Reset permissions", () => { SetInfoOpen(false); ResetPermissions(); }));
+            stack.Children.Add(new PopoverItem(UiText.Get("visus.site.reset_permissions"), () => { SetInfoOpen(false); ResetPermissions(); }));
         }
         stack.Children.Add(new PopoverDivider());
-        stack.Children.Add(new PopoverItem("Copy link", () => { SetInfoOpen(false); VisusPaneBody.CopyText(this, shown.Url); }));
+        stack.Children.Add(new PopoverItem(UiText.Get("visus.menu.copy_link"), () => { SetInfoOpen(false); VisusPaneBody.CopyText(this, shown.Url); }));
         return stack;
     }
 
@@ -597,7 +598,8 @@ public sealed class VisusTrustStrip : Button
 
     /// <summary>"Camera: allowed · Notifications: blocked".</summary>
     internal static string PermissionsLine(IReadOnlyList<SitePermission> kept) =>
-        string.Join(" · ", kept.Select(entry => SitePermissions.Noun(entry.Kind) + ": " + SitePermissions.StateWord(entry.State).ToLowerInvariant()));
+        string.Join(" · ", kept.Select(entry => UiText.Format("visus.site.permission_line", SitePermissions.Noun(entry.Kind),
+            entry.State == SitePermissionState.Allow ? UiText.Get("visus.site.permission_allowed") : UiText.Get("visus.site.permission_blocked"))));
 
     /// <summary>Reset permissions: the site asks again next time.</summary>
     internal void ResetPermissions()
@@ -614,8 +616,8 @@ public sealed class VisusAddressField : Border
     /// <summary>The height of one suggestion row.</summary>
     public const double SuggestionHeight = 30;
 
-    /// <summary>The address field's placeholder (the canvas).</summary>
-    public const string Placeholder = "Search or enter an address";
+    /// <summary>The address field's placeholder (the canvas; resource key visus.address.placeholder).</summary>
+    public static string Placeholder => UiText.Get("visus.address.placeholder");
 
     private readonly VisusSession session;
     private readonly TextBox box;
@@ -644,12 +646,12 @@ public sealed class VisusAddressField : Border
         box.FontSize = VisusTokens.AddressFontSize;
         box.VerticalAlignment = VerticalAlignment.Center;
         box.VerticalContentAlignment = VerticalAlignment.Center;
-        AutomationProperties.SetName(box, "Address and search");
-        PopupChip = Chip(PaneGlyphKind.Shield, "Pop-up blocked", () => SetPopupMenuOpen(!popupMenu!.IsOpen));
+        AutomationProperties.SetName(box, UiText.Get("visus.address.name"));
+        PopupChip = Chip(PaneGlyphKind.Shield, UiText.Get("visus.popup.blocked"), () => SetPopupMenuOpen(!popupMenu!.IsOpen));
         ZoomChip = new Button { Content = new Border { Height = VisusTokens.ZoomChipHeight, Padding = new Thickness(8, 0), CornerRadius = new CornerRadius(11), Child = zoomText }, Padding = default, Background = Brushes.Transparent, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 0, 0) };
         PlainControls.KeyboardFocus(ZoomChip, 11);
         ZoomChip.Click += (_, _) => session.Selected?.SetZoom(1);
-        ToolTip.SetTip(ZoomChip, "Reset zoom  Ctrl+0");
+        ToolTip.SetTip(ZoomChip, UiText.Format("visus.toolbar.tip_with_shortcut", UiText.Get("visus.zoom.reset"), "Ctrl+0"));
         popupMenu = new VisusPopover(PopupChip, () => new PopoverMenu(BuildPopupMenu));
         var row = new DockPanel { LastChildFill = true };
         DockPanel.SetDock(Trust, Dock.Left);
@@ -662,7 +664,7 @@ public sealed class VisusAddressField : Border
         suggestionsFrame = new Border { ClipToBounds = true, Padding = new Thickness(4), Child = suggestionRows };
         // The field, not a click elsewhere, closes them (its focus leaving does); they never take the keyboard.
         suggestionsPopup = new VisusPopover(this, () => suggestionsFrame, lightDismiss: false, takesFocus: false, dismissed: () => { highlight = -1; CancelRemoteSuggestions(); });
-        AutomationProperties.SetName(suggestionRows, "Suggestions");
+        AutomationProperties.SetName(suggestionRows, UiText.Get("visus.suggestions.name"));
         Child = new Panel { Children = { row, suggestionsPopup.Popup, popupMenu.Popup, Trust.InfoPopup } };
         box.GotFocus += OnGotFocus;
         box.LostFocus += OnLostFocus;
@@ -752,8 +754,8 @@ public sealed class VisusAddressField : Border
         if (!PopupChip.IsVisible && popupMenu.IsOpen) SetPopupMenuOpen(false);
         var zoom = tab?.Zoom ?? 1;
         ZoomChip.IsVisible = Math.Abs(zoom - 1) > 0.001;
-        zoomText.Text = Math.Round(zoom * 100).ToString(System.Globalization.CultureInfo.InvariantCulture) + " %";
-        AutomationProperties.SetName(ZoomChip, "Zoom " + zoomText.Text + ", reset");
+        zoomText.Text = UiText.Format("visus.zoom.percent", Math.Round(zoom * 100).ToString(System.Globalization.CultureInfo.InvariantCulture));
+        AutomationProperties.SetName(ZoomChip, UiText.Format("visus.zoom.reset_name", zoomText.Text));
         ApplyLook();
     }
 
@@ -951,9 +953,9 @@ public sealed class VisusAddressField : Border
         var stack = new StackPanel { Orientation = Orientation.Vertical };
         var tab = session.Selected;
         if (tab?.BlockedPopup is not { } link) return stack;
-        stack.Children.Add(new PopoverNote("Visus blocked a pop-up this page opened by itself."));
-        stack.Children.Add(new PopoverItem("Open " + VisusAddress.Display(link), () => { SetPopupMenuOpen(false); tab.OpenBlockedPopup(); }));
-        stack.Children.Add(new PopoverItem("Keep blocking", () => { SetPopupMenuOpen(false); tab.DismissBlockedPopup(); }));
+        stack.Children.Add(new PopoverNote(UiText.Get("visus.popup.blocked_note")));
+        stack.Children.Add(new PopoverItem(UiText.Format("visus.popup.open", VisusAddress.Display(link)), () => { SetPopupMenuOpen(false); tab.OpenBlockedPopup(); }));
+        stack.Children.Add(new PopoverItem(UiText.Get("visus.popup.keep_blocking"), () => { SetPopupMenuOpen(false); tab.DismissBlockedPopup(); }));
         return stack;
     }
 
@@ -1039,7 +1041,7 @@ public sealed class VisusSuggestionRow : Border
         };
         ActualThemeVariantChanged += (_, _) => Look();
         Look();
-        AutomationProperties.SetName(this, suggestion.Title + ", " + suggestion.Detail);
+        AutomationProperties.SetName(this, UiText.Format("visus.suggestions.row_name", suggestion.Title, suggestion.Detail));
         SetValue(AutomationProperties.ControlTypeOverrideProperty, AutomationControlType.ListItem);
     }
 

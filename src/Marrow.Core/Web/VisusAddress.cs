@@ -5,6 +5,7 @@
 // address field rules"; ED-NEW-web-w8a-1). No Swift counterpart. What the address field does with what was typed, decided
 // here alone: go to an address, search, open an app (through the 8.3 prompt), or refuse with a reason.
 using System.Globalization;
+using Marrow.Core.Localisation;
 
 namespace Marrow.Core.Web;
 
@@ -74,10 +75,10 @@ public sealed record AddressResult(AddressAction Action, string? Url, string? Qu
 /// <summary>DESIGN 5.2: the address and search rules.</summary>
 public static class VisusAddress
 {
-    public const string LocalFileRefusal = "Visus does not open files from your PC here. Use Open in Visus in the file tree.";
-    public const string ScriptRefusal = "Visus does not run script addresses.";
-    public const string DataRefusal = "Visus does not open data: addresses as a page.";
-    public const string InternalRefusal = "Browser pages like this one are not part of Visus.";
+    public static string LocalFileRefusal => UiText.Get("visus.address.refusal_local_file");
+    public static string ScriptRefusal => UiText.Get("visus.address.refusal_script");
+    public static string DataRefusal => UiText.Get("visus.address.refusal_data");
+    public static string InternalRefusal => UiText.Get("visus.address.refusal_internal");
 
     // The generic top-level domains people type without a scheme. Two-letter domains are the country codes below.
     private static readonly HashSet<string> GenericTlds = new(StringComparer.OrdinalIgnoreCase)
@@ -177,7 +178,7 @@ public static class VisusAddress
 
         if (WebPolicy.IsInternalScheme(scheme)) return Refuse(InternalRefusal);
         if (text.Any(char.IsWhiteSpace)) return Search(text, engine);
-        if (ExternalProtocols.BlockList.Contains(scheme)) return Refuse($"Visus does not open {scheme}: links.");
+        if (ExternalProtocols.BlockList.Contains(scheme)) return Refuse(UiText.Format("visus.address.refusal_scheme", scheme));
         var rest = text[(scheme.Length + 1)..];
         var looksLikeApp = ExternalProtocols.IsKnownApp(scheme) || rest.StartsWith("//", StringComparison.Ordinal)
             || isRegisteredScheme?.Invoke(scheme) == true;

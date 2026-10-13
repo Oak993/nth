@@ -371,10 +371,10 @@ public static class PillStates
         else if (carded.Count > 0)
         {
             // web W11: Visus's card hangs from its tab (the canvas's "nth needs your OK" / "Check the card")
-            title = "nth needs your OK";
-            line = "Check the card";
+            title = Marrow.Core.Localisation.UiText.Get("visus.pill.needs_ok");
+            line = Marrow.Core.Localisation.UiText.Get("visus.pill.check_card");
             group = pausing.Count > 0 || allPaused ? PillGroupKind.Paused : PillGroupKind.Run;
-            announcement = $"nth needs your OK in {Names(carded)}";
+            announcement = Marrow.Core.Localisation.UiText.Format("visus.pill.needs_ok_in", Names(carded));
         }
         else if (notice is { Kind: PillNoticeKind.PauseKeyTaken })
         {
@@ -385,8 +385,8 @@ public static class PillStates
         else if (tookOver.Count > 0 && pausing.Count == 0)
         {
             // web W11: "You took over Visus" / "Resume when you are done"; Resume hands the tab back
-            title = $"You took over {Names(tookOver)}";
-            line = "Resume when you are done";
+            title = Marrow.Core.Localisation.UiText.Format("visus.pill.took_over", Names(tookOver));
+            line = Marrow.Core.Localisation.UiText.Get("visus.pill.resume_when_done");
             group = PillGroupKind.Paused;
             glyph = PillGlyph.Pause;
             mark = TactusMarkState.Paused;
@@ -509,8 +509,8 @@ public static class PillStates
             PillAppPhase.Stopped => "Stopped by you",
             PillAppPhase.Paused => "Paused",
             PillAppPhase.Pausing => $"Pausing after {a.Busy ?? "this step"}",
-            PillAppPhase.Working when a.TookOver => "You took over",
-            PillAppPhase.Working when a.OwnCard => "Check the card",
+            PillAppPhase.Working when a.TookOver => Marrow.Core.Localisation.UiText.Get("visus.pill.row_took_over"),
+            PillAppPhase.Working when a.OwnCard => Marrow.Core.Localisation.UiText.Get("visus.pill.check_card"),
             _ => a.Step,
         };
         return new PillRowView(a.Key, a.Name, line, pausedLike, a.Phase == PillAppPhase.Stopped, a.Behind && a.Phase == PillAppPhase.Working,

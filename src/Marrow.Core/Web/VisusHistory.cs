@@ -5,6 +5,7 @@
 // field's suggestions made from it and the open tabs, and the per-thread tab list that is saved with the thread.
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Marrow.Core.Localisation;
 using Marrow.Core.Port;
 
 namespace Marrow.Core.Web;
@@ -142,13 +143,13 @@ public static class VisusSuggestions
         switch (VisusAddress.Resolve(text, engine, isRegisteredScheme))
         {
             case { Action: AddressAction.Navigate, Url: { } url }:
-                rows.Add(new VisusSuggestion(VisusSuggestionKind.Go, url, VisusAddress.Display(url), "Go to this address"));
+                rows.Add(new VisusSuggestion(VisusSuggestionKind.Go, url, VisusAddress.Display(url), UiText.Get("visus.suggestions.go")));
                 break;
             case { Action: AddressAction.Search, Url: { } url, Query: { } query }:
-                rows.Add(new VisusSuggestion(VisusSuggestionKind.Search, url, query, "Search " + SearchEngines.Name(engine)));
+                rows.Add(new VisusSuggestion(VisusSuggestionKind.Search, url, query, UiText.Format("visus.suggestions.search", SearchEngines.Name(engine))));
                 break;
             case { Action: AddressAction.External, Url: { } url }:
-                rows.Add(new VisusSuggestion(VisusSuggestionKind.OpenApp, url, url, "Open in another app"));
+                rows.Add(new VisusSuggestion(VisusSuggestionKind.OpenApp, url, url, UiText.Get("visus.suggestions.open_app")));
                 break;
         }
 
@@ -163,7 +164,7 @@ public static class VisusSuggestions
         foreach (var (tab, _) in tabs)
         {
             if (!seen.Add(tab.Url)) continue;
-            rows.Add(new VisusSuggestion(VisusSuggestionKind.SwitchToTab, tab.Url, Title(tab.Title, tab.Url), "Switch to this tab", tab.Id));
+            rows.Add(new VisusSuggestion(VisusSuggestionKind.SwitchToTab, tab.Url, Title(tab.Title, tab.Url), UiText.Get("visus.suggestions.switch_tab"), tab.Id));
         }
 
         var pages = history
@@ -194,7 +195,7 @@ public static class VisusSuggestions
         {
             if (rows.Count - 1 >= SearchSuggestionRules.MaxShown) break;
             if (!seen.Add(text)) continue;
-            rows.Add(new VisusSuggestion(VisusSuggestionKind.Search, SearchEngines.QueryUrl(engine, text), text, "Search " + SearchEngines.Name(engine)));
+            rows.Add(new VisusSuggestion(VisusSuggestionKind.Search, SearchEngines.QueryUrl(engine, text), text, UiText.Format("visus.suggestions.search", SearchEngines.Name(engine))));
         }
         rows.AddRange(local.Skip(1));
         return [.. rows.Take(Limit)];

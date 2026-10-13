@@ -1,3 +1,4 @@
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Web;
 using Marrow.Services.Web;
@@ -83,10 +84,10 @@ public sealed class VisusDownload
     public string Status => State switch
     {
         VisusDownloadState.Running => Amount(),
-        VisusDownloadState.Paused => "Paused · " + Amount(),
-        VisusDownloadState.Done => DownloadGate.SizeText(TotalBytes ?? BytesReceived) + " · from " + Source,
-        VisusDownloadState.Cancelled => "Cancelled",
-        _ => CanResume ? "Stopped · can resume" : "Failed",
+        VisusDownloadState.Paused => UiText.Format("visus.downloads.status_paused", Amount()),
+        VisusDownloadState.Done => UiText.Format("visus.downloads.status_done", DownloadGate.SizeText(TotalBytes ?? BytesReceived), Source),
+        VisusDownloadState.Cancelled => UiText.Get("visus.downloads.status_cancelled"),
+        _ => CanResume ? UiText.Get("visus.downloads.status_stopped") : UiText.Get("visus.downloads.status_failed"),
     };
 
     /// <summary>Raised on the UI thread whenever the transfer moved.</summary>
@@ -111,7 +112,7 @@ public sealed class VisusDownload
     }
 
     private string Amount() => TotalBytes is > 0 and var total
-        ? DownloadGate.SizeText(BytesReceived) + " of " + DownloadGate.SizeText(total)
+        ? UiText.Format("visus.downloads.amount_of", DownloadGate.SizeText(BytesReceived), DownloadGate.SizeText(total))
         : DownloadGate.SizeText(BytesReceived);
 
     private void Read(TimeProvider time)
@@ -222,7 +223,7 @@ public sealed class VisusDownloadJobSource(Func<VisusDownloads> downloads) : IBa
                 Id = Prefix + item.Id,
                 Kind = BackgroundJobKind.Download,
                 Title = item.FileName,
-                KindLabel = "Download",
+                KindLabel = UiText.Get("visus.downloads.job_kind"),
                 Subject = item.State == VisusDownloadState.Done
                     ? DownloadGate.SizeText(item.TotalBytes ?? item.BytesReceived)
                     : BackgroundJobText.BytesOf(item.BytesReceived, item.TotalBytes ?? 0),
@@ -237,7 +238,7 @@ public sealed class VisusDownloadJobSource(Func<VisusDownloads> downloads) : IBa
                 StartedAt = item.StartedAt,
                 FinishedAt = item.IsLive ? null : item.FinishedAt,
                 Progress = item.Progress ?? 0,
-                Activity = "From " + item.Source,
+                Activity = UiText.Format("visus.downloads.job_from", item.Source),
                 CanPause = item.IsLive,
                 CanStop = item.IsLive,
             });

@@ -14,6 +14,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Chat;
+using Marrow.Core.Localisation;
 using Marrow.Core.Port;
 using Marrow.Core.Web;
 using Marrow.UI.Chrome;
@@ -24,7 +25,8 @@ namespace Marrow.App.Views.Composer;
 
 public sealed class AppContextChips : Decorator
 {
-    public const string RemoveText = "Remove";
+    /// <summary>The popover's Remove button (resource key visus.context.remove).</summary>
+    public static string RemoveText => UiText.Get("visus.context.remove");
 
     private readonly ThreadRuntime runtime;
     private readonly WrapPanel row = new() { Orientation = Orientation.Horizontal, ItemSpacing = 6, LineSpacing = 6 };
@@ -123,22 +125,24 @@ public sealed class AppContextChips : Decorator
         var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5, Children = { shield, text, UntrustedMark() } };
         if (entry.Truncated)
         {
-            var cut = new TextBlock { Text = "cut", FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
+            var cut = new TextBlock { Text = UiText.Get("visus.context.cut"), FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
             cut.Foreground = Chrome.SecondaryText.Brush(cut);
             content.Children.Add(cut);
         }
 
         var state = new ChipState();
         var button = PlainControls.Button(new ChipChrome().Body(content), () => state.IsOpen = !state.IsOpen);
-        var name = entry.ChipText + ", " + McpAppModelContext.UntrustedMark + (entry.TruncatedNote is { } note ? ", " + note : "");
+        var name = entry.TruncatedNote is { } note
+            ? UiText.Format("visus.context.chip_name_cut", entry.ChipText, McpAppModelContext.UntrustedMark, note)
+            : UiText.Format("visus.context.chip_name", entry.ChipText, McpAppModelContext.UntrustedMark);
         AutomationProperties.SetName(button, name);
-        ToolTip.SetTip(button, entry.TruncatedNote is { } tip ? entry.ChipText + " · " + tip : entry.ChipText);
+        ToolTip.SetTip(button, entry.TruncatedNote is { } tip ? UiText.Format("visus.context.chip_tip", entry.ChipText, tip) : entry.ChipText);
         return button.BadgePopover(new Binding<bool>(() => state.IsOpen, value => state.IsOpen = value), () => Detail(entry, state));
     }
 
     private Control Detail(McpAppContextEntry entry, ChipState state)
     {
-        var heading = new TextBlock { Text = entry.Server + " context", FontSize = 13, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center };
+        var heading = new TextBlock { Text = UiText.Format("visus.context.heading", entry.Server), FontSize = 13, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center };
         heading.Foreground = Chrome.PrimaryText.Brush(heading);
         var top = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { heading, UntrustedMark() } };
         var column = new StackPanel { Orientation = Orientation.Vertical, Spacing = 8, Width = 360, Margin = new Thickness(14), Children = { top } };

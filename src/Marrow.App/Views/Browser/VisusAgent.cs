@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Marrow.App.Runtime;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Web;
@@ -115,7 +116,7 @@ public sealed class VisusAgentHost(IVisusAgentChats chats) : IWebAgentHost
     }
 
     public string ModelName(string? model) =>
-        string.IsNullOrWhiteSpace(model) ? "The model" : Chats.ModelName(model) is { Length: > 0 } name ? name : model;
+        string.IsNullOrWhiteSpace(model) ? UiText.Get("visus.agent.the_model") : Chats.ModelName(model) is { Length: > 0 } name ? name : model;
 
     public string? ChatTitle(string thread) => Chats.Title(thread);
 

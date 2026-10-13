@@ -8,6 +8,7 @@ using Avalonia.Controls.Templates;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Marrow.Core.Localisation;
 using Marrow.Core.Web;
 using Marrow.Services.Web;
 using Marrow.UI.Panes;
@@ -20,12 +21,12 @@ public sealed class PreviewConsoleDrawer : Border, IDisposable
     private readonly ProjectPreviewBody owner;
     private readonly ListBox rows = new() { Background = Brushes.Transparent, BorderThickness = new Thickness(0) };
     private readonly ObservableCollection<object> displayed = [];
-    private readonly TextBox search = new() { PlaceholderText = "Search", MinWidth = 90, Height = 24, FontSize = 11 };
-    private readonly ComboBox levels = new() { ItemsSource = new[] { "All levels", "error", "warn", "info", "log", "debug" }, SelectedIndex = 0, Height = 24, FontSize = 11, MinWidth = 82 };
+    private readonly TextBox search = new() { PlaceholderText = UiText.Get("visus.preview.search"), MinWidth = 90, Height = 24, FontSize = 11 };
+    private readonly ComboBox levels = new() { ItemsSource = new[] { UiText.Get("visus.preview.all_levels"), "error", "warn", "info", "log", "debug" }, SelectedIndex = 0, Height = 24, FontSize = 11, MinWidth = 82 };
     private readonly Button strip;
     private readonly Button consoleTab;
     private readonly Button networkTab;
-    private readonly TextBlock empty = new() { Text = "No console messages", FontSize = 12, Margin = new Thickness(10), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+    private readonly TextBlock empty = new() { Text = UiText.Get("visus.preview.no_console_messages"), FontSize = 12, Margin = new Thickness(10), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
     private readonly Grid expanded = new() { RowDefinitions = new RowDefinitions("32,*") };
     private readonly DispatcherTimer timer;
     private bool network;
@@ -35,31 +36,31 @@ public sealed class PreviewConsoleDrawer : Border, IDisposable
         this.owner = owner; State.Load(owner.Tab.PreviewState);
         Margin = new Thickness(6); CornerRadius = new CornerRadius(10); ClipToBounds = true;
         BorderThickness = new Thickness(.5); BorderBrush = new SolidColorBrush(Color.FromArgb(20, 255, 255, 255)); Background = new SolidColorBrush(Color.FromArgb(71, 0, 0, 0));
-        strip = DevicePresetBar.Action("Console", () => { State.Restore(); Refresh(); }); strip.Height = 24;
+        strip = DevicePresetBar.Action(UiText.Get("visus.preview.console"), () => { State.Restore(); Refresh(); }); strip.Height = 24;
         var tools = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5, Margin = new Thickness(8, 4) };
-        consoleTab = DevicePresetBar.Action("Console", () => { network = false; RenderRows(); }, toggle: true);
-        networkTab = DevicePresetBar.Action("Network", () => { network = true; RenderRows(); }, toggle: true);
+        consoleTab = DevicePresetBar.Action(UiText.Get("visus.preview.console"), () => { network = false; RenderRows(); }, toggle: true);
+        networkTab = DevicePresetBar.Action(UiText.Get("visus.preview.network"), () => { network = true; RenderRows(); }, toggle: true);
         foreach (var tab in new[] { consoleTab, networkTab })
         {
             tab.Height = 24; tab.Padding = new Thickness(10, 0); tab.CornerRadius = new CornerRadius(7);
             tab.ActualThemeVariantChanged += (_, _) => RefreshTabs(); tools.Children.Add(tab);
         }
         tools.Children.Add(levels); tools.Children.Add(search);
-        tools.Children.Add(DevicePresetBar.Action("Clear", () => owner.Runtime.Diagnostics?.Clear()));
-        var preserve = new CheckBox { Content = "Preserve log", FontSize = 11 };
+        tools.Children.Add(DevicePresetBar.Action(UiText.Get("visus.preview.clear"), () => owner.Runtime.Diagnostics?.Clear()));
+        var preserve = new CheckBox { Content = UiText.Get("visus.preview.preserve_log"), FontSize = 11 };
         preserve.IsCheckedChanged += (_, _) => { if (owner.Runtime.Diagnostics is { } d) d.PreserveLog = preserve.IsChecked == true; }; tools.Children.Add(preserve);
         expanded.Children.Add(new ScrollViewer { Content = tools, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled });
         Grid.SetRow(rows, 1); expanded.Children.Add(rows);
         Grid.SetRow(empty, 1); expanded.Children.Add(empty);
-        AutomationProperties.SetName(search, "Search preview logs");
-        AutomationProperties.SetName(levels, "Console level");
-        AutomationProperties.SetName(rows, "Preview log entries");
+        AutomationProperties.SetName(search, UiText.Get("visus.preview.search_logs"));
+        AutomationProperties.SetName(levels, UiText.Get("visus.preview.console_level"));
+        AutomationProperties.SetName(rows, UiText.Get("visus.preview.log_entries"));
         rows.ItemTemplate = new FuncDataTemplate<object>((item, _) => Row(item));
         rows.ItemsSource = displayed;
         search.TextChanged += (_, _) => RenderRows(); levels.SelectionChanged += (_, _) => RenderRows();
         owner.Runtime.Changed += Queue;
         owner.Runtime.DiagnosticsChanged += Queue;
-        timer = new DispatcherTimer(TimeSpan.FromMilliseconds(33), DispatcherPriority.Background, (_, _) => { if (dirty) { dirty = false; if (!IsStrip) RenderRows(); owner.Bar.Refresh(); strip.Content = "Console · " + (owner.Runtime.Diagnostics?.Errors ?? 0).ToString(CultureInfo.InvariantCulture) + " errors"; } });
+        timer = new DispatcherTimer(TimeSpan.FromMilliseconds(33), DispatcherPriority.Background, (_, _) => { if (dirty) { dirty = false; if (!IsStrip) RenderRows(); owner.Bar.Refresh(); strip.Content = UiText.Format("visus.preview.console_errors", (owner.Runtime.Diagnostics?.Errors ?? 0).ToString(CultureInfo.InvariantCulture)); } });
         AttachedToVisualTree += (_, _) => timer.Start(); DetachedFromVisualTree += (_, _) => timer.Stop();
         Refresh();
     }
@@ -69,7 +70,7 @@ public sealed class PreviewConsoleDrawer : Border, IDisposable
     public void Refresh()
     {
         Child = IsStrip ? strip : expanded;
-        strip.Content = "Console · " + (owner.Runtime.Diagnostics?.Errors ?? 0).ToString(CultureInfo.InvariantCulture) + " errors";
+        strip.Content = UiText.Format("visus.preview.console_errors", (owner.Runtime.Diagnostics?.Errors ?? 0).ToString(CultureInfo.InvariantCulture));
         owner.Tab.SetPreviewState(owner.Tab.PreviewState with { ConsoleOpen = State.Open, ConsoleCollapsed = State.Collapsed, ConsoleHeight = State.Height });
         if (!owner.DrawerHeightChanged()) { Height = ShownHeight; IsVisible = State.Open; Margin = State.Open ? new Thickness(6) : new Thickness(0); }
         RenderRows();
@@ -80,7 +81,7 @@ public sealed class PreviewConsoleDrawer : Border, IDisposable
         RefreshTabs();
         var data = (network ? owner.Runtime.Diagnostics?.FindNetwork(search.Text ?? "").Cast<object>().ToArray()
             : owner.Runtime.Diagnostics?.FindConsole(search.Text ?? "", levels.SelectedIndex > 0 ? levels.SelectedItem as string : null).Cast<object>().ToArray()) ?? [];
-        empty.Text = !string.IsNullOrEmpty(search.Text) ? "No matching entries" : network ? "No network requests" : "No console messages";
+        empty.Text = !string.IsNullOrEmpty(search.Text) ? UiText.Get("visus.preview.no_matching_entries") : network ? UiText.Get("visus.preview.no_network_requests") : UiText.Get("visus.preview.no_console_messages");
         empty.IsVisible = data.Length == 0;
         if (data.Length == 0) { displayed.Clear(); return; }
         var first = displayed.IndexOf(data[0]);
@@ -108,7 +109,7 @@ public sealed class PreviewConsoleDrawer : Border, IDisposable
         else return new Border();
         var label = new TextBlock { Text = text, FontSize = 12, FontFamily = new FontFamily("Cascadia Mono"), TextWrapping = TextWrapping.Wrap, Foreground = failed ? new SolidColorBrush(Color.Parse(ActualThemeVariant == Avalonia.Styling.ThemeVariant.Dark ? "#ff8a8a" : "#7d0014")) : PaneTokens.Text1.Brush(this) };
         Grid.SetColumn(label, 1); line.Children.Add(label);
-        var send = DevicePresetBar.Action("Send to chat", () => owner.Runtime.AddDraft(draft)); send.Height = 22; send.FontSize = 11; send.CornerRadius = new CornerRadius(11); send.BorderThickness = new Thickness(1); send.BorderBrush = PaneTokens.Line.Brush(this); Grid.SetColumn(send, isNetwork ? 6 : 2); line.Children.Add(send);
+        var send = DevicePresetBar.Action(UiText.Get("visus.preview.send_to_chat"), () => owner.Runtime.AddDraft(draft)); send.Height = 22; send.FontSize = 11; send.CornerRadius = new CornerRadius(11); send.BorderThickness = new Thickness(1); send.BorderBrush = PaneTokens.Line.Brush(this); Grid.SetColumn(send, isNetwork ? 6 : 2); line.Children.Add(send);
         ((StackPanel)send.Content!).Children.OfType<TextBlock>().Single().FontSize = 11;
         void Column(string value, int column)
         {
@@ -129,12 +130,12 @@ public sealed class PreviewConsoleDrawer : Border, IDisposable
     {
         var result = new TextBox { Text = row.Detail, IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MaxHeight = 320, FontFamily = new FontFamily("Cascadia Mono"), FontSize = 12 };
         var stack = new StackPanel { Width = 420, Spacing = 8, Margin = new Thickness(12), Children = { result } };
-        stack.Children.Add(DevicePresetBar.Action("Response preview", () => _ = Response()));
-        stack.Children.Add(DevicePresetBar.Action("Send to chat", () => owner.Runtime.AddDraft(owner.Runtime.Diagnostics!.ToChat(row) + "\n" + result.Text)));
+        stack.Children.Add(DevicePresetBar.Action(UiText.Get("visus.preview.response_preview"), () => _ = Response()));
+        stack.Children.Add(DevicePresetBar.Action(UiText.Get("visus.preview.send_to_chat"), () => owner.Runtime.AddDraft(owner.Runtime.Diagnostics!.ToChat(row) + "\n" + result.Text)));
         async Task Response()
         {
             try { if (owner.Runtime.Diagnostics is { } d) result.Text = row.Detail + "\n" + await d.ResponsePreviewAsync(row); }
-            catch (Exception ex) when (ex is InvalidOperationException or OperationCanceledException or System.Runtime.InteropServices.COMException) { result.Text = row.Detail + "\nResponse unavailable"; }
+            catch (Exception ex) when (ex is InvalidOperationException or OperationCanceledException or System.Runtime.InteropServices.COMException) { result.Text = row.Detail + "\n" + UiText.Get("visus.preview.response_unavailable"); }
         }
         return stack;
     }

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Marrow.App.Runtime;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Web;
@@ -105,7 +106,7 @@ public sealed class ProjectPreviewRuntime : IDisposable
                 Directory.CreateDirectory(folder);
                 var path = Path.Combine(folder, "preview-" + Guid.NewGuid().ToString("N") + ".png");
                 File.WriteAllBytes(path, screenshot);
-                draft = draft with { Attachments = draft.Attachments.Appending(new Attachment { Name = "Preview element.png", Path = path, MimeType = "image/png" }) };
+                draft = draft with { Attachments = draft.Attachments.Appending(new Attachment { Name = UiText.Get("visus.preview.element_image_name"), Path = path, MimeType = "image/png" }) };
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         }

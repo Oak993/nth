@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Marrow.App.Runtime;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Web;
@@ -120,7 +121,7 @@ public sealed class VisusAgentBinding : IDisposable
     {
         if (tab is not { Kind: VisusTabKind.Browse or VisusTabKind.Preview } || !hub.Settings().Enabled) yield break;
         var share = !tab.SharedWithModel;
-        yield return new VisusMenuEntry(share ? "Let the model use this tab" : "Stop sharing with the model", () => session.ShareWithModel(tab, share), IsEnabled: share ? !tab.IsBlank : true);
+        yield return new VisusMenuEntry(share ? UiText.Get("visus.agent.share_tab") : UiText.Get("visus.agent.stop_sharing"), () => session.ShareWithModel(tab, share), IsEnabled: share ? !tab.IsBlank : true);
     }
 
     public void Dispose()
@@ -180,7 +181,7 @@ public sealed class VisusAgentBinding : IDisposable
                 Kind = BackgroundJobKind.BrowserSession,
                 Title = chats.Title(activity.Thread) ?? "Visus",
                 KindLabel = "Visus",
-                Subject = "agent tab",
+                Subject = UiText.Get("visus.agent.job_subject"),
                 ThreadId = Guid.TryParse(activity.Thread, out var id) ? id : null,
                 TranscriptThreadId = Guid.TryParse(activity.Thread, out var transcript) ? transcript : null,
                 State = session.State,

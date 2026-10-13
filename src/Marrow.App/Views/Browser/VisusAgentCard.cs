@@ -7,6 +7,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Marrow.Core.Localisation;
 using Marrow.Core.Web;
 using Marrow.Services.Web;
 using Avalonia.VisualTree;
@@ -62,28 +63,30 @@ public sealed class VisusAgentCard : Border
             case WebSiteAsk site:
                 Width = 310;
                 Title = site.Title;
-                detail = site.Shared ? "Your tab, shared with the model in this chat." : "A tab the model opened in this chat.";
+                detail = site.Shared ? UiText.Get("visus.agent.site_shared") : UiText.Get("visus.agent.site_opened");
                 body.Children.Add(MakeLead(Heading(PaneGlyphKind.Shield, Title, detail), Title, detail));
-                body.Children.Add(Rows([new("Site", site.Origin)]));
+                body.Children.Add(Rows([new(UiText.Get("visus.agent.row_site"), site.Origin)]));
                 var where = WebPolicy.SourceName(site.Origin);
-                Row(body, ("Allow once", $"Allow {site.Model} to use {where} this time", VisusAgentChoice.Once, true),
-                    site.AllowAlways ? ("Always allow", $"Always allow {site.Model} to use {where}", VisusAgentChoice.Always, false) : null,
-                    ("Don't allow", $"Don't allow {site.Model} to use {where}", VisusAgentChoice.Deny, false));
+                Row(body, (UiText.Get("visus.agent.allow_once"), UiText.Format("visus.agent.site_allow_once_name", site.Model, where), VisusAgentChoice.Once, true),
+                    site.AllowAlways ? (UiText.Get("visus.agent.allow_always"), UiText.Format("visus.agent.site_allow_always_name", site.Model, where), VisusAgentChoice.Always, false) : null,
+                    (UiText.Get("visus.agent.deny"), UiText.Format("visus.agent.site_deny_name", site.Model, where), VisusAgentChoice.Deny, false));
                 body.Children.Add(Foot(VisusPrompt.Foot));
                 break;
             case WebNavigateAsk navigate:
                 Width = 310;
                 Title = navigate.Title;
-                detail = navigate.From.Count > 0 ? "The model read " + string.Join(", ", navigate.From.Select(WebPolicy.SourceName)) + " before this." : "";
+                detail = navigate.From.Count > 0 ? UiText.Format("visus.agent.model_read", string.Join(", ", navigate.From.Select(WebPolicy.SourceName))) : "";
                 body.Children.Add(MakeLead(Heading(PaneGlyphKind.Shield, Title, detail), Title, detail));
                 body.Children.Add(Address(navigate.Url));
                 if (navigate.Query.Count > 0) body.Children.Add(Rows(navigate.Query.Select(q => new KeyValuePair<string, string>(q.Name, q.Value)).ToList(), navigate.Query.Select(q => q.FromPage).ToList()));
                 if (navigate.CarriesPageText) body.Children.Add(Warning(WebNavigateAsk.CarriesNote));
                 var target = WebPolicy.SourceName(navigate.Url);
-                var pair = navigate.From.Count > 0 ? $"to go from {string.Join(", ", navigate.From.Select(WebPolicy.SourceName))} to {target}" : $"to open {target}";
-                Row(body, ("Allow once", $"Allow {navigate.Model} to open {target} this time", VisusAgentChoice.Once, true),
-                    ("Always for this site pair", $"Always allow {navigate.Model} {pair}", VisusAgentChoice.Always, false),
-                    ("Don't allow", $"Don't allow {navigate.Model} to open {target}", VisusAgentChoice.Deny, false));
+                var alwaysName = navigate.From.Count > 0
+                    ? UiText.Format("visus.agent.nav_always_from_name", navigate.Model, string.Join(", ", navigate.From.Select(WebPolicy.SourceName)), target)
+                    : UiText.Format("visus.agent.nav_always_open_name", navigate.Model, target);
+                Row(body, (UiText.Get("visus.agent.allow_once"), UiText.Format("visus.agent.nav_allow_once_name", navigate.Model, target), VisusAgentChoice.Once, true),
+                    (UiText.Get("visus.agent.nav_always"), alwaysName, VisusAgentChoice.Always, false),
+                    (UiText.Get("visus.agent.deny"), UiText.Format("visus.agent.nav_deny_name", navigate.Model, target), VisusAgentChoice.Deny, false));
                 body.Children.Add(Foot(VisusPrompt.Foot));
                 break;
             case WebGuardAsk guard:
@@ -94,19 +97,19 @@ public sealed class VisusAgentCard : Border
                 if (guard.Rows.Count > 0) body.Children.Add(Rows(guard.Rows));
                 body.Children.Add(Who(guard.Chat, guard.Model));
                 var on = WebPolicy.SourceName(guard.Origin);
-                Row(body, (guard.ConfirmLabel, $"{guard.ConfirmLabel} on {on} for {guard.Model}", VisusAgentChoice.Once, true),
-                    ("Cancel", $"Cancel {Title.TrimEnd('?')} on {on}", VisusAgentChoice.Deny, false));
+                Row(body, (guard.ConfirmLabel, UiText.Format("visus.agent.guard_confirm_name", guard.ConfirmLabel, on, guard.Model), VisusAgentChoice.Once, true),
+                    (UiText.Get("visus.card.cancel"), UiText.Format("visus.agent.guard_cancel_name", Title.TrimEnd('?'), on), VisusAgentChoice.Deny, false));
                 body.Children.Add(Foot(guard.Foot));
                 break;
             case WebEvalAsk eval:
                 Width = 310;
                 Title = eval.Title;
-                detail = "The model's scripts run in this preview's page, for this project only.";
+                detail = UiText.Get("visus.agent.eval_detail");
                 body.Children.Add(MakeLead(Heading(PaneGlyphKind.Shield, Title, detail), Title, detail));
-                body.Children.Add(Rows([new("Site", eval.Origin)]));
+                body.Children.Add(Rows([new(UiText.Get("visus.agent.row_site"), eval.Origin)]));
                 var preview = WebPolicy.SourceName(eval.Origin);
-                Row(body, ("Allow", $"Allow {eval.Model} to run scripts in {preview}", VisusAgentChoice.Once, true),
-                    ("Don't allow", $"Don't allow {eval.Model} to run scripts in {preview}", VisusAgentChoice.Deny, false));
+                Row(body, (UiText.Get("visus.agent.eval_allow"), UiText.Format("visus.agent.eval_allow_name", eval.Model, preview), VisusAgentChoice.Once, true),
+                    (UiText.Get("visus.agent.deny"), UiText.Format("visus.agent.eval_deny_name", eval.Model, preview), VisusAgentChoice.Deny, false));
                 body.Children.Add(Foot(VisusPrompt.Foot));
                 break;
             default:

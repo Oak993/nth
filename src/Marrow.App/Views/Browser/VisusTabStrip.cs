@@ -10,6 +10,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.VisualTree;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Web;
 using Marrow.UI.Chrome;
@@ -112,14 +113,14 @@ public sealed class VisusTabStrip : Panel
         Height = VisusTokens.TabHeight;
         ClipToBounds = true;
         Background = Brushes.Transparent;
-        plus = StripButton(PaneGlyphKind.Plus, "New tab", "Ctrl+T", () => session.NewTab());
+        plus = StripButton(PaneGlyphKind.Plus, UiText.Get("visus.tabs.new_tab"), "Ctrl+T", () => session.NewTab());
         plus.ContextMenu = NewTabMenu();
-        overflow = StripButton(PaneGlyphKind.Chevron, "All tabs", null, () => SetOverflowOpen(!overflowMenu!.IsOpen));
+        overflow = StripButton(PaneGlyphKind.Chevron, UiText.Get("visus.tabs.all_tabs"), null, () => SetOverflowOpen(!overflowMenu!.IsOpen));
         overflowMenu = new VisusPopover(overflow, () => new PopoverMenu(BuildOverflowMenu));
         Children.Add(plus);
         Children.Add(overflow);
         Children.Add(overflowMenu.Popup);
-        AutomationProperties.SetName(this, "Visus tabs");
+        AutomationProperties.SetName(this, UiText.Get("visus.tabs.strip_name"));
         SetValue(AutomationProperties.ControlTypeOverrideProperty, AutomationControlType.Tab);
         Sync();
     }
@@ -333,15 +334,15 @@ public sealed class VisusTabStrip : Panel
         {
             var items = new List<Control>
             {
-                Item("New tab to the right", () => session.NewTab(VisusTabKind.Browse, at: session.Tabs.ToList().IndexOf(tab) + 1)),
+                Item(UiText.Get("visus.tabs.new_tab_right"), () => session.NewTab(VisusTabKind.Browse, at: session.Tabs.ToList().IndexOf(tab) + 1)),
                 new Separator(),
-                Item("Reload", () => tab.Reload(), enabled: !tab.IsBlank),
-                Item("Duplicate", () => session.Duplicate(tab), enabled: !tab.IsBlank),
-                Item("Copy link", () => VisusPaneBody.CopyText(this, tab.Url), enabled: WebPolicy.IsWeb(tab.Url)),
+                Item(UiText.Get("visus.toolbar.reload"), () => tab.Reload(), enabled: !tab.IsBlank),
+                Item(UiText.Get("visus.tabs.duplicate"), () => session.Duplicate(tab), enabled: !tab.IsBlank),
+                Item(UiText.Get("visus.menu.copy_link"), () => VisusPaneBody.CopyText(this, tab.Url), enabled: WebPolicy.IsWeb(tab.Url)),
                 new Separator(),
-                Item("Close tab", () => session.Close(tab)),
-                Item("Close other tabs", () => session.CloseOthers(tab), enabled: session.Tabs.Count > 1),
-                Item("Reopen closed tab", () => session.ReopenClosed(), enabled: session.CanReopenClosed),
+                Item(UiText.Get("visus.tabs.close_tab"), () => session.Close(tab)),
+                Item(UiText.Get("visus.tabs.close_others"), () => session.CloseOthers(tab), enabled: session.Tabs.Count > 1),
+                Item(UiText.Get("visus.tabs.reopen_closed"), () => session.ReopenClosed(), enabled: session.CanReopenClosed),
             };
             menu.ItemsSource = items;
         };
@@ -353,8 +354,8 @@ public sealed class VisusTabStrip : Panel
         var menu = new ContextMenu();
         menu.Opening += (_, _) => menu.ItemsSource = new List<Control>
         {
-            Item("New tab", () => session.NewTab()),
-            Item("New private tab", () => session.NewTab(VisusTabKind.Private)),
+            Item(UiText.Get("visus.tabs.new_tab"), () => session.NewTab()),
+            Item(UiText.Get("visus.tabs.new_private_tab"), () => session.NewTab(VisusTabKind.Private)),
         };
         return menu;
     }
@@ -376,7 +377,7 @@ public sealed class VisusTabStrip : Panel
             {
                 SetOverflowOpen(false);
                 session.Select(chosen);
-            }, detail: tab.Kind == VisusTabKind.Private ? "Private" : null, isChecked: ReferenceEquals(tab, session.Selected)));
+            }, detail: tab.Kind == VisusTabKind.Private ? UiText.Get("visus.tabs.private_label") : null, isChecked: ReferenceEquals(tab, session.Selected)));
         }
         return stack;
     }
@@ -400,7 +401,7 @@ public sealed class VisusTabStrip : Panel
             face.Background = on ? PaneTokens.HoverFill.Brush(this) : Brushes.Transparent;
             glyph.Foreground = (on ? PaneTokens.Text1 : PaneTokens.Text2).Brush(this);
         });
-        ToolTip.SetTip(button, shortcut is null ? name : name + "  " + shortcut);
+        ToolTip.SetTip(button, shortcut is null ? name : UiText.Format("visus.toolbar.tip_with_shortcut", name, shortcut));
         AutomationProperties.SetName(button, name);
         if (shortcut is not null) AutomationProperties.SetAcceleratorKey(button, shortcut);
         return button;
@@ -464,8 +465,8 @@ public sealed class VisusTabView : Button
             closeFace.Background = on ? PaneTokens.HoverFill.Brush(this) : Brushes.Transparent;
             close.Opacity = on ? 1 : CloseOpacity;
         });
-        ToolTip.SetTip(close, "Close tab  Ctrl+W");
-        AutomationProperties.SetName(close, "Close tab");
+        ToolTip.SetTip(close, UiText.Format("visus.toolbar.tip_with_shortcut", UiText.Get("visus.tabs.close_tab"), "Ctrl+W"));
+        AutomationProperties.SetName(close, UiText.Get("visus.tabs.close_tab"));
         var leading = new Panel { Width = VisusTokens.FaviconSize, Height = VisusTokens.FaviconSize, Children = { icon, spinner, waitingDot } };
         var row = new DockPanel { LastChildFill = true };
         DockPanel.SetDock(leading, Dock.Left);
@@ -663,8 +664,10 @@ public sealed class VisusTabView : Button
         }
         waitingDot.IsVisible = Tab.Asks.Count > 0 && !Tab.IsShown;
         waitingDot.Fill = Marrow.UI.Chrome.Chrome.Accent.Brush(this);
-        var name = Tab.Title + (Tab.Kind == VisusTabKind.Private ? ", private" : "") + (Tab.IsLoading ? ", loading" : "")
-            + (waitingDot.IsVisible ? ", waiting for your answer" : "");
+        var name = Tab.Title;
+        if (Tab.Kind == VisusTabKind.Private) name = UiText.Format("visus.tabs.name_with_state", name, UiText.Get("visus.tabs.state_private"));
+        if (Tab.IsLoading) name = UiText.Format("visus.tabs.name_with_state", name, UiText.Get("visus.tabs.state_loading"));
+        if (waitingDot.IsVisible) name = UiText.Format("visus.tabs.name_with_state", name, UiText.Get("visus.tabs.state_waiting"));
         AutomationProperties.SetName(this, name);
         ToolTip.SetTip(this, Tab.IsBlank ? Tab.Title : Tab.Title + "\n" + VisusAddress.Display(Tab.Url));
         ApplyLook();

@@ -11,6 +11,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Views;
+using Marrow.Core.Localisation;
 using Marrow.Core.Web;
 using Marrow.UI.Chrome;
 using Marrow.UI.NthUi;
@@ -40,8 +41,8 @@ public abstract class VisusPromptCard : Border
     /// <summary>How long after it appears (or the keyboard enters it) the card ignores clicks and keys (8.4, 10.1).</summary>
     public static readonly TimeSpan Shield = TimeSpan.FromMilliseconds(400);
 
-    /// <summary>The end of every appearance announcement (10.1).</summary>
-    public const string F6Hint = "Press F6 to answer.";
+    /// <summary>The end of every appearance announcement (10.1; resource key visus.prompt.f6_hint).</summary>
+    public static string F6Hint => UiText.Get("visus.prompt.f6_hint");
 
     /// <summary>The card's width (the canvas's .pop).</summary>
     public const double CardWidth = 310;
@@ -279,8 +280,8 @@ public abstract class VisusPromptCard : Border
 /// <summary>DESIGN 8.3, 8.4: "example.com wants to open Mail (mailto:)" with Open and Cancel.</summary>
 public sealed class VisusPrompt : VisusPromptCard
 {
-    /// <summary>The prompt's foot, word for word (the canvas's prompts).</summary>
-    public const string Foot = "Enter does nothing here. Esc cancels.";
+    /// <summary>The prompt's foot, word for word (the canvas's prompts; resource key visus.prompt.foot).</summary>
+    public static string Foot => UiText.Get("visus.prompt.foot");
 
     public VisusPrompt(VisusExternalLaunch launch, string appName)
         : base(launch, ExternalProtocols.PromptTitle(launch.Source, appName, launch.Scheme), Shorten(launch.Uri), PaneGlyphKind.OpenExternal)
@@ -288,13 +289,13 @@ public sealed class VisusPrompt : VisusPromptCard
         Launch = launch;
         if (launch.CanRemember)
         {
-            Remember = new CheckBox { Content = Text("Remember for this site", 12.5, PaneTokens.Text1), Margin = new Thickness(30, 10, 0, 0) };
+            Remember = new CheckBox { Content = Text(UiText.Get("visus.prompt.remember"), 12.5, PaneTokens.Text1), Margin = new Thickness(30, 10, 0, 0) };
             ChatDialogControls.Checkbox(Remember);
-            AutomationProperties.SetName(Remember, $"Remember for {launch.Source}: open {appName} without asking");
+            AutomationProperties.SetName(Remember, UiText.Format("visus.prompt.remember_name", launch.Source, appName));
             Body.Children.Add(Remember);
         }
-        OpenButton = AddButton("Open " + appName, $"Open this {launch.Scheme}: link in {appName}", primary: false, () => Launch.Answer(true, Remember?.IsChecked == true));
-        CancelButton = AddButton("Cancel", $"Don't open {appName}", primary: false, () => Launch.Answer(false));
+        OpenButton = AddButton(UiText.Format("visus.prompt.open_app", appName), UiText.Format("visus.prompt.open_app_name", launch.Scheme, appName), primary: false, () => Launch.Answer(true, Remember?.IsChecked == true));
+        CancelButton = AddButton(UiText.Get("visus.card.cancel"), UiText.Format("visus.prompt.cancel_name", appName), primary: false, () => Launch.Answer(false));
         Finish(Foot);
         AutomationProperties.SetHelpText(this, launch.Uri);
     }

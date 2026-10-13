@@ -1,5 +1,6 @@
 using Marrow.App.Runtime;
 using Marrow.App.Views.Terminal;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Web;
 using Marrow.Services.Web;
@@ -96,8 +97,8 @@ public static class ProjectPreviewHost
     {
         if (tab?.Kind == VisusTabKind.Preview)
         {
-            yield return new VisusMenuEntry("Pick element", () => _ = tab.Preview?.Picker?.SetEnabledAsync(true), "Ctrl+Shift+E");
-            yield return new VisusMenuEntry("Open DevTools", () => (tab.View?.Engine as IPreviewViewport)?.OpenPreviewDevTools());
+            yield return new VisusMenuEntry(UiText.Get("visus.preview.pick_element"), () => _ = tab.Preview?.Picker?.SetEnabledAsync(true), "Ctrl+Shift+E");
+            yield return new VisusMenuEntry(UiText.Get("visus.preview.open_devtools"), () => (tab.View?.Engine as IPreviewViewport)?.OpenPreviewDevTools());
         }
     }
 }

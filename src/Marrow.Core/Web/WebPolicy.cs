@@ -7,6 +7,7 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
+using Marrow.Core.Localisation;
 
 namespace Marrow.Core.Web;
 
@@ -54,22 +55,22 @@ public readonly record struct SiteChip(SiteChipKind Kind, bool NotSecure)
     /// <summary>The chip's words ("Preview", "Private · Not secure"); empty for the lock alone and for no chip.</summary>
     public string Label => Kind switch
     {
-        SiteChipKind.NotSecure => "Not secure",
-        SiteChipKind.Preview => "Preview",
-        SiteChipKind.Private => NotSecure ? "Private · Not secure" : "Private",
-        SiteChipKind.Agent => NotSecure ? "Agent · Not secure" : "Agent",
+        SiteChipKind.NotSecure => UiText.Get("visus.site.chip_not_secure"),
+        SiteChipKind.Preview => UiText.Get("visus.site.chip_preview"),
+        SiteChipKind.Private => NotSecure ? UiText.Get("visus.site.chip_private_not_secure") : UiText.Get("visus.site.chip_private"),
+        SiteChipKind.Agent => NotSecure ? UiText.Get("visus.site.chip_agent_not_secure") : UiText.Get("visus.site.chip_agent"),
         _ => "",
     };
 
     /// <summary>How the chip reads aloud (the trust strip's accessible name ends with it).</summary>
     public string Spoken => Kind switch
     {
-        SiteChipKind.None => "new tab",
-        SiteChipKind.Secure => "secure connection",
-        SiteChipKind.NotSecure => "not secure",
-        SiteChipKind.Preview => NotSecure ? "project preview" : "project preview, secure connection",
-        SiteChipKind.Private => NotSecure ? "private tab, not secure" : "private tab",
-        SiteChipKind.Agent => NotSecure ? "the model's tab, not secure" : "the model's tab",
+        SiteChipKind.None => UiText.Get("visus.site.spoken_new_tab"),
+        SiteChipKind.Secure => UiText.Get("visus.site.spoken_secure"),
+        SiteChipKind.NotSecure => UiText.Get("visus.site.spoken_not_secure"),
+        SiteChipKind.Preview => NotSecure ? UiText.Get("visus.site.spoken_preview") : UiText.Get("visus.site.spoken_preview_secure"),
+        SiteChipKind.Private => NotSecure ? UiText.Get("visus.site.spoken_private_not_secure") : UiText.Get("visus.site.spoken_private"),
+        SiteChipKind.Agent => NotSecure ? UiText.Get("visus.site.spoken_agent_not_secure") : UiText.Get("visus.site.spoken_agent"),
         _ => "",
     };
 }
@@ -186,7 +187,7 @@ public static class WebPolicy
     /// </summary>
     public static string SourceName(string? url)
     {
-        if (url is null || IsBlank(url) || url.Length == 0) return "New tab";
+        if (url is null || IsBlank(url) || url.Length == 0) return UiText.Get("visus.tabs.title_new");
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Host.Length == 0) return url;
         var host = uri.HostNameType == UriHostNameType.IPv6 ? "[" + uri.IdnHost.Trim('[', ']') + "]" : uri.IdnHost;
         return uri.IsDefaultPort ? host : host + ":" + uri.Port.ToString(CultureInfo.InvariantCulture);
@@ -267,14 +268,14 @@ public static class ExternalProtocols
         "ms-windows-store", "ms-teams", "whatsapp", "tg", "signal", "linkedin", "zotero",
     };
 
-    private static readonly Dictionary<string, string> Names = new(StringComparer.OrdinalIgnoreCase)
+    // The product names (they read the same in every language); the plain words (Mail, Phone, ...) are in AppName, read when asked.
+    private static readonly Dictionary<string, string> BrandNames = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["mailto"] = "Mail", ["tel"] = "Phone", ["callto"] = "Phone", ["sms"] = "Messages", ["webcal"] = "Calendar",
         ["msteams"] = "Microsoft Teams", ["ms-teams"] = "Microsoft Teams", ["zoommtg"] = "Zoom", ["zoomus"] = "Zoom",
         ["slack"] = "Slack", ["spotify"] = "Spotify", ["steam"] = "Steam", ["discord"] = "Discord",
         ["vscode"] = "Visual Studio Code", ["vscode-insiders"] = "Visual Studio Code Insiders", ["figma"] = "Figma",
         ["obsidian"] = "Obsidian", ["notion"] = "Notion", ["skype"] = "Skype", ["ms-windows-store"] = "Microsoft Store",
-        ["whatsapp"] = "WhatsApp", ["tg"] = "Telegram", ["signal"] = "Signal", ["zotero"] = "Zotero", ["magnet"] = "a torrent app",
+        ["whatsapp"] = "WhatsApp", ["tg"] = "Telegram", ["signal"] = "Signal", ["zotero"] = "Zotero",
     };
 
     /// <summary>Whether the scheme is on the block list (or is no app at all: an internal page).</summary>
@@ -301,11 +302,20 @@ public static class ExternalProtocols
     public static string AppName(string scheme, Func<string, string?>? systemName = null)
     {
         if (systemName?.Invoke(scheme) is { Length: > 0 } name) return name;
-        return Names.TryGetValue(scheme, out var known) ? known : "another app";
+        if (BrandNames.TryGetValue(scheme, out var brand)) return brand;
+        return scheme.ToLowerInvariant() switch
+        {
+            "mailto" => UiText.Get("visus.apps.mail"),
+            "tel" or "callto" => UiText.Get("visus.apps.phone"),
+            "sms" => UiText.Get("visus.apps.messages"),
+            "webcal" => UiText.Get("visus.apps.calendar"),
+            "magnet" => UiText.Get("visus.apps.torrent_app"),
+            _ => UiText.Get("visus.apps.another_app"),
+        };
     }
 
     /// <summary>"example.com wants to open Mail (mailto:)" (8.3).</summary>
-    public static string PromptTitle(string source, string appName, string scheme) => $"{source} wants to open {appName} ({scheme}:)";
+    public static string PromptTitle(string source, string appName, string scheme) => UiText.Format("visus.prompt.wants_to_open", source, appName, scheme);
 }
 
 /// <summary>DESIGN 2.3, 5.10, 8.1: what each kind of tab may keep and who may see it (the private tab rules).</summary>

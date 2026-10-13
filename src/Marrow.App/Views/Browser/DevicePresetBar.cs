@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Marrow.Core.Localisation;
 using Marrow.Core.Web;
 using Marrow.UI.Panes;
 
@@ -27,20 +28,20 @@ public sealed class DevicePresetBar : Border
         foreach (var preset in Enum.GetValues<DevicePreset>())
         {
             var chosen = preset;
-            var button = Action(preset.ToString(), () => owner.SetDevice(chosen), new PreviewGlyph(preset.ToString()) { Width = 13, Height = 13 }, toggle: true);
+            var button = Action(PresetName(preset), () => owner.SetDevice(chosen), new PreviewGlyph(preset.ToString()) { Width = 13, Height = 13 }, toggle: true);
             button.Padding = new Thickness(9, 0); button.CornerRadius = new CornerRadius(8);
             presets[chosen] = button; segment.Children.Add(button);
         }
         row.Children.Add(new Border { CornerRadius = new CornerRadius(10), Padding = new Thickness(2), Child = segment, Background = PaneTokens.HoverFill.Brush(this), BorderThickness = new Thickness(.5), BorderBrush = PaneTokens.Line.Brush(this) });
         size.VerticalAlignment = VerticalAlignment.Center; size.FontFamily = new FontFamily("Cascadia Mono"); size.FontWeight = FontWeight.Medium; Grid.SetColumn(size, 1); row.Children.Add(size);
-        var rotate = Action("Rotate", owner.Rotate); rotate.Content = new PreviewGlyph("Rotate"); rotate.Width = 26; rotate.Padding = new Thickness(0); rotate.CornerRadius = new CornerRadius(8); Grid.SetColumn(rotate, 2); row.Children.Add(rotate);
-        reload = Action("Reload on save", () => { owner.Tab.SetPreviewState(owner.Tab.PreviewState with { ReloadOnSave = !owner.Tab.PreviewState.ReloadOnSave }); owner.Refresh(); }, new PreviewGlyph("Reload") { Width = 13, Height = 13 }, toggle: true);
+        var rotate = Action(UiText.Get("visus.preview.rotate"), owner.Rotate); rotate.Content = new PreviewGlyph("Rotate"); rotate.Width = 26; rotate.Padding = new Thickness(0); rotate.CornerRadius = new CornerRadius(8); Grid.SetColumn(rotate, 2); row.Children.Add(rotate);
+        reload = Action(UiText.Get("visus.preview.reload_on_save"), () => { owner.Tab.SetPreviewState(owner.Tab.PreviewState with { ReloadOnSave = !owner.Tab.PreviewState.ReloadOnSave }); owner.Refresh(); }, new PreviewGlyph("Reload") { Width = 13, Height = 13 }, toggle: true);
         ((StackPanel)reload.Content!).Spacing = 6;
         reload.Padding = new Thickness(10, 0); reload.CornerRadius = new CornerRadius(13); reload.BorderThickness = new Thickness(1); reload.BorderBrush = PaneTokens.Line.Brush(this); Grid.SetColumn(reload, 4); row.Children.Add(reload);
-        console = Action("Console", owner.ToggleConsole, new PreviewGlyph("Console") { Width = 13, Height = 13 }, toggle: true); console.Padding = new Thickness(10, 0); console.CornerRadius = new CornerRadius(13); console.BorderThickness = new Thickness(1); console.BorderBrush = PaneTokens.Line.Brush(this); Grid.SetColumn(console, 5); row.Children.Add(console);
+        console = Action(UiText.Get("visus.preview.console"), owner.ToggleConsole, new PreviewGlyph("Console") { Width = 13, Height = 13 }, toggle: true); console.Padding = new Thickness(10, 0); console.CornerRadius = new CornerRadius(13); console.BorderThickness = new Thickness(1); console.BorderBrush = PaneTokens.Line.Brush(this); Grid.SetColumn(console, 5); row.Children.Add(console);
         Child = new ScrollViewer { HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled, Content = row };
         ActualThemeVariantChanged += (_, _) => Refresh();
-        AutomationProperties.SetName(this, "Preview device sizes");
+        AutomationProperties.SetName(this, UiText.Get("visus.preview.device_sizes"));
     }
     public string SizeText => size.Text ?? "";
     public DeviceMetrics Metrics => owner.Metrics;
@@ -57,7 +58,7 @@ public sealed class DevicePresetBar : Border
         ((ToggleButton)console).IsChecked = owner.Drawer?.State.Open ?? owner.Tab.PreviewState.ConsoleOpen;
         reload.Background = ((ToggleButton)reload).IsChecked == true ? PaneTokens.HoverFill.Brush(this) : Brushes.Transparent;
         console.Background = ((ToggleButton)console).IsChecked == true ? PaneTokens.HoverFill.Brush(this) : Brushes.Transparent;
-        var consoleLabel = (StackPanel)Label("Console", new PreviewGlyph("Console") { Width = 13, Height = 13 }); consoleLabel.Spacing = 6;
+        var consoleLabel = (StackPanel)Label(UiText.Get("visus.preview.console"), new PreviewGlyph("Console") { Width = 13, Height = 13 }); consoleLabel.Spacing = 6;
         if (owner.Runtime.Diagnostics?.Errors is > 0 and var errors)
             consoleLabel.Children.Add(new Border
             {
@@ -68,6 +69,16 @@ public sealed class DevicePresetBar : Border
         console.Content = consoleLabel;
         size.Foreground = PaneTokens.Text2.Brush(this);
     }
+    /// <summary>The words of a device preset (the glyph keeps the enum name as its id).</summary>
+    internal static string PresetName(DevicePreset preset) => preset switch
+    {
+        DevicePreset.Phone => UiText.Get("visus.preview.device_phone"),
+        DevicePreset.Tablet => UiText.Get("visus.preview.device_tablet"),
+        DevicePreset.Laptop => UiText.Get("visus.preview.device_laptop"),
+        DevicePreset.Fill => UiText.Get("visus.preview.device_fill"),
+        DevicePreset.Responsive => UiText.Get("visus.preview.device_responsive"),
+        _ => preset.ToString(),
+    };
     internal static TextBlock Text(double font = 12) => new() { FontSize = font, VerticalAlignment = VerticalAlignment.Center };
     internal static Control Label(string text, Control? glyph)
     {

@@ -1,3 +1,4 @@
+using Marrow.Core.Localisation;
 using Marrow.Core.Web;
 using Marrow.Services.Web;
 
@@ -25,7 +26,7 @@ public static class VisusPrivacy
             _ => null,
         };
         if (profileName is null) return "";
-        var words = name ?? (profile == WebProfileKind.Browse ? "Visus tabs" : "Project previews");
+        var words = name ?? (profile == WebProfileKind.Browse ? UiText.Get("visus.privacy.visus_tabs") : UiText.Get("visus.privacy.project_previews"));
 
         VisusHost.History.Clear(profile);
         VisusHost.Permissions.Forget(profile);
@@ -35,7 +36,7 @@ public static class VisusPrivacy
         var clears = ClearsRecord();
         await Task.Run(() => clears.Request(profileName)); // written down first, off the UI thread
         var now = VisusHost.IsStarted ? await VisusHost.Surface.ClearProfilesNowAsync(creation => creation.ProfileName == profileName) : 0;
-        return now > 0 ? $"Cleared the browsing data of {words}." : $"Cleared the history and saved answers of {words}. Cookies, cache and site storage go before its next page opens.";
+        return now > 0 ? UiText.Format("visus.privacy.cleared_now", words) : UiText.Format("visus.privacy.cleared_later", words);
     }
 
     /// <summary>"Forget agent data": every standing grant, and the browser data of every agent profile. Returns the sentence Settings shows.</summary>
@@ -46,8 +47,8 @@ public static class VisusPrivacy
         await Task.Run(clears.RequestAllAgents);
         var now = VisusHost.IsStarted ? await VisusHost.Surface.ClearProfilesNowAsync(creation => creation.Kind == WebProfileKind.Agent) : 0;
         return now > 0
-            ? "Forgot the agent data. The sites you always allowed are gone too."
-            : "Forgot the sites you always allowed. What the model's pages kept goes before each one's next page opens.";
+            ? UiText.Get("visus.privacy.forgot_agent_now")
+            : UiText.Get("visus.privacy.forgot_agent_later");
     }
 
     // The engine's own record when it has one (so a request and the engine's view of it are one), else the file's.

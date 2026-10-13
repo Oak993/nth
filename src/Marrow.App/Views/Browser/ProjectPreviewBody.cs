@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Web;
 using Marrow.Services.Web;
@@ -58,12 +59,12 @@ public sealed class ProjectPreviewBody : Grid, IDisposable
                 OnEnd = _ => EndResponsive(),
                 OnReset = () => { ResizeResponsive(390, 844); EndResponsive(); },
                 OnStepTo = maximum => { ResizeResponsive(maximum ? 4000 : 240, maximum ? 4000 : 240); EndResponsive(); },
-            }) { Label = "Resize preview device", FineInset = 0, MirrorsInRightToLeft = false };
+            }) { Label = UiText.Get("visus.preview.resize_device"), FineInset = 0, MirrorsInRightToLeft = false };
             deviceSplitters.Add(splitter); chrome.Children.Add(splitter);
         }
         drawerGrip = new Splitter(SplitterOrientation.Horizontal, new SplitterTarget
         {
-            OnReport = () => new SplitterReport(Drawer.State.Height, 90, Math.Max(90, Bounds.Height * .6), Drawer.State.Collapsed, 24, "", "Console height"),
+            OnReport = () => new SplitterReport(Drawer.State.Height, 90, Math.Max(90, Bounds.Height * .6), Drawer.State.Collapsed, 24, "", UiText.Get("visus.preview.console_height")),
             OnSettle = () => drawerHeight?.Finish(),
             OnBegin = () => { drawerDragging = true; startDrawer = Drawer.ShownHeight; Drawer.State.Begin(); snapshotWanted = true; _ = Snapshot(); },
             OnMove = travel => { Drawer.State.DragTo(startDrawer - travel.Y, Bounds.Height); Drawer.Refresh(); },
@@ -72,7 +73,7 @@ public sealed class ProjectPreviewBody : Grid, IDisposable
             OnCollapse = collapse => { if (collapse) Drawer.State.Collapse(); else Drawer.State.Restore(); Drawer.Refresh(); },
             OnStepTo = maximum => { Drawer.State.DragTo(maximum ? Bounds.Height * .6 : 90, Bounds.Height); Drawer.Refresh(); },
             OnSetValue = value => { Drawer.State.DragTo(value, Bounds.Height); Drawer.Refresh(); },
-        }) { VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(6, -6, 6, 0), CollapseSide = SplitterSide.Trailing, Label = "Resize console" };
+        }) { VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(6, -6, 6, 0), CollapseSide = SplitterSide.Trailing, Label = UiText.Get("visus.preview.resize_console") };
         Grid.SetRow(drawerGrip, 2); Children.Add(drawerGrip);
         drawerGoal = Drawer.ShownHeight;
         drawerHeight = new AnimatedScalar(this, Drawer.ShownHeight, value =>
@@ -138,7 +139,7 @@ public sealed class ProjectPreviewBody : Grid, IDisposable
             var w = metrics.Width * metrics.Scale; var h = metrics.Height * metrics.Scale;
             var x = Math.Max(0, (width - w) / 2); var y = Math.Max(0, (height - h) / 2);
             Canvas.SetLeft(frame, x); Canvas.SetTop(frame, y); frame.Width = w; frame.Height = h;
-            scaled.Text = metrics.Scale < .999 ? "Scaled " + Math.Round(metrics.Scale * 100).ToString(System.Globalization.CultureInfo.InvariantCulture) + " %" : "";
+            scaled.Text = metrics.Scale < .999 ? UiText.Format("visus.preview.scaled", Math.Round(metrics.Scale * 100).ToString(System.Globalization.CultureInfo.InvariantCulture)) : "";
             foreach (var splitter in deviceSplitters) splitter.IsVisible = Tab.PreviewState.Preset == DevicePreset.Responsive;
             if (deviceSplitters.Count == 3)
             {

@@ -1,4 +1,5 @@
 using Marrow.App.Runtime;
+using Marrow.Core.Localisation;
 using Marrow.Core.Web;
 
 // PORT-ONLY: web surfaces W8a, a thread's Visus tabs (E:/Droppy/work/design/web-surfaces/DESIGN.md 5.1 "tab strip ... New tab
@@ -289,9 +290,9 @@ public sealed class VisusSession
                 try
                 {
                     if (tab.ReadyEngine() is { IsAttached: true } printEngine) printEngine.ShowPrintUI();
-                    else Notify(tab, "Could not print this page");
+                    else Notify(tab, UiText.Get("visus.print.print_failed"));
                 }
-                catch (Exception) { Notify(tab, "Could not print this page"); }
+                catch (Exception) { Notify(tab, UiText.Get("visus.print.print_failed")); }
                 return true;
             case VisusCommand.NewTab:
                 NewTab(VisusTabKind.Browse);
@@ -410,13 +411,13 @@ public sealed class VisusSession
         var decision = ExternalProtocols.Decide(VisusTabRules.Profile(tab.Kind), link, isUserInitiated: true);
         if (decision == ExternalLaunchDecision.Deny)
         {
-            Notify(tab, "This tab cannot open other apps.");
+            Notify(tab, UiText.Get("visus.prompt.tab_cannot_open_apps"));
             return;
         }
         // Typed by the user into nth's own field: nothing to remember for a site.
         var launch = new VisusExternalLaunch(tab, link, "Visus", null, ExternalLaunchDecision.Ask, open =>
         {
-            if (open && !VisusHost.OpenExternal(link)) Notify(tab, "No app on this PC opens " + WebPolicy.SchemeOf(link) + ": links.");
+            if (open && !VisusHost.OpenExternal(link)) Notify(tab, UiText.Format("visus.prompt.no_app_for_scheme", WebPolicy.SchemeOf(link)));
         });
         if (!RequestLaunch(launch)) launch.Answer(false);
     }

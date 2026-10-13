@@ -13,6 +13,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Panes;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Web;
@@ -672,9 +673,9 @@ public sealed class VisusPaneBody : Grid
         var stack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, Margin = new Thickness(4) };
         zoomLabel = new TextBlock { FontSize = 13, FontWeight = FontWeight.Medium, TextAlignment = TextAlignment.Center, MinWidth = 48 };
         UpdateZoomLabel();
-        stack.Children.Add(ZoomStep(new TextBlock { Text = "−", FontSize = 17 }, "Zoom out", VisusCommand.ZoomOut, 30));
-        stack.Children.Add(ZoomStep(zoomLabel, "Reset zoom", VisusCommand.ResetZoom, 62));
-        stack.Children.Add(ZoomStep(new TextBlock { Text = "+", FontSize = 17 }, "Zoom in", VisusCommand.ZoomIn, 30));
+        stack.Children.Add(ZoomStep(new TextBlock { Text = "−", FontSize = 17 }, UiText.Get("visus.zoom.out"), VisusCommand.ZoomOut, 30));
+        stack.Children.Add(ZoomStep(zoomLabel, UiText.Get("visus.zoom.reset"), VisusCommand.ResetZoom, 62));
+        stack.Children.Add(ZoomStep(new TextBlock { Text = "+", FontSize = 17 }, UiText.Get("visus.zoom.in"), VisusCommand.ZoomIn, 30));
         return stack;
     }
     // A stepper button: a 28 DIP face with the toolbar's hover fill and the theme's ink, named for assistive tools.
@@ -695,7 +696,7 @@ public sealed class VisusPaneBody : Grid
     // The stepper shows the zoom as it is, also after Ctrl+Plus or a same-site tab changed it while the stepper is open.
     private void UpdateZoomLabel()
     {
-        if (zoomLabel is { } label) label.Text = Math.Round((Session.Selected?.Zoom ?? 1) * 100).ToString(System.Globalization.CultureInfo.InvariantCulture) + " %";
+        if (zoomLabel is { } label) label.Text = UiText.Format("visus.zoom.percent", Math.Round((Session.Selected?.Zoom ?? 1) * 100).ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
     private void OnSavePdf() => _ = SavePdfAsync();
     public async Task SavePdfAsync()
@@ -712,11 +713,11 @@ public sealed class VisusPaneBody : Grid
         {
             var name = string.Concat(tab.Title.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c)).Trim().TrimEnd('.');
             if (string.IsNullOrEmpty(name)) name = "page";
-            var path = await Files.SaveAsync(this, new TabulaSaveRequest("Save as PDF", null, name + ".pdf", "PDF", "pdf"));
+            var path = await Files.SaveAsync(this, new TabulaSaveRequest(UiText.Get("visus.print.save_pdf"), null, name + ".pdf", "PDF", "pdf"));
             if (path is null || selectionChanged || epoch != exportEpoch || document != tab.DocumentVersion || !ReferenceEquals(Session.Selected, tab) || tab.Url != url || !ReferenceEquals(tab.View?.Engine, engine) || !engine.IsAttached) return;
-            if (!await engine.PrintToPdfAsync(path, CancellationToken.None)) Session.Notify(tab, "Could not save PDF");
+            if (!await engine.PrintToPdfAsync(path, CancellationToken.None)) Session.Notify(tab, UiText.Get("visus.print.save_pdf_failed"));
         }
-        catch (Exception) { Session.Notify(tab, "Could not save PDF"); }
+        catch (Exception) { Session.Notify(tab, UiText.Get("visus.print.save_pdf_failed")); }
         finally { Session.Changed -= OnSelection; pdfBusy = false; }
     }
 
@@ -825,8 +826,8 @@ public sealed class VisusPopover
 /// <summary>A new tab's page: "New tab", how to search, and the latest visits.</summary>
 public sealed class VisusStartSurface : Border
 {
-    /// <summary>The start surface's hint (the canvas's words).</summary>
-    public const string Hint = "Ctrl+T opens a new tab · Ctrl+Shift+N a private one";
+    /// <summary>The start surface's hint (the canvas's words; resource key visus.start.hint).</summary>
+    public static string Hint => UiText.Get("visus.start.hint");
 
     /// <summary>How many recent visits it lists.</summary>
     public const int RecentCount = 6;
@@ -836,14 +837,14 @@ public sealed class VisusStartSurface : Border
         var stack = new StackPanel { Orientation = Orientation.Vertical, MaxWidth = 420, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(20) };
         var glyph = new PaneGlyph(PaneGlyphKind.Browser, 30) { HorizontalAlignment = HorizontalAlignment.Center };
         stack.Children.Add(glyph);
-        stack.Children.Add(Line("New tab", 16, PaneTokens.Text1, FontWeight.SemiBold, new Thickness(0, 10, 0, 4)));
-        stack.Children.Add(Line("Type an address or a search in the field above.", 12.5, PaneTokens.Text2));
+        stack.Children.Add(Line(UiText.Get("visus.tabs.title_new"), 16, PaneTokens.Text1, FontWeight.SemiBold, new Thickness(0, 10, 0, 4)));
+        stack.Children.Add(Line(UiText.Get("visus.start.type_address"), 12.5, PaneTokens.Text2));
         stack.Children.Add(Line(Hint, 11.5, PaneTokens.Text3, margin: new Thickness(0, 4, 0, 0)));
         Recent = VisusHost.History.Entries.Where(entry => entry.Profile == WebProfileKind.Browse || entry.Profile == WebProfileKind.Preview)
             .OrderByDescending(entry => entry.LastVisit).Take(RecentCount).ToList();
         if (Recent.Count > 0)
         {
-            stack.Children.Add(Line("Recent", 11.5, PaneTokens.Text3, FontWeight.SemiBold, new Thickness(0, 18, 0, 4), HorizontalAlignment.Left));
+            stack.Children.Add(Line(UiText.Get("visus.start.recent"), 11.5, PaneTokens.Text3, FontWeight.SemiBold, new Thickness(0, 18, 0, 4), HorizontalAlignment.Left));
             foreach (var entry in Recent)
             {
                 var url = entry.Url;
@@ -857,7 +858,7 @@ public sealed class VisusStartSurface : Border
                 var button = PlainControls.Button(face, () => session.Go(url)).KeyboardFocus(7);
                 button.HorizontalAlignment = HorizontalAlignment.Stretch;
                 button.HorizontalContentAlignment = HorizontalAlignment.Stretch;
-                AutomationProperties.SetName(button, title.Text + ", " + host.Text);
+                AutomationProperties.SetName(button, UiText.Format("visus.start.recent_name", title.Text, host.Text));
                 void Look()
                 {
                     title.Foreground = PaneTokens.Text1.Brush(button);
@@ -899,11 +900,14 @@ public sealed class VisusStartSurface : Border
 /// <summary>A private tab with no page (the canvas's .privv): the mask, "Private tab" and what it keeps.</summary>
 public sealed class VisusPrivateSurface : Border
 {
-    public const string Heading = "Private tab";
+    /// <summary>Resource key visus.private.heading.</summary>
+    public static string Heading => UiText.Get("visus.private.heading");
 
-    public const string Kept = "Nothing you do here is kept: no history, cookies or site data.";
+    /// <summary>Resource key visus.private.kept.</summary>
+    public static string Kept => UiText.Get("visus.private.kept");
 
-    public const string Unseen = "The model cannot see private tabs.";
+    /// <summary>Resource key visus.private.unseen.</summary>
+    public static string Unseen => UiText.Get("visus.private.unseen");
 
     public VisusPrivateSurface()
     {
@@ -924,7 +928,7 @@ public sealed class VisusPrivateSurface : Border
                 VisusStartSurface.Line(VisusStartSurface.Hint, 11.5, PaneTokens.Text3, margin: new Thickness(0, 10, 0, 0)),
             },
         };
-        AutomationProperties.SetName(this, Heading + ". " + Kept + " " + Unseen);
+        AutomationProperties.SetName(this, UiText.Format("visus.private.surface_name", Heading, Kept, Unseen));
         void Glyph() => glyph.Foreground = PaneTokens.Text2.Brush(this);
         ActualThemeVariantChanged += (_, _) => Glyph();
         Glyph();
