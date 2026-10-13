@@ -20,8 +20,10 @@ public static partial class Traceability
 
     // Unnumbered first-release decisions use their append-only heading (ED-360) until the lead numbers them. The tail may hold digits and
     // further dashes, so ED-NEW-dextra-as3a-1 (the Dextra units' ids) is well formed.
-    // The web review packet assigns its own findings ED-NEW-web-review-1 and up (ED-NEW-web-review-24), a literal namespace.
-    [GeneratedRegex(@"\A(?:ED-(?:[0-9]{3}|NEW-web-review-[0-9]+|NEW-[a-z][a-z0-9]*(?:-[a-z0-9]+)*-[0-9]+)|OD-[0-9]{4})\z")] private static partial Regex DecisionId();
+    // The web review packet assigns its own findings ED-NEW-web-review-1 and up (ED-NEW-web-review-24), a literal namespace. The web
+    // lane keeps its narrow shapes (ED-NEW-web-w12-1, ED-NEW-web-sec-artifacts-1: the lane, the unit or "sec" and the area, the number),
+    // so the broad tail below never admits a web-* name of any other shape (ED-NEW-web-arbitrary-1 stays refused).
+    [GeneratedRegex(@"\A(?:ED-(?:[0-9]{3}|NEW-web-review-[0-9]+|NEW-[a-z]+(?:-[a-z]+[0-9]+[a-z]?|-sec-[a-z]+)?-[0-9]+|NEW-(?!web-)[a-z][a-z0-9]*(?:-[a-z0-9]+)*-[0-9]+)|OD-[0-9]{4})\z")] private static partial Regex DecisionId();
 
     [GeneratedRegex(@"\AO-[0-9]{2}\z")] private static partial Regex OracleId();
 
