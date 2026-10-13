@@ -70,7 +70,8 @@ public static class BrainPicker
             .ThenBy(o => o.Model, StringComparer.Ordinal)
             .FirstOrDefault();
 
-        var brainAllowed = brain is not null && (!requireLocal || brain.RunsLocally);
+        // ED-NEW-dextra-open-13: an unavailable text route is never a triage fallback; planning keeps its strong brain.
+        var brainAllowed = brain is { Usable: true } && (!requireLocal || brain.RunsLocally);
         if (best is null || (brainAllowed && brain!.BlendedPerMillion is { } brainPrice && best.BlendedPerMillion >= brainPrice))
         {
             return brainAllowed

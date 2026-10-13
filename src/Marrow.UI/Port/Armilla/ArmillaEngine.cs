@@ -90,8 +90,9 @@ internal sealed class ArmillaEngine
     private double restKeyTime, restAccum;
     private ArmillaState? restKey;
     private bool snapPending = true;
-    private static readonly Animation appearanceCurve = Animation.TimingCurve(.25, .1, .25, 1, .32);
-    private double darkness, appearanceFrom, appearanceTo, appearanceElapsed = .32;
+    // ED-NEW-dextra-open-15: the sidebar uses the same appearance curve and duration as the turnover.
+    private static Animation appearanceCurve => AppearanceTurn.Curve;
+    private double darkness, appearanceFrom, appearanceTo, appearanceElapsed = appearanceCurve.Duration;
 
     public ArmillaEngine(ArmillaLook look)
     {
@@ -147,7 +148,7 @@ internal sealed class ArmillaEngine
         if (!next.AnimateAppearance || next.ReduceAppearance)
         {
             darkness = appearanceFrom = appearanceTo = next.Dark ? 1 : 0;
-            appearanceElapsed = .32;
+            appearanceElapsed = appearanceCurve.Duration;
         }
         else if (next.Dark != prev.Dark)
         {
@@ -223,12 +224,12 @@ internal sealed class ArmillaEngine
     /// </summary>
     public bool Tick(double dt, double now)
     {
-        var appearanceMoving = appearanceElapsed < .32;
+        var appearanceMoving = appearanceElapsed < appearanceCurve.Duration;
         if (appearanceMoving)
         {
-            appearanceElapsed = Math.Min(.32, appearanceElapsed + Math.Max(0, dt));
+            appearanceElapsed = Math.Min(appearanceCurve.Duration, appearanceElapsed + Math.Max(0, dt));
             darkness = appearanceFrom + (appearanceTo - appearanceFrom) * appearanceCurve.Progress(appearanceElapsed);
-            appearanceMoving = appearanceElapsed < .32;
+            appearanceMoving = appearanceElapsed < appearanceCurve.Duration;
             Dirty = true;
         }
         if (ReduceOn)
@@ -467,7 +468,7 @@ internal sealed class ArmillaEngine
     /// <summary>Nothing moves and nothing will until the look changes: the mark leaves the clock.</summary>
     public bool Settled()
     {
-        if (appearanceElapsed < .32) return false;
+        if (appearanceElapsed < appearanceCurve.Duration) return false;
         var pose = Pose();
         if (!Sleeping && (pose[PoseKey.Breathe] > 0 || pose.Spin != 0 || pose[PoseKey.ScanAmp] > 0 || pose[PoseKey.VIn] > 0 || pose[PoseKey.VOut] > 0 || (pose.Reach > 0 && !Look.Rest))) return false;
         if (!Sleeping && Tier >= 1 && pose.InSpin != 0) return false;

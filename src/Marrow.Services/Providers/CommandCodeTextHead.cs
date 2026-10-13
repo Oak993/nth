@@ -47,6 +47,7 @@ public static class CommandCodeTextHead
         var policy = Path.Combine(folder, "text-only.mjs");
         ICommandCodeTextProcess? process = null;
         FileStream? ownedPolicy = null;
+        CommandCodeTextFiles? ownedFiles = null;
         try
         {
             var nonce = Guid.NewGuid().ToString("N");
@@ -55,7 +56,7 @@ public static class CommandCodeTextHead
                 // Resolve this chosen account's credential before isolating HOME. Never copy its config, MCP, skills or mods.
                 var key = CommandCodeAPI.ApiKey(configuration.Environment);
                 if (string.IsNullOrWhiteSpace(key)) throw new InvalidOperationException("Command Code has no credential for this account.");
-                Directory.CreateDirectory(folder);
+                ownedFiles = CommandCodeTextFiles.Begin(Path.GetDirectoryName(folder)!, Path.GetFileName(folder)["commandcode-text-".Length..]);
                 // Keep ownership of the opened file, even if the child renames its directory or substitutes a junction.
                 ownedPolicy = new FileStream(policy, FileMode.CreateNew, FileAccess.Write, FileShare.Read | FileShare.Delete,
                     4096, FileOptions.DeleteOnClose);
@@ -148,12 +149,8 @@ public static class CommandCodeTextHead
                 // Delete the opened object by handle, never a policy name in a child-replaced directory.
                 await Task.Run(() =>
                 {
-                    ownedPolicy?.Dispose();
-                    try { Directory.Delete(folder); }
-                    catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-                    {
-                        // ED-NEW-dextra-open-7: leave child-created files; no recursive cleanup of runtime-owned paths.
-                    }
+                    try { ownedPolicy?.Dispose(); }
+                    finally { ownedFiles?.Dispose(); }
                 });
             }
         }

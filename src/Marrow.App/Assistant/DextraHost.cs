@@ -191,7 +191,9 @@ public sealed class DextraHost : IDisposable
     /// Dextra turned off: every task is stopped (Stop all never asks), the tools are no chat's any more and the
     /// controller is let go.
     /// </summary>
-    public void Stop()
+    public void Stop() => Stop(notify: true);
+
+    private void Stop(bool notify)
     {
         startEpoch++;
         initialization = null;
@@ -220,7 +222,7 @@ public sealed class DextraHost : IDisposable
         owned?.Dispose();
         owned = null;
         model.AssistantEvents.Brain = FeedBrain.Unknown;
-        Changed?.Invoke();
+        if (notify) Changed?.Invoke();
     }
 
     /// <summary>The brain's provider: the owner's pick when it is available, else Claude, else the first available one.</summary>
@@ -458,9 +460,11 @@ public sealed class DextraHost : IDisposable
             await MainActor.Run(() =>
             {
                 if (epoch != startEpoch || disposed) return;
-                Stop();
-                initialization = null;
+                Stop(notify: false);
+                // ED-NEW-dextra-open-11: finish this failure before notifying an observer that may start a retry.
+                if (startEpoch != epoch + 1 || disposed || initialization is not null) return;
                 StartFault = (restoringDuties ? "Dextra's duties did not start: " : "Dextra did not start: ") + error.Message;
+                model.AssistantEvents.Publish(FeedDraft.About(FeedEventKind.WatcherChanged, FeedSeverity.Error, model.AssistantEvents.Now, StartFault));
                 Changed?.Invoke();
             }).ConfigureAwait(false);
             return null;

@@ -17,10 +17,18 @@ namespace Marrow.App.Tests.Assistant;
 public sealed class CostTapsTests
 {
     [Fact]
+    [Trait("Decision", "ED-NEW-dextra-open-16")]
     public void Start_dextra_binds_the_caps_the_taps_feed_the_day_and_the_store_keeps_it_with_the_breaker_s_book()
     {
         var assistant = Guid.NewGuid();
-        using var rig = new ThreadRuntimeTurnRig(ProviderKind.Claude, thread => thread with { AssistantID = assistant });
+        // ED-NEW-dextra-open-16: triage needs an authorized, connected account and selection on MainActor.
+        using var rig = new ThreadRuntimeTurnRig(ProviderKind.Claude, thread => thread with { AssistantID = assistant }, settings: app =>
+        {
+            var account = app.Settings.Accounts.Choose(ProviderKind.Claude) ?? app.Settings.Accounts.Add(ProviderKind.Claude);
+            app.Settings.Accounts.MarkSignedIn(account.Id);
+            Assert.True(app.IsAccountConnected(app.Settings.Accounts.Get(account.Id)));
+            Assert.True(app.CanUseAccount(account.Id));
+        });
         using var temp = new AssistantTempRoot();
         using var store = AssistantStore.Open(temp.Roots);
         var stored = new ReserveSettings();
@@ -47,7 +55,7 @@ public sealed class CostTapsTests
             Assert.True(controller.Duties!.IsPaused("digest"));
 
             // The cheap model: nothing priced to compare with, so the brain's own model reads the feed.
-            var pick = controller.TriageModel();
+            var pick = rig.H.Main.OnMain(() => controller.TriageModel());
             Assert.True(pick.IsBrain);
             Assert.Equal("claude", pick.Model!.ProviderId);
             Assert.All(rig.H.Main.OnMain(() => rig.App.TriageModels()), model => Assert.NotEmpty(model.ProviderId));      // whatever this PC offers is listed, priced or not
