@@ -47,5 +47,5 @@
   "ask.resume.single": "My answer to your question \"{0}\": {1}\n\nPlease carry on from there.",
   "ask.resume.none": "(none)",
   "ask.resume.many": "My answers to your questions:\n{0}\nPlease carry on from there.",
-  "ask.resume.many_line": "- {0} {1}\n"
+  "ask.resume.many_line": "- \"{0}\": {1}\n"
 }

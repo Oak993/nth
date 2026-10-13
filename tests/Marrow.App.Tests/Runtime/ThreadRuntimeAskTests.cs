@@ -401,7 +401,7 @@ public sealed class ThreadRuntimeAskTests
         Assert.True(check!.IsValid);
         rig.H.Main.Loop.RunUntil(() => rig.Session.Inputs.Count >= 1, AppModelHarness.Bound);
 
-        Assert.Contains("My answers to your questions:\n- Which database? SQLite\n- How many GB? 4", rig.Session.Inputs[0].Text, StringComparison.Ordinal);
+        Assert.Contains("My answers to your questions:\n- \"Which database?\": SQLite\n- \"How many GB?\": 4", rig.Session.Inputs[0].Text, StringComparison.Ordinal); // ED-NEW-secfinal-4: each question quoted
         Assert.Equal(AskState.Answered, CardIn(rig, "ask-1")!.State);
         Assert.Equal(2, rig.Runtime.Turns.Count);
     }

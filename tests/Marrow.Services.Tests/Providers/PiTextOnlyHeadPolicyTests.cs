@@ -12,7 +12,7 @@ public sealed class PiTextOnlyHeadPolicyTests
     public void A_head_excludes_every_other_extension_tool_skill_and_context_loader_even_for_full_access()
     {
         var arguments = PiTextOnlyHeadPolicy.Arguments("private-guard.mjs", "openai/model", "high");
-        Assert.Equal(new[] { "--mode", "rpc", "--no-tools", "--no-extensions", "--no-skills", "--no-prompt-templates", "--no-themes", "--no-context-files", "-e", "private-guard.mjs", "--provider", "openai", "--model", "model", "--thinking", "high" }, arguments);
+        Assert.Equal(new[] { "--mode", "rpc", "--no-session", "--no-tools", "--no-extensions", "--no-skills", "--no-prompt-templates", "--no-themes", "--no-context-files", "-e", "private-guard.mjs", "--provider", "openai", "--model", "model", "--thinking", "high" }, arguments);
         Assert.DoesNotContain("--approve", arguments);
         Assert.DoesNotContain("--session", arguments);
     }

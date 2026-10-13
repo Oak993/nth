@@ -66,7 +66,7 @@ public sealed class FinalIntSealedCodexTests
         var session = new CodexSession(configuration);
         var parameters = (Dictionary<string, JSONValue>)typeof(CodexSession).GetProperty("ThreadParameters", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(session)!;
         var config = parameters["config"];
-        Assert.NotNull(config["mcp_servers"]?["nth-pc"]);
+        Assert.Null(config["mcp_servers"]?["nth-pc"]); // ED-NEW-secfinal-1: a mission chat is given no nth-pc server (was NotNull)
         foreach (var plugin in PcProviderWiring.CodexComputerUsePlugins)
             Assert.False(config["plugins." + plugin + ".enabled"]?.JSONValueBool ?? true);
     }

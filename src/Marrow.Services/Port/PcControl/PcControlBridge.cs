@@ -74,6 +74,10 @@ public static class PcControlBridge
     /// </summary>
     public static PcRegistration? Registration(SessionConfiguration configuration)
     {
+        // PORT-ONLY (security gate S1, ED-NEW-secfinal-1): a mission chat (sealed) gets no nth-pc server and no native PC or web
+        // tool. Its desktop and browser steps would run on the owner's standing "Always" grants, outside Dextra's approval,
+        // classifier, taint and audit; until they are routed through DextraApproval the seal leaves them out (fail closed).
+        if (configuration.Sealed is not null) return null;
         if (!TactusOn && !Marrow.Services.Web.WebAgentHub.Shared.Current.Offered) return null;
         var thread = configuration.IgnisThreadID is { } id ? id.ToString("D") : "session-" + Guid.NewGuid().ToString("N");
         return new PcRegistration(thread, configuration.Provider, configuration.Model, configuration.Provider.SupportsImages)

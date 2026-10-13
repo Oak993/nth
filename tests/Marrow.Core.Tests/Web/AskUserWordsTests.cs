@@ -64,7 +64,7 @@ public sealed class AskUserWordsTests
     {
         Assert.Equal("My answer to your question \"Which database?\": PostgreSQL\n\nPlease carry on from there.", AskUserWords.ResumeMessage(Answered(Database)));
         Assert.Equal(
-            "My answers to your questions:\n- Which database? PostgreSQL\n- How many GB? 64 GB\n\nPlease carry on from there.",
+            "My answers to your questions:\n- \"Which database?\": PostgreSQL\n- \"How many GB?\": 64 GB\n\nPlease carry on from there.",
             AskUserWords.ResumeMessage(Answered(Database, Size)));
     }
 
