@@ -124,6 +124,8 @@ public sealed class DutyHost : IDisposable
             FolderGranted = path => o.FolderGranted(path) || Switches.IsFolderApproved(path),
             Web = Web,
             DesktopLocked = () => o.Desktop.IsLocked,
+            // The failure breaker (13.2, AS-15): a duty it paused does not fire; the owner's Run now still does.
+            BreakerPaused = id => controller.Duties?.IsPaused(id) == true,
             Feed = Publish,
             Faulted = o.Faulted,
         });
@@ -184,13 +186,25 @@ public sealed class DutyHost : IDisposable
     {
         ArgumentNullException.ThrowIfNull(duty);
         if (duty.Trigger is FolderChangeTrigger folder && Switches.ApproveFolder(folder.Path) is { } refused) return (null, refused);
-        return Scheduler.Find(duty.Id) is null ? Scheduler.Add(duty) : Scheduler.Update(duty);
+        var before = Scheduler.Find(duty.Id);
+        var saved = before is null ? Scheduler.Add(duty) : Scheduler.Update(duty);
+        // Turning a duty back on is the owner letting it go on after the breaker paused it (the count starts again).
+        if (saved.Duty is { Enabled: true } && before is { Enabled: false }) ResumeAfterBreaker(duty.Id, duty.AssistantId);
+        return saved;
+    }
+
+    /// <summary>The owner lets a duty the failure breaker paused go on ("Try it again" from the duty's own page): the count starts again and its card is withdrawn.</summary>
+    public void ResumeAfterBreaker(string dutyId, string assistantId = "")
+    {
+        controller.Duties?.Resume(dutyId, assistantId);
+        Scheduler.Reevaluate();
     }
 
     /// <summary>Starts the scheduler: loads the duties, catches up or skips what came due while nth was closed, and, for a start made for one duty, runs it.</summary>
     public IReadOnlyList<string> Start()
     {
         var notes = Scheduler.Start();
+        ReraisePaused();
         SyncWake();
         _ = ReadWakeTimers();
         if (o.Mode.DutyId is { } id)
@@ -247,9 +261,32 @@ public sealed class DutyHost : IDisposable
         {
             var outcome = state switch { MissionState.Done => DutyRunOutcome.Done, MissionState.Failed or MissionState.Blocked => DutyRunOutcome.Failed, _ => DutyRunOutcome.Stopped };
             Scheduler.MissionEnded(record.Id, outcome, record.Report);
+            ReportToBreaker(record, outcome);
         }
         if (state == MissionState.Done) Scheduler.OnEvent(DutyEvents.MissionFinished(record));
         QuitIfDone();
+    }
+
+    // The breaker counts how runs end (13.2): a run that finished (even one that found nothing changed) is a success, a failed one a failure. A run the
+    // owner stopped, and a dry run, are neither. The reason is data (a page or file can put words in it): the watch cuts it and never logs it.
+    private void ReportToBreaker(Marrow.Services.Assistant.MissionRecord record, DutyRunOutcome outcome)
+    {
+        if (controller.Duties is not { } watch || record.DryRun || record.DutyId is not { } dutyId || outcome == DutyRunOutcome.Stopped) return;
+        var duty = Scheduler.Find(dutyId);
+        var name = duty?.Name ?? record.Mission.Title;
+        var assistant = duty?.AssistantId ?? record.Mission.AssistantId;
+        try { watch.RunEnded(new Marrow.App.Assistant.DutyRun(dutyId, name, assistant, outcome == DutyRunOutcome.Done, outcome == DutyRunOutcome.Done ? null : record.Reason ?? record.Report)); }
+        catch (Exception error) when (error is not OperationCanceledException and not OutOfMemoryException) { o.Faulted?.Invoke("A run could not be counted for the failure breaker: " + error.Message); }
+    }
+
+    // nth started and the breaker still holds some duties: their cards did not survive the restart, so they are raised again.
+    private void ReraisePaused()
+    {
+        if (controller.Duties is not { } watch) return;
+        foreach (var health in watch.PausedDuties)
+        {
+            if (Scheduler.Find(health.DutyId) is { } duty) watch.Reraise(duty.Id, duty.Name, duty.AssistantId);
+        }
     }
 
     private void OnHold() => Scheduler.Reevaluate();

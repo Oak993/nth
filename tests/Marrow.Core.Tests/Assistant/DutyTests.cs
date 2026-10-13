@@ -64,7 +64,7 @@ public sealed class DutyTests
     {
         var duty = Sample();
         var start = new DateTimeOffset(2026, 10, 13, 8, 0, 0, TimeSpan.Zero);
-        for (var i = 0; i < 60; i++) duty = duty.WithRun(new DutyRun(start.AddHours(i), DutyCause.Time, DutyRunOutcome.Done));
+        for (var i = 0; i < 60; i++) duty = duty.WithRun(new DutyHistoryEntry(start.AddHours(i), DutyCause.Time, DutyRunOutcome.Done));
         Assert.Equal(Duty.HistoryLimit, duty.History.Count);
         Assert.Equal(start.AddHours(59), duty.History[0].At);
         Assert.Equal(start.AddHours(10), duty.History[^1].At);
@@ -78,8 +78,8 @@ public sealed class DutyTests
         var other = Guid.NewGuid();
         var at = new DateTimeOffset(2026, 10, 13, 8, 0, 0, TimeSpan.Zero);
         var duty = Sample()
-            .WithRun(new DutyRun(at, DutyCause.Time, DutyRunOutcome.Started) { MissionId = other })
-            .WithRun(new DutyRun(at.AddHours(1), DutyCause.Time, DutyRunOutcome.Started) { MissionId = mission });
+            .WithRun(new DutyHistoryEntry(at, DutyCause.Time, DutyRunOutcome.Started) { MissionId = other })
+            .WithRun(new DutyHistoryEntry(at.AddHours(1), DutyCause.Time, DutyRunOutcome.Started) { MissionId = mission });
         var ended = duty.WithRunUpdated(mission, r => r with { Outcome = DutyRunOutcome.NothingChanged });
         Assert.Equal(DutyRunOutcome.NothingChanged, ended.History[0].Outcome);
         Assert.Equal(DutyRunOutcome.Started, ended.History[1].Outcome);

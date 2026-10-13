@@ -216,7 +216,7 @@ public sealed class KindlePopover : Decorator
                 Canvas.SetLeft(notchLabel, Math.Clamp(x, 0, PopoverWidth - 2 * Inset - notchLabel.DesiredSize.Width));
             }
 
-            var next = status.Tidying ? IgnisNext.Tidying : cache == IgnisCacheState.Cold && status.Mode != IgnisMode.Off && status.Next is not IgnisNext.Off ? IgnisNext.Cold : status.Next;
+            var next = status.Tidying ? IgnisNext.Tidying : cache == IgnisCacheState.Cold && status.Mode != IgnisMode.Off && status.Next is not (IgnisNext.Off or IgnisNext.HomeThread or IgnisNext.HomeThreadTidy or IgnisNext.MissionRunning) ? IgnisNext.Cold : status.Next;
             summary.Inlines = [
                 KindleUi.Run(summary, IgnisWords.SavedTodayLead, KindleTone.Secondary),
                 KindleUi.Run(summary, IgnisWords.Money(status.SavedToday), KindleTone.Good, strong: true),

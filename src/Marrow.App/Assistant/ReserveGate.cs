@@ -22,7 +22,11 @@ public static class ReserveTurns
 /// What a mission carries from its plan into the reserve (11.4, 11.5): the rules the owner spoke for it, the plan he saw and the
 /// steps it was made from, so spend is measured against the estimate and the after-report against the plan.
 /// </summary>
-public sealed record ReserveStart(IReadOnlyList<ReserveRule> TaskRules, ReservePlan? Plan, IReadOnlyList<PlanStep> Steps);
+public sealed record ReserveStart(IReadOnlyList<ReserveRule> TaskRules, ReservePlan? Plan, IReadOnlyList<PlanStep> Steps)
+{
+    /// <summary>The caps the owner set for this task (AS-15, 13.2): the most it may use of any account and/or spend. Like a task's rules, they end with it.</summary>
+    public IReadOnlyList<CostCap> TaskCaps { get; init; } = [];
+}
 
 /// <summary>The reserve's gate before a turn (11.5). Called on the app's main thread.</summary>
 public interface IReserveGate
@@ -33,9 +37,10 @@ public interface IReserveGate
     /// <summary>
     /// True when the turn may be sent now. False: the mission is held (paused for its reserve, or the owner's pause stands) and
     /// the runner sends nothing; the words wait with the mission. <paramref name="thread"/> is the chat the turn goes to, or null
-    /// when the chat is yet to be made.
+    /// when the chat is yet to be made; <paramref name="onAccount"/> is the account it will run on when that is not the mission's
+    /// (the reviewer's, AS-14).
     /// </summary>
-    bool BeforeTurn(MissionRecord mission, Guid? thread, ProviderKind provider, string? model, string purpose);
+    bool BeforeTurn(MissionRecord mission, Guid? thread, ProviderKind provider, string? model, string purpose, ReserveAccountRef? onAccount = null);
 
     /// <summary>A turn began on the chat: its p90 counts in every margin on its account until it ends.</summary>
     void TurnStarted(Guid mission, Guid thread, string? model);

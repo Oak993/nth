@@ -39,9 +39,9 @@ public sealed class DutyJsonTests
             Hours = new ActiveHours(new TimeOnly(22, 0), new TimeOnly(6, 0), WeekDays.Friday | WeekDays.Saturday),
             Scope = new DutyScope { AllowedClasses = new ValueList<ActionClass>([ActionClass.ReadWeb, ActionClass.ReadLocal]), GrantIds = new ValueList<Guid>([Guid.Parse("11111111-2222-4333-8444-555555555555")]) },
             Handled = Since.AddDays(3), LastRun = Since.AddDays(3).AddMinutes(1),
-            History = new ValueList<DutyRun>([
-                new DutyRun(Since.AddDays(3), DutyCause.CatchUp, DutyRunOutcome.NothingChanged) { MissionId = Guid.Parse("22222222-2222-4222-8222-222222222222"), Note = "quiet" },
-                new DutyRun(Since.AddDays(2), DutyCause.Time, DutyRunOutcome.Skipped) { Note = "still going", Count = 4 },
+            History = new ValueList<DutyHistoryEntry>([
+                new DutyHistoryEntry(Since.AddDays(3), DutyCause.CatchUp, DutyRunOutcome.NothingChanged) { MissionId = Guid.Parse("22222222-2222-4222-8222-222222222222"), Note = "quiet" },
+                new DutyHistoryEntry(Since.AddDays(2), DutyCause.Time, DutyRunOutcome.Skipped) { Note = "still going", Count = 4 },
             ]),
         },
     };

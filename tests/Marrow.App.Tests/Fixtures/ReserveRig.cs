@@ -49,7 +49,8 @@ internal sealed class ReserveRig : IDisposable
     /// <summary>A new 100,000-token turn's p90 in points: 100,000 x (1 + 1/sqrt(10)) / 100,000, then x 1.5 for its tail.</summary>
     public static readonly double TurnPoints = (1 + 1 / Math.Sqrt(10)) * 1.5;
 
-    public ReserveRig(string root, FakeMover? mover = null, MissionLimits? limits = null)
+    /// <param name="movers">A mover made over the rig's runner and clock (AS-14: the router), used when no fake mover is given.</param>
+    public ReserveRig(string root, FakeMover? mover = null, MissionLimits? limits = null, Func<MissionRig, ManualTimeProvider, IReserveMover?>? movers = null)
     {
         Mover = mover;
         Missions = new MissionRig(root, limits: limits);
@@ -66,9 +67,9 @@ internal sealed class ReserveRig : IDisposable
             Calibrator = Calibrator,
             Turns = Turns,
             AccountOf = thread => AccountOfThread.TryGetValue(thread, out var account) ? account : DefaultAccount,
-            AccountForNew = _ => DefaultAccount,
+            AccountForNew = record => record.AccountId is { } chosen && AccountById.TryGetValue(chosen, out var routed) ? routed : DefaultAccount,
             AccountOfSnapshot = key => key.AccountId == "20x" ? Claude20 : CodexA,
-            Mover = Mover,
+            Mover = (IReserveMover?)Mover ?? movers?.Invoke(Missions, Clock),
             IsPinned = record => Pinned(record),
             Refresh = account =>
             {
@@ -106,6 +107,9 @@ internal sealed class ReserveRig : IDisposable
     public ReserveAccountRef? DefaultAccount { get; set; } = Claude20;
 
     public Dictionary<Guid, ReserveAccountRef> AccountOfThread { get; } = [];
+
+    /// <summary>The accounts a mission the router moved or placed runs on, by the account store's id (AS-14).</summary>
+    public Dictionary<Guid, ReserveAccountRef> AccountById { get; } = [];
 
     public List<ReserveHold> Holds { get; } = [];
 

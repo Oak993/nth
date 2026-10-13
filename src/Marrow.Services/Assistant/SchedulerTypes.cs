@@ -70,6 +70,12 @@ public sealed class AssistantSchedulerOptions
 
     public Func<bool> DesktopLocked { get; init; } = () => false;
 
+    /// <summary>
+    /// Whether the failure breaker (13.2, AS-15) paused this duty by its id: a paused duty does not fire from a time, an event, a catch-up or a
+    /// wake (each is recorded as a skip), and only the owner's Run now starts it. Null: no breaker. A breaker that throws is read as paused.
+    /// </summary>
+    public Func<string, bool>? BreakerPaused { get; init; }
+
     public Action<DutyFeedLine>? Feed { get; init; }
 
     public Action<string>? Faulted { get; init; }

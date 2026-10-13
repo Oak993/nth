@@ -20,7 +20,7 @@ public enum DutyCause { Time, Folder, Page, AppEvent, Manual, CatchUp, Wake }
 public enum DutyRunOutcome { Started, NothingChanged, Done, Failed, Skipped, Stopped, Refused }
 
 /// <summary>One line of a duty's run history: a link to its mission (7.1).</summary>
-public sealed record DutyRun(DateTimeOffset At, DutyCause Cause, DutyRunOutcome Outcome)
+public sealed record DutyHistoryEntry(DateTimeOffset At, DutyCause Cause, DutyRunOutcome Outcome)
 {
     public Guid? MissionId { get; init; }
 
@@ -81,7 +81,7 @@ public sealed record Duty(string Id, string Name, string AssistantId, DutyTrigge
 
     public DateTimeOffset? LastRun { get; init; }
 
-    public ValueList<DutyRun> History { get; init; } = ValueList<DutyRun>.Empty;
+    public ValueList<DutyHistoryEntry> History { get; init; } = ValueList<DutyHistoryEntry>.Empty;
 
     /// <summary>Fields a newer build wrote that this one does not know, as JSON text by name; they survive a save (15.3).</summary>
     public ValueMap<string, string> Unknown { get; init; } = ValueMap<string, string>.Empty;
@@ -113,18 +113,18 @@ public sealed record Duty(string Id, string Name, string AssistantId, DutyTrigge
     }
 
     /// <summary>The duty with this run recorded (newest first), the history held to its limit, and it marked as the last that ran.</summary>
-    public Duty WithRun(DutyRun run) => WithHistory(run) with { LastRun = run.At };
+    public Duty WithRun(DutyHistoryEntry run) => WithHistory(run) with { LastRun = run.At };
 
     /// <summary>A line in the history for something that is not a run (a skipped time, a refused start, a dry run): LastRun stays.</summary>
-    public Duty WithHistory(DutyRun run) => this with
+    public Duty WithHistory(DutyHistoryEntry run) => this with
     {
-        History = new ValueList<DutyRun>(History.Prepend(run).Take(HistoryLimit)),
+        History = new ValueList<DutyHistoryEntry>(History.Prepend(run).Take(HistoryLimit)),
     };
 
     /// <summary>The history with one run replaced (its mission ended).</summary>
-    public Duty WithRunUpdated(Guid mission, Func<DutyRun, DutyRun> change) => this with
+    public Duty WithRunUpdated(Guid mission, Func<DutyHistoryEntry, DutyHistoryEntry> change) => this with
     {
-        History = new ValueList<DutyRun>(History.Select(r => r.MissionId == mission ? change(r) : r)),
+        History = new ValueList<DutyHistoryEntry>(History.Select(r => r.MissionId == mission ? change(r) : r)),
     };
 }
 

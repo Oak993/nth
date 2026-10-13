@@ -149,7 +149,7 @@ public sealed class AssistantScheduler : IDisposable
             lock (gate)
             {
                 return [.. runtimes.Values.OrderBy(r => r.Sequence)
-                    .Select(r => new DutyView(r.Duty, r.NextDue ?? r.NextCheck, r.Running is not null || r.Launching, r.Held is not null, r.Status, r.ReadOnly))];
+                    .Select(r => new DutyView(r.Duty, r.NextDue ?? r.NextCheck, r.Running is not null || r.Launching, r.Held is not null, r.Status ?? (BreakerPaused(r) ? BreakerWhy : null), r.ReadOnly))];
             }
         }
     }
@@ -198,7 +198,7 @@ public sealed class AssistantScheduler : IDisposable
                 Since = now,
                 Handled = null,
                 LastRun = null,
-                History = ValueList<DutyRun>.Empty,
+                History = ValueList<DutyHistoryEntry>.Empty,
             };
             if (saved.Problem() is { } problem) return (null, problem);
             if (runtimes.ContainsKey(saved.Id)) return (null, "A duty with that id exists already.");
@@ -342,6 +342,7 @@ public sealed class AssistantScheduler : IDisposable
             var now = time.GetUtcNow();
             if (!r.Duty.Enabled || r.ReadOnly) return "The duty is off.";
             if (r.Running is not null || r.Launching) return "It is running already.";
+            if (BreakerPaused(r)) return BreakerWhy;
             if (r.Duty.LastRun is { } last && now - last < WakeDuplicate) return "It already ran a moment ago.";
             if (!o.MayFire()) return "Stop all is on.";
             r.NextDue = r.Duty.Trigger is TimeTrigger t && DutyZones.Find(t.TimeZoneId) is { } zone ? ScheduleMath.Next(t.Schedule, zone, now, r.Duty.Since) : r.NextDue;
@@ -472,6 +473,17 @@ public sealed class AssistantScheduler : IDisposable
         return Block.None;
     }
 
+    /// <summary>What the list and a skipped run say of a duty the failure breaker paused.</summary>
+    public const string BreakerWhy = "Paused after 3 failures in a row. Open the duty to let it go on.";
+
+    // The breaker is a quick read of a thread-safe book; a breaker that cannot answer holds the duty, because a duty that keeps failing must not run on.
+    private bool BreakerPaused(Runtime r)
+    {
+        if (o.BreakerPaused is not { } paused) return false;
+        try { return paused(r.Duty.Id); }
+        catch (Exception error) when (error is not OperationCanceledException and not OutOfMemoryException) { return true; }
+    }
+
     // Under the lock. A time came.
     private void HandleDue(Runtime r, DateTimeOffset due, DateTimeOffset now, List<Action> after)
     {
@@ -485,6 +497,11 @@ public sealed class AssistantScheduler : IDisposable
     // Under the lock. Something wants this duty to run: hold it, skip it, or begin it.
     private void Decide(Runtime r, DutyCause cause, string? detail, ContentOrigin? untrusted, DateTimeOffset now, List<Action> after)
     {
+        if (BreakerPaused(r))
+        {
+            Skip(r, cause, BreakerWhy, now);
+            return;
+        }
         if (Blocker(r, now) != Block.None)
         {
             Hold(r, cause, detail, untrusted, now, missed: true);
@@ -541,8 +558,8 @@ public sealed class AssistantScheduler : IDisposable
         var last = r.Duty.History.Count > 0 ? r.Duty.History[0] : null;
         var repeat = last is { Outcome: DutyRunOutcome.Skipped } && last.Note == why;
         r.Duty = repeat
-            ? r.Duty with { History = new ValueList<DutyRun>(r.Duty.History.Select((h, i) => i == 0 ? h with { At = now, Count = h.Count + 1 } : h)) }
-            : r.Duty.WithHistory(new DutyRun(now, cause, DutyRunOutcome.Skipped) { Note = why });
+            ? r.Duty with { History = new ValueList<DutyHistoryEntry>(r.Duty.History.Select((h, i) => i == 0 ? h with { At = now, Count = h.Count + 1 } : h)) }
+            : r.Duty.WithHistory(new DutyHistoryEntry(now, cause, DutyRunOutcome.Skipped) { Note = why });
         r.Duty = r.Duty with { Handled = now, Enabled = r.Duty.Enabled && !IsOnce(r.Duty) };
         Persist(r.AssistantId);
         if (!repeat) Note(r, DutyFeedKind.Skipped, $"{r.Duty.Name}: skipped. {why}");
@@ -581,7 +598,7 @@ public sealed class AssistantScheduler : IDisposable
                 r.Launching = false;
                 if (disposed) return;
                 var outcome = result.MissionId is null ? DutyRunOutcome.Refused : DutyRunOutcome.Started;
-                var run = new DutyRun(at, fire.Cause, outcome) { MissionId = result.MissionId, Note = fire.Dry ? "Dry run" + (result.Refused is null ? "" : ": " + result.Refused) : result.Refused };
+                var run = new DutyHistoryEntry(at, fire.Cause, outcome) { MissionId = result.MissionId, Note = fire.Dry ? "Dry run" + (result.Refused is null ? "" : ": " + result.Refused) : result.Refused };
                 if (result.MissionId is { } mission)
                 {
                     r.Running = mission;

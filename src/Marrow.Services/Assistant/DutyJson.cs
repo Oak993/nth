@@ -112,7 +112,7 @@ public static class DutyJson
                 Since = Time(Text(body, "since") ?? throw new FormatException("since")),
                 Handled = Text(body, "handled") is { } handled ? Time(handled) : null,
                 LastRun = Text(body, "lastRun") is { } last ? Time(last) : null,
-                History = new ValueList<DutyRun>((body["history"] as JsonArray ?? []).Select(h => ReadRun((JsonObject)h!)).Take(Marrow.Core.Port.Assistant.Duty.HistoryLimit)),
+                History = new ValueList<DutyHistoryEntry>((body["history"] as JsonArray ?? []).Select(h => ReadRun((JsonObject)h!)).Take(Marrow.Core.Port.Assistant.Duty.HistoryLimit)),
                 Unknown = Unknown(body, KnownDuty),
             };
             return duty;
@@ -181,7 +181,7 @@ public static class DutyJson
         TimeOnly.ParseExact(Text(o, "to") ?? throw new FormatException("to"), "HH:mm", CultureInfo.InvariantCulture),
         (WeekDays)Math.Clamp(Whole(o["days"]) ?? (long)WeekDays.All, 0, (long)WeekDays.All));
 
-    private static DutyRun ReadRun(JsonObject o) => new(Time(Text(o, "at") ?? throw new FormatException("at")), EnumOf(o, "cause", DutyCause.Time, required: true),
+    private static DutyHistoryEntry ReadRun(JsonObject o) => new(Time(Text(o, "at") ?? throw new FormatException("at")), EnumOf(o, "cause", DutyCause.Time, required: true),
         EnumOf(o, "outcome", DutyRunOutcome.Started, required: true))
     {
         MissionId = Text(o, "mission") is { } mission ? Guid.Parse(mission) : null,
@@ -241,7 +241,7 @@ public static class DutyJson
         return o;
     }
 
-    private static JsonObject WriteRun(DutyRun run)
+    private static JsonObject WriteRun(DutyHistoryEntry run)
     {
         var o = new JsonObject { ["at"] = Time(run.At), ["cause"] = run.Cause.ToString(), ["outcome"] = run.Outcome.ToString() };
         if (run.MissionId is { } mission) o["mission"] = mission.ToString("D");

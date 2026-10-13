@@ -1,8 +1,9 @@
-// PORT-ONLY: Dextra (DESIGN.md rev 5, 0 points 1 and 4, 12.3, 15.1, 15.4, 15.5; unit AS-5; ED-NEW-dextra-as5-11). No
-// Swift twin. Dextra's controller inside nth's process: it owns the decision queue, the mission runner, the agent gate
-// and the grants; it is the host behind the nth-dextra tools (IAssistantToolHost), and the policy engine's caller for
-// every provider approval of a mission chat. Auto-answering is off (16, the ordering rule): AS-7 turns it on only after
-// its injection corpus passes, so until then the engine's Allow still lands on a card.
+// PORT-ONLY: Dextra (DESIGN.md rev 5, 0 points 1 and 4, 12.3, 12.4, 15.1, 15.4, 15.5; units AS-5 and AS-7;
+// ED-NEW-dextra-as5-11, ED-NEW-dextra-as7-7 to -10). No Swift twin. Dextra's controller inside nth's process: it owns the
+// decision queue, the mission runner, the agent gate and the grants; it is the host behind the nth-dextra tools
+// (IAssistantToolHost), and the policy engine's caller for every provider approval of a mission chat, which it decides
+// with the agent's own taint and role and the outward privacy check. Auto-answering (16, the ordering rule) is off until
+// the switch says the injection self-check passed (AS-7); until then the engine's Allow still lands on a card.
 using System.Text.Json.Nodes;
 using Marrow.App.Safety;
 using Marrow.Core.Models;
@@ -43,7 +44,7 @@ public sealed class AssistantControllerOptions
 
     public Func<MissionLimits> Limits { get; init; } = () => MissionLimits.Default;
 
-    /// <summary>The provider and model a mission's lead runs on until the router (AS-14) picks per step.</summary>
+    /// <summary>The provider and model a mission's lead runs on when the router (AS-14) has none to pick, or none is set up.</summary>
     public ProviderKind Provider { get; init; } = ProviderKind.Claude;
 
     public string? Model { get; init; }
@@ -56,6 +57,35 @@ public sealed class AssistantControllerOptions
     /// <summary>The environment the classifier places paths with; null reads nth's own (MissionClassifier.CurrentEnvironment).</summary>
     public ValueMap<string, string>? Environment { get; init; }
 
+    /// <summary>Whether the engine's Allow may answer alone (AS-7). Off unless Dextra's start gives the self-check's switch.</summary>
+    public AutoAnswerSwitch AutoAnswer { get; init; } = AutoAnswerSwitch.Off;
+
+    /// <summary>The owner's list of recipients personal data may go to (12.4; Settings > Assistant). Read at every check.</summary>
+    public Func<IReadOnlyList<string>> PersonalDataRecipients { get; init; } = () => [];
+
+    /// <summary>The owner's allowlisted commands (12.1 "Run"; Settings > Assistant). Read at every approval.</summary>
+    public Func<IReadOnlyList<string>> Allowlist { get; init; } = () => [];
+
+    /// <summary>An agent found instructions in untrusted content (the feed's tap: "Found instructions in ...; ignored").</summary>
+    public Action<Guid, TaintSource, InstructionFinding>? InstructionFound { get; init; }
+
+    /// <summary>
+    /// The home chats' taint as nth last saved it (AS-7, ED-NEW-dextra-as7-14); null when none was saved. A throw counts
+    /// as a record nth cannot read (fail closed). Null: the taint is kept in memory only.
+    /// </summary>
+    public Func<JsonObject?>? LoadHomeTaint { get; init; }
+
+    /// <summary>Saves the home chats' taint after each change (a small atomic write); a throw is reported, the taint stands.</summary>
+    public Action<JsonObject>? SaveHomeTaint { get; init; }
+
+    /// <summary>The home chats nth has now (Dextra's chats in no mission), read only when the saved taint cannot be.</summary>
+    public Func<IReadOnlyList<Guid>> HomeChats { get; init; } = () => [];
+
+    /// <summary>Where untrusted output is read for instructions (AS-7, ED-NEW-dextra-as7-17): off the main thread, one at a time.</summary>
+    public Action<Action> ScanOn { get; init; } = AssistantController.SerialScanner();
+
+    /// <summary>How long an nth-dextra call waits for the main thread to take in the chat's earlier events (ED-NEW-dextra-as7-18).</summary>
+    public TimeSpan SettleWait { get; init; } = TimeSpan.FromSeconds(10);
     /// <summary>
     /// The one stop chord (AS-6, 12.6): missions hold a lease on it while they run and Stop all is bound to it. Null: no chord
     /// (a build without it, the tests); the tray and the buttons still stop.
@@ -73,6 +103,78 @@ public sealed class AssistantControllerOptions
 
     /// <summary>The duty tools (AS-10): schedule_duty, watch_folder and watch_page, and what a duty may do. Null: they say they are not built yet.</summary>
     public IDutyTools? Duties { get; init; }
+
+    /// <summary>
+    /// The usage-aware router (AS-14): what it reads of the owner's accounts and models. Null: a mission's lead runs on
+    /// <see cref="Provider"/> and <see cref="Model"/>, and the pause card has no "Move the rest to ...".
+    /// </summary>
+    public RouterSetup? Router { get; init; }
+
+    /// <summary>
+    /// Dextra's memory (AS-12): the notes behind remember, recall and forget, the notes a home chat is told at its start, and the
+    /// capture after a home turn. Null: the three tools say they are not part of this build.
+    /// </summary>
+    public MemorySetup? Notes { get; init; }
+
+    /// <summary>How duties' runs ended (AS-15): the book a duty paused by the breaker is kept in. Null: the watch keeps nothing across a restart.</summary>
+    public DutyHealthBook? DutyHealth { get; init; }
+
+    /// <summary>The models the brain could run a job on (AS-15, 13.2): the feed's triage and the digest go to the cheapest capable one. Null: the brain's own.</summary>
+    public TriageSetup? Triage { get; init; }
+}
+
+/// <summary>What Dextra's memory is made of: the store, the capture (null: none is bound, nothing is captured) and what the owner said.</summary>
+public sealed class MemorySetup
+{
+    public required MemoryStore Store { get; init; }
+
+    /// <summary>The cheap model's capture after a home turn (8.2); null while none is bound.</summary>
+    public MemoryCapture? Capture { get; init; }
+
+    /// <summary>What the owner said recently in each home chat: the evidence the third-party rule checks a note against.</summary>
+    public OwnerWordsLog Owner { get; init; } = new();
+
+    /// <summary>The import of other agents' notes (8.4), for the Memory view's button; null: the view offers none.</summary>
+    public MemoryImport? Import { get; init; }
+
+    /// <summary>The accounts' folders the import reads now (read at every import, so an account added later is seen).</summary>
+    public Func<IReadOnlyList<MemoryImportSource>> ImportSources { get; init; } = () => [];
+
+    /// <summary>
+    /// The watch over the folders the import reads (8.4): started once the owner has imported, and again after each import he runs
+    /// from the Memory view (the Memory view's model is given its Start). Null: none.
+    /// </summary>
+    public MemoryImportWatch? Watch { get; init; }
+
+    /// <summary>Whatever else lives and dies with the memory: the controller disposes it with the watch.</summary>
+    public IDisposable? Owned { get; init; }
+}
+
+/// <summary>Which models there are to read the feed with, and which one is the brain's own (the strong one, which plans and merges).</summary>
+public sealed class TriageSetup
+{
+    /// <summary>Every model a usable account offers, with its price; asked each time a job picks.</summary>
+    public required Func<IReadOnlyList<BrainModel>> Options { get; init; }
+
+    /// <summary>The model the owner chose for Dextra's brain; null when none is chosen.</summary>
+    public required Func<BrainModel?> Brain { get; init; }
+}
+
+/// <summary>What the cost controls are made of (AS-15, 13.2): the day's spend the caps are checked against, and how the guard reads prices and windows.</summary>
+public sealed class CostSetup
+{
+    public required CostLedger Ledger { get; init; }
+
+    /// <summary>The usage windows an account reports; null: the 5-hour and the weekly window.</summary>
+    public Func<string, IReadOnlyList<ReserveWindowKind>>? WindowsOf { get; init; }
+
+    /// <summary>A model's prices in dollars per million tokens; null or a null answer: a deliberately dear price is counted.</summary>
+    public Func<ReserveAccountRef, string?, Marrow.Core.Port.Ignis.IgnisPrices?>? Prices { get; init; }
+
+    /// <summary>The assistant an assistant's own (non-mission) chat belongs to, so its spend counts toward the assistant's day.</summary>
+    public Func<Guid, string?>? AssistantOf { get; init; }
+
+    public Func<string, string?>? AssistantName { get; init; }
 }
 
 /// <summary>What the usage reserve is made of (11.2 to 11.5): the owner's rules, the calibration, and how a chat finds its account.</summary>
@@ -90,18 +192,22 @@ public sealed class ReserveSetup
 
     public required Func<Marrow.Core.Port.UsageAccountKey, ReserveAccountRef> AccountOfSnapshot { get; init; }
 
-    /// <summary>The router's seam (AS-14) for option 1 of the pause card.</summary>
+    /// <summary>Option 1 of the pause card, when something other than the router makes it (a test's fake); the router does by default.</summary>
     public IReserveMover? Mover { get; init; }
 
+    /// <summary>The mission's model was chosen by the owner; by default what its record says (<see cref="MissionRecord.ModelPinned"/>).</summary>
     public Func<MissionRecord, bool>? IsPinned { get; init; }
 
     public Func<ReserveAccountRef, Task>? Refresh { get; init; }
 
     /// <summary>Whatever else lives and dies with the reserve (its store writer): the controller disposes it with the guard.</summary>
     public IDisposable? Owned { get; init; }
+
+    /// <summary>The cost controls (AS-15): caps checked before every turn, beside the reserve. Null: no caps are enforced.</summary>
+    public CostSetup? Costs { get; init; }
 }
 
-public sealed class AssistantController : IAssistantToolHost, IDisposable
+public sealed partial class AssistantController : IAssistantToolHost, IDisposable
 {
     private readonly AssistantControllerOptions o;
     private readonly object gate = new();
@@ -124,13 +230,23 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
             Policy = ApprovalPolicy,
             Limits = o.Limits,
             Save = o.Save,
-            Audit = TryAudit,
+            // The runner writes its own lines and refuses a step whose line cannot be written (12.3 point 2: logged first,
+            // then answered); swallowing the failure here would let an auto-answer run unlogged (AS-7).
+            Audit = o.Audit,
             Granted = Granted,
             Time = o.Time,
+            AutoAnswering = () => AutoAnswering,
+            GrantsUsed = UseGrants,
+            Deliver = Deliver,
             StopKey = o.StopKey,
             Hold = Hold,
             PcStreams = o.PcStreams,
         });
+        if (o.Router is { } routing)
+        {
+            Router = new AssistantRouter(routing, o.Time, Runner, o.Agents);
+            Runner.ReviewerRouter = Router;
+        }
         Stopper = new StopAll(new StopAllOptions
         {
             Runner = Runner,
@@ -154,15 +270,76 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
                 AccountOf = reserve.AccountOf,
                 AccountForNew = reserve.AccountForNew,
                 AccountOfSnapshot = reserve.AccountOfSnapshot,
-                Mover = reserve.Mover,
-                IsPinned = reserve.IsPinned ?? (_ => false),
+                Mover = reserve.Mover ?? Router,
+                IsPinned = reserve.IsPinned ?? (record => record.ModelPinned),
                 Refresh = reserve.Refresh,
                 Audit = TryAudit,
                 Time = o.Time,
             });
             Runner.Reserve = Reserve;
+            Router?.Bind(Reserve);
+            if (reserve.Costs is { } costs)
+            {
+                Costs = new CostGuard(new CostGuardOptions
+                {
+                    Runner = Runner,
+                    Queue = Queue,
+                    Settings = reserve.Settings,
+                    Ledger = costs.Ledger,
+                    Calibrator = reserve.Calibrator,
+                    Turns = reserve.Turns,
+                    AccountOf = reserve.AccountOf,
+                    AccountForNew = reserve.AccountForNew,
+                    WindowsOf = costs.WindowsOf,
+                    Prices = costs.Prices,
+                    AssistantOf = costs.AssistantOf,
+                    AssistantName = costs.AssistantName,
+                    Audit = TryAudit,
+                    Time = o.Time,
+                });
+                Reserve.Costs = Costs;      // the runner has one gate, the reserve; the caps come after it
+            }
         }
+        if (o.DutyHealth is { } book)
+        {
+            Duties = new DutyWatch(new DutyWatchOptions { Queue = Queue, Book = book, Audit = TryAudit, Time = o.Time });
+            Duties.Faulted += Runner.ReportFault;
+        }
+        WatchAutoAnswer();
+        LoadHomeTaint();
     }
+
+    /// <summary>The cost controls (AS-15): the owner's caps, checked before every turn of a mission, beside the reserve.</summary>
+    public CostGuard? Costs { get; }
+
+    /// <summary>
+    /// The model that reads the feed and composes the digest (13.2): the cheapest capable one, never dearer than the brain's own.
+    /// With <paramref name="requireLocal"/> (text from a private chat or a local model, 5.4) only a model on this PC; with none the pick
+    /// is empty and nothing is summarised. Without a triage setup the brain's own model is returned when there is one.
+    /// </summary>
+    public BrainPick TriageModel(bool requireLocal = false) => Pick(BrainJob.Triage, requireLocal);
+
+    /// <summary>The model that plans and merges (13.2): the brain's own.</summary>
+    public BrainPick PlanningModel(bool requireLocal = false) => Pick(BrainJob.Planning, requireLocal);
+
+    private BrainPick Pick(BrainJob job, bool requireLocal) =>
+        BrainPicker.Pick(job, o.Triage?.Options() ?? [], o.Triage?.Brain(), requireLocal);
+
+    /// <summary>The duty breaker (AS-15): a duty that fails three times in a row is paused with a card. AS-10's scheduler reports every run to it and asks it before it fires one.</summary>
+    public DutyWatch? Duties { get; }
+
+    /// <summary>The usage-aware router (AS-14), when one is set up: it picks a mission's lead, fills its team's profiles and moves it between accounts.</summary>
+    public AssistantRouter? Router { get; }
+
+    /// <summary>
+    /// The pair a mission lead's Hydra team runs on, filled by the router (15.4: "the router chooses HydraHeadProfiles"); null for
+    /// a chat that is not a lead (a head has a parent), a mission that runs no team, one whose model the owner pinned, or when nothing
+    /// can be chosen. It is asked when the lead's session launches, which can be before the runner has recorded the lead's id.
+    /// </summary>
+    public HydraPair? TeamPair(ChatThread lead) =>
+        lead.MissionID is { } mission && lead.ParentThreadID is null && Runner.Find(mission) is { Team: true } record && record.Provider == lead.Provider
+            ? Router?.TeamPair(record)
+            : null;
 
     /// <summary>The usage reserve (AS-13), when one is set up: it follows the accounts and gates every turn of a mission.</summary>
     public ReserveGuard? Reserve { get; }
@@ -183,10 +360,10 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
     public MissionControls Controls { get; }
 
     /// <summary>
-    /// Off until AS-7's injection corpus passes (16): the engine's Allow runs no tool and answers no approval alone. Only
-    /// the read-only and stop tools marked RunsBeforeAutoAnswer run on an Allow.
+    /// Off until AS-7's injection corpus passes in this process (16): until then the engine's Allow runs no tool and
+    /// answers no approval alone, and only the read-only and stop tools marked RunsBeforeAutoAnswer run on an Allow.
     /// </summary>
-    public bool AutoAnswering => false;
+    public bool AutoAnswering => o.AutoAnswer.IsOn;
 
     /// <summary>The grants the owner made from cards (For this mission, Always...).</summary>
     public IReadOnlyList<Grant> Grants
@@ -233,11 +410,26 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
         if (!continues) Flush(thread);
     }
 
-    public void OnHeadAdded(ChatThread lead, ChatThread head) => Runner.HeadAdded(lead.Id, head.Id, head.Hydra?.DisplayName ?? head.Title ?? "A head",
-        native: head.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Native);
+    public void OnHeadAdded(ChatThread lead, ChatThread head)
+    {
+        Runner.HeadAdded(lead.Id, head.Id, head.Hydra?.DisplayName ?? head.Title ?? "A head",
+            native: head.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Native);
+        HomeHeadAdded(lead, head); // AS-7: a head of the home chat starts with its lead's taint
+    }
 
-    /// <summary>A head finished its turn. True when a Pause holds the finish (12.6b): Hydra must not finish the head yet.</summary>
-    public bool OnHeadFinished(Guid head, TurnStatus status) => Runner.HeadFinished(head, status);
+    /// <summary>
+    /// A head finished its turn. True when a Pause holds the finish (12.6b): Hydra must not finish the head yet. A head of the
+    /// home chat hands its lead its taint with its report (AS-7).
+    /// </summary>
+    public bool OnHeadFinished(Guid head, TurnStatus status)
+    {
+        if (Runner.HeadFinished(head, status)) return true;
+        HomeHeadFinished(head);
+        return false;
+    }
+
+    /// <summary>A mission chat sent its open helper a new prompt (AS-7): the helper carries what the parent carries now.</summary>
+    public void OnHelperPrompted(ChatThread parent, ChatThread helper) => Runner.HelperPrompted(parent.Id, helper.Id);
 
     /// <summary>A helper chat a mission's chat opened: false when it is no running mission's, and then it does not open.</summary>
     public bool OnHelperAdded(ChatThread parent, ChatThread helper) => Runner.HelperAdded(parent.Id, helper.Id);
@@ -247,14 +439,28 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
     private ApprovalVerdict ApprovalPolicy(MissionRecord record, Guid thread, ApprovalRequest request)
     {
         // Each chat is classified in its own folder (its session's working folder), so a relative path is placed where
-        // that chat really works (ED-NEW-dextra-as5-14); a chat nth cannot place gets no folder at all.
+        // that chat really works (ED-NEW-dextra-as5-14); a chat nth cannot place gets no folder at all. It is decided with
+        // its own taint and role, and what it would send out is checked for personal data (AS-7).
         var chat = o.Thread(thread);
-        var folder = chat is null ? null : chat.WorktreePath ?? o.Projects().FirstOrDefault(p => p.Id == chat.ProjectID)?.Path;
-        var context = MissionClassifier.ForAgent(record, o.ProtectedRoots, folder, o.Environment);
+        var context = MissionClassifierOf(record, chat);
         var provider = chat?.Provider ?? record.Provider;
-        var classification = ActionClassifier.ClassifyApproval(request, context, provider: provider);
-        var decision = PolicyEngine.Decide(classification, MissionContext(record.Mission.AssistantId, record.Id, record.Mission.TaintContext));
-        return new ApprovalVerdict(classification, decision);
+        var policy = MissionContext(record.Mission.AssistantId, record.Id, Runner.TaintOf(record.Id, thread)) with { Role = MissionRunner.RoleOf(record, thread) };
+        var decided = MissionApprovals.Decide(request, context, policy, provider, o.PersonalDataRecipients(), confirmedRecipients: ConfirmedRecipients());
+        var outgoing = MissionApprovals.Outgoing(request, provider);
+        var recipients = decided.Outward.Recipients;
+        return new ApprovalVerdict(decided.Classification, decided.Decision)
+        {
+            Outward = decided.Outward,
+            StillBlocked = decided.Outward.HasPersonalData ? () => OutwardPrivacy.Check(outgoing, o.PersonalDataRecipients()).Refusal : null,
+            OnAllowed = recipients.Count > 0 ? () => Confirm(recipients) : null,
+        };
+    }
+
+    /// <summary>The classifier's view of one chat of the mission, in its own folder, with the owner's allowlist.</summary>
+    private ClassifierContext MissionClassifierOf(MissionRecord record, ChatThread? chat)
+    {
+        var folder = chat is null ? null : chat.WorktreePath ?? o.Projects().FirstOrDefault(p => p.Id == chat.ProjectID)?.Path;
+        return MissionClassifier.ForAgent(record, o.ProtectedRoots, folder, o.Environment) with { Allowlist = new ValueList<string>(o.Allowlist()) };
     }
 
     private PolicyContext MissionContext(string assistantId, Guid? mission, TaintContext taint)
@@ -328,12 +534,19 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
 
     public PolicyContext PolicyContext(AssistantChat chat)
     {
-        var taint = chat.MissionId is { } mission && Runner.Find(mission) is { } record ? record.Mission.TaintContext : TaintContext.Clean;
-        return MissionContext(chat.AssistantId, chat.MissionId, taint);
+        // A mission's chat decides with its own taint and role; the home chat with its own taint until the owner's next
+        // message (12.4; AS-7).
+        if (chat.MissionId is { } mission && Runner.Find(mission) is { } record)
+            return MissionContext(chat.AssistantId, mission, Runner.TaintOf(mission, chat.Thread)) with { Role = MissionRunner.RoleOf(record, chat.Thread) };
+        return MissionContext(chat.AssistantId, chat.MissionId, chat.MissionId is null ? HomeTaint(chat.Thread) : TaintContext.Clean);
     }
 
-    public Task<AssistantToolResult> Run(AssistantToolCall call, CancellationToken cancellationToken) =>
-        Task.FromResult(RunNow(call));
+    public Task<AssistantToolResult> Run(AssistantToolCall call, CancellationToken cancellationToken)
+    {
+        var result = RunNow(call);
+        if (call.Decision.GrantsUsed.Count > 0) UseGrants(call.Decision.GrantsUsed, "call:" + call.Id);
+        return Task.FromResult(result);
+    }
 
     /// <summary>A call from a dry run's chat (7.3): only reads run; the rest is refused to the model and listed as a step.</summary>
     public string? DryAnswer(AssistantToolCall call)
@@ -368,14 +581,23 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
                 var title = team ? "Team: " + parent!.Mission.Title : Text("title") ?? "Mission";
                 // 12.4: from a tainted chat the brief goes as data only, and the mission starts tainted (its Taint below).
                 var brief = call.DataOnly ? AsData(Text("brief") ?? "") : Text("brief") ?? "";
-                var started = Runner.Start(new MissionRequest(title, brief, chat.AssistantId, project.Id, project.Path, parent?.Provider ?? o.Provider)
+                // The router picks the lead's account and model where the reserve leaves room; a team under a mission keeps its parent's
+                // (the same account and model), and with no pick the mission starts on the default and the reserve holds it if it must.
+                var routed = parent is null ? Router?.PickLead(chat.AssistantId) : null;
+                var started = Runner.Start(new MissionRequest(title, brief, chat.AssistantId, project.Id, project.Path, parent?.Provider ?? routed?.Provider ?? o.Provider)
                 {
-                    Model = parent?.Model ?? o.Model,
+                    Model = parent?.Model ?? routed?.Model ?? o.Model,
+                    AccountId = parent?.AccountId ?? routed?.AccountId,
+                    ModelPinned = parent?.ModelPinned ?? false,
                     Team = team,
                     Origin = chat.MissionId is null ? MissionOrigin.Owner : MissionOrigin.Delegation,
                     Parent = parent?.Id ?? chat.MissionId,
                     Taint = PolicyContext(chat).TaintContext,
                     BudgetUsd = args["budget_usd"]?.JSONValueDouble is { } budget ? (decimal)budget : null,
+                    // 12.4 "Reader and actor split": a reader mission only reads and reports (AS-7).
+                    Readers = !team && Text("role") == "reader",
+                    // A mission's chat that starts one gets its report back (AS-7).
+                    RequestedBy = chat.MissionId is null ? null : chat.Thread,
                 });
                 var r = started.Record;
                 if (Runner.Find(r.Id)?.Mission.State == MissionState.Paused)
@@ -430,7 +652,8 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
             case "request_helpers":
             {
                 if (chat.MissionId is not { } mission) return AssistantToolResult.Failed("Not run: only a mission's chat can ask for helpers.");
-                var started = Runner.RequestHelpers(mission, Text("task") ?? "", (int)(Whole("helpers") ?? 1), Text("reason") ?? "", out var refused);
+                var started = Runner.RequestHelpers(mission, Text("task") ?? "", (int)(Whole("helpers") ?? 1), Text("reason") ?? "", out var refused,
+                    requester: chat.Thread, readers: Text("role") == "reader");
                 return started is null
                     ? AssistantToolResult.Done(refused ?? "Not started.")
                     : AssistantToolResult.Done($"Helpers started as mission {started.Record.Id:D}; their report comes back to this mission.");
@@ -472,9 +695,16 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
             case "schedule_duty" or "watch_folder" or "watch_page" when o.Duties is { } duties:
                 // 7.1: the owner's card was answered yes; the duty is made now. The words of how it went also reach the chat.
                 return duties.Create(call, text => Deliver(chat.Thread, $"{AssistantNames.Server} {call.Tool.Name}: {text}"));
+            case "remember" when o.Notes is not null:
+                return Tools.Remember(call, PolicyContext(chat).TaintContext);
+            case "recall" when o.Notes is not null:
+                return Tools.Recall(call);
+            case "forget" when o.Notes is not null:
+                return Tools.Forget(call);
             default:
-                // Wired by the units that own them: memory (AS-12), usage and plans (AS-13),
+                // Wired by the units that own them: usage and plans (AS-13),
                 // Asturs (AS-16), suggestions (AS-11), sessions (AS-2's reader), deliver and merge_results (AS-8).
+                // Memory (AS-12) is wired when the controller is given its Notes.
                 return AssistantToolResult.Failed($"Not run: {call.Tool.Name} is not part of this build of {AssistantNames.Assistant} yet.");
         }
     }
@@ -488,7 +718,7 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
     private DecisionItem Card(AssistantToolCall call, bool offered)
     {
         // A duty's card shows what it will be: its trigger, what it does, its grants, its budget (7.1), not the raw arguments.
-        var inputs = o.Duties?.Describe(call) ?? (call.Arguments.JSONValueObject is { } fields
+        IEnumerable<DecisionInput> inputs = o.Duties?.Describe(call) ?? MemoryCardInputs(call) ?? (call.Arguments.JSONValueObject is { } fields
             ? fields.Select(f => new DecisionInput(f.Key, f.Value.JSONValueString ?? f.Value.ToString()))
             : []);
         var c = call.Classification;
@@ -529,6 +759,8 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
                 }
                 var result = RunNow(call);
                 TryAudit(AssistantToolRunner.Entry(call, (result.IsError ? "failed" : "done") + " on the owner's answer") with { AllowedBy = by });
+                // 12.4: what the result carries in taints the chat before it reads it (AS-7).
+                if (result.Taint.IsTainted) Absorb(call.Chat, result.Taint);
                 Deliver(call.Chat.Thread, $"{AssistantNames.Server} {call.Tool.Name} (the owner allowed it): {result.Text}");
             }
             else
@@ -641,6 +873,8 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
     public void Dispose()
     {
         Stopper.Dispose();
+        DisposeMemory();
+        Costs?.Dispose();
         Reserve?.Dispose();
         o.Reserve?.Owned?.Dispose();
         foreach (var thread in o.Jobs.Threads) o.Jobs.End(thread);

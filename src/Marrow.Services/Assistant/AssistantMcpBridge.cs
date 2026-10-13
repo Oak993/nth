@@ -20,6 +20,16 @@ public sealed record AssistantRegistration(string Token, AssistantChat Chat, IAs
 {
     /// <summary>Whether the token still stands for this chat (Forget revokes it).</summary>
     public bool IsLive => AssistantMcpBridge.Registration(Token) is { } current && ReferenceEquals(current, this);
+
+    /// <summary>
+    /// The notes the chat is told at its start (AS-12; null when it is told none). A host that cannot say, or throws, tells it none: not
+    /// knowing a note never stops a chat from starting.
+    /// </summary>
+    public string? MemoryBlock()
+    {
+        try { return Host.MemoryBlock(Chat); }
+        catch (Exception error) when (error is InvalidOperationException or IOException or ObjectDisposedException) { return null; }
+    }
 }
 
 public static class AssistantMcpBridge

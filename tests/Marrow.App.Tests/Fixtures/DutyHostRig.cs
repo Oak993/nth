@@ -21,8 +21,9 @@ internal sealed class DutyHostRig : IDisposable
     private readonly AssistantTempRoot temp = new();
     private readonly Dictionary<Guid, ChatThread> chats = [];
 
-    public DutyHostRig(StartupMode? mode = null, Func<string, bool>? folderGranted = null, bool tray = true)
+    public DutyHostRig(StartupMode? mode = null, Func<string, bool>? folderGranted = null, bool tray = true, DutyHealthBook? book = null)
     {
+        Book = book ?? new DutyHealthBook();
         Clock = new ManualTimeProvider(new DateTimeOffset(2026, 10, 13, 6, 0, 0, TimeSpan.Zero));
         Project = new MissionProject(MissionRig.Project, "App", Path.Combine(temp.Folder, "owner"));
         Directory.CreateDirectory(Project.Path);
@@ -45,6 +46,7 @@ internal sealed class DutyHostRig : IDisposable
             Memory = new FakeMemory(FakeMemory.Plenty),
             Time = Clock,
             Duties = Gate,
+            DutyHealth = Book,
         });
         Tray = tray ? new AppTray(TrayHost, () => true, open: () => { }) : null;
         Host = new DutyHost(new DutyHostOptions
@@ -75,6 +77,9 @@ internal sealed class DutyHostRig : IDisposable
     }
 
     public ManualTimeProvider Clock { get; }
+
+    /// <summary>The failure breaker's book (AS-15); a test shares one between two rigs to stand for a restart.</summary>
+    public DutyHealthBook Book { get; }
 
     public MissionProject Project { get; }
 

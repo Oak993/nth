@@ -7,7 +7,7 @@ using System.Text;
 
 namespace Marrow.Core.Port.Assistant;
 
-public static class DutyWords
+public static class DutyCardWords
 {
     public static string Trigger(DutyTrigger trigger)
     {
@@ -149,7 +149,7 @@ public static class DutyWords
     }
 
     /// <summary>A sentence for a duty's last runs: "3 runs, last Done".</summary>
-    public static string HistoryLine(DutyRun run, TimeZoneInfo zone)
+    public static string HistoryLine(DutyHistoryEntry run, TimeZoneInfo zone)
     {
         var at = TimeZoneInfo.ConvertTime(run.At, zone).ToString("MMM d HH:mm", CultureInfo.InvariantCulture);
         var text = new StringBuilder(at).Append(' ').Append(run.Outcome switch

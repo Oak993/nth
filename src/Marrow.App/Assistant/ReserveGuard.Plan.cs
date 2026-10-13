@@ -16,10 +16,11 @@ public sealed partial class ReserveGuard
     /// <summary>
     /// The plan for a task about to start (11.4): the steps' cost per account, converted with the calibrated rates, set against the
     /// floors that would bind it. <paramref name="taskRules"/> are the rules the owner spoke for this task. Nothing is registered:
-    /// <see cref="Begin"/> does that when the task starts.
+    /// <see cref="Begin"/> does that when the task starts. <paramref name="lanes"/> say where the agents run (AS-15): two or more on
+    /// API or cloud accounts are a fan-out, which, like more than 8 agents, needs the owner's Start.
     /// </summary>
     public ReservePlan Plan(MissionRecord? mission, IReadOnlyList<PlanStep> steps, IReadOnlyList<ReserveRule>? taskRules = null,
-        int agents = 1, TimeSpan? duration = null, string team = "", decimal apiDollars = 0)
+        int agents = 1, TimeSpan? duration = null, string team = "", decimal apiDollars = 0, IReadOnlyList<SwarmLane>? lanes = null)
     {
         ArgumentNullException.ThrowIfNull(steps);
         var now = clock.GetUtcNow();
@@ -59,9 +60,16 @@ public sealed partial class ReserveGuard
                 Agents = agents,
                 ApiDollars = apiDollars,
                 AlwaysAsk = o.Settings.AlwaysAskBeforeStarting,
+                // AS-15, the swarm gate (13.2): where the agents run, and the tokens the whole plan expects to spend.
+                Lanes = lanes ?? [],
+                TokensP50 = WholeTokens(steps.Sum(s => Math.Max(0, s.TokensP50))),
+                TokensP90 = WholeTokens(steps.Sum(s => Math.Max(Math.Max(0, s.TokensP50), s.TokensP90))),
             };
         }
     }
+
+    // A token count the plan shows: whole, never negative, and nothing that is not a number (the arithmetic here is checked).
+    private static long WholeTokens(double tokens) => double.IsFinite(tokens) && tokens > 0 ? (long)Math.Round(Math.Min(tokens, long.MaxValue / 2.0)) : 0;
 
     // The account's bar in a plan: the window the tighter reserve binds (least room after the p90), else the 5-hour window.
     private PlanAccountLine BindingLine(MissionReserve scratch, ReserveAccountRef account, ReserveAccount state, string? model, double tokens50, double tokens90, DateTimeOffset now)

@@ -26,6 +26,9 @@ public sealed record ReserveCheck(bool Go, ReserveWindowCheck? Binding, IReadOnl
     public static ReserveCheck Free { get; } = new(true, null, []);
 }
 
+/// <summary>One window projected for a turn (AS-14): where it stands now, what the turn and the margin add, and the total.</summary>
+public sealed record ReserveProjection(ReserveWindow Window, double Estimate, double TurnP90, double Margin, double Quantum, double Projected);
+
 /// <summary>What a batch of readings showed about one window.</summary>
 public sealed record ReserveWindowChange(ReserveWindow Window, double Estimate, double OutsidePoints, bool Reset, ReserveWindow? Previous);
 
@@ -213,15 +216,28 @@ public sealed class ReserveAccount(string key, string name, string providerId, F
         {
             var window = tracked.Last;
             if (floorOf(window) is not { } floor || floor.Percent >= 100) continue;
-            var estimate = Estimate(window.Id, now);
-            var turn = newTurnP90Tokens > 0 ? rates(model, window.Kind).PercentP90(newTurnP90Tokens) * safe.NewTurnTail : 0;
-            var margin = Margin(window.Id, now, remainingOnly: newTurnP90Tokens <= 0);
-            var quantum = IsWhole(window.Percent) ? safe.QuantumAllowance : 0;
-            checks.Add(new ReserveWindowCheck(window, floor, estimate, turn, margin, ReserveMath.Projected(estimate, turn, margin) + quantum) { Quantum = quantum });
+            var projection = Project(window, model, newTurnP90Tokens, now);
+            checks.Add(new ReserveWindowCheck(window, floor, projection.Estimate, projection.TurnP90, projection.Margin, projection.Projected) { Quantum = projection.Quantum });
         }
         if (checks.Count == 0) return ReserveCheck.Free;
         var binding = checks.OrderBy(c => c.Room).First();
         return new ReserveCheck(checks.All(c => !c.Crosses), binding, checks);
+    }
+
+    /// <summary>
+    /// Every window as a turn of <paramref name="newTurnP90Tokens"/> would find it, whether or not a floor applies: the same
+    /// projection <see cref="Check"/> makes (estimate + the turn's p90 + the margin + the quantum), for the router's headroom (11.6).
+    /// </summary>
+    public IReadOnlyList<ReserveProjection> Projections(string? model, double newTurnP90Tokens, DateTimeOffset now) =>
+        [.. windows.Values.Select(tracked => Project(tracked.Last, model, newTurnP90Tokens, now))];
+
+    private ReserveProjection Project(ReserveWindow window, string? model, double newTurnP90Tokens, DateTimeOffset now)
+    {
+        var estimate = Estimate(window.Id, now);
+        var turn = newTurnP90Tokens > 0 ? rates(model, window.Kind).PercentP90(newTurnP90Tokens) * safe.NewTurnTail : 0;
+        var margin = Margin(window.Id, now, remainingOnly: newTurnP90Tokens <= 0);
+        var quantum = IsWhole(window.Percent) ? safe.QuantumAllowance : 0;
+        return new ReserveProjection(window, estimate, turn, margin, quantum, ReserveMath.Projected(estimate, turn, margin) + quantum);
     }
 
     // A reading of 47 and one of 47.3 are different promises: only a whole number can be hiding a point.

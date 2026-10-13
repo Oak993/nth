@@ -57,7 +57,7 @@ public sealed partial class DutyTools(AssistantScheduler scheduler, DutyToolsOpt
         var proposal = Propose(call);
         if (proposal.Duty is not { } duty) return [new DecisionInput("Not possible", proposal.Problem ?? "nth could not read this duty.")];
         var now = options.Time.GetUtcNow();
-        var inputs = new List<DecisionInput>(DutyWords.CardInputs(duty, options.AssistantName(duty.AssistantId), proposal.Existing, DutyForecast.Of(duty, now)));
+        var inputs = new List<DecisionInput>(DutyCardWords.CardInputs(duty, options.AssistantName(duty.AssistantId), proposal.Existing, DutyForecast.Of(duty, now)));
         inputs.Add(new DecisionInput("What it reads", duty.Trigger switch
         {
             FolderChangeTrigger => "The names, sizes and times of the files in that folder. The agent that runs the duty may open them.",
@@ -108,8 +108,8 @@ public sealed partial class DutyTools(AssistantScheduler scheduler, DutyToolsOpt
         if (saved is null) return "Not created: " + problem;
         var zone = saved.Trigger is TimeTrigger t ? DutyZones.Find(t.TimeZoneId) : null;
         var next = scheduler.Duties.FirstOrDefault(v => v.Duty.Id == saved.Id)?.NextRun;
-        var when = DutyWords.NextRun(saved.Trigger, next, options.Time.GetUtcNow(), zone ?? options.Time.LocalTimeZone);
-        return $"The duty “{saved.Name}” is {(existing is null ? "set" : "changed")}: {DutyWords.Trigger(saved.Trigger)}. Next: {when}.";
+        var when = DutyCardWords.NextRun(saved.Trigger, next, options.Time.GetUtcNow(), zone ?? options.Time.LocalTimeZone);
+        return $"The duty “{saved.Name}” is {(existing is null ? "set" : "changed")}: {DutyCardWords.Trigger(saved.Trigger)}. Next: {when}.";
     }
 
     private static bool IsDutyTool(string name) => name is "schedule_duty" or "watch_folder" or "watch_page";

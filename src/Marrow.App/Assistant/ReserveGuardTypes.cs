@@ -1,6 +1,6 @@
 // PORT-ONLY: Dextra (DESIGN.md rev 5, 11.4 to 11.6; unit AS-13; ED-NEW-dextra-as13-9). No Swift twin.
 // The records and seams around ReserveGuard: the account it follows, what a hold says, the offer to move the rest of a task
-// to another account (the router, AS-14, fills the seam), and the options of the pause card.
+// to another account (the router, AS-14, fills the seam), the router's view of an account, and the options of the pause card.
 using Marrow.Core.Port;
 using Marrow.Core.Port.Assistant;
 using Marrow.Services.Assistant;
@@ -31,8 +31,24 @@ public interface IReserveMover
 {
     ReserveMoveOffer? Offer(MissionRecord mission, IReadOnlyList<ReserveCandidate> candidates);
 
-    string? Move(MissionRecord mission, ReserveMoveOffer offer);
+    /// <summary>Moves the rest at once: null when done, else why not.</summary>
+    string? Move(MissionRecord mission, ReserveMoveOffer offer) => "that move is not available now";
+
+    /// <summary>
+    /// True for a mover whose move takes time (a live chat changes account at its next safe point, AS-14): the guard then keeps the
+    /// task held and asks <see cref="MoveAsync"/>, and finishes when it answers. False: <see cref="Move"/>, answered at once.
+    /// </summary>
+    bool MovesAsync => false;
+
+    /// <summary>The slow move: null when done, else why not. Only asked of a mover that says <see cref="MovesAsync"/>.</summary>
+    Task<string?> MoveAsync(MissionRecord mission, ReserveMoveOffer offer) => Task.FromResult(Move(mission, offer));
 }
+
+/// <summary>
+/// One account as the router sees it (AS-14, 11.6): each window projected for the turn asked about against the floor that would
+/// bind it (100 where no reserve applies), and whether the account's rate is still the conservative default.
+/// </summary>
+public sealed record ReserveStanding(IReadOnlyList<RouteWindow> Windows, bool Rough);
 
 /// <summary>What the guard raised when it paused a task for its reserve: the facts the toast and the board show.</summary>
 public sealed record ReserveHold(Guid Mission, string MissionTitle, ReserveAccountRef Account, string WindowId, ReserveWindowKind Kind,
