@@ -46,12 +46,25 @@ public sealed class WebSecAgentNativeSites : IWebResourceHandler
 
     private const string NextPage = "<!doctype html><html><head><title>Next</title></head><body><p>Next page</p></body></html>";
 
+    /// <param name="shop">Another shop page (the second-pass checks, ED-NEW-web-sec-agent-7 to -9); null for the one above.</param>
+    /// <param name="frames">Other frame pages by address start; a request no entry starts is answered as above.</param>
+    public WebSecAgentNativeSites(string? shop = null, IReadOnlyDictionary<string, string>? frames = null)
+    {
+        this.shop = shop ?? ShopPage;
+        this.frames = frames ?? new Dictionary<string, string>();
+    }
+
+    private readonly string shop;
+    private readonly IReadOnlyDictionary<string, string> frames;
+
     public WebResourceResponse Answer(WebResourceRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var html = request.Uri.StartsWith("https://pay.invalid/", StringComparison.OrdinalIgnoreCase) ? PayFrame
+        var framed = frames.FirstOrDefault(f => request.Uri.StartsWith(f.Key, StringComparison.OrdinalIgnoreCase)).Value;
+        var html = framed is not null ? framed
+            : request.Uri.StartsWith("https://pay.invalid/", StringComparison.OrdinalIgnoreCase) ? PayFrame
             : request.Uri.StartsWith("https://other.invalid/", StringComparison.OrdinalIgnoreCase) ? NextPage
-            : ShopPage;
+            : shop;
         return new(200, "OK", [new("Content-Type", "text/html; charset=utf-8"), new("Cache-Control", "no-store")], Encoding.UTF8.GetBytes(html));
     }
 }
@@ -61,7 +74,7 @@ internal sealed class WebSecAgentNativeRig : IDisposable
 {
     public const string Thread = "5b0f3c2e-7d4a-4c1b-9e2f-1a2b3c4d5e6f";
 
-    public WebSecAgentNativeRig(WindowManagerNativeSession native)
+    public WebSecAgentNativeRig(WindowManagerNativeSession native, WebSecAgentNativeSites? sites = null)
     {
         ArgumentNullException.ThrowIfNull(native);
         Folder = Path.Combine(Path.GetTempPath(), "nth-web-sec-native-" + Guid.NewGuid().ToString("N"));
@@ -71,7 +84,7 @@ internal sealed class WebSecAgentNativeRig : IDisposable
         Session = new VisusSession();
         Session.AgentThread = Thread;
         Tab = Session.NewTab(VisusTabKind.Agent, WebSecAgentNativeSites.Shop);
-        Tab.View!.Engine!.SetResourceHandler(new WebSecAgentNativeSites());
+        Tab.View!.Engine!.SetResourceHandler(sites ?? new WebSecAgentNativeSites());
         Tab.View.NavigationCompleted += (_, e) =>
         {
             if (e.IsSuccess && e.Url == WebSecAgentNativeSites.Shop) Loaded = true;
