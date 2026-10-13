@@ -1083,9 +1083,18 @@ public sealed partial class CopilotSession : ProviderSession, ISkillSessionLifet
         {
             approval = approval with { Reason = judged };
         }
-        OnEvent?.Invoke(new ProviderEvent.Approval(approval)); // :803
+        OnEvent?.Invoke(new ProviderEvent.Approval(approval) { McpTool = McpToolOf(request) }); // :803
         if (skillEvents.Held(request) is { } held) EmitSkillEvent(held);
     }
+
+    // PORT-ONLY (ED-NEW-web-sec-rev-1): the MCP tool a "mcp" permission request is for, by its own serverName and toolName fields
+    // (never the toolTitle, the arguments or any text); a server named nth-ui is nth's own only in a session nth gave nth-ui.
+    private McpToolIdentity? McpToolOf(JSONValue request) =>
+        Is(request["kind"]?.JSONValueString, "mcp")
+        && request["serverName"]?.JSONValueString is { Length: > 0 } server && request["toolName"]?.JSONValueString is { Length: > 0 } tool
+        && (uiServer is not null || !string.Equals(server, Web.UiMcpServer.ServerName, StringComparison.Ordinal))
+            ? new McpToolIdentity(server, tool)
+            : null;
 
     /// <summary>What the thread's mode approves without asking. Full access approves it all (the CLI normally does
     /// that itself in `allow-all`), accept-edits waves file reads and writes through, and Auto adds whatever the

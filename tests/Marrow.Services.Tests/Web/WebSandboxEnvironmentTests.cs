@@ -16,7 +16,8 @@ namespace Marrow.Services.Tests.Web;
 public sealed class WebSandboxEnvironmentTests
 {
     private const string SandboxFolder = WebRig.UserData + @"\Sandbox";
-    private const string VisusArguments = "--site-per-process --force-webrtc-ip-handling-policy=disable_non_proxied_udp";
+    // ED-NEW-web-sec-rev-4: Visus passes the UDP block in both spellings too.
+    private const string VisusArguments = "--site-per-process --force-webrtc-ip-handling-policy=disable_non_proxied_udp --webrtc-ip-handling-policy=disable_non_proxied_udp";
 
     private static readonly WebProfiles Profiles = new(WebRig.UserData, "en-US");
 
@@ -61,6 +62,23 @@ public sealed class WebSandboxEnvironmentTests
             Assert.Equal(WebRig.UserData, creation.UserDataFolder);
             Assert.Equal(VisusArguments, creation.AdditionalBrowserArguments);
         }
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-web-sec-rev-4")]
+    public void Visus_passes_the_udp_block_also_in_the_spelling_the_installed_runtime_reads()
+    {
+        // WebView2 runtime 154 reads only --webrtc-ip-handling-policy (a command-line preference) and ignores
+        // --force-webrtc-ip-handling-policy, which older runtimes read: Visus, previews and agent tabs pass both, with the same value.
+        foreach (var kind in Visus)
+        {
+            var arguments = (Profiles.For(kind, @"C:\threads\one").AdditionalBrowserArguments ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            Assert.Equal(
+                ["--site-per-process", "--force-webrtc-ip-handling-policy=disable_non_proxied_udp", "--webrtc-ip-handling-policy=disable_non_proxied_udp"],
+                arguments);
+        }
+
+        Assert.Equal("--site-per-process --force-webrtc-ip-handling-policy=disable_non_proxied_udp --webrtc-ip-handling-policy=disable_non_proxied_udp", WebProfiles.BrowserArguments);
     }
 
     [Fact]

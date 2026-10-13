@@ -159,11 +159,13 @@ public sealed partial class ThreadRuntime
 
     /// <summary>
     /// A provider that asks the person to allow the ask_user tool before it runs it (Codex, Copilot, ACP in a supervised chat) is answered at
-    /// once: the tool only shows the person a question, and the question is the ask. True when <paramref name="request"/> was such a request.
+    /// once: the tool only shows the person a question, and the question is the ask. True when <paramref name="approval"/> was such a request,
+    /// known by the server and tool the provider's protocol named, never by its text (ED-NEW-web-sec-rev-1).
     /// </summary>
-    private bool AutoApprovesAsk(ApprovalRequest request)
+    private bool AutoApprovesAsk(ProviderEvent.Approval approval)
     {
-        if (!AskUserTool.IsApprovalFor(request) || request.Options.FirstOrDefault(option => option.OptionRole == ApprovalRequest.Option.Role.Approve) is not { } approve) return false;
+        var request = approval.Value;
+        if (!AskUserTool.IsApprovalFor(approval) || request.Options.FirstOrDefault(option => option.OptionRole == ApprovalRequest.Option.Role.Approve) is not { } approve) return false;
         session?.ResolveApproval(request.Id, approve.Id);
         return true;
     }

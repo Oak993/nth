@@ -873,7 +873,11 @@ public sealed class ACPSession : ProviderSession, Port.Skills.Providers.ISkillSe
             _ => ApprovalRequest.Kind.Tool,
         };
         OnEvent?.Invoke(new ProviderEvent.Approval(new ApprovalRequest( // :582-589
-            id.Key, kind, call.Title, mapped, call.Detail, null, toolCall["toolCallId"]?.JSONValueString)));
+            id.Key, kind, call.Title, mapped, call.Detail, null, toolCall["toolCallId"]?.JSONValueString))
+        {
+            // PORT-ONLY (ED-NEW-web-sec-rev-1): an nth-ui tool only in a session nth gave nth-ui, by the call's kind and whole title.
+            McpTool = uiServer is null ? null : Web.AskUserTool.AcpTool(toolCall["kind"]?.JSONValueString, toolCall["title"]?.JSONValueString),
+        });
         if (skillEvents.Held(toolCall) is { } held) EmitSkillEvent(held);
     }
 

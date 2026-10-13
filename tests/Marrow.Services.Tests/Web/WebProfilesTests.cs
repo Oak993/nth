@@ -35,8 +35,9 @@ public sealed class WebProfilesTests
         var sandboxed = new[] { WebSurfaceKind.Artifact, WebSurfaceKind.InlineWidget, WebSurfaceKind.McpApp };
         var keys = Enum.GetValues<WebSurfaceKind>().Except(sandboxed).Select(kind => Profiles.For(kind, @"C:\threads\one").EnvironmentKey).Distinct().ToList();
         var key = Assert.Single(keys);
-        // DESIGN 6.5 (ED-NEW-web-w13-1): the shared arguments are exactly site isolation and the WebRTC UDP block.
-        Assert.Equal((WebRig.UserData, "en-US", (string?)"--site-per-process --force-webrtc-ip-handling-policy=disable_non_proxied_udp"), key);
+        // DESIGN 6.5 (ED-NEW-web-w13-1): the shared arguments are exactly site isolation and the WebRTC UDP block, the block in both
+        // spellings WebView2 runtimes read (ED-NEW-web-sec-rev-4).
+        Assert.Equal((WebRig.UserData, "en-US", (string?)"--site-per-process --force-webrtc-ip-handling-policy=disable_non_proxied_udp --webrtc-ip-handling-policy=disable_non_proxied_udp"), key);
         Assert.Equal(4, Enum.GetValues<WebSurfaceKind>().Except(sandboxed).Count());
     }
 
