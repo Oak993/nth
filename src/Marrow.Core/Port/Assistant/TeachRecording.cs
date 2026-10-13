@@ -141,6 +141,14 @@ public sealed record TeachRecordingInfo(string Id, string AssistantId, DateTimeO
     /// <summary>The id of the own item once it is added.</summary>
     public string? SkillId { get; init; }
 
+    /// <summary>The version of the file this was read from (a newer one is shown and left untouched).</summary>
+    public int Version { get; init; } = CurrentVersion;
+
+    public bool Newer => Version > CurrentVersion;
+
+    /// <summary>Fields a newer build wrote that this one does not know, as JSON text by name; they survive a save.</summary>
+    public ValueMap<string, string> Unknown { get; init; } = ValueMap<string, string>.Empty;
+
     /// <summary>When it will be deleted if nobody saves it; null once saved.</summary>
     public DateTimeOffset? ExpiresAt => State is TeachRecordingState.Saved ? null : Changed + TeachLimits.Retention;
 }

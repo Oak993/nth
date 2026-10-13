@@ -92,6 +92,9 @@ public sealed partial record TeachDraft(string RecordingId, string Name, string 
 
     public const int CurrentVersion = 1;
 
+    /// <summary>Fields a newer build wrote that this one does not know, as JSON text by name; they survive a save.</summary>
+    public ValueMap<string, string> Unknown { get; init; } = ValueMap<string, string>.Empty;
+
     /// <summary>The approval boundary: every step that asks the owner.</summary>
     public IReadOnlyList<TeachStep> Boundary => [.. Steps.Where(s => s.AsksYou)];
 

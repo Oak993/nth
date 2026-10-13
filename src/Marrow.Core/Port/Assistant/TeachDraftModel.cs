@@ -54,7 +54,7 @@ public static class TeachDraftModel
         var open = answer.IndexOf('{', StringComparison.Ordinal);
         var close = answer.LastIndexOf('}');
         if (open < 0 || close <= open) return null;
-        try { return JsonNode.Parse(answer[open..(close + 1)], documentOptions: new JsonDocumentOptions { MaxDepth = 8 }) as JsonObject; }
+        try { return JsonNode.Parse(answer[open..(close + 1)], documentOptions: new JsonDocumentOptions { MaxDepth = 8, AllowDuplicateProperties = false }) as JsonObject; }
         catch (Exception error) when (error is JsonException or ArgumentException or InvalidOperationException) { return null; }
     }
 
