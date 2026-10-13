@@ -49,6 +49,15 @@ public sealed class DelegateWordsTests
     }
 
     [Fact]
+    public void The_message_an_override_sends_is_known_again_so_it_is_never_read_back_as_the_owners_words()
+    {
+        Assert.True(DelegateWords.IsCorrection(DelegateWords.Correction("Which chart style?", "Lines", "Use bars.")));
+        Assert.False(DelegateWords.IsCorrection("Please keep the existing chart style"));
+        Assert.False(DelegateWords.IsCorrection("  A correction from the owner. in the middle"));
+        Assert.False(DelegateWords.IsCorrection(null));
+    }
+
+    [Fact]
     public void A_line_is_folded_to_one_row_and_cut_with_an_ellipsis_at_its_length()
     {
         Assert.Equal("one two three", DelegateWords.Clip("one\r\ntwo\nthree"));

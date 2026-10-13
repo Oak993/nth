@@ -55,7 +55,8 @@ public sealed class AppDelegateContext(AppModel app, DelegateAnswerBook book, Me
             {
                 switch (entries[i].Item.TimelineItemContent)
                 {
-                    case TimelineItem.Content.User user when user.Value.Text.Length > 0:
+                    // An Override's message quotes the agent's own question inside it: it is not the owner's words (his are kept in the book as corrections).
+                    case TimelineItem.Content.User user when user.Value.Text.Length > 0 && !DelegateWords.IsCorrection(user.Value.Text):
                         turns.Add(new DelegateTurn(owners, user.Value.Text));
                         break;
                     case TimelineItem.Content.Assistant reply when reply.Value.Text.Length > 0:
@@ -72,6 +73,12 @@ public sealed class AppDelegateContext(AppModel app, DelegateAnswerBook book, Me
     {
         cancellationToken.ThrowIfCancellationRequested();
         var decisions = new StringBuilder();
+        // The notes Dextra keeps of his choices come first: the prompt cuts the decisions to a fixed length, and a long CLAUDE.md must not push his notes out of it.
+        if (notes is not null && dextraId() is { } id)
+        {
+            var query = string.Join(" ", request.Questions.Select(q => q.Prompt));
+            foreach (var recalled in notes.Recall(id, query, NotesRead)) decisions.Append("- ").AppendLine(DelegateWords.Clip(recalled.Note.Text, 300));
+        }
         if (view.Folder is { Length: > 0 } folder)
         {
             try
@@ -84,25 +91,26 @@ public sealed class AppDelegateContext(AppModel app, DelegateAnswerBook book, Me
                 _ = error;
             }
         }
-        if (notes is not null && dextraId() is { } id)
-        {
-            var query = string.Join(" ", request.Questions.Select(q => q.Prompt));
-            foreach (var recalled in notes.Recall(id, query, NotesRead)) decisions.Append("- ").AppendLine(DelegateWords.Clip(recalled.Note.Text, 300));
-        }
         cancellationToken.ThrowIfCancellationRequested();
-        return new DelegatePack(decisions.ToString(), PastAnswers(view.Project), view.Recent);
+        var (past, corrections) = Past(view.Project);
+        return new DelegatePack(decisions.ToString(), past, view.Recent) { Corrections = corrections };
     }, cancellationToken);
 
-    // His corrections come first in the book's order; each line is the question, what was answered and, if he corrected it, what he wanted.
-    private string PastAnswers(Guid project)
+    // The project's earlier answers, his corrections first in the book's order. An answer he corrected is not told as an answer: what he wanted is what the model learns
+    // (and what a decision may be quoted from); the rest are context, the delegate's own earlier words.
+    private (string Past, IReadOnlyList<DelegateCorrection> Corrections) Past(Guid project)
     {
         var text = new StringBuilder();
+        var corrections = new List<DelegateCorrection>();
         foreach (var past in book.Past(project, PastRead))
         {
-            text.Append("Q: ").Append(DelegateWords.Clip(past.Question, 200)).Append(" | Answered: ").Append(DelegateWords.Clip(past.Answer, 120));
-            if (past.Correction is { } correction) text.Append(" | The owner corrected it: ").Append(DelegateWords.Clip(correction, 300));
-            text.AppendLine();
+            if (past.Correction is { } correction)
+            {
+                corrections.Add(new DelegateCorrection(DelegateWords.Clip(past.Question, 200), DelegateWords.Clip(correction, 300)));
+                continue;
+            }
+            text.Append("Q: ").Append(DelegateWords.Clip(past.Question, 200)).Append(" | Answered: ").AppendLine(DelegateWords.Clip(past.Answer, 120));
         }
-        return text.ToString();
+        return (text.ToString(), corrections);
     }
 }

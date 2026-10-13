@@ -2,8 +2,9 @@
 // "Untrusted content ... wrapped as data"; unit AS-22; ED-NEW-dextra-as22-6). No Swift twin.
 // What the delegate's model is given: its job and its limits in words, then the project's decisions, the past answers (the owner's
 // corrections among them), the chat so far and the question, each fenced as data. Everything is cut to a fixed length, so the prompt has a
-// ceiling. It also names the text a "decided" answer may quote: the decisions, the past answers and the owner's own words, never the
-// agent's. The answer is read by DelegateReply and judged by DelegatePolicy; nothing here decides anything. Pure.
+// ceiling. It also names the text a "decided" answer may quote: the decisions, what the owner said when he corrected an answer and his own
+// words in the chat, never the agent's (not its question, not the answers the delegate gave, which stay in the prompt as context only). The
+// answer is read by DelegateReply and judged by DelegatePolicy; nothing here decides anything. Pure.
 using System.Globalization;
 using System.Text;
 using Marrow.Core.Models;
@@ -13,12 +14,18 @@ namespace Marrow.Core.Port.Assistant;
 /// <summary>One turn of the chat the question came from: the owner's words, or the agent's.</summary>
 public sealed record DelegateTurn(bool Owner, string Text);
 
+/// <summary>An answer the owner corrected (Override): what it was about (the agent's question, which is context only) and what he said it should have been (his words).</summary>
+public sealed record DelegateCorrection(string About, string Wanted);
+
 /// <summary>What nth gathers for the model about the project and the chat.</summary>
-/// <param name="Decisions">The owner's recorded decisions: the project's guidance files and the notes Dextra keeps of his choices.</param>
-/// <param name="PastAnswers">The answers given for him before, his corrections first.</param>
+/// <param name="Decisions">The owner's recorded decisions: the notes Dextra keeps of his choices and the project's guidance files.</param>
+/// <param name="PastAnswers">The answers given for him before that he did not correct (context only: they are the delegate's words, not his decisions).</param>
 /// <param name="Chat">The chat's last turns, oldest first.</param>
 public sealed record DelegatePack(string Decisions, string PastAnswers, IReadOnlyList<DelegateTurn> Chat)
 {
+    /// <summary>The answers he corrected, newest first: what he wanted counts as a decision of his; the question it was about does not.</summary>
+    public IReadOnlyList<DelegateCorrection> Corrections { get; init; } = [];
+
     public static DelegatePack Empty { get; } = new("", "", []);
 }
 
@@ -29,6 +36,7 @@ public static class DelegateBrief
 {
     public const int DecisionsChars = 4_000;
     public const int PastChars = 3_000;
+    public const int CorrectionsChars = 2_000;
     public const int ChatChars = 3_500;
     public const int QuestionChars = 2_400;
 
@@ -55,13 +63,16 @@ public static class DelegateBrief
         var text = new StringBuilder(Rules).AppendLine().AppendLine();
         var decisions = Shielded(pack.Decisions, DecisionsChars);
         var past = Shielded(pack.PastAnswers, PastChars);
+        var (corrections, wanted) = CorrectionText(pack.Corrections);
         Block(text, "The owner's recorded decisions", decisions);
-        Block(text, "Answers given for the owner before (his corrections are what he wanted)", past);
+        Block(text, "What the owner said when he corrected an answer given for him (this is what he wanted)", corrections);
+        Block(text, "Answers given for the owner before, which he did not correct", past);
         var (chat, owner) = ChatText(pack.Chat);
         Block(text, "The chat so far", chat);
         Block(text, "The question, from the chat \"" + FeedShield.Mask(Line(chatTitle, 80)) + "\"", Shielded(QuestionText(request), QuestionChars));
-        // Only what the model was shown can be quoted as a decision: the decisions, the past answers and the owner's own words.
-        return new DelegatePrompt(text.ToString(), string.Join('\n', decisions, past, owner));
+        // Only what the model was shown can be quoted as a decision, and only the owner's words among it: the decisions, what he wanted when he corrected an answer and
+        // what he wrote in the chat. The agent's words (its question, the chat's agent turns) and the delegate's own earlier answers are context, never evidence.
+        return new DelegatePrompt(text.ToString(), string.Join('\n', decisions, wanted, owner));
     }
 
     /// <summary>The question as the model reads it: each question's id, header, prompt and choices with their details.</summary>
@@ -81,6 +92,24 @@ public static class DelegateBrief
             text.AppendLine();
         }
         return text.ToString().TrimEnd();
+    }
+
+    // The corrections that fit, newest first, each as "About “question”: what the owner wanted"; and what he wanted alone (the only part a quote may come from).
+    private static (string Text, string Wanted) CorrectionText(IReadOnlyList<DelegateCorrection> corrections)
+    {
+        var lines = new List<string>();
+        var wanted = new List<string>();
+        var room = CorrectionsChars;
+        foreach (var correction in corrections)
+        {
+            if (room <= 0) break;
+            var said = OneLine(correction.Wanted, Math.Min(room, 400));
+            if (said.Length == 0) continue;
+            lines.Add("About “" + OneLine(correction.About, 200).Replace("“", "'", StringComparison.Ordinal).Replace("”", "'", StringComparison.Ordinal) + "”: " + said);
+            wanted.Add(said);
+            room -= said.Length + 220;
+        }
+        return (string.Join('\n', lines), string.Join('\n', wanted));
     }
 
     // The newest turns that fit, oldest first, each marked "Owner:" or "Agent:"; and the owner's own words among them.
@@ -116,6 +145,10 @@ public static class DelegateBrief
 
     private static string Cut(string text, int chars) =>
         text.Length <= chars ? text.Trim() : text[..chars].TrimEnd() + string.Create(CultureInfo.InvariantCulture, $"\n(cut at {chars} characters)");
+
+    // One line, masked for secrets first (the text is cut to the shield's reading range before, so nothing past it is left unread), then cut with an ellipsis.
+    private static string OneLine(string text, int chars) =>
+        DelegateWords.Clip(FeedShield.Mask(text.Length <= FeedShield.MaxScanChars ? text : text[..FeedShield.MaxScanChars]), chars);
 
     private static string Line(string text, int chars) => DelegateWords.Clip(text, chars).Replace("\"", "'", StringComparison.Ordinal);
 }

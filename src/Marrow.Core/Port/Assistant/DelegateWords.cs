@@ -97,10 +97,16 @@ public static class DelegateWords
         _ => "Left to you by your delegate",
     };
 
+    /// <summary>How the message an Override sends begins; it quotes the agent's own question, so nth never reads it back as the owner's words.</summary>
+    public const string CorrectionLead = "A correction from the owner. ";
+
     /// <summary>The correction an Override sends the asking session (4.3: "sent to the asking session as a correction").</summary>
     public static string Correction(string question, string answered, string correction) =>
-        "A correction from the owner. The question you asked was answered for them with " + Quote(answered) + " (your question: " + Quote(question)
+        CorrectionLead + "The question you asked was answered for them with " + Quote(answered) + " (your question: " + Quote(question)
         + "). The owner says that was not right: " + correction.Trim() + "\nGo by this from now on.";
+
+    /// <summary>Whether a user message of a chat is the one an Override sent (it carries the agent's question inside it).</summary>
+    public static bool IsCorrection(string? text) => text is not null && text.StartsWith(CorrectionLead, StringComparison.Ordinal);
 
     /// <summary>The feed's lead for an answer: "answered a question for you" (the chat's title leads the line).</summary>
     public static string FeedLead(bool approval) => approval ? "an approval was answered for you" : "a question was answered for you";

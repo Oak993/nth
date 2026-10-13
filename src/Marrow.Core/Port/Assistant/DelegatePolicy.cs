@@ -6,7 +6,7 @@
 //     installing or a promise (the owner always confirms those).
 //   AfterModel: may the model's reading be used? Only when it flagged none of those topics, is sure enough (0.8), does not rest on taste
 //     (a design pick is the owner's unless a recorded decision settles it, quoted and found in what nth gave the model), and every answer is
-//     one of the choices (or short, secret-free words where the question takes its own), none of them touching those topics again.
+//     one of the choices (or short, secret-free words where the question takes its own), none of them, nor the detail of a choice picked, touching those topics again.
 //   ForApproval: an approval is answered only when the engine allowed it by its own rule or a grant; a rule that asks goes to the queue.
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -102,6 +102,8 @@ public static class DelegatePolicy
                 if (match is not null)
                 {
                     if (!values.Contains(match.Label, StringComparer.Ordinal)) values.Add(match.Label);
+                    // A label is often all of "Option A"; what the choice will do is in its detail, so the detail of what it picked is read for the topics too.
+                    if (DelegateTopics.Find(match.Detail) is { } detailTopic) return DelegateOutcome.Leave(detailTopic);
                     continue;
                 }
                 // Not a choice: only where the question takes its own words, and then they are short, hold no secret and touch no topic.

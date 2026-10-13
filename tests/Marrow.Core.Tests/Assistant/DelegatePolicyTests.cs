@@ -207,6 +207,27 @@ public sealed class DelegatePolicyTests
     }
 
     [Fact]
+    public void A_choice_whose_detail_touches_a_topic_is_not_picked_for_the_owner_though_its_label_is_plain()
+    {
+        // "Option A" says nothing; what it does is in the detail, which the model read and the code reads again
+        var request = Ask(Q("q1", "How should the migration run?") with
+        {
+            Choices = new ValueList<QuestionRequest.Choice>([
+                new("Option A", "Applies it and deletes the legacy table"),
+                new("Option B", "Applies it and keeps the legacy table"),
+                new("Option C", "Needs the Postgres tools installed first"),
+                new("Option D", "Sends the plan to the DBA for sign-off"),
+            ]),
+        });
+        Assert.Equal(DelegateReason.Destructive, Judge(request, Reply(["Option A"])).Leaves);
+        Assert.Equal(DelegateReason.Install, Judge(request, Reply(["Option C"])).Leaves);
+        Assert.Equal(DelegateReason.Outward, Judge(request, Reply(["option d"])).Leaves);
+        var safe = Judge(request, Reply(["Option B"]));
+        Assert.True(safe.Answered);
+        Assert.Equal(["Option B"], safe.Answers!["q1"]);
+    }
+
+    [Fact]
     public void Two_picks_need_a_question_that_takes_several()
     {
         var single = Ask("Which of these apply?", "Unit tests", "Integration tests");
