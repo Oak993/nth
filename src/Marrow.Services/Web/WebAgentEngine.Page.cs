@@ -5,7 +5,9 @@
 // or the page's text; every action reads the element's facts again at the moment it runs (the browser's accessible name, the
 // DOM's own attributes and its form), so a guard judges what is on the page now, never what the model remembers; the element
 // under the click point is judged too, so a cover over the target cannot carry a click past a guard. The overlay is hidden
-// around every screenshot.
+// around every screenshot. ED-NEW-web-sec-agent-1 (security review H1): another site's frame runs in its own process, and the page
+// around it sees only an <iframe>; the element under a point and the focused field are read inside that frame through its own
+// session, and a frame nth cannot reach is sealed: nothing is pressed or typed into it.
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -17,6 +19,12 @@ namespace Marrow.Services.Web;
 public sealed partial class WebAgentEngine
 {
     private const string Group = "nth-agent";
+
+    /// <summary>How many frames deep the hit test and the focus are followed (deeper is sealed).</summary>
+    private const int MaxFrameDepth = 6;
+
+    private const string FrameRefusal = "That point or the focused field is inside a frame of another site that nth cannot read, so nth does not act there. "
+        + "Read the page again (web_read shows the elements of the frames it can reach) and act on a ref.";
 
     private const string SecretSelector =
         "input[type=password],input[autocomplete~=current-password],input[autocomplete~=new-password],input[autocomplete~=one-time-code],input[autocomplete*=cc-]";
@@ -287,6 +295,7 @@ public sealed partial class WebAgentEngine
                 point = (x!.Value, y!.Value);
             }
             var hit = await Hit(state, point, s.Token);
+            if (hit is { Sealed: true }) return Fail(WebErrorCodes.Denied, FrameRefusal);
             element ??= hit ?? throw new Refusal(Fail(WebErrorCodes.BadArgs, "Nothing is at that point of the visible page."));
             var covered = hit is not null && key is not null && !SameElement(hit.Facts, element.Facts);
             var (verdict, judged) = Strictest((WebAgentPolicy.CheckPress(element.Facts, origin), element), covered ? (WebAgentPolicy.CheckPress(hit!.Facts, origin), hit) : (WebGuardVerdict.Pass, hit!));
@@ -336,8 +345,11 @@ public sealed partial class WebAgentEngine
                 if (await Point(state, key, scroll: true, s.Token) is { } point) await Pointer(state, point, s);
                 await CallOn(state, key, FocusJs, null, s.Token);
                 // The field that has focus now is the one that gets the text: a page that moves focus cannot steer it into a secret.
-                if (await ActiveFacts(state, s.Token) is { } active && WebAgentPolicy.CheckType(active.Facts) is { Kind: WebGuardKind.Deny } moved)
-                    return Fail(WebErrorCodes.Denied, moved.Reason!);
+                if (await ActiveFacts(state, s.Token) is { } active)
+                {
+                    if (active.Sealed) return Fail(WebErrorCodes.Denied, FrameRefusal);
+                    if (WebAgentPolicy.CheckType(active.Facts) is { Kind: WebGuardKind.Deny } moved) return Fail(WebErrorCodes.Denied, moved.Reason!);
+                }
                 await state.Overlay.Busy(state.Cdp!, true, s.Token);
                 try
                 {
@@ -383,6 +395,7 @@ public sealed partial class WebAgentEngine
                     if (press.IsEnter || press.Text is not null)
                     {
                         var active = await ActiveFacts(state, s.Token);
+                        if (active is { Sealed: true }) return Fail(WebErrorCodes.Denied, done + FrameRefusal);
                         if (active is not null)
                         {
                             var verdict = press.IsEnter
@@ -654,6 +667,7 @@ public sealed partial class WebAgentEngine
         if (await Resolve(state, key, token) is not { } objectId) return null;
         var element = await FactsOf(state, objectId, key.Session, token);
         if (element is null) return null;
+        element = element with { Node = key };
         try
         {
             var nodes = WebAgentTree.Parse(await state.Cdp!.CallAsync("Accessibility.getPartialAXTree", new JsonObject
@@ -727,44 +741,115 @@ public sealed partial class WebAgentEngine
         return new Element(facts, Flag(v, "editable") == true, Flag(v, "contentEditable") == true, Flag(v, "isSelect") == true, Flag(v, "checked"), rows, options);
     }
 
+    // The focused element. Focus inside another site's frame is read in that frame's own session; a frame nth cannot reach (no
+    // session, a frame of the page's own process that the page's script cannot enter, more than six frames deep) is sealed.
     private async Task<Element?> ActiveFacts(TabState state, CancellationToken token)
+    {
+        string? session = null;
+        Element? owner = null;
+        for (var depth = 0; depth <= MaxFrameDepth; depth++)
+        {
+            string objectId;
+            try
+            {
+                var result = await state.Cdp!.CallAsync("Runtime.evaluate", new JsonObject
+                {
+                    ["expression"] = ActiveJs,
+                    ["returnByValue"] = false,
+                    ["objectGroup"] = Group,
+                    ["silent"] = true,
+                }, session, token);
+                if (!result.TryGetProperty("result", out var r) || Text(r, "objectId") is not { } id) return owner is null ? null : owner with { Sealed = true };
+                objectId = id;
+            }
+            catch (Exception error) when (error is not OperationCanceledException)
+            {
+                return owner is null ? null : owner with { Sealed = true };
+            }
+            if (await FactsOf(state, objectId, session, token) is not { } element) return owner is null ? null : owner with { Sealed = true };
+            var described = await Describe(state, session, new JsonObject { ["objectId"] = objectId }, token);
+            if (described.Backend is { } backend) element = element with { Node = new WebNodeKey(backend, session) };
+            if (!IsFrameOwner(element.Facts)) return element;
+            if (!described.Ok || described.Local) return element with { Sealed = true };
+            if (described.FrameId is null) return element;
+            if (await FrameSession(state, described.FrameId, token) is not { } inner) return element with { Sealed = true };
+            owner = element;
+            session = inner;
+        }
+        return owner! with { Sealed = true };
+    }
+
+    // The element at a point of the visible page (what a click there reaches). The hit test of a page stops at another site's frame,
+    // so the point is hit-tested again inside that frame (its session, the point moved by the frame's place); a frame of the page's
+    // own process was already entered by the hit test, so an <iframe> hit there is its edge. A frame nth cannot reach is sealed.
+    private async Task<Element?> Hit(TabState state, (double X, double Y) point, CancellationToken token)
+    {
+        string? session = null;
+        Element? owner = null;
+        var (dx, dy) = (0d, 0d);
+        for (var depth = 0; depth <= MaxFrameDepth; depth++)
+        {
+            long backend;
+            try
+            {
+                var result = await state.Cdp!.CallAsync("DOM.getNodeForLocation", new JsonObject
+                {
+                    ["x"] = (int)Math.Round(point.X - dx),
+                    ["y"] = (int)Math.Round(point.Y - dy),
+                    ["includeUserAgentShadowDOM"] = false,
+                    ["ignorePointerEventsNone"] = false,
+                }, session, token);
+                if (!result.TryGetProperty("backendNodeId", out var id) || !id.TryGetInt64(out backend)) return owner is null ? null : owner with { Sealed = true };
+            }
+            catch (Exception error) when (error is not OperationCanceledException)
+            {
+                return owner is null ? null : owner with { Sealed = true };
+            }
+            var key = new WebNodeKey(backend, session);
+            if (await Facts(state, key, token) is not { } element) return owner is null ? null : owner with { Sealed = true };
+            if (!IsFrameOwner(element.Facts)) return element;
+            var described = await Describe(state, session, new JsonObject { ["backendNodeId"] = backend }, token);
+            if (!described.Ok) return element with { Sealed = true };
+            if (described.Local || described.FrameId is null) return element;
+            if (await FrameSession(state, described.FrameId, token) is not { } inner) return element with { Sealed = true };
+            (dx, dy) = await FrameOffset(state, inner, token, 0);
+            owner = element;
+            session = inner;
+        }
+        return owner! with { Sealed = true };
+    }
+
+    private static bool IsFrameOwner(WebElementFacts facts) => facts.Tag.ToLowerInvariant() is "iframe" or "frame" or "object" or "embed";
+
+    /// <summary>What DOM.describeNode says of a node: its backend id, the frame it holds, and whether that frame is in the page's own process.</summary>
+    private readonly record struct Described(bool Ok, long? Backend, string? FrameId, bool Local);
+
+    private static async Task<Described> Describe(TabState state, string? session, JsonObject node, CancellationToken token)
     {
         try
         {
-            var result = await state.Cdp!.CallAsync("Runtime.evaluate", new JsonObject
-            {
-                ["expression"] = ActiveJs,
-                ["returnByValue"] = false,
-                ["objectGroup"] = Group,
-                ["silent"] = true,
-            }, cancellationToken: token);
-            if (!result.TryGetProperty("result", out var r) || Text(r, "objectId") is not { } objectId) return null;
-            return await FactsOf(state, objectId, null, token);
+            var result = await state.Cdp!.CallAsync("DOM.describeNode", node, session, token);
+            if (!result.TryGetProperty("node", out var n) || n.ValueKind != JsonValueKind.Object) return default;
+            long? backend = n.TryGetProperty("backendNodeId", out var b) && b.TryGetInt64(out var value) ? value : null;
+            return new Described(true, backend, Text(n, "frameId") is { Length: > 0 } frame ? frame : null, n.TryGetProperty("contentDocument", out _));
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {
-            return null;
+            return default;
         }
     }
 
-    // The element at a point of the visible page (what a click there reaches).
-    private async Task<Element?> Hit(TabState state, (double X, double Y) point, CancellationToken token)
+    // The session of another site's frame (its target id is the frame's id); auto-attach is turned on the first time, and a frame
+    // that has just appeared gets a moment to be announced.
+    private async Task<string?> FrameSession(TabState state, string frameId, CancellationToken token)
     {
-        try
+        await Frames(state, token);
+        for (var attempt = 0; ; attempt++)
         {
-            var result = await state.Cdp!.CallAsync("DOM.getNodeForLocation", new JsonObject
-            {
-                ["x"] = (int)Math.Round(point.X),
-                ["y"] = (int)Math.Round(point.Y),
-                ["includeUserAgentShadowDOM"] = false,
-                ["ignorePointerEventsNone"] = false,
-            }, cancellationToken: token);
-            if (!result.TryGetProperty("backendNodeId", out var id) || !id.TryGetInt64(out var backend)) return null;
-            return await Facts(state, new WebNodeKey(backend, null), token);
-        }
-        catch (Exception error) when (error is not OperationCanceledException)
-        {
-            return null;
+            var found = state.Cdp!.Sessions.FirstOrDefault(s => string.Equals(s.TargetId, frameId, StringComparison.Ordinal));
+            if (found is not null) return found.SessionId;
+            if (attempt == 1) return null;
+            await hub.Clock.Delay(100, token);
         }
     }
 
@@ -901,15 +986,34 @@ public sealed partial class WebAgentEngine
         {
             var owner = await cdp.CallAsync("DOM.getFrameOwner", new JsonObject { ["frameId"] = frame.TargetId }, frame.ParentSessionId, token);
             if (!owner.TryGetProperty("backendNodeId", out var id) || !id.TryGetInt64(out var backend)) return (0, 0);
-            var quads = await cdp.CallAsync("DOM.getContentQuads", new JsonObject { ["backendNodeId"] = backend }, frame.ParentSessionId, token);
-            if (!quads.TryGetProperty("quads", out var list) || list.GetArrayLength() == 0) return (0, 0);
-            var v = list[0].EnumerateArray().Select(n => n.GetDouble()).ToArray();
+            // The frame's document starts at its owner's content box (inside the border and padding); its quads when there is no box model.
+            var v = await ContentBox(cdp, backend, frame.ParentSessionId, token);
+            if (v is null)
+            {
+                var quads = await cdp.CallAsync("DOM.getContentQuads", new JsonObject { ["backendNodeId"] = backend }, frame.ParentSessionId, token);
+                if (!quads.TryGetProperty("quads", out var list) || list.GetArrayLength() == 0) return (0, 0);
+                v = [.. list[0].EnumerateArray().Select(n => n.GetDouble())];
+            }
             var (px, py) = frame.ParentSessionId is null ? (0d, 0d) : await FrameOffset(state, frame.ParentSessionId, token, depth + 1);
             return (Math.Min(Math.Min(v[0], v[2]), Math.Min(v[4], v[6])) + px, Math.Min(Math.Min(v[1], v[3]), Math.Min(v[5], v[7])) + py);
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {
             return (0, 0);
+        }
+    }
+
+    private static async Task<double[]?> ContentBox(CdpBroker cdp, long backend, string? session, CancellationToken token)
+    {
+        try
+        {
+            var box = await cdp.CallAsync("DOM.getBoxModel", new JsonObject { ["backendNodeId"] = backend }, session, token);
+            if (!box.TryGetProperty("model", out var model) || !model.TryGetProperty("content", out var content) || content.ValueKind != JsonValueKind.Array || content.GetArrayLength() < 8) return null;
+            return [.. content.EnumerateArray().Select(n => n.GetDouble())];
+        }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            return null;
         }
     }
 
@@ -1069,5 +1173,12 @@ public sealed partial class WebAgentEngine
     }
 
     /// <summary>One element as an action sees it: its facts, what kind of field it is, its form's visible fields.</summary>
-    private sealed record Element(WebElementFacts Facts, bool Editable, bool ContentEditable, bool IsSelect, bool? Checked, IReadOnlyList<KeyValuePair<string, string>> Rows, IReadOnlyList<string> Options);
+    private sealed record Element(WebElementFacts Facts, bool Editable, bool ContentEditable, bool IsSelect, bool? Checked, IReadOnlyList<KeyValuePair<string, string>> Rows, IReadOnlyList<string> Options)
+    {
+        /// <summary>The DOM node the facts were read from (its backend id in its session), when known.</summary>
+        public WebNodeKey? Node { get; init; }
+
+        /// <summary>An element inside a frame nth could not reach: only the frame is known, so nothing is pressed or typed there.</summary>
+        public bool Sealed { get; init; }
+    }
 }
