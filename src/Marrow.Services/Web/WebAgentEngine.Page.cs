@@ -26,6 +26,10 @@ public sealed partial class WebAgentEngine
     private const string FrameRefusal = "That point or the focused field is inside a frame of another site that nth cannot read, so nth does not act there. "
         + "Read the page again (web_read shows the elements of the frames it can reach) and act on a ref.";
 
+    // ED-NEW-web-sec-agent-2 (security review H2; DESIGN 8.4 "Clipboard read: agent tabs denied").
+    private const string ClipboardRefusal = "nth never uses the clipboard for a model (paste, copy or cut): it would read or replace the user's own clipboard. "
+        + "Use web_read to read text and web_type to type it.";
+
     private const string SecretSelector =
         "input[type=password],input[autocomplete~=current-password],input[autocomplete~=new-password],input[autocomplete~=one-time-code],input[autocomplete*=cc-]";
 
@@ -391,8 +395,12 @@ public sealed partial class WebAgentEngine
                     var press = presses[i];
                     var done = i == 0 ? "" : "Pressed the first " + N(i) + " of " + N(presses.Count) + " keys. ";
                     if (TookOver(state)) return Fail(WebErrorCodes.TookOver, done + "The user took over " + state.Short + ". Do not use that tab until they resume.");
+                    // ED-NEW-web-sec-agent-2: a modifier never takes a key past the checks. A clipboard chord never runs; Enter and Space press
+                    // what has focus, whatever the modifiers; anything that can change a field (a character, Backspace, Delete, a chord on a
+                    // character key) is judged on the focused field.
+                    if (WebAgentKeys.TouchesClipboard(press)) return Fail(WebErrorCodes.Denied, done + ClipboardRefusal);
                     var commands = (press.Modifiers & (WebAgentKeys.Ctrl | WebAgentKeys.Alt | WebAgentKeys.Meta)) != 0;
-                    if (press.IsEnter || press.Text is not null)
+                    if (press.IsEnter || WebAgentKeys.Activates(press) || WebAgentKeys.Edits(press))
                     {
                         var active = await ActiveFacts(state, s.Token);
                         if (active is { Sealed: true }) return Fail(WebErrorCodes.Denied, done + FrameRefusal);
@@ -400,8 +408,8 @@ public sealed partial class WebAgentEngine
                         {
                             var verdict = press.IsEnter
                                 ? commands ? Strictest((EnterVerdict(active, origin), active), (WebGuardVerdict.Ask(WebGuardCategory.Send, "send"), active)).Verdict : EnterVerdict(active, origin)
-                                : press.Key == " " && Pressable(active.Facts) ? WebAgentPolicy.CheckPress(active.Facts, origin)
-                                : commands ? WebGuardVerdict.Pass : WebAgentPolicy.CheckType(active.Facts);
+                                : WebAgentKeys.Activates(press) && Pressable(active.Facts) ? WebAgentPolicy.CheckPress(active.Facts, origin)
+                                : WebAgentPolicy.CheckType(active.Facts);
                             if (verdict.Kind == WebGuardKind.Deny) return Fail(WebErrorCodes.Denied, done + verdict.Reason);
                             if (await Guard(s, state, verdict, active.Facts, "press|" + Identity(active.Facts), null, active.Rows) is { } stop)
                             {

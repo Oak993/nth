@@ -1,7 +1,8 @@
 // PORT-ONLY: web surfaces W11, web_key's presses (E:/Droppy/work/design/web-surfaces/DESIGN.md 5.10 "web_key {tab, keys}: key
 // presses (Input.dispatchKeyEvent)"; ED-NEW-web-w11-1). No Swift counterpart. "tab tab enter", "ctrl+a", "shift+tab" become
 // DevTools key events (key, code, Windows virtual-key code, the text a printable key types, and CDP's modifier bits: Alt 1,
-// Ctrl 2, Meta 4, Shift 8). The keys go only to the page through CDP: never the user's keyboard, never Windows.
+// Ctrl 2, Meta 4, Shift 8). The keys go only to the page through CDP: never the user's keyboard, never Windows. A chord is judged
+// like the key it modifies (ED-NEW-web-sec-agent-2): Ctrl+Space presses a button, Ctrl+Z edits a field, and a clipboard chord never runs.
 using System.Globalization;
 
 namespace Marrow.Core.Web;
@@ -96,5 +97,40 @@ public static class WebAgentKeys
             if (presses.Count > MaxPresses) return ([], "at most " + MaxPresses.ToString(CultureInfo.InvariantCulture) + " presses in one call");
         }
         return (presses, null);
+    }
+
+    // ED-NEW-web-sec-agent-2 (security review H2): which presses web_key judges, whatever their modifiers.
+
+    /// <summary>
+    /// A press that uses the user's Windows clipboard: a paste (Ctrl+V, Ctrl+Shift+V, Shift+Insert) reads it into the page, a copy or
+    /// cut (Ctrl+C, Ctrl+X, Ctrl+Insert, Shift+Delete) replaces it. Agent tabs never read the clipboard and page content never
+    /// reaches it without the user (DESIGN 8.4), so web_key refuses these.
+    /// </summary>
+    public static bool TouchesClipboard(WebKeyPress press)
+    {
+        ArgumentNullException.ThrowIfNull(press);
+        var command = (press.Modifiers & (Ctrl | Meta)) != 0;
+        var shift = (press.Modifiers & Shift) != 0;
+        return (command && press.Code is "KeyV" or "KeyC" or "KeyX")
+            || (press.Key == "Insert" && (shift || command))
+            || (press.Key == "Delete" && shift);
+    }
+
+    /// <summary>A press of the focused control: Space (with any modifier) presses a button as a click does.</summary>
+    public static bool Activates(WebKeyPress press)
+    {
+        ArgumentNullException.ThrowIfNull(press);
+        return press.Key == " ";
+    }
+
+    /// <summary>
+    /// A press that can change what a field holds: a typed character, Backspace or Delete, and any Ctrl, Alt or Meta chord on a
+    /// character key (undo, redo, delete a word, a page's own editing shortcut). The focused field is judged before it runs.
+    /// </summary>
+    public static bool Edits(WebKeyPress press)
+    {
+        ArgumentNullException.ThrowIfNull(press);
+        if (press.Text is not null || press.Key is "Backspace" or "Delete") return true;
+        return (press.Modifiers & (Ctrl | Alt | Meta)) != 0 && press.Key.Length == 1;
     }
 }
