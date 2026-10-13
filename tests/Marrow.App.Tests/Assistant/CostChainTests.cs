@@ -109,6 +109,23 @@ public sealed class CostChainTests : IDisposable
     }
 
     [Fact]
+    public void A_turn_that_runs_on_another_account_is_asked_of_the_caps_for_that_account_through_the_reserve()
+    {
+        // AS-14: the reserve is given the account a reviewer's turn will run on and passes it on to the caps.
+        var (rig, costs) = Chain();
+        using var owned = rig;
+        using var ownedCosts = costs;
+        var record = WithCap(rig, 5);
+        costs.OnSpend(rig.Missions.Agents.Lead(record).Id, ReserveRig.Model, 450_000);                 // 4.5 of the task's 5% on Claude 20x
+        Assert.Null(CapCard(rig, record));
+
+        Assert.True(rig.Guard.BeforeTurn(rig.Missions.Now(record), null, ProviderKind.Codex, ReserveRig.Model, ReserveTurns.Review, ReserveRig.CodexA));   // on Codex A it has used nothing
+        Assert.Null(CapCard(rig, record));
+        Assert.False(rig.Guard.BeforeTurn(rig.Missions.Now(record), null, ProviderKind.Claude, ReserveRig.Model, ReserveTurns.Review));                  // on its own account 4.5 + 1.3 passes 5
+        Assert.NotNull(CapCard(rig, record));
+    }
+
+    [Fact]
     public void The_reserve_says_which_usage_windows_an_account_reports_so_a_percent_cap_counts_only_those()
     {
         var (rig, costs) = Chain();

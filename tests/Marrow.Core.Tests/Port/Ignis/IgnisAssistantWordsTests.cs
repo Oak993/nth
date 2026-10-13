@@ -13,8 +13,8 @@ public sealed class IgnisAssistantWordsTests
     {
         Assert.Equal("This is your own conversation, so Ignis never keeps it warm. After a break the first reply is a little slower.", IgnisWords.Next(IgnisNext.HomeThread));
         Assert.Equal(IgnisWords.Next(IgnisNext.HomeThread) + " It still tidies up between tasks.", IgnisWords.Next(IgnisNext.HomeThreadTidy));
-        Assert.DoesNotContain("keeps the quick memory warm", IgnisWords.Next(IgnisNext.HomeThread));
-        Assert.DoesNotContain("keeps the quick memory warm", IgnisWords.Next(IgnisNext.HomeThreadTidy));
+        Assert.DoesNotContain("keeps the quick memory warm", IgnisWords.Next(IgnisNext.HomeThread), StringComparison.Ordinal);
+        Assert.DoesNotContain("keeps the quick memory warm", IgnisWords.Next(IgnisNext.HomeThreadTidy), StringComparison.Ordinal);
     }
 
     [Fact]
