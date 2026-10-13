@@ -99,6 +99,7 @@ public sealed class SplitterValue : SplitterTarget
     private readonly SplitterOrientation orientation;
     private readonly Action<double> apply;
     private readonly Action<SplitterState>? commit;
+    private readonly Action<TimeSpan> frameCallback;
     private Action<TimeSpan>? pendingFrame;
     private IFrameSource? frameSource;
     private ContinuousInstant lastFrame;
@@ -109,6 +110,7 @@ public sealed class SplitterValue : SplitterTarget
         this.orientation = orientation;
         this.apply = apply;
         this.commit = commit;
+        frameCallback = OnFrame;
         Model = new SplitterModel(limits, state);
         owner.DetachedFromVisualTree += (_, _) => Finish();
     }
@@ -216,7 +218,7 @@ public sealed class SplitterValue : SplitterTarget
         }
         lastFrame = SwiftClock.Now;
         frameSource = FrameClock.Source.Current;
-        pendingFrame = OnFrame;
+        pendingFrame = frameCallback;
         frameSource.RequestFrame(pendingFrame);
     }
 
@@ -229,7 +231,7 @@ public sealed class SplitterValue : SplitterTarget
         var moving = Model.Shown.Step(dt);
         apply(Model.Shown.Value);
         if (!moving) return;
-        pendingFrame = OnFrame;
+        pendingFrame = frameCallback;
         frameSource?.RequestFrame(pendingFrame);
     }
 

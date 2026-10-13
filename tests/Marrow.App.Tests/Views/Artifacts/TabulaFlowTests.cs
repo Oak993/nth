@@ -374,12 +374,15 @@ public sealed class TabulaFlowTests(HeadlessSession headless)
         rig.State.ShowVersion(1);
         rig.State.SetView(TabulaViewMode.Code);
         rig.State.SetDiffLayout(TabulaDiffLayout.SideBySide);
+        HeadlessSession.RunDispatcherUntil(rig.State.Persistence, TimeSpan.FromSeconds(10));
         var again = TabulaState.Load(TabulaRig.Chat, rig.StateFile);
+        HeadlessSession.RunDispatcherUntil(again.Persistence, TimeSpan.FromSeconds(10));
         Assert.Equal((new TabulaRef(TabulaRig.Chat, first.Artifact.Id), (int?)1, TabulaViewMode.Code, TabulaDiffLayout.SideBySide),
             (again.Selected, again.Version, again.View, again.DiffLayout));
         Assert.False(again.IsAskOpen);
         File.WriteAllText(rig.StateFile, "{ not json");
         var broken = TabulaState.Load(TabulaRig.Chat, rig.StateFile);
+        HeadlessSession.RunDispatcherUntil(broken.Persistence, TimeSpan.FromSeconds(10));
         Assert.Null(broken.Selected);
     });
 

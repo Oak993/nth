@@ -447,6 +447,7 @@ public sealed class WebSurface : IDisposable
         switch (action)
         {
             case WebFailureAction.Reload:
+                CancelProbe(view);
                 view.HungSince = null;
                 view.SetFailure(null);
                 if (view.Engine is { IsAttached: true } engine) engine.Reload(hard: false);
@@ -455,6 +456,7 @@ public sealed class WebSurface : IDisposable
             case WebFailureAction.Wait:
                 if (view.Failure?.Kind == WebFailureKind.RendererHung)
                 {
+                    CancelProbe(view);
                     view.HungSince = null;
                     view.SetFailure(null);
                 }
@@ -657,22 +659,31 @@ public sealed class WebSurface : IDisposable
         log.Info($"web: view {view.Sequence} discarded to its snapshot after 10 minutes hidden");
     }
 
+    internal void CancelProbe(WebSurfaceView view)
+    {
+        var stop = view.ProbeCancellation;
+        view.ProbeCancellation = null;
+        view.IsProbing = false;
+        stop?.Cancel();
+    }
+
     private async Task ProbeAsync(WebSurfaceView view)
     {
         if (view.Engine is not { } engine) return;
+        using var stop = new CancellationTokenSource();
+        view.ProbeCancellation = stop;
         view.IsProbing = true;
         try
         {
-            using var stop = new CancellationTokenSource();
-            var ping = engine.WaitForFramesAsync(1, Timeout.InfiniteTimeSpan, stop.Token);
+            var ping = engine.WaitForFramesAsync(1, Timeout.InfiniteTimeSpan, stop.Token).WaitAsync(stop.Token);
             var timer = Task.Delay(Options.HangTimeout, time, stop.Token);
             if (await Task.WhenAny(ping, timer) != ping)
             {
                 // DESIGN 2.7: no requestAnimationFrame reply in 5 s: the page is not responding.
-                if (view.Engine == engine && view.Liveness == WebLiveness.Live && view.IsLiveVisible) MarkHung(view);
+                if (!stop.IsCancellationRequested && view.Engine == engine && view.Liveness == WebLiveness.Live && view.IsLiveVisible) MarkHung(view);
             }
 
-            if (await SafeAwait(ping) && view.Engine == engine && view.Failure?.Kind == WebFailureKind.RendererHung)
+            if (await SafeAwait(ping) && !stop.IsCancellationRequested && view.Engine == engine && view.Failure?.Kind == WebFailureKind.RendererHung)
             {
                 view.HungSince = null;
                 view.SetFailure(null);
@@ -682,7 +693,11 @@ public sealed class WebSurface : IDisposable
         }
         finally
         {
-            view.IsProbing = false;
+            if (view.ProbeCancellation == stop)
+            {
+                view.ProbeCancellation = null;
+                view.IsProbing = false;
+            }
         }
     }
 
@@ -712,7 +727,7 @@ public sealed class WebSurface : IDisposable
         WebSnapshot? frame = null;
         try
         {
-            frame = await engine.CaptureSnapshotAsync(CancellationToken.None);
+            frame = await CaptureAndStoreAsync(view, engine, CancellationToken.None);
         }
         catch (Exception ex) when (ex is OperationCanceledException or InvalidOperationException or System.Runtime.InteropServices.COMException)
         {
@@ -720,24 +735,38 @@ public sealed class WebSurface : IDisposable
         }
         finally
         {
-            Cache.EndRefresh(view, frame);
+            Cache.EndRefresh(view, view.Engine == engine && views.Contains(view) ? frame : null);
         }
 
-        if (frame is not null) view.RaiseChanged();
     }
 
     private async Task<WebSnapshot?> CaptureAndStoreAsync(WebSurfaceView view, IWebEngineView engine, CancellationToken cancellationToken)
     {
         try
         {
-            var frame = await engine.CaptureSnapshotAsync(cancellationToken);
-            if (frame is not null)
+            // A renderer may ignore cancellation. Bound our wait independently, with the
+            // existing unresponsive-page deadline, including the first uncached gesture.
+            using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            WebSnapshot? frame;
+            try
+            {
+                frame = await engine.CaptureSnapshotAsync(stop.Token).WaitAsync(Options.HangTimeout, time, cancellationToken);
+            }
+            finally { stop.Cancel(); }
+            if (frame is not null && !disposed && views.Contains(view) && view.Engine == engine)
             {
                 Cache.Put(view, frame);
                 view.RaiseChanged();
             }
 
-            return frame;
+            return !disposed && views.Contains(view) && view.Engine == engine ? frame : null;
+        }
+        catch (TimeoutException)
+        {
+            if (!disposed && views.Contains(view) && view.Engine == engine && view.Liveness == WebLiveness.Live)
+                MarkHung(view);
+            log.Info($"web: capture timed out in view {view.Sequence}");
+            return null;
         }
         catch (Exception ex) when (ex is OperationCanceledException or InvalidOperationException or System.Runtime.InteropServices.COMException)
         {

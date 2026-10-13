@@ -1,5 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Avalonia.Threading;
+using Marrow.Services.Store;
 using Marrow.Core.Port;
 
 // PORT-ONLY: web surfaces W14, what a thread's Tabula pane shows (E:/Droppy/work/design/web-surfaces/DESIGN.md 3.5 "Its state
@@ -50,6 +52,13 @@ public sealed class TabulaState
 
     private readonly string? file;
     private readonly List<TabulaPendingAsk> asks = [];
+    private JsonObject? savedFields;
+    private bool preserveFile;
+    private int savedRevision;
+    private TabulaState? storedState;
+    internal static Ambient<Func<string, byte[]>> ReadBytes { get; } = new((Func<string, byte[]>)File.ReadAllBytes);
+    internal static Ambient<Action<string, byte[]>> WriteBytes { get; } = new((Action<string, byte[]>)FileOps.WriteAtomic);
+    internal Task Persistence { get; private set; } = Task.CompletedTask;
 
     public TabulaState(Guid thread, string? file = null)
     {
@@ -244,7 +253,11 @@ public sealed class TabulaState
 
     private void Commit(bool save)
     {
-        if (save) Save();
+        if (save)
+        {
+            savedRevision++;
+            Save();
+        }
         Changed?.Invoke();
     }
 
@@ -253,11 +266,55 @@ public sealed class TabulaState
     /// <summary>Reads a thread's saved choice; a missing or broken file is the empty pane, never an error.</summary>
     public static TabulaState Load(Guid thread, string? file)
     {
+        if (file is not null && Dispatcher.UIThread.CheckAccess())
+        {
+            var pending = new TabulaState(thread, file);
+            pending.Persistence = pending.LoadForPane();
+            return pending;
+        }
+        return ReadStored(thread, file);
+    }
+
+    // ED-NEW-web-review-27: disk reads and atomic-write retries never occupy the UI thread.
+    // A selection made while loading wins; stored extension fields and a future version still apply.
+    private async Task LoadForPane()
+    {
+        TabulaState loaded = this;
+        await DiskWriter.Shared.RunQueued(() =>
+        {
+            loaded = ReadStored(Thread, file);
+            storedState = loaded;
+        }).ConfigureAwait(false);
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            savedFields = loaded.savedFields;
+            preserveFile = loaded.preserveFile;
+            if (savedRevision == 0)
+            {
+                Selected = loaded.Selected;
+                Version = loaded.Version;
+                View = loaded.View;
+                Compare = loaded.Compare;
+                DiffLayout = loaded.DiffLayout;
+                CodeFile = loaded.CodeFile;
+                Changed?.Invoke();
+            }
+        });
+    }
+
+    private static TabulaState ReadStored(Guid thread, string? file)
+    {
         var state = new TabulaState(thread, file);
         if (file is null || !File.Exists(file)) return state;
         try
         {
-            if (JsonNode.Parse(File.ReadAllBytes(file)) is not JsonObject root) return state;
+            if (JsonNode.Parse(ReadBytes.Current(file)) is not JsonObject root) return state;
+            if (root["format"]?.GetValue<int>() is > 1)
+            {
+                state.preserveFile = true;
+                return state;
+            }
+            state.savedFields = (JsonObject)root.DeepClone();
             if (root["artifact"]?.GetValue<string>() is { Length: > 0 } id)
             {
                 var owner = root["thread"]?.GetValue<string>() is { } text && Guid.TryParse(text, out var other) ? other : thread;
@@ -278,22 +335,37 @@ public sealed class TabulaState
 
     private void Save()
     {
-        if (file is null) return;
-        var root = new JsonObject
+        if (file is null || preserveFile) return;
+        var root = new JsonObject();
+        root["format"] = 1;
+        root["artifact"] = Selected?.Id;
+        root["version"] = Version;
+        root["view"] = View.ToString().ToLowerInvariant();
+        root["compare"] = Compare;
+        root["diff"] = DiffLayout == TabulaDiffLayout.SideBySide ? "side" : "inline";
+        root["file"] = CodeFile;
+        root["thread"] = Selected is { } selected && selected.Thread != Thread ? selected.Thread.ToString("D") : null;
+        if (Dispatcher.UIThread.CheckAccess())
         {
-            ["format"] = 1,
-            ["artifact"] = Selected?.Id,
-            ["version"] = Version,
-            ["view"] = View.ToString().ToLowerInvariant(),
-            ["compare"] = Compare,
-            ["diff"] = DiffLayout == TabulaDiffLayout.SideBySide ? "side" : "inline",
-            ["file"] = CodeFile,
-        };
-        if (Selected is { } selected && selected.Thread != Thread) root["thread"] = selected.Thread.ToString("D");
+            // Read and write operations are already ordered by the shutdown-drained queue.
+            // They never wait on the UI continuation that restores the visible choice.
+            Persistence = DiskWriter.Shared.RunQueued(() => WriteStored(root));
+            return;
+        }
+        WriteStored(root);
+    }
+
+    private void WriteStored(JsonObject choice)
+    {
+        var stored = storedState ?? this;
+        if (file is null || stored.preserveFile) return;
+        var root = stored.savedFields is null ? new JsonObject() : (JsonObject)stored.savedFields.DeepClone();
+        foreach (var field in choice) root[field.Key] = field.Value?.DeepClone();
+        if (root["thread"] is null) root.Remove("thread");
         try
         {
             if (Path.GetDirectoryName(file) is { } folder && Directory.Exists(folder))
-                FileOps.WriteAtomic(file, JsonSerializer.SerializeToUtf8Bytes(root));
+                WriteBytes.Current(file, JsonSerializer.SerializeToUtf8Bytes(root));
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {

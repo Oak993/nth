@@ -56,6 +56,7 @@ public sealed class SplitterGrip : Control
     private readonly SplitterSpring along = new(double.NaN, response: 0.25, damping: 1, epsilon: 0.05);
 
     private Action<TimeSpan>? pendingFrame;
+    private readonly Action<TimeSpan> frameCallback;
     private IFrameSource? frameSource;
     private ContinuousInstant lastFrame;
     private bool shown;
@@ -65,6 +66,7 @@ public sealed class SplitterGrip : Control
 
     public SplitterGrip(SplitterOrientation orientation, SplitterCorner corner = SplitterCorner.BottomRight)
     {
+        frameCallback = OnFrame;
         Orientation = orientation;
         Corner = corner;
         IsHitTestVisible = false;
@@ -257,7 +259,7 @@ public sealed class SplitterGrip : Control
         }
         lastFrame = Now;
         frameSource = FrameClock.Source.Current;
-        pendingFrame = OnFrame;
+        pendingFrame = frameCallback;
         frameSource.RequestFrame(pendingFrame);
         Apply();
     }
@@ -274,7 +276,7 @@ public sealed class SplitterGrip : Control
         Apply();
         if (Moving(now))
         {
-            pendingFrame = OnFrame;
+            pendingFrame = frameCallback;
             frameSource?.RequestFrame(pendingFrame);
         }
     }

@@ -120,6 +120,7 @@ public sealed class WebSurfaceView : IWebViewSurface
     internal DateTimeOffset? DiscardRetryAt { get; set; }
     internal long ActivityVersion { get; set; }
     internal bool IsProbing { get; set; }
+    internal CancellationTokenSource? ProbeCancellation { get; set; }
     internal DateTimeOffset? LastProbeAt { get; set; }
     internal DateTimeOffset? HungSince { get; set; }
     internal bool StepHangReported { get; set; }
@@ -401,6 +402,7 @@ public sealed class WebSurfaceView : IWebViewSurface
 
     internal void ReleaseEngine()
     {
+        owner.CancelProbe(this);
         if (engine is null) return;
         CancelDiscardNotice();
         navigationTarget = null;

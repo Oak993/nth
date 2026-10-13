@@ -120,6 +120,7 @@ public sealed partial class PaneWorkspace : Panel
     private bool dirty = true;
     private bool pendingAnimate;
     private Action<TimeSpan>? pendingFrame;
+    private readonly Action<TimeSpan> frameCallback;
     private IFrameSource? frameSource;
     private TimeSpan? lastFrame;
     private bool moving;
@@ -144,6 +145,7 @@ public sealed partial class PaneWorkspace : Panel
 
     public PaneWorkspace(Control chatColumn, Func<PaneKind, PaneContent?> factory)
     {
+        frameCallback = OnFrame;
         ArgumentNullException.ThrowIfNull(chatColumn);
         this.factory = factory ?? throw new ArgumentNullException(nameof(factory));
         chat.Content = chatColumn;
@@ -1053,7 +1055,7 @@ public sealed partial class PaneWorkspace : Panel
     {
         if (pendingFrame is not null) return;
         frameSource = FrameClock.Source.Current;
-        pendingFrame = OnFrame;
+        pendingFrame = frameCallback;
         frameSource.RequestFrame(pendingFrame);
     }
 

@@ -144,10 +144,10 @@ public sealed class TerminalPaneTests(HeadlessSession headless)
     });
 
     [Fact]
-    public void Escape_at_the_shell_prompt_reaches_the_shell_in_a_pane_where_the_drawer_would_close() => TerminalPanelRig.RunWithRealShell(headless, rig =>
+    public void Escape_at_the_shell_prompt_reaches_the_shell_in_a_pane_where_the_drawer_would_close_Native() => TerminalPanelRig.RunWithRealShell(headless, rig =>
     {
         // A shell that waits for one key and prints its code: 27 is Escape. In the drawer a bare Escape at the prompt is the drawer's
-        // (TerminalPanelHighRiskTests); in a pane there is no "close at the prompt", so the byte goes to the shell.
+        // (TerminalPanelNativeHighRiskTests); in a pane there is no "close at the prompt", so the byte goes to the shell.
         var command = "Write-Output 'KEYWAIT'; $k = [Console]::ReadKey($true); Write-Output ('KEY=' + [int]$k.KeyChar); Start-Sleep -Seconds 5";
         TerminalSession session = null!;
         AvaloniaWindow window = null!;

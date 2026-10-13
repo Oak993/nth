@@ -65,6 +65,8 @@ public sealed partial class WebAgentEngine : IDisposable
     private bool stopped;
     private int nextShort;
     private bool disposed;
+    private int activeCalls;
+    private bool resourcesDisposed;
 
     internal WebAgentEngine(WebAgentHub hub, string thread)
     {
@@ -111,44 +113,60 @@ public sealed partial class WebAgentEngine : IDisposable
         WatchRun();
         if (StoppedForTurn) return Stopped();
         CancellationToken turnToken;
-        lock (gate) turnToken = turn.Token;
-        using var watch = hub.Run.Watch(cancellationToken, Thread, WebAgentHub.App, 0);
-        using var joined = hub.TactusPause?.Join(Thread, WebAgentHub.App, new PcWaitState());
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(watch.Token, turnToken);
-        using var crash = CancellationTokenSource.CreateLinkedTokenSource(linked.Token);
-        var token = crash.Token;
+        lock (gate)
+        {
+            if (disposed) return Stopped();
+            turnToken = turn.Token;
+            activeCalls++;
+        }
         try
         {
-            await queue.WaitAsync(token).ConfigureAwait(false);
+            using var watch = hub.Run.Watch(cancellationToken, Thread, WebAgentHub.App, 0);
+            using var joined = hub.TactusPause?.Join(Thread, WebAgentHub.App, new PcWaitState());
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(watch.Token, turnToken);
+            using var crash = CancellationTokenSource.CreateLinkedTokenSource(linked.Token);
+            var token = crash.Token;
             try
             {
-                if (StoppedForTurn) return Stopped();
-                var step = new Step(tool, arguments ?? [], caller, host, asker, token);
-                lock (gate) running = crash;
+                await queue.WaitAsync(token).ConfigureAwait(false);
                 try
                 {
-                    // A stop ends the call at once, even while a page call it made is still on its way back.
-                    return await host.OnUi(() => Dispatch(step)).WaitAsync(token).ConfigureAwait(false);
+                    if (StoppedForTurn) return Stopped();
+                    var step = new Step(tool, arguments ?? [], caller, host, asker, token);
+                    lock (gate) running = crash;
+                    try
+                    {
+                        // A stop ends the call at once, even while a page call it made is still on its way back.
+                        return await host.OnUi(() => Dispatch(step)).WaitAsync(token).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        lock (gate) running = null;
+                    }
                 }
                 finally
                 {
-                    lock (gate) running = null;
+                    queue.Release();
                 }
             }
-            finally
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && crashed is { } why && !linked.IsCancellationRequested)
             {
-                queue.Release();
+                crashed = null;
+                return Fail(WebErrorCodes.PageFailed, "The page failed while this step ran (" + why + "). Nothing was sent again. Wait for it to reload, then read it before you act.");
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                if (watch.Stopped) StopTurn(watch.StoppedBy ?? PcStopSource.Pill);
+                return Stopped();
             }
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && crashed is { } why && !linked.IsCancellationRequested)
+        finally
         {
-            crashed = null;
-            return Fail(WebErrorCodes.PageFailed, "The page failed while this step ran (" + why + "). Nothing was sent again. Wait for it to reload, then read it before you act.");
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            if (watch.Stopped) StopTurn(watch.StoppedBy ?? PcStopSource.Pill);
-            return Stopped();
+            lock (gate)
+            {
+                activeCalls--;
+                DisposeResourcesIfIdle();
+            }
         }
     }
 
@@ -212,6 +230,15 @@ public sealed partial class WebAgentEngine : IDisposable
             watchedRun = null;
         }
         foreach (var state in all) state.Unhook();
+        lock (gate) DisposeResourcesIfIdle();
+    }
+
+    // ED-NEW-web-review-24: cancellation releases the running call's queue lease first.
+    // Reentrant disposal must not dispose that lease, or a queued waiter, underneath it.
+    private void DisposeResourcesIfIdle()
+    {
+        if (!disposed || activeCalls != 0 || resourcesDisposed) return;
+        resourcesDisposed = true;
         turn.Dispose();
         queue.Dispose();
     }
@@ -1042,7 +1069,7 @@ public sealed partial class WebAgentEngine : IDisposable
         var run = hub.Run;
         lock (gate)
         {
-            if (ReferenceEquals(run, watchedRun)) return;
+            if (disposed || ReferenceEquals(run, watchedRun)) return;
             if (watchedRun is not null) watchedRun.Stopped -= OnRunStopped;
             watchedRun = run;
             run.Stopped += OnRunStopped;

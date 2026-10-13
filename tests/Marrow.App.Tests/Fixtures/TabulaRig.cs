@@ -286,6 +286,7 @@ public sealed class TabulaRig : IDisposable
 
     public void Dispose()
     {
+        HeadlessSession.RunDispatcherUntil(State.Persistence, TimeSpan.FromSeconds(10));
         Window.Close();
         Surface.Dispose();
         motionScope.Dispose();

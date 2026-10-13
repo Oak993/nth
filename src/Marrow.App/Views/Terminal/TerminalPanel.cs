@@ -377,7 +377,7 @@ public sealed class TerminalPanel : Decorator
         dragHeight = height;
         ApplyHeight();
         if (resizeValue is null || resizeValue.Model.IsDragging || resizeValue.Model.Shown.IsMoving) return;
-        if (closePending)
+        if (closePending && resizeValue.Model.State.IsCollapsed)
         {
             Close();
             return;
@@ -396,6 +396,7 @@ public sealed class TerminalPanel : Decorator
             if (!resizeValue.Model.Shown.IsMoving) Close();
             return;
         }
+        closePending = false; // ED-NEW-web-review-8: a restore/reset interrupts the pending collapse.
         current.Settings.TerminalHeight = state.Value;
         if (!resizeValue.Model.Shown.IsMoving) dragHeight = null;
         ApplyHeight();

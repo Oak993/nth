@@ -34,7 +34,7 @@ public sealed class TerminalHostReparentTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-TERM-028")] // App/Views/Terminal/TerminalPanel.swift:188,225-250
-    public void Switching_tabs_moves_each_sessions_one_view_into_the_host_container_and_keeps_its_scrollback() => TerminalPanelRig.RunWithRealShell(headless, rig =>
+    public void Switching_tabs_moves_each_sessions_one_view_into_the_host_container_and_keeps_its_scrollback_Native() => TerminalPanelRig.RunWithRealShell(headless, rig =>
     {
         var directory = TerminalPanelRig.Folder("reparent tabs");
         TerminalSession one = null!;

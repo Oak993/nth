@@ -154,9 +154,9 @@ public sealed class NthUiEvaluator
         switch (node.Op)
         {
             case "==":
-                return Spend(Size(left) + Size(right)) ? NthUiValue.Of(left.Equals(right)) : OutOfSteps;
+                return NthUiValue.Of(EqualWithinBudget(left, right));
             case "!=":
-                return Spend(Size(left) + Size(right)) ? NthUiValue.Of(!left.Equals(right)) : OutOfSteps;
+                return NthUiValue.Of(!EqualWithinBudget(left, right));
             case "<" or "<=" or ">" or ">=":
                 {
                     int order;
@@ -189,6 +189,43 @@ public sealed class NthUiEvaluator
             "%" => y == 0 ? NthUiValue.Error("division by zero") : NthUiValue.Of(x % y),
             _ => NthUiValue.Error($"unknown operator '{node.Op}'"),
         };
+    }
+
+    // Equality walks every nested value under the same pass budget. A compact shared
+    // value graph can otherwise expand into millions of comparisons (ED-NEW-web-review-6).
+    private bool EqualWithinBudget(NthUiValue left, NthUiValue right, int depth = 0)
+    {
+        if (!Spend()) return false;
+        if (depth >= MaxNameNesting) { Spend(Math.Max(0, budget.Remaining) + 1); return false; }
+        if (left.Kind != right.Kind) return false;
+        if (left.IsList)
+        {
+            if (left.Items.Count != right.Items.Count) return false;
+            for (var i = 0; i < left.Items.Count; i++)
+                if (!EqualWithinBudget(left.Items[i], right.Items[i], depth + 1)) return false;
+            return true;
+        }
+        if (left.IsObject)
+        {
+            if (left.Fields.Count != right.Fields.Count) return false;
+            foreach (var field in left.Fields)
+            {
+                var found = false;
+                foreach (var candidate in right.Fields)
+                {
+                    // ED-NEW-web-review-23: field lookup is work too, including key comparisons.
+                    if (!Spend(1 + Math.Max(field.Key.Length, candidate.Key.Length) / 64)) return false;
+                    if (!string.Equals(field.Key, candidate.Key, StringComparison.Ordinal)) continue;
+                    if (!EqualWithinBudget(field.Value, candidate.Value, depth + 1)) return false;
+                    found = true;
+                    break;
+                }
+                if (!found) return false;
+            }
+            return true;
+        }
+        if (left.IsText && !Spend(left.AsText.Length / 64)) return false;
+        return left.Equals(right);
     }
 
     private static int Size(NthUiValue value) => value.Kind switch
@@ -318,11 +355,28 @@ public sealed class NthUiEvaluator
                     if (!args[0].IsList) return NthUiValue.Error("join needs a list");
                     if (!Spend(args[0].Items.Count)) return OutOfSteps;
                     var separator = args.Length > 1 ? args[1].Display(culture) : ", ";
-                    var text = string.Join(separator, args[0].Items.Select(v => v.Display(culture)));
-                    return text.Length > NthUiValue.MaxTextLength ? NthUiValue.Error("the text is too long") : NthUiValue.Of(text);
+                    var text = new System.Text.StringBuilder();
+                    for (var i = 0; i < args[0].Items.Count; i++)
+                    {
+                        var value = args[0].Items[i].Display(culture);
+                        var between = i == 0 ? "" : separator;
+                        if (text.Length + between.Length + value.Length > NthUiValue.MaxTextLength) return NthUiValue.Error("the text is too long");
+                        if (!Spend(1 + (between.Length + value.Length) / 64)) return OutOfSteps;
+                        text.Append(between);
+                        text.Append(value);
+                    }
+                    return NthUiValue.Of(text.ToString());
                 }
             case "contains":
-                if (args[0].IsList) return Spend(args[0].Items.Count) ? NthUiValue.Of(args[0].Items.Contains(args[1])) : OutOfSteps;
+                if (args[0].IsList)
+                {
+                    foreach (var item in args[0].Items)
+                    {
+                        if (EqualWithinBudget(item, args[1])) return NthUiValue.Of(true);
+                        if (budget.Exhausted) return OutOfSteps;
+                    }
+                    return NthUiValue.Of(false);
+                }
                 if (args[0].IsText) return NthUiValue.Of(args[0].AsText.Contains(args[1].Display(culture), StringComparison.OrdinalIgnoreCase));
                 if (args[0].IsObject) return NthUiValue.Of(args[0].TryGetField(args[1].Display(culture), out _));
                 return NthUiValue.Error("contains needs a list or a text");

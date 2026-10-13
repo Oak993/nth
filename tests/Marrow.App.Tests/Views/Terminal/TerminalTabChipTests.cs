@@ -474,7 +474,7 @@ public sealed class TerminalTabChipTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-TERM-006")] // App/Views/Terminal/TerminalPanel.swift:148-158; TerminalStore.swift:139-155
-    public void The_restart_button_exists_only_for_an_exited_shell_between_title_and_cross_and_its_click_starts_a_fresh_shell_that_does_not_rerun_the_script() => TerminalPanelRig.RunWithRealShell(headless, rig =>
+    public void The_restart_button_exists_only_for_an_exited_shell_between_title_and_cross_and_its_click_starts_a_fresh_shell_that_does_not_rerun_the_script_Native() => TerminalPanelRig.RunWithRealShell(headless, rig =>
     {
         var directory = TerminalPanelRig.Folder("chip restart");
         TerminalSession script = null!;

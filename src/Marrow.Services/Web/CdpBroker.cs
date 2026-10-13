@@ -19,6 +19,7 @@ public sealed class CdpBroker : IDisposable
     private readonly IWebEngineView view;
     private readonly Dictionary<string, CdpSession> sessions = new(StringComparer.Ordinal);
     private readonly List<IDisposable> own = [];
+    private readonly CancellationTokenSource lifetime = new();
     private Task tail = Task.CompletedTask;
     private bool disposed;
 
@@ -43,7 +44,9 @@ public sealed class CdpBroker : IDisposable
         var json = parameters?.ToJsonString(CdpRedactor.Wire) ?? "{}";
         var run = RunAfter(tail, method, json, sessionId, cancellationToken);
         tail = run.ContinueWith(static _ => { }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
-        return run;
+        // Cancellation settles the caller immediately. The serialization tail still waits for
+        // the predecessor: cancelling a queued caller must not let its successor overtake it.
+        return run.WaitAsync(cancellationToken).WaitAsync(lifetime.Token);
     }
 
     /// <summary>
@@ -80,15 +83,18 @@ public sealed class CdpBroker : IDisposable
     {
         if (disposed) return;
         disposed = true;
+        lifetime.Cancel();
         foreach (var subscription in own) subscription.Dispose();
         own.Clear();
         sessions.Clear();
+        lifetime.Dispose();
     }
 
     // No ConfigureAwait(false): CoreWebView2 calls stay on the caller's (UI) context.
     private async Task<JsonElement> RunAfter(Task previous, string method, string json, string? sessionId, CancellationToken cancellationToken)
     {
-        await previous;
+        await previous.WaitAsync(lifetime.Token);
+        ObjectDisposedException.ThrowIf(disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
         var raw = await view.CallCdpAsync(method, json, sessionId, cancellationToken);
         using var document = JsonDocument.Parse(string.IsNullOrEmpty(raw) ? "{}" : CdpRedactor.Redact(raw));

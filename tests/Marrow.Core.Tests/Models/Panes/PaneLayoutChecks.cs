@@ -32,8 +32,10 @@ internal static class PaneLayoutChecks
             if (s.IsSideChatOpen) tabs.Add(PaneKind.SideChat);
             Check(layout.NarrowTabs.SequenceEqual(tabs), "narrow tabs are not Chat then the open panes in order");
             Check(layout.Shown.Count == 1 && layout.IsShown(layout.NarrowSelection), "narrow shows one surface");
+            var stripHeight = Math.Min(h, PaneKinds.NarrowTabStrip); // ED-NEW-web-review-7: clipped only at tiny transient heights
+            Check(layout.NarrowStrip == new PaneRect(0, 0, w, stripHeight), "narrow strip outside the workspace");
             foreach (var tab in tabs)
-                Check(layout.BoundsOf(tab) == new PaneRect(0, PaneKinds.NarrowTabStrip, w, Math.Max(0, h - PaneKinds.NarrowTabStrip)), $"{tab} not on the narrow surface");
+                Check(layout.BoundsOf(tab) == new PaneRect(0, stripHeight, w, h - stripHeight), $"{tab} not on the narrow surface");
             Check(layout.Gutters.Count == 0 && layout.Rails.Count == 0 && layout.Cells.Count == 0, "narrow has gutters, rails or cells");
             return problems;
         }

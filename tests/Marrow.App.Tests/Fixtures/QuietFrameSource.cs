@@ -9,6 +9,8 @@ public sealed class QuietFrameSource : IFrameSource
     private int waitingCount;
 
     public int Pending => waitingCount;
+    public object? ObservedOwner { get; set; }
+    public Action<TimeSpan>? ObservedFrame { get; private set; }
 
     public TimeSpan Now { get; private set; }
 
@@ -16,6 +18,7 @@ public sealed class QuietFrameSource : IFrameSource
     {
         if (waitingCount == waiting.Length) throw new InvalidOperationException("The quiet frame source holds 256 requests.");
         waiting[waitingCount++] = frame;
+        if (ReferenceEquals(frame.Target, ObservedOwner)) ObservedFrame = frame;
     }
 
     public void CancelFrame(Action<TimeSpan> frame)

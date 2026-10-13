@@ -65,12 +65,13 @@ public sealed class ArtifactData
         ArgumentNullException.ThrowIfNull(value);
         lock (gate)
         {
-            var map = Load(artifact);
+            var map = new SortedDictionary<string, string>(Load(artifact), StringComparer.Ordinal);
             var used = Bytes(map) - (map.TryGetValue(key, out var old) ? Entry(key, old) : 0) + Entry(key, value);
             if (used > MaxStorageBytes)
                 throw new ArtifactBridgeException(ArtifactBridgeErrors.QuotaExceeded, "This artifact's storage is full (20 MB).");
             map[key] = value;
             Save(artifact, map);
+            storage[Folder(artifact)] = map;
         }
     }
 
@@ -79,9 +80,10 @@ public sealed class ArtifactData
         CheckKey(key);
         lock (gate)
         {
-            var map = Load(artifact);
+            var map = new SortedDictionary<string, string>(Load(artifact), StringComparer.Ordinal);
             if (!map.Remove(key)) return false;
             Save(artifact, map);
+            storage[Folder(artifact)] = map;
             return true;
         }
     }
