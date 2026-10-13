@@ -14,6 +14,7 @@ using Avalonia.Threading;
 using Marrow.App.Port;
 using Marrow.App.Views.Settings;
 using Marrow.Core.Port.Assistant;
+using Marrow.Services.Assistant;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Marrow.UI.Port.Settings;
@@ -38,6 +39,17 @@ public sealed record AssistantSettingsParts
 
     public Action<Action>? UnwatchGrants { get; init; }
 
+    /// <summary>Whether the talk chord is registered, and why not (AS-18); null: the voice is not running, no status is shown.</summary>
+    public Func<VoiceChordStatus?>? TalkStatus { get; init; }
+
+    /// <summary>Raised when the talk chord's status changes.</summary>
+    public Action<Action>? WatchTalk { get; init; }
+
+    public Action<Action>? UnwatchTalk { get; init; }
+
+    /// <summary>The voices installed on this PC (id and name), for the Voice row; null hides the row.</summary>
+    public Func<IReadOnlyList<(string Id, string Name)>>? Voices { get; init; }
+
     /// <summary>The running purchase desk (AS-20), read at every redraw; null or a null answer: Purchases says it is set up while Dextra is on.</summary>
     public Func<PurchaseDesk?>? Purchases { get; init; }
 }
@@ -53,6 +65,9 @@ public sealed class AssistantSettingsPage : Decorator
     private SettingsSwitch? onSwitch;
     private PurchaseSettingsSection? purchases;
     private CzMenuButton? chordMenu;
+    private CzMenuButton? talkMenu;
+    private CzMenuButton? voiceMenu;
+    private readonly TextBlock talkStatus = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(14, 8), IsVisible = false };
     private readonly StackPanel grantList = new() { Spacing = 0 };
     private readonly List<(Grant Grant, Button Revoke)> grantRows = [];
     private int queued;
@@ -76,6 +91,9 @@ public sealed class AssistantSettingsPage : Decorator
                 Purchases = () => host.Controller?.Purchases,
                 WatchGrants = changed => { if (host.Controller is { } c) c.GrantsChanged += changed; },
                 UnwatchGrants = changed => { if (host.Controller is { } c) c.GrantsChanged -= changed; },
+                TalkStatus = () => host.Voice?.Chord.Status,
+                WatchTalk = changed => { if (host.Voice is { } v) v.Chord.StatusChanged += _ => changed(); },
+                Voices = () => [.. new WinRtSpeechSynth().Voices().Where(SpeechVoices.IsLocal).Select(v => (v.Id, v.Name))],
             });
             Watch(true);
         };
@@ -93,6 +111,15 @@ public sealed class AssistantSettingsPage : Decorator
     public SettingsSwitch OnSwitch => onSwitch!;
 
     public CzMenuButton ChordMenu => chordMenu!;
+
+    /// <summary>The talk chord's menu (AS-18).</summary>
+    public CzMenuButton TalkMenu => talkMenu!;
+
+    /// <summary>The Voice menu, or null while the page was given no voices.</summary>
+    public CzMenuButton? VoiceMenu => voiceMenu;
+
+    /// <summary>The line under the talk chord that says why it is not registered (shown only then).</summary>
+    public TextBlock TalkStatusText => talkStatus;
 
     internal AssistantRows Rows => rows!;
 
@@ -118,6 +145,14 @@ public sealed class AssistantSettingsPage : Decorator
         chordMenu = new CzMenuButton(AssistantSettingsWords.RowChord, [.. chords.Select(c => (c, c))], dextra.Chord);
         chordMenu.SelectionChanged += id => dextra.Update(p => p with { StopChord = id == DextraSettings.DefaultStopChord ? null : id });
 
+        var talks = AssistantSettingsWords.TalkChords.ToList();
+        if (!talks.Contains(dextra.TalkChord)) talks.Add(dextra.TalkChord);
+        talkMenu = new CzMenuButton(AssistantSettingsWords.RowTalk, [.. talks.Select(c => (c, c))], dextra.TalkChord);
+        talkMenu.SelectionChanged += id => dextra.Update(p => p with { TalkChord = id == DextraSettings.DefaultTalkChord ? null : id });
+        SwiftFont.System(12).Apply(talkStatus);
+        talkStatus.Foreground = Chrome.SecondaryText.Brush(talkStatus);
+        AutomationProperties.SetLiveSetting(talkStatus, AutomationLiveSetting.Polite);
+
         var lead = new TextBlock { Text = AssistantSettingsWords.Lead, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(4, 0), MaxWidth = 460, HorizontalAlignment = HorizontalAlignment.Left };
         SwiftFont.Subheadline.Apply(lead);
         lead.Foreground = Chrome.SecondaryText.Brush(lead);
@@ -132,6 +167,17 @@ public sealed class AssistantSettingsPage : Decorator
         var stop = new StackPanel();
         stop.Children.Add(new ChromeRow(AssistantSettingsWords.RowChord, () => chordMenu, AssistantSettingsWords.RowChordDetail));
 
+        var voicePanel = new StackPanel();
+        voicePanel.Children.Add(new ChromeRow(AssistantSettingsWords.RowTalk, () => talkMenu, AssistantSettingsWords.RowTalkDetail));
+        voicePanel.Children.Add(talkStatus);
+        if (given.Voices?.Invoke() is { Count: > 0 } installed)
+        {
+            voiceMenu = new CzMenuButton(AssistantSettingsWords.RowVoice, [("", AssistantSettingsWords.Automatic), .. installed.Select(v => (v.Id, v.Name))], dextra.Value.VoiceName ?? "");
+            voiceMenu.SelectionChanged += id => dextra.Update(p => p with { VoiceName = id.Length == 0 ? null : id });
+            voicePanel.Children.Add(new ChromeRowDivider());
+            voicePanel.Children.Add(new ChromeRow(AssistantSettingsWords.RowVoice, () => voiceMenu, AssistantSettingsWords.RowVoiceDetail));
+        }
+
         Child = new StackPanel
         {
             Spacing = Chrome.SectionSpacing,
@@ -142,6 +188,7 @@ public sealed class AssistantSettingsPage : Decorator
                 new ChromeSection(AssistantSettingsWords.Reading, () => new ChromeCard(() => rows.ReadingRows())),
                 new ChromeSection(AssistantSettingsWords.Delegate, () => new ChromeCard(() => rows.DelegateRows())),
                 new ChromeSection(AssistantSettingsWords.Stop, () => new ChromeCard(() => stop)),
+                new ChromeSection(AssistantSettingsWords.Voice, () => new ChromeCard(() => voicePanel)),
                 new ChromeSection(AssistantSettingsWords.Permissions, () => new ChromeCard(() => grantList)),
                 purchases,
                 new ChromeSection(AssistantSettingsWords.Rules, () => new ChromeCard(() => AssistantRows.RulesList(null))),
@@ -160,12 +207,14 @@ public sealed class AssistantSettingsPage : Decorator
         {
             settings.Changed += Queue;
             parts.WatchGrants?.Invoke(Queue);
+            parts.WatchTalk?.Invoke(Queue);
             Refresh();
         }
         else
         {
             settings.Changed -= Queue;
             parts.UnwatchGrants?.Invoke(Queue);
+            parts.UnwatchTalk?.Invoke(Queue);
         }
     }
 
@@ -183,9 +232,23 @@ public sealed class AssistantSettingsPage : Decorator
     private void Refresh()
     {
         rows?.Show();
-        if (settings is not null) chordMenu?.Show(settings.Chord);
+        if (settings is not null)
+        {
+            chordMenu?.Show(settings.Chord);
+            talkMenu?.Show(settings.TalkChord);
+            voiceMenu?.Show(settings.Value.VoiceName ?? "");
+        }
+        ShowTalkStatus();
         purchases?.Show();
         ShowGrants();
+    }
+
+    // A talk chord another app holds (or that cannot be registered) is said under its row, with the way out (2.4: "shows in Settings with Change").
+    private void ShowTalkStatus()
+    {
+        var line = parts.TalkStatus?.Invoke()?.Line;
+        talkStatus.Text = line ?? "";
+        talkStatus.IsVisible = !string.IsNullOrEmpty(line);
     }
 
     private void ShowGrants()

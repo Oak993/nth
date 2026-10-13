@@ -39,7 +39,9 @@ public sealed record HomeSheets
             var labels = new ActivityLabels(
                 Assistant: id => host.NameOf(id),
                 Mission: id => Guid.TryParse(id, out var m) ? host.Controller?.Runner.Find(m)?.Mission.Title : null);
-            var model = new ActivityLogModel(ActivityLogSource.For(AssistantStorage.Roots.Current, AuditKeyStore.Production()), labels: labels);
+            // The day finals the digests printed (12.5): a day whose log was rewritten since no longer matches the one printed in the morning.
+            var model = new ActivityLogModel(ActivityLogSource.For(AssistantStorage.Roots.Current, AuditKeyStore.Production(),
+                host.Digests is { } digests ? digests.Book.PrintedDayFinals : null), labels: labels);
             _ = mission is null ? model.OpenAsync() : model.ShowMissionAsync(mission);
             return new ActivityLogView(model);
         },
@@ -65,6 +67,7 @@ public sealed class AssistantHomeHost : Decorator
     private Guid? builtThread;
     private Control? sheetReturn;
     private TeamSource? teamSource;
+    private DigestModel? digestModel;
 
     public AssistantHomeHost(AppModel model, WindowLiveResize? liveResize = null, HomeSheets? sheets = null)
     {
@@ -125,9 +128,13 @@ public sealed class AssistantHomeHost : Decorator
         model.TeamFocusRequested -= OnTeamFocus;
         teamSource?.Dispose();
         teamSource = null;
+        if (asking is not null) asking.CardRequested -= OnCardRequested;
+        asking = null;
         model.AssistantReviewRequested -= OnReview;
         model.AssistantMissionRequested -= OnMission;
         builtOn = null; // built again on the next attach
+        digestModel?.Dispose();
+        digestModel = null;
     }
 
     private void OnReview(Guid decision) => Dispatcher.UIThread.Post(() => ShowReview(decision));
@@ -194,6 +201,7 @@ public sealed class AssistantHomeHost : Decorator
         TurnOnButton = null;
         Home = new AssistantHomeView(Parts(live, thread));
         page.Child = Home;
+        ShowDecisionsWhenAsked();
         if (thread is not null)
         {
             var runtime = model.Runtime(thread.Id);
@@ -202,12 +210,25 @@ public sealed class AssistantHomeHost : Decorator
         }
     }
 
+    // A card voice may not answer is opened on the screen (2.4): the Board shows the Decisions tab beside the sheet.
+    private DextraVoice? asking;
+
+    private void ShowDecisionsWhenAsked()
+    {
+        if (asking is not null) asking.CardRequested -= OnCardRequested;
+        asking = host.Voice;
+        if (asking is not null) asking.CardRequested += OnCardRequested;
+    }
+
+    private void OnCardRequested(Guid card) => Dispatcher.UIThread.Post(() => Home?.Board.Pick(BoardTab.Decisions));
+
     private AssistantHomeParts Parts(DextraLive live, Marrow.Core.Models.ChatThread? thread)
     {
         var controller = live.Controller;
         teamSource?.Dispose();
         teamSource = controller is null ? null : TeamBinding.For(host.Profiles, live, controller, id => model.Duties?.Scheduler.Duties.Count(d => d.Duty.AssistantId == id) ?? 0);
         Func<Guid, string?> missionTitle = id => controller?.Runner.Find(id)?.Mission.Title;
+        var digests = host.Digests;   // the morning digest, once Dextra's duties are running (AS-11)
         return new AssistantHomeParts(live.Jobs, live.Decisions, live.Controls)
         {
             Name = DextraHost.Name,
@@ -223,6 +244,10 @@ public sealed class AssistantHomeHost : Decorator
                 liveResize is null ? new ChatView(model.Runtime(thread.Id)) : new HostedEnvironment(model, liveResize, Zooms: false).Body(new ChatView(model.Runtime(thread.Id)))),
             ConversationEmpty = thread is null ? () => true : () => model.Runtime(thread.Id).Entries.Count == 0,
             Say = thread is null ? null : text => model.Runtime(thread.Id).SendMissionMessage(text),
+            // AS-18: the header's Talk toggles the conversation, whose sheet opens over this column; the chord and the composer's talk button start it too
+            Talk = host.Voice is { } voice ? voice.Conversation.Toggle : null,
+            Voice = host.Voice?.Conversation,
+            TalkChord = () => host.Settings.TalkChord,
             TaskActions = new TaskActions(
                 Open: job => { if (job.LeadThread is { } lead && model.Thread(lead) is not null) model.SelectedThreadID = lead; },
                 Redirect: controller is null ? null : (job, text) => controller.Runner.Redirect(job.Id, text),
@@ -234,6 +259,13 @@ public sealed class AssistantHomeHost : Decorator
                 Settings: () => OpenSettings(SettingsPage.Assistant)),
             FirstRun = () => host.Settings.Value.FirstRunDone ? null : firstRun ??= new FirstRunCard(host.Settings, BrainChoices.Of(model), done: null,
                 openSettings: () => OpenSettings(SettingsPage.Assistant)),
+            Digest = digests is null ? null : () => MountDigest(digests, thread?.Id),
+            Suggestions = digests is null ? null : () => [.. digests.Open.Select(HomeSuggestion.Of)],
+            SuggestionsChanged = digests is null ? null : handler => digests.Watch(() => Dispatcher.UIThread.Post(() =>
+            {
+                if (thread is not null) digests.PinnedIn(thread.Id);   // a tainted digest that came in while the home was open taints the home too (12.4)
+                handler();
+            })),
         };
     }
 
@@ -253,6 +285,41 @@ public sealed class AssistantHomeHost : Decorator
         Said = line => Home?.Announce(line),
         ReserveLine = id => controller is null ? "" : TeamBinding.StandingRules(controller, id),
     });
+
+    // The digest is pinned at the top of the home (6); what it was made from and nth cannot vouch for (a duty's finding, an Astur's paragraph) taints the home chat as it lands
+    // there (12.4). The card's model is let go with the home that built it.
+    private Control MountDigest(DigestService digests, Guid? homeThread)
+    {
+        digestModel?.Dispose();
+        var shown = new DigestModel(digests) { OpenLink = OpenDigestLink };
+        digestModel = shown;
+        if (homeThread is { } id) digests.PinnedIn(id);
+        return new DigestCard(shown);
+    }
+
+    // What a tap on an item of the digest opens: the decision card, the mission, the account's reserves, the chat; a duty's finding is told in the feed.
+    internal void OpenDigestLink(DigestLink link)
+    {
+        switch (link.Kind)
+        {
+            case DigestLinkKind.Decision when Guid.TryParse(link.Id, out var card):
+                ShowReview(card);
+                break;
+            case DigestLinkKind.Mission when Guid.TryParse(link.Id, out var mission):
+                ShowMission(mission);
+                break;
+            case DigestLinkKind.Duty:
+                CloseSheet();
+                Home?.Board.Pick(BoardTab.Feed);
+                break;
+            case DigestLinkKind.Account when sheets.Reserves is not null && host.Controller?.Reserve is not null:
+                ShowSheet("Reserves", sheets.Reserves(host));
+                break;
+            case DigestLinkKind.Thread when Guid.TryParse(link.Id, out var thread) && model.Thread(thread) is not null:
+                model.SelectedThreadID = thread;
+                break;
+        }
+    }
 
     private Control OffView()
     {

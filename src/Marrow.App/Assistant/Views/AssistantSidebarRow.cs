@@ -342,6 +342,12 @@ public sealed class AssistantSidebarSlot : Decorator
             Row = new AssistantSidebarRow(DextraHost.Name, new AssistantRowActions
             {
                 Open = app.ShowAssistantHome,
+                // AS-18 (2.1: the row's menu has Talk): the home opens and the conversation starts, its sheet over the thread
+                Talk = () =>
+                {
+                    app.ShowAssistantHome();
+                    dextra.Voice?.Conversation.Toggle();
+                },
                 Settings = () => AssistantHomeHost.OpenSettings(Marrow.App.Views.Settings.SettingsPage.Assistant),
                 OpenChat = thread => { if (app.Thread(thread) is not null) app.SelectedThreadID = thread; },
                 Note = () => !dextra.Settings.Value.On ? "Off" : !dextra.Settings.Value.FirstRunDone ? "Set up in a minute" : dextra.StartFault is { } fault ? "Could not start: " + fault : null,

@@ -56,6 +56,12 @@ public sealed record DextraPreferences
     /// <summary>The stop chord's text; null is "Ctrl+Alt+Esc".</summary>
     public string? StopChord { get; init; }
 
+    /// <summary>The talk chord's text (the global toggle to talk, 2.4); null is "Ctrl+Alt+Enter". AS-18.</summary>
+    public string? TalkChord { get; init; }
+
+    /// <summary>The installed Windows voice Dextra speaks with (its id or name); null picks one by language. AS-18.</summary>
+    public string? VoiceName { get; init; }
+
     /// <summary>The grants the owner made from cards, kept across launches (revoked or spent ones are not kept).</summary>
     public ValueList<Grant> Grants { get; init; } = ValueList<Grant>.Empty;
 
@@ -77,6 +83,9 @@ public sealed class DextraSettings : ObservableModel
 {
     public const string SettingsKey = "dextra";
     public const string DefaultStopChord = "Ctrl+Alt+Esc";
+
+    /// <summary>The chord that toggles talking to Dextra from anywhere in Windows (2.4).</summary>
+    public const string DefaultTalkChord = "Ctrl+Alt+Enter";
 
     /// <summary>The three first duties the card offers (2.6), by id and words.</summary>
     public static IReadOnlyList<(string Id, string Text, string Detail)> FirstDuties { get; } =
@@ -123,6 +132,9 @@ public sealed class DextraSettings : ObservableModel
         Update(value => value with { Id = made });
         return made;
     }
+
+    /// <summary>The chord the voice key registers (AS-18).</summary>
+    public string TalkChord => string.IsNullOrWhiteSpace(Value.TalkChord) ? DefaultTalkChord : Value.TalkChord!;
 
     /// <summary>The chord the stop key registers.</summary>
     public string Chord => string.IsNullOrWhiteSpace(Value.StopChord) ? DefaultStopChord : Value.StopChord!;
@@ -171,6 +183,8 @@ public sealed class DextraSettings : ObservableModel
             if (value.DelegateProject is { } project) writer.WriteString("delegateProject", project.ToString("D"));
             if (value.FirstDuty is { } duty) writer.WriteString("firstDuty", duty);
             if (value.StopChord is { } chord) writer.WriteString("stopChord", chord);
+            if (value.TalkChord is { } talk) writer.WriteString("talkChord", talk);
+            if (value.VoiceName is { } voice) writer.WriteString("voiceName", voice);
             writer.WriteBoolean("missionsCollapsed", value.MissionsCollapsed);
             if (value.AstursCollapsed) writer.WriteBoolean("astursCollapsed", true);
             writer.WriteStartArray("grants");
@@ -204,6 +218,8 @@ public sealed class DextraSettings : ObservableModel
             if (GuidOf(root, "delegateProject") is { } project) result = result with { DelegateProject = project };
             if (Text(root, "firstDuty") is { } duty && FirstDuties.Any(d => d.Id == duty)) result = result with { FirstDuty = duty };
             if (Text(root, "stopChord") is { Length: > 0 } chord) result = result with { StopChord = chord };
+            if (Text(root, "talkChord") is { Length: > 0 } talk) result = result with { TalkChord = talk };
+            if (Text(root, "voiceName") is { Length: > 0 } voice) result = result with { VoiceName = voice };
             if (Bool(root, "missionsCollapsed") is { } collapsed) result = result with { MissionsCollapsed = collapsed };
             if (Bool(root, "astursCollapsed") is { } astursCollapsed) result = result with { AstursCollapsed = astursCollapsed };
             if (root.TryGetProperty("grants", out var grants) && grants.ValueKind == JsonValueKind.Array)

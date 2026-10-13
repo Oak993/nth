@@ -15,6 +15,9 @@ namespace Marrow.App.Assistant;
 /// <summary>How the app starts Dextra's controller (production: the store, the audit log, the chord and the tray).</summary>
 public delegate AssistantController? DextraStarter(AppModel model, DextraSettings settings, Guid id);
 
+/// <summary>How the app gives a running controller its voice (AS-18: the talk chord, the conversation, the speech). Null: no voice.</summary>
+public delegate DextraVoice? DextraVoiceStarter(AppModel model, DextraHost host, VoiceStopScope scope);
+
 public sealed class DextraHost : IDisposable
 {
     public const string Name = "Dextra";
@@ -22,17 +25,21 @@ public sealed class DextraHost : IDisposable
     private readonly AppModel model;
     private readonly DextraStarter starter;
     private readonly Func<IReadOnlyList<AssistantProfile>>? asturs;
+    private readonly DextraVoiceStarter? voiceStarter;
+    private VoiceStopScope? voiceScope;
     private AssistantController? started;
     private IDisposable? owned;
     private bool disposed;
     private bool starting;
 
-    public DextraHost(AppModel model, DextraSettings settings, DextraStarter? starter = null, Func<IReadOnlyList<AssistantProfile>>? asturs = null)
+    /// <param name="voice">AS-18: the voice of a running controller. Null with the app's own starter gives the real one (the chord, the microphone, the PC's voices); null with a test's starter gives none.</param>
+    public DextraHost(AppModel model, DextraSettings settings, DextraStarter? starter = null, Func<IReadOnlyList<AssistantProfile>>? asturs = null, DextraVoiceStarter? voice = null)
     {
         this.model = model ?? throw new ArgumentNullException(nameof(model));
         Settings = settings ?? throw new ArgumentNullException(nameof(settings));
         this.starter = starter ?? Production;
         this.asturs = asturs;
+        voiceStarter = voice ?? (starter is null ? static (app, host, scope) => DextraVoice.Create(app, host, scope) : null);
         Settings.Changed += OnSettings;
     }
 
@@ -49,6 +56,12 @@ public sealed class DextraHost : IDisposable
 
     /// <summary>The sources the sidebar row and the home read: the running controller's, else the idle set.</summary>
     public DextraLive Live { get; private set; } = DextraLive.Idle;
+
+    /// <summary>Dextra's voice (AS-18): the talk chord and the conversation of the running controller, or null (off, not started, or no voice in this build).</summary>
+    public DextraVoice? Voice { get; private set; }
+
+    /// <summary>The morning digest and the Suggestions lane (AS-11) while Dextra's duties run; null before they start.</summary>
+    public DigestService? Digests => model.Duties?.Digests;
 
     /// <summary>An assistant's name by its id (Dextra's or an Astur's).</summary>
     public string NameOf(string assistantId) => Profiles().FirstOrDefault(p => p.Id == assistantId)?.Name ?? Name;
@@ -96,6 +109,8 @@ public sealed class DextraHost : IDisposable
         controller.GrantsChanged += KeepGrants;
         Live = DextraLive.For(model, controller, NameOf);
         model.AssistantEvents.Brain = Settings.Brain(BrainProvider());
+        try { Voice = voiceStarter?.Invoke(model, this, voiceScope ?? new VoiceStopScope()); }
+        catch (Exception error) when (error is not OperationCanceledException) { StartFault = "Voice could not start: " + error.Message; }
         Changed?.Invoke();
         return controller;
     }
@@ -109,6 +124,8 @@ public sealed class DextraHost : IDisposable
         if (started is not { } controller) return;
         started = null;
         controller.GrantsChanged -= KeepGrants;
+        Voice?.Dispose();
+        Voice = null;
         var live = Live;
         Live = DextraLive.Idle;
         live.Dispose();
@@ -187,8 +204,9 @@ public sealed class DextraHost : IDisposable
         // AS-20 (12.7, 16.2): purchases.json beside the store's other files, the card in Credential Manager, Windows Hello. This build
         // has no fill path (Visus and Tactus are not here), so the switch is hidden and every payment is handed to the owner.
         var purchases = new PurchaseSetup { Book = PurchaseBook.Over(store), Hello = new WindowsHelloGate(), Vault = CardVault.Production };
+        voiceScope = new VoiceStopScope(); // Stop all and the stop chord cut a spoken reply (12.6); bound to the conversation once the voice exists
         return app.StartDextra(store, entry => audit.Append(entry), Profiles, BrainProvider() ?? ProviderKind.Claude, BrainModel(),
-            protectedRoots: [roots.AuditDirectory], stopKey: stopKey, tray: app.Tray, purchases: purchases);
+            protectedRoots: [roots.AuditDirectory], stopKey: stopKey, tray: app.Tray, stopScopes: [voiceScope], purchases: purchases);
     }
 
     public void Dispose()
