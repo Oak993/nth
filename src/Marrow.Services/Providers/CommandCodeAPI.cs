@@ -338,7 +338,7 @@ public static partial class CommandCodeAPI
                 continue;
             }
             // :208
-            if (!id.Contains('-', StringComparison.Ordinal) && !id.Contains('/', StringComparison.Ordinal)) continue;
+            // ED-NEW-muse-wonder-4: a valid CLI model row does not require a hyphen or vendor slash.
             var detail = FoundationText.Trim(rest); // :209
             var isRecommended = false; // :210
             var isCLIDefault = false;  // :211

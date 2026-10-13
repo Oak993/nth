@@ -31,7 +31,8 @@ public sealed class MetaSessionTests
         Assert.Equal(ProviderKind.Meta, config.Kind);
         Assert.Equal("Meta", config.Title);
         Assert.Equal("Meta coding agent (Muse Spark muse-spark-1.3)", config.AgentIdentity("muse-spark-1.3"));
-        Assert.Equal("muse-spark-1.3", config.DefaultModel);
+        // ED-NEW-muse-wonder-7: owner flagship order replaces the old default assertion.
+        Assert.Equal("muse-wonder-1.0", config.DefaultModel);
         Assert.Equal(MetaAPI.ChatURL, config.ChatURL);
         Assert.Equal(MetaAPI.ContextWindow, config.ContextWindow);
         Assert.Null(config.MaxOutputTokens);
@@ -170,7 +171,7 @@ public sealed class MetaSessionTests
     {
         var session = new MetaSession(MakeSessionConfiguration());
         Assert.Equal(
-            "Meta no longer offers that model. Pick Muse Spark 1.3 in the model picker.",
+            "Meta no longer offers that model. Pick Muse Wonder 1.0 in the model picker.",
             session.FriendlyError("nope", 404));
     }
 
@@ -180,7 +181,7 @@ public sealed class MetaSessionTests
     {
         var session = new MetaSession(MakeSessionConfiguration());
         Assert.Equal(
-            "Meta no longer offers that model. Pick Muse Spark 1.3 in the model picker.",
+            "Meta no longer offers that model. Pick Muse Wonder 1.0 in the model picker.",
             session.FriendlyError("error: model_not_found", 0));
     }
 
@@ -190,7 +191,7 @@ public sealed class MetaSessionTests
     {
         var session = new MetaSession(MakeSessionConfiguration());
         Assert.Equal(
-            "Meta no longer offers that model. Pick Muse Spark 1.3 in the model picker.",
+            "Meta no longer offers that model. Pick Muse Wonder 1.0 in the model picker.",
             session.FriendlyError("that model does not exist", 0));
     }
 
@@ -248,7 +249,7 @@ public sealed class MetaSessionTests
     {
         var session = new MetaSession(MakeSessionConfiguration());
         Assert.Equal(
-            "Muse Spark always reasons; \"none\" is rejected. Pick Minimal or higher in the model picker.",
+            "Muse Wonder and Muse Spark always reason; \"none\" is rejected. Pick Minimal or higher in the model picker.",
             session.FriendlyError("reasoning_effort \"none\" is not supported", 0));
     }
 
@@ -317,7 +318,7 @@ public sealed class MetaSessionTests
     {
         var session = new MetaSession(MakeSessionConfiguration());
         Assert.Equal(
-            "Meta no longer offers that model. Pick Muse Spark 1.3 in the model picker.",
+            "Meta no longer offers that model. Pick Muse Wonder 1.0 in the model picker.",
             session.FriendlyError("model_not_found, rate limit hit", 0));
     }
 
@@ -347,7 +348,7 @@ public sealed class MetaSessionTests
     {
         var session = new MetaSession(MakeSessionConfiguration());
         Assert.Equal(
-            "Muse Spark always reasons; \"none\" is rejected. Pick Minimal or higher in the model picker.",
+            "Muse Wonder and Muse Spark always reason; \"none\" is rejected. Pick Minimal or higher in the model picker.",
             session.FriendlyError("reasoning_effort \"none\", insufficient balance", 0));
     }
 

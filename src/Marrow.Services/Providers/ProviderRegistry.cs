@@ -167,10 +167,12 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     // :128-129. Built with MetaAPI.option(for:).
     public static ValueList<ModelOption> MetaSeed => new(new[]
         {
+            "muse-wonder-1.0",
             "muse-spark-1.3", "muse-spark-1.3-contributor", "muse-spark-1.2", "muse-spark-1.2-contributor", "muse-spark-1.1",
         }
         .Select(MetaAPI.Option)
-        .OfType<ModelOption>());
+        .OfType<ModelOption>()
+        .Select(row => row with { IsDefault = row.Id == "muse-wonder-1.0" }));
 
     // :130. Built with ZaiAPI.option(for:) (ZaiAPI.cs, PR-PROVREG-142): no longer MARROW_STUB, ZaiAPI.Option
     // is implemented.
@@ -184,6 +186,8 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     // :134-142
     public static readonly ValueList<ModelOption> AntigravitySeed = new(new[]
     {
+        // ED-NEW-muse-wonder-5: Argon is Ultra-only; Flash keeps the fallback default. Live CLI efforts win.
+        new ModelOption("gemini-4-argon", "Gemini 4 Argon", efforts: new(new[] { "low", "medium", "high" }), defaultEffort: "medium"),
         new ModelOption("gemini-3.8-flash", "Gemini 3.8 Flash", efforts: new(new[] { "low", "medium", "high" }), defaultEffort: "high", isDefault: true), // :135
         new ModelOption("gemini-3.7-flash", "Gemini 3.7 Flash", efforts: new(new[] { "low", "medium", "high" }), defaultEffort: "high"), // :136
         new ModelOption("gemini-3.6-flash", "Gemini 3.6 Flash", efforts: new(new[] { "low", "medium", "high" }), defaultEffort: "high"), // :137

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "scope": "All nine known text chat IDs offered by DeepSeekAPI, MetaAPI and ZaiAPI. Unmapped dynamic IDs remain unavailable; non-text models and unavailable coding-plan models are excluded.",
+  "scope": "All ten reviewed text chat IDs offered by DeepSeekAPI, MetaAPI and ZaiAPI. Unmapped dynamic IDs remain unavailable; non-text models and unavailable coding-plan models are excluded.",
   "models": [
     {
       "service": "deepseek",
@@ -55,6 +55,12 @@
       "model": "glm-5.3-flash",
       "displayText": "GLM-5.3-Flash",
       "sourceUrl": "https://docs.z.ai/guides/overview/pricing"
+    },
+    {
+      "service": "meta",
+      "model": "muse-wonder-1.0",
+      "displayText": "muse-wonder-1.0",
+      "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits"
     }
   ]
 }

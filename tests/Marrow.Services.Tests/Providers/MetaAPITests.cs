@@ -232,7 +232,9 @@ public sealed class MetaAPITests
     [InlineData("muse-spark-9.9")]
     public void Efforts_for_every_other_id_are_exactly_the_five_without_max(string id)
     {
-        Assert.Equal(["minimal", "low", "medium", "high", "xhigh"], MetaAPI.Efforts(id));
+        // ED-NEW-muse-wonder-7: known rows preserve their scale; an unknown checkpoint has none.
+        if (id == "muse-spark-9.9") Assert.Empty(MetaAPI.Efforts(id));
+        else Assert.Equal(["minimal", "low", "medium", "high", "xhigh"], MetaAPI.Efforts(id));
     }
 
     // ---- PR-PROVAPI-038 to 042: the five Spark model rows ----------------------------------------------------
@@ -323,7 +325,7 @@ public sealed class MetaAPITests
 
     [Fact]
     [Trait("Req", "PR-PROVAPI-043")] // Services/Providers/MetaAPI.swift:56-62
-    public void Option_for_a_future_Spark_checkpoint_is_named_by_its_raw_id_with_no_detail_and_five_efforts()
+    public void Option_for_a_future_Spark_checkpoint_is_named_by_its_raw_id_with_no_guessed_efforts()
     {
         var option = MetaAPI.Option("muse-spark-2.0");
 
@@ -331,8 +333,8 @@ public sealed class MetaAPITests
         Assert.Equal("muse-spark-2.0", option!.Id);
         Assert.Equal("muse-spark-2.0", option.Name);
         Assert.Null(option.Detail);
-        Assert.Equal(["minimal", "low", "medium", "high", "xhigh"], option.Efforts);
-        Assert.Equal("high", option.DefaultEffort);
+        Assert.Empty(option.Efforts); // ED-NEW-muse-wonder-7: never guess a new model's scale.
+        Assert.Null(option.DefaultEffort);
         Assert.False(option.IsDefault);
     }
 

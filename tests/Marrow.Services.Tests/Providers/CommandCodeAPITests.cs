@@ -705,14 +705,15 @@ public sealed class CommandCodeAPITests
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-260")] // Services/Providers/CommandCodeAPI.swift:202-208
-    public void ParseModels_needs_two_spaces_and_an_id_with_a_hyphen_or_slash()
+    public void ParseModels_needs_two_spaces_and_accepts_ids_without_punctuation()
     {
         const string text = "Header\n  one-space-only row with a long detail\n  gemini  no hyphen or slash\n  vendor/model  slash is enough\n  tabbed-id\t\tdetail after tabs\n";
 
         var models = CommandCodeAPI.ParseModels(text, configuredModel: null, configuredEfforts: null);
 
-        Assert.Equal(["vendor/model", "tabbed-id"], models.Select(m => m.Id));
-        Assert.Equal(["Header" + Dot + "slash is enough", "Header" + Dot + "detail after tabs"], models.Select(m => m.Detail));
+        // ED-NEW-muse-wonder-7: retain the two-space grammar; accept the newly allowed plain id exactly.
+        Assert.Equal(["gemini", "vendor/model", "tabbed-id"], models.Select(m => m.Id));
+        Assert.Equal(["Header" + Dot + "no hyphen or slash", "Header" + Dot + "slash is enough", "Header" + Dot + "detail after tabs"], models.Select(m => m.Detail));
     }
 
     [Fact]

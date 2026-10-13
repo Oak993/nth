@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "filledCount": 7,
+  "filledCount": 8,
   "unfilledCount": 2,
   "sources": [
     {
@@ -125,6 +125,54 @@
       "sourceSha256": "0df1b0db7fa4954817707542aa5f4c49624e0708a5aaa9bcda3703431674a01f",
       "explicitNoRequestFeeQuotes": [],
       "billingQuotes": []
+    },
+    {
+      "service": "meta",
+      "status": "fetched",
+      "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+      "retrievedAt": "2026-10-13T18:14:33.426386Z",
+      "sourceSha256": "cabcc8ee377e301d570ebf86980199fca06629b8733c93331c98b43b34832cd7",
+      "reviewedContentSha256": "ea90fd4d68c387913a51b15038c207066246c8c65fe3fefbce788a8794da94ce"
+    },
+    {
+      "service": "meta",
+      "status": "fetched",
+      "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+      "retrievedAt": "2026-10-13T18:14:33.426386Z",
+      "sourceSha256": "5ff4e4520445ae14a01c69c7594b35b8c2b8ddb9351a4cf6678a7c81af51c55b",
+      "reviewedContentSha256": "a5e420aefaea401e2b01d913a0f7598cd8dc0042d41e401403b27a041b9879ae"
+    },
+    {
+      "service": "meta",
+      "status": "fetched",
+      "sourceUrl": "https://dev.meta.ai/help/billing/api-bill",
+      "retrievedAt": "2026-10-13T18:14:33.426386Z",
+      "sourceSha256": "0d8d680b648e127599dcabe91cb36d9c78a3623a106d745458dd5eb05ca32a59",
+      "reviewedContentSha256": "bcc29fc616262251af1c30c68eab949f5daba58daaeca9a571b9a8a0a11387ff"
+    },
+    {
+      "service": "meta",
+      "status": "fetched",
+      "sourceUrl": "https://dev.meta.ai/docs/muse-code/auth",
+      "retrievedAt": "2026-10-13T18:14:33.426386Z",
+      "sourceSha256": "5bdf34e1eeae0c495bf8dfe5f029daa2e6204112571117b2acbce0e79ebd3775",
+      "reviewedContentSha256": "f59265d09f6c389b1f5b369a8dee7a61a52ab113a9154413ba79cc6cd3f72de3"
+    },
+    {
+      "service": "meta",
+      "status": "fetched",
+      "sourceUrl": "https://dev.meta.ai/help/billing/set-up-billing",
+      "retrievedAt": "2026-10-13T18:14:33.426386Z",
+      "sourceSha256": "328d76c0bc83354f3e347c1d205dfee792cd25b6db5566a00d2371cd33c7e679",
+      "reviewedContentSha256": "446c545c5710fd54c02dd0e2826d052c14e186c6ebc67a76c39d2df9c3006db2"
+    },
+    {
+      "service": "meta",
+      "status": "fetched",
+      "sourceUrl": "https://dev.meta.ai/help/billing/download-invoice",
+      "retrievedAt": "2026-10-13T18:14:33.426386Z",
+      "sourceSha256": "4d86a3610b7b9a0f1249e13f2461226ce9d697007b59b5c519c64c55d077f7cc",
+      "reviewedContentSha256": "b1c9dea1bbd5ebd3ab75ab217c1b711394f8af0bacdd5f2cb4843f5828221893"
     }
   ],
   "models": [
@@ -1648,6 +1696,14 @@
         "scope": "complete official token price list and linked public billing terms; no applicable separate request charge; account transaction UIs are not price lists"
       },
       "storageCondition": "Limited-time Free"
+    },
+    {
+      "service": "meta",
+      "model": "muse-wonder-1.0",
+      "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+      "status": "filled",
+      "retrievedAt": "2026-10-13T18:14:33.426386Z",
+      "sourceSha256": "cabcc8ee377e301d570ebf86980199fca06629b8733c93331c98b43b34832cd7"
     }
   ],
   "note": "Observed raw cells are audit evidence only. Only prices passing every original quote/numeric/bounds guard enter model-prices.json."

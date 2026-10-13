@@ -47,7 +47,12 @@ public static class ZaiAPI
     // :24-26
     public static async Task<ValueList<ModelOption>> ListModels(string apiKey, Uri? modelsUrl = null) =>
         // :25
-        await OpenAICompatibleAPI.ListModels(modelsUrl ?? Endpoint.Current(ModelsURL), apiKey, Option);
+        await OpenAICompatibleAPI.ListModels(modelsUrl ?? Endpoint.Current(ModelsURL), apiKey, (id, item) =>
+        {
+            // ED-NEW-muse-wonder-3: never hide a future chat family by prefix. FlashX remains plan-unavailable.
+            if (SwiftString.Lowercased(id).Contains("flashx", StringComparison.Ordinal) || !Port.ChatModelCatalog.CanChat(id, item)) return null;
+            return id is "glm-5.3" or "glm-5.3-flash" ? Option(id) : new ModelOption(id, id);
+        });
 
     /// <summary>
     /// Only the two 5.3 Coding Plan models are offered. Older GLM ids are routed to 5.3 by Z.ai, so they are

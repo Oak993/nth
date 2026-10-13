@@ -4,26 +4,25 @@
     {
       "service": "meta",
       "statement": "applies only to the provider's web-search tool, which Marrow never enables",
-      "reviewedAt": "2026-10-07T12:28:35.271002+00:00",
+      "reviewedAt": "2026-10-13T18:36:55.947905+00:00",
       "sources": [
         {
           "path": "src/Marrow.Services/Providers/OpenAICompatibleSession.cs",
-          "line": 1086,
-          "sourceSha256": "d19fd1fa3f0995f40d5d6b251fbbfee6df6f33102f1c750559d3193ce1abc9f8",
+          "line": 1283,
+          "sourceSha256": "a5d1218f00533d1e994e34e1e34458c81fa2c0f938f5c6a138da61edbc562fe6",
           "dispatchGuardLines": [
-            752,
-            1092
+            995,
+            1336
           ],
           "localFunctionDefinitionLines": [
-            146,
-            973,
-            1997
+            178,
+            1217
           ]
         },
         {
           "path": "src/Marrow.Services/Providers/MetaSession.cs",
-          "line": 42,
-          "sourceSha256": "b7061cfeb5520a220807abee1dc60096f453197a5bd53099d36615fc2ae7b395"
+          "line": 45,
+          "sourceSha256": "65c96090f5ae41f7e2477be3e6e7da82132ed007faf806527f3bdd51dc0b8a48"
         },
         {
           "path": "src/Marrow.Services/Providers/ProviderToolBillingGuard.cs",

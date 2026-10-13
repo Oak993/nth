@@ -192,9 +192,14 @@ public sealed class ZaiAPITests
 
         var options = await pending.WaitAsync(Guard);
 
-        Assert.Equal(["glm-5.3", "glm-5.3-flash"], options.Select(o => o.Id));
+        // ED-NEW-muse-wonder-7: endpoint-listed chat ids are accepted regardless of family; FlashX stays excluded.
+        Assert.Equal(["glm-5.3", "glm-4.6", "glm-5.3-flash"], options.Select(o => o.Id));
         Assert.True(options[0].IsDefault);
         Assert.False(options[1].IsDefault);
+        Assert.Equal("glm-4.6", options[1].Name);
+        Assert.Empty(options[1].Efforts);
+        Assert.Null(options[1].DefaultEffort);
+        Assert.False(options[2].IsDefault);
     }
 
     [Fact]

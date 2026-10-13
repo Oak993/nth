@@ -33,7 +33,7 @@ public static class MetaAPI
     // :18
     public static readonly Uri ModelsURL = new("https://api.meta.ai/v1/models");
 
-    /// <summary>Muse Spark context window per https://dev.meta.ai/docs/models (:21).</summary>
+    /// <summary>Muse Wonder and Muse Spark context window per https://dev.meta.ai/docs/models, read 2026-10-13.</summary>
     public const int ContextWindow = 1_048_576;
 
     // :22
@@ -46,13 +46,39 @@ public static class MetaAPI
         await OpenAICompatibleAPI.Validate(modelsUrl ?? Endpoint.Current(ModelsURL), apiKey);
 
     // :29-31
-    public static async Task<ValueList<ModelOption>> ListModels(string apiKey, Uri? modelsUrl = null) =>
-        // :30
-        await OpenAICompatibleAPI.ListModels(modelsUrl ?? Endpoint.Current(ModelsURL), apiKey, Option);
+    // ED-NEW-muse-wonder-1/2: the API's chat models, with documented unavailable variants excluded.
+    public static async Task<ValueList<ModelOption>> ListModels(string apiKey, Uri? modelsUrl = null)
+    {
+        var inputs = new Dictionary<string, bool>(StringComparer.Ordinal);
+        var rows = await OpenAICompatibleAPI.ListModels(modelsUrl ?? Endpoint.Current(ModelsURL), apiKey, (id, item) =>
+        {
+            if (UnavailableOnAPI(id) || !Port.ChatModelCatalog.CanChat(id, item)) return null;
+            if (inputs.Count < 4096 && Port.ChatModelCatalog.TakesImages(item) is { } vision)
+                inputs[id] = vision;
+            return Option(id) ?? new ModelOption(id, id);
+        });
+        // Model capabilities are bound to exact model ids. Replace the bounded snapshot on each successful list,
+        // including an empty list; missing metadata retains only documented known-model facts.
+        visionInputs = inputs;
+        var wonder = rows.Any(row => row.Id == "muse-wonder-1.0");
+        return new ValueList<ModelOption>(rows.Select(row => wonder ? row with { IsDefault = row.Id == "muse-wonder-1.0" } : row)
+            .OrderBy(row => row.IsDefault ? 0 : row.Id == "muse-spark-1.3" ? 1 : 2)
+            .ThenBy(row => row.Id, SwiftStringComparer.Instance));
+    }
+
+    private static volatile IReadOnlyDictionary<string, bool> visionInputs = new Dictionary<string, bool>(StringComparer.Ordinal);
+
+    private static bool UnavailableOnAPI(string id)
+    {
+        var lower = SwiftString.Lowercased(id);
+        return SwiftString.HasPrefix(lower, "muse-wonder-full")
+            || SwiftString.HasPrefix(lower, "muse-glimmer")
+            || SwiftString.HasPrefix(lower, "muse-wonder-") && SwiftString.HasSuffix(lower, "-contributor");
+    }
 
     /// <summary>
-    /// Probed live 2026-09-13: only `muse-spark-1.3` accepts "max". Every other checkpoint, including
-    /// `muse-spark-1.3-contributor`, rejects it with a bare "The request contains invalid parameters" 400 (:33-35).
+    /// Official reasoning docs, read 2026-10-13: Wonder 1.0 and Spark 1.3 support "max".
+    /// The other documented Spark ids retain their five-level scale; unknown scales are not inferred.
     /// </summary>
     // :36
     public static readonly ValueList<string> MaxEfforts =
@@ -64,12 +90,22 @@ public static class MetaAPI
 
     // :39-41
     public static ValueList<string> Efforts(string id) =>
-        SwiftString.Equal(id, "muse-spark-1.3") ? MaxEfforts : StandardEfforts;
+        id is "muse-wonder-1.0" or "muse-spark-1.3" ? MaxEfforts
+            : id is "muse-spark-1.3-contributor" or "muse-spark-1.2" or "muse-spark-1.2-contributor" or "muse-spark-1.1"
+                ? StandardEfforts : ValueList<string>.Empty;
 
     // :43-63
     public static ModelOption? Option(string id)
     {
+        if (UnavailableOnAPI(id)) return null;
         var efforts = Efforts(id);
+        // ED-NEW-muse-wonder-1: https://dev.meta.ai/docs/models, read 2026-10-13.
+        if (id == "muse-wonder-1.0")
+            return new ModelOption(id, "Wonder 1.0",
+                detail: "Most capable Muse model \U000000B7 complex coding and agents \U000000B7 Standard tier \U000000B7 1M context",
+                efforts: efforts, defaultEffort: "high", isDefault: true);
+        if (SwiftString.HasPrefix(SwiftString.Lowercased(id), "muse-wonder-"))
+            return new ModelOption(id, id);
         // :45
         if (SwiftString.Equal(id, "muse-spark-1.3"))
         {
@@ -106,21 +142,23 @@ public static class MetaAPI
                 detail: "Original checkpoint · Standard tier · 1M context", // U+00B7 MIDDLE DOT
                 efforts: efforts, defaultEffort: "high");
         }
-        // :56-60. Future Muse Spark checkpoints still show up. The endpoint also lists non-chat models
-        // (muse-image-1.0, muse-voice-transcribe-1.0) that fail on chat/completions, so only Spark ids are
-        // accepted.
+        // :56-60. This formats the source's Spark family. ListModels handles every other eligible chat id
+        // independently, with its raw name and no guessed reasoning scale (ED-NEW-muse-wonder-2).
         if (!SwiftString.HasPrefix(SwiftString.Lowercased(id), "muse-spark")) return null;
         // :61
-        return new ModelOption(id: id, name: id, efforts: efforts, defaultEffort: "high");
+        return new ModelOption(id: id, name: id);
     }
 
-    /// <summary>All Muse Spark models are multimodal (text, image, video, audio, PDF in).</summary>
+    /// <summary>Documented Wonder and Spark input: text, image, video, audio, PDF; unknown models use list metadata.</summary>
     // :66-69
     public static bool IsVisionModel(string? id)
     {
         // :67
         if (id is not { } value || value.Length == 0) return true;
         // :68
-        return SwiftString.HasPrefix(SwiftString.Lowercased(value), "muse-spark");
+        if (UnavailableOnAPI(value)) return false;
+        if (visionInputs.TryGetValue(value, out var vision)) return vision;
+        return SwiftString.HasPrefix(SwiftString.Lowercased(value), "muse-spark")
+            || value == "muse-wonder-1.0";
     }
 }

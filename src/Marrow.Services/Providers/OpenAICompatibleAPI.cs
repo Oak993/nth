@@ -46,7 +46,11 @@ public static class OpenAICompatibleAPI
     }
 
     // :22-34
-    public static async Task<ValueList<ModelOption>> ListModels(Uri modelsUrl, string key, Func<string, ModelOption?> option)
+    public static Task<ValueList<ModelOption>> ListModels(Uri modelsUrl, string key, Func<string, ModelOption?> option) =>
+        ListModels(modelsUrl, key, (id, _) => option(id));
+
+    // DEVIATION ED-NEW-muse-wonder-2: keep endpoint metadata for chat eligibility; the id-only callers retain their behavior.
+    internal static async Task<ValueList<ModelOption>> ListModels(Uri modelsUrl, string key, Func<string, JSONValue, ModelOption?> option)
     {
         // :23 (see the Validate note on the trimmed-key rename)
         var trimmedKey = key.Trimmed();
@@ -63,18 +67,11 @@ public static class OpenAICompatibleAPI
             return ValueList<ModelOption>.Empty;
         }
         // :29
-        var ids = new List<string>();
+        var options = new List<ModelOption>();
         foreach (var item in json["data"]?.JSONValueArray ?? [])
         {
-            if (item["id"]?.JSONValueString is { } id) ids.Add(id);
-        }
-        // :30
-        if (ids.Count == 0) return ValueList<ModelOption>.Empty;
-        // :31-33
-        var options = new List<ModelOption>();
-        foreach (var id in ids)
-        {
-            if (option(id) is { } modelOption) options.Add(modelOption);
+            if (item["id"]?.JSONValueString is { } id && option(id, item) is { } modelOption)
+                options.Add(modelOption);
         }
         return new ValueList<ModelOption>(options
             .OrderBy(o => o.IsDefault ? 0 : 1)

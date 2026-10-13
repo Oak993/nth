@@ -1018,6 +1018,99 @@
         "Limited-time Free"
       ],
       "completeListReview": "zai-complete-list"
+    },
+    {
+      "service": "meta",
+      "model": "muse-wonder-1.0",
+      "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+      "modelCell": [
+        5,
+        1,
+        0
+      ],
+      "inputCell": [
+        0,
+        2,
+        1
+      ],
+      "cachedInputCell": [
+        0,
+        1,
+        1
+      ],
+      "outputCell": [
+        0,
+        3,
+        1
+      ],
+      "tokenOnlyQuote": "",
+      "tokenUnitQuote": "Standard mode (per 1M tokens)",
+      "billingConditionQuotes": [
+        "Muse Wonder Model: muse-wonder-1.0 ."
+      ],
+      "checks": [
+        {
+          "cell": [
+            0,
+            0,
+            0
+          ],
+          "text": "Usage"
+        },
+        {
+          "cell": [
+            0,
+            0,
+            1
+          ],
+          "text": "Standard mode (per 1M tokens)"
+        },
+        {
+          "cell": [
+            0,
+            1,
+            0
+          ],
+          "text": "Cached input"
+        },
+        {
+          "cell": [
+            0,
+            2,
+            0
+          ],
+          "text": "Input"
+        },
+        {
+          "cell": [
+            0,
+            3,
+            0
+          ],
+          "text": "Output"
+        },
+        {
+          "cell": [
+            0,
+            0,
+            2
+          ],
+          "text": "Contributor mode (per 1M tokens)"
+        },
+        {
+          "cell": [
+            0,
+            2,
+            2
+          ],
+          "text": "Not available"
+        }
+      ],
+      "completeListReview": "meta-wonder-complete-list",
+      "currencyEvidence": {
+        "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+        "quote": "Unless otherwise noted, all currency references are in U.S. Dollars."
+      }
     }
   ],
   "completeListReviews": [
@@ -1114,6 +1207,53 @@
           "sourceUrl": "https://z.ai/manage-apikey/billing",
           "kind": "account-transaction-dashboard",
           "reason": "Account/payment transaction UI, not a public pricing or billing terms page. Public pricing and linked public billing documentation are fully captured. No login or identity confirmation. RR-50 round-4 complete-list ruling applies to text/local-function requests; optional web-search is excluded only with fresh source proof and transport guard."
+        }
+      ]
+    },
+    {
+      "id": "meta-wonder-complete-list",
+      "service": "meta",
+      "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+      "completeTokenTable": true,
+      "pages": [
+        {
+          "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+          "contentSha256": "ea90fd4d68c387913a51b15038c207066246c8c65fe3fefbce788a8794da94ce"
+        },
+        {
+          "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+          "contentSha256": "a5e420aefaea401e2b01d913a0f7598cd8dc0042d41e401403b27a041b9879ae"
+        },
+        {
+          "sourceUrl": "https://dev.meta.ai/help/billing/api-bill",
+          "contentSha256": "bcc29fc616262251af1c30c68eab949f5daba58daaeca9a571b9a8a0a11387ff"
+        },
+        {
+          "sourceUrl": "https://dev.meta.ai/docs/muse-code/auth",
+          "contentSha256": "f59265d09f6c389b1f5b369a8dee7a61a52ab113a9154413ba79cc6cd3f72de3"
+        },
+        {
+          "sourceUrl": "https://dev.meta.ai/help/billing/set-up-billing",
+          "contentSha256": "446c545c5710fd54c02dd0e2826d052c14e186c6ebc67a76c39d2df9c3006db2"
+        },
+        {
+          "sourceUrl": "https://dev.meta.ai/help/billing/download-invoice",
+          "contentSha256": "b1c9dea1bbd5ebd3ab75ab217c1b711394f8af0bacdd5f2cb4843f5828221893"
+        }
+      ],
+      "listedCharges": [
+        {
+          "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+          "quote": "Web search grounding : $2.50 per 1,000 search queries , in addition to the request's token cost.",
+          "disposition": "excluded-provider-web-search-tool",
+          "statement": "applies only to the provider's web-search tool, which Marrow never enables"
+        }
+      ],
+      "accountDashboards": [
+        {
+          "sourceUrl": "https://dev.meta.ai/billing",
+          "kind": "account-transaction-dashboard",
+          "reason": "Account transaction UI, not public pricing; public token pricing and linked billing pages reviewed. No login or provider call."
         }
       ]
     }
