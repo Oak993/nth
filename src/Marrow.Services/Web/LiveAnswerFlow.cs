@@ -97,7 +97,7 @@ public sealed class LiveAnswerFlow(Guid thread, LiveAnswerHost host, bool lite, 
                 return Delta(delta);
             case ProviderEvent.MessageCompleted completed:
                 return Completed(completed);
-            case ProviderEvent.ToolStarted started when Match(started.Call.Title) is { } tool:
+            case ProviderEvent.ToolStarted started when Match(started) is { } tool:
                 return Started(started, tool);
             case ProviderEvent.ToolUpdated updated when hidden.Contains(updated.Id):
                 return [];
@@ -117,20 +117,22 @@ public sealed class LiveAnswerFlow(Guid thread, LiveAnswerHost host, bool lite, 
         }
     }
 
-    /// <summary>True when a provider's row title names one of the live-answer tools (ui_show, ui_update or html_widget).</summary>
-    public static bool IsLiveCall(string? title) => Match(title) is not null;
+    /// <summary>True when a provider's row is a call of one of the live-answer tools (ui_show, ui_update or html_widget).</summary>
+    public static bool IsLiveCall(ProviderEvent.ToolStarted started) => Match(started) is not null;
 
-    /// <summary>The tool a provider's row title names, or null for any other row.</summary>
-    internal static Tool? Match(string? title)
+    /// <summary>
+    /// The live-answer tool a provider's row is a call of, or null for any other row. ED-NEW-web-sec-rev-6: known only by the MCP tool the
+    /// provider session read from the protocol (<see cref="ProviderEvent.ToolStarted.McpTool"/>), never by the row's title, so a title
+    /// another tool or a model wrote can never turn a row into a view or hide it. A provider whose rows carry no identity still gets its
+    /// views: what the tools recorded makes a row of its own.
+    /// </summary>
+    internal static Tool? Match(ProviderEvent.ToolStarted started) => UiMcpServer.OwnToolOf(started.McpTool) switch
     {
-        if (string.IsNullOrEmpty(title)) return null;
-        foreach (var (name, tool) in new[] { (LiveAnswerTools.ShowName, Tool.Show), (LiveAnswerTools.UpdateName, Tool.Update), (LiveAnswerTools.HtmlName, Tool.Html) })
-        {
-            if (string.Equals(title.Trim(), name, StringComparison.Ordinal)) return tool;
-            if (title.Contains(UiMcpServer.ServerName, StringComparison.Ordinal) && title.Contains(name, StringComparison.Ordinal)) return tool;
-        }
-        return null;
-    }
+        LiveAnswerTools.ShowName => Tool.Show,
+        LiveAnswerTools.UpdateName => Tool.Update,
+        LiveAnswerTools.HtmlName => Tool.Html,
+        _ => null,
+    };
 
     // ---- the tool rows ----
 

@@ -1876,7 +1876,7 @@ public class OpenAICompatibleSession : ProviderSession
     {
         if (id.Length == 0 || name is not (Marrow.Services.Web.LiveAnswerTools.ShowName or Marrow.Services.Web.LiveAnswerTools.HtmlName) || SkillTools?.Owns(name) != true) return;
         if (liveInputsSeen.Add(id))
-            OnEvent?.Invoke(new ProviderEvent.ToolStarted(id, new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = NativeSkillTools.Title(name, new JSONValue.Null()) }));
+            OnEvent?.Invoke(new ProviderEvent.ToolStarted(id, new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = NativeSkillTools.Title(name, new JSONValue.Null()) }) { McpTool = NthUiTool(name) });
         OnEvent?.Invoke(new ProviderEvent.ToolUpdated(id, new ToolUpdate { Detail = arguments }));
     }
 
@@ -1955,6 +1955,11 @@ public class OpenAICompatibleSession : ProviderSession
         messages = Port.PcControl.PcNativeTools.Pruned(messages, Port.PcControl.PcNativeTools.KeptScreenshots);
     }
 
+    // PORT-ONLY (ED-NEW-web-sec-rev-6): nth's own native tools are nth-ui's tools under their bare names (the session offered them, the
+    // model called one by name), so a row for one carries that identity; any other name carries none.
+    private static McpToolIdentity? NthUiTool(string name) =>
+        Marrow.Services.Web.UiMcpServer.ToolNames.Contains(name) ? new McpToolIdentity(Marrow.Services.Web.UiMcpServer.ServerName, name) : null;
+
     // PORT-ONLY (SK-11f, WU-12, DL-14). Runs one of Marrow's own tools. A stopped turn answers "Stopped." as the built-in tools do; nothing it produced is said.
     private async Task<string> ExecuteSkillTool(NativeSkillTools skillTools, PendingToolCall tool, JSONValue args)
     {
@@ -1965,7 +1970,7 @@ public class OpenAICompatibleSession : ProviderSession
             ToolCallKind = ToolCall.Kind.Other,
             Title = NativeSkillTools.Title(tool.Name, args),
             Detail = Marrow.Services.Web.LiveAnswerTools.IsName(tool.Name) ? args.CompactString : null,
-        }));
+        }) { McpTool = NthUiTool(tool.Name) });
         NativeToolResult result;
         try { result = await skillTools.Execute(tool.Name, args); }
         catch (OperationCanceledException) when (SwiftTask.IsCancelled || interrupted) { return "Stopped."; }

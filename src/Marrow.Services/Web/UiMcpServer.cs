@@ -45,6 +45,40 @@ public sealed class UiMcpServer(UiRegistration? registration)
         qualifiedName is not null && qualifiedName.StartsWith("mcp__" + ServerName + "__", StringComparison.Ordinal)
         && ToolNames.Contains(qualifiedName[("mcp__" + ServerName + "__").Length..]);
 
+    /// <summary>
+    /// ED-NEW-web-sec-rev-6: the nth-ui tool a protocol identity names (its server is nth-ui and its tool one of <see cref="ToolNames"/>),
+    /// or null. What a row, an approval or a stream is for is read only from this identity, never from a title or detail.
+    /// </summary>
+    public static string? OwnToolOf(Providers.McpToolIdentity? identity) =>
+        identity is { } named && string.Equals(named.Server, ServerName, StringComparison.Ordinal) && ToolNames.Contains(named.Tool) ? named.Tool : null;
+
+    /// <summary>ED-NEW-web-sec-rev-6: the identity of a Claude Code tool name of this server's in a session nth gave nth-ui, or null.</summary>
+    public static Providers.McpToolIdentity? ClaudeTool(string? qualifiedName, bool givenNthUi) =>
+        givenNthUi && IsOwnTool(qualifiedName) ? new Providers.McpToolIdentity(ServerName, qualifiedName![("mcp__" + ServerName + "__").Length..]) : null;
+
+    /// <summary>
+    /// ED-NEW-web-sec-rev-1 and -6: the nth-ui tool an ACP agent's tool call is for, or null. ACP names no server or tool field, so only
+    /// a call of kind "other" (the kind agents give MCP tools; a task, fetch, command or edit never counts) whose whole title is one of the
+    /// forms agents print for an MCP tool counts: "mcp__nth-ui__ask_user" (Claude Code), "nth-ui-ask_user: ask_user" (the form the skills
+    /// relay proved live, SK-17), "nth-ui__ask_user", "nth-ui_ask_user", "nth-ui/ask_user", "nth-ui: ask_user", "nth-ui.ask_user" and
+    /// "nth-ui · ask_user". Anything more or less in the title (an agent that titles a call with its arguments, a model's own words) is
+    /// not one. The caller asks only in a session nth gave nth-ui.
+    /// </summary>
+    public static Providers.McpToolIdentity? AcpTool(string? kind, string? title)
+    {
+        if (kind != "other" || title is null) return null;
+        var trimmed = title.Trim();
+        foreach (var tool in ToolNames)
+            if (AcpForms(tool).Contains(trimmed)) return new Providers.McpToolIdentity(ServerName, tool);
+        return null;
+    }
+
+    private static string[] AcpForms(string tool) =>
+    [
+        "mcp__" + ServerName + "__" + tool, ServerName + "-" + tool + ": " + tool, ServerName + "__" + tool, ServerName + "_" + tool,
+        ServerName + "/" + tool, ServerName + ": " + tool, ServerName + "." + tool, ServerName + " · " + tool,
+    ];
+
     public async Task<string?> Handle(string line, CancellationToken cancellationToken)
     {
         JsonNode? request;

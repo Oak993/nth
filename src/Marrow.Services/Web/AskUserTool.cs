@@ -61,14 +61,14 @@ public static class AskUserTool
         ("type", "function"),
         ("function", JSONValue.FromDictionaryLiteral(("name", Name), ("description", Description), ("parameters", JSONValue.Parse(SchemaText)!))));
 
-    /// <summary>True for the row a provider draws for this tool (its title with any spacing around the middle dot), which the card replaces.</summary>
-    public static bool IsProviderRow(ToolCall call)
-    {
-        if (call.ToolCallKind is not (ToolCall.Kind.Mcp or ToolCall.Kind.Other)) return false;
-        var title = string.Concat(call.Title.Where(c => !char.IsWhiteSpace(c)));
-        return string.Equals(title, UiMcpServer.ServerName + "·" + Name, StringComparison.Ordinal)
-            || string.Equals(title, "mcp__" + UiMcpServer.ServerName + "__" + Name, StringComparison.Ordinal);
-    }
+    /// <summary>
+    /// True for the row a provider draws for this tool, which the card replaces. ED-NEW-web-sec-rev-6: known only by the MCP tool the
+    /// provider session read from the protocol (<see cref="Providers.ProviderEvent.ToolStarted.McpTool"/>), never by the row's title, so a
+    /// title another tool or a model wrote can never hide a row.
+    /// </summary>
+    public static bool IsProviderRow(Providers.ProviderEvent.ToolStarted started) =>
+        started.Call.ToolCallKind is ToolCall.Kind.Mcp or ToolCall.Kind.Other
+        && UiMcpServer.OwnToolOf(started.McpTool) == Name;
 
     /// <summary>
     /// True for a provider's request to allow this tool: the card is the ask, so nothing more is asked. ED-NEW-web-sec-rev-1: known only by
@@ -77,36 +77,7 @@ public static class AskUserTool
     /// </summary>
     public static bool IsApprovalFor(Providers.ProviderEvent.Approval approval) =>
         approval.Value.RequestKind == ApprovalRequest.Kind.Tool
-        && approval.McpTool is { } tool
-        && string.Equals(tool.Server, UiMcpServer.ServerName, StringComparison.Ordinal)
-        && string.Equals(tool.Tool, Name, StringComparison.Ordinal);
-
-    /// <summary>
-    /// ED-NEW-web-sec-rev-1: the nth-ui tool an ACP agent's permission request is for, or null. ACP names no server or tool field, so only
-    /// a call of kind "other" (the kind agents give MCP tools; a task, fetch, command or edit never counts) whose whole title is one of the
-    /// forms agents print for an MCP tool counts: "mcp__nth-ui__ask_user" (Claude Code), "nth-ui-ask_user: ask_user" (the form the skills
-    /// relay proved live, SK-17), "nth-ui__ask_user", "nth-ui_ask_user", "nth-ui/ask_user", "nth-ui: ask_user", "nth-ui.ask_user" and
-    /// "nth-ui \u00B7 ask_user". Anything more or less in the title (an agent that titles a call with its arguments, a model's own words) is
-    /// not one, and leaves the person's card in place.
-    /// </summary>
-    public static Providers.McpToolIdentity? AcpTool(string? kind, string? title)
-    {
-        if (kind != "other" || title is null) return null;
-        var trimmed = title.Trim();
-        foreach (var tool in UiMcpServer.ToolNames)
-            if (AcpForms(tool).Contains(trimmed)) return new Providers.McpToolIdentity(UiMcpServer.ServerName, tool);
-        return null;
-    }
-
-    private static string[] AcpForms(string tool)
-    {
-        const string server = UiMcpServer.ServerName;
-        return
-        [
-            "mcp__" + server + "__" + tool, server + "-" + tool + ": " + tool, server + "__" + tool, server + "_" + tool,
-            server + "/" + tool, server + ": " + tool, server + "." + tool, server + " \u00B7 " + tool,
-        ];
-    }
+        && UiMcpServer.OwnToolOf(approval.McpTool) == Name;
 
     /// <summary>
     /// Runs one call: reads the questions (errors go back to the model, which can call again), shows the card on the chat's

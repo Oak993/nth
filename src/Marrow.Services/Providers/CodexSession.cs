@@ -67,6 +67,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
     private JSONRPCConnection? connection;                // :36
     private MCPResolvedServer? pcServer; // PORT-ONLY (Tactus, ED-NEW-pcctl-41): the chat's nth-pc server while Tactus is on.
     private MCPResolvedServer? dextraServer; // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): the chat's nth-dextra server; null for a chat that is not Dextra's.
+    private MCPResolvedServer? uiServer; // PORT-ONLY (ED-NEW-web-sec-rev-6): the chat's nth-ui server as the last launch gave it, so an item from a server of that name is nth's own only then.
     private string? threadID;                             // :37
     private string? turnID;                               // :38
     private string? activeModel;                           // :39
@@ -740,6 +741,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
             // PORT-ONLY (Tactus, ED-NEW-pcctl-41): so does nth-pc while Tactus is on, with its tool timeout, and Codex's own
             // bundled computer-use plugins are turned off in the same overrides, so two controllers never fight in one chat.
             pcServer ??= MCPProviderConfig.PcServer(configuration);
+            uiServer = MCPProviderConfig.UiServer(configuration);
             // PORT-ONLY (Dextra, ED-NEW-dextra-as4-7): so does a Dextra chat's nth-dextra server.
             dextraServer ??= MCPProviderConfig.DextraServer(configuration);
             if (configuration.Sealed is { } seal)
@@ -752,11 +754,11 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
                     ? new Dictionary<string, JSONValue>(presentObject, StringComparer.Ordinal)
                     : new Dictionary<string, JSONValue>(StringComparer.Ordinal);
                 sealedConfig["mcp_servers"] = Marrow.Services.Assistant.SealedProviderConfig.CodexServers(MCPProviderConfig.CodexConnectedServers(), userNames, seal,
-                    MCPProviderConfig.BuiltInServers(MCPProviderConfig.AdvisorServer(configuration), pcServer, MCPProviderConfig.UiServer(configuration), dextraServer));
+                    MCPProviderConfig.BuiltInServers(MCPProviderConfig.AdvisorServer(configuration), pcServer, uiServer, dextraServer));
                 if (pcServer is not null && Port.PcControl.PcControlBridge.TactusOn) Port.PcControl.PcProviderWiring.TurnOffCodexComputerUse(sealedConfig);
                 parameters["config"] = new JSONValue.Object(new ValueMap<string, JSONValue>(sealedConfig));
             }
-            else if (MCPProviderConfig.CodexBuiltIns(MCPProviderConfig.CodexOverrides(), MCPProviderConfig.BuiltInServers(MCPProviderConfig.AdvisorServer(configuration), pcServer, MCPProviderConfig.UiServer(configuration), dextraServer)) is { } servers) // :262
+            else if (MCPProviderConfig.CodexBuiltIns(MCPProviderConfig.CodexOverrides(), MCPProviderConfig.BuiltInServers(MCPProviderConfig.AdvisorServer(configuration), pcServer, uiServer, dextraServer)) is { } servers) // :262
             {
                 var mergedConfig = parameters.TryGetValue("config", out var currentConfig) && currentConfig.JSONValueObject is { } currentObject
                     ? new Dictionary<string, JSONValue>(currentObject, StringComparer.Ordinal)
@@ -1540,9 +1542,16 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
         {
             return;
         }
-        if (ToolCallFrom(item) is { } call) sink(new ProviderEvent.ToolStarted(id, call)); // :725-726
+        if (ToolCallFrom(item) is { } call) sink(new ProviderEvent.ToolStarted(id, call) { McpTool = McpToolOf(item) }); // :725-726 + ED-NEW-web-sec-rev-6
         if (type is not null && SwiftString.Equal(type, "collabAgentToolCall")) DescribeHeads(item); // :727-728
     }
+
+    // PORT-ONLY (ED-NEW-web-sec-rev-6): the MCP tool an mcpToolCall item is for, by the item's own server and tool fields (never its
+    // arguments or any title); a server named nth-ui is nth's own only when this session's launch gave nth-ui.
+    private McpToolIdentity? McpToolOf(JSONValue item) =>
+        item["type"]?.JSONValueString is { } type && SwiftString.Equal(type, "mcpToolCall")
+            ? McpToolIdentity.FromFields(item["server"]?.JSONValueString, item["tool"]?.JSONValueString, uiServer is not null)
+            : null;
 
     // :731-753. PR-PROVCLI-118.
     private void ItemCompleted(JSONValue item, Target target, Action<ProviderEvent> sink)
@@ -1573,7 +1582,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
         }
         if (ToolCallFrom(item) is { } call) // :745-748
         {
-            sink(new ProviderEvent.ToolStarted(id, call));
+            sink(new ProviderEvent.ToolStarted(id, call) { McpTool = McpToolOf(item) }); // + ED-NEW-web-sec-rev-6
             sink(new ProviderEvent.ToolUpdated(id, ToolUpdateFrom(item)));
         }
         DescribeHeads(item); // :750

@@ -148,7 +148,15 @@ public abstract record ProviderEvent
     public sealed record MessageCompleted(string Id, string Text) : ProviderEvent;           // :86
     public sealed record ReasoningDelta(string Id, string Text) : ProviderEvent;             // :87
     public sealed record ReasoningCompleted(string Id, string Text) : ProviderEvent;         // :88
-    public sealed record ToolStarted(string Id, ToolCall Call) : ProviderEvent;              // :89
+    public sealed record ToolStarted(string Id, ToolCall Call) : ProviderEvent               // :89
+    {
+        /// <summary>
+        /// PORT-ONLY (ED-NEW-web-sec-rev-6): the MCP tool the row is for, as the provider session read it from the protocol's own server
+        /// and tool fields (or the tool name nth itself offered), never from the row's title or detail. Set at least for nth-ui's tools in a
+        /// session nth gave nth-ui; null when the protocol names no MCP tool.
+        /// </summary>
+        public McpToolIdentity? McpTool { get; init; }
+    }
     public sealed record ToolOutput(string Id, string Text) : ProviderEvent;                 // :90
     public sealed record ToolUpdated(string Id, ToolUpdate Update) : ProviderEvent;          // :91
     public sealed record PlanDelta(string Id, string Text) : ProviderEvent;                  // :92
@@ -352,7 +360,17 @@ public static class ToolText
 }
 
 /// <summary>PORT-ONLY (ED-NEW-web-sec-rev-1): an MCP tool as a provider's protocol names it, by its server and tool fields.</summary>
-public sealed record McpToolIdentity(string Server, string Tool);
+public sealed record McpToolIdentity(string Server, string Tool)
+{
+    /// <summary>
+    /// ED-NEW-web-sec-rev-6: the tool a protocol's own server and tool fields name, or null when either is missing or empty. A server
+    /// named nth-ui is nth's own only in a session nth gave nth-ui (<paramref name="givenNthUi"/>); in any other it names nothing.
+    /// </summary>
+    public static McpToolIdentity? FromFields(string? server, string? tool, bool givenNthUi) =>
+        server is { Length: > 0 } && tool is { Length: > 0 } && (givenNthUi || !string.Equals(server, Web.UiMcpServer.ServerName, StringComparison.Ordinal))
+            ? new McpToolIdentity(server, tool)
+            : null;
+}
 
 // :221-230 (B3). Re-cites PR-PROVCLI-248 and PR-PROVCLI-285, moved here from the Pi and Command Code sessions.
 // R-NAME-4: an extension of a nested enum is `static class <Owner><Nested>Extensions`.

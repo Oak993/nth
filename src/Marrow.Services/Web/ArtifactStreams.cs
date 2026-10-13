@@ -101,14 +101,12 @@ public sealed class ArtifactStreams(TimeProvider? time = null)
     }
 
     /// <summary>
-    /// A tool call that creates an artifact (6.4 "the moment artifact_create starts"): nth-ui's artifact_create as each provider
-    /// names it ("nth-ui · artifact_create", "mcp__nth-ui__artifact_create", "Call nth-ui artifact_create").
+    /// A tool call that creates an artifact (6.4 "the moment artifact_create starts"): nth-ui's artifact_create. ED-NEW-web-sec-rev-6:
+    /// known only by the MCP tool the provider session read from the protocol (<see cref="Providers.ProviderEvent.ToolStarted.McpTool"/>),
+    /// never by the row's title or arguments.
     /// </summary>
-    public static bool IsCreateCall(string? title, string? detail)
-    {
-        var text = string.Concat(((title ?? "") + " " + (detail ?? "")).Where(c => !char.IsWhiteSpace(c) && c != '\u00B7' && c != '_' && c != '-')).ToLowerInvariant();
-        return text.Contains("nthui", StringComparison.Ordinal) && text.Contains("artifactcreate", StringComparison.Ordinal);
-    }
+    public static bool IsCreateCall(Providers.ProviderEvent.ToolStarted started) =>
+        UiMcpServer.OwnToolOf(started.McpTool) == ArtifactTools.CreateName;
 
     private sealed class Entry(ArtifactStream value)
     {

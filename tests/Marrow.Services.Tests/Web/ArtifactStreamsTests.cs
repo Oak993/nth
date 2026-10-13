@@ -72,15 +72,20 @@ public sealed class ArtifactStreamsTests
         Assert.Single(streams.Of(other));
     }
 
+    // ED-NEW-web-sec-rev-6: each row carries the server and tool the provider session read from the protocol for it, as the sessions now
+    // send it (none for a row whose protocol names no tool); a title or detail alone never makes a create call (ToolRowIdentityTests).
     [Theory]
-    [InlineData("nth-ui · artifact_create", null, true)]
-    [InlineData("mcp__nth-ui__artifact_create", null, true)]
-    [InlineData("Call tool", "nth-ui artifact_create", true)]
-    [InlineData("nth-ui · artifact_update", null, false)]
-    [InlineData("artifact_create", null, false)]
-    [InlineData(null, null, false)]
-    public void A_create_call_is_known_by_any_provider_s_name_for_it(string? title, string? detail, bool expected) =>
-        Assert.Equal(expected, ArtifactStreams.IsCreateCall(title, detail));
+    [InlineData("nth-ui · artifact_create", null, "nth-ui", "artifact_create", true)]
+    [InlineData("mcp__nth-ui__artifact_create", null, "nth-ui", "artifact_create", true)]
+    [InlineData("Call tool", "nth-ui artifact_create", "nth-ui", "artifact_create", true)]
+    [InlineData("nth-ui · artifact_update", null, "nth-ui", "artifact_update", false)]
+    [InlineData("artifact_create", null, null, null, false)]
+    [InlineData(null, null, null, null, false)]
+    public void A_create_call_is_known_by_any_provider_s_name_for_it(string? title, string? detail, string? server, string? tool, bool expected) =>
+        Assert.Equal(expected, ArtifactStreams.IsCreateCall(new Marrow.Services.Providers.ProviderEvent.ToolStarted("t", new ToolCall { ToolCallKind = ToolCall.Kind.Mcp, Title = title ?? "", Detail = detail })
+        {
+            McpTool = server is null ? null : new Marrow.Services.Providers.McpToolIdentity(server, tool!),
+        }));
 
     [Fact]
     public void A_fenced_block_streams_from_its_opener_with_its_id_title_and_kind_and_ends_when_it_closes()
