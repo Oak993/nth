@@ -18,7 +18,7 @@ public sealed class DextraSmoothSheenRestTests(HeadlessSession headless)
     public void Waking_during_the_finishing_pass_keeps_the_shimmer_running_without_a_cut(int hz) => headless.OnUiThread(() =>
     {
         var clock = new ManualTimeProvider(); using var time = SwiftClock.Provider.Override(clock);
-        using var display = new DextraSmoothRestTests.DisplayPeriod(hz);
+        using var display = new DextraRestDisplayPeriod(hz);
         var text = new TickText { Width = 200, Text = "Working on the current task", Sheen = true, Ink = Brushes.Gray };
         var window = new Window { Width = 200, Height = 24, Content = text, Background = Brushes.Gray };
         byte[] Frame() { DextraSmoothRestTests.Pump(clock, hz); return DextraSmoothRestTests.Pixels(window); }
@@ -52,7 +52,7 @@ public sealed class DextraSmoothSheenRestTests(HeadlessSession headless)
     public void Shimmer_finishes_its_pass_sleeps_off_text_and_wakes_from_off_text(int hz) => headless.OnUiThread(() =>
     {
         var clock = new ManualTimeProvider(); using var time = SwiftClock.Provider.Override(clock);
-        using var display = new DextraSmoothRestTests.DisplayPeriod(hz);
+        using var display = new DextraRestDisplayPeriod(hz);
         var text = new TickText { Width = 200, Text = "Working on the current task", Sheen = true, Ink = Brushes.Gray };
         var window = new Window { Width = 200, Height = 24, Content = text, Background = Brushes.Gray };
         var peer = new Window { Width = 24, Height = 24, Content = new ArmillaMark { Kind = ArmillaKind.Live } };

@@ -22,7 +22,7 @@ public sealed class DextraSmoothRestTests(HeadlessSession headless)
     [InlineData(144)]
     public void Visible_sleep_settles_continuously_and_wake_continues_the_presented_frame(int hz) => headless.OnUiThread(() =>
     {
-        using var scene = new Scene(hz);
+        using var scene = new DextraRestScene(hz);
         foreach (var state in new[] { ArmillaState.Thinking, ArmillaState.Working, ArmillaState.Idle, ArmillaState.Listening })
         {
             scene.Send(ArmillaHandler.Sleep.Off);
@@ -62,7 +62,7 @@ public sealed class DextraSmoothRestTests(HeadlessSession headless)
     [InlineData(144)]
     public void Hidden_sleeping_changes_resume_still_without_replaying_unseen_motion(int hz) => headless.OnUiThread(() =>
     {
-        using var scene = new Scene(hz);
+        using var scene = new DextraRestScene(hz);
         scene.Send(ArmillaHandler.Sleep.On);
         for (var i = 0; i < hz * 18; i++) scene.Frame();
         scene.Mark.IsVisible = false;
@@ -87,7 +87,7 @@ public sealed class DextraSmoothRestTests(HeadlessSession headless)
     [InlineData(144)]
     public void Sleeping_repaints_are_identical_to_the_frame_already_presented(int hz) => headless.OnUiThread(() =>
     {
-        using var scene = new Scene(hz);
+        using var scene = new DextraRestScene(hz);
         scene.Mark.State = ArmillaState.Thinking;
         for (var i = 0; i < hz * 2; i++) scene.Frame();
         var before = scene.Mark.FramesDrawn;
@@ -109,38 +109,6 @@ public sealed class DextraSmoothRestTests(HeadlessSession headless)
             Assert.Equal(prior, scene.Frame());
         }
     });
-
-    internal sealed class Scene : IDisposable
-    {
-        internal readonly ManualTimeProvider Clock = new();
-        private readonly IDisposable time;
-        private readonly DisplayPeriod display;
-        private readonly int hz;
-        internal readonly ArmillaMark Mark = new() { MarkSize = 176, Kind = ArmillaKind.Live, State = ArmillaState.Working,
-            Nodes = Enum.GetValues<ArmillaShape>().Select(s => new ArmillaNode(s, true)).ToArray() };
-        internal readonly Window Window;
-        private readonly Window peer;
-        internal Scene(int hz)
-        {
-            this.hz = hz; time = SwiftClock.Provider.Override(Clock); display = new DisplayPeriod(hz);
-            Window = new Window { Width = 176, Height = 176, Background = Brushes.Black, Content = Mark };
-            peer = new Window { Width = 24, Height = 24, Content = new ArmillaMark { MarkSize = 24, Kind = ArmillaKind.Live } };
-            Window.Show(); peer.Show();
-            ArmillaWindowWatch.For(Window).Focused(true); ArmillaWindowWatch.For(peer).Focused(true);
-            for (var i = 0; i < 8; i++) Frame();
-        }
-        internal void Send(object message) => Visual(Mark).SendHandlerMessage(message);
-        internal void Repaint() => Send(ArmillaHandler.Shown.Yes);
-        internal byte[] Frame() { Pump(Clock, hz); return Pixels(Window); }
-        public void Dispose() { Window.Close(); peer.Close(); Pump(Clock, hz); display.Dispose(); time.Dispose(); }
-    }
-
-    internal sealed class DisplayPeriod : IDisposable
-    {
-        private readonly Func<TimeSpan?> previous = RenderFrameSource.PeriodSource;
-        internal DisplayPeriod(int hz) => RenderFrameSource.PeriodSource = () => TimeSpan.FromSeconds(1.0 / hz);
-        public void Dispose() => RenderFrameSource.PeriodSource = previous;
-    }
 
     internal static CompositionCustomVisual Visual(Control control) => (CompositionCustomVisual)control.GetType()
         .GetField("visual", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(control)!;
