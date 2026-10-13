@@ -104,7 +104,17 @@ public sealed class AssistantHomeHost : Decorator
         host.Changed += OnHost;
         model.TeamFocusRequested -= OnTeamFocus;
         model.TeamFocusRequested += OnTeamFocus;
+        model.AssistantReviewRequested -= OnReview;
+        model.AssistantReviewRequested += OnReview;
+        model.AssistantMissionRequested -= OnMission;
+        model.AssistantMissionRequested += OnMission;
         Build();
+        if (model.PendingAssistantReview is { } asked)
+        {
+            ShowReview(asked); // a toast's Review opened the home: the card it named comes first
+            model.TakeAssistantMission(); // ... and a mission asked for at the same moment gives way to it
+        }
+        else if (model.PendingAssistantMission is { } run) ShowMission(run); // a duty's toast opened it: the run it names comes first
         ApplyTeamFocus();
     }
 
@@ -115,7 +125,39 @@ public sealed class AssistantHomeHost : Decorator
         model.TeamFocusRequested -= OnTeamFocus;
         teamSource?.Dispose();
         teamSource = null;
+        model.AssistantReviewRequested -= OnReview;
+        model.AssistantMissionRequested -= OnMission;
         builtOn = null; // built again on the next attach
+    }
+
+    private void OnReview(Guid decision) => Dispatcher.UIThread.Post(() => ShowReview(decision));
+
+    private void OnMission(Guid mission) => Dispatcher.UIThread.Post(() => ShowMission(mission));
+
+    /// <summary>
+    /// A duty toast's Open (AS-9, 13.1 "Duty opt-in"): the Missions tab opens over whatever the home was showing and the run's card comes into view.
+    /// With Dextra off there is no board; the request is let go.
+    /// </summary>
+    internal bool ShowMission(Guid mission)
+    {
+        model.TakeAssistantMission();
+        if (Home is not { } home) return false;
+        CloseSheet();
+        home.Board.Pick(BoardTab.Missions);
+        return home.Board.Missions.Reveal(mission);
+    }
+
+    /// <summary>
+    /// A toast's Review (AS-9, 13.1): the Decisions tab opens over whatever the home was showing and the card takes the focus (the card, never a
+    /// button). With Dextra off there is no board; the request is let go.
+    /// </summary>
+    internal bool ShowReview(Guid decision)
+    {
+        model.TakeAssistantReview();
+        if (Home is not { } home) return false;
+        CloseSheet();
+        home.Board.Pick(BoardTab.Decisions);
+        return home.Board.Decisions.Reveal(decision);
     }
 
     private void OnHost() => Dispatcher.UIThread.Post(Build);

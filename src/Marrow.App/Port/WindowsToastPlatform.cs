@@ -47,6 +47,14 @@ public sealed class WindowsToastPlatform : IWindowsToastPlatform
         var toast = new ToastNotification(document) { Tag = tag };
         ToastNotificationManager.CreateToastNotifier(appId).Show(toast);
     }
+
+    // PORT-ONLY (AS-9, ED-NEW-dextra-as9-6): a decision that was answered in the app takes its toast out of the action center, so no stale
+    // button waits there. The group is empty because Show sets none. Best effort: a refusal leaves a stale toast, which nth's own check refuses.
+    public void Remove(string appId, string tag)
+    {
+        try { ToastNotificationManager.History.Remove(tag, string.Empty, appId); }
+        catch (Exception error) when (error is COMException or ArgumentException or InvalidOperationException or UnauthorizedAccessException) { }
+    }
 }
 
 public sealed class AvaloniaToastActivationWindows : IToastActivationWindows

@@ -112,6 +112,19 @@ public sealed partial class DutyTools(AssistantScheduler scheduler, DutyToolsOpt
         return $"The duty “{saved.Name}” is {(existing is null ? "set" : "changed")}: {DutyCardWords.Trigger(saved.Trigger)}. Next: {when}.";
     }
 
+    // How a duty reports (7.1). "notify" is the one opt-in to a toast (13.1): true sets Notify me; false takes it off again; left out, the duty keeps what it had.
+    // "silent" (schedule_duty only) picks between Silent unless something changed and Digest only.
+    private static ReportStyle ReportOf(Marrow.Core.Support.JSONValue args, ReportStyle? existing, ReportStyle? silent)
+    {
+        if (args["notify"]?.JSONValueBool is { } notify)
+        {
+            if (notify) return ReportStyle.NotifyMe;
+            if (silent is { } quiet) return quiet;
+            return existing is null or ReportStyle.NotifyMe ? ReportStyle.SilentUnlessChanged : existing.Value;
+        }
+        return silent ?? existing ?? ReportStyle.SilentUnlessChanged;
+    }
+
     private static bool IsDutyTool(string name) => name is "schedule_duty" or "watch_folder" or "watch_page";
 
     private Proposal Propose(AssistantToolCall call)
@@ -135,12 +148,12 @@ public sealed partial class DutyTools(AssistantScheduler scheduler, DutyToolsOpt
                 if (reading.Schedule is not { } schedule) return new Proposal(null, null, reading.Problem);
                 var existing = scheduler.Duties.Select(v => v.Duty).FirstOrDefault(d =>
                     d.AssistantId == chat.AssistantId && string.Equals(d.Name, title, StringComparison.OrdinalIgnoreCase));
-                var report = args["silent"]?.JSONValueBool switch
+                var report = ReportOf(args, existing?.Report, args["silent"]?.JSONValueBool switch
                 {
                     true => ReportStyle.SilentUnlessChanged,
                     false => ReportStyle.DigestOnly,
-                    null => existing?.Report ?? ReportStyle.SilentUnlessChanged,
-                };
+                    null => (ReportStyle?)null,
+                });
                 var trigger = new TimeTrigger(schedule, zoneId);
                 var duty = existing is null
                     ? new Duty(Duty.NewId(), title, chat.AssistantId, trigger, instructions) { Report = report, ProjectId = project, CreatedBy = chat.AssistantId }
@@ -157,8 +170,8 @@ public sealed partial class DutyTools(AssistantScheduler scheduler, DutyToolsOpt
                 var name = "Watch " + (Path.GetFileName(full) is { Length: > 0 } leaf ? leaf : full);
                 var existing = scheduler.Duties.Select(v => v.Duty).FirstOrDefault(d => d.AssistantId == chat.AssistantId && d.Trigger is FolderChangeTrigger f && string.Equals(f.Path, full, StringComparison.OrdinalIgnoreCase));
                 var duty = existing is null
-                    ? new Duty(Duty.NewId(), name, chat.AssistantId, trigger, instructions) { ProjectId = project, CreatedBy = chat.AssistantId }
-                    : existing with { Trigger = trigger, Instructions = instructions };
+                    ? new Duty(Duty.NewId(), name, chat.AssistantId, trigger, instructions) { ProjectId = project, CreatedBy = chat.AssistantId, Report = ReportOf(args, null, null) }
+                    : existing with { Trigger = trigger, Instructions = instructions, Report = ReportOf(args, existing.Report, null) };
                 return Checked(duty, existing);
             }
             default:
@@ -170,8 +183,8 @@ public sealed partial class DutyTools(AssistantScheduler scheduler, DutyToolsOpt
                 var host = Uri.TryCreate(url, UriKind.Absolute, out var uri) ? uri.Host : url;
                 var existing = scheduler.Duties.Select(v => v.Duty).FirstOrDefault(d => d.AssistantId == chat.AssistantId && d.Trigger is PageWatchTrigger p && p.Url == url);
                 var duty = existing is null
-                    ? new Duty(Duty.NewId(), "Watch " + host, chat.AssistantId, trigger, instructions) { ProjectId = project, CreatedBy = chat.AssistantId }
-                    : existing with { Trigger = trigger, Instructions = instructions };
+                    ? new Duty(Duty.NewId(), "Watch " + host, chat.AssistantId, trigger, instructions) { ProjectId = project, CreatedBy = chat.AssistantId, Report = ReportOf(args, null, null) }
+                    : existing with { Trigger = trigger, Instructions = instructions, Report = ReportOf(args, existing.Report, null) };
                 return Checked(duty, existing);
             }
         }
