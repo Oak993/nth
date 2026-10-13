@@ -165,17 +165,38 @@ public sealed class RealInputLeaseTests
     [Fact]
     public async Task Nths_own_card_holds_the_gate()
     {
-        var rig = new PcBorrowRig().ProveAll();
-        rig.CardUp = true;
-        var borrow = rig.Lease.Borrow(rig.Click(), CancellationToken.None);
-        await PcTestWait.Until(() => rig.Clock.Pending > 0);
-        rig.Clock.Advance(RealInputLease.PollMs);
-        Assert.True(await PcTestWait.StillWaiting(borrow));
+        // Advance on the pool: xUnit's synchronization context otherwise queues even inline clock continuations.
+        await Task.Run(async () =>
+        {
+            // The gate opens inside Drive: finish each due continuation before advancing again (ED-NEW-pcctl-35).
+            // ED-NEW-gatefix-1: fake time must not run the watchdog out while the click's continuation is still queued.
+            var rig = new PcBorrowRig(inlineClock: true).ProveAll();
+            rig.CardUp = true;
+            var borrow = rig.Lease.Borrow(rig.Click(), CancellationToken.None);
+            var wait = Assert.Single(rig.Lease.Waits);
+            wait.DoItNow();
+            // Even Do it now cannot borrow while the card is up, including beyond the click watchdog window.
+            for (var elapsed = 0; elapsed <= RealInputLease.ClickCapMs + RealInputLease.WatchdogSlackMs; elapsed += RealInputLease.PollMs)
+            {
+                Assert.Equal(1, rig.Clock.Pending);
+                rig.Clock.Advance(RealInputLease.PollMs);
+                Assert.False(borrow.IsCompleted);
+                Assert.Equal(PcGateBlock.Held, wait.Check.Block);
+                Assert.Empty(rig.Host.Sent);
+                Assert.Empty(rig.Hold.Log);
+            }
 
-        rig.CardUp = false;
-        var outcome = await rig.Drive(borrow);
+            rig.CardUp = false;
+            var outcome = await rig.Drive(borrow);
 
-        Assert.True(outcome.Done);
+            Assert.True(outcome.Done, $"{outcome.Status}: {outcome.Reason}");
+            Assert.Single(rig.Host.Sent);
+            Assert.True(outcome.ForegroundRestored);
+            Assert.Equal(PcBorrowRig.User, rig.Host.Foreground);
+            Assert.Equal(new[] { "begin", "end" }, rig.Hold.Log);
+            Assert.False(rig.Hold.Swallowing);
+            Assert.Empty(rig.Lease.Waits);
+        });
     }
 
     [Fact]
