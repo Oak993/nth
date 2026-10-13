@@ -17,6 +17,9 @@ public static class ChatHabits
     /// <summary>The words of a title that make its kind: the first few, in lower case, without digits or marks.</summary>
     public const int KindWords = 4;
 
+    /// <summary>The longest a habit's label runs (masked first, then cut).</summary>
+    public const int LabelChars = 80;
+
     /// <summary>A title shorter than this says nothing about its kind.</summary>
     public const int MinKindChars = 6;
 
@@ -39,7 +42,8 @@ public static class ChatHabits
             if (now - chat.CreatedAt > Lookback || chat.CreatedAt > now) continue;
             var about = facts(chat);
             if (about.Hidden) continue;
-            var title = chat.Title.Trim();
+            // The label is shown in a suggestion, written into a duty's instructions and may go to a model: a title is data, so a secret in it is masked and a long one cut.
+            var title = FeedShield.Excerpt(chat.Title, LabelChars);
             var kind = Kind(title);
             if (kind.Length < MinKindChars || Blank.Contains(kind)) continue;
             var key = (chat.ProjectID, kind);

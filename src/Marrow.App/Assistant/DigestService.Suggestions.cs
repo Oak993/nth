@@ -123,8 +123,8 @@ public sealed partial class DigestService
     {
         var name = setup.AssistantName ?? (id => id);
         var yes = existing is null ? CreateDutyAnswer : ChangeDutyAnswer;
-        // The ONE place AS-11 builds a decision card (the digest and the lane raise none): when AS-9's DecisionPriority lands, set Priority = Offered here, so the
-        // card does not toast (the owner tapped Accept: he is looking at the digest).
+        // The ONE place AS-11 builds a decision card (the digest and the lane raise none). It is Offered, not NeedsYou (AS-9, 13.1): the owner tapped Accept a moment
+        // ago and is looking at the digest, so the card waits in Decisions and makes no toast.
         var card = new DecisionItem(Guid.NewGuid(), DecisionKind.Question, DecisionWeight.Question,
             existing is null ? $"Create the duty “{duty.Name}”?" : $"Change the duty “{duty.Name}”?")
         {
@@ -133,6 +133,7 @@ public sealed partial class DigestService
             Rule = "A duty acts later without you, so " + (existing is null ? "creating" : "changing") + " one always asks.",
             AssistantId = duty.AssistantId,
             Options = new ValueList<string>([yes, DontAnswer]),
+            Priority = DecisionPriority.Offered,
         };
         o.Controller.Queue.Raise(card, (_, answer) =>
         {

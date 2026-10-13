@@ -449,4 +449,35 @@ public sealed class DigestSuggestionTests
         Assert.True(gone.IsError);
         Assert.Contains("is not part of this build", gone.Text, StringComparison.Ordinal);
     }
+
+    // ---- the one decision card the lane builds (AS-9: Offered makes no toast) ----
+
+    [Fact]
+    public void The_duty_card_an_Accept_raises_is_offered_not_a_needs_you_card_so_it_makes_no_toast()
+    {
+        using var rig = Quiet();
+        var plan = new SuggestionPlan(SuggestionDo.NewDuty, "Re-price listings")
+        {
+            ProjectId = rig.Project.Id,
+            Day = DayOfWeek.Friday,
+            At = new TimeOnly(16, 0),
+            Instructions = "Re-price the listings the way the owner does.",
+        };
+        Assert.True(rig.Host.Digests!.Accept(Offer(rig, Candidate("hand:a", plan, SuggestionKind.DoneByHand)).Key).Ok);
+        var card = Assert.Single(rig.Controller.Queue.Waiting);
+        Assert.Equal(DecisionPriority.Offered, card.Priority);
+        Assert.False(DecisionNotices.NeedsYou(card));
+    }
+
+    [Fact]
+    public void The_change_card_an_Accept_raises_is_offered_too()
+    {
+        using var rig = Quiet();
+        var duty = rig.Save(DutyHostRig.Every("d1", 120));
+        var plan = new SuggestionPlan(SuggestionDo.ChangeDuty, duty.Name) { DutyId = "d1", EveryMinutes = 360 };
+        Assert.True(rig.Host.Digests!.Accept(Offer(rig, Candidate("idle:d1", plan, SuggestionKind.IdleDuty)).Key).Ok);
+        var card = Assert.Single(rig.Controller.Queue.Waiting);
+        Assert.Equal(DecisionPriority.Offered, card.Priority);
+        Assert.False(DecisionNotices.NeedsYou(card));
+    }
 }

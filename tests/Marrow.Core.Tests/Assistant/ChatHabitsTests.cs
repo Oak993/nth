@@ -101,4 +101,17 @@ public sealed class ChatHabitsTests
     {
         Assert.Equal(kind, ChatHabits.Kind(title));
     }
+
+    [Fact]
+    public void A_title_is_data_a_secret_in_a_label_is_masked_and_a_long_one_is_cut()
+    {
+        using var runtime = new TestRuntime();
+        var secret = "sk-" + new string('a', 40);
+        var chats = new[] { Chat("Deploy with key " + secret, 4), Chat("Deploy with key " + secret, 11), Chat("Deploy with key " + secret, 18) };
+        var habit = Assert.Single(Habits(chats));
+        Assert.DoesNotContain(secret, habit.Label, StringComparison.Ordinal);
+        Assert.DoesNotContain(secret, habit.Key, StringComparison.Ordinal);
+        var long3 = new[] { Chat(new string('x', 400), 4), Chat(new string('x', 400), 11), Chat(new string('x', 400), 18) };
+        Assert.True(Assert.Single(Habits(long3)).Label.Length <= ChatHabits.LabelChars + 1);
+    }
 }
