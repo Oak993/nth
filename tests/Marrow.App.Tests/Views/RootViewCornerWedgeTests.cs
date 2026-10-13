@@ -67,7 +67,7 @@ public sealed class RootViewCornerWedgeTests(HeadlessSession headless)
         CornerSeam.Pairs(Width, Height, Chrome.WindowCornerRadius, [2, 3, 4, 5, 6, 8, 10], edgeInset: 1)
             .Concat(CornerSeam.Pairs(Width, Height, Chrome.WindowCornerRadius, [3, 4, 5, 6, 7], edgeInset: 3)).ToArray();
 
-    // ED-NEW-gatefix4-1: OD-0147 / ED-NEW-glasslook-4 approve the foreground capsule's shadow.
+    // ED-NEW-gatefix4-1 / ED-NEW-gatefix4-2: OD-0147 / ED-NEW-glasslook-4 approve the foreground capsule's shadow.
     // ED-NEW-sidebarmodes-9 puts that button at (14,12), so its shadow reaches the old body samples.
     // Keep every original ED-338 seam pair and bound on the backdrop, AND pin the visible foreground.
     private static void AssertBackdropAndToolbar(AvaloniaWindow window, CornerSeam.Pair[] pairs, string when,
@@ -106,6 +106,11 @@ public sealed class RootViewCornerWedgeTests(HeadlessSession headless)
         "light, striped backdrop" => "81EEACCA5C2AE4FF095160DE1B4217F3BAD5D595CA5436DCC69FCE2035B8E219",
         "dark, grey backdrop" => "B6827186FB55C42303080CA417A183082EFB11CABC504E1DF8F9356627298026",
         "dark, striped backdrop" => "4236D6B2E6F8F01D1A83091FF2BD28DA3440CDFC37779BC84E0DC8106D625D55",
+        "at 0.25 dark" => "EC1E66C082AE312B5303B5C4669D741F4FCDA2FC3E62DB187665B48D7A6FE6F2",
+        "at 0.75 dark" => "A6871AE47BC4C7D17DC1A0BFF74FC0149369E8409B5DE08138126D2820BF53F6",
+        "at 0.75 light" => "9572521677B1C45229AF73A29BD90BDF8900D489D5566DEE5C40E75A91998E32",
+        "solid light: the window is white, corners too" => "FD93CBA7C09EA4565DB402A82ED9C29115B5C52870F6AFB8614556CC70095088",
+        "solid dark: the window is black, corners too" => "36E5861CA19FC7F8AD213836A76F6C2A730D3CBCC9C71BE8E10CDC8ECDF754DB",
         _ => throw new ArgumentOutOfRangeException(nameof(when), when, "No approved corner pixels for this scenario"),
     };
 
@@ -114,7 +119,7 @@ public sealed class RootViewCornerWedgeTests(HeadlessSession headless)
     [InlineData(false, false)]
     [InlineData(true, true)]
     [InlineData(false, true)]
-    [Trait("Decision", "ED-NEW-gatefix4-1")] // App/Views/RootView.swift:64-68; UI/Chrome/Chrome.swift:8, :211-215; App/Window/WindowManager.swift:62-69 the main window's surface; OD-0075
+    [Trait("Decision", "ED-338")] // App/Views/RootView.swift:64-68; UI/Chrome/Chrome.swift:8, :211-215; App/Window/WindowManager.swift:62-69 the main window's surface; OD-0075
     public void The_main_windows_four_corners_outside_the_26_point_curve_are_the_body_just_inside_it(bool dark, bool busy)
     {
         headless.OnUiThread(() =>
@@ -136,7 +141,7 @@ public sealed class RootViewCornerWedgeTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "ED-236")] // UI/Chrome/Chrome.swift:211-224; OD-0075
+    [Trait("Decision", "ED-338")] // UI/Chrome/Chrome.swift:211-224; OD-0075
     public void The_corners_are_the_body_at_every_backdrop_opacity_in_both_themes_and_the_solid_window()
     {
         headless.OnUiThread(() =>
@@ -148,7 +153,7 @@ public sealed class RootViewCornerWedgeTests(HeadlessSession headless)
             void Step(Action change, string when)
             {
                 harness.Main.OnMain(change);
-                harness.Main.OnMain(() => { Settle(window); CornerSeam.AssertSeamless(window, Pairs(), when); });
+                harness.Main.OnMain(() => { Settle(window); AssertBackdropAndToolbar(window, Pairs(), when); });
             }
             harness.Main.OnMain(() =>
             {
@@ -157,7 +162,7 @@ public sealed class RootViewCornerWedgeTests(HeadlessSession headless)
             });
             try
             {
-                harness.Main.OnMain(() => CornerSeam.AssertSeamless(window, Pairs(), "at 0.25 dark"));
+                harness.Main.OnMain(() => AssertBackdropAndToolbar(window, Pairs(), "at 0.25 dark"));
                 Step(() => model.Settings.BackdropOpacity = 0.75, "at 0.75 dark");
                 Step(() => window.RequestedThemeVariant = ThemeVariant.Light, "at 0.75 light");
                 Step(() => model.Settings.BackdropOpacity = 1, "solid light: the window is white, corners too");
