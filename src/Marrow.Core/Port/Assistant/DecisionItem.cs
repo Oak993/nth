@@ -28,6 +28,10 @@ public enum DecisionKind
     Cap,
     /// <summary>A duty paused after three failures in a row (13.2): try it again, or keep it paused. AS-15.</summary>
     Duty,
+    /// <summary>
+    /// A purchase (12.7): Pay or Don't buy when nth may fill the card, else the hand-over's "I'll pay" or Don't buy. AS-20.
+    /// </summary>
+    Purchase,
 }
 
 /// <summary>How a card is answered (4.2's table).</summary>
@@ -167,6 +171,9 @@ public static class DecisionRules
         // A reserve's card is its four options and nothing else (11.5): a free-text answer would be an option nobody checked.
         // A cap's card and a paused duty's are the same (13.2): their options and nothing to type.
         if (item.Kind is DecisionKind.Reserve or DecisionKind.Cap or DecisionKind.Duty) return new([DecisionAnswerKind.Pick]);
+        // A purchase nth pays is Pay or Don't buy; one handed to the owner is its two options and nothing to type (12.7).
+        if (item.Kind == DecisionKind.Purchase)
+            return item.Weight == DecisionWeight.Irreversible ? new([DecisionAnswerKind.DoIt, DecisionAnswerKind.Dont]) : new([DecisionAnswerKind.Pick]);
         if (item.Kind == DecisionKind.Merge)
             return new([DecisionAnswerKind.Merge, DecisionAnswerKind.RebaseFirst, DecisionAnswerKind.Discard]);
         if (item.Kind == DecisionKind.Question || item.Weight == DecisionWeight.Question)

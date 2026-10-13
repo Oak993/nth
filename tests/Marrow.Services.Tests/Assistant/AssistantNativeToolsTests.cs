@@ -131,7 +131,7 @@ public sealed class AssistantNativeToolsTests
         Assert.Equal("Dextra · Recall", AssistantNativeTools.Title("recall"));
 
         var agent = Session(host, host.Add(AssistantChatRole.Mission, Guid.NewGuid()));
-        Assert.Equal(new[] { "request_helpers", "ask_owner", "remember", "recall", "usage_status", "report" },
+        Assert.Equal(new[] { "request_helpers", "ask_owner", "remember", "recall", "usage_status", "report", "prepare_purchase" },
             agent.DextraTools!.Definitions.Select(d => d["function"]!["name"]!.JSONValueString!));
         Assert.False(agent.DextraTools.Owns("start_mission"));
         Assert.Contains("You are an agent of one of Dextra's missions.", agent.SystemPromptForTests(), StringComparison.Ordinal);
