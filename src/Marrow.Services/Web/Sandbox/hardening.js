@@ -7,6 +7,9 @@
 // + ED-NEW-web-sec-artifacts-2 (security review 2026-10-13, M5): such a frame is a realm of its own, with its own DOM
 // methods, observer and window, so the whole hardening runs in it (once per realm): a frame added through that frame's
 // own document, at any depth, is hardened the moment it appears, as one added through the page's.
+// + ED-NEW-web-sec-artifacts-8 (the review's residual): reopening a document (document.open, or a write that opens it) no longer
+// drops the frame load listener, and the body setter, Range.surroundContents, select and options add and a table's caption,
+// tHead and tFoot setters are hooked too.
 (() => {
   'use strict';
   const nth = /^https:\/\/[amw]-[a-z0-9-]+\.invalid$/;
@@ -39,6 +42,16 @@
     }
   };
   const settle = () => scrubFrames(root);
+
+  // + ED-NEW-web-sec-artifacts-8: one capture listener on every document re-walks the frames at any load event there (a frame
+  // with no src loads during its insertion, and this runs before the page's own handlers; any load, as a page can redefine
+  // tagName). document.open, and a write that opens the document itself, erase every listener on it, so it is added again,
+  // through the addEventListener the page found before any script of its own ran (the same function twice is one listener).
+  const onLoad = () => settle();
+  const listen = root.EventTarget && root.EventTarget.prototype && root.EventTarget.prototype.addEventListener;
+  const relisten = (doc) => {
+    try { (typeof listen === 'function' ? listen : doc.addEventListener).call(doc, 'load', onLoad, true); } catch (_) { /* not a document */ }
+  };
 
   // DNS prefetch, preconnect, prefetch, prerender and speculation rules: removed as they are added, before they act.
   const hint = /(^|\s)(dns-prefetch|preconnect|prefetch|prerender)(\s|$)/i;
@@ -102,16 +115,35 @@
     for (const name of ['insertAdjacentElement', 'insertAdjacentHTML', 'setHTMLUnsafe', 'setHTML']) after(win.Element, name);
     after(win.ShadowRoot, 'setHTMLUnsafe');
     after(win.ShadowRoot, 'setHTML');
-    for (const name of ['write', 'writeln', 'open']) after(win.Document, name);
+    // + ED-NEW-web-sec-artifacts-8: a write or writeln on a document no parser has open opens it first, and so erases the load
+    // listener before it parses a frame. An empty write first makes that very open (or none: a write from a parsing script, an
+    // ignored write, a document already open), the listener is back before the real write parses anything, and after each call.
+    const documentProto = win.Document && win.Document.prototype;
+    const write = documentProto && Object.getOwnPropertyDescriptor(documentProto, 'write');
+    for (const name of ['write', 'writeln', 'open']) {
+      const original = documentProto && Object.getOwnPropertyDescriptor(documentProto, name);
+      if (!original || typeof original.value !== 'function') continue;
+      define(documentProto, name, function (...args) {
+        if (name !== 'open' && write && typeof write.value === 'function') {
+          try { write.value.call(this, ''); } catch (_) { /* the real call throws the same way */ }
+          relisten(this);
+        }
+        try { return original.value.apply(this, args); } finally { relisten(this); settle(); }
+      });
+    }
     after(win.Range, 'insertNode');
     for (const name of ['innerHTML', 'outerHTML']) setter(win.Element, name);
     setter(win.ShadowRoot, 'innerHTML');
+    // + ED-NEW-web-sec-artifacts-8: the other calls that connect a subtree the page built (a frame with a src fires no load event
+    // as it is inserted). select[i] = option and select.options[i] = option are indexed setters no script can hook: a frame they
+    // connect is reached by the load listener (no src) or the mutation observer (the next microtask).
+    setter(win.Document, 'body');
+    after(win.Range, 'surroundContents');
+    after(win.HTMLSelectElement, 'add');
+    after(win.HTMLOptionsCollection, 'add');
+    for (const name of ['caption', 'tHead', 'tFoot']) setter(win.HTMLTableElement, name);
     const doc = win.document;
-    if (doc && doc.addEventListener) {
-      doc.addEventListener('load', (event) => {
-        if (event.target && /^(IFRAME|FRAME|OBJECT|EMBED)$/.test(event.target.tagName || '')) settle();
-      }, true);
-    }
+    if (doc) relisten(doc);
     if (doc && win.MutationObserver) {
       new win.MutationObserver((records) => {
         for (const record of records) {

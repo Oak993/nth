@@ -72,7 +72,8 @@ public sealed class SandboxNestedRealmScriptTests
           w.document = Object.create(w.Document.prototype);
           w.document.nodeType = 9;
           w.document.defaultView = w;
-          w.document.addEventListener = (type, f, capture) => { w.listeners.push({ type, f, capture }); };
+          // As the DOM does: the same type, function and capture flag again is the one listener already there.
+          w.document.addEventListener = (type, f, capture) => { if (!w.listeners.some((l) => l.type === type && l.f === f && l.capture === capture)) w.listeners.push({ type, f, capture }); };
           w.window = w;
           return w;
         };
