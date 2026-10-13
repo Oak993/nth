@@ -16,9 +16,14 @@ public sealed class ReserveSettings
     /// <summary>The most standing rules kept (a runaway list never grows the file without bound).</summary>
     public const int MaxRules = 64;
 
+    /// <summary>The most standing caps kept.</summary>
+    public const int MaxCaps = 64;
+
     private readonly object gate = new();
     private readonly List<ReserveRule> rules = [];
     private readonly Dictionary<string, JsonObject> unknown = new(StringComparer.Ordinal);
+    private readonly List<CostCap> caps = [];
+    private readonly Dictionary<string, JsonObject> unknownCaps = new(StringComparer.Ordinal);
     private JsonObject? root;
 
     /// <summary>The file's version was newer than this build knows: nothing was read, and nothing is written over it.</summary>
@@ -53,6 +58,40 @@ public sealed class ReserveSettings
         }
         Changed?.Invoke();
         return null;
+    }
+
+    /// <summary>The standing spending caps (13.2, AS-15), in the order the owner added them. They live in the same document as the rules.</summary>
+    public IReadOnlyList<CostCap> Caps
+    {
+        get { lock (gate) return [.. caps]; }
+    }
+
+    /// <summary>Adds a standing cap (a day's cap per assistant, or the API keys'); a task's cap is set where the task starts. Null when added, else why not.</summary>
+    public string? AddCap(CostCap cap)
+    {
+        ArgumentNullException.ThrowIfNull(cap);
+        if (cap.Scope == CostCapScope.Task) return "A cap for one task is set where the task starts.";
+        if (!cap.Limits) return "Say how much the cap is.";
+        lock (gate)
+        {
+            if (ReadOnly) return "These settings were saved by a newer version; this one leaves them as they are.";
+            if (caps.Count >= MaxCaps) return $"At most {MaxCaps} caps are kept.";
+            var stored = cap.Normalized() with { Id = string.IsNullOrWhiteSpace(cap.Id) || caps.Any(c => c.Id == cap.Id) ? Guid.NewGuid().ToString("N") : cap.Id };
+            caps.Add(stored);
+        }
+        Changed?.Invoke();
+        return null;
+    }
+
+    public bool RemoveCap(string id)
+    {
+        lock (gate)
+        {
+            if (ReadOnly || caps.RemoveAll(c => c.Id == id) == 0) return false;
+            unknownCaps.Remove(id);
+        }
+        Changed?.Invoke();
+        return true;
     }
 
     public bool Remove(string id)
@@ -101,6 +140,9 @@ public sealed class ReserveSettings
             document["holdReserves"] = HoldReserves;
             document["alwaysAskBeforeStarting"] = AlwaysAskBeforeStarting;
             document["rules"] = new JsonArray([.. rules.Select(Write)]);
+            // Caps are written only when there are some, so a document without any is exactly what the build before them wrote.
+            if (caps.Count > 0) document["caps"] = new JsonArray([.. caps.Select(Write)]);
+            else document.Remove("caps");
             return document;
         }
     }
@@ -124,6 +166,18 @@ public sealed class ReserveSettings
         return node;
     }
 
+    private JsonNode Write(CostCap cap)
+    {
+        var node = unknownCaps.TryGetValue(cap.Id, out var extra) ? (JsonObject)extra.DeepClone() : new JsonObject();
+        node["id"] = cap.Id;
+        node["scope"] = cap.Scope.ToString();
+        if (cap.Percent is { } percent) node["percent"] = percent; else node.Remove("percent");
+        if (cap.Dollars is { } dollars) node["dollars"] = dollars; else node.Remove("dollars");
+        if (cap.AssistantId is { } assistant) node["assistant"] = assistant; else node.Remove("assistant");
+        node["accounts"] = new JsonArray([.. cap.AccountNames.Select(n => (JsonNode)n)]);
+        return node;
+    }
+
     /// <summary>Loads a stored document; a newer version makes the settings read-only and loads nothing.</summary>
     public void Load(JsonObject? document)
     {
@@ -131,6 +185,8 @@ public sealed class ReserveSettings
         {
             rules.Clear();
             unknown.Clear();
+            caps.Clear();
+            unknownCaps.Clear();
             root = null;
             ReadOnly = false;
             HoldReserves = false;
@@ -142,9 +198,10 @@ public sealed class ReserveSettings
                 return;
             }
             root = (JsonObject)document.DeepClone();
-            foreach (var name in new[] { "version", "holdReserves", "alwaysAskBeforeStarting", "rules" }) root.Remove(name);
+            foreach (var name in new[] { "version", "holdReserves", "alwaysAskBeforeStarting", "rules", "caps" }) root.Remove(name);
             HoldReserves = Flag(document["holdReserves"]);
             AlwaysAskBeforeStarting = Flag(document["alwaysAskBeforeStarting"]);
+            LoadCaps(document["caps"] as JsonArray);
             if (document["rules"] is not JsonArray lines) return;
             foreach (var line in lines.OfType<JsonObject>())
             {
@@ -156,6 +213,43 @@ public sealed class ReserveSettings
                     if (name is not ("id" or "lifetime" or "keepPercent" or "keepDollars" or "basis" or "windows" or "scope")) extra[name] = value?.DeepClone();
                 if (extra.Count > 0) unknown[rule.Id] = extra;
             }
+        }
+    }
+
+    // Under the lock. A line that is not a cap (wrong type, no amount, a task's) is skipped, never repaired.
+    private void LoadCaps(JsonArray? lines)
+    {
+        if (lines is null) return;
+        foreach (var line in lines.OfType<JsonObject>())
+        {
+            if (caps.Count >= MaxCaps) break;
+            if (ReadCap(line) is not { } cap || caps.Any(c => c.Id == cap.Id)) continue;
+            caps.Add(cap);
+            var extra = new JsonObject();
+            foreach (var (name, value) in line)
+                if (name is not ("id" or "scope" or "percent" or "dollars" or "assistant" or "accounts")) extra[name] = value?.DeepClone();
+            if (extra.Count > 0) unknownCaps[cap.Id] = extra;
+        }
+    }
+
+    private static CostCap? ReadCap(JsonObject line)
+    {
+        try
+        {
+            if (line["id"] is not JsonValue idNode || !idNode.TryGetValue<string>(out var id) || id.Length == 0 || id.Length > 64) return null;
+            if (line["scope"] is not JsonValue scopeNode || !scopeNode.TryGetValue<string>(out var scopeText) || !Enum.TryParse<CostCapScope>(scopeText, out var scope)
+                || scope == CostCapScope.Task) return null;
+            double? percent = AssistantJson.Number(line["percent"]) is { } p && double.IsFinite(p) ? p : null;
+            decimal? dollars = AssistantJson.Number(line["dollars"]) is { } d && double.IsFinite(d) ? (decimal)d : null;
+            var assistant = line["assistant"] is JsonValue av && av.TryGetValue<string>(out var a) && a.Length > 0 ? a : null;
+            var names = line["accounts"] is JsonArray array
+                ? array.OfType<JsonValue>().Select(v => v.TryGetValue<string>(out var n) ? n : "").Where(n => n.Length > 0).ToArray() : [];
+            var cap = new CostCap(id, scope) { Percent = percent, Dollars = dollars, AssistantId = assistant, AccountNames = new ValueList<string>(names) }.Normalized();
+            return cap.Limits ? cap : null;
+        }
+        catch (Exception error) when (error is InvalidOperationException or FormatException or OverflowException)
+        {
+            return null;
         }
     }
 
