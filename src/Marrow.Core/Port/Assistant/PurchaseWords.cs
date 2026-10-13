@@ -69,6 +69,66 @@ public static class PurchaseWords
     public const string Changed = "Its shop, items or total changed. A new card asks you again.";
     public const string LimitsChanged = "What is left of your limits changed. A new card asks you again.";
 
+    // the hand-over card and what the desk says while it pays
+    public const string HandOverRule = "Handed to you: you pay yourself";
+    public const string HandedOff = "Purchases are off, so the payment is yours to make.";
+    public const string HandedNoCard = "There is no card to pay with, so the payment is yours to make.";
+    public const string TurnedOff = "Purchases were turned off, so this payment is yours to make.";
+    public const string PageGone = "The checkout is not open any more. Ask Dextra for a fresh request.";
+    public const string NotWritten = "nth could not write the purchase down before paying, so it did not pay. The card was taken off the page.";
+    public const string NotTaken = "The shop did not take the payment. The card was taken off the page.";
+    public const string CheckWithShop = "nth could not tell whether the payment went through. Check with the shop before paying again.";
+    public const string CardDamaged = "The card in Credential Manager cannot be opened. Remove it and add it again.";
+    public const string FieldRefused = "The shop's card field did not take the card. Nothing was paid.";
+    public const string PageUnread = "nth could not read the checkout. Nothing was paid.";
+    public const string Underway = "This payment is under way. Cancel it in Windows Hello.";
+    public const string PayOnCard = "Pay from the card: it asks Windows Hello first.";
+    public const string Stopped = "Stopped before anything was filled.";
+    public const string NoSuchCard = "This card is closed. Ask Dextra for a fresh request.";
+    public const string LogNotWritten = "The activity log could not be written, so nth did not pay. The card was taken off the page.";
+    public const string CardChanged = "The card changed. A new card asks you again.";
+    public const string UnknownAssistant = "nth does not know the assistant that asked, so the payment is yours to make.";
+    public const string NothingFilled = "Nothing was filled.";
+    public const string NothingChanged = "Nothing changed.";
+
+    // the settings section's lines
+    public const string NeedsCard = "Add a card first.";
+    public const string NeedsFill = "This build cannot fill a shop's card field, so payments stay handed to you.";
+    public const string TurnedOn = "Purchases are on.";
+    public const string NowOff = "Purchases are off.";
+    public const string OffNotSaved = "Purchases are off. nth could not save that, so turn them off again after nth restarts.";
+    public const string NotSaved = "nth could not save the change. Nothing changed.";
+    public const string LimitSaved = "The new limit counts from now.";
+    public const string LimitTyped = "A limit is an amount, for example 50.00.";
+    public const string CardSaved = "Saved. Only the last 4 digits are shown.";
+    public const string CardRemoved = "The card was removed from Credential Manager.";
+    public const string NoCardToRemove = "There is no card to remove.";
+    public const string CardNotSaved = "Windows did not save the card. Nothing changed.";
+    public const string Incomplete = "Type the whole number, the expiry and the security code.";
+    public const string Cancel = "Cancel";
+    public const string AsturLimits = "Limits per " + AssistantNames.Astur;
+    public const string NoAsturs = "No " + AssistantNames.Asturs + " yet. Each one you make starts at $0: it hands its payments to you.";
+
+    /// <summary>"Windows Hello: pay $46.80 to shop.example", shown while Windows asks.</summary>
+    public static string Asking(string what) => "Windows Hello: " + what;
+
+    /// <summary>A checkout in another currency than the card's limits: handed over, never converted.</summary>
+    public static string OtherCurrency(string currency, string limits) =>
+        $"This checkout is in {currency} and your limits are in {limits}, so the payment is yours to make.";
+
+    /// <summary>The over line on a hand-over card: "Over your $50.00 limit per purchase, so the payment is yours to make."</summary>
+    public static string OverHandOver(string over) => over + ", so the payment is yours to make.";
+
+    /// <summary>The activity log's and the history's line: "Paid $46.80 at shop.example after Windows Hello".</summary>
+    public static string Paid(PurchaseRequest request) =>
+        $"Paid {PurchaseMoney.Format(request.Total, request.Currency)} at {CheckoutOrigins.Host(request.Origin)} after Windows Hello";
+
+    public static string ToAgentNotTaken(PurchaseRequest request) =>
+        $"The shop at {CheckoutOrigins.Host(request.Origin)} did not take the payment. nth took {Placeholder} off the page; nothing was paid that nth knows of.";
+
+    public static string ToAgentStopped(PurchaseRequest request, string why) =>
+        $"The purchase at {CheckoutOrigins.Host(request.Origin)} did not go ahead: {why} Nothing was filled.";
+
     /// <summary>"•••• 4242": the card as nth shows it, everywhere.</summary>
     public static string LastFour(string? lastFour) => lastFour is { Length: 4 } l ? "•••• " + l : NoCard;
 

@@ -7,7 +7,8 @@ namespace Marrow.Services.Tests.Fixtures;
 /// <summary>
 /// PORT-ONLY (Dextra AS-20): a checkout page on a local host as a fill path would hold it. The test sets what the page is at
 /// each read (a redirect after approval is a second snapshot), and the page records, in order, the agents being held and let
-/// go, each field it was given (what the shop's field now holds) and the submit.
+/// go, each field it was given (what the shop's field now holds) and the submit. Holds nest, as a fill path's must: the agents
+/// stay held until the last hold is let go.
 /// </summary>
 public sealed class FakeCheckoutPage : ICheckoutPage
 {
@@ -32,7 +33,12 @@ public sealed class FakeCheckoutPage : ICheckoutPage
 
     public Exception? SubmitThrows { get; set; }
 
-    public bool AgentsHeld { get; private set; }
+    public bool AgentsHeld => holds > 0;
+
+    /// <summary>Runs as the order is placed, before its outcome (a test reads what was written down by then).</summary>
+    public Action? Submitting { get; set; }
+
+    private int holds;
 
     public FakeCheckoutPage Then(CheckoutSnapshot snapshot)
     {
@@ -58,13 +64,14 @@ public sealed class FakeCheckoutPage : ICheckoutPage
     public IDisposable HoldAgents()
     {
         Events.Add("hold");
-        AgentsHeld = true;
+        holds++;
         return new Release(this);
     }
 
     public Task<CheckoutOutcome> Submit(CancellationToken cancellationToken)
     {
-        Events.Add("submit");
+        Events.Add("submit" + (AgentsHeld ? " (held)" : ""));
+        Submitting?.Invoke();
         if (SubmitThrows is { } error) throw error;
         return Task.FromResult(Outcome);
     }
@@ -74,10 +81,13 @@ public sealed class FakeCheckoutPage : ICheckoutPage
 
     private sealed class Release(FakeCheckoutPage page) : IDisposable
     {
+        private bool done;
+
         public void Dispose()
         {
-            if (!page.AgentsHeld) return;
-            page.AgentsHeld = false;
+            if (done) return;
+            done = true;
+            page.holds--;
             page.Events.Add("release");
         }
     }

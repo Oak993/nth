@@ -202,9 +202,29 @@ public sealed class CardVaultTests
         var rig = await Saved();
         var page = SameOrigin();
         page.RefuseFields.Add("exp");
-        Assert.Equal(CardFillOutcome.FieldRefused, (await rig.Vault.Fill(page, Shop, 46.80m, "pay")).Outcome);
+        var result = await rig.Vault.Fill(page, Shop, 46.80m, "pay");
+        Assert.Equal(CardFillOutcome.FieldRefused, result.Outcome);
+        Assert.Empty(result.Fields);
         Assert.False(page.Filled.ContainsKey("csc"));
+        Assert.Equal("", page.Filled["number"]);                       // what was already filled is emptied: no part of the card stays on the page
         Assert.All(page.Handed, m => Assert.All(m.Span.ToArray(), c => Assert.Equal('\0', c)));
+    }
+
+    [Fact]
+    public async Task A_card_stopped_while_windows_asked_fills_nothing_and_a_filled_one_names_its_fields_only()
+    {
+        var rig = await Saved();
+        var page = SameOrigin();
+        var stopped = await rig.Vault.Fill(page, Shop, 46.80m, "pay", stillWanted: () => false);
+        Assert.Equal((CardFillOutcome.Withdrawn, HelloResult.Verified), (stopped.Outcome, stopped.Hello));
+        Assert.Empty(page.Events);
+        Assert.Equal(0, rig.Sealer.Opened);
+
+        var filled = await rig.Vault.Fill(page, Shop, 46.80m, "pay", stillWanted: () => true);
+        Assert.Equal(CardFillOutcome.Filled, filled.Outcome);
+        Assert.Equal(page.Filled.Keys.Order(StringComparer.Ordinal), filled.Fields.Order(StringComparer.Ordinal));
+        Assert.True(await CardVault.Clear(page, filled.Fields));
+        Assert.All(page.Filled.Values, v => Assert.Equal("", v));
     }
 
     [Fact]
