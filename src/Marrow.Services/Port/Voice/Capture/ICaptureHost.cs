@@ -16,6 +16,13 @@ public interface ICaptureHost
     /// <summary>Opens <paramref name="endpointId"/>, or the default endpoint when null, in its own mix format. Throws <see cref="CaptureDeviceException"/>.</summary>
     ICaptureDevice Open(string? endpointId);
 
+    /// <summary>
+    /// PORT-ONLY (Dextra AS-18, DESIGN.md rev 5, 2.4 "Barge-in"; ED-NEW-dextra-as18-1): as <see cref="Open"/>, with the stream in the
+    /// communications category, so Windows' own echo cancellation, noise suppression and gain control run where the endpoint has them.
+    /// A host that cannot tell the difference opens the stream as it is.
+    /// </summary>
+    ICaptureDevice OpenCommunications(string? endpointId) => Open(endpointId);
+
     /// <summary>Subscribes to endpoint changes (any thread); disposing the result unsubscribes.</summary>
     IDisposable Watch(Action<EndpointNotice> handler);
 }

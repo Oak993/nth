@@ -45,6 +45,11 @@ public static class AssistantSettingsWords
     public const string Stop = "Stop";
     public const string RowChord = "Stop chord";
     public const string RowChordDetail = "Stops every mission and Tactus at once, from anywhere. A new chord applies when work next starts.";
+    public const string Voice = "Voice";
+    public const string RowTalk = "Talk chord";
+    public const string RowTalkDetail = "Press it anywhere in Windows to talk to Dextra, and again to finish. What you say and what it says stay on this PC.";
+    public const string RowVoice = "Voice";
+    public const string RowVoiceDetail = "A voice installed on this PC. Automatic picks one for your language.";
     public const string Permissions = "Permissions";
     public const string NoGrants = "No grants yet. Cards you answer with For this mission or Always… show here.";
     public const string Revoke = "Revoke";
@@ -101,6 +106,9 @@ public static class AssistantSettingsWords
         ("Always asks you to confirm", [.. ActionClasses.All.Where(c => ActionClasses.DefaultOf(c) == ClassDefault.AlwaysConfirmed)]),
         ("Never", [.. ActionClasses.All.Where(c => ActionClasses.DefaultOf(c) == ClassDefault.Never)]),
     ];
+
+    /// <summary>The talk chords offered (the default first): none types a character on a common layout.</summary>
+    public static IReadOnlyList<string> TalkChords { get; } = ["Ctrl+Alt+Enter", "Ctrl+Alt+Home", "Ctrl+Alt+Insert", "Ctrl+Alt+F9"];
 
     /// <summary>The stop chords offered (the default first).</summary>
     public static IReadOnlyList<string> Chords { get; } = ["Ctrl+Alt+Esc", "Ctrl+Alt+Pause", "Ctrl+Shift+Pause", "Ctrl+Alt+End"];

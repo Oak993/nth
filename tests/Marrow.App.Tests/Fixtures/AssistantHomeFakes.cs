@@ -293,6 +293,6 @@ public sealed class HomeStage : IDisposable
 /// <summary>Dextra AS-8: a host whose starter makes no controller unless the test gives one.</summary>
 public static class DextraHosts
 {
-    public static DextraHost Make(AppModel model, InMemorySettingsStore? store = null, DextraStarter? starter = null) =>
-        new(model, new DextraSettings(store ?? new InMemorySettingsStore()), starter ?? ((_, _, _) => null));
+    public static DextraHost Make(AppModel model, InMemorySettingsStore? store = null, DextraStarter? starter = null, DextraVoiceStarter? voice = null) =>
+        new(model, new DextraSettings(store ?? new InMemorySettingsStore()), starter ?? ((_, _, _) => null), voice: voice);
 }

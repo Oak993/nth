@@ -15,12 +15,14 @@ public sealed class NAudioCaptureDevice : ICaptureDevice
     private volatile bool stopping;
 
     /// <summary>Takes ownership of <paramref name="endpoint"/>. Throws <see cref="CaptureDeviceException"/> (the endpoint is disposed then).</summary>
-    public NAudioCaptureDevice(MMDevice endpoint)
+    /// <param name="communications">PORT-ONLY (Dextra AS-18, ED-NEW-dextra-as18-1): the stream is opened in the communications category (the system's echo cancellation, noise suppression and gain control).</param>
+    public NAudioCaptureDevice(MMDevice endpoint, bool communications = false)
     {
         device = endpoint;
         try
         {
-            recorder = new WasapiRecorderBuilder().WithDevice(endpoint).WithSharedMode().WithEventSync().WithMmcssThreadPriority("Audio").Build();
+            var builder = new WasapiRecorderBuilder().WithDevice(endpoint).WithSharedMode().WithEventSync().WithMmcssThreadPriority("Audio");
+            recorder = (communications ? builder.WithCommunicationsMode() : builder).Build();
         }
         catch (Exception error)
         {

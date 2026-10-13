@@ -13,17 +13,22 @@ public sealed class WasapiCapture : IAudioCapture
     private readonly ICaptureHost host;
     private readonly Func<string?> microphone;
     private readonly bool runThread;
+    private readonly bool communications;
     private Run? current;
 
     /// <param name="host">The endpoints.</param>
     /// <param name="microphone">The stored Microphone pick (<c>voiceTyping.mic</c>), read at each start; null is the Windows default.</param>
     /// <param name="runThread">True in production: the pipeline's own processing thread. False in a test, which calls <see cref="Pump"/> itself.</param>
-    public WasapiCapture(ICaptureHost host, Func<string?> microphone, bool runThread = true)
+    /// <param name="communications">PORT-ONLY (Dextra AS-18, DESIGN.md rev 5, 2.4, ED-NEW-dextra-as18-1): open the stream in the communications category, so Windows' echo cancellation runs (the voice conversation); dictation leaves it off.</param>
+    public WasapiCapture(ICaptureHost host, Func<string?> microphone, bool runThread = true, bool communications = false)
     {
         this.host = host;
         this.microphone = microphone;
         this.runThread = runThread;
+        this.communications = communications;
     }
+
+    private ICaptureDevice OpenDevice(string? endpointId) => communications ? host.OpenCommunications(endpointId) : host.Open(endpointId);
 
     /// <summary>What the last <see cref="Start"/> resolved the Microphone pick to.</summary>
     public MicrophoneResolution LastResolution { get; private set; }
@@ -35,12 +40,12 @@ public sealed class WasapiCapture : IAudioCapture
         ICaptureDevice device;
         try
         {
-            device = host.Open(resolution.EndpointId);
+            device = OpenDevice(resolution.EndpointId);
         }
         catch (CaptureDeviceException error) when (resolution.EndpointId is not null && error.Failure == CaptureDeviceFailure.NotFound)
         {
             resolution = new MicrophoneResolution(null, true); // listed a moment ago, gone now: the default
-            device = host.Open(null);
+            device = OpenDevice(null);
         }
         LastResolution = resolution;
         var run = new Run(device, new CapturePipeline(device.Format, sink, runThread), resolution.EndpointId is null);

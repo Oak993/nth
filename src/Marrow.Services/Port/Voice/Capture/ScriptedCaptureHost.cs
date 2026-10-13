@@ -25,6 +25,9 @@ public sealed class ScriptedCaptureHost : ICaptureHost
     /// <summary>Ids passed to <see cref="Open"/> in order (null for the default), including those that failed.</summary>
     public List<string?> OpenRequests { get; } = [];
 
+    /// <summary>Ids passed to <see cref="OpenCommunications"/> in order (they are in <see cref="OpenRequests"/> too).</summary>
+    public List<string?> CommunicationsRequests { get; } = [];
+
     /// <summary>The devices opened and returned, in order.</summary>
     public List<ScriptedCaptureDevice> Devices { get; } = [];
 
@@ -87,6 +90,12 @@ public sealed class ScriptedCaptureHost : ICaptureHost
         var device = new ScriptedCaptureDevice(id, formats.GetValueOrDefault(id, DefaultFormat)) { FailStart = StartFailure };
         Devices.Add(device);
         return device;
+    }
+
+    public ICaptureDevice OpenCommunications(string? endpointId)
+    {
+        CommunicationsRequests.Add(endpointId);
+        return Open(endpointId);
     }
 
     public IDisposable Watch(Action<EndpointNotice> handler)

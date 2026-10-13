@@ -121,6 +121,8 @@ public sealed class AssistantHomeHost : Decorator
     {
         base.OnDetachedFromVisualTree(e);
         host.Changed -= OnHost;
+        if (asking is not null) asking.CardRequested -= OnCardRequested;
+        asking = null;
         model.AssistantReviewRequested -= OnReview;
         model.AssistantMissionRequested -= OnMission;
         builtOn = null; // built again on the next attach
@@ -183,6 +185,7 @@ public sealed class AssistantHomeHost : Decorator
         TurnOnButton = null;
         Home = new AssistantHomeView(Parts(live, thread));
         page.Child = Home;
+        ShowDecisionsWhenAsked();
         if (thread is not null)
         {
             var runtime = model.Runtime(thread.Id);
@@ -190,6 +193,18 @@ public sealed class AssistantHomeHost : Decorator
             home.Track(() => runtime.Entries.Count == 0, _ => home.RefreshConversation());
         }
     }
+
+    // A card voice may not answer is opened on the screen (2.4): the Board shows the Decisions tab beside the sheet.
+    private DextraVoice? asking;
+
+    private void ShowDecisionsWhenAsked()
+    {
+        if (asking is not null) asking.CardRequested -= OnCardRequested;
+        asking = host.Voice;
+        if (asking is not null) asking.CardRequested += OnCardRequested;
+    }
+
+    private void OnCardRequested(Guid card) => Dispatcher.UIThread.Post(() => Home?.Board.Pick(BoardTab.Decisions));
 
     private AssistantHomeParts Parts(DextraLive live, Marrow.Core.Models.ChatThread? thread)
     {
@@ -208,6 +223,10 @@ public sealed class AssistantHomeHost : Decorator
                 liveResize is null ? new ChatView(model.Runtime(thread.Id)) : new HostedEnvironment(model, liveResize, Zooms: false).Body(new ChatView(model.Runtime(thread.Id)))),
             ConversationEmpty = thread is null ? () => true : () => model.Runtime(thread.Id).Entries.Count == 0,
             Say = thread is null ? null : text => model.Runtime(thread.Id).SendMissionMessage(text),
+            // AS-18: the header's Talk toggles the conversation, whose sheet opens over this column; the chord and the composer's talk button start it too
+            Talk = host.Voice is { } voice ? voice.Conversation.Toggle : null,
+            Voice = host.Voice?.Conversation,
+            TalkChord = () => host.Settings.TalkChord,
             TaskActions = new TaskActions(
                 Open: job => { if (job.LeadThread is { } lead && model.Thread(lead) is not null) model.SelectedThreadID = lead; },
                 Redirect: controller is null ? null : (job, text) => controller.Runner.Redirect(job.Id, text),
