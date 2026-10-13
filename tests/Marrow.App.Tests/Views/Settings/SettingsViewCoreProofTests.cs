@@ -46,6 +46,9 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     private static void Sync() => Dispatcher.UIThread.RunJobs();
     private static void Drain(Control root) { var w = (Avalonia.Controls.Window)TopLevel.GetTopLevel(root)!; for (var i = 0; i < 5; i++) { w.UpdateLayout(); Sync(); } }
     private static void Frame(AppModelHarness h, double ms) { h.Main.AdvanceMilliseconds(ms); ((ManualFrameSource)FrameClock.Source.Current).Advance(TimeSpan.FromMilliseconds(ms)); Sync(); }
+    // ED-NEW-final-settings-1: the sidebar lists 21 pages in a 580 pt window and scrolls to reach the lower ones, as a person scrolls it. Brings the row into view and waits out
+    // the sidebar's 150 ms scroll freeze (SettingsScrollTracker), so the next pointer event meets the row (the same as SettingsRestFixture.Reveal).
+    private static void Reveal(AppModelHarness h, Control control) { control.BringIntoView(); Drain(control); Frame(h, 160); Drain(control); }
     private static Color ColorOf(IBrush? brush) => Assert.IsAssignableFrom<ISolidColorBrush>(brush).Color;
     private static void Foreground(TextBlock text, SwiftColor color) => Assert.Equal(color.Resolve(text.ActualThemeVariant), ColorOf(text.Foreground));
     private static void Glyph(SwiftImage image, SwiftFont font, SwiftColor color) { Assert.Equal(font, SwiftImage.GetFont(image)); Assert.Equal(color.Resolve(image.ActualThemeVariant), ColorOf(image.Foreground)); }
@@ -251,11 +254,11 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
             var badge = Nodes<SidebarIconBadge>(row).Single(); var glyph = ((Panel)badge.Child!).Children.Single(); Assert.Equal(Chrome.PrimaryText.Opacity(0.85).Resolve(glyph.ActualThemeVariant), ColorOf(Avalonia.Controls.Documents.TextElement.GetForeground(glyph)));
         }
         var models = Nodes<SidebarRow>(view).Single(r => Text(r).Contains("Models")); var modelsButton = Nodes<Button>(models).Single(); var background = (Border)modelsButton.Content!;
-        PointerOver(modelsButton); Frame(h, 50); Assert.NotEqual(SwiftColor.Clear.Resolve(background.ActualThemeVariant), ColorOf(background.Background)); Frame(h, 51); Assert.Equal(Chrome.Overlay(0.06).Resolve(background.ActualThemeVariant), ColorOf(background.Background));
+        Reveal(h, modelsButton); PointerOver(modelsButton); Frame(h, 50); Assert.NotEqual(SwiftColor.Clear.Resolve(background.ActualThemeVariant), ColorOf(background.Background)); Frame(h, 51); Assert.Equal(Chrome.Overlay(0.06).Resolve(background.ActualThemeVariant), ColorOf(background.Background));
         Click(modelsButton); Sync(); Assert.Single(Nodes<ModelsSettingsPage>(view));
         Frame(h, 110); // Chrome.swift:729 the wash leaves General on Chrome.hover (easeOut 0.1 s): read the rows once its 0.1 s are over
         var general = Nodes<SidebarRow>(view).Single(r => Text(r).Contains("General")); var generalButton = Nodes<Button>(general).Single();
-        Field<SettingsScrollTracker>(view, "scrollTracker").Note(); Sync(); Assert.False(rows.IsHitTestVisible);
+        Reveal(h, generalButton); /* the sidebar was scrolled to Models; General is at its top again */ Field<SettingsScrollTracker>(view, "scrollTracker").Note(); Sync(); Assert.False(rows.IsHitTestVisible);
         Press(generalButton); Assert.Single(Nodes<ModelsSettingsPage>(view)); // :182 real pointer hit testing blocks the click.
         Frame(h, 101); // Chrome.swift:723-724 the old row's wash fades out over Chrome.hover
         Assert.Equal(SwiftColor.Clear.Resolve(general.ActualThemeVariant), ColorOf(((Border)generalButton.Content!).Background));

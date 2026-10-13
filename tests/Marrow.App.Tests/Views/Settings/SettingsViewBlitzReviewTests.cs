@@ -70,7 +70,7 @@ public sealed class SettingsViewBlitzReviewTests(HeadlessSession headless) : Set
         With(() => new SettingsView(), (view, model, h, w) =>
         {
             EnvironmentValues.SetAccessibilityReduceMotion(w, true);
-            Click(w, RowButton(view, "Models")); Drain(w);
+            Reveal(w, h, RowButton(view, "Models")); /* ED-NEW-final-settings-1: Models lies below the 580 pt window's fold, so the sidebar is scrolled to it first */ Click(w, RowButton(view, "Models")); Drain(w);
             var search = Assert.Single(Nodes<ChromeSearchField>(view)); var field = Assert.Single(Nodes<TextBox>(search)); var clear = Assert.Single(Nodes<Button>(search));
             Type(w, field, "ab"); Drain(w);
             Assert.Equal(1, clear.Opacity); // no frame has run: reduce motion shows it at once

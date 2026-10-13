@@ -46,7 +46,7 @@ public sealed class SettingsLeftoverCornerTests(HeadlessSession headless) : Sett
         {
             Tick(h, 150);
             var selected = Assert.IsType<Border>(Assert.Single(Nodes<Button>(Nodes<SidebarRow>(view).First())).Content); // General, selected on opening
-            var hovered = RowButton(view, "Models"); Hover(w, hovered); Tick(h, 150); var wash = Assert.IsType<Border>(hovered.Content);
+            var hovered = RowButton(view, "Models"); Reveal(w, h, hovered); /* ED-NEW-final-settings-1: Models lies below the 580 pt window's fold, so the sidebar is scrolled to it first */ Hover(w, hovered); Tick(h, 150); var wash = Assert.IsType<Border>(hovered.Content);
             foreach (var (name, shape, alpha) in new[] { ("selected, overlay 0.12", selected, 0.12), ("hovering, overlay 0.06", wash, 0.06) })
             {
                 Assert.Equal(new CornerRadius(7), shape.CornerRadius); Assert.Equal(Chrome.SettingsNavRowHeight, shape.Bounds.Height, 3);
