@@ -12,7 +12,10 @@ namespace Marrow.Services.Tests.Assistant;
 // beside its last 4 digits; saving, replacing and removing it, and every fill, ask Windows Hello first and a check that does
 // not pass changes and fills nothing; nothing returns the number; a fill types each part into the shop's own field on the
 // approved origin only, and every buffer that held a part is zero when it returns (the memory scan). The card is the
-// published test number 4242 4242 4242 4242; no real card is ever used.
+// published test number 4242 4242 4242 4242; no real card is ever used. A fill cut short (a refused field, one that took part
+// of the card, a stop between fields) empties every field it typed into and reads it back before the agents go; a field that
+// will not empty closes the page, and when that fails too the agents stay held (ED-NEW-dextra-as20-15). A page whose total
+// cannot be read, or is in another currency, fills nothing (ED-NEW-dextra-as20-14).
 [Trait("Feature", "AS-20")]
 [Trait("Decision", "ED-NEW-dextra-as20-7")]
 public sealed class CardVaultTests
@@ -20,6 +23,7 @@ public sealed class CardVaultTests
     private const string Number = "4242424242424242";
     private const string Shop = "http://shop.localhost:8080";
     private static readonly DateTimeOffset Now = new(2026, 10, 13, 9, 0, 0, TimeSpan.Zero);
+    private static readonly CheckoutApproval Approved = new(Shop, 46.80m, "USD");
 
     private static (CardVault Vault, InMemoryCredentialBackend Backend, FakeHelloGate Hello, FakeCardSealer Sealer) Make()
     {
@@ -154,7 +158,7 @@ public sealed class CardVaultTests
         IReadOnlyList<char[]>? chars = null;
         IReadOnlyList<byte[]>? bytes = null;
         rig.Vault.Zeroed = (c, b) => (chars, bytes) = (c, b);
-        var filled = await rig.Vault.Fill(page, Shop, 46.80m, "pay $46.80 to shop.localhost");
+        var filled = await rig.Vault.Fill(page, Approved, "pay $46.80 to shop.localhost");
         Assert.Equal(CardFillOutcome.Filled, filled.Outcome);
         Assert.Equal(new[] { "pay $46.80 to shop.localhost" }, rig.Hello.Reasons);
         Assert.Equal(new[] { "hold", "snapshot", "fill number (held)", "fill exp (held)", "fill year (held)", "fill csc (held)", "release" }, page.Events);
@@ -176,7 +180,7 @@ public sealed class CardVaultTests
         var rig = await Saved();
         rig.Hello.Then(HelloResult.Cancelled);
         var page = SameOrigin();
-        var filled = await rig.Vault.Fill(page, Shop, 46.80m, "pay");
+        var filled = await rig.Vault.Fill(page, Approved, "pay");
         Assert.Equal((CardFillOutcome.NotVerified, HelloResult.Cancelled), (filled.Outcome, filled.Hello));
         Assert.Empty(page.Events);
         Assert.Equal(0, rig.Sealer.Opened);
@@ -188,7 +192,7 @@ public sealed class CardVaultTests
         var rig = await Saved();
         var page = SameOrigin();
         page.Page = FakeCheckoutPage.Page1("http://collect.test:9000", 46.80m, ("number", "cc-number", null, null, true));
-        var filled = await rig.Vault.Fill(page, Shop, 46.80m, "pay");
+        var filled = await rig.Vault.Fill(page, Approved, "pay");
         Assert.Equal(CardFillOutcome.Refused, filled.Outcome);
         Assert.Equal(FillRefusalKind.TopFrameMoved, filled.Refusal!.Kind);
         Assert.Empty(page.Filled);
@@ -202,12 +206,93 @@ public sealed class CardVaultTests
         var rig = await Saved();
         var page = SameOrigin();
         page.RefuseFields.Add("exp");
-        var result = await rig.Vault.Fill(page, Shop, 46.80m, "pay");
+        var result = await rig.Vault.Fill(page, Approved, "pay");
         Assert.Equal(CardFillOutcome.FieldRefused, result.Outcome);
-        Assert.Empty(result.Fields);
+        Assert.Equal(["number", "exp"], result.Fields);               // the refused field counts as typed into: it is emptied too
+        Assert.False(result.Stuck);
         Assert.False(page.Filled.ContainsKey("csc"));
         Assert.Equal("", page.Filled["number"]);                       // what was already filled is emptied: no part of the card stays on the page
+        Assert.Equal(["hold", "snapshot", "fill number (held)", "fill exp (held)", "empty number (held)", "empty exp (held)", "release"], page.Events);
         Assert.All(page.Handed, m => Assert.All(m.Span.ToArray(), c => Assert.Equal('\0', c)));
+    }
+
+    [Fact]
+    public async Task A_field_that_took_part_of_the_card_and_failed_is_emptied_before_the_agents_go()
+    {
+        var rig = await Saved();
+        var page = SameOrigin();
+        page.PartialFields.Add("exp");
+        var result = await rig.Vault.Fill(page, Approved, "pay");
+        Assert.Equal((CardFillOutcome.FieldRefused, false), (result.Outcome, result.Stuck));
+        Assert.Equal(("", ""), (page.Filled["number"], page.Filled["exp"]));
+        Assert.Equal(["empty number (held)", "empty exp (held)", "release"], page.Events.TakeLast(3));
+        Assert.False(page.AgentsHeld);
+    }
+
+    [Fact]
+    public async Task A_field_that_will_not_empty_closes_the_page_and_when_the_page_will_not_close_the_agents_stay_held()
+    {
+        var rig = await Saved();
+        var closes = SameOrigin();
+        closes.RefuseFields.Add("csc");
+        closes.StickyFields.Add("number");                             // a masked input that puts the number back
+        var result = await rig.Vault.Fill(closes, Approved, "pay");
+        Assert.Equal((CardFillOutcome.FieldRefused, false), (result.Outcome, result.Stuck));
+        Assert.True(closes.Discarded);
+        Assert.Empty(closes.Filled);
+        Assert.Equal(["discard (held)", "release"], closes.Events.TakeLast(2));
+        Assert.False(closes.AgentsHeld);
+
+        var stuck = SameOrigin();
+        stuck.RefuseFields.Add("csc");
+        stuck.StickyFields.Add("number");
+        stuck.DiscardFails = true;
+        var kept = await rig.Vault.Fill(stuck, Approved, "pay");
+        Assert.Equal((CardFillOutcome.FieldRefused, true), (kept.Outcome, kept.Stuck));
+        Assert.Equal("discard (held)", stuck.Events[^1]);              // never let go: the agents cannot read the number left in the field
+        Assert.DoesNotContain("release", stuck.Events);
+        Assert.True(stuck.AgentsHeld);
+    }
+
+    [Fact]
+    public async Task A_stop_between_fields_types_nothing_more_and_takes_off_what_went_in()
+    {
+        var rig = await Saved();
+        var page = SameOrigin();
+        var wanted = true;
+        page.Filling = _ => wanted = false;
+        var result = await rig.Vault.Fill(page, Approved, "pay", stillWanted: () => wanted);
+        Assert.Equal((CardFillOutcome.Withdrawn, false), (result.Outcome, result.Stuck));
+        Assert.Equal(["number"], result.Fields);
+        Assert.Equal("", page.Filled["number"]);
+        Assert.Equal(["hold", "snapshot", "fill number (held)", "empty number (held)", "release"], page.Events);
+
+        using var stop = new CancellationTokenSource();
+        var again = SameOrigin();
+        again.Filling = _ => stop.Cancel();
+        var cancelled = await rig.Vault.Fill(again, Approved, "pay", stop.Token);
+        Assert.Equal(CardFillOutcome.Withdrawn, cancelled.Outcome);
+        Assert.Equal("", again.Filled["number"]);
+        Assert.DoesNotContain("fill exp (held)", again.Events);
+    }
+
+    [Fact]
+    public async Task A_page_whose_total_cannot_be_read_or_is_in_another_currency_fills_nothing_and_never_opens_the_card()
+    {
+        var rig = await Saved();
+        var unread = SameOrigin();
+        unread.Page = unread.Page with { ShownTotal = null };
+        var noTotal = await rig.Vault.Fill(unread, Approved, "pay");
+        Assert.Equal((CardFillOutcome.Refused, FillRefusalKind.TotalUnread), (noTotal.Outcome, noTotal.Refusal!.Kind));
+
+        var pounds = SameOrigin();
+        pounds.Page = pounds.Page with { ShownCurrency = "GBP" };
+        var other = await rig.Vault.Fill(pounds, Approved, "pay");
+        Assert.Equal((CardFillOutcome.Refused, FillRefusalKind.OtherCurrency), (other.Outcome, other.Refusal!.Kind));
+
+        Assert.Empty(unread.Filled);
+        Assert.Empty(pounds.Filled);
+        Assert.Equal(0, rig.Sealer.Opened);
     }
 
     [Fact]
@@ -215,15 +300,15 @@ public sealed class CardVaultTests
     {
         var rig = await Saved();
         var page = SameOrigin();
-        var stopped = await rig.Vault.Fill(page, Shop, 46.80m, "pay", stillWanted: () => false);
+        var stopped = await rig.Vault.Fill(page, Approved, "pay", stillWanted: () => false);
         Assert.Equal((CardFillOutcome.Withdrawn, HelloResult.Verified), (stopped.Outcome, stopped.Hello));
         Assert.Empty(page.Events);
         Assert.Equal(0, rig.Sealer.Opened);
 
-        var filled = await rig.Vault.Fill(page, Shop, 46.80m, "pay", stillWanted: () => true);
+        var filled = await rig.Vault.Fill(page, Approved, "pay", stillWanted: () => true);
         Assert.Equal(CardFillOutcome.Filled, filled.Outcome);
         Assert.Equal(page.Filled.Keys.Order(StringComparer.Ordinal), filled.Fields.Order(StringComparer.Ordinal));
-        Assert.True(await CardVault.Clear(page, filled.Fields));
+        Assert.True(await CardVault.Scrub(page, filled.Fields));
         Assert.All(page.Filled.Values, v => Assert.Equal("", v));
     }
 
@@ -235,7 +320,7 @@ public sealed class CardVaultTests
         var held = rig.Backend.Peek(target)!;
         rig.Backend.Write(held with { Blob = [1, 2, 3, 4] });
         var page = SameOrigin();
-        Assert.Equal(CardFillOutcome.Damaged, (await rig.Vault.Fill(page, Shop, 46.80m, "pay")).Outcome);
+        Assert.Equal(CardFillOutcome.Damaged, (await rig.Vault.Fill(page, Approved, "pay")).Outcome);
         Assert.Empty(page.Filled);
     }
 

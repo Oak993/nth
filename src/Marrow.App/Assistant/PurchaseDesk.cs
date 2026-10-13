@@ -1,12 +1,16 @@
 // PORT-ONLY: Dextra AS-20 (DESIGN.md rev 5, 12.7 "Purchases" (the switch, the card, Windows Hello, limits, the boundary, history,
 // never allowed); 16.2's fallback for a build without a fill path; the canvas's section 9 "Purchases", work/design/assistant/
-// index.html lines 948-993 and 3174-3285; ED-NEW-dextra-as20-10 and -11). No Swift twin.
+// index.html lines 948-993 and 3174-3285; ED-NEW-dextra-as20-10, -11, -15, -16 and -17). No Swift twin.
 // The purchase desk: everything between an agent's prepare_purchase and the money. A request becomes a pay card (purchases on, a
 // card kept, within the limits, a fill path to the shop's page) or a hand-over card (the owner pays himself). A pay card is bound
 // to its shop, items, total, card and what is left of the limits, and expires in 10 minutes; Pay checks all of it again, reads
-// the page's boundary, then the vault asks Windows Hello and fills the shop's own card field with the agents held. The intent is
-// written before the order is placed; how it ended is written after. Turning purchases on, saving, replacing or removing the
-// card and changing a limit each ask Windows Hello; turning purchases off never does. Three failed checks turn purchases off.
+// the page's boundary, then the vault asks Windows Hello and fills the shop's own card field with the agents held. Right before
+// the order, under one lock with the intent row, it checks again that nothing stopped it (Stop all, the switch, the card, a
+// lockout) and that the limits still hold; the intent is written before the order is placed and how it ended after. Paid or
+// not, the card comes off the page (each field read back empty, or the page closed) before the agents are let go. A payment
+// that is stopped is handed to the owner only once nth is sure it will not pay it. Turning purchases on, saving, replacing or
+// removing the card and changing a limit each ask Windows Hello; turning purchases off never does. Three failed checks turn
+// purchases off.
 // No word the desk gives a model, the log or a card carries a digit of the card beyond its last 4: models read {card}.
 using Avalonia.Threading;
 using Marrow.Core.Port;
@@ -72,7 +76,7 @@ public sealed class PurchaseDeskOptions
     public Action<string>? Fault { get; init; }
 }
 
-public sealed class PurchaseDesk : ObservableModel, IDisposable
+public sealed class PurchaseDesk : ObservableModel, IDisposable, IStopScope
 {
     /// <summary>A pay card lives this long (12.7 "It expires in 10 minutes").</summary>
     public static readonly TimeSpan Expiry = TimeSpan.FromMinutes(10);
@@ -84,7 +88,9 @@ public sealed class PurchaseDesk : ObservableModel, IDisposable
     private readonly PurchaseBook book;
     private readonly AskingGate asking;
     private readonly object gate = new();
+    private readonly object placing = new();
     private readonly Dictionary<Guid, Case> cases = [];
+    private readonly List<IDisposable> kept = [];
     private int revision;
     private int lockouts;
     private string? status;
@@ -99,6 +105,21 @@ public sealed class PurchaseDesk : ObservableModel, IDisposable
         public string? Agent { get; init; }
         public bool Paying { get; set; }
         public ITimer? Timer { get; set; }
+
+        // The payment under way (all under the desk's gate): its stop, the hand-over waiting for it to stop, whether it is past
+        // the last check before the order, whether it typed any of the card, and whether its page is kept held.
+        public CancellationTokenSource? Halt { get; set; }
+        public string? HandOverAfter { get; set; }
+        public bool Placing { get; set; }
+        public bool Typed { get; set; }
+        public bool Kept { get; set; }
+    }
+
+    // What the last check before the order decided: the intent row (place it), or why not and what to do once the card is off the page.
+    private sealed record Placement(PurchaseRow? Row, string? Said)
+    {
+        public string? HandOver { get; init; }
+        public ValueList<DecisionInput>? Renew { get; init; }
     }
 
     // Windows Hello as the desk asks it: the reason is shown while Windows asks (the section's "Windows Hello: ..." line).
@@ -208,30 +229,64 @@ public sealed class PurchaseDesk : ObservableModel, IDisposable
             if (!cases.TryGetValue(card, out var c) || !c.Pay) { refused = PurchaseWords.NoSuchCard; return null; }
             if (c.Paying) { refused = PurchaseWords.Underway; return null; }
             c.Paying = true;
+            c.Halt = new CancellationTokenSource();
+            c.HandOverAfter = null;
+            c.Placing = c.Typed = c.Kept = false;
             return c;
         }
     }
 
     private async Task<string?> Run(Case c, CancellationToken cancellationToken)
     {
+        CancellationTokenSource halt;
+        lock (gate) halt = c.Halt!;
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, halt.Token);
         string? said;
-        try { said = await PayNow(c, cancellationToken).ConfigureAwait(false); }
+        try { said = await PayNow(c, linked.Token).ConfigureAwait(false); }
+        catch (OperationCanceledException) when (halt.IsCancellationRequested) { said = PurchaseWords.Stopped; }
         catch (Exception error) when (error is not OutOfMemoryException)
         {
             // Something nth did not expect: nothing more happens on this card. Only the kind of fault is told, never its text.
             said = PurchaseWords.PageUnread;
             o.Fault?.Invoke("A purchase stopped: " + error.GetType().Name);
         }
-        finally
+        bool open, halted, typed, keptHeld;
+        string? after;
+        lock (gate)
         {
-            lock (gate) c.Paying = false;
+            c.Paying = false;
+            c.Placing = false;
+            open = cases.ContainsKey(c.Card);
+            halted = halt.IsCancellationRequested;
+            after = c.HandOverAfter;
+            c.HandOverAfter = null;
+            typed = c.Typed;
+            keptHeld = c.Kept;
         }
+        if (keptHeld)
+        {
+            o.Fault?.Invoke(PurchaseWords.KeptHeld);
+            if (open) said = PurchaseWords.KeptHeld;
+        }
+        // The switch turned off, the card removed or a lockout while this payment ran: only now that nth will not pay it is the
+        // payment handed to the owner, so he is never told to pay while nth may still be paying.
+        if (open && (after ?? Gone()) is { } why)
+        {
+            HandOverInstead(c, why);
+            said = null;
+            open = false;
+        }
+        else if (open && halted && !keptHeld) said = typed ? PurchaseWords.StoppedEmptied : PurchaseWords.Stopped;
         // A card whose 10 minutes ran out while Windows asked goes now (its timer let it be while the payment was under way).
-        if (o.Time.GetUtcNow() - c.Raised >= Expiry) Expire(c.Card, force: false);
+        if (open && o.Time.GetUtcNow() - c.Raised >= Expiry) Expire(c.Card, force: false);
         if (said is not null) o.Queue.Annotate(c.Card, said);
         Touch();
         return said;
     }
+
+    // Why a waiting pay card can no longer be paid from it: the switch is off or the card is gone; else null.
+    private string? Gone() =>
+        !book.Policy.On ? PurchaseWords.TurnedOff : Vault.State != CardVaultState.Held ? PurchaseWords.HandedNoCard : null;
 
     private async Task<string?> PayNow(Case c, CancellationToken cancellationToken)
     {
@@ -267,70 +322,130 @@ public sealed class PurchaseDesk : ObservableModel, IDisposable
         CheckoutSnapshot before;
         try { before = await page.Snapshot(cancellationToken).ConfigureAwait(false); }
         catch (Exception error) when (error is not OutOfMemoryException) { return PurchaseWords.PageUnread; }
-        if (CheckoutBoundary.Check(request.Origin, request.Total, before).Refusal is { } early)
+        var approved = CheckoutApproval.Of(request);
+        if (CheckoutBoundary.Check(approved, before).Refusal is { } early)
         {
             HandOverInstead(c, early.Words);
             return null;
         }
 
         o.Queue.Annotate(c.Card, PurchaseWords.Asking(PurchaseWords.PayReason(request)));
-        using var held = page.HoldAgents();      // the agents stay held from the fill until the order is placed or the card taken off
-        var locks = Volatile.Read(ref lockouts);
-        var fill = await Vault.Fill(page, request.Origin, request.Total, PurchaseWords.PayReason(request), cancellationToken, () => StillWanted(c)).ConfigureAwait(false);
-        switch (fill.Outcome)
-        {
-            case CardFillOutcome.Filled:
-                break;
-            case CardFillOutcome.NotVerified:
-                return Volatile.Read(ref lockouts) != locks ? null : NotVerified(fill.Hello, PurchaseWords.NothingFilled);
-            case CardFillOutcome.Withdrawn:
-                return PurchaseWords.Stopped;
-            case CardFillOutcome.Refused:
-                HandOverInstead(c, fill.Refusal!.Words);
-                return null;
-            case CardFillOutcome.NoCard:
-                HandOverInstead(c, PurchaseWords.HandedNoCard);
-                return null;
-            case CardFillOutcome.Damaged:
-                HandOverInstead(c, PurchaseWords.CardDamaged);
-                return null;
-            case CardFillOutcome.FieldRefused:
-                return PurchaseWords.FieldRefused;
-            default:
-                return PurchaseWords.PageUnread;
-        }
-
-        var placed = false;
+        // The agents stay held from the fill until the card is off the page again: every field read back empty, or the page
+        // closed. When neither works the hold is kept, and the agents never read what is left.
+        var held = page.HoldAgents();
+        var typed = ValueList<string>.Empty;
+        var keep = false;
         try
         {
+            var locks = Volatile.Read(ref lockouts);
+            var fill = await Vault.Fill(page, approved, PurchaseWords.PayReason(request), cancellationToken, () => StillWanted(c)).ConfigureAwait(false);
+            keep = fill.Stuck;
+            if (fill.Fields.Count > 0) lock (gate) c.Typed = true;
+            switch (fill.Outcome)
+            {
+                case CardFillOutcome.Filled:
+                    typed = fill.Fields;
+                    break;
+                case CardFillOutcome.NotVerified:
+                    return Volatile.Read(ref lockouts) != locks ? null : NotVerified(fill.Hello, PurchaseWords.NothingFilled);
+                case CardFillOutcome.Withdrawn:
+                    return fill.Fields.Count > 0 ? PurchaseWords.StoppedEmptied : PurchaseWords.Stopped;
+                case CardFillOutcome.Refused:
+                    HandOverInstead(c, fill.Refusal!.Words);
+                    return null;
+                case CardFillOutcome.NoCard:
+                    HandOverInstead(c, PurchaseWords.HandedNoCard);
+                    return null;
+                case CardFillOutcome.Damaged:
+                    HandOverInstead(c, PurchaseWords.CardDamaged);
+                    return null;
+                case CardFillOutcome.FieldRefused:
+                    return PurchaseWords.FieldRefused;
+                default:
+                    return PurchaseWords.PageUnread;
+            }
+
             // 12.5: the owner's Pay is logged before the order is placed; a line that cannot be written pays nothing.
             try { o.Audit(Entry(c.Chat, request, "paying: the owner's Pay, after Windows Hello") with { AllowedBy = "card:" + c.Card.ToString("D") }); }
             catch (Exception error) when (error is not OutOfMemoryException) { return PurchaseWords.LogNotWritten; }
+            var placement = Place(c, item, request);
+            if (placement.Row is not { } row)
+            {
+                // Not placed: the card comes off the page before the owner or the agent hears what happens instead.
+                keep = !await CardVault.Scrub(page, typed).ConfigureAwait(false) || keep;
+                typed = ValueList<string>.Empty;
+                if (placement.HandOver is { } handOver) HandOverInstead(c, handOver);
+                else if (placement.Renew is { } renewed) Renew(c, item, renewed);
+                return placement.Said;
+            }
             // The intent, before the order: a crash after the order leaves an "unknown" row that counts and is never paid again.
-            PurchaseRow row;
-            try { row = book.Begin(request, c.Chat.MissionId, c.Chat.AssistantId, now); }
-            catch (Exception error) when (error is not OutOfMemoryException) { return PurchaseWords.NotWritten; }
-            placed = true;
             CheckoutOutcome outcome;
             try { outcome = await page.Submit(cancellationToken).ConfigureAwait(false); }
             catch (Exception error) when (error is not OutOfMemoryException) { outcome = CheckoutOutcome.Unknown; }
-            if (outcome != CheckoutOutcome.Paid) await CardVault.Clear(page, fill.Fields, CancellationToken.None).ConfigureAwait(false);
+            // Paid or not, the card comes off the page before anyone hears how it ended: a shop's page can keep its form in place
+            // behind an "order placed" overlay.
+            keep = !await CardVault.Scrub(page, typed).ConfigureAwait(false) || keep;
+            typed = ValueList<string>.Empty;
             Settle(row, outcome);
             Finish(c, outcome);
             return null;
         }
         finally
         {
-            // An order that was never placed leaves none of the card on the page.
-            if (!placed) await CardVault.Clear(page, fill.Fields, CancellationToken.None).ConfigureAwait(false);
+            // A payment that ended any other way (a fault included): none of the card stays on the page once the agents go.
+            if (typed.Count > 0) keep = !await CardVault.Scrub(page, typed).ConfigureAwait(false) || keep;
+            if (keep) KeepHeld(c, held);
+            else held.Dispose();
         }
+    }
+
+    // The last moment a payment can stop. Payments are placed one at a time: the stop, the switch, the card, the queue, the
+    // limits and what is left of them are read again, and the intent row written, under one lock, so two cards paid together
+    // can never pass a limit between them (12.7 "A purchase over any limit cannot be paid"). From the moment it passes the
+    // stop check the payment is "placing": a stop, the switch or a removed card no longer withdraws it, this check decides.
+    private Placement Place(Case c, DecisionItem item, PurchaseRequest request)
+    {
+        lock (placing)
+        {
+            lock (gate)
+            {
+                if (c.Halt?.IsCancellationRequested != false) return new Placement(null, null);     // Run says how it stopped
+                c.Placing = true;
+            }
+            PurchaseRow? row = null;
+            try
+            {
+                if (HandOverReason(request, c.Chat, out var check) is { } why) return new Placement(null, null) { HandOver = why };
+                if (!StillWanted(c)) return new Placement(null, PurchaseWords.StoppedEmptied);
+                var inputs = PayInputs(request, check!);
+                if (DecisionRules.Bind(DecisionKind.Purchase, item.Title, inputs) != item.Binding) return new Placement(null, null) { Renew = inputs };
+                try { row = book.Begin(request, c.Chat.MissionId, c.Chat.AssistantId, o.Time.GetUtcNow()); }
+                catch (Exception error) when (error is not OutOfMemoryException) { return new Placement(null, PurchaseWords.NotWritten); }
+                return new Placement(row, null);
+            }
+            finally
+            {
+                if (row is null) lock (gate) c.Placing = false;
+            }
+        }
+    }
+
+    // A page whose card fields would not empty and would not close: its hold is never let go, so its agents never read them.
+    private void KeepHeld(Case c, IDisposable held)
+    {
+        lock (gate)
+        {
+            kept.Add(held);
+            c.Kept = true;
+        }
+        TryAudit(Entry(c.Chat, c.Request, "the card fields would not empty and the page would not close: its agents stay held"));
     }
 
     private bool StillWanted(Case c)
     {
         lock (gate)
         {
-            if (!cases.ContainsKey(c.Card)) return false;
+            if (!cases.ContainsKey(c.Card) || c.Halt?.IsCancellationRequested != false) return false;
         }
         return book.Policy.On && o.Queue.Find(c.Card)?.State == DecisionState.Open;
     }
@@ -439,7 +554,7 @@ public sealed class PurchaseDesk : ObservableModel, IDisposable
         yield return new DecisionInput("Tax", Money(request.Tax));
         yield return new DecisionInput("Total", Money(request.Total));
         yield return new DecisionInput("Ship to", request.ShipTo);
-        yield return new DecisionInput("Checkout", request.CheckoutUrl);
+        yield return new DecisionInput("Checkout", PurchaseRequests.Clean(request.CheckoutUrl, PurchaseRequest.MaxShownUrl));
     }
 
     private ValueList<DecisionInput> PayInputs(PurchaseRequest request, PurchaseLimitCheck check)
@@ -564,9 +679,45 @@ public sealed class PurchaseDesk : ObservableModel, IDisposable
         c.Timer = null;
     }
 
-    private List<Case> PayCases()
+    // The pay cards the switch going off, the card going or a lockout withdraws: the waiting ones are returned to be handed over
+    // now; one being paid is told to stop and is handed over by its own run once it has stopped (Run); one already being
+    // placed goes on and its card says how it ended.
+    private List<Case> Withdrawing(string why, out bool placingOne)
     {
-        lock (gate) return [.. cases.Values.Where(c => c.Pay)];
+        var waiting = new List<Case>();
+        placingOne = false;
+        lock (gate)
+        {
+            foreach (var c in cases.Values.Where(c => c.Pay))
+            {
+                if (!c.Paying) waiting.Add(c);
+                else if (c.Placing) placingOne = true;
+                else
+                {
+                    c.HandOverAfter ??= why;
+                    _ = c.Halt?.CancelAsync();      // the token flips now; its callbacks run on the pool, never on this thread
+                }
+            }
+        }
+        return waiting;
+    }
+
+    // ---- Stop all (12.6) ----
+
+    /// <summary>The scope's name in Stop all's fault line.</summary>
+    public string Name => PurchaseWords.Section;
+
+    /// <summary>
+    /// Stop all: a payment not yet being placed stops before it fills more or places anything. Only flags here; the payment
+    /// takes the card off the page itself, and its card stays open (Stop all holds it). One already being placed goes on.
+    /// </summary>
+    public void Stop()
+    {
+        lock (gate)
+        {
+            foreach (var c in cases.Values)
+                if (c.Paying && !c.Placing) _ = c.Halt?.CancelAsync();
+        }
     }
 
     // ---- the settings: the switch, the card, the limits ----
@@ -596,9 +747,10 @@ public sealed class PurchaseDesk : ObservableModel, IDisposable
     public string TurnOff()
     {
         var stored = book.TurnOff();
-        foreach (var c in PayCases()) HandOverInstead(c, PurchaseWords.TurnedOff);
+        var waiting = Withdrawing(PurchaseWords.TurnedOff, out var placingOne);
+        foreach (var c in waiting) HandOverInstead(c, PurchaseWords.TurnedOff);
         TryAudit(Owner(stored ? "purchases turned off" : "purchases turned off; not saved: " + (book.Fault ?? "read-only file")));
-        return Say(stored || book.ReadOnly ? PurchaseWords.NowOff : PurchaseWords.OffNotSaved)!;
+        return Say(!stored && !book.ReadOnly ? PurchaseWords.OffNotSaved : placingOne ? PurchaseWords.OffWhilePlacing : PurchaseWords.NowOff)!;
     }
 
     /// <summary>Saves (or replaces) the card from the add-card sheet, after Windows Hello. The entry is cleared when it is saved.</summary>
@@ -627,7 +779,7 @@ public sealed class PurchaseDesk : ObservableModel, IDisposable
         if (result.Outcome == CardVaultOutcome.Done)
         {
             book.TurnOff();
-            foreach (var c in PayCases()) HandOverInstead(c, PurchaseWords.HandedNoCard);
+            foreach (var c in Withdrawing(PurchaseWords.HandedNoCard, out _)) HandOverInstead(c, PurchaseWords.HandedNoCard);
             TryAudit(Owner("card removed after Windows Hello"));
         }
         Say(result.Outcome switch
@@ -664,7 +816,7 @@ public sealed class PurchaseDesk : ObservableModel, IDisposable
     {
         Interlocked.Increment(ref lockouts);
         book.TurnOff();
-        foreach (var c in PayCases()) HandOverInstead(c, PurchaseWords.LockedOut);
+        foreach (var c in Withdrawing(PurchaseWords.LockedOut, out _)) HandOverInstead(c, PurchaseWords.LockedOut);
         TryAudit(Owner("purchases turned off: three failed Windows Hello checks"));
         Say(PurchaseWords.LockedOut);
     }
@@ -737,6 +889,7 @@ public sealed class PurchaseDesk : ObservableModel, IDisposable
         Guard.LockedOut -= OnLockedOut;
         book.Changed -= Touch;
         Vault.Changed -= Touch;
+        Stop();
         lock (gate)
         {
             foreach (var c in cases.Values) c.Timer?.Dispose();

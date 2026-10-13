@@ -84,6 +84,8 @@ public static class PurchaseWords
     public const string Underway = "This payment is under way. Cancel it in Windows Hello.";
     public const string PayOnCard = "Pay from the card: it asks Windows Hello first.";
     public const string Stopped = "Stopped before anything was filled.";
+    public const string StoppedEmptied = "Stopped. Nothing was paid, and the card was taken off the page.";
+    public const string KeptHeld = "A card field on the checkout would not empty and nth could not close the page, so its agents stay paused. Close that page yourself.";
     public const string NoSuchCard = "This card is closed. Ask Dextra for a fresh request.";
     public const string LogNotWritten = "The activity log could not be written, so nth did not pay. The card was taken off the page.";
     public const string CardChanged = "The card changed. A new card asks you again.";
@@ -96,6 +98,7 @@ public static class PurchaseWords
     public const string NeedsFill = "This build cannot fill a shop's card field, so payments stay handed to you.";
     public const string TurnedOn = "Purchases are on.";
     public const string NowOff = "Purchases are off.";
+    public const string OffWhilePlacing = "Purchases are off. A payment that was already being placed goes on; its card says how it ended.";
     public const string OffNotSaved = "Purchases are off. nth could not save that, so turn them off again after nth restarts.";
     public const string NotSaved = "nth could not save the change. Nothing changed.";
     public const string LimitSaved = "The new limit counts from now.";

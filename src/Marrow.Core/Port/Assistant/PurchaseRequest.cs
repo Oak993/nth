@@ -1,8 +1,9 @@
 // PORT-ONLY: Dextra AS-20 (DESIGN.md rev 5, 12.7 "Every purchase shows the confirmation card", "Never allowed", "The fill
-// is bound to the merchant"; ED-NEW-dextra-as20-1, -3). No Swift twin.
+// is bound to the merchant"; ED-NEW-dextra-as20-1, -3, -18). No Swift twin.
 // What an agent asks nth to buy, from prepare_purchase's arguments: the shop and its origin (scheme, host and port), the
 // items, shipping, tax, the total in a currency, and where it ships. Everything an agent writes here is untrusted text:
-// it is bounded, cleaned of control characters, and the total must add up. Subscriptions, transfers and money to people
+// it is bounded, cleaned of control characters, the checkout address is kept only as its origin plus its escaped path and
+// query (so no bidirectional or invisible character reaches the card), and the total must add up. Subscriptions, transfers and money to people
 // are refused here as well as in the policy engine. The card's inputs (the binding) come from this record. Pure.
 using System.Globalization;
 using System.Text;
@@ -19,6 +20,9 @@ public sealed record PurchaseRequest(string Shop, string Origin, string Checkout
 {
     public const int MaxItems = 20;
     public const int MaxName = 120;
+
+    /// <summary>The longest checkout address a card shows (its origin always comes first, so a cut never hides the site).</summary>
+    public const int MaxShownUrl = 300;
     public const decimal Most = PurchaseLimits.Most;
 
     /// <summary>The price of the items alone.</summary>
@@ -48,7 +52,7 @@ public static class PurchaseRequests
         var shop = Clean(Text("shop"), MaxNameLength);
         if (shop.Length == 0) { refusal = "Not prepared: name the shop."; return null; }
         var url = Text("checkout_url") ?? "";
-        if (CheckoutOrigins.Of(url, allowLoopbackHttp) is not { } origin)
+        if (CheckoutOrigins.Of(url, allowLoopbackHttp) is not { } origin || CheckoutOrigins.Address(url, allowLoopbackHttp) is not { } address)
         {
             refusal = "Not prepared: the checkout's address must be a full https address of the shop's own site.";
             return null;
@@ -78,7 +82,7 @@ public static class PurchaseRequests
         if (currency.Length != 3 || !currency.All(c => c is >= 'A' and <= 'Z')) { refusal = "Not prepared: the currency is a three-letter code, for example USD."; return null; }
         var shipTo = Clean(Text("ship_to"), MaxNameLength);
         if (shipTo.Length == 0) { refusal = "Not prepared: say where it ships, as the checkout shows it."; return null; }
-        var request = new PurchaseRequest(shop, origin, url, new ValueList<PurchaseItem>(items), shipping, tax, total, currency, shipTo);
+        var request = new PurchaseRequest(shop, origin, address, new ValueList<PurchaseItem>(items), shipping, tax, total, currency, shipTo);
         if (Recurring(request) is { } recurring) { refusal = recurring; return null; }
         return request;
     }

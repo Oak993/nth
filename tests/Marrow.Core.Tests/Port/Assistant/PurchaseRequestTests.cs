@@ -77,6 +77,19 @@ public sealed class PurchaseRequestTests
         Assert.NotNull(PurchaseRequests.Parse(Arguments(checkout: "https://shop.example/checkout"), out _));
     }
 
+    [Fact]
+    public void The_checkout_address_is_kept_as_its_origin_and_escaped_path_so_the_card_cannot_read_as_another_site()
+    {
+        // Dextra AS-20 (ED-NEW-dextra-as20-18): a right-to-left override after evil.example's path would make the line read as ending in amazon.com.
+        var request = PurchaseRequests.Parse(Arguments(checkout: "https://evil.example/\u202Emoc.nozama//:sptth#top"), out var refusal);
+        Assert.True(request is not null, refusal);
+        Assert.Equal("https://evil.example", request!.Origin);
+        Assert.StartsWith("https://evil.example/", request.CheckoutUrl, StringComparison.Ordinal);
+        Assert.All(request.CheckoutUrl, c => Assert.True(c is > ' ' and < (char)0x7F, $"U+{(int)c:X4}"));
+        Assert.DoesNotContain('#', request.CheckoutUrl);
+        Assert.Equal("https://shop.example/checkout", PurchaseRequests.Parse(Arguments(checkout: "  HTTPS://Shop.Example:443/checkout "), out _)!.CheckoutUrl);
+    }
+
     [Theory]
     [InlineData("Milk jug: 14.50", "Milk jug", 14.50)]
     [InlineData("Lens 50mm f/1.8: $129.99", "Lens 50mm f/1.8", 129.99)]

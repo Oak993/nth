@@ -12,7 +12,8 @@ namespace Marrow.App.Tests.Assistant;
 
 // Dextra AS-20 (DESIGN.md rev 5, 12.7, 15.5; ED-NEW-dextra-as20-10): the controller's seam. Without a purchase setup
 // prepare_purchase says it is not part of this build; with one it raises the desk's card, and Pay from the Decisions tab goes
-// through the controller's AnswerCard to the desk (Windows Hello, then the fill), never straight into the queue.
+// through the controller's AnswerCard to the desk (Windows Hello, then the fill), never straight into the queue. The desk is one
+// of Stop all's scopes: Stop stops a payment under way before it fills or places anything (ED-NEW-dextra-as20-16).
 [Trait("Feature", "AS-20")]
 [Trait("Decision", "ED-NEW-dextra-as20-10")]
 public sealed class PurchaseControllerTests : IDisposable
@@ -90,8 +91,39 @@ public sealed class PurchaseControllerTests : IDisposable
         Assert.Null(tab.Answer(card, DecisionAnswer.DoIt));
         Assert.True(SpinWait.SpinUntil(() => controller.Queue.Find(card)!.State == DecisionState.Answered, TimeSpan.FromSeconds(10)));
         Assert.Equal(["save the card", "turn purchases on", "pay $46.80 to shop.localhost"], hello.Reasons);
-        Assert.Equal(PurchaseRig.Number, page.Filled["number"]);
+        Assert.Equal(PurchaseRig.Number, page.Took["number"]);
+        Assert.Equal("", page.Filled["number"]);                                        // and off the page again once the order was placed
         Assert.Equal(PurchaseRowState.Paid, Assert.Single(desk.State.History).State);
         Assert.Contains(agents.Refused, r => r.Thread == thread && r.Text.StartsWith("Paid $46.80 at shop.localhost after Windows Hello.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Stop_all_reaches_a_payment_under_way_and_nothing_is_filled_or_paid()
+    {
+        using var controller = Controller(Setup());
+        var desk = controller.Purchases!;
+        using (var entry = new CardEntry())
+        {
+            foreach (var c in PurchaseRig.Number) entry.Type(CardPart.Number, c);
+            foreach (var c in PurchaseRig.Expiry) entry.Type(CardPart.Expiry, c);
+            foreach (var c in PurchaseRig.Code) entry.Type(CardPart.Code, c);
+            Assert.Equal(CardVaultOutcome.Done, (await desk.SaveCard(entry)).Outcome);
+        }
+        Assert.Null(await desk.TurnOn());
+        var thread = Guid.NewGuid();
+        var page = pages.SameOrigin(thread: thread);
+        var card = Guid.Parse((await controller.Run(Call(thread), CancellationToken.None)).DecisionId!);
+
+        hello.Hold();
+        var paying = desk.Pay(card);
+        agents.Defer = true;                                                            // Stop all's main-thread phase waits: only the desk's own scope can stop it
+        controller.Stopper.Press(Marrow.App.Safety.StopSource.Program);
+        hello.Release(HelloResult.Verified);
+        Assert.Equal(PurchaseWords.Stopped, await paying);
+        agents.RunPosted();
+        Assert.Empty(page.Filled);
+        Assert.DoesNotContain(page.Events, e => e.StartsWith("submit", StringComparison.Ordinal));
+        Assert.Empty(desk.State.History);
+        Assert.False(page.AgentsHeld);
     }
 }

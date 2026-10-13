@@ -95,8 +95,11 @@ public sealed class PurchasePayTests
         };
         Assert.Null(await rig.Desk.Pay(card));
 
-        Assert.Equal(["snapshot", "hold", "hold", "snapshot", "fill number (held)", "fill exp (held)", "fill csc (held)", "release", "submit (held)", "release"], page.Events);
-        Assert.Equal((PurchaseRig.Number, "12/30", PurchaseRig.Code), (page.Filled["number"], page.Filled["exp"], page.Filled["csc"]));
+        Assert.Equal(["snapshot", "hold", "hold", "snapshot", "fill number (held)", "fill exp (held)", "fill csc (held)", "release", "submit (held)",
+            "empty number (held)", "empty exp (held)", "empty csc (held)", "release"], page.Events);   // paid, and the card is off the page before the agents go
+        Assert.Equal((PurchaseRig.Number, "12/30", PurchaseRig.Code), (page.Took["number"], page.Took["exp"], page.Took["csc"]));
+        Assert.All(page.Filled.Values, v => Assert.Equal("", v));
+        Assert.False(page.AgentsHeld);
         Assert.All(page.Handed, m => Assert.All(m.Span.ToArray(), c => Assert.Equal('\0', c)));   // what was handed to the page is zero now
         Assert.Equal("paying", atOrder);                                                // the intent was on disk when the order was placed
         Assert.True(loggedFirst);                                                       // and the owner's Pay was logged before it
@@ -251,8 +254,10 @@ public sealed class PurchasePayTests
         rig.Hello.Hold();
         var paying = rig.Desk.Pay(card);
         Assert.Equal(PurchaseWords.NowOff, rig.Desk.TurnOff());                        // turning off while Windows asks
+        Assert.Equal(DecisionState.Open, rig.Queue.Find(card)!.State);                 // no hand-over yet: nth might still be paying
+        Assert.Equal([card], rig.Queue.Waiting.Select(w => w.Id));
         rig.Hello.Release(HelloResult.Verified);
-        Assert.Equal(PurchaseWords.Stopped, await paying);
+        Assert.Null(await paying);                                                      // settled: handed over once it had stopped
         Assert.Empty(page.Filled);
         Assert.Equal((DecisionState.Withdrawn, PurchaseWords.TurnedOff), (rig.Queue.Find(card)!.State, rig.Queue.Find(card)!.Note));
         Assert.Equal(PurchaseWords.TurnedOff, Assert.Single(rig.Queue.Waiting).Why);

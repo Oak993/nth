@@ -1,12 +1,14 @@
 // PORT-ONLY: Dextra AS-20 (DESIGN.md rev 5, 12.7 "The card", "Where it is kept", "What the owner sees", "Windows Hello
-// guards every change", "The model never sees the card", "The fill is bound to the merchant"; 16.1; ED-NEW-dextra-as20-7, -8).
+// guards every change", "The model never sees the card", "The fill is bound to the merchant"; 16.1; ED-NEW-dextra-as20-7, -8,
+// -14, -15).
 // No Swift twin.
 // The card, kept only in Windows Credential Manager (through the app's SecretStore, ED-093) and sealed first with DPAPI in
 // user scope plus nth's own entropy (ICardSealer). Its last 4 digits are a second item, so showing them never opens the
 // card. There is no reveal: nothing here returns the number, the expiry or the security code. The only way out is Fill,
 // which asks Windows Hello itself, checks the page against the approved origin at that moment, types each part into the
 // shop's own field through the fill path, and zeroes every buffer that held a part straight after (pinned, so the
-// collector never leaves a copy behind). Saving, replacing and removing the card each ask Windows Hello first.
+// collector never leaves a copy behind). A fill cut short takes every typed part off the page again and reads each field
+// back empty (or closes the page) before the agents are let go; when even that fails they stay held. Saving, replacing and removing the card each ask Windows Hello first.
 using System.Security.Cryptography;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Assistant;
@@ -171,12 +173,25 @@ public interface ICheckoutPage
     /// <summary>The page now: its top frame's origin, and each field with its frame, form action, autocomplete and visibility.</summary>
     Task<CheckoutSnapshot> Snapshot(CancellationToken cancellationToken);
 
-    /// <summary>Types the value into that field only. False when the field is gone or would not take it.</summary>
+    /// <summary>Types the value into that field only. False when the field is gone or would not take it (it may hold part of it then).</summary>
     Task<bool> Fill(string fieldId, ReadOnlyMemory<char> value, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Holds the page's agents (no input, no script from them) while the fill happens; disposing lets them go. Holds nest: the
-    /// agents stay held until the last one is let go (the desk holds them from the fill until the order is placed).
+    /// Empties that field and reads it back: true only when it holds nothing now, or is no longer in the page at all. A
+    /// masked or script-controlled field that puts its value back is false.
+    /// </summary>
+    Task<bool> Empty(string fieldId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The last resort when a field will not empty: closes the page, or loads it again from the shop, so nothing typed into
+    /// it is left anywhere an agent can read. True when the old page is gone.
+    /// </summary>
+    Task<bool> Discard(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Holds the page's agents (no input, no script, no page reads or screenshots from them) while the fill happens; disposing
+    /// lets them go. Holds nest: the agents stay held until the last one is let go (the desk holds them from the fill until
+    /// the card is off the page again). A hold that is never let go keeps them held until the page closes.
     /// </summary>
     IDisposable HoldAgents();
 
@@ -204,11 +219,17 @@ public sealed record CardVaultResult(CardVaultOutcome Outcome, HelloResult? Hell
 
 public enum CardFillOutcome { Filled, NotVerified, Refused, NoCard, Damaged, FieldRefused, Failed, Withdrawn }
 
-/// <summary>How a fill went. Only <see cref="CardFillOutcome.Filled"/> put anything in the page.</summary>
+/// <summary>How a fill went. Only <see cref="CardFillOutcome.Filled"/> leaves anything in the page.</summary>
 public sealed record CardFillResult(CardFillOutcome Outcome, HelloResult? Hello = null, FillRefusal? Refusal = null)
 {
-    /// <summary>The ids of the fields nth filled (never what they hold), so a payment that does not go ahead can empty them.</summary>
+    /// <summary>
+    /// The ids of the fields nth typed into (never what they hold). Filled: the caller takes them off the page with
+    /// <see cref="CardVault.Scrub"/> once the order is placed or will not be. Any other outcome: the vault already did.
+    /// </summary>
     public ValueList<string> Fields { get; init; } = ValueList<string>.Empty;
+
+    /// <summary>A field nth typed into would not empty and the page would not close: the vault keeps the page's agents held for good.</summary>
+    public bool Stuck { get; init; }
 }
 
 public sealed class CardVault
@@ -222,6 +243,7 @@ public sealed class CardVault
     private readonly ICardSealer sealer;
     private readonly HelloGuard hello;
     private readonly object gate = new();
+    private readonly List<IDisposable> kept = [];
     private CardVaultState state;
     private string? lastFour;
 
@@ -333,25 +355,49 @@ public sealed class CardVault
 
     /// <summary>
     /// Fills the card into the checkout: Windows Hello first (<paramref name="reason"/> is what the prompt says), then, with
-    /// the page's agents held, the page as it is at that moment must pass the merchant binding for
-    /// <paramref name="approvedOrigin"/> and <paramref name="approvedTotal"/>. Each part goes into its own field; every
-    /// buffer that held one is zeroed before this returns, whatever happened.
+    /// the page's agents held, the page as it is at that moment must pass the merchant binding for <paramref name="approved"/>
+    /// (origin, total and currency). Each part goes into its own field; every buffer that held one is zeroed before this
+    /// returns, whatever happened. A stop (<paramref name="cancellationToken"/>, or <paramref name="stillWanted"/> turning
+    /// false) is looked at again before each field. A fill that ends short of Filled takes what it typed off the page (the
+    /// field that failed too) before its hold ends; when a field will not empty and the page will not close, the hold is kept.
     /// </summary>
-    public async Task<CardFillResult> Fill(ICheckoutPage page, string approvedOrigin, decimal approvedTotal, string reason, CancellationToken cancellationToken = default,
+    public async Task<CardFillResult> Fill(ICheckoutPage page, CheckoutApproval approved, string reason, CancellationToken cancellationToken = default,
         Func<bool>? stillWanted = null)
     {
         ArgumentNullException.ThrowIfNull(page);
+        ArgumentNullException.ThrowIfNull(approved);
         if (State == CardVaultState.NoCard) return new CardFillResult(CardFillOutcome.NoCard);
         if (State != CardVaultState.Held) return new CardFillResult(CardFillOutcome.Damaged);
         var verdict = await hello.Check(reason, cancellationToken).ConfigureAwait(false);
         if (verdict != HelloResult.Verified) return new CardFillResult(CardFillOutcome.NotVerified, verdict);
+        bool Wanted() => !cancellationToken.IsCancellationRequested && stillWanted?.Invoke() != false;
         // While Windows asked, the card may have been stopped, withdrawn or turned off: then nothing is filled.
-        if (stillWanted?.Invoke() == false) return new CardFillResult(CardFillOutcome.Withdrawn, verdict);
-        using var held = page.HoldAgents();
+        if (!Wanted()) return new CardFillResult(CardFillOutcome.Withdrawn, verdict);
+        var held = page.HoldAgents();
+        var typed = new List<string>();
+        CardFillResult? result = null;
+        var stuck = false;
+        try
+        {
+            result = await FillHeld(page, approved, verdict, typed, Wanted, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            // Short of Filled (a refused field, a stop, a fault), no part of the card stays on the page once the agents go.
+            if (result?.Outcome != CardFillOutcome.Filled && typed.Count > 0) stuck = !await Scrub(page, typed).ConfigureAwait(false);
+            if (stuck) Keep(held);
+            else held.Dispose();
+        }
+        return result! with { Fields = new ValueList<string>(typed), Stuck = stuck };
+    }
+
+    private async Task<CardFillResult> FillHeld(ICheckoutPage page, CheckoutApproval approved, HelloResult verdict, List<string> typed, Func<bool> wanted,
+        CancellationToken cancellationToken)
+    {
         CheckoutSnapshot snapshot;
         try { snapshot = await page.Snapshot(cancellationToken).ConfigureAwait(false); }
         catch (Exception error) when (error is not OutOfMemoryException) { return new CardFillResult(CardFillOutcome.Failed, verdict); }
-        var (plan, refusal) = CheckoutBoundary.Check(approvedOrigin, approvedTotal, snapshot);
+        var (plan, refusal) = CheckoutBoundary.Check(approved, snapshot);
         if (refusal is not null) return new CardFillResult(CardFillOutcome.Refused, verdict, refusal);
 
         var status = secrets.CopyMatching(Service, CardAccount, out var sealedCard);
@@ -364,9 +410,9 @@ public sealed class CardVault
             Zero(sealedCard);
             if (opened is null || !Parts(opened, out var numberAt, out var numberLength, out var expiryAt, out var codeAt, out var codeLength))
                 return new CardFillResult(CardFillOutcome.Damaged, verdict);
-            var taken = new List<string>();
             foreach (var (field, kind) in plan!.Fields)
             {
+                if (!wanted()) return new CardFillResult(CardFillOutcome.Withdrawn, verdict);
                 Array.Clear(value);
                 var length = kind switch
                 {
@@ -376,19 +422,14 @@ public sealed class CardVault
                     CardFieldKind.ExpiryYear => Year(opened, expiryAt, value),
                     _ => Copy(opened, codeAt, codeLength, value, 0),
                 };
+                typed.Add(field);       // before the fill: a field that takes part of the value and then fails holds digits too
                 bool took;
                 try { took = await page.Fill(field, value.AsMemory(0, length), cancellationToken).ConfigureAwait(false); }
                 catch (Exception error) when (error is not OutOfMemoryException) { took = false; }
                 Array.Clear(value);
-                if (!took)
-                {
-                    // A field that refused the card leaves none of it behind: the ones already filled are emptied.
-                    await Clear(page, taken, cancellationToken).ConfigureAwait(false);
-                    return new CardFillResult(CardFillOutcome.FieldRefused, verdict);
-                }
-                taken.Add(field);
+                if (!took) return new CardFillResult(cancellationToken.IsCancellationRequested ? CardFillOutcome.Withdrawn : CardFillOutcome.FieldRefused, verdict);
             }
-            return new CardFillResult(CardFillOutcome.Filled, verdict) { Fields = new ValueList<string>(taken) };
+            return new CardFillResult(CardFillOutcome.Filled, verdict);
         }
         catch (CryptographicException) { return new CardFillResult(CardFillOutcome.Damaged, verdict); }
         finally
@@ -401,20 +442,30 @@ public sealed class CardVault
     }
 
     /// <summary>
-    /// Empties the card fields nth filled (a payment that did not go ahead, or a field that refused the card). False when a
-    /// field could not be emptied; the agents stay held by the caller meanwhile.
+    /// Takes the card off the page: empties each field nth typed into and reads it back. When one will not empty, the page is
+    /// closed (or loaded again) instead. True when no typed part is left anywhere an agent can read; false means the caller
+    /// keeps the agents held. It is never cancelled: a stop must not leave digits behind (each call is bounded by the fill
+    /// path's own timeouts, and there is one per field).
     /// </summary>
-    public static async Task<bool> Clear(ICheckoutPage page, IEnumerable<string> fields, CancellationToken cancellationToken = default)
+    public static async Task<bool> Scrub(ICheckoutPage page, IEnumerable<string> fields)
     {
         ArgumentNullException.ThrowIfNull(page);
         ArgumentNullException.ThrowIfNull(fields);
         var all = true;
-        foreach (var field in fields)
+        foreach (var field in fields.Distinct(StringComparer.Ordinal).ToList())
         {
-            try { all &= await page.Fill(field, ReadOnlyMemory<char>.Empty, cancellationToken).ConfigureAwait(false); }
+            try { all &= await page.Empty(field, CancellationToken.None).ConfigureAwait(false); }
             catch (Exception error) when (error is not OutOfMemoryException) { all = false; }
         }
-        return all;
+        if (all) return true;
+        try { return await page.Discard(CancellationToken.None).ConfigureAwait(false); }
+        catch (Exception error) when (error is not OutOfMemoryException) { return false; }
+    }
+
+    // A hold on a page whose card fields would not empty is never let go: its agents stay held until the page closes.
+    private void Keep(IDisposable held)
+    {
+        lock (gate) kept.Add(held);
     }
 
     // [version][n][n digits][MMYY][c][c digits], ASCII, in a pinned array.

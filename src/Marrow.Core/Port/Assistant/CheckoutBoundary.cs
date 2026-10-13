@@ -1,11 +1,12 @@
 // PORT-ONLY: Dextra AS-20 (DESIGN.md rev 5, 12.7 "The fill is bound to the merchant" and "Cross-origin payment frames",
-// 19 row 9; ED-NEW-dextra-as20-4). No Swift twin.
+// 19 row 9; ED-NEW-dextra-as20-4, -14, -18). No Swift twin.
 // The merchant binding of the fill. The approved card names the shop's origin (scheme, host and port). At the moment of
 // filling, the real number goes in only if the top frame is still on that origin, the card field's own frame is that
 // origin, the form the field belongs to posts there (or, script-submitted, the field's frame is the shop's), and the field
-// is a visible card field by its autocomplete token. Anything else fills nothing and hands the step to the owner: a
-// payment provider's frame from another origin is never filled across (this release has no allowlist). Pure: the page is
-// read by the fill path (Visus or Tactus) into a snapshot.
+// is a visible card field by its autocomplete token, and the page shows the approved total in the approved currency (a total
+// the fill path cannot read is a refusal, never a pass: the agent's own numbers are not the price). Anything else fills
+// nothing and hands the step to the owner: a payment provider's frame from another origin is never filled across (this
+// release has no allowlist). Pure: the page is read by the fill path (Visus or Tactus) into a snapshot.
 namespace Marrow.Core.Port.Assistant;
 
 /// <summary>Origins as the binding compares them: scheme, lowercase punycode host, and the port only when it is not the default.</summary>
@@ -26,6 +27,17 @@ public static class CheckoutOrigins
         if (host.Length == 0) return null;
         if (uri.HostNameType == UriHostNameType.IPv6) host = "[" + host.Trim('[', ']') + "]";
         return scheme + "://" + host + (uri.IsDefaultPort ? "" : ":" + uri.Port.ToString(System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// The address as a card shows it: the origin, then the path and query escaped, with no user name and no fragment. The
+    /// URI parser drops bidirectional controls, and escaping leaves nothing outside ASCII, so no invisible or reordering
+    /// character can make the line read as another site. Null when the address has no origin nth fills on.
+    /// </summary>
+    public static string? Address(string? address, bool allowLoopbackHttp = false)
+    {
+        if (Of(address, allowLoopbackHttp) is not { } origin || !Uri.TryCreate(address!.Trim(), UriKind.Absolute, out var uri)) return null;
+        return origin + uri.GetComponents(UriComponents.PathAndQuery, UriFormat.UriEscaped);
     }
 
     /// <summary>The host of an origin, for the card's words ("shop.example").</summary>
@@ -63,12 +75,25 @@ public sealed record CheckoutField(string Id, string FrameOrigin, string? FormAc
 /// <summary>The checkout page at the moment of filling.</summary>
 public sealed record CheckoutSnapshot(string TopOrigin, ValueList<CheckoutField> Fields)
 {
-    /// <summary>The total the page shows, when the fill path can read it; a different total is a changed purchase.</summary>
+    /// <summary>The total the page shows, null when the fill path cannot read it (then nothing is filled); a different total is a changed purchase.</summary>
     public decimal? ShownTotal { get; init; }
+
+    /// <summary>The currency of that total as the page states it (a three-letter code); null when it cannot be read (then nothing is filled).</summary>
+    public string? ShownCurrency { get; init; }
+}
+
+/// <summary>What the owner approved on the card: the shop's origin and the total in its currency.</summary>
+public sealed record CheckoutApproval(string Origin, decimal Total, string Currency)
+{
+    public static CheckoutApproval Of(PurchaseRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return new CheckoutApproval(request.Origin, request.Total, request.Currency);
+    }
 }
 
 /// <summary>Why nothing is filled.</summary>
-public enum FillRefusalKind { TopFrameMoved, CrossOriginFrame, FormPostsElsewhere, NoCardField, TotalChanged }
+public enum FillRefusalKind { TopFrameMoved, CrossOriginFrame, FormPostsElsewhere, NoCardField, TotalChanged, TotalUnread, OtherCurrency }
 
 /// <summary>A refused fill: what to tell the owner, and the provider's origin when the card sits in another site's frame.</summary>
 public sealed record FillRefusal(FillRefusalKind Kind, string Words, string? Elsewhere);
@@ -79,13 +104,16 @@ public sealed record FillPlan(ValueList<(string FieldId, CardFieldKind Kind)> Fi
 public static class CheckoutBoundary
 {
     /// <summary>
-    /// The fill plan for <paramref name="page"/> against the approved origin and total, or the refusal. Every card field is
-    /// checked, the hidden ones too: a card field in another origin's frame, or in a form that posts elsewhere, refuses the
-    /// whole fill. Hidden card fields are never filled.
+    /// The fill plan for <paramref name="page"/> against the approved origin, total and currency, or the refusal. Every card
+    /// field is checked, the hidden ones too: a card field in another origin's frame, or in a form that posts elsewhere,
+    /// refuses the whole fill. Hidden card fields are never filled. The page must show the total: one it does not show, or
+    /// shows in another currency, fills nothing.
     /// </summary>
-    public static (FillPlan? Plan, FillRefusal? Refusal) Check(string approvedOrigin, decimal approvedTotal, CheckoutSnapshot page)
+    public static (FillPlan? Plan, FillRefusal? Refusal) Check(CheckoutApproval approved, CheckoutSnapshot page)
     {
+        ArgumentNullException.ThrowIfNull(approved);
         ArgumentNullException.ThrowIfNull(page);
+        var approvedOrigin = approved.Origin;
         var host = CheckoutOrigins.Host(approvedOrigin);
         var top = Same(page.TopOrigin);
         if (top is null || top != approvedOrigin)
@@ -102,7 +130,13 @@ public static class CheckoutBoundary
                 return (null, new FillRefusal(FillRefusalKind.FormPostsElsewhere,
                     $"The card form on {host} sends the card to {Shown(action)}. Nothing was filled. Tap \"I'll pay\" to finish it yourself.", Same(action) ?? action));
         }
-        if (page.ShownTotal is { } shown && Math.Abs(shown - approvedTotal) > 0.005m)
+        if (page.ShownTotal is not { } shown || Currency(page.ShownCurrency) is not { } currency)
+            return (null, new FillRefusal(FillRefusalKind.TotalUnread,
+                $"nth could not read the total on {host}'s checkout. Nothing was filled. Tap \"I'll pay\" to finish it yourself.", null));
+        if (!string.Equals(currency, approved.Currency, StringComparison.Ordinal))
+            return (null, new FillRefusal(FillRefusalKind.OtherCurrency,
+                $"The checkout on {host} charges in {currency}, not {approved.Currency}. Nothing was filled. Tap \"I'll pay\" to finish it yourself.", null));
+        if (Math.Abs(shown - approved.Total) > 0.005m)
             return (null, new FillRefusal(FillRefusalKind.TotalChanged, "The checkout's total changed since you approved it. Nothing was filled; a new card asks you again.", null));
         var visible = cardFields.Where(f => f.Visible).ToList();
         if (!visible.Any(f => f.CardKind == CardFieldKind.Number))
@@ -114,6 +148,10 @@ public static class CheckoutBoundary
     // An origin as read from the page, normalised the same way as the approved one. A plain-http origin on this PC is read
     // too, only to be compared: it never equals an https shop's.
     private static string? Same(string? origin) => CheckoutOrigins.Of(origin, allowLoopbackHttp: true);
+
+    // A currency as the page states it: three letters A-Z, else unread.
+    private static string? Currency(string? text) =>
+        text?.Trim().ToUpperInvariant() is { Length: 3 } code && code.All(c => c is >= 'A' and <= 'Z') ? code : null;
 
     private static string Shown(string origin) => PurchaseRequests.Clean(origin, 200) is { Length: > 0 } text ? text : "another site";
 }

@@ -52,7 +52,7 @@ public sealed class CardVaultNativeTests : IDisposable
         Array.Clear(opened);
 
         var page = new FakeCheckoutPage(FakeCheckoutPage.Page1("https://shop.example", 46.80m, ("number", "cc-number", null, "https://shop.example", true)));
-        Assert.Equal(CardFillOutcome.Filled, (await vault.Fill(page, "https://shop.example", 46.80m, "pay")).Outcome);
+        Assert.Equal(CardFillOutcome.Filled, (await vault.Fill(page, new CheckoutApproval("https://shop.example", 46.80m, "USD"), "pay")).Outcome);
         Assert.Equal(Number, page.Filled["number"]);
 
         var forms = new[] { Encoding.ASCII.GetBytes(Number), Encoding.Unicode.GetBytes(Number) };

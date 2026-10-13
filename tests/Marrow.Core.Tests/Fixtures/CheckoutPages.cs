@@ -17,6 +17,9 @@ public static class CheckoutPages
     public const string Third = "http://collect.test:9000";
     public const decimal Total = 46.80m;
 
+    /// <summary>What the owner approved: the shop, the total, in US dollars.</summary>
+    public static readonly CheckoutApproval Approved = new(Shop, Total, "USD");
+
     public static CheckoutField Field(string id, string autocomplete, string? frame = null, string? action = Shop, bool visible = true) =>
         new(id, frame ?? Shop, action, autocomplete, visible);
 
@@ -26,7 +29,7 @@ public static class CheckoutPages
         Field("number", "cc-number"),
         Field("exp", "cc-exp"),
         Field("csc", "billing cc-csc"),
-    ])) { ShownTotal = Total };
+    ])) { ShownTotal = Total, ShownCurrency = "USD" };
 
     /// <summary>The card fields in a payment provider's frame (hosted fields), the rest of the checkout on the shop.</summary>
     public static CheckoutSnapshot ProviderFrame() => new(Shop, new ValueList<CheckoutField>([
@@ -34,18 +37,18 @@ public static class CheckoutPages
         Field("number", "cc-number", frame: Provider, action: null),
         Field("exp", "cc-exp", frame: Provider, action: null),
         Field("csc", "cc-csc", frame: Provider, action: null),
-    ])) { ShownTotal = Total };
+    ])) { ShownTotal = Total, ShownCurrency = "USD" };
 
     /// <summary>The shop's own fields, in a form whose action posts to a third origin.</summary>
     public static CheckoutSnapshot PostsElsewhere() => new(Shop, new ValueList<CheckoutField>([
         Field("number", "cc-number", action: Third),
         Field("exp", "cc-exp", action: Third),
-    ])) { ShownTotal = Total };
+    ])) { ShownTotal = Total, ShownCurrency = "USD" };
 
     /// <summary>The top frame moved after the owner approved: a redirect to another site.</summary>
     public static CheckoutSnapshot Redirected() => new(Third, new ValueList<CheckoutField>([
         Field("number", "cc-number", frame: Third, action: Third),
-    ]));
+    ])) { ShownTotal = Total, ShownCurrency = "USD" };
 
     /// <summary>A hidden card number field beside the shown one: only the shown one is filled.</summary>
     public static CheckoutSnapshot HiddenTwin() => new(Shop, new ValueList<CheckoutField>([
@@ -53,7 +56,7 @@ public static class CheckoutPages
         Field("hidden", "cc-number", visible: false),
         Field("exp-month", "cc-exp-month"),
         Field("exp-year", "cc-exp-year"),
-    ]));
+    ])) { ShownTotal = Total, ShownCurrency = "USD" };
 
     /// <summary>prepare_purchase's arguments for the fixture's shop.</summary>
     public static JSONValue Arguments(string checkout = Shop + "/checkout", string kind = "purchase", double total = 46.80, string currency = "USD") =>

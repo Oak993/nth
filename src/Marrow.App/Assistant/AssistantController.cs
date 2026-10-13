@@ -253,13 +253,15 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
             Router = new AssistantRouter(routing, o.Time, Runner, o.Agents);
             Runner.ReviewerRouter = Router;
         }
+        // The purchase desk is one of Stop all's scopes (12.6): a payment not yet being placed stops with everything else.
+        StartPurchases();
         Stopper = new StopAll(new StopAllOptions
         {
             Runner = Runner,
             Jobs = o.Jobs,
             Agents = o.Agents,
             Hold = Hold,
-            Scopes = o.StopScopes,
+            Scopes = Purchases is { } desk ? [.. o.StopScopes, desk] : o.StopScopes,
             Time = o.Time,
         });
         if (o.StopKey is { } key) Stopper.Bind(key);
@@ -314,7 +316,6 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
         WatchAutoAnswer();
         LoadHomeTaint();
         StartTeam();
-        StartPurchases();
     }
 
     /// <summary>The cost controls (AS-15): the owner's caps, checked before every turn of a mission, beside the reserve.</summary>
