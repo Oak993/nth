@@ -657,7 +657,9 @@ public sealed partial class WebAgentEngine : IDisposable
         Report(UiText.Get("agent.step.check_card"), state.Short, WebAgentPhase.Asking);
         var (answered, confirmed) = await Ask("guard|" + state.Tab.Id + "|" + key + "|" + verdict.Category, t => s.Asker.Confirm(ask, t), false, s);
         if (!answered) return Waiting(s);
-        return confirmed ? null : Fail(WebErrorCodes.Cancelled, "The user cancelled " + (name.Length > 0 ? name : "this step") + ". Do not try another way to do it.");
+        // ED-NEW-web-sec-agent-10: the element's name is the page's words, so it goes inside the untrusted block.
+        return confirmed ? null : Fail(WebErrorCodes.Cancelled, "The user cancelled this step. Do not try another way to do it."
+            + (name.Length > 0 ? "\n" + WebAgentText.Untrusted(WebPolicy.OriginOf(state.Tab.Url), "Name: " + name) : ""));
     }
 
     // One ask, shared by the same call made again: it waits 25 s in this call; an answer that comes later is kept for the next.
@@ -849,9 +851,10 @@ public sealed partial class WebAgentEngine : IDisposable
             Block(state, e, "Choosing that option sent its form, and nth stopped it: sending this form needs the user's OK. To send it, web_click the form's submit button (nth asks the user).");
             return;
         }
+        var source = WebPolicy.OriginOf(state.Tab.Url);
         if (WebAgentUrls.DeniedReason(url) is { } why)
         {
-            Block(state, e, "nth stopped the page from opening " + url + ": " + why);
+            Block(state, e, "nth stopped the page from opening the address below: " + why + "\n" + WebAgentText.Untrusted(source, url));
             return;
         }
         var target = WebPolicy.OriginOf(url)!;
@@ -860,13 +863,15 @@ public sealed partial class WebAgentEngine : IDisposable
         lock (gate) knownUrls.Add(WebAgentUrls.Normalize(url));
         if (state.Tab.Shared)
         {
-            Block(state, e, "nth stopped the user's shared tab from moving to " + WebPolicy.SourceName(url) + ". To go there, call web_open with this url (it asks the user): " + url);
+            Block(state, e, "nth stopped the user's shared tab from moving to another site. To go there, call web_open with the address below (it asks the user):\n"
+                + WebAgentText.Untrusted(source, url));
             return;
         }
         IReadOnlyList<string> from;
         lock (gate) from = WebAgentUrls.CrossOriginSources(readOrigins, url, hub.Grants.Pair);
         if (from.Count > 0)
-            Block(state, e, "nth stopped the page from opening " + WebPolicy.SourceName(url) + ": after reading " + string.Join(", ", from.Select(WebPolicy.SourceName)) + ", opening another site needs the user's OK. Call web_open with this url to ask them: " + url);
+            Block(state, e, "nth stopped the page from opening another site: after reading " + string.Join(", ", from.Select(WebPolicy.SourceName))
+                + ", opening another site needs the user's OK. Call web_open with the address below to ask them:\n" + WebAgentText.Untrusted(source, url));
     }
 
     // ED-NEW-web-sec-agent-4 (security review M2): a model's click is a trusted gesture, so a pop-up it opens (target=_blank,
@@ -879,16 +884,20 @@ public sealed partial class WebAgentEngine : IDisposable
         if (e.Cancel || !ModelPopup(state)) return;
         e.Cancel = true;
         var url = e.Url;
+        // ED-NEW-web-sec-agent-10 (security review M2 and L4, second pass): the address is the page's choice (its fragment can say anything),
+        // so it reaches the model inside the untrusted block, never in nth's own words.
+        var source = WebPolicy.OriginOf(state.Tab.Url);
         string why;
         if (WebAgentUrls.DeniedReason(url) is { } denied)
         {
-            why = "nth stopped the page from opening " + url + " in a new tab: " + denied;
+            why = "nth stopped the page from opening a new tab at the address below: " + denied + "\n" + WebAgentText.Untrusted(source, url);
         }
         else if (WebPolicy.IsWeb(url))
         {
             lock (gate) knownUrls.Add(WebAgentUrls.Normalize(url));
-            Named(WebPolicy.OriginOf(state.Tab.Url), url);
-            why = "nth stopped the page from opening " + url + " in a new tab. To go there, call web_open with this url (it asks the user when it must): " + url;
+            Named(source, url);
+            why = "nth stopped the page from opening a new tab at the address below. To go there, call web_open with it (it asks the user when it must):\n"
+                + WebAgentText.Untrusted(source, url);
         }
         else
         {
