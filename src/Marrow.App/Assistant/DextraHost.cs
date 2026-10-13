@@ -402,6 +402,13 @@ public sealed class DextraHost : IDisposable
         DutyHost? duties = null;
         try
         {
+            // ED-NEW-secfinal-23: a private Command Code answer folder that could not be removed is retried at Dextra's start too, not only at the
+            // next Command Code answer. Fire and forget on the thread pool: never on the main thread, and a failure never stops the start.
+            _ = Task.Run(() =>
+            {
+                try { (seams.CommandCodeCleanup ?? (() => Marrow.Services.Providers.CommandCodeTextHead.RetryLeftoverCleanup()))(); }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+            });
             storage = await Task.Run(() => DextraStartStorage.Open(seams, id.ToString("N"))).ConfigureAwait(false);
             var opened = storage;
             var capture = await MainActor.Run(() =>

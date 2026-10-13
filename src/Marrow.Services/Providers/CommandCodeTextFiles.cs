@@ -79,6 +79,31 @@ internal sealed class CommandCodeTextFiles : IDisposable
         finally { tree?.Dispose(); record.Dispose(); Close(parents); }
     }
 
+    /// <summary>
+    /// ED-NEW-secfinal-23: the retry of earlier runs' leftovers, by itself, for Dextra's start. Same rules as the retry inside <see cref="Begin"/>:
+    /// the folder's ancestors are pinned while it works, a live answer's lease is skipped, a record of another version is kept. A folder that
+    /// does not exist is left missing. Never throws for the file system; a start must not fail for it.
+    /// </summary>
+    internal static void RetryPending(string root)
+    {
+        List<SafeFileHandle>? parents = null;
+        try
+        {
+            root = Path.GetFullPath(root);
+            if (!Directory.Exists(root)) return;
+            parents = PinParents(root);
+            Retry(root);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            log.Error("commandcode-text-cleanup-deferred: start retry could not run; code=" + error.HResult.ToString("X8", System.Globalization.CultureInfo.InvariantCulture));
+        }
+        finally
+        {
+            if (parents is not null) Close(parents);
+        }
+    }
+
     private static void Retry(string root)
     {
         var clock = Stopwatch.StartNew();

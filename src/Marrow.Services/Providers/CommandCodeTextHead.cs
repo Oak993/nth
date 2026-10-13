@@ -28,6 +28,21 @@ public static class CommandCodeTextHead
           process.stdout.write(JSON.stringify({type:'nth_text_policy',nonce,tools:[]})+'\n');
         }
         """;
+    // ED-NEW-secfinal-23: where the private answer folders are made (a test's data folder, else the temp folder).
+    private static string PrivateRoot() => Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR") ?? Path.GetTempPath();
+
+    /// <summary>
+    /// ED-NEW-secfinal-23: removes the private answer folders an earlier run could not (the retry that otherwise waits for the next Command
+    /// Code answer). Called at Dextra's start, from a worker thread.
+    /// </summary>
+    public static void RetryLeftoverCleanup() => RetryLeftoverCleanup(null);
+
+    /// <summary>The same for <paramref name="root"/>, the folder the answers are made in (a test's); null is the usual one.</summary>
+    internal static void RetryLeftoverCleanup(string? root) => CommandCodeTextFiles.RetryPending(root ?? PrivateRoot());
+
+    /// <summary>The same, on a worker thread: the caller (a start on the main thread) does no file work.</summary>
+    internal static Task RetryLeftoverCleanupAsync(string? root = null) => Task.Run(() => RetryLeftoverCleanup(root));
+
     public static Task<string> RunAsync(SessionConfiguration configuration, string prompt, Func<bool> permitted,
         CancellationToken cancel, Action<TokenSpend>? spend = null) => RunAsync(configuration, prompt, permitted, cancel, spend, null);
 
@@ -43,7 +58,7 @@ public static class CommandCodeTextHead
             || configuration.Transcript.Count != 0 || configuration.Hydra is not null || configuration.IsHydraHead
             || configuration.SkillGeneration is not null || configuration.SkillMcpExecutable is not null)
             throw new ArgumentException("A delegate requires a fresh private configuration.");
-        var folder = Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR") ?? Path.GetTempPath(), "commandcode-text-" + Guid.NewGuid().ToString("N"));
+        var folder = Path.Combine(PrivateRoot(), "commandcode-text-" + Guid.NewGuid().ToString("N"));
         var policy = Path.Combine(folder, "text-only.mjs");
         ICommandCodeTextProcess? process = null;
         FileStream? ownedPolicy = null;
