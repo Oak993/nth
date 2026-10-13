@@ -262,7 +262,9 @@ public sealed record SwiftTransition
             throw new InvalidOperationException(
                 "A child with a modifier transition can leave with an animation only after SwiftTransition.Insert built its wrappers.");
         state.RemovingFrom = panel;
-        if (from > 0) animation = state.Transition.Carrying(animation, -insertionSpeed, from); // ED-NEW-perf-motion-11, as above
+        // ED-NEW-perf-motion-11, as above; not for the opt-in continuing sites (the terminal drawer), whose partners move in lock-step
+        // with them from rest (the pane's push, the docked panels' re-placement).
+        if (from > 0 && !continuing) animation = state.Transition.Carrying(animation, -insertionSpeed, from);
         state.Present(child, from, inserting: false);
         state.Run(animation, (p, complete) =>
         {
