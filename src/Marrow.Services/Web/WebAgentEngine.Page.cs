@@ -32,6 +32,9 @@ public sealed partial class WebAgentEngine
     // ED-NEW-web-sec-agent-3 (security review M1): a Confirm answers the card the user saw; when the page under it changed, nothing is pressed.
     private const string PageChanged = "The page changed while the card was up, so nth did not press anything. Read the page again, then try again.";
 
+    // ED-NEW-web-sec-agent-5 (security review M3): text read on one site, typed into a page of another, asks first.
+    private static readonly WebGuardVerdict CarryVerdict = WebGuardVerdict.Ask(WebGuardCategory.Carry, "type");
+
     private const string ClipboardRefusal = "nth never uses the clipboard for a model (paste, copy or cut): it would read or replace the user's own clipboard. "
         + "Use web_read to read text and web_type to type it.";
 
@@ -352,6 +355,9 @@ public sealed partial class WebAgentEngine
             if (typing.Kind == WebGuardKind.Deny) return Fail(WebErrorCodes.Denied, typing.Reason!);
             if (element.IsSelect) return Fail(WebErrorCodes.BadArgs, reference + " is a list of options: use web_select.");
             if (!element.Editable) return Fail(WebErrorCodes.BadArgs, reference + " is not a text field: use web_click or web_select.");
+            var from = CarriedFrom(text, origin);
+            if (from.Count > 0 && await Guard(s, state, CarryVerdict, element.Facts, Approval(state, "carry", element, text), null, CarryRows(from, text), null, Sources(from)) is { } carried)
+                return carried;
             var entering = submit ? EnterVerdict(element, origin) : WebGuardVerdict.Pass;
             if (submit && await Guard(s, state, entering, element.Facts, Approval(state, "enter", element, null), null, element.Rows) is { } stop) return stop;
             Report(UiText.Format("agent.step.filling_in", PillName(element, true)), state.Short);
@@ -367,7 +373,7 @@ public sealed partial class WebAgentEngine
                     if (active.Sealed) return Fail(WebErrorCodes.Denied, FrameRefusal);
                     if (WebAgentPolicy.CheckType(active.Facts) is { Kind: WebGuardKind.Deny } moved) return Fail(WebErrorCodes.Denied, moved.Reason!);
                 }
-                if (entering.Kind == WebGuardKind.Confirm && active?.Node != key) return Fail(WebErrorCodes.StaleRef, PageChanged);
+                if ((entering.Kind == WebGuardKind.Confirm || from.Count > 0) && active?.Node != key) return Fail(WebErrorCodes.StaleRef, PageChanged);
                 await state.Overlay.Busy(state.Cdp!, true, s.Token);
                 try
                 {
@@ -399,6 +405,21 @@ public sealed partial class WebAgentEngine
         try
         {
             var origin = WebPolicy.OriginOf(state.Tab.Url);
+            // ED-NEW-web-sec-agent-5: letters that spell text read on another site ask first, as web_type does; the letters then go only
+            // to the field the card showed.
+            var spelled = string.Concat(presses.Where(p => !p.IsEnter && p.Text is not null).Select(p => p.Text));
+            var carrying = false;
+            WebNodeKey? carriedTo = null;
+            if (CarriedFrom(spelled, origin) is { Count: > 0 } from)
+            {
+                var focus = await ActiveFacts(state, s.Token);
+                if (focus is { Sealed: true }) return Fail(WebErrorCodes.Denied, FrameRefusal);
+                var into = focus ?? new Element(new WebElementFacts(), false, false, false, null, [], []);
+                if (await Guard(s, state, CarryVerdict, into.Facts, Approval(state, "carry", into, spelled), null, CarryRows(from, spelled), null, Sources(from)) is { } carried)
+                    return carried;
+                carrying = true;
+                carriedTo = focus?.Node;
+            }
             Report(UiText.Get("agent.step.pressing_keys"), state.Short);
             var pressedEnter = false;
             using (BeginStep(state))
@@ -418,6 +439,7 @@ public sealed partial class WebAgentEngine
                     {
                         var active = await ActiveFacts(state, s.Token);
                         if (active is { Sealed: true }) return Fail(WebErrorCodes.Denied, done + FrameRefusal);
+                        if (carrying && press.Text is not null && active?.Node != carriedTo) return Fail(WebErrorCodes.StaleRef, done + PageChanged);
                         if (active is not null)
                         {
                             var verdict = press.IsEnter
@@ -618,6 +640,15 @@ public sealed partial class WebAgentEngine
         if (extra is not null) text.Append("\nx=").Append(extra);
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString())), 0, 12);
     }
+
+    // The carry card's rows: the sites the text was read on, and the text.
+    private static List<KeyValuePair<string, string>> CarryRows(List<string> from, string text) =>
+    [
+        new(UiText.Get("agent.guard.row_from"), Sources(from)),
+        new(UiText.Get("agent.guard.row_text"), Clip(text, 120)),
+    ];
+
+    private static string Sources(List<string> from) => string.Join(", ", from.Select(WebPolicy.SourceName));
 
     // The same element (node and content) as before, or nothing both times.
     private static bool Same(Element? a, Element? b) =>

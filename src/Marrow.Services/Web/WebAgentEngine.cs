@@ -49,7 +49,7 @@ public sealed partial class WebAgentEngine : IDisposable
     private readonly Dictionary<string, string> shortIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> readOrigins = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> knownUrls = new(StringComparer.Ordinal);
-    private readonly LinkedList<string> readTexts = new();
+    private readonly LinkedList<(string? Origin, string Text)> readTexts = new();
     private readonly Dictionary<string, PendingAsk> asks = new(StringComparer.Ordinal);
     private CancellationTokenSource turn = new();
     private CancellationTokenSource? running;
@@ -382,6 +382,7 @@ public sealed partial class WebAgentEngine : IDisposable
         Saw(origin, null, []);
         if (lines.Count == 0) return new WebToolResult("Nothing new in " + state.Short + "'s " + (network ? "network" : "console") + ". next: " + N(next)) { ReadOrigin = origin };
         var body = string.Join('\n', lines.Select(l => "#" + N(l.Number) + " " + l.Text));
+        Kept(origin, body);
         return new WebToolResult(N(lines.Count) + " " + (network ? "requests" : "messages") + " in " + state.Short + ". next: " + N(next) + "\n" + WebAgentText.Untrusted(origin, body)) { ReadOrigin = origin };
     }
 
@@ -461,6 +462,7 @@ public sealed partial class WebAgentEngine : IDisposable
         var value = result.TryGetProperty("result", out var r)
             ? r.TryGetProperty("value", out var v) ? v.GetRawText() : Text(r, "description") ?? Text(r, "type") ?? "undefined"
             : "undefined";
+        Kept(origin, value);
         return new WebToolResult("Result:\n" + WebAgentText.Untrusted(origin, Clip(value, 20_000))) { ReadOrigin = origin };
     }
 
@@ -613,7 +615,7 @@ public sealed partial class WebAgentEngine : IDisposable
 
     // The guarded-action card ("Send invite?") or a hard deny; null when the step may run.
     private async Task<WebToolResult?> Guard(Step s, TabState state, WebGuardVerdict verdict, WebElementFacts element, string key, string? target = null,
-        IReadOnlyList<KeyValuePair<string, string>>? fields = null, WebPoint? near = null)
+        IReadOnlyList<KeyValuePair<string, string>>? fields = null, WebPoint? near = null, string? from = null)
     {
         if (verdict.Kind == WebGuardKind.Deny) return Fail(WebErrorCodes.Denied, verdict.Reason ?? "nth never does this for a model.");
         if (verdict.Kind != WebGuardKind.Confirm) return null;
@@ -622,7 +624,7 @@ public sealed partial class WebAgentEngine : IDisposable
         var rows = new List<KeyValuePair<string, string>>(fields ?? []);
         if (target is not null) rows.Add(new(UiText.Get("agent.guard.row_address"), target));
         rows.Add(new(UiText.Get("agent.guard.row_site"), WebPolicy.SourceName(state.Tab.Url)));
-        var ask = new WebGuardAsk(Thread, state.Short, origin, verdict.Category, verdict.Word ?? "", name, s.Model) { Rows = rows, Chat = s.Host.ChatTitle(Thread), TabId = state.Tab.Id, Near = near };
+        var ask = new WebGuardAsk(Thread, state.Short, origin, verdict.Category, verdict.Word ?? "", name, s.Model) { Rows = rows, Chat = s.Host.ChatTitle(Thread), TabId = state.Tab.Id, Near = near, From = from };
         Report(UiText.Get("agent.step.check_card"), state.Short, WebAgentPhase.Asking);
         var (answered, confirmed) = await Ask("guard|" + state.Tab.Id + "|" + key + "|" + verdict.Category, t => s.Asker.Confirm(ask, t), false, s);
         if (!answered) return Waiting(s);
@@ -710,18 +712,43 @@ public sealed partial class WebAgentEngine : IDisposable
             if (origin is not null) readOrigins.Add(origin);
             foreach (var link in links.Concat(WebAgentUrls.FindAddresses(text)).Take(2000))
                 if (WebPolicy.IsWeb(link)) knownUrls.Add(WebAgentUrls.Normalize(link));
-            if (!string.IsNullOrEmpty(text))
-            {
-                readTexts.AddLast(text.Length <= 200_000 ? text : text[..200_000]);
-                while (readTexts.Count > 12) readTexts.RemoveFirst();
-            }
+        }
+        Kept(origin, text);
+    }
+
+    // Text the model read and the site it read it on (the last twelve reads): for "This address carries text from the page you
+    // were on", and for typing it into another site (ED-NEW-web-sec-agent-5). Console, network and script output count too.
+    private void Kept(string? origin, string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return;
+        lock (gate)
+        {
+            readTexts.AddLast((origin, text.Length <= 200_000 ? text : text[..200_000]));
+            while (readTexts.Count > 12) readTexts.RemoveFirst();
         }
     }
 
     // Whether a query value came from a page the model read ("This address carries text from the page you were on").
     private bool FromPage(string value)
     {
-        lock (gate) return readTexts.Any(t => t.Contains(value, StringComparison.OrdinalIgnoreCase));
+        lock (gate) return readTexts.Any(t => t.Text.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    // ED-NEW-web-sec-agent-5 (security review M3): the sites whose text the model is about to type into a page of target. Text read on
+    // the same site, and a pair of sites the user always allows (the cross-origin card's "always"), do not count.
+    private List<string> CarriedFrom(string typed, string? target)
+    {
+        var from = new List<string>();
+        if (typed.Length == 0) return from;
+        List<(string? Origin, string Text)> texts;
+        lock (gate) texts = [.. readTexts];
+        foreach (var (source, text) in texts)
+        {
+            if (source is null || from.Contains(source, StringComparer.OrdinalIgnoreCase) || string.Equals(source, target, StringComparison.OrdinalIgnoreCase)) continue;
+            if (target is not null && hub.Grants.Pair(source, target)) continue;
+            if (WebAgentText.Carries(typed, text)) from.Add(source);
+        }
+        return from;
     }
 
     // ---- Navigations, take-over and the step window ----

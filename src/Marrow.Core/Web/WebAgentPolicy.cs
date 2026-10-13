@@ -80,6 +80,9 @@ public enum WebGuardCategory
     Upload,
     Download,
     NewSite,
+
+    /// <summary>Typing text read on one site into a page of another site (ED-NEW-web-sec-agent-5).</summary>
+    Carry,
 }
 
 /// <summary>What the guard says about one step.</summary>
@@ -221,6 +224,7 @@ public static partial class WebAgentPolicy
         WebGuardCategory.Upload => UiText.Get("agent.guard.asked_upload"),
         WebGuardCategory.Download => UiText.Get("agent.guard.asked_download"),
         WebGuardCategory.NewSite => UiText.Get("agent.guard.asked_new_site"),
+        WebGuardCategory.Carry => UiText.Get("agent.guard.asked_carry"),
         _ => UiText.Get("agent.guard.asked_submit"),
     };
 

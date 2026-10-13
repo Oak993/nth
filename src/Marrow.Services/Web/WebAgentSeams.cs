@@ -176,9 +176,13 @@ public sealed record WebGuardAsk(string Thread, string Tab, string Origin, WebGu
     /// </summary>
     public WebPoint? Near { get; init; }
 
+    /// <summary>For a card that carries text between sites: the sites the text was read on ("mail.test"), ED-NEW-web-sec-agent-5.</summary>
+    public string? From { get; init; }
+
     /// <summary>The card's first line: the element's own words with a question mark ("Send invite?").</summary>
     public string Title => Category switch
     {
+        WebGuardCategory.Carry => UiText.Format("agent.guard.title_carry", From ?? ""),
         WebGuardCategory.Upload => UiText.Get("agent.guard.title_upload"),
         WebGuardCategory.Download => UiText.Get("agent.guard.title_download"),
         WebGuardCategory.NewSite when Element.Length == 0 => UiText.Format("agent.guard.title_new_site", WebPolicy.SourceName(Origin)),
@@ -188,6 +192,7 @@ public sealed record WebGuardAsk(string Thread, string Tab, string Origin, WebGu
     /// <summary>"The model will press Send invite in Visus for you."</summary>
     public string Detail => Category switch
     {
+        WebGuardCategory.Carry => UiText.Format("agent.guard.detail_carry", From ?? "", WebPolicy.SourceName(Origin)),
         WebGuardCategory.Upload => UiText.Get("agent.guard.detail_upload"),
         WebGuardCategory.Download => UiText.Format("agent.guard.detail_download", WebPolicy.SourceName(Origin)),
         WebGuardCategory.NewSite when Element.Length == 0 => UiText.Get("agent.guard.detail_new_site"),
@@ -199,6 +204,7 @@ public sealed record WebGuardAsk(string Thread, string Tab, string Origin, WebGu
     /// <summary>The confirm button's words: the element's own label ("Send invite"), else Confirm.</summary>
     public string ConfirmLabel => Category switch
     {
+        WebGuardCategory.Carry => UiText.Get("agent.guard.confirm_carry"),
         WebGuardCategory.Upload => UiText.Get("agent.guard.confirm_upload"),
         WebGuardCategory.Download => UiText.Get("agent.guard.confirm_download"),
         _ when Element.Length is > 0 and <= 28 => Element,
