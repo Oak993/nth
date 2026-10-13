@@ -12,6 +12,9 @@ $source = Get-Content (Join-Path $root 'src/Marrow.App/AssemblyInfo.cs') -Raw
 $version = [regex]::Match($source, 'AssemblyMetadata\("CFBundleShortVersionString",\s*"([^"]+)"\)').Groups[1].Value
 $build = [regex]::Match($source, 'AssemblyMetadata\("CFBundleVersion",\s*"([^"]+)"\)').Groups[1].Value
 $copyright = [regex]::Match($source, 'AssemblyCopyright\("([^"]+)"\)').Groups[1].Value
+# nth installer PLAN.md 2 (override 7) and 7, unit U7: the publisher is one value (decision A: oak993) and the product version reads like the version.
+$publisher = [regex]::Match((Get-Content (Join-Path $root 'Directory.Release.props') -Raw), '<NthPublisher>([^<]+)</NthPublisher>').Groups[1].Value
+if (-not $publisher) { throw 'NthPublisher is not set in Directory.Release.props.' }
 function Artifact([string]$Path) {
     $relative = [IO.Path]::GetRelativePath($root, (Resolve-Path $Path).Path).Replace('\', '/')
     if ($relative.StartsWith('../') -or [IO.Path]::IsPathRooted($relative)) { throw 'Inspected binaries must be retained inside the repository artifact tree.' }
@@ -29,7 +32,7 @@ function Read-Identity([string]$Exe, [string]$Assembly, [string]$Title) {
         product_version = $resource.ProductVersion; product = $resource.ProductName
         company = $resource.CompanyName; title = $resource.FileDescription
     }
-    $expected = @{ assembly_version="$version.0"; file_version="$version.$build"; product_version="$version+build.$build"; product='nth'; company='nth'; title=$Title }
+    $expected = @{ assembly_version="$version.0"; file_version="$version.$build"; product_version=$version; product='nth'; company=$publisher; title=$Title }
     foreach ($name in $expected.Keys) {
         if ($fields[$name] -ne $expected[$name]) { throw "$Exe PE $name does not equal $($expected[$name])." }
     }
@@ -42,7 +45,11 @@ function Read-Identity([string]$Exe, [string]$Assembly, [string]$Title) {
     $fields.assembly_artifact = Artifact $Assembly
     return $fields
 }
-$result = [ordered]@{ pe_metadata=[ordered]@{ app=(Read-Identity (Join-Path $AppDirectory 'Marrow.App.exe') (Join-Path $AppDirectory 'Marrow.App.dll') 'nth') }; complete=$false }
+# A published folder holds nth.exe (the packaging script renames the apphost, PLAN.md override 8); a build folder holds the apphost the SDK
+# names after the assembly, which is also the name of the .dll the metadata is read from.
+$appAssembly = 'Marrow.App'
+$appExe = if (Test-Path (Join-Path $AppDirectory 'nth.exe')) { 'nth.exe' } else { "$appAssembly.exe" }
+$result = [ordered]@{ pe_metadata=[ordered]@{ app=(Read-Identity (Join-Path $AppDirectory $appExe) (Join-Path $AppDirectory "$appAssembly.dll") 'nth') }; complete=$false }
 if ($SetupExe -or $SetupAssembly) {
     if (-not $SetupExe -or -not $SetupAssembly) { throw 'Supply both final SetupExe and its matching build SetupAssembly for inspection.' }
     $result.pe_metadata.setup = Read-Identity $SetupExe $SetupAssembly 'nth Setup'

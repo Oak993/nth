@@ -5,7 +5,26 @@
     <RuntimeIdentifier Condition="'$(MSBuildProjectName)' == 'Marrow.Shim' and '$(PublishAot)' == 'true'">win-x64</RuntimeIdentifier>
     <NuGetLockFilePath Condition="'$(MSBuildProjectName)' == 'Marrow.Shim' and '$(PublishAot)' == 'true'">$(MSBuildProjectDirectory)/packages.aot.lock.json</NuGetLockFilePath>
     <NuGetLockFilePath Condition="'$(MSBuildProjectName)' == 'Marrow.Setup' and '$(PublishTrimmed)' == 'true'">$(MSBuildProjectDirectory)/packages.publish.lock.json</NuGetLockFilePath>
+    <!-- nth installer PLAN.md 5 and 9, unit U7 (ED-NEW-inst-u7-5): the setup is published with Native AOT, which adds the ILCompiler packages to the graph. -->
+    <NuGetLockFilePath Condition="'$(MSBuildProjectName)' == 'Marrow.Setup' and '$(PublishAot)' == 'true'">$(MSBuildProjectDirectory)/packages.aot.lock.json</NuGetLockFilePath>
+    <!-- Where a fresh install goes (PLAN.md override 10); %25 is MSBuild's escape for %. The setup expands it when it runs. -->
+    <InstallerDefaultRoot Condition="'$(MSBuildProjectName)' == 'Marrow.Setup' and '$(InstallerDefaultRoot)' == ''">%25LOCALAPPDATA%25\Programs\nth</InstallerDefaultRoot>
   </PropertyGroup>
+  <!-- nth installer PLAN.md 4, 7 and 9, unit U7 (ED-NEW-inst-u7-5): what scripts/package-windows.ps1 measures and decides is stamped into the setup exe as
+       assembly metadata (the sizes, the main exe, the AppUserModelID, the default root, the publisher, Velopack's own free-space threshold) and the
+       validated release notes are embedded as ReleaseNotes.md. A key is added only when it has a value, so a build outside the script carries just
+       the publisher and the default root. -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'Marrow.Setup'">
+    <AssemblyMetadata Include="InstallerPublisher" Value="$(NthPublisher)" />
+    <AssemblyMetadata Include="InstallerDefaultRoot" Value="$(InstallerDefaultRoot)" />
+    <AssemblyMetadata Include="InstallerMainExe" Value="$(InstallerMainExe)" Condition="'$(InstallerMainExe)' != ''" />
+    <AssemblyMetadata Include="InstallerAumid" Value="$(InstallerAumid)" Condition="'$(InstallerAumid)' != ''" />
+    <AssemblyMetadata Include="InstallerPackageBytes" Value="$(InstallerPackageBytes)" Condition="'$(InstallerPackageBytes)' != ''" />
+    <AssemblyMetadata Include="InstallerAppBytes" Value="$(InstallerAppBytes)" Condition="'$(InstallerAppBytes)' != ''" />
+    <AssemblyMetadata Include="InstallerDiskBytes" Value="$(InstallerDiskBytes)" Condition="'$(InstallerDiskBytes)' != ''" />
+    <AssemblyMetadata Include="InstallerVelopackNeedBytes" Value="$(InstallerVelopackNeedBytes)" Condition="'$(InstallerVelopackNeedBytes)' != ''" />
+    <EmbeddedResource Include="$(InstallerReleaseNotesFile)" LogicalName="ReleaseNotes.md" Condition="'$(InstallerReleaseNotesFile)' != ''" />
+  </ItemGroup>
   <ItemGroup>
     <!-- Pin the .NET runtime only; the Windows SDK reference pack has its own version. -->
     <FrameworkReference Update="Microsoft.NETCore.App" RuntimeFrameworkVersion="10.0.12" />

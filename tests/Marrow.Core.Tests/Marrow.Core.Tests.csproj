@@ -19,6 +19,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- nth installer PLAN.md 7 and 9 (unit U7): the build tools in scripts/lib that the packaging script compiles at run time (Add-Type) are compiled
+         here too, from the same files, so the tests prove the code the script runs. -->
+    <Compile Include="..\..\scripts\lib\Win32VersionStamp.cs" Link="Packaging\Win32VersionStamp.cs" />
+    <Compile Include="..\..\scripts\lib\BinaryTextScan.cs" Link="Packaging\BinaryTextScan.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Marrow.Testing\Marrow.Testing.csproj" />
     <ProjectReference Include="..\..\src\Marrow.Core\Marrow.Core.csproj" />
   </ItemGroup>

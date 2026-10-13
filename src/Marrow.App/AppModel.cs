@@ -1261,6 +1261,7 @@ public sealed partial class AppModel : MainActorModel
     // AppModel.swift:1020-1051. Swift: spawnSubagent(from:title:prompt:), @discardableResult.
     public ChatThread? SpawnSubagent(Guid parentID, string title, string prompt)
     {
+        if (InstallerHoldsNewTurns) return null;
         if (Thread(parentID) is not { } parent) return null; // AppModel.swift:1022
         if (Subagent(parentID) is { } existing) // AppModel.swift:1023
         {

@@ -41,14 +41,43 @@ public static class Program
     {
         if (!InstalledByVelopack(baseDirectory)) return;
         var app = VelopackApp.Build();
+        // nth installer PLAN.md 5 (unit U9, ED-NEW-inst-u9-1): the setup's leftover folders go with the app, unless a setup or the uninstaller is open.
+        SetupLeftoversStartup.RegisterUninstall(hook => app.OnBeforeUninstallFastCallback(hook));
         // SK-13 / DL-16: the skills and tools data is unlocked and deleted before Velopack removes the app (ONDEMAND-PLAN.md 3.8).
         SkillsUninstallHook.Register(hook => app.OnBeforeUninstallFastCallback(hook), SkillsDataRoot.Resolve);
+        // nth installer PLAN.md 8 and 8a (unit U5, ED-NEW-inst-u5-1): Start, the desktop shortcut, the root uninstaller
+        // and the uninstall key, inside Velopack's hook budgets. The real shell and HKCU are bound here only.
+        NthInstallHook.Register(
+            hook => app.OnAfterInstallFastCallback(hook),
+            hook => app.OnAfterUpdateFastCallback(hook),
+            hook => app.OnBeforeUninstallFastCallback(hook),
+            version => NthInstallHook.ContextFor(baseDirectory, version),
+            () => new ShellLinks(),
+            () => new RegistryUserHive(Microsoft.Win32.Registry.CurrentUser));
         app.Run();
     }
 
-    internal static bool InstalledByVelopack(string baseDirectory) =>
-        Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(baseDirectory)) is { } root
-        && File.Exists(Path.Combine(root, "Update.exe"));
+    internal static bool InstalledByVelopack(string baseDirectory) => InstalledRoot(baseDirectory) is not null;
+
+    /// <summary>The Velopack install root this app runs from (the folder one above its own <c>current</c> folder, where Update.exe is), or null for a dev run, a portable copy or a test host.</summary>
+    internal static string? InstalledRoot(string baseDirectory) =>
+        Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(baseDirectory)) is { } root && File.Exists(Path.Combine(root, "Update.exe")) ? root : null;
+
+    /// <summary>
+    /// ED-002 reopens the running instance when a second nth is started; ED-NEW-inst-u8-3 makes one exception: a start by the
+    /// "Open at sign-in" entry (<see cref="SignInEntry.Argument"/>) does nothing to a running nth.
+    /// </summary>
+    internal static bool ShouldReopenRunningInstance(IReadOnlyList<string> args) => !SignInEntry.IsAtSignInLaunch(args);
+
+    /// <summary>
+    /// nth installer PLAN.md 8 and 8a (unit U8, ED-NEW-inst-u8-1): Settings > General > "On this PC" manages nth's desktop shortcut and
+    /// sign-in entry, in a Velopack install only. The real shell and the real HKCU are bound here (and in the self-heal below) only.
+    /// </summary>
+    internal static void BindOnThisPc(string baseDirectory)
+    {
+        if (!InstalledByVelopack(baseDirectory) || InstallLayout.RootOf(baseDirectory) is not { } root) return;
+        OnThisPcPlatform.Slot.SetProcessDefault(new OnThisPcPlatform(root, () => new ShellLinks(), () => new RegistryUserHive(Microsoft.Win32.Registry.CurrentUser)));
+    }
 
     [STAThread]
     public static int Main(string[] args)
@@ -114,10 +143,16 @@ public static class Program
             if (DroppyCodeApp.ForwardNotificationArguments(args)) return 0;
             // A recognized toast whose transport failed must not reopen the main window (especially an update).
             if (args.Any(argument => ToastActivation.Decode(WindowsToastStartup.Identity, argument) is not null)) return 1;
-            ReopenSignal.Send(DroppyCodeApp.ReopenSignalName); // ED-002: the running instance runs the reopen path
+            // nth installer PLAN.md 8 (unit U8, ED-NEW-inst-u8-3): the sign-in entry starts nth with --at-sign-in, and a running nth must not
+            // be pulled to the front by it. A launch by the user (Start, the desktop shortcut, a double click) still reopens as ED-002 says.
+            if (ShouldReopenRunningInstance(args)) ReopenSignal.Send(DroppyCodeApp.ReopenSignalName); // ED-002: the running instance runs the reopen path
             return 0;
         }
         using var instanceLock = singleInstanceLock;
+        // nth installer PLAN.md 3a (U4, ED-NEW-inst-u4-3): while nth Setup runs Velopack on this install root, Velopack stops every
+        // process in it, so an nth opened now would show a window and be killed. It waits here, with no window, at most ten minutes.
+        DroppyCodeApp.WaitForInstallerToFinish(AppContext.BaseDirectory);
+        BindOnThisPc(AppContext.BaseDirectory);
         // OD-0135: the product is named nth. Once, before anything reads settings, logs, the library or the GPU program cache, the
         // old "Marrow Code" data folder and .marrow state folder are COPIED to their new names (never moved; the old app may still run).
         LegacyDataCopy.CopyProductFolders(DevDataRoot.LocalApplicationData(), DevDataRoot.IsRedirected ? DevDataRoot.LocalApplicationData() : LoginEnvironment.HomeDirectory, AppInfo.Current.IsDevelopment);
@@ -182,6 +217,8 @@ public static class Program
         var shell = new AppShell(new AppDelegate(), exit: () => lifetime.Shutdown(), afterWillTerminate: () => settings.Synchronize());
         var launchReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var notifications = DroppyCodeApp.ListenForNotificationArguments(shell.Delegate, launchReady.Task);
+        // nth installer PLAN.md 3a (U4, ED-NEW-inst-u4-1): nth Setup asks over this pipe whether nth may quit before it updates the install.
+        using var installerControl = DroppyCodeApp.ListenForInstallerControl(shell, launchReady.Task);
 
         DroppyCodeApp.RunPrologue(); // DroppyCodeApp.swift:7-19
 
@@ -208,7 +245,12 @@ public static class Program
         Marrow.App.Port.MultiAccount.Thread.ThreadPortSeams.Bind(Marrow.App.Window.WindowManager.Shared.Model);
         shell.FinishLaunching();
         launchReady.TrySetResult();
+        // nth installer PLAN.md 5 (unit U9, ED-NEW-inst-u9-1): nth Setup's leftover folders are removed on the pool once the first window is up, when no setup runs.
+        _ = SetupLeftoversStartup.SweepAtStart(AppContext.BaseDirectory);
         skills?.CollectInBackground(); // SK-13: the startup GC runs on the pool once the main window is up, never on the launch path (single-instance lock is already held)
+        // nth installer PLAN.md 8 and 8a (unit U5): the start-time self-heal of Start, nth's desktop shortcuts and the
+        // uninstall key, on the pool after the first window; nothing outside a Velopack install.
+        _ = NthInstallHook.StartSelfHeal(AppContext.BaseDirectory, InstalledByVelopack, () => new ShellLinks(), () => new RegistryUserHive(Microsoft.Win32.Registry.CurrentUser));
         DroppyCodeApp.ReceiveNotificationArguments(shell.Delegate, args); // ED-220: cold protocol activation
         reopen.Listen(() => shell.Reopen(lifetime.Windows));
     }

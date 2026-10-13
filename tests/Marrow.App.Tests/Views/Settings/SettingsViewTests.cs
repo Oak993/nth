@@ -578,7 +578,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     // RESOLVED for the build (defects-priority): Marrow.App.csproj now ships LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md beside the executable
     // (Legal\ content, copied to the build output and the publish folder); LicensesShippingTests proves them byte for byte.
     // PACKED (rec-settings-win): scripts/package-windows.ps1 was run (publish, vpk pack 1.2.161) and the full nupkg holds LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md at lib/app, beside
-    // Marrow.App.exe, byte for byte the hashes LicensesShippingTests uses; the script now stops a pack that lacks them, and LicensesPackTests reads the package. NOT run: an installed
+    // nth.exe, byte for byte the hashes LicensesShippingTests uses; the script now stops a pack that lacks them, and LicensesPackTests reads the package. NOT run: an installed
     // %LOCALAPPDATA%\Marrow Code\current, after an install and after an update, because the house rule is that no agent opens the installer.
     // The record's lead decides whether the packed folder is enough for "Ship all three documents with the installer".
     // (It said: the App project bundles only Assets/icon.png, not the three legal documents.)

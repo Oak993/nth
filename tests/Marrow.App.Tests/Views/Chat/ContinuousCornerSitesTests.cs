@@ -198,6 +198,19 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.UI/Port/PcControl/TactusPointer.cs", "BadgeSize * 0.24", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): the pointer's app badge, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
         ("Marrow.UI/Port/PcControl/TactusPointer.cs", "PauseSize / 2", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): the pointer's pause disc, a circle by construction, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
         ("Marrow.UI/Port/PcControl/WithdrawnCardBody.cs", "14", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): the withdrawn card's box, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
+        // nth Setup (nth installer PLAN.md 3 and 5; ED-NEW-inst-integ-1): the installer window is its own product with no Swift twin. Its radii are the approved canvas's CSS
+        // border-radius values (circular arcs), drawn once on a fixed layout, so none is a Swift `.continuous` shape that could sit in the band.
+        ("Marrow.Setup/Screens/ProgressPanel.cs", "2", 2, Tiny), // U3's stand-in bar: the 4 DIP track and its fill (superseded by bar B, kept with its tests)
+        ("Marrow.Setup/Shell/SetupWindow.cs", "radius", 3, Circular), // the window's own 8 DIP edge (PLAN.md 3: "the 8 px radius"), which Windows 11 rounds as a circle: backdrop, rim and top light
+        ("Marrow.Setup/Ui/DesktopPreview.cs", "DeskWidth * .06", 1, Circular), // the Ready and Options desktop preview's rounded screen, a canvas layout
+        ("Marrow.Setup/Ui/Pieces.cs", "10", 2, Circular), // two of the canvas's pieces, CSS border-radius 10
+        ("Marrow.Setup/Ui/Pieces.cs", "8", 1, Circular), // one of the canvas's pieces, CSS border-radius 8
+        ("Marrow.Setup/Ui/Pieces.cs", "13", 1, Circular), // one of the canvas's pieces, CSS border-radius 13
+        ("Marrow.Setup/Ui/SetupButton.cs", "radius", 6, Capsule), // the button is a capsule by construction (r = height / 2): its fill, rim, light and shape
+        ("Marrow.Setup/Ui/SetupButton.cs", "radius.TopLeft + 4", 1, Capsule), // the focus ring outside that capsule (r + 4)
+        ("Marrow.Setup/Ui/SetupButton.cs", "height / 2 + 4", 1, Capsule), // the focus ring outside a capsule button (r + 4)
+        ("Marrow.Setup/Ui/SetupButton.cs", "height / 2, height / 2, height * .45 * .4, height * .45 * .4", 1, Capsule), // the button's gloss, the top half of that capsule
+        ("Marrow.Setup/Ui/SetupButton.cs", "2", 1, Tiny), // a 2 DIP line
     ];
 
     private static string SourceRoot([System.Runtime.CompilerServices.CallerFilePath] string path = "") =>

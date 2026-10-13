@@ -54,7 +54,9 @@ public sealed class PackageWindowsScriptTests
     {
         var feed = Executable().Single(l => l.StartsWith("$feedRepoUrl", StringComparison.Ordinal));
         Assert.Contains("'" + MarrowReleaseFeed.Url + "'", feed, StringComparison.Ordinal);
-        Assert.Contains(Executable(), l => l.Contains("$releasesDir = Join-Path $root 'artifacts/releases'", StringComparison.Ordinal));
+        // nth installer PLAN.md 9 (unit U7): -ArtifactsDir builds elsewhere; the default is still <repository>/artifacts, so the folder is still artifacts/releases
+        Assert.Contains(Executable(), l => l.Contains("$artifacts = if ($ArtifactsDir) { [System.IO.Path]::GetFullPath($ArtifactsDir) } else { Join-Path $root 'artifacts' }", StringComparison.Ordinal));
+        Assert.Contains(Executable(), l => l.Contains("$releasesDir = Join-Path $artifacts 'releases'", StringComparison.Ordinal));
         Assert.Contains(Executable(), l => l.Contains("--outputDir $releasesDir `", StringComparison.Ordinal));
         Assert.Contains(Executable(), l => l.Contains("--packId $PackId `", StringComparison.Ordinal));
         Assert.Contains(Executable(), l => l.Contains("[string]$PackId = 'NthApp'", StringComparison.Ordinal));

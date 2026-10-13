@@ -20,7 +20,7 @@ public sealed class InstallerGateTests
         <authors>nth</authors>
         <version>{0}</version>
         <channel>win</channel>
-        <mainExe>Marrow.App.exe</mainExe>
+        <mainExe>nth.exe</mainExe>
         <os>win</os>
         <rid>win-x64</rid>
         </metadata>
@@ -356,14 +356,16 @@ public sealed class InstallerGateTests
         // folder's own name "nth" (Velopack deletes its install folder on uninstall)
         Assert.Contains("[string]$PackTitle = 'nth',", script, StringComparison.Ordinal);
         Assert.Contains("[string]$PackId = 'NthApp',", script, StringComparison.Ordinal);
-        Assert.Contains("[string]$PackAuthors = 'nth',", script, StringComparison.Ordinal);
+        // ED-NEW-inst-cx-5: the owner replaced the old nth publisher with exact lower-case oak993.
+        Assert.Contains("[string]$PackAuthors = 'oak993',", script, StringComparison.Ordinal);
         Assert.Contains("<InstallerTitle Condition=\"'$(InstallerTitle)' == ''\">nth</InstallerTitle>", project, StringComparison.Ordinal);
         Assert.Contains("<InstallerAppId Condition=\"'$(InstallerAppId)' == ''\">NthApp</InstallerAppId>", project, StringComparison.Ordinal);
         Assert.Equal("NthApp", Marrow.Core.Port.SelfUpdate.MarrowReleaseFeed.PackageId);
         Assert.NotEqual(AppInfo.DataFolderName, Marrow.Core.Port.SelfUpdate.MarrowReleaseFeed.PackageId, StringComparer.OrdinalIgnoreCase);
-        // Programs\Marrow.lnk is the Electron app's: the shortcut goes in the authors' folder, never the Start menu root
-        Assert.Contains("--shortcuts StartMenu `", script, StringComparison.Ordinal);
-        Assert.DoesNotContain("StartMenuRoot `", script, StringComparison.Ordinal);
+        // nth installer PLAN.md override 3 (ED-NEW-inst-u7-2): the Electron app that owned Programs\Marrow.lnk no longer matters because our file is nth.lnk, so
+        // Start shows Programs\nth.lnk (StartMenuRoot), not a folder named after the publisher (StartMenu). PackageWindowsNthTests holds the same, and more.
+        Assert.Contains("--shortcuts StartMenuRoot `", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("--shortcuts StartMenu `", script, StringComparison.Ordinal);
         // the gate is built with the same title, id and version vpk pack was given, around the Setup.exe vpk produced
         Assert.Contains("--packId $PackId `", script, StringComparison.Ordinal);
         Assert.Contains("--packVersion $version `", script, StringComparison.Ordinal);
@@ -374,9 +376,12 @@ public sealed class InstallerGateTests
         Assert.Contains("<Compile Include=\"..\\Marrow.Core\\Support\\InstallerGate.cs\"", project, StringComparison.Ordinal);
         Assert.DoesNotContain("<ProjectReference", project, StringComparison.Ordinal);
         Assert.Contains("LogicalName=\"VelopackSetup.exe\"", project, StringComparison.Ordinal);
+        // nth installer PLAN.md 3 (unit U1): the gate moved beside the window unchanged; --silent and --help still go to it
         var program = File.ReadAllText(Path.Combine(repository.FullName, "src", "Marrow.Setup", "Program.cs"));
-        Assert.Contains("private const string PayloadName = \"VelopackSetup.exe\";", program, StringComparison.Ordinal);
-        Assert.Contains("return InstallerGate.Run(host, Identity(), args);", program, StringComparison.Ordinal);
+        Assert.Contains("if (InstallerGate.IsSilent(args) || InstallerGate.IsHelp(args)) return LegacyGateHost.Run(args);", program, StringComparison.Ordinal);
+        var gate = File.ReadAllText(Path.Combine(repository.FullName, "src", "Marrow.Setup", "Port", "LegacyGateHost.cs"));
+        Assert.Contains("private const string PayloadName = \"VelopackSetup.exe\";", gate, StringComparison.Ordinal);
+        Assert.Contains("return InstallerGate.Run(host, Identity(), args);", gate, StringComparison.Ordinal);
     }
 
     private static InstallerIdentity Identity(string root, string version) =>
