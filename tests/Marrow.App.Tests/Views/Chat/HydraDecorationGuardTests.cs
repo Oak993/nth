@@ -34,7 +34,8 @@ namespace Marrow.App.Tests.Views.Chat;
 public sealed class HydraDecorationGuardTests(HeadlessSession headless)
 {
     // Recorded on the unchanged base (claude/lean-l8 at 6c67eba4a, the base plus the test hooks).
-    private const string MotionFrames = "CD68ACC7811B1A7D6D232508F855BEE77F3E7E524307B322ADDE918908C86283";
+    // ED-NEW-gateprep-6: re-recorded for the glass look (ED-NEW-glassmerge-1); the hover card's glass rim is in frames 6 and 7 only.
+    private const string MotionFrames = "3D7036B18B789817093E590ADC8CB961E8F77A043E63AA051143F3179D6317B9";
     private const string EndingFrames = "2D42E52102D1CB907C75823006EA4A8CAD9BC7622AF063B743309DFDC0F8DC41";
 
     private static readonly SwiftColor Tint = new(0.3, 0.6, 0.9);
