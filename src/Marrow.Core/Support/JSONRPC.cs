@@ -110,6 +110,24 @@ public sealed class JSONRPCConnection
     public void Start()
     {
         process.Start();
+        BeginReading();
+    }
+
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-perf-ui-thread-6). <see cref="Start"/> with the child created on the pool (<see cref="StdioProcess.StartAsync"/>), so a session started from the UI thread's turn does
+    /// not hold a frame for CreateProcessW. A <see cref="Close"/> that came while the child was being created found nothing running to end, so the child is ended once it exists.
+    /// </summary>
+    public async Task StartAsync()
+    {
+        await process.StartAsync();
+        BeginReading();
+        if (closeRequested) process.Terminate();
+    }
+
+    private bool closeRequested;
+
+    private void BeginReading()
+    {
         childStarted = true;
         var messages = process.Messages;
         var weak = new WeakReference<JSONRPCConnection>(this);
@@ -203,6 +221,7 @@ public sealed class JSONRPCConnection
     // :101-103
     public void Close()
     {
+        closeRequested = true;
         process.Terminate();
     }
 

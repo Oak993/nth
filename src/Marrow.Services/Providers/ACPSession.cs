@@ -189,7 +189,7 @@ public sealed class ACPSession : ProviderSession, Port.Skills.Providers.ISkillSe
             connection.OnRequest = (id, method, parameters) => HandleRequest(id, method, parameters); // :119
             connection.OnClose = tail => HandleClose(tail); // :120
             this.connection = connection; // :121
-            connection.Start(); // :122
+            await connection.StartAsync(); // :122. ED-NEW-perf-ui-thread-6: the child is created on the pool
 
             var initialized = await connection.Request("initialize", InitializeParams); // :124-128
             ApplyInitializeReply(initialized); // :129-132
