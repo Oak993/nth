@@ -140,6 +140,56 @@ public sealed class DigestSuggestionTests
         Assert.Empty(rig.Host.Digests.Open);
     }
 
+    // ---- what the spotter finds in the app's own state ----
+
+    [Fact]
+    public async Task A_mission_that_failed_its_review_three_times_in_a_project_the_owner_works_in_is_offered_a_look_and_Accept_starts_one()
+    {
+        using var rig = Quiet(Setup(projects: () => [new SpotProject(MissionRig.Project, "App", DateTimeOffset.UtcNow)]));
+        var record = Started(rig, "Fix the login timeout");
+        var lead = rig.LeadOf(record);
+        for (var round = 1; round <= 3; round++)
+        {
+            rig.Agents.Finish(lead, "Done, round " + round + ".");
+            rig.Controller.OnTurnFinished(lead, TurnStatus.Completed, false);
+            MissionRig.Until(() => rig.Now(record).ReviewerThread is not null, "the reviewer to start");
+            var reviewer = rig.Now(record).ReviewerThread!.Value;
+            rig.Agents.Finish(reviewer, "VERDICT: FAIL the timeout is still 5 s");
+            rig.Controller.OnTurnFinished(reviewer, TurnStatus.Completed, false);
+        }
+        MissionRig.Until(() => rig.Now(record).Mission.State == MissionState.Failed, "the mission to fail");
+        var digest = (await rig.Host.Digests!.Compose(DigestKind.Asked))!;
+        var offer = Assert.Single(digest.Suggestions);
+        Assert.Equal(SuggestionKind.FailingCheck, offer.Kind);
+        Assert.Equal("“Fix the login timeout” failed its review in App. Want me to find out why?", offer.Line);
+        Assert.Equal("“Fix the login timeout” failed", digest.Sections[0].Items[0].Text);        // it is under Needs you as well
+        var accepted = rig.Host.Digests.Accept(offer.Key);
+        Assert.True(accepted.Ok, accepted.Message);
+        Assert.Contains(rig.Controller.Runner.Missions, m => m.Mission.Title == "Find out why “Fix the login timeout” failed");
+    }
+
+    [Fact]
+    public async Task A_duty_that_looked_every_two_hours_and_found_nothing_for_a_day_is_offered_a_slower_look_and_Accept_changes_it_on_its_card()
+    {
+        using var rig = Quiet();
+        rig.Save(DutyHostRig.Every("d1", 120));
+        for (var run = 0; run < 14; run++)
+        {
+            rig.Clock.Advance(TimeSpan.FromHours(2));
+            var mission = rig.Host.Scheduler.Find("d1")!.History[0].MissionId!.Value;
+            rig.Complete(rig.Controller.Runner.Find(mission)!, "Looked at the page.\nRESULT: nothing_changed");
+            MissionRig.Until(() => rig.Host.Scheduler.Find("d1")!.History[0].Outcome == DutyRunOutcome.NothingChanged, "the quiet run");
+        }
+        var digest = (await rig.Host.Digests!.Compose(DigestKind.Asked))!;
+        var offer = Assert.Single(digest.Suggestions);
+        Assert.Equal("“Duty d1” found nothing in its last 14 runs. Look every 6 h instead of every 2 h?", offer.Line);
+        Assert.Equal("Saves about 8 runs a day.", offer.Cost);
+        Assert.True(rig.Host.Digests.Accept(offer.Key).Ok);
+        var card = Assert.Single(rig.Controller.Queue.Waiting, c => c.Title.StartsWith("Change the duty", StringComparison.Ordinal));
+        Assert.Null(rig.Controller.Queue.Answer(card.Id, DecisionAnswer.Pick("Change duty")));
+        Assert.Equal(360, ((TimeTrigger)rig.Host.Scheduler.Find("d1")!.Trigger).Schedule.EveryMinutes);
+    }
+
     [Fact]
     public void Accept_Dismiss_and_the_duty_it_leads_to_are_written_in_the_activity_log_by_kind_and_never_by_words()
     {

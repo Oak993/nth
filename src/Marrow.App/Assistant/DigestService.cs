@@ -236,13 +236,15 @@ public sealed partial class DigestService : ISuggestionIntake, IDisposable
     {
         if (Book.DutyMade) return null;
         if (Book.ReadOnly) return "The digest file could not be written, so the Morning digest is not scheduled.";
+        var main = MainAssistantId();
+        if (main is null) return "There is no assistant to own the Morning digest yet.";
+        // Dextra's duties are loaded first (Start loads only the ids it is given), so the duty is made beside the owner's own and never in place of them.
+        o.Scheduler.EnsureLoaded(main);
         if (o.Scheduler.Find(DigestDuty.Id) is not null)
         {
             Book.MarkDutyMade();
             return null;
         }
-        var main = MainAssistantId();
-        if (main is null) return "There is no assistant to own the Morning digest yet.";
         var (saved, problem) = o.Scheduler.Add(DigestDuty.Make(main, Zone.Id));
         if (saved is null) return problem;
         Book.MarkDutyMade();

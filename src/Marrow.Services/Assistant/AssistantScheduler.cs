@@ -102,6 +102,39 @@ public sealed class AssistantScheduler : IDisposable
         return notes;
     }
 
+    /// <summary>
+    /// Loads the duties of an assistant that Start was not given, so a duty added to it is saved beside the ones its file holds (AS-11: the Morning digest duty is made
+    /// for Dextra whether or not its profile was listed). Does nothing for an assistant already loaded.
+    /// </summary>
+    public void EnsureLoaded(string assistantId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(assistantId);
+        var after = new List<Action>();
+        lock (gate)
+        {
+            if (disposed || docs.ContainsKey(assistantId)) return;
+            var now = time.GetUtcNow();
+            LoadAssistant(assistantId, now, after);
+            Rearm(now);
+        }
+        Run(after);
+        Raise();
+    }
+
+    // Under the lock. Reads one assistant's file and makes a runtime of each of its duties, as Start does for the assistants it is given.
+    private void LoadAssistant(string assistantId, DateTimeOffset now, List<Action> after)
+    {
+        var file = o.Store.Load(assistantId);
+        docs[assistantId] = new Doc(file.Document, file.WritesAllowed);
+        foreach (var duty in file.Document.Duties)
+        {
+            if (runtimes.ContainsKey(duty.Id)) continue;
+            var runtime = new Runtime(duty, assistantId, sequence++) { ReadOnly = !file.WritesAllowed };
+            runtimes[duty.Id] = runtime;
+            if (started) Arm(runtime, now, after);
+        }
+    }
+
     // Under the lock. Sets a runtime up from its duty: its next time, its watcher, its first page look.
     private void Arm(Runtime r, DateTimeOffset now, List<Action> after)
     {
@@ -201,6 +234,8 @@ public sealed class AssistantScheduler : IDisposable
                 History = ValueList<DutyHistoryEntry>.Empty,
             };
             if (saved.Problem() is { } problem) return (null, problem);
+            // An assistant Start was not given: its file's duties are loaded first, so the save that follows keeps them (it writes every duty the scheduler holds).
+            if (!docs.ContainsKey(saved.AssistantId)) LoadAssistant(saved.AssistantId, now, after);
             if (runtimes.ContainsKey(saved.Id)) return (null, "A duty with that id exists already.");
             if (Writable(saved.AssistantId) is { } blocked) return (null, blocked);
             first = runtimes.Count == 0;

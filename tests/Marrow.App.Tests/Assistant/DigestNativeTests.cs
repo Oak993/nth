@@ -34,8 +34,9 @@ public sealed class DigestNativeTests(WindowManagerNativeSession native)
     [Fact]
     public void The_card_in_a_real_window_draws_inside_its_frame_and_an_answered_row_fades_in_on_the_real_clock_without_moving_what_is_above_it()
     {
-        native.Run(_ =>
+        native.Run(subject =>
         {
+            _ = subject;
             using var rig = Quiet(Setup(habits: () => [Habit("a", "Re-price listings"), Habit("b", "File the invoices")], logins: () => ["Channel B"]));
             _ = rig.Host.Digests!.Compose(DigestKind.Scheduled);
             MissionRig.Until(() => rig.Host.Digests.Latest is not null, "the digest");
@@ -63,6 +64,30 @@ public sealed class DigestNativeTests(WindowManagerNativeSession native)
             Assert.Equal(before.Top, after.Top);                                  // nothing above the lane moved
             Assert.InRange(after.Height, before.Height - 60, before.Height + 4);  // the buttons gave way to one line: the card does not grow
             native.OnUi(() => model.Dispose());
+        });
+    }
+
+    [Fact]
+    public void A_line_the_brain_adds_from_another_thread_shows_on_the_card_without_a_cross_thread_error()
+    {
+        native.Run(subject =>
+        {
+            _ = subject;
+            using var rig = Quiet(Setup(habits: () => [Habit("a", "Re-price listings")]));
+            _ = rig.Host.Digests!.Compose(DigestKind.Scheduled);
+            MissionRig.Until(() => rig.Host.Digests.Latest is not null, "the digest");
+            var (window, card) = native.OnUi(() =>
+            {
+                var shown = new DigestCard(new DigestModel(rig.Host.Digests, () => TimeZoneInfo.Utc));
+                var host = new AvaloniaWindow { Content = shown, Width = 520, Height = 760, ShowInTaskbar = false };
+                native.Register(host);
+                host.Show();
+                return (host, shown);
+            });
+            WindowManagerNativeMethods.Until(() => native.OnUi(() => window.IsVisible && card.LaneRows.Count == 1), "the card did not show", 10000);
+            // The test's own thread is not the UI thread: the service says it changed here, and the card must draw on the UI thread.
+            Assert.False(rig.Host.Digests.Suggest("dextra", "Back up the invoices?", null).IsError);
+            WindowManagerNativeMethods.Until(() => native.OnUi(() => card.LaneRows.Count == 2), "the line the brain added did not show on the card", 5000);
         });
     }
 

@@ -131,6 +131,14 @@ public sealed class DigestUsageTests
     }
 
     [Fact]
+    public void A_reading_that_is_not_a_number_or_is_out_of_range_reads_as_none_or_as_a_whole_window()
+    {
+        Assert.Equal("A: 0% of the 5-hour window used.", Usage(Account("A", FiveHour(double.NaN))).Items[0].Text);
+        Assert.Equal("A: 100% of the 5-hour window used.", Usage(Account("A", FiveHour(140))).Items[0].Text);
+        Assert.Equal("A: 0% of the 5-hour window used.", Usage(Account("A", FiveHour(-3))).Items[0].Text);
+    }
+
+    [Fact]
     public void The_usage_lines_link_to_their_account()
     {
         var section = Usage(Account("Codex A", FiveHour(22)));

@@ -171,6 +171,18 @@ public sealed class SpotterTests
         Assert.Empty(Spotter.Spot(Input() with { Duties = [found, daily] }));
     }
 
+    [Fact]
+    public void Only_the_quiet_streak_at_the_head_counts_and_it_is_told_by_its_own_length()
+    {
+        // Nine quiet runs, then one that found something, then more quiet ones: the streak is nine, not eleven.
+        DutyRunOutcome[] recent = [.. Enumerable.Repeat(DutyRunOutcome.NothingChanged, 9), DutyRunOutcome.Done, DutyRunOutcome.NothingChanged, DutyRunOutcome.NothingChanged];
+        var duty = new SpotDuty("d1", "Espresso price watch", 120, recent, TimeSpan.FromHours(30), true);
+        var candidate = Assert.Single(Spotter.Spot(Input() with { Duties = [duty] }));
+        Assert.Equal("“Espresso price watch” found nothing in its last 9 runs. Look every 6 h instead of every 2 h?", candidate.Line);
+        var brokenEarly = new SpotDuty("d2", "Price", 120, [.. Enumerable.Repeat(DutyRunOutcome.NothingChanged, 7), DutyRunOutcome.Done, .. Enumerable.Repeat(DutyRunOutcome.NothingChanged, 9)], TimeSpan.FromHours(30), true);
+        Assert.Empty(Spotter.Spot(Input() with { Duties = [brokenEarly] }));
+    }
+
     [Theory]
     [InlineData(15, 60, 72)]
     [InlineData(30, 120, 36)]

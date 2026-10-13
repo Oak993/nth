@@ -1,7 +1,8 @@
 // PORT-ONLY: Dextra (DESIGN.md rev 5, 2.2 "The morning digest is pinned at the top as the day's first card", 5.2, 6; canvas "Morning digest"; unit AS-11; ED-NEW-dextra-as11-11).
 // No Swift twin. What the digest card shows and does, apart from how it draws: the newest digest, its Suggestions lane as the ledger holds it now (a suggestion
 // the brain adds later shows too, one the owner answers turns into the line that took its place), Accept and Dismiss, what a tap on an item opens, and Read aloud
-// (offered only when the voice has bound itself: nothing speaks unprompted, and there is no voice yet to ask). Raised on the main thread.
+// (offered only when the voice has bound itself: nothing speaks unprompted, and there is no voice yet to ask). Changed is raised on the main thread.
+using Avalonia.Threading;
 using Marrow.Core.Port.Assistant;
 
 namespace Marrow.App.Assistant.Views;
@@ -16,16 +17,24 @@ public sealed class DigestModel : IDisposable
 {
     private readonly DigestService service;
     private readonly Func<TimeZoneInfo> zone;
+    private readonly Func<bool> onMainThread;
+    private readonly Action<Action> postToMain;
     private readonly Dictionary<string, string> answered = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> problems = new(StringComparer.Ordinal);
     private bool disposed;
     private bool quiet;
 
-    public DigestModel(DigestService service, Func<TimeZoneInfo>? zone = null)
+    /// <param name="service">The digest service the card shows.</param>
+    /// <param name="zone">The PC's time zone; null: the system's.</param>
+    /// <param name="onMainThread">Whether the caller is on the main thread; null: Avalonia's UI thread. A test gives its own.</param>
+    /// <param name="postToMain">Runs work on the main thread later; null: Avalonia's UI thread.</param>
+    public DigestModel(DigestService service, Func<TimeZoneInfo>? zone = null, Func<bool>? onMainThread = null, Action<Action>? postToMain = null)
     {
         this.service = service ?? throw new ArgumentNullException(nameof(service));
         this.zone = zone ?? (() => TimeZoneInfo.Local);
-        service.Changed += Raise;
+        this.onMainThread = onMainThread ?? (() => Dispatcher.UIThread.CheckAccess());
+        this.postToMain = postToMain ?? (work => Dispatcher.UIThread.Post(work));
+        service.Changed += OnServiceChanged;
     }
 
     private Action<DigestLink>? openLink;
@@ -123,6 +132,13 @@ public sealed class DigestModel : IDisposable
         if (CanReadAloud) ReadAloud!(Digest!.Spoken);
     }
 
+    // The service raises Changed on whichever thread changed it (a digest composed on the pool, a tap on the main thread); the card draws on the main thread.
+    private void OnServiceChanged()
+    {
+        if (onMainThread()) Raise();
+        else postToMain(Raise);
+    }
+
     private void Raise()
     {
         if (!disposed && !quiet) Changed?.Invoke();
@@ -132,6 +148,6 @@ public sealed class DigestModel : IDisposable
     {
         if (disposed) return;
         disposed = true;
-        service.Changed -= Raise;
+        service.Changed -= OnServiceChanged;
     }
 }

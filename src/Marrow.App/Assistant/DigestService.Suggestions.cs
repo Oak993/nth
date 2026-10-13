@@ -123,6 +123,8 @@ public sealed partial class DigestService
     {
         var name = setup.AssistantName ?? (id => id);
         var yes = existing is null ? CreateDutyAnswer : ChangeDutyAnswer;
+        // The ONE place AS-11 builds a decision card (the digest and the lane raise none): when AS-9's DecisionPriority lands, set Priority = Offered here, so the
+        // card does not toast (the owner tapped Accept: he is looking at the digest).
         var card = new DecisionItem(Guid.NewGuid(), DecisionKind.Question, DecisionWeight.Question,
             existing is null ? $"Create the duty “{duty.Name}”?" : $"Change the duty “{duty.Name}”?")
         {

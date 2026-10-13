@@ -12,7 +12,7 @@ public sealed partial class DigestService
 {
     private sealed record Gathered(DigestFacts Facts, IReadOnlyList<SuggestionCandidate> Candidates);
 
-    /// <summary>The runs a duty's history is read for, newest first, when looking for a duty that keeps finding nothing.</summary>
+    /// <summary>The runs of a duty's history the spotter is told of at least (newest first), however short its quiet streak is.</summary>
     private const int RecentRuns = 12;
 
     /// <summary>The use outside nth the digest mentions: the last day (11.5).</summary>
@@ -166,8 +166,10 @@ public sealed partial class DigestService
             PageWatchTrigger page => page.EveryMinutes,
             _ => null,
         };
-        var real = duty.History.Where(h => !IsDryRun(h) && h.Outcome is DutyRunOutcome.Done or DutyRunOutcome.NothingChanged or DutyRunOutcome.Failed).Take(RecentRuns).ToList();
-        var span = real.Count > 1 ? real[0].At - real[^1].At : TimeSpan.Zero;
-        return new SpotDuty(duty.Id, duty.Name, every, [.. real.Select(h => h.Outcome)], span, duty.Enabled && !view.ReadOnly);
+        // The history holds the last 50 runs, newest first. What matters is the streak of quiet runs at its head and how long it has lasted.
+        var real = duty.History.Where(h => !IsDryRun(h) && h.Outcome is DutyRunOutcome.Done or DutyRunOutcome.NothingChanged or DutyRunOutcome.Failed).ToList();
+        var streak = real.TakeWhile(h => h.Outcome == DutyRunOutcome.NothingChanged).ToList();
+        var span = streak.Count > 1 ? streak[0].At - streak[^1].At : TimeSpan.Zero;
+        return new SpotDuty(duty.Id, duty.Name, every, [.. real.Take(Math.Max(RecentRuns, streak.Count)).Select(h => h.Outcome)], span, duty.Enabled && !view.ReadOnly);
     }
 }

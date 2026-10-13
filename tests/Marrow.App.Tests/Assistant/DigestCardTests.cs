@@ -261,6 +261,42 @@ public sealed class DigestCardTests(HeadlessSession headless)
     }
 
     [Fact]
+    public async Task A_digest_composed_off_the_main_thread_waits_for_the_main_thread_to_reach_the_card()
+    {
+        // A headless session reports every thread as the UI thread, so the main thread is the test's own here: what matters is that the model hands the change over to it.
+        using var rig = Quiet();
+        DigestModel? model = null;
+        DigestCard? card = null;
+        ReserveViewStage? stage = null;
+        var uiThread = 0;
+        var posted = new System.Collections.Concurrent.ConcurrentQueue<Action>();
+        var seenOn = new List<int>();
+        headless.OnUiThread(() =>
+        {
+            uiThread = Environment.CurrentManagedThreadId;
+            model = new DigestModel(rig.Host.Digests!, () => TimeZoneInfo.Utc, () => Environment.CurrentManagedThreadId == uiThread, posted.Enqueue);
+            model.Changed += () => seenOn.Add(Environment.CurrentManagedThreadId);
+            card = new DigestCard(model);
+            stage = new ReserveViewStage(card, 700, 900);
+            Assert.False(card.IsVisible);
+        });
+        await Task.Run(() => rig.Host.Digests!.Compose(DigestKind.Asked));      // the digest is kept, and the service says so, on a pool thread
+        Assert.Empty(seenOn);                                                      // nothing was drawn from that thread
+        Assert.NotEmpty(posted);                                                   // the changes (the ledger rolled to the day, the digest kept) wait for the main thread
+        headless.OnUiThread(() =>
+        {
+            while (posted.TryDequeue(out var work)) work();
+            stage!.Layout();
+            Assert.True(card!.IsVisible);
+            Assert.Equal("Digest · 06:00", card.Header);
+            Assert.NotEmpty(seenOn);
+            Assert.All(seenOn, thread => Assert.Equal(uiThread, thread));
+            stage.Dispose();
+            model!.Dispose();
+        });
+    }
+
+    [Fact]
     public void Before_the_first_digest_the_card_is_not_shown()
     {
         using var rig = Quiet();

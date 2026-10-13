@@ -9,6 +9,7 @@ using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -184,12 +185,17 @@ public sealed class DigestCard : Border
         return stack;
     }
 
-    // A linked item is a plain button with underlined text, named for what it opens; with nothing to open it, plain text.
+    // A linked item is a plain button with underlined text, named for what it opens; with nothing to open it, plain text. The mark that runs it on (";") is part of
+    // the same wrapping text but is not underlined, so it does not look like part of the link.
     private Control Item(DigestItem item, string trail)
     {
         if (item.Link.Kind == DigestLinkKind.None || model.OpenLink is null) return Text(item.Text + trail, semibold: false, primary: false);
-        var label = Text(item.Text + trail, semibold: false, primary: true);
-        label.TextDecorations = TextDecorations.Underline;
+        var label = new TextBlock { TextWrapping = TextWrapping.Wrap };
+        SwiftFont.System(13, SwiftFont.Weight.Regular).Apply(label);
+        label.Foreground = Chrome.PrimaryText.Brush(label);
+        var inlines = new InlineCollection { new Run(item.Text) { TextDecorations = TextDecorations.Underline } };
+        if (trail.Length > 0) inlines.Add(new Run(trail));
+        label.Inlines = inlines;
         var button = PlainControls.Button(label, () => model.Open(item.Link)).KeyboardFocus(4);
         AutomationProperties.SetName(button, "Open: " + item.Text);
         links.Add(button);

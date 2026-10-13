@@ -147,7 +147,7 @@ public static class DigestComposer
     // said the other way round ("31% of the weekly window is unused and resets at 14:00, so I'm using it first").
     private static string UsageClause(DigestWindow window, DateTimeOffset nowUtc, DateTimeOffset local, TimeZoneInfo zone)
     {
-        var used = Math.Round(Math.Clamp(window.Used, 0, 100), MidpointRounding.AwayFromZero);
+        var used = Math.Round(Math.Clamp(double.IsFinite(window.Used) ? window.Used : 0, 0, 100), MidpointRounding.AwayFromZero);   // a reading that is not a number reads as none
         var unused = 100 - used;
         var words = WindowWords(window);
         DateTimeOffset? resets = window.ResetsAt is { } at && at > nowUtc ? TimeZoneInfo.ConvertTime(at, zone) : null;

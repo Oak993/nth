@@ -65,4 +65,20 @@ public sealed class DigestLaunchTests
         Assert.Empty(launch.Model.Dextra!.Runner.Missions);
         Assert.Single(host.Scheduler.Duties);
     }
+
+    [Fact]
+    public void Starting_the_duties_the_way_turning_Dextra_on_does_makes_the_Morning_digest_duty_beside_the_owners_own()
+    {
+        using var temp = new AssistantTempRoot();
+        WriteDuties(temp, Weekly());
+        using var launch = new BackgroundLaunchRig(temp);
+        Assert.NotNull(launch.Run(StartupMode.Normal, out _));
+        // AS-8 starts Dextra and then the duties with the digest on (the default of StartDuties): the digest duty is made, and the owner's duty is untouched.
+        var host = launch.Model.StartDuties(launch.Model.Dextra!, launch.Model.DextraStore!, StartupMode.Normal, seams: launch.Seams.Host);
+        host.Start();
+        Assert.NotNull(host.Digests);
+        Assert.Equal(["d1", DigestDuty.Id], host.Scheduler.Duties.Select(v => v.Duty.Id).Order(StringComparer.Ordinal));
+        Assert.True(host.Digests.Book.DutyMade);
+        Assert.False(host.FirstCard.Visible);
+    }
 }

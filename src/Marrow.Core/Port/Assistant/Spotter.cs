@@ -21,7 +21,7 @@ public sealed record ChatHabit(string Key, string Label, Guid ProjectId, string 
 /// <summary>A mission of Dextra's that failed its review in a project the owner works in. <see cref="Key"/> names the mission.</summary>
 public sealed record FailingCheck(string Key, string Title, Guid ProjectId, string ProjectName, DateTimeOffset Last);
 
-/// <summary>A duty as the spotter reads it: how often it looks (null: not on a fixed interval), how its recent runs ended (newest first), and over what span.</summary>
+/// <summary>A duty as the spotter reads it: how often it looks (null: not on a fixed interval), how its runs ended (newest first), and the span of its quiet streak (the newest runs that found nothing).</summary>
 public sealed record SpotDuty(string Id, string Name, int? EveryMinutes, IReadOnlyList<DutyRunOutcome> Recent, TimeSpan Span, bool Enabled);
 
 public sealed record SpotterInput(DateTimeOffset Now, TimeZoneInfo Zone)
@@ -197,12 +197,14 @@ public static class Spotter
         foreach (var duty in input.Duties)
         {
             if (!duty.Enabled || duty.EveryMinutes is not { } every || every > IdleOftenMinutes || every <= 0) continue;
-            if (duty.Recent.Count < IdleRuns || duty.Span < IdleSpan || duty.Recent.Take(IdleRuns).Any(o => o != DutyRunOutcome.NothingChanged)) continue;
+            // The quiet streak: runs in a row, newest first, that found nothing; it is what has to be long enough and wide enough.
+            var quiet = duty.Recent.TakeWhile(o => o == DutyRunOutcome.NothingChanged).Count();
+            if (quiet < IdleRuns || duty.Span < IdleSpan) continue;
             var slower = Steps.FirstOrDefault(s => s >= every * 3, Steps[^1]);
             if (slower <= every) continue;
             var saved = Math.Max(1, (int)Math.Round(1440.0 / every - 1440.0 / slower, MidpointRounding.AwayFromZero));
             yield return new SuggestionCandidate(SuggestionKind.IdleDuty, "idle:" + duty.Id,
-                $"“{duty.Name}” found nothing in its last {N(duty.Recent.Count(o => o == DutyRunOutcome.NothingChanged))} runs. Look every {Interval(slower)} instead of every {Interval(every)}?",
+                $"“{duty.Name}” found nothing in its last {N(quiet)} runs. Look every {Interval(slower)} instead of every {Interval(every)}?",
                 $"Saves about {N(saved)} runs a day.",
                 new SuggestionPlan(SuggestionDo.ChangeDuty, duty.Name) { DutyId = duty.Id, EveryMinutes = slower })
             {
