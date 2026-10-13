@@ -21,11 +21,14 @@ internal sealed class McpAppReachNativeRig : IMcpAppServers, IMcpAppHostUi, IDis
 
     private readonly McpUiCsp declared;
     private readonly string html;
+    private readonly bool broad;
 
-    public McpAppReachNativeRig(WindowManagerNativeSession native, McpUiCsp declared, string html)
+    /// <param name="broad">The user's answer to the domain card turns on "Allow broad access" (ED-NEW-web-sec-mcpapps-7).</param>
+    public McpAppReachNativeRig(WindowManagerNativeSession native, McpUiCsp declared, string html, bool broad = false)
     {
         this.declared = declared;
         this.html = html;
+        this.broad = broad;
         Folder = Path.Combine(Path.GetTempPath(), "nth-sec-native-" + Guid.NewGuid().ToString("N"));
         Surface = new WebSurface(new WebView2Engine(), new WebProfiles(Path.Combine(Folder, "WebView2"), "en-US"));
         View = Surface.Open(WebSurfaceKind.McpApp, "sec-native");
@@ -99,7 +102,8 @@ internal sealed class McpAppReachNativeRig : IMcpAppServers, IMcpAppHostUi, IDis
         remove { }
     }
 
-    public Task<McpAppDomainDecision> AskDomainsAsync(McpAppMount app, McpAppDomainRequest request) => Task.FromResult(McpAppDomainDecision.Allow);
+    public Task<McpAppDomainDecision> AskDomainsAsync(McpAppMount app, McpAppDomainRequest request) =>
+        Task.FromResult(broad ? McpAppDomainDecision.AllowBroad : McpAppDomainDecision.Allow);
 
     public Task<bool> AskMessagesAsync(McpAppMount app) => Task.FromResult(false);
 

@@ -227,7 +227,8 @@ public static class McpAppDomains
     /// + ED-NEW-web-sec-mcpapps-4 (web surfaces security review, L7): nth's own check of an address an App's view loads,
     /// matched against the granted sources the way the CSP's host-source matches them, so the two never disagree: the
     /// source's scheme (http also takes https, ws also wss; https never takes wss), the source's port or else the scheme's
-    /// default port, the exact host or, for "*.example.com", a host under it; "*" (broad access) takes any web address. The
+    /// default port, the exact host or, for "*.example.com", a host under it; "*" (broad access) takes any https or wss address
+    /// (ED-NEW-web-sec-mcpapps-7: it took http and ws too, which the filter before the review never let out). The
     /// path is left to the CSP. False before the grant, or when the declaration changed since.
     /// </summary>
     public static bool Reaches(string url, McpUiCsp declared, McpAppDomainGrant? grant) =>
@@ -252,7 +253,7 @@ public static class McpAppDomains
 
     private static bool SourceMatches(string source, Uri target)
     {
-        if (source == "*") return true;
+        if (source == "*") return target.Scheme is "https" or "wss"; // + ED-NEW-web-sec-mcpapps-7: never plain http or ws
         if (source.StartsWith('\'')) return false;
         var wildcard = source.Contains("://*.", StringComparison.Ordinal);
         var text = wildcard ? source.Replace("://*.", "://" + WildcardLabel + ".", StringComparison.Ordinal) : source;
