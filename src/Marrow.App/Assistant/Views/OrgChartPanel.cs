@@ -16,6 +16,10 @@ public sealed class OrgChartPanel : Panel
 
     private readonly List<OrgNode> kids = [];
     private OrgNode? root;
+    private OrgPlan? cachedPlan;
+    private double cachedRootHeight;
+    private readonly List<double> cachedHeights = [];
+    private readonly List<double> heights = [];
 
     public OrgChartPanel()
     {
@@ -49,6 +53,7 @@ public sealed class OrgChartPanel : Panel
     /// <summary>Puts the Asturs' nodes in this order (adding those new to the panel, taking those no longer listed out).</summary>
     public void SetKids(IReadOnlyList<OrgNode> nodes)
     {
+        if (kids.SequenceEqual(nodes)) return;
         foreach (var gone in kids.Where(k => !nodes.Contains(k)).ToList())
         {
             Children.Remove(gone);
@@ -72,14 +77,14 @@ public sealed class OrgChartPanel : Panel
             root.Measure(new Size(rootWidth, double.PositiveInfinity));
             rootHeight = root.DesiredSize.Height;
         }
-        var heights = new List<double>(kids.Count);
+        heights.Clear();
         foreach (var kid in kids)
         {
             kid.Compact = list;
             kid.Measure(new Size(kidWidth, double.PositiveInfinity));
             heights.Add(kid.DesiredSize.Height);
         }
-        var plan = OrgChartLayout.Plan(width, rootHeight, heights);
+        var plan = PlanFor(width, rootHeight);
         Connectors.Measure(new Size(plan.Width, plan.Height));
         return new Size(plan.Width, plan.Height);
     }
@@ -87,7 +92,9 @@ public sealed class OrgChartPanel : Panel
     protected override Size ArrangeOverride(Size finalSize)
     {
         // the plan is laid out left to right; a right-to-left window mirrors the whole tree itself (nodes, lines and all), so the first Astur is on the right there
-        var plan = OrgChartLayout.Plan(finalSize.Width, root?.DesiredSize.Height ?? 0, [.. kids.Select(k => k.DesiredSize.Height)]);
+        heights.Clear();
+        foreach (var kid in kids) heights.Add(kid.DesiredSize.Height);
+        var plan = PlanFor(finalSize.Width, root?.DesiredSize.Height ?? 0);
         Plan = plan;
         root?.Arrange(ToRect(plan.Root));
         for (var i = 0; i < kids.Count; i++) kids[i].Arrange(ToRect(plan.Kids[i]));
@@ -97,4 +104,14 @@ public sealed class OrgChartPanel : Panel
     }
 
     private static Rect ToRect(OrgRect r) => new(r.X, r.Y, r.Width, r.Height);
+
+    // One entry per panel, keyed by every geometric input; extents/count/width invalidate it immediately.
+    private OrgPlan PlanFor(double width, double rootHeight)
+    {
+        if (cachedPlan is not null && cachedPlan.Width == width && cachedRootHeight == rootHeight && cachedHeights.SequenceEqual(heights)) return cachedPlan;
+        cachedRootHeight = rootHeight;
+        cachedHeights.Clear();
+        cachedHeights.AddRange(heights);
+        return cachedPlan = OrgChartLayout.Plan(width, rootHeight, heights);
+    }
 }

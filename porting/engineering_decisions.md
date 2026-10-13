@@ -8384,3 +8384,10 @@ The lean regression DigestLaunchTests.Starting_the_duties_the_way_turning_Dextra
 1. DextraSmoothNarrowTests failed alone twice for 800x1200 and 500x1400: the Board did not reach the bottom of the available Home area. Both short-window scroll controls already passed. Auto/Auto rows only gave the conversation its desired/minimum height.
 2. The stacked grid uses */Auto. Avalonia's existing ScrollViewer arranges the content to at least its viewport height, so the conversation receives spare space and the Board stays natural height. The 420 px conversation minimum still produces overflow in short windows; no new viewport callback, per-frame layout or fixed board height. The 900 px breakpoint and 12 px gap stay unchanged.
 3. The same four tests pass: both tall cases fill to the bottom, and both short cases reach the last of twelve missions, including RTL and repeated wide/narrow resizing. Existing Home native frame/keyboard checks remain owed, never run by this worker. No package.
+
+
+## ED-NEW-dextra-smooth-5
+2026-10-13 - Retain unchanged org-chart layout and connector geometry (CU-DX-SMOOTH; DESIGN 9.4). PORT-ONLY.
+1. DextraSmoothOrgPlanTests failed alone twice at both 500 and 900 px: the first repeated unchanged layout replaced the plan and therefore regenerated OrgConnectors geometry. Measure and Arrange each called OrgChartLayout.Plan and created height lists.
+2. The panel retains one plan, keyed by width, root desired height, and every ordered child desired height/count. Any changed extent, count or width replaces it immediately; both measuring and arranging use the same bounded per-panel entry. Reusable height lists replace LINQ/list creation. Identical SetKids sequences no longer invalidate measure. No global cache, alternate geometry, layout timing or FLIP changes.
+3. Both tests pass for twenty forced unchanged layouts (zero plan replacements), then prove changed widths switch chart/list modes and changed child count replaces the plan. OrgChartLayout and connector paths, widths, bends and all pinned pixel assertions are unchanged. OrgChartNativeTests' real-window resize/60-fps checks remain owed. No package.
