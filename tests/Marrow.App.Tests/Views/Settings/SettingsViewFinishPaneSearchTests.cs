@@ -19,7 +19,7 @@ public sealed class SettingsViewFinishPaneSearchTests(HeadlessSession headless) 
         With(() => new SettingsView(), (view, model, h, w) =>
         {
             None<ChromeSearchField>(view, "pane search #1"); // :248 only the Models page has it
-            Click(w, RowButton(view, "Models")); var page = Assert.Single(Nodes<ModelsSettingsPage>(view));
+            Reveal(w, h, RowButton(view, "Models")); /* ED-NEW-final-settings-1: Models lies below the 580 pt window's fold, so the sidebar is scrolled to it first */ Click(w, RowButton(view, "Models")); var page = Assert.Single(Nodes<ModelsSettingsPage>(view));
             CheckPaneSearch(view, w, h, "Search models");
             var field = Assert.Single(Nodes<TextBox>(Assert.Single(Nodes<ChromeSearchField>(view))));
             // ModelsSettingsPage.swift:66-71 the "N of 15" line shows only while the search is empty; :34-40 the pinned model is a row while it matches.
@@ -30,7 +30,7 @@ public sealed class SettingsViewFinishPaneSearchTests(HeadlessSession headless) 
             field.Text = ""; Drain(w); Type(w, field, "  zzz "); Assert.Contains("No models match “zzz”.", Text(page)); Assert.DoesNotContain("Your models", Text(page));
             Press(w, Avalonia.Input.Key.Escape); Assert.Equal("", field.Text ?? ""); Assert.Contains("Your models", Text(page)); Assert.Contains(Text(page), t => t.StartsWith("1 of 15.", StringComparison.Ordinal)); Assert.DoesNotContain(Text(page), t => t.StartsWith("No models match", StringComparison.Ordinal));
             // :211-215 changing the page empties the query: away and back, the field is empty and the page unfiltered.
-            Type(w, field, "zzz"); Assert.Contains("No models match “zzz”.", Text(page)); Click(w, RowButton(view, "General")); None<ChromeSearchField>(view, "pane search #2"); Click(w, RowButton(view, "Models"));
+            Type(w, field, "zzz"); Assert.Contains("No models match “zzz”.", Text(page)); Reveal(w, h, RowButton(view, "General")); Click(w, RowButton(view, "General")); None<ChromeSearchField>(view, "pane search #2"); Reveal(w, h, RowButton(view, "Models")); Click(w, RowButton(view, "Models"));
             var fresh = Assert.Single(Nodes<TextBox>(Assert.Single(Nodes<ChromeSearchField>(view)))); Assert.Equal("", fresh.Text ?? ""); Assert.Contains("Your models", Text(Assert.Single(Nodes<ModelsSettingsPage>(view))));
             Click(w, RowButton(view, "MCP")); Assert.Equal("Search servers", Assert.Single(Nodes<TextBox>(Assert.Single(Nodes<ChromeSearchField>(view)))).PlaceholderText); // :251 the prompt differs only in its text
         }, model => model.Settings.AddToModelList(new ModelPin(ProviderKind.Claude, "claude-model")));

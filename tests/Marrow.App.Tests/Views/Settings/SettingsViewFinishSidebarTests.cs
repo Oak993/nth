@@ -95,7 +95,7 @@ public sealed class SettingsViewFinishSidebarTests(HeadlessSession headless) : S
             Check("General");
             var models = RowButton(view, "Models"); var fill = Assert.IsType<Border>(models.Content);
             // :744-745 hovering: 0.06, animated with Chrome.hover (easeOut 0.1); leaving fades it away again.
-            Hover(w, models); Tick(h, 50); Ink(fill, fill.Background, Chrome.Overlay(0.06 * Animation.EaseOut(0.1).Progress(0.05))); Tick(h, 51); Ink(fill, fill.Background, Chrome.Overlay(0.06));
+            Reveal(w, h, models); /* ED-NEW-final-settings-1: Models lies below the 580 pt window's fold, so the sidebar is scrolled to it first */ Hover(w, models); Tick(h, 50); Ink(fill, fill.Background, Chrome.Overlay(0.06 * Animation.EaseOut(0.1).Progress(0.05))); Tick(h, 51); Ink(fill, fill.Background, Chrome.Overlay(0.06));
             w.MouseMove(new Point(1, 1)); Drain(w); Tick(h, 101); Ink(fill, fill.Background, SwiftColor.Clear);
             // :149 a click selects the page; the selected row keeps 0.12 even while the pointer is on it (:740 selected before hovering).
             // Chrome.swift:729 the wash moves to the new row on Chrome.hover (easeOut 0.1 s), so the rows are read once its 0.1 s are over.
@@ -122,7 +122,7 @@ public sealed class SettingsViewFinishSidebarTests(HeadlessSession headless) : S
             var selectedAlpha = Chrome.Overlay(0.12).Resolve(modelsFill.ActualThemeVariant).A; Assert.True(selectedAlpha > 0);
             byte Alpha(Border fill) => Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color.A;
             // :149 a click selects the page: the rows stay (the state is theirs, not a new set of rows), and the label's weight and ink change at once ...
-            Click(w, models); Assert.Single(Nodes<ModelsSettingsPage>(view));
+            Reveal(w, h, models); /* ED-NEW-final-settings-1: Models lies below the 580 pt window's fold, so the sidebar is scrolled to it first */ Click(w, models); Assert.Single(Nodes<ModelsSettingsPage>(view));
             Assert.Equal(rows, Nodes<SidebarRow>(view)); Assert.Same(models, RowButton(view, "Models")); Assert.Same(modelsFill, models.Content);
             Font(Assert.Single(Nodes<TextBlock>(models)), Chrome.SettingsNavTitleSize, FontWeight.Medium); Font(Assert.Single(Nodes<TextBlock>(general)), Chrome.SettingsNavTitleSize, FontWeight.Normal); Assert.True(((ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(models)!).IsSelected); Assert.False(((ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(general)!).IsSelected);
             // ... and the wash crossfades in place over Chrome.hover (0.1 s ease-out): the new row part-way up, the old row part-way down, then exact.

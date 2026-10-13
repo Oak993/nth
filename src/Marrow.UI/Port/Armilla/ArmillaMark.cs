@@ -208,6 +208,10 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
     private ArmillaEngine? engine;
     private bool requested, stopped, sleeping, hidden, takePose, drawn = true, more = true;
     private double lastTime = double.NaN;
+    // ED-NEW-final-settings-2: the look that just arrived only turned the appearance, which eases from the palette on screen, so the
+    // mark's first frame draws exactly what the last one did; it asks for no redraw of its box (a redraw of an unchanged mark would
+    // redraw the glass its box reaches, which meets the frame already drawn at the redraw's edge and differs from it there).
+    private bool unchangedFrame;
     private int frames;
     private long extentBits;
 
@@ -224,6 +228,8 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
         switch (message)
         {
             case ArmillaLook look:
+                var turnsAppearance = engine is not null && !hidden && look.AnimateAppearance && !look.ReduceAppearance
+                    && look.Dark != engine.Look.Dark && engine.Look with { Dark = look.Dark } == look;
                 if (engine is null) engine = new ArmillaEngine(look) { Visible = !hidden, Sleeping = sleeping };
                 else
                 {
@@ -236,7 +242,8 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
                     takePose = true;
                 }
                 more = true;
-                Invalidate();
+                unchangedFrame = turnsAppearance;
+                if (!turnsAppearance) Invalidate();
                 Request();
                 break;
             case Level level:
@@ -285,8 +292,14 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
         var step = sleeping ? dt : mark.RestStep(dt);
         if (step == 0 && dt > 0) { Register(); return; }
         more = takePose || (dt == 0 ? !mark.Settled() : mark.Tick(step, t));
-        Invalidate();
-        if (drawn && more) Request();
+        var same = unchangedFrame && dt == 0 && !takePose;
+        unchangedFrame = false;
+        if (same) { if (more) Request(); } // no draw to carry the chain on: ask for the next frame here
+        else
+        {
+            Invalidate();
+            if (drawn && more) Request();
+        }
     }
 
     private void Request()
