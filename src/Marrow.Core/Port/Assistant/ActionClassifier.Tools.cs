@@ -237,6 +237,8 @@ public static partial class ActionClassifier
             "schedule_duty" or "watch_folder" or "watch_page" or "create_assistant" or "request_grant" or "edit_grant" or "set_reserve_rule" =>
                 Tool(ActionClass.WriteElsewhere, "changes the assistant's standing configuration", AssistantToolGuard.PermanentConfiguration),
             "propose_capability" => Tool(ActionClass.Install, "proposes a new connector, skill, server or workflow", AssistantToolGuard.PermanentConfiguration),
+            // AS-20 (12.7): the tool only raises a purchase card; the payment itself is decided as Money when the owner taps Pay.
+            "prepare_purchase" => Tool(ActionClass.Agents, "puts a purchase card in front of the owner"),
             _ => Unknown($"{name} is not an nth-assistant tool") with { Target = name },
         };
     }

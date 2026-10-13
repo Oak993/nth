@@ -124,6 +124,9 @@ public sealed class AssistantControllerOptions
 
     /// <summary>The models the brain could run a job on (AS-15, 13.2): the feed's triage and the digest go to the cheapest capable one. Null: the brain's own.</summary>
     public TriageSetup? Triage { get; init; }
+
+    /// <summary>Purchases (AS-20, 12.7): the book, Windows Hello, the card and the fill path. Null: prepare_purchase says it is not part of this build.</summary>
+    public PurchaseSetup? Purchases { get; init; }
 }
 
 /// <summary>What Dextra's memory is made of: the store, the capture (null: none is bound, nothing is captured) and what the owner said.</summary>
@@ -250,13 +253,15 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
             Router = new AssistantRouter(routing, o.Time, Runner, o.Agents);
             Runner.ReviewerRouter = Router;
         }
+        // The purchase desk is one of Stop all's scopes (12.6): a payment not yet being placed stops with everything else.
+        StartPurchases();
         Stopper = new StopAll(new StopAllOptions
         {
             Runner = Runner,
             Jobs = o.Jobs,
             Agents = o.Agents,
             Hold = Hold,
-            Scopes = o.StopScopes,
+            Scopes = Purchases is { } desk ? [.. o.StopScopes, desk] : o.StopScopes,
             Time = o.Time,
         });
         if (o.StopKey is { } key) Stopper.Bind(key);
@@ -738,6 +743,9 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
                 return Tools.Recall(call);
             case "forget" when o.Notes is not null:
                 return Tools.Forget(call);
+            case "prepare_purchase" when Purchases is { } desk:
+                // 12.7: a pay card or a hand-over card; the model never sees the card, only {card}.
+                return desk.Request(call);
             default:
                 // Wired by the units that own them: usage and plans (AS-13),
                 // Asturs (AS-16), sessions (AS-2's reader), deliver and merge_results (AS-8). Suggestions (AS-11) are wired when the digest service binds Intake.
@@ -912,6 +920,7 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
     public void Dispose()
     {
         Stopper.Dispose();
+        Purchases?.Dispose();
         DisposeMemory();
         Costs?.Dispose();
         Reserve?.Dispose();

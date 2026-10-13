@@ -187,8 +187,11 @@ public sealed class DextraHost : IDisposable
         catch { store.Dispose(); throw; }
         owned = new Owned(store, audit);
         var stopKey = app.EnsureStopKey(() => settings.Chord);
+        // AS-20 (12.7, 16.2): purchases.json beside the store's other files, the card in Credential Manager, Windows Hello. This build
+        // has no fill path (Visus and Tactus are not here), so the switch is hidden and every payment is handed to the owner.
+        var purchases = new PurchaseSetup { Book = PurchaseBook.Over(store), Hello = new WindowsHelloGate(), Vault = CardVault.Production };
         return app.StartDextra(store, entry => audit.Append(entry), Profiles, BrainProvider() ?? ProviderKind.Claude, BrainModel(),
-            protectedRoots: [roots.AuditDirectory], stopKey: stopKey, tray: app.Tray);
+            protectedRoots: [roots.AuditDirectory], stopKey: stopKey, tray: app.Tray, purchases: purchases);
     }
 
     public void Dispose()

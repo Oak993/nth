@@ -117,7 +117,8 @@ public sealed partial class AppModel
         ProviderKind provider = ProviderKind.Claude, string? model = null, IReadOnlyList<string>? protectedRoots = null,
         AutoAnswerSwitch? autoAnswer = null, Func<IReadOnlyList<string>>? personalDataRecipients = null, Func<IReadOnlyList<string>>? allowlist = null,
         GlobalStop? stopKey = null, AppTray? tray = null, IPcStreamHold? pcStreams = null,
-        IReadOnlyList<IStopScope>? stopScopes = null, INoteProposer? noteProposer = null, IDutyTools? duties = null, AssistantTeam? team = null, IAssistantHomes? homes = null)
+        IReadOnlyList<IStopScope>? stopScopes = null, INoteProposer? noteProposer = null, IDutyTools? duties = null, AssistantTeam? team = null, IAssistantHomes? homes = null,
+        PurchaseSetup? purchases = null)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(audit);
@@ -201,6 +202,8 @@ public sealed partial class AppModel
             PcStreams = pcStreams,
             StopScopes = stopScopes ?? [],
             Duties = duties ?? DutyToolsGate,
+            // AS-20 (12.7): purchases; the production start gives Windows Hello and the card in Credential Manager.
+            Purchases = purchases,
         });
         DextraStore = store;
         // The day's folding of the notes (8.2) runs at start when it has not run today; the digest (AS-11) calls it each morning from then on.
