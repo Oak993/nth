@@ -28,7 +28,7 @@ namespace Marrow.App.Tests.Views.Terminal;
 // resize tests drive the same Win32 window messages consumed by WindowLiveResize. The application executable is never
 // launched.
 [Collection("Headless")]
-public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
+public sealed class TerminalPanelNativeHighRiskTests(HeadlessSession headless)
 {
     [Fact]
     [Trait("Req", "PR-TERM-031")] // App/Views/Terminal/TerminalPanel.swift:214-221
