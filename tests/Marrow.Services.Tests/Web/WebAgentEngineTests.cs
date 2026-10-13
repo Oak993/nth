@@ -82,7 +82,7 @@ public sealed class WebAgentEngineTests
         Assert.True(result.Error is null, result.Text);
         Assert.Equal(["https://docs.example.com/x"], rig.Host.Opened);
         Assert.StartsWith("Opened t1 at https://docs.example.com/x.", result.Text, StringComparison.Ordinal);
-        Assert.Contains("<untrusted-page-content origin=\"https://docs.example.com\">", result.Text, StringComparison.Ordinal);
+        Assert.Contains("<untrusted-page-content origin=\"https://docs.example.com\" marker=\"", result.Text, StringComparison.Ordinal);
         Assert.Empty(rig.Asker.Asked);
         Assert.Empty(rig.Engine.ReadOrigins);
     }
@@ -125,7 +125,7 @@ public sealed class WebAgentEngineTests
         var read = await rig.Call(WebToolSchemas.Read, Tab());
 
         Assert.Null(read.Error);
-        Assert.Contains("<untrusted-page-content origin=\"https://a.test\">", read.Text, StringComparison.Ordinal);
+        Assert.Contains("<untrusted-page-content origin=\"https://a.test\" marker=\"", read.Text, StringComparison.Ordinal);
         Assert.Contains("e3 button \"Send invite\"", read.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("hunter2", read.Text, StringComparison.Ordinal);
         Assert.Equal("https://a.test", read.ReadOrigin);
@@ -858,7 +858,7 @@ public sealed class WebAgentEngineTests
         Assert.Contains(WebAgentText.OpenTag, preview.Text, StringComparison.Ordinal);
         Assert.Null(again.Error);
         Assert.Equal("Let Claude Sonnet run scripts in localhost:5173?", Assert.Single(rig.Asker.Of<WebEvalAsk>()).Title);
-        Assert.True(rig.Grants.Eval("http://localhost:5173"));
+        Assert.True(rig.Grants.Eval(rig.Host.Project!, "http://localhost:5173"));
     }
 
     [Fact]
