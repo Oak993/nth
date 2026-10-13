@@ -8413,3 +8413,10 @@ The lean regression DigestLaunchTests.Starting_the_duties_the_way_turning_Dextra
 1. DextraSmoothBoardIdleTests failed alone twice: empty and done-only boards each read 1,200 snapshots in five injected minutes; hidden boards read twenty snapshots in five seconds and another twenty for twenty hidden job events.
 2. Reuse DextraViewWatch availability: unavailable boards cancel their timer and defer events to one latest snapshot on reshow. Empty boards have no timer. Live boards retain the approved 250 ms tick and in-place SameShape path; done-only boards arm one next-local-midnight wake through the injected clock's LocalTimeZone. Arm uses one captured time, avoiding a midnight-crossing negative due time. Attach/detach owns subscriptions and timers; no new polling.
 3. All three cases pass: zero idle/hidden reads over those same intervals/events, latest state on reshow, live ticking restored on arrival, and Done today removed at local midnight with the timer released. Existing motion/layout assertions remain; Native frame/presentation checks are owed to the lead. No package.
+
+
+## ED-NEW-dextra-smooth-6
+2026-10-13 - Keep unchanged mission sidebar rows attached (CU-DX-SMOOTH; DESIGN 2.5/9.1). PORT-ONLY.
+1. DextraSmoothSidebarTests failed alone twice: twenty updates to two unchanged rows caused forty detachments because Show cleared and re-added every button. That interrupts the same marks and needlessly rebuilds visual attachment work.
+2. Show updates title, accessible name and live activity on the retained button/mark, removes disappeared rows, and moves only actual order changes. The dictionary remains bounded by current jobs; removal releases its row. No sort rule, visual hierarchy or approved animation changes.
+3. The causal headless case passes: zero detachments over twenty ordinary updates, updated accessibility and activity, the same button instances in a real reorder, and removed membership gone. Real sidebar compositor continuity remains owed. No package.
