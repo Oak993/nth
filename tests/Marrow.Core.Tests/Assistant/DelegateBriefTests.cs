@@ -91,8 +91,9 @@ public sealed class DelegateBriefTests
     [Fact]
     public void Every_block_is_cut_to_its_length_and_the_prompt_has_a_ceiling()
     {
-        var huge = new string('d', 50_000);
-        var turns = Enumerable.Range(0, 100).Select(i => new DelegateTurn(i % 2 == 0, new string('t', 5_000))).ToList();
+        // words, not one long run of letters: the shield masks a run that long as a key
+        var huge = string.Concat(Enumerable.Repeat("The repo keeps one chart style. ", 2_000));
+        var turns = Enumerable.Range(0, 100).Select(i => new DelegateTurn(i % 2 == 0, string.Concat(Enumerable.Repeat("Please polish the deck. ", 200)))).ToList();
         var prompt = Build(Ask(Q("q1", new string('p', 1_900), ["A"])), new DelegatePack(huge, huge, turns));
         Assert.Contains("(cut at " + DelegateBrief.DecisionsChars + " characters)", prompt.Text, StringComparison.Ordinal);
         Assert.Contains("(cut at " + DelegateBrief.PastChars + " characters)", prompt.Text, StringComparison.Ordinal);
@@ -131,7 +132,7 @@ public sealed class DelegateBriefTests
     public void What_was_cut_from_the_prompt_cannot_be_quoted_as_a_decision()
     {
         var late = "Decision: lines everywhere, always";
-        var pack = new DelegatePack(new string('a', DelegateBrief.DecisionsChars + 100) + late, "", []);
+        var pack = new DelegatePack(string.Concat(Enumerable.Repeat("The repo keeps one chart style. ", 200)) + late, "", []);
         var prompt = Build(pack: pack);
         Assert.DoesNotContain(late, prompt.Text, StringComparison.Ordinal);
         Assert.False(DelegatePolicy.Verified(late, prompt.Evidence));

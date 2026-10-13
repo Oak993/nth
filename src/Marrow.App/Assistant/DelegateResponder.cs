@@ -154,9 +154,9 @@ public sealed partial class DelegateResponder : IStopScope, IDisposable
 
     private static void Release(Thinking? let)
     {
+        // Each piece of work is let go once: it leaves the table under the lock before this runs, so its source is never cancelled after it was disposed.
         if (let is null) return;
-        try { let.Cancel.Cancel(); }
-        catch (ObjectDisposedException) { }
+        let.Cancel.Cancel();
         let.Cancel.Dispose();
     }
 

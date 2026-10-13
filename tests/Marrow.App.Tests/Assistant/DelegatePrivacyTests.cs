@@ -109,7 +109,7 @@ public sealed class DelegatePrivacyTests
         var seen = new List<string>();
         foreach (var e in rig.Core.Logged())
             seen.Add(string.Join("|", new[] { e.Assistant, e.Mission, e.Agent, e.Tool, e.ActionClass, e.Target, e.Result, e.AllowedBy }.Concat(e.Inputs.Select(i => i.Name + "=" + i.Text))));
-        foreach (var record in rig.Book.Recent(50)) seen.Add(string.Join("|", record.ChatTitle, record.Question, record.Answer, record.By, record.Reasoning));
+        foreach (var kept in rig.Book.Recent(50)) seen.Add(string.Join("|", kept.ChatTitle, kept.Question, kept.Answer, kept.By, kept.Reasoning));
         foreach (var told in rig.Told) seen.Add(told.Line);
         Assert.NotEmpty(seen);
         Assert.All(seen, text => Assert.DoesNotContain("SENTINEL", text, StringComparison.Ordinal));
