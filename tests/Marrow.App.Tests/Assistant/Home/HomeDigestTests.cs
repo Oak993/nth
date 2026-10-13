@@ -223,17 +223,12 @@ public sealed class HomeDigestTests(HeadlessSession headless)
                 SuggestionsChanged = _ =>
                 {
                     watchers++;
-                    return new Released(() => watchers--);
+                    return new CallbackDisposable(() => watchers--);
                 },
             };
             var home = new AssistantHomeView(parts);
             using (new HomeStage(home, 1200, 900)) Assert.Equal(1, watchers);
         });
         Assert.Equal(0, watchers);
-    }
-
-    private sealed class Released(Action release) : IDisposable
-    {
-        public void Dispose() => release();
     }
 }
