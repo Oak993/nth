@@ -572,6 +572,14 @@ public sealed class McpAppMount : IWebResourceHandler, IDisposable
             var always = new McpAppChatTool(Launch.Thread, name);
             if (host.Ui.ToolsNeedApproval(Launch.Thread) && !host.Grants.Get(Server).AlwaysTools.Contains(always))
             {
+                // + ED-NEW-web-sec-mcpapps-6 (web surfaces security review, M7 gap): the user approves only what the card shows in
+                // full; arguments that do not fit are refused before any card (no Allow once, no "Always in this chat").
+                if (!McpAppToolCard.Fits(arguments))
+                {
+                    Reply(() => bridge.Fail(request, McpAppToolCard.TooLong(name, arguments)));
+                    return;
+                }
+
                 if (!BeginCard(request)) return;
                 McpAppToolDecision decision;
                 try

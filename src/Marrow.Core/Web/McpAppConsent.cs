@@ -94,7 +94,7 @@ public static class McpAppToolCard
     public static string Arguments(System.Text.Json.Nodes.JsonObject? arguments)
     {
         if (arguments is null || arguments.Count == 0) return UiText.Get("mcpapps.card.tool_no_arguments");
-        var json = Plain(arguments.ToJsonString(Readable));
+        var json = Shown(arguments);
         if (json.Length > MaxCharacters)
         {
             var cut = char.IsHighSurrogate(json[MaxCharacters - 1]) ? MaxCharacters - 1 : MaxCharacters;
@@ -103,6 +103,21 @@ public static class McpAppToolCard
 
         return UiText.Format("mcpapps.card.tool_arguments", json);
     }
+
+    /// <summary>
+    /// + ED-NEW-web-sec-mcpapps-6 (web surfaces security review, M7 gap): true when a card can show these arguments in full
+    /// (at most <see cref="MaxCharacters"/> as shown). A call whose arguments do not fit is refused before any card, since a cut
+    /// card can hide the one argument that matters behind padding while the call sends it.
+    /// </summary>
+    public static bool Fits(System.Text.Json.Nodes.JsonObject? arguments) =>
+        arguments is null || arguments.Count == 0 || Shown(arguments).Length <= MaxCharacters;
+
+    /// <summary>The error the app gets for a call whose arguments do not fit a card (ED-NEW-web-sec-mcpapps-6).</summary>
+    public static string TooLong(string tool, System.Text.Json.Nodes.JsonObject arguments) =>
+        string.Create(CultureInfo.InvariantCulture,
+            $"The arguments of {tool} are too long to show the user ({Shown(arguments).Length:N0} characters; a tool card shows {MaxCharacters:N0}), so nth did not ask and did not run it.");
+
+    private static string Shown(System.Text.Json.Nodes.JsonObject arguments) => Plain(arguments.ToJsonString(Readable));
 
     // Every control (but the indenting new line), format (bidi, zero-width), separator (but the space), private-use or
     // unassigned character becomes \uXXXX. Outside its strings the writer puts only structure, digits, the space and the
