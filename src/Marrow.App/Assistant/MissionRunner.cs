@@ -1245,7 +1245,7 @@ public sealed partial class MissionRunner
                 return;
             }
             case DecisionAnswerKind.Discard:
-                await o.Workspaces.Discard(workspace).ConfigureAwait(false);
+                await o.Workspaces.Discard(workspace, record.ProjectPath).ConfigureAwait(false);
                 OnMain(() =>
                 {
                     Log(record, null, "discard", ActionClass.Work, "discarded", allowedBy: CardId(card));
@@ -1262,7 +1262,7 @@ public sealed partial class MissionRunner
         foreach (var record in Missions.Where(r => r.Workspace is not null && !r.MergePending && r.Ended is { } ended
                      && MissionWorkspaces.Due(ended, r.KeepWorkspace, now)))
         {
-            try { await o.Workspaces.Discard(record.Workspace!).ConfigureAwait(false); }
+            try { await o.Workspaces.Discard(record.Workspace!, record.ProjectPath).ConfigureAwait(false); }
             catch (Exception error) when (error is not OperationCanceledException) { continue; }
             OnMain(() => Update(record.Id, r => r with { Workspace = null }));
         }

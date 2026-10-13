@@ -114,7 +114,11 @@ public interface IMissionWorkspaces
 
     Task<MergeResult> RebaseFirst(MissionWorkspace workspace);
 
-    Task Discard(MissionWorkspace workspace);
+    /// <summary>
+    /// Removes the workspace. <paramref name="recordedSource"/> is the mission's own project folder as its record holds it; a workspace whose
+    /// repository is not the repository of that folder is refused and nothing is deleted (ED-NEW-secfinal-26).
+    /// </summary>
+    Task Discard(MissionWorkspace workspace, string recordedSource);
 
     /// <summary>Revert changes (12.6b): the work comes out of the workspace and is kept, restorable, for 7 days.</summary>
     Task<RevertedWork> Revert(MissionWorkspace workspace, Guid mission, DateTimeOffset now, int changedFiles);
@@ -175,13 +179,13 @@ public sealed class StoreMissionWorkspaces(Func<Guid, int, string> folder) : IMi
 
     public Task<MergeResult> RebaseFirst(MissionWorkspace workspace) => MissionWorkspaces.RebaseFirst(workspace);
 
-    public Task Discard(MissionWorkspace workspace)
+    public Task Discard(MissionWorkspace workspace, string recordedSource)
     {
         // ED-NEW-secfinal-22 (final security gate S4): Discard deletes a folder, so it too acts only on one strictly under the worktrees folder,
         // fully resolved, with no link on the way (Discard has no mission id; the worktrees folder is the same for every mission).
         if (!MissionWorkspaces.StrictlyUnder(Path.GetDirectoryName(folder(Guid.Empty, 1))!, workspace.Path))
             throw new MissionWorkspaceError("The mission's workspace is not under nth's own worktrees folder, so nth does not touch it.");
-        return MissionWorkspaces.Discard(workspace);
+        return MissionWorkspaces.Discard(workspace, recordedSource);
     }
 }
 

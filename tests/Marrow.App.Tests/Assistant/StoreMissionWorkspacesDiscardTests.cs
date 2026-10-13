@@ -26,6 +26,9 @@ public sealed class StoreMissionWorkspacesDiscardTests
     private static StoreMissionWorkspaces Workspaces(string store) =>
         new((mission, attempt) => Path.Combine(store, "worktrees", mission.ToString("N") + (attempt > 1 ? "-" + attempt : "")));
 
+    // The mission's project folder as its record holds it; these cases are decided by the worktrees-folder rule or concern a copy, which has no repository.
+    private const string Owner = @"C:\owner";
+
     private static MissionWorkspace Copy(string path) => new(MissionWorkspaceKind.Snapshot, @"C:\owner", path);
 
     private static void Junction(string link, string target)
@@ -64,9 +67,9 @@ public sealed class StoreMissionWorkspacesDiscardTests
 
             foreach (var tampered in new[] { documents, Path.Combine(store, "worktrees", "..", "Documents"), Path.Combine(store, "worktrees"), store })
             {
-                await Assert.ThrowsAsync<MissionWorkspaceError>(() => Workspaces(store).Discard(Copy(tampered)));
+                await Assert.ThrowsAsync<MissionWorkspaceError>(() => Workspaces(store).Discard(Copy(tampered), Owner));
                 // A worktree record with the same path is refused before git or any delete.
-                await Assert.ThrowsAsync<MissionWorkspaceError>(() => Workspaces(store).Discard(new MissionWorkspace(MissionWorkspaceKind.Worktree, @"C:\owner", tampered) { Repository = store, Branch = "nth/mission-x" }));
+                await Assert.ThrowsAsync<MissionWorkspaceError>(() => Workspaces(store).Discard(new MissionWorkspace(MissionWorkspaceKind.Worktree, @"C:\owner", tampered) { Repository = store, Branch = "nth/mission-x" }, Owner));
             }
 
             Assert.Equal("important", File.ReadAllText(Path.Combine(documents, "Taxes", "2026.txt")));
@@ -88,8 +91,8 @@ public sealed class StoreMissionWorkspacesDiscardTests
             Directory.CreateDirectory(second);
             File.WriteAllText(Path.Combine(second, "b.txt"), "second attempt");
 
-            await Workspaces(store).Discard(Copy(folder));
-            await Workspaces(store).Discard(Copy(second));
+            await Workspaces(store).Discard(Copy(folder), Owner);
+            await Workspaces(store).Discard(Copy(second), Owner);
 
             Assert.False(Directory.Exists(folder));
             Assert.False(Directory.Exists(second));
@@ -111,7 +114,7 @@ public sealed class StoreMissionWorkspacesDiscardTests
             File.WriteAllText(Path.Combine(documents, "keep.txt"), "important");
             Junction(link, documents);
 
-            await Assert.ThrowsAsync<MissionWorkspaceError>(() => Workspaces(store).Discard(Copy(link)));
+            await Assert.ThrowsAsync<MissionWorkspaceError>(() => Workspaces(store).Discard(Copy(link), Owner));
 
             Assert.Equal("important", File.ReadAllText(Path.Combine(documents, "keep.txt")));
             Assert.True(Directory.Exists(link));
@@ -135,7 +138,7 @@ public sealed class StoreMissionWorkspacesDiscardTests
             Junction(link, documents);
 
             // A link inside the folder is not a link in the way down to it, so the folder is discarded; the link goes as a link.
-            await Workspaces(store).Discard(Copy(folder));
+            await Workspaces(store).Discard(Copy(folder), Owner);
 
             Assert.False(Directory.Exists(folder));
             Assert.Equal("important", File.ReadAllText(Path.Combine(documents, "keep.txt")));

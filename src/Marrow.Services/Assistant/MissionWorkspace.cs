@@ -330,6 +330,36 @@ public static partial class MissionWorkspaces
         if (removed) TryDelete(workspace.Path);
     }
 
+    /// <summary>
+    /// Discard for a workspace read back from a mission's record. ED-NEW-secfinal-26: git runs in the record's Repository, so a worktree is
+    /// discarded only when that is the repository of <paramref name="recordedSource"/>, the mission's own project folder as its record keeps it.
+    /// Otherwise (another repository, or a source that is gone or is no repository) this refuses with a <see cref="MissionWorkspaceError"/>
+    /// and neither git nor the folder is touched. A copy has no repository and is not asked.
+    /// </summary>
+    public static async Task Discard(MissionWorkspace workspace, string recordedSource)
+    {
+        if (!await IsRecordedRepository(workspace, recordedSource).ConfigureAwait(false))
+            throw new MissionWorkspaceError("The mission's workspace does not belong to the folder the mission was made from, so nth does not touch it.");
+        await Discard(workspace).ConfigureAwait(false);
+    }
+
+    private static async Task<bool> IsRecordedRepository(MissionWorkspace workspace, string recordedSource)
+    {
+        if (workspace.Kind != MissionWorkspaceKind.Worktree || workspace.Repository is not { } repository) return true;
+        if (string.IsNullOrWhiteSpace(recordedSource) || !Directory.Exists(recordedSource)) return false;
+        var top = await new GitValue(recordedSource).Run(["rev-parse", "--show-toplevel"]).ConfigureAwait(false);
+        if (!top.Succeeded || top.TrimmedOutput.Length == 0) return false;
+        try
+        {
+            return string.Equals(System.IO.Path.TrimEndingDirectorySeparator(System.IO.Path.GetFullPath(top.TrimmedOutput)),
+                System.IO.Path.TrimEndingDirectorySeparator(System.IO.Path.GetFullPath(repository)), StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception error) when (error is ArgumentException or NotSupportedException or System.IO.PathTooLongException)
+        {
+            return false;
+        }
+    }
+
     /// <summary>Whether a finished mission's workspace is due for the sweep (7 days after it ended, unless kept).</summary>
     public static bool Due(DateTimeOffset ended, bool kept, DateTimeOffset now) => !kept && now - ended >= KeepFor;
 
