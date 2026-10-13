@@ -124,6 +124,9 @@ public sealed class AssistantControllerOptions
 
     /// <summary>The models the brain could run a job on (AS-15, 13.2): the feed's triage and the digest go to the cheapest capable one. Null: the brain's own.</summary>
     public TriageSetup? Triage { get; init; }
+
+    /// <summary>The delegate responder (AS-22, 4.3): what it reads of the owner's settings and where it keeps its answers. Null: it is not part of this build and answers nothing.</summary>
+    public DelegateSetup? Delegate { get; init; }
 }
 
 /// <summary>What Dextra's memory is made of: the store, the capture (null: none is bound, nothing is captured) and what the owner said.</summary>
@@ -250,13 +253,14 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
             Router = new AssistantRouter(routing, o.Time, Runner, o.Agents);
             Runner.ReviewerRouter = Router;
         }
+        Responder = BuildDelegate();
         Stopper = new StopAll(new StopAllOptions
         {
             Runner = Runner,
             Jobs = o.Jobs,
             Agents = o.Agents,
             Hold = Hold,
-            Scopes = o.StopScopes,
+            Scopes = Responder is null ? o.StopScopes : [.. o.StopScopes, Responder],
             Time = o.Time,
         });
         if (o.StopKey is { } key) Stopper.Bind(key);
@@ -397,12 +401,22 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
 
     public const string StoppedLaunch = "This mission is stopped. Resume it on the board to go on.";
 
-    /// <summary>A provider approval in a chat: the runner takes it when the chat is one of its missions'.</summary>
-    public bool OnApproval(Guid thread, ApprovalRequest request) => Runner.OnApproval(thread, request);
+    /// <summary>
+    /// A provider approval in a chat: the runner takes it when the chat is one of its missions'; any other chat's is the delegate's to answer when the
+    /// owner turned it on for the chat (AS-22), and stays the chat's own otherwise.
+    /// </summary>
+    public bool OnApproval(Guid thread, ApprovalRequest request) =>
+        Runner.OnApproval(thread, request) || Responder?.OnApproval(thread, request) == true;
 
-    public bool OnQuestion(Guid thread, QuestionRequest request) => Runner.OnQuestion(thread, request);
+    /// <summary>A question in a chat: the delegate tries it first when it is on for the chat, and leaves it to the runner's card (a mission) or its own card.</summary>
+    public bool OnQuestion(Guid thread, QuestionRequest request) =>
+        Responder?.OnQuestion(thread, request) == true || Runner.OnQuestion(thread, request);
 
-    public void OnRequestResolved(Guid thread, string requestId) => Runner.OnRequestResolved(thread, requestId);
+    public void OnRequestResolved(Guid thread, string requestId)
+    {
+        Runner.OnRequestResolved(thread, requestId);
+        Responder?.OnRequestResolved(thread, requestId);
+    }
 
     /// <summary>The owner answered a mission chat's approval in the chat: logged, and refused when it cannot be (12.5).</summary>
     public ApprovalRequest.Option OnChatAnswer(Guid thread, ApprovalRequest request, ApprovalRequest.Option option) =>
@@ -898,6 +912,8 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
 
     public void Dispose()
     {
+        Responder?.Dispose();
+        o.Delegate?.Owned?.Dispose();
         Stopper.Dispose();
         DisposeMemory();
         Costs?.Dispose();

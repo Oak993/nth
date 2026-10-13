@@ -60,6 +60,12 @@ internal sealed class FakeMissionAgents : IMissionAgents
         lock (gate) posted.Add(work);
     }
 
+    /// <summary>How many pieces of work are waiting for <see cref="RunPosted"/> (AS-22: a test waits for the model's answer to reach the main thread).</summary>
+    public int Waiting
+    {
+        get { lock (gate) return posted.Count; }
+    }
+
     /// <summary>Runs the work posted while <see cref="Defer"/> held it, in order.</summary>
     public void RunPosted()
     {

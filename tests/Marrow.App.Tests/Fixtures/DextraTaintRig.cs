@@ -24,7 +24,7 @@ internal sealed class DextraTaintRig : IDisposable
     private readonly AssistantTempRoot temp = new();
 
     public DextraTaintRig(bool autoAnswer = true, Func<InjectionReport>? check = null, Func<JsonObject?>? load = null,
-        IEnumerable<ChatThread>? chats = null, TimeProvider? time = null)
+        IEnumerable<ChatThread>? chats = null, TimeProvider? time = null, DelegateSetup? delegateSetup = null)
     {
         foreach (var chat in chats ?? []) Chats[chat.Id] = chat;
         Project = new MissionProject(MissionRig.Project, "App", Path.Combine(temp.Folder, "owner"));
@@ -66,6 +66,7 @@ internal sealed class DextraTaintRig : IDisposable
                 else work();
             },
             Time = time ?? TimeProvider.System,
+            Delegate = delegateSetup,
         });
     }
 

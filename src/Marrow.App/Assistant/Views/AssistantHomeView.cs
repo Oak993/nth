@@ -60,6 +60,9 @@ public sealed record AssistantHomeParts(IMissionJobs Jobs, IDecisionSource Decis
 
     /// <summary>The first-run card while first run is not done (null once it is).</summary>
     public Func<Control?>? FirstRun { get; init; }
+
+    /// <summary>What the delegate answered for the owner, listed under the Decisions tab's cards with their Override buttons (AS-22); null: nothing is listed.</summary>
+    public IAnsweredSource? Answered { get; init; }
 }
 
 /// <summary>The words of the header's state line, the hero's caption and the sidebar row's status.</summary>
@@ -185,7 +188,7 @@ public sealed class AssistantHomeView : Decorator
         var context = parts.DecisionContext ?? new DecisionContext(parts.Decisions.Answer);
         Board = new BoardPane(
             new MissionBoard(parts.Jobs, parts.TaskActions),
-            new DecisionList(parts.Decisions, context),
+            new DecisionList(parts.Decisions, context, parts.Answered is null ? null : Answered = new AnsweredList(parts.Answered)),
             new FeedTab(parts.Feed, parts.FeedSource, parts.OpenFeed),
             new TeamTab(parts.Profiles));
         Board.Missions.Said += Announce;
@@ -229,6 +232,9 @@ public sealed class AssistantHomeView : Decorator
     public ResultList Result { get; }
 
     public BoardPane Board { get; }
+
+    /// <summary>The delegate's answers under the Decisions tab (AS-22); null when the build has no delegate.</summary>
+    public AnsweredList? Answered { get; }
 
     /// <summary>The polite live region.</summary>
     public LiveStatusText Live { get; }

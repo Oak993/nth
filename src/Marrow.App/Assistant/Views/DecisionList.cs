@@ -51,12 +51,15 @@ public sealed class DecisionList : Decorator
     private readonly TextBlock empty = TaskLook.Text("Nothing waiting on you.", 12, SwiftFont.Weight.Regular, TaskLook.Ink2);
     private readonly Dictionary<Guid, DecisionCard> cards = [];
 
-    public DecisionList(IDecisionSource source, DecisionContext context)
+    /// <param name="footer">What sits under the cards (AS-22: what the delegate answered, with its Override buttons); null for nothing.</param>
+    public DecisionList(IDecisionSource source, DecisionContext context, Control? footer = null)
     {
         this.source = source ?? throw new ArgumentNullException(nameof(source));
         this.context = context ?? throw new ArgumentNullException(nameof(context));
         empty.Focusable = true;
-        Child = new StackPanel { Orientation = Orientation.Vertical, Spacing = 8, Children = { batch, list, empty } };
+        var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 8, Children = { batch, list, empty } };
+        if (footer is not null) stack.Children.Add(footer);
+        Child = stack;
         AutomationProperties.SetName(this, "Decisions");
         AddHandler(KeyDownEvent, OnKey, Avalonia.Interactivity.RoutingStrategies.Bubble);
     }

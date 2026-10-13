@@ -138,6 +138,9 @@ public sealed partial class AppModel
             new Marrow.Services.Port.Accounts.AccountEnvironment(() => Marrow.Services.Store.Storage.Root),
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), [.. Projects.Select(p => p.Path)]);
         var memoryWatch = new MemoryImportWatch(memoryImport, ImportSources);
+        // The delegate responder (AS-22, 4.3): its book of answers lives in the store, its model is nth's one-shot text engine, and it is off until the owner turns it on.
+        var delegateBook = new DelegateAnswerBook();
+        var delegateAnswers = new DelegateAnswerPersistence(store, delegateBook);
         // The watch follows the folders only once the owner has imported (8.4); the Memory view starts it after each import he runs.
         if (memoryStore.HasImported) memoryWatch.Start();
         var controller = new AssistantController(new AssistantControllerOptions
@@ -174,6 +177,18 @@ public sealed partial class AppModel
             },
             Asturs = team is null ? null : new AsturSetup { Team = team, Homes = homes, LoadDelegations = store.Delegations, SaveDelegations = store.SaveDelegations },
             DutyHealth = dutyHealth,
+            Delegate = new DelegateSetup
+            {
+                Preferences = () => AssistantHost.Settings.Value,
+                Book = delegateBook,
+                Model = new TextEngineDelegateModel(this, () => AssistantHost.BrainProvider()),
+                Context = new AppDelegateContext(this, delegateBook, memoryStore, DextraId),
+                Timeline = thread => ExistingRuntime(thread) is { } runtime ? [.. runtime.Entries.Select(entry => entry.Item)] : null,
+                HomeProject = DextraHomeProject,
+                Brain = AssistantHost.Settings.Brain,
+                Told = (thread, line, approval) => AssistantTaps.TapDelegateAnswered(thread, line, approval),
+                Owned = delegateAnswers,
+            },
             Triage = new TriageSetup { Options = TriageModels, Brain = () => BrainModelOf(provider, model) },
             Agents = new AppMissionAgents(this),
             Thread = Thread,

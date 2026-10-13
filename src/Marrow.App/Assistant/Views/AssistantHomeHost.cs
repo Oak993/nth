@@ -169,6 +169,7 @@ public sealed class AssistantHomeHost : Decorator
                 Reserves: sheets.Reserves is null || controller?.Reserve is null ? null : () => ShowSheet("Reserves", sheets.Reserves(host)),
                 ActivityLog: sheets.ActivityLog is null ? null : () => ShowSheet("Activity log", sheets.ActivityLog(host, null)),
                 Settings: () => OpenSettings(SettingsPage.Assistant)),
+            Answered = controller?.Responder is { } responder ? new ResponderAnswered(responder) : null,
             FirstRun = () => host.Settings.Value.FirstRunDone ? null : firstRun ??= new FirstRunCard(host.Settings, BrainChoices.Of(model), done: null,
                 openSettings: () => OpenSettings(SettingsPage.Assistant)),
         };

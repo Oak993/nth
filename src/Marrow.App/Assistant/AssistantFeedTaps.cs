@@ -211,6 +211,17 @@ internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus) : I
             "found instructions in " + TaintGates.OriginWord(source.Origin) + "; ignored", "“" + finding.Quote + "”");
     }
 
+    /// <summary>
+    /// Dextra's delegate answered a question or an approval for the owner (AS-22, 4.3: "listed in the digest", the feed's "Answered for you"). The words are the
+    /// answer's, so the shield and the privacy filter apply and a hidden chat shows nothing. Unlike the runtime taps it may throw: the responder that calls it
+    /// reports the fault.
+    /// </summary>
+    public void TapDelegateAnswered(Guid threadId, string answer, bool approval)
+    {
+        if (disposed || !bus.HasSubscribers || app.Thread(threadId) is not { } thread) return;
+        Publish(thread, FeedEventKind.DecisionAnswered, FeedSeverity.Info, DelegateWords.FeedLead(approval), answer);
+    }
+
     /// <summary>MultiAccountRouting: an account's usage windows were polled.</summary>
     public void TapAccountSnapshot(AccountPlanLimitsSnapshot snapshot)
     {
