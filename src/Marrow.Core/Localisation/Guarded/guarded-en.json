@@ -15,7 +15,7 @@
     "transfer": ["transfer"],
     "install": ["install"],
     "uninstall": ["uninstall"],
-    "sign out": ["sign out", "log out", "logout", "log off", "sign off"]
+    "sign out": ["sign out", "sign-out", "signout", "log out", "log-out", "logout", "log off", "sign off"]
   },
   "identifiers": {
     "send": "send",
