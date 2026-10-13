@@ -123,7 +123,9 @@ public sealed class ShaderLightRenderer : IDisposable
     {
         var n = 0;
         void Add(double v) { if (n == key.Length) Array.Resize(ref key, n * 2); key[n++] = (float)v; }
-        foreach (var v in new[] { f.Alpha, f.Loop, f.Energy, f.Work, f.Key, f.Caret, f.Spread, f.Intensity, f.W, f.H, f.Radius, f.Reach, f.Behind, f.Halo }) Add(v);
+        // ED-NEW-smooth2-5: identical key fields, without a temporary array on every cached copy.
+        Add(f.Alpha); Add(f.Loop); Add(f.Energy); Add(f.Work); Add(f.Key); Add(f.Caret); Add(f.Spread);
+        Add(f.Intensity); Add(f.W); Add(f.H); Add(f.Radius); Add(f.Reach); Add(f.Behind); Add(f.Halo);
         foreach (var v in f.Palette) Add(v);
         foreach (var v in f.Average) Add(v);
         foreach (var v in f.Pulse) Add(v);

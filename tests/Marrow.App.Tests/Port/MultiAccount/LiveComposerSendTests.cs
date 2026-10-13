@@ -1,4 +1,5 @@
 using System.Reflection;
+using Marrow.App.Port;
 using Marrow.App.Port.MultiAccount.Opinions;
 using Marrow.App.Port.MultiAccount.Thread;
 using Marrow.App.Tests.Fixtures;
@@ -35,6 +36,10 @@ public sealed class LiveComposerSendTests(HeadlessSession headless)
             using var model = owner.AskOthers(rig.InitialThread.Id)!;
             using var offer = AskOthersComposerSeams.Offer.Override(_ => model);
             var composer = new ComposerView(rig.Runtime, rig.Directory, takesFocusOnAppear: false);
+            // ED-NEW-gatefix3-1: Send reads the source AppModel environment (ComposerView.swift:115);
+            // ED-NEW-inst-c7-5 reserves installer admission through the private opinion round.
+            AppEnvironment.SetAppModel(composer, rig.App);
+            Assert.Same(rig.App, AppEnvironment.GetAppModel(composer));
             var view = (AskOthersView)typeof(ComposerView).GetField("askOthers", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(composer)!;
             var sent = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             view.Sent += (_, _) => sent.TrySetResult();

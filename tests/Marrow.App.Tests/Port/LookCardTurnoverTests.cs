@@ -91,6 +91,42 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
 
     private static double Ease(int k) => CssCurve.At(CssCurve.Ease, k * 1000.0 / 60, 320);
 
+    // ED-NEW-gatefix3-3: observe the actual settings glass inputs without a new product seam.
+    private static (double Darkness, Color Tint) GlassInputs(HostWindow window)
+    {
+        var backdrop = Nodes<SettingsOverlay>((Control)window.Content!).Single().Backdrop;
+        var piece = backdrop.GetVisualDescendants().OfType<Control>().Single(c => SwiftGlass.GetEffect(c) is not null);
+        var material = typeof(SwiftGlass).Assembly.GetType("Marrow.UI.Port.GlassMaterial", throwOnError: true)!;
+        var attachment = material.GetMethod("AttachmentFor", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!
+            .Invoke(null, [piece])!;
+        var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        Assert.True((bool)attachment.GetType().GetField("appearanceKnown", fields)!.GetValue(attachment)!);
+        return ((double)attachment.GetType().GetField("darkShown", fields)!.GetValue(attachment)!,
+            (Color)attachment.GetType().GetField("tintShown", fields)!.GetValue(attachment)!);
+    }
+
+    private static void GlassEases((double Darkness, Color Tint) from, (double Darkness, Color Tint) to,
+        IReadOnlyList<(double Darkness, Color Tint)> frames)
+    {
+        Assert.Equal(25, frames.Count);
+        Assert.NotEqual(from.Darkness, to.Darkness);
+        for (var k = 0; k < frames.Count; k++)
+        {
+            var progress = CssCurve.At(CssCurve.Ease, k * Math.Round(FrameSeconds * TimeSpan.TicksPerSecond) / TimeSpan.TicksPerMillisecond, 320);
+            Assert.Equal(from.Darkness + (to.Darkness - from.Darkness) * progress, frames[k].Darkness, 6);
+            if (from.Tint == to.Tint)
+            {
+                Assert.Equal(from.Tint, frames[k].Tint);
+                continue;
+            }
+            var expected = CssCurve.Mix((from.Tint.R, from.Tint.G, from.Tint.B, from.Tint.A / 255.0),
+                (to.Tint.R, to.Tint.G, to.Tint.B, to.Tint.A / 255.0), progress);
+            var seen = frames[k].Tint;
+            Assert.True(Math.Abs(seen.R - expected.R) <= 1 && Math.Abs(seen.G - expected.G) <= 1 && Math.Abs(seen.B - expected.B) <= 1
+                && Math.Abs(seen.A / 255.0 - expected.A) <= 1.0 / 255 + 1e-9, $"glass tint frame {k}: {seen}, curve {expected}");
+        }
+    }
+
     // R-TEST-5 (ED-253, round 4): these frames are proved against the process-wide theme and accent, which an AppSettings init
     // in a parallel collection assigns (AppSettings.swift:728) and posts from its own thread; the collection never runs in
     // parallel with another, so no other test turns the window while it is proved (it did in the full App run).
@@ -143,10 +179,12 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
             var pre = Fresh(window);
             var titleFrom = ((ISolidColorBrush)title.Foreground!).Color;
 
+            var glassFrom = GlassInputs(window);
             Click(window, card.Segments.Buttons[dark ? 1 : 2]); // scenario 08: Light on a dark window (light board: Dark)
             Assert.Equal(dark ? AppTheme.Light : AppTheme.Dark, model.Settings.Theme);
             var frames = new List<(byte[] Pixels, int Width, int Height, int Stride)> { Capture(window) };
             var titles = new List<Color> { ((ISolidColorBrush)title.Foreground!).Color };
+            var glassFrames = new List<(double Darkness, Color Tint)> { GlassInputs(window) };
             var darkness = new List<double[]> { captions.Select(c => c.Darkness).ToArray() };
             // The veil's two fades (their top colour), when the page is scrolled under it.
             var fades = Nodes<PaneTopVeil>((Control)window.Content!).Single().GetVisualDescendants().OfType<Border>().Where(b => b.Background is LinearGradientBrush).ToArray();
@@ -157,6 +195,7 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
                 Step(rig, window);
                 frames.Add(Capture(window));
                 titles.Add(((ISolidColorBrush)title.Foreground!).Color);
+                glassFrames.Add(GlassInputs(window));
                 darkness.Add(captions.Select(c => c.Darkness).ToArray());
                 veil.Add(Fades());
             }
@@ -165,6 +204,7 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
             var veilEnd = Fades();
             var titleTo = ((ISolidColorBrush)title.Foreground!).Color;
             Assert.NotEqual(titleFrom, titleTo);
+            GlassEases(glassFrom, GlassInputs(window), glassFrames);
 
             // The click frame draws what the frame before it drew: no pixel of the window has moved (a cut changes them all).
             var still = 0;
@@ -205,6 +245,14 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
             // the Look card's fill (below its Accent row's words) and the mini window's surface.
             var cardFill = card.TranslatePoint(new Point(40, card.Bounds.Height - 4), window)!.Value;
             var miniSurface = card.Mini.TranslatePoint(new Point(118, 124), window)!.Value;
+            // ED-NEW-gatefix3-3: OD-0147 / ED-NEW-glasslook-4(2) made composed RGBA nonlinear.
+            // Exact RGBA frames from the approved glass landing 51fb3dde8; all other samples keep their curve bounds.
+            var approvedCard = Convert.FromHexString(dark
+                ? "19191BCC202022CC2C2C2CCD3D3D3DCE4F4F4FCF626263CF717171CF7F7F7FCE8A8A8ACD919191CC999999CB9F9F9FCBA3A3A3CAA7A7A7CBAAAAAACAAEAEAECAAFAFAFCAB1B1B1CAB1B1B1C9B1B1B1C9B1B1B1C9B1B1B1C9B1B1B1C9B1B1B1C9B1B1B1C9"
+                : "B1B1B1C9ACACACCAA3A3A3CB959595CB878788CD777777CE686869CF595959CF4C4C4CCF424243CE383839CE313131CE2B2B2BCD272727CC222222CC202021CD1D1D1DCC1B1B1CCC19191BCC19191BCC19191BCC19191BCC19191BCC19191BCC19191BCC");
+            if (scrolled == 60)
+                Assert.Equal(approvedCard, frames.SelectMany(f => Enumerable.Range(0, 4)
+                    .Select(c => (byte)At(f, (int)cardFill.X, (int)cardFill.Y, c))).ToArray());
             // Scrolled, the window's top is drawn under the veil: two layers each on the curve, which a pixel there does not follow
             // exactly; the veil's own colours are checked below instead.
             foreach (var (name, point) in new[] { ("window", new Point(450, 8)), ("card fill", cardFill), ("mini surface", miniSurface) }.Where(s => scrolled == 0 || s.Item1 != "window"))
@@ -217,7 +265,10 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
                         var to = At(end, px, py, c);
                         var expected = from + (to - from) * Ease(k);
                         var seen = At(frames[k], px, py, c);
-                        Assert.True(Math.Abs(seen - expected) <= 0.03 * Math.Abs(to - from) + 1.5, $"{name} ({px}, {py}) channel {c} frame {k}: {seen}, curve {expected:F1} ({from} to {to})");
+                        if (scrolled == 60 && name == "card fill")
+                            Assert.Equal(approvedCard[k * 4 + c], seen);
+                        else
+                            Assert.True(Math.Abs(seen - expected) <= 0.03 * Math.Abs(to - from) + 1.5, $"{name} ({px}, {py}) channel {c} frame {k}: {seen}, curve {expected:F1} ({from} to {to})");
                     }
             }
 
@@ -343,22 +394,28 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
         var size = (canvas.Bounds.Height - gap * (Marrow.Services.Store.TokenActivityGrid.Rows - 1)) / Marrow.Services.Store.TokenActivityGrid.Rows;
         var columns = (int)Math.Round((canvas.Bounds.Width + gap) / (size + gap));
         var cell = canvas.TranslatePoint(new Point(columns * 2 / 5 * (size + gap) + size / 2, size / 2), window)!.Value;
-        var frames = TurnsOverWithoutACut(SettingsPage.General, rig, window, () => application.RequestedThemeVariant = ThemeVariant.Light);
-        // The cell (Chrome.overlay(0.07) over the easing window) on the curve every frame: [0] before, [^1] the end.
+        var glassFrom = GlassInputs(window);
+        var glassFrames = new List<(double Darkness, Color Tint)>();
+        var frames = TurnsOverWithoutACut(SettingsPage.General, rig, window, () => application.RequestedThemeVariant = ThemeVariant.Light,
+            () => glassFrames.Add(GlassInputs(window)));
+        GlassEases(glassFrom, GlassInputs(window), glassFrames);
+        // The cell (Chrome.overlay(0.07) over the easing glass) at every frame: [0] before, [^1] the end.
         var (px, py) = ((int)cell.X, (int)cell.Y);
+        // ED-NEW-gatefix3-4: the approved canvas scrim composites light according to luminance.
+        // Pin its composed RGBA exactly at all 25 timestamps; the glass inputs still follow the original ease.
+        var approvedCell = Convert.FromHexString("131315C91A1A1CCA262626CA393939CB4D4D4DCC606062CD727272CD818181CC8C8C8CCA959595CA9C9C9CC9A3A3A3C9A7A7A7C8ABABABC8AFAFAFC7B1B1B1C7B4B4B4C7B5B5B5C6B5B5B5C6B5B5B5C6B5B5B5C6B5B5B5C6B5B5B5C6B5B5B5C6B5B5B5C6");
+        Assert.Equal(approvedCell, frames.Skip(1).Take(25).SelectMany(f => Enumerable.Range(0, 4)
+            .Select(c => (byte)At(f, px, py, c))).ToArray());
         for (var k = 0; k < frames.Count - 2; k++)
             for (var c = 0; c < 4; c++)
             {
-                var from = At(frames[0], px, py, c);
-                var to = At(frames[^1], px, py, c);
-                var expected = from + (to - from) * Ease(k);
                 var seen = At(frames[k + 1], px, py, c);
-                Assert.True(Math.Abs(seen - expected) <= 0.03 * Math.Abs(to - from) + 1.5, $"heatmap cell ({px}, {py}) channel {c} frame {k}: {seen}, curve {expected:F1} ({from} to {to})");
+                Assert.Equal(approvedCell[k * 4 + c], seen);
             }
     });
 
     // The frames of the turnover (the change's own first), checked: none cuts, and it ends as a fresh drawing would.
-    private static List<(byte[] Pixels, int Width, int Height, int Stride)> TurnsOverWithoutACut(SettingsPage page, SettingsRiseRig rig, HostWindow window, Action change)
+    private static List<(byte[] Pixels, int Width, int Height, int Stride)> TurnsOverWithoutACut(SettingsPage page, SettingsRiseRig rig, HostWindow window, Action change, Action? captureInputs = null)
     {
         // A page still filling in (a list loading in the background) is let settle first: two frames alike in a row.
         var pre = Capture(window);
@@ -374,10 +431,12 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
         change();
         Drain(window);
         var frames = new List<(byte[] Pixels, int Width, int Height, int Stride)> { Capture(window) };
+        captureInputs?.Invoke();
         for (var k = 1; k <= 24; k++)
         {
             Step(rig, window);
             frames.Add(Capture(window));
+            captureInputs?.Invoke();
         }
         Step(rig, window, 40);
         var end = Capture(window);
