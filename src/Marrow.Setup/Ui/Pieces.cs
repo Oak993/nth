@@ -179,12 +179,17 @@ public sealed class FactIcon : Control
 
 /// <summary>
 /// The canvas's glass group (<c>.group</c>): rows in one card, 420 DIP wide at most, 20 DIP under the subtitle, radius 10,
-/// the card fill with a 1 DIP inner edge, each row after the first under a 1 DIP separator.
+/// the card fill with a 1 DIP inner edge, each row after the first under a 1 DIP separator. The fill and the edge are drawn to
+/// the card's <i>drawn</i> height (<see cref="HeightExtra"/>), so when a longer line makes the card taller or shorter at a
+/// <see cref="Reveal"/> commit its edge glides with the rows instead of jumping (ED-NEW-inst-picks-1).
 /// </summary>
-public sealed class GlassGroup : Border
+public sealed class GlassGroup : Border, IGlidesHeight
 {
     private readonly StackPanel rows = new();
+    private readonly CardFill fill = new(10);
+    private readonly CardEdge edge = new(10);
     private ScreenTokens tokens = ScreenTokens.Dark;
+    private double extra;
 
     public GlassGroup()
     {
@@ -193,13 +198,25 @@ public sealed class GlassGroup : Border
         HorizontalAlignment = HorizontalAlignment.Stretch;
         CornerRadius = new CornerRadius(10);
         ClipToBounds = true;
-        Child = new Panel { Children = { rows, new CardEdge(10) } };
-        ScreenTokens.Watch(this, value =>
-        {
-            tokens = value;
-            Background = new ImmutableSolidColorBrush(value.Card);
-        });
+        Child = new Panel { Children = { fill, rows, edge } };
+        ScreenTokens.Watch(this, value => tokens = value);
     }
+
+    /// <inheritdoc />
+    public double HeightExtra
+    {
+        get => extra;
+        set
+        {
+            if (extra == value) return;
+            extra = value;
+            fill.Extra = edge.Extra = value;
+            ClipToBounds = value == 0; // the rows may be drawn below a card that has just got shorter
+        }
+    }
+
+    /// <summary>The height the card's fill and edge are drawn to now (DIP).</summary>
+    public double DrawnHeight => Math.Max(0, Bounds.Height + extra);
 
     public Controls Rows => rows.Children;
 
@@ -215,11 +232,50 @@ public sealed class GlassGroup : Border
     internal ScreenTokens Tokens => tokens;
 }
 
+/// <summary>A card's fill (the canvas's card colour), drawn behind its content to the card's drawn height and taking no place.</summary>
+public sealed class CardFill : Control
+{
+    private readonly double radius;
+    private IBrush? brush;
+    private double extra;
+
+    public CardFill(double radius)
+    {
+        this.radius = radius;
+        IsHitTestVisible = false;
+        Avalonia.Automation.AutomationProperties.SetAccessibilityView(this, AccessibilityView.Raw);
+        ScreenTokens.Watch(this, value =>
+        {
+            brush = new ImmutableSolidColorBrush(value.Card);
+            InvalidateVisual();
+        });
+    }
+
+    /// <summary>The drawn height less the laid-out one (DIP).</summary>
+    public double Extra
+    {
+        get => extra;
+        set
+        {
+            if (extra == value) return;
+            extra = value;
+            InvalidateVisual();
+        }
+    }
+
+    public override void Render(DrawingContext context)
+    {
+        if (brush is null) return;
+        context.DrawRectangle(brush, null, new RoundedRect(new Rect(0, 0, Bounds.Width, Math.Max(0, Bounds.Height + extra)), radius));
+    }
+}
+
 /// <summary>A card's 1 DIP inner edge (the canvas's inset shadow), drawn over its content and taking no place.</summary>
 public sealed class CardEdge : Control
 {
     private readonly double radius;
     private ScreenTokens tokens = ScreenTokens.Dark;
+    private double extra;
 
     public CardEdge(double radius)
     {
@@ -233,8 +289,20 @@ public sealed class CardEdge : Control
         });
     }
 
+    /// <summary>The drawn height less the laid-out one (DIP); 0 for a card whose edge is as laid out.</summary>
+    public double Extra
+    {
+        get => extra;
+        set
+        {
+            if (extra == value) return;
+            extra = value;
+            InvalidateVisual();
+        }
+    }
+
     public override void Render(DrawingContext context) =>
-        context.DrawRectangle(null, new ImmutablePen(new ImmutableSolidColorBrush(tokens.CardEdge), 1), new RoundedRect(new Rect(Bounds.Size).Deflate(.5), radius - .5));
+        context.DrawRectangle(null, new ImmutablePen(new ImmutableSolidColorBrush(tokens.CardEdge), 1), new RoundedRect(new Rect(0, 0, Bounds.Width, Math.Max(0, Bounds.Height + extra)).Deflate(.5), radius - .5));
 }
 
 /// <summary>The 1 DIP separator over a glass row that follows another row.</summary>

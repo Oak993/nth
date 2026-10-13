@@ -31,7 +31,7 @@ public sealed class Reveal : IMotion
     public const double Response = 0.38, SettleResponse = 0.3, FadeIn = 0.24, FadeOut = 0.16, CalmFade = 0.15;
     public const double ArrivalDelay = 0.06, SettleFrom = -5, LeaveLift = -4, Gone = 0.04;
 
-    private const double SubStep = 1.0 / 240;
+    internal const double SubStep = 1.0 / 240;
 
     /// <summary>
     /// The fastest a glide moves: 2.25 DIP in a 60 Hz frame, so a glide with the 5 DIP settle on top stays within the plan's
@@ -345,11 +345,13 @@ public sealed class Reveal : IMotion
             {
                 Glide(ref item.OffsetX, ref item.VelocityX, h);
                 Glide(ref item.OffsetY, ref item.VelocityY, h);
+                if (item.ExtraY != 0 || item.ExtraVelocity != 0) Glide(ref item.ExtraY, ref item.ExtraVelocity, h);
                 if (item.RoomWait <= 0 || item.Wait <= 0) SpringStep(ref item.Settle, ref item.SettleVelocity, item.SettleTarget, SettleResponse, h);
                 if (item.Own) SpringStep(ref item.Opacity, ref item.OpacityVelocity, item.OpacityTarget, fade, h);
             }
             var still = Rest(ref item.OffsetX, ref item.VelocityX, 0, .01, .05)
                 & Rest(ref item.OffsetY, ref item.VelocityY, 0, .01, .05)
+                & Rest(ref item.ExtraY, ref item.ExtraVelocity, 0, .01, .05)
                 & Rest(ref item.Settle, ref item.SettleVelocity, item.SettleTarget, .01, .05)
                 & (!item.Own || Rest(ref item.Opacity, ref item.OpacityVelocity, item.OpacityTarget, .002, .01));
             if (item.ReservedOff && item.Opacity < Gone) Withdraw(item.Element);
@@ -424,8 +426,13 @@ public sealed class Reveal : IMotion
         var quiet = calm();
         var tracked = Tracked();
         var before = new Dictionary<Control, Point>();
+        var heights = new Dictionary<Control, double>();
         foreach (var element in tracked)
-            if (Rendered(element)) before[element] = element.Bounds.Position;
+        {
+            if (!Rendered(element)) continue;
+            before[element] = element.Bounds.Position;
+            if (element is IGlidesHeight) heights[element] = element.Bounds.Height;
+        }
         var arrived = new Dictionary<Item, string>();
         foreach (var item in pending.ToArray())
         {
@@ -470,6 +477,8 @@ public sealed class Reveal : IMotion
                     if (kind == "swap") item.OffsetX = item.VelocityX = 0;
                     else item.OffsetX += was.X - after.X;
                     item.OffsetY += was.Y - after.Y;
+                    // a card whose rows moved draws its edge where it was and carries it home with them (same spring, same start)
+                    if (heights.TryGetValue(element, out var wasHeight)) item.ExtraY += wasHeight - element.Bounds.Height;
                 }
                 if (kind == "swap")
                 {
@@ -646,6 +655,7 @@ public sealed class Reveal : IMotion
     {
         Drop(item);
         item.OffsetX = item.VelocityX = item.OffsetY = item.VelocityY = 0;
+        item.ExtraY = item.ExtraVelocity = 0;
         item.Settle = item.SettleVelocity = item.SettleTarget = 0;
         item.OpacityVelocity = 0;
         item.Wait = -1;
@@ -722,6 +732,7 @@ public sealed class Reveal : IMotion
             shift.Y = y;
         }
         if (item.Own) item.Element.Opacity = Math.Clamp(item.Opacity, 0, 1);
+        if (item.Element is IGlidesHeight card) card.HeightExtra = Math.Abs(item.ExtraY) < .005 ? 0 : Math.Round(item.ExtraY * 100) / 100;
     }
 
     /// <summary>The element's TranslateTransform, composed with a transform it already has (the canvas's <c>translate</c>).</summary>
@@ -795,7 +806,8 @@ public sealed class Reveal : IMotion
         value += velocity * h;
     }
 
-    private static void Glide(ref double offset, ref double velocity, double h)
+    /// <summary>One step of a glide toward 0 on the critically damped spring (response <see cref="Response"/>), at no more than <see cref="MaxGlideSpeed"/> (the window's height glides on it too).</summary>
+    internal static void Glide(ref double offset, ref double velocity, double h)
     {
         var omega = 2 * Math.PI / Response;
         velocity += (-omega * omega * offset - 2 * omega * velocity) * h;
@@ -803,7 +815,7 @@ public sealed class Reveal : IMotion
         offset += velocity * h;
     }
 
-    private static bool Rest(ref double value, ref double velocity, double target, double within, double slow)
+    internal static bool Rest(ref double value, ref double velocity, double target, double within, double slow)
     {
         if (Math.Abs(value - target) >= within || Math.Abs(velocity) >= slow) return false;
         value = target;
@@ -816,6 +828,7 @@ public sealed class Reveal : IMotion
         public readonly Control Element = element;
         public TranslateTransform? Shift;
         public double OffsetX, VelocityX, OffsetY, VelocityY;
+        public double ExtraY, ExtraVelocity; // a card's drawn height less its laid-out one (IGlidesHeight)
         public double Settle, SettleVelocity, SettleTarget;
         public double Opacity = 1, OpacityVelocity, OpacityTarget = 1;
         public double Wait = -1;
@@ -910,4 +923,15 @@ public sealed class ReserveBox : Panel
         }
         return finalSize;
     }
+}
+
+/// <summary>
+/// A card whose drawn height can differ from its laid-out one (the glass group, ED-NEW-inst-picks-1): when a change at a commit
+/// makes the card taller or shorter, <see cref="Reveal"/> sets <see cref="HeightExtra"/> to the drawn height less the new one and
+/// carries it to 0 on the glide that carries the card's rows, so the card's edge moves with them instead of jumping.
+/// </summary>
+public interface IGlidesHeight
+{
+    /// <summary>The drawn height less the laid-out one (DIP): negative while the card is still catching up with a taller layout.</summary>
+    double HeightExtra { get; set; }
 }

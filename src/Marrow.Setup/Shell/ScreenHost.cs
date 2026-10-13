@@ -3,6 +3,7 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Marrow.Setup.Motion;
+using Marrow.Setup.Ui;
 
 namespace Marrow.Setup.Shell;
 
@@ -15,8 +16,13 @@ namespace Marrow.Setup.Shell;
 /// needed (it only grows while the window is open, until text size or DPI changes), so the window never jumps smaller.
 /// The screens a window can still reach are measured with the first one (<see cref="Probe"/>; VELOPACK_CHECK.md finding 11,
 /// ED-NEW-inst-fix-7), so the window opens at the tallest of them and a taller screen arriving later does not grow it in one frame.
+/// A screen taller than all of those (a Problem with a long reason) cannot be known before it arrives; the window then grows on
+/// the same glide as every other move (<see cref="Reveal.Glide"/>: the canvas's spring, at most <see cref="Reveal.MaxGlideSpeed"/>
+/// DIP a second), from the height it has with the speed it has, and a still taller screen turns the glide around where it is
+/// (ED-NEW-inst-picks-1). The new screen keeps its own layout while the window opens to it; the screen leaving keeps the height
+/// it had. A first layout, a text size or DPI change, Calm and <c>immediately</c> take the new height at once.
 /// </summary>
-public sealed class ScreenHost : Panel
+public sealed class ScreenHost : Panel, IMotion
 {
     public const double LeaveLift = -6, ArriveRise = 8, ArriveDelay = 0.06;
     public const double LeaveFade = 0.34, LeaveMove = 0.42, ArriveFade = 0.38, ArriveMove = 0.46, CalmFade = 0.2;
@@ -28,13 +34,22 @@ public sealed class ScreenHost : Panel
     private Func<IEnumerable<Control>>? reachable;
     private bool probed;
     private double tallest;
+    private double shown, velocity;
+    private bool snap = true;
 
     public ScreenHost(Animator animator, Func<bool> calm)
     {
         this.animator = animator ?? throw new ArgumentNullException(nameof(animator));
         this.calm = calm ?? throw new ArgumentNullException(nameof(calm));
         ClipToBounds = false;
+        LayoutUpdated += OnLayoutUpdated;
     }
+
+    /// <summary>The height the body reports now, which glides up to <see cref="Tallest"/> (for tests).</summary>
+    public double Shown => shown;
+
+    /// <summary>The tallest height any screen shown or probed has needed (for tests).</summary>
+    public double Tallest => tallest;
 
     /// <summary>The screen shown (or arriving).</summary>
     public Control? Current { get; private set; }
@@ -58,6 +73,7 @@ public sealed class ScreenHost : Panel
             else Children.Add(screen);
         }
         screen.IsHitTestVisible = true;
+        if (immediately) snap = true;
         arriving.Arrive(calm(), immediately, fresh: !arriving.HasShown);
         if (!immediately) animator.Start(arriving);
         if (previous is not null && motions.TryGetValue(previous, out leaving) && !immediately) animator.Start(leaving);
@@ -68,6 +84,8 @@ public sealed class ScreenHost : Panel
     public void ResetHeight()
     {
         tallest = 0;
+        shown = velocity = 0;
+        snap = true;
         AddProbes();
         InvalidateMeasure();
     }
@@ -105,6 +123,28 @@ public sealed class ScreenHost : Panel
         InvalidateMeasure();
     }
 
+    // The first layout pass, and the pass after a reset or an immediate show, take their height at once; later growth glides.
+    private void OnLayoutUpdated(object? sender, EventArgs e)
+    {
+        if (snap && Bounds.Height > 0 && shown >= tallest - .01) snap = false;
+    }
+
+    bool IMotion.Advance(double seconds)
+    {
+        var offset = Math.Min(0, shown - tallest);
+        var steps = Math.Max(1, (int)Math.Ceiling(seconds / Reveal.SubStep));
+        var h = seconds / steps;
+        for (var i = 0; i < steps; i++) Reveal.Glide(ref offset, ref velocity, h);
+        if (Reveal.Rest(ref offset, ref velocity, 0, .01, .05) || offset > 0)
+        {
+            offset = 0;
+            velocity = 0;
+        }
+        shown = tallest + offset;
+        InvalidateMeasure();
+        return offset < 0;
+    }
+
     private void OnProbed(object? sender, EventArgs e)
     {
         if (!probed) return; // a layout pass that did not measure the probes yet
@@ -133,12 +173,39 @@ public sealed class ScreenHost : Panel
         }
         probed |= probes.Count > 0;
         tallest = Math.Max(tallest, size.Height);
-        return new Size(size.Width, tallest);
+        if (snap || shown <= 0 || calm())
+        {
+            shown = tallest;
+            velocity = 0;
+        }
+        else if (shown < tallest)
+        {
+            // a screen taller than any measured: the window opens to it on the glide, beginning at the height it is drawn at now
+            if (velocity == 0) shown = Math.Max(shown, Math.Min(Bounds.Height, tallest));
+            if (tallest - shown > .5) animator.Start(this);
+            else
+            {
+                shown = tallest; // half a DIP is not worth a glide, and a measure that differs by a rounding must not leave the glide short of its end
+                velocity = 0;
+            }
+        }
+        return new Size(size.Width, shown);
     }
 
     protected override Size ArrangeOverride(Size finalSize)
     {
-        foreach (var child in Children) child.Arrange(new Rect(finalSize));
+        foreach (var child in Children)
+        {
+            // A screen keeps its own layout while the window is still opening to it, so nothing in it moves; one that is leaving
+            // keeps the height it had, so its lines do not stretch away while it fades.
+            var height = Math.Max(finalSize.Height, child.DesiredSize.Height);
+            if (child is Control control && motions.TryGetValue(control, out var motion))
+            {
+                if (motion.IsLeaving) height = Math.Max(motion.ArrangedHeight, child.DesiredSize.Height);
+                else motion.ArrangedHeight = height;
+            }
+            child.Arrange(new Rect(0, 0, finalSize.Width, height));
+        }
         return finalSize;
     }
 
@@ -170,6 +237,12 @@ public sealed class ScreenHost : Panel
         public Tween Offset { get; }
 
         public bool HasShown { get; private set; }
+
+        /// <summary>True from the moment the screen is asked to leave until it is shown again.</summary>
+        public bool IsLeaving => leaving;
+
+        /// <summary>The height the screen was last arranged at while it was the one shown.</summary>
+        public double ArrangedHeight { get; set; }
 
         public void Arrive(bool calm, bool immediately, bool fresh)
         {
