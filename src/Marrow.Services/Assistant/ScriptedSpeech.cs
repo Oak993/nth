@@ -115,7 +115,8 @@ public sealed class ScriptedSpeechPlayer(TimeProvider? time = null) : ISpeechPla
 
     public Task PlayAsync(SynthAudio sound, Action<long> handedOver, CancellationToken cancellationToken)
     {
-        // continuations run inline, on the thread that stops or advances the player: a test sees the speech's end the moment it causes it
+        // no RunContinuationsAsynchronously: the end of the sound is told on the thread that stops or advances the player where the runtime allows it (a thread with a
+        // synchronisation context of its own, xunit's, has the continuation queued to the pool instead; a test that needs the rest of the chain waits for it)
         var finished = new TaskCompletionSource();
         if (cancellationToken.IsCancellationRequested)
         {

@@ -39,6 +39,26 @@ public sealed class HomeChatBrain(AppModel model, DextraHost host, TimeSpan? wai
     public async Task<VoiceAnswer> AskAsync(string heard, CancellationToken cancellationToken)
     {
         if (host.Controller is not { } controller) return new VoiceAnswer("Dextra is not running.");
+        // the ends of turns are watched from before the words are sent, so a very short turn cannot end unseen
+        var ended = new System.Collections.Concurrent.ConcurrentDictionary<Guid, TaskCompletionSource<TurnStatus>>();
+        void Watch(Guid id, TurnStatus status, bool continues)
+        {
+            if (!continues) ended.GetOrAdd(id, _ => new TaskCompletionSource<TurnStatus>(TaskCreationOptions.RunContinuationsAsynchronously)).TrySetResult(status);
+        }
+        model.ThreadTurnFinished += Watch;
+        try
+        {
+            return await AskAsync(heard, controller, ended, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            model.ThreadTurnFinished -= Watch;
+        }
+    }
+
+    private async Task<VoiceAnswer> AskAsync(string heard, AssistantController controller,
+        System.Collections.Concurrent.ConcurrentDictionary<Guid, TaskCompletionSource<TurnStatus>> ended, CancellationToken cancellationToken)
+    {
         var home = await OnMain(() => host.HomeThread(), cancellationToken).ConfigureAwait(false);
         if (home is null) return new VoiceAnswer("Dextra has no thread yet. Open the home once, then ask again.");
         var talk = await OnMain(() => controller.Talk(home.Id, heard, spoken: true), cancellationToken).ConfigureAwait(false);
@@ -50,7 +70,7 @@ public sealed class HomeChatBrain(AppModel model, DextraHost host, TimeSpan? wai
             case TalkKind.NoHome:
                 return new VoiceAnswer(talk.Note ?? "That one has no thread to talk in yet.");
             case TalkKind.Sent when talk.Thread is { } thread && talk.Message.Length > 0:
-                return await Reply(thread, talk.Target, cancellationToken).ConfigureAwait(false);
+                return await Reply(thread, talk.Target, ended, cancellationToken).ConfigureAwait(false);
             case TalkKind.Sent:
                 return new VoiceAnswer(talk.Target is { } named ? $"Opened {SpokenText.Phrase(named.Name)}." : "Done.") { Speaker = talk.Target?.Name };
         }
@@ -62,39 +82,28 @@ public sealed class HomeChatBrain(AppModel model, DextraHost host, TimeSpan? wai
             controller.OwnerMessage(home.Id);
             return runtime.SendMissionMessage(talk.Message);
         }, cancellationToken).ConfigureAwait(false);
-        return sent ? await Reply(home.Id, null, cancellationToken).ConfigureAwait(false) : new VoiceAnswer("I am still working on your last request.");
+        return sent ? await Reply(home.Id, null, ended, cancellationToken).ConfigureAwait(false) : new VoiceAnswer("I am still working on your last request.");
     }
 
-    private async Task<VoiceAnswer> Reply(Guid thread, AssistantProfile? speaker, CancellationToken cancellationToken)
+    private async Task<VoiceAnswer> Reply(Guid thread, AssistantProfile? speaker,
+        System.Collections.Concurrent.ConcurrentDictionary<Guid, TaskCompletionSource<TurnStatus>> ended, CancellationToken cancellationToken)
     {
-        var finished = new TaskCompletionSource<TurnStatus>(TaskCreationOptions.RunContinuationsAsynchronously);
-        void Done(Guid id, TurnStatus status, bool continues)
-        {
-            if (id == thread && !continues) finished.TrySetResult(status);
-        }
-        model.ThreadTurnFinished += Done;
+        var finished = ended.GetOrAdd(thread, _ => new TaskCompletionSource<TurnStatus>(TaskCreationOptions.RunContinuationsAsynchronously));
+        using var timeout = new CancellationTokenSource(most);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
+        using var registration = linked.Token.Register(() => finished.TrySetCanceled(linked.Token));
+        TurnStatus status;
         try
         {
-            using var timeout = new CancellationTokenSource(most);
-            using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
-            using var registration = linked.Token.Register(() => finished.TrySetCanceled(linked.Token));
-            TurnStatus status;
-            try
-            {
-                status = await finished.Task.ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
-            {
-                return new VoiceAnswer("That is taking a while. The answer will be in the chat.") { Speaker = speaker?.Name, Voice = speaker?.Voice };
-            }
-            var text = await OnMain(() => LastAnswer(model.Runtime(thread)), cancellationToken).ConfigureAwait(false);
-            if (status == TurnStatus.Interrupted) return new VoiceAnswer("Stopped.") { Speaker = speaker?.Name, Voice = speaker?.Voice };
-            return new VoiceAnswer(text.Length > 0 ? text : "Done. There is nothing to read out.") { Speaker = speaker?.Name, Voice = speaker?.Voice };
+            status = await finished.Task.ConfigureAwait(false);
         }
-        finally
+        catch (OperationCanceledException) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
-            model.ThreadTurnFinished -= Done;
+            return new VoiceAnswer("That is taking a while. The answer will be in the chat.") { Speaker = speaker?.Name, Voice = speaker?.Voice };
         }
+        var text = await OnMain(() => LastAnswer(model.Runtime(thread)), cancellationToken).ConfigureAwait(false);
+        if (status == TurnStatus.Interrupted) return new VoiceAnswer("Stopped.") { Speaker = speaker?.Name, Voice = speaker?.Voice };
+        return new VoiceAnswer(text.Length > 0 ? text : "Done. There is nothing to read out.") { Speaker = speaker?.Name, Voice = speaker?.Voice };
     }
 
     // What the chat answered since the owner's last message: the assistant messages after the last user entry, joined.

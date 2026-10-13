@@ -89,6 +89,9 @@ public sealed class VoiceConversationOptions
 
     /// <summary>A live transcript pass runs every this many 32 ms frames while the owner speaks (about 0.7 s).</summary>
     public int LiveEveryFrames { get; init; } = 22;
+
+    /// <summary>After a reply ends, nothing the microphone hears counts as speech for this long: the room still rings with Dextra's own voice.</summary>
+    public TimeSpan HoldOff { get; init; } = TimeSpan.FromMilliseconds(500);
 }
 
 public sealed partial class VoiceConversation : IAudioCaptureSink, IStopScope, IDisposable
@@ -410,8 +413,7 @@ public sealed partial class VoiceConversation : IAudioCaptureSink, IStopScope, I
             old = turnCancel;
             turnCancel = null;
         }
-        try { old?.Cancel(); }
-        catch (ObjectDisposedException) { }
+        old?.Cancel();
         old?.Dispose();
     }
 
@@ -426,11 +428,25 @@ public sealed partial class VoiceConversation : IAudioCaptureSink, IStopScope, I
             old = turnCancel;
             turnCancel = made;
         }
-        try { old?.Cancel(); }
-        catch (ObjectDisposedException) { }
+        old?.Cancel();
         old?.Dispose();
         return (id, made.Token);
     }
 
     private double micLevel;
+    private string? lastFault;
+
+    /// <summary>The last thing that went wrong without stopping the conversation (a live pass, a microphone that would not close); null before one.</summary>
+    public string? LastFault
+    {
+        get
+        {
+            lock (gate) return lastFault;
+        }
+    }
+
+    private void Fault(string what, Exception error)
+    {
+        lock (gate) lastFault = what + ": " + Brief(error);
+    }
 }

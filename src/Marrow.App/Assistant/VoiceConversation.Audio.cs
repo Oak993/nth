@@ -27,6 +27,7 @@ public sealed partial class VoiceConversation
     private bool capturing;
     private bool liveBusy;
     private volatile bool holding;
+    private long holdOffUntil;
     private int liveFrames;
     private int thinkingNear;
     private CaptureFormat format;
@@ -49,6 +50,7 @@ public sealed partial class VoiceConversation
             thinkingNear = 0;
             barge?.Reset();
             o.Speech.Reference.Clear();
+            holdOffUntil = followUp ? o.Time.GetTimestamp() + (long)(o.HoldOff.TotalSeconds * o.Time.TimestampFrequency) : 0;
         }
         lock (gate)
         {
@@ -121,7 +123,7 @@ public sealed partial class VoiceConversation
         }
         if (!was) return;
         try { o.Capture.Stop(); }
-        catch (Exception error) when (error is not OutOfMemoryException) { }
+        catch (Exception error) when (error is not OutOfMemoryException) { Fault("The microphone did not close cleanly", error); }
     }
 
     // ---- the capture's sink ----
@@ -227,6 +229,7 @@ public sealed partial class VoiceConversation
     private void Listening(float[] frame, float probability)
     {
         var hold = holding;
+        if (holdOffUntil != 0 && o.Time.GetTimestamp() < holdOffUntil) probability = 0; // the room still rings with Dextra's own voice
         var kind = endpointer.Feed(probability);
         if (endpointer.InSpeech && kind == EndpointKind.SpeechStarted)
         {
@@ -367,7 +370,7 @@ public sealed partial class VoiceConversation
             }
             catch (Exception error) when (error is not OutOfMemoryException)
             {
-                // a live pass that fails changes nothing: the final pass will say
+                Fault("A live transcript pass failed", error); // it changes nothing on the sheet: the final pass will say
             }
             finally
             {

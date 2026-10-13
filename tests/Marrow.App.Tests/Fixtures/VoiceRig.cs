@@ -21,7 +21,9 @@ internal sealed class VoiceRig : IDisposable
 
     private readonly Random room = new(5);
 
-    public VoiceRig(Func<VoiceConversationOptions, VoiceConversationOptions>? change = null)
+    /// <param name="post">Where the conversation's UI work goes; null runs it at once (the unit tests).</param>
+    /// <param name="background">Where the speech engine and Dextra's answer run; null runs them at once.</param>
+    public VoiceRig(Func<VoiceConversationOptions, VoiceConversationOptions>? change = null, Action<Action>? post = null, Func<Func<Task>, Task>? background = null)
     {
         Time = new ManualTimeProvider();
         Player = new ScriptedSpeechPlayer(Time);
@@ -51,8 +53,8 @@ internal sealed class VoiceRig : IDisposable
                 return new CallbackDisposable(() => LeasesHeld--);
             },
             Time = Time,
-            Post = action => action(),
-            Background = work => work(),
+            Post = post ?? (action => action()),
+            Background = background ?? (work => work()),
         };
         Conversation = new VoiceConversation(change?.Invoke(options) ?? options);
     }
@@ -136,7 +138,11 @@ internal sealed class VoiceRig : IDisposable
         }
         Capture.Push(mic);
         Time.Advance(Tick);
-        if (Player.Playing) Player.Advance(Tick);
+        if (!Player.Playing) return;
+        Player.Advance(Tick);
+        // When the speech has played out, the rest of the reply (the follow-up listen) is a continuation the runtime runs inline or on the pool, depending on the
+        // synchronisation context of the thread (xunit's differs from a bare thread's): the clock waits for it, so the virtual time stays exact either way.
+        if (!Player.Playing) SpinWait.SpinUntil(() => Conversation.Phase != VoicePhase.Speaking, TimeSpan.FromSeconds(5));
     }
 
     /// <summary>The owner says <paramref name="voice"/> (a synthetic voice), 10 ms at a time; the room and the echo go on around it.</summary>
@@ -165,6 +171,8 @@ internal sealed class VoiceRig : IDisposable
     /// <summary>The owner says a request of about <paramref name="seconds"/> and falls silent for 1.5 s, so the request ends; <paramref name="text"/> is what the engine hears.</summary>
     public void Ask(string text, double seconds = 1.6, int seed = 2)
     {
+        // right after a reply the owner takes a breath before he answers (the room still rings for half a second)
+        if (Conversation.Phase == VoicePhase.Listening && Conversation.Reply.Length > 0) Wait(0.6);
         Heard.Enqueue(text);
         Say(SyntheticSpeech.Voice(seed, seconds, 0.12));
         Wait(1.5);

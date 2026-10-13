@@ -34,6 +34,9 @@ public sealed class WasapiSpeechPlayer : ISpeechPlayer
         }
     }
 
+    /// <summary>What went wrong the last time Stop could not reach the sound card (a device that was already gone); null before one.</summary>
+    public string? StopFault { get; private set; }
+
     public Task PlayAsync(SynthAudio audio, Action<long> handed, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(audio);
@@ -93,7 +96,7 @@ public sealed class WasapiSpeechPlayer : ISpeechPlayer
         }
         catch (Exception error) when (error is InvalidOperationException or COMException or ObjectDisposedException)
         {
-            // The card is gone already: there is nothing left to stop.
+            StopFault = error.GetType().Name; // the card is gone already: there is nothing left to stop
         }
         waiting?.TrySetResult();
     }

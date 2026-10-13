@@ -187,6 +187,29 @@ public sealed class VoiceCardRulesTests
     }
 
     [Fact]
+    public void Words_are_aimed_at_the_card_Dextra_read_out_when_they_answer_it_or_name_its_action_and_not_when_they_are_something_else()
+    {
+        var send = Card(DecisionKind.Approval, DecisionWeight.Irreversible, ActionClass.Outward, "Send the weekly update");
+        foreach (var words in new[] { "yes", "no", "the second one", "send it", "do it", "go ahead", "approve it", "pay", "delete it" })
+        {
+            Assert.True(VoiceCardRules.Targets(send, VoiceCommands.Parse(words), words), words);
+        }
+        foreach (var words in new[] { "start the next video", "what is running", "remind me to call Sam tomorrow morning about the invoice and the contract", "" })
+        {
+            Assert.False(VoiceCardRules.Targets(send, VoiceCommands.Parse(words), words), words);
+        }
+
+        var reserve = Card(DecisionKind.Reserve, DecisionWeight.Reversible, null, "Paused at your reserve", "Move the rest to Codex A", "Wait for the reset");
+        Assert.True(VoiceCardRules.Targets(reserve, VoiceCommands.Parse("wait for the reset"), "wait for the reset"));
+        Assert.True(VoiceCardRules.Targets(reserve, VoiceCommands.Parse("the first one"), "the first one"));
+        Assert.False(VoiceCardRules.Targets(reserve, VoiceCommands.Parse("plan my day"), "plan my day"));
+
+        var free = Card(DecisionKind.Question, DecisionWeight.Question, null, "What should the new channel be called");
+        Assert.True(VoiceCardRules.Targets(free, VoiceCommand.NotACommand, "call it Lenses and Light"));
+        Assert.False(VoiceCardRules.Targets(free, VoiceCommand.NotACommand, " "));
+    }
+
+    [Fact]
     public void A_card_is_offered_in_one_sentence_that_says_how_to_answer_or_that_it_needs_a_tap()
     {
         var readOnly = Card(DecisionKind.Approval, DecisionWeight.Reversible, ActionClass.ReadWeb, "Channel A wants to read the vendor site. Really!");

@@ -131,8 +131,9 @@ public sealed class VoiceConversationTests
 
             rig.Ask(said, 0.6);
 
+            var state = $"said '{said}': phase {rig.Conversation.Phase}, heard '{rig.Conversation.Heard}', reply '{rig.Conversation.Reply}', note '{rig.Conversation.Note}', fault '{rig.Conversation.LastFault}', decodes [{string.Join(", ", rig.Engine.Decodes.Select(d => $"{d.Request.Mode}:{d.AudioLength.TotalSeconds:F1}"))}], queued {rig.Heard.Count}, now {rig.Time.Elapsed.TotalSeconds:F2}, asked [{string.Join(" | ", rig.Brain.Asked)}]";
             Assert.Empty(rig.Decisions.Answers);
-            Assert.Equal([card.Id], rig.Shown);
+            Assert.True(rig.Shown.SequenceEqual([card.Id]), state);
             Assert.Equal(line, rig.Conversation.Reply);
             Assert.Empty(rig.Brain.Asked);
         }
@@ -385,6 +386,26 @@ public sealed class VoiceConversationTests
         Assert.Equal(1, rig.Preempted);
         Assert.Equal(1, rig.Capture.StartCount);
         Assert.Equal(VoiceStart.Toggle, rig.Conversation.Mode);
+    }
+
+    [Fact]
+    public void The_echo_tail_of_a_reply_does_not_start_the_next_request_but_a_word_a_moment_later_does()
+    {
+        using var rig = new VoiceRig { Said = ShortReply() };
+        rig.Conversation.Start(VoiceStart.Toggle);
+        rig.Ask("what is running");
+        rig.WaitUntil(() => rig.Conversation.Phase != VoicePhase.Speaking, 5);
+        Assert.Equal(VoicePhase.Listening, rig.Conversation.Phase);
+
+        rig.Heard.Enqueue("pause everything");
+        rig.Say(SyntheticSpeech.Voice(2, 0.4, 0.12)); // within the half second after Dextra stopped: the room still rings with its voice
+        rig.Wait(1.5);
+        Assert.Empty(rig.Controls.Calls);
+        Assert.Empty(rig.Brain.Asked);
+
+        rig.Say(SyntheticSpeech.Voice(2, 1.2, 0.12));
+        rig.Wait(1.5);
+        Assert.Equal(["PauseAll Voice: Pause everything"], rig.Controls.Calls);
     }
 
     [Fact]

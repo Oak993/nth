@@ -280,6 +280,39 @@ public sealed class VoiceSheetTests(HeadlessSession headless)
     }
 
     [Fact]
+    public void In_a_right_to_left_window_every_part_of_the_sheet_still_lies_inside_the_sheet_and_the_window()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var still = Still();
+            var (home, rig) = Make();
+            using var disposeRig = rig;
+            using var stage = new HomeStage(home, 900, 800, Avalonia.Media.FlowDirection.RightToLeft);
+            var sheet = home.VoiceSheet!;
+            rig.Conversation.Start(VoiceStart.Toggle);
+            rig.Ask("what is running");
+            stage.Layout();
+
+            // in a right-to-left window a control's own origin is its right edge: take both corners
+            Rect Where(Visual visual)
+            {
+                var a = visual.TranslatePoint(new Point(0, 0), stage.Window)!.Value;
+                var b = visual.TranslatePoint(new Point(visual.Bounds.Width, visual.Bounds.Height), stage.Window)!.Value;
+                return new Rect(new Point(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y)), new Point(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y)));
+            }
+
+            var box = Where(sheet);
+            Assert.True(box.Left >= -0.5 && box.Right <= 900.5, box.ToString());
+            foreach (Control part in new Control[] { sheet.InterruptButton, sheet.DoneButton, sheet.Mark })
+            {
+                var inner = Where(part);
+                Assert.True(inner.Left >= box.Left - 0.5 && inner.Right <= box.Right + 0.5 && inner.Top >= box.Top - 0.5, $"{part.GetType().Name} {inner} outside {box}");
+            }
+            Assert.Equal("Speaking", sheet.StateText);
+        });
+    }
+
+    [Fact]
     public void The_voice_marks_motion_is_given_before_every_list_and_a_home_without_a_voice_has_no_sheet()
     {
         headless.OnUiThread(() =>
