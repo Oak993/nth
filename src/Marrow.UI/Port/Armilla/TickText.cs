@@ -219,10 +219,10 @@ internal sealed class SheenHandler(ArmillaHub hub, AmbientRefreshPacer? pacer, T
 
     private static readonly SplineEasing Ease = new(.45, 0, .55, 1);
     private Band? band;
-    private bool sleeping, hidden, stopped, drawn;
+    private bool sleeping, hidden, stopped, drawn, finishing, parked, waiting;
     private int requested;
     private int frames;
-    private double time;
+    private double time, finishAt, startAt = double.NaN;
     private readonly SKPaint paint = new() { BlendMode = SKBlendMode.Overlay, IsAntialias = true };
     private SKShader? gradient;
     private (float Width, float Height, bool Dark) gradientKey;
@@ -231,7 +231,7 @@ internal sealed class SheenHandler(ArmillaHub hub, AmbientRefreshPacer? pacer, T
 
     internal bool Ticking => Volatile.Read(ref requested) == 1;
 
-    private bool Live => band is { On: true } && !sleeping && !hidden && !stopped;
+    private bool Live => band is { On: true } && (!sleeping || finishing) && !hidden && !stopped;
 
     public override void OnMessage(object message)
     {
@@ -244,6 +244,23 @@ internal sealed class SheenHandler(ArmillaHub hub, AmbientRefreshPacer? pacer, T
                 break;
             case Sleep sleep:
                 sleeping = sleep == Sleep.On;
+                if (sleeping)
+                {
+                    // Complete this shared-clock pass. Its next boundary is off text;
+                    // invalidate there to remove the overlay, then leave the clock.
+                    finishing = !parked && frames > 0 && band is { On: true };
+                    finishAt = (Math.Floor(time / TickText.SheenPeriod) + 1) * TickText.SheenPeriod;
+                    if (!finishing) parked = true;
+                    waiting = false;
+                }
+                else if (parked)
+                {
+                    // Stay off text until the next shared pass starts. Every shimmer
+                    // rejoins in phase, without inserting an already-midpass band.
+                    waiting = true;
+                    startAt = double.NaN;
+                }
+                else finishing = false; // waking before the boundary keeps the same active pass
                 Request();
                 break;
             case Shown shown:
@@ -265,7 +282,18 @@ internal sealed class SheenHandler(ArmillaHub hub, AmbientRefreshPacer? pacer, T
         if (!Live) return;
         var now = clock.GetTimestamp() / (double)clock.TimestampFrequency;
         if (pacer is not null && !pacer.Beat(CompositionNow.Ticks, now)) { Register(); return; }
-        time = hub.Time(CompositionNow.Ticks, now);
+        var next = hub.Time(CompositionNow.Ticks, now);
+        if (waiting)
+        {
+            if (double.IsNaN(startAt)) startAt = (Math.Floor(next / TickText.SheenPeriod) + 1) * TickText.SheenPeriod;
+            if (next < startAt) { Request(); return; }
+            waiting = false; parked = false;
+        }
+        time = next;
+        if (finishing && time >= finishAt)
+        {
+            finishing = false; parked = true;
+        }
         Invalidate();
         if (drawn) Request();
     }
@@ -293,7 +321,7 @@ internal sealed class SheenHandler(ArmillaHub hub, AmbientRefreshPacer? pacer, T
     public override void OnRender(ImmediateDrawingContext context)
     {
         drawn = true;
-        if (stopped || hidden || band is not { On: true } b || b.Width <= 0) return;
+        if (stopped || hidden || parked || band is not { On: true } b || b.Width <= 0) return;
         if (context.TryGetFeature<ISkiaSharpApiLeaseFeature>() is not { } feature) return;
         using var lease = feature.Lease();
         Draw(lease.SkCanvas, b, time, lease.CurrentOpacity);
