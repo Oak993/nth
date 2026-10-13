@@ -56,6 +56,8 @@ public sealed class AssistantSidebarRow : Decorator
 
     private readonly AssistantRowActions actions;
     private readonly Border face;
+    private readonly Grid grid;
+    private readonly StackPanel stack;
     private readonly IBrush hoverFill;
     private readonly IBrush selectedFill;
     private readonly StackPanel missionRows = new() { Spacing = 1 };
@@ -89,10 +91,9 @@ public sealed class AssistantSidebarRow : Decorator
         AutomationProperties.SetAccessibilityView(Badge, AccessibilityView.Raw);
 
         var lines = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children = { NameText, StatusText } };
-        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), ColumnSpacing = 8 };
+        grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), ColumnSpacing = 8 };
         grid.Children.Add(Mark);
         grid.Children.Add(lines);
-        grid.Children.Add(Badge);
         Grid.SetColumn(lines, 1);
         Grid.SetColumn(Badge, 2);
 
@@ -135,7 +136,10 @@ public sealed class AssistantSidebarRow : Decorator
         MissionsGroup = new StackPanel { Spacing = 0, Children = { MissionsToggle, missionsReveal } };
         Chevron = chevron;
 
-        Child = new StackPanel { Spacing = 1, Children = { Button, MissionsGroup } };
+        // The badge and the Missions group join the row the first time they have something to show: a part that was never shown is not
+        // kept, hidden and never measured, in the tree.
+        stack = new StackPanel { Spacing = 1, Children = { Button } };
+        Child = stack;
         ShowMissionsOpen(!(this.actions.Collapsed?.Invoke() ?? true), still: true);
         Refresh();
     }
@@ -202,6 +206,7 @@ public sealed class AssistantSidebarRow : Decorator
         StatusText.Text = actions.Note?.Invoke() ?? HomeWords.Status(jobs, stopped);
         Mark.State = HomeWords.Mark(jobs, stopped);
         var open = live.Decisions.Waiting.Count;
+        if (open > 0 && Badge.Parent is null) grid.Children.Add(Badge);
         Badge.IsVisible = open > 0;
         BadgeText.Text = open.ToString(System.Globalization.CultureInfo.CurrentCulture);
         AutomationProperties.SetName(Button, NameText.Text + ", " + StatusText.Text);
@@ -215,6 +220,7 @@ public sealed class AssistantSidebarRow : Decorator
         var today = TaskWords.Local(SwiftClock.Provider.Current.GetUtcNow()).Date;
         var shown = jobs.Where(j => j.LeadThread is not null && (j.Group != BoardGroup.DoneToday || j.Ended is { } ended && TaskWords.Local(ended).Date == today))
             .OrderBy(j => j.Group == BoardGroup.DoneToday ? 1 : 0).ThenByDescending(j => j.Created).ToList();
+        if (shown.Count > 0 && MissionsGroup.Parent is null) stack.Children.Add(MissionsGroup);
         MissionsGroup.IsVisible = shown.Count > 0;
         MissionsLabel.Text = shown.Count == 0 ? "Missions" : "Missions  " + shown.Count.ToString(System.Globalization.CultureInfo.CurrentCulture);
         AutomationProperties.SetName(MissionsToggle, (MissionsToggle.IsExpanded ? "Hide" : "Show") + " missions, " + shown.Count.ToString(System.Globalization.CultureInfo.CurrentCulture));
