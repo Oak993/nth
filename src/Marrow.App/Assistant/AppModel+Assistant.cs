@@ -107,8 +107,10 @@ public sealed partial class AppModel
     /// Starts Dextra over its store (AS-8 calls this when the owner turns Dextra on): a controller whose chats are this
     /// app's, whose workspaces live under the store's worktrees folder and whose missions are journaled in the store; the
     /// missions the store held come back (a live one Paused and asking "Resume?", 15.3, when the store was opened with
-    /// <see cref="MissionJournal.Interrupted"/> as its rule), and the controller is bound. The store's folder and
-    /// <paramref name="protectedRoots"/> (the audit folder, nth's settings) are never written by an agent. Returns the
+    /// <see cref="MissionJournal.Interrupted"/> as its rule), and the controller is bound. The store's folder, nth's own files
+    /// (<see cref="NthOwnFiles"/>: its data root, its settings file, its program and its data folder of before the rename, whatever
+    /// the caller passes) and
+    /// <paramref name="protectedRoots"/> (the audit folder) are never written by an agent. Returns the
     /// controller; the caller owns it. Auto-answering turns on only once the injection self-check passes in this
     /// process (AS-7); <paramref name="autoAnswer"/> swaps that switch (a test's). <paramref name="personalDataRecipients"/>
     /// and <paramref name="allowlist"/> are the owner's lists from Settings (empty until Settings has them).
@@ -205,7 +207,7 @@ public sealed partial class AppModel
             Provider = provider,
             Model = model,
             AccountId = accountId,
-            ProtectedRoots = [store.Root, .. protectedRoots ?? []],
+            ProtectedRoots = [store.Root, .. NthOwnFiles(), .. protectedRoots ?? []],
             AutoAnswer = autoAnswer ?? AutoAnswerSwitch.AfterCorpus(),
             PersonalDataRecipients = personalDataRecipients ?? (() => []),
             Allowlist = allowlist ?? (() => []),
@@ -240,6 +242,38 @@ public sealed partial class AppModel
         BindDecisionToasts(controller, id => profiles().FirstOrDefault(profile => profile.Id == id)?.Name is { Length: > 0 } name ? name : AssistantNames.Assistant);
         BindDextra(controller);
         return controller;
+    }
+
+    /// <summary>
+    /// nth's own files, which no agent of Dextra's writes (12.1a "changes nth's own settings and grants"; ED-NEW-dextra-f4-1): the data root
+    /// as bound now (library.json, UserDefaults.json with Dextra's switches and grants, the threads, mcp.json, and the store and the activity
+    /// log under it) and the settings file where the app keeps it, named on its own so a data root bound elsewhere still leaves it protected.
+    /// ED-NEW-dextra-f4-2: also nth's own program (<see cref="InstallRoot"/> of the running app's base directory: what runs the next time nth
+    /// starts) and the data folder of before the rename (%LOCALAPPDATA%\Marrow Code, which the first launch after it copied and never moved).
+    /// A mission's own worktree inside the store stays its work (ActionClassifier's own-worktree carve-out).
+    /// </summary>
+    internal static IReadOnlyList<string> NthOwnFiles()
+    {
+        var roots = new List<string> { Marrow.Services.Store.Storage.Root, InstallRoot(AppContext.BaseDirectory) };
+        var local = Marrow.Core.Support.DevDataRoot.LocalApplicationData();
+        if (!string.IsNullOrEmpty(local))
+        {
+            roots.Add(Marrow.Services.Port.SettingsStore.ProductionPath(local));
+            roots.Add(Path.Combine(local, Marrow.Core.Support.AppInfo.LegacyDataFolderName));
+        }
+        return roots;
+    }
+
+    /// <summary>
+    /// Where nth's program lives (ED-NEW-dextra-f4-2): Velopack's root (the folder holding Update.exe, current\ and packages\,
+    /// %LOCALAPPDATA%\NthApp) when Velopack installed the app whose binaries are in <paramref name="baseDirectory"/> (the check the
+    /// startup hook makes, <see cref="Program.InstalledByVelopack"/>), else the binaries' own folder (a build run from its output folder).
+    /// </summary>
+    internal static string InstallRoot(string baseDirectory)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(baseDirectory);
+        var binaries = Path.TrimEndingDirectorySeparator(baseDirectory);
+        return Program.InstalledByVelopack(baseDirectory) && Path.GetDirectoryName(binaries) is { Length: > 0 } root ? root : binaries;
     }
 
     /// <summary>
