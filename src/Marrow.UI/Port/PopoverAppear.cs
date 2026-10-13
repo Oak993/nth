@@ -25,6 +25,11 @@ public static class PopoverAppear
     public static readonly AttachedProperty<bool> StillProperty = AvaloniaProperty.RegisterAttached<Control, bool>("Still", typeof(PopoverAppear));
     private static readonly AttachedProperty<int> FadeVersionProperty = AvaloniaProperty.RegisterAttached<Control, int>("FadeVersion", typeof(PopoverAppear));
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Control, Action> running = new();
+    // ED-NEW-perf-motion-11: the scale's speed of the grow or shrink under way, so the one that interrupts it sets out at that speed.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Control, Func<double>> scaleSpeeds = new();
+
+    /// <summary>The speed, per second, at which <paramref name="content"/>'s scale moves now (0 at rest).</summary>
+    internal static double ScaleSpeed(Control content) => scaleSpeeds.TryGetValue(content, out var speed) ? speed() : 0;
 
     private static void Stop(Control content)
     {
@@ -69,6 +74,10 @@ public static class PopoverAppear
     /// </summary>
     public static void Play(Control content, PlacementMode placement)
     {
+        // OD-0076, ED-NEW-perf-motion-11 (SwiftUI's springs keep their velocity through a retarget): a grow that interrupts the
+        // shrink under way sets out at the shrink's speed and turns round, instead of stopping dead and starting again from rest.
+        var carried = content.RenderTransform is ScaleTransform ? ScaleSpeed(content) : 0;
+        scaleSpeeds.Remove(content);
         Stop(content);
         if (content.GetValue(StillProperty)) { Fade(content, opening: true); return; }
         if (content.RenderTransform is not null && content.RenderTransform is not ScaleTransform) return; // a site's own transform is kept
@@ -89,15 +98,20 @@ public static class PopoverAppear
             var seconds = (SwiftClock.Now - start).TotalSeconds;
             var done = seconds >= Grow.Duration;
             var progress = done ? 1 : Grow.Progress(seconds);
-            var size = from + (1 - from) * progress;
+            var size = done ? 1 : from + (1 - from) * progress + carried * Grow.Impulse(seconds);
             scale.ScaleX = size;
             scale.ScaleY = size;
             content.Opacity = fromOpacity + (1 - fromOpacity) * Math.Clamp(seconds / FadeSeconds, 0, 1);
-            if (done) { running.Remove(content); content.RenderTransform = null; content.Opacity = 1; return; }
+            if (done) { running.Remove(content); scaleSpeeds.Remove(content); content.RenderTransform = null; content.Opacity = 1; return; }
             frames.RequestFrame(tick!);
         };
         frames.RequestFrame(tick);
         running.AddOrUpdate(content, () => { content.SetValue(FadeVersionProperty, version + 1); frames.CancelFrame(tick); });
+        scaleSpeeds.AddOrUpdate(content, () =>
+        {
+            var seconds = (SwiftClock.Now - start).TotalSeconds;
+            return seconds >= Grow.Duration ? 0 : (1 - from) * Grow.Speed(seconds) + carried * Slope(Grow.Impulse, seconds, Grow.Duration);
+        });
     }
 
     internal const double CloseSeconds = 0.17;
@@ -109,6 +123,9 @@ public static class PopoverAppear
     /// </summary>
     public static Action Dismiss(Control content, PlacementMode placement, Action closed)
     {
+        // ED-NEW-perf-motion-11: a shrink that interrupts the grow under way sets out at the grow's speed (it dies out by the close).
+        var carried = content.RenderTransform is ScaleTransform ? ScaleSpeed(content) : 0;
+        scaleSpeeds.Remove(content);
         Stop(content);
         if (content.GetValue(StillProperty)) return Fade(content, opening: false, closed);
         if (content.RenderTransform is not null && content.RenderTransform is not ScaleTransform) { closed(); return () => { }; }
@@ -129,12 +146,14 @@ public static class PopoverAppear
             {
                 stopped = true;
                 running.Remove(content);
+                scaleSpeeds.Remove(content);
                 content.RenderTransform = null;
                 content.Opacity = 1;
                 closed();
                 return;
             }
-            var size = StartScale + (from - StartScale) * Math.Exp(-seconds / CloseDecay);
+            var left = 1 - seconds / CloseSeconds;
+            var size = StartScale + (from - StartScale) * Math.Exp(-seconds / CloseDecay) + carried * seconds * left * left;
             scale.ScaleX = size;
             scale.ScaleY = size;
             content.Opacity = fromOpacity * (1 - seconds / CloseSeconds);
@@ -142,11 +161,19 @@ public static class PopoverAppear
         };
         frames.RequestFrame(tick);
         running.AddOrUpdate(content, () => { stopped = true; frames.CancelFrame(tick); });
+        scaleSpeeds.AddOrUpdate(content, () =>
+        {
+            var seconds = (SwiftClock.Now - start).TotalSeconds;
+            if (stopped || seconds >= CloseSeconds) return 0;
+            var left = 1 - seconds / CloseSeconds;
+            return -(from - StartScale) / CloseDecay * Math.Exp(-seconds / CloseDecay) + carried * left * (1 - 3 * seconds / CloseSeconds);
+        });
         return () =>
         {
             if (stopped) return;
             stopped = true;
             running.Remove(content);
+            scaleSpeeds.Remove(content);
             frames.CancelFrame(tick);
             content.RenderTransform = null;
             content.Opacity = 1;
@@ -165,4 +192,13 @@ public static class PopoverAppear
         PlacementMode.Right or PlacementMode.RightEdgeAlignedTop or PlacementMode.RightEdgeAlignedBottom => new RelativePoint(0, 0.5, RelativeUnit.Relative),
         _ => new RelativePoint(0.5, 0, RelativeUnit.Relative), // below the anchor (and anything else): the arrow is on top
     };
+
+    // The speed of a curve at a time, from its values a tenth of a millisecond either side (inside the run).
+    private static double Slope(Func<double, double> curve, double seconds, double end)
+    {
+        const double h = 1e-4;
+        var before = Math.Max(0, seconds - h);
+        var after = Math.Min(end, seconds + h);
+        return after > before ? (curve(after) - curve(before)) / (after - before) : 0;
+    }
 }

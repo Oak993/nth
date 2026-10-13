@@ -770,7 +770,7 @@ public sealed class ComposerView : Decorator
             var glides = inlineSeen && resize is not null && !resize.IsReshaping;
             inlineSeen = true;
             inlineGoal = goal;
-            inlineInset.Set(goal, glides ? Animation.Smooth(0.28) : null);
+            inlineInset.Set(goal, glides ? Animation.Smooth(0.28) : null, keepSpeed: true); // ED-NEW-perf-motion-11, as the height below
         }
         ApplyInlinePlacement();
     }
@@ -1582,6 +1582,9 @@ internal sealed class ComposerTextColumn : Decorator
     private VoiceNoteLine? voiceLine;
     private IFrameSource? heightFrames;
     private Action<TimeSpan>? heightFrame;
+    // The clip's glide under way (where it set out from, its goal, when and along what), so the next height carries its speed on.
+    private (double From, double To, ContinuousInstant Start, Animation Curve)? heightGlide;
+    private bool heightGlideRunning;
 
     // PORT-ONLY (ED-NEW-session-hotkeys): the text view's first measure is on its way to the clip. The source starts the text
     // height at its one-line size (:552, 20) and its first measure finds that same size, so nothing moves as a chat is first
@@ -1816,15 +1819,24 @@ internal sealed class ComposerTextColumn : Decorator
         var resize = GetValue(AppEnvironment.WindowLiveResizeProperty);
         var first = firstMeasure;
         firstMeasure = false;
+        // ED-NEW-perf-motion-11: the speed of the glide under way, read on its own clock before it is replaced.
+        var speed = 0.0;
+        if (heightGlide is { } glide && heightGlideRunning)
+            speed = (glide.To - glide.From) * glide.Curve.Speed((SwiftClock.Now - glide.Start).TotalSeconds);
+        heightGlideRunning = false;
         if (resize is null || resize.IsReshaping || first || double.IsNaN(clip.Height) || clip.Height == height)
         {
             clip.Height = height;
             return;
         }
-        // :601-604 Only the top-aligned clip interpolates on the smooth 0.28 curve; each new height replaces it.
+        // :601-604 Only the top-aligned clip interpolates on the smooth 0.28 curve; each new height retargets it. SwiftUI's .smooth is a
+        // spring, which keeps its velocity through a retarget (ED-NEW-perf-motion-11): a line typed mid-glide carries the glide on at its
+        // speed instead of stopping it dead and setting off again.
         var from = clip.Height;
-        var animation = Animation.Smooth(0.28);
+        var animation = Animation.Smooth(0.28).WithStartSpeed(speed / (height - from));
         var start = SwiftClock.Now;
+        heightGlide = (from, height, start, animation);
+        heightGlideRunning = true;
         heightFrames = FrameClock.Source.Current;
         Action<TimeSpan>? frame = null;
         frame = _ =>
@@ -1832,7 +1844,7 @@ internal sealed class ComposerTextColumn : Decorator
             var elapsed = (SwiftClock.Now - start).TotalSeconds;
             var complete = elapsed >= animation.Duration;
             clip.Height = complete ? height : from + (height - from) * animation.Progress(elapsed);
-            if (complete) heightFrame = null;
+            if (complete) { heightFrame = null; heightGlideRunning = false; }
             else heightFrames.RequestFrame(frame!);
         };
         heightFrame = frame;

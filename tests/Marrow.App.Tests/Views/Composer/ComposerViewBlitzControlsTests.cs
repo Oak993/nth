@@ -390,6 +390,57 @@ public sealed class ComposerViewBlitzControlsTests(HeadlessSession headless)
         });
     }
 
+    // ED-NEW-perf-motion-11 (the lead's ruling on finding 5): .smooth(duration: 0.28) is a spring, which keeps its velocity through a
+    // retarget. A line typed while the clip glides sets the new glide out at the speed the clip had; before, it set out from rest.
+    [Fact]
+    [Trait("Decision", "ED-NEW-perfmotion-11")]
+    public void A_line_typed_while_the_clip_glides_carries_the_glide_on_at_its_speed()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames);
+            var column = h.Main.OnMain(() => Column(h.Runtime, null));
+            var window = h.Main.OnMain(() => Show(column, h.App, 400));
+            var resize = h.Main.OnMain(() => new WindowLiveResize(window));
+            h.Main.OnMain(() => AppEnvironment.SetWindowLiveResize(column, resize));
+            Pump(h, window);
+            var text = One<ComposerTextView>(column);
+            var clip = (Border)text.Parent!;
+            string Lines(int count) => string.Join("\n", Enumerable.Range(1, count).Select(n => "line " + n.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            const double frame = 1 / 60.0;
+            void Step()
+            {
+                h.Main.Advance(TimeSpan.FromSeconds(frame));
+                h.Main.OnMain(() => frames.Advance(TimeSpan.FromSeconds(frame)));
+            }
+            var smooth = Animation.Smooth(0.28);
+            var first = h.Main.OnMain(() => clip.Height);
+            h.Main.OnMain(() => h.Runtime.Draft = new ComposerDraft { Text = Lines(2) });
+            Pump(h, window);
+            var goal = h.Main.OnMain(() => text.Height);
+            Assert.True(goal > first + 5, $"two lines are taller ({first} to {goal})");
+            for (var i = 0; i < 4; i++) Step();
+            var reached = h.Main.OnMain(() => clip.Height);
+            Assert.Equal(first + (goal - first) * smooth.Progress(4 * frame), reached, 3);
+            var speed = (goal - first) * smooth.Speed(4 * frame);
+            h.Main.OnMain(() => h.Runtime.Draft = new ComposerDraft { Text = Lines(4) });
+            Pump(h, window);
+            var next = h.Main.OnMain(() => text.Height);
+            Assert.Equal(reached, h.Main.OnMain(() => clip.Height), 6); // no jump at the new line
+            Step();
+            // From the height reached, along the curve, plus the speed it had dying out by the curve's end.
+            var carried = reached + (next - reached) * smooth.Progress(frame) + speed * smooth.Impulse(frame);
+            var fromRest = reached + (next - reached) * smooth.Progress(frame);
+            Assert.True(carried - fromRest > 0.5, $"the speed carried counts here ({carried} against {fromRest})");
+            Assert.Equal(carried, h.Main.OnMain(() => clip.Height), 3);
+            for (var i = 0; i < 60; i++) Step();
+            Assert.Equal(next, h.Main.OnMain(() => clip.Height), 6);
+            Close(h, window);
+        });
+    }
+
     // ---- PR-COMPOSER-016 (:599-604) ----
 
     [Fact]

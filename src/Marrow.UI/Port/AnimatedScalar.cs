@@ -41,16 +41,34 @@ public sealed class AnimatedScalar
     /// <summary>Where the value is heading: the last target set (the value itself once it has landed).</summary>
     public double Target => pending is null ? Value : goal;
 
+    /// <summary>How fast the value moves now, per second (0 at rest), on the run's own clock.</summary>
+    public double Speed
+    {
+        get
+        {
+            if (pending is null) return 0;
+            var now = SwiftClock.Now;
+            if (runs.Count > 0) return runs.Sum(run => run.Delta * run.Animation.Speed((now - run.Start).TotalSeconds));
+            return plain is { } running ? (goal - running.From) * running.Animation.Speed((now - running.Start).TotalSeconds) : 0;
+        }
+    }
+
     /// <param name="additive">PORT-ONLY (ED-NEW-sidebarmodes-8): SwiftUI's springs are additive, so a new target set while a run is in flight
     /// adds a run of its own on top of the one already moving and the value keeps its speed: a reversal turns round smoothly instead of
     /// stopping dead and starting again from rest. Off, a new target replaces the run from the value reached, at rest.</param>
-    public void Set(double target, Animation? animation, bool preserveFrameProgress = false, bool additive = false)
+    /// <param name="keepSpeed">PORT-ONLY (ED-NEW-perf-motion-11): SwiftUI's springs keep their velocity through a retarget, so a new
+    /// target set while a spring is in flight sets out from the value reached at the speed it had (the carried speed dies out by the
+    /// curve's end) instead of from rest. A site whose motion must stay on the same curve as another one's (the composer's inline point
+    /// and its height) uses this, as the other does.</param>
+    public void Set(double target, Animation? animation, bool preserveFrameProgress = false, bool additive = false, bool keepSpeed = false)
     {
         if (additive && animation is not null && pending is not null && FrameClock.IsBound && !ReduceMotion)
         {
             Retarget(target, animation);
             return;
         }
+        if (keepSpeed && animation is { KeepsSpeed: true } && pending is not null && target != Value)
+            animation = animation.WithStartSpeed(Speed / (target - Value));
         Stop();
         runs.Clear();
         var from = Value;
@@ -69,6 +87,7 @@ public sealed class AnimatedScalar
         }
         goal = target;
         var start = SwiftClock.Now;
+        plain = (from, start, animation);
         var previousFrame = start;
         var span = TimeSpan.FromSeconds(animation.Duration);
         var frames = FrameClock.Source.Current;
@@ -78,7 +97,10 @@ public sealed class AnimatedScalar
             var now = SwiftClock.Now;
             var gap = now - previousFrame;
             if (preserveFrameProgress && gap > TimeSpan.FromMilliseconds(50))
+            {
                 start += gap - TimeSpan.FromSeconds(1.0 / 60);
+                plain = (from, start, animation);
+            }
             previousFrame = now;
             var complete = FrameClock.IsComplete(start, now, span);
             Value = complete ? target : from + (target - from) * animation.Progress((now - start).TotalSeconds);
@@ -94,14 +116,20 @@ public sealed class AnimatedScalar
     // One additive run: what it still has to add is (1 - progress) of its delta, counted back from the goal.
     private sealed record Run(double Delta, ContinuousInstant Start, Animation Animation);
     private readonly List<Run> runs = [];
+    // The plain run in flight (where it set out from, when, and along what), so an additive target can carry it on.
+    private (double From, ContinuousInstant Start, Animation Animation)? plain;
 
     private void Retarget(double target, Animation animation)
     {
-        if (runs.Count == 0) // a plain (replacing) run is in flight: the additive one takes over from the value it reached
+        if (runs.Count == 0) // a plain (replacing) run is in flight: it carries on as an additive run, so the value keeps its speed
         {
+            // ED-NEW-perf-motion-11: before, the plain run was stopped and the additive one began from the value at rest, a dead stop.
+            var running = plain;
+            var heading = goal;
             Stop();
+            if (running is { } carried) runs.Add(new Run(heading - carried.From, carried.Start, carried.Animation));
             goal = target;
-            runs.Add(new Run(target - Value, SwiftClock.Now, animation));
+            runs.Add(new Run(target - heading, SwiftClock.Now, animation));
             StartRuns();
             return;
         }
@@ -146,5 +174,6 @@ public sealed class AnimatedScalar
         if (pending is { } frame) source?.CancelFrame(frame);
         pending = null;
         runs.Clear();
+        plain = null;
     }
 }

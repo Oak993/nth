@@ -339,4 +339,35 @@ public sealed class SidebarFaceInPlaceTests(HeadlessSession headless)
             Assert.Equal(1d, only.Opacity);
         });
     });
+    // ED-NEW-perf-motion-11 (the lead's ruling on finding 5): the title's room follows a hover in and out on additive runs, as SwiftUI's
+    // animations add: a hover out mid-glide keeps the glide in flight and adds the way back on top, so the room turns round at its
+    // speed. Before, the way back replaced the glide from the value reached, at rest.
+    [Fact]
+    [Trait("Decision", "ED-NEW-perfmotion-11")]
+    public void A_hover_out_mid_glide_turns_the_titles_room_round_at_its_speed() => headless.OnUiThread(() =>
+    {
+        using var rig = new ThreadFaceRig();
+        double start = 0;
+        rig.Harness.Main.OnMain(() => start = rig.Padding());
+        var from = start - Chrome.RowHorizontalPadding;
+        var to = from == 52 ? 18 : 52;
+        var hover = Chrome.Hover;
+        rig.Harness.Main.OnMain(() => rig.Face().SetTrailingClearance(to, hover));
+        rig.Tick(16);
+        rig.Tick(16);
+        double reached = 0;
+        rig.Harness.Main.OnMain(() => reached = rig.Padding());
+        Assert.Equal(start + (to - from) * hover.Progress(0.032), reached, 3);
+        rig.Harness.Main.OnMain(() => rig.Face().SetTrailingClearance(from, hover));
+        rig.Harness.Main.OnMain(() => Assert.Equal(reached, rig.Padding(), 9)); // no jump at the hover out
+        rig.Tick(16);
+        // The first run carries on and the way back is added on top: start + (to - from) (p(48 ms) - p(16 ms)). The replacing run gave
+        // reached + (start - reached) p(16 ms).
+        var additive = start + (to - from) * (hover.Progress(0.048) - hover.Progress(0.016));
+        var replacing = reached + (start - reached) * hover.Progress(0.016);
+        Assert.True(Math.Abs(additive - replacing) > 0.5, $"the two rules differ here ({additive} and {replacing})");
+        rig.Harness.Main.OnMain(() => Assert.Equal(additive, rig.Padding(), 3));
+        rig.Tick(500);
+        rig.Harness.Main.OnMain(() => Assert.Equal(start, rig.Padding(), 9));
+    });
 }

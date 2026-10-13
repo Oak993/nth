@@ -2187,7 +2187,7 @@ internal sealed class ProjectRow : Decorator
             // shows the row as it stands.
             var dimTarget = value.Item2 ? 1d : 0.55d;
             dim ??= new AnimatedScalar(this, dimTarget, level => Opacity = level);
-            dim.Set(dimTarget, dimPrimed ? Transaction.Current ?? Chrome.Hover : null);
+            dim.Set(dimTarget, dimPrimed ? Transaction.Current ?? Chrome.Hover : null, additive: true); // ED-NEW-perf-motion-11: a hover in and out turns round at its speed
             dimPrimed = true;
             // REVIEW FIX (part 6): SwiftUI re-reads `project.icon` (:1085, :1108) on every render, but the icon
             // slot (SidebarIconBadge, UI/Chrome/Chrome.cs) is built once, synchronously, inside SidebarRow's own
@@ -4403,9 +4403,9 @@ internal sealed class ThreadRowFace : Decorator
         }
         SetTrailingClearance(trailingClearance, animation);
         var nextWeight = WeightClass(thread, isSelected);
-        if (nextWeight != weightTarget) { weightTarget = nextWeight; weight.Set(nextWeight, animation); }
+        if (nextWeight != weightTarget) { weightTarget = nextWeight; weight.Set(nextWeight, animation, additive: true); } // ED-NEW-perf-motion-11
         var nextOpacity = TitleOpacity(thread.IsSettled, isSelected);
-        if (nextOpacity != titleOpacityTarget) { titleOpacityTarget = nextOpacity; titleOpacity.Set(nextOpacity, animation); }
+        if (nextOpacity != titleOpacityTarget) { titleOpacityTarget = nextOpacity; titleOpacity.Set(nextOpacity, animation, additive: true); }
     }
 
     /// <summary>
@@ -4418,7 +4418,7 @@ internal sealed class ThreadRowFace : Decorator
     {
         if (value == clearanceTarget) return;
         clearanceTarget = value;
-        clearance.Set(value, animation);
+        clearance.Set(value, animation, additive: true); // ED-NEW-perf-motion-11: the title's room glides on through a hover out and back
     }
 
     private void SetMetrics()
