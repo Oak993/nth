@@ -81,9 +81,25 @@ public sealed class ThreadTimelineMentionsTests(HeadlessSession headless)
                 Press(mount, block, CharacterRect(block, walter).Center);
                 Assert.Equal(other.Id, mount.Model.SelectedThreadID); Assert.Empty(opened);
                 // Every other link keeps the system's handling (:216 `.systemAction`): the chat selected stays as it was.
-                mount.Model.SelectedThreadID = null;
-                Press(mount, block, CharacterRect(block, "the docs").Center);
-                Assert.Null(mount.Model.SelectedThreadID); Assert.Equal(new[] { "https://thread-timeline-docs.invalid/docs" }, opened);
+                // PORT-ONLY (web surfaces W10, DESIGN 5.11, ED-NEW-web-w10-2): "Open links from chats in" is Ask the first time, so the first click asks and opens nothing; once the reader answers Default
+                // browser the link goes to the system exactly as it always did, and the next click goes there at once.
+                var questions = new List<Marrow.App.Port.Web.ChatLinkChoice>();
+                var previousQuestion = Marrow.App.Port.Web.ChatLinks.ShowChoice;
+                Marrow.App.Port.Web.ChatLinks.ShowChoice = (choice, _) => questions.Add(choice);
+                try
+                {
+                    mount.Model.SelectedThreadID = null;
+                    Press(mount, block, CharacterRect(block, "the docs").Center);
+                    Assert.Null(mount.Model.SelectedThreadID); Assert.Empty(opened); Assert.Empty(hooked);
+                    var asked = Assert.Single(questions);
+                    asked.Choose(visus: false);
+                    Assert.Equal(new[] { "https://thread-timeline-docs.invalid/docs" }, opened);
+                    Assert.Equal(Marrow.Core.Web.ChatLinkTarget.DefaultBrowser, mount.Model.Settings.Web.ChatLinks);
+                    opened.Clear();
+                    Press(mount, block, CharacterRect(block, "the docs").Center);
+                    Assert.Null(mount.Model.SelectedThreadID); Assert.Equal(new[] { "https://thread-timeline-docs.invalid/docs" }, opened); Assert.Single(questions);
+                }
+                finally { Marrow.App.Port.Web.ChatLinks.ShowChoice = previousQuestion; }
             }
             finally { ShellWorkspace.OpenWithDefaultApp = previous; InlineText.OpenUrl = previousHook; }
             // :120-127 with Hydra on, the whole roster after them: a name is drawn as its head from the first frame, before the spawn lands.

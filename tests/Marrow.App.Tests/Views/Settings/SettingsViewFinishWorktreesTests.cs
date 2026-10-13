@@ -23,7 +23,8 @@ public sealed class SettingsViewFinishWorktreesTests(HeadlessSession headless) :
     {
         With(() => new SettingsView(), (view, model, h, w) =>
         {
-            Click(w, RowButton(view, "Source control")); var page = Assert.Single(Nodes<SourceControlSettingsPage>(view));
+            // PORT-ONLY (web surfaces W10, ED-NEW-web-w10-4): the sidebar now has 20 rows in the 580pt window and scrolls, so the row is brought into view before it is pressed.
+            var sourceControl = RowButton(view, "Source control"); sourceControl.BringIntoView(); Drain(w); Tick(h, 500); Click(w, sourceControl); var page = Assert.Single(Nodes<SourceControlSettingsPage>(view));
             // :808,:818,:836 the page's sections in order; the last is headed "Worktrees and pull requests".
             var sections = Nodes<ChromeSection>(page); Assert.Equal(new[] { "Text generation", "Commit message instructions", "Worktrees and pull requests" }, sections.Select(s => Text(s).First())); var section = sections[2];
             // Chrome.swift:1037-1044 the header .body semibold in secondary text, 10pt above the card (sectionHeaderSpacing); :1011-1026 the card a 16pt continuous shape filled with overlay(0.03).
