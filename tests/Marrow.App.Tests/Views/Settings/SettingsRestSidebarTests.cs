@@ -32,7 +32,7 @@ public sealed class SettingsRestSidebarTests(HeadlessSession headless) : Setting
         With(() => new SettingsView(), (view, _, h, w) =>
         {
             var titles = Marrow.App.Port.Settings.SettingsSidebar.Pages("").Select(page => page.Title).ToArray();
-            var symbols = Marrow.App.Port.Settings.SettingsSidebar.Pages("").Select(page => page is SettingsPage.Hydra or SettingsPage.Ignis ? "" : page.Symbol).ToArray(); // Hydra and Ignis (OD-0134) draw their own marks
+            var symbols = Marrow.App.Port.Settings.SettingsSidebar.Pages("").Select(page => page is SettingsPage.Hydra or SettingsPage.Ignis or SettingsPage.Assistant ? "" : page.Symbol).ToArray(); // Hydra, Ignis (OD-0134) and the Assistant (AS-8, Armilla) draw their own marks
             Assert.Equal(titles, Nodes<SidebarRow>(view).Select(r => Text(r).Single()));
             var list = Field<StackPanel>(view, "rows"); Assert.Equal(1, list.Spacing); Assert.Equal(new Thickness(10, 12, 10, 8), list.Margin);
             Check(Nodes<SidebarRow>(view)[0], 0, true);
@@ -60,6 +60,7 @@ public sealed class SettingsRestSidebarTests(HeadlessSession headless) : Setting
                 var glyph = frame.Children[0]; Ink(glyph, Avalonia.Controls.Documents.TextElement.GetForeground(glyph), Chrome.PrimaryText.Opacity(0.85));
                 if (index == 1) { var mark = Assert.Single(Nodes<HydraMarkImage>(row)); Assert.Equal(16.1, mark.Width, 5); Assert.Equal(16.1, mark.Height, 5); Assert.Empty(Nodes<SidebarSymbol>(row)); }
                 else if (titles[index] == "Ignis") { var flame = Assert.Single(Nodes<Marrow.App.Port.Ignis.Settings.IgnisFlameMark>(row)); Assert.Equal(16.1, flame.Width, 5); Assert.Equal(16.1, flame.Height, 5); Assert.Empty(Nodes<SidebarSymbol>(row)); } // OD-0134: the lit flame, Hydra's size
+                else if (titles[index] == "Assistant") { var mark = Assert.Single(Nodes<Marrow.UI.Port.Armilla.ArmillaMark>(row)); Assert.Equal(16.1, mark.MarkSize, 5); Assert.Equal(Marrow.UI.Port.Armilla.ArmillaKind.Still, mark.Kind); Assert.Empty(Nodes<SidebarSymbol>(row)); Assert.Empty(Nodes<SwiftImage>(row)); } // Dextra AS-8: Armilla, still, Hydra's size
                 else { var image = Assert.Single(Nodes<SwiftImage>(row)); Assert.Equal(symbols[index], image.SymbolName); Assert.Equal(index == 0 ? 16.1 : 14, image.Width, 5); Assert.Equal(index == 0 ? 16.1 : 14, image.Height, 5); }
                 Assert.Empty(Nodes<UpdateAvailableDot>(row));
             }
