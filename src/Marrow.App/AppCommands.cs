@@ -136,7 +136,7 @@ public sealed class AppCommands
                 new("Queue a chat", // :74
                     shortcuts.KeyboardShortcut(AppShortcut.QueueChat), // :75
                     (Runtime?.DraftIsEmpty ?? true) || !((Runtime?.Approvals.Count ?? 0) == 0), // :76-77 (approvals.isEmpty)
-                    () => Runtime?.QueueDraftAsFollowUp()), // :74
+                    () => Runtime?.QueueDraftAsFollowUp(byOwner: true)), // :74
                 new("Toggle plan mode", // :78
                     shortcuts.KeyboardShortcut(AppShortcut.TogglePlanMode), // :82
                     Model.SelectedThreadID is null, // :83

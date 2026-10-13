@@ -88,6 +88,9 @@ public static class IgnisWords
         IgnisNext.AutoOffWarmAndTidy => "Auto is off, so Ignis waits for you to keep warm or tidy up.",
         IgnisNext.KeepWarm => "It keeps the quick memory warm while you work. It won’t tidy up this chat.",
         IgnisNext.WarmAndTidy => "It keeps the quick memory warm while you work and tidies up the chat before it gets costly, always between tasks.",
+        IgnisNext.HomeThread => "This is your own conversation, so Ignis never keeps it warm. After a break the first reply is a little slower.",
+        IgnisNext.HomeThreadTidy => "This is your own conversation, so Ignis never keeps it warm. After a break the first reply is a little slower. It still tidies up between tasks.",
+        IgnisNext.MissionRunning => "A task is still running in this chat, so Ignis leaves it alone until the task is done.",
     };
 
     /// <summary>Shown instead of cache numbers when the provider reports none.</summary>

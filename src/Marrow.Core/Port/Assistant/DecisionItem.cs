@@ -126,12 +126,24 @@ public sealed record DecisionItem(Guid Id, DecisionKind Kind, DecisionWeight Wei
 
     public DecisionAnswer? Answer { get; init; }
 
+    /// <summary>
+    /// The answer the owner gave while the task was paused (12.6b "Cards while paused"): kept, shown as "your answer runs
+    /// on resume", and acted on at Resume. A card holding one is still open; answering again replaces it.
+    /// </summary>
+    public DecisionAnswer? Kept { get; init; }
+
     public DateTimeOffset Raised { get; init; }
 
     public DateTimeOffset? Settled { get; init; }
 
     /// <summary>A line the card adds below its rule: the provider cancelled the request, the inputs changed.</summary>
     public string? Note { get; init; }
+
+    /// <summary>
+    /// The personal data and secrets in the card's inputs, which the card highlights in place (12.4 "Privacy shield on
+    /// the way out", AS-7): each names its input, where it starts and how long it is.
+    /// </summary>
+    public ValueList<PrivacySpan> Highlights { get; init; } = ValueList<PrivacySpan>.Empty;
 
     /// <summary>The card's binding to its inputs: an irreversible card whose inputs change is withdrawn and raised anew.</summary>
     public string Binding => DecisionRules.Bind(Kind, Title, Inputs);

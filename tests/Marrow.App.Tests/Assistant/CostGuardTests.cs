@@ -229,6 +229,42 @@ public sealed class CostGuardTests : IDisposable
     }
 
     [Fact]
+    public void A_turn_that_runs_on_another_account_is_counted_against_that_account_not_the_missions()
+    {
+        // AS-14: a reviewer picked on another account passes the account its turn will run on (ReserveGuard.BeforeTurn's onAccount).
+        using var rig = Rig();
+        rig.DailyCap(2, "dextra");
+        rig.Ledger.AddPoints("dextra", CodexA.Key, CodexA.Name, false, ReserveWindowKind.FiveHour, 1.0);   // 1 today on Codex A, nothing on Claude 20x
+        var record = rig.Started(For(rig, "dextra"));
+        Assert.Null(rig.Card(record));
+
+        Assert.True(rig.Guard.BeforeTurn(record, null, ProviderKind.Claude, Model, ReserveTurns.Review));                  // on its own account: 1.32 fits under 2
+        Assert.False(rig.Guard.BeforeTurn(record, null, ProviderKind.Codex, Model, ReserveTurns.Review, CodexA));          // on Codex A: 1 + 1.32 passes it
+        var card = Assert.IsType<DecisionItem>(rig.Card(record));
+        Assert.Contains(card.Inputs, i => i.Value == "Codex A's 5-hour window");
+    }
+
+    [Fact]
+    public void A_mission_is_not_held_by_what_its_assistant_used_of_an_account_the_mission_is_not_running_on()
+    {
+        // The router spreads an assistant's missions over accounts: one mission using up Codex A's share of the day is not a reason to stop another on Claude 20x.
+        using var rig = Rig();
+        rig.DailyCap(3, "channel-a");
+        rig.DefaultAccount = CodexA;
+        var onCodex = rig.Started(For(rig, "channel-a", "on codex"));
+        rig.Guard.OnSpend(rig.LeadOf(onCodex), Model, 450_000);      // 4.5 of Codex A today: over the cap
+        Assert.NotNull(rig.Card(onCodex));
+
+        rig.DefaultAccount = Claude20;
+        var onClaude = rig.Started(For(rig, "channel-a", "on claude"));
+        Assert.Equal(MissionState.Working, onClaude.Mission.State);   // 0 + 1.32 of Claude 20x fits
+        rig.Guard.OnSpend(rig.LeadOf(onClaude), Model, 100_000);      // 1 of Claude 20x today: well under
+        Assert.Equal(MissionState.Working, rig.Missions.Now(onClaude).Mission.State);
+        Assert.Null(rig.Card(onClaude));
+        Assert.Single(rig.Holds);                                      // only the mission on Codex A was ever held
+    }
+
+    [Fact]
     public void What_an_assistants_own_thread_spends_counts_toward_its_day_and_a_chat_of_no_assistant_counts_for_nobody()
     {
         using var rig = Rig();

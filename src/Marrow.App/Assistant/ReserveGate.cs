@@ -37,9 +37,10 @@ public interface IReserveGate
     /// <summary>
     /// True when the turn may be sent now. False: the mission is held (paused for its reserve, or the owner's pause stands) and
     /// the runner sends nothing; the words wait with the mission. <paramref name="thread"/> is the chat the turn goes to, or null
-    /// when the chat is yet to be made.
+    /// when the chat is yet to be made; <paramref name="onAccount"/> is the account it will run on when that is not the mission's
+    /// (the reviewer's, AS-14).
     /// </summary>
-    bool BeforeTurn(MissionRecord mission, Guid? thread, ProviderKind provider, string? model, string purpose);
+    bool BeforeTurn(MissionRecord mission, Guid? thread, ProviderKind provider, string? model, string purpose, ReserveAccountRef? onAccount = null);
 
     /// <summary>A turn began on the chat: its p90 counts in every margin on its account until it ends.</summary>
     void TurnStarted(Guid mission, Guid thread, string? model);

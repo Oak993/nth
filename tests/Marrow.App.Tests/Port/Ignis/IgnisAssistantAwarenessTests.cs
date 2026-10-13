@@ -148,4 +148,23 @@ public sealed class IgnisAssistantAwarenessTests : IDisposable
         Assert.Empty(port.Tidies);
         Assert.Equal(IgnisNext.Off, Status.Next);
     }
+
+    [Fact]
+    public void What_the_popover_says_of_these_chats_is_true_the_home_thread_is_not_kept_warm_and_a_task_s_chat_is_left_alone()
+    {
+        environment.Uses[Thread] = IgnisAssistantUse.HomeThread;
+        main.OnMain(() => controller.SetMode(Thread, IgnisMode.KeepWarm));
+        Start();
+        Assert.Equal(IgnisNext.HomeThread, Status.Next);
+        main.OnMain(() => controller.SetMode(Thread, IgnisMode.WarmAndTidy));
+        Assert.Equal(IgnisNext.HomeThreadTidy, Status.Next);
+        main.Advance(TimeSpan.FromHours(2));                         // however cold it goes, the line does not promise a warm-up
+        Assert.Equal(IgnisNext.HomeThreadTidy, Status.Next);
+
+        environment.Uses[Thread] = IgnisAssistantUse.MissionMidTask;
+        Assert.Equal(IgnisNext.MissionRunning, Status.Next);
+        environment.Uses[Thread] = IgnisAssistantUse.None;
+        Assert.NotEqual(IgnisNext.MissionRunning, Status.Next);       // an ordinary chat is read as it always was
+        Assert.NotEqual(IgnisNext.HomeThreadTidy, Status.Next);
+    }
 }

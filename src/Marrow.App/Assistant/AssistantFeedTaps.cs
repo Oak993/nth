@@ -123,6 +123,9 @@ internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus) : I
     /// <summary>An account as the reserve names it: the feed's key, the owner's name for it, its provider.</summary>
     public ReserveAccountRef AccountRef(UsageAccountKey account) => new(AccountKey(account), AccountName(account), account.Provider.Id);
 
+    /// <summary>The same for an account of the store, by its id (AS-14: the router's accounts).</summary>
+    public ReserveAccountRef AccountRef(ProviderKind provider, Guid id) => AccountRef(KeyOf(provider, id));
+
     /// <summary>AppModel.TurnFinished: a chat's turn ended. A head reports through <see cref="TapHeadFinished"/> instead.</summary>
     public void TapTurnFinished(Guid threadId, TurnStatus status, bool continues)
     {
@@ -192,6 +195,20 @@ internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus) : I
         catch (Exception)
         {
         }
+    }
+
+    /// <summary>
+    /// Dextra's controller (AS-7): an agent found instructions in untrusted content and nth ignored them (12.4 "Found
+    /// instructions in ⟨source⟩; ignored"). The quote is the content's words (masked by the scanner), so the shield and the
+    /// privacy filter apply. Unlike the runtime taps it may throw: the controller that calls it reports the fault.
+    /// </summary>
+    public void TapInstructionFound(Guid threadId, TaintSource source, InstructionFinding finding)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(finding);
+        if (disposed || !bus.HasSubscribers || app.Thread(threadId) is not { } thread) return;
+        Publish(thread, FeedEventKind.InstructionFound, FeedSeverity.Info,
+            "found instructions in " + TaintGates.OriginWord(source.Origin) + "; ignored", "“" + finding.Quote + "”");
     }
 
     /// <summary>MultiAccountRouting: an account's usage windows were polled.</summary>

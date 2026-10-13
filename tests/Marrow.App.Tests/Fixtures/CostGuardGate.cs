@@ -12,8 +12,8 @@ internal sealed class CostGuardGate(CostGuard guard) : IReserveGate
 {
     public void MissionBegan(MissionRecord mission, ReserveStart? start) => guard.MissionBegan(mission, start);
 
-    public bool BeforeTurn(MissionRecord mission, Guid? thread, ProviderKind provider, string? model, string purpose) =>
-        !guard.IsHeld(mission.Id) && guard.BeforeTurn(mission, thread, provider, model, purpose);
+    public bool BeforeTurn(MissionRecord mission, Guid? thread, ProviderKind provider, string? model, string purpose, ReserveAccountRef? onAccount = null) =>
+        !guard.IsHeld(mission.Id) && guard.BeforeTurn(mission, thread, provider, model, purpose, onAccount);
 
     public void TurnStarted(Guid mission, Guid thread, string? model) => guard.TurnStarted(mission, thread, model);
 

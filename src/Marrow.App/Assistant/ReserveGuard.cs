@@ -227,17 +227,17 @@ public sealed partial class ReserveGuard : IReserveGate, IDisposable
     /// the mission is held; if its reserve is the reason, it is Paused (a turn running elsewhere in it finishes first) and the
     /// owner's card is in the queue. Then the owner's caps are asked (AS-15): a task a cap holds is not asked of the reserve again.
     /// </summary>
-    public bool BeforeTurn(MissionRecord mission, Guid? thread, ProviderKind provider, string? model, string purpose)
+    public bool BeforeTurn(MissionRecord mission, Guid? thread, ProviderKind provider, string? model, string purpose, ReserveAccountRef? onAccount = null)
     {
         ArgumentNullException.ThrowIfNull(mission);
-        if (Costs is not { } costs) return BeforeTurnReserve(mission, thread, model, purpose);
+        if (Costs is not { } costs) return BeforeTurnReserve(mission, thread, model, purpose, onAccount);
         if (costs.IsHeld(mission.Id)) return false;
-        return BeforeTurnReserve(mission, thread, model, purpose) && costs.BeforeTurn(mission, thread, provider, model, purpose);
+        return BeforeTurnReserve(mission, thread, model, purpose, onAccount) && costs.BeforeTurn(mission, thread, provider, model, purpose, onAccount);
     }
 
-    private bool BeforeTurnReserve(MissionRecord mission, Guid? thread, string? model, string purpose)
+    private bool BeforeTurnReserve(MissionRecord mission, Guid? thread, string? model, string purpose, ReserveAccountRef? onAccount)
     {
-        var account = (thread is { } t ? o.AccountOf(t) : null) ?? o.AccountForNew(mission);
+        var account = (thread is { } t ? o.AccountOf(t) : null) ?? onAccount ?? o.AccountForNew(mission);
         var now = clock.GetUtcNow();
         ReserveCheck check;
         double p90;

@@ -66,7 +66,10 @@ public sealed record Mission(Guid Id, string Title, string AssistantId, MissionO
 
     public string? Branch { get; init; }
 
-    public ControlSlots Slots => MissionStates.Slots(State, ChangedFiles > 0, Reverted);
+    /// <summary>Stopped after it failed: Stop kept its branch, and only Restart begins it again (12.6b, r4 G6).</summary>
+    public bool StoppedAfterFailure => State == MissionState.Stopped && ResumeTo == MissionState.Failed;
+
+    public ControlSlots Slots => MissionStates.Slots(State, ChangedFiles > 0, Reverted, StoppedAfterFailure);
 
     public BoardGroup Group => MissionStates.Group(State, ResumeTo, PausedBy == PauseCause.Reserve);
 }
@@ -124,14 +127,16 @@ public static class MissionMachine
     /// Resume. On Pausing it cancels the pause. On Paused each head returns to the state it paused from, and the task
     /// to what it was doing, except that a reserve's pause and a held irreversible card bring the task back to Needs you
     /// (their card resumes it). On Stopped it continues from the saved state, unless the changes were reverted
-    /// (then it is Restart). A head the owner stopped on its own stays stopped unless the task cannot go on without it.
+    /// (then it is Restart). A head the owner stopped on its own stays stopped unless the task cannot go on without it
+    /// (and only when <paramref name="resumeNeededHandStopped"/> holds: Resume all leaves such a head stopped).
     /// </summary>
-    public static MissionMove Resume(Mission m, bool heldIrreversibleCard = false)
+    public static MissionMove Resume(Mission m, bool heldIrreversibleCard = false, bool resumeNeededHandStopped = true)
     {
         switch (m.State)
         {
             case MissionState.Stopping: return No(m, "The task is stopping; Resume opens once it has stopped.");
             case MissionState.Stopped when m.Reverted: return No(m, "Its changes were reverted: Restart begins again from the brief.");
+            case MissionState.Stopped when m.StoppedAfterFailure: return No(m, "It failed: Restart begins again from the brief.");
             case MissionState.Pausing or MissionState.Paused or MissionState.Stopped: break;
             default: return No(m, "There is nothing to resume.");
         }
@@ -143,11 +148,15 @@ public static class MissionMachine
             HeadState.Stopped when !h.StoppedByHand => h with { State = h.ResumeTo ?? HeadState.Queued, ResumeTo = null },
             _ => h,
         }).ToList();
-        // A head stopped by hand that a waiting head needs is resumed too, when nothing else could run.
-        if (heads.Count > 0 && TaskRollup.Sum(heads).Sum != TaskSum.Running)
+        // A head stopped by hand that a waiting head needs is resumed too, when nothing else could run. Resume all never
+        // does (it leaves a head stopped on its own stopped and names it; resumeNeededHandStopped is false there).
+        if (resumeNeededHandStopped && heads.Count > 0 && TaskRollup.Sum(heads).Sum != TaskSum.Running)
         {
             var needed = heads.Where(h => h.State != HeadState.Done).SelectMany(h => h.DependsOn).ToHashSet(StringComparer.Ordinal);
-            heads = heads.Select(h => h.State == HeadState.Stopped && h.StoppedByHand && needed.Contains(h.Id)
+            // No head that is waited on? Then the task cannot go on without any of them: every one stopped by hand comes back.
+            var handStopped = heads.Where(h => h.State == HeadState.Stopped && h.StoppedByHand).ToList();
+            var all = !handStopped.Any(h => needed.Contains(h.Id)) && heads.All(h => h.State is HeadState.Done or HeadState.Stopped);
+            heads = heads.Select(h => h.State == HeadState.Stopped && h.StoppedByHand && (all || needed.Contains(h.Id))
                 ? h with { State = h.ResumeTo ?? HeadState.Queued, ResumeTo = null, StoppedByHand = false }
                 : h).ToList();
         }
@@ -216,7 +225,7 @@ public static class MissionMachine
     /// <summary>Restart: from Failed, or from Stopped once its changes are reverted. Begins again from the brief.</summary>
     public static MissionMove Restart(Mission m)
     {
-        var allowed = m.State == MissionState.Failed || (m.State == MissionState.Stopped && m.Reverted);
+        var allowed = m.State == MissionState.Failed || (m.State == MissionState.Stopped && (m.Reverted || m.StoppedAfterFailure));
         if (!allowed)
             return No(m, m.State == MissionState.Stopped
                 ? "Its changes are kept: Resume continues from the saved state."
@@ -239,7 +248,7 @@ public static class MissionMachine
     {
         MissionState.Pausing => true,
         MissionState.Paused => m.PausedBy != PauseCause.Reserve,
-        MissionState.Stopped => m.StoppedBy == StopCause.StopAll && !m.Reverted,
+        MissionState.Stopped => m.StoppedBy == StopCause.StopAll && !m.Reverted && !m.StoppedAfterFailure,
         _ => false,
     };
 

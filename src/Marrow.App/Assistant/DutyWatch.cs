@@ -29,6 +29,9 @@ public sealed class DutyWatch
     private readonly DutyWatchOptions o;
     private readonly object gate = new();
     private readonly Dictionary<string, Guid> cards = new(StringComparer.Ordinal);
+    // What the book could not keep (a newer version's file nth leaves alone, or a book that is full): this run of nth still remembers it, so a
+    // duty the breaker paused is never fired again for want of a place to write that it was.
+    private readonly Dictionary<string, DutyHealth> unkept = new(StringComparer.Ordinal);
 
     public DutyWatch(DutyWatchOptions options)
     {
@@ -43,16 +46,34 @@ public sealed class DutyWatch
     public event Action<string>? Faulted;
 
     /// <summary>The breaker paused this duty: the scheduler does not fire it until the owner lets it go on.</summary>
-    public bool IsPaused(string dutyId) => o.Book.Of(dutyId).Paused;
+    public bool IsPaused(string dutyId) => HealthOf(dutyId).Paused;
 
-    public DutyHealth HealthOf(string dutyId) => o.Book.Of(dutyId);
+    public DutyHealth HealthOf(string dutyId)
+    {
+        lock (gate)
+        {
+            if (unkept.TryGetValue(dutyId, out var health)) return health;
+        }
+        return o.Book.Of(dutyId);
+    }
+
+    // The book keeps it; when it cannot, the watch does, for as long as nth runs (bounded like the book).
+    private void Store(DutyHealth health)
+    {
+        var kept = o.Book.Set(health);
+        lock (gate)
+        {
+            if (kept || (health.ConsecutiveFailures == 0 && !health.Paused)) unkept.Remove(health.DutyId);
+            else if (unkept.ContainsKey(health.DutyId) || unkept.Count < DutyHealthBook.MaxDuties) unkept[health.DutyId] = health;
+        }
+    }
 
     /// <summary>A run of a duty ended. The third failure in a row pauses it and raises the card.</summary>
     public void RunEnded(DutyRun run)
     {
         ArgumentNullException.ThrowIfNull(run);
-        var result = DutyBreaker.Record(o.Book.Of(run.DutyId), run.Succeeded ? DutyOutcome.Succeeded : DutyOutcome.Failed, run.Reason, o.Time.GetUtcNow());
-        o.Book.Set(result.Health);
+        var result = DutyBreaker.Record(HealthOf(run.DutyId), run.Succeeded ? DutyOutcome.Succeeded : DutyOutcome.Failed, run.Reason, o.Time.GetUtcNow());
+        Store(result.Health);
         if (!result.Tripped) return;
         Raise(run, result.Health);
         Log(run.AssistantId, run.DutyId, "duty_paused", $"{result.Health.ConsecutiveFailures} failures in a row");
@@ -60,7 +81,15 @@ public sealed class DutyWatch
     }
 
     /// <summary>The duties the breaker paused, oldest first (the scheduler lists them when nth starts).</summary>
-    public IReadOnlyList<DutyHealth> PausedDuties => o.Book.Paused;
+    public IReadOnlyList<DutyHealth> PausedDuties
+    {
+        get
+        {
+            List<DutyHealth> held;
+            lock (gate) held = [.. unkept.Values.Where(h => h.Paused)];
+            return [.. o.Book.Paused.Where(h => held.All(x => x.DutyId != h.DutyId)).Concat(held).OrderBy(h => h.PausedAt)];
+        }
+    }
 
     /// <summary>
     /// nth started and a duty the breaker paused is still paused: its card did not survive the restart (the queue is not kept), so it is
@@ -68,7 +97,7 @@ public sealed class DutyWatch
     /// </summary>
     public bool Reraise(string dutyId, string name, string assistantId)
     {
-        var health = o.Book.Of(dutyId);
+        var health = HealthOf(dutyId);
         if (!health.Paused) return false;
         lock (gate)
         {
@@ -81,7 +110,7 @@ public sealed class DutyWatch
     /// <summary>The owner turned the duty on again (its own switch, or the card's "Try it again"): the count starts again and an open card is withdrawn.</summary>
     public void Resume(string dutyId, string assistantId = "")
     {
-        o.Book.Set(DutyBreaker.Resume(o.Book.Of(dutyId)));
+        Store(DutyBreaker.Resume(HealthOf(dutyId)));
         Guid? card;
         lock (gate) card = cards.Remove(dutyId, out var id) ? id : null;
         if (card is { } open) o.Queue.Withdraw(open, "The duty was turned on again.");
@@ -114,7 +143,7 @@ public sealed class DutyWatch
         }
         if (string.Equals(answer.Text, DutyWords.TryAgain, StringComparison.Ordinal))
         {
-            o.Book.Set(DutyBreaker.Resume(o.Book.Of(run.DutyId)));
+            Store(DutyBreaker.Resume(HealthOf(run.DutyId)));
             Log(run.AssistantId, run.DutyId, "duty_resumed", DutyWords.TryAgain);
         }
         else Log(run.AssistantId, run.DutyId, "duty_kept_paused", DutyWords.KeepPaused);

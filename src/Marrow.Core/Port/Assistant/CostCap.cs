@@ -90,6 +90,9 @@ public sealed class CapUse
     }
 }
 
+/// <summary>The account a piece of work is running on right now, and whether it spends money (an API key) or only windows.</summary>
+public sealed record CapAccount(string Key, bool IsApiKey);
+
 /// <summary>What the next turn is expected to use (its p90): points of each window of the account it runs on, and dollars.</summary>
 public sealed record CapTurn(string AccountKey, string AccountName, IReadOnlyDictionary<ReserveWindowKind, double> Points, decimal Dollars);
 
@@ -123,9 +126,11 @@ public static class CostCapMath
     /// <summary>
     /// Whether the work crosses the cap. With a <paramref name="turn"/>: the use plus the turn's p90 is over the limit (a limit
     /// the work would pass). Without one (between turns): the use has reached the limit, so no further turn may go. The tightest
-    /// window (the least room) is the one reported.
+    /// window (the least room) is the one reported. Between turns, <paramref name="running"/> limits the check to the account the work is running
+    /// on (ED-NEW-dextra-as15-11): what it, or another piece of work of the assistant, used of some other account is not what it spends now, and a
+    /// subscription account spends no money; without it every account the work used counts.
     /// </summary>
-    public static CapVerdict Check(CostCap cap, CapUse use, CapTurn? turn, CapAllowance? allowance = null)
+    public static CapVerdict Check(CostCap cap, CapUse use, CapTurn? turn, CapAllowance? allowance = null, CapAccount? running = null)
     {
         ArgumentNullException.ThrowIfNull(cap);
         ArgumentNullException.ThrowIfNull(use);
@@ -145,7 +150,7 @@ public static class CostCapMath
             // A turn can only add to the account it runs on, so the other accounts' windows are not its to pass; between turns every
             // window the work has used counts (any account reaching the cap holds it).
             var keys = turn is null
-                ? new HashSet<(string Account, ReserveWindowKind Kind)>(use.Points.Keys)
+                ? new HashSet<(string Account, ReserveWindowKind Kind)>(use.Points.Keys.Where(key => running is null || key.Account == running.Key))
                 : new HashSet<(string Account, ReserveWindowKind Kind)>(turn.Points.Keys.Select(kind => (turn.AccountKey, kind)));
             foreach (var key in keys.OrderBy(k => k.Account, StringComparer.Ordinal).ThenBy(k => k.Kind))
             {
@@ -158,7 +163,7 @@ public static class CostCapMath
             }
         }
         // A turn that spends no money (a subscription account's) cannot pass a cap in dollars.
-        if (normal.Dollars is { } dollars && (turn is null || turn.Dollars > 0))
+        if (normal.Dollars is { } dollars && (turn is null ? running is null || running.IsApiKey : turn.Dollars > 0))
         {
             var used = (double)use.Dollars;
             var needs = turn is null ? 0 : (double)Math.Max(0m, turn.Dollars);

@@ -244,6 +244,19 @@ public sealed partial class AssistantStore : IDisposable
 
     public JsonNode? Duties(string assistantId) => ReadDocument(AssistantFile(assistantId, "duties.json"));
 
+    /// <summary>The home chats' taint (Dextra AS-7, ED-NEW-dextra-as7-14): one document at the store's root.</summary>
+    public const string HomeTaintFileName = "home-taint.json";
+
+    /// <summary>Writes the home chats' taint (temp-then-rename).</summary>
+    public void SaveHomeTaint(JsonObject body) => SaveDocument(Path.Combine(Root, HomeTaintFileName), body);
+
+    /// <summary>
+    /// The home chats' taint as last saved, or null when none was. Throws InvalidDataException when the document is there
+    /// but does not parse, so the caller can fail closed (a missing document and a damaged one are not the same).
+    /// </summary>
+    public JsonObject? HomeTaint() =>
+        ReadDocument(Path.Combine(Root, HomeTaintFileName), out var present) as JsonObject
+        ?? (present ? throw new InvalidDataException("The home chats' taint document could not be read.") : null);
     /// <summary>The reserve rules the owner saved as standing defaults (<c>reserves.json</c>, AS-13), or null when there is none or it does not parse.</summary>
     public JsonObject? Reserves() => ReadDocument(Path.Combine(Root, ReservesFile)) as JsonObject;
 
@@ -550,12 +563,15 @@ public sealed partial class AssistantStore : IDisposable
         }
     }
 
-    private JsonNode? ReadDocument(string path)
+    private JsonNode? ReadDocument(string path) => ReadDocument(path, out _);
+
+    private JsonNode? ReadDocument(string path, out bool present)
     {
         lock (gate)
         {
             ThrowIfClosed();
-            if (!File.Exists(path)) return null;
+            present = File.Exists(path);
+            if (!present) return null;
             return AssistantJson.Parse(File.ReadAllText(path, Utf8)); // null when it does not parse or repeats a name
         }
     }

@@ -66,6 +66,23 @@ public sealed class CostCapMathTests
     }
 
     [Fact]
+    public void Between_turns_the_check_can_be_asked_of_the_account_the_work_is_running_on()
+    {
+        var use = Used(5.5, account: "claude:20x");
+        use.Add("codex:a", ReserveWindowKind.FiveHour, 0.5);
+        Assert.True(CostCapMath.Check(Five(), use, null, running: new CapAccount("claude:20x", false)).Crossed);
+        Assert.False(CostCapMath.Check(Five(), use, null, running: new CapAccount("codex:a", false)).Crossed);    // what another account used is not what it spends now
+        Assert.True(CostCapMath.Check(Five(), use, null).Crossed);                                                  // not asked: every account the work used counts, as before
+
+        var spent = new CapUse();
+        spent.AddDollars(3m);
+        var dollars = new CostCap("d", CostCapScope.Task) { Dollars = 2 };
+        Assert.True(CostCapMath.Check(dollars, spent, null, running: new CapAccount("openrouter:key", true)).Crossed);
+        Assert.False(CostCapMath.Check(dollars, spent, null, running: new CapAccount("claude:20x", false)).Crossed);   // a subscription account spends no money
+        Assert.True(CostCapMath.Check(dollars, spent, null).Crossed);
+    }
+
+    [Fact]
     public void What_the_owner_let_it_go_over_once_raises_that_windows_limit_only()
     {
         var allowance = new CapAllowance(new Dictionary<(string, ReserveWindowKind), double> { [("claude:20x", ReserveWindowKind.FiveHour)] = 2 }, 0);

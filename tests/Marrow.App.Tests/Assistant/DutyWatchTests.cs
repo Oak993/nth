@@ -165,4 +165,33 @@ public sealed class DutyWatchTests
         Assert.NotNull(Card(setup));
         Assert.Contains(setup.Faults, f => f.StartsWith("The activity log could not be written", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void A_book_that_cannot_hold_a_duty_does_not_let_a_failing_duty_run_for_ever()
+    {
+        // A duty-health.json saved by a newer nth is left alone, so the book takes nothing: this run of nth still pauses the duty (ED-NEW-dextra-as15-5).
+        var newer = new System.Text.Json.Nodes.JsonObject { ["version"] = DutyHealthBook.FormatVersion + 1 };
+        var book = new DutyHealthBook();
+        book.Load(newer);
+        Assert.True(book.ReadOnly);
+        var setup = new DutyWatchRig(book);
+
+        for (var i = 0; i < 2; i++) setup.Watch.RunEnded(Run(false, "down " + i));
+        Assert.Equal(2, setup.Watch.HealthOf("digest").ConsecutiveFailures);                   // the count is kept, though the book will not
+        Assert.False(setup.Watch.IsPaused("digest"));
+        setup.Watch.RunEnded(Run(false, "down 2"));
+        Assert.True(setup.Watch.IsPaused("digest"));
+        Assert.Equal(["digest"], setup.Watch.PausedDuties.Select(h => h.DutyId));
+        Assert.NotNull(Card(setup));
+        Assert.Null(book.ToJson());                                                             // and the newer file was not written over
+        Assert.False(book.Paused.Any());
+
+        Assert.Null(setup.Queue.Answer(Card(setup).Id, DecisionAnswer.Pick(DutyWords.TryAgain)));
+        Assert.False(setup.Watch.IsPaused("digest"));
+        Assert.Empty(setup.Watch.PausedDuties);
+        setup.Watch.RunEnded(Run(false, "down again"));
+        Assert.Equal(1, setup.Watch.HealthOf("digest").ConsecutiveFailures);
+        setup.Watch.RunEnded(Run(true));
+        Assert.Equal(0, setup.Watch.HealthOf("digest").ConsecutiveFailures);
+    }
 }

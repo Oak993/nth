@@ -1,7 +1,8 @@
 // PORT-ONLY: Dextra (DESIGN.md rev 5, 13.2 "Caps", 15.3; unit AS-15; ED-NEW-dextra-as15-3). No Swift twin.
 // What each assistant used today, per account and window, and the money spent on API keys: the figures a day's cap is checked
 // against, kept on disk (costs.json) so a restart does not give the day back. The day is the local calendar day. The format
-// carries a version; a file with a newer version is read for nothing and never written over; fields this build does not know are
+// carries a version; a file with a newer version is read for nothing and never written over (what is spent this run still counts, in memory, so a cap
+// never reads a day as empty); fields this build does not know are
 // written back; a line that is not a row is skipped, never repaired; only the last three days are kept and a day holds a bounded
 // number of rows, so the file never grows without bound.
 using System.Globalization;
@@ -38,7 +39,7 @@ public sealed class CostLedger
 
     public CostLedger(TimeProvider? time = null) => clock = time ?? TimeProvider.System;
 
-    /// <summary>The file's version was newer than this build knows: nothing was read, and nothing is written over it.</summary>
+    /// <summary>The file's version was newer than this build knows: nothing was read and nothing is written over it; this run's spend is still counted, in memory.</summary>
     public bool ReadOnly { get; private set; }
 
     /// <summary>Something was added (the store's writer listens; it writes at most every half minute).</summary>
@@ -65,7 +66,8 @@ public sealed class CostLedger
     {
         lock (gate)
         {
-            if (ReadOnly) return;
+            // A newer version's file is never written over (ToJson says null), but what is spent this run is still counted in memory: a day's
+            // cap that read nothing would never hold (ED-NEW-dextra-as15-10).
             var today = Today;
             var key = (today, assistantId, accountKey, window);
             if (!rows.TryGetValue(key, out var row))

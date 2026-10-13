@@ -1,9 +1,11 @@
-// PORT-ONLY: Dextra (DESIGN.md rev 5, 0 points 1 and 4, 12.3, 15.1, 15.4, 15.5; unit AS-5; ED-NEW-dextra-as5-11). No
-// Swift twin. Dextra's controller inside nth's process: it owns the decision queue, the mission runner, the agent gate
-// and the grants; it is the host behind the nth-dextra tools (IAssistantToolHost), and the policy engine's caller for
-// every provider approval of a mission chat. Auto-answering is off (16, the ordering rule): AS-7 turns it on only after
-// its injection corpus passes, so until then the engine's Allow still lands on a card.
+// PORT-ONLY: Dextra (DESIGN.md rev 5, 0 points 1 and 4, 12.3, 12.4, 15.1, 15.4, 15.5; units AS-5 and AS-7;
+// ED-NEW-dextra-as5-11, ED-NEW-dextra-as7-7 to -10). No Swift twin. Dextra's controller inside nth's process: it owns the
+// decision queue, the mission runner, the agent gate and the grants; it is the host behind the nth-dextra tools
+// (IAssistantToolHost), and the policy engine's caller for every provider approval of a mission chat, which it decides
+// with the agent's own taint and role and the outward privacy check. Auto-answering (16, the ordering rule) is off until
+// the switch says the injection self-check passed (AS-7); until then the engine's Allow still lands on a card.
 using System.Text.Json.Nodes;
+using Marrow.App.Safety;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Assistant;
@@ -42,7 +44,7 @@ public sealed class AssistantControllerOptions
 
     public Func<MissionLimits> Limits { get; init; } = () => MissionLimits.Default;
 
-    /// <summary>The provider and model a mission's lead runs on until the router (AS-14) picks per step.</summary>
+    /// <summary>The provider and model a mission's lead runs on when the router (AS-14) has none to pick, or none is set up.</summary>
     public ProviderKind Provider { get; init; } = ProviderKind.Claude;
 
     public string? Model { get; init; }
@@ -55,8 +57,55 @@ public sealed class AssistantControllerOptions
     /// <summary>The environment the classifier places paths with; null reads nth's own (MissionClassifier.CurrentEnvironment).</summary>
     public ValueMap<string, string>? Environment { get; init; }
 
+    /// <summary>Whether the engine's Allow may answer alone (AS-7). Off unless Dextra's start gives the self-check's switch.</summary>
+    public AutoAnswerSwitch AutoAnswer { get; init; } = AutoAnswerSwitch.Off;
+
+    /// <summary>The owner's list of recipients personal data may go to (12.4; Settings > Assistant). Read at every check.</summary>
+    public Func<IReadOnlyList<string>> PersonalDataRecipients { get; init; } = () => [];
+
+    /// <summary>The owner's allowlisted commands (12.1 "Run"; Settings > Assistant). Read at every approval.</summary>
+    public Func<IReadOnlyList<string>> Allowlist { get; init; } = () => [];
+
+    /// <summary>An agent found instructions in untrusted content (the feed's tap: "Found instructions in ...; ignored").</summary>
+    public Action<Guid, TaintSource, InstructionFinding>? InstructionFound { get; init; }
+
+    /// <summary>
+    /// The home chats' taint as nth last saved it (AS-7, ED-NEW-dextra-as7-14); null when none was saved. A throw counts
+    /// as a record nth cannot read (fail closed). Null: the taint is kept in memory only.
+    /// </summary>
+    public Func<JsonObject?>? LoadHomeTaint { get; init; }
+
+    /// <summary>Saves the home chats' taint after each change (a small atomic write); a throw is reported, the taint stands.</summary>
+    public Action<JsonObject>? SaveHomeTaint { get; init; }
+
+    /// <summary>The home chats nth has now (Dextra's chats in no mission), read only when the saved taint cannot be.</summary>
+    public Func<IReadOnlyList<Guid>> HomeChats { get; init; } = () => [];
+
+    /// <summary>Where untrusted output is read for instructions (AS-7, ED-NEW-dextra-as7-17): off the main thread, one at a time.</summary>
+    public Action<Action> ScanOn { get; init; } = AssistantController.SerialScanner();
+
+    /// <summary>How long an nth-dextra call waits for the main thread to take in the chat's earlier events (ED-NEW-dextra-as7-18).</summary>
+    public TimeSpan SettleWait { get; init; } = TimeSpan.FromSeconds(10);
+    /// <summary>
+    /// The one stop chord (AS-6, 12.6): missions hold a lease on it while they run and Stop all is bound to it. Null: no chord
+    /// (a build without it, the tests); the tray and the buttons still stop.
+    /// </summary>
+    public GlobalStop? StopKey { get; init; }
+
+    /// <summary>Tactus's streams, held by a task's Pause (12.6b); null while Tactus is not here.</summary>
+    public IPcStreamHold? PcStreams { get; init; }
+
+    /// <summary>Scopes beyond missions that Stop all also stops (a voice reply, a teach recording, Tactus streams of its missions).</summary>
+    public IReadOnlyList<IStopScope> StopScopes { get; init; } = [];
+
     /// <summary>The usage reserve (AS-13): what it reads and keeps. Null: no reserve; nothing is held back for usage.</summary>
     public ReserveSetup? Reserve { get; init; }
+
+    /// <summary>
+    /// The usage-aware router (AS-14): what it reads of the owner's accounts and models. Null: a mission's lead runs on
+    /// <see cref="Provider"/> and <see cref="Model"/>, and the pause card has no "Move the rest to ...".
+    /// </summary>
+    public RouterSetup? Router { get; init; }
 
     /// <summary>How duties' runs ended (AS-15): the book a duty paused by the breaker is kept in. Null: the watch keeps nothing across a restart.</summary>
     public DutyHealthBook? DutyHealth { get; init; }
@@ -107,9 +156,10 @@ public sealed class ReserveSetup
 
     public required Func<Marrow.Core.Port.UsageAccountKey, ReserveAccountRef> AccountOfSnapshot { get; init; }
 
-    /// <summary>The router's seam (AS-14) for option 1 of the pause card.</summary>
+    /// <summary>Option 1 of the pause card, when something other than the router makes it (a test's fake); the router does by default.</summary>
     public IReserveMover? Mover { get; init; }
 
+    /// <summary>The mission's model was chosen by the owner; by default what its record says (<see cref="MissionRecord.ModelPinned"/>).</summary>
     public Func<MissionRecord, bool>? IsPinned { get; init; }
 
     public Func<ReserveAccountRef, Task>? Refresh { get; init; }
@@ -121,7 +171,7 @@ public sealed class ReserveSetup
     public CostSetup? Costs { get; init; }
 }
 
-public sealed class AssistantController : IAssistantToolHost, IDisposable
+public sealed partial class AssistantController : IAssistantToolHost, IDisposable
 {
     private readonly AssistantControllerOptions o;
     private readonly object gate = new();
@@ -133,6 +183,7 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
         o = options;
         Queue = new DecisionQueue(o.Time);
         Gate = new AgentGate(o.Limits, o.Memory, o.Time);
+        Hold = new SchedulerHold();
         Runner = new MissionRunner(new MissionRunnerOptions
         {
             Agents = o.Agents,
@@ -143,10 +194,34 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
             Policy = ApprovalPolicy,
             Limits = o.Limits,
             Save = o.Save,
-            Audit = TryAudit,
+            // The runner writes its own lines and refuses a step whose line cannot be written (12.3 point 2: logged first,
+            // then answered); swallowing the failure here would let an auto-answer run unlogged (AS-7).
+            Audit = o.Audit,
             Granted = Granted,
             Time = o.Time,
+            AutoAnswering = () => AutoAnswering,
+            GrantsUsed = UseGrants,
+            Deliver = Deliver,
+            StopKey = o.StopKey,
+            Hold = Hold,
+            PcStreams = o.PcStreams,
         });
+        if (o.Router is { } routing)
+        {
+            Router = new AssistantRouter(routing, o.Time, Runner, o.Agents);
+            Runner.ReviewerRouter = Router;
+        }
+        Stopper = new StopAll(new StopAllOptions
+        {
+            Runner = Runner,
+            Jobs = o.Jobs,
+            Agents = o.Agents,
+            Hold = Hold,
+            Scopes = o.StopScopes,
+            Time = o.Time,
+        });
+        if (o.StopKey is { } key) Stopper.Bind(key);
+        Controls = new MissionControls(Runner, Stopper, Hold, Queue);
         if (o.Reserve is { } reserve)
         {
             Reserve = new ReserveGuard(new ReserveGuardOptions
@@ -159,13 +234,14 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
                 AccountOf = reserve.AccountOf,
                 AccountForNew = reserve.AccountForNew,
                 AccountOfSnapshot = reserve.AccountOfSnapshot,
-                Mover = reserve.Mover,
-                IsPinned = reserve.IsPinned ?? (_ => false),
+                Mover = reserve.Mover ?? Router,
+                IsPinned = reserve.IsPinned ?? (record => record.ModelPinned),
                 Refresh = reserve.Refresh,
                 Audit = TryAudit,
                 Time = o.Time,
             });
             Runner.Reserve = Reserve;
+            Router?.Bind(Reserve);
             if (reserve.Costs is { } costs)
             {
                 Costs = new CostGuard(new CostGuardOptions
@@ -193,6 +269,8 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
             Duties = new DutyWatch(new DutyWatchOptions { Queue = Queue, Book = book, Audit = TryAudit, Time = o.Time });
             Duties.Faulted += Runner.ReportFault;
         }
+        WatchAutoAnswer();
+        LoadHomeTaint();
     }
 
     /// <summary>The cost controls (AS-15): the owner's caps, checked before every turn of a mission, beside the reserve.</summary>
@@ -214,6 +292,19 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
     /// <summary>The duty breaker (AS-15): a duty that fails three times in a row is paused with a card. AS-10's scheduler reports every run to it and asks it before it fires one.</summary>
     public DutyWatch? Duties { get; }
 
+    /// <summary>The usage-aware router (AS-14), when one is set up: it picks a mission's lead, fills its team's profiles and moves it between accounts.</summary>
+    public AssistantRouter? Router { get; }
+
+    /// <summary>
+    /// The pair a mission lead's Hydra team runs on, filled by the router (15.4: "the router chooses HydraHeadProfiles"); null for
+    /// a chat that is not a lead (a head has a parent), a mission that runs no team, one whose model the owner pinned, or when nothing
+    /// can be chosen. It is asked when the lead's session launches, which can be before the runner has recorded the lead's id.
+    /// </summary>
+    public HydraPair? TeamPair(ChatThread lead) =>
+        lead.MissionID is { } mission && lead.ParentThreadID is null && Runner.Find(mission) is { Team: true } record && record.Provider == lead.Provider
+            ? Router?.TeamPair(record)
+            : null;
+
     /// <summary>The usage reserve (AS-13), when one is set up: it follows the accounts and gates every turn of a mission.</summary>
     public ReserveGuard? Reserve { get; }
 
@@ -223,11 +314,20 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
 
     public MissionRunner Runner { get; }
 
+    /// <summary>Stop all (12.6): bound to the one stop chord when there is one.</summary>
+    public StopAll Stopper { get; }
+
+    /// <summary>Stop all holds the scheduler; Pause all is a latch (12.6, 12.6b).</summary>
+    public SchedulerHold Hold { get; }
+
+    /// <summary>Pause, Resume, Stop, Revert and Restart for each task and head, and Pause all, Resume all and Stop all (12.6b).</summary>
+    public MissionControls Controls { get; }
+
     /// <summary>
-    /// Off until AS-7's injection corpus passes (16): the engine's Allow runs no tool and answers no approval alone. Only
-    /// the read-only and stop tools marked RunsBeforeAutoAnswer run on an Allow.
+    /// Off until AS-7's injection corpus passes in this process (16): until then the engine's Allow runs no tool and
+    /// answers no approval alone, and only the read-only and stop tools marked RunsBeforeAutoAnswer run on an Allow.
     /// </summary>
-    public bool AutoAnswering => false;
+    public bool AutoAnswering => o.AutoAnswer.IsOn;
 
     /// <summary>The grants the owner made from cards (For this mission, Always...).</summary>
     public IReadOnlyList<Grant> Grants
@@ -274,10 +374,26 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
         if (!continues) Flush(thread);
     }
 
-    public void OnHeadAdded(ChatThread lead, ChatThread head) => Runner.HeadAdded(lead.Id, head.Id, head.Hydra?.DisplayName ?? head.Title ?? "A head",
-        native: head.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Native);
+    public void OnHeadAdded(ChatThread lead, ChatThread head)
+    {
+        Runner.HeadAdded(lead.Id, head.Id, head.Hydra?.DisplayName ?? head.Title ?? "A head",
+            native: head.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Native);
+        HomeHeadAdded(lead, head); // AS-7: a head of the home chat starts with its lead's taint
+    }
 
-    public void OnHeadFinished(Guid head, TurnStatus status) => Runner.HeadFinished(head, status);
+    /// <summary>
+    /// A head finished its turn. True when a Pause holds the finish (12.6b): Hydra must not finish the head yet. A head of the
+    /// home chat hands its lead its taint with its report (AS-7).
+    /// </summary>
+    public bool OnHeadFinished(Guid head, TurnStatus status)
+    {
+        if (Runner.HeadFinished(head, status)) return true;
+        HomeHeadFinished(head);
+        return false;
+    }
+
+    /// <summary>A mission chat sent its open helper a new prompt (AS-7): the helper carries what the parent carries now.</summary>
+    public void OnHelperPrompted(ChatThread parent, ChatThread helper) => Runner.HelperPrompted(parent.Id, helper.Id);
 
     /// <summary>A helper chat a mission's chat opened: false when it is no running mission's, and then it does not open.</summary>
     public bool OnHelperAdded(ChatThread parent, ChatThread helper) => Runner.HelperAdded(parent.Id, helper.Id);
@@ -287,14 +403,28 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
     private ApprovalVerdict ApprovalPolicy(MissionRecord record, Guid thread, ApprovalRequest request)
     {
         // Each chat is classified in its own folder (its session's working folder), so a relative path is placed where
-        // that chat really works (ED-NEW-dextra-as5-14); a chat nth cannot place gets no folder at all.
+        // that chat really works (ED-NEW-dextra-as5-14); a chat nth cannot place gets no folder at all. It is decided with
+        // its own taint and role, and what it would send out is checked for personal data (AS-7).
         var chat = o.Thread(thread);
-        var folder = chat is null ? null : chat.WorktreePath ?? o.Projects().FirstOrDefault(p => p.Id == chat.ProjectID)?.Path;
-        var context = MissionClassifier.ForAgent(record, o.ProtectedRoots, folder, o.Environment);
+        var context = MissionClassifierOf(record, chat);
         var provider = chat?.Provider ?? record.Provider;
-        var classification = ActionClassifier.ClassifyApproval(request, context, provider: provider);
-        var decision = PolicyEngine.Decide(classification, MissionContext(record.Mission.AssistantId, record.Id, record.Mission.TaintContext));
-        return new ApprovalVerdict(classification, decision);
+        var policy = MissionContext(record.Mission.AssistantId, record.Id, Runner.TaintOf(record.Id, thread)) with { Role = MissionRunner.RoleOf(record, thread) };
+        var decided = MissionApprovals.Decide(request, context, policy, provider, o.PersonalDataRecipients(), confirmedRecipients: ConfirmedRecipients());
+        var outgoing = MissionApprovals.Outgoing(request, provider);
+        var recipients = decided.Outward.Recipients;
+        return new ApprovalVerdict(decided.Classification, decided.Decision)
+        {
+            Outward = decided.Outward,
+            StillBlocked = decided.Outward.HasPersonalData ? () => OutwardPrivacy.Check(outgoing, o.PersonalDataRecipients()).Refusal : null,
+            OnAllowed = recipients.Count > 0 ? () => Confirm(recipients) : null,
+        };
+    }
+
+    /// <summary>The classifier's view of one chat of the mission, in its own folder, with the owner's allowlist.</summary>
+    private ClassifierContext MissionClassifierOf(MissionRecord record, ChatThread? chat)
+    {
+        var folder = chat is null ? null : chat.WorktreePath ?? o.Projects().FirstOrDefault(p => p.Id == chat.ProjectID)?.Path;
+        return MissionClassifier.ForAgent(record, o.ProtectedRoots, folder, o.Environment) with { Allowlist = new ValueList<string>(o.Allowlist()) };
     }
 
     private PolicyContext MissionContext(string assistantId, Guid? mission, TaintContext taint)
@@ -353,12 +483,19 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
 
     public PolicyContext PolicyContext(AssistantChat chat)
     {
-        var taint = chat.MissionId is { } mission && Runner.Find(mission) is { } record ? record.Mission.TaintContext : TaintContext.Clean;
-        return MissionContext(chat.AssistantId, chat.MissionId, taint);
+        // A mission's chat decides with its own taint and role; the home chat with its own taint until the owner's next
+        // message (12.4; AS-7).
+        if (chat.MissionId is { } mission && Runner.Find(mission) is { } record)
+            return MissionContext(chat.AssistantId, mission, Runner.TaintOf(mission, chat.Thread)) with { Role = MissionRunner.RoleOf(record, chat.Thread) };
+        return MissionContext(chat.AssistantId, chat.MissionId, chat.MissionId is null ? HomeTaint(chat.Thread) : TaintContext.Clean);
     }
 
-    public Task<AssistantToolResult> Run(AssistantToolCall call, CancellationToken cancellationToken) =>
-        Task.FromResult(RunNow(call));
+    public Task<AssistantToolResult> Run(AssistantToolCall call, CancellationToken cancellationToken)
+    {
+        var result = RunNow(call);
+        if (call.Decision.GrantsUsed.Count > 0) UseGrants(call.Decision.GrantsUsed, "call:" + call.Id);
+        return Task.FromResult(result);
+    }
 
     private AssistantToolResult RunNow(AssistantToolCall call)
     {
@@ -384,16 +521,27 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
                 var title = team ? "Team: " + parent!.Mission.Title : Text("title") ?? "Mission";
                 // 12.4: from a tainted chat the brief goes as data only, and the mission starts tainted (its Taint below).
                 var brief = call.DataOnly ? AsData(Text("brief") ?? "") : Text("brief") ?? "";
-                var started = Runner.Start(new MissionRequest(title, brief, chat.AssistantId, project.Id, project.Path, parent?.Provider ?? o.Provider)
+                // The router picks the lead's account and model where the reserve leaves room; a team under a mission keeps its parent's
+                // (the same account and model), and with no pick the mission starts on the default and the reserve holds it if it must.
+                var routed = parent is null ? Router?.PickLead(chat.AssistantId) : null;
+                var started = Runner.Start(new MissionRequest(title, brief, chat.AssistantId, project.Id, project.Path, parent?.Provider ?? routed?.Provider ?? o.Provider)
                 {
-                    Model = parent?.Model ?? o.Model,
+                    Model = parent?.Model ?? routed?.Model ?? o.Model,
+                    AccountId = parent?.AccountId ?? routed?.AccountId,
+                    ModelPinned = parent?.ModelPinned ?? false,
                     Team = team,
                     Origin = chat.MissionId is null ? MissionOrigin.Owner : MissionOrigin.Delegation,
                     Parent = parent?.Id ?? chat.MissionId,
                     Taint = PolicyContext(chat).TaintContext,
                     BudgetUsd = args["budget_usd"]?.JSONValueDouble is { } budget ? (decimal)budget : null,
+                    // 12.4 "Reader and actor split": a reader mission only reads and reports (AS-7).
+                    Readers = !team && Text("role") == "reader",
+                    // A mission's chat that starts one gets its report back (AS-7).
+                    RequestedBy = chat.MissionId is null ? null : chat.Thread,
                 });
                 var r = started.Record;
+                if (Runner.Find(r.Id)?.Mission.State == MissionState.Paused)
+                    return AssistantToolResult.Done($"Mission {r.Id:D} “{r.Mission.Title}” is paused: {(Hold.StopHeld ? "Stop all" : "Pause all")} is on. It starts when the owner resumes.");
                 return r.Mission.State == MissionState.Blocked
                     ? AssistantToolResult.Failed($"Not started: {r.Reason}")
                     : AssistantToolResult.Done($"Mission {r.Id:D} “{r.Mission.Title}” is planning; its lead starts when an agent slot is free.");
@@ -433,6 +581,10 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
                 var record = Runner.MissionOf(agent);
                 if (record is not null && agent == record.LeadThread)
                     return Runner.Stop(record.Id) is { } refused ? AssistantToolResult.Failed("Not stopped: " + refused) : AssistantToolResult.Done("The mission is stopping; its work is kept.");
+                if (record is not null && record.Mission.Heads.Any(h => h.Id == agent.ToString("D")))
+                    return Runner.StopHead(record.Id, agent) is { } headRefused
+                        ? AssistantToolResult.Failed("Not stopped: " + headRefused)
+                        : AssistantToolResult.Done("The head is stopping; its work is kept.");
                 o.Agents.StopHead(agent);
                 o.Jobs.Terminate(agent);
                 return AssistantToolResult.Done("The head is stopping; its work is kept.");
@@ -440,7 +592,8 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
             case "request_helpers":
             {
                 if (chat.MissionId is not { } mission) return AssistantToolResult.Failed("Not run: only a mission's chat can ask for helpers.");
-                var started = Runner.RequestHelpers(mission, Text("task") ?? "", (int)(Whole("helpers") ?? 1), Text("reason") ?? "", out var refused);
+                var started = Runner.RequestHelpers(mission, Text("task") ?? "", (int)(Whole("helpers") ?? 1), Text("reason") ?? "", out var refused,
+                    requester: chat.Thread, readers: Text("role") == "reader");
                 return started is null
                     ? AssistantToolResult.Done(refused ?? "Not started.")
                     : AssistantToolResult.Done($"Helpers started as mission {started.Record.Id:D}; their report comes back to this mission.");
@@ -515,6 +668,13 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
         };
         return Queue.Raise(card, (item, answer) =>
         {
+            // 12.6b: an irreversible card approved a moment before its task paused had not run: it is held, and needs a new tap.
+            if (answer.Approves && item.MissionId is { } paused && Runner.Find(paused)?.Mission.State is MissionState.Pausing or MissionState.Paused
+                && DecisionRules.HeldByPause(item) && Queue.Reopen(item.Id, DecisionHold.Pause, MissionRunner.HeldAfterApproval))
+            {
+                TryAudit(AssistantToolRunner.Entry(call, "held by Pause before it ran: needs a new tap after Resume"));
+                return;
+            }
             if (answer.Approves)
             {
                 // 12.5: the owner's allow is logged with his card before the call runs; when the log cannot be written,
@@ -528,6 +688,8 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
                 }
                 var result = RunNow(call);
                 TryAudit(AssistantToolRunner.Entry(call, (result.IsError ? "failed" : "done") + " on the owner's answer") with { AllowedBy = by });
+                // 12.4: what the result carries in taints the chat before it reads it (AS-7).
+                if (result.Taint.IsTainted) Absorb(call.Chat, result.Taint);
                 Deliver(call.Chat.Thread, $"{AssistantNames.Server} {call.Tool.Name} (the owner allowed it): {result.Text}");
             }
             else
@@ -639,6 +801,7 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
 
     public void Dispose()
     {
+        Stopper.Dispose();
         Costs?.Dispose();
         Reserve?.Dispose();
         o.Reserve?.Owned?.Dispose();

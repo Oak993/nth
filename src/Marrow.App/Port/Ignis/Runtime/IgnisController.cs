@@ -909,6 +909,8 @@ public sealed class IgnisController : IIgnisController
         var between = runtime?.IsBetweenTasks == true;
         var next = off ? IgnisNext.Off
             : chat.Tidying ? IgnisNext.Tidying
+            : assistantUse == IgnisAssistantUse.MissionMidTask ? IgnisNext.MissionRunning                 // AS-15: say what is true of these chats
+            : assistantUse == IgnisAssistantUse.HomeThread ? (preference.Mode == IgnisMode.WarmAndTidy ? IgnisNext.HomeThreadTidy : IgnisNext.HomeThread)
             : !preference.Auto ? (preference.Mode == IgnisMode.KeepWarm ? IgnisNext.AutoOffKeepWarm : IgnisNext.AutoOffWarmAndTidy)
             : cache == IgnisCacheState.Cold && chat.WarmAt is not null ? IgnisNext.Cold
             : preference.Mode == IgnisMode.KeepWarm ? IgnisNext.KeepWarm : IgnisNext.WarmAndTidy;

@@ -92,7 +92,8 @@ public sealed partial class AppModel
     {
         if (!HydraIsOn(thread)) return null;
 
-        var pair = HydraPair(thread);
+        // PORT-ONLY (Dextra AS-14, 15.4): a mission lead's team runs on the pair its router filled, not on one of the owner's.
+        var pair = (thread.MissionID is not null ? Dextra?.TeamPair(thread) : null) ?? HydraPair(thread);
         var headsProvider = pair is null ? thread.Provider : HydraHeadsProvider(pair);
         var elsewhere = headsProvider != thread.Provider;
         var keepsModel = pair is null || !pair.SendsHeadsElsewhere || elsewhere;
@@ -287,7 +288,11 @@ public sealed partial class AppModel
         // PORT-ONLY (Dextra AS-5, seam 3): a mission's head waits at the agent gate (16 local agents, the memory floor) first.
         MainActor.Spawn(async () =>
         {
-            await DextraAdmitHead(head);
+            // A head the owner stopped before it started waits for his Resume, then goes through the gate again (12.6b).
+            while (!await DextraAdmitHead(head))
+            {
+                if (!await DextraAwaitHeadResume(head)) return;
+            }
             await StartDroppyHead(id, attachments, brief);
         });
         return head;
@@ -389,6 +394,8 @@ public sealed partial class AppModel
             HiddenFromAssistant = parent.HiddenFromAssistant, // PORT-ONLY (AS-3a, ED-NEW-dextra-as3a-2): a head of a hidden chat is hidden too
             MissionID = parent.MissionID, // PORT-ONLY (AS-5, seam 3)
             AssistantID = parent.AssistantID,
+            // PORT-ONLY (AS-14): a mission's head on the lead's provider runs on the lead's account, the one the router chose and the reserve follows.
+            ProviderAccountID = parent.MissionID is not null && provider == parent.Provider ? parent.ProviderAccountID : null,
         };
 
         UpdateThread(parent.Id, value => value with { HydraSpawnCount = counter });
@@ -566,7 +573,7 @@ public sealed partial class AppModel
     {
         if (head.Hydra is not { HydraHeadInfoKind: HydraHeadInfo.Kind.Droppy } info)
         {
-            if (head.MissionID is not null) Dextra?.OnHeadFinished(head.Id, status); // PORT-ONLY (Dextra AS-5): its gate slot is freed
+            DextraHeadFinished(head, status); // PORT-ONLY (Dextra AS-5, AS-7): its gate slot is freed, its taint reaches its lead
             return;
         }
         var runtime = Runtime(head.Id);
@@ -624,7 +631,10 @@ public sealed partial class AppModel
 
         // PORT-ONLY (Dextra AS-5): the head is done (a launch failure Hydra retries above keeps its slot): its gate slot is
         // freed and it counts as finished in its mission.
-        if (head.MissionID is not null) Dextra?.OnHeadFinished(head.Id, status);
+        // PORT-ONLY (Dextra AS-6, 12.6b): a head the owner paused ends its turn at its boundary and is Paused, not finished: Hydra
+        // does not finish it or tell the lead until Resume (DextraFinishHeldHead runs this tail again). AS-7: a head of the home
+        // chat hands its lead its taint here.
+        if (DextraHeadFinished(head, status)) return;
         MainActor.Spawn(async () =>
         {
             HydraLanding? landing = null;

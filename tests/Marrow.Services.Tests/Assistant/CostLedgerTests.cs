@@ -128,9 +128,9 @@ public sealed class CostLedgerTests
         var changed = 0;
         held.Changed += () => changed++;
         held.AddPoints("dextra", "claude:20x", "Claude 20x", false, ReserveWindowKind.FiveHour, 9);
-        Assert.Empty(held.UseOf(DayOf("dextra")).Points);                          // it takes nothing it cannot write
-        Assert.Equal(0, changed);
-        Assert.Null(held.ToJson());                                                // so the store keeps the file as it is
+        Assert.Equal(9, held.UseOf(DayOf("dextra")).Points[("claude:20x", ReserveWindowKind.FiveHour)]);   // what is spent now still counts (a cap must not read a day as empty)
+        Assert.Equal(1, changed);
+        Assert.Null(held.ToJson());                                                // and the store keeps the file as it is, which nothing here writes over
     }
 
     [Fact]

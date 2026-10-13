@@ -183,7 +183,8 @@ public sealed partial class CostGuard : IDisposable
             if (!cap.Limits || !cap.Covers(subject)) continue;
             // A task's cap counts the task; a cap that names no assistant limits each on its own, so it counts only this assistant's day.
             var use = cap.Scope == CostCapScope.Task ? m.Use : o.Ledger.UseOf(cap, today, cap.Scope == CostCapScope.AssistantDay ? m.AssistantId : null);
-            var verdict = CostCapMath.Check(cap, use, turn, AllowanceOf(m, cap, today));
+            // Between turns the cap is asked of the account the turn in flight runs on (ED-NEW-dextra-as15-11).
+            var verdict = CostCapMath.Check(cap, use, turn, AllowanceOf(m, cap, today), turn is null ? new CapAccount(account.Key, api) : null);
             if (!verdict.Crossed || verdict.Reach is not { } reach) continue;
             if (worst is null || reach.Room(withTurn) < worst.Value.Verdict.Reach!.Room(withTurn)) worst = (cap, verdict);
         }

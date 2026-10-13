@@ -84,6 +84,15 @@ public enum IgnisNext
     KeepWarm,
     /// <summary>"It keeps the quick memory warm while you work and tidies up the chat before it gets costly, always between tasks."</summary>
     WarmAndTidy,
+    /// <summary>
+    /// Dextra's home thread, mode KeepWarm (AS-15, 13.2): "This is your own conversation with Dextra, so Ignis never keeps it warm. After a
+    /// break the first reply is a little slower."
+    /// </summary>
+    HomeThread,
+    /// <summary>The home thread in mode WarmAndTidy: the same, and "It still tidies up between tasks."</summary>
+    HomeThreadTidy,
+    /// <summary>A chat of a mission that is not done (AS-15, 13.2): "A task is still running in this chat, so Ignis leaves it alone until the task is done."</summary>
+    MissionRunning,
 }
 
 /// <summary>
