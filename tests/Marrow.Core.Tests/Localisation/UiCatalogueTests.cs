@@ -4,7 +4,7 @@ namespace Marrow.Core.Tests.Localisation;
 
 // PORT-ONLY: web surfaces W22 (DESIGN.md 14 W22 "every new string in the resource files"; ED-NEW-web-w22-1). The resource files as a table: read, merged,
 // refused when wrong, and compared with English.
-[Trait("Decision", "ED-NEW-web-w22-1")]
+[Trait("Decision", "ED-NEW-web-w22-2")]
 public sealed class UiCatalogueTests
 {
     private static UiCatalogueFile File(string area, string language, string json) => new($"{area}.{language}.json", language, json);

@@ -1,0 +1,32 @@
+# W22 (ED-NEW-web-w22-3): the source the literal ratchet reads. A line ending in "/" is a folder (every .cs under it); any other line is one file. Paths are under src/.
+# The web surfaces' user-interface code: every control, card, row and menu is built here, so no new word may be typed into it.
+Marrow.App/Views/Browser/
+Marrow.App/Views/Artifacts/
+Marrow.App/Views/Panes/
+Marrow.App/Port/Web/
+Marrow.App/Port/AskUser/
+Marrow.App/Port/Tabula/
+Marrow.App/Jobs/
+Marrow.UI/Panes/
+Marrow.UI/Web/
+Marrow.UI/NthUi/
+Marrow.App/Views/Chat/LiveAnswerRow.cs
+Marrow.App/Views/Chat/InlineWebWidget.cs
+Marrow.App/Views/Settings/VisusSettingsPage.cs
+Marrow.App/Views/Settings/TabulaSettingsPage.cs
+# The classes in Core and Services that make the words the controls show.
+Marrow.Core/Web/WebFailureCard.cs
+Marrow.Core/Web/WebRuntimeBootstrapper.cs
+Marrow.Core/Web/PermissionStore.cs
+Marrow.Core/Web/DownloadGate.cs
+Marrow.Core/Web/VisusAddress.cs
+Marrow.Core/Web/VisusHistory.cs
+Marrow.Core/Web/WebPolicy.cs
+Marrow.Core/Web/McpAppConsent.cs
+Marrow.Core/Web/McpAppContext.cs
+Marrow.Core/Web/ArtifactNetwork.cs
+Marrow.Core/Web/ExternalSchemeChoices.cs
+Marrow.Core/Models/PaneKinds.cs
+Marrow.Core/Models/ArtifactKind.cs
+Marrow.Core/Models/BackgroundJobText.cs
+Marrow.Services/Web/WebAgentSeams.cs

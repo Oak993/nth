@@ -6,7 +6,7 @@ namespace Marrow.Core.Tests.Localisation;
 
 // PORT-ONLY: web surfaces W22 (DESIGN.md 14 W22; ED-NEW-web-w22-1). How a word is asked for: the language, the fallback to English, a key nobody has,
 // the holes, the plural forms, and the test scope that keeps parallel tests apart.
-[Trait("Decision", "ED-NEW-web-w22-1")]
+[Trait("Decision", "ED-NEW-web-w22-2")]
 public sealed class UiTextTests
 {
     private static UiCatalogue Catalogue() => UiCatalogue.FromFiles(
