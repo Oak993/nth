@@ -26,6 +26,7 @@ public sealed class PlanCard : Border
     private readonly LiveStatusText line = new() { TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock reading = new() { TextWrapping = TextWrapping.Wrap };
     private readonly StackPanel rows = new() { Orientation = Orientation.Vertical, Spacing = 8 };
+    private readonly Border swarm = new();
     private readonly Border actions = new();
     private readonly StackPanel content = new() { Orientation = Orientation.Vertical, Spacing = 8 };
 
@@ -42,8 +43,10 @@ public sealed class PlanCard : Border
         AutomationProperties.SetLiveSetting(line, AutomationLiveSetting.Polite);
         content.Children.Add(line);
         content.Children.Add(reading);
+        content.Children.Add(swarm);
         content.Children.Add(rows);
         content.Children.Add(actions);
+        swarm.IsVisible = false;
         Child = content;
         Padding = new Thickness(CardPadding);
         this.RoundedRectangle(Chrome.CardCornerRadius, RoundedCornerStyle.Continuous);
@@ -59,6 +62,12 @@ public sealed class PlanCard : Border
     public string Reading => reading.Text ?? "";
 
     public IReadOnlyList<ReserveBarRow> Rows => [.. rows.Children.OfType<ReserveBarRow>()];
+
+    /// <summary>The swarm gate's four facts as shown (AS-15, 13.2): agents, time, estimated cost, who pays. Empty when the gate does not apply to the plan.</summary>
+    public IReadOnlyList<(string Label, string Value)> SwarmRows { get; private set; } = [];
+
+    /// <summary>The name a screen reader gives the swarm facts.</summary>
+    public const string SwarmName = "What this team will use";
 
     /// <summary>The Start button, when the plan needs the owner's tap and the card was given something for it to do.</summary>
     public Button? StartButton { get; private set; }
@@ -76,6 +85,7 @@ public sealed class PlanCard : Border
         AutomationProperties.SetName(this, "Usage plan");
         line.Text = plan.Line;
         reading.Text = plan.Details;
+        ShowSwarm(plan.Swarm);
         var tightest = plan.Accounts.Where(a => a.Room is not null).OrderBy(a => a.Room).FirstOrDefault();
         foreach (var account in plan.Accounts)
         {
@@ -144,6 +154,40 @@ public sealed class PlanCard : Border
     {
         rows.Children.Clear();
         actions.Child = null;
+        ShowSwarm(null);
+    }
+
+    // The swarm gate (13.2): before more than 8 agents, or any cloud or API fan-out, the owner sees what the team will use and who pays.
+    // Label and value sit in two columns and wrap, so long account names or large text never run off the card.
+    private void ShowSwarm(SwarmFacts? facts)
+    {
+        SwarmRows = facts is null ? [] : facts.Rows;
+        if (facts is null)
+        {
+            swarm.Child = null;
+            swarm.IsVisible = false;
+            return;
+        }
+        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing = 12, RowSpacing = 3 };
+        for (var i = 0; i < facts.Rows.Count; i++)
+        {
+            grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+            var (label, value) = facts.Rows[i];
+            var name = new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Top };
+            SwiftFont.System(SwiftFont.TextStyle.Footnote, weight: SwiftFont.Weight.Semibold).Apply(name);
+            name.Foreground = Chrome.SecondaryText.Brush(name);
+            var shown = new TextBlock { Text = value, TextWrapping = TextWrapping.Wrap };
+            SwiftFont.System(SwiftFont.TextStyle.Footnote).Apply(shown);
+            shown.Foreground = Chrome.PrimaryText.Brush(shown);
+            Grid.SetRow(name, i);
+            Grid.SetRow(shown, i);
+            Grid.SetColumn(shown, 1);
+            grid.Children.Add(name);
+            grid.Children.Add(shown);
+        }
+        AutomationProperties.SetName(grid, SwarmName);
+        swarm.Child = grid;
+        swarm.IsVisible = true;
     }
 
     // Account | Planned | Used, as the canvas's small table.

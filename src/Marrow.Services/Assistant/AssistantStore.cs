@@ -267,9 +267,23 @@ public sealed partial class AssistantStore : IDisposable
 
     public void SaveCalibration(JsonObject document) => SaveDocument(Path.Combine(Root, CalibrationFile), document);
 
+    /// <summary>What each assistant used today and what the API keys cost (<c>costs.json</c>, AS-15): the figures a day's cap is checked against.</summary>
+    public JsonObject? Costs() => ReadDocument(Path.Combine(Root, CostsFile)) as JsonObject;
+
+    public void SaveCosts(JsonObject document) => SaveDocument(Path.Combine(Root, CostsFile), document);
+
+    /// <summary>How many runs of each duty failed in a row, and which duties the breaker paused (<c>duty-health.json</c>, AS-15).</summary>
+    public JsonObject? DutyHealth() => ReadDocument(Path.Combine(Root, DutyHealthFile)) as JsonObject;
+
+    public void SaveDutyHealth(JsonObject document) => SaveDocument(Path.Combine(Root, DutyHealthFile), document);
+
     public const string ReservesFile = "reserves.json";
 
     public const string CalibrationFile = "calibration.json";
+
+    public const string CostsFile = "costs.json";
+
+    public const string DutyHealthFile = "duty-health.json";
 
     /// <summary>The assistant's home folder (<c>assistants/&lt;id&gt;/folder</c>), created.</summary>
     public string AssistantFolder(string assistantId) => Created(Path.Combine(Root, "assistants", Checked(assistantId), "folder"));

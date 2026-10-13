@@ -24,6 +24,10 @@ public enum DecisionKind
     Limit,
     /// <summary>A task paused before it would touch a usage reserve (11.5): four options, the owner picks one. AS-13.</summary>
     Reserve,
+    /// <summary>A task paused at its cap (13.2): the owner picks one of its options. AS-15.</summary>
+    Cap,
+    /// <summary>A duty paused after three failures in a row (13.2): try it again, or keep it paused. AS-15.</summary>
+    Duty,
 }
 
 /// <summary>How a card is answered (4.2's table).</summary>
@@ -161,7 +165,8 @@ public static class DecisionRules
     public static ValueList<DecisionAnswerKind> Answers(DecisionItem item)
     {
         // A reserve's card is its four options and nothing else (11.5): a free-text answer would be an option nobody checked.
-        if (item.Kind == DecisionKind.Reserve) return new([DecisionAnswerKind.Pick]);
+        // A cap's card and a paused duty's are the same (13.2): their options and nothing to type.
+        if (item.Kind is DecisionKind.Reserve or DecisionKind.Cap or DecisionKind.Duty) return new([DecisionAnswerKind.Pick]);
         if (item.Kind == DecisionKind.Merge)
             return new([DecisionAnswerKind.Merge, DecisionAnswerKind.RebaseFirst, DecisionAnswerKind.Discard]);
         if (item.Kind == DecisionKind.Question || item.Weight == DecisionWeight.Question)

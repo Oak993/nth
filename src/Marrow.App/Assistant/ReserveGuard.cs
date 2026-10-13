@@ -69,6 +69,12 @@ public sealed partial class ReserveGuard : IReserveGate, IDisposable
     /// <summary>The owner's rules and switches the guard reads (the Reserves view edits them).</summary>
     public ReserveSettings Settings => o.Settings;
 
+    /// <summary>
+    /// The owner's caps (AS-15, ED-NEW-dextra-as15-4): the gate that comes after this one. A turn is asked of the reserve and then of the
+    /// caps, a task a cap holds is not asked again (so it never raises a second card), and the caps hear of everything the reserve does.
+    /// </summary>
+    public CostGuard? Costs { get; set; }
+
     /// <summary>A task was paused for its reserve and its card raised (the toast and the board listen).</summary>
     public event Action<ReserveHold>? Held;
 
@@ -170,6 +176,12 @@ public sealed partial class ReserveGuard : IReserveGate, IDisposable
 
     public void TurnStarted(Guid mission, Guid thread, string? model)
     {
+        StartTurn(mission, thread, model);
+        Costs?.TurnStarted(mission, thread, model);
+    }
+
+    private void StartTurn(Guid mission, Guid thread, string? model)
+    {
         if (o.AccountOf(thread) is not { } account) return;
         var p90 = o.Turns.P90(model);
         lock (gate)
@@ -189,6 +201,12 @@ public sealed partial class ReserveGuard : IReserveGate, IDisposable
 
     public void TurnEnded(Guid thread)
     {
+        EndTurn(thread);
+        Costs?.TurnEnded(thread);
+    }
+
+    private void EndTurn(Guid thread)
+    {
         double spent;
         string? model;
         lock (gate)
@@ -207,11 +225,18 @@ public sealed partial class ReserveGuard : IReserveGate, IDisposable
     /// <summary>
     /// Before each turn is sent (11.5): the projection of the account the turn runs on, against the floor. True: send it. False:
     /// the mission is held; if its reserve is the reason, it is Paused (a turn running elsewhere in it finishes first) and the
-    /// owner's card is in the queue.
+    /// owner's card is in the queue. Then the owner's caps are asked (AS-15): a task a cap holds is not asked of the reserve again.
     /// </summary>
     public bool BeforeTurn(MissionRecord mission, Guid? thread, ProviderKind provider, string? model, string purpose, ReserveAccountRef? onAccount = null)
     {
         ArgumentNullException.ThrowIfNull(mission);
+        if (Costs is not { } costs) return BeforeTurnReserve(mission, thread, model, purpose, onAccount);
+        if (costs.IsHeld(mission.Id)) return false;
+        return BeforeTurnReserve(mission, thread, model, purpose, onAccount) && costs.BeforeTurn(mission, thread, provider, model, purpose, onAccount);
+    }
+
+    private bool BeforeTurnReserve(MissionRecord mission, Guid? thread, string? model, string purpose, ReserveAccountRef? onAccount)
+    {
         var account = (thread is { } t ? o.AccountOf(t) : null) ?? onAccount ?? o.AccountForNew(mission);
         var now = clock.GetUtcNow();
         ReserveCheck check;
@@ -330,6 +355,12 @@ public sealed partial class ReserveGuard : IReserveGate, IDisposable
 
     public void MissionBegan(MissionRecord mission, ReserveStart? start)
     {
+        BeginMission(mission, start);
+        Costs?.MissionBegan(mission, start);
+    }
+
+    private void BeginMission(MissionRecord mission, ReserveStart? start)
+    {
         ArgumentNullException.ThrowIfNull(mission);
         lock (gate)
         {
@@ -347,9 +378,16 @@ public sealed partial class ReserveGuard : IReserveGate, IDisposable
         {
             if (missions.TryGetValue(mission, out var m) && m.Hold is { } hold) CancelWait(hold);
         }
+        Costs?.MissionStopped(mission);
     }
 
     public void MissionEnded(Guid mission)
+    {
+        EndMission(mission);
+        Costs?.MissionEnded(mission);
+    }
+
+    private void EndMission(Guid mission)
     {
         MissionReserve? m;
         Guid? card = null;

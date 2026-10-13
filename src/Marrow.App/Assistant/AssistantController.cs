@@ -112,6 +112,12 @@ public sealed class AssistantControllerOptions
     /// capture after a home turn. Null: the three tools say they are not part of this build.
     /// </summary>
     public MemorySetup? Notes { get; init; }
+
+    /// <summary>How duties' runs ended (AS-15): the book a duty paused by the breaker is kept in. Null: the watch keeps nothing across a restart.</summary>
+    public DutyHealthBook? DutyHealth { get; init; }
+
+    /// <summary>The models the brain could run a job on (AS-15, 13.2): the feed's triage and the digest go to the cheapest capable one. Null: the brain's own.</summary>
+    public TriageSetup? Triage { get; init; }
 }
 
 /// <summary>What Dextra's memory is made of: the store, the capture (null: none is bound, nothing is captured) and what the owner said.</summary>
@@ -141,6 +147,33 @@ public sealed class MemorySetup
     public IDisposable? Owned { get; init; }
 }
 
+/// <summary>Which models there are to read the feed with, and which one is the brain's own (the strong one, which plans and merges).</summary>
+public sealed class TriageSetup
+{
+    /// <summary>Every model a usable account offers, with its price; asked each time a job picks.</summary>
+    public required Func<IReadOnlyList<BrainModel>> Options { get; init; }
+
+    /// <summary>The model the owner chose for Dextra's brain; null when none is chosen.</summary>
+    public required Func<BrainModel?> Brain { get; init; }
+}
+
+/// <summary>What the cost controls are made of (AS-15, 13.2): the day's spend the caps are checked against, and how the guard reads prices and windows.</summary>
+public sealed class CostSetup
+{
+    public required CostLedger Ledger { get; init; }
+
+    /// <summary>The usage windows an account reports; null: the 5-hour and the weekly window.</summary>
+    public Func<string, IReadOnlyList<ReserveWindowKind>>? WindowsOf { get; init; }
+
+    /// <summary>A model's prices in dollars per million tokens; null or a null answer: a deliberately dear price is counted.</summary>
+    public Func<ReserveAccountRef, string?, Marrow.Core.Port.Ignis.IgnisPrices?>? Prices { get; init; }
+
+    /// <summary>The assistant an assistant's own (non-mission) chat belongs to, so its spend counts toward the assistant's day.</summary>
+    public Func<Guid, string?>? AssistantOf { get; init; }
+
+    public Func<string, string?>? AssistantName { get; init; }
+}
+
 /// <summary>What the usage reserve is made of (11.2 to 11.5): the owner's rules, the calibration, and how a chat finds its account.</summary>
 public sealed class ReserveSetup
 {
@@ -166,6 +199,9 @@ public sealed class ReserveSetup
 
     /// <summary>Whatever else lives and dies with the reserve (its store writer): the controller disposes it with the guard.</summary>
     public IDisposable? Owned { get; init; }
+
+    /// <summary>The cost controls (AS-15): caps checked before every turn, beside the reserve. Null: no caps are enforced.</summary>
+    public CostSetup? Costs { get; init; }
 }
 
 public sealed partial class AssistantController : IAssistantToolHost, IDisposable
@@ -239,10 +275,55 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
             });
             Runner.Reserve = Reserve;
             Router?.Bind(Reserve);
+            if (reserve.Costs is { } costs)
+            {
+                Costs = new CostGuard(new CostGuardOptions
+                {
+                    Runner = Runner,
+                    Queue = Queue,
+                    Settings = reserve.Settings,
+                    Ledger = costs.Ledger,
+                    Calibrator = reserve.Calibrator,
+                    Turns = reserve.Turns,
+                    AccountOf = reserve.AccountOf,
+                    AccountForNew = reserve.AccountForNew,
+                    WindowsOf = costs.WindowsOf,
+                    Prices = costs.Prices,
+                    AssistantOf = costs.AssistantOf,
+                    AssistantName = costs.AssistantName,
+                    Audit = TryAudit,
+                    Time = o.Time,
+                });
+                Reserve.Costs = Costs;      // the runner has one gate, the reserve; the caps come after it
+            }
+        }
+        if (o.DutyHealth is { } book)
+        {
+            Duties = new DutyWatch(new DutyWatchOptions { Queue = Queue, Book = book, Audit = TryAudit, Time = o.Time });
+            Duties.Faulted += Runner.ReportFault;
         }
         WatchAutoAnswer();
         LoadHomeTaint();
     }
+
+    /// <summary>The cost controls (AS-15): the owner's caps, checked before every turn of a mission, beside the reserve.</summary>
+    public CostGuard? Costs { get; }
+
+    /// <summary>
+    /// The model that reads the feed and composes the digest (13.2): the cheapest capable one, never dearer than the brain's own.
+    /// With <paramref name="requireLocal"/> (text from a private chat or a local model, 5.4) only a model on this PC; with none the pick
+    /// is empty and nothing is summarised. Without a triage setup the brain's own model is returned when there is one.
+    /// </summary>
+    public BrainPick TriageModel(bool requireLocal = false) => Pick(BrainJob.Triage, requireLocal);
+
+    /// <summary>The model that plans and merges (13.2): the brain's own.</summary>
+    public BrainPick PlanningModel(bool requireLocal = false) => Pick(BrainJob.Planning, requireLocal);
+
+    private BrainPick Pick(BrainJob job, bool requireLocal) =>
+        BrainPicker.Pick(job, o.Triage?.Options() ?? [], o.Triage?.Brain(), requireLocal);
+
+    /// <summary>The duty breaker (AS-15): a duty that fails three times in a row is paused with a card. AS-10's scheduler reports every run to it and asks it before it fires one.</summary>
+    public DutyWatch? Duties { get; }
 
     /// <summary>The usage-aware router (AS-14), when one is set up: it picks a mission's lead, fills its team's profiles and moves it between accounts.</summary>
     public AssistantRouter? Router { get; }
@@ -762,6 +843,7 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
     {
         Stopper.Dispose();
         DisposeMemory();
+        Costs?.Dispose();
         Reserve?.Dispose();
         o.Reserve?.Owned?.Dispose();
         foreach (var thread in o.Jobs.Threads) o.Jobs.End(thread);

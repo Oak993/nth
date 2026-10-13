@@ -91,21 +91,26 @@ internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus) : I
     }
 
     // AS-13: the usage reserve reads the ledger's spend and the turns of mission chats whether or not anyone watches the feed.
+    // AS-15: so do the cost guard's caps (what each assistant spent today, what a task spent, and the money on API keys).
     private void TapReserve(Guid threadId, ProviderEvent @event)
     {
-        if (disposed || app.Reserve is not { } reserve) return;
+        if (disposed) return;
+        var reserve = app.Reserve;
+        var costs = app.Costs;
+        if (reserve is null && costs is null) return;
         try
         {
             switch (@event)
             {
                 case ProviderEvent.TokenSpend spend when spend.Value.TotalTokens > 0:
-                    reserve.OnSpend(threadId, spend.Value.Model, spend.Value.TotalTokens);
+                    reserve?.OnSpend(threadId, spend.Value.Model, spend.Value.TotalTokens);
+                    costs?.OnSpend(threadId, spend.Value);
                     break;
                 case ProviderEvent.TurnStarted when app.Thread(threadId) is { MissionID: { } mission } thread:
-                    reserve.TurnStarted(mission, threadId, thread.Model);
+                    reserve?.TurnStarted(mission, threadId, thread.Model);   // the reserve tells the caps (ReserveGuard.Costs)
                     break;
                 case ProviderEvent.TurnCompleted:
-                    reserve.TurnEnded(threadId);
+                    reserve?.TurnEnded(threadId);
                     break;
             }
         }

@@ -90,6 +90,9 @@ public sealed partial class AppModel
     /// <summary>The usage reserve (AS-13) of the running controller, if it has one: the taps feed it, the board and the plan card read it.</summary>
     internal ReserveGuard? Reserve => Dextra?.Reserve;
 
+    /// <summary>The cost controls (AS-15) of the running controller, if it has them: the taps feed them, the Reserves view lists their caps.</summary>
+    internal CostGuard? Costs => Dextra?.Costs;
+
     /// <summary>The Job Object of every mission agent (12.6), by chat. A test may swap the factory before any launch.</summary>
     public AgentJobs MissionJobs { get; internal set; } = new(WindowsAgentJobFactory.Instance);
 
@@ -116,7 +119,10 @@ public sealed partial class AppModel
         var reserveSettings = new ReserveSettings();
         var calibrator = new UsageCalibrator();
         var turnCosts = new TurnCostHistory();
-        var reservePersistence = new ReservePersistence(store, reserveSettings, calibrator, turnCosts);
+        // The cost controls (AS-15): what each assistant spent today (the caps' figures) and which duties the breaker paused, kept beside them.
+        var costLedger = new CostLedger();
+        var dutyHealth = new DutyHealthBook();
+        var reservePersistence = new ReservePersistence(store, reserveSettings, calibrator, turnCosts, costs: costLedger, duties: dutyHealth);
         // Dextra's memory (AS-12): the notes live in the store; the capture runs only when a cheap model is bound (noteProposer).
         string? DextraId() => profiles().FirstOrDefault(p => p.ParentId is null)?.Id;
         var memoryStore = new MemoryStore(store, new MemoryStoreOptions { MainAssistantId = DextraId });
@@ -148,7 +154,19 @@ public sealed partial class AppModel
                 AccountForNew = AccountForNewChat,
                 AccountOfSnapshot = account => AssistantTaps.AccountRef(account),
                 Owned = reservePersistence,
+                Costs = new CostSetup
+                {
+                    Ledger = costLedger,
+                    WindowsOf = account => Reserve?.WindowKinds(account) ?? [],
+                    Prices = (account, model) => Marrow.Core.Port.SwiftEnum<ProviderKind>.FromRawValue(account.ProviderId) is { } kind
+                        ? IgnisRuntimeSeams.Points.Current()?.Find(kind, model)?.Prices
+                        : null,
+                    AssistantOf = thread => Thread(thread)?.AssistantID?.ToString("N"),
+                    AssistantName = id => profiles().FirstOrDefault(profile => profile.Id == id)?.Name,
+                },
             },
+            DutyHealth = dutyHealth,
+            Triage = new TriageSetup { Options = TriageModels, Brain = () => BrainModelOf(provider, model) },
             Agents = new AppMissionAgents(this),
             Thread = Thread,
             Projects = () => [.. Projects.Select(p => new MissionProject(p.Id, p.Name, p.Path))],
@@ -234,6 +252,34 @@ public sealed partial class AppModel
         {
             controller.Runner.ReportFault("The 7-day sweep of kept work failed: " + error.Message);
         }
+    }
+
+    /// <summary>
+    /// Every model a provider this PC can use offers, with its price in the points file (AS-15, 13.2). A model with no price is listed
+    /// without one and is never picked for being cheap; a local model server's models cost nothing and stay on this PC.
+    /// </summary>
+    internal IReadOnlyList<Marrow.Core.Port.Assistant.BrainModel> TriageModels()
+    {
+        var list = new List<Marrow.Core.Port.Assistant.BrainModel>();
+        foreach (var kind in Marrow.Core.Port.SwiftEnum<ProviderKind>.AllCases)
+        {
+            if (!Providers.CountsAsInstalled(kind)) continue;
+            foreach (var option in Providers.Models(kind)) list.Add(BrainModelOf(kind, option.Id));
+        }
+        return list;
+    }
+
+    private Marrow.Core.Port.Assistant.BrainModel BrainModelOf(ProviderKind kind, string? model)
+    {
+        var account = AssistantTaps.AccountRef(Marrow.Core.Port.UsageAccountKey.Default(kind));
+        var prices = IgnisRuntimeSeams.Points.Current()?.Find(kind, model);
+        return new Marrow.Core.Port.Assistant.BrainModel(kind.Id, model ?? "", account.Key, account.Name)
+        {
+            InputPerMillion = prices?.Prices.Input,
+            OutputPerMillion = prices?.Prices.Output,
+            ContextWindow = prices?.ContextWindow,
+            RunsLocally = kind == ProviderKind.Local,
+        };
     }
 
     /// <summary>Binds Dextra's controller: the nth-dextra tools, approvals, questions and turn ends go to it.</summary>

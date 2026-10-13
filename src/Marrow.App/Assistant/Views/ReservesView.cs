@@ -28,6 +28,7 @@ public sealed class ReservesView : Decorator
     public const string FieldPrompt = "Say a rule, e.g. always keep 25% on Codex A";
     public const string AddTitle = "Add";
     public const string Hint = "A task's “keep 30%” means 30% of what is left now. A standing rule means 30% of the whole window. The plan always says which it used.";
+    public const string CapsHint = "A cap is the other way round: “at most 15% of any account a day” pauses the work that would pass it and asks you.";
     public const string EmptyRules = "No standing rules yet. Say one above.";
     public const string EmptyAccounts = "No account has reported its usage yet. Its bar appears after the first poll.";
     public const string NewerVersion = "These rules were saved by a newer version of nth. They show here and nothing changes them.";
@@ -162,6 +163,7 @@ public sealed class ReservesView : Decorator
         form.Children.Add(add.Shown);
 
         var hint = Text(Hint, SwiftFont.TextStyle.Footnote, secondary: true);
+        var capsHint = Text(CapsHint, SwiftFont.TextStyle.Footnote, secondary: true);
         var hold = SwitchRow(HoldTitle, HoldDetail, () => model.HoldReserves, value => model.SetHoldReserves(value), out var holdSwitch);
         var ask = SwitchRow(AskTitle, AskDetail, () => model.AlwaysAskBeforeStarting, value => model.SetAlwaysAskBeforeStarting(value), out var askSwitch);
         HoldSwitch = holdSwitch;
@@ -172,7 +174,7 @@ public sealed class ReservesView : Decorator
         {
             Orientation = Orientation.Vertical,
             Spacing = 10,
-            Children = { Text(RulesTitle, 15, SwiftFont.Weight.Semibold, primary: true), newer, rules, emptyRules, form, question, problem, hint, Legend(), hold, ask },
+            Children = { Text(RulesTitle, 15, SwiftFont.Weight.Semibold, primary: true), newer, rules, emptyRules, form, question, problem, hint, capsHint, Legend(), hold, ask },
         };
     }
 
@@ -193,7 +195,8 @@ public sealed class ReservesView : Decorator
 
         rules.Children.Clear();
         foreach (var rule in model.Rules) rules.Children.Add(RuleRow(rule, readOnly));
-        emptyRules.IsVisible = model.Rules.Count == 0;
+        foreach (var cap in model.Caps) rules.Children.Add(CapRow(cap, readOnly));
+        emptyRules.IsVisible = model.Rules.Count == 0 && model.Caps.Count == 0;
 
         question.Children.Clear();
         question.IsVisible = model.Question is not null;
@@ -257,17 +260,23 @@ public sealed class ReservesView : Decorator
         emptyAccounts.IsVisible = rows.Count == 0;
     }
 
-    private Control RuleRow(ReserveRule rule, bool readOnly)
+    private Control RuleRow(ReserveRule rule, bool readOnly) =>
+        StandingRow(ReserveWords.Title(rule), ReserveWords.Detail(rule), "Remove the rule: ", () => model.Remove(rule.Id), readOnly);
+
+    // A cap sits in the same list as the reserve rules, as the approved canvas shows it: "Channel A: at most 15% of any account a day".
+    private Control CapRow(CostCap cap, bool readOnly) =>
+        StandingRow(CostCapWords.Title(cap, model.AssistantName), CostCapWords.Detail(cap, model.AssistantName), "Remove the cap: ", () => model.RemoveCap(cap.Id), readOnly);
+
+    private static Control StandingRow(string title, string detail, string removeName, Action removeAction, bool readOnly)
     {
-        var title = ReserveWords.Title(rule);
         var icon = SwiftImage.SystemName("shield").Font(SwiftFont.System(13, SwiftFont.Weight.Medium)).ForegroundStyle(Chrome.SecondaryText);
         var text = new StackPanel { Orientation = Orientation.Vertical, Spacing = 1, VerticalAlignment = VerticalAlignment.Center };
         text.Children.Add(Text(title, 13, SwiftFont.Weight.Medium, primary: true));
-        text.Children.Add(Text(ReserveWords.Detail(rule), SwiftFont.TextStyle.Footnote, secondary: true));
+        text.Children.Add(Text(detail, SwiftFont.TextStyle.Footnote, secondary: true));
         var glyph = SwiftImage.SystemName("xmark").Font(SwiftFont.System(11, SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.PrimaryText);
         var face = new Border { Width = Chrome.CapsuleContentHeight, Height = Chrome.CapsuleContentHeight, Child = glyph, Background = Brushes.Transparent };
-        var remove = PlainControls.Button(face, () => model.Remove(rule.Id));
-        AutomationProperties.SetName(remove, "Remove the rule: " + title);
+        var remove = PlainControls.Button(face, removeAction);
+        AutomationProperties.SetName(remove, removeName + title);
         remove.IsEnabled = !readOnly;
         var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), ColumnSpacing = 10 };
         var shown = remove.ChromeGlassCircle();
