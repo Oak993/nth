@@ -46,6 +46,8 @@ public interface IWindowsToastPlatform
     /// <summary>OD-0135: deletes the HKCU key and everything under it; nothing when it is not there; never throws.</summary>
     void DeleteRegistryTree(string key);
     void Show(string appId, string tag, string xml);
+    /// <summary>PORT-ONLY (AS-9, ED-NEW-dextra-as9-6): takes a toast back from the action center by its tag. Best effort; a platform without it does nothing.</summary>
+    void Remove(string appId, string tag) { }
 }
 
 public static class WindowsToastRegistration
@@ -82,14 +84,41 @@ public static class WindowsToastRegistration
     }
 }
 
-public sealed record ToastRequest(string Identifier, string Title, string Body, bool Sound, IReadOnlyDictionary<string, object> UserInfo);
+/// <summary>What a toast is about. Thread is every toast nth had before the Assistant (a chat's, an update's).</summary>
+public enum ToastKind { Thread, AssistantDecision }
+
+/// <summary>One button on a toast: its words, and the userInfo its activation carries (a protocol launch, as the toast's own click).</summary>
+public sealed record ToastButton(string Content, IReadOnlyDictionary<string, object> UserInfo);
+
+public sealed record ToastRequest(string Identifier, string Title, string Body, bool Sound, IReadOnlyDictionary<string, object> UserInfo)
+{
+    /// <summary>PORT-ONLY (AS-9, 13.1): the non-thread payload. AssistantDecision is about <see cref="Decision"/>, not about a chat.</summary>
+    public ToastKind Kind { get; init; } = ToastKind.Thread;
+
+    /// <summary>The decision card a click on an AssistantDecision toast opens.</summary>
+    public Guid? Decision { get; init; }
+
+    /// <summary>Buttons under the text; each one launches nth with its own userInfo. None for every Thread toast.</summary>
+    public IReadOnlyList<ToastButton> Buttons { get; init; } = [];
+
+    /// <summary>A small line the toast ends with (the canvas's "Dextra"), or null.</summary>
+    public string? Attribution { get; init; }
+
+    /// <summary>The absolute path of a PNG shown as the toast's picture (Armilla, 2.5), or null.</summary>
+    public string? Logo { get; init; }
+}
 
 public interface IToastCenter
 {
     void InstallDelegate(AppDelegate appDelegate);
     void RequestPermission();
     Task Add(ToastRequest request);
+    /// <summary>PORT-ONLY (AS-9, ED-NEW-dextra-as9-6): takes a toast back by the identifier it was added with. The shell's refusal is not an error; a caller reports any other.</summary>
+    Task Remove(string identifier) => Task.CompletedTask;
 }
+
+/// <summary>PORT-ONLY (AS-9): a surface of nth that is not a chat. A toast about what it shows is not posted while it is on screen.</summary>
+public enum AppSurface { AssistantHome }
 
 public static class ToastNotifications
 {
@@ -105,6 +134,21 @@ public static class ToastNotifications
         state.Requested = true;
         try { Center.Current.RequestPermission(); }
         catch (Exception) { } // :1253 try?; ED-220 (4) production is a once-only no-prompt step.
+    }
+
+    /// <summary>
+    /// PORT-ONLY (AS-9, DESIGN.md 13.1, ED-NEW-dextra-as9-3): the non-thread twin of <see cref="IsOnScreen"/>. True when the app is active and the
+    /// surface is in front. The Assistant home is the home view in the main area; the pane workspace is not in the tree yet (16.2), so an
+    /// Assistant pane joins this one expression when it lands.
+    /// </summary>
+    public static bool IsSurfaceOnScreen(AppModel model, AppSurface surface)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+        return surface switch
+        {
+            AppSurface.AssistantHome => NSApplication.IsActive.Current() && model.AssistantHomeShown,
+            _ => false,
+        };
     }
 
     // :1158-1165, :1259: selected, nonarchived panel, or inline child of a visible unfolded/unsettled parent.
@@ -145,6 +189,16 @@ public sealed class WindowsToastCenter(IWindowsToastPlatform platform, ToastBuil
         }
         catch (Exception) { } // AppModel.swift:1268; UpdateChecker.swift:260, try? add (also a denied toast).
     }
+    /// <summary>
+    /// PORT-ONLY (AS-9): the toast leaves the action center. The shell's own refusals are answered by the platform (a toast that stays is only
+    /// stale, and nth refuses its buttons); anything else reaches the caller, which reports it once (DecisionToasts).
+    /// </summary>
+    public Task Remove(string identifier)
+    {
+        platform.Remove(identity.AppId, identifier);
+        return Task.CompletedTask;
+    }
+
     // UpdateChecker.swift:249-261: the content has a title, a body and userInfo and no sound (:249-252), so the banner is
     // silent, as a thread banner whose sound is nil is (AppModel.swift:1224; ED-227 (3)). willPresent's .sound (AppDelegate.swift:74)
     // plays nothing without a content.sound (ED-271; PR-UPDATE-025 and UI-LAUNCH-005 are amended to say so).
@@ -152,14 +206,28 @@ public sealed class WindowsToastCenter(IWindowsToastPlatform platform, ToastBuil
         MainActor.Spawn(() => Add(new ToastRequest(identifier, title, body, false,
             new Dictionary<string, object>(StringComparer.Ordinal) { ["update"] = version })));
 
-    public static string Payload(ToastRequest request, ToastBuildIdentity identity) => new XElement("toast",
-        new XAttribute("activationType", "protocol"),
-        new XAttribute("launch", ToastActivation.Encode(identity, request.UserInfo)),
-        new XElement("visual", new XElement("binding", new XAttribute("template", "ToastGeneric"),
-            new XElement("text", request.Title), new XElement("text", request.Body))),
-        request.Sound ? new XElement("audio", new XAttribute("src", "ms-winsoundevent:Notification.Default"))
-            : new XElement("audio", new XAttribute("silent", "true")))
-        .ToString(SaveOptions.DisableFormatting); // ED-220 (3): XML escapes text/arguments, never interpolates markup.
+    public static string Payload(ToastRequest request, ToastBuildIdentity identity)
+    {
+        var binding = new XElement("binding", new XAttribute("template", "ToastGeneric"));
+        // PORT-ONLY (AS-9): the picture comes first, as the shell lays it out; a request without one is the text alone, as before.
+        if (request.Logo is { Length: > 0 } logo && Path.IsPathFullyQualified(logo))
+            binding.Add(new XElement("image", new XAttribute("placement", "appLogoOverride"), new XAttribute("src", new Uri(logo).AbsoluteUri)));
+        binding.Add(new XElement("text", request.Title), new XElement("text", request.Body));
+        if (request.Attribution is { Length: > 0 } attribution)
+            binding.Add(new XElement("text", new XAttribute("placement", "attribution"), attribution));
+        var toast = new XElement("toast",
+            new XAttribute("activationType", "protocol"),
+            new XAttribute("launch", ToastActivation.Encode(identity, request.UserInfo)),
+            new XElement("visual", binding));
+        if (request.Buttons.Count > 0)
+            toast.Add(new XElement("actions", request.Buttons.Select(button => new XElement("action",
+                new XAttribute("content", button.Content),
+                new XAttribute("activationType", "protocol"),
+                new XAttribute("arguments", ToastActivation.Encode(identity, button.UserInfo))))));
+        toast.Add(request.Sound ? new XElement("audio", new XAttribute("src", "ms-winsoundevent:Notification.Default"))
+            : new XElement("audio", new XAttribute("silent", "true")));
+        return toast.ToString(SaveOptions.DisableFormatting); // ED-220 (3): XML escapes text/arguments, never interpolates markup.
+    }
 }
 
 public static class ToastActivation
