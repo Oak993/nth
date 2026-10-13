@@ -39,8 +39,8 @@ public sealed class NthOwnFilesTests
         Path.Combine(Storage.Root, "UserDefaults.json"),
         Path.Combine(Storage.Root, "mcp.json"),
         SettingsStore.ProductionPath(DevDataRoot.LocalApplicationData()),
-        Path.Combine(AppContext.BaseDirectory, "Marrow.App.exe"),
-        Path.Combine(AppContext.BaseDirectory, "Marrow.App.dll"),
+        Path.ChangeExtension(typeof(AppModel).Assembly.Location, ".exe"),
+        typeof(AppModel).Assembly.Location,
         Path.Combine(DevDataRoot.LocalApplicationData(), AppInfo.LegacyDataFolderName, "UserDefaults.json"),
     ];
 

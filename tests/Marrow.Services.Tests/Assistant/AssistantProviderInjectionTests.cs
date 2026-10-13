@@ -21,6 +21,24 @@ namespace Marrow.Services.Tests.Assistant;
 public sealed class AssistantProviderInjectionTests
 {
     [Fact]
+    [Trait("Decision", "ED-NEW-inst-u7-1")]
+    public void The_dextra_relay_uses_the_running_executable_and_preserves_a_scoped_override()
+    {
+        var host = new DextraFakeHost();
+        var thread = host.Add();
+        using var bound = AssistantMcpBridge.Host.Override(host);
+        var configuration = BuiltInServerFixtures.Config(ProviderKind.Codex, thread);
+        try
+        {
+            Assert.Equal(AppExecutable.Path, Assert.IsType<MCPResolvedServer>(AssistantMcpBridge.Server(configuration)).Command);
+            using (AssistantMcpBridge.Executable.Override(() => "C:/fixture/nth-relay.exe"))
+                Assert.Equal("C:/fixture/nth-relay.exe", Assert.IsType<MCPResolvedServer>(AssistantMcpBridge.Server(configuration)).Command);
+            Assert.Equal(AppExecutable.Path, Assert.IsType<MCPResolvedServer>(AssistantMcpBridge.Server(configuration)).Command);
+        }
+        finally { AssistantMcpBridge.Forget(thread); }
+    }
+
+    [Fact]
     [Trait("Feature", "AS-4")]
     [Trait("Decision", "ED-NEW-dextra-as4-7")]
     public void A_chat_that_is_not_dextras_gets_no_entry_and_every_shape_stays_as_it_was()

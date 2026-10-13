@@ -104,8 +104,8 @@ switch ($Phase) {
         }
         Add-Check 'Microsoft.Web.WebView2.Core.dll is beside the app' (Test-Path -LiteralPath (Join-Path $app 'Microsoft.Web.WebView2.Core.dll')) $app
         Add-Check 'no WPF or WinForms WebView2 assembly' (-not ((Test-Path -LiteralPath (Join-Path $app 'Microsoft.Web.WebView2.Wpf.dll')) -or (Test-Path -LiteralPath (Join-Path $app 'Microsoft.Web.WebView2.WinForms.dll')))) $app
-        $exe = @('nth.exe', 'Marrow.App.exe') | Where-Object { Test-Path -LiteralPath (Join-Path $app $_) } | Select-Object -First 1
-        Add-Check 'the app executable is there' ([bool]$exe) $(if ($exe) { $exe } else { 'neither nth.exe nor Marrow.App.exe' })
+        $exe = Join-Path $app 'nth.exe'
+        Add-Check 'the app executable is there' (Test-Path -LiteralPath $exe) $exe
         Assert-RuntimeState 'after the install'
     }
     'SeedWebData' {
