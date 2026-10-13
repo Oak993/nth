@@ -21,7 +21,7 @@ internal sealed class DutyHostRig : IDisposable
     private readonly AssistantTempRoot temp = new();
     private readonly Dictionary<Guid, ChatThread> chats = [];
 
-    public DutyHostRig(StartupMode? mode = null, Func<string, bool>? folderGranted = null, bool tray = true, DutyHealthBook? book = null)
+    public DutyHostRig(StartupMode? mode = null, Func<string, bool>? folderGranted = null, bool tray = true, DutyHealthBook? book = null, DigestSetup? digest = null, ReserveSetup? reserve = null)
     {
         Book = book ?? new DutyHealthBook();
         Clock = new ManualTimeProvider(new DateTimeOffset(2026, 10, 13, 6, 0, 0, TimeSpan.Zero));
@@ -47,6 +47,7 @@ internal sealed class DutyHostRig : IDisposable
             Time = Clock,
             Duties = Gate,
             DutyHealth = Book,
+            Reserve = reserve,
         });
         Tray = tray ? new AppTray(TrayHost, () => true, open: () => { }) : null;
         Host = new DutyHost(new DutyHostOptions
@@ -72,6 +73,7 @@ internal sealed class DutyHostRig : IDisposable
                 lock (Faults) Faults.Add(message);
             },
             WakeSyncDelay = TimeSpan.FromSeconds(2),
+            Digest = digest,
         });
         Gate.Bind(Host.Tools);
     }

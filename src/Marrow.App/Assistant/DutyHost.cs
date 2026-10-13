@@ -82,6 +82,12 @@ public sealed class DutyHostOptions
 
     /// <summary>How long a change to the duties waits before the wake entries are brought in line.</summary>
     public TimeSpan WakeSyncDelay { get; init; } = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    /// The morning digest (AS-11, 6): when set, the host makes the Morning digest duty once (every day at 08:00 by default), composes the digest where a
+    /// mission would be started for that duty, and keeps the digest and its suggestions in the store. Null: no digest (a host made for a test of something else).
+    /// </summary>
+    public DigestSetup? Digest { get; init; }
 }
 
 public sealed class DutyHost : IDisposable
@@ -90,6 +96,7 @@ public sealed class DutyHost : IDisposable
     private readonly AssistantController controller;
     private readonly IDisposable feedSubscription;
     private readonly WakeSync wake;
+    private readonly DigestBook? digestBook;
     private readonly HashSet<Guid> ended = [];
     private readonly object gate = new();
     private readonly CancellationTokenSource stopping = new();
@@ -113,11 +120,13 @@ public sealed class DutyHost : IDisposable
             Model = o.Model,
             AccountNames = o.AccountNames,
         });
+        // The digest duty is nth's own: its launcher composes the digest where a mission would be started, and every other duty goes to the mission launcher.
+        var digestLauncher = o.Digest is null ? null : new DigestLauncher(Launcher);
         Switches = new BackgroundSwitches(o.Store.Background, o.Store.SaveBackground, new StartWithWindows(o.RunKey), o.ExePath);
         Scheduler = new AssistantScheduler(new AssistantSchedulerOptions
         {
             Store = new AssistantDutyStore(o.Store),
-            Launcher = Launcher,
+            Launcher = (IDutyLauncher?)digestLauncher ?? Launcher,
             AssistantIds = o.AssistantIds,
             Time = o.Time,
             MayFire = () => controller.Hold.DutiesMayFire,
@@ -140,6 +149,24 @@ public sealed class DutyHost : IDisposable
             Time = o.Time,
         });
         wake = new WakeSync(o.TaskHost, o.ExePath(), o.Time);
+        if (o.Digest is { } digestSetup && digestLauncher is not null)
+        {
+            digestBook = new DigestBook();
+            digestBook.Attach(o.Store);
+            Digests = new DigestService(new DigestServiceOptions
+            {
+                Controller = controller,
+                Scheduler = Scheduler,
+                Book = digestBook,
+                OnMain = o.OnMain,
+                Projects = o.Projects,
+                AssistantIds = o.AssistantIds,
+                Setup = digestSetup,
+                Time = o.Time,
+                Faulted = o.Faulted,
+            });
+            digestLauncher.Bind(Digests);
+        }
         feedSubscription = o.Events.Subscribe(OnFeed);
         controller.Runner.Changed += OnMission;
         controller.Hold.Changed += OnHold;
@@ -163,6 +190,9 @@ public sealed class DutyHost : IDisposable
     public IDutyLauncher Launcher { get; }
 
     public WebWatcher? Web { get; }
+
+    /// <summary>The morning digest and the Suggestions lane (AS-11); null when the host was made without a digest.</summary>
+    public DigestService? Digests { get; }
 
     /// <summary>What the Task Scheduler last refused for each duty, for its card.</summary>
     public IReadOnlyDictionary<string, string> WakeProblems => wake.Problems;
@@ -204,6 +234,8 @@ public sealed class DutyHost : IDisposable
     public IReadOnlyList<string> Start()
     {
         var notes = Scheduler.Start();
+        // The Morning digest duty is made once, after the duties are loaded (a save before that would write only it, and leave the others out).
+        if (Digests?.EnsureDuty() is { } why) o.Faulted?.Invoke(why);
         ReraisePaused();
         SyncWake();
         _ = ReadWakeTimers();
@@ -313,7 +345,9 @@ public sealed class DutyHost : IDisposable
 
     private void OnDutyAdded(Duty duty, bool first)
     {
-        if (first) FirstCard.FirstDutyMade();
+        // The Morning digest is nth's own duty, not the owner's first one: it brings no card, and the first duty he makes still does (7.4).
+        if (DigestDuty.Is(duty)) return;
+        if (first || Scheduler.Duties.Count(v => !DigestDuty.Is(v.Duty)) == 1) FirstCard.FirstDutyMade();
         if (duty.WakePc) _ = ReadWakeTimers();
     }
 
@@ -396,7 +430,9 @@ public sealed class DutyHost : IDisposable
         Scheduler.Changed -= OnSchedulerChanged;
         tray?.Dispose();
         tray = null;
+        Digests?.Dispose();
         Scheduler.Dispose();
+        digestBook?.Dispose();
     }
 }
 
