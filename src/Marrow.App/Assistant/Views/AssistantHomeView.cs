@@ -166,6 +166,12 @@ public sealed class AssistantHomeView : Decorator
     private readonly TextBlock name;
     private readonly TextBlock stateLine;
     private readonly Grid columns = new();
+    private readonly Border contentHost = new() { Margin = new Thickness(12, 0, 12, 12) };
+    private readonly ScrollViewer stackedScroll = new()
+    {
+        HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+        VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+    };
     private readonly Border boardHost = new();
     private readonly Border conversation = new();
     private readonly StackPanel hero = new() { Orientation = Orientation.Vertical, Spacing = 6, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 10, 0, 4) };
@@ -183,6 +189,7 @@ public sealed class AssistantHomeView : Decorator
     private IReadOnlyList<HomeSuggestion> suggestions = [];
     private MotionScope.Entry? budget;
     private bool stacked;
+    private int teamQueued;
 
     public AssistantHomeView(AssistantHomeParts parts)
     {
@@ -303,7 +310,7 @@ public sealed class AssistantHomeView : Decorator
         var page = new DockPanel { LastChildFill = true };
         DockPanel.SetDock(top, Dock.Top);
         page.Children.Add(top);
-        page.Children.Add(new Border { Margin = new Thickness(12, 0, 12, 12), Child = columns });
+        page.Children.Add(contentHost);
         Child = new Panel { Children = { page, Live } };
         AutomationProperties.SetName(this, parts.Name + " home");
         SizeChanged += (_, e) => Lay(e.NewSize.Width < StackWidth);
@@ -369,6 +376,7 @@ public sealed class AssistantHomeView : Decorator
         base.OnAttachedToVisualTree(e);
         parts.Jobs.Changed += Refresh;
         parts.Controls.Changed += Refresh;
+        if (parts.Team is { } team) team.Changed += RefreshTeam;
         if (parts.Voice is { } voice)
         {
             voice.Changed -= OnVoice;
@@ -395,6 +403,7 @@ public sealed class AssistantHomeView : Decorator
         base.OnDetachedFromVisualTree(e);
         parts.Jobs.Changed -= Refresh;
         parts.Controls.Changed -= Refresh;
+        if (parts.Team is { } team) team.Changed -= RefreshTeam;
         if (parts.Voice is { } voice) voice.Changed -= OnVoice;
         suggestionsWatch?.Dispose();
         suggestionsWatch = null;
@@ -431,12 +440,23 @@ public sealed class AssistantHomeView : Decorator
         if (back is Control control && control.IsAttachedToVisualTree()) control.Focus(NavigationMethod.Tab);
     }
 
+    private void RefreshTeam()
+    {
+        if (Interlocked.Exchange(ref teamQueued, 1) != 0) return;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            Volatile.Write(ref teamQueued, 0);
+            if (VisualRoot is not null) Refresh();
+        });
+    }
+
     /// <summary>Reads the missions, the toggle and the stop again.</summary>
     public void Refresh()
     {
         var jobs = parts.Jobs.Snapshot(Marrow.Core.Port.SwiftClock.Provider.Current.GetUtcNow());
         var stopped = parts.Controls.Stopped is not null;
-        var asturs = (parts.Profiles?.Invoke() ?? []).Where(p => p.ParentId is not null).ToList();
+        var asturs = (parts.Profiles?.Invoke() ?? []).Where(p => p.ParentId is not null && !p.Retired).ToList();
+        var team = parts.Team?.Now();
         var nodes = asturs.Select(a => new ArmillaNode(a.Shape switch
         {
             AsturShape.Hexagon => ArmillaShape.Hexagon,
@@ -445,7 +465,9 @@ public sealed class AssistantHomeView : Decorator
             AsturShape.Clover => ArmillaShape.Clover,
             AsturShape.Star => ArmillaShape.Star,
             _ => ArmillaShape.Squircle,
-        })).ToList();
+        }, team is not null
+            ? team.Find(a.Id) is { } member && AsturPresences.Busy(member.Presence)
+            : jobs.Any(j => j.Owner == a.Name && j.State is MissionState.Planning or MissionState.Working or MissionState.Reviewing or MissionState.Pausing))).ToList();
         var mark = HomeWords.Mark(jobs, stopped);
         HeaderMark.State = mark;
         HeroMark.State = mark;
@@ -508,22 +530,28 @@ public sealed class AssistantHomeView : Decorator
 
     private void Lay(bool narrow)
     {
+        if (columns.ColumnDefinitions.Count > 0 && stacked == narrow) return;
+        stackedScroll.Content = null;
+        contentHost.Child = null;
         stacked = narrow;
         columns.ColumnDefinitions.Clear();
         columns.RowDefinitions.Clear();
         if (narrow)
         {
             // stacked: the conversation, then the Board under it
-            columns.RowDefinitions = new RowDefinitions("*,Auto");
+            columns.RowDefinitions = new RowDefinitions("Auto,Auto");
             columns.ColumnDefinitions = new ColumnDefinitions("*");
             columns.RowSpacing = 12;
             columns.ColumnSpacing = 0;
             Grid.SetColumn(boardHost, 0);
             Grid.SetRow(boardHost, 1);
             conversation.MinHeight = 420;
+            stackedScroll.Content = columns;
+            contentHost.Child = stackedScroll;
         }
         else
         {
+            contentHost.Child = columns;
             columns.ColumnDefinitions = new ColumnDefinitions("*,400");
             columns.RowDefinitions = new RowDefinitions("*");
             columns.ColumnSpacing = 12;
