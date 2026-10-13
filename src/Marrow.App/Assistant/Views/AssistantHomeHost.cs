@@ -64,6 +64,7 @@ public sealed class AssistantHomeHost : Decorator
     private bool? builtOn;
     private Guid? builtThread;
     private Control? sheetReturn;
+    private TeamSource? teamSource;
 
     public AssistantHomeHost(AppModel model, WindowLiveResize? liveResize = null, HomeSheets? sheets = null)
     {
@@ -101,17 +102,32 @@ public sealed class AssistantHomeHost : Decorator
         base.OnAttachedToVisualTree(e);
         host.Changed -= OnHost;
         host.Changed += OnHost;
+        model.TeamFocusRequested -= OnTeamFocus;
+        model.TeamFocusRequested += OnTeamFocus;
         Build();
+        ApplyTeamFocus();
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
         host.Changed -= OnHost;
+        model.TeamFocusRequested -= OnTeamFocus;
+        teamSource?.Dispose();
+        teamSource = null;
         builtOn = null; // built again on the next attach
     }
 
     private void OnHost() => Dispatcher.UIThread.Post(Build);
+
+    // a sidebar row asked for the Team tab ("Show in Team"): the request waits in the app model until the home is here to take it
+    private void OnTeamFocus() => Dispatcher.UIThread.Post(ApplyTeamFocus);
+
+    private void ApplyTeamFocus()
+    {
+        if (Home is not { } home || model.PendingTeamFocus is null) return;
+        if (model.TakeTeamFocus() is { } id) home.ShowTeam(id);
+    }
 
     private void Build()
     {
@@ -147,6 +163,8 @@ public sealed class AssistantHomeHost : Decorator
     private AssistantHomeParts Parts(DextraLive live, Marrow.Core.Models.ChatThread? thread)
     {
         var controller = live.Controller;
+        teamSource?.Dispose();
+        teamSource = controller is null ? null : TeamBinding.For(host.Profiles, live, controller, id => model.Duties?.Scheduler.Duties.Count(d => d.Duty.AssistantId == id) ?? 0);
         Func<Guid, string?> missionTitle = id => controller?.Runner.Find(id)?.Mission.Title;
         return new AssistantHomeParts(live.Jobs, live.Decisions, live.Controls)
         {
@@ -156,6 +174,9 @@ public sealed class AssistantHomeHost : Decorator
             FeedSource = line => line.ThreadId is { } t && model.Thread(t) is { } chat ? chat.Title : DextraHost.Name,
             OpenFeed = line => { if (line.ThreadId is { } t && model.Thread(t) is not null) model.SelectedThreadID = t; },
             Profiles = host.Profiles,
+            Team = teamSource,
+            TeamActions = TeamActionsFor(controller),
+            TeamProblems = controller is null ? null : () => TeamBinding.Problems(controller),
             Conversation = thread is null ? null : () => new FrameHostingView(
                 liveResize is null ? new ChatView(model.Runtime(thread.Id)) : new HostedEnvironment(model, liveResize, Zooms: false).Body(new ChatView(model.Runtime(thread.Id)))),
             ConversationEmpty = thread is null ? () => true : () => model.Runtime(thread.Id).Entries.Count == 0,
@@ -173,6 +194,23 @@ public sealed class AssistantHomeHost : Decorator
                 openSettings: () => OpenSettings(SettingsPage.Assistant)),
         };
     }
+
+    // what the Team tab's buttons do here (ED-NEW-dextra-as17-5, -6): its own place for Dextra or an Astur, the profile sheet over the home, the controller's three calls
+    private TeamActions TeamActionsFor(AssistantController? controller) => TeamHostActions.Build(host.Profiles, controller?.Team is null ? null : new ControllerAsturDesk(controller), new TeamHostSeams
+    {
+        ShowSheet = ShowSheet,
+        CloseSheet = CloseSheet,
+        OpenAssistantSettings = () => OpenSettings(SettingsPage.Assistant),
+        ShowHome = model.ShowAssistantHome,
+        OpenThread = thread =>
+        {
+            if (model.Thread(thread) is null) return false;
+            model.SelectedThreadID = thread;
+            return true;
+        },
+        Said = line => Home?.Announce(line),
+        ReserveLine = id => controller is null ? "" : TeamBinding.StandingRules(controller, id),
+    });
 
     private Control OffView()
     {

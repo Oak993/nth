@@ -47,6 +47,12 @@ public sealed record AssistantRowActions
 
     /// <summary>What a control's answer says (the live region of the window, if any).</summary>
     public Action<string>? Said { get; init; }
+
+    /// <summary>The team under the row (AS-17), made over the sources the row is bound to; null shows no Asturs.</summary>
+    public Func<DextraLive, ITeamSource?>? Team { get; init; }
+
+    /// <summary>What the Astur rows do (open, show in Team, the remembered disclosure).</summary>
+    public AsturTreeActions? Asturs { get; init; }
 }
 
 public sealed class AssistantSidebarRow : Decorator
@@ -140,6 +146,7 @@ public sealed class AssistantSidebarRow : Decorator
         // kept, hidden and never measured, in the tree.
         stack = new StackPanel { Spacing = 1, Children = { Button } };
         Child = stack;
+        Asturs = new AsturTree((this.actions.Asturs ?? new AsturTreeActions()) with { Said = this.actions.Asturs?.Said ?? this.actions.Said });
         ShowMissionsOpen(!(this.actions.Collapsed?.Invoke() ?? true), still: true);
         Refresh();
     }
@@ -160,6 +167,9 @@ public sealed class AssistantSidebarRow : Decorator
     public ContextMenu Menu { get; }
 
     public StackPanel MissionsGroup { get; }
+
+    /// <summary>The Asturs under the row (AS-17): hidden while there are none, and joined to the row when the first source is bound.</summary>
+    public AsturTree Asturs { get; }
 
     public DisclosureButton MissionsToggle { get; }
 
@@ -192,8 +202,17 @@ public sealed class AssistantSidebarRow : Decorator
         if (ReferenceEquals(live, sources)) return;
         Watch(false);
         live = sources;
+        BindAsturs();
         if (IsAttachedToVisualTree()) Watch(true);
         Refresh();
+    }
+
+    // the Asturs read a team made over the new sources (the tree lets the old one go); a tree that never had one is not kept in the row
+    private void BindAsturs()
+    {
+        var team = actions.Team?.Invoke(live);
+        if (team is not null && Asturs.Parent is null) stack.Children.Insert(Math.Min(1, stack.Children.Count), Asturs);
+        Asturs.Bind(team, owned: true);
     }
 
     private bool IsAttachedToVisualTree() => Avalonia.VisualTree.VisualExtensions.IsAttachedToVisualTree(this);
@@ -320,6 +339,7 @@ public sealed class AssistantSidebarRow : Decorator
                 {
                     calm = c;
                     Mark.Calm = c;
+                    Asturs.Calm = c;
                     foreach (var line in missionLines.Values) line.Mark.Calm = c;
                 });
     }
@@ -392,6 +412,14 @@ public sealed class AssistantSidebarSlot : Decorator
                 Note = () => !dextra.Settings.Value.On ? "Off" : !dextra.Settings.Value.FirstRunDone ? "Set up in a minute" : dextra.StartFault is { } fault ? "Could not start: " + fault : null,
                 Collapsed = () => dextra.Settings.Value.MissionsCollapsed,
                 SetCollapsed = collapsed => dextra.Settings.Update(p => p with { MissionsCollapsed = collapsed }),
+                Team = live => live.Controller is { } controller ? TeamBinding.For(dextra.Profiles, live, controller, id => app.Duties?.Scheduler.Duties.Count(d => d.Duty.AssistantId == id) ?? 0) : null,
+                Asturs = new AsturTreeActions
+                {
+                    Open = app.OpenAstur,
+                    ShowInTeam = app.ShowTeamOf,
+                    Collapsed = () => dextra.Settings.Value.AstursCollapsed,
+                    SetCollapsed = collapsed => dextra.Settings.Update(p => p with { AstursCollapsed = collapsed }),
+                },
             });
             Child = Row;
             Row.Track(() => app.AssistantHomeShown, shown => Row.IsSelected = shown);

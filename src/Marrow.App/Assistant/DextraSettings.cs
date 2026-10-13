@@ -62,6 +62,9 @@ public sealed record DextraPreferences
     /// <summary>The sidebar's "Missions" group under the Assistant row is collapsed (2.1: collapsed by default, remembered).</summary>
     public bool MissionsCollapsed { get; init; } = true;
 
+    /// <summary>The sidebar's "Asturs" group under the Assistant row is folded (2.1: "The disclosure is remembered"; AS-17). Open by default; stored only when true.</summary>
+    public bool AstursCollapsed { get; init; }
+
     public static DextraPreferences Default { get; } = new();
 }
 
@@ -169,6 +172,7 @@ public sealed class DextraSettings : ObservableModel
             if (value.FirstDuty is { } duty) writer.WriteString("firstDuty", duty);
             if (value.StopChord is { } chord) writer.WriteString("stopChord", chord);
             writer.WriteBoolean("missionsCollapsed", value.MissionsCollapsed);
+            if (value.AstursCollapsed) writer.WriteBoolean("astursCollapsed", true);
             writer.WriteStartArray("grants");
             foreach (var grant in value.Grants) WriteGrant(writer, grant);
             writer.WriteEndArray();
@@ -201,6 +205,7 @@ public sealed class DextraSettings : ObservableModel
             if (Text(root, "firstDuty") is { } duty && FirstDuties.Any(d => d.Id == duty)) result = result with { FirstDuty = duty };
             if (Text(root, "stopChord") is { Length: > 0 } chord) result = result with { StopChord = chord };
             if (Bool(root, "missionsCollapsed") is { } collapsed) result = result with { MissionsCollapsed = collapsed };
+            if (Bool(root, "astursCollapsed") is { } astursCollapsed) result = result with { AstursCollapsed = astursCollapsed };
             if (root.TryGetProperty("grants", out var grants) && grants.ValueKind == JsonValueKind.Array)
                 result = result with { Grants = new ValueList<Grant>(grants.EnumerateArray().Select(ReadGrant).OfType<Grant>()) };
         }
