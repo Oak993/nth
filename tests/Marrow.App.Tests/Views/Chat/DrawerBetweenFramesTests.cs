@@ -7,6 +7,20 @@ namespace Marrow.App.Tests.Views.Chat;
 [Collection("Headless")]
 public sealed class DrawerBetweenFramesTests(HeadlessSession headless)
 {
+    [Fact]
+    [Trait("Decision", "ED-NEW-motion-drawer-3")]
+    public void An_immediate_third_reversal_keeps_a_zero_frame_insertions_carried_speed()
+        => ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var rig = new DrawerMotionRig(PanelDockCorner.BottomLeading);
+            rig.Toggle(true); rig.Frame(1);
+            rig.Toggle(false); rig.AdvanceWithoutFrame(.01);
+            rig.Toggle(true); rig.Toggle(false);
+            rig.Frame(.01);
+            Assert.Equal(-rig.Margin, rig.Terminal.RenderTransform!.Value.M32, 6);
+            Assert.Equal(rig.Gap, rig.ComposerBottom - rig.PanelBottom, tolerance: 1);
+        });
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
