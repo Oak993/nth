@@ -152,6 +152,9 @@ public static class CspBuilder
     /// <summary>Why 'unsafe-eval' is dropped unless broad access is allowed.</summary>
     public static string UnsafeEvalReason => UiText.Get("mcpapps.reason.unsafe_eval");
 
+    /// <summary>Why a plain http or ws source to a site on the internet was dropped (ED-NEW-web-sec-mcpapps-4).</summary>
+    public static string NotSecureReason => UiText.Get("mcpapps.reason.not_secure");
+
     private static (string? Source, string? Reason) CleanOne(string text, bool allowBroad, bool allowIp)
     {
         if (text.Any(c => char.IsWhiteSpace(c) || c is ';' or ',' or '"' or '\\' or '<' or '>'))
@@ -187,6 +190,10 @@ public static class CspBuilder
 
         // + ED-NEW-web-w26-4 (W26 security review): a host on this computer or its local network is broad access too.
         if (!allowBroad && WebPolicy.IsDevHost(uri.Host)) return (null, LocalNetworkReason);
+        // + ED-NEW-web-sec-mcpapps-4 (web surfaces security review, L7): plain http and ws reach a host on this computer or its
+        // local network only (which is broad access already); to a site on the internet nth's own check refused them while
+        // the CSP let them through. Dropped here, so the card, the CSP and nth's check say the same.
+        if (scheme is "http" or "ws" && !WebPolicy.IsDevHost(uri.Host)) return (null, NotSecureReason);
         var host = uri.IdnHost.ToLowerInvariant();
         var port = uri.IsDefaultPort ? "" : ":" + uri.Port;
         var path = uri.AbsolutePath == "/" && !rest.EndsWith('/') ? "" : uri.AbsolutePath;

@@ -17,12 +17,16 @@ internal sealed class McpAppsRig : IDisposable
 
     public static readonly McpUiCsp Declared = new(["https://api.shipyard.dev"], ["cdn.shipyard.dev", "*.shipyard-assets.dev"], [], []);
 
-    public McpAppsRig(McpUiCsp? csp = null, McpAppPermissions? permissions = null, McpAppGrantStore? grants = null)
+    public McpAppsRig(McpUiCsp? csp = null, McpAppPermissions? permissions = null, McpAppGrantStore? grants = null, Guid? chat = null)
     {
         Servers.Page = new McpAppPage("shipyard", Resource, Html, csp ?? Declared) { Permissions = permissions ?? McpAppPermissions.None };
         Grants = grants ?? new McpAppGrantStore(null);
         Host = new McpAppsHost(Servers, Grants, Ui, log: Logs.Add);
+        Thread = chat ?? Chat;
     }
+
+    /// <summary>The chat the app runs in (<see cref="Chat"/> unless the test names another).</summary>
+    public Guid Thread { get; }
 
     public WebRig Web { get; } = new();
 
@@ -45,7 +49,7 @@ internal sealed class McpAppsRig : IDisposable
     public (McpAppMount Mount, FakeWebView View) Open()
     {
         var view = Web.OpenLive(WebSurfaceKind.McpApp, url: null);
-        Mount = Host.Mount(view, new McpAppLaunch(Chat, "shipyard", Resource)
+        Mount = Host.Mount(view, new McpAppLaunch(Thread, "shipyard", Resource)
         {
             ToolName = "list_releases",
             Title = "Release board",
@@ -169,6 +173,23 @@ internal sealed class FakeMcpAppUser : IMcpAppHostUi
 
     public List<string> ToolCards { get; } = [];
 
+    // ED-NEW-web-sec-mcpapps-2: the arguments each tool card showed.
+    public List<JsonObject> ToolArguments { get; } = [];
+
+    // ED-NEW-web-sec-mcpapps-1: the app's own window card, what it was asked for and its answer.
+    public bool DisplayAnswer { get; set; }
+
+    public List<McpAppDisplayMode> DisplayCards { get; } = [];
+
+    // ED-NEW-web-sec-mcpapps-4: answers the test gives later, so a card stays showing meanwhile.
+    public TaskCompletionSource<McpAppToolDecision>? HeldTool { get; set; }
+
+    public TaskCompletionSource<bool>? HeldMessage { get; set; }
+
+    public TaskCompletionSource<bool>? HeldPermission { get; set; }
+
+    public TaskCompletionSource<bool>? HeldDisplay { get; set; }
+
     public bool PermissionAnswer { get; set; }
 
     public List<WebPermissionKind> PermissionCards { get; } = [];
@@ -199,19 +220,26 @@ internal sealed class FakeMcpAppUser : IMcpAppHostUi
     public Task<bool> AskMessagesAsync(McpAppMount app)
     {
         MessageCards++;
-        return Task.FromResult(MessageAnswer);
+        return HeldMessage?.Task ?? Task.FromResult(MessageAnswer);
     }
 
-    public Task<McpAppToolDecision> AskToolAsync(McpAppMount app, string tool, string? title)
+    public Task<McpAppToolDecision> AskToolAsync(McpAppMount app, string tool, string? title, JsonObject arguments)
     {
         ToolCards.Add(tool);
-        return Task.FromResult(ToolAnswer);
+        ToolArguments.Add(arguments);
+        return HeldTool?.Task ?? Task.FromResult(ToolAnswer);
     }
 
     public Task<bool> AskPermissionAsync(McpAppMount app, WebPermissionKind kind)
     {
         PermissionCards.Add(kind);
-        return Task.FromResult(PermissionAnswer);
+        return HeldPermission?.Task ?? Task.FromResult(PermissionAnswer);
+    }
+
+    public Task<bool> AskDisplayModeAsync(McpAppMount app, McpAppDisplayMode mode)
+    {
+        DisplayCards.Add(mode);
+        return HeldDisplay?.Task ?? Task.FromResult(DisplayAnswer);
     }
 
     public bool ToolsNeedApproval(Guid thread) => Supervised;
