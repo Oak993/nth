@@ -86,7 +86,8 @@ public sealed class ChatLinkChoice(WebSettings settings, SwiftURL url, bool cont
     {
         if (finished) return;
         finished = true;
-        Completed?.Invoke(settings.CompleteChoice(visus, Remember, Control));
+        var destination = settings.CompleteChoice(visus, Remember, Control); // the answer is stored whether or not a router is listening
+        Completed?.Invoke(destination);
         Finished?.Invoke();
     }
 

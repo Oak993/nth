@@ -23,7 +23,7 @@ public sealed class SearchSuggestionSource : IDisposable
     /// <param name="handler">The transport; tests hand a fake. The default has no cookies, no redirects and no proxy credentials.</param>
     public SearchSuggestionSource(HttpMessageHandler? handler = null)
     {
-        client = new HttpClient(handler ?? new SocketsHttpHandler { UseCookies = false, AllowAutoRedirect = false, UseProxy = true, AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate }, disposeHandler: true)
+        client = new HttpClient(handler ?? new SocketsHttpHandler { UseCookies = false, AllowAutoRedirect = false, UseProxy = true, AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate }, disposeHandler: handler is null)
         {
             Timeout = Timeout,
             MaxResponseContentBufferSize = SearchSuggestionRules.MaxResponseBytes,

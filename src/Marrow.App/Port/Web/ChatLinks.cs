@@ -80,7 +80,7 @@ public static class ChatLinks
     public static bool OpenFromAnywhere(string address) => SwiftURL.Create(address) is { } url && OpenFromAnywhere(url);
 
     /// <summary><see cref="OpenFromAnywhere(string)"/> for an address already parsed (the process-wide link hook, InlineText.OpenUrl).</summary>
-    public static bool OpenFromAnywhere(SwiftURL url) => Open(url, scopedRuntime ?? KeyWindowRuntime(), KeyModifiers.None, scopedAnchor);
+    public static bool OpenFromAnywhere(SwiftURL url) => Open(url, null, KeyModifiers.None);
 
     private static Holder HolderFor(ThreadRuntime? runtime, WebSettings settings)
     {

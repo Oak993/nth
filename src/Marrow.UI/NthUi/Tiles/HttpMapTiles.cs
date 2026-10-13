@@ -42,6 +42,9 @@ public sealed class HttpMapTiles : INthUiMapTiles, IDisposable
     private readonly Dictionary<(int Z, int X, int Y), LinkedListNode<(int Z, int X, int Y, Bitmap Image)>> memory = [];
     private readonly LinkedList<(int Z, int X, int Y, Bitmap Image)> order = new();
     private readonly ConcurrentDictionary<(int Z, int X, int Y), DateTimeOffset?> requested = new();
+    private readonly object idleLock = new();
+    private TaskCompletionSource? idle;
+    private int loading;
     private int writesSinceTrim;
     private int changePosted;
 
@@ -55,7 +58,7 @@ public sealed class HttpMapTiles : INthUiMapTiles, IDisposable
         this.post = post;
         this.time = time ?? TimeProvider.System;
         this.cacheFolder = cacheFolder is null ? null : Path.Combine(cacheFolder, Key(template));
-        client = new HttpClient(handler ?? new SocketsHttpHandler { UseCookies = false, AllowAutoRedirect = false }, disposeHandler: true) { Timeout = RequestTimeout };
+        client = new HttpClient(handler ?? new SocketsHttpHandler { UseCookies = false, AllowAutoRedirect = false }, disposeHandler: handler is null) { Timeout = RequestTimeout };
         client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("nth", "1"));
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("image/png"));
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("image/jpeg", 0.9));
@@ -99,8 +102,19 @@ public sealed class HttpMapTiles : INthUiMapTiles, IDisposable
             if (failedAt is null || now - failedAt < RetryAfterFailure) return null; // on its way, or failed lately
         }
         requested[key] = null;
-        _ = Task.Run(() => LoadAsync(key), stop.Token);
+        lock (idleLock)
+        {
+            loading++;
+            idle ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+        _ = Task.Run(() => LoadAsync(key), CancellationToken.None);
         return null;
+    }
+
+    /// <summary>Completes when no tile is on its way (every load that began has ended, loaded or not). For tests and for a source being let go.</summary>
+    public Task WhenIdleAsync()
+    {
+        lock (idleLock) return idle?.Task ?? Task.CompletedTask;
     }
 
     /// <summary>Removes this source's tiles from disk (the reader took the source away or changed its address).</summary>
@@ -155,6 +169,17 @@ public sealed class HttpMapTiles : INthUiMapTiles, IDisposable
         catch (Exception error) when (error is OperationCanceledException or ObjectDisposedException)
         {
             requested.TryRemove(key, out _); // the source was let go while this tile was on its way
+        }
+        finally
+        {
+            lock (idleLock)
+            {
+                if (--loading == 0)
+                {
+                    idle?.TrySetResult();
+                    idle = null;
+                }
+            }
         }
     }
 
