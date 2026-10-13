@@ -593,6 +593,7 @@ public sealed class AssistantScheduler : IDisposable
             {
                 result = DutyLaunch.Refusal("nth could not start it: " + error.Message);
             }
+            var after = new List<Action>();
             lock (gate)
             {
                 r.Launching = false;
@@ -611,8 +612,11 @@ public sealed class AssistantScheduler : IDisposable
                 Persist(r.AssistantId);
                 Note(r, result.MissionId is null ? DutyFeedKind.Problem : DutyFeedKind.Fired,
                     result.MissionId is null ? $"{r.Duty.Name}: not started. {result.Refused}" : $"{r.Duty.Name}: {(fire.Dry ? "dry run" : "ran")} ({CauseWords(fire.Cause)}).", result.MissionId);
+                // A run the launcher finished inside its launch (nth's own digest) ends here, the way a mission's end does (AS-11).
+                if (result.MissionId is { } inline && result.Finished is { } finished) EndRun(r, inline, finished, result.Report, after);
                 Rearm(time.GetUtcNow());
             }
+            Run(after);
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {
@@ -643,16 +647,22 @@ public sealed class AssistantScheduler : IDisposable
         {
             var r = runtimes.Values.FirstOrDefault(x => x.Duty.History.Any(h => h.MissionId == mission));
             if (r is null) return;
-            var ended = outcome == DutyRunOutcome.Done && DutyResult.NothingChanged(report) ? DutyRunOutcome.NothingChanged : outcome;
-            r.Duty = r.Duty.WithRunUpdated(mission, run => run.Outcome == DutyRunOutcome.Started ? run with { Outcome = ended } : run);
-            if (r.Running == mission) r.Running = null;
-            Persist(r.AssistantId);
-            if (ended == DutyRunOutcome.NothingChanged) Note(r, DutyFeedKind.Quiet, $"{r.Duty.Name}: nothing changed.", mission);
-            if (r.Held is not null) TryRelease(r, time.GetUtcNow(), after);
+            EndRun(r, mission, outcome, report, after);
             Rearm(time.GetUtcNow());
         }
         Run(after);
         Raise();
+    }
+
+    // Under the lock. The run's line in the history gets its outcome; the duty is no longer running; a run held meanwhile may begin.
+    private void EndRun(Runtime r, Guid mission, DutyRunOutcome outcome, string? report, List<Action> after)
+    {
+        var ended = outcome == DutyRunOutcome.Done && DutyResult.NothingChanged(report) ? DutyRunOutcome.NothingChanged : outcome;
+        r.Duty = r.Duty.WithRunUpdated(mission, run => run.Outcome == DutyRunOutcome.Started ? run with { Outcome = ended } : run);
+        if (r.Running == mission) r.Running = null;
+        Persist(r.AssistantId);
+        if (ended == DutyRunOutcome.NothingChanged) Note(r, DutyFeedKind.Quiet, $"{r.Duty.Name}: nothing changed.", mission);
+        if (r.Held is not null) TryRelease(r, time.GetUtcNow(), after);
     }
 
     // ---- folder triggers ----
