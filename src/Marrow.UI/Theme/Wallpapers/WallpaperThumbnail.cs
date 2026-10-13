@@ -28,6 +28,7 @@ public sealed class WallpaperThumbnail : Control, IWallpaperThumbnailClient
     private WallpaperSelection selection;
     private CompositionCustomVisual? visual;
     private Window? window;
+    private WindowPresence? presence;
     private AnimatedScalar? fade;
     private double easeLeft;
     private bool inView;
@@ -70,11 +71,12 @@ public sealed class WallpaperThumbnail : Control, IWallpaperThumbnailClient
     /// <summary>The window's Reduce Motion (the inherited environment value the backdrop's WallpaperView reads too).</summary>
     public bool ReduceMotion => EnvironmentValues.GetAccessibilityReduceMotion(this);
 
-    private bool Shown => VisualRoot is not null && IsEffectivelyVisible && window?.IsVisible != false && window?.WindowState != WindowState.Minimized;
+    private bool Shown => VisualRoot is not null && IsEffectivelyVisible && presence?.Seen != false && window?.IsVisible != false && window?.WindowState != WindowState.Minimized;
 
     public bool WantsAdmission => !Live && inView && Shown && Bounds.Width > 0 && Bounds.Height > 0;
     public bool Animating => Live && inView && Shown && Wallpaper.Kind == WallpaperKind.Animated && !ReduceMotion;
-    public bool Easing => Live && easeLeft > 0;
+    // ED-NEW-smooth2-4: an offscreen/hidden picture holds its transition, just as it holds its animation clock.
+    public bool Easing => Live && inView && Shown && easeLeft > 0;
     public int Rank => IsChosen ? -1 : Order;
 
     public void Admit()
@@ -116,6 +118,8 @@ public sealed class WallpaperThumbnail : Control, IWallpaperThumbnailClient
         if (visual is not null || ElementComposition.GetElementVisual(this) is not { } host) return;
         window = TopLevel.GetTopLevel(this) as Window;
         if (window is not null) window.PropertyChanged += WindowChanged;
+        presence = WindowPresence.For(this);
+        if (presence is not null) presence.Changed += ticker.Wake;
         visual = host.Compositor.CreateCustomVisual(new WallpaperThumbnailHandler());
         visual.Size = new Vector(Bounds.Width, Bounds.Height); visual.Opacity = 0;
         ElementComposition.SetElementChildVisual(this, visual);
@@ -127,6 +131,8 @@ public sealed class WallpaperThumbnail : Control, IWallpaperThumbnailClient
         ticker.Remove(this);
         if (window is not null) window.PropertyChanged -= WindowChanged;
         window = null;
+        if (presence is not null) presence.Changed -= ticker.Wake;
+        presence = null;
         visual?.SendHandlerMessage(WallpaperVisualStop.Instance);
         ElementComposition.SetElementChildVisual(this, null);
         visual = null; Live = false; inView = false; easeLeft = 0;
