@@ -12,7 +12,9 @@ namespace Marrow.Setup.Tests.Shell;
 // ED-NEW-inst-fix-7 and -8 now glide on the installer's own glide (Reveal.Glide: the canvas's spring at no more than 135 DIP a
 // second): a Problem whose reason is taller than every screen the window measured opens the window to it over many frames, and the
 // glass card's fill edge follows its rows when a longer path makes it taller (or a shorter one makes it shorter). Both are
-// interruptible: a new change carries on from where the last one is, with the speed it has.
+// interruptible: a new change carries on from where the last one is, with the speed it has. A smaller type from a text size change
+// (ED-NEW-gateprep-2) measures every height again and the window glides down to the new one on the same glide, with the screen laid
+// out whole and nothing in it jumping; a larger type still takes its taller height at once (the type is bigger already).
 [Collection("SetupHeadless")]
 public sealed class WindowGlideTests(SetupHeadlessSession headless)
 {
@@ -129,6 +131,173 @@ public sealed class WindowGlideTests(SetupHeadlessSession headless)
 
             Assert.True(large > 468);
             Assert.Equal(CaptionBar.BandHeight + rig.Window.Body.Tallest, large, 1);
+            Assert.Equal(rig.Window.Body.Tallest, rig.Window.Body.Shown, 3);
+            rig.Window.CloseNow();
+        });
+    }
+
+    [Theory]
+    [Trait("Decision", "OD-0072")]
+    [InlineData(SetupScreen.Welcome)]
+    [InlineData(SetupScreen.Options)]
+    public void A_text_size_change_back_to_100_percent_measures_the_height_again_and_the_window_glides_down_to_it(SetupScreen start)
+    {
+        headless.OnUiThread(() =>
+        {
+            var rig = new WindowRig { InstallRoot = TypicalRoot };
+            var session = rig.Session(start);
+            session.Start();
+            rig.Window.Show();
+            rig.Settle();
+            rig.Run(1);
+            var opened = Height(rig);
+            var tallestAtFirst = rig.Window.Body.Tallest;
+            rig.Change(SystemLook.Default with { TextScale = 2.25 });
+            rig.Settle();
+            var large = Height(rig);
+            Assert.True(large > opened + 100, $"225 % needs a much taller window ({opened} to {large})");
+
+            rig.Change(SystemLook.Default with { TextScale = 1.0 });
+            rig.Settle(); // the type is small at once; the window has not moved yet
+
+            Assert.Equal(tallestAtFirst, rig.Window.Body.Tallest, 1); // the height of the 225 % type is not kept
+            Assert.Equal(large, Height(rig), 1); // no snap
+            var heights = new List<double> { Height(rig) };
+            for (var i = 0; i < 600; i++) heights.Add(Frames(rig, 1));
+
+            AssertGlidedDown(heights);
+            Assert.Equal(opened, heights[^1], 1);
+            Assert.Equal(rig.Window.Body.Tallest, rig.Window.Body.Shown, 3);
+            rig.Window.CloseNow();
+        });
+    }
+
+    [Fact]
+    [Trait("Decision", "OD-0072")]
+    public void No_part_of_the_screen_jumps_while_the_window_glides_down_the_top_stays_and_the_bottom_row_rides_the_edge()
+    {
+        headless.OnUiThread(() =>
+        {
+            var rig = new WindowRig { InstallRoot = TypicalRoot };
+            var session = rig.Session(SetupScreen.Welcome);
+            session.Start();
+            rig.Window.Show();
+            rig.Settle();
+            rig.Run(1);
+            var opened = Height(rig);
+            rig.Change(SystemLook.Default with { TextScale = 2.25 });
+            rig.Settle();
+            rig.Change(SystemLook.Default with { TextScale = 1.0 });
+            rig.Settle();
+            var welcome = Assert.IsType<WelcomeScreen>(session.Current);
+            var probe = new FrameProbe(rig, welcome.View, [welcome.MarkView, welcome.InstallsLine, welcome.LicenseLink, welcome.Install], [welcome.Install]) { ButtonsFixed = false };
+            var markTop = probe.Of(welcome.MarkView).Box.Top;
+            var edge = new List<double> { rig.Window.Body.Bounds.Height - probe.Of(welcome.Install).Box.Top };
+            var heights = new List<double> { Height(rig) };
+
+            for (var i = 0; i < 400; i++)
+            {
+                probe.Step(); // every element moves at most 3 DIP in a frame and nothing overlaps Install
+                Dispatcher.UIThread.RunJobs();
+                heights.Add(rig.Window.ClientSize.Height);
+                Assert.Equal(markTop, probe.Of(welcome.MarkView).Box.Top, 3); // the top of the screen does not move at all
+                if (heights[^1] > opened + 3) edge.Add(rig.Window.Body.Bounds.Height - probe.Of(welcome.Install).Box.Top);
+            }
+
+            AssertGlidedDown(heights);
+            Assert.Equal(opened, heights[^1], 1);
+            Assert.True(edge.Count > 100 && edge.Max() - edge.Min() <= FrameProbe.MaxStep, "while the window is taller than it ends, Install keeps its distance from the window's bottom edge");
+            rig.Window.CloseNow();
+        });
+    }
+
+    [Fact]
+    [Trait("Decision", "OD-0072")]
+    public void A_smaller_text_size_while_the_window_glides_down_carries_on_from_where_it_is()
+    {
+        headless.OnUiThread(() =>
+        {
+            var expected = SettledHeight(1.25);
+            var rig = new WindowRig { InstallRoot = TypicalRoot };
+            var session = rig.Session(SetupScreen.Welcome);
+            session.Start();
+            rig.Window.Show();
+            rig.Settle();
+            rig.Run(1);
+            rig.Change(SystemLook.Default with { TextScale = 2.25 });
+            rig.Settle();
+            rig.Change(SystemLook.Default with { TextScale = 1.5 });
+            rig.Settle();
+            var heights = new List<double> { Height(rig) };
+            for (var i = 0; i < 30; i++) heights.Add(Frames(rig, 1));
+            var middle = heights[^1];
+            Assert.True(middle < heights[0] - 20 && middle > expected + 20, "the first glide is still on its way");
+
+            rig.Change(SystemLook.Default with { TextScale = 1.25 }); // still smaller: the same glide goes on to the new height
+            rig.Settle();
+            heights.Add(Height(rig));
+            for (var i = 0; i < 600; i++) heights.Add(Frames(rig, 1));
+
+            AssertGlidedDown(heights);
+            Assert.Equal(expected, heights[^1], 1);
+            Assert.Equal(rig.Window.Body.Tallest, rig.Window.Body.Shown, 3);
+            rig.Window.CloseNow();
+        });
+    }
+
+    [Fact]
+    [Trait("Decision", "OD-0072")]
+    public void A_larger_text_size_while_the_window_glides_down_takes_the_taller_height_at_once_with_no_glide_left_over()
+    {
+        headless.OnUiThread(() =>
+        {
+            var rig = new WindowRig { InstallRoot = TypicalRoot };
+            var session = rig.Session(SetupScreen.Welcome);
+            session.Start();
+            rig.Window.Show();
+            rig.Settle();
+            rig.Run(1);
+            rig.Change(SystemLook.Default with { TextScale = 2.25 });
+            rig.Settle();
+            var large = Height(rig);
+            rig.Change(SystemLook.Default with { TextScale = 1.0 });
+            rig.Settle();
+            for (var i = 0; i < 30; i++) Frames(rig, 1);
+            Assert.True(Height(rig) < large - 20, "the window is on its way down");
+
+            rig.Change(SystemLook.Default with { TextScale = 2.25 });
+            rig.Settle(); // by layout alone, as for any larger type
+
+            Assert.Equal(large, Height(rig), 1);
+            Assert.Equal(rig.Window.Body.Tallest, rig.Window.Body.Shown, 3);
+            for (var i = 0; i < 120; i++) Assert.Equal(large, Frames(rig, 1), 1);
+            rig.Window.CloseNow();
+        });
+    }
+
+    [Fact]
+    [Trait("Decision", "OD-0072")]
+    public void In_Calm_a_text_size_change_back_to_100_percent_takes_the_height_at_once()
+    {
+        headless.OnUiThread(() =>
+        {
+            var rig = new WindowRig(WindowRig.Calm) { InstallRoot = TypicalRoot };
+            var session = rig.Session(SetupScreen.Welcome);
+            session.Start();
+            rig.Window.Show();
+            rig.Settle();
+            rig.Run(1);
+            var opened = Height(rig);
+            var tallestAtFirst = rig.Window.Body.Tallest;
+            rig.Change(WindowRig.Calm with { TextScale = 2.25 });
+            rig.Settle();
+            Assert.True(Height(rig) > opened + 100);
+
+            rig.Change(WindowRig.Calm with { TextScale = 1.0 });
+            rig.Settle();
+
+            Assert.Equal(tallestAtFirst, rig.Window.Body.Tallest, 1);
+            Assert.Equal(opened, Height(rig), 1);
             Assert.Equal(rig.Window.Body.Tallest, rig.Window.Body.Shown, 3);
             rig.Window.CloseNow();
         });
@@ -325,6 +494,36 @@ public sealed class WindowGlideTests(SetupHeadlessSession headless)
             Dispatcher.UIThread.RunJobs();
         }
         return rig.Window.ClientSize.Height;
+    }
+
+    /// <summary>The height a window opened at <paramref name="textScale"/> settles at (to compare a glide's end with).</summary>
+    private static double SettledHeight(double textScale)
+    {
+        var rig = new WindowRig(SystemLook.Default with { TextScale = textScale }) { InstallRoot = TypicalRoot };
+        var session = rig.Session(SetupScreen.Welcome);
+        session.Start();
+        rig.Window.Show();
+        rig.Settle();
+        rig.Run(1);
+        var height = Height(rig);
+        rig.Window.CloseNow();
+        return height;
+    }
+
+    /// <summary>
+    /// The window only got smaller, over many frames, on the installer's glide: a frame moves its bottom edge by at most 3 DIP (the headless
+    /// platform sizes the window in whole pixels, so 135 DIP a second shows as steps of 2 and 3), and no second of frames moves it further than the cap.
+    /// </summary>
+    private static void AssertGlidedDown(List<double> heights)
+    {
+        AssertGlidedSteps(heights);
+        Assert.True(heights.Distinct().Count() > 8, $"the window shrank over many frames, not in one ({string.Join(", ", heights.Distinct().Take(12))})");
+        var perSecond = (int)Math.Round(1 / Frame);
+        for (var i = 1; i < heights.Count; i++)
+        {
+            Assert.True(heights[i] <= heights[i - 1] + .01, $"frame {i}: the window only goes down ({heights[i - 1]} to {heights[i]})");
+            if (i >= perSecond) Assert.True(heights[i - perSecond] - heights[i] <= Reveal.MaxGlideSpeed + 1, $"frame {i}: faster than the glide's cap over a second ({heights[i - perSecond]} to {heights[i]})");
+        }
     }
 
     /// <summary>The window only grew, over many frames, and no frame moved its bottom edge by more than the plan's 3 DIP.</summary>

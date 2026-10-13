@@ -20,7 +20,10 @@ namespace Marrow.Setup.Shell;
 /// the same glide as every other move (<see cref="Reveal.Glide"/>: the canvas's spring, at most <see cref="Reveal.MaxGlideSpeed"/>
 /// DIP a second), from the height it has with the speed it has, and a still taller screen turns the glide around where it is
 /// (ED-NEW-inst-picks-1). The new screen keeps its own layout while the window opens to it; the screen leaving keeps the height
-/// it had. A first layout, a text size or DPI change, Calm and <c>immediately</c> take the new height at once.
+/// it had. A first layout, Calm and <c>immediately</c> take the new height at once, and so does a larger type from a text size or
+/// DPI change (<see cref="ResetHeight"/>: the type is already big, so the window must be too). A smaller type measures every height
+/// again from nothing, and the window glides down to the new tallest on the same glide in the other direction, from the height it
+/// has with the speed it has (ED-NEW-gateprep-2).
 /// </summary>
 public sealed class ScreenHost : Panel, IMotion
 {
@@ -36,6 +39,7 @@ public sealed class ScreenHost : Panel, IMotion
     private double tallest;
     private double shown, velocity;
     private bool snap = true;
+    private bool settling;
 
     public ScreenHost(Animator animator, Func<bool> calm)
     {
@@ -80,12 +84,17 @@ public sealed class ScreenHost : Panel, IMotion
         if (immediately && previous is not null) Remove(previous);
     }
 
-    /// <summary>Lets the height shrink again (after a text size or DPI change); the reachable screens are measured again.</summary>
+    /// <summary>
+    /// Lets the height shrink again (after a text size or DPI change); the reachable screens are measured again. Until the first
+    /// layout pass after this is done the last measure stands, not the tallest of them: a new type size reaches the screens over
+    /// several measures inside that pass, and the first of them still holds the old size. The height already shown is kept: a
+    /// taller measure takes it at once (the type is bigger already), a shorter one glides down to it
+    /// (<see cref="IMotion.Advance"/>), from where the window is with the speed it has.
+    /// </summary>
     public void ResetHeight()
     {
         tallest = 0;
-        shown = velocity = 0;
-        snap = true;
+        settling = true;
         AddProbes();
         InvalidateMeasure();
     }
@@ -123,26 +132,30 @@ public sealed class ScreenHost : Panel, IMotion
         InvalidateMeasure();
     }
 
-    // The first layout pass, and the pass after a reset or an immediate show, take their height at once; later growth glides.
+    // The first layout pass, and the pass after an immediate show, take their height at once; later growth glides. The pass after a
+    // reset is the last one whose measures replace the tallest; from the next on it only grows again.
     private void OnLayoutUpdated(object? sender, EventArgs e)
     {
-        if (snap && Bounds.Height > 0 && shown >= tallest - .01) snap = false;
+        if (Bounds.Height <= 0) return;
+        settling = false;
+        if (snap && shown >= tallest - .01) snap = false;
     }
 
     bool IMotion.Advance(double seconds)
     {
-        var offset = Math.Min(0, shown - tallest);
+        var offset = shown - tallest; // below the tallest while the window opens to a taller screen, above it after a smaller type
+        var side = Math.Sign(offset);
         var steps = Math.Max(1, (int)Math.Ceiling(seconds / Reveal.SubStep));
         var h = seconds / steps;
         for (var i = 0; i < steps; i++) Reveal.Glide(ref offset, ref velocity, h);
-        if (Reveal.Rest(ref offset, ref velocity, 0, .01, .05) || offset > 0)
+        if (Reveal.Rest(ref offset, ref velocity, 0, .01, .05) || Math.Sign(offset) != side)
         {
             offset = 0;
             velocity = 0;
         }
         shown = tallest + offset;
         InvalidateMeasure();
-        return offset < 0;
+        return offset != 0;
     }
 
     private void OnProbed(object? sender, EventArgs e)
@@ -172,7 +185,7 @@ public sealed class ScreenHost : Panel, IMotion
             size = new Size(Math.Max(size.Width, child.DesiredSize.Width), Math.Max(size.Height, child.DesiredSize.Height));
         }
         probed |= probes.Count > 0;
-        tallest = Math.Max(tallest, size.Height);
+        tallest = settling ? size.Height : Math.Max(tallest, size.Height);
         if (snap || shown <= 0 || calm())
         {
             shown = tallest;
@@ -180,14 +193,28 @@ public sealed class ScreenHost : Panel, IMotion
         }
         else if (shown < tallest)
         {
-            // a screen taller than any measured: the window opens to it on the glide, beginning at the height it is drawn at now
-            if (velocity == 0) shown = Math.Max(shown, Math.Min(Bounds.Height, tallest));
-            if (tallest - shown > .5) animator.Start(this);
-            else
+            if (settling)
             {
-                shown = tallest; // half a DIP is not worth a glide, and a measure that differs by a rounding must not leave the glide short of its end
+                shown = tallest; // a larger type from a text size or DPI change is on the screens already: the window fits it now
                 velocity = 0;
             }
+            else
+            {
+                // a screen taller than any measured: the window opens to it on the glide, beginning at the height it is drawn at now
+                if (velocity == 0) shown = Math.Max(shown, Math.Min(Bounds.Height, tallest));
+                if (tallest - shown > .5) animator.Start(this);
+                else
+                {
+                    shown = tallest; // half a DIP is not worth a glide, and a measure that differs by a rounding must not leave the glide short of its end
+                    velocity = 0;
+                }
+            }
+        }
+        else if (shown > tallest)
+        {
+            // a smaller type: the screens are small already, and the window glides down to their height, from where it is
+            if (velocity != 0 || shown - tallest > .5) animator.Start(this); // a glide on its way runs to its own rest, not to a last half DIP in one frame
+            else shown = tallest;
         }
         return new Size(size.Width, shown);
     }
