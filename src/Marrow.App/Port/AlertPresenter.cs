@@ -147,7 +147,13 @@ public sealed class WindowsAlertPresenter : IAlertPresenter
                     ?? throw new InvalidOperationException("A modal alert requires an owner window.");
                 window = BuildWindow(request, session);
                 // ED-NEW-textsize-1: drawn at the app zoom of the window it is asked over.
-                if (window.Content is Control content) window.Content = Marrow.UI.Common.AppZoom.Zoomed(content, Marrow.UI.Common.AppZoom.ScaleOfWindow(owner));
+                if (window.Content is Control content)
+                {
+                    window.Content = Marrow.UI.Common.AppZoom.Zoomed(content, Marrow.UI.Common.AppZoom.ScaleOfWindow(owner));
+                    // ED-NEW-perf-motion-12: a zoom of the window it is asked over that changes while it shows reaches it on every
+                    // frame of the glide, the window sized to its content about its centre.
+                    _ = Marrow.UI.Common.WindowZoom.Follow(window, content, owner, Marrow.UI.Common.WindowZoom.KeepingCentre(window));
+                }
                 _ = window.ShowDialog(owner);
             }
             catch (Exception error) { session.Failed(error); }

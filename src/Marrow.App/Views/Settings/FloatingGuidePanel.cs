@@ -49,6 +49,7 @@ public class FloatingGuidePanel
     protected AvaloniaWindow? panel; // :8 private(set) var panel
     private bool escapeMonitorInstalled; // :9
     private IDisposable? escapeSubscription;
+    private IDisposable? zoomFollow; // ED-NEW-perf-motion-12
 
     // :12-14 init(width:)
     protected FloatingGuidePanel(double width)
@@ -61,19 +62,38 @@ public class FloatingGuidePanel
     protected void Present(Control content)
     {
         var window = panel ?? MakePanel(); // :18
+        zoomFollow?.Dispose();
         // ED-NEW-textsize-1: the panel draws its content at the app zoom of the main window (the zoom scales the whole app,
         // WindowManager.swift:173-175), so it is as many points wide as the source's, times the scale.
-        var scale = Marrow.UI.Common.AppZoom.ScaleOfWindow(Marrow.App.Window.WindowManager.Shared.MainWindow);
+        var main = Marrow.App.Window.WindowManager.Shared.MainWindow;
+        var scale = Marrow.UI.Common.AppZoom.ScaleOfWindow(main);
         var shown = Marrow.UI.Common.AppZoom.Zoomed(content, scale);
-        var width = this.width * (ReferenceEquals(shown, content) ? 1 : scale);
+        if (ReferenceEquals(shown, content)) scale = 1;
+        var width = this.width * scale;
         window.Content = shown; // :19
         window.Width = width;
         // :17 fittingSize of the content at the panel's width, measured once it is in the panel: a detached control has
         // no styles or templates yet, so its fields and buttons measured short (the key guide by 16-28 pt).
         window.Measure(new Size(width, double.PositiveInfinity));
         shown.Measure(new Size(width, double.PositiveInfinity));
-        var measuredHeight = Math.Ceiling(shown.DesiredSize.Height);
-        window.Height = Math.Max(measuredHeight, 100); // :20
+        var fitting = shown.DesiredSize.Height / scale; // the content's own height, at 100 %
+        Fit(window, scale, Math.Ceiling(shown.DesiredSize.Height));
+        // ED-NEW-perf-motion-12: a zoom changed while the panel shows reaches it on every frame of the glide, its width, height and
+        // corner with it.
+        zoomFollow = Marrow.UI.Common.WindowZoom.Follow(window, content, main, next => Fit(window, next, Math.Ceiling(fitting * next)));
+
+        // :24-25
+        StartEscapeMonitor();
+        window.Show();
+        StartActivationHook(window);
+    }
+
+    // :17-23 the panel at the content's fitting size for a zoom scale, parked at the main screen's visible top right with a 24-point inset.
+    private void Fit(AvaloniaWindow window, double scale, double height)
+    {
+        var width = this.width * scale;
+        window.Width = width;
+        window.Height = Math.Max(height, 100); // :20
 
         // :21-23 Place at the main screen's visible top right with a 24-point inset.
         if (window.Screens.Primary is { } screen)
@@ -84,16 +104,13 @@ public class FloatingGuidePanel
                 checked((int)Math.Round(workingArea.X + workingArea.Width - (width + 24) * scaling)),
                 checked((int)Math.Round(workingArea.Y + 24 * scaling)));
         }
-
-        // :24-25
-        StartEscapeMonitor();
-        window.Show();
-        StartActivationHook(window);
     }
 
     // :28-31 func close()
     public virtual void Close()
     {
+        zoomFollow?.Dispose();
+        zoomFollow = null;
         StopEscapeMonitor();
         StopActivationHook();
         panel?.Hide();

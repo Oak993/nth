@@ -169,15 +169,16 @@ public sealed class TourWindowController
         }
         else zoom = 1;
 
-        if (mainWindow != null && mainWindow.IsVisible)
-        {
-            var mainFrame = mainWindow.FrameSize ?? mainWindow.Bounds.Size;
-            var scale = mainWindow.RenderScaling;
-            var originX = mainWindow.Position.X + (mainFrame.Width - width * zoom) * scale / 2;
-            var originY = mainWindow.Position.Y + (mainFrame.Height - totalHeight * zoom) * scale / 2;
-            createdWindow.Position = new PixelPoint((int)Math.Round(originX), (int)Math.Round(originY));
-        }
+        if (mainWindow != null && mainWindow.IsVisible) Center(createdWindow, mainWindow, width * zoom, totalHeight * zoom);
         else createdWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        // ED-NEW-perf-motion-12: a zoom changed while the tour shows (its window answers the app's key equivalents, Ctrl+Plus among them)
+        // reaches the card on every frame of the main window's glide, the window's size and its centre on the main window with it.
+        _ = Marrow.UI.Common.WindowZoom.Follow(createdWindow, rootView, mainWindow, next =>
+        {
+            createdWindow.Width = width * next;
+            createdWindow.Height = totalHeight * next;
+            if (mainWindow != null && mainWindow.IsVisible) Center(createdWindow, mainWindow, width * next, totalHeight * next);
+        });
 
         // :103-111 Set up delegate and show window
         var del = new WindowDelegate(() =>
@@ -201,6 +202,16 @@ public sealed class TourWindowController
         // :113 Store and return
         window = createdWindow;
         return window;
+    }
+
+    // :92-101 the tour window centred on the main window, at its drawn size.
+    private static void Center(AvaloniaWindow window, AvaloniaWindow mainWindow, double drawnWidth, double drawnHeight)
+    {
+        var mainFrame = mainWindow.FrameSize ?? mainWindow.Bounds.Size;
+        var scale = mainWindow.RenderScaling;
+        var originX = mainWindow.Position.X + (mainFrame.Width - drawnWidth) * scale / 2;
+        var originY = mainWindow.Position.Y + (mainFrame.Height - drawnHeight) * scale / 2;
+        window.Position = new PixelPoint((int)Math.Round(originX), (int)Math.Round(originY));
     }
 
     /// <summary>
