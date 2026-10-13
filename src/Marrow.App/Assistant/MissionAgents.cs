@@ -175,7 +175,14 @@ public sealed class StoreMissionWorkspaces(Func<Guid, int, string> folder) : IMi
 
     public Task<MergeResult> RebaseFirst(MissionWorkspace workspace) => MissionWorkspaces.RebaseFirst(workspace);
 
-    public Task Discard(MissionWorkspace workspace) => MissionWorkspaces.Discard(workspace);
+    public Task Discard(MissionWorkspace workspace)
+    {
+        // ED-NEW-secfinal-22 (final security gate S4): Discard deletes a folder, so it too acts only on one strictly under the worktrees folder,
+        // fully resolved, with no link on the way (Discard has no mission id; the worktrees folder is the same for every mission).
+        if (!MissionWorkspaces.StrictlyUnder(Path.GetDirectoryName(folder(Guid.Empty, 1))!, workspace.Path))
+            throw new MissionWorkspaceError("The mission's workspace is not under nth's own worktrees folder, so nth does not touch it.");
+        return MissionWorkspaces.Discard(workspace);
+    }
 }
 
 /// <summary>The real chats, over AppModel. Every call runs on the app's main thread.</summary>
