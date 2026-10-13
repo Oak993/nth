@@ -32,7 +32,7 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
     {
         var pages = SwiftEnum<SettingsPage>.AllCases;
         Assert.Equal(
-            ["general", "hydra", "ignis", "appearance", "customization", "voiceTyping", "providers", "updates", "mcp", "plugins", "skills", "pcControl", "models", "pills", "sourceControl", "shortcuts", "archive", "about"],
+            ["general", "hydra", "ignis", "appearance", "customization", "voiceTyping", "providers", "updates", "mcp", "plugins", "skills", "pcControl", "visus", "tabula", "models", "pills", "sourceControl", "shortcuts", "archive", "about"],
             pages.Select(page => page.Id));
         Assert.Equal(["customization", "voiceTyping", "updates", "plugins", "skills", "pills"], NewPages.Select(page => page.Id));
         Assert.Equal(pages.ToList().IndexOf(SettingsPage.Plugins) + 1, pages.ToList().IndexOf(SettingsPage.Skills));

@@ -308,8 +308,9 @@ public static class PiCLI
         "          description: tool.description,",
         "          parameters: Type.Unsafe(tool.inputSchema),",
         "          async execute(toolCallId, params) {",
-        "            const text = await tool.call(params);",
-        "            return { content: [{ type: \"text\", text }], details: {} };",
+        // PORT-ONLY (web surfaces W18, ED-NEW-web-w18-3): the bridge answers as content blocks, so an MCP image reaches Pi as an image.
+        "            const content = tool.callContent ? await tool.callContent(params) : [{ type: \"text\", text: await tool.call(params) }];",
+        "            return { content, details: {} };",
         "          },",
         "        });",
         "      }",

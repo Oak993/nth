@@ -23,7 +23,20 @@ public enum PillAppPhase
 /// and since when (seconds on the pill's clock), the atomic step a pause waits for ("dragging in Paint"), whether its
 /// step waits on an ask, and whether its pointer works where the user cannot see it (ED-NEW-pcctl-21 item 5).
 /// </summary>
-public sealed record PillApp(string Key, string Name, string Step, PillAppPhase Phase = PillAppPhase.Working, double PhaseSince = 0, string? Busy = null, bool WaitsOnAsk = false, bool Behind = false);
+public sealed record PillApp(string Key, string Name, string Step, PillAppPhase Phase = PillAppPhase.Working, double PhaseSince = 0, string? Busy = null, bool WaitsOnAsk = false, bool Behind = false)
+{
+    /// <summary>
+    /// PORT-ONLY (web surfaces W11, ED-NEW-web-w11-1; DESIGN 5.10 "User takes over"): the user clicked or typed in the tab the
+    /// app drives (Visus): the pill says "You took over Visus" with Resume while it still works elsewhere.
+    /// </summary>
+    public bool TookOver { get; init; }
+
+    /// <summary>PORT-ONLY (web W11): its step waits on a card drawn in its own window (Visus's card), not in the pill: "Check the card".</summary>
+    public bool OwnCard { get; init; }
+
+    /// <summary>PORT-ONLY (web W11): the paused pill's line when it is the only app (Visus: "The page stays as it is").</summary>
+    public string? PausedLine { get; init; }
+}
 
 /// <summary>The kinds of ask the pill carries (DESIGN.md 10.4).</summary>
 public enum PillAskKind
@@ -299,7 +312,9 @@ public static class PillStates
     {
         var apps = facts.Apps;
         var live = apps.Where(a => a.Phase != PillAppPhase.Stopped).ToList();
-        var working = live.Where(a => a.Phase == PillAppPhase.Working).ToList();
+        var working = live.Where(a => a.Phase == PillAppPhase.Working && !a.TookOver).ToList();
+        var tookOver = live.Where(a => a.Phase == PillAppPhase.Working && a.TookOver).ToList();
+        var carded = working.Where(a => a.OwnCard).ToList();
         var paused = live.Where(a => a.Phase == PillAppPhase.Paused).ToList();
         var pausing = live.Where(a => a.Phase == PillAppPhase.Pausing).ToList();
         var asks = facts.Asks;
@@ -382,11 +397,29 @@ public static class PillStates
             ask = true;
             announcement = $"Tactus: {n} waiting for you";
         }
+        else if (carded.Count > 0)
+        {
+            // web W11: Visus's card hangs from its tab (the canvas's "nth needs your OK" / "Check the card")
+            title = Marrow.Core.Localisation.UiText.Get("visus.pill.needs_ok");
+            line = Marrow.Core.Localisation.UiText.Get("visus.pill.check_card");
+            group = pausing.Count > 0 || allPaused ? PillGroupKind.Paused : PillGroupKind.Run;
+            announcement = Marrow.Core.Localisation.UiText.Format("visus.pill.needs_ok_in", Names(carded));
+        }
         else if (notice is { Kind: PillNoticeKind.PauseKeyTaken })
         {
             (title, line, group) = (notice.Title, workingLine, notice.Group);
             isWorking = true;
             announcement = BaseAnnouncement(stopped, live, working, paused, pausing, allPaused, n);
+        }
+        else if (tookOver.Count > 0 && pausing.Count == 0)
+        {
+            // web W11: "You took over Visus" / "Resume when you are done"; Resume hands the tab back
+            title = Marrow.Core.Localisation.UiText.Format("visus.pill.took_over", Names(tookOver));
+            line = Marrow.Core.Localisation.UiText.Get("visus.pill.resume_when_done");
+            group = PillGroupKind.Paused;
+            glyph = PillGlyph.Pause;
+            mark = TactusMarkState.Paused;
+            announcement = title;
         }
         else if (pausing.Count > 0)
         {
@@ -400,7 +433,9 @@ public static class PillStates
         {
             var minutes = (int)Math.Floor((now - paused.Min(a => a.PhaseSince)) / 60);
             title = live.Count == 1 ? $"Paused in {paused[0].Name}" : "Paused";
-            line = minutes >= 1 ? $"Paused {minutes} min" : $"{Names(paused)} {(paused.Count > 1 ? "hold" : "holds")} the next steps";
+            line = minutes >= 1 ? $"Paused {minutes} min"
+                : live.Count == 1 && paused[0].PausedLine is { Length: > 0 } held ? held
+                : $"{Names(paused)} {(paused.Count > 1 ? "hold" : "holds")} the next steps";
             group = PillGroupKind.Paused;
             announcement = "Tactus paused";
             hintShown = !facts.Dragging;
@@ -504,12 +539,14 @@ public static class PillStates
 
     private static PillRowView Row(PillApp a)
     {
-        var pausedLike = a.Phase is PillAppPhase.Paused or PillAppPhase.Pausing;
+        var pausedLike = a.Phase is PillAppPhase.Paused or PillAppPhase.Pausing || (a.Phase == PillAppPhase.Working && a.TookOver);
         var line = a.Phase switch
         {
             PillAppPhase.Stopped => "Stopped by you",
             PillAppPhase.Paused => "Paused",
             PillAppPhase.Pausing => $"Pausing after {a.Busy ?? "this step"}",
+            PillAppPhase.Working when a.TookOver => Marrow.Core.Localisation.UiText.Get("visus.pill.row_took_over"),
+            PillAppPhase.Working when a.OwnCard => Marrow.Core.Localisation.UiText.Get("visus.pill.check_card"),
             _ => a.Step,
         };
         return new PillRowView(a.Key, a.Name, line, pausedLike, a.Phase == PillAppPhase.Stopped, a.Behind && a.Phase == PillAppPhase.Working,

@@ -728,16 +728,17 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
             parameters["developerInstructions"] = string.Join("\n\n", joined); // :255-259
 
             // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): a Hydra head's ask_advisor server joins the connected ones.
+            // + ED-NEW-web-w12-1: a chat's nth-ui server (Tabula's artifact tools) joins them too.
             // PORT-ONLY (Tactus, ED-NEW-pcctl-41): so does nth-pc while Tactus is on, with its tool timeout, and Codex's own
             // bundled computer-use plugins are turned off in the same overrides, so two controllers never fight in one chat.
             pcServer ??= MCPProviderConfig.PcServer(configuration);
-            if (MCPProviderConfig.CodexBuiltIns(MCPProviderConfig.CodexOverrides(), MCPProviderConfig.BuiltInServers(MCPProviderConfig.AdvisorServer(configuration), pcServer)) is { } servers) // :262
+            if (MCPProviderConfig.CodexBuiltIns(MCPProviderConfig.CodexOverrides(), MCPProviderConfig.BuiltInServers(MCPProviderConfig.AdvisorServer(configuration), pcServer, MCPProviderConfig.UiServer(configuration))) is { } servers) // :262
             {
                 var mergedConfig = parameters.TryGetValue("config", out var currentConfig) && currentConfig.JSONValueObject is { } currentObject
                     ? new Dictionary<string, JSONValue>(currentObject, StringComparer.Ordinal)
                     : new Dictionary<string, JSONValue>(StringComparer.Ordinal); // :263
                 mergedConfig["mcp_servers"] = servers; // :264
-                if (pcServer is not null) Port.PcControl.PcProviderWiring.TurnOffCodexComputerUse(mergedConfig);
+                if (pcServer is not null && Port.PcControl.PcControlBridge.TactusOn) Port.PcControl.PcProviderWiring.TurnOffCodexComputerUse(mergedConfig); // + ED-NEW-web-w11-1: only while Tactus itself is on
                 parameters["config"] = new JSONValue.Object(new ValueMap<string, JSONValue>(mergedConfig)); // :265
             }
 

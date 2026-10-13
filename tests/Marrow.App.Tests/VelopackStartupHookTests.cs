@@ -25,7 +25,7 @@ public sealed class VelopackStartupHookTests
         var main = typeof(Program).GetMethod(nameof(Program.Main), BindingFlags.Public | BindingFlags.Static)!;
         var il = main.GetMethodBody()!.GetILAsByteArray()!;
         var calls = new List<MethodBase>();
-        for (var at = 0; at < il.Length && calls.Count < 27;)
+        for (var at = 0; at < il.Length && calls.Count < 34;)
         {
             var code = il[at] == 0xFE ? Codes[(short)(0xFE00 | il[at + 1])] : Codes[il[at]];
             var operandAt = at + (il[at] == 0xFE ? 2 : 1);
@@ -36,11 +36,14 @@ public sealed class VelopackStartupHookTests
 
         // SK-17 owner-authorized headless exception: this exact private dispatch may precede the desktop hook.
         // ED-NEW-mainorder-2: the ask_advisor relay (ED-NEW-ignisadvisor-2) shares it, as this exact second dispatch.
-        // ED-NEW-pcmerge-1: so does Tactus's nth-pc relay (ED-NEW-pcctl-8), as this exact third dispatch.
-        // ED-NEW-pcmerge-2: so does Tactus's separate-workspace command dispatch (ED-NEW-pcws-6), as this exact fourth one,
+        // ED-NEW-finalint-1: nth-ui is the exact third relay (UiMcpBridge); four relays precede the workspace command.
+        // ED-NEW-pcmerge-1: so does Tactus's nth-pc relay (ED-NEW-pcctl-8), as this exact fourth relay.
+        // ED-NEW-pcmerge-2: so does Tactus's separate-workspace command dispatch (ED-NEW-pcws-6), as this exact fifth dispatch,
         // which ED-NEW-pcws-6 puts right after the PcControlBridge relay and before the hook: Handles, Run, GetAwaiter, GetResult.
         // No settings, lock, toast, app lifetime or other calls can be inserted before the hook.
         Assert.Equal(new[] { "FirstOrDefault", "op_Equality", "OpenStandardInput", "OpenStandardOutput",
+            "RunClient", "GetAwaiter", "GetResult",
+            "FirstOrDefault", "op_Equality", "OpenStandardInput", "OpenStandardOutput",
             "RunClient", "GetAwaiter", "GetResult",
             "FirstOrDefault", "op_Equality", "OpenStandardInput", "OpenStandardOutput",
             "RunClient", "GetAwaiter", "GetResult",
@@ -62,11 +65,16 @@ public sealed class VelopackStartupHookTests
         Assert.Equal(typeof(string), calls[15].DeclaringType);
         Assert.Equal(typeof(Console), calls[16].DeclaringType);
         Assert.Equal(typeof(Console), calls[17].DeclaringType);
-        Assert.Equal(typeof(Marrow.Services.Port.PcControl.PcControlBridge), calls[18].DeclaringType);
-        Assert.Equal(typeof(Marrow.App.Port.PcControl.Workspace.WorkspaceCommands), calls[21].DeclaringType);
-        Assert.Equal(typeof(Marrow.App.Port.PcControl.Workspace.WorkspaceCommands), calls[22].DeclaringType);
-        Assert.Equal(typeof(AppContext), calls[25].DeclaringType);
-        Assert.Equal(typeof(Program), calls[26].DeclaringType);
+        Assert.Equal(typeof(Marrow.Services.Web.UiMcpBridge), calls[18].DeclaringType);
+        Assert.Equal(typeof(Enumerable), calls[21].DeclaringType);
+        Assert.Equal(typeof(string), calls[22].DeclaringType);
+        Assert.Equal(typeof(Console), calls[23].DeclaringType);
+        Assert.Equal(typeof(Console), calls[24].DeclaringType);
+        Assert.Equal(typeof(Marrow.Services.Port.PcControl.PcControlBridge), calls[25].DeclaringType);
+        Assert.Equal(typeof(Marrow.App.Port.PcControl.Workspace.WorkspaceCommands), calls[28].DeclaringType);
+        Assert.Equal(typeof(Marrow.App.Port.PcControl.Workspace.WorkspaceCommands), calls[29].DeclaringType);
+        Assert.Equal(typeof(AppContext), calls[32].DeclaringType);
+        Assert.Equal(typeof(Program), calls[33].DeclaringType);
     }
 
     [Fact]

@@ -1,165 +1,157 @@
 using System.Linq;
 using Avalonia;
-using Avalonia.Animation;
-using Avalonia.Controls;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Headless;
+using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Media;
 using Avalonia.Threading;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Terminal;
+using Marrow.Core.Models;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Xunit;
-using AvaloniaWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Tests.Views.Terminal;
 
-// Source: DroppyCode/App/Views/Terminal/TerminalPanel.swift (B3 52bc792) the drawer's top-edge resize strip :84-99, its
-// handle :113-131 and the shared grip DragHandle.swift:18-30,153-181. Real panel, real (headless) window and pointer.
+// Source: DroppyCode/App/Views/Terminal/TerminalPanel.swift (B3 52bc792) the drawer's top-edge resize strip :84-99 and its
+// handle :113-131, now the shared Splitter (web W1, DESIGN 4.3, ED-NEW-web-w1-4): the source's numbers (140 to 760, 260,
+// the global terminalHeight written on release), with the shared splitter's 12 DIP strip centred on the edge, its rubber
+// band, keys and grip, and one new behaviour: released under 84 DIP the drawer closes. Real panel, real (headless) window
+// and pointer. The 8 point strip and its 12/28/2.5 label-coloured grip (UI-TERM-012) are superseded by the shared grip
+// (Marrow.UI.Tests SplitterGripTests).
 [Collection("Headless")]
 public sealed class TerminalResizeStripTests(HeadlessSession headless)
 {
-    private static DragHandleView Handle(Control root) => LogicalQuery.SelfAndDescendants<DragHandleView>(root).Single();
-
-    private static Border Grip(DragHandleView handle) => handle.Children.OfType<Border>().Last(); // the glow is added first, the grip on top
+    private static Splitter Strip(Control root) => LogicalQuery.SelfAndDescendants<Splitter>(root).Single();
 
     private static Point Centre(Control control, Visual ancestor) =>
         control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), ancestor)!.Value;
 
-    // The grip animates for 0.18 s on the render clock: pump it until the layer shows what is asked of it.
-    private static bool SettlesAt(Border grip, double width, double opacity)
-    {
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(3);
-        while (DateTime.UtcNow < deadline)
-        {
-            Dispatcher.UIThread.RunJobs();
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            if (Math.Abs(grip.Width - width) < 0.01 && Math.Abs(grip.Opacity - opacity) < 0.01) return true;
-            Thread.Sleep(20);
-        }
-        return false;
-    }
-
-    private static Color Solid(IBrush? brush) => Assert.IsAssignableFrom<ISolidColorBrush>(brush).Color;
-
     [Fact]
-    [Trait("Req", "UI-TERM-011")] // App/Views/Terminal/TerminalPanel.swift:84-99
-    public void The_strip_is_overlaid_across_the_top_eight_points_and_shows_the_resize_cursor_before_any_press() => TerminalPanelRig.Run(headless, rig =>
+    [Trait("Decision", "ED-NEW-web-w1-4")]
+    public void The_strip_spans_the_drawer_twelve_dip_tall_centred_on_its_top_edge_with_the_up_down_cursor_before_any_press() => TerminalPanelRig.Run(headless, rig =>
     {
         var (host, panel, _) = rig.Show(TerminalPanelRig.Folder("strip geometry"), 520, 400);
-        var handle = Handle(host);
-        var box = new Rect(handle.TranslatePoint(new Point(), panel)!.Value, handle.Bounds.Size);
-        Assert.Equal(new Rect(0, 0, panel.Bounds.Width, 8), box); // .overlay(alignment: .top), full width, .frame(height: 8)
+        var strip = Strip(host);
+        var box = new Rect(strip.TranslatePoint(new Point(), panel)!.Value, strip.Bounds.Size);
+        Assert.Equal(new Rect(0, -6, panel.Bounds.Width, 12), box); // half above the drawer, half inside it
         Assert.Equal(520, box.Width, 3);
-        Assert.Same(TerminalResizeHandleView.ResizeCursor, handle.Cursor); // set on the strip itself, before any press (:125)
-        Assert.Equal("SizeNorthSouth", handle.Cursor!.ToString()); // ns-resize: .resizeUpDown
-        Assert.Equal(Colors.Transparent, Solid(handle.Background)); // transparent: only the grip bar is drawn
+        Assert.Equal("SizeNorthSouth", strip.Handle.HandleCursor!.ToString()); // :125 .resizeUpDown
+        Assert.Equal(new Thickness(0, 1), strip.Handle.Margin); // a mouse hits the middle 10 DIP
     });
 
     [Fact]
     [Trait("Req", "UI-TERM-011")] // App/Views/Terminal/TerminalPanel.swift:86-96,116-118
-    public void Dragging_down_shrinks_and_dragging_up_grows_clamped_to_140_and_760_and_the_release_pixel_commits_the_height_to_the_terminalHeight_key() => TerminalPanelRig.Run(headless, rig =>
+    [Trait("Decision", "ED-NEW-web-w1-4")]
+    public void Dragging_down_shrinks_and_up_grows_held_at_140_and_760_with_a_rubber_band_and_the_release_commits_the_terminalHeight_key() => TerminalPanelRig.Run(headless, rig =>
     {
         using var cursor = DragHandleView.CursorPlatform.Override(new FixedCursorPlatform(null));
         var (host, panel, window) = rig.Show(TerminalPanelRig.Folder("strip drag"), 500, 900);
-        var handle = Handle(host);
-        var start = Centre(handle, window);
+        var start = Centre(Strip(host), window);
         rig.Step(() => window.MouseDown(start, MouseButton.Left, RawInputModifiers.LeftMouseButton));
-        Assert.True(rig.Runtime.IsTerminalResizing);
-
         rig.Step(() => window.MouseMove(start + new Vector(0, 50), RawInputModifiers.LeftMouseButton)); // down: shrinks
+        Assert.True(rig.Runtime.IsTerminalResizing);
         Assert.Equal(210, panel.Height);
-        rig.Step(() => window.MouseMove(start + new Vector(0, 600), RawInputModifiers.LeftMouseButton));
-        Assert.Equal(140, panel.Height); // clamped at the bottom
+        rig.Step(() => window.MouseMove(start + new Vector(0, 160), RawInputModifiers.LeftMouseButton)); // 40 under 140
+        Assert.Equal(128, panel.Height, 6); // the band gives 0.3 of it
         rig.Step(() => window.MouseMove(start + new Vector(0, -800), RawInputModifiers.LeftMouseButton)); // up: grows
-        Assert.Equal(760, panel.Height); // clamped at the top
+        Assert.Equal(784, panel.Height, 6); // 760 and at most 24 more while held
         Assert.Equal(260, rig.App.Settings.TerminalHeight); // the setting is not written while dragging
         Assert.Null(rig.Store.Defaults.Object("terminalHeight"));
 
-        // Release somewhere new without moving first: the release pixel counts (one final change before the end).
-        rig.Step(() => window.MouseUp(start + new Vector(0, 30), MouseButton.Left, RawInputModifiers.None));
+        rig.Step(() => window.MouseMove(start + new Vector(0, -800), RawInputModifiers.LeftMouseButton));
+        rig.Step(() => window.MouseUp(start + new Vector(0, -800), MouseButton.Left, RawInputModifiers.None));
         Assert.False(rig.Runtime.IsTerminalResizing);
+        Assert.Equal(760, rig.App.Settings.TerminalHeight); // the band is let go: the drawer settles at the maximum
+        Assert.Equal(760.0, rig.Store.Defaults.Object("terminalHeight"));
+        Assert.Equal(760, panel.Height);
+
+        // Release somewhere new without moving first: the release pixel counts.
+        var again = Centre(Strip(host), window);
+        rig.Step(() => window.MouseDown(again, MouseButton.Left, RawInputModifiers.LeftMouseButton));
+        rig.Step(() => window.MouseMove(again + new Vector(0, 2), RawInputModifiers.LeftMouseButton));
+        rig.Step(() => window.MouseUp(again + new Vector(0, 530), MouseButton.Left, RawInputModifiers.None));
         Assert.Equal(230, rig.App.Settings.TerminalHeight);
-        Assert.Equal(230.0, rig.Store.Defaults.Object("terminalHeight"));
         Assert.Equal(230, panel.Height);
     });
 
     [Fact]
-    [Trait("Req", "UI-TERM-011")] // App/Views/Terminal/TerminalPanel.swift:87-96; UI/Chrome/DragHandle.swift:222-232
-    public void A_click_with_no_movement_still_commits_the_height_clamped_to_the_range() => TerminalPanelRig.Run(headless, rig =>
+    [Trait("Decision", "ED-NEW-web-w1-4")]
+    public void A_click_without_movement_changes_nothing_and_a_stored_height_out_of_range_is_shown_verbatim_until_a_drag() => TerminalPanelRig.Run(headless, rig =>
     {
         using var cursor = DragHandleView.CursorPlatform.Override(new FixedCursorPlatform(null));
-        rig.Step(() => rig.App.Settings.TerminalHeight = 100); // below the range: used verbatim until a drag touches it
+        rig.Step(() => rig.App.Settings.TerminalHeight = 100); // below the range: used verbatim (:80)
         var (host, panel, window) = rig.Show(TerminalPanelRig.Folder("strip click"), 500, 400);
         Assert.Equal(100, panel.Height);
-        var where = Centre(Handle(host), window);
-
+        var where = Centre(Strip(host), window);
         rig.Step(() => window.MouseDown(where, MouseButton.Left, RawInputModifiers.LeftMouseButton));
         rig.Step(() => window.MouseUp(where, MouseButton.Left, RawInputModifiers.None));
-
-        Assert.Equal(140, rig.App.Settings.TerminalHeight); // the press-release is a drag of zero: it commits clamp(100 + 0)
-        Assert.Equal(140.0, rig.Store.Defaults.Object("terminalHeight"));
-        Assert.Equal(140, panel.Height);
+        Assert.Equal(100, rig.App.Settings.TerminalHeight); // the 1 DIP slop: a click is not a drag
+        Assert.Equal(100, panel.Height);
         Assert.False(rig.Runtime.IsTerminalResizing);
 
-        // An in-range height is committed unchanged.
-        rig.Step(() => rig.App.Settings.TerminalHeight = 400);
-        var again = Centre(Handle(host), window);
-        rig.Step(() => window.MouseDown(again, MouseButton.Left, RawInputModifiers.LeftMouseButton));
-        rig.Step(() => window.MouseUp(again, MouseButton.Left, RawInputModifiers.None));
-        Assert.Equal(400, rig.App.Settings.TerminalHeight);
-        Assert.Equal(400, panel.Height);
+        var elsewhere = where + new Vector(120, 0); // along the strip, far enough that the press is not a double-click
+        rig.Step(() => window.MouseDown(elsewhere, MouseButton.Left, RawInputModifiers.LeftMouseButton));
+        rig.Step(() => window.MouseMove(elsewhere + new Vector(0, -1), RawInputModifiers.LeftMouseButton));
+        rig.Step(() => window.MouseUp(elsewhere + new Vector(0, -1), MouseButton.Left, RawInputModifiers.None));
+        Assert.Equal(141, rig.App.Settings.TerminalHeight); // a drag clamps the stored height first (:89)
+        Assert.Equal(141, panel.Height);
     });
 
     [Fact]
-    [Trait("Req", "UI-TERM-012")] // App/Views/Terminal/TerminalPanel.swift:147-153; UI/Chrome/DragHandle.swift:153-181
-    public void The_grip_bar_is_a_two_and_a_half_point_label_coloured_pill_twelve_wide_and_invisible_at_rest_centred_in_the_strip() => TerminalPanelRig.Run(headless, rig =>
+    [Trait("Decision", "ED-NEW-web-w1-4")]
+    public void Released_under_84_dip_the_drawer_closes_and_keeps_the_height_it_had() => TerminalPanelRig.Run(headless, rig =>
     {
         using var cursor = DragHandleView.CursorPlatform.Override(new FixedCursorPlatform(null));
-        var (host, panel, _) = rig.Show(TerminalPanelRig.Folder("grip rest"), 500, 400);
-        var handle = Handle(host);
-        var grip = Grip(handle);
+        rig.Step(() => rig.Runtime.IsTerminalVisible = true);
+        var (host, panel, window) = rig.Show(TerminalPanelRig.Folder("strip close"), 500, 600);
+        var start = Centre(Strip(host), window);
+        rig.Step(() => window.MouseDown(start, MouseButton.Left, RawInputModifiers.LeftMouseButton));
+        rig.Step(() => window.MouseMove(start + new Vector(0, 176), RawInputModifiers.LeftMouseButton)); // 84: not past it
+        Assert.Equal(123.2, panel.Height, 6); // held in the band: 140 less 0.3 of the 56 past it
+        rig.Step(() => window.MouseMove(start + new Vector(0, 177), RawInputModifiers.LeftMouseButton)); // 83
+        Assert.Equal(0, panel.Height, 6); // collapsed while held
+        rig.Step(() => window.MouseMove(start + new Vector(0, 60), RawInputModifiers.LeftMouseButton)); // back up: it opens again
+        Assert.Equal(200, panel.Height, 6);
+        Assert.True(rig.Runtime.IsTerminalVisible);
+        rig.Step(() => window.MouseMove(start + new Vector(0, 200), RawInputModifiers.LeftMouseButton));
+        rig.Step(() => window.MouseUp(start + new Vector(0, 200), MouseButton.Left, RawInputModifiers.None));
+        Assert.False(rig.Runtime.IsTerminalVisible); // the drawer closed
+        Assert.False(rig.Runtime.IsTerminalResizing);
+        Assert.Equal(260, rig.App.Settings.TerminalHeight); // the height it opens at again
+        Assert.Null(rig.Store.Defaults.Object("terminalHeight"));
 
-        Assert.Equal(2.5, grip.Height, 3);
-        Assert.Equal(1.25, grip.CornerRadius.TopLeft, 3); // height / 2
-        Assert.Equal(12, grip.Width, 3);
-        Assert.Equal(0, grip.Opacity, 3);
-        Assert.Equal((panel.Bounds.Width - 12) / 2, Canvas.GetLeft(grip), 3); // centred horizontally ...
-        Assert.Equal((8 - 2.5) / 2, Canvas.GetTop(grip), 3); // ... and vertically in the 8-point strip
-        Assert.Equal(SwiftColor.LabelColor.Resolve(grip.ActualThemeVariant), Solid(grip.Background)); // NSColor.labelColor
-        Assert.Null(grip.Transitions); // layout-driven updates are applied with animations disabled
+        rig.Step(() => rig.Runtime.IsTerminalVisible = true); // the same drawer opened again before it left
+        Assert.Equal(260, panel.Height);
     });
 
     [Fact]
-    [Trait("Req", "UI-TERM-012")] // App/Views/Terminal/TerminalPanel.swift:124; UI/Chrome/DragHandle.swift:60,153-181,247-255
-    public void Hovering_widens_the_grip_to_28_at_0_6_over_0_18_seconds_and_a_drag_keeps_it_shown_even_when_the_pointer_leaves() => TerminalPanelRig.Run(headless, rig =>
+    [Trait("Decision", "ED-NEW-web-w1-4")]
+    public void Keys_and_automation_resize_the_drawer_and_ctrl_down_closes_it() => TerminalPanelRig.Run(headless, rig =>
     {
-        var cursor = new FixedCursorPlatform(null);
-        using var scope = DragHandleView.CursorPlatform.Override(cursor);
-        var (host, panel, window) = rig.Show(TerminalPanelRig.Folder("grip hover"), 500, 400);
-        var handle = Handle(host);
-        var grip = Grip(handle);
-        var over = Centre(handle, window);
-        var away = Centre(panel, window) + new Vector(0, 40);
+        rig.Step(() => rig.Runtime.IsTerminalVisible = true);
+        var (host, panel, _) = rig.Show(TerminalPanelRig.Folder("strip keys"), 500, 600);
+        var strip = Strip(host);
+        rig.Step(() => strip.Execute(SplitterMath.Command(SplitterKey.Up, false, false, SplitterOrientation.Horizontal)));
+        Assert.Equal(268, rig.App.Settings.TerminalHeight); // the edge up 8: the drawer grows
+        Assert.Equal(268, panel.Height);
+        rig.Step(() => strip.Execute(SplitterMath.Command(SplitterKey.Down, true, false, SplitterOrientation.Horizontal)));
+        Assert.Equal(220, rig.App.Settings.TerminalHeight);
+        rig.Step(() => strip.Execute(SplitterMath.Command(SplitterKey.End, false, false, SplitterOrientation.Horizontal)));
+        Assert.Equal(760, rig.App.Settings.TerminalHeight);
+        rig.Step(() => strip.Execute(SplitterMath.Command(SplitterKey.Enter, false, false, SplitterOrientation.Horizontal)));
+        Assert.Equal(260, rig.App.Settings.TerminalHeight);
 
-        rig.Step(() => window.MouseMove(over, RawInputModifiers.None));
-        var transitions = Assert.IsType<Transitions>(grip.Transitions); // an animated change: 0.18 s ease-out
-        Assert.NotEmpty(transitions);
-        Assert.All(transitions, transition => Assert.Equal(TimeSpan.FromSeconds(0.18), Assert.IsType<DoubleTransition>(transition).Duration));
-        Assert.True(SettlesAt(grip, 28, 0.6), $"hover left the grip at {grip.Width} wide, opacity {grip.Opacity}");
-        Assert.Equal(2.5, grip.Height, 3);
+        var range = Assert.IsAssignableFrom<IRangeValueProvider>(ControlAutomationPeer.CreatePeerForElement(strip));
+        Assert.Equal((0.0, 760.0, 260.0), (range.Minimum, range.Maximum, range.Value));
+        rig.Step(() => range.SetValue(400));
+        Assert.Equal(400, rig.App.Settings.TerminalHeight);
+        Assert.Equal(400, panel.Height);
 
-        rig.Step(() => window.MouseMove(away, RawInputModifiers.None));
-        Assert.True(SettlesAt(grip, 12, 0), $"leaving left the grip at {grip.Width} wide, opacity {grip.Opacity}");
-
-        // While dragging the grip stays shown even though the pointer is far from the strip.
-        rig.Step(() => window.MouseMove(over, RawInputModifiers.None));
-        rig.Step(() => window.MouseDown(over, MouseButton.Left, RawInputModifiers.LeftMouseButton));
-        rig.Step(() => window.MouseMove(away, RawInputModifiers.LeftMouseButton));
-        Assert.True(SettlesAt(grip, 28, 0.6), $"dragging away left the grip at {grip.Width} wide, opacity {grip.Opacity}");
-        rig.Step(() => window.MouseUp(away, MouseButton.Left, RawInputModifiers.None));
-        // Released away from the strip: the cursor is read, found elsewhere, and the grip returns to rest.
-        Assert.True(SettlesAt(grip, 12, 0), $"after release the grip stayed at {grip.Width} wide, opacity {grip.Opacity}");
+        rig.Step(() => strip.Execute(SplitterMath.Command(SplitterKey.Down, false, true, SplitterOrientation.Horizontal, collapseSide: SplitterSide.Trailing)));
+        Assert.False(rig.Runtime.IsTerminalVisible);
+        Assert.Equal(400, rig.App.Settings.TerminalHeight);
     });
 }

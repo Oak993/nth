@@ -282,6 +282,7 @@ public sealed class TactusScreen : IDisposable
                 break;
             case PillCommandKind.ResumeAll:
                 assembly.Pause.Resume(PcScope.All, PcPauseSource.Pill);
+                Marrow.Services.Web.WebAgentHub.Shared.Current.HandBack(); // + web W11: the tabs the user took over go back to the model
                 break;
             case PillCommandKind.Stop:
                 assembly.Stop.PillStop();
@@ -291,6 +292,7 @@ public sealed class TactusScreen : IDisposable
                 break;
             case PillCommandKind.ResumeApp when command.App is { } app:
                 assembly.Pause.Resume(PcScope.App(app), PcPauseSource.Row);
+                if (app == Marrow.Services.Web.WebAgentHub.App) Marrow.Services.Web.WebAgentHub.Shared.Current.HandBack(); // + web W11
                 break;
             case PillCommandKind.StopApp or PillCommandKind.StopThisApp when command.App is { } app:
                 assembly.Stop.PillRow(app);
@@ -311,6 +313,10 @@ public sealed class TactusScreen : IDisposable
             case PillCommandKind.Click when host.Bodies is null && parts.Cards.Asks.Count > 0:
                 // asks stay in the chat (Answer in the pill is off): a click opens the chat of the first ask
                 if (assembly.Asks.Find(parts.Cards.Asks[0].Id) is { } pending) parts.OpenChat?.Invoke(pending.Thread, null);
+                break;
+            case PillCommandKind.Click when parts.Cards.Asks.Count == 0 && Marrow.App.Views.Browser.VisusAgentAsks.Shared.Oldest is { } card:
+                // + web W11: "Check the card" opens the chat whose Visus card waits (the card hangs from its tab)
+                parts.OpenChat?.Invoke(card.Thread, null);
                 break;
         }
     }

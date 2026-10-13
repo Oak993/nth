@@ -65,10 +65,16 @@ public static class PcControlBridge
         };
     }
 
-    /// <summary>The chat a session serves, when Tactus is on and bound; null otherwise.</summary>
+    /// <summary>Tactus is bound and its switch is on (an nth-pc server may also be given for Visus alone, W11).</summary>
+    public static bool TactusOn => Parts.Current() is { } parts && parts.Settings().Enabled;
+
+    /// <summary>
+    /// The chat a session serves, when Tactus is on and bound, or (PORT-ONLY, web surfaces W11, ED-NEW-web-w11-1) when Visus model
+    /// access is on; null otherwise.
+    /// </summary>
     public static PcRegistration? Registration(SessionConfiguration configuration)
     {
-        if (Parts.Current() is not { } parts || !parts.Settings().Enabled) return null;
+        if (!TactusOn && !Marrow.Services.Web.WebAgentHub.Shared.Current.Offered) return null;
         var thread = configuration.IgnisThreadID is { } id ? id.ToString("D") : "session-" + Guid.NewGuid().ToString("N");
         return new PcRegistration(thread, configuration.Provider, configuration.Model, configuration.Provider.SupportsImages)
         {
@@ -105,18 +111,21 @@ public static class PcControlBridge
     public static void StopTurn(string thread)
     {
         if (engines.TryGetValue(thread, out var engine)) engine.StopTurn();
+        Marrow.Services.Web.WebAgentHub.Shared.Current.StopTurn(thread); // + ED-NEW-web-w11-1: the web steps stop with it
     }
 
     /// <summary>The chat's turn ended: its queued steps are cancelled and its windows are released.</summary>
     public static void EndTurn(string thread)
     {
         if (engines.TryGetValue(thread, out var engine)) engine.EndTurn();
+        Marrow.Services.Web.WebAgentHub.Shared.Current.EndTurn(thread); // + ED-NEW-web-w11-1
     }
 
     /// <summary>The chat closed: its engine goes.</summary>
     public static void Forget(string thread)
     {
         if (engines.TryRemove(thread, out var engine)) engine.Dispose();
+        Marrow.Services.Web.WebAgentHub.Shared.Current.Forget(thread); // + ED-NEW-web-w11-1
     }
 
     /// <summary>The ACP form of the entry ({name, command, args, env: []}), as the advisor's.</summary>
@@ -152,7 +161,10 @@ public static class PcControlBridge
         try
         {
             var registration = Registration(await reader.ReadLineAsync(closed.Token).ConfigureAwait(false));
-            var server = new PcControlMcpServer(registration, Engine, () => Parts.Current()?.Settings() ?? PcSettings.Default, Write);
+            var server = new PcControlMcpServer(registration, Engine, () => Parts.Current()?.Settings() ?? PcSettings.Default, Write)
+            {
+                Web = Marrow.Services.Web.WebMcpTools.Shared, // + ED-NEW-web-w11-1
+            };
             while (await reader.ReadLineAsync(closed.Token).ConfigureAwait(false) is { } line)
             {
                 if (line.Length > MaxLineChars) throw new IOException("MCP request is too large.");

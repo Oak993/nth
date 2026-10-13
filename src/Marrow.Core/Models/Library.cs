@@ -203,6 +203,8 @@ public sealed record ProjectScript
     public string Command { get; init; }                // :99
     public string Symbol { get; init; }                   // :100
     public bool RunOnWorktreeCreate { get; init; }          // :101
+    // PORT-ONLY: approved web DESIGN 5.6, ED-NEW-web-w9-1; optional so existing script bytes stay unchanged.
+    public string? PreviewUrl { get; init; }
 
     // :103-109
     public ProjectScript(string name, string command, string symbol = "play", bool runOnWorktreeCreate = false)
@@ -244,7 +246,8 @@ internal sealed class ProjectScriptConverter : JsonConverter<ProjectScript>
         SwiftDecoding.Decode(element, "name", SwiftDecoding.ReadString),                 // :114
         SwiftDecoding.Decode(element, "command", SwiftDecoding.ReadString),               // :115
         Coding.Value(element, "symbol", SwiftDecoding.ReadString, () => "play"),           // :116
-        Coding.Value(element, "runOnWorktreeCreate", SwiftDecoding.ReadBool, () => false)); // :117
+        Coding.Value(element, "runOnWorktreeCreate", SwiftDecoding.ReadBool, () => false)) with // :117
+        { PreviewUrl = element.TryGetProperty("previewUrl", out var preview) && preview.ValueKind == JsonValueKind.String ? preview.GetString() : null };
 
     public override void Write(Utf8JsonWriter writer, ProjectScript value, JsonSerializerOptions options) => WriteMembers(writer, value);
 
@@ -256,6 +259,7 @@ internal sealed class ProjectScriptConverter : JsonConverter<ProjectScript>
         writer.WriteString("command", value.Command);
         writer.WriteString("symbol", value.Symbol);
         writer.WriteBoolean("runOnWorktreeCreate", value.RunOnWorktreeCreate);
+        if (value.PreviewUrl is { } preview) writer.WriteString("previewUrl", preview);
         writer.WriteEndObject();
     }
 }
@@ -315,11 +319,22 @@ public sealed record ChatThread
     public int? PillStepIndex { get; init; }
     public string? PillStepAccountID { get; init; }
 
+    // PORT-ONLY (web surfaces W6, ED-NEW-web-w6-1; DESIGN 3.9): this thread is the side chat of its parent, a second light
+    // conversation beside the main run. It is a panel child (ParentThreadID, IsInPanel) that the sidebar, the palette and the
+    // subagent panel never list. Written only when set, so every other thread's file is byte for byte what it was.
+    public bool IsSideChat { get; init; }
+
     public Marrow.Core.Accounts.Pills.PillThreadState? PillRelay =>
         PillID is { } pill && PillStepIndex is { } index && PillStepAccountID is { } account ? new(pill, index, account) : null;
 
     public ChatThread WithPillRelay(Marrow.Core.Accounts.Pills.PillThreadState? state) =>
         this with { PillID = state?.PillId, PillStepIndex = state?.StepIndex, PillStepAccountID = state?.AccountId };
+
+    // PORT-ONLY (web surfaces W3c, DESIGN 3.11; ED-NEW-web-w3c-1): the thread's pane workspace as saved, null until the user opens
+    // a pane or moves a gutter, and the text of a saved workspace the decoder could not read. The text is set only by the decoder,
+    // is never written back, and is taken off the thread when AppModel keeps it as workspace.bad.json.
+    public StoredWorkspace? Workspace { get; init; }
+    public string? DamagedWorkspace { get; init; }
 
     public bool IsHelper => ParentThreadID is not null; // :189
     public bool IsHydraHead => Hydra is not null;         // :192
@@ -483,7 +498,7 @@ internal sealed class ChatThreadConverter : JsonConverter<ChatThread>
             lastStatus, parentThreadID, isInPanel, expandsHelpers, hydraEnabled, hydraEnabledIsExplicit, hydraPairID,
             hydraSpawnCount, hydra);
         // PORT-ONLY (MA-7): absent or unreadable pill fields mean no pill.
-        return thread with
+        return WithSavedWorkspace(thread with
         {
             ProviderAccountID = element.TryGetProperty("providerAccountID", out var accountBinding) && accountBinding.ValueKind != JsonValueKind.Null
                 ? Coding.Value<Guid?>(element, "providerAccountID", field => SwiftDecoding.ReadUUID(field), () => Guid.Empty) : null,
@@ -492,7 +507,17 @@ internal sealed class ChatThreadConverter : JsonConverter<ChatThread>
             PillID = Coding.Value<Guid?>(element, "pillID", field => SwiftDecoding.ReadUUID(field), () => null),
             PillStepIndex = Coding.Value<int?>(element, "pillStepIndex", field => (int)SwiftDecoding.ReadInt(field), () => null),
             PillStepAccountID = Coding.Value<string?>(element, "pillStepAccountID", SwiftDecoding.ReadString, () => null),
-        };
+            IsSideChat = Coding.Value(element, "isSideChat", SwiftDecoding.ReadBool, () => false), // PORT-ONLY (web surfaces W6): absent means an ordinary thread
+        }, element);
+    }
+
+    // PORT-ONLY (web W3c): a saved workspace that reads is the thread's; one that does not leaves the default layout and its text
+    // on DamagedWorkspace (JSON null is the same as absent).
+    private static ChatThread WithSavedWorkspace(ChatThread thread, JsonElement element)
+    {
+        if (!element.TryGetProperty("workspace", out var saved) || saved.ValueKind == JsonValueKind.Null) return thread;
+        var read = PaneWorkspaceJson.Read(saved);
+        return read.Stored is { } stored ? thread with { Workspace = stored } : thread with { DamagedWorkspace = saved.GetRawText() };
     }
 
     public override void Write(Utf8JsonWriter writer, ChatThread value, JsonSerializerOptions options) => WriteMembers(writer, value);
@@ -543,6 +568,12 @@ internal sealed class ChatThreadConverter : JsonConverter<ChatThread>
         if (value.PillID is { } pillID) writer.WriteString("pillID", SwiftUUID.UuidString(pillID)); // PORT-ONLY (MA-7)
         if (value.PillStepIndex is { } pillStepIndex) writer.WriteNumber("pillStepIndex", pillStepIndex);
         if (value.PillStepAccountID is { } pillStepAccountID) writer.WriteString("pillStepAccountID", pillStepAccountID);
+        if (value.IsSideChat) writer.WriteBoolean("isSideChat", true); // PORT-ONLY (web surfaces W6): omitted when false
+        if (value.Workspace is { IsEmpty: false } workspace) // PORT-ONLY (web W3c): a thread at the default layout writes nothing
+        {
+            writer.WritePropertyName("workspace");
+            PaneWorkspaceJson.Write(writer, workspace);
+        }
         writer.WriteEndObject();
     }
 }

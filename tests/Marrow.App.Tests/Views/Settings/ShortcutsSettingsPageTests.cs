@@ -54,7 +54,7 @@ public sealed class ShortcutsSettingsPageTests(HeadlessSession headless)
             Assert.True(threadsAt >= 0 && windowAt > threadsAt && composerAt > windowAt); // :9-12 section order
 
             var rows = Descendants<ShortcutRecorder>(window).Count();
-            Assert.Equal(12 + 7, rows); // :9-11, twelve + seven recordable rows
+            Assert.Equal(12 + 7 + 11, rows); // :9-11, twelve + seven recordable rows, and the eleven pane commands of web W3b
 
             var fixedTitles = new[] { "Send", "New line", "Steer a chat", "Recall an earlier prompt", "Approve a request", "Jump to a thread" }; // :69-74
             Assert.All(fixedTitles, title => Assert.Contains(title, titles));

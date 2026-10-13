@@ -49,6 +49,7 @@ public sealed partial class CopilotSession : ProviderSession, ISkillSessionLifet
     private readonly SessionConfiguration configuration; // :40
     // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): the session's ask_advisor server, registered once; null for a chat with no advisor.
     private MCPResolvedServer? advisorServer;
+    private MCPResolvedServer? uiServer; // PORT-ONLY (web surfaces W12, ED-NEW-web-w12-1): a chat's nth-ui server
     private MCPResolvedServer? pcServer; // PORT-ONLY (Tactus, ED-NEW-pcctl-41): the chat's nth-pc server while Tactus is on.
     private JSONRPCConnection? skillsReader;
     public Task SkillReadersExited => skillsReader?.ChildExited ?? Task.CompletedTask;
@@ -183,9 +184,9 @@ public sealed partial class CopilotSession : ProviderSession, ISkillSessionLifet
         CopilotSkillWiring.AddDirectories(parameters, skillGeneration, configuration.Executable?.Path);
         // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): a Hydra head's ask_advisor server rides in its own session's
         // mcpServers (the SDK's per-session field); every other session's parameters are unchanged.
-        // PORT-ONLY (Tactus, ED-NEW-pcctl-41): nth-pc joins it while Tactus is on, in one merged object of the built-ins.
+        // PORT-ONLY (Tactus, ED-NEW-pcctl-41): nth-pc joins it while Tactus is on, in one merged object of the built-ins (+ ED-NEW-web-w12-1 nth-ui).
         if (MCPProviderConfig.CopilotBuiltIns(MCPProviderConfig.BuiltInServers(advisorServer ??= MCPProviderConfig.AdvisorServer(configuration),
-                pcServer ??= MCPProviderConfig.PcServer(configuration))) is { } builtIns) parameters["mcpServers"] = builtIns;
+                pcServer ??= MCPProviderConfig.PcServer(configuration), uiServer ??= MCPProviderConfig.UiServer(configuration))) is { } builtIns) parameters["mcpServers"] = builtIns;
         return parameters; // :157
     }
 

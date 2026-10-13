@@ -42,6 +42,7 @@ public sealed class TimelineEntry : MainActorModel
         Todos,
         Notice,
         TurnEnd,
+        Ask, // PORT-ONLY (web surfaces W25): appended last so the others keep their values
     }
 
     private TimelineItem item = null!;
@@ -68,6 +69,7 @@ public sealed class TimelineEntry : MainActorModel
             TimelineItem.Content.Todos => Kind.Todos,
             TimelineItem.Content.Notice => Kind.Notice,
             TimelineItem.Content.TurnEnd => Kind.TurnEnd,
+            TimelineItem.Content.Ask => Kind.Ask, // PORT-ONLY (web surfaces W25): an ask_user card
             _ => throw new ArgumentOutOfRangeException(nameof(item)),
         };
         TurnID = item.TurnID;
@@ -421,7 +423,6 @@ public sealed partial class ThreadRuntime : MainActorModel
     private PromptEdit? messageEdit;
     private ComposerDraft draft = new();
     private bool draftIsEmpty = true;
-    private bool isTerminalVisible = false;
     private bool isTerminalResizing = false;
     private bool isDiffVisible = false;
     private PanelDockCorner subagentPanelDock = PanelDockCorner.BottomTrailing;
@@ -619,15 +620,8 @@ public sealed partial class ThreadRuntime : MainActorModel
     // :238
     public bool DraftIsEmpty { get => Read(draftIsEmpty); private set => Set(ref draftIsEmpty, value); }
 
-    // :239-243
-    public bool IsTerminalVisible
-    {
-        get => Read(isTerminalVisible);
-        set => Set(ref isTerminalVisible, value, wasVisible =>
-        {
-            if (!wasVisible && isTerminalVisible) TerminalWantsFocus = true; // :241-243
-        });
-    }
+    // :239-243 isTerminalVisible. PORT-ONLY (web W4, ED-NEW-web-w4-1): the terminal's open state is the pane workspace's now;
+    // IsTerminalVisible is in ThreadRuntime+Workspace.cs, with the drawer and grid halves of it.
 
     // :244. @ObservationIgnored (R-OBS-5).
     public bool TerminalWantsFocus { get; set; } = false;
@@ -779,6 +773,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     {
         ThreadID = threadID;
         appReference = new WeakReference<AppModel>(app);
+        InitializeWorkspace(app); // PORT-ONLY (web surfaces W3c)
         if (DocumentPrefetch.Shared.Take(threadID) is { } prefetched)
         {
             Install(prefetched);
@@ -1022,7 +1017,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // :724-729
     public ValueList<string> SentPrompts => new(Entries.Select(entry => entry.Item.TimelineItemContent)
         .OfType<TimelineItem.Content.User>()
-        .Where(user => !user.Value.IsFromHydra && !user.Value.IsHydraBrief)
+        .Where(user => !user.Value.IsFromHydra && !user.Value.IsHydraBrief && user.Value.AppSource is null) // W19: an app's message is not the user's to recall
         .Select(user => user.Value.Text));
 
     // :731-736
@@ -1183,6 +1178,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:835-848
     private void BundleFollowUpCore(Guid id, Guid target)
     {
+        if (IsArtifactFollowUp(id) || IsArtifactFollowUp(target)) return; // ED-NEW-web-nc6-1: one artifact edit per turn
         if (id == target) return;
         var sourceIndex = -1;
         var targetIndex = -1;
@@ -1342,6 +1338,12 @@ public sealed partial class ThreadRuntime : MainActorModel
     {
         if (InstallerHoldsNewTurns) return;
         if (isReverting) return;
+        if (IsArtifactFollowUp(id))
+        {
+            if (phase == RuntimePhase.Idle && artifactDispatchPending is null && followUps.FirstOrDefault()?.Id == id)
+                DrainFollowUps(TurnStatus.Completed);
+            return;
+        }
         if (phase != RuntimePhase.Idle && skillsFollowUps.Contains(id)) return;
         var index = IndexOfFollowUp(id);
         if (index < 0) return;
@@ -1393,6 +1395,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:1013-1016.
     private bool DispatchQueuedHead(FollowUpPrompt prompt)
     {
+        if (IsArtifactFollowUp(prompt.Id)) return false; // ED-NEW-web-nc6-1: artifacts run serially on their owning thread
         if (skillsFollowUps.Contains(prompt.Id)) return false;
         if (appReference is null || !appReference.TryGetTarget(out var app)
             || (!app.Settings.HydraQueueHeads && !app.Settings.HydraAlwaysHeads)) return false;
@@ -1476,6 +1479,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     private void RemoveFollowUpCore(Guid id)
     {
         FollowUps = new ValueList<FollowUpPrompt>(followUps.Where(prompt => prompt.Id != id));
+        RemoveArtifactRequest(id);
         TidyBundles();
         saveRevision++;
         ScheduleSave();
@@ -1488,6 +1492,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:1085-1098
     private bool MoveFollowUpCore(Guid id, Guid target, bool placeAfter)
     {
+        if (IsArtifactFollowUp(id)) return false; // ED-NEW-web-nc6-2: preserve accepted artifact order
         var from = IndexOfFollowUp(id);
         var to = IndexOfFollowUp(target);
         if (id == target || from < 0 || to < 0) return false;
@@ -1519,6 +1524,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         if (trimmed.Length == 0 && attachments.Count == 0)
         {
             FollowUps = followUps.Mutating(items => items.RemoveAt(index));
+            RemoveArtifactRequest(id);
             TidyBundles();
         }
         else
@@ -1537,8 +1543,9 @@ public sealed partial class ThreadRuntime : MainActorModel
     private bool DrainFollowUps(TurnStatus status)
     {
         if (InstallerHoldsNewTurns) return false;
-        if (Phase != RuntimePhase.Idle || FollowUps.Count == 0) return false;
-        if (status != TurnStatus.Completed)
+        if (Phase != RuntimePhase.Idle || IsReverting || FollowUps.Count == 0 || artifactDispatchPending is not null) return false;
+        var artifactIndex = status == TurnStatus.Completed ? -1 : followUps.ToList().FindIndex(p => IsArtifactFollowUp(p.Id));
+        if (status != TurnStatus.Completed && artifactIndex < 0)
         {
             var index = followUps.ToList().FindIndex(p => skillsFollowUps.Contains(p.Id));
             if (index < 0) return false;
@@ -1552,8 +1559,9 @@ public sealed partial class ThreadRuntime : MainActorModel
             return true;
         }
 
-        var skillContinuation = skillsFollowUps.Remove(followUps[0].Id);
-        var next = TakeBundle(0);
+        var nextIndex = artifactIndex >= 0 ? artifactIndex : 0;
+        var skillContinuation = skillsFollowUps.Remove(followUps[nextIndex].Id);
+        var next = TakeBundle(nextIndex);
         saveRevision++;
         while (next.IsEmpty && FollowUps.Count != 0)
         {
@@ -1568,6 +1576,12 @@ public sealed partial class ThreadRuntime : MainActorModel
         }
 
         ScheduleSave();
+        if (IsArtifactFollowUp(next.Id))
+        {
+            AutoStartedTurnToken++;
+            StartArtifactFollowUp(next);
+            return true;
+        }
         if (HandleLocalCommand(FoundationText.Trim(next.Text, includeNewlines: true)))
             return DrainFollowUps(status);
 
@@ -1651,11 +1665,13 @@ public sealed partial class ThreadRuntime : MainActorModel
         await EnsureLoaded();
         if (InstallerHoldsNewTurns && !captured) return;
         var ignisPing = ignisPingTurn.Value; // Ignis: a ping that cannot run now is dropped, never queued as a follow-up
+        var appSource = appMessageTurn.Value; // PORT-ONLY W19 (DESIGN 7.6): an MCP App's message, never the user's
         var tactusChip = tactusChipTurn.Value; // PORT-ONLY: Tactus (ED-NEW-pcctl-27): a resume's continue, shown as its chip
-        if (!ignisPing && tactusChip is null && !skillsContinuationTurn.Value) TactusUserWrote(); // Port/PcControl/ThreadRuntimeTactus.cs
+        // an MCP App's message is not the user writing (W19), so it is not Tactus's "the user wrote" either
+        if (!ignisPing && tactusChip is null && appSource is null && !skillsContinuationTurn.Value) TactusUserWrote(); // Port/PcControl/ThreadRuntimeTactus.cs
         if (Phase != RuntimePhase.Idle || IsReverting)
         {
-            if (!ignisPing) { EnqueueFollowUp(text, attachments); MarkInstallerPromptDurable(admission); }
+            if (!ignisPing && appSource is null && !RestoreArtifactFollowUp(text, attachments)) { EnqueueFollowUp(text, attachments); MarkInstallerPromptDurable(admission); } // W19: an app's message is never queued as the user's
             return;
         }
 
@@ -1664,7 +1680,7 @@ public sealed partial class ThreadRuntime : MainActorModel
 
         if (initialThread.IsArchived)
         {
-            if (!ignisPing) { EnqueueFollowUp(text, attachments); MarkInstallerPromptDurable(admission); }
+            if (!ignisPing && appSource is null && !RestoreArtifactFollowUp(text, attachments)) { EnqueueFollowUp(text, attachments); MarkInstallerPromptDurable(admission); } // W19: an app's message is never queued as the user's
             return;
         }
 
@@ -1676,6 +1692,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             Attachments = new ValueList<Attachment>(attachments),
             HydraHeads = hydraHeads is null ? null : new ValueList<long>(hydraHeads),
             HydraBrief = hydraBrief ? true : null,
+            AppSource = appSource,
         }));
         if (skillsContinuationTurn.Value)
         {
@@ -1688,6 +1705,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         saveRevision++;
         limitedReplyTurnID = null;
         currentTurnID = turn.Id;
+        BindArtifactRequest(turn.Id); // ED-NEW-web-nc6-1: associate this request with this actual turn
         currentProviderDiff = null;
         currentProviderAnchor = null;
         Append(userItem);
@@ -1699,7 +1717,7 @@ public sealed partial class ThreadRuntime : MainActorModel
 
         EndDelegationStream();
         HydraCurrentTurnTouchedPaths = new ValueSet<string>([], SwiftStringComparer.Instance);
-        hydraBudget = hydraBudget.BeginTurn(userAuthored: hydraHeads is null && !ignisPing);
+        hydraBudget = hydraBudget.BeginTurn(userAuthored: hydraHeads is null && !ignisPing && appSource is null);
 
         if (initialThread.Hydra is { HydraHeadInfoKind: HydraHeadInfo.Kind.Droppy, IsFinished: true })
         {
@@ -1758,7 +1776,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         treeEpoch++;
         var checkpoint = TaskHandle.Detached(async () =>
         {
-            if (ignisPing || !await git.IsRepository()) return false;
+            if (ignisPing || IsReadOnlySideChat(initialThread) || !await git.IsRepository()) return false; // PORT-ONLY (web surfaces W6): a read-only side chat has nothing to revert
             try
             {
                 await git.CaptureCheckpoint(checkpointRef);
@@ -1774,16 +1792,17 @@ public sealed partial class ThreadRuntime : MainActorModel
         {
             if (warmup is { } pendingWarmup) await pendingWarmup.Completion;
             if (currentTurnID != turn.Id || !persistenceEnabled) return;
+            if (initialThread.IsSideChat) BeginFreshSideChatSession(app); // PORT-ONLY (web surfaces W6): each side-chat turn starts in a fresh session
             var start = MainActor.SpawnThrowing(async () => await EnsureSessionOwned(directory, true, CancellationToken.None,
                 () => currentTurnID == turn.Id && persistenceEnabled, preserveResumeIdentity: false));
             if (await checkpoint.Value) UpdateTurn(turn.Id, current => current with { BaseCheckpoint = checkpointRef });
             _ = await start.Value;
 
-            if (SlashCommand.NameIn(text) is not null) await app.Providers.LoadCommands(initialThread.Provider, directory);
+            if (!initialThread.IsSideChat && appSource is null && SlashCommand.NameIn(text) is not null) await app.Providers.LoadCommands(initialThread.Provider, directory);
 
             if (currentTurnID != turn.Id || session is not { } liveSession || app.Thread(ThreadID) is not { } thread) return;
 
-            var commandName = SlashCommand.NameIn(text);
+            var commandName = thread.IsSideChat || appSource is not null ? null : SlashCommand.NameIn(text); // PORT-ONLY (web surfaces W6, W19): a side chat's words are a question and an app's text is the app's, never a command
             SlashCommand? command = null;
             if (commandName is not null
                 && app.Providers.Commands.TryGetValue(ProviderRegistry.CommandKey(thread.Provider, directory), out var commands))
@@ -1791,10 +1810,11 @@ public sealed partial class ThreadRuntime : MainActorModel
                 command = commands.FirstOrDefault(candidate => candidate.Name == commandName);
             }
 
-            var prompt = text;
+            var prompt = AppPrompt(appSource, text, command: commandName is not null); // PORT-ONLY W19: the apps' words, wrapped as untrusted
             var files = attachments.Where(attachment => !attachment.IsImage).ToArray();
             if (files.Length != 0)
                 prompt += "\n\nAttached files:\n" + string.Join("\n", files.Select(file => "- " + file.Path));
+            if (thread.IsSideChat) prompt = await SideChatTurnText(prompt); // PORT-ONLY (web surfaces W6): the rules, the snapshot of the main thread now, the side chat so far
 
             // ThreadRuntime.swift:1282-1306. Carry the selected Hydra route to the actual provider input.
             if (!ignisPing && app.HydraLaunch(thread) is { } launch)
@@ -1860,6 +1880,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             var (nextHydraBudget, dropNotice) = hydraBudget.TakeDropNotice();
             hydraBudget = nextHydraBudget;
             if (dropNotice is not null) prompt = dropNotice + prompt;
+            if (commandName is null && TakeLiveContext() is { } carried) prompt = carried + "\n\n" + prompt; // PORT-ONLY (web surfaces W24, ED-NEW-web-w24-6): what a live view carries rides with the message
 
             Phase = RuntimePhase.Running;
             await liveSession.Send(new TurnInput
@@ -1959,6 +1980,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:1640-1686. Swift characters are counted as grapheme clusters.
     private ValueList<TranscriptMessage> ApiTranscript()
     {
+        if (Thread?.IsSideChat == true) return ValueList<TranscriptMessage>.Empty; // PORT-ONLY (web surfaces W6): a side chat's turn carries its own conversation so far (SideChatPrompt)
         var fragments = new List<(bool Assistant, string Text)>();
         foreach (var entry in Entries)
         {
@@ -2360,6 +2382,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     public void Interrupt()
     {
         if (Phase == RuntimePhase.Idle) return;
+        StopAsks(); // PORT-ONLY (web surfaces W25): Stop cancels the questions the turn waits on
         TactusInterrupt(); // PORT-ONLY: Tactus (ED-NEW-pcctl-27; DESIGN.md 10.2 path 6): the chat's Stop stops that chat's streams
 
         var turnID = currentTurnID;
@@ -2446,8 +2469,10 @@ public sealed partial class ThreadRuntime : MainActorModel
 
                 currentTurnID = null;
                 FlushDeltas();
-                Approvals = ValueList<ApprovalRequest>.Empty;
+                Approvals = AppPromptsOnly(); // W19: an app's cards are the app's, not the turn's
                 Questions = ValueList<QuestionRequest>.Empty;
+                DetachAsksOfTurn(turnID); // PORT-ONLY (web surfaces W25): a card still waiting stays so; the call that waited on it is over
+                hiddenAskToolIds.Clear();
 
                 var reportedEdits = new List<FileEdit>();
                 foreach (var entry in Entries.Where(entry => entry.Item.TurnID == turnID))
@@ -2539,6 +2564,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                 Append(new TimelineItem(turnID, new TimelineItem.Content.TurnEnd(summary)));
 
                 if (status == TurnStatus.Completed && limitedReplyTurnID == turnID) limitedReplyTurnID = null;
+                FinishArtifactRequest(turnID); // ED-NEW-web-nc6-1: completed, failed and interrupted all release the next ask
                 Phase = RuntimePhase.Idle;
                 TurnStartedAt = null;
                 SaveNow();
@@ -2685,6 +2711,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // :1721-1731. Swift: resolve(_:option:).
     public void Resolve(ApprovalRequest request, ApprovalRequest.Option option)
     {
+        if (ResolveAppPrompt(request, option)) return; // PORT-ONLY W19: an MCP App's card answers the app
         // DEVIATION OD-0114 / ED-407: retain the request, chosen answer and scope after it leaves Approvals.
         BufferHandoff(HandoffJournal.EncodeResolution(request.Id, new { Request = request, Option = option }), preserve: true);
         Approvals = Approvals.Mutating(items => items.RemoveAll(item => item.Id == request.Id));
@@ -3019,6 +3046,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         finally
         {
             IsReverting = false;
+            if (followUps.Any(p => IsArtifactFollowUp(p.Id))) FlushFollowUpsIfIdle(); // ED-NEW-web-nc6-2
         }
     }
 
@@ -3234,15 +3262,17 @@ public sealed partial class ThreadRuntime : MainActorModel
         provider.OnEvent = observedSessionEvent = @event =>
         {
             if (weakSelf.TryGetTarget(out var runtime) && runtime.sessionEpoch == epoch)
-                runtime.Handle(@event is ProviderEvent.UsageLimit limit
+                // + ED-NEW-web-w12-2: the answer's nth-artifact blocks become chips and saved artifacts on the way in.
+                foreach (var shown in runtime.ArtifactEvents(@event is ProviderEvent.UsageLimit limit
                     ? limit with { Account = provider is OpenAICompatibleSession { KeyRotation: AppApiKeyRotation } ? runtime.UsageAccount : account }
-                    : @event);
+                    : @event)) runtime.Handle(shown);
         };
     }
 
     // ThreadRuntime.swift:2082-2096.
     private void ReleaseSession(bool stop)
     {
+        DetachAllAsks(); // PORT-ONLY (web surfaces W25): no call of a released session still waits
         sessionEpoch++;
         sessionSignature = null;
         unsentSessionID = null;
@@ -3408,8 +3438,8 @@ public sealed partial class ThreadRuntime : MainActorModel
     private void FlushFollowUpsIfIdle()
     {
         if (InstallerHoldsNewTurns) return;
-        if (phase != RuntimePhase.Idle || followUpFlushScheduled || followUps.Count == 0
-            || Thread?.LastStatus == TurnStatus.Interrupted) return;
+        if (phase != RuntimePhase.Idle || IsReverting || followUpFlushScheduled || followUps.Count == 0 || artifactDispatchPending is not null
+            || (Thread?.LastStatus == TurnStatus.Interrupted && !followUps.Any(p => IsArtifactFollowUp(p.Id)))) return;
         followUpFlushScheduled = true;
         _ = SpawnInstallerTurn(StartQueuedFollowUpTurn);
     }
@@ -3419,7 +3449,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     {
         followUpFlushScheduled = false;
         if (phase != RuntimePhase.Idle) return Task.CompletedTask;
-        DrainFollowUps(TurnStatus.Completed);
+        DrainFollowUps(Thread?.LastStatus == TurnStatus.Interrupted ? TurnStatus.Interrupted : TurnStatus.Completed);
         return Task.CompletedTask;
     }
 
@@ -4062,7 +4092,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     public bool HoldsOnlyPersistedState =>
         Phase == RuntimePhase.Idle && session is null && !IsReverting && pendingSend is null && !IsLoadingHistory
             && Draft.IsEmpty && FollowUpEdit is null && MessageEdit is null
-            && Approvals.Count == 0 && Questions.Count == 0
+            && Approvals.Count == 0 && Questions.Count == 0 && askWaits.Count == 0
             && hydraPendingReports.Count == 0 && hydraBatches.Count == 0 && hydraWaiting.Count == 0 && hydraNativeHeads.Count == 0
             && !hydraFlushScheduled && HydraLanding is null && !isHydraMerging && headBudget is null
             && commandTrees.Count == 0 && commandSettles.Count == 0;
@@ -4120,6 +4150,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             or ProviderEvent.Approval or ProviderEvent.Question) handoffMessageBoundary = false;
         CaptureHandoff(@event);
         if (@event is ProviderEvent.TurnCompleted or ProviderEvent.Exited) FlushHandoffJournal();
+        if (HidesAskToolRow(@event)) return; // PORT-ONLY (web surfaces W25): the ask_user card takes the place of the provider's row for the tool
         switch (@event)
         {
             case ProviderEvent.SessionReady value:
@@ -4181,6 +4212,8 @@ public sealed partial class ThreadRuntime : MainActorModel
                 UpsertTodos(value.Value);
                 break;
             case ProviderEvent.Approval value:
+                if (AutoApprovesAsk(value.Value)) break; // PORT-ONLY (web surfaces W25): the question card is the ask; a provider's "allow this tool?" before it is not asked
+                if (DeclinesInReadOnlySideChat(value.Value)) break; // PORT-ONLY (web surfaces W6): a read-only side chat never runs, changes or builds
                 SkillsOffers?.BindApproval(value.Value);
                 Approvals = Approvals.Mutating(items =>
                 {
@@ -4274,8 +4307,9 @@ public sealed partial class ThreadRuntime : MainActorModel
                 FlushDeltas();
                 if (isStartingSession) break;
                 ReleaseSession(stop: false);
-                Approvals = ValueList<ApprovalRequest>.Empty;
+                Approvals = AppPromptsOnly(); // W19: an app's cards are the app's, not the session's
                 Questions = ValueList<QuestionRequest>.Empty;
+                DetachAllAsks(); // PORT-ONLY (web surfaces W25): the provider's calls are over; the cards stay waiting
                 StopNativeHeads();
                 if (currentTurnID is not null)
                 {
@@ -4843,6 +4877,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         {
             Detail = call.Detail ?? existing.Detail,
             ToolCallKind = call.ToolCallKind,
+            Payload = call.Payload ?? existing.Payload, // PORT-ONLY (W18)
         };
         var landed = call.Edits.Count != 0 && existing.Edits.Count == 0 ? call.Edits.Count : 0;
         if (call.Edits.Count != 0) existing = existing with { Edits = call.Edits };
@@ -4901,6 +4936,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             call = call with { Edits = Capped(edits) };
         }
         if (update.Output is { } output) call = call.SetOutput(output);
+        if (update.Payload is { } payload) call = call with { Payload = payload }; // PORT-ONLY (W18)
         if (update.ExitCode is { } exitCode) call = call with { ExitCode = exitCode };
         if (update.Status is { } status)
             call = status == ToolCall.Status.Running ? call with { ToolCallStatus = status } : call.Finish(status);

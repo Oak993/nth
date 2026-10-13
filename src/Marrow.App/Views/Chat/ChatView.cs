@@ -8,6 +8,7 @@ using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Port;
@@ -17,6 +18,7 @@ using Marrow.App.Views.Composer;
 using Marrow.App.Views.Terminal;
 using Marrow.App.Views.Usage;
 using Marrow.App.Window;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
@@ -155,7 +157,7 @@ public sealed class ChatView : Decorator
             if (wasResizing == true && !active) ReclampPanels(); // :257-264
             wasResizing = active;
         });
-        this.Track(() => this.runtime.IsTerminalVisible, _ => RefreshTerminal()); // :275-278,290
+        this.Track(() => this.runtime.IsTerminalInDrawer, _ => RefreshTerminal()); // :275-278,290; web W4: only the drawer's half of the terminal is this column's
         this.Track(() => this.runtime.IsHydraPanelHidden, hidden =>
         {
             if (!hidden || !hydraLingers) return;
@@ -399,7 +401,7 @@ public sealed class ChatView : Decorator
     private void RefreshTerminal() // :275-278,290
     {
         if (model is null) return;
-        var visible = runtime.IsTerminalVisible;
+        var visible = runtime.IsTerminalInDrawer; // web W4: a terminal docked in the pane grid is the workspace's, not the drawer's
         var changed = terminalWasVisible is { } was && was != visible;
         void Apply()
         {
@@ -627,6 +629,7 @@ public sealed class ChatView : Decorator
         OnResize = (translation, axes) => CurrentResizer(id).OnResize(translation, axes),
         OnResizeEnd = () => CurrentResizer(id).OnResizeEnd(),
         OnReset = () => CurrentResizer(id).OnReset(),
+        Extent = () => CurrentResizer(id).Extent!(),
     };
 
     private void UpdatePanelPlacement(FloatingPanelID id, PlacedPanel placed, bool holds)
@@ -638,27 +641,7 @@ public sealed class ChatView : Decorator
         // SubagentPanel.swift:599-615. Moving to a different dock updates the existing grips' free edges.
         var dock = CurrentSlot(id).Corner;
         foreach (var grips in Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(placed).OfType<PanelResizeGrips>())
-            foreach (var handle in Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(grips).OfType<PanelDragHandle>())
-            {
-                var width = !double.IsNaN(handle.Width);
-                var height = !double.IsNaN(handle.Height);
-                var horizontal = width ? (dock.Side == PanelDockSide.Leading ? HorizontalAlignment.Right : HorizontalAlignment.Left) : HorizontalAlignment.Stretch;
-                var vertical = height ? (dock.IsTop ? VerticalAlignment.Bottom : VerticalAlignment.Top) : VerticalAlignment.Stretch;
-                var changed = handle.HorizontalAlignment != horizontal || handle.VerticalAlignment != vertical;
-                handle.HorizontalAlignment = horizontal;
-                handle.VerticalAlignment = vertical;
-                if (changed && width && height && handle.Child is DragHandleView grip)
-                {
-                    var cursor = new Cursor(dock switch
-                    {
-                        PanelDockCorner.TopLeading => StandardCursorType.BottomRightCorner,
-                        PanelDockCorner.TopTrailing => StandardCursorType.BottomLeftCorner,
-                        PanelDockCorner.BottomLeading => StandardCursorType.TopRightCorner,
-                        _ => StandardCursorType.TopLeftCorner,
-                    });
-                    grip.Cursor = grip.HandleCursor = grip.DragCursor = cursor;
-                }
-            }
+            grips.SetDock(dock);
     }
 
     private void DragPanel(FloatingPanelID id, PanelDragState drag, Size translation, Point rest, bool release = false) // :336-346,368-378,434-444,469-479,510-520
@@ -734,6 +717,30 @@ public sealed class ChatView : Decorator
 
     public static void SetReserveSlideOffset(Control control, double value) => control.SetValue(ReserveSlideOffsetProperty, value);
 
+    // PORT-ONLY: web surfaces W3a (E:/Droppy/work/design/web-surfaces/DESIGN.md 3.2, 3.12; ED-NEW-web-w3a-1). How far the
+    // chat chrome row's trailing end keeps clear of the window's caption buttons. NaN (the default) is the whole caption
+    // reserve, as before; the pane workspace sets less when panes take the window's right edge, so the row runs to the
+    // chat column's own end. Inherited, so the workspace sets it once on the chat column's slot.
+    public static readonly AttachedProperty<double> ChromeTrailingReserveProperty =
+        AvaloniaProperty.RegisterAttached<Control, double>("ChromeTrailingReserve", typeof(ChatView), double.NaN, inherits: true);
+
+    public static double GetChromeTrailingReserve(Control control) => control.GetValue(ChromeTrailingReserveProperty);
+
+    public static void SetChromeTrailingReserve(Control control, double value) => control.SetValue(ChromeTrailingReserveProperty, value);
+
+    // PORT-ONLY: web surfaces W3a. Whether a change of ChromeTrailingReserve moves on Chrome.PanelSlide (a live reflow) or
+    // lands at once (the clip reflow's settle, under its cross-fade, a thread switch, a window resize).
+    public static readonly AttachedProperty<bool> ChromeTrailingReserveAnimatesProperty =
+        AvaloniaProperty.RegisterAttached<Control, bool>("ChromeTrailingReserveAnimates", typeof(ChatView), false, inherits: true);
+
+    public static bool GetChromeTrailingReserveAnimates(Control control) => control.GetValue(ChromeTrailingReserveAnimatesProperty);
+
+    public static void SetChromeTrailingReserveAnimates(Control control, bool value) => control.SetValue(ChromeTrailingReserveAnimatesProperty, value);
+
+    /// <summary>The trailing clearance the chat chrome row keeps for a reserve value (NaN: the whole caption reserve).</summary>
+    internal static double ChromeTrailingFor(double reserve) =>
+        double.IsFinite(reserve) ? Math.Clamp(reserve, Chrome.ChromeHorizontalPadding, WindowChrome.CaptionTrailingReserve) : WindowChrome.CaptionTrailingReserve;
+
     // :36-52 private var isMovingAPanel: Bool. The mounted body reads its own drag fields through this helper.
     internal static bool IsMovingAPanel(
         PanelDragState subagentDrag,
@@ -761,6 +768,12 @@ public sealed class ChatView : Decorator
         },
         OnResizeEnd = () => CommitPanelResize(model, resize), // :573
         OnReset = () => Transaction.WithAnimation(Chrome.PanelSlide, () => model.Settings.UsagePanelHeight = null), // :574-577
+        // PORT-ONLY (web W1): the usage height has no ceiling of its own; keys and automation stop at the column's.
+        Extent = () => new PanelResizeExtent(
+            new Size(resize.LiveSize?.Width ?? size.Width, resize.LiveUsageHeight ?? size.Height),
+            new Size(scene.Layout.Fitted(new Size(0, 0)).Width, minimum),
+            new Size(scene.Layout.Fitted(new Size(double.MaxValue, 0)).Width,
+                Math.Max(minimum, scene.Layout.Fitted(new Size(0, double.MaxValue)).Height))),
     };
 
     // :533-551 shared panel grips.
@@ -778,6 +791,8 @@ public sealed class ChatView : Decorator
         },
         OnResizeEnd = () => CommitPanelResize(model, resize),
         OnReset = () => Transaction.WithAnimation(Chrome.PanelSlide, () => model.Settings.PanelSize = null),
+        Extent = () => new PanelResizeExtent(resize.LiveSize ?? scene.Layout.PanelSize, scene.Layout.Fitted(new Size(0, 0)),
+            scene.Layout.Fitted(new Size(double.MaxValue, double.MaxValue))), // PORT-ONLY (web W1)
     };
 
     // :595-598. Only the live timeline width is quantized; commit keeps the exact preference.
@@ -1413,6 +1428,11 @@ internal sealed class ChatChromeRow : Decorator
         (string, string) toggleHelps = default;
 
         bool? previousThreadsShown = null;
+        // PORT-ONLY: web surfaces W3a, the trailing clearance (ChatView.ChromeTrailingReserve).
+        var trailingAnimation = new ChatFrameAnimation(this);
+        trailingAnimation.AttachLifetime();
+        var trailingClearance = ChatView.ChromeTrailingFor(ChatView.GetChromeTrailingReserve(this));
+        Action applyMargins = () => { };
         updateInputs = (nextTitle, nextProject, nextDirectory) =>
         {
             title = nextTitle; project = nextProject; directory = nextDirectory;
@@ -1554,9 +1574,21 @@ internal sealed class ChatChromeRow : Decorator
                 var terminalButton = terminalToggle = new ChromeIconButton("terminal", terminalHelp,
                     () => runtime.IsTerminalVisible = !runtime.IsTerminalVisible, // :1166
                     isActive: runtime.IsTerminalVisible);
+                // :1170 runtime.toggleDiff. PORT-ONLY (web W4, DESIGN 3.1, 3.7): the button opens the Changes pane; Alt+click on it
+                // still opens the popover the Mac has (resizable now, 4.3). The Alt state is the press's, read before the click.
+                var altPress = false;
                 var changesButton = diffToggle = new ChromeIconButton("plusminus", changesHelp,
-                    runtime.ToggleDiff, // :1170
-                    isActive: runtime.IsDiffVisible);
+                    () =>
+                    {
+                        var alt = altPress;
+                        altPress = false;
+                        if (alt) runtime.ToggleDiff();
+                        else runtime.ToggleChanges();
+                    },
+                    isActive: runtime.IsDiffVisible || runtime.IsChangesPaneOpen);
+                changesButton.AddHandler(InputElement.PointerPressedEvent,
+                    (_, e) => altPress = (e.KeyModifiers & KeyModifiers.Alt) != 0,
+                    RoutingStrategies.Tunnel, handledEventsToo: true);
                 toggles = new ChromeCapsule(() =>
                 {
                     var capsule = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0 };
@@ -1571,7 +1603,7 @@ internal sealed class ChatChromeRow : Decorator
             else
             {
                 Transaction.WithAnimation(Chrome.PanelSlide, () => terminalToggle!.Update(runtime.IsTerminalVisible));
-                Transaction.WithAnimation(Chrome.Hover, () => diffToggle!.Update(runtime.IsDiffVisible));
+                Transaction.WithAnimation(Chrome.Hover, () => diffToggle!.Update(runtime.IsDiffVisible || runtime.IsChangesPaneOpen));
             }
             if (trailing.Children.Count == 0) { trailing.Children.Add(openCapsule); trailing.Children.Add(toggles); }
             else
@@ -1584,16 +1616,42 @@ internal sealed class ChatChromeRow : Decorator
             built = true;
 
             // :1177-1180 padding follows ownership of the caption buttons through panelSlide frames. DEVIATION OD-0044: the
-            // caption buttons are Windows ones at the window's top right, so nothing leads the row and the leading inset is the
-            // padding whoever holds them; its trailing end keeps clear of them instead (WindowChrome.CaptionTrailingReserve).
-            foreach (var group in host.Children.OfType<GlassEffectContainer>())
-                group.Margin = new Thickness(Chrome.ChromeHorizontalPadding, Chrome.ChromeTopPadding, WindowChrome.CaptionTrailingReserve, 0);
+            // ED-NEW-finalint-2: the leading inset stays fixed (ED-NEW-sidebarmodes-8); panes alone move the trailing reserve.
+            void ApplyClearance()
+            {
+                foreach (var group in host.Children.OfType<GlassEffectContainer>())
+                    group.Margin = new Thickness(Chrome.ChromeHorizontalPadding, Chrome.ChromeTopPadding, trailingClearance, 0);
+                container.Margin = new Thickness(Chrome.ChromeHorizontalPadding, Chrome.ChromeTopPadding, trailingClearance, 0);
+            }
+            applyMargins = ApplyClearance;
+            ApplyClearance();
         }
 
         // :1165-1170 the terminal and changes buttons read runtime.isTerminalVisible/isDiffVisible directly inside
         // the SwiftUI body, so a toggle re-renders the whole row there; tracked here too so isActive (PR-TERM-072)
         // stays live rather than frozen at the value captured when this row was last built.
-        this.Track(() => (model.Settings.SidebarFloats, model.Settings.SidebarOnlyFloats, model.Settings.HydraEnabled, model.Thread(runtime.ThreadID), git.IsRepository, git.Activity, git.Status, git.Branches, git.RemoteURL, runtime.IsTerminalVisible, runtime.IsDiffVisible, ShortcutStore.Hint(AppShortcut.NewThread), ShortcutStore.Hint(AppShortcut.ToggleTerminal), ShortcutStore.Hint(AppShortcut.ToggleChanges)), _ => Build());
+        // PORT-ONLY: web surfaces W3a. The workspace moves the trailing clearance with the chat column's end: on the
+        // panel slide during a live reflow, at once otherwise.
+        PropertyChanged += (_, e) =>
+        {
+            if (e.Property != ChatView.ChromeTrailingReserveProperty) return;
+            var to = ChatView.ChromeTrailingFor(ChatView.GetChromeTrailingReserve(this));
+            if (Math.Abs(to - trailingClearance) < 0.01) return;
+            trailingAnimation.Stop();
+            if (ChatView.GetChromeTrailingReserveAnimates(this) && built)
+            {
+                var from = trailingClearance;
+                trailingAnimation.Start(Chrome.PanelSlide, progress =>
+                {
+                    trailingClearance = from + (to - from) * progress;
+                    applyMargins();
+                });
+                return;
+            }
+            trailingClearance = to;
+            applyMargins();
+        };
+        this.Track(() => (model.Settings.SidebarFloats, model.Settings.SidebarOnlyFloats, model.Settings.HydraEnabled, model.Thread(runtime.ThreadID), git.IsRepository, git.Activity, git.Status, git.Branches, git.RemoteURL, runtime.IsTerminalVisible, runtime.IsDiffVisible, runtime.IsChangesPaneOpen, ShortcutStore.Hint(AppShortcut.NewThread), ShortcutStore.Hint(AppShortcut.ToggleTerminal), ShortcutStore.Hint(AppShortcut.ToggleChanges)), _ => Build());
         Build();
     }
 }
@@ -2146,6 +2204,9 @@ internal sealed class ScriptsMenu : Decorator
             stack.Children.Add(new PopoverDivider()); // :1450
         }
         // :1452-1454,1456-1463 editor presentation through R-VIEW-9.
+        // PORT-ONLY: DESIGN 5.6, ED-NEW-web-w9-3. Explicit gesture also opens rooted static projects.
+        if (Marrow.App.Views.Browser.ProjectPreviewHost.CanOpen(model, project, runtime))
+            stack.Children.Add(new PopoverItem(UiText.Get("panes.preview.open"), () => Marrow.App.Views.Browser.ProjectPreviewHost.Open(model, project, runtime), symbol: "globe"));
         stack.Children.Add(new PopoverItem(
             project.Scripts.Count == 0 ? "Add a script…" : "Edit scripts…",
             () => MainActor.Post(() => PresentScriptsEditor(model, project.Id, anchor ?? stack)),
@@ -2620,6 +2681,11 @@ internal sealed class ScriptsEditor : Decorator
             UpdateSaveState();
         };
 
+        // PORT-ONLY: DESIGN 5.6, ED-NEW-web-w9-3. Empty stays null, preserving older script JSON.
+        var previewField = new TextBox { Text = script.PreviewUrl ?? "", PlaceholderText = UiText.Get("panes.preview.url_placeholder") };
+        ChatDialogControls.TextEditor(previewField, style: "RoundedBorder");
+        AutomationProperties.SetName(previewField, UiText.Get("panes.preview.url_name")); // ED-NEW-web-w9cx-1: a screen reader reads the field's purpose, not only its placeholder
+        previewField.PropertyChanged += (_, e) => { if (e.Property == TextBox.TextProperty) Update(script.Id, s => s with { PreviewUrl = string.IsNullOrWhiteSpace(previewField.Text) ? null : previewField.Text.Trim() }); };
         var worktreeToggle = new CheckBox { Content = "Run when a worktree is created", IsChecked = script.RunOnWorktreeCreate }; // :1692-1693
         ChatDialogControls.Checkbox(worktreeToggle);
         fields[script.Id] = (nameField, commandField, worktreeToggle);
@@ -2629,7 +2695,7 @@ internal sealed class ScriptsEditor : Decorator
         {
             HorizontalAlignment = HorizontalAlignment.Stretch, // :1670 VStack(alignment: .leading) inside a card that fills the scroll area: its fields are flexible and take the card's width
             Spacing = 8, // :1670
-            Children = { top, commandFrame, worktreeToggle },
+            Children = { top, commandFrame, worktreeToggle, previewField },
             Margin = new Thickness(14), // :1695
         };
         return new ChromeCard(() => body); // :1669

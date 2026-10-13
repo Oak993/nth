@@ -196,6 +196,7 @@ public sealed partial class AppModel : MainActorModel
         Providers = new ProviderRegistry(Settings); // AppModel.swift:122
         Mcp = new MCPStore(); // AppModel.swift:123
         Terminals = new TerminalStore(); // AppModel.swift:124
+        Terminals.PreviewReady += terminal => Views.Browser.ProjectPreviewHost.Found(this, terminal); // PORT-ONLY: DESIGN 5.6, ED-NEW-web-w9-3.
         Sidebar = new SidebarLayout(); // AppModel.swift:125
 
         var load = Storage.LoadLibrary(); // AppModel.swift:126
@@ -217,6 +218,12 @@ public sealed partial class AppModel : MainActorModel
             if (threads[index].Hydra?.HydraHeadInfoStatus != HydraHeadInfo.Status.Running) continue;
             var hydra = threads[index].Hydra! with { HydraHeadInfoStatus = HydraHeadInfo.Status.Stopped, FinishedAt = SwiftDate.Now };
             threads = threads.SetItem(index, threads[index] with { Hydra = hydra });
+        }
+        for (var index = 0; index < threads.Count; index++) // PORT-ONLY (web surfaces W3c, DESIGN 3.11): an unreadable saved pane layout is kept as workspace.bad.json
+        {
+            if (threads[index].DamagedWorkspace is not { } damaged) continue;
+            Marrow.Services.Store.WorkspaceRecovery.Keep(threads[index].Id, damaged);
+            threads = threads.SetItem(index, threads[index] with { DamagedWorkspace = null });
         }
         Write(Sync(ref projectCells, projects, project => project.Id)); // AppModel.swift:137-139
         Write(Sync(ref threadCells, threads, thread => thread.Id)); // AppModel.swift:137-140
@@ -609,7 +616,7 @@ public sealed partial class AppModel : MainActorModel
 
     // AppModel.swift:417-419. Swift: panelSubagent(of:).
     public ChatThread? PanelSubagent(Guid parentID) =>
-        Children(parentID).FirstOrDefault(thread => thread.IsInPanel && !thread.IsArchived && !thread.IsHydraHead); // AppModel.swift:417-419
+        Children(parentID).FirstOrDefault(thread => thread.IsInPanel && !thread.IsArchived && !thread.IsHydraHead && !thread.IsSideChat); // AppModel.swift:417-419; PORT-ONLY (web surfaces W6): the side chat has its own pane
 
     // AppModel.swift:421-423
     public void ToggleHelpersFold(Guid parentID) =>
@@ -1000,6 +1007,7 @@ public sealed partial class AppModel : MainActorModel
     public void Archive(Guid id) // AppModel.swift:757-772
     {
         foreach (var helper in Helpers(id)) Archive(helper.Id);
+        StopSideChat(id); // PORT-ONLY (web surfaces W6): an archived thread's side chat stops with it
         if (SelectedThreadID == id) SelectNeighbor(id);
         ExistingRuntime(id)?.StopSession();
         ReleaseHydraCopy(id); // AppModel.swift:771
@@ -1428,6 +1436,7 @@ public sealed partial class AppModel : MainActorModel
     public void TurnFinished(Guid id, TurnStatus status, bool continues) // AppModel.swift:1173-1216
     {
         if (IgnisTurnFinished(id, status)) return; // PORT-ONLY: Ignis (ED-NEW-ignis-runtime): a hidden keep-warm ping ends silently
+        if (Thread(id) is { IsSideChat: true }) { SideChatTurnFinished(id, status); return; } // PORT-ONLY (web surfaces W6): a side chat's turn ends quietly
         var thread = Thread(id);
         var isVisible = IsApplicationActive() && thread is not null && IsOnScreen(thread);
         var isHead = thread?.IsHydraHead == true;

@@ -1,0 +1,31 @@
+{
+  "live.answer.fallback_title": "A live answer",
+  "live.answer.replaced": "{0} was replaced by a newer version below.",
+  "live.answer.could_not_show": "This live answer could not be shown.",
+  "live.answer.could_not_show_why": "This live answer could not be shown. {0}",
+  "live.answer.call_tool": "Call the tool {0}.{1}.",
+  "live.answer.call_tool_with": "Call the tool {0}.{1} with {2}.",
+  "live.answer.save_table": "Save table",
+  "live.answer.save_image": "Save image",
+  "live.answer.png_image": "PNG image",
+
+  "live.widget.default_title": "Interactive widget",
+  "live.widget.sandboxed": "This widget runs in a sandbox. Open it in Tabula to use it.",
+  "live.widget.writing": "Writing the widget…",
+  "live.widget.open_in_tabula": "Open in Tabula",
+  "live.widget.artifact_title": "Widget",
+  "live.widget.trust": "Widget · from this answer",
+  "live.widget.try_again": "Try again",
+  "live.widget.live": "Live",
+  "live.widget.snapshot": "Snapshot",
+  "live.widget.selected": "Selected",
+
+  "live.app.inline_label": "Inline",
+  "live.app.pane_label": "Pane",
+  "live.app.pop_out_label": "Pop out",
+  "live.app.inline_name": "Inline",
+  "live.app.pane_name": "Expanded",
+  "live.app.pop_out_name": "Pop out",
+  "live.app.sandboxed": "Sandboxed · from {0}",
+  "live.app.could_not_open": "{0} could not open. {1}"
+}

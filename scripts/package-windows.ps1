@@ -161,6 +161,10 @@ if ($vcRefresh.NewerInstalled) {
 }
 
 Write-Host "nth $version (build $build) -> Velopack package $PackId, local only."
+# Web surfaces W23: WebView2Loader.dll is architecture-specific; an arm64 package needs the restore graph to include win-arm64 (said plainly,
+# before anything is built). After the notes check above, which has to work in a bare repository.
+. (Join-Path $PSScriptRoot 'lib/NthWebView2.ps1')
+Assert-NthRuntimeRestorable -Root $root -Runtime $Runtime
 
 if (Test-Path -LiteralPath $publishDir) { Remove-Item -LiteralPath $publishDir -Recurse -Force }
 foreach ($stale in @($setupFreeDir, $installerBuildDir, $checkDir)) {
@@ -269,6 +273,8 @@ try {
     }
 } finally { $archive.Dispose() }
 Write-Host "$($fullPackage.Name) holds LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md beside $MainExe, byte for byte as published."
+# Web surfaces W23 (DESIGN 2.1): the package holds the WebView2 loader of the runtime it is for (x64 or arm64), the managed Core assembly, no WPF or WinForms.
+Write-Host (Assert-NthWebView2Package -Package $fullPackage.FullName -Runtime $Runtime -PublishDir $publishDir)
 
 # 4. PLAN.md section 4: the sizes the setup shows everywhere, measured from the package it installs.
 $metrics = Get-NthPackageMetrics -Package $fullPackage.FullName

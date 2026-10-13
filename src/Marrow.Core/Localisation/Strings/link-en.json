@@ -1,0 +1,14 @@
+{
+  "link.question.title": "Open links in Visus or your default browser?",
+
+  "link.sheet.remember": "Remember",
+  "link.sheet.cancel": "Cancel",
+  "link.sheet.default_browser": "Default browser",
+  "link.sheet.site_name": "Link to {0}",
+  "link.sheet.remember_name": "Remember this choice for links from chats",
+  "link.sheet.cancel_name": "Cancel, open nothing",
+  "link.sheet.default_browser_name": "Open this link in your default browser",
+  "link.sheet.visus_name": "Open this link in Visus",
+
+  "link.menu.open_in_visus": "Open in Visus"
+}

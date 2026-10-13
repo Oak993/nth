@@ -71,6 +71,7 @@ public sealed class ThreadTimeline : Decorator
     private ThreadRuntime? ownerRuntime;
     private Action? redraw;
     private Action<string?, string?, bool, double, bool>? updateInputs;
+    private readonly Thickness? contentMargin; // null: the chat column's (20, ContentTopInset, 20, 18)
     private TaskHandle? initialHistoryTask; // :594-607
     private bool initialHistoryStarted;
     // :363,436-441. Own the scroll presenter, as SidebarView does, rather than depending on a themed template.
@@ -114,17 +115,31 @@ public sealed class ThreadTimeline : Decorator
         string? workingDirectory,
         bool supportsRewind,
         double columnHeight,
-        bool showsMinimap = true)
+        bool showsMinimap = true,
+        Thickness? contentMargin = null)
     {
+        this.contentMargin = contentMargin; // PORT-ONLY (web surfaces W6): the side chat's pane has no title bar over it and is narrow, so it sets its own
         state = scrollState; ownerRuntime = runtime;
         inputs = (runtime, scrollChrome, scrollState, projectName, workingDirectory, supportsRewind, columnHeight, showsMinimap);
         SetRevealTimelineEnd(this, revealBox); revealBox.Action = RevealEnd; revealBox.Follow = FollowEnd;
         // :209-217 a head's name in the prose opens the head's chat; every other link keeps the system's handling.
         MarkdownView.SetOpenUrlAction(this, url =>
         {
+            // PORT-ONLY (web surfaces W12, ED-NEW-web-w12-2): an artifact's chip in the answer opens it in Tabula; its
+            // nth-artifact link never reaches the system's handling.
+            if (Marrow.Core.Models.ArtifactFenceParser.ChipId(url.AbsoluteString) is { } artifact)
+            {
+                Marrow.Services.Web.ArtifactHost.Shared.Current.RequestOpen(runtime.ThreadID, artifact); return true;
+            }
             if (HydraMentionTarget.ThreadIDIn(url) is not { } headID) return false;
             AppEnvironment.GetAppModel(this).SelectedThreadID = headID; return true;
         });
+        // PORT-ONLY (web surfaces W10, DESIGN 5.11, ED-NEW-web-w10-2): a link clicked in this chat's prose (plain, or with Ctrl for the other
+        // browser) follows "Open links from chats in". The chat's own links come first: an artifact's chip opens Tabula and a head's name
+        // its chat, whatever the browser setting says.
+        MarkdownView.SetChatLinkMenu(this, url => Marrow.App.Port.Web.ChatLinks.MenuFor(url, runtime));
+        MarkdownView.SetChatLinkAction(this, (url, modifiers) =>
+            MarkdownView.GetOpenUrlAction(this)?.Invoke(url) == true || Marrow.App.Port.Web.ChatLinks.Open(url, runtime, modifiers, this, settings: AppEnvironment.GetAppModel(this).Settings.Web));
         // :134-144 `if runtime.isLoadingHistory { Color.clear } else if blocks.isEmpty && !runtime.isRunning { NewThreadPrompt } else { timeline }`: the branch on show is one child of
         // this host. A swap between the prompt and the timeline crossfades (OD-0076: the Mac swaps them in one frame; ED-255 (3)). The loading mark hands over in about
         // 0.2 s, where the Mac opens a thread in one frame (CATALOGUE.md C 164.452-164.640): it fades out while what the thread shows fades and rises in (OD-0105 (1)).
@@ -512,7 +527,7 @@ public sealed class ThreadTimeline : Decorator
     private Control CreateColumn(Control rows, double viewportHeight, double? layoutWidth)
     {
         var stack = new Grid { RowDefinitions = new RowDefinitions("*,Auto") }; Grid.SetRow(rows, 1); stack.Children.Add(new Border()); stack.Children.Add(rows);
-        var content = new Border { MaxWidth = 820, Margin = new Thickness(20, Chrome.ContentTopInset, 20, 18), Child = stack, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var content = new Border { MaxWidth = 820, Margin = contentMargin ?? new Thickness(20, Chrome.ContentTopInset, 20, 18), Child = stack, HorizontalAlignment = HorizontalAlignment.Stretch };
         NthWorkingBeads.SetReflowAnchor(content, true); // Calculi WU5: the working glyph's layout moves are measured inside the scrolled content (a scroll is not a move)
         var column = new Grid { MinHeight = viewportHeight, Children = { content } }; if (layoutWidth is { } width) column.Width = width; return column;
     }
@@ -1241,6 +1256,9 @@ public abstract record TimelineGroup
             if (entry.TimelineEntryKind == TimelineEntry.Kind.Tool)
             {
                 if (IsHead(entry)) { heads.Add(entry); continue; }
+                // PORT-ONLY (W19, ED-NEW-web-w19-3): a call that draws an MCP App is its own row, its card under the tool row.
+                if (Marrow.App.Port.Web.McpApps.McpAppCatalog.IsApp(entry)) { Flush(); groups.Add(new Single(entry)); continue; }
+                if (LiveAnswerRows.IsLive(entry)) { Flush(); groups.Add(new Single(entry)); continue; } // PORT-ONLY (web surfaces W24): a live answer is drawn as the view, not as a step
                 if (work.Count > 0 && work[^1].TurnID != entry.TurnID) Flush();
                 if (work.Count == 0) start = index; work.Add(entry);
             }
@@ -1614,7 +1632,7 @@ public sealed class TurnRunningBlock : Decorator
         // with their transitions (:1983, :1988, :1998). ED-255 (3).
         var arrives = placed; placed = true;
         var contextChanged = shownContext is { } before && before != context; shownContext = context;
-        var partition = Partition(groupCache.Groups(entries)); var wanted = new List<Control>();
+        var partition = Partition(groupCache.Groups(entries)); var wanted = new List<Control>(); var liveWanted = new List<Control>(); // + W24: a live answer follows the working line, as the reply it belongs to does
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var group in partition.Rows)
         {
@@ -1627,7 +1645,7 @@ public sealed class TurnRunningBlock : Decorator
                 rowViews[group.Id] = kept = (group, new TurnRow(group, runtime, context).Transition(ThreadTimeline.RowTransition));
                 if (arrives) SwiftTransition.Insert(stack, stack.Children.Count, kept.Row); else SwiftTransition.Place(stack, stack.Children.Count, kept.Row);
             }
-            wanted.Add(kept.Row);
+            (group is TimelineGroup.Single { Value: { } liveEntry } && LiveAnswerRows.IsLive(liveEntry) ? liveWanted : wanted).Add(kept.Row);
         }
         foreach (var gone in rowViews.Keys.Where(id => !seen.Contains(id)).ToArray()) { stack.Children.Remove(rowViews[gone].Row); rowViews.Remove(gone); }
         if (partition.Heads is { } heads)
@@ -1657,7 +1675,8 @@ public sealed class TurnRunningBlock : Decorator
             wanted.Add(working);
         }
         else if (working is not null) { stack.Children.Remove(working); working = null; }
-        // The order of the stack is the rows, the heads, the working line.
+        // The order of the stack is the rows, the heads, the working line, then the live answers (W24).
+        wanted.AddRange(liveWanted);
         for (var i = 0; i < wanted.Count; i++) { var at = stack.Children.IndexOf(wanted[i]); if (at >= 0 && at != i) stack.Children.Move(at, i); }
     }
     // :1948-1976
@@ -1726,8 +1745,10 @@ public sealed class TimelineGroupView : Decorator
                 TimelineEntry.Kind.User => new UserMessageRow(single.Value, runtime, context.CanRewind),
                 TimelineEntry.Kind.Assistant => new AssistantMessageRow(single.Value, summary, runtime),
                 TimelineEntry.Kind.Reasoning => null,
-                TimelineEntry.Kind.Tool => new WorkGroup(new([single.Value]), runtime, context.WorkingDirectory),
+                TimelineEntry.Kind.Tool when Marrow.App.Port.Web.McpApps.McpAppCatalog.IsApp(single.Value) => new McpAppRow(single.Value, runtime, context.WorkingDirectory), // PORT-ONLY (W19)
+                TimelineEntry.Kind.Tool => LiveAnswerRows.IsLive(single.Value) ? new LiveAnswerRow(single.Value, runtime) : new WorkGroup(new([single.Value]), runtime, context.WorkingDirectory), // + W24: a live answer
                 TimelineEntry.Kind.Plan => new PlanCard(single.Value, runtime), TimelineEntry.Kind.Todos => new TodoListRow(single.Value), TimelineEntry.Kind.Notice => new NoticeRow(single.Value),
+                TimelineEntry.Kind.Ask => new Marrow.App.Port.AskUser.AskCardRow(single.Value, runtime), // PORT-ONLY (web surfaces W25): an ask_user card
                 TimelineEntry.Kind.TurnEnd when single.Value.Item.TimelineItemContent is TimelineItem.Content.TurnEnd end => new TurnEndRow(end.Value, hasReply), _ => null,
             },
             _ => null,
@@ -1755,7 +1776,9 @@ public sealed class TimelineGroupView : Decorator
                 {
                     case UserMessageRow user: user.SetCanRevert(context.CanRewind); break;
                     case AssistantMessageRow reply: reply.SetSummary(summary); break;
+                    case McpAppRow app when single.Value.TimelineEntryKind == TimelineEntry.Kind.Tool: app.Update(single.Value); break; // PORT-ONLY (W19)
                     case WorkGroup tool when single.Value.TimelineEntryKind == TimelineEntry.Kind.Tool: tool.Update(new([single.Value]), false); break;
+                    case LiveAnswerRow: break; // PORT-ONLY (W24): the row reads its entry itself
                     case TurnEndRow when single.Value.Item.TimelineItemContent is TimelineItem.Content.TurnEnd end:
                         if (!Equals(shownSummary, summary) || shownHasReply != hasReply || context != shownContext) Child = new TurnEndRow(end.Value, hasReply); break; // no state in it: made again with what it says
                     default: break; // a plan, a checklist, a notice, a reply with nothing to say: the entry is all they hold, and it stands
@@ -1865,14 +1888,17 @@ public sealed class WorkingIndicator : Decorator
         void Draw(bool force = true)
         {
             var elapsed = Math.Max(0, (now - startedAt).TotalSeconds); var word = WorkingWords.Word(seed, (long)elapsed);
-            var label = liveWork.Any(entry => entry.TimelineEntryKind == TimelineEntry.Kind.Tool) ? WorkGroupSummary.Text(liveWork) : running ? word + "\u2026" : "Earlier steps"; // :2100-2105
-            if (!force && titleText == label && titleRunning == running) return;
+            // PORT-ONLY (web surfaces W25, DESIGN.md 7.3): while the turn waits for the person's answer to an ask_user card the line says so, still, in the design's words.
+            var waiting = running && runtime.IsWaitingForAnswer;
+            var label = waiting ? Marrow.App.Port.AskUser.AskCardStrings.Waiting : liveWork.Any(entry => entry.TimelineEntryKind == TimelineEntry.Kind.Tool) ? WorkGroupSummary.Text(liveWork) : running ? word + "\u2026" : "Earlier steps"; // :2100-2105
+            var breathing = running && !waiting; // the letters breathe while the agent works, not while it waits for the person
+            if (!force && titleText == label && titleRunning == breathing) return;
             // :2182 .animation(Self.change, value: label): a new label takes the place of the old one over the one motion for what changes on the line.
-            if (titleText != label || titleRunning != running)
+            if (titleText != label || titleRunning != breathing)
             {
                 // PORT-ONLY (OD-0136 amendment 2, step 2 B): a running line shows the thinking glyph and its word in breathing letters, one title that stays while the line
                 // runs (a new word arrives letter by letter inside it); a line that is not running shows its label as plain text, as before.
-                if (running && thinking is not null && ReferenceEquals(title, thinking)) thinking.Word = label;
+                if (breathing && thinking is not null && ReferenceEquals(title, thinking)) thinking.Word = label;
                 else
                 {
                     var previous = title;
@@ -1894,7 +1920,7 @@ public sealed class WorkingIndicator : Decorator
                     if (previous is null) titleHost.Children.Insert(Before(), next);
                     else Transaction.WithAnimation(Change, () => { SwiftTransition.Remove(titleHost, previous); SwiftTransition.Insert(titleHost, Before(), next.Transition(SwiftTransition.Opacity)); });
                 }
-                titleText = label; titleRunning = running;
+                titleText = label; titleRunning = breathing;
             }
             // :2144-2147 the card keeps an even 14 on both sides so its bar sits centred; the badge is a pill like the others in the column.
             frame.Padding = showsCard ? new Thickness(14, 11) : new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical);
@@ -1987,6 +2013,7 @@ public sealed class WorkingIndicator : Decorator
             Draw();
         };
         Draw(); // :2185-2188. The source retains chronological, but ThreadTimeline always passes false.
+        this.Track(() => runtime.IsWaitingForAnswer, _ => Draw()); // PORT-ONLY (web surfaces W25): the line says "Waiting for your answer" while an ask_user card waits
         this.Task(() => FrontMonitor.Shared.Current.IsVisible && lineState.Running, async active =>
         {
             if (!active) return; // :2191 the elapsed-time label ticks only while someone can see it, and only while the line runs

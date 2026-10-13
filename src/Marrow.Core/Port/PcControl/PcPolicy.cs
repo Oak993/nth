@@ -3,8 +3,7 @@
 // and UAC, nth itself and other agent apps), elevated windows, password fields, the guarded-action words that need the
 // user's confirmation, and who gets the tools at all (ED-NEW-pcctl-2: only a chat the user is watching). The lists are
 // nth's own, written from public knowledge of these apps' executable names.
-using System.Text;
-using System.Text.RegularExpressions;
+using Marrow.Core.Localisation;
 
 namespace Marrow.Core.Port.PcControl;
 
@@ -29,7 +28,7 @@ public sealed record PcAppVerdict(PcDenyCategory Category, string? Reason)
 /// <summary>A process's token facts (from OpenProcessToken and GetTokenInformation).</summary>
 public sealed record PcProcessSecurity(bool Elevated, bool HighIntegrity, bool UiAccess, bool Readable = true);
 
-public static partial class PcPolicy
+public static class PcPolicy
 {
     private static readonly Dictionary<string, PcDenyCategory> deniedExes = Build();
 
@@ -157,70 +156,13 @@ public static partial class PcPolicy
     /// </summary>
     public static bool OffersTools(PcSettings settings, bool attended) => settings.Enabled && attended;
 
-    // The guarded words (DESIGN.md 4.3), whole words, any case. "sign out" and "delete account" are phrases.
-    [GeneratedRegex(@"\b(delete\s+account|sign\s+out|send|delete|pay|buy|purchase|order|submit|publish|post|transfer|install|uninstall)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex GuardedWords();
-
-    // Hindi and Urdu forms of the guarded words (DESIGN.md 4.3, critique C13), with the English word each stands for. They
-    // are matched as text inside the name after NFC normalisation (Devanagari and Urdu words carry marks that the regex word
-    // boundary does not treat as letters). Longer forms come first, so "uninstall" is not reported as "install".
-    private static readonly (string Form, string Word)[] localWords = Local(
-    [
-        ("अनइंस्टॉल", "uninstall"), ("इंस्टॉल", "install"), ("साइन आउट", "sign out"), ("लॉग आउट", "sign out"),
-        ("भेजें", "send"), ("भेजो", "send"), ("भेजना", "send"), ("हटाएं", "delete"), ("हटाएँ", "delete"), ("मिटाएं", "delete"),
-        ("मिटाएँ", "delete"), ("डिलीट", "delete"), ("भुगतान", "pay"), ("खरीदें", "buy"), ("ख़रीदें", "buy"), ("ऑर्डर", "order"),
-        ("सबमिट", "submit"), ("प्रकाशित", "publish"), ("पोस्ट", "post"), ("स्थानांतरित", "transfer"), ("ट्रांसफ़र", "transfer"),
-        ("ट्रांसफर", "transfer"),
-        ("ان انسٹال", "uninstall"), ("انسٹال", "install"), ("سائن آؤٹ", "sign out"), ("لاگ آؤٹ", "sign out"), ("بھیجیں", "send"),
-        ("بھیجو", "send"), ("ارسال", "send"), ("حذف", "delete"), ("مٹائیں", "delete"), ("ڈیلیٹ", "delete"), ("ادائیگی", "pay"),
-        ("خریدیں", "buy"), ("آرڈر", "order"), ("جمع کرائیں", "submit"), ("شائع", "publish"), ("پوسٹ", "post"), ("منتقل", "transfer"),
-        ("ٹرانسفر", "transfer"),
-    ]);
-
-    private static (string Form, string Word)[] Local((string Form, string Word)[] words) =>
-        words.Select(w => (w.Form.Normalize(NormalizationForm.FormC), w.Word)).OrderByDescending(w => w.Item1.Length).ToArray();
-
-    // AutomationId tokens ("SendButton", "btnDelete", "id_pay_now") that mark a guarded command whatever the label says.
-    private static readonly Dictionary<string, string> idWords = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["send"] = "send", ["delete"] = "delete", ["pay"] = "pay", ["buy"] = "buy", ["purchase"] = "purchase",
-        ["order"] = "order", ["checkout"] = "buy", ["submit"] = "submit", ["publish"] = "publish", ["post"] = "post",
-        ["transfer"] = "transfer", ["install"] = "install", ["uninstall"] = "uninstall", ["signout"] = "sign out", ["logout"] = "sign out",
-    };
-
-    [GeneratedRegex(@"[A-Z]?[a-z]+|[A-Z]+(?![a-z])|[0-9]+", RegexOptions.CultureInvariant)]
-    private static partial Regex IdTokens();
+    // The guarded words (DESIGN.md 4.3) live in one place for both products, one list per language (Localisation/Guarded/guarded.<language>.json,
+    // ED-NEW-web-w22-1): English, Hindi and Urdu, and any language added there. Tactus and the web guard (WebAgentPolicy) ask the same lists.
 
     /// <summary>
-    /// The guarded word an element holds, as the English word lower-cased, or null: from its name (English, Hindi or Urdu)
-    /// or its AutomationId.
+    /// The guarded word an element holds, as the English word lower-cased, or null: from its name (in any listed language: English, Hindi,
+    /// Urdu) or its AutomationId.
     /// </summary>
-    public static string? GuardedWord(string? name, string? automationId = null)
-    {
-        if (!string.IsNullOrWhiteSpace(name))
-        {
-            var matches = GuardedWords().Matches(name);
-            if (matches.Count > 0)
-            {
-                // "Delete account" is reported as the phrase, not as "delete".
-                var best = matches.OrderByDescending(m => m.Length).First();
-                return string.Join(' ', best.Value.ToLowerInvariant().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
-            }
-            var text = name.Normalize(NormalizationForm.FormC);
-            foreach (var (form, word) in localWords)
-            {
-                if (text.Contains(form, StringComparison.Ordinal)) return word;
-            }
-        }
-        if (!string.IsNullOrWhiteSpace(automationId))
-        {
-            var tokens = IdTokens().Matches(automationId).Select(m => m.Value.ToLowerInvariant()).ToList();
-            for (var i = 0; i < tokens.Count; i++)
-            {
-                if (i + 1 < tokens.Count && idWords.TryGetValue(tokens[i] + tokens[i + 1], out var pair)) return pair;
-                if (idWords.TryGetValue(tokens[i], out var word)) return word;
-            }
-        }
-        return null;
-    }
+    public static string? GuardedWord(string? name, string? automationId = null) =>
+        GuardedWords.Shared.Find(name) ?? GuardedWords.Shared.FindIdentifier(automationId);
 }

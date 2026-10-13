@@ -13,6 +13,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using Marrow.App.Port;
+using Marrow.App.Runtime;
 using Marrow.App.Views.Chat;
 using Marrow.App.Views.Palette;
 using Marrow.App.Views.Settings;
@@ -54,10 +55,8 @@ public sealed class RootView : Decorator
 {
     private readonly SidebarView sidebarView = new();
     private readonly Border sidebarClip;
-    private readonly SidebarResizeHandle trailingHandleConfig;
-    private readonly DragHandleView trailingHandle;
-    private readonly SidebarResizeHandle leadingHandleConfig;
-    private readonly DragHandleView leadingHandle;
+    private readonly SidebarResizeHandle sidebarHandleConfig;
+    private readonly Splitter sidebarSplitter;
     private readonly DetailView detailView = new();
 
     /// <summary>WV-1: the Welcome voice question the detail pane draws on the empty page (see <see cref="DetailView.VoiceQuestion"/>).</summary>
@@ -192,22 +191,8 @@ public sealed class RootView : Decorator
         // Mac reports the settled width once per change (ED-NEW-sidebarmodes-8). The slide's every frame used to be reported here, which
         // flipped HoldsTrafficLights part-way through a slide and rebuilt the chat's toolbar in the middle of it.
 
-        // :22-31 the trailing resize handle, over the sidebar column's own trailing edge, active while visible.
-        trailingHandleConfig = new SidebarResizeHandle
-        {
-            OnBegin = () => AppEnvironment.GetAppModel(this).Sidebar.BeginDrag(),
-            OnChange = delta => AppEnvironment.GetAppModel(this).Sidebar.Drag(delta),
-            OnEnd = () => AppEnvironment.GetAppModel(this).Sidebar.EndDrag(),
-        };
-        trailingHandle = trailingHandleConfig.MakeNSView();
-        trailingHandle.Width = SidebarResizeHandle.HitWidth; // :29
-        trailingHandle.HorizontalAlignment = HorizontalAlignment.Right; // :22 overlay(alignment: .trailing)
-        trailingHandle.VerticalAlignment = VerticalAlignment.Stretch;
-        trailingHandle.Margin = new Thickness(0, Chrome.TrafficLightTop + Chrome.TrafficLightDiameter, 0, 0); // :30
-
         var sidebarSlot = new OverlayPanel { HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Stretch };
         sidebarSlot.Children.Add(sidebarClip);
-        sidebarSlot.Children.Add(trailingHandle);
 
         // :33-51 the detail column: stretches, clips its own bounds first (:40), then insets by the sheet inset on
         // every side but the leading one (:41-43; inert at Chrome.SheetInset == 0, PR-WIN-063).
@@ -240,22 +225,23 @@ public sealed class RootView : Decorator
         hstack.Children.Add(sidebarSlot);
         hstack.Children.Add(detailSlot);
 
-        // :53-63 the leading-edge strip, over the whole HStack, that pulls the hidden sidebar back out.
-        leadingHandleConfig = new SidebarResizeHandle
+        // :22-31 and :53-63 the two resize strips, the visible column's trailing edge and the leading edge that pulls the hidden
+        // column back out, are one shared splitter over the whole HStack (nth web surfaces W1, DESIGN.md 4.3, ED-NEW-web-w1-3):
+        // centred on the column's edge while it shows, at the window's leading edge while it is hidden (Recompute places it),
+        // starting under the traffic lights (:30, :62).
+        sidebarHandleConfig = new SidebarResizeHandle(() =>
         {
-            OnBegin = () => AppEnvironment.GetAppModel(this).Sidebar.BeginDrag(),
-            OnChange = delta => AppEnvironment.GetAppModel(this).Sidebar.Drag(delta),
-            OnEnd = () => AppEnvironment.GetAppModel(this).Sidebar.EndDrag(),
-        };
-        leadingHandle = leadingHandleConfig.MakeNSView();
-        leadingHandle.Width = SidebarResizeHandle.HitWidth; // :61
-        leadingHandle.HorizontalAlignment = HorizontalAlignment.Left; // :54 overlay(alignment: .leading)
-        leadingHandle.VerticalAlignment = VerticalAlignment.Stretch;
-        leadingHandle.Margin = new Thickness(0, Chrome.TrafficLightTop + Chrome.TrafficLightDiameter, 0, 0); // :62
+            try { return AppEnvironment.GetAppModel(this).Sidebar; }
+            catch (InvalidOperationException) { return null; }
+        });
+        sidebarSplitter = sidebarHandleConfig.MakeSplitter();
+        sidebarSplitter.HorizontalAlignment = HorizontalAlignment.Left;
+        sidebarSplitter.VerticalAlignment = VerticalAlignment.Stretch;
+        sidebarSplitter.Margin = new Thickness(0, Chrome.TrafficLightTop + Chrome.TrafficLightDiameter, 0, 0); // :30, :62
 
         var content = new Panel { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
         content.Children.Add(hstack);
-        content.Children.Add(leadingHandle);
+        content.Children.Add(sidebarSplitter);
 
         // :64-65 the backdrop and the window-chrome probe, both painted behind the content.
         backdrop = new WindowBackdrop(AppSettings.DefaultBackdropOpacity); // :64, placeholder until UpdateBackdrop's first real read below
@@ -357,10 +343,13 @@ public sealed class RootView : Decorator
             sidebar.NoteLaidOutWidth(target); // :21
         }
 
-        trailingHandleConfig.IsActive = !onlyFloats && sidebar.IsVisible; // :24
-        trailingHandleConfig.UpdateNSView(trailingHandle);
-        leadingHandleConfig.IsActive = !onlyFloats && !sidebar.IsVisible; // :56
-        leadingHandleConfig.UpdateNSView(leadingHandle);
+        // :24 the trailing strip is active while the column shows, :56 the leading one while it is hidden: one splitter, active
+        // unless the sidebar only floats, centred on the column's edge or at the leading edge.
+        sidebarHandleConfig.IsActive = !onlyFloats;
+        var edge = !onlyFloats && sidebar.IsVisible ? sidebar.RenderedWidth : 0;
+        sidebarSplitter.Margin = new Thickness(
+            edge > 0 ? edge - Splitter.DividerThickness / 2 : 0, Chrome.TrafficLightTop + Chrome.TrafficLightDiameter, 0, 0);
+        sidebarHandleConfig.Update(sidebarSplitter);
 
         var leadingInset = sidebar.IsVisible && !onlyFloats ? 0 : Chrome.SheetInset; // :41
         detailPadded.Padding = new Thickness(leadingInset, Chrome.SheetInset, Chrome.SheetInset, Chrome.SheetInset); // :41-43
@@ -703,6 +692,37 @@ public sealed class DetailView : Decorator
     private ThreadColumns? columns;
     private AppModel? columnModel;
     private ObservationTracker? runningObservation;
+    // PORT-ONLY: web surfaces W3a (DESIGN 3.11; ED-NEW-web-w3a-1). The thread's pane workspace around the chat columns,
+    // bound to the shown thread's runtime: its state is drawn, and what the user changes is written back.
+    private Marrow.App.Views.Panes.PaneWorkspace? workspace;
+    private ThreadRuntime? workspaceRuntime;
+    private ObservationTracker? workspaceObservation;
+
+    /// <summary>The pane workspace around the chat columns while a thread is shown.</summary>
+    internal Marrow.App.Views.Panes.PaneWorkspace? Workspace => workspace;
+
+    // PORT-ONLY: web surfaces W3c (DESIGN 3.11 "Each ThreadWindow has its own workspace for its thread"; ED-NEW-web-w3c-1). A window
+    // beside the main one that shows a thread of its own pins it here, so the model's selection (the main window's) never moves it.
+    // Each window draws its own PaneWorkspace; the state it draws is its thread's, owned by that thread's runtime.
+    private Guid? pinnedThreadID;
+
+    /// <summary>The thread this view shows whatever the model selects; null follows the model's selection (the main window).</summary>
+    internal Guid? PinnedThreadID
+    {
+        get => pinnedThreadID;
+        set
+        {
+            if (pinnedThreadID == value) return;
+            pinnedThreadID = value;
+            Rebuild();
+        }
+    }
+
+    /// <summary>Whether a pane kind can be opened by a chord: the pane unit registered its content (tests with their own factory: every kind).</summary>
+    internal Func<PaneKind, bool> PaneAvailable { get; set; } = Marrow.App.Views.Panes.PaneContents.IsAvailable;
+
+    /// <summary>What each pane kind draws (the pane units register theirs); tests replace it.</summary>
+    internal Marrow.App.Views.Panes.PaneContentFactory PaneFactory { get; set; } = Marrow.App.Views.Panes.PaneContents.Create;
     private Marrow.App.Port.Voice.VoiceSpeedQuestion? voiceQuestion;
 
     /// <summary>
@@ -757,9 +777,15 @@ public sealed class DetailView : Decorator
         this.Task(() =>
         {
             var model = AppEnvironment.GetAppModel(this);
-            return model.SelectedThreadID is { } id && model.Thread(id) is not null ? (Guid?)id : null;
+            return (pinnedThreadID ?? model.SelectedThreadID) is { } id && model.Thread(id) is not null ? (Guid?)id : null;
         }, Prebuild); // :134 .task(id: threadID), cancelled on selection change or detach.
-        DetachedFromVisualTree += (_, _) => { runningObservation?.Cancel(); runningObservation = null; };
+        DetachedFromVisualTree += (_, _) =>
+        {
+            runningObservation?.Cancel();
+            runningObservation = null;
+            workspaceObservation?.Cancel();
+            workspaceObservation = null;
+        };
         // PORT-ONLY (ED-NEW-session-hotkeys): Ctrl+1..9 asks for the opened chat's composer, even over the sidebar's search field.
         AttachedToVisualTree += (_, _) =>
         {
@@ -772,6 +798,34 @@ public sealed class DetailView : Decorator
             if (focusModel is not null) focusModel.ComposerFocusRequested -= OnComposerFocusRequested;
             focusModel = null;
         };
+    }
+
+    // PORT-ONLY: web surfaces W3a. Shows the thread's workspace: a new thread's panes are drawn at once, with that
+    // thread's contents; a change of its state afterwards springs.
+    private void BindWorkspace(ThreadRuntime runtime)
+    {
+        if (workspace is null) return;
+        var factory = PaneFactory;
+        if (!ReferenceEquals(workspaceRuntime, runtime))
+        {
+            workspaceRuntime = runtime;
+            workspace.Reload(kind => factory(kind, runtime), runtime.Workspace);
+        }
+        else workspace.SetState(runtime.Workspace);
+        workspace.IsChatWorking = runtime.IsRunning;
+        ObserveWorkspace(runtime);
+    }
+
+    private void ObserveWorkspace(ThreadRuntime runtime)
+    {
+        workspaceObservation?.Cancel();
+        workspaceObservation = ObservationTracking.Track(() => (runtime.Workspace, runtime.IsRunning), () => MainActor.Post(() =>
+        {
+            if (!ReferenceEquals(workspaceRuntime, runtime) || workspace is null || TopLevel.GetTopLevel(this) is null) return;
+            workspace.SetState(runtime.Workspace);
+            workspace.IsChatWorking = runtime.IsRunning;
+            ObserveWorkspace(runtime);
+        })).Tracker;
     }
 
     private AppModel? focusModel;
@@ -831,7 +885,7 @@ public sealed class DetailView : Decorator
         voiceQuestion ??= Marrow.App.Port.Voice.VoiceFirstRun.Find(model.Settings)?.Question; // WV-1: the same question every composer reads
 
         // :130 `if let threadID = model.selectedThreadID, model.thread(threadID) != nil`
-        if (model.SelectedThreadID is { } threadID && model.Thread(threadID) is not null)
+        if ((pinnedThreadID ?? model.SelectedThreadID) is { } threadID && model.Thread(threadID) is not null)
         {
             voiceQuestion?.CloseWelcome();
             if (shown != threadID) prebuilt.Clear(); // :133 onChange(threadID)
@@ -843,9 +897,22 @@ public sealed class DetailView : Decorator
                 columnModel = model;
                 columns = new ThreadColumns(threadID, prebuilt, running, model, liveResize, comesIn: showedEmpty);
                 showedEmpty = false;
-                Child = columns;
+                workspace = new Marrow.App.Views.Panes.PaneWorkspace(columns, _ => null)
+                {
+                    // A chord for a pane kind this build cannot draw is not taken (web W3b, DESIGN 3.7).
+                    IsKindAvailable = kind => PaneAvailable(kind),
+                    // Web W4: where a terminal dragged back to the drawer is outlined, the drawer's stored height.
+                    DrawerHeight = () => model.Settings.TerminalHeight,
+                };
+                workspace.StateChanged += state =>
+                {
+                    if (workspaceRuntime is { } owner) owner.Workspace = state;
+                };
+                workspaceRuntime = null;
+                Child = workspace;
             }
             else columns.Update(threadID, prebuilt, running, model, liveResize);
+            BindWorkspace(model.Runtime(threadID));
             ObserveRunning(model);
             return;
         }
@@ -853,6 +920,10 @@ public sealed class DetailView : Decorator
         shown = null;
         columns = null;
         columnModel = null;
+        workspace = null;
+        workspaceRuntime = null;
+        workspaceObservation?.Cancel();
+        workspaceObservation = null;
         prebuilt.Clear();
         runningObservation?.Cancel();
         runningObservation = null;

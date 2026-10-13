@@ -156,6 +156,7 @@ public class OpenAICompatibleSession : ProviderSession
     private readonly Dictionary<string, CheckedContinuation<bool>> pendingApprovals = []; // :58
     private List<MCPHub.Tool> mcpTools = [];                // :59
     private bool didLoadMCPTools;                            // :60
+    private int loadedToolsRevision;                         // PORT-ONLY (W18): MCPHub.ToolsRevision when mcpTools was read
 
     // PORT-ONLY (SK-11f): Marrow's own tools (use_skill, request_tool), empty unless SkillTools offers them, so the request is the Mac's byte for byte by default.
     private IReadOnlyList<JSONValue> SkillToolDefinitions => SkillTools?.Definitions ?? [];
@@ -202,6 +203,7 @@ public class OpenAICompatibleSession : ProviderSession
     {
         mcpTools = [.. tools];
         didLoadMCPTools = true;
+        loadedToolsRevision = MCPHub.Shared.ToolsRevision;
     }
 
     // Test-only seam (InternalsVisibleTo Marrow.Services.Tests): drives PerformStream directly
@@ -798,6 +800,13 @@ public class OpenAICompatibleSession : ProviderSession
             acc.Arguments.Append(arguments);        // :687
         }
 
+        public void NoteLiveInput(int index, Action<string, string, string> report)
+        {
+            if (!accumulators.TryGetValue(index, out var acc) || acc.Id.Length == 0
+                || acc.Name is not (Marrow.Services.Web.LiveAnswerTools.ShowName or Marrow.Services.Web.LiveAnswerTools.HtmlName)) return;
+            report(acc.Id, acc.Name, acc.Arguments.ToString());
+        }
+
         public string Content() => content.ToString();
 
         public string Reasoning() => reasoning.ToString();
@@ -934,9 +943,12 @@ public class OpenAICompatibleSession : ProviderSession
     // orchestration tests independent of the network.
     protected virtual async Task<StreamRound> StreamOneRound(string model, string? effort, bool withTools = true)
     {
+        if (Configuration.NoTools) withTools = false; // PORT-ONLY (ED-NEW-web-w26-1): a no-tools session never offers one, keep-warm requests included.
         SanitizeHistory(); // :509
-        if (withTools && !didLoadMCPTools) // :510
+        // PORT-ONLY (W18): also when a server said its tool list changed since they were read (list_changed).
+        if (withTools && (!didLoadMCPTools || MCPHub.Shared.ToolsRevision != loadedToolsRevision)) // :510
         {
+            loadedToolsRevision = MCPHub.Shared.ToolsRevision;
             mcpTools = [.. await MCPHub.Shared.Tools()];
             didLoadMCPTools = true;
         }
@@ -1383,6 +1395,7 @@ public class OpenAICompatibleSession : ProviderSession
                         break;
                     case StreamChunk.ToolCallChunk toolCall: // :683-688
                         streamed.AppendToolCall(toolCall.Index, toolCall.Id, toolCall.Name, toolCall.Arguments);
+                        streamed.NoteLiveInput(toolCall.Index, NoteLiveInput); // ED-NEW-finalint-2: flatten only an offered live answer.
                         break;
                     case StreamChunk.UsageChunk usageChunk: // :690
                         usage = usageChunk.Value;
@@ -1598,11 +1611,17 @@ public class OpenAICompatibleSession : ProviderSession
         if (MCPHub.Parse(tool.Name) is { } parsed) // :898
         {
             var (server, name) = (parsed.Server, parsed.Tool);
+            // PORT-ONLY (W18): a tool that names an MCP App view says so on its row from the start, so the host can fetch
+            // the view while the arguments are still streaming (DESIGN.md 7.6).
+            var startedPayload = mcpTools.FirstOrDefault(known => known.CallName == tool.Name)?.UiResourceUri is { } uiResource
+                ? new ToolPayload { Server = server, Tool = name, UiResourceUri = uiResource }
+                : null;
             OnEvent?.Invoke(new ProviderEvent.ToolStarted(callID, new ToolCall // :899
             {
                 ToolCallKind = ToolCall.Kind.Mcp,
                 Title = $"{server} \U000000B7 {name}", // U+00B7 MIDDLE DOT
                 Detail = args.IsNull ? null : args.PrettyString,
+                Payload = startedPayload,
             }));
             if (!await ApproveIfNeeded(ToolCall.Kind.Mcp, $"Call {server} {name}", args.CompactString, null)) // :900-902
             {
@@ -1614,10 +1633,10 @@ public class OpenAICompatibleSession : ProviderSession
                 if (SwiftTask.IsCancelled || interrupted) return "Stopped."; // :905
                 if (result.IsError) // :906
                 {
-                    OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = result.Text, Status = ToolCall.Status.Failed })); // :907
+                    OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = result.Text, Status = ToolCall.Status.Failed, Payload = result.ToPayload() })); // :907
                     return result.Text.Length == 0 ? "Error: the MCP tool reported failure with no output." : result.Text; // :908
                 }
-                OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = Summary(result.Text, 12_000), Status = ToolCall.Status.Completed })); // :910
+                OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = Summary(result.Text, 12_000), Status = ToolCall.Status.Completed, Payload = result.ToPayload() })); // :910
                 return result.Text.Length == 0 ? "(no output)" : result.Text; // :911
             }
             catch (Exception error) when (SwiftTry.IsThrownError(error)) // :912
@@ -1801,6 +1820,7 @@ public class OpenAICompatibleSession : ProviderSession
             default: // :1027
             {
                 if (PcTools is { } pcTools && pcTools.Owns(tool.Name)) return await ExecutePcTool(pcTools, tool, args); // PORT-ONLY (Tactus, ED-NEW-pcctl-42)
+                if (SkillTools?.Web is { } webTools && webTools.Owns(tool.Name)) return await ExecuteWebTool(webTools, tool, args); // PORT-ONLY (web surfaces W11, ED-NEW-web-w11-1)
                 if (SkillTools is { } skillTools && skillTools.Owns(tool.Name)) return await ExecuteSkillTool(skillTools, tool, args); // PORT-ONLY (SK-11f)
                 var call = new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = tool.Name }; // :1028
                 OnEvent?.Invoke(new ProviderEvent.ToolStarted(callID, call)); // :1029
@@ -1808,6 +1828,18 @@ public class OpenAICompatibleSession : ProviderSession
                 return $"Error: unknown tool {tool.Name}."; // :1031
             }
         }
+    }
+
+    // PORT-ONLY (web surfaces W24, ED-NEW-web-w24-3). A model that calls ui_show or html_widget streams the view as the call's arguments; each piece is
+    // reported on the call's row as it arrives, so the chat draws the view while the model is still writing it. The call itself runs when the stream ends.
+    private readonly HashSet<string> liveInputsSeen = new(StringComparer.Ordinal);
+
+    private void NoteLiveInput(string id, string name, string arguments)
+    {
+        if (id.Length == 0 || name is not (Marrow.Services.Web.LiveAnswerTools.ShowName or Marrow.Services.Web.LiveAnswerTools.HtmlName) || SkillTools?.Owns(name) != true) return;
+        if (liveInputsSeen.Add(id))
+            OnEvent?.Invoke(new ProviderEvent.ToolStarted(id, new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = NativeSkillTools.Title(name, new JSONValue.Null()) }));
+        OnEvent?.Invoke(new ProviderEvent.ToolUpdated(id, new ToolUpdate { Detail = arguments }));
     }
 
     // PORT-ONLY (Tactus, ED-NEW-pcctl-42). Runs one nth-pc call on the chat's engine, whose own approval governs it (no
@@ -1840,6 +1872,39 @@ public class OpenAICompatibleSession : ProviderSession
         return result.Text;
     }
 
+    // PORT-ONLY (web surfaces W11, ED-NEW-web-w11-1). Runs one Visus call on the chat's web engine, whose own cards govern it (no
+    // card here), as ExecutePcTool does: the tool message is its text, and its screenshot waits for the round's screenshot message.
+    private async Task<string> ExecuteWebTool(Marrow.Services.Web.WebNativeTools webTools, PendingToolCall tool, JSONValue args)
+    {
+        OnEvent?.Invoke(new ProviderEvent.ToolStarted(tool.Id, new ToolCall
+        {
+            ToolCallKind = ToolCall.Kind.Other,
+            Title = Marrow.Services.Web.WebNativeTools.Title(tool.Name),
+            Detail = args.IsNull ? null : args.PrettyString,
+        }));
+        Marrow.Core.Web.WebToolResult result;
+        try { result = await webTools.Run(tool.Name, args, OpenAICompatibleSessionConfig.IsVisionModel(currentModel), SwiftTask.CancellationToken); }
+        catch (OperationCanceledException) when (SwiftTask.IsCancelled || interrupted) { return "Stopped."; }
+        catch (Exception error) when (SwiftTry.IsThrownError(error))
+        {
+            if (SwiftTask.IsCancelled || interrupted) return "Stopped.";
+            OnEvent?.Invoke(new ProviderEvent.ToolUpdated(tool.Id, new ToolUpdate { Output = error.Message, Status = ToolCall.Status.Failed }));
+            return $"Error: {error.Message}";
+        }
+        if (SwiftTask.IsCancelled || interrupted) return "Stopped.";
+        var text = result.Render();
+        OnEvent?.Invoke(new ProviderEvent.ToolUpdated(tool.Id, new ToolUpdate
+        {
+            Output = Summary(text, 4_000),
+            Status = result.Failed ? ToolCall.Status.Failed : ToolCall.Status.Completed,
+        }));
+        if (result.Jpeg is { Length: > 0 } jpeg)
+            pcShots.Add((tool.Name, new Marrow.Core.Port.PcControl.PcImage(jpeg, result.ImageWidth, result.ImageHeight, "visus-" + (++webShots).ToString(System.Globalization.CultureInfo.InvariantCulture))));
+        return text;
+    }
+
+    private int webShots;
+
     // PORT-ONLY (Tactus, ED-NEW-pcctl-42; DESIGN.md 2.4, 3.4). After a round's tool messages: its screenshots in one user
     // message when the model takes images (a text-only model has the tree text already), then only the newest two kept.
     private void SendPcScreenshots(bool roundFinished)
@@ -1855,7 +1920,14 @@ public class OpenAICompatibleSession : ProviderSession
     // PORT-ONLY (SK-11f, WU-12, DL-14). Runs one of Marrow's own tools. A stopped turn answers "Stopped." as the built-in tools do; nothing it produced is said.
     private async Task<string> ExecuteSkillTool(NativeSkillTools skillTools, PendingToolCall tool, JSONValue args)
     {
-        OnEvent?.Invoke(new ProviderEvent.ToolStarted(tool.Id, new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = NativeSkillTools.Title(tool.Name, args) }));
+        var showsRow = !NativeSkillTools.HidesRow(tool.Name); // PORT-ONLY (web surfaces W25): ask_user's card takes the row's place
+        // PORT-ONLY (web surfaces W24, ED-NEW-web-w24-5): a live-answer call carries its arguments, which the live-answer flow turns into the row's view.
+        if (showsRow) OnEvent?.Invoke(new ProviderEvent.ToolStarted(tool.Id, new ToolCall
+        {
+            ToolCallKind = ToolCall.Kind.Other,
+            Title = NativeSkillTools.Title(tool.Name, args),
+            Detail = Marrow.Services.Web.LiveAnswerTools.IsName(tool.Name) ? args.CompactString : null,
+        }));
         NativeToolResult result;
         try { result = await skillTools.Execute(tool.Name, args); }
         catch (OperationCanceledException) when (SwiftTask.IsCancelled || interrupted) { return "Stopped."; }
@@ -1864,11 +1936,11 @@ public class OpenAICompatibleSession : ProviderSession
             if (SwiftTask.IsCancelled || interrupted) return "Stopped.";
             // ED-366 7 (the per-site decision LocalizedDescription asks for): these tools are port code with no Swift twin, so an error that is not a Swift one speaks with its own message.
             var description = error is ILocalizedError or ISwiftErrorIdentity ? SwiftErrors.LocalizedDescription(error) : error.Message;
-            OnEvent?.Invoke(new ProviderEvent.ToolUpdated(tool.Id, new ToolUpdate { Output = description, Status = ToolCall.Status.Failed }));
+            if (showsRow) OnEvent?.Invoke(new ProviderEvent.ToolUpdated(tool.Id, new ToolUpdate { Output = description, Status = ToolCall.Status.Failed }));
             return $"Error: {description}";
         }
         if (SwiftTask.IsCancelled || interrupted) return "Stopped.";
-        OnEvent?.Invoke(new ProviderEvent.ToolUpdated(tool.Id, new ToolUpdate
+        if (showsRow) OnEvent?.Invoke(new ProviderEvent.ToolUpdated(tool.Id, new ToolUpdate
         {
             Output = Summary(result.Output, 4_000),
             Status = result.Failed ? ToolCall.Status.Failed : ToolCall.Status.Completed,
@@ -2210,6 +2282,12 @@ public class OpenAICompatibleSession : ProviderSession
         messages[0] = JSONValue.FromDictionaryLiteral(("role", "system"), ("content", SystemPrompt())); // :1172
     }
 
+    // PORT-ONLY (web surfaces W17, ED-NEW-web-w17-1): what the live-answers teaching in the system prompt is written for. Every provider
+    // gets the full language and calls the tools; a Local session overrides both (the lite subset, and fenced blocks when the model
+    // cannot call tools).
+    protected virtual Marrow.Core.NthUi.NthUiProfile TeachingProfile => Marrow.Core.NthUi.NthUiProfile.Full;
+    protected virtual bool TeachingToolsUsable => true;
+
     // :1175-1214
     private string SystemPrompt()
     {
@@ -2243,6 +2321,8 @@ public class OpenAICompatibleSession : ProviderSession
         {
             policy.Length == 0 ? null : policy,
             SkillTools?.CatalogueBlock(),
+            SkillTools?.UiTeachingBlock(TeachingProfile, TeachingToolsUsable), // PORT-ONLY (web surfaces W17, ED-NEW-web-w17-1): live answers and artifacts, null without the chat's artifact tools
+            SkillTools?.WebBlock(), // PORT-ONLY (web surfaces W11, ED-NEW-web-w11-1): the Visus tools' rules, null while they are not offered
             PcTools?.PromptBlock(), // PORT-ONLY (Tactus, ED-NEW-pcctl-42): null while Tactus is off
             guidance.SystemPromptBlock(),
         }.Where(value => value is not null));

@@ -151,6 +151,10 @@ internal static class RightClickCatcher
             return;
         }
 
+        // PORT-ONLY (web surfaces W10, DESIGN 5.11, ED-NEW-web-w10-2): a Ctrl+click on a link in the prose belongs to the link ("Ctrl opens the
+        // other browser"), not to the message menu; the menu stays for a right click and for a Ctrl+click anywhere else in the message.
+        if (isLeftWithControl && OverChatLink(e)) return;
+
         // Check if the click is inside the content's bounds
         var point = e.GetPosition(content);
         if (!content.Bounds.Contains(point))
@@ -181,9 +185,14 @@ internal static class RightClickCatcher
         // Swallow right mouse up event (and control+left release if we're tracking it)
         if (properties.PointerUpdateKind == PointerUpdateKind.RightButtonReleased
             || (properties.PointerUpdateKind == PointerUpdateKind.LeftButtonReleased
-                && e.KeyModifiers.HasFlag(KeyModifiers.Control)))
+                && e.KeyModifiers.HasFlag(KeyModifiers.Control) && !OverChatLink(e)))
         {
             e.Handled = true;
         }
     }
+
+    // PORT-ONLY (web surfaces W10): the event is over a link of chat prose, where the chat has a link hook (set above its timeline).
+    private static bool OverChatLink(PointerEventArgs e) =>
+        e.Source is Visual source && source.FindAncestorOfType<Marrow.UI.Markdown.LinkTextView>(includeSelf: true) is { } view
+        && Marrow.UI.Markdown.MarkdownView.GetChatLinkAction(view) is not null && view.IsOverLink(e);
 }

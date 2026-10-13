@@ -21,17 +21,24 @@ public sealed class NativeSkillTools
     private readonly NativeUserSkills? ownSkills;
     private readonly IToolRequestOffer? offer;
     private readonly Marrow.Services.Port.Advisor.AdvisorRegistration? advisor;
+    private readonly Marrow.Services.Web.ArtifactNativeTools? artifacts;
+    private readonly Marrow.Services.Web.WebNativeTools? web;
 
     /// <param name="generation">The session's generation (SK-9), which the caller keeps alive for the session; null when nothing is installed.</param>
     /// <param name="ownSkills">The user's own skills; consulted only while its switch is on.</param>
     /// <param name="offer">The offer flow request_tool asks; the tool is offered to the model only while it says something is installed.</param>
     /// <param name="advisor">PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): a Hydra head's advisor registration; ask_advisor is offered only with one.</param>
-    public NativeSkillTools(Generation? generation, NativeUserSkills? ownSkills = null, IToolRequestOffer? offer = null, Marrow.Services.Port.Advisor.AdvisorRegistration? advisor = null)
+    /// <param name="artifacts">PORT-ONLY (web surfaces W12, ED-NEW-web-w12-1): the chat's artifact tools (Tabula); offered only with them.</param>
+    /// <param name="web">PORT-ONLY (web surfaces W11, ED-NEW-web-w11-1): the chat's Visus tools (web_*); offered while Visus model access is on.</param>
+    public NativeSkillTools(Generation? generation, NativeUserSkills? ownSkills = null, IToolRequestOffer? offer = null, Marrow.Services.Port.Advisor.AdvisorRegistration? advisor = null,
+        Marrow.Services.Web.ArtifactNativeTools? artifacts = null, Marrow.Services.Web.WebNativeTools? web = null)
     {
         this.generation = generation;
         this.ownSkills = ownSkills;
         this.offer = offer;
         this.advisor = advisor;
+        this.artifacts = artifacts;
+        this.web = web;
     }
 
     private bool UseSkillOffered => Listing().Count > 0;
@@ -56,6 +63,26 @@ public sealed class NativeSkillTools
         return listing.Count == 0 ? null : Header + "\n" + string.Join("\n", listing.Select(s => s.Name + ": " + s.Description));
     }
 
+    /// <summary>
+    /// PORT-ONLY (web surfaces W17, ED-NEW-web-w17-1): the teaching block for the system prompt, or null when the chat has no artifact
+    /// tools (so a prompt without them stays exactly as it was). <paramref name="profile"/> is Lite for a small local model, and
+    /// <paramref name="toolsUsable"/> false when it cannot call tools.
+    /// </summary>
+    public string? UiTeachingBlock(Marrow.Core.NthUi.NthUiProfile profile = Marrow.Core.NthUi.NthUiProfile.Full, bool toolsUsable = true) =>
+        artifacts?.TeachingBlock(profile, toolsUsable);
+
+    /// <summary>PORT-ONLY (web surfaces W11): the Visus tools' instructions for the system prompt, or null while they are not offered.</summary>
+    public string? WebBlock() => web?.Instructions;
+
+    /// <summary>PORT-ONLY (web surfaces W11): the chat's Visus tools, for a session that sends their screenshots as pictures.</summary>
+    public Marrow.Services.Web.WebNativeTools? Web => web;
+
+    /// <summary>PORT-ONLY (web surfaces W17): whether this chat's model is taught live views, which is when it has the artifact tools.</summary>
+    public bool TeachesLiveViews => artifacts is not null;
+
+    /// <summary>PORT-ONLY (web surfaces W25): the names of the nth-ui tools offered now (artifact tools, the reference, ask_user); empty without them.</summary>
+    public IReadOnlyList<string> OfferedUiTools => artifacts?.Offered ?? [];
+
     /// <summary>The function-tool definitions to add to the request: only the tools that are offered at the moment.</summary>
     public IReadOnlyList<JSONValue> Definitions
     {
@@ -65,6 +92,8 @@ public sealed class NativeSkillTools
             if (UseSkillOffered) definitions.Add(NativeSkillToolDefinitions.UseSkill());
             if (RequestToolOffered) definitions.Add(NativeSkillToolDefinitions.RequestTool());
             if (advisor is not null) definitions.Add(Marrow.Services.Port.Advisor.AdvisorTool.FunctionDefinition());
+            if (artifacts is not null) definitions.AddRange(artifacts.Definitions);
+            if (web is not null) definitions.AddRange(web.Definitions);
             return definitions;
         }
     }
@@ -75,7 +104,7 @@ public sealed class NativeSkillTools
         UseSkillName => UseSkillOffered,
         RequestToolName => RequestToolOffered,
         Marrow.Services.Port.Advisor.AdvisorTool.Name => advisor is not null,
-        _ => false,
+        _ => (artifacts is not null && artifacts.Owns(toolName)) || (web is not null && web.Owns(toolName)),
     };
 
     /// <summary>
@@ -88,13 +117,20 @@ public sealed class NativeSkillTools
         if (toolName == UseSkillName && UseSkillOffered) return Task.FromResult(UseSkill(arguments));
         if (toolName == RequestToolName && offer is not null) return RequestTool(arguments);
         if (toolName == Marrow.Services.Port.Advisor.AdvisorTool.Name && advisor is not null) return AskAdvisor(advisor, arguments);
+        if (artifacts is not null && artifacts.Owns(toolName)) return artifacts.Execute(toolName, arguments);
+        if (web is not null && web.Owns(toolName)) return web.Execute(toolName, arguments);
         throw new InvalidOperationException($"{toolName} is not a tool this object runs.");
     }
+
+    /// <summary>PORT-ONLY (web surfaces W25): true for a tool whose card replaces its row, so the loop emits no row events for it.</summary>
+    public static bool HidesRow(string toolName) => Marrow.Services.Web.ArtifactNativeTools.HidesRow(toolName);
 
     /// <summary>The timeline row's title for a call, known before it runs (U+00B7 MIDDLE DOT, as the MCP rows use).</summary>
     public static string Title(string toolName, JSONValue arguments) =>
         toolName == UseSkillName ? "Skill" + (arguments["name"]?.JSONValueString is { Length: > 0 } name ? " \u00B7 " + name : "")
-        : toolName == Marrow.Services.Port.Advisor.AdvisorTool.Name ? Marrow.Services.Port.Advisor.AdvisorTool.Title : toolName;
+        : toolName == Marrow.Services.Port.Advisor.AdvisorTool.Name ? Marrow.Services.Port.Advisor.AdvisorTool.Title
+        : Marrow.Services.Web.ArtifactNativeTools.Names.Contains(toolName) ? Marrow.Services.Web.ArtifactNativeTools.Title(toolName, arguments)
+        : Marrow.Core.Web.WebToolSchemas.IsWebTool(toolName) ? Marrow.Services.Web.WebNativeTools.Title(toolName) : toolName;
 
     // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): one piece of advice from the head's lead; an error is a failed row, never a throw.
     private static async Task<NativeToolResult> AskAdvisor(Marrow.Services.Port.Advisor.AdvisorRegistration advisor, JSONValue arguments)

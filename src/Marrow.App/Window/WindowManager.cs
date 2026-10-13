@@ -381,7 +381,7 @@ public sealed class WindowManager
         // (Port/MenuKeyEquivalents.cs) for as long as it lives (:98 keeps it). The command table is read afresh at each
         // key-down, as SwiftUI re-reads the Commands body, over this manager's model (:13). Views that monitor the window's
         // keys register when they attach, after this, so they still see a key-down first, as a local monitor does.
-        _ = MenuKeyEquivalents.Attach(window, (positional, typed) => new AppCommands(Model).PerformKeyDown(positional, typed));
+        _ = MenuKeyEquivalents.Attach(window, (positional, typed, scope) => new AppCommands(Model).PerformKeyDown(positional, typed, scope));
     }
 
     /// <summary>
@@ -706,6 +706,7 @@ public sealed class WindowLiveResize : MainActorModel
 
     private bool isActive; // :120
     private bool isPaneResizing; // :125
+    private bool isWorkspaceResizing; // PORT-ONLY, web W3a
     private bool inSizeMove;
     private bool resizing;
     private readonly AvaloniaWindow window; // ED-224: publish to the UI signal on this window only.
@@ -729,8 +730,19 @@ public sealed class WindowLiveResize : MainActorModel
         set => Set(ref isPaneResizing, value);
     }
 
-    // :126-127 var isReshaping: Bool { isActive || isPaneResizing }
-    public bool IsReshaping => Computed(() => IsActive || IsPaneResizing);
+    /// <summary>
+    /// PORT-ONLY (web surfaces W3a, DESIGN.md 2.6, 4.2 "Live reflow"; ED-NEW-web-w3a-1): a workspace gutter is being dragged
+    /// or the chat column's width is springing, so the chat reshapes as it does under a sidebar drag; when it turns false
+    /// the timeline settles its reading position once. Written by PaneWorkspace.
+    /// </summary>
+    public bool IsWorkspaceResizing
+    {
+        get => Read(isWorkspaceResizing);
+        set => Set(ref isWorkspaceResizing, value);
+    }
+
+    // :126-127 var isReshaping: Bool { isActive || isPaneResizing }; a workspace gutter drag is a pane resize too (web W3a).
+    public bool IsReshaping => Computed(() => IsActive || IsPaneResizing || IsWorkspaceResizing);
 
     // :129-139 init(window: NSWindow). NSWindow.willStartLiveResizeNotification and didEndLiveResizeNotification for
     // this window only (`object: window`) are the messages of this window's own procedure. Windows brackets a size

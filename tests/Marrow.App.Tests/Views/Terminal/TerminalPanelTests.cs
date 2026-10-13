@@ -740,15 +740,15 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
         });
     }
 
-    // Coordinator review 6.2: the resize strip used to be a hand-rolled Control that duplicated
-    // DragHandleView's mechanics by hand instead of wrapping the shared component (missing its 0.18s grip
-    // transition, painting from Chrome.PrimaryText instead of the source's own label colour, and calling onEnd
-    // from a lost pointer capture where DragHandleView deliberately never does). This test proves the strip in
-    // the live panel really is that shared component, configured exactly as TerminalResizeHandle.body states.
+    // web W1 (DESIGN 4.3, ED-NEW-web-w1-4): the drawer's resize strip is the shared Splitter, one of its kind in the panel,
+    // up and down along the y axis with the up/down resize cursor (PR-TERM-012), its numbers the source's 140 to 760 and 260.
+    // The 8 point strip and its 12/28/2.5 grip (PR-TERM-016) are superseded by the shared splitter and grip
+    // (SplitterGripTests); TerminalResizeStripTests covers its geometry, drag, collapse and keys.
     [Fact]
     [Trait("Req", "PR-TERM-012")] // App/Views/Terminal/TerminalPanel.swift:84-99,122-129
-    [Trait("Req", "PR-TERM-016")] // App/Views/Terminal/TerminalPanel.swift:124; UI/Chrome/DragHandle.swift:18-30,58-61
-    public void The_resize_strip_is_the_shared_drag_handle_configured_vertical_with_the_terminal_grip_and_cursor()
+    [Trait("Req", "PR-TERM-016")] // App/Views/Terminal/TerminalPanel.swift:124: the shared handle along y with the up-down cursor (its own grip superseded)
+    [Trait("Decision", "ED-NEW-web-w1-4")]
+    public void The_resize_strip_is_the_shared_splitter_along_y_with_the_up_down_cursor_and_the_drawers_numbers()
     {
         headless.OnUiThread(() =>
         {
@@ -759,14 +759,17 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
                 harness.Store.Main.OnMain(() =>
                 {
                     var host = Build(harness.App, harness.Runtime, TerminalTestFolders.Create("resize handle config"));
+                    var splitter = LogicalQuery.SelfAndDescendants<Splitter>(host).Single();
                     var handle = LogicalQuery.SelfAndDescendants<DragHandleView>(host).Single();
+                    Assert.Same(splitter.Handle, handle); // the splitter's own mechanics, no second strip
 
-                    Assert.Equal(DragHandleView.Axis.Vertical, handle.HandleAxis); // :123 axis: .vertical
-                    Assert.Equal(
-                        new DragHandleView.Grip(RestLength: 12, ShownLength: 28, Thickness: 2.5), // :124
-                        handle.HandleGrip);
-                    Assert.Same(TerminalResizeHandleView.ResizeCursor, handle.Cursor); // :125 cursor: .resizeUpDown
-                    Assert.Equal(8, handle.Height); // TerminalPanel.swift:98 .frame(height: 8)
+                    Assert.Equal(SplitterOrientation.Horizontal, splitter.Orientation); // :123 axis: .vertical (a horizontal divider)
+                    Assert.Equal("SizeNorthSouth", handle.HandleCursor!.ToString()); // :125 cursor: .resizeUpDown
+                    Assert.Equal(Splitter.DividerThickness, splitter.Height);
+                    Assert.Equal("Resize terminal", splitter.Label);
+                    Assert.Equal(SplitterSide.Trailing, splitter.CollapseSide);
+                    Assert.Equal((140.0, 760.0, 260.0), (TerminalPanel.ResizeLimits.Minimum, TerminalPanel.ResizeLimits.Maximum, TerminalPanel.ResizeLimits.Default));
+                    Assert.Equal(84, TerminalPanel.ResizeLimits.Minimum - TerminalPanel.ResizeLimits.CollapseDistance); // released under 84 it closes
                 });
             }
             finally
@@ -777,8 +780,10 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
         });
     }
 
+    // web W1 (ED-NEW-web-w1-4): the drag begins (onBegin, :86, PR-TERM-013) once the pointer has moved 1 DIP, the shared
+    // splitter's mouse slop, not on the press itself.
     [Fact]
-    [Trait("Req", "PR-TERM-013")] // App/Views/Terminal/TerminalPanel.swift:86; UI/Chrome/DragHandle.swift:198-208
+    [Trait("Decision", "ED-NEW-web-w1-4")]
     [Trait("Req", "PR-TERM-014")] // App/Views/Terminal/TerminalPanel.swift:87-90,127; UI/Chrome/DragHandle.swift:210-220,259-266
     [Trait("Req", "PR-TERM-015")] // UI/Chrome/DragHandle.swift:222-232; App/Views/Terminal/TerminalPanel.swift:91-96,126-128
     public void Dragging_the_resize_strip_upward_grows_the_panel_live_and_commits_the_height_on_release()
@@ -799,8 +804,11 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
                     var panel = LogicalQuery.SelfAndDescendants<TerminalPanel>(host).Single();
                     var start = Center(handle, window);
 
-                    window.MouseDown(start, MouseButton.Left, RawInputModifiers.None);
-                    Assert.True(harness.Runtime.IsTerminalResizing); // :86 onBegin
+                    window.MouseDown(start, MouseButton.Left, RawInputModifiers.LeftMouseButton);
+                    Assert.False(harness.Runtime.IsTerminalResizing); // a press alone is not a drag
+                    window.MouseMove(start + new Vector(0, -1), RawInputModifiers.LeftMouseButton);
+                    Assert.True(harness.Runtime.IsTerminalResizing); // :86 onBegin, after the 1 DIP slop
+                    Assert.Equal(261, panel.Height); // and the slop is not lost
 
                     var up40 = start + new Vector(0, -40); // upward travel is positive delta (:116-118)
                     window.MouseMove(up40, RawInputModifiers.LeftMouseButton);

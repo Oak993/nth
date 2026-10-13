@@ -81,6 +81,9 @@ public sealed record SessionConfiguration
     // PORT-ONLY (OD-0134 Ignis, ED-NEW-ignis-runtime): the chat this session serves, so Ignis can answer per chat (cache
     // lifetimes at a Claude launch, request-level cache levers). Null: legacy call sites and test fixtures.
     public Guid? IgnisThreadID { get; init; }
+    // PORT-ONLY (web surfaces W26, ED-NEW-web-w26-1): a session that must run no tool at all (an artifact's nth.complete):
+    // no built-in tools, no MCP servers, no plugins. Only providers that can guarantee it are given such a session.
+    public bool NoTools { get; init; }
 }
 
 // :50-58. One exchange of a conversation, for replaying it into a session that starts over.
@@ -203,6 +206,8 @@ public sealed record ToolUpdate
     public long? ExitCode { get; init; }             // :131
     public ValueList<FileEdit>? Edits { get; init; } // :132
     public ToolCall.Kind? Kind { get; init; }        // :133
+    /// <summary>PORT-ONLY (web surfaces W18, ED-NEW-web-w18-1): the structured part of an MCP tool result (images, resource links, UI resource, structuredContent). Replaces the row's payload when set.</summary>
+    public ToolPayload? Payload { get; init; }
 }
 
 // :136-151. R-PROTO-1: a Swift protocol ports to an interface. R-ISO-1: the Swift @MainActor annotation means

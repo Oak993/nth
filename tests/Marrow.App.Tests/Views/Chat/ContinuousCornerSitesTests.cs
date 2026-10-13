@@ -89,6 +89,12 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Port/Settings/UpdatesMainButton.cs", "ButtonHeight / 2", 1, Capsule), // UE-4 (ED-343): the Updates page's 30 pt glass capsule; CzButton draws its focus ring from this radius, r = h / 2
         ("Marrow.App/Port/Voice/VoiceLanguageQuestion.cs", "CardRadius", 2, Circular), // VT-12 (V-12.11, ED-292): the design-page question card's 14 px border radius, not a Swift shape (glass and rim)
         ("Marrow.App/Port/SettingsOverlay.cs", "Chrome.WindowCornerRadius", 1, Fit), // OD-0151 (ED-NEW-settingsinapp-1): the Settings panel's shadow carrier behind its card (the card itself calls RoundedRectangle), r 26 on a panel no less than the 560 pt main window less its two vertical margins tall, far past 3.057 r (the Settings window's shadow carrier, SettingsShell.cs, is gone with the window)
+        ("Marrow.App/Port/Web/McpApps/McpAppWindow.cs", "9", 1, Circular), // web W19 (ED-NEW-web-w19-5): the page inset under the pop-out strip (canvas .popw, .mweb), design-page layout (CSS border-radius 9)
+        ("Marrow.App/Port/Web/McpApps/McpAppWindow.cs", "14", 1, Circular), // web W19 (ED-NEW-web-w19-5): the pop-out window's frame (canvas .popw, CSS border-radius 14), not a Swift shape
+        ("Marrow.App/Port/Web/McpApps/McpAppWindow.cs", "7", 1, Circular), // web W19 (ED-NEW-web-w19-5): the 24 DIP pin and Back inline button (canvas .popw button), design-page layout (CSS border-radius 7)
+        ("Marrow.App/Views/Browser/VisusAgentCard.cs", "9", 1, Circular), // web W11 (ED-NEW-web-w11-1): the card text's focus ring, design-page layout (web-surfaces canvas, as VisusPrompt's)
+        ("Marrow.App/Views/Browser/VisusAgentCard.cs", "10", 1, Circular), // web W11: the rows box, design-page layout (the canvas's .kv, CSS border-radius 10px)
+        ("Marrow.App/Views/Browser/VisusAgentCard.cs", "11", 1, Capsule), // web W11: the chat and model chips, 22 DIPs tall with r = 11 (the canvas's .who span)
         ("Marrow.App/Views/Chat/ChatBadge.cs", "TimelineMetrics.PillRadius", 1, Other),
         ("Marrow.App/Views/Chat/HydraButton.cs", "999", 1, Capsule),
         ("Marrow.App/Views/Chat/HydraMergePopover.cs", "10", 1, Fit),
@@ -103,12 +109,20 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Views/Chat/HydraReportsPopover.cs", "10", 1, Fit),
         ("Marrow.App/Views/Chat/HydraReportsPopover.cs", "6", 1, Fit),
         ("Marrow.App/Views/Chat/HydraReportsPopover.cs", "999", 1, Capsule),
+        ("Marrow.App/Views/Chat/InlineWebWidget.cs", "3", 1, Circle), // web W19 (ED-NEW-web-w19-4): the Live pill's 6 x 6 dot (canvas .live i), a circle by construction
+        ("Marrow.App/Views/Chat/InlineWebWidget.cs", "10", 1, Capsule), // web W19 (ED-NEW-web-w19-4): the 20 DIP Live pill, r = h / 2 (canvas .live)
+        ("Marrow.App/Views/Chat/InlineWebWidget.cs", "9", 2, Circular), // web W19 (ED-NEW-web-w19-4): the page inset under the card header (canvas .mweb) and the Inline / Pane / Pop out switch (canvas .mseg), design-page layout (CSS border-radius 9)
+        ("Marrow.App/Views/Chat/InlineWebWidget.cs", "14", 1, Circular), // web W19 (ED-NEW-web-w19-4): the app card (canvas .mapp), design-page layout (CSS border-radius 14), not a Swift shape
+        ("Marrow.App/Views/Chat/InlineWebWidget.cs", "12", 1, Circular), // web W19 (ED-NEW-web-w19-4): the card's placeholder while the page is in the pane or window (canvas .inl-ph), design-page layout (CSS border-radius 12)
+        ("Marrow.App/Views/Chat/InlineWebWidget.cs", "7", 2, Circular), // web W19 (ED-NEW-web-w19-4): a segment of the display switch (canvas .mseg button) and the card's text button, design-page layout (CSS border-radius 7)
+        ("Marrow.App/Views/Chat/McpAppRows.cs", "12", 1, Circular), // web W19 (ED-NEW-web-w19-2): the "Message from shipyard" row, the placeholder's design-page layout (CSS border-radius 12)
         ("Marrow.App/Views/Chat/SubagentPanel.cs", "Chrome.CapsuleHeight / 2", 1, Capsule),
         ("Marrow.App/Views/Chat/SubagentPanel.cs", "CornerRadius", 2, Fit),
         ("Marrow.App/Views/Chat/ThreadTimeline.cs", "999", 1, Capsule),
         ("Marrow.App/Views/Chat/ThreadTimeline.cs", "TimelineMetrics.PillRadius", 2, Routed),
         ("Marrow.App/Views/Chat/TimelineMinimap.cs", "1", 1, Tiny),
         ("Marrow.App/Views/Chat/TimelineRows.cs", "14", 1, Circle),
+        ("Marrow.App/Views/Composer/AppContextChips.cs", "5", 1, Circular), // web W19 (ED-NEW-web-w19-2): the untrusted mark on an app context chip, a small outlined word, design-page layout (CSS border-radius 5)
         ("Marrow.App/Views/Composer/ComposerTextView.cs", "0", 1, Other),
         ("Marrow.App/Views/Composer/FollowUpQueueTab.cs", "12, 12, 0, 0", 1, Fit),
         ("Marrow.App/Views/Composer/FollowUpQueueTab.cs", "999", 1, Capsule),
@@ -137,6 +151,24 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Views/Terminal/TerminalPanel.cs", "999", 1, Capsule),
         ("Marrow.App/Views/Usage/UsageFloatingPanel.cs", "cornerRadius", 2, Fit), // :84, :92 the panel and its scrim, r 22 (HydraPanel.CornerRadius), tall panels
         ("Marrow.App/Views/Usage/UsageViews.cs", "2.5", 2, Tiny),
+        ("Marrow.App/Views/Panes/AppPane.cs", "9", 1, Circular), // web W19 (ED-NEW-web-w19-4): the page inset under the App pane header, design-page layout (canvas .mweb, CSS border-radius 9), not a Swift shape
+        ("Marrow.App/Views/Panes/PaneCard.cs", "PaneTokens.CornerRadius", 1, Circular), // web W3a (ED-NEW-web-w3a-1): the pane card, design-page layout (canvas .gl, CSS border-radius 12), not a Swift shape
+        ("Marrow.App/Views/Panes/PaneCard.cs", "PaneTokens.CornerRadius - 1", 1, Circular), // web W3a (ED-NEW-web-w3a-1): the card's content clip inside its 1 DIP rim, the same design-page corner
+        ("Marrow.App/Views/Browser/DevicePresetBar.cs", "8", 3, Circular), // W9 (ED-NEW-web-w9-10): approved index.html:321,327 preset/rotate buttons and 16 DIP error badge, CSS circular corners
+        ("Marrow.App/Views/Browser/DevicePresetBar.cs", "10", 1, Circular), // W9: index.html:320 segmented control, a design-page corner
+        ("Marrow.App/Views/Browser/DevicePresetBar.cs", "13", 2, Capsule), // W9: index.html:324 Reload/Console toggles, height 26 and radius = height / 2
+        ("Marrow.App/Views/Browser/DevicePresetBar.cs", "6", 1, Circular), // W9: ED-NEW-web-w9-3 shared preview action style; design-page control, not a Swift continuous shape
+        ("Marrow.App/Views/Browser/PreviewConsoleDrawer.cs", "10", 1, Circular), // W9: index.html:344 drawer, CSS border-radius 10
+        ("Marrow.App/Views/Browser/PreviewConsoleDrawer.cs", "7", 1, Circular), // W9: index.html:348 Console/Network tab loop, CSS border-radius 7
+        ("Marrow.App/Views/Browser/PreviewConsoleDrawer.cs", "11", 1, Capsule), // W9: index.html:356 Send to chat, height 22 and radius = height / 2
+        ("Marrow.App/Views/Browser/ProjectPreviewBody.cs", "6", 1, Circular), // W9: index.html:331 device frame, CSS border-radius 6; hidden in Fill (:332)
+        ("Marrow.UI/Chrome/Splitter.cs", "radius", 1, Circular), // W9 shared grips: index.html:98 .spl .tip (8), :103 .spl .rd (7), a CSS design-page factory, not a Swift shape
+        ("Marrow.UI/Panes/PaneHeader.cs", "12", 1, Capsule), // web W3a (ED-NEW-web-w3a-1): a 24 DIP tab pill, r = h / 2 (canvas .tabg button)
+        ("Marrow.UI/Panes/PaneHeader.cs", "8", 2, Circular), // web W3a (ED-NEW-web-w3a-1): a 26 DIP header button and text chip, design-page layout (canvas .hb, CSS border-radius 8)
+        ("Marrow.UI/Panes/PaneHeader.cs", "11", 1, Capsule), // web W3a (ED-NEW-web-w3a-1): the 22 DIP "Chat is working" chip, r = h / 2 (canvas .pchip)
+        ("Marrow.UI/Panes/PaneHeader.cs", "3", 1, Circle), // web W3a (ED-NEW-web-w3a-1): the chip's 6 x 6 dot, a circle by construction
+        ("Marrow.UI/Panes/NarrowTabStrip.cs", "PillHeight / 2", 1, Capsule), // web W3c (ED-NEW-web-w3c-2): the 34 DIP narrow tab strip's pill, r = h / 2 (canvas .ntabs .in, border-radius 999)
+        ("Marrow.UI/Panes/NarrowTabStrip.cs", "TabHeight / 2", 1, Capsule), // web W3c (ED-NEW-web-w3c-2): a 28 DIP tab of the narrow strip, r = h / 2 (canvas .ntabs button)
         ("Marrow.UI/Chrome/Chrome.cs", "side / 2", 1, Circle),
         ("Marrow.UI/Chrome/Chrome.cs", "Chrome.CapsuleContentHeight / 2", 1, Circle), // ED-NEW-segmenthover-1 (ED-NEW-reltests-2): the hover plate behind one segment of a toolbar pill, in a Panel frame fixed at CapsuleContentHeight x CapsuleContentHeight (28 x 28) with r = side / 2, a circle by construction (PORT-ONLY, no Swift shape)
         ("Marrow.UI/Chrome/ChromeSegmentedPicker.cs", "11", 1, Capsule),
@@ -172,35 +204,90 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.UI/Port/SystemButtons.cs", "radius + FocusBand", 1, Fit),
         ("Marrow.UI/Port/SystemButtons.cs", "Radius", 2, Fit),
         ("Marrow.UI/Port/SystemButtons.cs", "Radius + FocusBand", 1, Fit),
-        ("Marrow.App/Views/Chat/TactusStrip.cs", "StripHeight / 2", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): the chat's Tactus strip, a capsule of its height, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.App/Port/PcControl/Overlay/OverlaySpike.cs", "OverlaySpike.PillHeight / 2", 2, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): the native spike's pill and its shade (2), capsules of their height, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.App/Port/PcControl/Overlay/OverlaySpike.cs", "22", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): the native spike's card, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.App/Port/PcControl/Overlay/OverlaySpike.cs", "24", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): the native spike's backdrop panel, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.App/Port/PcControl/Overlay/OverlaySpike.cs", "12", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): the native spike's sample row, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.UI/Port/PcControl/ApprovalCardBody.cs", "12", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): the approval card's what-it-may-do box, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.UI/Port/PcControl/CardParts.cs", "5", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): a key cap in a card's hint row, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.UI/Port/PcControl/CardParts.cs", "radius", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): a card button, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.UI/Port/PcControl/CardParts.cs", "radius + 4", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): a card button's focus ring, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.UI/Port/PcControl/ConfirmCardBody.cs", "5", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): the confirm card's element chip, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.UI/Port/PcControl/ConfirmCardBody.cs", "12", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): the confirm card's change box, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.UI/Port/PcControl/ConfirmCardBody.cs", "14", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): the confirm card's rows box, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.UI/Port/PcControl/ControlPill.cs", "9", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): the pill's count badge, 18 tall (a capsule), canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.UI/Port/PcControl/ControlPill.cs", "1", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): a pause bar, 2 x 8, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.UI/Port/PcControl/ControlPill.cs", "6", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): Stop's key cap, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.UI/Port/PcControl/ControlPill.cs", "15", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): the hint row, 30 tall (a capsule), canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.UI/Port/PcControl/ControlPill.cs", "18", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): the per-app rows panel, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.UI/Port/PcControl/ControlPill.cs", "5", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): a key cap in the hint row, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.UI/Port/PcControl/ControlPill.cs", "12", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): a per-app row, 42 tall, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.UI/Port/PcControl/ControlPill.cs", "radius", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): a pill button, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.UI/Port/PcControl/ControlPill.cs", "radius + 4", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): a pill button's focus ring, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.UI/Port/PcControl/MiniComposer.cs", "20", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): the card's reply field, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
+        // ED-NEW-web-w9cx-1: the sites the web units and the PC-control work added without a row (each file's header says PORT-ONLY and "No Swift counterpart" / "No Swift twin"; the kinds below follow the geometry first, then the design-page rule)
+        ("Marrow.App/Port/PcControl/Overlay/OverlaySpike.cs", "12", 1, Fit), // P25a (ED-NEW-pcctl-22): a debug-only probe (never shipped), a fixed 60 DIP blurred box with r = 12: 60 > 3.057 r
+        ("Marrow.App/Port/PcControl/Overlay/OverlaySpike.cs", "22", 1, Circular), // P25a: the probe's card (PillWidth wide, padding 16), a debug-only window (never shipped), not a Swift shape
+        ("Marrow.App/Port/PcControl/Overlay/OverlaySpike.cs", "24", 1, Fit), // P25a: the probe's fixed 240 DIP card with r = 24: 240 > 3.057 r
+        ("Marrow.App/Port/PcControl/Overlay/OverlaySpike.cs", "OverlaySpike.PillHeight / 2", 2, Capsule), // P25a: the probe's 48 DIP pill with r = height / 2
+        ("Marrow.App/Views/Artifacts/TabulaAsk.cs", "12", 1, Circular), // web W14 (ED-NEW-web-w14-1): the "Change this part" chip over the composer, 26 DIP high (a 20 DIP clear button and 3 DIP padding) with r = 12, a W14 chip with no Swift counterpart (DESIGN.md 6.3), a circular arc by design
+        ("Marrow.App/Views/Artifacts/TabulaAsk.cs", "17", 1, Circle), // web W14: the 34 x 34 send button (canvas .ask .sendb, CSS border-radius 50%), a circle by construction
+        ("Marrow.App/Views/Artifacts/TabulaAsk.cs", "23", 1, Circular), // web W14: the Ask pill, canvas .ask (min-height 46, CSS border-radius 23px, a circular arc), which grows with its lines
+        ("Marrow.App/Views/Artifacts/TabulaBridgeHost.cs", "14", 1, Circular), // web W14: the consent card, canvas .pop.consent (320 wide, CSS border-radius 14px), a design-page layout
+        ("Marrow.App/Views/Artifacts/TabulaCode.cs", "chip ? 12 : 7", 1, Circular), // web W14: the file chip (24 DIP high, r = 12, canvas .vchip) in a narrow pane and the file row (26 DIP high, r = 7) beside the text in a wide one: neither reaches the band, and neither is a Swift shape
+        ("Marrow.App/Views/Artifacts/TabulaGallery.cs", "10", 2, Circular), // web W14: the 32 DIP search field and the 20 DIP kind badge of a card (r = 10 = h / 2), design-page layout, no Swift counterpart
+        ("Marrow.App/Views/Artifacts/TabulaGallery.cs", "12", 1, Fit), // web W14: a gallery card: the 20 DIP kind badge row inside 10 DIP of padding both sides, at least 40 DIP, with r = 12: 40 > 3.057 x 12
+        ("Marrow.App/Views/Artifacts/TabulaParts.cs", "10", 3, Circular), // web W14: the segmented track (canvas .vbar .seg, padding 2, CSS border-radius 10px), its segment's focus ring (the 8 DIP face + 2) and the notice strip, design-page layouts, no Swift shape
+        ("Marrow.App/Views/Artifacts/TabulaParts.cs", "15", 1, Capsule), // web W14: the 30 DIP pill button (canvas .pbtn, CSS border-radius 15px), r = h / 2
+        ("Marrow.App/Views/Artifacts/TabulaParts.cs", "8", 2, Fit), // web W14: a 26 DIP segment (canvas .vbar .seg button, CSS border-radius 8px) and a 26 DIP text button: 26 > 3.057 x 8
+        ("Marrow.App/Views/Artifacts/TabulaParts.cs", "radius", 1, Circular), // web W14: the skeleton bars (canvas .skel i: 14 DIP high with CSS border-radius 7px, and the 90 and 120 DIP blocks with 14px), design-page layout, no Swift shape
+        ("Marrow.App/Views/Artifacts/TabulaParts.cs", "size / 3.25", 1, Fit), // web W14: the square glyph button (canvas .hb, 26 x 26 with CSS border-radius 8px): the height is 3.25 radii at every size, 3.25 > 3.057
+        ("Marrow.App/Views/Artifacts/TabulaVersionStrip.cs", "5", 1, Circle), // web W14: a version dot, 10 x 10 (canvas .vn .dot, CSS border-radius 50%), a circle by construction
+        ("Marrow.App/Views/Artifacts/TabulaVersionStrip.cs", "9", 1, Circle), // web W14: the dot's halo, 18 x 18 with r = 9, a circle by construction
+        ("Marrow.App/Views/Artifacts/TabulaView.cs", "8", 2, Fit), // web W14: the two 26 DIP header buttons (permissions, compare) with r = 8: 26 > 3.057 x 8
+        ("Marrow.App/Views/Browser/VisusCards.cs", "8", 1, Fit), // web W8b: the card's text field frame, 30 DIP high with r = 8: 30 > 3.057 x 8
+        ("Marrow.App/Views/Browser/VisusFindBar.cs", "6", 1, Fit), // web W8c: the match-case toggle, 22 x 24 with r = 6: 24 > 3.057 x 6
+        ("Marrow.App/Views/Browser/VisusFindBar.cs", "8", 1, Fit), // web W8c: a 26 x 26 glyph button (canvas .hb, CSS border-radius 8px): 26 > 3.057 x 8
+        ("Marrow.App/Views/Browser/VisusPaneBody.cs", "0, 0, 6, 6", 1, Fit), // web W8a: the page area's two bottom corners (r = 6): the pane is at least 240 DIP high (DESIGN.md 3.2 minimums), far over 3.057 x 6
+        ("Marrow.App/Views/Browser/VisusPaneBody.cs", "7", 1, Fit), // web W8a: a history row, 5 DIP of padding above and below a 12.5 DIP line (at least 26 DIP) with r = 7: 26 > 3.057 x 7
+        ("Marrow.App/Views/Browser/VisusPaneBody.cs", "8", 1, Fit), // web W8c: the zoom stepper's 28 DIP button with r = 8: 28 > 3.057 x 8
+        ("Marrow.App/Views/Browser/VisusPrompt.cs", "9", 1, Circular), // web W8a/W8b: the prompt text's focus ring (the app's focus band round a 4 DIP padded row), a design-page layout, no Swift shape
+        ("Marrow.App/Views/Browser/VisusTabStrip.cs", "4", 1, Fit), // web W8a: the 14 x 14 favicon box (canvas .fav, CSS border-radius 4px): 14 > 3.057 x 4
+        ("Marrow.App/Views/Browser/VisusTabStrip.cs", "5", 1, Fit), // web W8a: the 18 x 18 tab close button (canvas .tab .x, CSS border-radius 5px): 18 > 3.057 x 5
+        ("Marrow.App/Views/Browser/VisusTabStrip.cs", "8", 1, Fit), // web W8a: the 26 x 26 new-tab and tab-list button (canvas .hb, CSS border-radius 8px): 26 > 3.057 x 8
+        ("Marrow.App/Views/Browser/VisusTabStrip.cs", "9", 1, Fit), // web W8a: a tab, 28 DIP high (canvas .tab, CSS border-radius 9px): 28 > 3.057 x 9 (27.5)
+        ("Marrow.App/Views/Browser/VisusToolbar.cs", "10", 2, Capsule), // web W8a: the 20 DIP trust strip and the 20 DIP chip with r = h / 2
+        ("Marrow.App/Views/Browser/VisusToolbar.cs", "11", 1, Capsule), // web W8c: the 22 DIP zoom chip (canvas .zchip, CSS border-radius 11px), r = h / 2
+        ("Marrow.App/Views/Browser/VisusToolbar.cs", "8", 2, Fit), // web W8a: the 28 DIP toolbar button and the 30 DIP suggestion row with r = 8: both over 3.057 x 8
+        ("Marrow.App/Views/Browser/VisusToolbar.cs", "VisusTokens.AddressHeight / 2", 1, Capsule), // web W8a: the 28 DIP address field (canvas .url, CSS border-radius 14px), r = h / 2
+        ("Marrow.App/Views/Chat/TactusStrip.cs", "StripHeight / 2", 1, Capsule), // Tactus strip (OD-0145, ED-NEW-pcctl-27): the 32 DIP strip with r = height / 2 (its glass shape is RoundedRectangle(StripHeight / 2))
+        ("Marrow.App/Views/Diff/DiffPaneChrome.cs", "13", 1, Capsule), // web W4: the 26 DIP selection menu pill with r = h / 2
+        ("Marrow.App/Views/Diff/DiffPaneChrome.cs", "8", 1, Fit), // web W4: the 26 x 26 More button (canvas .hb, CSS border-radius 8px): 26 > 3.057 x 8
+        ("Marrow.App/Views/Panes/BackgroundTasksPane.cs", "10", 1, Circular), // web W5: a segment's focus ring (the 26 DIP face + 2 DIP each side, r = 8 + 2), a design-page layout, no Swift shape
+        ("Marrow.App/Views/Panes/BackgroundTasksPane.cs", "11", 1, Circular), // web W5: the This thread / All threads track (canvas .tfilter .seg at 0.9: padding 3, CSS border-radius 12px, drawn at 11), a design-page layout
+        ("Marrow.App/Views/Panes/BackgroundTasksPane.cs", "8", 1, Fit), // web W5: a 26 DIP segment (canvas .seg button at 0.9) with r = 8: 26 > 3.057 x 8
+        ("Marrow.App/Views/Panes/JobCard.cs", "5", 1, Fit), // web W5: a 20 DIP text action with r = 5: 20 > 3.057 x 5
+        ("Marrow.App/Views/Panes/JobCard.cs", "JobTokens.ButtonRadius", 1, Fit), // web W5: the 24 x 24 card button (canvas .tcard .ops button, CSS border-radius 7px): 24 > 3.057 x 7
+        ("Marrow.App/Views/Panes/JobCard.cs", "JobTokens.CardRadius", 1, Fit), // web W5: the task card (canvas .tcard, CSS border-radius 11px): a title row, a kind line and 9 DIP of padding both sides, at least 40 DIP, over 3.057 x 11
+        ("Marrow.App/Views/Panes/PaneRail.cs", "6", 2, Fit), // web W3b: the rail's 18 x 22 buttons (canvas .rail button, CSS border-radius 6px): 22 > 3.057 x 6
+        ("Marrow.App/Views/Panes/PaneRail.cs", "PaneTokens.RailCornerRadius", 1, Fit), // web W3b: the collapse rail (canvas .rail, CSS border-radius 11px), as tall as its pane (at least 150 DIP), over 3.057 x 11
+        ("Marrow.App/Views/Panes/SideChatComposer.cs", "SendSize / 2", 1, Circle), // web W6: the 30 x 30 send button (canvas .scomp .sendb, CSS border-radius 50%), a circle by construction
+        ("Marrow.App/Views/Panes/SideChatPane.cs", "14", 1, Capsule), // web W6: the 28 DIP Send to main chip with r = h / 2
+        ("Marrow.UI/Chrome/SplitterGrip.cs", "3", 2, Tiny), // web W1: the grip's 4 x 28 pill and its lit copy (canvas .spl .grip, CSS border-radius 3px): a radius of 3 on a 4 DIP bar
+        ("Marrow.UI/Chrome/SplitterGrip.cs", "3 + RingWidth", 1, Circular), // web W1: the grip's focus ring, 2 DIP out round the pill (8 x 32 for an edge grip, 13 x 13 for the corner glyph) with r = 5, the app's focus band, a design-page layout, no Swift twin
+        ("Marrow.UI/Chrome/SplitterGrip.cs", "glyphBright.CornerRadius = radius", 1, Tiny), // web W1: the corner glyph's lit copy shares its statement with the glyph: one corner of 3 on a 9 x 9 stroke (canvas .spl.cn .grip)
+        ("Marrow.UI/Chrome/SplitterGrip.cs", "radius", 1, Tiny), // web W1: the corner glyph, one corner of 3 on a 9 x 9 stroke (canvas .spl.cn .grip, CSS border-radius 0 0 3px 0)
+        ("Marrow.UI/NthUi/Charts/NthUiChartLegend.cs", "8", 1, Circular), // web W16b: a pie key's row, padding 4 round one text line, a design-page layout, no Swift counterpart
+        ("Marrow.UI/NthUi/Diagram/NthUiSvgView.cs", "10", 1, Fit), // web W16c: the note that stands in for a picture that cannot be read, a 16 DIP icon row inside 10 DIP of padding both sides (at least 36 DIP), over 3.057 x 10
+        ("Marrow.UI/NthUi/NthUiBlocks.cs", "10", 3, Circular), // web W16a: the 20 DIP badge (r = h / 2), the image box and the degraded line's note, design-page layouts, no Swift counterpart
+        ("Marrow.UI/NthUi/NthUiChoices.cs", "9", 1, Fit), // web W16a: a 30 DIP segment (canvas .seg button, CSS border-radius 9px): 30 > 3.057 x 9
+        ("Marrow.UI/NthUi/NthUiControls.cs", "radius", 1, Circular), // web W16a: the pressable face every component uses; each caller states its own radius (height / 2, 8, 10, 11, 12 or 14), design-page layouts, no Swift counterpart
+        ("Marrow.UI/NthUi/NthUiInputs.cs", "12", 1, Circular), // web W16a: the select menu's surface (CSS border-radius 12px), grows with its options, a design-page layout
+        ("Marrow.UI/NthUi/NthUiInputs.cs", "15", 1, Circle), // web W16a: a 30 x 30 day cell with r = 15, a circle by construction
+        ("Marrow.UI/NthUi/NthUiInputs.cs", "NthUiTokens.ControlRadius", 2, Circular), // web W16a: the 32 DIP stepper capsule (canvas .stp, CSS border-radius 12px) and the text field (32 DIP, or 76 for several lines), design-page layouts (a circular arc), no Swift counterpart
+        ("Marrow.UI/Panes/PaneHeader.cs", "7", 1, Fit), // web W3a: the title menu button, 24 DIP high, with r = 7: 24 > 3.057 x 7
+        ("Marrow.UI/Port/PcControl/ApprovalCardBody.cs", "12", 1, Circular), // Tactus pill v2 (OD-0145, ED-NEW-pcctl-26): the risk box (9 DIP of padding round its lines), a card part drawn from the pc-control-ui canvas, no Swift twin
+        ("Marrow.UI/Port/PcControl/ApprovalCardBody.cs", "size * 0.24", 1, Fit), // Tactus pill v2: the app's tile, size x size with r = 0.24 size: the height is 4.2 radii at every size
+        ("Marrow.UI/Port/PcControl/CardParts.cs", "5", 1, Circular), // Tactus pill v2: a key chip (canvas kbd, CSS border-radius 5px), 14.5 DIP high, a design-page layout
+        ("Marrow.UI/Port/PcControl/CardParts.cs", "radius", 1, Capsule), // Tactus pill v2: a card button, 30 or 34 DIP high with r = h / 2 (the link look has no box and radius 0)
+        ("Marrow.UI/Port/PcControl/CardParts.cs", "radius + 4", 1, Capsule), // Tactus pill v2: the card button's focus ring, 4 DIP out round a capsule, r = (h + 8) / 2
+        ("Marrow.UI/Port/PcControl/ConfirmCardBody.cs", "12", 1, Circular), // Tactus pill v2: the "what changed" box of the confirm card, a card part drawn from the pc-control-ui canvas, no Swift twin
+        ("Marrow.UI/Port/PcControl/ConfirmCardBody.cs", "14", 1, Circular), // Tactus pill v2: the confirm card's rows box, a card part drawn from the pc-control-ui canvas, no Swift twin
+        ("Marrow.UI/Port/PcControl/ConfirmCardBody.cs", "5", 1, Fit), // Tactus pill v2: the element chip, 26 DIP high with r = 5: 26 > 3.057 x 5
+        ("Marrow.UI/Port/PcControl/ControlPill.cs", "1", 1, Tiny), // Tactus pill v2: one of the two 2 x 8 bars of the pause glyph with r = 1
+        ("Marrow.UI/Port/PcControl/ControlPill.cs", "12", 1, Fit), // Tactus pill v2: a 42 DIP row of the list below the capsule with r = 12: 42 > 3.057 x 12
+        ("Marrow.UI/Port/PcControl/ControlPill.cs", "15", 1, Capsule), // Tactus pill v2: the 30 DIP hint (HintHeight) with r = h / 2
+        ("Marrow.UI/Port/PcControl/ControlPill.cs", "18", 1, Circular), // Tactus pill v2: the list below the capsule (6 DIP of padding round rows of 42 DIP, from one row up), a design-page layout (a circular arc), no Swift twin
+        ("Marrow.UI/Port/PcControl/ControlPill.cs", "5", 1, Circular), // Tactus pill v2: a key chip in the hint (canvas kbd: mono 10.5, padding 2 5, radius 5), a design-page layout
+        ("Marrow.UI/Port/PcControl/ControlPill.cs", "6", 1, Circular), // Tactus pill v2: the key cap beside Stop (padding 5 round a 10.5 line), a design-page layout, no Swift twin
+        ("Marrow.UI/Port/PcControl/ControlPill.cs", "9", 1, Capsule), // Tactus pill v2: the 18 DIP count badge with r = h / 2
+        ("Marrow.UI/Port/PcControl/ControlPill.cs", "radius", 1, Capsule), // Tactus pill v2: a pill button, 28 / 30 / 18 / 36 DIP high with r = h / 2 in every look
+        ("Marrow.UI/Port/PcControl/ControlPill.cs", "radius + 4", 1, Capsule), // Tactus pill v2: the pill button's focus ring, 4 DIP out round a capsule, r = (h + 8) / 2
+        ("Marrow.UI/Port/PcControl/MiniComposer.cs", "20", 1, Circular), // Tactus pill v2: the card's reply field (one line growing to four, r = 20), a design-page layout drawn from the pc-control-ui canvas, no Swift twin
+        ("Marrow.UI/Port/PcControl/ProviderPointerBody.cs", "10", 1, Fit), // Tactus pill v2: the command well (canvas pre.kcm), 9 DIP of padding round a 12 / 18 mono line (at least 36 DIP), over 3.057 x 10
+        ("Marrow.UI/Port/PcControl/TactusPointer.cs", "BadgeSize * 0.24", 1, Fit), // Tactus pointer: the 13 x 13 app badge with r = 3.1: the height is 4.2 radii
+        ("Marrow.UI/Port/PcControl/TactusPointer.cs", "PauseSize / 2", 1, Circle), // Tactus pointer: the 15 x 15 pause disc, a circle by construction
+        ("Marrow.UI/Port/PcControl/WithdrawnCardBody.cs", "14", 1, Circular), // Tactus pill v2: the kept draft's box, a card part drawn from the pc-control-ui canvas, no Swift twin
         ("Marrow.UI/Port/PcControl/PcAppIcons.cs", "size * 0.24", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, ED-NEW-pcctl-46, PORT-ONLY, no Swift twin): an app's lettered tile (.ctile, tile(k,20)), moved from the approval card to serve the pill, the strip and Settings too, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.UI/Port/PcControl/ProviderPointerBody.cs", "10", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): the provider card's well, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.UI/Port/PcControl/TactusPointer.cs", "BadgeSize * 0.24", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): the pointer's app badge, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.UI/Port/PcControl/TactusPointer.cs", "PauseSize / 2", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): the pointer's pause disc, a circle by construction, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        ("Marrow.UI/Port/PcControl/WithdrawnCardBody.cs", "14", 1, Circular), // Tactus (OD-0145, ED-NEW-pcctl-35, PORT-ONLY, no Swift twin): the withdrawn card's box, canvas pc-control-ui layout (CSS border-radius), not a Swift shape
-        // nth Setup (nth installer PLAN.md 3 and 5; ED-NEW-inst-integ-1): the installer window is its own product with no Swift twin. Its radii are the approved canvas's CSS
-        // border-radius values (circular arcs), drawn once on a fixed layout, so none is a Swift `.continuous` shape that could sit in the band.
         ("Marrow.Setup/Screens/ProgressPanel.cs", "2", 2, Tiny), // U3's stand-in bar: the 4 DIP track and its fill (superseded by bar B, kept with its tests)
         ("Marrow.Setup/Shell/SetupWindow.cs", "radius", 3, Circular), // the window's own 8 DIP edge (PLAN.md 3: "the 8 px radius"), which Windows 11 rounds as a circle: backdrop, rim and top light
         ("Marrow.Setup/Ui/DesktopPreview.cs", "DeskWidth * .06", 1, Circular), // the Ready and Options desktop preview's rounded screen, a canvas layout
@@ -276,6 +363,7 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Rule", "R-TEST-4")] // OD-0102 / ED-275 (7): the table is the proof that no raw CornerRadius Border is left unaccounted for; the pixels of the routed ones are below
+    [Trait("Decision", "ED-NEW-web-w9-10")]
     public void Every_raw_CornerRadius_assignment_is_routed_through_the_continuous_shape_or_classed_with_why_it_never_reaches_the_band()
     {
         var found = Found();

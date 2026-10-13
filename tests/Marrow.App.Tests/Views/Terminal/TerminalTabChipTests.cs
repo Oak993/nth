@@ -55,6 +55,31 @@ public sealed class TerminalTabChipTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Decision", "ED-NEW-web-w9-13")]
+    public void Preview_ready_is_absent_until_detection_and_then_is_a_named_open_preview_gesture() => TerminalPanelRig.Run(headless, rig =>
+    {
+        var previous = Marrow.App.Views.Browser.ProjectPreviewHost.OpenAutomatically;
+        Marrow.App.Views.Browser.ProjectPreviewHost.OpenAutomatically = () => false;
+        try
+        {
+            var (host, _, sessions) = ShowWithTabs(rig, "preview ready", 1);
+            var tab = Assert.Single(Tabs(host)); var row = Row(tab);
+            Assert.Equal(3, row.Children.Count);
+            rig.Step(() => sessions[0].ConfigurePreview("http://localhost:5173/"));
+            var ready = row.Children.OfType<Button>().Single(button => AutomationProperties.GetName(button) == "Preview ready · localhost:5173");
+            Assert.Equal(4, row.Children.Count); Assert.Same(ready, row.Children[2]);
+            Assert.True(ready.IsVisible);
+            Assert.Equal("Preview ready · localhost:5173", Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(ready)).Text);
+            Assert.Equal("Preview ready · localhost:5173", AutomationProperties.GetName(ready));
+            Assert.Equal("Open preview", ToolTip.GetTip(ready));
+            var opens = 0; sessions[0].OpenPreview = () => opens++;
+            rig.Step(() => ready.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)));
+            Assert.Equal(1, opens);
+            Assert.Same(TabButton(tab, "Close terminal"), row.Children[3]);
+        }
+        finally { Marrow.App.Views.Browser.ProjectPreviewHost.OpenAutomatically = previous; }
+    });
+    [Fact]
     [Trait("Req", "UI-TERM-003")] // App/Views/Terminal/TerminalPanel.swift:143-146,172-180
     public void The_chip_lays_out_glyph_title_and_cross_six_points_apart_inside_ten_by_five_padding_four_from_its_neighbour() => TerminalPanelRig.Run(headless, rig =>
     {

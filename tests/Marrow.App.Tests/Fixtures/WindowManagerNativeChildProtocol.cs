@@ -24,9 +24,10 @@ internal static class WindowManagerNativeChildProtocol
         // CallerMemberName supplies a real, parameterless Fact in an explicitly permitted top-level type.
         // Do not accept arbitrary filter syntax or a class-wide fallback that could recurse.
         var type = factType ?? typeof(WindowManagerNativeTests);
-        if (type != typeof(WindowManagerNativeTests) && type != typeof(ToolTipBackdropNativeTests) && type != typeof(WindowManagerFactoryStretchTests) &&
+        if (type != typeof(WindowManagerNativeTests) && type != typeof(SettingsOwnershipNativeTests) && type != typeof(ToolTipBackdropNativeTests) && type != typeof(WindowManagerFactoryStretchTests) &&
+            type != typeof(VisusFindZoomPrintNativeTests) && type != typeof(SandboxEscapeNativeTests) &&
             type != typeof(EffortSliderNativeFrameTests) && type != typeof(GlassWindowNativeTests) && type != typeof(HandshakeNativeFrameTests) &&
-            type != typeof(WindowManagerNativeCentringTests) && type != typeof(WindowManagerNativeChromeTests) &&
+            type != typeof(WindowManagerNativeCentringTests) && type != typeof(WindowManagerNativeChromeTests) && type != typeof(WebW10NativeTests) &&
             type != typeof(GalleryNativeTests) && type != typeof(TimelineRowsNativePopoverTests) && type != typeof(TimelineRowsNativeReportTests) && type != typeof(TimelineRowsNativeReviewKeysTests) && type != typeof(TimelineRowsNativeReviewBadgeKeysTests) && type != typeof(DiffPopoverNativeTests) && type != typeof(VoiceOrbNativeTests) && type != typeof(OpenPanelNativeTests) && type != typeof(ComposerAttachPanelNativeTests) && type != typeof(SwiftShadowNativeTests) && type != typeof(RootViewDropNativeTests) && type != typeof(LinkPopoverNativeTests) && type != typeof(AboutUpdateViewsNativeTests) && type != typeof(MCPCustomEditorNativeTests) && type != typeof(ComposerWorkingDotsNativeTests) && type != typeof(GlassMaterialNativeTests) && type != typeof(ComposerSuggestionsNativeTests) && type != typeof(ThreadTimelineLiveResizeNativeTests) && type != typeof(VoiceGlowNativeTests) && type != typeof(MainWindowCornerWedgeNativeTests) && type != typeof(PopoverGlassNativeTests) && type != typeof(GlassPanelAndRimNativeTests) && type != typeof(AuroraBootNativeTests))
             throw new InvalidOperationException("Native child selection is not an allowed test type.");
         var method = type.GetMethod(member, BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);

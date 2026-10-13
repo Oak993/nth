@@ -8,6 +8,7 @@ using Avalonia.Styling;
 using Marrow.App.Port;
 using Marrow.App.Views.Chat;
 using Marrow.App.Window;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
@@ -249,8 +250,18 @@ public sealed class FloatingSidebarPanel : Decorator
             Refresh(); // :114-118 the next body reads the written origin as the resting one
         }
 
+        // The largest size the panel can take where it rests: its origin stays, its far edges stop at the margin.
+        Size Largest() => new(
+            Math.Max(MinSize.Width, area.Width - (dragOrigin ?? rest).X - FloatingSidebarPanelMargin),
+            Math.Max(MinSize.Height, area.Height - (dragOrigin ?? rest).Y - FloatingSidebarPanelMargin));
+
+        Size Fit(Size wanted) => new(
+            Math.Min(Math.Max(MinSize.Width, wanted.Width), Largest().Width),
+            Math.Min(Math.Max(MinSize.Height, wanted.Height), Largest().Height));
+
         void Resize(Size translation)
         {
+            SettleGrow();
             var start = resizeStart ?? size;
             resizeStart = start;
             var next = new Size(
@@ -262,22 +273,109 @@ public sealed class FloatingSidebarPanel : Decorator
             Refresh();
         }
 
-        var resizeCursor = new Cursor(StandardCursorType.BottomRightCorner);
-        var resizeHandle = new PanelDragHandle(
-            translation => Resize(translation),
-            () => resizeStart = null,
-            resizeCursor,
-            resizeCursor)
+        // PORT-ONLY (web W1, ED-NEW-web-w1-6): a key, Home, End or the double-click reset moves the size under PanelSlide
+        // from the size drawn now; a press lands a change still in flight first (pointer-down settling).
+        var grow = new ChatFrameAnimation(this);
+        grow.AttachLifetime();
+        Size? growing = null;
+
+        void GrowTo(Size wanted)
         {
-            Width = 16,
-            Height = 16,
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
-            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Bottom
-        };
-        ToolTip.SetTip(resizeHandle, "Drag to resize");
+            var to = Fit(wanted);
+            var from = size;
+            SettleGrow();
+            size = from;
+            if (to == from)
+            {
+                Refresh();
+                return;
+            }
+            if (!FrameClock.IsBound || TopLevel.GetTopLevel(this) is null)
+            {
+                model.Settings.SidebarPanelSize = to;
+                Refresh();
+                return;
+            }
+            growing = to;
+            grow.Start(Chrome.PanelSlide, progress =>
+            {
+                size = new Size(from.Width + (to.Width - from.Width) * progress, from.Height + (to.Height - from.Height) * progress);
+                surface.Width = panel.Width = size.Width;
+                surface.Height = panel.Height = size.Height;
+                if (progress < 1) return;
+                growing = null;
+                model.Settings.SidebarPanelSize = to;
+                Refresh();
+            });
+        }
+
+        void SettleGrow()
+        {
+            if (growing is not { } to) return;
+            grow.Stop();
+            growing = null;
+            model.Settings.SidebarPanelSize = to;
+            Refresh();
+        }
+
+        SplitterReport Report(bool height)
+        {
+            var largest = Largest();
+            var limits = height
+                ? new SplitterLimits(MinSize.Height, largest.Height, Math.Min(DefaultSize.Height, largest.Height))
+                : new SplitterLimits(MinSize.Width, largest.Width, Math.Min(DefaultSize.Width, largest.Width));
+            var shown = growing ?? size;
+            return SplitterMath.Report(height ? shown.Height : shown.Width, false, limits);
+        }
+
+        // DESIGN 4.3 (web W1, ED-NEW-web-w1-6): the shared Splitter on the free edges (right and bottom, 8 DIP) and the
+        // 16 DIP bottom-right corner, which was the only grip (PanelDragHandle, tooltip "Drag to resize"). The numbers are
+        // the source's: at least 240 x 320, at most the area past the resting origin, 300 x 560 by default, saved globally.
+        Splitter Grip(SplitterOrientation orientation, string label)
+        {
+            var width = orientation != SplitterOrientation.Horizontal;
+            var height = orientation != SplitterOrientation.Vertical;
+            return new Splitter(orientation, new SplitterTarget
+            {
+                OnReport = () => Report(orientation == SplitterOrientation.Horizontal),
+                OnSettle = SettleGrow,
+                OnMove = travel => Resize(new Size(width ? travel.X : 0, height ? travel.Y : 0)),
+                OnEnd = _ => resizeStart = null,
+                OnReset = () => GrowTo(DefaultSize),
+                OnStep = delta => GrowTo(new Size((growing ?? size).Width + (width ? delta.X : 0), (growing ?? size).Height + (height ? delta.Y : 0))),
+                OnStepTo = maximum => GrowTo(maximum
+                    ? new Size(width ? Largest().Width : size.Width, height ? Largest().Height : size.Height)
+                    : new Size(width ? MinSize.Width : size.Width, height ? MinSize.Height : size.Height)),
+                OnSetValue = orientation == SplitterOrientation.Both ? null : value => GrowTo(width
+                    ? new Size(value, (growing ?? size).Height)
+                    : new Size((growing ?? size).Width, value)),
+            })
+            {
+                Label = label,
+                MirrorsInRightToLeft = false, // placed and measured in window coordinates, as before
+                FineInset = 0,
+            };
+        }
+
+        var rightGrip = Grip(SplitterOrientation.Vertical, UiText.Get("panes.splitter.resize_sidebar_width"));
+        rightGrip.Width = Splitter.EdgeThickness;
+        rightGrip.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right;
+        rightGrip.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch;
+        var bottomGrip = Grip(SplitterOrientation.Horizontal, UiText.Get("panes.splitter.resize_sidebar_height"));
+        bottomGrip.Height = Splitter.EdgeThickness;
+        bottomGrip.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch;
+        bottomGrip.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Bottom;
+        var resizeHandle = Grip(SplitterOrientation.Both, UiText.Get("panes.splitter.resize_sidebar"));
+        resizeHandle.SetCorner(SplitterCorner.BottomRight);
+        resizeHandle.Width = Splitter.CornerSize;
+        resizeHandle.Height = Splitter.CornerSize;
+        resizeHandle.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right;
+        resizeHandle.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Bottom;
 
         surfaceContent.Children.Add(sidebarHolder);
         surfaceContent.Children.Add(strip);
+        panelContents.Children.Add(rightGrip);
+        panelContents.Children.Add(bottomGrip);
         panelContents.Children.Add(resizeHandle);
 
         // :13,23-35 Keep the view and drag/search state while its containing area changes.

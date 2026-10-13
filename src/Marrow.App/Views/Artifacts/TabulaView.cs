@@ -1,0 +1,1224 @@
+using System.Globalization;
+using System.Text;
+using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Layout;
+using Avalonia.LogicalTree;
+using Avalonia.Media;
+using Avalonia.VisualTree;
+using Marrow.App.Views.Panes;
+using Marrow.Core.Localisation;
+using Marrow.Core.Models;
+using Marrow.Core.Port;
+using Marrow.Core.Web;
+using Marrow.Services.Web;
+using Marrow.UI.Chrome;
+using Marrow.UI.Panes;
+using Marrow.UI.Port;
+
+// PORT-ONLY: web surfaces W14, the Tabula pane's body (E:/Droppy/work/design/web-surfaces/DESIGN.md 6.1, 6.3, 6.4, 6.5, 3.2
+// header overflow, 2.4 airspace, 10 accessibility; the approved canvas index.html section 4: the header .ah with the title's
+// menu, the kind and the cost meter, Ask to change, Copy, Save to project and Open in Visus; the version strip .vs; the view
+// bar .vbar with Preview / Code / Diff, "Sandboxed · no files · no network" and "Comparing v3 → v4"; the dark well .aview;
+// the skeleton .skel; the composer .ask; the status .toast; ED-NEW-web-w14-1). No Swift counterpart.
+//
+// Rows, top to bottom: the version strip, the view bar, a calm notice (an error, a link, a missing library, a read-only
+// copy), the well (preview, code, diff or skeleton), and the Ask to change composer. Nothing of nth's is drawn over the
+// well: a page is its own window. Menus and cards are popups (their own windows). The gallery replaces all five rows.
+
+namespace Marrow.App.Views.Artifacts;
+
+public sealed class TabulaView : Grid
+{
+    /// <summary>The stream key prefix of a change asked from the pane (it ends with the turn, or when the version lands).</summary>
+    public const string AskStreamPrefix = "ask:";
+
+    /// <summary>The cost meter stays this long after a call ends (canvas: setTimeout 1600).</summary>
+    public static readonly TimeSpan MeterLinger = TimeSpan.FromSeconds(1.6);
+
+    private readonly TabulaContext context;
+    private readonly TabulaState state;
+    private readonly TabulaVersionStrip strip = new();
+    private readonly TabulaSegmented modes = new(UiText.Get("tabula.view.modes_name"));
+    private readonly TabulaSegmented layouts = new(UiText.Get("tabula.view.layouts_name"));
+    private readonly Button sandbox;
+    private readonly TextBlock sandboxText = new() { FontSize = 11.5, VerticalAlignment = VerticalAlignment.Center };
+    private readonly TabulaStatus status = new() { VerticalAlignment = VerticalAlignment.Center, MaxWidth = 340 };
+    private readonly Button compareLabel;
+    private readonly TextBlock compareText = new() { FontSize = 11.5, VerticalAlignment = VerticalAlignment.Center };
+    private readonly Button edit;
+    private readonly Button save;
+    private readonly Button cancel;
+    private readonly Border viewBar;
+    private readonly TabulaNotice notice = new();
+    private readonly Border well;
+    private readonly TabulaPreview preview;
+    private readonly TabulaCodeView code = new() { IsVisible = false };
+    private readonly TabulaDiffView diff = new() { IsVisible = false };
+    private readonly TabulaSkeleton skeleton = new() { IsVisible = false };
+    private readonly TabulaMotion skeletonFade;
+    private readonly TabulaAsk ask = new();
+    private readonly TabulaGallery gallery;
+    private readonly StackPanel empty;
+    private readonly Button emptyGallery;
+    private readonly Panel menus = new() { IsHitTestVisible = false, Width = 0, Height = 0 };
+    private Popup? menu;
+    private TabulaMenuState? menuState;
+    private Artifact? artifact;
+    private ArtifactSnapshot? snapshot;
+    private int shownVersion;
+    private ArtifactStream? creating;
+    private ArtifactStream? updating;
+    private string? headerKey;
+    private ArtifactRuntimeError? error;
+    private string? link;
+    private string? missing;
+    private ArtifactModelStatus? model;
+    private long tokens;
+    private DateTimeOffset? meterUntil;
+    private (Guid Thread, string Id)? noticeFor;
+    private bool editing;
+    private bool renderQueued;
+    private bool attached;
+
+    public TabulaView(TabulaContext context)
+    {
+        this.context = context;
+        state = context.State;
+        RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*,Auto");
+        preview = new TabulaPreview(context);
+        gallery = new TabulaGallery(context) { IsVisible = false };
+        Content = new PaneContent(this, "Tabula");
+        Content.SetTitleMenu(OpenTitleMenu);
+
+        // ---- the view bar ----
+        modes.Add(UiText.Get("tabula.view.mode_preview"), TabulaViewMode.Preview);
+        modes.Add(UiText.Get("tabula.view.mode_code"), TabulaViewMode.Code);
+        modes.Add(UiText.Get("tabula.view.mode_diff"), TabulaViewMode.Diff);
+        modes.Picked += value => SetView((TabulaViewMode)value);
+        layouts.Add(UiText.Get("tabula.view.layout_inline"), TabulaDiffLayout.Inline);
+        layouts.Add(UiText.Get("tabula.view.layout_side_by_side"), TabulaDiffLayout.SideBySide);
+        layouts.Picked += value => state.SetDiffLayout((TabulaDiffLayout)value);
+        var shield = new PaneGlyph(PaneGlyphKind.Shield, 12) { VerticalAlignment = VerticalAlignment.Center };
+        var sandboxRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { shield, sandboxText } };
+        var sandboxFace = new Border { Height = 26, Padding = new Thickness(6, 0), CornerRadius = new CornerRadius(8), Background = Brushes.Transparent, Child = sandboxRow };
+        sandbox = PlainControls.Button(sandboxFace, OpenArtifactMenu).KeyboardFocus(8);
+        sandbox.OnHover(on => sandboxFace.Background = on ? PaneTokens.HoverFill.Brush(sandboxFace) : Brushes.Transparent);
+        AutomationProperties.SetName(sandbox, UiText.Get("tabula.view.permissions_name"));
+        compareLabel = PlainControls.Button(new Border { Height = 26, Padding = new Thickness(6, 0), CornerRadius = new CornerRadius(8), Child = compareText, Background = Brushes.Transparent }, OpenCompareMenu).KeyboardFocus(8);
+        edit = TabulaButtons.Text(UiText.Get("tabula.view.edit"), BeginEdit, PaneGlyphKind.Edit);
+        save = TabulaButtons.Pill(UiText.Get("tabula.view.save"), SaveEdit, primary: true, name: UiText.Get("tabula.view.save_name"));
+        cancel = TabulaButtons.Text(UiText.Get("tabula.common.cancel"), CancelEdit);
+        var left = new WrapPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Children = { modes, sandbox } };
+        sandbox.Margin = new Thickness(6, 0, 0, 0);
+        var right = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Right, Children = { status, compareLabel, layouts, edit, cancel, save } };
+        var bar = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing = 8, Children = { left } };
+        Grid.SetColumn(right, 1);
+        bar.Children.Add(right);
+        viewBar = new Border { Padding = new Thickness(12, 8), Child = bar };
+        Grid.SetRow(viewBar, 1);
+        Grid.SetRow(notice, 2);
+        notice.Dismissed += DismissNotice;
+
+        // ---- the well ----
+        var area = new Panel { Children = { preview, code, diff, skeleton } };
+        well = new Border { Margin = new Thickness(TabulaTokens.Bezel, 0, TabulaTokens.Bezel, TabulaTokens.Bezel), ClipToBounds = true, Child = area };
+        Grid.SetRow(well, 3);
+        skeletonFade = new TabulaMotion(skeleton, opacity: 0);
+        Grid.SetRow(ask, 4);
+        ask.Sent += SendAsk;
+        ask.Dismissed += () => state.OpenAsk(false);
+        ask.PartCleared += state.ClearAskSelection;
+        ask.TextChanged += text => state.AskText = text;
+
+        // ---- the empty pane ----
+        var emptyTitle = new TextBlock { Text = UiText.Get("tabula.empty.title"), FontSize = 13, FontWeight = FontWeight.SemiBold, HorizontalAlignment = HorizontalAlignment.Center };
+        var emptyHint = new TextBlock
+        {
+            Text = UiText.Get("tabula.empty.hint"),
+            FontSize = 11.5,
+            TextWrapping = TextWrapping.Wrap,
+            TextAlignment = TextAlignment.Center,
+            MaxWidth = 260,
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        emptyGallery = TabulaButtons.Text(UiText.Get("tabula.view.all_artifacts"), () => state.OpenGallery(true), PaneGlyphKind.Artifacts);
+        emptyGallery.HorizontalAlignment = HorizontalAlignment.Center;
+        empty = new StackPanel { Spacing = 6, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(16, 0), Children = { emptyTitle, emptyHint, emptyGallery }, IsVisible = false };
+        Grid.SetRowSpan(empty, 5);
+        Grid.SetRowSpan(gallery, 5);
+
+        strip.VersionPicked += version => state.ShowVersion(artifact is { } a && version == a.Current ? null : version);
+        strip.ComparePicked += version => state.SetCompare(version);
+        code.FileChosen += path => state.SetCodeFile(path);
+
+        Children.Add(strip);
+        Children.Add(viewBar);
+        Children.Add(notice);
+        Children.Add(well);
+        Children.Add(ask);
+        Children.Add(empty);
+        Children.Add(gallery);
+        Children.Add(menus);
+        Cards = new TabulaCards(well, menus, context.Files) { Status = ShowStatus };
+
+        preview.ErrorReported += e => { error = e; noticeFor = Selected(); Render(); };
+        preview.LinkRequested += url => { link = url; noticeFor = Selected(); Render(); };
+        preview.LibraryMissing += url => { missing ??= url; noticeFor = Selected(); Render(); };
+        preview.ModelStatusChanged += OnModelStatus;
+        preview.ModelUsed += result => { tokens += result.TotalTokens; Render(); };
+        preview.Ready += () =>
+        {
+            if (error is null) return;
+            error = null;
+            Render();
+        };
+
+        void Paint()
+        {
+            well.Background = TabulaTokens.Well.Brush(well);
+            shield.Foreground = PaneTokens.Text3.Brush(shield);
+            sandboxText.Foreground = PaneTokens.Text3.Brush(sandboxText);
+            compareText.Foreground = PaneTokens.Text2.Brush(compareText);
+            emptyTitle.Foreground = PaneTokens.Text2.Brush(emptyTitle);
+            emptyHint.Foreground = PaneTokens.Text3.Brush(emptyHint);
+        }
+        ActualThemeVariantChanged += (_, _) => Paint();
+        Paint();
+        AutomationProperties.SetName(this, "Tabula");
+        Render();
+    }
+
+    /// <summary>The pane's content: this body, its title (with the artifacts menu), subtitle and header actions.</summary>
+    public PaneContent Content { get; }
+
+    /// <summary>The consent cards and file sheet over the preview.</summary>
+    public TabulaCards Cards { get; }
+
+    public TabulaState State => state;
+
+    public Artifact? Artifact => artifact;
+
+    /// <summary>The version on screen.</summary>
+    public int ShownVersion => shownVersion;
+
+    public ArtifactSnapshot? Snapshot => snapshot;
+
+    /// <summary>A create stream drawn as its skeleton (or its text arriving).</summary>
+    public ArtifactStream? Creating => creating;
+
+    public bool IsSkeletonShown => skeleton.IsVisible;
+
+    public bool IsEmpty => empty.IsVisible;
+
+    public string? StatusText => status.Shown;
+
+    internal TabulaVersionStrip Strip => strip;
+
+    internal TabulaSegmented Modes => modes;
+
+    internal TabulaSegmented Layouts => layouts;
+
+    internal TabulaPreview Preview => preview;
+
+    internal TabulaCodeView Code => code;
+
+    internal TabulaDiffView Diff => diff;
+
+    internal TabulaSkeleton Skeleton => skeleton;
+
+    internal TabulaAsk Ask => ask;
+
+    internal TabulaGallery Gallery => gallery;
+
+    internal TabulaNotice Notice => notice;
+
+    internal TextBlock SandboxText => sandboxText;
+
+    internal string? CompareText => compareLabel.IsVisible ? compareText.Text : null;
+
+    internal Button EditButton => edit;
+
+    internal Button SaveButton => save;
+
+    internal Popup? Menu => menu;
+
+    /// <summary>Whether the open menu is presented (false once it was dismissed).</summary>
+    internal bool IsMenuOpen => menuState?.IsOpen == true;
+
+    /// <summary>The rows of the open menu (its items' titles), for tests and the screen reader.</summary>
+    internal IReadOnlyList<PopoverItem> MenuItems => menu?.Child is Control root ? root.GetLogicalDescendants().OfType<PopoverItem>().ToList() : [];
+
+    /// <summary>The pane shows this artifact's page (the bridge asks here).</summary>
+    internal bool Shows(ArtifactAddress address) => attached && preview.Mount?.Artifact == address;
+
+    // ---- lifetime ----
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        if (attached) return;
+        attached = true;
+        state.Changed += QueueRender;
+        context.Store.Changed += OnStoreChanged;
+        if (context.Streams is { } streams)
+        {
+            streams.Changed += OnStream;
+            streams.Ended += OnStreamEnded;
+        }
+        if (context.Runtime is { } runtime) runtime.Data.GrantsChanged += OnGrants;
+        TabulaBridgeHost.Instance.Add(this);
+        Render();
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        if (!attached) return;
+        attached = false;
+        state.Changed -= QueueRender;
+        context.Store.Changed -= OnStoreChanged;
+        if (context.Streams is { } streams)
+        {
+            streams.Changed -= OnStream;
+            streams.Ended -= OnStreamEnded;
+        }
+        if (context.Runtime is { } runtime) runtime.Data.GrantsChanged -= OnGrants;
+        TabulaBridgeHost.Instance.Remove(this);
+        CloseMenu();
+    }
+
+    private void QueueRender()
+    {
+        if (renderQueued) return;
+        renderQueued = true;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            renderQueued = false;
+            Render();
+        }, Avalonia.Threading.DispatcherPriority.Render);
+    }
+
+    private void OnStoreChanged(ArtifactChange change) => context.Post(() =>
+    {
+        if (change.Thread != context.Thread && state.Selected?.Thread != change.Thread && !state.IsGalleryOpen) return;
+        if (state.Selected is { } selected && selected.Thread == change.Thread && selected.Id == change.Id && change.Change == ArtifactChangeKind.Updated)
+            Landed(change);
+        Render();
+    });
+
+    // A new version of the shown artifact: the page reloads when it follows the latest, and the change asked here is done.
+    private void Landed(ArtifactChange change)
+    {
+        if (state.PendingAsk is { } pending && pending.Id == change.Id && change.Version > pending.FromVersion)
+        {
+            if (context.TrySendAsk is null) state.SetPendingAsk(null);
+            context.Streams?.End(change.Thread, AskStreamPrefix + change.Id);
+            if (context.Store.Find(change.Thread, change.Id)?.Version(change.Version) is { } version)
+                ShowStatus(Written(change.Version, version.Author, pending.Prompt));
+        }
+        if (state.Version is null && preview.Mode == TabulaPreviewMode.Web) preview.Reload();
+    }
+
+    private static string Written(int number, ArtifactAuthor author, string prompt) =>
+        author.IsYou ? UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.status.written_by_you", number, prompt)
+        : author.Model is { Length: > 0 } name ? UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.status.written_by_model", number, name, prompt)
+        : UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.status.written", number, prompt);
+
+    private void OnStream(ArtifactStream stream)
+    {
+        if (stream.Thread != context.Thread) return;
+        context.Post(QueueRender);
+    }
+
+    private void OnStreamEnded(ArtifactStream stream)
+    {
+        if (stream.Thread != context.Thread) return;
+        context.Post(() =>
+        {
+            // Runtime receipts own their lifecycle even when another turn ends every stream (NC6).
+            if (context.TrySendAsk is null && stream.Key.StartsWith(AskStreamPrefix, StringComparison.Ordinal) && state.PendingAsk?.Id == stream.Id) state.SetPendingAsk(null);
+            QueueRender();
+        });
+    }
+
+    private void OnGrants(ArtifactAddress address) => context.Post(() =>
+    {
+        if (preview.Mount?.Artifact == address || (artifact is { } a && a.Thread == address.Thread && a.Id == address.Id)) Render();
+    });
+
+    private void OnModelStatus(ArtifactModelStatus value)
+    {
+        var wasRunning = model?.Running == true;
+        model = value;
+        if (wasRunning && !value.Running)
+        {
+            meterUntil = context.Time.GetUtcNow() + MeterLinger;
+            _ = Linger();
+        }
+        Render();
+
+        async Task Linger()
+        {
+            if (!await FrameClock.TrySleep(MeterLinger)) return;
+            Render();
+        }
+    }
+
+    // ---- what is shown ----
+
+    private (Guid Thread, string Id)? Selected() => state.Selected is { } s ? (s.Thread, s.Id) : null;
+
+    /// <summary>Draws the state: the gallery, a skeleton, the empty pane, or an artifact at a version in a view.</summary>
+    public void Render()
+    {
+        CloseMenuIfStale();
+        if (state.IsGalleryOpen)
+        {
+            ShowGallery();
+            return;
+        }
+        gallery.IsVisible = false;
+        var streams = context.Streams?.Of(context.Thread) ?? [];
+        creating = streams.LastOrDefault(s => !s.IsUpdate && !s.Key.StartsWith(AskStreamPrefix, StringComparison.Ordinal)
+            && (s.Id is null || !context.Store.Exists(context.Thread, s.Id)));
+        if (creating is { } stream)
+        {
+            ShowCreating(stream);
+            return;
+        }
+        artifact = state.Selected is { } selected ? context.Store.Find(selected.Thread, selected.Id) : null;
+        if (artifact is not { } shown)
+        {
+            ShowEmpty();
+            return;
+        }
+        updating = streams.LastOrDefault(s => s.IsUpdate && s.Id == shown.Id && s.Thread == shown.Thread && !s.Key.StartsWith(AskStreamPrefix, StringComparison.Ordinal));
+        ShowArtifact(shown);
+    }
+
+    private void Rows(bool artifactRows)
+    {
+        strip.IsVisible = artifactRows;
+        viewBar.IsVisible = artifactRows || creating is not null;
+        well.IsVisible = artifactRows || creating is not null;
+        empty.IsVisible = !artifactRows && creating is null;
+    }
+
+    private void ShowGallery()
+    {
+        strip.IsVisible = false;
+        viewBar.IsVisible = false;
+        notice.Hide();
+        well.IsVisible = false;
+        empty.IsVisible = false;
+        ask.SetOpen(false, null);
+        preview.SetActive(false);
+        gallery.IsVisible = true;
+        gallery.Refresh();
+        Header(UiText.Get("tabula.view.all_artifacts"), null, [], "gallery");
+    }
+
+    private void ShowEmpty()
+    {
+        snapshot = null;
+        preview.Clear();
+        notice.Hide();
+        HideSkeleton();
+        code.IsVisible = false;
+        diff.IsVisible = false;
+        ask.SetOpen(false, null);
+        Rows(artifactRows: false);
+        emptyGallery.IsVisible = context.Store.Gallery(context.ProjectThreads()).Count > 0;
+        Header("Tabula", null, [], "empty");
+    }
+
+    private void ShowCreating(ArtifactStream stream)
+    {
+        artifact = null;
+        snapshot = null;
+        notice.Hide();
+        ask.SetOpen(false, null);
+        Rows(artifactRows: false);
+        strip.IsVisible = false;
+        sandboxText.Text = TabulaTokens.SandboxText;
+        modes.SetEnabled(TabulaViewMode.Diff, false);
+        var view = state.View == TabulaViewMode.Diff ? TabulaViewMode.Preview : state.View;
+        modes.Choose(view);
+        compareLabel.IsVisible = false;
+        layouts.IsVisible = false;
+        EditButtons(false);
+        var kind = stream.Kind;
+        var kindName = kind is { } k ? ArtifactKinds.DisplayName(k) : null;
+        Header(stream.Title ?? UiText.Get("tabula.header.new_artifact"),
+            kindName is null ? UiText.Get("tabula.header.writing") : UiText.Format("tabula.header.kind_writing", kindName), [], "creating:" + stream.Key);
+        diff.IsVisible = false;
+        if (view == TabulaViewMode.Code)
+        {
+            preview.SetActive(false);
+            preview.IsVisible = false;
+            HideSkeleton();
+            code.IsVisible = true;
+            code.Show(stream.Content, kind is { } streamKind ? TabulaPreview.LanguageOf(streamKind, null) : null);
+            return;
+        }
+        code.IsVisible = false;
+        preview.IsVisible = true;
+        // Preview shows a skeleton until the text can be drawn: Markdown, nth-ui and code as they arrive; a page once it exists.
+        if (kind is { } drawn && stream.Content.Length > 0 && drawn is ArtifactKind.Markdown or ArtifactKind.NthUi or ArtifactKind.Code && preview.ShowStream(drawn, stream.Content, null))
+        {
+            preview.SetActive(true);
+            HideSkeleton();
+            return;
+        }
+        preview.Clear();
+        preview.SetActive(false);
+        ShowSkeleton();
+    }
+
+    private void ShowArtifact(Artifact shown)
+    {
+        var version = state.Version is { } wanted && shown.Version(wanted) is not null ? wanted : shown.Current;
+        if (noticeFor != (shown.Thread, shown.Id))
+        {
+            error = null;
+            link = null;
+            missing = null;
+            noticeFor = (shown.Thread, shown.Id);
+        }
+        if (shownVersion != version || snapshot is null || snapshot.Artifact.Id != shown.Id || snapshot.Artifact.Thread != shown.Thread
+            || snapshot.Artifact.Current != shown.Current || snapshot.Version.Number != version)
+        {
+            snapshot = Read(shown.Thread, shown.Id, version);
+            shownVersion = version;
+        }
+        if (snapshot is not { } current)
+        {
+            ShowEmpty();
+            return;
+        }
+        Rows(artifactRows: true);
+        var readOnly = state.IsReadOnly;
+        state.RebaseAsks(shown.Id, shown.Current);
+        var pending = state.PendingAsk is { } ask1 && ask1.Id == shown.Id && ask1.Number > shown.Current && !readOnly ? ask1 : null;
+        var view = state.View == TabulaViewMode.Diff && shown.Versions.Count < 2 ? TabulaViewMode.Preview : state.View;
+        var compare = CompareVersion(shown, version);
+        strip.Show(shown, version, compare, view == TabulaViewMode.Diff, pending,
+            readOnly ? [] : state.QueuedAsks.Where(a => a.Id == shown.Id).ToArray());
+        modes.SetEnabled(TabulaViewMode.Diff, shown.Versions.Count > 1);
+        modes.Choose(view);
+        sandboxText.Text = SandboxWords(current);
+        compareLabel.IsVisible = view == TabulaViewMode.Diff;
+        layouts.IsVisible = view == TabulaViewMode.Diff;
+        layouts.Choose(state.DiffLayout);
+        compareText.Text = UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.view.comparing", compare, version);
+        AutomationProperties.SetName(compareLabel, UiText.Format("tabula.view.compare_name", compareText.Text));
+        HideSkeleton();
+
+        switch (view)
+        {
+            case TabulaViewMode.Preview:
+                if (editing) EndEdit();
+                code.IsVisible = false;
+                diff.IsVisible = false;
+                preview.IsVisible = true;
+                preview.Show(current, state.Version);
+                // A version being written of what is shown, while the latest is followed, draws as it arrives (6.4).
+                if (updating is { Content.Length: > 0 } writing && state.Version is null) preview.ShowStream(shown.Kind, writing.Content, shown.Language);
+                preview.SetActive(true);
+                EditButtons(false);
+                break;
+            case TabulaViewMode.Code:
+                preview.SetActive(false);
+                preview.IsVisible = false;
+                diff.IsVisible = false;
+                code.IsVisible = true;
+                ShowCode(current, shown);
+                EditButtons(!readOnly && updating is null);
+                break;
+            default:
+                if (editing) EndEdit();
+                preview.SetActive(false);
+                preview.IsVisible = false;
+                code.IsVisible = false;
+                diff.IsVisible = true;
+                if (Read(shown.Thread, shown.Id, compare) is { } before) diff.Show(before, current, state.DiffLayout);
+                EditButtons(false);
+                break;
+        }
+
+        ShowNotice(shown, version, readOnly);
+        ask.SetOpen(state.IsAskOpen && !readOnly, state.AskSelection);
+        if (ask.Text != state.AskText) ask.Text = state.AskText;
+        Header(shown.Title, Subtitle(shown, readOnly), Actions(shown, version, readOnly),
+            string.Create(CultureInfo.InvariantCulture, $"{shown.Thread}/{shown.Id}/{version}/{readOnly}"));
+    }
+
+    private ArtifactSnapshot? Read(Guid thread, string id, int version)
+    {
+        try
+        {
+            return context.Store.Read(thread, id, version);
+        }
+        catch (ArtifactException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>The version Diff compares with: the chosen one, else the one before the shown one (the one after for v1).</summary>
+    private int CompareVersion(Artifact shown, int version)
+    {
+        if (state.Compare is { } chosen && chosen != version && shown.Version(chosen) is not null) return chosen;
+        var numbers = shown.Versions.Select(v => v.Number).ToList();
+        var at = numbers.IndexOf(version);
+        return at > 0 ? numbers[at - 1] : numbers.Count > 1 ? numbers[1] : version;
+    }
+
+    private void ShowCode(ArtifactSnapshot current, Artifact shown)
+    {
+        if (editing) return;
+        var following = state.Version is null;
+        if (updating is { Content.Length: > 0 } writing && following && current.Files is null)
+        {
+            code.Show(writing.Content, TabulaPreview.LanguageOf(shown.Kind, shown.Language));
+            return;
+        }
+        if (current.Files is { } files)
+        {
+            var entry = current.Version.Entry ?? ArtifactStore.DefaultEntry;
+            var paths = files.Keys.OrderBy(p => string.Equals(p, entry, StringComparison.OrdinalIgnoreCase) ? 0 : 1).ThenBy(p => p, StringComparer.OrdinalIgnoreCase).ToList();
+            var file = state.CodeFile is { } chosen && files.ContainsKey(chosen) ? chosen : paths.FirstOrDefault() ?? entry;
+            code.Show(files.TryGetValue(file, out var text) ? text : "", CodeHighlight.LanguageOfPath(file), paths, file);
+            return;
+        }
+        code.Show(current.Text ?? "", TabulaPreview.LanguageOf(shown.Kind, shown.Language));
+    }
+
+    private string SandboxWords(ArtifactSnapshot current)
+    {
+        if (context.Runtime is { } runtime && runtime.AllowedNetwork(current) is { Count: > 0 } sites)
+            return sites.Count == 1
+                ? UiText.Format("tabula.sandbox.network_one", sites[0])
+                : UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.sandbox.network_many", sites.Count);
+        return TabulaTokens.SandboxText;
+    }
+
+    private string Subtitle(Artifact shown, bool readOnly)
+    {
+        var parts = new List<string> { TabulaTokens.KindName(shown) };
+        var now = context.Time.GetUtcNow();
+        if (model is { IsPaused: true }) parts.Add(ArtifactModelMeter.PausedMessage);
+        else if (model is { Running: true } || meterUntil is { } until && now < until)
+            parts.Add(UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.header.model_tokens", tokens));
+        if (readOnly) parts.Add(UiText.Get("tabula.header.read_only"));
+        return string.Join(" · ", parts);
+    }
+
+    private IReadOnlyList<PaneHeaderAction> Actions(Artifact shown, int version, bool readOnly)
+    {
+        var chip = UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.versions.number", version);
+        return
+        [
+            new PaneHeaderAction(UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.action.version_name", version), () => OpenVersionMenu(0), Text: chip, Menu: true),
+            readOnly
+                ? new PaneHeaderAction(UiText.Get("tabula.action.copy_into_thread"), CopyIntoThread, Glyph: PaneGlyphKind.Plus, Text: UiText.Get("tabula.action.copy_into_thread"))
+                : new PaneHeaderAction(UiText.Get("tabula.action.ask_to_change"), ToggleAsk, Glyph: PaneGlyphKind.Spark, Text: UiText.Get("tabula.action.ask_to_change")),
+            new PaneHeaderAction(UiText.Get("tabula.action.copy"), () => _ = Copy(), Glyph: PaneGlyphKind.Copy),
+            new PaneHeaderAction(UiText.Get("tabula.action.save_to_project"), () => _ = SaveToProject(), Glyph: PaneGlyphKind.Save),
+            new PaneHeaderAction(UiText.Get("tabula.action.open_in_visus"), OpenInVisus, Glyph: PaneGlyphKind.OpenExternal),
+            new PaneHeaderAction(UiText.Get("tabula.action.export"), () => OpenExportMenu(5), Glyph: PaneGlyphKind.Export, Menu: true),
+        ];
+    }
+
+    private void Header(string title, string? subtitle, IReadOnlyList<PaneHeaderAction> actions, string key)
+    {
+        var full = key + "|" + title + "|" + subtitle;
+        if (full == headerKey) return;
+        // Only the words changed (the meter): the actions stay, so the row does not rebuild.
+        var sameActions = headerKey is { } old && old.Split('|')[0] == key;
+        headerKey = full;
+        Content.Update(title, subtitle, sameActions ? null : actions);
+    }
+
+    private void ShowNotice(Artifact shown, int version, bool readOnly)
+    {
+        if (error is { } e)
+        {
+            var buttons = readOnly ? [] : new (string, Action)[] { (UiText.Get("tabula.notice.ask_to_fix"), () => AskToFix(e)) };
+            notice.Show(UiText.Get("tabula.notice.error_title"), e.Message, error: true, buttons);
+        }
+        else if (link is { } url)
+            notice.Show(ArtifactMount.OpenLinkTitle, Redact(url), error: false, (UiText.Get("tabula.notice.open"), () => { link = null; context.OpenLink(url); Render(); }));
+        else if (missing is { } library)
+            notice.Show(UiText.Get("tabula.notice.library_missing"), Redact(library), error: false);
+        else if (readOnly)
+            notice.Show(UiText.Format("tabula.notice.from_thread", context.ThreadName(shown.Thread) ?? UiText.Get("tabula.notice.another_thread")),
+                UiText.Get("tabula.notice.read_only"), error: false, (UiText.Get("tabula.action.copy_into_thread"), CopyIntoThread));
+        else notice.Hide();
+    }
+
+    /// <summary>An address as the notice shows it: scheme, host and path, never its query (it may carry the page's data).</summary>
+    internal static string Redact(string url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https" ? uri.GetLeftPart(UriPartial.Path) : url.Split('?', '#')[0];
+
+    private void DismissNotice()
+    {
+        if (error is not null) error = null;
+        else if (link is not null) link = null;
+        else if (missing is not null) missing = "";
+        notice.Hide();
+        if (missing == "") missing = null;
+        Render();
+    }
+
+    private void EditButtons(bool canEdit)
+    {
+        edit.IsVisible = canEdit && !editing;
+        save.IsVisible = editing;
+        cancel.IsVisible = editing;
+    }
+
+    private void ShowSkeleton()
+    {
+        if (skeleton.IsVisible && skeletonFade.Opacity > 0.99) return;
+        skeleton.IsVisible = true;
+        skeletonFade.To(1, 0);
+    }
+
+    private void HideSkeleton()
+    {
+        if (!skeleton.IsVisible) return;
+        skeletonFade.To(0, 0, () =>
+        {
+            if (skeletonFade.Opacity <= 0.001) skeleton.IsVisible = false;
+        });
+    }
+
+    // ---- the view bar ----
+
+    private void SetView(TabulaViewMode view)
+    {
+        if (view == TabulaViewMode.Diff && artifact is { Versions.Count: < 2 }) return;
+        state.SetView(view);
+    }
+
+    private void BeginEdit()
+    {
+        if (snapshot is null || state.IsReadOnly) return;
+        editing = true;
+        code.BeginEdit();
+        EditButtons(true);
+    }
+
+    private void CancelEdit() => EndEdit();
+
+    private void EndEdit()
+    {
+        editing = false;
+        code.EndEdit();
+        EditButtons(state.View == TabulaViewMode.Code && !state.IsReadOnly);
+    }
+
+    private void SaveEdit()
+    {
+        if (artifact is not { } shown || snapshot is not { } current) return;
+        var text = code.EditedText;
+        try
+        {
+            var revision = current.Files is not null && code.File is { } file
+                ? new ArtifactRevision { Files = new Dictionary<string, string?> { [file] = text } }
+                : new ArtifactRevision { Content = text };
+            if (current.Version.Number != shown.Current && current.Files is null) revision = new ArtifactRevision { Content = text };
+            var saved = context.Store.Update(shown.Thread, shown.Id, revision, ArtifactAuthor.You, null);
+            EndEdit();
+            state.ShowVersion(null);
+            ShowStatus(UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.status.saved_as", saved.Version.Number));
+        }
+        catch (ArtifactException failure)
+        {
+            ShowStatus(failure.Message);
+        }
+    }
+
+    // ---- header actions ----
+
+    private void ToggleAsk()
+    {
+        if (state.IsAskOpen)
+        {
+            state.OpenAsk(false);
+            return;
+        }
+        var selection = state.View == TabulaViewMode.Code ? code.SelectedText : preview.SelectedText();
+        state.OpenAsk(true, selection);
+    }
+
+    private void SendAsk(string text)
+    {
+        if (artifact is not { } shown || state.IsReadOnly) return;
+        if (!SubmitAsk(shown, text, TabulaPane.AskMessage(shown, state.Asks.Count > 0 ? shown.Current : shownVersion, text, state.AskSelection))) return;
+        // The change ends with its turn (the fenced filter ends a chat's streams then) or when its version lands.
+        ask.Text = "";
+        state.AskText = "";
+        state.OpenAsk(false);
+        if (state.View != TabulaViewMode.Preview) state.SetView(TabulaViewMode.Preview);
+        if (state.Version is not null) state.ShowVersion(null);
+    }
+
+    private void AskToFix(ArtifactRuntimeError e)
+    {
+        if (artifact is not { } shown || state.IsReadOnly) return;
+        if (!SubmitAsk(shown, e.Message, TabulaPane.FixMessage(shown, state.Asks.Count > 0 ? shown.Current : shownVersion, e))) return;
+        error = null;
+        if (!state.QueuedAsks.Any(a => a.Id == shown.Id)) ShowStatus(UiText.Get("tabula.status.asked_to_fix"));
+        Render();
+    }
+
+    private bool SubmitAsk(Artifact shown, string prompt, string message)
+    {
+        var request = new TabulaPendingAsk(shown.Id, shown.Current, prompt, context.Time.GetUtcNow()) { IsQueued = state.Asks.Count > 0 };
+        if (context.TrySendAsk is { } submit)
+        {
+            if (!submit(request, message)) return false;
+        }
+        else context.SendTurn(message);
+        state.AddAsk(request);
+        var accepted = state.Asks.FirstOrDefault(a => a.RequestId == request.RequestId);
+        if (accepted?.IsQueued == true)
+            ShowStatus(UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.status.queued_after", accepted.Number - 1));
+        else if (context.TrySendAsk is null)
+            context.Streams?.Begin(shown.Thread, AskStreamPrefix + shown.Id, shown.Id, shown.Title, shown.Kind, isUpdate: true);
+        return true;
+    }
+
+    /// <summary>The words a copied kind is called in the status ("Copied v4 · HTML · 6.2 KB").</summary>
+    public static string FormatWord(Artifact artifact, string? file = null) => artifact.Kind switch
+    {
+        ArtifactKind.Html => "HTML",
+        ArtifactKind.React => artifact.Language is "tsx" ? "TSX" : "JSX",
+        ArtifactKind.Svg => "SVG",
+        ArtifactKind.Mermaid => "Mermaid",
+        ArtifactKind.Markdown => "Markdown",
+        ArtifactKind.NthUi => "nth-ui",
+        ArtifactKind.Project => file is null ? UiText.Get("tabula.word.project") : Path.GetFileName(file),
+        _ => artifact.Language is { Length: > 0 } language ? language : UiText.Get("tabula.word.text"),
+    };
+
+    /// <summary>Copy (6.3): the content; a project copies the file the Code view shows, else its entry.</summary>
+    private async Task Copy()
+    {
+        if (artifact is not { } shown || snapshot is not { } current) return;
+        string text;
+        string? file = null;
+        if (current.Files is { } files)
+        {
+            file = state.View == TabulaViewMode.Code && code.File is { } chosen ? chosen : current.Version.Entry ?? ArtifactStore.DefaultEntry;
+            text = files.TryGetValue(file, out var found) ? found : "";
+        }
+        else text = current.Text ?? "";
+        if (!await context.Clipboard.SetTextAsync(this, text)) return;
+        ShowStatus(UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.status.copied", shownVersion, FormatWord(shown, file), TabulaTokens.Size(Encoding.UTF8.GetByteCount(text))));
+    }
+
+    /// <summary>Copy as image (6.3: svg, mermaid and rendered views).</summary>
+    private async Task CopyImage()
+    {
+        if (state.View != TabulaViewMode.Preview || !preview.IsActive)
+        {
+            state.SetView(TabulaViewMode.Preview);
+            Render();
+        }
+        var png = await preview.CaptureAsync(CancellationToken.None);
+        if (png is null || !await context.Clipboard.SetImageAsync(this, png))
+        {
+            ShowStatus(UiText.Get("tabula.status.copy_image_failed"));
+            return;
+        }
+        ShowStatus(UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.status.copied_image", shownVersion));
+    }
+
+    private static bool CopiesAsImage(Artifact shown) => shown.Kind is ArtifactKind.Svg or ArtifactKind.Mermaid or ArtifactKind.Html or ArtifactKind.React
+        or ArtifactKind.Project or ArtifactKind.Markdown or ArtifactKind.NthUi;
+
+    /// <summary>Save to project (6.3): a save dialog in the project, "artifacts/&lt;title&gt;.&lt;ext&gt;" by default; a project saves as its folder.</summary>
+    private async Task SaveToProject()
+    {
+        if (artifact is not { } shown || snapshot is not { } current) return;
+        var folder = context.ProjectFolder();
+        var relative = ArtifactExport.SaveToProjectPath(shown);
+        var start = folder is null ? null : Directory.Exists(Path.Combine(folder, "artifacts")) ? Path.Combine(folder, "artifacts") : folder;
+        var isProject = current.Files is not null;
+        var extension = isProject ? "" : ArtifactKinds.Extension(shown.Kind, shown.Language);
+        var path = await context.Files.SaveAsync(this, new TabulaSaveRequest(UiText.Get("tabula.dialog.save_title"), start, Path.GetFileName(relative), UiText.Format("tabula.dialog.save_type", FormatWord(shown)), extension, isProject));
+        if (path is null) return;
+        try
+        {
+            if (current.Files is { } files)
+            {
+                Directory.CreateDirectory(path);
+                var root = Path.GetFullPath(path);
+                foreach (var (name, text) in files)
+                {
+                    var target = Path.GetFullPath(Path.Combine(root, name.Replace('/', Path.DirectorySeparatorChar)));
+                    if (!target.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) continue;
+                    Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                    FileOps.WriteAtomic(target, Encoding.UTF8.GetBytes(text));
+                }
+            }
+            else
+            {
+                if (Path.GetDirectoryName(path) is { } parent) Directory.CreateDirectory(parent);
+                FileOps.WriteAtomic(path, Encoding.UTF8.GetBytes(current.Text ?? ""));
+            }
+        }
+        catch (Exception failure) when (failure is IOException or UnauthorizedAccessException)
+        {
+            ShowStatus(UiText.Format("tabula.status.save_failed", failure.Message));
+            return;
+        }
+        ShowStatus(SavedWords(folder, path));
+    }
+
+    /// <summary>"Saved to my-app/artifacts/pricing-calculator.html · it shows in Changes" (canvas), or the full path outside the project.</summary>
+    public static string SavedWords(string? projectFolder, string path)
+    {
+        if (projectFolder is { } project)
+        {
+            var root = Path.GetFullPath(project).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var full = Path.GetFullPath(path);
+            if (full.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                return UiText.Format("tabula.status.saved_in_project", Path.GetFileName(root) + "/" + full[(root.Length + 1)..].Replace('\\', '/'));
+        }
+        return UiText.Format("tabula.status.saved_to", path);
+    }
+
+    private void OpenInVisus()
+    {
+        if (snapshot is not { } current) return;
+        if (context.OpenInVisus is { } open)
+        {
+            open(current);
+            ShowStatus(UiText.Format("tabula.status.opened_in_visus", SandboxSites.ArtifactHost(current.Artifact.Thread, current.Artifact.Id)));
+            return;
+        }
+        context.Expand();
+        ShowStatus(UiText.Get("tabula.status.opened_full_size"));
+    }
+
+    private void CopyIntoThread()
+    {
+        if (artifact is not { } shown || !state.IsReadOnly) return;
+        try
+        {
+            var copy = context.Store.Fork(shown.Thread, shown.Id, shownVersion, context.Thread, ArtifactAuthor.You);
+            state.Select(new TabulaRef(context.Thread, copy.Artifact.Id));
+            ShowStatus(UiText.Format("tabula.status.copied_into_thread", copy.Artifact.Title));
+        }
+        catch (ArtifactException failure)
+        {
+            ShowStatus(failure.Message);
+        }
+    }
+
+    private void Restore(int version)
+    {
+        if (artifact is not { } shown || state.IsReadOnly) return;
+        try
+        {
+            var restored = context.Store.Restore(shown.Thread, shown.Id, version, ArtifactAuthor.You);
+            state.ShowVersion(null);
+            ShowStatus(UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.status.restored", version, restored.Version.Number));
+        }
+        catch (ArtifactException failure)
+        {
+            ShowStatus(failure.Message);
+        }
+    }
+
+    private void Remix(int version)
+    {
+        if (artifact is not { } shown) return;
+        try
+        {
+            var remix = context.Store.Fork(shown.Thread, shown.Id, version, context.Thread, ArtifactAuthor.You, UiText.Format("tabula.remix.title", shown.Title));
+            state.Select(new TabulaRef(context.Thread, remix.Artifact.Id));
+            ShowStatus(UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.status.remixed", version, remix.Artifact.Title));
+        }
+        catch (ArtifactException failure)
+        {
+            ShowStatus(failure.Message);
+        }
+    }
+
+    /// <summary>Export (6.3) in one format: a save dialog, then the exporter; a format that needs the page uses the shown one or a hidden one.</summary>
+    private async Task Export(ArtifactExportFormat format)
+    {
+        if (artifact is not { } shown || snapshot is not { } current) return;
+        if (context.Runtime is not { } runtime)
+        {
+            ShowStatus(UiText.Get("tabula.status.export_needs_runtime"));
+            return;
+        }
+        var name = ArtifactExport.FileName(shown, format, shownVersion);
+        var extension = ArtifactExport.Extension(shown, format);
+        var path = await context.Files.SaveAsync(this, new TabulaSaveRequest(UiText.Format("tabula.dialog.export_title", shown.Title), null, name, FormatName(format), extension));
+        if (path is null) return;
+        bool done;
+        try
+        {
+            done = await ExportTo(runtime, current, format, path);
+        }
+        catch (Exception failure) when (failure is IOException or UnauthorizedAccessException or InvalidOperationException or ArtifactException)
+        {
+            ShowStatus(UiText.Format("tabula.status.export_failed", failure.Message));
+            return;
+        }
+        ShowStatus(done ? UiText.Format("tabula.status.exported", Path.GetFileName(path)) : UiText.Get("tabula.status.export_unfinished"));
+    }
+
+    private async Task<bool> ExportTo(ArtifactRuntime runtime, ArtifactSnapshot current, ArtifactExportFormat format, string path)
+    {
+        var kind = current.Artifact.Kind;
+        if (!ArtifactExporter.NeedsView(kind, format))
+        {
+            FileOps.WriteAtomic(path, runtime.Exporter.Export(current, format));
+            return true;
+        }
+        // A native view draws its own picture.
+        if (format == ArtifactExportFormat.Png && kind is ArtifactKind.NthUi or ArtifactKind.Markdown or ArtifactKind.Code)
+        {
+            if (state.View != TabulaViewMode.Preview) { state.SetView(TabulaViewMode.Preview); Render(); }
+            if (await preview.CaptureAsync(CancellationToken.None) is not { } png) return false;
+            FileOps.WriteAtomic(path, png);
+            return true;
+        }
+        // The page on screen when it shows this version (a capture needs it visible; printing does not).
+        if (preview.Mode == TabulaPreviewMode.Web && preview.Mount?.Version == state.Version && preview.View?.Engine is { } engine
+            && (format != ArtifactExportFormat.Png || preview.IsActive))
+            return await runtime.Exporter.ExportAsync(current, format, path, engine, CancellationToken.None);
+        using var hidden = await TabulaOffscreen.OpenAsync(context, current, CancellationToken.None);
+        return hidden?.Engine is { } offscreen && await runtime.Exporter.ExportAsync(current, format, path, offscreen, CancellationToken.None);
+    }
+
+    /// <summary>A format's name in its menu row and dialog.</summary>
+    public static string FormatName(ArtifactExportFormat format) => format switch
+    {
+        ArtifactExportFormat.Html => UiText.Get("tabula.export.format_html"),
+        ArtifactExportFormat.Markdown => UiText.Get("tabula.export.format_markdown"),
+        ArtifactExportFormat.Pdf => UiText.Get("tabula.export.format_pdf"),
+        ArtifactExportFormat.Docx => UiText.Get("tabula.export.format_docx"),
+        ArtifactExportFormat.Png => UiText.Get("tabula.export.format_png"),
+        ArtifactExportFormat.Svg => UiText.Get("tabula.export.format_svg"),
+        ArtifactExportFormat.Zip => UiText.Get("tabula.export.format_zip"),
+        _ => UiText.Get("tabula.export.format_source"),
+    };
+
+    // ---- menus (popups: their own windows, above the page) ----
+
+    private Control AnchorFor(int action)
+    {
+        if (this.FindAncestorOfType<PaneCard>()?.Header is { } header)
+        {
+            if (action >= 0 && action < header.ActionViews.Count && header.ActionViews[action].IsVisible) return header.ActionViews[action];
+            if (action >= 0 && header.MoreButton.IsVisible) return header.MoreButton;
+            if (action == -1 && header.TitleButton is { } title) return title;
+        }
+        return action == -2 ? sandbox : action == -3 ? compareLabel : viewBar;
+    }
+
+    private void OpenMenu(Control anchor, Func<Control> build)
+    {
+        CloseMenu();
+        // The menu is presented the app's way (its glass card, its motion, Escape and light dismiss): the popover follows
+        // an observable flag, and the popup leaves the panel once it has closed.
+        var presented = new TabulaMenuState();
+        Popup? shown = null;
+        shown = PlainControls.Popover(anchor, new Binding<bool>(() => presented.IsOpen, value => presented.IsOpen = value), () => new PopoverMenu(build));
+        shown.Closed += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (presented.IsOpen || shown is null) return;
+            menus.Children.Remove(shown);
+            if (menu == shown)
+            {
+                menu = null;
+                menuState = null;
+            }
+        });
+        menus.Children.Add(shown);
+        menu = shown;
+        menuState = presented;
+        presented.IsOpen = true;
+    }
+
+    internal void CloseMenu()
+    {
+        if (menu is not { } shown) return;
+        var presented = menuState;
+        menu = null;
+        menuState = null;
+        if (presented is { IsOpen: true } && shown.IsOpen) presented.IsOpen = false; // closes with its motion; Closed removes it
+        else
+        {
+            if (presented is not null) presented.IsOpen = false;
+            menus.Children.Remove(shown);
+        }
+    }
+
+    private void CloseMenuIfStale()
+    {
+        if (menuState is { IsOpen: false }) CloseMenu();
+    }
+
+    private Action Then(Action action) => () =>
+    {
+        CloseMenu();
+        action();
+    };
+
+    /// <summary>The title's menu (6.1): this thread's artifacts, newest first, then "All artifacts".</summary>
+    private void OpenTitleMenu() => OpenMenu(AnchorFor(-1), () =>
+    {
+        var stack = new StackPanel();
+        var mine = context.Store.List(context.Thread).OrderByDescending(a => a.Updated).ToList();
+        if (mine.Count > 0) stack.Children.Add(new PopoverSectionHeader(UiText.Get("tabula.menu.in_this_thread")));
+        foreach (var item in mine)
+        {
+            var target = new TabulaRef(item.Thread, item.Id);
+            stack.Children.Add(new PopoverItem(item.Title, Then(() => state.Select(target)),
+                detail: UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.menu.artifact_detail", TabulaTokens.KindName(item), item.Current), isChecked: state.Selected == target));
+        }
+        if (mine.Count > 0) stack.Children.Add(new PopoverDivider());
+        stack.Children.Add(new PopoverItem(UiText.Get("tabula.view.all_artifacts"), Then(() => state.OpenGallery(true))));
+        return stack;
+    });
+
+    /// <summary>The version chip's menu (6.3): every version with its prompt, then Compare, Restore and Remix.</summary>
+    private void OpenVersionMenu(int action)
+    {
+        if (artifact is not { } shown) return;
+        OpenMenu(AnchorFor(action), () =>
+        {
+            var stack = new StackPanel();
+            foreach (var version in shown.Versions.Reverse())
+            {
+                var number = version.Number;
+                var label = number == shown.Current ? UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.versions.number_latest", number) : UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.versions.number", number);
+                stack.Children.Add(new PopoverItem(label, Then(() => state.ShowVersion(number == shown.Current ? null : number)),
+                    detail: TabulaVersionStrip.Caption(version), isChecked: number == shownVersion));
+            }
+            stack.Children.Add(new PopoverDivider());
+            if (shown.Versions.Count > 1)
+                stack.Children.Add(new PopoverItem(UiText.Get("tabula.menu.compare_with_another"), Then(() => state.SetView(TabulaViewMode.Diff))));
+            if (shownVersion != shown.Current && !state.IsReadOnly)
+                stack.Children.Add(new PopoverItem(UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.menu.restore", shownVersion), Then(() => Restore(shownVersion))));
+            stack.Children.Add(new PopoverItem(UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.menu.remix", shownVersion), Then(() => Remix(shownVersion)),
+                detail: UiText.Get("tabula.menu.remix_detail")));
+            return stack;
+        });
+    }
+
+    /// <summary>The compare label's menu: the version to compare the shown one with.</summary>
+    private void OpenCompareMenu()
+    {
+        if (artifact is not { } shown) return;
+        OpenMenu(AnchorFor(-3), () =>
+        {
+            var stack = new StackPanel();
+            stack.Children.Add(new PopoverSectionHeader(UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.menu.compare_header", shownVersion)));
+            var compare = CompareVersion(shown, shownVersion);
+            foreach (var version in shown.Versions.Reverse().Where(v => v.Number != shownVersion))
+            {
+                var number = version.Number;
+                stack.Children.Add(new PopoverItem(UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.versions.number", number), Then(() => state.SetCompare(number)),
+                    detail: TabulaVersionStrip.Caption(version), isChecked: number == compare));
+            }
+            return stack;
+        });
+    }
+
+    /// <summary>Export's menu (6.3): Copy as image where it applies, then each format of the kind.</summary>
+    private void OpenExportMenu(int action)
+    {
+        if (artifact is not { } shown) return;
+        OpenMenu(AnchorFor(action), () =>
+        {
+            var stack = new StackPanel();
+            if (CopiesAsImage(shown)) stack.Children.Add(new PopoverItem(UiText.Get("tabula.menu.copy_as_image"), Then(() => _ = CopyImage())));
+            if (stack.Children.Count > 0) stack.Children.Add(new PopoverDivider());
+            stack.Children.Add(new PopoverSectionHeader(UiText.Get("tabula.menu.export_header")));
+            foreach (var format in ArtifactExport.Formats(shown.Kind))
+            {
+                var chosen = format;
+                stack.Children.Add(new PopoverItem(FormatName(format), Then(() => _ = Export(chosen)), detail: "." + ArtifactExport.Extension(shown, format)));
+            }
+            return stack;
+        });
+    }
+
+    /// <summary>The artifact's menu on the sandbox line (6.5): network, and the grants with Remove.</summary>
+    private void OpenArtifactMenu()
+    {
+        if (artifact is not { } shown || snapshot is not { } current || context.Runtime is not { } runtime) return;
+        var address = new ArtifactAddress(shown.Thread, shown.Id);
+        OpenMenu(AnchorFor(-2), () =>
+        {
+            var stack = new StackPanel();
+            stack.Children.Add(new PopoverSectionHeader(UiText.Get("tabula.menu.this_artifact")));
+            var allowed = runtime.AllowedNetwork(current);
+            if (allowed.Count > 0)
+                stack.Children.Add(new PopoverItem(UiText.Get("tabula.menu.turn_off_network"), Then(() => runtime.Data.AllowNetwork(address, null)), detail: string.Join(", ", allowed)));
+            else
+                stack.Children.Add(new PopoverItem(UiText.Get("tabula.menu.allow_network"), Then(() => _ = AllowNetwork(runtime, current, address)), detail: UiText.Get("tabula.menu.network_off"), isEnabled: !state.IsReadOnly));
+            var grants = runtime.Data.Grants(address);
+            if (grants.Model || grants.Tools.Count > 0)
+            {
+                stack.Children.Add(new PopoverDivider());
+                stack.Children.Add(new PopoverSectionHeader(UiText.Get("tabula.menu.allowed")));
+                if (grants.Model) stack.Children.Add(new PopoverItem(UiText.Get("tabula.menu.your_model"), Then(() => runtime.Data.AllowModel(address, false)), detail: UiText.Get("tabula.menu.remove")));
+                foreach (var tool in grants.Tools)
+                {
+                    var granted = tool;
+                    stack.Children.Add(new PopoverItem(UiText.Format("tabula.menu.tool_name", granted.Server, granted.Tool), Then(() => runtime.Data.RevokeTool(address, granted.Server, granted.Tool)), detail: UiText.Get("tabula.menu.remove")));
+                }
+            }
+            return stack;
+        });
+    }
+
+    private async Task AllowNetwork(ArtifactRuntime runtime, ArtifactSnapshot current, ArtifactAddress address)
+    {
+        var request = runtime.NetworkRequest(current);
+        if (request.Hosts.Count == 0)
+        {
+            ShowStatus(request.Dropped.Count > 0 ? UiText.Get("tabula.status.network_none_allowed") : UiText.Get("tabula.status.network_no_sites"));
+            return;
+        }
+        if (await Cards.AskNetworkAsync(request, CancellationToken.None)) runtime.Data.AllowNetwork(address, request.HostNames);
+        else ShowStatus(UiText.Get("tabula.status.network_stays_off"));
+    }
+
+    // ---- the bridge ----
+
+    internal void DraftFromArtifact(string text)
+    {
+        context.Draft(text);
+        ShowStatus(UiText.Get("tabula.status.draft_added"));
+    }
+
+    internal void ShowStatus(string text) => status.Show(text);
+}
+
+/// <summary>Whether a Tabula menu is presented: observable, so the popover presents and dismisses it as the app's others.</summary>
+internal sealed class TabulaMenuState : ObservableModel
+{
+    private bool isOpen;
+
+    public bool IsOpen
+    {
+        get => Read(isOpen);
+        set => Set(ref isOpen, value);
+    }
+}

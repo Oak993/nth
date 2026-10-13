@@ -1454,7 +1454,7 @@ public sealed class SidebarView : Decorator
     private bool NeedsAttention(ChatThread thread)
     {
         if (Model.ExistingRuntime(thread.Id) is not { } runtime) return false; // :634
-        return runtime.Approvals.Count > 0 || runtime.Questions.Count > 0; // :635
+        return runtime.Approvals.Count > 0 || runtime.Questions.Count > 0 || runtime.IsWaitingForAnswer; // :635 + PORT-ONLY (web surfaces W25): a model waiting for an ask_user answer
     }
 
     // :643-656 Threads grouped under Today, Yesterday, a weekday within the week, then a date.
@@ -4639,7 +4639,7 @@ internal sealed class ThreadGhostBadge : Decorator
     public ThreadGhostBadge(ChatThread thread, ThreadRuntime? runtime)
     {
         Thread = thread;
-        NeedsInput = runtime is { } r1 && (r1.Approvals.Count > 0 || r1.Questions.Count > 0); // :2089
+        NeedsInput = runtime is { } r1 && (r1.Approvals.Count > 0 || r1.Questions.Count > 0 || r1.IsWaitingForAnswer); // :2089 + PORT-ONLY (web surfaces W25)
         IsRunning = runtime is { } r2 && (r2.IsRunning || r2.IsHydraMerging || r2.HasWorkingHelpers); // :2090
         Child = new SidebarIconBadge(() => // :2095
             NeedsInput

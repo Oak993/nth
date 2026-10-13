@@ -10,6 +10,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Chrome;
@@ -215,7 +216,7 @@ public static class ShortcutRowMetrics
 
     /// <summary>ShortcutSettingsRow body (:118-135): title left, one line, truncated tail with its detail as a
     /// tooltip; the accessory right-aligned, fixed size, never shrunk.</summary>
-    public static Control Row(string title, string detail, Control accessory) // PR-SETTINGS-214
+    public static Control Row(string title, string detail, Control accessory, string? mark = null) // PR-SETTINGS-214
     {
         var text = new TextBlock
         {
@@ -233,9 +234,24 @@ public static class ShortcutRowMetrics
         var grid = new Grid { MinHeight = 24 }; // :132
         grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
         grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
-        Grid.SetColumn(text, 0);
+        Control leading = text;
+        if (mark is not null)
+        {
+            // PORT-ONLY (web surfaces W10, ED-NEW-web-w10-4): the mark of a chord that works inside pages sits beside the title, where it is read, not only in the tooltip.
+            var note = new TextBlock { Text = mark, TextWrapping = TextWrapping.NoWrap, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0) };
+            SwiftFont.Caption.Apply(note);
+            note.Foreground = SwiftColor.Secondary.Brush(note);
+            var pair = new Grid { VerticalAlignment = VerticalAlignment.Center };
+            pair.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+            pair.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+            Grid.SetColumn(note, 1);
+            pair.Children.Add(text);
+            pair.Children.Add(note);
+            leading = pair;
+        }
+        Grid.SetColumn(leading, 0);
         Grid.SetColumn(accessory, 1);
-        grid.Children.Add(text);
+        grid.Children.Add(leading);
         grid.Children.Add(accessory);
         return new Border { Child = grid, Padding = new Thickness(RowPadding) }; // :133
     }
@@ -260,9 +276,17 @@ public static class ShortcutRowMetrics
 /// <summary>ShortcutEntryRow (:137-145).</summary>
 public sealed class ShortcutEntryRow : Decorator
 {
+    /// <summary>The mark on a reserved chord (DESIGN 3.7): it works inside pages and the terminal.</summary>
+    public static string WorksInsidePages => UiText.Get("settings.shortcuts.works_inside_pages");
+
+    /// <summary>The same words as the visible mark beside the row's title (W10), without the sentence's full stop.</summary>
+    public static string WorksInsidePagesMark => UiText.Get("settings.shortcuts.works_inside_pages_mark");
+
     public ShortcutEntryRow(AppShortcut shortcut)
     {
-        Child = ShortcutRowMetrics.Row(shortcut.Title(), shortcut.Detail(), new ShortcutRecorder(shortcut));
+        // PORT-ONLY (web W3b, DESIGN 3.7): a chord nth takes even from a web page or the terminal says so.
+        var detail = shortcut.WorksInsidePages() ? UiText.Format("settings.shortcuts.detail_works_inside_pages", shortcut.Detail()) : shortcut.Detail();
+        Child = ShortcutRowMetrics.Row(shortcut.Title(), detail, new ShortcutRecorder(shortcut), shortcut.WorksInsidePages() ? WorksInsidePagesMark : null);
     }
 }
 

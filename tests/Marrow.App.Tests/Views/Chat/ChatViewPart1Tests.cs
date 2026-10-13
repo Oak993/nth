@@ -714,7 +714,8 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
                 var changesButton = ButtonWithTip(row, "Changes" + ShortcutStore.Hint(AppShortcut.ToggleChanges));
                 Assert.False(runtime.IsDiffVisible);
                 Click(changesButton);
-                Assert.True(runtime.IsDiffVisible); // :1170 through toggleDiff, not a direct flip
+                Assert.True(runtime.IsChangesPaneOpen); // web W4 (ED-NEW-web-w4-1): :1170 now opens the Changes pane through toggleChanges (Alt+click is toggleDiff's popover)
+                Assert.False(runtime.IsDiffVisible);
             });
             Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         });

@@ -683,3 +683,110 @@ http://www.apache.org/licenses/
    See the License for the specific language governing permissions and
    limitations under the License.
 ```
+
+## Web surfaces (Visus)
+
+The in-app browser, project previews, artifacts and live widgets (web surfaces unit W7, ED-NEW-web-w7-1) host Microsoft
+Edge WebView2 through Avalonia's WebView control. The WebView2 runtime itself is part of Windows and is not shipped. On a PC
+without it, Visus offers Microsoft's own Evergreen bootstrapper: nth downloads it from Microsoft only when the user presses
+Install, runs it only if Windows verifies Microsoft Corporation's signature on it, and never redistributes it (unit W23,
+ED-NEW-web-w23-2). The package ships the WebView2 loader of the app's architecture (x64 or arm64).
+
+### Avalonia.Controls.WebView
+
+- Source: https://avaloniaui.net/ (NuGet Avalonia.Controls.WebView 12.1.0, repository commit
+  b45e042d21d96371bb6d07822a55c85ee5f74d2f). Licence: MIT, "Copyright 2019-2026 © AvaloniaUI OÜ" (the package's
+  licence expression and copyright).
+
+```
+Copyright 2019-2026 © AvaloniaUI OÜ
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+### Microsoft.Web.WebView2 (Microsoft.Web.WebView2.Core.dll and WebView2Loader.dll)
+
+- Source: https://aka.ms/webview (NuGet Microsoft.Web.WebView2 1.0.4258.31). Licence: the package's LICENSE.txt
+  (BSD-style), reproduced below; the package's NOTICE.txt lists the third-party material inside it.
+
+```
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+   * Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+   * Redistributions in binary form must reproduce the above
+copyright notice, this list of conditions and the following disclaimer
+in the documentation and/or other materials provided with the
+distribution.
+   * The name of Microsoft Corporation, or the names of its contributors
+may not be used to endorse or promote products derived from this
+software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+
+### Artifact libraries (served offline to artifacts, web surfaces unit W13, ED-NEW-web-w13-3)
+
+Artifacts run without the network, so the libraries they commonly load are copied beside the app in
+`Assets/lib/<library>/` (built from the npm packages named below by `tools/artifact-libs/build.mjs`; every file's
+SHA-256 is in `Assets/lib/manifest.json`). Each library's own licence file ships unchanged next to it, and the minified
+files keep the licence comments their packages ship (for math.js, `math.min.js.LICENSE.txt`). The ESM wrappers in
+`Assets/lib/esm/` and the runtime scripts in `Marrow.Services/Web/Sandbox/` are nth's own.
+
+| Library | npm package and version | Licence | Copyright (from the licence file) | Licence file |
+| --- | --- | --- | --- | --- |
+| React | react 18.3.1 | MIT | Facebook, Inc. and its affiliates | `react/LICENSE` |
+| React DOM | react-dom 18.3.1 | MIT | Facebook, Inc. and its affiliates | `react-dom/LICENSE` |
+| prop-types | prop-types 15.8.1 | MIT | 2013-present, Facebook, Inc. | `prop-types/LICENSE` |
+| Sucrase (JSX and TypeScript compiler) | sucrase 3.35.1 | MIT | 2012-2018 various contributors | `sucrase/LICENSE` |
+| Tailwind CSS (in-browser build) | @tailwindcss/browser 4.3.3 | MIT | Tailwind Labs, Inc. | `tailwindcss/LICENSE` |
+| Recharts | recharts 2.15.4 | MIT | 2015-present recharts | `recharts/LICENSE` |
+| Lucide | lucide 1.55.0 | ISC | 2026 Lucide Icons and Contributors | `lucide/LICENSE` |
+| Lucide React | lucide-react 0.577.0 | ISC | Lucide Icons and Contributors; portions Cole Bemis (Feather, MIT) | `lucide-react/LICENSE` |
+| D3 | d3 7.9.0 | ISC | 2010-2023 Mike Bostock | `d3/LICENSE` |
+| Chart.js | chart.js 4.5.1 | MIT | 2014-2024 Chart.js Contributors | `chart.js/LICENSE.md` |
+| Mermaid | mermaid 11.16.1 | MIT | 2014-2022 Knut Sveidqvist | `mermaid/LICENSE` |
+| three.js and its OrbitControls | three 0.186.0 | MIT | 2010-2026 three.js authors | `three/LICENSE`, `three-orbit-controls/LICENSE` |
+| KaTeX and its auto-render | katex 0.16.47 | MIT | 2013-2020 Khan Academy and other contributors | `katex/LICENSE` |
+| highlight.js | @highlightjs/cdn-assets 11.12.0 | BSD-3-Clause | 2006, Ivan Sagalaev | `highlight.js/LICENSE` |
+| Papa Parse | papaparse 5.7.0 | MIT | 2015 Matthew Holt | `papaparse/LICENSE` |
+| Lodash | lodash 4.18.1 | MIT | OpenJS Foundation and other contributors | `lodash/LICENSE` |
+| math.js | mathjs 15.2.0 | Apache-2.0 | 2013-2026 Jos de Jong (bundles decimal.js, MIT, Michael Mclaughlin) | `mathjs/LICENSE` |
+
+### Natural Earth (the map component's offline basemap, web surfaces unit W16c, ED-NEW-web-w16c-1)
+
+The `map` component of live answers draws on `src/Marrow.UI/Assets/naturalearth/world.nemap`, made by `tools/naturalearth/build.mjs` from
+Natural Earth's 1:50m `ne_50m_admin_0_countries`, `ne_50m_lakes` and `ne_50m_populated_places_simple` layers, which Natural Earth
+(https://www.naturalearthdata.com, Tom Patterson, Nathaniel Vaughn Kelso and contributors) places in the public domain: no permission
+and no credit are needed. nth credits it anyway. The file holds outlines, names and label points only; the data is read from the app,
+never fetched, and no map tile or place name is requested from any server unless the reader adds a tile source in Settings.

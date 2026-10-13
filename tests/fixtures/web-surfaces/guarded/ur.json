@@ -1,0 +1,58 @@
+{
+  "language": "ur",
+  "note": "Labels as Urdu pages write them. Written for nth (ED-NEW-web-w22-1); the owner reads Urdu and can correct any of them. The forms nth already kept for Tactus (PcPolicyTests) are among them.",
+  "guarded": [
+    { "name": "بھیجیں", "word": "send", "category": "Send" },
+    { "name": "پیغام بھیجیں", "word": "send", "category": "Send" },
+    { "name": "ای میل بھیجیں", "word": "send", "category": "Send" },
+    { "name": "حذف کریں", "word": "delete", "category": "Delete" },
+    { "name": "گفتگو حذف کریں", "word": "delete", "category": "Delete" },
+    { "name": "اکاؤنٹ حذف کریں", "word": "delete account", "category": "Delete" },
+    { "name": "کھاتہ حذف کریں", "word": "delete account", "category": "Delete" },
+    { "name": "سائن آؤٹ", "word": "sign out", "category": "SignOut" },
+    { "name": "لاگ آؤٹ", "word": "sign out", "category": "SignOut" },
+    { "name": "لاگ آوٹ", "word": "sign out", "category": "SignOut" },
+    { "name": "شائع کریں", "word": "publish", "category": "Post" },
+    { "name": "پوسٹ کریں", "word": "post", "category": "Post" },
+    { "name": "جمع کرائیں", "word": "submit", "category": "Submit" },
+    { "name": "جمع کروائیں", "word": "submit", "category": "Submit" },
+    { "name": "منتقل کریں", "word": "transfer", "category": "Order" },
+    { "name": "ٹرانسفر", "word": "transfer", "category": "Order" },
+    { "name": "انسٹال کریں", "word": "install", "category": "Install" },
+    { "name": "ان انسٹال کریں", "word": "uninstall", "category": "Delete" },
+    { "name": "آرڈر", "word": "order", "category": "Order" }
+  ],
+  "denied": [
+    { "name": "ادائیگی کریں", "refusal": "payment" },
+    { "name": "ادا کریں", "refusal": "payment" },
+    { "name": "ابھی خریدیں", "refusal": "payment" },
+    { "name": "خریداری مکمل کریں", "refusal": "payment" },
+    { "name": "آرڈر کریں", "refusal": "payment" },
+    { "name": "آرڈر دیں", "refusal": "payment" },
+    { "name": "سائن اپ", "refusal": "account" },
+    { "name": "اکاؤنٹ بنائیں", "refusal": "account" },
+    { "name": "رجسٹر کریں", "refusal": "account" },
+    { "name": "میں روبوٹ نہیں ہوں", "refusal": "captcha" },
+    { "name": "کیپچا", "refusal": "captcha" }
+  ],
+  "allowed": [
+    "تلاش کریں", "منسوخ کریں", "واپس جائیں", "جاری رکھیں", "ہوم", "ترتیبات", "بند کریں", "اگلا", "پچھلا", "مینو", "لاگ ان", "سائن ان",
+    "کھولیں", "جواب دیں", "محفوظ کریں", "ترمیم کریں", "ڈاؤن لوڈ کریں"
+  ],
+  "variants": [
+    { "what": "Arabic yeh in place of the Urdu one", "name": "بھ\u064Aجیں", "word": "send" },
+    { "what": "Arabic yeh twice in a listed form", "name": "ڈ\u064Aل\u064Aٹ", "word": "delete" },
+    { "what": "Arabic kaf in place of the Urdu one", "name": "جمع \u0643رائیں", "word": "submit" },
+    { "what": "Arabic heh in place of the Urdu one (kaata)", "name": "\u0643ھات\u0647 ڈیلیٹ", "word": "delete account" },
+    { "what": "tatweel inside the word", "name": "ح\u0640ذف", "word": "delete" },
+    { "what": "a vowel mark on the word", "name": "ح\u064Eذف", "word": "delete" },
+    { "what": "a zero-width non-joiner inside the word", "name": "بھی\u200Cجیں", "word": "send" },
+    { "what": "presentation forms of the letters", "name": "\uFEA3\uFEAC\uFED1", "word": "delete" },
+    { "what": "direction marks around the word", "name": "\u200Fحذف\u200E", "word": "delete" },
+    { "what": "a hyphen in the listed form", "name": "ان-انسٹال", "word": "uninstall" }
+  ],
+  "mixed": [
+    { "what": "Urdu beside English", "name": "حذف کریں (Delete)", "word": "delete" },
+    { "what": "Urdu beside Hindi", "name": "بھیجیں / भेजें", "word": "send" }
+  ]
+}

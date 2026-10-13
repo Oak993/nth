@@ -4,6 +4,8 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Media;
+using Marrow.Core.Localisation;
+using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Port;
 using PortAnimation = Marrow.UI.Port.Animation;
@@ -511,6 +513,28 @@ public sealed class SidebarLayout : MainActorModel
         Persist(); // :363
     }
 
+    /// <summary>
+    /// PORT-ONLY (nth web surfaces W1, DESIGN.md 4.2, ED-NEW-web-w1-3): the splitter's keyboard, double-click and
+    /// accessible value. Settles the column at <paramref name="width"/> held to 210-440, opening it the way
+    /// <see cref="Toggle"/> does when it is hidden, under the same PanelSlide, and saves it like a drag's end.
+    /// </summary>
+    public void SetWidth(double width)
+    {
+        var settled = Math.Min(MaximumWidth, Math.Max(MinimumWidth, width));
+        restingWidth = settled;
+        if (!IsVisible)
+        {
+            Width = settled;
+            BeginSlide(-settled);
+            Transaction.WithAnimation(Chrome.PanelSlide, () => IsVisible = true);
+        }
+        else if (Width != settled)
+        {
+            Transaction.WithAnimation(Chrome.PanelSlide, () => Width = settled);
+        }
+        Persist();
+    }
+
     /// <summary>:366-370 <c>private func persist()</c>.</summary>
     private void Persist()
     {
@@ -523,54 +547,82 @@ public sealed class SidebarLayout : MainActorModel
 // MARK: - Resize handle
 
 /// <summary>
-/// :376-401 <c>struct SidebarResizeHandle: View</c>. B3 (unit A26; plan 2.A row A26, N8): the mechanism that used
-/// to live in this file's own SidebarResizeHandleView (B2 :402-570) now lives in the shared <see
-/// cref="DragHandle"/>/<see cref="DragHandleView"/> (N8, DragHandle.cs); this type is left a thin configuration
-/// of it (:384-399 <c>var body: some View</c>), the same reduction the Swift diff makes at 52bc792. In SwiftUI
-/// this is the two grab strips RootView installs (App/Views/RootView.swift:22-31, :54-63); porting that
-/// installation site is App's job (outside Core/Services/UI, section 2.1), so this type is the plain updater
-/// App's binding calls into <see cref="MakeNSView"/>/<see cref="UpdateNSView"/>, one level above <see
-/// cref="DragHandle"/>'s own identically-shaped pair. Retargeting onto the shared view also gives this strip
-/// N8's mid-drag detach reset (DragHandle.swift:207-223, PR-WIN-233) for free: taken out of the tree while
-/// dragging, it now drops isDragging/isPressed and pops the drag cursor without firing onEnd or onChange, which
-/// the old, strip-specific SidebarResizeHandleView never did.
+/// :376-401 <c>struct SidebarResizeHandle: View</c>, now (nth web surfaces W1, DESIGN.md 4.3, ED-NEW-web-w1-3) a thin
+/// <see cref="Splitter"/> configuration over <see cref="SidebarLayout"/> with the sidebar's own numbers unchanged: 210
+/// minimum, 440 maximum, a release under 110 collapses (PanelSlide), 268 by default, the width saved globally. Where the
+/// Swift strip installed a 9 point DragHandle with its own 10/22/2.5 grip and glow, this installs the shared splitter: 10
+/// DIP hit centred on the sidebar's edge (12 for touch and pen), the shared grip and "Resize" tooltip, the keyboard
+/// (arrows, Home and End, Enter to 268, Space and Ctrl+Arrow to hide and show), and a value a screen reader reads ("Sidebar
+/// hidden" at 0 of 0 to 440). RootView installs one for both of the Swift strips (:22-31 over the visible column's
+/// trailing edge, :53-63 at the leading edge pulling the hidden column out): one splitter that moves with the edge.
 /// </summary>
 public sealed class SidebarResizeHandle
 {
-    public const double HitWidth = 9; // :377 static let hitWidth: CGFloat = 9, PR-WIN-049
+    /// <summary>:377 <c>hitWidth</c>, now the shared splitter's fine-pointer hit across a divider (was 9).</summary>
+    public const double HitWidth = Splitter.DividerThickness - 2 * Splitter.FinePointerInset;
 
-    // :394 cursor: .columnResize. One shared cursor instance for every strip (PR-WIN-049's own "the same shared
-    // IDC_SIZEWE cursor, not a new one per view" windows_path), matching this file's identical previous constant.
-    private static readonly Cursor ColumnResizeCursor = new(StandardCursorType.SizeWestEast);
+    public static string Label => UiText.Get("panes.splitter.resize_sidebar");
 
-    public bool IsActive { get; set; } = true; // :379 let isActive: Bool
-    public Action? OnBegin { get; set; } // :380 let onBegin: () -> Void
-    public Action<double>? OnChange { get; set; } // :381 let onChange: (CGFloat) -> Void
-    public Action? OnEnd { get; set; } // :382 let onEnd: () -> Void
-
-    /// <summary>:384-399 <c>var body: some View</c>. The one <see cref="DragHandle"/> configuration every
-    /// SidebarResizeHandle installs: horizontal axis, the 10/22/2.5 grip with a glow starting 30 points down
-    /// (trafficLightTop + trafficLightDiameter), re-reading hover on every layout, and the shared column-resize
-    /// cursor. Every literal is unchanged from B2.</summary>
-    private DragHandle Handle() => new()
+    /// <summary>The sidebar's numbers as splitter limits: the collapsed position 0 is part of the reported range.</summary>
+    public static SplitterLimits Limits => new(SidebarLayout.MinimumWidth, SidebarLayout.MaximumWidth, SidebarLayout.DefaultWidth)
     {
-        HandleAxis = DragHandleView.Axis.Horizontal, // :386 axis: .horizontal
-        HandleGrip = new DragHandleView.Grip(
-            RestLength: 10, ShownLength: 22, Thickness: 2.5, // :388-390
-            GlowInset: Chrome.TrafficLightTop + Chrome.TrafficLightDiameter, // :391
-            RefreshesHoverOnLayout: true), // :392
-        HandleCursor = ColumnResizeCursor, // :394 cursor: .columnResize
-        IsActive = IsActive, // :395
-        OnBegin = OnBegin, // :396
-        OnChange = size => OnChange?.Invoke(size.Width), // :397 onChange: { onChange($0.width) }
-        OnEnd = OnEnd, // :398
+        Collapse = SplitterCollapse.BelowMinimum,
+        CollapsedValue = 0,
+        CollapsedText = UiText.Get("panes.splitter.sidebar_hidden"),
     };
 
-    // :269-286 DragHandle.makeNSView(context:), reached through this file's own body (SwiftUI resolves a View's
-    // body to build the underlying NSView). App's binding calls this exactly as it called
-    // SidebarResizeHandleView's own constructor before B3.
-    public DragHandleView MakeNSView() => Handle().MakeNSView();
+    private readonly Func<SidebarLayout?> layout;
 
-    // :288-290 DragHandle.updateNSView(_:context:), reached the same way.
-    public void UpdateNSView(DragHandleView view) => Handle().UpdateNSView(view);
+    public SidebarResizeHandle(Func<SidebarLayout?> layout) => this.layout = layout;
+
+    public bool IsActive { get; set; } = true; // :379 let isActive: Bool
+
+    /// <summary>:384-399 <c>var body: some View</c>: the one splitter, vertical, collapsing toward the leading side.</summary>
+    public Splitter MakeSplitter()
+    {
+        var splitter = new Splitter(SplitterOrientation.Vertical, Target())
+        {
+            Label = Label,
+            CollapseSide = SplitterSide.Leading,
+            Width = Splitter.DividerThickness,
+        };
+        Update(splitter);
+        return splitter;
+    }
+
+    /// <summary>:288-290 updateNSView: the active flag and the reported value follow the model.</summary>
+    public void Update(Splitter splitter)
+    {
+        splitter.IsActive = IsActive;
+        splitter.Refresh();
+    }
+
+    private SplitterTarget Target() => new()
+    {
+        OnReport = () => layout() is { } sidebar
+            ? SplitterMath.Report(sidebar.IsVisible ? sidebar.Width : 0, !sidebar.IsVisible, Limits)
+            : SplitterMath.Report(0, true, Limits),
+        OnBegin = () => layout()?.BeginDrag(), // :396
+        OnMove = travel => layout()?.Drag(travel.X), // :397 onChange: { onChange($0.width) }
+        OnEnd = _ => layout()?.EndDrag(), // :398
+        OnReset = () => layout()?.SetWidth(SidebarLayout.DefaultWidth),
+        OnStep = delta =>
+        {
+            if (layout() is { IsVisible: true } sidebar) sidebar.SetWidth(sidebar.Width + delta.X);
+        },
+        OnStepTo = maximum => layout()?.SetWidth(maximum ? SidebarLayout.MaximumWidth : SidebarLayout.MinimumWidth),
+        OnCollapse = collapse =>
+        {
+            if (layout() is { } sidebar && sidebar.IsVisible == collapse) sidebar.Toggle();
+        },
+        OnSetValue = value =>
+        {
+            if (layout() is not { } sidebar) return;
+            if (value < SidebarLayout.CollapseThreshold)
+            {
+                if (sidebar.IsVisible) sidebar.Toggle();
+            }
+            else sidebar.SetWidth(value);
+        },
+    };
 }

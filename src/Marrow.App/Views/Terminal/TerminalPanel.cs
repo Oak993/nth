@@ -10,10 +10,13 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
+using Marrow.App.Views.Panes;
 using Marrow.App.Views.Terminal.Port;
 using Marrow.App.Window;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
@@ -34,10 +37,11 @@ public sealed class TerminalPanel : Decorator
     private readonly Grid content;
     private readonly StackPanel tabStrip;
     private readonly Border terminalArea;
-    private readonly DragHandleView resizeHandle;
+    private readonly Splitter resizeHandle;
+    private readonly SplitterValue resizeValue;
     private AppModel? model;
-    private double? dragOrigin;
     private double? dragHeight;
+    private bool closePending;
 
     /// <param name="runtime">:7</param>
     /// <param name="directory">:8</param>
@@ -63,12 +67,15 @@ public sealed class TerminalPanel : Decorator
             VerticalAlignment = VerticalAlignment.Center,
         };
 
+        // PORT-ONLY (web W4): the third column is the source's empty one (:25 the Spacer's place before the chevron); it holds the
+        // drawer's "Move to the panes" button once the drawer is inside a pane workspace, and stays 0 wide before that.
         var header = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("*,Auto,0,Auto"),
+            ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto,Auto"),
             Height = 38,
             Margin = new Thickness(10, 0),
             ColumnSpacing = 6,
+            Background = Brushes.Transparent, // web W4: the empty header area takes the press that lifts the drawer (DESIGN 3.6)
         };
         Grid.SetColumn(scrollingTabs, 0);
         header.Children.Add(scrollingTabs);
@@ -80,6 +87,36 @@ public sealed class TerminalPanel : Decorator
         });
         Grid.SetColumn(add, 1);
         header.Children.Add(add);
+
+        // PORT-ONLY (web W4, DESIGN 3.1, 3.6): the drawer can go to the pane grid. A drag of the header's empty area does it by
+        // pointer (DrawerLiftGesture); this button is the way without one.
+        var dock = MakeIconButton("rectangle.righthalf.inset.fill", UiText.Get("panes.terminal.move_to_panes"), () =>
+            runtime.Workspace = runtime.Workspace.MoveTerminalToGrid());
+        dock.IsVisible = false;
+        Grid.SetColumn(dock, 2);
+        header.Children.Add(dock);
+        // Shown inside a pane workspace; enabled where the terminal then fits beside a readable chat (a narrower window would turn
+        // the workspace into tabs, DESIGN 3.8), re-read when the workspace's size or the thread's workspace changes.
+        PaneWorkspace? dockHost = null;
+        void UpdateDock()
+        {
+            var host = this.FindAncestorOfType<PaneWorkspace>();
+            dock.IsVisible = host is not null;
+            dock.IsEnabled = host?.CanDockTerminalToGrid(runtime.Workspace) == true;
+            if (ReferenceEquals(host, dockHost)) return;
+            if (dockHost is not null) dockHost.SizeChanged -= OnDockHostResized;
+            dockHost = host;
+            if (host is not null) host.SizeChanged += OnDockHostResized;
+        }
+        void OnDockHostResized(object? sender, SizeChangedEventArgs e) => UpdateDock();
+        AttachedToVisualTree += (_, _) => UpdateDock();
+        DetachedFromVisualTree += (_, _) =>
+        {
+            if (dockHost is not null) dockHost.SizeChanged -= OnDockHostResized;
+            dockHost = null;
+        };
+        this.Track(() => runtime.Workspace, _ => UpdateDock());
+        DrawerLiftGesture.Attach(header, () => this.FindAncestorOfType<PaneWorkspace>(), () => this);
 
         // :52 .help("Hide terminal\(ShortcutStore.hint(for: .toggleTerminal))"): the chord is read live, so a remapped or
         // cleared Toggle terminal shortcut corrects the tooltip. :53 the accessibility label never carries it.
@@ -108,22 +145,43 @@ public sealed class TerminalPanel : Decorator
         Grid.SetRow(terminalArea, 1);
         content.Children.Add(terminalArea);
 
-        // :113-131 TerminalResizeHandle.body wraps the shared DragHandle; TerminalResizeHandleView installs the
-        // one configuration that struct's body used to build (BLK-none, coordinator review 6.2: previously a
-        // hand-rolled Control duplicated DragHandleView's press/drag/release and paint logic instead of using it,
-        // which meant it never picked up DragHandleView's 0.18s grip transition, painted the grip from
-        // Chrome.PrimaryText instead of the source's own label colour, and called onEnd from the capture-lost
-        // path where DragHandleView deliberately does not).
-        resizeHandle = new TerminalResizeHandleView
+        // DESIGN 4.3 (web W1, ED-NEW-web-w1-4): the drawer's top edge is the shared Splitter (it replaces
+        // TerminalResizeHandle's 8-point DragHandle strip, :113-131). It is centred on the edge, half above the drawer and
+        // half inside it, outside the rounded clip. The numbers are the source's: 140 to 760 (:89), 260 by default, saved to
+        // the global terminalHeight on release (:91-96); released under 84 DIP the drawer closes (new).
+        resizeValue = new SplitterValue(this, SplitterOrientation.Horizontal, ResizeLimits, new SplitterState(ResizeLimits.Default), ShowResize, CommitResize);
+        resizeHandle = new Splitter(SplitterOrientation.Horizontal, new SplitterTarget
         {
-            OnBegin = BeginResize,
-            OnChange = ChangeResize,
-            OnEnd = EndResize,
-        }.MakeNSView();
-        resizeHandle.Height = 8;
-        resizeHandle.HorizontalAlignment = HorizontalAlignment.Stretch;
-        resizeHandle.VerticalAlignment = VerticalAlignment.Top;
-        resizeHandle.ZIndex = 1;
+            OnReport = resizeValue.Report,
+            OnSettle = () =>
+            {
+                if (resizeValue.IsAnimating) resizeValue.Settle();
+            },
+            OnBegin = () =>
+            {
+                runtime.IsTerminalResizing = true; // :87
+                resizeValue.Begin();
+            },
+            OnMove = resizeValue.Move,
+            OnEnd = moved =>
+            {
+                resizeValue.End(moved);
+                if (!closePending) runtime.IsTerminalResizing = false; // :95
+            },
+            OnReset = resizeValue.Reset,
+            OnStep = resizeValue.Step,
+            OnStepTo = resizeValue.StepTo,
+            OnCollapse = resizeValue.Collapse,
+            OnSetValue = resizeValue.SetValue,
+        })
+        {
+            Label = UiText.Get("panes.terminal.resize"),
+            CollapseSide = SplitterSide.Trailing,
+            Height = Splitter.DividerThickness,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(0, -Splitter.DividerThickness / 2, 0, 0),
+        };
 
         surface = new Grid
         {
@@ -131,7 +189,6 @@ public sealed class TerminalPanel : Decorator
             VerticalAlignment = VerticalAlignment.Stretch,
         };
         surface.Children.Add(content);
-        surface.Children.Add(resizeHandle);
 
         // :100-108 Rounded top corners; the panel reads as a sheet rising into the conversation.
         panelBorder = new Border
@@ -140,7 +197,7 @@ public sealed class TerminalPanel : Decorator
             ClipToBounds = true,
             CornerRadius = new CornerRadius(16, 16, 0, 0),
         };
-        Child = panelBorder;
+        Child = new Panel { Children = { panelBorder, resizeHandle } };
         UpdatePanelColor();
         ActualThemeVariantChanged += (_, _) => UpdatePanelColor();
 
@@ -161,7 +218,19 @@ public sealed class TerminalPanel : Decorator
 
     /// <summary>The drag-only clamp from the resize callback.</summary>
     public static double ClampDragHeight(double height) =>
-        Math.Min(760, Math.Max(140, height)); // :89
+        Math.Min(ResizeLimits.Maximum, Math.Max(ResizeLimits.Minimum, height)); // :89
+
+    /// <summary>DESIGN 4.3: 140 · 260 · 760 (:89); released under 84 DIP (56 past the minimum) the drawer closes.</summary>
+    public static SplitterLimits ResizeLimits => new(140, 760, 260)
+    {
+        Collapse = SplitterCollapse.BelowMinimum,
+        CollapsedValue = 0,
+        Growth = -1,
+        CollapsedText = UiText.Get("panes.terminal.closed"),
+    };
+
+    /// <summary>The drawer's top-edge splitter.</summary>
+    internal Splitter ResizeSplitter => resizeHandle;
 
     private void TrackPanelState()
     {
@@ -184,8 +253,19 @@ public sealed class TerminalPanel : Decorator
             state =>
             {
                 model = state.Item1;
+                resizeValue.Load(new SplitterState(state.Item2)); // the stored height changed (here or in another window)
                 ApplyHeight();
             });
+
+        // A drawer closed by a drag and opened again before it left (the same panel comes back) opens at the stored height.
+        this.Track(() => runtime.IsTerminalVisible, visible =>
+        {
+            if (!visible || model is null || resizeValue.Model.IsDragging) return;
+            closePending = false;
+            resizeValue.Load(new SplitterState(model.Settings.TerminalHeight));
+            if (!resizeValue.IsAnimating) dragHeight = null;
+            ApplyHeight();
+        });
     }
 
     private void RebuildBody(
@@ -232,12 +312,18 @@ public sealed class TerminalPanel : Decorator
     /// </summary>
     internal void TakeKeyboardIfWanted() => (terminalArea.Child as TerminalHost)?.TakeKeyboardIfWanted();
 
-    private Control MakeEmptyState(AppModel current)
+    private Control MakeEmptyState(AppModel current) => EmptyState(this, current, runtime, directory);
+
+    /// <summary>
+    /// :64-78 The empty state: no shell is open in this thread. Shared with the terminal pane (web W4); <paramref name="owner"/>
+    /// is the control whose theme the label's colour follows.
+    /// </summary>
+    internal static Control EmptyState(Control owner, AppModel current, ThreadRuntime runtime, string directory)
     {
         var label = new TextBlock
         {
             Text = "No shell open in this thread", // :68
-            Foreground = Chrome.SecondaryText.Brush(this), // :70
+            Foreground = Chrome.SecondaryText.Brush(owner), // :70
             HorizontalAlignment = HorizontalAlignment.Center,
             TextAlignment = TextAlignment.Center,
         };
@@ -284,77 +370,51 @@ public sealed class TerminalPanel : Decorator
         Height = dragHeight ?? model.Settings.TerminalHeight;
     }
 
-    // :86-90
-    private void BeginResize()
+    // :86-90 Every drawn height of a drag, a key or a reset (the splitter's spring) is the drawer's height until it lands on
+    // the stored one; idle, the stored height is used verbatim (:80).
+    private void ShowResize(double height)
     {
-        if (model is null) return;
-        dragOrigin = model.Settings.TerminalHeight;
-        runtime.IsTerminalResizing = true;
+        dragHeight = height;
+        ApplyHeight();
+        if (resizeValue is null || resizeValue.Model.IsDragging || resizeValue.Model.Shown.IsMoving) return;
+        if (closePending)
+        {
+            Close();
+            return;
+        }
+        if (model is { } current && !resizeValue.Model.State.IsCollapsed && height == current.Settings.TerminalHeight) dragHeight = null;
     }
 
-    private void ChangeResize(double delta)
+    // :91-96 A release (or a key) commits the height to the global terminalHeight key. Released collapsed, the drawer closes
+    // once its spring has landed at nothing; the stored height stays the one it had before the drag.
+    private void CommitResize(SplitterState state)
     {
-        if (model is null) return;
-        var origin = dragOrigin ?? model.Settings.TerminalHeight;
-        dragHeight = ClampDragHeight(origin + delta);
+        if (model is not { } current) return;
+        if (state.IsCollapsed)
+        {
+            closePending = true;
+            if (!resizeValue.Model.Shown.IsMoving) Close();
+            return;
+        }
+        current.Settings.TerminalHeight = state.Value;
+        if (!resizeValue.Model.Shown.IsMoving) dragHeight = null;
         ApplyHeight();
     }
 
-    // :91-96
-    private void EndResize()
+    private void Close()
     {
-        if (model is { } current && dragHeight is { } committed)
-            current.Settings.TerminalHeight = committed;
-        dragHeight = null;
-        dragOrigin = null;
+        closePending = false;
         runtime.IsTerminalResizing = false;
-        ApplyHeight();
+        runtime.IsTerminalVisible = false;
     }
 
-    private static Color PanelColor(bool isDark) =>
+    internal static Color PanelColor(bool isDark) =>
         isDark ? Color.FromRgb(20, 20, 20) : Color.FromRgb(251, 251, 251); // :107
 
     private void UpdatePanelColor()
     {
         panelBorder.Background = new SolidColorBrush(PanelColor(SwiftTheme.IsDark(this)));
     }
-}
-
-/// <summary>:113-131 <c>private struct TerminalResizeHandle: View</c>. The one <see cref="DragHandle"/>
-/// configuration the drawer's top-edge strip installs: vertical axis, the 12/28/2.5 grip (PR-TERM-016) and the
-/// up/down resize cursor (PR-TERM-012), leaving every press/drag/release mechanic, the grip's 0.18s hover/drag
-/// transition and its label-colour fill, and the capture-lost handling to the shared <see cref="DragHandleView"/>
-/// (coordinator review 6.2: this file previously reimplemented all of that by hand instead of wrapping the shared
-/// component, so it never picked up the transition, painted from Chrome.PrimaryText instead of the source's own
-/// label colour, and called onEnd from a lost pointer capture, which DragHandleView deliberately never does,
-/// matching AppKit's own mid-drag-detach behaviour at DragHandle.swift:127-133).</summary>
-public sealed class TerminalResizeHandleView
-{
-    // :125 cursor: .resizeUpDown. One shared instance, matching WindowChrome.cs's SidebarResizeHandle
-    // ColumnResizeCursor (PR-WIN-049's "the same shared cursor, not a new one per view").
-    internal static readonly Cursor ResizeCursor = new(StandardCursorType.SizeNorthSouth);
-
-    public Action? OnBegin { get; set; } // :115 let onBegin: () -> Void
-    public Action<double>? OnChange { get; set; } // :117-118 let onChange: (CGFloat) -> Void
-    public Action? OnEnd { get; set; } // :119 let onEnd: () -> Void
-
-    /// <summary>:122-129 <c>var body: some View</c>.</summary>
-    private DragHandle Handle() => new()
-    {
-        HandleAxis = DragHandleView.Axis.Vertical, // :123 axis: .vertical
-        HandleGrip = new DragHandleView.Grip(RestLength: 12, ShownLength: 28, Thickness: 2.5), // :124
-        HandleCursor = ResizeCursor, // :125 cursor: .resizeUpDown
-        OnBegin = OnBegin, // :126
-        OnChange = size => OnChange?.Invoke(size.Height), // :127 onChange: { onChange($0.height) }
-        OnEnd = OnEnd, // :128
-    };
-
-    // :282-286 DragHandle.makeNSView(context:), reached through this struct's own body, exactly as
-    // WindowChrome.cs's SidebarResizeHandle reaches the same wrapper for its own axis and grip.
-    public DragHandleView MakeNSView() => Handle().MakeNSView();
-
-    // :288-290 DragHandle.updateNSView(_:context:), reached the same way.
-    public void UpdateNSView(DragHandleView view) => Handle().UpdateNSView(view);
 }
 
 /// <summary>:133-186 A terminal tab chip.</summary>
@@ -401,12 +461,25 @@ internal sealed class TerminalTab : Border
         SwiftFont.Callout.Apply(title); // :172 .font(.callout), inherited by the title
         title.Foreground = (isSelected ? SwiftColor.Primary : SwiftColor.Secondary).Brush(title); // :175
         row.Children.Add(title);
+        // PORT-ONLY: DESIGN 5.6, ED-NEW-web-w9-3. The discovered address is an explicit Open preview gesture.
+        var previewLabel = new TextBlock { FontSize = 11 };
+        var preview = new Button { Content = previewLabel }.Chip();
+        ToolTip.SetTip(preview, UiText.Get("panes.preview.open"));
+        preview.Click += (_, e) => { session.OpenPreview?.Invoke(); e.Handled = true; };
+        void PreviewReady(string? address)
+        {
+            if (address is null) { row.Children.Remove(preview); return; }
+            previewLabel.Text = UiText.Format("panes.preview.ready", Marrow.Core.Web.WebPolicy.SourceName(address));
+            AutomationProperties.SetName(preview, previewLabel.Text);
+            if (!row.Children.Contains(preview)) row.Children.Insert(row.Children.IndexOf(closeButton), preview);
+        }
 
         restartButton = IconAction("arrow.clockwise", "Start a new shell in this tab", restart);
 
         closeButton = IconAction("xmark", "Close terminal", close);
         AutomationProperties.SetName(closeButton, "Close " + session.Title);
         row.Children.Add(closeButton);
+        PreviewReady(session.PreviewUrl); this.Track(() => session.PreviewUrl, PreviewReady);
 
         Child = row;
         Padding = new Thickness(10, 5);
@@ -500,14 +573,18 @@ public sealed class TerminalHost : Decorator
 {
     private readonly TerminalSession session;
     private readonly ThreadRuntime runtime;
-    private readonly Action onEscapeAtPrompt;
+    private readonly Action? onEscapeAtPrompt;
     private bool escapeListenerAttached;
     private static int activeEscapeListenerCount;
 
     /// <summary>Test readback for PR-TERM-032: one scoped listener per attached host.</summary>
     internal static int ActiveEscapeListenerCount => activeEscapeListenerCount;
 
-    public TerminalHost(TerminalSession session, ThreadRuntime runtime, Action onEscapeAtPrompt)
+    /// <param name="onEscapeAtPrompt">
+    /// What a bare Escape at the shell's prompt does (:214-221: the drawer closes). Null in a pane (web W4): a pane stays until it
+    /// is closed, so Escape always reaches the shell.
+    /// </param>
+    public TerminalHost(TerminalSession session, ThreadRuntime runtime, Action? onEscapeAtPrompt)
     {
         this.session = session;
         this.runtime = runtime;
@@ -573,7 +650,7 @@ public sealed class TerminalHost : Decorator
         if (e.Key != Key.Escape) return;
         var modifiers = KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Shift | KeyModifiers.Meta;
         var bare = (e.KeyModifiers & modifiers) == KeyModifiers.None;
-        if (bare && session.View.IsFocused && session.IsRunning && TerminalSession.ForegroundJobIsTheShell(session.View.ProcessId))
+        if (bare && onEscapeAtPrompt is not null && session.View.IsFocused && session.IsRunning && TerminalSession.ForegroundJobIsTheShell(session.View.ProcessId))
         {
             onEscapeAtPrompt();
             e.Handled = true;
@@ -595,6 +672,10 @@ public sealed class TerminalHostContainer : Decorator
     private PropertyChangedEventHandler? resizeStarted;
     private PropertyChangedEventHandler? resizeEnded;
     private bool wasLiveResizing;
+
+    // PORT-ONLY (web W3b, DESIGN 3.7): the terminal is a content scope. The shell gets every key first (Ctrl+D is end of input,
+    // Ctrl+Backslash is quit); nth takes only the reserved chords from here.
+    public TerminalHostContainer() => ShortcutScopeHost.SetScope(this, ShortcutScope.Content);
 
     /// <summary>Actual registrations for the two will-start/did-end observers in Swift.</summary>
     internal int ResizeObserverCount => (resizeStarted is null ? 0 : 1) + (resizeEnded is null ? 0 : 1);
@@ -668,18 +749,25 @@ public sealed class TerminalHostContainer : Decorator
         var currentResize = liveResize;
         resizeStarted = (_, change) =>
         {
-            if (change.PropertyName != nameof(WindowLiveResize.IsActive) || !currentResize.IsActive) return;
+            if (!IsReshapingProperty(change.PropertyName) || !Reshaping(currentResize)) return;
             wasLiveResizing = true;
             IsAutoResizing = false;
         };
         resizeEnded = (_, change) =>
         {
-            if (change.PropertyName == nameof(WindowLiveResize.IsActive) &&
-                !currentResize.IsActive && wasLiveResizing) FinishResize();
+            if (IsReshapingProperty(change.PropertyName) &&
+                !Reshaping(currentResize) && wasLiveResizing) FinishResize();
         };
         currentResize.PropertyChanged += resizeStarted;
         currentResize.PropertyChanged += resizeEnded;
     }
+
+    // PORT-ONLY (web W4): a pane gutter being dragged, or the chat column springing beside the terminal, reshapes the terminal like
+    // a window resize does: its grid follows at the 50 ms beat, not once per frame (DESIGN 2.6, 4.2 "Live reflow").
+    private static bool Reshaping(WindowLiveResize resize) => resize.IsActive || resize.IsWorkspaceResizing;
+
+    private static bool IsReshapingProperty(string? name) =>
+        name == nameof(WindowLiveResize.IsActive) || name == nameof(WindowLiveResize.IsWorkspaceResizing);
 
     private WindowLiveResize? ResolveLiveResize()
     {
@@ -692,7 +780,7 @@ public sealed class TerminalHostContainer : Decorator
     protected override Size ArrangeOverride(Size finalSize)
     {
         if (Child is not { } child) return finalSize;
-        var active = liveResize?.IsActive == true;
+        var active = liveResize is { } resize && Reshaping(resize);
         if (active)
         {
             wasLiveResizing = true;

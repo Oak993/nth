@@ -1,0 +1,56 @@
+{
+  "language": "hi",
+  "note": "Labels as Hindi pages write them. Written for nth (ED-NEW-web-w22-1); the owner reads Hindi and can correct any of them. The forms nth already kept for Tactus (PcPolicyTests) are among them.",
+  "guarded": [
+    { "name": "भेजें", "word": "send", "category": "Send" },
+    { "name": "ईमेल भेजें", "word": "send", "category": "Send" },
+    { "name": "संदेश भेजें", "word": "send", "category": "Send" },
+    { "name": "हटाएं", "word": "delete", "category": "Delete" },
+    { "name": "बातचीत हटाएं", "word": "delete", "category": "Delete" },
+    { "name": "खाता हटाएं", "word": "delete account", "category": "Delete" },
+    { "name": "अकाउंट डिलीट करें", "word": "delete account", "category": "Delete" },
+    { "name": "साइन आउट", "word": "sign out", "category": "SignOut" },
+    { "name": "लॉग आउट", "word": "sign out", "category": "SignOut" },
+    { "name": "लॉगआउट", "word": "sign out", "category": "SignOut" },
+    { "name": "प्रकाशित करें", "word": "publish", "category": "Post" },
+    { "name": "पोस्ट करें", "word": "post", "category": "Post" },
+    { "name": "सबमिट करें", "word": "submit", "category": "Submit" },
+    { "name": "जमा करें", "word": "submit", "category": "Submit" },
+    { "name": "ट्रांसफ़र करें", "word": "transfer", "category": "Order" },
+    { "name": "स्थानांतरण", "word": "transfer", "category": "Order" },
+    { "name": "इंस्टॉल करें", "word": "install", "category": "Install" },
+    { "name": "अनइंस्टॉल करें", "word": "uninstall", "category": "Delete" },
+    { "name": "ऑर्डर", "word": "order", "category": "Order" }
+  ],
+  "denied": [
+    { "name": "भुगतान करें", "refusal": "payment" },
+    { "name": "अभी खरीदें", "refusal": "payment" },
+    { "name": "खरीदारी पूरी करें", "refusal": "payment" },
+    { "name": "ऑर्डर करें", "refusal": "payment" },
+    { "name": "ऑर्डर दें", "refusal": "payment" },
+    { "name": "साइन अप", "refusal": "account" },
+    { "name": "खाता बनाएं", "refusal": "account" },
+    { "name": "रजिस्टर करें", "refusal": "account" },
+    { "name": "मैं रोबोट नहीं हूँ", "refusal": "captcha" },
+    { "name": "कैप्चा", "refusal": "captcha" }
+  ],
+  "allowed": [
+    "खोजें", "रद्द करें", "वापस जाएं", "आगे बढ़ें", "होम", "सेटिंग्स", "बंद करें", "अगला", "पिछला", "मेनू", "लॉग इन", "साइन इन",
+    "खोलें", "जवाब दें", "सहेजें", "संपादित करें", "डाउनलोड करें"
+  ],
+  "variants": [
+    { "what": "nukta written as one letter (U+095E), the listed form has the plain letter", "name": "ट्रांस\u095Eर करें", "word": "transfer" },
+    { "what": "nukta written as a letter and a sign", "name": "ट्रांसफ\u093Cर करें", "word": "transfer" },
+    { "what": "a nukta the list does not have (khareeden with the sign)", "name": "ख\u093Cरीदें", "word": "buy" },
+    { "what": "candrabindu for anusvara", "name": "बातचीत हटाए\u0901", "word": "delete" },
+    { "what": "a zero-width joiner inside the word", "name": "भे\u200Dजें", "word": "send" },
+    { "what": "a zero-width non-joiner between two words", "name": "साइन\u200Cआउट", "word": "sign out" },
+    { "what": "a non-breaking space then more words", "name": "भेजें\u00A0संदेश", "word": "send" },
+    { "what": "direction marks around the word", "name": "\u200Eभेजें\u200F", "word": "send" },
+    { "what": "a hyphen between the words", "name": "लॉग-आउट", "word": "sign out" }
+  ],
+  "mixed": [
+    { "what": "Hindi beside English", "name": "संदेश भेजें (Send)", "word": "send" },
+    { "what": "Hindi beside Urdu", "name": "भेजें / بھیجیں", "word": "send" }
+  ]
+}

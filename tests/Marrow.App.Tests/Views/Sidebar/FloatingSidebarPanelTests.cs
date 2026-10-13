@@ -329,10 +329,13 @@ public sealed class FloatingSidebarPanelTests(HeadlessSession headless)
 
     // ---- PR-SIDEBAR-146, PR-SIDEBAR-158, UI-SIDEBAR-049: resizing the panel ----
 
+    // web W1 (DESIGN 4.3, ED-NEW-web-w1-6): the corner grip is the shared Splitter, still 16 by 16 at the bottom-right corner;
+    // its tooltip is the shared "Resize" chip (the "Drag to resize" ToolTip, :84, is superseded) and it draws the shared corner
+    // glyph only while hovered, pressed or focused.
     [Fact]
     [Trait("Req", "PR-SIDEBAR-146")] // App/Views/Sidebar/FloatingSidebarPanel.swift:69-85 the 16x16 grip at the bottom-right corner
-    [Trait("Req", "UI-SIDEBAR-049")] // App/Views/Sidebar/FloatingSidebarPanel.swift:69-85
-    public void The_grip_is_16_by_16_at_the_bottom_trailing_corner_and_tooltipped_Drag_to_resize() => headless.OnUiThread(() =>
+    [Trait("Decision", "ED-NEW-web-w1-6")]
+    public void The_grip_is_16_by_16_at_the_bottom_trailing_corner_with_the_shared_Resize_tooltip() => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness();
         using var rig = new FloatingSidebarPanelRig(launch, new Size(800, 700));
@@ -341,8 +344,12 @@ public sealed class FloatingSidebarPanelTests(HeadlessSession headless)
         var frame = RootViewRig.In(grip, rig.Surface);
 
         Assert.Equal(new Rect(300 - 16, 560 - 16, 16, 16), frame); // :83 .frame(width: 16, height: 16) in .bottomTrailing
-        Assert.Equal("Drag to resize", ToolTip.GetTip(grip)); // :84
-        Assert.Null(Assert.IsType<DragHandleView>(grip.Child).HandleGrip); // transparent: nothing drawn
+        Assert.Null(ToolTip.GetTip(grip)); // the shared chip instead of a ToolTip
+        Assert.Equal("Resize", Assert.IsType<TextBlock>(grip.TipChip.Child).Text);
+        Assert.Equal(SplitterCorner.BottomRight, grip.Corner);
+        Assert.Null(grip.Handle.HandleGrip); // the mechanics draw nothing; the shared grip draws the corner glyph
+        Assert.False(grip.Grip.IsShown); // at rest
+        Assert.Equal("Resize sidebar", grip.Label);
     });
 
     [Fact]
@@ -353,7 +360,7 @@ public sealed class FloatingSidebarPanelTests(HeadlessSession headless)
         using var launch = new LaunchHarness();
         using var rig = new FloatingSidebarPanelRig(launch, new Size(800, 700));
 
-        var view = Assert.IsType<DragHandleView>(rig.Grip.Child);
+        var view = rig.Grip.Handle;
 
         Assert.Equal("BottomRightCorner", view.HandleCursor.ToString());
         Assert.Equal("BottomRightCorner", view.DragCursor!.ToString());

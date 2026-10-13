@@ -41,6 +41,8 @@ public static class Program
     {
         if (!InstalledByVelopack(baseDirectory)) return;
         var app = VelopackApp.Build();
+        // Web surfaces W23 (ED-NEW-web-w23-3): Visus's browser data (%LOCALAPPDATA%\nth\WebView2) goes first, with its own 5 s budget.
+        WebDataUninstallHook.Register(hook => app.OnBeforeUninstallFastCallback(hook), Marrow.Services.Web.WebDataRoot.Resolve);
         // nth installer PLAN.md 5 (unit U9, ED-NEW-inst-u9-1): the setup's leftover folders go with the app, unless a setup or the uninstaller is open.
         SetupLeftoversStartup.RegisterUninstall(hook => app.OnBeforeUninstallFastCallback(hook));
         // SK-13 / DL-16: the skills and tools data is unlocked and deleted before Velopack removes the app (ONDEMAND-PLAN.md 3.8).
@@ -89,6 +91,9 @@ public static class Program
         // SK-17's exact-prefix exception (ED-235, ED-636), so it too precedes Velopack, single-instance, settings and desktop work.
         if (args.FirstOrDefault() == Marrow.Services.Port.Advisor.AdvisorMcpBridge.Command)
             return Marrow.Services.Port.Advisor.AdvisorMcpBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
+        // ED-NEW-web-w12-1: the nth-ui relay (Tabula's artifact tools), the same kind of private headless child.
+        if (args.FirstOrDefault() == Marrow.Services.Web.UiMcpBridge.Command)
+            return Marrow.Services.Web.UiMcpBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
         // Tactus (OD-0140, ED-NEW-pcctl-10): the nth-pc relay, the same kind of private headless child.
         if (args.FirstOrDefault() == Marrow.Services.Port.PcControl.PcControlBridge.Command)
             return Marrow.Services.Port.PcControl.PcControlBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
@@ -190,7 +195,14 @@ public static class Program
         Marrow.App.Port.MultiAccount.Capsule.ComposerCapsuleSeams.Bind(); // step 3a: the composer shows the account capsule
         Marrow.App.Port.Ignis.Runtime.IgnisRuntimeStartup.Bind(); // Ignis (ED-NEW-ignis-runtime): the controller, made on first use once the U1 parts are bound
         Marrow.App.Port.Advisor.AdvisorRuntimeStartup.Bind(); // ED-NEW-ignisadvisor-2: a Droppy Hydra head asks its lead's model (ask_advisor)
+        Marrow.App.Port.Tabula.ArtifactRuntimeStartup.Bind(); // ED-NEW-web-w12-1: Tabula's artifacts, on disk per thread, for every model
+        Marrow.App.Views.Diff.DiffPane.Register(); Marrow.App.Views.Terminal.TerminalPane.Register(); Marrow.App.Views.Browser.VisusPane.Register(); // ED-NEW-web-w4-1, ED-NEW-web-w8a-1: the Changes, Terminal and Visus panes, with the other panes and not in the prologue (PR-LAUNCH-001: it carries only HangWatchdog.Start)
+        Marrow.App.Views.Panes.BackgroundTasksPane.Register(); Marrow.App.Views.Panes.TranscriptPane.Register(); // ED-NEW-web-w5-1: the Background tasks and Transcript panes draw in the pane workspace
+        Marrow.App.Port.Web.AppWebSurface.Enable(); Marrow.App.Views.Artifacts.TabulaPane.Register(); // ED-NEW-web-w14-1: the Tabula pane, its pages on the process's one web surface
+        Marrow.App.Port.AskUser.AskUserStartup.Bind(); // ED-NEW-web-w25-1: ask_user, a blocking question card in the thread, for every model
+        Marrow.App.Views.Panes.SideChatPane.Register(); // ED-NEW-web-w6-1: Ctrl+; opens Side chat, a second conversation about the thread
         Marrow.App.Port.PcControl.PcControlStartup.Bind(); // Tactus (OD-0140, ED-NEW-pcctl-9): the capture seams, Windows.Graphics.Capture and the Skia JPEG encoder
+        Marrow.App.Views.Browser.VisusAgentStartup.Bind(); // ED-NEW-web-w11-1: the web_* tools drive Visus, with its cards, the turn, Stop and Background tasks
         if (skills is not null) SkillsUpdateRows.Attach(skills); // SK-16: the installed items are the Updates page's "Skills and tools" rows (ED-343's hook)
 
         var lifetime = new ClassicDesktopStyleApplicationLifetime
@@ -211,8 +223,14 @@ public static class Program
         MainActor.Bind(AvaloniaMainExecutor.Instance);
         StartupPrimes.PrimeSymbols(StartupPrimes.Pool); // ED-NEW-perf-startup-structure-5: the SF-symbol mapping (needs Avalonia's asset loader, set up above) is read before the cloaked window's first icon asks for it
         DesktopPerformanceProbe.Start();
-        // SwiftUI's default @Environment(\.openURL): the system opens the link (MarkdownView.swift:1110, :1148).
-        InlineText.OpenUrl = url => Marrow.Services.Port.Workspace.Open.Current(url);
+        // SwiftUI's default @Environment(\.openURL): the system opens the link (MarkdownView.swift:1110, :1148). PORT-ONLY (web surfaces W10, DESIGN 5.11,
+        // ED-NEW-web-w10-2): a link a chat or one of its cards opens follows Settings > Visus > "Open links from chats in" (Ask the first time, Visus or the
+        // default browser); sign-ins (MCP OAuth, account sign-in), update and store links call Workspace.Open themselves and never come through here.
+        InlineText.OpenUrl = url => Marrow.App.Port.Web.ChatLinks.OpenFromAnywhere(url);
+        // PORT-ONLY (W19, ED-NEW-web-w19-3): MCP Apps over the hub, the App pane, the list of app tools (after the main actor and the link setting).
+        Marrow.App.Port.Web.McpApps.McpAppsStartup.Bind();
+        // PORT-ONLY (W10, ED-NEW-web-w10-3): Settings > Visus and Settings > Tabula meet the seams the web units left; the settings attach once the app model exists (FinishStartup).
+        _ = Marrow.App.Port.Web.WebSettingsBinding.Bind(process: true);
 
         var shell = new AppShell(new AppDelegate(), exit: () => lifetime.Shutdown(), afterWillTerminate: () => settings.Synchronize());
         var launchReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -243,6 +261,7 @@ public static class Program
         await Marrow.App.Port.ModelsPalette.PaletteStartup.PrepareAsync(); // ED-622: verified authority before any model/content.
         if (shell.HasTerminated) return;
         Marrow.App.Port.MultiAccount.Thread.ThreadPortSeams.Bind(Marrow.App.Window.WindowManager.Shared.Model);
+        _ = Marrow.App.Port.Web.WebSettingsBinding.Attach(Marrow.App.Window.WindowManager.Shared.Model.Settings.Web); // W10: every web seam reads the reader's choices from here on
         shell.FinishLaunching();
         launchReady.TrySetResult();
         // nth installer PLAN.md 5 (unit U9, ED-NEW-inst-u9-1): nth Setup's leftover folders are removed on the pool once the first window is up, when no setup runs.

@@ -200,7 +200,10 @@ internal sealed class LinkPopoverContent : Decorator
             stack.Children.Add(new PopoverDivider()); // :86
         }
 
-        stack.Children.Add(new PopoverItem("Open Link", () => MarkdownLinkOpener.Open(url), symbol: "safari")); // :88-90
+        stack.Children.Add(new PopoverItem("Open Link", () => OpenLink(url), symbol: "safari")); // :88-90
+        // PORT-ONLY (web surfaces W10): the chat's own rows for this link ("Open in Visus" for an HTML file of the project).
+        if (anchor is not null && MarkdownView.GetChatLinkMenu(anchor) is { } more)
+            foreach (var item in more(url)) stack.Children.Add(new PopoverItem(item.Title, item.Run, symbol: item.Symbol));
         stack.Children.Add(new PopoverItem("Copy Link", () => CopyLink(url), symbol: "link")); // :91-94
 
         var border = new Border
@@ -211,6 +214,14 @@ internal sealed class LinkPopoverContent : Decorator
             HorizontalAlignment = HorizontalAlignment.Left,
         };
         return border;
+    }
+
+    // :88-90 MarkdownLinkOpener.open(url). PORT-ONLY (web surfaces W10): in a chat the link goes through the chat's link hook, so it follows the
+    // reader's "Open links from chats in" choice like a click does; anywhere else, or when the hook declines, the default.
+    private void OpenLink(SwiftURL url)
+    {
+        if (anchor is not null && MarkdownView.GetChatLinkAction(anchor) is { } chat && chat(url, Avalonia.Input.KeyModifiers.None)) return;
+        MarkdownLinkOpener.Open(url);
     }
 
     // :92-93 NSPasteboard.general.clearContents(); NSPasteboard.general.setString(url.absoluteString, forType: .string).

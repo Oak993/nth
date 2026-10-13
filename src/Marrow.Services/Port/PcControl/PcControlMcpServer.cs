@@ -4,11 +4,15 @@
 // replies carry their own id in completion order, notifications/cancelled cancels the call it names (which then sends no
 // reply), and a call that carried a progress token gets notifications/progress while it runs, so a client's own timeout
 // sees the call alive. A connection without a registration, or while Tactus is off, lists no tools and runs none.
+// PORT-ONLY (web surfaces W11, ED-NEW-web-w11-1): with Web set, the same server also lists and runs the web_* tools while
+// Visus model access is on, independent of Tactus's own switch.
 using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Marrow.Core.Models;
 using Marrow.Core.Port.PcControl;
+using Marrow.Core.Web;
+using Marrow.Services.Web;
 
 namespace Marrow.Services.Port.PcControl;
 
@@ -37,6 +41,9 @@ public sealed class PcControlMcpServer(PcRegistration? registration, Func<PcRegi
 
     /// <summary>The progress interval this server uses (<see cref="ProgressEveryMs"/>; tests shorten it).</summary>
     public int ProgressMs { get; init; } = ProgressEveryMs;
+
+    /// <summary>PORT-ONLY (web surfaces W11): the web tools this server also offers; null offers none.</summary>
+    public WebMcpTools? Web { get; init; }
 
     private readonly ConcurrentDictionary<string, CancellationTokenSource> calls = new(StringComparer.Ordinal);
 
@@ -74,7 +81,7 @@ public sealed class PcControlMcpServer(PcRegistration? registration, Func<PcRegi
                         ["protocolVersion"] = ProtocolVersion(parameters),
                         ["capabilities"] = new JsonObject { ["tools"] = new JsonObject() },
                         ["serverInfo"] = new JsonObject { ["name"] = ServerName, ["version"] = "1.0.0" },
-                        ["instructions"] = Offered() ? PcInstructions.Text : "Tactus (PC control) is off for this chat.",
+                        ["instructions"] = Instructions(),
                     });
                 case "ping":
                     return Result(id, new JsonObject());
@@ -94,9 +101,23 @@ public sealed class PcControlMcpServer(PcRegistration? registration, Func<PcRegi
 
     private bool Offered() => registration is not null && settings().Enabled;
 
+    private bool WebOffered() => Web is not null && Web.Offered(registration);
+
+    private string Instructions() => (Offered(), WebOffered()) switch
+    {
+        (true, true) => PcInstructions.Text + "\n\n" + WebAgentText.Instructions,
+        (false, true) => WebAgentText.Instructions,
+        (true, false) => PcInstructions.Text,
+        _ => "Tactus (PC control) is off for this chat.",
+    };
+
     private JsonArray Tools()
     {
         var tools = new JsonArray();
+        if (WebOffered())
+        {
+            foreach (var web in WebMcpTools.Tools()) tools.Add(web);
+        }
         if (!Offered()) return tools;
         foreach (var spec in PcToolSchemas.Listed(settings()))
         {
@@ -115,11 +136,12 @@ public sealed class PcControlMcpServer(PcRegistration? registration, Func<PcRegi
     private async Task<string?> Call(JsonNode? id, JsonNode? parameters, CancellationToken cancellationToken)
     {
         var name = Text(parameters?["name"]);
-        if (!Offered() || registration is null || name is null || !PcToolSchemas.Listed(settings()).Any(spec => spec.Name == name))
+        var web = WebToolSchemas.IsWebTool(name) && WebOffered();
+        if (!web && (!Offered() || registration is null || name is null || !PcToolSchemas.Listed(settings()).Any(spec => spec.Name == name)))
             throw new ArgumentException("Unknown nth-pc tool.");
         if (parameters?["arguments"] is { } given && given is not JsonObject) throw new ArgumentException("Tool arguments must be an object.");
         var arguments = (parameters?["arguments"] as JsonObject)?.DeepClone() as JsonObject ?? [];
-        var engine = engines(registration) ?? throw new ArgumentException("Tactus is not available here.");
+        var engine = web ? null : engines(registration!) ?? throw new ArgumentException("Tactus is not available here.");
 
         var key = Key(id);
         using var call = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -127,14 +149,16 @@ public sealed class PcControlMcpServer(PcRegistration? registration, Func<PcRegi
         if (key is not null && !calls.TryAdd(key, call)) return Error(id, -32600, "A call with this id is already running.");
         using var progress = CancellationTokenSource.CreateLinkedTokenSource(call.Token);
         var reporting = parameters?["_meta"]?["progressToken"] is { } token && notify is not null
-            ? Report(token.DeepClone(), progress.Token)
+            ? Report(token.DeepClone(), web ? "Visus is still working on this step." : "Tactus is still working on this step.", progress.Token)
             : Task.CompletedTask;
         try
         {
-            PcResult result;
+            JsonObject content;
             try
             {
-                result = await engine.Call(name, arguments, call.Token).ConfigureAwait(false);
+                content = web
+                    ? await Web!.Call(registration!, name!, arguments, call.Token).ConfigureAwait(false)
+                    : Content(await engine!.Call(name!, arguments, call.Token).ConfigureAwait(false), registration!.Vision, registration.ImageFolder);
             }
             catch (OperationCanceledException) when (call.IsCancellationRequested)
             {
@@ -142,7 +166,7 @@ public sealed class PcControlMcpServer(PcRegistration? registration, Func<PcRegi
             }
             // A call the client cancelled sends nothing, whatever the engine answered on its way out.
             if (call.IsCancellationRequested) return null;
-            return Result(id, Content(result, registration.Vision, registration.ImageFolder));
+            return Result(id, content);
         }
         finally
         {
@@ -153,7 +177,7 @@ public sealed class PcControlMcpServer(PcRegistration? registration, Func<PcRegi
     }
 
     /// <summary>notifications/progress every <see cref="ProgressMs"/> until the call ends.</summary>
-    private async Task Report(JsonNode token, CancellationToken cancellationToken)
+    private async Task Report(JsonNode token, string message, CancellationToken cancellationToken)
     {
         var count = 0;
         try
@@ -170,7 +194,7 @@ public sealed class PcControlMcpServer(PcRegistration? registration, Func<PcRegi
                     {
                         ["progressToken"] = token.DeepClone(),
                         ["progress"] = count,
-                        ["message"] = "Tactus is still working on this step.",
+                        ["message"] = message,
                     },
                 };
                 await notify!(note.ToJsonString()).ConfigureAwait(false);

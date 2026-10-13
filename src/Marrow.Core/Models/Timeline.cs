@@ -43,6 +43,8 @@ public sealed record TimelineItem
         public sealed record Todos(ValueList<TodoStep> Value) : Content;                 // :23
         public sealed record Notice(global::Marrow.Core.Models.Notice Value) : Content;  // :24
         public sealed record TurnEnd(TurnSummary Value) : Content;                       // :25
+        // PORT-ONLY (web surfaces W25, ED-NEW-web-w25-1): an ask_user card, the model's blocking question to the person.
+        public sealed record Ask(AskCard Value) : Content;
     }
 
     // :28-32
@@ -104,6 +106,7 @@ internal static class TimelineContentCoding
             "todos" => new TimelineItem.Content.Todos(SwiftDecoding.Decode(payload, "_0", field => SwiftDecoding.ReadArray(field, TodoStepConverter.Decode))),
             "notice" => new TimelineItem.Content.Notice(SwiftDecoding.Decode(payload, "_0", NoticeConverter.Decode)),
             "turnEnd" => new TimelineItem.Content.TurnEnd(SwiftDecoding.Decode(payload, "_0", TurnSummaryConverter.Decode)),
+            "ask" => new TimelineItem.Content.Ask(SwiftDecoding.Decode(payload, "_0", AskCardCoding.Decode)), // PORT-ONLY (W25)
             _ => throw new DecodingError("typeMismatch", $"Unknown TimelineItem.Content case \"{caseName}\"."),
         };
     }
@@ -142,6 +145,9 @@ internal static class TimelineContentCoding
             case TimelineItem.Content.TurnEnd v:
                 SwiftEnumCoding.WriteCase(writer, "turnEnd", w => { w.WritePropertyName("_0"); TurnSummaryConverter.WriteMembers(w, v.Value); });
                 break;
+            case TimelineItem.Content.Ask v: // PORT-ONLY (W25)
+                SwiftEnumCoding.WriteCase(writer, "ask", w => { w.WritePropertyName("_0"); AskCardCoding.WriteMembers(w, v.Value); });
+                break;
             default:
                 throw new UnreachableException();
         }
@@ -157,6 +163,10 @@ public sealed record UserMessage
     public ValueList<long>? HydraHeads { get; init; }                           // :63
     public bool? HydraBrief { get; init; }                                      // :66
 
+    // PORT-ONLY (web surfaces W19, DESIGN.md 7.6, ED-NEW-web-w19-3): the MCP server whose App posted this message (ui/message). The row
+    // reads "Message from <server>", never as the user's bubble, and the model gets it wrapped as untrusted app content. Null for the user's own.
+    public string? AppSource { get; init; }
+
     // :68
     public bool IsFromHydra => HydraHeads is not null;
 
@@ -166,10 +176,10 @@ public sealed record UserMessage
     // :58 Hashable: the synthesized equality and hash compare the String text canonically (R-STR-2), where a record's
     // own is ordinal, so "e" + U+0301 and U+00E9 are one text.
     public bool Equals(UserMessage? other) => other is not null && SwiftString.Equal(Text, other.Text) &&
-        Attachments.Equals(other.Attachments) && Equals(HydraHeads, other.HydraHeads) && HydraBrief == other.HydraBrief;
+        Attachments.Equals(other.Attachments) && Equals(HydraHeads, other.HydraHeads) && HydraBrief == other.HydraBrief && AppSource == other.AppSource;
 
     public override int GetHashCode() =>
-        HashCode.Combine(SwiftStringComparer.Instance.GetHashCode(Text), Attachments, HydraHeads, HydraBrief);
+        HashCode.Combine(SwiftStringComparer.Instance.GetHashCode(Text), Attachments, HydraHeads, HydraBrief, AppSource);
 }
 
 internal sealed class UserMessageConverter : JsonConverter<UserMessage>
@@ -186,6 +196,7 @@ internal sealed class UserMessageConverter : JsonConverter<UserMessage>
         Attachments = SwiftDecoding.Decode(element, "attachments", field => SwiftDecoding.ReadArray(field, AttachmentConverter.Decode)),
         HydraHeads = SwiftDecoding.DecodeIfPresent(element, "hydraHeads", field => SwiftDecoding.ReadArray(field, SwiftDecoding.ReadInt)),
         HydraBrief = SwiftDecoding.DecodeIfPresentValue(element, "hydraBrief", SwiftDecoding.ReadBool),
+        AppSource = SwiftDecoding.Value<string?>(element, "appSource", field => SwiftDecoding.ReadString(field), () => null), // PORT-ONLY (W19)
     };
 
     public override void Write(Utf8JsonWriter writer, UserMessage value, JsonSerializerOptions options) => WriteMembers(writer, value);
@@ -206,6 +217,7 @@ internal sealed class UserMessageConverter : JsonConverter<UserMessage>
             writer.WriteEndArray();
         }
         if (value.HydraBrief is { } brief) writer.WriteBoolean("hydraBrief", brief);
+        if (value.AppSource is { } app) writer.WriteString("appSource", app); // PORT-ONLY (W19)
         writer.WriteEndObject();
     }
 }
@@ -449,6 +461,10 @@ public sealed record ToolCall
     public DateTimeOffset StartedAt { get; init; } = SwiftDate.Now;            // :178
     public DateTimeOffset? FinishedAt { get; init; }                           // :179
 
+    // PORT-ONLY (web surfaces W18, ED-NEW-web-w18-1): the structured part of an MCP tool result (images, resource
+    // links, the UI resource uri, structuredContent, _meta) next to the text Output. Null for every other tool.
+    public ToolPayload? Payload { get; init; }
+
     // The mutating methods return the changed copy (R-VAL-1).
     // :181-184. ED-NEW-lean-5: the same Output as TrimOutput(Output + text), without first joining a text that is
     // only cut down again.
@@ -521,6 +537,10 @@ internal sealed class ToolCallConverter : JsonConverter<ToolCall>
         Edits = SwiftDecoding.Decode(element, "edits", field => SwiftDecoding.ReadArray(field, FileEditConverter_Decode)),
         StartedAt = SwiftDecoding.Decode(element, "startedAt", SwiftDecoding.ReadStorageDate),
         FinishedAt = SwiftDecoding.DecodeIfPresentValue(element, "finishedAt", SwiftDecoding.ReadStorageDate),
+        // PORT-ONLY (W18): optional and lenient, a malformed payload never makes a thread unreadable.
+        // An empty payload (nothing a row could show) reads as none, as it is written as none.
+        Payload = SwiftDecoding.Value<ToolPayload?>(element, "payload",
+            field => ToolPayloadConverter.Decode(field) is { IsEmpty: false } payload ? payload : null, () => null),
     };
 
     // FileEdit already has its own JsonConverter (Models/FileEdit.cs); reuse it through JsonSerializer for one
@@ -544,6 +564,11 @@ internal sealed class ToolCallConverter : JsonConverter<ToolCall>
         writer.WriteEndArray();
         writer.WriteString("startedAt", FoundationISO8601.Format(value.StartedAt));
         if (value.FinishedAt is { } finishedAt) writer.WriteString("finishedAt", FoundationISO8601.Format(finishedAt));
+        if (value.Payload is { IsEmpty: false } payload)
+        {
+            writer.WritePropertyName("payload");
+            ToolPayloadConverter.WriteMembers(writer, payload);
+        }
         writer.WriteEndObject();
     }
 }

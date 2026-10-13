@@ -1,0 +1,64 @@
+{
+  "language": "en",
+  "note": "Labels as English pages write them. Written for nth (ED-NEW-web-w22-1); no label is taken from a real site's page.",
+  "guarded": [
+    { "name": "Send", "word": "send", "category": "Send" },
+    { "name": "Send invite", "word": "send", "category": "Send" },
+    { "name": "SEND MESSAGE", "word": "send", "category": "Send" },
+    { "name": "Delete conversation", "word": "delete", "category": "Delete" },
+    { "name": "Delete account", "word": "delete account", "category": "Delete" },
+    { "name": "Delete my account permanently", "word": "delete", "category": "Delete" },
+    { "name": "Sign out", "word": "sign out", "category": "SignOut" },
+    { "name": "Log out", "word": "sign out", "category": "SignOut" },
+    { "name": "Logout", "word": "sign out", "category": "SignOut" },
+    { "name": "Log off", "word": "sign out", "category": "SignOut" },
+    { "name": "Sign-out", "word": "sign out", "category": "SignOut" },
+    { "name": "Log-out", "word": "sign out", "category": "SignOut" },
+    { "name": "Signout", "word": "sign out", "category": "SignOut" },
+    { "name": "Publish", "word": "publish", "category": "Post" },
+    { "name": "Publish post", "word": "publish", "category": "Post" },
+    { "name": "Post comment", "word": "post", "category": "Post" },
+    { "name": "Submit", "word": "submit", "category": "Submit" },
+    { "name": "Submit feedback", "word": "submit", "category": "Submit" },
+    { "name": "Transfer ownership", "word": "transfer", "category": "Order" },
+    { "name": "Install extension", "word": "install", "category": "Install" },
+    { "name": "Uninstall", "word": "uninstall", "category": "Delete" },
+    { "name": "Order", "word": "order", "category": "Order" }
+  ],
+  "denied": [
+    { "name": "Buy now", "refusal": "payment" },
+    { "name": "Pay now", "refusal": "payment" },
+    { "name": "Pay", "refusal": "payment" },
+    { "name": "Place your order", "refusal": "payment" },
+    { "name": "Complete purchase", "refusal": "payment" },
+    { "name": "Confirm and pay", "refusal": "payment" },
+    { "name": "Sign up", "refusal": "account" },
+    { "name": "Sign-up", "refusal": "account" },
+    { "name": "Create an account", "refusal": "account" },
+    { "name": "Register", "refusal": "account" },
+    { "name": "Join now", "refusal": "account" },
+    { "name": "I'm not a robot", "refusal": "captcha" },
+    { "name": "I\u2019m not a robot", "refusal": "captcha" },
+    { "name": "Verify you are human", "refusal": "captcha" }
+  ],
+  "allowed": [
+    "Sender", "Postpone", "Payment history", "Ordered list", "Open", "Search", "Cancel", "Back", "Next", "Settings", "Home",
+    "Reply", "Postal code", "Uninstalled apps", "Forward", "Sign in", "Log in", "Close"
+  ],
+  "variants": [
+    { "what": "full-width letters", "name": "\uFF33\uFF45\uFF4E\uFF44", "word": "send" },
+    { "what": "a zero-width space inside the word", "name": "S\u200Bend", "word": "send" },
+    { "what": "a soft hyphen inside the word", "name": "De\u00ADlete", "word": "delete" },
+    { "what": "a zero-width joiner inside the word", "name": "Pub\u200Dlish", "word": "publish" },
+    { "what": "a non-breaking space between two words", "name": "Sign\u00A0out", "word": "sign out" },
+    { "what": "a zero-width space between two words", "name": "Delete\u200Baccount", "word": "delete account" },
+    { "what": "direction marks around the word", "name": "\u200FSend\u200E", "word": "send" },
+    { "what": "odd capitals", "name": "dElEtE", "word": "delete" },
+    { "what": "extra white space and a mark", "name": "  Send   message \u2026 ", "word": "send" },
+    { "what": "a tab and a line break between two words", "name": "Sign\t\nout", "word": "sign out" }
+  ],
+  "mixed": [
+    { "what": "English beside Hindi", "name": "Send / भेजें", "word": "send" },
+    { "what": "English beside Urdu", "name": "Delete حذف", "word": "delete" }
+  ]
+}

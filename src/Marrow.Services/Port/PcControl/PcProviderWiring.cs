@@ -30,9 +30,13 @@ public static partial class PcProviderWiring
     /// <summary>The newest screenshot files a chat's image folder keeps (older ones are deleted when a new one is saved).</summary>
     public const int KeptImageFiles = 12;
 
-    /// <summary>Every tool name the server can list (the fast helper and pc_ask included).</summary>
+    /// <summary>
+    /// Every tool name the server can list (the fast helper and pc_ask included, and, PORT-ONLY web surfaces W11,
+    /// ED-NEW-web-w11-1, the web_* tools, which nth's own Visus approval governs the same way).
+    /// </summary>
     public static IReadOnlySet<string> ToolNames { get; } = new HashSet<string>(
-        PcToolSchemas.All.Select(t => t.Name).Append(PcToolSchemas.Delegate).Append(PcToolSchemas.Ask), StringComparer.Ordinal);
+        PcToolSchemas.All.Select(t => t.Name).Append(PcToolSchemas.Delegate).Append(PcToolSchemas.Ask)
+            .Concat(Marrow.Core.Web.WebToolSchemas.All.Select(t => t.Name)), StringComparer.Ordinal);
 
     /// <summary>Claude Code: whether a can_use_tool request names one of the server's tools.</summary>
     public static bool IsClaudeTool(string? name) =>
@@ -94,6 +98,6 @@ public static partial class PcProviderWiring
 
     private static string SafeName(string thread) => string.Concat(thread.Select(c => char.IsAsciiLetterOrDigit(c) || c == '-' ? c : '_'));
 
-    [GeneratedRegex(@"^(?:mcp__)?nth-pc(?:__|[-_./]|: )(?<tool>pc_[a-z_]+)(?:$|[:\s(])", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"^(?:mcp__)?nth-pc(?:__|[-_./]|: )(?<tool>(?:pc|web)_[a-z_]+)(?:$|[:\s(])", RegexOptions.CultureInvariant)]
     private static partial Regex AcpTitle();
 }

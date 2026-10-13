@@ -380,6 +380,12 @@ public sealed class LinkParagraphView : Decorator
 /// </summary>
 public static class MarkdownLinkOpener
 {
+    /// <summary>
+    /// PORT-ONLY (web surfaces W10): the local file a link points at, as <see cref="Open"/> would take it (the drive-letter and file forms, the line
+    /// suffix rule applied), or null for a web address, a UNC target or anything that is not a local path. Nothing is opened.
+    /// </summary>
+    public static string? LocalPath(SwiftURL url) => IsUnc(url) ? null : LocalFilePath(url) is { } raw ? ApplyLineSuffixRule(raw) : null;
+
     // :227 static func open(_ url: URL)
     public static void Open(SwiftURL url)
     {
@@ -579,6 +585,12 @@ public sealed class LinkTextView : Decorator
 
     // :355-357 func hasLink(at point: CGPoint) -> Bool
     public bool HasLink(Point at) => LinkAndRange(at) is not null;
+
+    /// <summary>
+    /// PORT-ONLY (web surfaces W10, ED-NEW-web-w10-2): true when a pointer event is over a link of this text, wherever the event is delivered.
+    /// A chat's message menu uses it to leave a Ctrl+click on a link to the link itself.
+    /// </summary>
+    public bool IsOverLink(Avalonia.Input.PointerEventArgs e) => TextHost is { } block && LinkAndRange(e.GetPosition(block)) is not null;
 
     // :360-362 func link(at point: CGPoint) -> URL?
     public SwiftURL? Link(Point at) => LinkAndRange(at)?.Url;
@@ -812,6 +824,16 @@ public sealed class LinkTextView : Decorator
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && HeadMention(point) is { } head)
         {
             OnOpenHead?.Invoke(head.Url);
+            Consume(e);
+            return;
+        }
+
+        // PORT-ONLY (web surfaces W10, DESIGN 5.11, ED-NEW-web-w10-2): in a chat a left press on a link, plain or with Ctrl held, goes to the chat's
+        // own link hook with the click's modifiers (Visus, the default browser or the first-time question; Ctrl opens the other one). A right
+        // press still shows the popover, and so does a Ctrl press when the hook declines or there is no hook (any Markdown outside a chat).
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && MarkdownView.GetChatLinkAction(this) is { } chatLink
+            && LinkAndRange(point) is { } chatHit && chatLink(chatHit.Url, e.KeyModifiers))
+        {
             Consume(e);
             return;
         }

@@ -75,6 +75,8 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         public Dictionary<long, string> BlockIDs = new();        // :24 Swift Int is 64-bit
         public Dictionary<string, List<string>> OpenText = new(SwiftStringComparer.Instance);     // :25
         public Dictionary<string, List<string>> OpenThinking = new(SwiftStringComparer.Instance); // :26
+        /// <summary>PORT-ONLY (web surfaces W24, ED-NEW-web-w24-3): the arguments so far of a live-answer tool call being streamed, by content block index.</summary>
+        public Dictionary<long, (string ToolId, System.Text.StringBuilder Json)> LiveInputs = new();
 
         public StreamState() { }
     }
@@ -83,6 +85,8 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
     private IClaudeProcess? process;                        // :30
     // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): this launch's ask_advisor server; null for a chat with no advisor.
     private MCPResolvedServer? advisorServer;
+    // PORT-ONLY (web surfaces W12, ED-NEW-web-w12-1): this launch's nth-ui server (Tabula's artifact tools); null for a session of no chat.
+    private MCPResolvedServer? uiServer;
     private MCPResolvedServer? pcServer; // PORT-ONLY (Tactus, ED-NEW-pcctl-41): the chat's nth-pc server while Tactus is on.
     private static readonly string AdvisorToolName = "mcp__" + Port.Advisor.AdvisorMcpServer.ServerName + "__" + Port.Advisor.AdvisorTool.Name;
     private TaskHandle? readTask;                          // :31
@@ -187,6 +191,9 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         }
     }
 
+    /// <summary>PORT-ONLY (ED-NEW-web-w26-1): what a no-tools launch adds: no built-in tools, only the (absent) --mcp-config servers, no slash commands.</summary>
+    internal static readonly string[] NoToolsArguments = ["--tools", "", "--strict-mcp-config", "--disable-slash-commands"];
+
     private async Task<string> StartCore() // :82-167
     {
         if (configuration.Executable is not { } executable) throw new ProviderError(new ProviderError.Case.NotInstalled(configuration.Provider)); // :83
@@ -224,18 +231,28 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         // Connected servers from Settings are the only MCP servers the session sees. :94-96
         // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): a Hydra head's ask_advisor server is merged into that one
         // config; a chat with no advisor gets exactly the connected servers' file, as before.
-        advisorServer = MCPProviderConfig.AdvisorServer(configuration);
-        // PORT-ONLY (Tactus, ED-NEW-pcctl-41): the nth-pc server joins the same file while Tactus is on.
-        pcServer = MCPProviderConfig.PcServer(configuration);
-        if (MCPProviderConfig.ClaudeBuiltInConfig(MCPProviderConfig.BuiltInServers(advisorServer, pcServer), configuration.IgnisThreadID) is { } mcpConfig)
+        if (configuration.NoTools)
         {
-            arguments.Add("--mcp-config");
-            arguments.Add(mcpConfig.Path);
-            if (mcpConfig.Strict) arguments.Add("--strict-mcp-config");
+            // PORT-ONLY (web surfaces W26, ED-NEW-web-w26-1): no built-in tool, no MCP server (not even the user's own
+            // config files) and no slash command, as TextGeneration launches its text-only calls.
+            arguments.AddRange(NoToolsArguments);
+        }
+        else
+        {
+            advisorServer = MCPProviderConfig.AdvisorServer(configuration);
+            uiServer = MCPProviderConfig.UiServer(configuration); // + ED-NEW-web-w12-1: a chat's nth-ui server joins the same file
+            // PORT-ONLY (Tactus, ED-NEW-pcctl-41): the nth-pc server joins the same file while Tactus is on.
+            pcServer = MCPProviderConfig.PcServer(configuration);
+            if (MCPProviderConfig.ClaudeBuiltInConfig(MCPProviderConfig.BuiltInServers(advisorServer, pcServer, uiServer), configuration.IgnisThreadID) is { } mcpConfig)
+            {
+                arguments.Add("--mcp-config");
+                arguments.Add(mcpConfig.Path);
+                if (mcpConfig.Strict) arguments.Add("--strict-mcp-config");
+            }
         }
         var environment = new ValueMap<string, string>(ProviderChildEnvironment.Apply(configuration.Environment), SwiftStringComparer.Instance); // DEVIATION OD-0099 DL-6: only PATH changes; an unbound Storage (a test) leaves the environment as it came.
         var options = await KnownOptions(executable, environment); // :98
-        if (options.Contains("--plugin-dir") && acquireSkills is not null)
+        if (!configuration.NoTools && options.Contains("--plugin-dir") && acquireSkills is not null) // ED-NEW-web-w26-1: no plugins without tools
         {
             generation = await Task.Run(acquireSkills);
             if (generation is not null)
@@ -567,6 +584,13 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
             ResolveApproval(requestID, "allow");
             return;
         }
+        // PORT-ONLY (web surfaces W12, ED-NEW-web-w12-1): nth-ui's artifact tools write only into this chat's own artifacts
+        // (sandboxed, versioned, nothing lost), so they run without a card as the advisor's does.
+        if (uiServer is not null && Web.UiMcpServer.IsOwnTool(name))
+        {
+            ResolveApproval(requestID, "allow");
+            return;
+        }
         // PORT-ONLY (Tactus, ED-NEW-pcctl-41): nth's own per-app approval governs the nth-pc tools (DESIGN.md 3.4, 4.1).
         if (pcServer is not null && Port.PcControl.PcProviderWiring.IsClaudeTool(name))
         {
@@ -648,6 +672,7 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
             case "message_start": // :457-459
                 stream.CurrentMessageID = @event["message"]?["id"]?.JSONValueString ?? SwiftUUID.UuidString(Guid.NewGuid());
                 stream.BlockIDs.Clear();
+                stream.LiveInputs.Clear();
                 break;
             case "content_block_start": // :460-481
             {
@@ -672,6 +697,8 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
                     case "tool_use": // :473-478
                         if (block["id"]?.JSONValueString is not { } toolID || block["name"]?.JSONValueString is not { } name) return;
                         toolNames[toolID] = name;
+                        // PORT-ONLY (W24): the arguments of a live-answer call are followed as they stream.
+                        if (Web.UiMcpServer.IsOwnTool(name) && Web.LiveAnswerTools.IsName(name[("mcp__" + Web.UiMcpServer.ServerName + "__").Length..])) stream.LiveInputs[index] = (toolID, new System.Text.StringBuilder());
                         if (ToolCall(name, JSONValue.FromDictionaryLiteral()) is { } call)
                             sink(new ProviderEvent.ToolStarted(toolID, call));
                         break;
@@ -680,8 +707,22 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
                 }
                 break;
             }
+            case "content_block_stop":
+                if (@event["index"]?.JSONValueInt is { } stoppedIndex) stream.LiveInputs.Remove(stoppedIndex);
+                break;
             case "content_block_delta": // :482-491
             {
+                // PORT-ONLY (web surfaces W24, ED-NEW-web-w24-3): a piece of a live-answer call's arguments is reported on the call's row.
+                if (@event["index"]?.JSONValueInt is { } liveIndex && stream.LiveInputs.TryGetValue(liveIndex, out var live)
+                    && @event["delta"] is { } liveDelta && liveDelta["type"]?.JSONValueString == "input_json_delta")
+                {
+                    if (liveDelta["partial_json"]?.JSONValueString is { Length: > 0 } piece)
+                    {
+                        live.Json.Append(piece);
+                        sink(new ProviderEvent.ToolUpdated(live.ToolId, new ToolUpdate { Detail = live.Json.ToString() }));
+                    }
+                    return;
+                }
                 if (@event["index"]?.JSONValueInt is not { } deltaIndexLong || !stream.BlockIDs.TryGetValue(deltaIndexLong, out var deltaID) || @event["delta"] is not { } delta) return;
                 switch (delta["type"]?.JSONValueString)
                 {

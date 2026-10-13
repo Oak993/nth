@@ -209,9 +209,11 @@ public sealed class VoicePinsTests
                 ("Whisper.net.Runtime.Metal", "1.9.1", "MIT", "Copyright (c) 2024 sandrohanea", false),
             ],
             closure);
-        // The closure is complete: it equals the packages project.assets.json resolved for the Services project besides the four direct ones.
+        // The closure is complete: it equals the packages project.assets.json resolved for the Services project besides its direct ones: the
+        // four voice packages and Microsoft.Web.WebView2 (web surfaces W7, ED-NEW-web-w7-1; it declares no dependencies, and
+        // WebPackagePinsTests pins the Services project's direct packages to exactly these five, so nothing else can hide here).
         var assets = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root, "src", "Marrow.Services", "obj", "project.assets.json"), Encoding.UTF8)).RootElement;
-        var direct = new[] { "Whisper.net", "Whisper.net.Runtime", "Whisper.net.Runtime.Vulkan", "NAudio.Wasapi" };
+        var direct = new[] { "Whisper.net", "Whisper.net.Runtime", "Whisper.net.Runtime.Vulkan", "NAudio.Wasapi", "Microsoft.Web.WebView2" };
         var resolvedTransitive = ResolvedTransitivePackages(assets, direct);
         Assert.Equal(closure.Select(c => c.Id + " " + c.Version).Order(StringComparer.Ordinal).ToArray(), resolvedTransitive);
         // The managed assemblies of the closure sit beside the tests (copied from the Services references).

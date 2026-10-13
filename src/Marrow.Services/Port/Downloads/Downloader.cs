@@ -41,6 +41,7 @@ public sealed class Downloader
     public DownloadJob StartSet(IReadOnlyList<DownloadRequest> files, Action<DownloadProgress>? progress = null)
     {
         var job = new DownloadJob(client, partFolder, policy, options, clock, files, progress);
+        DownloadJobRegistry.Shared.Track(job, files, clock); // PORT-ONLY (web W5): the Background tasks pane lists every download
         job.Begin();
         return job;
     }

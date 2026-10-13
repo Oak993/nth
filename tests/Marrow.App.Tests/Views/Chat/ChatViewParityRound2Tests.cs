@@ -192,10 +192,12 @@ public sealed class ChatViewParityRound2Tests(HeadlessSession headless)
     // on release, a trailing panel grows leftwards and a bottom one upwards, the width is the shared panel width fitted to the pane, the height is
     // floored at 94 points (PanelScene.UsageMinimumHeight, ChatView.swift:527 `HydraPanel.stripHeight + 44`), and a double-click clears the stored
     // height inside Chrome.panelSlide. (The round 2 review: the only UI-USAGE-041 test never double-clicked nor dragged below the floor.)
+    // web W1 (ED-NEW-web-w1-5): the grips are the shared Splitter's 8 DIP edges and 16 DIP corner (6 pt edges before).
     [Theory]
     [InlineData(PanelDockCorner.BottomLeading)]
     [InlineData(PanelDockCorner.TopTrailing)]
     [Trait("Req", "UI-USAGE-041")] // App/Views/Chat/ChatView.swift:527,554-590; SubagentPanel.swift (PanelResizeGrips, the free edges)
+    [Trait("Decision", "ED-NEW-web-w1-5")]
     public void The_usage_panels_grips_sit_on_its_free_edges_resize_on_release_floor_at_94_and_reset_on_a_double_click(PanelDockCorner corner)
         => WithColumn((h, model, _, view, window, frames) =>
         {
@@ -204,16 +206,16 @@ public sealed class ChatViewParityRound2Tests(HeadlessSession headless)
             Rect Frame(Control control) => new(control.TranslatePoint(default, window)!.Value, control.Bounds.Size);
             var box = Frame(panel);
             // The panel's own grips: the handles at its frame (the window's other panels and the drawer's handle are elsewhere).
-            var handles = LogicalQuery.SelfAndDescendants<PanelDragHandle>(view).Where(x => box.Inflate(8).Contains(Frame(x).Center)
-                && (ToolTip.GetTip(x) as string ?? "").StartsWith("Drag to resize", StringComparison.Ordinal)).ToArray();
+            var handles = LogicalQuery.SelfAndDescendants<Splitter>(view).Where(x => box.Inflate(8).Contains(Frame(x).Center)
+                && x.HelpHint == PanelResizeGrips.ResetHint).ToArray();
             Assert.Equal(3, handles.Length); // the width, height and corner grips (SubagentPanel.swift:594-615).
             var heightGrip = Assert.Single(handles, x => double.IsNaN(x.Width) && !double.IsNaN(x.Height));
             var widthGrip = Assert.Single(handles, x => !double.IsNaN(x.Width) && double.IsNaN(x.Height));
             var up = !corner.IsTop; // a bottom-docked panel grows upwards...
             var left = corner.Side == PanelDockSide.Trailing; // ...a trailing one leftwards.
-            // On the free edges, inside the panel: a 6 pt grip's centre is 3 pt in from the edge.
-            Assert.Equal(up ? box.Top + 3 : box.Bottom - 3, Frame(heightGrip).Center.Y, tolerance: 0.5); // the free horizontal edge.
-            Assert.Equal(left ? box.Left + 3 : box.Right - 3, Frame(widthGrip).Center.X, tolerance: 0.5); // the free vertical edge.
+            // On the free edges, inside the panel: an 8 DIP grip's centre is 4 DIP in from the edge.
+            Assert.Equal(up ? box.Top + 4 : box.Bottom - 4, Frame(heightGrip).Center.Y, tolerance: 0.5); // the free horizontal edge.
+            Assert.Equal(left ? box.Left + 4 : box.Right - 4, Frame(widthGrip).Center.X, tolerance: 0.5); // the free vertical edge.
             Assert.Equal(box.Width, Frame(heightGrip).Width, tolerance: 0.5);
             Assert.Equal(box.Height, Frame(widthGrip).Height, tolerance: 0.5);
             var storedSize = model.Settings.PanelSize;
