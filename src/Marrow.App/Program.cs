@@ -207,7 +207,7 @@ public static class Program
         // There is no log in nth yet to write to; the Assistant's own feed is where Dextra's problems are told.
         if (problem is not null)
             model.AssistantEvents.Publish(Marrow.Core.Port.Assistant.FeedDraft.About(Marrow.Core.Port.Assistant.FeedEventKind.WatcherChanged, Marrow.Core.Port.Assistant.FeedSeverity.Error, TimeProvider.System.GetUtcNow(), problem));
-        if (host is not null) windows.KeepWorkingOnClose = () => host.Switches.KeepWorkingWhenClosed && model.Tray is not null;
+        windows.KeepWorkingOnClose = () => model.Duties?.Switches.KeepWorkingWhenClosed == true && model.Tray is not null;
     }
 
     private static async void FinishStartup(AppShell shell, TaskCompletionSource launchReady, SkillsHost? skills, string[] args, ReopenSignal reopen, IClassicDesktopStyleApplicationLifetime lifetime, Marrow.Core.Port.Assistant.StartupMode mode)

@@ -8280,3 +8280,18 @@ ENGINEERING DECISION (CU-DX-FIX F6, DESIGN.md 5.3, 15.3): before appending feed 
 ## ED-NEW-dextra-fix-7
 
 ENGINEERING DECISION (CU-DX-FIX F7, DESIGN.md 13.2, 15.3): missing cost and duty-health books are empty; present non-object or unparsable books refuse controller startup with InvalidDataException. Never overwrite the unreadable books or run with zero spend or forgotten breaker pauses. The original files remain available for repair. Regression: DextraFixDamagedSafetyTests.
+
+
+## ED-NEW-dextra-fix-1
+
+ENGINEERING DECISION (CU-DX-FIX F1, DESIGN.md 2.6, 7.4, 15.3): One DextraHost owns every background and foreground start, including store, audit, grants, team, purchases, stop scopes and live/voice bindings. Off and incomplete first run forbid both paths. Stop releases controller and duties before the audit/store. Regression: DextraFixStartupTests.
+
+
+## ED-NEW-dextra-fix-2
+
+ENGINEERING DECISION (CU-DX-FIX F2, DESIGN.md 2.6, 7.4, 15.3): A foreground start creates and starts duties on the same controller and store even with no duties file. Make the Morning digest once; bind tools and keep-working-on-close to the current model duties rather than a captured launch host. Background launches restore the existing digest only. Regression: DextraFixFirstDutyTests.
+
+
+## ED-NEW-dextra-fix-3
+
+ENGINEERING DECISION (CU-DX-FIX F3, DESIGN.md 2.6, 7.4, 15.3): Every startup opens the mission store with MissionJournal.Interrupted: live crash records pause with Resume, stopping records become stopped, and working/pausing heads pause. Regression: DextraFixInterruptedTests.

@@ -24,6 +24,8 @@ public sealed class DextraHost : IDisposable
 
     private readonly AppModel model;
     private readonly DextraStarter starter;
+    private readonly bool production;
+    private readonly BackgroundStartSeams? startup;
     private readonly Func<IReadOnlyList<AssistantProfile>>? asturs;
     private readonly DextraVoiceStarter? voiceStarter;
     private VoiceStopScope? voiceScope;
@@ -33,13 +35,15 @@ public sealed class DextraHost : IDisposable
     private bool starting;
 
     /// <param name="voice">AS-18: the voice of a running controller. Null with the app's own starter gives the real one (the chord, the microphone, the PC's voices); null with a test's starter gives none.</param>
-    public DextraHost(AppModel model, DextraSettings settings, DextraStarter? starter = null, Func<IReadOnlyList<AssistantProfile>>? asturs = null, DextraVoiceStarter? voice = null)
+    public DextraHost(AppModel model, DextraSettings settings, DextraStarter? starter = null, Func<IReadOnlyList<AssistantProfile>>? asturs = null, DextraVoiceStarter? voice = null, BackgroundStartSeams? startup = null)
     {
         this.model = model ?? throw new ArgumentNullException(nameof(model));
         Settings = settings ?? throw new ArgumentNullException(nameof(settings));
-        this.starter = starter ?? Production;
+        this.starter = starter ?? ((app, prefs, id) => Production(app, prefs, id, startup, StartupMode.Normal, null, false));
+        production = starter is null;
+        this.startup = startup;
         this.asturs = asturs;
-        voiceStarter = voice ?? (starter is null ? static (app, host, scope) => DextraVoice.Create(app, host, scope) : null);
+        voiceStarter = voice ?? (starter is null && startup is null ? static (app, host, scope) => DextraVoice.Create(app, host, scope) : null);
         Settings.Changed += OnSettings;
     }
 
@@ -80,16 +84,23 @@ public sealed class DextraHost : IDisposable
         [new AssistantProfile(AssistantId, Name), .. asturs?.Invoke() ?? []];
 
     /// <summary>Starts the controller when Dextra may run and none runs; keeps its grants and its brain's switches in step.</summary>
-    public AssistantController? EnsureStarted()
+    public AssistantController? EnsureStarted(BackgroundStartSeams? seams = null, StartupMode? mode = null, Action? quit = null, bool restoringDuties = false)
     {
         if (disposed || !MayRun || starting) return started;
         if (started is not null) return started;
         AssistantController? controller;
         starting = true; // the identity's first store raises Changed; that must not start a second controller
-        try { controller = starter(model, Settings, Id); }
+        try { controller = model.Dextra ?? (production
+            ? Production(model, Settings, Id, startup ?? seams, mode ?? StartupMode.Normal, quit, restoringDuties)
+            : starter(model, Settings, Id)); }
         catch (Exception error) when (error is not OperationCanceledException)
         {
             // what the start opened before it failed is let go now, not when the host goes
+            if (model.Dextra is { } failed)
+            {
+                model.UnbindDextra();
+                failed.Dispose();
+            }
             owned?.Dispose();
             owned = null;
             StartFault = error.Message;
@@ -109,7 +120,7 @@ public sealed class DextraHost : IDisposable
         controller.GrantsChanged += KeepGrants;
         Live = DextraLive.For(model, controller, NameOf);
         model.AssistantEvents.Brain = Settings.Brain(BrainProvider());
-        try { Voice = voiceStarter?.Invoke(model, this, voiceScope ?? new VoiceStopScope()); }
+        try { Voice = (startup ?? seams) is null ? voiceStarter?.Invoke(model, this, voiceScope ?? new VoiceStopScope()) : null; }
         catch (Exception error) when (error is not OperationCanceledException) { StartFault = "Voice could not start: " + error.Message; }
         Changed?.Invoke();
         return controller;
@@ -121,7 +132,7 @@ public sealed class DextraHost : IDisposable
     /// </summary>
     public void Stop()
     {
-        if (started is not { } controller) return;
+        if ((started ?? model.Dextra) is not { } controller) return;
         started = null;
         controller.GrantsChanged -= KeepGrants;
         Voice?.Dispose();
@@ -192,21 +203,30 @@ public sealed class DextraHost : IDisposable
 
     // The production start: the store and the audit log on their default roots, the stop chord over the owner's
     // setting and the tray the app made. Kept here so the views never touch Credential Manager.
-    private AssistantController? Production(AppModel app, DextraSettings settings, Guid id)
+    private AssistantController? Production(AppModel app, DextraSettings settings, Guid id, BackgroundStartSeams? seams, StartupMode mode, Action? quit, bool restoringDuties)
     {
-        var roots = AssistantStorage.Roots.Current;
+        var roots = seams?.Roots() ?? AssistantStorage.Roots.Current;
         var store = AssistantStore.Open(roots, new AssistantStoreOptions { InterruptedMission = MissionJournal.Interrupted });
         AuditLog audit;
-        try { audit = AuditLog.Open(roots, AuditKeyStore.Production()); }
+        try { audit = AuditLog.Open(roots, seams?.Keys() ?? AuditKeyStore.Production()); }
         catch { store.Dispose(); throw; }
         owned = new Owned(store, audit);
-        var stopKey = app.EnsureStopKey(() => settings.Chord);
+        var stopKey = seams?.StopKey ?? app.EnsureStopKey(() => settings.Chord);
         // AS-20 (12.7, 16.2): purchases.json beside the store's other files, the card in Credential Manager, Windows Hello. This build
         // has no fill path (Visus and Tactus are not here), so the switch is hidden and every payment is handed to the owner.
         var purchases = new PurchaseSetup { Book = PurchaseBook.Over(store), Hello = new WindowsHelloGate(), Vault = CardVault.Production };
         voiceScope = new VoiceStopScope(); // Stop all and the stop chord cut a spoken reply (12.6); bound to the conversation once the voice exists
-        return app.StartDextra(store, entry => audit.Append(entry), Profiles, BrainProvider() ?? ProviderKind.Claude, BrainModel(),
-            protectedRoots: [roots.AuditDirectory], stopKey: stopKey, tray: app.Tray, stopScopes: [voiceScope], purchases: purchases);
+        var controller = app.StartDextra(store, entry => audit.Append(entry), Profiles, BrainProvider() ?? ProviderKind.Claude, BrainModel(),
+            protectedRoots: [roots.AuditDirectory], stopKey: stopKey, tray: seams?.Tray ?? app.Tray, stopScopes: [voiceScope], purchases: purchases);
+        controller.RestoreGrants(settings.Value.Grants);
+        var ids = BackgroundStart.AssistantsWithDuties(store);
+        var duties = app.StartDuties(controller, store, mode, quit: quit,
+            assistantIds: () => [.. Profiles().Select(p => p.Id).Concat(BackgroundStart.AssistantsWithDuties(store)).Distinct(StringComparer.Ordinal)],
+            tray: seams?.Tray ?? app.Tray, seams: seams?.Host, digest: app.DigestSetupOf(controller, roots.AuditDirectory),
+            withDigest: !restoringDuties || BackgroundStart.HasDigestDuty(store, ids));
+        foreach (var note in duties.Start())
+            app.AssistantEvents.Publish(FeedDraft.About(FeedEventKind.WatcherChanged, FeedSeverity.Error, TimeProvider.System.GetUtcNow(), note));
+        return controller;
     }
 
     public void Dispose()

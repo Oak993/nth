@@ -1,6 +1,7 @@
 using Marrow.App.Assistant;
 using Marrow.App.Tray;
 using Marrow.Core.Port.Assistant;
+using Marrow.Core.Port;
 using Marrow.Services.Assistant;
 using Marrow.Services.Tests.Fixtures;
 using Marrow.Testing;
@@ -37,7 +38,13 @@ internal sealed class BackgroundLaunchRig : IDisposable
                 Time = new ManualTimeProvider(new DateTimeOffset(2026, 10, 13, 6, 0, 0, TimeSpan.Zero)),
             },
         };
+        var settings = new DextraSettings(new InMemorySettingsStore()) { Value = DextraPreferences.Default with { FirstRunDone = true } };
+        harness.Main.OnMain(() => Model.AssistantHost = new DextraHost(Model, settings, startup: Seams));
     }
+
+    public T OnMain<T>(Func<T> work) => harness.Main.OnMain(work);
+
+    public void OnMain(Action work) => harness.Main.OnMain(work);
 
     public AssistantTempRoot Temp { get; }
 

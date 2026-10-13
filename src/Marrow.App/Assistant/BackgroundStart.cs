@@ -80,41 +80,17 @@ public static class BackgroundStart
     public static DutyHost? Run(AppModel model, StartupMode mode, Func<bool> windowHidden, Action open, Action quit, out string? problem, BackgroundStartSeams? seams = null)
     {
         ArgumentNullException.ThrowIfNull(model);
-        seams ??= new BackgroundStartSeams();
         problem = null;
-        var roots = seams.Roots();
-        if (!HasDuties(roots)) return null;
+        if (!model.AssistantHost.MayRun) return null;
+        var roots = seams?.Roots() ?? AssistantStorage.Roots.Current;
         if (model.Duties is { } running) return running;
-        AssistantStore? store = null;
-        AuditLog? log = null;
-        try
-        {
-            store = model.DextraStore ?? AssistantStore.Open(roots);
-            var ids = AssistantsWithDuties(store);
-            if (model.Dextra is null)
-            {
-                log = AuditLog.Open(roots, seams.Keys());
-                var profiles = Profiles(store, ids);
-                var held = log;
-                model.StartDextra(store, entry => held.Append(entry), () => profiles, stopKey: seams.StopKey ?? model.EnsureStopKey(),
-                    tray: seams.Tray ?? model.EnsureTray(windowHidden, null, open), duties: model.DutyToolsGate);
-                log = null; // the controller's audit callback owns it for the life of the app
-            }
-            var controller = model.Dextra!;
-            // The launch brings back what is there: the digest is bound only when the Morning digest duty already is (so it is composed, not started as a
-            // mission); making it is turning Dextra on (AS-8), not a launch.
-            var host = model.StartDuties(controller, store, mode, quit: quit, assistantIds: () => AssistantsWithDuties(store), tray: seams.Tray ?? model.Tray, seams: seams.Host,
-                digest: model.DigestSetupOf(controller, roots.AuditDirectory), withDigest: HasDigestDuty(store, ids));
-            var notes = host.Start();
-            problem = notes.Count == 0 ? null : string.Join(" ", notes);
-            return host;
-        }
-        catch (Exception error) when (error is AssistantStoreBusyException or AuditLogBusyException or AuditKeyUnavailableException or IOException or UnauthorizedAccessException or InvalidOperationException)
-        {
-            problem = "Dextra's duties did not start: " + error.Message;
-            log?.Dispose();
-            if (model.DextraStore is null) store?.Dispose();
-            return null;
-        }
+        if (!HasDuties(roots)) return null;
+        if (seams is null)
+            model.EnsureTray(windowHidden, null, open);
+        var controller = model.AssistantHost.EnsureStarted(seams, mode, quit, restoringDuties: true);
+        if (controller is not null) return model.Duties;
+        if (model.AssistantHost.StartFault is { } fault)
+            problem = "Dextra's duties did not start: " + fault;
+        return null;
     }
 }
