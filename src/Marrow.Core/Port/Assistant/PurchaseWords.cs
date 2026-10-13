@@ -35,6 +35,7 @@ public static class PurchaseWords
     public const string HandOverWhy = "Paying for you needs nth's own browser or PC control to fill the shop's card field, and this build has neither yet.";
     public const string NotRunning = "Purchases are set up while Dextra is on.";
     public const string NewerFile = "Purchases were last set by a newer nth. They stay off here, and nothing is changed.";
+    public const string UnreadableFile = "nth cannot read its purchases file. Purchases stay off, and the file is left as it is.";
 
     // the add-card sheet
     public const string AddTitle = "Add a card";
