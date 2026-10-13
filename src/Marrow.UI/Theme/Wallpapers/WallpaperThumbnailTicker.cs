@@ -1,3 +1,4 @@
+using Marrow.Core.Port;
 using Marrow.UI.Port;
 
 namespace Marrow.UI.Theme.Wallpapers;
@@ -46,6 +47,7 @@ public sealed class WallpaperThumbnailTicker
     private IFrameSource? source;
     private bool pending;
     private TimeSpan? last;
+    private ContinuousInstant? nextStep;
     private double sinceAdmit = double.PositiveInfinity;
     private readonly List<IWallpaperThumbnailClient> scratch = [];
 
@@ -77,13 +79,13 @@ public sealed class WallpaperThumbnailTicker
         if (pending && !ReferenceEquals(current, source)) Stop(); // the frame source was replaced (a window's, a test's): move to it
         if (pending || !HasWork()) return;
         source = current;
-        pending = true; source.RequestFrame(frame);
+        Request();
     }
 
     private void Stop()
     {
         if (pending) source?.CancelFrame(frame);
-        pending = false; last = null;
+        pending = false; last = null; nextStep = null;
     }
 
     private bool HasWork()
@@ -98,6 +100,7 @@ public sealed class WallpaperThumbnailTicker
         var step = last is { } before ? Math.Clamp((now - before).TotalSeconds, 0, MaxStep) : 0;
         if (last is not null && step < MinStep) { Continue(); return; } // paced to 60 Hz: wait for the next refresh
         last = now;
+        nextStep = SwiftClock.Now + TimeSpan.FromSeconds(MinStep);
         sinceAdmit += step;
         if (sinceAdmit >= AdmitSpacing - 1e-9)
         {
@@ -120,8 +123,16 @@ public sealed class WallpaperThumbnailTicker
 
     private void Continue()
     {
-        if (!HasWork()) { last = null; return; }
+        if (!HasWork()) { last = null; nextStep = null; return; }
         source ??= FrameClock.Source.Current;
-        pending = true; source.RequestFrame(frame);
+        Request();
+    }
+
+    private void Request()
+    {
+        pending = true;
+        // ED-NEW-smooth2-2: keep the existing MinStep maths; park the request between its draws and while unseen.
+        if (source is IWakeFrameSource loops) loops.RequestFrameAt(FrameClock.WakeFor(source, nextStep) ?? SwiftClock.Now, frame);
+        else source!.RequestFrame(frame);
     }
 }

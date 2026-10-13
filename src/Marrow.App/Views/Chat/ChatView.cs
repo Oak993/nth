@@ -89,6 +89,7 @@ public sealed class ChatView : Decorator
     private string? terminalDirectory;
     private (TerminalPanel Panel, string? Directory)? leavingTerminal; // the drawer last taken out, while its removal may still be running.
     private readonly ChatFrameAnimation terminalPush;
+    private ChatSpringValue? terminalPushRun;
     private (bool Showing, double Height)? push; // the terminal push under way: the pane's settled size is read through it.
     private long? seenDiffRevision;
 
@@ -407,7 +408,7 @@ public sealed class ChatView : Decorator
             if (terminal is not null && (!visible || terminalDirectory != directory))
             {
                 var leaving = terminal;
-                SwiftTransition.RemoveContinuing(terminalHost, leaving); // closed mid-open: back down from where it is (OD-0076; ED-278 (10)).
+                SwiftTransition.RemoveContinuing(terminalHost, leaving, usePresentedProgress: true); // shared layout frame (ED-NEW-motion-drawer-5).
                 leavingTerminal = (leaving, terminalDirectory);
                 terminal = null;
                 if (!visible && animation is not null) PushTerminal(showing: false, animation, leaving.Bounds.Height, rowHeld: true);
@@ -421,7 +422,7 @@ public sealed class ChatView : Decorator
                 if (leavingTerminal is { } back && back.Directory == directory && SwiftTransition.IsRemoving(back.Panel))
                 {
                     terminal = back.Panel;
-                    SwiftTransition.InsertContinuing(terminalHost, terminalHost.Children.Count, terminal);
+                    SwiftTransition.InsertContinuing(terminalHost, terminalHost.Children.Count, terminal, usePresentedProgress: true);
                     terminal.TakeKeyboardIfWanted(); // never left the visual tree: the reopen's focus request is spent here (TerminalPanel.swift:224-239).
                 }
                 else
@@ -434,7 +435,9 @@ public sealed class ChatView : Decorator
                     PushTerminal(showing: true, animation, double.IsNaN(terminal.Height) ? model!.Settings.TerminalHeight : terminal.Height, rowHeld);
             }
         }
-        if (changed && sceneThreadID == runtime.ThreadID) Transaction.WithAnimation(Chrome.PanelSlide, Apply);
+        if (changed && sceneThreadID == runtime.ThreadID) Transaction.WithAnimation(
+            EnvironmentValues.GetAccessibilityReduceMotion(this) || Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion
+                ? Animation.EaseOut(.18) : Chrome.PanelSlide, Apply); // Chrome.swift:99-104, source Reduce Motion.
         else Apply();
         terminalWasVisible = visible;
     }
@@ -450,14 +453,15 @@ public sealed class ChatView : Decorator
     // one leaving) has already given the pane its reach, and the new push continues from the margin that reach has now.
     private void PushTerminal(bool showing, Animation animation, double height, bool rowHeld)
     {
-        terminalPush.Stop();
+        var speed = terminalPush.IsRunning ? terminalPushRun!.Speed(terminalPush.Seconds) : 0;
         var from = showing && !rowHeld ? -height : pane.Margin.Bottom;
         var to = showing ? 0 : -height;
+        terminalPushRun = new(from, to, animation, animation.KeepsSpeed ? speed : 0);
         push = (showing, height);
         terminalPush.Start(animation, progress =>
         {
-            pane.Margin = new Thickness(0, 0, 0, from + (to - from) * progress);
-            if (progress >= 1 && showing) push = null; // an open drawer has its row: the pane's own size is the settled one again.
+            pane.Margin = new Thickness(0, 0, 0, terminalPushRun.Value(terminalPush.Seconds, !terminalPush.IsRunning));
+            if (!terminalPush.IsRunning && showing) push = null; // overshooting 1 is still a moving drawer.
         });
         // :241-249,290 paneSize takes the layout's settled value once, and the panels re-place under the same panelSlide as the thread
         // view's push (the bottom-docked ones rise with the chat box): the scene is told the size the push heads for now, not
@@ -929,6 +933,8 @@ internal sealed record ReserveSlide(PanelReserve Reserve, bool Slides, bool Anim
         public double Offset;
         public PanelReserve? Previous;
         public ChatFrameAnimation? Animation;
+        public ContinuousInstant Began;
+        public ChatSpringValue? OffsetRun, LeftRun, RightRun;
     }
 
     private readonly SlideState state = new();
@@ -954,24 +960,40 @@ internal sealed record ReserveSlide(PanelReserve Reserve, bool Slides, bool Anim
         }
         if (changed)
         {
+            var seconds = (SwiftClock.Now - state.Began).TotalSeconds;
+            var offsetSpeed = state.Animation.IsRunning ? state.OffsetRun?.Speed(seconds) ?? 0 : 0;
+            var leftSpeed = state.Animation.IsRunning ? state.LeftRun?.Speed(seconds) ?? 0 : 0;
+            var rightSpeed = state.Animation.IsRunning ? state.RightRun?.Speed(seconds) ?? 0 : 0;
             state.Animation.Stop();
             var previous = state.Previous!;
             var shift = ((Reserve.Leading - Reserve.Trailing) - (previous.Leading - previous.Trailing)) / 2; // :760
-            if (Slides && !AnimatesWidth && shift != 0) // :761
+            var slides = Slides;
+            var animation = EnvironmentValues.GetAccessibilityReduceMotion(content)
+                ? Animation.EaseOut(.18) : Chrome.PanelSlide; // ChatView.swift:755,768; Chrome.swift:99-104.
+            state.Began = SwiftClock.Now;
+            state.OffsetRun = state.LeftRun = state.RightRun = null;
+            if (slides && !AnimatesWidth && (shift != 0 || state.Offset != 0 || offsetSpeed != 0)) // :761
             {
                 content.Margin = margin; // :751-752: one layout at the final width.
                 var from = state.Offset - shift; // :766
-                state.Animation.Start(Chrome.PanelSlide, progress => OffsetTo(from * (1 - progress))); // :768
+                state.OffsetRun = new(from, 0, animation, animation.KeepsSpeed ? offsetSpeed : 0);
+                state.Animation.Start(animation, _ => OffsetTo(state.OffsetRun.Value(
+                    (SwiftClock.Now - state.Began).TotalSeconds, !state.Animation.IsRunning))); // :768
             }
             else
             {
                 OffsetTo(0); // :762
-                if (Slides && AnimatesWidth) // :754
+                if (slides && AnimatesWidth) // :754
                 {
                     var from = content.Margin;
-                    state.Animation.Start(Chrome.PanelSlide, progress => content.Margin = new Thickness(
-                        from.Left + (margin.Left - from.Left) * progress, 0,
-                        from.Right + (margin.Right - from.Right) * progress, 0));
+                    state.LeftRun = new(from.Left, margin.Left, animation, animation.KeepsSpeed ? leftSpeed : 0);
+                    state.RightRun = new(from.Right, margin.Right, animation, animation.KeepsSpeed ? rightSpeed : 0);
+                    state.Animation.Start(animation, _ =>
+                    {
+                        var elapsed = (SwiftClock.Now - state.Began).TotalSeconds;
+                        var complete = !state.Animation.IsRunning;
+                        content.Margin = new Thickness(state.LeftRun.Value(elapsed, complete), 0, state.RightRun.Value(elapsed, complete), 0);
+                    });
                 }
                 else content.Margin = margin;
             }

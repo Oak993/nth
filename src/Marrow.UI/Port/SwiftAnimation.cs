@@ -191,7 +191,9 @@ public sealed record SwiftTransition
     /// at that instant (the opacity multiplies the removal's, the offset eases out over it): a soft arrival cut short never jumps to full. Opt-in: the sites that rely on the restart keep it until the
     /// app-wide OD-0076 audit (the terminal drawer closed while it is still opening, ChatView.swift:276-279,290, is the first).
     /// </summary>
-    public static void RemoveContinuing(Panel panel, Control child) => Remove(panel, child, null, continuing: true);
+    // Layout partners can share the last delivered point; standalone transitions retain their current-clock sampling.
+    public static void RemoveContinuing(Panel panel, Control child, bool usePresentedProgress = false)
+        => Remove(panel, child, null, continuing: true, usePresentedProgress);
 
     /// <summary>
     /// OD-0076 (no change by a cut), ED-278 (10): the counterpart of <see cref="RemoveContinuing"/>. An insertion that
@@ -202,7 +204,7 @@ public sealed record SwiftTransition
     /// frames stop and its completion is dropped (the child is not gone). An asymmetric transition, or a child with no removal in
     /// flight in this panel, is inserted as <see cref="Insert"/> does. Opt-in, like <see cref="RemoveContinuing"/>.
     /// </summary>
-    public static void InsertContinuing(Panel panel, int index, Control child)
+    public static void InsertContinuing(Panel panel, int index, Control child, bool usePresentedProgress = false)
     {
         var state = attachments.GetValue(child, _ => new Attachment(Opacity));
         if (!state.RemovalInFlight || !ReferenceEquals(state.RemovingFrom, panel) || state.Transition.HasAsymmetricPart()
@@ -211,7 +213,9 @@ public sealed record SwiftTransition
             Insert(panel, index, child);
             return;
         }
-        var from = 1 - state.CurrentProgress;
+        // Partners still present the last delivered frame when a press arrives between frames.
+        var from = 1 - (usePresentedProgress ? state.PresentedProgress : state.CurrentProgress);
+        var speed = -state.CurrentSpeed;
         state.Stop();
         state.Carried = null;
         state.RemovingFrom = null;
@@ -223,22 +227,26 @@ public sealed record SwiftTransition
             return;
         }
         state.Present(child, from, inserting: true);
-        state.Run(animation, (p, _) => state.Present(child, from + (1 - from) * p, inserting: true), from: from);
+        var impulseSpeed = from == 1 && animation.KeepsSpeed && state.Transition.Moves() ? speed : 0;
+        animation = state.Transition.Carrying(animation, speed, from);
+        state.Run(animation, (p, complete) => state.Present(child, from + (1 - from) * p
+            + (complete ? 0 : impulseSpeed * animation.Impulse(state.Seconds)), inserting: true), from: from, impulseSpeed: impulseSpeed);
     }
 
     // ED-218: disposal belongs after removal finishes, including immediate/identity removals.
     internal static void Remove(Panel panel, Control child, Action? completed) => Remove(panel, child, completed, continuing: false);
 
-    private static void Remove(Panel panel, Control child, Action? completed, bool continuing)
+    private static void Remove(Panel panel, Control child, Action? completed, bool continuing, bool usePresentedProgress = false)
     {
         // The same `.opacity` default (UNVERIFIED under OD-0001, ED-092) for a child that carries no transition.
         var state = attachments.GetValue(child, _ => new Attachment(Opacity));
         // OD-0076, ED-NEW-perf-motion-9: a removal that interrupts an insertion under way starts from where the insertion has brought the
         // child (RemoveContinuing's rule) whenever the insertion has moved; one that has not moved yet (p = 0) still starts from the
         // removal's own start, as ED-278 (10) keeps for a stage swapped before any time passes.
-        var from = state.InsertionInFlight && !state.Transition.HasAsymmetricPart() && (continuing || state.CurrentProgress > 0)
-            ? 1 - state.CurrentProgress : 0;
-        var insertionSpeed = from > 0 ? state.CurrentSpeed : 0;
+        var progress = continuing && usePresentedProgress ? state.PresentedProgress : state.CurrentProgress;
+        var from = state.InsertionInFlight && !state.Transition.HasAsymmetricPart() && (continuing || progress > 0)
+            ? 1 - progress : 0;
+        var insertionSpeed = state.InsertionInFlight && !state.Transition.HasAsymmetricPart() ? state.CurrentSpeed : 0;
         // An asymmetric transition's removal names no state of the insertion it interrupts, so it cannot start from the insertion's progress; it starts from the
         // insertion's presentation instead (the opacity and the rise the child has now), which the removal then carries (UI-CHAT-052, unit rec-tlr).
         var carries = state.InsertionInFlight && state.Transition.HasAsymmetricPart();
@@ -262,18 +270,19 @@ public sealed record SwiftTransition
             throw new InvalidOperationException(
                 "A child with a modifier transition can leave with an animation only after SwiftTransition.Insert built its wrappers.");
         state.RemovingFrom = panel;
-        // ED-NEW-perf-motion-11, as above; not for the opt-in continuing sites (the terminal drawer), whose partners move in lock-step
-        // with them from rest (the pane's push, the docked panels' re-placement).
-        if (from > 0 && !continuing) animation = state.Transition.Carrying(animation, -insertionSpeed, from);
+        var impulseSpeed = from == 1 && animation.KeepsSpeed && state.Transition.Moves() ? -insertionSpeed : 0;
+        // ED-NEW-motion-drawer-1: continuing drawer transitions and their layout partners carry the same velocity.
+        animation = state.Transition.Carrying(animation, -insertionSpeed, from);
         state.Present(child, from, inserting: false);
         state.Run(animation, (p, complete) =>
         {
-            state.Present(child, from + (1 - from) * p, inserting: false);
+            state.Present(child, from + (1 - from) * p
+                + (complete ? 0 : impulseSpeed * animation.Impulse(state.Seconds)), inserting: false);
             if (!complete) return;
             if (panel.Children.Contains(wrapper)) panel.Children.Remove(wrapper);
             state.RemovingFrom = null;
             state.CompleteRemoval();
-        }, from: from);
+        }, from: from, impulseSpeed: impulseSpeed);
     }
 
     private SwiftTransition ForInsert() => kind == Kind.Asym ? first! : this;
@@ -284,7 +293,7 @@ public sealed record SwiftTransition
     // ED-NEW-perf-motion-11: a run that continues from `from` at `speed` (progress per second) carries that speed in when the curve is a
     // spring and the transition moves the child; the carried part dies out by the curve's end (Animation.Impulse).
     private Marrow.UI.Port.Animation Carrying(Marrow.UI.Port.Animation curve, double speed, double from) =>
-        from < 1 && curve.KeepsSpeed && Moves() ? curve.WithStartSpeed(speed / (1 - from)) : curve;
+        from != 1 && curve.KeepsSpeed && Moves() ? curve.WithStartSpeed(speed / (1 - from)) : curve;
 
     // Whether the transition moves or scales the child (a fade alone does not).
     private bool Moves() => kind switch
@@ -485,6 +494,7 @@ public sealed record SwiftTransition
         private Action<TimeSpan>? callback;
         private IFrameSource? source;
         private double lastProgress;
+        public double PresentedProgress => lastProgress;
         private bool lastInserting;
         private EventHandler<AvaloniaPropertyChangedEventArgs>? awaitingSize;
 
@@ -505,7 +515,7 @@ public sealed record SwiftTransition
                 var elapsed = SwiftClock.Now - runStart;
                 var curve = elapsed.Ticks + TimeSpan.TicksPerMillisecond >= SwiftTask.Seconds(runAnimation.Duration).Ticks
                     ? 1 : runAnimation.Progress(elapsed.TotalSeconds);
-                return runFrom + (1 - runFrom) * curve;
+                return runFrom + (1 - runFrom) * curve + runImpulseSpeed * runAnimation.Impulse(elapsed.TotalSeconds);
             }
         }
 
@@ -516,13 +526,17 @@ public sealed record SwiftTransition
             {
                 if (callback is null || runAnimation is null) return 0;
                 var seconds = (SwiftClock.Now - runStart).TotalSeconds;
-                return (1 - runFrom) * runAnimation.Speed(seconds);
+                return (1 - runFrom) * runAnimation.Speed(seconds) + (runImpulseSpeed == 0 ? 0 :
+                    runImpulseSpeed * (seconds <= 0 ? 1 : runImpulseAnimation!.Speed(seconds) - runAnimation.Speed(seconds)));
             }
         }
 
         private Marrow.UI.Port.Animation? runAnimation;
         private ContinuousInstant runStart;
         private double runFrom;
+        private double runImpulseSpeed;
+        private Marrow.UI.Port.Animation? runImpulseAnimation;
+        public double Seconds => (SwiftClock.Now - runStart).TotalSeconds;
 
         // Applies the transition at a progress. When a move could not read the child's size yet, the latest state is
         // presented again at the child's next bounds change (its first layout pass), before it is rendered.
@@ -583,7 +597,7 @@ public sealed record SwiftTransition
             callback = null;
         }
 
-        public void Run(Marrow.UI.Port.Animation animation, Action<double, bool> apply, TimeSpan elapsed = default, double from = 0)
+        public void Run(Marrow.UI.Port.Animation animation, Action<double, bool> apply, TimeSpan elapsed = default, double from = 0, double impulseSpeed = 0)
         {
             Stop();
             source = FrameClock.Source.Current;
@@ -591,6 +605,8 @@ public sealed record SwiftTransition
             runAnimation = animation;
             runStart = start;
             runFrom = from;
+            runImpulseSpeed = impulseSpeed;
+            runImpulseAnimation = impulseSpeed == 0 ? null : animation.WithStartSpeed(1);
             Action<TimeSpan>? frame = null;
             frame = _ =>
             {
@@ -674,6 +690,7 @@ public abstract partial record Animation
         public override bool KeepsSpeed => Inner.KeepsSpeed;
         public override double Progress(double seconds) => seconds >= Duration ? 1 : Inner.Progress(seconds) + StartSpeed * Inner.Impulse(seconds);
         public override double Impulse(double seconds) => Inner.Impulse(seconds);
+        public override double Speed(double seconds) => seconds == 0 ? Inner.Speed(0) + StartSpeed : base.Speed(seconds);
     }
 
     private sealed record SpringAnimation(double Response, double DampingRatio, double BlendDuration) : Animation

@@ -718,6 +718,8 @@ internal sealed class PanelPlacementView : Border
     private Size targetSize;
     private IFrameSource? frames;
     private Action<TimeSpan>? pending;
+    private long began;
+    private ChatSpringValue? x, y, width, height;
 
     // Called with every size the placement presents: the surface mounted inside follows the frame as it glides.
     internal Action<Size>? PresentSurface { get; set; }
@@ -735,7 +737,8 @@ internal sealed class PanelPlacementView : Border
         target = drag.Position ?? rest;
         targetSize = size;
         Present(target, size);
-        this.Track(() => (drag.Position, AppEnvironment.GetWindowLiveResize(this).IsActive), state => Place(state.IsActive));
+        this.Track(() => (drag.Position, AppEnvironment.GetWindowLiveResize(this).IsActive,
+            Reduce: EnvironmentValues.GetAccessibilityReduceMotion(this)), state => Place(state.IsActive));
         DetachedFromVisualTree += (_, _) => Stop();
     }
 
@@ -752,11 +755,18 @@ internal sealed class PanelPlacementView : Border
     {
         var origin = drag.Position ?? rest;
         var settles = drag.Position is null && !isResizing && !liveResize;
+        var reduced = EnvironmentValues.GetAccessibilityReduceMotion(this) || motionPlatform.AccessibilityDisplayShouldReduceMotion;
         if (settles && origin == target && size == targetSize) return;
+        var elapsed = clock.GetElapsedTime(began).TotalSeconds;
+        var vx = pending is null ? 0 : x!.Speed(elapsed);
+        var vy = pending is null ? 0 : y!.Speed(elapsed);
+        var vw = pending is null ? 0 : width!.Speed(elapsed);
+        var vh = pending is null ? 0 : height!.Speed(elapsed);
         target = origin;
         targetSize = size;
         Stop();
-        if (!settles || TopLevel.GetTopLevel(this) is null || (presented == origin && presentedSize == size))
+        if (!settles || TopLevel.GetTopLevel(this) is null ||
+            (presented == origin && presentedSize == size && vx == 0 && vy == 0 && vw == 0 && vh == 0))
         {
             Present(origin, size);
             return;
@@ -764,20 +774,24 @@ internal sealed class PanelPlacementView : Border
         var from = presented;
         var fromSize = presentedSize;
         var toSize = size;
-        var start = clock.GetTimestamp();
+        began = clock.GetTimestamp();
         // Chrome.swift:99-104. Reuse Chrome's curves and read the platform's live setting at each settle.
         // Retain the injected platform object across posted observation callbacks, whose context can differ.
         using var motion = Chrome.ReduceMotionPlatform.Override(motionPlatform);
-        var animation = Chrome.PanelSlide;
+        var animation = reduced ? Animation.EaseOut(.18) : Chrome.PanelSlide;
+        x = new(from.X, origin.X, animation, animation.KeepsSpeed ? vx : 0);
+        y = new(from.Y, origin.Y, animation, animation.KeepsSpeed ? vy : 0);
+        width = new(fromSize.Width, toSize.Width, animation, animation.KeepsSpeed ? vw : 0);
+        height = new(fromSize.Height, toSize.Height, animation, animation.KeepsSpeed ? vh : 0);
         frames = FrameClock.Source.Current;
         Action<TimeSpan>? tick = null;
         tick = _ =>
         {
-            var seconds = clock.GetElapsedTime(start).TotalSeconds;
-            var complete = seconds >= animation.Duration;
-            var p = complete ? 1 : animation.Progress(seconds);
-            Present(new Point(from.X + (origin.X - from.X) * p, from.Y + (origin.Y - from.Y) * p),
-                new Size(fromSize.Width + (toSize.Width - fromSize.Width) * p, fromSize.Height + (toSize.Height - fromSize.Height) * p));
+            if (!ReferenceEquals(pending, tick)) return;
+            var seconds = clock.GetElapsedTime(began).TotalSeconds;
+            var complete = seconds + 0.001 >= animation.Duration; // same ED-117 completion as the drawer/pane.
+            Present(new Point(x.Value(seconds, complete), y.Value(seconds, complete)),
+                new Size(width.Value(seconds, complete), height.Value(seconds, complete)));
             if (complete) pending = null;
             else frames.RequestFrame(tick!);
         };

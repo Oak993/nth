@@ -14,6 +14,8 @@ public sealed class WallpaperDimVeil : IDisposable
     private static readonly SKColor Ink = new(8, 8, 10); // the v4 page's halo ink
     private readonly SKPaint paint = new() { IsAntialias = true, Color = Ink };
     private SKBitmap? grid;
+    private SKMaskFilter? blur;
+    private float blurSigma;
     private bool disposed;
 
     /// <summary>How far the veil reaches past the composer (px) for a light of <paramref name="spread"/>.</summary>
@@ -27,7 +29,14 @@ public sealed class WallpaperDimVeil : IDisposable
         if (disposed || alpha <= .002 || !(w > 0) || !(h > 0)) return;
         var grow = (float)(spread * .25);
         var r = (float)Math.Min(radius, Math.Min(w, h) / 2) + grow;
-        using var blur = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, (float)Math.Max(.5, Sigma(spread)));
+        // ED-NEW-smooth2-1: the filter depends only on sigma, not the changing size or veil alpha.
+        var sigma = (float)Math.Max(.5, Sigma(spread));
+        if (blur is null || blurSigma != sigma)
+        {
+            blur?.Dispose();
+            blur = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, sigma);
+            blurSigma = sigma;
+        }
         paint.MaskFilter = blur;
         paint.Color = Ink.WithAlpha((byte)Math.Round(Math.Clamp(alpha, 0, 1) * 255));
         canvas.DrawRoundRect(new SKRect(-grow, -grow, (float)w + grow, (float)h + grow), r, r, paint);
@@ -66,6 +75,7 @@ public sealed class WallpaperDimVeil : IDisposable
         if (disposed) return;
         disposed = true;
         paint.Dispose();
+        blur?.Dispose();
         grid?.Dispose();
     }
 }
