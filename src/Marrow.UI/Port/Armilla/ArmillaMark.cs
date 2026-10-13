@@ -123,7 +123,7 @@ public sealed class ArmillaMark : Control
         }
         // a hidden ancestor, a clipped scroll position or an off-screen place is caught by the handler: a visual the compositor
         // does not draw stops asking for frames, and drawing it again restarts them
-        if (change.Property == IsVisibleProperty) SendVisible(IsVisible);
+        if (change.Property == IsVisibleProperty) SendVisible(IsEffectivelyVisible);
     }
 
     private void Install()
@@ -139,7 +139,7 @@ public sealed class ArmillaMark : Control
         ElementComposition.SetElementChildVisual(this, visual);
         sent = null; sentVisible = null; sentSleep = null;
         Send();
-        SendVisible(IsVisible);
+        SendVisible(IsEffectivelyVisible);
         OnWatch();
     }
 
@@ -155,6 +155,7 @@ public sealed class ArmillaMark : Control
 
     private void OnWatch()
     {
+        SendVisible(IsEffectivelyVisible);
         var sleep = (watch?.Sleeping ?? false) || availability?.Available == false;
         if (visual is null || sentSleep == sleep) return;
         sentSleep = sleep;
@@ -171,6 +172,7 @@ public sealed class ArmillaMark : Control
     private void Send()
     {
         if (visual is null) return;
+        SendVisible(IsEffectivelyVisible);
         var look = Look;
         if (look.Equals(sent)) return;
         sent = look;
@@ -219,7 +221,7 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
         switch (message)
         {
             case ArmillaLook look:
-                if (engine is null) engine = new ArmillaEngine(look) { Visible = !hidden };
+                if (engine is null) engine = new ArmillaEngine(look) { Visible = !hidden && !sleeping };
                 else engine.Set(look);
                 more = true;
                 Invalidate();
@@ -232,11 +234,12 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
                 break;
             case Shown shown:
                 hidden = shown == Shown.No;
-                if (engine is not null) engine.Visible = !hidden;
+                if (engine is not null) engine.Visible = !hidden && !sleeping;
                 if (!hidden) { more = true; Invalidate(); Request(); }
                 break;
             case Sleep sleep:
                 sleeping = sleep == Sleep.On;
+                if (engine is not null) engine.Visible = !hidden && !sleeping;
                 if (!sleeping) { more = true; Request(); }
                 break;
             case Stop:

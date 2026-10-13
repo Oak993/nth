@@ -124,6 +124,7 @@ public sealed class AsturMark : Control
 
     private void OnWatch()
     {
+        SendVisible(IsEffectivelyVisible);
         var sleep = (watch?.Sleeping ?? false) || availability?.Available == false;
         if (visual is null || sentSleep == sleep) return;
         sentSleep = sleep;
