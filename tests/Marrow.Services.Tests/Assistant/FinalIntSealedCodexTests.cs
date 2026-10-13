@@ -51,13 +51,16 @@ public sealed class FinalIntSealedCodexTests
     }
 
     [Fact]
-    public void A_sealed_launch_with_tactus_disables_the_competing_codex_controllers()
+    public async Task A_sealed_launch_with_tactus_disables_the_competing_codex_controllers()
     {
         using var storage = new StorageScratchFolder();
         using var scratch = new ScratchFolder();
         using var rig = new PcAssemblyRig();
         var assembly = rig.Build();
         using var shared = PcControlBridge.Parts.Override(() => assembly.Shared);
+        using var perThread = PcControlBridge.PartsFor.Override(assembly.PartsFor);
+        var host = new MissionPcHost();
+        using var dextra = AssistantMcpBridge.Host.Override(host);
         var configuration = BuiltInServerFixtures.Config(ProviderKind.Codex, Guid.NewGuid()) with
         {
             Sealed = new SealedLaunch(Guid.NewGuid()),
@@ -66,8 +69,19 @@ public sealed class FinalIntSealedCodexTests
         var session = new CodexSession(configuration);
         var parameters = (Dictionary<string, JSONValue>)typeof(CodexSession).GetProperty("ThreadParameters", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(session)!;
         var config = parameters["config"];
-        Assert.Null(config["mcp_servers"]?["nth-pc"]); // ED-NEW-secfinal-1: a mission chat is given no nth-pc server (was NotNull)
+        Assert.NotNull(config["mcp_servers"]?["nth-pc"]); // ED-NEW-mission-pc-1: present, gated by Dextra (MissionPcRouteTests).
         foreach (var plugin in PcProviderWiring.CodexComputerUsePlugins)
             Assert.False(config["plugins." + plugin + ".enabled"]?.JSONValueBool ?? true);
+        var token = config["mcp_servers"]!["nth-pc"]!["args"]!.JSONValueArray![^1].JSONValueString;
+        var registration = PcControlBridge.Registration(token);
+        Assert.Equal("a mission chat", registration?.Head);
+        var server = new PcControlMcpServer(registration, PcControlBridge.Engine, () => rig.Settings);
+        var call = server.Handle("""{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pc_list_apps","arguments":{}}}""", default);
+        Assert.Equal(["pc_list_apps"], host.Calls);
+        Assert.False(call.IsCompleted);
+        host.Answer.SetResult(false);
+        Assert.Contains("\"isError\":true", (await call)!, StringComparison.Ordinal);
+        Assert.All(rig.Audits.Values, a => Assert.Empty(a.Entries));
+        PcControlBridge.Forget(registration!.Thread);
     }
 }

@@ -419,7 +419,7 @@ public sealed partial class MissionRunner
             cut = [.. pendingRequests.Where(p => p.Key.Thread == head).Select(p => (p.Key.Thread, p.Value.Request))];
             foreach (var (thread, request) in cut) pendingRequests.Remove((thread, request.Id));
         }
-        foreach (var (thread, request) in cut) o.Agents.Resolve(thread, request, approve: false);
+        foreach (var (thread, request) in cut) ResolveApproval(thread, request, approve: false);
         foreach (var card in o.Queue.Of(mission).Where(c => c.ThreadId == head && c.Kind is DecisionKind.Approval or DecisionKind.Question && c.RequestId is not null))
             o.Queue.Withdraw(card.Id, card.Kind == DecisionKind.Approval ? Withdrawn : WithdrawnQuestion);
         o.Queue.Hold(c => c.ThreadId == head, DecisionHold.Stop);

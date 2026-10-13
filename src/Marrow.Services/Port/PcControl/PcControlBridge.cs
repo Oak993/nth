@@ -25,7 +25,8 @@ public static class PcControlBridge
     public const int MaxLineChars = 1024 * 1024;
 
     private static readonly ConcurrentDictionary<string, PcRegistration> registrations = new(StringComparer.Ordinal);
-    private static readonly ConcurrentDictionary<string, PcControlEngine> engines = new(StringComparer.Ordinal);
+    // ED-NEW-mission-pc-2: an ordinary engine cannot lend its grants to a seal. Unsealed chats retain the old thread-only key.
+    private static readonly ConcurrentDictionary<(string Thread, Guid? Mission, string? Head, string? Model, bool Vision), PcControlEngine> engines = new();
     private static readonly Lazy<string> pipeName = new(StartServing, LazyThreadSafetyMode.ExecutionAndPublication);
 
     /// <summary>
@@ -74,15 +75,14 @@ public static class PcControlBridge
     /// </summary>
     public static PcRegistration? Registration(SessionConfiguration configuration)
     {
-        // PORT-ONLY (security gate S1, ED-NEW-secfinal-1): a mission chat (sealed) gets no nth-pc server and no native PC or web
-        // tool. Its desktop and browser steps would run on the owner's standing "Always" grants, outside Dextra's approval,
-        // classifier, taint and audit; until they are routed through DextraApproval the seal leaves them out (fail closed).
-        if (configuration.Sealed is not null) return null;
+        // ED-NEW-mission-pc-1 supersedes ED-NEW-secfinal-1: every sealed adapter waits on Dextra before executing.
         if (!TactusOn && !Marrow.Services.Web.WebAgentHub.Shared.Current.Offered) return null;
         var thread = configuration.IgnisThreadID is { } id ? id.ToString("D") : "session-" + Guid.NewGuid().ToString("N");
         return new PcRegistration(thread, configuration.Provider, configuration.Model, configuration.Provider.SupportsImages)
         {
-            Head = configuration.IsHydraHead ? "a Hydra head" : null,
+            Head = configuration.IsHydraHead ? "a Hydra head" : configuration.Sealed is not null ? "a mission chat" : null,
+            MissionId = configuration.Sealed?.MissionId,
+            MissionHost = configuration.Sealed is not null ? Marrow.Services.Assistant.AssistantMcpBridge.Host.Current : null,
             ImageFolder = PcProviderWiring.ImageFolder(configuration.Provider, thread),
         };
     }
@@ -91,10 +91,64 @@ public static class PcControlBridge
     public static PcRegistration? Registration(string? token) =>
         token is not null && registrations.TryGetValue(token, out var registration) ? registration : null;
 
+    /// <summary>ED-NEW-mission-pc-1: an execution's own identity. Ordinary chats and unsealed Hydra heads keep their old path.</summary>
+    public static PcRegistration ForCall(PcRegistration registration) => registration.MissionId is null || registration.CallId is not null
+        ? registration : registration with { CallId = Guid.NewGuid().ToString("N") };
+
+    /// <summary>The common sealed-call gate of MCP and API adapters. Every declared batch step is also decided, before the batch acts.</summary>
+    public static async Task<bool> ApproveMission(PcRegistration registration, string tool, System.Text.Json.Nodes.JsonObject arguments, CancellationToken cancellationToken)
+    {
+        if (registration.MissionId is null) return true;
+        var host = registration.MissionHost ?? Marrow.Services.Assistant.AssistantMcpBridge.Host.Current;
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!await host.ApprovePc(registration, tool, (System.Text.Json.Nodes.JsonObject)arguments.DeepClone(), cancellationToken).ConfigureAwait(false)) return false;
+            if (!Attended.Current(registration.Thread)) return false;
+            if (tool == Marrow.Core.Port.PcControl.PcToolSchemas.Batch)
+            {
+                if (arguments["actions"] is not System.Text.Json.Nodes.JsonArray steps || steps.Count is < 2 or > Marrow.Core.Port.PcControl.PcToolSchemas.MaxBatchSteps) return false;
+                foreach (var node in steps)
+                {
+                    if (node is not System.Text.Json.Nodes.JsonObject step || step["tool"] is not System.Text.Json.Nodes.JsonValue value
+                        || !value.TryGetValue<string>(out var name) || !Marrow.Core.Port.PcControl.PcToolSchemas.BatchSteps.Contains(name)) return false;
+                    var input = (System.Text.Json.Nodes.JsonObject)step.DeepClone();
+                    input.Remove("tool");
+                    input.Remove("bind");
+                    if (!input.ContainsKey("window")) input["window"] = arguments["window"]?.DeepClone();
+                    if (!await ApproveMission(registration with { CallId = Guid.NewGuid().ToString("N") }, name, input, cancellationToken).ConfigureAwait(false)) return false;
+                }
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            return true;
+        }
+        catch (Exception error) when (error is not (OperationCanceledException or OutOfMemoryException)) { return false; }
+    }
+
+    /// <summary>The response outcome is logged without any returned content. An unavailable audit never silently succeeds.</summary>
+    public static bool CompletedMission(PcRegistration registration, string tool, System.Text.Json.Nodes.JsonObject arguments, string outcome)
+    {
+        if (registration.MissionId is null) return true;
+        try { return (registration.MissionHost ?? Marrow.Services.Assistant.AssistantMcpBridge.Host.Current).PcCompleted(registration, tool, arguments, outcome); }
+        catch (Exception error) when (error is not (OperationCanceledException or OutOfMemoryException)) { return false; }
+    }
+
+    public static Marrow.Core.Port.PcControl.PcResult MissionRefusal() => Marrow.Core.Port.PcControl.PcResult.Fail(
+        Marrow.Core.Port.PcControl.PcErrorCode.NotApproved, "the user did not allow this step");
+
+    public static Marrow.Core.Port.PcControl.PcResult MissionAuditFailure() => Marrow.Core.Port.PcControl.PcResult.Fail(
+        Marrow.Core.Port.PcControl.PcErrorCode.NotApproved, "the activity log could not record the result; do not repeat the step");
+
+    public static string Outcome(Marrow.Core.Port.PcControl.PcResult result) => result.Error is not null ? "failed"
+        : result.Status == Marrow.Core.Port.PcControl.PcStatus.WaitingForUser ? "waiting_for_user"
+        : result.Status == Marrow.Core.Port.PcControl.PcStatus.Unverified ? "unverified" : "done";
+
     /// <summary>The chat's engine, made on first use from the bound parts; null while unbound.</summary>
     public static PcControlEngine? Engine(PcRegistration registration)
     {
-        if (engines.TryGetValue(registration.Thread, out var engine)) return engine;
+        var key = registration.MissionId is null ? (registration.Thread, (Guid?)null, (string?)null, (string?)null, false)
+            : (registration.Thread, registration.MissionId, registration.Head, registration.Model, registration.Vision);
+        if (engines.TryGetValue(key, out var engine)) return engine;
         var thread = registration.Thread;
         if (Parts.Current() is null || PartsFor.Current(thread) is not { } parts) return null;
         var head = registration.Head is not null;
@@ -103,32 +157,33 @@ public static class PcControlBridge
             Head = registration.Head,
             Model = registration.Model,
         });
-        var kept = engines.GetOrAdd(thread, made);
+        var kept = engines.GetOrAdd(key, made);
         if (!ReferenceEquals(kept, made)) made.Dispose();
         return kept;
     }
 
     /// <summary>The chat threads with an engine now (the pill's Stop interrupts their turns).</summary>
-    public static IReadOnlyList<string> Threads => [.. engines.Keys];
+    public static IReadOnlyList<string> Threads => [.. engines.Keys.Select(key => key.Thread).Distinct(StringComparer.Ordinal)];
 
     /// <summary>The chat's Stop: its queued steps are cancelled and no step starts again this turn.</summary>
     public static void StopTurn(string thread)
     {
-        if (engines.TryGetValue(thread, out var engine)) engine.StopTurn();
+        foreach (var entry in engines.Where(entry => entry.Key.Thread == thread)) entry.Value.StopTurn();
         Marrow.Services.Web.WebAgentHub.Shared.Current.StopTurn(thread); // + ED-NEW-web-w11-1: the web steps stop with it
     }
 
     /// <summary>The chat's turn ended: its queued steps are cancelled and its windows are released.</summary>
     public static void EndTurn(string thread)
     {
-        if (engines.TryGetValue(thread, out var engine)) engine.EndTurn();
+        foreach (var entry in engines.Where(entry => entry.Key.Thread == thread)) entry.Value.EndTurn();
         Marrow.Services.Web.WebAgentHub.Shared.Current.EndTurn(thread); // + ED-NEW-web-w11-1
     }
 
     /// <summary>The chat closed: its engine goes.</summary>
     public static void Forget(string thread)
     {
-        if (engines.TryRemove(thread, out var engine)) engine.Dispose();
+        foreach (var entry in engines.Where(entry => entry.Key.Thread == thread))
+            if (engines.TryRemove(entry.Key, out var engine)) engine.Dispose();
         Marrow.Services.Web.WebAgentHub.Shared.Current.Forget(thread); // + ED-NEW-web-w11-1
     }
 

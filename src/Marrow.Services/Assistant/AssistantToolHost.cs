@@ -6,6 +6,8 @@
 using Marrow.Core.Models;
 using Marrow.Core.Port.Assistant;
 using Marrow.Core.Support;
+using System.Text.Json.Nodes;
+using Marrow.Services.Port.PcControl;
 
 namespace Marrow.Services.Assistant;
 
@@ -55,6 +57,12 @@ public sealed record AssistantToolResult(bool IsError, string Text)
 /// <summary>The controller behind the nth-dextra tools.</summary>
 public interface IAssistantToolHost
 {
+    /// <summary>ED-NEW-mission-pc-1: a sealed Tactus/Visus call waits for Dextra's own approval; an unbound host refuses.</summary>
+    Task<bool> ApprovePc(PcRegistration registration, string tool, JsonObject arguments, CancellationToken cancellationToken) => Task.FromResult(false);
+
+    /// <summary>The returned outcome of that call (no page content or typed text). A failed audit withholds the result.</summary>
+    bool PcCompleted(PcRegistration registration, string tool, JsonObject arguments, string outcome) => false;
+
     /// <summary>The chat's assistant, mission and role; null for a chat that is not Dextra's (it gets no tools).</summary>
     AssistantChatIdentity? Identify(Guid thread);
 

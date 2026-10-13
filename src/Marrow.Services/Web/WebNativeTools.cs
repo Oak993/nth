@@ -6,25 +6,35 @@
 // and a model that does not is told to read the page instead.
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Core.Web;
 using Marrow.Services.Port.Skills.Providers;
 using Marrow.Services.Providers;
+using Marrow.Services.Port.PcControl;
 
 namespace Marrow.Services.Web;
 
 public sealed class WebNativeTools(Func<WebAgentHub> hub, string thread, string? model)
 {
+    private PcRegistration? registration;
     /// <summary>The chat's web tools, or null when Visus is not bound or the session serves no chat.</summary>
     public static WebNativeTools? For(SessionConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
-        // ED-NEW-secfinal-1: a mission chat (sealed) is given no web tool, as it is given no nth-pc server (PcControlBridge.Registration).
-        if (configuration.Sealed is not null) return null;
         var shared = WebAgentHub.Shared.Current;
         if (shared.Host is null || configuration.IgnisThreadID is not { } thread) return null;
-        return new WebNativeTools(() => WebAgentHub.Shared.Current, thread.ToString("D"), configuration.Model);
+        return new WebNativeTools(() => WebAgentHub.Shared.Current, thread.ToString("D"), configuration.Model)
+        {
+            // ED-NEW-mission-pc-1: retain this launch's seal and host even if Tactus is off (Visus is independent).
+            registration = configuration.Sealed is not null ? new PcRegistration(thread.ToString("D"), configuration.Provider, configuration.Model, configuration.Provider.SupportsImages)
+            {
+                Head = configuration.IsHydraHead ? "a Hydra head" : "a mission chat",
+                MissionId = configuration.Sealed.MissionId,
+                MissionHost = Marrow.Services.Assistant.AssistantMcpBridge.Host.Current,
+            } : null,
+        };
     }
 
     public string Thread { get; } = thread;
@@ -66,6 +76,13 @@ public sealed class WebNativeTools(Func<WebAgentHub> hub, string thread, string?
             args = null;
         }
         if (args is null) return WebToolResult.Fail(WebErrorCodes.BadArgs, "the arguments must be a JSON object.");
-        return await engine.Call(toolName, args, new WebAgentCaller(Thread, model, vision), cancellationToken).ConfigureAwait(true);
+        var active = registration is null ? null : PcControlBridge.ForCall(registration);
+        if (active is not null && !await PcControlBridge.ApproveMission(active, toolName, args, cancellationToken).ConfigureAwait(true))
+            return WebToolResult.Fail(WebErrorCodes.NotApproved, "The user did not allow this step.");
+        cancellationToken.ThrowIfCancellationRequested();
+        var result = await engine.Call(toolName, args, new WebAgentCaller(Thread, model, vision), cancellationToken).ConfigureAwait(true);
+        if (active is not null && !PcControlBridge.CompletedMission(active, toolName, args, result.Error == WebErrorCodes.WaitingForUser ? "waiting_for_user" : result.Failed ? "failed" : "done"))
+            return WebToolResult.Fail(WebErrorCodes.NotApproved, "The activity log could not record the result; do not repeat the step.");
+        return result;
     }
 }

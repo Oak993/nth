@@ -227,6 +227,7 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
 
     public AssistantController(AssistantControllerOptions options)
     {
+        pcClosingToken = pcClosing.Token;
         o = options;
         Queue = new DecisionQueue(o.Time);
         Gate = new AgentGate(o.Limits, o.Memory, o.Time);
@@ -949,6 +950,7 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
 
     public void Dispose()
     {
+        ClosePcCalls(); // ED-NEW-mission-pc-1: no captured sealed host can outlive its controller
         Responder?.Dispose();
         o.Delegate?.Owned?.Dispose();
         Stopper.Dispose();

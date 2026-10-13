@@ -32,7 +32,13 @@ public sealed class WebMcpTools(Func<WebAgentHub> hub)
     {
         ArgumentNullException.ThrowIfNull(registration);
         var engine = hub().Engine(registration.Thread) ?? throw new ArgumentException("Visus is not available here.");
+        var active = PcControlBridge.ForCall(registration);
+        if (!await PcControlBridge.ApproveMission(active, name, arguments, cancellationToken).ConfigureAwait(false))
+            return Content(WebToolResult.Fail(WebErrorCodes.NotApproved, "The user did not allow this step."), registration.Vision);
+        cancellationToken.ThrowIfCancellationRequested();
         var result = await engine.Call(name, arguments, new WebAgentCaller(registration.Thread, registration.Model, registration.Vision), cancellationToken).ConfigureAwait(false);
+        if (!PcControlBridge.CompletedMission(active, name, arguments, result.Error == WebErrorCodes.WaitingForUser ? "waiting_for_user" : result.Failed ? "failed" : "done"))
+            result = WebToolResult.Fail(WebErrorCodes.NotApproved, "The activity log could not record the result; do not repeat the step.");
         return Content(result, registration.Vision, registration.ImageFolder);
     }
 

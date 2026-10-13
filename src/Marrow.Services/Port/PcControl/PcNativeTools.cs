@@ -70,7 +70,12 @@ public sealed class PcNativeTools(PcRegistration registration, Func<PcRegistrati
         if (!Owns(toolName)) return new PcNativeResult("Error: " + toolName + " is not offered now (Tactus is off).", [], true);
         if (engines(registration) is not { } engine) return new PcNativeResult("Error: Tactus is not available now.", [], true);
         var args = JsonNode.Parse(arguments.CompactString) as JsonObject ?? [];
+        var active = PcControlBridge.ForCall(registration);
+        if (!await PcControlBridge.ApproveMission(active, toolName, args, cancellationToken).ConfigureAwait(true))
+            return new PcNativeResult(PcControlBridge.MissionRefusal().Render(), [], true);
+        cancellationToken.ThrowIfCancellationRequested();
         var result = await engine.Call(toolName, args, cancellationToken).ConfigureAwait(true);
+        if (!PcControlBridge.CompletedMission(active, toolName, args, PcControlBridge.Outcome(result))) result = PcControlBridge.MissionAuditFailure();
         var images = new List<PcImage>();
         if (registration.Vision)
         {
