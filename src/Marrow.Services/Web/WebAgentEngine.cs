@@ -49,6 +49,9 @@ public sealed partial class WebAgentEngine : IDisposable
     private readonly Dictionary<string, string> shortIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> readOrigins = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> knownUrls = new(StringComparer.Ordinal);
+
+    // ED-NEW-web-sec-agent-6: the preview origins a chat outside any project allowed scripts in, kept only while its web tools live.
+    private readonly HashSet<string> chatScripts = new(StringComparer.OrdinalIgnoreCase);
     private readonly LinkedList<(string? Origin, string Text)> readTexts = new();
     private readonly Dictionary<string, PendingAsk> asks = new(StringComparer.Ordinal);
     private CancellationTokenSource turn = new();
@@ -435,14 +438,33 @@ public sealed partial class WebAgentEngine : IDisposable
         if (!WebPolicy.IsDevUrl(state.Tab.Url) || WebPolicy.OriginOf(state.Tab.Url) is not { } origin)
             return Fail(WebErrorCodes.NotSupported, "web_eval runs only in project previews (localhost and LAN dev hosts).");
         if (await Hold(s, state) is { } held) return held;
-        if (!hub.Grants.Eval(origin))
+        // ED-NEW-web-sec-agent-6 (security review L4; DESIGN 5.10 "after the user allows it per project"): the grant belongs to the
+        // chat's project and the preview origin; a chat outside any project keeps its own only while its web tools live.
+        var project = s.Host.ProjectOf(Thread);
+        bool granted;
+        if (project is null)
+        {
+            lock (gate) granted = chatScripts.Contains(origin);
+        }
+        else
+        {
+            granted = hub.Grants.Eval(project, origin);
+        }
+        if (!granted)
         {
             var ask = new WebEvalAsk(Thread, state.Short, origin, s.Model) { TabId = state.Tab.Id };
             Report(UiText.Get("agent.step.check_card"), state.Short, WebAgentPhase.Asking);
-            var (answered, allowed) = await Ask("eval|" + origin, t => s.Asker.AskEval(ask, t), false, s);
+            var (answered, allowed) = await Ask("eval|" + project + "|" + origin, t => s.Asker.AskEval(ask, t), false, s);
             if (!answered) return Waiting(s);
             if (!allowed) return Fail(WebErrorCodes.NotApproved, "The user did not allow scripts in " + WebPolicy.SourceName(origin) + ". Use the other web tools.");
-            hub.Grants.GrantEval(origin);
+            if (project is null)
+            {
+                lock (gate) chatScripts.Add(origin);
+            }
+            else
+            {
+                hub.Grants.GrantEval(project, origin);
+            }
         }
         Report(UiText.Get("agent.step.running_script"), state.Short);
         var result = await state.Cdp!.CallAsync("Runtime.evaluate", new JsonObject
@@ -758,6 +780,15 @@ public sealed partial class WebAgentEngine : IDisposable
         if (!e.IsMainFrame || e.Cancel || !ModelCaused(state)) return;
         var url = e.Url;
         if (WebPolicy.IsBlank(url)) return;
+        // ED-NEW-web-sec-agent-6 (security review L4): an option whose change sends its form (an onchange submit) would be a submit
+        // the card never saw; a GET form on its own site (a filter, a sort) still runs.
+        WebElementFacts? choosing;
+        lock (gate) choosing = state.Choosing;
+        if (choosing is { InForm: true } && WebAgentPolicy.CheckSubmit(choosing with { Submits = true }, WebPolicy.OriginOf(state.Tab.Url)).Kind != WebGuardKind.None)
+        {
+            Block(state, e, "Choosing that option sent its form, and nth stopped it: sending this form needs the user's OK. To send it, web_click the form's submit button (nth asks the user).");
+            return;
+        }
         if (WebAgentUrls.DeniedReason(url) is { } why)
         {
             Block(state, e, "nth stopped the page from opening " + url + ": " + why);
@@ -898,6 +929,7 @@ public sealed partial class WebAgentEngine : IDisposable
             state.Stepping++;
             state.Driven = true;
             state.Blocked = null;
+            state.Choosing = null;
         }
         return new StepLease(() =>
         {
@@ -1130,6 +1162,9 @@ public sealed partial class WebAgentEngine : IDisposable
 
         /// <summary>Why the last model-caused navigation was stopped.</summary>
         public string? Blocked { get; set; }
+
+        /// <summary>The select web_select changed in its last step (a navigation it causes is judged as its form's submit).</summary>
+        public WebElementFacts? Choosing { get; set; }
 
         public int Stepping { get; set; }
 

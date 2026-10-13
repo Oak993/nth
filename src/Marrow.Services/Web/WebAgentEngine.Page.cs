@@ -119,11 +119,12 @@ public sealed partial class WebAgentEngine
         """;
 
     private const string SelectJs = """
-        function (want) {
+        function (want, apply) {
           const w = String(want).trim().toLowerCase();
           const opts = Array.from(this.options || []).filter(o => !o.disabled);
           const o = opts.find(o => o.value === want) || opts.find(o => o.text.trim().toLowerCase() === w) || opts.find(o => o.text.trim().toLowerCase().includes(w));
           if (!o) return null;
+          if (apply === false) return o.text.trim();
           this.value = o.value;
           o.selected = true;
           this.dispatchEvent(new Event('input', { bubbles: true }));
@@ -168,7 +169,7 @@ public sealed partial class WebAgentEngine
         {
             if (mode == "ax")
             {
-                var secrets = await Secrets(state, s.Token);
+                var secrets = await Secrets(state, root?.Session, s.Token);
                 var nodes = WebAgentTree.Parse(await cdp.CallAsync("Accessibility.getFullAXTree", null, root?.Session, s.Token));
                 var tree = WebAgentTree.Format(nodes, state.Refs, root?.Session, root?.BackendId, secrets, budget, state.Tab.Url);
                 var text = new StringBuilder(tree.Text);
@@ -180,7 +181,7 @@ public sealed partial class WebAgentEngine
                         var left = budget - text.Length;
                         if (left < 400) break;
                         var frameNodes = WebAgentTree.Parse(await cdp.CallAsync("Accessibility.getFullAXTree", null, frame.SessionId, s.Token));
-                        var part = WebAgentTree.Format(frameNodes, state.Refs, frame.SessionId, null, null, left, frame.Url);
+                        var part = WebAgentTree.Format(frameNodes, state.Refs, frame.SessionId, null, await Secrets(state, frame.SessionId, s.Token), left, frame.Url);
                         if (part.Text.Length == 0) continue;
                         text.Append("\nframe ").Append(frame.Url).Append(":\n").Append(part.Text);
                         all.AddRange(part.Links);
@@ -215,13 +216,13 @@ public sealed partial class WebAgentEngine
         if (state.Tab.Shared && await Site(s, state) is { } refused) return refused;
         Report(UiText.Format("agent.step.finding", Clip(query, 30)), state.Short);
         var cdp = state.Cdp!;
-        var secrets = await Secrets(state, s.Token);
+        var secrets = await Secrets(state, null, s.Token);
         var lines = new List<string>(WebAgentTree.Find(WebAgentTree.Parse(await cdp.CallAsync("Accessibility.getFullAXTree", null, null, s.Token)), state.Refs, query, null, secrets));
         foreach (var frame in await Frames(state, s.Token))
         {
             if (lines.Count >= 30) break;
             var nodes = WebAgentTree.Parse(await cdp.CallAsync("Accessibility.getFullAXTree", null, frame.SessionId, s.Token));
-            lines.AddRange(WebAgentTree.Find(nodes, state.Refs, query, frame.SessionId, null, 30 - lines.Count));
+            lines.AddRange(WebAgentTree.Find(nodes, state.Refs, query, frame.SessionId, await Secrets(state, frame.SessionId, s.Token), 30 - lines.Count));
         }
         var origin = WebPolicy.OriginOf(state.Tab.Url);
         var body = string.Join('\n', lines);
@@ -532,17 +533,35 @@ public sealed partial class WebAgentEngine
             if (typing.Kind == WebGuardKind.Deny) return Fail(WebErrorCodes.Denied, typing.Reason!);
             if (element.IsSelect)
             {
+                // ED-NEW-web-sec-agent-6 (security review L4): the option is judged like a button with its words ("Delete" asks, "Pay
+                // now" is denied) before it is chosen, and a change that sends the select's form is stopped where the navigation starts
+                // (OnNavigationStarting, state.Choosing).
+                var noSuchOption = Fail(WebErrorCodes.BadArgs, reference + " has no option like that. Its options:\n" + WebAgentText.Untrusted(origin, string.Join(" | ", element.Options)));
+                var looked = await CallOn(state, key, SelectJs, value, s.Token, apply: false);
+                if (looked.ValueKind != JsonValueKind.String) return noSuchOption;
+                var optionText = looked.GetString() ?? "";
+                var option = new WebElementFacts { Tag = "option", Role = "option", Name = optionText };
+                var choice = WebAgentPolicy.CheckPress(option, origin);
+                if (await Guard(s, state, choice, option, Approval(state, "choose", element, optionText), null, element.Rows) is { } stop) return stop;
+                if (choice.Kind == WebGuardKind.Confirm)
+                {
+                    var again = await CallOn(state, key, SelectJs, value, s.Token, apply: false);
+                    if (again.ValueKind != JsonValueKind.String || again.GetString() != optionText || await Facts(state, key, s.Token) is not { } now || Digest(now, null) != Digest(element, null))
+                        return Fail(WebErrorCodes.StaleRef, PageChanged);
+                }
                 Report(UiText.Format("agent.step.choosing", PillName(element, true)), state.Short);
                 JsonElement chosen;
                 using (BeginStep(state))
                 {
                     await Drive(state, s);
                     if (await Point(state, key, scroll: true, s.Token) is { } point) await Pointer(state, point, s);
-                    chosen = await CallOn(state, key, SelectJs, value, s.Token);
+                    lock (gate) state.Choosing = element.Facts;
+                    chosen = await CallOn(state, key, SelectJs, value, s.Token, apply: true);
+                    await Settle(state, s);
                 }
-                if (chosen.ValueKind != JsonValueKind.String)
-                    return Fail(WebErrorCodes.BadArgs, reference + " has no option like that. Its options:\n" + WebAgentText.Untrusted(origin, string.Join(" | ", element.Options)));
-                return new WebToolResult("Chose an option in " + reference + " of " + state.Short + ":\n" + WebAgentText.Untrusted(origin, chosen.GetString() ?? ""));
+                if (chosen.ValueKind != JsonValueKind.String) return noSuchOption;
+                var said = "Chose an option in " + reference + " of " + state.Short + ":\n" + WebAgentText.Untrusted(origin, chosen.GetString() ?? "");
+                return state.Blocked is { } blocked ? Fail(WebErrorCodes.Blocked, said + "\n" + blocked) : new WebToolResult(said);
             }
             if (element.Checked is { } isChecked)
             {
@@ -592,13 +611,18 @@ public sealed partial class WebAgentEngine
         if (Pressable(facts)) return WebAgentPolicy.CheckPress(facts, origin);
         var tag = facts.Tag.ToLowerInvariant();
         if (facts.InForm && element.Editable && tag == "input") return WebAgentPolicy.CheckSubmit(facts with { Submits = true }, origin);
-        if (element.ContentEditable)
+        // ED-NEW-web-sec-agent-6 (security review L4): chat composers send on Enter from a text area or a field outside any form as
+        // well as from a rich-text field; a search box outside a form runs its search.
+        if (element.ContentEditable || (element.Editable && (tag == "textarea" || (tag == "input" && !IsSearchBox(facts)))))
         {
             var named = WebAgentPolicy.CheckPress(facts, origin);
             return named.Kind == WebGuardKind.None ? WebGuardVerdict.Ask(WebGuardCategory.Send, "send") : named;
         }
         return WebGuardVerdict.Pass;
     }
+
+    private static bool IsSearchBox(WebElementFacts facts) =>
+        string.Equals(facts.Type, "search", StringComparison.OrdinalIgnoreCase) || string.Equals(facts.Role, "searchbox", StringComparison.OrdinalIgnoreCase);
 
     private static bool Pressable(WebElementFacts facts)
     {
@@ -949,7 +973,7 @@ public sealed partial class WebAgentEngine
         }
     }
 
-    private async Task<JsonElement> CallOn(TabState state, WebNodeKey key, string function, string? argument, CancellationToken token)
+    private async Task<JsonElement> CallOn(TabState state, WebNodeKey key, string function, string? argument, CancellationToken token, bool? apply = null)
     {
         if (await Resolve(state, key, token) is not { } objectId) throw new Refusal(Fail(WebErrorCodes.StaleRef, "The element is gone from the page. Read it again."));
         var call = new JsonObject
@@ -959,7 +983,12 @@ public sealed partial class WebAgentEngine
             ["returnByValue"] = true,
             ["silent"] = true,
         };
-        if (argument is not null) call["arguments"] = new JsonArray { new JsonObject { ["value"] = argument } };
+        if (argument is not null)
+        {
+            call["arguments"] = apply is { } flag
+                ? new JsonArray { new JsonObject { ["value"] = argument }, new JsonObject { ["value"] = flag } }
+                : new JsonArray { new JsonObject { ["value"] = argument } };
+        }
         var result = await state.Cdp!.CallAsync("Runtime.callFunctionOn", call, key.Session, token);
         return result.TryGetProperty("result", out var r) && r.TryGetProperty("value", out var v) ? v.Clone() : default;
     }
@@ -986,20 +1015,21 @@ public sealed partial class WebAgentEngine
         return (Text(value, "text") ?? "", links);
     }
 
-    // The DOM nodes whose values never reach the model (password, one-time-code and card fields of the page's own document).
-    private static async Task<IReadOnlySet<long>> Secrets(TabState state, CancellationToken token)
+    // The DOM nodes whose values never reach the model (password, one-time-code and card fields) of one document: the page's own, or
+    // a frame's through its session (ED-NEW-web-sec-agent-6: a payment or sign-in frame's typed values stay hidden too).
+    private static async Task<IReadOnlySet<long>> Secrets(TabState state, string? session, CancellationToken token)
     {
         var found = new HashSet<long>();
         try
         {
             var cdp = state.Cdp!;
-            var document = await cdp.CallAsync("DOM.getDocument", new JsonObject { ["depth"] = 0 }, cancellationToken: token);
+            var document = await cdp.CallAsync("DOM.getDocument", new JsonObject { ["depth"] = 0 }, session, token);
             if (!document.TryGetProperty("root", out var root) || !root.TryGetProperty("nodeId", out var rootId)) return found;
-            var matches = await cdp.CallAsync("DOM.querySelectorAll", new JsonObject { ["nodeId"] = rootId.GetInt32(), ["selector"] = SecretSelector }, cancellationToken: token);
+            var matches = await cdp.CallAsync("DOM.querySelectorAll", new JsonObject { ["nodeId"] = rootId.GetInt32(), ["selector"] = SecretSelector }, session, token);
             if (!matches.TryGetProperty("nodeIds", out var ids) || ids.ValueKind != JsonValueKind.Array) return found;
             foreach (var id in ids.EnumerateArray().Take(50))
             {
-                var described = await cdp.CallAsync("DOM.describeNode", new JsonObject { ["nodeId"] = id.GetInt32() }, cancellationToken: token);
+                var described = await cdp.CallAsync("DOM.describeNode", new JsonObject { ["nodeId"] = id.GetInt32() }, session, token);
                 if (described.TryGetProperty("node", out var node) && node.TryGetProperty("backendNodeId", out var backend) && backend.TryGetInt64(out var value)) found.Add(value);
             }
         }

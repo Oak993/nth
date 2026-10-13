@@ -322,13 +322,16 @@ public sealed class WebAgentGrants
 
     public bool Pair(string from, string to) => Has(saved.Pairs, WebAgentUrls.PairKey(from, to));
 
-    public bool Eval(string origin) => Has(saved.Scripts, origin);
+    /// <summary>Scripts in a preview origin, allowed for one project (ED-NEW-web-sec-agent-6; DESIGN 5.10 "per project").</summary>
+    public bool Eval(string project, string origin) => Has(saved.Scripts, ScriptKey(project, origin));
 
     public void GrantSite(string origin) => Add(s => s.Sites, origin);
 
     public void GrantPair(string from, string to) => Add(s => s.Pairs, WebAgentUrls.PairKey(from, to));
 
-    public void GrantEval(string origin) => Add(s => s.Scripts, origin);
+    public void GrantEval(string project, string origin) => Add(s => s.Scripts, ScriptKey(project, origin));
+
+    private static string ScriptKey(string project, string origin) => project + "|" + origin;
 
     /// <summary>The standing site grants (Settings lists them with Remove).</summary>
     public IReadOnlyList<string> Sites

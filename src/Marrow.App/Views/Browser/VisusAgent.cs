@@ -35,6 +35,9 @@ public interface IVisusAgentChats
 
     /// <summary>The model's name as the cards show it, from its id; null when no provider knows the id.</summary>
     string? ModelName(string model) => null;
+
+    /// <summary>The chat's project id, or null for a chat outside any project (script grants are per project, ED-NEW-web-sec-agent-6).</summary>
+    string? Project(string thread) => null;
 }
 
 /// <summary>The app's chats: each thread's runtime, looked up on the UI thread.</summary>
@@ -54,6 +57,9 @@ public sealed class RuntimeVisusChats : IVisusAgentChats
         Runtime(thread)?.Thread?.Title is { Length: > 0 } title && title != ChatThread.Untitled ? title : null;
 
     public IReadOnlyList<string> UserMessages(string thread) => Runtime(thread)?.SentPrompts is { } sent ? [.. sent] : [];
+
+    public string? Project(string thread) =>
+        Runtime(thread)?.Thread is { } chat && chat.ProjectID != Guid.Empty ? chat.ProjectID.ToString("N", System.Globalization.CultureInfo.InvariantCulture) : null;
 
     public string? ModelName(string model)
     {
@@ -119,6 +125,8 @@ public sealed class VisusAgentHost(IVisusAgentChats chats) : IWebAgentHost
         string.IsNullOrWhiteSpace(model) ? UiText.Get("visus.agent.the_model") : Chats.ModelName(model) is { Length: > 0 } name ? name : model;
 
     public string? ChatTitle(string thread) => Chats.Title(thread);
+
+    public string? ProjectOf(string thread) => Chats.Project(thread);
 
     /// <summary>The model may use the chat's agent tabs and the tab the user shared, never a private one.</summary>
     public static bool MayUse(VisusTab tab) =>
