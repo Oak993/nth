@@ -106,7 +106,7 @@ scheduled by the lead and run alone (section 8).
 | `nth.complete` is context free, asks once per artifact, can be refused, and is limited (20 calls a minute, 100,000 tokens an hour, one call at a time) | B4, A7 | ArtifactBridgeTests: Complete_is_context_free_and_asks_once_per_artifact, Complete_is_refused_by_not_now_by_the_setting_and_without_a_model, Twenty_calls_a_minute_then_rate_limited_and_paused_until_the_window_moves, A_hundred_thousand_tokens_an_hour_and_one_call_at_a_time |
 | **F1:** `nth.complete` runs with no tools at all: no built-in tool, MCP server, plugin or slash command; providers that cannot promise this have no artifact model | A1, A5 | ArtifactModelNoToolsTests (all five) |
 | `nth.callTool` asks once per tool, then goes through normal approval | B5 | ArtifactBridgeTests.Call_tool_asks_once_per_tool_then_calls_through_the_tool_client |
-| `nth.files.pick` gives name, type and bytes, never a path; `nth.send` only drafts | B7 | ArtifactBridgeTests: A_picked_file_reaches_the_page_as_name_type_and_bytes_never_a_path, Send_drafts_text_and_the_theme_is_nths_tokens_only |
+| `nth.files.pick` gives name, type and bytes, never a path; `nth.send` only drafts, and only after the user presses nth's own card for that send (ED-NEW-secfinal-40: one card at a time, ten seconds' pause after a no, a text that would open the message as a command is led by "From the artifact: ") | B7 | ArtifactBridgeTests: A_picked_file_reaches_the_page_as_name_type_and_bytes_never_a_path, Send_drafts_text_and_the_theme_is_nths_tokens_only, Send_adds_nothing_to_the_draft_until_the_user_presses_the_card_and_a_no_adds_nothing, One_send_waits_for_its_card_at_a_time_and_a_no_pauses_the_artifacts_sends_for_ten_seconds; TabulaDraftConsentTests; ThreadRuntimeArtifactDraftTests |
 | An inline widget has its own site, no network and only the theme | B2 | McpAppScriptsTests.An_inline_widget_has_its_own_site_no_network_and_only_the_theme |
 | Each artifact's storage, cookies, IndexedDB and BroadcastChannel are its own; each runs in its own renderer process | B2 | Native: SandboxEscapeNativeTests.Two_artifacts_from_two_chats_share_no_storage_cookie_database_or_channel; process check by hand (section 8) |
 
@@ -193,7 +193,7 @@ scheduled by the lead and run alone (section 8).
 5. **Social engineering inside a sandbox.**
    - An artifact, widget or App can draw a convincing fake card or login form inside its own rectangle.
    - The trust strip above it names the true source, and real cards are native, use Mica and point to the strip (8.2).
-   - `nth.send` only drafts; the user sends.
+   - `nth.send` only drafts; the user sends. Each send meets a card of nth's own first, so the page cannot fill the draft unasked (ED-NEW-secfinal-40).
 6. **The artifact tool client is not bound yet.** `nth.callTool` fails closed (the bridge has no tool client) until a
    later unit binds it. When it is bound, it must go through the same per-tool consent and approvals
    (ArtifactBridgeTests holds the bridge side).

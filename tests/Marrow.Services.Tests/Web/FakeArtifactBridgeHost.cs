@@ -8,6 +8,10 @@ internal sealed class FakeArtifactBridgeHost : IArtifactBridgeHost
     public bool AllowModel { get; set; } = true;
 
     public bool AllowTools { get; set; } = true;
+
+    /// <summary>Whether the user presses the draft card's button (ED-NEW-secfinal-40).</summary>
+    public bool AllowDraft { get; set; } = true;
+
     public TaskCompletionSource<bool>? HeldConsent { get; set; }
     public TaskCompletionSource<IReadOnlyList<ArtifactPickedFile>>? HeldFiles { get; set; }
 
@@ -41,6 +45,23 @@ internal sealed class FakeArtifactBridgeHost : IArtifactBridgeHost
     {
         Picks.Add((accept, multiple, fromDrop));
         return HeldFiles is { } held ? held.Task.WaitAsync(cancellationToken) : Task.FromResult(Picked);
+    }
+
+    public List<(ArtifactAddress Artifact, string Text)> DraftConsents { get; } = [];
+
+    /// <summary>Like the pane's cards: a held draft card of a page that left closes as "no" instead of throwing (ED-NEW-secfinal-40).</summary>
+    public bool CancelAsNo { get; set; }
+
+    public Task<bool> ConfirmDraftAsync(ArtifactAddress artifact, string text, CancellationToken cancellationToken)
+    {
+        DraftConsents.Add((artifact, text));
+        if (HeldConsent is { } held && CancelAsNo)
+        {
+            cancellationToken.Register(() => held.TrySetResult(false));
+            return held.Task;
+        }
+
+        return HeldConsent is { } waiting ? waiting.Task.WaitAsync(cancellationToken) : Task.FromResult(AllowDraft);
     }
 
     public void Draft(ArtifactAddress artifact, string text) => Drafts.Add((artifact, text));

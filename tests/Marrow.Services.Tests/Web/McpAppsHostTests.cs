@@ -380,4 +380,20 @@ public sealed class McpAppsHostTests
         Assert.Equal("v2.4.1", result["structuredContent"]!["version"]!.GetValue<string>());
         Assert.False(result["isError"]!.GetValue<bool>());
     }
+
+    // ED-NEW-secfinal-42 (final security gate, N6): a grant saved when the fingerprint was 64 bits is not a grant; the card asks again.
+    [Fact]
+    [Trait("Decision", "ED-NEW-secfinal-42")]
+    public void A_grant_saved_with_the_short_fingerprint_asks_again()
+    {
+        var grants = new McpAppGrantStore(null);
+        grants.Update("shipyard", g => g with
+        {
+            Domains = new Dictionary<string, McpAppDomainGrant>(StringComparer.Ordinal) { [McpAppsRig.Resource] = new(McpAppDomains.Fingerprint(McpAppsRig.Declared)[..16], false) },
+        });
+        using var rig = new McpAppsRig(grants: grants);
+        rig.Open();
+        Assert.Single(rig.Ui.DomainCards);
+        Assert.Single(rig.Navigations());
+    }
 }

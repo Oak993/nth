@@ -24,19 +24,26 @@ public sealed record PrivacySpan(string Input, int Start, int Length, PrivacyKin
 }
 
 /// <summary>The check of one outward step: the marked pieces, who receives it, and who of them is not on the list.</summary>
-public sealed record OutwardCheck(ValueList<PrivacySpan> Spans, ValueList<string> Recipients, ValueList<string> Unlisted)
+/// <param name="Spans">The marked pieces.</param>
+/// <param name="Recipients">Who receives it, as far as nth could read.</param>
+/// <param name="Unlisted">Those of them not on the owner's list.</param>
+/// <param name="RecipientsUnknown">
+/// ED-NEW-secfinal-43 (final security gate, N9): nth could not read every recipient (more than <see cref="OutwardPrivacy.MaxRecipients"/>,
+/// or JSON nested deeper than <see cref="OutwardPrivacy.MaxJsonDepth"/>), so the list is not the whole list.
+/// </param>
+public sealed record OutwardCheck(ValueList<PrivacySpan> Spans, ValueList<string> Recipients, ValueList<string> Unlisted, bool RecipientsUnknown = false)
 {
     public static OutwardCheck None { get; } = new(ValueList<PrivacySpan>.Empty, ValueList<string>.Empty, ValueList<string>.Empty);
 
     /// <summary>The text holds personal data or a secret.</summary>
     public bool HasPersonalData => Spans.Count > 0;
 
-    /// <summary>Blocked: personal data with a recipient not on the list, or with no recipient nth can name.</summary>
-    public bool Blocked => HasPersonalData && (Recipients.Count == 0 || Unlisted.Count > 0);
+    /// <summary>Blocked: personal data with a recipient not on the list, or with no recipient nth can name, or not all of them.</summary>
+    public bool Blocked => HasPersonalData && (Recipients.Count == 0 || RecipientsUnknown || Unlisted.Count > 0);
 
     /// <summary>Why the card takes no approval, or null.</summary>
     public string? Refusal => !Blocked ? null
-        : Recipients.Count == 0
+        : Recipients.Count == 0 || RecipientsUnknown
             ? "It holds personal data, and nth cannot tell who receives it. Personal data goes only to recipients on your list."
             : "It holds personal data. Personal data goes only to recipients on your list: add " + string.Join(", ", Unlisted) + " first, or deny it.";
 }
@@ -45,6 +52,12 @@ public static partial class OutwardPrivacy
 {
     /// <summary>The most characters of one input that are read; more counts as unchecked.</summary>
     public const int ScanChars = 64_000;
+
+    /// <summary>ED-NEW-secfinal-43: the most recipients of one input nth reads; more, and it cannot name them all.</summary>
+    public const int MaxRecipients = 200;
+
+    /// <summary>ED-NEW-secfinal-43: the deepest JSON nesting nth reads for recipients; deeper, and it cannot name them.</summary>
+    public const int MaxJsonDepth = 32;
 
     private const int TimeoutMs = 250;
     private const RegexOptions Flags = RegexOptions.CultureInvariant;
@@ -124,13 +137,18 @@ public static partial class OutwardPrivacy
     {
         var list = inputs.ToList();
         var recipients = new List<string>();
-        foreach (var input in list) recipients.AddRange(RecipientsOf(input.Value));
+        var unknown = false;
+        foreach (var input in list)
+        {
+            recipients.AddRange(RecipientsOf(input.Value, out var incomplete));
+            unknown |= incomplete;
+        }
         var distinct = recipients.Select(Normalize).Where(r => r.Length > 0).Distinct(StringComparer.Ordinal).ToList();
         var spans = new List<PrivacySpan>();
         foreach (var input in list) spans.AddRange(Scan(input.Name, input.Value, distinct));
         var listed = allowlist.Select(Normalize).Where(a => a.Length > 0).ToHashSet(StringComparer.Ordinal);
         var unlisted = distinct.Where(r => !Listed(r, listed)).ToList();
-        return new OutwardCheck(new ValueList<PrivacySpan>(spans), new ValueList<string>(distinct), new ValueList<string>(unlisted));
+        return new OutwardCheck(new ValueList<PrivacySpan>(spans), new ValueList<string>(distinct), new ValueList<string>(unlisted), unknown);
     }
 
     /// <summary>
@@ -144,6 +162,12 @@ public static partial class OutwardPrivacy
         if (decision.Verdict != Verdict.Allow) return decision;
         if (check.Blocked)
             return decision with { Verdict = Verdict.Ask, Rule = PolicyRule.PersonalData, Reason = check.Refusal!, GrantsUsed = ValueList<Guid>.Empty };
+        if (check.RecipientsUnknown) // ED-NEW-secfinal-43: a recipient nth could not read may be a new one, so it always asks
+            return decision with
+            {
+                Verdict = Verdict.Ask, Rule = PolicyRule.NewRecipient, GrantsUsed = ValueList<Guid>.Empty,
+                Reason = "Asks: nth cannot tell everyone this goes to",
+            };
         var fresh = New(check, confirmed);
         return fresh.Count == 0
             ? decision
@@ -217,17 +241,31 @@ public static partial class OutwardPrivacy
     /// number whatever its field (a sender's excepted), and the host of each web address in a command. Nothing for plain
     /// text.
     /// </summary>
-    public static IReadOnlyList<string> RecipientsOf(string text)
+    public static IReadOnlyList<string> RecipientsOf(string text) => RecipientsOf(text, out _);
+
+    /// <summary>
+    /// <see cref="RecipientsOf(string)"/>, and whether nth could not read all of them (ED-NEW-secfinal-43): the text is JSON nested
+    /// deeper than <see cref="MaxJsonDepth"/> (it names nobody then), or it names more than <see cref="MaxRecipients"/>.
+    /// </summary>
+    public static IReadOnlyList<string> RecipientsOf(string text, out bool incomplete)
     {
+        incomplete = false;
         var found = new List<string>();
         if (string.IsNullOrWhiteSpace(text)) return found;
         var trimmed = text.TrimStart();
         if (trimmed.StartsWith('{') || trimmed.StartsWith('['))
         {
+            if (NestsDeeperThan(trimmed, MaxJsonDepth))
+            {
+                incomplete = true;
+                return found;
+            }
+
             try
             {
-                using var document = JsonDocument.Parse(trimmed, new JsonDocumentOptions { MaxDepth = 32 });
-                Walk(document.RootElement, false, found, 0);
+                using var document = JsonDocument.Parse(trimmed, new JsonDocumentOptions { MaxDepth = MaxJsonDepth });
+                Walk(document.RootElement, false, found, 0, ref incomplete);
+                if (found.Count > MaxRecipients) incomplete = true;
                 return found;
             }
             catch (JsonException) { }
@@ -240,9 +278,47 @@ public static partial class OutwardPrivacy
         return found;
     }
 
-    private static void Walk(JsonElement element, bool recipient, List<string> found, int depth)
+    // Whether a JSON text opens more containers at once than the limit; strings (and their escapes) are skipped, so a brace in a value
+    // is not counted. Read before the parser, whose own depth failure cannot be told from any other malformed JSON.
+    private static bool NestsDeeperThan(string json, int limit)
     {
-        if (depth > 32 || found.Count > 200) return;
+        var depth = 0;
+        var inString = false;
+        var escaped = false;
+        foreach (var c in json)
+        {
+            if (inString)
+            {
+                if (escaped) escaped = false;
+                else if (c == '\\') escaped = true;
+                else if (c == '"') inString = false;
+                continue;
+            }
+
+            switch (c)
+            {
+                case '"':
+                    inString = true;
+                    break;
+                case '{' or '[':
+                    if (++depth > limit) return true;
+                    break;
+                case '}' or ']':
+                    if (depth > 0) depth--;
+                    break;
+            }
+        }
+
+        return false;
+    }
+
+    private static void Walk(JsonElement element, bool recipient, List<string> found, int depth, ref bool incomplete)
+    {
+        if (depth > MaxJsonDepth || found.Count > MaxRecipients)
+        {
+            incomplete = true;
+            return;
+        }
         switch (element.ValueKind)
         {
             case JsonValueKind.Object:
@@ -251,11 +327,11 @@ public static partial class OutwardPrivacy
                     // A recipient object ({"email": ..., "name": ...}) is read for its address, not its name.
                     if (recipient && property.Name is "name" or "displayName" or "display_name") continue;
                     if (SenderFields.Contains(property.Name)) continue;
-                    Walk(property.Value, recipient || IsRecipientField(property.Name), found, depth + 1);
+                    Walk(property.Value, recipient || IsRecipientField(property.Name), found, depth + 1, ref incomplete);
                 }
                 break;
             case JsonValueKind.Array:
-                foreach (var item in element.EnumerateArray()) Walk(item, recipient, found, depth + 1);
+                foreach (var item in element.EnumerateArray()) Walk(item, recipient, found, depth + 1, ref incomplete);
                 break;
             case JsonValueKind.String when recipient:
                 foreach (var part in (element.GetString() ?? "").Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))

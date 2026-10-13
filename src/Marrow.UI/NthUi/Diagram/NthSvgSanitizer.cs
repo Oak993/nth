@@ -24,6 +24,14 @@ public sealed record NthSvgLimits(int MaxLength, int MaxNodes, int MaxDepth, int
 
     /// <summary>The output of the hidden Mermaid renderer.</summary>
     public static NthSvgLimits Renderer { get; } = new(Marrow.Core.Web.DiagramLimits.MaxSvg, 60_000, 64, 600_000);
+
+    /// <summary>
+    /// ED-NEW-secfinal-41 (final security gate, N5): the most nodes one paint visits. A <c>use</c> draws its whole target again
+    /// (up to 2,000 of them), so the nodes of a document are not the draws of a paint. This equals the most nodes the largest
+    /// accepted document (<see cref="Renderer"/>) holds, so a document drawn once is never cut by it; what is left over the
+    /// budget is not drawn, as the depth and use limits already end.
+    /// </summary>
+    public const int MaxPaintNodes = 60_000;
 }
 
 /// <summary>The outcome of reading a markup: a document, or why there is none.</summary>

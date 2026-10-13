@@ -252,4 +252,66 @@ public sealed class NthSvgPainterTests(HeadlessSession headless)
         Assert.True(rig.Canvas.Drawn >= 3000, $"drawn {rig.Canvas.Drawn}");
         Assert.True(each < 400, $"a render of 3000 parts took {each:0} ms"); // a CPU-only headless frame; the live app draws on the GPU
     });
+
+    // ED-NEW-secfinal-41 (final security gate, N5): one model-written svg could freeze the UI. Up to 2,000 <use> visits each draw a
+    // whole group, so a few thousand nodes could mean millions of draws in one paint. A paint now stops after a budget of nodes, the
+    // way it already stops at the depth and use limits: what is left is not drawn.
+    private const int PaintBudget = 60_000;
+
+    private static string Repeated(int cells, int uses)
+    {
+        var builder = new System.Text.StringBuilder("<svg viewBox=\"0 0 100 100\"><defs><g id=\"cell\">");
+        for (var i = 0; i < cells; i++) builder.Append("<rect width=\"1\" height=\"1\" fill=\"#c33\"/>"); // short, so the document stays inside NthSvgLimits.Model's 262,144 characters
+        builder.Append("</g></defs>");
+        for (var i = 0; i < uses; i++) builder.Append("<use href=\"#cell\"/>");
+        return builder.Append("</svg>").ToString();
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-secfinal-41")]
+    public void A_group_used_two_thousand_times_paints_inside_the_node_budget_and_in_bounded_time() => headless.OnUiThread(() =>
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        using var rig = new SvgRig(Repeated(cells: 400, uses: 2000), width: 200, window: 260, height: 260);
+        rig.Capture();
+        watch.Stop();
+        Assert.True(rig.Canvas.Drawn <= PaintBudget, $"one paint drew {rig.Canvas.Drawn} shapes");
+        Assert.True(rig.Canvas.Drawn > 0, "the budget drew nothing at all");
+        Assert.Equal(NthSvgLimits.MaxPaintNodes, rig.Canvas.Visited);
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(10), $"painting took {watch.Elapsed.TotalSeconds:0.0} s");
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-secfinal-41")]
+    public void A_marker_that_draws_itself_stops_at_the_depth_and_node_limits() => headless.OnUiThread(() =>
+    {
+        const string Path = """<path d="M0 0 L4 1 L0 2 L4 3" fill="#cc3333" stroke="#000000" marker-start="url(#m)" marker-mid="url(#m)" marker-end="url(#m)"/>""";
+        var svg = $"""<svg viewBox="0 0 100 100"><defs><marker id="m" markerWidth="5" markerHeight="5" refX="2" refY="2" orient="auto" markerUnits="userSpaceOnUse">{Path}</marker></defs><path d="M10 10 L90 90 L10 90" stroke="#000000" fill="none" marker-start="url(#m)" marker-mid="url(#m)" marker-end="url(#m)"/></svg>""";
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        using var rig = new SvgRig(svg, width: 200, window: 260, height: 260);
+        rig.Capture();
+        watch.Stop();
+        Assert.True(rig.Canvas.Drawn <= PaintBudget, $"one paint drew {rig.Canvas.Drawn} shapes");
+        Assert.InRange(rig.Canvas.Visited, 1, NthSvgLimits.MaxPaintNodes);
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(10), $"painting took {watch.Elapsed.TotalSeconds:0.0} s");
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-secfinal-41")]
+    public void The_largest_hostile_document_the_model_limit_allows_paints_inside_the_budget_and_in_bounded_time() => headless.OnUiThread(() =>
+    {
+        var svg = Repeated(cells: 5_000, uses: 2_000); // 7,001 nodes and about 243,000 characters: inside NthSvgLimits.Model, 10 million draws unbudgeted
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        using var rig = new SvgRig(svg, width: 200, window: 260, height: 260);
+        rig.Capture();
+        watch.Stop();
+        Assert.Equal(NthSvgLimits.MaxPaintNodes, rig.Canvas.Visited);
+        Assert.True(rig.Canvas.Drawn <= PaintBudget, $"one paint drew {rig.Canvas.Drawn} shapes");
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(10), $"painting took {watch.Elapsed.TotalSeconds:0.0} s");
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-secfinal-41")]
+    public void The_budget_is_never_smaller_than_the_largest_document_the_renderer_accepts_so_a_plain_document_is_not_cut() =>
+        Assert.True(NthSvgLimits.MaxPaintNodes >= NthSvgLimits.Renderer.MaxNodes);
 }

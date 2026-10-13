@@ -171,4 +171,74 @@ public sealed class OutwardPrivacyTests
         Assert.False(OutwardPrivacy.IsRecipientField("email_subject"));
         Assert.False(OutwardPrivacy.IsRecipientField("repository"));
     }
+
+    // ED-NEW-secfinal-43 (final security gate, N9): the recipient reader used to stop without a word after 200 recipients and when
+    // the JSON ran deeper than 32 levels (the text was then read as plain words, and a web address in it could be the only
+    // "recipient" nth saw). Either way nth now cannot tell who receives it: personal data blocks, and a step without any asks.
+    private static string Deep(int levels, string inner) => string.Concat(Enumerable.Repeat("{\"a\":", levels)) + inner + new string('}', levels);
+
+    private static PolicyDecision GrantAllow() => new(Verdict.Allow, PolicyRule.Grant, "Allowed by a grant") { GrantsUsed = new([Guid.NewGuid()]) };
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-secfinal-43")]
+    public void Json_nested_deeper_than_nth_reads_names_nobody_so_personal_data_blocks_and_the_grant_asks()
+    {
+        var hidden = Deep(40, "{\"to\":\"attacker@evil.example\",\"body\":\"Ship to Jane Roe, 12 Main Street, card 4111 1111 1111 1111\"}");
+        var json = "{\"note\":\"see https://partner.example/hook\",\"deep\":" + hidden + "}";
+        var check = OutwardPrivacy.Check(Mail(json), ["partner.example"]);
+        Assert.True(check.HasPersonalData);
+        Assert.True(check.Blocked);
+        Assert.Contains("cannot tell who receives it", check.Refusal, StringComparison.Ordinal);
+        var applied = OutwardPrivacy.Apply(GrantAllow(), check, ["partner.example"]);
+        Assert.Equal(Verdict.Ask, applied.Verdict);
+        Assert.Empty(applied.GrantsUsed);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-secfinal-43")]
+    public void More_than_200_recipients_name_nobody_for_sure_so_personal_data_blocks()
+    {
+        var addresses = Enumerable.Range(1, 250).Select(i => $"\"u{i}@partner.example\"").Append("\"late@evil.example\"");
+        var json = "{\"to\":[" + string.Join(",", addresses) + "],\"body\":\"Ship to Jane Roe, 12 Main Street.\"}";
+        var check = OutwardPrivacy.Check(Mail(json), ["@partner.example"]);
+        Assert.True(check.HasPersonalData);
+        Assert.True(check.Blocked);
+        Assert.Contains("cannot tell who receives it", check.Refusal, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-secfinal-43")]
+    public void A_step_whose_recipients_nth_could_not_read_all_of_asks_even_without_personal_data()
+    {
+        var ids = Enumerable.Range(1, 250).Select(i => $"C{i:0000}").ToList();
+        var json = "{\"channel\":[" + string.Join(",", ids.Select(id => "\"" + id + "\"")) + "],\"text\":\"The build is green.\"}";
+        var check = OutwardPrivacy.Check(Mail(json), ids);
+        Assert.False(check.HasPersonalData);
+        Assert.False(check.Blocked);
+        var allow = GrantAllow();
+        var applied = OutwardPrivacy.Apply(allow, check, ids);
+        Assert.Equal(Verdict.Ask, applied.Verdict);
+        Assert.Equal(PolicyRule.NewRecipient, applied.Rule);
+        Assert.Empty(applied.GrantsUsed);
+        Assert.Equal(Verdict.Deny, OutwardPrivacy.Apply(new PolicyDecision(Verdict.Deny, PolicyRule.HardDeny, "never"), check, ids).Verdict);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-secfinal-43")]
+    public void Exactly_200_recipients_and_json_32_levels_deep_are_still_read_in_full()
+    {
+        var ids = Enumerable.Range(1, 200).Select(i => $"C{i:0000}").ToList();
+        var json = "{\"channel\":[" + string.Join(",", ids.Select(id => "\"" + id + "\"")) + "],\"body\":\"Ship to Jane Roe, 12 Main Street.\"}";
+        var all = OutwardPrivacy.Check(Mail(json), ids);
+        Assert.Equal(200, all.Recipients.Count);
+        Assert.False(all.Blocked);
+        var allow = GrantAllow();
+        Assert.Same(allow, OutwardPrivacy.Apply(allow, all, ids));
+
+        var deep = Deep(30, "{\"to\":\"raj@partner.example\",\"body\":\"Ship to Jane Roe, 12 Main Street.\"}");
+        var read = OutwardPrivacy.Check(Mail(deep), ["raj@partner.example"]);
+        Assert.Equal(["raj@partner.example"], read.Recipients);
+        Assert.False(read.Blocked);
+        Assert.True(OutwardPrivacy.Check(Mail(deep), []).Blocked);
+    }
 }

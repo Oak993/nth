@@ -6,6 +6,7 @@
 using Marrow.Core.Port;
 using Marrow.Core.Models;
 using Marrow.App.Views.Artifacts;
+using Marrow.Core.Web;
 using Marrow.Services.Web;
 
 namespace Marrow.App.Runtime;
@@ -130,11 +131,14 @@ public sealed partial class ThreadRuntime
         }
     }
 
-    /// <summary>An artifact's nth.send: the text joins the composer's draft (after a blank line when it has words); nothing is sent.</summary>
+    /// <summary>
+    /// An artifact's nth.send, after the user pressed its card: the text joins the composer's draft (after a blank line when it has
+    /// words); nothing is sent. ED-NEW-secfinal-40: a text that would open the message as a command ("/" or "$") is led by "From the
+    /// artifact: ", so a page can never start the owner's message as a command (ArtifactDraftText.Join).
+    /// </summary>
     public void DraftFromArtifact(string text)
     {
         if (string.IsNullOrWhiteSpace(text)) return;
-        var current = Draft.Text;
-        Draft = Draft with { Text = FoundationText.Trim(current, includeNewlines: true).Length == 0 ? text : current.TrimEnd() + "\n\n" + text };
+        Draft = Draft with { Text = ArtifactDraftText.Join(Draft.Text, text) };
     }
 }

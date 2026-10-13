@@ -74,6 +74,9 @@ public sealed class NthSvgCanvas : Control
     /// <summary>Shapes and texts drawn by the last render (tests).</summary>
     public int Drawn => painter?.Drawn ?? 0;
 
+    /// <summary>Nodes visited by the last render, never more than <see cref="NthSvgLimits.MaxPaintNodes"/> (tests; ED-NEW-secfinal-41).</summary>
+    public int Visited => painter?.Visited ?? 0;
+
     /// <summary>The size a picture of this document takes in <paramref name="width"/> DIPs.</summary>
     public static Size Fit(NthSvgDocument doc, double natural, double width)
     {

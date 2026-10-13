@@ -6,7 +6,7 @@
 //             messages, nothing else), behind the model setting, the consent card and the limits;
 //   callTool  a tool the user allowed for this artifact, then the normal approvals and Tactus guards;
 //   files     nth's own sheet; names only, never a path; nothing over 20 MB;
-//   send      a draft in the composer; the user sends;
+//   send      a draft in the composer, after nth's own card is pressed (one at a time, paused after a no); the user sends;
 //   theme     nth's glass tokens.
 // Replies carry the page's document token, so a reloaded page never takes an old document's answer. No Swift counterpart.
 using System.Text.Json;
@@ -26,9 +26,14 @@ internal sealed class ArtifactBridge(ArtifactRuntime runtime, ArtifactMount moun
     public const int MaxSystemCharacters = 20_000;
     public const int MaxDraftCharacters = 100_000;
 
+    /// <summary>ED-NEW-secfinal-40: after a "Not now" on a draft card, the artifact's nth.send calls are refused for this long.</summary>
+    public static readonly TimeSpan DraftPause = TimeSpan.FromSeconds(10);
+
     private readonly object gate = new();
     private readonly Dictionary<(string Session, long Id), CancellationTokenSource> running = [];
     private CancellationTokenSource document = new();
+    private bool draftAsking;
+    private DateTimeOffset draftPausedUntil = DateTimeOffset.MinValue;
 
     private ArtifactAddress Artifact => mount.Artifact;
 
@@ -100,7 +105,7 @@ internal sealed class ArtifactBridge(ArtifactRuntime runtime, ArtifactMount moun
 
     private async Task Handle(string type, JsonObject root, string session, long id)
     {
-        var hold = type is "complete" or "callTool" or "files.pick" ? mount.View.BeginBridgeCall() : null;
+        var hold = type is "complete" or "callTool" or "files.pick" or "send" ? mount.View.BeginBridgeCall() : null;
         CancellationTokenSource call;
         lock (gate)
         {
@@ -143,7 +148,7 @@ internal sealed class ArtifactBridge(ArtifactRuntime runtime, ArtifactMount moun
         "complete" => Complete(root, session, id, token),
         "callTool" => CallTool(root, token),
         "files.pick" => Pick(root, token),
-        "send" => Done(Send(root)),
+        "send" => Send(root, token),
         "theme.get" => Done(Theme()),
         _ => throw new ArtifactBridgeException(ArtifactBridgeErrors.InvalidRequest, "nth does not know the request \"" + Cap(type, 40) + "\"."),
     };
@@ -279,10 +284,36 @@ internal sealed class ArtifactBridge(ArtifactRuntime runtime, ArtifactMount moun
 
     // ---- send, theme ----
 
-    private JsonNode? Send(JsonObject root)
+    // ED-NEW-secfinal-40 (final security gate, N4): the text reaches the draft only after the user presses nth's own card (the page
+    // cannot raise or answer it). One card at a time: a send while another waits is rate limited with no second card, and a "Not
+    // now" pauses the artifact's sends for DraftPause. A blank text asks nothing and adds nothing.
+    private async Task<JsonNode?> Send(JsonObject root, CancellationToken token)
     {
         var text = Text(root["text"]) ?? throw Invalid("nth.send takes text.");
         if (text.Length > MaxDraftCharacters) throw new ArtifactBridgeException(ArtifactBridgeErrors.TooLarge, "A draft is at most 100,000 characters.");
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        lock (gate)
+        {
+            if (draftAsking) throw new ArtifactBridgeException(ArtifactBridgeErrors.RateLimited, "A draft from this artifact is already waiting for the user's answer.");
+            if (runtime.Time.GetUtcNow() < draftPausedUntil) throw new ArtifactBridgeException(ArtifactBridgeErrors.RateLimited, "The user said not now to a draft from this artifact. Try again in a few seconds.");
+            draftAsking = true;
+        }
+
+        bool? answer = null;
+        try
+        {
+            answer = await runtime.Host.ConfirmDraftAsync(Artifact, text, token).ConfigureAwait(false);
+        }
+        finally
+        {
+            lock (gate)
+            {
+                draftAsking = false;
+                if (answer == false && !token.IsCancellationRequested) draftPausedUntil = runtime.Time.GetUtcNow() + DraftPause; // a page that left is not a "no"
+            }
+        }
+
+        if (answer != true) throw new ArtifactBridgeException(ArtifactBridgeErrors.Denied, "The user did not add this to the message.");
         runtime.Post(() => runtime.Host.Draft(Artifact, text));
         return null;
     }

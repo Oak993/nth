@@ -57,6 +57,13 @@ public sealed class TabulaBridgeHost : IArtifactBridgeHost
 
     public static string Declined => UiText.Get("tabula.bridge.declined");
 
+    /// <summary>ED-NEW-secfinal-40: the words of the draft card.</summary>
+    public static string DraftTitle => UiText.Get("tabula.bridge.draft_title");
+
+    public static string DraftDetail(int characters) => UiText.FormatWith(CultureInfo.CurrentCulture, "tabula.bridge.draft_detail", characters.ToString("N0", CultureInfo.CurrentCulture));
+
+    public static string DraftAllow => UiText.Get("tabula.bridge.draft_allow");
+
     internal void Add(TabulaView view)
     {
         lock (gate)
@@ -92,6 +99,15 @@ public sealed class TabulaBridgeHost : IArtifactBridgeHost
 
     public Task<IReadOnlyList<ArtifactPickedFile>> PickFilesAsync(ArtifactAddress artifact, string accept, bool multiple, bool fromDrop, CancellationToken cancellationToken) =>
         OnUi(() => Find(artifact) is { } view ? view.Cards.PickAsync(accept, multiple, fromDrop, cancellationToken) : Task.FromResult<IReadOnlyList<ArtifactPickedFile>>([]));
+
+    // ED-NEW-secfinal-40: each nth.send meets this card; only its button adds the text to the draft.
+    public Task<bool> ConfirmDraftAsync(ArtifactAddress artifact, string text, CancellationToken cancellationToken) =>
+        OnUi(async () => Find(artifact) is { } view
+            && await view.Cards.AskAsync(new TabulaCardSpec(PaneGlyphKind.Edit, DraftTitle, DraftDetail(text.Length), DraftAllow, NotNow)
+            {
+                Lines = [(ArtifactDraftText.Preview(text), null)],
+            }, cancellationToken).ConfigureAwait(true)
+            || Declined1(artifact));
 
     public void Draft(ArtifactAddress artifact, string text) => Dispatcher.UIThread.Post(() => Find(artifact)?.DraftFromArtifact(text));
 
