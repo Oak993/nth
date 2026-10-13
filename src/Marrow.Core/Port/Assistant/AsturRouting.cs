@@ -42,6 +42,9 @@ public static partial class AsturRouting
     /// <summary>Of the openers, the ones that hand a request on, so a "to" or "that" after the name is not part of the request.</summary>
     private static readonly HashSet<string> Relays = new(StringComparer.Ordinal) { "ask", "tell" };
 
+    /// <summary>How much of a message routing reads: a name is at its start, and a pasted log of a megabyte is not searched for "@".</summary>
+    public const int RoutingWindow = 2_000;
+
     [GeneratedRegex(@"[\p{L}\p{N}\p{M}]+(?:['’][\p{L}\p{N}\p{M}]+)*", RegexOptions.CultureInvariant)]
     private static partial Regex WordPattern();
 
@@ -92,15 +95,17 @@ public static partial class AsturRouting
         var names = NamesOf(profiles);
         if (names.Count == 0) return AsturRoute.Unrouted(message);
 
-        // Two Asturs named anywhere in the message: it spans areas, so it stays with Dextra (9.3 "Spanning areas").
-        if (MentionedAsturs(message, names, profiles).Count > 1) return AsturRoute.Unrouted(message);
+        // Two Asturs named in the message (in its first RoutingWindow characters): it spans areas, so it stays with Dextra (9.3 "Spanning areas").
+        var head = message.Length > RoutingWindow ? message[..RoutingWindow] : message;
+        if (MentionedAsturs(head, names, profiles).Count > 1) return AsturRoute.Unrouted(message);
 
-        var words = Words(message);
+        var words = Words(head);
         var trimmed = message.TrimStart();
         var offset = message.Length - trimmed.Length;
+        if (offset >= head.Length) return AsturRoute.Unrouted(message);                    // a message that begins with a page of white space is not a call
         if (trimmed.Length > 1 && trimmed[0] == '@' && char.IsLetterOrDigit(trimmed[1]))
         {
-            var after = Words(message[(offset + 1)..], offset + 1);
+            var after = Words(head[(offset + 1)..], offset + 1);
             return Match(message, after, 0, names, requireSeparator: false, relayed: false);
         }
         // Spoken text starts with its name: a message that opens with a mark or symbol is not a call.

@@ -300,7 +300,7 @@ public sealed class ProfileSheet : Border
         var row = new WrapPanel { Orientation = Orientation.Horizontal, ItemSpacing = 8, LineSpacing = 8 };
         if (model.Draft is not null)
         {
-            var make = Capsule(model.CreateTitle, () => _ = Make(), model.Mode == ProfileSheetMode.Edit ? "Save the changes" : "Create the Astur");
+            var make = Capsule(model.CreateTitle, () => _ = model.Create(), model.Mode == ProfileSheetMode.Edit ? "Save the changes" : "Create the Astur");
             create = Track("create", make.Button);
             row.Children.Add(make.Shown);
         }
@@ -323,11 +323,6 @@ public sealed class ProfileSheet : Border
         problems.IsVisible = found.Count > 0;
         if (create is not null) create.IsEnabled = model.CanCreate;
         if (model.Done && !finished) Done();
-    }
-
-    private async Task Make()
-    {
-        if (!await model.Create()) return;
     }
 
     private void Done()

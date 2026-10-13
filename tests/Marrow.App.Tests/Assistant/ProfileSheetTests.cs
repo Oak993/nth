@@ -23,32 +23,6 @@ namespace Marrow.App.Tests.Assistant;
 [Trait("Decision", "ED-NEW-dextra-as16-15")]
 public sealed class ProfileSheetTests(HeadlessSession headless)
 {
-    private static readonly DateTimeOffset Now = new(2026, 10, 13, 9, 0, 0, TimeSpan.Zero);
-
-    private static List<AssistantProfile> Team() =>
-    [
-        new("dextra", "Dextra") { Created = Now },
-        new("a", "Channel A") { ParentId = "dextra", Shape = AsturShape.Squircle, Area = "Looks after something.", Created = Now },
-    ];
-
-    private sealed class Host
-    {
-        public List<AssistantProfile> Team { get; } = ProfileSheetTests.Team();
-
-        public List<AsturDraft> Created { get; } = [];
-
-        public int Cancelled { get; set; }
-
-        public IReadOnlyList<string> Answer { get; set; } = [];
-
-        public ProfileSheetModel Sheet(ProfileSheetMode mode = ProfileSheetMode.Add, AsturDraft? draft = null, string? editing = null) =>
-            new(mode, () => Team, made =>
-            {
-                Created.Add(made);
-                return Task.FromResult(Answer);
-            }, () => Cancelled++, draft, editing, "Keeps 30% on Claude 20x (your standing rule).");
-    }
-
     private static Button Opener() => new() { Content = "Add an Astur", Focusable = true };
 
     private static (Panel Root, Button Opener) Mount(ProfileSheet sheet, Button opener) => (new StackPanel { Children = { opener, sheet } }, opener);
@@ -58,7 +32,7 @@ public sealed class ProfileSheetTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
-            var host = new Host();
+            var host = new ProfileSheetHost();
             var sheet = new ProfileSheet(host.Sheet());
             using var stage = new ReserveViewStage(sheet);
 
@@ -80,7 +54,7 @@ public sealed class ProfileSheetTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
-            var host = new Host();
+            var host = new ProfileSheetHost();
             var model = host.Sheet();
             var sheet = new ProfileSheet(model);
             using var stage = new ReserveViewStage(sheet);
@@ -120,7 +94,7 @@ public sealed class ProfileSheetTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
-            var host = new Host();
+            var host = new ProfileSheetHost();
             var sheet = new ProfileSheet(host.Sheet());
             using var stage = new ReserveViewStage(sheet);
             Click(sheet.TemplateButtons[3]);
@@ -147,7 +121,7 @@ public sealed class ProfileSheetTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
-            var host = new Host();
+            var host = new ProfileSheetHost();
             var sheet = new ProfileSheet(host.Sheet());
             using var stage = new ReserveViewStage(sheet);
             Click(sheet.TemplateButtons[0]);
@@ -178,7 +152,7 @@ public sealed class ProfileSheetTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
-            var host = new Host();
+            var host = new ProfileSheetHost();
             var model = host.Sheet();
             var sheet = new ProfileSheet(model);
             using var stage = new ReserveViewStage(sheet);
@@ -203,7 +177,7 @@ public sealed class ProfileSheetTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
-            var host = new Host();
+            var host = new ProfileSheetHost();
             var model = host.Sheet();
             var sheet = new ProfileSheet(model);
             using var stage = new ReserveViewStage(sheet);
@@ -232,7 +206,7 @@ public sealed class ProfileSheetTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
-            var host = new Host();
+            var host = new ProfileSheetHost();
             var opener = Opener();
             var sheet = new ProfileSheet(host.Sheet(), opener);
             var (root, _) = Mount(sheet, opener);
@@ -260,7 +234,7 @@ public sealed class ProfileSheetTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
-            var host = new Host { Answer = ["There can be at most 6 Asturs. Retire one first."] };
+            var host = new ProfileSheetHost { Answer = ["There can be at most 6 Asturs. Retire one first."] };
             var sheet = new ProfileSheet(host.Sheet());
             using var stage = new ReserveViewStage(sheet);
             var finished = 0;
@@ -280,7 +254,7 @@ public sealed class ProfileSheetTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
-            var host = new Host();
+            var host = new ProfileSheetHost();
             var opener = Opener();
             var sheet = new ProfileSheet(host.Sheet(), opener);
             var (root, _) = Mount(sheet, opener);
@@ -305,7 +279,7 @@ public sealed class ProfileSheetTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
-            var host = new Host();
+            var host = new ProfileSheetHost();
             var opener = Opener();
             var sheet = new ProfileSheet(host.Sheet(), opener);
             var (root, _) = Mount(sheet, opener);
@@ -322,7 +296,7 @@ public sealed class ProfileSheetTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
-            var host = new Host();
+            var host = new ProfileSheetHost();
             var draft = AsturDrafter.FromTemplate("research", host.Team);
             var review = new ProfileSheet(host.Sheet(ProfileSheetMode.Review, draft));
             using var stage = new ReserveViewStage(review);
@@ -346,7 +320,7 @@ public sealed class ProfileSheetTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
-            var host = new Host();
+            var host = new ProfileSheetHost();
             var sheet = new ProfileSheet(host.Sheet());
             var scroll = new ScrollViewer { Content = sheet, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
             using var stage = new ReserveViewStage(scroll, width: 375, height: 800, flow: FlowDirection.RightToLeft);

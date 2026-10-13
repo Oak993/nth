@@ -18,6 +18,9 @@ public sealed partial class AssistantController
     /// <summary>The most "Which one?" questions waiting at once; past it the owner is asked to answer the open ones first.</summary>
     public const int OpenWhichCards = 3;
 
+    /// <summary>The most create_assistant cards waiting for the owner at once.</summary>
+    public const int MaxOpenAsturCards = 6;
+
     private readonly DelegationBook delegations = new();
     private readonly Dictionary<Guid, AsturDraft> drafts = [];
     private readonly List<Task> background = [];
@@ -60,10 +63,16 @@ public sealed partial class AssistantController
     private void Spawn(Task work)
     {
         lock (gate) background.Add(work);
-        _ = work.ContinueWith(done =>
-        {
-            lock (gate) background.Remove(done);
-        }, TaskScheduler.Default);
+        _ = Forget(work);
+    }
+
+    // The task is let go of when it ends; one that fails is reported to the board, never lost.
+    private async Task Forget(Task work)
+    {
+        try { await work.ConfigureAwait(false); }
+        catch (Exception error) when (error is not OperationCanceledException) { Runner.ReportFault("A task of the Asturs failed: " + error.Message); }
+        catch (OperationCanceledException) { }
+        lock (gate) background.Remove(work);
     }
 
     private AssistantProfile? Root => o.Profiles().FirstOrDefault(p => p.IsRoot);
@@ -72,6 +81,11 @@ public sealed partial class AssistantController
 
     private DecisionItem AsturCard(AssistantToolCall call, bool offered)
     {
+        lock (gate)
+        {
+            // A chat that keeps drafting Asturs cannot bury the owner in cards: past this many waiting, the call says its card could not be raised.
+            if (drafts.Count >= MaxOpenAsturCards) throw new InvalidOperationException("Too many Astur cards are waiting for the owner.");
+        }
         var args = call.Arguments;
         var draft = AsturDrafter.FromSentence(null,
             new AsturHints(args["name"]?.JSONValueString, args["area"]?.JSONValueString, args["purpose"]?.JSONValueString, AsturShapes.Parse(args["shape"]?.JSONValueString)),
@@ -238,6 +252,7 @@ public sealed partial class AssistantController
         if (Runner.Missions.Any(m => m.Mission.AssistantId == id && m.Mission.State is not (MissionState.Done or MissionState.Failed or MissionState.Stopped)))
             return TeamResult.Refused("It has missions at work. Stop them first.");
         var result = await Team.RetireAsync(id).ConfigureAwait(false);
+        if (result.Ok) o.Asturs?.Web?.Forget(id);                       // its connections close; a later read would start clean
         TryAudit(new AuditEntry
         {
             Assistant = Root?.Id ?? "", Tool = "team/retire", ActionClass = ActionClass.WriteElsewhere.ToString(), Target = result.Profile?.Name ?? id,
@@ -279,15 +294,14 @@ public sealed partial class AssistantController
             Taint = PolicyContext(chat).TaintContext,
         });
         var record = started.Record;
+        // A mission that did not even start (a provider nth cannot seal) is on the board as Blocked and is told to the model now, not as a report later.
+        if (Runner.Find(record.Id) is { Mission.State: MissionState.Blocked } blocked)
+            return AssistantToolResult.Failed($"Not started: {blocked.Reason}");
         if (delegations.Add(chat.Thread, chat.AssistantId, record.Id, astur.Id) is null)
         {
             Runner.Stop(record.Id);
             return AssistantToolResult.Failed("Not run: too much already waits for the " + AssistantNames.Asturs + "' reports.");
         }
-        // A mission that did not even start (a provider nth cannot seal) or starts paused is already known to the book.
-        ObserveNow(Runner.Find(record.Id) ?? record);
-        if (Runner.Find(record.Id)?.Mission.State == MissionState.Blocked)
-            return AssistantToolResult.Failed($"Not started: {Runner.Find(record.Id)?.Reason ?? record.Reason}");
         return AssistantToolResult.Done($"Handed to {astur.Name} as mission {record.Id:D}. Its report comes back to this chat, with every other piece you hand out, "
             + $"when all are in; then merge them into one answer and label each part with the {AssistantNames.Astur} it came from.");
     }
@@ -327,10 +341,20 @@ public sealed partial class AssistantController
 
     // ---- the reports come back ----
 
+    // These run inside the mission runner's own flow: nothing here may throw into it. A report that cannot be sorted is reported to the board.
     private void OnMissionFinished(MissionRecord record) =>
-        Observe(record.Id, record.Mission.State == MissionState.Done ? PieceState.Finished : PieceState.Failed);
+        Guarded(() => Observe(record.Id, record.Mission.State == MissionState.Done ? PieceState.Finished : PieceState.Failed));
 
-    private void OnMissionChanged(MissionRecord record) => ObserveNow(record);
+    private void OnMissionChanged(MissionRecord record) => Guarded(() => ObserveNow(record));
+
+    private void Guarded(Action work)
+    {
+        try { work(); }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            Runner.ReportFault("The Asturs' reports could not be sorted: " + error.Message);
+        }
+    }
 
     // Done and Failed arrive from Finished, once the report's taint is kept; here only the moves that can still go on.
     private void ObserveNow(MissionRecord record)
@@ -355,19 +379,14 @@ public sealed partial class AssistantController
 
     private void Observe(Guid mission, PieceState state)
     {
-        DelegationDue? due;
-        try { due = delegations.Observe(mission, state); }
-        catch (Exception error) when (error is not OperationCanceledException)
-        {
-            Runner.ReportFault("The Asturs' reports could not be sorted: " + error.Message);
-            return;
-        }
-        if (due is not null) Deliver(due);
+        if (delegations.Observe(mission, state) is { } due) Deliver(due);
     }
 
     // After a restart: pieces whose missions ended while nth was closed (or whose report was due when it closed) are caught up.
     /// <summary>Catches the Asturs' reports up with the missions as they are (after nth started and the missions came back from their journal).</summary>
-    public void ResumeDelegations()
+    public void ResumeDelegations() => Guarded(CatchUp);
+
+    private void CatchUp()
     {
         foreach (var group in delegations.Groups)
             foreach (var piece in group.Pieces.ToList())

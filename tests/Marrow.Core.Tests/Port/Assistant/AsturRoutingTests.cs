@@ -172,6 +172,23 @@ public sealed class AsturRoutingTests
     }
 
     [Fact]
+    public void Only_the_start_of_a_very_long_message_is_read_and_the_whole_rest_goes_with_it()
+    {
+        var log = string.Join(' ', Enumerable.Repeat("error at line 42 from kiran@channel.example and the rest of the log", 40_000));
+        var routed = Typed("@Channel A, look at this: " + log);
+        Assert.Equal(AsturRouteKind.Astur, routed.Kind);
+        Assert.Equal("Channel A", routed.Target!.Name);
+        Assert.Equal("look at this: " + log, routed.Message);                                              // nothing of the message is cut
+        Assert.True(log.Length > 100 * AsturRouting.RoutingWindow);
+        // A second name far down a pasted text is not read: the message still goes to the Astur named first.
+        var late = Typed("@Channel A, report" + new string(' ', AsturRouting.RoutingWindow) + "and @Channel B too");
+        Assert.Equal(AsturRouteKind.Astur, late.Kind);
+        Assert.Equal(AsturRouteKind.None, Typed("@Channel A and @Channel B, report").Kind);
+        Assert.Equal(AsturRouteKind.None, Said(new string('x', 3_000_000)).Kind);
+        Assert.Equal(AsturRouteKind.None, Typed(new string(' ', 3_000) + "@Channel A hello").Kind);        // past the window it is not read
+    }
+
+    [Fact]
     public void Routing_never_changes_a_message_it_does_not_route()
     {
         foreach (var text in new[] { "hello there", "@", "@@", "@ Channel A", "what about channel a?" })

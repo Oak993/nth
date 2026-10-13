@@ -22,7 +22,7 @@ internal sealed class AsturRig : IDisposable
 
     private readonly AssistantTempRoot temp = new();
 
-    private AsturRig(bool autoAnswer, JsonObject? delegations, ReserveSettings? budgets, bool withTeam)
+    private AsturRig(bool autoAnswer, JsonObject? delegations, ReserveSettings? budgets, bool withTeam, bool routing, ProviderKind provider)
     {
         Store = AssistantStore.Open(temp.Roots);
         Budgets = budgets ?? new ReserveSettings();
@@ -35,11 +35,13 @@ internal sealed class AsturRig : IDisposable
         Assert.True(MissionRig.Within(Switch.Ready));
         Loaded = delegations;
         WithTeam = withTeam;
+        Routing = routing;
+        Provider = provider;
     }
 
-    public static async Task<AsturRig> OpenAsync(bool autoAnswer = true, JsonObject? delegations = null, ReserveSettings? budgets = null, bool withTeam = true)
+    public static async Task<AsturRig> OpenAsync(bool autoAnswer = true, JsonObject? delegations = null, ReserveSettings? budgets = null, bool withTeam = true, bool routing = false, ProviderKind provider = ProviderKind.Claude)
     {
-        var rig = new AsturRig(autoAnswer, delegations, budgets, withTeam);
+        var rig = new AsturRig(autoAnswer, delegations, budgets, withTeam, routing, provider);
         rig.Dextra = (await rig.Team.EnsureRootAsync()).Profile!;
         rig.Controller = rig.NewController();
         return rig;
@@ -64,6 +66,8 @@ internal sealed class AsturRig : IDisposable
 
     public FakeAgentJobFactory JobFactory { get; } = new();
 
+    public AssistantWebClients Web { get; } = new();
+
     public FakeHomes Homes { get; }
 
     public AutoAnswerSwitch Switch { get; }
@@ -80,6 +84,9 @@ internal sealed class AsturRig : IDisposable
     /// <summary>The same saves, each with how many messages had been sent to the home chats when it was saved.</summary>
     public List<(JsonObject Doc, int Sent)> SavedWhen { get; } = [];
 
+    /// <summary>When it says so for a chat, reading that chat fails.</summary>
+    public Func<Guid, bool>? ThreadFails { get; set; }
+
     /// <summary>When set, saving the delegations fails.</summary>
     public bool SaveFails { get; set; }
 
@@ -88,13 +95,23 @@ internal sealed class AsturRig : IDisposable
     /// <summary>Whether the controller has a team and a home seam (a build without them says the tools are not part of it).</summary>
     public bool WithTeam { get; }
 
+    /// <summary>Whether the controller has the usage-aware router, over a Claude and a Codex account.</summary>
+    public bool Routing { get; }
+
+    /// <summary>The provider a mission runs on when nothing else picks one.</summary>
+    public ProviderKind Provider { get; }
+
+    public static readonly Guid ClaudeAccount = Guid.Parse("c0000000-0000-4000-8000-0000000000c1");
+
+    public static readonly Guid CodexAccount = Guid.Parse("c0000000-0000-4000-8000-0000000000c2");
+
     /// <summary>A second controller over the same store and team, as the next start of nth would make (the missions are loaded by the caller).</summary>
     public AssistantController NewController()
     {
         var controller = new AssistantController(new AssistantControllerOptions
         {
             Agents = Agents,
-            Thread = id => Chats.GetValueOrDefault(id),
+            Thread = id => ThreadFails?.Invoke(id) == true ? throw new IOException("The chat store could not be read.") : Chats.GetValueOrDefault(id),
             Projects = () => [.. Projects],
             Profiles = () => Team.Profiles,
             Jobs = new AgentJobs(JobFactory),
@@ -104,6 +121,7 @@ internal sealed class AsturRig : IDisposable
                 lock (Audit) Audit.Add(e);
             },
             Memory = new FakeMemory(FakeMemory.Plenty),
+            Provider = Provider,
             Model = "model-a",
             AutoAnswer = Switch,
             Asturs = WithTeam
@@ -111,6 +129,7 @@ internal sealed class AsturRig : IDisposable
                 {
                     Team = Team,
                     Homes = Homes,
+                    Web = Web,
                     LoadDelegations = () => Loaded,
                     SaveDelegations = body =>
                     {
@@ -122,6 +141,19 @@ internal sealed class AsturRig : IDisposable
                             SavedWhen.Add((clone, Agents.Chats.ToArray().Where(c => c.Launch.Mission == Guid.Empty).Sum(c => c.Sent.Count)));
                         }
                     },
+                }
+                : null,
+            Router = Routing
+                ? new RouterSetup
+                {
+                    Accounts = () =>
+                    [
+                        new RouterAccount(ClaudeAccount, new ReserveAccountRef("claude:1", "Claude 20x", "claude"), ProviderKind.Claude, true, 0),
+                        new RouterAccount(CodexAccount, new ReserveAccountRef("codex:1", "Codex A", "codex"), ProviderKind.Codex, true, 1),
+                    ],
+                    Models = provider => provider == ProviderKind.Claude
+                        ? [new RouteModel("haiku", ModelTier.Light), new RouteModel("opus", ModelTier.Strong)]
+                        : provider == ProviderKind.Codex ? [new RouteModel("sol", ModelTier.Standard), new RouteModel("astra", ModelTier.Strong)] : [],
                 }
                 : null,
             HomeChats = () => [.. Chats.Values.Where(c => c.AssistantID is not null && c.MissionID is null).Select(c => c.Id)],
@@ -269,6 +301,7 @@ internal sealed class AsturRig : IDisposable
     public void Dispose()
     {
         Controller.Dispose();
+        Web.Dispose();
         Team.Dispose();
         Store.Dispose();
         temp.Dispose();

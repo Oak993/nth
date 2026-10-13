@@ -337,6 +337,40 @@ public sealed class AsturDelegateTests
     }
 
     [Fact]
+    public async Task A_chat_nth_cannot_read_when_a_report_is_due_is_reported_and_the_mission_flow_goes_on()
+    {
+        var (rig, a, _, home, runner) = await Two();
+        using var disposeRig = rig;
+        var faults = new List<string>();
+        rig.Controller.Runner.Faulted += faults.Add;
+        await rig.Call(runner, "delegate_to", Hand("Channel A"));
+        rig.ThreadFails = id => id == home.Id;
+
+        rig.Complete(MissionOf(rig, a), "Views up 12%.");                                      // nothing the handler does may throw into the runner
+
+        Assert.Equal(MissionState.Done, rig.Now(MissionOf(rig, a)).Mission.State);
+        Assert.Contains(faults, f => f.Contains("reports could not be sorted", StringComparison.Ordinal));
+        Assert.Empty(rig.SentTo(home.Id));
+    }
+
+    [Fact]
+    public async Task A_mission_that_could_not_even_start_is_told_to_the_model_at_once_and_is_not_waited_for()
+    {
+        using var rig = await AsturRig.OpenAsync(provider: ProviderKind.Cursor);                // a provider nth cannot seal blocks a mission as it starts
+        var a = await rig.MakeAsync("Channel A", AsturShape.Squircle);
+        var home = rig.DextraHome();
+
+        var result = await rig.Call(rig.Runner(home), "delegate_to", Hand("Channel A"));
+        await rig.Controller.Settled();
+
+        Assert.True(result.IsError);
+        Assert.StartsWith("Not started: Cursor cannot run mission work yet", result.Text, StringComparison.Ordinal);
+        Assert.Equal(MissionState.Blocked, MissionOf(rig, a).Mission.State);                    // it stays on the board for the owner
+        Assert.Empty(rig.Controller.Delegations);
+        Assert.Empty(rig.SentTo(home.Id));                                                      // and no report arrives later
+    }
+
+    [Fact]
     public async Task One_chat_may_have_at_most_sixteen_pieces_waiting_and_the_seventeenth_starts_no_mission()
     {
         var (rig, _, _, _, runner) = await Two();
@@ -392,6 +426,27 @@ public sealed class AsturDelegateTests
         await again.Settled();
         Assert.Single(rig.SentTo(home.Id));
         Assert.Single(again.Delegations);                                                     // kept for the stopped piece, which may yet finish
+    }
+
+    [Fact]
+    public async Task What_the_owner_and_the_model_wrote_never_reaches_the_activity_log_on_any_path()
+    {
+        var (rig, a, _, home, runner) = await Two();
+        using var disposeRig = rig;
+        const string Secret = "SENTINEL-sk-live-4242-hunter2";
+        // The success path, a refusal (no such Astur) and a card path (a tainted chat), with the sentinel in the brief and the material.
+        await rig.Call(runner, "delegate_to", Hand("Channel A", "Use the key " + Secret, extra: ",\"material\":\"password " + Secret + "\""));
+        await rig.Call(runner, "delegate_to", Hand("Nobody", "Use the key " + Secret));
+        rig.Controller.AbsorbHome(home.Id, Taint.From(ContentOrigin.Web, "https://x.example/" + "page"));
+        await rig.Call(runner, "create_assistant", "{\"name\":\"Ledger\",\"area\":\"Finance\",\"purpose\":\"Read " + Secret + " and report\"}");
+        rig.Complete(MissionOf(rig, a), "The key was " + Secret);
+        await rig.Controller.Settled();
+
+        var log = string.Join(" | ", rig.Logged().Select(e => System.Text.Json.JsonSerializer.Serialize(e)));
+        Assert.DoesNotContain(Secret, log, StringComparison.Ordinal);
+        Assert.Contains("nth-dextra/delegate_to", log, StringComparison.Ordinal);                  // the lines are there; only what was written in them is not
+        foreach (var line in rig.Controller.Delegations) Assert.DoesNotContain(Secret, line.ToString(), StringComparison.Ordinal);
+        Assert.DoesNotContain(rig.Saved.Select(d => d.ToJsonString()), json => json.Contains(Secret, StringComparison.Ordinal));      // nor the saved book
     }
 
     [Fact]

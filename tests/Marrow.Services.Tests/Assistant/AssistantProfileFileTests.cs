@@ -145,7 +145,7 @@ public sealed class AssistantProfileFileTests
         Assert.Null(profile.Model);
         Assert.Empty(profile.Duties);
         Assert.Empty(profile.Wants);
-        Assert.Equal(new[] { ActionClass.Money }, profile.ClassRules.Keys.ToArray());                        // only a class and a rule nth knows are kept
+        Assert.Equal(new[] { ActionClass.Money }, profile.ClassRules.Keys.ToArray());                        // only an action type and a rule nth knows are kept
         Assert.Empty(profile.AskFirst);                                                    // a rule with nothing in it asks nothing
     }
 

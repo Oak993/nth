@@ -1,4 +1,5 @@
 using Marrow.App.Assistant.Views;
+using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Assistant;
 
@@ -11,37 +12,10 @@ namespace Marrow.App.Tests.Assistant;
 [Trait("Decision", "ED-NEW-dextra-as16-15")]
 public sealed class ProfileSheetModelTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 10, 13, 9, 0, 0, TimeSpan.Zero);
-
-    private static AssistantProfile Dextra() => new("dextra", "Dextra") { Created = Now };
-
-    private static AssistantProfile Astur(string name, AsturShape shape, string id) =>
-        new(id, name) { ParentId = "dextra", Shape = shape, Area = "Looks after something.", Created = Now };
-
-    private sealed class Host
-    {
-        public List<AssistantProfile> Team { get; } = [Dextra(), Astur("Channel A", AsturShape.Squircle, "a")];
-
-        public List<AsturDraft> Created { get; } = [];
-
-        public int Cancelled { get; set; }
-
-        public IReadOnlyList<string> Answer { get; set; } = [];
-
-        public Func<AsturDraft, Task<IReadOnlyList<string>>>? Slow { get; set; }
-
-        public ProfileSheetModel Sheet(ProfileSheetMode mode = ProfileSheetMode.Add, AsturDraft? draft = null, string? editing = null, string reserve = "") =>
-            new(mode, () => Team, async made =>
-            {
-                Created.Add(made);
-                return Slow is null ? Answer : await Slow(made);
-            }, () => Cancelled++, draft, editing, reserve);
-    }
-
     [Fact]
     public void An_Add_sheet_starts_with_no_card_and_a_sentence_or_a_template_makes_one()
     {
-        var host = new Host();
+        var host = new ProfileSheetHost();
         var sheet = host.Sheet();
         var changes = 0;
         sheet.Changed += () => changes++;
@@ -76,7 +50,7 @@ public sealed class ProfileSheetModelTests
     [Fact]
     public void A_sheet_that_is_not_for_adding_has_its_card_from_the_start_and_ignores_sentences_and_templates()
     {
-        var host = new Host();
+        var host = new ProfileSheetHost();
         var draft = AsturDrafter.FromTemplate("channel", host.Team);
         var review = host.Sheet(ProfileSheetMode.Review, draft);
         Assert.Equal(("New Astur", "Create"), (review.Title, review.CreateTitle));
@@ -94,7 +68,7 @@ public sealed class ProfileSheetModelTests
     [Fact]
     public void The_problems_are_listed_as_the_owner_types_and_Create_is_there_only_when_there_are_none()
     {
-        var host = new Host();
+        var host = new ProfileSheetHost();
         var sheet = host.Sheet();
         sheet.UseTemplate("channel");
         var edits = 0;
@@ -126,12 +100,12 @@ public sealed class ProfileSheetModelTests
     [Fact]
     public void The_problems_follow_the_team_while_the_sheet_is_open()
     {
-        var host = new Host();
+        var host = new ProfileSheetHost();
         var sheet = host.Sheet();
         sheet.UseTemplate("channel");
         sheet.SetName("Channel C");
         Assert.True(sheet.CanCreate);
-        host.Team.Add(Astur("Channel C", AsturShape.Diamond, "c"));                                       // another tap made one meanwhile
+        host.Team.Add(ProfileSheetHost.Astur("Channel C", AsturShape.Diamond, "c"));                                       // another tap made one meanwhile
         Assert.Equal(["Channel C already answers to \"Channel C\"."], sheet.Problems);
         Assert.False(sheet.CanCreate);
     }
@@ -139,8 +113,8 @@ public sealed class ProfileSheetModelTests
     [Fact]
     public void The_six_looks_show_who_has_each_and_a_taken_one_cannot_be_picked()
     {
-        var host = new Host();
-        host.Team.Add(Astur("Channel B", AsturShape.Hexagon, "b"));
+        var host = new ProfileSheetHost();
+        host.Team.Add(ProfileSheetHost.Astur("Channel B", AsturShape.Hexagon, "b"));
         var sheet = host.Sheet();
         sheet.UseTemplate("channel");
         Assert.Equal(AsturShape.Diamond, sheet.Draft!.Shape);                                              // the first one nobody has
@@ -161,7 +135,7 @@ public sealed class ProfileSheetModelTests
     [Fact]
     public void An_Astur_being_edited_may_keep_its_own_name_and_look()
     {
-        var host = new Host();
+        var host = new ProfileSheetHost();
         var sheet = host.Sheet(ProfileSheetMode.Edit, AsturTeamRules.ToDraft(host.Team[1]), "a");
         Assert.Empty(sheet.Problems);
         Assert.Equal(AsturShape.Squircle, sheet.Shapes.Single(l => l.Selected).Shape);
@@ -172,7 +146,7 @@ public sealed class ProfileSheetModelTests
     [Fact]
     public void Duties_are_ticked_and_unticked_and_the_words_say_which()
     {
-        var host = new Host();
+        var host = new ProfileSheetHost();
         var sheet = host.Sheet();
         sheet.UseTemplate("channel");
         sheet.ToggleDuty(1);
@@ -196,7 +170,7 @@ public sealed class ProfileSheetModelTests
     [InlineData("15", "-3", false, 15.0, -3.0)]
     public void The_budget_boxes_take_numbers_and_say_so_when_they_are_not_numbers(string percent, string dollars, bool ok, double expectedPercent, double? expectedDollars)
     {
-        var host = new Host();
+        var host = new ProfileSheetHost();
         var sheet = host.Sheet();
         sheet.UseTemplate("channel");
         sheet.SetBudget(percent, dollars);
@@ -212,7 +186,7 @@ public sealed class ProfileSheetModelTests
     [Fact]
     public async Task Create_hands_the_finished_card_to_the_host_and_is_done_when_the_host_has_nothing_to_add()
     {
-        var host = new Host();
+        var host = new ProfileSheetHost();
         var sheet = host.Sheet();
         sheet.UseTemplate("inbox");
         sheet.SetName("  The Inbox ");
@@ -230,7 +204,7 @@ public sealed class ProfileSheetModelTests
     [Fact]
     public async Task What_the_host_still_finds_wrong_comes_back_to_the_sheet_and_the_card_stays_open()
     {
-        var host = new Host { Answer = ["There can be at most 6 Asturs. Retire one first."] };
+        var host = new ProfileSheetHost { Answer = ["There can be at most 6 Asturs. Retire one first."] };
         var sheet = host.Sheet();
         sheet.UseTemplate("channel");
         Assert.False(await sheet.Create());
@@ -248,7 +222,7 @@ public sealed class ProfileSheetModelTests
     [Fact]
     public async Task A_host_that_throws_is_told_to_the_owner_not_to_the_app()
     {
-        var host = new Host { Slow = _ => throw new IOException("The disk is full.") };
+        var host = new ProfileSheetHost { Slow = _ => throw new IOException("The disk is full.") };
         var sheet = host.Sheet();
         sheet.UseTemplate("channel");
         Assert.False(await sheet.Create());
@@ -260,7 +234,7 @@ public sealed class ProfileSheetModelTests
     public async Task A_second_tap_while_the_first_is_still_working_is_ignored()
     {
         var gate = new TaskCompletionSource<IReadOnlyList<string>>();
-        var host = new Host { Slow = _ => gate.Task };
+        var host = new ProfileSheetHost { Slow = _ => gate.Task };
         var sheet = host.Sheet();
         sheet.UseTemplate("channel");
         var first = sheet.Create();
@@ -276,7 +250,7 @@ public sealed class ProfileSheetModelTests
     [Fact]
     public void Cancel_tells_the_host_and_the_reserve_line_and_the_isolation_note_are_the_words_of_the_canvas()
     {
-        var host = new Host();
+        var host = new ProfileSheetHost();
         var sheet = host.Sheet(reserve: "Keeps 30% on Claude 20x (your standing rule).");
         sheet.Cancel();
         Assert.Equal(1, host.Cancelled);

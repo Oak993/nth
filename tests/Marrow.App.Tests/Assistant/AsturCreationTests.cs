@@ -197,6 +197,22 @@ public sealed class AsturCreationTests
     }
 
     [Fact]
+    public async Task A_chat_that_keeps_drafting_cannot_bury_the_owner_in_cards()
+    {
+        using var rig = await AsturRig.OpenAsync();
+        var runner = rig.Runner(rig.DextraHome());
+        for (var n = 0; n < AssistantController.MaxOpenAsturCards; n++) await Ask(rig, runner, "{\"name\":\"Draft " + n + "\",\"area\":\"Channel\",\"purpose\":\"One more channel.\"}");
+        var over = await rig.Call(runner, "create_assistant", Draft);
+        Assert.True(over.IsError);
+        Assert.Equal("Not run: the owner's card could not be raised.", over.Text);
+        Assert.Equal(AssistantController.MaxOpenAsturCards, rig.Controller.Queue.Waiting.Count(c => c.Title.StartsWith("New Astur", StringComparison.Ordinal)));
+
+        // Answering one makes room for the next.
+        Assert.Null(rig.Controller.Queue.Answer(rig.Controller.Queue.Waiting[0].Id, DecisionAnswer.Deny()));
+        Assert.False((await rig.Call(runner, "create_assistant", Draft)).IsError);
+    }
+
+    [Fact]
     public async Task A_seventh_card_is_raised_but_cannot_be_made_and_the_chat_is_told_why()
     {
         using var rig = await AsturRig.OpenAsync();
@@ -254,7 +270,9 @@ public sealed class AsturCreationTests
 
         rig.Started(mission);
         rig.StopMission(mission);
+        var client = rig.Web.For(a.Id);
         Assert.True((await rig.Controller.RetireAstur(a.Id)).Ok);
+        Assert.NotSame(client, rig.Web.For(a.Id));                                                               // its web client was let go
         Assert.Contains(rig.Logged(), e => e.Tool == "team/retire" && e.Result == "retired");
         Assert.Empty(rig.Budgets.Caps);
     }

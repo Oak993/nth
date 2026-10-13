@@ -28,6 +28,9 @@ public sealed class AsturSetup
 
     public IAssistantHomes? Homes { get; init; }
 
+    /// <summary>The Asturs' web clients (AssistantWebClients): a retired Astur's is let go. Null: the controller holds none.</summary>
+    public AssistantWebClients? Web { get; init; }
+
     /// <summary>Reads delegations.json as nth last saved it (AssistantStore.Delegations); null: none is kept across a restart.</summary>
     public Func<JsonObject?>? LoadDelegations { get; init; }
 
