@@ -18,6 +18,7 @@
   "live.widget.try_again": "Try again",
   "live.widget.live": "Live",
   "live.widget.snapshot": "Snapshot",
+  "live.widget.open_link": "Open link from the widget",
   "live.widget.selected": "Selected",
 
   "live.app.inline_label": "Inline",

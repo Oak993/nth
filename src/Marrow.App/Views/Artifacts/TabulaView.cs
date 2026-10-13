@@ -648,10 +648,13 @@ public sealed class TabulaView : Grid
         if (error is { } e)
         {
             var buttons = readOnly ? [] : new (string, Action)[] { (UiText.Get("tabula.notice.ask_to_fix"), () => AskToFix(e)) };
-            notice.Show(UiText.Get("tabula.notice.error_title"), e.Message, error: true, buttons);
+            // ED-NEW-web-sec-artifacts-4: the notice shows, in full, exactly the message and stack lines Ask to fix sends.
+            var (message, stack) = TabulaPane.FixReport(e);
+            notice.ShowReport(UiText.Get("tabula.notice.error_title"), message, stack, buttons);
         }
         else if (link is { } url)
-            notice.Show(ArtifactMount.OpenLinkTitle, Redact(url), error: false, (UiText.Get("tabula.notice.open"), () => { link = null; context.OpenLink(url); Render(); }));
+            // ED-NEW-web-sec-artifacts-5: the whole address Open opens, query and fragment included (it may carry the page's data).
+            notice.ShowAddress(ArtifactMount.OpenLinkTitle, url, (UiText.Get("tabula.notice.open"), () => { link = null; context.OpenLink(url); Render(); }));
         else if (missing is { } library)
             notice.Show(UiText.Get("tabula.notice.library_missing"), Redact(library), error: false);
         else if (readOnly)
@@ -660,7 +663,10 @@ public sealed class TabulaView : Grid
         else notice.Hide();
     }
 
-    /// <summary>An address as the notice shows it: scheme, host and path, never its query (it may carry the page's data).</summary>
+    /// <summary>
+    /// An address as the missing-library notice shows it: scheme, host and path, never its query (it may carry the page's data).
+    /// A link the user can open is shown whole instead (ED-NEW-web-sec-artifacts-5): Open sends what the notice shows.
+    /// </summary>
     internal static string Redact(string url) =>
         Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https" ? uri.GetLeftPart(UriPartial.Path) : url.Split('?', '#')[0];
 
