@@ -10,6 +10,7 @@ using Avalonia.Threading;
 using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views;
+using Marrow.App.Views.Panes;
 using Marrow.App.Views.Chat;
 using Marrow.App.Views.Composer;
 using Marrow.App.Views.Sidebar;
@@ -76,7 +77,16 @@ internal sealed class SessionSwitchRig(AppModelHarness h, AppModel model, Thread
         Dispatcher.UIThread.RunJobs();
     }
 
-    public ThreadColumns Columns => Assert.IsType<ThreadColumns>(Detail.Child);
+    // ED-NEW-finalint-17 / web-w3a-1: the approved workspace wraps the unchanged session columns.
+    public ThreadColumns Columns
+    {
+        get
+        {
+            var workspace = Assert.IsType<PaneWorkspace>(Detail.Child);
+            Assert.Same(Detail.Workspace, workspace);
+            return Assert.IsType<ThreadColumns>(workspace.Chat.Content);
+        }
+    }
 
     public Dictionary<Guid, FrameHostingView> ColumnMap
     {

@@ -25,6 +25,7 @@ public sealed class PackageWindowsNthTests
 
     [Fact]
     [Trait("Decision", "OD-0135")]
+    [Trait("Decision", "ED-NEW-finalint-16")]
     public void The_main_exe_is_nth_exe_and_the_apphost_is_renamed_stamped_and_given_the_runtime_before_anything_is_packed()
     {
         var code = Code();
@@ -36,7 +37,7 @@ public sealed class PackageWindowsNthTests
         var rename = At(code, "Move-Item -LiteralPath (Join-Path $publishDir $builtAppHost)");
         var stamp = At(code, "Set-NthVersionResource -Path (Join-Path $publishDir $MainExe) -Fields $identity.App");
         var runtime = At(code, "Copy-NthVcRuntime -Resolved $vcRuntime -Destination $publishDir");
-        var setup = At(code, "dotnet publish $setupProject -c $Configuration -r $Runtime -o $setupFreeDir");
+        var setup = At(code, "dotnet publish $uninstallerProject -c $Configuration -r $Runtime -o $setupFreeDir");
         var pack = At(code, "vpk pack");
         Assert.True(publish < rename && rename < stamp && stamp < runtime && runtime < setup && setup < pack);
     }
@@ -127,14 +128,28 @@ public sealed class PackageWindowsNthTests
 
     [Fact]
     [Trait("Decision", "ED-247")]
+    [Trait("Decision", "ED-NEW-finalint-16")]
     public void The_setup_is_published_with_native_AOT_without_its_payload_first_and_with_it_after_the_pack()
     {
         var code = Code();
-        var free = At(code, "dotnet publish $setupProject -c $Configuration -r $Runtime -o $setupFreeDir");
+        var free = At(code, "dotnet publish $uninstallerProject -c $Configuration -r $Runtime -o $setupFreeDir");
         var pack = At(code, "vpk pack");
         var metrics = At(code, "$metrics = Get-NthPackageMetrics -Package $fullPackage.FullName");
         var shared = At(code, "dotnet publish $setupProject -c $Configuration -r $Runtime -o $installerBuildDir");
         Assert.True(free < pack && pack < metrics && metrics < shared);
+        // ED-NEW-finalint-16: the same project has two approved roles (inst-u7-5, web-w23-1).
+        var uninstallerProject = At(code, "$uninstallerProject = Join-Path $root 'src/Marrow.Setup/Marrow.Setup.csproj'");
+        var installerProject = At(code, "$setupProject = Join-Path $root 'src/Marrow.Setup/Marrow.Setup.csproj'");
+        Assert.True(uninstallerProject < free && installerProject < free);
+        var licence = At(code, "holds LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md beside");
+        var loader = At(code, "Assert-NthWebView2Package -Package $fullPackage.FullName -Runtime $Runtime -PublishDir $publishDir");
+        Assert.True(pack < licence && licence < loader && loader < metrics && metrics < shared);
+        var freeCommand = code[free..At(code, "\n}", free)];
+        var sharedCommand = code[shared..At(code, "\n}", shared)];
+        Assert.Contains("-p:PublishAot=true", freeCommand, StringComparison.Ordinal);
+        Assert.Contains("-p:PublishAot=true", sharedCommand, StringComparison.Ordinal);
+        Assert.DoesNotContain("-p:VelopackSetupExe=", freeCommand, StringComparison.Ordinal);
+        Assert.Contains("-p:VelopackSetupExe=$($velopackSetup.FullName)", sharedCommand, StringComparison.Ordinal);
         // the linker lookup of Native AOT needs vswhere.exe on PATH (found when the first AOT publish broke without it)
         Assert.True(At(code, "$env:PATH = \"$vsInstaller;$env:PATH\"") < free);
         Assert.Equal(2, Regex.Matches(code, "-p:PublishAot=true", RegexOptions.CultureInvariant).Count);

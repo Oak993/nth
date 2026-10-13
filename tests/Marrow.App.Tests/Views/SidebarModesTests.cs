@@ -126,16 +126,30 @@ public sealed class SidebarModesTests(HeadlessSession headless)
     [MemberData(nameof(Options))]
     [Trait("Req", "PR-WIN-040")] // App/Views/RootView.swift:9-21,44-51
     [Trait("Req", "PR-WIN-046")]
+    [Trait("Decision", "ED-NEW-finalint-17")]
     public void At_launch_each_option_draws_what_its_words_say(SidebarMode mode, bool startsOpen) => WithRoot(rig =>
     {
         Assert.Equal(startsOpen, rig.Model.Sidebar.StartsOpen);
         AssertDraws(rig, mode, startsOpen);
-        // The window's leading-edge strip pulls a collapsed column out in Column and Floating, never in Panel only (:53-63).
-        Assert.Equal(mode != SidebarMode.PanelOnly && !startsOpen, rig.Launch.Harness.Main.OnMain(() =>
-            ((DragHandleView)typeof(RootView).GetField("leadingHandle", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(rig.Root)!).IsActive));
-        // The column's own trailing strip resizes it only while it is drawn (:22-31).
-        Assert.Equal(mode != SidebarMode.PanelOnly && startsOpen, rig.Launch.Harness.Main.OnMain(() =>
-            ((DragHandleView)typeof(RootView).GetField("trailingHandle", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(rig.Root)!).IsActive));
+        // ED-NEW-finalint-17 / web-w1-3: one shared splitter carries both source resize-strip behaviours.
+        rig.OnMain(() =>
+        {
+            var splitter = Assert.IsType<Splitter>(typeof(RootView)
+                .GetField("sidebarSplitter", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(rig.Root));
+            var host = Assert.IsType<Panel>(splitter.Parent);
+            Assert.Same(splitter, Assert.Single(host.Children.OfType<Splitter>()));
+            Assert.Equal(SidebarResizeHandle.Label, splitter.Label);
+            var active = mode != SidebarMode.PanelOnly;
+            Assert.Equal(active, splitter.IsActive);
+            Assert.Equal(active, splitter.Handle.IsActive);
+            // The leading edge reveals a collapsed column; the shown column's trailing edge resizes it.
+            Assert.Equal(active && !startsOpen, splitter.IsActive && splitter.LastReport.IsCollapsed);
+            Assert.Equal(active && startsOpen, splitter.IsActive && !splitter.LastReport.IsCollapsed);
+            Assert.Equal(startsOpen ? rig.Model.Sidebar.Width : 0, splitter.LastReport.Value);
+            var edge = active && startsOpen ? rig.Model.Sidebar.RenderedWidth : 0;
+            Assert.Equal(edge > 0 ? edge - Splitter.DividerThickness / 2 : 0, splitter.Margin.Left, 1);
+            if (!active) Assert.False(splitter.Focusable);
+        });
     }, Saved(mode, startsOpen));
 
     // Every switch in Settings, the six between options and the three that pick the option already chosen, from a column open or collapsed,

@@ -103,6 +103,7 @@ public sealed class SidebarLeanPixelGuardTests(HeadlessSession headless)
                     var bytes = new byte[buffer.RowBytes * buffer.Size.Height];
                     System.Runtime.InteropServices.Marshal.Copy(buffer.Address, bytes, 0, bytes.Length);
                     pixels.AppendData(SHA256.HashData(bytes));
+                    if (Environment.GetEnvironmentVariable("MARROW_LEAN_TREE_DUMP") is { Length: > 0 } pixelDump) File.WriteAllBytes(Path.Combine(pixelDump, $"pixels-{count:00}.bin"), bytes);
                     var lines = new StringBuilder();
                     // What can be seen: a hidden or fully transparent control and everything under it is left out (a row that has faded out
                     // leaves the tree on its own schedule, which the pixels never show).

@@ -83,6 +83,8 @@ $icon = Join-Path $root 'src/Marrow.App/Assets/icon.ico'
 $artifacts = if ($ArtifactsDir) { [System.IO.Path]::GetFullPath($ArtifactsDir) } else { Join-Path $root 'artifacts' }
 $publishDir = Join-Path $artifacts 'publish'
 $releasesDir = Join-Path $artifacts 'releases'
+# ED-NEW-finalint-16: the early payload-free uninstaller and late package-bearing installer share one project.
+$uninstallerProject = Join-Path $root 'src/Marrow.Setup/Marrow.Setup.csproj'
 $setupProject = Join-Path $root 'src/Marrow.Setup/Marrow.Setup.csproj'
 $setupFreeDir = Join-Path $artifacts 'installer-build-free'
 $installerBuildDir = Join-Path $artifacts 'installer-build'
@@ -212,7 +214,7 @@ Copy-Item -LiteralPath $shimExe -Destination (Join-Path $publishDir 'Marrow.Shim
 $vsInstaller = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer'
 if ((Test-Path -LiteralPath (Join-Path $vsInstaller 'vswhere.exe')) -and ($env:PATH -notlike "*$vsInstaller*")) { $env:PATH = "$vsInstaller;$env:PATH" }
 Invoke-Native 'dotnet publish (nth-Setup, no payload)' {
-    dotnet publish $setupProject -c $Configuration -r $Runtime -o $setupFreeDir --nologo -v q -p:PublishAot=true "-p:NthPublisher=$PackAuthors"
+    dotnet publish $uninstallerProject -c $Configuration -r $Runtime -o $setupFreeDir --nologo -v q -p:PublishAot=true "-p:NthPublisher=$PackAuthors"
 }
 $setupFree = Join-Path $setupFreeDir 'nth-Setup.exe'
 if (-not (Test-Path -LiteralPath $setupFree)) { throw "nth-Setup.exe was not published to $setupFreeDir." }
