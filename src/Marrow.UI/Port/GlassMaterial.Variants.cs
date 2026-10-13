@@ -49,6 +49,7 @@ internal static partial class GlassMaterial
         // A variant's surfaces are its own and made on its own (a worker's) context: disposed here, never left to the compositor's queue.
         public void DisposeOwned()
         {
+            ClearSoftwareFrame(this);
             kept?.Dispose();
             blurred?.Dispose();
             (kept, blurred, valid) = (null, null, false);

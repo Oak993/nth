@@ -762,7 +762,12 @@ internal static partial class GlassMaterial
     // BlendMode.Plus, and the blur as a Clamp image shader under the blur filter (Draw).
     internal const int WarmShapes = 8;
 
-    internal static IReadOnlyList<SKRuntimeEffect> WarmupPrograms() => [.. Enumerable.Range(1, WarmShapes).Select(Effect)];
+    internal static IReadOnlyList<SKRuntimeEffect> WarmupPrograms()
+    {
+        var programs = Enumerable.Range(1, WarmShapes).Select(Effect).ToArray();
+        _ = softwareProgram.Value; // The one CPU program is built before a look's drag, too; GPU variants still use the original eight.
+        return programs;
+    }
 
     /// <summary>The program for <paramref name="count"/> shapes (the warm-up's), made as a draw makes it.</summary>
     internal static SKRuntimeEffect WarmupProgram(int count) => Effect(count);
@@ -778,10 +783,18 @@ internal static partial class GlassMaterial
     /// <summary>ED-NEW-glasslook-2 (tests): how many programs the material has built in this process (a look change builds none).</summary>
     internal static int ProgramsBuiltForTests;
 
-    private static SKRuntimeEffect Effect(int count) => effects.GetOrAdd(count, static n => new Lazy<SKRuntimeEffect>(() =>
+    private static readonly Lazy<SKRuntimeEffect> softwareProgram = new(() => BuildEffect(1, software: true));
+    private static SKRuntimeEffect Effect(int count) => effects.GetOrAdd(count, static n => new Lazy<SKRuntimeEffect>(() => BuildEffect(n, software: false))).Value;
+
+    private static SKRuntimeEffect BuildEffect(int n, bool software)
     {
         Interlocked.Increment(ref ProgramsBuiltForTests);
-        var source = new StringBuilder(ShaderHeader).Append("\nuniform shader sharp;\nuniform float stage;\nuniform float interior;\nuniform float4 window;\n");
+        // ED-NEW-composer-stack-2: CPU-only exact zero work: continuousOffset is zero outside its corner support and when its fade is zero.
+        var header = software ? ShaderHeader.Replace(
+            "return cd + continuousOffset(c - abs(p), radius) * continuousFade(cd, radius);",
+            "float2 corner = c - abs(p); if (max(corner.x, corner.y) / radius >= " + ContinuousCorner.Extent.ToString("R", CultureInfo.InvariantCulture) + ") return cd; " +
+            "float fade = continuousFade(cd, radius); if (fade == 0.0) return cd; return cd + continuousOffset(corner, radius) * fade;", StringComparison.Ordinal) : ShaderHeader;
+        var source = new StringBuilder(header).Append("\nuniform shader sharp;\nuniform float stage;\nuniform float interior;\nuniform float4 window;\n");
         for (var i = 0; i < n; i++) source.Append(CultureInfo.InvariantCulture, $$"""
 
             uniform float4 transform{{i}};
@@ -984,9 +997,12 @@ internal static partial class GlassMaterial
             return col * half(coverage * flags.w) + outside;
             }
             """.Replace("SHADOWDISTANCE", n == 1 ? "distance0" : "sceneDistance", StringComparison.Ordinal));
+        // With no contact line or soft shadow, the mask is coverage alone. Preserve the original amount arithmetic, including its rounding.
+        if (software) source.Replace("float coverage = clamp(d + 0.5, 0.0, 1.0);",
+            "float coverage = clamp(d + 0.5, 0.0, 1.0); if (stage < 0.5 && bare == 1.0 && aura.y == 0.0) return half4(0.0, 0.0, 0.0, half(flags.w * (1.0 - (1.0 - coverage))));");
         return SKRuntimeEffect.CreateShader(Constants(source.ToString()), out var error)
             ?? throw new InvalidOperationException("Glass shader did not compile: " + error);
-    })).Value;
+    }
 
     // The glass body, the same at the edge and inside. `under` is the blurred backdrop, premultiplied,
     // with whatever alpha the pixels under the glass have (the Acrylic window's transparent or scrim pixels show through: nothing is
@@ -1232,6 +1248,7 @@ internal static partial class GlassMaterial
 
         public void Release()
         {
+            ClearSoftwareFrame(this);
             if (kept is not null) released.Enqueue(kept);
             if (blurred is not null) released.Enqueue(blurred);
             (kept, blurred, valid) = (null, null, false);
@@ -1658,7 +1675,7 @@ internal static partial class GlassMaterial
         public static string Of(string name, int index) => made.GetOrAdd((name, index), static k => k.Item1 + k.Item2.ToString(CultureInfo.InvariantCulture));
     }
 
-    private static Spread? Draw(ISkiaSharpApiLease lease, State state, Backdrop kept, SKRectI? dirty)
+    private static Spread? Draw(ISkiaSharpApiLease lease, State state, Backdrop kept, SKRectI? dirty, SKRuntimeEffect? referenceProgram = null)
     {
         var canvas = lease.SkCanvas;
         // the contact line reaches 1.25 past the shape; a look's soft shadow (ED-NEW-glasslook-3) its blur and its drop
@@ -1690,6 +1707,12 @@ internal static partial class GlassMaterial
             * Math.Sqrt(Math.Abs(r.Transform.M11 * r.Transform.M22 - r.Transform.M12 * r.Transform.M21)));
         var spread = SpreadOf(state, output, scale, radius);
         if (reads.IsEmpty) return spread;
+        using var pixels = under?.Surface.Snapshot();
+        var faded = SKColors.White.WithAlpha((byte)Math.Clamp(Math.Round(lease.CurrentOpacity * 255), 0, 255));
+        if (referenceProgram is null && pixels is not null && under is { } reusable &&
+            TrySoftwareFrame(lease, state, kept, reusable.Area, output, pixels, faded.Alpha, null, null)) return spread;
+        // A cached software layer covers the complete material. Refresh all blur reads on a miss, independent of the frame clip.
+        if (referenceProgram is null && pixels is not null && SoftwareFrameEligible(lease, state, kept, output, pixels)) reads = output;
         var shift = (int)Math.Ceiling(reach * scale) + 2;
         var blurredCanvas = surface.Canvas;
         blurredCanvas.Save();
@@ -1699,7 +1722,6 @@ internal static partial class GlassMaterial
         blurredCanvas.Clear(SKColors.Transparent);
         // The unblurred pixels under the glass, read by the clear lens rim (ED-NEW-glasslook-1); released before the next frame writes to the kept
         // surface, so Skia copies nothing.
-        using var pixels = under?.Surface.Snapshot();
         if (under is { } taken && pixels is not null)
         {
             using var blur = SKImageFilter.CreateBlur(radius, radius, SKShaderTileMode.Clamp);
@@ -1745,7 +1767,7 @@ internal static partial class GlassMaterial
         using var sharp = pixels is not null && sharpTransform.TryInvert(out var toSharp)
             ? pixels.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp, sampling, toSharp)
             : image.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp, sampling, shaderTransform);
-        var effect = Effect(state.Regions.Length);
+        var effect = referenceProgram ?? (lease.GrContext is null && state.Regions.Length == 1 ? softwareProgram.Value : Effect(state.Regions.Length));
         if (drawnCounts.TryAdd(state.Regions.Length, true)) ShapeCountDrawn?.Invoke(state.Regions.Length);
         // The window's surface in the shader's coordinates, half a device pixel in (the bend's reads are clamped to it).
         var surfaceRect = kept.Whole.Width > 0 && kept.Whole.Height > 0 ? new SKRect(0.5f, 0.5f, kept.Whole.Width - 0.5f, kept.Whole.Height - 0.5f) : new SKRect(-1e6f, -1e6f, 1e6f, 1e6f);
@@ -1786,30 +1808,46 @@ internal static partial class GlassMaterial
         uniforms["stage"] = 1f;
         using var shader = effect.ToShader(uniforms, children);
         // One rule for the opacity bytes: rounded. The inside's DstOut fill is the edge stage's amount there (the piece's opacity times this paint's alpha).
-        var faded = SKColors.White.WithAlpha((byte)Math.Clamp(Math.Round(lease.CurrentOpacity * 255), 0, 255));
         using var mask = new SKPaint { Shader = maskShader, Color = faded, BlendMode = SKBlendMode.DstOut };
         using var paint = new SKPaint { Shader = shader, Color = faded, BlendMode = SKBlendMode.Plus };
-        if (Inside(state) is not { } inside)
+        var inside = Inside(state);
+        uniforms["interior"] = 1f;
+        using var innerShader = inside is null ? null : effect.ToShader(uniforms, children);
+        using var innerPaint = inside is null ? null : new SKPaint { Shader = innerShader, Color = faded, BlendMode = SKBlendMode.Plus };
+        using var innerMask = inside is null ? null : new SKPaint { Color = SKColors.Black.WithAlpha((byte)Math.Clamp(Math.Round(faded.Alpha * state.Regions[0].Opacity), 0, 255)), BlendMode = SKBlendMode.DstOut };
+        // Each non-antialiased partition draws every pixel once. A software cache stores the two incoming float layers before their blends.
+        void Layer(SKCanvas target, bool removal, bool capture)
         {
-            canvas.DrawRect(local, mask); // One SDF clips, refracts, lights and merges the same shape.
+            using var outer = (removal ? mask : paint).Clone();
+            if (capture) outer.BlendMode = SKBlendMode.Src;
+            if (inside is not { } insideBox) { target.DrawRect(local, outer); return; }
+            using var inner = (removal ? innerMask : innerPaint)!.Clone();
+            if (capture) inner.BlendMode = SKBlendMode.Src;
+            target.Save();
+            target.ClipRect(insideBox);
+            target.DrawRect(insideBox, inner);
+            target.Restore();
+            target.Save();
+            target.ClipRect(insideBox, SKClipOperation.Difference);
+            target.DrawRect(local, outer);
+            target.Restore();
+        }
+        if (referenceProgram is null && pixels is not null && under is { } source &&
+            TrySoftwareFrame(lease, state, kept, source.Area, output, pixels, faded.Alpha, target => Layer(target, true, true), target => Layer(target, false, true)))
+            return spread;
+        if (inside is not { } insideBox)
+        {
+            canvas.DrawRect(local, mask);
             canvas.DrawRect(local, paint);
             return spread;
         }
-        // ED-320 16: the inside of one rounded rectangle (Inside) is drawn by the same shader with `interior` set, which computes there what its deep
-        // branch does without the shape's distance; the shader draws the rest. The two clips are the same rectangle, not antialiased, so each pixel
-        // is drawn once.
-        uniforms["interior"] = 1f;
-        using var innerShader = effect.ToShader(uniforms, children);
-        using var innerPaint = new SKPaint { Shader = innerShader, Color = faded, BlendMode = SKBlendMode.Plus };
-        // Inside, the amount is the piece's opacity alone (its coverage is whole and no contact line reaches there).
-        using var innerMask = new SKPaint { Color = SKColors.Black.WithAlpha((byte)Math.Clamp(Math.Round(faded.Alpha * state.Regions[0].Opacity), 0, 255)), BlendMode = SKBlendMode.DstOut };
         canvas.Save();
-        canvas.ClipRect(inside);
-        canvas.DrawRect(inside, innerMask);
-        canvas.DrawRect(inside, innerPaint);
+        canvas.ClipRect(insideBox);
+        canvas.DrawRect(insideBox, innerMask);
+        canvas.DrawRect(insideBox, innerPaint);
         canvas.Restore();
         canvas.Save();
-        canvas.ClipRect(inside, SKClipOperation.Difference);
+        canvas.ClipRect(insideBox, SKClipOperation.Difference);
         canvas.DrawRect(local, mask);
         canvas.DrawRect(local, paint);
         canvas.Restore();
