@@ -6,6 +6,8 @@ internal sealed class CommandCodePolicyRig : IDisposable
     private readonly StorageScratchFolder folder = new();
     internal async Task<JSONValue> Run()
     {
+        // The scratch folder only names its root; the root is made the first time the storage locations are used, which this rig never does.
+        Directory.CreateDirectory(folder.Root);
         var policy = Path.Combine(folder.Root, "text-only.mjs");
         var script = Path.Combine(folder.Root, "policy-test.mjs");
         File.WriteAllText(policy, CommandCodeTextHead.Policy);
@@ -27,8 +29,12 @@ internal sealed class CommandCodePolicyRig : IDisposable
             try { policy({}); } catch { refused = true; }
             write(JSON.stringify({proofs, blocked, executions, refused}));
             """);
-        var result = await Shell.Run(@"C:\Program Files\nodejs\node.exe", [script], @in: folder.Root,
-            environment: new Dictionary<string,string> { [CommandCodeTextHead.NonceKey] = "fixture-nonce" }, timeout: 10);
+        // Shell.Run takes the environment whole. Node needs the system's own variables (SystemRoot) to start its random generator: with only the
+        // nonce it aborts (exit 134, "Assertion failed: ncrypto::CSPRNG"), so the nonce is added to this process's environment.
+        var environment = Environment.GetEnvironmentVariables().Cast<System.Collections.DictionaryEntry>()
+            .ToDictionary(entry => (string)entry.Key, entry => (string?)entry.Value ?? "", StringComparer.OrdinalIgnoreCase);
+        environment[CommandCodeTextHead.NonceKey] = "fixture-nonce";
+        var result = await Shell.Run(@"C:\Program Files\nodejs\node.exe", [script], @in: folder.Root, environment: environment, timeout: 10);
         Assert.Equal(0, result.Status);
         return JSONValue.Parse(result.Output)!;
     }

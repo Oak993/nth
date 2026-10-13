@@ -119,6 +119,11 @@ public sealed class CommandCodeTextCleanupTests
     {
         var lines = new List<string>();
         using var sink = Logger.Sink.Override((line, _) => lines.Add(line));
+        // ED-NEW-secfinal-27: this test asserts that ITS next answer retried and logged the cleanup. The other Command Code tests make answers in the shared data
+        // folder at the same time, and any answer's retry may take the leftover first (and log it on its own flow), so this flow gets a folder of its own.
+        var own = Path.Combine(TestDataDirectory.Read()!, "cc-locked-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(own);
+        using var scope = CommandCodeTextHead.OverridePrivateRoot(own);
         var first = new CommandCodeTextHeadFixture("good");
         FileStream? locked = null;
         first.OnStop = () =>
@@ -148,6 +153,7 @@ public sealed class CommandCodeTextCleanupTests
         {
             locked?.Dispose();
             if (first.Environment.TryGetValue("HOME", out var folder) && Directory.Exists(folder)) Directory.Delete(folder, true);
+            Directory.Delete(own, true);
         }
     }
 }

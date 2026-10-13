@@ -28,8 +28,15 @@ public static class CommandCodeTextHead
           process.stdout.write(JSON.stringify({type:'nth_text_policy',nonce,tools:[]})+'\n');
         }
         """;
-    // ED-NEW-secfinal-23: where the private answer folders are made (a test's data folder, else the temp folder).
-    private static string PrivateRoot() => Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR") ?? Path.GetTempPath();
+    // ED-NEW-secfinal-23: where the private answer folders are made (a test's data folder, else the temp folder). ED-NEW-secfinal-27: a seam, so a
+    // test can give its own async flow a folder of its own; every answer and every retry reads leftovers from the one folder it is given, so tests that
+    // share the data folder can retry (and clean) each other's leftovers.
+    private static readonly Ambient<string> privateRoot = new(() => Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR") ?? Path.GetTempPath());
+
+    private static string PrivateRoot() => privateRoot.Current;
+
+    /// <summary>For tests: answers and retries of the calling async flow use <paramref name="root"/> until the result is disposed.</summary>
+    internal static IDisposable OverridePrivateRoot(string root) => privateRoot.Override(root);
 
     /// <summary>
     /// ED-NEW-secfinal-23: removes the private answer folders an earlier run could not (the retry that otherwise waits for the next Command
