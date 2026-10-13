@@ -122,7 +122,8 @@ public sealed class FolderClaim : IDisposable
 /// leaves outside the install root: <c>%LOCALAPPDATA%\nth Setup\</c> (staging folders, the native runtime) and
 /// <c>%TEMP%\nth Uninstall\</c> (the uninstaller's copy). A crash or power loss leaves at most these folders; the setup at
 /// its start (step 4), nth at its start, nth's before-uninstall hook and the uninstaller remove them. No <c>RunOnce</c> entry
-/// or delayed <c>cmd</c> is used.
+/// is used; the uninstaller's copy is also removed, as it ends, by one short-lived hidden <c>cmd</c> that waits for it
+/// (ED-NEW-inst-picks-1), and these sweeps stay the fallback when that helper could not run.
 /// <para>
 /// An owned <b>unit</b> is a marked staging folder, a build's folder under <c>runtime\</c>, or the uninstaller's temporary
 /// folder. Preflight preserves the unit if known payload is open or loaded, including another setup's <see cref="FolderClaim"/>.

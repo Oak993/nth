@@ -207,7 +207,7 @@ public static class Program
     /// any window (UninstallLaunch) and exits; the copy, or a run from elsewhere, holds the setup lock for the whole uninstall
     /// (so nth's start sweep and before-uninstall hook stand aside, unit U9) and shows the window, or with --silent removes
     /// nth with no window: busy, refusing or silent nth exits 3, another setup on the root 4, a Velopack failure 1. The copy
-    /// gives its own file to Windows for removal as it ends.
+    /// hands its own folder to one short-lived helper as it ends (<see cref="UninstallCopyCleanup"/>).
     /// </summary>
     private static int Uninstall(string[] args, long started)
     {
@@ -245,7 +245,10 @@ public static class Program
         }
         finally
         {
-            if (copy) UninstallLaunch.ScheduleCopyRemoval(process, temp, RestartRemoval.DeleteAtRestart);
+            // ED-NEW-inst-picks-1 (the pick of ED-NEW-inst-fix-2): one short-lived helper removes exactly this copy's folder once this
+            // process has ended; when it cannot start, the restart removal and the sweeps are left as before
+            if (copy && !UninstallCopyCleanup.Begin(process, temp, Environment.ProcessId, Environment.SystemDirectory, StartCleanupHelper))
+                UninstallLaunch.ScheduleCopyRemoval(process, temp, RestartRemoval.DeleteAtRestart);
         }
     }
 
@@ -280,6 +283,14 @@ public static class Program
     private static Task<UninstallReport> RemoveAsync(string root, bool wipe, bool silent, string localAppData, string temp) => Task.Run(async () =>
     {
         using var shell = new ShellLinks();
+    /// <summary>Starts the cleanup helper: Windows' own shell, hidden, in the system folder (never in the folder it removes).</summary>
+    private static bool StartCleanupHelper(string shell, string arguments, string workingDirectory)
+    {
+        var start = new ProcessStartInfo(shell) { Arguments = arguments, UseShellExecute = false, CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden, WorkingDirectory = workingDirectory };
+        using var process = Process.Start(start);
+        return process is not null;
+    }
+
         var uninstaller = new Uninstaller(new UninstallPorts(
             new ProcessVelopackRunner(),
             shell,

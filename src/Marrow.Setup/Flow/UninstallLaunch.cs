@@ -122,9 +122,9 @@ public static class UninstallLaunch
     }
 
     /// <summary>
-    /// The copy's last step (PLAN.md 8: "the temp copy deletes itself"). A running program cannot delete its own file, and
-    /// a delayed <c>cmd</c> or a <c>RunOnce</c> entry looks like malware (PLAN.md 5), so the copy and its folder are given to
-    /// Windows for removal at the next restart (<c>MoveFileEx</c> with <c>MOVEFILE_DELAY_UNTIL_REBOOT</c>, through
+    /// The copy's last step when the cleanup helper (<see cref="UninstallCopyCleanup"/>, ED-NEW-inst-picks-1) could not start
+    /// (PLAN.md 8: "the temp copy deletes itself"). A running program cannot delete its own file, so the copy and its folder are
+    /// given to Windows for removal at the next restart (<c>MoveFileEx</c> with <c>MOVEFILE_DELAY_UNTIL_REBOOT</c>, through
     /// <paramref name="deleteAtRestart"/>). Windows allows that only to an administrator; otherwise the copy stays until the next
     /// nth Setup run or nth start sweeps <c>%TEMP%\nth Uninstall</c> (unit U9), or Windows cleans its temporary files. Only a
     /// program that runs from inside <c>%TEMP%\nth Uninstall</c> asks. Returns whether Windows took the file.
