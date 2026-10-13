@@ -36,28 +36,35 @@ public sealed class TerminalCaretBlinkTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-TERM-010")] // MacCaretView.swift:104-123 (the animation runs while the caret is shown in a focused terminal)
-    public void A_focused_terminal_blinks_its_caret_from_full_opacity_and_an_unfocused_one_does_not()
+    public void A_focused_terminal_blinks_its_caret_from_full_opacity_on_the_compositor_and_an_unfocused_one_does_not()
     {
         Run((view, window, time, frames, other) =>
         {
+            var loop = new RecordingOpacityLoop();
+            using var driver = OpacityLoops.Driver.Override(loop);
             var surface = (TerminalSurface)view.Child!;
+            Assert.False(surface.IsBlinking);
             Assert.True(view.Focus());
             Assert.True(surface.IsBlinking);
+            Assert.Equal(1, surface.CaretOpacity); // from full opacity
+            var start = Assert.Single(loop.Starts);
+            Assert.Contains(start.Target, Avalonia.VisualTree.VisualExtensions.GetVisualChildren(surface));
+            Assert.Equal(TerminalSurface.BlinkCycle, start.Duration);
+            Assert.Null(start.Ease); // linear
+            // the key frames are the catalogue's cycle, down 0.64 s, up 0.64 s and a hold to 1.4 s ...
+            foreach (var seconds in new[] { 0.0, 0.32, 0.64, 0.96, 1.28, 1.34, 1.399 })
+                Assert.Equal(TerminalSurface.BlinkOpacity(seconds), RecordingOpacityLoop.At(start.Keys, seconds / 1.4), 3);
+            // ... and nothing on main moves it: no frame is asked for, or delivered, in four simulated seconds
+            for (var i = 0; i < 40; i++) Step(time, frames, 0.1);
+            Assert.Equal(0, frames.Pending);
+            Assert.Equal(0, frames.Delivered);
             Assert.Equal(1, surface.CaretOpacity);
-            Step(time, frames, 0.32);
-            Assert.Equal(0.5, surface.CaretOpacity, 2);
-            Step(time, frames, 0.32);
-            Assert.Equal(0.0, surface.CaretOpacity, 2);
-            Step(time, frames, 0.64);
-            Assert.Equal(1.0, surface.CaretOpacity, 2);
-            Step(time, frames, 0.12); // the hold ends at 1.4 s
-            Assert.Equal(1.0, surface.CaretOpacity, 2);
-            Step(time, frames, 0.32); // a second cycle
-            Assert.Equal(0.5, surface.CaretOpacity, 2);
 
             Assert.True(other.Focus()); // the keyboard goes elsewhere
             Dispatcher.UIThread.RunJobs();
             Assert.False(surface.IsBlinking);
+            var stop = Assert.Single(loop.Stops);
+            Assert.Equal(1, stop.Opacity);
             Assert.Equal(1, surface.CaretOpacity); // the outline stands still
             Step(time, frames, 0.32);
             Assert.Equal(1, surface.CaretOpacity);
@@ -66,6 +73,54 @@ public sealed class TerminalCaretBlinkTests(HeadlessSession headless)
             Assert.True(view.Focus()); // focused again: from the start of the cycle
             Assert.True(surface.IsBlinking);
             Assert.Equal(1, surface.CaretOpacity);
+            Assert.Equal(2, loop.Starts.Count);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-TERM-010")] // a window that is not the active one keeps the block steady, and the blink comes back with the window
+    public void The_caret_blinks_only_in_the_active_window()
+    {
+        Run((view, window, time, frames, other) =>
+        {
+            var loop = new RecordingOpacityLoop();
+            using var driver = OpacityLoops.Driver.Override(loop);
+            var surface = (TerminalSurface)view.Child!;
+            Assert.True(view.Focus());
+            Assert.True(surface.IsBlinking);
+
+            // headless Activate never deactivates the window that was in front, so the platform's callback is supplied (AppCommandsRig.Deactivate)
+            AppCommandsRig.Deactivate(window);
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(window.IsActive, "the window is deactivated");
+            Assert.False(surface.IsBlinking, "a deactivated window shows a steady block");
+            Assert.Equal(1, surface.CaretOpacity);
+            Assert.Single(loop.Stops);
+            window.Activate();
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(window.IsActive);
+            Assert.True(surface.IsBlinking);
+            Assert.Equal(2, loop.Starts.Count);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-TERM-010")]
+    public void A_caret_that_takes_the_keyboard_before_it_has_a_composition_visual_starts_its_blink_after_the_next_frames()
+    {
+        Run((view, window, time, frames, other) =>
+        {
+            var loop = new RecordingOpacityLoop { HasVisual = false };
+            using var driver = OpacityLoops.Driver.Override(loop);
+            var surface = (TerminalSurface)view.Child!;
+            Assert.True(view.Focus());
+            Assert.False(surface.IsBlinking);
+            Assert.Empty(loop.Starts);
+            loop.HasVisual = true; // the first render has made the element's visual
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(surface.IsBlinking);
+            Assert.Single(loop.Starts);
+            Assert.Equal(0, frames.Pending);
         });
     }
 
