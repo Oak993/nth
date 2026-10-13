@@ -134,6 +134,10 @@ problem.header = nth Setup {0} · Windows {1} {2} · {3}
 problem.uninstall.title = nth couldn’t be removed
 problem.uninstall.other = Something went wrong while removing nth.
 problem.uninstall.left = Some of nth’s files may be left. Retry removes them.
+# The setup cannot draw its window (ED-NEW-inst-picks-1, the pick of ED-NEW-inst-fix-5): a message box in plain words; the reason's own sentence follows as its last paragraph
+start.failed.title = nth Setup can’t start
+start.failed.body = Some of nth Setup’s files are missing or damaged. Download it again from the nth website and run it.
+start.failed.details = Details: {0}
 
 # Uninstall, Removing, Removed
 uninstall.title = Uninstall nth?

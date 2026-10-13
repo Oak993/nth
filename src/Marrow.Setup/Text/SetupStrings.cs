@@ -203,6 +203,11 @@ public static class SetupStrings
     public static string UninstallProblemTitle => S("problem.uninstall.title");
     public static string UninstallProblemOther => S("problem.uninstall.other");
     public static string UninstallProblemLeft => S("problem.uninstall.left");
+
+    // The setup cannot draw its window (ED-NEW-inst-picks-1): the message box's caption and words, and the reason as its last paragraph
+    public static string StartFailedTitle => S("start.failed.title");
+    public static string StartFailedBody => S("start.failed.body");
+    public static string StartFailedDetails(string reason) => F("start.failed.details", reason);
     public static string ProblemCopy => S("problem.copy");
     public static string ProblemCopied => S("problem.copied");
     public static string ProblemRetry => S("problem.retry");

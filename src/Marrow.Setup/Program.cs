@@ -66,8 +66,12 @@ public static class Program
         try { SetupNatives.Prepare(localAppData, Path.GetTempPath(), Environment.ProcessPath); }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or DllNotFoundException or BadImageFormatException or ArgumentException)
         {
-            // no window can be drawn without them: the reason goes in a message box, as the windowless gate reports its errors
-            if (smoke is null) new LegacyGateHost().ShowMessage(InstallerGate.Caption(LegacyGateHost.Metadata("InstallerTitle")), error.Message, warning: true);
+            // no window can be drawn without them: plain words in a message box (ED-NEW-inst-picks-1), the reason's own sentence last
+            if (smoke is null)
+            {
+                var (caption, text) = StartFailure(error.Message);
+                new LegacyGateHost().ShowMessage(caption, text, warning: true);
+            }
             return (1, false);
         }
         SetupApp.Build().SetupWithoutStarting();
@@ -128,6 +132,14 @@ public static class Program
         try { check.CloseAsync().Wait(TimeSpan.FromSeconds(2)); }
         catch (AggregateException) { } // best effort, as the handshake's own withdraw
     }
+
+    /// <summary>
+    /// The message box for a setup that cannot put its libraries in place (ED-NEW-inst-fix-5; the words are the pick of
+    /// ED-NEW-inst-picks-1): a calm caption and one plain paragraph that says what to do, then the reason's own sentence on a line
+    /// of its own for whoever helps (Ctrl+C copies a message box's whole text). No code and no path in the first paragraph.
+    /// </summary>
+    internal static (string Caption, string Text) StartFailure(string reason) =>
+        (SetupStrings.StartFailedTitle, string.IsNullOrWhiteSpace(reason) ? SetupStrings.StartFailedBody : SetupStrings.StartFailedBody + "\n\n" + SetupStrings.StartFailedDetails(reason.Trim()));
 
     /// <summary>
     /// The in-window install (unit U3, ED-NEW-inst-u3-1): Install and Update start an <see cref="InstallFlow"/> whose runs
@@ -271,6 +283,14 @@ public static class Program
         return preflight.ExitCode;
     }
 
+    /// <summary>Starts the cleanup helper: Windows' own shell, hidden, in the system folder (never in the folder it removes).</summary>
+    private static bool StartCleanupHelper(string shell, string arguments, string workingDirectory)
+    {
+        var start = new ProcessStartInfo(shell) { Arguments = arguments, UseShellExecute = false, CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden, WorkingDirectory = workingDirectory };
+        using var process = Process.Start(start);
+        return process is not null;
+    }
+
     private static bool StartCopy(string path, IReadOnlyList<string> arguments, string folder)
     {
         var start = new ProcessStartInfo(path) { UseShellExecute = false, WorkingDirectory = folder };
@@ -283,14 +303,6 @@ public static class Program
     private static Task<UninstallReport> RemoveAsync(string root, bool wipe, bool silent, string localAppData, string temp) => Task.Run(async () =>
     {
         using var shell = new ShellLinks();
-    /// <summary>Starts the cleanup helper: Windows' own shell, hidden, in the system folder (never in the folder it removes).</summary>
-    private static bool StartCleanupHelper(string shell, string arguments, string workingDirectory)
-    {
-        var start = new ProcessStartInfo(shell) { Arguments = arguments, UseShellExecute = false, CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden, WorkingDirectory = workingDirectory };
-        using var process = Process.Start(start);
-        return process is not null;
-    }
-
         var uninstaller = new Uninstaller(new UninstallPorts(
             new ProcessVelopackRunner(),
             shell,

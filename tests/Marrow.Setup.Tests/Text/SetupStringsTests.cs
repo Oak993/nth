@@ -87,6 +87,39 @@ public sealed class SetupStringsTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0072")]
+    public void A_setup_that_cannot_draw_its_window_says_plain_calm_words_and_keeps_the_reason_for_whoever_helps()
+    {
+        // ED-NEW-inst-picks-1 (the pick of ED-NEW-inst-fix-5): no error code or path in the words the person reads first
+        Assert.Equal("nth Setup can’t start", SetupStrings.StartFailedTitle);
+        Assert.Equal("Some of nth Setup’s files are missing or damaged. Download it again from the nth website and run it.", SetupStrings.StartFailedBody);
+        const string reason = @"Another nth Setup is using 'C:\Users\Ana\AppData\Local\nth Setup\runtime\0123456789abcdef' and its libraries are not complete yet. (0x80070020)";
+
+        var (caption, text) = Program.StartFailure(reason);
+
+        Assert.Equal(SetupStrings.StartFailedTitle, caption);
+        var paragraphs = text.Split("\n\n");
+        Assert.Equal(2, paragraphs.Length);
+        Assert.Equal(SetupStrings.StartFailedBody, paragraphs[0]);
+        Assert.DoesNotContain("0x", paragraphs[0], StringComparison.Ordinal);
+        Assert.DoesNotContain("\\", paragraphs[0], StringComparison.Ordinal);
+        Assert.Equal("Details: " + reason, paragraphs[1]);
+        Assert.Equal(SetupStrings.StartFailedBody, Program.StartFailure("  ").Text); // nothing to add: the plain words alone
+        Assert.Equal(SetupStrings.StartFailedBody, Program.StartFailure("").Text);
+    }
+
+    [Fact]
+    [Trait("Decision", "OD-0072")]
+    public void The_program_shows_that_message_and_not_the_exceptions_own_text_when_the_libraries_cannot_be_put_in_place()
+    {
+        var program = File.ReadAllText(Path.Combine(Fixtures.RepositoryRoot.Path, "src", "Marrow.Setup", "Program.cs"));
+        var prepare = program.IndexOf("SetupNatives.Prepare(", StringComparison.Ordinal);
+        var failed = program.IndexOf("StartFailure(error.Message)", prepare, StringComparison.Ordinal);
+        Assert.True(prepare > 0 && failed > prepare, "the handler of Prepare builds the message with StartFailure");
+        Assert.DoesNotContain("ShowMessage(InstallerGate.Caption(LegacyGateHost.Metadata(\"InstallerTitle\")), error.Message", program[prepare..(failed + 200)], StringComparison.Ordinal);
+    }
+
+    [Fact]
     [Trait("Decision", "ED-247")]
     public void A_count_picks_its_form_and_numbers_are_invariant()
     {
