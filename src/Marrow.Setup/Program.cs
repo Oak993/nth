@@ -89,7 +89,7 @@ public static class Program
             route = SetupFlow.Problem(localAppData);
             problem = SetupStrings.ProblemOther;
         }
-        var session = new SetupSession(window, route, new CanvasScreens(), version, canInstall: smoke is null, arguments: args)
+        var session = new SetupSession(window, route, new CanvasScreens(), version, canInstall: smoke is null, actions: new WindowsSetupActions(() => new ShellLinks()), arguments: args)
         {
             SizeMegabytes = StampedSizes().DiskMegabytes, // T_disk, the one size shown everywhere (PLAN.md 4); the plan's 420 MB for a build the script did not measure
             ReleaseNotes = SetupReleaseNotes.Embedded(), // PLAN.md 9 item 7: the validated notes the script embedded, for Update's "What's new"
