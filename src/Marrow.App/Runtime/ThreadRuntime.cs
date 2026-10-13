@@ -1034,11 +1034,45 @@ public sealed partial class ThreadRuntime : MainActorModel
     public ApprovalRequest? PendingPlanApproval =>
         Approvals.FirstOrDefault(request => request.RequestKind == ApprovalRequest.Kind.Plan);
 
+    // PORT-ONLY: ED-NEW-inst-c7-5. Reserve BEFORE posting so idle quit cannot overtake a captured prompt.
+    internal TaskHandle? SpawnInstallerTurn(Func<Task> body, bool requiresDurability = true)
+    {
+        if (App is not { } model) return MainActor.Spawn(body);
+        var admission = model.AdmitInstallerTurn(ThreadID, requiresDurability);
+        if (admission is null) return null;
+        var task = MainActor.Spawn(async () =>
+        {
+            if (!requiresDurability && (SwiftTask.IsCancelled || admission.StopToken.IsCancellationRequested || InstallerHoldsNewTurns || !persistenceEnabled)) { admission.Dispose(); return; }
+            using (admission) await admission.RunAsync(body);
+        });
+        admission.StopExisting = task.Cancel;
+        return task;
+    }
+
+    internal void ResumeAfterInstallerQuit()
+    {
+        if (DrainPendingSend()) return;
+        FlushFollowUpsIfIdle();
+        FlushHydraReports();
+        SpawnWaitingHeads();
+        if (App is { } model && Thread is { } thread && model.HydraIsOn(thread) && IsReadyForHydraMerge)
+            _ = MainActor.Spawn(() => model.AutoMergeHydraWork(ThreadID));
+    }
+
+    private bool InstallerHoldsNewTurns => App?.InstallerHoldsNewTurns == true;
+    private void MarkInstallerPromptDurable(InstallerTurnLease? direct)
+    {
+        direct?.MarkDurable();
+        if (InstallerTurnLease.Current is { IsLive: true, RequiresDurability: true } captured && captured.Thread == ThreadID)
+            captured.MarkDurable();
+    }
+
     // MARK: - Sending
 
     // :744-756
     public void Send()
     {
+        if (InstallerHoldsNewTurns) return;
         if (IsReverting || Draft.IsEmpty || Phase != RuntimePhase.Idle) return;
         var text = FoundationText.Trim(Draft.OutgoingText, includeNewlines: true);
         var attachments = Draft.Attachments;
@@ -1050,18 +1084,19 @@ public sealed partial class ThreadRuntime : MainActorModel
 
         Draft = new ComposerDraft();
         if (DispatchSentHead(text, attachments)) return; // ThreadRuntime.swift:753
-        _ = MainActor.Spawn(() => StartTurn(text, attachments));
+        _ = SpawnInstallerTurn(() => StartTurn(text, attachments));
     }
 
     // :758-765. Swift: sendHydraBrief(_:attachments:).
     public void SendHydraBrief(string text, IReadOnlyList<Attachment> attachments)
     {
+        if (InstallerHoldsNewTurns) return;
         // ThreadRuntime.swift:758-765: reject empty/busy sends before touching the composer or head clock.
         if ((FoundationText.Trim(text, includeNewlines: true).Length == 0 && attachments.Count == 0)
             || phase != RuntimePhase.Idle) return;
         Draft = new ComposerDraft();
         HydraLastEventAt = SwiftDate.Now;
-        _ = MainActor.Spawn(async () =>
+        _ = SpawnInstallerTurn(async () =>
         {
             await EnsureLoaded();
             await StartTurn(text, attachments, hydraBrief: true);
@@ -1116,6 +1151,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // :809-830
     public void InterruptAndSend() // ThreadRuntime.swift:809-830
     {
+        if (InstallerHoldsNewTurns) return;
         if (IsReverting || Draft.IsEmpty || Phase == RuntimePhase.Idle) return;
 
         if (DispatchSentHead(Draft.OutgoingText, Draft.Attachments))
@@ -1304,6 +1340,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // :954-990
     public void SendFollowUpNow(Guid id) // ThreadRuntime.swift:954-990
     {
+        if (InstallerHoldsNewTurns) return;
         if (isReverting) return;
         if (phase != RuntimePhase.Idle && skillsFollowUps.Contains(id)) return;
         var index = IndexOfFollowUp(id);
@@ -1321,7 +1358,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         if (phase == RuntimePhase.Idle)
         {
             if (HandleLocalCommand(FoundationText.Trim(prompt.Text, includeNewlines: true))) return;
-            MainActor.Spawn(async () =>
+            SpawnInstallerTurn(async () =>
             {
                 await EnsureLoaded();
                 await StartTurn(prompt.Text, prompt.Attachments);
@@ -1379,6 +1416,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:1028-1040.
     private bool DispatchHead(FollowUpPrompt prompt, HydraHeadInfo.Origin origin)
     {
+        if (InstallerHoldsNewTurns) return false;
         if (appReference is null || !appReference.TryGetTarget(out var app)) return false; // :1029
         if (app.Thread(ThreadID) is not { } thread || thread.IsArchived // :1029
             || app.HydraLaunch(thread) is not { } launch // :1029
@@ -1498,6 +1536,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:1114-1139.
     private bool DrainFollowUps(TurnStatus status)
     {
+        if (InstallerHoldsNewTurns) return false;
         if (Phase != RuntimePhase.Idle || FollowUps.Count == 0) return false;
         if (status != TurnStatus.Completed)
         {
@@ -1509,7 +1548,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             saveRevision++;
             ScheduleSave();
             AutoStartedTurnToken++;
-            _ = MainActor.Spawn(() => StartSkillsTurn(skill.Text, skill.Attachments));
+            _ = SpawnInstallerTurn(() => StartSkillsTurn(skill.Text, skill.Attachments));
             return true;
         }
 
@@ -1533,7 +1572,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             return DrainFollowUps(status);
 
         AutoStartedTurnToken++;
-        _ = MainActor.Spawn(async () =>
+        _ = SpawnInstallerTurn(async () =>
         {
             await EnsureLoaded();
             if (skillContinuation) await StartSkillsTurn(next.Text, next.Attachments);
@@ -1545,6 +1584,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:2464-2479.
     private bool DrainPendingSend()
     {
+        if (InstallerHoldsNewTurns) return false;
         if (Phase != RuntimePhase.Idle || pendingSend is not { } pending) return false;
         pendingSend = null;
         var text = FoundationText.Trim(pending.Text, includeNewlines: true);
@@ -1555,7 +1595,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         }
         if (HandleLocalCommand(text)) return false;
 
-        _ = MainActor.Spawn(async () =>
+        _ = SpawnInstallerTurn(async () =>
         {
             await EnsureLoaded();
             await StartTurn(pending.Text, pending.Attachments);
@@ -1566,6 +1606,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // :1141-1148
     public void ImplementPlan(string entryID)
     {
+        if (InstallerHoldsNewTurns) return;
         if (Phase != RuntimePhase.Idle || !entryIndex.TryGetValue(entryID, out var entry)
             || entry.Item.TimelineItemContent is not TimelineItem.Content.Plan plan) return; // :1142
         entry.Item = entry.Item with
@@ -1574,7 +1615,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         }; // :1143-1144
         saveRevision++;
         App?.UpdateThread(ThreadID, current => current with { InteractionMode = InteractionMode.Build }); // :1145-1146
-        _ = MainActor.Spawn(async () =>
+        _ = SpawnInstallerTurn(async () =>
         {
             await EnsureLoaded(); // :1147
             await StartTurn("Implement the plan.", Array.Empty<Attachment>());
@@ -1604,13 +1645,17 @@ public sealed partial class ThreadRuntime : MainActorModel
 
     private async Task StartTurn(string text, IReadOnlyList<Attachment> attachments, IReadOnlyList<long>? hydraHeads = null, bool hydraBrief = false)
     {
+        var captured = InstallerTurnLease.Current is { IsLive: true, RequiresDurability: true } owner && owner.Thread == ThreadID;
+        if (InstallerHoldsNewTurns && !captured) return;
+        using var admission = captured ? null : App?.AdmitInstallerTurn(ThreadID);
         await EnsureLoaded();
+        if (InstallerHoldsNewTurns && !captured) return;
         var ignisPing = ignisPingTurn.Value; // Ignis: a ping that cannot run now is dropped, never queued as a follow-up
         var tactusChip = tactusChipTurn.Value; // PORT-ONLY: Tactus (ED-NEW-pcctl-27): a resume's continue, shown as its chip
         if (!ignisPing && tactusChip is null && !skillsContinuationTurn.Value) TactusUserWrote(); // Port/PcControl/ThreadRuntimeTactus.cs
         if (Phase != RuntimePhase.Idle || IsReverting)
         {
-            if (!ignisPing) EnqueueFollowUp(text, attachments);
+            if (!ignisPing) { EnqueueFollowUp(text, attachments); MarkInstallerPromptDurable(admission); }
             return;
         }
 
@@ -1619,7 +1664,7 @@ public sealed partial class ThreadRuntime : MainActorModel
 
         if (initialThread.IsArchived)
         {
-            if (!ignisPing) EnqueueFollowUp(text, attachments);
+            if (!ignisPing) { EnqueueFollowUp(text, attachments); MarkInstallerPromptDurable(admission); }
             return;
         }
 
@@ -1647,6 +1692,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         currentProviderAnchor = null;
         Append(userItem);
         Phase = RuntimePhase.Starting;
+        MarkInstallerPromptDurable(admission);
         TurnStartedAt = SwiftDate.Now;
         app.UpdateThread(ThreadID, thread => ignisPing ? thread with { LastStatus = TurnStatus.Running } : thread with { UpdatedAt = SwiftDate.Now, LastStatus = TurnStatus.Running });
         if (!ignisPing) app.ReopenIfSettled(ThreadID);
@@ -1702,6 +1748,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         ScheduleSave();
         if (!ignisPing) GenerateTitle(text, attachments);
         await EnsureModel(initialThread);
+        if (currentTurnID != turn.Id || !persistenceEnabled) return;
 
         var directory = initialThread.WorktreePath ?? project.Path;
         var git = new Git(directory);
@@ -1726,7 +1773,9 @@ public sealed partial class ThreadRuntime : MainActorModel
         try
         {
             if (warmup is { } pendingWarmup) await pendingWarmup.Completion;
-            var start = MainActor.SpawnThrowing(async () => await EnsureSession(directory));
+            if (currentTurnID != turn.Id || !persistenceEnabled) return;
+            var start = MainActor.SpawnThrowing(async () => await EnsureSessionOwned(directory, true, CancellationToken.None,
+                () => currentTurnID == turn.Id && persistenceEnabled, preserveResumeIdentity: false));
             if (await checkpoint.Value) UpdateTurn(turn.Id, current => current with { BaseCheckpoint = checkpointRef });
             _ = await start.Value;
 
@@ -2009,7 +2058,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // A reset-driven restart keeps its original resume identity and may commit only while its route owns it.
     private ProviderSession? guardedStartingSession;
     private async Task<ProviderSession> EnsureSessionOwned(string directory, bool allowNewSession,
-        CancellationToken startCancellation, Func<bool>? canCommit)
+        CancellationToken startCancellation, Func<bool>? canCommit, bool preserveResumeIdentity = true)
     {
         void CheckStart()
         {
@@ -2020,7 +2069,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         if (App is not { } app || app.Thread(ThreadID) is not { } thread)
             throw new ProviderError(new ProviderError.Case.NotRunning());
 
-        if (canCommit is not null && !thread.Provider.IsAPIKeyBased && thread.Provider != ProviderKind.Local
+        if (canCommit is not null && preserveResumeIdentity && !thread.Provider.IsAPIKeyBased && thread.Provider != ProviderKind.Local
             && string.IsNullOrWhiteSpace(thread.ProviderSessionID))
             throw new ProviderError(new ProviderError.Case.NotRunning());
 
@@ -2206,7 +2255,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                     SkillDataRoot = Storage.Root,
                     SkillHome = environment.TryGetValue("HOME", out var skillHome) ? skillHome : LoginEnvironment.HomeDirectory,
                     SkillToolOffer = SkillsOffers,
-                    SkillMcpExecutable = thread.Provider == ProviderKind.Cursor ? Path.Combine(AppContext.BaseDirectory, "Marrow.App.exe") : null,
+                    SkillMcpExecutable = thread.Provider == ProviderKind.Cursor ? AppExecutable.Path : null,
                     IgnisThreadID = ThreadID, // PORT-ONLY: Ignis (ED-NEW-ignis-runtime)
                 };
 
@@ -2265,7 +2314,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             CheckStart();
             if (!ReferenceEquals(session, cliCandidate) || SwiftTask.IsCancelled)
                 throw new CancellationError();
-            if (canCommit is not null && thread.ProviderSessionID is { } resumed
+            if (canCommit is not null && preserveResumeIdentity && thread.ProviderSessionID is { } resumed
                 && !SameResumeIdentity(thread.Provider, resumed, sessionID))
                 throw new ProviderError(new ProviderError.Case.NotRunning());
             cliStarted = true;
@@ -2539,7 +2588,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                     {
                         headReportsNext = true;
                         AutoStartedTurnToken += 1;
-                        _ = MainActor.Spawn(async () =>
+                        _ = SpawnInstallerTurn(async () =>
                         {
                             await EnsureLoaded();
                             await StartTurn(
@@ -2672,6 +2721,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // PORT-ONLY: Ignis (ED-NEW-ignis-runtime). ignisKeepTurns set: a silent tidy-up (no notices; IgnisTidy runs it).
     private void Compact(int? ignisKeepTurns)
     {
+        if (InstallerHoldsNewTurns) return;
         if (Phase != RuntimePhase.Idle) return;
         if (session is not { IsRunning: true } activeSession)
         {
@@ -2681,7 +2731,7 @@ public sealed partial class ThreadRuntime : MainActorModel
 
         if (ignisKeepTurns is null) AppendNotice(Notice.Level.Info, "Compacting context.");
         else IgnisTidyStarted();
-        _ = MainActor.Spawn(async () =>
+        _ = SpawnInstallerTurn(async () =>
         {
             try
             {
@@ -2702,7 +2752,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                     else AppendNotice(Notice.Level.Warning, SwiftErrors.LocalizedDescription(error));
                 });
             }
-        });
+        }, requiresDurability: false);
     }
 
     // :1765-1781. Swift: revertPreview(for:) -> Task<RevertPreview, Error> (a throwing TaskHandle, R-TASK-1).
@@ -2781,7 +2831,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         // Part of the turn, so the resend's rewind takes it away with the failed attempt. UI-RUNTIME-039.
         AppendNotice(Notice.Level.Info, $"This model needs a newer {provider.DisplayName}. Updating it, then sending your message again.");
         var weakSelf = new WeakReference<ThreadRuntime>(this);
-        _ = MainActor.Spawn(async () =>
+        _ = SpawnInstallerTurn(async () =>
         {
             if (!weakSelf.TryGetTarget(out var runtime)) return;
             await runtime.FinishTurn(status, id);
@@ -2837,6 +2887,8 @@ public sealed partial class ThreadRuntime : MainActorModel
     // :1820-1831. Swift: resend(_:text:attachments:restoreFiles:) async throws.
     public async Task Resend(Guid turnID, string text, IReadOnlyList<Attachment> attachments, bool restoreFiles)
     {
+        if (InstallerHoldsNewTurns) return;
+        using var admission = App?.AdmitInstallerTurn(ThreadID);
         var restored = await Revert(turnID, restoreFiles); // :1821
         var edited = new ComposerDraft { Text = text, Attachments = new ValueList<Attachment>(attachments) }; // :1822
         if (!restored) // :1823-1825
@@ -3355,10 +3407,11 @@ public sealed partial class ThreadRuntime : MainActorModel
     // :1057-1072. The flag keeps multiple idle arrivals from taking the same queued prompt.
     private void FlushFollowUpsIfIdle()
     {
+        if (InstallerHoldsNewTurns) return;
         if (phase != RuntimePhase.Idle || followUpFlushScheduled || followUps.Count == 0
             || Thread?.LastStatus == TurnStatus.Interrupted) return;
         followUpFlushScheduled = true;
-        _ = MainActor.Spawn(StartQueuedFollowUpTurn);
+        _ = SpawnInstallerTurn(StartQueuedFollowUpTurn);
     }
 
     // :1066-1072.
@@ -3388,16 +3441,18 @@ public sealed partial class ThreadRuntime : MainActorModel
     // :2707-2715.
     private bool FlushHydraReports()
     {
+        if (InstallerHoldsNewTurns) return false;
         if (phase != RuntimePhase.Idle || hydraFlushScheduled || FlushableHydraReports().Count == 0) return false;
         hydraFlushScheduled = true;
         AutoStartedTurnToken = unchecked(AutoStartedTurnToken + 1);
-        _ = MainActor.Spawn(StartHydraReportTurn);
+        _ = SpawnInstallerTurn(StartHydraReportTurn);
         return true;
     }
 
     // :2727-2741.
     private Task StartHydraReportTurn()
     {
+        if (InstallerHoldsNewTurns) { hydraFlushScheduled = false; return Task.CompletedTask; }
         hydraFlushScheduled = false;
         if (phase != RuntimePhase.Idle || isReverting || App is null) return Task.CompletedTask;
         var reports = FlushableHydraReports();
@@ -3643,7 +3698,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             return DelegationOutcome.None;
         }
 
-        _ = MainActor.Spawn(async () =>
+        _ = SpawnInstallerTurn(async () =>
         {
             await EnsureLoaded();
             await StartTurn(message, Array.Empty<Attachment>(), Array.Empty<long>());
@@ -3695,6 +3750,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:2983-3007.
     private void SpawnWaitingHeads(HydraLaunch? launch = null)
     {
+        if (InstallerHoldsNewTurns) return;
         if (hydraWaiting.Count == 0 || App is not { } app || app.Thread(ThreadID) is not { } thread) return;
         var resolvedLaunch = launch ?? app.HydraLaunch(thread);
 
@@ -3937,6 +3993,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:3563-3577.
     private void GenerateTitle(string text, IReadOnlyList<Attachment> attachments)
     {
+        if (InstallerHoldsNewTurns) return;
         if (App is not { } app || app.Thread(ThreadID) is not { } thread || thread.HasCustomTitle) return;
         if (Turns.Count != 1 && thread.Title != ChatThread.Untitled) return;
 
@@ -3945,11 +4002,11 @@ public sealed partial class ThreadRuntime : MainActorModel
         app.UpdateThread(ThreadID, current => current with { Title = TextCleanup.SingleLine(text, limit: 48) });
         if (app.TextEngine(thread.Provider) is not { } engine) return;
 
-        _ = MainActor.Spawn(async () =>
+        _ = SpawnInstallerTurn(async () =>
         {
             if (await TextGeneration.ThreadTitle(input, engine) is not { } title) return;
             app.UpdateThread(ThreadID, current => current.HasCustomTitle ? current : current with { Title = title });
-        });
+        }, requiresDurability: false);
     }
 
     // :3581-3602
@@ -4921,6 +4978,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // for the empty default.
     public void RehearseTurn(string? text, IReadOnlyList<string>? touchedPaths = null, string? providerDiff = null)
     {
+        if (InstallerHoldsNewTurns) return;
         var paths = touchedPaths ?? Array.Empty<string>();
         var turn = new TurnRecord
         {

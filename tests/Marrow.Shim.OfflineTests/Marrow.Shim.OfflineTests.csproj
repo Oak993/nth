@@ -13,6 +13,11 @@
     <Using Include="Xunit" />
     <Compile Include="..\Marrow.Services.Tests\Port\Skills\Shims\*.cs" Link="Tests\%(Filename)%(Extension)" />
     <Compile Include="..\..\src\Marrow.Services\Port\Skills\Shims\*.cs" Link="Shims\%(Filename)%(Extension)" />
+    <!-- ShimDefinition.Read resolves a routed sidecar through PipelineRoutingReader (7d9eda362), so the offline project compiles the same three
+         BCL-only Pipelines sources src/Marrow.Shim already links. -->
+    <Compile Include="..\..\src\Marrow.Services\Port\Skills\Pipelines\PipelineRoute.cs" Link="Pipelines\PipelineRoute.cs" />
+    <Compile Include="..\..\src\Marrow.Services\Port\Skills\Pipelines\PipelineJsonContext.cs" Link="Pipelines\PipelineJsonContext.cs" />
+    <Compile Include="..\..\src\Marrow.Services\Port\Skills\Pipelines\PipelineRoutingReader.cs" Link="Pipelines\PipelineRoutingReader.cs" />
     <ProjectReference Include="..\Marrow.Shim.FakeTarget\Marrow.Shim.FakeTarget.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\src\Marrow.Shim\Marrow.Shim.csproj" ReferenceOutputAssembly="false" AdditionalProperties="PublishAot=false" />
   </ItemGroup>

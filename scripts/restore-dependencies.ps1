@@ -14,6 +14,8 @@ try {
     Restore-Locked @('tests/Marrow.Shim.OfflineTests/Marrow.Shim.OfflineTests.csproj', '-p:PublishAot=false')
     # The future installer publish uses a separate trim graph; restoring it does not build the installer.
     Restore-Locked @('src/Marrow.Setup/Marrow.Setup.csproj', '-r', 'win-x64', '-p:PublishTrimmed=true', '-p:PublishSingleFile=true')
+    # nth installer PLAN.md 5 and 9 (unit U7): the shared setup and the uninstaller are published with Native AOT, whose graph adds the ILCompiler packages.
+    Restore-Locked @('src/Marrow.Setup/Marrow.Setup.csproj', '-r', 'win-x64', '-p:PublishAot=true')
     foreach ($project in Get-ChildItem (Join-Path $root 'porting/probes') -Recurse -Filter '*.csproj' | Sort-Object FullName) {
         $arguments = @($project.FullName)
         # Historical P1 used explicit package versions before central version management.

@@ -32,7 +32,7 @@ internal sealed partial class LiveThreadPorts : IDisposable
                 useComposerSettings: Active(thread) == account),
             app.Settings.ConversationConsent(prompt ?? new ConversationTransferPrompt()), PostCombinedAsync, app.ApiKeys.BindPrivate);
         var heads = decorateHeads?.Invoke(host) ?? host;
-        Links = new(heads); Opinions = new(heads);
+        Links = new(app, new LinkEngine(heads)); Opinions = new(app, new OpinionsEngine(heads));
         Ports = new(Account, new LiveCardPort(app.AccountRouting), Links, Opinions);
         app.PropertyChanged += AppChanged;
         app.Settings.PropertyChanged += ConfigurationChanged;
@@ -43,8 +43,8 @@ internal sealed partial class LiveThreadPorts : IDisposable
         app.Settings.Pills.Changed += PillsChanged;
     }
     internal ThreadPorts Ports { get; }
-    internal LinkEngine Links { get; }
-    internal OpinionsEngine Opinions { get; }
+    internal InstallerLinkEngine Links { get; }
+    internal InstallerOpinionsEngine Opinions { get; }
     internal IReadOnlyList<ThreadAccount> Rows(ProviderKind service) => ThreadAccountRows.Build(app.Settings.Accounts, service, app.IsAccountConnected, actions.Usage);
     internal Guid Active(Guid thread) => !retired.Contains(thread) && app.Thread(thread) is not null
         && app.Runtime(thread).TryHandshakeAccountId(out var id) ? id : Guid.Empty;
@@ -102,12 +102,12 @@ internal sealed partial class LiveThreadPorts : IDisposable
     internal void Completed(ThreadRuntime runtime, Guid turn, Guid author, string message, string answer)
     {
         if (disposed || retired.Contains(runtime.ThreadID) || Links.Linked(runtime.ThreadID).Count == 0) return;
-        _ = MainActor.Spawn(async () =>
+        _ = runtime.SpawnInstallerTurn(async () =>
         {
             try { await Links.CheckCompletedAnswerAsync(runtime.ThreadID, turn, author, message, answer); }
             catch (OperationCanceledException) { }
             catch (InvalidOperationException) { } // ownership/availability invalidated; no late checker may publish
-        });
+        }, requiresDurability: false);
     }
     internal void Detach(Guid thread)
     {

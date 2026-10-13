@@ -34,7 +34,7 @@ public sealed class VelopackLoopbackFeedTests
         {
             using (var nuspec = new StreamWriter(zip.CreateEntry(id + ".nuspec").Open()))
                 nuspec.Write($"<?xml version=\"1.0\"?><package xmlns=\"http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd\"><metadata><id>{id}</id><version>{version}</version><title>Marrow</title></metadata></package>");
-            using (var file = new StreamWriter(zip.CreateEntry("lib/app/Marrow.App.exe").Open()))
+            using (var file = new StreamWriter(zip.CreateEntry("lib/app/nth.exe").Open()))
                 file.Write(string.Concat(Enumerable.Repeat("not a real executable ", 5000)));
         }
         return memory.ToArray();
@@ -98,7 +98,7 @@ public sealed class VelopackLoopbackFeedTests
         using var _ = server;
         var packages = Directory.CreateTempSubdirectory("ue1-loopback-packages-").FullName;
         var root = Directory.CreateTempSubdirectory("ue1-loopback-root-").FullName;
-        var locator = new TestVelopackLocator("NthApp", "1.7.0", packages, root, root, Path.Combine(root, "Update.exe"), "win", null, null, "Marrow.App.exe");
+        var locator = new TestVelopackLocator("NthApp", "1.7.0", packages, root, root, Path.Combine(root, "Update.exe"), "win", null, null, "nth.exe");
         var applied = new List<VelopackAsset>();
         // Velopack's own downloader (HttpClientFileDownloader, a real HTTP client) kept on 127.0.0.1 (LoopbackPortDownloader puts back the port GithubSource drops)
         var downloader = new LoopbackPortDownloader(server.Port);

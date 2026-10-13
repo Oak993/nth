@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    nth installer PLAN.md 10, unit U0 (ED-NEW-inst-u0-1): the tests of nth Setup (src/Marrow.Setup). It references the setup
+    project only. The setup compiles Marrow.Core's installer files as linked source (InstallerGate.cs, InstallOptions.cs,
+    IShellLinks.cs), so referencing Marrow.Core (or Marrow.Testing, which references it) here would give every one of those
+    types twice. The shared test helpers this project needs are linked the same way instead; each uses nothing from
+    Marrow.Core but those linked contract files. No test here runs the real installer, Setup.exe or Update.exe, or touches
+    the real Desktop, Start menu or HKCU.
+    Unit U1 (ED-NEW-inst-u1-1): the window shell is tested headless (Avalonia.Headless with Skia, one session per
+    assembly); what only Windows can answer about the live window is checked by the setup's own ui-smoke run.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks> <!-- ED-NEW-inst-c7-7: generated LibraryImport disconnect probe -->
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Marrow.Setup.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Headless" />
+    <PackageReference Include="Avalonia.Skia" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Marrow.Setup\Marrow.Setup.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Marrow.Testing\Traceability.cs" Link="Linked\Traceability.cs" />
+    <Compile Include="..\Marrow.Testing\ManualTimeProvider.cs" Link="Linked\ManualTimeProvider.cs" />
+    <Compile Include="..\Marrow.Testing\FakeShellLinks.cs" Link="Linked\FakeShellLinks.cs" />
+    <Compile Include="..\Marrow.Testing\FakeUserRegistry.cs" Link="Linked\FakeUserRegistry.cs" />
+    <!-- Unit U10 (ED-NEW-inst-u10-2): the canary that the real Desktop and Start menu are unchanged at the end of the run (PLAN.md 8a). -->
+    <Compile Include="..\Marrow.Testing\RealShellCanary.cs" Link="Linked\RealShellCanary.cs" />
+    <!-- Unit U6 (ED-NEW-inst-u6-1): a private RegLoadAppKey hive in a temporary file, so the uninstall runs on real registry calls without the real HKCU. -->
+    <Compile Include="..\Marrow.App.Tests\Fixtures\TestRegistryHive.cs" Link="Linked\TestRegistryHive.cs" />
+    <!-- Unit U4 (ED-NEW-inst-u4-1): the app's control-pipe server, so the setup's client is also tested end to end against the server nth really runs. It uses only the wire types the setup already compiles. -->
+    <Compile Include="..\..\src\Marrow.Core\Support\NthControlServer.cs" Link="Linked\NthControlServer.cs" />
+    <Compile Include="..\..\src\Marrow.Core\Support\NthControlConnection.cs" Link="Linked\NthControlConnection.cs" />
+  </ItemGroup>
+
+</Project>

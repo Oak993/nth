@@ -11,7 +11,7 @@ public sealed class VelopackPackageTests
         var path = Path.Combine(Directory.CreateTempSubdirectory("ue1-pkg-").FullName, "NthApp-1.8.0-full.nupkg");
         using var zip = ZipFile.Open(path, ZipArchiveMode.Create);
         using (var writer = new StreamWriter(zip.CreateEntry(entryName).Open())) writer.Write(nuspec);
-        using (var writer = new StreamWriter(zip.CreateEntry("lib/app/Marrow.App.exe").Open())) writer.Write("MZ");
+        using (var writer = new StreamWriter(zip.CreateEntry("lib/app/nth.exe").Open())) writer.Write("MZ");
         return path;
     }
 

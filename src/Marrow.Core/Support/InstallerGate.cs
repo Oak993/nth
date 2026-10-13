@@ -25,7 +25,27 @@ public enum InstallerAction
 /// <param name="Version">The package version, as vpk pack's --packVersion.</param>
 /// <param name="DefaultInstallRoot">%LOCALAPPDATA%\&lt;package id&gt;, Velopack's default install folder.</param>
 /// <param name="LaunchDirectory">The folder of the installer file, against which Setup.exe resolves a relative --installto.</param>
-public sealed record InstallerIdentity(string Title, string Version, string DefaultInstallRoot, string LaunchDirectory);
+/// <param name="FreshInstallRoot">
+/// Where a fresh install goes, passed to Setup.exe as --installto (nth installer PLAN.md override 10, unit U7, ED-NEW-inst-u7-8):
+/// %LOCALAPPDATA%\Programs\nth. Null keeps the earlier behaviour exactly: Velopack's default root, <paramref name="DefaultInstallRoot"/>,
+/// and no --installto added.
+/// </param>
+/// <param name="RegisteredInstallRoot">
+/// Reads the folder the uninstall entry records as InstallLocation (null when there is none or it cannot be read). With
+/// <paramref name="FreshInstallRoot"/> set, an install is looked for there first, then at <paramref name="DefaultInstallRoot"/> (where
+/// nth 1.0.0 put it, %LOCALAPPDATA%\NthApp), then at the fresh root, and an existing one is always updated where it is.
+/// </param>
+public sealed record InstallerIdentity(
+    string Title, string Version, string DefaultInstallRoot, string LaunchDirectory,
+    string? FreshInstallRoot = null, Func<string?>? RegisteredInstallRoot = null)
+{
+    /// <summary>
+    /// The folder the installer was started from (its current folder), against which a relative -l/--log is resolved before it
+    /// is handed on (VELOPACK_CHECK.md "Old branches" item 4, ED-NEW-inst-fix-3): Setup.exe runs in the engine's own folder,
+    /// so a relative log would land there. Null: the process's current folder.
+    /// </summary>
+    public string? CallerDirectory { get; init; }
+}
 
 /// <summary>The Win32 side of the gate: a message box and the embedded Velopack Setup.exe.</summary>
 public interface IInstallerGateHost
@@ -48,6 +68,19 @@ public static class InstallerGate
 {
     /// <summary>The exit code of a refused installer (Velopack's Setup.exe exits 1 on any failure).</summary>
     public const int RefusedExitCode = 1;
+
+    // The silent exit codes below are the contract units U3 and U4 build on (nth installer PLAN.md 3a, 13; ED-NEW-inst-u0-1),
+    // taken with their names and meanings from the unmerged unit/installer-close (e1fd0019c) as VELOPACK_CHECK.md asks.
+    // Nothing returns them yet: the logic that does arrives with the running-nth handshake and the install hold.
+
+    /// <summary>The exit code when the user cancels closing a running nth: nothing was changed and nothing was closed.</summary>
+    public const int CancelledExitCode = 2;
+
+    /// <summary>The exit code when a silent setup's request to close a running nth was not answered in time, or was not allowed: nothing was changed.</summary>
+    public const int NotClosedExitCode = 3;
+
+    /// <summary>The exit code when a silent setup found another installation of nth in progress: nothing was asked, run or changed.</summary>
+    public const int InProgressExitCode = 4;
 
     public static string Caption(string title) => title + " Setup"; // Velopack's title-setup, locales/en-US.ftl
 
@@ -94,8 +127,55 @@ public static class InstallerGate
         }
     }
 
+    /// <summary>
+    /// Where the install the gate decides about is, and its version (null when nothing readable is installed there). An --installto the
+    /// user gave is the only place looked at. Without a <see cref="InstallerIdentity.FreshInstallRoot"/> it is Velopack's default root,
+    /// as before. With one, the first of the registered root, the default root and the fresh root that holds a readable install; when none
+    /// does, an install the uninstall entry records but that can no longer be read is repaired where it is, otherwise it is the fresh root.
+    /// </summary>
+    public static (string Root, string? Version) FindInstall(InstallerIdentity identity, string? installTo)
+    {
+        if (installTo is not null) return (installTo, ReadInstalledVersion(installTo));
+        if (identity.FreshInstallRoot is not { } fresh) return (identity.DefaultInstallRoot, ReadInstalledVersion(identity.DefaultInstallRoot));
+        var registered = RegisteredRoot(identity);
+        foreach (var candidate in new[] { registered, identity.DefaultInstallRoot, fresh }.OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            var version = ReadInstalledVersion(candidate);
+            if (version is not null) return (candidate, version);
+        }
+        return (registered is not null && Directory.Exists(registered) ? registered : fresh, null);
+    }
+
+    // The recorded install folder as a full path without a trailing separator, or null: nothing recorded, unreadable, or not a path.
+    private static string? RegisteredRoot(InstallerIdentity identity)
+    {
+        try
+        {
+            var recorded = identity.RegisteredInstallRoot?.Invoke();
+            if (string.IsNullOrWhiteSpace(recorded)) return null;
+            return Path.TrimEndingDirectorySeparator(Path.GetFullPath(Environment.ExpandEnvironmentVariables(recorded.Trim())));
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException or System.Security.SecurityException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>Whether Setup.exe would run silently (--silent or -s, before the -- separator): then no message is shown.</summary>
-    public static bool IsSilent(IReadOnlyList<string> arguments) => ReadArguments(arguments, Environment.CurrentDirectory).Silent;
+    public static bool IsSilent(IReadOnlyList<string> arguments) => ReadArguments(arguments, Environment.CurrentDirectory, Environment.CurrentDirectory).Silent;
+
+    /// <summary>Whether Setup.exe would show its help (-h/--help, before the -- separator): help goes straight to Setup.exe.</summary>
+    public static bool IsHelp(IReadOnlyList<string> arguments) => ReadArguments(arguments, Environment.CurrentDirectory, Environment.CurrentDirectory).Help;
+
+    /// <summary>The -t/--installto folder as Setup.exe would read it (a relative one against <paramref name="launchDirectory"/>), or null.</summary>
+    public static string? ReadInstallTo(IReadOnlyList<string> arguments, string launchDirectory) => ReadArguments(arguments, launchDirectory, Environment.CurrentDirectory).InstallTo;
+
+    /// <summary>
+    /// The arguments as they go to Setup.exe (what <see cref="Run"/> forwards, before any --installto it adds): a relative
+    /// -l/--log resolved against <paramref name="callerDirectory"/>, nth Setup's own <c>--no-desktop-shortcut</c> left out.
+    /// </summary>
+    public static IReadOnlyList<string> Forwarded(IReadOnlyList<string> arguments, string launchDirectory, string callerDirectory) =>
+        ReadArguments(arguments, launchDirectory, callerDirectory).Forwarded;
 
     /// <summary>
     /// The gate: reads what is installed where Setup.exe would install, decides, and either tells the user (same or newer
@@ -105,15 +185,16 @@ public static class InstallerGate
     /// </summary>
     public static int Run(IInstallerGateHost host, InstallerIdentity identity, IReadOnlyList<string> arguments)
     {
-        var read = ReadArguments(arguments, identity.LaunchDirectory);
+        var read = ReadArguments(arguments, identity.LaunchDirectory, identity.CallerDirectory ?? Environment.CurrentDirectory);
         if (read.Help) return host.RunVelopackSetup(arguments);
 
-        var installed = ReadInstalledVersion(read.InstallTo ?? identity.DefaultInstallRoot);
+        var (root, installed) = FindInstall(identity, read.InstallTo);
         switch (Decide(installed, identity.Version))
         {
             case InstallerAction.Install:
             case InstallerAction.Upgrade:
-                return host.RunVelopackSetup(read.Forwarded);
+                // With a fresh root set the install folder is always said explicitly: an upgrade where the install is, a fresh install at the new default.
+                return host.RunVelopackSetup(identity.FreshInstallRoot is not null && read.InstallTo is null ? ["--installto", root, .. read.Forwarded] : read.Forwarded);
             case InstallerAction.AlreadyUpToDate:
                 if (!read.Silent) host.ShowMessage(Caption(identity.Title), UpToDateMessage(identity.Title, identity.Version), warning: false);
                 return 0;
@@ -130,7 +211,9 @@ public static class InstallerGate
     // -t/--installto <DIR>, -h/--help, and the app's arguments after "--". Short flags may be clustered (-sv) and a value
     // may follow its option in the same token (-tDIR, -t=DIR, --installto=DIR). A relative --installto is resolved against
     // the installer's folder (Setup.exe changes to its own folder first) and passed on whole, as --installto <full path>.
-    private static SetupArguments ReadArguments(IReadOnlyList<string> arguments, string launchDirectory)
+    // A relative log is resolved against the caller's folder (where the person typed it; Setup.exe runs in the engine's
+    // folder, which is deleted afterwards) and passed on whole too. nth Setup's own --no-desktop-shortcut is not Setup.exe's.
+    private static SetupArguments ReadArguments(IReadOnlyList<string> arguments, string launchDirectory, string callerDirectory)
     {
         bool silent = false, help = false;
         string? installTo = null;
@@ -153,8 +236,11 @@ public static class InstallerGate
                         installTo = equals >= 0 ? token[(equals + 1)..] : i + 1 < arguments.Count ? arguments[++i] : null;
                         continue;
                     case "--log":
-                        forwarded.Add(token);
-                        if (equals < 0 && i + 1 < arguments.Count) forwarded.Add(arguments[++i]);
+                        var file = equals >= 0 ? token[(equals + 1)..] : i + 1 < arguments.Count ? arguments[++i] : null;
+                        forwarded.Add("--log");
+                        if (file is not null) forwarded.Add(FullLog(file, callerDirectory));
+                        continue;
+                    case InstallOptions.NoDesktopShortcutArgument:
                         continue;
                     case "--silent":
                         silent = true;
@@ -187,7 +273,7 @@ public static class InstallerGate
                     flags += flag;
                 }
                 if (flags.Length > 1) forwarded.Add(flags);
-                if (log is not null) forwarded.AddRange(["-l", log]);
+                if (log is not null) forwarded.AddRange(["-l", FullLog(log, callerDirectory)]);
                 continue;
             }
             forwarded.Add(token);
@@ -198,6 +284,13 @@ public static class InstallerGate
             forwarded.InsertRange(0, ["--installto", installTo]);
         }
         return new SetupArguments(silent, help, installTo, forwarded);
+    }
+
+    private static string FullLog(string file, string callerDirectory)
+    {
+        if (file.Length == 0 || Path.IsPathFullyQualified(file)) return file;
+        try { return Path.GetFullPath(file, callerDirectory); }
+        catch (Exception error) when (error is ArgumentException or NotSupportedException or PathTooLongException) { return file; } // Setup.exe reports what it cannot open
     }
 
     private readonly record struct SemVer(ulong Major, ulong Minor, ulong Patch, string[] Prerelease);
