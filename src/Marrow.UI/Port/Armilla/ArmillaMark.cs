@@ -222,9 +222,9 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
         switch (message)
         {
             case ArmillaLook look:
-                if (engine is null) engine = new ArmillaEngine(look) { Visible = !hidden && !sleeping };
+                if (engine is null) engine = new ArmillaEngine(look) { Visible = !hidden, Sleeping = sleeping };
                 else engine.Set(look);
-                if (hidden || sleeping)
+                if (hidden)
                 {
                     engine.DrawStill(NullArmillaCanvas.Instance);
                     takePose = true;
@@ -235,18 +235,26 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
                 break;
             case Level level:
                 engine?.SetLevel(level.Value);
+                if (sleeping) break;
                 more = true;
                 Request();
                 break;
             case Shown shown:
+                if (hidden == (shown == Shown.No))
+                {
+                    if (!hidden) Invalidate();
+                    break;
+                }
                 hidden = shown == Shown.No;
-                if (engine is not null) engine.Visible = !hidden && !sleeping;
+                if (engine is not null) engine.Visible = !hidden;
                 if (!hidden) { more = true; Invalidate(); Request(); }
                 break;
             case Sleep sleep:
                 sleeping = sleep == Sleep.On;
-                if (engine is not null) engine.Visible = !hidden && !sleeping;
-                if (!sleeping) { more = true; Request(); }
+                if (engine is not null) engine.Sleeping = sleeping;
+                lastTime = double.NaN;
+                more = true;
+                Request();
                 break;
             case Stop:
                 stopped = true;
@@ -260,7 +268,7 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
     public override void OnAnimationFrameUpdate()
     {
         Volatile.Write(ref requested, false);
-        if (stopped || sleeping || hidden || engine is not { } mark) return;
+        if (stopped || hidden || engine is not { } mark || (sleeping && !more)) return;
         var now = Now;
         // the 60 Hz slots every ambient source of this compositor shares (ED-NEW-frame-pacing): drawing is capped at 60 fps
         if (pacer is not null && !pacer.Beat(CompositionNow.Ticks, now)) { Register(); return; }
@@ -268,16 +276,16 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
         var dt = double.IsNaN(lastTime) ? 0 : Math.Clamp(t - lastTime, 0, ArmillaHub.MaxStep);
         lastTime = t;
         // a mark that has rested 1.2 s in Idle, Paused or Offline steps at 30 fps
-        var step = mark.RestStep(dt);
+        var step = sleeping ? dt : mark.RestStep(dt);
         if (step == 0 && dt > 0) { Register(); return; }
-        more = takePose || mark.Tick(step, t);
+        more = takePose || (dt == 0 ? !mark.Settled() : mark.Tick(step, t));
         Invalidate();
         if (drawn && more) Request();
     }
 
     private void Request()
     {
-        if (Volatile.Read(ref requested) || stopped || sleeping || hidden) return;
+        if (Volatile.Read(ref requested) || stopped || (sleeping && !more) || hidden) return;
         drawn = false;
         Register();
     }
@@ -306,7 +314,7 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
                 using var layer = new SKPaint { Color = new SKColor(255, 255, 255, (byte)Math.Round(Math.Clamp(lease.CurrentOpacity, 0, 1) * 255)) };
                 sk.SaveLayer(layer);
             }
-            if (sleeping || takePose) mark.DrawStill(canvas);
+            if (takePose && !sleeping) mark.DrawStill(canvas);
             else mark.Draw(canvas);
             takePose = false;
         }
