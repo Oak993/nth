@@ -8,6 +8,8 @@
 // around every screenshot. ED-NEW-web-sec-agent-1 (security review H1): another site's frame runs in its own process, and the page
 // around it sees only an <iframe>; the element under a point and the focused field are read inside that frame through its own
 // session, and a frame nth cannot reach is sealed: nothing is pressed or typed into it.
+using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -27,6 +29,9 @@ public sealed partial class WebAgentEngine
         + "Read the page again (web_read shows the elements of the frames it can reach) and act on a ref.";
 
     // ED-NEW-web-sec-agent-2 (security review H2; DESIGN 8.4 "Clipboard read: agent tabs denied").
+    // ED-NEW-web-sec-agent-3 (security review M1): a Confirm answers the card the user saw; when the page under it changed, nothing is pressed.
+    private const string PageChanged = "The page changed while the card was up, so nth did not press anything. Read the page again, then try again.";
+
     private const string ClipboardRefusal = "nth never uses the clipboard for a model (paste, copy or cut): it would read or replace the user's own clipboard. "
         + "Use web_read to read text and web_type to type it.";
 
@@ -304,7 +309,13 @@ public sealed partial class WebAgentEngine
             var covered = hit is not null && key is not null && !SameElement(hit.Facts, element.Facts);
             var (verdict, judged) = Strictest((WebAgentPolicy.CheckPress(element.Facts, origin), element), covered ? (WebAgentPolicy.CheckPress(hit!.Facts, origin), hit) : (WebGuardVerdict.Pass, hit!));
             var what = reference ?? N(point.X) + ", " + N(point.Y);
-            if (await Guard(s, state, verdict, judged.Facts, "click|" + Identity(judged.Facts), null, judged.Rows, new WebPoint(point.X, point.Y)) is { } stop) return stop;
+            if (await Guard(s, state, verdict, judged.Facts, Approval(state, "click", judged, N(point.X) + "," + N(point.Y)), null, judged.Rows, new WebPoint(point.X, point.Y)) is { } stop) return stop;
+            if (verdict.Kind == WebGuardKind.Confirm)
+            {
+                // The card was confirmed: the element and whatever is under the point must still be what the card showed.
+                if (key is { } again && (await Facts(state, again, s.Token) is not { } now || Digest(now, null) != Digest(element, null))) return Fail(WebErrorCodes.StaleRef, PageChanged);
+                if (!Same(await Hit(state, point, s.Token), hit)) return Fail(WebErrorCodes.StaleRef, PageChanged);
+            }
             Report(UiText.Format("agent.step.pressing", PillName(element, false)), state.Short);
             using (BeginStep(state))
             {
@@ -341,7 +352,8 @@ public sealed partial class WebAgentEngine
             if (typing.Kind == WebGuardKind.Deny) return Fail(WebErrorCodes.Denied, typing.Reason!);
             if (element.IsSelect) return Fail(WebErrorCodes.BadArgs, reference + " is a list of options: use web_select.");
             if (!element.Editable) return Fail(WebErrorCodes.BadArgs, reference + " is not a text field: use web_click or web_select.");
-            if (submit && await Guard(s, state, EnterVerdict(element, origin), element.Facts, "enter|" + Identity(element.Facts), null, element.Rows) is { } stop) return stop;
+            var entering = submit ? EnterVerdict(element, origin) : WebGuardVerdict.Pass;
+            if (submit && await Guard(s, state, entering, element.Facts, Approval(state, "enter", element, null), null, element.Rows) is { } stop) return stop;
             Report(UiText.Format("agent.step.filling_in", PillName(element, true)), state.Short);
             using (BeginStep(state))
             {
@@ -349,11 +361,13 @@ public sealed partial class WebAgentEngine
                 if (await Point(state, key, scroll: true, s.Token) is { } point) await Pointer(state, point, s);
                 await CallOn(state, key, FocusJs, null, s.Token);
                 // The field that has focus now is the one that gets the text: a page that moves focus cannot steer it into a secret.
-                if (await ActiveFacts(state, s.Token) is { } active)
+                var active = await ActiveFacts(state, s.Token);
+                if (active is not null)
                 {
                     if (active.Sealed) return Fail(WebErrorCodes.Denied, FrameRefusal);
                     if (WebAgentPolicy.CheckType(active.Facts) is { Kind: WebGuardKind.Deny } moved) return Fail(WebErrorCodes.Denied, moved.Reason!);
                 }
+                if (entering.Kind == WebGuardKind.Confirm && active?.Node != key) return Fail(WebErrorCodes.StaleRef, PageChanged);
                 await state.Overlay.Busy(state.Cdp!, true, s.Token);
                 try
                 {
@@ -411,12 +425,14 @@ public sealed partial class WebAgentEngine
                                 : WebAgentKeys.Activates(press) && Pressable(active.Facts) ? WebAgentPolicy.CheckPress(active.Facts, origin)
                                 : WebAgentPolicy.CheckType(active.Facts);
                             if (verdict.Kind == WebGuardKind.Deny) return Fail(WebErrorCodes.Denied, done + verdict.Reason);
-                            if (await Guard(s, state, verdict, active.Facts, "press|" + Identity(active.Facts), null, active.Rows) is { } stop)
+                            var pressing = "press " + press.Modifiers.ToString(CultureInfo.InvariantCulture) + "+" + press.Key;
+                            if (await Guard(s, state, verdict, active.Facts, Approval(state, pressing, active, null), null, active.Rows) is { } stop)
                             {
                                 if (stop.Error == WebErrorCodes.WaitingForUser && i > 0)
                                     return Fail(WebErrorCodes.WaitingForUser, done + "The next key waits for the user's OK in Visus: call web_key again with only the rest: \"" + Remaining(presses, i) + "\".");
                                 return i > 0 ? stop with { Text = done + stop.Text } : stop;
                             }
+                            if (verdict.Kind == WebGuardKind.Confirm && !Same(await ActiveFacts(state, s.Token), active)) return Fail(WebErrorCodes.StaleRef, done + PageChanged);
                         }
                     }
                     await state.Overlay.Busy(state.Cdp!, true, s.Token);
@@ -516,8 +532,17 @@ public sealed partial class WebAgentEngine
                 };
                 if (want is null) return Fail(WebErrorCodes.BadArgs, reference + " is a checkbox or radio button: value is true or false.");
                 if (want == isChecked) return new WebToolResult(reference + " is already " + (isChecked ? "on" : "off") + ".");
-                if (await Guard(s, state, WebAgentPolicy.CheckPress(element.Facts, origin), element.Facts, "click|" + Identity(element.Facts), null, element.Rows) is { } stop) return stop;
                 var point = await Point(state, key, scroll: true, s.Token) ?? throw new Refusal(Fail(WebErrorCodes.StaleRef, reference + " is not visible on the page. Scroll to it, or read the page again."));
+                var hit = await Hit(state, point, s.Token);
+                if (hit is { Sealed: true }) return Fail(WebErrorCodes.Denied, FrameRefusal);
+                var covered = hit is not null && !SameElement(hit.Facts, element.Facts);
+                var (verdict, judged) = Strictest((WebAgentPolicy.CheckPress(element.Facts, origin), element), covered ? (WebAgentPolicy.CheckPress(hit!.Facts, origin), hit) : (WebGuardVerdict.Pass, element));
+                if (await Guard(s, state, verdict, judged.Facts, Approval(state, "click", judged, N(point.X) + "," + N(point.Y)), null, judged.Rows) is { } stop) return stop;
+                if (verdict.Kind == WebGuardKind.Confirm)
+                {
+                    if (await Facts(state, key, s.Token) is not { } now || Digest(now, null) != Digest(element, null)) return Fail(WebErrorCodes.StaleRef, PageChanged);
+                    if (!Same(await Hit(state, point, s.Token), hit)) return Fail(WebErrorCodes.StaleRef, PageChanged);
+                }
                 Report(UiText.Format("agent.step.choosing", PillName(element, true)), state.Short);
                 using (BeginStep(state))
                 {
@@ -576,8 +601,27 @@ public sealed partial class WebAgentEngine
         string.Equals(a.Tag, b.Tag, StringComparison.OrdinalIgnoreCase) && a.Id == b.Id && a.NameAttribute == b.NameAttribute && a.AriaLabel == b.AriaLabel
         && a.Href == b.Href && a.ClassName == b.ClassName && a.Label == b.Label && a.FormAction == b.FormAction;
 
-    // A key for the card of one element, so the same call again joins the same card.
-    private static string Identity(WebElementFacts facts) => facts.Tag + "#" + facts.Id + "|" + facts.NameAttribute + "|" + Clip(facts.Name, 60);
+    // ED-NEW-web-sec-agent-3: the key of one card. It names the action, the tab's address, the DOM node and a digest of everything the
+    // card shows, so the same call again joins the same card, and a Confirm never carries over to a look-alike element (another row,
+    // another page, the same form with other values).
+    private static string Approval(TabState state, string kind, Element element, string? extra) =>
+        kind + "|" + state.Tab.Url + "|" + NodeName(element.Node) + "|" + Digest(element, extra);
+
+    private static string NodeName(WebNodeKey? node) =>
+        node is { } n ? (n.Session ?? "") + "#" + n.BackendId.ToString(CultureInfo.InvariantCulture) : "-";
+
+    private static string Digest(Element element, string? extra)
+    {
+        var text = new StringBuilder(element.Facts.ToString()).Append('\n').Append(element.Sealed ? "sealed" : "open");
+        foreach (var row in element.Rows) text.Append('\n').Append(row.Key).Append('=').Append(row.Value);
+        foreach (var option in element.Options) text.Append("\no=").Append(option);
+        if (extra is not null) text.Append("\nx=").Append(extra);
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString())), 0, 12);
+    }
+
+    // The same element (node and content) as before, or nothing both times.
+    private static bool Same(Element? a, Element? b) =>
+        a is null ? b is null : b is not null && a.Node == b.Node && Digest(a, null) == Digest(b, null);
 
     private static string Display(Element element) =>
         element.Facts.Name.Length > 0 ? element.Facts.Name

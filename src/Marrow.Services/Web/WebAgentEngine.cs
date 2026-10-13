@@ -663,7 +663,8 @@ public sealed partial class WebAgentEngine : IDisposable
         return (true, typed.IsCompletedSuccessfully ? typed.Result : refused);
     }
 
-    // An unanswered card goes after its lifetime; the next call asks again.
+    // A card goes after its lifetime, answered or not (ED-NEW-web-sec-agent-3: a Confirm nobody used does not wait for a look-alike
+    // call); the next call asks again.
     private async Task Expire(string key, PendingAsk pending)
     {
         try
@@ -676,7 +677,7 @@ public sealed partial class WebAgentEngine : IDisposable
         }
         lock (gate)
         {
-            if (asks.TryGetValue(key, out var current) && ReferenceEquals(current, pending) && !pending.Task.IsCompleted) asks.Remove(key);
+            if (asks.TryGetValue(key, out var current) && ReferenceEquals(current, pending)) asks.Remove(key);
         }
         await pending.Life.CancelAsync().ConfigureAwait(false);
     }
