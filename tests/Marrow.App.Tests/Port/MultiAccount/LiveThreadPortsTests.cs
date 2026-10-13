@@ -1,3 +1,4 @@
+using System.Reflection;
 using Marrow.App.Port.MultiAccount.Thread;
 using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Accounts;
@@ -19,8 +20,18 @@ public sealed class LiveThreadPortsTests
         {
             var ports = owner.Ports;
             var port = rig.Rig.H.Main.OnMain(() => ports.Account(rig.Rig.InitialThread.Id, ProviderKind.Deepseek)!);
-            Assert.IsType<Marrow.Services.Port.MultiAccount.LinkEngine>(ports.Links);
-            Assert.IsType<Marrow.Services.Port.MultiAccount.OpinionsEngine>(ports.Opinions);
+            // ED-NEW-gatefix3-2 / ED-NEW-inst-c7-5: admission wraps the real engines, as the
+            // approved standby fixture checks both its adapter and its underlying session.
+            var links = Assert.IsType<InstallerLinkEngine>(ports.Links);
+            var opinions = Assert.IsType<InstallerOpinionsEngine>(ports.Opinions);
+            Assert.Same(owner.Links, links);
+            Assert.Same(owner.Opinions, opinions);
+            Assert.IsType<Marrow.Services.Port.MultiAccount.LinkEngine>(typeof(InstallerLinkEngine)
+                .GetFields(BindingFlags.Instance | BindingFlags.NonPublic)
+                .Single(field => field.FieldType == typeof(Marrow.Services.Port.MultiAccount.LinkEngine)).GetValue(links));
+            Assert.IsType<Marrow.Services.Port.MultiAccount.OpinionsEngine>(typeof(InstallerOpinionsEngine)
+                .GetFields(BindingFlags.Instance | BindingFlags.NonPublic)
+                .Single(field => field.FieldType == typeof(Marrow.Services.Port.MultiAccount.OpinionsEngine)).GetValue(opinions));
             var changes = 0;
             rig.Rig.H.Main.OnMain(() => port.Changed += () => changes++);
             var pin = rig.Rig.H.Main.OnMain(() => port.PinAsync(rig.Target));
