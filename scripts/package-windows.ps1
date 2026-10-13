@@ -187,7 +187,7 @@ Write-Host "$MainExe stamped; the Visual C++ runtime $($vcRuntime.FileVersion) (
 
 # RR-14 (ONDEMAND-PLAN.md 3.6, ED-NEW-dl-10): every addons\bin shim is a copy of one NativeAOT launcher, shipped beside the app.
 $shimProject = Join-Path $root 'src/Marrow.Shim/Marrow.Shim.csproj'
-$shimBuildDir = Join-Path $root 'artifacts/shim-build'
+$shimBuildDir = Join-Path $artifacts 'shim-build'
 if (Test-Path -LiteralPath $shimBuildDir) { Remove-Item -LiteralPath $shimBuildDir -Recurse -Force }
 # NativeAOT finds the C++ linker through vswhere and vcvarsall, which need the "(x86)" folder variables; a shell such as Git Bash drops
 # variables whose names hold parentheses, so restore them for this process (and its children) only. No global setting changes.

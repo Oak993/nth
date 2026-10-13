@@ -18,6 +18,7 @@
     { "path": "src/Marrow.Core/Support/InstallLayout.cs", "reason": "LegacyMainExe: an install made before the rename has the old apphost stub, which a shortcut or a sign-in value may still point at; nth recognises it and re-points it (PLAN.md 8a)" },
     { "path": "src/Marrow.Setup/Port/WindowsRunningNthProcesses.cs", "reason": "the running-nth check also finds the old apphost of an install made before the rename, so an update of that install asks it to quit first (PLAN.md 3a and 7)" },
     { "path": "src/Marrow.Setup/Support/IRunningNthProcesses.cs", "reason": "its summary names the two programs the check looks for (nth.exe and the pre-rename stub)" },
+    { "path": "tests/Marrow.Core.Tests/Port/PcControl/PcPolicyTests.cs", "reason": "a row of the agent-app theory: the pre-rename apphost of an install made before the rename is still denied as an agent app (PcPolicy lists marrow.app.exe and nth.exe)" },
     { "path": "tests/Marrow.Core.Tests/Support/DesktopShortcutTests.cs", "reason": "seeds a shortcut that targets the pre-rename stub, which the desktop shortcut repair must re-point" },
     { "path": "tests/Marrow.Core.Tests/Support/InstallHooksTests.cs", "reason": "seeds a shortcut that targets the pre-rename stub for the install hook's alignment steps" },
     { "path": "tests/Marrow.Core.Tests/Support/InstallLayoutTests.cs", "reason": "a row of the root-membership theory: the pre-rename stub inside the root counts as the root's" },

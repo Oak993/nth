@@ -29,7 +29,13 @@ public sealed class GeneralSettingsDesktopShortcutTests(HeadlessSession headless
 
     private static bool IsOn(Control toggle) => ((IToggleProvider)ControlAutomationPeer.CreatePeerForElement(toggle)!).ToggleState == ToggleState.On;
 
-    // the knob's left edge: 2 at rest off, 16 at rest on (SmallSwitch: 44 wide track, 26 wide knob, 2 in from each edge)
+    // the knob's left edge: KnobOff at rest off, KnobOn at rest on. The switch is the owner's Nocta (OD-0143, ED-NEW-nocta-1): a 22 wide dome 2 in from
+    // each edge of a 46 wide track, so it travels SmallSwitch.Travel (20); it slides on a spring (response 0.38 s, damping 0.82), which is within a
+    // thousandth of its rest after Settled milliseconds (it was a 0.21 s ease-out with a 26 wide knob and a 14 travel; ED-NEW-inst-rimerge-1).
+    private const double KnobOff = SmallSwitch.Inset;
+    private const double KnobOn = SmallSwitch.Inset + SmallSwitch.Travel;
+    private const int Settled = 1500;
+
     private static double KnobLeft(SmallSwitch toggle) => toggle.KnobNow().X;
 
     private static SmallSwitch Switch(Control view, string title) => Assert.Single(Nodes<SmallSwitch>(Row(view, title)));
@@ -101,15 +107,15 @@ public sealed class GeneralSettingsDesktopShortcutTests(HeadlessSession headless
             Assert.Single(rig.Work); // the page opening asked; the UI thread read nothing
             Assert.Equal(0, rig.Shell.Reads);
             Assert.False(IsOn(desktop));
-            Assert.Equal(2, KnobLeft(desktop), 3);
+            Assert.Equal(KnobOff, KnobLeft(desktop), 3);
 
             rig.Pump();
             Drain(w);
 
             Assert.True(IsOn(desktop));
             Assert.True(IsOn(signIn));
-            Assert.Equal(16, KnobLeft(desktop), 3); // already at rest, with no frame ticked: it did not slide
-            Assert.Equal(16, KnobLeft(signIn), 3);
+            Assert.Equal(KnobOn, KnobLeft(desktop), 3); // already at rest, with no frame ticked: it did not slide
+            Assert.Equal(KnobOn, KnobLeft(signIn), 3);
         });
     }
 
@@ -133,7 +139,7 @@ public sealed class GeneralSettingsDesktopShortcutTests(HeadlessSession headless
             rig.Pump();
             Drain(w);
             Assert.False(IsOn(desktop));
-            Assert.Equal(2, KnobLeft(desktop), 3); // in place, no slide
+            Assert.Equal(KnobOff, KnobLeft(desktop), 3); // in place, no slide
         });
     }
 
@@ -171,9 +177,9 @@ public sealed class GeneralSettingsDesktopShortcutTests(HeadlessSession headless
             Assert.True(IsOn(desktop));
             Assert.Empty(rig.Shell.LinksIn(FakeShellLinks.OneDriveDesktop)); // the worker has not run yet
             Tick(h, 50);
-            Assert.InRange(KnobLeft(desktop), 2.5, 15.5); // sliding: the user's own tap animates
-            Tick(h, 300);
-            Assert.Equal(16, KnobLeft(desktop), 3);
+            Assert.InRange(KnobLeft(desktop), KnobOff + .5, KnobOn - .5); // sliding: the user's own tap animates
+            Tick(h, Settled);
+            Assert.Equal(KnobOn, KnobLeft(desktop), 3);
 
             rig.Pump();
             Drain(w);
@@ -198,11 +204,11 @@ public sealed class GeneralSettingsDesktopShortcutTests(HeadlessSession headless
             Assert.False(IsOn(desktop));
             rig.Pump();
             Drain(w);
-            Tick(h, 300);
+            Tick(h, Settled);
 
             Assert.False(IsOn(desktop));
             Assert.Empty(rig.Shell.LinksIn(FakeShellLinks.OneDriveDesktop));
-            Assert.Equal(2, KnobLeft(desktop), 3);
+            Assert.Equal(KnobOff, KnobLeft(desktop), 3);
         });
     }
 
@@ -217,17 +223,17 @@ public sealed class GeneralSettingsDesktopShortcutTests(HeadlessSession headless
             Drain(w);
 
             Click(w, desktop);
-            Tick(h, 300);
+            Tick(h, Settled);
             Assert.True(IsOn(desktop));
-            Assert.Equal(16, KnobLeft(desktop), 3);
+            Assert.Equal(KnobOn, KnobLeft(desktop), 3);
 
             rig.Pump();
             Drain(w);
             Assert.False(IsOn(desktop));
             Tick(h, 60);
-            Assert.InRange(KnobLeft(desktop), 2.5, 15.5); // it slides back, it does not snap
-            Tick(h, 300);
-            Assert.Equal(2, KnobLeft(desktop), 3);
+            Assert.InRange(KnobLeft(desktop), KnobOff + .5, KnobOn - .5); // it slides back, it does not snap
+            Tick(h, Settled);
+            Assert.Equal(KnobOff, KnobLeft(desktop), 3);
             Assert.Equal("Windows didn't allow it. Try again.", Detail(view, "Desktop shortcut"));
             Assert.Equal("Windows didn't allow it. Try again.", AutomationProperties.GetHelpText(desktop));
 

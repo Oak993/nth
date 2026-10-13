@@ -3,8 +3,8 @@ namespace Marrow.Core.Support;
 /// <summary>
 /// PORT-ONLY (nth installer PLAN.md section 7, unit U7; ED-NEW-inst-u7-1). The running app's own executable. The published exe is
 /// <c>nth.exe</c> (scripts/package-windows.ps1 renames the apphost), a Debug or Release build keeps the SDK's apphost name, so
-/// nothing may build the file name by hand: the process's own path is the only name that is always right. The three child
-/// processes that re-launch the app (the Cursor skills relay, the advisor relay and the ACP skills relay) take it from here.
+/// nothing may build the file name by hand: the process's own path is the only name that is always right. The four child
+/// processes that re-launch the app (the Cursor skills relay, the advisor relay, the ACP skills relay and Tactus's nth-pc relay) take it from here.
 /// </summary>
 public static class AppExecutable
 {

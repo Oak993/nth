@@ -29,17 +29,25 @@ public sealed class PcControlBridgeTests
     }
 
     [Fact]
+    public void The_entry_launches_the_running_app_by_its_own_path_and_never_a_file_name_built_by_hand()
+    {
+        // ED-NEW-inst-rimerge-1: the published app is nth.exe and a build keeps the SDK's apphost name, so the default is the process's own path
+        // (as the advisor's and the skills' relays take it), not the old apphost beside the app's files
+        Assert.Equal(Marrow.Core.Support.AppExecutable.Path, PcControlBridge.Executable.Current());
+    }
+
+    [Fact]
     public void The_entry_launches_the_app_as_a_relay_with_a_token_for_the_chat()
     {
         var harness = new PcEngineHarness();
         var thread = Guid.NewGuid();
         using var parts = PcControlBridge.Parts.Override(() => harness.Parts);
-        using var executable = PcControlBridge.Executable.Override(() => @"C:\nth\Marrow.App.exe");
+        using var executable = PcControlBridge.Executable.Override(() => @"C:\nth\nth.exe");
 
         var server = PcControlBridge.Server(Configuration(ProviderKind.Claude, thread, "claude-test"))!;
 
         Assert.Equal("nth-pc", server.Id);
-        Assert.Equal(@"C:\nth\Marrow.App.exe", server.Command);
+        Assert.Equal(@"C:\nth\nth.exe", server.Command);
         Assert.Equal(3, server.Args.Count);
         Assert.Equal(PcControlBridge.Command, server.Args[0]);
         Assert.StartsWith("MarrowPc-", server.Args[1], StringComparison.Ordinal);

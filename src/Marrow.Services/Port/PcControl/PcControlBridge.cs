@@ -28,8 +28,12 @@ public static class PcControlBridge
     private static readonly ConcurrentDictionary<string, PcControlEngine> engines = new(StringComparer.Ordinal);
     private static readonly Lazy<string> pipeName = new(StartServing, LazyThreadSafetyMode.ExecutionAndPublication);
 
-    /// <summary>The executable the relay entry launches: the app's own (its Main hands <see cref="Command"/> to <see cref="RunClient"/>).</summary>
-    public static Ambient<Func<string>> Executable { get; } = new(new Func<string>(() => Path.Combine(AppContext.BaseDirectory, "Marrow.App.exe")));
+    /// <summary>
+    /// The executable the relay entry launches: the app's own (its Main hands <see cref="Command"/> to <see cref="RunClient"/>). The
+    /// published app is nth.exe and a build keeps the SDK's apphost name, so the name is never built by hand: the running process's
+    /// own path, as the advisor's and the skills' relays take it (<see cref="AppExecutable"/>, ED-NEW-inst-u7-1; ED-NEW-inst-rimerge-1).
+    /// </summary>
+    public static Ambient<Func<string>> Executable { get; } = new(new Func<string>(() => AppExecutable.Path));
 
     /// <summary>The parts every chat's engine drives, bound by the app; null until bound, and then no session gets the entry.</summary>
     public static Ambient<Func<PcEngineParts?>> Parts { get; } = new(new Func<PcEngineParts?>(() => null));
