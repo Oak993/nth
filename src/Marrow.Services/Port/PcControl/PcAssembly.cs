@@ -8,6 +8,7 @@
 // grant, no card up). The real mouse and keyboard (R4) follow the setting, which is off by default.
 using System.Collections.Concurrent;
 using Marrow.Core.Port.PcControl;
+using Marrow.Services.Port.PcControl.Workspace;
 
 namespace Marrow.Services.Port.PcControl;
 
@@ -54,6 +55,9 @@ public sealed class PcBackends
 
     /// <summary>Native helpers that live as long as Tactus (hook and event threads); disposed with the assembly.</summary>
     public IReadOnlyList<IDisposable> Owned { get; init; } = [];
+
+    /// <summary>The separate workspace (DESIGN.md 2.13, preview; ED-NEW-pcws-1); none when null.</summary>
+    public IWorkspaceHost? Workspace { get; init; }
 }
 
 /// <summary>
@@ -137,6 +141,9 @@ public sealed class PcAssembly : IDisposable
     /// <summary>The writes waiting while the user types, for the pill's "Waiting while you type".</summary>
     public PcTypingWaits Typing { get; } = new();
 
+    /// <summary>Where new apps open, shared by every chat (it remembers the apps that open only on the desk; ED-NEW-pcws-3).</summary>
+    public WorkspaceRouter Router { get; } = new();
+
     public PhysicalInputMonitor Input => backends.Input;
     public IPcClock Clock => backends.Clock;
 
@@ -152,6 +159,12 @@ public sealed class PcAssembly : IDisposable
         ArgumentNullException.ThrowIfNull(thread);
         return perThread.GetOrAdd(thread, key => Make(backends.Audit(key)));
     }
+
+    /// <summary>
+    /// The parts of the workspace agent's engine (ED-NEW-pcws-7): everything shared, with no audit of its own, its window and
+    /// look ids marked as the workspace's, and the user's approvals and guarded-action cards asked through nth outside.
+    /// </summary>
+    public PcEngineParts WorkspaceParts(IPcApprover approver, IPcConfirmer confirmer) => Make(PcNoAudit.Instance, approver, confirmer, inWorkspace: true);
 
     /// <summary>Whether Tactus is using the window now: work in flight there, or a chat holds it (the first Esc of three must be there).</summary>
     public bool IsTactusWindow(nint window) =>
@@ -179,7 +192,7 @@ public sealed class PcAssembly : IDisposable
         }
     }
 
-    private PcEngineParts Make(IPcAudit audit) => new()
+    private PcEngineParts Make(IPcAudit audit, IPcApprover? approver = null, IPcConfirmer? confirmer = null, bool inWorkspace = false) => new()
     {
         Catalog = backends.Catalog,
         Security = backends.Security,
@@ -190,8 +203,8 @@ public sealed class PcAssembly : IDisposable
         Input = backends.Input,
         Lease = Lease,
         Own = backends.Own,
-        Approver = Approver,
-        Confirmer = Confirmer,
+        Approver = approver ?? Approver,
+        Confirmer = confirmer ?? Confirmer,
         StopKey = StopKey,
         Control = Control,
         Pause = Pause,
@@ -207,6 +220,9 @@ public sealed class PcAssembly : IDisposable
         Typing = Typing,
         WaitClock = backends.WaitClock,
         Now = backends.Now,
+        Workspace = inWorkspace ? null : backends.Workspace,
+        InWorkspace = inWorkspace,
+        Router = Router,
     };
 }
 

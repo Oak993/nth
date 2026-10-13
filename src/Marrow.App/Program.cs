@@ -63,6 +63,10 @@ public static class Program
         // Tactus (OD-0140, ED-NEW-pcctl-10): the nth-pc relay, the same kind of private headless child.
         if (args.FirstOrDefault() == Marrow.Services.Port.PcControl.PcControlBridge.Command)
             return Marrow.Services.Port.PcControl.PcControlBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
+        // Tactus's separate workspace (P18, ED-NEW-pcws-6): the agent the child session runs, and the user's own enable and
+        // disable commands, headless like the relays above.
+        if (Marrow.App.Port.PcControl.Workspace.WorkspaceCommands.Handles(args))
+            return Marrow.App.Port.PcControl.Workspace.WorkspaceCommands.Run(args).GetAwaiter().GetResult();
         // OD-0062, ED-235: Velopack's startup hook, before anything else (before the single-instance lock, the toast
         // identity, every binding). When Update.exe runs the app to install, update or uninstall it (--veloapp-*
         // arguments) this handles the event and exits the process; started normally it returns at once.
@@ -118,6 +122,7 @@ public static class Program
         // old "Marrow Code" data folder and .marrow state folder are COPIED to their new names (never moved; the old app may still run).
         LegacyDataCopy.CopyProductFolders(DevDataRoot.LocalApplicationData(), DevDataRoot.IsRedirected ? DevDataRoot.LocalApplicationData() : LoginEnvironment.HomeDirectory, AppInfo.Current.IsDevelopment);
         DesktopPerformanceProbe.BeginStartup();
+        StartupPrimes.PrimeSkillsCatalogue(StartupPrimes.Pool); // ED-NEW-perf-startup-structure-3: the 1.2 MB catalogue is parsed on the pool while the desktop is bound; the skills host below takes the one parse
         var bindingWork = AuroraBootTrace.Begin("Startup: desktop bindings");
         Marrow.App.Port.ModelsPalette.PaletteStartup.Begin(); // ED-622: overlap verified pack loading with desktop bindings.
         using var reopen = ReopenSignal.Create(DroppyCodeApp.ReopenSignalName);
@@ -131,7 +136,9 @@ public static class Program
         var settings = new SettingsStore(SettingsStore.ProductionPath(localAppData));
         UserDefaults.Standard.SetProcessDefault(settings);
         Marrow.App.Port.Settings.ProviderSwitchRepair.RunOnce(settings); // ED-NEW-providersmerge-switch-repair-1: once, before AppSettings reads it, the providers the dead switch of older builds wrote off are on again
-        Marrow.UI.Theme.Wallpapers.WallpaperLibraryStore.Shared.SetProcessDefault(new(settings));
+        // ED-NEW-perf-startup-structure-5: the store (made on first use from UserDefaults.Standard, which is bound above) checks a saved wallpaper against the whole catalogue; that catalogue is read on the pool,
+        // so the first window's build finds it made, and with no wallpaper saved nothing is read. The explicit SetProcessDefault(new(settings)) that made the store here, on the UI thread before any window, is gone.
+        StartupPrimes.PrimeWallpapers(settings, StartupPrimes.Pool);
         AppDomain.CurrentDomain.UnhandledException += (_, _) => settings.Synchronize();
         // Storage.swift:19-48's roots (OD-0008 C7: %LOCALAPPDATA%\Marrow Code; OD-0012 F1: %USERPROFILE%\.marrow)
         // and StoragePaths.swift's roots (ED-195: split out of Storage.swift at B3), the sibling Ambient
@@ -159,12 +166,15 @@ public static class Program
         bindingWork.Dispose();
         AuroraBootWarmup.Register(); // OD-0113: the imported renderer joins the same awaited preparation
         NthMotionWarmup.Register(); // OD-0136 amendment 2 (ED-NEW-nth-motion): the nth motion pack's programs, same step
+        Marrow.App.Port.Voice.VoiceWarmup.Register(); // ED-NEW-perf-startup-structure-2: the two voice orbs' programs ("Voice orbs", step 55) are compiled in the Getting ready pass, not on the render thread when the mic orb first shows
+        Marrow.App.Port.Voice.VoiceGlowWarmup.Register(); // ED-NEW-perf-startup-structure-2: the voice glow's programs ("Voice glow", step 56), same pass
         Marrow.App.Port.MultiAccount.Handshake.HandshakeGpuProgram.EnsureRegistered(); // MA-4-2: prime the filament gradient and bloom before a live Handshake.
         using (AuroraBootTrace.Begin("Startup: Avalonia setup"))
             MarrowApplication.BuildAvaloniaApp().SetupWithLifetime(lifetime);
         // ED-065, R-ISO-1: the main actor is Avalonia's UI thread, bound before any window and before the hang
         // watchdog's first ping (HangWatchdog.swift:52) posts to it.
         MainActor.Bind(AvaloniaMainExecutor.Instance);
+        StartupPrimes.PrimeSymbols(StartupPrimes.Pool); // ED-NEW-perf-startup-structure-5: the SF-symbol mapping (needs Avalonia's asset loader, set up above) is read before the cloaked window's first icon asks for it
         DesktopPerformanceProbe.Start();
         // SwiftUI's default @Environment(\.openURL): the system opens the link (MarkdownView.swift:1110, :1148).
         InlineText.OpenUrl = url => Marrow.Services.Port.Workspace.Open.Current(url);

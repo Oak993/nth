@@ -110,6 +110,13 @@ public sealed class StdioProcess
         }
     }
 
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-perf-ui-thread-2). <see cref="Start"/> with CreateProcessW (pipes, job object, a virus scan of the executable: tens of milliseconds, more on a cold disk) on the pool,
+    /// so a session started from the UI thread's turn does not hold a frame for it. Start only sets handlers and runs the launcher, none of which needs the caller's thread; a failure
+    /// to start reaches the awaiting caller as the same exception.
+    /// </summary>
+    public Task StartAsync() => Task.Run(Start);
+
     // :90-104 (B3)
     public void Send(JSONValue message)
     {

@@ -27,6 +27,7 @@ public sealed class HandshakeJournalBufferTests
             rig.Session.Emit(new ProviderEvent.ToolUpdated("tool", new() { Status = ToolCall.Status.Completed }));
         });
         rig.Complete();
+        HandoffJournalWriter.WaitForQueuedWrites(); // ED-NEW-perf-ui-thread-5: the flush at the turn's end is handed to the writer's queue; the file is there once the queue has run
         Assert.True(File.Exists(HandoffJournal.PathIn(folder)));
         var summary = rig.H.Main.OnMain(() => rig.Runtime.SaveHandoff(""));
         var saved = System.Text.Json.JsonSerializer.Deserialize<HandoffContext>(File.ReadAllText(summary.HandoffFile))!;

@@ -80,7 +80,7 @@ public sealed partial class ThreadRuntime
         if (pendingHandoffEvents.Count == 0) return;
         ProbeHandoffJournal();
         if (!UsesHandoffJournal) return;
-        HandoffJournal.AppendBatch(HandoffFolder, pendingHandoffEvents);
+        HandoffJournalWriter.Append(HandoffFolder, pendingHandoffEvents); // ED-NEW-perf-ui-thread-5: handed to the journal's own queue (it takes a copy); the disk is not the UI thread's
         pendingHandoffEvents.Clear();
         pendingHandoffBytes = 0;
     }

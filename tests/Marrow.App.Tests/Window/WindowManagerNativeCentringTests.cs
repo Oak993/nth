@@ -87,7 +87,7 @@ public sealed class WindowManagerNativeCentringTests(WindowManagerNativeSession 
         var expectedTop = (work.Height - visible.Height) / 2.0;
         Assert.InRange(visible.Top - work.Top - expectedTop, -1, 1);
         // the autosave is installed after the centring (:70): the frame now saved is where it was put
-        var saved = native.OnUi(() => UserDefaults.Standard.Current.Dictionary("DroppyCodeMainWindow"));
+        var saved = native.OnUi(() => { manager.FlushPendingFrames(); return UserDefaults.Standard.Current.Dictionary("DroppyCodeMainWindow"); }); // ED-NEW-perf-startup-structure-1: a held frame is written first
         Assert.NotNull(saved);
     }, factType: typeof(WindowManagerNativeCentringTests));
 }

@@ -720,6 +720,19 @@ public static class LoginEnvironment
         Which(name, environment, HomeDirectory);
 
     /// <summary>
+    /// PORT-ONLY (ED-NEW-perf-ui-thread-2). Everything <see cref="Which(string, IReadOnlyDictionary{string, string}?)"/> searches with when it is given no environment, as
+    /// one string: the PATHEXT, the PATH (or the augmented one when the environment has none) and the home folder a '~' expands to. A caller that remembers where a
+    /// program was found keeps this beside the answer: when it differs, the search is another search.
+    /// </summary>
+    public static string SearchSignature()
+    {
+        var searched = SearchedCurrent();
+        var home = HomeDirectory;
+        var path = searched.TryGetValue("PATH", out var value) ? value : AugmentedPath(null, home);
+        return PathExt(searched) + "\n" + path + "\n" + home;
+    }
+
+    /// <summary>
     /// :415-427 with <paramref name="home"/> as the home folder, both for augmentedPath(nil) and for a leading '~'
     /// (ED-130). The tests' seam; the public overload passes <see cref="HomeDirectory"/>.
     /// </summary>

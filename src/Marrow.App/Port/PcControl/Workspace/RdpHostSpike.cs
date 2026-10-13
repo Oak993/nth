@@ -14,13 +14,12 @@
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Platform;
 using Avalonia.Threading;
 using Marrow.App.Port.PcControl.Overlay;
 
 namespace Marrow.App.Port.PcControl.Workspace;
 
-/// <summary>NP-11: the Remote Desktop control hosted in an Avalonia window, connected to a child session, rendering while hidden.</summary>
+/// <summary>NP-11: the Remote Desktop control (RdpHost, WorkspaceView.cs) hosted in an Avalonia window, connected to a child session, rendering while hidden.</summary>
 internal sealed class RdpProbe(SpikeLog log, SpikeOptions options) : SpikeProbe(log, options)
 {
     public const string Probe = "np11-rdp";
@@ -46,9 +45,9 @@ internal sealed class RdpProbe(SpikeLog log, SpikeOptions options) : SpikeProbe(
     {
         var progId = ClassOf(Environment.GetCommandLineArgs());
         Log.Line($"thread apartment {Thread.CurrentThread.GetApartmentState()}, control class {progId}");
-        childSessions = RdpNative.WTSIsChildSessionsEnabled(out var enabled) && enabled;
+        childSessions = ChildSessionNative.WTSIsChildSessionsEnabled(out var enabled) && enabled;
         Log.Line($"WTSIsChildSessionsEnabled: {childSessions} (this probe never turns them on)");
-        if (!RdpNative.AtlAxWinInit())
+        if (!WorkspaceNative.AtlAxWinInit())
         {
             Log.Line($"AtlAxWinInit failed ({Marshal.GetLastWin32Error()}): no ActiveX container, nothing hosted");
             return;
@@ -91,7 +90,7 @@ internal sealed class RdpProbe(SpikeLog log, SpikeOptions options) : SpikeProbe(
             Log.Line($"the AtlAxWin child window was not made ({host?.Error}): nothing hosted");
             return;
         }
-        if (RdpNative.AtlAxGetControl(made.Container, out var unknown) != 0 || unknown is null)
+        if (WorkspaceNative.AtlAxGetControl(made.Container, out var unknown) != 0 || unknown is null)
         {
             Log.Line("AtlAxGetControl gave no control: the class did not load in the container");
             return;
@@ -175,9 +174,9 @@ internal sealed class RdpProbe(SpikeLog log, SpikeOptions options) : SpikeProbe(
         var shown = window!;
         var top = shown.TryGetPlatformHandle()?.Handle ?? 0;
         Phase("visible", top, () => { }, () =>
-            Phase("cloaked", top, () => Log.Line($"cloak: 0x{RdpNative.Cloak(top, true):x8}"), () =>
+            Phase("cloaked", top, () => Log.Line($"cloak: 0x{WorkspaceNative.Cloak(top, true):x8}"), () =>
             {
-                Log.Line($"uncloak: 0x{RdpNative.Cloak(top, false):x8}");
+                Log.Line($"uncloak: 0x{WorkspaceNative.Cloak(top, false):x8}");
                 Phase("minimized", top, () => shown.WindowState = WindowState.Minimized, () => shown.WindowState = WindowState.Normal);
             }));
     }
@@ -222,61 +221,9 @@ internal sealed class RdpProbe(SpikeLog log, SpikeOptions options) : SpikeProbe(
     }
 }
 
-/// <summary>The native child window ATL's container makes for the control (its window text names the class).</summary>
-internal sealed class RdpHost(string progId) : NativeControlHost
-{
-    private const uint WsChild = 0x40000000;
-    private const uint WsVisible = 0x10000000;
-    private const uint WsClipChildren = 0x02000000;
-    private const uint WsClipSiblings = 0x04000000;
-
-    public nint Container { get; private set; }
-
-    public int Error { get; private set; }
-
-    protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
-    {
-        Container = RdpNative.CreateWindowExW(0, "AtlAxWin", progId, WsChild | WsVisible | WsClipChildren | WsClipSiblings, 0, 0, 1024, 600,
-            parent.Handle, 0, RdpNative.GetModuleHandleW(null), 0);
-        if (Container != 0) return new PlatformHandle(Container, "HWND");
-        Error = Marshal.GetLastWin32Error();
-        return base.CreateNativeControlCore(parent);
-    }
-
-    protected override void DestroyNativeControlCore(IPlatformHandle control)
-    {
-        if (control.Handle != 0 && control.Handle == Container)
-        {
-            RdpNative.DestroyWindow(Container);
-            Container = 0;
-            return;
-        }
-        base.DestroyNativeControlCore(control);
-    }
-}
-
-/// <summary>The control's extended settings (mstscax.dll): "ConnectToChildSession" is set through it.</summary>
-[ComImport]
-[Guid("302D8188-0052-4807-806A-362B628F9AC5")]
-[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-internal interface IMsRdpExtendedSettings
-{
-    void put_Property([MarshalAs(UnmanagedType.BStr)] string name, [MarshalAs(UnmanagedType.Struct)] ref object value);
-
-    void get_Property([MarshalAs(UnmanagedType.BStr)] string name, [MarshalAs(UnmanagedType.Struct)] out object value);
-}
-
 internal static class RdpNative
 {
-    private const int DwmwaCloak = 13;
     private const uint PwRenderFullContent = 2;
-
-    /// <summary>Cloaks or uncloaks one of our own windows (DWMWA_CLOAK); the HRESULT.</summary>
-    public static int Cloak(nint window, bool on)
-    {
-        var value = on ? 1 : 0;
-        return DwmSetWindowAttribute(window, DwmwaCloak, ref value, sizeof(int));
-    }
 
     /// <summary>A hash of the window's pixels as PrintWindow (PW_RENDERFULLCONTENT) draws them; null when it could not.</summary>
     public static ulong? Grab(nint window)
@@ -335,31 +282,6 @@ internal static class RdpNative
         // one empty colour entry: BITMAPINFO's bmiColors[1]
         public uint Colors;
     }
-
-    [DllImport("atl.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool AtlAxWinInit();
-
-    [DllImport("atl.dll")]
-    public static extern int AtlAxGetControl(nint window, [MarshalAs(UnmanagedType.IUnknown)] out object? control);
-
-    [DllImport("wtsapi32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool WTSIsChildSessionsEnabled([MarshalAs(UnmanagedType.Bool)] out bool enabled);
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    public static extern nint CreateWindowExW(uint exStyle, string className, string windowName, uint style, int x, int y, int width, int height,
-        nint parent, nint menu, nint instance, nint param);
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool DestroyWindow(nint window);
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
-    public static extern nint GetModuleHandleW(string? module);
-
-    [DllImport("dwmapi.dll")]
-    private static extern int DwmSetWindowAttribute(nint window, int attribute, ref int value, int size);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
