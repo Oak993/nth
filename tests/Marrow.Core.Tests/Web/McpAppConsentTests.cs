@@ -189,4 +189,33 @@ public sealed class McpAppConsentTests
         Assert.DoesNotContain("appSource", plain, StringComparison.Ordinal);
         Assert.Null(System.Text.Json.JsonSerializer.Deserialize<UserMessage>(plain)!.AppSource);
     }
+
+    // ED-NEW-secfinal-42 (final security gate, N6): the grant's fingerprint was the first 16 hex digits (64 bits) of the declaration's
+    // SHA-256, so a collision (about 2^32 work) could swap one declaration for another without a new card. It is the whole hash now,
+    // and a grant saved with the short form is not a grant: the card asks again.
+    [Fact]
+    [Trait("Decision", "ED-NEW-secfinal-42")]
+    public void The_fingerprint_is_the_whole_sha_256()
+    {
+        var fingerprint = McpAppDomains.Fingerprint(Shipyard);
+        Assert.Equal(64, fingerprint.Length);
+        Assert.Matches("^[0-9a-f]{64}$", fingerprint);
+        Assert.Equal(fingerprint, McpAppDomains.Request("shipyard", "Release board", Shipyard)!.Fingerprint);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-secfinal-42")]
+    public void A_grant_saved_with_the_short_fingerprint_is_not_a_grant()
+    {
+        var full = McpAppDomains.Fingerprint(Shipyard);
+        var legacy = new McpAppDomainGrant(full[..16], Broad: true);
+        Assert.Null(McpAppDomains.Allowed(Shipyard, legacy));
+        Assert.Empty(McpAppDomains.Hosts(Shipyard, legacy));
+        Assert.Empty(McpAppDomains.FrameHosts(Shipyard with { FrameDomains = ["https://embed.shipyard.dev"] }, legacy));
+        Assert.Equal(CspBuilder.ArtifactDefault, CspBuilder.McpApp(Shipyard, McpAppDomains.Allowed(Shipyard, legacy), legacy.Broad));
+
+        var current = new McpAppDomainGrant(full, Broad: false);
+        Assert.NotNull(McpAppDomains.Allowed(Shipyard, current));
+        Assert.Null(McpAppDomains.Allowed(Shipyard with { ConnectDomains = [.. Shipyard.ConnectDomains, "https://telemetry.example"] }, current));
+    }
 }

@@ -47,4 +47,18 @@ public sealed class NthSvgRecordedMermaidTests(HeadlessSession headless)
             Assert.Equal(again, NthSvgWriter.ToMarkup(NthSvgSanitizer.Parse(again, NthSvgLimits.Renderer).Document!));
         }
     });
+
+    // ED-NEW-secfinal-44: the paint's glyph budget (200,000 characters) must not cut any real drawing. The recorded drawings of every
+    // Mermaid family, light and dark, draw all of their text and use under 1% of it.
+    [Fact]
+    [Trait("Decision", "ED-NEW-secfinal-44")]
+    public void No_recorded_mermaid_drawing_comes_near_the_glyph_budget() => headless.OnUiThread(() =>
+    {
+        foreach (var file in Recorded())
+        {
+            using var rig = new SvgRig(File.ReadAllText(file), limits: NthSvgLimits.Renderer, window: 1200, height: 900);
+            rig.Capture();
+            Assert.InRange(rig.Canvas.Glyphs, 0, NthSvgLimits.MaxPaintGlyphs / 100);
+        }
+    });
 }

@@ -27,6 +27,7 @@ public sealed class ArtifactRuntime
         Model = model;
         Tools = tools;
         Data = new ArtifactData(store);
+        Time = time ?? TimeProvider.System;
         Meter = new ArtifactModelMeter(time);
         Exporter = new ArtifactExporter(libraries, AllowedNetwork);
         Post = post ?? (static work => work());
@@ -45,6 +46,9 @@ public sealed class ArtifactRuntime
     public ArtifactData Data { get; }
 
     public ArtifactModelMeter Meter { get; }
+
+    /// <summary>The clock the bridge's pauses run on (ED-NEW-secfinal-40: the pause after a refused nth.send).</summary>
+    internal TimeProvider Time { get; }
 
     /// <summary>Every export format; a standalone page keeps the version's network grant.</summary>
     public ArtifactExporter Exporter { get; }

@@ -47,11 +47,36 @@ public sealed class NthSvgPainter(NthSvgDocument document)
     private readonly List<(Rect Bounds, Color Fill)> opaque = [];
     private NthSvgPaintContext context = new();
     private int useCount;
+    private int visited;
+    private int glyphs;
 
     public NthSvgDocument Document { get; } = document;
 
     /// <summary>Shapes and texts drawn by the last <see cref="Draw"/> (tests).</summary>
     public int Drawn { get; private set; }
+
+    /// <summary>Nodes visited by the last <see cref="Draw"/>: never more than <see cref="NthSvgLimits.MaxPaintNodes"/> (tests).</summary>
+    public int Visited => visited;
+
+    /// <summary>Characters of text drawn by the last <see cref="Draw"/>: never more than <see cref="NthSvgLimits.MaxPaintGlyphs"/> (tests).</summary>
+    public int Glyphs => glyphs;
+
+    // ED-NEW-secfinal-41: one paint visits at most MaxPaintNodes nodes; past it the rest is not drawn.
+    private bool OverBudget => visited >= NthSvgLimits.MaxPaintNodes;
+
+    // ED-NEW-secfinal-44: one paint draws at most MaxPaintGlyphs characters of text. A run that would pass the budget is not drawn, and
+    // the budget is spent, so no text after it is either.
+    private bool SpendGlyphs(int count)
+    {
+        if (glyphs + count > NthSvgLimits.MaxPaintGlyphs)
+        {
+            glyphs = NthSvgLimits.MaxPaintGlyphs;
+            return false;
+        }
+
+        glyphs += count;
+        return true;
+    }
 
     private sealed class CachedText
     {
@@ -132,6 +157,8 @@ public sealed class NthSvgPainter(NthSvgDocument document)
         context = paint;
         Drawn = 0;
         useCount = 0;
+        visited = 0;
+        glyphs = 0;
         opaque.Clear();
         if (target.Width <= 0 || target.Height <= 0) return;
         var fit = Fit(target);
@@ -145,12 +172,17 @@ public sealed class NthSvgPainter(NthSvgDocument document)
 
     private void Children(DrawingContext d, IReadOnlyList<NthSvgNode> children, State state, Matrix world, int depth)
     {
-        foreach (var child in children) Node(d, child, state, world, depth);
+        foreach (var child in children)
+        {
+            if (OverBudget) return;
+            Node(d, child, state, world, depth);
+        }
     }
 
     private void Node(DrawingContext d, NthSvgNode node, State inherited, Matrix world, int depth)
     {
-        if (depth > MaxDepth) return;
+        if (depth > MaxDepth || OverBudget) return;
+        visited++;
         var state = inherited.With(node.Style);
         var opacity = node.Style.Opacity ?? 1;
         var local = node.HasTransform ? node.Transform : Matrix.Identity;
@@ -169,14 +201,14 @@ public sealed class NthSvgPainter(NthSvgDocument document)
                 Text(d, text, state, here);
                 break;
             default:
-                Shape(d, node, state, here);
+                Shape(d, node, state, here, depth);
                 break;
         }
     }
 
     private void Use(DrawingContext d, NthSvgUse use, State state, Matrix world, int depth)
     {
-        if (++useCount > 2000 || !Document.Targets.TryGetValue(use.Target, out var target)) return;
+        if (++useCount > 2000 || OverBudget || !Document.Targets.TryGetValue(use.Target, out var target)) return;
         var shift = Matrix.CreateTranslation(use.X, use.Y);
         var here = use.X != 0 || use.Y != 0 ? shift * world : world;
         using var moved = use.X != 0 || use.Y != 0 ? d.PushTransform(shift) : default;
@@ -186,7 +218,7 @@ public sealed class NthSvgPainter(NthSvgDocument document)
 
     // ---- shapes -----------------------------------------------------------------------------------------------------
 
-    private void Shape(DrawingContext d, NthSvgNode node, State state, Matrix world)
+    private void Shape(DrawingContext d, NthSvgNode node, State state, Matrix world, int depth)
     {
         if (!state.Visible) return;
         Rect bounds;
@@ -238,7 +270,7 @@ public sealed class NthSvgPainter(NthSvgDocument document)
         if (fill is not null && state.Fill.Kind != NthSvgPaintKind.Reference && state.FillOpacity * AlphaOf(state.Fill) >= .98 && opaque.Count < 512)
             opaque.Add((bounds.TransformToAABB(world), FillColor(state.Fill)));
 
-        if (HasMarkers(state)) Markers(d, node, state, world);
+        if (HasMarkers(state)) Markers(d, node, state, world, depth);
     }
 
     private static bool HasMarkers(State s) => s.MarkerStart is not null || s.MarkerMid is not null || s.MarkerEnd is not null;
@@ -357,7 +389,7 @@ public sealed class NthSvgPainter(NthSvgDocument document)
 
     // ---- markers -----------------------------------------------------------------------------------------------------
 
-    private void Markers(DrawingContext d, NthSvgNode node, State state, Matrix world)
+    private void Markers(DrawingContext d, NthSvgNode node, State state, Matrix world, int depth)
     {
         IReadOnlyList<NthSvgPathVertex> vertices;
         switch (node)
@@ -385,16 +417,16 @@ public sealed class NthSvgPainter(NthSvgDocument document)
             default:
                 return;
         }
-        if (vertices.Count == 0) return;
-        if (state.MarkerStart is { } start) DrawMarker(d, start, vertices[0], vertices[0].Leave ?? vertices[0].Arrive, state);
+        if (vertices.Count == 0 || OverBudget) return;
+        if (state.MarkerStart is { } start) DrawMarker(d, start, vertices[0], vertices[0].Leave ?? vertices[0].Arrive, state, depth);
         if (state.MarkerMid is { } mid)
         {
-            for (var i = 1; i < vertices.Count - 1; i++) DrawMarker(d, mid, vertices[i], Bisect(vertices[i].Arrive, vertices[i].Leave), state);
+            for (var i = 1; i < vertices.Count - 1 && !OverBudget; i++) DrawMarker(d, mid, vertices[i], Bisect(vertices[i].Arrive, vertices[i].Leave), state, depth);
         }
         if (state.MarkerEnd is { } end)
         {
             var last = vertices[^1];
-            DrawMarker(d, end, last, last.Arrive ?? last.Leave, state);
+            DrawMarker(d, end, last, last.Arrive ?? last.Leave, state, depth);
         }
     }
 
@@ -414,9 +446,11 @@ public sealed class NthSvgPainter(NthSvgDocument document)
         return length < 1e-12 ? default : new Vector(v.X / length, v.Y / length);
     }
 
-    private void DrawMarker(DrawingContext d, string id, NthSvgPathVertex vertex, Vector? direction, State state)
+    // ED-NEW-secfinal-41: a marker's content is drawn one level deeper than the shape that carries the marker (it was a fixed 1), so
+    // a marker whose content points at the marker again ends at the depth limit instead of at the end of the stack.
+    private void DrawMarker(DrawingContext d, string id, NthSvgPathVertex vertex, Vector? direction, State state, int depth)
     {
-        if (!Document.Markers.TryGetValue(id, out var marker) || marker.Width <= 0 || marker.Height <= 0) return;
+        if (OverBudget || !Document.Markers.TryGetValue(id, out var marker) || marker.Width <= 0 || marker.Height <= 0) return;
         var angle = marker.Auto ? (direction is { } v ? Math.Atan2(v.Y, v.X) : 0) : marker.Angle * Math.PI / 180;
         var unit = marker.UserSpace ? 1 : state.StrokeWidth;
         var box = marker.ViewBox ?? new Rect(0, 0, marker.Width, marker.Height);
@@ -430,7 +464,7 @@ public sealed class NthSvgPainter(NthSvgDocument document)
             * Matrix.CreateTranslation(vertex.Point.X, vertex.Point.Y);
         using var moved = d.PushTransform(matrix);
         var saved = opaque.Count;
-        Children(d, marker.Content.Children, State.Initial.With(marker.Content.Style), matrix, 1);
+        Children(d, marker.Content.Children, State.Initial.With(marker.Content.Style), matrix, depth + 1);
         if (opaque.Count > saved) opaque.RemoveRange(saved, opaque.Count - saved);
     }
 
@@ -466,6 +500,7 @@ public sealed class NthSvgPainter(NthSvgDocument document)
             x += run.DxEm ? run.Dx * runState.FontSize : run.Dx;
             y += run.DyEm ? run.Dy * runState.FontSize : run.Dy;
             if (run.Text.Length == 0) continue;
+            if (!SpendGlyphs(run.Text.Length)) break;
             var formatted = Layout(run, runState, new Rect(x, y, 1, 1), world);
             placed.Add(new Placed(run, formatted, x, y, chunk, runState.Anchor));
             x += formatted.WidthIncludingTrailingWhitespace;

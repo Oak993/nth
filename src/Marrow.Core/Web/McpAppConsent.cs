@@ -197,7 +197,11 @@ public static class McpAppDomains
     /// <summary>How much of an entry's path a card shows before it cuts it.</summary>
     public const int MaxPathShown = 40;
 
-    /// <summary>The declaration's fingerprint: any change to any list (order aside) asks again.</summary>
+    /// <summary>
+    /// The declaration's fingerprint: any change to any list (order aside) asks again. ED-NEW-secfinal-42 (final security gate, N6):
+    /// the whole SHA-256 as 64 lower-case hex digits (it was cut to the first 16, 64 bits, which a collision of about 2^32 work
+    /// beats). A grant saved with the short form never equals it, so it is no grant and the card asks again.
+    /// </summary>
     public static string Fingerprint(McpUiCsp declared)
     {
         ArgumentNullException.ThrowIfNull(declared);
@@ -206,7 +210,7 @@ public static class McpAppDomains
         var text = string.Join("\n",
             Part("connect", declared.ConnectDomains), Part("resource", declared.ResourceDomains),
             Part("frame", declared.FrameDomains), Part("base", declared.BaseUriDomains));
-        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)))[..16];
+        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
     }
 
     /// <summary>The allow-list a grant stands for: the declaration itself when the fingerprint still matches, else nothing.</summary>

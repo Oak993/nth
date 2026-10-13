@@ -79,6 +79,7 @@ public sealed class ArtifactBridgeTests
     [InlineData("complete")]
     [InlineData("callTool")]
     [InlineData("files.pick")]
+    [InlineData("send")] // ED-NEW-secfinal-40: a send now waits for its card
     public void Every_pending_bridge_kind_keeps_the_engine_through_consent_or_file_pick(string type)
     {
         using var rig = new ArtifactRuntimeRig();
@@ -91,6 +92,7 @@ public sealed class ArtifactBridgeTests
         rig.Host.HeldFiles = new TaskCompletionSource<IReadOnlyList<ArtifactPickedFile>>();
         if (type == "complete") Call(mount, view, 1, type, new { messages = new[] { new { role = "user", content = "fixture" } } });
         else if (type == "callTool") Call(mount, view, 1, type, new { server = "fixture", tool = "fixture" });
+        else if (type == "send") Call(mount, view, 1, type, new { text = "fixture" });
         else Call(mount, view, 1, type);
         surface.SetShown(false);
         for (var i = 0; i < 9; i++) rig.Web.OpenLive();
@@ -361,5 +363,79 @@ public sealed class ArtifactBridgeTests
         ArtifactRuntimeRig.Send(mount, view, new { nth = 1, s = "doc1", type = "ready", title = "Weather" });
         Assert.Equal([new ArtifactRuntimeError("x is not defined", "at app.js:1")], errors);
         Assert.Equal(["Weather"], ready);
+    }
+
+    // ED-NEW-secfinal-40 (final security gate, N4): nth.send used to add the page's text to the owner's draft with no click.
+    // Each send now meets nth's own card first; only its button adds the text.
+    [Fact]
+    [Trait("Decision", "ED-NEW-secfinal-40")]
+    public void Send_adds_nothing_to_the_draft_until_the_user_presses_the_card_and_a_no_adds_nothing()
+    {
+        var (rig, mount, view) = Open();
+        using var _ = rig;
+        rig.Host.HeldConsent = new TaskCompletionSource<bool>();
+        Call(mount, view, 1, "send", new { text = "Summarise these results" });
+        Assert.Equal([(mount.Artifact, "Summarise these results")], rig.Host.DraftConsents);
+        Assert.Empty(rig.Host.Drafts);
+        Assert.DoesNotContain(ArtifactRuntimeRig.Posts(view), p => p["id"]?.GetValue<long>() == 1);
+        rig.Host.HeldConsent.SetResult(true);
+        Assert.Equal([(mount.Artifact, "Summarise these results")], rig.Host.Drafts);
+        Assert.True(ArtifactRuntimeRig.Reply(view, 1)["ok"]!.GetValue<bool>());
+
+        rig.Host.HeldConsent = null;
+        rig.Host.AllowDraft = false;
+        Call(mount, view, 2, "send", new { text = "Not wanted" });
+        Assert.Equal(2, rig.Host.DraftConsents.Count);
+        Assert.Single(rig.Host.Drafts);
+        Assert.Equal(ArtifactBridgeErrors.Denied, Error(view, 2));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-secfinal-40")]
+    public void One_send_waits_for_its_card_at_a_time_and_a_no_pauses_the_artifacts_sends_for_ten_seconds()
+    {
+        var (rig, mount, view) = Open();
+        using var _ = rig;
+        rig.Host.HeldConsent = new TaskCompletionSource<bool>();
+        Call(mount, view, 1, "send", new { text = "first" });
+        Call(mount, view, 2, "send", new { text = "second" });
+        Assert.Single(rig.Host.DraftConsents);
+        Assert.Equal(ArtifactBridgeErrors.RateLimited, Error(view, 2));
+        Assert.Empty(rig.Host.Drafts);
+
+        rig.Host.HeldConsent.SetResult(false);
+        Assert.Equal(ArtifactBridgeErrors.Denied, Error(view, 1));
+        rig.Host.HeldConsent = null;
+        rig.Advance(TimeSpan.FromSeconds(9));
+        Call(mount, view, 3, "send", new { text = "third" });
+        Assert.Single(rig.Host.DraftConsents);
+        Assert.Equal(ArtifactBridgeErrors.RateLimited, Error(view, 3));
+
+        rig.Advance(TimeSpan.FromSeconds(2));
+        Call(mount, view, 4, "send", new { text = "fourth" });
+        Assert.Equal(2, rig.Host.DraftConsents.Count);
+        Assert.Equal([(mount.Artifact, "fourth")], rig.Host.Drafts);
+        Assert.True(ArtifactRuntimeRig.Reply(view, 4)["ok"]!.GetValue<bool>());
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-secfinal-40")]
+    public void A_page_that_reloads_while_its_card_is_up_closes_the_card_without_starting_the_pause()
+    {
+        var (rig, mount, view) = Open();
+        using var _ = rig;
+        rig.Host.HeldConsent = new TaskCompletionSource<bool>();
+        rig.Host.CancelAsNo = true;
+        Call(mount, view, 1, "send", new { text = "first" });
+        Assert.Single(rig.Host.DraftConsents);
+        view.RaiseNavigationStarting(mount.Address, userInitiated: false); // the page leaves: its calls stop and the card closes as a no
+        Assert.Empty(rig.Host.Drafts);
+
+        rig.Host.HeldConsent = null;
+        rig.Host.CancelAsNo = false;
+        Call(mount, view, 2, "send", new { text = "second" }, session: "doc2");
+        Assert.Equal(2, rig.Host.DraftConsents.Count);
+        Assert.Equal([(mount.Artifact, "second")], rig.Host.Drafts);
+        Assert.True(ArtifactRuntimeRig.Reply(view, 2)["ok"]!.GetValue<bool>());
     }
 }

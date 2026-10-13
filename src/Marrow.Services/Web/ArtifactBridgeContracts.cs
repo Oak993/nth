@@ -76,6 +76,12 @@ public interface IArtifactBridgeHost
     /// <summary>nth's own "Choose a file" sheet over the pane; empty when the user cancels.</summary>
     Task<IReadOnlyList<ArtifactPickedFile>> PickFilesAsync(ArtifactAddress artifact, string accept, bool multiple, bool fromDrop, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// ED-NEW-secfinal-40 (final security gate, N4): nth's own card over the pane, for each <c>nth.send</c>: "This artifact wants
+    /// to add to your message", with how the text starts. True only when the user presses its button; the page cannot answer it.
+    /// </summary>
+    Task<bool> ConfirmDraftAsync(ArtifactAddress artifact, string text, CancellationToken cancellationToken);
+
     /// <summary>Puts <paramref name="text"/> in the main composer as a draft; the user sends.</summary>
     void Draft(ArtifactAddress artifact, string text);
 
@@ -95,6 +101,8 @@ public sealed class UnboundArtifactBridgeHost : IArtifactBridgeHost
 
     public Task<IReadOnlyList<ArtifactPickedFile>> PickFilesAsync(ArtifactAddress artifact, string accept, bool multiple, bool fromDrop, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<ArtifactPickedFile>>([]);
+
+    public Task<bool> ConfirmDraftAsync(ArtifactAddress artifact, string text, CancellationToken cancellationToken) => Task.FromResult(false);
 
     public void Draft(ArtifactAddress artifact, string text) { }
 
