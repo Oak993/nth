@@ -16,6 +16,12 @@ public interface ITeamSource
     /// <summary>Something the snapshot reads changed (raised on the UI thread).</summary>
     event Action? Changed;
 
+    /// <summary>
+    /// The id of the Astur a task belongs to; null when the task is Dextra's own (or belongs to nobody, or to an Astur that is retired). Dextra's Missions group in the sidebar lists the tasks
+    /// this answers null for; each Astur's lists its own.
+    /// </summary>
+    string? AsturOf(Guid mission);
+
     /// <summary>Pauses the tasks of one assistant that can pause; the line says what it did.</summary>
     string PauseTasks(string assistantId);
 
@@ -68,9 +74,13 @@ public sealed class TeamSource : ITeamSource, IDisposable
     {
         var profiles = team();
         var root = profiles.FirstOrDefault(p => p.IsRoot)?.Id ?? "";
-        var all = jobs.Snapshot(SwiftClock.Provider.Current.GetUtcNow()).Select(j => (ownerOf(j.Id) ?? root, j)).ToList();
-        return TeamSnapshot.Build(profiles, all, decisions.Waiting, usage?.Invoke(), controls.Stopped is not null, facts);
+        var now = SwiftClock.Provider.Current.GetUtcNow();
+        var all = jobs.Snapshot(now).Select(j => (ownerOf(j.Id) ?? root, j)).ToList();
+        return TeamSnapshot.Build(profiles, all, decisions.Waiting, usage?.Invoke(), controls.Stopped is not null, facts, now);
     }
+
+    public string? AsturOf(Guid mission) =>
+        ownerOf(mission) is { } owner && team().FirstOrDefault(p => p.Id == owner) is { IsRoot: false, Retired: false } ? owner : null;
 
     public string PauseTasks(string assistantId)
     {

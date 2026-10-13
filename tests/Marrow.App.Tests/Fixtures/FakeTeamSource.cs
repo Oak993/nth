@@ -28,6 +28,11 @@ public sealed class FakeTeamSource : ITeamSource
 
     public void Raise() => Changed?.Invoke();
 
+    /// <summary>Which Astur owns a task: nobody's by default, so Dextra's Missions group lists every task.</summary>
+    public Func<Guid, string?> Owners { get; set; } = _ => null;
+
+    public string? AsturOf(Guid mission) => Owners(mission);
+
     public string PauseTasks(string assistantId)
     {
         Calls.Add("Pause " + assistantId);

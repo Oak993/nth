@@ -15,6 +15,8 @@ public sealed class DisposableTeamSource(ITeamSource inner) : ITeamSource, IDisp
 
     public TeamSnapshot Now() => inner.Now();
 
+    public string? AsturOf(Guid mission) => inner.AsturOf(mission);
+
     public string PauseTasks(string assistantId) => inner.PauseTasks(assistantId);
 
     public string ResumeTasks(string assistantId) => inner.ResumeTasks(assistantId);

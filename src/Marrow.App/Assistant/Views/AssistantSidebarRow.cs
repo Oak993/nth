@@ -1,6 +1,6 @@
 // PORT-ONLY: Dextra AS-8 (DESIGN.md rev 5, 2.1 "Sidebar": the pinned Assistant row above "Needs attention" with Armilla at
 // 24 px in its small form, the name, one live status line and a count badge for open decisions; the collapsed "Missions" group
-// of the lead chats the Assistant starts, remembered; the right-click menu Open, Talk, Stop all, Pause all, Pause duties for
+// of the lead chats the Assistant starts for its own tasks (an Astur's are under its row, AS-17), remembered; the right-click menu Open, Talk, Stop all, Pause all, Pause duties for
 // 1 hour, Settings; ED-NEW-dextra-as8-8). No Swift twin.
 // The row reads the host's one set of sources (DextraLive), so the sidebar and the home never disagree. Its fill follows the
 // sidebar's own rows (hover 6 %, selected 12 %, radius 7, continuous corners); its mark joins the window's motion budget as an
@@ -66,9 +66,8 @@ public sealed class AssistantSidebarRow : Decorator
     private readonly StackPanel stack;
     private readonly IBrush hoverFill;
     private readonly IBrush selectedFill;
-    private readonly StackPanel missionRows = new() { Spacing = 1 };
-    private readonly RevealBox missionsReveal = new();
-    private readonly Dictionary<Guid, (Button Button, ArmillaMark Mark, TextBlock Title)> missionLines = [];
+    private readonly MissionChatsGroup missions;
+    private ITeamSource? team;
     private DextraLive live = DextraLive.Idle;
     private MotionScope.Entry? budget;
     private bool selected;
@@ -118,36 +117,18 @@ public sealed class AssistantSidebarRow : Decorator
         Menu.Opening += (_, _) => FillMenu();
         Button.ContextMenu = Menu;
 
-        // The Missions group: a disclosure line with its count, then one line per mission's lead chat.
-        var chevron = TaskLook.Chevron();
-        MissionsLabel = new TextBlock { Text = "Missions", VerticalAlignment = VerticalAlignment.Center };
-        SwiftFont.System(12, SwiftFont.Weight.Medium).MonospacedDigit().Apply(MissionsLabel);
-        MissionsLabel.Foreground = Chrome.SecondaryText.Brush(MissionsLabel);
-        var toggleFace = new Border
-        {
-            Height = 24,
-            Padding = new Thickness(Chrome.RowHorizontalPadding + 4, 0, Chrome.RowHorizontalPadding, 0),
-            Background = Brushes.Transparent,
-            Child = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { chevron, MissionsLabel } },
-        };
-        MissionsToggle = new DisclosureButton { Content = toggleFace, Padding = default, Background = Brushes.Transparent, BorderThickness = default, HorizontalAlignment = HorizontalAlignment.Stretch };
-        MissionsToggle.KeyboardFocus(Chrome.RowCornerRadius);
-        MissionsToggle.Click += (_, _) =>
-        {
-            var open = !MissionsToggle.IsExpanded;
-            this.actions.SetCollapsed?.Invoke(!open);
-            ShowMissionsOpen(open, TaskLook.Still(this));
-        };
-        missionsReveal.Child = new StackPanel { Margin = new Thickness(8, 1, 0, 2), Children = { missionRows } };
-        MissionsGroup = new StackPanel { Spacing = 0, Children = { MissionsToggle, missionsReveal } };
-        Chevron = chevron;
+        // The Missions group: a disclosure line with its count, then one line per mission's lead chat (the tasks Dextra owns itself; each Astur's are under its own row).
+        missions = new MissionChatsGroup(id => this.actions.OpenChat?.Invoke(id), this.actions.Collapsed, c => this.actions.SetCollapsed?.Invoke(c));
 
         // The badge and the Missions group join the row the first time they have something to show: a part that was never shown is not
         // kept, hidden and never measured, in the tree.
         stack = new StackPanel { Spacing = 1, Children = { Button } };
         Child = stack;
-        Asturs = new AsturTree((this.actions.Asturs ?? new AsturTreeActions()) with { Said = this.actions.Asturs?.Said ?? this.actions.Said });
-        ShowMissionsOpen(!(this.actions.Collapsed?.Invoke() ?? true), still: true);
+        Asturs = new AsturTree((this.actions.Asturs ?? new AsturTreeActions()) with
+        {
+            Said = this.actions.Asturs?.Said ?? this.actions.Said,
+            OpenChat = this.actions.Asturs?.OpenChat ?? (id => this.actions.OpenChat?.Invoke(id)),
+        });
         Refresh();
     }
 
@@ -166,21 +147,21 @@ public sealed class AssistantSidebarRow : Decorator
 
     public ContextMenu Menu { get; }
 
-    public StackPanel MissionsGroup { get; }
+    public StackPanel MissionsGroup => missions.Root;
 
     /// <summary>The Asturs under the row (AS-17): hidden while there are none, and joined to the row when the first source is bound.</summary>
     public AsturTree Asturs { get; }
 
-    public DisclosureButton MissionsToggle { get; }
+    public DisclosureButton MissionsToggle => missions.Toggle;
 
-    public TextBlock MissionsLabel { get; }
+    public TextBlock MissionsLabel => missions.Label;
 
-    internal Avalonia.Controls.Shapes.Path Chevron { get; }
+    internal Avalonia.Controls.Shapes.Path Chevron => missions.Chevron;
 
     /// <summary>The lead-chat lines of the Missions group, newest first (live ones before finished ones).</summary>
-    public IReadOnlyList<Button> MissionButtons => [.. missionRows.Children.OfType<Button>()];
+    public IReadOnlyList<Button> MissionButtons => missions.Buttons;
 
-    public bool MissionsOpen => MissionsToggle.IsExpanded;
+    public bool MissionsOpen => missions.IsOpen;
 
     /// <summary>The home is in the main area.</summary>
     public bool IsSelected
@@ -210,7 +191,7 @@ public sealed class AssistantSidebarRow : Decorator
     // the Asturs read a team made over the new sources (the tree lets the old one go); a tree that never had one is not kept in the row
     private void BindAsturs()
     {
-        var team = actions.Team?.Invoke(live);
+        team = actions.Team?.Invoke(live);
         if (team is not null && Asturs.Parent is null) stack.Children.Insert(Math.Min(1, stack.Children.Count), Asturs);
         Asturs.Bind(team, owned: true);
     }
@@ -234,60 +215,14 @@ public sealed class AssistantSidebarRow : Decorator
         budget?.Changed();
     }
 
+    // Dextra's group lists the tasks it owns itself: a task an Astur owns is listed under that Astur's row (2.1: "under the assistant that owns them")
     private void ShowMissions(IReadOnlyList<MissionJob> jobs)
     {
-        var today = TaskWords.Local(SwiftClock.Provider.Current.GetUtcNow()).Date;
-        var shown = jobs.Where(j => j.LeadThread is not null && (j.Group != BoardGroup.DoneToday || j.Ended is { } ended && TaskWords.Local(ended).Date == today))
-            .OrderBy(j => j.Group == BoardGroup.DoneToday ? 1 : 0).ThenByDescending(j => j.Created).ToList();
-        if (shown.Count > 0 && MissionsGroup.Parent is null) stack.Children.Add(MissionsGroup);
-        MissionsGroup.IsVisible = shown.Count > 0;
-        MissionsLabel.Text = shown.Count == 0 ? "Missions" : "Missions  " + shown.Count.ToString(System.Globalization.CultureInfo.CurrentCulture);
-        AutomationProperties.SetName(MissionsToggle, (MissionsToggle.IsExpanded ? "Hide" : "Show") + " missions, " + shown.Count.ToString(System.Globalization.CultureInfo.CurrentCulture));
-        var keep = shown.Select(j => j.Id).ToHashSet();
-        foreach (var gone in missionLines.Keys.Where(id => !keep.Contains(id)).ToList()) missionLines.Remove(gone);
-        missionRows.Children.Clear();
-        foreach (var job in shown)
-        {
-            if (!missionLines.TryGetValue(job.Id, out var line)) missionLines[job.Id] = line = MissionLine(job);
-            TaskMark.Show(line.Mark, job);
-            line.Title.Text = job.Title;
-            AutomationProperties.SetName(line.Button, job.Title + ", " + MissionStates.Label(job.State));
-            line.Mark.Calm = calm;
-            missionRows.Children.Add(line.Button);
-        }
-    }
-
-    private (Button Button, ArmillaMark Mark, TextBlock Title) MissionLine(MissionJob job)
-    {
-        var mark = TaskMark.Make();
-        AutomationProperties.SetAccessibilityView(mark, AccessibilityView.Raw);
-        var title = new TextBlock { MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
-        SwiftFont.System(12.5).Apply(title);
-        title.Foreground = Chrome.PrimaryText.Opacity(.92).Brush(title);
-        var face = new Border
-        {
-            Height = Chrome.RowHeight,
-            Padding = new Thickness(Chrome.RowHorizontalPadding, 0),
-            Background = Brushes.Transparent,
-            Child = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { mark, title } },
-        };
-        face.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous);
-        var hot = Chrome.Overlay(.06).Brush(face);
-        var lead = job.LeadThread!.Value;
-        var button = PlainControls.Button(face, () => actions.OpenChat?.Invoke(lead));
-        button.KeyboardFocus(Chrome.RowCornerRadius);
-        button.HorizontalAlignment = HorizontalAlignment.Stretch;
-        button.HorizontalContentAlignment = HorizontalAlignment.Stretch;
-        button.PointerEntered += (_, _) => face.Background = hot;
-        button.PointerExited += (_, _) => face.Background = Brushes.Transparent;
-        return (button, mark, title);
-    }
-
-    private void ShowMissionsOpen(bool open, bool still)
-    {
-        MissionsToggle.IsExpanded = open;
-        missionsReveal.Open(open, still);
-        TaskLook.Turn(Chevron, open, still);
+        var own = team is null ? jobs : [.. jobs.Where(j => team.AsturOf(j.Id) is null)];
+        var shown = SidebarChats.Of(own, SwiftClock.Provider.Current.GetUtcNow());
+        if (shown.Count > 0 && missions.Root.Parent is null) stack.Children.Add(missions.Root);
+        missions.Root.IsVisible = shown.Count > 0;
+        missions.Show(shown);
     }
 
     /// <summary>The menu's items now (2.1): Open, Talk, Stop all, Pause all (Resume all once every task is paused), Pause duties for 1 hour, Settings.</summary>
@@ -334,13 +269,13 @@ public sealed class AssistantSidebarRow : Decorator
         Refresh();
         if (TopLevel.GetTopLevel(this) is { } top)
             budget = MotionScope.For(top).Join(ArmillaListRank.Other,
-                () => IsEffectivelyVisible ? (Mark.Moves ? 1 : 0) + (MissionsOpen ? missionLines.Values.Count(l => l.Mark.Moves) : 0) : 0,
+                () => IsEffectivelyVisible ? (Mark.Moves ? 1 : 0) + missions.MovingMarks + Asturs.MovingMarks : 0,
                 () => IsEffectivelyVisible, c =>
                 {
                     calm = c;
                     Mark.Calm = c;
                     Asturs.Calm = c;
-                    foreach (var line in missionLines.Values) line.Mark.Calm = c;
+                    missions.Calm = c;
                 });
     }
 

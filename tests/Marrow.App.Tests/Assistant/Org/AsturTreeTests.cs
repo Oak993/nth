@@ -60,7 +60,7 @@ public sealed class AsturTreeTests(HeadlessSession headless)
                 Assert.Equal(new Size(20, 20), r.Mark.Bounds.Size);
                 Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(r.Mark));
                 Assert.False(r.Mark.Moves);
-                Assert.Equal(42, r.Bounds.Height, 1);                                              // the face and its 1 px above and below
+                Assert.Equal(42, r.Button.Bounds.Height, 1);                                       // the face and its 1 px above and below (the row is taller by its Missions group)
             });
             Assert.Equal([ArmillaShape.Squircle, ArmillaShape.Hexagon, ArmillaShape.Diamond], tree.Rows.Select(r => r.Mark.Shape));
             Assert.Equal([AsturMarkState.Working, AsturMarkState.Idle, AsturMarkState.Waiting], tree.Rows.Select(r => r.Mark.State));
@@ -81,9 +81,17 @@ public sealed class AsturTreeTests(HeadlessSession headless)
             var source = Source(Team(ChannelA, ChannelB));
             var tree = new AsturTree(source);
             using var stage = new HomeStage(new StackPanel { Width = 260, Children = { tree } }, 300, 400);
+            var faces = tree.Rows.Select(r => stage.Box(r.Button)).ToList();
+
+            // the first task gives Channel A its Missions group (ED-NEW-dextra-as17-10), which the rows below it follow; its face stays where and as big as it was
+            source.Set(TeamSnapshot.Build(Team(ChannelA, ChannelB), [Task("a", new string('x', 200), MissionState.Working)], []));
+            stage.Layout();
+            Assert.Equal(faces[0], stage.Box(tree.Rows[0].Button));
+            Assert.Equal(faces[1].Size, stage.Box(tree.Rows[1].Button).Size);
             var boxes = tree.Rows.Select(r => stage.Box(r)).ToList();
 
-            foreach (var state in new[] { MissionState.Working, MissionState.NeedsYou, MissionState.Paused, MissionState.Stopped, MissionState.Blocked, MissionState.Done })
+            // after that no change of state moves or resizes a row
+            foreach (var state in new[] { MissionState.NeedsYou, MissionState.Paused, MissionState.Stopped, MissionState.Blocked, MissionState.Done, MissionState.Working })
             {
                 source.Set(TeamSnapshot.Build(Team(ChannelA, ChannelB), [Task("a", new string('x', 200), state)], state == MissionState.NeedsYou ? [Card("a", "Send")] : []));
                 stage.Layout();
@@ -305,7 +313,7 @@ public sealed class AsturTreeTests(HeadlessSession headless)
             Assert.All(tree.Rows, r => Assert.True(r.Mark.SentLook is null || r.Mark.SentLook.Reduce));
             var past = Nodes<Control>(tree).Where(c => c.IsEffectivelyVisible && c.Bounds.Width > 0 && c.IsAttachedToVisualTree() && stage.Box(c).Right > 240.5).Select(c => c.GetType().Name + " " + stage.Box(c)).ToList();
             Assert.True(past.Count == 0, string.Join(" | ", past));
-            Assert.Equal(42, tree.Rows[0].Bounds.Height, 1);
+            Assert.Equal(42, tree.Rows[0].Button.Bounds.Height, 1);
         });
     }
 }

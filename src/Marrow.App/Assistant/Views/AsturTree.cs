@@ -36,6 +36,9 @@ public sealed record AsturTreeActions
 
     /// <summary>What a control's answer says (the window's live region, if any).</summary>
     public Action<string>? Said { get; init; }
+
+    /// <summary>Opens a task's lead chat (a line of an Astur's Missions group); the Assistant row's own is used when this is not given.</summary>
+    public Action<Guid>? OpenChat { get; init; }
 }
 
 /// <summary>The tree line of a row: the trunk comes down from above, bends in an elbow into the last row, and goes on past the others with a tick into each.</summary>
@@ -47,6 +50,9 @@ internal sealed class TreeElbow : Control
 
     private readonly IPen pen;
     private bool last;
+
+    /// <summary>Where the tick leaves the trunk into the row's face: the row may have its Missions group under it, and the trunk goes on past that.</summary>
+    public const double TickY = AsturRow.FaceHeight / 2 + 1;
 
     public TreeElbow()
     {
@@ -71,7 +77,7 @@ internal sealed class TreeElbow : Control
 
     public override void Render(DrawingContext context)
     {
-        var mid = Bounds.Height / 2;
+        var mid = TickY;
         var tick = Gutter - 3;
         if (last)
         {
@@ -107,6 +113,8 @@ public sealed class AsturRow : Decorator
     private readonly TextBlock name = new() { MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly TextBlock line = new() { MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly TextBlock badgeText = new() { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+    private readonly MissionChatsGroup chats;
+    private readonly RevealBox chatsReveal = new();
     private bool hovering;
     private bool selected;
 
@@ -150,11 +158,18 @@ public sealed class AsturRow : Decorator
         Menu.Opening += (_, _) => FillMenu();
         Button.ContextMenu = Menu;
 
+        // the Astur's own Missions group hangs under its face (2.1: "under the assistant that owns them"), collapsed until opened; the trunk goes on beside it
+        chats = new MissionChatsGroup(this.actions.OpenChat, indent: 12, lineIndent: 6);
+        chatsReveal.Child = chats.Root;
         Elbow = new TreeElbow();
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), RowDefinitions = new RowDefinitions("Auto,Auto") };
         Grid.SetColumn(Button, 1);
+        Grid.SetRowSpan(Elbow, 2);
+        Grid.SetColumn(chatsReveal, 1);
+        Grid.SetRow(chatsReveal, 1);
         row.Children.Add(Elbow);
         row.Children.Add(Button);
+        row.Children.Add(chatsReveal);
         Reveal = new RevealBox { Child = row };
         Child = Reveal;
     }
@@ -166,6 +181,12 @@ public sealed class AsturRow : Decorator
     public AsturMark Mark { get; }
 
     public Button Button { get; }
+
+    /// <summary>The Astur's own Missions group, under its face while it has a lead chat to list.</summary>
+    public MissionChatsGroup Chats => chats;
+
+    /// <summary>The group's reveal: open while there is a chat to list (tests read it).</summary>
+    internal RevealBox ChatsReveal => chatsReveal;
 
     public Border Badge { get; }
 
@@ -199,12 +220,15 @@ public sealed class AsturRow : Decorator
         }
     }
 
-    public void Show(TeamMember next)
+    public void Show(TeamMember next, bool still = true)
     {
         if (Member == next) return;
         Member = next;
         Id = next.Id;
         name.Text = next.Name;
+        chats.OwnerName = next.Name;
+        chats.Show(next.Chats);
+        chatsReveal.Open(next.Chats.Count > 0, still);
         line.Text = next.Work;
         Mark.Shape = AsturMarkStates.ShapeOf(next.Shape);
         Mark.State = next.MarkState;
@@ -214,6 +238,22 @@ public sealed class AsturRow : Decorator
         AutomationProperties.SetName(Button, next.Reading);
         AutomationProperties.SetHelpText(Button, next.Waiting == 0 ? "No decisions open" : ControlWords.Plural(next.Waiting, "decision") + " open");
     }
+
+    /// <summary>The motion budget stilled the sidebar's list: the marks show their still poses.</summary>
+    public bool Calm
+    {
+        set
+        {
+            Mark.Calm = value;
+            chats.Calm = value;
+        }
+    }
+
+    /// <summary>How many of this row's marks move now (its own never does; its Missions group's task marks may).</summary>
+    public int MovingMarks => chats.MovingMarks;
+
+    /// <summary>The controls the Up and Down keys walk in this row: its face, then its Missions group.</summary>
+    internal IEnumerable<Control> Stops() => [Button, .. chats.Stops()];
 
     /// <summary>The menu's items now: Open, Pause or Resume its tasks, Show in Team.</summary>
     public IReadOnlyList<MenuItem> MenuItems()
@@ -336,9 +376,12 @@ public sealed class AsturTree : Decorator
         set
         {
             calm = value;
-            foreach (var row in order) row.Mark.Calm = value;
+            foreach (var row in order) row.Calm = value;
         }
     }
+
+    /// <summary>How many marks of the tree move now (the Asturs' own never do; the task marks of their Missions groups may); zero while it is folded or hidden.</summary>
+    public int MovingMarks => IsVisible && Toggle.IsExpanded ? order.Sum(r => r.MovingMarks) : 0;
 
     /// <summary>Reads the team and shows the Asturs; the group is hidden while there are none.</summary>
     public void Refresh()
@@ -363,7 +406,7 @@ public sealed class AsturTree : Decorator
             if (!byId.TryGetValue(astur.Id, out var row))
             {
                 row = new AsturRow(source!, actions);
-                row.Mark.Calm = calm;
+                row.Calm = calm;
                 row.Reveal.Open(false, still: true);
                 byId[astur.Id] = row;
                 row.Show(astur);
@@ -373,7 +416,7 @@ public sealed class AsturTree : Decorator
             }
             else
             {
-                row.Show(astur);
+                row.Show(astur, still);
                 var at = order.IndexOf(row);
                 if (at != index)
                 {
@@ -446,7 +489,7 @@ public sealed class AsturTree : Decorator
         base.OnKeyDown(e);
         if (e.Handled || e.Key is not (Key.Up or Key.Down)) return;
         var stops = new List<Control> { Toggle };
-        if (Toggle.IsExpanded) stops.AddRange(order.Select(r => (Control)r.Button));
+        if (Toggle.IsExpanded) stops.AddRange(order.SelectMany(r => r.Stops()));
         var at = stops.FindIndex(c => c.IsFocused);
         if (at < 0) return;
         var to = Math.Clamp(at + (e.Key == Key.Down ? 1 : -1), 0, stops.Count - 1);
