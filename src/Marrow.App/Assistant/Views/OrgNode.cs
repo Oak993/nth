@@ -111,8 +111,10 @@ public sealed class OrgNode : Decorator
         Face.KeyboardFocus(Radius);
         Face.Choose = () => choose?.Invoke(this);
         Face.Click += (_, _) => choose?.Invoke(this);
-        face.PointerEntered += (_, _) => Lift(true);
-        face.PointerExited += (_, _) => Lift(false);
+        // The hit surface stays put while only the card lifts: the bottom strip must not exit its own hover.
+        var hitSurface = new Border { Background = Brushes.Transparent, Child = face };
+        hitSurface.PointerEntered += (_, _) => Lift(true);
+        hitSurface.PointerExited += (_, _) => Lift(false);
 
         name.TextAlignment = TextAlignment.Center;
         work.TextAlignment = TextAlignment.Center;
@@ -145,7 +147,7 @@ public sealed class OrgNode : Decorator
         face.Children.Add(Face);
         face.Children.Add(content);
         face.RenderTransform = new TranslateTransform();
-        Child = face;
+        Child = hitSurface;
         HorizontalAlignment = HorizontalAlignment.Stretch;
         AutomationProperties.SetAccessibilityView(content, AccessibilityView.Raw);
     }

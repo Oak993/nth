@@ -22,6 +22,9 @@ public sealed class OrgConnectors : Control
     private readonly IPen pen;
     private OrgPlan? plan;
     private Geometry? geometry;
+    private OrgPlan? pendingPlan;
+    private bool settling;
+    private long settleSerial;
 
     public OrgConnectors()
     {
@@ -41,6 +44,7 @@ public sealed class OrgConnectors : Control
 
     public void Show(OrgPlan next)
     {
+        if (settling) { pendingPlan = next; return; }
         if (ReferenceEquals(plan, next)) return;
         plan = next;
         geometry = Build(next);
@@ -54,20 +58,35 @@ public sealed class OrgConnectors : Control
     {
         coming?.Dispose();
         coming = null;
-        Transitions = null;
+        var serial = ++settleSerial;
         if (still)
         {
+            settling = false;
+            FlushPlan();
+            Transitions = null;
             Opacity = 1;
             return;
         }
+        settling = true;
+        // Keep a running transition on interruptions so its current opacity is the new start.
+        Transitions ??= [new DoubleTransition { Property = OpacityProperty, Duration = TimeSpan.FromMilliseconds(260), Easing = new Avalonia.Animation.Easings.SplineEasing(.32, .72, 0, 1) }];
         Opacity = 0;
         coming = SwiftClock.Provider.Current.CreateTimer(_ => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
+            if (serial != settleSerial) return;
             coming?.Dispose();
             coming = null;
-            Transitions = [new DoubleTransition { Property = OpacityProperty, Duration = TimeSpan.FromMilliseconds(260), Easing = new Avalonia.Animation.Easings.SplineEasing(.32, .72, 0, 1) }];
+            settling = false;
+            FlushPlan();
             Opacity = 1;
         }), null, wait, Timeout.InfiniteTimeSpan);
+    }
+
+    private void FlushPlan()
+    {
+        var next = pendingPlan;
+        pendingPlan = null;
+        if (next is not null) Show(next);
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
@@ -75,6 +94,11 @@ public sealed class OrgConnectors : Control
         base.OnDetachedFromVisualTree(e);
         coming?.Dispose();
         coming = null;
+        ++settleSerial;
+        settling = false;
+        FlushPlan();
+        Transitions = null;
+        Opacity = 1;
     }
 
     public override void Render(DrawingContext context)

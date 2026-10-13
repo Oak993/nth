@@ -182,6 +182,8 @@ public sealed class OrgChart : Decorator
             }
             order.Add(node);
         }
+        // Fade the currently drawn lines before layout supplies their destination geometry.
+        if (animate && before is not null) panel.Connectors.Settle(still: false, Move);
         panel.SetKids(order);
         root!.Show(dextra, next, still);
         foreach (var (w, node) in wanted.Zip(order)) node.Show(w, next, still);
@@ -203,7 +205,6 @@ public sealed class OrgChart : Decorator
         UpdateLayout();
         Glide(before);
         foreach (var node in fresh) Enter(node);
-        panel.Connectors.Settle(still: false, Move);
     }
 
     private OrgNode Make(TeamMember member)
@@ -221,8 +222,8 @@ public sealed class OrgChart : Decorator
 
     // ---- the move ----
 
-    // where each Astur's node is arranged now (the panel's own coordinates, before any transform)
-    private Dictionary<OrgNode, Point>? Positions() => VisualRoot is null ? null : panel.Kids.Where(n => n.Bounds.Width > 0).ToDictionary(n => n, n => n.Bounds.Position);
+    // where each Astur's node is drawn now, including an interrupted glide (the panel's coordinates)
+    private Dictionary<OrgNode, Point>? Positions() => VisualRoot is null ? null : panel.Kids.Where(n => n.Bounds.Width > 0).ToDictionary(n => n, n => n.TranslatePoint(default, panel) ?? n.Bounds.Position);
 
     // the Asturs that stay glide from where they were to where they are, by a transform alone
     private static void Glide(Dictionary<OrgNode, Point> before)

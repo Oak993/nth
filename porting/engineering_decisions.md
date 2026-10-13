@@ -8304,3 +8304,38 @@ ENGINEERING DECISION (CU-DX-FIX F4, DESIGN.md 11.6, 15.6): duty launch asks the 
 ## ED-NEW-dextra-fix-5
 
 ENGINEERING DECISION (CU-DX-FIX F5, DESIGN.md 12.6, 13.2): cancellation after gate admission returns the placeholder slot in both lead and reviewer launch paths. Regressions deterministically cancel from AgentGate.Changed at admission, before the launch cancellation check; no timer race or Sleep. Regression: DextraFixAdmittedStopTests.
+
+
+
+## ED-NEW-dextra-fix-8
+
+ENGINEERING DECISION (CU-DX-FIX F8, DESIGN.md 2.2, 2.5, 9.4, OD-0076): Short stacked homes scroll the conversation and Board as one page; Auto rows keep their measured content in order without overlap. The header stays fixed, and every final mission remains reachable in short RTL windows.
+
+
+## ED-NEW-dextra-fix-9
+
+ENGINEERING DECISION (CU-DX-FIX F9, DESIGN.md 2.2, 2.5, 9.4, OD-0076): Header and hero orbit nodes read AsturPresences.Busy from the same team snapshot as OrgNode; without a Team source use the profile owner and mission states. Subscribe to Team.Changed so a finished or retired Astur updates both marks.
+
+
+## ED-NEW-dextra-fix-10
+
+ENGINEERING DECISION (CU-DX-FIX F10, DESIGN.md 2.2, 2.5, 9.4, OD-0076): Confirmed F10: Positions read Bounds alone while Glide moves RenderTransform. Capture the effective drawn position before retargeting and retain current transform values when replacing transitions. Enter applies only to genuinely fresh nodes, not an already entering node. Native interruption continuity remains a lead check.
+
+
+## ED-NEW-dextra-fix-11
+
+ENGINEERING DECISION (CU-DX-FIX F11, DESIGN.md 2.2, 2.5, 9.4, OD-0076): Confirmed F11: hover was bound to the lifted face, so bottom-strip hit testing alternated after the face moved. Bind hover to a fixed transparent parent; lift the face only. Deterministic headless bottom-strip pointer checks preserve the 2 px lift and reduce-motion behavior.
+
+
+## ED-NEW-dextra-fix-12
+
+ENGINEERING DECISION (CU-DX-FIX F12, DESIGN.md 2.2, 2.5, 9.4, OD-0076): OD-0076 requires every change to transition. Replace OrgChartMotionTests hard-cut assertion (Opacity zero with null Transitions) with an equal-or-stricter requirement for a 260 ms opacity transition toward zero, followed by the existing delayed fade in. DESIGN.md 9.4 and index.html 2875-2886 do not exempt connectors from OD-0076. Native frame continuity remains a lead check.
+
+
+### CU-DX-FIX independent review follow-up (ED-NEW-dextra-fix-1, -2, -9, -12)
+
+The common startup creates and refreshes the one shell tray before checking On, first run or duties files, so a first foreground start can keep working on close and an Off hidden launch retains Open nth without a controller. Saved profiles use AssistantTeam.Open and AssistantProfileFile validation; saved root safety rules and retired Asturs remain in policy chains, retired duties are not scheduled, and a present unusable root refuses startup without changing its file. Missing legacy duty profiles retain the prior compatibility fallback only when no profile file exists. Regressions: DextraFixStartupReviewTests and DextraFixProfileSafetyTests.
+
+Team events are coalesced and marshalled to the UI dispatcher; a worker-thread regression reproduces the former access error. Connector geometry is held through fade-out and replaced only after the move before fade-in; a second change keeps the old geometry and resets the timer, with a serial guard against stale posted callbacks. Regressions: DextraFixHomeBusyTests and DextraFixConnectorTests.
+
+DextraFixMotionNativeTests is written but never run by this worker. Its Thread.Sleep calls are Native-only waits for real compositor animation frames, not concurrency evidence; deterministic headless tests cover the repaired capture, hit-test, timer and thread boundaries. The lead still owes real-window continuity and screen-pixel/60-fps acceptance. No package or owner decision is added.
