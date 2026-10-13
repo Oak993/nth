@@ -41,3 +41,16 @@ public sealed class ThrowingSuggestionModel(Exception error) : ISuggestionModel
 {
     public Task<string?> Reword(string prompt, bool local, CancellationToken cancellationToken) => throw error;
 }
+
+/// <summary>Dextra AS-11: a cheap model that never answers until it is cancelled (a slow provider). <see cref="Started"/> completes when it is asked.</summary>
+public sealed class HangingSuggestionModel : ISuggestionModel
+{
+    public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public async Task<string?> Reword(string prompt, bool local, CancellationToken cancellationToken)
+    {
+        Started.TrySetResult();
+        await Task.Delay(Timeout.Infinite, cancellationToken).ConfigureAwait(false);
+        return null;
+    }
+}

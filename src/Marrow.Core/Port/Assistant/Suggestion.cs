@@ -3,8 +3,10 @@
 // does), and the plan Accept follows. Pure data. The Spotter finds candidates, the SuggestionLedger decides which are offered today.
 namespace Marrow.Core.Port.Assistant;
 
-/// <summary>The four things the spotter looks for (5.2). Three dismissals of a kind turn that kind off.</summary>
-public enum SuggestionKind { AllowanceUnused, DoneByHand, FailingCheck, IdleDuty }
+/// <summary>
+/// The four things the spotter looks for (5.2), and the one line the brain adds with its <c>suggest</c> tool (15.5). Three dismissals of a kind turn that kind off.
+/// </summary>
+public enum SuggestionKind { AllowanceUnused, DoneByHand, FailingCheck, IdleDuty, FromBrain }
 
 public enum SuggestionState { Open, Accepted, Dismissed }
 
