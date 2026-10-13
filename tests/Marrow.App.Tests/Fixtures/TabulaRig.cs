@@ -226,6 +226,21 @@ public sealed class TabulaRig : IDisposable
 
     public static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
+    /// <summary>
+    /// A model message with its untrusted page-content block's random marker (ED-NEW-web-sec-agent-6) replaced by "MARKER", so two
+    /// messages built from the same page words compare equal. The marker must be 16 hex digits and the same in the opening and
+    /// the closing tag, and the message must hold exactly one block; anything else fails here.
+    /// </summary>
+    public static string FenceMarkerMasked(string message)
+    {
+        var opening = System.Text.RegularExpressions.Regex.Matches(message, "<untrusted-page-content origin=\"[^\"]*\" marker=\"([0-9a-f]{16})\">");
+        var closing = System.Text.RegularExpressions.Regex.Matches(message, "</untrusted-page-content marker=\"([0-9a-f]{16})\">");
+        Xunit.Assert.Single(opening);
+        Xunit.Assert.Single(closing);
+        Xunit.Assert.Equal(opening[0].Groups[1].Value, closing[0].Groups[1].Value);
+        return message.Replace(opening[0].Groups[1].Value, "MARKER", StringComparison.Ordinal);
+    }
+
     /// <summary>A header action by name, invoked.</summary>
     public void Invoke(string action)
     {
