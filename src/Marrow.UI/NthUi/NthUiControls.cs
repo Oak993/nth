@@ -14,7 +14,6 @@ using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Media.Immutable;
 using Marrow.UI.Port;
 
 namespace Marrow.UI.NthUi;
@@ -102,7 +101,7 @@ public sealed class NthUiIcon : Control
         if (brush is null || Bounds.Width <= 0) return;
         var box = icon.ViewBox;
         var scale = Math.Min(Bounds.Width / box.Width, Bounds.Height / box.Height);
-        var pen = new ImmutablePen(brush.ToImmutable(), 1.6 / scale, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+        var pen = new Pen(brush, 1.6 / scale, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
         using (context.PushTransform(Matrix.CreateTranslation(-box.X, -box.Y) * Matrix.CreateScale(scale, scale)
             * Matrix.CreateTranslation((Bounds.Width - box.Width * scale) / 2, (Bounds.Height - box.Height * scale) / 2)))
         {
@@ -189,6 +188,18 @@ public sealed class NthUiFace : Border
 
     internal void Update()
     {
+        if (EnvironmentValues.GetAccessibilityHighContrast(this) is { } contrast)
+        {
+            var primary = style == NthUiFaceStyle.Primary;
+            Background = contrast.Brush(primary ? ContrastRole.Highlight : ContrastRole.Surface);
+            BorderBrush = contrast.Brush(ContrastRole.Line);
+            SetValue(TextElement.ForegroundProperty, contrast.Brush(!owner.IsEffectivelyEnabled ? ContrastRole.Disabled : primary ? ContrastRole.HighlightText : ContrastRole.Text));
+            Opacity = 1;
+            BoxShadow = IsOn || owner.Classes.Contains(":focus-visible")
+                ? new BoxShadows(new BoxShadow { IsInset = true, Spread = 2, Color = primary ? contrast.HighlightText : contrast.Highlight })
+                : default;
+            return;
+        }
         var pressed = owner is Button { IsPressed: true };
         Background = IsOn ? on : pressed || over ? hover : rest;
         if (style == NthUiFaceStyle.Primary && pressed) Background = rest;
@@ -199,6 +210,18 @@ public sealed class NthUiFace : Border
         BoxShadow = focused
             ? new BoxShadows(new BoxShadow { Spread = 2, Color = (focus as ISolidColorBrush)?.Color ?? Colors.DodgerBlue })
             : default;
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (owner is not null && (change.Property == EnvironmentValues.AccessibilityHighContrastProperty
+            || change.Property == EnvironmentValues.AccessibilityReduceMotionProperty))
+        {
+            Transitions = NthUiCalm.For(this) || EnvironmentValues.GetAccessibilityHighContrast(this) is not null
+                ? null : [new BrushTransition { Property = BackgroundProperty, Duration = TimeSpan.FromSeconds(.15) }];
+            Update();
+        }
     }
 }
 
@@ -261,7 +284,7 @@ public static class NthUiPress
             Padding = new Thickness(style == NthUiFaceStyle.Segment ? 10 : 12, 0),
             Child = row,
         };
-        face.Transitions = [new BrushTransition { Property = Border.BackgroundProperty, Duration = TimeSpan.FromSeconds(.15) }];
+        if (!NthUiCalm.For(face)) face.Transitions = [new BrushTransition { Property = Border.BackgroundProperty, Duration = TimeSpan.FromSeconds(.15) }];
         return face;
     }
 }

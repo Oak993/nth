@@ -18,6 +18,7 @@
   "live.widget.try_again": "Try again",
   "live.widget.live": "Live",
   "live.widget.snapshot": "Snapshot",
+  "live.widget.open_link": "Open link from the widget",
   "live.widget.selected": "Selected",
 
   "live.app.inline_label": "Inline",
@@ -27,5 +28,6 @@
   "live.app.pane_name": "Expanded",
   "live.app.pop_out_name": "Pop out",
   "live.app.sandboxed": "Sandboxed · from {0}",
-  "live.app.could_not_open": "{0} could not open. {1}"
+  "live.app.could_not_open": "{0} could not open. {1}",
+  "live.app.open_link": "Open link from the app"
 }

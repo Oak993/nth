@@ -273,6 +273,7 @@ public sealed class Splitter : Panel
 
     private readonly DragHandleView handle;
     private readonly SplitterGrip grip;
+    private readonly Control contrastLine;
     private readonly Popup tip;
     private readonly Popup readout;
     private readonly Border tipChip;
@@ -314,6 +315,8 @@ public sealed class Splitter : Panel
         };
         handle.Configure(null); // the grip is SplitterGrip's, not DragHandleView's own
         grip = new SplitterGrip(orientation, corner);
+        contrastLine = new ContrastLineView(this) { IsHitTestVisible = false };
+        Children.Add(contrastLine);
         Children.Add(handle);
         Children.Add(grip);
 
@@ -442,6 +445,7 @@ public sealed class Splitter : Panel
         var previous = lastReport;
         lastReport = report;
         readoutText.Text = report.Readout;
+        if (previous.IsCollapsed != report.IsCollapsed) contrastLine.InvalidateVisual(); // W20: no line on a rail's edge
         if (ControlAutomationPeer.FromElement(this) is { } peer && previous != report)
         {
             if (previous.Value != report.Value) peer.RaisePropertyChangedEvent(RangeValuePatternIdentifiers.ValueProperty, previous.Value, report.Value);
@@ -502,6 +506,70 @@ public sealed class Splitter : Panel
     {
         base.OnPropertyChanged(change);
         if (change.Property == FlowDirectionProperty) ApplyCursor();
+        if (change.Property == EnvironmentValues.AccessibilityHighContrastProperty)
+        {
+            ApplyChipLook();
+            contrastLine.InvalidateVisual();
+        }
+    }
+
+    /// <summary>
+    /// W20 (DESIGN 10 "splitter hairlines become 1 DIP system lines"; ED-NEW-web-w20-1): under a Windows contrast theme this
+    /// divider draws a 1 DIP WindowText line down its middle, where the glass gap between two panes would otherwise read as
+    /// nothing on the solid cards. Off where the host draws its own edge (the default); the pane workspace's gutters turn it on.
+    /// A collapsed divider sits on its rail, whose own system line is the edge.
+    /// </summary>
+    public bool ShowsContrastLine
+    {
+        get => showsContrastLine;
+        set
+        {
+            if (showsContrastLine == value) return;
+            showsContrastLine = value;
+            contrastLine.InvalidateVisual();
+        }
+    }
+
+    private bool showsContrastLine;
+
+    /// <summary>The contrast line drawn now, in this divider's coordinates (null: none).</summary>
+    public Rect? ContrastLine
+    {
+        get
+        {
+            if (!showsContrastLine || Orientation == SplitterOrientation.Both || EnvironmentValues.GetAccessibilityHighContrast(this) is null) return null;
+            if (Target.Report().IsCollapsed) return null;
+            var size = Bounds.Size;
+            if (size.Width <= 0 || size.Height <= 0) return null;
+            // On a whole device-independent pixel, so the line is one crisp DIP wide at 100 %.
+            return Orientation == SplitterOrientation.Vertical
+                ? new Rect(Math.Floor(size.Width / 2), 0, 1, size.Height)
+                : new Rect(0, Math.Floor(size.Height / 2), size.Width, 1);
+        }
+    }
+
+    // Panel.Render is sealed: the line is a child of its own, under the grip, arranged over the whole divider.
+    private sealed class ContrastLineView(Splitter owner) : Control
+    {
+        public override void Render(DrawingContext context)
+        {
+            if (owner.ContrastLine is { } line && EnvironmentValues.GetAccessibilityHighContrast(owner) is { } palette)
+                context.FillRectangle(palette.Brush(ContrastRole.Line), line);
+        }
+    }
+
+    // The tip and the readout under a contrast theme: the system's Window and WindowText with a 1 DIP system line, no shadow.
+    private void ApplyChipLook()
+    {
+        var palette = EnvironmentValues.GetAccessibilityHighContrast(this);
+        foreach (var chip in new[] { tipChip, readoutChip })
+        {
+            chip.Background = palette is null ? new SolidColorBrush(Color.FromArgb(0xDB, 0x10, 0x10, 0x13)) : palette.Brush(ContrastRole.Surface);
+            chip.BorderBrush = palette is null ? new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF)) : palette.Brush(ContrastRole.Line);
+            chip.BorderThickness = new Thickness(palette is null ? 0.5 : 1);
+            chip.BoxShadow = palette is null ? BoxShadows.Parse("0 4 14 0 #73000000") : default;
+            if (chip.Child is TextBlock label) label.Foreground = palette is null ? new SolidColorBrush(Color.FromRgb(0xEC, 0xEC, 0xEE)) : palette.Brush(ContrastRole.Text);
+        }
     }
 
     protected override void OnPointerEntered(PointerEventArgs e)

@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -8,6 +9,7 @@ using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Views.Chat;
 using Marrow.App.Window;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
@@ -95,6 +97,20 @@ public sealed partial class PaneWorkspace : Panel
     private readonly HashSet<PaneKind> unavailable = [];
     private readonly SplitterSpring chatWidth = new(0);
     private readonly PaneDropLayer dropLayer = new() { ZIndex = 30 };
+    // W20 (DESIGN 10 "Collapse and restore are announced"): a polite live region, a point in size and drawn in no colour,
+    // that says a fold or a restore however it came (a drag past the minimum, Ctrl+Arrow, Space, a rail icon, the chevron).
+    private readonly TextBlock announcer = new()
+    {
+        Width = 1,
+        Height = 1,
+        FontSize = 1,
+        MaxLines = 1,
+        ClipToBounds = true,
+        IsHitTestVisible = false,
+        Focusable = false,
+        Foreground = Brushes.Transparent,
+        Text = "",
+    };
     private readonly List<DropSlot> dropSlots = [];
     private readonly List<IDisposable> webLeases = [];
     private Func<PaneKind, PaneContent?> factory;
@@ -141,6 +157,7 @@ public sealed partial class PaneWorkspace : Panel
             var splitter = new Splitter(axis, new GutterTarget(this, key))
             {
                 ShowsReadout = true,
+                ShowsContrastLine = true, // W20: the gap between two solid cards needs a system line under a contrast theme
                 // The chat gutter folds every pane, the Side chat gutter folds Side chat; both fold the trailing side.
                 CollapseSide = key is PaneGutterKeys.Chat or PaneGutterKeys.Side ? SplitterSide.Trailing : SplitterSide.None,
                 IsVisible = false,
@@ -150,6 +167,8 @@ public sealed partial class PaneWorkspace : Panel
             Children.Add(splitter);
         }
         Children.Add(dropLayer);
+        AutomationProperties.SetLiveSetting(announcer, AutomationLiveSetting.Polite);
+        Children.Add(announcer);
         ClipToBounds = false;
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Bubble);
         DetachedFromVisualTree += (_, _) =>
@@ -388,7 +407,9 @@ public sealed partial class PaneWorkspace : Panel
 
     private bool Commit(PaneWorkspaceState next, bool animate = true)
     {
+        var before = state;
         if (!Apply(next, animate)) return false;
+        AnnounceFolds(before, state);
         StateChanged?.Invoke(state);
         return true;
     }
@@ -780,6 +801,36 @@ public sealed partial class PaneWorkspace : Panel
         var target = kind ?? (key == PaneGutterKeys.Side ? PaneKind.SideChat : state.GridPanes.FirstOrDefault());
         if (!Commit(restored)) return;
         Dispatcher.UIThread.Post(() => FocusPane(target), DispatcherPriority.Background);
+    }
+
+    /// <summary>The last fold or restore said to a screen reader ("Side chat collapsed", "Panes restored"), or empty.</summary>
+    public string Announcement => announcer.Text ?? "";
+
+    // W20: a side that folded or came back by the user's hand is said once, politely; a state set from outside (a thread's saved
+    // layout loading) says nothing.
+    private void AnnounceFolds(PaneWorkspaceState before, PaneWorkspaceState after)
+    {
+        string? words = null;
+        foreach (var key in new[] { PaneGutterKeys.Chat, PaneGutterKeys.Side })
+        {
+            var was = before.Collapsed.Contains(key);
+            var now = after.Collapsed.Contains(key);
+            if (was == now) continue;
+            var side = key == PaneGutterKeys.Side;
+            words = (now, side) switch
+            {
+                (true, true) => UiText.Get("panes.splitter.side_chat_collapsed"),
+                (true, false) => UiText.Get("panes.splitter.panes_collapsed"),
+                (false, true) => UiText.Get("panes.announce.side_chat_restored"),
+                (false, false) => UiText.Get("panes.announce.panes_restored"),
+            };
+        }
+        if (words is null) return;
+        var old = announcer.Text ?? "";
+        if (old == words) announcer.Text = ""; // the same words again (fold, restore, fold) are still heard
+        announcer.Text = words;
+        // TextBlock's peer raises Name and the live-region event for Text itself (Avalonia 12.1.2).
+        // Raising Name again here would announce each fold twice.
     }
 
     // The folded panes' cards fade out in place; once their springs have landed they are hidden for good.
@@ -1457,6 +1508,7 @@ public sealed partial class PaneWorkspace : Panel
         foreach (var (key, splitter) in splitters)
             if (splitter.IsVisible && GutterRect(key) is { } rect) splitter.Measure(rect.Size);
         dropLayer.Measure(size);
+        announcer.Measure(new Size(1, 1));
         return size;
     }
 
@@ -1491,6 +1543,7 @@ public sealed partial class PaneWorkspace : Panel
         foreach (var (key, splitter) in splitters)
             if (splitter.IsVisible && GutterRect(key) is { } rect) splitter.Arrange(rect);
         dropLayer.Arrange(new Rect(finalSize));
+        announcer.Arrange(new Rect(0, 0, 1, 1));
         return finalSize;
     }
 
@@ -1693,7 +1746,9 @@ public sealed partial class PaneWorkspace : Panel
             if (!folds && PaneLayout.Solve(owner.Drawn(next), owner.SolverWidth, owner.SolverHeight).Gutter(key) is { } landed)
                 give = PaneRedock.RubberGive(landed, raw, owner.ReduceMotion);
             // A fold or a restore springs, and the springs go on following the pointer until they have landed.
+            var before = owner.state;
             owner.Apply(next, animate: folds || owner.moving);
+            if (folds) owner.AnnounceFolds(before, owner.state); // W20: a fold by dragging is said like any other
             owner.SetRubber(give == 0 ? null : key, give);
         }
 

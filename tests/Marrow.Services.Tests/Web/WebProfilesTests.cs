@@ -26,14 +26,18 @@ public sealed class WebProfilesTests
     }
 
     [Fact]
-    public void Every_surface_creates_its_environment_with_identical_options()
+    public void Visus_surfaces_create_their_environment_with_identical_options()
     {
         // One environment, one browser process group: WebView2 refuses a second environment on the same folder with
-        // different options, so only the controller options (profile, InPrivate) differ.
-        var keys = Enum.GetValues<WebSurfaceKind>().Select(kind => Profiles.For(kind, @"C:\threads\one").EnvironmentKey).Distinct().ToList();
+        // different options, so only the controller options (profile, InPrivate) differ. ED-NEW-web-sec-res-1: the sandboxed
+        // kinds (artifacts, inline widgets, MCP Apps) have an environment of their own, on a folder of their own
+        // (WebSandboxEnvironmentTests); every other kind shares this one, unchanged.
+        var sandboxed = new[] { WebSurfaceKind.Artifact, WebSurfaceKind.InlineWidget, WebSurfaceKind.McpApp };
+        var keys = Enum.GetValues<WebSurfaceKind>().Except(sandboxed).Select(kind => Profiles.For(kind, @"C:\threads\one").EnvironmentKey).Distinct().ToList();
         var key = Assert.Single(keys);
         // DESIGN 6.5 (ED-NEW-web-w13-1): the shared arguments are exactly site isolation and the WebRTC UDP block.
         Assert.Equal((WebRig.UserData, "en-US", (string?)"--site-per-process --force-webrtc-ip-handling-policy=disable_non_proxied_udp"), key);
+        Assert.Equal(4, Enum.GetValues<WebSurfaceKind>().Except(sandboxed).Count());
     }
 
     [Fact]

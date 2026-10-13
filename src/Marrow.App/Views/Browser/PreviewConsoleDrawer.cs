@@ -12,6 +12,7 @@ using Marrow.Core.Localisation;
 using Marrow.Core.Web;
 using Marrow.Services.Web;
 using Marrow.UI.Panes;
+using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Browser;
 
@@ -90,12 +91,24 @@ public sealed class PreviewConsoleDrawer : Border, IDisposable
             if (i >= displayed.Count) displayed.Add(data[i]); else if (!Equals(displayed[i], data[i])) displayed[i] = data[i];
         while (displayed.Count > data.Length) displayed.RemoveAt(displayed.Count - 1);
     }
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == EnvironmentValues.AccessibilityHighContrastProperty) RefreshTabs(); // W20
+    }
     private void RefreshTabs()
     {
         ((ToggleButton)consoleTab).IsChecked = !network; ((ToggleButton)networkTab).IsChecked = network;
         empty.Foreground = PaneTokens.Text2.Brush(this);
         consoleTab.Background = network ? Brushes.Transparent : PaneTokens.HoverFill.Brush(this);
         networkTab.Background = network ? PaneTokens.HoverFill.Brush(this) : Brushes.Transparent;
+        ContrastCue.Toggle(consoleTab, !network, null, new Thickness(0)); // W20: outlined under a contrast theme
+        ContrastCue.Toggle(networkTab, network, null, new Thickness(0));
+        // W20 (DESIGN 10): the drawer's dark glass is the solid surface with a system line under a contrast theme.
+        var contrast = EnvironmentValues.GetAccessibilityHighContrast(this);
+        Background = contrast?.Brush(ContrastRole.Surface) ?? new SolidColorBrush(Color.FromArgb(71, 0, 0, 0));
+        BorderBrush = contrast?.Brush(ContrastRole.Line) ?? new SolidColorBrush(Color.FromArgb(20, 255, 255, 255));
+        BorderThickness = new Thickness(contrast is null ? .5 : 1);
         consoleTab.Foreground = network ? PaneTokens.Text2.Brush(this) : PaneTokens.Text1.Brush(this);
         networkTab.Foreground = network ? PaneTokens.Text1.Brush(this) : PaneTokens.Text2.Brush(this);
     }

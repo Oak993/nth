@@ -6,8 +6,11 @@
 // The cards (DESIGN 7.6, 5.5): the domains card says "shipyard's Release board wants to reach: ..." with Allow for shipyard /
 // Not now, and Allow broad access only when the declaration holds wildcards or 'unsafe-eval' (its detail names the risk); the
 // first message asks "Let shipyard post messages in this chat?"; a tool call from the app asks "shipyard wants to run
-// promote_release" with Allow once / Always for shipyard / Deny, unless the chat runs with full access; the camera, the
+// promote_release" with Allow once / Always in this chat / Deny, unless the chat runs with full access; the camera, the
 // microphone and the location ask each time. An app's card is never answered by anything but the user's click.
+// + ED-NEW-web-sec-mcpapps-1, -2, -4 (web surfaces security review): the tool card shows the call's arguments and its
+// "Always" covers this chat only; the domain card names every entry "Allow broad access" would let through; an app's own
+// request for a window of its own asks "shipyard's Release board wants to open in its own window" with Pop out / Not now.
 // + ED-NEW-web-w26-3 (W26 security review): a link the app opens by itself asks "shipyard wants to open shipyard.dev" with
 // Open / Cancel, the full address in the detail; a link the user clicks in the view still opens at once.
 using Marrow.App.Runtime;
@@ -54,7 +57,13 @@ public sealed class McpAppHostUi : IMcpAppHostUi
     public static string DenyText => UiText.Get("mcpapps.card.deny");
     public static string AllowText => UiText.Get("mcpapps.card.allow");
 
-    public static string AlwaysText(string server) => UiText.Format("mcpapps.card.always_for", server);
+    /// <summary>"Always in this chat" (ED-NEW-web-sec-mcpapps-2: it was "Always for shipyard", every chat).</summary>
+    public static string AlwaysText => UiText.Get("mcpapps.card.always_in_chat");
+
+    public static string PopOutText => UiText.Get("mcpapps.card.popout");
+
+    /// <summary>ED-NEW-web-sec-mcpapps-1: "shipyard's Release board wants to open in its own window".</summary>
+    public static string PopOutTitle(string server, string title) => UiText.Format("mcpapps.card.popout_title", server, title);
 
     public static string OpenText => UiText.Get("mcpapps.card.open");
     public static string CancelText => UiText.Get("mcpapps.card.cancel");
@@ -98,7 +107,8 @@ public sealed class McpAppHostUi : IMcpAppHostUi
         var options = new List<ApprovalRequest.Option> { new("allow", request.AllowText, ApprovalRequest.Option.Role.Approve) };
         if (request.HasBroad) options.Add(new ApprovalRequest.Option("broad", McpAppDomains.BroadAccessTitle, ApprovalRequest.Option.Role.ApproveAlways));
         options.Add(new ApprovalRequest.Option("not-now", McpAppDomains.NotNowText, ApprovalRequest.Option.Role.Decline));
-        var chosen = await Ask(app, ApprovalRequest.Kind.Permissions, request.Sentence, options, request.HasBroad ? McpAppDomains.BroadAccessRisk : null).ConfigureAwait(false);
+        // + ED-NEW-web-sec-mcpapps-4: the reason line names what broad access would let through.
+        var chosen = await Ask(app, ApprovalRequest.Kind.Permissions, request.Sentence, options, request.HasBroad ? McpAppDomains.BroadAccessRisk : null, request.BroadText).ConfigureAwait(false);
         return chosen?.Id switch
         {
             "allow" => McpAppDomainDecision.Allow,
@@ -118,19 +128,20 @@ public sealed class McpAppHostUi : IMcpAppHostUi
         return chosen?.Id == "allow";
     }
 
-    public async Task<McpAppToolDecision> AskToolAsync(McpAppMount app, string tool, string? title)
+    public async Task<McpAppToolDecision> AskToolAsync(McpAppMount app, string tool, string? title, System.Text.Json.Nodes.JsonObject arguments)
     {
         var options = new List<ApprovalRequest.Option>
         {
             new("once", AllowOnceText, ApprovalRequest.Option.Role.Approve),
-            new("always", AlwaysText(app.Server), ApprovalRequest.Option.Role.ApproveAlways),
+            new("always", AlwaysText, ApprovalRequest.Option.Role.ApproveAlways),
             new("deny", DenyText, ApprovalRequest.Option.Role.Decline),
         };
-        var chosen = await Ask(app, ApprovalRequest.Kind.Tool, ToolTitle(app.Server, tool), options, ToolDetail(title ?? app.Title)).ConfigureAwait(false);
+        // + ED-NEW-web-sec-mcpapps-2: the reason line shows the arguments the call will send (the detail keeps to three lines).
+        var chosen = await Ask(app, ApprovalRequest.Kind.Tool, ToolTitle(app.Server, tool), options, ToolDetail(title ?? app.Title), McpAppToolCard.Arguments(arguments)).ConfigureAwait(false);
         return chosen?.Id switch
         {
             "once" => McpAppToolDecision.AllowOnce,
-            "always" => McpAppToolDecision.AlwaysForServer,
+            "always" => McpAppToolDecision.AlwaysInChat,
             _ => McpAppToolDecision.Deny,
         };
     }
@@ -157,12 +168,24 @@ public sealed class McpAppHostUi : IMcpAppHostUi
         return chosen?.Id == "open";
     }
 
+    public async Task<bool> AskDisplayModeAsync(McpAppMount app, McpAppDisplayMode mode)
+    {
+        if (mode != McpAppDisplayMode.PopOut) return false; // only a window of its own asks; nothing else comes here
+        var options = new List<ApprovalRequest.Option>
+        {
+            new("popout", PopOutText, ApprovalRequest.Option.Role.Approve),
+            new("not-now", McpAppDomains.NotNowText, ApprovalRequest.Option.Role.Decline),
+        };
+        var chosen = await Ask(app, ApprovalRequest.Kind.Permissions, PopOutTitle(app.Server, app.Title), options, ToolDetail(app.Title)).ConfigureAwait(false);
+        return chosen?.Id == "popout";
+    }
+
     // Shows the card in the chat's approval stack, on the main actor; a chat that is not open answers as dismissed.
-    private Task<ApprovalRequest.Option?> Ask(McpAppMount app, ApprovalRequest.Kind kind, string title, IReadOnlyList<ApprovalRequest.Option> options, string? detail) =>
+    private Task<ApprovalRequest.Option?> Ask(McpAppMount app, ApprovalRequest.Kind kind, string title, IReadOnlyList<ApprovalRequest.Option> options, string? detail, string? reason = null) =>
         MainActor.Invoke(async () =>
         {
             if (runtimes(app.Launch.Thread) is not { } runtime) return null;
-            var (id, answer) = runtime.AskForApp(kind, title, options, detail);
+            var (id, answer) = runtime.AskForApp(kind, title, options, detail, reason);
             if (!Pending.TryGetValue(app, out var pending)) Pending[app] = pending = (runtime, []);
             var ids = pending.Ids;
             ids.Add(id);

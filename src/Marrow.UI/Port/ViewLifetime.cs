@@ -59,6 +59,27 @@ public sealed class EnvironmentValues
 
     public static void SetAccessibilityReduceMotion(Control control, bool value) => control.SetValue(AccessibilityReduceMotionProperty, value);
 
+    // PORT-ONLY web surfaces W20 (DESIGN 10, ED-NEW-web-w20-1): Windows' contrast theme as its system colours, null while it is
+    // off (SystemHighContrast feeds it to every window).
+    public static readonly AttachedProperty<HighContrastPalette?> AccessibilityHighContrastProperty =
+        AvaloniaProperty.RegisterAttached<EnvironmentValues, Control, HighContrastPalette?>("AccessibilityHighContrast", null, inherits: true);
+
+    public static HighContrastPalette? GetAccessibilityHighContrast(Control control) => control.GetValue(AccessibilityHighContrastProperty);
+
+    public static void SetAccessibilityHighContrast(Control control, HighContrastPalette? value) => control.SetValue(AccessibilityHighContrastProperty, value);
+
+    // W20: the surface under a control is drawn in the contrast theme's solid colours (ContrastSurface.MatchTheme sets it on a
+    // pane card, a popover card, a rail, a sheet). Only there do colours with a ContrastRole take the system colours: on glass
+    // that stays glass they keep their own, so a system colour never lands on a backdrop it was not chosen for.
+    public static readonly AttachedProperty<bool> AccessibilityContrastSurfaceProperty =
+        AvaloniaProperty.RegisterAttached<EnvironmentValues, Control, bool>("AccessibilityContrastSurface", false, inherits: true);
+
+    public static bool GetAccessibilityContrastSurface(Control control) => control.GetValue(AccessibilityContrastSurfaceProperty);
+
+    /// <summary>The palette a colour with a role draws in here: the contrast theme's, on a solid contrast surface; else null.</summary>
+    public static HighContrastPalette? ContrastPaletteFor(Control control) =>
+        control.GetValue(AccessibilityContrastSurfaceProperty) ? control.GetValue(AccessibilityHighContrastProperty) : null;
+
     // PORT-ONLY ED-218: App supplies its window's live resize read without an App dependency in UI.
     public static readonly AttachedProperty<Func<bool>?> WindowIsLiveResizingProperty =
         AvaloniaProperty.RegisterAttached<EnvironmentValues, Control, Func<bool>?>("WindowIsLiveResizing", null, inherits: true);

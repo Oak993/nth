@@ -95,6 +95,7 @@ public sealed class VisusFindBar : Border
     private void RefreshCase(bool animate)
     {
         var reduced = EnvironmentValues.GetAccessibilityReduceMotion(this) || Marrow.UI.Chrome.Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion;
+        if (matchCase.Content is Border caseFace) ContrastCue.SetChosen(caseFace, matchCase.IsChecked == true); // W20: ringed under a contrast theme
         caseFill.Set(matchCase.IsChecked == true ? PaneTokens.HoverFill : SwiftColor.Clear,
             animate && !reduced ? Marrow.UI.Chrome.Chrome.Hover : null);
     }

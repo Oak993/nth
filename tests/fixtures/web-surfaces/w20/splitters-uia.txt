@@ -1,0 +1,4 @@
+Thumb|Resize test pane|vertical splitter|0/268/440|268|61 %
+Thumb|Resize test pane|vertical splitter|0/0/440|Sidebar hidden|0 %
+Thumb|Resize test pane|horizontal splitter|0/268/440|268|61 %
+Thumb|Resize test pane|horizontal splitter|0/0/440|Sidebar hidden|0 %

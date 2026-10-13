@@ -4,7 +4,8 @@ using Marrow.UI.Port;
 // index.html "browser (shared)": .bh, .tabs, .tab, .fav, .btb, .hb, .url, .schip, .zchip, .web, .privv; DESIGN.md 2.4 "The web
 // rectangle is inset 6 DIP on the sides and bottom", 3.12, 5.1, 10 "text at least 4.5:1 on glass"; ED-NEW-web-w8a-2). No Swift
 // counterpart. Dark values are the canvas's; light values are the same roles on the light glass (ink instead of mist), each
-// checked for 4.5:1 text the way PaneTokens is.
+// checked for 4.5:1 text the way PaneTokens is. W20 (DESIGN 10, ED-NEW-web-w20-1): under a Windows contrast theme each tint is
+// the solid surface, each rim a system line, the focused field's rim the Highlight.
 
 namespace Marrow.App.Views.Browser;
 
@@ -63,51 +64,51 @@ public static class VisusTokens
     private static SwiftColor Rgb(int r, int g, int b, double opacity = 1) => new(red: r / 255.0, green: g / 255.0, blue: b / 255.0, opacity: opacity);
 
     /// <summary>The chosen tab (canvas .tab.on: white .10).</summary>
-    public static SwiftColor TabChosen { get; } = SwiftColor.Dynamic(light: Ink(.07), dark: Paper(.10));
+    public static SwiftColor TabChosen { get; } = SwiftColor.Dynamic(light: Ink(.07), dark: Paper(.10)).InHighContrast(ContrastRole.Surface);
 
     /// <summary>A chosen private tab (canvas .tab.priv.on: rgba(120, 120, 140, .22)).</summary>
-    public static SwiftColor TabChosenPrivate { get; } = SwiftColor.Dynamic(light: Rgb(90, 90, 120, .18), dark: Rgb(120, 120, 140, .22));
+    public static SwiftColor TabChosenPrivate { get; } = SwiftColor.Dynamic(light: Rgb(90, 90, 120, .18), dark: Rgb(120, 120, 140, .22)).InHighContrast(ContrastRole.Surface);
 
     /// <summary>The address field's well (canvas .url: white .06 with a .5 DIP white .10 rim).</summary>
-    public static SwiftColor AddressFill { get; } = SwiftColor.Dynamic(light: Ink(.045), dark: Paper(.06));
+    public static SwiftColor AddressFill { get; } = SwiftColor.Dynamic(light: Ink(.045), dark: Paper(.06)).InHighContrast(ContrastRole.Surface);
 
-    public static SwiftColor AddressRim { get; } = SwiftColor.Dynamic(light: Ink(.10), dark: Paper(.10));
+    public static SwiftColor AddressRim { get; } = SwiftColor.Dynamic(light: Ink(.10), dark: Paper(.10)).InHighContrast(ContrastRole.Line);
 
     /// <summary>The address field while it has focus: a little brighter, no coloured ring (3.12 "No coloured focus frames").</summary>
-    public static SwiftColor AddressFocusFill { get; } = SwiftColor.Dynamic(light: Ink(.06), dark: Paper(.09));
+    public static SwiftColor AddressFocusFill { get; } = SwiftColor.Dynamic(light: Ink(.06), dark: Paper(.09)).InHighContrast(ContrastRole.Surface);
 
-    public static SwiftColor AddressFocusRim { get; } = SwiftColor.Dynamic(light: Ink(.22), dark: Paper(.24));
+    public static SwiftColor AddressFocusRim { get; } = SwiftColor.Dynamic(light: Ink(.22), dark: Paper(.24)).InHighContrast(ContrastRole.Highlight);
 
     /// <summary>The toolbar's tint in a private tab (canvas: .btb background rgba(120, 120, 150, .1)).</summary>
-    public static SwiftColor PrivateToolbar { get; } = SwiftColor.Dynamic(light: Rgb(90, 90, 130, .08), dark: Rgb(120, 120, 150, .10));
+    public static SwiftColor PrivateToolbar { get; } = SwiftColor.Dynamic(light: Rgb(90, 90, 130, .08), dark: Rgb(120, 120, 150, .10)).InHighContrast(ContrastRole.Surface);
 
     /// <summary>The lock chip and any chip with no tint of its own (canvas .schip: white .10).</summary>
-    public static SwiftColor ChipFill { get; } = SwiftColor.Dynamic(light: Ink(.07), dark: Paper(.10));
+    public static SwiftColor ChipFill { get; } = SwiftColor.Dynamic(light: Ink(.07), dark: Paper(.10)).InHighContrast(ContrastRole.Surface);
 
     /// <summary>"Preview" (canvas .schip.pv: --ok at .14 with a .5 DIP --ok .4 rim).</summary>
-    public static SwiftColor PreviewFill { get; } = SwiftColor.Dynamic(light: Rgb(41, 140, 84, .12), dark: Rgb(91, 209, 139, .14));
+    public static SwiftColor PreviewFill { get; } = SwiftColor.Dynamic(light: Rgb(41, 140, 84, .12), dark: Rgb(91, 209, 139, .14)).InHighContrast(ContrastRole.Surface);
 
-    public static SwiftColor PreviewRim { get; } = SwiftColor.Dynamic(light: Rgb(41, 140, 84, .40), dark: Rgb(91, 209, 139, .40));
+    public static SwiftColor PreviewRim { get; } = SwiftColor.Dynamic(light: Rgb(41, 140, 84, .40), dark: Rgb(91, 209, 139, .40)).InHighContrast(ContrastRole.Line);
 
     /// <summary>"Agent" (canvas .schip.ag: white .16 with a .5 DIP white .5 rim).</summary>
-    public static SwiftColor AgentFill { get; } = SwiftColor.Dynamic(light: Ink(.10), dark: Paper(.16));
+    public static SwiftColor AgentFill { get; } = SwiftColor.Dynamic(light: Ink(.10), dark: Paper(.16)).InHighContrast(ContrastRole.Surface);
 
-    public static SwiftColor AgentRim { get; } = SwiftColor.Dynamic(light: Ink(.40), dark: Paper(.50));
+    public static SwiftColor AgentRim { get; } = SwiftColor.Dynamic(light: Ink(.40), dark: Paper(.50)).InHighContrast(ContrastRole.Line);
 
     /// <summary>"Private" (canvas .schip.pr: rgba(140, 140, 170, .22)).</summary>
-    public static SwiftColor PrivateFill { get; } = SwiftColor.Dynamic(light: Rgb(90, 90, 130, .16), dark: Rgb(140, 140, 170, .22));
+    public static SwiftColor PrivateFill { get; } = SwiftColor.Dynamic(light: Rgb(90, 90, 130, .16), dark: Rgb(140, 140, 170, .22)).InHighContrast(ContrastRole.Surface);
 
     /// <summary>"Not secure": the canvas's --warn as text on the plain chip (the lock's place).</summary>
-    public static SwiftColor NotSecureText { get; } = SwiftColor.Dynamic(light: Rgb(138, 90, 0), dark: Rgb(242, 184, 75));
+    public static SwiftColor NotSecureText { get; } = SwiftColor.Dynamic(light: Rgb(138, 90, 0), dark: Rgb(242, 184, 75)).InHighContrast(ContrastRole.Text);
 
     /// <summary>The page colour behind the web rectangle (canvas --page), shown until the page paints.</summary>
     public static SwiftColor Page { get; } = SwiftColor.Dynamic(light: Rgb(246, 245, 242), dark: Rgb(246, 245, 242));
 
     /// <summary>The private tab's start surface (canvas .privv: #1C1C22).</summary>
-    public static SwiftColor PrivateSurface { get; } = SwiftColor.Dynamic(light: Rgb(234, 234, 240), dark: Rgb(28, 28, 34));
+    public static SwiftColor PrivateSurface { get; } = SwiftColor.Dynamic(light: Rgb(234, 234, 240), dark: Rgb(28, 28, 34)).InHighContrast(ContrastRole.Surface);
 
     /// <summary>A new tab's start surface: the pane's own glass, a shade deeper (canvas .vp: rgba(0, 0, 0, .18)).</summary>
-    public static SwiftColor StartSurface { get; } = SwiftColor.Dynamic(light: Ink(.03), dark: Ink(.18));
+    public static SwiftColor StartSurface { get; } = SwiftColor.Dynamic(light: Ink(.03), dark: Ink(.18)).InHighContrast(ContrastRole.Surface);
 
     /// <summary>The favicon tile drawn when a page has none (canvas .fav: #7f8cff to #4a52c9).</summary>
     public static SwiftColor FaviconTop { get; } = Rgb(127, 140, 255);

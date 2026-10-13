@@ -52,9 +52,24 @@ public static class SandboxSites
     /// <summary>An inline widget's host: "w-" and the widget id as a label (hashed when it would not fit).</summary>
     public static string WidgetHost(string id) => "w-" + Label(id, MaxLabelLength - 2) + "." + TopLevel;
 
-    /// <summary>An MCP App's host: "m-", the server's name as a label, "-", eight hex digits of its resource's address.</summary>
+    /// <summary>
+    /// An MCP App's host: "m-", the server's name as a label (at most 28 characters), "-", 32 hex digits of the SHA-256 of
+    /// the server's name and its resource's address.
+    /// </summary>
+    /// <remarks>
+    /// + ED-NEW-web-sec-mcpapps-3 (web surfaces security review, L6): the hash was eight hex digits (32 bits), so a server
+    /// could try resource addresses until one landed on another App's site and shared its storage. It is 128 bits now, over
+    /// the name's length, the name and the address, so no two pairs hash the same text; the label stays within 63.
+    /// </remarks>
     public static string AppHost(string server, string resourceUri) =>
-        "m-" + Label(server, 40) + "-" + Hex(server + "\n" + resourceUri, 4) + "." + TopLevel;
+        "m-" + Label(server, AppServerLabelLength) + "-"
+        + Hex(server.Length.ToString(CultureInfo.InvariantCulture) + ":" + server + "\n" + resourceUri, AppHashBytes) + "." + TopLevel;
+
+    /// <summary>The bytes of the SHA-256 an App's host carries (ED-NEW-web-sec-mcpapps-3).</summary>
+    public const int AppHashBytes = 16;
+
+    // "m-" (2) + the server's label + "-" (1) + the hash's hex digits make at most one 63-character label.
+    private const int AppServerLabelLength = MaxLabelLength - 3 - (AppHashBytes * 2);
 
     /// <summary>The https origin of a host, no trailing slash.</summary>
     public static string Origin(string host) => "https://" + host;

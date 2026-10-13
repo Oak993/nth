@@ -42,6 +42,12 @@ public static class DownloadGate
     /// 5.4's list, plus (stricter, ED-NEW-web-w8b-2) the other Windows types that run code or open a program when opened: .com
     /// .pif .cpl .msc .msp .mst .wsf .wsh .vbe .jse .psm1 .psd1 .ps1xml .appxbundle .msixbundle .application .appref-ms .url
     /// .settingcontent-ms .xll .gadget .inf .scf .chm, and the disk images that mount with programs inside (.iso .img .vhd .vhdx).
+    /// + ED-NEW-web-sec-artifacts-6 (security review L5): App Installer files (.appinstaller), troubleshooting packs (.diagcab
+    /// .diagcfg .diagpkg), library and search-connector files that reach a remote share (.library-ms .searchConnector-ms),
+    /// script components and scriptlets (.wsc .sct), Java Web Start (.jnlp), Remote Desktop connections (.rdp), Windows Sandbox
+    /// settings (.wsb), update packages (.msu), browser apps and pinned sites (.xbap .website), the legacy PowerShell types (.msh
+    /// .msh1 .msh2 .mshxml .msh1xml .msh2xml .ps2 .ps2xml .psc1 .psc2) and Python files, which run when Python is installed (.py
+    /// .pyw .pyz .pyzw .pyc .pyo).
     /// </summary>
     public static IReadOnlySet<string> RiskyExtensions { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -49,6 +55,9 @@ public static class DownloadGate
         "com", "pif", "cpl", "msc", "msp", "mst", "wsf", "wsh", "vbe", "jse", "psm1", "psd1", "ps1xml", "appxbundle",
         "msixbundle", "application", "appref-ms", "url", "settingcontent-ms", "xll", "gadget", "inf", "scf", "chm",
         "iso", "img", "vhd", "vhdx",
+        "appinstaller", "diagcab", "diagcfg", "diagpkg", "library-ms", "searchconnector-ms", "wsc", "sct", "jnlp", "rdp", "wsb", "msu",
+        "xbap", "website", "msh", "msh1", "msh2", "mshxml", "msh1xml", "msh2xml", "ps2", "ps2xml", "psc1", "psc2",
+        "py", "pyw", "pyz", "pyzw", "pyc", "pyo",
     };
 
     /// <summary>Archive types that may carry a risky file (5.4 "archives that contain them").</summary>

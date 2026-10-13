@@ -221,6 +221,12 @@ public sealed class SplitterGrip : Control
         StopFrames(settle: true);
     }
 
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == EnvironmentValues.AccessibilityHighContrastProperty) ApplyColors();
+    }
+
     protected override Size MeasureOverride(Size availableSize)
     {
         host.Measure(availableSize);
@@ -339,6 +345,18 @@ public sealed class SplitterGrip : Control
     // dark hairline and a soft shadow; brighter while dragged. The ring is white on dark and near-black on light.
     private void ApplyColors()
     {
+        // W20 (DESIGN 10, ED-NEW-web-w20-1): under a Windows contrast theme the pill is the system's WindowText, solid, with no
+        // shadow; dragged, the Highlight; the focus ring is the Highlight too.
+        if (EnvironmentValues.GetAccessibilityHighContrast(this) is { } palette)
+        {
+            body.Background = palette.Brush(ContrastRole.Text);
+            bright.Background = palette.Brush(ContrastRole.Highlight);
+            body.BoxShadow = default;
+            ring.BorderBrush = palette.Brush(ContrastRole.Highlight);
+            glyph.BorderBrush = palette.Brush(ContrastRole.Text);
+            glyphBright.BorderBrush = palette.Brush(ContrastRole.Highlight);
+            return;
+        }
         var dark = PlainControls.IsDark(ActualThemeVariant);
         body.Background = new SolidColorBrush(dark ? Color.FromArgb(0x57, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x99, 0x28, 0x28, 0x2E));
         bright.Background = new SolidColorBrush(dark ? Color.FromArgb(0xDB, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0xE6, 0x1E, 0x1E, 0x24));

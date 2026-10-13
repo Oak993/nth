@@ -1,0 +1,12 @@
+Region|Side chat
+Region|Background tasks
+Region|Changes
+Region|Artifacts, Tabula
+Region|Browser, Visus
+Region|Terminal
+Region|App
+Region|Transcript
+Region|Collapsed panes
+Button|Restore Visus
+Button|Restore Side chat
+Button|Restore panes

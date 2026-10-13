@@ -192,8 +192,16 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         }
     }
 
-    /// <summary>PORT-ONLY (ED-NEW-web-w26-1): what a no-tools launch adds: no built-in tools, only the (absent) --mcp-config servers, no slash commands.</summary>
-    internal static readonly string[] NoToolsArguments = ["--tools", "", "--strict-mcp-config", "--disable-slash-commands"];
+    /// <summary>PORT-ONLY (ED-NEW-web-w26-1): what a no-tools launch adds: no built-in tools, only the (absent) --mcp-config servers, no slash commands.
+    /// + ED-NEW-web-sec-artifacts-1: and it is never saved as a session on disk.</summary>
+    internal static readonly string[] NoToolsArguments = ["--tools", "", "--strict-mcp-config", "--disable-slash-commands", "--no-session-persistence"];
+
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-web-sec-artifacts-1, security review M4): a no-tools launch (an artifact's model call) loads no setting source
+    /// (the CLI reads "" as none: no user, project or local settings, so no CLAUDE.md, hooks, plugins or permission rules from them),
+    /// and these switches turn every CLAUDE.md file and auto memory off by name as well, whatever the account's environment says.
+    /// </summary>
+    internal static readonly (string Name, string Value)[] NoToolsEnvironment = [("CLAUDE_CODE_DISABLE_CLAUDE_MDS", "1"), ("CLAUDE_CODE_DISABLE_AUTO_MEMORY", "1")];
 
     private async Task<string> StartCore() // :82-167
     {
@@ -203,7 +211,7 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         [
             "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
             "--include-partial-messages", "--permission-prompt-tool", "stdio",
-            "--setting-sources", "user,project,local",
+            "--setting-sources", configuration.NoTools ? "" : "user,project,local", // ED-NEW-web-sec-artifacts-1: none for an artifact's call
             "--allow-dangerously-skip-permissions", "--permission-mode", permissionMode,
         ];
         // DEVIATION (ED-NEW-ignisadvisor-1): a picker entry that pairs a main model with an advisor launches on its main model, with
@@ -269,6 +277,8 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
             }
         }
         var environment = new ValueMap<string, string>(ProviderChildEnvironment.Apply(configuration.Environment), SwiftStringComparer.Instance); // DEVIATION OD-0099 DL-6: only PATH changes; an unbound Storage (a test) leaves the environment as it came.
+        if (configuration.NoTools) // ED-NEW-web-sec-artifacts-1
+            environment = environment.Mutating(map => { foreach (var (name, value) in NoToolsEnvironment) map[name] = value; });
         var options = await KnownOptions(executable, environment); // :98
         if (!configuration.NoTools && options.Contains("--plugin-dir") && acquireSkills is not null) // ED-NEW-web-w26-1: no plugins without tools
         {

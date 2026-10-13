@@ -152,11 +152,19 @@ public sealed class NarrowTabStrip : Panel
 
     private void ApplyLook()
     {
+        var contrast = EnvironmentValues.GetAccessibilityHighContrast(this);
+        ContrastSurface.MatchTheme(pill);
         var theme = ActualThemeVariant;
-        pill.Background = PaneTokens.CardFill(theme, expanded: false);
-        pill.BorderBrush = PaneTokens.Rim(theme, focused: false);
-        pill.BoxShadow = PaneTokens.Shadow(theme);
+        pill.Background = PaneTokens.CardFill(theme, expanded: false, contrast);
+        pill.BorderBrush = PaneTokens.Rim(theme, focused: false, contrast);
+        pill.BoxShadow = PaneTokens.Shadow(theme, lifted: false, contrast);
         foreach (var tab in tabs) tab.Look(tab.Kind == selected);
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == EnvironmentValues.AccessibilityHighContrastProperty && pill is not null) ApplyLook();
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
@@ -268,6 +276,7 @@ public sealed class NarrowTabStrip : Panel
             IsTabStop = isChosen;
             var foreground = (isChosen ? PaneTokens.Text1 : PaneTokens.Text2).Brush(this);
             face.Background = isChosen ? PaneTokens.NarrowTabFill.Brush(this) : hovered ? PaneTokens.HoverFill.Brush(this) : Brushes.Transparent;
+            ContrastCue.SetChosen(face, isChosen); // W20: ringed under a contrast theme, where the tint is the surface
             text.Foreground = hovered && !isChosen ? PaneTokens.Text1.Brush(this) : foreground;
             glyph.Foreground = text.Foreground;
         }

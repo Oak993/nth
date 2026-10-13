@@ -54,6 +54,17 @@ public sealed class ChatLinkSheetView : Decorator
 
         var surface = new Border { Child = stack, Padding = new Thickness(20), Width = SheetWidth }.RoundedRectangle(22, RoundedCornerStyle.Continuous);
         SwiftGlass.SetEffect(surface, GlassEffect.Regular(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous)));
+        // W20 (DESIGN 10, ED-NEW-web-w20-1): under a Windows contrast theme the sheet's glass is the solid Window colour inside a
+        // 1 DIP system line, its words drawn for that surface's lightness.
+        surface.PropertyChanged += (_, e) =>
+        {
+            if (e.Property != EnvironmentValues.AccessibilityHighContrastProperty) return;
+            var contrast = EnvironmentValues.GetAccessibilityHighContrast(surface);
+            ContrastSurface.MatchTheme(surface);
+            surface.Background = contrast?.Brush(ContrastRole.Surface);
+            surface.BorderBrush = contrast?.Brush(ContrastRole.Line);
+            surface.BorderThickness = new Thickness(contrast is null ? 0 : 1);
+        };
         Child = surface;
         AutomationProperties.SetName(this, ChatLinkChoice.Title);
         AutomationProperties.SetAutomationId(this, "chat-link-sheet");

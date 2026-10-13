@@ -96,8 +96,9 @@ scheduled by the lead and run alone (section 8).
 | The network grant opens exactly the declared sites of that version; wildcards and IP addresses are dropped and named; an export keeps the grant | B1 | ArtifactNetworkTests (all four); CspBuilderTests.A_network_grant_opens_connect_and_images_to_exactly_those_sites; ArtifactRuntimeTests.A_network_grant_opens_exactly_the_declared_sites_of_that_version; ArtifactExporterTests.An_export_keeps_the_versions_network_grant_and_nothing_more |
 | Navigation never leaves the site, whether by click or script, at top level or in a frame; a user's click on a web link is offered to the link setting | B1 | SandboxNavigationTests: Leaving_the_site_is_cancelled_and_only_a_users_web_link_is_offered, New_windows_are_always_denied_and_a_users_click_is_offered_as_a_link; SandboxEscapeTests.Every_navigation_off_the_site_is_cancelled_by_click_or_script_top_level_or_frame |
 | No new window, protocol launch, download, permission or screen share, even when another listener says yes; never continue past a bad certificate | B1, B7 | WebBaselinePolicyTests: Sandboxed_content_never_downloads_opens_windows_launches_protocols_or_continues_past_a_bad_certificate, The_agent_profile_and_sandboxed_content_never_get_a_permission; SandboxEscapeTests.No_window_protocol_download_prompt_or_screen_share_gets_out_even_when_a_listener_says_yes |
-| InPrivate `artifacts` profile; no host objects, dev tools, context menus or status bar; web messages only for sandboxes | B1, B3 | SandboxEscapeTests.Sandboxes_run_in_the_artifacts_profile_isolated_with_no_host_objects_dev_tools_or_browser_ui; WebProfilesTests: Each_surface_gets_its_profile, Every_surface_creates_its_environment_with_identical_options, Developer_tools_open_only_in_preview_tabs |
-| Browser arguments are exactly `--site-per-process --force-webrtc-ip-handling-policy=disable_non_proxied_udp`; there is no remote debugging port | B2 | WebProfilesTests.Every_surface_creates_its_environment_with_identical_options; SandboxEscapeTests (the same arguments) |
+| InPrivate `artifacts` profile; no host objects, dev tools, context menus or status bar; web messages only for sandboxes | B1, B3 | SandboxEscapeTests.Sandboxes_run_in_the_artifacts_profile_isolated_with_no_host_objects_dev_tools_or_browser_ui; WebProfilesTests: Each_surface_gets_its_profile, Visus_surfaces_create_their_environment_with_identical_options, Developer_tools_open_only_in_preview_tabs |
+| Visus's browser arguments are exactly `--site-per-process --force-webrtc-ip-handling-policy=disable_non_proxied_udp`; there is no remote debugging port | B2 | WebProfilesTests.Visus_surfaces_create_their_environment_with_identical_options; SandboxEscapeTests (the same arguments) |
+| **R1 (ED-NEW-web-sec-res-1):** artifacts, inline widgets and MCP Apps run in an environment of their own (`WebView2\Sandbox`), started with the first of them and let go with the last, whose arguments are exactly `--site-per-process --force-webrtc-ip-handling-policy=disable_non_proxied_udp --webrtc-ip-handling-policy=disable_non_proxied_udp` (runtime 154 reads only the second spelling) | B1, B2 | WebSandboxEnvironmentTests (all four); Native: WebView2EngineNativeTests.Sandboxed_views_get_an_environment_of_their_own_beside_Visus_on_the_real_runtime, SandboxWebRtcEngineNativeTests |
 | The hardening script removes WebRTC, `window.open` and prefetch hints; it runs only on nth's sandbox origins | B1 | SandboxScriptBehaviourTests.Hardening_removes_webrtc_and_windows_and_strips_prefetch_hints; SandboxScriptsTests.The_document_scripts_act_only_on_nths_sandboxed_origins; WebFeatureGuardTests.Sandboxed_content_gets_none_of_them |
 | **F2:** the hardening also reaches sandboxed (opaque-origin) frames and every frame the page can reach, after every insertion | B1 | SandboxEscapeScriptTests.Hardening_reaches_sandboxed_frames_and_every_frame_the_page_can_reach; Native: SandboxEscapeNativeTests |
 | The bridge talks only through web messages that carry its document token; a message from any other origin is ignored | B1 | SandboxScriptBehaviourTests.The_bridge_talks_only_through_webview_messages_with_its_document_token; ArtifactBridgeTests.A_message_from_any_other_origin_is_ignored; McpAppsHostTests.Messages_from_another_origin_are_ignored; SandboxEscapeTests.A_message_under_any_other_origin_is_never_answered |
@@ -122,6 +123,7 @@ scheduled by the lead and run alone (section 8).
 | **F6:** an App's text cannot open or close nth's untrusted wrapper in any spelling | B4 | McpAppHardeningTests: An_apps_text_cannot_open_or_close_the_untrusted_wrapper, Ordinary_app_words_still_read_as_written; McpAppConsentTests.App_words_reach_the_model_wrapped_as_untrusted_and_cannot_close_the_wrapper |
 | **F7:** App messages start at most three turns in a row before the user writes | B6, A7 | McpAppHardeningTests.App_messages_start_at_most_three_turns_in_a_row_until_the_user_writes; McpAppsSecurityTests.App_messages_stop_starting_turns_after_three_in_a_row |
 | **F3:** an App's own link opens only after the user's Open on a card that names the site; one card at a time | B6, B7 | McpAppsHostTests.Model_context_goes_to_the_visible_chip_and_links_go_through_the_link_setting; SandboxEscapeTests.An_apps_own_link_waits_for_the_users_open_one_card_at_a_time; McpAppsSecurityTests.An_apps_own_link_asks_on_a_card_naming_the_site_and_only_Open_opens_it |
+| **R2 (ED-NEW-web-sec-res-2):** a click on a link inside an App's view only offers it on the App's own card (the whole address, Open and dismiss), inline, in the App pane and in the pop-out window; a script-started navigation offers nothing | B6, B7 | McpAppLinkOfferTests (all three); McpAppLinkNoticeTests.An_apps_link_opens_only_from_the_offer_that_shows_its_whole_address_wherever_the_app_is |
 | Display modes never go where the App cannot; camera and microphone ask, and everything else is denied | B6 | McpAppsHostTests: Display_modes_follow_the_app_session_and_never_go_where_the_app_cannot, Declared_camera_and_microphone_ask_the_user_and_everything_else_is_denied |
 | A page that cannot be read fails visibly and loads nothing | B1 | McpAppsHostTests.A_page_that_cannot_be_read_fails_visibly_and_loads_nothing |
 
@@ -143,6 +145,7 @@ scheduled by the lead and run alone (section 8).
 | Mitigation | Boundary | Tests |
 |---|---|---|
 | Page text is fenced as untrusted and cannot close its own block; the instructions say page text is never an instruction | B4 | WebAgentPolicyTests: PageContentIsFencedAndCannotCloseItsOwnBlock, TheInstructionsSayPageTextIsNeverAnInstruction; WebAgentEngineTests.APageReadsAsUntrustedLinesWithRefsAndItsSiteCounts |
+| **R3 (ED-NEW-web-sec-res-3):** the tab's own address in `web_open`, `web_navigate`, `web_read` and an action's loading line is inside the untrusted block, not on the first line | B4 | WebAgentAddressFenceTests (all four) |
 | The model sees its own tabs and shared ones, never private tabs; reading a shared tab asks and never offers Always | B3, B5 | WebAgentEngineTests: TheModelSeesItsOwnTabsAndSharedOnesNeverPrivateOnes, ReadingASharedTabAsksAndNeverOffersAlways, ASharedTabIsNotMovedToAnotherSiteWithoutTheCard |
 | An address the model invented is not opened; internal schemes and the deny list are refused | B5 | WebAgentEngineTests: AnAddressTheModelInventedIsNotOpened, InternalSchemesAndTheDenyListAreRefused |
 | The first action on a site asks; Don't allow stops before any input | B5 | WebAgentEngineTests: TheFirstActionOnASiteAsksAndAllowOnceLastsWhileTheTabStaysThere, DontAllowStopsTheActionBeforeAnyInput |
@@ -174,11 +177,16 @@ scheduled by the lead and run alone (section 8).
 2. **A script inside the frame-adding insertion.**
    - A script inside the same fragment that adds a frame (`createContextualFragment` holding an iframe and a script)
      runs before the post-insertion scrub, so it could take WebRTC from the new frame.
-   - The UDP block still holds. The native "fragment" check shows whether this is real on the shipping runtime.
-   - If it is, the fix is engine-level: a document-created script in each frame through CDP auto-attach, or a
-     runtime switch.
+   - The indexed setters `select[i] = option` and `select.options[i] = option` (an iframe inside the option) add a
+     frame no hook sees until the next microtask.
+   - ED-NEW-web-sec-res-1: the engine layer now holds there too. The sandboxed views run in their own environment, and
+     its arguments block non-proxied UDP in the spelling runtime 154 reads (`--webrtc-ip-handling-policy`; the older
+     `--force-webrtc-ip-handling-policy` is not in its msedge.dll, so Visus's own UDP block does nothing on that runtime).
+     Native check: SandboxWebRtcEngineNativeTests.
 3. **TURN over TCP depends on the hardening script.** The browser argument blocks only non-proxied UDP. No WebView2
-   switch turns WebRTC off for one profile.
+   switch turns WebRTC off (runtime 154 has none: no `disable-webrtc`, no peer-connection feature, no TCP switch). A dead
+   proxy for the sandbox environment would stop it, but it would also stop the network an artifact or App was granted.
+   A frame that keeps RTCPeerConnection can still reach a TURN server over TCP or TLS.
 4. **Secrets in addresses.** A tab's address, query included, is shown to the model by `web_tabs`. A site that puts a
    token in its query string gives it to the model. The cross-origin card stops the model from carrying it to another
    site.
@@ -258,3 +266,8 @@ FullyQualifiedName~SandboxEscapeNativeTests.Two_artifacts_from_two_chats_share_n
    a declared frame domain can frame only that host (F5, on the real engine).
 5. **Trust strip and cards** over a hostile page: the native strip names the source, and a page-drawn lookalike card
    sits below it (DESIGN 8.2). This is checked on the final installer.
+6. **The sandbox environment (ED-NEW-web-sec-res-1).** Each alone: SandboxWebRtcEngineNativeTests (both Facts: a frame
+   whose WebRTC the hooks missed gathers no UDP candidate, and only `WebView2\Sandbox` is used) and
+   WebView2EngineNativeTests.Sandboxed_views_get_an_environment_of_their_own_beside_Visus_on_the_real_runtime. In Task
+   Manager, a second `msedgewebview2.exe` browser process (its `--user-data-dir` ending in `\Sandbox\EBWebView`) runs
+   only while an artifact, widget or App has a live page (none after the last one closes or is discarded).

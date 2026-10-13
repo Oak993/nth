@@ -23,6 +23,7 @@ namespace Marrow.UI.NthUi;
 /// and gliding when the choice moves. Left and Right (and Home and End) move the choice.</summary>
 public sealed class NthUiSegments : Control, INthUiAnimated
 {
+    static NthUiSegments() => AffectsRender<NthUiSegments>(EnvironmentValues.AccessibilityHighContrastProperty, EnvironmentValues.AccessibilityContrastSurfaceProperty);
     private readonly List<Control> items = [];
     private const double Pad = 3;
     private const double PillRadius = 9;
@@ -194,16 +195,17 @@ public sealed class NthUiSegments : Control, INthUiAnimated
     {
         if (Bounds.Width < 1 || Bounds.Height < 1) return;
         var theme = ActualThemeVariant;
+        var contrast = EnvironmentValues.ContrastPaletteFor(this);
         var track = new RoundedRect(new Rect(Bounds.Size), NthUiTokens.ControlRadius);
-        context.DrawRectangle(new ImmutableSolidColorBrush(NthUiTokens.ControlFill.Resolve(theme)), null, track);
-        context.DrawRectangle(null, new ImmutablePen(new ImmutableSolidColorBrush(NthUiTokens.ControlRim.Resolve(theme)), 1), new RoundedRect(new Rect(Bounds.Size).Deflate(.5), NthUiTokens.ControlRadius - .5));
+        context.DrawRectangle(new ImmutableSolidColorBrush(NthUiTokens.ControlFill.Resolve(theme, contrast)), null, track);
+        context.DrawRectangle(null, new ImmutablePen(new ImmutableSolidColorBrush(NthUiTokens.ControlRim.Resolve(theme, contrast)), 1), new RoundedRect(new Rect(Bounds.Size).Deflate(.5), NthUiTokens.ControlRadius - .5));
         if (selected < 0 || !placed) return;
         var pill = Pill;
         if (pill.Width <= 0) return;
         var shape = new RoundedRect(pill, PillRadius);
-        if (theme == Avalonia.Styling.ThemeVariant.Light)
+        if (contrast is null && theme == Avalonia.Styling.ThemeVariant.Light)
             context.DrawRectangle(new ImmutableSolidColorBrush(Color.FromArgb(20, 0, 0, 0)), null, new RoundedRect(pill.Translate(new Vector(0, .5)), PillRadius));
-        context.DrawRectangle(new ImmutableSolidColorBrush(NthUiTokens.Chosen.Resolve(theme)), new ImmutablePen(new ImmutableSolidColorBrush(NthUiTokens.ChosenEdge.Resolve(theme)), .75), shape);
+        context.DrawRectangle(new ImmutableSolidColorBrush(NthUiTokens.Chosen.Resolve(theme, contrast)), new ImmutablePen(new ImmutableSolidColorBrush(NthUiTokens.ChosenEdge.Resolve(theme, contrast)), contrast is null ? .75 : 1), shape);
     }
 }
 

@@ -244,9 +244,13 @@ public sealed class SandboxEscapeTests
         rig.Ui.LinkAnswer = true;
         Assert.NotNull(rig.Call("l3", McpAppProtocol.OpenLink, new JsonObject { ["url"] = "https://shipyard.dev/releases" })["result"]);
         Assert.Equal(["https://shipyard.dev/releases"], rig.Ui.Links);
-        // A click inside the view is the user's own gesture: it goes to the link setting with no card.
+        // A click inside the view is the user's own gesture: no open-link card, and (ED-NEW-web-sec-res-2) it only offers the
+        // link on the app's own card with its whole address; the user's Open there opens it.
         rig.View!.RaiseNavigationStarting("https://shipyard.dev/docs", userInitiated: true);
         Assert.Equal(2, rig.Ui.LinkCards.Count);
+        Assert.Equal(["https://shipyard.dev/releases"], rig.Ui.Links);
+        Assert.Equal("https://shipyard.dev/docs", rig.Mount!.PendingLink);
+        rig.Mount.OpenPendingLink();
         Assert.Equal(["https://shipyard.dev/releases", "https://shipyard.dev/docs"], rig.Ui.Links);
     }
 

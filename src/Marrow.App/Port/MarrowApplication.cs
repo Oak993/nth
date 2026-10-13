@@ -30,6 +30,7 @@ public sealed class MarrowApplication : Application
         {
             SystemReduceMotion.Install(); // ED-084: every window follows Windows' "Animation effects" setting
             SystemWheel.Install(); // ED-NEW-softscroll-2: a wheel notch scrolls Windows' "lines to scroll" setting's distance (read only)
+            SystemHighContrast.Install(); // ED-NEW-web-w20-1: every window follows Windows' contrast theme
             Marrow.UI.NthUi.Diagram.NthUiDiagramSeat.Install(); // ED-NEW-web-w16c-1: every window has a seat for the hidden diagram renderer's web view (empty until a renderer is bound)
             WindowsTaskbarOverlay.Install(); // ED-219: the Dock unread badge is the taskbar overlay icon
             CudaOfferComposition.Install(StoragePaths.Root);

@@ -33,6 +33,9 @@ public sealed partial class WebAgentEngine : IDisposable
     /// <summary>A navigation this soon after a model step on the tab counts as the model's (a click's link, a submit's redirect).</summary>
     public const int AfterStepMs = 3_000;
 
+    /// <summary>A pop-up this soon after a model step on the tab counts as the model's (Chromium's user activation lasts 5 s).</summary>
+    public const int PopupAfterStepMs = 5_000;
+
     /// <summary>How long web_open and web_navigate wait for the page to load.</summary>
     public const int LoadWaitMs = 15_000;
 
@@ -46,7 +49,14 @@ public sealed partial class WebAgentEngine : IDisposable
     private readonly Dictionary<string, string> shortIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> readOrigins = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> knownUrls = new(StringComparer.Ordinal);
-    private readonly LinkedList<string> readTexts = new();
+
+    // ED-NEW-web-sec-agent-6: the preview origins a chat outside any project allowed scripts in, kept only while its web tools live.
+    private readonly HashSet<string> chatScripts = new(StringComparer.OrdinalIgnoreCase);
+    private readonly LinkedList<(string? Origin, string Text)> readTexts = new();
+
+    // ED-NEW-web-sec-agent-9: the titles and addresses the model was shown, with their site (Named), and what it typed on each site (Typed).
+    private readonly LinkedList<(string Origin, string Text)> shownNames = new();
+    private readonly Dictionary<string, string> typedOn = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, PendingAsk> asks = new(StringComparer.Ordinal);
     private CancellationTokenSource turn = new();
     private CancellationTokenSource? running;
@@ -266,6 +276,7 @@ public sealed partial class WebAgentEngine : IDisposable
             lines.Append(state.Short).Append(" (").Append(tab.Shared ? "shared by the user" : "yours").Append(") ").Append(tab.Url);
             if (tab.Title.Length > 0) lines.Append(" | ").Append(tab.Title);
             lines.Append('\n');
+            Named(WebPolicy.OriginOf(tab.Url), tab.Url + "\n" + tab.Title);
         }
         return new WebToolResult("Tabs you may use (" + N(tabs.Count) + "):\n" + WebAgentText.Untrusted(null, lines.ToString().TrimEnd()));
     }
@@ -314,8 +325,10 @@ public sealed partial class WebAgentEngine : IDisposable
         lock (gate) knownUrls.Add(WebAgentUrls.Normalize(url));
         if (state.Blocked is { } blocked) return Fail(WebErrorCodes.Blocked, blocked);
         var tab = state.Tab;
-        var text = "Opened " + state.Short + " at " + tab.Url + (tab.Loading ? " (still loading; web_wait for load)" : "") + ".";
-        return new WebToolResult(text + "\n" + WebAgentText.Untrusted(WebPolicy.OriginOf(tab.Url), "Title: " + tab.Title));
+        // + ED-NEW-web-sec-res-3: the page chooses its own address (a redirect, pushState), so it is page text, inside the block.
+        var text = "Opened " + state.Short + (tab.Loading ? " (still loading; web_wait for load)" : "") + ".";
+        Named(WebPolicy.OriginOf(tab.Url), tab.Url + "\n" + tab.Title);
+        return new WebToolResult(text + "\n" + WebAgentText.Untrusted(WebPolicy.OriginOf(tab.Url), "Address: " + tab.Url + "\nTitle: " + tab.Title));
     }
 
     private async Task<WebToolResult> History(Step s)
@@ -339,7 +352,10 @@ public sealed partial class WebAgentEngine : IDisposable
             await WaitLoaded(state, s.Token);
         }
         if (state.Blocked is { } blocked) return Fail(WebErrorCodes.Blocked, blocked);
-        return new WebToolResult(state.Short + " is at " + state.Tab.Url + ".\n" + WebAgentText.Untrusted(WebPolicy.OriginOf(state.Tab.Url), "Title: " + state.Tab.Title));
+        Named(WebPolicy.OriginOf(state.Tab.Url), state.Tab.Url + "\n" + state.Tab.Title);
+        // + ED-NEW-web-sec-res-3: the address the page went to is page text, inside the block with its title.
+        return new WebToolResult(state.Short + " is at the address below.\n"
+            + WebAgentText.Untrusted(WebPolicy.OriginOf(state.Tab.Url), "Address: " + state.Tab.Url + "\nTitle: " + state.Tab.Title));
     }
 
     private async Task<WebToolResult> Wait(Step s)
@@ -379,6 +395,7 @@ public sealed partial class WebAgentEngine : IDisposable
         Saw(origin, null, []);
         if (lines.Count == 0) return new WebToolResult("Nothing new in " + state.Short + "'s " + (network ? "network" : "console") + ". next: " + N(next)) { ReadOrigin = origin };
         var body = string.Join('\n', lines.Select(l => "#" + N(l.Number) + " " + l.Text));
+        Kept(origin, body);
         return new WebToolResult(N(lines.Count) + " " + (network ? "requests" : "messages") + " in " + state.Short + ". next: " + N(next) + "\n" + WebAgentText.Untrusted(origin, body)) { ReadOrigin = origin };
     }
 
@@ -431,14 +448,33 @@ public sealed partial class WebAgentEngine : IDisposable
         if (!WebPolicy.IsDevUrl(state.Tab.Url) || WebPolicy.OriginOf(state.Tab.Url) is not { } origin)
             return Fail(WebErrorCodes.NotSupported, "web_eval runs only in project previews (localhost and LAN dev hosts).");
         if (await Hold(s, state) is { } held) return held;
-        if (!hub.Grants.Eval(origin))
+        // ED-NEW-web-sec-agent-6 (security review L4; DESIGN 5.10 "after the user allows it per project"): the grant belongs to the
+        // chat's project and the preview origin; a chat outside any project keeps its own only while its web tools live.
+        var project = s.Host.ProjectOf(Thread);
+        bool granted;
+        if (project is null)
+        {
+            lock (gate) granted = chatScripts.Contains(origin);
+        }
+        else
+        {
+            granted = hub.Grants.Eval(project, origin);
+        }
+        if (!granted)
         {
             var ask = new WebEvalAsk(Thread, state.Short, origin, s.Model) { TabId = state.Tab.Id };
             Report(UiText.Get("agent.step.check_card"), state.Short, WebAgentPhase.Asking);
-            var (answered, allowed) = await Ask("eval|" + origin, t => s.Asker.AskEval(ask, t), false, s);
+            var (answered, allowed) = await Ask("eval|" + project + "|" + origin, t => s.Asker.AskEval(ask, t), false, s);
             if (!answered) return Waiting(s);
             if (!allowed) return Fail(WebErrorCodes.NotApproved, "The user did not allow scripts in " + WebPolicy.SourceName(origin) + ". Use the other web tools.");
-            hub.Grants.GrantEval(origin);
+            if (project is null)
+            {
+                lock (gate) chatScripts.Add(origin);
+            }
+            else
+            {
+                hub.Grants.GrantEval(project, origin);
+            }
         }
         Report(UiText.Get("agent.step.running_script"), state.Short);
         var result = await state.Cdp!.CallAsync("Runtime.evaluate", new JsonObject
@@ -458,6 +494,7 @@ public sealed partial class WebAgentEngine : IDisposable
         var value = result.TryGetProperty("result", out var r)
             ? r.TryGetProperty("value", out var v) ? v.GetRawText() : Text(r, "description") ?? Text(r, "type") ?? "undefined"
             : "undefined";
+        Kept(origin, value);
         return new WebToolResult("Result:\n" + WebAgentText.Untrusted(origin, Clip(value, 20_000))) { ReadOrigin = origin };
     }
 
@@ -496,16 +533,19 @@ public sealed partial class WebAgentEngine : IDisposable
             EventHandler<WebNavigationCompleted> completed = (_, _) => state.Overlay.Reset();
             Action input = () => OnUserInput(state);
             Action<string> failed = reason => OnStepFailed(state, reason);
+            Action<WebPopupOpening> popup = e => OnPopupOpening(state, e);
             view.NavigationStarting += starting;
             view.NavigationCompleted += completed;
             tab.UserInput += input;
             tab.StepFailed += failed;
+            tab.PopupOpening += popup;
             state.Hooks.Add(new Unhooking(() =>
             {
                 view.NavigationStarting -= starting;
                 view.NavigationCompleted -= completed;
                 tab.UserInput -= input;
                 tab.StepFailed -= failed;
+                tab.PopupOpening -= popup;
             }));
             state.Hooks.Add(cdp.Subscribe("Runtime.bindingCalled", e => OnBinding(state, e)));
             state.Hooks.Add(state.Logs);
@@ -607,7 +647,7 @@ public sealed partial class WebAgentEngine : IDisposable
 
     // The guarded-action card ("Send invite?") or a hard deny; null when the step may run.
     private async Task<WebToolResult?> Guard(Step s, TabState state, WebGuardVerdict verdict, WebElementFacts element, string key, string? target = null,
-        IReadOnlyList<KeyValuePair<string, string>>? fields = null, WebPoint? near = null)
+        IReadOnlyList<KeyValuePair<string, string>>? fields = null, WebPoint? near = null, string? from = null)
     {
         if (verdict.Kind == WebGuardKind.Deny) return Fail(WebErrorCodes.Denied, verdict.Reason ?? "nth never does this for a model.");
         if (verdict.Kind != WebGuardKind.Confirm) return null;
@@ -616,11 +656,13 @@ public sealed partial class WebAgentEngine : IDisposable
         var rows = new List<KeyValuePair<string, string>>(fields ?? []);
         if (target is not null) rows.Add(new(UiText.Get("agent.guard.row_address"), target));
         rows.Add(new(UiText.Get("agent.guard.row_site"), WebPolicy.SourceName(state.Tab.Url)));
-        var ask = new WebGuardAsk(Thread, state.Short, origin, verdict.Category, verdict.Word ?? "", name, s.Model) { Rows = rows, Chat = s.Host.ChatTitle(Thread), TabId = state.Tab.Id, Near = near };
+        var ask = new WebGuardAsk(Thread, state.Short, origin, verdict.Category, verdict.Word ?? "", name, s.Model) { Rows = rows, Chat = s.Host.ChatTitle(Thread), TabId = state.Tab.Id, Near = near, From = from };
         Report(UiText.Get("agent.step.check_card"), state.Short, WebAgentPhase.Asking);
         var (answered, confirmed) = await Ask("guard|" + state.Tab.Id + "|" + key + "|" + verdict.Category, t => s.Asker.Confirm(ask, t), false, s);
         if (!answered) return Waiting(s);
-        return confirmed ? null : Fail(WebErrorCodes.Cancelled, "The user cancelled " + (name.Length > 0 ? name : "this step") + ". Do not try another way to do it.");
+        // ED-NEW-web-sec-agent-10: the element's name is the page's words, so it goes inside the untrusted block.
+        return confirmed ? null : Fail(WebErrorCodes.Cancelled, "The user cancelled this step. Do not try another way to do it."
+            + (name.Length > 0 ? "\n" + WebAgentText.Untrusted(WebPolicy.OriginOf(state.Tab.Url), "Name: " + name) : ""));
     }
 
     // One ask, shared by the same call made again: it waits 25 s in this call; an answer that comes later is kept for the next.
@@ -663,7 +705,8 @@ public sealed partial class WebAgentEngine : IDisposable
         return (true, typed.IsCompletedSuccessfully ? typed.Result : refused);
     }
 
-    // An unanswered card goes after its lifetime; the next call asks again.
+    // A card goes after its lifetime, answered or not (ED-NEW-web-sec-agent-3: a Confirm nobody used does not wait for a look-alike
+    // call); the next call asks again.
     private async Task Expire(string key, PendingAsk pending)
     {
         try
@@ -676,7 +719,7 @@ public sealed partial class WebAgentEngine : IDisposable
         }
         lock (gate)
         {
-            if (asks.TryGetValue(key, out var current) && ReferenceEquals(current, pending) && !pending.Task.IsCompleted) asks.Remove(key);
+            if (asks.TryGetValue(key, out var current) && ReferenceEquals(current, pending)) asks.Remove(key);
         }
         await pending.Life.CancelAsync().ConfigureAwait(false);
     }
@@ -703,18 +746,96 @@ public sealed partial class WebAgentEngine : IDisposable
             if (origin is not null) readOrigins.Add(origin);
             foreach (var link in links.Concat(WebAgentUrls.FindAddresses(text)).Take(2000))
                 if (WebPolicy.IsWeb(link)) knownUrls.Add(WebAgentUrls.Normalize(link));
-            if (!string.IsNullOrEmpty(text))
-            {
-                readTexts.AddLast(text.Length <= 200_000 ? text : text[..200_000]);
-                while (readTexts.Count > 12) readTexts.RemoveFirst();
-            }
+        }
+        Kept(origin, text);
+    }
+
+    // Text the model read and the site it read it on (the last twelve reads): for "This address carries text from the page you
+    // were on", and for typing it into another site (ED-NEW-web-sec-agent-5). Console, network and script output count too.
+    private void Kept(string? origin, string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return;
+        lock (gate)
+        {
+            readTexts.AddLast((origin, text.Length <= 200_000 ? text : text[..200_000]));
+            while (readTexts.Count > 12) readTexts.RemoveFirst();
         }
     }
 
     // Whether a query value came from a page the model read ("This address carries text from the page you were on").
     private bool FromPage(string value)
     {
-        lock (gate) return readTexts.Any(t => t.Contains(value, StringComparison.OrdinalIgnoreCase));
+        lock (gate) return readTexts.Any(t => t.Text.Contains(value, StringComparison.OrdinalIgnoreCase)) || shownNames.Any(t => t.Text.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    // ED-NEW-web-sec-agent-5 (security review M3): the sites whose text the model is about to type into a page of target. Text read on
+    // the same site, and a pair of sites the user always allows (the cross-origin card's "always"), do not count.
+    private List<string> CarriedFrom(string typed, string? target)
+    {
+        var from = new List<string>();
+        if (typed.Length == 0) return from;
+        List<(string? Origin, string Text)> texts;
+        lock (gate) texts = [.. readTexts, .. shownNames.Select(n => ((string?)n.Origin, n.Text))];
+        foreach (var (source, text) in texts)
+        {
+            if (source is null || from.Contains(source, StringComparer.OrdinalIgnoreCase) || string.Equals(source, target, StringComparison.OrdinalIgnoreCase)) continue;
+            if (target is not null && hub.Grants.Pair(source, target)) continue;
+            if (WebAgentText.Carries(typed, text)) from.Add(source);
+        }
+        return from;
+    }
+
+    // ED-NEW-web-sec-agent-9 (security review M3, second pass): the sites a text carries text from, together with what the model typed on
+    // target before (a code typed in pieces adds up there), and the text the card shows: this text, or the pieces with it.
+    private (List<string> From, string Shown) Carried(string typed, string? target)
+    {
+        var from = CarriedFrom(typed, target);
+        if (from.Count > 0 || target is null || typed.Length == 0) return (from, typed);
+        string? before;
+        lock (gate) before = typedOn.GetValueOrDefault(target);
+        if (string.IsNullOrEmpty(before)) return (from, typed);
+        var joined = before + " " + typed;
+        from = CarriedFrom(joined, target);
+        return (from, from.Count == 0 ? typed : joined.Length <= 120 ? joined : "\u2026" + joined[^119..]);
+    }
+
+    // What the model typed on a site: the last 2,000 characters, pieces joined by a space, for at most 64 sites; a text whose carry card
+    // the user confirmed starts it again (the user saw what goes there).
+    private void Typed(string? target, string typed, bool confirmed)
+    {
+        if (target is null || typed.Length == 0) return;
+        lock (gate)
+        {
+            if (confirmed)
+            {
+                typedOn.Remove(target);
+                return;
+            }
+            var joined = typedOn.TryGetValue(target, out var before) && before.Length > 0 ? before + " " + typed : typed;
+            typedOn[target] = joined.Length <= 2_000 ? joined : joined[^2_000..];
+            if (typedOn.Count > 64) typedOn.Remove(typedOn.Keys.First(k => !string.Equals(k, target, StringComparison.OrdinalIgnoreCase)));
+        }
+    }
+
+    // A title or an address the model was shown, and the site it belongs to (the tab's, read or not); the last 64, kept apart from the
+    // twelve page reads so a tab list never pushes a page out of them.
+    private void Named(string? origin, string? text)
+    {
+        if (origin is null || string.IsNullOrWhiteSpace(text)) return;
+        var kept = text.Length <= 4_000 ? text : text[..4_000];
+        lock (gate)
+        {
+            for (var node = shownNames.First; node is not null; node = node.Next)
+            {
+                if (string.Equals(node.Value.Origin, origin, StringComparison.OrdinalIgnoreCase) && node.Value.Text == kept)
+                {
+                    shownNames.Remove(node);
+                    break;
+                }
+            }
+            shownNames.AddLast((origin, kept));
+            while (shownNames.Count > 64) shownNames.RemoveFirst();
+        }
     }
 
     // ---- Navigations, take-over and the step window ----
@@ -724,9 +845,19 @@ public sealed partial class WebAgentEngine : IDisposable
         if (!e.IsMainFrame || e.Cancel || !ModelCaused(state)) return;
         var url = e.Url;
         if (WebPolicy.IsBlank(url)) return;
+        // ED-NEW-web-sec-agent-6 (security review L4): an option whose change sends its form (an onchange submit) would be a submit
+        // the card never saw; a GET form on its own site (a filter, a sort) still runs.
+        WebElementFacts? choosing;
+        lock (gate) choosing = state.Choosing;
+        if (choosing is { InForm: true } && WebAgentPolicy.CheckSubmit(choosing with { Submits = true }, WebPolicy.OriginOf(state.Tab.Url)).Kind != WebGuardKind.None)
+        {
+            Block(state, e, "Choosing that option sent its form, and nth stopped it: sending this form needs the user's OK. To send it, web_click the form's submit button (nth asks the user).");
+            return;
+        }
+        var source = WebPolicy.OriginOf(state.Tab.Url);
         if (WebAgentUrls.DeniedReason(url) is { } why)
         {
-            Block(state, e, "nth stopped the page from opening " + url + ": " + why);
+            Block(state, e, "nth stopped the page from opening the address below: " + why + "\n" + WebAgentText.Untrusted(source, url));
             return;
         }
         var target = WebPolicy.OriginOf(url)!;
@@ -735,19 +866,63 @@ public sealed partial class WebAgentEngine : IDisposable
         lock (gate) knownUrls.Add(WebAgentUrls.Normalize(url));
         if (state.Tab.Shared)
         {
-            Block(state, e, "nth stopped the user's shared tab from moving to " + WebPolicy.SourceName(url) + ". To go there, call web_open with this url (it asks the user): " + url);
+            Block(state, e, "nth stopped the user's shared tab from moving to another site. To go there, call web_open with the address below (it asks the user):\n"
+                + WebAgentText.Untrusted(source, url));
             return;
         }
         IReadOnlyList<string> from;
         lock (gate) from = WebAgentUrls.CrossOriginSources(readOrigins, url, hub.Grants.Pair);
         if (from.Count > 0)
-            Block(state, e, "nth stopped the page from opening " + WebPolicy.SourceName(url) + ": after reading " + string.Join(", ", from.Select(WebPolicy.SourceName)) + ", opening another site needs the user's OK. Call web_open with this url to ask them: " + url);
+            Block(state, e, "nth stopped the page from opening another site: after reading " + string.Join(", ", from.Select(WebPolicy.SourceName))
+                + ", opening another site needs the user's OK. Call web_open with the address below to ask them:\n" + WebAgentText.Untrusted(source, url));
+    }
+
+    // ED-NEW-web-sec-agent-4 (security review M2): a model's click is a trusted gesture, so a pop-up it opens (target=_blank,
+    // window.open) would load in a new tab with none of the checks above. While the model drives the tab, and for the 5 s its gesture
+    // lasts, such a pop-up is stopped (it waits on Visus's quiet chip for the user) and the model is told to ask through web_open,
+    // where the deny list and the cross-origin card apply. The user's own pop-ups (before the model drives, after a take-over, after
+    // the turn) are never judged.
+    private void OnPopupOpening(TabState state, WebPopupOpening e)
+    {
+        if (e.Cancel || !ModelPopup(state)) return;
+        e.Cancel = true;
+        var url = e.Url;
+        // ED-NEW-web-sec-agent-10 (security review M2 and L4, second pass): the address is the page's choice (its fragment can say anything),
+        // so it reaches the model inside the untrusted block, never in nth's own words.
+        var source = WebPolicy.OriginOf(state.Tab.Url);
+        string why;
+        if (WebAgentUrls.DeniedReason(url) is { } denied)
+        {
+            why = "nth stopped the page from opening a new tab at the address below: " + denied + "\n" + WebAgentText.Untrusted(source, url);
+        }
+        else if (WebPolicy.IsWeb(url))
+        {
+            lock (gate) knownUrls.Add(WebAgentUrls.Normalize(url));
+            Named(source, url);
+            why = "nth stopped the page from opening a new tab at the address below. To go there, call web_open with it (it asks the user when it must):\n"
+                + WebAgentText.Untrusted(source, url);
+        }
+        else
+        {
+            why = "nth stopped the page from opening a new tab.";
+        }
+        lock (gate) state.Blocked = why;
+    }
+
+    private bool ModelPopup(TabState state)
+    {
+        lock (gate)
+        {
+            if (state.TookOver) return false;
+            return state.Stepping > 0 || hub.Clock.NowMs - state.LastStepEnd <= PopupAfterStepMs || (state.Driven && state.Tab.Kind == VisusTabKind.Agent);
+        }
     }
 
     private void Block(TabState state, WebNavigationStarting e, string why)
     {
         e.Cancel = true;
         state.Blocked = why;
+        if (WebPolicy.IsWeb(e.Url)) Named(WebPolicy.OriginOf(state.Tab.Url), e.Url);
     }
 
     private bool ModelCaused(TabState state)
@@ -828,6 +1003,7 @@ public sealed partial class WebAgentEngine : IDisposable
             state.Stepping++;
             state.Driven = true;
             state.Blocked = null;
+            state.Choosing = null;
         }
         return new StepLease(() =>
         {
@@ -1060,6 +1236,9 @@ public sealed partial class WebAgentEngine : IDisposable
 
         /// <summary>Why the last model-caused navigation was stopped.</summary>
         public string? Blocked { get; set; }
+
+        /// <summary>The select web_select changed in its last step (a navigation it causes is judged as its form's submit).</summary>
+        public WebElementFacts? Choosing { get; set; }
 
         public int Stepping { get; set; }
 

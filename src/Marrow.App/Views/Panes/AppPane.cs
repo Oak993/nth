@@ -37,8 +37,11 @@ public sealed class AppPane : Decorator
     private readonly ThreadRuntime runtime;
     private readonly Decorator slot = new() { Name = "WebSlot" };
     private readonly TextBlock trustText;
+    // ED-NEW-web-sec-res-2: a link the user clicked in the app is offered under the trust strip, its whole address shown.
+    private readonly McpAppLinkOffer offer = new(new Thickness(6, 0, 6, 6));
     private PaneContent? content;
     private McpAppSession? shown;
+    private McpAppSession? watched;
     private (WebViewHost Host, IDisposable Lease)? motionHold;
     private Action<TimeSpan>? pendingFrame;
     private int stillFrames;
@@ -59,8 +62,9 @@ public sealed class AppPane : Decorator
             Children = { shield, trustText },
         };
         var body = new Border { Margin = new Thickness(6, 0, 6, 6), CornerRadius = new CornerRadius(9), ClipToBounds = true, Child = slot };
-        var column = new Grid { RowDefinitions = new RowDefinitions("Auto,*"), Children = { trust, body } };
-        Grid.SetRow(body, 1);
+        var column = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,*"), Children = { trust, offer.Notice, body } };
+        Grid.SetRow(offer.Notice, 1);
+        Grid.SetRow(body, 2);
         Child = column;
         slot.PropertyChanged += (_, e) =>
         {
@@ -88,6 +92,9 @@ public sealed class AppPane : Decorator
     /// <summary>Where the app's host goes.</summary>
     public Decorator Slot => slot;
 
+    /// <summary>ED-NEW-web-sec-res-2: the offer of a link the user clicked in the app, with its whole address.</summary>
+    internal Marrow.App.Views.Artifacts.TabulaNotice LinkNotice => offer.Notice;
+
     /// <summary>The header's actions: Pop out, Back inline.</summary>
     internal IReadOnlyList<PaneHeaderAction> Actions() =>
     [
@@ -100,6 +107,7 @@ public sealed class AppPane : Decorator
         base.OnAttachedToVisualTree(e);
         McpAppSessions.ExpandedChanged += OnExpandedChanged;
         Show(McpAppSessions.Expanded(runtime.ThreadID) ?? shown);
+        Watch(shown);
         if (shown is null)
         {
             // Nothing to show: the pane goes (a card with an empty body never stays).
@@ -119,6 +127,7 @@ public sealed class AppPane : Decorator
     {
         base.OnDetachedFromVisualTree(e);
         McpAppSessions.ExpandedChanged -= OnExpandedChanged;
+        Watch(null);
         shown?.DetachPane(slot);
         EndMotionHold();
     }
@@ -129,6 +138,7 @@ public sealed class AppPane : Decorator
         if (McpAppSessions.Expanded(thread) is not { } next || next == shown) return;
         shown?.DetachPane(slot);
         Show(next);
+        Watch(next);
         next.AttachPane(slot);
         HoldWhileMoving();
     }
@@ -179,5 +189,17 @@ public sealed class AppPane : Decorator
         shown = session;
         trustText.Text = session is null ? "" : McpAppTrust.Sandboxed(session.Server);
         content?.Update(PaneKinds.Title(PaneKind.App), session?.Server, Actions());
+        offer.Show(session);
     }
+
+    // While the pane is in the window it follows the shown app's changes (its offered link).
+    private void Watch(McpAppSession? next)
+    {
+        if (watched == next) return;
+        if (watched is not null) watched.Changed -= OnShownChanged;
+        watched = next;
+        if (watched is not null) watched.Changed += OnShownChanged;
+    }
+
+    private void OnShownChanged() => offer.Show(shown);
 }

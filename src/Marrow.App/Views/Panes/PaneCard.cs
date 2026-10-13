@@ -161,11 +161,22 @@ public sealed class PaneCard : Border
         ApplyLook();
     }
 
+    // W20 (DESIGN 10, ED-NEW-web-w20-1): under a Windows contrast theme the glass is the system's solid Window colour with a
+    // 1 DIP system line (Highlight while the pane has the keyboard) and no shadow.
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == Marrow.UI.Port.EnvironmentValues.AccessibilityHighContrastProperty) ApplyLook();
+    }
+
     private void ApplyLook()
     {
         ThemeVariant theme = ActualThemeVariant;
-        Background = PaneTokens.CardFill(theme, expanded);
-        BorderBrush = PaneTokens.Rim(theme, focused);
-        BoxShadow = PaneTokens.Shadow(theme, expanded || lifted);
+        var contrast = Marrow.UI.Port.EnvironmentValues.GetAccessibilityHighContrast(this);
+        Marrow.UI.Port.ContrastSurface.MatchTheme(this); // the body's own colours drawn for the solid surface's lightness
+        theme = ActualThemeVariant;
+        Background = PaneTokens.CardFill(theme, expanded, contrast);
+        BorderBrush = PaneTokens.Rim(theme, focused, contrast);
+        BoxShadow = PaneTokens.Shadow(theme, expanded || lifted, contrast);
     }
 }

@@ -6,11 +6,15 @@ using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
+using Marrow.App.Views.Browser;
+using Marrow.App.Views.Panes;
 using Marrow.Core.Localisation;
 using Marrow.Core.Web;
 using Marrow.Services.Web;
@@ -176,6 +180,10 @@ public sealed record TabulaCardSpec(PaneGlyphKind Glyph, string Title, string De
 /// The pane's cards, one at a time: each a popup over the preview (its own window, so above the page), centred on it. A
 /// second request waits for the first. Escape is the secondary button; a card whose request is cancelled (the page left)
 /// closes as "no".
+/// + ED-NEW-web-sec-artifacts-3 (security review L1): the artifact chooses when a card appears, so a card follows Visus's
+/// prompt rules (8.4, 10.1): it takes no focus when it appears, Enter does nothing in it, F6 moves into it (its words, not a
+/// button) and F6 again gives the keyboard back, and for <see cref="VisusPromptCard.Shield"/> after it appears or the
+/// keyboard enters it, its buttons ignore clicks and keys, on the Visus clock.
 /// </summary>
 public sealed class TabulaCards
 {
@@ -185,6 +193,9 @@ public sealed class TabulaCards
     private readonly SemaphoreSlim one = new(1, 1);
     private Popup? popup;
     private TaskCompletionSource<int>? answer;
+    private Control? lead;
+    private IInputElement? returnTo;
+    private long shieldFrom;
 
     internal TabulaCards(Control anchor, Panel host, ITabulaFiles files)
     {
@@ -277,10 +288,37 @@ public sealed class TabulaCards
     /// <summary>Answers the card on screen (tests, and the buttons): 1 primary, 0 secondary.</summary>
     internal void Answer(int choice) => answer?.TrySetResult(choice);
 
+    /// <summary>Within the shield of the card appearing or of the keyboard entering it: its buttons ignore clicks and keys.</summary>
+    internal bool IsShielded => VisusHost.Time.GetElapsedTime(shieldFrom) < VisusPromptCard.Shield;
+
+    // A button's answer, unless the shield is up (a click or key that landed as the card appeared does nothing).
+    private void Press(int choice)
+    {
+        if (!IsShielded) Answer(choice);
+    }
+
+    // F6 into the card (10.1): its words take the keyboard; where it came from is where F6 again gives it back.
+    private bool FocusLead()
+    {
+        if (lead is not { } words || popup?.Child is not Visual card) return false;
+        var from = TopLevel.GetTopLevel(anchor)?.FocusManager?.GetFocusedElement();
+        if (!(from is Visual visual && (ReferenceEquals(card, visual) || card.IsVisualAncestorOf(visual)))) returnTo = from;
+        return words.Focus(NavigationMethod.Tab);
+    }
+
+    private void ReturnFocus()
+    {
+        var target = returnTo;
+        returnTo = null;
+        if (target is InputElement { IsEffectivelyVisible: true } element && TopLevel.GetTopLevel(element) is not null && element.Focus(NavigationMethod.Tab)) return;
+        anchor.Focus(NavigationMethod.Tab);
+    }
+
     private async Task<int> Present(TabulaCardSpec spec, object? _, CancellationToken cancellationToken)
     {
         var done = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
         answer = done;
+        returnTo = null;
         var card = Build(spec);
         var motion = new TabulaMotion(card, opacity: 0, rise: 6);
         var shown = new Popup
@@ -295,7 +333,12 @@ public sealed class TabulaCards
         popup = shown;
         Showing = spec.Title;
         shown.IsOpen = true;
+        shieldFrom = VisusHost.Time.GetTimestamp();
         motion.To(1, 0);
+        // F6 reaches the open card (10.1) as it reaches Visus's prompts: the same list, the same workspace hook.
+        var window = TopLevel.GetTopLevel(anchor);
+        using var prompt = window is null ? null : VisusPrompts.Add(window, FocusLead);
+        if (window is not null && anchor.FindAncestorOfType<PaneWorkspace>() is { PromptFirst: null } panes) panes.PromptFirst = () => VisusPrompts.FocusNewest(window);
         using var cancel = cancellationToken.Register(() => Dispatcher.UIThread.Post(() => done.TrySetResult(0)));
         void Detached(object? s, VisualTreeAttachmentEventArgs e) => done.TrySetResult(0);
         anchor.DetachedFromVisualTree += Detached;
@@ -307,11 +350,15 @@ public sealed class TabulaCards
         finally
         {
             anchor.DetachedFromVisualTree -= Detached;
+            var hadKeyboard = card.IsKeyboardFocusWithin;
             answer = null;
+            lead = null;
             Showing = null;
             popup = null;
             shown.IsOpen = false;
             host.Children.Remove(shown);
+            if (hadKeyboard) ReturnFocus();
+            returnTo = null;
         }
         return result;
     }
@@ -345,8 +392,24 @@ public sealed class TabulaCards
         var head = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing = 10, Children = { glyph } };
         Grid.SetColumn(words, 1);
         head.Children.Add(words);
-        var primary = TabulaButtons.Pill(spec.Primary, () => Answer(1), primary: true);
-        var secondary = TabulaButtons.Pill(spec.Secondary, () => Answer(0));
+        // 10.1: the card's words are where F6 lands (a reader hears the question before any button). The ring is the app's
+        // focus band; the margin gives back its room so nothing moves when it shows.
+        var question = new Border
+        {
+            Focusable = true,
+            Margin = new Thickness(-6),
+            Padding = new Thickness(4),
+            BorderThickness = new Thickness(2),
+            CornerRadius = new CornerRadius(9),
+            BorderBrush = Brushes.Transparent,
+            Child = head,
+        };
+        question.GotFocus += (_, _) => question.BorderBrush = Marrow.UI.Chrome.Chrome.Accent.Opacity(0.25).Brush(question);
+        question.LostFocus += (_, _) => question.BorderBrush = Brushes.Transparent;
+        AutomationProperties.SetName(question, VisusPromptCard.Sentence(spec.Title) + " " + spec.Detail);
+        lead = question;
+        var primary = TabulaButtons.Pill(spec.Primary, () => Press(1), primary: true);
+        var secondary = TabulaButtons.Pill(spec.Secondary, () => Press(0));
         var row = new WrapPanel { Margin = new Thickness(0, 12, 0, 0), Children = { primary, secondary } };
         secondary.Margin = new Thickness(6, 0, 0, 0);
         var card = new Border
@@ -355,9 +418,9 @@ public sealed class TabulaCards
             Padding = new Thickness(14),
             CornerRadius = new CornerRadius(14),
             BorderThickness = new Thickness(0.5),
-            Child = new StackPanel { Children = { head, row } },
-            Focusable = true,
+            Child = new StackPanel { Children = { question, row } },
         };
+        KeyboardNavigation.SetTabNavigation(card, KeyboardNavigationMode.Cycle);
         void Paint()
         {
             card.Background = PaneTokens.CardFill(anchor.ActualThemeVariant, expanded: true);
@@ -370,14 +433,38 @@ public sealed class TabulaCards
             if (warning is not null) warning.Foreground = TabulaTokens.ErrorText.Brush(anchor);
         }
         Paint();
-        card.KeyDown += (_, e) =>
+        // 8.4, 10.1: Enter does nothing, Esc gives the safe answer at once, F6 gives the keyboard back, and within the shield
+        // a Space (its press or its release) or a click on the card does nothing. No control takes the focus by itself.
+        card.AddHandler(InputElement.KeyDownEvent, (_, e) =>
         {
-            if (e.Key != Key.Escape) return;
-            e.Handled = true;
-            Answer(0);
+            switch (e.Key)
+            {
+                case Key.Enter:
+                    e.Handled = true;
+                    return;
+                case Key.Escape:
+                    e.Handled = true;
+                    Answer(0);
+                    return;
+                case Key.F6:
+                    e.Handled = true;
+                    ReturnFocus();
+                    return;
+                case Key.Space when IsShielded:
+                    e.Handled = true;
+                    return;
+            }
+        }, RoutingStrategies.Tunnel);
+        card.AddHandler(InputElement.KeyUpEvent, (_, e) => { if (e.Key == Key.Space && IsShielded) e.Handled = true; }, RoutingStrategies.Tunnel);
+        card.AddHandler(InputElement.PointerPressedEvent, (_, e) => { if (IsShielded) e.Handled = true; }, RoutingStrategies.Tunnel);
+        card.AddHandler(InputElement.PointerReleasedEvent, (_, e) => { if (IsShielded) e.Handled = true; }, RoutingStrategies.Tunnel);
+        card.PropertyChanged += (_, e) =>
+        {
+            // 10.1: the shield also runs from the moment the keyboard enters the card.
+            if (e.Property == InputElement.IsKeyboardFocusWithinProperty && e.NewValue is true) shieldFrom = VisusHost.Time.GetTimestamp();
         };
-        card.AttachedToVisualTree += (_, _) => primary.Focus();
-        AutomationProperties.SetName(card, spec.Title);
+        AutomationProperties.SetName(card, VisusPromptCard.Sentence(spec.Title) + " " + VisusPromptCard.F6Hint);
+        AutomationProperties.SetLiveSetting(card, AutomationLiveSetting.Assertive);
         card.SetValue(AutomationProperties.ControlTypeOverrideProperty, AutomationControlType.Pane);
         AutomationProperties.SetHelpText(card, spec.Detail);
         return card;

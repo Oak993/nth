@@ -2,8 +2,9 @@
 // glass window, always on top if pinned, draggable by its title strip and resizable with Splitter edge and corner grips (min
 // 280 x 180)"; canvas .popw; ED-NEW-web-w19-5). No Swift counterpart. The window holds the app's one host, under a 34 DIP
 // title strip that names the server (the trust strip of 8.2, outside the web rectangle). Closing it brings the app back to its
-// card in the thread. It opens pinned (on top), and the pin in the strip lets it fall behind other windows. Its size is the
-// server's: the last size the user gave it. It appears with opacity and a .94 scale on a spring (a short ease under Reduce
+// card in the thread. It opens unpinned and without taking focus (+ ED-NEW-web-sec-mcpapps-1, web surfaces security review
+// M6: it opened pinned on top and activated, so an app could raise a focus-stealing borderless window over everything); the
+// pin in the strip keeps it on top. Its size is the server's: the last size the user gave it. It appears with opacity and a .94 scale on a spring (a short ease under Reduce
 // Motion) while the host shows its snapshot, because a window's alpha does not reach WebView2's surface (DESIGN 2.4).
 using Avalonia;
 using Avalonia.Automation;
@@ -34,6 +35,8 @@ public sealed class McpAppWindow
     public static string UnpinText => UiText.Get("mcpapps.window.stop_keeping_on_top");
 
     private readonly McpAppSession session;
+    // ED-NEW-web-sec-res-2: a link the user clicked in the app is offered under the title strip, its whole address shown.
+    private readonly McpAppLinkOffer offer = new(new Thickness(6, 6, 6, 6));
     private readonly SplitterSpring opacity = new(0, epsilon: 0.002);
     private readonly SplitterSpring scale = new(0.94, epsilon: 0.0005);
     private readonly Border frame;
@@ -86,16 +89,32 @@ public sealed class McpAppWindow
 
         Slot = new Decorator();
         var body = new Border { Margin = new Thickness(6, 0, 6, 6), CornerRadius = new CornerRadius(9), ClipToBounds = true, Child = Slot }; // the canvas .mweb: under the hairline
-        var column = new Grid { RowDefinitions = new RowDefinitions("Auto,*"), Children = { top, body } };
-        Grid.SetRow(body, 1);
+        var column = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,*"), Children = { top, offer.Notice, body } };
+        Grid.SetRow(offer.Notice, 1);
+        Grid.SetRow(body, 2);
+        offer.Show(session);
+        session.Changed += OnSessionChanged;
 
         var grips = Grips();
+        var backdrop = new WindowBackdrop(0.5);
         frame = new Border
         {
             CornerRadius = new CornerRadius(14),
             ClipToBounds = true,
-            Child = new Grid { Children = { new WindowBackdrop(0.5), column, grips } },
+            Child = new Grid { Children = { backdrop, column, grips } },
             RenderTransformOrigin = RelativePoint.Center,
+        };
+        // W20 (DESIGN 10, ED-NEW-web-w20-1): under a Windows contrast theme the window's glass is the solid Window colour inside a
+        // 1 DIP system line, and its words and glyphs take the system's colours.
+        frame.PropertyChanged += (_, e) =>
+        {
+            if (e.Property != EnvironmentValues.AccessibilityHighContrastProperty) return;
+            var contrast = EnvironmentValues.GetAccessibilityHighContrast(frame);
+            ContrastSurface.MatchTheme(frame);
+            backdrop.IsVisible = contrast is null;
+            frame.Background = contrast?.Brush(ContrastRole.Surface);
+            frame.BorderBrush = contrast?.Brush(ContrastRole.Line);
+            frame.BorderThickness = new Thickness(contrast is null ? 0 : 1);
         };
         name.Foreground = PaneTokens.Text1.Brush(name);
         glyph.Foreground = PaneTokens.Text2.Brush(glyph);
@@ -109,8 +128,8 @@ public sealed class McpAppWindow
             MinHeight = MinimumHeight,
             CanResize = false,
             ShowInTaskbar = false,
-            ShowActivated = true,
-            Topmost = true,
+            ShowActivated = false, // ED-NEW-web-sec-mcpapps-1: never takes focus by itself
+            Topmost = false,
             WindowDecorations = WindowDecorations.None,
             WindowStartupLocation = WindowStartupLocation.Manual,
             TransparencyLevelHint = [WindowTransparencyLevel.AcrylicBlur],
@@ -119,6 +138,7 @@ public sealed class McpAppWindow
         };
         Window.Closed += (_, _) =>
         {
+            session.Changed -= OnSessionChanged;
             StopMotion();
             openHold?.Dispose();
             openHold = null;
@@ -130,7 +150,7 @@ public sealed class McpAppWindow
             e.Handled = true;
             session.WindowClosed(this);
         };
-        Pinned = true;
+        Pinned = false; // ED-NEW-web-sec-mcpapps-1: on top only after the user's pin
         ApplyPin();
     }
 
@@ -139,6 +159,9 @@ public sealed class McpAppWindow
 
     /// <summary>Where the app's host goes.</summary>
     public Decorator Slot { get; }
+
+    /// <summary>ED-NEW-web-sec-res-2: the offer of a link the user clicked in the app, with its whole address.</summary>
+    internal Marrow.App.Views.Artifacts.TabulaNotice LinkNotice => offer.Notice;
 
     /// <summary>The window's size in DIP.</summary>
     public Size Size { get; private set; }
@@ -174,6 +197,8 @@ public sealed class McpAppWindow
         else scale.SetTarget(1);
         RequestFrame();
     }
+
+    private void OnSessionChanged() => offer.Show(session);
 
     /// <summary>Brings the window forward (the app asked for pip again).</summary>
     public void Activate() => Window.Activate();

@@ -153,7 +153,10 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
             Assert.True(session.Host.IsHeld);
             window.Settle();
             Assert.False(window.IsOpening);
-            Assert.True(window.Pinned);
+            Assert.False(window.Pinned); // ED-NEW-web-sec-mcpapps-1: unpinned and not activated until the user says
+            Assert.False(window.Window.Topmost);
+            Assert.False(window.Window.ShowActivated);
+            Click(window.PinButton);
             Assert.True(window.Window.Topmost);
             Click(window.PinButton);
             Assert.False(window.Window.Topmost);
@@ -487,15 +490,16 @@ public sealed class McpAppsAppTests(HeadlessSession headless)
         Pump(m);
         var mount = Assert.Single(Find<McpAppRow>(m.View)).Session!.Mount;
 
-        var tool = apps.Ui.AskToolAsync(mount, "promote_release", "Release board");
+        var tool = apps.Ui.AskToolAsync(mount, "promote_release", "Release board", new JsonObject { ["version"] = "v2.4.1" });
         Dispatcher.UIThread.RunJobs();
         var card = Assert.Single(m.Runtime.Approvals);
         Assert.Equal("shipyard wants to run promote_release", card.Title);
         Assert.Equal("From its Release board, in this chat.", card.Detail);
-        Assert.Equal(["Allow once", "Always for shipyard", "Deny"], card.Options.Select(option => option.Title).ToArray());
+        Assert.Equal("Arguments: {\n  \"version\": \"v2.4.1\"\n}", card.Reason); // ED-NEW-web-sec-mcpapps-2
+        Assert.Equal(["Allow once", "Always in this chat", "Deny"], card.Options.Select(option => option.Title).ToArray());
         m.Runtime.Resolve(card, card.Options[1]);
         Dispatcher.UIThread.RunJobs();
-        Assert.Equal(McpAppToolDecision.AlwaysForServer, tool.GetAwaiter().GetResult());
+        Assert.Equal(McpAppToolDecision.AlwaysInChat, tool.GetAwaiter().GetResult());
 
         var request = new McpAppDomainRequest("shipyard", "Release board", ["api.shipyard.dev"], [], [], "f1");
         var domains = apps.Ui.AskDomainsAsync(mount, request);

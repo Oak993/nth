@@ -25,6 +25,7 @@ public sealed class AppShell : ITerminationSender
     private const uint WM_ENDSESSION = 0x0016;
     private const uint WM_ACTIVATEAPP = 0x001C;
     private const uint WM_SETTINGCHANGE = 0x001A;
+    private const uint WM_SYSCOLORCHANGE = 0x0015;
     private const uint WM_DPICHANGED = 0x02E0;
 
     /// <summary>PORT-ONLY seam: what puts a window procedure hook on the main window, Avalonia's own (a headless window has no
@@ -256,6 +257,8 @@ public sealed class AppShell : ITerminationSender
         if (msg == WM_ENDSESSION && wParam != 0) WillTerminate();
         // ED-084: WM_SETTINGCHANGE (broadcast to every top-level window) re-reads Windows' "Animation effects" setting.
         if (msg == WM_SETTINGCHANGE) SystemReduceMotion.Shared.Current.Refresh();
+        // ED-NEW-web-w20-1: a contrast theme turned on or off, or its colours changed: every window's palette is read again.
+        if (msg is WM_SETTINGCHANGE or WM_SYSCOLORCHANGE) SystemHighContrast.Shared.Current.Refresh();
         // ED-219: Explorer made the taskbar button (again), or the DPI, and so the small-icon size, changed: the unread
         // badge's overlay icon is set again.
         if (msg == WM_DPICHANGED || msg == WindowsTaskbarOverlay.TaskbarButtonCreated)

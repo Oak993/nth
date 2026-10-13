@@ -390,6 +390,15 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
         if (size.Width <= 0 || size.Height <= 0) return;
         var shape = Shape(size, Edge / 2);
         var glassShape = Shape(size, 0);
+        // Web surfaces W20 (DESIGN 10 "glass falls back to solid system colours"; ED-NEW-web-w20-1): under a Windows contrast
+        // theme the card is the system's Window colour, solid over whatever glass is under it, inside a 1 DIP WindowText line;
+        // no shadow, no tint, no rim.
+        if (EnvironmentValues.GetAccessibilityHighContrast(this) is { } contrast)
+        {
+            context.DrawGeometry(contrast.Brush(ContrastRole.Surface), null, glassShape);
+            context.DrawGeometry(null, new Pen(contrast.Brush(ContrastRole.Line), 1), Shape(size, 0.5));
+            return;
+        }
         // The shadow lies outside the glass only: under a translucent card it would darken the glass from inside.
         using (context.PushGeometryClip(new CombinedGeometry(GeometryCombineMode.Exclude, new RectangleGeometry(new Rect(size).Inflate(ShadowReach + ShadowDrop + 2)), glassShape)))
         using (context.PushTransform(Matrix.CreateTranslation(0, ShadowDrop)))
@@ -542,6 +551,11 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
+        if (change.Property == EnvironmentValues.AccessibilityHighContrastProperty)
+        {
+            ContrastSurface.MatchTheme(this); // the card's content drawn for the solid surface's lightness
+            InvalidateVisual();
+        }
         if (change.Property == TipEdgeProperty && shadowRoom) Margin = ShowTip ? ShadowMargin(TipEdge) : new Thickness(ShadowReach + ShadowDrop); // the card flipped
         if (glass is null) return;
         if (change.Property == RenderTransformProperty || change.Property == OpacityProperty || change.Property == TipOffsetProperty
