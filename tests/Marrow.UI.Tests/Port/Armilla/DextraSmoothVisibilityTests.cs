@@ -72,7 +72,9 @@ public sealed class DextraSmoothVisibilityTests(HeadlessSession headless)
     [InlineData("Armilla")]
     [InlineData("Astur")]
     [InlineData("shimmer")]
-    public void A_visible_state_change_after_thirty_seconds_of_blur_draws_without_restarting_motion(string kind) => headless.OnUiThread(() =>
+    [Trait("Decision", "ED-NEW-dextra-smooth-12")]
+    [Trait("Decision", "ED-NEW-dextra-smooth-13")]
+    public void A_visible_state_change_after_thirty_seconds_of_blur_reaches_rest_without_unseen_motion(string kind) => headless.OnUiThread(() =>
     {
         var clock = new ManualTimeProvider(); using var time = SwiftClock.Provider.Override(clock);
         var mark = new ArmillaMark { MarkSize = 176, Kind = ArmillaKind.Live, State = ArmillaState.Thinking };
@@ -86,13 +88,27 @@ public sealed class DextraSmoothVisibilityTests(HeadlessSession headless)
             var watch = ArmillaWindowWatch.For(window); watch.Focused(true); watch.Focused(false);
             clock.Advance(TimeSpan.FromSeconds(29)); Pump(clock, 2); Assert.False(watch.Sleeping);
             clock.Advance(TimeSpan.FromSeconds(1)); Pump(clock, 4); Assert.True(watch.Sleeping);
+            // New owner ruling (a,d): allow the bounded rest/pass completion first.
+            Pump(clock, 1080);
             var before = Draws(); Pump(clock, 6); Assert.Equal(before, Draws());
+            var previousText = DextraSmoothRestTests.Pixels(window);
             if (kind == "Armilla") { mark.State = ArmillaState.Idle; mark.Glyph = ArmillaGlyph.Done; }
             else if (kind == "Astur") astur.State = AsturMarkState.Done;
             else text.Text = "A longer new status";
             Pump(clock, 4);
-            Assert.True(Draws() > before, "visible sleeping state change drew nothing");
-            if (kind == "Armilla") AssertDone(Engine<ArmillaEngine>(mark));
+            if (kind == "shimmer") Assert.NotEqual(previousText, DextraSmoothRestTests.Pixels(window));
+            else Assert.True(Draws() > before, "visible sleeping state change drew nothing");
+            if (kind == "Armilla")
+            {
+                Assert.InRange(Engine<ArmillaEngine>(mark).GlyphScale, .45, .99);
+                Pump(clock, 1080);
+                var engine = Engine<ArmillaEngine>(mark);
+                Assert.True(engine.Settled()); Assert.Equal(ArmillaState.Idle, engine.State);
+                Assert.Equal(1, engine.GlyphScale, 3);
+                var pose = ArmillaPoses.Pose(ArmillaState.Idle, engine.Look.Size, engine.Look.Rest);
+                foreach (var key in Enum.GetValues<PoseKey>().Where(k => k != PoseKey.Count))
+                    Assert.Equal(key is PoseKey.Breathe or PoseKey.ScanAmp or PoseKey.Wob ? 0 : pose[key], engine.Value(key), 3);
+            }
             if (kind == "Astur") AssertDone(Engine<AsturMarkEngine>(astur));
             Assert.False(mark.Ticking); Assert.False(astur.Ticking); Assert.False(text.SheenTicking);
             before = Draws(); Pump(clock, 12); Assert.Equal(before, Draws());

@@ -77,6 +77,7 @@ internal sealed class ArmillaEngine
     private double rho, vrho;
     private double phiM, phiI, phiS, phiT, vphiM, vphiI, vphiS, vphiT;
     private double thS, lvl, rmLvl, t;
+    private double restBreathe, vRestBreathe, restWeight, vRestWeight;
     private double? extLevel;
     private double extAt = -9;
     private readonly List<Sat> sats = [];
@@ -169,6 +170,19 @@ internal sealed class ArmillaEngine
     /// <summary>Whether the mark is on screen; a glyph that begins off screen is placed at full size (2.5).</summary>
     public bool Visible { get; set; } = true;
 
+    // Window sleep is a sprung rest, not Reduce Motion or invisibility. Keep the last
+    // drawing intact: neither entering nor leaving sleep resets any on-screen value.
+    private bool sleeping, rejoining;
+    internal bool Sleeping
+    {
+        get => sleeping;
+        set { if (sleeping && !value) rejoining = true; sleeping = value; }
+    }
+
+    private static bool Cyclic(int key) => key is (int)PoseKey.Breathe or (int)PoseKey.ScanAmp or (int)PoseKey.Wob;
+
+    private double Target(ArmillaPose pose, int key) => Sleeping && Cyclic(key) ? 0 : pose.V[key];
+
     /// <summary>A glyph change; it springs in from 45 % only where it is seen and motion is not reduced, and only then.</summary>
     private void SetGlyph(ArmillaGlyph glyph)
     {
@@ -222,6 +236,7 @@ internal sealed class ArmillaEngine
             var pose = Pose();
             var voice = pose[PoseKey.VIn] > 0 || pose[PoseKey.VOut] > 0;
             if (Dirty || snapPending) { Snap(); snapPending = false; }
+            if (Sleeping) return appearanceMoving;
             t = now;
             if (voice)
             {
@@ -321,6 +336,11 @@ internal sealed class ArmillaEngine
         var pose = Pose();
         Array.Copy(pose.V, p, Keys);
         Array.Clear(v);
+        if (Sleeping && !ReduceOn)
+            for (var k = 0; k < Keys; k++) p[k] = Target(pose, k);
+        restWeight = Sleeping && !ReduceOn ? 1 : 0;
+        restBreathe = Sleeping && !ReduceOn ? pose[PoseKey.Breathe] : 0;
+        vRestWeight = vRestBreathe = 0;
         rho = pose.Rho; vrho = 0;
         phiM = phiI = phiS = phiT = 0;
         vphiM = vphiI = vphiS = vphiT = 0;
@@ -372,6 +392,13 @@ internal sealed class ArmillaEngine
 
     private static double Backoff(double baseSeconds, int n) => n <= 0 ? baseSeconds : n == 1 ? baseSeconds * 4 : n == 2 ? baseSeconds * 20 : double.PositiveInfinity;
 
+    private static void RestSpring(ref double value, ref double velocity, double target, double h)
+    {
+        const double w = 2.6;
+        velocity += (-w * w * (value - target) - 2 * Z * w * velocity) * h;
+        value += velocity * h;
+    }
+
     private void Update(double dt, double now)
     {
         t = now;
@@ -382,12 +409,13 @@ internal sealed class ArmillaEngine
         var nSat = Math.Max(1, AreaCount);
         var vIn = pose[PoseKey.VIn] > 0;
         var target = 0.0;
-        if (extLevel is { } x && t - extAt < .5) target = x;
+        if (Sleeping) target = vIn || pose[PoseKey.VOut] > 0 ? .45 : 0;
+        else if (extLevel is { } x && t - extAt < .5) target = x;
         else if (Look.AutoVoice && (vIn || pose[PoseKey.VOut] > 0)) target = SynthVoice(t, vIn ? .37 : 1.91);
         lvl += (target - lvl) * (1 - Math.Exp(-dt / (target > lvl ? .06 : .24)));
         // a row or card steps out once when it begins needing you, then rests (ED-NEW-dextra-as8-1): the motion budget counts
         // no row mark that needs you, so a row that kept stepping out would move uncounted and never stop drawing
-        if (pose.Reach > 0 && !Look.Rest)
+        if (!Sleeping && pose.Reach > 0 && !Look.Rest)
         {
             reachClock += dt;
             if (reachClock > Backoff(pose.Reach, reachN))
@@ -400,18 +428,25 @@ internal sealed class ArmillaEngine
         {
             for (var k = 0; k < Keys; k++)
             {
-                var a = -w * w * (p[k] - pose.V[k]) - 2 * Z * w * v[k];
+                // The existing phase-parking spring's rate also eases cyclic motion
+                // into/out of rest. Rejoining the shared phase must not amplify a step.
+                var rate = (Sleeping || rejoining) && Cyclic(k) ? 2.6 : w;
+                var a = -rate * rate * (p[k] - Target(pose, k)) - 2 * Z * rate * v[k];
                 v[k] += a * h;
                 p[k] += v[k] * h;
             }
+            // Complement the retiring cyclic values with the SAME still drawing,
+            // including Idle's fixed sway and voice's intrinsic still brightness.
+            RestSpring(ref restBreathe, ref vRestBreathe, Sleeping ? pose[PoseKey.Breathe] : 0, h);
+            RestSpring(ref restWeight, ref vRestWeight, Sleeping ? 1 : 0, h);
             var e = Wrap180(rho - pose.Rho);
             if (e > 179.5 || e < -179.5) e = -180; // a half turn always goes clockwise
             vrho += (-w * w * e - 2 * Z * w * vrho) * h;
             rho += vrho * h;
-            Spin(ref phiM, ref vphiM, pose.Spin, 360, h);
-            Spin(ref phiI, ref vphiI, pose.InSpin, 360, h);
-            Spin(ref phiS, ref vphiS, pose.SatSpin, pose.Park ? 360.0 / nSat : 0, h);
-            Spin(ref phiT, ref vphiT, pose.Park ? 0 : -.35, pose.Park ? 10 : 0, h);
+            Spin(ref phiM, ref vphiM, Sleeping ? 0 : pose.Spin, 360, h);
+            Spin(ref phiI, ref vphiI, Sleeping ? 0 : pose.InSpin, 360, h);
+            Spin(ref phiS, ref vphiS, Sleeping ? 0 : pose.SatSpin, Sleeping ? 360 : pose.Park ? 360.0 / nSat : 0, h);
+            Spin(ref phiT, ref vphiT, Sleeping || pose.Park ? 0 : -.35, Sleeping ? 360 : pose.Park ? 10 : 0, h);
             foreach (var st in sats)
             {
                 st.Vp += (-81 * (st.P - (st.Alive ? 1 : 0)) - 15.3 * st.Vp) * h; st.P += st.Vp * h;
@@ -422,6 +457,9 @@ internal sealed class ArmillaEngine
             vband += (-49 * (band - bandT) - 12.6 * vband) * h; band += vband * h;
         }
         sats.RemoveAll(st => !st.Alive && st.P <= .002);
+        if (rejoining && Math.Abs(p[(int)PoseKey.Breathe] - pose[PoseKey.Breathe]) < 1e-3 &&
+            Math.Abs(p[(int)PoseKey.ScanAmp] - pose[PoseKey.ScanAmp]) < 1e-3 && Math.Abs(p[(int)PoseKey.Wob] - pose[PoseKey.Wob]) < 1e-3)
+            rejoining = false;
         // every thinking scan on the page sweeps in step, on the shared clock (the canvas's SlotMark)
         thS = Tau * .30 * t;
     }
@@ -429,18 +467,21 @@ internal sealed class ArmillaEngine
     /// <summary>Nothing moves and nothing will until the look changes: the mark leaves the clock.</summary>
     public bool Settled()
     {
+        if (appearanceElapsed < .32) return false;
         var pose = Pose();
-        if (pose[PoseKey.Breathe] > 0 || pose.Spin != 0 || pose[PoseKey.ScanAmp] > 0 || pose[PoseKey.VIn] > 0 || pose[PoseKey.VOut] > 0 || (pose.Reach > 0 && !Look.Rest)) return false;
-        if (Tier >= 1 && pose.InSpin != 0) return false;
-        if (Tier >= 2 && !pose.Park) return false; // ticks and nodes drift
-        for (var k = 0; k < Keys; k++) if (Math.Abs(p[k] - pose.V[k]) > 1e-3 || Math.Abs(v[k]) > 1e-3) return false;
+        if (!Sleeping && (pose[PoseKey.Breathe] > 0 || pose.Spin != 0 || pose[PoseKey.ScanAmp] > 0 || pose[PoseKey.VIn] > 0 || pose[PoseKey.VOut] > 0 || (pose.Reach > 0 && !Look.Rest))) return false;
+        if (!Sleeping && Tier >= 1 && pose.InSpin != 0) return false;
+        if (!Sleeping && Tier >= 2 && !pose.Park) return false; // ticks and nodes drift
+        for (var k = 0; k < Keys; k++) if (Math.Abs(p[k] - Target(pose, k)) > 1e-3 || Math.Abs(v[k]) > 1e-3) return false;
         if (Math.Abs(Wrap180(rho - pose.Rho)) > .01 || Math.Abs(vrho) > .01) return false;
         // a turn counts only where it is drawn (ED-NEW-dextra-as8-1): the inner ring from S up, the ticks and the nodes from M up.
         // The canvas checks every turn at every size, so its idle and small working rows never settle; their drift draws nothing.
         if (Math.Abs(vphiM) > .01 || (Tier >= 1 && Math.Abs(vphiI) > .01) || (Tier >= 2 && (Math.Abs(vphiS) > .01 || Math.Abs(vphiT) > .01))) return false;
         foreach (var st in sats) if (Math.Abs(st.Vp) > 1e-3 || Math.Abs(st.Va) > .01 || Math.Abs(st.Vb) > 1e-3) return false;
         if (Look.Glyph != ArmillaGlyph.None && (Math.Abs(glyphScale - 1) > 1e-3 || Math.Abs(glyphVelocity) > 1e-3)) return false;
-        return Math.Abs(vsp) < 1e-3 && Math.Abs(vband) < 1e-3;
+        if (Math.Abs(restBreathe - (Sleeping ? pose[PoseKey.Breathe] : 0)) > 1e-3 || Math.Abs(vRestBreathe) > 1e-3 ||
+            Math.Abs(restWeight - (Sleeping ? 1 : 0)) > 1e-3 || Math.Abs(vRestWeight) > 1e-3) return false;
+        return Math.Abs(vsp) < 1e-3 && Math.Abs(vband) < 1e-3 && (!Sleeping || Math.Abs(lvl - (pose[PoseKey.VIn] > 0 || pose[PoseKey.VOut] > 0 ? .45 : 0)) < 1e-3);
     }
 
     // ---- drawing ----
@@ -505,10 +546,13 @@ internal sealed class ArmillaEngine
         var vOut = Math.Clamp(P(PoseKey.VOut), 0, 1);
         var vv = vIn + vOut;
         var bt = still ? 0 : t;
-        var al = Math.Clamp(P(PoseKey.Ink), 0, 1) * (still && vv > 0 ? .8 + .3 * rmLvl : 1);
+        var voiceStill = still ? 1 : Math.Clamp(restWeight, 0, 1);
+        var voiceBrightness = .8 + .3 * rmLvl;
+        var al = Math.Clamp(P(PoseKey.Ink), 0, 1) * (still && vv > 0 ? voiceBrightness : 1 - voiceStill * Math.Clamp(vv, 0, 1) * (1 - voiceBrightness));
         var breathe = P(PoseKey.Breathe);
+        var staticBreathe = still ? 0 : restBreathe;
         var breath = (tier >= 2 ? .012 : 0) * breathe * Math.Sin(Tau * bt / 7.4);
-        var sway = (tier >= 2 ? 2.5 : 0) * breathe * Math.Sin(Tau * bt / 13.7 + 1);
+        var sway = (tier >= 2 ? 2.5 : 0) * (breathe * Math.Sin(Tau * bt / 13.7 + 1) + staticBreathe * Math.Sin(1));
         var r0 = hb * (ti.R0 + (ti.R1 - ti.R0) * Math.Clamp(sp, 0, 1.05)) * P(PoseKey.RingK) * (1 + breath);
         var attention = rho + phiM + sway;
         var scanOff = P(PoseKey.ScanAmp) * Math.Sin(thS);
@@ -534,7 +578,7 @@ internal sealed class ArmillaEngine
         var lEnd = cs + hi;
         var warm = Math.Clamp(P(PoseKey.Warm), 0, 1);
         var shortRgb = ArmillaRgb.Mix(ink, warmC, warm);
-        var xsBreath = tier <= 1 ? 1 - .1 * breathe * (.5 + .5 * Math.Sin(Tau * bt / 8.2)) : 1;
+        var xsBreath = tier <= 1 ? 1 - .1 * (breathe * (.5 + .5 * Math.Sin(Tau * bt / 8.2)) + staticBreathe * .5) : 1;
 
         // 1 core haze (dark, M and L): ambient light only, faint, wide and soft, so it never reads as a ball or a lens
         if (glowOn)
@@ -699,7 +743,7 @@ internal sealed class ArmillaEngine
         // 7b the presence point: a small still dot at the centre (about 6 % of the box; 1.2 px up to 24 px)
         // (with a centre glyph the point is not drawn: the canvas clears it with destination-out in its own canvas, which on a
         // shared composition surface would cut through the card beneath)
-        var dot = (s <= 24 ? 1.2 : .03 * s) * (1 + .2 * level * vv * (still ? 0 : 1));
+        var dot = (s <= 24 ? 1.2 : .03 * s) * (1 + .2 * level * vv * (1 - voiceStill));
         if (Look.Glyph == ArmillaGlyph.None) ctx.FillCircle(0, 0, dot, ink, Math.Min(1, al * .92));
         // 8 nodes on top
         for (var i = 0; i < nodeCount; i++)
