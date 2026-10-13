@@ -71,6 +71,7 @@ public sealed partial class AppModel
 
     private void DisposeSafety()
     {
+        DisposeDuties();
         dextraTray?.Dispose();
         dextraTray = null;
         Tray?.Dispose();
@@ -81,6 +82,9 @@ public sealed partial class AppModel
 
     /// <summary>Dextra's controller, while Dextra runs (AS-8 starts it from the home; null before).</summary>
     public AssistantController? Dextra { get; private set; }
+
+    /// <summary>The store Dextra was started over (one process holds it, 15.3); the duties (AS-10) read and write their files through it.</summary>
+    public AssistantStore? DextraStore { get; private set; }
 
     /// <summary>The usage reserve (AS-13) of the running controller, if it has one: the taps feed it, the board and the plan card read it.</summary>
     internal ReserveGuard? Reserve => Dextra?.Reserve;
@@ -99,7 +103,7 @@ public sealed partial class AppModel
     public AssistantController StartDextra(AssistantStore store, Action<AuditEntry> audit, Func<IReadOnlyList<Marrow.Core.Port.Assistant.AssistantProfile>> profiles,
         ProviderKind provider = ProviderKind.Claude, string? model = null, IReadOnlyList<string>? protectedRoots = null,
         GlobalStop? stopKey = null, AppTray? tray = null, IPcStreamHold? pcStreams = null,
-        IReadOnlyList<IStopScope>? stopScopes = null)
+        IReadOnlyList<IStopScope>? stopScopes = null, IDutyTools? duties = null)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(audit);
@@ -136,7 +140,9 @@ public sealed partial class AppModel
             StopKey = stopKey,
             PcStreams = pcStreams,
             StopScopes = stopScopes ?? [],
+            Duties = duties ?? DutyToolsGate,
         });
+        DextraStore = store;
         controller.Runner.Load(store.Missions().Select(stored => MissionJournal.FromJson(stored.Body)).OfType<MissionRecord>());
         // What Revert and Restart kept for 7 days, and the workspaces of missions over for 7 days, are swept at start (the
         // scheduler, AS-10, repeats it daily); a sweep that fails is reported and never stops the start.
@@ -172,6 +178,7 @@ public sealed partial class AppModel
     public void UnbindDextra()
     {
         if (Dextra is null) return;
+        DisposeDuties();
         dextraTray?.Dispose();
         dextraTray = null;
         Dextra = null;

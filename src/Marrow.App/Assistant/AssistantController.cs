@@ -70,6 +70,9 @@ public sealed class AssistantControllerOptions
 
     /// <summary>The usage reserve (AS-13): what it reads and keeps. Null: no reserve; nothing is held back for usage.</summary>
     public ReserveSetup? Reserve { get; init; }
+
+    /// <summary>The duty tools (AS-10): schedule_duty, watch_folder and watch_page, and what a duty may do. Null: they say they are not built yet.</summary>
+    public IDutyTools? Duties { get; init; }
 }
 
 /// <summary>What the usage reserve is made of (11.2 to 11.5): the owner's rules, the calibration, and how a chat finds its account.</summary>
@@ -262,7 +265,22 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
             Grants = new ValueList<Grant>(Grants.Where(g => g.AssistantId == assistantId)),
             MissionId = mission,
             TaintContext = taint,
+            Duty = DutyScopeOf(mission),
         };
+    }
+
+    // A duty's run (or a helper mission under one) can only narrow its assistant's grants (7.1, 12.1). The scope is read from the duty at
+    // each approval, so it holds after a restart; a duty that no longer exists narrows to nothing alone (every action asks).
+    private DutyScope? DutyScopeOf(Guid? mission)
+    {
+        if (o.Duties is not { } duties) return null;
+        for (var depth = 0; mission is { } id && depth < 8; depth++)
+        {
+            if (Runner.Find(id) is not { } record) return null;
+            if (record.DutyId is { } dutyId) return duties.ScopeOf(dutyId);
+            mission = record.Mission.ParentMissionId;
+        }
+        return null;
     }
 
     private void Granted(DecisionItem card, DecisionAnswer answer)
@@ -316,6 +334,15 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
 
     public Task<AssistantToolResult> Run(AssistantToolCall call, CancellationToken cancellationToken) =>
         Task.FromResult(RunNow(call));
+
+    /// <summary>A call from a dry run's chat (7.3): only reads run; the rest is refused to the model and listed as a step.</summary>
+    public string? DryAnswer(AssistantToolCall call)
+    {
+        if (call.Chat.MissionId is not { } mission || Runner.Find(mission) is not { DryRun: true }) return null;
+        var outcome = Runner.DryLogOf(mission).Intercept(call.Classification.Class, call.Decision.Verdict,
+            DryRunWords.WouldCall(AssistantNames.Server + "/" + call.Tool.Name, call.Tool.Title), call.Tool.Title);
+        return outcome.Perform ? null : outcome.Answer;
+    }
 
     private AssistantToolResult RunNow(AssistantToolCall call)
     {
@@ -442,8 +469,11 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
                 var refused = Runner.Report(chat.Thread, Text("summary") ?? "", Text("status") ?? "done", List("artifacts"));
                 return refused is null ? AssistantToolResult.Done("Reported.") : AssistantToolResult.Failed("Not reported: " + refused);
             }
+            case "schedule_duty" or "watch_folder" or "watch_page" when o.Duties is { } duties:
+                // 7.1: the owner's card was answered yes; the duty is made now. The words of how it went also reach the chat.
+                return duties.Create(call, text => Deliver(chat.Thread, $"{AssistantNames.Server} {call.Tool.Name}: {text}"));
             default:
-                // Wired by the units that own them: duties and watches (AS-10), memory (AS-12), usage and plans (AS-13),
+                // Wired by the units that own them: memory (AS-12), usage and plans (AS-13),
                 // Asturs (AS-16), suggestions (AS-11), sessions (AS-2's reader), deliver and merge_results (AS-8).
                 return AssistantToolResult.Failed($"Not run: {call.Tool.Name} is not part of this build of {AssistantNames.Assistant} yet.");
         }
@@ -457,9 +487,10 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
 
     private DecisionItem Card(AssistantToolCall call, bool offered)
     {
-        var inputs = call.Arguments.JSONValueObject is { } fields
+        // A duty's card shows what it will be: its trigger, what it does, its grants, its budget (7.1), not the raw arguments.
+        var inputs = o.Duties?.Describe(call) ?? (call.Arguments.JSONValueObject is { } fields
             ? fields.Select(f => new DecisionInput(f.Key, f.Value.JSONValueString ?? f.Value.ToString()))
-            : [];
+            : []);
         var c = call.Classification;
         var card = new DecisionItem(Guid.NewGuid(), DecisionKind.ToolCall, DecisionRules.Weigh(c.Class), call.Tool.Title)
         {
