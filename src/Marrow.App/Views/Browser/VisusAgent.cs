@@ -236,10 +236,11 @@ public sealed class VisusAgentTab : IWebAgentTab
         }
     }
 
+    /// <summary>The page's pop-ups (target=_blank, window.open) before they open as tabs (ED-NEW-web-sec-agent-4).</summary>
     public event Action<WebPopupOpening>? PopupOpening
     {
-        add { }
-        remove { }
+        add => Tab.PopupOpening += value;
+        remove => Tab.PopupOpening -= value;
     }
 
     // A tab with an address and no view yet (restored, reopened) gets its view; a blank one has nothing to drive.

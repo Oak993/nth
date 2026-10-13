@@ -33,6 +33,9 @@ public sealed partial class WebAgentEngine : IDisposable
     /// <summary>A navigation this soon after a model step on the tab counts as the model's (a click's link, a submit's redirect).</summary>
     public const int AfterStepMs = 3_000;
 
+    /// <summary>A pop-up this soon after a model step on the tab counts as the model's (Chromium's user activation lasts 5 s).</summary>
+    public const int PopupAfterStepMs = 5_000;
+
     /// <summary>How long web_open and web_navigate wait for the page to load.</summary>
     public const int LoadWaitMs = 15_000;
 
@@ -496,16 +499,19 @@ public sealed partial class WebAgentEngine : IDisposable
             EventHandler<WebNavigationCompleted> completed = (_, _) => state.Overlay.Reset();
             Action input = () => OnUserInput(state);
             Action<string> failed = reason => OnStepFailed(state, reason);
+            Action<WebPopupOpening> popup = e => OnPopupOpening(state, e);
             view.NavigationStarting += starting;
             view.NavigationCompleted += completed;
             tab.UserInput += input;
             tab.StepFailed += failed;
+            tab.PopupOpening += popup;
             state.Hooks.Add(new Unhooking(() =>
             {
                 view.NavigationStarting -= starting;
                 view.NavigationCompleted -= completed;
                 tab.UserInput -= input;
                 tab.StepFailed -= failed;
+                tab.PopupOpening -= popup;
             }));
             state.Hooks.Add(cdp.Subscribe("Runtime.bindingCalled", e => OnBinding(state, e)));
             state.Hooks.Add(state.Logs);
@@ -743,6 +749,42 @@ public sealed partial class WebAgentEngine : IDisposable
         lock (gate) from = WebAgentUrls.CrossOriginSources(readOrigins, url, hub.Grants.Pair);
         if (from.Count > 0)
             Block(state, e, "nth stopped the page from opening " + WebPolicy.SourceName(url) + ": after reading " + string.Join(", ", from.Select(WebPolicy.SourceName)) + ", opening another site needs the user's OK. Call web_open with this url to ask them: " + url);
+    }
+
+    // ED-NEW-web-sec-agent-4 (security review M2): a model's click is a trusted gesture, so a pop-up it opens (target=_blank,
+    // window.open) would load in a new tab with none of the checks above. While the model drives the tab, and for the 5 s its gesture
+    // lasts, such a pop-up is stopped (it waits on Visus's quiet chip for the user) and the model is told to ask through web_open,
+    // where the deny list and the cross-origin card apply. The user's own pop-ups (before the model drives, after a take-over, after
+    // the turn) are never judged.
+    private void OnPopupOpening(TabState state, WebPopupOpening e)
+    {
+        if (e.Cancel || !ModelPopup(state)) return;
+        e.Cancel = true;
+        var url = e.Url;
+        string why;
+        if (WebAgentUrls.DeniedReason(url) is { } denied)
+        {
+            why = "nth stopped the page from opening " + url + " in a new tab: " + denied;
+        }
+        else if (WebPolicy.IsWeb(url))
+        {
+            lock (gate) knownUrls.Add(WebAgentUrls.Normalize(url));
+            why = "nth stopped the page from opening " + url + " in a new tab. To go there, call web_open with this url (it asks the user when it must): " + url;
+        }
+        else
+        {
+            why = "nth stopped the page from opening a new tab.";
+        }
+        lock (gate) state.Blocked = why;
+    }
+
+    private bool ModelPopup(TabState state)
+    {
+        lock (gate)
+        {
+            if (state.TookOver) return false;
+            return state.Stepping > 0 || hub.Clock.NowMs - state.LastStepEnd <= PopupAfterStepMs || (state.Driven && state.Tab.Kind == VisusTabKind.Agent);
+        }
     }
 
     private void Block(TabState state, WebNavigationStarting e, string why)
