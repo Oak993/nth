@@ -77,6 +77,9 @@ public sealed class NthSvgCanvas : Control
     /// <summary>Nodes visited by the last render, never more than <see cref="NthSvgLimits.MaxPaintNodes"/> (tests; ED-NEW-secfinal-41).</summary>
     public int Visited => painter?.Visited ?? 0;
 
+    /// <summary>Characters of text drawn by the last render, never more than <see cref="NthSvgLimits.MaxPaintGlyphs"/> (tests; ED-NEW-secfinal-44).</summary>
+    public int Glyphs => painter?.Glyphs ?? 0;
+
     /// <summary>The size a picture of this document takes in <paramref name="width"/> DIPs.</summary>
     public static Size Fit(NthSvgDocument doc, double natural, double width)
     {

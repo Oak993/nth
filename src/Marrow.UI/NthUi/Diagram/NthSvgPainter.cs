@@ -48,6 +48,7 @@ public sealed class NthSvgPainter(NthSvgDocument document)
     private NthSvgPaintContext context = new();
     private int useCount;
     private int visited;
+    private int glyphs;
 
     public NthSvgDocument Document { get; } = document;
 
@@ -57,8 +58,25 @@ public sealed class NthSvgPainter(NthSvgDocument document)
     /// <summary>Nodes visited by the last <see cref="Draw"/>: never more than <see cref="NthSvgLimits.MaxPaintNodes"/> (tests).</summary>
     public int Visited => visited;
 
+    /// <summary>Characters of text drawn by the last <see cref="Draw"/>: never more than <see cref="NthSvgLimits.MaxPaintGlyphs"/> (tests).</summary>
+    public int Glyphs => glyphs;
+
     // ED-NEW-secfinal-41: one paint visits at most MaxPaintNodes nodes; past it the rest is not drawn.
     private bool OverBudget => visited >= NthSvgLimits.MaxPaintNodes;
+
+    // ED-NEW-secfinal-44: one paint draws at most MaxPaintGlyphs characters of text. A run that would pass the budget is not drawn, and
+    // the budget is spent, so no text after it is either.
+    private bool SpendGlyphs(int count)
+    {
+        if (glyphs + count > NthSvgLimits.MaxPaintGlyphs)
+        {
+            glyphs = NthSvgLimits.MaxPaintGlyphs;
+            return false;
+        }
+
+        glyphs += count;
+        return true;
+    }
 
     private sealed class CachedText
     {
@@ -140,6 +158,7 @@ public sealed class NthSvgPainter(NthSvgDocument document)
         Drawn = 0;
         useCount = 0;
         visited = 0;
+        glyphs = 0;
         opaque.Clear();
         if (target.Width <= 0 || target.Height <= 0) return;
         var fit = Fit(target);
@@ -481,6 +500,7 @@ public sealed class NthSvgPainter(NthSvgDocument document)
             x += run.DxEm ? run.Dx * runState.FontSize : run.Dx;
             y += run.DyEm ? run.Dy * runState.FontSize : run.Dy;
             if (run.Text.Length == 0) continue;
+            if (!SpendGlyphs(run.Text.Length)) break;
             var formatted = Layout(run, runState, new Rect(x, y, 1, 1), world);
             placed.Add(new Placed(run, formatted, x, y, chunk, runState.Anchor));
             x += formatted.WidthIncludingTrailingWhitespace;

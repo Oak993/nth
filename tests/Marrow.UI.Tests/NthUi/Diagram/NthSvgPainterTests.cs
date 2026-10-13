@@ -314,4 +314,59 @@ public sealed class NthSvgPainterTests(HeadlessSession headless)
     [Trait("Decision", "ED-NEW-secfinal-41")]
     public void The_budget_is_never_smaller_than_the_largest_document_the_renderer_accepts_so_a_plain_document_is_not_cut() =>
         Assert.True(NthSvgLimits.MaxPaintNodes >= NthSvgLimits.Renderer.MaxNodes);
+
+    // ED-NEW-secfinal-44 (final security gate, N5 residual): the node budget does not weigh what a node draws. One text of 60,000
+    // characters (all NthSvgLimits.Model lets a document hold) used 2,000 times is 2,000 nodes and 120 million glyphs. A paint also has a
+    // glyph budget: every text run drawn counts its characters, and what is left over the budget is not drawn.
+    private const int GlyphBudget = 200_000;
+
+    private static string LongTextUsedManyTimes(int characters, int uses)
+    {
+        var builder = new System.Text.StringBuilder("<svg viewBox=\"0 0 100 100\"><defs><g id=\"t\"><text x=\"0\" y=\"10\" font-size=\"4\">");
+        builder.Append('a', characters).Append("</text></g></defs>");
+        for (var i = 0; i < uses; i++) builder.Append("<use href=\"#t\"/>");
+        return builder.Append("</svg>").ToString();
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-secfinal-44")]
+    public void One_text_of_sixty_thousand_characters_used_two_thousand_times_paints_inside_the_glyph_budget_and_in_bounded_time() => headless.OnUiThread(() =>
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        using var rig = new SvgRig(LongTextUsedManyTimes(characters: 60_000, uses: 2_000), width: 200, window: 260, height: 260);
+        rig.Capture();
+        watch.Stop();
+        Assert.True(rig.Canvas.Drawn <= GlyphBudget / 60_000, $"one paint drew {rig.Canvas.Drawn} texts of 60,000 characters");
+        Assert.True(rig.Canvas.Drawn > 0, "the budget drew no text at all");
+        Assert.Equal(3, rig.Canvas.Drawn); // 3 x 60,000 = 180,000 characters; a fourth would pass 200,000
+        Assert.Equal(NthSvgLimits.MaxPaintGlyphs, rig.Canvas.Glyphs);
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(10), $"painting took {watch.Elapsed.TotalSeconds:0.0} s");
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-secfinal-44")]
+    public void Text_up_to_the_glyph_budget_is_drawn_whole_and_the_text_that_would_pass_it_is_not() => headless.OnUiThread(() =>
+    {
+        using (var exact = new SvgRig(LongTextUsedManyTimes(characters: 50_000, uses: 4), width: 200, window: 260, height: 260))
+        {
+            exact.Capture();
+            Assert.Equal(4, exact.Canvas.Drawn);
+            Assert.Equal(GlyphBudget, exact.Canvas.Glyphs);
+        }
+
+        using var over = new SvgRig(LongTextUsedManyTimes(characters: 50_000, uses: 5), width: 200, window: 260, height: 260);
+        over.Capture();
+        Assert.Equal(4, over.Canvas.Drawn);
+        Assert.Equal(GlyphBudget, over.Canvas.Glyphs);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-secfinal-44")]
+    public void The_glyph_budget_is_far_above_any_drawing_the_app_makes() => headless.OnUiThread(() =>
+    {
+        Assert.True(NthSvgLimits.MaxPaintGlyphs >= NthSvgLimits.Model.MaxTextLength * 3, "a Model document used three times fits");
+        using var flowchart = new SvgRig(SvgSamples.Flowchart, width: 320, limits: NthSvgLimits.Renderer, window: 360, height: 240);
+        flowchart.Capture();
+        Assert.InRange(flowchart.Canvas.Glyphs, 1, GlyphBudget / 100);
+    });
 }

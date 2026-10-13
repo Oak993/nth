@@ -32,6 +32,14 @@ public sealed record NthSvgLimits(int MaxLength, int MaxNodes, int MaxDepth, int
     /// budget is not drawn, as the depth and use limits already end.
     /// </summary>
     public const int MaxPaintNodes = 60_000;
+
+    /// <summary>
+    /// ED-NEW-secfinal-44 (final security gate, N5 residual): the most characters of text one paint draws, counted after <c>use</c>
+    /// has expanded its targets. The node budget does not weigh what a node draws: one text of 60,000 characters (all
+    /// <see cref="Model"/> allows) used 2,000 times is 2,000 nodes and 120 million glyphs. The text that would pass the budget is not
+    /// drawn, nor any after it, as the node budget ends. The recorded Mermaid drawings of every family hold at most 151 characters of text.
+    /// </summary>
+    public const int MaxPaintGlyphs = 200_000;
 }
 
 /// <summary>The outcome of reading a markup: a document, or why there is none.</summary>
