@@ -31,6 +31,7 @@ public sealed class DextraHost : IDisposable
     private VoiceStopScope? voiceScope;
     private AssistantController? started;
     private IDisposable? owned;
+    private IReadOnlyList<AssistantProfile> restoredProfiles = [];
     private bool disposed;
     private bool starting;
 
@@ -80,8 +81,14 @@ public sealed class DextraHost : IDisposable
     public bool MayRun => Settings.Value is { On: true, FirstRunDone: true };
 
     /// <summary>Dextra's profile and its Asturs' (9.1).</summary>
-    public IReadOnlyList<AssistantProfile> Profiles() =>
-        [new AssistantProfile(AssistantId, Name), .. asturs?.Invoke() ?? []];
+    public IReadOnlyList<AssistantProfile> Profiles()
+    {
+        var root = restoredProfiles.FirstOrDefault(p => p.Id == AssistantId && p.IsRoot);
+        var current = new List<AssistantProfile> { root ?? new(AssistantId, Name) };
+        current.AddRange(asturs?.Invoke() ?? []);
+        current.AddRange(restoredProfiles.Where(p => current.All(c => c.Id != p.Id)));
+        return current;
+    }
 
     /// <summary>Starts the controller when Dextra may run and none runs; keeps its grants and its brain's switches in step.</summary>
     public AssistantController? EnsureStarted(BackgroundStartSeams? seams = null, StartupMode? mode = null, Action? quit = null, bool restoringDuties = false)
@@ -101,6 +108,7 @@ public sealed class DextraHost : IDisposable
                 model.UnbindDextra();
                 failed.Dispose();
             }
+            restoredProfiles = [];
             owned?.Dispose();
             owned = null;
             StartFault = error.Message;
@@ -110,6 +118,7 @@ public sealed class DextraHost : IDisposable
         finally { starting = false; }
         if (controller is null)
         {
+            restoredProfiles = [];
             owned?.Dispose();
             owned = null;
             return null;
@@ -144,6 +153,7 @@ public sealed class DextraHost : IDisposable
         catch (Exception error) when (error is not OperationCanceledException) { StartFault = error.Message; }
         if (model.Dextra == controller) model.UnbindDextra();
         controller.Dispose();
+        restoredProfiles = [];
         owned?.Dispose();
         owned = null;
         model.AssistantEvents.Brain = FeedBrain.Unknown;
@@ -211,6 +221,17 @@ public sealed class DextraHost : IDisposable
         try { audit = AuditLog.Open(roots, seams?.Keys() ?? AuditKeyStore.Production()); }
         catch { store.Dispose(); throw; }
         owned = new Owned(store, audit);
+        using (var team = AssistantTeam.Open(store))
+        {
+            var rootFile = Path.Combine(store.Root, "assistants", AssistantId, "profile.json");
+            if (File.Exists(rootFile) && team.Get(AssistantId) is not { IsRoot: true })
+                throw new InvalidDataException("Dextra's saved profile could not be read safely: " + string.Join(" ", team.Problems));
+            restoredProfiles = team.Profiles;
+        }
+        // Older duties can name an assistant that never had a profile; a present unusable profile is never replaced.
+        var missing = BackgroundStart.AssistantsWithDuties(store)
+            .Where(assistant => !File.Exists(Path.Combine(store.Root, "assistants", assistant, "profile.json"))).ToList();
+        restoredProfiles = [.. restoredProfiles, .. BackgroundStart.Profiles(store, missing)];
         var stopKey = seams?.StopKey ?? app.EnsureStopKey(() => settings.Chord);
         // AS-20 (12.7, 16.2): purchases.json beside the store's other files, the card in Credential Manager, Windows Hello. This build
         // has no fill path (Visus and Tactus are not here), so the switch is hidden and every payment is handed to the owner.
@@ -221,7 +242,7 @@ public sealed class DextraHost : IDisposable
         controller.RestoreGrants(settings.Value.Grants);
         var ids = BackgroundStart.AssistantsWithDuties(store);
         var duties = app.StartDuties(controller, store, mode, quit: quit,
-            assistantIds: () => [.. Profiles().Select(p => p.Id).Concat(BackgroundStart.AssistantsWithDuties(store)).Distinct(StringComparer.Ordinal)],
+            assistantIds: () => [.. Profiles().Where(p => !p.Retired).Select(p => p.Id).Distinct(StringComparer.Ordinal)],
             tray: seams?.Tray ?? app.Tray, seams: seams?.Host, digest: app.DigestSetupOf(controller, roots.AuditDirectory),
             withDigest: !restoringDuties || BackgroundStart.HasDigestDuty(store, ids));
         foreach (var note in duties.Start())

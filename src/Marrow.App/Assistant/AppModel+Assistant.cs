@@ -72,8 +72,8 @@ public sealed partial class AppModel
     /// <paramref name="alwaysShow"/> says so, or while a feature that added items says it is live; <paramref name="open"/>
     /// brings the window back.
     /// </summary>
-    public AppTray EnsureTray(Func<bool> windowHidden, Func<bool>? alwaysShow = null, Action? open = null) =>
-        Tray ??= new AppTray(new AvaloniaTrayHost(), windowHidden, alwaysShow, open);
+    public AppTray EnsureTray(Func<bool> windowHidden, Func<bool>? alwaysShow = null, Action? open = null, AppTray? supplied = null) =>
+        Tray ??= supplied ?? new AppTray(new AvaloniaTrayHost(), windowHidden, alwaysShow, open);
 
     private void DisposeSafety()
     {

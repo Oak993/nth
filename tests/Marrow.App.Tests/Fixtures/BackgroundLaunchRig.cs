@@ -16,11 +16,11 @@ internal sealed class BackgroundLaunchRig : IDisposable
     private readonly FakeTrayHost trayHost = new();
     private bool windowHidden = true;
 
-    public BackgroundLaunchRig(AssistantTempRoot temp)
+    public BackgroundLaunchRig(AssistantTempRoot temp, Guid? identity = null)
     {
         Temp = temp;
         Key = new Marrow.App.Safety.GlobalStop(chord, () => null);
-        Tray = new AppTray(trayHost, () => windowHidden);
+        Tray = new AppTray(trayHost, () => windowHidden, open: () => { });
         Model = harness.MakeModel();
         harness.PrepareBootstrap(Model);
         Seams = new BackgroundStartSeams
@@ -38,7 +38,7 @@ internal sealed class BackgroundLaunchRig : IDisposable
                 Time = new ManualTimeProvider(new DateTimeOffset(2026, 10, 13, 6, 0, 0, TimeSpan.Zero)),
             },
         };
-        var settings = new DextraSettings(new InMemorySettingsStore()) { Value = DextraPreferences.Default with { FirstRunDone = true } };
+        var settings = new DextraSettings(new InMemorySettingsStore()) { Value = DextraPreferences.Default with { FirstRunDone = true, Id = identity } };
         harness.Main.OnMain(() => Model.AssistantHost = new DextraHost(Model, settings, startup: Seams));
     }
 

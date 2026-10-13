@@ -81,12 +81,13 @@ public static class BackgroundStart
     {
         ArgumentNullException.ThrowIfNull(model);
         problem = null;
+        // The shell needs its Open affordance even when there are no duties or Dextra is Off.
+        if (seams is null || seams.Tray is not null)
+            model.EnsureTray(windowHidden, null, open, seams?.Tray).Refresh();
         if (!model.AssistantHost.MayRun) return null;
         var roots = seams?.Roots() ?? AssistantStorage.Roots.Current;
         if (model.Duties is { } running) return running;
         if (!HasDuties(roots)) return null;
-        if (seams is null)
-            model.EnsureTray(windowHidden, null, open);
         var controller = model.AssistantHost.EnsureStarted(seams, mode, quit, restoringDuties: true);
         if (controller is not null) return model.Duties;
         if (model.AssistantHost.StartFault is { } fault)
