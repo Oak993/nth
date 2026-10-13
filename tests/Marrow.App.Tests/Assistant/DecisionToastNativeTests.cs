@@ -20,6 +20,7 @@ namespace Marrow.App.Tests.Assistant;
 // under nth's dev identity, with its three buttons, and answering the card in the app takes it out of the action center. (2) With a real window in front
 // no toast is made for a card; with it minimised one is. (3) A press carrying a decision's userInfo travels the real named pipe and decodes to the card.
 // (4) Review brings the card in front with real focus on the card and never on a button, and a real Enter on it sends nothing.
+// (5, ED-NEW-dextra-as9-9) A "Notify me" duty's finding makes a real toast with the one button Open, signed "Dextra", and none while the home is in front.
 // The owner also looks once at a real toast: Armilla's needs-you picture, "Store needs you", the card's title, "Dextra", and Allow once, Deny, Open;
 // and once in the installed app: a toast's Review brings nth forward on the Decisions tab with the card in front.
 [Collection("WindowManagerNative")]
@@ -124,6 +125,44 @@ public sealed class DecisionToastNativeTests(WindowManagerNativeSession native)
             }
             finally { Directory.Delete(folder, recursive: true); }
         }, nameof(No_real_toast_is_made_while_a_real_window_is_in_front_and_one_is_made_when_it_is_minimised), typeof(DecisionToastNativeTests));
+    }
+
+    [Fact]
+    public void A_notify_me_duty_finding_shows_a_real_toast_with_one_open_button_and_none_while_a_real_window_is_in_front()
+    {
+        native.Run(_ =>
+        {
+            var (center, logo, folder) = Shell();
+            try
+            {
+                var (window, _) = Host(() => new Panel());
+                N.Until(() => native.OnUi(() => window.IsActive), "the test window never became active");
+                Front(window);
+                var front = true;
+                using var toasts = new DecisionToasts(new DecisionQueue(), new WindowsNotificationChannel(logo: logo.Path, newsLogo: logo.NewsPath, center: () => center), new DecisionToastOptions
+                {
+                    NameOf = _ => "Store",
+                    HomeOnScreen = () => Volatile.Read(ref front) && native.OnUi(() => window.IsActive),
+                    OnMain = work => work(),
+                });
+
+                var hidden = new DutyFinding(Guid.NewGuid(), "Espresso price", "The price fell to $640.");
+                toasts.NotifyDuty(hidden);
+                Thread.Sleep(DecisionToasts.Together + TimeSpan.FromSeconds(3));
+                Assert.False(Up(DecisionToastRequests.DutyIdentifier(hidden.Mission)), "a duty toast was made with the window in front");
+
+                Volatile.Write(ref front, false);
+                var shown = new DutyFinding(Guid.NewGuid(), "Espresso price", "The price fell to $620.");
+                toasts.NotifyDuty(shown);
+                var tag = DecisionToastRequests.DutyIdentifier(shown.Mission);
+                N.Until(() => Up(tag), "no duty toast was made with the window away", 15000);
+                var xml = XDocument.Parse(History().First(toast => toast.Tag == tag).Content.GetXml());
+                Assert.Equal(["Open"], xml.Descendants("action").Select(a => (string?)a.Attribute("content")));
+                Assert.Contains(xml.Descendants("text"), t => t.Value == "Espresso price");
+                Assert.Contains(xml.Descendants("text"), t => t.Value == "Dextra");
+            }
+            finally { Directory.Delete(folder, recursive: true); }
+        }, nameof(A_notify_me_duty_finding_shows_a_real_toast_with_one_open_button_and_none_while_a_real_window_is_in_front), typeof(DecisionToastNativeTests));
     }
 
     [Fact]
