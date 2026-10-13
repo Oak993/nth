@@ -30,6 +30,51 @@ public sealed class TeachControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task The_strip_goes_up_before_anything_is_watched_and_comes_down_when_the_recording_ends()
+    {
+        var armedAtShow = true;
+        var hookedAtShow = true;
+        rig.Indicator.OnShow = () =>
+        {
+            armedAtShow = rig.Stop.Armed;
+            hookedAtShow = rig.Input?.Installed == true;
+        };
+        Assert.True(rig.Controller.Start().Started);
+        Assert.False(armedAtShow);
+        Assert.False(hookedAtShow);
+        Assert.Equal((1, 0, true), (rig.Indicator.Shown, rig.Indicator.Hidden, rig.Indicator.Up));
+        Assert.Same(rig.Controller, rig.Indicator.For);
+        await rig.Controller.Stop();
+        Assert.Equal((1, 1, false), (rig.Indicator.Shown, rig.Indicator.Hidden, rig.Indicator.Up));
+    }
+
+    [Fact]
+    public async Task A_recording_that_cannot_show_its_strip_does_not_start_and_nothing_is_watched_or_kept()
+    {
+        rig.Indicator.CannotShow = true;
+        var start = rig.Controller.Start();
+        Assert.False(start.Started);
+        Assert.Equal("nth could not show the recording strip, so it did not record. Nothing was kept.", start.Refusal);
+        Assert.False(rig.Input?.Installed ?? false);
+        Assert.Equal(0, rig.Input?.Starts ?? 0);
+        Assert.False(rig.Stop.Armed);
+        Assert.Empty(rig.Recordings.List(out _));
+        Assert.Null(rig.Controller.Active);
+        rig.Indicator.CannotShow = false;
+        Assert.True(rig.Controller.Start().Started);
+        await rig.Controller.Stop();
+    }
+
+    [Fact]
+    public async Task A_recording_that_does_not_start_takes_the_strip_down_again()
+    {
+        rig.Host.Taken.Add(Marrow.Core.Port.PcControl.Pill.PcHotkey.StopDefault);
+        Assert.False(rig.Controller.Start().Started);
+        Assert.Equal((1, 1, false), (rig.Indicator.Shown, rig.Indicator.Hidden, rig.Indicator.Up));
+        await Task.CompletedTask;
+    }
+
+    [Fact]
     public async Task Only_one_recording_runs_at_a_time_and_a_chord_another_app_holds_stops_one_from_starting()
     {
         Assert.True(rig.Controller.Start().Started);

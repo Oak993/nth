@@ -41,6 +41,9 @@ public sealed class WindowsTeachInput : ITeachInput
     private DateTime lastLeft = DateTime.MinValue;
     private TeachNative.Point lastLeftAt;
 
+    /// <summary>Hear input another program injected too. Off: the owner is the one being watched. The Native test turns it on to drive the hooks.</summary>
+    public bool AcceptInjected { get; init; }
+
     public WindowsTeachInput()
     {
         // Kept in fields: a hook's delegate must live as long as the hook, or Windows calls a freed function.
@@ -125,7 +128,7 @@ public sealed class WindowsTeachInput : ITeachInput
         if (code >= 0 && (wParam == (nint)TeachNative.WmLButtonDown || wParam == (nint)TeachNative.WmRButtonDown))
         {
             var hook = Marshal.PtrToStructure<TeachNative.MouseHook>(lParam);
-            if ((hook.Flags & TeachNative.MouseInjected) == 0) Click(hook.Pt, wParam == (nint)TeachNative.WmRButtonDown);
+            if (AcceptInjected || (hook.Flags & TeachNative.MouseInjected) == 0) Click(hook.Pt, wParam == (nint)TeachNative.WmRButtonDown);
         }
         return TeachNative.CallNextHookEx(0, code, wParam, lParam);
     }
@@ -164,7 +167,7 @@ public sealed class WindowsTeachInput : ITeachInput
         if (code >= 0 && (wParam == (nint)TeachNative.WmKeyDown || wParam == (nint)TeachNative.WmSysKeyDown))
         {
             var hook = Marshal.PtrToStructure<TeachNative.KeyboardHook>(lParam);
-            if ((hook.Flags & TeachNative.KeyInjected) == 0) Key((int)hook.VkCode);
+            if (AcceptInjected || (hook.Flags & TeachNative.KeyInjected) == 0) Key((int)hook.VkCode);
         }
         return TeachNative.CallNextHookEx(0, code, wParam, lParam);
     }

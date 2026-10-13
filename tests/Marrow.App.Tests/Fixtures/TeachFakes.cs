@@ -139,3 +139,36 @@ internal sealed class FakeBrowser : IBrowserSteps
         public void Dispose() => owner.sink = null;
     }
 }
+
+/// <summary>Dextra AS-19: the recording strip as a test sees it: whether it went up, whether it came down, and whether it can be shown at all.</summary>
+internal sealed class FakeIndicator : ITeachIndicator
+{
+    public int Shown { get; private set; }
+
+    public int Hidden { get; private set; }
+
+    public bool CannotShow { get; set; }
+
+    public bool Up { get; private set; }
+
+    public TeachController? For { get; private set; }
+
+    /// <summary>Called as the strip goes up, before anything is watched.</summary>
+    public Action? OnShow { get; set; }
+
+    public bool Show(TeachController controller)
+    {
+        OnShow?.Invoke();
+        if (CannotShow) return false;
+        Shown++;
+        Up = true;
+        For = controller;
+        return true;
+    }
+
+    public void Hide()
+    {
+        Hidden++;
+        Up = false;
+    }
+}

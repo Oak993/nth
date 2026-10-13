@@ -28,6 +28,9 @@ internal static class TeachNative
     internal const uint SrcCopy = 0x00CC0020;
     internal const uint CaptureBlt = 0x40000000;
     internal const uint WdaExcludeFromCapture = 0x11;
+    internal const int GwlExStyle = -20;
+    internal const long WsExNoActivate = 0x08000000;
+    internal const long WsExToolWindow = 0x00000080;
 
     [StructLayout(LayoutKind.Sequential)]
     internal struct Point
@@ -163,6 +166,16 @@ internal static class TeachNative
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool SetWindowDisplayAffinity(nint window, uint affinity);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool GetWindowDisplayAffinity(nint window, out uint affinity);
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+    internal static extern nint GetWindowLongPtr(nint window, int index);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
+    internal static extern nint SetWindowLongPtr(nint window, int index, nint value);
 
     [DllImport("kernel32.dll")]
     internal static extern uint GetCurrentThreadId();

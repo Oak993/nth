@@ -44,7 +44,8 @@ public sealed class MissionDraftModel(AssistantController controller, MissionDra
             {
                 if (id != record.Id) return;
             }
-            if (record.Mission.State is MissionState.Done or MissionState.Failed or MissionState.Stopped or MissionState.Blocked) finished.TrySetResult(record);
+            // Done is the answer. A mission being stopped (by the owner, or Stop all) or that failed or is blocked will give none: no need to wait for its agents to confirm.
+            if (record.Mission.State is MissionState.Done or MissionState.Failed or MissionState.Stopping or MissionState.Stopped or MissionState.Blocked) finished.TrySetResult(record);
         }
         Action<MissionRecord> watch = Watch;
         options.OnMain(() =>

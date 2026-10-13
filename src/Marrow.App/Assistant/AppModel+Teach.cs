@@ -26,13 +26,15 @@ public sealed partial class AppModel
     /// <summary>
     /// Starts teach mode over Dextra's controller and store. The model that writes a draft up is a reader mission on <paramref name="provider"/>
     /// and <paramref name="model"/> in the owner's first project (none: drafts come straight from the recording). Pass
+    /// <paramref name="indicator"/> to replace the recording strip (the default is the strip window; a recording starts only if it goes up), and
     /// <paramref name="platform"/> to replace the Windows hooks, UI Automation and screen frames (a test does), <paramref name="executor"/> for
     /// Tactus's replay of a trial step (null until it lands) and <paramref name="browser"/> for Visus's steps (null until it lands). Settles
     /// what the last run left (a crash mid-recording or mid-save, recordings past their two weeks). Returns the controller; AppModel disposes it.
     /// </summary>
     public TeachController StartTeach(AssistantController controller, AssistantStore store, string assistantId, GlobalStop? stopKey,
         ProviderKind provider = ProviderKind.Claude, string? model = null, ICustomAddBackend? skills = null, Func<IReadOnlyList<OwnItem>>? ownSkills = null,
-        Action? skillsChanged = null, Func<TeachPlatform>? platform = null, ITeachStepExecutor? executor = null, IBrowserSteps? browser = null)
+        Action? skillsChanged = null, Func<TeachPlatform>? platform = null, ITeachStepExecutor? executor = null, IBrowserSteps? browser = null,
+        ITeachIndicator? indicator = null)
     {
         ArgumentNullException.ThrowIfNull(controller);
         ArgumentNullException.ThrowIfNull(store);
@@ -58,6 +60,7 @@ public sealed partial class AppModel
             OwnSkills = ownSkills ?? TeachSkillsBackend.Skills,
             SkillsChanged = skillsChanged,
             Executor = executor,
+            Indicator = indicator ?? new Marrow.App.Assistant.Views.TeachStripHost(),
             Audit = controller.Audit,
             Faulted = message => controller.Runner.ReportFault(message),
         });

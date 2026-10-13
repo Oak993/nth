@@ -128,6 +128,23 @@ public sealed class TeachControllerTrialTests : IDisposable
     }
 
     [Fact]
+    public async Task Stop_all_ends_a_trial_too_and_takes_its_card_back()
+    {
+        var id = await Drafted(rig);
+        var (trial, _) = rig.Controller.StartTrial(id);
+        for (var step = 1; step <= 2; step++)
+        {
+            await rig.Until(() => rig.Controller.Trial?.Pending?.Step.Number == step);
+            rig.Controller.AnswerTrial(TrialAnswer.Continue);
+        }
+        await rig.Until(() => rig.Controller.Trial?.Pending?.Step.Number == 3);
+        var card = Assert.Single(rig.Queue.Waiting);
+        ((IStopScope)rig.Controller).Stop();
+        Assert.Equal(TrialOutcome.Stopped, (await trial!).Outcome);
+        Assert.Equal(DecisionState.Withdrawn, rig.Queue.Find(card.Id)!.State);
+    }
+
+    [Fact]
     public async Task Pausing_the_trial_holds_it_before_the_next_step_until_it_is_resumed()
     {
         var id = await Drafted(rig);

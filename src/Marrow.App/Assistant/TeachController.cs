@@ -49,6 +49,12 @@ public sealed class TeachControllerOptions
     /// <summary>Called after a skill was added: the Skills page lists it.</summary>
     public Action? SkillsChanged { get; init; }
 
+    /// <summary>
+    /// What tells the owner a recording runs (the strip). Required: a recording whose indication cannot be shown is ended and deleted, so none
+    /// goes on unseen. Null only where there is no screen (a test that says so).
+    /// </summary>
+    public ITeachIndicator? Indicator { get; init; }
+
     /// <summary>Does a plain step of a trial on the PC. Null until Tactus lands: the owner follows the draft himself.</summary>
     public ITeachStepExecutor? Executor { get; init; }
 
@@ -78,7 +84,11 @@ public sealed partial class TeachController : IStopScope, IDisposable
     /// <summary>The Assistant's stop scope (Stop all, 12.6): a recording ends with what it has.</summary>
     string IStopScope.Name => "teach";
 
-    void IStopScope.Stop() => Active?.RequestStop(TeachStopReason.StopAll);
+    void IStopScope.Stop()
+    {
+        Active?.RequestStop(TeachStopReason.StopAll);
+        StopTrial();
+    }
 
     /// <summary>Raised when a recording starts, changes or ends, a draft changes, or a trial moves: the views read the controller again. On any thread.</summary>
     public event Action? Changed;
@@ -124,9 +134,16 @@ public sealed partial class TeachController : IStopScope, IDisposable
             Faulted = message => o.Faulted?.Invoke(message),
         });
         made.Changed += _ => Changed?.Invoke();
+        // The strip goes up before anything is watched: a recording nobody can see is not allowed.
+        if (o.Indicator is { } indicator && !ShowIndicator(indicator))
+        {
+            made.Dispose();
+            return new TeachStartResult(null, "nth could not show the recording strip, so it did not record. Nothing was kept.");
+        }
         var started = made.Start();
         if (!started.Started)
         {
+            HideIndicator();
             made.Dispose();
             return started;
         }
@@ -147,8 +164,25 @@ public sealed partial class TeachController : IStopScope, IDisposable
         return running is null ? null : await running.Stop().ConfigureAwait(false);
     }
 
+    private bool ShowIndicator(ITeachIndicator indicator)
+    {
+        try { return indicator.Show(this); }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            o.Faulted?.Invoke("teach strip: " + error.GetType().Name);
+            return false;
+        }
+    }
+
+    private void HideIndicator()
+    {
+        try { o.Indicator?.Hide(); }
+        catch (Exception error) when (error is not OutOfMemoryException) { o.Faulted?.Invoke("teach strip: " + error.GetType().Name); }
+    }
+
     private void Ended(TeachRecordingInfo info)
     {
+        HideIndicator();
         Log("stop", $"recording {info.Id}: {info.Ended}, {info.Events} events, {info.Frames} frames, {info.Narration} lines, {(int)info.Elapsed.TotalSeconds}s");
         Changed?.Invoke();
     }

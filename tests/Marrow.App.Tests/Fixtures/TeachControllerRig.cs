@@ -16,7 +16,7 @@ internal sealed class TeachControllerRig : IDisposable
 {
     private readonly TeachRig services = new();
 
-    public TeachControllerRig(ITeachDraftModel? model = null, bool executor = false, bool skills = true)
+    public TeachControllerRig(ITeachDraftModel? model = null, bool executor = false, bool skills = true, bool strip = true)
     {
         Queue = new DecisionQueue(Clock);
         Host = new FakeStopChordHost();
@@ -36,6 +36,7 @@ internal sealed class TeachControllerRig : IDisposable
             OwnSkills = () => Skills.Sources.List(CustomAddKind.Skills),
             SkillsChanged = () => SkillsChanges++,
             Executor = Executor,
+            Indicator = strip ? Indicator : null,
             Time = Clock,
             Audit = entry =>
             {
@@ -62,6 +63,8 @@ internal sealed class TeachControllerRig : IDisposable
     public GlobalStop Stop { get; }
 
     public TeachSkillStore Skills { get; }
+
+    public FakeIndicator Indicator { get; } = new();
 
     public FakeTrialHost TrialHost { get; }
 
