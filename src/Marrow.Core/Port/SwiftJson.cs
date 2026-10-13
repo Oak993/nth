@@ -1,4 +1,6 @@
+using System.Buffers;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 
@@ -50,18 +52,26 @@ public static class SwiftJson
     /// </summary>
     public static JsonDocumentOptions DocumentOptions { get; } = new() { MaxDepth = 512 };
 
+    /// <summary>
+    /// The document's bytes. ED-NEW-perf-memory-5: the text goes straight to UTF-8 chunks of a pooled sink and each string value is copied from the
+    /// document's own UTF-8 (no string is made for it), so a save allocates the finished array and little else; the bytes are the ones the
+    /// StringBuilder, string and UTF8Encoding route wrote (a lone surrogate is still U+FFFD).
+    /// </summary>
     public static byte[] Write(JsonElement value, SwiftJsonStyle style)
     {
-        var output = new StringBuilder();
-        WriteValue(output, value, style, 0);
-        return new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false).GetBytes(output.ToString());
+        using var sink = new SwiftJsonSink();
+        WriteValue(sink, value, style, 0);
+        return sink.ToArray();
     }
 
     public static string WriteString(JsonElement value, SwiftJsonStyle style) => Encoding.UTF8.GetString(Write(value, style));
 
     /// <summary>A model written by its System.Text.Json converter, rendered with Swift's bytes.</summary>
-    public static byte[] Encode<T>(T value, JsonSerializerOptions options, SwiftJsonStyle style) =>
-        Write(JsonSerializer.SerializeToElement(value, options), style);
+    public static byte[] Encode<T>(T value, JsonSerializerOptions options, SwiftJsonStyle style)
+    {
+        using var document = JsonSerializer.SerializeToDocument(value, options); // pooled buffers, given back at once (ED-NEW-perf-memory-5)
+        return Write(document.RootElement, style);
+    }
 
     /// <summary>
     /// A Swift Double inside a converter. Utf8JsonWriter.WriteNumberValue(double) writes 1e-05 as "1E-05" and
@@ -75,64 +85,136 @@ public static class SwiftJson
         WriteDouble(writer, value);
     }
 
-    private static void WriteValue(StringBuilder output, JsonElement value, SwiftJsonStyle style, int depth)
+    private static readonly SearchValues<byte> SpecialBytes = SearchValues.Create(
+        [.. Enumerable.Range(0, 0x20).Select(b => (byte)b), (byte)'"', (byte)'\\']);
+    private static readonly SearchValues<byte> SpecialBytesWithSlash = SearchValues.Create(
+        [.. Enumerable.Range(0, 0x20).Select(b => (byte)b), (byte)'"', (byte)'\\', (byte)'/']);
+
+    private readonly struct Member(string name, JsonElement value)
+    {
+        public readonly string Name = name;
+        public readonly JsonElement Value = value;
+    }
+
+    private sealed class MemberOrder : IComparer<Member>
+    {
+        public static readonly MemberOrder Instance = new();
+        public int Compare(Member x, Member y) => SortedKeyOrder.Compare(x.Name, y.Name);
+    }
+
+    private static void WriteValue(SwiftJsonSink output, JsonElement value, SwiftJsonStyle style, int depth)
     {
         switch (value.ValueKind)
         {
             case JsonValueKind.Object:
-                // Last duplicate wins, as a Swift Dictionary built from the input would.
-                var members = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
-                var order = new List<string>();
-                foreach (var property in value.EnumerateObject())
-                {
-                    if (!members.ContainsKey(property.Name)) order.Add(property.Name);
-                    members[property.Name] = property.Value;
-                }
-                if (style.SortedKeys) order.Sort(SortedKeyOrder);
-                output.Append('{');
-                WriteMembers(output, order, name =>
-                {
-                    WriteStringLiteral(output, name, style);
-                    output.Append(style.PrettyPrinted ? " : " : ":");
-                    WriteValue(output, members[name], style, depth + 1);
-                }, style, depth);
-                output.Append('}');
+                WriteObject(output, value, style, depth);
                 break;
             case JsonValueKind.Array:
-                var items = value.EnumerateArray().ToList();
-                output.Append('[');
-                WriteMembers(output, items, item => WriteValue(output, item, style, depth + 1), style, depth);
-                output.Append(']');
+                output.Write((byte)'[');
+                if (style.PrettyPrinted) output.Write((byte)'\n');
+                var index = 0;
+                foreach (var item in value.EnumerateArray())
+                {
+                    WriteSeparator(output, style, depth, index++);
+                    WriteValue(output, item, style, depth + 1);
+                }
+                WriteClose(output, style, depth);
+                output.Write((byte)']');
                 break;
             case JsonValueKind.String:
-                WriteStringLiteral(output, value.GetString()!, style);
+                WriteRawString(output, JsonMarshal.GetRawUtf8Value(value), style);
                 break;
             case JsonValueKind.Number:
-                output.Append(NumberText(value.GetRawText()));
+                var raw = JsonMarshal.GetRawUtf8Value(value);
+                if (raw.IndexOfAny((byte)'.', (byte)'e', (byte)'E') < 0) output.Write(raw); // an integer literal stays as written
+                else output.WriteAscii(NumberText(value.GetRawText()));
                 break;
-            case JsonValueKind.True: output.Append("true"); break;
-            case JsonValueKind.False: output.Append("false"); break;
-            case JsonValueKind.Null: output.Append("null"); break;
+            case JsonValueKind.True: output.WriteAscii("true"); break;
+            case JsonValueKind.False: output.WriteAscii("false"); break;
+            case JsonValueKind.Null: output.WriteAscii("null"); break;
             default: throw new SwiftTrapException($"Unexpected JSON value kind {value.ValueKind}.");
         }
     }
 
+    private static void WriteObject(SwiftJsonSink output, JsonElement value, SwiftJsonStyle style, int depth)
+    {
+        var members = ArrayPool<Member>.Shared.Rent(value.GetPropertyCount());
+        try
+        {
+            var count = 0;
+            foreach (var property in value.EnumerateObject()) members[count++] = new Member(property.Name, property.Value);
+            count = Distinct(members, count, style);
+            output.Write((byte)'{');
+            if (style.PrettyPrinted) output.Write((byte)'\n');
+            for (var i = 0; i < count; i++)
+            {
+                WriteSeparator(output, style, depth, i);
+                WriteName(output, members[i].Name, style);
+                output.WriteAscii(style.PrettyPrinted ? " : " : ":");
+                WriteValue(output, members[i].Value, style, depth + 1);
+            }
+            WriteClose(output, style, depth);
+            output.Write((byte)'}');
+        }
+        finally
+        {
+            ArrayPool<Member>.Shared.Return(members, clearArray: true); // the names and elements reference the document
+        }
+    }
+
+    // Last duplicate wins, as a Swift Dictionary built from the input would; then the sorted-key order under a sorted style. The members are
+    // in document order on entry, and in writing order on return (the count of the distinct ones). No allocation unless a name repeats.
+    private static int Distinct(Member[] members, int count, SwiftJsonStyle style)
+    {
+        if (count > 1 && HasRepeatedName(members, count))
+        {
+            var latest = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+            var order = new List<string>();
+            for (var i = 0; i < count; i++)
+            {
+                if (!latest.ContainsKey(members[i].Name)) order.Add(members[i].Name);
+                latest[members[i].Name] = members[i].Value;
+            }
+            if (style.SortedKeys) order.Sort(SortedKeyOrder);
+            for (var i = 0; i < order.Count; i++) members[i] = new Member(order[i], latest[order[i]]);
+            return order.Count;
+        }
+        if (style.SortedKeys && count > 1) Array.Sort(members, 0, count, MemberOrder.Instance);
+        return count;
+    }
+
+    private static bool HasRepeatedName(Member[] members, int count)
+    {
+        if (count <= 12)
+        {
+            for (var i = 1; i < count; i++)
+                for (var j = 0; j < i; j++)
+                    if (string.Equals(members[i].Name, members[j].Name, StringComparison.Ordinal)) return true;
+            return false;
+        }
+        var seen = new HashSet<string>(count, StringComparer.Ordinal);
+        for (var i = 0; i < count; i++)
+            if (!seen.Add(members[i].Name)) return true;
+        return false;
+    }
+
     // Pretty: "\n", indent, ",\n" between members, then "\n" and the outer indent, also for an empty container
     // (corelibs JSONWriter; Apple's empty-container layout is UNVERIFIED O-04).
-    private static void WriteMembers<T>(StringBuilder output, List<T> members, Action<T> write, SwiftJsonStyle style, int depth)
+    private static void WriteSeparator(SwiftJsonSink output, SwiftJsonStyle style, int depth, int index)
     {
-        if (style.PrettyPrinted) output.Append('\n');
-        for (var i = 0; i < members.Count; i++)
+        if (index > 0)
         {
-            if (i > 0) output.Append(style.PrettyPrinted ? ",\n" : ",");
-            if (style.PrettyPrinted) output.Append(' ', (depth + 1) * 2);
-            write(members[i]);
+            output.Write((byte)',');
+            if (style.PrettyPrinted) output.Write((byte)'\n');
         }
-        if (style.PrettyPrinted)
-        {
-            output.Append('\n');
-            output.Append(' ', depth * 2);
-        }
+        if (style.PrettyPrinted) output.WriteSpaces((depth + 1) * 2);
+    }
+
+    private static void WriteClose(SwiftJsonSink output, SwiftJsonStyle style, int depth)
+    {
+        if (!style.PrettyPrinted) return;
+        output.Write((byte)'\n');
+        output.WriteSpaces(depth * 2);
     }
 
     /// <summary>An integer literal stays as written; any other number is re-rendered as Swift writes a Double.</summary>
@@ -142,27 +224,141 @@ public static class SwiftJson
         return SwiftNumber.JsonText(double.Parse(raw, NumberStyles.Float, CultureInfo.InvariantCulture));
     }
 
-    private static void WriteStringLiteral(StringBuilder output, string text, SwiftJsonStyle style)
+    // One ASCII character of a string literal, as the old per-character switch wrote it.
+    private static void AppendAscii(SwiftJsonSink output, int c, SwiftJsonStyle style)
     {
-        output.Append('"');
-        foreach (var c in text)
+        switch (c)
         {
-            switch (c)
+            case '"': output.Write((byte)'\\'); output.Write((byte)'"'); break;
+            case '\\': output.Write((byte)'\\'); output.Write((byte)'\\'); break;
+            case '/' when style.EscapeSlashes: output.Write((byte)'\\'); output.Write((byte)'/'); break;
+            case '\b': output.Write((byte)'\\'); output.Write((byte)'b'); break;
+            case '\t': output.Write((byte)'\\'); output.Write((byte)'t'); break;
+            case '\n': output.Write((byte)'\\'); output.Write((byte)'n'); break;
+            case '\f': output.Write((byte)'\\'); output.Write((byte)'f'); break;
+            case '\r': output.Write((byte)'\\'); output.Write((byte)'r'); break;
+            case < ' ':
+                output.WriteAscii("\\u00");
+                output.Write((byte)"0123456789abcdef"[c >> 4]);
+                output.Write((byte)"0123456789abcdef"[c & 15]);
+                break;
+            default: output.Write((byte)c); break;
+        }
+    }
+
+    private static void AppendScalar(SwiftJsonSink output, int scalar, SwiftJsonStyle style)
+    {
+        if (scalar < 0x80) AppendAscii(output, scalar, style);
+        else if (scalar < 0x800)
+        {
+            output.Write((byte)(0xC0 | (scalar >> 6)));
+            output.Write((byte)(0x80 | (scalar & 0x3F)));
+        }
+        else if (scalar < 0x10000)
+        {
+            output.Write((byte)(0xE0 | (scalar >> 12)));
+            output.Write((byte)(0x80 | ((scalar >> 6) & 0x3F)));
+            output.Write((byte)(0x80 | (scalar & 0x3F)));
+        }
+        else
+        {
+            output.Write((byte)(0xF0 | (scalar >> 18)));
+            output.Write((byte)(0x80 | ((scalar >> 12) & 0x3F)));
+            output.Write((byte)(0x80 | ((scalar >> 6) & 0x3F)));
+            output.Write((byte)(0x80 | (scalar & 0x3F)));
+        }
+    }
+
+    // A member name (a .NET string): a surrogate pair is one scalar, a lone surrogate is U+FFFD, as UTF8Encoding wrote it.
+    private static void WriteName(SwiftJsonSink output, string text, SwiftJsonStyle style)
+    {
+        output.Write((byte)'"');
+        for (var i = 0; i < text.Length;)
+        {
+            var c = text[i];
+            if (c < 0x80)
             {
-                case '"': output.Append("\\\""); break;
-                case '\\': output.Append("\\\\"); break;
-                case '/' when style.EscapeSlashes: output.Append("\\/"); break;
-                case '\b': output.Append("\\b"); break;
-                case '\t': output.Append("\\t"); break;
-                case '\n': output.Append("\\n"); break;
-                case '\f': output.Append("\\f"); break;
-                case '\r': output.Append("\\r"); break;
-                case < ' ': output.Append("\\u00").Append(((int)c).ToString("x2", CultureInfo.InvariantCulture)); break;
-                default: output.Append(c); break;
+                AppendAscii(output, c, style);
+                i++;
+                continue;
+            }
+            Rune.DecodeFromUtf16(text.AsSpan(i), out var rune, out var consumed);
+            AppendScalar(output, rune.Value, style);
+            i += Math.Max(1, consumed);
+        }
+        output.Write((byte)'"');
+    }
+
+    // A string value, from the document's own bytes (the token with its quotes, JSON escapes as written). The text between escapes is
+    // already valid UTF-8 and is copied whole; an escape is decoded and written the way the old per-character switch wrote that character.
+    private static void WriteRawString(SwiftJsonSink output, ReadOnlySpan<byte> token, SwiftJsonStyle style)
+    {
+        var rest = token[1..^1];
+        var special = style.EscapeSlashes ? SpecialBytesWithSlash : SpecialBytes;
+        output.Write((byte)'"');
+        while (!rest.IsEmpty)
+        {
+            var at = rest.IndexOfAny(special);
+            if (at < 0)
+            {
+                output.Write(rest);
+                break;
+            }
+            output.Write(rest[..at]);
+            var found = rest[at];
+            rest = rest[(at + 1)..];
+            if (found != (byte)'\\')
+            {
+                AppendAscii(output, found, style);
+                continue;
+            }
+            var escape = rest[0];
+            rest = rest[1..];
+            switch (escape)
+            {
+                case (byte)'"': AppendAscii(output, '"', style); break;
+                case (byte)'\\': AppendAscii(output, '\\', style); break;
+                case (byte)'/': AppendAscii(output, '/', style); break;
+                case (byte)'b': AppendAscii(output, '\b', style); break;
+                case (byte)'f': AppendAscii(output, '\f', style); break;
+                case (byte)'n': AppendAscii(output, '\n', style); break;
+                case (byte)'r': AppendAscii(output, '\r', style); break;
+                case (byte)'t': AppendAscii(output, '\t', style); break;
+                case (byte)'u':
+                    var unit = Hex4(rest);
+                    rest = rest[4..];
+                    if (char.IsHighSurrogate((char)unit))
+                    {
+                        if (rest.Length >= 6 && rest[0] == (byte)'\\' && rest[1] == (byte)'u' && char.IsLowSurrogate((char)Hex4(rest[2..])))
+                        {
+                            AppendScalar(output, char.ConvertToUtf32((char)unit, (char)Hex4(rest[2..])), style);
+                            rest = rest[6..];
+                        }
+                        else AppendScalar(output, 0xFFFD, style);
+                    }
+                    else if (char.IsLowSurrogate((char)unit)) AppendScalar(output, 0xFFFD, style);
+                    else AppendScalar(output, unit, style);
+                    break;
+                default: throw new SwiftTrapException($"Unexpected JSON escape \\{(char)escape}.");
             }
         }
-        output.Append('"');
+        output.Write((byte)'"');
     }
+
+    private static int Hex4(ReadOnlySpan<byte> digits)
+    {
+        var value = 0;
+        for (var i = 0; i < 4; i++) value = (value << 4) | HexValue(digits[i]);
+        return value;
+    }
+
+    private static int HexValue(byte digit) => digit switch
+    {
+        >= (byte)'0' and <= (byte)'9' => digit - '0',
+        >= (byte)'a' and <= (byte)'f' => digit - 'a' + 10,
+        >= (byte)'A' and <= (byte)'F' => digit - 'A' + 10,
+        _ => throw new SwiftTrapException("Unexpected JSON hex digit."),
+    };
 }
 
 /// <summary>

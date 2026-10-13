@@ -367,7 +367,14 @@ public sealed class MarkdownView : Decorator
     // :107 @MainActor private static var blockCache = RecentCache<String, [MarkdownBlock]>(limit: 800). Plain
     // static field (R-ISO-5): confined to the main actor by convention, as every other MainActor static in the
     // tree.
-    private static RecentCache<string, ValueList<MarkdownBlock>> blockCache = new(800); // PR-THEME-123
+    // ED-NEW-perf-memory-4 (PORT-ONLY): the count limit alone let a few very long messages fill the cache, and the key is the whole text. Each entry now costs
+    // its text length in characters and a generation holds at most BlockCacheCostLimit of them, so short messages cache exactly as before (800 of them cost far
+    // less) and only very large ones roll the generation earlier. A single text over the limit still caches, at the limit's cost.
+    public const long BlockCacheCostLimit = 4_000_000;
+    public const long PrettyCacheCostLimit = 1_000_000;
+    public const long CellCacheCostLimit = 500_000;
+    internal static long CacheCost(string text, long limit) => Math.Min(text.Length, limit);
+    private static RecentCache<string, ValueList<MarkdownBlock>> blockCache = new(800, BlockCacheCostLimit); // PR-THEME-123
 
     // PORT-ONLY (no Swift twin; the Ambient seam of ED-065). Told, on the thread that is about to parse, each text the markdown parser is asked to parse for the block
     // cache: the cold parse of Blocks(for:) (the caller's thread) and parseWarm's (:237-255, a worker). Nothing acts on it; a test reads it to prove where and when a
@@ -426,7 +433,7 @@ public sealed class MarkdownView : Decorator
             ParseObserver.Current(text);
             parsed = MarkdownParser.MarkdownParserParse(text);
         }
-        blockCache.Insert(parsed, text);
+        blockCache.Insert(parsed, text, CacheCost(text, BlockCacheCostLimit));
         return parsed;
     }
 
@@ -567,7 +574,7 @@ public sealed class MarkdownView : Decorator
         foreach (var (text, blocks, inline) in parsed)
         {
             SwiftTask.CheckCancellation();
-            if (!blockCache.Contains(text)) blockCache.Insert(blocks, text);
+            if (!blockCache.Contains(text)) blockCache.Insert(blocks, text, CacheCost(text, BlockCacheCostLimit));
             foreach (var (source, pretty) in inline)
             {
                 SwiftTask.CheckCancellation();
@@ -1144,7 +1151,7 @@ public static partial class RichLink
 
     // :563 @MainActor private static var prettyCache = RecentCache<String, AttributedString>(limit: 1200).
     // PR-THEME-123.
-    private static RecentCache<string, AttributedText> prettyCache = new(1200);
+    private static RecentCache<string, AttributedText> prettyCache = new(1200, MarkdownView.PrettyCacheCostLimit); // ED-NEW-perf-memory-4: costed by source length
 
     // :567-568 @MainActor private static var streamingPretty: [(source: String, value: AttributedString)] = [];
     // private static let streamingSlots = 4. PR-THEME-148: a small ring of in-flight (not-yet-settled) builds,
@@ -1185,7 +1192,7 @@ public static partial class RichLink
         {
             value = Build(source); // :583
         }
-        prettyCache.Insert(value, source); // :585
+        prettyCache.Insert(value, source, MarkdownView.CacheCost(source, MarkdownView.PrettyCacheCostLimit)); // :585
         return value;
     }
 
@@ -1194,7 +1201,7 @@ public static partial class RichLink
     // here since it lives beside prettyCache and MarkdownView.Warm (PR-THEME-124, above) calls it directly.
     public static void Warm(string source, AttributedText pretty)
     {
-        if (!prettyCache.Contains(source)) prettyCache.Insert(pretty, source);
+        if (!prettyCache.Contains(source)) prettyCache.Insert(pretty, source, MarkdownView.CacheCost(source, MarkdownView.PrettyCacheCostLimit));
     }
 
     // :596-621 nonisolated static func build(_ source: String) -> AttributedString: baseAttributed, then every
@@ -2264,7 +2271,7 @@ public sealed class TableBlock : Decorator
     private const int CollapsedRowLimit = 30; // :1344
 
     // :1347 @MainActor private static var cellCache = RecentCache<String, AttributedString>(limit: 1200).
-    private static readonly RecentCache<string, AttributedText> cellCache = new(1200);
+    private static readonly RecentCache<string, AttributedText> cellCache = new(1200, MarkdownView.CellCacheCostLimit); // ED-NEW-perf-memory-4: costed by source length
 
     // :1349-1354 @MainActor private static func cell(_ source: String) -> AttributedString. Renders the plain
     // text of each cell (AttributedText.PlainText): converting a run's bold/link attributes into a control is
@@ -2273,7 +2280,7 @@ public sealed class TableBlock : Decorator
     {
         if (cellCache.TryGetValue(source, out var hit)) return hit; // :1350
         var value = InlineText.Attributed(source); // :1351
-        cellCache.Insert(value, source); // :1352
+        cellCache.Insert(value, source, MarkdownView.CacheCost(source, MarkdownView.CellCacheCostLimit)); // :1352
         return value;
     }
 

@@ -28,10 +28,9 @@ internal sealed class TerminalSurface : Decorator
     private readonly CaretLayer caret;
     private IBrush? cursorBrush;
     private bool hasFocus;
-    private bool blinking;
-    private IFrameSource? blinkSource;
-    private Action<TimeSpan>? blinkTick;
-    private ContinuousInstant blinkStart;
+    private readonly OpacityLoopRunner blink;
+    private Avalonia.Controls.Window? blinkWindow;
+    private bool windowActive = true; // ED-NEW-perf-idle-2: a window that is not the active one shows a steady caret, not a blinking one
 
     public TerminalSurface(Func<Size> measureCell)
     {
@@ -56,6 +55,7 @@ internal sealed class TerminalSurface : Decorator
         // The caret is a layer of its own over the grid: its opacity is what blinks, which costs the composition one property and not a repaint of every cell.
         caret = new CaretLayer(this);
         VisualChildren.Add(caret);
+        blink = new OpacityLoopRunner(caret, BlinkCycle, BlinkKeys, null, 1);
     }
 
     /// <summary>
@@ -64,19 +64,32 @@ internal sealed class TerminalSurface : Decorator
     /// </summary>
     internal static double BlinkOpacity(double seconds)
     {
-        const double Fade = 0.64;
-        const double Cycle = 1.4;
-        var phase = seconds % Cycle;
-        if (phase < Fade) return 1 - phase / Fade;
-        if (phase < 2 * Fade) return (phase - Fade) / Fade;
+        var phase = seconds % BlinkCycleSeconds;
+        if (phase < BlinkFade) return 1 - phase / BlinkFade;
+        if (phase < 2 * BlinkFade) return (phase - BlinkFade) / BlinkFade;
         return 1;
     }
+
+    private const double BlinkFade = 0.64;
+    private const double BlinkCycleSeconds = 1.4;
+
+    /// <summary>The cycle as the compositor plays it (ED-NEW-perf-idle-2): the one length.</summary>
+    internal static readonly TimeSpan BlinkCycle = TimeSpan.FromSeconds(BlinkCycleSeconds);
+
+    /// <summary>
+    /// ED-NEW-perf-idle-2: <see cref="BlinkOpacity"/> as the key frames of a composition animation that loops for ever on the
+    /// render thread, linear between them: full, out to 0 at 0.64 s, back to full at 1.28 s, held to 1.4 s. The blink used to ask
+    /// the frame clock for a frame at every display refresh for as long as the terminal had the keyboard, which kept main awake
+    /// (a commit and a render per refresh, 240 a second on a fast panel) and never let the idle warm-up see a calm frame.
+    /// </summary>
+    internal static readonly IReadOnlyList<OpacityKey> BlinkKeys =
+        [new(0f, 1f), new((float)(BlinkFade / BlinkCycleSeconds), 0f), new((float)(2 * BlinkFade / BlinkCycleSeconds), 1f), new(1f, 1f)];
 
     /// <summary>The caret layer opacity now (for tests).</summary>
     internal double CaretOpacity => caret.Opacity;
 
     /// <summary>Whether the blink is running (for tests).</summary>
-    internal bool IsBlinking => blinking;
+    internal bool IsBlinking => blink.Running;
 
     public SelectableTextBlock TextControl { get; }
     public string? Text => TextControl.Text;
@@ -232,10 +245,45 @@ internal sealed class TerminalSurface : Decorator
         FocusChanged();
     }
 
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        // ED-NEW-perf-idle-2: the caret blinks only in the active window (a deactivated one keeps the block, steady)
+        if (TopLevel.GetTopLevel(this) is Avalonia.Controls.Window window && !ReferenceEquals(window, blinkWindow))
+        {
+            Unwatch();
+            blinkWindow = window;
+            window.Activated += OnWindowActivated;
+            window.Deactivated += OnWindowDeactivated;
+        }
+    }
+
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         StopBlink();
+        Unwatch();
         base.OnDetachedFromVisualTree(e);
+    }
+
+    private void Unwatch()
+    {
+        if (blinkWindow is null) return;
+        blinkWindow.Activated -= OnWindowActivated;
+        blinkWindow.Deactivated -= OnWindowDeactivated;
+        blinkWindow = null;
+        windowActive = true;
+    }
+
+    private void OnWindowActivated(object? sender, EventArgs e)
+    {
+        windowActive = true;
+        RestartBlink();
+    }
+
+    private void OnWindowDeactivated(object? sender, EventArgs e)
+    {
+        windowActive = false;
+        RestartBlink();
     }
 
     /// <summary>The terminal view (the surface or the host that owns the keyboard for it) gained or lost focus: a focused caret is a block that blinks, an unfocused one an outline.</summary>
@@ -253,26 +301,11 @@ internal sealed class TerminalSurface : Decorator
     {
         StopBlink();
         caret.Opacity = 1;
-        if (!hasFocus || frame is not { CursorVisible: true } || !FrameClock.IsBound) return;
-        blinkSource = FrameClock.Source.Current;
-        blinkStart = SwiftClock.Now;
-        blinking = true;
-        blinkTick = _ =>
-        {
-            if (!blinking) return;
-            caret.Opacity = BlinkOpacity((SwiftClock.Now - blinkStart).TotalSeconds);
-            blinkSource!.RequestFrame(blinkTick!);
-        };
-        blinkSource.RequestFrame(blinkTick);
+        if (!hasFocus || !windowActive || frame is not { CursorVisible: true } || !FrameClock.IsBound) return;
+        blink.Start(); // ED-NEW-perf-idle-2: the compositor plays the cycle; nothing on main moves it
     }
 
-    private void StopBlink()
-    {
-        blinking = false;
-        if (blinkTick is { } tick) blinkSource?.CancelFrame(tick);
-        blinkTick = null;
-        blinkSource = null;
-    }
+    private void StopBlink() => blink.Stop();
 
     public override void Render(DrawingContext context)
     {

@@ -71,10 +71,36 @@ public sealed class DiffInspector : Decorator
         root = new Grid { RowDefinitions = new RowDefinitions("Auto,*") };
         Child = root;
         runtime.PropertyChanged += RuntimePropertyChanged;
-        AttachedToVisualTree += (_, _) => LoadForCurrentKey();
-        DetachedFromVisualTree += (_, _) => loadTask?.Cancel();
+        AttachedToVisualTree += (_, _) => Attach();
+        DetachedFromVisualTree += (_, _) => Release();
         KeyDown += HandleKeyDown;
         BuildRoot();
+    }
+
+    // ED-NEW-perf-memory-1: the runtime outlives every inspector the Changes popover shows, so a closed one must stop
+    // listening or each open leaves a live listener that rebuilds a chrome row on every streamed change and re-parses the diff.
+    // The constructor subscribes (an inspector that is built and used before it is shown still follows the runtime);
+    // leaving the visual tree unsubscribes and ends the load; coming back resubscribes and catches up on what it missed.
+    private bool released;
+
+    private void Attach()
+    {
+        runtime.PropertyChanged -= RuntimePropertyChanged;
+        runtime.PropertyChanged += RuntimePropertyChanged;
+        LoadForCurrentKey();
+        if (!released) return;
+        released = false;
+        BuildRoot();
+    }
+
+    /// <summary>Stops following the runtime and ends the load; also what the popover calls before it drops the content.</summary>
+    public void Release()
+    {
+        runtime.PropertyChanged -= RuntimePropertyChanged;
+        loadTask?.Cancel();
+        if (released) return;
+        released = true;
+        loadKey = null; // a load that was cut short runs again on the next attach
     }
 
     // :18-20
@@ -1018,6 +1044,7 @@ public sealed class DiffPopoverCoordinator
     private WeakView? fallback;
     private ThreadRuntime? runtime;
     private ThreadRuntime? shownRuntime;
+    private DiffInspector? inspector;
     private Control? shownOn;
     private bool desiredVisible;
     private long session;
@@ -1151,7 +1178,9 @@ public sealed class DiffPopoverCoordinator
         if (runtime is null || ResolvedAnchor() is not { } target) return;
         session++;
         if (isShown) return;
-        popover.SetFixedContent(new DiffInspector(runtime), new Size(Width, Height));
+        ReleaseInspector(); // a reopen replaces the content; the old one stops listening (ED-NEW-perf-memory-1)
+        inspector = new DiffInspector(runtime);
+        popover.SetFixedContent(inspector, new Size(Width, Height));
         popover.PlacementTarget = target.View;
         popover.Placement = target.Edge;
         shownOn = target.View;
@@ -1159,6 +1188,12 @@ public sealed class DiffPopoverCoordinator
         StartMonitors(); // :632
         isShown = true;
         Presentation.Presenter.Current.SetPresented(popover, true);
+    }
+
+    private void ReleaseInspector()
+    {
+        inspector?.Release();
+        inspector = null;
     }
 
     // :640-658
@@ -1196,6 +1231,7 @@ public sealed class DiffPopoverCoordinator
             isShown = false; // the popup really closed: no newer show took it over
             if (shownRuntime is { IsDiffVisible: true } shown)
                 shown.IsDiffVisible = false;
+            ReleaseInspector(); // the visual-tree detach may never come if the popup is already gone
             popover.Child = null;
         }
 

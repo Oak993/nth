@@ -694,6 +694,7 @@ public sealed partial class AppModel : MainActorModel
         runtime.SaveNow(); // AppModel.swift:502
         runtime.CancelPersistence(); // AppModel.swift:503
         runtimes.Remove(id); // AppModel.swift:504
+        Marrow.App.Views.Chat.TimelineBlockCache.Forget(id); // PORT-ONLY (ED-NEW-perf-memory-3): the block cache would keep the released transcript alive
         return true; // AppModel.swift:505
     }
 
@@ -1232,6 +1233,7 @@ public sealed partial class AppModel : MainActorModel
             runtime.CancelPersistence(); // AppModel.swift:1072
             runtime.StopSession(); // AppModel.swift:1073
         }
+        Marrow.App.Views.Chat.TimelineBlockCache.Forget(thread.Id); // PORT-ONLY (ED-NEW-perf-memory-3): a deleted thread's transcript is not kept
         Terminals.CloseAll(thread.Id); // AppModel.swift:1074-1075
         if (deletingDocument) Storage.DeleteDocument(thread.Id); // AppModel.swift:1076-1077
     }

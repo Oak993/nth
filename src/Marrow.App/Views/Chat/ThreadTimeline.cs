@@ -1364,10 +1364,22 @@ public sealed class TimelineBlockCache
     // :1659-1673 @MainActor static func cache(for:) -> TimelineBlockCache
     public static TimelineBlockCache Cache(Guid @for)
     {
-        if (shared.TryGetValue(@for, out var existing)) { order.RemoveAll(id => id == @for); order.Add(@for); return existing; }
-        var created = new TimelineBlockCache(); shared[@for] = created; order.Add(@for);
-        while (order.Count > 24) { shared.Remove(order[0]); order.RemoveAt(0); } return created; // :1668-1682
+        lock (shared) // the main actor is the only caller; the lock keeps parallel test classes from tearing the dictionary
+        {
+            if (shared.TryGetValue(@for, out var existing)) { order.RemoveAll(id => id == @for); order.Add(@for); return existing; }
+            var created = new TimelineBlockCache(); shared[@for] = created; order.Add(@for);
+            while (order.Count > 24) { shared.Remove(order[0]); order.RemoveAt(0); } return created; // :1668-1682
+        }
     }
+
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-perf-memory-3). Drops the thread's cache: its Key holds the runtime's own entry list and the built blocks, so a
+    /// cache left behind keeps the whole transcript alive after the runtime is released or the thread is deleted. The next show builds it again.
+    /// </summary>
+    public static void Forget(Guid id) { lock (shared) { shared.Remove(id); order.Remove(id); } }
+
+    /// <summary>PORT-ONLY (ED-NEW-perf-memory-3). Whether a cache is held for the thread.</summary>
+    public static bool Holds(Guid id) { lock (shared) return shared.ContainsKey(id); }
 
     // :1711-1737 func blocks(for:showReasoning:isRunning:hydraMergeID:pills:) -> [DisplayBlock]; a null pills is the
     // Swift default HeadPills().

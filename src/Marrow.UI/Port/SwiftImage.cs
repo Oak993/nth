@@ -101,7 +101,7 @@ public sealed class SwiftImage : Control
         AvaloniaProperty.RegisterAttached<SwiftImage, Control, SwiftFont?>("Font", inherits: true);
 
     private sealed record VectorPaint(IBrush? Fill, IBrush? Stroke, double FillOpacity, double StrokeOpacity);
-    private sealed record Asset(SvgIcon? Icon, Bitmap? Bitmap, Bitmap? Bitmap2x, ImageRenderingMode Intent, IReadOnlyList<VectorPaint>? Paints = null);
+    private sealed record Asset(SvgIcon? Icon, Bitmap? Bitmap, Bitmap? Bitmap2x, ImageRenderingMode Intent, IReadOnlyList<VectorPaint>? Paints = null, Lazy<Bitmap?>? Lazy2x = null);
 
     // DroppyCode/Resources/Assets.xcassets: the images app code names (ED-179 (3)), with each imageset's
     // "template-rendering-intent"; without one, the original artwork is drawn (ED-182/ED-215). The 25
@@ -176,6 +176,8 @@ public sealed class SwiftImage : Control
     private static readonly ConcurrentDictionary<(string Family, double Size, FontWeight Weight, FontStyle Style), double> CapHeights = new();
 
     private readonly ImageRenderingMode intent;
+    private readonly Bitmap? bitmap2x;
+    private readonly Lazy<Bitmap?>? lazy2x;
     private readonly IReadOnlyList<VectorPaint>? vectorPaints;
     private ImageRenderingMode? renderingMode;
 
@@ -186,14 +188,15 @@ public sealed class SwiftImage : Control
     }
 
     private SwiftImage(string? symbolName, string? assetName, SymbolMapping? mapping, SvgIcon? icon, Bitmap? bitmap,
-        Bitmap? bitmap2x, ImageRenderingMode intent, IReadOnlyList<VectorPaint>? vectorPaints = null)
+        Bitmap? bitmap2x, ImageRenderingMode intent, IReadOnlyList<VectorPaint>? vectorPaints = null, Lazy<Bitmap?>? lazy2x = null)
     {
         SymbolName = symbolName;
         AssetName = assetName;
         Mapping = mapping;
         Icon = icon;
         Bitmap = bitmap;
-        Bitmap2x = bitmap2x;
+        this.bitmap2x = bitmap2x;
+        this.lazy2x = lazy2x;
         this.intent = intent;
         this.vectorPaints = vectorPaints;
     }
@@ -208,17 +211,23 @@ public sealed class SwiftImage : Control
 
     /// <summary><c>Image(_ name:)</c> for an asset-catalogue image.</summary>
     public static SwiftImage Named(string name) => (Assets.Value.TryGetValue(name, out var listed) ? listed : TourAsset(name)) is { } asset
-        ? new SwiftImage(null, name, null, asset.Icon, asset.Bitmap, asset.Bitmap2x, asset.Intent, asset.Paints)
+        ? new SwiftImage(null, name, null, asset.Icon, asset.Bitmap, asset.Bitmap2x, asset.Intent, asset.Paints, asset.Lazy2x)
         : new SwiftImage(null, name, null, null, null, null, ImageRenderingMode.Original);
 
     // RR-22 (OD-0027): the eight welcome-tour pictures retaken from Windows Marrow (Assets/Images/tour-*.png and @2x, made by
     // porting/tools/make_tour_assets.py from the native gallery's GalleryTourScenes). Large photos, so each is decoded the first
     // time the tour shows its page, not with the asset catalogue on the app's first image lookup.
+    // ED-NEW-perf-memory-6: the 2x picture (four times the pixels) is decoded only when a draw at a render scaling of 1.5 or more asks for it,
+    // so a display at 100% never holds it; and the tour gives every picture back when it closes (ReleaseTourPictures).
     private static readonly string[] TourPictures = ["tour-welcome", "tour-hydra", "tour-pairs", "tour-slider", "tour-threads", "tour-recipes", "tour-panels", "tour-themes"];
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Asset> TourAssets = new(StringComparer.Ordinal);
 
     private static Asset? TourAsset(string name) => Array.IndexOf(TourPictures, name) < 0 ? null
-        : TourAssets.GetOrAdd(name, picture => new Asset(null, LoadBitmap(picture + ".png"), LoadBitmap(picture + "@2x.png"), ImageRenderingMode.Original));
+        : TourAssets.GetOrAdd(name, picture => new Asset(null, LoadBitmap(picture + ".png"), null, ImageRenderingMode.Original, null,
+            new Lazy<Bitmap?>(() => LoadBitmap(picture + "@2x.png"), LazyThreadSafetyMode.ExecutionAndPublication)));
+
+    /// <summary>ED-NEW-perf-memory-6: the tour closed; its decoded pictures are let go (the next tour decodes the pages it shows again).</summary>
+    public static void ReleaseTourPictures() => TourAssets.Clear();
 
     /// <summary>The <c>.font</c> a control passes down to the symbols inside it.</summary>
     public static SwiftFont? GetFont(Control control) => control.GetValue(FontProperty);
@@ -242,8 +251,8 @@ public sealed class SwiftImage : Control
     /// <summary>The 1x representation of a bitmap asset.</summary>
     public Bitmap? Bitmap { get; }
 
-    /// <summary>The 2x representation of a bitmap asset, used when the screen scale is 1.5 or more.</summary>
-    public Bitmap? Bitmap2x { get; }
+    /// <summary>The 2x representation of a bitmap asset, used when the screen scale is 1.5 or more (decoded on first use for the tour's pictures).</summary>
+    public Bitmap? Bitmap2x => bitmap2x ?? lazy2x?.Value;
 
     /// <summary>True when the name matched nothing: the image takes no space and draws nothing.</summary>
     public bool IsEmpty => Icon is null && Bitmap is null;
@@ -534,7 +543,7 @@ public sealed class SwiftImage : Control
     private void DrawBitmap(DrawingContext context, Rect destination, bool template)
     {
         var scaling = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
-        var bitmap = scaling >= 1.5 && Bitmap2x is not null ? Bitmap2x : Bitmap!;
+        var bitmap = (scaling >= 1.5 ? Bitmap2x : null) ?? Bitmap!;
         var source = new Rect(bitmap.Size);
         if (!template)
         {
