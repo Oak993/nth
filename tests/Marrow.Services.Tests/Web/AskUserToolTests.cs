@@ -121,17 +121,20 @@ public sealed class AskUserToolTests
         Assert.Equal("ask_user", AskUserTool.Name);
     }
 
+    // ED-NEW-web-sec-rev-1: each request carries the server and tool the provider session read from the protocol's own fields, as the
+    // sessions now send it; the same titles without those fields are never the ask (AskUserApprovalIdentityTests).
     [Theory]
-    [InlineData("nth-ui · ask_user", null, true)]
-    [InlineData("Call nth-ui ask_user", null, true)]
-    [InlineData("Tool", "nth-ui:ask_user {\"questions\":[]}", true)]
-    [InlineData("nth-ui · artifact_create", null, false)]
-    [InlineData("github · ask_user", null, false)]
-    public void A_providers_request_to_allow_this_tool_is_known(string title, string? detail, bool expected)
+    [InlineData("nth-ui · ask_user", null, "nth-ui", "ask_user", true)]
+    [InlineData("Call nth-ui ask_user", null, "nth-ui", "ask_user", true)]
+    [InlineData("Tool", "nth-ui:ask_user {\"questions\":[]}", "nth-ui", "ask_user", true)]
+    [InlineData("nth-ui · artifact_create", null, "nth-ui", "artifact_create", false)]
+    [InlineData("github · ask_user", null, "github", "ask_user", false)]
+    public void A_providers_request_to_allow_this_tool_is_known(string title, string? detail, string server, string tool, bool expected)
     {
         var request = new ApprovalRequest("r", ApprovalRequest.Kind.Tool, title, new ValueList<ApprovalRequest.Option>([new("allow", "Approve", ApprovalRequest.Option.Role.Approve)]), detail);
-        Assert.Equal(expected, AskUserTool.IsApprovalFor(request));
-        Assert.False(AskUserTool.IsApprovalFor(request with { RequestKind = ApprovalRequest.Kind.Command }));
+        var approval = new Marrow.Services.Providers.ProviderEvent.Approval(request) { McpTool = new Marrow.Services.Providers.McpToolIdentity(server, tool) };
+        Assert.Equal(expected, AskUserTool.IsApprovalFor(approval));
+        Assert.False(AskUserTool.IsApprovalFor(approval with { Value = request with { RequestKind = ApprovalRequest.Kind.Command } }));
     }
 
     [Theory]

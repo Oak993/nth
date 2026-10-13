@@ -70,12 +70,42 @@ public static class AskUserTool
             || string.Equals(title, "mcp__" + UiMcpServer.ServerName + "__" + Name, StringComparison.Ordinal);
     }
 
-    /// <summary>True for a provider's request to allow this tool (its title or detail names nth-ui's ask_user): the card is the ask, so nothing more is asked.</summary>
-    public static bool IsApprovalFor(ApprovalRequest request)
+    /// <summary>
+    /// True for a provider's request to allow this tool: the card is the ask, so nothing more is asked. ED-NEW-web-sec-rev-1: known only by
+    /// the MCP tool the provider session read from the protocol's own server and tool fields (<see cref="Providers.ProviderEvent.Approval.McpTool"/>),
+    /// never by the title or detail, whose text another tool's arguments or a page steering the model can fill.
+    /// </summary>
+    public static bool IsApprovalFor(Providers.ProviderEvent.Approval approval) =>
+        approval.Value.RequestKind == ApprovalRequest.Kind.Tool
+        && approval.McpTool is { } tool
+        && string.Equals(tool.Server, UiMcpServer.ServerName, StringComparison.Ordinal)
+        && string.Equals(tool.Tool, Name, StringComparison.Ordinal);
+
+    /// <summary>
+    /// ED-NEW-web-sec-rev-1: the nth-ui tool an ACP agent's permission request is for, or null. ACP names no server or tool field, so only
+    /// a call of kind "other" (the kind agents give MCP tools; a task, fetch, command or edit never counts) whose whole title is one of the
+    /// forms agents print for an MCP tool counts: "mcp__nth-ui__ask_user" (Claude Code), "nth-ui-ask_user: ask_user" (the form the skills
+    /// relay proved live, SK-17), "nth-ui__ask_user", "nth-ui_ask_user", "nth-ui/ask_user", "nth-ui: ask_user", "nth-ui.ask_user" and
+    /// "nth-ui \u00B7 ask_user". Anything more or less in the title (an agent that titles a call with its arguments, a model's own words) is
+    /// not one, and leaves the person's card in place.
+    /// </summary>
+    public static Providers.McpToolIdentity? AcpTool(string? kind, string? title)
     {
-        if (request.RequestKind != ApprovalRequest.Kind.Tool) return false;
-        var text = string.Concat((request.Title + " " + request.Detail).Where(c => !char.IsWhiteSpace(c) && c != '\u00B7' && c != '_' && c != '-')).ToLowerInvariant();
-        return text.Contains("nthui", StringComparison.Ordinal) && text.Contains("askuser", StringComparison.Ordinal);
+        if (kind != "other" || title is null) return null;
+        var trimmed = title.Trim();
+        foreach (var tool in UiMcpServer.ToolNames)
+            if (AcpForms(tool).Contains(trimmed)) return new Providers.McpToolIdentity(UiMcpServer.ServerName, tool);
+        return null;
+    }
+
+    private static string[] AcpForms(string tool)
+    {
+        const string server = UiMcpServer.ServerName;
+        return
+        [
+            "mcp__" + server + "__" + tool, server + "-" + tool + ": " + tool, server + "__" + tool, server + "_" + tool,
+            server + "/" + tool, server + ": " + tool, server + "." + tool, server + " \u00B7 " + tool,
+        ];
     }
 
     /// <summary>

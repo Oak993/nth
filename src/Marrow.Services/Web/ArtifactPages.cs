@@ -207,30 +207,151 @@ public static partial class ArtifactPages
         return parts.Count == 0 ? null : string.Join('/', parts);
     }
 
-    [GeneratedRegex(@"<head\b[^>]*>", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex HeadTag();
-
-    [GeneratedRegex(@"<html\b[^>]*>", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex HtmlTag();
-
-    [GeneratedRegex(@"^\s*(?:<!--.*?-->\s*)*<!doctype\b[^>]*>", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline)]
-    private static partial Regex Doctype();
-
     [GeneratedRegex(@"</body\s*>", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.RightToLeft)]
     private static partial Regex BodyEnd();
 
-    /// <summary>Puts <paramref name="injection"/> first in the head (after the doctype when there is no head or html tag).</summary>
-    public static string InjectHead(string html, string injection)
+    /// <summary>
+    /// Puts <paramref name="injection"/> first in the head the browser's HTML parser really opens (ED-NEW-web-sec-rev-3): right after a
+    /// head start tag that opens it, or else just before the first thing that makes the parser open the head itself (any other element,
+    /// text, or the end of the page). Only what the parser lets come before the head is walked over: white space, comments (closed the
+    /// ways HTML closes them: "--&gt;", "--!&gt;", and "&lt;!--&gt;" or "&lt;!---&gt;" whole), bogus comments ("&lt;!...&gt;", which is
+    /// how HTML reads a CDATA section here, "&lt;?...&gt;" and "&lt;/ ...&gt;"), the doctype, the html start tag, and the end tags the
+    /// parser ignores there. A tag is read with its attributes, so a quoted "&gt;" or "&lt;head&gt;" never counts, a longer name such as
+    /// head-x is another element, and case does not matter. A comment or tag the page leaves open at its end is not walked over, so the
+    /// injection never lands inside it. A leading byte order mark stays first.
+    /// </summary>
+    public static string InjectHead(string html, string injection) => html.Insert(HeadInsertionPoint(html), injection);
+
+    private enum BeforeHead { Skip, Head, Stop }
+
+    private static int HeadInsertionPoint(string html)
     {
-        foreach (var tag in new[] { HeadTag(), HtmlTag() })
+        var position = html.Length > 0 && html[0] == '﻿' ? 1 : 0;
+        var after = position; // the end of the last thing walked over that is not white space
+        while (position < html.Length)
         {
-            var match = tag.Match(html);
-            if (match.Success) return html.Insert(match.Index + match.Length, injection);
+            if (IsHtmlSpace(html[position]))
+            {
+                position++;
+                continue;
+            }
+
+            if (html[position] != '<') return after; // text
+            var (kind, end) = ReadBeforeHead(html, position);
+            switch (kind)
+            {
+                case BeforeHead.Head:
+                    return end;
+                case BeforeHead.Stop:
+                    return after;
+                default:
+                    position = after = end;
+                    break;
+            }
         }
 
-        var doctype = Doctype().Match(html);
-        return doctype.Success ? html.Insert(doctype.Index + doctype.Length, injection) : injection + html;
+        return after;
     }
+
+    // One token at a '<', read as the tokenizer reads it in the modes before the head ("initial", "before html", "before head").
+    private static (BeforeHead Kind, int End) ReadBeforeHead(string html, int start)
+    {
+        var next = start + 1;
+        if (next >= html.Length) return (BeforeHead.Stop, start); // a lone '<' is text
+        var c = html[next];
+        if (c == '!')
+        {
+            if (string.CompareOrdinal(html, next + 1, "--", 0, 2) == 0) return CommentEnd(html, start, next + 3);
+            return ToFirstClose(html, start, next + 1); // the doctype, or a bogus comment ("<![CDATA[" included)
+        }
+
+        if (c == '?') return ToFirstClose(html, start, next + 1); // a bogus comment
+        if (c == '/')
+        {
+            if (next + 1 >= html.Length) return (BeforeHead.Stop, start); // "</" at the end is text
+            var first = html[next + 1];
+            if (first == '>') return (BeforeHead.Skip, next + 2); // "</>" is dropped
+            if (!char.IsAsciiLetter(first)) return ToFirstClose(html, start, next + 1); // a bogus comment
+            var (endName, endEnd) = ReadTag(html, next + 1);
+            // head, body, html and br end tags make the parser open the head; it ignores the others before the head.
+            return endEnd < 0 || endName is "head" or "body" or "html" or "br" ? (BeforeHead.Stop, start) : (BeforeHead.Skip, endEnd);
+        }
+
+        if (!char.IsAsciiLetter(c)) return (BeforeHead.Stop, start); // '<' before anything else is text
+        var (name, tagEnd) = ReadTag(html, next);
+        if (tagEnd < 0) return (BeforeHead.Stop, start);
+        return name switch
+        {
+            "html" => (BeforeHead.Skip, tagEnd),
+            "head" => (BeforeHead.Head, tagEnd),
+            _ => (BeforeHead.Stop, start),
+        };
+    }
+
+    // A doctype or bogus comment ends at its first '>'; one the page leaves open is dropped by the parser, so it is not walked over.
+    private static (BeforeHead Kind, int End) ToFirstClose(string html, int start, int from)
+    {
+        var close = html.IndexOf('>', from);
+        return close < 0 ? (BeforeHead.Stop, start) : (BeforeHead.Skip, close + 1);
+    }
+
+    // A comment's end: "<!-->" and "<!--->" are whole comments; otherwise the first "-->" or "--!>" after "<!--" ends it.
+    private static (BeforeHead Kind, int End) CommentEnd(string html, int start, int body)
+    {
+        if (body < html.Length && html[body] == '>') return (BeforeHead.Skip, body + 1);
+        if (body + 1 < html.Length && html[body] == '-' && html[body + 1] == '>') return (BeforeHead.Skip, body + 2);
+        var dashes = html.IndexOf("-->", body, StringComparison.Ordinal);
+        var bang = html.IndexOf("--!>", body, StringComparison.Ordinal);
+        if (dashes < 0 && bang < 0) return (BeforeHead.Stop, start);
+        return dashes >= 0 && (bang < 0 || dashes < bang) ? (BeforeHead.Skip, dashes + 3) : (BeforeHead.Skip, bang + 4);
+    }
+
+    // A start or end tag from its name's first letter: its lowercase name and the index after its '>', or -1 when the page ends inside
+    // it. Attribute values are read as the tokenizer reads them (double-quoted, single-quoted or bare), so a quoted '>' stays inside.
+    private static (string Name, int End) ReadTag(string html, int index)
+    {
+        var length = html.Length;
+        var nameStart = index;
+        while (index < length && !IsHtmlSpace(html[index]) && html[index] != '/' && html[index] != '>') index++;
+        var name = AsciiLower(html[nameStart..index]);
+        while (true)
+        {
+            while (index < length && (IsHtmlSpace(html[index]) || html[index] == '/')) index++; // before an attribute name
+            if (index >= length) return (name, -1);
+            if (html[index] == '>') return (name, index + 1);
+            index++; // an attribute name's first character, '=' included
+            while (index < length && !IsHtmlSpace(html[index]) && html[index] is not ('/' or '>' or '=')) index++;
+            while (index < length && IsHtmlSpace(html[index])) index++;
+            if (index >= length) return (name, -1);
+            if (html[index] != '=') continue; // '/', '>' or the next attribute
+            index++;
+            while (index < length && IsHtmlSpace(html[index])) index++;
+            if (index >= length) return (name, -1);
+            var quote = html[index];
+            if (quote is '"' or '\'')
+            {
+                var close = html.IndexOf(quote, index + 1);
+                if (close < 0) return (name, -1);
+                index = close + 1;
+            }
+            else if (quote == '>')
+            {
+                return (name, index + 1);
+            }
+            else
+            {
+                while (index < length && !IsHtmlSpace(html[index]) && html[index] != '>') index++;
+            }
+        }
+    }
+
+    // White space as HTML's tokenizer knows it: tab, line feed, form feed, carriage return and space.
+    private static bool IsHtmlSpace(char c) => c is '\t' or '\n' or '\f' or '\r' or ' ';
+
+    private static string AsciiLower(string text) => string.Create(text.Length, text, static (span, source) =>
+    {
+        for (var i = 0; i < source.Length; i++) span[i] = source[i] is >= 'A' and <= 'Z' ? (char)(source[i] + 32) : source[i];
+    });
 
     /// <summary>Puts <paramref name="injection"/> just before the last body end tag, or at the end.</summary>
     public static string InjectBodyEnd(string html, string injection)

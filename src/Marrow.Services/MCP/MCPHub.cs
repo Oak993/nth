@@ -165,6 +165,11 @@ public sealed class MCPHub : Actor
     private readonly Dictionary<string, List<MCPResourceTemplate>> templateCache = new(SwiftStringComparer.Instance);
     private readonly HashSet<string> failed = new(SwiftStringComparer.Instance);
 
+    // PORT-ONLY (ED-NEW-web-sec-rev-2): per server, the tools its newest listing said the model may not call (app-only). Kept when a
+    // list change drops the cache, and filled by a listing a change overtook too, so a model call made while the list is not cached is
+    // still refused a tool the server keeps for its app view. Replaced by each newer listing; Reload forgets it with the rest.
+    private readonly Dictionary<string, HashSet<string>> hiddenFromModel = new(SwiftStringComparer.Instance);
+
     // A server's lists changed this many times. A listing that began before a change is not cached: it may be stale.
     private readonly Dictionary<string, int> changeEpoch = new(SwiftStringComparer.Instance);
 
@@ -215,6 +220,7 @@ public sealed class MCPHub : Actor
                 var listed = await client.ListTools();
                 var listedList = listed.ToList();
                 if (Epoch(id) == epoch) toolCache[id] = listedList;
+                hiddenFromModel[id] = new HashSet<string>(listedList.Where(tool => !tool.IsVisibleToModel).Select(tool => tool.Name), SwiftStringComparer.Instance);
                 all.AddRange(listedList);
             }
             catch (Exception error) when (SwiftTry.IsThrownError(error))
@@ -232,7 +238,8 @@ public sealed class MCPHub : Actor
     }
 
     // :79-98. PORT-ONLY (W18): caller says who is calling. A model caller is refused an app-only tool, and an app
-    // caller a model-only one, when the tool list is known; an app caller makes it known first.
+    // caller a model-only one, when the tool list is known; an app caller makes it known first. A model caller is also refused a
+    // tool an earlier listing said is app-only (ED-NEW-web-sec-rev-2); the API session, the model's way here, lists first itself.
     public Task<Result> Call(string callName, JSONValue arguments, MCPCaller caller = MCPCaller.Model) => Isolated(async () =>
     {
         specs ??= ReadSpecs();
@@ -251,6 +258,10 @@ public sealed class MCPHub : Actor
         else if (caller == MCPCaller.App)
         {
             throw MCPHubError.UnknownTool(callName);
+        }
+        else if (hiddenFromModel.TryGetValue(parsed.Server, out var hidden) && hidden.Contains(parsed.Tool))
+        {
+            throw MCPHubError.UnknownTool(callName); // PORT-ONLY (ED-NEW-web-sec-rev-2)
         }
         var client = Client(parsed.Server, spec);
         try
@@ -387,6 +398,7 @@ public sealed class MCPHub : Actor
         templateCache.Clear();
         changeEpoch.Clear();
         failed.Clear();
+        hiddenFromModel.Clear();
         specs = null;
         foreach (var client in existing.Values) Spawn(async () => await client.Stop());
     });
