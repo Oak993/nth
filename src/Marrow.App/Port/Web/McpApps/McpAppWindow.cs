@@ -35,6 +35,8 @@ public sealed class McpAppWindow
     public static string UnpinText => UiText.Get("mcpapps.window.stop_keeping_on_top");
 
     private readonly McpAppSession session;
+    // ED-NEW-web-sec-res-2: a link the user clicked in the app is offered under the title strip, its whole address shown.
+    private readonly McpAppLinkOffer offer = new(new Thickness(6, 6, 6, 6));
     private readonly SplitterSpring opacity = new(0, epsilon: 0.002);
     private readonly SplitterSpring scale = new(0.94, epsilon: 0.0005);
     private readonly Border frame;
@@ -87,8 +89,11 @@ public sealed class McpAppWindow
 
         Slot = new Decorator();
         var body = new Border { Margin = new Thickness(6, 0, 6, 6), CornerRadius = new CornerRadius(9), ClipToBounds = true, Child = Slot }; // the canvas .mweb: under the hairline
-        var column = new Grid { RowDefinitions = new RowDefinitions("Auto,*"), Children = { top, body } };
-        Grid.SetRow(body, 1);
+        var column = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,*"), Children = { top, offer.Notice, body } };
+        Grid.SetRow(offer.Notice, 1);
+        Grid.SetRow(body, 2);
+        offer.Show(session);
+        session.Changed += OnSessionChanged;
 
         var grips = Grips();
         var backdrop = new WindowBackdrop(0.5);
@@ -133,6 +138,7 @@ public sealed class McpAppWindow
         };
         Window.Closed += (_, _) =>
         {
+            session.Changed -= OnSessionChanged;
             StopMotion();
             openHold?.Dispose();
             openHold = null;
@@ -153,6 +159,9 @@ public sealed class McpAppWindow
 
     /// <summary>Where the app's host goes.</summary>
     public Decorator Slot { get; }
+
+    /// <summary>ED-NEW-web-sec-res-2: the offer of a link the user clicked in the app, with its whole address.</summary>
+    internal Marrow.App.Views.Artifacts.TabulaNotice LinkNotice => offer.Notice;
 
     /// <summary>The window's size in DIP.</summary>
     public Size Size { get; private set; }
@@ -188,6 +197,8 @@ public sealed class McpAppWindow
         else scale.SetTarget(1);
         RequestFrame();
     }
+
+    private void OnSessionChanged() => offer.Show(session);
 
     /// <summary>Brings the window forward (the app asked for pip again).</summary>
     public void Activate() => Window.Activate();

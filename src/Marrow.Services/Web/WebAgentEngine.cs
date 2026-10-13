@@ -325,9 +325,10 @@ public sealed partial class WebAgentEngine : IDisposable
         lock (gate) knownUrls.Add(WebAgentUrls.Normalize(url));
         if (state.Blocked is { } blocked) return Fail(WebErrorCodes.Blocked, blocked);
         var tab = state.Tab;
-        var text = "Opened " + state.Short + " at " + tab.Url + (tab.Loading ? " (still loading; web_wait for load)" : "") + ".";
+        // + ED-NEW-web-sec-res-3: the page chooses its own address (a redirect, pushState), so it is page text, inside the block.
+        var text = "Opened " + state.Short + (tab.Loading ? " (still loading; web_wait for load)" : "") + ".";
         Named(WebPolicy.OriginOf(tab.Url), tab.Url + "\n" + tab.Title);
-        return new WebToolResult(text + "\n" + WebAgentText.Untrusted(WebPolicy.OriginOf(tab.Url), "Title: " + tab.Title));
+        return new WebToolResult(text + "\n" + WebAgentText.Untrusted(WebPolicy.OriginOf(tab.Url), "Address: " + tab.Url + "\nTitle: " + tab.Title));
     }
 
     private async Task<WebToolResult> History(Step s)
@@ -352,7 +353,9 @@ public sealed partial class WebAgentEngine : IDisposable
         }
         if (state.Blocked is { } blocked) return Fail(WebErrorCodes.Blocked, blocked);
         Named(WebPolicy.OriginOf(state.Tab.Url), state.Tab.Url + "\n" + state.Tab.Title);
-        return new WebToolResult(state.Short + " is at " + state.Tab.Url + ".\n" + WebAgentText.Untrusted(WebPolicy.OriginOf(state.Tab.Url), "Title: " + state.Tab.Title));
+        // + ED-NEW-web-sec-res-3: the address the page went to is page text, inside the block with its title.
+        return new WebToolResult(state.Short + " is at the address below.\n"
+            + WebAgentText.Untrusted(WebPolicy.OriginOf(state.Tab.Url), "Address: " + state.Tab.Url + "\nTitle: " + state.Tab.Title));
     }
 
     private async Task<WebToolResult> Wait(Step s)

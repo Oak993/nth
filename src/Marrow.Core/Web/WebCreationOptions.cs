@@ -26,8 +26,9 @@ public enum WebProfileKind
 /// <summary>
 /// DESIGN 2.1: everything that is fixed when the WebView2 environment and controller are created, before
 /// <c>AdapterCreated</c>. <see cref="UserDataFolder"/>, <see cref="Language"/> and <see cref="AdditionalBrowserArguments"/>
-/// are the environment's options and are identical for every view (2.3: "all environments use identical options, or
-/// the second one fails"); <see cref="ProfileName"/> and <see cref="IsInPrivate"/> are the controller's options.
+/// are the environment's options and are identical for every view on one folder (2.3: "all environments use identical
+/// options, or the second one fails"); <see cref="ProfileName"/> and <see cref="IsInPrivate"/> are the controller's options.
+/// ED-NEW-web-sec-res-1: the sandboxed views' options name a folder of their own, so they make a second environment.
 /// </summary>
 public sealed record WebCreationOptions(
     WebProfileKind Kind,

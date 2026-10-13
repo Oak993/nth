@@ -13,8 +13,10 @@ namespace Marrow.Services.Web;
 /// and <c>ICoreWebView2Controller</c>, which it wraps with the managed WebView2 SDK for permissions, downloads, the
 /// DevTools Protocol and accelerator keys. The engine creates the one shared environment itself (identical options for
 /// every view, the same object for a pre-warm, a fresh one after "Restart Visus") and gives the host its pointer for
-/// <c>ExplicitEnvironment</c>. Native behaviour is confirmed by the lead's spikes (a) and (i); unit tests cover the pure
-/// parts and the reflection seams, the rest runs through <see cref="FakeWebEngine"/>.
+/// <c>ExplicitEnvironment</c>. ED-NEW-web-sec-res-1: the sandboxed views' options name another folder and other arguments,
+/// so they get a second environment, made when the first of them asks and let go with the last (WebSandboxEnvironmentTests).
+/// Native behaviour is confirmed by the lead's spikes (a) and (i); unit tests cover the pure parts and the reflection seams,
+/// the rest runs through <see cref="FakeWebEngine"/>.
 /// </summary>
 public sealed class WebView2Engine : IWebEngine, IDisposable
 {
@@ -29,11 +31,26 @@ public sealed class WebView2Engine : IWebEngine, IDisposable
     private static readonly Guid EnvironmentIid = new("B96D755E-0319-4E92-A296-23436F46A1FC");
 
     private readonly Logger log = new(Logger.Subsystem, "web");
-    private CoreWebView2Environment? environment;
-    private nint environmentPointer;
-    private Task<CoreWebView2Environment>? pending;
-    private int openViews;
+    private readonly Func<WebCreationOptions, Task<(object Environment, nint Pointer)>> make;
+    private readonly Action<object, nint> unmake;
+    // ED-NEW-web-sec-res-1: one environment per environment key (folder, language, arguments): Visus's shared one and the
+    // sandboxed views' own one. A key keeps its open-view count across a reset, so views closed after "Restart Visus" still
+    // count down to the right number.
+    private readonly Dictionary<(string UserDataFolder, string Language, string? AdditionalBrowserArguments), EnvironmentSlot> slots = [];
     private bool disposed;
+
+    public WebView2Engine()
+    {
+        make = MakeEnvironmentAsync;
+        unmake = UnmakeEnvironment;
+    }
+
+    /// <summary>Tests: how an environment is made (its object and owned pointer) and let go, in place of WebView2's.</summary>
+    internal WebView2Engine(Func<WebCreationOptions, Task<(object Environment, nint Pointer)>> make, Action<object, nint> unmake)
+    {
+        this.make = make;
+        this.unmake = unmake;
+    }
 
     public string MinimumRuntimeVersion => MinimumVersion;
 
@@ -61,30 +78,36 @@ public sealed class WebView2Engine : IWebEngine, IDisposable
     public IWebEngineView CreateView(WebCreationOptions creation)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
-        openViews++;
+        Slot(creation).Views++;
         return new WebView2View(this, creation);
     }
 
     public async Task<nint> AcquireEnvironmentAsync(WebCreationOptions creation, CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
-        if (environment is not null && environmentPointer != 0) return environmentPointer;
-        pending ??= CreateEnvironmentAsync(creation);
+        var slot = Slot(creation);
+        if (slot.Environment is not null) return slot.Pointer;
+        var pending = slot.Pending ??= CreateEnvironmentAsync(slot, creation);
         try
         {
             await pending.WaitAsync(cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            pending = null;
+            if (slot.Pending == pending) slot.Pending = null;
             log.Error($"web: environment creation failed: {ex.Message}");
             return 0; // the platform view creates its own (Avalonia's cache, same options)
         }
 
-        return environmentPointer;
+        return slot.Pointer; // zero when the environment was let go while it was being made
     }
 
-    public void ResetEnvironment() => DropEnvironment();
+    /// <summary>"Restart Visus": every environment goes (the sandbox one too; its views are recreated with Visus's).</summary>
+    public void ResetEnvironment()
+    {
+        IsPrewarmed = false;
+        foreach (var slot in slots.Values) Drop(slot);
+    }
 
     public async Task PrewarmAsync(WebCreationOptions creation, CancellationToken cancellationToken)
     {
@@ -100,43 +123,91 @@ public sealed class WebView2Engine : IWebEngine, IDisposable
     {
         IsPrewarmed = false;
         // Unused pre-warm: let the browser process go. With views open, their own references keep it alive.
-        if (openViews == 0) DropEnvironment();
+        foreach (var slot in slots.Values.Where(s => s.Views == 0)) Drop(slot);
     }
 
     public void Dispose()
     {
         if (disposed) return;
         disposed = true;
-        DropEnvironment();
+        ResetEnvironment();
     }
 
-    internal void ViewClosed() => openViews = Math.Max(0, openViews - 1);
+    /// <summary>
+    /// A view closed. ED-NEW-web-sec-res-1: the sandbox environment goes with the last sandboxed view, so its browser process
+    /// group (a second one beside Visus's) runs only while an artifact, inline widget or MCP App is open; Visus's stays for the
+    /// pre-warm and the next tab, as before.
+    /// </summary>
+    internal void ViewClosed(WebCreationOptions creation)
+    {
+        if (!slots.TryGetValue(creation.EnvironmentKey, out var slot)) return;
+        slot.Views = Math.Max(0, slot.Views - 1);
+        if (slot.Views == 0 && creation.Kind == WebProfileKind.Artifacts) Drop(slot);
+    }
 
-    private async Task<CoreWebView2Environment> CreateEnvironmentAsync(WebCreationOptions creation)
+    private EnvironmentSlot Slot(WebCreationOptions creation)
+    {
+        if (!slots.TryGetValue(creation.EnvironmentKey, out var slot)) slots[creation.EnvironmentKey] = slot = new EnvironmentSlot();
+        return slot;
+    }
+
+    private async Task CreateEnvironmentAsync(EnvironmentSlot slot, WebCreationOptions creation)
+    {
+        var generation = slot.Generation;
+        var created = await make(creation);
+        if (disposed || slot.Generation != generation)
+        {
+            unmake(created.Environment, created.Pointer); // let go while it was being made: nobody keeps it
+            return;
+        }
+
+        slot.Environment = created.Environment;
+        slot.Pointer = created.Pointer;
+    }
+
+    // WebView2's environment for these options: the clears record read first (W10), then the environment and its pointer.
+    private async Task<(object Environment, nint Pointer)> MakeEnvironmentAsync(WebCreationOptions creation)
     {
         Directory.CreateDirectory(creation.UserDataFolder);
-        ProfileClears ??= await Task.Run(() => WebProfileClears.ForFolder(creation.UserDataFolder)); // off the UI thread: it reads a file
+        // W10's record lives in Visus's folder; the sandboxed profile is InPrivate and never has a clear waiting.
+        if (creation.Kind != WebProfileKind.Artifacts)
+            ProfileClears ??= await Task.Run(() => WebProfileClears.ForFolder(creation.UserDataFolder)); // off the UI thread: it reads a file
         var options = new CoreWebView2EnvironmentOptions(additionalBrowserArguments: creation.AdditionalBrowserArguments, language: creation.Language);
         var created = await CoreWebView2Environment.CreateAsync(browserExecutableFolder: null, userDataFolder: creation.UserDataFolder, options: options);
-        environment = created;
-        environmentPointer = EnvironmentPointer(created);
         created.NewBrowserVersionAvailable += OnNewBrowserVersion;
-        return created;
+        return (created, EnvironmentPointer(created));
+    }
+
+    private void UnmakeEnvironment(object made, nint pointer)
+    {
+        if (made is CoreWebView2Environment old) old.NewBrowserVersionAvailable -= OnNewBrowserVersion;
+        if (pointer != 0) Marshal.Release(pointer);
     }
 
     private void OnNewBrowserVersion(object? sender, object e) => NewRuntimeVersionAvailable?.Invoke(this, EventArgs.Empty);
 
-    private void DropEnvironment()
+    private void Drop(EnvironmentSlot slot)
     {
-        pending = null;
-        IsPrewarmed = false;
-        if (environment is { } old) old.NewBrowserVersionAvailable -= OnNewBrowserVersion;
-        environment = null;
-        if (environmentPointer != 0)
-        {
-            Marshal.Release(environmentPointer);
-            environmentPointer = 0;
-        }
+        slot.Generation++;
+        slot.Pending = null;
+        if (slot.Environment is { } old) unmake(old, slot.Pointer);
+        slot.Environment = null;
+        slot.Pointer = 0;
+    }
+
+    // One environment key's environment: the made one (and its owned pointer), the one being made, and the views open on it.
+    private sealed class EnvironmentSlot
+    {
+        public object? Environment { get; set; }
+
+        public nint Pointer { get; set; }
+
+        public Task? Pending { get; set; }
+
+        public int Views { get; set; }
+
+        // Bumped whenever the slot lets its environment go, so one still being made is let go when it arrives.
+        public int Generation { get; set; }
     }
 
     /// <summary>

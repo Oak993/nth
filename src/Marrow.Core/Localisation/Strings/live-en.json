@@ -28,5 +28,6 @@
   "live.app.pane_name": "Expanded",
   "live.app.pop_out_name": "Pop out",
   "live.app.sandboxed": "Sandboxed · from {0}",
-  "live.app.could_not_open": "{0} could not open. {1}"
+  "live.app.could_not_open": "{0} could not open. {1}",
+  "live.app.open_link": "Open link from the app"
 }

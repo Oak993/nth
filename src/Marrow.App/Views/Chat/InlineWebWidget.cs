@@ -48,6 +48,9 @@ public sealed class InlineWebWidget : Decorator
     public static string SnapshotText => UiText.Get("live.widget.snapshot");
     public static string OpenLinkTitle => UiText.Get("live.widget.open_link");
 
+    /// <summary>ED-NEW-web-sec-res-2: "Open link from the app", the offer of a link the user clicked in an MCP App.</summary>
+    public static string AppOpenLinkTitle => UiText.Get("live.app.open_link");
+
     // The card's glass (canvas: rgba(255,255,255,.035) and a .5 rim of .1 on dark; the light look mirrors it in ink).
     internal static readonly SwiftColor CardFill = SwiftColor.Dynamic(new SwiftColor(0, 0, 0, 0.025), new SwiftColor(1, 1, 1, 0.035));
     internal static readonly SwiftColor CardRim = SwiftColor.Dynamic(new SwiftColor(0, 0, 0, 0.09), new SwiftColor(1, 1, 1, 0.10));
@@ -174,8 +177,13 @@ public sealed class InlineWebWidget : Decorator
             ClipToBounds = true,
             Child = new Panel { Children = { slot, failure } },
         };
-        // ED-NEW-web-sec-artifacts-10: a link the user clicked in the widget is offered under the header, its whole address shown.
-        linkNotice.Dismissed += () => widget?.DismissLink();
+        // ED-NEW-web-sec-artifacts-10: a link the user clicked in the widget is offered under the header, its whole address shown;
+        // ED-NEW-web-sec-res-2: the same for a link the user clicked in an MCP App shown inline.
+        linkNotice.Dismissed += () =>
+        {
+            widget?.DismissLink();
+            app?.DismissLink();
+        };
         var column = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,Auto"), Children = { top, linkNotice, body } };
         Grid.SetRow(linkNotice, 1);
         Grid.SetRow(body, 2);
@@ -389,24 +397,24 @@ public sealed class InlineWebWidget : Decorator
             if (failed is not null) failureText.Text = McpAppTrust.CouldNotOpen(app.Title, failed);
             slot.Height = app.InlineHeight(ThreadHeight);
             foreach (var (mode, segment) in segments) Press(segment, mode == app.Mode);
+            ShowOffer(app.PendingLink, AppOpenLinkTitle, app.OpenLink);
         }
         else if (widget is not null)
         {
             slot.Height = widget.InlineHeight(ThreadHeight);
-            ShowOffer(widget);
+            ShowOffer(widget.PendingLink, OpenLinkTitle, widget.OpenLink);
         }
 
         coordinator?.Refresh(this);
     }
 
-    // The link the widget offers, if any: its whole address and Open (TabulaNotice.ShowAddress), drawn again only when it changes.
-    private void ShowOffer(InlineWidgetSession session)
+    // The link the widget or app offers, if any: its whole address and Open (TabulaNotice.ShowAddress), drawn again only when it changes.
+    private void ShowOffer(string? link, string title, Action open)
     {
-        var link = session.PendingLink;
         if (link == offered && linkNotice.IsVisible == link is not null) return;
         offered = link;
         if (link is null) linkNotice.Hide();
-        else linkNotice.ShowAddress(OpenLinkTitle, link, (UiText.Get("tabula.notice.open"), session.OpenLink));
+        else linkNotice.ShowAddress(title, link, (UiText.Get("tabula.notice.open"), open));
     }
 
     protected override void OnSizeChanged(SizeChangedEventArgs e)

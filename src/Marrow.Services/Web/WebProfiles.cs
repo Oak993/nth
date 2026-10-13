@@ -34,7 +34,8 @@ public enum WebSurfaceKind
 /// DESIGN 2.3 (ED-NEW-web-w7-2): one user data folder (<c>%LOCALAPPDATA%\nth\WebView2</c>), one browser process group,
 /// identical environment options for every view, and a profile per surface kind. The model never inherits
 /// <c>browse</c>: agent tabs get their own persistent profile per thread folder, and sandboxed content and private tabs
-/// are InPrivate.
+/// are InPrivate. ED-NEW-web-sec-res-1: the sandboxed views (artifacts, inline widgets, MCP Apps) are the one exception to
+/// the shared environment: a second browser process group on its own folder inside that one, whose arguments block WebRTC.
 /// </summary>
 public sealed class WebProfiles
 {
@@ -52,6 +53,25 @@ public sealed class WebProfiles
     /// </summary>
     public const string BrowserArguments = "--site-per-process --force-webrtc-ip-handling-policy=disable_non_proxied_udp";
 
+    /// <summary>
+    /// ED-NEW-web-sec-res-1: the sandboxed views' own environment folder, under the one user data folder (so the uninstall hook
+    /// and "Clear browsing data" reach it with the rest): <c>%LOCALAPPDATA%\nth\WebView2\Sandbox</c>.
+    /// </summary>
+    public const string SandboxFolderName = "Sandbox";
+
+    /// <summary>
+    /// ED-NEW-web-sec-res-1: the browser arguments of the sandboxed views' environment (artifacts, inline widgets, MCP Apps).
+    /// The page-script hooks cannot catch every way a frame reaches WebRTC (the indexed setters <c>select[i] = option</c> and
+    /// <c>select.options[i] = option</c>; a script inside the insertion that adds a frame with a src), so WebRTC is blocked at the
+    /// engine too: no WebRTC UDP outside a proxy (no host, server-reflexive or UDP relay candidates, no STUN). WebView2 has no switch
+    /// that turns WebRTC off; this policy is the strongest one its runtimes read. Runtime 154 reads it only as the command-line
+    /// preference <c>--webrtc-ip-handling-policy</c> (the string <c>force-webrtc-ip-handling-policy</c> is not in its msedge.dll);
+    /// older runtimes read <c>--force-webrtc-ip-handling-policy</c>; each ignores the spelling it does not know, so both are passed.
+    /// Visus keeps <see cref="BrowserArguments"/>, unchanged.
+    /// </summary>
+    public const string SandboxBrowserArguments =
+        "--site-per-process --force-webrtc-ip-handling-policy=disable_non_proxied_udp --webrtc-ip-handling-policy=disable_non_proxied_udp";
+
     /// <param name="userDataFolder">The one user data folder; <see cref="DefaultUserDataFolder"/> in the app.</param>
     /// <param name="language">The UI language every environment is created with (one value for the whole process).</param>
     public WebProfiles(string userDataFolder, string language)
@@ -67,6 +87,9 @@ public sealed class WebProfiles
 
     public string UserDataFolder { get; }
 
+    /// <summary>ED-NEW-web-sec-res-1: the sandboxed views' environment folder (<see cref="SandboxFolderName"/> in <see cref="UserDataFolder"/>).</summary>
+    public string SandboxUserDataFolder => Path.Combine(UserDataFolder, SandboxFolderName);
+
     public string Language { get; }
 
     /// <summary>The profile a surface kind uses.</summary>
@@ -80,8 +103,10 @@ public sealed class WebProfiles
     };
 
     /// <summary>
-    /// The creation options for a surface. Every result shares <see cref="UserDataFolder"/>, <see cref="Language"/> and
-    /// <see cref="BrowserArguments"/>; only the profile name, InPrivate and DevTools differ.
+    /// The creation options for a surface. Visus, preview and agent tabs share <see cref="UserDataFolder"/>,
+    /// <see cref="Language"/> and <see cref="BrowserArguments"/>; only the profile name, InPrivate and DevTools differ.
+    /// ED-NEW-web-sec-res-1: the sandboxed kinds share an environment of their own instead: <see cref="SandboxUserDataFolder"/>
+    /// and <see cref="SandboxBrowserArguments"/>, in the same language.
     /// </summary>
     /// <param name="kind">The surface.</param>
     /// <param name="threadFolder">For agent tabs: the thread's folder, which names the agent profile.</param>
@@ -98,6 +123,8 @@ public sealed class WebProfiles
         };
 
         // DESIGN 5.8: "Open DevTools" is for preview tabs only.
+        if (profile == WebProfileKind.Artifacts)
+            return new WebCreationOptions(profile, name, inPrivate, SandboxUserDataFolder, Language, SandboxBrowserArguments, EnableDevTools: false);
         return new WebCreationOptions(profile, name, inPrivate, UserDataFolder, Language, BrowserArguments, EnableDevTools: kind == WebSurfaceKind.PreviewTab);
     }
 

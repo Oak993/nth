@@ -365,7 +365,7 @@ internal sealed class WebView2View : IWebEngineView, IPreviewViewport
         Detach();
         cdpSubscriptions.Clear();
         disposed = true;
-        engine.ViewClosed();
+        engine.ViewClosed(Creation);
     }
 
     private void Apply(WebViewSettingsPlan plan)

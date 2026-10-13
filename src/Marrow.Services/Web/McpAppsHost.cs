@@ -272,6 +272,33 @@ public sealed class McpAppMount : IWebResourceHandler, IDisposable
     /// <summary>The app asked for a size (inline height comes from it).</summary>
     public event Action<McpAppSize>? SizeRequested;
 
+    /// <summary>
+    /// ED-NEW-web-sec-res-2: the web link the user clicked in the app's view, offered on the app's card (its whole address, Open
+    /// and dismiss) until the user answers; null when nothing is offered. A newer click replaces it.
+    /// </summary>
+    public string? PendingLink { get; private set; }
+
+    /// <summary>The offered link came or went (the card shows or hides its notice).</summary>
+    public event Action? LinkChanged;
+
+    /// <summary>The user's Open on the card: exactly the offered address, through the link setting.</summary>
+    public void OpenPendingLink()
+    {
+        if (disposed || PendingLink is not { } url) return;
+        PendingLink = null;
+        LinkChanged?.Invoke();
+        host.Log($"mcp app {Server}: the user opened a link to {ArtifactMount.Redact(url)} from its card");
+        host.Ui.OpenLink(this, url);
+    }
+
+    /// <summary>The user dismissed the offer: nothing opens.</summary>
+    public void DismissPendingLink()
+    {
+        if (PendingLink is null) return;
+        PendingLink = null;
+        LinkChanged?.Invoke();
+    }
+
     internal McpAppsBridge Bridge => bridge;
 
     internal void Start() => Observe(LoadAsync());
@@ -858,13 +885,17 @@ public sealed class McpAppMount : IWebResourceHandler, IDisposable
         if (e.IsMainFrame) bridge.NewDocument();
     }
 
+    // + ED-NEW-web-sec-res-2 (security review residual R2): a user's click only offers the link on the app's card with its whole
+    // address, as an inline widget's does (ED-NEW-web-sec-artifacts-10); one click could carry what the app holds in the link's
+    // query to its site with no notice. Only the card's Open opens it (OpenPendingLink); a script's navigation offers nothing.
     private void OnBlocked(object? sender, WebSandboxNavigation e)
     {
         var web = Uri.TryCreate(e.Url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https";
-        if (e.IsUserInitiated && web)
+        if (e.IsUserInitiated && web && !disposed)
         {
-            host.Log($"mcp app {Server}: a link to {ArtifactMount.Redact(e.Url)} was offered to the link setting");
-            host.Ui.OpenLink(this, e.Url);
+            host.Log($"mcp app {Server}: a link to {ArtifactMount.Redact(e.Url)} is offered on its card");
+            PendingLink = e.Url;
+            LinkChanged?.Invoke();
         }
         else host.Log($"mcp app {Server}: cancelled a {(e.IsNewWindow ? "new window" : e.IsMainFrame ? "navigation" : "frame navigation")} to {ArtifactMount.Redact(e.Url)}");
     }

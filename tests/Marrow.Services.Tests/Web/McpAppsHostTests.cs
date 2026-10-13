@@ -242,8 +242,12 @@ public sealed class McpAppsHostTests
         Assert.Equal(2, rig.Ui.LinkCards.Count);
         Assert.Single(rig.Ui.Links);
 
+        // ED-NEW-web-sec-res-2: a click in the view offers its link on the app's card; only the user's Open there opens it.
         rig.View!.RaiseNavigationStarting("https://shipyard.dev/docs", userInitiated: true);
         rig.View.RaiseNavigationStarting("https://tracker.example/pixel", userInitiated: false);
+        Assert.Equal(["https://shipyard.dev/releases/2.4.1"], rig.Ui.Links);
+        Assert.Equal("https://shipyard.dev/docs", rig.Mount!.PendingLink);
+        rig.Mount.OpenPendingLink();
         Assert.Equal(["https://shipyard.dev/releases/2.4.1", "https://shipyard.dev/docs"], rig.Ui.Links);
     }
 

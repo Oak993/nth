@@ -61,6 +61,7 @@ public sealed class McpAppSession
         };
         Mount.Failed += _ => Changed?.Invoke();
         Mount.Loaded += () => Changed?.Invoke();
+        Mount.LinkChanged += () => Changed?.Invoke(); // ED-NEW-web-sec-res-2: the offer shows where the app is
         // The App pane closed from its own header (or the workspace dropped it): the app comes back inline.
         runtime.PropertyChanged += (_, e) =>
         {
@@ -102,6 +103,18 @@ public sealed class McpAppSession
 
     /// <summary>The mode, the size the app asked for, its load or its failure changed.</summary>
     public event Action? Changed;
+
+    /// <summary>
+    /// ED-NEW-web-sec-res-2: the link the user clicked in the app, offered wherever the app is (its card, the App pane, its
+    /// window) until Open or dismiss.
+    /// </summary>
+    public string? PendingLink => Mount.PendingLink;
+
+    /// <summary>The user's Open on the offer: the offered address, exactly, through the chat's link setting.</summary>
+    public void OpenLink() => Mount.OpenPendingLink();
+
+    /// <summary>The user dismissed the offer: nothing opens.</summary>
+    public void DismissLink() => Mount.DismissPendingLink();
 
     /// <summary>The words of the card's placeholder while the app is elsewhere, or null inline.</summary>
     public string? PlaceholderText => Mode switch

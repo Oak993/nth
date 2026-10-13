@@ -81,8 +81,9 @@ public sealed class WebAgentEngineTests
 
         Assert.True(result.Error is null, result.Text);
         Assert.Equal(["https://docs.example.com/x"], rig.Host.Opened);
-        Assert.StartsWith("Opened t1 at https://docs.example.com/x.", result.Text, StringComparison.Ordinal);
-        Assert.Contains("<untrusted-page-content origin=\"https://docs.example.com\" marker=\"", result.Text, StringComparison.Ordinal);
+        // ED-NEW-web-sec-res-3: the tab's address is page-supplied (a redirect, pushState), so it is inside the block.
+        Assert.StartsWith("Opened t1.\n<untrusted-page-content origin=\"https://docs.example.com\" marker=\"", result.Text, StringComparison.Ordinal);
+        Assert.Contains("\">\nAddress: https://docs.example.com/x\nTitle: ", result.Text, StringComparison.Ordinal);
         Assert.Empty(rig.Asker.Asked);
         Assert.Empty(rig.Engine.ReadOrigins);
     }
@@ -256,8 +257,9 @@ public sealed class WebAgentEngineTests
         Assert.Equal(WebErrorCodes.BadArgs, nothing.Error);
         Assert.Contains("t1 has no page to go back to.", nothing.Text, StringComparison.Ordinal);
         Assert.Null(back.Error);
-        Assert.StartsWith("t1 is at https://a.test/home.", back.Text, StringComparison.Ordinal);
-        Assert.Contains(WebAgentText.OpenTag, back.Text, StringComparison.Ordinal); // the title is page text
+        // ED-NEW-web-sec-res-3: the address, like the title, is page text, inside the block.
+        Assert.StartsWith("t1 is at the address below.\n<untrusted-page-content origin=\"https://a.test\" marker=\"", back.Text, StringComparison.Ordinal);
+        Assert.Contains("\">\nAddress: https://a.test/home\nTitle: ", back.Text, StringComparison.Ordinal);
         Assert.Null(reload.Error);
         Assert.Equal(["https://a.test/home", "https://a.test/home"], tab.Navigations.TakeLast(2));
         Assert.Equal(WebErrorCodes.BadArgs, wrong.Error);

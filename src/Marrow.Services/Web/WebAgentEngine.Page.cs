@@ -229,8 +229,10 @@ public sealed partial class WebAgentEngine
         }
         foreach (var (site, part) in framed) Kept(site, part);
         Named(origin, state.Tab.Url + "\n" + state.Tab.Title);
-        var header = state.Short + " " + state.Tab.Url + (state.Tab.Loading ? " (still loading)" : "");
-        return new WebToolResult(header + "\n" + WebAgentText.Untrusted(origin, "Title: " + state.Tab.Title + "\n" + body) + (more is null ? "" : "\n" + more)) { ReadOrigin = origin };
+        // + ED-NEW-web-sec-res-3: the tab's address is page text (a redirect, pushState), so it opens the block, above the title.
+        var header = "Read " + state.Short + (state.Tab.Loading ? " (still loading)" : "") + ".";
+        var fenced = "Address: " + state.Tab.Url + "\nTitle: " + state.Tab.Title + "\n" + body;
+        return new WebToolResult(header + "\n" + WebAgentText.Untrusted(origin, fenced) + (more is null ? "" : "\n" + more)) { ReadOrigin = origin };
     }
 
     private async Task<WebToolResult> FindOnPage(Step s)
@@ -787,7 +789,9 @@ public sealed partial class WebAgentEngine
         if (state.Blocked is { } blocked) return Fail(WebErrorCodes.Blocked, text + "\n" + blocked);
         if (state.Tab.Loading)
         {
-            text += "\nThe page is loading " + state.Tab.Url + ": web_wait for load, then read it.";
+            // + ED-NEW-web-sec-res-3: where the page went is page text, inside the block.
+            text += "\nThe page is loading the address below: web_wait for load, then read it.\n"
+                + WebAgentText.Untrusted(WebPolicy.OriginOf(state.Tab.Url), "Address: " + state.Tab.Url);
             Named(WebPolicy.OriginOf(state.Tab.Url), state.Tab.Url);
         }
         return new WebToolResult(text);
