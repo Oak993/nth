@@ -91,6 +91,15 @@ public sealed record MissionRecord(Mission Mission)
     /// <summary>It was live when nth ended: it came back Paused and asks "Resume?" (15.3).</summary>
     public bool Interrupted { get; init; }
 
+    /// <summary>
+    /// A dry run of a duty (7.3, AS-10): its reads are real, every other action is refused to its agents and listed, and it ends
+    /// without a review or a merge. Kept in the journal, so a dry run nth ended halfway never resumes as a real one.
+    /// </summary>
+    public bool DryRun { get; init; }
+
+    /// <summary>The duty whose run this mission is (7.1): its narrowing of the assistant's grants is read from the duty at every approval, so it survives a restart.</summary>
+    public string? DutyId { get; init; }
+
     /// <summary>The reviewer passed and the workspace's changes wait for the owner's Merge, Rebase first or Discard.</summary>
     public bool MergePending { get; init; }
 
@@ -154,6 +163,8 @@ public static class MissionJournal
         };
         // Added in AS-6 (ED-NEW-dextra-as6-7): optional keys, so a file written before them loads, and none is written unless set.
         if (record.Attempt > 1) body["attempt"] = record.Attempt;
+        if (record.DryRun) body["dryRun"] = true;
+        if (record.DutyId is not null) body["dutyId"] = record.DutyId;
         if (record.AgentsReleased) body["agentsReleased"] = true;
         if (record.RevertIntent) body["revertIntent"] = true;
         if (record.ColdStartTokens > 0) body["coldStartTokens"] = record.ColdStartTokens;
@@ -231,6 +242,8 @@ public static class MissionJournal
                 Reason = Text(body, "reason"),
                 Waiting = Text(body, "waiting"),
                 Interrupted = Bool(body, "interrupted"),
+                DryRun = Bool(body, "dryRun"),
+                DutyId = Text(body, "dutyId"),
                 MergePending = Bool(body, "mergePending"),
                 KeepWorkspace = Bool(body, "keepWorkspace"),
                 PendingRedirect = Text(body, "pendingRedirect"),

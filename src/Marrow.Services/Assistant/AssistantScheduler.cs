@@ -440,16 +440,19 @@ public sealed class AssistantScheduler : IDisposable
             if (r.Running is not null) Consider(r.RunningSince + o.MaxRun);
             if (r.Held is not null)
             {
+                Consider(now + o.MaxWait); // a held run is looked at again within the cap, whatever lifted what held it
                 if (Blocker(r, now) is Block.Hours && r.Duty.Hours?.NextOpen(now, ZoneOf(r.Duty)) is { } opens) Consider(opens);
                 if (pausedUntil is { } until) Consider(until);
             }
         }
-        if (!live)
+        // Nothing to wait for (no duty on, or only duties that start on an event or when asked): no timer at all, so an idle app is idle. The
+        // 60 s cap below is for a time that is coming (a sleep or a clock change must not delay it).
+        if (!live || next is null)
         {
             timer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             return;
         }
-        var delay = next is { } at ? at - now : o.MaxWait;
+        var delay = next.Value - now;
         if (delay > o.MaxWait) delay = o.MaxWait;
         if (delay < TimeSpan.FromMilliseconds(1)) delay = TimeSpan.FromMilliseconds(1);
         if (timer is null) timer = time.CreateTimer(_ => OnTimer(), null, delay, Timeout.InfiniteTimeSpan);

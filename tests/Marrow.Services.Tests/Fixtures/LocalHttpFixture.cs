@@ -29,13 +29,16 @@ public sealed class LocalHttpFixture : IDisposable
 {
     private readonly TcpListener listener = new(IPAddress.Loopback, 0);
     private readonly CancellationTokenSource stop = new();
-    private readonly Task loop;
     private readonly List<(string Path, string Headers)> requests = [];
 
     public LocalHttpFixture()
     {
         listener.Start();
-        loop = Task.Run(Serve);
+        _ = Task.Run(async () =>
+        {
+            try { await Serve().ConfigureAwait(false); }
+            finally { stop.Dispose(); }
+        });
     }
 
     public int Port => ((IPEndPoint)listener.LocalEndpoint).Port;
@@ -131,8 +134,6 @@ public sealed class LocalHttpFixture : IDisposable
         disposed = true;
         stop.Cancel();
         listener.Stop();
-        try { loop.Wait(TimeSpan.FromSeconds(2)); }
-        catch (AggregateException) { }
-        stop.Dispose();
+        // The serve loop ends by itself once the listener is stopped and the token is cancelled; it lets go of the token as its last act.
     }
 }

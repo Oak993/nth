@@ -33,6 +33,13 @@ public sealed partial class AssistantStore
         }
     }
 
+    /// <summary>The two background switches and whether their card was shown (<c>background.json</c>, AS-10), or null when there is none or it does not parse.</summary>
+    public JsonObject? Background() => ReadDocument(Path.Combine(Root, BackgroundFile)) as JsonObject;
+
+    public void SaveBackground(JsonObject document) => SaveDocument(Path.Combine(Root, BackgroundFile), document);
+
+    public const string BackgroundFile = "background.json";
+
     private string WatchFile(string assistantId, string dutyId)
     {
         CheckId(dutyId);

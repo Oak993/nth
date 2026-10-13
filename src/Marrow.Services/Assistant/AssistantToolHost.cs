@@ -67,6 +67,12 @@ public interface IAssistantToolHost
     /// <summary>What the policy engine reads about the chat now: its chain, grants, mission, taint, duty, purchases.</summary>
     PolicyContext PolicyContext(AssistantChat chat);
 
+    /// <summary>
+    /// The chat belongs to a dry run of a duty (7.3, AS-10) and the call is not a read: the answer to give the model instead of acting,
+    /// and the call is listed as a step. Null: act as usual (not a dry run, or a read, which is real).
+    /// </summary>
+    string? DryAnswer(AssistantToolCall call) => null;
+
     /// <summary>Acts on an allowed call.</summary>
     Task<AssistantToolResult> Run(AssistantToolCall call, CancellationToken cancellationToken);
 
