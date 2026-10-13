@@ -143,17 +143,65 @@ public readonly struct NthUiValue : IEquatable<NthUiValue>
     public string Display(CultureInfo? culture = null)
     {
         culture ??= CultureInfo.InvariantCulture;
+        if (IsList || IsObject)
+        {
+            var text = new StringBuilder();
+            AppendDisplay(text, culture, json: IsObject, depth: 0);
+            return text.ToString();
+        }
         return Kind switch
         {
             NthUiValueKind.Null => "",
             NthUiValueKind.Number => FormatNumber(number, culture),
             NthUiValueKind.Text => AsText,
             NthUiValueKind.Bool => number != 0 ? "true" : "false",
-            NthUiValueKind.List => Clip(string.Join(", ", Items.Select(i => i.Display(culture)))),
-            NthUiValueKind.Object => Clip(ToJson()),
             NthUiValueKind.Error => "\u2014",
+            _ => "",
         };
     }
+
+    // ED-NEW-web-review-18: stop walking when the displayed prefix is full. Shared
+    // nested lists otherwise expand into huge intermediate strings before Clip runs.
+    private void AppendDisplay(StringBuilder text, CultureInfo culture, bool json, int depth)
+    {
+        if (text.Length >= MaxTextLength) return;
+        if (depth >= 64) { AppendBounded(text, json ? "null" : "\u2014"); return; }
+        if (IsList)
+        {
+            if (json) AppendBounded(text, "[");
+            for (var i = 0; i < Items.Count && text.Length < MaxTextLength; i++)
+            {
+                if (i != 0) AppendBounded(text, json ? "," : ", ");
+                Items[i].AppendDisplay(text, culture, json, depth + 1);
+            }
+            if (json) AppendBounded(text, "]");
+            return;
+        }
+        if (IsObject)
+        {
+            AppendBounded(text, "{");
+            for (var i = 0; i < Fields.Count && text.Length < MaxTextLength; i++)
+            {
+                if (i != 0) AppendBounded(text, ",");
+                AppendBounded(text, JsonSerializer.Serialize(Fields[i].Key));
+                AppendBounded(text, ":");
+                Fields[i].Value.AppendDisplay(text, culture, json: true, depth + 1);
+            }
+            AppendBounded(text, "}");
+            return;
+        }
+        var value = !json ? Display(culture) : Kind switch
+        {
+            NthUiValueKind.Number => JsonSerializer.Serialize(number),
+            NthUiValueKind.Text => JsonSerializer.Serialize(AsText),
+            NthUiValueKind.Bool => AsBool ? "true" : "false",
+            _ => "null",
+        };
+        AppendBounded(text, value);
+    }
+
+    private static void AppendBounded(StringBuilder text, string value) =>
+        text.Append(value.AsSpan(0, Math.Min(value.Length, MaxTextLength - text.Length)));
 
     /// <summary>A plain number for display: integers without decimals, others to at most ten decimals, trailing zeros cut.</summary>
     public static string FormatNumber(double value, CultureInfo? culture = null)
@@ -279,5 +327,4 @@ public readonly struct NthUiValue : IEquatable<NthUiValue>
         };
     }
 
-    private static string Clip(string text) => text.Length > MaxTextLength ? text[..MaxTextLength] : text;
 }

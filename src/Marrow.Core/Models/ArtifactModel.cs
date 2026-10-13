@@ -176,6 +176,9 @@ internal static class ArtifactMetaJson
             foreach (var path in paths.EnumerateArray())
                 if (path.ValueKind == JsonValueKind.String && path.GetString() is { } value) files.Add(value);
         ArtifactOrigin? origin = null;
+        long size = 0;
+        if (item.TryGetProperty("bytes", out var bytes)
+            && (bytes.ValueKind != JsonValueKind.Number || !bytes.TryGetInt64(out size) || size < 0)) return null;
         if (item.TryGetProperty("forkedFrom", out var from) && from.ValueKind == JsonValueKind.Object
             && SwiftUUID.Parse(Text(from, "thread")) is { } thread && Text(from, "id") is { } fromId && Int(from, "version") is { } fromVersion)
             origin = new ArtifactOrigin(thread, fromId, fromVersion);
@@ -188,7 +191,7 @@ internal static class ArtifactMetaJson
             File = Text(item, "file"),
             Entry = Text(item, "entry"),
             Files = files,
-            Bytes = item.TryGetProperty("bytes", out var bytes) && bytes.TryGetInt64(out var size) ? size : 0,
+            Bytes = size,
             RestoredFrom = Int(item, "restoredFrom"),
             ForkedFrom = origin,
         };

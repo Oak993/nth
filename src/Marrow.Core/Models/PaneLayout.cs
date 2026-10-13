@@ -583,8 +583,9 @@ public static class PaneLayout
             mode = PaneLayoutMode.Narrow;
             narrowTabs = [PaneKind.Chat, .. all.SelectMany(g => g.Tabs)];
             narrowSelection = narrowTabs.Contains(s.NarrowSelection) ? s.NarrowSelection : PaneKind.Chat;
-            narrowStrip = new PaneRect(0, 0, w, PaneKinds.NarrowTabStrip);
-            var surface = new PaneRect(0, PaneKinds.NarrowTabStrip, w, Math.Max(0, h - PaneKinds.NarrowTabStrip));
+            var stripHeight = Math.Min(h, PaneKinds.NarrowTabStrip);
+            narrowStrip = new PaneRect(0, 0, w, stripHeight);
+            var surface = new PaneRect(0, stripHeight, w, h - stripHeight);
             chat = surface;
             foreach (var tab in narrowTabs) bounds[tab] = surface;
             shown.Add(narrowSelection);
