@@ -23,7 +23,7 @@ public sealed partial class WebSecAgentFrameTests
             new AgentNode { Backend = 2, Role = "button", Name = "Continue", Box = (100, 100, 120, 40), Facts = AgentPage.FactsOf("button", "Continue", frameUrl: "https://a.test/checkout") },
             new AgentNode { Backend = 20, Role = "Iframe", Name = "", Box = (400, 100, 300, 200), FrameId = "F1", Facts = AgentPage.FactsOf("iframe", "", frameUrl: "https://pay.test/card") },
         ]);
-        var frame = new AgentPage { Text = "Card", Url = "https://pay.test/card", FrameTarget = "F1" };
+        var frame = new AgentPage { Text = "Card", Url = "https://pay.test/card", FrameTarget = "F1", Viewport = (300, 200) };
         frame.Nodes.AddRange(
         [
             new AgentNode { Backend = 2, Role = "button", Name = "Pay now", Box = (10, 10, 100, 40), Facts = AgentPage.FactsOf("button", "Pay now", frameUrl: "https://pay.test/card") },

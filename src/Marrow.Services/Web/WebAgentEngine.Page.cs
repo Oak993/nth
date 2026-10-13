@@ -7,7 +7,8 @@
 // under the click point is judged too, so a cover over the target cannot carry a click past a guard. The overlay is hidden
 // around every screenshot. ED-NEW-web-sec-agent-1 (security review H1): another site's frame runs in its own process, and the page
 // around it sees only an <iframe>; the element under a point and the focused field are read inside that frame through its own
-// session, and a frame nth cannot reach is sealed: nothing is pressed or typed into it.
+// session, and a frame nth cannot reach is sealed: nothing is pressed or typed into it. ED-NEW-web-sec-agent-7 (H1, second pass): a frame
+// the page shows scaled, turned or zoomed is sealed too, since a move by its corner no longer says where a click lands.
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -25,8 +26,17 @@ public sealed partial class WebAgentEngine
     /// <summary>How many frames deep the hit test and the focus are followed (deeper is sealed).</summary>
     private const int MaxFrameDepth = 6;
 
-    private const string FrameRefusal = "That point or the focused field is inside a frame of another site that nth cannot read, so nth does not act there. "
-        + "Read the page again (web_read shows the elements of the frames it can reach) and act on a ref.";
+    private const string FrameRefusal = "That point or the focused field is inside a frame of another site that nth cannot read, or cannot place exactly "
+        + "because the page shows it scaled, turned or zoomed, so nth does not act there. Read the page again (web_read shows the elements of the "
+        + "frames it can reach) and act on a ref, or ask the user to do this step.";
+
+    // ED-NEW-web-sec-agent-8 (security review M1, second pass).
+    private const string PointChanged = "The page changed under the point just before the click, so nth did not press anything. Read the page again, then try again.";
+
+    // ED-NEW-web-sec-agent-7: the isolated world a frame's viewport is read in (its own scripts cannot redefine innerWidth there).
+    private const string FrameWorld = "nth-agent-frame";
+
+    private const string ViewportJs = "[innerWidth, innerHeight]";
 
     // ED-NEW-web-sec-agent-2 (security review H2; DESIGN 8.4 "Clipboard read: agent tabs denied").
     // ED-NEW-web-sec-agent-3 (security review M1): a Confirm answers the card the user saw; when the page under it changed, nothing is pressed.
@@ -301,7 +311,7 @@ public sealed partial class WebAgentEngine
             {
                 element = await Facts(state, node, s.Token) ?? throw new Refusal(Gone(reference!));
                 point = await Point(state, node, scroll: true, s.Token)
-                    ?? throw new Refusal(Fail(WebErrorCodes.StaleRef, reference + " is not visible on the page, so it cannot be clicked. Scroll to it, or read the page again."));
+                    ?? throw new Refusal(await NoPoint(state, node, reference + " is not visible on the page, so it cannot be clicked. Scroll to it, or read the page again.", s.Token));
             }
             else
             {
@@ -324,7 +334,7 @@ public sealed partial class WebAgentEngine
             using (BeginStep(state))
             {
                 await Drive(state, s);
-                await ClickAt(state, point, s);
+                await ClickAt(state, point, s, hit, verdict, origin);
                 await Settle(state, s);
             }
             var said = (key is null ? "Clicked at " + what : "Clicked " + what) + " in " + state.Short + ".";
@@ -573,7 +583,7 @@ public sealed partial class WebAgentEngine
                 };
                 if (want is null) return Fail(WebErrorCodes.BadArgs, reference + " is a checkbox or radio button: value is true or false.");
                 if (want == isChecked) return new WebToolResult(reference + " is already " + (isChecked ? "on" : "off") + ".");
-                var point = await Point(state, key, scroll: true, s.Token) ?? throw new Refusal(Fail(WebErrorCodes.StaleRef, reference + " is not visible on the page. Scroll to it, or read the page again."));
+                var point = await Point(state, key, scroll: true, s.Token) ?? throw new Refusal(await NoPoint(state, key, reference + " is not visible on the page. Scroll to it, or read the page again.", s.Token));
                 var hit = await Hit(state, point, s.Token);
                 if (hit is { Sealed: true }) return Fail(WebErrorCodes.Denied, FrameRefusal);
                 var covered = hit is not null && !SameElement(hit.Facts, element.Facts);
@@ -588,7 +598,7 @@ public sealed partial class WebAgentEngine
                 using (BeginStep(state))
                 {
                     await Drive(state, s);
-                    await ClickAt(state, point, s);
+                    await ClickAt(state, point, s, hit, verdict, origin);
                     await Settle(state, s);
                 }
                 return Acted(state, "Turned " + reference + (want.Value ? " on" : " off") + " in " + state.Short + ".", NameBlock(origin, element, null));
@@ -919,7 +929,9 @@ public sealed partial class WebAgentEngine
             if (!described.Ok) return element with { Sealed = true };
             if (described.Local || described.FrameId is null) return element;
             if (await FrameSession(state, described.FrameId, token) is not { } inner) return element with { Sealed = true };
-            (dx, dy) = await FrameOffset(state, inner, token, 0);
+            // ED-NEW-web-sec-agent-7: a frame the page shows scaled, turned or zoomed has no place a move can find: sealed.
+            if (await FrameOffset(state, inner, token, 0) is not { } offset) return element with { Sealed = true };
+            (dx, dy) = offset;
             owner = element;
             session = inner;
         }
@@ -1081,7 +1093,13 @@ public sealed partial class WebAgentEngine
             double minX = Math.Min(Math.Min(v[0], v[2]), Math.Min(v[4], v[6])), maxX = Math.Max(Math.Max(v[0], v[2]), Math.Max(v[4], v[6]));
             double minY = Math.Min(Math.Min(v[1], v[3]), Math.Min(v[5], v[7])), maxY = Math.Max(Math.Max(v[1], v[3]), Math.Max(v[5], v[7]));
             if (maxX - minX < 1 || maxY - minY < 1) continue;
-            var (dx, dy) = key.Session is null ? (0d, 0d) : await FrameOffset(state, key.Session, token, 0);
+            var (dx, dy) = (0d, 0d);
+            if (key.Session is { } frame)
+            {
+                // ED-NEW-web-sec-agent-7: an element of a frame that cannot be placed by a move has no box on the page.
+                if (await FrameOffset(state, frame, token, 0) is not { } offset) return null;
+                (dx, dy) = offset;
+            }
             return new Rect(minX + dx, minY + dy, maxX - minX, maxY - minY);
         }
         return null;
@@ -1090,30 +1108,80 @@ public sealed partial class WebAgentEngine
     private static async Task<(double X, double Y)?> Point(TabState state, WebNodeKey key, bool scroll, CancellationToken token) =>
         await Box(state, key, scroll, token) is { } box ? (box.X + box.Width / 2, box.Y + box.Height / 2) : null;
 
-    private static async Task<(double X, double Y)> FrameOffset(TabState state, string session, CancellationToken token, int depth)
+    // Where another site's frame's document starts in the main page's viewport, through every frame above it. ED-NEW-web-sec-agent-7
+    // (security review H1, second pass): a page can scale, turn, skew, flip or zoom the frame it holds (a CSS transform or zoom), and
+    // Chromium maps a click through that, so the frame's place must be a pure move: its owner's content box upright with its first corner
+    // top-left, and as large as the frame's own viewport (innerWidth and innerHeight, scroll bars included, read in an isolated world of
+    // the frame, out of reach of its scripts), each frame above it too. Anything else, or a frame whose owner, box or size cannot be
+    // read, has no place (null), so nothing is judged or pressed in it.
+    private static async Task<(double X, double Y)?> FrameOffset(TabState state, string session, CancellationToken token, int depth)
     {
         var cdp = state.Cdp!;
         var frame = cdp.Sessions.FirstOrDefault(s => string.Equals(s.SessionId, session, StringComparison.Ordinal));
-        if (frame is null || depth > 6) return (0, 0);
+        if (frame is null || depth > MaxFrameDepth) return null;
         try
         {
             var owner = await cdp.CallAsync("DOM.getFrameOwner", new JsonObject { ["frameId"] = frame.TargetId }, frame.ParentSessionId, token);
-            if (!owner.TryGetProperty("backendNodeId", out var id) || !id.TryGetInt64(out var backend)) return (0, 0);
-            // The frame's document starts at its owner's content box (inside the border and padding); its quads when there is no box model.
+            if (!owner.TryGetProperty("backendNodeId", out var id) || !id.TryGetInt64(out var backend)) return null;
+            // The frame's document starts at its owner's content box (inside the border and padding); its quad when there is no box model.
             var v = await ContentBox(cdp, backend, frame.ParentSessionId, token);
             if (v is null)
             {
                 var quads = await cdp.CallAsync("DOM.getContentQuads", new JsonObject { ["backendNodeId"] = backend }, frame.ParentSessionId, token);
-                if (!quads.TryGetProperty("quads", out var list) || list.GetArrayLength() == 0) return (0, 0);
+                if (!quads.TryGetProperty("quads", out var list) || list.ValueKind != JsonValueKind.Array || list.GetArrayLength() != 1) return null;
                 v = [.. list[0].EnumerateArray().Select(n => n.GetDouble())];
             }
-            var (px, py) = frame.ParentSessionId is null ? (0d, 0d) : await FrameOffset(state, frame.ParentSessionId, token, depth + 1);
-            return (Math.Min(Math.Min(v[0], v[2]), Math.Min(v[4], v[6])) + px, Math.Min(Math.Min(v[1], v[3]), Math.Min(v[5], v[7])) + py);
+            if (v.Length < 8 || !Upright(v)) return null;
+            if (await FrameViewport(cdp, frame, token) is not { } size || Math.Abs(size.Width - (v[2] - v[0])) > 1 || Math.Abs(size.Height - (v[7] - v[1])) > 1) return null;
+            (double X, double Y)? above = frame.ParentSessionId is null ? (0d, 0d) : await FrameOffset(state, frame.ParentSessionId, token, depth + 1);
+            return above is { } a ? (v[0] + a.X, v[1] + a.Y) : null;
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {
-            return (0, 0);
+            return null;
         }
+    }
+
+    // A box shown upright: its first corner top-left, its top and bottom level and its sides plumb (within half a px), 1 px or more each way.
+    private static bool Upright(double[] v) =>
+        v[2] - v[0] >= 1 && v[7] - v[1] >= 1 && Near(v[1], v[3]) && Near(v[5], v[7]) && Near(v[0], v[6]) && Near(v[2], v[4]);
+
+    private static bool Near(double a, double b) => Math.Abs(a - b) <= 0.5;
+
+    // A frame's viewport in its own CSS px, scroll bars included, read in nth's isolated world of the frame.
+    private static async Task<(double Width, double Height)?> FrameViewport(CdpBroker cdp, CdpSession frame, CancellationToken token)
+    {
+        var world = await cdp.CallAsync("Page.createIsolatedWorld", new JsonObject
+        {
+            ["frameId"] = frame.TargetId,
+            ["worldName"] = FrameWorld,
+            ["grantUniveralAccess"] = false,
+        }, frame.SessionId, token);
+        if (!world.TryGetProperty("executionContextId", out var made) || !made.TryGetInt32(out var context)) return null;
+        var result = await cdp.CallAsync("Runtime.evaluate", new JsonObject
+        {
+            ["expression"] = ViewportJs,
+            ["contextId"] = context,
+            ["returnByValue"] = true,
+            ["silent"] = true,
+        }, frame.SessionId, token);
+        if (!result.TryGetProperty("result", out var r) || !r.TryGetProperty("value", out var value) || value.ValueKind != JsonValueKind.Array || value.GetArrayLength() != 2) return null;
+        if (value[0].ValueKind != JsonValueKind.Number || value[1].ValueKind != JsonValueKind.Number) return null;
+        return (value[0].GetDouble(), value[1].GetDouble());
+    }
+
+    // Why a ref has no point to click: its frame cannot be placed by a move (sealed), or it is out of view.
+    private static async Task<WebToolResult> NoPoint(TabState state, WebNodeKey key, string hidden, CancellationToken token) =>
+        key.Session is { } frame && await FrameOffset(state, frame, token, 0) is null ? Fail(WebErrorCodes.Denied, FrameRefusal) : Fail(WebErrorCodes.StaleRef, hidden);
+
+    // ED-NEW-web-sec-agent-8: the element under the point just before the press may be pressed: the same node as judged, judged no
+    // stricter now, and after a card with the content the card showed. A hover that only restyles the node keeps it pressable.
+    private static bool StillJudged(Element? now, Element? judged, WebGuardVerdict verdict, string? origin)
+    {
+        if (now is null || judged is null) return now is null && judged is null;
+        if (now.Sealed || now.Node != judged.Node) return false;
+        if (Rank(WebAgentPolicy.CheckPress(now.Facts, origin)) > Rank(verdict)) return false;
+        return verdict.Kind != WebGuardKind.Confirm || Digest(now, null) == Digest(judged, null);
     }
 
     private static async Task<double[]?> ContentBox(CdpBroker cdp, long backend, string? session, CancellationToken token)
@@ -1184,7 +1252,10 @@ public sealed partial class WebAgentEngine
         if (!hub.Settings().ReduceMotion) await hub.Clock.Delay(WebAgentOverlay.GlideMs, s.Token);
     }
 
-    private async Task ClickAt(TabState state, (double X, double Y) point, Step s)
+    // ED-NEW-web-sec-agent-8 (security review M1, second pass): the press lands on what is under the point after the glide and the mouse
+    // move, and a page can swap it in that time (a timer, a mouseover handler); so the point is hit-tested again right before every
+    // press, and the press goes ahead only on what was judged (StillJudged).
+    private async Task ClickAt(TabState state, (double X, double Y) point, Step s, Element? judged, WebGuardVerdict verdict, string? origin)
     {
         var cdp = state.Cdp!;
         await Pointer(state, point, s);
@@ -1192,6 +1263,7 @@ public sealed partial class WebAgentEngine
         try
         {
             await Mouse(cdp, "mouseMoved", point, "none", 0, 0, s.Token);
+            if (!StillJudged(await Hit(state, point, s.Token), judged, verdict, origin)) throw new Refusal(Fail(WebErrorCodes.StaleRef, PointChanged));
             await Mouse(cdp, "mousePressed", point, "left", 1, 1, s.Token);
             await Mouse(cdp, "mouseReleased", point, "left", 0, 1, s.Token);
         }

@@ -74,6 +74,12 @@ internal sealed class AgentNode
 
     /// <summary>For an iframe: the id of the frame it holds (DOM.describeNode's frameId, the frame target's id).</summary>
     public string? FrameId { get; init; }
+
+    /// <summary>
+    /// Where the node's box shows on the page when the page moves it by more than its place (a CSS transform or zoom): the content
+    /// quad's corners top-left, top-right, bottom-right, bottom-left; null for the plain box.
+    /// </summary>
+    public double[]? Quad { get; init; }
 }
 
 /// <summary>A page that answers the engine's CDP calls from its nodes, and records every call.</summary>
@@ -106,6 +112,9 @@ internal sealed class AgentPage
     /// <summary>A frame's own address and target id (the iframe's frameId in the page that holds it).</summary>
     public string Url { get; init; } = "https://a.test/invite";
     public string FrameTarget { get; init; } = "";
+
+    /// <summary>The page's own viewport in its CSS px, scroll bars included (innerWidth, innerHeight); a frame's is its owner's content box.</summary>
+    public (double Width, double Height) Viewport { get; init; } = (1280, 800);
 
     public IEnumerable<string> Methods(string method) => Calls.Where(c => c.Method == method).Select(c => c.Method);
 
@@ -185,12 +194,15 @@ internal sealed class AgentPage
                     return Focused == 0 ? "{\"result\":{\"type\":\"object\",\"subtype\":\"null\"}}" : "{\"result\":{\"type\":\"object\",\"objectId\":\"n" + Focused.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\"}}";
                 if (expression.EndsWith(".call(document)", StringComparison.Ordinal))
                     return Value(new JsonObject { ["text"] = Text, ["links"] = new JsonArray([.. Links.Select(l => (JsonNode)JsonValue.Create(l)!)]) });
+                // The frame measure of the web tools (ED-NEW-web-sec-agent-7): the viewport, read in their isolated world.
+                if (p["contextId"] is not null && expression == "[innerWidth, innerHeight]") return Value(new JsonArray(Viewport.Width, Viewport.Height));
                 if (p["contextId"] is not null) return "{}";
                 return "{\"result\":{\"type\":\"number\",\"value\":" + EvalValue + "}}";
             }
             case "DOM.getContentQuads":
             {
                 if (Node(p) is not { } boxed || boxed.Box.W <= 0) return "{\"quads\":[]}";
+                if (boxed.Quad is { } quad) return new JsonObject { ["quads"] = new JsonArray { new JsonArray([.. quad.Select(v => (JsonNode)JsonValue.Create(v))]) } }.ToJsonString();
                 var (x, y, w, h) = boxed.Box;
                 return new JsonObject { ["quads"] = new JsonArray { new JsonArray(x, y, x + w, y, x + w, y + h, x, y + h) } }.ToJsonString();
             }
@@ -221,6 +233,8 @@ internal sealed class AgentPage
                 if (Nodes.FirstOrDefault(n => n.FrameId is not null && n.FrameId == frame) is not { } owner) throw new InvalidOperationException("Frame with the given id was not found.");
                 return "{\"backendNodeId\":" + owner.Backend.ToString(System.Globalization.CultureInfo.InvariantCulture) + "}";
             }
+            case "Page.createIsolatedWorld" when (string?)p["worldName"] == "nth-agent-frame":
+                return "{\"executionContextId\":41}";
             case "Page.getLayoutMetrics":
                 return """{"cssVisualViewport":{"clientWidth":1280,"clientHeight":800,"pageX":0,"pageY":0},"cssLayoutViewport":{"clientWidth":1280,"clientHeight":800},"cssContentSize":{"width":1280,"height":3000}}""";
             case "Page.captureScreenshot":
