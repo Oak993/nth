@@ -13,6 +13,7 @@
 using System.Globalization;
 using System.Text.Json.Nodes;
 using Marrow.Core.Port.PcControl;
+using Marrow.Services.Port.PcControl.Workspace;
 
 namespace Marrow.Services.Port.PcControl;
 
@@ -81,6 +82,18 @@ public sealed class PcEngineParts
     public IPcClock? WaitClock { get; init; }
 
     public Func<DateTimeOffset> Now { get; init; } = () => DateTimeOffset.Now;
+
+    /// <summary>The separate workspace (DESIGN.md 2.13, preview; ED-NEW-pcws-1): apps started there and steps in its windows; none when null.</summary>
+    public IWorkspaceHost? Workspace { get; init; }
+
+    /// <summary>
+    /// This engine runs inside the workspace (the agent's, ED-NEW-pcws-4): the window ids it reads and writes are the
+    /// workspace's (bit 62) and its look ids start above 2^40, so nth outside can tell them from the desk's.
+    /// </summary>
+    public bool InWorkspace { get; init; }
+
+    /// <summary>Where new apps open (pc_launch_app place), shared by every chat.</summary>
+    public WorkspaceRouter Router { get; init; } = new();
 }
 
 /// <summary>
@@ -195,6 +208,7 @@ public sealed partial class PcControlEngine : IDisposable
         this.caller = caller;
         settle = new PcSettle(parts.Feed, parts.Clock);
         pending = new PcPendingSteps(parts.WaitClock ?? parts.Clock);
+        nextObservation = parts.InWorkspace ? WorkspaceRefs.ObservationBase : 0;
         parts.Control.Stopped += OnStopped;
     }
 
@@ -218,10 +232,12 @@ public sealed partial class PcControlEngine : IDisposable
         parts.Ownership.Release(caller.Thread);
         parts.Pause.EndTurn(caller.Thread);
         parts.Asks.EndTurn(caller.Thread);
+        parts.Workspace?.EndTurn(caller.Thread);
         lock (gate)
         {
             stoppedForTurn = false;
             stoppedApps.Clear();
+            workspaceLooks.Clear();
             // Frames are kept only while a turn may still zoom into them.
             foreach (var (number, observation) in observations.Where(o => o.Value.Shot is not null).ToList())
                 observations[number] = observation with { Shot = null };
@@ -328,26 +344,37 @@ public sealed partial class PcControlEngine : IDisposable
         switch (tool)
         {
             case PcToolSchemas.ListApps:
-                return ListApps(PcArgs.Bool(args, "installed", false));
+                return await ListApps(PcArgs.Bool(args, "installed", false), call.Token).ConfigureAwait(false);
             case PcToolSchemas.LaunchApp:
                 return await Launch(args, call).ConfigureAwait(false);
             case PcToolSchemas.Zoom:
             {
+                if (WorkspaceLook(PcArgs.Str(args, "obs")) is { } inside) return await InWorkspace(inside, PcCapability.See, call, tool, args).ConfigureAwait(false);
                 var obs = Observation(PcArgs.Str(args, "obs")) ?? throw new PcArgsException("obs is not one of this chat's looks; call pc_observe");
                 return await InWindow(obs.Window.Handle, PcCapability.See, call, (info, inner) => Zoom(info, obs, args, inner)).ConfigureAwait(false);
             }
             case PcToolSchemas.Batch:
+                if (WorkspaceBatch(args) is { } main) return await InWorkspace(main, PcCapability.Act, call, tool, args).ConfigureAwait(false);
                 return await Batch(args, call).ConfigureAwait(false);
             case PcToolSchemas.Ask:
                 return await Ask(args, call).ConfigureAwait(false);
         }
         var handle = Window(PcArgs.Str(args, "window"));
         var capability = spec.ReadOnly ? PcCapability.See : PcCapability.Act;
+        if (!parts.InWorkspace && WorkspaceRefs.IsWorkspace(handle)) return await InWorkspace(handle, capability, call, tool, args).ConfigureAwait(false);
         return await InWindow(handle, capability, call, (info, inner) => Step(tool, info, args, inner)).ConfigureAwait(false);
     }
 
-    private static nint Window(string? text) =>
-        PcWindowRef.TryParse(text, out var handle) ? handle : throw new PcArgsException("window must be a window id from pc_list_apps (w:...)");
+    // A window id as the model gave it: inside the workspace only the workspace's own ids are windows here (ED-NEW-pcws-4).
+    private nint Window(string? text)
+    {
+        if (!PcWindowRef.TryParse(text, out var handle)) throw new PcArgsException("window must be a window id from pc_list_apps (w:...)");
+        if (!parts.InWorkspace) return handle;
+        return WorkspaceRefs.IsWorkspace(handle) ? WorkspaceRefs.Untag(handle) : throw new PcArgsException("this window is on the user's desk, not in the separate workspace");
+    }
+
+    // A window's id as the model sees it: the workspace's ids are marked when this engine runs inside it.
+    private string Ref(nint handle) => parts.InWorkspace ? WorkspaceRefs.Format(handle) : PcWindowRef.Format(handle);
 
     // The window gates, the approval, the window's hold, then the app's own stream.
     private async Task<PcResult> InWindow(nint handle, PcCapability capability, PcCall call, Func<PcWindowInfo, PcCall, Task<PcResult>> run)

@@ -31,6 +31,7 @@ public sealed class WindowManagerFrameMutationTests(HeadlessSession headless)
         harness.Defaults.Writes.Clear();
         window.Position = new PixelPoint(321, 654);
         WindowManagerMutationScope.Settle(window);
+        manager.FlushPendingFrames(); // ED-NEW-perf-startup-structure-1: a frame is saved at most half a second late, or when the window hides or the app ends
         Assert.Contains(FrameName, harness.Defaults.Writes);
         var moved = Assert.IsAssignableFrom<IReadOnlyDictionary<string, object>>(harness.Defaults.Object(FrameName));
         Assert.Equal(321L, moved["x"]); Assert.Equal(654L, moved["y"]);
@@ -38,6 +39,7 @@ public sealed class WindowManagerFrameMutationTests(HeadlessSession headless)
         harness.Defaults.Writes.Clear();
         window.Width = 1577; window.Height = 1021;
         WindowManagerMutationScope.Settle(window);
+        manager.FlushPendingFrames(); // ED-NEW-perf-startup-structure-1
         Assert.Contains(FrameName, harness.Defaults.Writes);
         var resized = Assert.IsAssignableFrom<IReadOnlyDictionary<string, object>>(harness.Defaults.Object(FrameName));
         Assert.Equal(321L, resized["x"]); Assert.Equal(654L, resized["y"]);
@@ -77,6 +79,7 @@ public sealed class WindowManagerFrameMutationTests(HeadlessSession headless)
         harness.Defaults.Writes.Clear();
         window.Position = new PixelPoint(2345, 6789);
         WindowManagerMutationScope.Settle(window);
+        manager.FlushPendingFrames(); // ED-NEW-perf-startup-structure-1
         Assert.NotEmpty(harness.Defaults.Writes);
         Assert.All(harness.Defaults.Writes, key => Assert.Equal(FrameName, key));
         var saved = Assert.IsAssignableFrom<IReadOnlyDictionary<string, object>>(harness.Defaults.Object(FrameName));
@@ -99,6 +102,7 @@ public sealed class WindowManagerFrameMutationTests(HeadlessSession headless)
         window.Width = 1583;
         window.Height = 997;
         WindowManagerMutationScope.Settle(window);
+        manager.FlushPendingFrames(); // ED-NEW-perf-startup-structure-1
         Assert.Contains(FrameName, harness.Defaults.Writes);
         var saved = Assert.IsAssignableFrom<IReadOnlyDictionary<string, object>>(harness.Defaults.Object(FrameName));
         Assert.Equal(131L, saved["x"]);
@@ -120,12 +124,14 @@ public sealed class WindowManagerFrameMutationTests(HeadlessSession headless)
             harness.Defaults.Writes.Clear();
             window.Position = state == WindowState.Minimized ? new PixelPoint(-32000, -32000) : new PixelPoint(0, 0);
             WindowManagerMutationScope.Settle(window);
+            manager.FlushPendingFrames(); // ED-NEW-perf-startup-structure-1: a frame held from before would reach the store here; the parked one must not
             Assert.DoesNotContain(FrameName, harness.Defaults.Writes);
         }
         window.WindowState = WindowState.Normal;
         harness.Defaults.Writes.Clear();
         window.Position = new PixelPoint(413, 719);
         WindowManagerMutationScope.Settle(window);
+        manager.FlushPendingFrames(); // ED-NEW-perf-startup-structure-1
         Assert.Contains(FrameName, harness.Defaults.Writes);
     });
 
@@ -143,6 +149,7 @@ public sealed class WindowManagerFrameMutationTests(HeadlessSession headless)
         harness.Defaults.Writes.Clear();
         window.Position = new PixelPoint(501, 303);
         WindowManagerMutationScope.Settle(window);
+        manager.FlushPendingFrames(); // ED-NEW-perf-startup-structure-1
         Assert.Contains(FrameName, harness.Defaults.Writes);
     });
 }
