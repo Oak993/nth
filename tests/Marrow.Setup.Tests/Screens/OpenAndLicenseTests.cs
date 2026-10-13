@@ -103,6 +103,41 @@ public sealed class OpenAndLicenseTests : IDisposable
         Assert.DoesNotContain("Guid.NewGuid", actions, StringComparison.Ordinal);
     }
 
+    [Fact]
+    [Trait("Decision", "ED-247")]
+    public void Open_nth_takes_Start_s_launch_target_through_the_shell_the_program_binds_and_the_roots_own_without_one()
+    {
+        // ED-NEW-inst-picks-2: the real shell is constructed in the two Program files only (App.Tests' ShellLinksBindingTests), so the actions take a factory
+        var shell = new Marrow.Testing.FakeShellLinks();
+        var root = Marrow.Testing.FakeShellLinks.DefaultRoot;
+        var exe = root + @"\current\nth.exe";
+        shell.AddFile(exe);
+        shell.Seed(Marrow.Testing.FakeShellLinks.StartLink, new ShellLink(exe, "--from-start", root + @"\current", exe, 0));
+        var bound = new WindowsSetupActions(area.Temp, () => shell).ReadLaunchTarget(root);
+
+        Assert.Equal(exe, bound.Target);
+        Assert.Equal("--from-start", bound.Arguments);
+        Assert.True(bound.FromStart);
+
+        var own = DesktopShortcut.LaunchTarget(root, null, File.Exists, Environment.ExpandEnvironmentVariables);
+        Assert.Equal(own, new WindowsSetupActions(area.Temp).ReadLaunchTarget(root)); // a session built without a shell
+        var asked = 0;
+        var unreachable = new WindowsSetupActions(area.Temp, () => { asked++; throw new System.Runtime.InteropServices.COMException("the shell does not answer", unchecked((int)0x80004005)); });
+        Assert.Equal(own, unreachable.ReadLaunchTarget(root)); // and one whose shell cannot be reached
+        Assert.Equal(1, asked);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-247")]
+    public void The_actions_never_construct_the_real_shell_and_the_program_binds_it()
+    {
+        var actions = File.ReadAllText(Path.Combine(RepositoryRoot.Path, "src", "Marrow.Setup", "Screens", "SetupActions.cs"));
+        var program = File.ReadAllText(Path.Combine(RepositoryRoot.Path, "src", "Marrow.Setup", "Program.cs"));
+
+        Assert.DoesNotContain("new ShellLinks(", actions, StringComparison.Ordinal);
+        Assert.Contains("actions: new WindowsSetupActions(() => new ShellLinks())", program, StringComparison.Ordinal);
+    }
+
     private static LaunchTarget Launch() =>
         new(@"C:\Users\a\AppData\Local\nth\current\nth.exe", "", @"C:\Users\a\AppData\Local\nth\current", @"C:\Users\a\AppData\Local\nth\current\nth.exe", 0, FromStart: true);
 }

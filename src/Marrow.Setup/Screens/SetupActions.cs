@@ -40,12 +40,22 @@ public sealed class WindowsSetupActions : ISetupActions
     public static readonly TimeSpan OpenPatience = TimeSpan.FromSeconds(5);
 
     private readonly string tempPath;
+    private readonly Func<IShellLinks>? shell;
 
-    public WindowsSetupActions() : this(Path.GetTempPath())
+    /// <summary>
+    /// <paramref name="shell"/> opens the shell Open nth reads Start's shortcut through; the program binds the real one (the real
+    /// shell is constructed in the two Program files only, ShellLinksBindingTests), and a session built without one starts nth from
+    /// the root's own <c>current\nth.exe</c>.
+    /// </summary>
+    public WindowsSetupActions(Func<IShellLinks>? shell = null) : this(Path.GetTempPath(), shell)
     {
     }
 
-    internal WindowsSetupActions(string tempPath) => this.tempPath = tempPath;
+    internal WindowsSetupActions(string tempPath, Func<IShellLinks>? shell = null)
+    {
+        this.tempPath = tempPath;
+        this.shell = shell;
+    }
 
     /// <summary>
     /// Open nth (PLAN.md 8a; ED-NEW-inst-fix-4): the launch target copied from Velopack's Start shortcut (unit U5's
@@ -67,17 +77,22 @@ public sealed class WindowsSetupActions : ISetupActions
     }
 
     /// <summary>Start's launch target when the shortcut can be read, else <c>&lt;root&gt;\current\nth.exe</c> (DesktopShortcut's own fallback).</summary>
-    internal static LaunchTarget ReadLaunchTarget(string installRoot)
+    internal LaunchTarget ReadLaunchTarget(string installRoot)
     {
-        try
+        if (shell is not null)
         {
-            using var shell = new ShellLinks();
-            return new DesktopShortcut(shell, installRoot).CurrentLaunchTarget(ShellLinks.CallTimeout);
+            try
+            {
+                var links = shell();
+                try { return new DesktopShortcut(links, installRoot).CurrentLaunchTarget(ShellLinks.CallTimeout); }
+                finally { (links as IDisposable)?.Dispose(); }
+            }
+            catch (Exception error) when (DesktopShortcut.IsShellFailure(error))
+            {
+                // the shell cannot be reached: the root's own target below, as for a session with no shell
+            }
         }
-        catch (Exception error) when (DesktopShortcut.IsShellFailure(error))
-        {
-            return DesktopShortcut.LaunchTarget(installRoot, null, File.Exists, Environment.ExpandEnvironmentVariables);
-        }
+        return DesktopShortcut.LaunchTarget(installRoot, null, File.Exists, Environment.ExpandEnvironmentVariables);
     }
 
     private static bool StartDirect(LaunchTarget launch)
