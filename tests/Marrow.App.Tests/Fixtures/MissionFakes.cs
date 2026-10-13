@@ -302,9 +302,13 @@ internal sealed class FakeWorkspaces(string root) : IMissionWorkspaces
         return Task.FromResult(new MergeResult(MergeOutcome.Merged));
     }
 
-    public Task Discard(MissionWorkspace workspace)
+    /// <summary>The project folder each Discard was told is the mission's own (its record's), in call order.</summary>
+    public List<string> DiscardedFor { get; } = [];
+
+    public Task Discard(MissionWorkspace workspace, string recordedSource)
     {
         Calls.Add("discard");
+        DiscardedFor.Add(recordedSource);
         return Task.CompletedTask;
     }
 }

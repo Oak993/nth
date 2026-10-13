@@ -42,8 +42,11 @@ public sealed class RegistryRunKey : IRunKey
 }
 
 /// <summary>"Start with Windows, hidden": one Run value that starts nth with --hidden. Off until the owner turns it on.</summary>
-public sealed class StartWithWindows(IRunKey key, string valueName = "nth")
+public sealed class StartWithWindows(IRunKey key, string valueName = StartWithWindows.DefaultValueName)
 {
+    /// <summary>ED-NEW-secfinal-24: Dextra's own Run value ("nth Dextra"); the "Open at sign-in" switch keeps the value "nth".</summary>
+    public const string DefaultValueName = Marrow.Core.Support.UninstallEntry.DextraStartValueName;
+
     public const string HiddenArgument = Marrow.Core.Port.Assistant.StartupArguments.HiddenFlag;
 
     /// <summary>The command the Run value holds for an executable: its path in quotes, then --hidden.</summary>

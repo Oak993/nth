@@ -47,6 +47,10 @@ public static class ProjectPreviewHost
             if (!full.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) return null;
             var segments = Path.GetRelativePath(root, full).Split(Path.DirectorySeparatorChar);
             if (segments.Any(segment => segment.Length == 0 || segment.StartsWith('.') || segment.Contains(':', StringComparison.Ordinal))) return null;
+            // ED-NEW-secfinal-21: the rule above reads the text of the path; Windows also opens a folder or file through its 8.3 alias (GIT~1 is .git).
+            // The path is resolved to its real long names, and the same hidden-name rule runs on those; an alias is not offered.
+            if (site.RealSegments(full) is not { } real || real.Count != segments.Length
+                || real.Where((segment, index) => segment.StartsWith('.') || !string.Equals(segment, segments[index], StringComparison.OrdinalIgnoreCase)).Any()) return null;
             var current = root;
             if (File.GetAttributes(current).HasFlag(FileAttributes.ReparsePoint)) return null;
             foreach (var segment in segments)

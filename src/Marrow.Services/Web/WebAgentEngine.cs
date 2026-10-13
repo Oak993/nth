@@ -503,6 +503,11 @@ public sealed partial class WebAgentEngine : IDisposable
                 hub.Grants.GrantEval(project, origin);
             }
         }
+        // ED-NEW-secfinal-20 (final security gate S2): the pause or take-over (Hold) and the "Allow scripts" card above can take as long as the
+        // user needs, and a dev server the model can write to may send its page elsewhere meanwhile. The script runs only while the tab still shows
+        // the origin that was checked and allowed; otherwise it gets the same plain refusal as a tab that never was a preview.
+        if (!WebPolicy.IsDevUrl(state.Tab.Url) || !string.Equals(WebPolicy.OriginOf(state.Tab.Url), origin, StringComparison.OrdinalIgnoreCase))
+            return Fail(WebErrorCodes.NotSupported, "web_eval runs only in project previews (localhost and LAN dev hosts).");
         Report(UiText.Get("agent.step.running_script"), state.Short);
         var result = await state.Cdp!.CallAsync("Runtime.evaluate", new JsonObject
         {

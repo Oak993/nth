@@ -86,7 +86,7 @@ public sealed record Duty(string Id, string Name, string AssistantId, DutyTrigge
     /// <summary>Fields a newer build wrote that this one does not know, as JSON text by name; they survive a save (15.3).</summary>
     public ValueMap<string, string> Unknown { get; init; } = ValueMap<string, string>.Empty;
 
-    public static readonly Regex IdShape = new("^[a-z0-9][a-z0-9-]{0,39}$", RegexOptions.CultureInvariant | RegexOptions.NonBacktracking);
+    public static readonly Regex IdShape = new(@"\A[a-z0-9][a-z0-9-]{0,39}\z", RegexOptions.CultureInvariant | RegexOptions.NonBacktracking);
 
     public static string NewId() => "d" + Guid.NewGuid().ToString("N")[..12];
 

@@ -40,12 +40,12 @@ public sealed partial class MissionRunner
         // Working reaches Done through Reviewing (12.6b has no direct move); a dry run has no reviewer, so it passes through in the one update.
         Update(id, r => Moved(Moved(r with { Report = steps + (string.IsNullOrWhiteSpace(r.Report) ? "" : "\n\n" + r.Report), Ended = o.Time.GetUtcNow() }, MissionState.Reviewing), MissionState.Done));
         Finish(id);
-        if (Find(id) is { Workspace: { } workspace }) _ = DiscardDryWorkspace(id, workspace);
+        if (Find(id) is { Workspace: { } workspace } found) _ = DiscardDryWorkspace(id, workspace, found.ProjectPath);
     }
 
-    private async Task DiscardDryWorkspace(Guid id, MissionWorkspace workspace)
+    private async Task DiscardDryWorkspace(Guid id, MissionWorkspace workspace, string recordedSource)
     {
-        try { await o.Workspaces.Discard(workspace).ConfigureAwait(false); }
+        try { await o.Workspaces.Discard(workspace, recordedSource).ConfigureAwait(false); }
         catch (Exception error) when (error is not OperationCanceledException)
         {
             ReportFault("A dry run's workspace could not be removed: " + error.Message);

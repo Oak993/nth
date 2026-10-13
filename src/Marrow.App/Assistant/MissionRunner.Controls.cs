@@ -703,7 +703,7 @@ public sealed partial class MissionRunner
         {
             foreach (var previous in record.Previous.Where(p => MissionWorkspaces.Due(p.At, kept: false, now)))
             {
-                try { await o.Workspaces.Discard(previous.Workspace).ConfigureAwait(false); }
+                try { await o.Workspaces.Discard(previous.Workspace, record.ProjectPath).ConfigureAwait(false); }
                 catch (Exception error) when (error is not OperationCanceledException) { continue; }
                 OnMain(() => Update(record.Id, r => r with { Previous = new ValueList<PreviousWorkspace>(r.Previous.Where(p => p != previous)) }));
             }

@@ -316,15 +316,48 @@ public static partial class MissionWorkspaces
     /// <summary>Discard: removes the worktree and its branch, or the copy. The owner's own folder is never touched.</summary>
     public static async Task Discard(MissionWorkspace workspace)
     {
+        var removed = true;
         if (workspace.Kind == MissionWorkspaceKind.Worktree && workspace.Repository is { } root && Directory.Exists(root))
         {
             var repository = new GitValue(root);
-            await repository.Run(["-c", "core.fsmonitor=false", "worktree", "remove", "--force", workspace.Path]);
+            // ED-NEW-secfinal-22: git says whether this folder was a worktree of the repository and is now gone. A folder git did not remove is
+            // not deleted here: it may be something else a changed record points at.
+            removed = (await repository.Run(["-c", "core.fsmonitor=false", "worktree", "remove", "--force", workspace.Path])).Succeeded;
             if (workspace.Branch is { } branch && branch.StartsWith(BranchPrefix, StringComparison.Ordinal))
                 await repository.Run(["branch", "-D", branch]);
             await repository.Run(["worktree", "prune"]);
         }
-        TryDelete(workspace.Path);
+        if (removed) TryDelete(workspace.Path);
+    }
+
+    /// <summary>
+    /// Discard for a workspace read back from a mission's record. ED-NEW-secfinal-26: git runs in the record's Repository, so a worktree is
+    /// discarded only when that is the repository of <paramref name="recordedSource"/>, the mission's own project folder as its record keeps it.
+    /// Otherwise (another repository, or a source that is gone or is no repository) this refuses with a <see cref="MissionWorkspaceError"/>
+    /// and neither git nor the folder is touched. A copy has no repository and is not asked.
+    /// </summary>
+    public static async Task Discard(MissionWorkspace workspace, string recordedSource)
+    {
+        if (!await IsRecordedRepository(workspace, recordedSource).ConfigureAwait(false))
+            throw new MissionWorkspaceError("The mission's workspace does not belong to the folder the mission was made from, so nth does not touch it.");
+        await Discard(workspace).ConfigureAwait(false);
+    }
+
+    private static async Task<bool> IsRecordedRepository(MissionWorkspace workspace, string recordedSource)
+    {
+        if (workspace.Kind != MissionWorkspaceKind.Worktree || workspace.Repository is not { } repository) return true;
+        if (string.IsNullOrWhiteSpace(recordedSource) || !Directory.Exists(recordedSource)) return false;
+        var top = await new GitValue(recordedSource).Run(["rev-parse", "--show-toplevel"]).ConfigureAwait(false);
+        if (!top.Succeeded || top.TrimmedOutput.Length == 0) return false;
+        try
+        {
+            return string.Equals(System.IO.Path.TrimEndingDirectorySeparator(System.IO.Path.GetFullPath(top.TrimmedOutput)),
+                System.IO.Path.TrimEndingDirectorySeparator(System.IO.Path.GetFullPath(repository)), StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception error) when (error is ArgumentException or NotSupportedException or System.IO.PathTooLongException)
+        {
+            return false;
+        }
     }
 
     /// <summary>Whether a finished mission's workspace is due for the sweep (7 days after it ended, unless kept).</summary>
@@ -542,11 +575,34 @@ public static partial class MissionWorkspaces
 
     private static void TryDelete(string folder)
     {
-        try { if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true); }
+        try
+        {
+            if (!Directory.Exists(folder)) return;
+            // ED-NEW-secfinal-22: a link is removed as a link and never followed out of the folder. The folder itself being a link loses only the
+            // link. .NET unlinks a junction inside a tree but then throws and leaves the folder, so the links go first, each on its own; the rest
+            // is an ordinary recursive delete.
+            if (File.GetAttributes(folder).HasFlag(FileAttributes.ReparsePoint))
+            {
+                Directory.Delete(folder, recursive: false);
+                return;
+            }
+            UnlinkLinks(folder);
+            Directory.Delete(folder, recursive: true);
+        }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
             // A folder of nth's own (the mission's copy, never the owner's) that cannot be removed now only takes disk space;
             // the branch and the journal are still cleaned up (ED-NEW-dextra-as5-13).
+        }
+    }
+
+    // Removes every link (junction or symbolic link to a folder) below the folder, without entering one.
+    private static void UnlinkLinks(string folder)
+    {
+        foreach (var directory in Directory.EnumerateDirectories(folder))
+        {
+            if (File.GetAttributes(directory).HasFlag(FileAttributes.ReparsePoint)) Directory.Delete(directory, recursive: false);
+            else UnlinkLinks(directory);
         }
     }
 
