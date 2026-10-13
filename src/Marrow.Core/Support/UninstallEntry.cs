@@ -59,6 +59,12 @@ public static class UninstallEntry
 
     public const string SignInValueName = "nth";
 
+    /// <summary>
+    /// ED-NEW-secfinal-24: Dextra's "Start with Windows (hidden)" entry, its own Run value. It used to share <see cref="SignInValueName"/> with
+    /// "Open at sign-in", so each overwrote or deleted the other.
+    /// </summary>
+    public const string DextraStartValueName = "nth Dextra";
+
     /// <summary>Windows' approval record for Run values; kept here because the uninstaller compiles this file without SignInEntry.</summary>
     public const string StartupApprovedRunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
 
@@ -147,11 +153,18 @@ public static class UninstallEntry
     {
         ArgumentNullException.ThrowIfNull(registry);
         ArgumentException.ThrowIfNullOrWhiteSpace(root);
-        if (registry.GetValue(RunKeyPath, SignInValueName) is not string command) return false;
+        // ED-NEW-secfinal-24: nth has two Run values, the sign-in switch's and Dextra's own; each goes only when it starts a program inside the root.
+        var removed = RemoveOwnedRunValue(registry, root, SignInValueName);
+        return RemoveOwnedRunValue(registry, root, DextraStartValueName) | removed;
+    }
+
+    private static bool RemoveOwnedRunValue(IUserRegistry registry, string root, string name)
+    {
+        if (registry.GetValue(RunKeyPath, name) is not string command) return false;
         if (CommandExecutable(command) is not { } program || !InstallLayout.IsInside(root, Environment.ExpandEnvironmentVariables(program))) return false;
         // C4b U8-1, ED-NEW-inst-cx-10: clear the approval first, retaining the ownership proof if that write is refused.
-        registry.DeleteValue(StartupApprovedRunKeyPath, SignInValueName);
-        registry.DeleteValue(RunKeyPath, SignInValueName);
+        registry.DeleteValue(StartupApprovedRunKeyPath, name);
+        registry.DeleteValue(RunKeyPath, name);
         return true;
     }
 
