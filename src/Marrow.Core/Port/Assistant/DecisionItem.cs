@@ -47,6 +47,12 @@ public enum DecisionWeight
 
 public enum DecisionState { Open, Held, Answered, Withdrawn }
 
+/// <summary>
+/// How much a card needs the owner (13.1): NeedsYou is a decision only he can make, and it is the only kind that makes a toast; Offered is
+/// a card he may raise himself (12.4: a chat that read untrusted content cannot ask for it), which waits in the queue and makes no sound.
+/// </summary>
+public enum DecisionPriority { NeedsYou, Offered }
+
 /// <summary>What holds a card (4.2): Stop holds every card of its scope; Pause holds only irreversible ones.</summary>
 public enum DecisionHold { Stop, Pause }
 
@@ -125,6 +131,9 @@ public sealed record DecisionItem(Guid Id, DecisionKind Kind, DecisionWeight Wei
     public ValueList<string> Options { get; init; } = ValueList<string>.Empty;
 
     public DecisionState State { get; init; } = DecisionState.Open;
+
+    /// <summary>Whether the card needs the owner now (AS-9): only a card that does makes a toast.</summary>
+    public DecisionPriority Priority { get; init; } = DecisionPriority.NeedsYou;
 
     public DecisionHold? HeldBy { get; init; }
 

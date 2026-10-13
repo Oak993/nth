@@ -121,6 +121,10 @@ public static class DutyCardWords
         (duty.BudgetUsd is { } usd ? $"At most ${usd.ToString("0.00", CultureInfo.InvariantCulture)} a run" : "The plan's own limits")
         + (string.IsNullOrWhiteSpace(duty.ReserveText) ? "" : $" · {duty.ReserveText.Trim()}");
 
+    // "Notify me" is the one style that makes a toast, so the card that confirms it says so in full (13.1 "Duty opt-in").
+    private static string ReportOnCard(ReportStyle style) =>
+        style == ReportStyle.NotifyMe ? Report(style) + ": a notification each time a run finds something" : Report(style);
+
     /// <summary>
     /// The inputs of the card the owner sees before a duty is saved (7.1: its trigger, what it does, its grants and its budget),
     /// and when it changes an existing duty, what changed.
@@ -139,7 +143,7 @@ public static class DutyCardWords
         Add("Assistant", assistantName);
         Add("Grants", Grants(duty, assistantName), existing is null ? null : Grants(existing, assistantName));
         Add("Budget", Budget(duty), existing is null ? null : Budget(existing));
-        Add("Report", Report(duty.Report));
+        Add("Report", ReportOnCard(duty.Report), existing is null ? null : ReportOnCard(existing.Report));
         if (duty.Hours is { } hours) Add("Active hours", hours.ToString());
         Add("If nth was closed", Missed(duty.Missed));
         if (duty.NeedsDesktop) Add("Needs the desktop", "Yes: on a locked PC it does what needs no desktop, then waits for you to unlock");

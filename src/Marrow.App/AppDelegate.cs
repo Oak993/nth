@@ -1,3 +1,4 @@
+using Marrow.App.Assistant;
 using Marrow.App.Port;
 using Marrow.App.Port.Updates;
 using Marrow.App.Views.Chat;
@@ -5,6 +6,7 @@ using Marrow.App.Views.Settings;
 using Marrow.App.Views.Tour;
 using Marrow.App.Window;
 using Marrow.Core.Port;
+using Marrow.Core.Port.Assistant;
 using Marrow.Services.MCP;
 using Marrow.Services.Store;
 using Marrow.UI.Markdown;
@@ -210,6 +212,13 @@ public sealed class AppDelegate
     /// and in front, a banner with sound for everything else.</summary>
     public async Task<UNNotificationPresentationOptions> UserNotificationCenter(UNNotification willPresent)
     {
+        // PORT-ONLY (AS-9, ED-NEW-dextra-as9-3): a decision toast is not shown while the Assistant home is in front, checked once more here,
+        // right before the Windows call, in case the owner opened the home between the request and now.
+        if (willPresent.UserInfo.ContainsKey(DecisionToastKeys.Decision) || willPresent.UserInfo.ContainsKey(DecisionToastKeys.Mission))
+        {
+            var onHome = await MainActor.Run(() => Model is { } home && ToastNotifications.IsSurfaceOnScreen(home, AppSurface.AssistantHome));
+            return onHome ? UNNotificationPresentationOptions.None : UNNotificationPresentationOptions.Banner | UNNotificationPresentationOptions.Sound;
+        }
         var threadIDString = willPresent.UserInfo.TryGetValue("threadID", out var threadID) ? threadID as string : null; // :67
         if (threadIDString is not null && SwiftUUID.Parse(threadIDString) is { } notifiedID) // :68
         {
@@ -228,6 +237,30 @@ public sealed class AppDelegate
         var identifier = userInfo.TryGetValue("threadID", out var threadID) ? threadID as string : null; // :82
         var isUpdate = userInfo.TryGetValue("update", out var update) && update is not null; // :83
         var windows = ToastActivationWindows.Current.Current;
+        // PORT-ONLY (AS-9, ED-NEW-dextra-as9-5): a press on a decision toast. A button that answers its card does so without bringing nth forward;
+        // every other press (the body, Open, Review, an answer the toast cannot give) brings nth forward on the card.
+        if (userInfo.TryGetValue(DecisionToastKeys.Decision, out var decisionText) && decisionText is string decision && Guid.TryParse(decision, out var target))
+        {
+            var action = DecisionNoticeWords.Parse(userInfo.TryGetValue(DecisionToastKeys.Action, out var key) ? key as string : null) ?? NoticeAction.Review;
+            var nonce = userInfo.TryGetValue(DecisionToastKeys.Nonce, out var spent) ? spent as string : null;
+            return MainActor.Run(() =>
+            {
+                if (Model is { } assistant && assistant.DecisionToastActivated(target, nonce, action) == DecisionToastOutcome.Answered) return;
+                windows.ShowMain();
+                Model?.ReviewAssistantDecision(target);
+                windows.Activate();
+            });
+        }
+        // PORT-ONLY (AS-9, ED-NEW-dextra-as9-9): a press on a duty's toast (a "Notify me" finding) brings nth forward on the mission; it answers nothing.
+        if (userInfo.TryGetValue(DecisionToastKeys.Mission, out var missionText) && missionText is string mission && Guid.TryParse(mission, out var run))
+        {
+            return MainActor.Run(() =>
+            {
+                windows.ShowMain();
+                Model?.ReviewAssistantMission(run);
+                windows.Activate();
+            });
+        }
         return MainActor.Run(() =>
         {
             if (!isUpdate) windows.ShowMain(); // :85

@@ -770,6 +770,7 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
             Class = c.Class,
             GrantTarget = c.GrantTarget,
             RequestId = call.Id,
+            Priority = offered ? DecisionPriority.Offered : DecisionPriority.NeedsYou, // AS-9: a card the owner may raise himself makes no toast
         };
         return Queue.Raise(card, (item, answer) =>
         {
