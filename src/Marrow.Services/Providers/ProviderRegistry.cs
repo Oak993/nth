@@ -354,20 +354,25 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
 
     // The plain-path resolution :219-226 works in, returning a raw path so Environment(for:) needs no
     // URL round trip to find the executable's directory.
+    // ED-NEW-perf-ui-thread-2: the answer is remembered (ExecutableCache: keyed by the provider, the custom path and the PATH search, trusted for 30 s and while the file is
+    // there). Executable(for:) and every Environment(for:) ran this search on the UI thread, several times for one send; now only the first of them does.
+    private readonly ExecutableCache resolvedExecutables = new();
+
     private string? ResolveExecutable(ProviderKind provider)
     {
         if (provider.IsAPIKeyBased || provider == ProviderKind.Local) return null; // :220; ED-410
         var custom = settings.BinaryPath(provider); // :221
-        return ResolveExecutable(provider, custom, FallbackExecutables(provider));
+        return resolvedExecutables.Resolve(provider, custom, LoginEnvironment.SearchSignature(), () => ResolveExecutable(provider, custom, FallbackExecutables(provider)));
     }
 
-    // T44: snapshot UI-owned settings before dispatching only filesystem discovery to the pool.
+    // T44: snapshot UI-owned settings before dispatching only filesystem discovery to the pool. The probe asks the disk (refresh) and leaves what it finds for the callers on the UI thread.
     private Task<SwiftURL?> ExecutableForProbe(ProviderKind provider)
     {
         if (testCLIUpdaterExecutable.Value is { } resolver) return Task.Run(() => resolver(provider));
         var custom = settings.BinaryPath(provider);
         var candidates = FallbackExecutables(provider);
-        return Task.Run(() => ResolveExecutable(provider, custom, candidates) is { } path ? FileUrl(path) : null);
+        var search = LoginEnvironment.SearchSignature();
+        return Task.Run(() => resolvedExecutables.Resolve(provider, custom, search, () => ResolveExecutable(provider, custom, candidates), refresh: true) is { } path ? FileUrl(path) : null);
     }
 
     private static string? ResolveExecutable(ProviderKind provider, string custom, IReadOnlyList<string> candidates)

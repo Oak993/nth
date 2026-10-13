@@ -9,6 +9,8 @@ internal interface IClaudeProcess
     bool IsRunning { get; }
     string ErrorTail { get; }
     void Start();
+    /// <summary>ED-NEW-perf-ui-thread-2: <see cref="Start"/> without holding the caller while the child is created. A transport that has nothing to wait for starts at once.</summary>
+    Task StartAsync() { Start(); return Task.CompletedTask; }
     void Send(JSONValue message);
     void Terminate();
     Task<int> WaitForExit();
