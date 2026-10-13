@@ -4,12 +4,12 @@ using SkiaSharp;
 
 namespace Marrow.UI.Tests.Fixtures;
 
-internal sealed class GlassFakeLease(SKSurface surface) : ISkiaSharpApiLease
+internal sealed class GlassFakeLease(SKSurface surface, double opacity = 1) : ISkiaSharpApiLease
 {
     public SKCanvas SkCanvas => surface.Canvas;
     public GRContext? GrContext => null;
     public SKSurface? SkSurface => surface;
-    public double CurrentOpacity => 1;
+    public double CurrentOpacity => opacity;
     public ISkiaSharpPlatformGraphicsApiLease? TryLeasePlatformGraphicsApi() => null;
     public void Dispose() { }
 }
