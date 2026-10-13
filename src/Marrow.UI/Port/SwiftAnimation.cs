@@ -212,6 +212,7 @@ public sealed record SwiftTransition
             return;
         }
         var from = 1 - state.CurrentProgress;
+        var speed = -state.CurrentSpeed;
         state.Stop();
         state.Carried = null;
         state.RemovingFrom = null;
@@ -223,6 +224,7 @@ public sealed record SwiftTransition
             return;
         }
         state.Present(child, from, inserting: true);
+        animation = state.Transition.Carrying(animation, speed, from);
         state.Run(animation, (p, _) => state.Present(child, from + (1 - from) * p, inserting: true), from: from);
     }
 
@@ -238,7 +240,7 @@ public sealed record SwiftTransition
         // removal's own start, as ED-278 (10) keeps for a stage swapped before any time passes.
         var from = state.InsertionInFlight && !state.Transition.HasAsymmetricPart() && (continuing || state.CurrentProgress > 0)
             ? 1 - state.CurrentProgress : 0;
-        var insertionSpeed = from > 0 ? state.CurrentSpeed : 0;
+        var insertionSpeed = from != 0 ? state.CurrentSpeed : 0;
         // An asymmetric transition's removal names no state of the insertion it interrupts, so it cannot start from the insertion's progress; it starts from the
         // insertion's presentation instead (the opacity and the rise the child has now), which the removal then carries (UI-CHAT-052, unit rec-tlr).
         var carries = state.InsertionInFlight && state.Transition.HasAsymmetricPart();
@@ -262,9 +264,8 @@ public sealed record SwiftTransition
             throw new InvalidOperationException(
                 "A child with a modifier transition can leave with an animation only after SwiftTransition.Insert built its wrappers.");
         state.RemovingFrom = panel;
-        // ED-NEW-perf-motion-11, as above; not for the opt-in continuing sites (the terminal drawer), whose partners move in lock-step
-        // with them from rest (the pane's push, the docked panels' re-placement).
-        if (from > 0 && !continuing) animation = state.Transition.Carrying(animation, -insertionSpeed, from);
+        // ED-NEW-motion-drawer-1: continuing drawer transitions and their layout partners carry the same velocity.
+        if (from != 0) animation = state.Transition.Carrying(animation, -insertionSpeed, from);
         state.Present(child, from, inserting: false);
         state.Run(animation, (p, complete) =>
         {
