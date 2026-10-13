@@ -16,8 +16,7 @@ namespace Marrow.App.Tests.Window.Native;
 
 // ED-NEW-glass-seams-1, native evidence for the renderer the app ships on (Avalonia's Win32 default, ANGLE over Direct3D 11, Skia's GPU backend):
 // a partial redraw leaves every antialiased drawing on a glass piece as a whole redraw of the same frame draws it, with no growth of the frame's region
-// (the material redraws a piece whole only on Skia's CPU rasterizer, which clips a path's edges to the frame's clip; GlassPartialRedrawSeamTests holds
-// that one headless). A composer-like piece (the glass, two antialiased capsule rings, a line of text and three stroked icons, at a fractional x) lies
+// (Skia's CPU rasterizer, which clips a path's edges to the frame's clip, is not the shipped path; ED-NEW-glass-seams-2). A composer-like piece (the glass, two antialiased capsule rings, a line of text and three stroked icons, at a fractional x) lies
 // over a backdrop with a small block under it; the block changes at several places, so the region the change reaches ends in the piece's caps, across
 // its text and through its icons, and the composed screen over the piece is compared with the screen after a whole redraw: 0 levels. Then the piece
 // gains an inset shade (a blurred path): Skia's GPU blur mask follows the clip by at most a level (measured offscreen on ANGLE, 1 level at 125 %),

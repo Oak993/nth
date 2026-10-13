@@ -683,10 +683,6 @@ internal static partial class GlassMaterial
     // Test-only readback (InternalsVisibleTo): how many times any material has drawn, on the render thread.
     internal static int DrawsForTests;
 
-    // Test-only (InternalsVisibleTo), ED-NEW-glass-seams-1: while set, the CPU rasterizer's pieces are redrawn as far as a change reaches, as the GPU's are,
-    // so the tests that pin the reach (GlassMaterialReachReviewTests and the partial-redraw tests) keep pinning what the shipped GPU path draws.
-    internal static volatile bool ReachOnlyForTests;
-
     // ED-NEW-stutterfix-1 (InteractionProbe, diagnostics only; render thread): give the window a handler draws in the reach that reports its frames,
     // as a material's first draw does, and name that window's tracker.
     internal static void ObserveFrames(CompositionCustomVisualHandler handler)
@@ -1630,8 +1626,7 @@ internal static partial class GlassMaterial
     // ED-NEW-glass-c10-6: Whole, a piece that reads its own backdrop (the voice pill) is redrawn whole: Skia antialiases a path that the frame's clip cuts
     // differently from the same path drawn whole (1 to 3 levels on edge pixels far from the cut, more beside it), and the pill's rim draws its shade, fringe,
     // rings and highlights as such paths over its glass; a reach rect that ended in its right cap changed its left cap by 3 levels. Its box is small, so
-    // drawing all of it costs little. ED-NEW-glass-seams-1: on Skia's CPU rasterizer every piece but a window-sized one is drawn whole (CutsAtTheClip);
-    // on the GPU every other piece adds only its reach (ED-320 15 and 16).
+    // drawing all of it costs little; every other piece adds only its reach (ED-320 15 and 16).
     internal readonly record struct Spread(SKRectI Output, int Margin, SKRectI Inner, int Blur, int Bend, bool Whole = false)
     {
         public SKRectI Of(SKRectI changed)
@@ -1692,7 +1687,7 @@ internal static partial class GlassMaterial
         var reach = state.Regions.Max(r => r.Drawn.Canvas is not null ? r.Lens.Reach : Math.Max(r.Lens.Reach,
             Math.Min(r.Size.Width, r.Size.Height) > LawShadedTo ? UnlitBandSigmas * BlurSigma(Math.Min(r.Size.Width, r.Size.Height), 1) : 0)
             * Math.Sqrt(Math.Abs(r.Transform.M11 * r.Transform.M22 - r.Transform.M12 * r.Transform.M21)));
-        var spread = SpreadOf(state, output, scale, radius, CutsAtTheClip(lease) && !CoversTheWindow(output, kept.Whole));
+        var spread = SpreadOf(state, output, scale, radius);
         if (reads.IsEmpty) return spread;
         var shift = (int)Math.Ceiling(reach * scale) + 2;
         var blurredCanvas = surface.Canvas;
@@ -1872,19 +1867,7 @@ internal static partial class GlassMaterial
         return new SKRect((float)box.Left, (float)box.Top, (float)box.Right, (float)box.Bottom);
     }
 
-    // ED-NEW-glass-seams-1: Skia's CPU rasterizer draws an antialiased path that the frame's clip cuts differently from the same path drawn whole: when
-    // the path's bounds are not inside the clip it clips the path's edges to it (curves chopped and flattened again, edges culled, another walk), up to
-    // 30 levels beside the cut and 22 far from it (measured over rings, capsules, strokes, icons and blurred shadows; text, drawn from glyph masks, is
-    // not changed). The rims, shades and icons drawn over a piece are such paths, so on that rasterizer a piece is redrawn whole whenever a frame redraws
-    // any of it (Spread.Whole), and nothing over it is ever cut. Skia's GPU backend (the app's renderer: Avalonia's Win32 default, ANGLE over Direct3D 11)
-    // draws the same paths, text and icons identically under any clip (0 levels, measured; a blurred shadow at most 1), so there a piece keeps its reach
-    // (ED-320 16's frame cost). A piece that covers the whole window (the window's backdrop glass, Chrome.WindowBackdrop) keeps its reach on the CPU
-    // too: drawn whole it is a whole window every frame (3.9 s against 0.42 s a caret blink at 200 %, headless).
-    private static bool CutsAtTheClip(ISkiaSharpApiLease lease) => lease.GrContext is null && !ReachOnlyForTests;
-
-    private static bool CoversTheWindow(SKRectI output, SKSizeI window) => window is { Width: > 0, Height: > 0 } && output.Contains(new SKRectI(0, 0, window.Width, window.Height));
-
-    private static Spread SpreadOf(State state, SKRectI output, float scale, float radius, bool whole)
+    private static Spread SpreadOf(State state, SKRectI output, float scale, float radius)
     {
         var margin = (int)Math.Ceiling(SampledMargin * scale);
         var blur = (int)Math.Ceiling(3 * radius) + 2; // the blur's 3 sigma (radius is the sigma) and the linear filter's pixel
@@ -1900,6 +1883,6 @@ internal static partial class GlassMaterial
             inner = new SKRectI(output.Left + inset, output.Top + inset, output.Right - inset, output.Bottom - inset);
             if (inner.Width <= 0 || inner.Height <= 0) inner = SKRectI.Empty;
         }
-        return new Spread(output, margin, inner, blur, bend, whole || state.Regions.Any(r => r.OwnBackdrop));
+        return new Spread(output, margin, inner, blur, bend, state.Regions.Any(r => r.OwnBackdrop));
     }
 }

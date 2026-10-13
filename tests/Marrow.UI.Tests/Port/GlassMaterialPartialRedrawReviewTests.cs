@@ -20,11 +20,8 @@ using Scene = Marrow.UI.Tests.Fixtures.GlassScene;
 namespace Marrow.UI.Tests.Port;
 
 [Collection("Headless")]
-public sealed class GlassMaterialPartialRedrawReviewTests(HeadlessSession headless) : IDisposable
+public sealed class GlassMaterialPartialRedrawReviewTests(HeadlessSession headless)
 {
-    private readonly GlassReachOnly reachOnly = new(); // ED-NEW-glass-seams-1: the reach is what the GPU renderer draws
-    public void Dispose() => reachOnly.Dispose();
-
     private static int Largest(Func<int, int, Color> a, Func<int, int, Color> b, PixelRect area, out PixelPoint at)
     {
         var most = 0;
