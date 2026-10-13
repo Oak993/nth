@@ -20,6 +20,7 @@ public sealed class AntigravitySession : ProviderSession, Port.Skills.Providers.
 
     private readonly SessionConfiguration configuration;          // :18
     private StdioProcess? process;                                 // :19
+    private StdioProcess? streamEnded;                             // PORT-ONLY (ED-NEW-gateprep-4): the child whose output has closed
     private TaskHandle? readTask;                                  // :20
     private CheckedContinuation<string>? initContinuation;         // :21
     private string? conversationID;                                // :22
@@ -65,7 +66,9 @@ public sealed class AntigravitySession : ProviderSession, Port.Skills.Providers.
         spendBaselineKnown = configuration.ResumeID is not { Length: > 0 }; // resumeID?.isEmpty != false
     }
 
-    public bool IsRunning => process?.IsRunning ?? false; // :64
+    // :64. ED-NEW-gateprep-4: a child whose output has closed cannot answer, so the session is not running even if the exit watcher has not yet seen the child go: the end of the child's
+    // output reached the reader 4 to 10 ms before the watcher cleared IsRunning (measured), and a Send in that gap would write to a child on its way out and be lost.
+    public bool IsRunning => process is { IsRunning: true } child && !ReferenceEquals(child, streamEnded);
 
     // PORT-ONLY: SK-17. Stop requests termination; generation readers end only when the child has actually exited.
     public Task SkillReadersExited => process is { IsRunning: true } child ? child.WaitForExit() : Task.CompletedTask;
@@ -123,7 +126,7 @@ public sealed class AntigravitySession : ProviderSession, Port.Skills.Providers.
         readTask = MainActor.Spawn(async () => // :106-112
         {
             await foreach (var message in messages) Handle(message);
-            DidClose();
+            StreamEnded(process);
         });
         return await CheckedContinuation<string>.With(continuation => // :113-119
         {
@@ -174,7 +177,7 @@ public sealed class AntigravitySession : ProviderSession, Port.Skills.Providers.
 
     public Task Send(TurnInput input) // :151-164
     {
-        if (process is not { IsRunning: true } running) return Task.FromException(new ProviderError(new ProviderError.Case.NotRunning())); // :152
+        if (!IsRunning || process is not { } running) return Task.FromException(new ProviderError(new ProviderError.Case.NotRunning())); // :152. ED-NEW-gateprep-4: IsRunning also says a closed stream is not a session to send to.
         runtimeMode = input.RuntimeMode;         // :153
         interactionMode = input.InteractionMode; // :154
         if (input.Model is { Length: > 0 } turnModel) model = turnModel;     // :155
@@ -407,6 +410,13 @@ public sealed class AntigravitySession : ProviderSession, Port.Skills.Providers.
             }
         }
         interruptRequested = false; // :351
+    }
+
+    /// <summary>PORT-ONLY (ED-NEW-gateprep-4): the child's output has closed. From here the session is not running, whether or not the exit watcher has seen the child go; then the Swift's didClose.</summary>
+    private void StreamEnded(StdioProcess child)
+    {
+        streamEnded = child;
+        DidClose();
     }
 
     private void DidClose() // :354-372
