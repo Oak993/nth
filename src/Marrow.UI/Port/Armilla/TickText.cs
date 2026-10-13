@@ -208,6 +208,9 @@ internal sealed class SheenHandler(ArmillaHub hub, AmbientRefreshPacer? pacer, T
     private int requested;
     private int frames;
     private double time;
+    private readonly SKPaint paint = new() { BlendMode = SKBlendMode.Overlay, IsAntialias = true };
+    private SKShader? gradient;
+    private (float Width, float Height, bool Dark) gradientKey;
 
     internal int Frames => Volatile.Read(ref frames);
 
@@ -230,6 +233,7 @@ internal sealed class SheenHandler(ArmillaHub hub, AmbientRefreshPacer? pacer, T
                 break;
             case Stop:
                 stopped = true;
+                paint.Dispose(); gradient?.Dispose(); gradient = null;
                 break;
         }
     }
@@ -273,26 +277,37 @@ internal sealed class SheenHandler(ArmillaHub hub, AmbientRefreshPacer? pacer, T
         if (!Live || band is not { } b || b.Width <= 0) return;
         if (context.TryGetFeature<ISkiaSharpApiLeaseFeature>() is not { } feature) return;
         using var lease = feature.Lease();
-        var sk = lease.SkCanvas;
+        Draw(lease.SkCanvas, b, time, lease.CurrentOpacity);
+        Interlocked.Increment(ref frames);
+        if (Live) Request();
+    }
+
+    // Raster-only seam: the compositor and the headless allocation/pixel probe call the same painter.
+    internal void Draw(SKCanvas sk, Band b, double at, double opacity)
+    {
         var saved = sk.Save();
         try
         {
             var w = (float)b.Width;
             var h = (float)b.Height;
             sk.ClipRect(new SKRect((float)b.X, 0, (float)b.X + w, h));
-            var left = (float)(b.X + Offset(time) * b.Width);
+            var left = (float)(b.X + Offset(at) * b.Width);
             // the canvas's linear-gradient(100deg, transparent 30%, var(--ghi) 50%, transparent 70%) in overlay
             var hi = b.Dark ? new SKColor(255, 255, 255, 102) : new SKColor(255, 255, 255, 250);
             var tilt = (float)(Math.Tan(10 * Math.PI / 180) * h / 2);
-            using var shader = SKShader.CreateLinearGradient(new SKPoint(left - tilt, h), new SKPoint(left + w + tilt, 0),
-                [SKColors.Transparent, SKColors.Transparent, hi, SKColors.Transparent, SKColors.Transparent], [0, .3f, .5f, .7f, 1], SKShaderTileMode.Clamp);
-            using var paint = new SKPaint { Shader = shader, BlendMode = SKBlendMode.Overlay, IsAntialias = true };
-            var alpha = Math.Clamp(lease.CurrentOpacity, 0, 1);
-            if (alpha < 1) paint.Color = new SKColor(255, 255, 255, (byte)Math.Round(alpha * 255));
-            sk.DrawRect(new SKRect(left, 0, left + w, h), paint);
+            var key = (w, h, b.Dark);
+            if (gradient is null || key != gradientKey)
+            {
+                gradient?.Dispose();
+                gradient = SKShader.CreateLinearGradient(new SKPoint(-tilt, h), new SKPoint(w + tilt, 0),
+                    [SKColors.Transparent, SKColors.Transparent, hi, SKColors.Transparent, SKColors.Transparent], [0, .3f, .5f, .7f, 1], SKShaderTileMode.Clamp);
+                gradientKey = key; paint.Shader = gradient;
+            }
+            sk.Translate(left, 0);
+            var alpha = Math.Clamp(opacity, 0, 1);
+            paint.Color = new SKColor(255, 255, 255, (byte)Math.Round(alpha * 255));
+            sk.DrawRect(new SKRect(0, 0, w, h), paint);
         }
         finally { sk.RestoreToCount(saved); }
-        Interlocked.Increment(ref frames);
-        if (Live) Request();
     }
 }
