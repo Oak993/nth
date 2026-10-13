@@ -909,7 +909,7 @@ public sealed partial class CopilotSession : ProviderSession, ISkillSessionLifet
                 arguments["prompt"]?.JSONValueString ?? arguments["task"]?.JSONValueString);
         }
         if (ToolCall(name, arguments, server, mcpTool) is not { } call) return; // :673
-        sink(new ProviderEvent.ToolStarted(id, call)); // :674
+        sink(new ProviderEvent.ToolStarted(id, call) { McpTool = McpToolIdentity.FromFields(server, mcpTool, uiServer is not null) }); // :674 + ED-NEW-web-sec-rev-6: by the request's own mcpServerName and mcpToolName
         if (call.Edits.Count != 0) // :675-677
         {
             sink(new ProviderEvent.ToolUpdated(id, new ToolUpdate { Edits = call.Edits }));
@@ -1091,9 +1091,7 @@ public sealed partial class CopilotSession : ProviderSession, ISkillSessionLifet
     // (never the toolTitle, the arguments or any text); a server named nth-ui is nth's own only in a session nth gave nth-ui.
     private McpToolIdentity? McpToolOf(JSONValue request) =>
         Is(request["kind"]?.JSONValueString, "mcp")
-        && request["serverName"]?.JSONValueString is { Length: > 0 } server && request["toolName"]?.JSONValueString is { Length: > 0 } tool
-        && (uiServer is not null || !string.Equals(server, Web.UiMcpServer.ServerName, StringComparison.Ordinal))
-            ? new McpToolIdentity(server, tool)
+            ? McpToolIdentity.FromFields(request["serverName"]?.JSONValueString, request["toolName"]?.JSONValueString, uiServer is not null)
             : null;
 
     /// <summary>What the thread's mode approves without asking. Full access approves it all (the CLI normally does

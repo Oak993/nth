@@ -179,7 +179,8 @@ public sealed class MCPHub : Actor
 
     /// <summary>
     /// PORT-ONLY (W18): counts the times a server's tool list changed on this hub (a list-changed notification). A
-    /// session that loaded the tools earlier reloads them when this moved.
+    /// session that loaded the tools earlier reloads them when this moved. ED-NEW-web-sec-rev-5: a Reload moves it too (the servers,
+    /// and so every list, may have changed), so a session never checks a model's call against a list read before the reload.
     /// </summary>
     public int ToolsRevision => Volatile.Read(ref toolsRevision);
 
@@ -400,6 +401,7 @@ public sealed class MCPHub : Actor
         failed.Clear();
         hiddenFromModel.Clear();
         specs = null;
+        Interlocked.Increment(ref toolsRevision); // PORT-ONLY (ED-NEW-web-sec-rev-5)
         foreach (var client in existing.Values) Spawn(async () => await client.Stop());
     });
 

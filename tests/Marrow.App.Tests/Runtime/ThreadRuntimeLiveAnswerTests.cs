@@ -69,7 +69,8 @@ public sealed class ThreadRuntimeLiveAnswerTests
         var chat = h.Runtime.ThreadID;
         var json = System.Text.Json.JsonSerializer.Serialize(new { ui = Hosting, id = "hosting" });
 
-        Deliver(h, new ProviderEvent.ToolStarted("tool-1", new ToolCall { ToolCallKind = ToolCall.Kind.Mcp, Title = LiveAnswerFlow.RowTitle("ui_show") }));
+        // ED-NEW-web-sec-rev-6: the row carries the server and tool the provider session read from the protocol, as the sessions send it.
+        Deliver(h, new ProviderEvent.ToolStarted("tool-1", new ToolCall { ToolCallKind = ToolCall.Kind.Mcp, Title = LiveAnswerFlow.RowTitle("ui_show") }) { McpTool = new(UiMcpServer.ServerName, "ui_show") });
         Deliver(h, new ProviderEvent.ToolUpdated("tool-1", new ToolUpdate { Detail = json[..30] }));
         Assert.False(View(h, "tool-1").Complete); // the model is still writing it
         for (var at = 47; at < json.Length; at += 17) Deliver(h, new ProviderEvent.ToolUpdated("tool-1", new ToolUpdate { Detail = json[..at] }));
@@ -154,12 +155,31 @@ public sealed class ThreadRuntimeLiveAnswerTests
         using var artifacts = new LiveArtifactScope();
         using var h = new ThreadRuntimePart12Harness();
         var json = System.Text.Json.JsonSerializer.Serialize(new { ui = "card \"How it works\"\n  text \"Ask nth-ui to call artifact_create for a file.\"\n" });
-        Deliver(h, new ProviderEvent.ToolStarted("tool-1", new ToolCall { ToolCallKind = ToolCall.Kind.Mcp, Title = "nth-ui · ui_show", Detail = json }));
+        // ED-NEW-web-sec-rev-6: each row carries the server and tool the provider session read from the protocol, as the sessions send it.
+        Deliver(h, new ProviderEvent.ToolStarted("tool-1", new ToolCall { ToolCallKind = ToolCall.Kind.Mcp, Title = "nth-ui · ui_show", Detail = json }) { McpTool = new(UiMcpServer.ServerName, "ui_show") });
         Assert.Empty(artifacts.Host.Streams.Of(h.Runtime.ThreadID));
         Assert.Equal(["tool-1"], Entries(h).Select(entry => entry.Id)); // it is the live-answer row, nothing else
         // The contrast: a real artifact_create call opens Tabula's stream (web W14).
-        Deliver(h, new ProviderEvent.ToolStarted("tool-2", new ToolCall { ToolCallKind = ToolCall.Kind.Mcp, Title = "nth-ui · artifact_create", Detail = "{}" }));
+        Deliver(h, new ProviderEvent.ToolStarted("tool-2", new ToolCall { ToolCallKind = ToolCall.Kind.Mcp, Title = "nth-ui · artifact_create", Detail = "{}" }) { McpTool = new(UiMcpServer.ServerName, "artifact_create") });
         Assert.Single(artifacts.Host.Streams.Of(h.Runtime.ThreadID));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-web-sec-rev-6")]
+    public void A_row_whose_title_only_reads_like_an_nth_ui_tool_stays_the_providers_row_and_opens_nothing()
+    {
+        using var artifacts = new LiveArtifactScope();
+        using var h = new ThreadRuntimePart12Harness();
+        var json = System.Text.Json.JsonSerializer.Serialize(new { ui = Hosting, id = "hosting" });
+        // Another server's tool titled like ui_show, and a row whose title a model wrote like artifact_create: no tool of nth-ui's.
+        Deliver(h, new ProviderEvent.ToolStarted("tool-1", new ToolCall { ToolCallKind = ToolCall.Kind.Mcp, Title = "nth-ui · ui_show", Detail = json }) { McpTool = new("shipyard", "ui_show") });
+        Deliver(h, new ProviderEvent.ToolStarted("tool-2", new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = "nth-ui · artifact_create", Detail = "{}" }));
+
+        // Both are drawn as the provider sent them: neither became a view, and Tabula opened no stream.
+        Assert.Equal(["tool-1", "tool-2"], Entries(h).Select(entry => entry.Id));
+        Assert.All(Entries(h), entry => Assert.Null(h.Main.OnMain(() => ThreadRuntime.LiveViewIn(entry))));
+        Assert.Equal(["nth-ui · ui_show", "nth-ui · artifact_create"], Entries(h).Select(entry => Assert.IsType<TimelineItem.Content.Tool>(entry.Item.TimelineItemContent).Value.Title));
+        Assert.Empty(artifacts.Host.Streams.Of(h.Runtime.ThreadID));
     }
 
     [Fact]

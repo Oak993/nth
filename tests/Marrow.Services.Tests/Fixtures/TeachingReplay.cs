@@ -9,6 +9,7 @@ using Marrow.Services.Port.Skills.Providers;
 using Marrow.Services.Providers;
 using Marrow.Services.Store;
 using Marrow.Services.Tests.Port.Skills.Providers;
+using Marrow.Services.Web;
 using Marrow.Testing;
 
 namespace Marrow.Services.Tests.Fixtures;
@@ -96,6 +97,14 @@ internal static class TeachingReplay
 
     public static TeachingOutcome Claude(TeachingRecording recording) => Outcome(ClaudeEvents(recording));
 
+    /// <summary>
+    /// ED-NEW-web-sec-rev-6: the session holds the chat's nth-ui server, as its launch gives it when Tabula is on (the replay never launches
+    /// a process), so it names nth-ui's tools on its rows the way the protocol named them.
+    /// </summary>
+    private static void GiveNthUi(ProviderSession session) =>
+        session.GetType().GetField("uiServer", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .SetValue(session, new MCPResolvedServer(UiMcpServer.ServerName, UiMcpServer.ServerName));
+
     /// <summary>The events ClaudeSession emits for a recording (W24 reads them again through the live-answer flow).</summary>
     public static List<ProviderEvent> ClaudeEvents(TeachingRecording recording)
     {
@@ -108,6 +117,7 @@ internal static class TeachingReplay
             InteractionMode = InteractionMode.Build,
         };
         var session = new ClaudeSession(configuration, () => null);
+        GiveNthUi(session); // ED-NEW-web-sec-rev-6: as a chat with Tabula on launches it, so its nth-ui rows carry their tool
         var events = new List<ProviderEvent>();
         session.OnEvent = events.Add;
         foreach (var message in recording.Events) session.Handle(message);
@@ -119,6 +129,7 @@ internal static class TeachingReplay
     public static List<ProviderEvent> CodexEvents(TeachingRecording recording)
     {
         var session = CodexWiringFixture.Session();
+        GiveNthUi(session); // ED-NEW-web-sec-rev-6: as a chat with Tabula on launches it, so its nth-ui rows carry their tool
         var events = new List<ProviderEvent>();
         session.OnEvent = events.Add;
         foreach (var notification in recording.Events)

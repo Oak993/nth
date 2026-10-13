@@ -9,6 +9,7 @@
 #   inbound-unknown   sends the client a request {id: 901, method: "roots/list"} and replies with the answer as text.
 #   id-collision      sends the client a request that uses the SAME id as the pending tools/call, reads the answer, and
 #                     only then sends the real reply: a client that took the request for a reply would return early.
+# MCP_RICH_BOARD_VISIBILITY=app lists "board" as app-only (the security review's reload test, ED-NEW-web-sec-rev-5).
 # Every reply is one compact JSON object per line, flushed immediately.
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -39,6 +40,7 @@ function ToolList() {
         @{ name = 'inbound-ping' }, @{ name = 'inbound-unknown' }, @{ name = 'id-collision' }
     )
     if ($script:freshTools) { $tools += @{ name = 'fresh-tool' } }
+    if ($env:MCP_RICH_BOARD_VISIBILITY -eq 'app') { $tools[1] = @{ name = 'board'; description = 'a board'; _meta = @{ ui = @{ resourceUri = 'ui://board/view.html'; visibility = @('app') } } } }
     return $tools
 }
 

@@ -148,7 +148,7 @@ public sealed partial class ThreadRuntime
     {
         switch (@event)
         {
-            case ProviderEvent.ToolStarted started when AskUserTool.IsProviderRow(started.Call):
+            case ProviderEvent.ToolStarted started when AskUserTool.IsProviderRow(started):
                 hiddenAskToolIds.Add(started.Id);
                 return true;
             case ProviderEvent.ToolOutput output: return hiddenAskToolIds.Contains(output.Id);

@@ -228,8 +228,9 @@ public sealed class LiveAnswerFlowTests
     // Tool calls.
     // ------------------------------------------------------------------------------------------------------------------
 
+    // ED-NEW-web-sec-rev-6: the row carries the server and tool the provider session read from the protocol, as the sessions now send it.
     private static ProviderEvent Started(string id, string tool, string? detail = null) =>
-        new ProviderEvent.ToolStarted(id, new ToolCall { ToolCallKind = ToolCall.Kind.Mcp, Title = LiveAnswerFlow.RowTitle(tool), Detail = detail });
+        new ProviderEvent.ToolStarted(id, new ToolCall { ToolCallKind = ToolCall.Kind.Mcp, Title = LiveAnswerFlow.RowTitle(tool), Detail = detail }) { McpTool = new McpToolIdentity(UiMcpServer.ServerName, tool) };
 
     [Fact]
     public void A_ui_show_call_streams_into_its_own_row_and_settles_on_what_the_tool_recorded()
