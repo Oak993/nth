@@ -32,4 +32,7 @@ public static class ArmillaStill
 
     /// <summary>The needs-you mark of the notification: 48 px in the size ladder, drawn for the theme the toast is shown in.</summary>
     public static ArmillaLook NeedsYouLook(bool dark) => new() { Size = 48, State = ArmillaState.NeedsYou, Dark = dark, Rest = true, Reduce = true, AutoVoice = false };
+
+    /// <summary>The resting mark of a notification that is news and asks nothing (a "Notify me" duty's finding, 13.1): the same size, no attention arc.</summary>
+    public static ArmillaLook NewsLook(bool dark) => new() { Size = 48, State = ArmillaState.Idle, Dark = dark, Rest = true, Reduce = true, AutoVoice = false };
 }

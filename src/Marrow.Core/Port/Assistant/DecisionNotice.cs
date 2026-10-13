@@ -46,6 +46,12 @@ public abstract class NotificationChannel
     /// <summary>Shows the notice. True when the channel took it; never throws for a channel that cannot show (it says false).</summary>
     public abstract Task<bool> Send(DecisionNotice notice, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Shows a duty's finding (13.1 "Duty opt-in": a duty the owner set to "Notify me"). It answers nothing and stays up until he dismisses it. A
+    /// channel that cannot say it (the default) returns false.
+    /// </summary>
+    public virtual Task<bool> Send(DutyNotice notice, CancellationToken cancellationToken = default) => Task.FromResult(false);
+
     /// <summary>Takes a notice back from wherever it sits (the card was answered, held or withdrawn). Best effort; never throws.</summary>
     public virtual Task Withdraw(Guid target) => Task.CompletedTask;
 }
@@ -65,6 +71,9 @@ public static class DecisionNoticeWords
 
     /// <summary>"3 decisions need you" (the same words the Decisions tab uses for a batch).</summary>
     public static string Many(int count) => count.ToString(CultureInfo.InvariantCulture) + " decisions need you";
+
+    /// <summary>"3 duties have news" (the summary of "Notify me" duties that ended together, 13.1 "Duty opt-in").</summary>
+    public static string DutyMany(int count) => count.ToString(CultureInfo.InvariantCulture) + " duties have news";
 
     /// <summary>What an activation carries for a button; Parse reads it back.</summary>
     public static string Key(NoticeAction action) => action switch
