@@ -90,7 +90,6 @@ public sealed class ChatView : Decorator
     private (TerminalPanel Panel, string? Directory)? leavingTerminal; // the drawer last taken out, while its removal may still be running.
     private readonly ChatFrameAnimation terminalPush;
     private (bool Showing, double Height)? push; // the terminal push under way: the pane's settled size is read through it.
-    private (Animation Curve, ContinuousInstant Start, double From, double To)? pushRun; // ED-NEW-perf-motion-11: the push's curve, for its speed
     private long? seenDiffRevision;
 
     // :7 @Bindable var runtime: ThreadRuntime; :76-321 body
@@ -452,15 +451,9 @@ public sealed class ChatView : Decorator
     private void PushTerminal(bool showing, Animation animation, double height, bool rowHeld)
     {
         terminalPush.Stop();
-        var continues = !(showing && !rowHeld);
-        var from = continues ? pane.Margin.Bottom : -height;
+        var from = showing && !rowHeld ? -height : pane.Margin.Bottom;
         var to = showing ? 0 : -height;
         push = (showing, height);
-        // ED-NEW-perf-motion-11: a push that goes on from where the pane is sets out at the speed the pane has, as the drawer's own
-        // transition turns round at its speed (SwiftTransition, a moving transition continued), so the two stay in lock-step.
-        var speed = continues && pushRun is { } run ? (run.To - run.From) * run.Curve.Speed((SwiftClock.Now - run.Start).TotalSeconds) : 0;
-        if (speed != 0 && animation.KeepsSpeed && to != from) animation = animation.WithStartSpeed(speed / (to - from));
-        pushRun = (animation, SwiftClock.Now, from, to);
         terminalPush.Start(animation, progress =>
         {
             pane.Margin = new Thickness(0, 0, 0, from + (to - from) * progress);

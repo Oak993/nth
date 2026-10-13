@@ -212,7 +212,6 @@ public sealed record SwiftTransition
             return;
         }
         var from = 1 - state.CurrentProgress;
-        var removalSpeed = state.CurrentSpeed;
         state.Stop();
         state.Carried = null;
         state.RemovingFrom = null;
@@ -223,7 +222,6 @@ public sealed record SwiftTransition
             state.Present(child, 1, inserting: true);
             return;
         }
-        if (from is > 0 and < 1) animation = state.Transition.Carrying(animation, -removalSpeed, from); // ED-NEW-perf-motion-11, as Insert's
         state.Present(child, from, inserting: true);
         state.Run(animation, (p, _) => state.Present(child, from + (1 - from) * p, inserting: true), from: from);
     }
