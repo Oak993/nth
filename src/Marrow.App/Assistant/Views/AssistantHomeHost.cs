@@ -101,14 +101,33 @@ public sealed class AssistantHomeHost : Decorator
         base.OnAttachedToVisualTree(e);
         host.Changed -= OnHost;
         host.Changed += OnHost;
+        model.AssistantReviewRequested -= OnReview;
+        model.AssistantReviewRequested += OnReview;
         Build();
+        if (model.PendingAssistantReview is { } asked) ShowReview(asked); // a toast's Review opened the home: the card it named comes first
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
         host.Changed -= OnHost;
+        model.AssistantReviewRequested -= OnReview;
         builtOn = null; // built again on the next attach
+    }
+
+    private void OnReview(Guid decision) => Dispatcher.UIThread.Post(() => ShowReview(decision));
+
+    /// <summary>
+    /// A toast's Review (AS-9, 13.1): the Decisions tab opens over whatever the home was showing and the card takes the focus (the card, never a
+    /// button). With Dextra off there is no board; the request is let go.
+    /// </summary>
+    internal bool ShowReview(Guid decision)
+    {
+        model.TakeAssistantReview();
+        if (Home is not { } home) return false;
+        CloseSheet();
+        home.Board.Pick(BoardTab.Decisions);
+        return home.Board.Decisions.Reveal(decision);
     }
 
     private void OnHost() => Dispatcher.UIThread.Post(Build);

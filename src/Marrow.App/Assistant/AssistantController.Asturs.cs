@@ -106,6 +106,7 @@ public sealed partial class AssistantController
             Agent = o.Thread(call.Chat.Thread)?.Title,
             Class = call.Classification.Class,
             RequestId = call.Id,
+            Priority = offered ? DecisionPriority.Offered : DecisionPriority.NeedsYou, // AS-9: a card the owner may raise himself makes no toast
         };
         lock (gate) drafts[card.Id] = draft;
         return Queue.Raise(card, (item, answer) => AnswerAsturCard(call, item, answer));
