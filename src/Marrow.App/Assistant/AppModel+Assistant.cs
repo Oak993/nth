@@ -118,7 +118,7 @@ public sealed partial class AppModel
         AutoAnswerSwitch? autoAnswer = null, Func<IReadOnlyList<string>>? personalDataRecipients = null, Func<IReadOnlyList<string>>? allowlist = null,
         GlobalStop? stopKey = null, AppTray? tray = null, IPcStreamHold? pcStreams = null,
         IReadOnlyList<IStopScope>? stopScopes = null, INoteProposer? noteProposer = null, IDutyTools? duties = null, AssistantTeam? team = null, IAssistantHomes? homes = null,
-        PurchaseSetup? purchases = null)
+        PurchaseSetup? purchases = null, Guid? accountId = null)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(audit);
@@ -204,6 +204,7 @@ public sealed partial class AppModel
             Save = record => store.SaveMission(MissionJournal.StoreId(record.Id), MissionJournal.ToJson(record)),
             Provider = provider,
             Model = model,
+            AccountId = accountId,
             ProtectedRoots = [store.Root, .. protectedRoots ?? []],
             AutoAnswer = autoAnswer ?? AutoAnswerSwitch.AfterCorpus(),
             PersonalDataRecipients = personalDataRecipients ?? (() => []),

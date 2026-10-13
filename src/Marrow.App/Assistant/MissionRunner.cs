@@ -327,7 +327,7 @@ public sealed partial class MissionRunner
         }
         var lead = Guid.NewGuid();
         await Admit(id, lead, record.Provider, token).ConfigureAwait(false);
-        if (token.IsCancellationRequested) return;
+        if (token.IsCancellationRequested) { o.Gate.Leave(lead); return; }
         OnMain(() => StartLead(id, lead));
     }
 
@@ -1024,7 +1024,7 @@ public sealed partial class MissionRunner
         var slot = Guid.NewGuid();
         var token = LiveOf(id).Launch.Token;
         await Admit(id, slot, record.Provider, token).ConfigureAwait(false);
-        if (token.IsCancellationRequested) return;
+        if (token.IsCancellationRequested) { o.Gate.Leave(slot); return; }
         OnMain(() =>
         {
             if (Find(id) is not { } now || now.Mission.State != MissionState.Reviewing || now.ReviewerThread is not null)

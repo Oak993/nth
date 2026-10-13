@@ -109,9 +109,11 @@ public sealed class DutyLauncher(AssistantController controller, DutyLauncherOpt
             ? new TaintContext(Taint.From(origin, fire.Cause == DutyCause.Page ? (duty.Trigger as PageWatchTrigger)?.Url ?? "a page" : "a watched folder"))
             : TaintContext.Clean;
         var title = fire.Dry ? "Dry run: " + duty.Name : duty.Name;
-        var started = controller.Runner.Start(new MissionRequest(title, DutyBrief.Compose(fire), duty.AssistantId, project.Id, project.Path, options.Provider)
+        var routed = controller.Router?.PickLead(duty.AssistantId);
+        var started = controller.Runner.Start(new MissionRequest(title, DutyBrief.Compose(fire), duty.AssistantId, project.Id, project.Path, routed?.Provider ?? controller.Provider)
         {
-            Model = options.Model,
+            Model = routed?.Model ?? controller.Model,
+            AccountId = routed?.AccountId ?? controller.AccountId,
             Origin = MissionOrigin.Duty,
             Taint = taint,
             BudgetUsd = duty.BudgetUsd,

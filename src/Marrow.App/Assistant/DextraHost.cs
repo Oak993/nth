@@ -217,7 +217,7 @@ public sealed class DextraHost : IDisposable
         var purchases = new PurchaseSetup { Book = PurchaseBook.Over(store), Hello = new WindowsHelloGate(), Vault = CardVault.Production };
         voiceScope = new VoiceStopScope(); // Stop all and the stop chord cut a spoken reply (12.6); bound to the conversation once the voice exists
         var controller = app.StartDextra(store, entry => audit.Append(entry), Profiles, BrainProvider() ?? ProviderKind.Claude, BrainModel(),
-            protectedRoots: [roots.AuditDirectory], stopKey: stopKey, tray: seams?.Tray ?? app.Tray, stopScopes: [voiceScope], purchases: purchases);
+            protectedRoots: [roots.AuditDirectory], stopKey: stopKey, tray: seams?.Tray ?? app.Tray, stopScopes: [voiceScope], purchases: purchases, accountId: settings.Value.BrainAccount);
         controller.RestoreGrants(settings.Value.Grants);
         var ids = BackgroundStart.AssistantsWithDuties(store);
         var duties = app.StartDuties(controller, store, mode, quit: quit,

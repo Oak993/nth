@@ -49,6 +49,8 @@ public sealed class AssistantControllerOptions
 
     public string? Model { get; init; }
 
+    public Guid? AccountId { get; init; }
+
     public TimeProvider Time { get; init; } = TimeProvider.System;
 
     /// <summary>nth's own folders (the store, the audit log, the settings): an agent's write there is a hard deny (12.1a).</summary>
@@ -334,6 +336,13 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
     /// then the tool says it is not part of this build yet.
     /// </summary>
     public ISuggestionIntake? Intake { get; set; }
+
+    /// <summary>The id of Dextra itself (the profile with no parent), or null when no profile is set up.</summary>
+    public ProviderKind Provider => o.Provider;
+
+    public string? Model => o.Model;
+
+    public Guid? AccountId => o.AccountId;
 
     /// <summary>The id of Dextra itself (the profile with no parent), or null when no profile is set up.</summary>
     public string? MainAssistantId => o.Profiles().FirstOrDefault(p => p.ParentId is null)?.Id;

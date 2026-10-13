@@ -8295,3 +8295,12 @@ ENGINEERING DECISION (CU-DX-FIX F2, DESIGN.md 2.6, 7.4, 15.3): A foreground star
 ## ED-NEW-dextra-fix-3
 
 ENGINEERING DECISION (CU-DX-FIX F3, DESIGN.md 2.6, 7.4, 15.3): Every startup opens the mission store with MissionJournal.Interrupted: live crash records pause with Resume, stopping records become stopped, and working/pausing heads pause. Regression: DextraFixInterruptedTests.
+
+
+## ED-NEW-dextra-fix-4
+
+ENGINEERING DECISION (CU-DX-FIX F4, DESIGN.md 11.6, 15.6): duty launch asks the same PickLead router as start_mission, preserving the chosen provider, model and account. If no eligible route exists, use the configured controller brain and account, never an implicit Claude default. Regression: DextraFixDutyRoutingTests.
+
+## ED-NEW-dextra-fix-5
+
+ENGINEERING DECISION (CU-DX-FIX F5, DESIGN.md 12.6, 13.2): cancellation after gate admission returns the placeholder slot in both lead and reviewer launch paths. Regressions deterministically cancel from AgentGate.Changed at admission, before the launch cancellation check; no timer race or Sleep. Regression: DextraFixAdmittedStopTests.

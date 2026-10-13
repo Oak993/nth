@@ -37,6 +37,8 @@ public sealed partial class AppModel
         {
             Store = store,
             Controller = controller,
+            Provider = controller.Provider,
+            Model = controller.Model,
             Events = AssistantEvents,
             AssistantIds = assistantIds ?? (() => store.AssistantIds()),
             OnMain = work => MainActor.Post(work),
