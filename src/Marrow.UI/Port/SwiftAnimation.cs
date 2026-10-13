@@ -211,7 +211,8 @@ public sealed record SwiftTransition
             Insert(panel, index, child);
             return;
         }
-        var from = 1 - state.CurrentProgress;
+        // Partners still present the last delivered frame when a press arrives between frames.
+        var from = 1 - state.PresentedProgress;
         var speed = -state.CurrentSpeed;
         state.Stop();
         state.Carried = null;
@@ -238,8 +239,9 @@ public sealed record SwiftTransition
         // OD-0076, ED-NEW-perf-motion-9: a removal that interrupts an insertion under way starts from where the insertion has brought the
         // child (RemoveContinuing's rule) whenever the insertion has moved; one that has not moved yet (p = 0) still starts from the
         // removal's own start, as ED-278 (10) keeps for a stage swapped before any time passes.
-        var from = state.InsertionInFlight && !state.Transition.HasAsymmetricPart() && (continuing || state.CurrentProgress > 0)
-            ? 1 - state.CurrentProgress : 0;
+        var progress = continuing ? state.PresentedProgress : state.CurrentProgress;
+        var from = state.InsertionInFlight && !state.Transition.HasAsymmetricPart() && (continuing || progress > 0)
+            ? 1 - progress : 0;
         var insertionSpeed = from != 0 ? state.CurrentSpeed : 0;
         // An asymmetric transition's removal names no state of the insertion it interrupts, so it cannot start from the insertion's progress; it starts from the
         // insertion's presentation instead (the opacity and the rise the child has now), which the removal then carries (UI-CHAT-052, unit rec-tlr).
@@ -285,7 +287,7 @@ public sealed record SwiftTransition
     // ED-NEW-perf-motion-11: a run that continues from `from` at `speed` (progress per second) carries that speed in when the curve is a
     // spring and the transition moves the child; the carried part dies out by the curve's end (Animation.Impulse).
     private Marrow.UI.Port.Animation Carrying(Marrow.UI.Port.Animation curve, double speed, double from) =>
-        from < 1 && curve.KeepsSpeed && Moves() ? curve.WithStartSpeed(speed / (1 - from)) : curve;
+        from != 1 && curve.KeepsSpeed && Moves() ? curve.WithStartSpeed(speed / (1 - from)) : curve;
 
     // Whether the transition moves or scales the child (a fade alone does not).
     private bool Moves() => kind switch
@@ -486,6 +488,7 @@ public sealed record SwiftTransition
         private Action<TimeSpan>? callback;
         private IFrameSource? source;
         private double lastProgress;
+        public double PresentedProgress => lastProgress;
         private bool lastInserting;
         private EventHandler<AvaloniaPropertyChangedEventArgs>? awaitingSize;
 
