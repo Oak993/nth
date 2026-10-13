@@ -647,7 +647,7 @@ public sealed partial class CopilotSession : ProviderSession, ISkillSessionLifet
             StdioFramer.Framing.ContentLength);
         var connection = new JSONRPCConnection(process, sendsVersion: true); // :491
         configure(connection); // :492
-        connection.Start(); // :493
+        await connection.StartAsync(); // :493. ED-NEW-perf-ui-thread-6: the child is created on the pool
         // DEVIATION OD-0012 F1: upstream pings with the message "droppy-code" (:494).
         var pong = await connection.Request("ping", JSONValue.FromDictionaryLiteral(("message", "nth"))); // :494
         if (pong["protocolVersion"]?.JSONValueInt is null) // :495-498
