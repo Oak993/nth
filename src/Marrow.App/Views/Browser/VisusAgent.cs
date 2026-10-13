@@ -236,6 +236,12 @@ public sealed class VisusAgentTab : IWebAgentTab
         }
     }
 
+    public event Action<WebPopupOpening>? PopupOpening
+    {
+        add { }
+        remove { }
+    }
+
     // A tab with an address and no view yet (restored, reopened) gets its view; a blank one has nothing to drive.
     private WebSurfaceView? EnsureView()
     {

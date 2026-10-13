@@ -71,6 +71,9 @@ internal sealed class AgentNode
     public string? Url { get; init; }
     public List<string> Options { get; init; } = [];
     public string? Chosen { get; set; }
+
+    /// <summary>For an iframe: the id of the frame it holds (DOM.describeNode's frameId, the frame target's id).</summary>
+    public string? FrameId { get; init; }
 }
 
 /// <summary>A page that answers the engine's CDP calls from its nodes, and records every call.</summary>
@@ -94,6 +97,16 @@ internal sealed class AgentPage
     /// <summary>When set, a call to this method waits on the task (a slow step).</summary>
     public (string Method, Task Until)? Hold { get; set; }
 
+    /// <summary>
+    /// The out-of-process frames of the page (ED-NEW-web-sec-agent-1): their session ids and the page each one shows. A frame's
+    /// session is announced (Target.attachedToTarget) when the engine turns auto-attach on; calls on it are answered by its page.
+    /// </summary>
+    public Dictionary<string, AgentPage> Sessions { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>A frame's own address and target id (the iframe's frameId in the page that holds it).</summary>
+    public string Url { get; init; } = "https://a.test/invite";
+    public string FrameTarget { get; init; } = "";
+
     public IEnumerable<string> Methods(string method) => Calls.Where(c => c.Method == method).Select(c => c.Method);
 
     public int Count(string method) => Calls.Count(c => c.Method == method);
@@ -106,7 +119,8 @@ internal sealed class AgentPage
         Calls.Add((method, parameters, session));
         OnCall?.Invoke(method, parameters);
         if (Hold is { } hold && hold.Method == method) await hold.Until;
-        return Handle(method, parameters);
+        var page = session is not null && Sessions.TryGetValue(session, out var frame) ? frame : this;
+        return page.Handle(method, parameters);
     }
 
     private AgentNode? Node(JsonObject parameters)
@@ -151,11 +165,13 @@ internal sealed class AgentPage
                     Focused = FocusTo ?? node.Backend;
                     return Value(JsonValue.Create("field"));
                 }
-                if (function.Contains("function (want)", StringComparison.Ordinal))
+                if (function.Contains("function (want", StringComparison.Ordinal))
                 {
                     var want = p["arguments"]?[0]?["value"]?.GetValue<string>() ?? "";
+                    // A second argument false only looks the option up (the guard reads it before anything changes).
+                    var apply = p["arguments"] is not JsonArray args || args.Count < 2 || args[1]?["value"] is not JsonValue flag || !flag.TryGetValue<bool>(out var applies) || applies;
                     var option = node.Options.FirstOrDefault(o => string.Equals(o, want, StringComparison.OrdinalIgnoreCase));
-                    node.Chosen = option ?? node.Chosen;
+                    if (apply) node.Chosen = option ?? node.Chosen;
                     return option is null ? "{\"result\":{\"type\":\"object\",\"subtype\":\"null\",\"value\":null}}" : Value(JsonValue.Create(option));
                 }
                 if (function.Contains("links:", StringComparison.Ordinal)) return Value(new JsonObject { ["text"] = node.Name, ["links"] = new JsonArray() });
@@ -192,7 +208,19 @@ internal sealed class AgentPage
             case "DOM.querySelectorAll":
                 return new JsonObject { ["nodeIds"] = new JsonArray([.. Secrets.Select(s => (JsonNode)JsonValue.Create(s)!)]) }.ToJsonString();
             case "DOM.describeNode":
-                return "{\"node\":{\"backendNodeId\":" + p["nodeId"]!.GetValue<int>().ToString(System.Globalization.CultureInfo.InvariantCulture) + "}}";
+            {
+                if (p["nodeId"] is JsonValue id) return "{\"node\":{\"backendNodeId\":" + id.GetValue<int>().ToString(System.Globalization.CultureInfo.InvariantCulture) + "}}";
+                if (Node(p) is not { } described) throw new InvalidOperationException("Could not find node with given id");
+                var node = new JsonObject { ["backendNodeId"] = described.Backend, ["nodeName"] = ((string?)described.Facts["tag"] ?? "div").ToUpperInvariant() };
+                if (described.FrameId is { } frame) node["frameId"] = frame;
+                return new JsonObject { ["node"] = node }.ToJsonString();
+            }
+            case "DOM.getFrameOwner":
+            {
+                var frame = (string?)p["frameId"];
+                if (Nodes.FirstOrDefault(n => n.FrameId is not null && n.FrameId == frame) is not { } owner) throw new InvalidOperationException("Frame with the given id was not found.");
+                return "{\"backendNodeId\":" + owner.Backend.ToString(System.Globalization.CultureInfo.InvariantCulture) + "}";
+            }
             case "Page.getLayoutMetrics":
                 return """{"cssVisualViewport":{"clientWidth":1280,"clientHeight":800,"pageX":0,"pageY":0},"cssLayoutViewport":{"clientWidth":1280,"clientHeight":800},"cssContentSize":{"width":1280,"height":3000}}""";
             case "Page.captureScreenshot":
@@ -285,6 +313,15 @@ internal sealed class FakeAgentTab : IWebAgentTab
         Fake.CdpHandler = (method, parameters, session) =>
         {
             if (method.StartsWith("Input.", StringComparison.Ordinal)) InputSteps.Add(OpenSteps);
+            // Auto-attach announces the page's out-of-process frames, each with its own session (as Chromium does).
+            if (method == "Target.setAutoAttach")
+            {
+                foreach (var (id, frame) in page.Sessions)
+                {
+                    var info = new JsonObject { ["sessionId"] = id, ["targetInfo"] = new JsonObject { ["targetId"] = frame.FrameTarget, ["type"] = "iframe", ["url"] = frame.Url } };
+                    Fake.EmitCdp("Target.attachedToTarget", info.ToJsonString(), session);
+                }
+            }
             return page.Answer(method, parameters, session);
         };
         Cdp = new CdpBroker(Fake);
@@ -345,6 +382,16 @@ internal sealed class FakeAgentTab : IWebAgentTab
 
     public void RaiseStepFailed(string reason) => StepFailed?.Invoke(reason);
 
+    public event Action<WebPopupOpening>? PopupOpening;
+
+    /// <summary>A pop-up the page opens on a click (target=_blank, window.open): the tab asks its listeners first, as VisusTab does.</summary>
+    public WebPopupOpening RaisePopup(string url)
+    {
+        var opening = new WebPopupOpening(url);
+        PopupOpening?.Invoke(opening);
+        return opening;
+    }
+
     private sealed class Ending(Action end) : IDisposable
     {
         private Action? end = end;
@@ -377,6 +424,11 @@ internal sealed class FakeAgentHost : IWebAgentHost
     public string ModelName(string? model) => "Claude Sonnet";
 
     public string? ChatTitle(string thread) => "Team invites";
+
+    /// <summary>The chat's project (web_eval's grants are per project); null for a chat outside a project.</summary>
+    public string? Project { get; set; } = "project-1";
+
+    public string? ProjectOf(string thread) => Project;
 
     public FakeAgentTab Add(string url, VisusTabKind kind = VisusTabKind.Agent, bool shared = false, AgentPage? page = null)
     {

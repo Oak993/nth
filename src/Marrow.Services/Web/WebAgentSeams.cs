@@ -58,6 +58,22 @@ public interface IWebAgentTab
     /// step's answer gives; the step fails and is never sent again.
     /// </summary>
     event Action<string>? StepFailed;
+
+    /// <summary>
+    /// ED-NEW-web-sec-agent-4 (security review M2): the page is about to open a pop-up (target=_blank, window.open) that Visus would
+    /// show as a new tab. A model's click counts as a user gesture, so the web tools look first: a pop-up the model caused is
+    /// stopped (<see cref="WebPopupOpening.Cancel"/>) and the model is told to ask through web_open, where the cross-origin card
+    /// and the deny list apply.
+    /// </summary>
+    event Action<WebPopupOpening>? PopupOpening;
+}
+
+/// <summary>A pop-up a tab's page is opening; set <see cref="Cancel"/> to stop it (no tab opens, the page gets no window).</summary>
+public sealed class WebPopupOpening(string url)
+{
+    public string Url { get; } = url;
+
+    public bool Cancel { get; set; }
 }
 
 /// <summary>Visus for the web tools: the tabs of a chat, opening agent tabs, and the UI thread.</summary>
@@ -86,6 +102,12 @@ public interface IWebAgentHost
 
     /// <summary>The chat's title for the guarded-action card's "who" row; null when it has none.</summary>
     string? ChatTitle(string thread) => null;
+
+    /// <summary>
+    /// The chat's project, which web_eval's standing grant belongs to (DESIGN 5.10 "after the user allows it per project";
+    /// ED-NEW-web-sec-agent-6); null for a chat outside a project, whose grant lasts only as long as the chat's web tools.
+    /// </summary>
+    string? ProjectOf(string thread) => null;
 }
 
 /// <summary>The per-site card's answers (DESIGN 5.10 "Allow once / Always allow / Don't allow").</summary>
