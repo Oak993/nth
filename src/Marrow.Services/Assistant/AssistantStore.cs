@@ -268,12 +268,16 @@ public sealed partial class AssistantStore : IDisposable
     public void SaveCalibration(JsonObject document) => SaveDocument(Path.Combine(Root, CalibrationFile), document);
 
     /// <summary>What each assistant used today and what the API keys cost (<c>costs.json</c>, AS-15): the figures a day's cap is checked against.</summary>
-    public JsonObject? Costs() => ReadDocument(Path.Combine(Root, CostsFile)) as JsonObject;
+    public JsonObject? Costs() =>
+        ReadDocument(Path.Combine(Root, CostsFile), out var present) as JsonObject
+        ?? (present ? throw new InvalidDataException("The costs document could not be read.") : null);
 
     public void SaveCosts(JsonObject document) => SaveDocument(Path.Combine(Root, CostsFile), document);
 
     /// <summary>How many runs of each duty failed in a row, and which duties the breaker paused (<c>duty-health.json</c>, AS-15).</summary>
-    public JsonObject? DutyHealth() => ReadDocument(Path.Combine(Root, DutyHealthFile)) as JsonObject;
+    public JsonObject? DutyHealth() =>
+        ReadDocument(Path.Combine(Root, DutyHealthFile), out var present) as JsonObject
+        ?? (present ? throw new InvalidDataException("The duties health document could not be read.") : null);
 
     public void SaveDutyHealth(JsonObject document) => SaveDocument(Path.Combine(Root, DutyHealthFile), document);
 
@@ -334,7 +338,13 @@ public sealed partial class AssistantStore : IDisposable
             ThrowIfClosed();
             Directory.CreateDirectory(FeedDirectory);
             var path = Path.Combine(FeedDirectory, FeedFileName(LocalDay(at)));
-            using var stream = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.Read);
+            using var stream = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
+            if (stream.Length > 0)
+            {
+                stream.Position = stream.Length - 1;
+                if (stream.ReadByte() != '\n') stream.WriteByte((byte)'\n');
+            }
+            stream.Position = stream.Length;
             var bytes = Utf8.GetBytes(builder.ToString());
             stream.Write(bytes);
             stream.Flush();

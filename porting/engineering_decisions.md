@@ -8271,3 +8271,12 @@ ENGINEERING DECISION (C6c D7, 2026-10-12): Decode each damaged mission/assistant
 4. TOPIC WORDS ADDED (still UNVERIFIED tables that err toward asking): money: placing an order, adding to or putting into a cart or basket, a bank account, transfer or details, bitcoin, ethereum, cryptocurrency; credentials (government and bank identifiers, wallets): passport, SSN, social security, Aadhaar, IBAN, routing number, account number, sort code, seed, recovery and mnemonic phrase; sending: commenting on something, leaving or posting a comment, creating, opening, filing or raising an issue, ticket or bug report, git tag, tagging a release, approving a pull request, requesting a review. Words that are only plain technical talk stay clean (the order of columns, a cart component, a cryptography library, an issue tracker config; tested).
 5. THE APP'S HALF OF THE CONTEXT IS TESTED NOW (DelegateContextTests, over a real AppModel and thread runtime, no provider): the notes before the guidance and a quarantined note left out, a corrected answer told as his words and an uncorrected one as context, another project's answers left out, whose turns are his (a chat of his own, not a mission chat), the Override message dropped, a chat that is gone. STILL UNVERIFIED: TextEngineDelegateModel (the one-shot CLI binding) has never run against a real Claude or Codex (ED-10); the lead's check on the final installer.
 6. No package is added.
+
+
+## ED-NEW-dextra-fix-6
+
+ENGINEERING DECISION (CU-DX-FIX F6, DESIGN.md 5.3, 15.3): before appending feed events, terminate a non-newline tail under the existing store lock. Preserve every prior byte; the torn line stays unreadable, and the next complete events remain readable. Regression: DextraFixFeedTests.
+
+## ED-NEW-dextra-fix-7
+
+ENGINEERING DECISION (CU-DX-FIX F7, DESIGN.md 13.2, 15.3): missing cost and duty-health books are empty; present non-object or unparsable books refuse controller startup with InvalidDataException. Never overwrite the unreadable books or run with zero spend or forgotten breaker pauses. The original files remain available for repair. Regression: DextraFixDamagedSafetyTests.
