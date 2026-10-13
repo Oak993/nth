@@ -123,6 +123,7 @@ public sealed partial class DigestService : ISuggestionIntake, IDisposable
 
             IReadOnlyList<Suggestion> lane;
             int offered;
+            var added = 0;
             if (preview)
             {
                 var (ledger, _) = Book.Ledger.Admit(gathered.Candidates, now, today);
@@ -131,14 +132,15 @@ public sealed partial class DigestService : ISuggestionIntake, IDisposable
             }
             else
             {
-                IReadOnlyList<Suggestion> added = [];
+                IReadOnlyList<Suggestion> fresh = [];
                 var after = Book.Update(l =>
                 {
                     var next = l.Admit(gathered.Candidates, now, today);
-                    added = next.Offered;
+                    fresh = next.Offered;
                     return next.Ledger;
                 });
-                if (added.Count > 0) after = await RewordAsync(added, after, token).ConfigureAwait(false);
+                added = fresh.Count;
+                if (fresh.Count > 0) after = await RewordAsync(fresh, after, token).ConfigureAwait(false);
                 lane = after.Open;
                 offered = after.OfferedToday;
             }
@@ -151,6 +153,8 @@ public sealed partial class DigestService : ISuggestionIntake, IDisposable
                 return digest;
             }
             Book.Add(digest);
+            o.Controller.AuditDigest(MainAssistantId(), "compose", "ReadLocal",
+                string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{kind}: {digest.Sections.Count} sections, {lane.Count} suggestions in the lane, {added} newly offered"));
             if (kind == DigestKind.Scheduled) FoldNotes();
             return digest;
         }

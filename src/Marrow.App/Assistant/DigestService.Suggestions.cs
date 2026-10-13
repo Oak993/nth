@@ -30,15 +30,22 @@ public sealed partial class DigestService
     {
         var found = Book.Ledger.Open.FirstOrDefault(s => s.Key == key);
         if (found is null) return new SuggestionAccept(false, "That suggestion is no longer open.");
+        // The owner's yes is written down before anything is done for it: a crash in between leaves the suggestion answered, and it is never offered to be started
+        // a second time (a mission nobody asked for twice costs real allowance). An Accept that cannot be acted on is taken back.
+        var now = o.Time.GetUtcNow();
+        Book.Update(l => l.Accept(key, now));
         SuggestionAccept result;
         try { result = Act(found); }
         catch (Exception error) when (error is not OperationCanceledException and not OutOfMemoryException)
         {
-            return new SuggestionAccept(false, "nth could not act on it: " + error.Message);
+            result = new SuggestionAccept(false, "nth could not act on it: " + error.Message);
         }
-        if (!result.Ok) return result;
-        var now = o.Time.GetUtcNow();
-        Book.Update(l => l.Accept(key, now));
+        if (!result.Ok)
+        {
+            Book.Update(l => l.Reopen(key));
+            return result;
+        }
+        o.Controller.AuditDigest(MainAssistantId(), "accept", "Work", $"{found.Kind} accepted: {found.Plan.Do}");
         return result;
     }
 
@@ -130,6 +137,7 @@ public sealed partial class DigestService
             if (answer.Kind != DecisionAnswerKind.Pick || answer.Text != yes) return;
             var (saved, problem) = existing is null ? o.Scheduler.Add(duty) : o.Scheduler.Update(duty with { Id = existing.Id });
             if (saved is null) Fault($"The duty “{duty.Name}” was not {(existing is null ? "made" : "changed")}: {problem}");
+            else o.Controller.AuditDigest(duty.AssistantId, "duty", "WriteElsewhere", $"{(existing is null ? "made" : "changed")} duty {saved.Id} on the owner's answer to a suggestion's card");
         });
     }
 
@@ -145,6 +153,7 @@ public sealed partial class DigestService
         if (kind is not { } known) return null;
         var now = o.Time.GetUtcNow();
         var after = Book.Update(l => l.Dismiss(key, now));
+        o.Controller.AuditDigest(MainAssistantId(), "dismiss", "Work", $"{known} dismissed" + (after.IsOff(known) ? "; the kind is off" : ""));
         return SuggestionWords.Dismissed(after.IsOff(known));
     }
 

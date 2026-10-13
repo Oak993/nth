@@ -77,6 +77,21 @@ public sealed class SuggestionLedgerTests
     }
 
     [Fact]
+    public void An_accept_that_could_not_be_acted_on_is_taken_back_and_the_suggestion_may_be_answered_again()
+    {
+        var accepted = Offered("a", "b").Accept("a", Morning)!;
+        var back = accepted.Reopen("a")!;
+        Assert.Equal(SuggestionState.Open, back.Today.Single(s => s.Key == "a").State);
+        Assert.Null(back.Today.Single(s => s.Key == "a").Settled);
+        Assert.DoesNotContain("a", back.Settled);
+        Assert.Equal(2, back.OfferedToday);                               // it still holds its place in the day
+        Assert.NotNull(back.Accept("a", Morning));
+        Assert.Null(Offered("a").Reopen("a"));                            // nothing accepted to take back
+        Assert.Null(Offered("a").Dismiss("a", Morning)!.Reopen("a"));     // a dismissal is the owner's no: it stays
+        Assert.Null(accepted.Reopen("nope"));
+    }
+
+    [Fact]
     public void Three_dismissals_of_one_kind_turn_the_kind_off_and_take_back_the_rest_of_it()
     {
         var ledger = SuggestionLedger.Empty.OnDay(Day);

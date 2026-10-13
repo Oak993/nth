@@ -141,6 +141,65 @@ public sealed class DigestSuggestionTests
     }
 
     [Fact]
+    public void Accept_Dismiss_and_the_duty_it_leads_to_are_written_in_the_activity_log_by_kind_and_never_by_words()
+    {
+        using var rig = Quiet();
+        var plan = new SuggestionPlan(SuggestionDo.NewDuty, "Re-price listings") { Day = DayOfWeek.Friday, At = new TimeOnly(16, 0), Instructions = "Do it." };
+        var duty = Offer(rig, Candidate("hand:a", plan, SuggestionKind.DoneByHand, urgency: 2));
+        var mission = Offer(rig, Candidate("m1", Mission("Look into it."), urgency: 1));
+        Assert.True(rig.Host.Digests!.Accept(duty.Key).Ok);
+        Assert.Null(rig.Controller.Queue.Answer(rig.Controller.Queue.Waiting.Single().Id, DecisionAnswer.Pick("Create duty")));
+        rig.Host.Digests.Dismiss(mission.Key);
+        var lines = rig.Audit.Where(e => e.Tool.StartsWith("nth-dextra/digest-", StringComparison.Ordinal)).Select(e => (e.Tool, e.ActionClass, e.Result)).ToList();
+        Assert.Contains(("nth-dextra/digest-accept", "Work", "DoneByHand accepted: NewDuty"), lines);
+        Assert.Contains(("nth-dextra/digest-dismiss", "Work", "FromBrain dismissed"), lines);
+        Assert.Contains(lines, l => l.Tool == "nth-dextra/digest-duty" && l.ActionClass == "WriteElsewhere" && l.Result?.StartsWith("made duty ", StringComparison.Ordinal) == true);
+        Assert.DoesNotContain(rig.Audit, e => (e.Result ?? "").Contains("Re-price", StringComparison.Ordinal) && e.Tool.StartsWith("nth-dextra/digest-", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void The_owners_yes_is_written_down_before_the_mission_is_started_and_survives_a_restart()
+    {
+        using var rig = Quiet();
+        var offered = Offer(rig, Candidate("m1", Mission("Look into it.")));
+        var seen = new List<SuggestionState>();
+        rig.Controller.Runner.Changed += _ => seen.Add(rig.Host.Digests!.Book.Ledger.Today.Single().State);
+        Assert.True(rig.Host.Digests!.Accept(offered.Key).Ok);
+        Assert.NotEmpty(seen);
+        Assert.All(seen, state => Assert.Equal(SuggestionState.Accepted, state));        // at the first sight of the mission it was already answered
+        rig.Host.Digests.Book.Flush();
+        using var again = new DigestBook();
+        again.Attach(rig.Store);
+        Assert.Equal(SuggestionState.Accepted, again.Ledger.Today.Single().State);
+        Assert.Contains("m1", again.Ledger.Settled);
+        Assert.Empty(again.Ledger.Admit([Candidate("m1", Mission())], rig.Clock.GetUtcNow(), again.Ledger.Day).Offered);   // never offered to be started twice
+    }
+
+    [Fact]
+    public void The_owners_yes_to_a_duty_is_written_down_before_its_card_is_raised()
+    {
+        using var rig = Quiet();
+        var plan = new SuggestionPlan(SuggestionDo.NewDuty, "Re-price listings") { Day = DayOfWeek.Friday, At = new TimeOnly(16, 0), Instructions = "Do it." };
+        var offered = Offer(rig, Candidate("hand:a", plan, SuggestionKind.DoneByHand));
+        SuggestionState? atTheCard = null;
+        rig.Controller.Queue.Changed += () => atTheCard ??= rig.Host.Digests!.Book.Ledger.Today.Single().State;
+        Assert.True(rig.Host.Digests!.Accept(offered.Key).Ok);
+        Assert.Equal(SuggestionState.Accepted, atTheCard);
+    }
+
+    [Fact]
+    public void An_accept_that_could_not_be_acted_on_is_taken_back_so_it_can_be_tried_again()
+    {
+        using var rig = Quiet();
+        var offered = Offer(rig, Candidate("m1", Mission(project: Guid.NewGuid())));
+        Assert.False(rig.Host.Digests!.Accept(offered.Key).Ok);
+        var ledger = rig.Host.Digests.Book.Ledger;
+        Assert.Equal(SuggestionState.Open, ledger.Today.Single().State);
+        Assert.DoesNotContain("m1", ledger.Settled);
+        Assert.DoesNotContain(rig.Audit, e => e.Tool == "nth-dextra/digest-accept");
+    }
+
+    [Fact]
     public void A_mission_started_from_a_suggestion_waits_while_Stop_all_is_on()
     {
         using var rig = Quiet();

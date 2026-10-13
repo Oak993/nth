@@ -90,6 +90,20 @@ public sealed record SuggestionLedger
         return ledger with { Off = ledger.Off.Appending(kind), Today = new ValueList<Suggestion>(rest) };
     }
 
+    /// <summary>
+    /// Takes back an Accept that could not be acted on: the suggestion is open again and may be answered again. Null when there is no accepted suggestion by that
+    /// key. (An Accept is written down before it is acted on, so that a crash in between never offers it to be started twice; one that fails comes back.)
+    /// </summary>
+    public SuggestionLedger? Reopen(string key)
+    {
+        if (!Today.Any(s => s.Key == key && s.State == SuggestionState.Accepted)) return null;
+        return this with
+        {
+            Today = new ValueList<Suggestion>(Today.Select(s => s.Key == key ? s with { State = SuggestionState.Open, Settled = null } : s)),
+            Settled = new ValueList<string>(Settled.Where(k => k != key)),
+        };
+    }
+
     /// <summary>The owner turns a kind back on (Settings): its count starts again.</summary>
     public SuggestionLedger TurnOn(SuggestionKind kind) =>
         IsOff(kind) || DismissalsOf(kind) > 0

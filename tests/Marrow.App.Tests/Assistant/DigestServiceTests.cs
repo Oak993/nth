@@ -221,6 +221,20 @@ public sealed class DigestServiceTests
     }
 
     [Fact]
+    public async Task Composing_writes_one_activity_line_of_counts_and_no_word_of_a_title_or_a_secret_in_one()
+    {
+        using var rig = Quiet(Setup(habits: () => [ThreeFridays()]));
+        var secret = "sk-" + new string('s', 40);
+        Card(rig, "Send the key " + secret);
+        await rig.Host.Digests!.Compose(DigestKind.Scheduled, preview: true);
+        Assert.DoesNotContain(rig.Audit, e => e.Tool == "nth-dextra/digest-compose");                   // a dry run did nothing worth writing down
+        await rig.Host.Digests.Compose(DigestKind.Asked);
+        var line = Assert.Single(rig.Audit, e => e.Tool == "nth-dextra/digest-compose");
+        Assert.Equal(("dextra", "ReadLocal", "Asked: 1 sections, 1 suggestions in the lane, 1 newly offered"), (line.Assistant, line.ActionClass, line.Result));
+        Assert.DoesNotContain(rig.Audit, e => (e.Result ?? "").Contains(secret, StringComparison.Ordinal) || (e.Target ?? "").Contains(secret, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task The_expired_sign_ins_the_setup_names_are_unusual()
     {
         using var rig = Quiet(Setup(logins: () => ["Channel B"]));
