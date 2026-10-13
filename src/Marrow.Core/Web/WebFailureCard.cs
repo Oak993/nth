@@ -1,3 +1,5 @@
+using Marrow.Core.Localisation;
+
 namespace Marrow.Core.Web;
 
 /// <summary>DESIGN 2.7: the failures a web view can show a card for.</summary>
@@ -68,32 +70,32 @@ public sealed record WebFailureCard(
     bool ShowsCard,
     bool Dimmed)
 {
-    // DESIGN 2.7 strings. W22 moves every new string into the resource files.
-    public const string CrashedTitle = "This page stopped working.";
-    public const string CrashedBody = "Reload opens the page again. Anything typed into a form on it is gone.";
-    public const string HungTitle = "This page is not responding.";
-    public const string HungBody = "Wait for it, or reload it. Reloading loses anything typed into a form on it.";
-    public const string BrowserGoneTitle = "Visus stopped.";
-    public const string BrowserGoneBody = "Restart Visus to open your tabs again.";
-    public const string RuntimeMissingTitle = "Visus needs the WebView2 runtime.";
-    public const string RuntimeMissingBody = "It is a 2 MB download from Microsoft. nth installs it when you say so.";
-    public const string RuntimeTooOldTitle = "Visus needs a newer WebView2 runtime.";
-    public const string RuntimeTooOldBody = "Update it from Microsoft, then open Visus again.";
-    public const string RuntimeInstallingTitle = "Installing the WebView2 runtime.";
-    public const string RuntimeUpdatingTitle = "Updating the WebView2 runtime.";
-    public const string RuntimeInstallingBody = "nth is getting it from Microsoft. This takes a moment.";
-    public const string RuntimeInstallFailedTitle = "The WebView2 runtime did not install.";
-    public const string RuntimeUpdateFailedTitle = "The WebView2 runtime did not update.";
-    public const string ReloadsStoppedBody = "It stopped working 3 times in 5 minutes, so nth no longer reloads it by itself.";
+    // DESIGN 2.7 strings, read from the resource files (Localisation/Strings/failure-en.json; W22, ED-NEW-web-w22-2).
+    public static string CrashedTitle => UiText.Get("failure.crashed_title");
+    public static string CrashedBody => UiText.Get("failure.crashed_body");
+    public static string HungTitle => UiText.Get("failure.hung_title");
+    public static string HungBody => UiText.Get("failure.hung_body");
+    public static string BrowserGoneTitle => UiText.Get("failure.browser_gone_title");
+    public static string BrowserGoneBody => UiText.Get("failure.browser_gone_body");
+    public static string RuntimeMissingTitle => UiText.Get("failure.runtime_missing_title");
+    public static string RuntimeMissingBody => UiText.Get("failure.runtime_missing_body");
+    public static string RuntimeTooOldTitle => UiText.Get("failure.runtime_too_old_title");
+    public static string RuntimeTooOldBody => UiText.Get("failure.runtime_too_old_body");
+    public static string RuntimeInstallingTitle => UiText.Get("failure.runtime_installing_title");
+    public static string RuntimeUpdatingTitle => UiText.Get("failure.runtime_updating_title");
+    public static string RuntimeInstallingBody => UiText.Get("failure.runtime_installing_body");
+    public static string RuntimeInstallFailedTitle => UiText.Get("failure.runtime_install_failed_title");
+    public static string RuntimeUpdateFailedTitle => UiText.Get("failure.runtime_update_failed_title");
+    public static string ReloadsStoppedBody => UiText.Get("failure.reloads_stopped_body");
 
-    public const string ReloadTitle = "Reload";
-    public const string CloseTabTitle = "Close tab";
-    public const string WaitTitle = "Wait";
-    public const string RestartVisusTitle = "Restart Visus";
-    public const string InstallTitle = "Install";
-    public const string UpdateTitle = "Update";
-    public const string TryAgainTitle = "Try again";
-    public const string OpenRuntimePageTitle = "Open Microsoft's page";
+    public static string ReloadTitle => UiText.Get("failure.reload_title");
+    public static string CloseTabTitle => UiText.Get("failure.close_tab_title");
+    public static string WaitTitle => UiText.Get("failure.wait_title");
+    public static string RestartVisusTitle => UiText.Get("failure.restart_visus_title");
+    public static string InstallTitle => UiText.Get("failure.install_title");
+    public static string UpdateTitle => UiText.Get("failure.update_title");
+    public static string TryAgainTitle => UiText.Get("failure.try_again_title");
+    public static string OpenRuntimePageTitle => UiText.Get("failure.open_runtime_page_title");
 
     /// <summary>The card for <paramref name="kind"/> (DESIGN 2.7 table).</summary>
     /// <param name="kind">What failed.</param>

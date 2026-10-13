@@ -1,4 +1,5 @@
 using System.Globalization;
+using Marrow.Core.Localisation;
 
 namespace Marrow.Core.Web;
 
@@ -100,21 +101,21 @@ public static class WebRuntimeBootstrapper
         return false;
     }
 
-    /// <summary>The sentence the install-failed card shows for <paramref name="failure"/> (DESIGN 2.7 style; W22 moves it into the resource files).</summary>
+    /// <summary>The sentence the install-failed card shows for <paramref name="failure"/> (DESIGN 2.7 style; the words are in Localisation/Strings/failure-en.json).</summary>
     /// <param name="failure">How the flow ended.</param>
     /// <param name="foundVersion">The runtime version Windows reports, for <see cref="WebRuntimeInstallFailure.StillTooOld"/>.</param>
     public static string ReasonFor(WebRuntimeInstallFailure failure, string? foundVersion = null) => failure switch
     {
         WebRuntimeInstallFailure.None => "",
-        WebRuntimeInstallFailure.Offline => "nth could not reach Microsoft. Check your connection and try again.",
-        WebRuntimeInstallFailure.DownloadFailed => "The download from Microsoft did not finish. Try again in a moment.",
-        WebRuntimeInstallFailure.NotSigned => "The file did not pass the signature check, so nth did not run it.",
-        WebRuntimeInstallFailure.CouldNotStart => "Windows would not start Microsoft's installer. A security setting may be blocking it.",
-        WebRuntimeInstallFailure.InstallerFailed => "Microsoft's installer stopped before it finished. Try again, or install it from Microsoft's page.",
-        WebRuntimeInstallFailure.TimedOut => "The install is taking too long, so nth stopped waiting. Try again, or install it from Microsoft's page.",
-        WebRuntimeInstallFailure.StillMissing => "The installer finished, but Windows still reports no WebView2 runtime. Try again, or install it from Microsoft's page.",
-        WebRuntimeInstallFailure.StillTooOld => string.Create(CultureInfo.InvariantCulture,
-            $"The runtime is still version {(string.IsNullOrWhiteSpace(foundVersion) ? "unknown" : foundVersion)}. If your organization controls updates, ask them to update the WebView2 runtime."),
+        WebRuntimeInstallFailure.Offline => UiText.Get("failure.reason_offline"),
+        WebRuntimeInstallFailure.DownloadFailed => UiText.Get("failure.reason_download_failed"),
+        WebRuntimeInstallFailure.NotSigned => UiText.Get("failure.reason_not_signed"),
+        WebRuntimeInstallFailure.CouldNotStart => UiText.Get("failure.reason_could_not_start"),
+        WebRuntimeInstallFailure.InstallerFailed => UiText.Get("failure.reason_installer_failed"),
+        WebRuntimeInstallFailure.TimedOut => UiText.Get("failure.reason_timed_out"),
+        WebRuntimeInstallFailure.StillMissing => UiText.Get("failure.reason_still_missing"),
+        WebRuntimeInstallFailure.StillTooOld => UiText.FormatWith(CultureInfo.InvariantCulture, "failure.reason_still_too_old",
+            string.IsNullOrWhiteSpace(foundVersion) ? UiText.Get("failure.version_unknown") : foundVersion),
     };
 
     private static IEnumerable<string> SplitSubject(string subject)
