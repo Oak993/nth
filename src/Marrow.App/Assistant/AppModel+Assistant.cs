@@ -373,7 +373,7 @@ public sealed partial class AppModel
             ContextWindow = prices?.ContextWindow,
             RunsLocally = kind == ProviderKind.Local,
             Usable = MainActor.IsIsolated && selected is { Enabled: true } && IsAccountConnected(selected) && CanUseAccount(selected.Id)
-                && (kind == ProviderKind.Codex || Marrow.Services.Port.MultiAccount.TextOnlyAccountHead.Supports(kind)),
+                && Marrow.Services.Port.MultiAccount.DextraTextRoutes.Supports(kind),
             Room = Reserve?.Standing(account, AssistantHost.AssistantId, null, null, model, 0)?.Windows.Select(w => w.Room).DefaultIfEmpty().Min(),
         };
     }

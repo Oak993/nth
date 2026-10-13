@@ -13,6 +13,7 @@ internal sealed class CommandCodeTextHeadFixture(string proof, string? failure =
     public bool Stopped { get; private set; }
     public bool Started { get; private set; }
     public Action? OnStop { get; set; }
+    public Func<Task>? OnStopAsync { get; set; }
     public Action? OnExit { get; set; }
     public IReadOnlyList<string> Arguments { get; private set; } = [];
     public IReadOnlyDictionary<string,string> Environment { get; private set; } = new Dictionary<string,string>();
@@ -30,7 +31,7 @@ internal sealed class CommandCodeTextHeadFixture(string proof, string? failure =
     public void Write(string text) { ProofReadBeforeWrite = ProofRead; Prompt = text; }
     public void CloseInput() { }
     public Task<int> Exit() { OnExit?.Invoke(); return Task.FromResult(0); }
-    public Task Stop() { Stopped = true; OnStop?.Invoke(); return Task.CompletedTask; }
+    public async Task Stop() { Stopped = true; OnStop?.Invoke(); if (OnStopAsync is not null) await OnStopAsync(); }
     public IAsyncEnumerable<JSONValue> Messages => Read();
     private async IAsyncEnumerable<JSONValue> Read([EnumeratorCancellation] CancellationToken cancel = default)
     {
