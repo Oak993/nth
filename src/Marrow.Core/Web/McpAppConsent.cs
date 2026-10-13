@@ -25,7 +25,7 @@ public sealed record McpAppDomainRequest(
     string Fingerprint)
 {
     /// <summary>The card's sentence: "shipyard's Release board wants to reach: api.shipyard.dev, cdn.shipyard.dev".</summary>
-    public string Sentence => McpAppDomains.Sentence(Server, Title, Domains.Count > 0 ? Domains : Broad.Select(b => McpAppDomains.Display(b.Source)).ToList());
+    public string Sentence => McpAppDomains.Sentence(Server, Title, Domains.Count > 0 ? Domains : [McpAppDomains.NamedBroad(Broad)]);
 
     /// <summary>"Allow for shipyard".</summary>
     public string AllowText => UiText.Format("mcpapps.consent.allow_for", Server);
@@ -35,10 +35,11 @@ public sealed record McpAppDomainRequest(
 
     /// <summary>
     /// + ED-NEW-web-sec-mcpapps-4 (L7): what "Allow broad access" would let through, named on the card ("Allow broad access
-    /// also allows: *.shipyard-assets.dev, localhost:5173, 'unsafe-eval'"), the first <see cref="McpAppDomains.MaxNamed"/>
-    /// by name and the rest counted; null when the declaration holds nothing broad.
+    /// also allows: *.shipyard-assets.dev, localhost:5173, 'unsafe-eval'"), <see cref="McpAppDomains.MaxNamed"/> by name
+    /// (the widest of each kind first when not all fit; ED-NEW-web-sec-mcpapps-5) and the rest counted; null when the
+    /// declaration holds nothing broad.
     /// </summary>
-    public string? BroadText => HasBroad ? UiText.Format("mcpapps.consent.broad_entries", McpAppDomains.Named(Broad.Select(b => McpAppDomains.Display(b.Source)))) : null;
+    public string? BroadText => HasBroad ? UiText.Format("mcpapps.consent.broad_entries", McpAppDomains.NamedBroad(Broad)) : null;
 }
 
 /// <summary>The user's answer to a domain card.</summary>
@@ -106,7 +107,7 @@ public static class McpAppToolCard
     // Every control (but the indenting new line), format (bidi, zero-width), separator (but the space), private-use or
     // unassigned character becomes \uXXXX. Outside its strings the writer puts only structure, digits, the space and the
     // indenting new line, so each escape lands inside a JSON string and the text stays the same JSON.
-    private static string Plain(string json)
+    internal static string Plain(string json)
     {
         StringBuilder? plain = null;
         for (var i = 0; i < json.Length; i++)
@@ -145,7 +146,8 @@ public static class McpAppDomains
         var all = declared.ConnectDomains.Concat(declared.ResourceDomains).Concat(declared.FrameDomains).Concat(declared.BaseUriDomains).ToList();
         var strict = CspBuilder.Clean(all, allowBroad: false);
         var broad = CspBuilder.Clean(all, allowBroad: true);
-        var broadOnly = strict.Dropped.Where(d => d.Reason == CspBuilder.WildcardReason || d.Reason == CspBuilder.UnsafeEvalReason || d.Reason == CspBuilder.LocalNetworkReason).ToList(); // + ED-NEW-web-w26-4
+        var broadOnly = strict.Dropped.Where(d => (d.Reason == CspBuilder.WildcardReason || d.Reason == CspBuilder.UnsafeEvalReason || d.Reason == CspBuilder.LocalNetworkReason) // + ED-NEW-web-w26-4
+            && BroadGrant(d.Source) is not null).ToList(); // + ED-NEW-web-sec-mcpapps-5: only what broad access would let through
         var refused = broad.Dropped.ToList();
         var domains = strict.Kept.Select(Display).Distinct(StringComparer.Ordinal).ToList();
         if (domains.Count == 0 && broadOnly.Count == 0) return null;
@@ -156,12 +158,29 @@ public static class McpAppDomains
     public static string Sentence(string server, string title, IReadOnlyList<string> domains) =>
         UiText.Format("mcpapps.consent.sentence", server, string.IsNullOrWhiteSpace(title) ? UiText.Get("mcpapps.consent.app_word") : title, string.Join(", ", domains));
 
-    /// <summary>A source as the card names it: the host (and port, and path when not just "/"), without the https scheme.</summary>
+    /// <summary>
+    /// A source as the card names it: the host (and port, and path when not just "/"), without the https scheme. + ED-NEW-web-sec-mcpapps-5:
+    /// a path longer than <see cref="MaxPathShown"/> is cut with an ellipsis, and every control, format (bidi, zero-width) or separator
+    /// character is written as \uXXXX, as on a tool card, so a declared entry cannot reorder or hide text on the card.
+    /// </summary>
     public static string Display(string source)
     {
         if (source.StartsWith("https://", StringComparison.Ordinal)) source = source[8..];
-        return source.TrimEnd('/');
+        source = source.TrimEnd('/');
+        var scheme = source.IndexOf("://", StringComparison.Ordinal);
+        var slash = source.IndexOf('/', scheme < 0 ? 0 : scheme + 3);
+        if (slash >= 0 && source.Length - slash > MaxPathShown)
+        {
+            var cut = slash + MaxPathShown;
+            if (char.IsHighSurrogate(source[cut - 1])) cut--;
+            source = source[..cut] + "\u2026";
+        }
+
+        return McpAppToolCard.Plain(source);
     }
+
+    /// <summary>How much of an entry's path a card shows before it cuts it.</summary>
+    public const int MaxPathShown = 40;
 
     /// <summary>The declaration's fingerprint: any change to any list (order aside) asks again.</summary>
     public static string Fingerprint(McpUiCsp declared)
@@ -215,12 +234,48 @@ public static class McpAppDomains
     /// <summary>How many entries a card names before it counts the rest ("and 12 more").</summary>
     public const int MaxNamed = 24;
 
-    /// <summary>Entries as a card names them: the first <see cref="MaxNamed"/>, then "and N more".</summary>
-    public static string Named(IEnumerable<string> entries)
+    /// <summary>
+    /// + ED-NEW-web-sec-mcpapps-5 (web surfaces security review, L7 gap): the entries "Allow broad access" would let through, as
+    /// the card names them: each as broad access grants it (<see cref="Display"/> of the cleaned source, so "*x1" is named
+    /// "*.x1"). When all fit, as declared; when not, <see cref="MaxNamed"/> are named, taken in turn from each kind ("*",
+    /// 'unsafe-eval', local addresses, wildcards), each kind widest first (a wildcard with fewer labels is wider), and listed
+    /// by kind, then "and N more". So no entry left out is wider than one named of its kind, and every kind present is named:
+    /// 24 narrow or invalid wildcards can no longer push "*" or a local address into the count.
+    /// </summary>
+    public static string NamedBroad(IReadOnlyList<CspDroppedSource> broad)
     {
-        var all = entries.Distinct(StringComparer.Ordinal).ToList();
-        var named = string.Join(", ", all.Take(MaxNamed));
-        return all.Count <= MaxNamed ? named : named + ", " + UiText.Format("mcpapps.consent.and_more", all.Count - MaxNamed);
+        ArgumentNullException.ThrowIfNull(broad);
+        var entries = new List<(string Shown, int Kind, int Width, int Index)>();
+        foreach (var entry in broad)
+        {
+            var granted = BroadGrant(entry.Source) ?? entry.Source;
+            var shown = Display(granted);
+            if (entries.Exists(e => e.Shown == shown)) continue;
+            var kind = granted == "*" ? 0 : entry.Reason == CspBuilder.UnsafeEvalReason ? 1 : entry.Reason == CspBuilder.LocalNetworkReason ? 2 : 3;
+            entries.Add((shown, kind, kind == 3 ? WildcardWidth(granted) : 0, entries.Count));
+        }
+
+        if (entries.Count <= MaxNamed) return string.Join(", ", entries.Select(e => e.Shown));
+        var kinds = entries.GroupBy(e => e.Kind).OrderBy(g => g.Key)
+            .Select(g => new Queue<(string Shown, int Kind, int Width, int Index)>(g.OrderBy(e => e.Width).ThenBy(e => e.Index))).ToList();
+        var named = new List<(string Shown, int Kind, int Width, int Index)>();
+        while (named.Count < MaxNamed)
+            foreach (var queue in kinds)
+                if (named.Count < MaxNamed && queue.Count > 0) named.Add(queue.Dequeue());
+        var list = string.Join(", ", named.OrderBy(e => e.Kind).ThenBy(e => e.Width).ThenBy(e => e.Index).Select(e => e.Shown));
+        return list + ", " + UiText.Format("mcpapps.consent.and_more", entries.Count - MaxNamed);
+    }
+
+    // What broad access keeps of one declared source (cleaned), or null when it would still drop it.
+    private static string? BroadGrant(string source) => CspBuilder.Clean([source], allowBroad: true).Kept is [var kept] ? kept : null;
+
+    // How many labels a cleaned wildcard source's host has after "*." (fewer labels reach more hosts).
+    private static int WildcardWidth(string source)
+    {
+        var star = source.IndexOf("*.", StringComparison.Ordinal);
+        if (star < 0) return 0;
+        var host = source[(star + 2)..].Split('/', ':')[0];
+        return host.Count(c => c == '.') + 1;
     }
 
     /// <summary>
