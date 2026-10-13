@@ -29,6 +29,7 @@ public sealed class AsturMark : Control
     private bool? sentVisible;
     private bool? sentSleep;
     private ArmillaWindowWatch? watch;
+    private DextraViewWatch? availability;
 
     public AsturMark()
     {
@@ -97,7 +98,9 @@ public sealed class AsturMark : Control
 
     private void Install()
     {
-        watch = TopLevel.GetTopLevel(this) is { } top ? ArmillaWindowWatch.For(top) : null;
+        availability = new DextraViewWatch(this);
+        availability.Changed += OnWatch;
+        watch = TopLevel.GetTopLevel(this) is { } top ? ArmillaWindowWatch.Acquire(top) : null;
         if (watch is not null) watch.Changed += OnWatch;
         if (visual is not null || ElementComposition.GetElementVisual(this) is not { } host) return;
         handler = new AsturMarkHandler(ArmillaHub.For(host.Compositor), AmbientRefreshPacer.For(host.Compositor), SwiftClock.Provider.Current);
@@ -111,7 +114,8 @@ public sealed class AsturMark : Control
 
     private void Remove()
     {
-        if (watch is not null) watch.Changed -= OnWatch;
+        if (availability is not null) { availability.Changed -= OnWatch; availability.Dispose(); availability = null; }
+        if (watch is not null) { watch.Changed -= OnWatch; watch.Release(); }
         watch = null;
         visual?.SendHandlerMessage(AsturMarkHandler.Stop.Instance);
         ElementComposition.SetElementChildVisual(this, null);
@@ -120,7 +124,7 @@ public sealed class AsturMark : Control
 
     private void OnWatch()
     {
-        var sleep = watch?.Sleeping ?? false;
+        var sleep = (watch?.Sleeping ?? false) || availability?.Available == false;
         if (visual is null || sentSleep == sleep) return;
         sentSleep = sleep;
         visual.SendHandlerMessage(sleep ? AsturMarkHandler.Sleep.On : AsturMarkHandler.Sleep.Off);
@@ -249,7 +253,7 @@ internal sealed class AsturMarkHandler(ArmillaHub hub, AmbientRefreshPacer? pace
 
     public override void OnRender(ImmediateDrawingContext context)
     {
-        if (stopped || engine is not { } mark) return;
+        if (stopped || sleeping || hidden || engine is not { } mark) return;
         drawn = true;
         if (context.TryGetFeature<ISkiaSharpApiLeaseFeature>() is not { } feature) return;
         using var lease = feature.Lease();

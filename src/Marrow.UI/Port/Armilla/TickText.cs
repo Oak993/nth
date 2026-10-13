@@ -41,6 +41,7 @@ public sealed class TickText : Control
     private SheenHandler? handler;
     private CompositionCustomVisual? visual;
     private ArmillaWindowWatch? watch;
+    private DextraViewWatch? availability;
     private TextLayout? layout;
     private (string Text, double Width, IBrush? Ink, double Size, FontWeight Weight, FlowDirection Flow) layoutKey;
     private (double X, double Width, double Height, bool On, bool Dark)? sentBand;
@@ -127,7 +128,8 @@ public sealed class TickText : Control
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
-        if (watch is not null) watch.Changed -= OnWatch;
+        if (availability is not null) { availability.Changed -= OnWatch; availability.Dispose(); availability = null; }
+        if (watch is not null) { watch.Changed -= OnWatch; watch.Release(); }
         watch = null;
         visual?.SendHandlerMessage(SheenHandler.Stop.Instance);
         ElementComposition.SetElementChildVisual(this, null);
@@ -141,7 +143,9 @@ public sealed class TickText : Control
     private void Install()
     {
         if (visual is not null || ElementComposition.GetElementVisual(this) is not { } host) return;
-        watch = TopLevel.GetTopLevel(this) is { } top ? ArmillaWindowWatch.For(top) : null;
+        availability = new DextraViewWatch(this);
+        availability.Changed += OnWatch;
+        watch = TopLevel.GetTopLevel(this) is { } top ? ArmillaWindowWatch.Acquire(top) : null;
         if (watch is not null) watch.Changed += OnWatch;
         handler = new SheenHandler(ArmillaHub.For(host.Compositor), AmbientRefreshPacer.For(host.Compositor), SwiftClock.Provider.Current);
         visual = host.Compositor.CreateCustomVisual(handler);
@@ -153,7 +157,7 @@ public sealed class TickText : Control
 
     private void OnWatch()
     {
-        var sleep = watch?.Sleeping ?? false;
+        var sleep = (watch?.Sleeping ?? false) || availability?.Available == false;
         if (visual is null || sentSleep == sleep) return;
         sentSleep = sleep;
         visual.SendHandlerMessage(sleep ? SheenHandler.Sleep.On : SheenHandler.Sleep.Off);
