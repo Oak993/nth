@@ -225,8 +225,10 @@ public sealed record SwiftTransition
             return;
         }
         state.Present(child, from, inserting: true);
+        var impulseSpeed = from == 1 && animation.KeepsSpeed && state.Transition.Moves() ? speed : 0;
         animation = state.Transition.Carrying(animation, speed, from);
-        state.Run(animation, (p, _) => state.Present(child, from + (1 - from) * p, inserting: true), from: from);
+        state.Run(animation, (p, complete) => state.Present(child, from + (1 - from) * p
+            + (complete ? 0 : impulseSpeed * animation.Impulse(state.Seconds)), inserting: true), from: from, impulseSpeed: impulseSpeed);
     }
 
     // ED-218: disposal belongs after removal finishes, including immediate/identity removals.
@@ -242,7 +244,7 @@ public sealed record SwiftTransition
         var progress = continuing ? state.PresentedProgress : state.CurrentProgress;
         var from = state.InsertionInFlight && !state.Transition.HasAsymmetricPart() && (continuing || progress > 0)
             ? 1 - progress : 0;
-        var insertionSpeed = from != 0 ? state.CurrentSpeed : 0;
+        var insertionSpeed = state.InsertionInFlight && !state.Transition.HasAsymmetricPart() ? state.CurrentSpeed : 0;
         // An asymmetric transition's removal names no state of the insertion it interrupts, so it cannot start from the insertion's progress; it starts from the
         // insertion's presentation instead (the opacity and the rise the child has now), which the removal then carries (UI-CHAT-052, unit rec-tlr).
         var carries = state.InsertionInFlight && state.Transition.HasAsymmetricPart();
@@ -266,17 +268,19 @@ public sealed record SwiftTransition
             throw new InvalidOperationException(
                 "A child with a modifier transition can leave with an animation only after SwiftTransition.Insert built its wrappers.");
         state.RemovingFrom = panel;
+        var impulseSpeed = from == 1 && animation.KeepsSpeed && state.Transition.Moves() ? -insertionSpeed : 0;
         // ED-NEW-motion-drawer-1: continuing drawer transitions and their layout partners carry the same velocity.
-        if (from != 0) animation = state.Transition.Carrying(animation, -insertionSpeed, from);
+        animation = state.Transition.Carrying(animation, -insertionSpeed, from);
         state.Present(child, from, inserting: false);
         state.Run(animation, (p, complete) =>
         {
-            state.Present(child, from + (1 - from) * p, inserting: false);
+            state.Present(child, from + (1 - from) * p
+                + (complete ? 0 : impulseSpeed * animation.Impulse(state.Seconds)), inserting: false);
             if (!complete) return;
             if (panel.Children.Contains(wrapper)) panel.Children.Remove(wrapper);
             state.RemovingFrom = null;
             state.CompleteRemoval();
-        }, from: from);
+        }, from: from, impulseSpeed: impulseSpeed);
     }
 
     private SwiftTransition ForInsert() => kind == Kind.Asym ? first! : this;
@@ -509,7 +513,7 @@ public sealed record SwiftTransition
                 var elapsed = SwiftClock.Now - runStart;
                 var curve = elapsed.Ticks + TimeSpan.TicksPerMillisecond >= SwiftTask.Seconds(runAnimation.Duration).Ticks
                     ? 1 : runAnimation.Progress(elapsed.TotalSeconds);
-                return runFrom + (1 - runFrom) * curve;
+                return runFrom + (1 - runFrom) * curve + runImpulseSpeed * runAnimation.Impulse(elapsed.TotalSeconds);
             }
         }
 
@@ -520,13 +524,17 @@ public sealed record SwiftTransition
             {
                 if (callback is null || runAnimation is null) return 0;
                 var seconds = (SwiftClock.Now - runStart).TotalSeconds;
-                return (1 - runFrom) * runAnimation.Speed(seconds);
+                return (1 - runFrom) * runAnimation.Speed(seconds) + (runImpulseSpeed == 0 ? 0 :
+                    runImpulseSpeed * (seconds <= 0 ? 1 : runImpulseAnimation!.Speed(seconds) - runAnimation.Speed(seconds)));
             }
         }
 
         private Marrow.UI.Port.Animation? runAnimation;
         private ContinuousInstant runStart;
         private double runFrom;
+        private double runImpulseSpeed;
+        private Marrow.UI.Port.Animation? runImpulseAnimation;
+        public double Seconds => (SwiftClock.Now - runStart).TotalSeconds;
 
         // Applies the transition at a progress. When a move could not read the child's size yet, the latest state is
         // presented again at the child's next bounds change (its first layout pass), before it is rendered.
@@ -587,7 +595,7 @@ public sealed record SwiftTransition
             callback = null;
         }
 
-        public void Run(Marrow.UI.Port.Animation animation, Action<double, bool> apply, TimeSpan elapsed = default, double from = 0)
+        public void Run(Marrow.UI.Port.Animation animation, Action<double, bool> apply, TimeSpan elapsed = default, double from = 0, double impulseSpeed = 0)
         {
             Stop();
             source = FrameClock.Source.Current;
@@ -595,6 +603,8 @@ public sealed record SwiftTransition
             runAnimation = animation;
             runStart = start;
             runFrom = from;
+            runImpulseSpeed = impulseSpeed;
+            runImpulseAnimation = impulseSpeed == 0 ? null : animation.WithStartSpeed(1);
             Action<TimeSpan>? frame = null;
             frame = _ =>
             {

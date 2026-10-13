@@ -9,11 +9,10 @@ internal sealed class ChatFrameAnimation(Control owner)
 {
     private IFrameSource? source;
     private Action<TimeSpan>? pending;
-    private Animation? curve;
     private ContinuousInstant began;
 
     public bool IsRunning => pending is not null;
-    public double Speed => pending is null ? 0 : curve!.Speed((SwiftClock.Now - began).TotalSeconds);
+    public double Seconds => (SwiftClock.Now - began).TotalSeconds;
 
     public void Stop()
     {
@@ -26,7 +25,6 @@ internal sealed class ChatFrameAnimation(Control owner)
         Stop();
         var start = SwiftClock.Now;
         began = start;
-        curve = animation;
         var duration = SwiftTask.Seconds(animation.Duration);
         source = FrameClock.Source.Current;
         Action<TimeSpan>? frame = null;
@@ -52,11 +50,12 @@ internal sealed class ChatFrameAnimation(Control owner)
 internal sealed class ChatSpringValue(double from, double to, Animation animation, double speed)
 {
     private readonly double distance = to - from;
-    private readonly Animation impulse = animation.WithStartSpeed(1);
+    private readonly Animation carried = animation.WithStartSpeed(to == from ? 1 : speed / (to - from));
 
     public double Value(double seconds, bool complete) => complete ? to
         : from + distance * animation.Progress(seconds) + speed * animation.Impulse(seconds);
 
     public double Speed(double seconds) => seconds <= 0 ? speed
-        : distance * animation.Speed(seconds) + speed * (impulse.Speed(seconds) - animation.Speed(seconds));
+        : distance != 0 ? distance * carried.Speed(seconds)
+        : speed * (carried.Speed(seconds) - animation.Speed(seconds));
 }

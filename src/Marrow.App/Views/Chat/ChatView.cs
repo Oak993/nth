@@ -89,7 +89,7 @@ public sealed class ChatView : Decorator
     private string? terminalDirectory;
     private (TerminalPanel Panel, string? Directory)? leavingTerminal; // the drawer last taken out, while its removal may still be running.
     private readonly ChatFrameAnimation terminalPush;
-    private double terminalPushDistance;
+    private ChatSpringValue? terminalPushRun;
     private (bool Showing, double Height)? push; // the terminal push under way: the pane's settled size is read through it.
     private long? seenDiffRevision;
 
@@ -453,15 +453,14 @@ public sealed class ChatView : Decorator
     // one leaving) has already given the pane its reach, and the new push continues from the margin that reach has now.
     private void PushTerminal(bool showing, Animation animation, double height, bool rowHeld)
     {
-        var speed = terminalPushDistance * terminalPush.Speed;
+        var speed = terminalPush.IsRunning ? terminalPushRun!.Speed(terminalPush.Seconds) : 0;
         var from = showing && !rowHeld ? -height : pane.Margin.Bottom;
         var to = showing ? 0 : -height;
-        terminalPushDistance = to - from;
-        if (animation.KeepsSpeed && to != from) animation = animation.WithStartSpeed(speed / (to - from));
+        terminalPushRun = new(from, to, animation, animation.KeepsSpeed ? speed : 0);
         push = (showing, height);
         terminalPush.Start(animation, progress =>
         {
-            pane.Margin = new Thickness(0, 0, 0, from + (to - from) * progress);
+            pane.Margin = new Thickness(0, 0, 0, terminalPushRun.Value(terminalPush.Seconds, !terminalPush.IsRunning));
             if (!terminalPush.IsRunning && showing) push = null; // overshooting 1 is still a moving drawer.
         });
         // :241-249,290 paneSize takes the layout's settled value once, and the panels re-place under the same panelSlide as the thread
