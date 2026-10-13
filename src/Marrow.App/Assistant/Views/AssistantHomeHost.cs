@@ -261,6 +261,7 @@ public sealed class AssistantHomeHost : Decorator
             FirstRun = () => host.Settings.Value.FirstRunDone ? null : firstRun ??= new FirstRunCard(host.Settings, BrainChoices.Of(model), done: null,
                 openSettings: () => OpenSettings(SettingsPage.Assistant)),
             Digest = digests is null ? null : () => MountDigest(digests, thread?.Id),
+            DigestedThrough = () => digests?.Latest?.At,
             Suggestions = digests is null ? null : () => [.. digests.Open.Select(HomeSuggestion.Of)],
             SuggestionsChanged = digests is null ? null : handler => digests.Watch(() => Dispatcher.UIThread.Post(() =>
             {
@@ -285,6 +286,25 @@ public sealed class AssistantHomeHost : Decorator
         },
         Said = line => Home?.Announce(line),
         ReserveLine = id => controller is null ? "" : TeamBinding.StandingRules(controller, id),
+        PillChoices = () => [.. model.Settings.Accounts.Accounts.Where(a => a.Enabled).Select(a => (a.Id.ToString("D"), model.Settings.Accounts.DisplayName(a.Id) ?? model.Settings.Accounts.DefaultName(a.Id)))],
+        Memory = id =>
+        {
+            if (controller?.Notes?.Store is not { } notes) return;
+            ShowSheet(host.NameOf(id) + " · Memory", new MemoryView(new MemoryModel(notes, host.NameOf, () => id, fixedScope: id), ownsModel: true));
+        },
+        Duties = id =>
+        {
+            if (controller?.Team is not { } team || model.Duties is not { } duties) return;
+            ShowSheet(host.NameOf(id) + " · Duties", new AsturDutiesSheet(() => team.Get(id), duties));
+        },
+        DeleteFiles = controller is null ? null : async id =>
+        {
+            var retired = await controller.RetireAstur(id);
+            if (!retired.Ok) return retired.Problem;
+            foreach (var view in model.Duties?.Scheduler.Duties.Where(d => d.Duty.AssistantId == id).ToArray() ?? [])
+                if (model.Duties?.Scheduler.Remove(view.Duty.Id) is { } problem) return problem;
+            return (await controller.DeleteAsturFiles(id)).Problem;
+        },
     });
 
     // The digest is pinned at the top of the home (6); what it was made from and nth cannot vouch for (a duty's finding, an Astur's paragraph) taints the home chat as it lands
@@ -292,7 +312,11 @@ public sealed class AssistantHomeHost : Decorator
     private Control MountDigest(DigestService digests, Guid? homeThread)
     {
         digestModel?.Dispose();
-        var shown = new DigestModel(digests) { OpenLink = OpenDigestLink };
+        var shown = new DigestModel(digests)
+        {
+            OpenLink = OpenDigestLink,
+            ReadAloud = host.Voice is null ? null : text => host.Voice?.Conversation.ReadAloud(text),
+        };
         digestModel = shown;
         if (homeThread is { } id) digests.PinnedIn(id);
         return new DigestCard(shown);

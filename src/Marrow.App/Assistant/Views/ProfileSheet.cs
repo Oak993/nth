@@ -18,6 +18,7 @@ using Avalonia.Threading;
 using Marrow.Core.Port.Assistant;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Settings;
 
 namespace Marrow.App.Assistant.Views;
 
@@ -192,6 +193,15 @@ public sealed class ProfileSheet : Border
         content.Children.Add(Section("Standing duties", Duties(draft)));
         content.Children.Add(Section("Connections", Connections(draft)));
         content.Children.Add(Section("Budget", Budget(draft)));
+        if (model.PillChoices?.Invoke() is { Count: > 0 } choices)
+        {
+            var picker = new CzMenuButton("Account order", [("", "Use general order"), .. choices.Select(p => (p.Id, p.Name)), .. draft.PillOrder.Where(id => !choices.Any(c => c.Id == id)).Select(id => (id, id + " (unavailable)"))], draft.PillOrder.FirstOrDefault() ?? "");
+            AutomationProperties.SetName(picker, "First account for this Astur");
+            Track("pill-order", picker);
+            picker.SelectionChanged += id => { if (id.Length == 0) model.InheritPillOrder(); else model.PreferAccount(id); };
+            var order = string.Join(" → ", draft.PillOrder.Select(id => choices.FirstOrDefault(p => p.Id == id).Name ?? id));
+            content.Children.Add(Section("Account order", picker, order.Length == 0 ? "Uses your general pill order." : order + ". Other accounts follow in your general order."));
+        }
 
         var alone = new StackPanel { Orientation = Orientation.Vertical, Spacing = 4 };
         alone.Children.Add(Plain(draft.OnItsOwn));

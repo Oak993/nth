@@ -18,7 +18,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Assistant.Views;
 
-public sealed class MemoryView : Decorator
+public sealed class MemoryView : Decorator, IDisposable
 {
     public const double Gutter = 16;
     public const double MaxContentWidth = 860;
@@ -44,8 +44,11 @@ public sealed class MemoryView : Decorator
     private bool refreshing;
     private (string Id, MemoryRowButton Button)? focusRequest;
 
-    public MemoryView(MemoryModel model)
+    private readonly bool ownsModel;
+    public void Dispose() { model.Changed -= OnChanged; if (ownsModel) model.Dispose(); }
+    public MemoryView(MemoryModel model, bool ownsModel = false)
     {
+        this.ownsModel = ownsModel;
         this.model = model;
         searchBox = Field(MemoryViewWords.SearchPrompt, () => model.Query, value => model.Query = value, "Search the notes");
         searchBox.AddHandler(InputElement.KeyDownEvent, (object? _, KeyEventArgs e) =>
@@ -68,7 +71,7 @@ public sealed class MemoryView : Decorator
         }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
 
         var title = Text(MemoryViewWords.Title, 20, SwiftFont.Weight.Semibold, primary: true);
-        var subtitle = Text(MemoryViewWords.Subtitle, SwiftFont.TextStyle.Footnote, secondary: true);
+        var subtitle = Text(model.Subtitle, SwiftFont.TextStyle.Footnote, secondary: true);
         SwiftFont.System(SwiftFont.TextStyle.Footnote).Apply(countLine);
         countLine.Foreground = Chrome.SecondaryText.Brush(countLine);
         SwiftFont.System(SwiftFont.TextStyle.Footnote).Apply(status);

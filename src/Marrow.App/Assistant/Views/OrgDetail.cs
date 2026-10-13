@@ -22,6 +22,10 @@ namespace Marrow.App.Assistant.Views;
 /// <summary>What the Team tab's controls reach outside the panel; a missing one disables its button.</summary>
 public sealed record TeamActions
 {
+    public Action<string>? Memory { get; init; }
+    public Action<string>? Duties { get; init; }
+    public Action? Retired { get; init; }
+    public Func<string, Task<string?>>? DeleteFiles { get; init; }
     /// <summary>Talk to this assistant: Dextra's home, or an Astur's own thread.</summary>
     public Action<string>? Talk { get; init; }
 
@@ -104,6 +108,7 @@ public sealed class OrgDetail : Decorator
     private readonly TextBlock askText;
     private TeamMember? member;
     private bool busy;
+    private bool deleting;
 
     public static readonly string[] Labels = ["Assistant", "Area", "Missions \U000000B7 duties", "Memory notes \U000000B7 grants", "Today's usage", "Reserve"];
 
@@ -130,11 +135,17 @@ public sealed class OrgDetail : Decorator
         Pause = new DetailButton("Pause");
         Settings = new DetailButton("Settings");
         Retire = new DetailButton("Retire");
+        Memory = new DetailButton("Memory");
+        Duties = new DetailButton("Duties");
+        Duties.Click += (_, _) => { if (member is { } m) this.actions.Duties?.Invoke(m.Id); };
+        DeleteFiles = new DetailButton("Delete files");
+        Memory.Click += (_, _) => { if (member is { } m) this.actions.Memory?.Invoke(m.Id); };
+        DeleteFiles.Click += (_, _) => OpenDeleteAsk();
         Talk.Click += (_, _) => { if (member is { } m) this.actions.Talk?.Invoke(m.Id); };
         Pause.Click += (_, _) => PauseOrResume();
         Settings.Click += (_, _) => { if (member is { } m) this.actions.Edit?.Invoke(m.Id); };
         Retire.Click += (_, _) => OpenAsk();
-        foreach (var b in new[] { Talk, Pause, Settings, Retire }) buttons.Children.Add(b);
+        foreach (var b in new[] { Talk, Pause, Settings, Duties, Memory, Retire, DeleteFiles }) buttons.Children.Add(b);
 
         askText = TaskLook.Text("", 12, SwiftFont.Weight.Regular, TaskLook.Ink2, wrap: true);
         askText.MinWidth = 160;
@@ -166,8 +177,11 @@ public sealed class OrgDetail : Decorator
     public DetailButton Pause { get; }
 
     public DetailButton Settings { get; }
+    public DetailButton Duties { get; }
 
     public DetailButton Retire { get; }
+    public DetailButton Memory { get; }
+    public DetailButton DeleteFiles { get; }
 
     public DetailButton Keep { get; }
 
@@ -208,6 +222,13 @@ public sealed class OrgDetail : Decorator
         AutomationProperties.SetName(Settings, "Open " + next.Name + "'s settings");
         AutomationProperties.SetName(Retire, "Retire " + next.Name);
         Retire.IsVisible = !next.IsDextra;
+        DeleteFiles.IsVisible = !next.IsDextra;
+        DeleteFiles.IsEnabled = actions.DeleteFiles is not null && !busy;
+        Memory.IsEnabled = actions.Memory is not null;
+        Duties.IsEnabled = actions.Duties is not null && !next.IsDextra;
+        AutomationProperties.SetName(Duties, "Review " + next.Name + "'s kept duties");
+        AutomationProperties.SetName(Memory, "Open " + next.Name + "'s memory");
+        AutomationProperties.SetName(DeleteFiles, "Delete " + next.Name + "'s files");
         Talk.IsEnabled = actions.Talk is not null;
         Settings.IsEnabled = actions.Edit is not null;
         Retire.IsEnabled = actions.Retire is not null && !busy;
@@ -235,6 +256,9 @@ public sealed class OrgDetail : Decorator
 
     private void OpenAsk()
     {
+        deleting = false;
+        Confirm.Title = "Retire";
+        AutomationProperties.SetName(Confirm, "Retire this Astur");
         if (member is not { IsDextra: false } m || actions.Retire is null) return;
         askText.Text = $"Retire {m.Name}? It is no longer listed or called, and its budget slice is released. Its folder and notes stay until you delete them.";
         AutomationProperties.SetName(askBox, "Confirm retiring " + m.Name);
@@ -242,15 +266,28 @@ public sealed class OrgDetail : Decorator
         Keep.Focus(NavigationMethod.Tab);
     }
 
+    private void OpenDeleteAsk()
+    {
+        if (member is not { IsDextra: false } m || actions.DeleteFiles is null) return;
+        deleting = true;
+        Confirm.Title = "Delete files";
+        AutomationProperties.SetName(Confirm, "Permanently delete this Astur's files");
+        askText.Text = $"Delete {m.Name}'s files? This retires it and permanently removes its folder, browser logins, notes and recordings. Old mission records stay. This cannot be undone.";
+        AutomationProperties.SetName(askBox, "Confirm deleting " + m.Name + "'s files");
+        askBox.Open(true, TaskLook.Still(this));
+        Keep.Focus(NavigationMethod.Tab);
+    }
+
     private void CloseAsk(bool refocus)
     {
         askBox.Open(false, TaskLook.Still(this));
-        if (refocus && Retire.IsEffectivelyVisible && Retire.IsEnabled) Retire.Focus(NavigationMethod.Tab);
+        var opener = deleting ? DeleteFiles : Retire;
+        if (refocus && opener.IsEffectivelyVisible && opener.IsEnabled) opener.Focus(NavigationMethod.Tab);
     }
 
     private async Task RetireNow()
     {
-        if (member is not { IsDextra: false } m || actions.Retire is not { } retire || busy) return;
+        if (member is not { IsDextra: false } m || (deleting ? actions.DeleteFiles : actions.Retire) is not { } retire || busy) return;
         busy = true;
         Confirm.IsEnabled = false;
         Keep.IsEnabled = false;
@@ -258,13 +295,13 @@ public sealed class OrgDetail : Decorator
         try { problem = await retire(m.Id); }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
-            problem = $"nth could not retire {m.Name}: {error.Message}";
+            problem = deleting ? $"nth could not delete {m.Name}'s files: {error.Message}" : $"nth could not retire {m.Name}: {error.Message}";
         }
         busy = false;
         Confirm.IsEnabled = true;
         Keep.IsEnabled = true;
         CloseAsk(refocus: problem is not null);
-        said(problem ?? $"{m.Name} is retired. Its folder and notes stay.");
+        said(problem ?? (deleting ? $"{m.Name}'s files are deleted." : $"{m.Name} is retired. Its folder and notes stay."));
     }
 
     // the words come in on a short rise: a transform and an opacity, over 280 ms

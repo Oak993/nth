@@ -61,7 +61,7 @@ public sealed class AssistantRouter(RouterSetup setup, TimeProvider time, Missio
                 options.Add(new RouteOption(account.Ref.Key, account.Ref.Name, account.Provider, model?.Id, model?.Tier ?? ModelTier.Standard)
                 {
                     Windows = standing?.Windows ?? [],
-                    Rank = account.Rank,
+                    Rank = setup.Rank?.Invoke(request.AssistantId, account) ?? account.Rank,
                     Usable = account.Usable,
                     Refusal = refusal,
                     Rough = standing?.Rough ?? true,
