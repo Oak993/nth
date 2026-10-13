@@ -69,7 +69,14 @@ public sealed class LiveAnswerHost
         LiveViewRecord? found;
         try { found = await lookup(thread, id).ConfigureAwait(false); }
         catch (Exception error) when (error is InvalidOperationException or IOException or OperationCanceledException) { return null; }
-        if (found is not null) lock (gate) Put(thread, found);
+        lock (gate)
+        {
+            // The asynchronous saved lookup may finish after ui_show/ui_update.
+            // The live record is authoritative (ED-NEW-web-review-9).
+            if (views.TryGetValue(thread, out var list)
+                && list.FirstOrDefault(view => string.Equals(view.Id, id, StringComparison.OrdinalIgnoreCase)) is { } current) return current;
+            if (found is not null) Put(thread, found);
+        }
         return found;
     }
 

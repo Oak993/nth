@@ -67,7 +67,10 @@ public sealed class SnapshotCache(TimeProvider time)
     /// <summary>Ends a refresh; stores its frame if it produced one.</summary>
     public void EndRefresh(object view, WebSnapshot? snapshot)
     {
-        Get(view).InFlight = false;
+        // A close removes the entry while the renderer may still be capturing.
+        // Completion must not retain that closed view again (ED-NEW-web-review-2).
+        if (!entries.TryGetValue(view, out var entry)) return;
+        entry.InFlight = false;
         if (snapshot is not null) Put(view, snapshot);
     }
 

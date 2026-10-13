@@ -19,6 +19,7 @@ public sealed class SearchSuggestionSource : IDisposable
     private static readonly Logger Log = new(Logger.Subsystem, "web");
 
     private readonly HttpClient client;
+    internal TimeProvider Clock { get; set; } = TimeProvider.System;
 
     /// <param name="handler">The transport; tests hand a fake. The default has no cookies, no redirects and no proxy credentials.</param>
     public SearchSuggestionSource(HttpMessageHandler? handler = null)
@@ -39,19 +40,22 @@ public sealed class SearchSuggestionSource : IDisposable
         if (SearchSuggestionRules.RequestUrl(engine, typed, isRegisteredScheme) is not { } url) return [];
         try
         {
+            using var deadline = new CancellationTokenSource(Timeout, Clock);
+            using var joined = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
+            var token = joined.Token;
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Referrer = null;
-            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
             if (response.StatusCode != HttpStatusCode.OK) return [];
             var type = response.Content.Headers.ContentType?.MediaType ?? "";
             if (!(type.Contains("json", StringComparison.OrdinalIgnoreCase) || type.Contains("javascript", StringComparison.OrdinalIgnoreCase))) return [];
             if (response.Content.Headers.ContentLength is { } length && length > SearchSuggestionRules.MaxResponseBytes) return [];
-            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            await using var stream = await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
             var buffer = new byte[SearchSuggestionRules.MaxResponseBytes + 1];
             var read = 0;
             while (read < buffer.Length)
             {
-                var count = await stream.ReadAsync(buffer.AsMemory(read), cancellationToken).ConfigureAwait(false);
+                var count = await stream.ReadAsync(buffer.AsMemory(read), token).ConfigureAwait(false);
                 if (count == 0) break;
                 read += count;
             }
