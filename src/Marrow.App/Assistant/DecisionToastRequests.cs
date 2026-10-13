@@ -15,6 +15,9 @@ public static class DecisionToastKeys
     public const string Action = "action";
 
     public const string Nonce = "nonce";
+
+    /// <summary>A duty toast's userInfo key: the mission its click opens.</summary>
+    public const string Mission = "assistantMission";
 }
 
 public static class DecisionToastRequests
@@ -32,6 +35,31 @@ public static class DecisionToastRequests
             Kind = ToastKind.AssistantDecision,
             Decision = notice.Target,
             Buttons = [.. notice.Actions.Select(action => new ToastButton(DecisionNoticeWords.Label(action), UserInfo(notice, action)))],
+            Attribution = AssistantNames.Assistant,
+            Logo = logo,
+        };
+    }
+
+    /// <summary>The tag of a duty toast: one per mission, so a run's toast shown again replaces its own.</summary>
+    public static string DutyIdentifier(Guid mission) => "dextra-duty-" + mission.ToString("N");
+
+    /// <summary>
+    /// A duty's finding as a request: no button answers anything, so there is no nonce; the body click and the one button, Open, bring the mission
+    /// forward. The sound is the default one, as the owner asked to be told.
+    /// </summary>
+    public static ToastRequest BuildDuty(DutyNotice notice, string? logo)
+    {
+        ArgumentNullException.ThrowIfNull(notice);
+        var open = new Dictionary<string, object>(StringComparer.Ordinal)
+        {
+            [DecisionToastKeys.Mission] = notice.Target.ToString("D"),
+            [DecisionToastKeys.Action] = DecisionNoticeWords.Key(NoticeAction.Open),
+        };
+        return new ToastRequest(DutyIdentifier(notice.Target), notice.Title, notice.Body, Sound: true, open)
+        {
+            Kind = ToastKind.AssistantDuty,
+            Mission = notice.Target,
+            Buttons = [new ToastButton(DecisionNoticeWords.Label(NoticeAction.Open), open)],
             Attribution = AssistantNames.Assistant,
             Logo = logo,
         };

@@ -56,6 +56,16 @@ internal sealed class DecisionToastAppRig : IDisposable
 
     public void Pass(TimeSpan by) => H.Main.Advance(by);
 
+    /// <summary>The app's duties over this rig's controller and store, with fake Windows seams; they are never started, so no duty runs (AS-9).</summary>
+    public DutyHost StartDuties() => H.Main.OnMain(() => App.StartDuties(Controller, store, StartupMode.Normal, assistantIds: () => ["dextra", "store"],
+        seams: new DutySeams
+        {
+            RunKey = new FakeRunKey(),
+            TaskHost = new FakeTaskSchedulerHost(),
+            Processes = new FakeProcessRunner((_, _) => new ProcessOutcome(0, "", "")),
+            Desktop = new FakeDesktop(),
+        }));
+
     /// <summary>A press on a toast, as Windows hands it to the running app (the protocol launch, forwarded).</summary>
     public void Press(IReadOnlyDictionary<string, object> info) =>
         H.Main.Loop.Run(() => Delegate.UserNotificationCenter(new UNNotificationResponse(new UNNotification(info))), AppModelHarness.Bound);

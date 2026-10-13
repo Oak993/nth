@@ -5,6 +5,8 @@
 // taken back when its card is answered, held or withdrawn. A button on a toast answers its card only with the nonce made for that very toast,
 // once, and only for a card that still waits and still takes a toast's answer; anything else opens the card for review. The queue's listeners
 // run on the caller's thread, so the work here is a list add and a timer; the channel is called from the main thread.
+// A duty the owner set to "Notify me" (13.1 "Duty opt-in", ED-NEW-dextra-as9-9) joins the same window and the same gap: its finding is news, not a
+// decision, so it waits behind a decision toast, makes no card, keeps no button that answers and needs nothing taken back.
 using System.Security.Cryptography;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Assistant;
@@ -53,6 +55,7 @@ public sealed class DecisionToasts : IDisposable
     private readonly NotificationChannel channel;
     private readonly DecisionToastOptions options;
     private readonly List<Guid> pending = [];
+    private readonly List<DutyFinding> pendingDuties = [];
     private readonly Dictionary<Guid, DecisionNotice> shown = [];
     private readonly List<Guid> shownOrder = [];
     private readonly HashSet<string> reported = [];
@@ -83,6 +86,21 @@ public sealed class DecisionToasts : IDisposable
         }
     }
 
+    /// <summary>
+    /// A run of a "Notify me" duty found something (13.1 "Duty opt-in"). It is gathered with the others of the window into one toast, never
+    /// within the gap of the last toast, never while the Assistant home is in front, and after a decision toast that is due.
+    /// </summary>
+    public void NotifyDuty(DutyFinding finding)
+    {
+        ArgumentNullException.ThrowIfNull(finding);
+        lock (gate)
+        {
+            if (disposed || pendingDuties.Count >= MaxPending) return;
+            pendingDuties.Add(finding);
+            Arm();
+        }
+    }
+
     // Called with the lock held. The next toast comes a window after the first card waiting, and never sooner than the gap after the last toast.
     private void Arm()
     {
@@ -105,6 +123,7 @@ public sealed class DecisionToasts : IDisposable
     private void FlushCore()
     {
         List<DecisionItem> items;
+        bool dutiesWait;
         lock (gate)
         {
             timer?.Dispose();
@@ -112,10 +131,29 @@ public sealed class DecisionToasts : IDisposable
             if (disposed) return;
             items = [.. pending.Select(queue.Find).OfType<DecisionItem>().Where(DecisionNotices.NeedsYou)];
             pending.Clear();
+            dutiesWait = pendingDuties.Count > 0;
         }
-        if (items.Count == 0 || options.HomeOnScreen()) return;
-        var made = DecisionNotices.ForMany(items, options.NameOf);
-        if (made is null) return;
+        if (items.Count == 0 && !dutiesWait) return;
+        if (options.HomeOnScreen())
+        {
+            lock (gate) pendingDuties.Clear(); // the home shows the run on the board; the owner is looking at it
+            return;
+        }
+        var made = items.Count == 0 ? null : DecisionNotices.ForMany(items, options.NameOf);
+        if (made is null)
+        {
+            SendDuties();
+            return;
+        }
+        SendDecision(made);
+        lock (gate)
+        {
+            if (!disposed && pendingDuties.Count > 0) Arm(); // a duty's news follows a decision's toast, after the gap
+        }
+    }
+
+    private void SendDecision(DecisionNotice made)
+    {
         var notice = made with { Nonce = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(16)) };
         var evicted = new List<Guid>();
         lock (gate)
@@ -134,6 +172,26 @@ public sealed class DecisionToasts : IDisposable
         }
         foreach (var old in evicted) _ = WithdrawAsync(old);
         _ = SendAsync(notice);
+    }
+
+    private void SendDuties()
+    {
+        DutyNotice? notice;
+        lock (gate)
+        {
+            if (disposed) return;
+            notice = DutyNotices.ForMany(pendingDuties);
+            pendingDuties.Clear();
+            if (notice is null) return;
+            lastSent = options.Time.GetTimestamp();
+        }
+        _ = SendDutyAsync(notice);
+    }
+
+    private async Task SendDutyAsync(DutyNotice notice)
+    {
+        try { await channel.Send(notice).ConfigureAwait(false); }
+        catch (Exception error) when (error is not OperationCanceledException) { Report("toast.duty.failed", error); } // the run is on the board
     }
 
     private async Task SendAsync(DecisionNotice notice)
@@ -220,6 +278,7 @@ public sealed class DecisionToasts : IDisposable
             timer?.Dispose();
             timer = null;
             pending.Clear();
+            pendingDuties.Clear();
             up = [.. shownOrder];
             shown.Clear();
             shownOrder.Clear();

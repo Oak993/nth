@@ -214,7 +214,7 @@ public sealed class AppDelegate
     {
         // PORT-ONLY (AS-9, ED-NEW-dextra-as9-3): a decision toast is not shown while the Assistant home is in front, checked once more here,
         // right before the Windows call, in case the owner opened the home between the request and now.
-        if (willPresent.UserInfo.ContainsKey(DecisionToastKeys.Decision))
+        if (willPresent.UserInfo.ContainsKey(DecisionToastKeys.Decision) || willPresent.UserInfo.ContainsKey(DecisionToastKeys.Mission))
         {
             var onHome = await MainActor.Run(() => Model is { } home && ToastNotifications.IsSurfaceOnScreen(home, AppSurface.AssistantHome));
             return onHome ? UNNotificationPresentationOptions.None : UNNotificationPresentationOptions.Banner | UNNotificationPresentationOptions.Sound;
@@ -248,6 +248,16 @@ public sealed class AppDelegate
                 if (Model is { } assistant && assistant.DecisionToastActivated(target, nonce, action) == DecisionToastOutcome.Answered) return;
                 windows.ShowMain();
                 Model?.ReviewAssistantDecision(target);
+                windows.Activate();
+            });
+        }
+        // PORT-ONLY (AS-9, ED-NEW-dextra-as9-9): a press on a duty's toast (a "Notify me" finding) brings nth forward on the mission; it answers nothing.
+        if (userInfo.TryGetValue(DecisionToastKeys.Mission, out var missionText) && missionText is string mission && Guid.TryParse(mission, out var run))
+        {
+            return MainActor.Run(() =>
+            {
+                windows.ShowMain();
+                Model?.ReviewAssistantMission(run);
                 windows.Activate();
             });
         }

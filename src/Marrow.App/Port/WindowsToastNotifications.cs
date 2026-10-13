@@ -85,7 +85,7 @@ public static class WindowsToastRegistration
 }
 
 /// <summary>What a toast is about. Thread is every toast nth had before the Assistant (a chat's, an update's).</summary>
-public enum ToastKind { Thread, AssistantDecision }
+public enum ToastKind { Thread, AssistantDecision, AssistantDuty }
 
 /// <summary>One button on a toast: its words, and the userInfo its activation carries (a protocol launch, as the toast's own click).</summary>
 public sealed record ToastButton(string Content, IReadOnlyDictionary<string, object> UserInfo);
@@ -97,6 +97,9 @@ public sealed record ToastRequest(string Identifier, string Title, string Body, 
 
     /// <summary>The decision card a click on an AssistantDecision toast opens.</summary>
     public Guid? Decision { get; init; }
+
+    /// <summary>The mission a click on an AssistantDuty toast opens (a duty with the report style Notify me found something, 13.1).</summary>
+    public Guid? Mission { get; init; }
 
     /// <summary>Buttons under the text; each one launches nth with its own userInfo. None for every Thread toast.</summary>
     public IReadOnlyList<ToastButton> Buttons { get; init; } = [];

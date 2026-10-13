@@ -14,21 +14,27 @@ public sealed class DecisionToastLogo(IToastIconFiles files, string folder, Func
     /// <summary>96 px: the 48 px of the size ladder at 200 % scale (Windows scales it down for 100 %).</summary>
     public const int Pixels = 96;
 
-    private readonly Dictionary<bool, string> installed = [];
+    private readonly Dictionary<(bool Dark, bool News), string> installed = [];
     private readonly object gate = new();
 
-    /// <summary>The picture for the theme the toast will be shown in now, or null when it cannot be written (the toast is then text alone).</summary>
-    public string? Path()
+    /// <summary>The needs-you picture for the theme the toast will be shown in now, or null when it cannot be written (the toast is then text alone).</summary>
+    public string? Path() => Install(news: false);
+
+    /// <summary>The resting picture of a duty's finding, which asks nothing (13.1 "Duty opt-in"); the same rules as <see cref="Path"/>.</summary>
+    public string? NewsPath() => Install(news: true);
+
+    private string? Install(bool news)
     {
         try
         {
             var isDark = dark();
             lock (gate)
             {
-                if (installed.TryGetValue(isDark, out var known)) return known;
-                var path = System.IO.Path.Combine(folder, isDark ? "dextra-needs-you-dark.png" : "dextra-needs-you-light.png");
-                var shown = ToastIcon.Install(files, path, ArmillaStill.Png(ArmillaStill.NeedsYouLook(isDark), Pixels));
-                installed[isDark] = shown;
+                if (installed.TryGetValue((isDark, news), out var known)) return known;
+                var name = (news ? "dextra-news-" : "dextra-needs-you-") + (isDark ? "dark" : "light") + ".png";
+                var look = news ? ArmillaStill.NewsLook(isDark) : ArmillaStill.NeedsYouLook(isDark);
+                var shown = ToastIcon.Install(files, System.IO.Path.Combine(folder, name), ArmillaStill.Png(look, Pixels));
+                installed[(isDark, news)] = shown;
                 return shown;
             }
         }

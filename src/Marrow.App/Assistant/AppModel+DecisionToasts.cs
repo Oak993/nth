@@ -13,6 +13,7 @@ public sealed partial class AppModel
 {
     private DecisionToasts? dextraToasts;
     private Guid? pendingAssistantReview;
+    private Guid? pendingAssistantMission;
     private Lazy<DecisionToastLogo>? decisionLogo;
 
     /// <summary>The decision toasts of the running controller, or null.</summary>
@@ -30,6 +31,12 @@ public sealed partial class AppModel
     /// <summary>A toast asked for a card while the home is already built: it shows the card now.</summary>
     public event Action<Guid>? AssistantReviewRequested;
 
+    /// <summary>The mission a duty's toast asked to see, until the home shows it (or null).</summary>
+    public Guid? PendingAssistantMission => pendingAssistantMission;
+
+    /// <summary>A duty's toast asked for a mission while the home is already built: it shows the mission now.</summary>
+    public event Action<Guid>? AssistantMissionRequested;
+
     /// <summary>
     /// Binds the toasts to a controller's queue. <paramref name="nameOf"/> is the asking assistant's name by id. The toast shows only while
     /// the home is not in front (<see cref="ToastNotifications.IsSurfaceOnScreen"/>) and only for a card that needs the owner.
@@ -43,7 +50,8 @@ public sealed partial class AppModel
         // The picture is written only for the real Windows toast center: a recording center (a test's) or none gets the text alone.
         var channel = DecisionChannelOverride ?? new WindowsNotificationChannel(
             logo: () => ToastNotifications.Center.Current is WindowsToastCenter ? decisionLogo.Value.Path() : null,
-            requestPermission: RequestNotificationPermission);
+            requestPermission: RequestNotificationPermission,
+            newsLogo: () => ToastNotifications.Center.Current is WindowsToastCenter ? decisionLogo.Value.NewsPath() : null);
         var toasts = new DecisionToasts(controller.Queue, channel, new DecisionToastOptions
         {
             NameOf = nameOf,
@@ -87,4 +95,24 @@ public sealed partial class AppModel
 
     /// <summary>The home took the card up: the request is done.</summary>
     public void TakeAssistantReview() => pendingAssistantReview = null;
+
+    /// <summary>
+    /// A duty with the report style Notify me found something (13.1 "Duty opt-in"; DutyHost calls it when a run ends). The toast follows the same rules
+    /// as a decision's: gathered, spaced, and not shown while the home is in front. With Dextra off there is no toast to make.
+    /// </summary>
+    internal void NotifyDutyFinding(DutyFinding finding) => dextraToasts?.NotifyDuty(finding);
+
+    /// <summary>
+    /// Shows a mission (a duty toast's Open or body): the home opens in the main area on its Missions tab, with the mission's card brought into view
+    /// (a built home does it at once; one that is made after this does it when it is built).
+    /// </summary>
+    public void ReviewAssistantMission(Guid mission)
+    {
+        pendingAssistantMission = mission;
+        ShowAssistantHome();
+        AssistantMissionRequested?.Invoke(mission);
+    }
+
+    /// <summary>The home took the mission up: the request is done.</summary>
+    public void TakeAssistantMission() => pendingAssistantMission = null;
 }

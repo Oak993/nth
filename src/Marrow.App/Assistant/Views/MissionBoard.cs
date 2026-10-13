@@ -140,6 +140,18 @@ public sealed class MissionBoard : Decorator
         }
     }
 
+    /// <summary>
+    /// Brings one task's card into view (a duty toast's Open, AS-9): the list is read again and the card scrolls to where the owner can see it. False when
+    /// no card shows that task (it is not on the board today).
+    /// </summary>
+    public bool Reveal(Guid job)
+    {
+        Refresh();
+        if (Card(job) is not { } card) return false;
+        Avalonia.Threading.Dispatcher.UIThread.Post(card.BringIntoView, Avalonia.Threading.DispatcherPriority.Loaded);
+        return true;
+    }
+
     /// <summary>Reads the missions again and places every card.</summary>
     public void Refresh()
     {

@@ -9,6 +9,9 @@ internal sealed class FakeNotificationChannel : NotificationChannel
 
     public List<DecisionNotice> Sent { get; } = [];
 
+    /// <summary>The duty notices it was sent (a "Notify me" duty's finding, 13.1).</summary>
+    public List<DutyNotice> SentDuty { get; } = [];
+
     public List<Guid> Withdrawn { get; } = [];
 
     /// <summary>Whether the channel says it took the notice.</summary>
@@ -21,6 +24,13 @@ internal sealed class FakeNotificationChannel : NotificationChannel
     {
         if (Throws is { } error) throw error;
         Sent.Add(notice);
+        return Task.FromResult(Takes);
+    }
+
+    public override Task<bool> Send(DutyNotice notice, CancellationToken cancellationToken = default)
+    {
+        if (Throws is { } error) throw error;
+        SentDuty.Add(notice);
         return Task.FromResult(Takes);
     }
 
