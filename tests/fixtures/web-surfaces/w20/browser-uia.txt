@@ -1,0 +1,5 @@
+Button|Visus · a.test, project preview, secure connection
+Window|a.test wants to open Mail (mailto:). mailto:dana@example.com. Press F6 to answer.
+Live|Assertive
+Button|Open this mailto: link in Mail
+Button|Don't open Mail
