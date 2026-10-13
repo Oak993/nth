@@ -63,6 +63,8 @@ internal sealed partial class LiveThreadPorts
     {
         MainActor.AssumeIsolated(); ObjectDisposedException.ThrowIf(disposed, this);
         var runtime = app.Runtime(thread);
+        if (app.InstallerHoldsNewTurns) throw new InvalidOperationException("nth is closing to update");
+        using var admission = app.AdmitInstallerTurn(thread) ?? throw new InvalidOperationException("nth is closing to update");
         await runtime.EnsureLoaded(); ct.ThrowIfCancellationRequested();
         if (disposed || retired.Contains(thread) || app.Thread(thread) is null) throw new OperationCanceledException();
         var source = Active(thread);
@@ -80,6 +82,10 @@ internal sealed partial class LiveThreadPorts
             {
                 opinionEntries[(thread, id)] = new(entry, Array.AsReadOnly(snapshot));
                 started = true;
+                // Until association commits, the existing failure path can remove this prompt.
+                admission.MarkDurable();
+                if (InstallerTurnLease.Current is { IsLive: true, RequiresDurability: true } captured && captured.Thread == thread)
+                    captured.MarkDurable();
             }, ct);
             runtime.OpinionAssociationsChanged();
             return round;

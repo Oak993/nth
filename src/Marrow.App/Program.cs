@@ -41,14 +41,43 @@ public static class Program
     {
         if (!InstalledByVelopack(baseDirectory)) return;
         var app = VelopackApp.Build();
+        // nth installer PLAN.md 5 (unit U9, ED-NEW-inst-u9-1): the setup's leftover folders go with the app, unless a setup or the uninstaller is open.
+        SetupLeftoversStartup.RegisterUninstall(hook => app.OnBeforeUninstallFastCallback(hook));
         // SK-13 / DL-16: the skills and tools data is unlocked and deleted before Velopack removes the app (ONDEMAND-PLAN.md 3.8).
         SkillsUninstallHook.Register(hook => app.OnBeforeUninstallFastCallback(hook), SkillsDataRoot.Resolve);
+        // nth installer PLAN.md 8 and 8a (unit U5, ED-NEW-inst-u5-1): Start, the desktop shortcut, the root uninstaller
+        // and the uninstall key, inside Velopack's hook budgets. The real shell and HKCU are bound here only.
+        NthInstallHook.Register(
+            hook => app.OnAfterInstallFastCallback(hook),
+            hook => app.OnAfterUpdateFastCallback(hook),
+            hook => app.OnBeforeUninstallFastCallback(hook),
+            version => NthInstallHook.ContextFor(baseDirectory, version),
+            () => new ShellLinks(),
+            () => new RegistryUserHive(Microsoft.Win32.Registry.CurrentUser));
         app.Run();
     }
 
-    internal static bool InstalledByVelopack(string baseDirectory) =>
-        Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(baseDirectory)) is { } root
-        && File.Exists(Path.Combine(root, "Update.exe"));
+    internal static bool InstalledByVelopack(string baseDirectory) => InstalledRoot(baseDirectory) is not null;
+
+    /// <summary>The Velopack install root this app runs from (the folder one above its own <c>current</c> folder, where Update.exe is), or null for a dev run, a portable copy or a test host.</summary>
+    internal static string? InstalledRoot(string baseDirectory) =>
+        Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(baseDirectory)) is { } root && File.Exists(Path.Combine(root, "Update.exe")) ? root : null;
+
+    /// <summary>
+    /// ED-002 reopens the running instance when a second nth is started; ED-NEW-inst-u8-3 makes one exception: a start by the
+    /// "Open at sign-in" entry (<see cref="SignInEntry.Argument"/>) does nothing to a running nth.
+    /// </summary>
+    internal static bool ShouldReopenRunningInstance(IReadOnlyList<string> args) => !SignInEntry.IsAtSignInLaunch(args);
+
+    /// <summary>
+    /// nth installer PLAN.md 8 and 8a (unit U8, ED-NEW-inst-u8-1): Settings > General > "On this PC" manages nth's desktop shortcut and
+    /// sign-in entry, in a Velopack install only. The real shell and the real HKCU are bound here (and in the self-heal below) only.
+    /// </summary>
+    internal static void BindOnThisPc(string baseDirectory)
+    {
+        if (!InstalledByVelopack(baseDirectory) || InstallLayout.RootOf(baseDirectory) is not { } root) return;
+        OnThisPcPlatform.Slot.SetProcessDefault(new OnThisPcPlatform(root, () => new ShellLinks(), () => new RegistryUserHive(Microsoft.Win32.Registry.CurrentUser)));
+    }
 
     [STAThread]
     public static int Main(string[] args)
@@ -63,6 +92,10 @@ public static class Program
         // Tactus (OD-0140, ED-NEW-pcctl-10): the nth-pc relay, the same kind of private headless child.
         if (args.FirstOrDefault() == Marrow.Services.Port.PcControl.PcControlBridge.Command)
             return Marrow.Services.Port.PcControl.PcControlBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
+        // Tactus's separate workspace (P18, ED-NEW-pcws-6): the agent the child session runs, and the user's own enable and
+        // disable commands, headless like the relays above.
+        if (Marrow.App.Port.PcControl.Workspace.WorkspaceCommands.Handles(args))
+            return Marrow.App.Port.PcControl.Workspace.WorkspaceCommands.Run(args).GetAwaiter().GetResult();
         // OD-0062, ED-235: Velopack's startup hook, before anything else (before the single-instance lock, the toast
         // identity, every binding). When Update.exe runs the app to install, update or uninstall it (--veloapp-*
         // arguments) this handles the event and exits the process; started normally it returns at once.
@@ -110,14 +143,21 @@ public static class Program
             if (DroppyCodeApp.ForwardNotificationArguments(args)) return 0;
             // A recognized toast whose transport failed must not reopen the main window (especially an update).
             if (args.Any(argument => ToastActivation.Decode(WindowsToastStartup.Identity, argument) is not null)) return 1;
-            ReopenSignal.Send(DroppyCodeApp.ReopenSignalName); // ED-002: the running instance runs the reopen path
+            // nth installer PLAN.md 8 (unit U8, ED-NEW-inst-u8-3): the sign-in entry starts nth with --at-sign-in, and a running nth must not
+            // be pulled to the front by it. A launch by the user (Start, the desktop shortcut, a double click) still reopens as ED-002 says.
+            if (ShouldReopenRunningInstance(args)) ReopenSignal.Send(DroppyCodeApp.ReopenSignalName); // ED-002: the running instance runs the reopen path
             return 0;
         }
         using var instanceLock = singleInstanceLock;
+        // nth installer PLAN.md 3a (U4, ED-NEW-inst-u4-3): while nth Setup runs Velopack on this install root, Velopack stops every
+        // process in it, so an nth opened now would show a window and be killed. It waits here, with no window, at most ten minutes.
+        DroppyCodeApp.WaitForInstallerToFinish(AppContext.BaseDirectory);
+        BindOnThisPc(AppContext.BaseDirectory);
         // OD-0135: the product is named nth. Once, before anything reads settings, logs, the library or the GPU program cache, the
         // old "Marrow Code" data folder and .marrow state folder are COPIED to their new names (never moved; the old app may still run).
         LegacyDataCopy.CopyProductFolders(DevDataRoot.LocalApplicationData(), DevDataRoot.IsRedirected ? DevDataRoot.LocalApplicationData() : LoginEnvironment.HomeDirectory, AppInfo.Current.IsDevelopment);
         DesktopPerformanceProbe.BeginStartup();
+        StartupPrimes.PrimeSkillsCatalogue(StartupPrimes.Pool); // ED-NEW-perf-startup-structure-3: the 1.2 MB catalogue is parsed on the pool while the desktop is bound; the skills host below takes the one parse
         var bindingWork = AuroraBootTrace.Begin("Startup: desktop bindings");
         Marrow.App.Port.ModelsPalette.PaletteStartup.Begin(); // ED-622: overlap verified pack loading with desktop bindings.
         using var reopen = ReopenSignal.Create(DroppyCodeApp.ReopenSignalName);
@@ -131,7 +171,9 @@ public static class Program
         var settings = new SettingsStore(SettingsStore.ProductionPath(localAppData));
         UserDefaults.Standard.SetProcessDefault(settings);
         Marrow.App.Port.Settings.ProviderSwitchRepair.RunOnce(settings); // ED-NEW-providersmerge-switch-repair-1: once, before AppSettings reads it, the providers the dead switch of older builds wrote off are on again
-        Marrow.UI.Theme.Wallpapers.WallpaperLibraryStore.Shared.SetProcessDefault(new(settings));
+        // ED-NEW-perf-startup-structure-5: the store (made on first use from UserDefaults.Standard, which is bound above) checks a saved wallpaper against the whole catalogue; that catalogue is read on the pool,
+        // so the first window's build finds it made, and with no wallpaper saved nothing is read. The explicit SetProcessDefault(new(settings)) that made the store here, on the UI thread before any window, is gone.
+        StartupPrimes.PrimeWallpapers(settings, StartupPrimes.Pool);
         AppDomain.CurrentDomain.UnhandledException += (_, _) => settings.Synchronize();
         // Storage.swift:19-48's roots (OD-0008 C7: %LOCALAPPDATA%\Marrow Code; OD-0012 F1: %USERPROFILE%\.marrow)
         // and StoragePaths.swift's roots (ED-195: split out of Storage.swift at B3), the sibling Ambient
@@ -159,12 +201,15 @@ public static class Program
         bindingWork.Dispose();
         AuroraBootWarmup.Register(); // OD-0113: the imported renderer joins the same awaited preparation
         NthMotionWarmup.Register(); // OD-0136 amendment 2 (ED-NEW-nth-motion): the nth motion pack's programs, same step
+        Marrow.App.Port.Voice.VoiceWarmup.Register(); // ED-NEW-perf-startup-structure-2: the two voice orbs' programs ("Voice orbs", step 55) are compiled in the Getting ready pass, not on the render thread when the mic orb first shows
+        Marrow.App.Port.Voice.VoiceGlowWarmup.Register(); // ED-NEW-perf-startup-structure-2: the voice glow's programs ("Voice glow", step 56), same pass
         Marrow.App.Port.MultiAccount.Handshake.HandshakeGpuProgram.EnsureRegistered(); // MA-4-2: prime the filament gradient and bloom before a live Handshake.
         using (AuroraBootTrace.Begin("Startup: Avalonia setup"))
             MarrowApplication.BuildAvaloniaApp().SetupWithLifetime(lifetime);
         // ED-065, R-ISO-1: the main actor is Avalonia's UI thread, bound before any window and before the hang
         // watchdog's first ping (HangWatchdog.swift:52) posts to it.
         MainActor.Bind(AvaloniaMainExecutor.Instance);
+        StartupPrimes.PrimeSymbols(StartupPrimes.Pool); // ED-NEW-perf-startup-structure-5: the SF-symbol mapping (needs Avalonia's asset loader, set up above) is read before the cloaked window's first icon asks for it
         DesktopPerformanceProbe.Start();
         // SwiftUI's default @Environment(\.openURL): the system opens the link (MarkdownView.swift:1110, :1148).
         InlineText.OpenUrl = url => Marrow.Services.Port.Workspace.Open.Current(url);
@@ -172,6 +217,8 @@ public static class Program
         var shell = new AppShell(new AppDelegate(), exit: () => lifetime.Shutdown(), afterWillTerminate: () => settings.Synchronize());
         var launchReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var notifications = DroppyCodeApp.ListenForNotificationArguments(shell.Delegate, launchReady.Task);
+        // nth installer PLAN.md 3a (U4, ED-NEW-inst-u4-1): nth Setup asks over this pipe whether nth may quit before it updates the install.
+        using var installerControl = DroppyCodeApp.ListenForInstallerControl(shell, launchReady.Task);
 
         DroppyCodeApp.RunPrologue(); // DroppyCodeApp.swift:7-19
 
@@ -198,7 +245,12 @@ public static class Program
         Marrow.App.Port.MultiAccount.Thread.ThreadPortSeams.Bind(Marrow.App.Window.WindowManager.Shared.Model);
         shell.FinishLaunching();
         launchReady.TrySetResult();
+        // nth installer PLAN.md 5 (unit U9, ED-NEW-inst-u9-1): nth Setup's leftover folders are removed on the pool once the first window is up, when no setup runs.
+        _ = SetupLeftoversStartup.SweepAtStart(AppContext.BaseDirectory);
         skills?.CollectInBackground(); // SK-13: the startup GC runs on the pool once the main window is up, never on the launch path (single-instance lock is already held)
+        // nth installer PLAN.md 8 and 8a (unit U5): the start-time self-heal of Start, nth's desktop shortcuts and the
+        // uninstall key, on the pool after the first window; nothing outside a Velopack install.
+        _ = NthInstallHook.StartSelfHeal(AppContext.BaseDirectory, InstalledByVelopack, () => new ShellLinks(), () => new RegistryUserHive(Microsoft.Win32.Registry.CurrentUser));
         DroppyCodeApp.ReceiveNotificationArguments(shell.Delegate, args); // ED-220: cold protocol activation
         reopen.Listen(() => shell.Reopen(lifetime.Windows));
     }

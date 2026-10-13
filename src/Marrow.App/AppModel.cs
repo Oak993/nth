@@ -694,6 +694,7 @@ public sealed partial class AppModel : MainActorModel
         runtime.SaveNow(); // AppModel.swift:502
         runtime.CancelPersistence(); // AppModel.swift:503
         runtimes.Remove(id); // AppModel.swift:504
+        Marrow.App.Views.Chat.TimelineBlockCache.Forget(id); // PORT-ONLY (ED-NEW-perf-memory-3): the block cache would keep the released transcript alive
         return true; // AppModel.swift:505
     }
 
@@ -1232,6 +1233,7 @@ public sealed partial class AppModel : MainActorModel
             runtime.CancelPersistence(); // AppModel.swift:1072
             runtime.StopSession(); // AppModel.swift:1073
         }
+        Marrow.App.Views.Chat.TimelineBlockCache.Forget(thread.Id); // PORT-ONLY (ED-NEW-perf-memory-3): a deleted thread's transcript is not kept
         Terminals.CloseAll(thread.Id); // AppModel.swift:1074-1075
         if (deletingDocument) Storage.DeleteDocument(thread.Id); // AppModel.swift:1076-1077
     }
@@ -1261,6 +1263,7 @@ public sealed partial class AppModel : MainActorModel
     // AppModel.swift:1020-1051. Swift: spawnSubagent(from:title:prompt:), @discardableResult.
     public ChatThread? SpawnSubagent(Guid parentID, string title, string prompt)
     {
+        if (InstallerHoldsNewTurns) return null;
         if (Thread(parentID) is not { } parent) return null; // AppModel.swift:1022
         if (Subagent(parentID) is { } existing) // AppModel.swift:1023
         {
@@ -1617,6 +1620,7 @@ public sealed partial class AppModel : MainActorModel
             DiskWriter.Shared.WriteSynchronously(snapshot, Storage.ThreadURL(runtime.ThreadID)); // AppModel.swift:1341
         }
         DiskWriter.Shared.WaitForQueuedWrites(); // AppModel.swift:1343
+        Marrow.Services.Port.MultiAccount.HandoffJournalWriter.WaitForQueuedWrites(); // ED-NEW-perf-ui-thread-5: the handoff journals the runtimes just handed over
         Terminals.TerminateAll(); // AppModel.swift:1344
     }
 }

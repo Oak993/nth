@@ -21,6 +21,7 @@ public sealed partial class MultiAccountRouting
     private readonly Dictionary<Guid, ThreadAccountRouting> routes = [];
     private readonly Dictionary<Guid, (UsageAccountKey Key, string? Plan)> connected = [];
     private ITimer? timer;
+    private readonly AppAttention attention = AppAttention.Instance.Current;
     private Task tail = Task.CompletedTask;
     private readonly Dictionary<Task, Task> polls = [];
     private readonly Dictionary<Task, Task> operations = [];
@@ -88,18 +89,36 @@ public sealed partial class MultiAccountRouting
 
     private void UpdateReportUse()
     {
-        var active = runtimes.Values.Select(runtime => ResolveAccount(runtime.UsageAccount, runtime)).Where(id => id is not null).ToHashSet();
+        var seen = attention.Seen;
+        var active = ActiveAccounts(seen);
         foreach (var pair in connected)
         {
             var account = app.Settings.Accounts.Accounts.FirstOrDefault(row => row.Id == pair.Key);
-            scheduler.SetInUse(pair.Value.Key, account is { Enabled: true } && (reportObservers > 0 || active.Contains(pair.Key) || limits.HasPendingHandshakeCost(pair.Key)));
+            scheduler.SetInUse(pair.Value.Key, account is { Enabled: true } && InUse(pair.Key, seen, active));
         }
+    }
+
+    // ED-NEW-perf-idle-5: an account is polled (every 3 min, a process start for some providers) only while somebody can use the
+    // numbers: the reports are on a window that can be seen, a loaded thread's account while a window can be seen or its turn
+    // runs, or a handshake cost is waiting for its reading. Seen again, SetInUse(true) reads at once (Next = Allowed(now)).
+    private bool InUse(Guid account, bool seen, HashSet<Guid?> active) =>
+        (seen && reportObservers > 0) || active.Contains(account) || limits.HasPendingHandshakeCost(account);
+
+    private HashSet<Guid?> ActiveAccounts(bool seen) => runtimes.Values
+        .Where(runtime => seen || runtime.IsRunning || runtime.HasWorkingHeads)
+        .Select(runtime => ResolveAccount(runtime.UsageAccount, runtime)).Where(id => id is not null).ToHashSet();
+
+    private void SeenChanged()
+    {
+        if (MainActor.IsIsolated) UpdateReportUse();
+        else MainActor.Post(UpdateReportUse);
     }
 
     private void PauseReports()
     {
         pollingEpoch++;
         timer?.Dispose();
+        if (timer is not null) attention.Changed -= SeenChanged;
         timer = null;
         foreach (var pair in connected)
         {
@@ -285,6 +304,7 @@ public sealed partial class MultiAccountRouting
         if (timer is not null) return;
         var epoch = Interlocked.Read(ref pollingEpoch);
         timer = clock.CreateTimer(_ => QueueBeat(epoch), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        attention.Changed += SeenChanged; // ED-NEW-perf-idle-5
     }
 
     private void SettingsChanged() => QueueBeat(Interlocked.Read(ref pollingEpoch));
@@ -305,7 +325,8 @@ public sealed partial class MultiAccountRouting
     private async Task RefreshAsync()
     {
         var available = app.Settings.Accounts.Accounts.Where(app.IsAccountConnected).ToArray();
-        var active = runtimes.Values.Select(runtime => ResolveAccount(runtime.UsageAccount, runtime)).Where(id => id is not null).ToHashSet();
+        var seen = attention.Seen;
+        var active = ActiveAccounts(seen);
         foreach (var id in connected.Keys.Except(available.Select(row => row.Id)).ToArray())
         {
             // Metadata may already be removed, so use the captured service/key instead of looking it up again.
@@ -328,15 +349,21 @@ public sealed partial class MultiAccountRouting
                 TrackPoll(scheduler.PlanChangedAsync(key));
             }
             if (!account.Enabled) limits.ForgetHandshakeCosts(account.Id);
-            scheduler.SetInUse(key, account.Enabled && (reportObservers > 0 || active.Contains(account.Id) || limits.HasPendingHandshakeCost(account.Id)));
+            scheduler.SetInUse(key, account.Enabled && InUse(account.Id, seen, active));
             scheduler.SetHandshakePercent(key, app.Settings.Accounts.EffectiveHandshakePoint(account.Id).Percentage);
         }
         TrackPoll(scheduler.RefreshDueAsync());
         await Task.CompletedTask;
     }
 
+    internal void ResumeAfterInstallerQuit()
+    {
+        MainActor.AssumeIsolated();
+        foreach (var thread in routes.Keys.ToArray()) _ = MainActor.Spawn(() => TickAsync(thread));
+    }
     private async Task TickAsync(Guid thread)
     {
+        if (app.InstallerHoldsNewTurns) return;
         if (ManualSelectionPending(thread) || app.ApiKeys.AwaitingChoice(thread)) return;
         if (!routes.TryGetValue(thread, out var route)) return;
         if (!route.Runtime.TryHandshakeAccountId(out var active)) { Detach(thread); return; }
@@ -350,8 +377,11 @@ public sealed partial class MultiAccountRouting
         await route.Machine.TickAsync(route.Cancellation.Token);
         if (route.ResumeWaiting && route.Runtime.IsAccountSwitchSafe && route.LimitedAccount is { } account && route.LimitedTurn is { } turn)
         {
+            var installerGeneration = app.InstallerQuitGeneration;
             route.ResumeWaiting = false;
-            await route.Runtime.TryResumeAfterAccountWaitAsync(account, route.LimitedEpoch, turn, route.LimitedSessionId, route.Cancellation.Token);
+            var resumed = await route.Runtime.TryResumeAfterAccountWaitAsync(account, route.LimitedEpoch, turn, route.LimitedSessionId, route.Cancellation.Token);
+            if (!resumed && (app.InstallerHoldsNewTurns || app.InstallerQuitGeneration != installerGeneration)
+                && routes.TryGetValue(thread, out var current) && ReferenceEquals(current, route)) route.ResumeWaiting = true;
         }
     }
 

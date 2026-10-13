@@ -39,7 +39,7 @@ public sealed partial class ThreadRuntime : IIgnisRuntimePort, IIgnisRuntimeTime
     {
         get
         {
-            if (Phase != RuntimePhase.Idle || IsReverting || ignisSilentCompact) return false;
+            if (InstallerHoldsNewTurns || Phase != RuntimePhase.Idle || IsReverting || ignisSilentCompact) return false;
             if (FollowUps.Count != 0 || pendingSend is not null) return false;
             if (Approvals.Count != 0 || Questions.Count != 0) return false;
             if (hydraPendingReports.Count != 0 || hydraBatches.Count != 0 || hydraWaiting.Count != 0) return false;
@@ -64,7 +64,7 @@ public sealed partial class ThreadRuntime : IIgnisRuntimePort, IIgnisRuntimeTime
     {
         if (!IgnisIsBetweenTasks || session is null) return false;
         ignisLastRequestAt = SwiftDate.Now;
-        _ = MainActor.Spawn(StartIgnisPingTurn);
+        _ = SpawnInstallerTurn(StartIgnisPingTurn);
         return true;
     }
 
@@ -85,12 +85,12 @@ public sealed partial class ThreadRuntime : IIgnisRuntimePort, IIgnisRuntimeTime
     {
         if (!IgnisIsBetweenTasks || session is not { } live || IgnisSessionHooks.KeepWarm.Current(live) is not { } keepWarm) return false;
         ignisLastRequestAt = SwiftDate.Now;
-        _ = MainActor.Spawn(async () =>
+        _ = SpawnInstallerTurn(async () =>
         {
             try { await keepWarm(); }
             catch (Exception) { /* a failed keep-warm is a cold cache later; the controller sees it as no usage */ }
             await MainActor.Run(() => IgnisController?.TurnFinished(ThreadID));
-        });
+        }, requiresDurability: false);
         return true;
     }
 

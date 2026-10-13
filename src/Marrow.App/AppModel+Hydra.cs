@@ -265,11 +265,11 @@ public sealed partial class AppModel
         string? profile,
         Func<HydraPersona, HydraPrompts.Workplace, string> brief)
     {
-        if (Thread(parentID) is not { } parent) return null;
+        if (InstallerHoldsNewTurns || Thread(parentID) is not { } parent) return null;
         var head = InsertHydraHead(parent, task, origin, batchID, preferredIndex, project, profile, null);
         if (head is null) return null;
         var id = head.Id;
-        MainActor.Spawn(() => StartDroppyHead(id, attachments, brief));
+        Runtime(id).SpawnInstallerTurn(() => StartDroppyHead(id, attachments, brief));
         return head;
     }
 
@@ -550,19 +550,22 @@ public sealed partial class AppModel
         if (status == TurnStatus.Failed && IsLaunchFailure(error ?? "") && toolCount == 0 && previousRetries < 2 &&
             firstUser is { } brief && (brief.Text.Trimmed().Length > 0 || brief.Attachments.Count > 0))
         {
-            var attempt = previousRetries + 1;
-            HydraHeadRetries = HydraHeadRetries.Mutating(values => values[head.Id] = attempt);
-            var stagger = ((info.Index % 4 + 4) % 4) * 0.5;
-            MainActor.Spawn(async () =>
+            ScheduleInstallerRetry(head.Id, () =>
             {
-                await SwiftTask.TrySleep(SwiftTask.Seconds(attempt * 2 + stagger));
-                if (ExistingRuntime(head.Id) is not { IsRunning: false } retryRuntime ||
-                    Thread(head.Id)?.Hydra?.HydraHeadInfoStatus != HydraHeadInfo.Status.Running)
-                    return;
-                // AppModel+Hydra.swift:696-697 retries through the composer's ordinary send path.
-                retryRuntime.Draft = new ComposerDraft { Text = brief.Text, Attachments = ValueList<Attachment>.Empty };
-                // ED-NEW-lean-18: the retried session starts inside the head's priority group too.
-                using (HydraHeadPriority(head.Id).Enter()) retryRuntime.Send();
+                var attempt = previousRetries + 1;
+                HydraHeadRetries = HydraHeadRetries.Mutating(values => values[head.Id] = attempt);
+                var stagger = ((info.Index % 4 + 4) % 4) * 0.5;
+                runtime.SpawnInstallerTurn(async () =>
+                {
+                    await SwiftTask.TrySleep(SwiftTask.Seconds(attempt * 2 + stagger));
+                    if (ExistingRuntime(head.Id) is not { IsRunning: false } retryRuntime ||
+                        Thread(head.Id)?.Hydra?.HydraHeadInfoStatus != HydraHeadInfo.Status.Running)
+                        return;
+                    // AppModel+Hydra.swift:696-697 retries through the composer's ordinary send path.
+                    retryRuntime.Draft = new ComposerDraft { Text = brief.Text, Attachments = ValueList<Attachment>.Empty };
+                    // ED-NEW-lean-18: the retried session starts inside the head's priority group too.
+                    using (HydraHeadPriority(head.Id).Enter()) retryRuntime.Send();
+                });
             });
             return;
         }

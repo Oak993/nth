@@ -279,7 +279,23 @@ public sealed class TerminalHostView : Border
             Math.Clamp((int)Math.Floor(size.Height / cell.Height), 1, short.MaxValue));
     }
 
+    // ED-NEW-perf-motion-1: the cell is measured once per font and display scale, not on every paint, layout and hit test.
+    private (SwiftFont? Font, double Scale, Size Cell)? measuredCell;
+
+    /// <summary>Times the cell was measured (for tests).</summary>
+    internal int CellMeasures { get; private set; }
+
     private Size MeasureCell()
+    {
+        var scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
+        if (measuredCell is { } known && Equals(known.Font, Font) && known.Scale.Equals(scale)) return known.Cell;
+        var cell = MeasureCellAt(scale);
+        measuredCell = (Font, scale, cell);
+        CellMeasures++;
+        return cell;
+    }
+
+    private Size MeasureCellAt(double scale)
     {
         var resolved = (Font ?? SwiftFont.MonospacedSystemFont(12, SwiftFont.Weight.Regular)).Resolve();
         // SwiftTerm 1.20.0 AppleTerminalView.swift:410-444 measures the W advance and
@@ -288,7 +304,6 @@ public sealed class TerminalHostView : Border
         var typeface = new Typeface(resolved.FontFamily, resolved.FontStyle, resolved.FontWeight);
         var measured = new FormattedText("W", CultureInfo.InvariantCulture,
             Avalonia.Media.FlowDirection.LeftToRight, typeface, resolved.FontSize, Brushes.White);
-        var scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
         var cellWidth = Math.Max(1, Math.Round(measured.Width * scale) / scale);
         var cellHeight = Math.Clamp(Math.Ceiling(measured.Height * scale) / scale, 1, 8192);
         return new Size(cellWidth, cellHeight);

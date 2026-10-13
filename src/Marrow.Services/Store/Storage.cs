@@ -430,8 +430,8 @@ public sealed class DiskWriter
         byte[] data;
         try
         {
-            var element = JsonSerializer.SerializeToElement(value, value.GetType(), Coding.StorageOptions);
-            data = SwiftJson.Write(element, SwiftJsonStyle.Storage); // :382
+            using var document = JsonSerializer.SerializeToDocument(value, value.GetType(), Coding.StorageOptions); // ED-NEW-perf-memory-5: pooled, given back after the write
+            data = SwiftJson.Write(document.RootElement, SwiftJsonStyle.Storage); // :382
         }
         catch (Exception e) when (SwiftTry.IsThrownError(e))
         {

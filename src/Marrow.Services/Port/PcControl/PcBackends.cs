@@ -134,6 +134,12 @@ public interface IAppLauncher
 
     /// <summary>Starts an app by its AppsFolder id or an .exe path, with no arguments and no shell; the process id when known.</summary>
     PcLaunch Launch(string appIdOrPath);
+
+    /// <summary>
+    /// The same with arguments nth chose itself, never the model's: the separate workspace's browser profile (DESIGN.md
+    /// 2.13). A launcher that takes none starts the app without them.
+    /// </summary>
+    PcLaunch Launch(string appIdOrPath, string? arguments) => Launch(appIdOrPath);
 }
 
 public sealed record PcLaunch(bool Started, int? ProcessId, string? Problem);

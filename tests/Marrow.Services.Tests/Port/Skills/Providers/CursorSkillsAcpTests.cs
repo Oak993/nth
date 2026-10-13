@@ -59,7 +59,7 @@ public sealed class CursorSkillsAcpTests
         var config = SkillOverlaySessionTests.Config(ProviderKind.Cursor, script.ExecutablePath, f.Paths.Root, g, resume);
         var property = typeof(SessionConfiguration).GetProperty("SkillMcpExecutable");
         Assert.NotNull(property);
-        property.SetValue(config, "C:/fake/Marrow.App.exe");
+        property.SetValue(config, "C:/fake/nth.exe");
         var session = new ACPSession(config);
         try
         {
@@ -71,7 +71,7 @@ public sealed class CursorSkillsAcpTests
             Assert.Equal("C:/fake/user-server.exe", servers[0]!["command"]!.GetValue<string>());
             var owned = servers[1]!;
             Assert.StartsWith("marrow-skills-", owned["name"]!.GetValue<string>(), StringComparison.Ordinal);
-            Assert.Equal("C:/fake/Marrow.App.exe", owned["command"]!.GetValue<string>());
+            Assert.Equal("C:/fake/nth.exe", owned["command"]!.GetValue<string>());
             Assert.Equal("--marrow-skills-mcp", owned["args"]![0]!.GetValue<string>());
             Assert.Equal(2, owned["args"]!.AsArray().Count);
             Assert.Empty(owned["env"]!.AsArray());

@@ -163,7 +163,7 @@ public sealed class ThreadTimeline : Decorator
                 // stay, and a long thread's pass costs the rows that changed, not all of them). ED-255.
                 var rows = drawnRows ??= MakeRows();
                 var rewindable = modelInputs.Rewindable.ToHashSet();
-                var shownBefore = laidOutRows.Keys.ToArray(); laidOutRows.Clear();
+                var shownBefore = laidOutRows.Keys.ToArray(); laidOutRows.Clear(); rowsDrawn++;
                 // This pass's views in order: the blocks' rows, then the questions' badges. A view arrives (with its transition) when it joins a stack that is already
                 // on screen under an id that was not there. A timeline that comes in from nothing (its first pass, or back after the prompt or the loading mark took its
                 // place and it had gone) comes in whole: :134-144 is an if/else, and the branch that comes back is a new view whose children come with it, so its rows and
@@ -330,7 +330,10 @@ public sealed class ThreadTimeline : Decorator
                 var overlay = scrollOverlay!;
                 // ED-NEW-lean-14: a pass with the blocks, the flag and the height the rail was last asked for keeps it without making a new one to compare (InputsEqual
                 // holds for those: the same list, the same tracking, the same height), so a pass that changed nothing the rail reads costs it nothing.
-                var nextRail = railInputs is { } asked && ReferenceEquals(asked.Blocks, blocks) && asked.Shows == showsMinimap && asked.Height == columnHeight ? currentRail : CreateRail(blocks, showsMinimap, columnHeight);
+                // ED-NEW-perf-ui-thread-4: a pass that changed the blocks but not the ticks (a tool row or a reply in the running turn) keeps the rail, before any rail is made to be compared.
+                var nextRail = railInputs is { } asked && ReferenceEquals(asked.Blocks, blocks) && asked.Shows == showsMinimap && asked.Height == columnHeight ? currentRail
+                    : currentRail is TimelineMinimapColumn shownRail && ShouldShowMinimap(showsMinimap, blocks) && shownRail.Adopt(blocks, tracking, Math.Max(0, columnHeight - WindowChrome.TitlebarHeight)) ? shownRail
+                    : CreateRail(blocks, showsMinimap, columnHeight);
                 railInputs = (blocks, showsMinimap, columnHeight);
                 // :190 .equatable(): a rail whose inputs did not change is not drawn again, so its hover and its scrub go on across a redraw.
                 if (currentRail is TimelineMinimapColumn oldRail && nextRail is TimelineMinimapColumn newRail && TimelineMinimapColumn.InputsEqual(oldRail, newRail)) nextRail = oldRail;
@@ -605,7 +608,7 @@ public sealed class ThreadTimeline : Decorator
     private Control? CreateRail(IReadOnlyList<DisplayBlock> blocks, bool enabled, double columnHeight)
     {
         if (!ShouldShowMinimap(enabled, blocks)) return null;
-        var rail = new TimelineMinimapColumn(blocks, tracking, Math.Max(0, columnHeight - WindowChrome.TitlebarHeight), (id, animated) => Jump(id, blocks, animated)) { Width = 30, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, WindowChrome.TitlebarHeight, 0, 0) };
+        var rail = new TimelineMinimapColumn(blocks, tracking, Math.Max(0, columnHeight - WindowChrome.TitlebarHeight), (id, animated) => Jump(id, drawnBlocks, animated)) { Width = 30, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, WindowChrome.TitlebarHeight, 0, 0) };
         // :201-207 the rail belongs to the column's leading edge, not to the conversation that re-centres beside a docked panel: the padding the slide adds
         // (reserveSlideLeading, snapped at once) and the glide that carries the rows (reserveSlideOffset, every frame of it) are both cancelled, live.
         var cancel = new TranslateTransform(); rail.RenderTransform = cancel;
@@ -639,7 +642,13 @@ public sealed class ThreadTimeline : Decorator
     // :335-338 each row's own visibility (threshold 0.001), :404-409 the end sentinel's (0.01), :380-382 the earlier pill's (0.1).
     private void ReportVisibility(ScrollViewer scroll)
     {
-        if (!ReferenceEquals(currentScroll, scroll) || !initialAnchorApplied || !TimelineOnShow) return; // rows that are fading out under the prompt report nothing (the jump button, a page of history)
+        if (!ReferenceEquals(currentScroll, scroll) || !initialAnchorApplied || !TimelineOnShow) { reported = null; return; } // rows that are fading out under the prompt report nothing (the jump button, a page of history)
+        // ED-NEW-perf-motion-8: every layout pass of the window raises LayoutUpdated (a keystroke in the composer, a sidebar frame); the rows' places
+        // in the viewport change only with the offset, the extent, the viewport or the rows drawn, so a pass that changed none of them reports nothing new.
+        var geometry = (scroll.Offset, scroll.Extent, scroll.Viewport, rowsDrawn);
+        if (reported == geometry) return;
+        reported = geometry;
+        VisibilityReports++;
         foreach (var pair in laidOutRows) tracking.SetVisible(pair.Key, VisibleFraction(pair.Value, scroll) >= 0.001);
         // :404-409 the end sentinel reports when it crosses its threshold, not on every layout: a row landing under a reader who is following it has the
         // button hidden (:710) and not shown again for the beat before the scroll that brings the end back.
@@ -652,6 +661,11 @@ public sealed class ThreadTimeline : Decorator
     }
     private bool earlierPillVisible;
     private bool? endSeen;
+    private (Vector Offset, Size Extent, Size Viewport, int Rows)? reported;
+    private int rowsDrawn;
+
+    /// <summary>Visibility reports that walked the rows (for tests).</summary>
+    internal int VisibilityReports { get; private set; }
     private bool initialAnchorApplied;
     // The timeline is the branch on show (not fading out under the prompt, not under the loading mark).
     private bool TimelineOnShow => scrollOverlay is { } overlay && ReferenceEquals(branches.On, overlay);
@@ -862,7 +876,7 @@ public sealed class ThreadTimeline : Decorator
     // :678-688
     private void ComposerGrew(bool liveResizeActive) { if (liveResizeActive || !(tracking.IsPinnedToBottom || tracking.DistanceFromBottom < 48)) return; tracking.IsPinnedToBottom = anchorsBottomOnGrowth = true; SnapEnd(); }
     // :713-720. Runtime is immutable for this port's mounted view; a different runtime receives a fresh view without a transition.
-    private void ResetThread() { windowStartID = null; anchorsBottomOnGrowth = true; historyLoadPending = false; tracking.ClearVisible(); }
+    private void ResetThread() { windowStartID = null; anchorsBottomOnGrowth = true; historyLoadPending = false; tracking.ClearVisible(); reported = null; }
     // :770-803. The check of a layout that may have changed shape unseen. The reader's place is ported whole: a scroll in progress puts it off, a viewport past the end of the
     // conversation, or a reader pinned to the end and away from it, is sent to the end (unanimated), and a viewport on the conversation that shows no row of it is repaired in
     // up to three steps a beat apart. The lazy stack's own repairs (:785 telling it where the viewport is, :787-788 remaking it, :881-887) have nothing to repair in the eager stack
@@ -1350,10 +1364,22 @@ public sealed class TimelineBlockCache
     // :1659-1673 @MainActor static func cache(for:) -> TimelineBlockCache
     public static TimelineBlockCache Cache(Guid @for)
     {
-        if (shared.TryGetValue(@for, out var existing)) { order.RemoveAll(id => id == @for); order.Add(@for); return existing; }
-        var created = new TimelineBlockCache(); shared[@for] = created; order.Add(@for);
-        while (order.Count > 24) { shared.Remove(order[0]); order.RemoveAt(0); } return created; // :1668-1682
+        lock (shared) // the main actor is the only caller; the lock keeps parallel test classes from tearing the dictionary
+        {
+            if (shared.TryGetValue(@for, out var existing)) { order.RemoveAll(id => id == @for); order.Add(@for); return existing; }
+            var created = new TimelineBlockCache(); shared[@for] = created; order.Add(@for);
+            while (order.Count > 24) { shared.Remove(order[0]); order.RemoveAt(0); } return created; // :1668-1682
+        }
     }
+
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-perf-memory-3). Drops the thread's cache: its Key holds the runtime's own entry list and the built blocks, so a
+    /// cache left behind keeps the whole transcript alive after the runtime is released or the thread is deleted. The next show builds it again.
+    /// </summary>
+    public static void Forget(Guid id) { lock (shared) { shared.Remove(id); order.Remove(id); } }
+
+    /// <summary>PORT-ONLY (ED-NEW-perf-memory-3). Whether a cache is held for the thread.</summary>
+    public static bool Holds(Guid id) { lock (shared) return shared.ContainsKey(id); }
 
     // :1711-1737 func blocks(for:showReasoning:isRunning:hydraMergeID:pills:) -> [DisplayBlock]; a null pills is the
     // Swift default HeadPills().
@@ -1365,7 +1391,10 @@ public sealed class TimelineBlockCache
         pills ??= new(); var entries = @for as ValueList<TimelineEntry> ?? (IReadOnlyList<TimelineEntry>)@for.ToArray();
         var wanted = new Key { Entries = entries, TurnEnds = 0, IsRunning = isRunning, HydraMergeID = hydraMergeID, Pills = pills, ShowReasoning = showReasoning }; // :1720-1737
         if (key is not null && wanted.Entries.Count == key.Entries.Count && wanted.SameFlags(key) && wanted.SamePrefix(key)) return built.Blocks; // :1738 (equal references: the same turn ends)
-        if (key is not null && wanted.Extends(key) && BuildTail(@for, key.Entries.Count, showReasoning, isRunning, hydraMergeID, pills) is { } tail) { built = tail; wanted = wanted with { TurnEnds = key.TurnEnds + TurnEndsIn(entries, key.Entries.Count) }; }
+        // ED-NEW-perf-ui-thread-3: the turn's phase flips at the send and again at its end, together with the entry that is appended there. The blocks before the last run do not read the flag (only the last
+        // run's working line, the trailing working block and the heads that come after it do), so that flip is a tail build as well, not a rebuild of the whole thread; a pass with the heads' pill before
+        // the running turn (which it inserts into the stable part) still rebuilds whole.
+        if (key is not null && (wanted.Extends(key) || wanted.ExtendsOrIsAfterRunFlip(key)) && BuildTail(@for, key.Entries.Count, showReasoning, isRunning, hydraMergeID, pills) is { } tail) { built = tail; wanted = wanted with { TurnEnds = key.TurnEnds + TurnEndsIn(entries, key.Entries.Count) }; }
         else { meta = TimelineMeta.Build(@for); built = DisplayBlock.Build(@for, 0, [], meta, showReasoning, isRunning, hydraMergeID, pills); wanted = wanted with { TurnEnds = TurnEndsIn(entries, 0) }; }
         key = wanted; return built.Blocks; // :1739-1746
     }
@@ -1378,12 +1407,14 @@ public sealed class TimelineBlockCache
     // :1745-1770 private func buildTail(_:appendedFrom:showReasoning:isRunning:hydraMergeID:pills:) -> DisplayBlock.Built?
     private DisplayBlock.Built? BuildTail(IReadOnlyList<TimelineEntry> entries, int appendedFrom, bool showReasoning, bool isRunning, string? hydraMergeID, HeadPills pills)
     {
-        var grown = meta; var kept = built.Blocks.Take(built.StableCount).ToArray();
-        foreach (var entry in entries.Skip(appendedFrom))
+        var kept = built.Blocks.Take(built.StableCount).ToArray();
+        for (var index = appendedFrom; index < entries.Count; index++)
         {
-            grown = grown.Add(entry);
+            var entry = entries[index];
             if (entry.TimelineEntryKind == TimelineEntry.Kind.TurnEnd && entry.Item.TimelineItemContent is TimelineItem.Content.TurnEnd end && kept.Any(block => block.TurnID == end.Value.TurnID)) return null; // :1755-1762
         }
+        // ED-NEW-perf-ui-thread-3: the appended entries are folded into the meta in one pass (a copy of its maps per entry grew with the thread).
+        var grown = appendedFrom < entries.Count ? meta.AddRange(entries.Skip(appendedFrom)) : meta;
         var tail = DisplayBlock.Build(entries, built.LastRunStart, kept, grown, showReasoning, isRunning, hydraMergeID, pills); meta = grown; return tail; // :1764-1779
     }
 
@@ -1410,6 +1441,9 @@ public sealed class TimelineBlockCache
 
         // :1689-1696 func extends(_:) -> Bool
         public bool Extends(Key old) => Entries.Count > old.Entries.Count && SameFlags(old) && SamePrefix(old); // :1698-1705
+        // ED-NEW-perf-ui-thread-3: the same list or a longer one with the turn's phase flipped and nothing else different (no heads' pill before the running turn: see Blocks).
+        public bool ExtendsOrIsAfterRunFlip(Key old) => Entries.Count >= old.Entries.Count && IsRunning != old.IsRunning && Pills.Earlier.Count == 0
+            && HydraMergeID == old.HydraMergeID && Pills == old.Pills && ShowReasoning == old.ShowReasoning && SamePrefix(old);
         public bool SameFlags(Key old) => IsRunning == old.IsRunning && HydraMergeID == old.HydraMergeID && Pills == old.Pills && ShowReasoning == old.ShowReasoning;
         public bool SamePrefix(Key old)
         {
@@ -1440,15 +1474,29 @@ public sealed record TimelineMeta
     // :1810-1815 @MainActor static func build(_:) -> TimelineMeta
     public static TimelineMeta Build(IReadOnlyList<TimelineEntry> entries)
     {
-        var meta = new TimelineMeta(); foreach (var entry in entries) meta = meta.Add(entry); return meta; // :1822-1827
+        return new TimelineMeta().AddRange(entries); // :1822-1827
     }
 
     // :1819-1834 @MainActor mutating func add(_:); a mutating method returns the new value (R-VAL-1).
-    public TimelineMeta Add(TimelineEntry entry)
+    public TimelineMeta Add(TimelineEntry entry) => AddRange([entry]);
+
+    /// <summary>ED-NEW-perf-ui-thread-3: <see cref="Add"/> for each entry in order, with the same result, but the maps are copied once for the whole run of entries, not once per entry
+    /// (Add on each of a thread's 1,000 assistant rows copied the maps of every turn so far: quadratic).</summary>
+    public TimelineMeta AddRange(IEnumerable<TimelineEntry> entries)
     {
-        if (entry.TimelineEntryKind == TimelineEntry.Kind.Assistant && entry.TurnID is { } turn) return this with { LastAssistantIDByTurn = LastAssistantIDByTurn.Mutating(map => map[turn] = entry.Id), TurnsWithReply = new(TurnsWithReply.Append(turn)) };
-        if (entry.TimelineEntryKind == TimelineEntry.Kind.TurnEnd && entry.Item.TimelineItemContent is TimelineItem.Content.TurnEnd end) return this with { SummaryByTurn = SummaryByTurn.Mutating(map => map[end.Value.TurnID] = end.Value) };
-        return this; // :1831-1846
+        Dictionary<Guid, string>? lastAssistant = null; Dictionary<Guid, TurnSummary>? summaries = null; HashSet<Guid>? replies = null;
+        foreach (var entry in entries)
+        {
+            if (entry.TimelineEntryKind == TimelineEntry.Kind.Assistant && entry.TurnID is { } turn) { (lastAssistant ??= new(LastAssistantIDByTurn))[turn] = entry.Id; (replies ??= new(TurnsWithReply)).Add(turn); }
+            else if (entry.TimelineEntryKind == TimelineEntry.Kind.TurnEnd && entry.Item.TimelineItemContent is TimelineItem.Content.TurnEnd end) (summaries ??= new(SummaryByTurn))[end.Value.TurnID] = end.Value;
+        }
+        if (lastAssistant is null && summaries is null) return this; // :1831-1846
+        return this with
+        {
+            LastAssistantIDByTurn = lastAssistant is null ? LastAssistantIDByTurn : new(lastAssistant),
+            TurnsWithReply = replies is null ? TurnsWithReply : new(replies),
+            SummaryByTurn = summaries is null ? SummaryByTurn : new(summaries),
+        };
     }
 
     // :1838-1843 @MainActor func summary(for:) -> TurnSummary?

@@ -2,34 +2,152 @@
   <Import Project="..\..\Directory.Release.props" />
 
   <!--
-    OD-0072, ED-247: the Marrow installer the owner shares. A small bootstrapper around Velopack's Setup.exe that first
-    checks what is installed (src/Marrow.Core/Support/InstallerGate.cs, compiled in here; this project references no
-    other Marrow project) and only then runs the embedded Setup.exe. Built by scripts/package-windows.ps1, which passes
-    the Setup.exe that vpk pack produced and the same title, id and version it gave vpk. Built without them (as part of
+    OD-0072, ED-247: the nth installer the owner shares. A small window around Velopack's Setup.exe that first checks
+    what is installed (src/Marrow.Core/Support/InstallerGate.cs, compiled in here; this project references no other
+    Marrow project) and only then runs the embedded Setup.exe. Built by scripts/package-windows.ps1, which passes the
+    Setup.exe that vpk pack produced and the same title, id and version it gave vpk. Built without them (as part of
     Marrow.sln) it compiles but has nothing to install and says so.
+    nth installer PLAN.md 3 and 5, unit U1 (ED-NEW-inst-u1-1): a small Avalonia app. Views are written in C# (no runtime
+    XAML) and the code is checked by the trim and AOT analyzers, so it can be published with Native AOT (unit U7).
   -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AssemblyName>Marrow.Setup</AssemblyName>
+    <!-- nth installer PLAN.md 7 (unit U7, ED-NEW-inst-u7-4): the shared file is nth-Setup-<version>.exe and its original filename reads nth-Setup.exe. -->
+    <AssemblyName>nth-Setup</AssemblyName>
     <RootNamespace>Marrow.Setup</RootNamespace>
     <ApplicationIcon>..\Marrow.App\Assets\icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Unit U5 (ED-NEW-inst-u5-1): the linked ShellLinks.cs uses [GeneratedComInterface], whose generated code needs unsafe; so does the pipe peer identity's generated LibraryImport (ED-NEW-inst-c7-4). -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsAotCompatible>true</IsAotCompatible>
     <Product>nth</Product>
     <AssemblyTitle>nth Setup</AssemblyTitle>
+    <!-- PLAN.md 7: "(c) 2026 (publisher). Includes Droppy Code by Jordy Spruit (Droppy), GNU AGPL v3.0." The publisher is decision A (oak993): Directory.Release.props. -->
+    <Copyright>© 2026 $(NthPublisher). Includes Droppy Code by Jordy Spruit (Droppy), GNU AGPL v3.0.</Copyright>
     <InstallerTitle Condition="'$(InstallerTitle)' == ''">nth</InstallerTitle>
     <InstallerAppId Condition="'$(InstallerAppId)' == ''">NthApp</InstallerAppId>
+    <!-- PLAN.md 5, "Rendering": Software drops ANGLE; kept only if Mica and 60 fps at 200 % hold (the lead's measurement). -->
+    <SetupRenderingMode Condition="'$(SetupRenderingMode)' == ''">AngleEgl</SetupRenderingMode>
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Marrow.Setup.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Skia" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="..\Marrow.Core\Support\InstallerGate.cs" Link="InstallerGate.cs" />
+    <!-- nth installer PLAN.md 8a, unit U0: the install-options/result files and the shell-link contract, linked like the gate (no Marrow project reference). -->
+    <Compile Include="..\Marrow.Core\Support\InstallOptions.cs" Link="InstallOptions.cs" />
+    <Compile Include="..\Marrow.Core\Support\IShellLinks.cs" Link="IShellLinks.cs" />
+    <!-- Unit U5: the shortcut logic, the install layout and the uninstall entry, plus the real shell and registry (app Port). -->
+    <Compile Include="..\Marrow.Core\Support\DesktopShortcut.cs" Link="DesktopShortcut.cs" />
+    <Compile Include="..\Marrow.Core\Support\InstallLayout.cs" Link="InstallLayout.cs" />
+    <Compile Include="..\Marrow.Core\Support\UninstallEntry.cs" Link="UninstallEntry.cs" />
+    <Compile Include="..\Marrow.App\Port\ShellLinks.cs" Link="Port\ShellLinks.cs" />
+    <Compile Include="..\Marrow.App\Port\RegistryUserHive.cs" Link="Port\RegistryUserHive.cs" />
+    <!-- PLAN.md 3 step 4 and 5, unit U9: the folders the setup writes outside the install root and the sweeps that remove what it leaves. -->
+    <Compile Include="..\Marrow.Core\Support\SetupFolders.cs" Link="SetupFolders.cs" />
+    <Compile Include="..\Marrow.Core\Support\SetupSweeper.cs" Link="SetupSweeper.cs" />
+    <!-- nth installer PLAN.md 3a, unit U4 (ED-NEW-inst-u4-1, -3): the control pipe's wire format and the install hold, linked the same way. -->
+    <Compile Include="..\Marrow.Core\Support\NthControl.cs" Link="NthControl.cs" />
+    <Compile Include="..\Marrow.Core\Support\InstallHold.cs" Link="InstallHold.cs" />
+    <Compile Include="..\Marrow.Core\Support\SweepLimits.cs" Link="SweepLimits.cs" />
+    <Compile Include="..\Marrow.Core\Support\SweepBudget.cs" Link="SweepBudget.cs" />
+    <Compile Include="..\Marrow.Core\Support\SweepLimitException.cs" Link="SweepLimitException.cs" />
+    <!-- PLAN.md 9 item 7 (ED-NEW-inst-fix-1): Update's "What's new" reads the embedded release notes with the app's own parser. -->
+    <Compile Include="..\Marrow.Core\Port\SelfUpdate\ReleaseNotesParser.cs" Link="ReleaseNotesParser.cs" />
     <AssemblyMetadata Include="InstallerTitle" Value="$(InstallerTitle)" />
     <AssemblyMetadata Include="InstallerAppId" Value="$(InstallerAppId)" />
     <AssemblyMetadata Include="InstallerVersion" Value="$(InstallerVersion)" />
+    <AssemblyMetadata Include="SetupRenderingMode" Value="$(SetupRenderingMode)" />
+    <!-- PLAN.md 4, unit U3: the measured sizes (InstallerPackageBytes, InstallerAppBytes, InstallerDiskBytes, InstallerVelopackNeedBytes) are stamped by
+         Directory.Build.targets (unit U7), and only when the packaging script passes them, so a build outside it has none and uses the plan's figures. -->
     <EmbeddedResource Include="$(VelopackSetupExe)" LogicalName="VelopackSetup.exe" Condition="'$(VelopackSetupExe)' != ''" />
+    <!-- PLAN.md 3, "Text": every string the window shows, one table per language. -->
+    <EmbeddedResource Include="Text\en.strings" LogicalName="SetupStrings.en" />
+    <!-- The caption's 16 px mark and the taskbar icon: the app's own icon (every frame is a PNG). -->
+    <EmbeddedResource Include="..\Marrow.App\Assets\icon.ico" Link="Assets\icon.ico" LogicalName="SetupIcon.ico" />
+    <!-- unit U2: View license on Welcome opens the licence nth ships under -->
+    <EmbeddedResource Include="..\Marrow.App\Legal\LICENSE" Link="Legal\LICENSE" LogicalName="SetupLicense.txt" />
   </ItemGroup>
+
+  <!--
+    nth installer PLAN.md 5, "Native libraries" (VELOPACK_CHECK.md finding 3, ED-NEW-inst-fix-5): IncludeNativeLibrariesForSelfExtract does
+    nothing under Native AOT, so a published setup had no Skia, HarfBuzz or ANGLE unless they lay beside it. The Native AOT publish now stores
+    the three inside the exe, Deflate-compressed, with a manifest of their names, sizes and SHA-256s (Support/SetupNatives.cs unpacks, checks
+    and loads them before the window is built), and leaves none in the publish folder, so the UI smoke check of the payload-free setup runs the
+    one-file setup exactly as it is shared. A build that is not a Native AOT publish keeps them beside the exe, as before.
+  -->
+  <UsingTask TaskName="NthDeflateSetupNatives" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Files ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <OutputDirectory ParameterType="System.String" Required="true" />
+      <Compressed ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
+      <Manifest ParameterType="System.String" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.IO.Compression" />
+      <Using Namespace="System.Linq" />
+      <Using Namespace="System.Security.Cryptography" />
+      <Using Namespace="Microsoft.Build.Framework" />
+      <Using Namespace="Microsoft.Build.Utilities" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        Directory.CreateDirectory(OutputDirectory);
+        var lines = new System.Text.StringBuilder();
+        var outputs = new System.Collections.Generic.List<ITaskItem>();
+        foreach (var item in Files.OrderBy(file => Path.GetFileName(file.ItemSpec), StringComparer.Ordinal))
+        {
+            var name = Path.GetFileName(item.ItemSpec);
+            var bytes = File.ReadAllBytes(item.GetMetadata("FullPath"));
+            string hash;
+            using (var sha = SHA256.Create()) hash = BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
+            var target = Path.Combine(OutputDirectory, name + ".deflate");
+            using (var file = File.Create(target))
+            using (var deflate = new DeflateStream(file, CompressionLevel.Optimal))
+                deflate.Write(bytes, 0, bytes.Length);
+            var output = new TaskItem(target);
+            output.SetMetadata("LogicalName", "SetupNative/" + name);
+            outputs.Add(output);
+            lines.Append(name).Append('\t').Append(bytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append('\t').Append(hash).Append('\n');
+        }
+        Manifest = Path.Combine(OutputDirectory, "manifest.txt");
+        File.WriteAllText(Manifest, lines.ToString(), new System.Text.UTF8Encoding(false));
+        Compressed = outputs.ToArray();
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="NthEmbedSetupNatives" BeforeTargets="AssignTargetPaths" DependsOnTargets="ResolvePackageAssets"
+          Condition="'$(PublishAot)' == 'true' and '$(RuntimeIdentifier)' != ''">
+    <ItemGroup>
+      <_NthSetupNative Include="@(NativeCopyLocalItems)"
+                       Condition="'%(Filename)%(Extension)' == 'libSkiaSharp.dll' or '%(Filename)%(Extension)' == 'libHarfBuzzSharp.dll' or '%(Filename)%(Extension)' == 'av_libglesv2.dll'" />
+    </ItemGroup>
+    <Error Condition="'@(_NthSetupNative->Count())' != '3'"
+           Text="nth Setup carries Skia, HarfBuzz and ANGLE inside; this build resolved: @(_NthSetupNative->'%(Filename)%(Extension)')." />
+    <NthDeflateSetupNatives Files="@(_NthSetupNative)" OutputDirectory="$(IntermediateOutputPath)setup-natives">
+      <Output TaskParameter="Compressed" ItemName="_NthSetupNativeCompressed" />
+      <Output TaskParameter="Manifest" PropertyName="_NthSetupNativeManifest" />
+    </NthDeflateSetupNatives>
+    <ItemGroup>
+      <EmbeddedResource Include="@(_NthSetupNativeCompressed)" />
+      <EmbeddedResource Include="$(_NthSetupNativeManifest)" LogicalName="SetupNative/manifest.txt" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="NthLeaveEmbeddedNativesOutOfPublish" AfterTargets="Publish" Condition="'@(_NthSetupNative)' != ''">
+    <Delete Files="@(_NthSetupNative->'$(PublishDir)%(Filename)%(Extension)')" />
+  </Target>
 
 </Project>

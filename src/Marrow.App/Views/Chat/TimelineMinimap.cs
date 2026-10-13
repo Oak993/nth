@@ -32,13 +32,17 @@ public sealed record TimelineMinimapEntry
 /// <summary>:15-87 <c>enum TimelineMinimap</c>, a caseless enum used as a namespace.</summary>
 public static class TimelineMinimap
 {
+    // ED-NEW-perf-ui-thread-4: a block is immutable and a pass of a running turn keeps every block before the last run as the very object it was, so a block's tick is made once per
+    // block object. The 400-entry cache by id below is swept in order by a thread with more user messages than it holds and misses every lookup: every pass remade every tick's words.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<DisplayBlock, System.Runtime.CompilerServices.StrongBox<TimelineMinimapEntry?>> BlockEntries = new();
+
     // :16-19
     public static ValueList<TimelineMinimapEntry> Entries(IReadOnlyList<DisplayBlock> @for)
     {
         var result = new List<TimelineMinimapEntry>();
         foreach (var block in @for)
         {
-            var entry = Entry(block);
+            var entry = BlockEntries.GetValue(block, static made => new System.Runtime.CompilerServices.StrongBox<TimelineMinimapEntry?>(Entry(made))).Value;
             if (entry is not null) result.Add(entry);
         }
         return new ValueList<TimelineMinimapEntry>(result);
@@ -165,12 +169,14 @@ public static class TimelineMinimap
 /// <summary>:89-131 <c>struct TimelineMinimapColumn: View, Equatable</c>.</summary>
 public sealed class TimelineMinimapColumn : Decorator
 {
-    private readonly IReadOnlyList<DisplayBlock> blocks;
+    private IReadOnlyList<DisplayBlock> blocks;
     private readonly TimelineScrollTracking tracking;
     private readonly double centerHeight;
     private readonly Action<string, bool> onNavigate;
     private readonly IReadOnlyList<MinimapOutlineBlock> outline;
     private ValueList<TimelineMinimapEntry> lastEntries = ValueList<TimelineMinimapEntry>.Empty;
+    private ValueList<TimelineMinimapEntry> builtEntries = ValueList<TimelineMinimapEntry>.Empty; // the ticks of the rail on show
+    private bool attachLooked; // the attach just looked at the ticks: the resize watch's first look (made on attach as well) has nothing to add
 
     // :94-101, :112-130
     public TimelineMinimapColumn(
@@ -199,12 +205,15 @@ public sealed class TimelineMinimapColumn : Decorator
             var resizing = GetValue(AppEnvironment.WindowLiveResizeProperty)?.IsActive == true;
             if (resizing && Held.TryGetValue(tracking, out var held)) lastEntries = held.Value!; // :114 liveResize.isActive ? lastEntries
             else Remember(TimelineMinimap.Entries(this.blocks)); // :126 onAppear
-            Child = MakeSelection(lastEntries);
+            // ED-NEW-perf-ui-thread-4: the constructor made the rail from these ticks when they are the same ones (the common attach), so it is not made again (it was made twice more here).
+            if (!lastEntries.Equals(builtEntries)) Child = MakeSelection(lastEntries);
+            attachLooked = true;
         };
         // :120-124 rebuilt once the resize settles, so the ticks land correct after scaling in place.
         this.Track(() => GetValue(AppEnvironment.WindowLiveResizeProperty)?.IsActive == true, resizing =>
         {
-            if (resizing) return;
+            var looked = attachLooked; attachLooked = false; // the watch's first look comes with the attach, which just looked (and a resize settling later is not that look)
+            if (resizing || looked) return;
             Remember(TimelineMinimap.Entries(this.blocks));
             Child = MakeSelection(lastEntries);
         });
@@ -220,8 +229,26 @@ public sealed class TimelineMinimapColumn : Decorator
     }
 
     // :112-130
-    private MinimapSelection MakeSelection(IReadOnlyList<TimelineMinimapEntry> entries) =>
-        new(entries, outline, tracking, centerHeight, onNavigate);
+    private MinimapSelection MakeSelection(ValueList<TimelineMinimapEntry> entries)
+    {
+        builtEntries = entries;
+        return new(entries, outline, tracking, centerHeight, onNavigate);
+    }
+
+    /// <summary>
+    /// ED-NEW-perf-ui-thread-4: whether this rail already shows what a rail made from <paramref name="next"/> would: the same tracking, the same height and the same ticks (id, title,
+    /// snippet, weight). A pass of a running turn changes the turn's block (a tool row, a reply, the turn's end) and nothing the rail shows, and the rail is kept: its hover and its scrub go
+    /// on, and no control of it is made again. The rail reads nothing else of the blocks (its selection falls back to the last tick, which the ticks hold). When it shows the same, the
+    /// column takes <paramref name="next"/> as its blocks, so a later attach or resize settle reads the latest.
+    /// </summary>
+    internal bool Adopt(IReadOnlyList<DisplayBlock> next, TimelineScrollTracking nextTracking, double nextCenterHeight)
+    {
+        if (!ReferenceEquals(tracking, nextTracking) || centerHeight != nextCenterHeight) return false;
+        if (ReferenceEquals(blocks, next)) return true;
+        if (!TimelineMinimap.Entries(next).Equals(lastEntries)) return false;
+        blocks = next;
+        return true;
+    }
 
     // :103-105
     public static bool InputsEqual(TimelineMinimapColumn lhs, TimelineMinimapColumn rhs) =>

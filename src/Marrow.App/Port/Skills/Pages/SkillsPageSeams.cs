@@ -50,8 +50,8 @@ internal static class SkillsPageSeams
         SkillsHost host;
         try { host = SkillsSeams.Host.Current; }
         catch (SwiftTrapException) { return new LibraryControllers(null); }
-        var catalogue = SkillsCatalogueLoader.LoadEmbedded();
-        var backend = new HostLibraryBackend(host, catalogue, free: () => HostLibraryBackend.DriveOf(host.Paths.Root));
+        // ED-NEW-perf-startup-structure-3: the host's own catalogue, not a second parse of the 1.2 MB file on the UI thread.
+        var backend = new HostLibraryBackend(host, host.Catalogue, free: () => HostLibraryBackend.DriveOf(host.Paths.Root));
         void Post(Action action) { if (Dispatcher.UIThread.CheckAccess()) action(); else Dispatcher.UIThread.Post(action); }
         return new LibraryControllers(section => new LibraryController(section, backend, Post), () => new LibraryController(LibrarySection.Skills, new ToolsLibraryBackend(backend), Post));
     };

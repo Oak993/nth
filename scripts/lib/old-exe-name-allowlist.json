@@ -1,0 +1,29 @@
+{
+  "note": "nth installer PLAN.md section 7: the app's published exe is nth.exe, and no file in the repository may name the old apphost, except the decision ledgers (they record the rename) the dated evidence records below (a record of a past run says what the file was called then; rewriting it would falsify it) and the legacy files below (source and tests that handle an install made before the rename on purpose, PLAN.md 3a, 7 and 8a). Used by scripts/lib/NthPackaging.ps1 (Find-NthOldExeNameReferences) and by tests/Marrow.Core.Tests (OldExeNameTests). A new path needs a reason.",
+  "ledgers": [
+    "porting/engineering_decisions.md",
+    "porting/owner_decisions.md",
+    "porting/owner_decisions_pending.md",
+    "porting/contract_amendments.md"
+  ],
+  "evidence": [
+    { "path": "porting/first-release/reports/SK-17-cursor-automatic.md", "reason": "a unit report of 2026-10-02: it describes the relay command as that build ran it" },
+    { "path": "porting/first-release/reviews/T39-RR-43-app-pe.json", "reason": "RR-43 review evidence: the PE metadata of the Release build as it was (the build output keeps its apphost name; only the published app is renamed)" },
+    { "path": "porting/probes/vt-0-publish/publish-listing.txt", "reason": "the saved file list of a dotnet publish; VoicePinsTests holds the voice record to it, and a publish still writes that apphost name before the packaging script renames it" },
+    { "path": "porting/verification/native/launch-2026-10-02/RESULT.md", "reason": "native launch record of 2026-10-02: the Debug build that was run" },
+    { "path": "porting/verification/native/launch-2026-10-02/capture.py", "reason": "the capture script of that same run, kept with its record; it launches that Debug build's path" },
+    { "path": "porting/verification/native/launch-2026-10-02/launch.json", "reason": "the launch record of that same run" }
+  ],
+  "legacy": [
+    { "path": "src/Marrow.Core/Support/InstallLayout.cs", "reason": "LegacyMainExe: an install made before the rename has the old apphost stub, which a shortcut or a sign-in value may still point at; nth recognises it and re-points it (PLAN.md 8a)" },
+    { "path": "src/Marrow.Setup/Port/WindowsRunningNthProcesses.cs", "reason": "the running-nth check also finds the old apphost of an install made before the rename, so an update of that install asks it to quit first (PLAN.md 3a and 7)" },
+    { "path": "src/Marrow.Setup/Support/IRunningNthProcesses.cs", "reason": "its summary names the two programs the check looks for (nth.exe and the pre-rename stub)" },
+    { "path": "tests/Marrow.Core.Tests/Port/PcControl/PcPolicyTests.cs", "reason": "a row of the agent-app theory: the pre-rename apphost of an install made before the rename is still denied as an agent app (PcPolicy lists marrow.app.exe and nth.exe)" },
+    { "path": "tests/Marrow.Core.Tests/Support/DesktopShortcutTests.cs", "reason": "seeds a shortcut that targets the pre-rename stub, which the desktop shortcut repair must re-point" },
+    { "path": "tests/Marrow.Core.Tests/Support/InstallHooksTests.cs", "reason": "seeds a shortcut that targets the pre-rename stub for the install hook's alignment steps" },
+    { "path": "tests/Marrow.Core.Tests/Support/InstallLayoutTests.cs", "reason": "a row of the root-membership theory: the pre-rename stub inside the root counts as the root's" },
+    { "path": "tests/Marrow.Core.Tests/Support/SignInEntryTests.cs", "reason": "seeds a Run value that points at the pre-rename stub, which the sign-in switch must treat as nth's" },
+    { "path": "tests/Marrow.Setup.Tests/Port/WindowsRunningNthProcessesTests.cs", "reason": "starts a copy named like the pre-rename stub to prove the check finds it" },
+    { "path": "tests/Marrow.Setup.Tests/Support/AfterSetupExitTests.cs", "reason": "seeds a desktop shortcut that targets the pre-rename stub for the post-exit repair" }
+  ]
+}

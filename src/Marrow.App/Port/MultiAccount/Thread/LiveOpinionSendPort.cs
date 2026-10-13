@@ -4,7 +4,7 @@ using Marrow.Services.Port.MultiAccount;
 namespace Marrow.App.Port.MultiAccount.Thread;
 
 // Only the composer sends through this adapter. Timeline rows retain the same app-owned real engine.
-internal sealed class LiveOpinionSendPort(OpinionsEngine engine,
+internal sealed class LiveOpinionSendPort(InstallerOpinionsEngine engine,
     Func<Guid, string, IReadOnlyList<Guid>, CancellationToken, Task<Guid>> send) : IOpinionsPort
 {
     public event Action<Guid>? Changed { add => engine.Changed += value; remove => engine.Changed -= value; }

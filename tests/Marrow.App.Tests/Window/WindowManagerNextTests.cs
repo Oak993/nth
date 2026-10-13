@@ -198,6 +198,7 @@ public sealed class WindowManagerNextTests(HeadlessSession headless)
         Settle(main);
         main.Position = new PixelPoint(-3000, -2000);
         Settle(main);
+        manager.FlushPendingFrames(); // ED-NEW-perf-startup-structure-1: nothing is held when the Settings panel is checked for writes
         harness.Defaults.Writes.Clear();
         manager.ShowSettings(SettingsPage.Archive);
         var overlay = OpenSettings(manager);

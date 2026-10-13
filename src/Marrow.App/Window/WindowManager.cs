@@ -77,6 +77,7 @@ public sealed class WindowManager
     // :16 settingsWindow: DEVIATION OD-0151, the Settings panel inside the main window instead.
     private SettingsOverlay? settingsOverlay;
     private WindowLiveResize? mainLiveResize;
+    private readonly List<WindowFrameAutosave> frameAutosaves = []; // PORT-ONLY (ED-NEW-perf-startup-structure-1)
 
     // ED-063: WindowChrome declares the app-drawn caption controls with Win32 hit-test values; this App-layer hook owns
     // their native actions because Avalonia 12.1.2 does not perform them for app-drawn controls by itself.
@@ -659,30 +660,37 @@ public sealed class WindowManager
     // the window's position in pixels and its content size in points, in the port's settings store). Windows parks a
     // minimised window at (-32000, -32000) and gives a maximised one the whole working area, neither of which is a
     // frame AppKit would write (a miniaturized window keeps its frame), so only a window in its normal state writes.
-    private static void SetFrameAutosaveName(AvaloniaWindow window, string name)
+    // PORT-ONLY (ED-NEW-perf-startup-structure-1): the writes go through WindowFrameAutosave, at most one per half second
+    // while the window keeps moving; the window being hidden, deactivated or the app ending writes what is held.
+    private void SetFrameAutosaveName(AvaloniaWindow window, string name)
     {
-        void Save()
+        var autosave = new WindowFrameAutosave(UserDefaults.Standard.Current, name, () => window.WindowState != WindowState.Normal
+            ? null
+            : new WindowFrameAutosave.Frame(window.Position.X, window.Position.Y, window.Width, window.Height));
+        frameAutosaves.Add(autosave);
+        window.PositionChanged += (_, _) => autosave.Changed();
+        window.Resized += (_, _) => autosave.Changed();
+        window.Deactivated += (_, _) => autosave.Flush();
+        window.PropertyChanged += (_, e) =>
         {
-            if (window.WindowState != WindowState.Normal) return;
-            UserDefaults.Standard.Current.Set(name, new Dictionary<string, object>(StringComparer.Ordinal)
-            {
-                [FrameKey.X] = (long)window.Position.X,
-                [FrameKey.Y] = (long)window.Position.Y,
-                [FrameKey.Width] = window.Width,
-                [FrameKey.Height] = window.Height,
-            });
-        }
-        window.PositionChanged += (_, _) => Save();
-        window.Resized += (_, _) => Save();
+            if (e.Property == Visual.IsVisibleProperty && !window.IsVisible) autosave.Flush();
+        };
+    }
+
+    /// <summary>PORT-ONLY (ED-NEW-perf-startup-structure-1): writes the window frames the autosave is still holding. The app ending
+    /// calls it (AppDelegate.ApplicationWillTerminate), so the last position and size reach the store.</summary>
+    public void FlushPendingFrames()
+    {
+        foreach (var autosave in frameAutosaves) autosave.Flush();
     }
 
     // The fields of the saved frame (ED-006: the port's own format).
     private static class FrameKey
     {
-        public const string X = "x";
-        public const string Y = "y";
-        public const string Width = "width";
-        public const string Height = "height";
+        public const string X = WindowFrameAutosave.X;
+        public const string Y = WindowFrameAutosave.Y;
+        public const string Width = WindowFrameAutosave.Width;
+        public const string Height = WindowFrameAutosave.Height;
     }
 }
 

@@ -1,4 +1,5 @@
 // PORT-ONLY, owner-ruled addition (OD-0092, OD-0099 Q-V-9 C and Q-V-13 B; first-release voice typing, VT-7): model downloads on the shared downloader (V-9.5).
+using Marrow.Core.Port;
 using Marrow.Core.Port.Voice;
 using Marrow.Services.Port.Downloads;
 
@@ -11,6 +12,8 @@ namespace Marrow.Services.Port.Voice.Models;
 /// </summary>
 public sealed class ModelDownloader
 {
+    private static readonly Logger Log = new("voice", "models");
+
     private readonly ModelStore store;
     private readonly Downloader downloader;
     private readonly Func<ModelFile, Uri> urlFor;
@@ -42,12 +45,40 @@ public sealed class ModelDownloader
         {
             if (active.TryGetValue(file.Id, out var running)) return running;
             var request = new DownloadRequest(urlFor(file), store.PathFor(file), file.Bytes, file.Sha256, "huggingface.co");
+            AdoptPartialBesideModel(file, request);
             var job = downloader.Start(request);
             ModelDownload? download = null;
             download = new ModelDownload(job, () => Finish(file, job, () => download!));
             active[file.Id] = download;
             store.SetDownloading(file, () => download!.Fraction);
             return download;
+        }
+    }
+
+    /// <summary>
+    /// V-9.5 item 1 names a partial <c>&lt;file&gt;.partial</c> beside the model; the shared downloader keeps its own as <c>&lt;sha8&gt;.part</c> in its part
+    /// folder (ED-305 (2)). A <c>.partial</c> found beside the model is therefore renamed (one atomic step, no copy) into the downloader's slot when that slot
+    /// holds nothing, and the downloader resumes it with Range and verifies the whole file as it does its own: a wrong prefix ends in the hash check
+    /// and the one silent restart, never in an installed file. The rename is its own record: a crash before it leaves the <c>.partial</c> for the next start,
+    /// a crash after it leaves the <c>.part</c> (the two never both hold the bytes), so nothing runs twice and no guard is needed. A slot that holds bytes
+    /// is never overwritten and a <c>.partial</c> is never deleted; one that cannot be moved (a scanner holds it) is left where it is, logged by its
+    /// exception type alone, and the download starts from what the slot holds. The name comes from the manifest's file name, not from the server or the
+    /// user. Called under the lock from <see cref="Start"/>: with no <c>.partial</c> it costs one stat.
+    /// </summary>
+    private void AdoptPartialBesideModel(ModelFile file, DownloadRequest request)
+    {
+        try
+        {
+            var beside = new FileInfo(store.PartialPathFor(file));
+            if (!beside.Exists || beside.Length == 0) return;
+            var slot = new FileInfo(downloader.PartPathOf(request));
+            if (slot.Exists && slot.Length > 0) return;
+            Directory.CreateDirectory(slot.DirectoryName!);
+            File.Move(beside.FullName, slot.FullName, overwrite: true);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            Log.Error("voice model partial not adopted: " + error.GetType().Name);
         }
     }
 

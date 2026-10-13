@@ -62,7 +62,7 @@ public sealed record SkillsHostOptions
     /// </summary>
     public static SkillsHostOptions Production(SkillsCatalogue? catalogue = null) => new()
     {
-        Catalogue = catalogue ?? SkillsCatalogueLoader.LoadEmbedded(),
+        Catalogue = catalogue ?? SkillsCatalogueLoader.Embedded, // ED-NEW-perf-startup-structure-3: the one parse, started on the pool at launch
         Protection = new WindowsStoreProtection(),
         InstallLock = new WindowsInstallLock(),
         InstallProcess = new WindowsInstallProcess([]),

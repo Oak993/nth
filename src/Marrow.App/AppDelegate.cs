@@ -175,6 +175,7 @@ public sealed class AppDelegate
     // :56-61 func applicationWillTerminate(_ notification: Notification)
     public void ApplicationWillTerminate()
     {
+        WindowManager.Shared.FlushPendingFrames(); // PORT-ONLY (ED-NEW-perf-startup-structure-1): the window frame a drag was still holding
         Model?.Settings.FlushPendingWrites(); // PORT-ONLY (CZ-13.5): the settings a slider drag was still holding reach the store before the app ends
         Model?.SaveBeforeQuit(); // :57
         TokenLedger.Shared.Current.FlushLiveSpend(); // :58

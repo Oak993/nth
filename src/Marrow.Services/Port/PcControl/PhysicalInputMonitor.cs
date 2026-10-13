@@ -318,7 +318,18 @@ public sealed class PhysicalInputMonitor : IPhysicalInput
         return reinstall;
     }
 
-    void IPhysicalInput.LastInput(long tickMs) => LastInputSeen(tickMs);
+    // The gate's check (IPhysicalInput is the lease's view; the reader's heartbeat calls LastInputSeen itself). ED-NEW-perf-idle-6:
+    // the hook reader polls the ring quickly while a gate is being asked, so the events of a key just pressed are in before the check.
+    void IPhysicalInput.LastInput(long tickMs)
+    {
+        Volatile.Write(ref gateAt, clock.NowMs);
+        LastInputSeen(tickMs);
+    }
+
+    private long gateAt = long.MinValue;
+
+    /// <summary>Milliseconds since a gate last read the input tick (<see cref="IPhysicalInput.LastInput"/>); null: none yet.</summary>
+    public long? SinceGateMs => Volatile.Read(ref gateAt) is var at && at != long.MinValue ? clock.NowMs - at : null;
 
     /// <summary>An IME composition opened or closed in a window (WinEvents, TextEditPattern); closing window 0 closes any.</summary>
     public void Composition(nint window, bool open)

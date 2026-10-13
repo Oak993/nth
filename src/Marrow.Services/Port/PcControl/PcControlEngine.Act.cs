@@ -169,7 +169,7 @@ public sealed partial class PcControlEngine
         lock (gate) appeared = NewWindows(info, looked.AppWindows).Where(w => w.Handle != info.Handle && !opened.Contains(w.Handle)).ToList();
         if (appeared.Count == 0) return null;
         var first = appeared[0];
-        return PcResult.Fail(PcErrorCode.ExpectFailed, "a window of the app opened since your look at this window: " + PcWindowRef.Format(first.Handle) + " "
+        return PcResult.Fail(PcErrorCode.ExpectFailed, "a window of the app opened since your look at this window: " + Ref(first.Handle) + " "
             + PcWindowLine.Quote(TreeFormatter.Clean(first.Title, 80)) + "; look at it before acting here");
     }
 
@@ -794,7 +794,7 @@ public sealed partial class PcControlEngine
         {
             lock (gate) opened.Add(window.Handle);
             Remember(window);
-            extra.Append("\nnew window: ").Append(PcWindowRef.Format(window.Handle)).Append(' ').Append(PcWindowLine.Quote(TreeFormatter.Clean(window.Title, 120)));
+            extra.Append("\nnew window: ").Append(Ref(window.Handle)).Append(' ').Append(PcWindowLine.Quote(TreeFormatter.Clean(window.Title, 120)));
             if (post.Foreground == window.Handle)
             {
                 extra.Append(" (it took the foreground)");
