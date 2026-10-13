@@ -8370,3 +8370,10 @@ The lean regression DigestLaunchTests.Starting_the_duties_the_way_turning_Dextra
 2. CHANGED: the test now asserts the exact 23-call sequence of Program.Main up to the hook: the three relay dispatches in order (skills, advisor, nth-dextra; seven calls each), then get_BaseDirectory and RunVelopackHook, and it checks the declaring type of every relay call, as it did for the skills one. It is stricter than before: three relay entries are pinned in their order instead of one, and any other call before the hook still fails it.
 3. NOT CHANGED: Program.cs, the relays, the hook, and the other tests of the class.
 4. No package is added.
+
+
+## ED-NEW-dextra-smooth-1
+2026-10-13 - Warm Armilla raster frames without managed allocation (CU-DX-SMOOTH; DESIGN 2.5, revised presence index 1653-1706). PORT-ONLY.
+1. DextraSmoothAllocationTests failed alone twice in normal and Reduce Motion: 72,000 B over 600 warmed frames, 120 B/frame. The clover temporary tuple array accounts for 56 B/frame; Array.Sort converts the gap comparer to a delegate for another 64 B/frame.
+2. Clover uses the same four AddCircle calls in the same order. A bounded six-entry insertion sort gives the same angular ordering as the former small-array sort, without its comparer delegate. Geometry, spring integration, cadence and ReducedMotion poses are unchanged.
+3. The same warm all-six-shape probe now passes both cases: 0 B over 600 Tick/Draw frames. Existing raster/motion guards remain intact. This is managed headless evidence, not GPU or physical-frame acceptance; existing AssistantHomeNativeTests and OrgChartNativeTests remain owed to the lead. No package.

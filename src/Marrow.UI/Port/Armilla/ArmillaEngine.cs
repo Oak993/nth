@@ -603,7 +603,14 @@ internal sealed class ArmillaEngine
             {
                 for (var i = 0; i < nodeCount; i++)
                     gaps[i] = (((nodes[i].Ang % 360) + 360) % 360, (nodes[i].Gr + 3.5) / tr / Deg * Math.Clamp(nodes[i].P, 0, 1));
-                Array.Sort(gaps, 0, nodeCount, GapOrder.Instance);
+                // At most six entries. Array.Sort's comparer-to-delegate conversion allocated on every frame.
+                for (var i = 1; i < nodeCount; i++)
+                {
+                    var next = gaps[i];
+                    var j = i - 1;
+                    while (j >= 0 && gaps[j].A > next.A) { gaps[j + 1] = gaps[j]; j--; }
+                    gaps[j + 1] = next;
+                }
                 for (var i = 0; i < nodeCount; i++)
                 {
                     var (ga, gg) = gaps[i];
@@ -691,10 +698,4 @@ internal sealed class ArmillaEngine
         MaxExtent = maxExt / hb;
     }
 
-    private sealed class GapOrder : IComparer<(double A, double G)>
-    {
-        public static readonly GapOrder Instance = new();
-
-        public int Compare((double A, double G) x, (double A, double G) y) => x.A.CompareTo(y.A);
-    }
 }
