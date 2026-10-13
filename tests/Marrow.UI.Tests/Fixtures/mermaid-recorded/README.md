@@ -1,9 +1,10 @@
-Recorded Mermaid drawings (web surfaces W16c, ED-NEW-web-w16c-1).
+Recorded Mermaid drawings (web surfaces W16c, ED-NEW-web-w16c-1, ED-NEW-web-review-25).
 
-`NthSvgRecordedMermaidTests` reads every `*.svg` here. They are written by the native test `MermaidRunnerNativeTests` in
-`tests/Marrow.Services.Tests/Web/` (the lead runs it at the native pass, alone and with focus: it starts Edge in headless mode
-and draws one diagram of every family, in light and dark, through the hidden renderer's runner and the vendored Mermaid):
+`NthSvgRecordedMermaidNativeTests` requires all 26 SVG recordings and checks every drawing.
+An empty folder is pending native evidence and must never count as a passing render check.
 
-    dotnet test tests/Marrow.Services.Tests --filter "FullyQualifiedName~MermaidRunnerNativeTests"
-
-Commit the files it writes. An empty folder is fine: the ordinary test then has nothing to read.
+The lead records the 13 diagram families in light and dark with `MermaidRunnerNativeTests`
+in `tests/Marrow.Services.Tests/Web/`, under the official heavy and native slots and test
+wrappers. This starts Edge and is not part of a managed worker run. Commit the recorded
+files, then run the UI Native checker through the same official verification workflow.
+See the web feature handoff for the exact native prerequisites and scheduled checks.
