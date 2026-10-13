@@ -38,4 +38,3 @@ internal sealed class DextraRestDisplayPeriod : IDisposable
     internal DextraRestDisplayPeriod(int hz) => RenderFrameSource.PeriodSource = () => TimeSpan.FromSeconds(1.0 / hz);
     public void Dispose() => RenderFrameSource.PeriodSource = previous;
 }
-
