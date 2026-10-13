@@ -13,7 +13,7 @@ namespace Marrow.UI.Tests.Port.Armilla;
 
 // AS-8 "done when": the mark is one fixed square slot that a state change never resizes, out of the accessibility tree and
 // never focused; a settled row mark stops drawing; a mark that is hidden, or in a window that has been without focus for 30 s,
-// draws nothing and wakes on focus (2.5 "Render budget", "Hover", "The Avalonia port").
+// reaches rest continuously, stops drawing and wakes on focus (2.5 "Render budget", "Hover", "The Avalonia port"; CU-DX-SMOOTH3).
 [Collection("Headless")]
 public sealed class ArmillaMarkTests(HeadlessSession headless)
 {
@@ -143,6 +143,7 @@ public sealed class ArmillaMarkTests(HeadlessSession headless)
     [Fact]
     [Trait("Feature", "AS-8")]
     [Trait("Decision", "ED-NEW-dextra-as8-1")]
+    [Trait("Decision", "ED-NEW-dextra-smooth-12")]
     public void Thirty_seconds_without_focus_puts_every_mark_of_the_window_to_sleep_and_focus_wakes_them() => headless.OnUiThread(() =>
     {
         var clock = new ManualTimeProvider(); using var time = SwiftClock.Provider.Override(clock);
@@ -162,7 +163,10 @@ public sealed class ArmillaMarkTests(HeadlessSession headless)
             Assert.True(first.Ticking);
             clock.Advance(TimeSpan.FromSeconds(1.1)); Pump(2);
             Assert.True(watch.Sleeping);
-            Pump(2);
+            // CU-DX-SMOOTH3 (a): sleep ends in a continuous rest, not an immediate
+            // frozen moving frame. Retain the actual 29/30 s focus boundary above.
+            for (var i = 0; i < 1080; i++) { clock.Advance(TimeSpan.FromMilliseconds(17)); Pump(1); }
+            Assert.False(first.Ticking); Assert.False(second.Ticking);
             var frames = (first.FramesDrawn, second.FramesDrawn);
             for (var i = 0; i < 20; i++) { clock.Advance(TimeSpan.FromMilliseconds(17)); Pump(1); }
             Assert.Equal(frames, (first.FramesDrawn, second.FramesDrawn));
