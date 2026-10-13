@@ -53,6 +53,10 @@ public sealed partial class WebAgentEngine : IDisposable
     // ED-NEW-web-sec-agent-6: the preview origins a chat outside any project allowed scripts in, kept only while its web tools live.
     private readonly HashSet<string> chatScripts = new(StringComparer.OrdinalIgnoreCase);
     private readonly LinkedList<(string? Origin, string Text)> readTexts = new();
+
+    // ED-NEW-web-sec-agent-9: the titles and addresses the model was shown, with their site (Named), and what it typed on each site (Typed).
+    private readonly LinkedList<(string Origin, string Text)> shownNames = new();
+    private readonly Dictionary<string, string> typedOn = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, PendingAsk> asks = new(StringComparer.Ordinal);
     private CancellationTokenSource turn = new();
     private CancellationTokenSource? running;
@@ -272,6 +276,7 @@ public sealed partial class WebAgentEngine : IDisposable
             lines.Append(state.Short).Append(" (").Append(tab.Shared ? "shared by the user" : "yours").Append(") ").Append(tab.Url);
             if (tab.Title.Length > 0) lines.Append(" | ").Append(tab.Title);
             lines.Append('\n');
+            Named(WebPolicy.OriginOf(tab.Url), tab.Url + "\n" + tab.Title);
         }
         return new WebToolResult("Tabs you may use (" + N(tabs.Count) + "):\n" + WebAgentText.Untrusted(null, lines.ToString().TrimEnd()));
     }
@@ -321,6 +326,7 @@ public sealed partial class WebAgentEngine : IDisposable
         if (state.Blocked is { } blocked) return Fail(WebErrorCodes.Blocked, blocked);
         var tab = state.Tab;
         var text = "Opened " + state.Short + " at " + tab.Url + (tab.Loading ? " (still loading; web_wait for load)" : "") + ".";
+        Named(WebPolicy.OriginOf(tab.Url), tab.Url + "\n" + tab.Title);
         return new WebToolResult(text + "\n" + WebAgentText.Untrusted(WebPolicy.OriginOf(tab.Url), "Title: " + tab.Title));
     }
 
@@ -345,6 +351,7 @@ public sealed partial class WebAgentEngine : IDisposable
             await WaitLoaded(state, s.Token);
         }
         if (state.Blocked is { } blocked) return Fail(WebErrorCodes.Blocked, blocked);
+        Named(WebPolicy.OriginOf(state.Tab.Url), state.Tab.Url + "\n" + state.Tab.Title);
         return new WebToolResult(state.Short + " is at " + state.Tab.Url + ".\n" + WebAgentText.Untrusted(WebPolicy.OriginOf(state.Tab.Url), "Title: " + state.Tab.Title));
     }
 
@@ -753,7 +760,7 @@ public sealed partial class WebAgentEngine : IDisposable
     // Whether a query value came from a page the model read ("This address carries text from the page you were on").
     private bool FromPage(string value)
     {
-        lock (gate) return readTexts.Any(t => t.Text.Contains(value, StringComparison.OrdinalIgnoreCase));
+        lock (gate) return readTexts.Any(t => t.Text.Contains(value, StringComparison.OrdinalIgnoreCase)) || shownNames.Any(t => t.Text.Contains(value, StringComparison.OrdinalIgnoreCase));
     }
 
     // ED-NEW-web-sec-agent-5 (security review M3): the sites whose text the model is about to type into a page of target. Text read on
@@ -763,7 +770,7 @@ public sealed partial class WebAgentEngine : IDisposable
         var from = new List<string>();
         if (typed.Length == 0) return from;
         List<(string? Origin, string Text)> texts;
-        lock (gate) texts = [.. readTexts];
+        lock (gate) texts = [.. readTexts, .. shownNames.Select(n => ((string?)n.Origin, n.Text))];
         foreach (var (source, text) in texts)
         {
             if (source is null || from.Contains(source, StringComparer.OrdinalIgnoreCase) || string.Equals(source, target, StringComparison.OrdinalIgnoreCase)) continue;
@@ -771,6 +778,59 @@ public sealed partial class WebAgentEngine : IDisposable
             if (WebAgentText.Carries(typed, text)) from.Add(source);
         }
         return from;
+    }
+
+    // ED-NEW-web-sec-agent-9 (security review M3, second pass): the sites a text carries text from, together with what the model typed on
+    // target before (a code typed in pieces adds up there), and the text the card shows: this text, or the pieces with it.
+    private (List<string> From, string Shown) Carried(string typed, string? target)
+    {
+        var from = CarriedFrom(typed, target);
+        if (from.Count > 0 || target is null || typed.Length == 0) return (from, typed);
+        string? before;
+        lock (gate) before = typedOn.GetValueOrDefault(target);
+        if (string.IsNullOrEmpty(before)) return (from, typed);
+        var joined = before + " " + typed;
+        from = CarriedFrom(joined, target);
+        return (from, from.Count == 0 ? typed : joined.Length <= 120 ? joined : "\u2026" + joined[^119..]);
+    }
+
+    // What the model typed on a site: the last 2,000 characters, pieces joined by a space, for at most 64 sites; a text whose carry card
+    // the user confirmed starts it again (the user saw what goes there).
+    private void Typed(string? target, string typed, bool confirmed)
+    {
+        if (target is null || typed.Length == 0) return;
+        lock (gate)
+        {
+            if (confirmed)
+            {
+                typedOn.Remove(target);
+                return;
+            }
+            var joined = typedOn.TryGetValue(target, out var before) && before.Length > 0 ? before + " " + typed : typed;
+            typedOn[target] = joined.Length <= 2_000 ? joined : joined[^2_000..];
+            if (typedOn.Count > 64) typedOn.Remove(typedOn.Keys.First(k => !string.Equals(k, target, StringComparison.OrdinalIgnoreCase)));
+        }
+    }
+
+    // A title or an address the model was shown, and the site it belongs to (the tab's, read or not); the last 64, kept apart from the
+    // twelve page reads so a tab list never pushes a page out of them.
+    private void Named(string? origin, string? text)
+    {
+        if (origin is null || string.IsNullOrWhiteSpace(text)) return;
+        var kept = text.Length <= 4_000 ? text : text[..4_000];
+        lock (gate)
+        {
+            for (var node = shownNames.First; node is not null; node = node.Next)
+            {
+                if (string.Equals(node.Value.Origin, origin, StringComparison.OrdinalIgnoreCase) && node.Value.Text == kept)
+                {
+                    shownNames.Remove(node);
+                    break;
+                }
+            }
+            shownNames.AddLast((origin, kept));
+            while (shownNames.Count > 64) shownNames.RemoveFirst();
+        }
     }
 
     // ---- Navigations, take-over and the step window ----
@@ -827,6 +887,7 @@ public sealed partial class WebAgentEngine : IDisposable
         else if (WebPolicy.IsWeb(url))
         {
             lock (gate) knownUrls.Add(WebAgentUrls.Normalize(url));
+            Named(WebPolicy.OriginOf(state.Tab.Url), url);
             why = "nth stopped the page from opening " + url + " in a new tab. To go there, call web_open with this url (it asks the user when it must): " + url;
         }
         else
@@ -849,6 +910,7 @@ public sealed partial class WebAgentEngine : IDisposable
     {
         e.Cancel = true;
         state.Blocked = why;
+        if (WebPolicy.IsWeb(e.Url)) Named(WebPolicy.OriginOf(state.Tab.Url), e.Url);
     }
 
     private bool ModelCaused(TabState state)

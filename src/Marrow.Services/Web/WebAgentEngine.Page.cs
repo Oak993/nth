@@ -175,6 +175,10 @@ public sealed partial class WebAgentEngine
         string body;
         IReadOnlyList<string> links;
         string? more = null;
+        // ED-NEW-web-sec-agent-9: a frame's text belongs to the frame's site (typing it into the page around it asks, as any other site's).
+        var framed = new List<(string? Origin, string Text)>();
+        string? main = null;
+        var inFrame = root?.Session is { } rootSession ? SessionOrigin(state, rootSession) ?? origin : null;
         try
         {
             if (mode == "ax")
@@ -195,10 +199,12 @@ public sealed partial class WebAgentEngine
                         if (part.Text.Length == 0) continue;
                         text.Append("\nframe ").Append(frame.Url).Append(":\n").Append(part.Text);
                         all.AddRange(part.Links);
+                        framed.Add((WebPolicy.OriginOf(frame.Url) ?? origin, part.Text));
                     }
                 }
                 body = text.ToString();
                 links = all;
+                main = tree.Text;
             }
             else
             {
@@ -212,7 +218,17 @@ public sealed partial class WebAgentEngine
         {
             await ReleaseObjects(state);
         }
-        Saw(origin, body, links);
+        if (inFrame is not null)
+        {
+            Saw(origin, null, links);
+            Kept(inFrame, body);
+        }
+        else
+        {
+            Saw(origin, main ?? body, links);
+        }
+        foreach (var (site, part) in framed) Kept(site, part);
+        Named(origin, state.Tab.Url + "\n" + state.Tab.Title);
         var header = state.Short + " " + state.Tab.Url + (state.Tab.Loading ? " (still loading)" : "");
         return new WebToolResult(header + "\n" + WebAgentText.Untrusted(origin, "Title: " + state.Tab.Title + "\n" + body) + (more is null ? "" : "\n" + more)) { ReadOrigin = origin };
     }
@@ -228,15 +244,18 @@ public sealed partial class WebAgentEngine
         var cdp = state.Cdp!;
         var secrets = await Secrets(state, null, s.Token);
         var lines = new List<string>(WebAgentTree.Find(WebAgentTree.Parse(await cdp.CallAsync("Accessibility.getFullAXTree", null, null, s.Token)), state.Refs, query, null, secrets));
+        var own = lines.Count;
+        var origin = WebPolicy.OriginOf(state.Tab.Url);
         foreach (var frame in await Frames(state, s.Token))
         {
             if (lines.Count >= 30) break;
             var nodes = WebAgentTree.Parse(await cdp.CallAsync("Accessibility.getFullAXTree", null, frame.SessionId, s.Token));
-            lines.AddRange(WebAgentTree.Find(nodes, state.Refs, query, frame.SessionId, await Secrets(state, frame.SessionId, s.Token), 30 - lines.Count));
+            var found = WebAgentTree.Find(nodes, state.Refs, query, frame.SessionId, await Secrets(state, frame.SessionId, s.Token), 30 - lines.Count);
+            lines.AddRange(found);
+            Kept(WebPolicy.OriginOf(frame.Url) ?? origin, string.Join('\n', found));
         }
-        var origin = WebPolicy.OriginOf(state.Tab.Url);
         var body = string.Join('\n', lines);
-        Saw(origin, body, []);
+        Saw(origin, string.Join('\n', lines.Take(own)), []);
         if (lines.Count == 0) return new WebToolResult("Nothing on " + state.Short + " matches that. Try other words, or web_read the page.") { ReadOrigin = origin };
         return new WebToolResult(N(lines.Count) + " matches on " + state.Short + ":\n" + WebAgentText.Untrusted(origin, body)) { ReadOrigin = origin };
     }
@@ -366,8 +385,11 @@ public sealed partial class WebAgentEngine
             if (typing.Kind == WebGuardKind.Deny) return Fail(WebErrorCodes.Denied, typing.Reason!);
             if (element.IsSelect) return Fail(WebErrorCodes.BadArgs, reference + " is a list of options: use web_select.");
             if (!element.Editable) return Fail(WebErrorCodes.BadArgs, reference + " is not a text field: use web_click or web_select.");
-            var from = CarriedFrom(text, origin);
-            if (from.Count > 0 && await Guard(s, state, CarryVerdict, element.Facts, Approval(state, "carry", element, text), null, CarryRows(from, text), null, Sources(from)) is { } carried)
+            // ED-NEW-web-sec-agent-9: the text goes to the site of the field's own document (another site's frame inside the page is that
+            // site), and what the model typed there before counts with it.
+            var into = FieldOrigin(state, element, origin);
+            var (from, shown) = Carried(text, into);
+            if (from.Count > 0 && await Guard(s, state, CarryVerdict, element.Facts, Approval(state, "carry", element, shown), Elsewhere(into, origin, element), CarryRows(from, shown), null, Sources(from)) is { } carried)
                 return carried;
             var entering = submit ? EnterVerdict(element, origin) : WebGuardVerdict.Pass;
             if (submit && await Guard(s, state, entering, element.Facts, Approval(state, "enter", element, null), null, element.Rows) is { } stop) return stop;
@@ -385,10 +407,16 @@ public sealed partial class WebAgentEngine
                     if (WebAgentPolicy.CheckType(active.Facts) is { Kind: WebGuardKind.Deny } moved) return Fail(WebErrorCodes.Denied, moved.Reason!);
                 }
                 if ((entering.Kind == WebGuardKind.Confirm || from.Count > 0) && active?.Node != key) return Fail(WebErrorCodes.StaleRef, PageChanged);
+                // Focus moved to a field of another site: the text must not carry there unasked either.
+                if (active is not null && Moved(state, active, origin, into, text)) return Fail(WebErrorCodes.StaleRef, PageChanged);
                 await state.Overlay.Busy(state.Cdp!, true, s.Token);
                 try
                 {
-                    if (text.Length > 0) await state.Cdp!.CallAsync("Input.insertText", new JsonObject { ["text"] = text }, cancellationToken: s.Token);
+                    if (text.Length > 0)
+                    {
+                        await state.Cdp!.CallAsync("Input.insertText", new JsonObject { ["text"] = text }, cancellationToken: s.Token);
+                        Typed(into, text, from.Count > 0);
+                    }
                     if (submit) await Press(state.Cdp!, WebAgentKeys.Parse("enter").Presses[0], s.Token);
                 }
                 finally
@@ -421,20 +449,30 @@ public sealed partial class WebAgentEngine
             var spelled = string.Concat(presses.Where(p => !p.IsEnter && p.Text is not null).Select(p => p.Text));
             var carrying = false;
             WebNodeKey? carriedTo = null;
-            if (CarriedFrom(spelled, origin) is { Count: > 0 } from)
+            var into = origin;
+            if (spelled.Length > 0)
             {
+                // ED-NEW-web-sec-agent-9: the letters go to the site of the focused field's own document, and what the model typed there
+                // before counts with them.
                 var focus = await ActiveFacts(state, s.Token);
                 if (focus is { Sealed: true }) return Fail(WebErrorCodes.Denied, FrameRefusal);
-                var into = focus ?? new Element(new WebElementFacts(), false, false, false, null, [], []);
-                if (await Guard(s, state, CarryVerdict, into.Facts, Approval(state, "carry", into, spelled), null, CarryRows(from, spelled), null, Sources(from)) is { } carried)
-                    return carried;
-                carrying = true;
-                carriedTo = focus?.Node;
+                if (focus is not null) into = FieldOrigin(state, focus, origin);
+                var (from, shown) = Carried(spelled, into);
+                if (from.Count > 0)
+                {
+                    var field = focus ?? new Element(new WebElementFacts(), false, false, false, null, [], []);
+                    if (await Guard(s, state, CarryVerdict, field.Facts, Approval(state, "carry", field, shown), Elsewhere(into, origin, field), CarryRows(from, shown), null, Sources(from)) is { } carried)
+                        return carried;
+                    carrying = true;
+                    carriedTo = focus?.Node;
+                }
             }
+            var letters = new StringBuilder();
             Report(UiText.Get("agent.step.pressing_keys"), state.Short);
             var pressedEnter = false;
-            using (BeginStep(state))
+            try
             {
+                using var lease = BeginStep(state);
                 await Drive(state, s);
                 for (var i = 0; i < presses.Count; i++)
                 {
@@ -451,6 +489,7 @@ public sealed partial class WebAgentEngine
                         var active = await ActiveFacts(state, s.Token);
                         if (active is { Sealed: true }) return Fail(WebErrorCodes.Denied, done + FrameRefusal);
                         if (carrying && press.Text is not null && active?.Node != carriedTo) return Fail(WebErrorCodes.StaleRef, done + PageChanged);
+                        if (press.Text is not null && active is not null && Moved(state, active, origin, into, spelled)) return Fail(WebErrorCodes.StaleRef, done + PageChanged);
                         if (active is not null)
                         {
                             var verdict = press.IsEnter
@@ -472,6 +511,7 @@ public sealed partial class WebAgentEngine
                     try
                     {
                         await Press(state.Cdp!, press, s.Token);
+                        if (!press.IsEnter && press.Text is not null && !commands) letters.Append(press.Text);
                     }
                     finally
                     {
@@ -480,6 +520,10 @@ public sealed partial class WebAgentEngine
                     pressedEnter |= press.IsEnter || press.Key == " ";
                 }
                 if (pressedEnter) await Settle(state, s);
+            }
+            finally
+            {
+                Typed(into, letters.ToString(), carrying);
             }
             return Acted(state, "Pressed " + N(presses.Count) + (presses.Count == 1 ? " key" : " keys") + " in " + state.Short + ".", null);
         }
@@ -741,7 +785,11 @@ public sealed partial class WebAgentEngine
     {
         var text = said + (names is null ? "" : "\n" + names);
         if (state.Blocked is { } blocked) return Fail(WebErrorCodes.Blocked, text + "\n" + blocked);
-        if (state.Tab.Loading) text += "\nThe page is loading " + state.Tab.Url + ": web_wait for load, then read it.";
+        if (state.Tab.Loading)
+        {
+            text += "\nThe page is loading " + state.Tab.Url + ": web_wait for load, then read it.";
+            Named(WebPolicy.OriginOf(state.Tab.Url), state.Tab.Url);
+        }
         return new WebToolResult(text);
     }
 
@@ -1173,6 +1221,25 @@ public sealed partial class WebAgentEngine
     // Why a ref has no point to click: its frame cannot be placed by a move (sealed), or it is out of view.
     private static async Task<WebToolResult> NoPoint(TabState state, WebNodeKey key, string hidden, CancellationToken token) =>
         key.Session is { } frame && await FrameOffset(state, frame, token, 0) is null ? Fail(WebErrorCodes.Denied, FrameRefusal) : Fail(WebErrorCodes.StaleRef, hidden);
+
+    // ED-NEW-web-sec-agent-9: the site a field belongs to: the tab's for the page's own document, the frame's own address for a field
+    // inside another site's frame (its session).
+    private static string? FieldOrigin(TabState state, Element element, string? origin) =>
+        element.Node is { Session: { } session } ? WebPolicy.OriginOf(element.Facts.FrameUrl) ?? SessionOrigin(state, session) ?? origin : origin;
+
+    private static string? SessionOrigin(TabState state, string session) =>
+        WebPolicy.OriginOf(state.Cdp?.Sessions.FirstOrDefault(s => string.Equals(s.SessionId, session, StringComparison.Ordinal))?.Url);
+
+    // The card names the frame's site when the field is in another site's frame inside the page (its address row shows where).
+    private static string? Elsewhere(string? into, string? origin, Element element) =>
+        string.Equals(into, origin, StringComparison.OrdinalIgnoreCase) ? null : element.Facts.FrameUrl;
+
+    // Focus moved to a field of another site than the one judged, and the text would carry there.
+    private bool Moved(TabState state, Element active, string? origin, string? into, string text)
+    {
+        var landed = FieldOrigin(state, active, origin);
+        return !string.Equals(landed, into, StringComparison.OrdinalIgnoreCase) && Carried(text, landed).From.Count > 0;
+    }
 
     // ED-NEW-web-sec-agent-8: the element under the point just before the press may be pressed: the same node as judged, judged no
     // stricter now, and after a card with the content the card showed. A hover that only restyles the node keeps it pressable.
