@@ -27,7 +27,7 @@ public sealed record DelegatePrompt(string Text, string Evidence);
 
 public static class DelegateBrief
 {
-    public const int DecisionsChars = 6_000;
+    public const int DecisionsChars = 4_000;
     public const int PastChars = 3_000;
     public const int ChatChars = 3_500;
     public const int QuestionChars = 2_400;
@@ -53,13 +53,13 @@ public static class DelegateBrief
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(pack);
         var text = new StringBuilder(Rules).AppendLine().AppendLine();
-        var decisions = Cut(pack.Decisions, DecisionsChars);
-        var past = Cut(pack.PastAnswers, PastChars);
+        var decisions = Shielded(pack.Decisions, DecisionsChars);
+        var past = Shielded(pack.PastAnswers, PastChars);
         Block(text, "The owner's recorded decisions", decisions);
         Block(text, "Answers given for the owner before (his corrections are what he wanted)", past);
         var (chat, owner) = ChatText(pack.Chat);
         Block(text, "The chat so far", chat);
-        Block(text, "The question, from the chat \"" + Line(chatTitle, 80) + "\"", Cut(QuestionText(request), QuestionChars));
+        Block(text, "The question, from the chat \"" + FeedShield.Mask(Line(chatTitle, 80)) + "\"", Shielded(QuestionText(request), QuestionChars));
         // Only what the model was shown can be quoted as a decision: the decisions, the past answers and the owner's own words.
         return new DelegatePrompt(text.ToString(), string.Join('\n', decisions, past, owner));
     }
@@ -91,7 +91,7 @@ public static class DelegateBrief
         var room = ChatChars;
         for (var i = chat.Count - 1; i >= 0 && room > 0; i--)
         {
-            var words = Cut(chat[i].Text.Trim(), Math.Min(room, 1_200));
+            var words = Shielded(chat[i].Text.Trim(), Math.Min(room, 1_200));
             kept.Add((chat[i].Owner ? "Owner: " : "Agent: ") + words);
             if (chat[i].Owner) owner.Add(words);
             room -= words.Length + 8;
@@ -109,6 +109,10 @@ public static class DelegateBrief
         text.AppendLine(">>>");
         text.AppendLine();
     }
+
+    // 5.4 "Shield on the way in": no key, password, card number or one-time code goes to the model. Cut first, then masked, so a key that straddles the cut
+    // leaves nothing behind; every cut is under the shield's own reading limit.
+    private static string Shielded(string text, int chars) => FeedShield.Mask(Cut(text, chars));
 
     private static string Cut(string text, int chars) =>
         text.Length <= chars ? text.Trim() : text[..chars].TrimEnd() + string.Create(CultureInfo.InvariantCulture, $"\n(cut at {chars} characters)");

@@ -3,7 +3,6 @@
 // ("answered by ⟨head⟩ for you"), the card's rule line, the correction an Override sends, the feed line and the digest's line.
 // Pure: no I/O, no clock, no model.
 using System.Globalization;
-using System.Text;
 
 namespace Marrow.Core.Port.Assistant;
 
@@ -38,6 +37,8 @@ public enum DelegateReason
     Private,
     /// <summary>More questions, or longer ones, than the delegate takes.</summary>
     TooMuch,
+    /// <summary>The activity log could not be written, so nothing was done for the owner (12.5: logged first).</summary>
+    NotLogged,
 }
 
 public static class DelegateWords
@@ -76,6 +77,7 @@ public static class DelegateWords
         DelegateReason.NoModel => "No model could be asked in time.",
         DelegateReason.Private => "It may not read this chat.",
         DelegateReason.TooMuch => "There is more here than it answers for you.",
+        DelegateReason.NotLogged => "The activity log could not be written, so nothing was done for you.",
         _ => "It is yours to answer.",
     };
 
@@ -121,8 +123,6 @@ public static class DelegateWords
 
     public const string AnsweredHeading = "Answered for you";
 
-    public const string AnsweredEmpty = "Nothing answered for you yet.";
-
     /// <summary>The longest correction the owner can send.</summary>
     public const int CorrectionChars = 1_000;
 
@@ -148,7 +148,4 @@ public static class DelegateWords
         var line = Clip(text, 240);
         return line.EndsWith('.') ? line : line + ".";
     }
-
-    /// <summary>Appends a clipped answer to a builder as a quoted fragment (shared by the card and the log).</summary>
-    public static void AppendQuoted(StringBuilder builder, string text) => builder.Append(Quote(text));
 }

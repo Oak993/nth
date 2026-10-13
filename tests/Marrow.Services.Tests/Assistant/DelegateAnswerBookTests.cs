@@ -92,6 +92,22 @@ public sealed class DelegateAnswerBookTests
     }
 
     [Fact]
+    public void The_digest_counts_the_questions_answered_since_per_chat_in_the_order_each_chat_began_and_leaves_approvals_out()
+    {
+        var book = new DelegateAnswerBook(new ManualTimeProvider(T0));
+        book.Add(Rec(T0.AddHours(-30), "Before the last digest", ChatA));
+        book.Add(Rec(T0.AddMinutes(-50), "One", ChatB) with { ChatTitle = "Thesis outline" });
+        book.Add(Rec(T0.AddMinutes(-40), "Two", ChatA));
+        book.Add(Rec(T0.AddMinutes(-30), "Three", ChatB) with { ChatTitle = "Thesis outline" });
+        book.Add(Rec(T0.AddMinutes(-20), "Four", ChatB) with { ChatTitle = "Thesis outline" });
+        book.Add(Rec(T0.AddMinutes(-10), "Allowed", ChatA) with { Kind = DelegateKind.Approval });
+        var lines = book.Digest(T0.AddHours(-24));
+        Assert.Equal([ChatB, ChatA], lines.Select(l => l.Chat));
+        Assert.Equal(["3 questions in “Thesis outline”", "1 question in “Pitch deck v3”"], lines.Select(l => l.Text));
+        Assert.Empty(book.Digest(T0));
+    }
+
+    [Fact]
     public void The_book_keeps_the_newest_records_and_nothing_older_than_ninety_days()
     {
         var clock = new ManualTimeProvider(T0);

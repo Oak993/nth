@@ -14,6 +14,13 @@ namespace Marrow.Services.Assistant;
 /// <summary>What the delegate answered.</summary>
 public enum DelegateKind { Question, Approval }
 
+/// <summary>The questions the delegate answered in one chat since the digest last told (6: "Answered for you: 2 questions in “Pitch deck v3”").</summary>
+public sealed record DelegateDigestLine(Guid Chat, string Title, int Count)
+{
+    /// <summary>The line as the digest says it: "2 questions in “Pitch deck v3”".</summary>
+    public string Text => DelegateWords.DigestItem(Title, Count);
+}
+
 /// <summary>One answer given for the owner, and his correction if he made one.</summary>
 public sealed record DelegateRecord(Guid Id, DateTimeOffset At, Guid Chat, string ChatTitle, DelegateKind Kind, string Question, string Answer, string By, string Reasoning)
 {
@@ -116,6 +123,19 @@ public sealed class DelegateAnswerBook
     public IReadOnlyList<DelegateRecord> Since(DateTimeOffset time)
     {
         lock (gate) return [.. entries.Select(e => e.Record).Where(r => r.At > time).OrderBy(r => r.At)];
+    }
+
+    /// <summary>
+    /// What the digest tells (6, 4.3 "listed in the digest"): the questions answered since <paramref name="time"/>, counted per chat in the order each chat was first
+    /// answered in, each with Override in the card. Approvals the engine allowed are in the activity log and the list, not counted as questions here.
+    /// </summary>
+    public IReadOnlyList<DelegateDigestLine> Digest(DateTimeOffset time)
+    {
+        lock (gate)
+        {
+            return [.. entries.Select(e => e.Record).Where(r => r.Kind == DelegateKind.Question && r.At > time).OrderBy(r => r.At)
+                .GroupBy(r => r.Chat).Select(g => new DelegateDigestLine(g.Key, g.Last().ChatTitle, g.Count()))];
+        }
     }
 
     /// <summary>
