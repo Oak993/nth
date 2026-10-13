@@ -83,6 +83,9 @@ public sealed partial class AssistantController
     {
         lock (gate)
         {
+            // A draft whose card is no longer waiting (withdrawn, or settled some other way) is let go first.
+            foreach (var id in drafts.Keys.ToList())
+                if (Queue.Find(id) is not { State: DecisionState.Open or DecisionState.Held }) drafts.Remove(id);
             // A chat that keeps drafting Asturs cannot bury the owner in cards: past this many waiting, the call says its card could not be raised.
             if (drafts.Count >= MaxOpenAsturCards) throw new InvalidOperationException("Too many Astur cards are waiting for the owner.");
         }
@@ -233,7 +236,9 @@ public sealed partial class AssistantController
     public async Task<TeamResult> UpdateAstur(string id, AsturDraft draft)
     {
         if (Team is null) return TeamResult.Refused("Asturs are not part of this build yet.");
-        var result = await Team.UpdateAsync(id, draft).ConfigureAwait(false);
+        TeamResult result;
+        try { result = await Team.UpdateAsync(id, draft).ConfigureAwait(false); }
+        catch (Exception error) when (error is not OperationCanceledException) { result = TeamResult.Refused($"nth could not save it: {error.Message}"); }
         TryAudit(new AuditEntry
         {
             Assistant = Root?.Id ?? "", Tool = "team/update", ActionClass = ActionClass.WriteElsewhere.ToString(), Target = result.Profile?.Name ?? id,
@@ -251,7 +256,9 @@ public sealed partial class AssistantController
         if (Team is null) return TeamResult.Refused("Asturs are not part of this build yet.");
         if (Runner.Missions.Any(m => m.Mission.AssistantId == id && m.Mission.State is not (MissionState.Done or MissionState.Failed or MissionState.Stopped)))
             return TeamResult.Refused("It has missions at work. Stop them first.");
-        var result = await Team.RetireAsync(id).ConfigureAwait(false);
+        TeamResult result;
+        try { result = await Team.RetireAsync(id).ConfigureAwait(false); }
+        catch (Exception error) when (error is not OperationCanceledException) { result = TeamResult.Refused($"nth could not save it: {error.Message}"); }
         if (result.Ok) o.Asturs?.Web?.Forget(id);                       // its connections close; a later read would start clean
         TryAudit(new AuditEntry
         {

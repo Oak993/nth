@@ -207,8 +207,11 @@ public sealed class AsturCreationTests
         Assert.Equal("Not run: the owner's card could not be raised.", over.Text);
         Assert.Equal(AssistantController.MaxOpenAsturCards, rig.Controller.Queue.Waiting.Count(c => c.Title.StartsWith("New Astur", StringComparison.Ordinal)));
 
-        // Answering one makes room for the next.
+        // Answering one makes room for the next, and so does a card that was withdrawn (its draft is let go, not kept for ever).
         Assert.Null(rig.Controller.Queue.Answer(rig.Controller.Queue.Waiting[0].Id, DecisionAnswer.Deny()));
+        Assert.False((await rig.Call(runner, "create_assistant", Draft)).IsError);
+        Assert.True((await rig.Call(runner, "create_assistant", Draft)).IsError);
+        Assert.True(rig.Controller.Queue.Withdraw(rig.Controller.Queue.Waiting[0].Id, "Withdrawn."));
         Assert.False((await rig.Call(runner, "create_assistant", Draft)).IsError);
     }
 
