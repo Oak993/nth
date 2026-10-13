@@ -405,7 +405,12 @@ internal sealed class VoicePill : Panel
         var tokens = VoicePillTokens.For(ActualThemeVariant);
         // V-12.4: the shared material in a capsule, tinted pgBg. OD-0121: no refraction (the page's pill is backdrop-filter blur saturate only); OD-0123: no contact line outside the ends; the glass's own frost, rim light and inner shade stay
         var tint = new SwiftColor(tokens.PgBg.R / 255.0, tokens.PgBg.G / 255.0, tokens.PgBg.B / 255.0, 1);
-        SwiftGlass.SetEffect(body, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Circular)).Tint(tint, tokens.PgBg.A / 255.0).WithoutRefraction().WithoutContactLine());
+        // OD-0147: the pill keeps its approved design (OD-0121, OD-0125: voice-composer.html, matched by its locked references), as the orb beside it
+        // and Send keep theirs; the canvas's one-device-pixel line of light would be specks that design does not have (ED-NEW-glasslook-4)
+        // ED-NEW-glasslook-4: and its frost reads only the pixels in its own box, mirrored at the edges, as the page's backdrop-filter does (the canvas
+        // composer's rim, 3 to 4 px above the inline pill, stays out of it)
+        SwiftGlass.SetEffect(body, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Circular)).Tint(tint, tokens.PgBg.A / 255.0).WithoutRefraction().WithoutContactLine()
+            .WithOwnBackdrop().WithLook(GlassLook.Release));
     }
 
     private void ApplyMask()

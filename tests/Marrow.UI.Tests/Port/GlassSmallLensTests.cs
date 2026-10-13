@@ -26,7 +26,8 @@ public sealed class GlassSmallLensTests(HeadlessSession headless)
             HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
         var lens = new Border { Background = Brushes.Transparent, Width = 28, Height = 28,
             HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-        SwiftGlass.SetEffect(lens, GlassEffect.Regular(GlassShape.Circle).Tint(SwiftColor.White, 0.32));
+        // OD-0147: the release material's small lens (GlassLook.Release, which a piece that names it still draws)
+        SwiftGlass.SetEffect(lens, GlassEffect.Regular(GlassShape.Circle).Tint(SwiftColor.White, 0.32).WithLook(GlassLook.Release));
         using var scene = new Scene(backdrop, lens);
         var pixels = scene.Pixels();
         var centre = pixels(128, 80);

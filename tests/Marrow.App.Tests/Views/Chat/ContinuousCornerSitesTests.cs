@@ -82,6 +82,7 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Port/MultiAccount/Capsule/PillStyleCards.cs", "10", 1, Circular), // MA-9 (ED-452): the picked-card ring, design-page layout (CSS border-radius 10)
         ("Marrow.App/Port/MultiAccount/Opinions/OpinionRoundView.cs", "13", 1, Capsule), // MA-W (ED-NEW-ma-wire-lead-1): the 26 pt Combine button, r = h / 2
         ("Marrow.App/Port/MultiAccount/Capsule/PillStyleCards.cs", "3", 1, Circle), // MA-9 (ED-452): the 6 x 6 dot of the legend, a circle by construction
+        ("Marrow.App/Port/Settings/GlassPreviewTile.cs", "23", 2, Capsule), // OD-0147 (ED-NEW-glasslook-4): the Glass preview's 46 pt glass pill and its 46 x 46 round button, r = h / 2
         ("Marrow.App/Port/Settings/PreviewMenuItem.cs", "7", 1, Circular), // CZ-3 (ED-335): a model menu row, design-page layout (CSS .pitem border-radius 7)
         ("Marrow.App/Port/Settings/PreviewStepper.cs", "11", 1, Circle), // CZ-3 (ED-335): the 22 x 22 stepper, a circle by construction
         ("Marrow.App/Port/Settings/PreviewSwitchChip.cs", "14", 1, Capsule), // CZ-3 (ED-335): the 28 pt chip of the preview model switch, r = h / 2

@@ -317,6 +317,7 @@ public sealed class GettingReadySheet : Decorator, IFirstRunScreen
         var glass = new SwiftShapeBorder { Margin = new Thickness(0, -GettingReadyLook.CornerRadius, 0, 0), Background = Brushes.Transparent }
             .RoundedRectangle(GettingReadyLook.CornerRadius, RoundedCornerStyle.Continuous);
         SwiftGlass.SetEffect(glass, GlassEffect.Regular(GlassShape.RoundedRectangle(GettingReadyLook.CornerRadius, RoundedCornerStyle.Continuous)));
+        SwiftGlass.SetCastsOwnShadow(glass, true); // OD-0147: the sheet's shadow is the page's (--gshadow above), faded by the hand-over
         card.Children.Add(shadow);
         card.Children.Add(glass);
         card.Children.Add(content);

@@ -684,4 +684,14 @@ public sealed class FloatingSidebarPanelTests(HeadlessSession headless)
         rig.MouseReleaseBy(-10, 0);
         Assert.Equal(new Point(378, 128), rig.Model.Settings.SidebarPanelOrigin);
     });
+
+    [Fact]
+    [Trait("Decision", "OD-0147")] // the panel's glass is drawn as the canvas's sidebar glass (Translucent sidebar reaches it), named beside the source's .regular effect
+    public void The_panel_glass_is_the_canvas_sidebar_glass() => headless.OnUiThread(() =>
+    {
+        using var launch = new LaunchHarness();
+        using var rig = new FloatingSidebarPanelRig(launch, new Size(800, 700), theme: ThemeVariant.Dark);
+        Assert.Equal(GlassSurface.Sidebar, SwiftGlass.GetSurface(rig.Surface));
+        Assert.Null(SwiftGlass.GetEffect(rig.Surface)!.Surface);
+    });
 }
