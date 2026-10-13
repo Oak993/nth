@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.UI.Panes;
 using Marrow.UI.Port;
@@ -23,7 +24,7 @@ public sealed class TabulaGallery : Grid
     private readonly TabulaContext context;
     private readonly TextBox search = new()
     {
-        PlaceholderText = "Search artifacts",
+        PlaceholderText = UiText.Get("tabula.gallery.search"),
         FontSize = 12.5,
         BorderThickness = default,
         Background = Brushes.Transparent,
@@ -31,7 +32,7 @@ public sealed class TabulaGallery : Grid
         MinHeight = 0,
         Padding = new Thickness(0, 4),
     };
-    private readonly TabulaSegmented scope = new("Show artifacts of");
+    private readonly TabulaSegmented scope = new(UiText.Get("tabula.gallery.scope_name"));
     private readonly StackPanel cards = new() { Spacing = 6, Margin = new Thickness(12, 4, 12, 14) };
     private readonly TextBlock empty = new() { FontSize = 12.5, HorizontalAlignment = HorizontalAlignment.Center, TextAlignment = TextAlignment.Center, Margin = new Thickness(16, 40, 16, 0), TextWrapping = TextWrapping.Wrap, IsVisible = false };
     private readonly Button back;
@@ -41,9 +42,9 @@ public sealed class TabulaGallery : Grid
     {
         this.context = context;
         RowDefinitions = new RowDefinitions("Auto,Auto,*");
-        back = TabulaButtons.Text("Back", () => context.State.OpenGallery(false), PaneGlyphKind.Back, "Back to the artifact");
-        scope.Add("This project", TabulaGalleryScope.ThisProject);
-        scope.Add("All threads", TabulaGalleryScope.AllThreads);
+        back = TabulaButtons.Text(UiText.Get("tabula.gallery.back"), () => context.State.OpenGallery(false), PaneGlyphKind.Back, UiText.Get("tabula.gallery.back_tip"));
+        scope.Add(UiText.Get("tabula.gallery.this_project"), TabulaGalleryScope.ThisProject);
+        scope.Add(UiText.Get("tabula.gallery.all_threads"), TabulaGalleryScope.AllThreads);
         scope.Picked += value => context.State.SetGalleryScope((TabulaGalleryScope)value);
         var top = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), Margin = new Thickness(8, 8, 12, 4), ColumnSpacing = 8 };
         top.Children.Add(back);
@@ -76,8 +77,8 @@ public sealed class TabulaGallery : Grid
         {
             if (!updating) context.State.SetGallerySearch(search.Text ?? "");
         };
-        AutomationProperties.SetName(search, "Search artifacts by title or kind");
-        AutomationProperties.SetName(cards, "Artifacts");
+        AutomationProperties.SetName(search, UiText.Get("tabula.gallery.search_name"));
+        AutomationProperties.SetName(cards, UiText.Get("tabula.gallery.cards_name"));
         cards.SetValue(AutomationProperties.ControlTypeOverrideProperty, AutomationControlType.List);
     }
 
@@ -108,19 +109,19 @@ public sealed class TabulaGallery : Grid
         foreach (var artifact in Shown) cards.Children.Add(Card(artifact, now));
         empty.IsVisible = Shown.Count == 0;
         empty.Text = state.GallerySearch.Trim().Length > 0
-            ? "No artifact matches “" + state.GallerySearch.Trim() + "”."
-            : state.GalleryScope == TabulaGalleryScope.ThisProject ? "No artifacts in this project yet." : "No artifacts yet.";
+            ? UiText.Format("tabula.gallery.no_match", state.GallerySearch.Trim())
+            : state.GalleryScope == TabulaGalleryScope.ThisProject ? UiText.Get("tabula.gallery.empty_project") : UiText.Get("tabula.gallery.empty_all");
     }
 
     private Button Card(Artifact artifact, DateTimeOffset now)
     {
         var mine = artifact.Thread == context.Thread;
-        var where = mine ? "This thread" : context.ThreadName(artifact.Thread) ?? "Another thread";
+        var where = mine ? UiText.Get("tabula.gallery.this_thread") : context.ThreadName(artifact.Thread) ?? UiText.Get("tabula.gallery.another_thread");
         var title = new TextBlock { Text = artifact.Title, FontSize = 13, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis };
         var kind = new Border { Height = 20, Padding = new Thickness(7, 0), CornerRadius = new CornerRadius(10), VerticalAlignment = VerticalAlignment.Center, Child = new TextBlock { Text = TabulaTokens.KindName(artifact), FontFamily = TabulaTokens.Mono, FontSize = 10.5, VerticalAlignment = VerticalAlignment.Center } };
         var detail = new TextBlock
         {
-            Text = string.Create(CultureInfo.InvariantCulture, $"v{artifact.Current} · {where} · {TabulaTokens.Ago(artifact.Updated, now)}"),
+            Text = UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.gallery.card_detail", artifact.Current, where, TabulaTokens.Ago(artifact.Updated, now)),
             FontSize = 11.5,
             TextTrimming = TextTrimming.CharacterEllipsis,
         };
@@ -147,7 +148,7 @@ public sealed class TabulaGallery : Grid
         }
         button.OnHover(Paint);
         Paint(false);
-        AutomationProperties.SetName(button, artifact.Title + ", " + TabulaTokens.KindName(artifact) + ", " + detail.Text);
+        AutomationProperties.SetName(button, UiText.Format("tabula.gallery.card_name", artifact.Title, TabulaTokens.KindName(artifact), detail.Text));
         button.SetValue(AutomationProperties.ControlTypeOverrideProperty, AutomationControlType.ListItem);
         return button;
     }

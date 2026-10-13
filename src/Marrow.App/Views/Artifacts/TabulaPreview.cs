@@ -5,6 +5,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Controls.Primitives;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Web;
 using Marrow.Services.Web;
@@ -68,7 +69,7 @@ public sealed class TabulaPreview : Panel
         };
         Children.Add(native);
         Children.Add(code);
-        AutomationProperties.SetName(this, "Preview");
+        AutomationProperties.SetName(this, UiText.Get("tabula.preview.name"));
     }
 
     public TabulaPreviewMode Mode { get; private set; }

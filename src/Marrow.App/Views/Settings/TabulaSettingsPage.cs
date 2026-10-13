@@ -7,6 +7,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Port;
 using Marrow.App.Port.Web;
+using Marrow.Core.Localisation;
 using Marrow.Core.NthUi;
 using Marrow.Core.Web;
 using Marrow.UI.Chrome;
@@ -45,40 +46,43 @@ public sealed class TabulaSettingsPage : Decorator
 
     public const string Title = "Tabula";
     /// <summary>The words Settings search finds the page by: its title and what a reader would type for its rows.</summary>
-    public static IReadOnlyList<string> Keywords { get; } =
+    public static IReadOnlyList<string> Keywords =>
     [
-        "tabula", "artifacts", "live answers", "visual answers", "widgets", "inline html", "html", "mcp apps", "apps", "maps", "map tiles", "street tiles", "tiles",
-        "your model", "artifact storage", "storage",
+        UiText.Get("settings.tabula.keyword_tabula"), UiText.Get("settings.tabula.keyword_artifacts"), UiText.Get("settings.tabula.keyword_live_answers"), UiText.Get("settings.tabula.keyword_visual_answers"),
+        UiText.Get("settings.tabula.keyword_widgets"), UiText.Get("settings.tabula.keyword_inline_html"), UiText.Get("settings.tabula.keyword_html"), UiText.Get("settings.tabula.keyword_mcp_apps"),
+        UiText.Get("settings.tabula.keyword_apps"), UiText.Get("settings.tabula.keyword_maps"), UiText.Get("settings.tabula.keyword_map_tiles"), UiText.Get("settings.tabula.keyword_street_tiles"),
+        UiText.Get("settings.tabula.keyword_tiles"), UiText.Get("settings.tabula.keyword_your_model"), UiText.Get("settings.tabula.keyword_artifact_storage"), UiText.Get("settings.tabula.keyword_storage"),
     ];
 
-    public const string LiveTitle = "Live answers";
-    public const string LiveRow = "Live answers in chat";
-    public const string LiveDetail = "Off: models are not offered live views in chat.";
-    public const string VisualRow = "Visual answers";
-    public const string VisualDetail = "Fewer: only when you ask. Balanced: when it is clearly clearer than text. More: whenever numbers, options or plans are involved.";
-    public const string HtmlRow = "Inline HTML widgets";
-    public const string HtmlDetail = "Small interactive pages in an answer. They run in a sandbox with no access to your chat, your files or the internet.";
-    public const string AppsRow = "MCP Apps";
-    public const string AppsDetail = "Interactive views that MCP servers show in the chat.";
-    public const string MapsTitle = "Maps";
-    public const string TilesRow = "Map street tiles source";
-    public const string TilesNone = "None";
-    public const string TilesDetail = "Maps draw offline. A tile source adds streets, and then asks that site for the tiles in view, so it learns which area you look at.";
-    public const string TilesSet = "Set";
-    public const string TilesRemove = "Remove";
-    public const string TilesUse = "Use";
-    public const string TilesCancel = "Cancel";
+    public static string LiveTitle => UiText.Get("settings.tabula.live_title");
+    public static string LiveRow => UiText.Get("settings.tabula.live_row");
+    public static string LiveDetail => UiText.Get("settings.tabula.live_detail");
+    public static string VisualRow => UiText.Get("settings.tabula.visual_row");
+    public static string VisualDetail => UiText.Get("settings.tabula.visual_detail");
+    public static string HtmlRow => UiText.Get("settings.tabula.html_row");
+    public static string HtmlDetail => UiText.Get("settings.tabula.html_detail");
+    public static string AppsRow => UiText.Get("settings.tabula.apps_row");
+    public static string AppsDetail => UiText.Get("settings.tabula.apps_detail");
+    public static string MapsTitle => UiText.Get("settings.tabula.maps_title");
+    public static string TilesRow => UiText.Get("settings.tabula.tiles_row");
+    public static string TilesNone => UiText.Get("settings.tabula.tiles_none");
+    public static string TilesDetail => UiText.Get("settings.tabula.tiles_detail");
+    public static string TilesSet => UiText.Get("settings.tabula.tiles_set");
+    public static string TilesRemove => UiText.Get("settings.tabula.tiles_remove");
+    public static string TilesUse => UiText.Get("settings.tabula.tiles_use");
+    public static string TilesCancel => UiText.Get("settings.tabula.tiles_cancel");
     public const string TilesPlaceholder = "https://tiles.example/{z}/{x}/{y}.png";
-    public const string TilesInvalid = "Use an https address with {z}, {x} and {y}, from a site on the internet.";
-    public const string ArtifactsTitle = "Artifacts";
-    public const string ModelRow = "Artifacts may use your model";
-    public const string ModelDetail = "An artifact's call to your model carries no chat history, tools or files.";
-    public const string AskEach = "Ask each artifact";
-    public const string NeverLabel = "Never";
-    public const string StorageRow = "Artifact storage used";
-    public const string StorageEmpty = "No thread has artifacts.";
-    public const string StorageLoading = "Counting…";
-    public const string ClearLabel = "Clear";
+    /// <summary>The {z}, {x} and {y} are the address's own placeholders, handed to the sentence as arguments.</summary>
+    public static string TilesInvalid => UiText.Format("settings.tabula.tiles_invalid", "{z}", "{x}", "{y}");
+    public static string ArtifactsTitle => UiText.Get("settings.tabula.artifacts_title");
+    public static string ModelRow => UiText.Get("settings.tabula.model_row");
+    public static string ModelDetail => UiText.Get("settings.tabula.model_detail");
+    public static string AskEach => UiText.Get("settings.tabula.ask_each");
+    public static string NeverLabel => UiText.Get("settings.tabula.never_label");
+    public static string StorageRow => UiText.Get("settings.tabula.storage_row");
+    public static string StorageEmpty => UiText.Get("settings.tabula.storage_empty");
+    public static string StorageLoading => UiText.Get("settings.tabula.storage_loading");
+    public static string ClearLabel => UiText.Get("settings.tabula.clear_label");
 
     /// <summary>The app binds the parts (the store); null: the page edits the settings alone.</summary>
     public static Func<TabulaSettingsParts?> Bound { get; set; } = static () => null;
@@ -106,7 +110,7 @@ public sealed class TabulaSettingsPage : Decorator
 
         var live = WebSettingsRows.Card(
             WebSettingsRows.Toggle(LiveRow, () => settings.LiveAnswers, on => settings.LiveAnswers = on, LiveDetail),
-            WebSettingsRows.Segments(VisualRow, [(VisualAnswerLevel.Fewer, "Fewer"), (VisualAnswerLevel.Balanced, "Balanced"), (VisualAnswerLevel.More, "More")],
+            WebSettingsRows.Segments(VisualRow, [(VisualAnswerLevel.Fewer, UiText.Get("settings.tabula.visual_fewer")), (VisualAnswerLevel.Balanced, UiText.Get("settings.tabula.visual_balanced")), (VisualAnswerLevel.More, UiText.Get("settings.tabula.visual_more"))],
                 () => settings.VisualAnswers, value => settings.VisualAnswers = value, VisualDetail),
             WebSettingsRows.Toggle(HtmlRow, () => settings.InlineHtmlWidgets, on => settings.InlineHtmlWidgets = on, HtmlDetail),
             WebSettingsRows.Toggle(AppsRow, () => settings.McpApps, on => settings.McpApps = on, AppsDetail));
@@ -115,12 +119,12 @@ public sealed class TabulaSettingsPage : Decorator
         SwiftFont.Subheadline.Apply(tilesValue);
         AutomationProperties.SetName(tilesValue, TilesRow);
         tilesValue.Track(() => settings.MapTileSource, _ => ShowTiles());
-        tilesSet = WebSettingsRows.Capsule(TilesSet, ToggleTilesEditor, TilesSet + " map street tiles source");
-        tilesRemove = WebSettingsRows.Capsule(TilesRemove, RemoveTiles, TilesRemove + " map street tiles source");
-        var use = WebSettingsRows.Capsule(TilesUse, UseTiles, TilesUse + " this tile source");
-        var cancel = WebSettingsRows.Capsule(TilesCancel, CloseTilesEditor, TilesCancel + " editing the tile source");
+        tilesSet = WebSettingsRows.Capsule(TilesSet, ToggleTilesEditor, UiText.Get("settings.tabula.tiles_set_name"));
+        tilesRemove = WebSettingsRows.Capsule(TilesRemove, RemoveTiles, UiText.Get("settings.tabula.tiles_remove_name"));
+        var use = WebSettingsRows.Capsule(TilesUse, UseTiles, UiText.Get("settings.tabula.tiles_use_name"));
+        var cancel = WebSettingsRows.Capsule(TilesCancel, CloseTilesEditor, UiText.Get("settings.tabula.tiles_cancel_name"));
         ChatDialogControls.TextEditor(tilesField, style: "RoundedBorder");
-        AutomationProperties.SetName(tilesField, TilesRow + " address");
+        AutomationProperties.SetName(tilesField, UiText.Get("settings.tabula.tiles_address_name"));
         tilesField.KeyDown += (_, e) =>
         {
             if (e.Key == Key.Enter) { UseTiles(); e.Handled = true; }
@@ -269,7 +273,7 @@ public sealed class TabulaSettingsPage : Decorator
         {
             var row = rows[i];
             if (i > 0) storageRows.Children.Add(new ChromeRowDivider());
-            var clear = WebSettingsRows.Capsule(ClearLabel, parts.ClearArtifacts is null ? null : () => _ = Clear(row), ClearLabel + " artifacts of " + row.Title);
+            var clear = WebSettingsRows.Capsule(ClearLabel, parts.ClearArtifacts is null ? null : () => _ = Clear(row), UiText.Format("settings.tabula.clear_name", row.Title));
             storageRows.Children.Add(new ChromeRow(row.Title, () => new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { Size(row.Bytes), clear } }));
         }
     }
@@ -285,16 +289,16 @@ public sealed class TabulaSettingsPage : Decorator
     /// <summary>"12 KB", "3.4 MB": the storage list's sizes.</summary>
     public static string SizeText(long bytes) => bytes switch
     {
-        < 1024 => "0 KB",
-        < 1024 * 1024 => (bytes / 1024).ToString(CultureInfo.InvariantCulture) + " KB",
-        < 1024L * 1024 * 1024 => (bytes / (1024.0 * 1024)).ToString("0.#", CultureInfo.InvariantCulture) + " MB",
-        _ => (bytes / (1024.0 * 1024 * 1024)).ToString("0.#", CultureInfo.InvariantCulture) + " GB",
+        < 1024 => UiText.FormatWith(CultureInfo.InvariantCulture, "settings.tabula.size_kb", 0),
+        < 1024 * 1024 => UiText.FormatWith(CultureInfo.InvariantCulture, "settings.tabula.size_kb", bytes / 1024),
+        < 1024L * 1024 * 1024 => UiText.FormatWith(CultureInfo.InvariantCulture, "settings.tabula.size_mb", bytes / (1024.0 * 1024)),
+        _ => UiText.FormatWith(CultureInfo.InvariantCulture, "settings.tabula.size_gb", bytes / (1024.0 * 1024 * 1024)),
     };
 
     private async Task Clear(ArtifactStorageRow row)
     {
         if (parts.ClearArtifacts is not { } clear) return;
-        if (!await parts.Confirm("Clear the artifacts of \"" + row.Title + "\"?", "Every version of every artifact in this thread is deleted. This cannot be undone.", ClearLabel)) return;
+        if (!await parts.Confirm(UiText.Format("settings.tabula.clear_confirm_title", row.Title), UiText.Get("settings.tabula.clear_confirm_body"), ClearLabel)) return;
         await clear(row.Thread);
         await Count();
     }

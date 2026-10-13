@@ -7,6 +7,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Panes;
@@ -64,7 +65,7 @@ public sealed class TabulaVersionStrip : Border
         Child = scroll;
         offset = new TabulaSpringValue(0, x => scroll.Offset = new Vector(x, 0), response: 0.42, damping: 1, epsilon: 0.5);
         Focusable = true;
-        AutomationProperties.SetName(this, "Versions");
+        AutomationProperties.SetName(this, UiText.Get("tabula.versions.name"));
         SetValue(AutomationProperties.ControlTypeOverrideProperty, AutomationControlType.List);
         AddHandler(PointerPressedEvent, OnPressed, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         AddHandler(PointerMovedEvent, OnMoved, Avalonia.Interactivity.RoutingStrategies.Tunnel);
@@ -113,12 +114,12 @@ public sealed class TabulaVersionStrip : Border
     /// <summary>What a version says under its number (6.3 "the prompt that made each").</summary>
     public static string Caption(ArtifactVersion version)
     {
-        if (version.RestoredFrom is { } restored) return string.Create(CultureInfo.InvariantCulture, $"Restored v{restored}");
-        if (version.ForkedFrom is { } fork && string.IsNullOrWhiteSpace(version.Prompt)) return string.Create(CultureInfo.InvariantCulture, $"Copied from v{fork.Version}");
+        if (version.RestoredFrom is { } restored) return UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.versions.restored", restored);
+        if (version.ForkedFrom is { } fork && string.IsNullOrWhiteSpace(version.Prompt)) return UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.versions.copied_from", fork.Version);
         if (version.Prompt is { } prompt && FirstLine(prompt) is { Length: > 0 } line) return line;
-        if (version.Author.IsYou) return "Edited by you";
-        if (version.Number == 1) return "First draft";
-        return version.Author.Model is { Length: > 0 } model ? "By " + model : "Updated";
+        if (version.Author.IsYou) return UiText.Get("tabula.versions.edited_by_you");
+        if (version.Number == 1) return UiText.Get("tabula.versions.first_draft");
+        return version.Author.Model is { Length: > 0 } model ? UiText.Format("tabula.versions.by_model", model) : UiText.Get("tabula.versions.updated");
     }
 
     private static string FirstLine(string text)
@@ -148,15 +149,15 @@ public sealed class TabulaVersionStrip : Border
         foreach (var version in artifact.Versions)
         {
             var label = version.Number == latest && pending is null && queued.Count == 0
-                ? string.Create(CultureInfo.InvariantCulture, $"v{version.Number} · latest")
-                : string.Create(CultureInfo.InvariantCulture, $"v{version.Number}");
+                ? UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.versions.number_latest", version.Number)
+                : UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.versions.number", version.Number);
             nodes.Add(Make(version.Number, label, Caption(version), isPending: false, isLast: false));
         }
         if (pending is { } asking)
-            nodes.Add(Make(asking.Number > 0 ? asking.Number : latest + 1, string.Create(CultureInfo.InvariantCulture, $"v{(asking.Number > 0 ? asking.Number : latest + 1)}"), FirstLine(asking.Prompt), isPending: true, isLast: true));
+            nodes.Add(Make(asking.Number > 0 ? asking.Number : latest + 1, UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.versions.number", asking.Number > 0 ? asking.Number : latest + 1), FirstLine(asking.Prompt), isPending: true, isLast: true));
         foreach (var request in queued)
         {
-            var node = Make(request.Number, string.Create(CultureInfo.InvariantCulture, $"v{request.Number} queued"), FirstLine(request.Prompt), isPending: true, isLast: true);
+            var node = Make(request.Number, UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.versions.number_queued", request.Number), FirstLine(request.Prompt), isPending: true, isLast: true);
             node.IsQueued = true;
             nodes.Add(node);
         }
@@ -177,7 +178,7 @@ public sealed class TabulaVersionStrip : Border
         var words = new TextBlock { Text = caption, FontSize = 11.5, MaxWidth = 150, TextTrimming = TextTrimming.CharacterEllipsis, HorizontalAlignment = HorizontalAlignment.Left };
         var root = new StackPanel { Spacing = 4, MinWidth = 118, Margin = new Thickness(0, 4, 10, 4), Children = { head, title, words }, Background = Brushes.Transparent, Tag = number };
         ToolTip.SetTip(root, caption);
-        AutomationProperties.SetName(root, label + ", " + caption);
+        AutomationProperties.SetName(root, UiText.Format("tabula.versions.item_name", label, caption));
         root.SetValue(AutomationProperties.ControlTypeOverrideProperty, AutomationControlType.ListItem);
         var node = new Node(number, root, dot, halo, line, title, words, isPending);
         node.Halo = new TabulaSpringValue(0, s => { if (halo.RenderTransform is ScaleTransform t) { t.ScaleX = s; t.ScaleY = s; } }, response: 0.32, damping: 0.82, epsilon: 0.003);
@@ -201,7 +202,7 @@ public sealed class TabulaVersionStrip : Border
             node.Caption.Foreground = PaneTokens.Text3.Brush(node.Caption);
             if (animate) node.Halo!.To(on ? 1 : 0, reduce);
             else node.Halo!.Snap(on ? 1 : 0);
-            AutomationProperties.SetItemStatus(node.Root, node.IsQueued ? "Queued" : node.IsPending ? "Being written" : on ? "Shown" : compared ? "Compared" : "");
+            AutomationProperties.SetItemStatus(node.Root, node.IsQueued ? UiText.Get("tabula.versions.queued") : node.IsPending ? UiText.Get("tabula.versions.being_written") : on ? UiText.Get("tabula.common.shown") : compared ? UiText.Get("tabula.versions.compared") : "");
         }
         Avalonia.Threading.Dispatcher.UIThread.Post(() => Reveal(animate && !reduce), Avalonia.Threading.DispatcherPriority.Loaded);
     }

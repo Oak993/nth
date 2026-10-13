@@ -11,6 +11,7 @@
 // Replies carry the page's document token, so a reloaded page never takes an old document's answer. No Swift counterpart.
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Marrow.Core.Localisation;
 
 namespace Marrow.Services.Web;
 
@@ -58,7 +59,7 @@ internal sealed class ArtifactBridge(ArtifactRuntime runtime, ArtifactMount moun
                 mount.RaiseReady(Text(root["title"]) ?? "");
                 return;
             case "error":
-                mount.RaiseError(new ArtifactRuntimeError(Cap(Text(root["message"]) ?? "Unknown error", 2000), Cap(Text(root["stack"]) ?? "", 8000)));
+                mount.RaiseError(new ArtifactRuntimeError(Cap(Text(root["message"]) ?? UiText.Get("tabula.bridge.unknown_error"), 2000), Cap(Text(root["stack"]) ?? "", 8000)));
                 return;
             case "complete.cancel":
                 if (Number(root["target"]) is { } target)

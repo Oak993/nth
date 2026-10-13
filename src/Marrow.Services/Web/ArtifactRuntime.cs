@@ -6,6 +6,7 @@
 // its site, the hardening and bridge scripts, the bridge's messages, and the blocked navigations the pane offers as
 // "Open link from the artifact". No Swift counterpart.
 using System.Text;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Web;
@@ -181,7 +182,7 @@ public sealed class ArtifactMount : IWebResourceHandler, IDisposable
     public event Action<ArtifactCompletionResult>? ModelUsed;
 
     /// <summary>The words of "Open link from the artifact" (the trust strip's offer).</summary>
-    public const string OpenLinkTitle = "Open link from the artifact";
+    public static string OpenLinkTitle => UiText.Get("tabula.notice.open_link");
 
     /// <summary>Shows another version (null for the latest) and reloads.</summary>
     public void Show(int? version)

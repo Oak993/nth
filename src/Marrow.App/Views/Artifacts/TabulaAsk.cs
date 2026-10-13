@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Marrow.Core.Localisation;
 using Marrow.UI.Panes;
 using Marrow.UI.Port;
 
@@ -18,7 +19,7 @@ namespace Marrow.App.Views.Artifacts;
 
 public sealed class TabulaAsk : Border
 {
-    public const string Placeholder = "Describe the change…";
+    public static string Placeholder => UiText.Get("tabula.ask.placeholder");
 
     private const double Rise = 12;
 
@@ -45,16 +46,16 @@ public sealed class TabulaAsk : Border
     {
         Margin = new Thickness(12, 0, 12, 12);
         IsVisible = false;
-        send = TabulaButtons.Glyph(PaneGlyphKind.Send, "Send", Submit, 34);
+        send = TabulaButtons.Glyph(PaneGlyphKind.Send, UiText.Get("tabula.ask.send"), Submit, 34);
         if (send.Content is Border sendFace)
         {
             sendFace.CornerRadius = new CornerRadius(17);
             sendFace.Background = TabulaTokens.PillFill.Brush(sendFace);
             send.OnHover(on => sendFace.Background = (on ? PaneTokens.HoverFill : TabulaTokens.PillFill).Brush(sendFace));
         }
-        var clear = TabulaButtons.Glyph(PaneGlyphKind.Close, "Remove the chosen part", () => PartCleared?.Invoke(), 20);
+        var clear = TabulaButtons.Glyph(PaneGlyphKind.Close, UiText.Get("tabula.ask.remove_part"), () => PartCleared?.Invoke(), 20);
         var partRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
-        var partLabel = new TextBlock { Text = "Change this part", FontSize = 11.5, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center };
+        var partLabel = new TextBlock { Text = UiText.Get("tabula.ask.change_part"), FontSize = 11.5, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center };
         partRow.Children.Add(partLabel);
         partRow.Children.Add(partText);
         partRow.Children.Add(clear);
@@ -84,8 +85,8 @@ public sealed class TabulaAsk : Border
         motion = new TabulaMotion(this, opacity: 0, rise: Rise);
         input.KeyDown += OnKey;
         input.TextChanged += (_, _) => TextChanged?.Invoke(input.Text ?? "");
-        AutomationProperties.SetName(input, "Describe the change");
-        AutomationProperties.SetName(this, "Ask to change");
+        AutomationProperties.SetName(input, UiText.Get("tabula.ask.input_name"));
+        AutomationProperties.SetName(this, UiText.Get("tabula.ask.name"));
     }
 
     /// <summary>The user sent the change (its words).</summary>
@@ -118,7 +119,7 @@ public sealed class TabulaAsk : Border
     public void SetOpen(bool value, string? selection)
     {
         part.IsVisible = value && !string.IsNullOrWhiteSpace(selection);
-        partText.Text = selection is null ? null : "“" + Shorten(selection) + "”";
+        partText.Text = selection is null ? null : UiText.Format("tabula.ask.part_quoted", Shorten(selection));
         ToolTip.SetTip(part, selection);
         if (open == value) return;
         open = value;

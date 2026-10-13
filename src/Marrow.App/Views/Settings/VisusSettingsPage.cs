@@ -6,6 +6,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Port;
 using Marrow.App.Port.Web;
+using Marrow.Core.Localisation;
 using Marrow.Core.Web;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
@@ -58,49 +59,52 @@ public sealed class VisusSettingsPage : Decorator
 
     public const string Title = "Visus";
     /// <summary>The words Settings search finds the page by: its title and what a reader would type for its rows.</summary>
-    public static IReadOnlyList<string> Keywords { get; } =
+    public static IReadOnlyList<string> Keywords =>
     [
-        "visus", "browser", "web", "links", "chat links", "default browser", "search engine", "suggestions", "previews", "reload on save",
-        "permissions", "site permissions", "downloads", "downloads folder", "cookies", "browsing data", "privacy", "forget", "live tabs", "tabs",
+        UiText.Get("settings.visus.keyword_visus"), UiText.Get("settings.visus.keyword_browser"), UiText.Get("settings.visus.keyword_web"), UiText.Get("settings.visus.keyword_links"),
+        UiText.Get("settings.visus.keyword_chat_links"), UiText.Get("settings.visus.keyword_default_browser"), UiText.Get("settings.visus.keyword_search_engine"), UiText.Get("settings.visus.keyword_suggestions"),
+        UiText.Get("settings.visus.keyword_previews"), UiText.Get("settings.visus.keyword_reload_on_save"), UiText.Get("settings.visus.keyword_permissions"), UiText.Get("settings.visus.keyword_site_permissions"),
+        UiText.Get("settings.visus.keyword_downloads"), UiText.Get("settings.visus.keyword_downloads_folder"), UiText.Get("settings.visus.keyword_cookies"), UiText.Get("settings.visus.keyword_browsing_data"),
+        UiText.Get("settings.visus.keyword_privacy"), UiText.Get("settings.visus.keyword_forget"), UiText.Get("settings.visus.keyword_live_tabs"), UiText.Get("settings.visus.keyword_tabs"),
     ];
 
-    public const string LinksTitle = "Links";
-    public const string ChatLinksRow = "Open links from chats in";
-    public const string ChatLinksDetail = "Ctrl+click opens the other one. Sign-in pages always open in your default browser.";
-    public const string AskFirstTime = "Ask the first time";
-    public const string SearchTitle = "Search";
-    public const string SearchEngineRow = "Search engine";
-    public const string SuggestionsRow = "Show search suggestions";
-    public const string SuggestionsDetail = "Off: suggestions come from your history and open tabs only. On: what you type is also sent to your search engine.";
-    public const string PreviewsTitle = "Previews";
-    public const string OpenPreviewsRow = "Open previews automatically";
-    public const string ReloadRow = "Reload on save";
-    public const string ModelsTitle = "Models";
-    public const string LetModelsRow = "Let models use Visus";
-    public const string AskNewSiteRow = "Ask before a model uses a new site";
-    public const string AskNewSiteDetail = "A tab you share with a model always asks.";
-    public const string PermissionsTitle = "Site permissions";
-    public const string PermissionsEmpty = "No site has a saved answer. Choose \"Always on this site\" or \"Block\" in a prompt and it appears here.";
-    public const string RemoveLabel = "Remove";
-    public const string DownloadsTitle = "Downloads";
-    public const string DownloadsFolderRow = "Downloads folder";
-    public const string ChangeLabel = "Change";
-    public const string ResetLabel = "Reset";
-    public const string AskWhereRow = "Ask where to save each file";
-    public const string PrivacyTitle = "Privacy";
-    public const string ClearRow = "Clear browsing data";
-    public const string ClearDetail = "Cookies, cache, site storage, history and saved answers of one profile. Choose which.";
-    public const string ForgetRow = "Forget agent data";
-    public const string ForgetDetail = "What the pages a model opened left behind, and the sites you always allowed it.";
-    public const string ClearLabel = "Clear";
-    public const string ForgetLabel = "Forget";
-    public const string TabsTitle = "Tabs";
-    public const string LiveTabsRow = "Keep at most N live tabs";
-    public const string LiveTabsDetail = "Other tabs show a snapshot until you open them.";
+    public static string LinksTitle => UiText.Get("settings.visus.links_title");
+    public static string ChatLinksRow => UiText.Get("settings.visus.chat_links_row");
+    public static string ChatLinksDetail => UiText.Get("settings.visus.chat_links_detail");
+    public static string AskFirstTime => UiText.Get("settings.visus.ask_first_time");
+    public static string SearchTitle => UiText.Get("settings.visus.search_title");
+    public static string SearchEngineRow => UiText.Get("settings.visus.search_engine_row");
+    public static string SuggestionsRow => UiText.Get("settings.visus.suggestions_row");
+    public static string SuggestionsDetail => UiText.Get("settings.visus.suggestions_detail");
+    public static string PreviewsTitle => UiText.Get("settings.visus.previews_title");
+    public static string OpenPreviewsRow => UiText.Get("settings.visus.open_previews_row");
+    public static string ReloadRow => UiText.Get("settings.visus.reload_row");
+    public static string ModelsTitle => UiText.Get("settings.visus.models_title");
+    public static string LetModelsRow => UiText.Get("settings.visus.let_models_row");
+    public static string AskNewSiteRow => UiText.Get("settings.visus.ask_new_site_row");
+    public static string AskNewSiteDetail => UiText.Get("settings.visus.ask_new_site_detail");
+    public static string PermissionsTitle => UiText.Get("settings.visus.permissions_title");
+    public static string PermissionsEmpty => UiText.Get("settings.visus.permissions_empty");
+    public static string RemoveLabel => UiText.Get("settings.visus.remove_label");
+    public static string DownloadsTitle => UiText.Get("settings.visus.downloads_title");
+    public static string DownloadsFolderRow => UiText.Get("settings.visus.downloads_folder_row");
+    public static string ChangeLabel => UiText.Get("settings.visus.change_label");
+    public static string ResetLabel => UiText.Get("settings.visus.reset_label");
+    public static string AskWhereRow => UiText.Get("settings.visus.ask_where_row");
+    public static string PrivacyTitle => UiText.Get("settings.visus.privacy_title");
+    public static string ClearRow => UiText.Get("settings.visus.clear_row");
+    public static string ClearDetail => UiText.Get("settings.visus.clear_detail");
+    public static string ForgetRow => UiText.Get("settings.visus.forget_row");
+    public static string ForgetDetail => UiText.Get("settings.visus.forget_detail");
+    public static string ClearLabel => UiText.Get("settings.visus.clear_label");
+    public static string ForgetLabel => UiText.Get("settings.visus.forget_label");
+    public static string TabsTitle => UiText.Get("settings.visus.tabs_title");
+    public static string LiveTabsRow => UiText.Get("settings.visus.live_tabs_row");
+    public static string LiveTabsDetail => UiText.Get("settings.visus.live_tabs_detail");
 
     /// <summary>The profiles Clear browsing data lists, with the words the page uses for them.</summary>
-    public static IReadOnlyList<(WebProfileKind Profile, string Name)> ClearableProfiles { get; } =
-        [(WebProfileKind.Browse, "Visus tabs"), (WebProfileKind.Preview, "Project previews")];
+    public static IReadOnlyList<(WebProfileKind Profile, string Name)> ClearableProfiles =>
+        [(WebProfileKind.Browse, UiText.Get("settings.visus.profile_browse")), (WebProfileKind.Preview, UiText.Get("settings.visus.profile_preview"))];
 
     /// <summary>The app binds the parts (the permission store, the folder picker, the clears); null: the page edits the settings alone.</summary>
     public static Func<VisusSettingsParts?> Bound { get; set; } = static () => null;
@@ -127,7 +131,7 @@ public sealed class VisusSettingsPage : Decorator
 
         var links = WebSettingsRows.Card(
             WebSettingsRows.Segments(ChatLinksRow,
-                [(ChatLinkTarget.Ask, AskFirstTime), (ChatLinkTarget.Visus, "Visus"), (ChatLinkTarget.DefaultBrowser, "Default browser")],
+                [(ChatLinkTarget.Ask, AskFirstTime), (ChatLinkTarget.Visus, "Visus"), (ChatLinkTarget.DefaultBrowser, UiText.Get("settings.visus.default_browser"))],
                 () => settings.ChatLinks, value => settings.ChatLinks = value, ChatLinksDetail));
 
         var search = WebSettingsRows.Card(
@@ -145,8 +149,8 @@ public sealed class VisusSettingsPage : Decorator
 
         var permissions = new ChromeCard(() => permissionRows);
 
-        var change = WebSettingsRows.Capsule(ChangeLabel, parts.PickFolder is null ? null : () => _ = ChooseFolder(), ChangeLabel + " downloads folder");
-        var reset = WebSettingsRows.Capsule(ResetLabel, () => settings.DownloadsFolder = "", ResetLabel + " downloads folder");
+        var change = WebSettingsRows.Capsule(ChangeLabel, parts.PickFolder is null ? null : () => _ = ChooseFolder(), UiText.Get("settings.visus.change_folder_name"));
+        var reset = WebSettingsRows.Capsule(ResetLabel, () => settings.DownloadsFolder = "", UiText.Get("settings.visus.reset_folder_name"));
         folderText.Foreground = ChromeTokens.SecondaryText.Brush(folderText);
         SwiftFont.Subheadline.Apply(folderText);
         AutomationProperties.SetName(folderText, DownloadsFolderRow);
@@ -157,7 +161,7 @@ public sealed class VisusSettingsPage : Decorator
 
         var clearButtons = new List<CzCapsuleButton>();
         foreach (var (profile, name) in ClearableProfiles)
-            clearButtons.Add(WebSettingsRows.Capsule(name, parts.ClearBrowsingData is null ? null : () => _ = Clear(profile, name), ClearRow + " for " + name));
+            clearButtons.Add(WebSettingsRows.Capsule(name, parts.ClearBrowsingData is null ? null : () => _ = Clear(profile, name), UiText.Format("settings.visus.clear_for_name", name)));
         var forget = WebSettingsRows.Capsule(ForgetLabel, parts.ForgetAgentData is null ? null : () => _ = Forget(), ForgetRow);
         var privacy = WebSettingsRows.Card(
             WebSettingsRows.Buttons(ClearRow, ClearDetail, [.. clearButtons]),
@@ -209,7 +213,7 @@ public sealed class VisusSettingsPage : Decorator
     private void ShowFolder()
     {
         var chosen = settings.DownloadsFolder;
-        folderText.Text = chosen.Length > 0 ? chosen : parts.DefaultDownloadsFolder() ?? "Downloads";
+        folderText.Text = chosen.Length > 0 ? chosen : parts.DefaultDownloadsFolder() ?? UiText.Get("settings.visus.downloads_folder_default");
     }
 
     private async Task ChooseFolder()
@@ -239,8 +243,8 @@ public sealed class VisusSettingsPage : Decorator
             {
                 var kept = entry;
                 var remove = WebSettingsRows.Capsule(RemoveLabel, parts.RemovePermission is null ? null : () => parts.RemovePermission(kept),
-                    RemoveLabel + " " + SitePermissions.Noun(kept.Kind) + " answer for " + kept.Origin);
-                var row = new ChromeRow(WebPolicy.SourceName(kept.Origin), () => remove, SitePermissions.Noun(kept.Kind) + ": " + SitePermissions.StateWord(kept.State) + " · " + group.Name);
+                    UiText.Format("settings.visus.permission_remove_name", SitePermissions.Noun(kept.Kind), kept.Origin));
+                var row = new ChromeRow(WebPolicy.SourceName(kept.Origin), () => remove, UiText.Format("settings.visus.permission_detail", SitePermissions.Noun(kept.Kind), SitePermissions.StateWord(kept.State), group.Name));
                 permissionRows.Children.Add(row);
                 if (!ReferenceEquals(entry, mine[^1])) permissionRows.Children.Add(new ChromeRowDivider());
             }
@@ -250,14 +254,14 @@ public sealed class VisusSettingsPage : Decorator
     private async Task Clear(WebProfileKind profile, string name)
     {
         if (parts.ClearBrowsingData is not { } clear) return;
-        if (!await parts.Confirm("Clear browsing data for " + name + "?", ClearDetail + " This cannot be undone.", ClearLabel)) return;
+        if (!await parts.Confirm(UiText.Format("settings.visus.clear_confirm_title", name), UiText.Get("settings.visus.clear_confirm_body"), ClearLabel)) return;
         Say(await clear(profile));
     }
 
     private async Task Forget()
     {
         if (parts.ForgetAgentData is not { } forget) return;
-        if (!await parts.Confirm("Forget agent data?", ForgetDetail + " This cannot be undone.", ForgetLabel)) return;
+        if (!await parts.Confirm(UiText.Get("settings.visus.forget_confirm_title"), UiText.Get("settings.visus.forget_confirm_body"), ForgetLabel)) return;
         Say(await forget());
     }
 

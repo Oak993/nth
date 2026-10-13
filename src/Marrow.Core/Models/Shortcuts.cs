@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Globalization;
 using System.Text.Json;
+using Marrow.Core.Localisation;
 using Marrow.Core.Port;
 
 namespace Marrow.Core.Models;
@@ -381,17 +382,17 @@ public static class AppShortcutExtensions
         AppShortcut.ShowMainWindow => "Show nth",
         AppShortcut.OpenSettings => "Settings", // :186
         // PORT-ONLY (W3b), DESIGN 3.7 (Visus and Tabula are the owner's names, 2026-10-11).
-        AppShortcut.ToggleBrowser => "Toggle Visus",
-        AppShortcut.ToggleSideChat => "Toggle side chat",
-        AppShortcut.ToggleArtifacts => "Toggle Tabula",
-        AppShortcut.ToggleBackgroundTasks => "Toggle background tasks",
-        AppShortcut.ClosePane => "Close pane",
-        AppShortcut.ExpandPane => "Expand or restore pane",
-        AppShortcut.NextPane => "Next pane",
-        AppShortcut.PreviousPane => "Previous pane",
-        AppShortcut.MovePaneEarlier => "Move pane earlier",
-        AppShortcut.MovePaneLater => "Move pane later",
-        AppShortcut.JoinPaneTabs => "Join or leave tabs",
+        AppShortcut.ToggleBrowser => UiText.Get("settings.shortcuts.toggle_browser_title"),
+        AppShortcut.ToggleSideChat => UiText.Get("settings.shortcuts.toggle_side_chat_title"),
+        AppShortcut.ToggleArtifacts => UiText.Get("settings.shortcuts.toggle_artifacts_title"),
+        AppShortcut.ToggleBackgroundTasks => UiText.Get("settings.shortcuts.toggle_background_tasks_title"),
+        AppShortcut.ClosePane => UiText.Get("settings.shortcuts.close_pane_title"),
+        AppShortcut.ExpandPane => UiText.Get("settings.shortcuts.expand_pane_title"),
+        AppShortcut.NextPane => UiText.Get("settings.shortcuts.next_pane_title"),
+        AppShortcut.PreviousPane => UiText.Get("settings.shortcuts.previous_pane_title"),
+        AppShortcut.MovePaneEarlier => UiText.Get("settings.shortcuts.move_pane_earlier_title"),
+        AppShortcut.MovePaneLater => UiText.Get("settings.shortcuts.move_pane_later_title"),
+        AppShortcut.JoinPaneTabs => UiText.Get("settings.shortcuts.join_pane_tabs_title"),
     };
 
     // :190-212 var detail
@@ -417,17 +418,17 @@ public static class AppShortcutExtensions
         AppShortcut.ShowMainWindow => "Brings the main window to the front.", // :209
         AppShortcut.OpenSettings => "Opens this window.", // :210
         // PORT-ONLY (W3b).
-        AppShortcut.ToggleBrowser => "Shows or hides the browser pane.",
-        AppShortcut.ToggleSideChat => "Shows or hides a side conversation about this thread.",
-        AppShortcut.ToggleArtifacts => "Shows or hides the artifacts pane.",
-        AppShortcut.ToggleBackgroundTasks => "Shows or hides the list of running jobs.",
-        AppShortcut.ClosePane => "Closes the focused pane.",
-        AppShortcut.ExpandPane => "Springs the focused pane over the workspace, or back.",
-        AppShortcut.NextPane => "Moves focus to the next pane, then the dividers.",
-        AppShortcut.PreviousPane => "Moves focus to the previous pane.",
-        AppShortcut.MovePaneEarlier => "Moves the focused pane one place earlier in the layout.",
-        AppShortcut.MovePaneLater => "Moves the focused pane one place later in the layout.",
-        AppShortcut.JoinPaneTabs => "Joins the focused pane to the one before it as a tab, or splits it out of its group.",
+        AppShortcut.ToggleBrowser => UiText.Get("settings.shortcuts.toggle_browser_detail"),
+        AppShortcut.ToggleSideChat => UiText.Get("settings.shortcuts.toggle_side_chat_detail"),
+        AppShortcut.ToggleArtifacts => UiText.Get("settings.shortcuts.toggle_artifacts_detail"),
+        AppShortcut.ToggleBackgroundTasks => UiText.Get("settings.shortcuts.toggle_background_tasks_detail"),
+        AppShortcut.ClosePane => UiText.Get("settings.shortcuts.close_pane_detail"),
+        AppShortcut.ExpandPane => UiText.Get("settings.shortcuts.expand_pane_detail"),
+        AppShortcut.NextPane => UiText.Get("settings.shortcuts.next_pane_detail"),
+        AppShortcut.PreviousPane => UiText.Get("settings.shortcuts.previous_pane_detail"),
+        AppShortcut.MovePaneEarlier => UiText.Get("settings.shortcuts.move_pane_earlier_detail"),
+        AppShortcut.MovePaneLater => UiText.Get("settings.shortcuts.move_pane_later_detail"),
+        AppShortcut.JoinPaneTabs => UiText.Get("settings.shortcuts.join_pane_tabs_detail"),
     };
 
     // :214-236 var defaultChord, a fresh value on every read. Each macOS key code is replaced by its scan code and
@@ -648,7 +649,7 @@ public sealed class ShortcutStore : MainActorModel
         }
         // PORT-ONLY (W3b): Ctrl+Alt+Up and Down are the vertical twins of the move commands' arrows (DESIGN 3.6).
         if (ShortcutScopes.AliasOwner(this, chord) is { } twin && twin != shortcut)
-            return twin.Title() + " already uses this chord.";
+            return UiText.Format("settings.shortcuts.chord_taken", twin.Title());
         return null; // :333
     }
 }

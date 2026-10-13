@@ -1,6 +1,8 @@
 // PORT-ONLY: web surfaces W12, Tabula (DESIGN.md 6.1; ED-NEW-web-W12-1; owner 2026-10-11 "Visus and Tabula approved").
 // The eight artifact kinds, their wire names (what the tools and the fenced fallback say) and the file extension each
 // version is stored under. No Swift counterpart.
+using Marrow.Core.Localisation;
+
 namespace Marrow.Core.Models;
 
 public enum ArtifactKind
@@ -39,14 +41,14 @@ public static class ArtifactKinds
     /// </summary>
     public static string DisplayName(ArtifactKind kind, string? language = null) => kind switch
     {
-        ArtifactKind.Html => "HTML app",
-        ArtifactKind.React => "React component",
-        ArtifactKind.Svg => "SVG image",
-        ArtifactKind.Mermaid => "Diagram",
-        ArtifactKind.Markdown => "Document",
-        ArtifactKind.Code => language is { Length: > 0 } name && CodeExtension(name) != "txt" ? LanguageName(name) + " code" : "Code",
-        ArtifactKind.NthUi => "Live view",
-        ArtifactKind.Project => "Project",
+        ArtifactKind.Html => UiText.Get("tabula.kind.html"),
+        ArtifactKind.React => UiText.Get("tabula.kind.react"),
+        ArtifactKind.Svg => UiText.Get("tabula.kind.svg"),
+        ArtifactKind.Mermaid => UiText.Get("tabula.kind.mermaid"),
+        ArtifactKind.Markdown => UiText.Get("tabula.kind.markdown"),
+        ArtifactKind.Code => language is { Length: > 0 } name && CodeExtension(name) != "txt" ? UiText.Format("tabula.kind.code_in_language", LanguageName(name)) : UiText.Get("tabula.kind.code"),
+        ArtifactKind.NthUi => UiText.Get("tabula.kind.nth_ui"),
+        ArtifactKind.Project => UiText.Get("tabula.kind.project"),
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 

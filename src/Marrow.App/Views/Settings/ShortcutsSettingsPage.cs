@@ -10,6 +10,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Chrome;
@@ -275,15 +276,15 @@ public static class ShortcutRowMetrics
 public sealed class ShortcutEntryRow : Decorator
 {
     /// <summary>The mark on a reserved chord (DESIGN 3.7): it works inside pages and the terminal.</summary>
-    public const string WorksInsidePages = "Works inside pages.";
+    public static string WorksInsidePages => UiText.Get("settings.shortcuts.works_inside_pages");
 
     /// <summary>The same words as the visible mark beside the row's title (W10), without the sentence's full stop.</summary>
-    public const string WorksInsidePagesMark = "Works inside pages";
+    public static string WorksInsidePagesMark => UiText.Get("settings.shortcuts.works_inside_pages_mark");
 
     public ShortcutEntryRow(AppShortcut shortcut)
     {
         // PORT-ONLY (web W3b, DESIGN 3.7): a chord nth takes even from a web page or the terminal says so.
-        var detail = shortcut.WorksInsidePages() ? shortcut.Detail() + " " + WorksInsidePages : shortcut.Detail();
+        var detail = shortcut.WorksInsidePages() ? UiText.Format("settings.shortcuts.detail_works_inside_pages", shortcut.Detail()) : shortcut.Detail();
         Child = ShortcutRowMetrics.Row(shortcut.Title(), detail, new ShortcutRecorder(shortcut), shortcut.WorksInsidePages() ? WorksInsidePagesMark : null);
     }
 }

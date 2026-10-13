@@ -2,6 +2,8 @@
 // 100,000 tokens per hour, 20 calls per minute, one call at a time; over a limit the call rejects with "rate_limited" and
 // the header says "Paused: this artifact hit its model limit""; ED-NEW-web-w13-4). The limits of nth.complete, per
 // artifact, on sliding windows of the injected clock. No Swift counterpart.
+using Marrow.Core.Localisation;
+
 namespace Marrow.Services.Web;
 
 /// <summary>An artifact's model use now: whether a call runs, the window counts, and until when it is paused.</summary>
@@ -17,7 +19,7 @@ public sealed class ArtifactModelMeter(TimeProvider? time = null)
     public const int MaxCallsPerMinute = 20;
 
     /// <summary>The header's words while an artifact is over a limit.</summary>
-    public const string PausedMessage = "Paused: this artifact hit its model limit";
+    public static string PausedMessage => UiText.Get("tabula.meter.paused");
 
     private static readonly TimeSpan Minute = TimeSpan.FromMinutes(1);
     private static readonly TimeSpan Hour = TimeSpan.FromHours(1);

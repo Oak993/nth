@@ -6,6 +6,7 @@ using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Web;
 using Marrow.UI.Panes;
@@ -94,9 +95,9 @@ public sealed class TabulaCodeView : Grid
         Children.Add(side);
         Children.Add(chips);
         Children.Add(body);
-        AutomationProperties.SetName(code, "Code");
-        AutomationProperties.SetName(editor, "Edit the code");
-        AutomationProperties.SetName(sideList, "Files");
+        AutomationProperties.SetName(code, UiText.Get("tabula.code.name"));
+        AutomationProperties.SetName(editor, UiText.Get("tabula.code.editor_name"));
+        AutomationProperties.SetName(sideList, UiText.Get("tabula.code.files_name"));
         sideList.SetValue(AutomationProperties.ControlTypeOverrideProperty, AutomationControlType.List);
         AutomationProperties.SetAccessibilityView(numbers, AccessibilityView.Raw);
         SizeChanged += (_, _) => PlaceFiles();
@@ -257,7 +258,7 @@ public sealed class TabulaCodeView : Grid
         Paint(false);
         ToolTip.SetTip(button, path);
         AutomationProperties.SetName(button, path);
-        if (on) AutomationProperties.SetItemStatus(button, "Shown");
+        if (on) AutomationProperties.SetItemStatus(button, UiText.Get("tabula.common.shown"));
         return button;
     }
 

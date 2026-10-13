@@ -5,6 +5,7 @@
 // ever rewritten in place except meta.json, which is replaced atomically after the version's files are on disk, so a crash
 // leaves the last good version. No Swift counterpart.
 using System.Text;
+using Marrow.Core.Localisation;
 using Marrow.Core.Port;
 
 namespace Marrow.Core.Models;
@@ -343,7 +344,7 @@ public sealed class ArtifactStore
         var words = (title ?? "").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         var clean = string.Join(' ', words);
         if (clean.Length > MaxTitleLength) clean = clean[..MaxTitleLength].TrimEnd();
-        return clean.Length == 0 ? "Untitled" : clean;
+        return clean.Length == 0 ? UiText.Get("tabula.artifact.untitled") : clean;
     }
 
     private static string? CleanLanguage(ArtifactKind kind, string? language)

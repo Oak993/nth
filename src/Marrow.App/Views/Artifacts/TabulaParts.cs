@@ -7,6 +7,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Panes;
@@ -76,7 +77,7 @@ public static class TabulaTokens
     public const double CodeLine = 20;
 
     /// <summary>The sandbox line's words (canvas section 4).</summary>
-    public const string SandboxText = "Sandboxed · no files · no network";
+    public static string SandboxText => UiText.Get("tabula.sandbox.text");
 
     /// <summary>Reduce Motion, from the view's environment or the system.</summary>
     public static bool ReduceMotion(Control control) =>
@@ -85,19 +86,19 @@ public static class TabulaTokens
     /// <summary>"6.2 KB", "412 B", "1.3 MB" (the copy toast, canvas section 4).</summary>
     public static string Size(long bytes) => bytes switch
     {
-        < 1024 => bytes.ToString(System.Globalization.CultureInfo.InvariantCulture) + " B",
-        < 1024 * 1024 => (bytes / 1024.0).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " KB",
-        _ => (bytes / (1024.0 * 1024)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " MB",
+        < 1024 => UiText.FormatWith(System.Globalization.CultureInfo.InvariantCulture, "tabula.size.bytes", bytes),
+        < 1024 * 1024 => UiText.FormatWith(System.Globalization.CultureInfo.InvariantCulture, "tabula.size.kilobytes", bytes / 1024.0),
+        _ => UiText.FormatWith(System.Globalization.CultureInfo.InvariantCulture, "tabula.size.megabytes", bytes / (1024.0 * 1024)),
     };
 
     /// <summary>"just now", "5 min ago", "2 h ago", "3 days ago", or the date (the gallery's cards).</summary>
     public static string Ago(DateTimeOffset at, DateTimeOffset now)
     {
         var span = now - at;
-        if (span < TimeSpan.FromMinutes(1)) return "just now";
-        if (span < TimeSpan.FromHours(1)) return ((int)span.TotalMinutes).ToString(System.Globalization.CultureInfo.InvariantCulture) + " min ago";
-        if (span < TimeSpan.FromDays(1)) return ((int)span.TotalHours).ToString(System.Globalization.CultureInfo.InvariantCulture) + " h ago";
-        if (span < TimeSpan.FromDays(7)) return ((int)span.TotalDays) switch { 1 => "yesterday", var d => d.ToString(System.Globalization.CultureInfo.InvariantCulture) + " days ago" };
+        if (span < TimeSpan.FromMinutes(1)) return UiText.Get("tabula.ago.just_now");
+        if (span < TimeSpan.FromHours(1)) return UiText.PluralWith(System.Globalization.CultureInfo.InvariantCulture, "tabula.ago.minutes", (int)span.TotalMinutes);
+        if (span < TimeSpan.FromDays(1)) return UiText.PluralWith(System.Globalization.CultureInfo.InvariantCulture, "tabula.ago.hours", (int)span.TotalHours);
+        if (span < TimeSpan.FromDays(7)) return ((int)span.TotalDays) switch { 1 => UiText.Get("tabula.ago.yesterday"), var d => UiText.PluralWith(System.Globalization.CultureInfo.InvariantCulture, "tabula.ago.days", d) };
         return at.ToLocalTime().ToString("d MMM yyyy", System.Globalization.CultureInfo.CurrentCulture);
     }
 
@@ -410,7 +411,7 @@ public sealed class TabulaNotice : Border
         Padding = new Thickness(10, 7, 4, 7);
         CornerRadius = new CornerRadius(10);
         var words = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children = { title, detail } };
-        var close = TabulaButtons.Glyph(PaneGlyphKind.Close, "Dismiss", () => Dismissed?.Invoke(), 24);
+        var close = TabulaButtons.Glyph(PaneGlyphKind.Close, UiText.Get("tabula.notice.dismiss"), () => Dismissed?.Invoke(), 24);
         var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto"), ColumnSpacing = 8 };
         grid.Children.Add(glyph);
         Grid.SetColumn(words, 1);
@@ -445,7 +446,7 @@ public sealed class TabulaNotice : Border
         Background = (error ? TabulaTokens.ErrorFill : TabulaTokens.InfoFill).Brush(this);
         actions.Children.Clear();
         foreach (var (text, invoke) in buttons) actions.Children.Add(TabulaButtons.Text(text, invoke));
-        AutomationProperties.SetName(this, string.IsNullOrEmpty(body) ? heading : heading + ". " + body);
+        AutomationProperties.SetName(this, string.IsNullOrEmpty(body) ? heading : UiText.Format("tabula.notice.name", heading, body));
         IsVisible = true;
     }
 
@@ -483,7 +484,7 @@ public sealed class TabulaSkeleton : Border
         }
         Child = stack;
         IsHitTestVisible = false;
-        AutomationProperties.SetName(this, "Writing the artifact");
+        AutomationProperties.SetName(this, UiText.Get("tabula.skeleton.name"));
         SizeChanged += (_, e) =>
         {
             foreach (var bar in bars) bar.Width = Math.Max(0, (e.NewSize.Width - Padding.Left - Padding.Right) * (double)bar.Tag!);

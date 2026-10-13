@@ -4,6 +4,7 @@
 // already has its id). Every other event passes through untouched; with artifacts off, everything does. No Swift
 // counterpart.
 using System.Text;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Services.Providers;
 
@@ -160,7 +161,7 @@ public sealed class ArtifactFenceFilter(Guid thread, ArtifactHost host, Func<(Ar
                 message.Refused.Add(closed.Index);
                 Show(message, PlainCode(closed.Content), output);
                 output.Add(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning,
-                    Message = "Tabula kept changed final artifact content in the answer because its streamed block was already processed." }));
+                    Message = UiText.Get("tabula.fence.kept_changed") }));
                 continue;
             }
             message.Processed.Add(closed.Index, closed);
@@ -215,7 +216,7 @@ public sealed class ArtifactFenceFilter(Guid thread, ArtifactHost host, Func<(Ar
             {
                 message.Refused.Add(closed.Index);
                 Show(message, PlainCode(closed.Content), output);
-                output.Add(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = $"Tabula could not save “{ArtifactStore.CleanTitle(title)}”: {error.Message}" }));
+                output.Add(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = UiText.Format("tabula.fence.could_not_save", ArtifactStore.CleanTitle(title), error.Message) }));
             }
         }
     }

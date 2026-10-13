@@ -6,6 +6,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Views.Diff;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Services.Git;
 using Marrow.Services.Web;
@@ -38,7 +39,7 @@ public sealed class TabulaDiffView : Border
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
         };
         Child = scroll;
-        AutomationProperties.SetName(this, "Changes between versions");
+        AutomationProperties.SetName(this, UiText.Get("tabula.diff.name"));
     }
 
     /// <summary>The files that differ (the Changes model).</summary>
@@ -60,7 +61,7 @@ public sealed class TabulaDiffView : Border
         var name = ArtifactExport.Slug(after.Artifact.Title) + "." + ArtifactKinds.Extension(after.Artifact.Kind, after.Artifact.Language);
         files = ArtifactDiff.Between(before, after, name);
         EmptyText = files.Count == 0
-            ? string.Create(CultureInfo.InvariantCulture, $"No changes between v{before.Version.Number} and v{after.Version.Number}")
+            ? UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.diff.no_changes", before.Version.Number, after.Version.Number)
             : null;
         Build();
     }

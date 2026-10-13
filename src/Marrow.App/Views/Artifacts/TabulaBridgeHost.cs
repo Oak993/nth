@@ -11,6 +11,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using Marrow.Core.Localisation;
 using Marrow.Core.Web;
 using Marrow.Services.Web;
 using Marrow.UI.Panes;
@@ -38,19 +39,19 @@ public sealed class TabulaBridgeHost : IArtifactBridgeHost
     private bool themeHooked;
 
     /// <summary>The words of the model card (6.5).</summary>
-    public static string ModelTitle(string model) => "This artifact wants to use " + model;
+    public static string ModelTitle(string model) => UiText.Format("tabula.bridge.model_title", model);
 
-    public const string ModelDetail = "It cannot see this chat, your files or your other artifacts; each call starts fresh. Each use counts toward your plan.";
+    public static string ModelDetail => UiText.Get("tabula.bridge.model_detail");
 
-    public static string ToolTitle(string server, string tool) => "This artifact wants to use " + server + " · " + tool;
+    public static string ToolTitle(string server, string tool) => UiText.Format("tabula.bridge.tool_title", server, tool);
 
-    public const string ToolDetail = "It gets only what it sends this tool and the tool's answer. You can remove this in the artifact's menu.";
+    public static string ToolDetail => UiText.Get("tabula.bridge.tool_detail");
 
-    public const string Allow = "Allow for this artifact";
+    public static string Allow => UiText.Get("tabula.bridge.allow");
 
-    public const string NotNow = "Not now";
+    public static string NotNow => UiText.Get("tabula.bridge.not_now");
 
-    public const string Declined = "Not allowed. The artifact got a polite \u201Cno\u201D.";
+    public static string Declined => UiText.Get("tabula.bridge.declined");
 
     internal void Add(TabulaView view)
     {
@@ -222,15 +223,15 @@ public sealed class TabulaCards
         await one.WaitAsync(cancellationToken).ConfigureAwait(true);
         try
         {
-            var detail = (fromDrop ? "Files dropped on the artifact do not reach it on their own. " : "")
-                + "The artifact gets each file's name, type and contents, never where it is on your computer. Files over 20 MB are refused.";
-            var spec = new TabulaCardSpec(PaneGlyphKind.Save, multiple ? "Choose files for this artifact" : "Choose a file for this artifact", detail,
-                multiple ? "Choose files…" : "Choose a file…", "Cancel")
+            var detail = fromDrop ? UiText.Get("tabula.bridge.pick_detail_dropped") : UiText.Get("tabula.bridge.pick_detail");
+            var spec = new TabulaCardSpec(PaneGlyphKind.Save,
+                multiple ? UiText.Get("tabula.bridge.pick_title_many") : UiText.Get("tabula.bridge.pick_title_one"), detail,
+                multiple ? UiText.Get("tabula.bridge.pick_button_many") : UiText.Get("tabula.bridge.pick_button_one"), UiText.Get("tabula.common.cancel"))
             {
-                Warning = string.IsNullOrWhiteSpace(accept) ? null : "It asks for: " + accept.Trim(),
+                Warning = string.IsNullOrWhiteSpace(accept) ? null : UiText.Format("tabula.bridge.pick_accepts", accept.Trim()),
             };
             if (await Present(spec, null, cancellationToken).ConfigureAwait(true) != 1) return [];
-            var paths = await files.OpenAsync(anchor, multiple ? "Choose files" : "Choose a file", multiple).ConfigureAwait(true);
+            var paths = await files.OpenAsync(anchor, multiple ? UiText.Get("tabula.bridge.picker_title_many") : UiText.Get("tabula.bridge.picker_title_one"), multiple).ConfigureAwait(true);
             var picked = new List<ArtifactPickedFile>();
             var refused = new List<string>();
             foreach (var path in paths.Take(multiple ? 32 : 1))
@@ -246,7 +247,9 @@ public sealed class TabulaCards
                 picked.Add(new ArtifactPickedFile(info.Name, MimeType(info.Extension), await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(true)));
             }
             if (refused.Count > 0)
-                Status?.Invoke((refused.Count == 1 ? "“" + refused[0] + "” is" : refused.Count.ToString(CultureInfo.InvariantCulture) + " files are") + " over 20 MB, so the artifact did not get " + (refused.Count == 1 ? "it." : "them."));
+                Status?.Invoke(refused.Count == 1
+                    ? UiText.Format("tabula.bridge.refused_one", refused[0])
+                    : UiText.FormatWith(CultureInfo.InvariantCulture, "tabula.bridge.refused_many", refused.Count));
             return picked;
         }
         finally
@@ -260,8 +263,8 @@ public sealed class TabulaCards
     {
         var lines = request.Hosts.Select(h => (h.Host, (string?)h.RegistrableDomain)).ToList();
         var dropped = request.Dropped.Count == 0 ? null
-            : "Not allowed: " + string.Join(", ", request.Dropped.Select(d => d.Source + " (" + d.Reason + ")"));
-        var spec = new TabulaCardSpec(PaneGlyphKind.Warning, "Let this artifact reach these sites?", ArtifactNetwork.Warning, "Allow", NotNowText)
+            : UiText.Format("tabula.bridge.network_dropped", string.Join(", ", request.Dropped.Select(d => d.Source + " (" + d.Reason + ")")));
+        var spec = new TabulaCardSpec(PaneGlyphKind.Warning, UiText.Get("tabula.bridge.network_title"), ArtifactNetwork.Warning, UiText.Get("tabula.bridge.network_allow"), NotNowText)
         {
             Lines = lines,
             Warning = dropped,
@@ -269,7 +272,7 @@ public sealed class TabulaCards
         return AskAsync(spec, cancellationToken);
     }
 
-    private const string NotNowText = TabulaBridgeHost.NotNow;
+    private static string NotNowText => TabulaBridgeHost.NotNow;
 
     /// <summary>Answers the card on screen (tests, and the buttons): 1 primary, 0 secondary.</summary>
     internal void Answer(int choice) => answer?.TrySetResult(choice);

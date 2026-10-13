@@ -3,6 +3,7 @@
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Marrow.App.Port.Skills.Pages;
+using Marrow.Core.Localisation;
 using Marrow.UI.Port;
 using ChromeTokens = Marrow.UI.Chrome.Chrome;
 
@@ -10,8 +11,8 @@ namespace Marrow.App.Port.Settings;
 
 internal static class PageHeaderButton
 {
-    public const string ImportWords = "Import";
-    public const string AddWords = "Add";
+    public static string ImportWords => UiText.Get("settings.header_button.import");
+    public static string AddWords => UiText.Get("settings.header_button.add");
     public const string ImportId = "header-import";
     public const string AddId = "header-add";
 
