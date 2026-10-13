@@ -67,6 +67,37 @@ public sealed record AssistantHomeParts(IMissionJobs Jobs, IDecisionSource Decis
 
     /// <summary>The first-run card while first run is not done (null once it is).</summary>
     public Func<Control?>? FirstRun { get; init; }
+
+    /// <summary>The morning digest's card (AS-11, 6), pinned at the top of the conversation as the day's first card; null: no digest service. The card hides itself until a digest exists.</summary>
+    public Func<Control?>? Digest { get; init; }
+
+    /// <summary>The suggestions the digest's lane holds open today (AS-11, 5.2), shown as chips beside the common asks; null: none.</summary>
+    public Func<IReadOnlyList<HomeSuggestion>>? Suggestions { get; init; }
+
+    /// <summary>Tells the home when the lane changed, on any thread; the subscription is dropped when the home leaves the screen.</summary>
+    public Func<Action, IDisposable>? SuggestionsChanged { get; init; }
+}
+
+/// <summary>One open suggestion as the home shows it: a short chip, and the whole line for the screen reader. Its tap brings the lane's Accept into view; it never accepts by itself.</summary>
+public sealed record HomeSuggestion(string Key, string Chip, string Line)
+{
+    /// <summary>The longest a chip runs before it is cut.</summary>
+    public const int ChipChars = 40;
+
+    /// <summary>The chip for a suggestion: what Accept would do, in a few words.</summary>
+    public static HomeSuggestion Of(Suggestion suggestion)
+    {
+        ArgumentNullException.ThrowIfNull(suggestion);
+        var title = suggestion.Plan.Title;
+        var words = suggestion.Kind switch
+        {
+            SuggestionKind.DoneByHand => "Make “" + title + "” a duty",
+            SuggestionKind.IdleDuty => "Slow down “" + title + "”",
+            _ => title,
+        };
+        if (words.Length > ChipChars) words = words[..(ChipChars - 1)].TrimEnd() + "…";
+        return new HomeSuggestion(suggestion.Key, words, suggestion.Line);
+    }
 }
 
 /// <summary>The words of the header's state line, the hero's caption and the sidebar row's status.</summary>
@@ -113,6 +144,12 @@ public sealed class AssistantHomeView : Decorator
     /// <summary>Below this width the Board stacks under the conversation (2.2 "Narrow windows").</summary>
     public const double StackWidth = 900;
 
+    /// <summary>The least the digest's frame is allowed to grow to; it then takes up to half of the conversation's height.</summary>
+    public const double DigestMinHeight = 160;
+
+    /// <summary>What the digest's frame is allowed before the column has been measured.</summary>
+    public const double DigestStartHeight = 320;
+
     private readonly AssistantHomeParts parts;
     private readonly TextBlock name;
     private readonly TextBlock stateLine;
@@ -127,6 +164,11 @@ public sealed class AssistantHomeView : Decorator
     private Control? conversationBody;
     private IInputElement? voiceReturn;
     private bool voiceWasOpen;
+    private readonly Control? digest;
+    private readonly ScrollViewer? digestFrame;
+    private readonly List<Button> suggestionChips = [];
+    private IDisposable? suggestionsWatch;
+    private IReadOnlyList<HomeSuggestion> suggestions = [];
     private MotionScope.Entry? budget;
     private bool stacked;
 
@@ -181,13 +223,34 @@ public sealed class AssistantHomeView : Decorator
         }
         AutomationProperties.SetName(chips, "Suggestions");
         var chat = parts.Conversation?.Invoke();
-        var convo = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*") };
+        var convo = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto,*") };
         Grid.SetRow(firstRun, 1);
-        Grid.SetRow(chips, 2);
+        Grid.SetRow(chips, 3);
         convo.Children.Add(hero);
         convo.Children.Add(firstRun);
+        // The morning digest is the day's first card (2.2): above the chips and the chat, in a frame that never takes more than half the column, so the composer is always in reach.
+        digest = parts.Digest?.Invoke();
+        if (digest is not null)
+        {
+            // The card hides itself until a digest exists (it takes no room, margin included) but stays in the tree, so it hears the digest the moment it is composed.
+            digest.Margin = new Thickness(12, 8, 12, 4);
+            digestFrame = new ScrollViewer
+            {
+                Content = digest,
+                HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+                VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+                MaxHeight = DigestStartHeight,
+            };
+            Grid.SetRow(digestFrame, 2);
+            convo.Children.Add(digestFrame);
+            digest.PropertyChanged += (_, e) =>
+            {
+                if (e.Property == IsVisibleProperty) RefreshConversation();
+            };
+            conversation.SizeChanged += (_, e) => digestFrame.MaxHeight = Math.Max(DigestMinHeight, e.NewSize.Height * 0.5);
+        }
         convo.Children.Add(chips);
-        if (chat is not null) { Grid.SetRow(chat, 3); convo.Children.Add(chat); }
+        if (chat is not null) { Grid.SetRow(chat, 4); convo.Children.Add(chat); }
         // ---- the voice sheet (AS-18, 2.4): a glass sheet over the conversation column; the thread steps back under it ----
         conversationBody = convo;
         if (parts.Voice is { } voice)
@@ -290,6 +353,8 @@ public sealed class AssistantHomeView : Decorator
             voice.Changed += OnVoice;
             OnVoice();
         }
+        suggestionsWatch?.Dispose();
+        suggestionsWatch = parts.SuggestionsChanged?.Invoke(() => RefreshSuggestions());
         if (TopLevel.GetTopLevel(this) is { } top)
         {
             budget = MotionScope.For(top).Join(ArmillaListRank.Header, () => (HeaderMark.Moves ? 1 : 0) + (HeroShown && HeroMark.Moves ? 1 : 0), () => IsEffectivelyVisible, calm =>
@@ -309,6 +374,8 @@ public sealed class AssistantHomeView : Decorator
         parts.Jobs.Changed -= Refresh;
         parts.Controls.Changed -= Refresh;
         if (parts.Voice is { } voice) voice.Changed -= OnVoice;
+        suggestionsWatch?.Dispose();
+        suggestionsWatch = null;
         budget?.Leave();
         budget = null;
     }
@@ -380,11 +447,41 @@ public sealed class AssistantHomeView : Decorator
     /// <summary>The hero shows while the home thread is empty; the first-run card while first run is not done.</summary>
     public void RefreshConversation()
     {
-        hero.IsVisible = (parts.ConversationEmpty?.Invoke() ?? true) && !voiceWasOpen; // the voice sheet shows the presence while it is open (2.2)
+        // A digest is the thread's first card (the canvas appends it to the messages, so the empty thread's mark gives way to it).
+        // The voice sheet shows the presence while it is open (2.2).
+        hero.IsVisible = (parts.ConversationEmpty?.Invoke() ?? true) && digest?.IsVisible != true && !voiceWasOpen;
         var card = parts.FirstRun?.Invoke();
         if (!ReferenceEquals(firstRun.Child, card)) firstRun.Child = card;
         firstRun.IsVisible = card is not null;
+        RefreshSuggestions();
         budget?.Changed();
+    }
+
+    /// <summary>The digest's card, or null when the home was made without a digest service.</summary>
+    public Control? DigestCard => digest;
+
+    /// <summary>The frame the digest's card scrolls in, or null when the home was made without a digest service.</summary>
+    public ScrollViewer? DigestFrame => digestFrame;
+
+    /// <summary>The chips of the suggestions open today, in the order of the lane.</summary>
+    public IReadOnlyList<Button> SuggestionChips => suggestionChips;
+
+    /// <summary>Reads the lane's open suggestions again and shows them as chips after the common asks. A tap on one brings its Accept into view.</summary>
+    public void RefreshSuggestions()
+    {
+        var now = parts.Suggestions?.Invoke() ?? [];
+        if (now.SequenceEqual(suggestions)) return;
+        suggestions = now;
+        foreach (var stale in suggestionChips) chips.Children.Remove(stale);
+        suggestionChips.Clear();
+        foreach (var suggestion in now)
+        {
+            var key = suggestion.Key;
+            var (chip, _) = TaskLook.Small(suggestion.Chip, () => (digest as DigestCard)?.Reveal(key), name: "Suggestion: " + suggestion.Line);
+            ToolTip.SetTip(chip, suggestion.Line);
+            chips.Children.Add(chip);
+            suggestionChips.Add(chip);
+        }
     }
 
     private void Lay(bool narrow)

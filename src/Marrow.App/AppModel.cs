@@ -1325,6 +1325,7 @@ public sealed partial class AppModel : MainActorModel
             MarkRead(id);
             return;
         }
+        if (DecisionToastCovers(thread)) return; // PORT-ONLY (AS-9, ED-NEW-dextra-as9-1): a mission chat's decision makes its toast from Dextra's queue
         Notify(id, thread.Title, "Waiting for your decision.");
     }
 
@@ -1364,7 +1365,7 @@ public sealed partial class AppModel : MainActorModel
         if (continues) return;
         var chimed = Settings.ChimeWhenFinished && status != TurnStatus.Interrupted;
         if (chimed) FinishChime.Play();
-        if (isVisible || !Settings.NotifyWhenFinished || thread is null) return;
+        if (isVisible || !Settings.NotifyWhenFinished || thread is null || DecisionToastCovers(thread)) return; // AS-9: a mission's end is a status, never a push (13.1)
         var body = status switch
         {
             TurnStatus.Completed => "Finished.",

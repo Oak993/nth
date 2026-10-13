@@ -49,6 +49,9 @@ public sealed record AssistantSettingsParts
 
     /// <summary>The voices installed on this PC (id and name), for the Voice row; null hides the row.</summary>
     public Func<IReadOnlyList<(string Id, string Name)>>? Voices { get; init; }
+
+    /// <summary>The running purchase desk (AS-20), read at every redraw; null or a null answer: Purchases says it is set up while Dextra is on.</summary>
+    public Func<PurchaseDesk?>? Purchases { get; init; }
 }
 
 public sealed class AssistantSettingsPage : Decorator
@@ -60,6 +63,7 @@ public sealed class AssistantSettingsPage : Decorator
     private AssistantSettingsParts parts = new();
     private AssistantRows? rows;
     private SettingsSwitch? onSwitch;
+    private PurchaseSettingsSection? purchases;
     private CzMenuButton? chordMenu;
     private CzMenuButton? talkMenu;
     private CzMenuButton? voiceMenu;
@@ -84,6 +88,7 @@ public sealed class AssistantSettingsPage : Decorator
                 Grants = () => host.Controller?.Grants ?? host.Settings.Value.Grants,
                 Revoke = id => host.Controller is { } controller ? controller.RevokeGrant(id, Marrow.Core.Port.SwiftClock.Provider.Current.GetUtcNow()) : ForgetKept(host.Settings, id),
                 MissionTitle = id => host.Controller?.Runner.Find(id)?.Mission.Title,
+                Purchases = () => host.Controller?.Purchases,
                 WatchGrants = changed => { if (host.Controller is { } c) c.GrantsChanged += changed; },
                 UnwatchGrants = changed => { if (host.Controller is { } c) c.GrantsChanged -= changed; },
                 TalkStatus = () => host.Voice?.Chord.Status,
@@ -117,6 +122,9 @@ public sealed class AssistantSettingsPage : Decorator
     public TextBlock TalkStatusText => talkStatus;
 
     internal AssistantRows Rows => rows!;
+
+    /// <summary>Settings › Assistant › Purchases (AS-20).</summary>
+    public PurchaseSettingsSection Purchases => purchases!;
 
     /// <summary>The Revoke button of each grant shown, in order.</summary>
     public IReadOnlyList<(Grant Grant, Button Revoke)> GrantRows => grantRows;
@@ -154,6 +162,8 @@ public sealed class AssistantSettingsPage : Decorator
         main.Children.Add(new ChromeRowDivider());
         main.Children.Add(rows.BrainRows());
 
+        purchases = new PurchaseSettingsSection(given.Purchases ?? (() => null), given.MissionTitle);
+
         var stop = new StackPanel();
         stop.Children.Add(new ChromeRow(AssistantSettingsWords.RowChord, () => chordMenu, AssistantSettingsWords.RowChordDetail));
 
@@ -180,6 +190,7 @@ public sealed class AssistantSettingsPage : Decorator
                 new ChromeSection(AssistantSettingsWords.Stop, () => new ChromeCard(() => stop)),
                 new ChromeSection(AssistantSettingsWords.Voice, () => new ChromeCard(() => voicePanel)),
                 new ChromeSection(AssistantSettingsWords.Permissions, () => new ChromeCard(() => grantList)),
+                purchases,
                 new ChromeSection(AssistantSettingsWords.Rules, () => new ChromeCard(() => AssistantRows.RulesList(null))),
             },
         };
@@ -228,6 +239,7 @@ public sealed class AssistantSettingsPage : Decorator
             voiceMenu?.Show(settings.Value.VoiceName ?? "");
         }
         ShowTalkStatus();
+        purchases?.Show();
         ShowGrants();
     }
 

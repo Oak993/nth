@@ -1,3 +1,4 @@
+using Marrow.Core.Port.Assistant;
 using Marrow.Services.Assistant;
 
 namespace Marrow.Services.Tests.Fixtures;
@@ -21,6 +22,11 @@ public sealed class FakeDutyLauncher : IDutyLauncher
 
     public Exception? Throw { get; set; }
 
+    /// <summary>When set, the launcher ran the whole run inside Launch (nth's own digest): the run ends at once with this outcome and report.</summary>
+    public DutyRunOutcome? FinishAs { get; set; }
+
+    public string? FinishReport { get; set; }
+
     /// <summary>When set, a launch waits for it (a slow mission start).</summary>
     public TaskCompletionSource? Gate { get; set; }
 
@@ -31,6 +37,6 @@ public sealed class FakeDutyLauncher : IDutyLauncher
         if (Throw is { } failure) throw failure;
         if (Refuse is { } why) return DutyLaunch.Refusal(why);
         LastMission = Guid.NewGuid();
-        return DutyLaunch.Started(LastMission.Value);
+        return FinishAs is { } finished ? DutyLaunch.Completed(LastMission.Value, finished, FinishReport) : DutyLaunch.Started(LastMission.Value);
     }
 }

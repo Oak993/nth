@@ -12,6 +12,8 @@ public sealed class RecordingToastPlatform : IWindowsToastPlatform
     public Dictionary<(string AppId, string Tag), string> Delivered { get; } = [];
     public Action? BeforeShow { get; set; }
     public bool FailShow { get; set; }
+    public List<(string AppId, string Tag)> Removed { get; } = [];
+    public bool FailRemove { get; set; }
     public void SetProcessAppId(string appId) => AppIds.Add(appId);
     public string? ReadRegistry(string key, string name) => Registry.GetValueOrDefault((key, name));
     public void WriteRegistry(string key, string name, string value)
@@ -27,6 +29,12 @@ public sealed class RecordingToastPlatform : IWindowsToastPlatform
                      || entry.Key.StartsWith(key + "\\", StringComparison.OrdinalIgnoreCase)).ToList())
             Registry.Remove(entry);
     }
+    public void Remove(string appId, string tag)
+    {
+        if (FailRemove) throw new InvalidOperationException("fake removal denial");
+        Removed.Add((appId, tag));
+        Delivered.Remove((appId, tag));
+    }
     public void Show(string appId, string tag, string xml)
     {
         BeforeShow?.Invoke();
@@ -39,6 +47,7 @@ public sealed class RecordingToastPlatform : IWindowsToastPlatform
 public sealed class RecordingAppToastCenter : IToastCenter
 {
     public List<ToastRequest> Requests { get; } = [];
+    public List<string> Removed { get; } = [];
     public int Permissions { get; private set; }
     public bool FailPermission { get; set; }
     public Action<AppDelegate>? Installed { get; set; }
@@ -51,6 +60,11 @@ public sealed class RecordingAppToastCenter : IToastCenter
     public Task Add(ToastRequest request)
     {
         Requests.Add(request);
+        return Task.CompletedTask;
+    }
+    public Task Remove(string identifier)
+    {
+        Removed.Add(identifier);
         return Task.CompletedTask;
     }
 }

@@ -60,6 +60,9 @@ public sealed class DextraHost : IDisposable
     /// <summary>Dextra's voice (AS-18): the talk chord and the conversation of the running controller, or null (off, not started, or no voice in this build).</summary>
     public DextraVoice? Voice { get; private set; }
 
+    /// <summary>The morning digest and the Suggestions lane (AS-11) while Dextra's duties run; null before they start.</summary>
+    public DigestService? Digests => model.Duties?.Digests;
+
     /// <summary>An assistant's name by its id (Dextra's or an Astur's).</summary>
     public string NameOf(string assistantId) => Profiles().FirstOrDefault(p => p.Id == assistantId)?.Name ?? Name;
 
@@ -198,9 +201,12 @@ public sealed class DextraHost : IDisposable
         catch { store.Dispose(); throw; }
         owned = new Owned(store, audit);
         var stopKey = app.EnsureStopKey(() => settings.Chord);
+        // AS-20 (12.7, 16.2): purchases.json beside the store's other files, the card in Credential Manager, Windows Hello. This build
+        // has no fill path (Visus and Tactus are not here), so the switch is hidden and every payment is handed to the owner.
+        var purchases = new PurchaseSetup { Book = PurchaseBook.Over(store), Hello = new WindowsHelloGate(), Vault = CardVault.Production };
         voiceScope = new VoiceStopScope(); // Stop all and the stop chord cut a spoken reply (12.6); bound to the conversation once the voice exists
         return app.StartDextra(store, entry => audit.Append(entry), Profiles, BrainProvider() ?? ProviderKind.Claude, BrainModel(),
-            protectedRoots: [roots.AuditDirectory], stopKey: stopKey, tray: app.Tray, stopScopes: [voiceScope]);
+            protectedRoots: [roots.AuditDirectory], stopKey: stopKey, tray: app.Tray, stopScopes: [voiceScope], purchases: purchases);
     }
 
     public void Dispose()

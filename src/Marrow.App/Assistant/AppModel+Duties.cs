@@ -28,7 +28,7 @@ public sealed partial class AppModel
     /// or skipped. Returns the host; AppModel disposes it with the safety services.
     /// </summary>
     public DutyHost StartDuties(AssistantController controller, AssistantStore store, StartupMode mode, ForwardingDutyTools? tools = null,
-        Func<IReadOnlyList<string>>? assistantIds = null, AppTray? tray = null, Action? quit = null, DutySeams? seams = null)
+        Func<IReadOnlyList<string>>? assistantIds = null, AppTray? tray = null, Action? quit = null, DutySeams? seams = null, DigestSetup? digest = null, bool withDigest = true)
     {
         ArgumentNullException.ThrowIfNull(controller);
         ArgumentNullException.ThrowIfNull(store);
@@ -52,13 +52,37 @@ public sealed partial class AppModel
             Processes = seams?.Processes ?? SystemProcessRunner.Instance,
             Desktop = seams?.Desktop ?? new SystemDesktopWatch(),
             Time = seams?.Time ?? TimeProvider.System,
+            Notify = NotifyDutyFinding,
             ChatProject = thread => Thread(thread)?.ProjectID,
             AssistantName = id => id,
             AccountNames = () => [.. Settings.Accounts.Accounts.Select(a => Settings.Accounts.DisplayName(a.Id)).OfType<string>().Where(n => !string.IsNullOrWhiteSpace(n))],
+            Digest = withDigest ? digest ?? DigestSetupOf(controller) : null,
         });
         (tools ?? DutyToolsGate).Bind(host.Tools);
         Duties = host;
         return host;
+    }
+
+    /// <summary>
+    /// What the morning digest reads of the app beyond the controller (AS-11): which sign-ins expired, the owner's chats as habits (a chat hidden from
+    /// the Assistant is left out, one on a local model or a private account is marked local), the projects with when he last worked in each, and the
+    /// notes' folding. <paramref name="auditDirectory"/> is where the activity log's day files are (their last closed day is sealed into the digest);
+    /// without it the digest has no seal. The delegate's answers and each Astur's paragraph have no source yet (AS-22, AS-16) and are left empty.
+    /// </summary>
+    public DigestSetup DigestSetupOf(AssistantController controller, string? auditDirectory = null)
+    {
+        ArgumentNullException.ThrowIfNull(controller);
+        return new DigestSetup
+        {
+            DayFinal = auditDirectory is null ? null : day => AuditVerifier.DayFinal(auditDirectory, day),
+            ExpiredLogins = () => [.. Settings.Accounts.Accounts.Where(a => a.Enabled && !IsAccountConnected(a))
+                .Select(a => Settings.Accounts.DisplayName(a.Id)).OfType<string>().Where(n => !string.IsNullOrWhiteSpace(n))],
+            Habits = () => ChatHabits.Of(Threads, DateTimeOffset.UtcNow, thread => FeedChatFacts.From(thread, Thread, AssistantTaps.IsPrivateAccount),
+                project => Projects.FirstOrDefault(p => p.Id == project)?.Name),
+            Projects = () => [.. Projects.Select(p => new SpotProject(p.Id, p.Name,
+                Threads.Where(t => t.ProjectID == p.Id && t.MissionID is null && t.AssistantID is null).Select(t => t.UpdatedAt).DefaultIfEmpty(DateTimeOffset.MinValue).Max()))],
+            FoldNotes = () => controller.Notes?.Store.FoldIfDue(),
+        };
     }
 
     // A folder inside one of the owner's projects, or one he granted Dextra (a standing folder grant), is open to it (7.2).
