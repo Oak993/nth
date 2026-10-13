@@ -239,4 +239,14 @@ public sealed class WebW10ChatLinksTests
 
     [Fact]
     public void The_sheet_question_uses_the_designed_words() => Assert.Equal("Open links in Visus or your default browser?", ChatLinkChoice.Title);
+
+    [Fact]
+    public void The_default_open_link_of_a_live_answer_follows_the_same_route_and_a_sign_in_stays_with_the_system() => Run((_, web, sinks) =>
+    {
+        web.ChatLinks = ChatLinkTarget.Visus;
+        using var attach = WebSettingsHost.Attach(web);
+        Assert.True(Marrow.App.Views.Chat.LiveAnswerEffects.OpenLink.Current(Page));
+        Assert.True(Marrow.App.Views.Chat.LiveAnswerEffects.OpenLink.Current("https://accounts.example.org/oauth/authorize?client_id=fake"));
+        Assert.Equal(["visus:" + Page, "external:https://accounts.example.org/oauth/authorize?client_id=fake"], sinks.Opened);
+    });
 }
