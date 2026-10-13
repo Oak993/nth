@@ -56,6 +56,15 @@ public sealed class AppDelegate
 
     internal Func<AppModel, Task> BootstrapModel { get; set; } = model => model.Bootstrap();
 
+    /// <summary>
+    /// PORT-ONLY (AS-10, ED-NEW-dextra-as10-13): nth was started hidden (<c>--hidden</c> at sign-in, <c>--duty id</c> by Task Scheduler's wake): no
+    /// boot stage, no main window, no tour; the model is bootstrapped and <see cref="AfterBootstrap"/> starts the duties. Set by the entry point only.
+    /// </summary>
+    internal bool StartHidden { get; set; }
+
+    /// <summary>PORT-ONLY (AS-10): runs once the model is bootstrapped, with the window shown or not (the duties start here). Set by the entry point only.</summary>
+    internal Action<AppModel>? AfterBootstrap { get; set; }
+
     /// <summary>GR-2: the first-run preparation the Getting ready sheet shows (OD-0096). Settable only so the launch tests can script it; nothing in the app sets it.</summary>
     internal Marrow.App.Port.FirstRun.FirstRunPreparation FirstRun { get; set; } = Marrow.App.Port.FirstRun.FirstRunPreparation.Default;
 
@@ -73,6 +82,19 @@ public sealed class AppDelegate
         var windows = WindowManager.Shared; // :16
         Model = windows.Model; // :17
         Marrow.App.Port.Voice.VoiceComposition.Attach(windows.Model.Settings); // VT-15: register hardware before GR-1 takes its plan; consent still gates all downloads
+        if (StartHidden)
+        {
+            // AS-10: nothing is shown. The model is bootstrapped (providers, projects, threads) and the duties start; the owner's
+            // window is made when he asks for it (the tray's Open nth, a second launch), by the same ShowMain.
+            MainActor.Spawn(async () =>
+            {
+                await BootstrapModel(windows.Model);
+                AfterBootstrap?.Invoke(windows.Model);
+            });
+            UpdateChecker.Shared.StartBackgroundChecks();
+            UpdateEverythingProduction.Configure(windows.Model);
+            return;
+        }
         // PORT-ONLY (OD-0096, GR-2): when the machine is not prepared (the first run, a new build, a new graphics card or driver) the main
         // window is made with the Getting ready sheet over its RootView, so the sheet is in its first frame; armed before :22 makes the window.
         var firstRun = Marrow.App.Port.FirstRun.GettingReadyLaunch.Arm(windows, FirstRun);
@@ -115,6 +137,7 @@ public sealed class AppDelegate
             if (boot is not null) await firstRunDone.Task;
             boot?.Ready(); // OD-0108 / OD-0113: bootstrap (to its provider refresh) AND preparation must finish before B reveals the window
             await bootstrap;
+            AfterBootstrap?.Invoke(windows.Model); // AS-10: the duties start with the window up too
         });
         UpdateChecker.Shared.StartBackgroundChecks(); // :28
         UpdateEverythingProduction.Configure(windows.Model); // UE-5 (OD-0100): Update everything's items and its background check; no Swift twin

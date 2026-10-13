@@ -76,6 +76,7 @@ public sealed partial class AppModel
 
     private void DisposeSafety()
     {
+        DisposeDuties();
         dextraTray?.Dispose();
         dextraTray = null;
         Tray?.Dispose();
@@ -86,6 +87,9 @@ public sealed partial class AppModel
 
     /// <summary>Dextra's controller, while Dextra runs (AS-8 starts it from the home; null before).</summary>
     public AssistantController? Dextra { get; private set; }
+
+    /// <summary>The store Dextra was started over (one process holds it, 15.3); the duties (AS-10) read and write their files through it.</summary>
+    public AssistantStore? DextraStore { get; private set; }
 
     /// <summary>The usage reserve (AS-13) of the running controller, if it has one: the taps feed it, the board and the plan card read it.</summary>
     internal ReserveGuard? Reserve => Dextra?.Reserve;
@@ -110,7 +114,7 @@ public sealed partial class AppModel
         ProviderKind provider = ProviderKind.Claude, string? model = null, IReadOnlyList<string>? protectedRoots = null,
         AutoAnswerSwitch? autoAnswer = null, Func<IReadOnlyList<string>>? personalDataRecipients = null, Func<IReadOnlyList<string>>? allowlist = null,
         GlobalStop? stopKey = null, AppTray? tray = null, IPcStreamHold? pcStreams = null,
-        IReadOnlyList<IStopScope>? stopScopes = null, INoteProposer? noteProposer = null, AssistantTeam? team = null, IAssistantHomes? homes = null)
+        IReadOnlyList<IStopScope>? stopScopes = null, INoteProposer? noteProposer = null, IDutyTools? duties = null, AssistantTeam? team = null, IAssistantHomes? homes = null)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(audit);
@@ -193,7 +197,9 @@ public sealed partial class AppModel
             StopKey = stopKey,
             PcStreams = pcStreams,
             StopScopes = stopScopes ?? [],
+            Duties = duties ?? DutyToolsGate,
         });
+        DextraStore = store;
         // The day's folding of the notes (8.2) runs at start when it has not run today; the digest (AS-11) calls it each morning from then on.
         _ = Task.Run(() =>
         {
@@ -301,6 +307,7 @@ public sealed partial class AppModel
     public void UnbindDextra()
     {
         if (Dextra is null) return;
+        DisposeDuties();
         dextraTray?.Dispose();
         dextraTray = null;
         Dextra = null;

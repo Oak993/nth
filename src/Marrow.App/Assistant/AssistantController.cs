@@ -104,6 +104,9 @@ public sealed class AssistantControllerOptions
     /// <summary>The usage reserve (AS-13): what it reads and keeps. Null: no reserve; nothing is held back for usage.</summary>
     public ReserveSetup? Reserve { get; init; }
 
+    /// <summary>The duty tools (AS-10): schedule_duty, watch_folder and watch_page, and what a duty may do. Null: they say they are not built yet.</summary>
+    public IDutyTools? Duties { get; init; }
+
     /// <summary>
     /// The usage-aware router (AS-14): what it reads of the owner's accounts and models. Null: a mission's lead runs on
     /// <see cref="Provider"/> and <see cref="Model"/>, and the pause card has no "Move the rest to ...".
@@ -475,7 +478,22 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
             Grants = new ValueList<Grant>(Grants.Where(g => chain.Any(p => p.Id == g.AssistantId))),
             MissionId = mission,
             TaintContext = taint,
+            Duty = DutyScopeOf(mission),
         };
+    }
+
+    // A duty's run (or a helper mission under one) can only narrow its assistant's grants (7.1, 12.1). The scope is read from the duty at
+    // each approval, so it holds after a restart; a duty that no longer exists narrows to nothing alone (every action asks).
+    private DutyScope? DutyScopeOf(Guid? mission)
+    {
+        if (o.Duties is not { } duties) return null;
+        for (var depth = 0; mission is { } id && depth < 8; depth++)
+        {
+            if (Runner.Find(id) is not { } record) return null;
+            if (record.DutyId is { } dutyId) return duties.ScopeOf(dutyId);
+            mission = record.Mission.ParentMissionId;
+        }
+        return null;
     }
 
     /// <summary>A grant the owner made from a card (For this mission, Always...): kept, logged with the card, unless an Astur's would be broader than Dextra's (9.1). Internal for the tests.</summary>
@@ -547,6 +565,15 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
         var result = RunNow(call);
         if (call.Decision.GrantsUsed.Count > 0) UseGrants(call.Decision.GrantsUsed, "call:" + call.Id);
         return Task.FromResult(result);
+    }
+
+    /// <summary>A call from a dry run's chat (7.3): only reads run; the rest is refused to the model and listed as a step.</summary>
+    public string? DryAnswer(AssistantToolCall call)
+    {
+        if (call.Chat.MissionId is not { } mission || Runner.Find(mission) is not { DryRun: true }) return null;
+        var outcome = Runner.DryLogOf(mission).Intercept(call.Classification.Class, call.Decision.Verdict,
+            DryRunWords.WouldCall(AssistantNames.Server + "/" + call.Tool.Name, call.Tool.Title), call.Tool.Title);
+        return outcome.Perform ? null : outcome.Answer;
     }
 
     private AssistantToolResult RunNow(AssistantToolCall call)
@@ -689,6 +716,9 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
             case "create_assistant" when o.Asturs is not null:
                 // Never from an Allow: the engine asks for every change of standing configuration, and an Astur is made only from the card the owner answers.
                 return AssistantToolResult.Failed($"Not run: an {AssistantNames.Astur} is only made from a card the owner answers.");
+            case "schedule_duty" or "watch_folder" or "watch_page" when o.Duties is { } duties:
+                // 7.1: the owner's card was answered yes; the duty is made now. The words of how it went also reach the chat.
+                return duties.Create(call, text => Deliver(chat.Thread, $"{AssistantNames.Server} {call.Tool.Name}: {text}"));
             case "remember" when o.Notes is not null:
                 return Tools.Remember(call, PolicyContext(chat).TaintContext);
             case "recall" when o.Notes is not null:
@@ -696,7 +726,7 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
             case "forget" when o.Notes is not null:
                 return Tools.Forget(call);
             default:
-                // Wired by the units that own them: duties and watches (AS-10), usage and plans (AS-13),
+                // Wired by the units that own them: usage and plans (AS-13),
                 // Asturs (AS-16), suggestions (AS-11), sessions (AS-2's reader), deliver and merge_results (AS-8).
                 // Memory (AS-12) is wired when the controller is given its Notes.
                 return AssistantToolResult.Failed($"Not run: {call.Tool.Name} is not part of this build of {AssistantNames.Assistant} yet.");
@@ -712,7 +742,8 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
     private DecisionItem Card(AssistantToolCall call, bool offered)
     {
         if (call.Tool.Name == "create_assistant" && o.Asturs is not null) return AsturCard(call, offered);
-        IEnumerable<DecisionInput> inputs = MemoryCardInputs(call) ?? (call.Arguments.JSONValueObject is { } fields
+        // A duty's card shows what it will be: its trigger, what it does, its grants, its budget (7.1), not the raw arguments.
+        IEnumerable<DecisionInput> inputs = o.Duties?.Describe(call) ?? MemoryCardInputs(call) ?? (call.Arguments.JSONValueObject is { } fields
             ? fields.Select(f => new DecisionInput(f.Key, f.Value.JSONValueString ?? f.Value.ToString()))
             : []);
         var c = call.Classification;

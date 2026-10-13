@@ -105,6 +105,9 @@ public static class Program
             if (DroppyCodeApp.ForwardNotificationArguments(args)) return 0;
             // A recognized toast whose transport failed must not reopen the main window (especially an update).
             if (args.Any(argument => ToastActivation.Decode(WindowsToastStartup.Identity, argument) is not null)) return 1;
+            // AS-10 (ED-NEW-dextra-as10-13): a sign-in start (--hidden) or a Task Scheduler wake (--duty id) that finds nth running opens nothing:
+            // the running one holds the duties, and its own timer runs them. Everything else is the owner starting nth again.
+            if (Marrow.Core.Port.Assistant.StartupArguments.Parse(args).Hidden) return 0;
             ReopenSignal.Send(DroppyCodeApp.ReopenSignalName); // ED-002: the running instance runs the reopen path
             return 0;
         }
@@ -144,6 +147,14 @@ public static class Program
         Marrow.App.Port.Advisor.AdvisorRuntimeStartup.Bind(); // ED-NEW-ignisadvisor-2: a Droppy Hydra head asks its lead's model (ask_advisor)
         if (skills is not null) SkillsUpdateRows.Attach(skills); // SK-16: the installed items are the Updates page's "Skills and tools" rows (ED-343's hook)
 
+        // AS-10: a hidden start with no duties to run would leave nth with no window and no tray, so it shows the window like any start; a
+        // wake for one duty with no duties at all has nothing to do and ends.
+        var mode = Marrow.Core.Port.Assistant.StartupArguments.Parse(args);
+        if (mode.Hidden && !Marrow.App.Assistant.BackgroundStart.HasDuties(Marrow.Services.Assistant.AssistantStorage.Roots.Current))
+        {
+            if (mode.ForOneDuty) return 0;
+            mode = Marrow.Core.Port.Assistant.StartupMode.Normal;
+        }
         var lifetime = new ClassicDesktopStyleApplicationLifetime
         {
             Args = args,
@@ -163,6 +174,8 @@ public static class Program
         InlineText.OpenUrl = url => Marrow.Services.Port.Workspace.Open.Current(url);
 
         var shell = new AppShell(new AppDelegate(), exit: () => lifetime.Shutdown(), afterWillTerminate: () => settings.Synchronize());
+        shell.Delegate.StartHidden = mode.Hidden;
+        shell.Delegate.AfterBootstrap = model => StartDuties(model, mode, shell);
         var launchReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var notifications = DroppyCodeApp.ListenForNotificationArguments(shell.Delegate, launchReady.Task);
 
@@ -175,15 +188,32 @@ public static class Program
         // any window exists (PR-LAUNCH-001).
         FrameClock.Source.SetProcessDefault(new AvaloniaFrameSource(new AvaloniaWindow()));
 
-        lifetime.Startup += (_, _) => FinishStartup(shell, launchReady, skills, args, reopen, lifetime);
+        lifetime.Startup += (_, _) => FinishStartup(shell, launchReady, skills, args, reopen, lifetime, mode);
         lifetime.ShutdownRequested += (_, e) => shell.ShutdownRequested(e);
         lifetime.Exit += (_, _) => {shell.Delegate.Model?.StopPaletteChecks();shell.WillTerminate();};
         return lifetime.Start(args);
     }
 
-    private static async void FinishStartup(AppShell shell, TaskCompletionSource launchReady, SkillsHost? skills, string[] args, ReopenSignal reopen, IClassicDesktopStyleApplicationLifetime lifetime)
+    // AS-10 (ED-NEW-dextra-as10-13): Dextra's duties start once the model is bootstrapped, whether the window is up or not. With "Keep working when the
+    // window is closed" on, a close of the window hides it and the duties go on in the tray; the tray's Open nth brings it back.
+    private static void StartDuties(AppModel model, Marrow.Core.Port.Assistant.StartupMode mode, AppShell shell)
     {
-        shell.PrepareBoot();
+        var windows = Marrow.App.Window.WindowManager.Shared;
+        var host = Marrow.App.Assistant.BackgroundStart.Run(model, mode,
+            windowHidden: () => windows.MainWindow is not { IsVisible: true },
+            open: () => MainActor.Post(windows.ShowMain),
+            quit: () => MainActor.Post(shell.Terminate),
+            out var problem);
+        // There is no log in nth yet to write to; the Assistant's own feed is where Dextra's problems are told.
+        if (problem is not null)
+            model.AssistantEvents.Publish(Marrow.Core.Port.Assistant.FeedDraft.About(Marrow.Core.Port.Assistant.FeedEventKind.WatcherChanged, Marrow.Core.Port.Assistant.FeedSeverity.Error, TimeProvider.System.GetUtcNow(), problem));
+        if (host is not null) windows.KeepWorkingOnClose = () => host.Switches.KeepWorkingWhenClosed && model.Tray is not null;
+    }
+
+    private static async void FinishStartup(AppShell shell, TaskCompletionSource launchReady, SkillsHost? skills, string[] args, ReopenSignal reopen, IClassicDesktopStyleApplicationLifetime lifetime, Marrow.Core.Port.Assistant.StartupMode mode)
+    {
+        if (mode.Hidden) shell.PrepareHidden();
+        else shell.PrepareBoot();
         // Even a cached pack must let the first stage layout/paint run before model/content work.
         await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => { }, Avalonia.Threading.DispatcherPriority.Background);
         await Marrow.App.Port.ModelsPalette.PaletteStartup.PrepareAsync(); // ED-622: verified authority before any model/content.
