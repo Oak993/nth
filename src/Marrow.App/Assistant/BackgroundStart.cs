@@ -4,6 +4,7 @@
 // nth was closed, and keep running in the tray after the window is closed. It fails closed: a store that is busy, or an activity
 // log that cannot be opened (no key, a second writer), starts nothing, because a duty run must be written down (12.5). It starts
 // nothing at all for an owner with no duties. A start for one duty ("nth --duty id") with nothing to run asks to quit at once.
+using System.Text.Json.Nodes;
 using Marrow.App.Tray;
 using Marrow.Core.Port.Assistant;
 using Marrow.Services.Assistant;
@@ -59,6 +60,11 @@ public static class BackgroundStart
         return profiles;
     }
 
+    /// <summary>Whether any assistant's duties file holds the Morning digest duty (AS-11).</summary>
+    public static bool HasDigestDuty(AssistantStore store, IReadOnlyList<string> ids) =>
+        ids.Any(assistant => store.Duties(assistant) is JsonObject document && document["duties"] is JsonArray list
+            && list.OfType<JsonObject>().Any(duty => duty["id"] is JsonValue value && value.TryGetValue<string>(out var text) && text == DigestDuty.Id));
+
     public static IReadOnlyList<string> AssistantsWithDuties(AssistantStore store)
     {
         var folder = Path.Combine(store.Root, "assistants");
@@ -95,7 +101,10 @@ public static class BackgroundStart
                 log = null; // the controller's audit callback owns it for the life of the app
             }
             var controller = model.Dextra!;
-            var host = model.StartDuties(controller, store, mode, quit: quit, assistantIds: () => AssistantsWithDuties(store), tray: seams.Tray ?? model.Tray, seams: seams.Host);
+            // The launch brings back what is there: the digest is bound only when the Morning digest duty already is (so it is composed, not started as a
+            // mission); making it is turning Dextra on (AS-8), not a launch.
+            var host = model.StartDuties(controller, store, mode, quit: quit, assistantIds: () => AssistantsWithDuties(store), tray: seams.Tray ?? model.Tray, seams: seams.Host,
+                digest: model.DigestSetupOf(controller, roots.AuditDirectory), withDigest: HasDigestDuty(store, ids));
             var notes = host.Start();
             problem = notes.Count == 0 ? null : string.Join(" ", notes);
             return host;

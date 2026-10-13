@@ -31,6 +31,13 @@ public sealed class DecisionQueue(TimeProvider? time = null)
     public event Action? Changed;
 
     /// <summary>
+    /// Raised once for each card that is put in front of the owner (a card already waiting with the same binding raises none; an answer,
+    /// a hold and a release raise none), before <see cref="Changed"/>, on the caller's thread and outside the lock. The toast listens
+    /// (AS-9, 13.1); a listener must return at once.
+    /// </summary>
+    public event Action<DecisionItem>? Raised;
+
+    /// <summary>
     /// Says whether an answer to this card is kept until Resume instead of acting now (12.6b "Cards while paused": its
     /// task is paused). The mission runner sets it.
     /// </summary>
@@ -77,6 +84,7 @@ public sealed class DecisionQueue(TimeProvider? time = null)
             raised = item with { State = DecisionState.Open, HeldBy = null, Answer = null, Settled = null, Raised = clock.GetUtcNow() };
             entries.Add(new Entry(raised, onAnswer, check));
         }
+        Raised?.Invoke(raised);
         Changed?.Invoke();
         return raised;
     }
@@ -161,6 +169,39 @@ public sealed class DecisionQueue(TimeProvider? time = null)
             var entry = entries.FirstOrDefault(e => e.Item.Id == id && Waits(e.Item));
             if (entry is null) return false;
             entry.Item = entry.Item with { State = DecisionState.Withdrawn, Note = note, Settled = clock.GetUtcNow() };
+            Trim();
+        }
+        Changed?.Invoke();
+        return true;
+    }
+
+    /// <summary>Puts a line of status on a waiting card (a purchase waiting for Windows Hello); null clears it. False when it no longer waits.</summary>
+    public bool Annotate(Guid id, string? note)
+    {
+        lock (gate)
+        {
+            var entry = entries.FirstOrDefault(e => e.Item.Id == id && Waits(e.Item));
+            if (entry is null) return false;
+            if (entry.Item.Note == note) return true;
+            entry.Item = entry.Item with { Note = note };
+        }
+        Changed?.Invoke();
+        return true;
+    }
+
+    /// <summary>
+    /// Settles an open card whose action already ran outside the queue (AS-20: a purchase nth paid after Windows Hello): it
+    /// reads answered with the note, its own answer callback is not run again, and no paused task keeps it (a card a Pause
+    /// held meanwhile is closed too: what it did is done). False when it no longer waits.
+    /// </summary>
+    public bool Close(Guid id, DecisionAnswer answer, string note)
+    {
+        ArgumentNullException.ThrowIfNull(answer);
+        lock (gate)
+        {
+            var entry = entries.FirstOrDefault(e => e.Item.Id == id && Waits(e.Item));
+            if (entry is null) return false;
+            entry.Item = entry.Item with { State = DecisionState.Answered, HeldBy = null, Answer = answer, Settled = clock.GetUtcNow(), Kept = null, Note = note };
             Trim();
         }
         Changed?.Invoke();

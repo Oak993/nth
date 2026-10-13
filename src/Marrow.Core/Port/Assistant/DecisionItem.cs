@@ -28,6 +28,10 @@ public enum DecisionKind
     Cap,
     /// <summary>A duty paused after three failures in a row (13.2): try it again, or keep it paused. AS-15.</summary>
     Duty,
+    /// <summary>
+    /// A purchase (12.7): Pay or Don't buy when nth may fill the card, else the hand-over's "I'll pay" or Don't buy. AS-20.
+    /// </summary>
+    Purchase,
 }
 
 /// <summary>How a card is answered (4.2's table).</summary>
@@ -42,6 +46,12 @@ public enum DecisionWeight
 }
 
 public enum DecisionState { Open, Held, Answered, Withdrawn }
+
+/// <summary>
+/// How much a card needs the owner (13.1): NeedsYou is a decision only he can make, and it is the only kind that makes a toast; Offered is
+/// a card he may raise himself (12.4: a chat that read untrusted content cannot ask for it), which waits in the queue and makes no sound.
+/// </summary>
+public enum DecisionPriority { NeedsYou, Offered }
 
 /// <summary>What holds a card (4.2): Stop holds every card of its scope; Pause holds only irreversible ones.</summary>
 public enum DecisionHold { Stop, Pause }
@@ -122,6 +132,9 @@ public sealed record DecisionItem(Guid Id, DecisionKind Kind, DecisionWeight Wei
 
     public DecisionState State { get; init; } = DecisionState.Open;
 
+    /// <summary>Whether the card needs the owner now (AS-9): only a card that does makes a toast.</summary>
+    public DecisionPriority Priority { get; init; } = DecisionPriority.NeedsYou;
+
     public DecisionHold? HeldBy { get; init; }
 
     public DecisionAnswer? Answer { get; init; }
@@ -167,6 +180,9 @@ public static class DecisionRules
         // A reserve's card is its four options and nothing else (11.5): a free-text answer would be an option nobody checked.
         // A cap's card and a paused duty's are the same (13.2): their options and nothing to type.
         if (item.Kind is DecisionKind.Reserve or DecisionKind.Cap or DecisionKind.Duty) return new([DecisionAnswerKind.Pick]);
+        // A purchase nth pays is Pay or Don't buy; one handed to the owner is its two options and nothing to type (12.7).
+        if (item.Kind == DecisionKind.Purchase)
+            return item.Weight == DecisionWeight.Irreversible ? new([DecisionAnswerKind.DoIt, DecisionAnswerKind.Dont]) : new([DecisionAnswerKind.Pick]);
         if (item.Kind == DecisionKind.Merge)
             return new([DecisionAnswerKind.Merge, DecisionAnswerKind.RebaseFirst, DecisionAnswerKind.Discard]);
         if (item.Kind == DecisionKind.Question || item.Weight == DecisionWeight.Question)

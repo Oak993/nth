@@ -102,6 +102,8 @@ public sealed class DelegateApprovalTests
         Assert.Equal("Pitch deck v3", card.Agent);
         Assert.Contains(card.Inputs, i => i.Value == command);
         Assert.NotEmpty(card.Rule);
+        Assert.True(DecisionNotices.NeedsYou(card));                                        // 4.3: "those go to the queue with a toast" (AS-9 makes it)
+        Assert.False(DecisionNotices.AnswersInNotice(card));                                // sending, deleting, installing and the unknown are reviewed in the app first
         Assert.Contains("left this to you", Assert.Single(rig.Agents.Notes).Text, StringComparison.Ordinal);
         Assert.Equal(0, rig.Book.Count);
         Assert.Empty(rig.Told);

@@ -197,10 +197,13 @@ public sealed record AssistantToolDefinition(string Name, string Title, string D
         Name + "(" + string.Join(", ", Parameters.Select(p => p.Required ? p.Name : p.Name + "?")) + "): " + Description;
 }
 
-/// <summary>The 24 tools of 15.5.</summary>
+/// <summary>The 24 tools of 15.5, and prepare_purchase (AS-20, 12.7).</summary>
 public static class AssistantToolCatalog
 {
     private const int Brief = 20_000;
+
+    // The one opt-in to a notification (13.1 "Duty opt-in"): only for something the owner asked to be told about, such as a price drop.
+    private const string NotifyWords = "Tell the owner with a notification each time a run finds something, for example a price drop he asked about. Leave it out for a quiet duty.";
 
     private static AssistantToolParameter Text(string name, string description, int max = Brief) =>
         new(name, AssistantParameterType.String, description) { Required = true, MaxLength = max, FreeText = true };
@@ -270,15 +273,18 @@ public static class AssistantToolCatalog
             Text("title", "A short title.", 200),
             Text("instructions", "What the duty does each time it runs."),
             Text("schedule", "When it runs, for example \"weekdays 08:00\".", 200),
-            new AssistantToolParameter("silent", AssistantParameterType.Boolean, "Leave it out of the morning digest.")),
+            new AssistantToolParameter("silent", AssistantParameterType.Boolean, "Leave it out of the morning digest."),
+            new AssistantToolParameter("notify", AssistantParameterType.Boolean, NotifyWords)),
         Tool("watch_folder", "Watch a folder", "Creates a folder trigger: what to do when files change there. Always a card for the owner.",
             Id("path", "The folder's full path.", 1_000),
             Text("instructions", "What to do when it changes."),
-            Id("pattern", "Only files that match, for example \"*.pdf\".").Optional()),
+            Id("pattern", "Only files that match, for example \"*.pdf\".").Optional(),
+            new AssistantToolParameter("notify", AssistantParameterType.Boolean, NotifyWords)),
         Tool("watch_page", "Watch a page", "Creates a web page watch: what to do when the page changes. Always a card for the owner.",
             Id("url", "The page's address.", 2_000),
             Text("instructions", "What to do when it changes."),
-            Text("every", "How often to look, for example \"1h\".", 100).Optional()) with { OpenWorld = true },
+            Text("every", "How often to look, for example \"1h\".", 100).Optional(),
+            new AssistantToolParameter("notify", AssistantParameterType.Boolean, NotifyWords)) with { OpenWorld = true },
         Tool("remember", "Remember", "Writes a memory note with its source. Secrets are never stored, and nothing is kept about third parties.",
             Text("note", "The note.", 4_000),
             Text("about", "What it is about, in a few words.", 200).Optional(),
@@ -320,6 +326,23 @@ public static class AssistantToolCatalog
             Text("content", "The result.", 100_000),
             Choice("format", "Its form.", "text", "markdown", "file", "link").Optional(),
             Choice("device", "Where he will read it.", "pc", "phone").Optional()),
+        // AS-20 (12.7; ED-NEW-dextra-as20-1): the one way an agent asks for a payment. It only puts a card in front of the
+        // owner; nth itself pays, after his Pay and Windows Hello, and only on the shop's own origin. The card is never shown
+        // to a model: it is {card}.
+        Tool("prepare_purchase", "Prepare a purchase", "Puts a filled cart in front of the owner on a purchase card: the shop, the items, shipping, tax, the total and where it ships. "
+                + "You never see the card: wherever it goes it is " + PurchaseWords.Placeholder + ", and nth fills the real number itself after the owner pays with Windows Hello, or hands the payment to him. "
+                + "Subscriptions, transfers and money to people are never paid.",
+            Text("shop", "The shop's name, as its site shows it.", PurchaseRequest.MaxName),
+            Id("checkout_url", "The checkout page's full https address, on the shop's own site.", 2_000),
+            new AssistantToolParameter("items", AssistantParameterType.StringList, "Each item as \"name: price\", for example \"Milk jug, 350 ml: 14.50\".")
+                { Required = true, MaxItems = PurchaseRequest.MaxItems, MaxLength = PurchaseRequest.MaxName + 20 },
+            new AssistantToolParameter("shipping", AssistantParameterType.Number, "Shipping, in the currency.") { Minimum = 0, Maximum = (double)PurchaseRequest.Most },
+            new AssistantToolParameter("tax", AssistantParameterType.Number, "Tax, in the currency.") { Minimum = 0, Maximum = (double)PurchaseRequest.Most },
+            new AssistantToolParameter("total", AssistantParameterType.Number, "The total the checkout shows, with shipping and tax.") { Required = true, Minimum = 0, Maximum = (double)PurchaseRequest.Most },
+            Id("currency", "The currency's three-letter code, for example USD.", 3).Optional(),
+            Text("ship_to", "Where it ships, as the checkout shows it (for example \"Home (your saved address)\").", PurchaseRequest.MaxName),
+            Choice("kind", "What it is: a one-time purchase, a subscription, a transfer, or money to a person.", "purchase", "subscription", "transfer", "to_person"))
+            with { ForAgents = true, RunsBeforeAutoAnswer = true },
     ]);
 
     private static readonly Dictionary<string, AssistantToolDefinition> byName = All.ToDictionary(t => t.Name, StringComparer.Ordinal);

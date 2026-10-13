@@ -16,7 +16,19 @@ public sealed record DutyFire(Duty Duty, DutyCause Cause, bool Dry, string? Deta
 /// <summary>What starting a run came to: its mission, or why it did not start.</summary>
 public sealed record DutyLaunch(Guid? MissionId, string? Refused = null)
 {
+    /// <summary>
+    /// Set when the launcher ran the whole run inside its launch (nth's own Morning digest: no mission, no agent): the run is recorded and ended at
+    /// once with this outcome, the way <see cref="AssistantScheduler.MissionEnded"/> ends a mission's, and the duty is not left running (AS-11).
+    /// </summary>
+    public DutyRunOutcome? Finished { get; init; }
+
+    /// <summary>What the run reported, read for the nothing-changed line when <see cref="Finished"/> is set.</summary>
+    public string? Report { get; init; }
+
     public static DutyLaunch Started(Guid mission) => new(mission);
+
+    /// <summary>A run that began and ended inside its launch; <paramref name="id"/> names it in the duty's history.</summary>
+    public static DutyLaunch Completed(Guid id, DutyRunOutcome outcome, string? report = null) => new(id) { Finished = outcome, Report = report };
 
     public static DutyLaunch Refusal(string why) => new(null, why);
 }

@@ -120,6 +120,7 @@ public sealed class DelegateQuestionTests
         Assert.Equal("r1", card.RequestId);
         Assert.Equal(DelegateWords.RuleLine(reason), card.Rule);
         Assert.Equal(DelegateWords.Reason(reason), card.Why);
+        Assert.True(DecisionNotices.NeedsYou(card));                                        // 4.3: "those go to the queue with a toast" (AS-9 makes it)
         Assert.Equal(["Yes", "No"], card.Options);
         Assert.Equal((chat.Id, "Dextra left this to you: " + DelegateWords.Reason(reason)), Assert.Single(rig.Agents.Notes));
         Assert.Equal("left to the owner: " + reason, Assert.Single(rig.Delegated()).Result);

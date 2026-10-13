@@ -109,7 +109,14 @@ public static partial class InstructionScanner
     ];
 
     /// <summary>The first instructions found in the text, or null. Never throws.</summary>
-    public static InstructionFinding? Find(string? text)
+    public static InstructionFinding? Find(string? text) => Find(text, null);
+
+    /// <summary>
+    /// The first instructions found in the text by a pattern not named in <paramref name="ignore"/>, or null. Teach mode reads the names of
+    /// buttons and the words of a draft, where "Send" and "Run it" are ordinary labels; it ignores the patterns that match an action's
+    /// name and keeps the ones that match a claim, a role change or an attempt to override the rules (AS-19, ED-NEW-dextra-as19-4).
+    /// </summary>
+    public static InstructionFinding? Find(string? text, IReadOnlySet<string>? ignore)
     {
         if (string.IsNullOrWhiteSpace(text)) return null;
         var scan = text.Length <= 2 * ScanChars ? text : text[..ScanChars] + "\n" + text[^ScanChars..];
@@ -120,6 +127,7 @@ public static partial class InstructionScanner
         {
             try
             {
+                if (ignore is not null && ignore.Contains(name)) continue;
                 var match = pattern().Match(normal);
                 if (match.Success) return new InstructionFinding(Quote(match.Value), name);
             }

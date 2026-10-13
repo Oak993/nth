@@ -5,7 +5,7 @@ using Marrow.Core.Support;
 namespace Marrow.Core.Tests.Port.Assistant;
 
 // Dextra AS-4 (DESIGN.md rev 5, 12.4, 15.5, 18; ED-NEW-dextra-as4-1, -2): the nth-dextra tools as one catalogue: exactly
-// the 24 of 15.5 under the locked names, each placed by AS-1's classifier with the guard 12.4 gives it, strict schemas,
+// the 24 of 15.5 (and AS-20's prepare_purchase, ED-NEW-dextra-as20-1) under the locked names, each placed by AS-1's classifier with the guard 12.4 gives it, strict schemas,
 // and arguments refused before any rule or action is reached.
 public sealed class AssistantToolCatalogTests
 {
@@ -15,6 +15,8 @@ public sealed class AssistantToolCatalogTests
         "merge_results", "request_helpers", "ask_owner", "schedule_duty", "watch_folder", "watch_page", "remember", "recall",
         "forget", "usage_status", "plan_budget", "delegate_to", "report", "create_assistant", "propose_capability", "suggest",
         "deliver",
+        // AS-20 (12.7; ED-NEW-dextra-as20-1): the purchase card's tool, after the 24 of 15.5.
+        "prepare_purchase",
     ];
 
     /// <summary>The smallest arguments a tool takes: each required one with a fitting value.</summary>
@@ -51,7 +53,7 @@ public sealed class AssistantToolCatalogTests
     public void The_catalogue_holds_exactly_the_tools_of_15_5_in_its_order()
     {
         Assert.Equal(Table15_5, AssistantToolCatalog.All.Select(t => t.Name));
-        Assert.Equal(24, AssistantToolCatalog.All.Select(t => t.Name).Distinct().Count());
+        Assert.Equal(25, AssistantToolCatalog.All.Select(t => t.Name).Distinct().Count()); // the 24 of 15.5 and AS-20's prepare_purchase
         Assert.All(AssistantToolCatalog.All, t => Assert.Same(t, AssistantToolCatalog.Find(t.Name)));
         Assert.Null(AssistantToolCatalog.Find("Recall"));
         Assert.Null(AssistantToolCatalog.Find("request_grant"));
@@ -160,7 +162,7 @@ public sealed class AssistantToolCatalogTests
     public void A_mission_agent_is_offered_only_the_agent_tools_and_a_home_thread_every_tool()
     {
         Assert.Equal(Table15_5, AssistantToolCatalog.For(AssistantChatRole.Home).Select(t => t.Name));
-        Assert.Equal(new[] { "request_helpers", "ask_owner", "remember", "recall", "usage_status", "report" },
+        Assert.Equal(new[] { "request_helpers", "ask_owner", "remember", "recall", "usage_status", "report", "prepare_purchase" },
             AssistantToolCatalog.For(AssistantChatRole.Mission).Select(t => t.Name));
     }
 
@@ -169,7 +171,7 @@ public sealed class AssistantToolCatalogTests
     [Trait("Decision", "ED-NEW-dextra-as4-4")]
     public void Only_reads_stops_and_words_to_the_owner_or_the_parent_run_before_auto_answering_is_on()
     {
-        Assert.Equal(new[] { "list_sessions", "read_session", "stop_agent", "ask_owner", "recall", "usage_status", "plan_budget", "report" },
+        Assert.Equal(new[] { "list_sessions", "read_session", "stop_agent", "ask_owner", "recall", "usage_status", "plan_budget", "report", "prepare_purchase" },
             AssistantToolCatalog.All.Where(t => t.RunsBeforeAutoAnswer).Select(t => t.Name));
         Assert.Equal(new[] { "list_sessions", "read_session", "recall", "usage_status", "plan_budget" },
             AssistantToolCatalog.All.Where(t => t.ReadOnly).Select(t => t.Name));

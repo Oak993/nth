@@ -77,7 +77,9 @@ public sealed partial class AppModel
 
     private void DisposeSafety()
     {
+        DisposeTeach();
         DisposeDuties();
+        UnbindDecisionToasts();
         dextraTray?.Dispose();
         dextraTray = null;
         Tray?.Dispose();
@@ -115,7 +117,8 @@ public sealed partial class AppModel
         ProviderKind provider = ProviderKind.Claude, string? model = null, IReadOnlyList<string>? protectedRoots = null,
         AutoAnswerSwitch? autoAnswer = null, Func<IReadOnlyList<string>>? personalDataRecipients = null, Func<IReadOnlyList<string>>? allowlist = null,
         GlobalStop? stopKey = null, AppTray? tray = null, IPcStreamHold? pcStreams = null,
-        IReadOnlyList<IStopScope>? stopScopes = null, INoteProposer? noteProposer = null, IDutyTools? duties = null, AssistantTeam? team = null, IAssistantHomes? homes = null)
+        IReadOnlyList<IStopScope>? stopScopes = null, INoteProposer? noteProposer = null, IDutyTools? duties = null, AssistantTeam? team = null, IAssistantHomes? homes = null,
+        PurchaseSetup? purchases = null)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(audit);
@@ -214,6 +217,8 @@ public sealed partial class AppModel
             PcStreams = pcStreams,
             StopScopes = stopScopes ?? [],
             Duties = duties ?? DutyToolsGate,
+            // AS-20 (12.7): purchases; the production start gives Windows Hello and the card in Credential Manager.
+            Purchases = purchases,
         });
         DextraStore = store;
         // The day's folding of the notes (8.2) runs at start when it has not run today; the digest (AS-11) calls it each morning from then on.
@@ -230,6 +235,8 @@ public sealed partial class AppModel
         _ = SweepKept(controller);
         // The Assistant's items in nth's one tray icon (7.4, 12.6): Stop works with the window closed.
         if (tray is not null) dextraTray = AssistantTray.Bind(tray, controller);
+        // The decision toasts (AS-9, 13.1): a card that needs the owner makes one, unless the home is in front.
+        BindDecisionToasts(controller, id => profiles().FirstOrDefault(profile => profile.Id == id)?.Name is { Length: > 0 } name ? name : AssistantNames.Assistant);
         BindDextra(controller);
         return controller;
     }
@@ -323,7 +330,9 @@ public sealed partial class AppModel
     public void UnbindDextra()
     {
         if (Dextra is null) return;
+        DisposeTeach();
         DisposeDuties();
+        UnbindDecisionToasts();
         dextraTray?.Dispose();
         dextraTray = null;
         Dextra = null;

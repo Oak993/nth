@@ -127,6 +127,9 @@ public sealed class AssistantControllerOptions
 
     /// <summary>The delegate responder (AS-22, 4.3): what it reads of the owner's settings and where it keeps its answers. Null: it is not part of this build and answers nothing.</summary>
     public DelegateSetup? Delegate { get; init; }
+
+    /// <summary>Purchases (AS-20, 12.7): the book, Windows Hello, the card and the fill path. Null: prepare_purchase says it is not part of this build.</summary>
+    public PurchaseSetup? Purchases { get; init; }
 }
 
 /// <summary>What Dextra's memory is made of: the store, the capture (null: none is bound, nothing is captured) and what the owner said.</summary>
@@ -254,13 +257,19 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
             Runner.ReviewerRouter = Router;
         }
         Responder = BuildDelegate();
+        // The purchase desk is one of Stop all's scopes (12.6): a payment not yet being placed stops with everything else.
+        StartPurchases();
+        // So is the delegate's model call (AS-22): a question with the model is let go and nothing is answered after a stop.
+        var scopes = new List<IStopScope>(o.StopScopes);
+        if (Responder is not null) scopes.Add(Responder);
+        if (Purchases is { } desk) scopes.Add(desk);
         Stopper = new StopAll(new StopAllOptions
         {
             Runner = Runner,
             Jobs = o.Jobs,
             Agents = o.Agents,
             Hold = Hold,
-            Scopes = Responder is null ? o.StopScopes : [.. o.StopScopes, Responder],
+            Scopes = scopes,
             Time = o.Time,
         });
         if (o.StopKey is { } key) Stopper.Bind(key);
@@ -319,6 +328,15 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
 
     /// <summary>The cost controls (AS-15): the owner's caps, checked before every turn of a mission, beside the reserve.</summary>
     public CostGuard? Costs { get; }
+
+    /// <summary>
+    /// The Suggestions lane (AS-11, 5.2): where the brain's <c>suggest</c> tool puts its line. The digest service binds itself here when it is made; until
+    /// then the tool says it is not part of this build yet.
+    /// </summary>
+    public ISuggestionIntake? Intake { get; set; }
+
+    /// <summary>The id of Dextra itself (the profile with no parent), or null when no profile is set up.</summary>
+    public string? MainAssistantId => o.Profiles().FirstOrDefault(p => p.ParentId is null)?.Id;
 
     /// <summary>
     /// The model that reads the feed and composes the digest (13.2): the cheapest capable one, never dearer than the brain's own.
@@ -734,15 +752,21 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
             case "schedule_duty" or "watch_folder" or "watch_page" when o.Duties is { } duties:
                 // 7.1: the owner's card was answered yes; the duty is made now. The words of how it went also reach the chat.
                 return duties.Create(call, text => Deliver(chat.Thread, $"{AssistantNames.Server} {call.Tool.Name}: {text}"));
+            case "suggest" when Intake is { } lane:
+                // 5.2: one line for the Suggestions lane, within the day's three places. The policy engine already refused a tainted chat (12.4).
+                return lane.Suggest(chat.AssistantId, Text("line") ?? "", Text("action"));
             case "remember" when o.Notes is not null:
                 return Tools.Remember(call, PolicyContext(chat).TaintContext);
             case "recall" when o.Notes is not null:
                 return Tools.Recall(call);
             case "forget" when o.Notes is not null:
                 return Tools.Forget(call);
+            case "prepare_purchase" when Purchases is { } desk:
+                // 12.7: a pay card or a hand-over card; the model never sees the card, only {card}.
+                return desk.Request(call);
             default:
                 // Wired by the units that own them: usage and plans (AS-13),
-                // Asturs (AS-16), suggestions (AS-11), sessions (AS-2's reader), deliver and merge_results (AS-8).
+                // Asturs (AS-16), sessions (AS-2's reader), deliver and merge_results (AS-8). Suggestions (AS-11) are wired when the digest service binds Intake.
                 // Memory (AS-12) is wired when the controller is given its Notes.
                 return AssistantToolResult.Failed($"Not run: {call.Tool.Name} is not part of this build of {AssistantNames.Assistant} yet.");
         }
@@ -776,6 +800,7 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
             Class = c.Class,
             GrantTarget = c.GrantTarget,
             RequestId = call.Id,
+            Priority = offered ? DecisionPriority.Offered : DecisionPriority.NeedsYou, // AS-9: a card the owner may raise himself makes no toast
         };
         return Queue.Raise(card, (item, answer) =>
         {
@@ -915,6 +940,7 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
         Responder?.Dispose();
         o.Delegate?.Owned?.Dispose();
         Stopper.Dispose();
+        Purchases?.Dispose();
         DisposeMemory();
         Costs?.Dispose();
         Reserve?.Dispose();

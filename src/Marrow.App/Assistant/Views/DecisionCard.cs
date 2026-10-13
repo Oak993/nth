@@ -38,6 +38,9 @@ public static class DecisionWords
         DecisionAnswerKind.ForThisMission => "For this mission",
         DecisionAnswerKind.Always => "Always…",
         DecisionAnswerKind.Deny => "Deny",
+        // A purchase card's Pay names its total ("Pay $46.80") and its no is "Don't buy" (12.7, the canvas's card).
+        DecisionAnswerKind.DoIt when item.Kind == DecisionKind.Purchase && item.Inputs.FirstOrDefault(i => i.Name == "Total") is { } total => "Pay " + total.Value,
+        DecisionAnswerKind.Dont when item.Kind == DecisionKind.Purchase => PurchaseWords.DontBuy,
         DecisionAnswerKind.DoIt => Verb(item),
         DecisionAnswerKind.Dont => "Don't " + Verb(item).ToLowerInvariant(),
         DecisionAnswerKind.Discuss => "Discuss",

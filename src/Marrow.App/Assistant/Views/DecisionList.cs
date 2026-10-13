@@ -25,12 +25,15 @@ public interface IDecisionSource
     event Action? Changed;
 }
 
-/// <summary>The decision queue as the tab's source.</summary>
-public sealed class QueueDecisions(DecisionQueue queue) : IDecisionSource
+/// <summary>
+/// The decision queue as the tab's source. <paramref name="answer"/> is the door answers go through when it is not the queue's
+/// own (the controller's AnswerCard: Pay on a purchase card goes to the purchase desk, AS-20).
+/// </summary>
+public sealed class QueueDecisions(DecisionQueue queue, Func<Guid, DecisionAnswer, string?>? answer = null) : IDecisionSource
 {
     public IReadOnlyList<DecisionItem> Waiting => queue.Waiting;
 
-    public string? Answer(Guid id, DecisionAnswer answer) => queue.Answer(id, answer);
+    public string? Answer(Guid id, DecisionAnswer given) => answer is null ? queue.Answer(id, given) : answer(id, given);
 
     public event Action? Changed
     {
@@ -126,6 +129,22 @@ public sealed class DecisionList : Decorator
             else empty.Focus(NavigationMethod.Tab);
         }
         CountChanged?.Invoke(cards.Count);
+    }
+
+    /// <summary>
+    /// Brings one card in front (a toast's Review, AS-9): the list is refreshed, and the card scrolls into view and takes focus once laid out. Focus
+    /// goes to the card itself, never to one of its buttons (4.2 "Keyboard"). False when no card waits with that id.
+    /// </summary>
+    public bool Reveal(Guid id)
+    {
+        Refresh();
+        if (!cards.TryGetValue(id, out var card)) return false;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            card.Target.BringIntoView();
+            card.Target.Focus(NavigationMethod.Tab);
+        }, Avalonia.Threading.DispatcherPriority.Loaded);
+        return true;
     }
 
     private DecisionCard? FocusedCard()
