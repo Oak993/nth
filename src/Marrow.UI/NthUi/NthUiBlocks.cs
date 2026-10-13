@@ -158,7 +158,7 @@ public sealed class NthUiStatView : NthUiNodeView
             delta = NthUiText.Block(shown, NthUiTokens.Caption, NthUiTokens.Tone(DeltaTone(shown)));
             panel.Children.Add(delta);
         }
-        AutomationProperties.SetName(panel, $"{label.Text}: {value.Text}{(unit is null ? "" : " " + unit.Text)}");
+        AutomationProperties.SetName(panel, NthUiStrings.StatName(label.Text ?? "", value.Text ?? "", unit is null ? null : unit.Text ?? ""));
     }
 
     public override Control Control => panel;
@@ -175,7 +175,7 @@ public sealed class NthUiStatView : NthUiNodeView
             delta.Text = Runtime.Display(Node, "delta");
             delta.Foreground = NthUiTokens.Tone(DeltaTone(delta.Text)).Brush(delta);
         }
-        AutomationProperties.SetName(panel, $"{label.Text}: {value.Text}{(unit is null ? "" : " " + unit.Text)}");
+        AutomationProperties.SetName(panel, NthUiStrings.StatName(label.Text ?? "", value.Text ?? "", unit is null ? null : unit.Text ?? ""));
     }
 }
 

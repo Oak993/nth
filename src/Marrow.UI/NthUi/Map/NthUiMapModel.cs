@@ -13,8 +13,7 @@ public sealed record NthUiMapStop(string Key, string Label, double Latitude, dou
     public Point Unit => NthUiMapProjection.ToUnit(Latitude, Longitude);
 
     /// <summary>"38.72°N, 9.14°W".</summary>
-    public string Coordinates(CultureInfo culture) =>
-        string.Format(culture, "{0:0.##}°{1}, {2:0.##}°{3}", Math.Abs(Latitude), Latitude >= 0 ? "N" : "S", Math.Abs(Longitude), Longitude >= 0 ? "E" : "W");
+    public string Coordinates(CultureInfo culture) => NthUiMapStrings.Coordinates(culture, Latitude, Longitude);
 }
 
 /// <summary>One route: a label and the labels of the stops it goes through, in order.</summary>
@@ -92,14 +91,14 @@ public sealed class NthUiMapModel
     /// <summary>The words that describe the map, as a screen reader gets them.</summary>
     public string Summary(CultureInfo culture)
     {
-        if (Stops.Count == 0) return Title.Length > 0 ? Title + ": no stops yet." : "A map with no stops yet.";
-        var stops = string.Join(", ", Stops.Select(s => s.Detail is { Length: > 0 } d ? $"{s.Label} ({d})" : s.Label));
-        var head = string.Format(culture, Stops.Count == 1 ? "{0}: 1 stop, {1}." : "{0}: {2} stops, {1}.", Title.Length > 0 ? Title : "Map", stops, Stops.Count);
+        if (Stops.Count == 0) return NthUiMapStrings.NoStops(culture, Title);
+        var stops = string.Join(", ", Stops.Select(s => s.Detail is { Length: > 0 } d ? NthUiMapStrings.StopWithDetail(s.Label, d) : s.Label));
+        var head = NthUiMapStrings.StopCount(culture, Title.Length > 0 ? Title : NthUiStrings.Map, Stops.Count, stops);
         if (Routes.Count == 0) return head;
         var routes = Routes.Select(r =>
         {
-            var through = string.Join(" to ", r.Via.Select(v => Find(Stops, v)?.Label ?? v.Trim()));
-            return r.Label.Length > 0 ? $"Route {r.Label}: {through}." : $"Route: {through}.";
+            var through = string.Join(NthUiMapStrings.RouteJoin, r.Via.Select(v => Find(Stops, v)?.Label ?? v.Trim()));
+            return NthUiMapStrings.RouteSentence(r.Label, through);
         });
         return head + " " + string.Join(" ", routes);
     }

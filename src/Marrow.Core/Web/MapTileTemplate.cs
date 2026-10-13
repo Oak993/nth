@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using Marrow.Core.Localisation;
 
 // PORT-ONLY: web surfaces W10 (DESIGN.md 7.2 "Street tiles only if the user adds a tile source in Settings; off by default because it sends
 // locations to a third party", 9 "Map street tiles source (none)"; ED-NEW-web-w10-5). No Swift counterpart. The address a reader adds as
@@ -16,7 +17,7 @@ public sealed record MapTileTemplate(string Text, string Host)
     public const int MaxLength = 512;
 
     /// <summary>The credit shown on the map for a source: its host, since the reader's own source has no credit text of its own.</summary>
-    public string Attribution => "Map tiles from " + Host;
+    public string Attribution => UiText.Format("nthui.map.attribution", Host);
 
     /// <summary>The tile's address (z/x/y).</summary>
     public string UrlFor(int zoom, int x, int y) => Text

@@ -1,23 +1,24 @@
 // PORT-ONLY: web surfaces W16c (DESIGN.md 7.2; 10; ED-NEW-web-w16c-1). No Swift counterpart. What the diagram and line-art views share:
 // the words they show, the numbers that pace a streaming diagram, and a small cache of drawn diagrams so a saved answer that is
 // opened again (or a theme that was drawn before) appears at once without asking the renderer again.
+using Marrow.Core.Localisation;
 using Marrow.Core.Web;
 
 namespace Marrow.UI.NthUi.Diagram;
 
-/// <summary>Words of the diagram, line-art and map views (W22 moves them into the resource files).</summary>
+/// <summary>Words of the diagram and line-art views (keys of nthui-en.json, read when they are shown).</summary>
 public static class NthUiDiagramStrings
 {
-    public const string Drawing = "Drawing the diagram";
-    public const string DiagramFailed = "This diagram could not be drawn";
-    public const string LineArtFailed = "This picture could not be drawn";
-    public const string ShowSource = "Show source";
-    public const string ShowDiagram = "Show diagram";
-    public const string CopySource = "Copy source";
-    public const string CopySvg = "Copy as SVG";
+    public static string Drawing => UiText.Get("nthui.diagram.drawing");
+    public static string DiagramFailed => UiText.Get("nthui.diagram.failed");
+    public static string LineArtFailed => UiText.Get("nthui.diagram.line_art_failed");
+    public static string ShowSource => UiText.Get("nthui.diagram.show_source");
+    public static string ShowDiagram => UiText.Get("nthui.diagram.show_diagram");
+    public static string CopySource => UiText.Get("nthui.diagram.copy_source");
+    public static string CopySvg => UiText.Get("nthui.diagram.copy_svg");
 
     public static string FailedAt(string what, int? line) =>
-        line is { } n ? string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{what} (line {n})") : what;
+        line is { } n ? UiText.FormatWith(System.Globalization.CultureInfo.InvariantCulture, "nthui.diagram.failed_at", what, n) : what;
 }
 
 /// <summary>The renderer the diagram views use, and their pacing.</summary>

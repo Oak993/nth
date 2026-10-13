@@ -11,6 +11,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Marrow.App.Runtime;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.NthUi;
 using Marrow.Core.Port;
@@ -91,13 +92,13 @@ public sealed class LiveAnswerRow : Decorator
         if (live.Superseded)
         {
             Clear();
-            Child = Note("arrow.down", (live.Title is { Length: > 0 } title ? title : "A live answer") + " was replaced by a newer version below.");
+            Child = Note("arrow.down", UiText.Format("live.answer.replaced", live.Title is { Length: > 0 } title ? title : UiText.Get("live.answer.fallback_title")));
             return;
         }
         if (live.Problem is not null || (call.ToolCallStatus is ToolCall.Status.Failed or ToolCall.Status.Declined && live.Text.Length == 0))
         {
             Clear();
-            Child = Note("exclamationmark.triangle", "This live answer could not be shown." + (live.Problem is { Length: > 0 } why ? " " + why : ""), warning: true);
+            Child = Note("exclamationmark.triangle", live.Problem is { Length: > 0 } why ? UiText.Format("live.answer.could_not_show_why", why) : UiText.Get("live.answer.could_not_show"), warning: true);
             return;
         }
         if (live.IsHtml) ShowHtml(live);
@@ -218,7 +219,7 @@ public sealed class LiveAnswerRow : Decorator
                 break;
             case NthUiEffectKind.Call:
                 // The model makes the call itself, so the reader's normal tool approvals and guards apply (MCP Apps call directly, W19).
-                LiveAnswerEffects.Send.Current(runtime, $"Call the tool {effect.Server}.{effect.Tool}" + (effect.Json is { Length: > 0 } json && json != "{}" ? $" with {json}" : "") + ".");
+                LiveAnswerEffects.Send.Current(runtime, effect.Json is { Length: > 0 } json && json != "{}" ? UiText.Format("live.answer.call_tool_with", effect.Server, effect.Tool, json) : UiText.Format("live.answer.call_tool", effect.Server, effect.Tool));
                 e.Handled = true;
                 break;
             case NthUiEffectKind.Export:
@@ -236,10 +237,10 @@ public sealed class LiveAnswerRow : Decorator
         if (!csv && png is null) return;
         var file = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = csv ? "Save table" : "Save image",
+            Title = csv ? UiText.Get("live.answer.save_table") : UiText.Get("live.answer.save_image"),
             SuggestedFileName = csv ? "table.csv" : "view.png",
             DefaultExtension = csv ? "csv" : "png",
-            FileTypeChoices = [csv ? new FilePickerFileType("CSV") { Patterns = ["*.csv"] } : new FilePickerFileType("PNG image") { Patterns = ["*.png"] }],
+            FileTypeChoices = [csv ? new FilePickerFileType("CSV") { Patterns = ["*.csv"] } : new FilePickerFileType(UiText.Get("live.answer.png_image")) { Patterns = ["*.png"] }],
         });
         if (file is null) return;
         await using var stream = await file.OpenWriteAsync();
@@ -291,12 +292,12 @@ public sealed class LiveAnswerRow : Decorator
         var column = new StackPanel { Orientation = Orientation.Vertical, Spacing = 6 };
         var heading = new TimelineBaselineRow { Spacing = 8 };
         heading.Children.Add(SwiftImage.SystemName("macwindow").Font(ChatFont.Chat(SwiftFont.TextStyle.Callout)).ForegroundStyle(Chrome.SecondaryText));
-        heading.Children.Add(TimelineRows.ChatText(live.Title is { Length: > 0 } title ? title : "Interactive widget", weight: SwiftFont.Weight.Medium, singleLine: true));
+        heading.Children.Add(TimelineRows.ChatText(live.Title is { Length: > 0 } title ? title : UiText.Get("live.widget.default_title"), weight: SwiftFont.Weight.Medium, singleLine: true));
         column.Children.Add(heading);
-        column.Children.Add(TimelineRows.ChatText(live.Complete ? "This widget runs in a sandbox. Open it in Tabula to use it." : "Writing the widget…", SwiftFont.TextStyle.Caption, color: Chrome.SecondaryText));
+        column.Children.Add(TimelineRows.ChatText(live.Complete ? UiText.Get("live.widget.sandboxed") : UiText.Get("live.widget.writing"), SwiftFont.TextStyle.Caption, color: Chrome.SecondaryText));
         if (live.Complete)
         {
-            var open = TimelineRows.GlassCommand("Open in Tabula", () => OpenInTabula(live), prominent: false, small: true);
+            var open = TimelineRows.GlassCommand(UiText.Get("live.widget.open_in_tabula"), () => OpenInTabula(live), prominent: false, small: true);
             open.HorizontalAlignment = HorizontalAlignment.Left;
             open.Margin = new Thickness(0, 4, 0, 0);
             column.Children.Add(open);
@@ -316,7 +317,7 @@ public sealed class LiveAnswerRow : Decorator
         try
         {
             if (store.Find(thread, id) is null)
-                store.Create(thread, new ArtifactDraft { Kind = ArtifactKind.Html, Title = live.Title is { Length: > 0 } title ? title : "Widget", Id = id, Content = live.Text }, ArtifactAuthor.You, null);
+                store.Create(thread, new ArtifactDraft { Kind = ArtifactKind.Html, Title = live.Title is { Length: > 0 } title ? title : UiText.Get("live.widget.artifact_title"), Id = id, Content = live.Text }, ArtifactAuthor.You, null);
             else if (store.Read(thread, id).Text != live.Text)
                 store.Update(thread, id, new ArtifactRevision { Content = live.Text }, ArtifactAuthor.You, null);
         }

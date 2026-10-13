@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Marrow.Core.Localisation;
 using Marrow.Core.Port;
 
 namespace Marrow.Core.Models;
@@ -402,24 +403,27 @@ public static class AskUserSchema
     };
 }
 
-/// <summary>The words an ask_user card says to the person (problems, the answer in one line) and to the model (what the call returns).</summary>
+/// <summary>
+/// The words an ask_user card says to the person (problems, the answer in one line; keys of ask-en.json) and to the model (what the call returns,
+/// which stays in code).
+/// </summary>
 public static class AskUserWords
 {
     /// <summary>The state a waiting turn shows (DESIGN.md 7.3).</summary>
-    public const string Waiting = "Waiting for your answer";
+    public static string Waiting => UiText.Get("ask.state.waiting");
 
-    public const string PickOne = "Pick one.";
-    public const string PickAtLeastOne = "Pick at least one.";
-    public const string WriteAnswer = "Write an answer.";
-    public const string NotAnOption = "Pick one of the choices.";
-    public const string NotANumber = "Enter a number.";
-    public const string NotWhole = "Enter a whole number.";
+    public static string PickOne => UiText.Get("ask.problem.pick_one");
+    public static string PickAtLeastOne => UiText.Get("ask.problem.pick_at_least_one");
+    public static string WriteAnswer => UiText.Get("ask.problem.write_answer");
+    public static string NotAnOption => UiText.Get("ask.problem.not_an_option");
+    public static string NotANumber => UiText.Get("ask.problem.not_a_number");
+    public static string NotWhole => UiText.Get("ask.problem.not_whole");
 
-    public static string TooLong(int limit) => "Keep it under " + limit.ToString(CultureInfo.InvariantCulture) + " characters.";
+    public static string TooLong(int limit) => UiText.FormatWith(CultureInfo.InvariantCulture, "ask.problem.too_long", limit);
 
-    public static string AtLeast(double min, CultureInfo culture) => "At least " + Shown(min, culture) + ".";
+    public static string AtLeast(double min, CultureInfo culture) => UiText.Format("ask.problem.at_least", Shown(min, culture));
 
-    public static string AtMost(double max, CultureInfo culture) => "At most " + Shown(max, culture) + ".";
+    public static string AtMost(double max, CultureInfo culture) => UiText.Format("ask.problem.at_most", Shown(max, culture));
 
     /// <summary>A number as the person reads it: their culture's separators, no needless decimals.</summary>
     public static string Shown(double number, CultureInfo? culture = null) =>
@@ -428,7 +432,7 @@ public static class AskUserWords
     /// <summary>The answer to a question as one line: the labels joined, the number with its unit, or "No answer".</summary>
     public static string Line(AskQuestion question, ValueList<string>? values, CultureInfo? culture = null)
     {
-        if (values is null || values.Count == 0) return "No answer";
+        if (values is null || values.Count == 0) return UiText.Get("ask.answer.none");
         if (question.Kind == AskKind.Number && AskUserSchema.TryNumber(values[0], CultureInfo.InvariantCulture, out var number))
         {
             var shown = Shown(number, culture);
@@ -463,25 +467,23 @@ public static class AskUserWords
 
     /// <summary>
     /// The message that starts a new turn when the person answers a question whose call is gone (the app was restarted, or the provider ended
-    /// the call): self-contained, so the model needs nothing from the lost call.
+    /// the call): self-contained, so the model needs nothing from the lost call. The person sees it as their own message, so its frame is in ask-en.json.
     /// </summary>
     public static string ResumeMessage(AskCard card)
     {
-        var text = new StringBuilder();
         if (card.Questions.Count == 1)
         {
             var question = card.Questions[0];
-            text.Append("My answer to your question \"").Append(question.Prompt).Append("\": ");
-            text.Append(card.Answers.TryGetValue(question.Id, out var values) && values.Count != 0 ? Plain(question, values) : "(none)");
-            return text.Append("\n\nPlease carry on from there.").ToString();
+            return UiText.Format("ask.resume.single", question.Prompt,
+                card.Answers.TryGetValue(question.Id, out var values) && values.Count != 0 ? Plain(question, values) : UiText.Get("ask.resume.none"));
         }
-        text.Append("My answers to your questions:\n");
+        var lines = new StringBuilder();
         foreach (var question in card.Questions)
         {
-            text.Append("- ").Append(question.Prompt).Append(' ');
-            text.Append(card.Answers.TryGetValue(question.Id, out var values) && values.Count != 0 ? Plain(question, values) : "(none)").Append('\n');
+            lines.Append(UiText.Format("ask.resume.many_line", question.Prompt,
+                card.Answers.TryGetValue(question.Id, out var values) && values.Count != 0 ? Plain(question, values) : UiText.Get("ask.resume.none")));
         }
-        return text.Append("\nPlease carry on from there.").ToString();
+        return UiText.Format("ask.resume.many", lines.ToString());
     }
 
     /// <summary>A card as text for a handoff or a transcript.</summary>

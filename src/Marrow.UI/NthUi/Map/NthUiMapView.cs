@@ -11,20 +11,44 @@ using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
+using Marrow.Core.Localisation;
 using Marrow.Core.NthUi;
 using Marrow.UI.NthUi.Diagram;
 
 namespace Marrow.UI.NthUi.Map;
 
-/// <summary>Words of the map view (W22 moves them into the resource files).</summary>
+/// <summary>Words of the map view (keys of nthui-en.json, read when they are shown).</summary>
 public static class NthUiMapStrings
 {
-    public const string ShowAsList = "Show as list";
-    public const string ShowAsMap = "Show as map";
-    public const string ZoomIn = "Zoom in";
-    public const string ZoomOut = "Zoom out";
-    public const string ShowAll = "Show all stops";
-    public const string ZoomInTip = "Zoom in (Ctrl and scroll also zooms)";
+    public static string ShowAsList => UiText.Get("nthui.map.show_as_list");
+    public static string ShowAsMap => UiText.Get("nthui.map.show_as_map");
+    public static string ZoomIn => UiText.Get("nthui.map.zoom_in");
+    public static string ZoomOut => UiText.Get("nthui.map.zoom_out");
+    public static string ShowAll => UiText.Get("nthui.map.show_all");
+    public static string ZoomInTip => UiText.Get("nthui.map.zoom_in_tip");
+
+    /// <summary>A stop's place as the person reads it: "38.72°N, 9.14°W" (a letter for each side of the equator and the meridian).</summary>
+    public static string Coordinates(CultureInfo culture, double latitude, double longitude) =>
+        UiText.FormatWith(culture, "nthui.map.coordinates", Math.Abs(latitude), latitude >= 0 ? UiText.Get("nthui.map.north") : UiText.Get("nthui.map.south"),
+            Math.Abs(longitude), longitude >= 0 ? UiText.Get("nthui.map.east") : UiText.Get("nthui.map.west"));
+
+    /// <summary>The summary of a map with no stops: "Trip: no stops yet." or, with no title, "A map with no stops yet.".</summary>
+    public static string NoStops(CultureInfo culture, string title) =>
+        title.Length > 0 ? UiText.FormatWith(culture, "nthui.map.no_stops_titled", title) : UiText.Get("nthui.map.no_stops");
+
+    /// <summary>A stop in the summary: its label, and its detail in brackets when it has one.</summary>
+    public static string StopWithDetail(string label, string detail) => UiText.Format("nthui.map.stop_detail", label, detail);
+
+    /// <summary>The summary's first sentence: the title (or "Map"), the number of stops and the stops themselves.</summary>
+    public static string StopCount(CultureInfo culture, string title, int count, string stops) =>
+        UiText.PluralWith(culture, "nthui.map.summary", count, title, stops);
+
+    /// <summary>What joins the stops of a route in the summary ("Lisbon to Madrid to Paris").</summary>
+    public static string RouteJoin => UiText.Get("nthui.map.route_join");
+
+    /// <summary>A route in the summary: "Route Overnight: Lisbon to Paris." (or "Route: Lisbon to Paris." when it has no label).</summary>
+    public static string RouteSentence(string label, string through) =>
+        label.Length > 0 ? UiText.Format("nthui.map.route_named", label, through) : UiText.Format("nthui.map.route", through);
 }
 
 /// <summary>`map`: stops and routes on the offline world.</summary>

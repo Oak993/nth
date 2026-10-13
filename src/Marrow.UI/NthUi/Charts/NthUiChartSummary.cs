@@ -26,12 +26,10 @@ public static class NthUiChartSummary
     /// <summary>The chart in a few sentences.</summary>
     public static string Describe(NthUiChartModel model, CultureInfo culture)
     {
-        var text = new StringBuilder(NthUiStrings.KindName(model.Kind));
-        if (model.Data.Title is { Length: > 0 } title) text.Append(", ").Append(title);
-        text.Append('.');
+        var text = new StringBuilder(NthUiStrings.ChartHeading(NthUiStrings.KindName(model.Kind), model.Data.Title));
         if (model.IsEmpty)
         {
-            text.Append(' ').Append(NthUiStrings.NoDataYet).Append('.');
+            text.Append(' ').Append(NthUiStrings.NoDataSentence);
             return text.ToString();
         }
         switch (model.Kind)
@@ -95,17 +93,16 @@ public static class NthUiChartSummary
             var points = Present(model, 0);
             if (points.Count <= NamedValues)
             {
-                text.Append(' ').Append(NthUiStrings.Points(points.Count, model.Kind == NthUiChartKind.Bar));
-                text.Append(": ").Append(string.Join(", ", points.Select(p => model.Label(p.Index) + " " + V(p.Value)))).Append('.');
+                text.Append(' ').Append(NthUiStrings.Listed(NthUiStrings.Points(points.Count, model.Kind == NthUiChartKind.Bar), string.Join(", ", points.Select(p => model.Label(p.Index) + " " + V(p.Value)))));
                 if (points.Count > 2) text.Append(' ').Append(Extremes(model, points, culture));
                 return;
             }
-            text.Append(' ').Append(NthUiStrings.Points(points.Count, model.Kind == NthUiChartKind.Bar)).Append(' ').Append(NthUiStrings.FromTo(model.Label(points[0].Index), model.Label(points[^1].Index))).Append('.');
+            text.Append(' ').Append(NthUiStrings.Spanning(NthUiStrings.Points(points.Count, model.Kind == NthUiChartKind.Bar), NthUiStrings.FromTo(model.Label(points[0].Index), model.Label(points[^1].Index))));
             text.Append(' ').Append(Extremes(model, points, culture));
             text.Append(' ').Append(NthUiStrings.Trend(V(points[0].Value), V(points[^1].Value), Math.Sign(points[^1].Value - points[0].Value)));
             return;
         }
-        text.Append(' ').Append(NthUiStrings.SeriesCount(model.Series.Count)).Append(": ").Append(string.Join(", ", Enumerable.Range(0, model.Series.Count).Select(s => SeriesName(model, s)))).Append('.');
+        text.Append(' ').Append(NthUiStrings.Listed(NthUiStrings.SeriesCount(model.Series.Count), string.Join(", ", Enumerable.Range(0, model.Series.Count).Select(s => SeriesName(model, s)))));
         for (var s = 0; s < model.Series.Count; s++)
         {
             var points = Present(model, s);
@@ -136,7 +133,7 @@ public static class NthUiChartSummary
         text.Append(' ').Append(NthUiStrings.ScatterCount(count)).Append(' ')
             .Append(NthUiStrings.ScatterRanges(NthUiValueText(xlo ?? 0, culture), NthUiValueText(xhi ?? 0, culture), NthUiNumbers.Format(ylo, culture, unit), NthUiNumbers.Format(yhi, culture, unit)));
         if (model.Series.Count > 1)
-            text.Append(' ').Append(NthUiStrings.SeriesCount(model.Series.Count)).Append(": ").Append(string.Join(", ", Enumerable.Range(0, model.Series.Count).Select(s => SeriesName(model, s)))).Append('.');
+            text.Append(' ').Append(NthUiStrings.Listed(NthUiStrings.SeriesCount(model.Series.Count), string.Join(", ", Enumerable.Range(0, model.Series.Count).Select(s => SeriesName(model, s)))));
     }
 
     private static void Pie(NthUiChartModel model, CultureInfo culture, StringBuilder text)
@@ -150,9 +147,9 @@ public static class NthUiChartSummary
             if (model.Value(0, i) is not double value || shares[i] <= 0) continue;
             parts.Add(NthUiStrings.Slice(model.Label(i), percent[i].ToString(culture), NthUiNumbers.Format(value, culture, unit)));
         }
-        text.Append(' ').Append(string.Join(", ", parts)).Append('.');
+        text.Append(' ').Append(NthUiStrings.Sentence(string.Join(", ", parts)));
         var total = Enumerable.Range(0, shares.Count).Sum(i => model.Value(0, i) is double v && v > 0 ? v : 0);
-        text.Append(' ').Append(NthUiStrings.Total(NthUiNumbers.Format(total, culture, unit))).Append('.');
+        text.Append(' ').Append(NthUiStrings.Sentence(NthUiStrings.Total(NthUiNumbers.Format(total, culture, unit))));
     }
 
     private static List<(int Index, double Value)> Present(NthUiChartModel model, int series)

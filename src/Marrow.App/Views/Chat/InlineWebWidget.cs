@@ -22,6 +22,7 @@ using Avalonia.VisualTree;
 using Marrow.App.Port.Web.McpApps;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Composer;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Web;
 using Marrow.UI.Chrome;
@@ -40,10 +41,10 @@ public sealed class InlineWebWidget : Decorator
     /// <summary>Below this width the trust strip and the switch's words step aside (the canvas's 520).</summary>
     public const double CompactWidth = 520;
 
-    public const string WidgetTrustText = "Widget · from this answer";
-    public const string TryAgainText = "Try again";
-    public const string LiveText = "Live";
-    public const string SnapshotText = "Snapshot";
+    public static string WidgetTrustText => UiText.Get("live.widget.trust");
+    public static string TryAgainText => UiText.Get("live.widget.try_again");
+    public static string LiveText => UiText.Get("live.widget.live");
+    public static string SnapshotText => UiText.Get("live.widget.snapshot");
 
     // The card's glass (canvas: rgba(255,255,255,.035) and a .5 rim of .1 on dark; the light look mirrors it in ink).
     internal static readonly SwiftColor CardFill = SwiftColor.Dynamic(new SwiftColor(0, 0, 0, 0.025), new SwiftColor(1, 1, 1, 0.035));
@@ -452,7 +453,7 @@ public sealed class InlineWebWidget : Decorator
         var ink = pressed ? PaneTokens.Text1 : PaneTokens.Text2;
         segment.Glyph.Foreground = ink.Brush(segment.Glyph);
         segment.Label.Foreground = ink.Brush(segment.Label);
-        AutomationProperties.SetItemStatus(segment.Button, pressed ? "Selected" : "");
+        AutomationProperties.SetItemStatus(segment.Button, pressed ? UiText.Get("live.widget.selected") : "");
     }
 
     private static Button TextButton(string text, Action invoke)
@@ -472,18 +473,18 @@ public sealed class InlineWebWidget : Decorator
 /// <summary>The words of an app's card, its pane and its window.</summary>
 public static class McpAppTrust
 {
-    public const string InlineLabel = "Inline";
-    public const string PaneLabel = "Pane";
-    public const string PopOutLabel = "Pop out";
-    public const string InlineName = "Inline";
-    public const string PaneName = "Expanded";
-    public const string PopOutName = "Pop out";
+    public static string InlineLabel => UiText.Get("live.app.inline_label");
+    public static string PaneLabel => UiText.Get("live.app.pane_label");
+    public static string PopOutLabel => UiText.Get("live.app.pop_out_label");
+    public static string InlineName => UiText.Get("live.app.inline_name");
+    public static string PaneName => UiText.Get("live.app.pane_name");
+    public static string PopOutName => UiText.Get("live.app.pop_out_name");
 
     /// <summary>The trust strip: "Sandboxed · from shipyard".</summary>
-    public static string Sandboxed(string server) => "Sandboxed · from " + server;
+    public static string Sandboxed(string server) => UiText.Format("live.app.sandboxed", server);
 
     /// <summary>The card's line when the app could not load.</summary>
-    public static string CouldNotOpen(string title, string reason) => title + " could not open. " + reason;
+    public static string CouldNotOpen(string title, string reason) => UiText.Format("live.app.could_not_open", title, reason);
 }
 
 /// <summary>

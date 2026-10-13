@@ -166,7 +166,7 @@ public sealed class NthUiStepper : NthUiRange
     protected override Type StyleKeyOverride => typeof(NthUiStepper);
 
     /// <summary>The minus and plus buttons' names.</summary>
-    public (string Fewer, string More) Names { get; set; } = ("Fewer", "More");
+    public (string Fewer, string More) Names { get; set; } = (NthUiStrings.FewerWord, NthUiStrings.MoreWord);
 
     /// <summary>The value as shown (with its unit).</summary>
     public string Shown => text?.Text ?? "";
