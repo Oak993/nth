@@ -108,6 +108,11 @@ public static class TeachDraftModel
             }));
         }
         if (invented > 0) notes.Add($"{invented.ToString(CultureInfo.InvariantCulture)} step{(invented == 1 ? "" : "s")} the model wrote had no recorded step behind {(invented == 1 ? "it" : "them")} and {(invented == 1 ? "was" : "were")} left out.");
+        if (made.Count == 0)
+        {
+            notes.Add("None of the model's steps matched a recorded step, so the steps come straight from the recording.");
+            return [.. skeleton.Steps];
+        }
         // A recorded step that asks the owner comes back if the model dropped or folded it away.
         foreach (var step in skeleton.Steps.Where(s => s.Guard is not null && !covered.Contains(s.Number)))
         {

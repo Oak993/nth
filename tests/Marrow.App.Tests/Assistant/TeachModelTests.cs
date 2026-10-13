@@ -16,7 +16,7 @@ public sealed class TeachModelTests : IDisposable
 
     public void Dispose() => rig.Dispose();
 
-    private TeachModel Model() => new(rig.Controller, TimeZoneInfo.Utc);
+    private TeachModel Model() => new(rig.Controller, TimeZoneInfo.Utc, new InlineTeachWork());
 
     [Fact]
     public async Task Drafting_a_recording_opens_its_draft_and_the_row_changes_from_draft_it_to_open_it()
@@ -60,6 +60,60 @@ public sealed class TeachModelTests : IDisposable
         var saved = rig.Recordings.Draft(id)!;
         Assert.Equal(("send-the-weekly-report", "Sends the report.", "Address it", true, 2), (saved.Name, saved.Description, saved.Steps[1].Text, saved.Steps[0].Flagged, saved.Steps.Count));
         Assert.Equal(saved, model.Draft);
+    }
+
+    // Lets the model's work run and waits for the page to be told it landed.
+    private static async Task Landed(TeachModel model, Action release)
+    {
+        var told = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        void Heard() => told.TrySetResult();
+        model.Changed += Heard;
+        try
+        {
+            release();
+            await told.Task.WaitAsync(TimeSpan.FromSeconds(20));
+        }
+        finally
+        {
+            model.Changed -= Heard;
+        }
+    }
+
+    [Fact]
+    public async Task File_work_waits_its_turn_and_lands_in_the_order_it_was_asked()
+    {
+        var id = await rig.RecordMail();
+        await rig.Controller.Draft(id);
+        var gate = new GatedTeachWork();
+        using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc, gate);
+        await gate.WaitFor(1);
+        await Landed(model, () => gate.ReleaseNext()); // the first read of the list
+        model.Select(id);
+        await gate.WaitFor(1);
+        await Landed(model, () => gate.ReleaseNext()); // the draft is opened
+        var original = model.Draft!;
+        model.Rename("first-name");
+        model.Describe("Second words.");
+        await gate.WaitFor(1);
+        Assert.Equal(original, model.Draft);
+        await Landed(model, () => gate.ReleaseNext());
+        Assert.Equal(("first-name", original.Description), (model.Draft!.Name, model.Draft.Description));
+        await gate.WaitFor(1);
+        await Landed(model, () => gate.ReleaseNext());
+        Assert.Equal(("first-name", "Second words."), (model.Draft!.Name, model.Draft.Description));
+    }
+
+    [Fact]
+    public async Task A_file_that_cannot_be_read_or_written_says_so_and_changes_nothing()
+    {
+        var id = await rig.RecordMail();
+        using var model = Model();
+        await model.DraftAsync(id);
+        var before = model.Draft;
+        rig.Store.Dispose();
+        model.Rename("another-name");
+        Assert.Equal(before, model.Draft);
+        Assert.StartsWith("nth could not read or write the recording (ObjectDisposedException)", model.DraftStatus, StringComparison.Ordinal);
     }
 
     [Fact]

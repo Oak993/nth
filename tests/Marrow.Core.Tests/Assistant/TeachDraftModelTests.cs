@@ -64,6 +64,14 @@ public sealed class TeachDraftModelTests
     }
 
     [Fact]
+    public void When_none_of_the_models_steps_match_the_recording_the_steps_are_the_recordings_own()
+    {
+        var draft = TeachDraftModel.Apply(Skeleton(), Events, Answer(Step("[77]", "Invented"), Step("[88]", "Also invented")));
+        Assert.Equal(Skeleton().Steps, draft.Steps);
+        Assert.Contains("None of the model's steps matched a recorded step, so the steps come straight from the recording.", draft.Notes);
+    }
+
+    [Fact]
     public void A_step_with_no_recorded_event_behind_it_is_left_out_and_said()
     {
         var draft = TeachDraftModel.Apply(Skeleton(), Events, Answer(

@@ -39,7 +39,7 @@ public sealed class TeachViewTests(HeadlessSession headless) : IDisposable
     {
         headless.OnUiThread(() =>
         {
-            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc);
+            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc, new InlineTeachWork());
             var view = new TeachView(model);
             using var stage = new ReserveViewStage(view);
             Assert.True(view.ShowsEmpty);
@@ -59,7 +59,7 @@ public sealed class TeachViewTests(HeadlessSession headless) : IDisposable
         rig.Indicator.CannotShow = true;
         headless.OnUiThread(() =>
         {
-            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc);
+            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc, new InlineTeachWork());
             var view = new TeachView(model);
             using var stage = new ReserveViewStage(view);
             Click(Named(view, "Start recording what you do"));
@@ -74,7 +74,7 @@ public sealed class TeachViewTests(HeadlessSession headless) : IDisposable
         var id = await rig.RecordMail();
         headless.OnUiThread(() =>
         {
-            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc);
+            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc, new InlineTeachWork());
             var view = new TeachView(model);
             using var stage = new ReserveViewStage(view);
             Assert.False(view.ShowsEmpty);
@@ -94,7 +94,7 @@ public sealed class TeachViewTests(HeadlessSession headless) : IDisposable
         var id = await Drafted();
         headless.OnUiThread(() =>
         {
-            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc);
+            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc, new InlineTeachWork());
             var view = new TeachView(model);
             using var stage = new ReserveViewStage(view);
             var title = model.Rows.Single().Title;
@@ -116,7 +116,7 @@ public sealed class TeachViewTests(HeadlessSession headless) : IDisposable
         await Drafted();
         headless.OnUiThread(() =>
         {
-            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc);
+            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc, new InlineTeachWork());
             model.Select(model.Rows.Single().Info.Id);
             var view = new TeachView(model);
             using var stage = new ReserveViewStage(view);
@@ -139,7 +139,7 @@ public sealed class TeachViewTests(HeadlessSession headless) : IDisposable
         await Drafted();
         headless.OnUiThread(() =>
         {
-            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc);
+            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc, new InlineTeachWork());
             model.Select(model.Rows.Single().Info.Id);
             var view = new TeachView(model);
             using var stage = new ReserveViewStage(view);
@@ -163,7 +163,7 @@ public sealed class TeachViewTests(HeadlessSession headless) : IDisposable
         var before = rig.Snapshot();
         headless.OnUiThread(() =>
         {
-            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc);
+            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc, new InlineTeachWork());
             model.Select(model.Rows.Single().Info.Id);
             var view = new TeachView(model);
             using var stage = new ReserveViewStage(view);
@@ -182,7 +182,7 @@ public sealed class TeachViewTests(HeadlessSession headless) : IDisposable
         await Drafted();
         headless.OnUiThread(() =>
         {
-            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc);
+            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc, new InlineTeachWork());
             model.Select(model.Rows.Single().Info.Id);
             var view = new TeachView(model);
             using var stage = new ReserveViewStage(view);
@@ -191,7 +191,7 @@ public sealed class TeachViewTests(HeadlessSession headless) : IDisposable
         await rig.Until(() => rig.Controller.Trial?.Pending?.Step.Number == 1);
         headless.OnUiThread(() =>
         {
-            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc);
+            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc, new InlineTeachWork());
             model.Select(model.Rows.Single().Info.Id);
             var view = new TeachView(model);
             using var stage = new ReserveViewStage(view);
@@ -203,7 +203,7 @@ public sealed class TeachViewTests(HeadlessSession headless) : IDisposable
         await rig.Until(() => rig.Controller.Trial?.Result is not null);
         headless.OnUiThread(() =>
         {
-            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc);
+            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc, new InlineTeachWork());
             model.Select(model.Rows.Single().Info.Id);
             var view = new TeachView(model);
             using var stage = new ReserveViewStage(view);
@@ -220,7 +220,7 @@ public sealed class TeachViewTests(HeadlessSession headless) : IDisposable
         var id = await rig.RecordMail();
         headless.OnUiThread(() =>
         {
-            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc);
+            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc, new InlineTeachWork());
             var view = new TeachView(model);
             using var stage = new ReserveViewStage(view);
             var title = model.Rows.Single().Title;
@@ -242,12 +242,52 @@ public sealed class TeachViewTests(HeadlessSession headless) : IDisposable
     }
 
     [Fact]
+    public async Task Asking_to_delete_puts_the_focus_on_Keep_it_and_taking_the_ask_back_returns_it_to_Delete()
+    {
+        await rig.RecordMail();
+        headless.OnUiThread(() =>
+        {
+            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc, new InlineTeachWork());
+            var view = new TeachView(model);
+            using var stage = new ReserveViewStage(view);
+            var title = model.Rows.Single().Title;
+            Click(Named(view, "Delete the recording of " + title));
+            stage.Layout();
+            Assert.True(Named(view, "Keep the recording of " + title).IsFocused);
+            Click(Named(view, "Keep the recording of " + title));
+            stage.Layout();
+            Assert.True(Named(view, "Delete the recording of " + title).IsFocused);
+            Click(Named(view, "Delete the recording of " + title));
+            stage.Layout();
+            stage.Press(Key.Escape);
+            Assert.True(Named(view, "Delete the recording of " + title).IsFocused);
+        });
+    }
+
+    [Fact]
+    public async Task Right_to_left_text_in_a_step_and_a_right_to_left_window_do_not_overflow()
+    {
+        await Drafted();
+        rig.Controller.Edit(rig.Controller.List(out _).Single().Id, d => d.Reword(2, "ای میل بھیجیں " + new string('ا', 200)));
+        headless.OnUiThread(() =>
+        {
+            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc, new InlineTeachWork());
+            model.Select(model.Rows.Single().Info.Id);
+            var view = new TeachView(model);
+            using var stage = new ReserveViewStage(view, 480, 700, Avalonia.Media.FlowDirection.RightToLeft);
+            var scroll = (ScrollViewer)view.Child!;
+            Assert.True(scroll.Extent.Width <= scroll.Viewport.Width + 0.5, $"{scroll.Extent.Width} > {scroll.Viewport.Width}");
+            Assert.Contains("ای میل بھیجیں", view.StepBoxes[1].Text, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
     public async Task Every_button_and_box_on_the_page_has_a_name_for_assistive_technology()
     {
         await Drafted();
         headless.OnUiThread(() =>
         {
-            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc);
+            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc, new InlineTeachWork());
             model.Select(model.Rows.Single().Info.Id);
             var view = new TeachView(model);
             using var stage = new ReserveViewStage(view);
@@ -265,7 +305,7 @@ public sealed class TeachViewTests(HeadlessSession headless) : IDisposable
         rig.Controller.Edit(rig.Controller.List(out _).Single().Id, d => d.Reword(2, new string('w', 600)) with { Name = "a-very-long-name" });
         headless.OnUiThread(() =>
         {
-            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc);
+            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc, new InlineTeachWork());
             model.Select(model.Rows.Single().Info.Id);
             var view = new TeachView(model);
             using var stage = new ReserveViewStage(view, 375, 700);
@@ -280,7 +320,7 @@ public sealed class TeachViewTests(HeadlessSession headless) : IDisposable
         await Drafted();
         headless.OnUiThread(() =>
         {
-            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc);
+            using var model = new TeachModel(rig.Controller, TimeZoneInfo.Utc, new InlineTeachWork());
             model.Select(model.Rows.Single().Info.Id);
             var view = new TeachView(model);
             using var stage = new ReserveViewStage(view);

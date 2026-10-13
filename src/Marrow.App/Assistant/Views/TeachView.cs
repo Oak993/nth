@@ -30,6 +30,9 @@ public sealed class TeachView : Decorator
     private readonly StackPanel draftPanel = new() { Orientation = Orientation.Vertical, Spacing = 12 };
     private readonly TextBlock noRecordings = new() { Text = TeachViewWords.NoRecordings, TextWrapping = TextWrapping.Wrap };
     private readonly List<TextBox> stepBoxes = [];
+    private readonly Dictionary<string, Button> deleteButtons = [];
+    private readonly Dictionary<string, Button> keepButtons = [];
+    private (string Id, bool Keep)? focusRequest;
     private bool refreshing;
 
     public TeachView(TeachModel model)
@@ -125,6 +128,8 @@ public sealed class TeachView : Decorator
             if (StartButton is { } start) start.Button.IsEnabled = model.CanStart;
 
             recordings.Children.Clear();
+            deleteButtons.Clear();
+            keepButtons.Clear();
             foreach (var row in model.Rows) recordings.Children.Add(Row(row));
             foreach (var id in model.Unreadable) recordings.Children.Add(Unreadable(id));
             noRecordings.IsVisible = model.Rows.Count == 0 && model.Unreadable.Count == 0;
@@ -137,6 +142,19 @@ public sealed class TeachView : Decorator
         {
             refreshing = false;
         }
+        RestoreFocus();
+    }
+
+    // The control that held the focus was redrawn: the focus is asked for again, on the button that belongs there.
+    private void RestoreFocus()
+    {
+        if (focusRequest is not { } request) return;
+        focusRequest = null;
+        Dispatcher.UIThread.Post(() =>
+        {
+            var table = request.Keep ? keepButtons : deleteButtons;
+            if (table.TryGetValue(request.Id, out var button)) button.Focus();
+        }, DispatcherPriority.Input);
     }
 
     private Control Row(TeachRow row)
@@ -149,13 +167,24 @@ public sealed class TeachView : Decorator
         if (row.CanOpen) buttons.Children.Add(PlanCard.Capsule(TeachViewWords.OpenTitle, () => model.Select(row.Info.Id), "Open the draft of " + what).Shown);
         if (row.CanDelete)
         {
-            var asked = model.DeleteAsked == row.Info.Id;
-            var delete = PlanCard.Capsule(asked ? TeachViewWords.DeleteAskTitle : TeachViewWords.DeleteTitle, () => model.Delete(row.Info.Id),
-                (asked ? "Delete for real the recording of " : "Delete the recording of ") + what);
+            var id = row.Info.Id;
+            var asked = model.DeleteAsked == id;
+            // Asking moves the focus to Keep it, the safe button; taking the ask back (Keep it, Escape) returns it to Delete, the button that opened it.
+            var delete = PlanCard.Capsule(asked ? TeachViewWords.DeleteAskTitle : TeachViewWords.DeleteTitle, () =>
+            {
+                focusRequest = asked ? null : (id, true);
+                model.Delete(id);
+            }, (asked ? "Delete for real the recording of " : "Delete the recording of ") + what);
+            deleteButtons[id] = delete.Button;
             buttons.Children.Add(delete.Shown);
             if (asked)
             {
-                var keep = PlanCard.Capsule(TeachViewWords.KeepAskTitle, model.CancelDelete, "Keep the recording of " + what);
+                var keep = PlanCard.Capsule(TeachViewWords.KeepAskTitle, () =>
+                {
+                    focusRequest = (id, false);
+                    model.CancelDelete();
+                }, "Keep the recording of " + what);
+                keepButtons[id] = keep.Button;
                 buttons.Children.Add(keep.Shown);
             }
         }
@@ -166,7 +195,8 @@ public sealed class TeachView : Decorator
         border.Background = Chrome.Overlay(0.04).Brush(border);
         border.AddHandler(InputElement.KeyDownEvent, (object? _, KeyEventArgs e) =>
         {
-            if (e.Key != Key.Escape || model.DeleteAsked is null) return;
+            if (e.Key != Key.Escape || model.DeleteAsked is not { } asked) return;
+            focusRequest = (asked, false);
             model.CancelDelete();
             e.Handled = true;
         }, Avalonia.Interactivity.RoutingStrategies.Tunnel);

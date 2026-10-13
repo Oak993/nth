@@ -1,92 +1,21 @@
 // PORT-ONLY: Dextra (DESIGN.md rev 5, 10, 12.6b; the home menu "Teach"; unit AS-19; ED-NEW-dextra-as19-10). No Swift twin.
 // What the Teach page shows and does, apart from how it draws: the button that starts a recording, the recordings that wait (with when each
 // deletes itself), and for the one the owner opens, its draft: the name, the steps with the ones that ask marked, the inputs, the reasons, the
-// obstacles and the questions, the dry run, the trial with him, and Save. Every long job (drafting asks a model, saving writes files) is
-// awaited, so the page stays alive and the outcome lands back on the thread that asked. The words are in TeachViewWords.
-using System.Globalization;
+// obstacles and the questions, the dry run, the trial with him, and Save. Every job that reads or writes a file runs off the UI thread (ITeachWork)
+// and its outcome is applied back on the thread that asked, one at a time and in the order asked; drafting (it asks a model) and saving are
+// awaited, so the page stays alive. Starting a recording is the one exception: the strip is a window and goes up on the caller's thread. The
+// words are in TeachViewWords.
 using Marrow.Core.Port.Assistant;
 using Marrow.Services.Assistant;
 
 namespace Marrow.App.Assistant.Views;
 
-/// <summary>The words of the Teach page and the strip, in one place.</summary>
-public static class TeachViewWords
-{
-    public const string Title = "Teach Dextra";
-    public const string Subtitle = "Show Dextra how you do something once. It watches, writes the steps down as a skill you can read and try, and keeps nothing of your screen unless you say so.";
-    public const string StartTitle = "Watch me do this";
-    public const string StartDetail = "Dextra watches your clicks, the text you type, and what you say if the microphone is on, and takes a picture of the screen on each click and once a second. All of it stays on this PC. Passwords are never kept, and windows that hold them (password managers, private browser windows, security prompts) are not recorded at all.";
-    public const string RecordingsTitle = "Recordings";
-    public const string NoRecordings = "Nothing is waiting. A recording stays here until you turn it into a skill or delete it.";
-    public const string DraftTitle = "Draft it";
-    public const string OpenTitle = "Open the draft";
-    public const string DeleteTitle = "Delete";
-    public const string DeleteAskTitle = "Delete it for real";
-    public const string KeepAskTitle = "Keep it";
-    public const string StepsTitle = "Steps";
-    public const string InputsTitle = "Inputs";
-    public const string DecisionsTitle = "Decisions";
-    public const string ObstaclesTitle = "Watch out for";
-    public const string QuestionsTitle = "Questions";
-    public const string BoundaryTitle = "Approval boundary";
-    public const string NameTitle = "Skill name";
-    public const string DescriptionTitle = "What it does";
-    public const string DryRunTitle = "Dry run";
-    public const string TrialTitle = "Try it with me";
-    public const string RedraftTitle = "Draft again";
-    public const string SaveTitle = "Save as a skill";
-    public const string KeepTitle = "Keep the recording after saving";
-    public const string PauseHereTitle = "Pause here in the trial";
-    public const string RemoveTitle = "Take out";
-    public const string PauseTitle = "Pause";
-    public const string ResumeTitle = "Resume";
-    public const string StopTitle = "Stop";
-    public const string CloseTitle = "Done";
-    public const string ModelNote = "A model writes the draft up from the steps as text. It never sees your screen pictures.";
-
-    public static string State(TeachRecordingState state) => state switch
-    {
-        TeachRecordingState.Recording => "Recording",
-        TeachRecordingState.Paused => "Paused",
-        TeachRecordingState.Recorded => "Recorded",
-        TeachRecordingState.Interrupted => "Cut short",
-        TeachRecordingState.Drafted => "Drafted",
-        TeachRecordingState.Saving => "Saving",
-        _ => "Saved",
-    };
-
-    /// <summary>"Asks you · sends", "You do it yourself", "Pauses for you": the mark beside a step.</summary>
-    public static string Mark(TeachStep step) => step.Guard switch
-    {
-        { OwnerDoesIt: true } => "You do it yourself",
-        { } guard => "Asks you · " + guard.Word,
-        _ => step.Flagged ? "Pauses for you" : "",
-    };
-
-    public static string Row(TeachRecordingInfo info, TimeZoneInfo zone)
-    {
-        var started = TimeZoneInfo.ConvertTime(info.Started, zone).ToString("d MMM, HH:mm", CultureInfo.InvariantCulture);
-        return $"{started} · {State(info.State)} · {TeachWords.Clock(info.Elapsed)}";
-    }
-
-    public static string Detail(TeachRecordingInfo info, TimeZoneInfo zone)
-    {
-        var parts = new List<string> { $"{info.Events} {(info.Events == 1 ? "step" : "steps")}", $"{info.Frames} pictures" };
-        if (info.Narration > 0) parts.Add($"{info.Narration} {(info.Narration == 1 ? "line" : "lines")} you said");
-        if (info.Newer) parts.Add("made by a newer nth");
-        else if (info.ExpiresAt is { } expires) parts.Add("deletes itself on " + TimeZoneInfo.ConvertTime(expires, zone).ToString("d MMM", CultureInfo.InvariantCulture));
-        else if (info.Keep) parts.Add("kept");
-        return string.Join(" · ", parts);
-    }
-}
-
-/// <summary>One recording in the list.</summary>
-public sealed record TeachRow(TeachRecordingInfo Info, string Title, string Detail, bool CanDraft, bool CanOpen, bool CanDelete);
-
 public sealed class TeachModel : IDisposable
 {
     private readonly TeachController controller;
     private readonly TimeZoneInfo zone;
+    private readonly ITeachWork work;
+    private readonly SemaphoreSlim turn = new(1, 1);
     private string? selected;
     private TeachDraft? draft;
     private string startStatus = "";
@@ -99,12 +28,16 @@ public sealed class TeachModel : IDisposable
     private IReadOnlyList<TeachRow> rows = [];
     private IReadOnlyList<string> unreadable = [];
 
-    public TeachModel(TeachController controller, TimeZoneInfo? zone = null)
+    /// <param name="controller">Teach mode.</param>
+    /// <param name="zone">The zone the times are shown in.</param>
+    /// <param name="work">Where file work runs: the thread pool in the product, inline in a test.</param>
+    public TeachModel(TeachController controller, TimeZoneInfo? zone = null, ITeachWork? work = null)
     {
         this.controller = controller ?? throw new ArgumentNullException(nameof(controller));
         this.zone = zone ?? TimeZoneInfo.Local;
+        this.work = work ?? new PoolTeachWork();
         controller.Changed += OnChanged;
-        Reload();
+        _ = Do(Read, Apply, again: false);
     }
 
     /// <summary>Raised when anything the page shows changed. May be on any thread; the view marshals.</summary>
@@ -121,6 +54,7 @@ public sealed class TeachModel : IDisposable
 
     public bool CanStart => !disposed && controller.Active is null && controller.Trial is not { Result: null };
 
+    /// <summary>Starts a recording on the caller's thread (the strip goes up there, and starting writes one small file).</summary>
     public void Start()
     {
         if (!CanStart) return;
@@ -133,7 +67,7 @@ public sealed class TeachModel : IDisposable
 
     public IReadOnlyList<TeachRow> Rows => rows;
 
-    /// <summary>Recordings whose manifest does not read: listed, left where they are, and deletable by id.</summary>
+    /// <summary>Recordings whose manifest does not read: listed, left where they are.</summary>
     public IReadOnlyList<string> Unreadable => unreadable;
 
     public string? SelectedId => selected;
@@ -148,11 +82,12 @@ public sealed class TeachModel : IDisposable
         dryRun = null;
         saveStatus = "";
         draftStatus = "";
-        draft = id is null ? null : controller.Open(id);
+        draft = null;
         Raise();
+        if (id is not null) _ = Do(() => controller.Open(id), found => { if (selected == id) draft = found; });
     }
 
-    /// <summary>Drafts the selected recording (asks the model if one is bound). The outcome lands when it is done.</summary>
+    /// <summary>Drafts a recording (asks the model if one is bound). The outcome lands when it is done.</summary>
     public async Task DraftAsync(string id)
     {
         if (busy) return;
@@ -169,8 +104,7 @@ public sealed class TeachModel : IDisposable
         finally
         {
             busy = false;
-            Reload();
-            Raise();
+            await Do(Read, Apply, again: false).ConfigureAwait(true);
         }
     }
 
@@ -190,8 +124,7 @@ public sealed class TeachModel : IDisposable
         finally
         {
             busy = false;
-            Reload();
-            Raise();
+            await Do(Read, Apply, again: false).ConfigureAwait(true);
         }
     }
 
@@ -205,10 +138,15 @@ public sealed class TeachModel : IDisposable
             return;
         }
         deleteAsked = null;
-        if (!controller.Discard(id)) startStatus = "That recording is in use right now, so it was not deleted.";
-        if (selected == id) Select(null);
-        Reload();
-        Raise();
+        _ = Do(() => controller.Discard(id), gone =>
+        {
+            if (!gone) startStatus = "That recording is in use right now, so it was not deleted.";
+            if (selected == id)
+            {
+                selected = null;
+                draft = null;
+            }
+        });
     }
 
     public void CancelDelete()
@@ -230,7 +168,8 @@ public sealed class TeachModel : IDisposable
 
     public string? DryRunText => dryRun;
 
-    public bool Keep => selected is { } id && controller.Recordings.Info(id) is { Keep: true };
+    /// <summary>Whether the raw recording is kept after the skill is saved (as the manifest says).</summary>
+    public bool Keep => rows.FirstOrDefault(r => r.Info.Id == selected)?.Info.Keep == true;
 
     public bool CanSave => !busy && draft is not null && selected is not null && controller.Trial is not { Result: null };
 
@@ -246,32 +185,33 @@ public sealed class TeachModel : IDisposable
 
     public void SetKeep(bool keep)
     {
-        if (selected is { } id) controller.SetKeep(id, keep);
-        Raise();
+        if (selected is not { } id) return;
+        _ = Do(() => controller.SetKeep(id, keep), _ => { });
     }
 
     public void Answer(string questionId, string option)
     {
         if (selected is not { } id) return;
-        draft = controller.Answer(id, questionId, option) ?? draft;
-        Raise();
+        _ = Do(() => controller.Answer(id, questionId, option), updated => draft = updated ?? draft);
     }
 
     private void Edit(Func<TeachDraft, TeachDraft> change)
     {
         if (selected is not { } id) return;
-        draft = controller.Edit(id, change) ?? draft;
-        dryRun = null;
-        saveStatus = "";
-        Raise();
+        _ = Do(() => controller.Edit(id, change), updated =>
+        {
+            draft = updated ?? draft;
+            dryRun = null;
+            saveStatus = "";
+        });
     }
 
     // ---- trying it ----
 
     public void DryRun()
     {
-        if (selected is { } id) dryRun = controller.DryRunReport(id);
-        Raise();
+        if (selected is not { } id) return;
+        _ = Do(() => controller.DryRunReport(id), report => dryRun = report);
     }
 
     public TrialView? Trial => controller.Trial;
@@ -325,33 +265,78 @@ public sealed class TeachModel : IDisposable
         finally
         {
             busy = false;
-            Reload();
-            Raise();
+            await Do(Read, Apply, again: false).ConfigureAwait(true);
         }
     }
 
-    // ---- refreshing ----
+    // ---- file work, off the UI thread ----
 
-    private void OnChanged()
+    // One thing at a time, in the order asked: the work runs on the pool and reads the list again before it ends, so what it changed is on
+    // the page when it lands; the outcome is applied by the caller's thread, and the page is told. A change the work itself made to the
+    // controller needs no second read (OnChanged ignores it), one made by anything else (the recorder) does.
+    private async Task Do<T>(Func<T> read, Action<T> apply, bool again = true)
     {
         if (disposed) return;
-        Reload();
+        await turn.WaitAsync().ConfigureAwait(true);
+        try
+        {
+            var (value, list) = await work.Run(() =>
+            {
+                ownWork = true;
+                try
+                {
+                    var made = read();
+                    return (made, again ? Read() : null);
+                }
+                finally
+                {
+                    ownWork = false;
+                }
+            }).ConfigureAwait(true);
+            apply(value);
+            Apply(list);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or ObjectDisposedException)
+        {
+            draftStatus = "nth could not read or write the recording (" + error.GetType().Name + "). Nothing was changed.";
+        }
+        finally
+        {
+            turn.Release();
+        }
         Raise();
     }
 
-    private void Reload()
+    [ThreadStatic]
+    private static bool ownWork;
+
+    private ListRead? Read()
     {
         var list = controller.List(out var bad);
-        unreadable = bad;
-        rows = [.. list.Select(info => new TeachRow(info, TeachViewWords.Row(info, zone), TeachViewWords.Detail(info, zone),
+        return new ListRead([.. list.Select(info => new TeachRow(info, TeachViewWords.Row(info, zone), TeachViewWords.Detail(info, zone),
             CanDraft: !info.Newer && info.State is TeachRecordingState.Recorded or TeachRecordingState.Interrupted,
             CanOpen: !info.Newer && info.State == TeachRecordingState.Drafted,
-            CanDelete: info.State is not (TeachRecordingState.Recording or TeachRecordingState.Paused or TeachRecordingState.Saving)))];
+            CanDelete: info.State is not (TeachRecordingState.Recording or TeachRecordingState.Paused or TeachRecordingState.Saving)))], bad);
+    }
+
+    private sealed record ListRead(IReadOnlyList<TeachRow> Rows, IReadOnlyList<string> Unreadable);
+
+    private void Apply(ListRead? found)
+    {
+        if (found is null) return;
+        rows = found.Rows;
+        unreadable = found.Unreadable;
         if (selected is { } id && rows.All(r => r.Info.Id != id))
         {
             selected = null;
             draft = null;
         }
+    }
+
+    private void OnChanged()
+    {
+        if (disposed || ownWork) return;
+        _ = Do(Read, Apply, again: false);
     }
 
     private void Raise() => Changed?.Invoke();

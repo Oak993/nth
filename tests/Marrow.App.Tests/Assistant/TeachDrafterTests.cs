@@ -76,8 +76,8 @@ public sealed class TeachDrafterTests
         Assert.Contains("<<<data", prompt, StringComparison.Ordinal);
         Assert.Contains("1. [events 1] Click “New mail” (button) in Outlook", prompt, StringComparison.Ordinal);
         Assert.Contains("2. [events 2,3] Type “sam@example.com” into “To” (edit)", prompt, StringComparison.Ordinal);
-        Assert.Contains("4. [events 6] Click “Send” (button) in Outlook (asks you: sends)", prompt, StringComparison.Ordinal);
-        Assert.Contains("he said: Always check it twice before it goes.", prompt, StringComparison.Ordinal);
+        Assert.Contains("4. [events 6] Click “Send” (button) in Outlook (asks the person: sends)", prompt, StringComparison.Ordinal);
+        Assert.Contains("they said: Always check it twice before it goes.", prompt, StringComparison.Ordinal);
         Assert.Contains("0:19  Always check it twice before it goes.", prompt, StringComparison.Ordinal);
         Assert.Contains("never drop or hide one", prompt, StringComparison.Ordinal);
         Assert.DoesNotContain("frames/", prompt, StringComparison.Ordinal);
@@ -99,7 +99,7 @@ public sealed class TeachDrafterTests
         Assert.DoesNotContain("evil@example.com", prompt, StringComparison.Ordinal);
         Assert.DoesNotContain("hunter2", prompt, StringComparison.Ordinal);
         Assert.Contains(TeachDraftBuilder.TakenOut, prompt, StringComparison.Ordinal);
-        Assert.Contains("he does it himself", prompt, StringComparison.Ordinal);
+        Assert.Contains("they do it themselves", prompt, StringComparison.Ordinal);
     }
 
     [Fact]
