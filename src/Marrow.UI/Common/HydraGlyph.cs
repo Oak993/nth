@@ -172,12 +172,11 @@ public sealed class HydraBreathRingView : Control
     // was the frame's only allocation of its own).
     private static readonly Marrow.UI.Port.Animation BreathCurve = Marrow.UI.Port.Animation.EaseOut(Period);
 
-    private readonly Action<TimeSpan> frame;
-    private IFrameSource? source;
-    private bool waiting;
+    // ED-NEW-perf-idle-4: the breath is a draw loop (AnimationTimeline) at 60 a second, not a frame request at every refresh: it
+    // holds its request back to the next slot (1.5 refreshes before), and parks while no window of the app can be seen.
+    private readonly AnimationTimeline loop;
     private double scale = RestingScale;
     private double opacity = RestingOpacity;
-    private DecorationPace pace;
 
     // ED-NEW-lean-8: the stroke, made once per colour and width rather than once per frame (a new brush per frame also bound
     // itself to the control's theme changes, one subscription per frame). It is the pen each frame made before, of the brush
@@ -189,35 +188,20 @@ public sealed class HydraBreathRingView : Control
 
     public HydraBreathRingView()
     {
-        frame = OnFrame;
         Focusable = false;
         // :128 override func hitTest(_:) -> NSView? { nil }
         IsHitTestVisible = false;
-        AttachedToVisualTree += (_, _) => // :141-148, :184 the resting frame, then the breath, from the shared origin
-        {
-            source = FrameClock.Source.Current;
-            Update();
-            InvalidateVisual();
-            Request();
-        };
-        DetachedFromVisualTree += (_, _) =>
-        {
-            if (waiting) source!.CancelFrame(frame);
-            waiting = false;
-            source = null;
-        };
+        loop = new AnimationTimeline(() => new AnimationTimelineSchedule(WorkingLoop.Interval, Paused: Reduced), _ => Draw());
+        // :141-148, :184 the resting frame, then the breath, from the shared origin (appearing draws at once)
+        AttachedToVisualTree += (_, _) => loop.Appear();
+        DetachedFromVisualTree += (_, _) => loop.Disappear();
         // :192 under Reduce Motion the ring rests and asks for no frames (ED-NEW-lean-8); turned off again, it breathes.
         PropertyChanged += (_, e) =>
         {
-            if (e.Property != EnvironmentValues.AccessibilityReduceMotionProperty || source is null) return;
+            if (e.Property != EnvironmentValues.AccessibilityReduceMotionProperty) return;
             Update();
             InvalidateVisual();
-            if (!Reduced) Request();
-            else if (waiting)
-            {
-                source.CancelFrame(frame);
-                waiting = false;
-            }
+            loop.Reschedule();
         };
     }
 
@@ -249,36 +233,16 @@ public sealed class HydraBreathRingView : Control
         return (RestingScale + (SwollenScale - RestingScale) * progress, RestingOpacity * (1 - progress));
     }
 
-    private void Request()
-    {
-        if (waiting || source is null || Reduced) return;
-        pace.Reset(); // a new run of frames repaints at its first
-        waiting = true;
-        source.RequestFrame(frame);
-    }
-
     /// <summary>ED-NEW-lean-8 (tests): how many frames have repainted the ring.</summary>
     internal int Invalidations { get; private set; }
 
-    // ED-NEW-lean-8: the breath repaints at the 60 Hz cap (DecorationPace); the frames between only ask again.
-    private void OnFrame(TimeSpan _)
+    // ED-NEW-lean-8: the breath repaints at the 60 Hz cap; ED-NEW-perf-idle-4: the timeline asks for no frame in between.
+    // Under Reduce Motion the schedule is paused, so appearing draws the resting frame and no more frames are asked for.
+    private void Draw()
     {
-        waiting = false;
-        if (source is null) return;
-        if (Reduced)
-        {
-            Update(); // the resting frame, and no more frames
-            InvalidateVisual();
-            return;
-        }
-        if (pace.Due(SwiftClock.Now))
-        {
-            Update();
-            Invalidations++;
-            InvalidateVisual();
-        }
-        waiting = true;
-        source.RequestFrame(frame);
+        Update();
+        Invalidations++;
+        InvalidateVisual();
     }
 
     private void Update()

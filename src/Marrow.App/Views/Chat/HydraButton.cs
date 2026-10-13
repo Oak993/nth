@@ -812,10 +812,10 @@ public sealed class HydraChargeLayerView : Control
     private Color[] ringColors = [];
     private readonly List<LayerAnimation> animations = [];
 
-    private readonly Action<TimeSpan> frame;
-    private IFrameSource? source;
-    private bool waiting;
-    private Marrow.UI.Common.DecorationPace pace;
+    // ED-NEW-perf-idle-4: the turn and the breaths are a draw loop at 60 a second (AnimationTimeline), not a frame request at every
+    // refresh: it holds its request back to the next slot and parks while no window of the app can be seen.
+    private readonly AnimationTimeline loop;
+    private bool attached;
 
     // ED-NEW-lean-8: the glow's gradient and the ring's pen, made again only when their colours or size change, not once per
     // frame. The same brushes, so the same pixels.
@@ -839,7 +839,7 @@ public sealed class HydraChargeLayerView : Control
     {
         Focusable = false;
         IsHitTestVisible = false; // :491 override func hitTest(_:) -> NSView? { nil }
-        frame = OnFrame;
+        loop = new AnimationTimeline(() => new AnimationTimelineSchedule(1.0 / 60), _ => Pulse());
         RingOpacity = RingRestOpacity;
         GlowOpacity = GlowRestOpacity;
         ActualThemeVariantChanged += (_, _) => ApplyColors(); // :512-516 viewDidChangeEffectiveAppearance
@@ -913,7 +913,7 @@ public sealed class HydraChargeLayerView : Control
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        source = FrameClock.Source.Current;
+        attached = true;
         ApplyColors();
         InstallAnimations();
     }
@@ -921,9 +921,8 @@ public sealed class HydraChargeLayerView : Control
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
-        if (waiting) source?.CancelFrame(frame);
-        waiting = false;
-        source = null;
+        attached = false;
+        loop.Disappear();
     }
 
     /// <summary>
@@ -1027,30 +1026,22 @@ public sealed class HydraChargeLayerView : Control
         GlowOpacity = glowBreath is null ? GlowRestOpacity : glowBreath.From + (glowBreath.To - glowBreath.From) * breath;
     }
 
+    // Appearing draws at once; a view that is already on screen is left as it is (the animations are put on afresh at every
+    // activation, and the loop is one).
     private void Request()
     {
-        if (waiting || source is null) return;
-        pace.Reset(); // a new run of frames repaints at its first
-        waiting = true;
-        source.RequestFrame(frame);
+        if (attached) loop.Appear();
     }
 
     /// <summary>ED-NEW-lean-8 (tests): how many frames have repainted the charge.</summary>
     internal int Invalidations { get; private set; }
 
-    // ED-NEW-lean-8: the turn and the breaths repaint at the 60 Hz cap (DecorationPace); the frames between only ask again.
-    private void OnFrame(TimeSpan _)
+    // ED-NEW-lean-8: the turn and the breaths repaint at the 60 Hz cap; ED-NEW-perf-idle-4: the timeline asks for no frame in between.
+    private void Pulse()
     {
-        waiting = false;
-        if (source is null) return;
-        if (pace.Due(SwiftClock.Now))
-        {
-            Refresh();
-            Invalidations++;
-            InvalidateVisual();
-        }
-        waiting = true;
-        source.RequestFrame(frame);
+        Refresh();
+        Invalidations++;
+        InvalidateVisual();
     }
 
     // :535-562 layout: the still charge's geometry exactly

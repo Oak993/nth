@@ -139,6 +139,12 @@ internal static class SpinnerGeometry
     }
 }
 
+/// <summary>PORT-ONLY (ED-NEW-perf-idle-4). The draw loop the Hydra decorations share: the 60 Hz cap as a timeline's minimum interval.</summary>
+internal static class WorkingLoop
+{
+    public const double Interval = 1.0 / 60;
+}
+
 /// <summary>
 /// PORT-ONLY (ED-NEW-lean-8, the lead's 60 Hz decorative cap): decides which frames of the main-thread frame clock repaint a
 /// decoration whose picture moves continuously. It is the ambient pacer's rule (AmbientRefreshPacer, ED-NEW-frame-pacing),
@@ -179,28 +185,26 @@ internal sealed class SpinnerLayerView : Control
     private readonly double cellSize;
     private Color[] tints = [Colors.Transparent, Colors.Transparent, Colors.Transparent];
     private IBrush[] brushes = SpinnerGeometry.RowBrushes([Colors.Transparent, Colors.Transparent, Colors.Transparent]);
-    private readonly Action<TimeSpan> frame;
-    private IFrameSource? source;
-    private bool waiting;
+    private readonly AnimationTimeline loop; // ED-NEW-perf-idle-4: a draw loop at 60 a second that parks while unseen
+    private bool attached;
     private bool animated;
-    private DecorationPace pace;
 
     internal SpinnerLayerView(IReadOnlyList<SpinnerCell> cells, int columns, double cellSize) // :150-154, :210-234
     {
         this.cells = [.. cells];
         this.columns = columns;
         this.cellSize = cellSize;
-        frame = OnFrame;
         Focusable = false;
         IsHitTestVisible = false; // :208 override func hitTest(_ point: NSPoint) -> NSView? { nil }
         ApplyTints();
         animated = !EnvironmentValues.GetAccessibilityReduceMotion(this);
+        loop = new AnimationTimeline(() => new AnimationTimelineSchedule(WorkingLoop.Interval, Paused: !animated), _ => Draw());
 
         AttachedToVisualTree += (_, _) =>
         {
             // :236-244 viewDidMoveToWindow(): a spinner built off screen resolves its tints for the window's
             // appearance and starts its animation from the shared clock, rather than from whenever it appeared.
-            source = FrameClock.Source.Current;
+            attached = true;
             ApplyTints();
             UpdateAnimated();
             ThemeManager.DidChange += OnThemeChanged; // :185 NotificationCenter observer (R-NOTE-1)
@@ -210,9 +214,8 @@ internal sealed class SpinnerLayerView : Control
             // :193-195 deinit removes the observer; a Control has no deinit, so detaching from the tree is this
             // port's lifetime boundary (R-LIFE-1).
             ThemeManager.DidChange -= OnThemeChanged;
-            if (waiting) source?.CancelFrame(frame);
-            waiting = false;
-            source = null;
+            attached = false;
+            loop.Disappear();
         };
         ActualThemeVariantChanged += (_, _) => ApplyTints(); // :246-251 viewDidChangeEffectiveAppearance()
         PropertyChanged += (_, e) =>
@@ -246,44 +249,23 @@ internal sealed class SpinnerLayerView : Control
     private void UpdateAnimated()
     {
         animated = !EnvironmentValues.GetAccessibilityReduceMotion(this);
-        if (animated) Request();
-        else if (waiting)
+        if (attached)
         {
-            source?.CancelFrame(frame);
-            waiting = false;
+            loop.Appear(); // draws at once the first time; nothing when it is already on screen
+            loop.Reschedule(); // Reduce Motion paused or resumed it
         }
         InvalidateVisual();
-    }
-
-    private void Request()
-    {
-        if (waiting || !animated || source is null) return;
-        pace.Reset(); // a new run of frames repaints at its first
-        Ask();
-    }
-
-    private void Ask()
-    {
-        if (waiting || !animated || source is null) return;
-        waiting = true;
-        source.RequestFrame(frame);
     }
 
     /// <summary>ED-NEW-lean-8 (tests): how many frames have repainted the spinner.</summary>
     internal int Invalidations { get; private set; }
 
-    // ED-NEW-lean-8: the pulse is drawn from the clock at render time, so a frame repaints only at the 60 Hz cap
-    // (DecorationPace); the frames between only ask again.
-    private void OnFrame(TimeSpan _)
+    // ED-NEW-lean-8: the pulse is drawn from the clock at render time, so it repaints only at the 60 Hz cap;
+    // ED-NEW-perf-idle-4: the timeline asks for no frame in between, and none while no window of the app can be seen.
+    private void Draw()
     {
-        waiting = false;
-        if (!animated) return;
-        if (pace.Due(SwiftClock.Now))
-        {
-            Invalidations++;
-            InvalidateVisual();
-        }
-        Ask();
+        Invalidations++;
+        InvalidateVisual();
     }
 
     protected override Size MeasureOverride(Size availableSize) => SpinnerGeometry.ContentSize(cells, columns, cellSize);
