@@ -13,6 +13,7 @@ using Marrow.Core.Port.Assistant;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Marrow.UI.Port.Settings;
+using Marrow.Services.Port.MultiAccount;
 
 namespace Marrow.App.Assistant.Views;
 
@@ -175,8 +176,10 @@ internal sealed class AssistantRows
         AutomationProperties.SetName(ScopePicker, AssistantSettingsWords.Delegate);
         ScopeRow = new ChromeRow("", () => ScopePicker);
         WithMenu = new CzMenuButton(AssistantSettingsWords.RowWith, WithOptions(), WithId(settings.Value.DelegateWith));
+        WithMenu.OptionAvailable = id => Unavailable(id) is null;
         WithMenu.SelectionChanged += id =>
         {
+            if (Unavailable(id) is not null) { Show(); return; }
             if (id == "inherit") { if (ScopeAvailable) settings.SetDelegateModel(ScopeProject, ScopeChat, null, inherit: true); Show(); }
             else WriteWho(id != DextraOption && Enum.TryParse<ProviderKind>(id, out var kind) ? new DelegateWho(kind) : null);
         };
@@ -280,10 +283,14 @@ internal sealed class AssistantRows
         ScopeRow.IsVisible = value.Delegate != DelegateScope.Off;
         var inherited = modelScope == DelegateModelScope.Project && !value.DelegateProjectModels.Any(c => c.Id == ScopeProject)
             || modelScope == DelegateModelScope.Chat && !value.DelegateChatModels.Any(c => c.Id == ScopeChat);
-        WithMenu.SetOptions(WithOptions(), inherited ? "inherit" : WithId(Who()));
+        var choice = inherited ? "inherit" : WithId(Who());
+        var why = Unavailable(choice);
+        var shortLabel = choice == DextraOption ? AssistantNames.Assistant : Who()?.Provider.DisplayName;
+        WithMenu.SetOptions(WithOptions(), choice, why is not null ? shortLabel + " — unavailable" : null);
         WithRow.IsVisible = value.Delegate != DelegateScope.Off || value.DelegateChats.Any(c => c.On);
         WithMenu.IsEnabled = ScopeAvailable;
-        ToolTip.SetTip(WithMenu, ScopeAvailable ? null : "Open a chat or project to choose its delegate.");
+        ToolTip.SetTip(WithMenu, ScopeAvailable ? why : "Open a chat or project to choose its delegate.");
+        AutomationProperties.SetHelpText(WithMenu, why ?? "");
         WithScopeRow.IsVisible = WithRow.IsVisible;
         WithModelMenu.SetOptions(WithModels(), Who()?.Model ?? "default");
         WithModelMenu.IsEnabled = ScopeAvailable;
@@ -296,12 +303,25 @@ internal sealed class AssistantRows
     // Keep any installed or previously selected provider. Execution separately requires a verified text-only route.
     private IReadOnlyList<(string Id, string Text)> WithOptions()
     {
-        var list = new List<(string, string)> { (DextraOption, AssistantNames.Assistant) };
+        var list = new List<(string, string)> { (DextraOption, Label(DextraOption, AssistantNames.Assistant)) };
         if (modelScope != DelegateModelScope.Everywhere) list.Insert(0, ("inherit", modelScope == DelegateModelScope.Project ? "Use global choice" : "Use project or global choice"));
         var offered = brain.Providers().ToList();
         if (Who() is { } picked && !offered.Contains(picked.Provider)) offered.Add(picked.Provider);
-        list.AddRange(offered.Select(p => (p.ToString(), p.DisplayName)));
+        list.AddRange(offered.Select(p => (p.ToString(), Label(p.ToString(), p.DisplayName))));
         return list;
+    }
+
+    private string Label(string id, string name) => Unavailable(id) is { } why ? name + " — unavailable: " + why : name;
+    private string? Unavailable(string id)
+    {
+        if (id == "inherit") return null;
+        if (id == DextraOption)
+        {
+            var providers = brain.Providers();
+            var picked = settings.Value.BrainProvider ?? (providers.Contains(ProviderKind.Claude) ? ProviderKind.Claude : providers.FirstOrDefault());
+            return settings.Value.BrainProvider is null && providers.Count == 0 ? "No brain provider is available." : DextraTextRoutes.UnavailableReason(picked);
+        }
+        return Enum.TryParse<ProviderKind>(id, out var kind) ? DextraTextRoutes.UnavailableReason(kind) : "This provider is unavailable.";
     }
 
     private static string WithId(DelegateWho? who) => who?.Provider.ToString() ?? DextraOption;

@@ -26,6 +26,9 @@ public sealed class BackgroundStartSeams
 
     /// <summary>Fakes for the host (Task Scheduler, the Run key, the desktop, the clock); the rest is the app's own.</summary>
     public DutySeams? Host { get; init; }
+
+    public Action<string>? FileIO { get; init; }
+    public Action<AssistantController>? ControllerBuilt { get; init; }
 }
 
 public static class BackgroundStart
@@ -81,61 +84,23 @@ public static class BackgroundStart
     public static DutyHost? Run(AppModel model, StartupMode mode, Func<bool> windowHidden, Action open, Action quit, out string? problem, BackgroundStartSeams? seams = null)
     {
         ArgumentNullException.ThrowIfNull(model);
-        if (seams is null)
-        {
-            problem = null;
-            if (!model.AssistantHost.MayRun) return null;
-            _ = StartWhenDutiesAsync(model, mode, windowHidden, open, quit);
-            return model.Duties;
-        }
-        seams ??= new BackgroundStartSeams();
         problem = null;
-        var roots = seams.Roots();
-        if (!HasDuties(roots)) return null;
+        if (seams is null || seams.Tray is not null)
+            model.EnsureTray(windowHidden, null, open, seams?.Tray).Refresh();
+        if (!model.AssistantHost.MayRun) return null;
         if (model.Duties is { } running) return running;
-        AssistantStore? store = null;
-        AuditLog? log = null;
-        try
-        {
-            store = model.DextraStore ?? AssistantStore.Open(roots);
-            var ids = AssistantsWithDuties(store);
-            if (model.Dextra is null)
-            {
-                log = AuditLog.Open(roots, seams.Keys());
-                var team = model.BindAsturs(store);
-                var held = log;
-                model.StartDextra(store, entry => held.Append(entry), () => team.Profiles, stopKey: seams.StopKey ?? model.EnsureStopKey(),
-                    tray: seams.Tray ?? model.EnsureTray(windowHidden, null, open), duties: model.DutyToolsGate,
-                    team: team, homes: new AppAssistantHomes(model, store));
-                model.AssistantHost.OwnStartup(new DextraStartStorage(roots, store, log, team));
-                log = null; // ownership transferred to the host's stop/dispose path
-            }
-            var controller = model.Dextra!;
-            // The launch brings back what is there: the digest is bound only when the Morning digest duty already is (so it is composed, not started as a
-            // mission); making it is turning Dextra on (AS-8), not a launch.
-            var host = model.StartDuties(controller, store, mode, quit: quit, assistantIds: () => AssistantsWithDuties(store), tray: seams.Tray ?? model.Tray, seams: seams.Host,
-                digest: model.DigestSetupOf(controller, roots.AuditDirectory), withDigest: HasDigestDuty(store, ids));
-            var notes = host.Start();
-            problem = notes.Count == 0 ? null : string.Join(" ", notes);
-            return host;
-        }
-        catch (Exception error) when (error is AssistantStoreBusyException or AuditLogBusyException or AuditKeyUnavailableException or IOException or UnauthorizedAccessException or InvalidOperationException)
-        {
-            problem = "Dextra's duties did not start: " + error.Message;
-            log?.Dispose();
-            if (model.DextraStore is null) store?.Dispose();
-            return null;
-        }
+        _ = RunAsync(model, mode, quit, seams);
+        return null;
     }
 
-    private static async Task StartWhenDutiesAsync(AppModel model, StartupMode mode, Func<bool> windowHidden, Action open, Action quit)
+    public static async Task<DutyHost?> RunAsync(AppModel model, StartupMode mode, Action quit, BackgroundStartSeams? seams = null)
     {
-        if (!await Task.Run(() => HasDuties(AssistantStorage.Roots.Current)).ConfigureAwait(false)) return;
-        await MainActor.Run(() =>
-        {
-            if (!model.AssistantHost.MayRun) return;
-            model.EnsureTray(windowHidden, null, open);
-            _ = model.AssistantHost.EnsureStartedAsync(mode: mode, quit: quit, restoringDuties: true);
-        }).ConfigureAwait(false);
+        if (!model.AssistantHost.MayRun) return null;
+        if (model.Duties is { } running) return running;
+        var probe = seams ?? new BackgroundStartSeams();
+        if (!await Task.Run(() => HasDuties(probe.Roots())).ConfigureAwait(false)) return null;
+        var start = await MainActor.Run<Task<AssistantController?>>(() => model.AssistantHost.EnsureStartedAsync(probe, mode, quit, restoringDuties: true)).ConfigureAwait(false);
+        await start.ConfigureAwait(false);
+        return await MainActor.Run(() => model.Duties).ConfigureAwait(false);
     }
 }

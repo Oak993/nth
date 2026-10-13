@@ -72,8 +72,8 @@ public sealed partial class AppModel
     /// <paramref name="alwaysShow"/> says so, or while a feature that added items says it is live; <paramref name="open"/>
     /// brings the window back.
     /// </summary>
-    public AppTray EnsureTray(Func<bool> windowHidden, Func<bool>? alwaysShow = null, Action? open = null) =>
-        Tray ??= new AppTray(new AvaloniaTrayHost(), windowHidden, alwaysShow, open);
+    public AppTray EnsureTray(Func<bool> windowHidden, Func<bool>? alwaysShow = null, Action? open = null, AppTray? supplied = null) =>
+        Tray ??= supplied ?? new AppTray(new AvaloniaTrayHost(), windowHidden, alwaysShow, open);
 
     private void DisposeSafety()
     {
@@ -107,8 +107,10 @@ public sealed partial class AppModel
     /// Starts Dextra over its store (AS-8 calls this when the owner turns Dextra on): a controller whose chats are this
     /// app's, whose workspaces live under the store's worktrees folder and whose missions are journaled in the store; the
     /// missions the store held come back (a live one Paused and asking "Resume?", 15.3, when the store was opened with
-    /// <see cref="MissionJournal.Interrupted"/> as its rule), and the controller is bound. The store's folder and
-    /// <paramref name="protectedRoots"/> (the audit folder, nth's settings) are never written by an agent. Returns the
+    /// <see cref="MissionJournal.Interrupted"/> as its rule), and the controller is bound. The store's folder, nth's own files
+    /// (<see cref="NthOwnFiles"/>: its data root, its settings file, its program and its data folder of before the rename, whatever
+    /// the caller passes) and
+    /// <paramref name="protectedRoots"/> (the audit folder) are never written by an agent. Returns the
     /// controller; the caller owns it. Auto-answering turns on only once the injection self-check passes in this
     /// process (AS-7); <paramref name="autoAnswer"/> swaps that switch (a test's). <paramref name="personalDataRecipients"/>
     /// and <paramref name="allowlist"/> are the owner's lists from Settings (empty until Settings has them).
@@ -118,11 +120,12 @@ public sealed partial class AppModel
         AutoAnswerSwitch? autoAnswer = null, Func<IReadOnlyList<string>>? personalDataRecipients = null, Func<IReadOnlyList<string>>? allowlist = null,
         GlobalStop? stopKey = null, AppTray? tray = null, IPcStreamHold? pcStreams = null,
         IReadOnlyList<IStopScope>? stopScopes = null, INoteProposer? noteProposer = null, IDutyTools? duties = null, AssistantTeam? team = null, IAssistantHomes? homes = null,
-        PurchaseSetup? purchases = null)
+        PurchaseSetup? purchases = null, Guid? accountId = null, DextraStartupSnapshot? startup = null)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(audit);
         ArgumentNullException.ThrowIfNull(profiles);
+        using var startupOwnership = new DextraStartOwnership();
         // The usage reserve (AS-13): the owner's rules and what nth learned of his usage come from the store and go back to it.
         var reserveSettings = new ReserveSettings();
         var calibrator = new UsageCalibrator();
@@ -130,7 +133,7 @@ public sealed partial class AppModel
         // The cost controls (AS-15): what each assistant spent today (the caps' figures) and which duties the breaker paused, kept beside them.
         var costLedger = new CostLedger();
         var dutyHealth = new DutyHealthBook();
-        var reservePersistence = new ReservePersistence(store, reserveSettings, calibrator, turnCosts, costs: costLedger, duties: dutyHealth);
+        var reservePersistence = startupOwnership.Add(new ReservePersistence(store, reserveSettings, calibrator, turnCosts, costs: costLedger, duties: dutyHealth));
         // The Asturs' day slices are standing caps in these settings (AS-16, 9.3): they are put in step with the profiles once the rules are loaded.
         team?.BindBudgets(reserveSettings);
         // Dextra's memory (AS-12): the notes live in the store; the capture runs only when a cheap model is bound (noteProposer).
@@ -140,10 +143,12 @@ public sealed partial class AppModel
         IReadOnlyList<MemoryImportSource> ImportSources() => MemoryImportSources.FromAccounts(Settings.Accounts.Accounts,
             new Marrow.Services.Port.Accounts.AccountEnvironment(() => Marrow.Services.Store.Storage.Root),
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), [.. Projects.Select(p => p.Path)]);
-        var memoryWatch = new MemoryImportWatch(memoryImport, ImportSources);
+        var memoryWatch = startupOwnership.Add(new MemoryImportWatch(memoryImport,
+            () => startup is not null && !MainActor.IsIsolated ? startup.ImportSources : ImportSources(),
+            refreshSources: () => MainActor.Run(ImportSources)));
         // The delegate responder (AS-22, 4.3): its book of answers lives in the store, its model is nth's one-shot text engine, and it is off until the owner turns it on.
         var delegateBook = new DelegateAnswerBook();
-        var delegateAnswers = new DelegateAnswerPersistence(store, delegateBook);
+        var delegateAnswers = startupOwnership.Add(new DelegateAnswerPersistence(store, delegateBook));
         // The watch follows the folders only once the owner has imported (8.4); the Memory view starts it after each import he runs.
         if (memoryStore.HasImported) memoryWatch.Start();
         var controller = new AssistantController(new AssistantControllerOptions
@@ -208,7 +213,8 @@ public sealed partial class AppModel
             Save = record => store.SaveMission(MissionJournal.StoreId(record.Id), MissionJournal.ToJson(record)),
             Provider = provider,
             Model = model,
-            ProtectedRoots = [store.Root, .. protectedRoots ?? []],
+            AccountId = accountId,
+            ProtectedRoots = [store.Root, .. NthOwnFiles(), .. protectedRoots ?? []],
             AutoAnswer = autoAnswer ?? AutoAnswerSwitch.AfterCorpus(),
             PersonalDataRecipients = personalDataRecipients ?? (() => []),
             Allowlist = allowlist ?? (() => []),
@@ -216,7 +222,7 @@ public sealed partial class AppModel
             // AS-7 (ED-NEW-dextra-as7-14): the home chats' taint survives a restart; StartDextra runs after the library loads.
             LoadHomeTaint = store.HomeTaint,
             SaveHomeTaint = store.SaveHomeTaint,
-            HomeChats = () => [.. Threads.Where(t => t.AssistantID is not null && t.MissionID is null).Select(t => t.Id)],
+            HomeChats = startup is not null ? () => startup.HomeChats : () => [.. Threads.Where(t => t.AssistantID is not null && t.MissionID is null).Select(t => t.Id)],
             StopKey = stopKey,
             PcStreams = pcStreams,
             StopScopes = stopScopes ?? [],
@@ -224,7 +230,7 @@ public sealed partial class AppModel
             // AS-20 (12.7): purchases; the production start gives Windows Hello and the card in Credential Manager.
             Purchases = purchases,
         });
-        DextraStore = store;
+        startupOwnership.Transfer(controller);
         // The day's folding of the notes (8.2) runs at start when it has not run today; the digest (AS-11) calls it each morning from then on.
         _ = Task.Run(() =>
         {
@@ -233,16 +239,58 @@ public sealed partial class AppModel
         });
         controller.Runner.Load(store.Missions().Select(stored => MissionJournal.FromJson(stored.Body)).OfType<MissionRecord>());
         // The Asturs' reports whose missions ended while nth was closed are caught up (AS-16).
-        controller.ResumeDelegations();
+        if (startup is null) controller.ResumeDelegations();
         // What Revert and Restart kept for 7 days, and the workspaces of missions over for 7 days, are swept at start (the
         // scheduler, AS-10, repeats it daily); a sweep that fails is reported and never stops the start.
         _ = SweepKept(controller);
-        // The Assistant's items in nth's one tray icon (7.4, 12.6): Stop works with the window closed.
+        if (startup is null) CompleteDextraStart(controller, store, profiles, tray);
+        return startupOwnership.Release(controller);
+    }
+
+    internal DextraStartupSnapshot StartupSnapshot() => new(
+        [.. Threads.Where(t => t.AssistantID is not null && t.MissionID is null).Select(t => t.Id)],
+        MemoryImportSources.FromAccounts(Settings.Accounts.Accounts,
+            new Marrow.Services.Port.Accounts.AccountEnvironment(() => Marrow.Services.Store.Storage.Root),
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), [.. Projects.Select(p => p.Path)]));
+
+    internal void CompleteDextraStart(AssistantController controller, AssistantStore store, Func<IReadOnlyList<AssistantProfile>> profiles, AppTray? tray)
+    {
+        DextraStore = store;
         if (tray is not null) dextraTray = AssistantTray.Bind(tray, controller);
-        // The decision toasts (AS-9, 13.1): a card that needs the owner makes one, unless the home is in front.
         BindDecisionToasts(controller, id => profiles().FirstOrDefault(profile => profile.Id == id)?.Name is { Length: > 0 } name ? name : AssistantNames.Assistant);
         BindDextra(controller);
-        return controller;
+    }
+
+    /// <summary>
+    /// nth's own files, which no agent of Dextra's writes (12.1a "changes nth's own settings and grants"; ED-NEW-dextra-f4-1): the data root
+    /// as bound now (library.json, UserDefaults.json with Dextra's switches and grants, the threads, mcp.json, and the store and the activity
+    /// log under it) and the settings file where the app keeps it, named on its own so a data root bound elsewhere still leaves it protected.
+    /// ED-NEW-dextra-f4-2: also nth's own program (<see cref="InstallRoot"/> of the running app's base directory: what runs the next time nth
+    /// starts) and the data folder of before the rename (%LOCALAPPDATA%\Marrow Code, which the first launch after it copied and never moved).
+    /// A mission's own worktree inside the store stays its work (ActionClassifier's own-worktree carve-out).
+    /// </summary>
+    internal static IReadOnlyList<string> NthOwnFiles()
+    {
+        var roots = new List<string> { Marrow.Services.Store.Storage.Root, InstallRoot(AppContext.BaseDirectory) };
+        var local = Marrow.Core.Support.DevDataRoot.LocalApplicationData();
+        if (!string.IsNullOrEmpty(local))
+        {
+            roots.Add(Marrow.Services.Port.SettingsStore.ProductionPath(local));
+            roots.Add(Path.Combine(local, Marrow.Core.Support.AppInfo.LegacyDataFolderName));
+        }
+        return roots;
+    }
+
+    /// <summary>
+    /// Where nth's program lives (ED-NEW-dextra-f4-2): Velopack's root (the folder holding Update.exe, current\ and packages\,
+    /// %LOCALAPPDATA%\NthApp) when Velopack installed the app whose binaries are in <paramref name="baseDirectory"/> (the check the
+    /// startup hook makes, <see cref="Program.InstalledByVelopack"/>), else the binaries' own folder (a build run from its output folder).
+    /// </summary>
+    internal static string InstallRoot(string baseDirectory)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(baseDirectory);
+        var binaries = Path.TrimEndingDirectorySeparator(baseDirectory);
+        return Program.InstalledByVelopack(baseDirectory) && Path.GetDirectoryName(binaries) is { Length: > 0 } root ? root : binaries;
     }
 
     /// <summary>

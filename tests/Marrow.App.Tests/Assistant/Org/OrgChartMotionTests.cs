@@ -61,11 +61,15 @@ public sealed class OrgChartMotionTests(HeadlessSession headless)
 
             chart.Show(Snap(ChannelA, ChannelB));
             stage.Layout();
-            Assert.Equal(0, chart.Panel.Connectors.Opacity);                                       // no line joins a node that is still on its way
-            Assert.Null(chart.Panel.Connectors.Transitions);
+            // OD-0076 and ED-NEW-dextra-fix-12: leave on a fade, rather than a hard cut.
+            Assert.Equal(0, chart.Panel.Connectors.GetBaseValue(Visual.OpacityProperty).Value);
+            var fade = Assert.IsType<Avalonia.Animation.DoubleTransition>(Assert.Single(chart.Panel.Connectors.Transitions!));
+            Assert.Equal(Visual.OpacityProperty, fade.Property);
+            Assert.Equal(TimeSpan.FromMilliseconds(260), fade.Duration);
 
             stage.Advance(OrgChart.Move + TimeSpan.FromMilliseconds(20));
-            Assert.NotNull(chart.Panel.Connectors.Transitions);                                    // then they fade back in, 260 ms
+            Assert.Same(fade, Assert.Single(chart.Panel.Connectors.Transitions!));                  // the same fade returns after landing
+            Assert.Equal(1, chart.Panel.Connectors.GetBaseValue(Visual.OpacityProperty).Value);
             Assert.Equal(2, chart.Panel.Connectors.Plan!.Kids.Count);
         });
     }

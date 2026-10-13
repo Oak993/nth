@@ -83,6 +83,8 @@ public sealed class ArmillaMark : Control
         Glyph = Glyph,
         Nodes = Kind == ArmillaKind.Live ? Nodes : [],
         Dark = PlainControls.IsDark(ActualThemeVariant),
+        AnimateAppearance = true,
+        ReduceAppearance = EnvironmentValues.GetAccessibilityReduceMotion(this),
         Mono = Mono,
         Rest = Kind != ArmillaKind.Live,
         Reduce = Calm || Kind == ArmillaKind.Still || EnvironmentValues.GetAccessibilityReduceMotion(this),
@@ -216,7 +218,11 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
         {
             case ArmillaLook look:
                 if (engine is null) engine = new ArmillaEngine(look) { Visible = !hidden };
-                else engine.Set(look);
+                else
+                {
+                    if (engine.Look.Dark != look.Dark) lastTime = double.NaN;
+                    engine.Set(look);
+                }
                 more = true;
                 Invalidate();
                 Request();

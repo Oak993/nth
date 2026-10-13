@@ -20,6 +20,9 @@ public sealed record ArmillaLook
     public IReadOnlyList<ArmillaNode> Nodes { get; init; } = [];
 
     public bool Dark { get; init; } = true;
+    // ED-NEW-dextra-open-8: a still pose may still ease its appearance palette on the compositor.
+    public bool AnimateAppearance { get; init; }
+    public bool ReduceAppearance { get; init; }
 
     /// <summary>One colour (the tray): white on dark, black on light.</summary>
     public bool Mono { get; init; }
@@ -42,6 +45,7 @@ public sealed record ArmillaLook
     public bool Equals(ArmillaLook? other) =>
         other is not null && Size == other.Size && State == other.State && Glyph == other.Glyph && Dark == other.Dark && Mono == other.Mono
         && MonoKeepsWarm == other.MonoKeepsWarm && Rest == other.Rest && Reduce == other.Reduce && AutoVoice == other.AutoVoice
+        && AnimateAppearance == other.AnimateAppearance && ReduceAppearance == other.ReduceAppearance
         && Nodes.SequenceEqual(other.Nodes);
 
     public override int GetHashCode() => HashCode.Combine(Size, State, Glyph, Dark, Mono, Rest, Reduce, Nodes.Count);
@@ -85,10 +89,13 @@ internal sealed class ArmillaEngine
     private double restKeyTime, restAccum;
     private ArmillaState? restKey;
     private bool snapPending = true;
+    private static readonly Animation appearanceCurve = Animation.TimingCurve(.25, .1, .25, 1, .32);
+    private double darkness, appearanceFrom, appearanceTo, appearanceElapsed = .32;
 
     public ArmillaEngine(ArmillaLook look)
     {
         Look = look;
+        darkness = appearanceFrom = appearanceTo = look.Dark ? 1 : 0;
         State = look.State;
         var pose = Pose();
         Array.Copy(pose.V, p, Keys);
@@ -136,6 +143,17 @@ internal sealed class ArmillaEngine
     {
         ArgumentNullException.ThrowIfNull(next);
         var prev = Look;
+        if (!next.AnimateAppearance || next.ReduceAppearance)
+        {
+            darkness = appearanceFrom = appearanceTo = next.Dark ? 1 : 0;
+            appearanceElapsed = .32;
+        }
+        else if (next.Dark != prev.Dark)
+        {
+            appearanceFrom = darkness;
+            appearanceTo = next.Dark ? 1 : 0;
+            appearanceElapsed = 0;
+        }
         Look = next;
         if (next.State != State)
         {
@@ -191,6 +209,14 @@ internal sealed class ArmillaEngine
     /// </summary>
     public bool Tick(double dt, double now)
     {
+        var appearanceMoving = appearanceElapsed < .32;
+        if (appearanceMoving)
+        {
+            appearanceElapsed = Math.Min(.32, appearanceElapsed + Math.Max(0, dt));
+            darkness = appearanceFrom + (appearanceTo - appearanceFrom) * appearanceCurve.Progress(appearanceElapsed);
+            appearanceMoving = appearanceElapsed < .32;
+            Dirty = true;
+        }
         if (ReduceOn)
         {
             var pose = Pose();
@@ -203,7 +229,7 @@ internal sealed class ArmillaEngine
                 rmLvl += (target - rmLvl) * (1 - Math.Exp(-dt / (target > rmLvl ? .06 : .24)));
                 Dirty = true;
             }
-            return voice;
+            return voice || appearanceMoving;
         }
         snapPending = false;
         var more = false;
@@ -215,7 +241,7 @@ internal sealed class ArmillaEngine
         }
         Update(dt, now);
         Dirty = true;
-        return !Settled() || more;
+        return !Settled() || more || appearanceMoving;
     }
 
     /// <summary>Draws the mark as it stands after the last tick (still when motion is reduced).</summary>
@@ -465,11 +491,12 @@ internal sealed class ArmillaEngine
         var hb = s / 2;
         var tier = Tier;
         var ti = ArmillaPoses.Tiers[tier];
-        var dark = Look.Dark;
         var mono = Look.Mono;
-        var ink = mono ? (dark ? ArmillaPoses.MonoDark : ArmillaPoses.MonoLight) : dark ? ArmillaPoses.InkDark : ArmillaPoses.InkLight;
-        var warmC = mono && !Look.MonoKeepsWarm ? ink : dark ? ArmillaPoses.WarmDark : ArmillaPoses.WarmLight;
-        var glowOn = tier >= 2 && dark && !mono;
+        var ink = mono ? ArmillaRgb.Mix(ArmillaPoses.MonoLight, ArmillaPoses.MonoDark, darkness)
+            : ArmillaRgb.Mix(ArmillaPoses.InkLight, ArmillaPoses.InkDark, darkness);
+        var warmC = mono && !Look.MonoKeepsWarm ? ink : ArmillaRgb.Mix(ArmillaPoses.WarmLight, ArmillaPoses.WarmDark, darkness);
+        var glow = tier >= 2 && !mono ? darkness : 0;
+        var glowOn = glow > 0;
         var baseW = ArmillaPoses.StrokeFor(s);
         var cap = ti.RoundCap;
         var level = lvl;
@@ -512,7 +539,7 @@ internal sealed class ArmillaEngine
         // 1 core haze (dark, M and L): ambient light only, faint, wide and soft, so it never reads as a ball or a lens
         if (glowOn)
         {
-            var ca = .32 * al * (P(PoseKey.CoreA) + (.15 * vIn + .30 * vOut) * level + .03 * breathe * Math.Sin(Tau * bt / 11.3));
+            var ca = glow * .32 * al * (P(PoseKey.CoreA) + (.15 * vIn + .30 * vOut) * level + .03 * breathe * Math.Sin(Tau * bt / 11.3));
             if (ca > .002)
             {
                 ctx.FillHaze(.9 * hb, ink, ca);
@@ -584,7 +611,7 @@ internal sealed class ArmillaEngine
                 var rr = tr + wob * .006 * hb * Math.Sin(Tau * t / ArmillaPoses.WobblePeriods[(i + 3) % 6] + i);
                 var be = Math.Clamp(st.B, 0, 1) * busyK;
                 var gr = (tier == 3 ? .055 * hb : Math.Max(2.2, .065 * hb)) * (1 + .25 * be) * Math.Clamp(st.P, 0, 1.2);
-                var tint = mono ? ink : st.Tint ?? ArmillaPoses.Tint((int)st.Shape, dark); // each shape has its own tint (2.5)
+                var tint = mono ? ink : st.Tint ?? ArmillaRgb.Mix(ArmillaPoses.Tint((int)st.Shape, false), ArmillaPoses.Tint((int)st.Shape, true), darkness); // each shape has its own tint (2.5)
                 var rad = (ang - 90) * Deg;
                 double c = Math.Cos(rad), sn = Math.Sin(rad);
                 if (be > .01)
@@ -621,8 +648,8 @@ internal sealed class ArmillaEngine
         var gI = tier == 3 ? 2.1 : 1.7;
         void Glow(double r, double a0, double a1, double w, ArmillaRgb rgb, double a)
         {
-            Arc(ctx, r, a0, a1, w * gO, rgb, a * .02, round: false);
-            Arc(ctx, r, a0, a1, w * gI, rgb, a * .05, round: false);
+            Arc(ctx, r, a0, a1, w * gO, rgb, a * .02 * glow, round: false);
+            Arc(ctx, r, a0, a1, w * gI, rgb, a * .05 * glow, round: false);
         }
         void DrawLong(double r, double a0, double a1)
         {
@@ -647,7 +674,7 @@ internal sealed class ArmillaEngine
             }
         }
         // 6 scan trail (thinking, M and L): the attention may step out, but its light never leaves the box
-        var r2 = Math.Min(Math.Min(r0 + off2 * hb, .955 * hb - w2 * (glowOn ? (tier == 3 ? 1.8 : 1.3) : .5)), hb - 1.5 - w2 / 2);
+        var r2 = Math.Min(Math.Min(r0 + off2 * hb, .955 * hb - w2 * (.5 + glow * (tier == 3 ? 1.3 : .8))), hb - 1.5 - w2 / 2);
         var scanAmp = P(PoseKey.ScanAmp);
         if (tier >= 2 && scanAmp > 2 && !still)
         {

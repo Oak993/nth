@@ -44,6 +44,7 @@ public sealed class MemoryImportWatch : IDisposable
     private readonly TimeProvider clock;
     private readonly TimeSpan wait;
     private readonly Func<Action, Task> run;
+    private readonly Func<Task<IReadOnlyList<MemoryImportSource>>>? refreshSources;
     private readonly object gate = new();
     private readonly List<FileSystemWatcher> watchers = [];
     private ITimer? timer;
@@ -56,13 +57,15 @@ public sealed class MemoryImportWatch : IDisposable
     /// <param name="time">The clock the wait runs on.</param>
     /// <param name="wait">How long after the last change the import runs.</param>
     /// <param name="runner">Runs the import away from the caller; the default is the thread pool.</param>
-    public MemoryImportWatch(MemoryImport import, Func<IReadOnlyList<MemoryImportSource>> sources, TimeProvider? time = null, TimeSpan? wait = null, Func<Action, Task>? runner = null)
+    public MemoryImportWatch(MemoryImport import, Func<IReadOnlyList<MemoryImportSource>> sources, TimeProvider? time = null, TimeSpan? wait = null, Func<Action, Task>? runner = null,
+        Func<Task<IReadOnlyList<MemoryImportSource>>>? refreshSources = null)
     {
         this.import = import ?? throw new ArgumentNullException(nameof(import));
         this.sources = sources ?? throw new ArgumentNullException(nameof(sources));
         clock = time ?? TimeProvider.System;
         this.wait = wait ?? DefaultWait;
         run = runner ?? (work => Task.Run(work));
+        this.refreshSources = refreshSources;
     }
 
     /// <summary>An import the watch started finished.</summary>
@@ -123,7 +126,31 @@ public sealed class MemoryImportWatch : IDisposable
             if (running) { again = true; return; }
             running = true;
         }
-        _ = run(RunImport);
+        if (refreshSources is null) _ = run(RunImport);
+        else _ = Task.Run(RunImportAsync);
+    }
+
+    // ED-NEW-dextra-open-6: capture live account/project metadata on its actor, then import on the worker.
+    private async Task RunImportAsync()
+    {
+        while (true)
+        {
+            try
+            {
+                var current = await refreshSources!().ConfigureAwait(false);
+                lock (gate) if (disposed) { running = false; again = false; return; }
+                Imported?.Invoke(import.Import(current, ImportMode.Watch));
+            }
+            catch (Exception error) when (error is not OutOfMemoryException)
+            {
+                Faulted?.Invoke("Notes could not be imported: " + error.Message);
+            }
+            lock (gate)
+            {
+                if (!again || disposed) { running = false; again = false; return; }
+                again = false;
+            }
+        }
     }
 
     private void RunImport()

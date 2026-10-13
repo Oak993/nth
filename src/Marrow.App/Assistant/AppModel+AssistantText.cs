@@ -32,7 +32,7 @@ public sealed partial class AppModel
     {
         var kind = who.Provider;
         // Other CLIs keep their own allow rules; never substitute a different provider for a named delegate.
-        if (kind != ProviderKind.Codex && !TextOnlyAccountHead.Supports(kind)) return null;
+        if (!DextraTextRoutes.Supports(kind)) return null;
         var account = accountId is { } pinned ? Settings.Accounts.Accounts.FirstOrDefault(a => a.Id == pinned && a.Service == kind) : Settings.Accounts.Choose(kind);
         if (account is null || !account.Enabled || !IsAccountConnected(account) || !CanUseAccount(account.Id)) return null;
         var model = who.Model ?? Providers.DefaultModel(kind)?.Id;
@@ -47,17 +47,16 @@ public sealed partial class AppModel
         };
         AssistantModelCall? receipt = null;
         Func<string, CancellationToken, Task<string?>> ask;
-        if (kind == ProviderKind.Codex)
+        if (kind == ProviderKind.Commandcode)
         {
             var configured = Providers.PrepareSession(source, account.Id, useAccountDefaults: false);
-            if (configured.Executable is not { } executable) return null;
-            TextGeneration.Engine engine = new TextGeneration.Engine.Codex(executable.Path, configured.Environment, model);
-            ask = async (prompt, cancel) =>
+            if (configured.Executable is null) return null;
+            ask = (prompt, cancel) => MainActor.Invoke<string?>(async () =>
             {
-                var work = TaskHandle.DetachedThrowing(() => TextGeneration.Complete(prompt, engine, spend => MainActor.Post(() => receipt?.Observe(spend))));
-                using var registration = cancel.Register(work.Cancel);
-                return await work.Value.ConfigureAwait(false);
-            };
+                return await CommandCodeTextHead.RunAsync(configured, prompt,
+                    () => MainActor.IsIsolated && CanUseAccount(account.Id) && IsAccountConnected(account), cancel,
+                    spend => { if (MainActor.IsIsolated) receipt?.Observe(spend); else MainActor.Post(() => receipt?.Observe(spend)); });
+            });
         }
         else ask = (prompt, cancel) => MainActor.Invoke<string?>(async () =>
         {

@@ -41,6 +41,7 @@ public sealed partial class AssistantStore
         lock (gate)
         {
             ThrowIfClosed();
+            options.FileIO?.Invoke(MemoryRoot);
             if (!Directory.Exists(MemoryRoot)) return [];
             return [.. Directory.EnumerateDirectories(MemoryRoot).Select(d => Path.GetFileName(d)).Where(n => n == SharedScope || IsId(n)).Order(StringComparer.Ordinal)];
         }
@@ -54,6 +55,7 @@ public sealed partial class AssistantStore
         {
             ThrowIfClosed();
             var folder = Path.Combine(MemoryRoot, scope);
+            options.FileIO?.Invoke(MemoryRoot);
             if (!Directory.Exists(folder)) return [];
             return [.. Directory.EnumerateFiles(folder, "*.md").Select(p => Path.GetFileName(p)).Where(n => MemoryFileShape().IsMatch(n)).Order(StringComparer.Ordinal)];
         }
@@ -71,6 +73,7 @@ public sealed partial class AssistantStore
         {
             ThrowIfClosed();
             var path = Path.Combine(MemoryRoot, scope, fileName);
+            options.FileIO?.Invoke(path);
             if (!File.Exists(path)) return null;
             if (new FileInfo(path).Length > MaxMemoryFileBytes) throw new InvalidDataException($"The memory file \"{fileName}\" is larger than {MaxMemoryFileBytes / 1024 / 1024} MB.");
             return File.ReadAllText(path, Utf8);
@@ -102,6 +105,7 @@ public sealed partial class AssistantStore
         {
             ThrowIfClosed();
             var path = Path.Combine(MemoryRoot, scope, fileName);
+            options.FileIO?.Invoke(path);
             if (!File.Exists(path)) return false;
             File.Delete(path);
             return true;
@@ -124,6 +128,7 @@ public sealed partial class AssistantStore
         lock (gate)
         {
             ThrowIfClosed();
+            options.FileIO?.Invoke(MemoryRoot);
             Directory.CreateDirectory(MemoryRoot);
             SaveDocument(Path.Combine(MemoryRoot, MemoryStateFile), document);
         }
@@ -135,6 +140,7 @@ public sealed partial class AssistantStore
         lock (gate)
         {
             ThrowIfClosed();
+            options.FileIO?.Invoke(MemoryRoot);
             if (!Directory.Exists(MemoryRoot)) return 0;
             var removed = 0;
             foreach (var folder in Directory.EnumerateDirectories(MemoryRoot).Prepend(MemoryRoot))

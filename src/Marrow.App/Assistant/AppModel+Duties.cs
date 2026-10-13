@@ -33,16 +33,30 @@ public sealed partial class AppModel
         ArgumentNullException.ThrowIfNull(controller);
         ArgumentNullException.ThrowIfNull(store);
         Duties?.Dispose();
-        var host = new DutyHost(new DutyHostOptions
+        var host = new DutyHost(DutyOptions(controller, store, mode, assistantIds, tray, quit, seams, digest, withDigest));
+        (tools ?? DutyToolsGate).Bind(host.Tools);
+        Duties = host;
+        return host;
+    }
+
+    internal DutyHostOptions DutyOptions(AssistantController controller, AssistantStore store, StartupMode mode,
+        Func<IReadOnlyList<string>>? assistantIds, AppTray? tray, Action? quit, DutySeams? seams, DigestSetup? digest, bool withDigest, Func<bool>? activated = null)
+    {
+        var startupProjects = Projects.Select(p => p.Path).ToArray();
+        return new DutyHostOptions
         {
             Store = store,
+            Activated = activated ?? (() => true),
             Controller = controller,
+            Provider = controller.Provider,
+            Model = controller.Model,
             Events = AssistantEvents,
-            // Older duty folders can precede AS-16 profile files. Keep those duties loaded when this host is replaced.
-            AssistantIds = assistantIds ?? (() => store.AssistantIds().Concat(BackgroundStart.AssistantsWithDuties(store)).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray()),
+            AssistantIds = assistantIds ?? (() => [.. controller.Profiles.Where(p => !p.Retired).Select(p => p.Id)]),
             OnMain = work => MainActor.Post(work),
             Projects = () => [.. Projects.Select(p => new MissionProject(p.Id, p.Name, p.Path))],
-            FolderGranted = path => IsFolderOpenToDextra(path, controller),
+            FolderGranted = path => activated is not null && !activated()
+                ? startupProjects.Any(root => PathRules.IsInside(path, root, strict: false)) || controller.Grants.Any(g => g.Target.Kind == GrantTargetKind.Folder && g.Target.Covers(GrantTarget.Folder(path)))
+                : IsFolderOpenToDextra(path, controller),
             ExePath = () => Environment.ProcessPath ?? "",
             Mode = mode,
             Tray = tray ?? Tray,
@@ -58,10 +72,15 @@ public sealed partial class AppModel
             AssistantName = id => id,
             AccountNames = () => [.. Settings.Accounts.Accounts.Select(a => Settings.Accounts.DisplayName(a.Id)).OfType<string>().Where(n => !string.IsNullOrWhiteSpace(n))],
             Digest = withDigest ? digest ?? DigestSetupOf(controller) : null,
-        });
-        (tools ?? DutyToolsGate).Bind(host.Tools);
+        };
+    }
+
+    internal void CompleteDutyStart(DutyHost host)
+    {
+        Duties?.Dispose();
+        DutyToolsGate.Bind(host.Tools);
         Duties = host;
-        return host;
+        host.AttachTray();
     }
 
     /// <summary>

@@ -8334,3 +8334,127 @@ LEAD-REVIEW: the approved canvas has only the reach scope picker, so a second pi
 
 ### CU-DX-OPEN unusable brain fallback refusal (ED-NEW-dextra-open-3, 2026-10-13)
 - Brain metadata retains a fallback even when a configured account is missing or unavailable; its Usable flag is false. The Suggestions one-shot binding now refuses that metadata before interpreting its account key. In particular, a missing named brain pin cannot become a usable legacy account through the fallback default key. Two recorded named/default cases failed twice alone before this guard (6P/2F/8 each), and no factory was allowed on refusal. Existing brain selection for planning is unchanged; no model, CLI or provider was contacted.
+
+
+## ED-NEW-dextra-fix-6
+
+ENGINEERING DECISION (CU-DX-FIX F6, DESIGN.md 5.3, 15.3): before appending feed events, terminate a non-newline tail under the existing store lock. Preserve every prior byte; the torn line stays unreadable, and the next complete events remain readable. Regression: DextraFixFeedTests.
+
+## ED-NEW-dextra-fix-7
+
+ENGINEERING DECISION (CU-DX-FIX F7, DESIGN.md 13.2, 15.3): missing cost and duty-health books are empty; present non-object or unparsable books refuse controller startup with InvalidDataException. Never overwrite the unreadable books or run with zero spend or forgotten breaker pauses. The original files remain available for repair. Regression: DextraFixDamagedSafetyTests.
+
+
+## ED-NEW-dextra-fix-1
+
+ENGINEERING DECISION (CU-DX-FIX F1, DESIGN.md 2.6, 7.4, 15.3): One DextraHost owns every background and foreground start, including store, audit, grants, team, purchases, stop scopes and live/voice bindings. Off and incomplete first run forbid both paths. Stop releases controller and duties before the audit/store. Regression: DextraFixStartupTests.
+
+
+## ED-NEW-dextra-fix-2
+
+ENGINEERING DECISION (CU-DX-FIX F2, DESIGN.md 2.6, 7.4, 15.3): A foreground start creates and starts duties on the same controller and store even with no duties file. Make the Morning digest once; bind tools and keep-working-on-close to the current model duties rather than a captured launch host. Background launches restore the existing digest only. Regression: DextraFixFirstDutyTests.
+
+
+## ED-NEW-dextra-fix-3
+
+ENGINEERING DECISION (CU-DX-FIX F3, DESIGN.md 2.6, 7.4, 15.3): Every startup opens the mission store with MissionJournal.Interrupted: live crash records pause with Resume, stopping records become stopped, and working/pausing heads pause. Regression: DextraFixInterruptedTests.
+
+
+## ED-NEW-dextra-fix-4
+
+ENGINEERING DECISION (CU-DX-FIX F4, DESIGN.md 11.6, 15.6): duty launch asks the same PickLead router as start_mission, preserving the chosen provider, model and account. If no eligible route exists, use the configured controller brain and account, never an implicit Claude default. Regression: DextraFixDutyRoutingTests.
+
+## ED-NEW-dextra-fix-5
+
+ENGINEERING DECISION (CU-DX-FIX F5, DESIGN.md 12.6, 13.2): cancellation after gate admission returns the placeholder slot in both lead and reviewer launch paths. Regressions deterministically cancel from AgentGate.Changed at admission, before the launch cancellation check; no timer race or Sleep. Regression: DextraFixAdmittedStopTests.
+
+
+
+## ED-NEW-dextra-fix-8
+
+ENGINEERING DECISION (CU-DX-FIX F8, DESIGN.md 2.2, 2.5, 9.4, OD-0076): Short stacked homes scroll the conversation and Board as one page; Auto rows keep their measured content in order without overlap. The header stays fixed, and every final mission remains reachable in short RTL windows.
+
+
+## ED-NEW-dextra-fix-9
+
+ENGINEERING DECISION (CU-DX-FIX F9, DESIGN.md 2.2, 2.5, 9.4, OD-0076): Header and hero orbit nodes read AsturPresences.Busy from the same team snapshot as OrgNode; without a Team source use the profile owner and mission states. Subscribe to Team.Changed so a finished or retired Astur updates both marks.
+
+
+## ED-NEW-dextra-fix-10
+
+ENGINEERING DECISION (CU-DX-FIX F10, DESIGN.md 2.2, 2.5, 9.4, OD-0076): Confirmed F10: Positions read Bounds alone while Glide moves RenderTransform. Capture the effective drawn position before retargeting and retain current transform values when replacing transitions. Enter applies only to genuinely fresh nodes, not an already entering node. Native interruption continuity remains a lead check.
+
+
+## ED-NEW-dextra-fix-11
+
+ENGINEERING DECISION (CU-DX-FIX F11, DESIGN.md 2.2, 2.5, 9.4, OD-0076): Confirmed F11: hover was bound to the lifted face, so bottom-strip hit testing alternated after the face moved. Bind hover to a fixed transparent parent; lift the face only. Deterministic headless bottom-strip pointer checks preserve the 2 px lift and reduce-motion behavior.
+
+
+## ED-NEW-dextra-fix-12
+
+ENGINEERING DECISION (CU-DX-FIX F12, DESIGN.md 2.2, 2.5, 9.4, OD-0076): OD-0076 requires every change to transition. Replace OrgChartMotionTests hard-cut assertion (Opacity zero with null Transitions) with an equal-or-stricter requirement for a 260 ms opacity transition toward zero, followed by the existing delayed fade in. DESIGN.md 9.4 and index.html 2875-2886 do not exempt connectors from OD-0076. Native frame continuity remains a lead check.
+
+
+### CU-DX-FIX independent review follow-up (ED-NEW-dextra-fix-1, -2, -9, -12)
+
+The common startup creates and refreshes the one shell tray before checking On, first run or duties files, so a first foreground start can keep working on close and an Off hidden launch retains Open nth without a controller. Saved profiles use AssistantTeam.Open and AssistantProfileFile validation; saved root safety rules and retired Asturs remain in policy chains, retired duties are not scheduled, and a present unusable root refuses startup without changing its file. Missing legacy duty profiles retain the prior compatibility fallback only when no profile file exists. Regressions: DextraFixStartupReviewTests and DextraFixProfileSafetyTests.
+
+Team events are coalesced and marshalled to the UI dispatcher; a worker-thread regression reproduces the former access error. Connector geometry is held through fade-out and replaced only after the move before fade-in; a second change keeps the old geometry and resets the timer, with a serial guard against stale posted callbacks. Regressions: DextraFixHomeBusyTests and DextraFixConnectorTests.
+
+DextraFixMotionNativeTests is written but never run by this worker. Its Thread.Sleep calls are Native-only waits for real compositor animation frames, not concurrency evidence; deterministic headless tests cover the repaired capture, hit-test, timer and thread boundaries. The lead still owes real-window continuity and screen-pixel/60-fps acceptance. No package or owner decision is added.
+
+
+### CU-DX-FIX host replacement (ED-NEW-dextra-fix-2)
+
+The lean regression DigestLaunchTests.Starting_the_duties_the_way_turning_Dextra_on_does_makes_the_Morning_digest_duty_beside_the_owners_own failed twice alone after unifying startup: a replacement duty host loaded only IDs with profile files and lost an existing legacy duty folder while making the digest under the current root. StartDuties now defaults to the controller policy profiles, excluding retired profiles, just as common startup does. This retains the existing duty alongside the digest without weakening the assertion or falling back to an unvalidated present profile.
+
+## ED-NEW-dextra-f4-1
+2026-10-13 - nth's own files are protected in every start of Dextra (Dextra review finding "protected roots leave nth's own settings and library writable", confirmed and fixed by Claude Opus 5.5; DESIGN.md rev 5, 12.1a "changes nth's own settings and grants", 12.3 point 2, 4.3; tests NthOwnFilesTests). ENGINEERING DECISIONS. PORT-ONLY. Corrects ED-NEW-dextra-as5-12 item 1, which said StartDextra is given "the audit folder, the settings": it was given the audit folder only, and by the window's start only; nothing is withdrawn.
+1. THE GAP (confirmed from the code, and by the new tests failing before the fix): StartDextra protected the store's folder and what its caller passed. The window's start (DextraHost.Production) passed the audit folder; the launch's start for the duties (BackgroundStart.Run) passed nothing. nth's data root (%LOCALAPPDATA%\nth: library.json; UserDefaults.json, which holds Dextra's On switch, its grants, the delegate's scope, the stop chord and the background switches; the threads; mcp.json) was in no protected root. A mission agent's write there classified as WriteElsewhere ("writes outside the access folders"): a card asking the owner ("Needs a grant"), or a yes from a folder grant covering it, never the hard deny "changes nth's own settings and grants". The delegate (AS-22) decides an owner's chat with the same roots, so with it on such a write became the delegate's card, or a grant's yes.
+2. THE FIX: StartDextra itself adds nth's own files (AppModel.NthOwnFiles) beside the store's folder: Storage.Root as bound when Dextra starts (the data root that holds library.json, UserDefaults.json, the store and the activity log in production; a test's own root in a test), and the settings file at SettingsStore.ProductionPath(DevDataRoot.LocalApplicationData()), the path Program.cs opens, named on its own so a data root bound elsewhere still leaves it protected (an empty LOCALAPPDATA protects the data root only, never throws). Being in StartDextra it holds for both start paths and for every classifier built from the controller's roots: every mission chat (Dextra's and the Asturs', AS-16/AS-17, one runner), the home chat and the delegate's view of an owner's chat (both HomeClassifier). No other place builds protected roots for a live agent: the injection self-check classifies its own fixed corpus (a made-up home), the teach guard classifies a taught command with no folders at all (so any write is already not one that runs alone, and is flagged), and the tool runner classifies nth-dextra tools, not files. BackgroundStart.Run now also passes the audit folder, as the window's start does, so both paths give StartDextra the same roots.
+3. WHAT STILL WORKS: a mission's own worktree (under the store, so inside the data root) stays plain work: the carve-out of ED-NEW-dextra-as5-13 keeps the asking chat's own worktree while no protected root lies inside it, and none does (the data root and the settings file are above or beside it). A folder of the owner's still asks. Reading is not changed (the protected roots decide writes and removals). Dextra's own writes (the store, the activity log) and nth's (library.json, UserDefaults.json) are the app's process, not an agent's approval, and never meet the classifier. Ordinary chats' worktrees live under %USERPROFILE%\.nth\worktrees, outside the data root.
+4. THE DELEGATE: an owner's chat that asks to write nth's files is a hard deny, which the delegate never takes: it stays the chat's own card for the owner (DelegateResponder: a Deny is nobody's decision to take), and no delegate card or grant answers it.
+5. TESTS (NthOwnFilesTests, over a real AppModel, fakes only, no provider): the window's start with the production layout (DefaultPathAssistantStorageRoots under the bound data root, the audit folder passed as DextraHost.Production passes it) refuses a mission's write to library.json, UserDefaults.json, mcp.json and the production settings path ("refused", no card), keeps the mission's worktree as Work and a folder of the owner's as WriteElsewhere; the launch's start for the duties (BackgroundLaunchRig, which gains an OnMain helper) raises no card for them while the owner's folder still gets one; the delegate leaves them to the chat. All three failed before the fix (WriteElsewhere, a "Needs a grant" card).
+6. NOT CHANGED (stated for the lead): nth's installed program folder (Velopack's %LOCALAPPDATA%\NthApp) and the pre-OD-0135 data folder %LOCALAPPDATA%\Marrow Code are not protected roots; a write there is still WriteElsewhere (it asks).
+7. No package is added.
+
+## ED-NEW-dextra-f4-2
+2026-10-13 - nth's program and its data folder of before the rename are protected roots too (follow-up to ED-NEW-dextra-f4-1 item 6, asked by the lead; Claude Opus 5.5; DESIGN.md rev 5, 12.1a "changes nth's own settings and grants", 12.3 point 2; tests NthOwnFilesTests). ENGINEERING DECISIONS. PORT-ONLY. Replaces ED-NEW-dextra-f4-1 item 6 (which left both unprotected); nothing else of it changes.
+1. THE GAP: nth's installed program (Velopack's %LOCALAPPDATA%\NthApp: Update.exe, current\ with the binaries, packages\) and the data folder of before OD-0135 (%LOCALAPPDATA%\Marrow Code, which the first launch after the rename copied and never moved, and which still holds the old settings, library and store) were in no protected root. A mission agent's write there was WriteElsewhere: a card asking the owner, or a folder grant's yes. A changed binary or Update.exe runs as nth the next time it starts, with the owner's grants and keys. The new tests failed on the code of ED-NEW-dextra-f4-1, twice each run alone (a "Needs a grant" card, WriteElsewhere).
+2. THE FIX: AppModel.NthOwnFiles (the one list StartDextra adds to every start's roots) also gives InstallRoot(AppContext.BaseDirectory) and %LOCALAPPDATA%\Marrow Code (DevDataRoot.LocalApplicationData() with AppInfo.LegacyDataFolderName, the folder LegacyDataCopy reads; left out with the settings file when LOCALAPPDATA is empty). InstallRoot is resolved, never written as a literal: the parent of the app's base directory when Velopack installed it (the same test the startup hook makes, Program.InstalledByVelopack: Update.exe beside the binaries' folder), so Update.exe and packages\ are covered as well as current\; else the base directory itself (a build run from its output folder, and a test run's own binaries). Like the rest of the list it holds for both start paths, every mission chat (Dextra's and the Asturs'), the home chat and the delegate's view of an owner's chat.
+3. NOTHING LEGITIMATE IS REFUSED: the protected roots decide only writes and removals (ActionClassifier.Write and Remove); reading or running nth's own executables (the nth-dextra, skills and advisor relays) is unchanged. No agent's folder lies in either place: mission worktrees are under the store in the data root, ordinary chats' worktrees under %USERPROFILE%\.nth\worktrees. Neither new root lies inside a mission's worktree, so the own-worktree carve-out (ED-NEW-dextra-as5-13) is unchanged. nth's own writes into its install (Velopack's update) are the app's process and never meet the classifier. With the delegate on, an owner's chat that asks to write into a running dev build's output folder is now a hard deny the delegate leaves to the chat's own card (ED-NEW-dextra-f4-1 item 4); the owner still answers it himself.
+4. TESTS (NthOwnFilesTests): the three start-path tests now also write the running binaries (this test run's Marrow.App.exe and Marrow.App.dll, no Velopack around them) and %LOCALAPPDATA%\Marrow Code\UserDefaults.json, refused in the window's start, the duties launch's start and the delegate; a Velopack layout in a throwaway folder (Update.exe beside current\) resolves to its root, and Update.exe, a package and a binary under it are hard denies while a sibling folder of a similar name still asks; without Update.exe the binaries' folder is the root.
+5. NOT CHANGED: the old home state folder (%USERPROFILE%\.marrow, the pre-rename worktrees and patches) is not a protected root; a write there still asks.
+6. No package is added.
+
+## ED-NEW-dextra-land-1
+2026-10-13 - The Velopack hook test lists the three private relays that precede the hook (Dextra review fix landing, CU-DX-FIX blocker 1). VelopackStartupHookTests.Main_runs_the_Velopack_hook_before_any_desktop_work_after_the_private_MCP_dispatch was written when the skills relay (SK-17) was the only private dispatch in Program.Main, and it has failed since the ask_advisor relay (ED-NEW-ignisadvisor-2) and the nth-dextra relay (ED-NEW-dextra-as4-3) were added before the hook.
+1. READ FIRST: AdvisorMcpBridge.RunClient and AssistantMcpBridge.RunClient (src/Marrow.Services) are the same kind of child as the skills relay: they check their arguments, connect a named-pipe client to the app that spawned them, copy standard input to the pipe and the pipe to standard output, and return. Their static state is a dictionary, a lazy pipe name (not started by RunClient) and an ambient default. No window, Avalonia, tray, settings, single-instance lock or toast is touched, so ED-235's rule (no desktop work before the hook) still holds.
+2. CHANGED: the test now asserts the exact 23-call sequence of Program.Main up to the hook: the three relay dispatches in order (skills, advisor, nth-dextra; seven calls each), then get_BaseDirectory and RunVelopackHook, and it checks the declaring type of every relay call, as it did for the skills one. It is stricter than before: three relay entries are pinned in their order instead of one, and any other call before the hook still fails it.
+3. NOT CHANGED: Program.cs, the relays, the hook, and the other tests of the class.
+4. No package is added.
+
+
+## ED-NEW-dextra-open-6
+
+ENGINEERING DECISION (CU-DX-OPEN2 item 2, 2026-10-13; DESIGN.md 2.6, 7.4, 15.3): foreground and hidden starts share the same asynchronous, epoch-owned DextraHost initialization. Capture only account/project/home/grant metadata on MainActor; open storage, audit and keys, construct persisted reserve/memory/delegate/controller/duty services, load missions and duties, and sync wake state on workers. Publish validated controller, bindings, tray and team on MainActor. Keep the old first-run/Off gate, saved-root validation, crash interruption policy, protected roots and failure wording. Never publish a stopped epoch. Hold automatic and explicit wake duties dormant until publication, then replay the explicit wake once. Resume restored delegation delivery only after publication. Preserve fresh import metadata on later asynchronous watcher runs, rather than permanently freezing startup accounts/projects.
+
+DextraStartOwnership owns partially built subscriptions and controller until successful transfer; outer initialization owns the controller before seam callbacks can throw. Failed starts release unpublished owners and permit retry. FirstFrameIO tests render a real Avalonia headless bitmap while storage is deliberately blocked on a worker in both foreground and hidden starts, then assert all observed store/service file operations remain off MainActor and the actual UI dispatcher. StartupIO adds deterministic epoch-stop/retry, canonical legacy profile roots, callback-failure disposal and deferred manual wake coverage. MemoryImportRefresh verifies fresh added/removed import sources with metadata on MainActor and I/O on a worker. No owner app is launched. This is headless first-frame and fixture ownership evidence, not native startup/60-fps acceptance.
+
+The startup red receipt uses a controlled restoration of the original constructor-on-MainActor behavior with the new instrumentation present (foreground/hidden fail twice), rather than claiming the uninstrumented old binary can observe its own file calls. BackgroundStartTests' existing exact failure prefix remains authoritative. DextraAsturBinding's background fixture now sets FirstRunDone=true, the required production startup precondition; it does not weaken that gate. LEAN: the bounded ManualResetEventSlim.Wait in the headless fixture deliberately holds a worker, never UI; there is no product UI wait. Native checks remain compile-only under CODEX-LOCAL.
+
+## ED-NEW-dextra-open-7
+
+ENGINEERING DECISION (CU-DX-OPEN2 item 1, 2026-10-13; DESIGN.md 4.3): enumerate the provider registry's 16 kinds. Claude uses its private empty-tool-set handshake route; Pi uses its nonce-acknowledged empty tool set and before-tool guard with extensions/skills/context files disabled; Deepseek, Meta, Zai, OpenRouter and Local use the one-round API text route with no tools/tool_choice advertised; Commandcode uses a fresh private HOME/cwd/environment and synchronous private mod that blocks every beforeToolCall, including native reads, agents, MCP and unknown tools. Require this process's nonce acknowledgement before sending any question. Preserve selected account/model authorization and usage receipts. Never broaden TextOnlyAccountHead's existing generic allowlist, resume a working conversation, inherit MCP/mod/skills configuration, or silently substitute another provider.
+
+Codex, Cursor, Opencode, OpencodeGo, Grok, Devin, Antigravity and Copilot remain unavailable because their currently sourced protocols do not prove an all-built-in-tools disabling gate or all-tool interception before execution. Codex read-only sandbox still allows reads; empty ACP/MCP lists and plan/read-only permissions do not disable native tools. Display a plain unavailable reason and disable both direct and keyboard selection, retain checked saved choices visibly, and refuse the same route at dispatch. Effective restriction failure sends no question. Fixture coverage includes every enabled route; no real provider/CLI is called. The actual Command Code policy runs only against a fake hook executor in Node, with all tool cases blocked and zero executor calls. Recorded protocol cases use CommandCodeSession's delta and run_end.finalText; action content after text still refuses, and denial errors omit the sentinel secret.
+
+Owner-authorized assertion replacement: CU-DX-OPEN2.md item 1 explicitly says, "the picker shows it as unavailable, with the plain reason, never a silent failure." This directly contradicts the old DelegateSettingsPageTests assertion that selecting unrestrictable Codex persists it as an enabled delegate choice. Retire only that assertion under this ED: keep the exact existing option order/IDs; assert Codex is disabled, visibly unavailable and selection cannot persist; assert supported Claude persists correctly and reset still works. DextraRestrictedPickerTests covers every registry kind and saved unavailable selections. All turnover/parity assertions and thresholds remain untouched.
+
+Private policy cleanup retains a FileStream DeleteOnClose handle to the exact opened object; a child-renamed directory or substituted NTFS junction cannot redirect file deletion. Stop failure still enters policy cleanup via nested finally. Only nonrecursive Directory.Delete is attempted afterwards. LEAN 9 justification: the IOException/UnauthorizedAccessException cleanup catch intentionally retains child-created files and never recursively follows runtime-owned paths; it carries no operational success claim and never logs credentials. Junction substitution and throwing Stop fixtures fail twice before the handle fix. Bounds: nonce proof wait 10 s, whole run 60 s, stop 10 s, 4096 events, 64k event and 32k answer. Cancellation/revocation/action/malformed/oversized replies fail closed.
+
+## ED-NEW-dextra-open-8
+
+ENGINEERING DECISION (CU-DX-OPEN2 item 3, 2026-10-13; OD-0076, existing LookCardTurnover .32 s ease): the settings sidebar ArmillaMark added by cb183c78133ead34ad78cb04447ff891a3b0e8f1 changed its appearance palette immediately, causing 82 painted pixel locations to jump (not an 82px layout displacement). Keep still geometry while interpolating ink, warm/node tint, medium/large glow opacity and its ring radius with the same .32 s CSS ease, from the currently painted appearance. Rapid reversal rebases from that painted state; accessibility ReduceAppearance snaps, while a Still mark may still ease appearance. Keep scheduling the compositor only while this palette is moving. No turnover test or tolerance changes.
+
+Required alone-twice comparison: frozen release fd73b82ee56480cbaa2ad08a15200284eaa13e8b passes all nine cases both times; plain Dextra 766f111811f78bff0c3b0caec91a71fd80e549ec and the own pre-fix tree fail all nine both times with the same 82-location cut. Exposure bisect: cb183c781 fails nine; its parent 8d46cfbbb passes nine after a compilation-only compatibility scaffold (next-commit FirstRunCard and AssistantSettingsParts, plus parent AssistantHomeHost's nonexistent SettingsPage.Assistant references mapped to General). The parent does not compile pristine; no SettingsView, renderer, turnover oracle or thresholds were altered for the scaffold. Pure ArmillaAppearanceTests verifies both directions at 13.8/48/72 px, no first-frame jump, .32 s completion, exact destination rendering and interruption continuity. Larger-mark glow regressions fail twice before interpolation. Physical compositor/pixels/60-fps Native evidence remains lead-only.

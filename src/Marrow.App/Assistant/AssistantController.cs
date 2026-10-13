@@ -49,6 +49,8 @@ public sealed class AssistantControllerOptions
 
     public string? Model { get; init; }
 
+    public Guid? AccountId { get; init; }
+
     public TimeProvider Time { get; init; } = TimeProvider.System;
 
     /// <summary>nth's own folders (the store, the audit log, the settings): an agent's write there is a hard deny (12.1a).</summary>
@@ -336,7 +338,17 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
     public ISuggestionIntake? Intake { get; set; }
 
     /// <summary>The id of Dextra itself (the profile with no parent), or null when no profile is set up.</summary>
+    public ProviderKind Provider => o.Provider;
+
+    public string? Model => o.Model;
+
+    public Guid? AccountId => o.AccountId;
+
+    /// <summary>The id of Dextra itself (the profile with no parent), or null when no profile is set up.</summary>
     public string? MainAssistantId => o.Profiles().FirstOrDefault(p => p.ParentId is null)?.Id;
+
+    /// <summary>The profiles used by this controller's policy chains, including retired ones for kept missions.</summary>
+    public IReadOnlyList<AssistantProfile> Profiles => o.Profiles();
 
     /// <summary>
     /// The model that reads the feed and composes the digest (13.2): the cheapest capable one, never dearer than the brain's own.

@@ -33,6 +33,8 @@ public sealed class DutyHostOptions
 
     public required AssistantController Controller { get; init; }
 
+    public Func<bool> Activated { get; init; } = () => true;
+
     public required AssistantEventBus Events { get; init; }
 
     /// <summary>The ids of the assistants whose duties are loaded.</summary>
@@ -113,7 +115,7 @@ public sealed class DutyHost : IDisposable
     private bool wakeAsked;
     private bool disposed;
 
-    public DutyHost(DutyHostOptions options)
+    public DutyHost(DutyHostOptions options, bool deferTray = false)
     {
         o = options ?? throw new ArgumentNullException(nameof(options));
         controller = o.Controller;
@@ -135,7 +137,7 @@ public sealed class DutyHost : IDisposable
             Launcher = (IDutyLauncher?)digestLauncher ?? Launcher,
             AssistantIds = o.AssistantIds,
             Time = o.Time,
-            MayFire = () => controller.Hold.DutiesMayFire,
+            MayFire = () => o.Activated() && controller.Hold.DutiesMayFire,
             FolderGranted = path => o.FolderGranted(path) || Switches.IsFolderApproved(path),
             Web = Web,
             DesktopLocked = () => o.Desktop.IsLocked,
@@ -179,7 +181,12 @@ public sealed class DutyHost : IDisposable
         Scheduler.DutyAdded += OnDutyAdded;
         Scheduler.Changed += OnSchedulerChanged;
         quitWhenDone = o.Mode.ForOneDuty;
-        if (o.Tray is { } icon) tray = DutyTray.Bind(icon, Scheduler, Switches);
+        if (!deferTray) AttachTray();
+    }
+
+    internal void AttachTray()
+    {
+        if (tray is null && o.Tray is { } icon) tray = DutyTray.Bind(icon, Scheduler, Switches);
     }
 
     /// <summary>The options the host was made with (a test reads what the app bound, AS-9).</summary>
@@ -248,13 +255,19 @@ public sealed class DutyHost : IDisposable
         ReraisePaused();
         SyncWake();
         _ = ReadWakeTimers();
-        if (o.Mode.DutyId is { } id)
+        if (o.Activated()) Activate();
+        return notes;
+    }
+
+    internal void Activate()
+    {
+        if (!o.Activated()) return;
+        if (o.Mode.DutyId is { } id && !wakeAsked)
         {
             var refused = Scheduler.WakeRun(id);
             wakeAsked = true;
             if (refused is not null) QuitIfDone();
         }
-        return notes;
     }
 
     private async Task ReadWakeTimers()

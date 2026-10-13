@@ -1,6 +1,7 @@
 using Marrow.App.Assistant;
 using Marrow.App.Tray;
 using Marrow.Core.Port.Assistant;
+using Marrow.Core.Port;
 using Marrow.Services.Assistant;
 using Marrow.Services.Tests.Fixtures;
 using Marrow.Testing;
@@ -15,11 +16,11 @@ internal sealed class BackgroundLaunchRig : IDisposable
     private readonly FakeTrayHost trayHost = new();
     private bool windowHidden = true;
 
-    public BackgroundLaunchRig(AssistantTempRoot temp)
+    public BackgroundLaunchRig(AssistantTempRoot temp, Guid? identity = null)
     {
         Temp = temp;
         Key = new Marrow.App.Safety.GlobalStop(chord, () => null);
-        Tray = new AppTray(trayHost, () => windowHidden);
+        Tray = new AppTray(trayHost, () => windowHidden, open: () => { });
         Model = harness.MakeModel();
         harness.PrepareBootstrap(Model);
         Seams = new BackgroundStartSeams
@@ -37,7 +38,14 @@ internal sealed class BackgroundLaunchRig : IDisposable
                 Time = new ManualTimeProvider(new DateTimeOffset(2026, 10, 13, 6, 0, 0, TimeSpan.Zero)),
             },
         };
+        var settings = new DextraSettings(new InMemorySettingsStore()) { Value = DextraPreferences.Default with { FirstRunDone = true, Id = identity } };
+        harness.Main.OnMain(() => Model.AssistantHost = new DextraHost(Model, settings, startup: Seams));
     }
+
+    /// <summary>Runs on the model's main thread, as the app's taps do.</summary>
+    public T OnMain<T>(Func<T> work) => harness.Main.OnMain(work);
+
+    public void OnMain(Action work) => harness.Main.OnMain(work);
 
     public AssistantTempRoot Temp { get; }
 
@@ -55,7 +63,9 @@ internal sealed class BackgroundLaunchRig : IDisposable
     public DutyHost? Run(StartupMode mode, out string? problem)
     {
         string? why = null;
-        var host = harness.Main.OnMain(() => BackgroundStart.Run(Model, mode, () => windowHidden, () => { }, () => Quits++, out why, Seams));
+        harness.Main.OnMain(() => Model.EnsureTray(() => windowHidden, null, () => { }, Seams.Tray).Refresh());
+        var host = harness.Main.Loop.Run(() => BackgroundStart.RunAsync(Model, mode, () => Quits++, Seams));
+        why = Model.AssistantHost.StartFault;
         problem = why;
         return host;
     }

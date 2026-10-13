@@ -14,12 +14,13 @@ public sealed class VelopackStartupHookTests
 {
     [Fact]
     [Trait("Decision", "ED-235")]
+    [Trait("Decision", "ED-NEW-dextra-land-1")]
     public void Main_runs_the_Velopack_hook_before_any_desktop_work_after_the_private_MCP_dispatch()
     {
         var main = typeof(Program).GetMethod(nameof(Program.Main), BindingFlags.Public | BindingFlags.Static)!;
         var il = main.GetMethodBody()!.GetILAsByteArray()!;
         var calls = new List<MethodBase>();
-        for (var at = 0; at < il.Length && calls.Count < 9;)
+        for (var at = 0; at < il.Length && calls.Count < 23;)
         {
             var code = il[at] == 0xFE ? Codes[(short)(0xFE00 | il[at + 1])] : Codes[il[at]];
             var operandAt = at + (il[at] == 0xFE ? 2 : 1);
@@ -28,18 +29,25 @@ public sealed class VelopackStartupHookTests
             at = operandAt + OperandSize(code, il, operandAt);
         }
 
-        // SK-17 owner-authorized headless exception: this exact private dispatch may precede the desktop hook.
-        // No settings, lock, toast, app lifetime or other calls can be inserted before the hook.
-        Assert.Equal(new[] { "FirstOrDefault", "op_Equality", "OpenStandardInput", "OpenStandardOutput",
-            "RunClient", "GetAwaiter", "GetResult", "get_BaseDirectory", nameof(Program.RunVelopackHook) },
-            calls.Select(call => call.Name));
-        Assert.Equal(typeof(Enumerable), calls[0].DeclaringType);
-        Assert.Equal(typeof(string), calls[1].DeclaringType);
-        Assert.Equal(typeof(Console), calls[2].DeclaringType);
-        Assert.Equal(typeof(Console), calls[3].DeclaringType);
-        Assert.Equal(typeof(Marrow.Services.Port.Skills.Providers.SkillsMcpBridge), calls[4].DeclaringType);
-        Assert.Equal(typeof(AppContext), calls[7].DeclaringType);
-        Assert.Equal(typeof(Program), calls[8].DeclaringType);
+        // SK-17 owner-authorized headless exception: exactly these three private dispatches may precede the desktop hook, in this order:
+        // the skills relay (SK-17), the ask_advisor relay (ED-NEW-ignisadvisor-2) and the nth-dextra relay (ED-NEW-dextra-as4-3). Each is a
+        // pipe client that copies standard input and output and returns; none opens a window, Avalonia, a tray, settings or a lock
+        // (ED-NEW-dextra-land-1). No settings, lock, toast, app lifetime or other calls can be inserted before the hook.
+        string[] relay = ["FirstOrDefault", "op_Equality", "OpenStandardInput", "OpenStandardOutput", "RunClient", "GetAwaiter", "GetResult"];
+        Assert.Equal([.. relay, .. relay, .. relay, "get_BaseDirectory", nameof(Program.RunVelopackHook)], calls.Select(call => call.Name));
+        Type[] bridges = [typeof(Marrow.Services.Port.Skills.Providers.SkillsMcpBridge), typeof(Marrow.Services.Port.Advisor.AdvisorMcpBridge),
+            typeof(Marrow.Services.Assistant.AssistantMcpBridge)];
+        for (var i = 0; i < bridges.Length; i++)
+        {
+            var at = i * relay.Length;
+            Assert.Equal(typeof(Enumerable), calls[at].DeclaringType);
+            Assert.Equal(typeof(string), calls[at + 1].DeclaringType);
+            Assert.Equal(typeof(Console), calls[at + 2].DeclaringType);
+            Assert.Equal(typeof(Console), calls[at + 3].DeclaringType);
+            Assert.Equal(bridges[i], calls[at + 4].DeclaringType);
+        }
+        Assert.Equal(typeof(AppContext), calls[21].DeclaringType);
+        Assert.Equal(typeof(Program), calls[22].DeclaringType);
     }
 
     [Fact]

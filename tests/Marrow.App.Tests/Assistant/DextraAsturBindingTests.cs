@@ -24,7 +24,8 @@ public sealed class DextraAsturBindingTests
         var bad = new BackgroundStartSeams
         {
             Roots = () => temp.Roots, Keys = () => temp.Keys, StopKey = launch.Key, Tray = launch.Tray,
-            Host = new DutySeams { Time = new FailingStartupClock(() => failed = launch.Model.Dextra), RunKey = launch.Seams.Host!.RunKey, TaskHost = launch.Seams.Host.TaskHost, Processes = launch.Seams.Host.Processes, Desktop = launch.Seams.Host.Desktop },
+            ControllerBuilt = c => failed = c,
+            Host = new DutySeams { Time = new FailingStartupClock(() => { }), RunKey = launch.Seams.Host!.RunKey, TaskHost = launch.Seams.Host.TaskHost, Processes = launch.Seams.Host.Processes, Desktop = launch.Seams.Host.Desktop },
         };
         Assert.Null(launch.Main.Loop.Run(() => host.EnsureStartedAsync(bad)));
         Assert.NotNull(failed);
@@ -49,7 +50,9 @@ public sealed class DextraAsturBindingTests
             store.SaveDuties(astur.Id, DutyJson.Write(new DutyDocument([new Duty("shop-note", "Shop note", astur.Id, new ManualTrigger(), "Write a note.")])));
         }
         using var launch = new BackgroundLaunchRig(temp);
-        launch.Model.AssistantHost = new DextraHost(launch.Model, new DextraSettings(new Marrow.Testing.InMemorySettingsStore()),
+        var settings = new DextraSettings(new Marrow.Testing.InMemorySettingsStore());
+        settings.Update(p => p with { FirstRunDone = true });
+        launch.Model.AssistantHost = new DextraHost(launch.Model, settings,
             starter: (model, _, _) => model.Dextra, voice: (_, _, _) => null);
         Assert.NotNull(launch.Run(StartupMode.Normal, out var problem));
         Assert.Null(problem);
