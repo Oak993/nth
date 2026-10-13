@@ -559,6 +559,7 @@ public sealed class PaneHeader : Panel
                 Background = tab.IsChosen ? PaneTokens.HoverFill.Brush(this) : Brushes.Transparent,
                 Child = text,
             };
+            ContrastCue.SetChosen(pill, tab.IsChosen); // W20: under a contrast theme the chosen tab is ringed, not only tinted
             var kind = tab.Kind;
             var button = PlainControls.Button(pill, () => TabChosen?.Invoke(kind)).KeyboardFocus(12);
             AutomationProperties.SetName(button, tab.Name);

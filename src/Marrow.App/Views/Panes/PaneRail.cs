@@ -121,14 +121,17 @@ public sealed class PaneRailStrip : Border
     {
         base.OnPropertyChanged(change);
         if (change.Property == FlowDirectionProperty) turn.Angle = FlowDirection == FlowDirection.RightToLeft ? -90 : 90;
+        if (change.Property == EnvironmentValues.AccessibilityHighContrastProperty) ApplyLook(); // W20: solid under a contrast theme
     }
 
     private void ApplyLook()
     {
         ThemeVariant theme = ActualThemeVariant;
-        Background = PaneTokens.CardFill(theme, expanded: false);
-        BorderBrush = PaneTokens.Rim(theme, focused: false);
-        BoxShadow = PaneTokens.Shadow(theme);
+        var contrast = EnvironmentValues.GetAccessibilityHighContrast(this);
+        ContrastSurface.MatchTheme(this); // its glyphs take the system's colours on the solid rail
+        Background = PaneTokens.CardFill(theme, expanded: false, contrast);
+        BorderBrush = PaneTokens.Rim(theme, focused: false, contrast);
+        BoxShadow = PaneTokens.Shadow(theme, lifted: false, contrast);
     }
 
     private void Hover(Button button, Border face, PaneGlyph glyph) => button.OnHover(on =>

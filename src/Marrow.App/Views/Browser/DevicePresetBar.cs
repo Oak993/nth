@@ -8,6 +8,7 @@ using Avalonia.Media;
 using Marrow.Core.Localisation;
 using Marrow.Core.Web;
 using Marrow.UI.Panes;
+using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Browser;
 
@@ -43,6 +44,11 @@ public sealed class DevicePresetBar : Border
         ActualThemeVariantChanged += (_, _) => Refresh();
         AutomationProperties.SetName(this, UiText.Get("visus.preview.device_sizes"));
     }
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == EnvironmentValues.AccessibilityHighContrastProperty) Refresh(); // W20
+    }
     public string SizeText => size.Text ?? "";
     public DeviceMetrics Metrics => owner.Metrics;
     public void Refresh(DeviceMetrics? metrics = null)
@@ -53,11 +59,14 @@ public sealed class DevicePresetBar : Border
         {
             ((ToggleButton)button).IsChecked = owner.Tab.PreviewState.Preset == preset;
             button.Background = owner.Tab.PreviewState.Preset == preset ? PaneTokens.HoverFill.Brush(this) : Brushes.Transparent;
+            ContrastCue.Toggle(button, owner.Tab.PreviewState.Preset == preset, null, new Thickness(0)); // W20: outlined under a contrast theme
         }
         ((ToggleButton)reload).IsChecked = owner.Tab.PreviewState.ReloadOnSave;
         ((ToggleButton)console).IsChecked = owner.Drawer?.State.Open ?? owner.Tab.PreviewState.ConsoleOpen;
         reload.Background = ((ToggleButton)reload).IsChecked == true ? PaneTokens.HoverFill.Brush(this) : Brushes.Transparent;
         console.Background = ((ToggleButton)console).IsChecked == true ? PaneTokens.HoverFill.Brush(this) : Brushes.Transparent;
+        ContrastCue.Toggle(reload, ((ToggleButton)reload).IsChecked == true, PaneTokens.Line.Brush(this), new Thickness(1));
+        ContrastCue.Toggle(console, ((ToggleButton)console).IsChecked == true, PaneTokens.Line.Brush(this), new Thickness(1));
         var consoleLabel = (StackPanel)Label(UiText.Get("visus.preview.console"), new PreviewGlyph("Console") { Width = 13, Height = 13 }); consoleLabel.Spacing = 6;
         if (owner.Runtime.Diagnostics?.Errors is > 0 and var errors)
             consoleLabel.Children.Add(new Border

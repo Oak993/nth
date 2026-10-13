@@ -268,6 +268,7 @@ public sealed class NarrowTabStrip : Panel
             IsTabStop = isChosen;
             var foreground = (isChosen ? PaneTokens.Text1 : PaneTokens.Text2).Brush(this);
             face.Background = isChosen ? PaneTokens.NarrowTabFill.Brush(this) : hovered ? PaneTokens.HoverFill.Brush(this) : Brushes.Transparent;
+            ContrastCue.SetChosen(face, isChosen); // W20: ringed under a contrast theme, where the tint is the surface
             text.Foreground = hovered && !isChosen ? PaneTokens.Text1.Brush(this) : foreground;
             glyph.Foreground = text.Foreground;
         }

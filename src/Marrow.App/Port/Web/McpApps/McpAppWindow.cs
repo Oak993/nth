@@ -90,12 +90,25 @@ public sealed class McpAppWindow
         Grid.SetRow(body, 1);
 
         var grips = Grips();
+        var backdrop = new WindowBackdrop(0.5);
         frame = new Border
         {
             CornerRadius = new CornerRadius(14),
             ClipToBounds = true,
-            Child = new Grid { Children = { new WindowBackdrop(0.5), column, grips } },
+            Child = new Grid { Children = { backdrop, column, grips } },
             RenderTransformOrigin = RelativePoint.Center,
+        };
+        // W20 (DESIGN 10, ED-NEW-web-w20-1): under a Windows contrast theme the window's glass is the solid Window colour inside a
+        // 1 DIP system line, and its words and glyphs take the system's colours.
+        frame.PropertyChanged += (_, e) =>
+        {
+            if (e.Property != EnvironmentValues.AccessibilityHighContrastProperty) return;
+            var contrast = EnvironmentValues.GetAccessibilityHighContrast(frame);
+            ContrastSurface.MatchTheme(frame);
+            backdrop.IsVisible = contrast is null;
+            frame.Background = contrast?.Brush(ContrastRole.Surface);
+            frame.BorderBrush = contrast?.Brush(ContrastRole.Line);
+            frame.BorderThickness = new Thickness(contrast is null ? 0 : 1);
         };
         name.Foreground = PaneTokens.Text1.Brush(name);
         glyph.Foreground = PaneTokens.Text2.Brush(glyph);

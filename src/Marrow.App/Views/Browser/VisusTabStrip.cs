@@ -704,6 +704,7 @@ public sealed class VisusTabView : Button
         face.Background = chosen
             ? (Tab.Kind == VisusTabKind.Private ? VisusTokens.TabChosenPrivate : VisusTokens.TabChosen).Brush(this)
             : Brushes.Transparent;
+        ContrastCue.SetChosen(face, chosen); // W20: ringed under a contrast theme, where the tint is the surface
         title.Foreground = (chosen ? PaneTokens.Text1 : PaneTokens.Text2).Brush(this);
         closeGlyph.Foreground = PaneTokens.Text1.Brush(this);
         spinner.Foreground = PaneTokens.Text2.Brush(this);

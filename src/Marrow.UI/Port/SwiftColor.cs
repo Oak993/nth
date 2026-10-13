@@ -38,6 +38,10 @@ public sealed class SwiftColor
     private readonly SwiftColor? light;
     private readonly SwiftColor? dark;
     private readonly Func<SwiftColor>? live;
+    // Web surfaces W20 (ED-NEW-web-w20-1): what the colour is for under a Windows contrast theme, and the opacity applied to it
+    // since the role was given (a fade to nothing still fades there). None: drawn as it is in every mode.
+    private readonly ContrastRole contrast;
+    private readonly double contrastAlpha = 1;
 
     /// <summary>
     /// <c>Color(red:green:blue:opacity:)</c>, <c>Color(.sRGB, red:green:blue:opacity:)</c> and
@@ -62,14 +66,30 @@ public sealed class SwiftColor
     {
     }
 
-    private SwiftColor(Kind kind, double alpha, SwiftColor? light, SwiftColor? dark, Func<SwiftColor>? live = null)
+    private SwiftColor(Kind kind, double alpha, SwiftColor? light, SwiftColor? dark, Func<SwiftColor>? live = null, ContrastRole contrast = ContrastRole.None, double contrastAlpha = 1)
     {
         this.kind = kind;
         this.alpha = alpha;
         this.light = light;
         this.dark = dark;
         this.live = live;
+        this.contrast = contrast;
+        this.contrastAlpha = contrastAlpha;
     }
+
+    /// <summary>
+    /// PORT-ONLY, web surfaces W20 (DESIGN 10, ED-NEW-web-w20-1): the same colour, drawn as the system colour for
+    /// <paramref name="role"/> wherever a Windows contrast theme is on (EnvironmentValues.AccessibilityHighContrast). Without
+    /// one it resolves exactly as before.
+    /// </summary>
+    public SwiftColor InHighContrast(ContrastRole role) => new(Kind.Pair, 1, this, this, null, role);
+
+    /// <summary>The role a contrast theme draws this colour as (None: it is drawn as it is).</summary>
+    public ContrastRole HighContrastRole => contrast;
+
+    /// <summary>The colour drawn in the given appearance, or the role's system colour under a contrast theme's palette.</summary>
+    public Color Resolve(ThemeVariant theme, HighContrastPalette? palette) =>
+        palette is not null && contrast != ContrastRole.None ? Faded(palette.For(contrast), contrastAlpha) : Resolve(theme);
 
     /// <summary>
     /// PORT-ONLY (OD-0088, ED-250): a colour that is whatever <paramref name="current"/> returns when it is resolved, and a
@@ -228,7 +248,7 @@ public sealed class SwiftColor
     public SwiftColor Opacity(double opacity) => kind switch
     {
         Kind.Fixed => new SwiftColor(red, green, blue, alpha * opacity),
-        Kind.Pair => new SwiftColor(Kind.Pair, 1, light!.Opacity(opacity), dark!.Opacity(opacity)),
+        Kind.Pair => new SwiftColor(Kind.Pair, 1, light!.Opacity(opacity), dark!.Opacity(opacity), null, contrast, contrastAlpha * opacity),
         Kind.Live => new SwiftColor(Kind.Live, alpha * opacity, null, null, live),
         _ => new SwiftColor(Kind.Accent, alpha * opacity, null, null),
     };
@@ -330,7 +350,7 @@ public sealed class SwiftColor
     public IBrush Brush(Control control)
     {
         var brush = new SolidColorBrush();
-        if (kind == Kind.Fixed)
+        if (kind == Kind.Fixed) // a role is carried by a pair, so a fixed colour never needs the contrast theme
         {
             brush.Color = Resolve(control.ActualThemeVariant, CurrentAccent);
             return brush;
@@ -408,6 +428,12 @@ public sealed class SwiftColor
             this.control = control;
             // ED-254 (OD-0076, SPEC 6.5): inside a tree that turns over (AppearanceTurn), an appearance change eases.
             control.ActualThemeVariantChanged += (_, _) => { if (AppearanceTurn.Eases(control)) Ease(); else Update(); };
+            // W20: a contrast theme turning on or off (or its colours changing) redraws a colour that has a role at once.
+            if (color.contrast != ContrastRole.None)
+                control.PropertyChanged += (_, e) =>
+                {
+                    if (e.Property == EnvironmentValues.AccessibilityHighContrastProperty || e.Property == EnvironmentValues.AccessibilityContrastSurfaceProperty) Update();
+                };
             if (color.UsesAccent)
             {
                 // The platform settings live as long as the application; subscribe only while the control is in a
@@ -501,7 +527,10 @@ public sealed class SwiftColor
             else Dispatcher.UIThread.Post(Update);
         }
 
-        private Color Resolved() => color.Resolve(control.ActualThemeVariant, () => accent ?? CurrentAccent());
+        private Color Resolved() =>
+            color.contrast != ContrastRole.None && EnvironmentValues.ContrastPaletteFor(control) is { } palette
+                ? Faded(palette.For(color.contrast), color.contrastAlpha)
+                : color.Resolve(control.ActualThemeVariant, () => accent ?? CurrentAccent());
 
         private void Update()
         {

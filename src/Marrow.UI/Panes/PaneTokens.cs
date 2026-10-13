@@ -44,44 +44,44 @@ public static class PaneTokens
     private static SwiftColor Mist(double opacity) => new(red: 236 / 255.0, green: 236 / 255.0, blue: 238 / 255.0, opacity: opacity);
 
     /// <summary>The title and a chosen tab (canvas --t1).</summary>
-    public static SwiftColor Text1 { get; } = SwiftColor.Dynamic(light: Ink(.86), dark: Mist(1));
+    public static SwiftColor Text1 { get; } = SwiftColor.Dynamic(light: Ink(.86), dark: Mist(1)).InHighContrast(ContrastRole.Text);
 
     /// <summary>Header glyphs and buttons at rest (canvas --t2).</summary>
-    public static SwiftColor Text2 { get; } = SwiftColor.Dynamic(light: Ink(.62), dark: Mist(.68));
+    public static SwiftColor Text2 { get; } = SwiftColor.Dynamic(light: Ink(.62), dark: Mist(.68)).InHighContrast(ContrastRole.Text);
 
     /// <summary>The title's detail and tabs not chosen (canvas --t3, raised to keep 4.5:1).</summary>
-    public static SwiftColor Text3 { get; } = SwiftColor.Dynamic(light: Ink(.56), dark: Mist(.62));
+    public static SwiftColor Text3 { get; } = SwiftColor.Dynamic(light: Ink(.56), dark: Mist(.62)).InHighContrast(ContrastRole.Text);
 
     /// <summary>The header's hairline (canvas --line).</summary>
-    public static SwiftColor Line { get; } = SwiftColor.Dynamic(light: Ink(.08), dark: Paper(.08));
+    public static SwiftColor Line { get; } = SwiftColor.Dynamic(light: Ink(.08), dark: Paper(.08)).InHighContrast(ContrastRole.Line);
 
     /// <summary>A header button under the pointer and a chosen tab (canvas --fill2).</summary>
-    public static SwiftColor HoverFill { get; } = SwiftColor.Dynamic(light: Ink(.06), dark: Paper(.10));
+    public static SwiftColor HoverFill { get; } = SwiftColor.Dynamic(light: Ink(.06), dark: Paper(.10)).InHighContrast(ContrastRole.Surface);
 
     /// <summary>The chosen tab of the narrow window's strip (canvas .ntabs button.on: white .13).</summary>
-    public static SwiftColor NarrowTabFill { get; } = SwiftColor.Dynamic(light: Ink(.09), dark: Paper(.13));
+    public static SwiftColor NarrowTabFill { get; } = SwiftColor.Dynamic(light: Ink(.09), dark: Paper(.13)).InHighContrast(ContrastRole.Surface);
 
     /// <summary>The working chip's tint (canvas .pchip: --ok at .13 with a .4 rim).</summary>
     public static SwiftColor ChipFill { get; } = SwiftColor.Dynamic(
         light: new SwiftColor(red: 0.16, green: 0.55, blue: 0.33, opacity: .12),
-        dark: new SwiftColor(red: 91 / 255.0, green: 209 / 255.0, blue: 139 / 255.0, opacity: .13));
+        dark: new SwiftColor(red: 91 / 255.0, green: 209 / 255.0, blue: 139 / 255.0, opacity: .13)).InHighContrast(ContrastRole.Surface);
 
     public static SwiftColor ChipRim { get; } = SwiftColor.Dynamic(
         light: new SwiftColor(red: 0.16, green: 0.55, blue: 0.33, opacity: .35),
-        dark: new SwiftColor(red: 91 / 255.0, green: 209 / 255.0, blue: 139 / 255.0, opacity: .40));
+        dark: new SwiftColor(red: 91 / 255.0, green: 209 / 255.0, blue: 139 / 255.0, opacity: .40)).InHighContrast(ContrastRole.Line);
 
     public static SwiftColor ChipDot { get; } = SwiftColor.Dynamic(
         light: new SwiftColor(red: 0.13, green: 0.55, blue: 0.30),
-        dark: new SwiftColor(red: 91 / 255.0, green: 209 / 255.0, blue: 139 / 255.0));
+        dark: new SwiftColor(red: 91 / 255.0, green: 209 / 255.0, blue: 139 / 255.0)).InHighContrast(ContrastRole.Highlight);
 
     /// <summary>A drop target's dashed outline at rest (canvas .pane.dz::before: 1.5 DIP dashed, white .22).</summary>
-    public static SwiftColor DropOutline { get; } = SwiftColor.Dynamic(light: Ink(.24), dark: Paper(.22));
+    public static SwiftColor DropOutline { get; } = SwiftColor.Dynamic(light: Ink(.24), dark: Paper(.22)).InHighContrast(ContrastRole.Line);
 
     /// <summary>The drop target under the pointer: its solid rim (canvas .pane.drop::before: white .6).</summary>
-    public static SwiftColor DropRim { get; } = SwiftColor.Dynamic(light: Ink(.50), dark: Paper(.60));
+    public static SwiftColor DropRim { get; } = SwiftColor.Dynamic(light: Ink(.50), dark: Paper(.60)).InHighContrast(ContrastRole.Highlight);
 
     /// <summary>The drop target under the pointer: its soft fill (canvas .pane.drop::before: white .07).</summary>
-    public static SwiftColor DropFill { get; } = SwiftColor.Dynamic(light: Ink(.06), dark: Paper(.07));
+    public static SwiftColor DropFill { get; } = SwiftColor.Dynamic(light: Ink(.06), dark: Paper(.07)).InHighContrast(ContrastRole.Surface);
 
     /// <summary>A collapse rail's width and radius (DESIGN 3.5 "a 22 DIP rail", canvas .rail: 11 DIP radius).</summary>
     public const double RailCornerRadius = 11;
@@ -137,6 +137,21 @@ public static class PaneTokens
         var soft = lifted ? new BoxShadow { OffsetY = 26, Blur = 60, Spread = -12, Color = Black(.22) } : new BoxShadow { OffsetY = 14, Blur = 40, Spread = -14, Color = Black(.16) };
         return new BoxShadows(new BoxShadow { OffsetY = 1, Blur = 2, Color = Black(.08) }, [soft]);
     }
+
+    /// <summary>
+    /// The card under a Windows contrast theme (DESIGN 10 "glass falls back to solid system colours"; ED-NEW-web-w20-1): the
+    /// system's Window colour, solid. Null palette: the glass tint (<see cref="CardFill(ThemeVariant?, bool)"/>).
+    /// </summary>
+    public static IBrush CardFill(ThemeVariant? theme, bool expanded, HighContrastPalette? contrast) =>
+        contrast is null ? CardFill(theme, expanded) : contrast.Brush(ContrastRole.Surface);
+
+    /// <summary>The rim under a contrast theme: a 1 DIP system line (WindowText), Highlight while the pane has the keyboard.</summary>
+    public static IBrush Rim(ThemeVariant? theme, bool focused, HighContrastPalette? contrast) =>
+        contrast is null ? Rim(theme, focused) : contrast.Brush(focused ? ContrastRole.Highlight : ContrastRole.Line);
+
+    /// <summary>No shadow under a contrast theme: the solid card and its system line carry the edge.</summary>
+    public static BoxShadows Shadow(ThemeVariant? theme, bool lifted, HighContrastPalette? contrast) =>
+        contrast is null ? Shadow(theme, lifted) : default;
 
     private static GradientStop Stop(Color color, double offset) => new(color, offset);
 

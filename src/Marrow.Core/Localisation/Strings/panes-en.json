@@ -17,6 +17,8 @@
   "panes.splitter.side_chat_collapsed": "Side chat collapsed",
   "panes.splitter.resize_chat_and_panes": "Resize Chat and panes",
   "panes.splitter.panes_collapsed": "Panes collapsed",
+  "panes.announce.side_chat_restored": "Side chat restored",
+  "panes.announce.panes_restored": "Panes restored",
   "panes.splitter.resize_top_and_bottom_panes": "Resize top and bottom panes",
   "panes.splitter.resize_pair": "Resize {0} and {1}",
   "panes.splitter.resize": "Resize",
