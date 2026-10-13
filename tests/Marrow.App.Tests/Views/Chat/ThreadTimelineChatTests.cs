@@ -283,7 +283,8 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
             {
                 h.Main.Advance(TimeSpan.FromMilliseconds(step)); frames.Advance(TimeSpan.FromMilliseconds(step)); Drain(h); elapsed += step;
                 var progress = spring.Progress(elapsed / 1000.0);
-                Assert.Equal(progress, frame.Opacity, 4); Assert.Equal(0.6 + 0.4 * progress, Scale(), 4); Assert.Equal(10 * (1 - progress), Rise(), 4);
+                // ED-NEW-perf-motion-9 (3): the opacity is the drawn one, the spring's progress held to 0..1 where it passes its end.
+                Assert.Equal(Math.Clamp(progress, 0, 1), frame.Opacity, 4); Assert.Equal(0.6 + 0.4 * progress, Scale(), 4); Assert.Equal(10 * (1 - progress), Rise(), 4);
             }
             h.Main.Advance(TimeSpan.FromSeconds(2)); frames.Advance(TimeSpan.FromSeconds(2)); Drain(h);
             Assert.Equal(1, frame.Opacity); Assert.Equal(1, Scale(), 6); Assert.Equal(0, Rise(), 6);
@@ -302,7 +303,7 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
             {
                 h.Main.Advance(TimeSpan.FromMilliseconds(step)); frames.Advance(TimeSpan.FromMilliseconds(step)); Drain(h); elapsed += step;
                 var progress = spring.Progress(elapsed / 1000.0);
-                Assert.Equal(1 - progress, frame.Opacity, 4); Assert.Equal(1 - 0.15 * progress, Scale(), 4); Assert.Equal(6 * progress, Rise(), 4);
+                Assert.Equal(Math.Clamp(1 - progress, 0, 1), frame.Opacity, 4); Assert.Equal(1 - 0.15 * progress, Scale(), 4); // ED-NEW-perf-motion-9 (3) Assert.Equal(6 * progress, Rise(), 4);
                 Assert.Equal(resting + 0.15 * progress * (10 + radius) + 6 * progress, Centre(), 0.6); // leaving: scaled about the same point, then lowered by the offset
             }
             h.Main.Advance(TimeSpan.FromSeconds(2)); frames.Advance(TimeSpan.FromSeconds(2)); Drain(h);
