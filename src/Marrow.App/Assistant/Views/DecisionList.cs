@@ -25,12 +25,15 @@ public interface IDecisionSource
     event Action? Changed;
 }
 
-/// <summary>The decision queue as the tab's source.</summary>
-public sealed class QueueDecisions(DecisionQueue queue) : IDecisionSource
+/// <summary>
+/// The decision queue as the tab's source. <paramref name="answer"/> is the door answers go through when it is not the queue's
+/// own (the controller's AnswerCard: Pay on a purchase card goes to the purchase desk, AS-20).
+/// </summary>
+public sealed class QueueDecisions(DecisionQueue queue, Func<Guid, DecisionAnswer, string?>? answer = null) : IDecisionSource
 {
     public IReadOnlyList<DecisionItem> Waiting => queue.Waiting;
 
-    public string? Answer(Guid id, DecisionAnswer answer) => queue.Answer(id, answer);
+    public string? Answer(Guid id, DecisionAnswer given) => answer is null ? queue.Answer(id, given) : answer(id, given);
 
     public event Action? Changed
     {

@@ -40,7 +40,7 @@ public sealed class DextraLive : IDisposable
         ArgumentNullException.ThrowIfNull(controller);
         var jobs = RunnerMissionJobs.For(controller, new AppMissionAgents(model), assistantName);
         var controls = new ControllerGlobalControls(controller.Controls);
-        return new DextraLive(jobs, new QueueDecisions(controller.Queue), controls, controller, new Both(jobs, controls));
+        return new DextraLive(jobs, new QueueDecisions(controller.Queue, controller.AnswerCard), controls, controller, new Both(jobs, controls));
     }
 
     public void Dispose() => owned?.Dispose();
