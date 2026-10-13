@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Text;
 using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using Avalonia.Media.Imaging;
@@ -339,15 +340,42 @@ public static class TabulaPane
     /// ED-NEW-web-sec-artifacts-4 (security review L2): the page's error exactly as "Ask to fix" sends it and the notice shows it:
     /// the message (at most <see cref="FixMessageLimit"/> characters) and the stack's first <see cref="FixStackLines"/> lines (each
     /// at most <see cref="FixLineLimit"/>), with any copy of the untrusted block's tag broken. Nothing the user cannot read is sent.
+    /// + ED-NEW-web-sec-artifacts-9: first, every character the notice draws as nothing or that reorders what it draws is removed
+    /// (<see cref="Shown"/>), so a hidden instruction never reaches the model and a tag broken by one is whole when it is defused.
     /// </summary>
     public static (string Message, string Stack) FixReport(ArtifactRuntimeError error)
     {
         static string Cut(string text, int limit) => text.Length <= limit ? text : text[..(limit - 1)] + "…";
-        var message = Cut(WebAgentText.Defuse(error.Message.Trim()), FixMessageLimit);
-        var stack = WebAgentText.Defuse(error.Stack ?? "").Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n')
-            .Select(line => line.Trim()).Where(line => line.Length > 0).Take(FixStackLines).Select(line => Cut(line, FixLineLimit));
+        var message = Cut(WebAgentText.Defuse(Shown(error.Message)).Trim(), FixMessageLimit);
+        var stack = (error.Stack ?? "").Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n')
+            .Select(line => WebAgentText.Defuse(Shown(line)).Trim()).Where(line => line.Length > 0).Take(FixStackLines).Select(line => Cut(line, FixLineLimit));
         return (message, string.Join("\n", stack));
     }
+
+    /// <summary>
+    /// ED-NEW-web-sec-artifacts-9: a page's line as the notice can show it. Removed: format characters (zero-width ones, bidi
+    /// marks, embeddings, overrides and isolates, the soft hyphen, the tag block U+E0000 to U+E007F that spells ASCII no one sees),
+    /// variation selectors, the combining grapheme joiner, the Hangul and Khmer fillers, private-use and unassigned code points,
+    /// broken surrogates and control characters; a line or paragraph break inside the line becomes a space.
+    /// </summary>
+    internal static string Shown(string text)
+    {
+        var builder = new StringBuilder(text.Length);
+        foreach (var rune in text.EnumerateRunes())
+        {
+            if (rune.Value is '\t' or '\n' or '\r' or '\v' or '\f' or 0x85 or 0x2028 or 0x2029) builder.Append(' ');
+            else if (!Unseen(rune)) builder.Append(rune.ToString());
+        }
+
+        return builder.ToString();
+    }
+
+    // EnumerateRunes gives a broken surrogate as U+FFFD, which is dropped with them.
+    private static bool Unseen(Rune rune) =>
+        rune.Value is (>= 0xFE00 and <= 0xFE0F) or (>= 0xE0100 and <= 0xE01EF) or (>= 0x180B and <= 0x180F) or 0x034F
+            or 0x115F or 0x1160 or 0x3164 or 0xFFA0 or 0x17B4 or 0x17B5 or 0xFFFD
+        || Rune.GetUnicodeCategory(rune) is UnicodeCategory.Format or UnicodeCategory.Control or UnicodeCategory.PrivateUse
+            or UnicodeCategory.OtherNotAssigned or UnicodeCategory.Surrogate;
 
     /// <summary>
     /// The turn "Ask to fix" posts (6.3): the error and its stack.
