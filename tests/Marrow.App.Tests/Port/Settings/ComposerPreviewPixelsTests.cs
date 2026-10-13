@@ -42,18 +42,18 @@ public sealed class ComposerPreviewPixelsTests(HeadlessSession headless)
             window.UpdateLayout();
             Rect Frame(Visual v) => new(v.TranslatePoint(default, window)!.Value, v.Bounds.Size);
             var ringRect = Frame(preview.Ring);
-            var ring = PreviewPixels.Region(window, ringRect);
+            var ring = PreviewPixels.WholeRegion(window, ringRect);
             var chevron = RealComposerRig.Chevron(preview.Chip);
             var chip = Frame(preview.Chip);
             var chevronRect = Frame(chevron);
             var end = new Rect(chevronRect.X - 4, chip.Y, chip.Right - chevronRect.X + 4, chip.Height);
-            var chevronEnd = PreviewPixels.Region(window, end);
+            var chevronEnd = PreviewPixels.WholeRegion(window, end);
             var disc = Frame(preview.Send);
-            var rest = PreviewPixels.Region(window, disc);
+            var rest = PreviewPixels.WholeRegion(window, disc);
             session.Pick(PreviewState.Typing);
             runtime.AdvanceMilliseconds(300); frames.Advance(TimeSpan.FromMilliseconds(300));
             window.UpdateLayout();
-            var typing = PreviewPixels.Region(window, disc);
+            var typing = PreviewPixels.WholeRegion(window, disc);
 
             Assert.Equal(real.RingSize, ((int)Math.Round(ringRect.Width), (int)Math.Round(ringRect.Height)));
             Assert.Equal(real.ChevronEndSize, ((int)Math.Round(end.Width), (int)Math.Round(end.Height)));

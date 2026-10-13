@@ -38,6 +38,23 @@ public sealed class ThreadTimelineVisibilityBudgetTests(HeadlessSession headless
         }
     });
 
+    [Fact]
+    [Trait("Decision", "ED-NEW-gateprep-5")]
+    public void A_cleared_visible_set_is_reported_again_by_the_next_layout_pass_though_no_row_moved() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.SetEntries(TimelineMount.Turns(8, sentences: 8).ToList());
+        mount.Settle();
+        var tracking = mount.Field<TimelineScrollTracking>("tracking");
+        Assert.NotEmpty(Visible(mount));
+        // The memo of ED-NEW-perf-motion-8 names the offset, extent, viewport and rows drawn; the tracking's visible set is a fifth input, and clearing it moves none of the four.
+        tracking.ClearVisible();
+        Assert.Empty(Visible(mount));
+        mount.Host.InvalidateMeasure();
+        mount.Window.UpdateLayout();
+        Assert.NotEmpty(Visible(mount));
+        Assert.Equal(Walked(mount), Visible(mount));
+    });
+
     // What a walk of every row reports: the rows with at least 0.001 of their area in the viewport.
     private static HashSet<string> Walked(TimelineMount mount)
     {

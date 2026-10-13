@@ -645,7 +645,8 @@ public sealed class ThreadTimeline : Decorator
         if (!ReferenceEquals(currentScroll, scroll) || !initialAnchorApplied || !TimelineOnShow) { reported = null; return; } // rows that are fading out under the prompt report nothing (the jump button, a page of history)
         // ED-NEW-perf-motion-8: every layout pass of the window raises LayoutUpdated (a keystroke in the composer, a sidebar frame); the rows' places
         // in the viewport change only with the offset, the extent, the viewport or the rows drawn, so a pass that changed none of them reports nothing new.
-        var geometry = (scroll.Offset, scroll.Extent, scroll.Viewport, rowsDrawn);
+        // ED-NEW-gateprep-5: the memo names every input of the report; the tracking's visible set is one (a clear of it leaves the geometry as it was, and the rows must be reported again).
+        var geometry = (scroll.Offset, scroll.Extent, scroll.Viewport, rowsDrawn, tracking.VisibleClears);
         if (reported == geometry) return;
         reported = geometry;
         VisibilityReports++;
@@ -661,7 +662,7 @@ public sealed class ThreadTimeline : Decorator
     }
     private bool earlierPillVisible;
     private bool? endSeen;
-    private (Vector Offset, Size Extent, Size Viewport, int Rows)? reported;
+    private (Vector Offset, Size Extent, Size Viewport, int Rows, int Clears)? reported;
     private int rowsDrawn;
 
     /// <summary>Visibility reports that walked the rows (for tests).</summary>
@@ -1020,7 +1021,10 @@ public sealed class TimelineScrollTracking : MainActorModel, ScrollActivityRepor
     }
 
     // :1009-1012 func clearVisible()
-    public void ClearVisible() { visibleIDs.Clear(); if (ActiveBlockID is not null) ActiveBlockID = null; } // :1021-1024
+    public void ClearVisible() { visibleIDs.Clear(); VisibleClears++; if (ActiveBlockID is not null) ActiveBlockID = null; } // :1021-1024
+
+    /// <summary>PORT-ONLY (ED-NEW-gateprep-5): how many times the visible set was cleared; the timeline's visibility memo (ED-NEW-perf-motion-8) is keyed on it too.</summary>
+    internal int VisibleClears { get; private set; }
 
     // :1021 var isArriving: Bool
     public bool IsArriving =>

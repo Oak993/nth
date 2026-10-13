@@ -25,6 +25,31 @@ internal static class PreviewPixels
         return result;
     }
 
+    /// <summary>
+    /// <see cref="Region"/> of a frame the whole window was drawn in (ED-NEW-gateprep-3). A frame is drawn inside the union of its dirty rectangles, and Skia's CPU rasterizer, the headless one, gives an
+    /// antialiased path that clip cuts other edge pixels than the same path drawn whole (ED-NEW-glass-seams-1): the glass pieces' reach rectangles end inside the composer's Send disc, so the disc's
+    /// left arc came out as two variants of 16 pixels, 12 to 19 levels apart, by what had been redrawn before. The shipped renderer draws the same paths identically under any clip (ED-NEW-glass-seams-2).
+    /// A comparison of one control's ink against another's reads both from a whole frame: the window is made one point wider and back, so the surface is redrawn whole, then the region is read.
+    /// A plain InvalidateVisual of the window redraws nothing more (measured).
+    /// </summary>
+    internal static byte[] WholeRegion(Avalonia.Controls.Window window, Rect region)
+    {
+        var width = window.Width;
+        window.Width = width + 1;
+        Settle(window);
+        window.Width = width;
+        Settle(window);
+        return Region(window, region);
+    }
+
+    private static void Settle(Avalonia.Controls.Window window)
+    {
+        window.UpdateLayout();
+        Dispatcher.UIThread.RunJobs();
+        Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
+    }
+
     /// <summary>The region with its own top-left pixel taken off every pixel: what is drawn on the plate, whatever tint the plate's material has under it.</summary>
     internal static byte[] AgainstItsBackground(byte[] region)
     {

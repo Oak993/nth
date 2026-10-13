@@ -40,7 +40,7 @@ internal static class RealComposerRig
             words = One<ComposerNSTextView>(real).Placeholder;
             var controls = One<ComposerControls>(real);
             var ringRect = Frame(One<ContextMeter>(controls), window);
-            ring = PreviewPixels.Region(window, ringRect);
+            ring = PreviewPixels.WholeRegion(window, ringRect);
             ringSize = ((int)Math.Round(ringRect.Width), (int)Math.Round(ringRect.Height));
             var chip = One<ModelEffortSlot>(controls);
             var chevron = Chevron(chip);
@@ -48,15 +48,15 @@ internal static class RealComposerRig
             var chipRect = Frame(chip, window);
             var chevronRect = Frame(chevron, window);
             var end = new Rect(chevronRect.X - 4, chipRect.Y, chipRect.Right - chevronRect.X + 4, chipRect.Height);
-            chevronEnd = PreviewPixels.Region(window, end);
+            chevronEnd = PreviewPixels.WholeRegion(window, end);
             chevronSize = ((int)Math.Round(end.Width), (int)Math.Round(end.Height));
             discRect = Frame(SendDisc(controls), window);
             discSize = ((int)Math.Round(discRect.Width), (int)Math.Round(discRect.Height));
-            rest = PreviewPixels.Region(window, discRect);
+            rest = PreviewPixels.WholeRegion(window, discRect);
         });
         h.Main.OnMain(() => h.Runtime.Draft = h.Runtime.Draft with { Text = "Add a keyboard shortcut" });
         Pump(h, window);
-        h.Main.OnMain(() => typing = PreviewPixels.Region(window, discRect));
+        h.Main.OnMain(() => typing = PreviewPixels.WholeRegion(window, discRect));
         Close(h, window);
         result = new RealComposerCapture(ring, ringSize, chevronEnd, chevronSize, gap, rest, typing, discSize, words);
         return result;
