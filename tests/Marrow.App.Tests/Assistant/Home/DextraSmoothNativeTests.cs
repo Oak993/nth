@@ -55,9 +55,11 @@ public sealed class DextraSmoothNativeTests(WindowManagerNativeSession native)
             before = native.OnUi(() => (mark.FramesDrawn, text.SheenFrames, jobs.Snapshots));
             N.Until(() => native.OnUi(() => jobs.Snapshots > before.Item3), "board stopped ticking with the sleeping marks");
             var asturBefore = native.OnUi(() => astur.FramesDrawn);
+            var inkBefore = native.OnUi(() => text.InkWidth);
             native.OnUi(() => { mark.State = ArmillaState.Idle; mark.Glyph = ArmillaGlyph.Done; astur.State = AsturMarkState.Done; text.Text = "Latest visible status"; });
             N.Until(() => native.OnUi(() => mark.FramesDrawn > before.Item1 && astur.FramesDrawn > asturBefore), "visible sleeping state change drew nothing");
-            Assert.Equal("Latest visible status", native.OnUi(() => text.Text));
+            // InkWidth is only re-measured in Render, so a new width proves the sleeping text drew the new status.
+            N.Until(() => native.OnUi(() => text.InkWidth > 0 && text.InkWidth != inkBefore), "visible sleeping status text did not redraw");
             N.Until(() => native.OnUi(() => !mark.Ticking && !astur.Ticking && !text.SheenTicking), "changed visible marks did not reach rest", 18000);
         }, nameof(Visible_unfocused_board_updates_and_marks_sleep_only_after_thirty_seconds_then_draw_new_states), typeof(DextraSmoothNativeTests));
     }
