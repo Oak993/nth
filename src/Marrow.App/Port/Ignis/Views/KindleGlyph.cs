@@ -40,7 +40,12 @@ internal sealed class KindleGlyph : AmbientCanvas
         kindle = new AnimatedScalar(this, 0, _ => InvalidateVisual());
     }
 
+    /// <summary>ED-NEW-perf-idle-1: a change of the heat under this is the clock's slow fall, not a movement (it lands at once, without a run).</summary>
+    public const double HeatSteady = .02, HeatStep = .002;
+
     public double Heat => heat.Value;
+    /// <summary>An eased value is moving towards its target (a run asks for a frame at every refresh; tests).</summary>
+    internal bool IsEasing => heat.IsRunning || fill.IsRunning || spark.IsRunning || settle.IsRunning || lift.IsRunning || kindle.IsRunning;
     public double Fill => fill.Value;
     public bool Breathing => warm;
     public bool Spinning => tidying;
@@ -57,8 +62,9 @@ internal sealed class KindleGlyph : AmbientCanvas
     /// <summary>Shows a state: <paramref name="toHeat"/> 0 ... 1, <paramref name="toFill"/> the context fill 0 ... 1.</summary>
     public void Show(double toHeat, double toFill, bool isWarm, bool isTidying, bool animate)
     {
-        heat.Set(Math.Clamp(toHeat, 0, 1), animate ? KindleMotion.Ease(this, Animation.EaseOut(.6)) : null);
-        fill.Set(Math.Clamp(toFill, 0, 1), animate ? KindleMotion.Ease(this, Animation.TimingCurve(.22, 1, .36, 1, duration: .5)) : null);
+        // ED-NEW-perf-idle-1: the once-a-second re-read of a warm cache hands the heat again, 0.0002 lower: not a run each time
+        KindleMotion.Follow(heat, Math.Clamp(toHeat, 0, 1), animate ? KindleMotion.Ease(this, Animation.EaseOut(.6)) : null, HeatSteady, HeatStep);
+        KindleMotion.Follow(fill, Math.Clamp(toFill, 0, 1), animate ? KindleMotion.Ease(this, Animation.TimingCurve(.22, 1, .36, 1, duration: .5)) : null, 0, 0);
         if (isWarm != warm || isTidying != tidying)
         {
             warm = isWarm;
