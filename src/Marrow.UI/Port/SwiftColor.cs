@@ -4,6 +4,9 @@ using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using Avalonia.Utilities;
+using Avalonia.VisualTree;
+using System.Runtime.CompilerServices;
 using Marrow.Core.Port;
 using Marrow.UI.Theme;
 
@@ -42,6 +45,23 @@ public sealed class SwiftColor
     // since the role was given (a fade to nothing still fades there). None: drawn as it is in every mode.
     private readonly ContrastRole contrast;
     private readonly double contrastAlpha = 1;
+    private ConditionalWeakTable<Control, WeakReference<SolidColorBrush>>? boundBrushes;
+    // ED-NEW-web-review-26: the brush owns its binding. Long-lived event sources hold
+    // only weak subscribers, so a discarded fresh colour/brush can be collected.
+    private static readonly ConditionalWeakTable<SolidColorBrush, BrushBinding> brushBindings = new();
+    private static readonly Lock themeBrushGate = new();
+    private static readonly List<WeakReference<BrushBinding>> themeBrushes = [];
+    private static WeakReference<BrushBinding>[] themeBrushSnapshot = [];
+
+    static SwiftColor() => ThemeManager.DidChange += UpdateThemeBrushes;
+
+    private static void UpdateThemeBrushes()
+    {
+        WeakReference<BrushBinding>[] current;
+        lock (themeBrushGate) current = themeBrushSnapshot;
+        foreach (var weak in current)
+            if (weak.TryGetTarget(out var binding)) binding.OnThemeChanged();
+    }
 
     /// <summary>
     /// <c>Color(red:green:blue:opacity:)</c>, <c>Color(.sRGB, red:green:blue:opacity:)</c> and
@@ -349,13 +369,18 @@ public sealed class SwiftColor
     /// </summary>
     public IBrush Brush(Control control)
     {
-        var brush = new SolidColorBrush();
         if (kind == Kind.Fixed) // a role is carried by a pair, so a fixed colour never needs the contrast theme
         {
-            brush.Color = Resolve(control.ActualThemeVariant, CurrentAccent);
-            return brush;
+            return new SolidColorBrush(Resolve(control.ActualThemeVariant, CurrentAccent));
         }
-        _ = new BrushBinding(this, brush, control);
+        // ED-NEW-web-review-15: one binding per immutable colour/control. The weak key
+        // allows the control, its event handlers and brush to be collected together.
+        var brushes = boundBrushes ??= new ConditionalWeakTable<Control, WeakReference<SolidColorBrush>>();
+        if (brushes.TryGetValue(control, out var weak) && weak.TryGetTarget(out var existing)) return existing;
+        brushes.Remove(control);
+        var brush = new SolidColorBrush();
+        brushBindings.Add(brush, new BrushBinding(this, brush, control));
+        brushes.Add(control, new WeakReference<SolidColorBrush>(brush));
         return brush;
     }
 
@@ -410,11 +435,16 @@ public sealed class SwiftColor
     internal static Ambient<Func<Color>> AccentSource { get; } = new((Func<Color>)(() => PlatformSettings.GetColorValues().AccentColor1));
 
     /// <summary>Keeps one brush in step with its control's appearance and, when needed, the system accent.</summary>
-    private sealed class BrushBinding
+    private sealed class BrushBinding : IWeakEventSubscriber<PlatformColorValues>, IWeakEventSubscriber<EventArgs>,
+        IWeakEventSubscriber<AvaloniaPropertyChangedEventArgs>, IWeakEventSubscriber<VisualTreeAttachmentEventArgs>
     {
+        private static readonly WeakEvent<IPlatformSettings, PlatformColorValues> platformColors =
+            WeakEvent.Register<IPlatformSettings, PlatformColorValues>(
+                static (target, handler) => target.ColorValuesChanged += handler,
+                static (target, handler) => target.ColorValuesChanged -= handler);
         private readonly SwiftColor color;
         private readonly SolidColorBrush brush;
-        private readonly Control control;
+        private readonly WeakReference<Control> owner;
         private IPlatformSettings? settings;
         private Color? accent;
         private bool followsTheme;
@@ -425,24 +455,49 @@ public sealed class SwiftColor
         {
             this.color = color;
             this.brush = brush;
-            this.control = control;
+            owner = new WeakReference<Control>(control);
             // ED-254 (OD-0076, SPEC 6.5): inside a tree that turns over (AppearanceTurn), an appearance change eases.
-            control.ActualThemeVariantChanged += (_, _) => { if (AppearanceTurn.Eases(control)) Ease(); else Update(); };
-            // W20: a contrast theme turning on or off (or its colours changing) redraws a colour that has a role at once.
-            if (color.contrast != ContrastRole.None)
-                control.PropertyChanged += (_, e) =>
-                {
-                    if (e.Property == EnvironmentValues.AccessibilityHighContrastProperty || e.Property == EnvironmentValues.AccessibilityContrastSurfaceProperty) Update();
-                };
+            appearanceChanged.Subscribe(control, this);
+            if (color.contrast != ContrastRole.None) propertiesChanged.Subscribe(control, this);
             if (color.UsesAccent)
             {
-                // The platform settings live as long as the application; subscribe only while the control is in a
-                // visual tree so a detached control is not kept alive by them.
-                control.AttachedToVisualTree += (_, _) => Subscribe();
-                control.DetachedFromVisualTree += (_, _) => Unsubscribe();
+                attached.Subscribe(control, this);
+                detached.Subscribe(control, this);
                 if (TopLevel.GetTopLevel(control) is not null) Subscribe();
             }
             Update();
+        }
+
+        private static readonly WeakEvent<Control, EventArgs> appearanceChanged = WeakEvent.Register<Control>(
+            static (target, handler) => target.ActualThemeVariantChanged += handler,
+            static (target, handler) => target.ActualThemeVariantChanged -= handler);
+        private static readonly WeakEvent<Control, AvaloniaPropertyChangedEventArgs> propertiesChanged =
+            WeakEvent.Register<Control, AvaloniaPropertyChangedEventArgs>(
+                static (target, handler) => target.PropertyChanged += handler,
+                static (target, handler) => target.PropertyChanged -= handler);
+        private static readonly WeakEvent<Control, VisualTreeAttachmentEventArgs> attached =
+            WeakEvent.Register<Control, VisualTreeAttachmentEventArgs>(
+                static (target, handler) => target.AttachedToVisualTree += handler,
+                static (target, handler) => target.AttachedToVisualTree -= handler);
+        private static readonly WeakEvent<Control, VisualTreeAttachmentEventArgs> detached =
+            WeakEvent.Register<Control, VisualTreeAttachmentEventArgs>(
+                static (target, handler) => target.DetachedFromVisualTree += handler,
+                static (target, handler) => target.DetachedFromVisualTree -= handler);
+
+        public void OnEvent(object? sender, WeakEvent ev, EventArgs args)
+        {
+            if (!owner.TryGetTarget(out var control)) return;
+            if (AppearanceTurn.Eases(control)) Ease(); else Update();
+        }
+
+        public void OnEvent(object? sender, WeakEvent ev, AvaloniaPropertyChangedEventArgs args)
+        {
+            if (args.Property == EnvironmentValues.AccessibilityHighContrastProperty || args.Property == EnvironmentValues.AccessibilityContrastSurfaceProperty) Update();
+        }
+
+        public void OnEvent(object? sender, WeakEvent ev, VisualTreeAttachmentEventArgs args)
+        {
+            if (ReferenceEquals(ev, attached)) Subscribe(); else Unsubscribe();
         }
 
         private void Subscribe()
@@ -450,11 +505,16 @@ public sealed class SwiftColor
             if (settings is not null) return;
             settings = PlatformSettings;
             accent = CurrentAccent();
-            settings.ColorValuesChanged += OnColorValuesChanged;
+            platformColors.Subscribe(settings, this);
             if (color.UsesLive && !followsTheme)
             {
                 followsTheme = true;
-                ThemeManager.DidChange += OnThemeChanged;
+                lock (themeBrushGate)
+                {
+                    themeBrushes.RemoveAll(static weak => !weak.TryGetTarget(out _));
+                    themeBrushes.Add(new WeakReference<BrushBinding>(this));
+                    themeBrushSnapshot = [.. themeBrushes];
+                }
             }
             Update();
         }
@@ -464,19 +524,25 @@ public sealed class SwiftColor
             if (followsTheme)
             {
                 followsTheme = false;
-                ThemeManager.DidChange -= OnThemeChanged;
+                lock (themeBrushGate)
+                {
+                    themeBrushes.RemoveAll(weak => !weak.TryGetTarget(out var binding) || ReferenceEquals(binding, this));
+                    themeBrushSnapshot = [.. themeBrushes];
+                }
             }
             Stop();
             if (settings is null) return;
-            settings.ColorValuesChanged -= OnColorValuesChanged;
+            platformColors.Unsubscribe(settings, this);
             settings = null;
             accent = null;
         }
 
         // ED-250 (SPEC 6.4): the app's accent changed (a pick or a theme): the brush eases to it over 0.32 s, CSS `ease`,
         // on the frame clock; at once under Reduce Motion or with no frame clock.
-        private void OnThemeChanged()
+        public void OnThemeChanged()
         {
+            if (!followsTheme) return;
+            if (!owner.TryGetTarget(out var control)) { Unsubscribe(); return; }
             // The control's own thread: a change posted from elsewhere (ThemeManager is set from any actor) waits for it.
             if (control.CheckAccess()) Ease();
             else control.Dispatcher.Post(() => { if (followsTheme) Ease(); });
@@ -487,6 +553,7 @@ public sealed class SwiftColor
         private void Ease()
         {
             Stop();
+            if (!owner.TryGetTarget(out var control)) return;
             var to = Resolved();
             if (brush.Color == to || !FrameClock.IsBound || EnvironmentValues.GetAccessibilityReduceMotion(control))
             {
@@ -520,17 +587,20 @@ public sealed class SwiftColor
         }
 
         // On Windows the event carries the values GetColorValues then returns; take the accent it carries.
-        private void OnColorValuesChanged(object? sender, PlatformColorValues values)
+        public void OnEvent(object? sender, WeakEvent ev, PlatformColorValues values)
         {
             accent = values.AccentColor1;
             if (Dispatcher.UIThread.CheckAccess()) Update();
             else Dispatcher.UIThread.Post(Update);
         }
 
-        private Color Resolved() =>
-            color.contrast != ContrastRole.None && EnvironmentValues.ContrastPaletteFor(control) is { } palette
+        private Color Resolved()
+        {
+            if (!owner.TryGetTarget(out var control)) return brush.Color;
+            return color.contrast != ContrastRole.None && EnvironmentValues.ContrastPaletteFor(control) is { } palette
                 ? Faded(palette.For(color.contrast), color.contrastAlpha)
                 : color.Resolve(control.ActualThemeVariant, () => accent ?? CurrentAccent());
+        }
 
         private void Update()
         {

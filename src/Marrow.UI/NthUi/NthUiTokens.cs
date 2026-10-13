@@ -77,7 +77,7 @@ public static class NthUiTokens
     public static SwiftColor Backdrop { get; } = SwiftColor.Dynamic(light: SwiftColor.Rgb(0xF5F5F7), dark: SwiftColor.Rgb(0x1E1E21)).InHighContrast(ContrastRole.Surface);
 
     /// <summary>The accent, only for the current value and focus (7.5).</summary>
-    public static SwiftColor Accent => Marrow.UI.Chrome.Chrome.Accent.InHighContrast(ContrastRole.Highlight);
+    public static SwiftColor Accent { get; } = SwiftColor.Live(static () => Marrow.UI.Chrome.Chrome.Accent).InHighContrast(ContrastRole.Highlight);
 
     /// <summary>The colour of a tone's text and glyph; neutral is secondary text.</summary>
     public static SwiftColor Tone(string? tone) => (tone switch
