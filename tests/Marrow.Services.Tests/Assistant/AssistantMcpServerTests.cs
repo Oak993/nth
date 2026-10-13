@@ -65,7 +65,7 @@ public sealed class AssistantMcpServerTests
         Assert.True(forget["annotations"]!["destructiveHint"]!.GetValue<bool>());
 
         var (_, agent) = Registered(AssistantChatRole.Mission);
-        Assert.Equal(6, (await Mcp(new AssistantMcpServer(agent), "tools/list"))["result"]!["tools"]!.AsArray().Count);
+        Assert.Equal(7, (await Mcp(new AssistantMcpServer(agent), "tools/list"))["result"]!["tools"]!.AsArray().Count); // the agent tools and AS-20's prepare_purchase
         Assert.Empty((await Mcp(new AssistantMcpServer(null), "tools/list"))["result"]!["tools"]!.AsArray());
         AssistantMcpBridge.Forget(home.Chat.Thread);
         Assert.Empty((await Mcp(new AssistantMcpServer(home), "tools/list"))["result"]!["tools"]!.AsArray());
@@ -141,7 +141,7 @@ public sealed class AssistantMcpServerTests
             "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"usage_status\",\"arguments\":{}}}");
         var byId = replies.ToDictionary(r => r["id"]!.GetValue<int>());
         Assert.Equal("nth-dextra", byId[1]["result"]!["serverInfo"]!["name"]!.GetValue<string>());
-        Assert.Equal(24, byId[2]["result"]!["tools"]!.AsArray().Count);
+        Assert.Equal(25, byId[2]["result"]!["tools"]!.AsArray().Count); // the 24 of 15.5 and AS-20's prepare_purchase
         Assert.Equal("ran usage_status", byId[3]["result"]!["content"]![0]!["text"]!.GetValue<string>());
         Assert.Equal("usage_status", Assert.Single(host.Runs).Tool.Name);
 

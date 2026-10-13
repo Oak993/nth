@@ -47,7 +47,7 @@ public sealed class AssistantToolRunnerTests
         }
         // On the engine's own answers with auto-answering on: configuration and deletions ask, the rest run.
         Assert.Equal(new[] { "schedule_duty", "watch_folder", "watch_page", "create_assistant", "propose_capability" }, host.Asks.Select(c => c.Tool.Name));
-        Assert.Equal(19, host.Runs.Count);
+        Assert.Equal(20, host.Runs.Count); // with AS-20's prepare_purchase (ED-NEW-dextra-as20-1)
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public sealed class AssistantToolRunnerTests
         Assert.Empty(host.Runs);
         Assert.Empty(host.Asks);
         Assert.Empty(host.Offers);
-        Assert.Equal(24, host.Log.Count(l => l.StartsWith("policy:", StringComparison.Ordinal)));
+        Assert.Equal(25, host.Log.Count(l => l.StartsWith("policy:", StringComparison.Ordinal))); // the 24 of 15.5 and prepare_purchase
         Assert.All(host.Audits, a => Assert.Equal("refused: OwnerNever", a.Result));
     }
 
@@ -144,7 +144,7 @@ public sealed class AssistantToolRunnerTests
         var (host, runner) = Rig();
         host.AutoAnswering = false;
         foreach (var tool in AssistantToolCatalog.All) await Call(runner, tool.Name);
-        Assert.Equal(new[] { "list_sessions", "read_session", "stop_agent", "ask_owner", "recall", "usage_status", "plan_budget", "report" },
+        Assert.Equal(new[] { "list_sessions", "read_session", "stop_agent", "ask_owner", "recall", "usage_status", "plan_budget", "report", "prepare_purchase" },
             host.Runs.Select(c => c.Tool.Name));
         Assert.Equal(16, host.Asks.Count);
         Assert.All(host.Asks.Where(c => c.Decision.Rule == PolicyRule.AutoAnswerOff), c => Assert.Empty(c.Decision.GrantsUsed));

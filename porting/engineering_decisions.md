@@ -7769,6 +7769,111 @@ ENGINEERING DECISION (C6c D7, 2026-10-12): Decode each damaged mission/assistant
 6. Choosing it: schedule_duty, watch_folder and watch_page take an optional boolean notify. True sets Notify me (and wins over silent); false takes it off again (back to Silent unless something changed, or to Digest only when silent is false); left out, the duty keeps what it had. The card that confirms the duty says "Notify me: a notification each time a run finds something", and the Report row now shows "(was: ...)" on an edit as every other row does. A duty always asks first, so the opt-in is the owner's own yes. There is no switch to turn decision or duty toasts off: Windows' own notification settings and Focus assist do it for every app.
 7. UNVERIFIED until the Native gate: how the shell lays out the resting picture and one protocol button (DutyToastNativeTests).
 
+## ED-NEW-dextra-as20-1
+2026-10-13 - prepare_purchase, the one way a purchase reaches the owner (Dextra unit AS-20; DESIGN.md rev 5, 12.7, 15.5; tests AssistantToolCatalogTests, AssistantToolRunnerTests, AssistantNativeToolsTests, AssistantMcpServerTests, PurchaseControllerTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. 15.5's table has no purchase tool, and 12.7 needs the cart, the shop and the total in front of the owner before any money moves, so nth-dextra gains prepare_purchase (shop, checkout_url, items as "name: price", shipping, tax, total, currency, ship_to, kind). It is classed Agents (it only puts a card in front of the owner), ForAgents and RunsBeforeAutoAnswer like ask_owner: it never pays. The payment itself is decided as Money (a purchase) by the policy engine at the moment of Pay, with the switch read then.
+2. The exact-count expectations that list the tools (the catalog's 24 to 25, the agents' tools 6 to 7, the runner's 19 to 20 runs) take the new tool at equal strictness: every list still names each tool.
+3. Owed to the design: DESIGN.md 15.5's table should list prepare_purchase.
+
+## ED-NEW-dextra-as20-2
+2026-10-13 - Purchase limits (Dextra unit AS-20; DESIGN.md rev 5, 12.7 "Limits"; tests PurchaseLimitsTests, PurchasePayTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. Limits per purchase, per day and per month default to $50, $150 and $300; each Astur has its own monthly limit, $0 by default, and at $0 an Astur's purchase is always handed to the owner. A limit is 0 to 100000 in whole cents.
+2. A purchase is checked per purchase, then the day, then the month, then the Astur, in the card's currency (the policy's); the first one it passes over names the card's over line. A checkout in another currency is handed over, never converted.
+3. Paid, paying and unknown rows count; a row the shop did not take does not.
+
+## ED-NEW-dextra-as20-3
+2026-10-13 - The purchase request and what is never allowed (Dextra unit AS-20; DESIGN.md rev 5, 12.7 "Never allowed"; tests PurchaseRequestTests, PurchasePayTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. A request is refused unless its items, shipping and tax add up to its total, its checkout is a full https address (plain http only for the checkout fixtures' hosts on this PC, never in production), it names the shop and where it ships, and it holds at most 20 items.
+2. kind subscription, transfer or to_person is refused with "Never allowed: subscriptions, transfers and money to people stay with the owner.", and so is a "purchase" whose words say it repeats or pays a person (a monthly plan, a membership, a free trial, a transfer, a gift or tip to someone). No card is raised for any of them.
+
+## ED-NEW-dextra-as20-4
+2026-10-13 - The merchant-bound fill (Dextra unit AS-20; DESIGN.md rev 5, 12.7 "The boundary"; tests CheckoutBoundaryTests, PurchaseCheckoutTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. nth fills only visible fields whose autocomplete is cc-number, cc-exp, cc-exp-month, cc-exp-year or cc-csc, in the top frame of the approved origin (scheme, host and port), whose form posts to that origin.
+2. A card field in another origin's frame (a payment provider's, its test-mode checkout included) is refused and handed to the owner ("I'll pay"); a form posting to a third origin, a top frame that moved after the approval and a shown total that changed are refused.
+3. The boundary is read before Windows Hello (a checkout nth will not fill is handed over without asking the owner to verify) and again at the fill itself, with the agents held, so a redirect between the two is caught.
+
+## ED-NEW-dextra-as20-5
+2026-10-13 - The Windows Hello guard (Dextra unit AS-20; DESIGN.md rev 5, 12.7 "Three failed Windows Hello checks"; tests HelloGuardTests, PurchaseDeskTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. One guard stands behind every purchase step. A failed check and a cancelled one each count; a check that could not ask or found Windows busy does not. Three in a row turn purchases off (and hand every waiting pay card over) until the owner turns them on again; a verified check resets the count.
+2. Only one check is open at a time; a second one meanwhile reads Busy and asks nothing.
+
+## ED-NEW-dextra-as20-6
+2026-10-13 - Every purchase word in one place, and the placeholder (Dextra unit AS-20; DESIGN.md rev 5, 12.7; the canvas's section 9; tests PurchaseLeakScanTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. PurchaseWords holds every word purchases show, log or send, so a scan can hold them to the rule: the card is only ever "•••• 4242" to the owner, and to Dextra, every Astur and every Hydra head it is {card}; no word a model reads carries even the last 4.
+
+## ED-NEW-dextra-as20-7
+2026-10-13 - The card vault (Dextra unit AS-20; DESIGN.md rev 5, 12.7 "The card"; tests CardVaultTests, CardVaultNativeTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. The card lives in Windows Credential Manager under nth.dextra.card: one item holds it sealed with DPAPI in user scope plus nth's own entropy (SHA-256 of a fixed nth string), with no UI; a second holds its last 4 digits, the only part nth reads without Windows Hello. Another entropy cannot open it.
+2. Saving, replacing and removing the card each ask Windows Hello first; a label that cannot be written rolls the card back. The tests run on an in-memory Credential Manager and a fake seal; CardVaultNativeTests (written, never run by unit agents) checks the real Credential Manager and DPAPI.
+
+## ED-NEW-dextra-as20-8
+2026-10-13 - No reveal path, and zeroed buffers (Dextra unit AS-20; DESIGN.md rev 5, 12.7 "There is no reveal"; tests CardVaultTests, PurchaseLeakScanTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. Nothing public opens the card: the seal and the vault's constructor are internal, and the vault gives out its state and last 4 only. The digits are typed into pinned buffers (CardEntry), sealed from pinned buffers, opened into a pinned buffer only for a fill, and every buffer, the DPAPI output included, is zeroed before it is let go.
+2. A fill that does not end in a placed order (a field that refused its part, a log line or an intent that could not be written, an order the shop did not take) empties every field nth filled, with the agents still held.
+3. No purchase source touches the clipboard; the digit boxes swallow copy, cut, paste and select-all and have no text to give a screen reader. The scan test runs every path with a sentinel test card and finds no 6 digits of its first 12, no expiry, no code and no brand in any card, note, log line, model message, purchases.json, fault or state dump.
+
+## ED-NEW-dextra-as20-9
+2026-10-13 - The purchase book (Dextra unit AS-20; DESIGN.md rev 5, 12.7 "History"; lean-tests 10 "Persisted formats", "Retryable side effects"; tests PurchaseBookTests, PurchasePayTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. purchases.json (version 1) sits in the assistant store's root, which agents cannot write: the switch, the currency, the limits and the history. Fields nth does not know survive a load and save; a newer nth's file and one that does not parse are left untouched, and purchases stay off.
+2. A history row is the shop (its host), the amount, the date and the mission, plus the bookkeeping the limits need (its id, currency, assistant and state); never card data. The owner's history shows shop, amount, date and mission.
+3. The intent ("paying") is written before an order is placed and how it ended after; a row still "paying" at the next start reads "unknown", counts against the limits and is never paid again. Turning purchases off never fails the owner: the switch is off at once even when the file cannot be written, and the section says so.
+
+## ED-NEW-dextra-as20-10
+2026-10-13 - The purchase desk, and this build's fallback (Dextra unit AS-20; DESIGN.md rev 5, 12.7, 16.2; tests PurchaseDeskTests, PurchasePayTests, PurchaseControllerTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. 16.2's fallback: this build has no fill path (no Visus browser and no Tactus PC control to fill a shop's own card field), so the production start passes none. Every prepare_purchase then becomes a hand-over card ("I'll pay" or "Don't buy": Dextra fills the cart, the owner pays himself) and Settings › Assistant › Purchases shows that, without the switch, the card or the limits. The rest is built and tested behind ICheckoutPages, the seam a fill path implements.
+2. With a fill path, a request becomes a pay card only when purchases are on, a card is kept, the currency is the card's, the policy's money rule allows it and the limits leave room; otherwise it is handed over with the reason. One purchase card per chat: a new request with other inputs withdraws the old card ("Its shop, items or total changed").
+3. A pay card is bound to its shop, items, shipping, tax, total, ship-to, checkout, card (its last 4) and what is left of the limits; Pay is the desk's alone: the queue refuses Do it on a purchase card, and the controller's AnswerCard (the Decisions tab's door) sends it to the desk. DecisionQueue gains Annotate (a status line on a waiting card) and Close (settling a card whose action ran outside the queue, Pause-held or not).
+4. Turning purchases on needs a fill path, a card, valid limits and Windows Hello; saving, replacing and removing the card and changing a limit each ask Windows Hello and the old value holds until it says yes; turning off never asks. Turning off, removing the card and a lockout each hand every waiting pay card over.
+
+## ED-NEW-dextra-as20-11
+2026-10-13 - Paying, step by step (Dextra unit AS-20; DESIGN.md rev 5, 12.7 "The confirmation card"; 12.5; tests PurchasePayTests, PurchaseCheckoutTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. A pay card expires 10 minutes after it was raised (a timer withdraws it, and Pay checks it too); a payment under way is let finish.
+2. At Pay the desk checks everything again (the switch, the card, the currency, the money rule, the limits); a card whose inputs changed (what is left of the limits, the card) is withdrawn and a new one raised, asking nothing. Then it finds the chat's checkout page, reads its boundary, holds the agents and only then does the vault ask Windows Hello ("pay $46.80 to shop.example"). A cancelled or failed check fills nothing; nothing answers the card while Windows asks; a card stopped, withdrawn or turned off while Windows asked fills nothing.
+3. After the fill, still with the agents held: the owner's Pay is logged, then the intent is written, then the order is placed. A log line or an intent that cannot be written pays nothing. Paid closes the card; unknown (the page could not say, or went away) closes it with "Check with the shop" and never pays it again; not taken withdraws it. Holds nest: the agents stay held until the last hold is let go.
+
+## ED-NEW-dextra-as20-12
+2026-10-13 - Windows Hello on this PC (Dextra unit AS-20; DESIGN.md rev 5, 12.7; tests HelloGateNativeTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. WindowsHelloGate asks UserConsentVerifier over nth's main window (face, fingerprint or PIN), its reason prefixed "nth: ". Canceled reads Cancelled, RetriesExhausted Failed, DeviceBusy Busy.
+2. When Hello is not set up, there is no device or policy turns it off, it falls back to Windows' own password prompt (CredUIPromptForWindowsCredentials, the signed-in account's tile only), checks it with LogonUser and passes only when the account is the one nth runs as. The packed buffer and the unpacked password live in pinned buffers and are zeroed before they are let go.
+3. Unit tests never reach it (a scripted gate stands in). HelloGateNativeTests (written, never run by unit agents) asks the real one twice, verified then cancelled.
+
+## ED-NEW-dextra-as20-13
+2026-10-13 - Settings › Assistant › Purchases, the add-card sheet and the purchase card (Dextra unit AS-20; the canvas's section 9; lean-tests 10 "New controls"; tests PurchaseSettingsSectionTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. The section has four looks: Dextra not running (purchases are set up while Dextra is on), no fill path (the hand-over words, the history and the never-allowed line), a file nth will not write (why, and the history), and full: the switch with its state in words, the card as "•••• 4242" with Add card or Replace and Remove, the three limits and each Astur's, the virtual-card advice, the history (newest 50) and the never-allowed line. One live line says what Windows Hello is asking and how each step went.
+2. The card is typed into SecretDigitsBox fields: focusable, named, drawing one dot per digit (the last 4 once a whole number passes its check digit), no text to read back. A mistyped number or a past expiry is said in words with a mark, not by colour. Escape and Cancel close the sheet and put the focus back on its button; however the sheet goes, what was typed is zeroed.
+3. A limit box commits on Enter or when the focus leaves it, after Windows Hello; one nth cannot read says how to type it.
+4. On the Decisions tab a pay card's Do it reads "Pay $46.80" and its no "Don't buy"; a hand-over card answers "I'll pay" or "Don't buy".
+
+## ED-NEW-dextra-as20-14
+2026-10-13 - The page's own total and currency bind the fill (Dextra unit AS-20, security review finding 1; DESIGN.md rev 5, 12.4 and 12.7 "The fill is bound to the merchant"; tests CheckoutBoundaryTests, CardVaultTests, PurchaseHaltTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. The checkout snapshot carries the total the page shows and its currency as a three-letter code. A total the fill path cannot read, or a currency it cannot read as three letters, is a refusal ("nth could not read the total on shop's checkout ... Tap I'll pay"), never a pass: the prepare_purchase numbers come from the agent, the untrusted party, and are never taken as the price.
+2. A total in another currency than the approved one is refused and says which ("charges in GBP, not USD"); a different amount stays TotalChanged. The approval is one record (origin, total, currency) so no caller can check a total without its currency.
+3. Both reads use the same rule: before Windows Hello (handed over without asking him to verify) and at the fill itself with the agents held.
+
+## ED-NEW-dextra-as20-15
+2026-10-13 - The card comes off the page before the agents go (Dextra unit AS-20, security review finding 2; DESIGN.md rev 5, 12.7 "The model never sees the card"; tests CardVaultTests, PurchasePayTests, PurchaseHaltTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. The fill path seam gains Empty (empty a field and read it back: true only when it holds nothing or is gone from the page) and Discard (close the page or load it again from the shop). Writing an empty value is no longer taken as proof: a masked or script-controlled input can put its value back.
+2. Scrub empties every field nth typed into, the one that failed included (it is recorded as typed before its fill, since a field can take part of the value and then fail); when any field will not empty, the page is discarded. It runs with no cancellation token on purpose (a stop must never leave digits behind); it is bounded by one call per field plus one discard, each bounded by the fill path's own timeouts.
+3. It runs on every outcome: a fill cut short (refused field, stop, fault) inside the vault before its hold ends; after the order whether it was paid, not paid or unknown (a shop page can keep its form behind an "order placed" overlay); and before a hand-over, a renewal or any word to the agent.
+4. When even the discard fails, the hold is never let go (kept by the vault or the desk): the page's agents stay held until the page closes, the owner hears it on the fault line ("A card field on the checkout would not empty ... Close that page yourself") and the card says so. The hold contract now names page reads and screenshots as held too.
+
+## ED-NEW-dextra-as20-16
+2026-10-13 - A stop reaches a payment under way, and the hand-over waits for it to stop (Dextra unit AS-20, security review finding 3; DESIGN.md rev 5, 12.6 "What Stop all does", 12.7; tests PurchaseHaltTests, PurchaseControllerTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. Each Pay gets its own stop (a CancellationTokenSource made when the card is claimed). The desk is one of Stop all's scopes (the controller builds it before Stop all and adds it to the scopes); its Stop only flips the stop of every payment not yet being placed and never waits. Stop leaves the card open (Stop all holds it) with "Stopped." or "Stopped. Nothing was paid, and the card was taken off the page."; a later Pay is a fresh run.
+2. Turning purchases off, removing the card and a lockout no longer hand over a card whose payment is running. They flip its stop and leave the hand-over reason on it; the run hands it over itself only once it has stopped and the card is off the page, so the owner is never told to pay while nth may still pay (no double charge).
+3. The run looks at the stop before every field (the vault), and once more under one lock right before the intent row (the desk). Passing that look marks the payment "placing": from then on a stop, the switch or a removed card no longer withdraws it, and the same locked step decides (it reads the switch, the card and the queue again). A payment already being placed goes on; turning purchases off then says "A payment that was already being placed goes on; its card says how it ended." The order itself is never cut short once its intent row is written.
+4. The stop is flipped with CancelAsync, whose returned task is discarded: the token's state changes at once and its callbacks run on the pool, so a press never runs work on the chord's or the UI's thread and never re-enters the desk's lock. Every check reads the payment's own stop directly, not the linked token, so the order of checks is deterministic. The tests drive the stops from inside the fake page's fill and submit, synchronously, with no sleeps.
+
+## ED-NEW-dextra-as20-17
+2026-10-13 - The limits are read again with the intent row, one payment at a time (Dextra unit AS-20, security review finding 4; DESIGN.md rev 5, 12.7 "A purchase over any limit cannot be paid"; tests PurchaseHaltTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. After Windows Hello and the fill, the desk takes one lock for placing, reads the switch, the card, the policy, the limits (spend now includes every row written so far, "paying" ones too) and what is left of them, checks the card's binding, and writes the intent row, all inside that lock. Two cards paid together therefore never pass a limit between them: the second one placed sees the first one's row.
+2. A payment that would now pass a limit is handed over with the limit's words; one whose "Left after" changed (another payment landed) is asked again with a new card, as before Hello. The card is taken off the page before either.
+
+## ED-NEW-dextra-as20-18
+2026-10-13 - The card's Checkout line cannot read as another site (Dextra unit AS-20, security review finding 5; DESIGN.md rev 5, 12.4, 12.7 "Every purchase shows the confirmation card"; tests CheckoutBoundaryTests, PurchaseRequestTests, PurchaseHaltTests). ENGINEERING DECISIONS. PORT-ONLY.
+1. prepare_purchase's checkout address is kept as its origin (scheme, lowercase punycode host, port) plus its path and query escaped by the URI parser; the user name and the fragment are dropped. The parser removes bidirectional controls and the escaping leaves nothing outside ASCII, so a right-to-left override cannot make the line end in another shop's name, and a look-alike host shows as punycode.
+2. The card shows that address cleaned again of control and format characters and cut at 300 characters; the origin always comes first, so a cut never hides the site.
+
 ## ED-NEW-dextra-as17-1
 2026-10-13 - The org chart's layout (Dextra unit AS-17; DESIGN.md rev 5, 9.4 "Layout" and "Narrow widths (under 640 px) turn the chart into an indented list"; the canvas's .org, .orow and drawLines, work/design/assistant/index.html lines 421-446 and 2854-2886; tests OrgChartLayoutTests, OrgChartViewTests, OrgChartRtlTests, OrgChartMotionTests). ENGINEERING DECISIONS. PORT-ONLY.
 1. OrgChartLayout (Marrow.Core/Port/Assistant) is pure geometry. From 640 px it is the chart: Dextra's node 220 px wide, centred, 8 px from the top; the Asturs' nodes 176 px wide, 12 px apart, in rows that centre; the connectors' lane is 34 px under Dextra's node. Under 640 px it is the list: nodes the width of the pane, the Asturs indented 30 px behind a trunk 18 px from the left. The panel (OrgChartPanel) asks for the widths, measures the nodes at them, hands the heights back, and arranges where the plan says; the nodes of a row are as tall as the tallest, so a big text size never leaves a ragged row.

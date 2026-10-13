@@ -175,6 +175,39 @@ public sealed class DecisionQueue(TimeProvider? time = null)
         return true;
     }
 
+    /// <summary>Puts a line of status on a waiting card (a purchase waiting for Windows Hello); null clears it. False when it no longer waits.</summary>
+    public bool Annotate(Guid id, string? note)
+    {
+        lock (gate)
+        {
+            var entry = entries.FirstOrDefault(e => e.Item.Id == id && Waits(e.Item));
+            if (entry is null) return false;
+            if (entry.Item.Note == note) return true;
+            entry.Item = entry.Item with { Note = note };
+        }
+        Changed?.Invoke();
+        return true;
+    }
+
+    /// <summary>
+    /// Settles an open card whose action already ran outside the queue (AS-20: a purchase nth paid after Windows Hello): it
+    /// reads answered with the note, its own answer callback is not run again, and no paused task keeps it (a card a Pause
+    /// held meanwhile is closed too: what it did is done). False when it no longer waits.
+    /// </summary>
+    public bool Close(Guid id, DecisionAnswer answer, string note)
+    {
+        ArgumentNullException.ThrowIfNull(answer);
+        lock (gate)
+        {
+            var entry = entries.FirstOrDefault(e => e.Item.Id == id && Waits(e.Item));
+            if (entry is null) return false;
+            entry.Item = entry.Item with { State = DecisionState.Answered, HeldBy = null, Answer = answer, Settled = clock.GetUtcNow(), Kept = null, Note = note };
+            Trim();
+        }
+        Changed?.Invoke();
+        return true;
+    }
+
     /// <summary>The provider cancelled its request (4.2 "Expiry"): the card says so and takes no answer.</summary>
     public bool WithdrawRequest(Guid thread, string requestId, string note)
     {
