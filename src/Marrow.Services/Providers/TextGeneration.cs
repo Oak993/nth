@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
+using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 
@@ -16,7 +18,11 @@ public static class TextGeneration
         private Engine() { }
 
         // :6
-        public sealed record Claude(string Executable, ValueMap<string, string> Environment) : Engine;
+        public sealed record Claude(string Executable, ValueMap<string, string> Environment) : Engine
+        {
+            // PORT-ONLY: DESIGN.md 4.3, ED-NEW-dextra-open-1. Titles keep the source's haiku default.
+            public string Model { get; init; } = "haiku";
+        }
 
         // :7
         public sealed record Codex(string Executable, ValueMap<string, string> Environment, string Model) : Engine;
@@ -162,8 +168,32 @@ public static class TextGeneration
     /// </summary>
     public static Task<string?> Complete(string prompt, Engine engine) => Run(prompt, engine, TemporaryDirectory);
 
+    // PORT-ONLY: ED-NEW-dextra-open-2. Side calls consume the CLI's completed-turn usage; ordinary titles keep their exact argv.
+    public static Task<string?> Complete(string prompt, Engine engine, Action<TokenSpend> spend) => Run(prompt, engine, TemporaryDirectory, spend);
+
+    internal static TokenSpend? CodexSpend(string stdout, string model)
+    {
+        TokenSpend? result = null;
+        foreach (var line in stdout.Split('\n').Take(4096))
+        {
+            if (line.Length == 0 || line.Length > 64_000) continue;
+            try
+            {
+                using var doc = JsonDocument.Parse(line);
+                var root = doc.RootElement;
+                if (!root.TryGetProperty("type", out var type) || type.GetString() != "turn.completed" || !root.TryGetProperty("usage", out var usage)) continue;
+                long Read(string name) => usage.TryGetProperty(name, out var value) && value.TryGetInt64(out var number) ? Math.Max(0, number) : 0;
+                var input = Read("input_tokens"); var output = Read("output_tokens"); var cached = Math.Min(input, Read("cached_input_tokens"));
+                // One ephemeral exec has one completed turn; repeated terminal summaries do not double debit it.
+                result = new TokenSpend(ProviderKind.Codex, checked(input + output), input, output, cached, model);
+            }
+            catch (Exception error) when (error is JsonException or InvalidOperationException or OverflowException) { continue; }
+        }
+        return result;
+    }
+
     // :76-100
-    private static async Task<string?> Run(string prompt, Engine engine, string directory)
+    private static async Task<string?> Run(string prompt, Engine engine, string directory, Action<TokenSpend>? spend = null)
     {
         switch (engine)
         {
@@ -172,7 +202,7 @@ public static class TextGeneration
                 // :79-83
                 var arguments = new[]
                 {
-                    "-p", "--output-format", "text", "--model", "haiku", "--tools", "",
+                    "-p", "--output-format", "text", "--model", claude.Model, "--tools", "",
                     "--disable-slash-commands", "--strict-mcp-config", "--permission-mode", "dontAsk",
                     "--no-session-persistence",
                 };
@@ -193,16 +223,18 @@ public static class TextGeneration
                 try
                 {
                     // :90-93
-                    var arguments = new[]
+                    var arguments = new List<string>
                     {
                         "exec", "--ephemeral", "--skip-git-repo-check", "-s", "read-only", "--model", codex.Model,
                         "--config", "model_reasoning_effort=\"low\"", "--output-last-message", output, "-",
                     };
+                    if (spend is not null) arguments.Insert(1, "--json");
                     // :94-95
                     async Task<ShellResult?> RunCodex() => await Shell.Run(codex.Executable, arguments, directory,
                         codex.Environment, Encoding.UTF8.GetBytes(prompt), 180);
-                    if (await SwiftTry.OptionalAsync(RunCodex) is not { Succeeded: true })
-                        return null;
+                    var result = await SwiftTry.OptionalAsync(RunCodex);
+                    if (result is not null && spend is not null && CodexSpend(result.Output, codex.Model) is { } usage) spend(usage);
+                    if (result is not { Succeeded: true }) return null;
                     // :96-98
                     return SwiftTry.Optional(() => SwiftText.DecodeUtf8OrNil(File.ReadAllBytes(output)))
                         ?.Trimmed()

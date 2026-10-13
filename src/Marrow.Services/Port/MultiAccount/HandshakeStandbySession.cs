@@ -17,6 +17,7 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
     private Func<bool>? canTransfer;
     private bool needsReadBack;
     private Action<string>? textProgress;
+    private Action<TokenSpend>? spendObserved;
     private bool ready;
     private bool ownsSession = true;
     private bool stopped;
@@ -35,7 +36,7 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
     public bool ReadBackRequested { get; private set; }
 
     public static async Task<HandshakeStandbySession> StartAsync(ProviderSession session, SessionConfiguration configuration, CancellationToken ct, Func<bool>? canTransfer = null,
-        Func<Task<HandshakeCostObservation?>>? observeUsage = null)
+        Func<Task<HandshakeCostObservation?>>? observeUsage = null, Action<TokenSpend>? spendObserved = null)
     {
         // These providers enforce IsFinalReport before exposing tools or executing an action.
         // Claude additionally verifies its temporary agent, effective policy and actual init identity.
@@ -43,7 +44,7 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
             && !(configuration.Provider == ProviderKind.Claude && session is ClaudeSession)
             && !(configuration.Provider == ProviderKind.Pi && session is PiSession))
             throw new NotSupportedException("This service cannot yet receive context in a verified text-only session.");
-        var standby = new HandshakeStandbySession(session, configuration) { observeUsage = observeUsage, canTransfer = canTransfer };
+        var standby = new HandshakeStandbySession(session, configuration) { observeUsage = observeUsage, canTransfer = canTransfer, spendObserved = spendObserved };
         standby.BindTransferGuard(canTransfer);
         Task<string>? start = null;
         try
@@ -183,6 +184,7 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
     private void Collect(ProviderEvent value)
     {
         if (stopped || !ownsSession) return;
+        if (value is ProviderEvent.TokenSpend spend) { spendObserved?.Invoke(spend.Value); return; }
         if (value is ProviderEvent.Models catalog) { reportedModels = catalog.Value; return; }
         if (value is ProviderEvent.Exited exit) { Fail(exit.Error ?? "The standby exited."); return; }
         // A restricted head must also refuse an action during startup or between completed turns.

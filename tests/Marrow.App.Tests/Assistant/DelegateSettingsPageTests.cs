@@ -44,7 +44,8 @@ public sealed class DelegateSettingsPageTests(HeadlessSession headless)
             Flip(rows.DelegateSwitch);
             stage.Layout();
             Assert.True(rows.WithRow.IsVisible);
-            Assert.Equal(["dextra", "Claude", "Codex"], rows.WithMenu.Items.Select(i => i.Id));        // Cursor has no one-shot model to read with
+            // DESIGN.md 4.3 and CU-DX-OPEN item 1 supersede AS-22's provider-only menu (ED-NEW-dextra-open-1).
+            Assert.Equal(["dextra", "Claude", "Codex", "Cursor"], rows.WithMenu.Items.Select(i => i.Id));
             Assert.Equal("dextra", rows.WithMenu.SelectedId);
             Assert.Equal("Dextra", rows.WithMenu.Items.First().Label.Text);
 

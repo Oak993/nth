@@ -17,16 +17,10 @@ public sealed class TextEngineDelegateModel(AppModel app, Func<ProviderKind?> br
 {
     public DelegateCall? Prepare(DelegateWho? who)
     {
-        var engine = app.TextEngine(who?.Provider ?? brain());
-        ProviderKind? provider = engine switch
-        {
-            TextGeneration.Engine.Claude => ProviderKind.Claude,
-            TextGeneration.Engine.Codex => ProviderKind.Codex,
-            _ => null,
-        };
-        if (engine is null || provider is not { } kind) return null;
-        // The engine ends by its own timeout; the caller stops waiting at its own.
-        return new DelegateCall(kind, (prompt, cancel) => TextGeneration.Complete(prompt, engine).WaitAsync(cancel));
+        var provider = who?.Provider ?? brain();
+        if (provider is not { } kind) return null;
+        return app.PrepareAssistantText(new DelegateWho(kind, who?.Model ?? (who is null ? app.AssistantHost.BrainModel() : null)),
+            who is null ? app.AssistantHost.Settings.Value.BrainAccount : null);
     }
 }
 

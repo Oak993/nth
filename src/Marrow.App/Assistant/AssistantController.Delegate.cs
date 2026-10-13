@@ -105,7 +105,7 @@ public sealed partial class AssistantController
         if (facts.Hidden) return null;
         var root = DelegateRoot(chat);
         if (!DelegateReach.IsOn(preferences, root.Id, root.ProjectID, setup.HomeProject())) return null;
-        var who = preferences.DelegateWith;
+        var who = DelegateReach.Model(preferences, root.Id, root.ProjectID);
         var name = who is null ? Root?.Name ?? AssistantNames.Assistant : who.Provider.DisplayName;
         return new DelegateEngagement(chat, chat.Title.Length > 0 ? chat.Title : "A chat", name, who, chat.MissionID is not null, facts);
     }

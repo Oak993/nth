@@ -48,6 +48,21 @@ public sealed partial class DelegateResponder
                 cancel.Dispose();
                 return taken == Seat.Held || Leave(engaged, request, DelegateReason.TooMuch);
             }
+            bool admitted;
+            try { admitted = call.Admit?.Invoke(thread) != false; }
+            catch
+            {
+                lock (gate) pending.Remove((thread, request.Id));
+                cancel.Dispose();
+                call.Release?.Invoke();
+                throw;
+            }
+            if (!admitted)
+            {
+                lock (gate) pending.Remove((thread, request.Id));
+                cancel.Dispose();
+                return Leave(engaged, request, DelegateReason.NoModel);
+            }
             _ = Task.Run(() => Think(work, view, call, token));
             return true;
         }
@@ -82,6 +97,7 @@ public sealed partial class DelegateResponder
             failed = true;
             Fault("Dextra's delegate could not be asked: " + error.GetType().Name);
         }
+        finally { if (call.Release is { } release) o.Agents.Post(release); }
         o.Agents.Post(() => Judge(work, prompt, text, failed));
     }
 

@@ -9,6 +9,12 @@ namespace Marrow.App.Assistant;
 
 public static class DelegateReach
 {
+    // DESIGN.md 4.3, ED-NEW-dextra-open-1: the most specific explicit choice wins, including Dextra (null).
+    public static DelegateWho? Model(DextraPreferences preferences, Guid chat, Guid project) =>
+        preferences.DelegateChatModels.FirstOrDefault(c => c.Id == chat) is { } own ? own.Who
+        : preferences.DelegateProjectModels.FirstOrDefault(c => c.Id == project) is { } area ? area.Who
+        : preferences.DelegateWith;
+
     /// <summary>Whether the delegate answers in a chat of <paramref name="project"/>. <paramref name="homeProject"/> is the project "This project only" means until a project is named.</summary>
     public static bool IsOn(DextraPreferences preferences, Guid chat, Guid project, Guid? homeProject)
     {

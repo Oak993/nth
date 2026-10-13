@@ -10,7 +10,7 @@ public static class TextOnlyAccountHead
     public static bool Supports(ProviderKind service) => ConversationHeadCapabilities.Supports(service);
 
     public static async Task<string> RunAsync(ProviderSession session, SessionConfiguration configuration, string prompt,
-        Action<string> text, Func<bool> permitted, CancellationToken ct)
+        Action<string> text, Func<bool> permitted, CancellationToken ct, Action<TokenSpend>? spend = null)
     {
         ct.ThrowIfCancellationRequested();
         if (!Supports(configuration.Provider)) throw new NotSupportedException("This service has no verified text-only checking or opinion turn.");
@@ -21,7 +21,7 @@ public static class TextOnlyAccountHead
             throw new ArgumentException("A checking or opinion head requires a fresh private configuration.", nameof(configuration));
         // The existing boundary verifies Claude's restricted launch, and disables all tools in API/Local payloads.
         // It is always disposed here; this session is never adopted as the thread's working session.
-        await using var standby = await HandshakeStandbySession.StartAsync(session, configuration, ct, permitted);
+        await using var standby = await HandshakeStandbySession.StartAsync(session, configuration, ct, permitted, spendObserved: spend);
         ct.ThrowIfCancellationRequested();
         if (!permitted()) throw new InvalidOperationException("Permission to use this account changed.");
         var answer = await standby.TextTurnAsync(prompt, ct, text);
