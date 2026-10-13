@@ -9,7 +9,7 @@ internal static class PiTextOnlyHeadPolicy
 
     internal static List<string> Arguments(string extension, string? model, string? effort)
     {
-        var args = new List<string> { "--mode", "rpc", "--no-tools", "--no-extensions", "--no-skills", "--no-prompt-templates", "--no-themes", "--no-context-files", "-e", extension };
+        var args = new List<string> { "--mode", "rpc", "--no-session", "--no-tools", "--no-extensions", "--no-skills", "--no-prompt-templates", "--no-themes", "--no-context-files", "-e", extension };
         if (model is { Length: > 0 } selected && selected.IndexOf('/', StringComparison.Ordinal) is var slash && slash > 0)
             args.AddRange(["--provider", selected[..slash], "--model", selected[(slash + 1)..]]);
         if (effort is { } thinking && PiCLI.ThinkingLevels.Contains(thinking)) args.AddRange(["--thinking", thinking]);

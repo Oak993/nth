@@ -64,7 +64,8 @@ public static class TaintWiring
             case ToolCall.Kind.Mcp:
             {
                 var (server, tool) = SplitMcp(title);
-                if (string.Equals(server, AssistantNames.Server, StringComparison.OrdinalIgnoreCase)) return Taint.Clean;
+                // ED-NEW-secfinal-3 (security gate S7): nth-dextra's own call only, its exact name and a tool of its catalog; a look-alike taints.
+                if (string.Equals(server, AssistantNames.Server, StringComparison.Ordinal) && AssistantToolCatalog.Find(tool) is not null) return Taint.Clean;
                 return Taint.From(ContentOrigin.Connector, Clip(server.Length > 0 ? server + " " + tool : title));
             }
             case ToolCall.Kind.Command:

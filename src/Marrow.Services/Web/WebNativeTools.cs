@@ -20,6 +20,8 @@ public sealed class WebNativeTools(Func<WebAgentHub> hub, string thread, string?
     public static WebNativeTools? For(SessionConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
+        // ED-NEW-secfinal-1: a mission chat (sealed) is given no web tool, as it is given no nth-pc server (PcControlBridge.Registration).
+        if (configuration.Sealed is not null) return null;
         var shared = WebAgentHub.Shared.Current;
         if (shared.Host is null || configuration.IgnisThreadID is not { } thread) return null;
         return new WebNativeTools(() => WebAgentHub.Shared.Current, thread.ToString("D"), configuration.Model);

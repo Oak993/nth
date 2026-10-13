@@ -40,7 +40,9 @@ public sealed partial class AppModel
         var source = new SessionConfiguration
         {
             Provider = kind, Executable = Providers.Executable(kind),
-            WorkingDirectory = SwiftURL.FileURLWithPath(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR") ?? Path.GetTempPath()),
+            // ED-NEW-secfinal-2: a native folder URL (FileURLWithPath takes only a POSIX path); each Claude, Pi or API answer then
+            // runs in its own private folder (DextraTextRoutes.PrivateAnswerAsync), and Command Code in its own (CommandCodeTextHead).
+            WorkingDirectory = Marrow.App.Runtime.ThreadRuntime.SessionDirectoryUrl(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR") ?? Path.GetTempPath()),
             Environment = ValueMap<string, string>.Empty, Model = model,
             RuntimeMode = RuntimeMode.Supervised, InteractionMode = InteractionMode.Build,
             AntiSlopEnabled = false,
@@ -61,11 +63,15 @@ public sealed partial class AppModel
         else ask = (prompt, cancel) => MainActor.Invoke<string?>(async () =>
         {
             cancel.ThrowIfCancellationRequested();
-            var launch = AccountSessionFactory.Create(Providers, source, account.Id, freshContext: true);
-            return await TextOnlyAccountHead.RunAsync(launch.Session, launch.Configuration, prompt,
-                text => { if (text.Length > 32_000) throw new InvalidOperationException("The answer was too long."); },
-                () => MainActor.IsIsolated && CanUseAccount(account.Id) && IsAccountConnected(account), cancel,
-                spend => { if (MainActor.IsIsolated) receipt?.Observe(spend); else MainActor.Post(() => receipt?.Observe(spend)); });
+            // ED-NEW-secfinal-2: each answer in its own new, empty folder as a no-tools launch, never in the shared temp root.
+            return await DextraTextRoutes.PrivateAnswerAsync(source, async isolated =>
+            {
+                var launch = AccountSessionFactory.Create(Providers, isolated, account.Id, freshContext: true);
+                return await TextOnlyAccountHead.RunAsync(launch.Session, launch.Configuration, prompt,
+                    text => { if (text.Length > 32_000) throw new InvalidOperationException("The answer was too long."); },
+                    () => MainActor.IsIsolated && CanUseAccount(account.Id) && IsAccountConnected(account), cancel,
+                    spend => { if (MainActor.IsIsolated) receipt?.Observe(spend); else MainActor.Post(() => receipt?.Observe(spend)); });
+            });
         });
         var onAccount = AssistantTaps.AccountRef(account.UsesLegacyCredentials ? UsageAccountKey.Default(kind) : new UsageAccountKey(kind, account.Id.ToString("D")));
         return new DelegateCall(kind, ask)

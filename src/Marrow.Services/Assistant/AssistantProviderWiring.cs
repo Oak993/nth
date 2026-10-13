@@ -27,6 +27,9 @@ public static partial class AssistantProviderWiring
     /// names the server and a known tool in one of the forms agents print: "nth-dextra-recall: recall",
     /// "nth-dextra_recall", "mcp__nth-dextra__recall", "nth-dextra/recall", "nth-dextra: recall" or "nth-dextra.recall".
     /// A form not listed leaves the agent's own prompt in place, which is safe.
+    /// + ED-NEW-secfinal-3 (security gate S7): the whole title is one of those forms, optionally followed by a parenthesised argument
+    /// summary ("nth-dextra.recall (query)"); "nth-dextra-recall: delete_files" or "nth-dextra/recall: x" (a server whose name only
+    /// begins like nth-dextra's) is not, and no connected server may carry such a name (MCPProviderConfig.IsReservedName).
     /// </summary>
     public static string? AcpAutomaticOption(JSONValue toolCall, IReadOnlyList<JSONValue> options)
     {
@@ -39,7 +42,7 @@ public static partial class AssistantProviderWiring
     public static string? AcpTool(string? title)
     {
         if (title is null) return null;
-        var match = AcpTitle().Match(title);
+        var match = AcpTitle().Match(title.Trim());
         return match.Success && AssistantToolCatalog.Find(match.Groups["tool"].Value) is not null ? match.Groups["tool"].Value : null;
     }
 
@@ -60,6 +63,6 @@ public static partial class AssistantProviderWiring
     /// <summary>Codex's answer to such a request: accept, with no content.</summary>
     public static JSONValue CodexElicitationAccept() => JSONValue.FromDictionaryLiteral(("action", "accept"), ("content", JSONValue.FromDictionaryLiteral()));
 
-    [GeneratedRegex(@"^(?:mcp__)?nth-dextra(?:__|[-_./]|: )(?<tool>[a-z_]+)(?:$|[:\s(])", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"\A(?:mcp__nth-dextra__(?<tool>[a-z_]+)|nth-dextra-(?<tool>[a-z_]+): \k<tool>|nth-dextra(?:__|[_./]|: )(?<tool>[a-z_]+))(?: \([^()\r\n]*\))?\z", RegexOptions.CultureInvariant)]
     private static partial Regex AcpTitle();
 }

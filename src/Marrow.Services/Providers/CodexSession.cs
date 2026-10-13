@@ -755,7 +755,8 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
                     : new Dictionary<string, JSONValue>(StringComparer.Ordinal);
                 sealedConfig["mcp_servers"] = Marrow.Services.Assistant.SealedProviderConfig.CodexServers(MCPProviderConfig.CodexConnectedServers(), userNames, seal,
                     MCPProviderConfig.BuiltInServers(MCPProviderConfig.AdvisorServer(configuration), pcServer, uiServer, dextraServer));
-                if (pcServer is not null && Port.PcControl.PcControlBridge.TactusOn) Port.PcControl.PcProviderWiring.TurnOffCodexComputerUse(sealedConfig);
+                // ED-NEW-secfinal-1: a mission chat has no nth-pc server, and Codex's own computer-use plugins stay off in it too, whatever Tactus's switch says.
+                Port.PcControl.PcProviderWiring.TurnOffCodexComputerUse(sealedConfig);
                 parameters["config"] = new JSONValue.Object(new ValueMap<string, JSONValue>(sealedConfig));
             }
             else if (MCPProviderConfig.CodexBuiltIns(MCPProviderConfig.CodexOverrides(), MCPProviderConfig.BuiltInServers(MCPProviderConfig.AdvisorServer(configuration), pcServer, uiServer, dextraServer)) is { } servers) // :262

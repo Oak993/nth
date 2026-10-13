@@ -189,6 +189,7 @@ public static class MCPProviderConfig
     // are swallowed (try?).
     public static void WriteAll(IReadOnlyList<MCPResolvedServer> servers) // :148
     {
+        servers = WithoutReservedNames(servers); // ED-NEW-secfinal-3: no connected server takes the name of one of nth's own
         if (servers.Count == 0) // :149
         {
             foreach (var url in new[] { MCPPaths.ClaudeConfigURL, MCPPaths.CodexConfigURL, MCPPaths.CopilotConfigURL, GeminiSettingsURL }) // :150
@@ -214,6 +215,7 @@ public static class MCPProviderConfig
         var servers = new List<JSONValue>(); // :82
         foreach (var id in mcpServers.Keys.OrderBy(k => k, SwiftStringComparer.Instance)) // :83, R-COLL-1/R-STR-2
         {
+            if (IsReservedName(id)) continue; // ED-NEW-secfinal-3: a stale file's look-alike of nth's own servers is never passed on
             var entry = mcpServers[id]; // :84
             if (entry["type"]?.JSONValueString == "http" || entry["url"]?.JSONValueString is not null) // :85
             {
@@ -321,11 +323,35 @@ public static class MCPProviderConfig
     /// Settings), or null when there is none; a sealed mission chat keeps only the ones its assistant's profile lists.
     /// </summary>
     public static JSONValue? ClaudeConnectedServers() =>
-        ReadOptionalConfig(MCPPaths.ClaudeConfigURL) is { } data ? JSONValue.Parse(data)?["mcpServers"] : null;
+        WithoutReservedNames(ReadOptionalConfig(MCPPaths.ClaudeConfigURL) is { } data ? JSONValue.Parse(data)?["mcpServers"] : null);
 
     /// <summary>PORT-ONLY (Dextra AS-5, ED-NEW-dextra-as5-3): the mcp_servers object of nth's own codex.json, or null.</summary>
     public static JSONValue? CodexConnectedServers() =>
-        ReadOptionalConfig(MCPPaths.CodexConfigURL) is { } data ? JSONValue.Parse(data)?["mcp_servers"] : null;
+        WithoutReservedNames(ReadOptionalConfig(MCPPaths.CodexConfigURL) is { } data ? JSONValue.Parse(data)?["mcp_servers"] : null);
+
+    /// <summary>
+    /// PORT-ONLY (security gate S7, ED-NEW-secfinal-3): the names of nth's own servers (nth-dextra, nth-ui, nth-pc), with any suffix,
+    /// any case and an optional "mcp__" in front. nth's call-time recognisers read these names (an ACP title, a Claude tool name, the
+    /// taint exemption), so only the entry nth's own bridge builds (nth's executable, its relay flag and a per-launch token, added as a
+    /// built-in) may carry one; a connected server, or a stale file's entry, with such a name is never passed to a provider.
+    /// </summary>
+    public static bool IsReservedName(string? name)
+    {
+        if (name is null) return false;
+        var trimmed = name.Trim();
+        if (trimmed.StartsWith("mcp__", StringComparison.OrdinalIgnoreCase)) trimmed = trimmed[5..];
+        return trimmed.StartsWith(Marrow.Services.Assistant.AssistantProviderWiring.ServerName, StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith(Marrow.Services.Web.UiMcpServer.ServerName, StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith(Marrow.Services.Port.PcControl.PcProviderWiring.ServerName, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static IReadOnlyList<MCPResolvedServer> WithoutReservedNames(IReadOnlyList<MCPResolvedServer> servers) =>
+        servers.Any(s => IsReservedName(s.Id) || IsReservedName(s.Name)) ? [.. servers.Where(s => !IsReservedName(s.Id) && !IsReservedName(s.Name))] : servers;
+
+    private static JSONValue? WithoutReservedNames(JSONValue? servers) =>
+        servers?.JSONValueObject is { } entries && entries.Keys.Any(IsReservedName)
+            ? ObjectOf(entries.Where(pair => !IsReservedName(pair.Key)).ToDictionary(pair => pair.Key, pair => pair.Value))
+            : servers;
 
     // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): no Swift counterpart. A session's ask_advisor server, null unless
     // its chat has an advisor (a Hydra head, whose lead advises); the per-provider shapes below add it beside the
@@ -423,7 +449,8 @@ public static class MCPProviderConfig
         {
             var servers = new Dictionary<string, JSONValue>();
             if (connected is not null && ReadOptionalConfig(connected) is { } data && JSONValue.Parse(data)?["mcpServers"]?.JSONValueObject is { } existing)
-                foreach (var (key, value) in existing) servers[key] = value;
+                foreach (var (key, value) in existing)
+                    if (!IsReservedName(key)) servers[key] = value; // ED-NEW-secfinal-3: only nth's own built-ins carry its names
             foreach (var (key, value) in Claude(builtIns)["mcpServers"]!.JSONValueObject!) servers[key] = value;
             var path = SwiftPath.AppendingPathComponent(MCPPaths.Directory, (advisor ? "advisor-" : "nth-") + (thread ?? Guid.NewGuid()).ToString("N") + ".json");
             FileOps.WriteAtomic(path, ObjectOf(new Dictionary<string, JSONValue> { ["mcpServers"] = ObjectOf(servers) }).Data(pretty: true));

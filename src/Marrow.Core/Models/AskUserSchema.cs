@@ -474,16 +474,35 @@ public static class AskUserWords
         if (card.Questions.Count == 1)
         {
             var question = card.Questions[0];
-            return UiText.Format("ask.resume.single", question.Prompt,
+            return UiText.Format("ask.resume.single", QuotedPrompt(question.Prompt),
                 card.Answers.TryGetValue(question.Id, out var values) && values.Count != 0 ? Plain(question, values) : UiText.Get("ask.resume.none"));
         }
         var lines = new StringBuilder();
         foreach (var question in card.Questions)
         {
-            lines.Append(UiText.Format("ask.resume.many_line", question.Prompt,
+            lines.Append(UiText.Format("ask.resume.many_line", QuotedPrompt(question.Prompt),
                 card.Answers.TryGetValue(question.Id, out var values) && values.Count != 0 ? Plain(question, values) : UiText.Get("ask.resume.none")));
         }
         return UiText.Format("ask.resume.many", lines.ToString());
+    }
+
+    /// <summary>
+    /// PORT-ONLY (security gate N3, ED-NEW-secfinal-4): the model-written question as the resume message quotes it, on one line: every
+    /// line break, separator and control character becomes one space, and a double quote becomes a single one, so it cannot close its
+    /// quote or begin a line of its own in the person's voice.
+    /// </summary>
+    internal static string QuotedPrompt(string prompt)
+    {
+        var text = new StringBuilder(prompt.Length);
+        var space = false;
+        foreach (var c in prompt)
+        {
+            if (char.GetUnicodeCategory(c) == System.Globalization.UnicodeCategory.Format) continue; // an invisible mark (a bidi override) goes
+            if (char.IsWhiteSpace(c) || char.IsControl(c)) { space = text.Length > 0; continue; }
+            if (space) { text.Append(' '); space = false; }
+            text.Append(c is '"' or '\u201C' or '\u201D' or '\u201E' or '\u201F' or '\u00AB' or '\u00BB' or '\uFF02' ? '\'' : c);
+        }
+        return text.ToString();
     }
 
     /// <summary>A card as text for a handoff or a transcript.</summary>
