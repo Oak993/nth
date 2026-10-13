@@ -75,11 +75,16 @@ public sealed class WallpaperStore : MainActorModel
     // Wallpaper.swift:79
     private double? liveRequested;
 
-    // Wallpaper.swift:81
-    private DecodedBitmap? baseImage;
+    // Wallpaper.swift:81. ED-NEW-perf-memory-2: only the width of the full-size copy is kept (it gives the live blur its radius scale, :196). The copy itself
+    // (about 23 MB for a 3200 px picture) was read for nothing else and stayed resident for the whole run.
+    private int baseWidth;
 
     // Wallpaper.swift:83
     private DecodedBitmap? previewBase;
+
+    // PORT-ONLY (ED-NEW-perf-memory-2): the file previewBase and baseWidth belong to, so a later render of the same file reuses the preview instead of decoding
+    // it again, and a drag never blurs the previous picture's preview after a new one was installed.
+    private string? previewFile;
 
     // Wallpaper.swift:32
     public IImage? Image
@@ -224,6 +229,7 @@ public sealed class WallpaperStore : MainActorModel
         renderTask?.Cancel();
         if (fileURL is { } oldFile) SwiftTry.Ignore(() => FileOps.RemoveItem(oldFile));
         fileURL = null;
+        DropCopies(); // PORT-ONLY (ED-NEW-perf-memory-2): the removed picture's preview is not kept
         UserDefaults.Standard.Current.RemoveObject(Key.File);
         Transaction.WithAnimation(Animation.EaseOut(0.25), () => Image = null);
         LastError = null;
@@ -234,11 +240,12 @@ public sealed class WallpaperStore : MainActorModel
     {
         if (fileURL is not { } currentFile) return;
         var capturedSoftness = Softness;
+        var knownPreview = previewFile == currentFile ? previewBase : null; // the same file's preview is not decoded again
         renderTask?.Cancel();
         renderTask = TaskHandle.Detached(async () =>
         {
             var baseAndPreview = await Task.Run(() =>
-                (Thumbnail(currentFile, 3200), Thumbnail(currentFile, 1600)));
+                (Thumbnail(currentFile, 3200), knownPreview ?? Thumbnail(currentFile, 1600)));
             if (baseAndPreview.Item1 is not { } baseBitmap) return;
 
             var rendered = await Task.Run(() =>
@@ -248,8 +255,9 @@ public sealed class WallpaperStore : MainActorModel
             await MainActor.Run(() =>
             {
                 if (SwiftTask.IsCancelled || fileURL != currentFile) return;
-                baseImage = baseBitmap;
+                baseWidth = baseBitmap.Width;
                 previewBase = baseAndPreview.Item2;
+                previewFile = currentFile;
                 Image = ToImage(rendered);
             });
         });
@@ -266,7 +274,7 @@ public sealed class WallpaperStore : MainActorModel
     // Wallpaper.swift:192-210
     private void RenderLive()
     {
-        if (previewBase is not { } smallBase || baseImage is not { } fullBase)
+        if (previewBase is not { } smallBase || baseWidth <= 0 || previewFile != fileURL)
         {
             Render();
             return;
@@ -275,7 +283,7 @@ public sealed class WallpaperStore : MainActorModel
         liveRequested = Softness;
         if (liveTask is not null) return;
 
-        var scale = (double)smallBase.Width / fullBase.Width;
+        var scale = (double)smallBase.Width / baseWidth;
         liveTask = TaskHandle.Detached(async () =>
         {
             // DEVIATION (platform adaptation, not a Swift behaviour change): Swift's loop runs on the main actor
@@ -323,10 +331,19 @@ public sealed class WallpaperStore : MainActorModel
     {
         if (fileURL is { } previous) SwiftTry.Ignore(() => FileOps.RemoveItem(previous));
         fileURL = file;
+        DropCopies(); // PORT-ONLY (ED-NEW-perf-memory-2): the previous picture's preview is not the new one's
         UserDefaults.Standard.Current.Set(Key.File, SwiftPath.LastPathComponent(file));
         Wallpapers.WallpaperLibraryStore.CustomImageInstalled(); // OD-0110: a successful custom pick replaces the built-in.
         Transaction.WithAnimation(Animation.Spring(duration: 0.45, bounce: 0.2), () => Image = picture.Image);
         IsInstalling = false;
+    }
+
+    // PORT-ONLY (ED-NEW-perf-memory-2)
+    private void DropCopies()
+    {
+        previewBase = null;
+        previewFile = null;
+        baseWidth = 0;
     }
 
     // Wallpaper.swift:229-232
@@ -346,61 +363,7 @@ public sealed class WallpaperStore : MainActorModel
         var radius = softness * 28 * radiusScale;
         if (!(radius > 0.01)) return @base;
 
-        var sigma = radius;
-        var extent = checked((int)Math.Ceiling(sigma * 3));
-        var kernel = new double[checked(extent * 2 + 1)];
-        var total = 0.0;
-        for (var offset = -extent; offset <= extent; offset++)
-        {
-            var weight = Math.Exp(-(offset * (double)offset) / (2 * sigma * sigma));
-            kernel[offset + extent] = weight;
-            total += weight;
-        }
-        for (var index = 0; index < kernel.Length; index++) kernel[index] /= total;
-
-        var width = @base.Width;
-        var height = @base.Height;
-        var pixels = @base.Pixels;
-        var horizontal = new byte[pixels.Length];
-        var output = new byte[pixels.Length];
-
-        for (var y = 0; y < height; y++)
-        {
-            for (var x = 0; x < width; x++)
-            {
-                var pixelOffset = checked((y * width + x) * 4);
-                for (var channel = 0; channel < 4; channel++)
-                {
-                    var value = 0.0;
-                    for (var offset = -extent; offset <= extent; offset++)
-                    {
-                        var sampleX = Math.Clamp(x + offset, 0, width - 1);
-                        value += pixels[checked((y * width + sampleX) * 4 + channel)] * kernel[offset + extent];
-                    }
-                    horizontal[pixelOffset + channel] = (byte)Math.Clamp((int)Math.Round(value), 0, 255);
-                }
-            }
-        }
-
-        for (var y = 0; y < height; y++)
-        {
-            for (var x = 0; x < width; x++)
-            {
-                var pixelOffset = checked((y * width + x) * 4);
-                for (var channel = 0; channel < 4; channel++)
-                {
-                    var value = 0.0;
-                    for (var offset = -extent; offset <= extent; offset++)
-                    {
-                        var sampleY = Math.Clamp(y + offset, 0, height - 1);
-                        value += horizontal[checked((sampleY * width + x) * 4 + channel)] * kernel[offset + extent];
-                    }
-                    output[pixelOffset + channel] = (byte)Math.Clamp((int)Math.Round(value), 0, 255);
-                }
-            }
-        }
-
-        return new DecodedBitmap(width, height, checked(width * 4), output);
+        return WallpaperBlur.Apply(@base, radius); // ED-NEW-perf-memory-2: the same Gaussian, in whole rows with SIMD and in parallel
     }
 
     // Wallpaper.swift:262-269

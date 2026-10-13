@@ -11,7 +11,9 @@
 // text that would rewrap every frame: a thread's column takes its width at the new scale at the press and keeps it
 // (ThreadTimeline.CurrentLayoutWidth). The content at the focus stays where it was: the scroll view under the pointer (or,
 // with the pointer outside the window, under the reading line a third of the way down) is scrolled so the line at the
-// focus stays on its row of pixels. The last frame is the new scale exactly. Reduce Motion takes it at once.
+// focus stays on its row of pixels, and every other scroll view that overflows keeps the line at its own reading line
+// (ED-NEW-perf-motion-3: a pointer resting on the composer, the header or the sidebar keeps the thread's place too). The
+// last frame is the new scale exactly. Reduce Motion takes it at once.
 
 using Avalonia;
 using Avalonia.Controls;
@@ -55,7 +57,7 @@ public sealed class ZoomMotion
     private IFrameSource? source;
     private Action<TimeSpan>? pending;
     private ContinuousInstant last;
-    private ZoomAnchor? anchor;
+    private IReadOnlyList<ZoomAnchor> anchors = [];
     private Point? pointer;
 
     /// <param name="owner">The window root, outside the zoom: its points are the window's.</param>
@@ -103,7 +105,7 @@ public sealed class ZoomMotion
     public void To(double target)
     {
         if (target == Target && (IsMoving || Value == target)) return;
-        anchor = ZoomAnchor.Capture(owner, pointer);
+        anchors = ZoomAnchor.CaptureAll(owner, pointer);
         if (!FrameClock.IsBound || ReduceMotion)
         {
             Stop();
@@ -111,7 +113,7 @@ public sealed class ZoomMotion
             Velocity = 0;
             Retargeted?.Invoke(target);
             Show(target);
-            anchor = null;
+            anchors = [];
             Rested?.Invoke(target);
             return;
         }
@@ -128,7 +130,7 @@ public sealed class ZoomMotion
         Retargeted?.Invoke(target); // moving: what follows the motion sees it under way
         // What the press changed in the layout (a thread column taking its width at the new scale) is laid out now, with the
         // focus kept, so no frame shows it before the motion's first.
-        anchor?.Keep();
+        Keep();
     }
 
     /// <summary>A motion under way lands on its target at once (the root leaves the window, or Reduce Motion came on).</summary>
@@ -139,7 +141,7 @@ public sealed class ZoomMotion
         Value = Target;
         Velocity = 0;
         Show(Target);
-        anchor = null;
+        anchors = [];
         Rested?.Invoke(Target);
     }
 
@@ -167,7 +169,7 @@ public sealed class ZoomMotion
         if (rests)
         {
             pending = null;
-            anchor = null;
+            anchors = [];
             Rested?.Invoke(Target);
             return;
         }
@@ -178,8 +180,13 @@ public sealed class ZoomMotion
     private void Show(double scale)
     {
         apply(scale);
-        anchor?.Keep();
+        Keep();
         Moved?.Invoke(scale);
+    }
+
+    private void Keep()
+    {
+        foreach (var anchor in anchors) anchor.Keep();
     }
 
     private void Stop()
@@ -217,20 +224,47 @@ internal sealed class ZoomAnchor
     /// <summary>The scroll view kept, for tests.</summary>
     internal ScrollViewer Viewer => viewer;
 
-    public static ZoomAnchor? Capture(Control root, Point? pointer)
+    /// <summary>
+    /// The anchors a press keeps: the innermost scroll view at the focus (the pointer over the window, else the root's reading
+    /// line), and every other scroll view that overflows and is scrolled from its top, outside that one and outside each other (the
+    /// outermost), at its own reading line, half its width across and a third of its height down (ED-NEW-perf-motion-3).
+    /// </summary>
+    public static IReadOnlyList<ZoomAnchor> CaptureAll(Control root, Point? pointer)
     {
-        if (!root.IsAttachedToVisualTree() || root.Bounds.Width <= 0 || root.Bounds.Height <= 0) return null;
-        var focus = pointer is { } at && new Rect(root.Bounds.Size).Contains(at)
+        if (!root.IsAttachedToVisualTree() || root.Bounds.Width <= 0 || root.Bounds.Height <= 0) return [];
+        var window = new Rect(root.Bounds.Size);
+        var focus = pointer is { } at && window.Contains(at)
             ? at
             : new Point(root.Bounds.Width / 2, root.Bounds.Height * ZoomMotion.ReadingLine);
-        ScrollViewer? viewer = null;
-        foreach (var candidate in root.GetVisualDescendants().OfType<ScrollViewer>())
+        var viewers = new List<(ScrollViewer Viewer, Rect Box)>();
+        foreach (var candidate in root.GetVisualDescendants().OfType<ScrollViewer>()) // ancestors before their descendants
         {
             if (!candidate.IsEffectivelyVisible || candidate.Extent.Height <= candidate.Viewport.Height + 0.5) continue;
-            if (!Contains(candidate, root, focus)) continue;
-            if (viewer is null || candidate.GetVisualAncestors().Contains(viewer)) viewer = candidate; // the innermost
+            if (Box(candidate, root) is { Width: > 0, Height: > 0 } box && box.Intersects(window)) viewers.Add((candidate, box));
         }
-        if (viewer is null) return null;
+        var anchors = new List<ZoomAnchor>();
+        var taken = new List<ScrollViewer>();
+        ScrollViewer? focused = null;
+        foreach (var (candidate, box) in viewers)
+            if (box.Contains(focus) && (focused is null || candidate.GetVisualAncestors().Contains(focused))) focused = candidate; // the innermost
+        if (focused is not null)
+        {
+            taken.Add(focused);
+            if (CaptureIn(root, focused, focus) is { } anchor) anchors.Add(anchor);
+        }
+        foreach (var (candidate, box) in viewers)
+        {
+            if (taken.Any(held => ReferenceEquals(held, candidate) || held.IsVisualAncestorOf(candidate) || candidate.IsVisualAncestorOf(held))) continue;
+            taken.Add(candidate);
+            if (candidate.Offset.Y <= 0.5) continue; // one at its top stays at its top, as before
+            var line = new Point(box.X + box.Width / 2, box.Y + box.Height * ZoomMotion.ReadingLine);
+            if (window.Contains(line) && CaptureIn(root, candidate, line) is { } anchor) anchors.Add(anchor);
+        }
+        return anchors;
+    }
+
+    private static ZoomAnchor? CaptureIn(Control root, ScrollViewer viewer, Point focus)
+    {
         var end = Math.Max(0, viewer.Extent.Height - viewer.Viewport.Height);
         if (viewer.Offset.Y >= end - 0.5) return new ZoomAnchor(root, viewer, null, 0, focus.Y, atEnd: true);
         // The innermost element of the content at the focus row (and column, where one holds it).
@@ -248,6 +282,10 @@ internal sealed class ZoomAnchor
         var height = element.TranslatePoint(new Point(0, element.Bounds.Height), root)!.Value.Y - top;
         return new ZoomAnchor(root, viewer, element, height > 0 ? (focus.Y - top) / height : 0, focus.Y, atEnd: false);
     }
+
+    private static Rect? Box(Visual visual, Visual root) =>
+        visual.TranslatePoint(default, root) is { } top && visual.TranslatePoint(new Point(visual.Bounds.Width, visual.Bounds.Height), root) is { } bottom
+            ? new Rect(top, bottom) : null;
 
     // The element's span of the root's rows, when it holds the row.
     private static Rect? Rows(Visual visual, Visual root, double y)

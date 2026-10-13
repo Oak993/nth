@@ -50,7 +50,24 @@ internal sealed class AmbientWindowState : IDisposable
         state.users++; return state;
     }
 
-    internal void Touch(double now) { Volatile.Write(ref lastInput, now); Changed?.Invoke(); }
+    /// <summary>ED-NEW-perf-idle-7: an input this soon after the one before it (and a window that is not available) wakes no source.</summary>
+    internal const double InputWakeGap = 1;
+
+    /// <summary>
+    /// Input at <paramref name="now"/>. The time is always kept (a moving source re-reads it at every sample and its idle ease
+    /// starts after 20 s), but <see cref="Changed"/>, which wakes every ambient source (a message to the render thread and a
+    /// commit each), is raised only when it can change something: the window is available, and the input before this one is
+    /// at least <see cref="InputWakeGap"/> old, which is a restart from rest. A pointer moving over the window sends a
+    /// thousand inputs a second and the sources it woke a moment ago are already moving; an unavailable window has no source
+    /// drawing, and <see cref="SetAvailable"/> raises <see cref="Changed"/> itself when it becomes available.
+    /// </summary>
+    internal void Touch(double now)
+    {
+        var before = Volatile.Read(ref lastInput);
+        Volatile.Write(ref lastInput, now);
+        if (!Available || now - before is >= 0 and < InputWakeGap) return;
+        Changed?.Invoke();
+    }
     internal void SetAvailable(bool value)
     {
         if (Interlocked.Exchange(ref available, value ? 1 : 0) == (value ? 1 : 0)) return;

@@ -74,6 +74,22 @@ internal static class KindleMotion
     /// <summary>An animation, or none when motion is reduced.</summary>
     public static Animation? Ease(Control owner, Animation curve) => Reduce(owner) ? null : curve;
 
+    /// <summary>
+    /// ED-NEW-perf-idle-1: sets <paramref name="scalar"/> to <paramref name="to"/> along <paramref name="ease"/> for a change of the
+    /// shown state, and not at all for the slow drift of the clock. The cache's heat falls 0.0002 a second, so the once-a-second
+    /// re-read must not start an animation run (each run asks the frame clock for a frame at every display refresh for 0.6 s):
+    /// a target already set is left alone (a run in flight keeps going, not restarted), a change under <paramref name="steady"/>
+    /// is not a movement, so it lands at once, and only once it has grown to <paramref name="step"/> (nothing is running).
+    /// </summary>
+    public static void Follow(AnimatedScalar scalar, double to, Animation? ease, double steady, double step)
+    {
+        var gap = Math.Abs(scalar.Target - to);
+        if (gap == 0) return;
+        if (gap >= steady) { scalar.Set(to, ease); return; }
+        if (scalar.IsRunning || gap < step) return;
+        scalar.Set(to, null);
+    }
+
     /// <summary>The breathing scale at <paramref name="seconds"/> (keyframes breathe: 1 → 1.09 at half of 3.6 s → 1, ease-in-out).</summary>
     public static double Breath(double seconds)
     {

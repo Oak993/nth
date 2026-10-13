@@ -13,6 +13,7 @@ using Marrow.App.Port.Settings;
 using Marrow.App.Runtime;
 using Marrow.Core.Models;
 using Marrow.Core.Models.ComposerLights;
+using Marrow.Core.Port;
 using Marrow.Core.Port.Voice.Light;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
@@ -32,6 +33,11 @@ internal sealed class ComposerLightSlot : Decorator
     private bool lightOn;
     private int wallpaperRevision;
     private (Size Window, Size Composer) measuredFor;
+    private ContinuousInstant sizeChangedAt;
+    private TaskHandle? remeasure;
+
+    /// <summary>ED-NEW-perf-motion-6: how long the window's and the composer's size must hold still before what lies under the composer is measured again.</summary>
+    internal static readonly TimeSpan StillSize = TimeSpan.FromMilliseconds(200);
 
     public ComposerLightView Light => light;
 
@@ -111,10 +117,35 @@ internal sealed class ComposerLightSlot : Decorator
         if (TopLevel.GetTopLevel(this) is not { } top || TopLevel.GetTopLevel(composer) != top) return;
         // the window's or the composer's size changed: what lies under the composer is measured again (the veil's amount)
         var size = (top.Bounds.Size, composer.Bounds.Size);
-        if (size != measuredFor && light.Wallpaper.Showing) { measuredFor = size; light.Wallpaper = light.Wallpaper with { Revision = ++wallpaperRevision }; }
+        if (size != measuredFor && light.Wallpaper.Showing)
+        {
+            // ED-NEW-perf-motion-6: a measure is a GPU readback on the render thread; a size that changes every frame (a zoom glide, a sidebar
+            // slide, a live resize) is measured once it has held still for StillSize, not on each frame (the veil eases to what it measures).
+            var first = measuredFor == default;
+            measuredFor = size;
+            if (first) Remeasure();
+            else
+            {
+                sizeChangedAt = SwiftClock.Now;
+                remeasure ??= MainActor.Spawn(RemeasureWhenStill);
+            }
+        }
         if (composer.TranslatePoint(default, light) is not { } origin) return;
         light.ComposerRect = new Rect(origin, composer.Bounds.Size);
         light.FadeBottom = top.TranslatePoint(new Point(0, top.Bounds.Height), light)?.Y;
+    }
+
+    private void Remeasure() => light.Wallpaper = light.Wallpaper with { Revision = ++wallpaperRevision };
+
+    private async Task RemeasureWhenStill()
+    {
+        try
+        {
+            for (var wait = StillSize; wait > TimeSpan.Zero; wait = StillSize - (SwiftClock.Now - sizeChangedAt))
+                if (!await SwiftTask.TrySleep(wait)) return;
+            if (light.Wallpaper.Showing) Remeasure();
+        }
+        finally { remeasure = null; }
     }
 
     // the maker's liquid stops (OD-0063: heart and second, dark; the deeper pair, light) and the accent, per appearance

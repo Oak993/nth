@@ -41,7 +41,7 @@ internal sealed class AccountCapsule : Panel
     private CapsuleContent? content;
     private double left = 1;
     private int current = -1;
-    private Action<TimeSpan>? frame;
+    private AnimationTimeline? loop;
     private ContinuousInstant? origin;
     private double phase;
     private bool onScreen = true;
@@ -122,7 +122,10 @@ internal sealed class AccountCapsule : Panel
     public double ArcNow => state.Arc;
     public double FillNow => state.Fill;
     public double Phase => phase;
-    public bool IsLooping => frame is not null;
+    public bool IsLooping => loop is not null;
+
+    /// <summary>ED-NEW-perf-idle-3: raised on the UI thread each time the capsule repaints (the plain outline of a linked account paints from this capsule's eased values and repaints with it).</summary>
+    internal event Action? Repainted;
     public bool HasGlow => glow is not null;
     public double GlowOpacityNow => glowOpacity.Value;
     public double GlowBlurNow => glowBlur.Value;
@@ -257,15 +260,17 @@ internal sealed class AccountCapsule : Panel
     {
         var need = NeedsLoop && onScreen && !ReduceMotion && FrameClock.IsBound && VisualRoot is not null;
         if (!need) { StopLoop(); if (ReduceMotion) { phase = 0; state.Phase = 0; } return; }
-        if (frame is not null) return;
+        if (loop is not null) return;
         origin = SwiftClock.Now;
-        frame = Tick;
-        FrameClock.Source.Current.RequestFrame(frame);
+        // ED-NEW-perf-idle-3: a draw loop at 60 a second, not a frame request at every display refresh for as long as the style
+        // moves: the timeline holds its request back to the next slot (1.5 refreshes before) and parks while no window of the
+        // app can be seen. The phase is a function of the clock, so the first frame after a park draws where it has got to.
+        loop = new AnimationTimeline(() => new AnimationTimelineSchedule(1.0 / 60), _ => Tick());
+        loop.Appear();
     }
 
-    private void Tick(TimeSpan _)
+    private void Tick()
     {
-        frame = null;
         if (origin is not { } start) return;
         phase = (SwiftClock.Now - start).TotalSeconds;
         state.Phase = phase;
@@ -275,11 +280,16 @@ internal sealed class AccountCapsule : Panel
 
     private void StopLoop()
     {
-        if (frame is { } pending) FrameClock.Source.Current.CancelFrame(pending);
-        frame = null;
+        if (loop is not { } running) return;
+        loop = null;
+        running.Disappear();
     }
 
-    private void Repaint() => face.InvalidateVisual();
+    private void Repaint()
+    {
+        face.InvalidateVisual();
+        Repainted?.Invoke();
+    }
 
     internal void Paint(DrawingContext context) => CapsulePainter.Paint(context, state);
 }

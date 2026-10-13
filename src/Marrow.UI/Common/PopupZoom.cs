@@ -7,7 +7,8 @@
 // from: when it opens, its child is hung on a PopupZoom in its host, which lays it out at the host's size divided by the scale
 // and draws it scaled back up, as ZoomLayout does for a window. The popup's child keeps its own logical parent (the Popup), so
 // its styles, appearance and the sites that read popup.Child are as before; only the visual parent changes, and only while the
-// zoom is not 100 %.
+// zoom is not 100 %. A popup open while the zoom moves follows its window's motion frame by frame (ED-NEW-perf-motion-7), its host's
+// sizes with it, so it never stays at the scale it opened with beside a window gliding to another.
 
 using System.Runtime.CompilerServices;
 using Avalonia;
@@ -25,17 +26,59 @@ public sealed class PopupZoom : Control
     private static readonly ConditionalWeakTable<Popup, PopupZoom> zooms = new();
 
     private readonly Scaler scaler = new();
+    private readonly ScaleTransform transform;
+    private ZoomMotion? motion;
+    private Action<double>? moved;
+    private Avalonia.Layout.Layoutable? sizedHost;
 
     internal PopupZoom(double scale)
     {
         Scale = scale;
-        scaler.RenderTransform = new ScaleTransform(scale, scale);
+        transform = new ScaleTransform(scale, scale);
+        scaler.RenderTransform = transform;
         scaler.RenderTransformOrigin = new RelativePoint(0, 0, RelativeUnit.Relative);
         VisualChildren.Add(scaler);
     }
 
     /// <summary>The scale the content is drawn at.</summary>
-    public double Scale { get; }
+    public double Scale { get; private set; }
+
+    // ED-NEW-perf-motion-7: follows the zoom motion of the window the popup hangs from (each frame's scale of its anchor), the host's
+    // sizes that Opened scaled with it.
+    private void Follow(Popup popup)
+    {
+        if (ZoomMotion.For(Anchor(popup) ?? popup) is not { } found) return;
+        motion = found;
+        moved = _ => { if (Anchor(popup) is { } anchor && anchor.IsAttachedToVisualTree()) Rescale(AppZoom.ScaleOf(anchor)); };
+        found.Moved += moved;
+    }
+
+    private void Unfollow()
+    {
+        if (motion is not null && moved is not null) motion.Moved -= moved;
+        motion = null;
+        moved = null;
+    }
+
+    internal void Rescale(double scale)
+    {
+        if (!(scale > 0) || scale == Scale) return;
+        var ratio = scale / Scale;
+        Scale = scale;
+        transform.ScaleX = transform.ScaleY = scale;
+        if (sizedHost is { } host) ScaleHost(host, ratio);
+        InvalidateMeasure();
+    }
+
+    private static void ScaleHost(Avalonia.Layout.Layoutable sized, double ratio)
+    {
+        if (double.IsFinite(sized.Width)) sized.Width *= ratio;
+        if (double.IsFinite(sized.Height)) sized.Height *= ratio;
+        if (sized.MinWidth > 0 && double.IsFinite(sized.MinWidth)) sized.MinWidth *= ratio;
+        if (sized.MinHeight > 0 && double.IsFinite(sized.MinHeight)) sized.MinHeight *= ratio;
+        if (double.IsFinite(sized.MaxWidth)) sized.MaxWidth *= ratio;
+        if (double.IsFinite(sized.MaxHeight)) sized.MaxHeight *= ratio;
+    }
 
     /// <summary>The popup's content, a visual child only (its logical parent stays the Popup).</summary>
     public Control? Child
@@ -67,7 +110,7 @@ public sealed class PopupZoom : Control
     {
         if (ReferenceEquals(Shown(host), child)) return;
         var scale = child is null ? 1 : AppZoom.ScaleOf(Anchor(popup));
-        if (host.Content is PopupZoom old) old.Child = null;
+        if (host.Content is PopupZoom old) { old.Child = null; old.Unfollow(); }
         if (child is null || scale == 1)
         {
             host.Content = child;
@@ -82,26 +125,25 @@ public sealed class PopupZoom : Control
         if (popup.Child is not { } child || HostOf(popup, child) is not ContentControl host || !ReferenceEquals(host.Content, child)) return;
         var scale = AppZoom.ScaleOf(Anchor(popup));
         if (scale == 1) return;
-        Hang(popup, host, child, scale);
+        var zoom = Hang(popup, host, child, scale);
         // Popup.UpdateHostSizing gives the host the popup's own Width, MinWidth, MaxWidth and heights, in the anchor's unzoomed
-        // points; the host draws them zoomed.
+        // points; the host draws them zoomed (and keeps them zoomed as the scale follows a zoom motion).
         if (host is Avalonia.Layout.Layoutable sized)
         {
-            if (double.IsFinite(sized.Width)) sized.Width *= scale;
-            if (double.IsFinite(sized.Height)) sized.Height *= scale;
-            if (sized.MinWidth > 0 && double.IsFinite(sized.MinWidth)) sized.MinWidth *= scale;
-            if (sized.MinHeight > 0 && double.IsFinite(sized.MinHeight)) sized.MinHeight *= scale;
-            if (double.IsFinite(sized.MaxWidth)) sized.MaxWidth *= scale;
-            if (double.IsFinite(sized.MaxHeight)) sized.MaxHeight *= scale;
+            ScaleHost(sized, scale);
+            zoom.sizedHost = sized;
         }
     }
 
-    private static void Hang(Popup popup, ContentControl host, Control child, double scale)
+    private static PopupZoom Hang(Popup popup, ContentControl host, Control child, double scale)
     {
+        if (zooms.TryGetValue(popup, out var previous)) previous.Unfollow();
         var zoom = new PopupZoom(scale);
         host.Content = zoom; // the host lets go of the child first: a visual has one parent
         zoom.Child = child;
         zooms.AddOrUpdate(popup, zoom);
+        zoom.Follow(popup);
+        return zoom;
     }
 
     // The popup has closed (Popup.Close has taken the zoom from its host): its child leaves the zoom, so the next host it opens
@@ -110,6 +152,7 @@ public sealed class PopupZoom : Control
     {
         if (!zooms.TryGetValue(popup, out var zoom)) return;
         zooms.Remove(popup);
+        zoom.Unfollow();
         zoom.Child = null;
     }
 

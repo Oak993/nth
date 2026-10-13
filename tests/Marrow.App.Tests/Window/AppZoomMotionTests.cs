@@ -197,6 +197,61 @@ public sealed class AppZoomMotionTests(HeadlessSession headless) : SettingsWindo
             Assert.InRange(Row(), focus.Y - 1, focus.Y + 1);
         }, width: 1000, height: 860); // narrow enough that the column rewraps at 110 % (it is 820 points at most)
 
+    [Theory]
+    [Trait("Decision", "ED-NEW-perfmotion-3")]
+    [InlineData(100, 110)]
+    [InlineData(110, 100)]
+    public void With_the_pointer_on_the_composer_the_threads_reading_line_stays_on_its_row_while_it_zooms(int from, int to) =>
+        ThreadTimelineRig.Run(session, mount =>
+        {
+            // The thread above a composer that is not in its scroll view (ChatView's '*,Auto' rows), the pointer resting on the composer.
+            mount.Model.Settings.AppZoom = from;
+            mount.Window.Content = null;
+            var composer = new Border { Height = 120, Background = Brushes.Transparent };
+            var page = new Grid { RowDefinitions = new RowDefinitions("*,Auto") };
+            page.Children.Add(mount.Host);
+            Grid.SetRow(composer, 1);
+            page.Children.Add(composer);
+            var root = new HostedEnvironment(mount.Model, new WindowLiveResize(mount.Window)).Body(page);
+            mount.Window.Content = root;
+            mount.SetEntries(TimelineMount.Turns(40, sentences: 8, unique: true));
+            mount.Settle();
+            var scroll = mount.Scroll;
+            var end = scroll.Extent.Height - scroll.Viewport.Height;
+            SoftScroll.ScrollTo(scroll, new Vector(0, end / 2), null);
+            mount.Advance(400);
+            var onComposer = OnWindow(composer, mount).Center;
+            Assert.False(OnWindow(scroll, mount).Contains(onComposer));
+            mount.Window.MouseMove(onComposer);
+            Dispatcher.UIThread.RunJobs();
+            // The thread's own reading line: half its width across, a third of its height down.
+            var box = OnWindow(scroll, mount);
+            var line = new Point(box.X + box.Width / 2, box.Y + box.Height * ZoomMotion.ReadingLine);
+            var text = scroll.GetVisualDescendants().OfType<Control>().Where(part => part.IsEffectivelyVisible && part.Bounds.Height > 0 && OnWindow(part, mount).Contains(line))
+                .OrderBy(part => part.Bounds.Height).First();
+            var fraction = (line.Y - OnWindow(text, mount).Y) / OnWindow(text, mount).Height;
+            double Row() { var at = OnWindow(text, mount); return at.Y + fraction * at.Height; }
+            var motion = Assert.IsType<ZoomMotion>(ZoomMotion.Of(root));
+            var rows = new List<double>();
+
+            mount.Model.Settings.AppZoom = to;
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(motion.IsMoving);
+            mount.Window.UpdateLayout();
+            rows.Add(Row());
+            for (var frame = 0; frame < 60 && motion.IsMoving; frame++)
+            {
+                var step = TimeSpan.FromSeconds(1 / 60.0);
+                mount.Store.Main.Time.Advance(step);
+                mount.Frames.Advance(step);
+                Dispatcher.UIThread.RunJobs();
+                mount.Window.UpdateLayout();
+                rows.Add(Row());
+            }
+            Assert.False(motion.IsMoving);
+            Assert.True(rows.All(row => Math.Abs(row - line.Y) <= 1), $"the thread's reading line left its row: {string.Join(", ", rows.Select(row => row.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)))}");
+        }, width: 1000, height: 860);
+
     private static Rect OnWindow(Visual visual, TimelineMount mount) =>
         new(visual.TranslatePoint(default, mount.Window)!.Value, visual.TranslatePoint(new Point(visual.Bounds.Width, visual.Bounds.Height), mount.Window)!.Value);
 

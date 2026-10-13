@@ -1,6 +1,7 @@
 // PORT-ONLY: PA-0015 and R-FS-1. Windows refuses a write, rename, replace or delete while another handle holds the
 // file, and refuses to delete or replace a read-only file, where the POSIX calls behind Foundation succeed. Every
 // write, replace, rename and delete in the port goes through this file (IMPLEMENTING.md 4.3).
+using System.Buffers;
 using System.Collections.ObjectModel;
 using System.Runtime.ExceptionServices;
 
@@ -194,19 +195,35 @@ public static class FileOps
 
     // ED-121 (b): the read-back. A failure to read (a sharing violation is transient, ED-125) discards the file, so
     // the next attempt writes a fresh one.
+    // ED-NEW-perf-memory-5: compared in 64 KB pieces, not by reading the whole file into a second array of the file's size.
     private static bool ReadsBackAs(string temporary, byte[] bytes)
     {
-        byte[] landed;
         try
         {
-            landed = File.ReadAllBytes(temporary);
+            using var stream = new FileStream(temporary, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 1, FileOptions.SequentialScan);
+            if (stream.Length != bytes.Length) return false;
+            var piece = ArrayPool<byte>.Shared.Rent(1 << 16);
+            try
+            {
+                var compared = 0;
+                while (compared < bytes.Length)
+                {
+                    var read = stream.Read(piece, 0, Math.Min(piece.Length, bytes.Length - compared));
+                    if (read <= 0 || !piece.AsSpan(0, read).SequenceEqual(bytes.AsSpan(compared, read))) return false;
+                    compared += read;
+                }
+                return stream.ReadByte() < 0;
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(piece);
+            }
         }
         catch (Exception)
         {
             Discard(temporary);
             throw;
         }
-        return landed.AsSpan().SequenceEqual(bytes);
     }
 
     // ED-124: swift-foundation writeToFileAux copies the destination's mode to the temporary file before the rename.

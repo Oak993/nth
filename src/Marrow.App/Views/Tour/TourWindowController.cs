@@ -184,6 +184,7 @@ public sealed class TourWindowController
         {
             window = null;
             windowDelegate = null;
+            SwiftImage.ReleaseTourPictures(); // PORT-ONLY (ED-NEW-perf-memory-6): the decoded pictures are not kept for the life of the process
         });
         windowDelegate = del;
         createdWindow.Closed += (s, e) => del.OnClose();
