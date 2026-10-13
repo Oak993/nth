@@ -408,7 +408,7 @@ public sealed class ChatView : Decorator
             if (terminal is not null && (!visible || terminalDirectory != directory))
             {
                 var leaving = terminal;
-                SwiftTransition.RemoveContinuing(terminalHost, leaving); // closed mid-open: back down from where it is (OD-0076; ED-278 (10)).
+                SwiftTransition.RemoveContinuing(terminalHost, leaving, usePresentedProgress: true); // shared layout frame (ED-NEW-motion-drawer-5).
                 leavingTerminal = (leaving, terminalDirectory);
                 terminal = null;
                 if (!visible && animation is not null) PushTerminal(showing: false, animation, leaving.Bounds.Height, rowHeld: true);
@@ -422,7 +422,7 @@ public sealed class ChatView : Decorator
                 if (leavingTerminal is { } back && back.Directory == directory && SwiftTransition.IsRemoving(back.Panel))
                 {
                     terminal = back.Panel;
-                    SwiftTransition.InsertContinuing(terminalHost, terminalHost.Children.Count, terminal);
+                    SwiftTransition.InsertContinuing(terminalHost, terminalHost.Children.Count, terminal, usePresentedProgress: true);
                     terminal.TakeKeyboardIfWanted(); // never left the visual tree: the reopen's focus request is spent here (TerminalPanel.swift:224-239).
                 }
                 else
@@ -437,7 +437,7 @@ public sealed class ChatView : Decorator
         }
         if (changed && sceneThreadID == runtime.ThreadID) Transaction.WithAnimation(
             EnvironmentValues.GetAccessibilityReduceMotion(this) || Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion
-                ? null : Chrome.PanelSlide, Apply);
+                ? Animation.EaseOut(.18) : Chrome.PanelSlide, Apply); // Chrome.swift:99-104, source Reduce Motion.
         else Apply();
         terminalWasVisible = visible;
     }
@@ -967,16 +967,16 @@ internal sealed record ReserveSlide(PanelReserve Reserve, bool Slides, bool Anim
             state.Animation.Stop();
             var previous = state.Previous!;
             var shift = ((Reserve.Leading - Reserve.Trailing) - (previous.Leading - previous.Trailing)) / 2; // :760
-            var slides = Slides && !EnvironmentValues.GetAccessibilityReduceMotion(content)
-                && !Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion;
-            var animation = Chrome.PanelSlide;
+            var slides = Slides;
+            var animation = EnvironmentValues.GetAccessibilityReduceMotion(content)
+                ? Animation.EaseOut(.18) : Chrome.PanelSlide; // ChatView.swift:755,768; Chrome.swift:99-104.
             state.Began = SwiftClock.Now;
             state.OffsetRun = state.LeftRun = state.RightRun = null;
             if (slides && !AnimatesWidth && (shift != 0 || state.Offset != 0 || offsetSpeed != 0)) // :761
             {
                 content.Margin = margin; // :751-752: one layout at the final width.
                 var from = state.Offset - shift; // :766
-                state.OffsetRun = new(from, 0, animation, offsetSpeed);
+                state.OffsetRun = new(from, 0, animation, animation.KeepsSpeed ? offsetSpeed : 0);
                 state.Animation.Start(animation, _ => OffsetTo(state.OffsetRun.Value(
                     (SwiftClock.Now - state.Began).TotalSeconds, !state.Animation.IsRunning))); // :768
             }
@@ -986,8 +986,8 @@ internal sealed record ReserveSlide(PanelReserve Reserve, bool Slides, bool Anim
                 if (slides && AnimatesWidth) // :754
                 {
                     var from = content.Margin;
-                    state.LeftRun = new(from.Left, margin.Left, animation, leftSpeed);
-                    state.RightRun = new(from.Right, margin.Right, animation, rightSpeed);
+                    state.LeftRun = new(from.Left, margin.Left, animation, animation.KeepsSpeed ? leftSpeed : 0);
+                    state.RightRun = new(from.Right, margin.Right, animation, animation.KeepsSpeed ? rightSpeed : 0);
                     state.Animation.Start(animation, _ =>
                     {
                         var elapsed = (SwiftClock.Now - state.Began).TotalSeconds;

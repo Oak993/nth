@@ -191,7 +191,9 @@ public sealed record SwiftTransition
     /// at that instant (the opacity multiplies the removal's, the offset eases out over it): a soft arrival cut short never jumps to full. Opt-in: the sites that rely on the restart keep it until the
     /// app-wide OD-0076 audit (the terminal drawer closed while it is still opening, ChatView.swift:276-279,290, is the first).
     /// </summary>
-    public static void RemoveContinuing(Panel panel, Control child) => Remove(panel, child, null, continuing: true);
+    // Layout partners can share the last delivered point; standalone transitions retain their current-clock sampling.
+    public static void RemoveContinuing(Panel panel, Control child, bool usePresentedProgress = false)
+        => Remove(panel, child, null, continuing: true, usePresentedProgress);
 
     /// <summary>
     /// OD-0076 (no change by a cut), ED-278 (10): the counterpart of <see cref="RemoveContinuing"/>. An insertion that
@@ -202,7 +204,7 @@ public sealed record SwiftTransition
     /// frames stop and its completion is dropped (the child is not gone). An asymmetric transition, or a child with no removal in
     /// flight in this panel, is inserted as <see cref="Insert"/> does. Opt-in, like <see cref="RemoveContinuing"/>.
     /// </summary>
-    public static void InsertContinuing(Panel panel, int index, Control child)
+    public static void InsertContinuing(Panel panel, int index, Control child, bool usePresentedProgress = false)
     {
         var state = attachments.GetValue(child, _ => new Attachment(Opacity));
         if (!state.RemovalInFlight || !ReferenceEquals(state.RemovingFrom, panel) || state.Transition.HasAsymmetricPart()
@@ -212,7 +214,7 @@ public sealed record SwiftTransition
             return;
         }
         // Partners still present the last delivered frame when a press arrives between frames.
-        var from = 1 - state.PresentedProgress;
+        var from = 1 - (usePresentedProgress ? state.PresentedProgress : state.CurrentProgress);
         var speed = -state.CurrentSpeed;
         state.Stop();
         state.Carried = null;
@@ -234,14 +236,14 @@ public sealed record SwiftTransition
     // ED-218: disposal belongs after removal finishes, including immediate/identity removals.
     internal static void Remove(Panel panel, Control child, Action? completed) => Remove(panel, child, completed, continuing: false);
 
-    private static void Remove(Panel panel, Control child, Action? completed, bool continuing)
+    private static void Remove(Panel panel, Control child, Action? completed, bool continuing, bool usePresentedProgress = false)
     {
         // The same `.opacity` default (UNVERIFIED under OD-0001, ED-092) for a child that carries no transition.
         var state = attachments.GetValue(child, _ => new Attachment(Opacity));
         // OD-0076, ED-NEW-perf-motion-9: a removal that interrupts an insertion under way starts from where the insertion has brought the
         // child (RemoveContinuing's rule) whenever the insertion has moved; one that has not moved yet (p = 0) still starts from the
         // removal's own start, as ED-278 (10) keeps for a stage swapped before any time passes.
-        var progress = continuing ? state.PresentedProgress : state.CurrentProgress;
+        var progress = continuing && usePresentedProgress ? state.PresentedProgress : state.CurrentProgress;
         var from = state.InsertionInFlight && !state.Transition.HasAsymmetricPart() && (continuing || progress > 0)
             ? 1 - progress : 0;
         var insertionSpeed = state.InsertionInFlight && !state.Transition.HasAsymmetricPart() ? state.CurrentSpeed : 0;

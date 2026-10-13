@@ -756,7 +756,7 @@ internal sealed class PanelPlacementView : Border
         var origin = drag.Position ?? rest;
         var settles = drag.Position is null && !isResizing && !liveResize;
         var reduced = EnvironmentValues.GetAccessibilityReduceMotion(this) || motionPlatform.AccessibilityDisplayShouldReduceMotion;
-        if (settles && !reduced && origin == target && size == targetSize) return;
+        if (settles && origin == target && size == targetSize) return;
         var elapsed = clock.GetElapsedTime(began).TotalSeconds;
         var vx = pending is null ? 0 : x!.Speed(elapsed);
         var vy = pending is null ? 0 : y!.Speed(elapsed);
@@ -765,7 +765,7 @@ internal sealed class PanelPlacementView : Border
         target = origin;
         targetSize = size;
         Stop();
-        if (!settles || reduced || TopLevel.GetTopLevel(this) is null ||
+        if (!settles || TopLevel.GetTopLevel(this) is null ||
             (presented == origin && presentedSize == size && vx == 0 && vy == 0 && vw == 0 && vh == 0))
         {
             Present(origin, size);
@@ -778,7 +778,7 @@ internal sealed class PanelPlacementView : Border
         // Chrome.swift:99-104. Reuse Chrome's curves and read the platform's live setting at each settle.
         // Retain the injected platform object across posted observation callbacks, whose context can differ.
         using var motion = Chrome.ReduceMotionPlatform.Override(motionPlatform);
-        var animation = Chrome.PanelSlide;
+        var animation = reduced ? Animation.EaseOut(.18) : Chrome.PanelSlide;
         x = new(from.X, origin.X, animation, animation.KeepsSpeed ? vx : 0);
         y = new(from.Y, origin.Y, animation, animation.KeepsSpeed ? vy : 0);
         width = new(fromSize.Width, toSize.Width, animation, animation.KeepsSpeed ? vw : 0);
