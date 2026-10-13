@@ -113,7 +113,7 @@ public sealed record SwiftTransition
         // A view with no `.transition(_:)` uses SwiftUI's default `.opacity`: documented SwiftUI behaviour, UNVERIFIED
         // under OD-0001 as ED-092 records for the other documented defaults.
         var state = attachments.GetValue(child, _ => new Attachment(Opacity));
-        // OD-0076, ED-NEW-perf-motion-2: an insertion that interrupts this child's removal under way in this panel brings it back from where
+        // OD-0076, ED-NEW-perf-motion-9: an insertion that interrupts this child's removal under way in this panel brings it back from where
         // the removal has taken it (a transition with no asymmetric part: the removal's state at r is the insertion's at 1 - r), never from
         // the insertion's start; a removal that has not moved yet (r = 0) still lets the insertion start afresh (ED-278 (10)).
         var resume = elapsed == default && state.RemovalInFlight && ReferenceEquals(state.RemovingFrom, panel) && !state.Transition.HasAsymmetricPart()
@@ -229,7 +229,7 @@ public sealed record SwiftTransition
     {
         // The same `.opacity` default (UNVERIFIED under OD-0001, ED-092) for a child that carries no transition.
         var state = attachments.GetValue(child, _ => new Attachment(Opacity));
-        // OD-0076, ED-NEW-perf-motion-2: a removal that interrupts an insertion under way starts from where the insertion has brought the
+        // OD-0076, ED-NEW-perf-motion-9: a removal that interrupts an insertion under way starts from where the insertion has brought the
         // child (RemoveContinuing's rule) whenever the insertion has moved; one that has not moved yet (p = 0) still starts from the
         // removal's own start, as ED-278 (10) keeps for a stage swapped before any time passes.
         var from = state.InsertionInFlight && !state.Transition.HasAsymmetricPart() && (continuing || state.CurrentProgress > 0)
@@ -329,7 +329,9 @@ public sealed record SwiftTransition
         var effects = new AppliedEffects();
         var cursor = 0;
         Gather(child, bodies, ref cursor, progress, inserting, effects);
-        if (effects.OpacityTouched) child.Opacity = effects.Opacity;
+        // ED-NEW-perf-motion-9: an opacity is drawn between 0 and 1 (a layer's opacity is clamped when it is drawn), so a bouncy spring that carries a fade past
+        // its end writes the opacity that is drawn: the value read back is what the reader sees, never 1.0025 falling back to 1.
+        if (effects.OpacityTouched) child.Opacity = Math.Clamp(effects.Opacity, 0, 1);
         if (effects.TransformTouched)
         {
             child.RenderTransformOrigin = RelativePoint.Center;

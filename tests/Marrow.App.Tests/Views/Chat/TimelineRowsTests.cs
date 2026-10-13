@@ -2121,9 +2121,9 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // ED-NEW-perf-motion-2 (OD-0076): a second click while the collapsed output is still fading out brings that same detail back from the
+    // ED-NEW-perf-motion-9 (OD-0076): a second click while the collapsed output is still fading out brings that same detail back from the
     // opacity it has reached; before, a fresh detail faded in from nothing beside the one still leaving.
-    [Trait("Decision", "ED-NEW-perfmotion-2")]
+    [Trait("Decision", "ED-NEW-perfmotion-9")]
     public void A_quick_second_click_on_an_output_row_brings_its_leaving_detail_back_from_where_it_is()
     {
         headless.OnUiThread(() =>

@@ -6,7 +6,7 @@ using Marrow.UI.Tests.Fixtures;
 
 namespace Marrow.UI.Tests.Port;
 
-// OD-0076 (no change by a cut), ED-NEW-perf-motion-2: plain SwiftTransition.Insert and Remove continue from where an interrupted
+// OD-0076 (no change by a cut), ED-NEW-perf-motion-9: plain SwiftTransition.Insert and Remove continue from where an interrupted
 // transition has brought the child, as RemoveContinuing and InsertContinuing do (ED-278 (10)): a removal during a half-done fade-in
 // fades out from the opacity the child has (no flash to full), an insertion during a half-done removal comes back from there (no
 // vanish), and a removal before the insertion has moved still starts from the removal's own start (the stage swapped at once).
@@ -17,7 +17,7 @@ public sealed class SwiftTransitionContinuityTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Rule", "R-VIEW-4")]
-    [Trait("Decision", "ED-NEW-perfmotion-2")]
+    [Trait("Decision", "ED-NEW-perfmotion-9")]
     public void A_plain_removal_during_a_fade_in_fades_out_from_the_opacity_the_child_has() => headless.OnUiThread(() =>
     {
         using var clocks = new AnimationClocks();
@@ -44,7 +44,7 @@ public sealed class SwiftTransitionContinuityTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Rule", "R-VIEW-4")]
-    [Trait("Decision", "ED-NEW-perfmotion-2")]
+    [Trait("Decision", "ED-NEW-perfmotion-9")]
     public void A_plain_insertion_during_a_removal_brings_the_child_back_from_where_it_is() => headless.OnUiThread(() =>
     {
         using var clocks = new AnimationClocks();
@@ -73,7 +73,7 @@ public sealed class SwiftTransitionContinuityTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Rule", "R-VIEW-4")]
-    [Trait("Decision", "ED-NEW-perfmotion-2")]
+    [Trait("Decision", "ED-NEW-perfmotion-9")]
     public void A_plain_removal_before_the_insertion_has_moved_starts_from_the_removals_own_start() => headless.OnUiThread(() =>
     {
         using var clocks = new AnimationClocks();

@@ -2582,7 +2582,7 @@ public sealed class ToolRow : Decorator
         }
         if (showsOutput && !opensImage) // :1710-1713 if isExpanded, showsOutput, !opensImage
         {
-            // ED-NEW-perf-motion-2 (OD-0076): an expand while the collapsed detail is still leaving brings that same view back from where its
+            // ED-NEW-perf-motion-9 (OD-0076): an expand while the collapsed detail is still leaving brings that same view back from where its
             // removal has taken it, so a quick double click never shows two details or a flash.
             ToolDetailView? detail = null;
             ToolDetailView? leaving = null;
