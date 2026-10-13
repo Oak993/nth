@@ -325,6 +325,26 @@ public sealed partial class VoiceConversation : IAudioCaptureSink, IStopScope, I
         Notify();
     }
 
+    /// <summary>The owner tapped Read aloud. Speak without opening the microphone; Stop and Done still cut it.</summary>
+    public void ReadAloud(string text)
+    {
+        if (disposed || string.IsNullOrWhiteSpace(text)) return;
+        o.Speech.Stop();
+        ShutCapture();
+        var (id, _) = NewTurn();
+        lock (gate) { mode = VoiceStart.Hold; phase = VoicePhase.Thinking; heard = ""; focus = null; }
+        _ = ReadAloudAsync(id, text);
+    }
+
+    private async Task ReadAloudAsync(int id, string text)
+    {
+        using var requested = o.Speech.BeginTurn("Read aloud");
+        try { await SayAsync(id, SpokenText.ForSpeech(text), null, null).ConfigureAwait(false); }
+        catch (Exception error) when (error is not OperationCanceledException)
+        { Fault("Read aloud", error); Back(id, "Dextra could not speak that. The words are on screen."); }
+        catch (OperationCanceledException) { }
+    }
+
     /// <summary>
     /// Stop all or the stop chord (12.6): flags only. The speech is cut now and the turn is cancelled; the microphone shuts on the UI thread. A stop the
     /// owner asked for by voice is its own: it cuts the speech and leaves the turn to say what it did.

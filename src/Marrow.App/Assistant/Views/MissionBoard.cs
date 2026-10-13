@@ -36,9 +36,14 @@ public sealed class MissionBoard : Decorator
     private MotionScope.Entry? budget;
     private bool narrow;
     private bool calm;
+    private readonly Func<DateTimeOffset?>? digestedThrough;
+    private readonly Func<Action, IDisposable>? watchDigest;
+    private IDisposable? digestSubscription;
 
-    public MissionBoard(IMissionJobs jobs, TaskActions? actions = null)
+    public MissionBoard(IMissionJobs jobs, TaskActions? actions = null, Func<DateTimeOffset?>? digestedThrough = null, Func<Action, IDisposable>? watchDigest = null)
     {
+        this.digestedThrough = digestedThrough;
+        this.watchDigest = watchDigest;
         this.jobs = jobs ?? throw new ArgumentNullException(nameof(jobs));
         this.actions = actions ?? TaskActions.None;
         foreach (var group in Order)
@@ -101,6 +106,7 @@ public sealed class MissionBoard : Decorator
     {
         base.OnAttachedToVisualTree(e);
         jobs.Changed += Refresh;
+        digestSubscription = watchDigest?.Invoke(Refresh);
         if (TopLevel.GetTopLevel(this) is { } top)
             budget = MotionScope.For(top).Join(ArmillaListRank.Board, () => Moving, () => IsEffectivelyVisible, c => Calm = c);
         Refresh();
@@ -111,6 +117,8 @@ public sealed class MissionBoard : Decorator
     {
         base.OnDetachedFromVisualTree(e);
         jobs.Changed -= Refresh;
+        digestSubscription?.Dispose();
+        digestSubscription = null;
         budget?.Leave();
         budget = null;
         timer?.Dispose();
@@ -159,10 +167,11 @@ public sealed class MissionBoard : Decorator
         Place(Visible(jobs.Snapshot(now), now), now);
     }
 
-    private static List<MissionJob> Visible(IReadOnlyList<MissionJob> all, DateTimeOffset now)
+    private List<MissionJob> Visible(IReadOnlyList<MissionJob> all, DateTimeOffset now)
     {
         var today = TaskWords.Local(now).Date;
-        return [.. all.Where(j => j.Group != BoardGroup.DoneToday || TaskWords.Local(j.Ended ?? j.Created).Date == today)];
+        var digest = digestedThrough?.Invoke();
+        return [.. all.Where(j => j.Group != BoardGroup.DoneToday || TaskWords.Local(j.Ended ?? j.Created).Date == today && (digest is null || (j.Ended ?? j.Created) > digest.Value))];
     }
 
     /// <summary>Two snapshots of a task that differ only in live values (what a tick redraws in place).</summary>
@@ -177,7 +186,14 @@ public sealed class MissionBoard : Decorator
         foreach (var gone in cards.Keys.Where(k => !keep.Contains(k)).ToList())
         {
             var card = cards[gone];
-            ((Panel)card.Parent!).Children.Remove(card);
+            if (!still && shown[gone].Group == BoardGroup.DoneToday && digestedThrough?.Invoke() is { } through && (shown[gone].Ended ?? shown[gone].Created) <= through)
+            {
+                card.IsHitTestVisible = false;
+                card.Transitions = [new DoubleTransition { Property = OpacityProperty, Duration = TimeSpan.FromMilliseconds(240) }];
+                card.Opacity = 0;
+                MainActor.AsyncAfter(TimeSpan.FromMilliseconds(240), () => (card.Parent as Panel)?.Children.Remove(card));
+            }
+            else (card.Parent as Panel)?.Children.Remove(card);
             cards.Remove(gone);
             shown.Remove(gone);
         }

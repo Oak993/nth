@@ -27,6 +27,7 @@ public sealed class DigestSetup
 
     /// <summary>Each Astur's paragraph (AS-16). None until Asturs exist.</summary>
     public Func<IReadOnlyList<DigestAstur>>? Asturs { get; init; }
+    public Func<DateTimeOffset, IReadOnlyList<DigestAstur>>? AstursSince { get; init; }
 
     /// <summary>The names of accounts the owner has on whose sign-in expired.</summary>
     public Func<IReadOnlyList<string>>? ExpiredLogins { get; init; }
