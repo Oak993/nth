@@ -231,7 +231,10 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
                 Assert.Empty(runtime.Approvals);
                 var stack = Stack(area);
                 Assert.Equal(12, stack.Spacing);
-                var only = Assert.Single(stack.Children);
+                // OD-0145, ED-NEW-pcctl-27 (ED-NEW-perf-ui2-1): the one Tactus strip sits above the group, empty and hidden; a hidden child takes no room and no gap, which the two
+                // checks on the group below hold (it starts at the stack's top and is as tall as the stack). The group is the only other child.
+                Assert.False(Assert.Single(stack.Children.OfType<Marrow.App.Views.Chat.TactusStrip>()).IsVisible);
+                var only = Assert.Single(stack.Children, child => child is not Marrow.App.Views.Chat.TactusStrip);
                 Assert.Contains(Group(area), LogicalQuery.SelfAndDescendants<StackPanel>(only));
                 Assert.Equal(0, Frame(only, stack).Y);
                 Assert.Equal(stack.Bounds.Height, only.Bounds.Height);

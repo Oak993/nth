@@ -243,16 +243,21 @@ public sealed class CommandCodeSession : ProviderSession, Marrow.Services.Port.S
 
         var process = new StdioProcess(executable.Path, arguments, WorkingDirectory, environment); // :181-186
         this.process = process;
-        try { process.Start(); } // :189
+        try { await process.StartAsync(); } // :189. ED-NEW-perf-ui-thread-7: CreateProcessW runs on the pool, once per turn, not on the UI thread's turn.
         catch (Exception error) // :190-192
         {
             turnActive = false;
             throw new ProviderError(new ProviderError.Case.Failed($"Command Code could not start: {error.Message}"));
         }
+        // A Stop or an Interrupt that came while the child was being created found nothing running to end: end it now that it exists.
+        if (stopped || interruptRequested) process.Terminate();
         skillReadersExited = Task.WhenAll(skillReadersExited, process.WaitForExit()); // RR-15: hold every per-turn reader
-        process.Write(Encoding.UTF8.GetBytes(Prompt(input))); // :194
-        process.CloseInput(); // :195
-        OnEvent?.Invoke(new ProviderEvent.TurnStarted(null)); // :196
+        if (!stopped) // a stopped session announces nothing: Stop already closed the turn, and no result will follow it
+        {
+            process.Write(Encoding.UTF8.GetBytes(Prompt(input))); // :194
+            process.CloseInput(); // :195
+            OnEvent?.Invoke(new ProviderEvent.TurnStarted(null)); // :196
+        }
 
         var messages = process.Messages; // :198
         readTask = MainActor.Spawn(async () => // :199-206

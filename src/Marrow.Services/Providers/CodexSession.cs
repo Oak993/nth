@@ -1122,7 +1122,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
         var process = new StdioProcess(executable.Path, AppServerArguments, directory.Path, CodexChildEnvironment.Apply(environment)); // :511. PORT-ONLY (SK-11b, DL-11): the PATH rule, nothing else.
         var connection = new JSONRPCConnection(process, sendsVersion: false); // :512
         configure(connection); // :513
-        connection.Start(); // :514
+        await connection.StartAsync(); // :514. ED-NEW-perf-ui-thread-6: the child is created on the pool
         var watchdog = MainActor.Spawn(async () => // :515-519
         {
             await SwiftTask.TrySleep(TimeSpan.FromSeconds(20));

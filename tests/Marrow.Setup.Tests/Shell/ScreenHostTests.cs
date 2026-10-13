@@ -138,4 +138,44 @@ public sealed class ScreenHostTests(SetupHeadlessSession headless)
             Assert.Equal(120, body.DesiredSize.Height);
         });
     }
+
+    [Fact]
+    [Trait("Decision", "OD-0072")]
+    public void After_a_reset_the_last_measure_stands_until_the_pass_is_done_and_the_window_glides_down_to_it()
+    {
+        headless.OnUiThread(() =>
+        {
+            var rig = new WindowRig();
+            var body = rig.Window.Body;
+            var screen = new Border { Height = 300 };
+            body.Show(screen, immediately: true);
+            rig.Window.Show();
+            rig.Settle();
+            Assert.Equal(300, body.Tallest);
+
+            body.ResetHeight();
+            var available = new Avalonia.Size(600, double.PositiveInfinity);
+            screen.Height = 200; // a new type size reaches a screen over several measures of one pass
+            body.Measure(available);
+            body.InvalidateMeasure();
+            screen.Height = 120;
+            body.Measure(available);
+            rig.Settle(); // the pass is done
+
+            Assert.Equal(120, body.Tallest); // not the 300 or the 200 of the measures before it
+            Assert.Equal(300, body.Shown); // the window has not moved: it glides down from the height it has
+            rig.Run(0.5);
+            Assert.InRange(body.Shown, 121, 299);
+            rig.Run(5);
+            Assert.Equal(120, body.Shown, 3);
+
+            screen.Height = 80; // from here the height only grows again
+            rig.Settle();
+            Assert.Equal(120, body.Tallest);
+            screen.Height = 150;
+            rig.Settle();
+            Assert.Equal(150, body.Tallest);
+            Assert.Equal(150, body.Shown, 3); // still under the window's own minimum, which the glide begins from (nothing is drawn taller)
+        });
+    }
 }
