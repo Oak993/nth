@@ -65,6 +65,7 @@ public sealed class KindleCapsule : Decorator
     private readonly Popup popup;
     private readonly DispatcherTimer ticker = new() { Interval = TimeSpan.FromSeconds(1) };
     private bool attached, primed;
+    private WindowPresence? presence; // ED-NEW-perf-idle-1: no tick while no window of the app can be seen
 
     public KindleCapsule(IIgnisController controller, Guid thread)
     {
@@ -110,8 +111,17 @@ public sealed class KindleCapsule : Decorator
         Child = new Panel { Children = { capsule, popup } };
 
         ticker.Tick += (_, _) => OnMain(Refresh);
-        AttachedToVisualTree += (_, _) => { attached = true; controller.Changed += OnChanged; Refresh(); };
-        DetachedFromVisualTree += (_, _) => { attached = false; controller.Changed -= OnChanged; ticker.Stop(); if (state.Presented) state.Presented = false; };
+        AttachedToVisualTree += (_, _) =>
+        {
+            attached = true;
+            controller.Changed += OnChanged;
+            Unwatch();
+            presence = WindowPresence.For(this);
+            if (presence is not null) presence.Changed += OnPresence;
+            PaintGlow(); // the theme is known now
+            Refresh();
+        };
+        DetachedFromVisualTree += (_, _) => { attached = false; controller.Changed -= OnChanged; Unwatch(); ticker.Stop(); if (state.Presented) state.Presented = false; };
         ActualThemeVariantChanged += (_, _) => PaintGlow();
         this.Track(() => (state.Status, state.Tick), _ => Apply());
         this.Track(() => state.Presented, open => { popoverOpen = open; if (primed) PaintPointer(); });
@@ -123,6 +133,12 @@ public sealed class KindleCapsule : Decorator
     internal Guid ThreadID => thread;
     internal IgnisChatStatus Status => state.Status;
     internal int Tick => state.Tick;
+    /// <summary>The once-a-second re-read is running (tests).</summary>
+    internal bool IsTicking => ticker.IsEnabled;
+    /// <summary>A value of the capsule or its glyph is moving towards its target, asking for frames (tests).</summary>
+    internal bool IsEasing => glyph.IsEasing || glowLevel.IsRunning;
+    /// <summary>The brush the ember glow is drawn with (made again only when the theme changes; tests).</summary>
+    internal IBrush? GlowBrush => glow.Background;
     internal Button Button => button;
     internal Popup Popover => popup;
     internal KindleGlyph Glyph => glyph;
@@ -170,8 +186,22 @@ public sealed class KindleCapsule : Decorator
         if (!Equals(next, state.Status)) state.Status = next;
         state.Tick++;
         var warm = Effective(next, SwiftDate.Now) == IgnisCacheState.Warm;
-        if (attached && warm && FrameClock.IsBound) ticker.Start();
+        // ED-NEW-perf-idle-1: unseen (minimised, another desktop, covered, locked), nothing would see the countdown change;
+        // seen again, OnPresence re-reads the clock at once and the countdown is current
+        if (attached && warm && FrameClock.IsBound && presence is not { Seen: false }) ticker.Start();
         else ticker.Stop();
+    }
+
+    private void OnPresence()
+    {
+        if (attached) OnMain(Refresh);
+    }
+
+    private void Unwatch()
+    {
+        if (presence is null) return;
+        presence.Changed -= OnPresence;
+        presence = null;
     }
 
     private void OnChanged(Guid changed)
@@ -235,7 +265,7 @@ public sealed class KindleCapsule : Decorator
         roll.Show(text, animate);
         var heat = HeatOf(status, now);
         glyph.Show(heat, status.ContextFill ?? 0, cache == IgnisCacheState.Warm, status.Tidying, animate);
-        glowLevel.Set(heat * .4, animate ? KindleMotion.Ease(this, Animation.EaseOut(.6)) : null);
+        KindleMotion.Follow(glowLevel, heat * .4, animate ? KindleMotion.Ease(this, Animation.EaseOut(.6)) : null, KindleGlyph.HeatSteady * .4, KindleGlyph.HeatStep * .4);
         cacheShown = cache;
         PaintPointer(Animation.EaseOut(.6), immediate: !animate);
         if (shown is { } before && primed)
@@ -246,7 +276,7 @@ public sealed class KindleCapsule : Decorator
         shown = status;
         primed = true;
         AutomationProperties.SetHelpText(button, IgnisWords.CacheStatus(cache) + ", " + IgnisWords.TimeLeft(cache, Left(status, now)));
-        PaintGlow();
+        if (glow.Background is null) PaintGlow(); // ED-NEW-perf-idle-1: only the theme changes it (ActualThemeVariantChanged, attach), not the clock
     }
 
     private void PaintGlow()

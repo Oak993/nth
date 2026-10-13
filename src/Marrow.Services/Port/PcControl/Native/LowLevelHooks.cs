@@ -17,6 +17,20 @@ public sealed unsafe class PcLowLevelHooks : IDisposable
 {
     public const int HeartbeatMs = 250;
 
+    /// <summary>
+    /// ED-NEW-perf-idle-6: how long the reader sleeps between two looks at the ring. 1 ms after a look that found records, 4 ms
+    /// while input was seen in the last <see cref="QuickWindowMs"/> or a gate asked in the last <see cref="GateWindowMs"/>
+    /// (a Tactus step is being decided), and 20 ms otherwise: nobody types while the stream is paused or nothing runs, and the
+    /// hooks stay in for the chords for hours. The records carry the hook's own time, the chords' decisions are made inside the
+    /// hook, and the heartbeat is time-based, so a record is read at most about 20 ms (one system tick more) later.
+    /// </summary>
+    public const int BusySleepMs = 1, QuickSleepMs = 4, IdleSleepMs = 20, QuickWindowMs = 250, GateWindowMs = 2_000;
+
+    public static int ReaderSleepMs(bool foundRecords, long sinceRecordMs, long? sinceGateMs) =>
+        foundRecords ? BusySleepMs
+        : sinceRecordMs < QuickWindowMs || sinceGateMs is < GateWindowMs ? QuickSleepMs
+        : IdleSleepMs;
+
     private const int WH_KEYBOARD_LL = 13;
     private const int WH_MOUSE_LL = 14;
     private const int WM_KEYDOWN = 0x0100;
@@ -166,6 +180,7 @@ public sealed unsafe class PcLowLevelHooks : IDisposable
     {
         using var dpi = Dpi.PerMonitorV2();
         var nextBeat = clock.NowMs;
+        var lastRecord = long.MinValue / 2; // the reader's clock when it last found a record (none yet: long ago)
         while (running)
         {
             if (!installed)
@@ -181,6 +196,7 @@ public sealed unsafe class PcLowLevelHooks : IDisposable
                 any = true;
                 monitor.Record(Convert(record));
             }
+            if (any) lastRecord = clock.NowMs;
             if (installed && clock.NowMs >= nextBeat)
             {
                 nextBeat = clock.NowMs + HeartbeatMs;
@@ -188,7 +204,7 @@ public sealed unsafe class PcLowLevelHooks : IDisposable
                 // (an elevated or UIAccess window, the secure desktop); the monitor reads it as the user's activity anyway.
                 if (LastInputMs() is { } tick && monitor.LastInputSeen(tick) && !Unseeable()) Post(Reinstall);
             }
-            Thread.Sleep(any ? 1 : 4);
+            Thread.Sleep(ReaderSleepMs(any, clock.NowMs - lastRecord, monitor.SinceGateMs));
         }
     }
 
