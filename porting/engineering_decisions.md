@@ -7916,3 +7916,67 @@ Evidence: UiLiteralRatchetTests.
 7. FOR LATER UNITS. A unit that lands after W22 and types an English-looking literal into the scanned web user-interface source fails UiLiteralRatchetTests; one that calls UiText with a key that the English files lack fails UiStringsSourceTests. Move the word to Localisation/Strings/<area>-en.json, or list it in stay-in-code.txt with the reason.
 
 Evidence: GuardedWordFixtureTests, WebAgentLocalisedTests (the three new English labels); the one-at-a-time mutation runs above.
+
+## ED-NEW-web-sec-artifacts-1 - Security review M4: an artifact's model call loads no Claude settings, memory or hooks and is never saved
+
+2026-10-13 - PORT-ONLY owner web-surfaces scope (DESIGN.md 6.5 nth.complete is "a fresh, context-free call ... no thread history, no project files, no memory, no tools"; read-only Claude Opus security review of claude/web-build 75a0e2e75, finding M4). ENGINEERING DECISION. No Swift counterpart.
+
+1. THE GAP. ClaudeSession launched a no-tools session (SessionConfiguration.NoTools, an artifact's nth.complete) with the chat's own --setting-sources user,project,local and without --no-session-persistence. The CLI then loaded the user's CLAUDE.md, every CLAUDE.md above the call's folder, auto memory, and the user's and project's hooks (a prompt hook even received the artifact's text, and its output entered the context), so an artifact could ask the model to echo that context; and every call was saved as a Claude session on disk.
+2. THE FIX. A no-tools launch passes --setting-sources "" (the installed CLI 2.1.296 reads an empty list as no source at all: no user, project or local settings, so no CLAUDE.md, hooks, plugins or permission rules from them), adds --no-session-persistence (ClaudeSession.NoToolsArguments), and sets CLAUDE_CODE_DISABLE_CLAUDE_MDS=1 and CLAUDE_CODE_DISABLE_AUTO_MEMORY=1 on the child's environment (ClaudeSession.NoToolsEnvironment), overriding any value the account's environment carried. Both variables are read by the installed CLI (checked in its bundle, not run). An ordinary chat launches exactly as before.
+3. RESIDUAL. Managed (policy) settings and a managed CLAUDE.md still apply: the machine's administrator sets them. A user whose Claude login depends on a setting (an apiKeyHelper or a proxy address in settings.json) gets a failed artifact call, which the artifact sees as "the model call failed"; signing in with the CLI's own login works.
+4. NATIVE. ArtifactModelSettingsNativeTests (Marrow.Services.Tests, never run by the implementing agent; one real Claude Haiku call of a few hundred tokens): a marker CLAUDE.md above and in the call's folder never reaches the reply, a UserPromptSubmit hook in the folder's .claude/settings.json never runs, and no session file is written for the folder.
+
+Evidence: ArtifactModelNoSettingsTests (recorded arguments and environment on the offline transport; failed twice on the unfixed code); ArtifactModelNoToolsTests and the ClaudeSession tests unchanged and green; ArtifactModelSettingsNativeTests (owed).
+
+## ED-NEW-web-sec-artifacts-2 - Security review M5: the hardening script runs in every same-origin frame realm
+
+2026-10-13 - PORT-ONLY owner web-surfaces scope (DESIGN.md 6.5 "an injected document-created script that deletes RTCPeerConnection, RTCDataChannel and webkitRTCPeerConnection before any page script runs"; security review finding M5). ENGINEERING DECISION. No Swift counterpart.
+
+1. THE GAP. ED-NEW-web-w26-2 scrubbed a child frame's globals (WebRTC, window.open, media devices, file pickers) but hooked only the top realm's DOM methods. A same-origin about:blank frame is a realm of its own: a frame added through THAT frame's document (A.contentDocument.body.appendChild(iframe)) went through A's unhooked appendChild, so window[0][0].RTCPeerConnection stayed usable in the same task, and TURN over TCP (with its DNS lookup) is probably reachable even under disable_non_proxied_udp: a way out of a no-network artifact, widget or MCP App. The child realm also kept script clipboard writes, fullscreen, pointer lock, notifications, credentials, sharing and beacons.
+2. THE FIX. hardening.js is now one function per realm. The first time a realm is reached (each DOM insertion, HTML setter, document.write, execCommand, a frame's load, a mutation record, or its element's contentWindow or contentDocument, in any realm) the whole hardening runs in it: WebRTC and the rest removed, its own DOM methods hooked, its own load listener and MutationObserver (which also strips prefetch hints there), its own clipboard, fullscreen, pointer lock, notification, credential, share and beacon refusals. Every hook in every realm re-walks the frame tree from the page's window, so a frame added at any depth is hardened before the call that added it returns. A realm is hardened once, keyed by its document (a frame that navigates gets a new realm and is hardened again; no second observer piles up). contentDocument is now hooked on frame and object elements too, and the Sanitizer API's setHTML joins the insertion list.
+3. ENGINE-LEVEL OPTION NOT TAKEN. WebView2 offers no switch that removes WebRTC for one profile, and the browser arguments are shared by every profile; the script fix closes the reported path. The residual named by ED-NEW-web-w26-8 (a script running inside the very insertion that adds a frame, before any hook returns) is unchanged and stays a native check.
+
+Evidence: SandboxNestedRealmScriptTests (the script in Node's VM with a realm per frame; failed twice on the unfixed code, "nestedAppend: the frame kept WebRTC"); SandboxEscapeScriptTests, SandboxScriptBehaviourTests, SandboxScriptsTests unchanged and green; SandboxNestedFrameNativeTests (Marrow.App.Tests, artifact and inline widget on the real engine; owed).
+
+## ED-NEW-web-sec-artifacts-3 - Security review L1: Tabula's consent cards follow Visus's prompt rules
+
+2026-10-13 - PORT-ONLY owner web-surfaces scope (DESIGN.md 8.4 "Prompts never take focus when they appear. Enter does nothing in them; Esc refuses. F6 moves into the open prompt ... For 400 ms after a prompt appears, clicks and keys on its buttons are ignored", 10.1; security review finding L1). ENGINEERING DECISION. No Swift counterpart.
+
+1. THE GAP. The model, tool, file and network cards an artifact raises put the keyboard on Allow as they appeared and answered the first click, and the artifact decides when they appear (nth.complete or files.pick on a timer), so a click or Enter the user meant for the page could land on Allow.
+2. THE FIX. TabulaCards reuses Visus's rules and pieces: VisusPromptCard.Shield (400 ms) on VisusHost.Time, from the card appearing and again from the keyboard entering it; a button's click, a Space (press or release) and a pointer press inside the shield do nothing; Enter does nothing at any time; Escape answers Not now at once; no control takes the focus when the card appears. The card's words are a focusable lead (the Visus focus ring, no layout shift) where F6 lands, through the same VisusPrompts list and PaneWorkspace.PromptFirst hook Visus uses (set by the card when the workspace has none); F6 inside the card, or the card closing while it holds the keyboard, gives the keyboard back. The card's accessible name ends with Visus's "Press F6 to answer." and is announced assertively. TabulaCards.Answer (the programmatic answer) is unchanged.
+
+Evidence: TabulaConsentShieldTests (both failed twice on the unfixed code); TabulaFlowTests unchanged and green.
+
+## ED-NEW-web-sec-artifacts-4 - Security review L2: Ask to fix sends the page's error fenced as untrusted, and only what the notice shows
+
+2026-10-13 - PORT-ONLY owner web-surfaces scope (DESIGN.md 6.3 "Ask to fix, which posts a turn with the error and stack", 5.10 "page text ... reach the model marked as untrusted page content"; security review finding L2). ENGINEERING DECISION. No Swift counterpart.
+
+1. THE GAP. TabulaPane.FixMessage posted the page-supplied message (up to 2,000 characters, unfenced) and stack (up to 8,000, in a code fence, never shown) as the user's own turn to the chat's model, which has tools: a page could write instructions into its own error.
+2. THE FIX. TabulaPane.FixReport keeps the message (at most 300 characters) and the stack's first 6 non-empty lines (each at most 160), with any copy of the block's tag broken (WebAgentText.Defuse). FixMessage sends them inside one WebAgentText.Untrusted block named for the artifact's own site (https://a-<id>.invalid), after nth's line saying the block was written by the page, not the user, and is data, never instructions. The notice shows exactly the same message and stack lines, in full (TabulaNotice.ShowReport: no line cap on either; the stack in the mono face), so nothing is sent that the user could not read.
+3. EXPECTATION CHANGED ON PURPOSE. TabulaPaneTests.The_turns_the_pane_posts_name_the_artifact_its_version_the_change_and_the_part_chosen pinned the old message word for word; it now pins the new one word for word (as strict as before).
+
+Evidence: TabulaAskToFixTests (failed twice on the unfixed code); TabulaFlowTests' Ask to fix test unchanged and green; stay-in-code.txt lists the new model-facing literals (UiLiteralRatchetTests green).
+
+## ED-NEW-web-sec-artifacts-5 - Security review L3: the artifact link notice shows the whole address it opens
+
+2026-10-13 - PORT-ONLY owner web-surfaces scope (DESIGN.md 6.5 "A user click on a link inside an artifact is cancelled and offered ... as 'Open link from the artifact'", 5.10 "the full URL with the query string expanded and highlighted"; security review finding L3). ENGINEERING DECISION. No Swift counterpart.
+
+1. THE GAP. The notice showed the link without its query (TabulaView.Redact) but Open opened the full address: a network-off artifact could put what it computed or what the user typed into a link's query and have it sent with one click the user could not judge.
+2. THE FIX. TabulaNotice.ShowAddress shows the whole address Open opens, query and fragment included, in the mono face with no line cap and the query values marked as the cross-origin card marks them (WebAgentUrls.Parts). Redact stays for the missing-library notice, which opens nothing.
+
+Evidence: TabulaLinkNoticeTests (failed twice on the unfixed code).
+
+## ED-NEW-web-sec-artifacts-6 - Security review L5: more Windows download types count as risky
+
+2026-10-13 - PORT-ONLY owner web-surfaces scope (DESIGN.md 5.4 "Risky types ... add 'This file can run code on your PC.' and Save needs a second click within 3 s"; security review finding L5; extends ED-NEW-web-w8b-2). ENGINEERING DECISION. No Swift counterpart.
+
+1. ADDED. The review's seven (.appinstaller .diagcab .library-ms .searchConnector-ms .wsc .sct .jnlp) and, from the same families on Windows' blocked-attachment lists: .diagcfg .diagpkg (troubleshooting packs), .rdp (connects Remote Desktop to the sender's machine with drive redirection), .wsb (Windows Sandbox settings), .msu (update package installer), .xbap and .website, the legacy PowerShell types (.msh .msh1 .msh2 .mshxml .msh1xml .msh2xml .ps2 .ps2xml .psc1 .psc2) and the Python types (.py .pyw .pyz .pyzw .pyc .pyo), which run on a double click wherever Python is installed. Each is risky alone and inside an archive's name.
+2. COST. A risky file still saves; it needs the second click within 3 s. Ordinary documents are untouched.
+
+Evidence: DownloadGateRiskyTypesTests (31 cases failed twice on the unfixed code); DownloadGateTests unchanged and green.
+
+## ED-NEW-web-sec-artifacts-7 - Decision ids of the web security fixes
+
+2026-10-13 - PORT-ONLY. ENGINEERING DECISION. The lead named the security fixes' decisions ED-NEW-web-sec-<area>-<n>. R-TEST-1's id check (tests/Marrow.Testing/Traceability.cs DecisionId) accepted only ED-NEW-<lane>-<n> and ED-NEW-<lane>-<unit><n>-<n>, so it gains exactly that one shape (ED-NEW-web-sec-[a-z]+-[0-9]+); every other id it accepted or refused is unchanged.
+
+Evidence: TraceabilityTests of Marrow.Core.Tests, Marrow.Services.Tests and Marrow.App.Tests green with the new ids.
