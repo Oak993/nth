@@ -201,16 +201,16 @@ public static partial class MemoryRules
     private static partial Regex PreferenceWords();
 
     /// <summary>
-    /// A kind for a line read from a file nobody labelled (an import): steps and commands are Procedures, "always", "never" and
-    /// "prefers" are Preferences, the rest take <paramref name="fallback"/>. A guess, never more than a starting place the owner edits.
+    /// A kind for a line read from a file nobody labelled (an import): "always", "never" and "prefers" make a Preference, steps and
+    /// commands ("run", "before", "then") a Procedure, and the rest take <paramref name="fallback"/>. A guess, never more than a starting place the owner edits.
     /// </summary>
     public static NoteKind GuessKind(string? text, NoteKind fallback)
     {
         if (string.IsNullOrWhiteSpace(text)) return fallback;
         try
         {
-            if (ProcedureWords().IsMatch(text)) return NoteKind.Procedure;
             if (PreferenceWords().IsMatch(text)) return NoteKind.Preference;
+            if (ProcedureWords().IsMatch(text)) return NoteKind.Procedure;
         }
         catch (RegexMatchTimeoutException) { }
         return fallback;

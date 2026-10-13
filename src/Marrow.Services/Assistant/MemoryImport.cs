@@ -69,6 +69,11 @@ public sealed class MemoryImport
             if (files.Count >= MaxFilesPerSource) { skipped++; return; }
             if (Resolve(root, path) is { } safe && !files.Any(f => string.Equals(f.Path, safe, StringComparison.OrdinalIgnoreCase))) files.Add(new ImportFile(safe, root, kind));
         }
+        if (source.Provider.Id is not ("claude" or "codex"))
+        {
+            problems.Add($"{source.Label}: notes cannot be imported from this kind of account.");
+            return files;
+        }
         var config = SafeDirectory(source.ConfigDirectory);
         if (config is not null)
         {
@@ -98,21 +103,14 @@ public sealed class MemoryImport
                             foreach (var path in MarkdownFiles(child)) Add(config, path, ImportFileKind.MemoryFolder);
                     }
                     break;
-                default:
-                    problems.Add($"{source.Label}: notes cannot be imported from this kind of account.");
-                    break;
             }
         }
-        var projectFile0 = source.Provider.Id;
-        var projectFile = projectFile0 switch { "claude" => "CLAUDE.md", "codex" => "AGENTS.md", _ => null };
-        if (projectFile is not null)
+        var projectFile = source.Provider.Id == "claude" ? "CLAUDE.md" : "AGENTS.md";
+        foreach (var folder in source.ProjectFolders.Take(MaxProjectDirectories))
         {
-            foreach (var folder in source.ProjectFolders.Take(MaxProjectDirectories))
-            {
-                if (SafeDirectory(folder) is not { } root) continue;
-                Add(root, Path.Combine(root, projectFile), ImportFileKind.Instructions);
-                if (source.Provider.Id == "claude") Add(root, Path.Combine(root, ".claude", projectFile), ImportFileKind.Instructions);
-            }
+            if (SafeDirectory(folder) is not { } root) continue;
+            Add(root, Path.Combine(root, projectFile), ImportFileKind.Instructions);
+            if (source.Provider.Id == "claude") Add(root, Path.Combine(root, ".claude", projectFile), ImportFileKind.Instructions);
         }
         if (skipped > 0) problems.Add($"{source.Label}: more than {MaxFilesPerSource} files were found; the rest were not read.");
         return files;

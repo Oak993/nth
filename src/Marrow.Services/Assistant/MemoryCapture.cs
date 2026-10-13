@@ -62,12 +62,10 @@ public sealed class MemoryCapture
         ArgumentNullException.ThrowIfNull(turn);
         if (proposer is null || !AssistantStore.IsId(turn.AssistantId)) return [];
         if (string.IsNullOrWhiteSpace(turn.OwnerText) && string.IsNullOrWhiteSpace(turn.ReplyText)) return [];
+        var key = turn.Thread.ToString("N") + "#" + turn.TurnId;
         lock (gate)
         {
-            var key = turn.Thread.ToString("N") + "#" + turn.TurnId;
             if (turns.Contains(key)) return [];
-            turns.Enqueue(key);
-            while (turns.Count > RememberedTurns) turns.Dequeue();
         }
         string? answer;
         try
@@ -77,6 +75,12 @@ public sealed class MemoryCapture
         catch (Exception error) when (error is HttpRequestException or IOException or TimeoutException or InvalidOperationException or JsonException)
         {
             return [];
+        }
+        // The turn counts as captured once the model has answered (even with nothing); a model that failed leaves it to be tried again.
+        lock (gate)
+        {
+            if (!turns.Contains(key)) turns.Enqueue(key);
+            while (turns.Count > RememberedTurns) turns.Dequeue();
         }
         var proposals = Read(answer).Select(note => ToProposal(turn, note)).ToList();
         return proposals.Count == 0 ? [] : store.ProposeMany(proposals);
