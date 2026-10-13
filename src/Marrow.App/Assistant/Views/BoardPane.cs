@@ -18,12 +18,14 @@ namespace Marrow.App.Assistant.Views;
 public sealed class TeamTab : Decorator
 {
     private readonly Func<IReadOnlyList<AssistantProfile>> profiles;
+    private readonly bool charted;
     private readonly StackPanel list = new() { Orientation = Orientation.Vertical, Spacing = 6 };
     private readonly TextBlock empty = TaskLook.Text("No Asturs yet. Ask Dextra to make one for an area of your life, such as a shop or a channel.", 12, SwiftFont.Weight.Regular, TaskLook.Ink2, wrap: true);
 
     public TeamTab(Func<IReadOnlyList<AssistantProfile>>? profiles, Control? chart = null)
     {
         this.profiles = profiles ?? (() => []);
+        charted = chart is not null;
         Child = chart ?? new StackPanel { Orientation = Orientation.Vertical, Spacing = 10, Children = { list, empty } };
         AutomationProperties.SetName(this, "Team");
     }
@@ -65,6 +67,7 @@ public sealed class TeamTab : Decorator
 
     public void Refresh()
     {
+        if (charted) return; // the org chart (AS-17) shows the team; the interim list is not built behind it
         list.Children.Clear();
         var all = profiles();
         var asturs = all.Where(p => p.ParentId is not null).ToList();

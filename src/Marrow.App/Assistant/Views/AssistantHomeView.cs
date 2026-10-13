@@ -43,6 +43,15 @@ public sealed record AssistantHomeParts(IMissionJobs Jobs, IDecisionSource Decis
 
     public Func<IReadOnlyList<AssistantProfile>>? Profiles { get; init; }
 
+    /// <summary>The Team tab's source (AS-17): with it the tab is the org chart; without it, the interim list of the profiles.</summary>
+    public ITeamSource? Team { get; init; }
+
+    /// <summary>What the Team tab's buttons do (Talk, Settings, Add an Astur, Retire, a task chip).</summary>
+    public TeamActions? TeamActions { get; init; }
+
+    /// <summary>The sentences for profile files nth could not use, shown under the chart.</summary>
+    public Func<IReadOnlyList<string>>? TeamProblems { get; init; }
+
     /// <summary>The home chat (the hosted ChatView of the home thread); null shows only the hero.</summary>
     public Func<Control>? Conversation { get; init; }
 
@@ -273,7 +282,7 @@ public sealed class AssistantHomeView : Decorator
             new MissionBoard(parts.Jobs, parts.TaskActions),
             new DecisionList(parts.Decisions, context, parts.Answered is null ? null : Answered = new AnsweredList(parts.Answered)),
             new FeedTab(parts.Feed, parts.FeedSource, parts.OpenFeed),
-            new TeamTab(parts.Profiles));
+            new TeamTab(parts.Profiles, parts.Team is null ? null : new TeamPanel(parts.Team, parts.TeamActions, parts.TeamProblems)));
         Board.Missions.Said += Announce;
         Board.Missions.StateChanged += (job, was) =>
         {
@@ -332,6 +341,13 @@ public sealed class AssistantHomeView : Decorator
     public bool HeroShown => hero.IsVisible;
 
     public bool Stacked => stacked;
+
+    /// <summary>Shows the Team tab with this assistant's node selected (the sidebar's "Show in Team").</summary>
+    public void ShowTeam(string assistantId)
+    {
+        Board.Pick(BoardTab.Team);
+        if (Board.Team.Child is TeamPanel panel) panel.Chart.Select(assistantId);
+    }
 
     internal Control ConversationColumn => conversation;
 
