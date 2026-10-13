@@ -42,6 +42,7 @@ internal sealed class BackgroundLaunchRig : IDisposable
         harness.Main.OnMain(() => Model.AssistantHost = new DextraHost(Model, settings, startup: Seams));
     }
 
+    /// <summary>Runs on the model's main thread, as the app's taps do.</summary>
     public T OnMain<T>(Func<T> work) => harness.Main.OnMain(work);
 
     public void OnMain(Action work) => harness.Main.OnMain(work);
@@ -57,9 +58,6 @@ internal sealed class BackgroundLaunchRig : IDisposable
     public BackgroundStartSeams Seams { get; }
 
     public int Quits { get; private set; }
-
-    /// <summary>Runs on the model's main thread, as the app's taps do.</summary>
-    public T OnMain<T>(Func<T> body) => harness.Main.OnMain(body);
 
     public DutyHost? Run(StartupMode mode, out string? problem)
     {
