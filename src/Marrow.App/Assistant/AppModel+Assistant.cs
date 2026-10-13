@@ -79,6 +79,7 @@ public sealed partial class AppModel
     {
         DisposeTeach();
         DisposeDuties();
+        UnbindDecisionToasts();
         dextraTray?.Dispose();
         dextraTray = null;
         Tray?.Dispose();
@@ -216,6 +217,8 @@ public sealed partial class AppModel
         _ = SweepKept(controller);
         // The Assistant's items in nth's one tray icon (7.4, 12.6): Stop works with the window closed.
         if (tray is not null) dextraTray = AssistantTray.Bind(tray, controller);
+        // The decision toasts (AS-9, 13.1): a card that needs the owner makes one, unless the home is in front.
+        BindDecisionToasts(controller, id => profiles().FirstOrDefault(profile => profile.Id == id)?.Name is { Length: > 0 } name ? name : AssistantNames.Assistant);
         BindDextra(controller);
         return controller;
     }
@@ -311,6 +314,7 @@ public sealed partial class AppModel
         if (Dextra is null) return;
         DisposeTeach();
         DisposeDuties();
+        UnbindDecisionToasts();
         dextraTray?.Dispose();
         dextraTray = null;
         Dextra = null;

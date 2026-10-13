@@ -71,6 +71,11 @@ internal sealed class DutyHostRig : IDisposable
             {
                 lock (Faults) Faults.Add(message);
             },
+            Notify = finding =>
+            {
+                if (NotifyFails is { } failure) throw failure;
+                lock (Findings) Findings.Add(finding);
+            },
             WakeSyncDelay = TimeSpan.FromSeconds(2),
         });
         Gate.Bind(Host.Tools);
@@ -112,6 +117,12 @@ internal sealed class DutyHostRig : IDisposable
     public List<AuditEntry> Audit { get; } = [];
 
     public List<string> Faults { get; } = [];
+
+    /// <summary>What the host told the owner about: the runs of "Notify me" duties that found something (AS-9).</summary>
+    public List<DutyFinding> Findings { get; } = [];
+
+    /// <summary>When set, the host's notify callback throws it (the toast could not be made).</summary>
+    public Exception? NotifyFails { get; set; }
 
     public int Quits { get; private set; }
 

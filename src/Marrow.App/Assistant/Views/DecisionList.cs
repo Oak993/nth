@@ -125,6 +125,22 @@ public sealed class DecisionList : Decorator
         CountChanged?.Invoke(cards.Count);
     }
 
+    /// <summary>
+    /// Brings one card in front (a toast's Review, AS-9): the list is refreshed, and the card scrolls into view and takes focus once laid out. Focus
+    /// goes to the card itself, never to one of its buttons (4.2 "Keyboard"). False when no card waits with that id.
+    /// </summary>
+    public bool Reveal(Guid id)
+    {
+        Refresh();
+        if (!cards.TryGetValue(id, out var card)) return false;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            card.Target.BringIntoView();
+            card.Target.Focus(NavigationMethod.Tab);
+        }, Avalonia.Threading.DispatcherPriority.Loaded);
+        return true;
+    }
+
     private DecisionCard? FocusedCard()
     {
         var focused = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() as Visual;
