@@ -5,6 +5,7 @@
 // with the agent's own taint and role and the outward privacy check. Auto-answering (16, the ordering rule) is off until
 // the switch says the injection self-check passed (AS-7); until then the engine's Allow still lands on a card.
 using System.Text.Json.Nodes;
+using Marrow.App.Safety;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Assistant;
@@ -43,7 +44,7 @@ public sealed class AssistantControllerOptions
 
     public Func<MissionLimits> Limits { get; init; } = () => MissionLimits.Default;
 
-    /// <summary>The provider and model a mission's lead runs on until the router (AS-14) picks per step.</summary>
+    /// <summary>The provider and model a mission's lead runs on when the router (AS-14) has none to pick, or none is set up.</summary>
     public ProviderKind Provider { get; init; } = ProviderKind.Claude;
 
     public string? Model { get; init; }
@@ -85,6 +86,53 @@ public sealed class AssistantControllerOptions
 
     /// <summary>How long an nth-dextra call waits for the main thread to take in the chat's earlier events (ED-NEW-dextra-as7-18).</summary>
     public TimeSpan SettleWait { get; init; } = TimeSpan.FromSeconds(10);
+    /// <summary>
+    /// The one stop chord (AS-6, 12.6): missions hold a lease on it while they run and Stop all is bound to it. Null: no chord
+    /// (a build without it, the tests); the tray and the buttons still stop.
+    /// </summary>
+    public GlobalStop? StopKey { get; init; }
+
+    /// <summary>Tactus's streams, held by a task's Pause (12.6b); null while Tactus is not here.</summary>
+    public IPcStreamHold? PcStreams { get; init; }
+
+    /// <summary>Scopes beyond missions that Stop all also stops (a voice reply, a teach recording, Tactus streams of its missions).</summary>
+    public IReadOnlyList<IStopScope> StopScopes { get; init; } = [];
+
+    /// <summary>The usage reserve (AS-13): what it reads and keeps. Null: no reserve; nothing is held back for usage.</summary>
+    public ReserveSetup? Reserve { get; init; }
+
+    /// <summary>
+    /// The usage-aware router (AS-14): what it reads of the owner's accounts and models. Null: a mission's lead runs on
+    /// <see cref="Provider"/> and <see cref="Model"/>, and the pause card has no "Move the rest to ...".
+    /// </summary>
+    public RouterSetup? Router { get; init; }
+}
+
+/// <summary>What the usage reserve is made of (11.2 to 11.5): the owner's rules, the calibration, and how a chat finds its account.</summary>
+public sealed class ReserveSetup
+{
+    public required ReserveSettings Settings { get; init; }
+
+    public required UsageCalibrator Calibrator { get; init; }
+
+    public required TurnCostHistory Turns { get; init; }
+
+    public required Func<Guid, ReserveAccountRef?> AccountOf { get; init; }
+
+    public required Func<MissionRecord, ReserveAccountRef?> AccountForNew { get; init; }
+
+    public required Func<Marrow.Core.Port.UsageAccountKey, ReserveAccountRef> AccountOfSnapshot { get; init; }
+
+    /// <summary>Option 1 of the pause card, when something other than the router makes it (a test's fake); the router does by default.</summary>
+    public IReserveMover? Mover { get; init; }
+
+    /// <summary>The mission's model was chosen by the owner; by default what its record says (<see cref="MissionRecord.ModelPinned"/>).</summary>
+    public Func<MissionRecord, bool>? IsPinned { get; init; }
+
+    public Func<ReserveAccountRef, Task>? Refresh { get; init; }
+
+    /// <summary>Whatever else lives and dies with the reserve (its store writer): the controller disposes it with the guard.</summary>
+    public IDisposable? Owned { get; init; }
 }
 
 public sealed partial class AssistantController : IAssistantToolHost, IDisposable
@@ -99,6 +147,7 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
         o = options;
         Queue = new DecisionQueue(o.Time);
         Gate = new AgentGate(o.Limits, o.Memory, o.Time);
+        Hold = new SchedulerHold();
         Runner = new MissionRunner(new MissionRunnerOptions
         {
             Agents = o.Agents,
@@ -117,16 +166,81 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
             AutoAnswering = () => AutoAnswering,
             GrantsUsed = UseGrants,
             Deliver = Deliver,
+            StopKey = o.StopKey,
+            Hold = Hold,
+            PcStreams = o.PcStreams,
         });
+        if (o.Router is { } routing)
+        {
+            Router = new AssistantRouter(routing, o.Time, Runner, o.Agents);
+            Runner.ReviewerRouter = Router;
+        }
+        Stopper = new StopAll(new StopAllOptions
+        {
+            Runner = Runner,
+            Jobs = o.Jobs,
+            Agents = o.Agents,
+            Hold = Hold,
+            Scopes = o.StopScopes,
+            Time = o.Time,
+        });
+        if (o.StopKey is { } key) Stopper.Bind(key);
+        Controls = new MissionControls(Runner, Stopper, Hold, Queue);
+        if (o.Reserve is { } reserve)
+        {
+            Reserve = new ReserveGuard(new ReserveGuardOptions
+            {
+                Runner = Runner,
+                Queue = Queue,
+                Settings = reserve.Settings,
+                Calibrator = reserve.Calibrator,
+                Turns = reserve.Turns,
+                AccountOf = reserve.AccountOf,
+                AccountForNew = reserve.AccountForNew,
+                AccountOfSnapshot = reserve.AccountOfSnapshot,
+                Mover = reserve.Mover ?? Router,
+                IsPinned = reserve.IsPinned ?? (record => record.ModelPinned),
+                Refresh = reserve.Refresh,
+                Audit = TryAudit,
+                Time = o.Time,
+            });
+            Runner.Reserve = Reserve;
+            Router?.Bind(Reserve);
+        }
         WatchAutoAnswer();
         LoadHomeTaint();
     }
+
+    /// <summary>The usage-aware router (AS-14), when one is set up: it picks a mission's lead, fills its team's profiles and moves it between accounts.</summary>
+    public AssistantRouter? Router { get; }
+
+    /// <summary>
+    /// The pair a mission lead's Hydra team runs on, filled by the router (15.4: "the router chooses HydraHeadProfiles"); null for
+    /// a chat that is not a lead (a head has a parent), a mission that runs no team, one whose model the owner pinned, or when nothing
+    /// can be chosen. It is asked when the lead's session launches, which can be before the runner has recorded the lead's id.
+    /// </summary>
+    public HydraPair? TeamPair(ChatThread lead) =>
+        lead.MissionID is { } mission && lead.ParentThreadID is null && Runner.Find(mission) is { Team: true } record && record.Provider == lead.Provider
+            ? Router?.TeamPair(record)
+            : null;
+
+    /// <summary>The usage reserve (AS-13), when one is set up: it follows the accounts and gates every turn of a mission.</summary>
+    public ReserveGuard? Reserve { get; }
 
     public DecisionQueue Queue { get; }
 
     public AgentGate Gate { get; }
 
     public MissionRunner Runner { get; }
+
+    /// <summary>Stop all (12.6): bound to the one stop chord when there is one.</summary>
+    public StopAll Stopper { get; }
+
+    /// <summary>Stop all holds the scheduler; Pause all is a latch (12.6, 12.6b).</summary>
+    public SchedulerHold Hold { get; }
+
+    /// <summary>Pause, Resume, Stop, Revert and Restart for each task and head, and Pause all, Resume all and Stop all (12.6b).</summary>
+    public MissionControls Controls { get; }
 
     /// <summary>
     /// Off until AS-7's injection corpus passes in this process (16): until then the engine's Allow runs no tool and
@@ -186,10 +300,15 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
         HomeHeadAdded(lead, head); // AS-7: a head of the home chat starts with its lead's taint
     }
 
-    public void OnHeadFinished(Guid head, TurnStatus status)
+    /// <summary>
+    /// A head finished its turn. True when a Pause holds the finish (12.6b): Hydra must not finish the head yet. A head of the
+    /// home chat hands its lead its taint with its report (AS-7).
+    /// </summary>
+    public bool OnHeadFinished(Guid head, TurnStatus status)
     {
-        Runner.HeadFinished(head, status);
-        HomeHeadFinished(head); // AS-7: a head of the home chat hands its lead its taint with its report
+        if (Runner.HeadFinished(head, status)) return true;
+        HomeHeadFinished(head);
+        return false;
     }
 
     /// <summary>A mission chat sent its open helper a new prompt (AS-7): the helper carries what the parent carries now.</summary>
@@ -321,9 +440,14 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
                 var title = team ? "Team: " + parent!.Mission.Title : Text("title") ?? "Mission";
                 // 12.4: from a tainted chat the brief goes as data only, and the mission starts tainted (its Taint below).
                 var brief = call.DataOnly ? AsData(Text("brief") ?? "") : Text("brief") ?? "";
-                var started = Runner.Start(new MissionRequest(title, brief, chat.AssistantId, project.Id, project.Path, parent?.Provider ?? o.Provider)
+                // The router picks the lead's account and model where the reserve leaves room; a team under a mission keeps its parent's
+                // (the same account and model), and with no pick the mission starts on the default and the reserve holds it if it must.
+                var routed = parent is null ? Router?.PickLead(chat.AssistantId) : null;
+                var started = Runner.Start(new MissionRequest(title, brief, chat.AssistantId, project.Id, project.Path, parent?.Provider ?? routed?.Provider ?? o.Provider)
                 {
-                    Model = parent?.Model ?? o.Model,
+                    Model = parent?.Model ?? routed?.Model ?? o.Model,
+                    AccountId = parent?.AccountId ?? routed?.AccountId,
+                    ModelPinned = parent?.ModelPinned ?? false,
                     Team = team,
                     Origin = chat.MissionId is null ? MissionOrigin.Owner : MissionOrigin.Delegation,
                     Parent = parent?.Id ?? chat.MissionId,
@@ -335,6 +459,8 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
                     RequestedBy = chat.MissionId is null ? null : chat.Thread,
                 });
                 var r = started.Record;
+                if (Runner.Find(r.Id)?.Mission.State == MissionState.Paused)
+                    return AssistantToolResult.Done($"Mission {r.Id:D} “{r.Mission.Title}” is paused: {(Hold.StopHeld ? "Stop all" : "Pause all")} is on. It starts when the owner resumes.");
                 return r.Mission.State == MissionState.Blocked
                     ? AssistantToolResult.Failed($"Not started: {r.Reason}")
                     : AssistantToolResult.Done($"Mission {r.Id:D} “{r.Mission.Title}” is planning; its lead starts when an agent slot is free.");
@@ -374,6 +500,10 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
                 var record = Runner.MissionOf(agent);
                 if (record is not null && agent == record.LeadThread)
                     return Runner.Stop(record.Id) is { } refused ? AssistantToolResult.Failed("Not stopped: " + refused) : AssistantToolResult.Done("The mission is stopping; its work is kept.");
+                if (record is not null && record.Mission.Heads.Any(h => h.Id == agent.ToString("D")))
+                    return Runner.StopHead(record.Id, agent) is { } headRefused
+                        ? AssistantToolResult.Failed("Not stopped: " + headRefused)
+                        : AssistantToolResult.Done("The head is stopping; its work is kept.");
                 o.Agents.StopHead(agent);
                 o.Jobs.Terminate(agent);
                 return AssistantToolResult.Done("The head is stopping; its work is kept.");
@@ -457,6 +587,13 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
         };
         return Queue.Raise(card, (item, answer) =>
         {
+            // 12.6b: an irreversible card approved a moment before its task paused had not run: it is held, and needs a new tap.
+            if (answer.Approves && item.MissionId is { } paused && Runner.Find(paused)?.Mission.State is MissionState.Pausing or MissionState.Paused
+                && DecisionRules.HeldByPause(item) && Queue.Reopen(item.Id, DecisionHold.Pause, MissionRunner.HeldAfterApproval))
+            {
+                TryAudit(AssistantToolRunner.Entry(call, "held by Pause before it ran: needs a new tap after Resume"));
+                return;
+            }
             if (answer.Approves)
             {
                 // 12.5: the owner's allow is logged with his card before the call runs; when the log cannot be written,
@@ -583,6 +720,9 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
 
     public void Dispose()
     {
+        Stopper.Dispose();
+        Reserve?.Dispose();
+        o.Reserve?.Owned?.Dispose();
         foreach (var thread in o.Jobs.Threads) o.Jobs.End(thread);
     }
 }

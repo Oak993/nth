@@ -30,6 +30,12 @@ public sealed class DecisionQueue(TimeProvider? time = null)
     /// <summary>Raised after any card is added, answered, held, released or withdrawn.</summary>
     public event Action? Changed;
 
+    /// <summary>
+    /// Says whether an answer to this card is kept until Resume instead of acting now (12.6b "Cards while paused": its
+    /// task is paused). The mission runner sets it.
+    /// </summary>
+    public Func<DecisionItem, bool>? KeepsAnswers { get; set; }
+
     /// <summary>Every card the queue holds, oldest first: open and held ones, and the latest settled ones.</summary>
     public IReadOnlyList<DecisionItem> Items
     {
@@ -81,19 +87,70 @@ public sealed class DecisionQueue(TimeProvider? time = null)
         ArgumentNullException.ThrowIfNull(answer);
         Entry? entry;
         DecisionItem answered;
+        var keptOnly = false;
         lock (gate)
         {
             entry = entries.FirstOrDefault(e => e.Item.Id == id);
             if (entry is null) return "There is no such card.";
             if (DecisionRules.Refusal(entry.Item, answer) is { } refused) return refused;
             if (entry.Check?.Invoke(entry.Item, answer) is { } checkedOut) return checkedOut;
-            answered = entry.Item with { State = DecisionState.Answered, Answer = answer, Settled = clock.GetUtcNow() };
-            entry.Item = answered;
-            Trim();
+            if (KeepsAnswers?.Invoke(entry.Item) == true)
+            {
+                // The task is paused: the answer is kept and acts at Resume (ApplyKept); the card stays open.
+                entry.Item = entry.Item with { Kept = answer };
+                keptOnly = true;
+                answered = entry.Item;
+            }
+            else answered = entry.Item with { State = DecisionState.Answered, Answer = answer, Settled = clock.GetUtcNow(), Kept = null };
+            if (!keptOnly)
+            {
+                entry.Item = answered;
+                Trim();
+            }
         }
-        entry.OnAnswer(answered, answer);
+        if (!keptOnly) entry.OnAnswer(answered, answer);
         Changed?.Invoke();
         return null;
+    }
+
+    /// <summary>
+    /// Acts on the answers kept while a task was paused, for the cards <paramref name="scope"/> picks (Resume): each is
+    /// answered as the owner gave it. An answer its card no longer takes is dropped and the card stays open. Returns how
+    /// many acted.
+    /// </summary>
+    public int ApplyKept(Func<DecisionItem, bool> scope)
+    {
+        var kept = new List<(Guid Id, DecisionAnswer Answer)>();
+        lock (gate)
+        {
+            foreach (var entry in entries.Where(e => e.Item is { State: DecisionState.Open, Kept: not null } && scope(e.Item)))
+            {
+                kept.Add((entry.Item.Id, entry.Item.Kept!));
+                entry.Item = entry.Item with { Kept = null };
+            }
+        }
+        var acted = 0;
+        foreach (var (id, answer) in kept)
+        {
+            if (Answer(id, answer) is null) acted++;
+        }
+        return acted;
+    }
+
+    /// <summary>
+    /// Takes an answered card back as held (12.6b "Irreversible cards never resume on their own"): it was approved but had
+    /// not run when its task paused, so it needs a new tap after Resume. False when the card is not an answered one.
+    /// </summary>
+    public bool Reopen(Guid id, DecisionHold hold, string note)
+    {
+        lock (gate)
+        {
+            var entry = entries.FirstOrDefault(e => e.Item.Id == id && e.Item.State == DecisionState.Answered);
+            if (entry is null) return false;
+            entry.Item = entry.Item with { State = DecisionState.Held, HeldBy = hold, Answer = null, Settled = null, Kept = null, Note = note };
+        }
+        Changed?.Invoke();
+        return true;
     }
 
     /// <summary>Withdraws a waiting card (its inputs changed, its agent stopped asking); the note says why.</summary>
@@ -130,7 +187,7 @@ public sealed class DecisionQueue(TimeProvider? time = null)
             foreach (var entry in entries.Where(e => e.Item.State == DecisionState.Open && scope(e.Item)))
             {
                 if (hold == DecisionHold.Pause && !DecisionRules.HeldByPause(entry.Item)) continue;
-                entry.Item = entry.Item with { State = DecisionState.Held, HeldBy = hold };
+                entry.Item = entry.Item with { State = DecisionState.Held, HeldBy = hold, Kept = null };
                 held.Add(entry.Item);
             }
             // A Stop over a Pause: what Pause held now reads "Held by Stop".

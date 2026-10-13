@@ -19,6 +19,8 @@ public sealed record MissionReview(bool Passed, string Reasons, string Reviewer,
 /// where the text came from, a short quote and the pattern that matched. The mission card lists them.
 /// </summary>
 public sealed record MissionFinding(DateTimeOffset At, Guid? Agent, ContentOrigin Origin, string Detail, string Quote, string Pattern);
+/// <summary>The workspace of an earlier attempt that Restart left for review, with when it was set aside (12.6b, 12.6a).</summary>
+public sealed record PreviousWorkspace(MissionWorkspace Workspace, DateTimeOffset At);
 
 /// <summary>A mission as the runner keeps it.</summary>
 public sealed record MissionRecord(Mission Mission)
@@ -37,6 +39,15 @@ public sealed record MissionRecord(Mission Mission)
 
     public string? Model { get; init; }
 
+    /// <summary>
+    /// The account of the mission's provider the router chose for it (AS-14), by the account store's id; null: the provider's
+    /// first enabled account, as before. Every chat the mission starts runs on it, and the usage reserve follows it.
+    /// </summary>
+    public Guid? AccountId { get; init; }
+
+    /// <summary>The owner chose this model for the mission (spec 8): the router and the reserve never switch it (11.5, 11.6).</summary>
+    public bool ModelPinned { get; init; }
+
     /// <summary>A Hydra team leads it (the lead chat has Hydra on).</summary>
     public bool Team { get; init; }
 
@@ -44,6 +55,34 @@ public sealed record MissionRecord(Mission Mission)
     public int Level { get; init; } = MissionLimits.TopLevel;
 
     public MissionWorkspace? Workspace { get; init; }
+
+    /// <summary>Which try this is: 1, then one more for each Restart (its branch and folder carry it, 12.6b).</summary>
+    public int Attempt { get; init; } = 1;
+
+    /// <summary>Revert changes took its work out of the workspace; the Activity log can restore it for 7 days (12.6b).</summary>
+    public RevertedWork? RevertedWork { get; init; }
+
+    /// <summary>Workspaces of earlier attempts a Restart left for review: swept 7 days after (12.6a, 12.6b).</summary>
+    public ValueList<PreviousWorkspace> Previous { get; init; } = ValueList<PreviousWorkspace>.Empty;
+
+    /// <summary>
+    /// Its agents were let go after 10 minutes paused (12.6b "Paused tasks"): the line says "agents released", and
+    /// Resume starts them again through the provider's own session resume, behind the memory gate.
+    /// </summary>
+    public bool AgentsReleased { get; init; }
+
+    /// <summary>
+    /// Revert changes began and its outcome is not recorded yet (12.6b): written before the work comes out of the workspace, cleared
+    /// after. If nth ends in between, the next start finds what the revert did (its hidden ref) and completes the record, instead of
+    /// running the revert again blind.
+    /// </summary>
+    public bool RevertIntent { get; init; }
+
+    /// <summary>
+    /// Tokens the lead read again at the uncached price because its agents were let go while paused (12.6b): they count in the
+    /// task's spend (AS-13 adds them to the ledger's figure).
+    /// </summary>
+    public long ColdStartTokens { get; init; }
 
     public Guid? LeadThread { get; init; }
 
@@ -147,6 +186,17 @@ public static class MissionJournal
             ["keepWorkspace"] = record.KeepWorkspace,
             ["created"] = Time(record.Created),
         };
+        // Added in AS-6 (ED-NEW-dextra-as6-7): optional keys, so a file written before them loads, and none is written unless set.
+        if (record.Attempt > 1) body["attempt"] = record.Attempt;
+        if (record.AgentsReleased) body["agentsReleased"] = true;
+        if (record.RevertIntent) body["revertIntent"] = true;
+        if (record.ColdStartTokens > 0) body["coldStartTokens"] = record.ColdStartTokens;
+        if (record.RevertedWork is { } revertedWork) body["revertedWork"] = MissionWorkspaces.ToJson(revertedWork);
+        if (record.Previous.Count > 0)
+            body["previous"] = new JsonArray([.. record.Previous.Select(p => (JsonNode)new JsonObject
+            {
+                ["workspace"] = MissionWorkspaces.ToJson(p.Workspace), ["at"] = Time(p.At),
+            })]);
         void Put(string name, string? value) { if (value is not null) body[name] = value; }
         Put("resumeTo", m.ResumeTo?.ToString());
         Put("pausedBy", m.PausedBy?.ToString());
@@ -155,6 +205,8 @@ public static class MissionJournal
         Put("worktreePath", m.WorktreePath);
         Put("branch", m.Branch);
         Put("model", record.Model);
+        Put("account", record.AccountId?.ToString("D"));
+        if (record.ModelPinned) body["modelPinned"] = true;
         Put("lead", record.LeadThread?.ToString("D"));
         Put("reviewer", record.ReviewerThread?.ToString("D"));
         Put("report", record.Report);
@@ -219,6 +271,8 @@ public static class MissionJournal
                 ProjectPath = Text(body, "projectPath") ?? "",
                 Provider = SwiftEnum<ProviderKind>.FromRawValue(Text(body, "provider")) ?? throw new FormatException("unknown provider"),
                 Model = Text(body, "model"),
+                AccountId = Text(body, "account") is { } account ? Guid.Parse(account) : null,
+                ModelPinned = Bool(body, "modelPinned"),
                 Team = Bool(body, "team"),
                 Level = Int(body, "level"),
                 Workspace = body["workspace"] is { } workspace ? MissionWorkspaces.FromJson(workspace) ?? throw new FormatException("workspace") : null,
@@ -252,6 +306,16 @@ public static class MissionJournal
                 })),
                 Readers = Bool(body, "readers"),
                 RequestedBy = Text(body, "requestedBy") is { } requester ? Guid.Parse(requester) : null,
+                Attempt = body["attempt"] is { } attempt ? Math.Max(1, attempt.GetValue<int>()) : 1,
+                AgentsReleased = Bool(body, "agentsReleased"),
+                RevertIntent = Bool(body, "revertIntent"),
+                ColdStartTokens = body["coldStartTokens"] is { } cold ? Math.Max(0, cold.GetValue<long>()) : 0,
+                RevertedWork = body["revertedWork"] is { } revertedWork ? MissionWorkspaces.RevertedFromJson(revertedWork) ?? throw new FormatException("revertedWork") : null,
+                Previous = new ValueList<PreviousWorkspace>(Array(body, "previous").Select(p =>
+                {
+                    var o = (JsonObject)p!;
+                    return new PreviousWorkspace(MissionWorkspaces.FromJson(o["workspace"]) ?? throw new FormatException("previous"), ParseTime(Text(o, "at")!));
+                })),
             };
         }
         catch (Exception error) when (error is FormatException or InvalidOperationException or ArgumentException or InvalidCastException

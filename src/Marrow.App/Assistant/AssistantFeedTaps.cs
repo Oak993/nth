@@ -31,6 +31,7 @@ internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus) : I
     /// <summary>ThreadRuntime.Handle: the provider events that matter to the Assistant. Everything else is ignored.</summary>
     public void TapProvider(Guid threadId, ProviderEvent @event)
     {
+        TapReserve(threadId, @event);
         if (disposed || !bus.HasSubscribers) return;
         try
         {
@@ -88,6 +89,37 @@ internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus) : I
             // a tap must never break the app
         }
     }
+
+    // AS-13: the usage reserve reads the ledger's spend and the turns of mission chats whether or not anyone watches the feed.
+    private void TapReserve(Guid threadId, ProviderEvent @event)
+    {
+        if (disposed || app.Reserve is not { } reserve) return;
+        try
+        {
+            switch (@event)
+            {
+                case ProviderEvent.TokenSpend spend when spend.Value.TotalTokens > 0:
+                    reserve.OnSpend(threadId, spend.Value.Model, spend.Value.TotalTokens);
+                    break;
+                case ProviderEvent.TurnStarted when app.Thread(threadId) is { MissionID: { } mission } thread:
+                    reserve.TurnStarted(mission, threadId, thread.Model);
+                    break;
+                case ProviderEvent.TurnCompleted:
+                    reserve.TurnEnded(threadId);
+                    break;
+            }
+        }
+        catch (Exception)
+        {
+            // a tap must never break the app
+        }
+    }
+
+    /// <summary>An account as the reserve names it: the feed's key, the owner's name for it, its provider.</summary>
+    public ReserveAccountRef AccountRef(UsageAccountKey account) => new(AccountKey(account), AccountName(account), account.Provider.Id);
+
+    /// <summary>The same for an account of the store, by its id (AS-14: the router's accounts).</summary>
+    public ReserveAccountRef AccountRef(ProviderKind provider, Guid id) => AccountRef(KeyOf(provider, id));
 
     /// <summary>AppModel.TurnFinished: a chat's turn ended. A head reports through <see cref="TapHeadFinished"/> instead.</summary>
     public void TapTurnFinished(Guid threadId, TurnStatus status, bool continues)
@@ -177,6 +209,7 @@ internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus) : I
     /// <summary>MultiAccountRouting: an account's usage windows were polled.</summary>
     public void TapAccountSnapshot(AccountPlanLimitsSnapshot snapshot)
     {
+        if (!disposed) app.Reserve?.OnSnapshot(snapshot); // AS-13: the reserve reads every poll, watched or not
         if (disposed || !bus.HasSubscribers) return;
         try
         {

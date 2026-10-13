@@ -1,12 +1,18 @@
-// PORT-ONLY: Dextra (DESIGN.md rev 5, 5.1, 12.3, 12.4, 15.1, 15.4; units AS-2, AS-5 and AS-7; ED-NEW-dextra-as2-6, -8,
-// ED-NEW-dextra-as5-5, -6, -11, ED-NEW-dextra-as7-7 to -9). No Swift twin.
+// PORT-ONLY: Dextra (DESIGN.md rev 5, 5.1, 11.6, 12.3, 12.4, 15.1, 15.4; units AS-2, AS-5, AS-7 and AS-14; ED-NEW-dextra-as2-6,
+// -8, ED-NEW-dextra-as5-5, -6, -11, ED-NEW-dextra-as7-7 to -9, -12 to -15, ED-NEW-dextra-as14-5, -8). No Swift twin.
 // The Assistant's live feed as the app holds it (one bus, one set of taps), and the seams Dextra's controller hangs on:
 // every launch of a mission chat is sealed and jobbed (MissionLaunchOf, whether or not the controller runs), and the
 // app's approvals, questions, turn ends and Hydra heads reach the controller when one is bound, and so do every Dextra
 // chat's tool events (its taint) and the owner's own messages (which clear the home chat's taint). With none bound,
 // nothing changes for any chat but a mission's, which stays sealed and capped.
 using Marrow.App.Assistant;
+using Marrow.App.Safety;
+using Marrow.App.Tray;
 using Marrow.Core.Models;
+using Marrow.Core.Port;
+using Marrow.Core.Port.Assistant;
+using Marrow.Core.Port.Ignis;
+using Marrow.Core.Port.MultiAccount;
 using Marrow.Services.Assistant;
 using Marrow.Services.Providers;
 
@@ -40,10 +46,49 @@ public sealed partial class AppModel
         assistantFeedStopped = true;
         assistantTaps?.Dispose();
         AssistantEvents.Dispose();
+        DisposeSafety();
+    }
+
+    /// <summary>
+    /// The one stop chord of nth (12.6), shared by Tactus and the Assistant; null until <see cref="EnsureStopKey"/> (the Assistant's
+    /// start, or Tactus's). The chord is registered only while some work holds a lease on it.
+    /// </summary>
+    public GlobalStop? StopKey { get; private set; }
+
+    /// <summary>The one tray icon of nth (7.4); null until <see cref="EnsureTray"/>.</summary>
+    public AppTray? Tray { get; private set; }
+
+    /// <summary>
+    /// The stop chord service, made on first use over its own message-loop thread. <paramref name="chordSetting"/> reads the
+    /// owner's chord text ("Ctrl+Alt+Esc" when null or unreadable); Settings persists it (AS-8 for the Assistant, Tactus's
+    /// page for its own).
+    /// </summary>
+    public GlobalStop EnsureStopKey(Func<string?>? chordSetting = null) =>
+        StopKey ??= new GlobalStop(new StopChordThread(), chordSetting ?? (() => null));
+
+    /// <summary>
+    /// The tray icon, made on first use. It shows while the window is hidden (<paramref name="windowHidden"/>), always when
+    /// <paramref name="alwaysShow"/> says so, or while a feature that added items says it is live; <paramref name="open"/>
+    /// brings the window back.
+    /// </summary>
+    public AppTray EnsureTray(Func<bool> windowHidden, Func<bool>? alwaysShow = null, Action? open = null) =>
+        Tray ??= new AppTray(new AvaloniaTrayHost(), windowHidden, alwaysShow, open);
+
+    private void DisposeSafety()
+    {
+        dextraTray?.Dispose();
+        dextraTray = null;
+        Tray?.Dispose();
+        Tray = null;
+        StopKey?.Dispose();
+        StopKey = null;
     }
 
     /// <summary>Dextra's controller, while Dextra runs (AS-8 starts it from the home; null before).</summary>
     public AssistantController? Dextra { get; private set; }
+
+    /// <summary>The usage reserve (AS-13) of the running controller, if it has one: the taps feed it, the board and the plan card read it.</summary>
+    internal ReserveGuard? Reserve => Dextra?.Reserve;
 
     /// <summary>The Job Object of every mission agent (12.6), by chat. A test may swap the factory before any launch.</summary>
     public AgentJobs MissionJobs { get; internal set; } = new(WindowsAgentJobFactory.Instance);
@@ -60,19 +105,38 @@ public sealed partial class AppModel
     /// </summary>
     public AssistantController StartDextra(AssistantStore store, Action<AuditEntry> audit, Func<IReadOnlyList<Marrow.Core.Port.Assistant.AssistantProfile>> profiles,
         ProviderKind provider = ProviderKind.Claude, string? model = null, IReadOnlyList<string>? protectedRoots = null,
-        AutoAnswerSwitch? autoAnswer = null, Func<IReadOnlyList<string>>? personalDataRecipients = null, Func<IReadOnlyList<string>>? allowlist = null)
+        AutoAnswerSwitch? autoAnswer = null, Func<IReadOnlyList<string>>? personalDataRecipients = null, Func<IReadOnlyList<string>>? allowlist = null,
+        GlobalStop? stopKey = null, AppTray? tray = null, IPcStreamHold? pcStreams = null,
+        IReadOnlyList<IStopScope>? stopScopes = null)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(audit);
         ArgumentNullException.ThrowIfNull(profiles);
+        // The usage reserve (AS-13): the owner's rules and what nth learned of his usage come from the store and go back to it.
+        var reserveSettings = new ReserveSettings();
+        var calibrator = new UsageCalibrator();
+        var turnCosts = new TurnCostHistory();
+        var reservePersistence = new ReservePersistence(store, reserveSettings, calibrator, turnCosts);
         var controller = new AssistantController(new AssistantControllerOptions
         {
+            Router = new RouterSetup { Accounts = RouterAccounts, Models = RouterModelsOf },
+            Reserve = new ReserveSetup
+            {
+                Settings = reserveSettings,
+                Calibrator = calibrator,
+                Turns = turnCosts,
+                AccountOf = thread => ExistingRuntime(thread)?.UsageAccount is { } account ? AssistantTaps.AccountRef(account) : null,
+                AccountForNew = AccountForNewChat,
+                AccountOfSnapshot = account => AssistantTaps.AccountRef(account),
+                Owned = reservePersistence,
+            },
             Agents = new AppMissionAgents(this),
             Thread = Thread,
             Projects = () => [.. Projects.Select(p => new MissionProject(p.Id, p.Name, p.Path))],
             Profiles = profiles,
             Jobs = MissionJobs,
-            Workspaces = new StoreMissionWorkspaces(mission => store.MissionWorktreeFolder(MissionJournal.StoreId(mission))),
+            Workspaces = new StoreMissionWorkspaces((mission, attempt) =>
+                store.MissionWorktreeFolder(MissionJournal.StoreId(mission) + (attempt > 1 ? "-" + attempt.ToString(System.Globalization.CultureInfo.InvariantCulture) : ""))),
             Audit = audit,
             Save = record => store.SaveMission(MissionJournal.StoreId(record.Id), MissionJournal.ToJson(record)),
             Provider = provider,
@@ -86,10 +150,65 @@ public sealed partial class AppModel
             LoadHomeTaint = store.HomeTaint,
             SaveHomeTaint = store.SaveHomeTaint,
             HomeChats = () => [.. Threads.Where(t => t.AssistantID is not null && t.MissionID is null).Select(t => t.Id)],
+            StopKey = stopKey,
+            PcStreams = pcStreams,
+            StopScopes = stopScopes ?? [],
         });
         controller.Runner.Load(store.Missions().Select(stored => MissionJournal.FromJson(stored.Body)).OfType<MissionRecord>());
+        // What Revert and Restart kept for 7 days, and the workspaces of missions over for 7 days, are swept at start (the
+        // scheduler, AS-10, repeats it daily); a sweep that fails is reported and never stops the start.
+        _ = SweepKept(controller);
+        // The Assistant's items in nth's one tray icon (7.4, 12.6): Stop works with the window closed.
+        if (tray is not null) dextraTray = AssistantTray.Bind(tray, controller);
         BindDextra(controller);
         return controller;
+    }
+
+    /// <summary>
+    /// The account a chat the mission has yet to start would run on (the reserve's question): the one the router chose for it, else
+    /// the one the provider's own account order gives a new chat.
+    /// </summary>
+    private ReserveAccountRef AccountForNewChat(MissionRecord record)
+    {
+        var routed = record.AccountId is { } chosen
+            ? Settings.Accounts.Accounts.FirstOrDefault(candidate => candidate.Id == chosen && candidate.Service == record.Provider)
+            : null;
+        var account = routed ?? Settings.Accounts.Choose(record.Provider);
+        return account is null
+            ? AssistantTaps.AccountRef(UsageAccountKey.Default(record.Provider))
+            : AssistantTaps.AccountRef(record.Provider, account.Id);
+    }
+
+    /// <summary>
+    /// The accounts the router may use (AS-14): those enabled and connected, each with whether it can be used now (CanUseAccount) and
+    /// its place in the owner's pill order. The pill used for new threads comes first, then his other pills, then the rest by the
+    /// order he gave the accounts of each service.
+    /// </summary>
+    private IReadOnlyList<RouterAccount> RouterAccounts()
+    {
+        var connected = new HandshakeAccountStore(Settings.Accounts, IsAccountConnected);
+        var order = PillOrder.Sequence(Settings.Pills.Pills, Settings.Pills.UseForNewThreads, connected);
+        return [.. Settings.Accounts.Accounts.Where(row => row.Enabled && IsAccountConnected(row)).Select(row =>
+        {
+            var id = row.Id.ToString("D");
+            var place = order.ToList().FindIndex(item => string.Equals(item, id, StringComparison.OrdinalIgnoreCase));
+            return new RouterAccount(row.Id, AssistantTaps.AccountRef(row.Service, row.Id), row.Service, CanUseAccount(row.Id), place >= 0 ? place : order.Count + row.Priority);
+        })];
+    }
+
+    /// <summary>A provider's models with their tiers, read from the price the Ignis points know for each (no price: standard).</summary>
+    private IReadOnlyList<RouteModel> RouterModelsOf(ProviderKind provider) =>
+        RouterModels.Of(provider, Providers.Models(provider), IgnisRuntimeSeams.Points.Current());
+
+    private AssistantTray? dextraTray;
+
+    private static async Task SweepKept(AssistantController controller)
+    {
+        try { await controller.Runner.CleanUpWorkspaces().ConfigureAwait(false); }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            controller.Runner.ReportFault("The 7-day sweep of kept work failed: " + error.Message);
+        }
     }
 
     /// <summary>Binds Dextra's controller: the nth-dextra tools, approvals, questions and turn ends go to it.</summary>
@@ -106,6 +225,8 @@ public sealed partial class AppModel
     public void UnbindDextra()
     {
         if (Dextra is null) return;
+        dextraTray?.Dispose();
+        dextraTray = null;
         Dextra = null;
         AssistantMcpBridge.Host.SetProcessDefault(NoAssistantToolHost.Instance);
     }
@@ -135,6 +256,27 @@ public sealed partial class AppModel
     internal Task DextraAdmitHelper(ChatThread helper) =>
         helper.MissionID is not null && Dextra is { } dextra ? dextra.Runner.AdmitHelper(helper.Id, helper.Provider) : Task.CompletedTask;
 
+    /// <summary>
+    /// A head whose finish a Pause held (12.6b) is released: Hydra finishes it now with the status its turn ended with, and
+    /// tells the lead. The turn's own tail runs again, and finds the head no longer held.
+    /// </summary>
+    internal void DextraFinishHeldHead(ChatThread head, TurnStatus status) => HydraHeadTurnFinished(head, status);
+
+    /// <summary>
+    /// Resume on a head Stop cut (12.6b): Hydra counts it as running again, and its chat gets the continue message. False when
+    /// the chat cannot take it now.
+    /// </summary>
+    internal bool DextraRestartHead(Guid head, string text)
+    {
+        UpdateHydraHead(head, value => value with
+        {
+            HydraHeadInfoStatus = HydraHeadInfo.Status.Running,
+            FinishedAt = null,
+            ExecutionFinishedAt = null,
+        });
+        return Runtime(head).SendMissionMessage(text);
+    }
+
     /// <summary>ThreadRuntime.Handle's tap (AS-7): what a Dextra chat's tool calls bring in taints it.</summary>
     internal void DextraEvent(Guid thread, ProviderEvent @event) => Dextra?.OnProviderEvent(thread, @event);
 
@@ -152,14 +294,19 @@ public sealed partial class AppModel
 
     /// <summary>
     /// A head of a Dextra chat is done: a mission's frees its gate slot; the home chat's hands its lead its taint with its
-    /// report (AS-7, ED-NEW-dextra-as7-13).
+    /// report (AS-7, ED-NEW-dextra-as7-13). True when a mission holds the head's finish (12.6b): the caller stops there.
     /// </summary>
-    internal void DextraHeadFinished(ChatThread head, TurnStatus status)
-    {
-        if (head.MissionID is not null || head.AssistantID is not null) Dextra?.OnHeadFinished(head.Id, status);
-    }
+    internal bool DextraHeadFinished(ChatThread head, TurnStatus status) =>
+        (head.MissionID is not null || head.AssistantID is not null) && Dextra?.OnHeadFinished(head.Id, status) == true;
 
     /// <summary>A head of a mission waits at the agent gate before its chat starts; at once for any other head.</summary>
-    internal Task DextraAdmitHead(ChatThread head) =>
-        head.MissionID is not null && Dextra is { } dextra ? dextra.Runner.AdmitHead(head.Id, head.Provider) : Task.CompletedTask;
+    internal Task<bool> DextraAdmitHead(ChatThread head) =>
+        head.MissionID is not null && Dextra is { } dextra ? dextra.Runner.AdmitHead(head.Id, head.Provider) : Task.FromResult(true);
+
+    /// <summary>
+    /// A head Stop kept from starting waits here until the owner resumes it (12.6b); false when its mission is over and it never
+    /// starts. Its chat is started by the caller once this says true and the head has been admitted again.
+    /// </summary>
+    internal Task<bool> DextraAwaitHeadResume(ChatThread head) =>
+        head.MissionID is not null && Dextra is { } dextra ? dextra.Runner.AwaitHeadResume(head.Id) : Task.FromResult(false);
 }

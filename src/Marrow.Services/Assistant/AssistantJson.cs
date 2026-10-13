@@ -33,4 +33,18 @@ internal static class AssistantJson
 
     /// <summary>The object, or null when the text is not one JSON object with distinct property names.</summary>
     public static JsonObject? ParseObject(string? text) => Parse(text) as JsonObject;
+
+    /// <summary>
+    /// A JSON number as a double, or null when the node is not a number. A value built in memory from an int or a long reads
+    /// as well as one parsed from a file (which holds a JsonElement and converts on its own).
+    /// </summary>
+    public static double? Number(JsonNode? node)
+    {
+        if (node is not JsonValue value) return null;
+        if (value.TryGetValue<double>(out var real)) return real;
+        if (value.TryGetValue<long>(out var whole)) return whole;
+        if (value.TryGetValue<int>(out var small)) return small;
+        if (value.TryGetValue<decimal>(out var money)) return (double)money;
+        return null;
+    }
 }
