@@ -7948,3 +7948,144 @@ ENGINEERING DECISION (2026-10-13, CU-W20; DESIGN.md section 10 and W22's static-
 ## ED-NEW-web-w20-7 - Live-answer SVG strokes follow contrast changes
 
 ENGINEERING DECISION (2026-10-13, CU-W20; DESIGN.md sections 7.5 and 10). The same immutable-pen freeze found in pane glyphs also affects NthUiIcon's explicitly coloured SVG strokes. A new captured-pixel Fact failed alone twice while Foreground already held WindowText: the actual check icon disappeared on the system surface. Keep its mutable brush in a Pen, preserving every path, transform, width, cap and join. The W20 headless count is now 24 UI facts and 9 App facts, with 3 Traceability facts per touched test project; the two Windows UIA Native facts remain unrun. Source-folder verification of nth-ui is repeated after this final control change. Unchanged fake-clock section-12 checks additionally cover artifact refresh at 250 ms, background-job ticking and separate side-chat runtimes; no real provider or hardware call is made.
+
+
+## ED-NEW-web-review-1 — Web review robustness (2026-10-13)
+
+Bound stalled gesture and cap captures using the existing five-second unresponsive-page deadline; preserve the planning capture budget and cached-frame handoff. DESIGN 2.5/2.7; regressions A_first_capture_that_stalls_must_not_hold_a_gesture_forever and A_stalled_capture_must_not_disable_the_process_live_view_cap.
+
+
+## ED-NEW-web-review-2 — Web review robustness (2026-10-13)
+
+Never recreate a closed view snapshot from a late refresh. DESIGN 2.3 disposal; regression Completing_a_refresh_after_close_must_not_resurrect_the_closed_snapshot.
+
+
+## ED-NEW-web-review-3 — Web review robustness (2026-10-13)
+
+Reject wrong-typed artifact version byte metadata without throwing or losing enumeration of valid siblings. DESIGN 6.1 persistence; regression Wrong_typed_artifact_bytes_must_be_skipped_without_throwing.
+
+
+## ED-NEW-web-review-4 — Web review robustness (2026-10-13)
+
+Publish storage cache changes only after atomic disk commit; failed set/remove must retain committed state. DESIGN 6.5 storage; regression A_failed_storage_remove_must_keep_the_committed_value_in_memory.
+
+
+## ED-NEW-web-review-5 — Web review robustness (2026-10-13)
+
+Queued CDP cancellation and disposal must settle promptly while preserving serialization behind an outstanding predecessor. DESIGN 2.2/5.10 Stop; regression Cancelling_a_queued_CDP_call_must_not_wait_for_a_stalled_predecessor.
+
+
+## ED-NEW-web-review-6 — Web review robustness (2026-10-13)
+
+Charge nested live-answer equality work against the evaluator budget, including leaves, rather than recursively comparing outside the budget. DESIGN 7.2 bounded expression evaluation; regression Deep_equality_must_spend_budget_for_nested_leaf_comparisons.
+
+
+## ED-NEW-web-review-7 — Web review robustness (2026-10-13)
+
+Clip the narrow strip and surface to transient zero/tiny workspace heights; retain the 44 DIP strip whenever room exists. DESIGN 3.8/13.1 no out-of-bounds geometry; regression A_tiny_narrow_workspace_must_keep_its_strip_and_panes_inside_its_height. Strengthen invariant coverage for narrow geometry; do not relax ordinary-size assertions.
+
+
+## ED-NEW-web-review-8 - Interrupted terminal collapse (2026-10-13)
+
+DESIGN 4.2/4.3 interruptible splitter motion: a restore or reset supersedes the pending close before its opening spring settles. Regression WebReviewTerminalTests.Restoring_or_resetting_during_collapse_keeps_the_terminal_open uses manual clocks and fake shell processes.
+
+
+## ED-NEW-web-review-9 - Live answer lookup race (2026-10-13)
+
+DESIGN 7.3 update-in-place: after awaiting saved timeline lookup, prefer any newer in-memory record that appeared meanwhile. Never overwrite a live update with an old saved version. Regression WebReviewLiveAnswerTests.A_late_saved_lookup_must_not_replace_a_live_update uses a held lookup task.
+
+
+## ED-NEW-web-review-10 - Tabula schema preservation (2026-10-13)
+
+DESIGN 3.11 persistence and LEAN-TESTS item 10: preserve unknown current-format fields, and leave a newer-than-known tabula.json byte-exact while maintaining a usable in-memory selection. Old format-1 selections continue loading. Regressions WebReviewTabulaPersistenceTests cover both cases with disposable folders.
+
+
+## ED-NEW-web-review-11 - Web tool disposal during a call (2026-10-13)
+
+DESIGN 5.10 Stop and lifecycle: cancelling a running web call must let its finally release the serialization semaphore. Disposing that semaphore while the call owns it throws instead of returning the stopped result. Regression WebReviewAgentLifetimeTests uses a scripted held AX call and a queued call.
+
+
+## ED-NEW-web-review-12 - Search suggestion body deadline (2026-10-13)
+
+DESIGN 5.2 small optional suggestions: the advertised two-second timeout must cover reading the response body, not only receiving headers. ResponseHeadersRead returns before that body; caller cancellation alone leaves an unsized stalled stream pending. Added an internal manual clock seam before the reproduction, without changing behaviour, then a body-deadline regression with a fake HTTP handler. No real request.
+
+
+## ED-NEW-web-review-13 - Shared splitter frame callback reuse (2026-10-13)
+
+DESIGN 4.2/12 hot path: retain one Action<TimeSpan> per SplitterValue rather than allocate a new instance method delegate every animation frame. Regression WebReviewSplitterAllocationTests measures 100 warmed moving frames using the existing fixed-array QuietFrameSource; clock and setup allocations are excluded. Idle Finish withdraws the request.
+
+
+## ED-NEW-web-review-14 - Retire hung probes on user retry (2026-10-13)
+
+DESIGN 2.7 Wait/Reload: retire the old no-frame probe when the user clears the hung card, so the next probe can run and detect another hang. Keep existing late-frame recovery until a user retry, and cancel probes when releasing their engine. Regressions WebReviewProbeTests exercise both actions with the manual clock.
+
+## ED-NEW-web-review-15
+
+- Web review: Repeated role-colour Brush(control) reads retain another BrushBinding and attach another control/theme handler. Measure warmed allocations and assert existing brushes follow both contrast palettes; fail alone twice before caching one dynamic brush per weak control key.
+- Authority: web-surfaces DESIGN.md 10 and 13.4; CU-WEB-REVIEW correctness and lightness lenses. Managed headless only; native acceptance remains with the lead.
+
+## ED-NEW-web-review-16
+
+- Web review: NthUiTokens.Accent creates a role wrapper in each render read. Measure warmed allocation and live accent/contrast resolution; fail alone twice before retaining one live role token.
+- Authority: web-surfaces DESIGN.md 10 and 13.4; CU-WEB-REVIEW correctness and lightness lenses. Managed headless only; native acceptance remains with the lead.
+
+## ED-NEW-web-review-17
+
+- Candidate disposition: the stalled-capture live-cap probe and disposal-during-step probe each pass alone twice on the current baseline; no production change is justified by those probes. Keep them as coverage. ED-NEW-web-review-1 fixes only the first capture hang. ED-NEW-web-review-11 now separately probes a call after disposal, which must answer stopped.
+- Corrected terminal probe removes an unrelated global frame-count assertion; only the twice-failing terminal-visible assertions count as defect proof. Stale binaries from the intermediate failed build receive no validation credit.
+
+## ED-NEW-web-review-18
+
+- Oversized nth-ui join builds the complete string before rejecting MaxTextLength. Bound construction before allocation; a compact 1000 x 1000-character list measures allocations and still expects the same error. Fail alone twice before the fix.
+- Authority: DESIGN.md 7.2 bounded language and CU-WEB-REVIEW hang/lightness lens.
+
+## ED-NEW-web-review-19
+
+- Test integrity: real-shell terminal tests have managed names and evade the required Native exclusion. A source classification regression must fail alone twice, then add Native to those class/method names without changing any body, trait or assertion. The lead alone runs them.
+- Fake-shell terminal checks stay managed; no production shell or settings change.
+
+## ED-NEW-web-review-20
+
+- LiveAnswerRow debounce tick stops its timer before FlushState, whose guard then discards the pending reader state. Drive the real callback deterministically after a reader change, fail alone twice, and flush before stopping. Reopening must retain choices without creating a model version.
+- Authority: DESIGN.md 7.2 persistent reader state and CU-WEB-REVIEW persistence lens. No provider or real timer wait.
+
+## ED-NEW-web-review-21
+
+- Evidence refinement: the initial role-brush probe forgot ContrastSurface.MatchTheme and stopped at its contrast assertion, so those failures do not prove allocation. The corrected probe fails alone twice at 90,928 allocated bytes per 100 reads before caching. The initial multi-case text run is diagnostic only; each join/display method subsequently fails alone twice. UI/App analyzer build failures and all stale/no-result outputs receive no acceptance credit.
+- ED-NEW-web-review-18 also bounds nested list/object displayed prefixes and recursion at 64; normal compact JSON display and join separator semantics remain covered by existing NthUi tests.
+
+## ED-NEW-web-review-22
+
+- Look lens: render real Visus and Tabula chrome in managed PaneWorkspace windows, both appearances, using only fake web engines and a native Markdown artifact. Preserve independent 36-DIP DESIGN header, visible close, contained bounds and Export assertions. Capture PNGs for manual comparison with the approved canvas.
+- These are look evidence, not proof of WebView2 airspace, DWM glass or a native release gate. Header canvas 38-DIP versus DESIGN 36-DIP remains the existing authority disposition; no oracle or tolerance is loosened.
+
+## ED-NEW-web-review-23
+
+- Equality follow-up: field-name lookup in object equality also consumes work, not only the matching leaf. Reverse-order 100-field objects under a 1000-step budget must exhaust that budget rather than perform quadratic searches outside it. Fail the new method alone twice before charging searches.
+- Authority: DESIGN.md 7.2 bounded pure expressions, supplement to ED-NEW-web-review-6.
+
+## ED-NEW-web-review-24
+
+- Traceability accepts numbered web work-unit names but rejects the owners expressly assigned ED-NEW-web-review-n namespace. Retain the existing anchored grammar and add only this literal approved namespace. Positive approved ids and negative unassigned names/suffixes must fail alone twice before the parser fix. Do not weaken requirement, rule, source layout or Oracle validation.
+- The combined sweep exposes the queue-disposal race despite the earlier standalone green probe; a reentrant page-call disposal probe makes that exact ordering deterministic before repair.
+
+## ED-NEW-web-review-25
+
+- NthSvgRecordedMermaidTests reports green after iterating an empty set when the real-renderer recordings are absent. This is no drawing evidence. Preserve every sanitiser/painter assertion, require all 13 families in both themes (26 drawings), and classify the recording-dependent check Native for the lead; never fabricate recorded SVGs. The classification regression fails alone twice before repair.
+- Authority: DESIGN.md 7.2 and 13.4, W16c landing note, and CU-WEB-REVIEW no-skipped-asserts lens. The real-runner capture prerequisite remains unverified and is listed explicitly.
+
+## ED-NEW-web-review-26
+
+- Brush lifetime follow-up: reuse handles stable tokens, but fresh dynamic/opacity colours still let event handlers retain discarded brushes while their control stays attached. Probe both appearance-pair and live-accent brushes with weak references and a managed collection; fail alone twice before weak subscriptions and brush-owned bindings. Preserve live platform/theme/contrast updates.
+- Authority: CU-WEB-REVIEW disposal/leaks lens and DESIGN.md 10. No native window or PC setting changes.
+
+## ED-NEW-web-review-27 — Tabula persistence stays off the UI thread (2026-10-13)
+CU-WEB-REVIEW DESIGN 2/3.5/3.11 and LEAN-TESTS 10. Current selection loading and atomic saving call disk on the UI thread. ReadBytes/WriteBytes Ambient seams preserve the original disk operations; two actual-disk thread probes each failed alone twice (red-*TabulaThread*-1/2-11.log). Read and serialize-save work is queued off-main, saved choice changes marshal back, writes serialize behind initialization, and a user selection during loading wins. Unknown fields and newer-format preservation apply before pending writes. Existing persistence assertions remain intact and wait for completion. Native disk latency and shutdown durability remain part of the lead gate.
+
+## ED-NEW-web-review-28 — Final proof dispositions and lifetime details (2026-10-13)
+ED-NEW-web-review-26 keeps cache values weak as well as keys: a live control key otherwise retains discarded fresh brushes. Avalonia WeakEvent registrations own only weak subscribers; the brush owns its binding through an ephemeron. Theme notification iterates a cached weak snapshot, rebuilt only on subscription changes, with no notification-list allocation per frame. Corrected fresh-wrapper collection probe is green for both role and live-accent wrappers. ED-NEW-web-review-27's held-read fixture uses a bounded ManualResetEventSlim on the disk worker only, released by the test UI thread; it establishes deterministic load/choice/write ordering, not a production UI wait. Two UI-thread disk probes failed alone twice, then all four storage-thread/order cases passed. UI API compile failures, a failed regex-probe build, and the malformed wrapper invocation received no test credit. VoiceGlowPainterTests allocation theory passed both cases twice alone after its raw combined failure; its bounds and implementation are unchanged.
+
+## ED-NEW-web-review-29 — Preserve shutdown drainage and row collection during repair (2026-10-13)
+Follow-ups in the review repair, not additional W20 baseline claims. The first off-main Tabula save used an independent task chain, outside DiskWriter's quit drain. Its actual writer-queue ownership probe failed alone twice (red-tabula-queue-1/2.log). Reuse the existing DiskWriter serial queue through RunQueued, including reads before writes. The worker-side stored-format snapshot lets writes finish independently of the UI restoration continuation, avoiding a UI/quit-drain deadlock. The first brush-owned binding also strongly owned its control: three existing timeline row-release methods failed in the App sweep and alone twice (red-Timeline*-1/2-15.log). Keep the binding's owner weak and freeze a retained brush when its control is gone; do not change any row-release assertion. The unrelated VoiceGlowPainterTests whole class passed 11/0/0 alone with unchanged allocation bounds.
+
+Final managed disposition for CU-WEB-REVIEW: Core folder/type/own + Traceability 1809/0/0; Web Services 751/0/0; final changed Port/SwiftColor/own + Traceability UI 1924/0/0; affected artifact/row-release/own + Traceability App 283/0/0; Store/DiskWriter/own + Traceability Services 181/0/0. Raw intermediate UI 2604/1/0 (unchanged voice allocation; full class 11/0/0 alone) and App 2520/3/0 (the three repaired row-retention regressions) remain distinct from follow-ups. Native execution 0. All final builds zero warnings/errors. Binary ledger prefix and added-lines audit retained in the scratch evidence folder.
