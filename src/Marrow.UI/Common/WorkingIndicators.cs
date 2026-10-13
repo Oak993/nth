@@ -198,7 +198,7 @@ internal sealed class SpinnerLayerView : Control
         IsHitTestVisible = false; // :208 override func hitTest(_ point: NSPoint) -> NSView? { nil }
         ApplyTints();
         animated = !EnvironmentValues.GetAccessibilityReduceMotion(this);
-        loop = new AnimationTimeline(() => new AnimationTimelineSchedule(WorkingLoop.Interval, Paused: !animated), _ => Draw());
+        loop = new AnimationTimeline(() => new AnimationTimelineSchedule(WorkingLoop.Interval), _ => Draw());
 
         AttachedToVisualTree += (_, _) =>
         {
@@ -251,8 +251,8 @@ internal sealed class SpinnerLayerView : Control
         animated = !EnvironmentValues.GetAccessibilityReduceMotion(this);
         if (attached)
         {
-            loop.Appear(); // draws at once the first time; nothing when it is already on screen
-            loop.Reschedule(); // Reduce Motion paused or resumed it
+            if (animated) loop.Appear(); // draws at once the first time; nothing when it is already on screen
+            else loop.Disappear(); // Reduce Motion: no frame is left waiting
         }
         InvalidateVisual();
     }

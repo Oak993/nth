@@ -175,6 +175,7 @@ public sealed class HydraBreathRingView : Control
     // ED-NEW-perf-idle-4: the breath is a draw loop (AnimationTimeline) at 60 a second, not a frame request at every refresh: it
     // holds its request back to the next slot (1.5 refreshes before), and parks while no window of the app can be seen.
     private readonly AnimationTimeline loop;
+    private bool attached;
     private double scale = RestingScale;
     private double opacity = RestingOpacity;
 
@@ -191,18 +192,36 @@ public sealed class HydraBreathRingView : Control
         Focusable = false;
         // :128 override func hitTest(_:) -> NSView? { nil }
         IsHitTestVisible = false;
-        loop = new AnimationTimeline(() => new AnimationTimelineSchedule(WorkingLoop.Interval, Paused: Reduced), _ => Draw());
+        loop = new AnimationTimeline(() => new AnimationTimelineSchedule(WorkingLoop.Interval), _ => Draw());
         // :141-148, :184 the resting frame, then the breath, from the shared origin (appearing draws at once)
-        AttachedToVisualTree += (_, _) => loop.Appear();
-        DetachedFromVisualTree += (_, _) => loop.Disappear();
+        AttachedToVisualTree += (_, _) =>
+        {
+            attached = true;
+            Run();
+        };
+        DetachedFromVisualTree += (_, _) =>
+        {
+            attached = false;
+            loop.Disappear();
+        };
         // :192 under Reduce Motion the ring rests and asks for no frames (ED-NEW-lean-8); turned off again, it breathes.
         PropertyChanged += (_, e) =>
         {
-            if (e.Property != EnvironmentValues.AccessibilityReduceMotionProperty) return;
+            if (e.Property != EnvironmentValues.AccessibilityReduceMotionProperty || !attached) return;
+            Run();
+        };
+    }
+
+    // Moving: the loop (appearing draws at once). Reduce Motion: the loop gone, its frame request withdrawn, the resting frame drawn.
+    private void Run()
+    {
+        if (Reduced)
+        {
+            loop.Disappear();
             Update();
             InvalidateVisual();
-            loop.Reschedule();
-        };
+        }
+        else loop.Appear();
     }
 
     /// <summary>:73, :135 <c>let color: CGColor</c> / <c>ring.strokeColor</c>.</summary>
@@ -237,7 +256,7 @@ public sealed class HydraBreathRingView : Control
     internal int Invalidations { get; private set; }
 
     // ED-NEW-lean-8: the breath repaints at the 60 Hz cap; ED-NEW-perf-idle-4: the timeline asks for no frame in between.
-    // Under Reduce Motion the schedule is paused, so appearing draws the resting frame and no more frames are asked for.
+    // Under Reduce Motion the loop is gone (Run), so the resting frame is drawn once and no frame is asked for.
     private void Draw()
     {
         Update();
