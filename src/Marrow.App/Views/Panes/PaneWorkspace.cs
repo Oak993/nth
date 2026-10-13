@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Automation;
-using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -818,15 +817,20 @@ public sealed partial class PaneWorkspace : Panel
             var now = after.Collapsed.Contains(key);
             if (was == now) continue;
             var side = key == PaneGutterKeys.Side;
-            words = now
-                ? UiText.Get(side ? "panes.splitter.side_chat_collapsed" : "panes.splitter.panes_collapsed")
-                : UiText.Get(side ? "panes.announce.side_chat_restored" : "panes.announce.panes_restored");
+            words = (now, side) switch
+            {
+                (true, true) => UiText.Get("panes.splitter.side_chat_collapsed"),
+                (true, false) => UiText.Get("panes.splitter.panes_collapsed"),
+                (false, true) => UiText.Get("panes.announce.side_chat_restored"),
+                (false, false) => UiText.Get("panes.announce.panes_restored"),
+            };
         }
         if (words is null) return;
         var old = announcer.Text ?? "";
         if (old == words) announcer.Text = ""; // the same words again (fold, restore, fold) are still heard
         announcer.Text = words;
-        ControlAutomationPeer.CreatePeerForElement(announcer)?.RaisePropertyChangedEvent(AutomationElementIdentifiers.NameProperty, old, words);
+        // TextBlock's peer raises Name and the live-region event for Text itself (Avalonia 12.1.2).
+        // Raising Name again here would announce each fold twice.
     }
 
     // The folded panes' cards fade out in place; once their springs have landed they are hidden for good.

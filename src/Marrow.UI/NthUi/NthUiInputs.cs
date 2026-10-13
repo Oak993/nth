@@ -78,6 +78,7 @@ public abstract class NthUiInputView : NthUiNodeView
 /// <summary>A range control whose user changes go through <see cref="Requested"/> (the runtime then sets the value).</summary>
 public abstract class NthUiRange : RangeBase
 {
+    static NthUiRange() => AffectsRender<NthUiRange>(EnvironmentValues.AccessibilityHighContrastProperty, EnvironmentValues.AccessibilityContrastSurfaceProperty);
     private bool syncing;
 
     /// <summary>The user asked for this value (a key, a press, a drag, assistive technology).</summary>
@@ -236,8 +237,16 @@ public sealed class NthUiStepper : NthUiRange
     {
         if (capsule is null) return;
         capsule.BoxShadow = Classes.Contains(":focus-visible")
-            ? new BoxShadows(new BoxShadow { Spread = 2, Color = NthUiTokens.Accent.Resolve(ActualThemeVariant) })
+            ? new BoxShadows(new BoxShadow { Spread = 2, Color = NthUiTokens.Accent.Resolve(ActualThemeVariant, EnvironmentValues.ContrastPaletteFor(this)) })
             : default;
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == EnvironmentValues.AccessibilityHighContrastProperty
+            || change.Property == EnvironmentValues.AccessibilityContrastSurfaceProperty
+            || change.Property == ThemeVariantScope.ActualThemeVariantProperty) Ring();
     }
 }
 
@@ -338,18 +347,19 @@ public sealed class NthUiSlider : NthUiRange
     public override void Render(DrawingContext context)
     {
         var theme = ActualThemeVariant;
+        var contrast = EnvironmentValues.ContrastPaletteFor(this);
         var cy = Bounds.Height / 2;
         var left = Thumb;
         var right = Math.Max(left, Bounds.Width - Thumb);
         var x = ThumbX;
-        context.DrawRectangle(new ImmutableSolidColorBrush(NthUiTokens.Track.Resolve(theme)), null, new RoundedRect(new Rect(left - 2, cy - 2, right - left + 4, 4), 2));
-        context.DrawRectangle(new ImmutableSolidColorBrush(NthUiTokens.Accent.Resolve(theme)), null, new RoundedRect(new Rect(left - 2, cy - 2, Math.Max(4, x - left + 2), 4), 2));
+        context.DrawRectangle(new ImmutableSolidColorBrush(NthUiTokens.Track.Resolve(theme, contrast)), null, new RoundedRect(new Rect(left - 2, cy - 2, right - left + 4, 4), 2));
+        context.DrawRectangle(new ImmutableSolidColorBrush(NthUiTokens.Accent.Resolve(theme, contrast)), null, new RoundedRect(new Rect(left - 2, cy - 2, Math.Max(4, x - left + 2), 4), 2));
         var knob = new Point(x, cy);
-        context.DrawEllipse(new ImmutableSolidColorBrush(Color.FromArgb(theme == ThemeVariant.Dark ? (byte)110 : (byte)46, 0, 0, 0)), null, knob + new Vector(0, 1), Thumb + .5, Thumb + .5);
-        var face = theme == ThemeVariant.Dark ? Color.FromRgb(0xF2, 0xF2, 0xF4) : Colors.White;
-        context.DrawEllipse(new ImmutableSolidColorBrush(face), new ImmutablePen(new ImmutableSolidColorBrush(Color.FromArgb(30, 0, 0, 0)), .75), knob, Thumb, Thumb);
+        if (contrast is null) context.DrawEllipse(new ImmutableSolidColorBrush(Color.FromArgb(theme == ThemeVariant.Dark ? (byte)110 : (byte)46, 0, 0, 0)), null, knob + new Vector(0, 1), Thumb + .5, Thumb + .5);
+        var face = contrast?.WindowText ?? (theme == ThemeVariant.Dark ? Color.FromRgb(0xF2, 0xF2, 0xF4) : Colors.White);
+        context.DrawEllipse(new ImmutableSolidColorBrush(face), new ImmutablePen(new ImmutableSolidColorBrush(contrast?.Window ?? Color.FromArgb(30, 0, 0, 0)), contrast is null ? .75 : 1), knob, Thumb, Thumb);
         if (Classes.Contains(":focus-visible"))
-            context.DrawEllipse(null, new ImmutablePen(new ImmutableSolidColorBrush(NthUiTokens.Accent.Resolve(theme)), 2), knob, Thumb + 3, Thumb + 3);
+            context.DrawEllipse(null, new ImmutablePen(new ImmutableSolidColorBrush(NthUiTokens.Accent.Resolve(theme, contrast)), 2), knob, Thumb + 3, Thumb + 3);
     }
 }
 
@@ -442,6 +452,7 @@ public sealed class NthUiSegmentedView : NthUiInputView
 /// <summary>The switch: a track that fills with the accent when on and a knob that slides across.</summary>
 public sealed class NthUiSwitch : ToggleButton, INthUiAnimated
 {
+    static NthUiSwitch() => AffectsRender<NthUiSwitch>(EnvironmentValues.AccessibilityHighContrastProperty, EnvironmentValues.AccessibilityContrastSurfaceProperty);
     private readonly NthUiMotion motion;
     private NthUiTween knob = NthUiTween.At(0);
 
@@ -489,16 +500,17 @@ public sealed class NthUiSwitch : ToggleButton, INthUiAnimated
     public override void Render(DrawingContext context)
     {
         var theme = ActualThemeVariant;
-        var t = Travel;
-        var off = NthUiTokens.Track.Resolve(theme);
-        var on = NthUiTokens.Accent.Resolve(theme);
+        var contrast = EnvironmentValues.ContrastPaletteFor(this);
+        var t = contrast is null ? Travel : IsChecked == true ? 1 : 0;
+        var off = contrast?.Window ?? NthUiTokens.Track.Resolve(theme);
+        var on = NthUiTokens.Accent.Resolve(theme, contrast);
         var fill = Color.FromArgb(
             (byte)(off.A + (on.A - off.A) * t), (byte)(off.R + (on.R - off.R) * t), (byte)(off.G + (on.G - off.G) * t), (byte)(off.B + (on.B - off.B) * t));
         var track = new RoundedRect(new Rect(0, 0, 38, 22), 11);
-        context.DrawRectangle(new ImmutableSolidColorBrush(fill), null, track);
+        context.DrawRectangle(new ImmutableSolidColorBrush(fill), contrast is null ? null : new ImmutablePen(new ImmutableSolidColorBrush(contrast.WindowText), 1), track);
         var center = new Point(11 + t * 16, 11);
-        context.DrawEllipse(new ImmutableSolidColorBrush(Color.FromArgb(40, 0, 0, 0)), null, center + new Vector(0, .75), 9.25, 9.25);
-        context.DrawEllipse(Brushes.White, null, center, 9, 9);
+        if (contrast is null) context.DrawEllipse(new ImmutableSolidColorBrush(Color.FromArgb(40, 0, 0, 0)), null, center + new Vector(0, .75), 9.25, 9.25);
+        context.DrawEllipse(contrast is null ? Brushes.White : new ImmutableSolidColorBrush(t == 1 ? contrast.HighlightText : contrast.WindowText), null, center, 9, 9);
         if (Classes.Contains(":focus-visible"))
             context.DrawRectangle(null, new ImmutablePen(new ImmutableSolidColorBrush(on), 2), new RoundedRect(new Rect(-3, -3, 44, 28), 14));
     }

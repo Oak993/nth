@@ -152,11 +152,19 @@ public sealed class NarrowTabStrip : Panel
 
     private void ApplyLook()
     {
+        var contrast = EnvironmentValues.GetAccessibilityHighContrast(this);
+        ContrastSurface.MatchTheme(pill);
         var theme = ActualThemeVariant;
-        pill.Background = PaneTokens.CardFill(theme, expanded: false);
-        pill.BorderBrush = PaneTokens.Rim(theme, focused: false);
-        pill.BoxShadow = PaneTokens.Shadow(theme);
+        pill.Background = PaneTokens.CardFill(theme, expanded: false, contrast);
+        pill.BorderBrush = PaneTokens.Rim(theme, focused: false, contrast);
+        pill.BoxShadow = PaneTokens.Shadow(theme, lifted: false, contrast);
         foreach (var tab in tabs) tab.Look(tab.Kind == selected);
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == EnvironmentValues.AccessibilityHighContrastProperty && pill is not null) ApplyLook();
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)

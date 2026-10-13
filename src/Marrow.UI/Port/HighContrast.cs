@@ -202,14 +202,29 @@ public static class ContrastSurface
             if (surface.GetValue(MatchedProperty))
             {
                 surface.SetValue(MatchedProperty, false);
-                surface.ClearValue(ThemeVariantScope.ActualThemeVariantProperty);
+                if (surface.GetValue(SavedThemeProperty) is { } appearance)
+                    surface.SetValue(ThemeVariantScope.ActualThemeVariantProperty, appearance);
+                else surface.ClearValue(ThemeVariantScope.ActualThemeVariantProperty);
+                surface.ClearValue(SavedThemeProperty);
                 surface.ClearValue(EnvironmentValues.AccessibilityContrastSurfaceProperty);
+                if (surface.GetValue(SavedGlassProperty) is { } glass)
+                {
+                    SwiftGlass.SetEffect(surface, glass);
+                    surface.ClearValue(SavedGlassProperty);
+                }
             }
             return;
         }
         var variant = palette.IsDark ? Avalonia.Styling.ThemeVariant.Dark : Avalonia.Styling.ThemeVariant.Light;
+        if (!surface.GetValue(MatchedProperty) && surface.IsSet(ThemeVariantScope.ActualThemeVariantProperty))
+            surface.SetValue(SavedThemeProperty, surface.ActualThemeVariant);
         surface.SetValue(MatchedProperty, true);
         surface.SetValue(EnvironmentValues.AccessibilityContrastSurfaceProperty, true); // colours with a role take the system's here
+        if (SwiftGlass.GetEffect(surface) is { } effect)
+        {
+            if (!surface.IsSet(SavedGlassProperty)) surface.SetValue(SavedGlassProperty, effect);
+            SwiftGlass.SetEffect(surface, null);
+        }
         if (!Equals(surface.ActualThemeVariant, variant)) surface.SetValue(ThemeVariantScope.ActualThemeVariantProperty, variant);
     }
 
@@ -219,6 +234,12 @@ public static class ContrastSurface
     // Whether MatchTheme set the surface's appearance (so turning contrast off clears only its own setting).
     private static readonly AttachedProperty<bool> MatchedProperty =
         AvaloniaProperty.RegisterAttached<Control, bool>("ContrastMatched", typeof(ContrastSurface));
+
+    private static readonly AttachedProperty<GlassEffect?> SavedGlassProperty =
+        AvaloniaProperty.RegisterAttached<Control, GlassEffect?>("ContrastSavedGlass", typeof(ContrastSurface));
+
+    private static readonly AttachedProperty<Avalonia.Styling.ThemeVariant?> SavedThemeProperty =
+        AvaloniaProperty.RegisterAttached<Control, Avalonia.Styling.ThemeVariant?>("ContrastSavedTheme", typeof(ContrastSurface));
 }
 
 /// <summary>
@@ -273,11 +294,20 @@ public static class ContrastCue
     /// <summary>Whether <paramref name="border"/> draws the ring now.</summary>
     public static bool ShowsRing(Border border) => GetChosen(border) && EnvironmentValues.GetAccessibilityHighContrast(border) is not null;
 
+    private static readonly AttachedProperty<BoxShadows?> SavedShadowProperty =
+        AvaloniaProperty.RegisterAttached<Border, BoxShadows?>("ContrastSavedShadow", typeof(ContrastCue));
+
     private static void Apply(Border border)
     {
         if (EnvironmentValues.GetAccessibilityHighContrast(border) is { } palette && GetChosen(border))
+        {
+            if (!border.IsSet(SavedShadowProperty)) border.SetValue(SavedShadowProperty, border.BoxShadow);
             border.BoxShadow = new BoxShadows(new BoxShadow { IsInset = true, Spread = RingWidth, Color = palette.Highlight });
-        else if (border.BoxShadow != default)
-            border.BoxShadow = default;
+        }
+        else if (border.GetValue(SavedShadowProperty) is { } saved)
+        {
+            border.BoxShadow = saved;
+            border.ClearValue(SavedShadowProperty);
+        }
     }
 }

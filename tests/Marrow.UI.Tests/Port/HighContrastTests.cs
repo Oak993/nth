@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -21,7 +22,57 @@ namespace Marrow.UI.Tests.Port;
 [Trait("Decision", "ED-NEW-web-w20-1")]
 public sealed class HighContrastTests(HeadlessSession headless)
 {
+    [Fact]
+    public void A_contrast_surface_preserves_its_explicit_local_appearance_after_contrast_ends() => headless.OnUiThread(() =>
+    {
+        var surface = new Border();
+        var window = Show(surface, ThemeVariant.Light);
+        try
+        {
+            surface.SetValue(ThemeVariantScope.ActualThemeVariantProperty, ThemeVariant.Dark);
+            EnvironmentValues.SetAccessibilityHighContrast(window, HighContrastPalette.White);
+            ContrastSurface.MatchTheme(surface);
+            Assert.Equal(ThemeVariant.Light, surface.ActualThemeVariant);
+            EnvironmentValues.SetAccessibilityHighContrast(window, null);
+            ContrastSurface.MatchTheme(surface);
+            Assert.Equal(ThemeVariant.Dark, surface.ActualThemeVariant);
+            Assert.True(surface.IsSet(ThemeVariantScope.ActualThemeVariantProperty));
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    public void A_chosen_cue_preserves_the_faces_existing_shadow_before_during_and_after_contrast() => headless.OnUiThread(() =>
+    {
+        var shadow = BoxShadows.Parse("0 2 8 0 #73000000");
+        var face = new Border { BoxShadow = shadow };
+        ContrastCue.SetChosen(face, false);
+        Assert.Equal(shadow, face.BoxShadow);
+        ContrastCue.SetChosen(face, true);
+        Assert.Equal(shadow, face.BoxShadow);
+        EnvironmentValues.SetAccessibilityHighContrast(face, HighContrastPalette.Black);
+        Assert.True(ContrastCue.ShowsRing(face));
+        EnvironmentValues.SetAccessibilityHighContrast(face, null);
+        Assert.Equal(shadow, face.BoxShadow);
+    });
+
     private static Color BrushColor(IBrush? brush) => Assert.IsAssignableFrom<ISolidColorBrush>(brush).Color;
+
+    [Fact]
+    public void A_solid_contrast_surface_never_paints_composition_glass_over_its_system_fill() => headless.OnUiThread(() =>
+    {
+        var surface = new Border { Width = 200, Height = 100, Background = Brushes.Black };
+        SwiftGlass.SetEffect(surface, GlassEffect.Regular(GlassShape.RoundedRectangle(16, RoundedCornerStyle.Continuous)));
+        var window = Show(new Border { Background = Brushes.Magenta, Child = surface }, ThemeVariant.Dark);
+        try
+        {
+            EnvironmentValues.SetAccessibilityHighContrast(window, HighContrastPalette.Black);
+            ContrastSurface.MatchTheme(surface);
+            var at = surface.TranslatePoint(new Point(100, 50), window)!.Value;
+            Assert.Equal(Colors.Black, Pixels(window)((int)at.X, (int)at.Y));
+        }
+        finally { window.Close(); }
+    });
 
     private static Window Show(Control content, ThemeVariant theme)
     {
@@ -79,7 +130,7 @@ public sealed class HighContrastTests(HeadlessSession headless)
         {
             Assert.Equal(plain.Resolve(theme), roled.Resolve(theme));
             Assert.Equal(plain.Opacity(.4).Resolve(theme), roled.Opacity(.4).Resolve(theme));
-            Assert.Equal(plain.Resolve(theme), roled.Resolve(theme, null));
+            Assert.Equal(plain.Resolve(theme), roled.Resolve(theme, (HighContrastPalette?)null));
             Assert.Equal(HighContrastPalette.Black.WindowText, roled.Resolve(theme, HighContrastPalette.Black));
         }
 
@@ -184,7 +235,8 @@ public sealed class HighContrastTests(HeadlessSession headless)
 
             EnvironmentValues.SetAccessibilityHighContrast(window, HighContrastPalette.Black);
             Assert.True(ContrastCue.ShowsRing(chosen));
-            var ring = Assert.Single(chosen.BoxShadow);
+            Assert.Equal(1, chosen.BoxShadow.Count);
+            var ring = chosen.BoxShadow[0];
             Assert.True(ring.IsInset);
             Assert.Equal(ContrastCue.RingWidth, ring.Spread);
             Assert.Equal(HighContrastPalette.Black.Highlight, ring.Color);

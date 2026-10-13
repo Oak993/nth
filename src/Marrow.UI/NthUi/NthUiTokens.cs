@@ -23,78 +23,78 @@ public static class NthUiTokens
     private static SwiftColor Mist(double opacity) => new(red: 236 / 255.0, green: 236 / 255.0, blue: 238 / 255.0, opacity: opacity);
 
     /// <summary>Primary text: the thread's own label colour.</summary>
-    public static SwiftColor Text1 { get; } = SwiftColor.Dynamic(light: Ink(.86), dark: Mist(.94));
+    public static SwiftColor Text1 { get; } = SwiftColor.Dynamic(light: Ink(.86), dark: Mist(.94)).InHighContrast(ContrastRole.Text);
 
     /// <summary>Secondary text: labels above controls, column headers, details (canvas --t2).</summary>
-    public static SwiftColor Text2 { get; } = SwiftColor.Dynamic(light: Ink(.62), dark: Mist(.68));
+    public static SwiftColor Text2 { get; } = SwiftColor.Dynamic(light: Ink(.62), dark: Mist(.68)).InHighContrast(ContrastRole.Text);
 
     /// <summary>Tertiary text: units, counters, captions; still 4.5:1 on the card.</summary>
-    public static SwiftColor Text3 { get; } = SwiftColor.Dynamic(light: Ink(.56), dark: Mist(.62));
+    public static SwiftColor Text3 { get; } = SwiftColor.Dynamic(light: Ink(.56), dark: Mist(.62)).InHighContrast(ContrastRole.Text);
 
     /// <summary>A card's tint over the thread (canvas .uic background).</summary>
-    public static SwiftColor CardFill { get; } = SwiftColor.Dynamic(light: Ink(.032), dark: Paper(.045));
+    public static SwiftColor CardFill { get; } = SwiftColor.Dynamic(light: Ink(.032), dark: Paper(.045)).InHighContrast(ContrastRole.Surface);
 
     /// <summary>A card's hairline rim (canvas .uic inset .5px).</summary>
-    public static SwiftColor CardRim { get; } = SwiftColor.Dynamic(light: Ink(.085), dark: Paper(.10));
+    public static SwiftColor CardRim { get; } = SwiftColor.Dynamic(light: Ink(.085), dark: Paper(.10)).InHighContrast(ContrastRole.Line);
 
     /// <summary>A card's soft drop (canvas 0 10px 30px -14px).</summary>
     public static SwiftColor CardShadow { get; } = SwiftColor.Dynamic(light: Ink(.12), dark: Ink(.6));
 
     /// <summary>A control's tinted fill inside a card (canvas .stp, .ubtn).</summary>
-    public static SwiftColor ControlFill { get; } = SwiftColor.Dynamic(light: Ink(.05), dark: Paper(.075));
+    public static SwiftColor ControlFill { get; } = SwiftColor.Dynamic(light: Ink(.05), dark: Paper(.075)).InHighContrast(ContrastRole.Surface);
 
     /// <summary>A control under the pointer (canvas .ubtn:hover).</summary>
-    public static SwiftColor ControlHover { get; } = SwiftColor.Dynamic(light: Ink(.085), dark: Paper(.13));
+    public static SwiftColor ControlHover { get; } = SwiftColor.Dynamic(light: Ink(.085), dark: Paper(.13)).InHighContrast(ContrastRole.Surface);
 
     /// <summary>A control's inset rim (canvas .stp .12, --line2 .14).</summary>
-    public static SwiftColor ControlRim { get; } = SwiftColor.Dynamic(light: Ink(.10), dark: Paper(.13));
+    public static SwiftColor ControlRim { get; } = SwiftColor.Dynamic(light: Ink(.10), dark: Paper(.13)).InHighContrast(ContrastRole.Line);
 
     /// <summary>The chosen segment, tab or chip (canvas .seg button[aria-pressed=true]).</summary>
-    public static SwiftColor Chosen { get; } = SwiftColor.Dynamic(light: Paper(1), dark: Paper(.13));
+    public static SwiftColor Chosen { get; } = SwiftColor.Dynamic(light: Paper(1), dark: Paper(.13)).InHighContrast(ContrastRole.Surface);
 
     /// <summary>The chosen segment's drop in light (a raised white key) and its top light in dark.</summary>
-    public static SwiftColor ChosenEdge { get; } = SwiftColor.Dynamic(light: Ink(.14), dark: Paper(.16));
+    public static SwiftColor ChosenEdge { get; } = SwiftColor.Dynamic(light: Ink(.14), dark: Paper(.16)).InHighContrast(ContrastRole.Line);
 
     /// <summary>Row rules and dividers (canvas .utab td .5px .07).</summary>
-    public static SwiftColor Hairline { get; } = SwiftColor.Dynamic(light: Ink(.09), dark: Paper(.08));
+    public static SwiftColor Hairline { get; } = SwiftColor.Dynamic(light: Ink(.09), dark: Paper(.08)).InHighContrast(ContrastRole.Line);
 
     /// <summary>A slider's empty track and a switch that is off.</summary>
-    public static SwiftColor Track { get; } = SwiftColor.Dynamic(light: Ink(.12), dark: Paper(.16));
+    public static SwiftColor Track { get; } = SwiftColor.Dynamic(light: Ink(.12), dark: Paper(.16)).InHighContrast(ContrastRole.Line);
 
     /// <summary>Strong monochrome: a primary button, a ticked box, a slider's thumb ring in light (canvas --silver-hi on dark).</summary>
-    public static SwiftColor Strong { get; } = SwiftColor.Dynamic(light: SwiftColor.Rgb(0x1D1D20), dark: SwiftColor.Rgb(0xECECEE));
+    public static SwiftColor Strong { get; } = SwiftColor.Dynamic(light: SwiftColor.Rgb(0x1D1D20), dark: SwiftColor.Rgb(0xECECEE)).InHighContrast(ContrastRole.Highlight);
 
     /// <summary>Text and glyphs on <see cref="Strong"/>.</summary>
-    public static SwiftColor OnStrong { get; } = SwiftColor.Dynamic(light: SwiftColor.Rgb(0xFFFFFF), dark: SwiftColor.Rgb(0x121214));
+    public static SwiftColor OnStrong { get; } = SwiftColor.Dynamic(light: SwiftColor.Rgb(0xFFFFFF), dark: SwiftColor.Rgb(0x121214)).InHighContrast(ContrastRole.HighlightText);
 
     /// <summary>A code block's well.</summary>
-    public static SwiftColor Well { get; } = SwiftColor.Dynamic(light: Ink(.045), dark: Ink(.28));
+    public static SwiftColor Well { get; } = SwiftColor.Dynamic(light: Ink(.045), dark: Ink(.28)).InHighContrast(ContrastRole.Surface);
 
     /// <summary>A menu under a field (a select's options, a date's month): solid, so it reads over anything.</summary>
-    public static SwiftColor Menu { get; } = SwiftColor.Dynamic(light: SwiftColor.Rgb(0xFFFFFF), dark: SwiftColor.Rgb(0x2A2A2F));
+    public static SwiftColor Menu { get; } = SwiftColor.Dynamic(light: SwiftColor.Rgb(0xFFFFFF), dark: SwiftColor.Rgb(0x2A2A2F)).InHighContrast(ContrastRole.Surface);
 
     /// <summary>The thread's colour an exported card sits on (`export png`), so its see-through fill and text read in any viewer.</summary>
-    public static SwiftColor Backdrop { get; } = SwiftColor.Dynamic(light: SwiftColor.Rgb(0xF5F5F7), dark: SwiftColor.Rgb(0x1E1E21));
+    public static SwiftColor Backdrop { get; } = SwiftColor.Dynamic(light: SwiftColor.Rgb(0xF5F5F7), dark: SwiftColor.Rgb(0x1E1E21)).InHighContrast(ContrastRole.Surface);
 
     /// <summary>The accent, only for the current value and focus (7.5).</summary>
-    public static SwiftColor Accent => Marrow.UI.Chrome.Chrome.Accent;
+    public static SwiftColor Accent => Marrow.UI.Chrome.Chrome.Accent.InHighContrast(ContrastRole.Highlight);
 
     /// <summary>The colour of a tone's text and glyph; neutral is secondary text.</summary>
-    public static SwiftColor Tone(string? tone) => tone switch
+    public static SwiftColor Tone(string? tone) => (tone switch
     {
         "info" => SwiftColor.Dynamic(light: SwiftColor.Rgb(0x0857B0), dark: SwiftColor.Rgb(0x6CB2FF)),
         "success" => SwiftColor.Dynamic(light: SwiftColor.Rgb(0x15692F), dark: SwiftColor.Rgb(0x5BD18B)),
         "warning" => SwiftColor.Dynamic(light: SwiftColor.Rgb(0x7D5100), dark: SwiftColor.Rgb(0xF2B84B)),
         "danger" => SwiftColor.Dynamic(light: SwiftColor.Rgb(0xB42129), dark: SwiftColor.Rgb(0xFF8A8A)),
         _ => Text2,
-    };
+    }).InHighContrast(ContrastRole.Text);
 
     /// <summary>A tone's tinted fill (a badge, a callout).</summary>
-    public static SwiftColor ToneFill(string? tone) => tone switch
+    public static SwiftColor ToneFill(string? tone) => (tone switch
     {
         "info" or "success" or "warning" or "danger" => Tone(tone).Opacity(.12),
         _ => ControlFill,
-    };
+    }).InHighContrast(ContrastRole.Surface);
 
     // ---- metrics (DIP) -------------------------------------------------------------------------------------------------
 

@@ -102,6 +102,7 @@ public sealed class NthUiSlot : Control, INthUiAnimated
         set
         {
             surface = value;
+            MatchContrast();
             InvalidateVisual();
         }
     }
@@ -328,15 +329,32 @@ public sealed class NthUiSlot : Control, INthUiAnimated
     {
         if (Surface is not { } surface || Bounds.Width <= 0 || Bounds.Height <= .5) return;
         var theme = ActualThemeVariant;
+        var contrast = EnvironmentValues.ContrastPaletteFor(this);
         var rect = new Rect(Bounds.Size);
         var radius = Math.Min(surface.Radius, rect.Height / 2);
-        var fill = new ImmutableSolidColorBrush(surface.Fill.Resolve(theme));
-        var shadows = surface.Shadow ? NthUiTokens.CardShadows(NthUiTokens.CardShadow.Resolve(theme)) : default;
+        var fill = contrast?.Brush(ContrastRole.Surface) ?? new ImmutableSolidColorBrush(surface.Fill.Resolve(theme));
+        var shadows = contrast is null && surface.Shadow ? NthUiTokens.CardShadows(NthUiTokens.CardShadow.Resolve(theme)) : default;
         context.DrawRectangle(fill, null, new RoundedRect(rect, radius), shadows);
         if (surface.Rim is { } rim)
         {
             var edge = rect.Deflate(.5);
-            context.DrawRectangle(null, new ImmutablePen(new ImmutableSolidColorBrush(rim.Resolve(theme)), 1), new RoundedRect(edge, Math.Max(0, radius - .5)));
+            context.DrawRectangle(null, new ImmutablePen(new ImmutableSolidColorBrush(contrast?.For(ContrastRole.Line) ?? rim.Resolve(theme)), 1), new RoundedRect(edge, Math.Max(0, radius - .5)));
+        }
+    }
+
+    // W20 / DESIGN 10: only a slot with a drawn surface becomes solid; unframed content keeps its inherited appearance.
+    private void MatchContrast()
+    {
+        if (Surface is not null) ContrastSurface.MatchTheme(this);
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == EnvironmentValues.AccessibilityHighContrastProperty)
+        {
+            MatchContrast();
+            InvalidateVisual();
         }
     }
 

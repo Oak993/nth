@@ -9,7 +9,6 @@ using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Media;
-using Avalonia.Media.Immutable;
 using Marrow.Core.Models;
 
 namespace Marrow.UI.Panes;
@@ -198,7 +197,9 @@ public sealed class PaneGlyph : Control
     {
         if (Foreground is not { } brush || Bounds.Width <= 0 || Bounds.Height <= 0) return;
         var scale = Math.Min(Bounds.Width, Bounds.Height) / Box;
-        var pen = new ImmutablePen(brush.ToImmutable(), Stroke, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+        // Keep the brush live in the display list: converting it to an immutable copy would strand already-painted
+        // glyphs in the previous colour when SwiftColor updates the system contrast palette (W20 / ED-NEW-web-w20-2).
+        var pen = new Pen(brush, Stroke, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
         using (context.PushTransform(Matrix.CreateScale(scale, scale) * Matrix.CreateTranslation((Bounds.Width - Box * scale) / 2, (Bounds.Height - Box * scale) / 2)))
             context.DrawGeometry(null, pen, Shapes[Kind]);
     }

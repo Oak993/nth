@@ -300,6 +300,7 @@ public sealed class NthUiListView : NthUiNodeView
 /// <summary>A checklist's box: a real check box (Toggle pattern), drawn monochrome with a short fade of its tick.</summary>
 public sealed class NthUiCheck : ToggleButton, INthUiAnimated
 {
+    static NthUiCheck() => AffectsRender<NthUiCheck>(EnvironmentValues.AccessibilityHighContrastProperty, EnvironmentValues.AccessibilityContrastSurfaceProperty);
     private readonly NthUiMotion motion;
     private NthUiTween tick = NthUiTween.At(0);
 
@@ -344,21 +345,22 @@ public sealed class NthUiCheck : ToggleButton, INthUiAnimated
     public override void Render(DrawingContext context)
     {
         var theme = ActualThemeVariant;
-        var t = Math.Clamp(tick.Value(NthUiMotion.Now), 0, 1);
+        var contrast = EnvironmentValues.ContrastPaletteFor(this);
+        var t = contrast is null ? Math.Clamp(tick.Value(NthUiMotion.Now), 0, 1) : IsChecked == true ? 1 : 0;
         var box = new Rect(1, 1, 16, 16);
         var round = new RoundedRect(box, 5);
-        context.DrawRectangle(null, new ImmutablePen(new ImmutableSolidColorBrush(NthUiTokens.Text3.Resolve(theme)), 1.5), round);
+        context.DrawRectangle(null, new ImmutablePen(new ImmutableSolidColorBrush(NthUiTokens.Text3.Resolve(theme, contrast)), 1.5), round);
         if (t > 0)
         {
-            var strong = NthUiTokens.Strong.Resolve(theme);
+            var strong = NthUiTokens.Strong.Resolve(theme, contrast);
             context.DrawRectangle(new ImmutableSolidColorBrush(Color.FromArgb((byte)(strong.A * t), strong.R, strong.G, strong.B)), null, round);
-            var on = NthUiTokens.OnStrong.Resolve(theme);
+            var on = NthUiTokens.OnStrong.Resolve(theme, contrast);
             var pen = new ImmutablePen(new ImmutableSolidColorBrush(Color.FromArgb((byte)(on.A * t), on.R, on.G, on.B)), 1.8, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
             var geometry = new PolylineGeometry([new Point(5.2, 9.3), new Point(8, 12), new Point(13, 6.4)], false);
             context.DrawGeometry(null, pen, geometry);
         }
         if (Classes.Contains(":focus-visible"))
-            context.DrawRectangle(null, new ImmutablePen(new ImmutableSolidColorBrush(NthUiTokens.Accent.Resolve(theme)), 2), new RoundedRect(box.Inflate(2.5), 7));
+            context.DrawRectangle(null, new ImmutablePen(new ImmutableSolidColorBrush(NthUiTokens.Accent.Resolve(theme, contrast)), 2), new RoundedRect(box.Inflate(2.5), 7));
     }
 }
 
@@ -434,6 +436,7 @@ public sealed class NthUiChecklistView : NthUiNodeView
 /// <summary>A timeline's rail: a dot in the event's tone (filled when done) and the line down to the next event.</summary>
 public sealed class NthUiRail : Control
 {
+    static NthUiRail() => AffectsRender<NthUiRail>(EnvironmentValues.AccessibilityHighContrastProperty, EnvironmentValues.AccessibilityContrastSurfaceProperty);
     private string? tone;
     private bool done;
     private bool last = true;
@@ -465,10 +468,11 @@ public sealed class NthUiRail : Control
     public override void Render(DrawingContext context)
     {
         var theme = ActualThemeVariant;
-        var color = (tone is null ? NthUiTokens.Text3 : NthUiTokens.Tone(tone)).Resolve(theme);
+        var contrast = EnvironmentValues.ContrastPaletteFor(this);
+        var color = (tone is null ? NthUiTokens.Text3 : NthUiTokens.Tone(tone)).Resolve(theme, contrast);
         var center = new Point(7, 9);
         if (!last)
-            context.DrawLine(new ImmutablePen(new ImmutableSolidColorBrush(NthUiTokens.Hairline.Resolve(theme)), 1.5), new Point(7, 15), new Point(7, Bounds.Height + 10));
+            context.DrawLine(new ImmutablePen(new ImmutableSolidColorBrush(NthUiTokens.Hairline.Resolve(theme, contrast)), 1.5), new Point(7, 15), new Point(7, Bounds.Height + 10));
         if (done) context.DrawEllipse(new ImmutableSolidColorBrush(color), null, center, 4.5, 4.5);
         else context.DrawEllipse(null, new ImmutablePen(new ImmutableSolidColorBrush(color), 1.5), center, 4, 4);
     }

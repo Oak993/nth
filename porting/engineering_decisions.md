@@ -7916,3 +7916,35 @@ Evidence: UiLiteralRatchetTests.
 7. FOR LATER UNITS. A unit that lands after W22 and types an English-looking literal into the scanned web user-interface source fails UiLiteralRatchetTests; one that calls UiText with a key that the English files lack fails UiStringsSourceTests. Move the word to Localisation/Strings/<area>-en.json, or list it in stay-in-code.txt with the reason.
 
 Evidence: GuardedWordFixtureTests, WebAgentLocalisedTests (the three new English labels); the one-at-a-time mutation runs above.
+
+
+## ED-NEW-web-w20-1 - Windows contrast themes for web chrome
+
+ENGINEERING DECISION (2026-10-13, CU-W20; DESIGN.md sections 4.2 and 10). Finish and retain the interrupted commit 1478fa7ad's inherited high-contrast palette: read SPI_GETHIGHCONTRAST/GetSysColor at application setup and refresh on WM_SETTINGCHANGE/WM_SYSCOLORCHANGE. Headless tests inject palettes; they never change PC settings. Opted solid surfaces use Window/WindowText, Highlight/HighlightText for focus/selection, no shadows, and 1 DIP outlines. Unmarked glass and ordinary light/dark tokens retain their exact values. Collapse/restore uses a polite live region with localised words. UIA/Narrator and real glass verification remain W21, never credited by a headless peer.
+
+## ED-NEW-web-w20-2 - Live answer and popup contrast completion
+
+ENGINEERING DECISION (2026-10-13, CU-W20; DESIGN.md sections 7.5, 10 and 13.3). Extend the same role palette to nth-ui surfaces, text and controls; selection has a system outline and the primary button uses HighlightText over Highlight. Preserve original shadows when a contrast cue is removed. Solid contrast surfaces suppress their composition glass and restore it when contrast ends. Ordinary canvas dimensions, colours, text and animation assertions are retained. Acceptance: WebW20ContrastTests and HighContrastTests, including captured headless pixels and palette-off restoration.
+
+## ED-NEW-web-w20-3 - W20 accessibility and native evidence boundary
+
+ENGINEERING DECISION (2026-10-13, CU-W20; DESIGN.md sections 3.7, 4.2, 10, 10.1 and 13.3). Store reviewable automation peer snapshots for pane landmarks, splitter orientation/range/state, collapse rails, trust strip and prompt text/buttons. Check keyboard paths, RTL, long text and Reduce Motion with existing fake engines and manual clocks. These are managed headless peer projections, not Windows UIA provider captures. Real windows, Narrator, Chromium UIA, hardware DPI/IME and frame pacing checks are Native and are written/listed for the lead, never run by this unit.
+
+## ED-NEW-web-w20-4 - W20 performance measurements
+
+ENGINEERING DECISION (2026-10-13, CU-W20; DESIGN.md section 12). Measure headless workspace frame/layout cost and nth-ui streaming with Stopwatch and record sample count, p50/p95/p99/max and allocations. Manual frames establish deterministic geometry and motion checks, not display deadlines or compositor frame drops. Existing strict native performance thresholds remain. WebView2 cold/prewarm, capture/swap latency, renderer memory, DOM morph, responsive-device page layout and 2,000-turn real chat timing require the W0/W21 native window. Headless stand-ins never satisfy those native gates. No provider or network calls.
+
+
+## ED-NEW-web-w20-5 - Painted contrast and focus evidence
+
+ENGINEERING DECISION (2026-10-13, CU-W20; DESIGN.md sections 4.2, 10, 12 and 13.3). Property-level colour checks are insufficient: W20's captured headless pixels reproduced header glyphs remaining dark after their mutable brush changed. PaneGlyph retains that brush in its pen so the display list follows it. ContrastSurface restores a previously explicit local appearance; chosen cues preserve the original shadow; a primary focus ring uses HighlightText against Highlight, and the stepper ring follows palette changes. Each production finding failed alone twice before its fix. No ordinary canvas assertion or tolerance was weakened. The new browser snapshot correctly includes project-preview status for the .test fixture (WebPolicy.IsDevUrl); keyboard input uses the physical F6 position required by PaneShortcuts.ChordOf. Native exclusion also matches method names, so intended headless facts do not contain Native in their qualified names; totals must cover all 9 App and 23 UI W20 facts, with 3 Traceability facts per touched test project. The two new Windows UIA Native Facts are compiled and registered, never executed. Workspace timings include twenty runs per simulated 60 and 120 Hz; reported wall-clock misses and unmeasured physical dropped frames remain explicit. W0 and W21 thresholds are unchanged. The legacy mark tool has no W20 queue entry; CU-W20's owner-issued lean packet and handoff define scoped completion, while queue registration and full integration acceptance remain with the lead.
+
+
+## ED-NEW-web-w20-6 - Literal announcement localisation calls
+
+ENGINEERING DECISION (2026-10-13, CU-W20; DESIGN.md section 10 and W22's static-key contract). Final lean Core verification reproduced EveryEnglishKeyIsAskedForSomewhere and NoKeyIsBuiltAtRunTime alone twice: the interrupted W20 announcer passed a conditional key expression into UiText.Get, hiding both restored resources from the source catalogue. PaneWorkspace now selects four literal UiText.Get calls with a tuple switch. Words, timing and single polite announcement behaviour are unchanged. The existing source-catalogue guards remain intact; no scan exemption or assertion relaxation was added.
+
+
+## ED-NEW-web-w20-7 - Live-answer SVG strokes follow contrast changes
+
+ENGINEERING DECISION (2026-10-13, CU-W20; DESIGN.md sections 7.5 and 10). The same immutable-pen freeze found in pane glyphs also affects NthUiIcon's explicitly coloured SVG strokes. A new captured-pixel Fact failed alone twice while Foreground already held WindowText: the actual check icon disappeared on the system surface. Keep its mutable brush in a Pen, preserving every path, transform, width, cap and join. The W20 headless count is now 24 UI facts and 9 App facts, with 3 Traceability facts per touched test project; the two Windows UIA Native facts remain unrun. Source-folder verification of nth-ui is repeated after this final control change. Unchanged fake-clock section-12 checks additionally cover artifact refresh at 250 ms, background-job ticking and separate side-chat runtimes; no real provider or hardware call is made.
