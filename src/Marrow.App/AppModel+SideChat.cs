@@ -1,4 +1,5 @@
 using Marrow.App.Runtime;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 
@@ -17,7 +18,7 @@ namespace Marrow.App;
 public sealed partial class AppModel
 {
     /// <summary>The title of a side chat's thread record.</summary>
-    public const string SideChatTitle = "Side chat";
+    public static string SideChatTitle => UiText.Get("sidechat.title");
 
     private readonly Dictionary<Guid, SideChatDigest> sideChatDigests = [];
     private readonly Dictionary<Guid, int> sideChatSnapshotCounts = [];

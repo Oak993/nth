@@ -2,6 +2,7 @@ using Marrow.App.Runtime;
 using Marrow.App.Views.Chat;
 using Marrow.App.Views.Terminal;
 using Marrow.App.Views.Terminal.Port;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Port.Downloads;
@@ -36,7 +37,7 @@ public sealed class HydraHeadJobSource(AppModel model) : IBackgroundJobSource
                 Id = Prefix + thread.Id.ToString("N"),
                 Kind = BackgroundJobKind.HydraHead,
                 Title = title.Length > 0 ? title : info.DisplayName,
-                KindLabel = "Hydra head",
+                KindLabel = UiText.Get("jobs.kind.hydra_head"),
                 Subject = info.DisplayName,
                 ThreadId = parent,
                 State = StateOf(info.HydraHeadInfoStatus),
@@ -44,7 +45,7 @@ public sealed class HydraHeadJobSource(AppModel model) : IBackgroundJobSource
                 FinishedAt = info.FinishedAt,
                 Tokens = Math.Max(info.Tokens, running ? runtime?.HydraTokens ?? 0 : 0),
                 ToolUses = info.ToolCalls,
-                Activity = running ? (BackgroundJobText.OneLine(info.Activity, 60) is { Length: > 0 } activity ? activity : "Working") : null,
+                Activity = running ? (BackgroundJobText.OneLine(info.Activity, 60) is { Length: > 0 } activity ? activity : UiText.Get("jobs.activity.working")) : null,
                 TranscriptThreadId = thread.Id,
                 CanStop = running && info.CanStop,
             });
@@ -104,8 +105,8 @@ public sealed class HelperJobSource(AppModel model) : IBackgroundJobSource
             {
                 Id = Prefix + thread.Id.ToString("N"),
                 Kind = BackgroundJobKind.Helper,
-                Title = title.Length > 0 ? title : "Helper",
-                KindLabel = thread.IsInPanel ? "Subagent" : "Helper",
+                Title = title.Length > 0 ? title : UiText.Get("jobs.title.helper"),
+                KindLabel = thread.IsInPanel ? UiText.Get("jobs.kind.subagent") : UiText.Get("jobs.kind.helper"),
                 ThreadId = parent,
                 StartedAt = running ? runtime!.TurnStartedAt ?? thread.UpdatedAt : thread.CreatedAt,
                 TranscriptThreadId = thread.Id,
@@ -150,7 +151,7 @@ public sealed class HelperJobSource(AppModel model) : IBackgroundJobSource
             tools++;
             if (current is null && tool.Value.ToolCallStatus == ToolCall.Status.Running) current = ToolPresentation.Label(tool.Value);
         }
-        return (tokens, tools, BackgroundJobText.OneLine(current, 60) is { Length: > 0 } label ? label : "Working");
+        return (tokens, tools, BackgroundJobText.OneLine(current, 60) is { Length: > 0 } label ? label : UiText.Get("jobs.activity.working"));
     }
 
     private Guid? ThreadOf(string jobId) =>
@@ -244,15 +245,15 @@ public sealed class TerminalJobSource : IBackgroundJobSource
         {
             Id = Prefix + facts.Id.ToString("N"),
             Kind = BackgroundJobKind.Terminal,
-            Title = title.Length > 0 ? title : "Terminal",
-            KindLabel = url is null ? "Terminal" : "Dev server",
+            Title = title.Length > 0 ? title : UiText.Get("jobs.title.terminal"),
+            KindLabel = url is null ? UiText.Get("jobs.kind.terminal") : UiText.Get("jobs.kind.dev_server"),
             Subject = url is null ? null : HostOf(url),
             ThreadId = facts.ThreadId,
             StartedAt = facts.StartedAt,
             DevServerUrl = url,
             CanStop = facts.IsRunning,
         };
-        if (facts.IsRunning) return job with { State = BackgroundJobState.Running, Activity = "Running" };
+        if (facts.IsRunning) return job with { State = BackgroundJobState.Running, Activity = UiText.Get("jobs.activity.running") };
         return job with
         {
             State = facts.EndedByUser ? BackgroundJobState.Stopped : BackgroundJobState.Done,
@@ -339,7 +340,7 @@ public sealed class DownloadJobSource(DownloadJobRegistry registry) : IBackgroun
                 Id = Prefix + entry.Id.ToString("N"),
                 Kind = BackgroundJobKind.Download,
                 Title = entry.Title,
-                KindLabel = "Download",
+                KindLabel = UiText.Get("jobs.kind.download"),
                 Subject = BackgroundJobText.BytesOf(done ? progress.BytesTotal : progress.BytesDone, progress.BytesTotal),
                 State = state switch
                 {
@@ -352,7 +353,7 @@ public sealed class DownloadJobSource(DownloadJobRegistry registry) : IBackgroun
                 StartedAt = entry.StartedAt,
                 FinishedAt = state is DownloadJobState.Running or DownloadJobState.Paused ? null : entry.FinishedAt,
                 Progress = fraction,
-                Activity = state == DownloadJobState.Running && job.IsWaitingToRetry ? "Waiting to retry" : null,
+                Activity = state == DownloadJobState.Running && job.IsWaitingToRetry ? UiText.Get("jobs.activity.waiting_to_retry") : null,
                 CanPause = state is DownloadJobState.Running or DownloadJobState.Paused,
                 CanStop = state is DownloadJobState.Running or DownloadJobState.Paused,
             });

@@ -4,6 +4,8 @@
 // The model knows no pixel and no AppModel, so the always-on assistant's mission board reads the same jobs
 // (E:/Droppy/work/design/assistant/DESIGN.md 2.3 "Background tasks and the mission board share one data model, BackgroundJobs").
 
+using Marrow.Core.Localisation;
+
 namespace Marrow.Core.Models;
 
 /// <summary>What a job is (the six sources of 3.10, plus workflows, which publish through the same feed).</summary>
@@ -116,7 +118,7 @@ public sealed record BackgroundJob
     public bool IsDevServer => DevServerUrl is not null;
 
     /// <summary>The second line of the card: the kind, then the subject.</summary>
-    public string KindText => string.IsNullOrEmpty(Subject) ? KindLabel : KindLabel + " \u00B7 " + Subject;
+    public string KindText => string.IsNullOrEmpty(Subject) ? KindLabel : UiText.Format("jobs.kind_text", KindLabel, Subject);
 
     /// <summary>How long the job has run at <paramref name="now"/> (frozen at its end), never negative.</summary>
     public TimeSpan Elapsed(DateTimeOffset now)

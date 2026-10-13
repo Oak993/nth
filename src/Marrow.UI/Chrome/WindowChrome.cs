@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Media;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Port;
@@ -549,14 +550,14 @@ public sealed class SidebarResizeHandle
     /// <summary>:377 <c>hitWidth</c>, now the shared splitter's fine-pointer hit across a divider (was 9).</summary>
     public const double HitWidth = Splitter.DividerThickness - 2 * Splitter.FinePointerInset;
 
-    public const string Label = "Resize sidebar";
+    public static string Label => UiText.Get("panes.splitter.resize_sidebar");
 
     /// <summary>The sidebar's numbers as splitter limits: the collapsed position 0 is part of the reported range.</summary>
-    public static SplitterLimits Limits { get; } = new(SidebarLayout.MinimumWidth, SidebarLayout.MaximumWidth, SidebarLayout.DefaultWidth)
+    public static SplitterLimits Limits => new(SidebarLayout.MinimumWidth, SidebarLayout.MaximumWidth, SidebarLayout.DefaultWidth)
     {
         Collapse = SplitterCollapse.BelowMinimum,
         CollapsedValue = 0,
-        CollapsedText = "Sidebar hidden",
+        CollapsedText = UiText.Get("panes.splitter.sidebar_hidden"),
     };
 
     private readonly Func<SidebarLayout?> layout;

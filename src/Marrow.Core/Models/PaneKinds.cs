@@ -1,4 +1,5 @@
 using System.Globalization;
+using Marrow.Core.Localisation;
 using Marrow.Core.Port;
 
 // PORT-ONLY: web surfaces W2, the pane workspace's kinds and sizes (E:/Droppy/work/design/web-surfaces/DESIGN.md 3.1
@@ -101,30 +102,30 @@ public static class PaneKinds
     /// <summary>The short name gutter labels use (the canvas's NAMES): "Resize Tasks and Tabula".</summary>
     public static string ShortName(PaneKind kind) => kind switch
     {
-        PaneKind.Chat => "Chat",
-        PaneKind.SideChat => "Side chat",
-        PaneKind.BackgroundTasks => "Tasks",
-        PaneKind.Changes => "Changes",
-        PaneKind.Artifacts => "Tabula",
-        PaneKind.Browser => "Visus",
-        PaneKind.Terminal => "Terminal",
-        PaneKind.App => "App",
-        PaneKind.Transcript => "Transcript",
+        PaneKind.Chat => UiText.Get("panes.kind.chat"),
+        PaneKind.SideChat => UiText.Get("panes.kind.side_chat"),
+        PaneKind.BackgroundTasks => UiText.Get("panes.kind.tasks"),
+        PaneKind.Changes => UiText.Get("panes.kind.changes"),
+        PaneKind.Artifacts => "Tabula", // a product name standing alone stays as it is
+        PaneKind.Browser => "Visus", // a product name standing alone stays as it is
+        PaneKind.Terminal => UiText.Get("panes.kind.terminal"),
+        PaneKind.App => UiText.Get("panes.kind.app"),
+        PaneKind.Transcript => UiText.Get("panes.kind.transcript"),
     };
 
     /// <summary>The pane header's title (the canvas headers).</summary>
     public static string Title(PaneKind kind) => kind switch
     {
-        PaneKind.BackgroundTasks => "Background tasks",
+        PaneKind.BackgroundTasks => UiText.Get("panes.kind.background_tasks"),
         _ => ShortName(kind),
     };
 
     /// <summary>The pane region's accessible name (the canvas's aria-label): the plain kind, then the product name.</summary>
     public static string AccessibleName(PaneKind kind) => kind switch
     {
-        PaneKind.Browser => "Browser, Visus",
-        PaneKind.Artifacts => "Artifacts, Tabula",
-        PaneKind.BackgroundTasks => "Background tasks",
+        PaneKind.Browser => UiText.Get("panes.accessible.browser"),
+        PaneKind.Artifacts => UiText.Get("panes.accessible.artifacts"),
+        PaneKind.BackgroundTasks => UiText.Get("panes.kind.background_tasks"),
         _ => ShortName(kind),
     };
 

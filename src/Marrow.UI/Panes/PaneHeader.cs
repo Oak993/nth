@@ -15,6 +15,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
@@ -38,7 +39,7 @@ public sealed record PaneHeaderTab(PaneKind Kind, string Name, bool IsChosen);
 public sealed class PaneHeader : Panel
 {
     /// <summary>The working chip's words (DESIGN 3.4).</summary>
-    public const string WorkingText = "Chat is working";
+    public static string WorkingText => UiText.Get("panes.header.working");
 
     private readonly PaneGlyph glyph;
     private readonly TextBlock title = new()
@@ -89,9 +90,9 @@ public sealed class PaneHeader : Panel
         glyph = new PaneGlyph(PaneGlyph.For(kind), PaneTokens.GlyphSize) { Foreground = PaneTokens.Text2.Brush(this) };
         title.Foreground = PaneTokens.Text1.Brush(this);
         chip = MakeChip();
-        more = MakeButton(new PaneGlyph(PaneGlyphKind.More), "More actions", () => SetMenuOpen(!menuOpen));
-        expand = MakeButton(expandGlyph, "Expand", () => ExpandRequested?.Invoke());
-        close = MakeButton(new PaneGlyph(PaneGlyphKind.Close), "Close", () => CloseRequested?.Invoke());
+        more = MakeButton(new PaneGlyph(PaneGlyphKind.More), UiText.Get("panes.header.more_actions"), () => SetMenuOpen(!menuOpen));
+        expand = MakeButton(expandGlyph, UiText.Get("panes.header.expand"), () => ExpandRequested?.Invoke());
+        close = MakeButton(new PaneGlyph(PaneGlyphKind.Close), UiText.Get("panes.header.close"), () => CloseRequested?.Invoke());
         moreMenu = PlainControls.Popover(more, new Binding<bool>(() => menuOpen, SetMenuOpen), () => new PopoverMenu(BuildMenu));
         trailing = new Trailing(this) { ClipToBounds = true };
         Children.Add(glyph);
@@ -179,7 +180,7 @@ public sealed class PaneHeader : Panel
         get
         {
             var items = actions.Skip(Fit.VisibleActions).Select(action => action.Name).ToList();
-            if (canExpand && !Fit.ShowsExpand) items.Add(expanded ? "Restore" : "Expand");
+            if (canExpand && !Fit.ShowsExpand) items.Add(expanded ? UiText.Get("panes.header.restore") : UiText.Get("panes.header.expand"));
             return items;
         }
     }
@@ -286,7 +287,7 @@ public sealed class PaneHeader : Panel
             if (expanded == value) return;
             expanded = value;
             expandGlyph.Kind = value ? PaneGlyphKind.Restore : PaneGlyphKind.Expand;
-            var name = value ? "Restore" : "Expand";
+            var name = value ? UiText.Get("panes.header.restore") : UiText.Get("panes.header.expand");
             ToolTip.SetTip(expand, name);
             AutomationProperties.SetName(expand, name);
             Invalidate();
@@ -623,7 +624,7 @@ public sealed class PaneHeader : Panel
             if (leading is not null) leading.Foreground = label.Foreground;
         });
         ToolTip.SetTip(button, action.Shortcut is null ? action.Name : action.Name + "  " + action.Shortcut);
-        AutomationProperties.SetName(button, action.Pressed is { } state ? action.Name + (state ? ", on" : ", off") : action.Name);
+        AutomationProperties.SetName(button, action.Pressed is { } state ? (state ? UiText.Format("panes.header.action_on", action.Name) : UiText.Format("panes.header.action_off", action.Name)) : action.Name);
         return button;
     }
 
@@ -642,8 +643,8 @@ public sealed class PaneHeader : Panel
             Child = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { dot, text } },
         };
         var button = PlainControls.Button(face, () => WorkingChipClicked?.Invoke()).KeyboardFocus(11);
-        ToolTip.SetTip(button, "Restore");
-        AutomationProperties.SetName(button, WorkingText + ", restore");
+        ToolTip.SetTip(button, UiText.Get("panes.header.restore"));
+        AutomationProperties.SetName(button, UiText.Get("panes.header.working_restore"));
         button.IsVisible = false;
         return button;
     }
@@ -671,7 +672,7 @@ public sealed class PaneHeader : Panel
             stack.Children.Add(new PopoverItem(action.Name, () => { SetMenuOpen(false); run(); }, detail: action.Shortcut));
         }
         if (canExpand && !Fit.ShowsExpand)
-            stack.Children.Add(new PopoverItem(expanded ? "Restore" : "Expand", () => { SetMenuOpen(false); ExpandRequested?.Invoke(); }));
+            stack.Children.Add(new PopoverItem(expanded ? UiText.Get("panes.header.restore") : UiText.Get("panes.header.expand"), () => { SetMenuOpen(false); ExpandRequested?.Invoke(); }));
         return stack;
     }
 

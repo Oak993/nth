@@ -16,6 +16,7 @@ using Marrow.App.Runtime;
 using Marrow.App.Views.Panes;
 using Marrow.App.Views.Terminal.Port;
 using Marrow.App.Window;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
@@ -89,7 +90,7 @@ public sealed class TerminalPanel : Decorator
 
         // PORT-ONLY (web W4, DESIGN 3.1, 3.6): the drawer can go to the pane grid. A drag of the header's empty area does it by
         // pointer (DrawerLiftGesture); this button is the way without one.
-        var dock = MakeIconButton("rectangle.righthalf.inset.fill", "Move to the panes", () =>
+        var dock = MakeIconButton("rectangle.righthalf.inset.fill", UiText.Get("panes.terminal.move_to_panes"), () =>
             runtime.Workspace = runtime.Workspace.MoveTerminalToGrid());
         dock.IsVisible = false;
         Grid.SetColumn(dock, 2);
@@ -174,7 +175,7 @@ public sealed class TerminalPanel : Decorator
             OnSetValue = resizeValue.SetValue,
         })
         {
-            Label = "Resize terminal",
+            Label = UiText.Get("panes.terminal.resize"),
             CollapseSide = SplitterSide.Trailing,
             Height = Splitter.DividerThickness,
             HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -220,12 +221,12 @@ public sealed class TerminalPanel : Decorator
         Math.Min(ResizeLimits.Maximum, Math.Max(ResizeLimits.Minimum, height)); // :89
 
     /// <summary>DESIGN 4.3: 140 · 260 · 760 (:89); released under 84 DIP (56 past the minimum) the drawer closes.</summary>
-    public static SplitterLimits ResizeLimits { get; } = new(140, 760, 260)
+    public static SplitterLimits ResizeLimits => new(140, 760, 260)
     {
         Collapse = SplitterCollapse.BelowMinimum,
         CollapsedValue = 0,
         Growth = -1,
-        CollapsedText = "Terminal closed",
+        CollapsedText = UiText.Get("panes.terminal.closed"),
     };
 
     /// <summary>The drawer's top-edge splitter.</summary>
@@ -463,12 +464,12 @@ internal sealed class TerminalTab : Border
         // PORT-ONLY: DESIGN 5.6, ED-NEW-web-w9-3. The discovered address is an explicit Open preview gesture.
         var previewLabel = new TextBlock { FontSize = 11 };
         var preview = new Button { Content = previewLabel }.Chip();
-        ToolTip.SetTip(preview, "Open preview");
+        ToolTip.SetTip(preview, UiText.Get("panes.preview.open"));
         preview.Click += (_, e) => { session.OpenPreview?.Invoke(); e.Handled = true; };
         void PreviewReady(string? address)
         {
             if (address is null) { row.Children.Remove(preview); return; }
-            previewLabel.Text = "Preview ready · " + Marrow.Core.Web.WebPolicy.SourceName(address);
+            previewLabel.Text = UiText.Format("panes.preview.ready", Marrow.Core.Web.WebPolicy.SourceName(address));
             AutomationProperties.SetName(preview, previewLabel.Text);
             if (!row.Children.Contains(preview)) row.Children.Insert(row.Children.IndexOf(closeButton), preview);
         }

@@ -1,0 +1,20 @@
+{
+  "sidechat.note": "Sees this thread. Never interrupts it.",
+  "sidechat.note_can_act": "Can act with this thread's tools. Its edits show in Changes.",
+  "sidechat.empty": "Ask about this thread. The main run keeps going.",
+  "sidechat.placeholder": "Ask about this thread…",
+  "sidechat.can_act": "Can act",
+  "sidechat.clear": "Clear",
+  "sidechat.send_to_main": "Send to main as a draft",
+  "sidechat.sent_to_main": "Added to the main draft",
+  "sidechat.send": "Send",
+  "sidechat.stop": "Stop",
+  "sidechat.conversation_name": "Side chat conversation",
+
+  "sidechat.title": "Side chat",
+
+  "sidechat.declined.command": "The side chat is read-only, so it declined to run a command. Turn on Can act to let it.",
+  "sidechat.declined.file_change": "The side chat is read-only, so it declined to change a file. Turn on Can act to let it.",
+  "sidechat.declined.plan": "The side chat is read-only, so it declined to start building a plan. Turn on Can act to let it.",
+  "sidechat.declined.access": "The side chat is read-only, so it declined to take more access. Turn on Can act to let it."
+}

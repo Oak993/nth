@@ -12,6 +12,7 @@ using Avalonia.Media.Transformation;
 using Avalonia.Threading;
 using Marrow.App.Runtime;
 using Marrow.App.Port;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Git;
@@ -314,13 +315,13 @@ public sealed class DiffInspector : Decorator
         }
 
         paneSelectionTitle = SelectionTitle();
-        Place(DiffPaneChrome.SelectionChip(paneSelectionTitle, "Choose which changes to show", BuildSelectionMenu), 0);
+        Place(DiffPaneChrome.SelectionChip(paneSelectionTitle, UiText.Get("panes.changes.choose_changes"), BuildSelectionMenu), 0);
         if (hasFiles)
         {
             Place(new DiffStatLabel { Additions = (int)summary.Additions, Deletions = (int)summary.Deletions }, 4);
-            Place(DiffPaneChrome.MoreButton("More", BuildMoreMenu), 6);
+            Place(DiffPaneChrome.MoreButton(UiText.Get("panes.changes.more"), BuildMoreMenu), 6);
         }
-        else Place(DiffPaneChrome.MoreButton("More", BuildMoreMenu), 4);
+        else Place(DiffPaneChrome.MoreButton(UiText.Get("panes.changes.more"), BuildMoreMenu), 4);
         return row;
     }
 
@@ -1344,13 +1345,13 @@ public sealed class DiffPopoverCoordinator
         var far = top ? -1 : 1;
         var farAlignment = top ? Avalonia.Layout.VerticalAlignment.Top : Avalonia.Layout.VerticalAlignment.Bottom;
         var grid = new Grid();
-        grid.Children.Add(Grip(SplitterOrientation.Vertical, -2, 0, "Resize changes width", Avalonia.Layout.HorizontalAlignment.Left, Avalonia.Layout.VerticalAlignment.Stretch));
-        grid.Children.Add(Grip(SplitterOrientation.Vertical, 2, 0, "Resize changes width", Avalonia.Layout.HorizontalAlignment.Right, Avalonia.Layout.VerticalAlignment.Stretch));
-        grid.Children.Add(Grip(SplitterOrientation.Horizontal, 0, far, "Resize changes height", Avalonia.Layout.HorizontalAlignment.Stretch, farAlignment));
-        var leading = Grip(SplitterOrientation.Both, -2, far, "Resize changes", Avalonia.Layout.HorizontalAlignment.Left, farAlignment);
+        grid.Children.Add(Grip(SplitterOrientation.Vertical, -2, 0, UiText.Get("panes.changes.resize_width"), Avalonia.Layout.HorizontalAlignment.Left, Avalonia.Layout.VerticalAlignment.Stretch));
+        grid.Children.Add(Grip(SplitterOrientation.Vertical, 2, 0, UiText.Get("panes.changes.resize_width"), Avalonia.Layout.HorizontalAlignment.Right, Avalonia.Layout.VerticalAlignment.Stretch));
+        grid.Children.Add(Grip(SplitterOrientation.Horizontal, 0, far, UiText.Get("panes.changes.resize_height"), Avalonia.Layout.HorizontalAlignment.Stretch, farAlignment));
+        var leading = Grip(SplitterOrientation.Both, -2, far, UiText.Get("panes.changes.resize"), Avalonia.Layout.HorizontalAlignment.Left, farAlignment);
         leading.SetCorner(top ? SplitterCorner.TopLeft : SplitterCorner.BottomLeft);
         grid.Children.Add(leading);
-        var trailing = Grip(SplitterOrientation.Both, 2, far, "Resize changes", Avalonia.Layout.HorizontalAlignment.Right, farAlignment);
+        var trailing = Grip(SplitterOrientation.Both, 2, far, UiText.Get("panes.changes.resize"), Avalonia.Layout.HorizontalAlignment.Right, farAlignment);
         trailing.SetCorner(top ? SplitterCorner.TopRight : SplitterCorner.BottomRight);
         grid.Children.Add(trailing);
         return grid;
@@ -1394,7 +1395,7 @@ public sealed class DiffPopoverCoordinator
         })
         {
             Label = label,
-            HelpHint = "Double-click for the default size",
+            HelpHint = UiText.Get("panes.splitter.default_size_hint"),
             MirrorsInRightToLeft = false,
             FineInset = 0,
             TracksInScreenSpace = true, // the popup's own window moves as it grows

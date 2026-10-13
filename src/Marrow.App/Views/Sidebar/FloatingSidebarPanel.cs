@@ -8,6 +8,7 @@ using Avalonia.Styling;
 using Marrow.App.Port;
 using Marrow.App.Views.Chat;
 using Marrow.App.Window;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
@@ -335,15 +336,15 @@ public sealed class FloatingSidebarPanel : Decorator
             };
         }
 
-        var rightGrip = Grip(SplitterOrientation.Vertical, "Resize sidebar width");
+        var rightGrip = Grip(SplitterOrientation.Vertical, UiText.Get("panes.splitter.resize_sidebar_width"));
         rightGrip.Width = Splitter.EdgeThickness;
         rightGrip.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right;
         rightGrip.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch;
-        var bottomGrip = Grip(SplitterOrientation.Horizontal, "Resize sidebar height");
+        var bottomGrip = Grip(SplitterOrientation.Horizontal, UiText.Get("panes.splitter.resize_sidebar_height"));
         bottomGrip.Height = Splitter.EdgeThickness;
         bottomGrip.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch;
         bottomGrip.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Bottom;
-        var resizeHandle = Grip(SplitterOrientation.Both, "Resize sidebar");
+        var resizeHandle = Grip(SplitterOrientation.Both, UiText.Get("panes.splitter.resize_sidebar"));
         resizeHandle.SetCorner(SplitterCorner.BottomRight);
         resizeHandle.Width = Splitter.CornerSize;
         resizeHandle.Height = Splitter.CornerSize;

@@ -12,6 +12,7 @@ using Avalonia.Styling;
 using Marrow.App.Window;
 using Marrow.App.Port;
 using Marrow.App.Views.Composer;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
@@ -869,7 +870,7 @@ internal sealed class PanelResizeGrips : Decorator
 {
     private const double Edge = Splitter.EdgeThickness; // :596 (6 before the shared splitter)
     private const double Corner = Splitter.CornerSize; // :597
-    internal const string ResetHint = "Double-click for the automatic size";
+    internal static string ResetHint => UiText.Get("panes.splitter.automatic_size_hint");
     private const double Far = 100_000;
 
     private readonly PanelResize resize;
@@ -883,13 +884,13 @@ internal sealed class PanelResizeGrips : Decorator
     {
         this.resize = resize;
         dock = resize.Corner;
-        widthGrip = MakeGrip(PanelResizeAxes.Width, SplitterOrientation.Vertical, "Resize panel width");
+        widthGrip = MakeGrip(PanelResizeAxes.Width, SplitterOrientation.Vertical, UiText.Get("panes.panel.resize_width"));
         widthGrip.Width = Edge;
         widthGrip.VerticalAlignment = VerticalAlignment.Stretch;
-        heightGrip = MakeGrip(PanelResizeAxes.Height, SplitterOrientation.Horizontal, "Resize panel height");
+        heightGrip = MakeGrip(PanelResizeAxes.Height, SplitterOrientation.Horizontal, UiText.Get("panes.panel.resize_height"));
         heightGrip.Height = Edge;
         heightGrip.HorizontalAlignment = HorizontalAlignment.Stretch;
-        cornerGrip = MakeGrip(PanelResizeAxes.Both, SplitterOrientation.Both, "Resize panel");
+        cornerGrip = MakeGrip(PanelResizeAxes.Both, SplitterOrientation.Both, UiText.Get("panes.panel.resize"));
         cornerGrip.Width = Corner;
         cornerGrip.Height = Corner;
         Child = new Grid { Children = { widthGrip, heightGrip, cornerGrip } };
@@ -953,8 +954,9 @@ internal sealed class PanelResizeGrips : Decorator
         var maximum = Math.Max(minimum, height ? extent.Maximum.Height : extent.Maximum.Width);
         var limits = new SplitterLimits(minimum, maximum, Math.Clamp(value, minimum, maximum));
         if (axes != PanelResizeAxes.Both) return SplitterMath.Report(value, false, limits);
-        var both = $"{Math.Round(extent.Current.Width)} \u00D7 {Math.Round(extent.Current.Height)}"; // U+00D7 MULTIPLICATION SIGN
-        return SplitterMath.Report(value, false, limits, both, both + " DIP");
+        var width = Math.Round(extent.Current.Width);
+        var tall = Math.Round(extent.Current.Height);
+        return SplitterMath.Report(value, false, limits, UiText.Format("panes.splitter.size_both", width, tall), UiText.Format("panes.splitter.size_both_dip", width, tall));
     }
 
     // Home and End: the smallest or the largest size, as one resize (the resizer clamps; without an extent, as far as it goes).

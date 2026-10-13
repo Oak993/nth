@@ -1,5 +1,6 @@
 using Marrow.App.Runtime;
 using Marrow.App.Views.Panes;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 
 // PORT-ONLY: web surfaces W4, the Changes pane (E:/Droppy/work/design/web-surfaces/DESIGN.md 3.1 "Changes | narrow | grid |
@@ -30,7 +31,6 @@ public static class DiffPane
     internal static string? Subtitle(DiffInspector inspector) => inspector.FileCount switch
     {
         0 => null,
-        1 => "1 file",
-        var count => count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " files",
+        var count => UiText.PluralWith(System.Globalization.CultureInfo.InvariantCulture, "panes.changes.files", count),
     };
 }

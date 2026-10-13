@@ -5,6 +5,7 @@ using Avalonia.Media;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Panes;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Support;
 using Marrow.UI.Panes;
@@ -34,8 +35,8 @@ public static class TerminalPane
         var body = new TerminalPaneBody(runtime);
         var content = new PaneContent(body, PaneKinds.Title(PaneKind.Terminal), null,
         [
-            new PaneHeaderAction("New terminal", body.NewTerminal, PaneGlyphKind.Plus),
-            new PaneHeaderAction("Move to the drawer", () => runtime.Workspace = runtime.Workspace.MoveTerminalToDrawer(), PaneGlyphKind.DockBottom),
+            new PaneHeaderAction(UiText.Get("panes.terminal.new_terminal"), body.NewTerminal, PaneGlyphKind.Plus),
+            new PaneHeaderAction(UiText.Get("panes.terminal.move_to_drawer"), () => runtime.Workspace = runtime.Workspace.MoveTerminalToDrawer(), PaneGlyphKind.DockBottom),
         ]);
         body.TitleChanged += title => content.Update(string.IsNullOrWhiteSpace(title) ? PaneKinds.Title(PaneKind.Terminal) : title, null);
         return content;

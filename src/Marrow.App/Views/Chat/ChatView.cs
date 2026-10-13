@@ -18,6 +18,7 @@ using Marrow.App.Views.Composer;
 using Marrow.App.Views.Terminal;
 using Marrow.App.Views.Usage;
 using Marrow.App.Window;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
@@ -2092,7 +2093,7 @@ internal sealed class ScriptsMenu : Decorator
         // :1452-1454,1456-1463 editor presentation through R-VIEW-9.
         // PORT-ONLY: DESIGN 5.6, ED-NEW-web-w9-3. Explicit gesture also opens rooted static projects.
         if (Marrow.App.Views.Browser.ProjectPreviewHost.CanOpen(model, project, runtime))
-            stack.Children.Add(new PopoverItem("Open preview", () => Marrow.App.Views.Browser.ProjectPreviewHost.Open(model, project, runtime), symbol: "globe"));
+            stack.Children.Add(new PopoverItem(UiText.Get("panes.preview.open"), () => Marrow.App.Views.Browser.ProjectPreviewHost.Open(model, project, runtime), symbol: "globe"));
         stack.Children.Add(new PopoverItem(
             project.Scripts.Count == 0 ? "Add a script…" : "Edit scripts…",
             () => MainActor.Post(() => PresentScriptsEditor(model, project.Id, anchor ?? stack)),
@@ -2568,9 +2569,9 @@ internal sealed class ScriptsEditor : Decorator
         };
 
         // PORT-ONLY: DESIGN 5.6, ED-NEW-web-w9-3. Empty stays null, preserving older script JSON.
-        var previewField = new TextBox { Text = script.PreviewUrl ?? "", PlaceholderText = "Preview URL (optional)" };
+        var previewField = new TextBox { Text = script.PreviewUrl ?? "", PlaceholderText = UiText.Get("panes.preview.url_placeholder") };
         ChatDialogControls.TextEditor(previewField, style: "RoundedBorder");
-        AutomationProperties.SetName(previewField, "Preview URL"); // ED-NEW-web-w9cx-1: a screen reader reads the field's purpose, not only its placeholder
+        AutomationProperties.SetName(previewField, UiText.Get("panes.preview.url_name")); // ED-NEW-web-w9cx-1: a screen reader reads the field's purpose, not only its placeholder
         previewField.PropertyChanged += (_, e) => { if (e.Property == TextBox.TextProperty) Update(script.Id, s => s with { PreviewUrl = string.IsNullOrWhiteSpace(previewField.Text) ? null : previewField.Text.Trim() }); };
         var worktreeToggle = new CheckBox { Content = "Run when a worktree is created", IsChecked = script.RunOnWorktreeCreate }; // :1692-1693
         ChatDialogControls.Checkbox(worktreeToggle);

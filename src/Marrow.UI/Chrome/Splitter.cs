@@ -9,6 +9,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Port;
@@ -263,7 +264,7 @@ public sealed class Splitter : Panel
 
     public const double MouseSlop = 1;
     public const double CoarseSlop = 4;
-    public const string TipText = "Resize";
+    public static string TipText => UiText.Get("panes.splitter.resize");
 
     private static readonly Cursor WestEast = new(StandardCursorType.SizeWestEast);
     private static readonly Cursor NorthSouth = new(StandardCursorType.SizeNorthSouth);
@@ -332,7 +333,7 @@ public sealed class Splitter : Panel
         AddHandler(PointerReleasedEvent, OnReleaseTunnel, RoutingStrategies.Tunnel);
         AddHandler(PointerReleasedEvent, OnReleaseAny, RoutingStrategies.Bubble, handledEventsToo: true);
         handle.PointerCaptureLost += (_, _) => LoseDrag();
-        AutomationProperties.SetName(this, "Resize");
+        AutomationProperties.SetName(this, UiText.Get("panes.splitter.resize"));
     }
 
     public SplitterOrientation Orientation { get; }
@@ -344,7 +345,7 @@ public sealed class Splitter : Panel
     /// <summary>The accessible name ("Resize sidebar", "Resize Chat and Browser").</summary>
     public string Label
     {
-        get => AutomationProperties.GetName(this) ?? "Resize";
+        get => AutomationProperties.GetName(this) ?? UiText.Get("panes.splitter.resize");
         set => AutomationProperties.SetName(this, value);
     }
 
@@ -912,17 +913,17 @@ public sealed class Splitter : Panel
 
         protected override string GetLocalizedControlTypeCore() => owner.Orientation switch
         {
-            SplitterOrientation.Vertical => "vertical splitter",
-            SplitterOrientation.Horizontal => "horizontal splitter",
-            _ => "corner splitter",
+            SplitterOrientation.Vertical => UiText.Get("panes.splitter.type_vertical"),
+            SplitterOrientation.Horizontal => UiText.Get("panes.splitter.type_horizontal"),
+            _ => UiText.Get("panes.splitter.type_corner"),
         };
 
         protected override string? GetNameCore() => owner.Label;
 
         protected override string? GetHelpTextCore()
         {
-            var percent = $"{Current.Percent} %";
-            return owner.HelpHint is { Length: > 0 } hint ? $"{percent}. {hint}" : percent;
+            var percent = UiText.Format("panes.splitter.percent", Current.Percent);
+            return owner.HelpHint is { Length: > 0 } hint ? UiText.Format("panes.splitter.help_with_hint", percent, hint) : percent;
         }
 
         protected override bool IsKeyboardFocusableCore() => owner.isActive;

@@ -1,3 +1,4 @@
+using Marrow.Core.Localisation;
 using Marrow.Core.Port;
 
 // PORT-ONLY: web surfaces W2, the pane solver (E:/Droppy/work/design/web-surfaces/DESIGN.md 3.2 "The tiling rule
@@ -379,8 +380,8 @@ public static class PaneLayout
                     PaneLayout.Clamp(sideBase * PaneKinds.DefaultSideRatio, sideMin, region.SideMax),
                     true, sideCollapsed, PaneKinds.Rail, sideBase, w - G / 2, -1, null, 0,
                     new(gridGroups.SelectMany(g => g.Tabs)), new([PaneKind.SideChat]),
-                    "Resize panes and Side chat",
-                    sideCollapsed ? "Side chat collapsed" : PaneKinds.RoundText(region.SideWidth) + " DIP"));
+                    UiText.Get("panes.splitter.resize_panes_and_side_chat"),
+                    sideCollapsed ? UiText.Get("panes.splitter.side_chat_collapsed") : UiText.Format("panes.splitter.dip", PaneKinds.RoundText(region.SideWidth))));
             }
             grid = new PaneRect(gridX, 0, region.GridWidth, h);
             LayGrid(gridX, 0, region.GridWidth, h, region.Plan);
@@ -390,7 +391,7 @@ public static class PaneLayout
                 value, chatLow, collapsedAt, chatLow, chatTop,
                 PaneLayout.Clamp(length * chatDefault, chatLow, chatTop),
                 true, collapsed, collapsedAt, length, -G / 2, 1, null, 0, chatLeading, trailing,
-                "Resize Chat and panes", collapsed ? "Panes collapsed" : PaneKinds.RoundText(value) + " DIP");
+                UiText.Get("panes.splitter.resize_chat_and_panes"), collapsed ? UiText.Get("panes.splitter.panes_collapsed") : UiText.Format("panes.splitter.dip", PaneKinds.RoundText(value)));
         }
 
         // The side column and the grid for a requested chat width. A grid wider than its cells' maximums allow shrinks to
@@ -482,7 +483,7 @@ public static class PaneLayout
                     PaneGutterKeys.Row1, PaneGutterAxis.Y, y + topHeight + G / 2, x, width, c[0].Shown,
                     topHeight, topMin, topMax, topMin, topMax, PaneLayout.Clamp(length * 0.5, topMin, topMax),
                     false, false, 0, length, -(y + G / 2), 1, null, 0,
-                    new([.. c[0].Tabs, .. c[1].Tabs]), new(bottom.Tabs), "Resize top and bottom panes",
+                    new([.. c[0].Tabs, .. c[1].Tabs]), new(bottom.Tabs), UiText.Get("panes.splitter.resize_top_and_bottom_panes"),
                     Percent(topHeight, length)));
                 SplitX(PaneGutterKeys.Top, x, y, width, topHeight, c[0], c[1]);
                 var bottomY = y + topHeight + G;
@@ -524,7 +525,7 @@ public static class PaneLayout
                     heights[0], minimums[0], max1, minimums[0], max1,
                     PaneLayout.Clamp(free * (m == 3 ? 1.0 / 3 : 0.5), minimums[0], max1),
                     false, false, 0, free, -(y + G / 2), 1, m == 3 ? PaneGutterKeys.Row2 : null, m == 3 ? heights[0] + heights[1] : 0,
-                    new(rows[0].Tabs), new(rows[1].Tabs), Label(rows[0], rows[1]), PaneKinds.RoundText(heights[0]) + " DIP"));
+                    new(rows[0].Tabs), new(rows[1].Tabs), Label(rows[0], rows[1]), UiText.Format("panes.splitter.dip", PaneKinds.RoundText(heights[0]))));
             }
             if (m == 3)
             {
@@ -534,7 +535,7 @@ public static class PaneLayout
                     PaneGutterKeys.Row2, PaneGutterAxis.Y, y2 + heights[1] + G / 2, x, width, rows[1].Shown,
                     heights[1], minimums[1], max2, minimums[1], max2, PaneLayout.Clamp(free / 3, minimums[1], max2),
                     false, false, 0, free, -(y2 + G / 2), 1, null, 0,
-                    new(rows[1].Tabs), new(rows[2].Tabs), Label(rows[1], rows[2]), PaneKinds.RoundText(heights[1]) + " DIP"));
+                    new(rows[1].Tabs), new(rows[2].Tabs), Label(rows[1], rows[2]), UiText.Format("panes.splitter.dip", PaneKinds.RoundText(heights[1]))));
             }
         }
 
@@ -559,9 +560,9 @@ public static class PaneLayout
                 new(a.Tabs), new(b.Tabs), Label(a, b), Percent(first, length)));
         }
 
-        private static string Label(Group a, Group b) => $"Resize {PaneKinds.ShortName(a.Shown)} and {PaneKinds.ShortName(b.Shown)}";
+        private static string Label(Group a, Group b) => UiText.Format("panes.splitter.resize_pair", PaneKinds.ShortName(a.Shown), PaneKinds.ShortName(b.Shown));
 
-        private static string Percent(double value, double length) => PaneKinds.RoundText(length > 0 ? value / length * 100 : 0) + " %";
+        private static string Percent(double value, double length) => UiText.Format("panes.splitter.percent", PaneKinds.RoundText(length > 0 ? value / length * 100 : 0));
 
         private void Put(Group group, PaneRect rect)
         {

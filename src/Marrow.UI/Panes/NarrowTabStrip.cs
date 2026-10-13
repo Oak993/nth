@@ -19,6 +19,7 @@ using Avalonia.Input.GestureRecognizers;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.UI.Port;
 
@@ -39,7 +40,7 @@ public sealed class NarrowTabStrip : Panel
     public const double TabGap = 2;
 
     /// <summary>The words of the strip for assistive technology.</summary>
-    public const string StripName = "Panes";
+    public static string StripName => UiText.Get("panes.narrow.strip_name");
 
     private readonly Border pill;
     private readonly ScrollViewer scroller;

@@ -3,6 +3,8 @@
 // tasks pane has to list them all, so each job is noted here when it starts. The registry only watches: it never pauses,
 // resumes or cancels a job on its own, and it holds no job longer than the pane would show it.
 
+using Marrow.Core.Localisation;
+
 namespace Marrow.Services.Port.Downloads;
 
 /// <summary>A download job as the registry noted it.</summary>
@@ -82,9 +84,9 @@ public sealed class DownloadJobRegistry
 
     internal static string TitleOf(IReadOnlyList<DownloadRequest> files)
     {
-        if (files.Count == 0) return "Download";
+        if (files.Count == 0) return UiText.Get("jobs.download.title");
         var first = Path.GetFileName(files[0].DestinationPath);
         if (string.IsNullOrEmpty(first)) first = files[0].SourceName ?? files[0].Url.Host;
-        return files.Count == 1 ? first : first + " and " + (files.Count - 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " more";
+        return files.Count == 1 ? first : UiText.Format("jobs.download.title_and_more", first, (files.Count - 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 }

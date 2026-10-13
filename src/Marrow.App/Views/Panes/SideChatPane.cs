@@ -7,6 +7,7 @@ using Avalonia.Media;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Chat;
 using Marrow.App.Views.Composer;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Chrome;
@@ -24,16 +25,16 @@ namespace Marrow.App.Views.Panes;
 /// <summary>The words of the Side chat pane (the canvas's, and DESIGN 3.9's).</summary>
 public static class SideChatStrings
 {
-    public const string Note = "Sees this thread. Never interrupts it.";
-    public const string NoteCanAct = "Can act with this thread's tools. Its edits show in Changes.";
-    public const string Empty = "Ask about this thread. The main run keeps going.";
-    public const string Placeholder = "Ask about this thread…";
-    public const string CanAct = "Can act";
-    public const string Clear = "Clear";
-    public const string SendToMain = "Send to main as a draft";
-    public const string SentToMain = "Added to the main draft";
-    public const string Send = "Send";
-    public const string Stop = "Stop";
+    public static string Note => UiText.Get("sidechat.note");
+    public static string NoteCanAct => UiText.Get("sidechat.note_can_act");
+    public static string Empty => UiText.Get("sidechat.empty");
+    public static string Placeholder => UiText.Get("sidechat.placeholder");
+    public static string CanAct => UiText.Get("sidechat.can_act");
+    public static string Clear => UiText.Get("sidechat.clear");
+    public static string SendToMain => UiText.Get("sidechat.send_to_main");
+    public static string SentToMain => UiText.Get("sidechat.sent_to_main");
+    public static string Send => UiText.Get("sidechat.send");
+    public static string Stop => UiText.Get("sidechat.stop");
 }
 
 internal static class SideChatTokens
@@ -104,7 +105,7 @@ public sealed class SideChatPane : Grid
         var emptyGlyph = new PaneGlyph(PaneGlyphKind.SideChat, 22) { HorizontalAlignment = HorizontalAlignment.Center };
         emptyGlyph.Foreground = PaneTokens.Text3.Brush(emptyGlyph);
         emptyState = new StackPanel { Spacing = 10, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(18, 0), Children = { emptyGlyph, empty } };
-        AutomationProperties.SetName(timelineHost, "Side chat conversation");
+        AutomationProperties.SetName(timelineHost, UiText.Get("sidechat.conversation_name"));
         var transcript = new Grid { ClipToBounds = true, Children = { emptyState, timelineHost } };
         timelineHost.Opacity = 0;
         timelineHost.IsHitTestVisible = false;

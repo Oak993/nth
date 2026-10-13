@@ -17,6 +17,7 @@ using Avalonia.VisualTree;
 using Marrow.App.Port.Web.McpApps;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Chat;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Web;
@@ -29,8 +30,9 @@ namespace Marrow.App.Views.Panes;
 public sealed class AppPane : Decorator
 {
     public const double TrustHeight = 28;
-    public const string PopOutText = "Pop out";
-    public const string BackInlineText = "Back inline";
+    public static string PopOutText => UiText.Get("panes.app.pop_out");
+
+    public static string BackInlineText => UiText.Get("panes.app.back_inline");
 
     private readonly ThreadRuntime runtime;
     private readonly Decorator slot = new() { Name = "WebSlot" };

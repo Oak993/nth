@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.UI.Panes;
 using Marrow.UI.Port;
@@ -63,9 +64,9 @@ public sealed class PaneRailStrip : Border
         layout.Children.Add(icons);
         layout.Children.Add(chevron);
         Child = layout;
-        AutomationProperties.SetName(this, key == PaneGutterKeys.Side ? "Collapsed Side chat" : "Collapsed panes");
+        AutomationProperties.SetName(this, key == PaneGutterKeys.Side ? UiText.Get("panes.rail.collapsed_side_chat") : UiText.Get("panes.rail.collapsed_panes"));
         AutomationProperties.SetLandmarkType(this, AutomationLandmarkType.Region);
-        var restoreName = key == PaneGutterKeys.Side ? "Restore Side chat" : "Restore panes";
+        var restoreName = key == PaneGutterKeys.Side ? UiText.Get("panes.rail.restore_side_chat") : UiText.Get("panes.rail.restore_panes");
         AutomationProperties.SetName(chevron, restoreName);
         ToolTip.SetTip(chevron, restoreName);
         DoubleTapped += (_, e) =>
@@ -109,7 +110,7 @@ public sealed class PaneRailStrip : Border
             var button = PlainControls.Button(face, () => RestoreRequested?.Invoke(pane)).KeyboardFocus(6);
             Hover(button, face, glyph);
             ToolTip.SetTip(button, name);
-            AutomationProperties.SetName(button, "Restore " + name);
+            AutomationProperties.SetName(button, UiText.Format("panes.rail.restore_pane", name));
             buttons.Add(button);
             icons.Children.Add(button);
         }

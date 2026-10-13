@@ -1,3 +1,5 @@
+using Marrow.Core.Localisation;
+
 namespace Marrow.Core.Models;
 
 // PORT-ONLY, no Swift twin: nth web surfaces, unit W1 (work/design/web-surfaces/DESIGN.md section 4, revision 2,
@@ -91,8 +93,14 @@ public sealed record SplitterLimits(double Minimum, double Maximum, double Defau
 
     public double LargeStep { get; init; } = DefaultLargeStep;
 
-    /// <summary>The value text while collapsed ("Sidebar hidden", "Panes collapsed").</summary>
-    public string CollapsedText { get; init; } = "Collapsed";
+    /// <summary>The value text while collapsed ("Sidebar hidden", "Panes collapsed"); "Collapsed" (panes.splitter.collapsed) when none was set.</summary>
+    public string CollapsedText
+    {
+        get => collapsedText ?? UiText.Get("panes.splitter.collapsed");
+        init => collapsedText = value;
+    }
+
+    private readonly string? collapsedText;
 
     /// <summary>The lowest value reported: the collapsed position when the low end collapses, else the minimum.</summary>
     public double RangeMinimum => Collapse == SplitterCollapse.BelowMinimum ? Math.Min(CollapsedValue, Minimum) : Minimum;
@@ -282,7 +290,7 @@ public static class SplitterMath
         return new SplitterReport(
             reported, lo, hi, collapsed, percent,
             text ?? (collapsed ? limits.CollapsedText : number),
-            readout ?? (collapsed ? limits.CollapsedText : number + " DIP"));
+            readout ?? (collapsed ? limits.CollapsedText : UiText.Format("panes.splitter.dip", number)));
     }
 
     /// <summary>The report for a committed <paramref name="state"/>.</summary>

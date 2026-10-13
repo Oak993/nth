@@ -5,6 +5,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Chat;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.UI.Chrome;
 using Marrow.UI.Panes;
@@ -71,8 +72,9 @@ public static class TranscriptPane
         {
             if (target.ThreadId is { } thread && target.Title is { } title)
             {
-                var open = new PaneHeaderAction("Open chat", () => app.SelectedThreadID = thread, Text: "Open chat");
-                content.Update(title, "Transcript", [open]);
+                var openChat = UiText.Get("panes.transcript.open_chat");
+                var open = new PaneHeaderAction(openChat, () => app.SelectedThreadID = thread, Text: openChat);
+                content.Update(title, UiText.Get("panes.transcript.subtitle"), [open]);
             }
             else content.Update(null, null, []);
         }
@@ -140,11 +142,11 @@ public sealed class TranscriptView : Border
 
     private static Control Empty()
     {
-        var title = new TextBlock { Text = "No transcript chosen", FontSize = 13, FontWeight = FontWeight.SemiBold, HorizontalAlignment = HorizontalAlignment.Center };
+        var title = new TextBlock { Text = UiText.Get("panes.transcript.empty_title"), FontSize = 13, FontWeight = FontWeight.SemiBold, HorizontalAlignment = HorizontalAlignment.Center };
         title.Foreground = PaneTokens.Text2.Brush(title);
         var hint = new TextBlock
         {
-            Text = "Choose View transcript on a task in Background tasks to read it here.",
+            Text = UiText.Get("panes.transcript.empty_body"),
             FontSize = 11.5,
             TextWrapping = TextWrapping.Wrap,
             TextAlignment = TextAlignment.Center,

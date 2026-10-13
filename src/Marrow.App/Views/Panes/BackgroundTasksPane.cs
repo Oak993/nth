@@ -8,6 +8,7 @@ using Avalonia.Controls.Templates;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Runtime;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Panes;
@@ -61,7 +62,8 @@ public static class BackgroundTasksPane
             });
         var view = new BackgroundTasksView(jobs, runtime.ThreadID, commands, Scope);
         var content = new PaneContent(view);
-        var clear = new PaneHeaderAction("Clear done", view.ClearDone, Text: "Clear done");
+        var clearDone = UiText.Get("jobs.clear_done");
+        var clear = new PaneHeaderAction(clearDone, view.ClearDone, Text: clearDone);
         view.HasFinishedChanged += has => content.Update(null, null, has ? [clear] : []);
         return content;
     }
@@ -88,8 +90,8 @@ public sealed class BackgroundTasksView : Grid
         this.scope = scope;
         stack = new JobStack(commands);
 
-        thisThread = Segment("This thread", BackgroundJobScope.ThisThread);
-        allThreads = Segment("All threads", BackgroundJobScope.AllThreads);
+        thisThread = Segment(UiText.Get("jobs.filter.this_thread"), BackgroundJobScope.ThisThread);
+        allThreads = Segment(UiText.Get("jobs.filter.all_threads"), BackgroundJobScope.AllThreads);
         var strip = new Border
         {
             Padding = new Thickness(3),
@@ -100,7 +102,7 @@ public sealed class BackgroundTasksView : Grid
         };
         strip.Background = PaneTokens.HoverFill.Opacity(0.6).Brush(strip);
         strip.BorderBrush = PaneTokens.Line.Brush(strip);
-        AutomationProperties.SetName(strip, "Show tasks of");
+        AutomationProperties.SetName(strip, UiText.Get("jobs.filter.group_name"));
         strip.SetValue(AutomationProperties.ControlTypeOverrideProperty, AutomationControlType.Group);
         strip.Margin = new Thickness(0, 2, 2, 4);
 
@@ -111,14 +113,14 @@ public sealed class BackgroundTasksView : Grid
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
         };
-        AutomationProperties.SetName(stack, "Background tasks");
+        AutomationProperties.SetName(stack, UiText.Get("jobs.list_name"));
         stack.SetValue(AutomationProperties.ControlTypeOverrideProperty, AutomationControlType.List);
 
-        var title = new TextBlock { Text = "No background tasks", FontSize = 13, FontWeight = FontWeight.SemiBold, HorizontalAlignment = HorizontalAlignment.Center };
+        var title = new TextBlock { Text = UiText.Get("jobs.empty.title"), FontSize = 13, FontWeight = FontWeight.SemiBold, HorizontalAlignment = HorizontalAlignment.Center };
         title.Foreground = PaneTokens.Text2.Brush(title);
         var hint = new TextBlock
         {
-            Text = "Helpers, Hydra heads, terminals, downloads and agents show up here while they work.",
+            Text = UiText.Get("jobs.empty.body"),
             FontSize = 11.5,
             TextWrapping = TextWrapping.Wrap,
             TextAlignment = TextAlignment.Center,

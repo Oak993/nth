@@ -4,6 +4,7 @@ using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.UI.Panes;
 using Marrow.UI.Port;
@@ -42,7 +43,7 @@ public sealed class JobCard : Border
     private readonly LiveText tokens = new() { FontSize = 11.5, Reserve = BackgroundJobText.TokensReserve };
     private readonly LiveText tools = new() { FontSize = 11.5, Reserve = BackgroundJobText.ToolUsesReserve };
     private readonly LiveText percent = new() { FontSize = 11.5, Reserve = BackgroundJobText.PercentReserve };
-    private readonly LiveText ended = new() { FontSize = 11.5, Reserve = "Stopped 59 min ago" };
+    private readonly LiveText ended = new() { FontSize = 11.5, Reserve = UiText.Format("jobs.ended.stopped_minutes", "59") };
     private readonly NthShineText activity = new() { FontSize = 11.5, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap };
     private readonly MetricsRow metrics = new();
     private readonly ProgressLine progress = new() { Margin = new Thickness(0, 3, 0, 0) };
@@ -79,8 +80,8 @@ public sealed class JobCard : Border
         (stop, _) = Op(stopGlyph, () => { if (job is { } now) commands.Stop(now); });
         var ops = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, VerticalAlignment = VerticalAlignment.Top, Children = { pause, stop } };
 
-        transcript = TextAction("View transcript", () => { if (job is { } now) commands.ViewTranscript(now); });
-        preview = TextAction("Open preview", () => { if (job is { } now) commands.OpenPreview(now); });
+        transcript = TextAction(UiText.Get("jobs.action.view_transcript"), () => { if (job is { } now) commands.ViewTranscript(now); });
+        preview = TextAction(UiText.Get("jobs.action.open_preview"), () => { if (job is { } now) commands.OpenPreview(now); });
         actions.Children.Add(transcript);
         actions.Children.Add(preview);
 
@@ -175,19 +176,19 @@ public sealed class JobCard : Border
         pause.IsVisible = canTogglePause;
         pause.IsEnabled = next.State is BackgroundJobState.Running or BackgroundJobState.Paused;
         pauseGlyph.Kind = next.IsPaused ? JobGlyphKind.Play : JobGlyphKind.Pause;
-        SetName(pause, next.IsPaused ? "Resume" : "Pause", next.Title);
+        SetName(pause, next.IsPaused ? UiText.Get("jobs.action.resume") : UiText.Get("jobs.action.pause"), next.Title);
 
         stop.IsVisible = next.IsLive && (next.CanStop || next.State == BackgroundJobState.Stopping);
         stop.IsEnabled = next.CanStop && next.State != BackgroundJobState.Stopping;
-        SetName(stop, "Stop", next.Title);
+        SetName(stop, UiText.Get("jobs.action.stop"), next.Title);
 
         transcript.IsVisible = next.HasTranscript;
         preview.IsVisible = next.IsDevServer && next.IsLive;
         actions.IsVisible = transcript.IsVisible || preview.IsVisible;
-        SetName(transcript, "View transcript", next.Title);
-        SetName(preview, "Open preview", next.Title);
+        SetName(transcript, UiText.Get("jobs.action.view_transcript"), next.Title);
+        SetName(preview, UiText.Get("jobs.action.open_preview"), next.Title);
 
-        AutomationProperties.SetName(this, next.Title + ", " + next.KindLabel);
+        AutomationProperties.SetName(this, UiText.Format("jobs.card_name", next.Title, next.KindLabel));
         AutomationProperties.SetHelpText(this, StateWord(next.State));
         ApplyLook();
     }
@@ -210,9 +211,9 @@ public sealed class JobCard : Border
         }
         var words = next.State switch
         {
-            BackgroundJobState.Paused => "Paused",
-            BackgroundJobState.Pausing => "Pausing\u2026",
-            BackgroundJobState.Stopping => "Stopping\u2026",
+            BackgroundJobState.Paused => UiText.Get("jobs.activity.paused"),
+            BackgroundJobState.Pausing => UiText.Get("jobs.activity.pausing"),
+            BackgroundJobState.Stopping => UiText.Get("jobs.activity.stopping"),
             _ => next.Activity ?? "",
         };
         if (activity.Text != words) activity.Text = words;
@@ -227,13 +228,13 @@ public sealed class JobCard : Border
 
     private static string StateWord(BackgroundJobState state) => state switch
     {
-        BackgroundJobState.Running => "Running",
-        BackgroundJobState.Pausing => "Pausing",
-        BackgroundJobState.Paused => "Paused",
-        BackgroundJobState.Stopping => "Stopping",
-        BackgroundJobState.Done => "Done",
-        BackgroundJobState.Failed => "Failed",
-        _ => "Stopped",
+        BackgroundJobState.Running => UiText.Get("jobs.state.running"),
+        BackgroundJobState.Pausing => UiText.Get("jobs.state.pausing"),
+        BackgroundJobState.Paused => UiText.Get("jobs.state.paused"),
+        BackgroundJobState.Stopping => UiText.Get("jobs.state.stopping"),
+        BackgroundJobState.Done => UiText.Get("jobs.state.done"),
+        BackgroundJobState.Failed => UiText.Get("jobs.state.failed"),
+        _ => UiText.Get("jobs.state.stopped"),
     };
 
     private static void SetName(Button button, string verb, string subject)

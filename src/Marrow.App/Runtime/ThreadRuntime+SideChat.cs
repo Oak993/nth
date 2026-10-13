@@ -1,3 +1,4 @@
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 
@@ -58,14 +59,14 @@ public sealed partial class ThreadRuntime
             ?? request.Options.FirstOrDefault(option => option.OptionRole == ApprovalRequest.Option.Role.Cancel);
         if (refusal is null || session is null) return false;
         session.ResolveApproval(request.Id, refusal.Id);
-        var what = request.RequestKind switch
+        var declined = request.RequestKind switch
         {
-            ApprovalRequest.Kind.Command => "run a command",
-            ApprovalRequest.Kind.FileChange => "change a file",
-            ApprovalRequest.Kind.Plan => "start building a plan",
-            _ => "take more access",
+            ApprovalRequest.Kind.Command => UiText.Get("sidechat.declined.command"),
+            ApprovalRequest.Kind.FileChange => UiText.Get("sidechat.declined.file_change"),
+            ApprovalRequest.Kind.Plan => UiText.Get("sidechat.declined.plan"),
+            _ => UiText.Get("sidechat.declined.access"),
         };
-        AppendNotice(Notice.Level.Info, "The side chat is read-only, so it declined to " + what + ". Turn on Can act to let it.");
+        AppendNotice(Notice.Level.Info, declined);
         return true;
     }
 }
