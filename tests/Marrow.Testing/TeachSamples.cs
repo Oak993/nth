@@ -1,6 +1,6 @@
 using Marrow.Core.Port.Assistant;
 
-namespace Marrow.Core.Tests.Fixtures;
+namespace Marrow.Testing;
 
 /// <summary>The recorded events and recordings the teach tests build their drafts from.</summary>
 public static class TeachSamples

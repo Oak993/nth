@@ -15,6 +15,9 @@ public static partial class TeachDraftBuilder
     /// <summary>A click on a field and the typing into it count as one step when they are this close in time.</summary>
     public static readonly TimeSpan ClickThenType = TimeSpan.FromSeconds(3);
 
+    /// <summary>A click and the double click that follows it on the same control are one step when they are this close in time.</summary>
+    public static readonly TimeSpan DoubleClick = TimeSpan.FromSeconds(1);
+
     /// <summary>Typed bursts into one field this close together are one step.</summary>
     public static readonly TimeSpan SameTyping = TimeSpan.FromSeconds(5);
 
@@ -82,7 +85,11 @@ public static partial class TeachDraftBuilder
 
     private static bool Joins(TeachEvent last, TeachEvent next)
     {
-        if (last.Element is null || next.Element is null || next.Kind != TeachEventKind.Type) return false;
+        if (last.Element is null || next.Element is null) return false;
+        // A double click comes as a click and then a double click on the same control: one step, the double click.
+        if (next is { Kind: TeachEventKind.Click, Verb: "double-click" } && last.Kind == TeachEventKind.Click)
+            return SameField(last.Element, next.Element) && next.At - last.At <= DoubleClick;
+        if (next.Kind != TeachEventKind.Type) return false;
         if (last.Kind == TeachEventKind.Click)
             return SameField(last.Element, next.Element) && next.At - last.At <= ClickThenType && last.Verb is "click" or "";
         return last.Kind == TeachEventKind.Type && SameField(last.Element, next.Element) && next.At - last.At <= SameTyping;
@@ -227,8 +234,8 @@ public static partial class TeachDraftBuilder
         return [.. steps.Select(s => said.TryGetValue(s.Number, out var builder) ? s with { Said = builder.ToString() } : s)];
     }
 
-    // A spoken line that the privacy patterns would change (a password read aloud) is dropped whole, not masked.
-    private static string Spoken(string? text)
+    /// <summary>A spoken line as the draft and the model may see it: one line, cut; and empty when the privacy patterns would change it (a password read aloud is dropped whole, not masked).</summary>
+    public static string Spoken(string? text)
     {
         var line = TeachDraft.Clean(text, TeachLimits.NarrationChars);
         if (line.Length == 0) return "";

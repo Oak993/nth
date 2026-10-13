@@ -10,7 +10,7 @@ using Marrow.Core.Port.Voice.Seams;
 
 namespace Marrow.Services.Assistant;
 
-public sealed class TeachNarrator : IAudioCaptureSink, IDisposable
+public sealed class TeachNarrator : ITeachNarration, IAudioCaptureSink, IDisposable
 {
     public const int SampleRate = 16000;
 

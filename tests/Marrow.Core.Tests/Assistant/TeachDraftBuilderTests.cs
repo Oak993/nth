@@ -1,5 +1,5 @@
 using Marrow.Core.Port.Assistant;
-using Marrow.Core.Tests.Fixtures;
+using Marrow.Testing;
 
 namespace Marrow.Core.Tests.Assistant;
 
@@ -53,6 +53,25 @@ public sealed class TeachDraftBuilderTests
             TeachSamples.Type(3, 41, TeachSamples.Field("To"), "C"),
         ]);
         Assert.Equal(3, draft.Steps.Count);
+    }
+
+    [Fact]
+    public void A_click_and_the_double_click_after_it_on_the_same_control_are_one_step_the_double_click()
+    {
+        var file = TeachSamples.Button("report.docx", "explorer", "Documents");
+        var draft = Draft([TeachSamples.Click(1, 4, file), TeachSamples.Click(2, 4.3, file, "double-click"), TeachSamples.Click(3, 9, file, "double-click")]);
+        Assert.Equal(["Double-click “report.docx” (button) in Explorer", "Double-click “report.docx” (button) in Explorer"], draft.Steps.Select(s => s.Text));
+        Assert.Equal([1, 2], draft.Steps[0].From);
+        var apart = Draft([TeachSamples.Click(1, 4, file), TeachSamples.Click(2, 9, file, "double-click")]);
+        Assert.Equal(2, apart.Steps.Count);
+    }
+
+    [Fact]
+    public void Delete_pressed_in_the_file_explorer_asks_and_in_a_text_editor_does_not()
+    {
+        var explorer = Draft([TeachSamples.Shortcut(1, 3, "Delete", "explorer")]);
+        Assert.Equal(ActionClass.Destructive, explorer.Steps[0].Guard!.Class);
+        Assert.Null(Draft([TeachSamples.Shortcut(1, 3, "Delete", "notepad")]).Steps[0].Guard);
     }
 
     [Fact]

@@ -82,8 +82,10 @@ public static class TeachGuards
     [
         "1password", "bitwarden", "keepass", "keepassxc", "lastpass", "dashlane", "nordpass", "roboform", "enpass", "keeper", "proton pass", "protonpass",
         "consent", "credwiz", "credentialuibroker", "logonui", "winlogon", "lockapp", "securityhealthui", "windowsdefender",
-        "marrow.app", "marrow", "nth",
     ];
+
+    // nth's own windows: its settings and grants are never recorded (12.1, Hard deny), and a click on the recording strip is not a step.
+    private static readonly string[] OwnApps = ["marrow.app", "marrow", "nth"];
 
     private static readonly string[] PrivateWindowMarks =
     [
@@ -189,7 +191,14 @@ public static class TeachGuards
     public static bool IsPrivateApp(string? app)
     {
         var name = Path.GetFileNameWithoutExtension((app ?? "").Trim()).ToLower(CultureInfo.InvariantCulture);
-        return name.Length > 0 && PrivateApps.Contains(name, StringComparer.Ordinal);
+        return name.Length > 0 && (PrivateApps.Contains(name, StringComparer.Ordinal) || OwnApps.Contains(name, StringComparer.Ordinal));
+    }
+
+    /// <summary>Whether an app is nth itself: what the owner does in it (the recording strip, its settings) is not a step at all.</summary>
+    public static bool IsOwnApp(string? app)
+    {
+        var name = Path.GetFileNameWithoutExtension((app ?? "").Trim()).ToLower(CultureInfo.InvariantCulture);
+        return name.Length > 0 && OwnApps.Contains(name, StringComparer.Ordinal);
     }
 
     /// <summary>Whether a window title marks a private or protected window (a private browser window, the UAC prompt).</summary>
@@ -222,7 +231,10 @@ public static class TeachGuards
                     return new TeachGuardFinding(ActionClass.HardDeny, "It is a password or another secret. nth never types one for you; you do it yourself.");
                 return IsTerminal(e.Element?.App) ? ForCommand(e.Text, e.Element?.App) : null;
             case TeachEventKind.Shortcut:
-                return ForShortcut(e.Text);
+                return ForShortcut(e.Text) ?? (string.Equals(e.Text, "Delete", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(Path.GetFileNameWithoutExtension(e.Element?.App ?? ""), "explorer", StringComparison.OrdinalIgnoreCase)
+                    ? new TeachGuardFinding(ActionClass.Destructive, "Delete removes the files that are selected.")
+                    : null);
             case TeachEventKind.Browser:
                 if (string.Equals(e.Verb, "submit", StringComparison.OrdinalIgnoreCase))
                     return new TeachGuardFinding(ActionClass.Outward, "It submits a form.");

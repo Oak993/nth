@@ -252,18 +252,31 @@ public sealed partial class AssistantStore
 
     // ---- staging: the folder a skill is written to before the own-skill service reads it ----
 
-    /// <summary>A new, empty folder beside the recordings (<c>teach/&lt;assistant&gt;/.stage-&lt;id&gt;</c>) for a SKILL.md about to be added.</summary>
-    public string NewTeachStaging(string assistantId)
+    /// <summary>
+    /// A new, empty folder beside the recordings (<c>teach/&lt;assistant&gt;/.stage-&lt;recording&gt;</c>) for the SKILL.md of that recording about to be
+    /// added. The recording's id is in the name so a save cut short can be told from another: the own-skill service keeps this folder as the skill's source.
+    /// An earlier staging folder of the same recording is removed first.
+    /// </summary>
+    public string NewTeachStaging(string assistantId, string recordingId)
     {
         CheckId(assistantId);
+        CheckId(recordingId);
         lock (gate)
         {
             ThrowIfClosed();
-            var path = Path.Combine(Created(Path.Combine(TeachRoot, assistantId)), ".stage-" + Guid.NewGuid().ToString("N")[..12]);
+            var path = Path.Combine(Created(Path.Combine(TeachRoot, assistantId)), TeachStagingPrefix + recordingId);
+            if (Directory.Exists(path))
+            {
+                RefuseLinks(path);
+                Directory.Delete(path, recursive: true);
+            }
             Directory.CreateDirectory(path);
             return path;
         }
     }
+
+    /// <summary>The start of a staging folder's name.</summary>
+    public const string TeachStagingPrefix = ".stage-";
 
     /// <summary>Removes a staging folder made by <see cref="NewTeachStaging"/>; a path that is not one is refused.</summary>
     public void DeleteTeachStaging(string assistantId, string path)
@@ -274,7 +287,7 @@ public sealed partial class AssistantStore
             ThrowIfClosed();
             var parent = Path.GetFullPath(Path.Combine(TeachRoot, assistantId));
             var full = Path.GetFullPath(path);
-            if (!string.Equals(Path.GetDirectoryName(full), parent, StringComparison.OrdinalIgnoreCase) || !Path.GetFileName(full).StartsWith(".stage-", StringComparison.Ordinal))
+            if (!string.Equals(Path.GetDirectoryName(full), parent, StringComparison.OrdinalIgnoreCase) || !Path.GetFileName(full).StartsWith(TeachStagingPrefix, StringComparison.Ordinal))
                 throw new IOException("That is not a teach staging folder.");
             if (!Directory.Exists(full)) return;
             RefuseLinks(full);
@@ -292,7 +305,7 @@ public sealed partial class AssistantStore
             var parent = Path.Combine(TeachRoot, assistantId);
             if (!Directory.Exists(parent)) return 0;
             var removed = 0;
-            foreach (var folder in Directory.EnumerateDirectories(parent, ".stage-*"))
+            foreach (var folder in Directory.EnumerateDirectories(parent, TeachStagingPrefix + "*"))
             {
                 RefuseLinks(folder);
                 Directory.Delete(folder, recursive: true);

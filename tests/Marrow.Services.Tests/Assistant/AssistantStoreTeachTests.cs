@@ -146,17 +146,19 @@ public sealed class AssistantStoreTeachTests : IDisposable
     [Fact]
     public void A_staging_folder_is_made_beside_the_recordings_and_only_such_a_folder_is_removed()
     {
-        var stage = rig.Store.NewTeachStaging(TeachRig.Assistant);
+        var stage = rig.Store.NewTeachStaging(TeachRig.Assistant, Id);
         Assert.True(Directory.Exists(stage));
-        Assert.StartsWith(".stage-", Path.GetFileName(stage), StringComparison.Ordinal);
+        Assert.Equal(".stage-" + Id, Path.GetFileName(stage));
         Assert.Empty(rig.Store.TeachRecordingIds(TeachRig.Assistant));
         rig.Store.WriteTeachFile(TeachRig.Assistant, Id, "recording.json", [1]);
         Assert.Throws<IOException>(() => rig.Store.DeleteTeachStaging(TeachRig.Assistant, rig.RecordingFolder(Id)));
         Assert.Throws<IOException>(() => rig.Store.DeleteTeachStaging(TeachRig.Assistant, Path.GetTempPath()));
         rig.Store.DeleteTeachStaging(TeachRig.Assistant, stage);
         Assert.False(Directory.Exists(stage));
-        rig.Store.NewTeachStaging(TeachRig.Assistant);
-        rig.Store.NewTeachStaging(TeachRig.Assistant);
+        rig.Store.NewTeachStaging(TeachRig.Assistant, Id);
+        File.WriteAllText(Path.Combine(rig.Store.NewTeachStaging(TeachRig.Assistant, Id), "old.txt"), "x");
+        Assert.False(File.Exists(Path.Combine(rig.Store.NewTeachStaging(TeachRig.Assistant, Id), "old.txt")));
+        rig.Store.NewTeachStaging(TeachRig.Assistant, "t000000000002");
         Assert.Equal(2, rig.Store.RemoveTeachStagings(TeachRig.Assistant));
         Assert.True(Directory.Exists(rig.RecordingFolder(Id)));
     }

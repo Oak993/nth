@@ -1,5 +1,5 @@
 using Marrow.Core.Port.Assistant;
-using Marrow.Core.Tests.Fixtures;
+using Marrow.Testing;
 
 namespace Marrow.Core.Tests.Assistant;
 
