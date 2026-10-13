@@ -150,6 +150,7 @@ public sealed partial class AppModel : MainActorModel
             {
                 if (oldValue is { } oldID) SelectionCell(oldID).Value = false;
                 if (value is { } newID) SelectionCell(newID).Value = true;
+                if (value is not null && assistantHomeShown) AssistantHomeShown = false; // PORT-ONLY (AS-8, ED-NEW-dextra-as8-8): picking a chat leaves the Assistant home
                 SwitchLatency.NoteSwitch(value is { } selectedID ? Thread(selectedID)?.Title ?? "none" : "none");
             }
             if (value is { } selected)

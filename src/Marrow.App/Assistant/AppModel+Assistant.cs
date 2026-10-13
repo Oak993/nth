@@ -39,6 +39,7 @@ public sealed partial class AppModel
     {
         if (assistantFeedStopped) return;
         assistantFeedStopped = true;
+        DisposeAssistantHost(); // AS-8: Dextra stops before its feed and its stop key go
         assistantTaps?.Dispose();
         AssistantEvents.Dispose();
         DisposeSafety();

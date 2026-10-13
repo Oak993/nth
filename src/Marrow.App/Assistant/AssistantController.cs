@@ -98,7 +98,7 @@ public sealed class ReserveSetup
     public IDisposable? Owned { get; init; }
 }
 
-public sealed class AssistantController : IAssistantToolHost, IDisposable
+public sealed partial class AssistantController : IAssistantToolHost, IDisposable
 {
     private readonly AssistantControllerOptions o;
     private readonly object gate = new();
@@ -292,6 +292,7 @@ public sealed class AssistantController : IAssistantToolHost, IDisposable
         }
         catch (Exception error) when (error is not OperationCanceledException) { return; }
         lock (gate) grants.Add(grant);
+        GrantsChanged?.Invoke(); // AS-8: Settings › Assistant keeps them (ED-NEW-dextra-as8-8)
     }
 
     // ---- IAssistantToolHost (the nth-dextra tools) ----
