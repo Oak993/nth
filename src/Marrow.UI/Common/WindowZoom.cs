@@ -52,13 +52,14 @@ public static class WindowZoom
         return _ =>
         {
             var scaling = window.RenderScaling;
-            var before = window.FrameSize ?? window.ClientSize;
+            var before = window.ClientSize;
             // Taken afresh when the window was moved since the last frame (an alert can be dragged); kept exactly otherwise, so the
             // rounding of each frame's position never walks the window off its centre.
             if (centre is null || window.Position != placed)
                 centre = (window.Position.X + before.Width * scaling / 2, window.Position.Y + before.Height * scaling / 2);
+            // The size the window takes for its content at the new scale: the layout's, which the platform's resize then follows.
             window.UpdateLayout();
-            var after = window.FrameSize ?? window.ClientSize;
+            var after = window.DesiredSize.Width > 0 && window.DesiredSize.Height > 0 ? window.DesiredSize : window.ClientSize;
             placed = new PixelPoint((int)Math.Round(centre.Value.X - after.Width * scaling / 2), (int)Math.Round(centre.Value.Y - after.Height * scaling / 2));
             window.Position = placed;
         };

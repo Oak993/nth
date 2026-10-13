@@ -160,10 +160,14 @@ public sealed class TourWindowController
 
         // ED-NEW-textsize-1: the tour card is drawn at the app zoom of the main window, as every other surface of the app.
         var zoom = Marrow.UI.Common.AppZoom.ScaleOfWindow(mainWindow);
+        // ED-NEW-perf-motion-12: the card leaves the window's content before it goes into its zoom layout (a control has one logical
+        // parent): put in the layout while still the window's content, it lost that parent when the layout replaced it, and showing
+        // the window threw ("AttachedToLogicalTreeCore called for 'TourView' but control has no logical parent"; WindowZoomFollowTests, at 100 %).
+        createdWindow.Content = null;
         var zoomed = Marrow.UI.Common.AppZoom.Zoomed(rootView, zoom);
+        createdWindow.Content = zoomed;
         if (!ReferenceEquals(zoomed, rootView))
         {
-            createdWindow.Content = zoomed;
             createdWindow.Width = width * zoom;
             createdWindow.Height = totalHeight * zoom;
         }

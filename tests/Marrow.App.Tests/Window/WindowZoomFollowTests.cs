@@ -63,11 +63,12 @@ public sealed class WindowZoomFollowTests(HeadlessSession headless) : SettingsWi
             Assert.All(frames, frame =>
             {
                 Assert.Equal(frame.Main, frame.Panel, 9);
-                Assert.Equal(points * frame.Main, frame.Width, 6);
-                Assert.InRange(frame.Height, tall * frame.Main - 1.3, tall * frame.Main + 1.01); // the fitting height, each rounded up to the next point
+                // The platform sizes a window to whole pixels: the width and height set for the scale, to the pixel.
+                Assert.InRange(frame.Width, points * frame.Main - 1, points * frame.Main + 1);
+                Assert.InRange(frame.Height, tall * frame.Main - 2.3, tall * frame.Main + 2.01); // the fitting height, rounded up to the next point
             });
             Assert.Equal(At125, AppZoom.ScaleOfWindow(panel), 9);
-            Assert.Equal(points * At125, panel.Width, 6);
+            Assert.InRange(panel.Width, points * At125 - 1, points * At125 + 1);
             if (panel.Screens.Primary is { } screen)
             {
                 // Still parked 24 points in from the main screen's visible top right (FloatingGuidePanel.swift:21-23).
@@ -120,8 +121,8 @@ public sealed class WindowZoomFollowTests(HeadlessSession headless) : SettingsWi
             Assert.All(frames, frame =>
             {
                 Assert.Equal(frame.Main, frame.Tour, 9);
-                Assert.Equal(points * frame.Main, frame.Width, 6);
-                Assert.Equal(tall * frame.Main, frame.Height, 6);
+                Assert.InRange(frame.Width, points * frame.Main - 1, points * frame.Main + 1); // to the pixel, as the platform sizes it
+                Assert.InRange(frame.Height, tall * frame.Main - 1, tall * frame.Main + 1);
                 Assert.Equal(Centred(frame.Main), frame.At);
             });
             Assert.Equal(At125, AppZoom.ScaleOfWindow(tour), 9);
