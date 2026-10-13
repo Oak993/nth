@@ -16,6 +16,7 @@ using Path = Avalonia.Controls.Shapes.Path;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Marrow.App.Safety;
 using Marrow.Core.Port.Assistant;
 using Marrow.UI.Chrome;
@@ -57,6 +58,12 @@ public sealed record AssistantHomeParts(IMissionJobs Jobs, IDecisionSource Decis
 
     /// <summary>The voice button (the voice unit's); null hides it.</summary>
     public Action? Talk { get; init; }
+
+    /// <summary>The voice conversation (AS-18): its sheet opens over the conversation column. Null: no sheet.</summary>
+    public VoiceConversation? Voice { get; init; }
+
+    /// <summary>The talk chord as the owner has it, for the sheet's hint.</summary>
+    public Func<string>? TalkChord { get; init; }
 
     /// <summary>The first-run card while first run is not done (null once it is).</summary>
     public Func<Control?>? FirstRun { get; init; }
@@ -116,6 +123,10 @@ public sealed class AssistantHomeView : Decorator
     private readonly TextBlock caption = TaskLook.Text("", 12, SwiftFont.Weight.Regular, TaskLook.Ink2);
     private readonly WrapPanel chips = new() { Orientation = Orientation.Horizontal, ItemSpacing = 6, LineSpacing = 6, Margin = new Thickness(16, 4, 16, 8) };
     private readonly Border firstRun = new();
+    private readonly Decorator voiceLayer = new() { IsVisible = false };
+    private Control? conversationBody;
+    private IInputElement? voiceReturn;
+    private bool voiceWasOpen;
     private MotionScope.Entry? budget;
     private bool stacked;
 
@@ -177,7 +188,16 @@ public sealed class AssistantHomeView : Decorator
         convo.Children.Add(firstRun);
         convo.Children.Add(chips);
         if (chat is not null) { Grid.SetRow(chat, 3); convo.Children.Add(chat); }
-        conversation.Child = convo;
+        // ---- the voice sheet (AS-18, 2.4): a glass sheet over the conversation column; the thread steps back under it ----
+        conversationBody = convo;
+        if (parts.Voice is { } voice)
+        {
+            VoiceSheet = new VoiceSheet(voice, parts.TalkChord);
+            VoiceSheet.Closed += GiveFocusBack;
+            voiceLayer.Child = VoiceSheet;
+            conversation.Child = new Panel { Children = { convo, voiceLayer } };
+        }
+        else conversation.Child = convo;
         AutomationProperties.SetName(conversation, "Conversation");
         AutomationProperties.SetControlTypeOverride(conversation, AutomationControlType.Group);
 
@@ -215,6 +235,9 @@ public sealed class AssistantHomeView : Decorator
     }
 
     public ArmillaMark HeaderMark { get; }
+
+    /// <summary>The voice sheet over the conversation, or null when the home was made without a voice.</summary>
+    public VoiceSheet? VoiceSheet { get; }
 
     public ArmillaMark HeroMark { get; }
 
@@ -261,6 +284,12 @@ public sealed class AssistantHomeView : Decorator
         base.OnAttachedToVisualTree(e);
         parts.Jobs.Changed += Refresh;
         parts.Controls.Changed += Refresh;
+        if (parts.Voice is { } voice)
+        {
+            voice.Changed -= OnVoice;
+            voice.Changed += OnVoice;
+            OnVoice();
+        }
         if (TopLevel.GetTopLevel(this) is { } top)
         {
             budget = MotionScope.For(top).Join(ArmillaListRank.Header, () => (HeaderMark.Moves ? 1 : 0) + (HeroShown && HeroMark.Moves ? 1 : 0), () => IsEffectivelyVisible, calm =>
@@ -279,8 +308,38 @@ public sealed class AssistantHomeView : Decorator
         base.OnDetachedFromVisualTree(e);
         parts.Jobs.Changed -= Refresh;
         parts.Controls.Changed -= Refresh;
+        if (parts.Voice is { } voice) voice.Changed -= OnVoice;
         budget?.Leave();
         budget = null;
+    }
+
+    // The sheet opens or closes with the conversation: the thread's copy of Armilla steps back, the conversation under the glass is skipped by Tab, and the keyboard
+    // goes to the sheet, then back to where it was when the sheet closes (Escape closes the sheet and returns the focus to the opener).
+    private void OnVoice()
+    {
+        var open = parts.Voice?.IsOpen == true;
+        if (open == voiceWasOpen) return;
+        voiceWasOpen = open;
+        voiceLayer.IsVisible = open;
+        if (conversationBody is not null)
+        {
+            conversationBody.IsHitTestVisible = !open;
+            KeyboardNavigation.SetTabNavigation(conversationBody, open ? KeyboardNavigationMode.None : KeyboardNavigationMode.Continue);
+        }
+        if (open)
+        {
+            voiceReturn = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement();
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => VoiceSheet?.TakeFocus());
+        }
+        else GiveFocusBack();
+        RefreshConversation();
+    }
+
+    private void GiveFocusBack()
+    {
+        var back = voiceReturn;
+        voiceReturn = null;
+        if (back is Control control && control.IsAttachedToVisualTree()) control.Focus(NavigationMethod.Tab);
     }
 
     /// <summary>Reads the missions, the toggle and the stop again.</summary>
@@ -321,7 +380,7 @@ public sealed class AssistantHomeView : Decorator
     /// <summary>The hero shows while the home thread is empty; the first-run card while first run is not done.</summary>
     public void RefreshConversation()
     {
-        hero.IsVisible = parts.ConversationEmpty?.Invoke() ?? true;
+        hero.IsVisible = (parts.ConversationEmpty?.Invoke() ?? true) && !voiceWasOpen; // the voice sheet shows the presence while it is open (2.2)
         var card = parts.FirstRun?.Invoke();
         if (!ReferenceEquals(firstRun.Child, card)) firstRun.Child = card;
         firstRun.IsVisible = card is not null;

@@ -113,6 +113,29 @@ public static partial class VoiceCardRules
         };
     }
 
+    // Words that aim a request at the card Dextra has just read out, even when no yes, no or place was said: the card's own verbs and the answers to it.
+    private static readonly HashSet<string> AimedAt = new(StringComparer.Ordinal)
+    {
+        "send", "pay", "delete", "install", "commit", "merge", "approve", "confirm", "allow", "deny", "decline", "accept", "reject", "discard", "publish", "buy", "book", "go", "ahead",
+    };
+
+    /// <summary>
+    /// Whether the words are aimed at <paramref name="card"/> (the one Dextra has just read out): a yes, a no or a place, a word of the action itself
+    /// ("send it"), a name for one of its options, or any answer to a free-text question. Words that are not go to Dextra as an ordinary request, and the
+    /// card is left to the screen. Aimed words are still only answered by <see cref="Decide"/>.
+    /// </summary>
+    public static bool Targets(DecisionItem card, VoiceCommand command, string? spoken)
+    {
+        ArgumentNullException.ThrowIfNull(card);
+        ArgumentNullException.ThrowIfNull(command);
+        if (command.Kind is VoiceCommandKind.Yes or VoiceCommandKind.No or VoiceCommandKind.Ordinal) return true;
+        var words = VoiceCommands.Normalise(spoken);
+        if (words.Count > 0 && words.Count <= 6 && words.Any(AimedAt.Contains)) return true;
+        if (!VoiceMayAnswer(card)) return false;
+        if (card.Options.Count > 0) return Pick(card, command, spoken) is not null;
+        return card.Kind == DecisionKind.Question && words.Count > 0 && command.Kind == VoiceCommandKind.None;
+    }
+
     /// <summary>What a spoken command does to a card (the card is the one Dextra has just read out).</summary>
     public static VoiceCardMove Decide(DecisionItem card, VoiceCommand command, string? spoken)
     {

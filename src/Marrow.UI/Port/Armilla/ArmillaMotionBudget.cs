@@ -7,8 +7,11 @@
 // A list that is not shown costs nothing.
 namespace Marrow.UI.Port.Armilla;
 
-/// <summary>The lists a view hands the budget to, in the order it gives it out (the canvas's LIST_RANK).</summary>
-public enum ArmillaListRank { Board = 0, Result = 1, Header = 2, Other = 3 }
+/// <summary>
+/// The lists a view hands the budget to, in the order it gives it out (the canvas's LIST_RANK). Voice is the open voice sheet's mark (Dextra AS-18,
+/// ED-NEW-dextra-as18-10): while the sheet is open it is the one thing the owner looks at, so it is given its motion before every list.
+/// </summary>
+public enum ArmillaListRank { Voice = -1, Board = 0, Result = 1, Header = 2, Other = 3 }
 
 /// <summary>One list as the budget sees it: its rank, how many of its marks move now, whether it is shown.</summary>
 public sealed record ArmillaListCost(ArmillaListRank Rank, int Moving, bool Shown = true);

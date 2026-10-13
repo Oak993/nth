@@ -1328,12 +1328,19 @@ public sealed partial class AppModel : MainActorModel
         Notify(id, thread.Title, "Waiting for your decision.");
     }
 
+    /// <summary>
+    /// PORT-ONLY (Dextra AS-18, ED-NEW-dextra-as18-8): a chat's turn ended (the thread, how it ended, whether another turn follows). Raised on the main
+    /// thread, after the Assistant's own taps. The voice conversation waits on it for the answer it speaks.
+    /// </summary>
+    public event Action<Guid, TurnStatus, bool>? ThreadTurnFinished;
+
     // AppModel.swift:1173-1216. Swift: turnFinished(_:status:continues:).
     public void TurnFinished(Guid id, TurnStatus status, bool continues) // AppModel.swift:1173-1216
     {
         if (IgnisTurnFinished(id, status)) return; // PORT-ONLY: Ignis (ED-NEW-ignis-runtime): a hidden keep-warm ping ends silently
         AssistantTaps.TapTurnFinished(id, status, continues); // PORT-ONLY (AS-2, ED-NEW-dextra-as2-8): the Assistant's live feed
         Dextra?.OnTurnFinished(id, status, continues); // PORT-ONLY (AS-5): a mission's lead or reviewer moves its mission on
+        ThreadTurnFinished?.Invoke(id, status, continues); // PORT-ONLY (AS-18, ED-NEW-dextra-as18-8): the voice conversation waits on its chat's turn
         var thread = Thread(id);
         var isVisible = IsApplicationActive() && thread is not null && IsOnScreen(thread);
         var isHead = thread?.IsHydraHead == true;

@@ -120,6 +120,7 @@ public sealed class SpeechOut : IDisposable
     private readonly Func<ISpeechPlayer> players;
     private readonly VoiceEchoReference reference;
     private readonly SpeechOutOptions options;
+    private readonly Func<string?>? voicePick;
     private readonly Lock gate = new();
     private readonly List<string> spoken = [];
     private CancellationTokenSource? current;
@@ -128,8 +129,10 @@ public sealed class SpeechOut : IDisposable
     private Turn? turn;
     private bool disposed;
 
-    public SpeechOut(ISpeechSynth synth, Func<ISpeechPlayer> players, VoiceEchoReference reference, SpeechOutOptions? options = null)
+    /// <param name="voice">The owner's pick of voice, read at each reply (Settings can change it while the app runs); null leaves it to <paramref name="options"/>.</param>
+    public SpeechOut(ISpeechSynth synth, Func<ISpeechPlayer> players, VoiceEchoReference reference, SpeechOutOptions? options = null, Func<string?>? voice = null)
     {
+        voicePick = voice;
         this.synth = synth ?? throw new ArgumentNullException(nameof(synth));
         this.players = players ?? throw new ArgumentNullException(nameof(players));
         this.reference = reference ?? throw new ArgumentNullException(nameof(reference));
@@ -225,7 +228,7 @@ public sealed class SpeechOut : IDisposable
         }
         try
         {
-            var voice = SpeechVoices.Choose(synth.Voices(), voiceName ?? options.Voice, options.Language);
+            var voice = SpeechVoices.Choose(synth.Voices(), voiceName ?? voicePick?.Invoke() ?? options.Voice, options.Language);
             if (voice is null) return SpeechEnd.Failed;
             lock (gate) spoken.Add(text);
             var made = await synth.SynthesizeAsync(text, voice, options.Rate, cancellation.Token).ConfigureAwait(false);
