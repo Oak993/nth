@@ -687,7 +687,7 @@ public sealed partial class MissionRunner
         if (record.Mission.State is MissionState.Stopping or MissionState.Stopped)
         {
             // Stop is cutting this turn: whatever it still asks for is answered no.
-            o.Agents.Resolve(thread, request, approve: false);
+            ResolveApproval(thread, request, approve: false);
             Log(record, thread, "approval", ActionClass.Unknown, "refused: stopping", request.Title);
             return true;
         }
@@ -705,7 +705,7 @@ public sealed partial class MissionRunner
         if (record.DryRun) return DryApproval(record, thread, request, c, decision);
         if (decision.Verdict == Verdict.Deny)
         {
-            o.Agents.Resolve(thread, request, approve: false);
+            ResolveApproval(thread, request, approve: false);
             Log(record, thread, "approval", c.Class, "refused: " + decision.Rule, request.Title);
             return true;
         }
@@ -769,24 +769,24 @@ public sealed partial class MissionRunner
         if (!pending) return;
         if (!answer.Approves)
         {
-            o.Agents.Resolve(thread, request, approve: false);
+            ResolveApproval(thread, request, approve: false);
             Log(record, thread, "approval", actionClass, "denied by the owner: " + answer.Kind, request.Title, CardId(card));
             return;
         }
         if (record.Mission.State is MissionState.Stopping or MissionState.Stopped)
         {
-            o.Agents.Resolve(thread, request, approve: false);
+            ResolveApproval(thread, request, approve: false);
             Log(record, thread, "approval", actionClass, "refused: the mission was stopping when the owner's answer arrived", request.Title, CardId(card));
             return;
         }
         if (!Log(record, thread, "approval", actionClass, "allowed by the owner: " + answer.Kind, request.Title, CardId(card)))
         {
-            o.Agents.Resolve(thread, request, approve: false);
+            ResolveApproval(thread, request, approve: false);
             return;
         }
         // What the allowed step reads taints its agent before the provider runs it (12.4).
         AbsorbAgent(thread, TaintWiring.Untrusted(verdict.Classification, request.Title), writesFiles: false);
-        o.Agents.Resolve(thread, request, approve: true);
+        ResolveApproval(thread, request, approve: true);
         verdict.OnAllowed?.Invoke();
         if (answer.Kind is DecisionAnswerKind.ForThisMission or DecisionAnswerKind.Always) o.Granted?.Invoke(card, answer);
     }
@@ -1322,7 +1322,7 @@ public sealed partial class MissionRunner
             cut = [.. pendingRequests.Where(p => p.Value.Mission == id).Select(p => (p.Key.Thread, p.Value.Request))];
             foreach (var (thread, request) in cut) pendingRequests.Remove((thread, request.Id));
         }
-        foreach (var (thread, request) in cut) o.Agents.Resolve(thread, request, approve: false);
+        foreach (var (thread, request) in cut) ResolveApproval(thread, request, approve: false);
         foreach (var card in o.Queue.Of(id).Where(c => c.Kind is DecisionKind.Approval or DecisionKind.Question && c.RequestId is not null))
             o.Queue.Withdraw(card.Id, card.Kind == DecisionKind.Approval ? Withdrawn : WithdrawnQuestion);
         o.Queue.Hold(c => c.MissionId == id, DecisionHold.Stop);

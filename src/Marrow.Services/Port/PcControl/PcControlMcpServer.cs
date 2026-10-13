@@ -13,6 +13,7 @@ using Marrow.Core.Models;
 using Marrow.Core.Port.PcControl;
 using Marrow.Core.Web;
 using Marrow.Services.Web;
+using Marrow.Services.Assistant;
 
 namespace Marrow.Services.Port.PcControl;
 
@@ -23,6 +24,15 @@ namespace Marrow.Services.Port.PcControl;
 public sealed record PcRegistration(string Thread, ProviderKind Provider, string? Model, bool Vision)
 {
     public string? Head { get; init; }
+
+    /// <summary>ED-NEW-mission-pc-1: the seal's mission, independent of the head's label.</summary>
+    public Guid? MissionId { get; init; }
+
+    /// <summary>The host captured by this launch; a later host binding cannot change its authority.</summary>
+    internal IAssistantToolHost? MissionHost { get; init; }
+
+    /// <summary>One invocation's audit identity; assigned by nth, never taken from model input.</summary>
+    public string? CallId { get; init; }
 
     /// <summary>
     /// For a client whose bridge drops image parts (Pi, Command Code; ED-NEW-pcctl-41): the chat's folder where the
@@ -141,6 +151,7 @@ public sealed class PcControlMcpServer(PcRegistration? registration, Func<PcRegi
             throw new ArgumentException("Unknown nth-pc tool.");
         if (parameters?["arguments"] is { } given && given is not JsonObject) throw new ArgumentException("Tool arguments must be an object.");
         var arguments = (parameters?["arguments"] as JsonObject)?.DeepClone() as JsonObject ?? [];
+        var active = PcControlBridge.ForCall(registration!);
         var engine = web ? null : engines(registration!) ?? throw new ArgumentException("Tactus is not available here.");
 
         var key = Key(id);
@@ -156,9 +167,19 @@ public sealed class PcControlMcpServer(PcRegistration? registration, Func<PcRegi
             JsonObject content;
             try
             {
-                content = web
-                    ? await Web!.Call(registration!, name!, arguments, call.Token).ConfigureAwait(false)
-                    : Content(await engine!.Call(name!, arguments, call.Token).ConfigureAwait(false), registration!.Vision, registration.ImageFolder);
+                if (web) content = await Web!.Call(active, name!, arguments, call.Token).ConfigureAwait(false);
+                else
+                {
+                    if (!await PcControlBridge.ApproveMission(active, name!, arguments, call.Token).ConfigureAwait(false))
+                        content = Content(PcControlBridge.MissionRefusal(), active.Vision);
+                    else
+                    {
+                        call.Token.ThrowIfCancellationRequested();
+                        var result = await engine!.Call(name!, arguments, call.Token).ConfigureAwait(false);
+                        if (!PcControlBridge.CompletedMission(active, name!, arguments, PcControlBridge.Outcome(result))) result = PcControlBridge.MissionAuditFailure();
+                        content = Content(result, active.Vision, active.ImageFolder);
+                    }
+                }
             }
             catch (OperationCanceledException) when (call.IsCancellationRequested)
             {

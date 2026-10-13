@@ -49,10 +49,20 @@ public interface IDesktopGate
 {
     /// <summary>Completes when the desktop may be used for this mission; at once when it is unlocked and the owner is not in the way.</summary>
     Task WaitForDesktop(Guid mission, string title, CancellationToken cancellationToken);
+
+    /// <summary>ED-NEW-mission-pc-1: the single entry for a mission's Tactus and Visus calls, before Dextra decides them.</summary>
+    Task<bool> ApproveMission(Guid mission, string title, bool needsDesktop, Func<CancellationToken, Task<bool>> decide, CancellationToken cancellationToken);
 }
 
 public sealed class DesktopGate(IDesktopWatch watch, TimeProvider time, Func<Guid, string, CancellationToken, Task<bool>> ask, Action<Guid, string?> note) : IDesktopGate
 {
+    public async Task<bool> ApproveMission(Guid mission, string title, bool needsDesktop, Func<CancellationToken, Task<bool>> decide, CancellationToken cancellationToken)
+    {
+        if (needsDesktop) await WaitForDesktop(mission, title, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        return await decide(cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>The line the board shows while a mission waits for the unlock.</summary>
     public const string WaitingLine = "Waiting for you to unlock";
 

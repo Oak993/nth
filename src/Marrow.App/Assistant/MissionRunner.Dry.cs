@@ -29,7 +29,7 @@ public sealed partial class MissionRunner
     private bool DryApproval(MissionRecord record, Guid thread, ApprovalRequest request, Classification c, PolicyDecision decision)
     {
         var outcome = DryLogOf(record.Id).Intercept(c.Class, decision.Verdict, DryRunWords.Would(request.RequestKind, request.Title), request.Title);
-        o.Agents.Resolve(thread, request, outcome.Perform);
+        ResolveApproval(thread, request, outcome.Perform);
         Log(record, thread, "approval", c.Class, outcome.Perform ? "dry run: a real read" : "dry run: not done, listed", request.Title);
         return true;
     }

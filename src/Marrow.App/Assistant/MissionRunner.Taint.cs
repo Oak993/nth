@@ -111,11 +111,11 @@ public sealed partial class MissionRunner
         var by = decision.GrantsUsed.Count > 0 ? string.Join(",", decision.GrantsUsed.Select(g => g.ToString("D"))) : "rule:" + decision.Rule;
         if (!Log(record, thread, "approval", c.Class, "allowed: " + decision.Rule, request.Title, by))
         {
-            o.Agents.Resolve(thread, request, approve: false);
+            ResolveApproval(thread, request, approve: false);
             return;
         }
         AbsorbAgent(thread, TaintWiring.Untrusted(c, request.Title), writesFiles: false);
-        o.Agents.Resolve(thread, request, approve: true);
+        ResolveApproval(thread, request, approve: true);
         o.Agents.Note(thread, $"{AssistantNames.Assistant} allowed this for you: {RuleLine(decision.Rule)}. {decision.Reason}.");
         if (decision.GrantsUsed.Count > 0) o.GrantsUsed?.Invoke(decision.GrantsUsed, "approval:" + request.Id);
     }

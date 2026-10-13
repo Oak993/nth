@@ -148,6 +148,7 @@ public sealed class DutyHost : IDisposable
         });
         FirstCard = new FirstDutyCard(Switches);
         Desktop = new DesktopGate(o.Desktop, o.Time, AskResume, NoteWaiting);
+        controller.MissionDesktop = Desktop; // ED-NEW-mission-pc-1: the live mission gate, not only a duty helper
         Tools = new DutyTools(Scheduler, new DutyToolsOptions
         {
             ChatProject = o.ChatProject,
@@ -455,6 +456,7 @@ public sealed class DutyHost : IDisposable
             wakeTimer = null;
         }
         stopping.Cancel();
+        controller.ClearMissionDesktop(Desktop);
         timer?.Dispose();
         feedSubscription.Dispose();
         controller.Runner.Changed -= OnMission;

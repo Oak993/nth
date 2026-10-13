@@ -641,7 +641,7 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
             return;
         }
         // PORT-ONLY (Tactus, ED-NEW-pcctl-41): nth's own per-app approval governs the nth-pc tools (DESIGN.md 3.4, 4.1).
-        if ((pcServer is not null && Port.PcControl.PcProviderWiring.IsClaudeTool(name))
+        if ((configuration.Sealed is null && pcServer is not null && Port.PcControl.PcProviderWiring.IsClaudeTool(name))
             || (dextraServer is not null && Marrow.Services.Assistant.AssistantProviderWiring.IsClaudeTool(name)))
         {
             ResolveApproval(requestID, "allow");
