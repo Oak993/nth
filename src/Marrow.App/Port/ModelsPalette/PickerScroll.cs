@@ -14,12 +14,14 @@ namespace Marrow.App.Port.ModelsPalette;
 
 internal static class PickerScroll
 {
-    internal static void Apply(ScrollViewer viewer)
+    /// <param name="edgeFade">Whether the viewer gets the generic scroll-edge fade (OD-0151). A list that draws its own opacity mask passes false: two owners of one
+    /// OpacityMask replace each other's brush on every scroll and resize (ED-NEW-perf-ui2-2).</param>
+    internal static void Apply(ScrollViewer viewer, bool edgeFade = true)
     {
         viewer.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
         viewer.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
         viewer.AllowAutoHide = false;
-        viewer.Fades(top: 16, bottom: 18); // PORT-ONLY (OD-0151): rows dissolve under the search pill above and fade out below the fold (ScrollEdgeFade)
+        if (edgeFade) viewer.Fades(top: 16, bottom: 18); // PORT-ONLY (OD-0151): rows dissolve under the search pill above and fade out below the fold (ScrollEdgeFade)
         viewer.Template = new FuncControlTemplate<ScrollViewer>((v, scope) =>
         {
             var panel = new Grid { ColumnDefinitions = new ColumnDefinitions("*,12") };

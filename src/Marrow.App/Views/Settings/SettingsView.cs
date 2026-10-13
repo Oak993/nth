@@ -113,7 +113,7 @@ public static class SettingsPageExtensions
         // :66-79 var keywords: [String]
         public ValueList<string> Keywords => new(page switch
         {
-            SettingsPage.General => new[] { "permissions", "worktree", "reasoning", "thinking", "notifications", "token", "tokens", "activity", "usage", "panel", "limits", "credits", "heatmap", "daily", "weekly", "cumulative", "settle", "settled", "finish", "finished", "done", "sound", "chime", "icon", "icons", "emoji", "symbol", "symbols", "project mark", "compact", "concise", "anti-slop", "slop", "verbose", "comments", "replies" },
+            SettingsPage.General => OnThisPcSettingsSection.WithKeywords(new[] { "permissions", "worktree", "reasoning", "thinking", "notifications", "token", "tokens", "activity", "usage", "panel", "limits", "credits", "heatmap", "daily", "weekly", "cumulative", "settle", "settled", "finish", "finished", "done", "sound", "chime", "icon", "icons", "emoji", "symbol", "symbols", "project mark", "compact", "concise", "anti-slop", "slop", "verbose", "comments", "replies" }), // PORT-ONLY (nth installer PLAN.md 8a, unit U8): the section's own words join the list only where the section is shown
             SettingsPage.Appearance => new[] { "appearance", "theme", "transparency", "transparent", "opacity", "glass", "dark", "light", "accent", "tint", "catppuccin", "dracula", "tokyo", "nord", "gruvbox", "solarized", "github", "claude", "codex", "cursor", "matrix", "text", "size", "font", "zoom", "wallpaper", "sidebar" },
             SettingsPage.Models => new[] { "model", "effort", "reasoning", "fast", "slider", "picker" },
             SettingsPage.Hydra => new[] { "hydra", "heads", "subagents", "sub-agents", "agents", "team", "orchestrator", "worker", "pair", "pairs", "parallel", "delegate", "queue" },
@@ -457,6 +457,8 @@ internal sealed class SmallSwitch : Control, Avalonia.Rendering.ICustomHitTest
     internal readonly record struct Look(double Position, double Lights, double Scale, double Hover, double Deep);
 
     private readonly Binding<bool> isOn;
+    /// <summary>PORT-ONLY (nth installer PLAN.md 8a, unit U8): a change the owner of the state makes from outside (a scan found the desktop changed) moves the switch without animation.</summary>
+    internal Func<bool>? StillWhen { get; set; }
     private bool pressed;
     private IPointer? held; // the pointer the press captured, released when the switch is disabled mid-press
     private bool keyboardFocus;
@@ -486,7 +488,7 @@ internal sealed class SmallSwitch : Control, Avalonia.Rendering.ICustomHitTest
         ActualThemeVariantChanged += (_, _) => InvalidateVisual(); // the focus ring takes the appearance's colour
         this.Track(() => isOn.Value, value =>
         {
-            var still = !primed; primed = true;
+            var still = !primed || StillWhen?.Invoke() == true; primed = true; // StillWhen: PORT-ONLY (nth installer PLAN.md 8a, unit U8), a change made from outside moves the switch without animation
             position.Set(value ? 1 : 0, still ? null : Slide); lights.Set(value ? 1 : 0, still ? null : LightNow());
         });
         // Space turns it. Return does not: it stays the window's or the sheet's default action (the revert confirmation's Revert,
@@ -750,6 +752,7 @@ internal sealed class GeneralSettingsPage : Decorator
             var settleDim = new AnimatedScalar(settle, 1, value => settle.Opacity = value);
             settle.Track(() => s.ThreadFinishAction, value => { settle.IsEnabled = value == ThreadFinishAction.Settle; settleDim.Set(value == ThreadFinishAction.Settle ? 1 : 0.5, Transaction.Current); });
             root.Children.Add(new ChromeSection("Finished threads", () => new ChromeCard(() => Rows(finish, settle)))); // :393-411
+            if (OnThisPcSettingsSection.IsAvailable) root.Children.Add(new OnThisPcSettingsSection()); // PORT-ONLY (nth installer PLAN.md 8a, unit U8): "On this PC", shown in a Velopack install only
         });
     }
 }

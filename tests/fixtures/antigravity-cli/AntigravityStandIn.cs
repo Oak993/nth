@@ -25,6 +25,7 @@
 //   turn-<m>.jsonl          lines written to stdout after the m-th stdin line (0-based); otherwise turn.jsonl.
 //   turn-<m>.stderr         written to stderr after the m-th line's stdout lines.
 //   exit-after-turn-<m>     when present, the run exits after answering the m-th line, with the status it holds.
+//   ignore-eof             when present, a closed stdin does not end a session run (only a terminate or the 20 s idle limit does).
 // The session run exits when stdin closes, or on its own after 20 real seconds with no new line, so a test that
 // never stops its session does not leave the process running for the rest of the suite.
 // Without AGY_STANDIN_DIR set, the run does nothing and exits 0.
@@ -167,7 +168,7 @@ internal static class AntigravityStandIn
             }
             if (text == null)
             {
-                if (isClosed) break;
+                if (isClosed && !File.Exists(Path.Combine(dir, "ignore-eof"))) break;
                 continue;
             }
             string captured = Path.Combine(dir, "captured-" + call + "-" + message + ".txt");

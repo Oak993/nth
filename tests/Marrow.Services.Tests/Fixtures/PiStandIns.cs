@@ -102,6 +102,9 @@ public sealed class PiScript
         return lines;
     }
 
+    /// <summary>A closed stdin no longer ends the run: only a terminate (or the stand-in's own 60 s limit) does (ED-NEW-perf-ui-thread-7).</summary>
+    public void IgnoreEndOfInput() => File.WriteAllText(Path.Combine(ControlDirectory, "ignore-eof"), "1", Utf8);
+
     /// <summary>Whether the run's stdin has closed.</summary>
     public bool SawEndOfInput => File.Exists(Path.Combine(ControlDirectory, "eof.txt"));
 

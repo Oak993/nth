@@ -69,4 +69,28 @@ public sealed class OpenRouterPickerMaskEquivalenceTests(HeadlessSession headles
         Assert.True(plain.Distinct().Count() > 4, "the run moves the fades"); // the script really changes the mask
         Assert.True(keptMasks < plainMasks, $"the mask is kept while the fades stand ({keptMasks} masks against {plainMasks})");
     });
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-lean-19")] // ED-NEW-perf-ui2-2
+    [Trait("Decision", "OD-0151")]
+    public void The_pickers_own_mask_is_the_only_owner_of_the_lists_opacity_mask() => headless.OnUiThread(() =>
+    {
+        using var platform = Marrow.UI.Chrome.Chrome.ReduceMotionPlatform.Override(new RenderingGeniePlatform());
+        using var runtime = new TestRuntime(); var frames = new ManualFrameSource(); using var source = FrameClock.Source.Override(frames);
+        var picker = new OpenRouterPicker(Enumerable.Range(0, 30).Select(i => new PickerModel("acme/" + i, "Model " + i, "Acme", "#10AA60")).ToArray(), "acme/0", _ => { }, () => { });
+        var window = new Avalonia.Controls.Window { Content = picker }; window.Show();
+        try
+        {
+            window.UpdateLayout(); Dispatcher.UIThread.RunJobs();
+            var scroll = picker.GetVisualDescendants().OfType<ScrollViewer>().First();
+            // OD-0151's generic scroll-edge fade (PickerScroll) is a second writer of the same OpacityMask: each replaced the other's brush on every scroll and resize.
+            Assert.False(ScrollEdgeFade.GetIsEnabled(scroll));
+            scroll.Offset = new Vector(0, 300); window.UpdateLayout(); Dispatcher.UIThread.RunJobs();
+            for (var i = 0; i < 40; i++) { runtime.Advance(TimeSpan.FromMilliseconds(16)); frames.Advance(TimeSpan.FromMilliseconds(16)); Dispatcher.UIThread.RunJobs(); }
+            Assert.Equal(0, ScrollEdgeFade.TopStrength(scroll));
+            Assert.Equal(0, ScrollEdgeFade.BottomStrength(scroll));
+            Assert.IsType<LinearGradientBrush>(scroll.OpacityMask);
+        }
+        finally { window.Close(); }
+    });
 }

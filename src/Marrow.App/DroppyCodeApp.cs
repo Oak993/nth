@@ -61,6 +61,24 @@ public static class DroppyCodeApp
                 if (launchReady is not null) await launchReady;
                 await ToastSecondLaunch.Route(appDelegate, WindowsToastStartup.Identity, payload);
             }));
+    // PORT-ONLY (nth installer PLAN.md 3a, unit U4, ED-NEW-inst-u4-1): nth Setup's control pipe, named nth-<user SID>-control. A
+    // development build has a pipe of its own ("dev-"), tagged by its dev root when redirected (ED-212), so it never answers an installer.
+    internal static string ControlPipeName(string userSid) =>
+        DevDataRoot.KernelObjectName(NthControl.PipeName(userSid, AppInfo.Current.IsDevelopment));
+
+    /// <summary>
+    /// Starts answering nth Setup. Null when the pipe cannot be made (the name is taken, or this is not Windows): nth then runs without
+    /// it, and the installer asks before it ends nth. A request that arrives before the launch has finished waits for it.
+    /// </summary>
+    internal static IDisposable? ListenForInstallerControl(AppShell shell, Task launchReady) =>
+        NthControl.CurrentUserSid() is { } sid ? NthControlServer.TryStart(ControlPipeName(sid), new NthControlHost(shell, launchReady)) : null;
+
+    /// <summary>nth Setup holds the install root while Velopack runs (<see cref="InstallHold"/>); an nth that starts inside it waits, up to <see cref="InstallHold.MaxStartWait"/>.</summary>
+    internal static void WaitForInstallerToFinish(string baseDirectory)
+    {
+        if (Program.InstalledRoot(baseDirectory) is { } root) InstallHold.WaitWhileHeld(root, InstallHold.MaxStartWait);
+    }
+
     internal static void ReceiveNotificationArguments(AppDelegate appDelegate, IReadOnlyList<string> arguments)
     {
         foreach (var argument in arguments)

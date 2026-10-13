@@ -98,6 +98,7 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
     private bool standbyActive;
     private bool standbyDiscarding;
     private bool loadCommandAvailable;
+    private int stopCount; // ED-NEW-perf-ui-thread-7: Stop calls so far
     public string? StandbyViolation { get; private set; }
     public Action<string>? OnStandbyViolation { get; set; }
 
@@ -195,9 +196,10 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
 
         // :113-134
         var child = new StdioProcess(executable.Path, arguments, configuration.WorkingDirectory.Path, environment, StdioFramer.Framing.Lines);
+        var stopsBeforeLaunch = stopCount;
         try
         {
-            child.Start(); // :121
+            await child.StartAsync(); // :121. ED-NEW-perf-ui-thread-7: CreateProcessW runs on the pool, not on the UI thread's turn.
         }
         catch (Exception error)
         {
@@ -209,6 +211,13 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
             throw new ProviderError(new ProviderError.Case.Failed($"Pi could not start: {description}"));
         }
         skillReadersExited = child.WaitForExit(); // RR-15: retained after Stop clears process
+        if (stopCount != stopsBeforeLaunch)
+        {
+            // A Stop that came while the child was being created found nothing running to end: end it now that it exists. The session stays stopped, announces
+            // nothing and keeps no reference to the child (Stop already cleared them), so there is no SessionReady after a Stop and IsRunning stays false.
+            child.Terminate();
+            return sessionID ?? "";
+        }
         process = child; // :125
         var messages = child.Messages; // :126
         readTask = MainActor.Spawn(async () => // :127-134
@@ -348,6 +357,7 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
 
     public void Stop() // :213-223
     {
+        stopCount++; // ED-NEW-perf-ui-thread-7: lets a Start that is waiting for its child to be created see that a Stop came
         stopped = true;
         process?.Terminate();
         process = null;

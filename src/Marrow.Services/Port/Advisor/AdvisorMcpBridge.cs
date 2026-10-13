@@ -42,7 +42,7 @@ public static class AdvisorMcpBridge
     private static readonly Lazy<string> pipeName = new(StartServing, LazyThreadSafetyMode.ExecutionAndPublication);
 
     /// <summary>The executable the relay entry launches: the app's own (its Main hands <see cref="Command"/> to <see cref="RunClient"/>).</summary>
-    public static Ambient<Func<string>> Executable { get; } = new(new Func<string>(() => Path.Combine(AppContext.BaseDirectory, "Marrow.App.exe")));
+    public static Ambient<Func<string>> Executable { get; } = new(new Func<string>(() => AppExecutable.Path));
 
     /// <summary>
     /// The advisor server for a session, registered for its chat; null when the chat has no advisor (AdvisorSeams.Choice

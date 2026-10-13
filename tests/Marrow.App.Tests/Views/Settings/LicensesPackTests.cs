@@ -38,7 +38,7 @@ public sealed class LicensesPackTests
                 stream.CopyTo(memory);
                 return memory.ToArray();
             }
-            Assert.NotNull(archive.GetEntry("lib/app/Marrow.App.exe")); // the documents sit beside the executable the app reads them from (AppContext.BaseDirectory)
+            Assert.NotNull(archive.GetEntry("lib/app/nth.exe")); // the documents sit beside the executable the app reads them from (AppContext.BaseDirectory)
             Assert.Equal(LicensesShippingTests.LicenseSha256, Sha256(Read("LICENSE")));
             Assert.Equal(LicensesShippingTests.TrademarkSha256, Sha256(Read("TRADEMARK.md")));
             var notices = Read("THIRD_PARTY_NOTICES.md");

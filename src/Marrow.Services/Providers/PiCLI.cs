@@ -96,7 +96,7 @@ public static class PiCLI
             StdioFramer.Framing.Lines);
         try // :58-62
         {
-            process.Start();
+            await process.StartAsync(); // ED-NEW-perf-ui-thread-7: CreateProcessW runs on the pool, not on the caller's turn.
         }
         catch (Exception error) when (SwiftTry.IsThrownError(error))
         {

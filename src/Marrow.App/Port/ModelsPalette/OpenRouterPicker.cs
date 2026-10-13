@@ -121,7 +121,7 @@ public sealed class OpenRouterPicker : Decorator
         scroll = new ScrollViewer { Content=list, HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled, VerticalScrollBarVisibility=ScrollBarVisibility.Hidden };
         if (eager < items.Count) fill = new DeferredRows(list, scroll, eager, heights, 0, i => items[i]);
         list.Children.Add(empty);
-        PickerScroll.Apply(scroll);
+        PickerScroll.Apply(scroll, edgeFade: false); // ED-NEW-perf-ui2-2: this list draws its own animated edge fades (UpdateMask); the generic ScrollEdgeFade would be a second owner of the same OpacityMask
         stack.Children.Add(scroll);
         scrollOffset=new(scroll,0,v=>scroll.Offset=new Vector(0,v));
         contentHeight=models.Count*47+groups.Count*24+2;TargetListHeight = Math.Min(440,contentHeight);
