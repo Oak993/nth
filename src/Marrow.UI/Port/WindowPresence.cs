@@ -85,6 +85,24 @@ public sealed class WindowPresence
     /// <summary>Raised on the UI thread when <see cref="Seen"/> changes.</summary>
     public event Action? Changed;
 
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-perf-idle-5). Whether any window of the app can be seen: false only when every tracked window is minimised,
+    /// cloaked, covered or the session is locked or the display off. True while none is tracked (nothing says otherwise: tests, a
+    /// host with no Win32 window). Asking starts tracking every window of the app, as <see cref="For"/> does. UI thread.
+    /// </summary>
+    public static bool AppSeen
+    {
+        get
+        {
+            if (Application.Current is not null) Install();
+            var (open, seenWindows) = Counts;
+            return open == 0 || seenWindows > 0;
+        }
+    }
+
+    /// <summary>Raised on the UI thread after any window's presence changed or a tracked window closed: <see cref="AppSeen"/> may have changed.</summary>
+    public static event Action? AppSeenChanged;
+
     /// <summary>Whether the window can be seen now (any thread).</summary>
     public bool Seen => seen;
 
@@ -145,6 +163,7 @@ public sealed class WindowPresence
         seen = value;
         if (value) Interlocked.Increment(ref seenCount); else Interlocked.Decrement(ref seenCount);
         Changed?.Invoke();
+        AppSeenChanged?.Invoke();
     }
 
     private void WindowChanged(object? sender, AvaloniaPropertyChangedEventArgs args)
@@ -202,6 +221,7 @@ public sealed class WindowPresence
         Interlocked.Decrement(ref tracked);
         window.Closed -= OnClosed;
         Windows.Remove(window);
+        AppSeenChanged?.Invoke();
         if (hwnd != 0) Volatile.Write(ref handles, [.. Volatile.Read(ref handles).Where(handle => handle != hwnd)]);
         if (events is null) return;
         window.PropertyChanged -= WindowChanged;
