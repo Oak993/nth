@@ -6,6 +6,7 @@ using Marrow.App.Views.Terminal;
 using Marrow.Core.Port;
 using Marrow.UI.Port;
 
+// Traceability uses the single-word motiondrawer alias for ledger ED-NEW-motion-drawer-N.
 namespace Marrow.App.Tests.Views.Chat;
 
 // Written for the lead only: machine WakeTimer cadence, including jitter/late frames, through the actual headless drawer scene.
@@ -18,7 +19,7 @@ public sealed class DrawerMotionLandingNativeTests(HeadlessSession headless)
     [InlineData(144, false)]
     [InlineData(60, true)]
     [InlineData(144, true)]
-    [Trait("Decision", "ED-NEW-motion-drawer-3")]
+    [Trait("Decision", "ED-NEW-motiondrawer-3")]
     public void Native_retargeted_drawer_and_partners_stay_together_and_land_on_the_machines_frames(int hertz, bool closing)
         => ChatHeadlessFixtures.Run(headless, () =>
         {

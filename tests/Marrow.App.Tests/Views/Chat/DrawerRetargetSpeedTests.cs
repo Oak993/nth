@@ -4,6 +4,7 @@ using Marrow.App.Views.Terminal;
 using Marrow.UI.Port;
 using Chrome = Marrow.UI.Chrome.Chrome;
 
+// Traceability uses the single-word motiondrawer alias for ledger ED-NEW-motion-drawer-N.
 namespace Marrow.App.Tests.Views.Chat;
 
 // The owner's CU-MOTION-DRAWER order closes ED-NEW-perf-motion-11 (3): all partners carry speed, on one clock.
@@ -15,7 +16,7 @@ public sealed class DrawerRetargetSpeedTests(HeadlessSession headless)
     [InlineData(144, false)]
     [InlineData(60, true)]
     [InlineData(144, true)]
-    [Trait("Decision", "ED-NEW-motion-drawer-1")]
+    [Trait("Decision", "ED-NEW-motiondrawer-1")]
     public void Repeated_drawer_reversals_carry_speed_and_keep_the_drawer_composer_and_bottom_panel_together(int hertz, bool trailing)
         => ChatHeadlessFixtures.Run(headless, () =>
         {
@@ -70,7 +71,7 @@ public sealed class DrawerRetargetSpeedTests(HeadlessSession headless)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    [Trait("Decision", "ED-NEW-motion-drawer-1")]
+    [Trait("Decision", "ED-NEW-motiondrawer-1")]
     public void Top_docked_panels_stay_put_while_a_drawer_reverses_at_speed(bool trailing)
         => ChatHeadlessFixtures.Run(headless, () =>
         {
@@ -86,21 +87,40 @@ public sealed class DrawerRetargetSpeedTests(HeadlessSession headless)
         });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-motion-drawer-1")]
-    public void Reduce_Motion_stills_the_drawer_and_all_its_partners_even_after_a_moving_retarget()
+    [Trait("Decision", "ED-NEW-motiondrawer-1")]
+    public void Reduce_Motion_uses_the_sources_ease_out_and_keeps_all_drawer_partners_together_after_a_retarget()
         => ChatHeadlessFixtures.Run(headless, () =>
         {
             using var rig = new DrawerMotionRig(PanelDockCorner.BottomLeading);
             rig.Toggle(true);
             rig.Frame(0.05);
+            var height = rig.Terminal.Bounds.Height;
+            var from = rig.Margin;
             EnvironmentValues.SetAccessibilityReduceMotion(rig.View, true);
             rig.Toggle(false);
-            rig.Frame(0.001);
+            Assert.Equal(from, rig.Margin);
+            var curve = Animation.EaseOut(.18);
+            var elapsed = 0d;
+            foreach (var step in new[] { .03, .03, .04, .05 })
+            {
+                rig.Frame(step); elapsed += step;
+                Assert.Equal(from + (-height - from) * curve.Progress(elapsed), rig.Margin, 6);
+                Together(rig);
+            }
+            rig.Frame(.03);
             Assert.Empty(LogicalQuery.SelfAndDescendants<TerminalPanel>(rig.View));
             Assert.Equal(rig.Resting, rig.ComposerBottom, tolerance: 1);
             Assert.Equal(rig.Gap, rig.ComposerBottom - rig.PanelBottom, tolerance: 1);
             rig.Toggle(true);
-            rig.Frame(0.001);
+            Assert.Equal(-height, rig.Margin);
+            elapsed = 0;
+            foreach (var step in new[] { .03, .03, .04, .05 })
+            {
+                rig.Frame(step); elapsed += step;
+                Assert.Equal(-height * (1 - curve.Progress(elapsed)), rig.Margin, 6);
+                Together(rig);
+            }
+            rig.Frame(.03);
             Assert.Equal(0, rig.Margin);
             Together(rig);
         });

@@ -2,13 +2,14 @@ using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
 using Chrome = Marrow.UI.Chrome.Chrome;
 
+// Traceability uses the single-word motiondrawer alias for ledger ED-NEW-motion-drawer-N.
 namespace Marrow.App.Tests.Views.Chat;
 
 [Collection("Headless")]
 public sealed class DrawerBetweenFramesTests(HeadlessSession headless)
 {
     [Fact]
-    [Trait("Decision", "ED-NEW-motion-drawer-3")]
+    [Trait("Decision", "ED-NEW-motiondrawer-3")]
     public void An_immediate_third_reversal_keeps_a_zero_frame_insertions_carried_speed()
         => ChatHeadlessFixtures.Run(headless, () =>
         {
@@ -24,7 +25,7 @@ public sealed class DrawerBetweenFramesTests(HeadlessSession headless)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    [Trait("Decision", "ED-NEW-motion-drawer-3")]
+    [Trait("Decision", "ED-NEW-motiondrawer-3")]
     public void A_reversal_before_the_first_frame_keeps_a_zero_distance_impulse_on_every_partner(bool reopening)
         => ChatHeadlessFixtures.Run(headless, () =>
         {
@@ -43,7 +44,7 @@ public sealed class DrawerBetweenFramesTests(HeadlessSession headless)
         });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-motion-drawer-3")]
+    [Trait("Decision", "ED-NEW-motiondrawer-3")]
     public void A_double_toggle_during_a_closing_overshoot_keeps_all_partners_speed()
         => ChatHeadlessFixtures.Run(headless, () =>
         {
@@ -67,7 +68,7 @@ public sealed class DrawerBetweenFramesTests(HeadlessSession headless)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    [Trait("Decision", "ED-NEW-motion-drawer-3")]
+    [Trait("Decision", "ED-NEW-motiondrawer-3")]
     public void A_drawer_retarget_between_frames_keeps_the_last_presented_point_for_every_partner(bool reopening)
         => ChatHeadlessFixtures.Run(headless, () =>
         {

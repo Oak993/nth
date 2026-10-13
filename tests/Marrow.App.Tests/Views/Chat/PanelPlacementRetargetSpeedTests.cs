@@ -7,13 +7,14 @@ using Marrow.Testing;
 using Marrow.UI.Port;
 using Chrome = Marrow.UI.Chrome.Chrome;
 
+// Traceability uses the single-word motiondrawer alias for ledger ED-NEW-motion-drawer-N.
 namespace Marrow.App.Tests.Views.Chat;
 
 [Collection("Headless")]
 public sealed class PanelPlacementRetargetSpeedTests(HeadlessSession headless)
 {
     [Fact]
-    [Trait("Decision", "ED-NEW-motion-drawer-1")]
+    [Trait("Decision", "ED-NEW-motiondrawer-1")]
     public void A_panel_replaced_mid_settle_carries_position_and_size_speed_on_one_clock()
         => ChatHeadlessFixtures.Run(headless, () =>
         {
