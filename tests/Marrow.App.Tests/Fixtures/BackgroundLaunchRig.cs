@@ -47,6 +47,8 @@ internal sealed class BackgroundLaunchRig : IDisposable
 
     public void OnMain(Action work) => harness.Main.OnMain(work);
 
+    public void Run(Func<Task> work) => harness.Main.Loop.Run(work);
+
     public AssistantTempRoot Temp { get; }
 
     public AppModel Model { get; }
