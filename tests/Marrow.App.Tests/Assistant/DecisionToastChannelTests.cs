@@ -83,7 +83,7 @@ public sealed class DecisionToastChannelTests
     {
         var platform = new RecordingToastPlatform { FailRemove = true };
         var center = new WindowsToastCenter(platform, Release);
-        Assert.Throws<InvalidOperationException>(() => center.Remove("dextra-decision-x"));
+        Assert.Throws<InvalidOperationException>(() => { _ = center.Remove("dextra-decision-x"); });
         Assert.Empty(platform.Removed);
     }
 

@@ -1,11 +1,16 @@
+using System.Runtime.InteropServices;
 using System.Xml.Linq;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Templates;
 using Marrow.App.Assistant;
+using Marrow.App.Assistant.Views;
 using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Tests.Window.Native;
 using Marrow.Core.Port.Assistant;
 using Windows.UI.Notifications;
+using static Marrow.App.Tests.Fixtures.HomeSamples;
 using N = Marrow.App.Tests.Window.Native.WindowManagerNativeMethods;
 
 namespace Marrow.App.Tests.Assistant;
@@ -14,13 +19,21 @@ namespace Marrow.App.Tests.Assistant;
 // "toasts: shown for a needs-you decision, suppressed while the home is on screen, Review opens the card". (1) A needs-you card makes a real Windows toast
 // under nth's dev identity, with its three buttons, and answering the card in the app takes it out of the action center. (2) With a real window in front
 // no toast is made for a card; with it minimised one is. (3) A press carrying a decision's userInfo travels the real named pipe and decodes to the card.
-// The owner also looks once at a real toast: Armilla's needs-you picture, "Store needs you", the card's title, "Dextra", and Allow once, Deny, Open.
+// (4) Review brings the card in front with real focus on the card and never on a button, and a real Enter on it sends nothing.
+// The owner also looks once at a real toast: Armilla's needs-you picture, "Store needs you", the card's title, "Dextra", and Allow once, Deny, Open;
+// and once in the installed app: a toast's Review brings nth forward on the Decisions tab with the card in front.
 [Collection("WindowManagerNative")]
 [Trait("Feature", "AS-9")]
 [Trait("Decision", "ED-NEW-dextra-as9-4")]
 public sealed class DecisionToastNativeTests(WindowManagerNativeSession native)
 {
+    private const byte VkReturn = 0x0D;
+    private const uint KeyUp = 0x0002;
+
     private static readonly ToastBuildIdentity Dev = ToastBuildIdentity.ForBuild(debug: true, dev: true);
+
+    [DllImport("user32.dll")]
+    private static extern void keybd_event(byte key, byte scan, uint flags, nuint extra);
 
     private static IReadOnlyList<ToastNotification> History() => ToastNotificationManager.History.GetHistory(Dev.AppId);
 
@@ -44,6 +57,21 @@ public sealed class DecisionToastNativeTests(WindowManagerNativeSession native)
             OnMain = work => work(),
         });
 
+    private (Avalonia.Controls.Window Window, TControl Content) Host<TControl>(Func<TControl> content, double width = 640, double height = 480) where TControl : Control => native.OnUi(() =>
+    {
+        var made = new Avalonia.Controls.Window { Width = width, Height = height, ShowInTaskbar = false };
+        native.Register(made);
+        made.Template = new FuncControlTemplate<Avalonia.Controls.Window>((owner, _) => new ContentPresenter { Content = owner.Content });
+        var built = content();
+        made.Content = built;
+        made.Show();
+        made.Activate();
+        return (made, built);
+    });
+
+    private void Front(Avalonia.Controls.Window window) => native.OnUi(() =>
+        WindowManagerNativeForeground.Acquire(window.TryGetPlatformHandle()?.Handle ?? throw new InvalidOperationException("NATIVE_PRECONDITION: the test window has no HWND."), native.ThreadId));
+
     [Fact]
     public void A_needs_you_card_shows_a_real_toast_with_its_three_buttons_and_answering_it_in_the_app_takes_it_out_of_the_action_center()
     {
@@ -66,7 +94,7 @@ public sealed class DecisionToastNativeTests(WindowManagerNativeSession native)
                 N.Until(() => !Up(tag), "the answered card's toast stayed in the action center", 15000);
             }
             finally { Directory.Delete(folder, recursive: true); }
-        });
+        }, nameof(A_needs_you_card_shows_a_real_toast_with_its_three_buttons_and_answering_it_in_the_app_takes_it_out_of_the_action_center), typeof(DecisionToastNativeTests));
     }
 
     [Fact]
@@ -77,16 +105,9 @@ public sealed class DecisionToastNativeTests(WindowManagerNativeSession native)
             var (center, logo, folder) = Shell();
             try
             {
-                var window = native.OnUi(() =>
-                {
-                    var made = new Avalonia.Controls.Window { Width = 600, Height = 400, ShowInTaskbar = false };
-                    native.Register(made);
-                    made.Show();
-                    made.Activate();
-                    return made;
-                });
+                var (window, _) = Host(() => new Panel());
                 N.Until(() => native.OnUi(() => window.IsActive), "the test window never became active");
-                native.OnUi(() => WindowManagerNativeForeground.Acquire(window.TryGetPlatformHandle()?.Handle ?? throw new InvalidOperationException("NATIVE_PRECONDITION: no HWND."), native.ThreadId));
+                Front(window);
                 var queue = new DecisionQueue();
                 // the window being active stands for "nth is in front with the home in the main area"
                 using var toasts = Toasts(queue, center, logo, () => native.OnUi(() => window.IsActive));
@@ -102,7 +123,7 @@ public sealed class DecisionToastNativeTests(WindowManagerNativeSession native)
                 queue.Answer(shown.Id, DecisionAnswer.Deny());
             }
             finally { Directory.Delete(folder, recursive: true); }
-        });
+        }, nameof(No_real_toast_is_made_while_a_real_window_is_in_front_and_one_is_made_when_it_is_minimised), typeof(DecisionToastNativeTests));
     }
 
     [Fact]
@@ -127,6 +148,35 @@ public sealed class DecisionToastNativeTests(WindowManagerNativeSession native)
             Assert.NotNull(decoded);
             Assert.Equal(card.ToString("D"), decoded.UserInfo[DecisionToastKeys.Decision]);
             Assert.Equal("review", decoded.UserInfo[DecisionToastKeys.Action]);
-        });
+        }, nameof(A_press_on_a_decision_toast_travels_the_real_pipe_and_decodes_to_the_card), typeof(DecisionToastNativeTests));
+    }
+
+    [Fact]
+    public void Review_brings_an_irreversible_card_in_front_with_real_focus_on_the_card_and_a_real_Enter_on_it_sends_nothing()
+    {
+        native.Run(_ =>
+        {
+            FakeDecisions decisions = null!;
+            var send = Irreversible("Send the reply to Sam");
+            var (window, list) = Host(() =>
+            {
+                decisions = new FakeDecisions();
+                decisions.Add(Reversible("Sign in to the shop's dashboard"));
+                decisions.Add(send);
+                return new DecisionList(decisions, new DecisionContext(decisions.Answer));
+            });
+            N.Until(() => native.OnUi(() => window.IsActive), "the test window never became active");
+            Front(window);
+
+            Assert.True(native.OnUi(() => list.Reveal(send.Id)));
+            N.Until(() => native.OnUi(() => list.Cards.Single(c => c.Item.Id == send.Id) is { } card && ReferenceEquals(window.FocusManager?.GetFocusedElement(), card.Target)),
+                "the revealed card never took the focus");
+            Assert.False(native.OnUi(() => list.Cards.Single(c => c.Item.Id == send.Id).AnswerButtons.Any(b => b.IsFocused)));
+
+            keybd_event(VkReturn, 0, 0, 0);
+            keybd_event(VkReturn, 0, KeyUp, 0);
+            Thread.Sleep(300);
+            Assert.Empty(native.OnUi(() => decisions.Answers.ToList()));
+        }, nameof(Review_brings_an_irreversible_card_in_front_with_real_focus_on_the_card_and_a_real_Enter_on_it_sends_nothing), typeof(DecisionToastNativeTests));
     }
 }
