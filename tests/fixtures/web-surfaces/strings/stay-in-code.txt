@@ -110,7 +110,7 @@ Marrow.App/Views/Browser/VisusToolbar.cs	Ctrl+T
 Marrow.App/Views/Browser/VisusToolbar.cs	Esc
 Marrow.App/Views/Browser/VisusToolbar.cs	Picker
 Marrow.App/Views/Chat/InlineWebWidget.cs	Auto,*,Auto
-Marrow.App/Views/Chat/InlineWebWidget.cs	Auto,Auto
+Marrow.App/Views/Chat/InlineWebWidget.cs	Auto,Auto,Auto
 Marrow.App/Views/Chat/InlineWebWidget.cs	Auto,Auto,Auto,Auto,*,Auto
 Marrow.App/Views/Chat/InlineWebWidget.cs	WebSlot
 Marrow.App/Views/Chat/LiveAnswerRow.cs	CSV
