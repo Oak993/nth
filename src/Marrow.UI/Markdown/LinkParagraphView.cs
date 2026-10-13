@@ -586,6 +586,12 @@ public sealed class LinkTextView : Decorator
     // :355-357 func hasLink(at point: CGPoint) -> Bool
     public bool HasLink(Point at) => LinkAndRange(at) is not null;
 
+    /// <summary>
+    /// PORT-ONLY (web surfaces W10, ED-NEW-web-w10-2): true when a pointer event is over a link of this text, wherever the event is delivered.
+    /// A chat's message menu uses it to leave a Ctrl+click on a link to the link itself.
+    /// </summary>
+    public bool IsOverLink(Avalonia.Input.PointerEventArgs e) => TextHost is { } block && LinkAndRange(e.GetPosition(block)) is not null;
+
     // :360-362 func link(at point: CGPoint) -> URL?
     public SwiftURL? Link(Point at) => LinkAndRange(at)?.Url;
 
