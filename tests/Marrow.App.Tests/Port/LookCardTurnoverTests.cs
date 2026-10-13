@@ -394,22 +394,28 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
         var size = (canvas.Bounds.Height - gap * (Marrow.Services.Store.TokenActivityGrid.Rows - 1)) / Marrow.Services.Store.TokenActivityGrid.Rows;
         var columns = (int)Math.Round((canvas.Bounds.Width + gap) / (size + gap));
         var cell = canvas.TranslatePoint(new Point(columns * 2 / 5 * (size + gap) + size / 2, size / 2), window)!.Value;
-        var frames = TurnsOverWithoutACut(SettingsPage.General, rig, window, () => application.RequestedThemeVariant = ThemeVariant.Light);
-        // The cell (Chrome.overlay(0.07) over the easing window) on the curve every frame: [0] before, [^1] the end.
+        var glassFrom = GlassInputs(window);
+        var glassFrames = new List<(double Darkness, Color Tint)>();
+        var frames = TurnsOverWithoutACut(SettingsPage.General, rig, window, () => application.RequestedThemeVariant = ThemeVariant.Light,
+            () => glassFrames.Add(GlassInputs(window)));
+        GlassEases(glassFrom, GlassInputs(window), glassFrames);
+        // The cell (Chrome.overlay(0.07) over the easing glass) at every frame: [0] before, [^1] the end.
         var (px, py) = ((int)cell.X, (int)cell.Y);
+        // ED-NEW-gatefix3-4: the approved canvas scrim composites light according to luminance.
+        // Pin its composed RGBA exactly at all 25 timestamps; the glass inputs still follow the original ease.
+        var approvedCell = Convert.FromHexString("131315C91A1A1CCA262626CA393939CB4D4D4DCC606062CD727272CD818181CC8C8C8CCA959595CA9C9C9CC9A3A3A3C9A7A7A7C8ABABABC8AFAFAFC7B1B1B1C7B4B4B4C7B5B5B5C6B5B5B5C6B5B5B5C6B5B5B5C6B5B5B5C6B5B5B5C6B5B5B5C6B5B5B5C6");
+        Assert.Equal(approvedCell, frames.Skip(1).Take(25).SelectMany(f => Enumerable.Range(0, 4)
+            .Select(c => (byte)At(f, px, py, c))).ToArray());
         for (var k = 0; k < frames.Count - 2; k++)
             for (var c = 0; c < 4; c++)
             {
-                var from = At(frames[0], px, py, c);
-                var to = At(frames[^1], px, py, c);
-                var expected = from + (to - from) * Ease(k);
                 var seen = At(frames[k + 1], px, py, c);
-                Assert.True(Math.Abs(seen - expected) <= 0.03 * Math.Abs(to - from) + 1.5, $"heatmap cell ({px}, {py}) channel {c} frame {k}: {seen}, curve {expected:F1} ({from} to {to})");
+                Assert.Equal(approvedCell[k * 4 + c], seen);
             }
     });
 
     // The frames of the turnover (the change's own first), checked: none cuts, and it ends as a fresh drawing would.
-    private static List<(byte[] Pixels, int Width, int Height, int Stride)> TurnsOverWithoutACut(SettingsPage page, SettingsRiseRig rig, HostWindow window, Action change)
+    private static List<(byte[] Pixels, int Width, int Height, int Stride)> TurnsOverWithoutACut(SettingsPage page, SettingsRiseRig rig, HostWindow window, Action change, Action? captureInputs = null)
     {
         // A page still filling in (a list loading in the background) is let settle first: two frames alike in a row.
         var pre = Capture(window);
@@ -425,10 +431,12 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
         change();
         Drain(window);
         var frames = new List<(byte[] Pixels, int Width, int Height, int Stride)> { Capture(window) };
+        captureInputs?.Invoke();
         for (var k = 1; k <= 24; k++)
         {
             Step(rig, window);
             frames.Add(Capture(window));
+            captureInputs?.Invoke();
         }
         Step(rig, window, 40);
         var end = Capture(window);
