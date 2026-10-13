@@ -215,6 +215,19 @@ public sealed class MCPStdioConnection
         return connection;
     }
 
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-perf-ui-thread-7). <see cref="Launch"/> with the child created on the pool (<see cref="StdioProcess.StartAsync"/>), for a caller on the UI thread's turn
+    /// (the connection probe). A launch failure reaches the awaiting caller as the same exception. The hub's own clients run on an actor strand over the pool, not the UI thread, and keep Launch.
+    /// </summary>
+    public static async Task<MCPStdioConnection> LaunchAsync(string executable, IReadOnlyList<string> arguments, IReadOnlyDictionary<string, string> environment)
+    {
+        var process = new StdioProcess(executable, arguments, LoginEnvironment.HomeDirectory, environment);
+        var connection = new MCPStdioConnection(process);
+        await process.StartAsync();
+        connection.Read();
+        return connection;
+    }
+
     // :152-154. ED-126/ED-194: the stop ladder (close stdin, terminate, +3s pid-only kill); the job object is
     // never used here, only at quit (MCPLiveProcesses, lane A15).
     public void Stop() => Process.Terminate();

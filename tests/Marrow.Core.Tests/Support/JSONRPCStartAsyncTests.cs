@@ -63,4 +63,42 @@ public sealed class JSONRPCStartAsyncTests
 
         Assert.False(process.IsRunning);
     }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // ED-NEW-perf-ui-thread-7: the order ED-NEW-perf-ui-thread-6 could not hold, now held by the launch seam: the Close comes while the child is still being created
+    public void A_close_that_comes_while_the_child_is_being_created_ends_it_once_it_exists()
+    {
+        using var runtime = new TestRuntime();
+        var released = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var launches = 0;
+        using var scope = StdioProcess.LaunchRunner.Override((_, launch) => Task.Run(async () =>
+        {
+            await released.Task;
+            launch();
+            Interlocked.Increment(ref launches);
+        }));
+        // A child that ignores its stdin: the Close below shuts stdin before the child exists, so only a Terminate can end it before its 60 s.
+        var process = new StdioProcess(SystemTools.PowerShell, SystemTools.PowerShellEncoded("Start-Sleep -Seconds 60"), Environment.CurrentDirectory,
+            Environment.GetEnvironmentVariables().Cast<System.Collections.DictionaryEntry>().ToDictionary(e => (string)e.Key, e => (string)e.Value!, StringComparer.OrdinalIgnoreCase));
+        var connection = new JSONRPCConnection(process, sendsVersion: true);
+        Task? start = null;
+
+        runtime.OnMain(() =>
+        {
+            start = connection.StartAsync();
+            connection.Close(); // the child does not exist yet: this Close ends nothing
+        });
+        Assert.False(process.IsRunning);
+        Assert.Equal(0, Volatile.Read(ref launches));
+
+        released.SetResult();
+        runtime.Loop.Run(() => start!, Bound);
+        Assert.Equal(1, Volatile.Read(ref launches));
+        Assert.True(process.ProcessIdentifier > 0);
+        var due = runtime.Time.Elapsed + TimeSpan.FromSeconds(3); // a Terminate of a running child arms the forced kill 3 s later on the test clock; a Close before the launch arms nothing
+        runtime.Loop.RunUntil(() => runtime.Time.TimerDeadlines.Contains(due), Bound);
+        runtime.Advance(TimeSpan.FromSeconds(3));
+        runtime.Loop.RunUntil(() => !process.IsRunning, TimeSpan.FromSeconds(15));
+        Assert.False(process.IsRunning);
+    }
 }

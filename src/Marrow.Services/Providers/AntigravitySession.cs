@@ -115,7 +115,10 @@ public sealed class AntigravitySession : ProviderSession, Port.Skills.Providers.
         var process = new StdioProcess(executable.Path, arguments, configuration.WorkingDirectory.Path, environment); // :96-101
         this.process = process; // :102
         isStopping = false;     // :103
-        process.Start();        // :104
+        await process.StartAsync(); // :104. ED-NEW-perf-ui-thread-7: CreateProcessW runs on the pool, not on the UI thread's turn.
+        // A Stop or an Interrupt that came while the child was being created found nothing running to end: end it now that it exists. The reader below then
+        // fails the start through DidClose, as it does for a Stop that comes while the session waits for the init line.
+        if (isStopping) process.Terminate();
         var messages = process.Messages; // :105
         readTask = MainActor.Spawn(async () => // :106-112
         {

@@ -115,7 +115,13 @@ public sealed class StdioProcess
     /// so a session started from the UI thread's turn does not hold a frame for it. Start only sets handlers and runs the launcher, none of which needs the caller's thread; a failure
     /// to start reaches the awaiting caller as the same exception.
     /// </summary>
-    public Task StartAsync() => Task.Run(Start);
+    public Task StartAsync() => LaunchRunner.Current(this, Start);
+
+    /// <summary>
+    /// PORT-ONLY test seam (ED-NEW-perf-ui-thread-7). How <see cref="StartAsync"/> schedules the launch: the pool by default. A test overrides it for its own flow to hold the launch,
+    /// to see which thread makes it, or to place a Stop inside the window in which the child does not exist yet. It gets the process and the launch itself.
+    /// </summary>
+    public static Ambient<Func<StdioProcess, Action, Task>> LaunchRunner { get; } = new(static (_, launch) => Task.Run(launch));
 
     // :90-104 (B3)
     public void Send(JSONValue message)

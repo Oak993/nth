@@ -377,7 +377,7 @@ public static partial class PlanLimitsReader
             ["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose"],
             TemporaryDirectory,
             environment);
-        try { process.Start(); } // :260-264
+        try { await process.StartAsync(); } // :260-264. ED-NEW-perf-ui-thread-7: CreateProcessW runs on the pool, not on the caller's turn.
         catch { return null; }
         // :265-269. Ending the process finishes the message stream, which is what bounds a request that never answers.
         var watchdog = MainActor.Spawn(async () =>

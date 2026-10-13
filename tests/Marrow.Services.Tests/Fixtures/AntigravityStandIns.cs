@@ -72,6 +72,9 @@ public sealed class AntigravityScript
         Directory.CreateDirectory(ControlDirectory);
     }
 
+    /// <summary>A closed stdin no longer ends a session run: only a terminate (or the stand-in's own 20 s idle limit) does (ED-NEW-perf-ui-thread-7).</summary>
+    public void IgnoreEndOfInput() => Set("ignore-eof", "1");
+
     /// <summary>The environment entry that points the stand-in at this instance's control folder.</summary>
     public KeyValuePair<string, string> EnvironmentEntry => new("AGY_STANDIN_DIR", ControlDirectory);
 

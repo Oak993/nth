@@ -131,7 +131,7 @@ public static class MCPProbe
         foreach (var (key, value) in server.Env) environment[key] = value;
 
         // :94-95. ED-194: termination is MCPStdioConnection.Stop's pid-only ladder (3 s), no job-object kill here.
-        var connection = MCPStdioConnection.Launch(executable, server.Args, environment);
+        var connection = await MCPStdioConnection.LaunchAsync(executable, server.Args, environment); // ED-NEW-perf-ui-thread-7: the child is created on the pool
         try
         {
             // :97-114

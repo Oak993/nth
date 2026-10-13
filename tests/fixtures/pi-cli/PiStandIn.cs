@@ -11,6 +11,7 @@
 //   stdin-<m>.txt     written by the stand-in: the raw text of the m-th stdin line (0-based).
 //   reply-<m>.jsonl   read by the stand-in: text written to stdout right after the m-th stdin line (missing: none).
 //   eof.txt           written by the stand-in when its stdin closes.
+//   ignore-eof        when present, a closed stdin does not end the run (only a terminate or the 60 s limit does).
 // The run exits when stdin closes, or on its own after 60 real seconds, so no test leaves it running.
 // Without PI_STANDIN_DIR set, the run does nothing and exits 0.
 using System;
@@ -72,6 +73,7 @@ internal static class PiStandIn
             line++;
         }
         Write("eof.txt", new byte[] { 0x31 });
+        if (File.Exists(Path.Combine(dir, "ignore-eof"))) return; // a test that needs a child only a Terminate can end: it then runs to its 60 s limit
         done.Set();
     }
 
