@@ -72,6 +72,10 @@ public sealed class DextraSmoothStartupTests
                 Assert.True(host.EnsureStarted(mode: new StartupMode(true, null, null)) is not null, host.StartFault);
                 Assert.Equal(0, calls);
                 frames.Advance(TimeSpan.FromMilliseconds(17)); frames.Advance(TimeSpan.FromMilliseconds(17));
+                Assert.Equal(0, calls); // ED-NEW-dextra-smooth-11: hidden startup runs on a later main turn.
+            });
+            rig.OnMain(() =>
+            {
                 Assert.Equal(1, calls);
                 Assert.False(host.VoiceStartup.IsCompleted);
                 host.Stop(); Assert.True(token.IsCancellationRequested);

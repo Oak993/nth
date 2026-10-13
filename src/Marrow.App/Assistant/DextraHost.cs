@@ -42,6 +42,7 @@ public sealed class DextraHost : IDisposable
     private readonly Func<AppModel, DextraHost, VoiceStopScope, CancellationToken, Task<DextraVoice?>>? asyncVoice;
     private CancellationTokenSource? startingVoice;
     private bool voiceFrameSeen;
+    private int voiceStartEpoch;
     private Task voiceTeardown = Task.CompletedTask;
 
     /// <param name="voice">AS-18: the voice of a running controller. Null with the app's own starter gives the real one (the chord, the microphone, the PC's voices); null with a test's starter gives none.</param>
@@ -146,10 +147,19 @@ public sealed class DextraHost : IDisposable
         model.AssistantEvents.Brain = Settings.Brain(BrainProvider());
         if ((startup ?? seams) is null || explicitVoice)
         {
-            // ED-NEW-dextra-smooth-7: normal and hidden production launches share the bound frame source.
-            // The native chord thread's readiness/register waits must not precede nth's first frame.
+            // ED-NEW-dextra-smooth-11: a hidden launch has no presentation to wait for.
+            // Yield startup to a later main turn, then prepare the native chord off main as usual.
             var frames = voiceFrames ?? (production && FrameClock.IsBound ? FrameClock.Source.Current : null);
-            if ((voiceStarter is not null || asyncVoice is not null) && frames is not null)
+            if (mode?.Hidden == true && asyncVoice is not null)
+            {
+                var epoch = ++voiceStartEpoch;
+                MainActor.Post(() =>
+                {
+                    if (disposed || epoch != voiceStartEpoch || started != controller) return;
+                    StartVoice();
+                });
+            }
+            else if ((voiceStarter is not null || asyncVoice is not null) && frames is not null)
             {
                 voiceFrameSeen = false; waitingVoice = frames; frames.RequestFrame(voiceFrame);
             }
@@ -165,6 +175,7 @@ public sealed class DextraHost : IDisposable
     /// </summary>
     public void Stop()
     {
+        ++voiceStartEpoch;
         waitingVoice?.CancelFrame(voiceFrame);
         waitingVoice = null;
         startingVoice?.Cancel();
