@@ -52,6 +52,49 @@ public sealed record AssistantProfile(string Id, string Name)
 
     /// <summary>The MCP servers its missions may use.</summary>
     public ValueList<string> Connections { get; init; } = ValueList<string>.Empty;
+
+    // ---- AS-16: the rest of 9.1 (what an Astur owns and what it may spend) ----
+
+    /// <summary>A local Windows voice for its speech (AS-18 reads it); null: Dextra's.</summary>
+    public string? Voice { get; init; }
+
+    /// <summary>Its home thread (a chat whose AssistantID is this id); null until nth has made it.</summary>
+    public Guid? HomeThread { get; init; }
+
+    /// <summary>How it writes, in the owner's words ("short, plain, no emoji"); one clean line.</summary>
+    public string Style { get; init; } = "";
+
+    /// <summary>Its saved skills and workflows, by name.</summary>
+    public ValueList<string> Skills { get; init; } = ValueList<string>.Empty;
+
+    /// <summary>The standing duties it was created with (the kept ones become real duties in AS-10).</summary>
+    public ValueList<DutyDraft> Duties { get; init; } = ValueList<DutyDraft>.Empty;
+
+    /// <summary>The connections it asked for at creation, as the profile card listed them.</summary>
+    public ValueList<AsturWant> Wants { get; init; } = ValueList<AsturWant>.Empty;
+
+    /// <summary>The slice of the day it may use; null: no slice of its own (Dextra's, which has the owner's reserves and caps).</summary>
+    public AsturBudget? Budget { get; init; }
+
+    /// <summary>The provider, model and account its missions try first; null: the router chooses.</summary>
+    public AsturModel? Model { get; init; }
+
+    /// <summary>The template it was made from ("channel"), or null for one made from a sentence.</summary>
+    public string? Template { get; init; }
+
+    public DateTimeOffset? Created { get; init; }
+
+    /// <summary>The owner retired it: it is not listed, not routed to and not delegated to; its folder and notes stay until he deletes them.</summary>
+    public bool Retired { get; init; }
+
+    /// <summary>
+    /// The assistant whose browser profile this one uses, because the owner shared it explicitly (9.1 "logins never cross between
+    /// assistants unless the owner shares a profile explicitly"). Null: its own profile. One step only: a profile that borrows never lends.
+    /// </summary>
+    public string? SharesBrowserOf { get; init; }
+
+    /// <summary>The Astur's colour tint is its shape's (2.5); Dextra has none.</summary>
+    public bool IsRoot => ParentId is null;
 }
 
 /// <summary>The rules that keep an Astur no broader than its parent (9.1, 12.1).</summary>

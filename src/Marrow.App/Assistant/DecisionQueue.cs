@@ -31,6 +31,13 @@ public sealed class DecisionQueue(TimeProvider? time = null)
     public event Action? Changed;
 
     /// <summary>
+    /// Raised once for each card that is put in front of the owner (a card already waiting with the same binding raises none; an answer,
+    /// a hold and a release raise none), before <see cref="Changed"/>, on the caller's thread and outside the lock. The toast listens
+    /// (AS-9, 13.1); a listener must return at once.
+    /// </summary>
+    public event Action<DecisionItem>? Raised;
+
+    /// <summary>
     /// Says whether an answer to this card is kept until Resume instead of acting now (12.6b "Cards while paused": its
     /// task is paused). The mission runner sets it.
     /// </summary>
@@ -77,6 +84,7 @@ public sealed class DecisionQueue(TimeProvider? time = null)
             raised = item with { State = DecisionState.Open, HeldBy = null, Answer = null, Settled = null, Raised = clock.GetUtcNow() };
             entries.Add(new Entry(raised, onAnswer, check));
         }
+        Raised?.Invoke(raised);
         Changed?.Invoke();
         return raised;
     }

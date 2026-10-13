@@ -150,6 +150,7 @@ public sealed partial class AppModel : MainActorModel
             {
                 if (oldValue is { } oldID) SelectionCell(oldID).Value = false;
                 if (value is { } newID) SelectionCell(newID).Value = true;
+                if (value is not null && assistantHomeShown) AssistantHomeShown = false; // PORT-ONLY (AS-8, ED-NEW-dextra-as8-8): picking a chat leaves the Assistant home
                 SwitchLatency.NoteSwitch(value is { } selectedID ? Thread(selectedID)?.Title ?? "none" : "none");
             }
             if (value is { } selected)
@@ -1324,6 +1325,7 @@ public sealed partial class AppModel : MainActorModel
             MarkRead(id);
             return;
         }
+        if (DecisionToastCovers(thread)) return; // PORT-ONLY (AS-9, ED-NEW-dextra-as9-1): a mission chat's decision makes its toast from Dextra's queue
         Notify(id, thread.Title, "Waiting for your decision.");
     }
 
@@ -1356,7 +1358,7 @@ public sealed partial class AppModel : MainActorModel
         if (continues) return;
         var chimed = Settings.ChimeWhenFinished && status != TurnStatus.Interrupted;
         if (chimed) FinishChime.Play();
-        if (isVisible || !Settings.NotifyWhenFinished || thread is null) return;
+        if (isVisible || !Settings.NotifyWhenFinished || thread is null || DecisionToastCovers(thread)) return; // AS-9: a mission's end is a status, never a push (13.1)
         var body = status switch
         {
             TurnStatus.Completed => "Finished.",

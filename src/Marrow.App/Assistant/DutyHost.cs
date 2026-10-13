@@ -77,6 +77,12 @@ public sealed class DutyHostOptions
 
     public Action<string>? Faulted { get; init; }
 
+    /// <summary>
+    /// Tells the owner that a run of a duty set to "Notify me" found something (13.1 "Duty opt-in"; AS-9). The app binds it to the decision toasts, which
+    /// gather, space and silence it. Null: the run is on the board and nothing more.
+    /// </summary>
+    public Action<DutyFinding>? Notify { get; init; }
+
     /// <summary>The system folder for schtasks and powercfg; null is Windows'.</summary>
     public string? SystemFolder { get; init; }
 
@@ -175,6 +181,9 @@ public sealed class DutyHost : IDisposable
         quitWhenDone = o.Mode.ForOneDuty;
         if (o.Tray is { } icon) tray = DutyTray.Bind(icon, Scheduler, Switches);
     }
+
+    /// <summary>The options the host was made with (a test reads what the app bound, AS-9).</summary>
+    internal DutyHostOptions Options => o;
 
     public AssistantScheduler Scheduler { get; }
 
@@ -294,9 +303,20 @@ public sealed class DutyHost : IDisposable
             var outcome = state switch { MissionState.Done => DutyRunOutcome.Done, MissionState.Failed or MissionState.Blocked => DutyRunOutcome.Failed, _ => DutyRunOutcome.Stopped };
             Scheduler.MissionEnded(record.Id, outcome, record.Report);
             ReportToBreaker(record, outcome);
+            TellOwner(record, outcome);
         }
         if (state == MissionState.Done) Scheduler.OnEvent(DutyEvents.MissionFinished(record));
         QuitIfDone();
+    }
+
+    // A duty the owner set to "Notify me" (7.1) tells him when a run found something (13.1); every other report style leaves it to the board and the digest.
+    // The report is data (a page or a file can put words in it): the finding carries it whole, and the notice cuts and masks one line of it.
+    private void TellOwner(Marrow.Services.Assistant.MissionRecord record, DutyRunOutcome outcome)
+    {
+        if (o.Notify is not { } notify || record.DutyId is not { } dutyId || Scheduler.Find(dutyId) is not { } duty) return;
+        if (!DutyNotices.Notifies(duty, outcome, record.Report, record.DryRun)) return;
+        try { notify(new DutyFinding(record.Id, duty.Name, record.Report)); }
+        catch (Exception error) when (error is not OperationCanceledException and not OutOfMemoryException) { o.Faulted?.Invoke("A duty's news could not be sent: " + error.GetType().Name); }
     }
 
     // The breaker counts how runs end (13.2): a run that finished (even one that found nothing changed) is a success, a failed one a failure. A run the

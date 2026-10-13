@@ -27,6 +27,7 @@ public sealed class SidebarRowUpdateDotReviewTests(HeadlessSession headless) : S
             byte Alpha(string title) => Assert.IsAssignableFrom<ISolidColorBrush>(Assert.IsType<Border>(RowButton(view, title).Content).Background).Color.A;
             var hovered = Chrome.Overlay(0.06).Resolve(view.ActualThemeVariant).A; // :743
             Assert.Equal(0, Alpha("About")); // General is selected; About is clear
+            Reveal(w, h, RowButton(view, "About")); // with Ignis and the Assistant listed, the sidebar scrolls to reach About
             Hover(w, RowButton(view, "About"));
             Tick(h, 150);
             Assert.Equal(hovered, Alpha("About")); // the pointer rests on About: its hover wash is whole

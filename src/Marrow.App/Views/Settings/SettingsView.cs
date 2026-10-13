@@ -48,6 +48,7 @@ public enum SettingsPage
     [RawValue("general")] General, // :5
     [RawValue("hydra")] Hydra, // :7
     [RawValue("ignis")] Ignis, // PORT-ONLY OD-0134 (Ignis, ED-NEW-ignis-settings): directly below Hydra
+    [RawValue("assistant")] Assistant, // PORT-ONLY Dextra AS-8 (ED-NEW-dextra-as8-8): Settings › Assistant, after Ignis
     [RawValue("appearance")] Appearance, // :8
     [RawValue("customization")] Customization, // PORT-ONLY CZ-2.1
     [RawValue("voiceTyping")] VoiceTyping, // PORT-ONLY CZ-2.1, Q-CZ-1 A
@@ -75,7 +76,7 @@ public static class SettingsPageExtensions
         // :19-32 var title: String
         public string Title => page switch
         {
-            SettingsPage.General => "General", SettingsPage.Hydra => "Hydra", SettingsPage.Ignis => Marrow.Core.Port.Ignis.IgnisWords.SettingsTitle, SettingsPage.Appearance => "Appearance",
+            SettingsPage.General => "General", SettingsPage.Hydra => "Hydra", SettingsPage.Ignis => Marrow.Core.Port.Ignis.IgnisWords.SettingsTitle, SettingsPage.Assistant => Marrow.App.Assistant.Views.AssistantSettingsWords.Title, SettingsPage.Appearance => "Appearance",
             SettingsPage.Customization => "Customization", SettingsPage.VoiceTyping => "Voice typing", SettingsPage.Updates => "Updates",
             SettingsPage.Plugins => "Plugins", SettingsPage.Skills => "Skills", SettingsPage.Pills => "Pills",
             SettingsPage.Providers => "Providers", SettingsPage.Mcp => "MCP", SettingsPage.Models => "Models",
@@ -92,6 +93,7 @@ public static class SettingsPageExtensions
             // PORT-ONLY (CZ-2.1, CZ-2.1.1): names the symbol catalogue resolves (the last four through its port-added list)
             SettingsPage.Customization => "sparkles", SettingsPage.VoiceTyping => "waveform", SettingsPage.Updates => "arrow.triangle.2.circlepath",
             SettingsPage.Plugins => "powerplug", SettingsPage.Skills => "wand.and.sparkles", SettingsPage.Pills => "pill.fill",
+            SettingsPage.Assistant => "circle.dotted.circle", // PORT-ONLY AS-8: the name the catalogue resolves; the sidebar row draws Armilla still
             SettingsPage.Ignis => "flame.fill", // PORT-ONLY OD-0134: the name the catalogue resolves; the sidebar row draws Ignis's lit flame (IgnisFlameMark) as Hydra draws its own mark
         };
 
@@ -103,7 +105,7 @@ public static class SettingsPageExtensions
             SettingsPage.SourceControl => new(0.345, 0.337, 0.839), SettingsPage.Shortcuts => new(0.32, 0.48, 0.93),
             SettingsPage.Archive => Chrome.Orange, SettingsPage.About => new(0.204, 0.780, 0.349),
             // PORT-ONLY (CZ-2.1.2): the port sidebar never draws a Tint (SidebarIconBadge draws in the label colour); these arms are unused.
-            SettingsPage.Customization or SettingsPage.VoiceTyping or SettingsPage.Updates or SettingsPage.Plugins or SettingsPage.Skills or SettingsPage.Pills or SettingsPage.Ignis => Chrome.Gray,
+            SettingsPage.Customization or SettingsPage.VoiceTyping or SettingsPage.Updates or SettingsPage.Plugins or SettingsPage.Skills or SettingsPage.Pills or SettingsPage.Ignis or SettingsPage.Assistant => Chrome.Gray,
         };
 
         // :66-79 var keywords: [String]
@@ -128,6 +130,8 @@ public static class SettingsPageExtensions
             SettingsPage.Pills => new[] { "pills", "pill", "accounts", "chain", "sequence", "handshake", "fallback", "switch" },
             // PORT-ONLY OD-0134 (ED-NEW-ignis-settings): the words IgnisWords lists for the page.
             SettingsPage.Ignis => Marrow.Core.Port.Ignis.IgnisWords.SettingsKeywords.ToArray(),
+            // PORT-ONLY AS-8 (ED-NEW-dextra-as8-8): the words AssistantSettingsWords lists for the page.
+            SettingsPage.Assistant => Marrow.App.Assistant.Views.AssistantSettingsWords.Keywords.ToArray(),
         });
 
         // PORT-ONLY (first-release SA-1, OD-0103; the pattern of voice-SPEC V-2.6): whether the page unit has built it. A page that is not
@@ -137,6 +141,7 @@ public static class SettingsPageExtensions
             SettingsPage.Customization => CustomizationSettingsPage.IsReady, SettingsPage.VoiceTyping => VoiceTypingSettingsPage.IsReady,
             SettingsPage.Updates => UpdatesSettingsPage.IsReady, SettingsPage.Plugins => PluginsSettingsPage.IsReady, SettingsPage.Skills => SkillsSettingsPage.IsReady, SettingsPage.Pills => PillsSettingsPage.IsReady,
             SettingsPage.Ignis => Marrow.App.Port.Ignis.Settings.IgnisSettingsPage.IsReady,
+            SettingsPage.Assistant => Marrow.App.Assistant.Views.AssistantSettingsPage.IsReady,
             _ => true,
         };
     }
@@ -290,6 +295,7 @@ public sealed class SettingsView : Decorator
             {
                 SettingsPage.Hydra => new HydraMarkImage { Width = Chrome.SymbolSize * 1.15, Height = Chrome.SymbolSize * 1.15 },
                 SettingsPage.Ignis => new Marrow.App.Port.Ignis.Settings.IgnisFlameMark { Width = Chrome.SymbolSize * 1.15, Height = Chrome.SymbolSize * 1.15 }, // PORT-ONLY OD-0134: the design's lit flame
+                SettingsPage.Assistant => new Marrow.UI.Port.Armilla.ArmillaMark { MarkSize = Chrome.SymbolSize * 1.15, Kind = Marrow.UI.Port.Armilla.ArmillaKind.Still }, // PORT-ONLY AS-8: Armilla, still
                 _ => new SidebarSymbol(page.Symbol, page == SettingsPage.General ? 1.15 : 1),
             }); // :151-157
             if (page != SettingsPage.About) return badge;
@@ -360,6 +366,7 @@ public sealed class SettingsView : Decorator
         SettingsPage.Customization => new CustomizationSettingsPage(), SettingsPage.VoiceTyping => new VoiceTypingSettingsPage(), SettingsPage.Updates => new UpdatesSettingsPage(),
         SettingsPage.Plugins => new PluginsSettingsPage(), SettingsPage.Skills => new SkillsSettingsPage(), SettingsPage.Pills => new PillsSettingsPage(),
         SettingsPage.Ignis => new Marrow.App.Port.Ignis.Settings.IgnisSettingsPage(), // PORT-ONLY OD-0134
+        SettingsPage.Assistant => new Marrow.App.Assistant.Views.AssistantSettingsPage(), // PORT-ONLY AS-8 (ED-NEW-dextra-as8-8)
     };
 
     // :270-272 the pages that carry controls in the chrome row; a port-added page says so itself (ISettingsPageChrome).

@@ -84,6 +84,9 @@ public sealed class AssistantControllerOptions
     /// <summary>Where untrusted output is read for instructions (AS-7, ED-NEW-dextra-as7-17): off the main thread, one at a time.</summary>
     public Action<Action> ScanOn { get; init; } = AssistantController.SerialScanner();
 
+    /// <summary>The team of Asturs behind delegate_to and create_assistant (AS-16); null: the two tools say they are not part of this build.</summary>
+    public AsturSetup? Asturs { get; init; }
+
     /// <summary>How long an nth-dextra call waits for the main thread to take in the chat's earlier events (ED-NEW-dextra-as7-18).</summary>
     public TimeSpan SettleWait { get; init; } = TimeSpan.FromSeconds(10);
     /// <summary>
@@ -307,6 +310,7 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
         }
         WatchAutoAnswer();
         LoadHomeTaint();
+        StartTeam();
     }
 
     /// <summary>The cost controls (AS-15): the owner's caps, checked before every turn of a mission, beside the reserve.</summary>
@@ -475,9 +479,12 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
     private PolicyContext MissionContext(string assistantId, Guid? mission, TaintContext taint)
     {
         var now = o.Time.GetUtcNow();
-        return new PolicyContext(AssistantChain.Of(assistantId, o.Profiles()), now)
+        var chain = AssistantChain.Of(assistantId, o.Profiles());
+        return new PolicyContext(chain, now)
         {
-            Grants = new ValueList<Grant>(Grants.Where(g => g.AssistantId == assistantId)),
+            // The grants of the acting assistant and of every assistant above it: an Astur's grant counts only inside one its parents hold (9.1, AS-16).
+            // A sibling's grants are never in the context, so one Astur's sign-in is not another's.
+            Grants = new ValueList<Grant>(Grants.Where(g => chain.Any(p => p.Id == g.AssistantId))),
             MissionId = mission,
             TaintContext = taint,
             Duty = DutyScopeOf(mission),
@@ -498,7 +505,8 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
         return null;
     }
 
-    private void Granted(DecisionItem card, DecisionAnswer answer)
+    /// <summary>A grant the owner made from a card (For this mission, Always...): kept, logged with the card, unless an Astur's would be broader than Dextra's (9.1). Internal for the tests.</summary>
+    internal void Granted(DecisionItem card, DecisionAnswer answer)
     {
         Grant? grant = answer.Kind switch
         {
@@ -508,6 +516,17 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
             _ => null,
         };
         if (grant is null || GrantRules.Invalid(grant) is not null) return;
+        // 9.1: an Astur never holds a grant its parent lacks. One that Dextra's grants do not already contain is not kept, and the owner's chat says why.
+        if (GrantRefusal(grant) is { } notKept)
+        {
+            TryAudit(new AuditEntry
+            {
+                Assistant = grant.AssistantId, Mission = card.MissionId?.ToString("D"), Agent = card.ThreadId?.ToString("D"), Tool = "grant",
+                ActionClass = grant.Class.ToString(), Target = string.Join(", ", grant.Target.Values), Result = "not kept: " + notKept, AllowedBy = "card:" + card.Id.ToString("D"),
+            });
+            if (card.ThreadId is { } asked) Deliver(asked, "The owner's choice was kept for this once only, not as a grant: " + notKept);
+            return;
+        }
         // 12.5: a grant is logged with the card that made it; one that cannot be logged is not kept (ED-NEW-dextra-as5-13).
         try
         {
@@ -525,6 +544,7 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
         }
         catch (Exception error) when (error is not OperationCanceledException) { return; }
         lock (gate) grants.Add(grant);
+        GrantsChanged?.Invoke(); // AS-8: Settings › Assistant keeps them (ED-NEW-dextra-as8-8)
     }
 
     // ---- IAssistantToolHost (the nth-dextra tools) ----
@@ -701,6 +721,11 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
                 var refused = Runner.Report(chat.Thread, Text("summary") ?? "", Text("status") ?? "done", List("artifacts"));
                 return refused is null ? AssistantToolResult.Done("Reported.") : AssistantToolResult.Failed("Not reported: " + refused);
             }
+            case "delegate_to" when o.Asturs is not null:
+                return Delegate(call);
+            case "create_assistant" when o.Asturs is not null:
+                // Never from an Allow: the engine asks for every change of standing configuration, and an Astur is made only from the card the owner answers.
+                return AssistantToolResult.Failed($"Not run: an {AssistantNames.Astur} is only made from a card the owner answers.");
             case "schedule_duty" or "watch_folder" or "watch_page" when o.Duties is { } duties:
                 // 7.1: the owner's card was answered yes; the duty is made now. The words of how it went also reach the chat.
                 return duties.Create(call, text => Deliver(chat.Thread, $"{AssistantNames.Server} {call.Tool.Name}: {text}"));
@@ -729,6 +754,7 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
 
     private DecisionItem Card(AssistantToolCall call, bool offered)
     {
+        if (call.Tool.Name == "create_assistant" && o.Asturs is not null) return AsturCard(call, offered);
         // A duty's card shows what it will be: its trigger, what it does, its grants, its budget (7.1), not the raw arguments.
         IEnumerable<DecisionInput> inputs = o.Duties?.Describe(call) ?? MemoryCardInputs(call) ?? (call.Arguments.JSONValueObject is { } fields
             ? fields.Select(f => new DecisionInput(f.Key, f.Value.JSONValueString ?? f.Value.ToString()))
@@ -748,6 +774,7 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
             Class = c.Class,
             GrantTarget = c.GrantTarget,
             RequestId = call.Id,
+            Priority = offered ? DecisionPriority.Offered : DecisionPriority.NeedsYou, // AS-9: a card the owner may raise himself makes no toast
         };
         return Queue.Raise(card, (item, answer) =>
         {

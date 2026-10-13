@@ -52,6 +52,7 @@ public sealed partial class AppModel
             Processes = seams?.Processes ?? SystemProcessRunner.Instance,
             Desktop = seams?.Desktop ?? new SystemDesktopWatch(),
             Time = seams?.Time ?? TimeProvider.System,
+            Notify = NotifyDutyFinding,
             ChatProject = thread => Thread(thread)?.ProjectID,
             AssistantName = id => id,
             AccountNames = () => [.. Settings.Accounts.Accounts.Select(a => Settings.Accounts.DisplayName(a.Id)).OfType<string>().Where(n => !string.IsNullOrWhiteSpace(n))],

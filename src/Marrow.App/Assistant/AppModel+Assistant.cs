@@ -44,6 +44,7 @@ public sealed partial class AppModel
     {
         if (assistantFeedStopped) return;
         assistantFeedStopped = true;
+        DisposeAssistantHost(); // AS-8: Dextra stops before its feed and its stop key go
         assistantTaps?.Dispose();
         AssistantEvents.Dispose();
         DisposeSafety();
@@ -77,6 +78,7 @@ public sealed partial class AppModel
     private void DisposeSafety()
     {
         DisposeDuties();
+        UnbindDecisionToasts();
         dextraTray?.Dispose();
         dextraTray = null;
         Tray?.Dispose();
@@ -114,7 +116,7 @@ public sealed partial class AppModel
         ProviderKind provider = ProviderKind.Claude, string? model = null, IReadOnlyList<string>? protectedRoots = null,
         AutoAnswerSwitch? autoAnswer = null, Func<IReadOnlyList<string>>? personalDataRecipients = null, Func<IReadOnlyList<string>>? allowlist = null,
         GlobalStop? stopKey = null, AppTray? tray = null, IPcStreamHold? pcStreams = null,
-        IReadOnlyList<IStopScope>? stopScopes = null, INoteProposer? noteProposer = null, IDutyTools? duties = null)
+        IReadOnlyList<IStopScope>? stopScopes = null, INoteProposer? noteProposer = null, IDutyTools? duties = null, AssistantTeam? team = null, IAssistantHomes? homes = null)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(audit);
@@ -127,6 +129,8 @@ public sealed partial class AppModel
         var costLedger = new CostLedger();
         var dutyHealth = new DutyHealthBook();
         var reservePersistence = new ReservePersistence(store, reserveSettings, calibrator, turnCosts, costs: costLedger, duties: dutyHealth);
+        // The Asturs' day slices are standing caps in these settings (AS-16, 9.3): they are put in step with the profiles once the rules are loaded.
+        team?.BindBudgets(reserveSettings);
         // Dextra's memory (AS-12): the notes live in the store; the capture runs only when a cheap model is bound (noteProposer).
         string? DextraId() => profiles().FirstOrDefault(p => p.ParentId is null)?.Id;
         var memoryStore = new MemoryStore(store, new MemoryStoreOptions { MainAssistantId = DextraId });
@@ -169,6 +173,7 @@ public sealed partial class AppModel
                     AssistantName = id => profiles().FirstOrDefault(profile => profile.Id == id)?.Name,
                 },
             },
+            Asturs = team is null ? null : new AsturSetup { Team = team, Homes = homes, LoadDelegations = store.Delegations, SaveDelegations = store.SaveDelegations },
             DutyHealth = dutyHealth,
             Triage = new TriageSetup { Options = TriageModels, Brain = () => BrainModelOf(provider, model) },
             Agents = new AppMissionAgents(this),
@@ -204,11 +209,15 @@ public sealed partial class AppModel
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or ObjectDisposedException) { controller.AuditMemory(null, "fold", "failed: " + error.GetType().Name); }
         });
         controller.Runner.Load(store.Missions().Select(stored => MissionJournal.FromJson(stored.Body)).OfType<MissionRecord>());
+        // The Asturs' reports whose missions ended while nth was closed are caught up (AS-16).
+        controller.ResumeDelegations();
         // What Revert and Restart kept for 7 days, and the workspaces of missions over for 7 days, are swept at start (the
         // scheduler, AS-10, repeats it daily); a sweep that fails is reported and never stops the start.
         _ = SweepKept(controller);
         // The Assistant's items in nth's one tray icon (7.4, 12.6): Stop works with the window closed.
         if (tray is not null) dextraTray = AssistantTray.Bind(tray, controller);
+        // The decision toasts (AS-9, 13.1): a card that needs the owner makes one, unless the home is in front.
+        BindDecisionToasts(controller, id => profiles().FirstOrDefault(profile => profile.Id == id)?.Name is { Length: > 0 } name ? name : AssistantNames.Assistant);
         BindDextra(controller);
         return controller;
     }
@@ -303,6 +312,7 @@ public sealed partial class AppModel
     {
         if (Dextra is null) return;
         DisposeDuties();
+        UnbindDecisionToasts();
         dextraTray?.Dispose();
         dextraTray = null;
         Dextra = null;

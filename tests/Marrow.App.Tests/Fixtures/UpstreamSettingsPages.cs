@@ -13,8 +13,8 @@ public static class UpstreamSettingsPages
     public static readonly IReadOnlyList<SettingsPage> PortAdded =
         [SettingsPage.Customization, SettingsPage.VoiceTyping, SettingsPage.Updates, SettingsPage.Plugins, SettingsPage.Skills, SettingsPage.Pills];
 
-    /// <summary>PORT-ONLY features with a page of their own (OD-0134 Ignis, directly below Hydra): not upstream's either.</summary>
-    public static readonly IReadOnlyList<SettingsPage> FeatureAdded = [SettingsPage.Ignis];
+    /// <summary>PORT-ONLY features with a page of their own (OD-0134 Ignis, directly below Hydra; Dextra AS-8 Assistant, after Ignis): not upstream's either.</summary>
+    public static readonly IReadOnlyList<SettingsPage> FeatureAdded = [SettingsPage.Ignis, SettingsPage.Assistant];
 
     public static IReadOnlyList<SettingsPage> All { get; } = SwiftEnum<SettingsPage>.AllCases.Where(page => !PortAdded.Contains(page) && !FeatureAdded.Contains(page)).ToList();
 }

@@ -202,6 +202,9 @@ public static class AssistantToolCatalog
 {
     private const int Brief = 20_000;
 
+    // The one opt-in to a notification (13.1 "Duty opt-in"): only for something the owner asked to be told about, such as a price drop.
+    private const string NotifyWords = "Tell the owner with a notification each time a run finds something, for example a price drop he asked about. Leave it out for a quiet duty.";
+
     private static AssistantToolParameter Text(string name, string description, int max = Brief) =>
         new(name, AssistantParameterType.String, description) { Required = true, MaxLength = max, FreeText = true };
 
@@ -270,15 +273,18 @@ public static class AssistantToolCatalog
             Text("title", "A short title.", 200),
             Text("instructions", "What the duty does each time it runs."),
             Text("schedule", "When it runs, for example \"weekdays 08:00\".", 200),
-            new AssistantToolParameter("silent", AssistantParameterType.Boolean, "Leave it out of the morning digest.")),
+            new AssistantToolParameter("silent", AssistantParameterType.Boolean, "Leave it out of the morning digest."),
+            new AssistantToolParameter("notify", AssistantParameterType.Boolean, NotifyWords)),
         Tool("watch_folder", "Watch a folder", "Creates a folder trigger: what to do when files change there. Always a card for the owner.",
             Id("path", "The folder's full path.", 1_000),
             Text("instructions", "What to do when it changes."),
-            Id("pattern", "Only files that match, for example \"*.pdf\".").Optional()),
+            Id("pattern", "Only files that match, for example \"*.pdf\".").Optional(),
+            new AssistantToolParameter("notify", AssistantParameterType.Boolean, NotifyWords)),
         Tool("watch_page", "Watch a page", "Creates a web page watch: what to do when the page changes. Always a card for the owner.",
             Id("url", "The page's address.", 2_000),
             Text("instructions", "What to do when it changes."),
-            Text("every", "How often to look, for example \"1h\".", 100).Optional()) with { OpenWorld = true },
+            Text("every", "How often to look, for example \"1h\".", 100).Optional(),
+            new AssistantToolParameter("notify", AssistantParameterType.Boolean, NotifyWords)) with { OpenWorld = true },
         Tool("remember", "Remember", "Writes a memory note with its source. Secrets are never stored, and nothing is kept about third parties.",
             Text("note", "The note.", 4_000),
             Text("about", "What it is about, in a few words.", 200).Optional(),
@@ -296,7 +302,8 @@ public static class AssistantToolCatalog
         Tool("delegate_to", "Hand to an " + AssistantNames.Astur, "Hands a piece of work to one of the " + AssistantNames.Asturs + ", which reports back.",
             Id("astur", "The " + AssistantNames.Astur + "'s id or name."),
             Text("brief", "What it must do."),
-            Text("material", "Material to pass along as data.").Optional()),
+            Text("material", "Material to pass along as data.").Optional(),
+            Id("project", "The project it works in (its id or name); left out, its own folder or the only project.").Optional()),
         Tool("report", "Report", "Reports results up to the parent: the mission's lead, or Dextra.",
             Text("summary", "What was done and what was found."),
             Choice("status", "How it ended.", "done", "partial", "failed", "blocked"),

@@ -277,6 +277,13 @@ public sealed partial class AssistantStore : IDisposable
 
     public void SaveDutyHealth(JsonObject document) => SaveDocument(Path.Combine(Root, DutyHealthFile), document);
 
+    /// <summary>Who waits for the Asturs' reports (AS-16): the groups of delegated pieces, kept so a restart does not forget them.</summary>
+    public JsonObject? Delegations() => ReadDocument(Path.Combine(Root, DelegationsFile)) as JsonObject;
+
+    public void SaveDelegations(JsonObject document) => SaveDocument(Path.Combine(Root, DelegationsFile), document);
+
+    public const string DelegationsFile = "delegations.json";
+
     public const string ReservesFile = "reserves.json";
 
     public const string CalibrationFile = "calibration.json";
@@ -287,6 +294,12 @@ public sealed partial class AssistantStore : IDisposable
 
     /// <summary>The assistant's home folder (<c>assistants/&lt;id&gt;/folder</c>), created.</summary>
     public string AssistantFolder(string assistantId) => Created(Path.Combine(Root, "assistants", Checked(assistantId), "folder"));
+
+    /// <summary>
+    /// The assistant's own browser profile folder (<c>assistants/&lt;id&gt;/browser</c>), created: the place Visus keeps its cookies and
+    /// logins when it lands (AS-16, 9.1). Beside the home folder, never inside it, so an agent that writes in its folder cannot plant a profile.
+    /// </summary>
+    public string BrowserFolder(string assistantId) => Created(Path.Combine(Root, "assistants", Checked(assistantId), "browser"));
 
     /// <summary>The assistant's memory folder (<c>memory/&lt;id&gt;</c>), created; AS-12's notes live there.</summary>
     public string MemoryFolder(string assistantId) => Created(Path.Combine(Root, "memory", Checked(assistantId)));
