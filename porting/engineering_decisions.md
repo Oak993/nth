@@ -7651,3 +7651,170 @@ policy; W19 HTML/MCP Apps hosts. No inert privacy action or unsafe deletion of
 the shared browser-data folder may stand in for these services. The map-tile
 source also needs its fetching/cache/consent implementation. W10 remains
 incomplete until its functional settings and end-of-unit project sweeps pass.
+
+## ED-NEW-web-w10-2 - W10 links from chats and the web settings model
+
+2026-10-13 - PORT-ONLY owner web-surfaces scope (E:/Droppy/work/design/web-surfaces/DESIGN.md 5.11, 9, 14 W10; CU-W10.md). ENGINEERING DECISION.
+No Swift counterpart. This entry supersedes the "implementation not applied" status of ED-NEW-web-w10-1: the contracts it listed are now
+implemented and tested (the tests are the traits that cite -2 .. -8).
+
+1. The rule is one pure function, ChatLinkRules (Marrow.Core/Web): Destination(link, choice, control, forceExternal) with Ask staying Ask. Ctrl
+   takes the other browser (Visus becomes the default browser and the other way round); Ctrl on Ask asks with Control remembered for that
+   link only. A local path (a file path, a file: address) is never a web link and keeps MarkdownLinkOpener. A sign-in is recognized by path
+   segments (login, signin, sso, oauth, authorize and the like), an OAuth query signature, or a few identity hosts, and always goes to the
+   system browser (see -8).
+2. The reader's choices live in WebSettings (Marrow.App/Port/Web), a MainActorModel under keys of its own, all prefixed "web": webChatLinks,
+   webSearchEngine, webVisualAnswers, webArtifactModel, webSearchSuggestions, webOpenPreviews, webReloadOnSave, webLetModelsUseVisus,
+   webAskBeforeNewSite, webAskWhereToSave, webLiveAnswers, webInlineHtmlWidgets, webMcpApps, webMaxLiveTabs, webDownloadsFolder,
+   webMapTileSource. Defaults: Ask; the shipped search engine; Balanced; Ask each artifact; suggestions off; previews on; reload on save on;
+   models may use Visus; ask before a new site on; ask where to save off; live answers on; inline HTML widgets on; MCP Apps on; 4 live tabs
+   (clamped 2 to 8); no downloads folder; no tile source. Loading an absent, old or damaged value writes nothing and falls back to the
+   designed default; only a change by the reader writes.
+3. Where a chat opens a link: a left press on a link in chat prose calls an inherited attached property, MarkdownView.ChatLinkActionProperty
+   (Func of link and key modifiers to handled), set once above the chat's timeline. It runs before the popover and the default paths. A right
+   click still shows the link popover; MarkdownView.ChatLinkMenuProperty adds rows to it (Open in Visus, Open in default browser). The
+   artifact chip (nth-artifact://) keeps its precedence and still opens Tabula. The Hydra report Open button, the live-answer row and the
+   Tabula pane open their links through the same hook, falling back to the system when no chat holds them. Markdown outside a chat is
+   unchanged.
+4. ChatLinks (Marrow.App/Port/Web) is the app facade: one holder per runtime keyed by settings instance, replaceable sinks (Visus, the
+   default browser, the question), a With(...) scope for the fake sinks tests use, and a try/catch that cancels the pending question if the
+   sheet cannot be shown. ChatLinkRouter holds one question at a time; ChatLinkChoice is idempotent and stores the answer even when no
+   listener is attached.
+5. The setting is read when the link is clicked, never cached, so a change in Settings applies to the next click.
+6. A chat's message menu (PR-CHAT-087: a right click, or Ctrl plus a left click, anywhere in a message) took every Ctrl+click before the link
+   saw it. Ctrl+click on a link in the prose now belongs to the link (RightClickCatcher leaves it alone when the press is over a link of a
+   chat that has the link hook; LinkTextView.IsOverLink says so). The menu is unchanged for a right click and for a Ctrl+click anywhere
+   else in the message.
+
+Evidence: ChatLinkRulesTests, WebW10SettingsTests, WebW10ChatLinksTests, WebW10LinkTests, WebW10LinkRoutingTests, WebW10TimelineLinkTests,
+WebW10ChatLinksVisusTests, and the one existing test ThreadTimelineMentionsTests, whose "docs" link part now expects the first-time question
+under the default Ask and then the system handling after the reader answers Default browser; the original assertion on the opened address is
+kept, so the check is equal or stricter.
+
+## ED-NEW-web-w10-3 - W10 settings binding, seams and switches
+
+2026-10-13 - PORT-ONLY owner web-surfaces scope (DESIGN.md 9, 5.4, 5.10, 8.1, 13). ENGINEERING DECISION. No Swift counterpart.
+
+1. WebSettingsBinding.Bind(process) swaps every static seam the web units left with a wrapper that reads WebSettingsHost.Active (the settings
+   of the running app) and falls back to the unit's old default when none is attached, so no unit imports the settings and every unit still
+   tests alone. It returns a disposable that puts the old seams back. Program.cs calls Bind(process: true) after McpAppsStartup.Bind and
+   WebSettingsBinding.Attach(model.Settings.Web) in FinishStartup. Attach also applies the map tile source (-5).
+2. The seams bound: VisusHost.SearchEngine, VisusHost.SearchSuggestions, VisusHost.PageWindowsInDefaultBrowser (true while "Open links from
+   chats in" is Default browser, so a page window a normal tab opens goes to the system browser too), VisusHost.AskWhereToSave,
+   VisusHost.DownloadsFolder (a folder the reader chose is used only while it exists; once gone the download says so and never falls back to
+   another folder), ProjectPreviewHost.OpenAutomatically and .ReloadOnSave, WebSurfaceOptions.DefaultMaxLiveViews (2 to 8, default 4),
+   McpAppCatalog.Enabled and MCPWire.AdvertiseApps (off: nth does not say it hosts MCP Apps), the teaching ambients UiTeaching.Visual and
+   UiTeaching.LiveAnswers (NthUiTeachingOptions.LiveAnswers with the LiveOff text, so a session is told the surface is off and is not left to
+   guess), the live-answer host's two switches (BindEnabled, and BindHtmlEnabled with LiveAnswerTools.Offered(lite, html) leaving the HTML
+   tool out) and the model policy of an artifact's own call (Never or Ask). "Let models use Visus" and "Ask before a model uses a new site"
+   reach the agent through VisusAgentStartup.Settings() and its Grants.
+3. InlineText.OpenUrl is set to ChatLinks.OpenFromAnywhere, so a link opened from a view that has no chat above it also follows the setting.
+4. KNOWN LIMITATION: the live-tab cap is per WebSurface and there are three separate surfaces (VisusHost, AppWebSurface, WebSurfaces.Shared);
+   the setting applies to each of them and is not summed across them. Unifying them is not part of W10. A *Native* check is owed (see the
+   report).
+5. Logging: every new log line holds a stable event name and never an address, a query or a path.
+6. Banned-pattern sweep: the added lines hold none of the patterns LEAN item 9 lists, except that WebW10PageWindowTests reads three
+   page-window decisions with .Result after asserting that each task IsCompleted (the same way VisusAskTests reads a decision); it is test
+   code, it never waits, and a task that is not complete fails the assertion first.
+
+Evidence: WebW10BindingTests, WebStaticSeamsTests, LiveAnswerHtmlSwitchTests, NthUiTeachingLiveOffTests, WebW10SuggestionsFieldTests,
+WebW10PageWindowTests.
+
+## ED-NEW-web-w10-4 - W10 the question sheet and the Visus and Tabula pages
+
+2026-10-13 - PORT-ONLY owner web-surfaces scope (DESIGN.md 5.11, 9, 14 W10). ENGINEERING DECISION. No Swift counterpart.
+
+1. First-time question: "Open links in Visus or your default browser?", the site the link goes to, a Remember box that is on by default, and
+   the buttons Cancel, Default browser and Visus (Visus is the primary one). It is a sheet drawn in the window the link was clicked in
+   (ChatLinkSheetLayer through ChatSheetPresentation), 400 wide, in nth's glass, with an accessible name for every control, Tab order
+   Remember, Cancel, Default browser, Visus (the reading order), Esc and closing the window as Cancel (opening neither), a button row that
+   wraps at large text, and a site line that trims. Remember off applies the answer to this one link only; on writes the setting.
+2. Settings sidebar: SettingsPage gains Visus and Tabula directly after Tactus (SettingsView.PageFor has one factory line each; no other
+   hook). Each page is a self-contained section class (VisusSettingsPage, TabulaSettingsPage) that takes a parts object, so a test and the
+   app build the same page; the rows come from WebSettingsRows and the existing Chrome controls. Each page has searchable keywords so the
+   Settings search finds its rows by their words.
+3. Visus page: Links (Open links from chats in: Ask the first time, Visus, Default browser; Ctrl+click opens the other one; sign-in pages
+   always open in the default browser), Search (Search engine, Show search suggestions), Previews (Open previews automatically, Reload on
+   save), Models (Let models use Visus, Ask before a model uses a new site), Site permissions (the saved answers, each with Remove),
+   Downloads (Downloads folder with Change and Reset, Ask where to save each file), Privacy (Clear browsing data, Forget agent data, -6) and
+   Tabs (Keep at most N live tabs, 2 to 8). Tabula page: Live answers in chat, Visual answers (Fewer, Balanced, More), Inline HTML widgets,
+   MCP Apps, Map street tiles source (-5), Artifacts may use your model (Ask each artifact, Never) and Artifact storage used (per thread,
+   with Clear).
+4. The six chords that nth takes from a page or the terminal (ED-NEW-web-w3b-1 point 5) now say "Works inside pages" beside the title in
+   Settings > Shortcuts, where it is read, as well as in the tooltip.
+5. Appearance > Panes is not part of W10 (another unit owns it).
+6. Contrast, large text and Reduce Motion follow the Chrome controls the pages are built from; the sheet appears without a fade when the
+   anchor asks for stillness (LibraryUi.Still, the app's Reduce Motion rule).
+7. The Settings window is a fixed 780 x 580 (SettingsView.swift:122) and the sidebar now lists 20 pages, so its last rows are reached by scrolling
+   (the list scrolls with no bar, as before). The one existing test that presses a row low in the list (SettingsViewFinishWorktreesTests) brings
+   that row into view first; its assertions are unchanged. The tests that list the upstream pages keep their exact expectations: the helper
+   that takes the port-added pages out (UpstreamSettingsPages) now takes out Visus and Tabula as well, and the order test lists them after Tactus.
+   The words the two pages are found by avoid the searches the older pages already answer ("gen", "models").
+
+Evidence: WebW10PagesTests, WebW10VisusPageTests, WebW10TabulaPageTests, WebW10SettingsListTests, WebW10ChatLinkSheetTests,
+WebW10ShortcutMarkTests. The sheet's focus, motion and contrast on real glass, and the page layouts at full frame rate, are *Native* checks.
+
+## ED-NEW-web-w10-5 - W10 map street tiles source
+
+2026-10-13 - PORT-ONLY owner web-surfaces scope (DESIGN.md 7.2, 9, 13). ENGINEERING DECISION. No Swift counterpart.
+
+1. Off by default and none by default: maps draw the offline basemap alone. The reader may add one tile address in Settings > Tabula; it
+   sends the map's tile coordinates (so, roughly where the map looks) to that host, which the row says.
+2. MapTileTemplate (Marrow.Core/Web) accepts only an https address with {z}, {x} and {y}, at most 512 characters, with no credentials, no
+   fragment and no other placeholder; a host that names this PC or a private network is refused, so a tile request never reaches a service
+   on the reader's own machine or LAN. Anything else is refused and nothing is stored.
+3. HttpMapTiles (Marrow.UI/NthUi/Tiles, moved out of Map/): 256-tile memory LRU, a 64 MB disk cache under <web data>/nth/map-tiles keyed
+   by a hash of the address, tiles stale after 30 days, 4 requests in flight, 5 seconds each, a 512 KB cap per tile, a one-minute retry after a failure, no
+   cookies, credentials, referrer or redirect. NthUiMapTiles.Use switches the source and raises Changed so the open map canvases draw again.
+4. A source that is replaced or taken away is let go and its folder is deleted from disk. The cache lives inside the web data folder, so the
+   uninstall removes it.
+
+Evidence: MapTileTemplateTests, HttpMapTilesTests, WebW10MapTilesBindingTests. Real fetching and drawing are *Native* checks.
+
+## ED-NEW-web-w10-6 - W10 clear browsing data and forget the agent's data
+
+2026-10-13 - PORT-ONLY owner web-surfaces scope (DESIGN.md 8.1, 13.4). ENGINEERING DECISION. No Swift counterpart.
+
+1. What nth itself keeps (the visits, the kept site answers, the zoom levels) is removed at once. The browser engine's own data (cookies,
+   cache, site storage) can be removed only through a live profile, so the request is written first to a versioned file
+   (<web data>/nth/profile-clears.json, FormatVersion 1, at most 1000 agent profiles, an agent clear is a generation counter) and is carried
+   out before that profile's first navigation (WebView2View runs Profile.ClearBrowsingDataAsync through its scriptsReady gate), or at once
+   through an attached view (WebSurface.ClearProfilesNowAsync). A request that cannot be carried out stays pending.
+2. IWebEngine gains ProfileClears and ClearProfileDataAsync; the fake engine records both so tests can see them.
+3. The shared browser-data folder is never deleted wholesale, and no inert action stands in for the engine (the point ED-NEW-web-w10-1 made
+   about the W8b services): a clear that cannot run yet is kept as a pending request, not reported as done.
+
+Evidence: WebProfileClearsTests, WebProfileClearEngineTests, WebW10PrivacyTests. The real WebView2 clear is a *Native* check.
+
+## ED-NEW-web-w10-7 - W10 remote search suggestions (opt in)
+
+2026-10-13 - PORT-ONLY owner web-surfaces scope (DESIGN.md 5.2, 9 "Show search suggestions (off)", 13). ENGINEERING DECISION.
+
+1. Off by default. With the setting on, a typed search phrase is also asked of the chosen search engine, so the phrase leaves the device; the
+   row says so. SearchSuggestionRules decides what may be sent: a search phrase only (never an address, a path or a phrase with '@', and never
+   one with nine or more digits). One fixed https endpoint per engine: Bing api.bing.com/osjson.aspx, Google
+   suggestqueries.google.com/complete/search (client firefox), Brave search.brave.com/api/suggest, Startpage
+   www.startpage.com/suggestions (opensearch), DuckDuckGo duckduckgo.com/ac. UNVERIFIED: no endpoint was called from here (the tests make no
+   real network call), so all five addresses and reply shapes stand on knowledge of the engines' public suggestion interfaces until the
+   *Native* check, the Brave and Startpage ones most of all.
+2. SearchSuggestionSource sends no cookies, no referrer and follows no redirect, times out after 2 s, caps the reply at 16 KB, and logs only
+   an event name (never the phrase). Replies merge below the local history and open tabs (VisusSuggestions.WithRemote).
+   The ask in flight is cancelled whenever the list closes (the field's own Esc, the window's Esc or a click elsewhere, a new key, focus
+   leaving), so a late answer never opens the list again.
+3. Tests use a scripted HTTP handler; none makes a real network call.
+
+Evidence: SearchSuggestionRulesTests, SearchSuggestionSourceTests, VisusSuggestionsRemoteTests, WebW10SuggestionsFieldTests.
+
+## ED-NEW-web-w10-8 - W10 owner amendment to the OAuth boundary, and a local HTML file in Visus
+
+2026-10-13 - PORT-ONLY owner web-surfaces scope (DESIGN.md 5.11, 6.2, 13). ENGINEERING DECISION. OWNER AMENDMENT.
+
+1. The owner approved the in-app browser (Visus) and the artifacts panel on 2026-10-11. The source rule that every link goes to the system
+   browser (PR-MCP-139) is therefore superseded for links a chat opens, by the setting of -2; it is kept for sign-in: an OAuth or sign-in
+   page opened by an MCP server still goes to the system browser, never into Visus. This is recorded as an owner-amendment bullet under C-06
+   in porting/instruction_conflicts.md and as an owner_amendment field on PR-MCP-139 in porting/spec/MCP.json (both appended byte-exact).
+2. "Open in Visus" for a local HTML file in a project: ProjectPreviewHost.HtmlFileAddress/SiteFor/OpenFile accept only an existing .html or
+   .htm file whose full path (case folded, dot segments resolved) lies strictly under the project's folder, with no hidden folder or file,
+   no reparse point on the way, and no UNC or device form; anything else is refused.
+
+Evidence: WebW10HtmlFileTests, WebW10LinkTests (the sign-in boundary), WebW10ChatLinksVisusTests.
