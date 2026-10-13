@@ -6,10 +6,11 @@ namespace Marrow.UI.Tests.NthUi.Diagram;
 // DESIGN.md 7.2 (web surfaces W16c; ED-NEW-web-w16c-1): the SVG the real Mermaid hands over, recorded. The native pass (Marrow.Services
 // .Tests MermaidRunnerNativeTests, run by the lead) draws one diagram of every family in light and dark through the renderer's runner
 // and saves each result under Fixtures/mermaid-recorded. Every recorded drawing must pass the sanitiser with nothing but the
-// notes the sanitiser is allowed to make, keep its text, and draw with the painter. This Native check requires
-// all 26 recordings; an empty fixture folder is not acceptance (ED-NEW-web-review-25).
+// notes the sanitiser is allowed to make, keep its text, and draw with the painter. This managed check requires
+// all 26 recordings; an empty fixture folder is not acceptance (ED-NEW-web-review-25). The recordings are committed, the check only
+// reads the files and starts no Edge, so it runs in the ordinary !~Native sweeps (ED-NEW-web-review-30).
 [Collection("Headless")]
-public sealed class NthSvgRecordedMermaidNativeTests(HeadlessSession headless)
+public sealed class NthSvgRecordedMermaidTests(HeadlessSession headless)
 {
     private static IReadOnlyList<string> Recorded()
     {
