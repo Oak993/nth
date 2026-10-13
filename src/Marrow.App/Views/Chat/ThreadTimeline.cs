@@ -1913,7 +1913,7 @@ public sealed class WorkingIndicator : Decorator
                         if (made && hold is not null)
                             NthWorkingBeads.For(runtime).CloseRoom(hold.Slot, titleHost, room => { holdRoom = room; if (title is HydraWorkingTitle shown) shown.Margin = new Thickness(NthBeadsHold.Indent * room, 0, 0, 0); });
                     }
-                    thinking = running ? new NthWorkingTitle(label, NthWorkingBeads.For(runtime)) : null;
+                    thinking = breathing ? new NthWorkingTitle(label, NthWorkingBeads.For(runtime)) : null;
                     Control next = thinking is not null ? thinking : new HydraWorkingTitle(label, false, TextAlignment.Left); title = next; // :2104 the earlier segment's label at rest draws no breathing
                     if (hold is not null && thinking is null) next.Margin = new Thickness(NthBeadsHold.Indent * holdRoom, 0, 0, 0);
                     int Before() => hold is not null && titleHost.Children.IndexOf(hold) is var at && at >= 0 ? at : titleHost.Children.Count; // the hold stays last (the header reads the first child's baseline)

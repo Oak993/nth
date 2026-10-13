@@ -41,10 +41,12 @@ public sealed class TickText : Control
     private SheenHandler? handler;
     private CompositionCustomVisual? visual;
     private ArmillaWindowWatch? watch;
+    private DextraViewWatch? availability;
     private TextLayout? layout;
     private (string Text, double Width, IBrush? Ink, double Size, FontWeight Weight, FlowDirection Flow) layoutKey;
     private (double X, double Width, double Height, bool On, bool Dark)? sentBand;
     private bool? sentSleep;
+    private bool? sentShown;
 
     public TickText() => ActualThemeVariantChanged += (_, _) => { layout?.Dispose(); layout = null; InvalidateVisual(); SendBand(); };
 
@@ -127,11 +129,12 @@ public sealed class TickText : Control
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
-        if (watch is not null) watch.Changed -= OnWatch;
+        if (availability is not null) { availability.Changed -= OnWatch; availability.Dispose(); availability = null; }
+        if (watch is not null) { watch.Changed -= OnWatch; watch.Release(); }
         watch = null;
         visual?.SendHandlerMessage(SheenHandler.Stop.Instance);
         ElementComposition.SetElementChildVisual(this, null);
-        visual = null; handler = null; sentBand = null; sentSleep = null;
+        visual = null; handler = null; sentBand = null; sentSleep = null; sentShown = null;
         layout?.Dispose();
         layout = null;
     }
@@ -141,18 +144,21 @@ public sealed class TickText : Control
     private void Install()
     {
         if (visual is not null || ElementComposition.GetElementVisual(this) is not { } host) return;
-        watch = TopLevel.GetTopLevel(this) is { } top ? ArmillaWindowWatch.For(top) : null;
+        availability = new DextraViewWatch(this);
+        availability.Changed += OnWatch;
+        watch = TopLevel.GetTopLevel(this) is { } top ? ArmillaWindowWatch.Acquire(top) : null;
         if (watch is not null) watch.Changed += OnWatch;
         handler = new SheenHandler(ArmillaHub.For(host.Compositor), AmbientRefreshPacer.For(host.Compositor), SwiftClock.Provider.Current);
         visual = host.Compositor.CreateCustomVisual(handler);
         ElementComposition.SetElementChildVisual(this, visual);
-        sentBand = null; sentSleep = null;
+        sentBand = null; sentSleep = null; sentShown = null;
         SendBand();
         OnWatch();
     }
 
     private void OnWatch()
     {
+        SendShown();
         var sleep = watch?.Sleeping ?? false;
         if (visual is null || sentSleep == sleep) return;
         sentSleep = sleep;
@@ -162,6 +168,7 @@ public sealed class TickText : Control
     private void SendBand()
     {
         if (visual is null) return;
+        SendShown();
         var flip = FlowDirection == FlowDirection.RightToLeft;
         var band = (X: flip ? Bounds.Width - InkWidth : 0, Width: InkWidth, Height: Bounds.Height, On: Moves && IsVisible && InkWidth > 0,
             Dark: ActualThemeVariant == Avalonia.Styling.ThemeVariant.Dark);
@@ -169,6 +176,14 @@ public sealed class TickText : Control
         sentBand = band;
         visual.Size = new Vector(Bounds.Width, Bounds.Height);
         visual.SendHandlerMessage(new SheenHandler.Band(band.X, band.Width, band.Height, band.On, band.Dark));
+    }
+
+    private void SendShown()
+    {
+        var shown = IsEffectivelyVisible && availability?.Available != false;
+        if (visual is null || sentShown == shown) return;
+        sentShown = shown;
+        visual.SendHandlerMessage(shown ? SheenHandler.Shown.Yes : SheenHandler.Shown.No);
     }
 
     private sealed class TickPeer(TickText owner) : ControlAutomationPeer(owner)
@@ -186,6 +201,10 @@ public sealed class TickText : Control
 /// <summary>The render-thread side of a shimmer: a soft band over the text's extent, on the shared clock.</summary>
 internal sealed class SheenHandler(ArmillaHub hub, AmbientRefreshPacer? pacer, TimeProvider clock) : CompositionCustomVisualHandler
 {
+    internal sealed class Shown
+    {
+        internal static readonly Shown Yes = new(), No = new();
+    }
     internal sealed record Band(double X, double Width, double Height, bool On, bool Dark);
 
     internal sealed class Sleep
@@ -200,16 +219,19 @@ internal sealed class SheenHandler(ArmillaHub hub, AmbientRefreshPacer? pacer, T
 
     private static readonly SplineEasing Ease = new(.45, 0, .55, 1);
     private Band? band;
-    private bool sleeping, stopped, drawn;
+    private bool sleeping, hidden, stopped, drawn;
     private int requested;
     private int frames;
     private double time;
+    private readonly SKPaint paint = new() { BlendMode = SKBlendMode.Overlay, IsAntialias = true };
+    private SKShader? gradient;
+    private (float Width, float Height, bool Dark) gradientKey;
 
     internal int Frames => Volatile.Read(ref frames);
 
     internal bool Ticking => Volatile.Read(ref requested) == 1;
 
-    private bool Live => band is { On: true } && !sleeping && !stopped;
+    private bool Live => band is { On: true } && !sleeping && !hidden && !stopped;
 
     public override void OnMessage(object message)
     {
@@ -224,8 +246,13 @@ internal sealed class SheenHandler(ArmillaHub hub, AmbientRefreshPacer? pacer, T
                 sleeping = sleep == Sleep.On;
                 Request();
                 break;
+            case Shown shown:
+                hidden = shown == Shown.No;
+                if (!hidden) { Invalidate(); Request(); }
+                break;
             case Stop:
                 stopped = true;
+                paint.Dispose(); gradient?.Dispose(); gradient = null;
                 break;
         }
     }
@@ -266,29 +293,40 @@ internal sealed class SheenHandler(ArmillaHub hub, AmbientRefreshPacer? pacer, T
     public override void OnRender(ImmediateDrawingContext context)
     {
         drawn = true;
-        if (!Live || band is not { } b || b.Width <= 0) return;
+        if (stopped || hidden || band is not { On: true } b || b.Width <= 0) return;
         if (context.TryGetFeature<ISkiaSharpApiLeaseFeature>() is not { } feature) return;
         using var lease = feature.Lease();
-        var sk = lease.SkCanvas;
+        Draw(lease.SkCanvas, b, time, lease.CurrentOpacity);
+        Interlocked.Increment(ref frames);
+        if (Live) Request();
+    }
+
+    // Raster-only seam: the compositor and the headless allocation/pixel probe call the same painter.
+    internal void Draw(SKCanvas sk, Band b, double at, double opacity)
+    {
         var saved = sk.Save();
         try
         {
             var w = (float)b.Width;
             var h = (float)b.Height;
             sk.ClipRect(new SKRect((float)b.X, 0, (float)b.X + w, h));
-            var left = (float)(b.X + Offset(time) * b.Width);
+            var left = (float)(b.X + Offset(at) * b.Width);
             // the canvas's linear-gradient(100deg, transparent 30%, var(--ghi) 50%, transparent 70%) in overlay
             var hi = b.Dark ? new SKColor(255, 255, 255, 102) : new SKColor(255, 255, 255, 250);
             var tilt = (float)(Math.Tan(10 * Math.PI / 180) * h / 2);
-            using var shader = SKShader.CreateLinearGradient(new SKPoint(left - tilt, h), new SKPoint(left + w + tilt, 0),
-                [SKColors.Transparent, SKColors.Transparent, hi, SKColors.Transparent, SKColors.Transparent], [0, .3f, .5f, .7f, 1], SKShaderTileMode.Clamp);
-            using var paint = new SKPaint { Shader = shader, BlendMode = SKBlendMode.Overlay, IsAntialias = true };
-            var alpha = Math.Clamp(lease.CurrentOpacity, 0, 1);
-            if (alpha < 1) paint.Color = new SKColor(255, 255, 255, (byte)Math.Round(alpha * 255));
-            sk.DrawRect(new SKRect(left, 0, left + w, h), paint);
+            var key = (w, h, b.Dark);
+            if (gradient is null || key != gradientKey)
+            {
+                gradient?.Dispose();
+                gradient = SKShader.CreateLinearGradient(new SKPoint(-tilt, h), new SKPoint(w + tilt, 0),
+                    [SKColors.Transparent, SKColors.Transparent, hi, SKColors.Transparent, SKColors.Transparent], [0, .3f, .5f, .7f, 1], SKShaderTileMode.Clamp);
+                gradientKey = key; paint.Shader = gradient;
+            }
+            sk.Translate(left, 0);
+            var alpha = Math.Clamp(opacity, 0, 1);
+            paint.Color = new SKColor(255, 255, 255, (byte)Math.Round(alpha * 255));
+            sk.DrawRect(new SKRect(0, 0, w, h), paint);
         }
         finally { sk.RestoreToCount(saved); }
-        Interlocked.Increment(ref frames);
-        if (Live) Request();
     }
 }

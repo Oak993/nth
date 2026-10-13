@@ -19,10 +19,11 @@ internal sealed class AmbientWindowState : IDisposable
     private readonly nint hwnd;
     private readonly EventHub? events; // the hub this state listens to (null: a test state)
     private readonly Action refresh;
-    private int users, available;
+    private int users, available, seen;
     private double lastInput = Now;
     internal event Action? Changed;
     internal bool Available => Volatile.Read(ref available) != 0;
+    internal bool Seen => Volatile.Read(ref seen) != 0;
     internal double LastInput => Volatile.Read(ref lastInput);
     internal static double Now => TimeProvider.System.GetTimestamp() / (double)TimeProvider.System.TimestampFrequency;
 
@@ -31,7 +32,7 @@ internal sealed class AmbientWindowState : IDisposable
         this.window = window;
         hwnd = test ? 0 : window.TryGetPlatformHandle()?.Handle ?? 0;
         refresh = Refresh;
-        if (test) { available = 1; return; }
+        if (test) { available = seen = 1; return; }
         window.PropertyChanged += WindowChanged;
         window.AddHandler(InputElement.PointerMovedEvent, PointerInput, RoutingStrategies.Tunnel, true);
         window.AddHandler(InputElement.PointerPressedEvent, PointerInput, RoutingStrategies.Tunnel, true);
@@ -70,7 +71,13 @@ internal sealed class AmbientWindowState : IDisposable
     }
     internal void SetAvailable(bool value)
     {
-        if (Interlocked.Exchange(ref available, value ? 1 : 0) == (value ? 1 : 0)) return;
+        SetWindowFacts(new(value, false, false, false, true, true));
+    }
+    internal void SetWindowFacts(WindowVisibilityFacts facts)
+    {
+        var oldSeen = Interlocked.Exchange(ref seen, facts.Seen ? 1 : 0);
+        var oldAvailable = Interlocked.Exchange(ref available, facts.Available ? 1 : 0);
+        if (oldSeen == (facts.Seen ? 1 : 0) && oldAvailable == (facts.Available ? 1 : 0)) return;
         Changed?.Invoke();
     }
 
@@ -84,8 +91,10 @@ internal sealed class AmbientWindowState : IDisposable
     private void Refresh()
     {
         if (hwnd == 0 || events is null) return;
-        SetAvailable(window.IsVisible && window.IsActive && window.WindowState != WindowState.Minimized
-            && GetForegroundWindow() == hwnd && events.Look(hwnd) is { Cloaked: false, Covered: false });
+        var shown = window.IsVisible && window.WindowState != WindowState.Minimized;
+        var look = shown ? events.Look(hwnd) : default;
+        SetWindowFacts(new(window.IsVisible, window.WindowState == WindowState.Minimized,
+            shown && look.Cloaked, shown && look.Covered, window.IsActive, GetForegroundWindow() == hwnd));
     }
     internal static bool Cloaked(nint handle) => Cloak(handle) != 0;
 

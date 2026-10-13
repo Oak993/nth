@@ -36,6 +36,7 @@ public sealed class ArmillaMark : Control
     private bool? sentVisible;
     private bool? sentSleep;
     private ArmillaWindowWatch? watch;
+    private DextraViewWatch? availability;
     private bool lastMoves;
 
     public ArmillaMark()
@@ -122,13 +123,15 @@ public sealed class ArmillaMark : Control
         }
         // a hidden ancestor, a clipped scroll position or an off-screen place is caught by the handler: a visual the compositor
         // does not draw stops asking for frames, and drawing it again restarts them
-        if (change.Property == IsVisibleProperty) SendVisible(IsVisible);
+        if (change.Property == IsVisibleProperty) SendVisible(IsEffectivelyVisible);
     }
 
     private void Install()
     {
         lastMoves = Moves;
-        watch = TopLevel.GetTopLevel(this) is { } top ? ArmillaWindowWatch.For(top) : null;
+        availability = new DextraViewWatch(this);
+        availability.Changed += OnWatch;
+        watch = TopLevel.GetTopLevel(this) is { } top ? ArmillaWindowWatch.Acquire(top) : null;
         if (watch is not null) watch.Changed += OnWatch;
         if (visual is not null || ElementComposition.GetElementVisual(this) is not { } host) return;
         handler = new ArmillaHandler(ArmillaHub.For(host.Compositor), AmbientRefreshPacer.For(host.Compositor), SwiftClock.Provider.Current);
@@ -136,13 +139,14 @@ public sealed class ArmillaMark : Control
         ElementComposition.SetElementChildVisual(this, visual);
         sent = null; sentVisible = null; sentSleep = null;
         Send();
-        SendVisible(IsVisible);
+        SendVisible(IsEffectivelyVisible);
         OnWatch();
     }
 
     private void Remove()
     {
-        if (watch is not null) watch.Changed -= OnWatch;
+        if (availability is not null) { availability.Changed -= OnWatch; availability.Dispose(); availability = null; }
+        if (watch is not null) { watch.Changed -= OnWatch; watch.Release(); }
         watch = null;
         visual?.SendHandlerMessage(ArmillaHandler.Stop.Instance);
         ElementComposition.SetElementChildVisual(this, null);
@@ -151,6 +155,7 @@ public sealed class ArmillaMark : Control
 
     private void OnWatch()
     {
+        SendVisible(IsEffectivelyVisible);
         var sleep = watch?.Sleeping ?? false;
         if (visual is null || sentSleep == sleep) return;
         sentSleep = sleep;
@@ -159,6 +164,7 @@ public sealed class ArmillaMark : Control
 
     private void SendVisible(bool shown)
     {
+        shown &= availability?.Available != false;
         if (visual is null || sentVisible == shown) return;
         sentVisible = shown;
         visual.SendHandlerMessage(shown ? ArmillaHandler.Shown.Yes : ArmillaHandler.Shown.No);
@@ -167,6 +173,7 @@ public sealed class ArmillaMark : Control
     private void Send()
     {
         if (visual is null) return;
+        SendVisible(IsEffectivelyVisible);
         var look = Look;
         if (look.Equals(sent)) return;
         sent = look;
@@ -197,7 +204,7 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
 
     private readonly ArmillaSkiaCanvas canvas = new();
     private ArmillaEngine? engine;
-    private bool requested, stopped, sleeping, hidden, drawn = true, more = true;
+    private bool requested, stopped, sleeping, hidden, takePose, drawn = true, more = true;
     private double lastTime = double.NaN;
     private int frames;
     private long extentBits;
@@ -215,8 +222,13 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
         switch (message)
         {
             case ArmillaLook look:
-                if (engine is null) engine = new ArmillaEngine(look) { Visible = !hidden };
+                if (engine is null) engine = new ArmillaEngine(look) { Visible = !hidden && !sleeping };
                 else engine.Set(look);
+                if (hidden || sleeping)
+                {
+                    engine.DrawStill(NullArmillaCanvas.Instance);
+                    takePose = true;
+                }
                 more = true;
                 Invalidate();
                 Request();
@@ -228,11 +240,12 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
                 break;
             case Shown shown:
                 hidden = shown == Shown.No;
-                if (engine is not null) engine.Visible = !hidden;
+                if (engine is not null) engine.Visible = !hidden && !sleeping;
                 if (!hidden) { more = true; Invalidate(); Request(); }
                 break;
             case Sleep sleep:
                 sleeping = sleep == Sleep.On;
+                if (engine is not null) engine.Visible = !hidden && !sleeping;
                 if (!sleeping) { more = true; Request(); }
                 break;
             case Stop:
@@ -257,7 +270,7 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
         // a mark that has rested 1.2 s in Idle, Paused or Offline steps at 30 fps
         var step = mark.RestStep(dt);
         if (step == 0 && dt > 0) { Register(); return; }
-        more = mark.Tick(step, t);
+        more = takePose || mark.Tick(step, t);
         Invalidate();
         if (drawn && more) Request();
     }
@@ -277,7 +290,7 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
 
     public override void OnRender(ImmediateDrawingContext context)
     {
-        if (stopped || engine is not { } mark) return;
+        if (stopped || hidden || engine is not { } mark) return;
         drawn = true;
         if (context.TryGetFeature<ISkiaSharpApiLeaseFeature>() is not { } feature) return;
         using var lease = feature.Lease();
@@ -293,7 +306,9 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
                 using var layer = new SKPaint { Color = new SKColor(255, 255, 255, (byte)Math.Round(Math.Clamp(lease.CurrentOpacity, 0, 1) * 255)) };
                 sk.SaveLayer(layer);
             }
-            mark.Draw(canvas);
+            if (sleeping || takePose) mark.DrawStill(canvas);
+            else mark.Draw(canvas);
+            takePose = false;
         }
         finally { sk.RestoreToCount(saved); }
         Interlocked.Exchange(ref extentBits, BitConverter.DoubleToInt64Bits(mark.MaxExtent));
@@ -315,6 +330,7 @@ internal sealed class ArmillaWindowWatch
     private readonly TopLevel top;
     private ITimer? timer;
     private bool unfocused, asleep, minimised;
+    private int users;
 
     private ArmillaWindowWatch(TopLevel top)
     {
@@ -323,11 +339,7 @@ internal sealed class ArmillaWindowWatch
         {
             // Window.IsActive is the focus the rule names (AmbientWindowState's "available" is immediate and also reads cover
             // and foreground for the 20 s ambient rule; Armilla's rule is 30 s without focus, then sleep)
-            window.PropertyChanged += (_, e) =>
-            {
-                if (e.Property == Window.IsActiveProperty) Focused(window.IsActive);
-                else if (e.Property == Window.WindowStateProperty || e.Property == Visual.IsVisibleProperty) Away(window);
-            };
+            window.PropertyChanged += WindowChanged;
             Away(window);
             if (!window.IsActive) Focused(false);
         }
@@ -342,6 +354,26 @@ internal sealed class ArmillaWindowWatch
     }
 
     public static ArmillaWindowWatch For(TopLevel top) => watches.GetValue(top, static t => new ArmillaWindowWatch(t));
+
+    public static ArmillaWindowWatch Acquire(TopLevel top)
+    {
+        var watch = For(top); watch.users++; return watch;
+    }
+
+    public void Release()
+    {
+        if (--users != 0) return;
+        timer?.Dispose(); timer = null;
+        if (top is Window window) window.PropertyChanged -= WindowChanged;
+        watches.Remove(top);
+    }
+
+    private void WindowChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (top is not Window window) return;
+        if (e.Property == Window.IsActiveProperty) Focused(window.IsActive);
+        else if (e.Property == Window.WindowStateProperty || e.Property == Visual.IsVisibleProperty) Away(window);
+    }
 
     /// <summary>The marks of this window draw nothing now.</summary>
     public bool Sleeping => asleep || minimised;

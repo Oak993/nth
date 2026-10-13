@@ -150,10 +150,14 @@ public sealed class MissionChatsGroup
         Label.Text = chats.Count == 0 ? "Missions" : "Missions  " + chats.Count.ToString(System.Globalization.CultureInfo.CurrentCulture);
         NameToggle();
         var keep = chats.Select(c => c.Id).ToHashSet();
-        foreach (var gone in byChat.Keys.Where(id => !keep.Contains(id)).ToList()) byChat.Remove(gone);
-        lines.Children.Clear();
-        foreach (var chat in chats)
+        foreach (var gone in byChat.Keys.Where(id => !keep.Contains(id)).ToList())
         {
+            lines.Children.Remove(byChat[gone].Button);
+            byChat.Remove(gone);
+        }
+        for (var i = 0; i < chats.Count; i++)
+        {
+            var chat = chats[i];
             if (!byChat.TryGetValue(chat.Id, out var line)) byChat[chat.Id] = line = Line(chat);
             line.Mark.State = chat.Mark;
             line.Mark.Glyph = chat.Glyph;
@@ -161,7 +165,9 @@ public sealed class MissionChatsGroup
             line.Title.Text = chat.Title;
             AutomationProperties.SetName(line.Button, chat.Reading);
             line.Mark.Calm = calm;
-            lines.Children.Add(line.Button);
+            if (i < lines.Children.Count && ReferenceEquals(lines.Children[i], line.Button)) continue;
+            lines.Children.Remove(line.Button);
+            lines.Children.Insert(i, line.Button);
         }
     }
 
