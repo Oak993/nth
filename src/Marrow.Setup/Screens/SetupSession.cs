@@ -211,7 +211,18 @@ public sealed class SetupSession
     {
         Window.CaptionTitle = Route.Screen == SetupScreen.Uninstall ? SetupStrings.CaptionUninstall : SetupStrings.CaptionSetup;
         Show(Route.Screen, immediately: true);
+        // the window opens at the height of the tallest screen it can reach (ED-NEW-inst-fix-7), so none grows it in one frame later
+        Window.Body.Probe(() => Reachable(Route.Screen).Select(screen => Get(screen).View));
     }
+
+    /// <summary>The screens a window that starts on <paramref name="first"/> can go on to (PLAN.md 3, the flows).</summary>
+    public static IReadOnlyList<SetupScreen> Reachable(SetupScreen first) => first switch
+    {
+        SetupScreen.Welcome => [SetupScreen.Options, SetupScreen.Installing, SetupScreen.Ready, SetupScreen.Problem],
+        SetupScreen.Update => [SetupScreen.Ready, SetupScreen.Problem],
+        SetupScreen.Uninstall => [SetupScreen.Problem],
+        _ => [],
+    };
 
     /// <summary>Moves to <paramref name="screen"/> (the screen change: the current one leaves, this one arrives).</summary>
     public void Go(SetupScreen screen) => Show(screen, immediately: false);

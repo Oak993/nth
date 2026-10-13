@@ -61,6 +61,8 @@ public sealed class SetupSessionTests(SetupHeadlessSession headless)
             var rig = new WindowRig();
             var session = rig.Session(SetupScreen.Welcome);
             session.Start();
+            rig.Window.Show();
+            rig.Settle(); // the first layout measures the screens the window can reach and takes them away (ED-NEW-inst-fix-7)
             var welcome = session.Current!;
 
             session.Go(SetupScreen.Options);
@@ -71,6 +73,7 @@ public sealed class SetupSessionTests(SetupHeadlessSession headless)
             Assert.Same(welcome, session.Current);
             Assert.Same(welcome.View, rig.Window.Body.Current);
             Assert.Single(rig.Window.Body.Children);
+            rig.Window.CloseNow();
         });
     }
 

@@ -61,11 +61,19 @@ public static class Program
 
     private static (int ExitCode, bool InstallChosen) RunWindow(string[] args, SingleInstance? instance, UiSmokeOptions? smoke, long started, string? uninstallRoot = null)
     {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        // PLAN.md 5 (ED-NEW-inst-fix-5): a Native AOT setup carries Skia, HarfBuzz and ANGLE inside; they are unpacked and loaded first
+        try { SetupNatives.Prepare(localAppData, Path.GetTempPath(), Environment.ProcessPath); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or DllNotFoundException or BadImageFormatException or ArgumentException)
+        {
+            // no window can be drawn without them: the reason goes in a message box, as the windowless gate reports its errors
+            if (smoke is null) new LegacyGateHost().ShowMessage(InstallerGate.Caption(LegacyGateHost.Metadata("InstallerTitle")), error.Message, warning: true);
+            return (1, false);
+        }
         SetupApp.Build().SetupWithoutStarting();
         var settings = new SystemSettings(new WindowsSystemLookSource());
         var window = new SetupWindow(settings);
         var version = LegacyGateHost.Metadata("InstallerVersion");
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         string? problem = null;
         SetupRoute route;
         try
@@ -80,6 +88,7 @@ public static class Program
         var session = new SetupSession(window, route, new CanvasScreens(), version, canInstall: smoke is null, arguments: args)
         {
             SizeMegabytes = StampedSizes().DiskMegabytes, // T_disk, the one size shown everywhere (PLAN.md 4); the plan's 420 MB for a build the script did not measure
+            ReleaseNotes = SetupReleaseNotes.Embedded(), // PLAN.md 9 item 7: the validated notes the script embedded, for Update's "What's new"
         };
         // PLAN.md 3 step 4 and 5, "Leftovers" (unit U9, ED-NEW-inst-u9-1): this run's staging folder goes on every exit path (Ready
         // or Problem showing, Close on any screen, an unhandled exception); stale folders from earlier runs are swept once the
@@ -87,7 +96,7 @@ public static class Program
         using var staging = smoke is null && uninstallRoot is null && Path.IsPathFullyQualified(localAppData) ? StagingScope.Create(localAppData, Path.GetTempPath(), version) : null;
         staging?.Attach(session);
         if (problem is not null) session.Fail(problem);
-        var engine = smoke is null && problem is null ? InstallFlowFor(session, args, localAppData, version) : null;
+        var (engine, check) = smoke is null && problem is null ? InstallFlowFor(session, localAppData, version) : (null, null);
         if (engine is not null) window.Opened += (_, _) => _ = engine.StageAsync(); // PLAN.md 3, step 6: staged while Welcome or Update shows
         window.HandleReady += handle => instance?.Publish(handle, Environment.ProcessId);
         session.Start();
@@ -103,40 +112,69 @@ public static class Program
         if (staging is not null) window.Opened += (_, _) => _ = staging.SweepStaleAsync();
         window.Show();
         Dispatcher.UIThread.MainLoop(done.Token);
+        CallOffNth(check);
+        WindowsSetupActions.RemoveLicenseCopy(Path.GetTempPath()); // View license's copy leaves with the window (ED-NEW-inst-fix-3)
         return (session.ExitCode, session.InstallChosen);
+    }
+
+    /// <summary>
+    /// The window has closed while a running nth may still have a request from it (Busy, Waiting, the not-responding question):
+    /// the request is withdrawn before the process ends. Main is synchronous and the UI loop is over, so this waits here, at
+    /// most 2 s (the handshake bounds the withdraw itself to 1 s); a withdraw that does not get through leaves nth as it was.
+    /// </summary>
+    private static void CallOffNth(NthCheck? check)
+    {
+        if (check is null) return;
+        try { check.CloseAsync().Wait(TimeSpan.FromSeconds(2)); }
+        catch (AggregateException) { } // best effort, as the handshake's own withdraw
     }
 
     /// <summary>
     /// The in-window install (unit U3, ED-NEW-inst-u3-1): Install and Update start an <see cref="InstallFlow"/> whose runs
     /// stage the engine in <c>%LOCALAPPDATA%\nth Setup\&lt;version&gt;</c>, check free space against the stamped sizes, and
-    /// start Velopack's Setup.exe through <see cref="ProcessVelopackRunner"/>, the only thing that starts it. Returns the
-    /// staging, or null when this route installs nothing.
+    /// start Velopack's Setup.exe through <see cref="ProcessVelopackRunner"/>, the only thing that starts it. Before the
+    /// progress shows, <see cref="NthCheck"/> takes the install hold and asks a running nth (PLAN.md 3 step 7 and 3a; unit U4,
+    /// bound by ED-NEW-inst-fix-1). Returns the staging and the check, or nulls when this route installs nothing.
     /// </summary>
-    private static EngineStaging? InstallFlowFor(SetupSession session, string[] args, string localAppData, string version)
+    private static (EngineStaging? Staging, NthCheck? Check) InstallFlowFor(SetupSession session, string localAppData, string version)
     {
         var route = session.Route;
-        if (route.Action is not (InstallerAction.Install or InstallerAction.Upgrade) || route.Screen is not (SetupScreen.Welcome or SetupScreen.Update)) return null;
+        if (route.Action is not (InstallerAction.Install or InstallerAction.Upgrade) || route.Screen is not (SetupScreen.Welcome or SetupScreen.Update)) return (null, null);
         string folder;
         try { folder = InstallOptions.StagingFolder(localAppData, version); }
-        catch (ArgumentException) { return null; }
+        catch (ArgumentException) { return (null, null); }
         // PLAN.md 5, "Leftovers" (unit U9): the engine is staged only after the run's folder is claimed, so no sweep takes it and Ready or Problem can delete it.
         var staging = new EngineStaging(folder, EngineStaging.EmbeddedPayload, session.Staging is { } scope ? scope.Ensure : null);
         var sizes = StampedSizes();
         var update = route.Action == InstallerAction.Upgrade;
+        Action<Action> post = action => Dispatcher.UIThread.Post(action);
+        var check = new NthCheck(session, ProductionRunningNth.Create, root => InstallHold.TryAcquire(root), post);
+        if (update && session.Get(SetupScreen.Update) is UpdateScreen updateScreen) check.AttachUpdate(updateScreen, route.TargetRoot);
         // Unit U5 (integrated): the real shell links and HKCU after Setup.exe exits 0 (ProductionAfterSetupExit).
         var flow = new InstallFlow(
             session,
             () => new InstallRun(
-                new InstallRequest(update, route.TargetRoot, route.Installed.Version, InstallOptions.ForAction(route.Action, session.DesktopShortcut), folder, sizes),
+                new InstallRequest(update, RunRoot(route, session.InstallRoot), route.Installed.Version, InstallOptions.ForAction(route.Action, session.DesktopShortcut), folder, sizes),
                 new ProcessVelopackRunner(),
                 new WindowsDiskSpace(),
                 new ProductionAfterSetupExit(),
                 releaseStaging: session.Staging is { } claimed ? claimed.Release : null), // U9's guarded cleanup (ED-NEW-inst-merge-13)
             staging,
             new BackgroundPollLoop(),
-            action => Dispatcher.UIThread.Post(action));
+            post,
+            gate: check);
         session.InstallRequested = flow.Begin;
-        return staging;
+        return (staging, check);
+    }
+
+    /// <summary>
+    /// Where a run installs (PLAN.md 3 step 7): an update stays in the existing root; a fresh install goes to the folder chosen
+    /// in Options (<see cref="SetupSession.InstallRoot"/>, the route's default until Change… picks another).
+    /// </summary>
+    internal static string RunRoot(SetupRoute route, string chosenRoot)
+    {
+        ArgumentNullException.ThrowIfNull(route);
+        return route.Action == InstallerAction.Upgrade || string.IsNullOrWhiteSpace(chosenRoot) ? route.TargetRoot : chosenRoot;
     }
 
     /// <summary>The sizes the packaging script stamped into this setup (unit U7), or the plan's figures.</summary>

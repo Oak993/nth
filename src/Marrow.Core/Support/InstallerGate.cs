@@ -37,7 +37,15 @@ public enum InstallerAction
 /// </param>
 public sealed record InstallerIdentity(
     string Title, string Version, string DefaultInstallRoot, string LaunchDirectory,
-    string? FreshInstallRoot = null, Func<string?>? RegisteredInstallRoot = null);
+    string? FreshInstallRoot = null, Func<string?>? RegisteredInstallRoot = null)
+{
+    /// <summary>
+    /// The folder the installer was started from (its current folder), against which a relative -l/--log is resolved before it
+    /// is handed on (VELOPACK_CHECK.md "Old branches" item 4, ED-NEW-inst-fix-3): Setup.exe runs in the engine's own folder,
+    /// so a relative log would land there. Null: the process's current folder.
+    /// </summary>
+    public string? CallerDirectory { get; init; }
+}
 
 /// <summary>The Win32 side of the gate: a message box and the embedded Velopack Setup.exe.</summary>
 public interface IInstallerGateHost
@@ -154,13 +162,20 @@ public static class InstallerGate
     }
 
     /// <summary>Whether Setup.exe would run silently (--silent or -s, before the -- separator): then no message is shown.</summary>
-    public static bool IsSilent(IReadOnlyList<string> arguments) => ReadArguments(arguments, Environment.CurrentDirectory).Silent;
+    public static bool IsSilent(IReadOnlyList<string> arguments) => ReadArguments(arguments, Environment.CurrentDirectory, Environment.CurrentDirectory).Silent;
 
     /// <summary>Whether Setup.exe would show its help (-h/--help, before the -- separator): help goes straight to Setup.exe.</summary>
-    public static bool IsHelp(IReadOnlyList<string> arguments) => ReadArguments(arguments, Environment.CurrentDirectory).Help;
+    public static bool IsHelp(IReadOnlyList<string> arguments) => ReadArguments(arguments, Environment.CurrentDirectory, Environment.CurrentDirectory).Help;
 
     /// <summary>The -t/--installto folder as Setup.exe would read it (a relative one against <paramref name="launchDirectory"/>), or null.</summary>
-    public static string? ReadInstallTo(IReadOnlyList<string> arguments, string launchDirectory) => ReadArguments(arguments, launchDirectory).InstallTo;
+    public static string? ReadInstallTo(IReadOnlyList<string> arguments, string launchDirectory) => ReadArguments(arguments, launchDirectory, Environment.CurrentDirectory).InstallTo;
+
+    /// <summary>
+    /// The arguments as they go to Setup.exe (what <see cref="Run"/> forwards, before any --installto it adds): a relative
+    /// -l/--log resolved against <paramref name="callerDirectory"/>, nth Setup's own <c>--no-desktop-shortcut</c> left out.
+    /// </summary>
+    public static IReadOnlyList<string> Forwarded(IReadOnlyList<string> arguments, string launchDirectory, string callerDirectory) =>
+        ReadArguments(arguments, launchDirectory, callerDirectory).Forwarded;
 
     /// <summary>
     /// The gate: reads what is installed where Setup.exe would install, decides, and either tells the user (same or newer
@@ -170,7 +185,7 @@ public static class InstallerGate
     /// </summary>
     public static int Run(IInstallerGateHost host, InstallerIdentity identity, IReadOnlyList<string> arguments)
     {
-        var read = ReadArguments(arguments, identity.LaunchDirectory);
+        var read = ReadArguments(arguments, identity.LaunchDirectory, identity.CallerDirectory ?? Environment.CurrentDirectory);
         if (read.Help) return host.RunVelopackSetup(arguments);
 
         var (root, installed) = FindInstall(identity, read.InstallTo);
@@ -196,7 +211,9 @@ public static class InstallerGate
     // -t/--installto <DIR>, -h/--help, and the app's arguments after "--". Short flags may be clustered (-sv) and a value
     // may follow its option in the same token (-tDIR, -t=DIR, --installto=DIR). A relative --installto is resolved against
     // the installer's folder (Setup.exe changes to its own folder first) and passed on whole, as --installto <full path>.
-    private static SetupArguments ReadArguments(IReadOnlyList<string> arguments, string launchDirectory)
+    // A relative log is resolved against the caller's folder (where the person typed it; Setup.exe runs in the engine's
+    // folder, which is deleted afterwards) and passed on whole too. nth Setup's own --no-desktop-shortcut is not Setup.exe's.
+    private static SetupArguments ReadArguments(IReadOnlyList<string> arguments, string launchDirectory, string callerDirectory)
     {
         bool silent = false, help = false;
         string? installTo = null;
@@ -219,8 +236,11 @@ public static class InstallerGate
                         installTo = equals >= 0 ? token[(equals + 1)..] : i + 1 < arguments.Count ? arguments[++i] : null;
                         continue;
                     case "--log":
-                        forwarded.Add(token);
-                        if (equals < 0 && i + 1 < arguments.Count) forwarded.Add(arguments[++i]);
+                        var file = equals >= 0 ? token[(equals + 1)..] : i + 1 < arguments.Count ? arguments[++i] : null;
+                        forwarded.Add("--log");
+                        if (file is not null) forwarded.Add(FullLog(file, callerDirectory));
+                        continue;
+                    case InstallOptions.NoDesktopShortcutArgument:
                         continue;
                     case "--silent":
                         silent = true;
@@ -253,7 +273,7 @@ public static class InstallerGate
                     flags += flag;
                 }
                 if (flags.Length > 1) forwarded.Add(flags);
-                if (log is not null) forwarded.AddRange(["-l", log]);
+                if (log is not null) forwarded.AddRange(["-l", FullLog(log, callerDirectory)]);
                 continue;
             }
             forwarded.Add(token);
@@ -264,6 +284,13 @@ public static class InstallerGate
             forwarded.InsertRange(0, ["--installto", installTo]);
         }
         return new SetupArguments(silent, help, installTo, forwarded);
+    }
+
+    private static string FullLog(string file, string callerDirectory)
+    {
+        if (file.Length == 0 || Path.IsPathFullyQualified(file)) return file;
+        try { return Path.GetFullPath(file, callerDirectory); }
+        catch (Exception error) when (error is ArgumentException or NotSupportedException or PathTooLongException) { return file; } // Setup.exe reports what it cannot open
     }
 
     private readonly record struct SemVer(ulong Major, ulong Minor, ulong Patch, string[] Prerelease);

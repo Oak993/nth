@@ -203,6 +203,9 @@ public sealed class GlassGroup : Border
 
     public Controls Rows => rows.Children;
 
+    /// <summary>The rows' panel, for Reveal to track (a row that a longer line above it moves glides there).</summary>
+    public Panel RowsPanel => rows;
+
     public GlassGroup With(params Control[] children)
     {
         foreach (var child in children) rows.Children.Add(child);

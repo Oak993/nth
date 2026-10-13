@@ -33,7 +33,9 @@ public sealed class BackgroundPollLoop(TimeProvider? time = null) : IPollLoop
 /// window's thread, every 100 ms, the run looks at the root and the log; each frame is posted to the screen. When Setup.exe
 /// has exited 0, the setup's own work runs on the window's thread (<see cref="InstallRun.Finish"/>), Close comes back, the
 /// bar reaches 100, and 0.65 s later (Calm 0.25 s, the canvas's) Ready shows. Any failure resumes Close and shows Problem
-/// with its reason. A window closed while still checking starts nothing.
+/// with its reason. A window closed while still checking starts nothing. With a <see cref="IRunGate"/> (unit U4's window
+/// side, <see cref="NthCheck"/>), the gate is asked first, once the space is known to be enough: it may hold the progress
+/// back while it asks a running nth (the Update screen then shows nth's answer instead), and it hears when the run is over.
 /// </summary>
 public sealed class InstallFlow
 {
@@ -48,6 +50,7 @@ public sealed class InstallFlow
     private readonly IPollLoop poll;
     private readonly Action<Action> post;
     private readonly Func<InstallRun, Task<bool>>? beforeEngine;
+    private readonly IRunGate? gate;
     private Task<bool>? checks;
     private IProgressView? view;
     private bool starting;
@@ -59,7 +62,8 @@ public sealed class InstallFlow
     /// <param name="poll">The 100 ms loop.</param>
     /// <param name="post">Runs an action on the window's thread.</param>
     /// <param name="beforeEngine">Unit U4's running-nth check (true: go on; false: the person stopped it), or null.</param>
-    public InstallFlow(SetupSession session, Func<InstallRun> createRun, EngineStaging staging, IPollLoop poll, Action<Action> post, Func<InstallRun, Task<bool>>? beforeEngine = null)
+    /// <param name="gate">Unit U4's window check (<see cref="NthCheck"/>), asked before the progress shows; it replaces <paramref name="beforeEngine"/>.</param>
+    public InstallFlow(SetupSession session, Func<InstallRun> createRun, EngineStaging staging, IPollLoop poll, Action<Action> post, Func<InstallRun, Task<bool>>? beforeEngine = null, IRunGate? gate = null)
     {
         this.session = session ?? throw new ArgumentNullException(nameof(session));
         this.createRun = createRun ?? throw new ArgumentNullException(nameof(createRun));
@@ -67,6 +71,7 @@ public sealed class InstallFlow
         this.poll = poll ?? throw new ArgumentNullException(nameof(poll));
         this.post = post ?? throw new ArgumentNullException(nameof(post));
         this.beforeEngine = beforeEngine;
+        this.gate = gate;
         session.Window.Closed += (_, _) => closed = true;
     }
 
@@ -92,6 +97,50 @@ public sealed class InstallFlow
             Failed(run);
             return;
         }
+        if (gate is null)
+        {
+            Show(run, null);
+            return;
+        }
+        Task<RunGo?> opening;
+        try { opening = gate.OpenAsync(run); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidOperationException or PlatformNotSupportedException)
+        {
+            opening = Task.FromException<RunGo?>(error);
+        }
+        if (opening.IsCompleted) Opened(run, opening);
+        else _ = opening.ContinueWith(done => post(() => Opened(run, done)), CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+    }
+
+    /// <summary>The gate answered: the progress shows, or (nothing to run) the flow is free again and the gate shows what it has.</summary>
+    private void Opened(InstallRun run, Task<RunGo?> opening)
+    {
+        if (!ReferenceEquals(Run, run) || !Busy) return;
+        var go = opening.IsCompletedSuccessfully ? opening.Result : null;
+        if (!opening.IsCompletedSuccessfully) run.FailBeforeStart(FailureReason.Other);
+        if (closed)
+        {
+            Busy = false;
+            gate?.Ended(run);
+            return;
+        }
+        if (go is null)
+        {
+            if (run.Failure is not null) Failed(run);
+            else
+            {
+                Busy = false;
+                gate?.Ended(run);
+            }
+            return;
+        }
+        Show(run, go);
+    }
+
+    /// <summary>The progress screen's rows laid out, the staging and the checks driving the first step, the 100 ms loop started.</summary>
+    private void Show(InstallRun run, RunGo? go)
+    {
+        if (go is { } answer && (answer.Waiting || answer.FirstStep is not null)) run.SetWaiting(answer.Waiting, answer.FirstStep);
         var screen = ScreenFor(run.Request.Update);
         if (session.Screen != screen) session.Go(screen);
         view = (session.Get(screen) as IProgressScreen)?.Progress;
@@ -101,7 +150,7 @@ public sealed class InstallFlow
             view.Begin(run.Tick());
         }
         _ = staging.StageAsync();
-        checks = beforeEngine?.Invoke(run) ?? Task.FromResult(true);
+        checks = go?.Engine ?? beforeEngine?.Invoke(run) ?? Task.FromResult(true);
         poll.Start(() => Poll(run));
     }
 
@@ -119,7 +168,9 @@ public sealed class InstallFlow
             }
             if (checks is { IsCompleted: true } done && (!done.IsCompletedSuccessfully || !done.Result))
             {
-                post(Stopped);
+                // the gate failed the run (nth refused, or would not close on a screen with no question): Problem; else back
+                if (run.Failure is not null) post(() => Failed(run));
+                else post(Stopped);
                 return false;
             }
             run.SetChecking(0.2 + 0.8 * staging.Fraction, staging: !staging.IsComplete);
@@ -175,6 +226,7 @@ public sealed class InstallFlow
     private void Done()
     {
         Busy = false;
+        gate?.Ended(Run!);
         if (!closed) session.Go(SetupScreen.Ready);
     }
 
@@ -182,14 +234,20 @@ public sealed class InstallFlow
     {
         Busy = false;
         if (session.Window.Guard.IsPaused) session.ResumeClose();
+        gate?.Ended(run);
         if (run.Failure is { } failure && !closed) session.Fail(failure);
     }
 
-    /// <summary>Unit U4's check said no (the person stopped waiting): nothing started; back to where the run began.</summary>
+    /// <summary>
+    /// Unit U4's check said no (the person stopped waiting): nothing started; back to where the run began. With a gate, a run
+    /// stopped on the route's own screen (Update) stays there and the gate shows nth's answer (busy, or not responding).
+    /// </summary>
     private void Stopped()
     {
         Busy = false;
-        if (!closed) session.Go(session.Route.Screen);
+        if (closed) return;
+        if (gate is null || session.Screen != session.Route.Screen) session.Go(session.Route.Screen);
+        gate?.Ended(Run!);
     }
 
     /// <summary>Waits for the bar to be drawn full, then for the canvas's pause, then calls Ready (on the frame loop).</summary>

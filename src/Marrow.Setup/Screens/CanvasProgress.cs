@@ -34,6 +34,12 @@ public sealed class CanvasProgress : IProgressView
 
     public ProgressBarB Bar { get; }
 
+    /// <summary>
+    /// Rows above the run's own that the screen keeps, done (Update's "Waiting for 2 threads to finish" once the wait is over):
+    /// the run's rows are drawn under them. Set by the screen when <c>begin</c> keeps its rows; 0 otherwise.
+    /// </summary>
+    public int Lead { get; set; }
+
     /// <summary>The bar's drawn value (0 to 100).</summary>
     public double BarValue => Bar.Shown >= 99.6 && Bar.Target >= 100 ? 100 : Bar.Shown;
 
@@ -62,11 +68,12 @@ public sealed class CanvasProgress : IProgressView
     public void Render(ProgressFrame frame)
     {
         ArgumentNullException.ThrowIfNull(frame);
-        if (Steps.Rows.Count != frame.Steps.Count) begin([.. frame.Steps.Select(step => new StepSpec(step.Label, step.DetailLongest))]);
+        if (Steps.Rows.Count != frame.Steps.Count + Lead) begin([.. frame.Steps.Select(step => new StepSpec(step.Label, step.DetailLongest))]);
+        var lead = Math.Max(0, Steps.Rows.Count - frame.Steps.Count);
         for (var i = 0; i < frame.Steps.Count; i++)
         {
             var view = frame.Steps[i];
-            var row = Steps.Rows[i];
+            var row = Steps.Rows[i + lead];
             if (!string.Equals(row.Label, view.Label, StringComparison.Ordinal)) row.SetLabel(view.Label);
             if (view.Detail is { } detail && !string.Equals(row.Detail, detail, StringComparison.Ordinal)) row.SetDetail(detail);
             row.State = To(view.State);

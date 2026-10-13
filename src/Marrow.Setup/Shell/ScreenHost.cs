@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Marrow.Setup.Motion;
@@ -12,6 +13,8 @@ namespace Marrow.Setup.Shell;
 /// it is still leaving turns around from where it is. Calm: no lift and no rise, fades of 0.2 s. A screen is laid out in
 /// its final state before it fades in, so entering never reveals. Its height is the tallest any screen it has shown
 /// needed (it only grows while the window is open, until text size or DPI changes), so the window never jumps smaller.
+/// The screens a window can still reach are measured with the first one (<see cref="Probe"/>; VELOPACK_CHECK.md finding 11,
+/// ED-NEW-inst-fix-7), so the window opens at the tallest of them and a taller screen arriving later does not grow it in one frame.
 /// </summary>
 public sealed class ScreenHost : Panel
 {
@@ -21,6 +24,9 @@ public sealed class ScreenHost : Panel
     private readonly Animator animator;
     private readonly Func<bool> calm;
     private readonly Dictionary<Control, ScreenMotion> motions = [];
+    private readonly List<Control> probes = [];
+    private Func<IEnumerable<Control>>? reachable;
+    private bool probed;
     private double tallest;
 
     public ScreenHost(Animator animator, Func<bool> calm)
@@ -48,7 +54,8 @@ public sealed class ScreenHost : Panel
         {
             arriving = new ScreenMotion(this, screen);
             motions.Add(screen, arriving);
-            Children.Add(screen);
+            if (probes.Remove(screen)) screen.ClearValue(AutomationProperties.AccessibilityViewProperty); // a probe is already a child
+            else Children.Add(screen);
         }
         screen.IsHitTestVisible = true;
         arriving.Arrive(calm(), immediately, fresh: !arriving.HasShown);
@@ -57,11 +64,59 @@ public sealed class ScreenHost : Panel
         if (immediately && previous is not null) Remove(previous);
     }
 
-    /// <summary>Lets the height shrink again (after a text size or DPI change).</summary>
+    /// <summary>Lets the height shrink again (after a text size or DPI change); the reachable screens are measured again.</summary>
     public void ResetHeight()
     {
         tallest = 0;
+        AddProbes();
         InvalidateMeasure();
+    }
+
+    /// <summary>
+    /// The screens this window can still show. Each one not shown is added for one layout pass, drawn at opacity 0, not
+    /// hit-testable and hidden from Narrator, so the body measures it with the screen shown, and is taken away again once that
+    /// pass is done. Asked again after <see cref="ResetHeight"/>, since text size and DPI change every height.
+    /// </summary>
+    public void Probe(Func<IEnumerable<Control>> screens)
+    {
+        reachable = screens ?? throw new ArgumentNullException(nameof(screens));
+        AddProbes();
+    }
+
+    /// <summary>The screens measured as probes and not yet taken away (for tests).</summary>
+    public IReadOnlyList<Control> Probes => probes;
+
+    private void AddProbes()
+    {
+        if (reachable is null) return;
+        foreach (var screen in reachable())
+        {
+            if (motions.ContainsKey(screen) || probes.Contains(screen) || screen.Parent is not null) continue;
+            screen.Opacity = 0;
+            screen.IsHitTestVisible = false;
+            AutomationProperties.SetAccessibilityView(screen, AccessibilityView.Raw);
+            probes.Add(screen);
+            Children.Add(screen);
+        }
+        if (probes.Count == 0) return;
+        probed = false;
+        LayoutUpdated -= OnProbed;
+        LayoutUpdated += OnProbed;
+        InvalidateMeasure();
+    }
+
+    private void OnProbed(object? sender, EventArgs e)
+    {
+        if (!probed) return; // a layout pass that did not measure the probes yet
+        LayoutUpdated -= OnProbed;
+        foreach (var probe in probes.ToArray()) TakeProbe(probe);
+    }
+
+    private void TakeProbe(Control probe)
+    {
+        probes.Remove(probe);
+        Children.Remove(probe);
+        probe.ClearValue(AutomationProperties.AccessibilityViewProperty);
     }
 
     /// <summary>The drawn opacity and vertical offset of <paramref name="screen"/> (for tests).</summary>
@@ -76,6 +131,7 @@ public sealed class ScreenHost : Panel
             child.Measure(availableSize);
             size = new Size(Math.Max(size.Width, child.DesiredSize.Width), Math.Max(size.Height, child.DesiredSize.Height));
         }
+        probed |= probes.Count > 0;
         tallest = Math.Max(tallest, size.Height);
         return new Size(size.Width, tallest);
     }

@@ -1,3 +1,4 @@
+using Avalonia.Threading;
 using Marrow.Setup.Flow;
 using Marrow.Setup.Install;
 using Marrow.Setup.Platform;
@@ -9,20 +10,21 @@ namespace Marrow.Setup.Tests.Fakes;
 /// <summary>
 /// The in-window install on a headless window (nth installer PLAN.md 4; unit U3): a session on the route's screen, an
 /// <see cref="InstallFlow"/> whose run is an <see cref="InstallScenario"/>'s (a fake Setup.exe acting out a timeline in a
-/// temp folder), a payload in memory, a poll loop turned by hand and posts that run at once. Built on the UI thread.
+/// temp folder), a payload in memory, a poll loop turned by hand and posts that run at once on the window's thread. Built on the UI thread.
 /// </summary>
 public sealed class InstallFlowRig : IDisposable
 {
     private readonly VelopackTimeline timeline;
 
-    public InstallFlowRig(VelopackTimeline timeline, bool update = false, long? free = 100_000_000_000, bool payload = true, Func<InstallRun, Task<bool>>? beforeEngine = null, SystemLook? look = null)
+    public InstallFlowRig(VelopackTimeline timeline, bool update = false, long? free = 100_000_000_000, bool payload = true, Func<InstallRun, Task<bool>>? beforeEngine = null, SystemLook? look = null, Func<SetupSession, IRunGate>? gate = null)
     {
         this.timeline = timeline;
         Window = new WindowRig(look);
         Scenario = new InstallScenario(timeline, update, free);
         Session = Window.Session(update ? SetupScreen.Update : SetupScreen.Welcome, installed: update ? InstallScenario.OldVersion : null);
         Staging = new EngineStaging(Scenario.Staging, payload ? () => new MemoryStream(new byte[64 * 1024]) : () => null, Scenario.Scope.Ensure);
-        Flow = new InstallFlow(Session, NextRun, Staging, Poll, action => action(), beforeEngine);
+        Gate = gate?.Invoke(Session);
+        Flow = new InstallFlow(Session, NextRun, Staging, Poll, Post, beforeEngine, Gate);
         Session.InstallRequested = Flow.Begin;
         Session.Start();
         // ED-NEW-inst-merge-3: the window's signature check has answered (Install waits for it, ED-NEW-inst-cx-1)
@@ -41,6 +43,9 @@ public sealed class InstallFlowRig : IDisposable
     public ManualPollLoop Poll { get; } = new();
 
     public InstallFlow Flow { get; }
+
+    /// <summary>The check before the progress (unit U4's window side), when the test gave one.</summary>
+    public IRunGate? Gate { get; }
 
     /// <summary>Every run the flow asked for, the first being the scenario's.</summary>
     public List<InstallRun> Runs { get; } = [];
@@ -82,6 +87,16 @@ public sealed class InstallFlowRig : IDisposable
     {
         if (Window.Window.IsVisible) Window.Window.CloseNow();
         Scenario.Dispose();
+    }
+
+    /// <summary>
+    /// On the window's thread at once (everything the rig itself does); from elsewhere (a gate's answer, which completes on
+    /// the thread pool) through the dispatcher, as the window does, so a test pumps it (<c>Dispatcher.UIThread.RunJobs</c>).
+    /// </summary>
+    private static void Post(Action action)
+    {
+        if (Dispatcher.UIThread.CheckAccess()) action();
+        else Dispatcher.UIThread.Post(action);
     }
 
     private InstallRun NextRun()

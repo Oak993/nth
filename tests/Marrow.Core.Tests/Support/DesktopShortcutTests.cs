@@ -22,9 +22,9 @@ public sealed class DesktopShortcutTests
     private static readonly string OldStartFolder = FakeShellLinks.Programs + @"\nth";
     private static readonly string OldStartLink = OldStartFolder + @"\nth.lnk";
 
-    private static FakeShellLinks Machine(bool start = true, string? aumid = ShellLinkKeys.NthAppUserModelId)
+    private static FakeShellLinks Machine(bool start = true, string? aumid = ShellLinkKeys.NthAppUserModelId, Action<TimeSpan>? wait = null)
     {
-        var shell = new FakeShellLinks();
+        var shell = new FakeShellLinks(wait);
         shell.AddFile(CurrentExe);
         shell.AddFile(Stub);
         shell.AddFile(Root + @"\Update.exe");
@@ -483,16 +483,23 @@ public sealed class DesktopShortcutTests
     [Trait("Decision", "ED-247")]
     public async Task A_writer_kept_out_for_2_s_skips_its_step_and_leaves_one_whole_shortcut()
     {
-        var shell = Machine();
-        shell.Delay(FakeShellLinks.Call.WriteLink, TimeSpan.FromMilliseconds(2600));
-        var hook = new DesktopShortcut(shell, Root);
+        // VELOPACK_CHECK.md finding 15 (ED-NEW-inst-fix-9): the writer's write is held by an event, not a 2.6 s sleep, and released only
+        // once both other writers have given up their full 2 s wait, so a slow thread pool can no longer let one of them in. The
+        // steps run on a frozen clock, so their own budgets do not shrink while they wait; only the lock's 2 s is real time.
+        using var release = new ManualResetEventSlim();
+        var shell = Machine(wait: _ => Assert.True(release.Wait(TimeSpan.FromSeconds(30)), "the other writers gave up"));
+        shell.Delay(FakeShellLinks.Call.WriteLink, TimeSpan.FromMilliseconds(1));
+        var clock = new ManualTimeProvider();
+        var hook = new DesktopShortcut(shell, Root, clock);
 
         var create = Task.Run(() => hook.Create());
-        SpinWait.SpinUntil(() => shell.CallCount(FakeShellLinks.Call.WriteLink) == 1, TimeSpan.FromSeconds(5));
-        var removing = Task.Run(() => new DesktopShortcut(shell, Root).RemoveMade());
-        var creating = Task.Run(() => new DesktopShortcut(shell, Root).Create());
+        Assert.True(SpinWait.SpinUntil(() => shell.CallCount(FakeShellLinks.Call.WriteLink) == 1, TimeSpan.FromSeconds(5)), "the first writer is writing");
+        var removing = Task.Run(() => new DesktopShortcut(shell, Root, clock).RemoveMade());
+        var creating = Task.Run(() => new DesktopShortcut(shell, Root, clock).Create());
         var removed = await removing;
         var busyCreate = await creating;
+        Assert.Equal(2, shell.WriterTimeouts); // both waited out the lock while the first write was still held
+        release.Set();
 
         Assert.True(removed.Busy);
         Assert.Equal(DesktopShortcutOutcome.Created, (await create).DesktopShortcut);

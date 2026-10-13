@@ -3,6 +3,9 @@ using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using Avalonia.Platform.Storage;
+using Marrow.App.Port;
+using Marrow.Core.Support;
+using Marrow.Setup.Port;
 
 namespace Marrow.Setup.Screens;
 
@@ -30,19 +33,60 @@ public sealed class WindowsSetupActions : ISetupActions
 {
     public const string LicenseResource = "SetupLicense.txt";
 
-    /// <summary>
-    /// STUB(U5): Open nth starts <c>&lt;root&gt;\current\nth.exe</c> (PLAN.md 8a's second default) until unit U5's resolved
-    /// launch target (copied from Velopack's Start shortcut) is shared with the setup.
-    /// </summary>
-    public static string LaunchTarget(string installRoot) => Path.Combine(installRoot, "current", "nth.exe");
+    /// <summary>The licence copy View license writes, in nth Setup's own folder under the temp folder.</summary>
+    public const string LicenseCopyName = "LICENSE.txt";
 
-    public bool OpenApp(string installRoot)
+    /// <summary>How long Open nth waits for Explorer to start nth for an elevated setup.</summary>
+    public static readonly TimeSpan OpenPatience = TimeSpan.FromSeconds(5);
+
+    private readonly string tempPath;
+
+    public WindowsSetupActions() : this(Path.GetTempPath())
     {
-        var target = LaunchTarget(installRoot);
-        if (!File.Exists(target)) return false;
+    }
+
+    internal WindowsSetupActions(string tempPath) => this.tempPath = tempPath;
+
+    /// <summary>
+    /// Open nth (PLAN.md 8a; ED-NEW-inst-fix-4): the launch target copied from Velopack's Start shortcut (unit U5's
+    /// <see cref="DesktopShortcut.LaunchTarget(string, ShellLink?, Func{string, bool}, Func{string, string})"/>, the same one the
+    /// desktop shortcut gets), started as the signed-in user: through Explorer when this setup runs elevated.
+    /// </summary>
+    public bool OpenApp(string installRoot) =>
+        Open(ReadLaunchTarget(installRoot), Environment.IsPrivilegedProcess, File.Exists, StartDirect, launch => UserShellStart.Start(launch, OpenPatience));
+
+    /// <summary>
+    /// The decision Open nth makes: nothing to start, no start; an elevated setup starts nth only through Explorer (never with
+    /// its own admin token, even when Explorer cannot be reached); otherwise it starts it itself.
+    /// </summary>
+    internal static bool Open(LaunchTarget launch, bool elevated, Func<string, bool> fileExists, Func<LaunchTarget, bool> startDirect, Func<LaunchTarget, bool> startAsUser)
+    {
+        ArgumentNullException.ThrowIfNull(launch);
+        if (!fileExists(launch.Target)) return false;
+        return elevated ? startAsUser(launch) : startDirect(launch);
+    }
+
+    /// <summary>Start's launch target when the shortcut can be read, else <c>&lt;root&gt;\current\nth.exe</c> (DesktopShortcut's own fallback).</summary>
+    internal static LaunchTarget ReadLaunchTarget(string installRoot)
+    {
         try
         {
-            using var started = Process.Start(new ProcessStartInfo(target) { UseShellExecute = true, WorkingDirectory = Path.GetDirectoryName(target) ?? installRoot });
+            using var shell = new ShellLinks();
+            return new DesktopShortcut(shell, installRoot).CurrentLaunchTarget(ShellLinks.CallTimeout);
+        }
+        catch (Exception error) when (DesktopShortcut.IsShellFailure(error))
+        {
+            return DesktopShortcut.LaunchTarget(installRoot, null, File.Exists, Environment.ExpandEnvironmentVariables);
+        }
+    }
+
+    private static bool StartDirect(LaunchTarget launch)
+    {
+        try
+        {
+            var start = new ProcessStartInfo(launch.Target) { UseShellExecute = true, Arguments = launch.Arguments };
+            if (launch.WorkingDirectory.Length > 0) start.WorkingDirectory = launch.WorkingDirectory;
+            using var started = Process.Start(start);
             return started is not null;
         }
         catch (Exception error) when (error is Win32Exception or InvalidOperationException or IOException)
@@ -66,23 +110,55 @@ public sealed class WindowsSetupActions : ISetupActions
         }
     }
 
-    /// <summary>Writes the embedded licence to <c>%TEMP%\nth Setup\LICENSE.txt</c> and opens it with the shell.</summary>
+    /// <summary>
+    /// Writes the embedded licence to <c>%TEMP%\nth Setup\LICENSE.txt</c> and opens it with the shell. The copy is removed again
+    /// when the window closes (<see cref="RemoveLicenseCopy"/>, VELOPACK_CHECK.md finding 8; ED-NEW-inst-fix-3); one fixed name,
+    /// so even a setup that ends without closing leaves at most this one file, which the next setup's close removes.
+    /// </summary>
     public bool ViewLicense()
     {
         try
         {
-            using var stream = typeof(WindowsSetupActions).Assembly.GetManifestResourceStream(LicenseResource);
-            if (stream is null) return false;
-            var folder = Path.Combine(Path.GetTempPath(), "nth Setup");
-            Directory.CreateDirectory(folder);
-            var path = Path.Combine(folder, "LICENSE.txt");
-            using (var file = File.Create(path)) stream.CopyTo(file);
+            if (WriteLicenseCopy(tempPath) is not { } path) return false;
             using var opened = Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
             return true;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or Win32Exception or InvalidOperationException)
         {
             return false;
+        }
+    }
+
+    /// <summary><c>&lt;temp&gt;\nth Setup\LICENSE.txt</c>.</summary>
+    public static string LicenseCopyPath(string tempPath) => Path.Combine(tempPath, InstallOptions.SetupFolderName, LicenseCopyName);
+
+    /// <summary>Writes the licence copy; null when this build carries no licence.</summary>
+    internal static string? WriteLicenseCopy(string tempPath)
+    {
+        using var stream = typeof(WindowsSetupActions).Assembly.GetManifestResourceStream(LicenseResource);
+        if (stream is null) return null;
+        var path = LicenseCopyPath(tempPath);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        using (var file = File.Create(path)) stream.CopyTo(file);
+        return path;
+    }
+
+    /// <summary>
+    /// Removes the licence copy, and nth Setup's temp folder when nothing else is in it. An editor has read the text by then
+    /// (Notepad keeps no handle on the file); a copy that cannot be removed now is removed by the next setup's close.
+    /// </summary>
+    public static void RemoveLicenseCopy(string tempPath)
+    {
+        var path = LicenseCopyPath(tempPath);
+        try
+        {
+            if (File.Exists(path)) File.Delete(path);
+            var folder = Path.GetDirectoryName(path)!;
+            if (Directory.Exists(folder) && !Directory.EnumerateFileSystemEntries(folder).Any()) Directory.Delete(folder);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            // kept for the next close (ED-NEW-inst-fix-3): one small file in the user's own temp folder, never worth a message
         }
     }
 

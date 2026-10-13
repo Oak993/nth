@@ -89,13 +89,14 @@ public enum UpdateRun
     Wait,
 }
 
-/// <summary>Update's states: asked, nth busy, waiting for it, updating.</summary>
+/// <summary>Update's states: asked, nth busy, waiting for it, updating, and nth not responding (PLAN.md 3a step 3).</summary>
 public enum UpdateState
 {
     Ask,
     Busy,
     Waiting,
     Updating,
+    NotResponding,
 }
 
 /// <summary>
@@ -136,11 +137,13 @@ public sealed class UpdateScreen : CanvasScreen, IProgressScreen
         RefreshGo();
         session.InstallAvailabilityChanged += RefreshGo;
         Column.With(mark, title, subtitle, notes, busy, Steps, Bar, fine, Space(ButtonGap), Hold, Buttons(Later, Go));
-        Progress = new CanvasProgress(Steps, Bar, steps => ShowUpdating(UpdateRun.Closed, 0, steps), slow => SetSubtitle(slow ? SetupStrings.InstallingSlow : SetupStrings.InstallingSubtitle));
+        progress = new CanvasProgress(Steps, Bar, steps => ShowUpdating(UpdateRun.Closed, 0, steps), slow => SetSubtitle(slow ? SetupStrings.InstallingSlow : SetupStrings.InstallingSubtitle));
     }
 
+    private readonly CanvasProgress progress;
+
     /// <summary>What unit U3's progress engine draws into once the update runs (the rows, the bar and the stall line).</summary>
-    public IProgressView Progress { get; }
+    public IProgressView Progress => progress;
 
     public UpdateState State
     {
@@ -162,6 +165,14 @@ public sealed class UpdateScreen : CanvasScreen, IProgressScreen
 
     /// <summary>nth is open now (the footnote says it saves and closes for a moment); unit U4 sets it.</summary>
     public bool NthOpen { get; set; }
+
+    /// <summary>Unit U4's answer to "is nth open?" (asked once, after the screen shows): Ask's footnote changes its words in place.</summary>
+    public void SetNthOpen(bool open)
+    {
+        if (NthOpen == open) return;
+        NthOpen = open;
+        if (State == UpdateState.Ask) Reveal.SetText(fine, open ? SetupStrings.UpdateKeepOpen : SetupStrings.UpdateKeep);
+    }
 
     public int Threads { get; private set; }
 
@@ -191,6 +202,15 @@ public sealed class UpdateScreen : CanvasScreen, IProgressScreen
 
     /// <summary>"Update when they finish" in Busy (unit U4 waits, then calls <see cref="ShowUpdating"/>).</summary>
     public event Action? WaitRequested;
+
+    /// <summary>Stop waiting in Waiting: whatever nth was told is called off (the screen goes back to Ask by itself).</summary>
+    public event Action? StopWaitingRequested;
+
+    /// <summary>Update on "nth isn't responding. Close it anyway?": the person's yes (nth is ended, then the update runs).</summary>
+    public event Action? CloseAnywayRequested;
+
+    /// <summary>Not now on "nth isn't responding. Close it anyway?": the no; nothing is forced (the screen goes back to Ask by itself).</summary>
+    public event Action? NotNowRequested;
 
     /// <summary>The steps of an update run.</summary>
     public static IReadOnlyList<StepSpec> UpdateSteps(UpdateRun run, int threads, long? sizeMegabytes)
@@ -265,7 +285,35 @@ public sealed class UpdateScreen : CanvasScreen, IProgressScreen
         Reveal.SetText(title, SetupStrings.UpdateWaitTitle);
         SetSubtitle(SetupStrings.UpdateWaitSubtitle(threads));
         Running(UpdateRun.Wait, threads);
+        Steps.Advance(0); // the waiting row is the one working (the canvas's run starts it)
         Labels(SetupStrings.UpdateWaitStop, null);
+    }
+
+    /// <summary>While Waiting, nth's list shrank: the subtitle and the waiting row say how many are left.</summary>
+    public void SetWaitingThreads(int threads)
+    {
+        if (State != UpdateState.Waiting || threads <= 0 || threads == Threads) return;
+        Threads = threads;
+        SetSubtitle(SetupStrings.UpdateWaitSubtitle(threads));
+        if (Steps.Rows.Count > 0) Steps.Rows[0].SetLabel(SetupStrings.StepWaiting(threads));
+    }
+
+    /// <summary>
+    /// nth agreed to close but is still there after 15 s, or never answered (PLAN.md 3a step 3): "nth isn't responding. Close it
+    /// anyway?" under the title, the busy note (nothing has changed yet), and Not now (no: nothing is forced) and Update (yes).
+    /// </summary>
+    public void ShowNotResponding()
+    {
+        State = UpdateState.NotResponding;
+        Reveal.SetText(title, SetupStrings.UpdateTitle);
+        SetSubtitle(SetupStrings.UpdateNotResponding);
+        Reveal.Hide(notes);
+        Reveal.Hide(busy);
+        Reveal.Hide(Steps);
+        Reveal.Hide(Bar);
+        Reveal.Show(fine);
+        Reveal.SetText(fine, SetupStrings.UpdateBusyNote);
+        Labels(SetupStrings.UpdateLater, SetupStrings.UpdateGo);
     }
 
     /// <summary>
@@ -278,7 +326,13 @@ public sealed class UpdateScreen : CanvasScreen, IProgressScreen
         State = UpdateState.Updating;
         Reveal.SetText(title, SetupStrings.UpdateRunningTitle(Session.Version));
         SetSubtitle(SetupStrings.InstallingSubtitle);
-        if (!fromWaiting || steps is not null) Running(run, threads, steps);
+        if (fromWaiting && steps is not null && Steps.IsVisible && Steps.Rows.Count == steps.Count + 1)
+        {
+            // the wait is over: its row is done and stays, and the run's rows are the ones under it (the canvas's onStep); nothing is rebuilt
+            Steps.Rows[0].State = StepState.Done;
+            progress.Lead = 1;
+        }
+        else if (!fromWaiting || steps is not null) Running(run, threads, steps);
         Labels(null, null);
     }
 
@@ -287,6 +341,7 @@ public sealed class UpdateScreen : CanvasScreen, IProgressScreen
         Reveal.Hide(notes);
         Reveal.Hide(busy);
         Reveal.Hide(fine);
+        if (steps is not null || !Steps.IsVisible) progress.Lead = 0;
         if (steps is not null) Steps.SetSteps(steps);
         else if (!Steps.IsVisible) Steps.SetSteps(UpdateSteps(run, threads, Session.SizeMegabytes));
         Reveal.Show(Steps);
@@ -365,6 +420,9 @@ public sealed class UpdateScreen : CanvasScreen, IProgressScreen
             case UpdateState.Busy:
                 WaitRequested?.Invoke();
                 break;
+            case UpdateState.NotResponding:
+                CloseAnywayRequested?.Invoke();
+                break;
         }
     }
 
@@ -379,6 +437,11 @@ public sealed class UpdateScreen : CanvasScreen, IProgressScreen
                 StopRequested?.Invoke();
                 break;
             case UpdateState.Waiting:
+                StopWaitingRequested?.Invoke();
+                ShowAsk();
+                break;
+            case UpdateState.NotResponding:
+                NotNowRequested?.Invoke();
                 ShowAsk();
                 break;
         }

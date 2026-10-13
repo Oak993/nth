@@ -168,13 +168,16 @@ public sealed class InstallRun
         }
     }
 
-    /// <summary>The run cannot start (the engine could not be staged): Problem, with nothing changed.</summary>
-    public void FailBeforeStart(FailureReason reason)
+    /// <summary>
+    /// The run cannot start (the engine could not be staged, nth would not close, another setup holds the root): Problem,
+    /// with nothing changed. <paramref name="details"/> go into Copy details under the step (never into the sentence).
+    /// </summary>
+    public void FailBeforeStart(FailureReason reason, IReadOnlyList<string>? details = null)
     {
         lock (gate)
         {
             if (Process is not null) return;
-            Fail(new InstallFailure(reason, NothingChanged: true, ExitCode: null, InstallStep.Checking, Space, []));
+            Fail(new InstallFailure(reason, NothingChanged: true, ExitCode: null, InstallStep.Checking, Space, details ?? []));
         }
     }
 

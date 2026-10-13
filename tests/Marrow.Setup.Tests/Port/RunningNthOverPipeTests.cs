@@ -136,13 +136,19 @@ public sealed class RunningNthOverPipeTests
         });
         using var ownedServer = server;
         var channel = new PipeNthControlChannel(name, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(3), root);
-        var handshake = new RunningNthHandshake(root, channel, nth, timings: PipeRig.Quick);
+        var clock = new HoldableTime();
+        var handshake = new RunningNthHandshake(root, channel, nth, clock, PipeRig.Quick);
         Assert.Equal(RunningNthState.NotResponding, (await handshake.AskAsync()).State);
         Assert.True(scenario.EarlierQuitPending);
         var original = Assert.Single(scenario.Requests, request => request.Command == NthControlCommand.Quit);
         Assert.Equal(RunningNthState.Busy, (await handshake.AskAsync()).State);
+        var asked = scenario.Requests.Count(request => request.Command == NthControlCommand.Quit);
+        // VELOPACK_CHECK.md finding 14 (ED-NEW-inst-fix-9): no 350 ms race with the poll. The wait polls twice over the pipe (each
+        // answered busy), and its third pause never ends, so Stop waiting comes while no poll is in flight, every run.
+        clock.HoldAfter(2);
         var waiting = handshake.WaitForWorkToFinishAsync();
-        await Task.Delay(350);
+        await clock.Held.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.Equal(2, scenario.Requests.Count(request => request.Command == NthControlCommand.Quit) - asked);
 
         await handshake.CancelAsync();
 

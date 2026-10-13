@@ -21,6 +21,12 @@ public sealed class WindowRig
         Window = new SetupWindow(Settings, Frames, Blocker);
     }
 
+    /// <summary>
+    /// Where the sessions' route points (<see cref="Root"/>, a long name whose path takes two lines in Options, unless a test
+    /// gives a typical one: the window's opening height follows the tallest screen it can reach, ED-NEW-inst-fix-7).
+    /// </summary>
+    public string InstallRoot { get; init; } = Root;
+
     public FakeLookSource Source { get; }
 
     public SystemSettings Settings { get; }
@@ -57,7 +63,7 @@ public sealed class WindowRig
             SetupScreen.NewerInstalled => InstallerAction.RefuseNewerInstalled,
             _ => InstallerAction.Install,
         };
-        var route = new SetupRoute(screen, action, new InstalledRoot(Root, installed, installed is not null), Root);
+        var route = new SetupRoute(screen, action, new InstalledRoot(InstallRoot, installed, installed is not null), InstallRoot);
         return new SetupSession(Window, route, new CanvasScreens(), "1.1.0", canInstall, Actions, arguments);
     }
 

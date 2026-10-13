@@ -34,9 +34,10 @@ public sealed class InstallerGateRootTests
         var folders = Folders();
         var host = new RecordingInstallerHost();
 
-        Assert.Equal(0, InstallerGate.Run(host, Identity(folders, "1.0.0"), ["--silent", "--log", "setup.log"]));
+        Assert.Equal(0, InstallerGate.Run(host, Identity(folders, "1.0.0") with { CallerDirectory = folders.Local }, ["--silent", "--log", "setup.log"]));
 
-        Assert.Equal(["--installto", folders.Fresh, "--silent", "--log", "setup.log"], Assert.Single(host.SetupRuns));
+        // ED-NEW-inst-fix-3: the relative log is handed on whole, resolved where the caller is (Setup.exe runs in the engine's folder)
+        Assert.Equal(["--installto", folders.Fresh, "--silent", "--log", Path.Combine(folders.Local, "setup.log")], Assert.Single(host.SetupRuns));
         Assert.Empty(host.Messages);
         Assert.False(Directory.Exists(folders.Fresh)); // the gate writes nothing; Setup.exe does
     }
@@ -136,6 +137,34 @@ public sealed class InstallerGateRootTests
         InstallerGate.Run(host, Identity(folders, "1.0.0"), ["--help"]);
 
         Assert.Equal(["--help"], Assert.Single(host.SetupRuns));
+    }
+
+    // VELOPACK_CHECK.md "Old branches" item 4 (ED-NEW-inst-fix-3): every spelling of the log Setup.exe reads goes on as a full path in
+    // the caller's folder, a full path goes on as it is, and nth Setup's own --no-desktop-shortcut never reaches Setup.exe (its clap
+    // parser refuses an argument it does not know), except after "--", where everything belongs to the app.
+    [Theory]
+    [Trait("Decision", "ED-247")]
+    [InlineData("--silent|--log|setup.log", "--silent|--log|{caller}\\setup.log")]
+    [InlineData("--silent|--log=logs\\setup.log", "--silent|--log|{caller}\\logs\\setup.log")]
+    [InlineData("--silent|-l|setup.log", "--silent|-l|{caller}\\setup.log")]
+    [InlineData("-lsetup.log|--silent", "-l|{caller}\\setup.log|--silent")]
+    [InlineData("-sl|setup.log", "-s|-l|{caller}\\setup.log")]
+    [InlineData("-s|-l=..\\setup.log", "-s|-l|{parent}\\setup.log")]
+    [InlineData("--silent|--log|C:\\logs\\setup.log", "--silent|--log|C:\\logs\\setup.log")]
+    [InlineData("--silent|--no-desktop-shortcut", "--silent")]
+    [InlineData("--no-desktop-shortcut|--silent|--log|a.log", "--silent|--log|{caller}\\a.log")]
+    [InlineData("--silent|--|--no-desktop-shortcut|--log|a.log", "--silent|--|--no-desktop-shortcut|--log|a.log")]
+    public void A_relative_log_is_resolved_where_the_caller_is_and_the_shortcut_switch_stays_with_nth_Setup(string given, string expected)
+    {
+        var folders = Folders();
+        var caller = Directory.CreateDirectory(Path.Combine(folders.Local, "caller")).FullName;
+        var host = new RecordingInstallerHost();
+        string[] Split(string text) => text.Replace("{caller}", caller, StringComparison.Ordinal).Replace("{parent}", folders.Local, StringComparison.Ordinal).Split('|');
+
+        Assert.Equal(0, InstallerGate.Run(host, Identity(folders, "1.0.0") with { CallerDirectory = caller }, Split(given)));
+
+        Assert.Equal(["--installto", folders.Fresh, .. Split(expected)], Assert.Single(host.SetupRuns));
+        Assert.Equal(Split(expected), InstallerGate.Forwarded(Split(given), folders.Local, caller));
     }
 
     [Fact]

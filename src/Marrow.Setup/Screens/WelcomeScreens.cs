@@ -224,6 +224,7 @@ public sealed class OptionsScreen : CanvasScreen
         Done = Button(SetupStrings.OptionsDone, ButtonKind.Primary, () => session.Go(SetupScreen.Welcome));
         DefaultButton = Done;
         Column.With(title, subtitle, Group, signIn, Space(ButtonGap), Buttons(Done));
+        Reveal.Track(Group.RowsPanel); // a longer path moves the desktop row too: it glides with Done and the note (ED-NEW-inst-fix-8)
         session.DesktopShortcutChanged += OnDesktopChanged;
         session.InstallRootChanged += OnRootChanged;
         session.WallpaperChanged += scene => Preview.SetWallpaper(scene.UsesTheme ? null : scene);
@@ -261,9 +262,15 @@ public sealed class OptionsScreen : CanvasScreen
         Preview.SetState(on ? DeskState.Land : DeskState.Off, instant: !shown);
     }
 
+    /// <summary>
+    /// A new folder (VELOPACK_CHECK.md finding 12, ED-NEW-inst-fix-8): the reserved place takes the new wording at the commit, with
+    /// the words themselves, so a path that needs another line makes room the way every Reveal change does: the old words fade,
+    /// the layout changes once, and whatever it moved (the desktop row, the note, Done) glides from where it was.
+    /// </summary>
     private void OnRootChanged(string root)
     {
-        pathBox.SetWordings(defaultRoot, root);
+        var before = pathBox.Wordings.ToArray();
+        Reveal.Apply(pathBox, () => pathBox.SetWordings(defaultRoot, root), () => pathBox.SetWordings(before));
         Reveal.SetText(path, root);
     }
 

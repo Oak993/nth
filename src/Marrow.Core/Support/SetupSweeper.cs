@@ -302,10 +302,11 @@ public static class SetupSweeper
     {
         var relative = Path.GetRelativePath(unit, file);
         var name = Path.GetFileName(relative);
+        // the uninstaller's copy unpacks its native libraries beside itself (ED-NEW-inst-fix-5), so they leave with the copy's folder
         if (Path.GetFileName(unit) == SetupFolders.UninstallTempFolderName)
-            return !relative.Contains(Path.DirectorySeparatorChar, StringComparison.Ordinal) && name is "nth Uninstall.exe" or "setup.log" or "install.log";
+            return !relative.Contains(Path.DirectorySeparatorChar, StringComparison.Ordinal) && (name is "nth Uninstall.exe" or "setup.log" or "install.log" || IsNative(name));
         if (Path.GetFileName(Path.GetDirectoryName(unit)) == SetupFolders.RuntimeFolderName)
-            return !relative.Contains(Path.DirectorySeparatorChar, StringComparison.Ordinal) && name is "libSkiaSharp.dll" or "libHarfBuzzSharp.dll" or "av_libglesv2.dll";
+            return !relative.Contains(Path.DirectorySeparatorChar, StringComparison.Ordinal) && IsNative(name);
         if (relative.Contains(Path.DirectorySeparatorChar, StringComparison.Ordinal))
         {
             var directories = relative.Split(Path.DirectorySeparatorChar)[..^1];
@@ -321,6 +322,13 @@ public static class SetupSweeper
                 && name.Length == prefix.Length + 32 + 4 && !name.AsSpan(prefix.Length, 32).ContainsAnyExcept("0123456789abcdef")) return true;
         }
         return false;
+    }
+
+    // Skia's, HarfBuzz's and ANGLE's libraries as the setup unpacks them, and a write a power loss cut short (".partial").
+    private static bool IsNative(string name)
+    {
+        var library = name.EndsWith(".partial", StringComparison.Ordinal) ? name[..^".partial".Length] : name;
+        return library is "libSkiaSharp.dll" or "libHarfBuzzSharp.dll" or "av_libglesv2.dll";
     }
 
     private static bool KnownDirectory(string unit, string directory)

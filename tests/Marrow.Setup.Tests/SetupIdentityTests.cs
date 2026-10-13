@@ -89,6 +89,12 @@ public sealed class SetupIdentityTests
         var gate = File.ReadAllText(Path.Combine(folder, "Port", "LegacyGateHost.cs"));
         Assert.DoesNotContain("\"MarrowSetup-", File.ReadAllText(Path.Combine(folder, "Program.cs")), StringComparison.Ordinal);
         Assert.DoesNotContain("\"MarrowSetup-", gate, StringComparison.Ordinal);
-        Assert.Contains("\"nth Setup-\"", gate, StringComparison.Ordinal);
+        // ED-NEW-inst-fix-3: the gate no longer copies Setup.exe to a "nth Setup-<guid>" folder in %TEMP%; it stages where the window
+        // does, in the named folder whose name carries the new product name (and none of the old one)
+        Assert.DoesNotContain("\"nth Setup-\"", gate, StringComparison.Ordinal);
+        Assert.Contains("StagingScope.Create(localAppData, Path.GetTempPath(), Metadata(\"InstallerVersion\"))", gate, StringComparison.Ordinal);
+        var staging = InstallOptions.StagingFolder(Path.Combine(Path.GetTempPath(), "nth-tests", "local"), "1.1.0");
+        Assert.Equal(Path.Combine(Path.GetTempPath(), "nth-tests", "local", "nth Setup", "1.1.0"), staging);
+        Assert.DoesNotContain("Marrow", staging[Path.GetTempPath().Length..], StringComparison.Ordinal);
     }
 }

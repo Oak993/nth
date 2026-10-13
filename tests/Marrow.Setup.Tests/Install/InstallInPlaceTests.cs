@@ -1,3 +1,4 @@
+using Marrow.Core.Support;
 using Marrow.Setup.Flow;
 using Marrow.Setup.Install;
 using Marrow.Setup.Support;
@@ -40,12 +41,28 @@ public sealed class InstallInPlaceTests
 
     [Fact]
     [Trait("Decision", "OD-0072")]
-    public void The_program_gives_the_run_the_routes_root_and_nothing_else()
+    public void The_program_gives_the_run_the_root_it_decided_and_nothing_else()
     {
-        // Program.InstallFlowFor is private and starts a real Setup.exe, so its wiring is read from the source
+        // Program.InstallFlowFor is private and starts a real Setup.exe, so its wiring is read from the source; where the run goes is
+        // Program.RunRoot's, tested below (VELOPACK_CHECK.md finding 2, ED-NEW-inst-fix-1: the folder chosen in Options was ignored)
         var source = File.ReadAllText(Path.Combine(RepositoryRoot.Path, "src", "Marrow.Setup", "Program.cs")).Replace("\r\n", "\n", StringComparison.Ordinal);
 
-        Assert.Contains("new InstallRequest(update, route.TargetRoot, route.Installed.Version, InstallOptions.ForAction(route.Action, session.DesktopShortcut), folder, sizes)", source, StringComparison.Ordinal);
+        Assert.Contains("new InstallRequest(update, RunRoot(route, session.InstallRoot), route.Installed.Version, InstallOptions.ForAction(route.Action, session.DesktopShortcut), folder, sizes)", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("new InstallRequest(update, route.TargetRoot,", source, StringComparison.Ordinal);
         Assert.Contains("route = SetupFlow.Route(version, LegacyGateHost.Metadata(\"InstallerAppId\"), args, AppContext.BaseDirectory, localAppData, new RegistryUninstallKeys());", source, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [Trait("Decision", "ED-247")]
+    [InlineData("Install", @"D:\Apps\nth", @"D:\Apps\nth")]
+    [InlineData("Install", "", null)]
+    [InlineData("Install", "   ", null)]
+    [InlineData("Upgrade", @"D:\Apps\nth", null)]
+    public void A_fresh_install_goes_to_the_folder_chosen_in_Options_and_an_update_stays_where_nth_is(string action, string chosen, string? expected)
+    {
+        var target = Path.Combine(Path.GetTempPath(), "nth-tests", "route-root");
+        var route = new SetupRoute(SetupScreen.Welcome, Enum.Parse<InstallerAction>(action), new InstalledRoot(target, null, false), target);
+
+        Assert.Equal(expected ?? target, Program.RunRoot(route, chosen));
     }
 }

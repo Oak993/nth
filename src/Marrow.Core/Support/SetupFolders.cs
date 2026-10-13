@@ -149,13 +149,20 @@ public static class SetupFolders
             return false;
         }
     }
-    /// <summary>Refuses every reparse-point ancestor, including ancestors outside the setup root. Missing leaves may be created later.</summary>
+    /// <summary>
+    /// Refuses a reparse point anywhere from <paramref name="path"/> up to and including nth's own top folder (<c>nth Setup</c> or
+    /// <c>nth Uninstall</c>, the outermost one in the path), and every ancestor when the path has neither. Above that folder the
+    /// user's own folders (<c>AppData\Local</c>, the profile, a redirected temp folder) may be junctions: a profile moved to another
+    /// drive is common and must still install (VELOPACK_CHECK.md finding 10; ED-NEW-inst-fix-6). Nothing nth removes lies above
+    /// its own folder, which is still refused as a link. Missing leaves may be created later.
+    /// </summary>
     internal static void RequireNoLinks(string path, Action? checkpoint = null)
     {
         RequireFull(path, nameof(path));
         var full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+        var top = OwnTop(full);
         var levels = 0;
-        for (var at = full; at is not null; at = Path.GetDirectoryName(at))
+        for (var at = full; at is not null; at = string.Equals(at, top, StringComparison.OrdinalIgnoreCase) ? null : Path.GetDirectoryName(at))
         {
             checkpoint?.Invoke();
             if (++levels > 256) throw new IOException("The setup path has too many ancestors.");
@@ -173,6 +180,19 @@ public static class SetupFolders
             }
         }
     }
+    /// <summary>The outermost <c>nth Setup</c> or <c>nth Uninstall</c> folder in <paramref name="full"/>, or null.</summary>
+    internal static string? OwnTop(string full)
+    {
+        string? top = null;
+        for (var at = full; at is not null; at = Path.GetDirectoryName(at))
+        {
+            var name = Path.GetFileName(at);
+            if (string.Equals(name, InstallOptions.SetupFolderName, StringComparison.OrdinalIgnoreCase) || string.Equals(name, UninstallTempFolderName, StringComparison.OrdinalIgnoreCase))
+                top = at;
+        }
+        return top;
+    }
+
     internal static void RequireFull(string path, string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path, name);

@@ -32,9 +32,6 @@
     <InstallerAppId Condition="'$(InstallerAppId)' == ''">NthApp</InstallerAppId>
     <!-- PLAN.md 5, "Rendering": Software drops ANGLE; kept only if Mica and 60 fps at 200 % hold (the lead's measurement). -->
     <SetupRenderingMode Condition="'$(SetupRenderingMode)' == ''">AngleEgl</SetupRenderingMode>
-    <!-- Until unit U7 publishes it with Native AOT: a single-file publish (scripts/package-windows.ps1) carries Skia's,
-         HarfBuzz's and ANGLE's native libraries inside the one exe, so the shared setup is still one file. -->
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
   <ItemGroup>
@@ -66,6 +63,8 @@
     <Compile Include="..\Marrow.Core\Support\SweepLimits.cs" Link="SweepLimits.cs" />
     <Compile Include="..\Marrow.Core\Support\SweepBudget.cs" Link="SweepBudget.cs" />
     <Compile Include="..\Marrow.Core\Support\SweepLimitException.cs" Link="SweepLimitException.cs" />
+    <!-- PLAN.md 9 item 7 (ED-NEW-inst-fix-1): Update's "What's new" reads the embedded release notes with the app's own parser. -->
+    <Compile Include="..\Marrow.Core\Port\SelfUpdate\ReleaseNotesParser.cs" Link="ReleaseNotesParser.cs" />
     <AssemblyMetadata Include="InstallerTitle" Value="$(InstallerTitle)" />
     <AssemblyMetadata Include="InstallerAppId" Value="$(InstallerAppId)" />
     <AssemblyMetadata Include="InstallerVersion" Value="$(InstallerVersion)" />
@@ -80,5 +79,75 @@
     <!-- unit U2: View license on Welcome opens the licence nth ships under -->
     <EmbeddedResource Include="..\Marrow.App\Legal\LICENSE" Link="Legal\LICENSE" LogicalName="SetupLicense.txt" />
   </ItemGroup>
+
+  <!--
+    nth installer PLAN.md 5, "Native libraries" (VELOPACK_CHECK.md finding 3, ED-NEW-inst-fix-5): IncludeNativeLibrariesForSelfExtract does
+    nothing under Native AOT, so a published setup had no Skia, HarfBuzz or ANGLE unless they lay beside it. The Native AOT publish now stores
+    the three inside the exe, Deflate-compressed, with a manifest of their names, sizes and SHA-256s (Support/SetupNatives.cs unpacks, checks
+    and loads them before the window is built), and leaves none in the publish folder, so the UI smoke check of the payload-free setup runs the
+    one-file setup exactly as it is shared. A build that is not a Native AOT publish keeps them beside the exe, as before.
+  -->
+  <UsingTask TaskName="NthDeflateSetupNatives" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Files ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <OutputDirectory ParameterType="System.String" Required="true" />
+      <Compressed ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
+      <Manifest ParameterType="System.String" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.IO.Compression" />
+      <Using Namespace="System.Linq" />
+      <Using Namespace="System.Security.Cryptography" />
+      <Using Namespace="Microsoft.Build.Framework" />
+      <Using Namespace="Microsoft.Build.Utilities" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        Directory.CreateDirectory(OutputDirectory);
+        var lines = new System.Text.StringBuilder();
+        var outputs = new System.Collections.Generic.List<ITaskItem>();
+        foreach (var item in Files.OrderBy(file => Path.GetFileName(file.ItemSpec), StringComparer.Ordinal))
+        {
+            var name = Path.GetFileName(item.ItemSpec);
+            var bytes = File.ReadAllBytes(item.GetMetadata("FullPath"));
+            string hash;
+            using (var sha = SHA256.Create()) hash = BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
+            var target = Path.Combine(OutputDirectory, name + ".deflate");
+            using (var file = File.Create(target))
+            using (var deflate = new DeflateStream(file, CompressionLevel.Optimal))
+                deflate.Write(bytes, 0, bytes.Length);
+            var output = new TaskItem(target);
+            output.SetMetadata("LogicalName", "SetupNative/" + name);
+            outputs.Add(output);
+            lines.Append(name).Append('\t').Append(bytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append('\t').Append(hash).Append('\n');
+        }
+        Manifest = Path.Combine(OutputDirectory, "manifest.txt");
+        File.WriteAllText(Manifest, lines.ToString(), new System.Text.UTF8Encoding(false));
+        Compressed = outputs.ToArray();
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="NthEmbedSetupNatives" BeforeTargets="AssignTargetPaths" DependsOnTargets="ResolvePackageAssets"
+          Condition="'$(PublishAot)' == 'true' and '$(RuntimeIdentifier)' != ''">
+    <ItemGroup>
+      <_NthSetupNative Include="@(NativeCopyLocalItems)"
+                       Condition="'%(Filename)%(Extension)' == 'libSkiaSharp.dll' or '%(Filename)%(Extension)' == 'libHarfBuzzSharp.dll' or '%(Filename)%(Extension)' == 'av_libglesv2.dll'" />
+    </ItemGroup>
+    <Error Condition="'@(_NthSetupNative->Count())' != '3'"
+           Text="nth Setup carries Skia, HarfBuzz and ANGLE inside; this build resolved: @(_NthSetupNative->'%(Filename)%(Extension)')." />
+    <NthDeflateSetupNatives Files="@(_NthSetupNative)" OutputDirectory="$(IntermediateOutputPath)setup-natives">
+      <Output TaskParameter="Compressed" ItemName="_NthSetupNativeCompressed" />
+      <Output TaskParameter="Manifest" PropertyName="_NthSetupNativeManifest" />
+    </NthDeflateSetupNatives>
+    <ItemGroup>
+      <EmbeddedResource Include="@(_NthSetupNativeCompressed)" />
+      <EmbeddedResource Include="$(_NthSetupNativeManifest)" LogicalName="SetupNative/manifest.txt" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="NthLeaveEmbeddedNativesOutOfPublish" AfterTargets="Publish" Condition="'@(_NthSetupNative)' != ''">
+    <Delete Files="@(_NthSetupNative->'$(PublishDir)%(Filename)%(Extension)')" />
+  </Target>
 
 </Project>

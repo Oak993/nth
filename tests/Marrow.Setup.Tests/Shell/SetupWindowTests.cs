@@ -26,8 +26,11 @@ public sealed class SetupWindowTests(SetupHeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
-            var rig = new WindowRig();
-            rig.Session(SetupScreen.Welcome).Start();
+            // ED-NEW-inst-fix-7: the window opens at the tallest screen it can reach; with a typical folder every one fits the
+            // canvas's 468 (the rig's long name, whose path takes two lines in Options, is ScreenProbeTests')
+            var rig = new WindowRig { InstallRoot = @"C:\Users\Ana\AppData\Local\Programs\nth" };
+            var session = rig.Session(SetupScreen.Welcome);
+            session.Start();
             rig.Window.Show();
             rig.Settle();
 
@@ -37,6 +40,9 @@ public sealed class SetupWindowTests(SetupHeadlessSession headless)
             Assert.True(rig.Window.CanMinimize);
             Assert.Equal("nth Setup", rig.Window.Title);
             Assert.Equal("nth Setup", rig.Window.Caption.Title);
+            session.Go(SetupScreen.Options);
+            rig.Run(1);
+            Assert.Equal(new Size(600, 468), rig.Window.ClientSize);
             rig.Window.CloseNow();
         });
     }
