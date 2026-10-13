@@ -65,7 +65,7 @@ public sealed class MemoryQuarantineTests : IDisposable
         var events = new List<MemoryChange>();
         rig.Memory.Changed += events.Add;
         Assert.True(rig.Memory.Keep(id));
-        Assert.Equal([new(MemoryChangeKind.Kept, [id])], events, new ChangeComparer());
+        Assert.Equal([new(MemoryChangeKind.Kept, [id])], events, new MemoryChangeComparer());
         Assert.Equal(id, rig.Memory.Recall(MemoryRig.Main, "invoices").Single().Note.Id);
         Assert.Contains(Plain, rig.Memory.PromptBlock(MemoryRig.Main), StringComparison.Ordinal);
         Assert.Equal(new MemoryCounts(1, 0), rig.Memory.Counts(null));
@@ -191,11 +191,4 @@ public sealed class MemoryQuarantineTests : IDisposable
     }
 
     private static string Trim(string text) => text.Length > MemoryRules.MaxNoteChars ? text[..MemoryRules.MaxNoteChars] : text;
-
-    private sealed class ChangeComparer : IEqualityComparer<MemoryChange>
-    {
-        public bool Equals(MemoryChange? x, MemoryChange? y) => x?.Kind == y?.Kind && x!.Ids.SequenceEqual(y!.Ids);
-
-        public int GetHashCode(MemoryChange obj) => (int)obj.Kind;
-    }
 }

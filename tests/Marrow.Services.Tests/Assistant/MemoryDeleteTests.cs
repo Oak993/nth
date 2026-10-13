@@ -47,7 +47,7 @@ public sealed class MemoryDeleteTests : IDisposable
         Assert.Empty(rig.Memory.Recall(null, "zebrafish filter"));
         Assert.Null(rig.Memory.Find(doomed));
         Assert.DoesNotContain(rig.Memory.Notes(null), n => n.Id == doomed);
-        Assert.Equal([new(MemoryChangeKind.Deleted, [doomed])], events, new ChangeComparer());
+        Assert.Equal([new(MemoryChangeKind.Deleted, [doomed])], events, new MemoryChangeComparer());
         // Another note is untouched.
         Assert.Equal("The owner prefers short answers", rig.Memory.Find(other)!.Text);
         // And a restart does not bring it back.
@@ -191,12 +191,5 @@ public sealed class MemoryDeleteTests : IDisposable
         Assert.Equal(byTopic.Count, rig.Memory.Delete([.. byTopic.Select(n => n.Id)]).Removed);
         Assert.Equal(new[] { c, keep }.Order(StringComparer.Ordinal), rig.Memory.Notes(null).Select(n => n.Id).Order(StringComparer.Ordinal));
         Assert.DoesNotContain("vegetarian", rig.AllText(), StringComparison.Ordinal);
-    }
-
-    private sealed class ChangeComparer : IEqualityComparer<MemoryChange>
-    {
-        public bool Equals(MemoryChange? x, MemoryChange? y) => x?.Kind == y?.Kind && x!.Ids.SequenceEqual(y!.Ids);
-
-        public int GetHashCode(MemoryChange obj) => (int)obj.Kind;
     }
 }

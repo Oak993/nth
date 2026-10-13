@@ -241,39 +241,10 @@ public sealed class MemoryModelTests : IDisposable
         Assert.Single(rig.Memory.Notes(null));
     }
 
-    private sealed class SpyWork : IMemoryWork
-    {
-        public List<int> RunThreads { get; } = [];
-
-        public Queue<Action> Posted { get; } = [];
-
-        public Task<T> Run<T>(Func<T> work) => Task.Run(() =>
-        {
-            lock (RunThreads) RunThreads.Add(Environment.CurrentManagedThreadId);
-            return work();
-        });
-
-        public void Post(Action ui)
-        {
-            lock (Posted) Posted.Enqueue(ui);
-        }
-
-        public void Drain()
-        {
-            while (true)
-            {
-                Action? next;
-                lock (Posted) next = Posted.Count > 0 ? Posted.Dequeue() : null;
-                if (next is null) return;
-                next();
-            }
-        }
-    }
-
     [Fact]
     public async Task File_work_runs_off_the_calling_thread_and_its_outcome_is_applied_where_the_owner_is()
     {
-        var spy = new SpyWork();
+        var spy = new SpyMemoryWork();
         var model = new MemoryModel(rig.Memory, id => id, () => MemoryRig.Main, new MemoryImport(rig.Memory), () => [], TimeZoneInfo.Utc, spy);
         var id = Add("Releases go out on Fridays");
         spy.Drain();
@@ -295,7 +266,7 @@ public sealed class MemoryModelTests : IDisposable
     {
         var gate = new TaskCompletionSource();
         var started = new TaskCompletionSource();
-        var work = new GatedWork(gate.Task, started);
+        var work = new GatedMemoryWork(gate.Task, started);
         var model = new MemoryModel(rig.Memory, id => id, () => MemoryRig.Main, null, null, TimeZoneInfo.Utc, work);
         var a = rig.Memory.Propose(MemoryRig.FromWeb("Page one says the vault is in the red folder")).Note!.Id;
         var first = model.Keep(a);
@@ -308,18 +279,6 @@ public sealed class MemoryModelTests : IDisposable
         Assert.False(model.Busy);
         Assert.True(rig.Memory.Find(a)!.Used);
         model.Dispose();
-    }
-
-    private sealed class GatedWork(Task gate, TaskCompletionSource started) : IMemoryWork
-    {
-        public async Task<T> Run<T>(Func<T> work)
-        {
-            started.TrySetResult();
-            await gate.ConfigureAwait(false);
-            return work();
-        }
-
-        public void Post(Action ui) => ui();
     }
 
     [Fact]

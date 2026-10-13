@@ -152,7 +152,7 @@ public sealed class MemoryImportTests : IDisposable
         import.Import(sources);
         var before = rig.Memory.Notes(null).Select(n => n.Id).Order(StringComparer.Ordinal).ToList();
         rig.Store.Dispose();
-        File.Delete(Path.Combine(rig.MemoryRoot, "state.json"));         // the record the crash never wrote
+        File.Delete(Path.Combine(rig.MemoryRoot, "state.json"));         // the fingerprint the crash never wrote
         var reopened = rig.Reopen();
         var report = new MemoryImport(reopened, () => MemoryRig.Main).Import(sources);
         Assert.Equal(2, report.FilesRead);

@@ -55,7 +55,7 @@ public sealed class MemoryRulesTests
     public void Tokens_drop_glue_words_fold_plurals_and_keep_other_scripts()
     {
         Assert.Equal(["prefer", "short", "answer"], MemoryRules.Tokens("The owner prefers the short answers"));
-        Assert.Equal(["class", "ship", "6"], MemoryRules.Tokens("class ships 6"));
+        Assert.Equal(["cloud", "ship", "6"], MemoryRules.Tokens("cloud ships 6"));
         Assert.Equal(["जवाब", "छोटे"], MemoryRules.Tokens("जवाब छोटे"));
         Assert.Empty(MemoryRules.Tokens("the and of"));
     }

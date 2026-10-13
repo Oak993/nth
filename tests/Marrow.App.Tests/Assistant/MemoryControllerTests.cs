@@ -40,17 +40,6 @@ public sealed class MemoryControllerTests : IDisposable
 
     private string Main => assistant.ToString("N");
 
-    private sealed class Proposer(Func<CapturedTurn, string?> answer) : INoteProposer
-    {
-        public List<CapturedTurn> Turns { get; } = [];
-
-        public Task<string?> Propose(CapturedTurn turn, string prompt, CancellationToken cancellationToken)
-        {
-            lock (Turns) Turns.Add(turn);
-            return Task.FromResult(answer(turn));
-        }
-    }
-
     private AssistantController Controller(INoteProposer? proposer = null, bool withNotes = true)
     {
         var store = new MemoryStore(rig.Store, new MemoryStoreOptions { Time = rig.Clock, MainAssistantId = () => Main });
@@ -186,7 +175,7 @@ public sealed class MemoryControllerTests : IDisposable
     [Fact]
     public async Task A_finished_home_turn_is_captured_in_the_background_with_its_taint_and_provider()
     {
-        var proposer = new Proposer(_ => """[{"text":"The owner prefers short answers","kind":"preference","about":"owner"}]""");
+        var proposer = new FakeNoteProposer(_ => """[{"text":"The owner prefers short answers","kind":"preference","about":"owner"}]""");
         var controller = Controller(proposer);
         var home = HomeChat();
         var store = controller.Notes!.Store;
@@ -203,7 +192,7 @@ public sealed class MemoryControllerTests : IDisposable
     [Fact]
     public async Task A_turn_that_read_the_web_writes_waiting_notes()
     {
-        var proposer = new Proposer(_ => """[{"text":"The vendor portal lives at the archive address","kind":"fact","about":"work"}]""");
+        var proposer = new FakeNoteProposer(_ => """[{"text":"The vendor portal lives at the archive address","kind":"fact","about":"work"}]""");
         var controller = Controller(proposer);
         var home = HomeChat();
         controller.Absorb(ChatOf(home), Taint.From(ContentOrigin.Web, "https://x.example/p"));
@@ -216,7 +205,7 @@ public sealed class MemoryControllerTests : IDisposable
     [Fact]
     public void A_chat_hidden_from_Dextra_a_missions_chat_and_a_chat_with_no_capture_bound_are_never_captured()
     {
-        var proposer = new Proposer(_ => """[{"text":"Releases go out on Fridays","kind":"procedure","about":"work"}]""");
+        var proposer = new FakeNoteProposer(_ => """[{"text":"Releases go out on Fridays","kind":"procedure","about":"work"}]""");
         var controller = Controller(proposer);
         var hidden = HomeChat(hidden: true);
         var mission = HomeChat(mission: Guid.NewGuid());
