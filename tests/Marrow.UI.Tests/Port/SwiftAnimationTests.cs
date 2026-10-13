@@ -44,7 +44,11 @@ public sealed class SwiftAnimationTests
         Assert.Equal(0, animation.Progress(0), Exact);
         Assert.Equal(0.30155107726937647, animation.Progress(0.1), Exact);
         Assert.Equal(0.88916691609734633, animation.Progress(0.3), Exact);
-        Assert.Equal(1.0019536899873904, animation.Progress(0.76702562673428487), Exact); // it overshoots, as a spring of zeta 0.86 does
+        // It overshoots, as a spring of zeta 0.86 does (near its peak at 0.5625 s: the free curve up to its last crossing of 1 at 0.488 s, then its distance from 1 drawn in), and it lands
+        // on 1 at its 0.767 s settling duration: ED-NEW-perf-motion-10 (ED-333 UNRESOLVED run-out, the lead's ruling 2026-10-13), stricter than the free curve's 1.0019536899873904 there,
+        // which the last frame jumped back to 1.
+        Assert.Equal(1.004219309803881, animation.Progress(0.5625), Exact);
+        Assert.Equal(1, animation.Progress(0.76702562673428487), Exact);
     }
 
     [Fact]
@@ -54,7 +58,7 @@ public sealed class SwiftAnimationTests
         var panelSlide = Animation.Spring(response: 0.32, dampingFraction: 0.9);
         Assert.Equal(0.26982644982000648, panelSlide.Progress(0.05), Exact);
         Assert.Equal(0.86847411750814452, panelSlide.Progress(0.16), Exact);
-        Assert.Equal(1.0013068423096614, panelSlide.Progress(0.4), Exact);
+        Assert.Equal(1, panelSlide.Progress(0.4), Exact); // past its 0.391 s settling time it is on 1 (ED-NEW-perf-motion-10 (ED-333 UNRESOLVED run-out, the lead's ruling 2026-10-13); the free curve's 1.0013068423096614 was jumped)
         Assert.Equal(0.75706093433458532, Animation.Spring(response: 0.3, dampingFraction: 0.7).Progress(0.1), Exact);
     }
 

@@ -261,11 +261,13 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
         Near(22 * 0.30155107726937647, ((TranslateTransform)group1.Children[0]).Y);
         Near(1 - 0.04 * 0.30155107726937647, ((ScaleTransform)group1.Children[1]).ScaleX);
 
-        clocks.Frame(0.5); // 0.6s total: spring progress 1.0049814577061145, above the 0.92 smoothstep edge
+        // 0.6s total: spring progress 1.0033822145841729 (the free spring's 1.0049814577061145 with its distance from 1 drawn in after its last crossing, ED-NEW-perf-motion-10 (ED-333 UNRESOLVED run-out, the lead's ruling 2026-10-13)),
+        // above the 0.92 smoothstep edge.
+        clocks.Frame(0.5);
         Assert.Equal(0, child.Opacity, 6); // gone before it would land
         var group2 = Assert.IsType<TransformGroup>(child.RenderTransform);
-        Near(22 * 1.0049814577061145, ((TranslateTransform)group2.Children[0]).Y);
-        Near(1 - 0.04 * 1.0049814577061145, ((ScaleTransform)group2.Children[1]).ScaleX);
+        Near(22 * 1.0033822145841729, ((TranslateTransform)group2.Children[0]).Y);
+        Near(1 - 0.04 * 1.0033822145841729, ((ScaleTransform)group2.Children[1]).ScaleX);
 
         clocks.Frame(0.2); // 0.8s: past the 0.767s settling duration, the control leaves
         Assert.DoesNotContain(child, panel.Children);

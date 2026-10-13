@@ -13,7 +13,8 @@
 // with the pointer outside the window, under the reading line a third of the way down) is scrolled so the line at the
 // focus stays on its row of pixels, and every other scroll view that overflows keeps the line at its own reading line
 // (ED-NEW-perf-motion-3: a pointer resting on the composer, the header or the sidebar keeps the thread's place too). The
-// last frame is the new scale exactly. Reduce Motion takes it at once.
+// last frame is the new scale exactly, reached with no speed and no step larger than the one before (ED-NEW-perf-motion-10).
+// Reduce Motion takes it at once.
 
 using Avalonia;
 using Avalonia.Controls;
@@ -59,6 +60,7 @@ public sealed class ZoomMotion
     private ContinuousInstant last;
     private IReadOnlyList<ZoomAnchor> anchors = [];
     private Point? pointer;
+    private LandingSpring spring;
 
     /// <param name="owner">The window root, outside the zoom: its points are the window's.</param>
     /// <param name="initial">The scale it is drawn at.</param>
@@ -69,6 +71,7 @@ public sealed class ZoomMotion
         this.apply = apply;
         frame = Frame;
         Value = Target = initial;
+        spring = new LandingSpring(initial);
         owner.SetValue(MotionProperty, this);
         // The pointer over the window is the focus: tunnelled and handled ones too, so nothing under it hides it.
         owner.AddHandler(InputElement.PointerMovedEvent, (_, e) => pointer = e.GetPosition(owner), RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
@@ -111,14 +114,17 @@ public sealed class ZoomMotion
             Stop();
             Value = Target = target;
             Velocity = 0;
+            spring = new LandingSpring(target);
             Retargeted?.Invoke(target);
             Show(target);
             anchors = [];
             Rested?.Invoke(target);
             return;
         }
-        // The push: from rest, the speed of an exponential approach (c2 = 0 below); while moving, it adds to the speed.
-        Velocity += Rate * (target - Target);
+        // The push: from rest, the speed of an exponential approach (c2 = 0 below); while moving, it adds to the speed. The segment
+        // starts at the last frame drawn, from the scale and speed it had (ED-NEW-perf-motion-10: it lands on the scale, no last step).
+        spring.Aim(target, Rate, Rest * target, Rate * (target - Target));
+        Velocity = spring.Velocity;
         Target = target;
         if (pending is null)
         {
@@ -140,6 +146,7 @@ public sealed class ZoomMotion
         Stop();
         Value = Target;
         Velocity = 0;
+        spring = new LandingSpring(Target);
         Show(Target);
         anchors = [];
         Rested?.Invoke(Target);
@@ -155,16 +162,11 @@ public sealed class ZoomMotion
         var now = SwiftClock.Now;
         var dt = Math.Max(0, (now - last).TotalSeconds);
         last = now;
-        // The critically damped spring solved exactly over the frame's span, so the curve is the same at 60 and 144 Hz:
-        // x(t) = target + (c1 + c2 t) e^(-rate t).
-        var c1 = Value - Target;
-        var c2 = Velocity + Rate * c1;
-        var decay = Math.Exp(-Rate * dt);
-        var value = Target + (c1 + c2 * dt) * decay;
-        var velocity = (c2 - Rate * (c1 + c2 * dt)) * decay;
-        var rests = Math.Max(Math.Abs(value - Target), Math.Abs(velocity) / Rate) <= Rest * Target;
-        Value = rests ? Target : value;
-        Velocity = rests ? 0 : velocity;
+        // The critically damped spring solved exactly from the segment's start, so the curve is the same at 60 and 144 Hz:
+        // x(t) = target + (c1 + c2 t) e^(-rate t), landing on the target with no speed at its rest time (LandingSpring).
+        var rests = spring.Advance(dt);
+        Value = spring.Position;
+        Velocity = spring.Velocity;
         Show(Value);
         if (rests)
         {

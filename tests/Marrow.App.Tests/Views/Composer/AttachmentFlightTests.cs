@@ -127,6 +127,39 @@ public sealed class AttachmentFlightTests(HeadlessSession headless)
         Assert.Equal(0, frames.Pending);
     }
 
+    // ED-NEW-perf-motion-10 (the lead's ruling 2026-10-13): the ghost reaches the chip's frame with no step at the landing. The free spring was
+    // 0.74 % short at the settling time, so the ghost's last drawn frame stood that far from the chip it is replaced by; now the last drawn
+    // step is no larger than the one before it, at 60 and 144 Hz, and the landing state is the chip's frame.
+    [Theory]
+    [InlineData(60)]
+    [InlineData(144)]
+    [Trait("Rule", "R-VIEW-4")]
+    [Trait("Decision", "ED-NEW-perfmotion-10")]
+    public void The_ghost_lands_on_the_chip_with_no_step_larger_than_the_one_before(int hertz)
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource();
+        using var frameSource = FrameClock.Source.Override(frames);
+        var platform = new FlightPlatform { MainScreen = new Rect(100, 50, 1600, 900) };
+        var flight = new AttachmentFlight(platform);
+        var landings = 0;
+        runtime.OnMain(() => flight.Fly(new FlightImage(), new Rect(110, 70, 20, 20), new Rect(890, 650, 40, 30), 6, 10, () => landings++));
+        var made = Assert.Single(platform.Created);
+        var step = TimeSpan.FromSeconds(1.0 / hertz);
+        for (var i = 0; i < 4 * hertz && landings == 0; i++)
+        {
+            runtime.Advance(step);
+            runtime.OnMain(() => frames.Advance(step));
+        }
+        Assert.Equal(1, landings);
+        var xs = made.Surface.States.Select(state => state.Frame.X).ToArray();
+        Assert.Equal(790, xs[^1], 9); // the chip's frame
+        var end = xs[^1] - xs[^2];
+        var before = xs[^2] - xs[^3];
+        Assert.True(Math.Abs(end) <= Math.Abs(before), $"the last step is {end:F4} px, the one before {before:F4} px");
+        Assert.True(Math.Abs(end) < 0.5, $"the last step is {end:F4} px; the free spring left {780 * 0.0074:F1} px there");
+    }
+
     [Fact]
     [Trait("Req", "PR-COMPOSER-084")] // App/Views/Composer/AttachmentFlight.swift:55-61
     public void Reduced_motion_returns_before_ordering_out_an_existing_flight()

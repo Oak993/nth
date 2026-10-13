@@ -629,7 +629,7 @@ public sealed class SwiftAnimationTransitionTests(HeadlessSession headless)
         clocks.Frame(0.1);
         Assert.Equal(0.30155107726937647, updates[^1], Tolerance);
         clocks.Frame(0.5);
-        Assert.Equal(1.0049814577061145, updates[^1], Tolerance);
+        Assert.Equal(1.0033822145841729, updates[^1], Tolerance); // the free spring's 1.0049814577061145 with its distance from 1 drawn in after its last crossing (ED-NEW-perf-motion-10 (ED-333 UNRESOLVED run-out, the lead's ruling 2026-10-13))
         Assert.True(IsUnder(child, panel));
         clocks.Frame(0.2); // 0.8 s: past the 0.767 s settling duration
         Assert.Equal(1, updates[^1], Tolerance);

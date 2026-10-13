@@ -82,7 +82,7 @@ internal sealed class SelectionGlide : Decorator
     private bool primed;
     private IGlideRow? arriving;
     private IGlideRow? leaving;
-    private CriticalSpring x, y, width, height;
+    private LandingSpring x, y, width, height;
     private Action<TimeSpan>? tick;
     private IFrameSource? frames;
     private ContinuousInstant lastFrame;
@@ -143,10 +143,10 @@ internal sealed class SelectionGlide : Decorator
                 Finish();
                 return;
             }
-            x = new CriticalSpring(frame.X);
-            y = new CriticalSpring(frame.Y);
-            width = new CriticalSpring(frame.Width);
-            height = new CriticalSpring(frame.Height);
+            x = new LandingSpring(frame.X);
+            y = new LandingSpring(frame.Y);
+            width = new LandingSpring(frame.Width);
+            height = new LandingSpring(frame.Height);
         }
         // The row it left draws unselected now, the row it lands on hands its fill to the glide; a row passed through on a
         // retarget is released.
@@ -176,11 +176,9 @@ internal sealed class SelectionGlide : Decorator
         var now = SwiftClock.Now;
         var seconds = Math.Clamp((now - lastFrame).TotalSeconds, 0, 0.05);
         lastFrame = now;
-        x.Step(target.X, Omega, seconds);
-        y.Step(target.Y, Omega, seconds);
-        width.Step(target.Width, Omega, seconds);
-        height.Step(target.Height, Omega, seconds);
-        var settled = x.IsSettled(target.X) && y.IsSettled(target.Y) && width.IsSettled(target.Width) && height.IsSettled(target.Height);
+        // ED-NEW-perf-motion-10: each axis lands on the row exactly, with no speed, so the hand-over to the row's own fill is no step.
+        var settled = Follow(ref x, target.X, seconds) & Follow(ref y, target.Y, seconds) & Follow(ref width, target.Width, seconds) &
+            Follow(ref height, target.Height, seconds);
         if (settled || (now - started).TotalSeconds > 0.6)
         {
             Finish();
@@ -189,6 +187,16 @@ internal sealed class SelectionGlide : Decorator
         Draw();
         frames?.RequestFrame(tick);
     }
+
+    // A row that moved (the list scrolled, a row above grew) gives its axis a new segment from where it is, at its speed.
+    private static bool Follow(ref LandingSpring spring, double target, double seconds)
+    {
+        if (spring.Target != target) spring.Aim(target, Omega, Rest);
+        return spring.Advance(seconds);
+    }
+
+    /// <summary>What may be left of a glide (and of its speed over the spring's time) when it rests, in points.</summary>
+    internal const double Rest = 0.3;
 
     private void Draw()
     {

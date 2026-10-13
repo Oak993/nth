@@ -34,7 +34,10 @@ public sealed class StreamVeilPixelGuardTests(HeadlessSession headless)
     private const string VeiledTextRuns = "2890C85995B00006DF54A603410E90B1D31D0272A28D8E85F0A89A9BA2B2D24D";
     private const string LinkPixels = "281170970EED8A30F7CB6B53C3AB72F647A7DDCE5BF267F4540D8A9077647B0E";
     private const string LinkRuns = "14269292E6447A314AF482B3F258687DF75DB96E81E51AE126568BBF0A187056";
-    private const string MarkdownPixels = "6DFC81190058C9E340B2812C7CB609AED25A9CB12A4FD3469C4FB5494EED3821";
+    // ED-NEW-perf-motion-10 (ED-333 UNRESOLVED run-out, the lead's ruling 2026-10-13): the springs' second halves now fold their run-out
+    // in, so the frames captured late in a fade differ; with the free curve put back the recorded 6DFC8119...3821 is drawn again, and the
+    // runs are the same, so the new pixels come from that change alone.
+    private const string MarkdownPixels = "4364ACDB7355D6B5DAAB4165D0A092DAC1DE5113AC431FCB23C9EF8D3F48FE95";
     private const string MarkdownRuns = "5F2FEF9381D29761F1F6958F9A8C66024F3EAE034EF9AEEA22F36D62D1CE7437";
 
     private const string Notes = "file:///C:/notes.md"; // links with no host: nothing to fetch a favicon for

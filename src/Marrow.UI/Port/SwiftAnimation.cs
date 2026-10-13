@@ -118,6 +118,7 @@ public sealed record SwiftTransition
         // the insertion's start; a removal that has not moved yet (r = 0) still lets the insertion start afresh (ED-278 (10)).
         var resume = elapsed == default && state.RemovalInFlight && ReferenceEquals(state.RemovingFrom, panel) && !state.Transition.HasAsymmetricPart()
             && state.CurrentProgress is > 0 and < 1 ? 1 - state.CurrentProgress : 0;
+        var removalSpeed = resume > 0 ? state.CurrentSpeed : 0;
         // ED-159 follow-up (interruption): an insertion cancels whatever transition of this child is still running; a removal still in
         // flight gives its wrapper back before the insertion places it again.
         state.Stop();
@@ -143,6 +144,9 @@ public sealed record SwiftTransition
         }
         if (resume > 0)
         {
+            // ED-NEW-perf-motion-11: a spring that moves the child (a slide, a scale) turns round at the removal's speed, as SwiftUI's
+            // springs keep their velocity through a retarget; a fade alone comes back from rest, so the opacity only ever rises.
+            animation = state.Transition.Carrying(animation, -removalSpeed, resume);
             state.Present(child, resume, inserting: true);
             state.Run(animation, (p, _) => state.Present(child, resume + (1 - resume) * p, inserting: true), from: resume);
             return;
@@ -234,6 +238,7 @@ public sealed record SwiftTransition
         // removal's own start, as ED-278 (10) keeps for a stage swapped before any time passes.
         var from = state.InsertionInFlight && !state.Transition.HasAsymmetricPart() && (continuing || state.CurrentProgress > 0)
             ? 1 - state.CurrentProgress : 0;
+        var insertionSpeed = from > 0 ? state.CurrentSpeed : 0;
         // An asymmetric transition's removal names no state of the insertion it interrupts, so it cannot start from the insertion's progress; it starts from the
         // insertion's presentation instead (the opacity and the rise the child has now), which the removal then carries (UI-CHAT-052, unit rec-tlr).
         var carries = state.InsertionInFlight && state.Transition.HasAsymmetricPart();
@@ -257,6 +262,7 @@ public sealed record SwiftTransition
             throw new InvalidOperationException(
                 "A child with a modifier transition can leave with an animation only after SwiftTransition.Insert built its wrappers.");
         state.RemovingFrom = panel;
+        if (from > 0) animation = state.Transition.Carrying(animation, -insertionSpeed, from); // ED-NEW-perf-motion-11, as above
         state.Present(child, from, inserting: false);
         state.Run(animation, (p, complete) =>
         {
@@ -272,6 +278,20 @@ public sealed record SwiftTransition
     private SwiftTransition ForRemove() => kind == Kind.Asym ? second! : this;
     private Marrow.UI.Port.Animation? OwnAnimation() => kind == Kind.Animated ? animation :
         kind == Kind.Pair ? first!.OwnAnimation() ?? second!.OwnAnimation() : null;
+
+    // ED-NEW-perf-motion-11: a run that continues from `from` at `speed` (progress per second) carries that speed in when the curve is a
+    // spring and the transition moves the child; the carried part dies out by the curve's end (Animation.Impulse).
+    private Marrow.UI.Port.Animation Carrying(Marrow.UI.Port.Animation curve, double speed, double from) =>
+        from < 1 && curve.KeepsSpeed && Moves() ? curve.WithStartSpeed(speed / (1 - from)) : curve;
+
+    // Whether the transition moves or scales the child (a fade alone does not).
+    private bool Moves() => kind switch
+    {
+        Kind.Scale or Kind.Offset or Kind.Move or Kind.BlurReplace => true,
+        Kind.Animated => first!.Moves(),
+        Kind.Pair => first!.Moves() || second!.Moves(),
+        _ => false,
+    };
 
     // Whether the half in play for this direction changes anything: a leaf effect or a modifier (Gather's walk).
     private bool Touches(bool inserting) => kind switch
@@ -487,6 +507,17 @@ public sealed record SwiftTransition
             }
         }
 
+        /// <summary>How fast the presented progress moves now, per second (0 with nothing running).</summary>
+        public double CurrentSpeed
+        {
+            get
+            {
+                if (callback is null || runAnimation is null) return 0;
+                var seconds = (SwiftClock.Now - runStart).TotalSeconds;
+                return (1 - runFrom) * runAnimation.Speed(seconds);
+            }
+        }
+
         private Marrow.UI.Port.Animation? runAnimation;
         private ContinuousInstant runStart;
         private double runFrom;
@@ -585,7 +616,36 @@ public abstract partial record Animation
     public abstract double Duration { get; }
     public abstract double Progress(double seconds);
 
+    /// <summary>PORT-ONLY (ED-NEW-perf-motion-11): the curve's speed, in progress per second, at <paramref name="seconds"/>: what a run
+    /// that a new target interrupts there carries into the next one (SwiftUI's springs keep their velocity through a retarget).</summary>
+    public virtual double Speed(double seconds)
+    {
+        if (seconds <= 0 || seconds >= Duration) return 0;
+        const double h = 1e-4;
+        var before = Math.Max(0, seconds - h);
+        var after = Math.Min(Duration, seconds + h);
+        return (Progress(after) - Progress(before)) / (after - before);
+    }
+
+    /// <summary>PORT-ONLY (ED-NEW-perf-motion-11): the offset, at <paramref name="seconds"/>, of a run that sets out with a unit speed
+    /// and comes back to where it set out, with no speed, at the curve's end: what a start speed adds to a run (for a spring, its
+    /// response to a push, landed as its step response is; for a timing curve t (1 - t/T)^2).</summary>
+    public virtual double Impulse(double seconds)
+    {
+        var end = Duration;
+        if (seconds <= 0 || seconds >= end) return 0;
+        var left = 1 - seconds / end;
+        return seconds * left * left;
+    }
+
     public Easing ToEasing() => new SampledEasing(this);
+
+    /// <summary>PORT-ONLY (ED-NEW-perf-motion-11): whether a run on this curve keeps its speed through a retarget (SwiftUI's springs do).</summary>
+    public virtual bool KeepsSpeed => false;
+
+    /// <summary>PORT-ONLY (ED-NEW-perf-motion-11): this curve setting out at <paramref name="speed"/> (progress per second) instead of from
+    /// rest; the carried speed dies out by the curve's end with no step (<see cref="Impulse"/>).</summary>
+    public Animation WithStartSpeed(double speed) => speed == 0 || !double.IsFinite(speed) ? this : new CarriedAnimation(this, speed);
 
     public Animation Delay(double seconds) => new DelayedAnimation(this, seconds);
 
@@ -605,13 +665,107 @@ public abstract partial record Animation
     public static Animation TimingCurve(double c0x, double c0y, double c1x, double c1y, double duration = 0.35) =>
         new TimingAnimation(duration, c0x, c0y, c1x, c1y);
 
+    // A curve that also carries a start speed (in progress per second), which dies out by its end with no step (ED-NEW-perf-motion-11).
+    private sealed record CarriedAnimation(Animation Inner, double StartSpeed) : Animation
+    {
+        public override double Duration => Inner.Duration;
+        public override bool KeepsSpeed => Inner.KeepsSpeed;
+        public override double Progress(double seconds) => seconds >= Duration ? 1 : Inner.Progress(seconds) + StartSpeed * Inner.Impulse(seconds);
+        public override double Impulse(double seconds) => Inner.Impulse(seconds);
+    }
+
     private sealed record SpringAnimation(double Response, double DampingRatio, double BlendDuration) : Animation
     {
+        public override bool KeepsSpeed => true;
         public override double Duration => new Spring(Response, DampingRatio).SettlingDuration;
 
+        // ED-NEW-perf-motion-10 (ED-333's UNRESOLVED run-out, the lead's ruling): the curve lands on 1 with no speed at its settling
+        // time; the remainder the free spring still has there (0.79 % critically damped) is folded into the run's second half
+        // (MotionLanding), so the last frame is never a jump. An underdamped spring that last crosses 1 in the second half keeps the
+        // free curve up to that crossing and has only its distance from 1 drawn in after it (MotionLanding.Narrow): its overshoot past
+        // the end and the times it crosses the end are the free spring's. An overdamped spring (damping above 1) is the free curve:
+        // none is used.
         public override double Progress(double seconds)
         {
             if (seconds <= 0) return 0;
+            if (DampingRatio > 1) return Free(seconds);
+            var end = Duration;
+            if (seconds >= end) return 1;
+            if (LastCrossing(end) is { } crossing) return MotionLanding.Narrow(Free(seconds), seconds, crossing, end);
+            return MotionLanding.Land(Free(seconds), seconds, end, 1 - Free(end), FreeSpeed(end));
+        }
+
+        public override double Speed(double seconds)
+        {
+            if (seconds <= 0) return 0;
+            if (DampingRatio > 1) return FreeSpeed(seconds);
+            var end = Duration;
+            if (seconds >= end) return 0;
+            if (LastCrossing(end) is { } crossing) return MotionLanding.NarrowSpeed(Free(seconds), FreeSpeed(seconds), seconds, crossing, end);
+            return MotionLanding.LandSpeed(FreeSpeed(seconds), seconds, end, 1 - Free(end), FreeSpeed(end));
+        }
+
+        // The last time before the settling time at which the free underdamped curve crosses 1, when that is in the run's second half;
+        // null otherwise (critically damped, or crossing earlier). 1 - e^(-zeta omega t) (cos wd t + zeta omega / wd sin wd t) is 1 where
+        // tan(wd t) = -wd / (zeta omega): wd t = pi - atan(wd / (zeta omega)) + k pi.
+        private double? LastCrossing(double end)
+        {
+            var zeta = DampingRatio;
+            if (zeta >= 1) return null;
+            var omega = 2 * Math.PI / Response;
+            var damped = omega * Math.Sqrt(1 - zeta * zeta);
+            var first = Math.PI - Math.Atan(damped / (zeta * omega));
+            var turns = Math.Floor((damped * end - first) / Math.PI);
+            if (turns < 0) return null;
+            var crossing = (first + turns * Math.PI) / damped;
+            return crossing > end * (1 - MotionLanding.Window) && crossing < end ? crossing : null;
+        }
+
+        public override double Impulse(double seconds)
+        {
+            if (seconds <= 0) return 0;
+            var end = Duration;
+            if (seconds >= end) return 0;
+            var squared = Math.Pow(2 * Math.PI / Response, 2);
+            return MotionLanding.Land(FreeSpeed(seconds) / squared, seconds, end, -FreeSpeed(end) / squared, FreeAcceleration(end) / squared);
+        }
+
+        private double FreeAcceleration(double seconds)
+        {
+            var omega = 2 * Math.PI / Response;
+            var zeta = DampingRatio;
+            if (zeta < 1)
+            {
+                var damped = omega * Math.Sqrt(1 - zeta * zeta);
+                return Math.Exp(-zeta * omega * seconds) * omega * omega / damped *
+                    (damped * Math.Cos(damped * seconds) - zeta * omega * Math.Sin(damped * seconds));
+            }
+            if (zeta == 1) return omega * omega * Math.Exp(-omega * seconds) * (1 - omega * seconds);
+            var root = Math.Sqrt(zeta * zeta - 1);
+            var r1 = -omega * (zeta - root);
+            var r2 = -omega * (zeta + root);
+            return -r1 * r2 * (r1 * Math.Exp(r1 * seconds) - r2 * Math.Exp(r2 * seconds)) / (r2 - r1);
+        }
+
+        // The spring's step response from rest, and its speed: omega^2 times the response to a unit start speed.
+        private double FreeSpeed(double seconds)
+        {
+            var omega = 2 * Math.PI / Response;
+            var zeta = DampingRatio;
+            if (zeta < 1)
+            {
+                var damped = omega * Math.Sqrt(1 - zeta * zeta);
+                return Math.Exp(-zeta * omega * seconds) * omega * omega / damped * Math.Sin(damped * seconds);
+            }
+            if (zeta == 1) return omega * omega * seconds * Math.Exp(-omega * seconds);
+            var root = Math.Sqrt(zeta * zeta - 1);
+            var r1 = -omega * (zeta - root);
+            var r2 = -omega * (zeta + root);
+            return -r1 * r2 * (Math.Exp(r1 * seconds) - Math.Exp(r2 * seconds)) / (r2 - r1);
+        }
+
+        private double Free(double seconds)
+        {
             var omega = 2 * Math.PI / Response;
             var zeta = DampingRatio;
             if (zeta < 1)
@@ -656,6 +810,9 @@ public abstract partial record Animation
     {
         public override double Duration => Inner.Duration + Seconds;
         public override double Progress(double seconds) => seconds <= Seconds ? 0 : Inner.Progress(seconds - Seconds);
+        public override double Speed(double seconds) => seconds <= Seconds ? 0 : Inner.Speed(seconds - Seconds);
+        public override double Impulse(double seconds) => Inner.Impulse(seconds); // a carried speed dies out at once, not after the delay
+        public override bool KeepsSpeed => Inner.KeepsSpeed;
     }
 
     private sealed class SampledEasing(Animation animation) : Easing

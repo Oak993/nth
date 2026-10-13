@@ -96,8 +96,13 @@ public sealed class AttachmentFlight(IAttachmentFlightPlatform? platform = null)
             // The zero-initial-velocity solution uses all three source coefficients, not an approximated ease curve.
             const double decay = 26.0 / (2 * 1.0);
             var frequency = Math.Sqrt(170.0 / 1.0 - decay * decay);
-            var progress = complete ? 1 : 1 - Math.Exp(-decay * t) *
-                (Math.Cos(frequency * t) + decay / frequency * Math.Sin(frequency * t));
+            double Free(double at) => 1 - Math.Exp(-decay * at) * (Math.Cos(frequency * at) + decay / frequency * Math.Sin(frequency * at));
+            // PORT-ONLY (ED-NEW-perf-motion-10): the free spring is 0.74 % short at the settling time, and the ghost left that much for the
+            // chip to jump at the landing; it is folded into the second half of the flight (MotionLanding), so the ghost reaches the chip's
+            // frame with no speed. The first half is the free spring exactly. Its speed is e^(-decay t) sin(frequency t) (decay^2 + frequency^2) / frequency.
+            var settles = SettlingDuration.TotalSeconds;
+            var settleSpeed = Math.Exp(-decay * settles) * Math.Sin(frequency * settles) * (decay * decay + frequency * frequency) / frequency;
+            var progress = complete ? 1 : Marrow.UI.Port.MotionLanding.Land(Free(t), t, settles, 1 - Free(settles), settleSpeed);
             var current = new Rect(
                 start.X + (end.X - start.X) * progress,
                 start.Y + (end.Y - start.Y) * progress,
