@@ -17,7 +17,8 @@ namespace Marrow.App.Tests.Assistant;
 // and stop chord) sit in nth's data root, beside the store and the activity log, and were in no protected root: a mission's write to them was
 // "writes outside the access folders" (a card, or a folder grant's yes) instead of a hard deny. Both start paths (the window's, the launch's for
 // the duties) and the delegate's view of an owner's chat (AS-22) now refuse them, and a mission's own worktree inside the store is still its work.
-// Fakes and throwaway folders only; no provider runs.
+// ED-NEW-dextra-f4-2: so are nth's own program files (the running app's install, Velopack's root when Velopack installed it) and the data folder
+// of before the rename (%LOCALAPPDATA%\Marrow Code). Fakes and throwaway folders only; no provider runs.
 [Trait("Decision", "ED-NEW-dextra-f4-1")]
 [Trait("Feature", "AS-5")]
 public sealed class NthOwnFilesTests
@@ -28,13 +29,19 @@ public sealed class NthOwnFilesTests
             new("deny", "Deny", ApprovalRequest.Option.Role.Decline),
         ]));
 
-    /// <summary>nth's own files in the data root the test bound, and the settings file where the app keeps it.</summary>
+    /// <summary>
+    /// nth's own files in the data root the test bound, the settings file where the app keeps it, the running app's own program (this test
+    /// run's binaries: no Velopack install around them) and the data folder of before the rename.
+    /// </summary>
     private static IReadOnlyList<string> NthFiles() =>
     [
         Storage.LibraryURL,
         Path.Combine(Storage.Root, "UserDefaults.json"),
         Path.Combine(Storage.Root, "mcp.json"),
         SettingsStore.ProductionPath(DevDataRoot.LocalApplicationData()),
+        Path.Combine(AppContext.BaseDirectory, "Marrow.App.exe"),
+        Path.Combine(AppContext.BaseDirectory, "Marrow.App.dll"),
+        Path.Combine(DevDataRoot.LocalApplicationData(), AppInfo.LegacyDataFolderName, "UserDefaults.json"),
     ];
 
     /// <summary>A mission at work in its worktree under the store, its lead chat on record when <paramref name="model"/> is given.</summary>
@@ -65,6 +72,7 @@ public sealed class NthOwnFilesTests
     }
 
     [Fact]
+    [Trait("Decision", "ED-NEW-dextra-f4-2")]
     public void The_window_start_refuses_a_missions_write_to_nths_settings_and_library_and_its_own_worktree_stays_its_work()
     {
         using var h = new AppModelHarness();
@@ -116,6 +124,7 @@ public sealed class NthOwnFilesTests
     }
 
     [Fact]
+    [Trait("Decision", "ED-NEW-dextra-f4-2")]
     public void The_launch_start_for_the_duties_refuses_them_as_well()
     {
         using var temp = new AssistantTempRoot();
@@ -143,6 +152,7 @@ public sealed class NthOwnFilesTests
     }
 
     [Fact]
+    [Trait("Decision", "ED-NEW-dextra-f4-2")]
     public void The_delegate_leaves_an_owners_chat_writing_nths_files_to_the_chat_and_never_raises_a_card_for_it()
     {
         using var rig = new ThreadRuntimeTurnRig(ProviderKind.Claude);
@@ -176,5 +186,25 @@ public sealed class NthOwnFilesTests
             rig.H.Main.OnMain(rig.App.UnbindDextra);
             controller.Dispose();
         }
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-dextra-f4-2")]
+    public void A_Velopack_install_is_protected_from_its_root_and_a_build_run_from_its_output_folder_from_that_folder()
+    {
+        using var temp = new AssistantTempRoot();
+        var root = Path.Combine(temp.Folder, "NthApp");
+        var current = Path.Combine(root, "current");
+        Directory.CreateDirectory(current);
+        Assert.Equal(current, AppModel.InstallRoot(current + Path.DirectorySeparatorChar));            // no Update.exe beside it: its own folder
+
+        File.WriteAllText(Path.Combine(root, "Update.exe"), "");
+        Assert.Equal(root, AppModel.InstallRoot(current + Path.DirectorySeparatorChar));               // Velopack's root: Update.exe, current and packages
+        Assert.Equal(root, AppModel.InstallRoot(current));
+
+        var context = new ClassifierContext { ProtectedRoots = new ValueList<string>([AppModel.InstallRoot(current)]) };
+        foreach (var file in new[] { Path.Combine(root, "Update.exe"), Path.Combine(root, "packages", "NthApp-1.0.0-full.nupkg"), Path.Combine(current, "Marrow.App.dll") })
+            Assert.Equal(ActionClass.HardDeny, ActionClassifier.ClassifyApproval(Write("w", file), context, provider: ProviderKind.Claude).Class);
+        Assert.Equal(ActionClass.WriteElsewhere, ActionClassifier.ClassifyApproval(Write("w", Path.Combine(temp.Folder, "NthApps", "a.txt")), context, provider: ProviderKind.Claude).Class);
     }
 }

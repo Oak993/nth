@@ -108,7 +108,8 @@ public sealed partial class AppModel
     /// app's, whose workspaces live under the store's worktrees folder and whose missions are journaled in the store; the
     /// missions the store held come back (a live one Paused and asking "Resume?", 15.3, when the store was opened with
     /// <see cref="MissionJournal.Interrupted"/> as its rule), and the controller is bound. The store's folder, nth's own files
-    /// (<see cref="NthOwnFiles"/>: its data root and its settings file, whatever the caller passes) and
+    /// (<see cref="NthOwnFiles"/>: its data root, its settings file, its program and its data folder of before the rename, whatever
+    /// the caller passes) and
     /// <paramref name="protectedRoots"/> (the audit folder) are never written by an agent. Returns the
     /// controller; the caller owns it. Auto-answering turns on only once the injection self-check passes in this
     /// process (AS-7); <paramref name="autoAnswer"/> swaps that switch (a test's). <paramref name="personalDataRecipients"/>
@@ -246,14 +247,32 @@ public sealed partial class AppModel
     /// nth's own files, which no agent of Dextra's writes (12.1a "changes nth's own settings and grants"; ED-NEW-dextra-f4-1): the data root
     /// as bound now (library.json, UserDefaults.json with Dextra's switches and grants, the threads, mcp.json, and the store and the activity
     /// log under it) and the settings file where the app keeps it, named on its own so a data root bound elsewhere still leaves it protected.
+    /// ED-NEW-dextra-f4-2: also nth's own program (<see cref="InstallRoot"/> of the running app's base directory: what runs the next time nth
+    /// starts) and the data folder of before the rename (%LOCALAPPDATA%\Marrow Code, which the first launch after it copied and never moved).
     /// A mission's own worktree inside the store stays its work (ActionClassifier's own-worktree carve-out).
     /// </summary>
     internal static IReadOnlyList<string> NthOwnFiles()
     {
+        var roots = new List<string> { Marrow.Services.Store.Storage.Root, InstallRoot(AppContext.BaseDirectory) };
         var local = Marrow.Core.Support.DevDataRoot.LocalApplicationData();
-        return string.IsNullOrEmpty(local)
-            ? [Marrow.Services.Store.Storage.Root]
-            : [Marrow.Services.Store.Storage.Root, Marrow.Services.Port.SettingsStore.ProductionPath(local)];
+        if (!string.IsNullOrEmpty(local))
+        {
+            roots.Add(Marrow.Services.Port.SettingsStore.ProductionPath(local));
+            roots.Add(Path.Combine(local, Marrow.Core.Support.AppInfo.LegacyDataFolderName));
+        }
+        return roots;
+    }
+
+    /// <summary>
+    /// Where nth's program lives (ED-NEW-dextra-f4-2): Velopack's root (the folder holding Update.exe, current\ and packages\,
+    /// %LOCALAPPDATA%\NthApp) when Velopack installed the app whose binaries are in <paramref name="baseDirectory"/> (the check the
+    /// startup hook makes, <see cref="Program.InstalledByVelopack"/>), else the binaries' own folder (a build run from its output folder).
+    /// </summary>
+    internal static string InstallRoot(string baseDirectory)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(baseDirectory);
+        var binaries = Path.TrimEndingDirectorySeparator(baseDirectory);
+        return Program.InstalledByVelopack(baseDirectory) && Path.GetDirectoryName(binaries) is { Length: > 0 } root ? root : binaries;
     }
 
     /// <summary>
