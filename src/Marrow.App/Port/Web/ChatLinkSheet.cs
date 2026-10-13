@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Port.Skills.Pages;
@@ -111,6 +112,19 @@ public static class ChatLinkSheet
         {
             close = dismiss;
             return new ChatLinkSheetLayer(new ChatLinkSheetView(choice, dismiss));
-        }, onDismiss: choice.Cancel, inWindow: true, still: anchor is not null && LibraryUi.Still(anchor));
+        }, onDismiss: choice.Cancel, inWindow: true, still: StillFor(anchor));
+    }
+
+    /// <summary>
+    /// Whether the sheet appears and leaves without movement (Reduce Motion, or no frame source). A link opened from somewhere with no control of its own
+    /// (an MCP App's card, the git menu's Open repository) has no anchor and the sheet then sits over the main window, as ChatSheetPresentation places it:
+    /// the window's setting and the system's still apply, so Reduce Motion is honoured there too.
+    /// </summary>
+    internal static bool StillFor(Control? anchor)
+    {
+        anchor ??= (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+        return anchor is not null
+            ? LibraryUi.Still(anchor)
+            : !FrameClock.IsBound || Marrow.UI.Chrome.Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion;
     }
 }
