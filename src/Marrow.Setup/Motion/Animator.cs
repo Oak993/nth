@@ -64,11 +64,17 @@ public sealed class Animator
 {
     private readonly IFrameSource frames;
     private readonly List<IMotion> moving = [];
+    private readonly List<IMotion> dispatch = [];
+    private readonly Action<TimeSpan> frame;
     private TimeSpan? last;
     private bool requested;
     private bool inFrame;
 
-    public Animator(IFrameSource frames) => this.frames = frames ?? throw new ArgumentNullException(nameof(frames));
+    public Animator(IFrameSource frames)
+    {
+        this.frames = frames ?? throw new ArgumentNullException(nameof(frames));
+        frame = OnFrame;
+    }
 
     public bool IsIdle => moving.Count == 0;
 
@@ -79,7 +85,7 @@ public sealed class Animator
         if (!moving.Contains(motion)) moving.Add(motion);
         if (requested || inFrame) return;
         requested = true;
-        frames.RequestFrame(OnFrame);
+        frames.RequestFrame(frame);
     }
 
     private void OnFrame(TimeSpan now)
@@ -90,12 +96,15 @@ public sealed class Animator
         inFrame = true;
         try
         {
-            foreach (var motion in moving.ToArray())
+            // ED-NEW-smooth2-3: retain the snapshot capacity, preserving starts during dispatch for the next frame.
+            dispatch.AddRange(moving);
+            foreach (var motion in dispatch)
                 if (!motion.Advance(step)) moving.Remove(motion);
         }
         finally
         {
             inFrame = false;
+            dispatch.Clear();
         }
         if (moving.Count == 0)
         {
@@ -104,6 +113,6 @@ public sealed class Animator
         }
         last = now;
         requested = true;
-        frames.RequestFrame(OnFrame);
+        frames.RequestFrame(frame);
     }
 }
