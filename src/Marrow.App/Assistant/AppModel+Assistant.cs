@@ -107,7 +107,7 @@ public sealed partial class AppModel
         ProviderKind provider = ProviderKind.Claude, string? model = null, IReadOnlyList<string>? protectedRoots = null,
         AutoAnswerSwitch? autoAnswer = null, Func<IReadOnlyList<string>>? personalDataRecipients = null, Func<IReadOnlyList<string>>? allowlist = null,
         GlobalStop? stopKey = null, AppTray? tray = null, IPcStreamHold? pcStreams = null,
-        IReadOnlyList<IStopScope>? stopScopes = null)
+        IReadOnlyList<IStopScope>? stopScopes = null, INoteProposer? noteProposer = null)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(audit);
@@ -117,8 +117,19 @@ public sealed partial class AppModel
         var calibrator = new UsageCalibrator();
         var turnCosts = new TurnCostHistory();
         var reservePersistence = new ReservePersistence(store, reserveSettings, calibrator, turnCosts);
+        // Dextra's memory (AS-12): the notes live in the store; the capture runs only when a cheap model is bound (noteProposer).
+        string? DextraId() => profiles().FirstOrDefault(p => p.ParentId is null)?.Id;
+        var memoryStore = new MemoryStore(store, new MemoryStoreOptions { MainAssistantId = DextraId });
         var controller = new AssistantController(new AssistantControllerOptions
         {
+            Notes = new MemorySetup
+            {
+                Store = memoryStore,
+                Capture = noteProposer is null ? null : new MemoryCapture(memoryStore, noteProposer),
+                Import = new MemoryImport(memoryStore, DextraId),
+                ImportSources = () => MemoryImportSources.FromAccounts(Settings.Accounts.Accounts, new Marrow.Services.Port.Accounts.AccountEnvironment(() => Marrow.Services.Store.Storage.Root),
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), [.. Projects.Select(p => p.Path)]),
+            },
             Router = new RouterSetup { Accounts = RouterAccounts, Models = RouterModelsOf },
             Reserve = new ReserveSetup
             {

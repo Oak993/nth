@@ -21,9 +21,12 @@ public sealed class MemoryCaptureTests : IDisposable
     {
         public List<string> Prompts { get; } = [];
 
-        public Task<string?> Propose(string prompt, CancellationToken cancellationToken)
+        public List<CapturedTurn> Turns { get; } = [];
+
+        public Task<string?> Propose(CapturedTurn turn, string prompt, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            Turns.Add(turn);
             Prompts.Add(prompt);
             return Task.FromResult(answer(prompt));
         }
@@ -31,7 +34,7 @@ public sealed class MemoryCaptureTests : IDisposable
 
     private sealed class Throwing(Exception error) : INoteProposer
     {
-        public Task<string?> Propose(string prompt, CancellationToken cancellationToken) => throw error;
+        public Task<string?> Propose(CapturedTurn turn, string prompt, CancellationToken cancellationToken) => throw error;
     }
 
     private static CapturedTurn Turn(string owner = "I like short answers", string reply = "Noted.", string id = "t1", TaintContext? context = null, string? ownerWords = null) =>

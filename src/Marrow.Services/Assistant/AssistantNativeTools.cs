@@ -43,7 +43,7 @@ public sealed class AssistantNativeTools(AssistantRegistration registration, Fun
 
     /// <summary>The system prompt block: the instructions, and with <paramref name="fenced"/> the fenced format and tool list.</summary>
     public string? InstructionsBlock(bool fenced) => !registration.IsLive ? null
-        : fenced ? AssistantToolText.FencedInstructions(registration.Chat.Role) : AssistantToolText.Instructions(registration.Chat.Role);
+        : fenced ? AssistantToolText.FencedInstructions(registration.Chat.Role, registration.MemoryBlock()) : AssistantToolText.Instructions(registration.Chat.Role, registration.MemoryBlock());
 
     /// <summary>Runs one native tool call.</summary>
     public Task<AssistantToolResult> Execute(string name, JSONValue? arguments, CancellationToken cancellationToken) =>

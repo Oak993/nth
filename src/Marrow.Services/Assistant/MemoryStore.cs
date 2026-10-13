@@ -144,7 +144,7 @@ public sealed partial class MemoryStore
                 if (!ReferenceEquals(copy.Stored, chosen.Stored) || copy.Physical != chosen.Stored.File) droppedFiles.Add(copy.Physical);
             if (copies.Count > 1 || chosen.Physical != chosen.Stored.File) droppedFiles.Add(chosen.Stored.File);
         }
-        kept.Sort(CompareNotes);
+        kept = [.. kept.OrderBy(n => n.Note.Created)];
         data.Notes = kept;
         foreach (var stored in kept)
         {
@@ -165,12 +165,6 @@ public sealed partial class MemoryStore
             data.Problems.Add("The memory index could not be repaired: " + error.Message);
         }
         return data;
-    }
-
-    private static int CompareNotes(StoredNote a, StoredNote b)
-    {
-        var byTime = a.Note.Created.CompareTo(b.Note.Created);
-        return byTime != 0 ? byTime : string.CompareOrdinal(a.Note.Id, b.Note.Id);
     }
 
     // ---- the search index -----------------------------------------------------------------------------------------------
@@ -237,7 +231,10 @@ public sealed partial class MemoryStore
 
     private void Commit(ScopeData data, List<StoredNote> work, bool textChanged)
     {
-        work.Sort(CompareNotes);
+        // Oldest first, and notes written at the same moment in the order they were written (a stable sort, never by id).
+        var ordered = work.OrderBy(n => n.Note.Created).ToList();
+        work.Clear();
+        work.AddRange(ordered);
         data.Notes = work;
         data.ById.Clear();
         data.Keys.Clear();

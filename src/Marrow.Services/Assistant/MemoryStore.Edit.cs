@@ -213,7 +213,7 @@ public sealed partial class MemoryStore
                     scopeFiled++;
                 }
                 // 2. Join notes that say the same thing, the older one staying.
-                work.Sort(CompareNotes);
+                work = [.. work.OrderBy(n => n.Note.Created)];
                 for (var i = 0; i < work.Count; i++)
                 {
                     var tokens = MemoryRules.Tokens(work[i].Note.Text);

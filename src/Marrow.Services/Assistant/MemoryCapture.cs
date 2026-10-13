@@ -7,15 +7,20 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Assistant;
 
 namespace Marrow.Services.Assistant;
 
-/// <summary>The cheap model that reads a turn and answers with notes. Returns the model's text, or null when it could not answer.</summary>
+/// <summary>
+/// The cheap model that reads a turn and answers with notes. Returns the model's text, or null when it could not answer. The turn says
+/// which provider the chat ran on: the model it is bound to must keep to the feed's privacy rules (5.4: a local-model chat is never
+/// summarised to a cloud provider; text crosses providers only when the owner allows it).
+/// </summary>
 public interface INoteProposer
 {
-    Task<string?> Propose(string prompt, CancellationToken cancellationToken);
+    Task<string?> Propose(CapturedTurn turn, string prompt, CancellationToken cancellationToken);
 }
 
 /// <summary>One finished turn of an assistant's home thread.</summary>
@@ -27,7 +32,13 @@ public interface INoteProposer
 /// <param name="ReplyText">What the assistant answered.</param>
 /// <param name="Context">The taint of the turn's context (12.4): a tainted turn's notes are quarantined.</param>
 /// <param name="OwnerWords">The owner's recent messages in this thread, for the third-party rule; null: just <paramref name="OwnerText"/>.</param>
-public sealed record CapturedTurn(string AssistantId, Guid Thread, string? ThreadTitle, string TurnId, string OwnerText, string ReplyText, TaintContext Context, string? OwnerWords = null);
+public sealed record CapturedTurn(string AssistantId, Guid Thread, string? ThreadTitle, string TurnId, string OwnerText, string ReplyText, TaintContext Context, string? OwnerWords = null)
+{
+    /// <summary>The provider and model the chat ran on (the proposer must respect the privacy rules of 5.4 for it).</summary>
+    public ProviderKind? Provider { get; init; }
+
+    public string? Model { get; init; }
+}
 
 /// <summary>A note as the model proposed it, before the store's rules.</summary>
 public sealed record ProposedNote(string Text, NoteKind Kind, string? Topic, bool MayChange, bool AboutOwner, bool AboutPerson);
@@ -70,7 +81,7 @@ public sealed class MemoryCapture
         string? answer;
         try
         {
-            answer = await proposer.Propose(Prompt(turn), cancellationToken).ConfigureAwait(false);
+            answer = await proposer.Propose(turn, Prompt(turn), cancellationToken).ConfigureAwait(false);
         }
         catch (Exception error) when (error is HttpRequestException or IOException or TimeoutException or InvalidOperationException or JsonException)
         {

@@ -119,4 +119,9 @@ public sealed class DextraFakeHost : IAssistantToolHost
         Interlocked.Increment(ref settles);
         return Settling?.Invoke() ?? Task.CompletedTask;
     }
+
+    /// <summary>What the host tells a chat at its start (AS-12); null tells it nothing.</summary>
+    public Func<AssistantChat, string?>? MemoryBlockFor { get; set; }
+
+    public string? MemoryBlock(AssistantChat chat) => MemoryBlockFor?.Invoke(chat);
 }

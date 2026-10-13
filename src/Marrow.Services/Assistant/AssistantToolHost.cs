@@ -94,6 +94,12 @@ public interface IAssistantToolHost
     /// before it (a page the chat read taints it first). A host that throws or times out makes the call refused.
     /// </summary>
     Task Settle(AssistantChat chat, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    /// <summary>
+    /// The notes this chat is told at its start (AS-12, 8.2 "used in a prompt"): used notes only, one line each; null or empty for a chat
+    /// that is not told any (a mission agent, a host with no memory). Called when the provider session initialises.
+    /// </summary>
+    string? MemoryBlock(AssistantChat chat) => null;
 }
 
 /// <summary>The host while none is bound: no chat is Dextra's.</summary>

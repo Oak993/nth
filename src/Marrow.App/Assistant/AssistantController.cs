@@ -106,6 +106,33 @@ public sealed class AssistantControllerOptions
     /// <see cref="Provider"/> and <see cref="Model"/>, and the pause card has no "Move the rest to ...".
     /// </summary>
     public RouterSetup? Router { get; init; }
+
+    /// <summary>
+    /// Dextra's memory (AS-12): the notes behind remember, recall and forget, the notes a home chat is told at its start, and the
+    /// capture after a home turn. Null: the three tools say they are not part of this build.
+    /// </summary>
+    public MemorySetup? Notes { get; init; }
+}
+
+/// <summary>What Dextra's memory is made of: the store, the capture (null: none is bound, nothing is captured) and what the owner said.</summary>
+public sealed class MemorySetup
+{
+    public required MemoryStore Store { get; init; }
+
+    /// <summary>The cheap model's capture after a home turn (8.2); null while none is bound.</summary>
+    public MemoryCapture? Capture { get; init; }
+
+    /// <summary>What the owner said recently in each home chat: the evidence the third-party rule checks a note against.</summary>
+    public OwnerWordsLog Owner { get; init; } = new();
+
+    /// <summary>The import of other agents' notes (8.4), for the Memory view's button; null: the view offers none.</summary>
+    public MemoryImport? Import { get; init; }
+
+    /// <summary>The accounts' folders the import reads now (read at every import, so an account added later is seen).</summary>
+    public Func<IReadOnlyList<MemoryImportSource>> ImportSources { get; init; } = () => [];
+
+    /// <summary>Whatever else lives and dies with the memory (the import's watch): the controller disposes it.</summary>
+    public IDisposable? Owned { get; init; }
 }
 
 /// <summary>What the usage reserve is made of (11.2 to 11.5): the owner's rules, the calibration, and how a chat finds its account.</summary>
@@ -551,9 +578,16 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
                 var refused = Runner.Report(chat.Thread, Text("summary") ?? "", Text("status") ?? "done", List("artifacts"));
                 return refused is null ? AssistantToolResult.Done("Reported.") : AssistantToolResult.Failed("Not reported: " + refused);
             }
+            case "remember" when o.Notes is not null:
+                return Tools.Remember(call, PolicyContext(chat).TaintContext);
+            case "recall" when o.Notes is not null:
+                return Tools.Recall(call);
+            case "forget" when o.Notes is not null:
+                return Tools.Forget(call);
             default:
-                // Wired by the units that own them: duties and watches (AS-10), memory (AS-12), usage and plans (AS-13),
+                // Wired by the units that own them: duties and watches (AS-10), usage and plans (AS-13),
                 // Asturs (AS-16), suggestions (AS-11), sessions (AS-2's reader), deliver and merge_results (AS-8).
+                // Memory (AS-12) is wired when the controller is given its Notes.
                 return AssistantToolResult.Failed($"Not run: {call.Tool.Name} is not part of this build of {AssistantNames.Assistant} yet.");
         }
     }
@@ -566,9 +600,9 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
 
     private DecisionItem Card(AssistantToolCall call, bool offered)
     {
-        var inputs = call.Arguments.JSONValueObject is { } fields
+        IEnumerable<DecisionInput> inputs = MemoryCardInputs(call) ?? (call.Arguments.JSONValueObject is { } fields
             ? fields.Select(f => new DecisionInput(f.Key, f.Value.JSONValueString ?? f.Value.ToString()))
-            : [];
+            : []);
         var c = call.Classification;
         var card = new DecisionItem(Guid.NewGuid(), DecisionKind.ToolCall, DecisionRules.Weigh(c.Class), call.Tool.Title)
         {
@@ -721,6 +755,7 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
     public void Dispose()
     {
         Stopper.Dispose();
+        DisposeMemory();
         Reserve?.Dispose();
         o.Reserve?.Owned?.Dispose();
         foreach (var thread in o.Jobs.Threads) o.Jobs.End(thread);
