@@ -149,6 +149,7 @@ Marrow.Core/Web/DownloadGate.cs	PRN
 Marrow.Core/Web/DownloadGate.cs	TB
 Marrow.Core/Web/DownloadGate.cs	{stem} ({Guid.NewGuid():N}){extension}
 Marrow.Core/Web/DownloadGate.cs	{stem} ({n.ToString(CultureInfo.InvariantCulture)}){extension}
+Marrow.Core/Web/McpAppConsent.cs	The arguments of {tool} are too long to show the user ({Shown(arguments).Length:N0} characters; a tool card shows {MaxCharacters:N0}), so nth did not ask and did not run it.
 Marrow.Core/Web/McpAppContext.cs	 truncated=\"true\"
 Marrow.Core/Web/McpAppContext.cs	<app_context from=\"
 Marrow.Core/Web/McpAppContext.cs	<app_message from=\"
