@@ -57,6 +57,21 @@ public sealed class SettingsRestSidebarTests(HeadlessSession headless) : Setting
             }
             var search = Assert.Single(Nodes<TextBox>(Assert.Single(Nodes<SidebarSearchField>(view))));
             foreach (var title in titles) { search.Text = title; Drain(w); Assert.Contains(Nodes<SidebarRow>(view), r => Text(r).Contains(title)); search.Text = "no-matching-settings-value"; Drain(w); Assert.Empty(Nodes<SidebarRow>(view)); search.Text = ""; Drain(w); }
+            // ED-NEW-settings-reveal-4, CU-SETTINGS-REVEAL-2: restore this isolated freeze check's no-motion precondition.
+            var sidebar = Assert.Single(Nodes<ScrollViewer>(Field<Control>(view, "sidebar")));
+            var settled = false;
+            for (var frame = 0; frame < 90; frame++)
+            {
+                var before = sidebar.Offset;
+                Tick(h, 1000 / 60.0); Drain(w);
+                if (sidebar.Offset != before) Assert.False(list.IsHitTestVisible);
+                if (sidebar.Offset == before && SoftScroll.For(sidebar).Phase != ScrollPhase.Animating) { settled = true; break; }
+            }
+            Assert.True(settled, "The sidebar reveal must settle within 90 manual frames.");
+            var selected = Assert.Single(Nodes<SidebarRow>(list), row => row.IsSelected);
+            Assert.Equal("About", Assert.Single(Text(selected)));
+            var selectedTop = selected.TranslatePoint(default, sidebar)!.Value.Y;
+            Assert.InRange(selectedTop, 0, sidebar.Viewport.Height - selected.Bounds.Height);
             // SettingsView.swift:182 applies the shared scroll freeze to the sidebar, even for page scrolling.
             var tracker = Field<SettingsScrollTracker>(view, "scrollTracker"); tracker.Note(); Drain(w); Assert.False(list.IsHitTestVisible); Tick(h, 150); Drain(w); Assert.True(list.IsHitTestVisible);
             void Check(SidebarRow row, int index, bool selected)
