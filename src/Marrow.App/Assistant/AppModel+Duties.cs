@@ -40,7 +40,7 @@ public sealed partial class AppModel
             Provider = controller.Provider,
             Model = controller.Model,
             Events = AssistantEvents,
-            AssistantIds = assistantIds ?? (() => store.AssistantIds()),
+            AssistantIds = assistantIds ?? (() => [.. controller.Profiles.Where(p => !p.Retired).Select(p => p.Id)]),
             OnMain = work => MainActor.Post(work),
             Projects = () => [.. Projects.Select(p => new MissionProject(p.Id, p.Name, p.Path))],
             FolderGranted = path => IsFolderOpenToDextra(path, controller),

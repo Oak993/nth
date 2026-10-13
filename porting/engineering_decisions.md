@@ -8339,3 +8339,8 @@ The common startup creates and refreshes the one shell tray before checking On, 
 Team events are coalesced and marshalled to the UI dispatcher; a worker-thread regression reproduces the former access error. Connector geometry is held through fade-out and replaced only after the move before fade-in; a second change keeps the old geometry and resets the timer, with a serial guard against stale posted callbacks. Regressions: DextraFixHomeBusyTests and DextraFixConnectorTests.
 
 DextraFixMotionNativeTests is written but never run by this worker. Its Thread.Sleep calls are Native-only waits for real compositor animation frames, not concurrency evidence; deterministic headless tests cover the repaired capture, hit-test, timer and thread boundaries. The lead still owes real-window continuity and screen-pixel/60-fps acceptance. No package or owner decision is added.
+
+
+### CU-DX-FIX host replacement (ED-NEW-dextra-fix-2)
+
+The lean regression DigestLaunchTests.Starting_the_duties_the_way_turning_Dextra_on_does_makes_the_Morning_digest_duty_beside_the_owners_own failed twice alone after unifying startup: a replacement duty host loaded only IDs with profile files and lost an existing legacy duty folder while making the digest under the current root. StartDuties now defaults to the controller policy profiles, excluding retired profiles, just as common startup does. This retains the existing duty alongside the digest without weakening the assertion or falling back to an unvalidated present profile.

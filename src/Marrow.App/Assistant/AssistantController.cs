@@ -347,6 +347,9 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
     /// <summary>The id of Dextra itself (the profile with no parent), or null when no profile is set up.</summary>
     public string? MainAssistantId => o.Profiles().FirstOrDefault(p => p.ParentId is null)?.Id;
 
+    /// <summary>The profiles used by this controller's policy chains, including retired ones for kept missions.</summary>
+    public IReadOnlyList<AssistantProfile> Profiles => o.Profiles();
+
     /// <summary>
     /// The model that reads the feed and composes the digest (13.2): the cheapest capable one, never dearer than the brain's own.
     /// With <paramref name="requireLocal"/> (text from a private chat or a local model, 5.4) only a model on this PC; with none the pick
