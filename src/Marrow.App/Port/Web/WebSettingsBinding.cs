@@ -21,6 +21,9 @@ public static class WebSettingsBinding
 {
     private static string? appliedTiles;
 
+    /// <summary>The artifact runtime whose model policy follows "Artifacts may use your model"; the app's. Tests hand their own.</summary>
+    public static Func<ArtifactRuntime?> Runtime { get; set; } = static () => ArtifactRuntime.Shared;
+
     /// <summary>
     /// Binds the seams. <paramref name="process"/> is the app (the ambient defaults are set for the process); false is a test (the ambient values are
     /// replaced for the calling flow until the result is disposed).
@@ -65,7 +68,7 @@ public static class WebSettingsBinding
             host.Live.BindEnabled(static () => true);
             host.Live.BindHtmlEnabled(static () => true);
         });
-        if (ArtifactRuntime.Shared is { } runtime)
+        if (Runtime() is { } runtime)
         {
             var oldPolicy = runtime.ModelPolicy;
             runtime.ModelPolicy = () => Web() is { } web ? (web.ArtifactModel == ArtifactModelChoice.Never ? ArtifactModelPolicy.Never : ArtifactModelPolicy.Ask) : oldPolicy();

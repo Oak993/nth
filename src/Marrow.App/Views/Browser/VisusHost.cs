@@ -72,8 +72,10 @@ public static class VisusHost
     public static Func<bool> SearchSuggestions { get; set; } = () => false;
 
     /// <summary>Asks the search engine for suggested searches (W10; only with "Show search suggestions" on, never for a private tab). Tests replace it.</summary>
-    public static Func<SearchEngine, string, CancellationToken, Task<IReadOnlyList<string>>> SuggestionSource { get; set; } =
-        static (engine, typed, token) => (suggestionAsker ??= new SearchSuggestionSource()).AskAsync(engine, typed, token, ExternalApps.IsRegistered);
+    public static Func<SearchEngine, string, CancellationToken, Task<IReadOnlyList<string>>> SuggestionSource { get; set; } = AskSearchEngineAsync;
+
+    private static Task<IReadOnlyList<string>> AskSearchEngineAsync(SearchEngine engine, string typed, CancellationToken token) =>
+        (suggestionAsker ??= new SearchSuggestionSource()).AskAsync(engine, typed, token, ExternalApps.IsRegistered);
 
     /// <summary>How long the field waits after the last key before asking the search engine (so a word being typed is asked once).</summary>
     public static TimeSpan SuggestionDelay { get; set; } = TimeSpan.FromMilliseconds(180);
@@ -249,6 +251,7 @@ public static class VisusHost
         SearchSuggestions = () => false;
         PageWindowsInDefaultBrowser = () => false;
         SuggestionDelay = TimeSpan.FromMilliseconds(180);
+        SuggestionSource = AskSearchEngineAsync;
         PickSavePath = PickWithDialogAsync;
         PickOpenFiles = PickFilesWithDialogAsync;
         ShowInFolder = path => Marrow.UI.Port.ShellWorkspace.RevealInFileExplorer(path);

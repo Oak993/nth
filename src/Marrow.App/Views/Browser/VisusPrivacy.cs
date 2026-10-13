@@ -41,7 +41,7 @@ public static class VisusPrivacy
     /// <summary>"Forget agent data": every standing grant, and the browser data of every agent profile. Returns the sentence Settings shows.</summary>
     public static async Task<string> ForgetAgentDataAsync()
     {
-        VisusAgentStartup.Grants?.Clear();
+        if (VisusAgentStartup.Grants is { } grants) await Task.Run(grants.Clear); // writes its file: off the UI thread
         var clears = ClearsRecord();
         await Task.Run(clears.RequestAllAgents);
         var now = VisusHost.IsStarted ? await VisusHost.Surface.ClearProfilesNowAsync(creation => creation.Kind == WebProfileKind.Agent) : 0;

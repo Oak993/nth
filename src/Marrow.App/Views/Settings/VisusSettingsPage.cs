@@ -57,7 +57,12 @@ public sealed class VisusSettingsPage : Decorator
     public const bool IsReady = true;
 
     public const string Title = "Visus";
-    public const string KeywordsText = "visus browser links chat search engine suggestions previews reload models permissions downloads cookies privacy tabs";
+    /// <summary>The words Settings search finds the page by: its title and what a reader would type for its rows.</summary>
+    public static IReadOnlyList<string> Keywords { get; } =
+    [
+        "visus", "browser", "web", "links", "chat links", "default browser", "search engine", "suggestions", "previews", "reload on save",
+        "permissions", "site permissions", "downloads", "downloads folder", "cookies", "browsing data", "privacy", "forget", "live tabs", "tabs",
+    ];
 
     public const string LinksTitle = "Links";
     public const string ChatLinksRow = "Open links from chats in";

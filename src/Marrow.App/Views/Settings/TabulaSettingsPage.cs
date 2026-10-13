@@ -44,7 +44,12 @@ public sealed class TabulaSettingsPage : Decorator
     public const bool IsReady = true;
 
     public const string Title = "Tabula";
-    public const string KeywordsText = "tabula artifacts live answers visual widgets html mcp apps maps tiles model storage";
+    /// <summary>The words Settings search finds the page by: its title and what a reader would type for its rows.</summary>
+    public static IReadOnlyList<string> Keywords { get; } =
+    [
+        "tabula", "artifacts", "live answers", "visual answers", "widgets", "inline html", "html", "mcp apps", "apps", "maps", "map tiles", "street tiles", "tiles",
+        "your model", "artifact storage", "storage",
+    ];
 
     public const string LiveTitle = "Live answers";
     public const string LiveRow = "Live answers in chat";

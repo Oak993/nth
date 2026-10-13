@@ -661,7 +661,7 @@ public sealed class VisusAddressField : Border
         row.Children.Add(box);
         suggestionsFrame = new Border { ClipToBounds = true, Padding = new Thickness(4), Child = suggestionRows };
         // The field, not a click elsewhere, closes them (its focus leaving does); they never take the keyboard.
-        suggestionsPopup = new VisusPopover(this, () => suggestionsFrame, lightDismiss: false, takesFocus: false, dismissed: () => highlight = -1);
+        suggestionsPopup = new VisusPopover(this, () => suggestionsFrame, lightDismiss: false, takesFocus: false, dismissed: () => { highlight = -1; CancelRemoteSuggestions(); });
         AutomationProperties.SetName(suggestionRows, "Suggestions");
         Child = new Panel { Children = { row, suggestionsPopup.Popup, popupMenu.Popup, Trust.InfoPopup } };
         box.GotFocus += OnGotFocus;
@@ -828,8 +828,7 @@ public sealed class VisusAddressField : Border
     // address or app link, and the answer is dropped if the text moved on.
     private void AskRemoteSuggestions(string text, VisusTab? tab)
     {
-        remoteSuggestions?.Cancel();
-        remoteSuggestions = null;
+        CancelRemoteSuggestions();
         if (!VisusHost.SearchSuggestions() || tab is null || tab.Kind is VisusTabKind.Private or VisusTabKind.Agent) return;
         var engine = VisusHost.SearchEngine();
         if (!SearchSuggestionRules.MaySend(text, engine, VisusHost.IsRegisteredScheme)) return;
@@ -870,11 +869,17 @@ public sealed class VisusAddressField : Border
 
     private void OpenSuggestions() => suggestionsPopup.SetOpen(true);
 
+    // The ask in flight stops with the list: closed by the field, by the window's Esc or by a click elsewhere, a late answer must not open it again.
+    private void CancelRemoteSuggestions()
+    {
+        remoteSuggestions?.Cancel();
+        remoteSuggestions = null;
+    }
+
     private void CloseSuggestions()
     {
         highlight = -1;
-        remoteSuggestions?.Cancel();
-        remoteSuggestions = null;
+        CancelRemoteSuggestions();
         suggestionsPopup.SetOpen(false);
     }
 
@@ -901,6 +906,7 @@ public sealed class VisusAddressField : Border
                 else if (editing)
                 {
                     editing = false;
+                    CancelRemoteSuggestions(); // PORT-ONLY (web surfaces W10, ED-NEW-web-w10-7): the ask in flight stops with the edit
                     SetText(EditingText(session.Selected));
                     box.SelectAll();
                     Trust.Update(session.Selected, editing);

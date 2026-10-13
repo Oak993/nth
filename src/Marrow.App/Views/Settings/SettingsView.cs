@@ -138,7 +138,7 @@ public static class SettingsPageExtensions
             // PORT-ONLY OD-0140 (ED-NEW-pcctl-29): DESIGN.md 4.7's words, then the pill v2 rows P29 finds (pill, pause, answer, position).
             SettingsPage.PcControl => Marrow.App.Port.PcControl.PcControlSettingsPage.Keywords.ToArray(),
             // PORT-ONLY web surfaces W10: the words of the page's rows (DESIGN.md 9).
-            SettingsPage.Visus => VisusSettingsPage.KeywordsText.Split(' '), SettingsPage.Tabula => TabulaSettingsPage.KeywordsText.Split(' '),
+            SettingsPage.Visus => VisusSettingsPage.Keywords.ToArray(), SettingsPage.Tabula => TabulaSettingsPage.Keywords.ToArray(),
         });
 
         // PORT-ONLY (first-release SA-1, OD-0103; the pattern of voice-SPEC V-2.6): whether the page unit has built it. A page that is not

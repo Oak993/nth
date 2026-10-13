@@ -25,7 +25,7 @@ public static class VisusAgentStartup
     private static VisusAgentBinding? bound;
 
     /// <summary>The standing grants "Forget agent data" clears (Settings › Visus, W10); null until Bind.</summary>
-    public static WebAgentGrants? Grants { get; private set; }
+    public static WebAgentGrants? Grants { get; internal set; }
 
     /// <summary>Program.Main: binds the web tools to Visus once.</summary>
     public static void Bind()
