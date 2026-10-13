@@ -19,7 +19,7 @@ public static class UiMcpBridge
     private static readonly McpPipeRelay relay = new(Prefix, token => new UiMcpServer(Registration(token)).Handle);
 
     /// <summary>The executable the relay entry launches: the app's own (its Main hands <see cref="Command"/> to <see cref="RunClient"/>).</summary>
-    public static Ambient<Func<string>> Executable { get; } = new(new Func<string>(() => Path.Combine(AppContext.BaseDirectory, "Marrow.App.exe")));
+    public static Ambient<Func<string>> Executable { get; } = new(new Func<string>(() => AppExecutable.Path));
 
     /// <summary>
     /// The session's registration: its chat, provider and model; null for a session of no chat, or while artifacts are off and no

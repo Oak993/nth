@@ -21,6 +21,18 @@ namespace Marrow.Services.Tests.Web;
 [Trait("Decision", "ED-NEW-web-w12-1")]
 public sealed class ArtifactWiringTests
 {
+    [Fact]
+    [Trait("Decision", "ED-NEW-inst-u7-1")]
+    public void The_ui_relay_uses_the_running_executable_and_preserves_a_scoped_override()
+    {
+        using var scope = new ArtifactHostScope();
+        var configuration = Config(ProviderKind.Codex, Chat);
+        Assert.Equal(AppExecutable.Path, Assert.IsType<MCPResolvedServer>(UiMcpBridge.Server(configuration)).Command);
+        using (UiMcpBridge.Executable.Override(() => "C:/fixture/nth-relay.exe"))
+            Assert.Equal("C:/fixture/nth-relay.exe", Assert.IsType<MCPResolvedServer>(UiMcpBridge.Server(configuration)).Command);
+        Assert.Equal(AppExecutable.Path, Assert.IsType<MCPResolvedServer>(UiMcpBridge.Server(configuration)).Command);
+    }
+
     private static readonly Guid Chat = Guid.Parse("6e0c2d1e-7a3b-4c55-9e21-0a6d1b2c3d01");
 
     private static SessionConfiguration Config(ProviderKind provider, Guid? thread, string? model = "deepseek-chat") => new()

@@ -46,7 +46,7 @@ public static class AssistantMcpBridge
     public static Ambient<IAssistantToolHost> Host { get; } = new(NoAssistantToolHost.Instance);
 
     /// <summary>The executable the relay entry launches: the app's own (its Main hands <see cref="Command"/> to <see cref="RunClient"/>).</summary>
-    public static Ambient<Func<string>> Executable { get; } = new(new Func<string>(() => Path.Combine(AppContext.BaseDirectory, "Marrow.App.exe")));
+    public static Ambient<Func<string>> Executable { get; } = new(new Func<string>(() => AppExecutable.Path));
 
     /// <summary>
     /// Registers a session's chat when the host knows it as Dextra's; null otherwise (no thread, an unknown chat, or a
