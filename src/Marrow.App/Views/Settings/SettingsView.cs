@@ -210,6 +210,12 @@ public sealed class SettingsView : Decorator
     private readonly Dictionary<SettingsPage, SidebarRow> pageRows = new(); // :148 the row each listed page keeps under its ForEach id
     private Control? noResults; // :166-177 the "No results" block while it shows
     private readonly Control sidebar;
+    private readonly ScrollViewer sidebarScroll;
+    private Marrow.UI.Port.Armilla.DextraViewWatch? sidebarPresence;
+    private SettingsPage? clickedPage;
+    private bool revealPending;
+    private SettingsPage? revealingPage;
+    private Vector revealDestination;
     private readonly Border detail = new();
     private readonly SwiftShapeBorder frame;
     private Control? pageStack;
@@ -240,9 +246,10 @@ public sealed class SettingsView : Decorator
     public SettingsView()
     {
         Width = 780; Height = 580; // :122
-        search = new SidebarSearchField(new Binding<string>(() => state.Search, value => state.Search = value), onSubmit: () => { if (VisiblePages.Count > 0) state.Page = VisiblePages[0]; }); // :141-143
+        search = new SidebarSearchField(new Binding<string>(() => state.Search, value => state.Search = value), onSubmit: () => { if (VisiblePages.Count > 0) { clickedPage = null; state.Page = VisiblePages[0]; QueueSelectedRowReveal(); } }); // :141-143
         search.Margin = new Thickness(Chrome.ListInset, 14, Chrome.ListInset, 0); // :144-145
         var scroll = new ScrollViewer { Content = rows, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled }; // :146,190
+        sidebarScroll = scroll;
         WireScroll(scroll, page: false);
         var column = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,*,Auto") }; // :137 + OD-0099 lower-left progress
         var spacer = new Border { Height = Chrome.TrafficLightDiameter, Margin = new Thickness(0, Chrome.TrafficLightTop, 0, 0) }; // :138-140
@@ -263,18 +270,83 @@ public sealed class SettingsView : Decorator
         this.Track(() => SettingsNavigation.Shared.RequestedPage, requested => // :123-127
         {
             if (requested is not { } page) return;
-            if (page.IsReady) state.Page = page; // PORT-ONLY (SA-1): a page whose unit has not built it is not opened; the request is still consumed
+            if (page.IsReady) // PORT-ONLY (SA-1): unready pages are not opened; the request is still consumed
+            {
+                // PORT-ONLY ED-NEW-settings-reveal-1: an external page needs its row even under a search that excludes it.
+                if (!VisiblePages.Contains(page)) state.Search = "";
+                clickedPage = null;
+                state.Page = page;
+                QueueSelectedRowReveal();
+            }
             SettingsNavigation.Shared.RequestedPage = null;
         });
         this.Track(() => VisiblePages, pages => // :130-133
         {
             if (pages.Count > 0 && !pages.Contains(state.Page)) state.Page = pages[0];
             RebuildSidebar();
+            QueueSelectedRowReveal();
         });
-        this.Track(() => state.Page, _ => { SelectRows(); RebuildDetail(); });
+        this.Track(() => state.Page, page =>
+        {
+            CancelPreviousReveal(page);
+            SelectRows(); RebuildDetail();
+            if (clickedPage != page) QueueSelectedRowReveal();
+            clickedPage = null;
+        });
         this.Track(() => { var model = AppEnvironment.GetAppModel(this); _ = model.Threads; return model.ArchivedThreads.Count; }, count => { if (state.Page == SettingsPage.Archive && (count == 0) != (pageStack is null)) RebuildDetail(); }); // :198 observe the collection behind the computed archive count; the page's ScrollView identity is its page (:231), so only the empty placeholder swap rebuilds.
         rows.Track(() => scrollTracker.IsFrozen, value => rows.IsHitTestVisible = !value); // :182
-        DetachedFromVisualTree += (_, _) => scrollTracker.End(); // :117
+        // PORT-ONLY ED-NEW-settings-reveal-1: SettingsOverlay keeps the attached view while hidden, then opens its remembered page.
+        sidebarScroll.LayoutUpdated += (_, _) => RevealSelectedRow();
+        sidebarScroll.AddHandler(SoftScroll.PhaseChangedEvent, (_, e) => { if (e.Phase != ScrollPhase.Animating) revealingPage = null; });
+        AttachedToVisualTree += (_, _) =>
+        {
+            sidebarPresence = new Marrow.UI.Port.Armilla.DextraViewWatch(this);
+            sidebarPresence.Changed += SidebarAvailabilityChanged;
+            SidebarAvailabilityChanged();
+        };
+        DetachedFromVisualTree += (_, _) =>
+        {
+            scrollTracker.End(); // :117
+            sidebarPresence?.Dispose(); sidebarPresence = null;
+            revealPending = false; clickedPage = null; revealingPage = null;
+        };
+    }
+
+    // PORT-ONLY ED-NEW-settings-reveal-1 (owner CU-SETTINGS-REVEAL, 2026-10-13): reuse the sidebar's glide after real layout.
+    private void SidebarAvailabilityChanged()
+    {
+        if (sidebarPresence?.Available == true) QueueSelectedRowReveal();
+    }
+
+    private void CancelPreviousReveal(SettingsPage page)
+    {
+        if (revealingPage is not { } previous || previous == page) return;
+        // A newly visible selection must not be carried out of view by our old destination. Wheel motion is not stopped.
+        var most = Math.Max(0, sidebarScroll.Extent.Height - sidebarScroll.Viewport.Height);
+        // Clamp both: a resized viewport can change the driver's bound on this frame or on the next one.
+        if (Math.Clamp(SoftScroll.For(sidebarScroll).Target.Y, 0, most) == Math.Clamp(revealDestination.Y, 0, most)) SoftScroll.StopAnimation(sidebarScroll);
+        revealingPage = null;
+    }
+
+    private void QueueSelectedRowReveal()
+    {
+        revealPending = true;
+        sidebarScroll.InvalidateArrange();
+    }
+
+    private void RevealSelectedRow()
+    {
+        if (!revealPending || sidebarPresence?.Available != true || !sidebarScroll.IsArrangeValid || !rows.IsArrangeValid
+            || sidebarScroll.Viewport.Height <= 0 || !pageRows.TryGetValue(state.Page, out var row) || row.Bounds.Height <= 0
+            || row.TranslatePoint(default, sidebarScroll) is not { } at) return;
+        revealPending = false;
+        var delta = at.Y < 0 ? at.Y : Math.Max(0, at.Y + row.Bounds.Height - sidebarScroll.Viewport.Height);
+        if (delta == 0) return; // fully visible: do not touch the offset or a reader's running glide
+        var y = Math.Clamp(sidebarScroll.Offset.Y + delta, 0, Math.Max(0, sidebarScroll.Extent.Height - sidebarScroll.Viewport.Height));
+        revealingPage = state.Page;
+        revealDestination = new Vector(sidebarScroll.Offset.X, y);
+        SoftScroll.ScrollTo(sidebarScroll, revealDestination, SoftScroll.KeyAnimation);
+        if (SoftScroll.For(sidebarScroll).Phase != ScrollPhase.Animating) revealingPage = null;
     }
 
     // :148-177. `ForEach(visiblePages) { item in SidebarRow(title:, isSelected: page == item, ...) }`: a page keeps its row
@@ -306,7 +378,7 @@ public sealed class SettingsView : Decorator
     {
         if (pageRows.TryGetValue(page, out var kept)) return kept;
         var none = new Border(); // :149 SidebarRow(title:isSelected:action:icon:) has an EmptyView accessory: one view, whatever the hover
-        var row = new SidebarRow(page.Title, () => state.Page = page, () =>
+        var row = new SidebarRow(page.Title, () => { if (state.Page == page) return; clickedPage = page; revealPending = false; CancelPreviousReveal(page); state.Page = page; }, () =>
         {
             var badge = new SidebarIconBadge(() => page switch
             {
