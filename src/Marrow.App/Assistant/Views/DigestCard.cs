@@ -10,6 +10,7 @@ using Avalonia.Animation.Easings;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -261,6 +262,18 @@ public sealed class DigestCard : Border
     }
 
     internal void RememberFocus(string key) => focusAfter = key;
+
+    /// <summary>
+    /// Brings a suggestion's row into view and gives its Accept the focus (a chip on the home leads here: it never accepts for the owner, who reads the line and its cost
+    /// first). False when that suggestion is no longer open in the lane.
+    /// </summary>
+    public bool Reveal(string key)
+    {
+        if (rows.FirstOrDefault(r => r.Key == key) is not { AcceptButton: { } accept } row) return false;
+        row.BringIntoView();
+        accept.Focus(NavigationMethod.Tab);
+        return true;
+    }
 
     internal static void FadeIn(Control control)
     {

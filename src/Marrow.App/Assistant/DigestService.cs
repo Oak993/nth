@@ -82,6 +82,19 @@ public sealed partial class DigestService : ISuggestionIntake, IDisposable
 
     private void RaiseChanged() => Changed?.Invoke();
 
+    /// <summary>Calls <paramref name="handler"/> (on whichever thread changed the digest) until the returned handle is disposed.</summary>
+    public IDisposable Watch(Action handler)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        Changed += handler;
+        return new Unwatch(this, handler);
+    }
+
+    private sealed class Unwatch(DigestService service, Action handler) : IDisposable
+    {
+        public void Dispose() => service.Changed -= handler;
+    }
+
     private void Fault(string message)
     {
         try { o.Faulted?.Invoke(message); }

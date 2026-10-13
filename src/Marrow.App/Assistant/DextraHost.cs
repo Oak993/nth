@@ -50,6 +50,9 @@ public sealed class DextraHost : IDisposable
     /// <summary>The sources the sidebar row and the home read: the running controller's, else the idle set.</summary>
     public DextraLive Live { get; private set; } = DextraLive.Idle;
 
+    /// <summary>The morning digest and the Suggestions lane (AS-11) while Dextra's duties run; null before they start.</summary>
+    public DigestService? Digests => model.Duties?.Digests;
+
     /// <summary>An assistant's name by its id (Dextra's or an Astur's).</summary>
     public string NameOf(string assistantId) => Profiles().FirstOrDefault(p => p.Id == assistantId)?.Name ?? Name;
 

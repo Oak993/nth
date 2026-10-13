@@ -39,7 +39,9 @@ public sealed record HomeSheets
             var labels = new ActivityLabels(
                 Assistant: id => host.NameOf(id),
                 Mission: id => Guid.TryParse(id, out var m) ? host.Controller?.Runner.Find(m)?.Mission.Title : null);
-            var model = new ActivityLogModel(ActivityLogSource.For(AssistantStorage.Roots.Current, AuditKeyStore.Production()), labels: labels);
+            // The day finals the digests printed (12.5): a day whose log was rewritten since no longer matches the one printed in the morning.
+            var model = new ActivityLogModel(ActivityLogSource.For(AssistantStorage.Roots.Current, AuditKeyStore.Production(),
+                host.Digests is { } digests ? digests.Book.PrintedDayFinals : null), labels: labels);
             _ = mission is null ? model.OpenAsync() : model.ShowMissionAsync(mission);
             return new ActivityLogView(model);
         },
@@ -64,6 +66,7 @@ public sealed class AssistantHomeHost : Decorator
     private bool? builtOn;
     private Guid? builtThread;
     private Control? sheetReturn;
+    private DigestModel? digestModel;
 
     public AssistantHomeHost(AppModel model, WindowLiveResize? liveResize = null, HomeSheets? sheets = null)
     {
@@ -121,6 +124,8 @@ public sealed class AssistantHomeHost : Decorator
         model.AssistantReviewRequested -= OnReview;
         model.AssistantMissionRequested -= OnMission;
         builtOn = null; // built again on the next attach
+        digestModel?.Dispose();
+        digestModel = null;
     }
 
     private void OnReview(Guid decision) => Dispatcher.UIThread.Post(() => ShowReview(decision));
@@ -190,6 +195,7 @@ public sealed class AssistantHomeHost : Decorator
     {
         var controller = live.Controller;
         Func<Guid, string?> missionTitle = id => controller?.Runner.Find(id)?.Mission.Title;
+        var digests = host.Digests;   // the morning digest, once Dextra's duties are running (AS-11)
         return new AssistantHomeParts(live.Jobs, live.Decisions, live.Controls)
         {
             Name = DextraHost.Name,
@@ -213,7 +219,49 @@ public sealed class AssistantHomeHost : Decorator
                 Settings: () => OpenSettings(SettingsPage.Assistant)),
             FirstRun = () => host.Settings.Value.FirstRunDone ? null : firstRun ??= new FirstRunCard(host.Settings, BrainChoices.Of(model), done: null,
                 openSettings: () => OpenSettings(SettingsPage.Assistant)),
+            Digest = digests is null ? null : () => MountDigest(digests, thread?.Id),
+            Suggestions = digests is null ? null : () => [.. digests.Open.Select(HomeSuggestion.Of)],
+            SuggestionsChanged = digests is null ? null : handler => digests.Watch(() => Dispatcher.UIThread.Post(() =>
+            {
+                if (thread is not null) digests.PinnedIn(thread.Id);   // a tainted digest that came in while the home was open taints the home too (12.4)
+                handler();
+            })),
         };
+    }
+
+    // The digest is pinned at the top of the home (6); what it was made from and nth cannot vouch for (a duty's finding, an Astur's paragraph) taints the home chat as it lands
+    // there (12.4). The card's model is let go with the home that built it.
+    private Control MountDigest(DigestService digests, Guid? homeThread)
+    {
+        digestModel?.Dispose();
+        var shown = new DigestModel(digests) { OpenLink = OpenDigestLink };
+        digestModel = shown;
+        if (homeThread is { } id) digests.PinnedIn(id);
+        return new DigestCard(shown);
+    }
+
+    // What a tap on an item of the digest opens: the decision card, the mission, the account's reserves, the chat; a duty's finding is told in the feed.
+    internal void OpenDigestLink(DigestLink link)
+    {
+        switch (link.Kind)
+        {
+            case DigestLinkKind.Decision when Guid.TryParse(link.Id, out var card):
+                ShowReview(card);
+                break;
+            case DigestLinkKind.Mission when Guid.TryParse(link.Id, out var mission):
+                ShowMission(mission);
+                break;
+            case DigestLinkKind.Duty:
+                CloseSheet();
+                Home?.Board.Pick(BoardTab.Feed);
+                break;
+            case DigestLinkKind.Account when sheets.Reserves is not null && host.Controller?.Reserve is not null:
+                ShowSheet("Reserves", sheets.Reserves(host));
+                break;
+            case DigestLinkKind.Thread when Guid.TryParse(link.Id, out var thread) && model.Thread(thread) is not null:
+                model.SelectedThreadID = thread;
+                break;
+        }
     }
 
     private Control OffView()

@@ -127,4 +127,46 @@ public sealed class DigestNativeTests(WindowManagerNativeSession native)
             native.OnUi(() => manager.MainWindow!.Hide());
         });
     }
+
+    [Fact]
+    public void The_home_with_a_digest_in_a_real_window_keeps_the_card_in_half_the_column_the_chips_under_it_and_a_chip_brings_its_Accept_into_view()
+    {
+        native.Run(subject =>
+        {
+            _ = subject;
+            using var rig = Quiet(Setup(habits: () => [Habit("a", "Re-price listings")]));
+            for (var i = 0; i < 8; i++) Card(rig, "Which chart style " + i + "?");
+            _ = rig.Host.Digests!.Compose(DigestKind.Scheduled);
+            MissionRig.Until(() => rig.Host.Digests.Latest is not null, "the digest");
+            var digests = rig.Host.Digests;
+            var (window, home) = native.OnUi(() =>
+            {
+                var model = new DigestModel(digests, () => TimeZoneInfo.Utc) { OpenLink = _ => { } };
+                var made = new AssistantHomeView(new AssistantHomeParts(new FakeMissionJobs(), new FakeDecisions(), new FakeGlobalControls())
+                {
+                    Name = DextraHost.Name,
+                    ConversationEmpty = () => true,
+                    Digest = () => new DigestCard(model),
+                    Suggestions = () => [.. digests.Open.Select(HomeSuggestion.Of)],
+                    SuggestionsChanged = digests.Watch,
+                });
+                var host = new AvaloniaWindow { Content = made, Width = 1200, Height = 700, ShowInTaskbar = false };
+                native.Register(host);
+                host.Show();
+                return (host, made);
+            });
+            WindowManagerNativeMethods.Until(() => native.OnUi(() => window.IsVisible && home.DigestCard is { IsVisible: true } && home.SuggestionChips.Count == 1), "the home did not show the digest", 10000);
+
+            Assert.True(native.OnUi(() =>
+            {
+                var frame = home.DigestFrame!;
+                var column = home.ConversationColumn;
+                return frame.Bounds.Height <= Math.Max(AssistantHomeView.DigestMinHeight, column.Bounds.Height * 0.5) + 0.5 && frame.Bounds.Bottom <= home.Chips.Bounds.Top + 0.5;
+            }), "the digest takes more than half of the column, or runs into the chips");
+            native.OnUi(() => home.SuggestionChips[0].Focus());
+            native.OnUi(() => home.SuggestionChips[0].RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent)));
+            WindowManagerNativeMethods.Until(() => native.OnUi(() => ((DigestCard)home.DigestCard!).LaneRows.Single().AcceptButton!.IsFocused), "the chip did not bring Accept into view", 5000);
+            Assert.Single(digests.Open);                                           // looking is not accepting
+        });
+    }
 }
