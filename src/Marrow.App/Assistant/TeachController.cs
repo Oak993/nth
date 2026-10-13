@@ -71,6 +71,7 @@ public sealed partial class TeachController : IStopScope, IDisposable
     private readonly TeachRecordings recordings;
     private readonly TeachDrafter drafter;
     private readonly object gate = new();
+    private readonly ITimer sweepTimer;
     private TeachRecorder? recorder;
     private bool disposed;
 
@@ -79,6 +80,30 @@ public sealed partial class TeachController : IStopScope, IDisposable
         o = options ?? throw new ArgumentNullException(nameof(options));
         recordings = new TeachRecordings(o.Store, o.AssistantId);
         drafter = new TeachDrafter(o.Model);
+        // Recordings pass their two weeks while nth is open, too (a hidden window can run for weeks): looked at once a day.
+        sweepTimer = o.Time.CreateTimer(_ => SweepExpired(), null, SweepEvery, SweepEvery);
+    }
+
+    /// <summary>How often a running nth looks for recordings past their retention.</summary>
+    public static readonly TimeSpan SweepEvery = TimeSpan.FromHours(24);
+
+    private void SweepExpired()
+    {
+        lock (gate)
+        {
+            if (disposed) return;
+        }
+        try
+        {
+            var sweep = recordings.Sweep(o.Time.GetUtcNow(), Active?.Id);
+            foreach (var (id, reason) in sweep.Deleted) Log("delete", $"recording {id}: {reason}");
+            foreach (var id in sweep.Interrupted) Log("interrupted", $"recording {id}");
+            if (sweep.Deleted.Count + sweep.Interrupted.Count > 0) Changed?.Invoke();
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ObjectDisposedException)
+        {
+            o.Faulted?.Invoke("teach sweep: " + error.GetType().Name);
+        }
     }
 
     /// <summary>The Assistant's stop scope (Stop all, 12.6): a recording ends with what it has.</summary>
@@ -232,6 +257,7 @@ public sealed partial class TeachController : IStopScope, IDisposable
             disposed = true;
             running = recorder;
         }
+        sweepTimer.Dispose();
         StopTrial();
         running?.Dispose();
     }

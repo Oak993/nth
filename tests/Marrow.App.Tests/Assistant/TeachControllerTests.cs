@@ -270,11 +270,31 @@ public sealed class TeachControllerTests : IDisposable
         Assert.Equal(TeachRecordingState.Interrupted, rig.Recordings.Info(crashed.Id)!.State);
         Assert.Equal(1, rig.Recordings.Info(crashed.Id)!.Events);
         rig.Clock.Advance(TeachLimits.Retention + TimeSpan.FromDays(1));
-        var later = rig.Controller.Settle();
-        Assert.Equal(2, later.Deleted.Count);
+        // nth was running: the daily look let both go; a start after that finds nothing left to do.
         Assert.Empty(rig.Controller.List(out _));
-        Assert.Contains(rig.Audited, a => a.Tool == "nth-dextra/teach-delete" && a.Result!.EndsWith(": expired", StringComparison.Ordinal));
+        Assert.Equal(2, rig.Audited.Count(a => a.Tool == "nth-dextra/teach-delete" && a.Result!.EndsWith(": expired", StringComparison.Ordinal)));
+        Assert.Empty(rig.Controller.Settle().Deleted);
         await Task.CompletedTask;
+    }
+
+    [Fact]
+    public async Task A_running_nth_lets_go_of_recordings_past_their_two_weeks_once_a_day_and_not_before()
+    {
+        var id = await rig.RecordMail();
+        await rig.Controller.Draft(id);
+        rig.Clock.Advance(TeachLimits.Retention - TimeSpan.FromDays(1));
+        Assert.NotNull(rig.Recordings.Info(id));
+        rig.Clock.Advance(TimeSpan.FromDays(2));
+        Assert.Null(rig.Recordings.Info(id));
+        Assert.Contains(rig.Audited, a => a.Tool == "nth-dextra/teach-delete" && a.Result == $"recording {id}: expired");
+    }
+
+    [Fact]
+    public void The_daily_look_stops_when_the_controller_is_let_go()
+    {
+        var before = rig.Clock.ActiveTimers;
+        rig.Controller.Dispose();
+        Assert.Equal(before - 1, rig.Clock.ActiveTimers);
     }
 
     [Fact]
