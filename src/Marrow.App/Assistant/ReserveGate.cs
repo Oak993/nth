@@ -22,7 +22,11 @@ public static class ReserveTurns
 /// What a mission carries from its plan into the reserve (11.4, 11.5): the rules the owner spoke for it, the plan he saw and the
 /// steps it was made from, so spend is measured against the estimate and the after-report against the plan.
 /// </summary>
-public sealed record ReserveStart(IReadOnlyList<ReserveRule> TaskRules, ReservePlan? Plan, IReadOnlyList<PlanStep> Steps);
+public sealed record ReserveStart(IReadOnlyList<ReserveRule> TaskRules, ReservePlan? Plan, IReadOnlyList<PlanStep> Steps)
+{
+    /// <summary>The caps the owner set for this task (AS-15, 13.2): the most it may use of any account and/or spend. Like a task's rules, they end with it.</summary>
+    public IReadOnlyList<CostCap> TaskCaps { get; init; } = [];
+}
 
 /// <summary>The reserve's gate before a turn (11.5). Called on the app's main thread.</summary>
 public interface IReserveGate
