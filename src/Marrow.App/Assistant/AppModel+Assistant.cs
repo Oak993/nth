@@ -77,6 +77,7 @@ public sealed partial class AppModel
 
     private void DisposeSafety()
     {
+        DisposeTeach();
         DisposeDuties();
         UnbindDecisionToasts();
         dextraTray?.Dispose();
@@ -311,6 +312,7 @@ public sealed partial class AppModel
     public void UnbindDextra()
     {
         if (Dextra is null) return;
+        DisposeTeach();
         DisposeDuties();
         UnbindDecisionToasts();
         dextraTray?.Dispose();
