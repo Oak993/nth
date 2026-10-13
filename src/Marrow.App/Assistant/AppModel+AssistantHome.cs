@@ -49,6 +49,10 @@ public sealed partial class AppModel
         if (hidden) AssistantEvents.Hide(thread);
     }
 
+    /// <summary>The project Dextra's home thread works in (what "This project only" means until the owner names one), or null before the home thread exists.</summary>
+    internal Guid? DextraHomeProject() =>
+        Threads.FirstOrDefault(t => t.AssistantID == AssistantHost.Id && t.MissionID is null && t.ParentThreadID is null)?.ProjectID;
+
     private void DisposeAssistantHost()
     {
         assistantHost?.Dispose();

@@ -17,6 +17,15 @@ namespace Marrow.App.Assistant;
 /// <summary>"Answer questions for me" (4.3): off, or on for this project only, or everywhere.</summary>
 public enum DelegateScope { Off, ThisProject, Everywhere }
 
+/// <summary>
+/// Who answers (4.3: "the Assistant itself or any head"): the provider whose one-shot model reads the question, with a model when the
+/// owner names one. Null in the settings is Dextra's own brain.
+/// </summary>
+public sealed record DelegateWho(ProviderKind Provider, string? Model = null);
+
+/// <summary>A chat's own choice from its menu (4.3: "the chat's menu"): on, or off though everything else is on. It beats the scope.</summary>
+public sealed record DelegateChatChoice(Guid Chat, bool On);
+
 /// <summary>Everything Settings › Assistant holds.</summary>
 public sealed record DextraPreferences
 {
@@ -50,6 +59,12 @@ public sealed record DextraPreferences
     /// <summary>The project "This project only" means; null is the project the home thread works in.</summary>
     public Guid? DelegateProject { get; init; }
 
+    /// <summary>Who answers for the owner (4.3): a provider's model, or null for Dextra's own brain.</summary>
+    public DelegateWho? DelegateWith { get; init; }
+
+    /// <summary>The chats whose menu the owner used, newest last, at most <see cref="DextraSettings.DelegateChatsKept"/>: each beats the scope.</summary>
+    public ValueList<DelegateChatChoice> DelegateChats { get; init; } = ValueList<DelegateChatChoice>.Empty;
+
     /// <summary>The first duty picked on the first-run card (one of <see cref="DextraSettings.FirstDuties"/>), or null.</summary>
     public string? FirstDuty { get; init; }
 
@@ -74,6 +89,9 @@ public sealed class DextraSettings : ObservableModel
 {
     public const string SettingsKey = "dextra";
     public const string DefaultStopChord = "Ctrl+Alt+Esc";
+
+    /// <summary>The most chat choices kept; past it the oldest are let go (a chat that was deleted leaves its choice behind).</summary>
+    public const int DelegateChatsKept = 200;
 
     /// <summary>The three first duties the card offers (2.6), by id and words.</summary>
     public static IReadOnlyList<(string Id, string Text, string Detail)> FirstDuties { get; } =
@@ -121,6 +139,17 @@ public sealed class DextraSettings : ObservableModel
         return made;
     }
 
+    /// <summary>
+    /// A chat's own choice (4.3 "the chat's menu"): <paramref name="on"/> true or false, or null to let the scope decide again. Only the
+    /// newest <see cref="DelegateChatsKept"/> choices are kept.
+    /// </summary>
+    public void SetDelegateChat(Guid chat, bool? on) => Update(value =>
+    {
+        var rest = value.DelegateChats.Where(c => c.Chat != chat);
+        var next = on is { } choice ? rest.Append(new DelegateChatChoice(chat, choice)) : rest;
+        return value with { DelegateChats = new ValueList<DelegateChatChoice>(next.TakeLast(DelegateChatsKept)) };
+    });
+
     /// <summary>The chord the stop key registers.</summary>
     public string Chord => string.IsNullOrWhiteSpace(Value.StopChord) ? DefaultStopChord : Value.StopChord!;
 
@@ -166,6 +195,25 @@ public sealed class DextraSettings : ObservableModel
             writer.WriteBoolean("readOtherProviders", value.ReadOtherProviders);
             writer.WriteString("delegate", DelegateNames.First(pair => pair.Scope == value.Delegate).Raw);
             if (value.DelegateProject is { } project) writer.WriteString("delegateProject", project.ToString("D"));
+            if (value.DelegateWith is { } who)
+            {
+                writer.WriteStartObject("delegateWith");
+                writer.WriteString("provider", who.Provider.ToString());
+                if (who.Model is { } whoModel) writer.WriteString("model", whoModel);
+                writer.WriteEndObject();
+            }
+            if (value.DelegateChats.Count > 0)
+            {
+                writer.WriteStartArray("delegateChats");
+                foreach (var choice in value.DelegateChats)
+                {
+                    writer.WriteStartObject();
+                    writer.WriteString("chat", choice.Chat.ToString("D"));
+                    writer.WriteBoolean("on", choice.On);
+                    writer.WriteEndObject();
+                }
+                writer.WriteEndArray();
+            }
             if (value.FirstDuty is { } duty) writer.WriteString("firstDuty", duty);
             if (value.StopChord is { } chord) writer.WriteString("stopChord", chord);
             writer.WriteBoolean("missionsCollapsed", value.MissionsCollapsed);
@@ -198,6 +246,20 @@ public sealed class DextraSettings : ObservableModel
             if (Text(root, "delegate") is { } scope && DelegateNames.FirstOrDefault(pair => pair.Raw == scope) is { Raw: not null } named)
                 result = result with { Delegate = named.Scope };
             if (GuidOf(root, "delegateProject") is { } project) result = result with { DelegateProject = project };
+            if (root.TryGetProperty("delegateWith", out var who) && who.ValueKind == JsonValueKind.Object && Text(who, "provider") is { } whoName
+                && Enum.TryParse<ProviderKind>(whoName, ignoreCase: false, out var whoProvider) && Enum.IsDefined(whoProvider))
+                result = result with { DelegateWith = new DelegateWho(whoProvider, Text(who, "model") is { Length: > 0 } whoModel ? whoModel : null) };
+            if (root.TryGetProperty("delegateChats", out var chats) && chats.ValueKind == JsonValueKind.Array)
+            {
+                var kept = new List<DelegateChatChoice>();
+                foreach (var item in chats.EnumerateArray())
+                {
+                    if (item.ValueKind != JsonValueKind.Object || GuidOf(item, "chat") is not { } chat || Bool(item, "on") is not { } switchedOn) continue;
+                    kept.RemoveAll(c => c.Chat == chat);
+                    kept.Add(new DelegateChatChoice(chat, switchedOn));
+                }
+                result = result with { DelegateChats = new ValueList<DelegateChatChoice>(kept.TakeLast(DelegateChatsKept)) };
+            }
             if (Text(root, "firstDuty") is { } duty && FirstDuties.Any(d => d.Id == duty)) result = result with { FirstDuty = duty };
             if (Text(root, "stopChord") is { Length: > 0 } chord) result = result with { StopChord = chord };
             if (Bool(root, "missionsCollapsed") is { } collapsed) result = result with { MissionsCollapsed = collapsed };

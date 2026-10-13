@@ -2,6 +2,8 @@
 // flood"; the home thread lives behind the Assistant row; ED-NEW-dextra-as8-8). No Swift twin.
 // Which chats are the Assistant's own (its home thread, its missions' lead chats and heads), and the sidebar's list without them.
 using Marrow.Core.Models;
+using Marrow.Core.Port;
+using Marrow.Core.Port.Assistant;
 using Marrow.UI.Chrome;
 
 namespace Marrow.App.Assistant;
@@ -41,6 +43,31 @@ public static class AssistantChats
             Title = hidden ? "Show to the Assistant" : "Hide from the Assistant",
             Symbol = hidden ? "eye" : "eye.slash",
             Action = () => { if (weak.TryGetTarget(out var live)) live.SetHiddenFromAssistant(id, !hidden); },
+        };
+    }
+
+    /// <summary>
+    /// A chat's "Answer questions for me" (4.3: "the chat's menu"), or "Stop answering for me" once the delegate answers in it: offered while Dextra runs, never
+    /// on the Assistant's own chats, on a chat the owner hid from it, or on a head (it follows the chat it belongs to). Choosing it sets the chat's own choice
+    /// (which beats the scope); choosing what the scope already says clears the choice again. Null when it is not offered.
+    /// </summary>
+    internal static RowAction? DelegateAction(AppModel model, ChatThread thread)
+    {
+        if (IsAssistants(thread) || thread.HiddenFromAssistant || thread.ParentThreadID is not null || !model.AssistantHost.MayRun) return null;
+        var settings = model.AssistantHost.Settings;
+        var home = model.DextraHomeProject();
+        var on = DelegateReach.IsOn(settings.Value, thread.Id, thread.ProjectID, home);
+        var id = thread.Id;
+        var project = thread.ProjectID;
+        return new RowAction
+        {
+            Title = DelegateWords.MenuTitle(on),
+            Symbol = on ? "hand.raised.slash" : "questionmark.bubble",
+            Action = () =>
+            {
+                var scopeSays = DelegateReach.IsOn(settings.Value with { DelegateChats = ValueList<DelegateChatChoice>.Empty }, id, project, home);
+                settings.SetDelegateChat(id, on == scopeSays ? !on : null);
+            },
         };
     }
 }

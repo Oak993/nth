@@ -4571,6 +4571,7 @@ internal static class ThreadActions
             Action = () => MainActor.Spawn(async () => { await model.ForwardThread(thread.Id); return; }),
         });
         if (Marrow.App.Assistant.AssistantChats.HideAction(model, thread) is { } hide) items.Add(hide); // PORT-ONLY AS-8 (DESIGN.md 5.4): while Dextra runs
+        if (Marrow.App.Assistant.AssistantChats.DelegateAction(model, thread) is { } answer) items.Add(answer); // PORT-ONLY AS-22 (DESIGN.md 4.3): "Answer questions for me", while Dextra runs
         if (thread.WorktreePath is { } path) // :2214
         {
             items.Add(new RowAction // :2215, OD-0008 B1: the label deviates from upstream's "Reveal worktree in Finder"
@@ -4655,6 +4656,7 @@ internal static class ThreadActions
             },
         });
         if (Marrow.App.Assistant.AssistantChats.HideAction(model, thread) is { } hide) items.Add(hide); // PORT-ONLY AS-8 (DESIGN.md 5.4): while Dextra runs
+        if (Marrow.App.Assistant.AssistantChats.DelegateAction(model, thread) is { } answer) items.Add(answer); // PORT-ONLY AS-22 (DESIGN.md 4.3): "Answer questions for me", while Dextra runs
         if (thread.WorktreePath is { } path) // :2282
         {
             items.Add(new RowAction // :2283-2286

@@ -37,7 +37,9 @@ public static class AssistantSettingsWords
     public const string RowOther = "Also chats on other providers";
     public const string RowOtherDetail = "Local-model chats only ever reach a brain on this PC. Hide any chat from its menu.";
     public const string Delegate = "Answer questions for me";
-    public const string DelegateDetail = "Until the safety suite passes, every question still comes to you first.";
+    public const string DelegateDetail = "Dextra answers what your rules allow and says so in the chat. Money, passwords, anything sent out, deleting, installing, promises and design picks still come to you.";
+    public const string RowWith = "Answers with";
+    public const string RowWithDetail = "Dextra's own brain, or the provider whose model reads the question.";
     public const string ThisProject = "This project only";
     public const string Everywhere = "Everywhere";
     public const string Stop = "Stop";
@@ -154,6 +156,12 @@ internal sealed class AssistantRows
                 scope => settings.Update(p => p.Delegate == DelegateScope.Off ? p : p with { Delegate = scope })));
         AutomationProperties.SetName(ScopePicker, AssistantSettingsWords.Delegate);
         ScopeRow = new ChromeRow("", () => ScopePicker);
+        WithMenu = new CzMenuButton(AssistantSettingsWords.RowWith, WithOptions(), WithId(settings.Value.DelegateWith));
+        WithMenu.SelectionChanged += id => settings.Update(p => p with
+        {
+            DelegateWith = id != DextraOption && Enum.TryParse<ProviderKind>(id, out var kind) ? new DelegateWho(kind) : null,
+        });
+        WithRow = new ChromeRow(AssistantSettingsWords.RowWith, () => WithMenu, AssistantSettingsWords.RowWithDetail);
         Show();
     }
 
@@ -167,6 +175,8 @@ internal sealed class AssistantRows
     public SettingsSwitch DelegateSwitch { get; }
     public ChromeSegmentedPicker<DelegateScope> ScopePicker { get; }
     public ChromeRow ScopeRow { get; }
+    public CzMenuButton WithMenu { get; }
+    public ChromeRow WithRow { get; }
 
     /// <summary>The brain's rows: provider, then account and model once a provider is picked.</summary>
     public Control BrainRows()
@@ -193,6 +203,7 @@ internal sealed class AssistantRows
         var rows = new StackPanel();
         rows.Children.Add(new ChromeRow(AssistantSettingsWords.Delegate, () => DelegateSwitch, AssistantSettingsWords.DelegateDetail));
         rows.Children.Add(ScopeRow);
+        rows.Children.Add(WithRow);
         return rows;
     }
 
@@ -208,7 +219,24 @@ internal sealed class AssistantRows
         ModelMenu.SetOptions(ModelOptions(), value.BrainModel ?? "default");
         ModelRow.IsVisible = picked;
         ScopeRow.IsVisible = value.Delegate != DelegateScope.Off;
+        WithMenu.SetOptions(WithOptions(), WithId(value.DelegateWith));
+        WithRow.IsVisible = value.Delegate != DelegateScope.Off || value.DelegateChats.Any(c => c.On);
     }
+
+    /// <summary>The id of "Dextra" in the Answers with menu (the brain itself).</summary>
+    public const string DextraOption = "dextra";
+
+    // Dextra itself, then the providers whose one-shot model can read a question (nth's text engine: Claude and Codex) that are on and installed.
+    private IReadOnlyList<(string Id, string Text)> WithOptions()
+    {
+        var list = new List<(string, string)> { (DextraOption, AssistantNames.Assistant) };
+        var offered = brain.Providers().Where(p => p is ProviderKind.Claude or ProviderKind.Codex).ToList();
+        if (settings.Value.DelegateWith is { } picked && !offered.Contains(picked.Provider)) offered.Add(picked.Provider);
+        list.AddRange(offered.Select(p => (p.ToString(), p.DisplayName)));
+        return list;
+    }
+
+    private static string WithId(DelegateWho? who) => who?.Provider.ToString() ?? DextraOption;
 
     private SettingsSwitch Switch(string name, Func<DextraPreferences, bool> read, Func<DextraPreferences, bool, DextraPreferences> write)
     {
