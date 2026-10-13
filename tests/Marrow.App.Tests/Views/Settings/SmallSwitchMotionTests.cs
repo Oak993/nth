@@ -27,8 +27,12 @@ public sealed class SmallSwitchMotionTests(HeadlessSession headless) : SettingsF
     private static readonly Rect Off = new(2, 2, 22, 22), On = new(22, 2, 22, 22);
 
     // The spring as SwiftUI and the design page define it (index.html spring(): x(t) = 1 - e^(-z w t)(cos wd t + (z w / wd) sin wd t), w = 2 pi / response).
+    // Over the second half of its run the port lands it with no last step (ED-NEW-perf-motion-10: ED-333's UNRESOLVED run-out, the lead's ruling
+    // 2026-10-13), the port's curve there, which SpringLandingTests holds to the free one up to its last crossing of 1 and to a landing with no speed.
     private static double SpringAt(double response, double damping, double t)
     {
+        var curve = Animation.Spring(response: response, dampingFraction: damping);
+        if (t > curve.Duration / 2) return curve.Progress(t);
         var w = 2 * Math.PI / response; var wd = w * Math.Sqrt(1 - damping * damping);
         return 1 - Math.Exp(-damping * w * t) * (Math.Cos(wd * t) + damping * w / wd * Math.Sin(wd * t));
     }

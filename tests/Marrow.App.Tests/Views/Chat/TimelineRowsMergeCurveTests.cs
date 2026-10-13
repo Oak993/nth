@@ -23,11 +23,16 @@ namespace Marrow.App.Tests.Views.Chat;
 [Collection("Headless")]
 public sealed class TimelineRowsMergeCurveTests(HeadlessSession headless)
 {
-    // 1 - e^(-w t) (1 + w t) with w = 2 pi / response: the unit-step response of a critically damped oscillator of that response.
+    // 1 - e^(-w t) (1 + w t) with w = 2 pi / response: the unit-step response of a critically damped oscillator of that response, over the
+    // first half of its run; over the second half the run-out it still had at its settling time is folded in so it lands with no last step
+    // (ED-NEW-perf-motion-10: ED-333's UNRESOLVED run-out, the lead's ruling 2026-10-13), the port's curve there, which SpringLandingTests holds
+    // to the free one's first half and to a landing with no speed.
     private static double Smooth(double response, double seconds)
     {
         if (seconds <= 0) return 0;
         var omega = 2 * Math.PI / response;
+        var curve = Animation.Smooth(response);
+        if (seconds > curve.Duration / 2) return curve.Progress(seconds);
         return 1 - Math.Exp(-omega * seconds) * (1 + omega * seconds);
     }
 
