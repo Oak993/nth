@@ -1,0 +1,54 @@
+{
+  "language": "en",
+  "match": "word",
+  "words": {
+    "send": ["send"],
+    "delete": ["delete"],
+    "delete account": ["delete account"],
+    "pay": ["pay"],
+    "buy": ["buy"],
+    "purchase": ["purchase"],
+    "order": ["order"],
+    "submit": ["submit"],
+    "publish": ["publish"],
+    "post": ["post"],
+    "transfer": ["transfer"],
+    "install": ["install"],
+    "uninstall": ["uninstall"],
+    "sign out": ["sign out", "log out", "logout", "log off", "sign off"]
+  },
+  "identifiers": {
+    "send": "send",
+    "delete": "delete",
+    "pay": "pay",
+    "buy": "buy",
+    "purchase": "purchase",
+    "order": "order",
+    "checkout": "buy",
+    "submit": "submit",
+    "publish": "publish",
+    "post": "post",
+    "transfer": "transfer",
+    "install": "install",
+    "uninstall": "uninstall",
+    "signout": "sign out",
+    "logout": "sign out"
+  },
+  "payment": [
+    "place order", "place your order",
+    "complete purchase", "complete order", "complete payment",
+    "confirm pay", "confirm and pay",
+    "pay now", "buy now", "checkout now"
+  ],
+  "account": [
+    "sign up", "signup", "sign-up",
+    "create account", "create an account", "create a new account", "create your account",
+    "register", "join now", "open an account"
+  ],
+  "captcha": [
+    "captcha",
+    "i'm not a robot", "im not a robot", "i’m not a robot",
+    "verify you are human", "verify you are a human", "verify that you are human", "verify that you are a human",
+    "are you a robot"
+  ]
+}

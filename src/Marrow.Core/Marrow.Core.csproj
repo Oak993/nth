@@ -16,6 +16,9 @@
     <EmbeddedResource Include="Port\ModelsPalette\toc-source1.json" LogicalName="Marrow.Core.ModelsPalette.Toc.json" />
     <!-- ED-NEW-web-w17-1 (unit W17): the nth-ui reference page, compiled in as the on-demand skill (ui_reference) models read. -->
     <EmbeddedResource Include="..\..\docs\nth-ui.md" LogicalName="Marrow.Core.NthUiReference.md" />
+    <!-- ED-NEW-web-w22-1 (unit W22): the words nth writes itself, one JSON file per area and language, and the guarded-action words, one file per language. -->
+    <EmbeddedResource Include="Localisation\Strings\*.json" LogicalName="Marrow.Core.Strings.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Localisation\Guarded\*.json" LogicalName="Marrow.Core.Guarded.%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>

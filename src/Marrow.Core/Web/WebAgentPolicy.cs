@@ -2,9 +2,8 @@
 // 5.10 "Safety (Tactus parity)": the cross-origin-after-read rule, guarded actions, hard denies, the URL policy; 8.1, 8.4;
 // ED-NEW-web-w11-1). No Swift counterpart. Pure functions over what the engine read from the page at the moment it acts (the
 // element's accessible name, role and attributes, its form, its frame), so the guard runs whatever the model believes. The
-// localised guarded words are Tactus's own lists (PcPolicy.GuardedWord), so both products ask for the same words.
-using System.Text.RegularExpressions;
-using Marrow.Core.Port.PcControl;
+// localised guarded words are the shared per-language lists (Localisation/Guarded, ED-NEW-web-w22-1) that Tactus asks too (PcPolicy.GuardedWord), so both products ask for the same words.
+using Marrow.Core.Localisation;
 
 namespace Marrow.Core.Web;
 
@@ -109,15 +108,6 @@ public static partial class WebAgentPolicy
     // Card, payment and one-time-code fields by their autocomplete tokens (the HTML autofill names).
     private static readonly string[] paymentTokens = ["cc-number", "cc-csc", "cc-exp", "cc-exp-month", "cc-exp-year", "cc-name", "cc-type", "transaction-amount"];
 
-    [GeneratedRegex(@"\b(sign\s*up|create\s+(an\s+|a\s+new\s+|your\s+)?account|register|join\s+now|open\s+an\s+account)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex AccountWords();
-
-    [GeneratedRegex(@"\b(place\s+(your\s+)?order|complete\s+(purchase|order|payment)|confirm\s+(and\s+)?pay|pay\s+now|buy\s+now|checkout\s+now)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex PaymentPhrases();
-
-    [GeneratedRegex(@"captcha|i'?m not a robot|verify (that )?you are (a )?human|are you a robot", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex CaptchaWords();
-
     private static readonly string[] captchaHosts = ["recaptcha.net", "hcaptcha.com", "challenges.cloudflare.com", "arkoselabs.com", "funcaptcha.com", "captcha-delivery.com", "geetest.com"];
 
     /// <summary>
@@ -133,19 +123,19 @@ public static partial class WebAgentPolicy
         var names = Names(element).ToList();
         foreach (var name in names)
         {
-            if (PaymentPhrases().IsMatch(name)) return WebGuardVerdict.Denied(PaymentRefusal);
-            if (AccountWords().IsMatch(name)) return WebGuardVerdict.Denied(AccountRefusal);
+            if (GuardedWords.Shared.IsPaymentPhrase(name)) return WebGuardVerdict.Denied(PaymentRefusal);
+            if (GuardedWords.Shared.IsAccountPhrase(name)) return WebGuardVerdict.Denied(AccountRefusal);
         }
         string? word = null;
         foreach (var name in names)
         {
-            if (PcPolicy.GuardedWord(name) is { } found)
+            if (GuardedWords.Shared.Find(name) is { } found)
             {
                 word = found;
                 break;
             }
         }
-        word ??= PcPolicy.GuardedWord(null, element.Id) ?? PcPolicy.GuardedWord(null, element.NameAttribute);
+        word ??= GuardedWords.Shared.FindIdentifier(element.Id) ?? GuardedWords.Shared.FindIdentifier(element.NameAttribute);
         // DESIGN 5.10 "Hard denies: purchases and payments completed by the model": the buy, pay and purchase words never run.
         if (word is "buy" or "pay" or "purchase") return WebGuardVerdict.Denied(PaymentRefusal);
         if (element.IsFileInput) return WebGuardVerdict.Ask(WebGuardCategory.Upload, "upload");
@@ -167,9 +157,10 @@ public static partial class WebAgentPolicy
         if (target is not null && pageOrigin is not null && !string.Equals(target, pageOrigin, StringComparison.OrdinalIgnoreCase))
             return WebGuardVerdict.Ask(WebGuardCategory.NewSite, "submit");
         if (!string.Equals(element.FormMethod, "post", StringComparison.OrdinalIgnoreCase)) return WebGuardVerdict.Pass;
-        var path = Uri.TryCreate(action, UriKind.Absolute, out var uri) ? uri.AbsolutePath : action ?? "";
-        var word = PcPolicy.GuardedWord(null, path.Replace('/', ' ').Replace('-', ' ').Replace('_', ' ').Replace('.', ' '))
-            ?? PcPolicy.GuardedWord(string.Join(' ', path.Split('/', '-', '_', '.')));
+        // The resolved address comes percent-encoded, so a path in Hindi or Urdu is read as its words (W22).
+        var path = Uri.UnescapeDataString(Uri.TryCreate(action, UriKind.Absolute, out var uri) ? uri.AbsolutePath : action ?? "");
+        var word = GuardedWords.Shared.FindIdentifier(path.Replace('/', ' ').Replace('-', ' ').Replace('_', ' ').Replace('.', ' '))
+            ?? GuardedWords.Shared.Find(string.Join(' ', path.Split('/', '-', '_', '.')));
         if (word is "buy" or "pay" or "purchase") return WebGuardVerdict.Denied(PaymentRefusal);
         return word is not null ? WebGuardVerdict.Ask(CategoryOf(word), word) : WebGuardVerdict.Ask(WebGuardCategory.Submit, "submit");
     }
@@ -203,7 +194,7 @@ public static partial class WebAgentPolicy
             if (captchaHosts.Any(h => host == h || host.EndsWith("." + h, StringComparison.Ordinal))) return true;
             if (host.EndsWith("google.com", StringComparison.Ordinal) && frame.AbsolutePath.Contains("/recaptcha", StringComparison.OrdinalIgnoreCase)) return true;
         }
-        return Names(element).Any(n => CaptchaWords().IsMatch(n)) || (element.ClassName is { } css && CaptchaWords().IsMatch(css));
+        return Names(element).Any(GuardedWords.Shared.IsCaptchaPhrase) || GuardedWords.Shared.IsCaptchaPhrase(element.ClassName);
     }
 
     /// <summary>The category of a guarded word (its card's title and reason).</summary>
