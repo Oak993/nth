@@ -28,6 +28,28 @@ public static class CommandCodeTextHead
           process.stdout.write(JSON.stringify({type:'nth_text_policy',nonce,tools:[]})+'\n');
         }
         """;
+    // ED-NEW-secfinal-23: where the private answer folders are made (a test's data folder, else the temp folder). ED-NEW-secfinal-27: a seam, so a
+    // test can give its own async flow a folder of its own; every answer and every retry reads leftovers from the one folder it is given, so tests that
+    // share the data folder can retry (and clean) each other's leftovers.
+    private static readonly Ambient<string> privateRoot = new(() => Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR") ?? Path.GetTempPath());
+
+    private static string PrivateRoot() => privateRoot.Current;
+
+    /// <summary>For tests: answers and retries of the calling async flow use <paramref name="root"/> until the result is disposed.</summary>
+    internal static IDisposable OverridePrivateRoot(string root) => privateRoot.Override(root);
+
+    /// <summary>
+    /// ED-NEW-secfinal-23: removes the private answer folders an earlier run could not (the retry that otherwise waits for the next Command
+    /// Code answer). Called at Dextra's start, from a worker thread.
+    /// </summary>
+    public static void RetryLeftoverCleanup() => RetryLeftoverCleanup(null);
+
+    /// <summary>The same for <paramref name="root"/>, the folder the answers are made in (a test's); null is the usual one.</summary>
+    internal static void RetryLeftoverCleanup(string? root) => CommandCodeTextFiles.RetryPending(root ?? PrivateRoot());
+
+    /// <summary>The same, on a worker thread: the caller (a start on the main thread) does no file work.</summary>
+    internal static Task RetryLeftoverCleanupAsync(string? root = null) => Task.Run(() => RetryLeftoverCleanup(root));
+
     public static Task<string> RunAsync(SessionConfiguration configuration, string prompt, Func<bool> permitted,
         CancellationToken cancel, Action<TokenSpend>? spend = null) => RunAsync(configuration, prompt, permitted, cancel, spend, null);
 
@@ -43,7 +65,7 @@ public static class CommandCodeTextHead
             || configuration.Transcript.Count != 0 || configuration.Hydra is not null || configuration.IsHydraHead
             || configuration.SkillGeneration is not null || configuration.SkillMcpExecutable is not null)
             throw new ArgumentException("A delegate requires a fresh private configuration.");
-        var folder = Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR") ?? Path.GetTempPath(), "commandcode-text-" + Guid.NewGuid().ToString("N"));
+        var folder = Path.Combine(PrivateRoot(), "commandcode-text-" + Guid.NewGuid().ToString("N"));
         var policy = Path.Combine(folder, "text-only.mjs");
         ICommandCodeTextProcess? process = null;
         FileStream? ownedPolicy = null;

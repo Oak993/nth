@@ -29,6 +29,9 @@ public sealed class BackgroundStartSeams
 
     public Action<string>? FileIO { get; init; }
     public Action<AssistantController>? ControllerBuilt { get; init; }
+
+    /// <summary>ED-NEW-secfinal-23: replaces the retry of private Command Code answer folders left by an earlier run (a test's).</summary>
+    public Action? CommandCodeCleanup { get; init; }
 }
 
 public static class BackgroundStart
