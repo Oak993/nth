@@ -152,6 +152,21 @@ public static class AsturTeamRules
         Model = profile.Model,
     };
 
+    /// <summary>
+    /// The assistant a reference names, among those not retired: its id, or its name or another name it answers to (compared by letters,
+    /// without case or accents). Null when it names none, or more than one: a name is never guessed.
+    /// </summary>
+    public static AssistantProfile? Find(IEnumerable<AssistantProfile> team, string? reference)
+    {
+        if (string.IsNullOrWhiteSpace(reference)) return null;
+        var active = team.Where(p => !p.Retired).ToList();
+        if (active.FirstOrDefault(p => string.Equals(p.Id, reference.Trim(), StringComparison.Ordinal)) is { } byId) return byId;
+        var key = AsturRouting.Key(reference);
+        if (key.Length == 0) return null;
+        var named = active.Where(p => Names(p).Contains(key)).ToList();
+        return named.Count == 1 ? named[0] : null;
+    }
+
     /// <summary>Every name an assistant answers to, as keys.</summary>
     public static HashSet<string> Names(AssistantProfile profile) =>
         new[] { profile.Name }.Concat(profile.Aliases).Select(AsturRouting.Key).Where(k => k.Length > 0).ToHashSet(StringComparer.Ordinal);

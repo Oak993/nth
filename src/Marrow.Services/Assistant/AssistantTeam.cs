@@ -45,12 +45,14 @@ public sealed class AssistantTeam : IDisposable
     private readonly List<AssistantProfile> profiles = [];
     private readonly Dictionary<string, System.Text.Json.Nodes.JsonObject> extras = new(StringComparer.Ordinal);
     private readonly List<string> problems = [];
+    private ReserveSettings? budgets;
     private bool disposed;
 
     private AssistantTeam(AssistantStore store, AssistantTeamOptions options)
     {
         this.store = store;
         this.options = options;
+        budgets = options.Budgets;
     }
 
     /// <summary>Reads the store's profiles. A file nth cannot use is skipped and named in <see cref="Problems"/>; it is never changed.</summary>
@@ -94,6 +96,22 @@ public sealed class AssistantTeam : IDisposable
         }
     }
 
+    /// <summary>
+    /// Binds the reserve settings that hold the Asturs' day slices (the controller's, once they are loaded from the store) and puts every slice
+    /// in step with the profiles: an Astur's cap is set or replaced, and a cap of one that is retired or gone is taken away. A slice that cannot
+    /// be set (a newer version's file) is named in <see cref="Problems"/>; the Astur then has none, and the cost guard has nothing to hold it to,
+    /// so this is reported to the board rather than hidden.
+    /// </summary>
+    public void BindBudgets(ReserveSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        budgets = settings;
+        foreach (var cap in settings.Caps.Where(c => c.Id.StartsWith("astur:", StringComparison.Ordinal)).ToList())
+            if (Get(cap.AssistantId) is not { Retired: false }) settings.RemoveCap(cap.Id);
+        foreach (var profile in Active.Where(p => !p.IsRoot))
+            if (SetBudget(profile) is { } problem) lock (listGate) problems.Add($"{profile.Name}: {problem}");
+    }
+
     // ---- reading ----
 
     /// <summary>Dextra first, then the Asturs in the order they were made, retired ones included (a mission of one still has its chain).</summary>
@@ -116,16 +134,7 @@ public sealed class AssistantTeam : IDisposable
     public AssistantProfile? Get(string? id) => id is null ? null : Profiles.FirstOrDefault(p => p.Id == id);
 
     /// <summary>The active assistant a reference names: its id, or its name or another name it answers to (compared by letters, without case).</summary>
-    public AssistantProfile? Find(string? reference)
-    {
-        if (string.IsNullOrWhiteSpace(reference)) return null;
-        var active = Active;
-        if (active.FirstOrDefault(p => string.Equals(p.Id, reference.Trim(), StringComparison.Ordinal)) is { } byId) return byId;
-        var key = AsturRouting.Key(reference);
-        if (key.Length == 0) return null;
-        var named = active.Where(p => AsturTeamRules.Names(p).Contains(key)).ToList();
-        return named.Count == 1 ? named[0] : null;
-    }
+    public AssistantProfile? Find(string? reference) => AsturTeamRules.Find(Profiles, reference);
 
     public event Action? Changed;
 
@@ -163,7 +172,7 @@ public sealed class AssistantTeam : IDisposable
             if (SetBudget(profile) is { } budgetProblem) return TeamResult.Refused(budgetProblem);
             if (await Write(profile, cancellationToken, createFolders: true).ConfigureAwait(false) is { } failed)
             {
-                options.Budgets?.RemoveCap(BudgetCapId(id));
+                budgets?.RemoveCap(BudgetCapId(id));
                 return TeamResult.Refused(failed);
             }
             Add(profile);
@@ -217,7 +226,7 @@ public sealed class AssistantTeam : IDisposable
             if (current.Retired) return TeamResult.Done(current);
             var result = await Replace(current, current with { Retired = true }, cancellationToken).ConfigureAwait(false);
             if (!result.Ok) return result;
-            options.Budgets?.RemoveCap(BudgetCapId(id));
+            budgets?.RemoveCap(BudgetCapId(id));
             foreach (var borrower in team.Where(p => p.SharesBrowserOf == id))
                 await Replace(borrower, borrower with { SharesBrowserOf = null }, cancellationToken).ConfigureAwait(false);
             return result;
@@ -290,7 +299,7 @@ public sealed class AssistantTeam : IDisposable
     // replaced. Null when it is set (or no cost controls are bound), else why not: a slice that cannot be set stops the change.
     private string? SetBudget(AssistantProfile profile)
     {
-        if (options.Budgets is not { } settings || profile.IsRoot) return null;
+        if (budgets is not { } settings || profile.IsRoot) return null;
         settings.RemoveCap(BudgetCapId(profile.Id));
         if (profile.Budget is not { } budget) return null;
         var cap = new CostCap(BudgetCapId(profile.Id), CostCapScope.AssistantDay) { AssistantId = profile.Id, Percent = budget.DailyPercent, Dollars = budget.DailyDollars };

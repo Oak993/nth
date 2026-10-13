@@ -146,12 +146,15 @@ public static partial class AsturRouting
         }
         var pool = whole.Count > 0 ? whole : partial;
         if (pool.Count == 0) return AsturRoute.Unrouted(message);
+        // A name that only begins a name is not enough to send a message on: it is asked about, even when only one name begins so ("Do you mean Channel B?"
+        // when "Channel A" was typed and is gone), never guessed.
+        var asked = whole.Count == 0;
         var longest = pool.Max(p => p.Length);
         var owners = pool.Where(p => p.Length == longest).Select(p => p.Owner).DistinctBy(p => p.Id).ToList();
         var last = words[first + longest - 1];
         if (requireSeparator && !FollowedBySeparator(message, last.End)) return AsturRoute.Unrouted(message);
         var rest = Rest(message, last.End, relayed);
-        if (owners.Count > 1) return new AsturRoute(AsturRouteKind.Which, rest) { Candidates = owners };
+        if (owners.Count > 1 || asked) return new AsturRoute(AsturRouteKind.Which, rest) { Candidates = owners };
         var owner = owners[0];
         return owner.IsRoot
             ? new AsturRoute(AsturRouteKind.Dextra, rest) { Target = owner }

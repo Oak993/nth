@@ -203,6 +203,12 @@ public sealed partial class MissionRunner
     /// <summary>Raised after a mission changed (on the main thread).</summary>
     public event Action<MissionRecord>? Changed;
 
+    /// <summary>
+    /// A mission ended (Done or Failed) and its record is final: the report and the taint it carries are set (AS-16, 9.3: the Asturs' reports
+    /// go back to Dextra's chat from here, never from Changed, which fires on Done a moment before the report's taint is kept).
+    /// </summary>
+    public event Action<MissionRecord>? Finished;
+
     /// <summary>A journal or log write failed; the mission went on and the board shows the line.</summary>
     public event Action<string>? Faulted;
 
@@ -1120,7 +1126,9 @@ public sealed partial class MissionRunner
             AgentTaint = ValueMap<Guid, Taint>.Empty,
             Mission = r.Mission with { TaintContext = TaintContext.MissionEnded() },
         });
-        if (Find(id) is { } ended) ReportToParent(ended);
+        if (Find(id) is not { } ended) return;
+        ReportToParent(ended);
+        Finished?.Invoke(ended);
     }
 
     /// <summary>

@@ -89,6 +89,16 @@ public sealed class DelegationBook
         return id;
     }
 
+    /// <summary>Whether <paramref name="chat"/> may hand out one more piece now (its group is not full, or a new group has room).</summary>
+    public bool HasRoom(Guid chat)
+    {
+        lock (gate)
+        {
+            if (groups.LastOrDefault(g => g.Chat == chat && !g.Delivered) is { } group) return group.Pieces.Count < MaxPieces;
+            return groups.Count(g => !(g.Delivered && g.Pieces.All(p => p.Final))) < MaxGroups || groups.Any(g => g.Delivered);
+        }
+    }
+
     /// <summary>The group holding a mission, if any.</summary>
     public DelegationGroup? Of(Guid mission) => Groups.FirstOrDefault(g => g.Pieces.Any(p => p.Mission == mission));
 

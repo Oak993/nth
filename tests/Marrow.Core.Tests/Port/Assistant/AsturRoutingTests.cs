@@ -99,10 +99,18 @@ public sealed class AsturRoutingTests
     }
 
     [Fact]
-    public void A_name_that_begins_only_one_name_is_enough_and_a_name_that_matches_nothing_is_no_route()
+    public void A_name_that_only_begins_one_name_is_asked_about_not_guessed_and_a_name_that_matches_nothing_is_no_route()
     {
         var one = Team(Astur("Channel A", AsturShape.Squircle));
-        Assert.Equal("Channel A", Typed("@Channel go on", one).Target!.Name);
+        var partial = Typed("@Channel go on", one);
+        Assert.Equal(AsturRouteKind.Which, partial.Kind);
+        Assert.Equal(["Channel A"], partial.Candidates.Select(c => c.Name));
+        Assert.Equal("go on", partial.Message);
+        Assert.Equal("Do you mean Channel A?", AsturRouting.Question(partial.Candidates));
+        // "Channel A" typed after it was retired must not land on "Channel B".
+        var afterRetirement = Typed("@Channel A hello", Team(Astur("Channel A", AsturShape.Squircle, null, true), Astur("Channel B", AsturShape.Hexagon)));
+        Assert.Equal(AsturRouteKind.Which, afterRetirement.Kind);
+        Assert.Equal(["Channel B"], afterRetirement.Candidates.Select(c => c.Name));
         var nobody = Typed("@Nobody go on", one);
         Assert.Equal(AsturRouteKind.None, nobody.Kind);
         Assert.Equal("@Nobody go on", nobody.Message);
