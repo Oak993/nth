@@ -49,9 +49,12 @@ public sealed class WebProfiles
     /// The browser arguments every environment shares (DESIGN 6.5, ED-NEW-web-w13-1): site isolation kept on for every
     /// site, so each sandboxed surface (its own site under <c>.invalid</c>) gets its own renderer process; and WebRTC
     /// never sends UDP outside a proxy, which closes the WebRTC channel CSP cannot (harmless for browsing). Nothing else:
-    /// SmartScreen and the defaults stay on (DESIGN 5.4).
+    /// SmartScreen and the defaults stay on (DESIGN 5.4). ED-NEW-web-sec-rev-4: the UDP block in both spellings WebView2 runtimes read,
+    /// with the same value: runtime 154 reads only the command-line preference <c>--webrtc-ip-handling-policy</c>, older runtimes
+    /// <c>--force-webrtc-ip-handling-policy</c>, and each ignores the one it does not know.
     /// </summary>
-    public const string BrowserArguments = "--site-per-process --force-webrtc-ip-handling-policy=disable_non_proxied_udp";
+    public const string BrowserArguments =
+        "--site-per-process --force-webrtc-ip-handling-policy=disable_non_proxied_udp --webrtc-ip-handling-policy=disable_non_proxied_udp";
 
     /// <summary>
     /// ED-NEW-web-sec-res-1: the sandboxed views' own environment folder, under the one user data folder (so the uninstall hook
@@ -67,7 +70,8 @@ public sealed class WebProfiles
     /// that turns WebRTC off; this policy is the strongest one its runtimes read. Runtime 154 reads it only as the command-line
     /// preference <c>--webrtc-ip-handling-policy</c> (the string <c>force-webrtc-ip-handling-policy</c> is not in its msedge.dll);
     /// older runtimes read <c>--force-webrtc-ip-handling-policy</c>; each ignores the spelling it does not know, so both are passed.
-    /// Visus keeps <see cref="BrowserArguments"/>, unchanged.
+    /// Visus keeps <see cref="BrowserArguments"/>, which carry the same switches since ED-NEW-web-sec-rev-4; the two environments
+    /// stay apart by their folders.
     /// </summary>
     public const string SandboxBrowserArguments =
         "--site-per-process --force-webrtc-ip-handling-policy=disable_non_proxied_udp --webrtc-ip-handling-policy=disable_non_proxied_udp";

@@ -4279,7 +4279,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                 UpsertTodos(value.Value);
                 break;
             case ProviderEvent.Approval value:
-                if (AutoApprovesAsk(value.Value)) break; // PORT-ONLY (web surfaces W25): the question card is the ask; a provider's "allow this tool?" before it is not asked
+                if (AutoApprovesAsk(value)) break; // PORT-ONLY (web surfaces W25): the question card is the ask; a provider's "allow this tool?" before it is not asked
                 if (DeclinesInReadOnlySideChat(value.Value)) break; // PORT-ONLY (web surfaces W6): a read-only side chat never runs, changes or builds
                 SkillsOffers?.BindApproval(value.Value);
                 Approvals = Approvals.Mutating(items =>

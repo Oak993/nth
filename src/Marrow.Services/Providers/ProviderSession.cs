@@ -154,7 +154,14 @@ public abstract record ProviderEvent
     public sealed record PlanDelta(string Id, string Text) : ProviderEvent;                  // :92
     public sealed record PlanCompleted(string Id, string Markdown) : ProviderEvent;          // :93
     public sealed record Todos(ValueList<TodoStep> Value) : ProviderEvent;                   // :94
-    public sealed record Approval(ApprovalRequest Value) : ProviderEvent;                    // :95
+    public sealed record Approval(ApprovalRequest Value) : ProviderEvent                     // :95
+    {
+        /// <summary>
+        /// PORT-ONLY (ED-NEW-web-sec-rev-1): the MCP tool the request is for, as the provider session read it from the protocol's own
+        /// server and tool fields, never from the request's title or detail text. Null when the protocol names no MCP tool.
+        /// </summary>
+        public McpToolIdentity? McpTool { get; init; }
+    }
     public sealed record Question(QuestionRequest Value) : ProviderEvent;                    // :96
     public sealed record RequestResolved(string Id) : ProviderEvent;                         // :97
     public sealed record Usage(ContextUsage Value) : ProviderEvent;                          // :98
@@ -343,6 +350,9 @@ public static class ToolText
         return string.Join("\n", blocks.Select(block => block["text"]?.JSONValueString).OfType<string>()); // :217
     }
 }
+
+/// <summary>PORT-ONLY (ED-NEW-web-sec-rev-1): an MCP tool as a provider's protocol names it, by its server and tool fields.</summary>
+public sealed record McpToolIdentity(string Server, string Tool);
 
 // :221-230 (B3). Re-cites PR-PROVCLI-248 and PR-PROVCLI-285, moved here from the Pi and Command Code sessions.
 // R-NAME-4: an extension of a nested enum is `static class <Owner><Nested>Extensions`.

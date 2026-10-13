@@ -1663,6 +1663,9 @@ public class OpenAICompatibleSession : ProviderSession
             }
             try
             {
+                // PORT-ONLY (ED-NEW-web-sec-rev-2): only a tool in the model's list as it stands now runs (an app-only tool, or one of a
+                // server whose listing failed, never reaches the hub); the same words as the hub's own refusal.
+                if (!await IsInModelsToolList(tool.Name)) throw MCPHubError.UnknownTool(tool.Name);
                 var result = await MCPHub.Shared.Call(tool.Name, args); // :904
                 if (SwiftTask.IsCancelled || interrupted) return "Stopped."; // :905
                 if (result.IsError) // :906
@@ -2016,6 +2019,20 @@ public class OpenAICompatibleSession : ProviderSession
             results.Add((call, result with { Text = text }));
         }
         return Marrow.Services.Assistant.AssistantNativeTools.FencedReply(results);
+    }
+
+    // PORT-ONLY (ED-NEW-web-sec-rev-2): whether the model's list of MCP tools holds this call name, reading the list first (as a request
+    // with tools does, :510) when it was never read or a server said its tools changed since. The hub's Tools() leaves out every
+    // app-only tool and every server whose listing failed, so neither can be called by the model, cached hub list or not.
+    private async Task<bool> IsInModelsToolList(string callName)
+    {
+        if (!didLoadMCPTools || MCPHub.Shared.ToolsRevision != loadedToolsRevision)
+        {
+            loadedToolsRevision = MCPHub.Shared.ToolsRevision;
+            mcpTools = [.. SealedTools(await MCPHub.Shared.Tools())];
+            didLoadMCPTools = true;
+        }
+        return mcpTools.Any(known => known.CallName == callName);
     }
 
     // :1035-1038. Used by the later part's approveIfNeeded/executeTool bodies; kept here because
