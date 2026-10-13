@@ -79,8 +79,11 @@ public interface IMcpAppHostUi
     /// <summary>"Let shipyard post messages in this chat?"</summary>
     Task<bool> AskMessagesAsync(McpAppMount app);
 
-    /// <summary>"shipyard wants to run promote_release" with Allow once / Always for shipyard / Deny.</summary>
-    Task<McpAppToolDecision> AskToolAsync(McpAppMount app, string tool, string? title);
+    /// <summary>
+    /// "shipyard wants to run promote_release" with Allow once / Always in this chat / Deny, and the arguments the call will
+    /// send (ED-NEW-web-sec-mcpapps-2: the card named the tool only, and "Always" covered every chat).
+    /// </summary>
+    Task<McpAppToolDecision> AskToolAsync(McpAppMount app, string tool, string? title, JsonObject arguments);
 
     /// <summary>A declared camera, microphone or location request (DESIGN 5.5).</summary>
     Task<bool> AskPermissionAsync(McpAppMount app, WebPermissionKind kind);
@@ -102,6 +105,12 @@ public interface IMcpAppHostUi
     /// (ui/open-link, no click in the view). True opens it.
     /// </summary>
     Task<bool> AskOpenLinkAsync(McpAppMount app, string url);
+
+    /// <summary>
+    /// ED-NEW-web-sec-mcpapps-1: "shipyard's Release board wants to open in its own window" with Pop out / Not now, for an
+    /// app's own ui/request-display-mode to pip (a window outside nth's). True moves it.
+    /// </summary>
+    Task<bool> AskDisplayModeAsync(McpAppMount app, McpAppDisplayMode mode);
 }
 
 /// <summary>Which tool call an app draws, and where.</summary>
@@ -184,7 +193,7 @@ public sealed class McpAppMount : IWebResourceHandler, IDisposable
     private McpAppDomainGrant? grant;
     private bool askedDomains;
     private bool messagesRefused;
-    private bool linkAsking; // ED-NEW-web-w26-3: an open-link card is showing
+    private bool asking; // ED-NEW-web-w26-3, ED-NEW-web-sec-mcpapps-4: a card the app asked for is showing
     private bool disposed;
 
     internal McpAppMount(McpAppsHost host, WebSurfaceView view, McpAppLaunch launch)
@@ -262,6 +271,33 @@ public sealed class McpAppMount : IWebResourceHandler, IDisposable
 
     /// <summary>The app asked for a size (inline height comes from it).</summary>
     public event Action<McpAppSize>? SizeRequested;
+
+    /// <summary>
+    /// ED-NEW-web-sec-res-2: the web link the user clicked in the app's view, offered on the app's card (its whole address, Open
+    /// and dismiss) until the user answers; null when nothing is offered. A newer click replaces it.
+    /// </summary>
+    public string? PendingLink { get; private set; }
+
+    /// <summary>The offered link came or went (the card shows or hides its notice).</summary>
+    public event Action? LinkChanged;
+
+    /// <summary>The user's Open on the card: exactly the offered address, through the link setting.</summary>
+    public void OpenPendingLink()
+    {
+        if (disposed || PendingLink is not { } url) return;
+        PendingLink = null;
+        LinkChanged?.Invoke();
+        host.Log($"mcp app {Server}: the user opened a link to {ArtifactMount.Redact(url)} from its card");
+        host.Ui.OpenLink(this, url);
+    }
+
+    /// <summary>The user dismissed the offer: nothing opens.</summary>
+    public void DismissPendingLink()
+    {
+        if (PendingLink is null) return;
+        PendingLink = null;
+        LinkChanged?.Invoke();
+    }
 
     internal McpAppsBridge Bridge => bridge;
 
@@ -380,7 +416,8 @@ public sealed class McpAppMount : IWebResourceHandler, IDisposable
         var secure = uri.Scheme == Uri.UriSchemeHttps && uri.IsDefaultPort;
         if (secure && requestHost == SiteHost) return Own(request, uri);
         if (SandboxSites.SurfaceOf(requestHost) is not null) return Forbidden(request, "another sandbox's site");
-        if (uri.Scheme is "https" or "wss" && page is { } current && McpAppDomains.Matches(requestHost, McpAppDomains.Hosts(current.Csp, grant))) return null;
+        // + ED-NEW-web-sec-mcpapps-4: the whole address against the granted sources, as the CSP matches them (scheme and port too).
+        if (page is { } current && McpAppDomains.Reaches(request.Uri, current.Csp, grant)) return null;
         return Forbidden(request, "not a domain the user allowed");
     }
 
@@ -397,9 +434,9 @@ public sealed class McpAppMount : IWebResourceHandler, IDisposable
 
     // Frames reach only a host the user allowed (frame-src in the CSP keeps them to the declared frame domains).
     // + ED-NEW-web-w26-5: and only a declared frame domain, never a connect or resource domain.
+    // + ED-NEW-web-sec-mcpapps-4: matched as the CSP's frame-src matches it, scheme and port too.
     private bool AllowsFrame(string url) =>
-        page is { } current && current.Csp.FrameDomains.Count > 0 && Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps
-        && McpAppDomains.Matches(uri.IdnHost.ToLowerInvariant(), McpAppDomains.FrameHosts(current.Csp, grant));
+        page is { } current && current.Csp.FrameDomains.Count > 0 && McpAppDomains.ReachesFrame(url, current.Csp, grant);
 
     private WebResourceResponse Forbidden(WebResourceRequest request, string why)
     {
@@ -551,27 +588,47 @@ public sealed class McpAppMount : IWebResourceHandler, IDisposable
         }
     }
 
+    // + ED-NEW-web-sec-mcpapps-2 (web surfaces security review, M7): the card shows the arguments, and the call sends exactly
+    // what the card showed (one copy, taken before the card); "Always" now covers this tool in this chat only.
     private async Task CallToolAsync(McpAppRequest request)
     {
         var name = McpJson.Text(request.Params["name"]) ?? "";
-        var arguments = request.Params["arguments"] as JsonObject ?? [];
+        var arguments = request.Params["arguments"] is JsonObject given ? (JsonObject)given.DeepClone() : [];
         try
         {
-            var grants = host.Grants.Get(Server);
-            if (host.Ui.ToolsNeedApproval(Launch.Thread) && !grants.AlwaysTools.Contains(name))
+            var always = new McpAppChatTool(Launch.Thread, name);
+            if (host.Ui.ToolsNeedApproval(Launch.Thread) && !host.Grants.Get(Server).AlwaysTools.Contains(always))
             {
-                var decision = await host.Ui.AskToolAsync(this, name, Title).ConfigureAwait(false);
+                // + ED-NEW-web-sec-mcpapps-6 (web surfaces security review, M7 gap): the user approves only what the card shows in
+                // full; arguments that do not fit are refused before any card (no Allow once, no "Always in this chat").
+                if (!McpAppToolCard.Fits(arguments))
+                {
+                    Reply(() => bridge.Fail(request, McpAppToolCard.TooLong(name, arguments)));
+                    return;
+                }
+
+                if (!BeginCard(request)) return;
+                McpAppToolDecision decision;
+                try
+                {
+                    decision = await host.Ui.AskToolAsync(this, name, Title, (JsonObject)arguments.DeepClone()).ConfigureAwait(false);
+                }
+                finally
+                {
+                    EndCard();
+                }
+
                 if (decision == McpAppToolDecision.Deny)
                 {
                     Reply(() => bridge.Fail(request, "The user denied " + name + "."));
                     return;
                 }
 
-                if (decision == McpAppToolDecision.AlwaysForServer)
-                    host.Grants.Update(Server, g => g with { AlwaysTools = new HashSet<string>(g.AlwaysTools, StringComparer.Ordinal) { name } });
+                if (decision == McpAppToolDecision.AlwaysInChat)
+                    host.Grants.Update(Server, g => g with { AlwaysTools = new HashSet<McpAppChatTool>(g.AlwaysTools) { always } });
             }
 
-            var result = await host.Servers.CallToolAsync(Server, name, (JsonObject)arguments.DeepClone(), life.Token).ConfigureAwait(false);
+            var result = await host.Servers.CallToolAsync(Server, name, arguments, life.Token).ConfigureAwait(false);
             Reply(() => bridge.Answer(request, result));
         }
         catch (OperationCanceledException) when (life.IsCancellationRequested)
@@ -624,7 +681,17 @@ public sealed class McpAppMount : IWebResourceHandler, IDisposable
         {
             if (!host.Grants.Get(Server).MessageChats.Contains(Launch.Thread))
             {
-                var allowed = await host.Ui.AskMessagesAsync(this).ConfigureAwait(false);
+                if (!BeginCard(request)) return;
+                bool allowed;
+                try
+                {
+                    allowed = await host.Ui.AskMessagesAsync(this).ConfigureAwait(false);
+                }
+                finally
+                {
+                    EndCard();
+                }
+
                 if (!allowed)
                 {
                     Reply(() =>
@@ -693,13 +760,7 @@ public sealed class McpAppMount : IWebResourceHandler, IDisposable
             return;
         }
 
-        if (linkAsking)
-        {
-            bridge.Fail(request, "Another link from " + Server + " is waiting for the user.");
-            return;
-        }
-
-        linkAsking = true;
+        if (!BeginCard(request)) return;
         Observe(OpenLinkAsync(request, uri.AbsoluteUri));
     }
 
@@ -710,7 +771,7 @@ public sealed class McpAppMount : IWebResourceHandler, IDisposable
             var open = await host.Ui.AskOpenLinkAsync(this, url).ConfigureAwait(false);
             Reply(() =>
             {
-                linkAsking = false;
+                asking = false;
                 if (!open)
                 {
                     host.Log($"mcp app {Server}: the user did not open a link to {ArtifactMount.Redact(url)}");
@@ -727,23 +788,82 @@ public sealed class McpAppMount : IWebResourceHandler, IDisposable
         {
             Reply(() =>
             {
-                linkAsking = false;
+                asking = false;
                 bridge.Fail(request, error.Message);
             });
         }
     }
 
+    // + ED-NEW-web-sec-mcpapps-1 (web surfaces security review, M6): pip is a window of its own, outside nth's, so the app's
+    // own request moves there only after the user's Pop out on a card (one card at a time); the window then opens unpinned
+    // and without taking focus (McpAppWindow). Inline, and the App pane (the spec's fullscreen as Expand), stay inside nth's
+    // window under the trust strip and move at once, as before. nth's own controls move the app without a card.
     private void RequestDisplayMode(McpAppRequest request)
     {
         var current = DisplayMode;
         if (McpAppProtocol.ParseMode(McpJson.Text(request.Params["mode"])) is { } wanted && wanted != current && bridge.Supports(wanted)
             && DisplayModeHandler is { } handler)
         {
+            if (wanted == McpAppDisplayMode.PopOut)
+            {
+                if (BeginCard(request)) Observe(PopOutAsync(request));
+                return;
+            }
+
             current = handler(wanted);
         }
 
-        bridge.Answer(request, new JsonObject { ["mode"] = McpAppProtocol.SpecName(current) });
+        AnswerMode(request, current);
     }
+
+    private async Task PopOutAsync(McpAppRequest request)
+    {
+        try
+        {
+            var allowed = await host.Ui.AskDisplayModeAsync(this, McpAppDisplayMode.PopOut).ConfigureAwait(false);
+            Reply(() =>
+            {
+                asking = false;
+                var mode = DisplayMode;
+                if (!allowed) host.Log($"mcp app {Server}: the user did not let it open in its own window");
+                else if (mode != McpAppDisplayMode.PopOut && DisplayModeHandler is { } handler) mode = handler(McpAppDisplayMode.PopOut);
+                AnswerMode(request, mode);
+            });
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            Reply(() =>
+            {
+                asking = false;
+                bridge.Fail(request, error.Message);
+            });
+        }
+    }
+
+    // The mode the App session put the app in (the request's answer).
+    private void AnswerMode(McpAppRequest request, McpAppDisplayMode mode) => bridge.Answer(request, new JsonObject { ["mode"] = McpAppProtocol.SpecName(mode) });
+
+    // What an app hears when it asks for a card while one of its cards is showing.
+    private string CardWaitingMessage => "Another request from " + Server + " is waiting for the user.";
+
+    // + ED-NEW-web-sec-mcpapps-4 (web surfaces security review, L7): an app has at most one card of its own showing (a tool,
+    // its messages, a permission, a link, its own window); anything it asks for meanwhile is refused at once, so it cannot
+    // stack cards. The domain card is nth's own, asked once per page. Main actor only.
+    private bool BeginCard(McpAppRequest request)
+    {
+        if (asking)
+        {
+            host.Log($"mcp app {Server}: refused {request.Method} while one of its cards is showing");
+            bridge.Fail(request, CardWaitingMessage);
+            return false;
+        }
+
+        asking = true;
+        return true;
+    }
+
+    // The card was answered (on any thread): the next one may show.
+    private void EndCard() => host.Post(() => asking = false);
 
     // A handler's own failure is logged, never lost.
     private void Observe(Task task)
@@ -765,13 +885,17 @@ public sealed class McpAppMount : IWebResourceHandler, IDisposable
         if (e.IsMainFrame) bridge.NewDocument();
     }
 
+    // + ED-NEW-web-sec-res-2 (security review residual R2): a user's click only offers the link on the app's card with its whole
+    // address, as an inline widget's does (ED-NEW-web-sec-artifacts-10); one click could carry what the app holds in the link's
+    // query to its site with no notice. Only the card's Open opens it (OpenPendingLink); a script's navigation offers nothing.
     private void OnBlocked(object? sender, WebSandboxNavigation e)
     {
         var web = Uri.TryCreate(e.Url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https";
-        if (e.IsUserInitiated && web)
+        if (e.IsUserInitiated && web && !disposed)
         {
-            host.Log($"mcp app {Server}: a link to {ArtifactMount.Redact(e.Url)} was offered to the link setting");
-            host.Ui.OpenLink(this, e.Url);
+            host.Log($"mcp app {Server}: a link to {ArtifactMount.Redact(e.Url)} is offered on its card");
+            PendingLink = e.Url;
+            LinkChanged?.Invoke();
         }
         else host.Log($"mcp app {Server}: cancelled a {(e.IsNewWindow ? "new window" : e.IsMainFrame ? "navigation" : "frame navigation")} to {ArtifactMount.Redact(e.Url)}");
     }
@@ -779,6 +903,14 @@ public sealed class McpAppMount : IWebResourceHandler, IDisposable
     private void OnPermission(object? sender, WebPermissionRequest e)
     {
         if (disposed || page?.Permissions.Prompts(e.Kind) != true || e.Decision.IsCompleted) return;
+        if (asking)
+        {
+            // + ED-NEW-web-sec-mcpapps-4: one card at a time; left undeferred, the request takes its default, Deny.
+            host.Log($"mcp app {Server}: denied a {e.Kind} request while one of its cards is showing");
+            return;
+        }
+
+        asking = true;
         e.Defer();
         Observe(AskPermissionAsync(e));
     }
@@ -794,6 +926,10 @@ public sealed class McpAppMount : IWebResourceHandler, IDisposable
         {
             host.Log($"mcp app {Server}: the permission card failed: {error.Message}");
             e.Respond(WebPermissionDecision.Deny);
+        }
+        finally
+        {
+            EndCard();
         }
     }
 
@@ -832,8 +968,13 @@ internal static class McpJson
 
 /// <summary>
 /// The user's answers per server, kept across restarts in one small JSON file: the domain grants per page (bound to the
-/// declaration they answered), the chats the app may post messages in, the tools it may always run, and the pop-out size.
+/// declaration they answered), the chats the app may post messages in, the tools it may always run (each in one chat), and
+/// the pop-out size.
 /// </summary>
+/// <remarks>
+/// + ED-NEW-web-sec-mcpapps-2: "Always" is kept per chat under "chatTools". An older file's "alwaysTools" (every chat, given
+/// on a card that never showed the arguments) is not read: those tools ask again.
+/// </remarks>
 public sealed class McpAppGrantStore
 {
     public const string FileName = "mcp-apps.json";
@@ -897,10 +1038,11 @@ public sealed class McpAppGrantStore
         if (entry["messageChats"] is JsonArray ids)
             foreach (var id in ids)
                 if (Guid.TryParse(McpJson.Text(id), out var chat)) chats.Add(chat);
-        var tools = new HashSet<string>(StringComparer.Ordinal);
-        if (entry["alwaysTools"] is JsonArray names)
-            foreach (var name in names)
-                if (McpJson.Text(name) is { Length: > 0 } tool) tools.Add(tool);
+        var tools = new HashSet<McpAppChatTool>();
+        if (entry["chatTools"] is JsonArray given)
+            foreach (var item in given)
+                if (item is JsonObject pair && Guid.TryParse(McpJson.Text(pair["chat"]), out var toolChat) && McpJson.Text(pair["tool"]) is { Length: > 0 } tool)
+                    tools.Add(new McpAppChatTool(toolChat, tool));
         (double, double)? size = entry["window"] is JsonObject window && Size(window["width"]) is { } w && Size(window["height"]) is { } h ? (w, h) : null;
         return new McpAppServerGrants { Domains = domains, MessageChats = chats, AlwaysTools = tools, WindowSize = size };
     }
@@ -921,7 +1063,8 @@ public sealed class McpAppGrantStore
             {
                 ["domains"] = domains,
                 ["messageChats"] = new JsonArray([.. grants.MessageChats.Select(c => (JsonNode)JsonValue.Create(c.ToString("D"))!)]),
-                ["alwaysTools"] = new JsonArray([.. grants.AlwaysTools.Order(StringComparer.Ordinal).Select(t => (JsonNode)JsonValue.Create(t)!)]),
+                ["chatTools"] = new JsonArray([.. grants.AlwaysTools.OrderBy(t => t.Chat).ThenBy(t => t.Tool, StringComparer.Ordinal)
+                    .Select(t => (JsonNode)new JsonObject { ["chat"] = t.Chat.ToString("D"), ["tool"] = t.Tool })]),
             };
             if (grants.WindowSize is { } size) entry["window"] = new JsonObject { ["width"] = size.Width, ["height"] = size.Height };
             root[name] = entry;

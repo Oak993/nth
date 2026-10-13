@@ -37,8 +37,9 @@ public interface IWebViewSurface
 
     /// <summary>
     /// DESIGN 2.1, 2.3, 2.7: the environment the host hands the platform view before it is created
-    /// (<c>ExplicitEnvironment</c>, a raw <c>ICoreWebView2Environment</c> the engine keeps alive), so every view shares
-    /// one browser process group created with identical options, a pre-warmed environment is the one used, and "Restart
+    /// (<c>ExplicitEnvironment</c>, a raw <c>ICoreWebView2Environment</c> the engine keeps alive), so every view of one
+    /// environment key shares one browser process group (Visus's; the sandboxed views' own, ED-NEW-web-sec-res-1), a
+    /// pre-warmed environment is the one used, and "Restart
     /// Visus" gets a fresh environment rather than a cached dead one. Zero lets the platform create its own.
     /// </summary>
     Task<nint> AcquireEnvironmentAsync(CancellationToken cancellationToken);

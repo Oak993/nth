@@ -21,6 +21,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Marrow.App.Port.Web.McpApps;
 using Marrow.App.Runtime;
+using Marrow.App.Views.Artifacts;
 using Marrow.App.Views.Composer;
 using Marrow.Core.Localisation;
 using Marrow.Core.Models;
@@ -45,6 +46,10 @@ public sealed class InlineWebWidget : Decorator
     public static string TryAgainText => UiText.Get("live.widget.try_again");
     public static string LiveText => UiText.Get("live.widget.live");
     public static string SnapshotText => UiText.Get("live.widget.snapshot");
+    public static string OpenLinkTitle => UiText.Get("live.widget.open_link");
+
+    /// <summary>ED-NEW-web-sec-res-2: "Open link from the app", the offer of a link the user clicked in an MCP App.</summary>
+    public static string AppOpenLinkTitle => UiText.Get("live.app.open_link");
 
     // The card's glass (canvas: rgba(255,255,255,.035) and a .5 rim of .1 on dark; the light look mirrors it in ink).
     internal static readonly SwiftColor CardFill = SwiftColor.Dynamic(new SwiftColor(0, 0, 0, 0.025), new SwiftColor(1, 1, 1, 0.035));
@@ -56,6 +61,7 @@ public sealed class InlineWebWidget : Decorator
     private readonly McpAppSession? app;
     private readonly InlineWidgetSession? widget;
     private readonly Decorator slot = new() { Name = "WebSlot" };
+    private readonly TabulaNotice linkNotice = new() { IsVisible = false, Margin = new Thickness(6, 6, 6, 6) };
     private readonly Border card;
     private readonly Border body;
     private readonly Border placeholder;
@@ -72,6 +78,7 @@ public sealed class InlineWebWidget : Decorator
     private ScrollViewer? scroller;
     private InlineWebCoordinator? coordinator;
     private DateTimeOffset lastIntent;
+    private string? offered;
 
     private sealed record Segment(Button Button, Border Face, PaneGlyph Glyph, TextBlock Label);
 
@@ -170,8 +177,16 @@ public sealed class InlineWebWidget : Decorator
             ClipToBounds = true,
             Child = new Panel { Children = { slot, failure } },
         };
-        var column = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto"), Children = { top, body } };
-        Grid.SetRow(body, 1);
+        // ED-NEW-web-sec-artifacts-10: a link the user clicked in the widget is offered under the header, its whole address shown;
+        // ED-NEW-web-sec-res-2: the same for a link the user clicked in an MCP App shown inline.
+        linkNotice.Dismissed += () =>
+        {
+            widget?.DismissLink();
+            app?.DismissLink();
+        };
+        var column = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,Auto"), Children = { top, linkNotice, body } };
+        Grid.SetRow(linkNotice, 1);
+        Grid.SetRow(body, 2);
         card = new Border
         {
             CornerRadius = new CornerRadius(14),
@@ -260,6 +275,9 @@ public sealed class InlineWebWidget : Decorator
     /// <summary>The header's pill says "Live" (the page shows) or "Snapshot" (its last frame stands in).</summary>
     public string BadgeText => badgeText.Text ?? "";
 
+    /// <summary>ED-NEW-web-sec-artifacts-10: the offer of a link the user clicked in the widget, with its whole address.</summary>
+    internal TabulaNotice LinkNotice => linkNotice;
+
     /// <summary>The failure line shows, with its words.</summary>
     public string? FailureText => failure.IsVisible ? failureText.Text : null;
 
@@ -332,7 +350,11 @@ public sealed class InlineWebWidget : Decorator
         }
     }
 
-    private void OnTheme(object? sender, EventArgs e) => Show();
+    private void OnTheme(object? sender, EventArgs e)
+    {
+        offered = null; // the offer's colours follow the theme
+        Show();
+    }
 
     /// <summary>The coordinator let the page show (true) or holds its last frame up (false).</summary>
     internal void ShowLive(bool live)
@@ -375,13 +397,24 @@ public sealed class InlineWebWidget : Decorator
             if (failed is not null) failureText.Text = McpAppTrust.CouldNotOpen(app.Title, failed);
             slot.Height = app.InlineHeight(ThreadHeight);
             foreach (var (mode, segment) in segments) Press(segment, mode == app.Mode);
+            ShowOffer(app.PendingLink, AppOpenLinkTitle, app.OpenLink);
         }
         else if (widget is not null)
         {
             slot.Height = widget.InlineHeight(ThreadHeight);
+            ShowOffer(widget.PendingLink, OpenLinkTitle, widget.OpenLink);
         }
 
         coordinator?.Refresh(this);
+    }
+
+    // The link the widget or app offers, if any: its whole address and Open (TabulaNotice.ShowAddress), drawn again only when it changes.
+    private void ShowOffer(string? link, string title, Action open)
+    {
+        if (link == offered && linkNotice.IsVisible == link is not null) return;
+        offered = link;
+        if (link is null) linkNotice.Hide();
+        else linkNotice.ShowAddress(title, link, (UiText.Get("tabula.notice.open"), open));
     }
 
     protected override void OnSizeChanged(SizeChangedEventArgs e)

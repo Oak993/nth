@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
@@ -10,6 +11,7 @@ using Avalonia.Media;
 using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Web;
 using Marrow.UI.Panes;
 using Marrow.UI.Port;
 
@@ -403,6 +405,8 @@ public sealed class TabulaNotice : Border
     private readonly PaneGlyph glyph = new(PaneGlyphKind.Warning, 13) { VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 2, 0, 0) };
     private readonly TextBlock title = new() { FontSize = 12, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock detail = new() { FontSize = 11.5, TextWrapping = TextWrapping.Wrap, MaxLines = 3, TextTrimming = TextTrimming.CharacterEllipsis };
+    // ED-NEW-web-sec-artifacts-4, -5: what an action sends (an error's stack, a link's whole address), in full: no line cap.
+    private readonly TextBlock code = new() { FontFamily = TabulaTokens.Mono, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0), IsVisible = false };
     private readonly StackPanel actions = new() { Orientation = Orientation.Horizontal, Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
 
     public TabulaNotice()
@@ -410,7 +414,7 @@ public sealed class TabulaNotice : Border
         Margin = new Thickness(TabulaTokens.Bezel, 0, TabulaTokens.Bezel, 6);
         Padding = new Thickness(10, 7, 4, 7);
         CornerRadius = new CornerRadius(10);
-        var words = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children = { title, detail } };
+        var words = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children = { title, detail, code } };
         var close = TabulaButtons.Glyph(PaneGlyphKind.Close, UiText.Get("tabula.notice.dismiss"), () => Dismissed?.Invoke(), 24);
         var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto"), ColumnSpacing = 8 };
         grid.Children.Add(glyph);
@@ -431,13 +435,51 @@ public sealed class TabulaNotice : Border
 
     public string? Detail => IsVisible ? detail.Text : null;
 
+    /// <summary>The full text under the words (an error's stack, a link's address), or null.</summary>
+    public string? Code => IsVisible && code.IsVisible ? codeText : null;
+
     public IReadOnlyList<Button> Actions => actions.Children.OfType<Button>().ToList();
 
-    public void Show(string heading, string? body, bool error, params (string Text, Action Invoke)[] buttons)
+    private string? codeText;
+
+    public void Show(string heading, string? body, bool error, params (string Text, Action Invoke)[] buttons) =>
+        Present(heading, body, null, null, error, inFull: false, buttons);
+
+    /// <summary>ED-NEW-web-sec-artifacts-4: an error whose message and stack an action sends, both shown in full.</summary>
+    public void ShowReport(string heading, string message, string? stack, params (string Text, Action Invoke)[] buttons) =>
+        Present(heading, message, string.IsNullOrEmpty(stack) ? null : stack, null, error: true, inFull: true, buttons);
+
+    /// <summary>ED-NEW-web-sec-artifacts-5: the whole address an action opens, in full, its query values marked as the cross-origin card marks them.</summary>
+    public void ShowAddress(string heading, string address, params (string Text, Action Invoke)[] buttons) =>
+        Present(heading, null, null, address, error: false, inFull: true, buttons);
+
+    private void Present(string heading, string? body, string? stack, string? address, bool error, bool inFull, (string Text, Action Invoke)[] buttons)
     {
         title.Text = heading;
         detail.Text = body ?? "";
         detail.IsVisible = !string.IsNullOrEmpty(body);
+        detail.MaxLines = inFull ? 0 : 3;
+        detail.TextTrimming = inFull ? TextTrimming.None : TextTrimming.CharacterEllipsis;
+        codeText = address ?? stack;
+        code.IsVisible = !string.IsNullOrEmpty(codeText);
+        if (address is not null)
+        {
+            code.Text = null;
+            var runs = new InlineCollection();
+            foreach (var part in WebAgentUrls.Parts(address))
+                runs.Add(new Run(part.Text)
+                {
+                    Foreground = (part.Highlight ? PaneTokens.Text1 : PaneTokens.Text2).Brush(code),
+                    FontWeight = part.Highlight ? FontWeight.SemiBold : FontWeight.Normal,
+                });
+            code.Inlines = runs;
+        }
+        else
+        {
+            code.Inlines = null;
+            code.Text = stack ?? "";
+            code.Foreground = PaneTokens.Text2.Brush(code);
+        }
         var tone = error ? TabulaTokens.ErrorText : PaneTokens.Text2;
         glyph.Kind = error ? PaneGlyphKind.Warning : PaneGlyphKind.Shield;
         glyph.Foreground = tone.Brush(glyph);
@@ -446,7 +488,8 @@ public sealed class TabulaNotice : Border
         Background = (error ? TabulaTokens.ErrorFill : TabulaTokens.InfoFill).Brush(this);
         actions.Children.Clear();
         foreach (var (text, invoke) in buttons) actions.Children.Add(TabulaButtons.Text(text, invoke));
-        AutomationProperties.SetName(this, string.IsNullOrEmpty(body) ? heading : UiText.Format("tabula.notice.name", heading, body));
+        var words = string.Join("\n", new[] { body, codeText }.Where(text => !string.IsNullOrEmpty(text)));
+        AutomationProperties.SetName(this, words.Length == 0 ? heading : UiText.Format("tabula.notice.name", heading, words));
         IsVisible = true;
     }
 

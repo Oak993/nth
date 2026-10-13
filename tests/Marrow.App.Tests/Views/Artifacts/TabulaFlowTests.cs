@@ -310,7 +310,9 @@ public sealed class TabulaFlowTests(HeadlessSession headless)
         TabulaRig.Click(fix);
         rig.Layout();
         var artifact = rig.Store.Find(TabulaRig.Chat, first.Artifact.Id)!;
-        Assert.Equal(TabulaPane.FixMessage(artifact, 1, new ArtifactRuntimeError("total is not defined", "at price (index.html:12)")), Assert.Single(rig.Sent));
+        // ED-NEW-web-sec-agent-6: each fence carries its own random marker, so both messages are compared with it masked.
+        Assert.Equal(TabulaRig.FenceMarkerMasked(TabulaPane.FixMessage(artifact, 1, new ArtifactRuntimeError("total is not defined", "at price (index.html:12)"))),
+            TabulaRig.FenceMarkerMasked(Assert.Single(rig.Sent)));
         Assert.Null(rig.View.Notice.Title);
         Assert.Equal("Asked the chat to fix it", rig.View.StatusText);
 

@@ -26,9 +26,14 @@ public sealed class InlineWidgetSession
         Host = WebSurfaces.Host(View);
         Mount = new InlineWidgetMount(View, id, html, libraries, Theme, MainActor.Post);
         Mount.SizeRequested += _ => Changed?.Invoke();
+        // + ED-NEW-web-sec-artifacts-10 (security review L3, inline widgets): a widget is a no-network page, and a link it draws
+        // can carry what it computed in its query. A user's click only offers the link: the card shows its whole address and
+        // opens it on the user's Open (OpenLink), as Tabula's notice does for an artifact.
         Mount.LinkRequested += url =>
         {
-            if (SwiftURL.Create(url) is { } link) InlineText.OpenUrl?.Invoke(link);
+            if (SwiftURL.Create(url) is null) return;
+            PendingLink = url;
+            Changed?.Invoke();
         };
         if (Avalonia.Application.Current is { } application)
             application.ActualThemeVariantChanged += (_, _) => Mount.PushTheme();
@@ -45,8 +50,28 @@ public sealed class InlineWidgetSession
 
     public InlineWidgetMount Mount { get; }
 
-    /// <summary>The widget asked for another height.</summary>
+    /// <summary>The widget asked for another height, or a link it offers came or went.</summary>
     public event Action? Changed;
+
+    /// <summary>ED-NEW-web-sec-artifacts-10: the link the user clicked in the widget, offered on its card until Open or dismiss.</summary>
+    public string? PendingLink { get; private set; }
+
+    /// <summary>The user's Open on the card: the offered address, exactly, through the link setting.</summary>
+    public void OpenLink()
+    {
+        if (PendingLink is not { } url) return;
+        PendingLink = null;
+        Changed?.Invoke();
+        if (SwiftURL.Create(url) is { } link) InlineText.OpenUrl?.Invoke(link);
+    }
+
+    /// <summary>The user dismissed the offer: nothing opens.</summary>
+    public void DismissLink()
+    {
+        if (PendingLink is null) return;
+        PendingLink = null;
+        Changed?.Invoke();
+    }
 
     /// <summary>The height the widget asked for, else the tool's, before the thread clamps it.</summary>
     public double? RequestedHeight => Mount.RequestedHeight ?? DeclaredHeight;

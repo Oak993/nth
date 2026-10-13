@@ -58,6 +58,22 @@ public interface IWebAgentTab
     /// step's answer gives; the step fails and is never sent again.
     /// </summary>
     event Action<string>? StepFailed;
+
+    /// <summary>
+    /// ED-NEW-web-sec-agent-4 (security review M2): the page is about to open a pop-up (target=_blank, window.open) that Visus would
+    /// show as a new tab. A model's click counts as a user gesture, so the web tools look first: a pop-up the model caused is
+    /// stopped (<see cref="WebPopupOpening.Cancel"/>) and the model is told to ask through web_open, where the cross-origin card
+    /// and the deny list apply.
+    /// </summary>
+    event Action<WebPopupOpening>? PopupOpening;
+}
+
+/// <summary>A pop-up a tab's page is opening; set <see cref="Cancel"/> to stop it (no tab opens, the page gets no window).</summary>
+public sealed class WebPopupOpening(string url)
+{
+    public string Url { get; } = url;
+
+    public bool Cancel { get; set; }
 }
 
 /// <summary>Visus for the web tools: the tabs of a chat, opening agent tabs, and the UI thread.</summary>
@@ -86,6 +102,12 @@ public interface IWebAgentHost
 
     /// <summary>The chat's title for the guarded-action card's "who" row; null when it has none.</summary>
     string? ChatTitle(string thread) => null;
+
+    /// <summary>
+    /// The chat's project, which web_eval's standing grant belongs to (DESIGN 5.10 "after the user allows it per project";
+    /// ED-NEW-web-sec-agent-6); null for a chat outside a project, whose grant lasts only as long as the chat's web tools.
+    /// </summary>
+    string? ProjectOf(string thread) => null;
 }
 
 /// <summary>The per-site card's answers (DESIGN 5.10 "Allow once / Always allow / Don't allow").</summary>
@@ -154,9 +176,13 @@ public sealed record WebGuardAsk(string Thread, string Tab, string Origin, WebGu
     /// </summary>
     public WebPoint? Near { get; init; }
 
+    /// <summary>For a card that carries text between sites: the sites the text was read on ("mail.test"), ED-NEW-web-sec-agent-5.</summary>
+    public string? From { get; init; }
+
     /// <summary>The card's first line: the element's own words with a question mark ("Send invite?").</summary>
     public string Title => Category switch
     {
+        WebGuardCategory.Carry => UiText.Format("agent.guard.title_carry", From ?? ""),
         WebGuardCategory.Upload => UiText.Get("agent.guard.title_upload"),
         WebGuardCategory.Download => UiText.Get("agent.guard.title_download"),
         WebGuardCategory.NewSite when Element.Length == 0 => UiText.Format("agent.guard.title_new_site", WebPolicy.SourceName(Origin)),
@@ -166,6 +192,7 @@ public sealed record WebGuardAsk(string Thread, string Tab, string Origin, WebGu
     /// <summary>"The model will press Send invite in Visus for you."</summary>
     public string Detail => Category switch
     {
+        WebGuardCategory.Carry => UiText.Format("agent.guard.detail_carry", From ?? "", WebPolicy.SourceName(Origin)),
         WebGuardCategory.Upload => UiText.Get("agent.guard.detail_upload"),
         WebGuardCategory.Download => UiText.Format("agent.guard.detail_download", WebPolicy.SourceName(Origin)),
         WebGuardCategory.NewSite when Element.Length == 0 => UiText.Get("agent.guard.detail_new_site"),
@@ -177,6 +204,7 @@ public sealed record WebGuardAsk(string Thread, string Tab, string Origin, WebGu
     /// <summary>The confirm button's words: the element's own label ("Send invite"), else Confirm.</summary>
     public string ConfirmLabel => Category switch
     {
+        WebGuardCategory.Carry => UiText.Get("agent.guard.confirm_carry"),
         WebGuardCategory.Upload => UiText.Get("agent.guard.confirm_upload"),
         WebGuardCategory.Download => UiText.Get("agent.guard.confirm_download"),
         _ when Element.Length is > 0 and <= 28 => Element,
@@ -294,13 +322,16 @@ public sealed class WebAgentGrants
 
     public bool Pair(string from, string to) => Has(saved.Pairs, WebAgentUrls.PairKey(from, to));
 
-    public bool Eval(string origin) => Has(saved.Scripts, origin);
+    /// <summary>Scripts in a preview origin, allowed for one project (ED-NEW-web-sec-agent-6; DESIGN 5.10 "per project").</summary>
+    public bool Eval(string project, string origin) => Has(saved.Scripts, ScriptKey(project, origin));
 
     public void GrantSite(string origin) => Add(s => s.Sites, origin);
 
     public void GrantPair(string from, string to) => Add(s => s.Pairs, WebAgentUrls.PairKey(from, to));
 
-    public void GrantEval(string origin) => Add(s => s.Scripts, origin);
+    public void GrantEval(string project, string origin) => Add(s => s.Scripts, ScriptKey(project, origin));
+
+    private static string ScriptKey(string project, string origin) => project + "|" + origin;
 
     /// <summary>The standing site grants (Settings lists them with Remove).</summary>
     public IReadOnlyList<string> Sites

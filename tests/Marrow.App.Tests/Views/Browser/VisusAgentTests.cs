@@ -126,7 +126,10 @@ public sealed class VisusAgentTests(HeadlessSession headless)
         Assert.Equal("https://team.test/settings", agent.Url);
         Assert.Same(reading, b.Visus.Session.Selected); // the user's page stays in front
         Assert.Equal(0, b.Chats.PaneOpened);
-        Assert.Contains("Opened t1 at https://team.test/settings", result.Text, StringComparison.Ordinal);
+        // ED-NEW-web-sec-res-3: the tab's address is inside the untrusted block.
+        Assert.StartsWith("Opened t1", result.Text, StringComparison.Ordinal);
+        Assert.Contains("<untrusted-page-content origin=\"https://team.test\" marker=\"", result.Text, StringComparison.Ordinal);
+        Assert.Contains("\">\nAddress: https://team.test/settings\n", result.Text, StringComparison.Ordinal);
     });
 
     [Fact]

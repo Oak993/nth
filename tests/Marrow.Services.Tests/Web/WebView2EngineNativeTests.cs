@@ -27,7 +27,7 @@ public sealed class WebView2EngineNativeTests
             using var engine = new WebView2Engine();
             var profiles = new WebProfiles(folder, "en-US");
             var first = await engine.AcquireEnvironmentAsync(profiles.For(WebSurfaceKind.VisusTab), CancellationToken.None);
-            var again = await engine.AcquireEnvironmentAsync(profiles.For(WebSurfaceKind.Artifact), CancellationToken.None);
+            var again = await engine.AcquireEnvironmentAsync(profiles.For(WebSurfaceKind.PreviewTab), CancellationToken.None); // ED-NEW-web-sec-res-1: sandboxes have their own
             Assert.NotEqual(0, first);
             Assert.Equal(first, again);
             engine.ResetEnvironment();
@@ -43,6 +43,42 @@ public sealed class WebView2EngineNativeTests
             catch (IOException)
             {
                 // the browser process may still hold the folder for a moment
+            }
+        }
+    }
+
+    // ED-NEW-web-sec-res-1: the real runtime accepts a second environment for the sandboxed views next to Visus's (its own folder
+    // and arguments, so no "options differ" refusal), makes it only when a sandboxed view asks, and shares it between them.
+    [Fact]
+    [Trait("Decision", "ED-NEW-web-sec-res-1")]
+    public async Task Sandboxed_views_get_an_environment_of_their_own_beside_Visus_on_the_real_runtime()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "nth-sec-res-native-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            using var engine = new WebView2Engine();
+            var profiles = new WebProfiles(folder, "en-US");
+            var visus = await engine.AcquireEnvironmentAsync(profiles.For(WebSurfaceKind.VisusTab), CancellationToken.None);
+            Assert.NotEqual(0, visus);
+            Assert.False(Directory.Exists(Path.Combine(folder, "Sandbox")));
+            var widget = engine.CreateView(profiles.For(WebSurfaceKind.InlineWidget));
+            var sandbox = await engine.AcquireEnvironmentAsync(widget.Creation, CancellationToken.None);
+            var app = await engine.AcquireEnvironmentAsync(profiles.For(WebSurfaceKind.McpApp), CancellationToken.None);
+            Assert.NotEqual(0, sandbox);
+            Assert.NotEqual(visus, sandbox);
+            Assert.Equal(sandbox, app);
+            Assert.True(Directory.Exists(Path.Combine(folder, "Sandbox", "EBWebView")));
+            widget.Dispose();
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+            catch (IOException)
+            {
+                // the browser processes may still hold the folder for a moment
             }
         }
     }

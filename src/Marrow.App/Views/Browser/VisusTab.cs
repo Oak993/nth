@@ -180,6 +180,12 @@ public sealed class VisusTab
     /// <summary>Raised after anything the strip, the toolbar or the trust strip shows changed.</summary>
     public event Action? Changed;
 
+    /// <summary>
+    /// ED-NEW-web-sec-agent-4 (security review M2): the page is about to open a pop-up on a click, before it opens as a new tab. The web
+    /// tools watching this tab stop one a model's click caused (Cancel): it opens nothing and waits on the quiet chip for the user.
+    /// </summary>
+    public event Action<WebPopupOpening>? PopupOpening;
+
     /// <summary>The saveable form (3.11).</summary>
     public VisusTabState State => new(Id, Kind, Url, title, Zoom) { Preview = Kind == VisusTabKind.Preview ? PreviewState : null };
 
@@ -570,6 +576,22 @@ public sealed class VisusTab
                 Raise();
             }
             return;
+        }
+        // ED-NEW-web-sec-agent-4: a model's click is a user gesture too; the web tools driving this tab decide first.
+        if (PopupOpening is { } watchers)
+        {
+            var opening = new WebPopupOpening(target);
+            watchers(opening);
+            if (opening.Cancel)
+            {
+                e.Respond(WebNewWindowDecision.Block);
+                if (WebPolicy.IsWeb(target))
+                {
+                    blockedPopup = target;
+                    Raise();
+                }
+                return;
+            }
         }
         e.Respond(WebNewWindowDecision.HandledByNth);
         // PORT-ONLY (web surfaces W10, DESIGN 8.1, ED-NEW-web-w10-2): with "Open links from chats in" set to Default browser, a normal tab's page
