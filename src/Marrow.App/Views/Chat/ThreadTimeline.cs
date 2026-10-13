@@ -163,7 +163,7 @@ public sealed class ThreadTimeline : Decorator
                 // stay, and a long thread's pass costs the rows that changed, not all of them). ED-255.
                 var rows = drawnRows ??= MakeRows();
                 var rewindable = modelInputs.Rewindable.ToHashSet();
-                var shownBefore = laidOutRows.Keys.ToArray(); laidOutRows.Clear();
+                var shownBefore = laidOutRows.Keys.ToArray(); laidOutRows.Clear(); rowsDrawn++;
                 // This pass's views in order: the blocks' rows, then the questions' badges. A view arrives (with its transition) when it joins a stack that is already
                 // on screen under an id that was not there. A timeline that comes in from nothing (its first pass, or back after the prompt or the loading mark took its
                 // place and it had gone) comes in whole: :134-144 is an if/else, and the branch that comes back is a new view whose children come with it, so its rows and
@@ -639,7 +639,13 @@ public sealed class ThreadTimeline : Decorator
     // :335-338 each row's own visibility (threshold 0.001), :404-409 the end sentinel's (0.01), :380-382 the earlier pill's (0.1).
     private void ReportVisibility(ScrollViewer scroll)
     {
-        if (!ReferenceEquals(currentScroll, scroll) || !initialAnchorApplied || !TimelineOnShow) return; // rows that are fading out under the prompt report nothing (the jump button, a page of history)
+        if (!ReferenceEquals(currentScroll, scroll) || !initialAnchorApplied || !TimelineOnShow) { reported = null; return; } // rows that are fading out under the prompt report nothing (the jump button, a page of history)
+        // ED-NEW-perf-motion-8: every layout pass of the window raises LayoutUpdated (a keystroke in the composer, a sidebar frame); the rows' places
+        // in the viewport change only with the offset, the extent, the viewport or the rows drawn, so a pass that changed none of them reports nothing new.
+        var geometry = (scroll.Offset, scroll.Extent, scroll.Viewport, rowsDrawn);
+        if (reported == geometry) return;
+        reported = geometry;
+        VisibilityReports++;
         foreach (var pair in laidOutRows) tracking.SetVisible(pair.Key, VisibleFraction(pair.Value, scroll) >= 0.001);
         // :404-409 the end sentinel reports when it crosses its threshold, not on every layout: a row landing under a reader who is following it has the
         // button hidden (:710) and not shown again for the beat before the scroll that brings the end back.
@@ -652,6 +658,11 @@ public sealed class ThreadTimeline : Decorator
     }
     private bool earlierPillVisible;
     private bool? endSeen;
+    private (Vector Offset, Size Extent, Size Viewport, int Rows)? reported;
+    private int rowsDrawn;
+
+    /// <summary>Visibility reports that walked the rows (for tests).</summary>
+    internal int VisibilityReports { get; private set; }
     private bool initialAnchorApplied;
     // The timeline is the branch on show (not fading out under the prompt, not under the loading mark).
     private bool TimelineOnShow => scrollOverlay is { } overlay && ReferenceEquals(branches.On, overlay);
@@ -862,7 +873,7 @@ public sealed class ThreadTimeline : Decorator
     // :678-688
     private void ComposerGrew(bool liveResizeActive) { if (liveResizeActive || !(tracking.IsPinnedToBottom || tracking.DistanceFromBottom < 48)) return; tracking.IsPinnedToBottom = anchorsBottomOnGrowth = true; SnapEnd(); }
     // :713-720. Runtime is immutable for this port's mounted view; a different runtime receives a fresh view without a transition.
-    private void ResetThread() { windowStartID = null; anchorsBottomOnGrowth = true; historyLoadPending = false; tracking.ClearVisible(); }
+    private void ResetThread() { windowStartID = null; anchorsBottomOnGrowth = true; historyLoadPending = false; tracking.ClearVisible(); reported = null; }
     // :770-803. The check of a layout that may have changed shape unseen. The reader's place is ported whole: a scroll in progress puts it off, a viewport past the end of the
     // conversation, or a reader pinned to the end and away from it, is sent to the end (unanimated), and a viewport on the conversation that shows no row of it is repaired in
     // up to three steps a beat apart. The lazy stack's own repairs (:785 telling it where the viewport is, :787-788 remaking it, :881-887) have nothing to repair in the eager stack
