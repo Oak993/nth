@@ -79,11 +79,15 @@ public sealed class StdioProcess
     {
         var weak = new WeakReference<StdioProcess>(this);
         var output = stdout;
+        // DEVIATION ED-NEW-planlimits-hang-2: native I/O must root its pending stream/read
+        // continuation. Weak owner callbacks alone let a suspended async flow be collected.
+        var completion = continuation;
         stdout.ReadabilityHandler = data =>
         {
             if (!weak.TryGetTarget(out var owner))
             {
                 output.ReadabilityHandler = null;
+                completion.Finish();
                 return;
             }
             if (data.Length == 0)

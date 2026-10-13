@@ -372,19 +372,22 @@ public static partial class PlanLimitsReader
     // for them. PR-PROVREG-183, PR-PROVREG-184.
     internal static async Task<PlanLimits?> ReadClaudeFromCLI(SwiftURL executable, IReadOnlyDictionary<string, string> environment)
     {
+        // ED-NEW-planlimits-hang-3: keep ownership after the CLI exits, including inherited pipe holders.
+        JobObject probeJob;
+        try { probeJob = JobObject.Create(); }
+        catch { return null; }
+        using var jobLifetime = probeJob;
         var process = new StdioProcess(
             executable.Path,
             ["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose"],
             TemporaryDirectory,
-            environment);
+            environment) { Job = probeJob };
         try { await process.StartAsync(); } // :260-264. ED-NEW-perf-ui-thread-7: CreateProcessW runs on the pool, not on the caller's turn.
         catch { return null; }
-        // :265-269. Ending the process finishes the message stream, which is what bounds a request that never answers.
-        var watchdog = MainActor.Spawn(async () =>
-        {
-            await SwiftTask.TrySleep(SwiftTask.Seconds(20));
-            process.Terminate();
-        });
+        // DEVIATION ED-NEW-planlimits-hang-1 (owner: no hangs): arm the existing 20 s bound here,
+        // independent of a queued main-actor watchdog and of stdout EOF/process-exit callbacks.
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(20), SwiftClock.Provider.Current);
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(deadline.Token, SwiftTask.CancellationToken);
         try // :270-273 defer
         {
             // :274. DEVIATION OD-0012 F1: upstream "droppy-code-init"; the port sends "marrow-init".
@@ -399,8 +402,9 @@ public static partial class PlanLimitsReader
                 }, SwiftStringComparer.Instance)),
             }, SwiftStringComparer.Instance)));
 
-            await foreach (var message in process.Messages) // :275
+            await foreach (var message in process.Messages.WithCancellation(cancellation.Token)) // :275
             {
+                if (cancellation.IsCancellationRequested) break;
                 if (message["type"]?.JSONValueString != "control_response") continue; // :276
                 var response = message["response"] ?? new JSONValue.Null(); // :277
                 switch (response["request_id"]?.JSONValueString) // :278
@@ -430,8 +434,9 @@ public static partial class PlanLimitsReader
         }
         finally // :270-273 defer
         {
-            watchdog.Cancel();
-            process.Terminate();
+            // This probe owns its short-lived job: reap it and any pipe-holding descendants now,
+            // on success, EOF, deadline or caller cancellation; no grace timer or extra wait.
+            probeJob.Terminate();
         }
     }
 

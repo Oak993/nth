@@ -52,6 +52,8 @@ internal static class ClaudeStandIn
         }
         if (string.IsNullOrEmpty(dir)) return 0;
         Directory.CreateDirectory(dir);
+        if (args.Length == 1 && args[0] == "--usage-orphan-child")
+            new ManualResetEvent(false).WaitOne();
 
         int call = 0;
         while (File.Exists(Path.Combine(dir, "argv-" + call + ".txt"))) call++;
@@ -67,6 +69,7 @@ internal static class ClaudeStandIn
         File.Move(pendingArgv, Path.Combine(dir, "argv-" + call + ".txt"));
         // The folder this launch ran in (cwd-<n>.txt), so a test can prove where a probe was spawned.
         File.WriteAllText(Path.Combine(dir, "cwd-" + call + ".txt"), Directory.GetCurrentDirectory(), new UTF8Encoding(false));
+        File.WriteAllText(Path.Combine(dir, "pid-" + call + ".txt"), System.Diagnostics.Process.GetCurrentProcess().Id.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
         if (args.Length == 1 && args[0] == "--help")
         {
@@ -79,6 +82,36 @@ internal static class ClaudeStandIn
                 stdout.Flush();
             }
             return 0;
+        }
+
+        // A parent that exits on the test's event, leaving a child alive with inherited output handles.
+        if (File.Exists(Path.Combine(dir, "orphan.txt")))
+        {
+            var helper = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = System.Reflection.Assembly.GetExecutingAssembly().Location,
+                Arguments = "--usage-orphan-child",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            });
+            string pidPath = Path.Combine(dir, "orphan-pid.txt");
+            File.WriteAllText(pidPath + ".tmp", helper.Id.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            File.Move(pidPath + ".tmp", pidPath);
+            using (var exit = EventWaitHandle.OpenExisting(Environment.GetEnvironmentVariable("CLAUDE_STANDIN_EXIT_EVENT")))
+                exit.WaitOne();
+            return 0;
+        }
+
+        // PLANLIMITS-HANG: opt-in child that never answers or exits, including an unfinished stdout frame.
+        string stallPath = Path.Combine(dir, "stall.txt");
+        if (File.Exists(stallPath))
+        {
+            if (File.ReadAllText(stallPath).Trim() == "partial")
+            {
+                Console.Out.Write("{\"type\":\"control_response\"");
+                Console.Out.Flush();
+            }
+            new ManualResetEvent(false).WaitOne();
         }
 
         string responsePath = Path.Combine(dir, "response.json");
