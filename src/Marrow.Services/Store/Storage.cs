@@ -394,6 +394,20 @@ public sealed class DiskWriter
         });
     }
 
+    /// <summary>PORT-ONLY (ED-NEW-web-review-29): web state work shares the queue drained before quit.
+    /// The operation runs off-main, and its task reports completion or failure without a UI wait.</summary>
+    public Task RunQueued(Action work)
+    {
+        ArgumentNullException.ThrowIfNull(work);
+        var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        queue.Async(() =>
+        {
+            try { work(); done.TrySetResult(); }
+            catch (Exception error) { done.TrySetException(error); }
+        });
+        return done.Task;
+    }
+
     // :358-361
     public void WriteSynchronously(object value, string url)
     {
