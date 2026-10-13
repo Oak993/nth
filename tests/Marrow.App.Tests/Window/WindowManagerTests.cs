@@ -181,6 +181,7 @@ public sealed class WindowManagerTests(HeadlessSession headless)
             Settle(earlier);
             earlier.Position = new PixelPoint(-5000, -3000);
             Settle(earlier);
+            first.FlushPendingFrames(); // ED-NEW-perf-startup-structure-1: the app ending writes the held frame
         });
 
         var window = ShowMain(harness, manager, new Border());
@@ -199,6 +200,7 @@ public sealed class WindowManagerTests(HeadlessSession headless)
         {
             window.Position = new PixelPoint(123, 45);
             Settle(window);
+            manager.FlushPendingFrames(); // ED-NEW-perf-startup-structure-1: a frame is saved at most half a second late, or when the window hides or the app ends
         });
         Assert.Contains("DroppyCodeMainWindow", harness.Defaults.Writes);
         harness.Defaults.Writes.Clear();
@@ -207,6 +209,7 @@ public sealed class WindowManagerTests(HeadlessSession headless)
             window.Width = 1400;
             window.Height = 900;
             Settle(window);
+            manager.FlushPendingFrames(); // ED-NEW-perf-startup-structure-1
         });
         Assert.Contains("DroppyCodeMainWindow", harness.Defaults.Writes);
         Assert.All(harness.Defaults.Writes, key => Assert.Equal("DroppyCodeMainWindow", key));
@@ -231,6 +234,7 @@ public sealed class WindowManagerTests(HeadlessSession headless)
             window.WindowState = WindowState.Minimized;
             window.Position = new PixelPoint(-32000, -32000);
             Settle(window);
+            manager.FlushPendingFrames(); // ED-NEW-perf-startup-structure-1: a frame held from before would reach the store here; the parked one must not
         });
         Assert.DoesNotContain("DroppyCodeMainWindow", harness.Defaults.Writes);
     });

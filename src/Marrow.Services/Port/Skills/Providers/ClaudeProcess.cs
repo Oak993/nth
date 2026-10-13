@@ -11,6 +11,7 @@ internal sealed class ClaudeProcess(string executable, IReadOnlyList<string> arg
     public bool IsRunning => process.IsRunning;
     public string ErrorTail => process.ErrorTail;
     public void Start() => process.Start();
+    public Task StartAsync() => process.StartAsync();
     public void Send(JSONValue message) => process.Send(message);
     public void Terminate() => process.Terminate();
     public Task<int> WaitForExit() => process.WaitForExit();

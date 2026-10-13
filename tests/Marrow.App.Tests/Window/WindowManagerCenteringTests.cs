@@ -154,6 +154,7 @@ public sealed class WindowManagerCenteringTests(HeadlessSession headless)
         Settle(manager.MainWindow);
         manager.MainWindow.Position = new PixelPoint(-5000, -3000);
         Settle(manager.MainWindow);
+        manager.FlushPendingFrames(); // ED-NEW-perf-startup-structure-1: the app ending writes the held frame
         var reads = cursor.Reads;
         var next = new WindowManager { MainContent = () => new Border() };
         try

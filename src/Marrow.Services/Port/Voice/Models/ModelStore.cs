@@ -38,6 +38,9 @@ public sealed class ModelStore
 
     public string PathFor(ModelFile file) => Path.Combine(folder, file.FileName);
 
+    /// <summary>V-9.5 item 1's name for a partial download, <c>&lt;file&gt;.partial</c> beside the model (ED-NEW-dlresume-1: <see cref="ModelDownloader"/> takes one found there into its own partial slot).</summary>
+    public string PartialPathFor(ModelFile file) => Path.Combine(folder, file.FileName + ".partial");
+
     public string InstalledJsonPath => Path.Combine(folder, "installed.json");
 
     public IReadOnlyList<InstalledModelRecord> Records

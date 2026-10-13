@@ -14,11 +14,13 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Avalonia.Threading;
+using Marrow.App.Port.PcControl.Workspace;
 using Marrow.Core.Port;
 using Marrow.Core.Port.PcControl;
 using Marrow.Core.Support;
 using Marrow.Services.Port.PcControl;
 using Marrow.Services.Port.PcControl.Native;
+using Marrow.Services.Port.PcControl.Workspace;
 using Marrow.UI.Port.PcControl;
 
 namespace Marrow.App.Port.PcControl;
@@ -234,12 +236,16 @@ internal static class TactusDesktop
     private static readonly Lazy<PcGrants> grants = new(() => new PcGrants(UserDefaults.Standard.Current));
     private static readonly TactusLogs logs = new();
     private static TactusScreen? screen;
+    private static ChildSessionHost? workspace;
 
     /// <summary>The grant store, one per process: the approver and the Settings page share it.</summary>
     public static PcGrants Grants => grants.Value;
 
     /// <summary>The pill on screen while the parts exist (set on the UI thread); null before and after.</summary>
     public static TactusScreen? Screen => Volatile.Read(ref screen);
+
+    /// <summary>The separate workspace while Tactus runs; null before and after.</summary>
+    public static ChildSessionHost? Workspace => Volatile.Read(ref workspace);
 
     public static TactusHost Host() => new()
     {
@@ -282,6 +288,14 @@ internal static class TactusDesktop
         ClearLogs = () => logs.Clear(),
         ForgetLearned = ForgetLearned,
         PickApp = PickApp,
+        // the separate workspace (P18, preview): its status read off the UI thread, never written; Watch while it runs
+        ReadWorkspace = cancellationToken => Task.Run(() => Workspace?.Status() ?? WorkspaceStatus.Of(new ChildSessionReadiness().Enabled()), cancellationToken),
+        WorkspaceExe = Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "nth.exe"),
+        WatchWorkspace = () => Workspace?.Watch() ?? false,
+        OpenRemoteDesktopSettings = () =>
+        {
+            if (SwiftURL.Create(WorkspaceSetup.RemoteDesktopSettings) is { } page) Marrow.Services.Port.Workspace.Open.Current(page);
+        },
     };
 
     /// <summary>A chat closed: its chat grants end (the grant store is made only once something asks for it).</summary>
@@ -316,7 +330,11 @@ internal static class TactusDesktop
 
     public static PcSettings Settings() => PcSettingsStore.Read(UserDefaults.Standard.Current);
 
-    public static PcBackends Backends()
+    /// <summary>The desk's backends, with the separate workspace (made when Tactus starts, ended when it stops).</summary>
+    public static PcBackends Backends() => Native(withWorkspace: true);
+
+    /// <summary>The native backends: the desk's, or with no workspace the agent's inside the child session (WorkspaceCommands).</summary>
+    public static PcBackends Native(bool withWorkspace)
     {
         var clock = new SystemPcClock();
         var security = new SecurityProbe();
@@ -332,6 +350,8 @@ internal static class TactusDesktop
         sources.Add(new GdiCapture(fromScreen: false));
         sources.Add(new GdiCapture(fromScreen: true));
         var encoder = PcCaptureSeams.Encoder.Current();
+        var host = withWorkspace ? new ChildSessionHost(ChildSessionDesktop.Seams()) : null;
+        if (host is not null) Volatile.Write(ref workspace, host);
         return new PcBackends
         {
             Catalog = new WindowCatalog(),
@@ -348,7 +368,12 @@ internal static class TactusDesktop
             RealHost = new RealInputHost(clock, reader.FocusControl),
             Capture = encoder is null ? null : new PcCapturePipeline(sources, encoder),
             Audit = thread => new StepAudit(new PcAuditLog(thread)),
-            Owned = [hooks, ime, events, feed, reader],
+            Owned = host is null ? [hooks, ime, events, feed, reader] : [hooks, ime, events, feed, reader, new Deferred(() =>
+            {
+                Interlocked.CompareExchange(ref workspace, null, host);
+                host.Dispose();
+            })],
+            Workspace = host,
             CapabilitiesFile = () => Path.Combine(StoragePaths.Directory("pc-control"), PcCapabilityFile.FileName),
 #if DEBUG
             DevProofsFile = Path.Combine(Path.GetTempPath(), "tactus-smoke", "np4-proofs.json"),

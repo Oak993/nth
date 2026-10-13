@@ -7,6 +7,7 @@
 using System.Text;
 using System.Text.Json.Nodes;
 using Marrow.Core.Port.PcControl;
+using Marrow.Services.Port.PcControl.Workspace;
 
 namespace Marrow.Services.Port.PcControl;
 
@@ -32,7 +33,7 @@ public sealed partial class PcControlEngine
 
     // ----- pc_list_apps, pc_launch_app -----
 
-    private PcResult ListApps(bool installed)
+    private async Task<PcResult> ListApps(bool installed, CancellationToken cancellationToken)
     {
         var text = new StringBuilder();
         foreach (var monitor in parts.Catalog.Monitors())
@@ -57,7 +58,7 @@ public sealed partial class PcControlEngine
             {
                 // A fresh list is the model's new view: a handle Windows reused is known again from here on.
                 lock (gate) known[window.Handle] = window;
-                text.Append("  ").Append(PcWindowRef.Format(window.Handle)).Append(' ').Append(PcWindowLine.Quote(TreeFormatter.Clean(window.Title, 120)))
+                text.Append("  ").Append(Ref(window.Handle)).Append(' ').Append(PcWindowLine.Quote(TreeFormatter.Clean(window.Title, 120)))
                     .Append(" screen ").Append(Count(window.Monitor));
                 if (window.Minimized) text.Append(", minimized");
                 if (PcPolicy.IsRunDialog(window.ExeName, window.ClassName, window.Title)) text.Append(", blocked: the Run dialog");
@@ -65,6 +66,7 @@ public sealed partial class PcControlEngine
                 text.Append('\n');
             }
         }
+        await ListWorkspace(text, settings, cancellationToken).ConfigureAwait(false);
         if (installed)
         {
             text.Append("installed apps (start one with pc_launch_app app_id):\n");
@@ -101,13 +103,13 @@ public sealed partial class PcControlEngine
         if ((id is null) == (path is null)) throw new PcArgsException("give exactly one of app_id and path");
         var place = PcArgs.Str(args, "place") ?? "auto";
         if (place is not ("auto" or "desk" or "workspace")) throw new PcArgsException("place must be auto, desk or workspace");
-        if (place == "workspace")
-            return PcResult.Fail(PcErrorCode.NotInWorkspace, "Tactus's separate workspace is not part of this version, so nothing was started");
         var target = (id ?? path)!.Trim();
         var app = path is not null ? new PcAppIdentity(target) : target.Contains('!', StringComparison.Ordinal) ? new PcAppIdentity("", target) : new PcAppIdentity(target);
         call.Audit.App = app.ExeName.Length > 0 ? app.ExeName : app.Aumid;
         var verdict = PcPolicy.Classify(app, parts.Settings().UserDeniedApps);
         if (verdict.Denied) return PcResult.Fail(PcErrorCode.DeniedApp, verdict.Reason ?? "this app is not allowed");
+        // where it opens (DESIGN.md 2.13): a workspace that cannot be used is refused before the user is asked anything
+        if (RouteLaunch(place, app, parts.Settings()).Refusal is { } refusal) return PcResult.Fail(PcErrorCode.NotInWorkspace, refusal);
         if (parts.Security.SecureDesktop()) return PcResult.Fail(PcErrorCode.SecureDesktop, "a Windows security prompt is open");
         if (!parts.StopKey.Arm())
             return PcResult.Fail(PcErrorCode.NotSupported, "the stop key " + parts.StopKey.Chord + " is taken by another app, so Tactus cannot start. Ask the user to pick another stop key in Settings, Tactus");
@@ -136,6 +138,10 @@ public sealed partial class PcControlEngine
             if (approval == PcApproval.Always && parts.Approver.Standing(app, PcCapability.Act) != PcApproval.Always)
                 return PcResult.Fail(PcErrorCode.NotApproved, "the app was removed from Tactus's apps while the step waited");
             call.Token.ThrowIfCancellationRequested();
+            // the route again with the settings now: the user may have changed "Use for new apps" while the card was up
+            var route = RouteLaunch(place, app, liveSettings);
+            if (route.Refusal is { } refusedNow) return PcResult.Fail(PcErrorCode.NotInWorkspace, refusedNow);
+            if (route.Place == WorkspacePlace.Workspace) return await LaunchInWorkspace(app, target, before, call).ConfigureAwait(false);
             var launch = parts.Launcher.Launch(target);
             call.Timings.Mark("launch");
             if (!launch.Started) return PcResult.Fail(PcErrorCode.NotSupported, launch.Problem ?? "Windows could not start it");
@@ -157,7 +163,7 @@ public sealed partial class PcControlEngine
             foreach (var window in fresh)
             {
                 Remember(window);
-                text.Append("\n  ").Append(PcWindowRef.Format(window.Handle)).Append(' ').Append(PcWindowLine.Quote(TreeFormatter.Clean(window.Title, 120)));
+                text.Append("\n  ").Append(Ref(window.Handle)).Append(' ').Append(PcWindowLine.Quote(TreeFormatter.Clean(window.Title, 120)));
             }
             return PcResult.Success(body: text.ToString());
         }

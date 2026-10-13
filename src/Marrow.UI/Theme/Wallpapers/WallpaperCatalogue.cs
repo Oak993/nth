@@ -9,6 +9,9 @@ public static class WallpaperCatalogue
 {
     private static readonly Lazy<IReadOnlyList<WallpaperDefinition>> catalogue = new(Load);
     public static IReadOnlyList<WallpaperDefinition> All => catalogue.Value;
+
+    /// <summary>PORT-ONLY (ED-NEW-perf-startup-structure-5): whether the catalogue has been built (or has failed to build), for the start-up prime's test.</summary>
+    internal static bool IsLoaded => catalogue.IsValueCreated;
     public static WallpaperDefinition Get(WallpaperKind kind, string id) => All.Single(w => w.Kind == kind && w.Id == id);
 
     private static JsonDocument Resource(string kind)

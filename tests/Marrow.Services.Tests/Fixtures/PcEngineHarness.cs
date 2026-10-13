@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json.Nodes;
 using Marrow.Core.Port.PcControl;
 using Marrow.Services.Port.PcControl;
+using Marrow.Services.Port.PcControl.Workspace;
 
 namespace Marrow.Services.Tests.Fixtures;
 
@@ -68,6 +69,12 @@ public sealed class PcEngineHarness
     public PcSettings Settings { get; set; } = PcSettings.Default with { Enabled = true };
     public DateTimeOffset Now { get; set; } = Today;
 
+    /// <summary>The separate workspace (P18); none unless a test gives one.</summary>
+    public IWorkspaceHost? Workspace { get; set; }
+
+    /// <summary>Where new apps open, shared by every engine of the harness (it remembers the desk-only apps).</summary>
+    public WorkspaceRouter Router { get; } = new();
+
     public PcEngineParts Parts => new()
     {
         Catalog = Desktop,
@@ -96,6 +103,8 @@ public sealed class PcEngineHarness
         Typing = Typing,
         WaitClock = WaitClock,
         Now = () => Now,
+        Workspace = Workspace,
+        Router = Router,
     };
 
     public PcControlEngine Engine(string thread = "chat-1", bool attended = true, bool vision = true, string? head = null) =>

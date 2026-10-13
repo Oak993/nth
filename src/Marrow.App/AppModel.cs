@@ -1617,6 +1617,7 @@ public sealed partial class AppModel : MainActorModel
             DiskWriter.Shared.WriteSynchronously(snapshot, Storage.ThreadURL(runtime.ThreadID)); // AppModel.swift:1341
         }
         DiskWriter.Shared.WaitForQueuedWrites(); // AppModel.swift:1343
+        Marrow.Services.Port.MultiAccount.HandoffJournalWriter.WaitForQueuedWrites(); // ED-NEW-perf-ui-thread-5: the handoff journals the runtimes just handed over
         Terminals.TerminateAll(); // AppModel.swift:1344
     }
 }
