@@ -262,8 +262,8 @@ public sealed class LiveAnswerRow : Decorator
 
     private void OnSaveTick(object? sender, EventArgs e)
     {
-        saveTimer?.Stop();
         FlushState();
+        saveTimer?.Stop();
     }
 
     /// <summary>Saves the reader's states on the row now, if a save is waiting.</summary>
