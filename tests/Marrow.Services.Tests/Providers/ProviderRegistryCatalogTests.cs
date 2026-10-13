@@ -357,9 +357,17 @@ public sealed class ProviderRegistryCatalogTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-141")] // ProviderRegistry.swift:128-129, MetaAPI.swift:55-56, :58-74
-    public void the_meta_seed_is_five_muse_spark_rows_and_only_the_first_carries_the_max_effort_level()
+    public void the_meta_seed_leads_with_Wonder_and_preserves_the_five_Spark_rows()
     {
-        var seed = ProviderRegistry.MetaSeed;
+        // ED-NEW-muse-wonder-7: exact replacement for the owner-ordered sixth row/default; old Spark assertions follow.
+        var catalog = ProviderRegistry.MetaSeed;
+        Assert.Equal(6, catalog.Count);
+        Assert.Equal("muse-wonder-1.0", catalog[0].Id);
+        Assert.Equal("Wonder 1.0", catalog[0].Name);
+        Assert.Equal(["minimal", "low", "medium", "high", "xhigh", "max"], catalog[0].Efforts.ToArray());
+        Assert.Equal("high", catalog[0].DefaultEffort);
+        Assert.Equal(["muse-wonder-1.0"], catalog.Where(row => row.IsDefault).Select(row => row.Id));
+        var seed = new ValueList<ModelOption>(catalog.Skip(1));
         Assert.Equal(5, seed.Count);
 
         Assert.Equal("muse-spark-1.3", seed[0].Id);
@@ -367,7 +375,7 @@ public sealed class ProviderRegistryCatalogTests
         Assert.Equal("Latest Muse Spark \U000000B7 best agentic coding \U000000B7 1M context", seed[0].Detail);
         Assert.Equal(["minimal", "low", "medium", "high", "xhigh", "max"], seed[0].Efforts.ToArray());
         Assert.Equal("high", seed[0].DefaultEffort);
-        Assert.True(seed[0].IsDefault);
+        Assert.False(seed[0].IsDefault);
 
         Assert.Equal("muse-spark-1.3-contributor", seed[1].Id);
         Assert.Equal("Spark 1.3 Contributor", seed[1].Name);
@@ -427,9 +435,19 @@ public sealed class ProviderRegistryCatalogTests
 
     [Fact]
     [Trait("Req", "PR-PROVREG-143")] // ProviderRegistry.swift:132-142
-    public void the_antigravity_seed_is_seven_rows_with_gemini_3_1_pro_missing_medium_and_both_claude_rows_bare()
+    public void the_antigravity_seed_leads_with_Argon_and_preserves_the_seven_existing_rows()
     {
-        var seed = ProviderRegistry.AntigravitySeed;
+        // ED-NEW-muse-wonder-7: exact Argon assertions plus every original seven-row assertion.
+        var catalog = ProviderRegistry.AntigravitySeed;
+        Assert.Equal(8, catalog.Count);
+        Assert.Equal("gemini-4-argon", catalog[0].Id);
+        Assert.Equal("Gemini 4 Argon", catalog[0].Name);
+        Assert.Equal(["low", "medium", "high"], catalog[0].Efforts.ToArray());
+        Assert.Equal("medium", catalog[0].DefaultEffort);
+        Assert.False(catalog[0].IsDefault);
+        Assert.Null(catalog[0].Detail);
+        Assert.Equal(["gemini-3.8-flash"], catalog.Where(row => row.IsDefault).Select(row => row.Id));
+        var seed = new ValueList<ModelOption>(catalog.Skip(1));
         Assert.Equal(7, seed.Count);
 
         Assert.Equal("gemini-3.8-flash", seed[0].Id);

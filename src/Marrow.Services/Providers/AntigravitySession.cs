@@ -490,7 +490,7 @@ public sealed class AntigravitySession : ProviderSession, Port.Skills.Providers.
 
         var resolvedEffort = effort; // :417-423
         if (resolvedEffort is not { Length: > 0 }) resolvedEffort = parsed.Effort;
-        if (resolvedEffort is not { Length: > 0 }) resolvedEffort = Is(baseSlug, "gpt-oss-120b") ? "medium" : "high";
+        if (resolvedEffort is not { Length: > 0 }) resolvedEffort = Is(baseSlug, "gpt-oss-120b") || Is(baseSlug, "gemini-4-argon") ? "medium" : "high"; // ED-NEW-muse-wonder-5: Google thinking default
 
         // Validate effort against model constraints. :425-430
         if (Is(baseSlug, "gemini-3.1-pro") && Is(resolvedEffort, "medium"))

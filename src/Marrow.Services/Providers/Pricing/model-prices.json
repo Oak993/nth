@@ -1393,6 +1393,227 @@
           "scope": "complete official token price list and linked public billing terms; no applicable separate request charge; account transaction UIs are not price lists"
         }
       }
+    },
+    {
+      "service": "meta",
+      "model": "muse-wonder-1.0",
+      "inputUsdPerMillion": 4.0,
+      "outputUsdPerMillion": 20.0,
+      "cachedInputUsdPerMillion": 0.2,
+      "requestUsd": 0,
+      "maximumInputTokens": null,
+      "maximumOutputTokens": null,
+      "retrievedAt": "2026-10-13T18:14:33.426386Z",
+      "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+      "sourceSha256": "cabcc8ee377e301d570ebf86980199fca06629b8733c93331c98b43b34832cd7",
+      "evidence": {
+        "service": "meta",
+        "model": "muse-wonder-1.0",
+        "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+        "modelCell": [
+          5,
+          1,
+          0
+        ],
+        "inputCell": [
+          0,
+          2,
+          1
+        ],
+        "cachedInputCell": [
+          0,
+          1,
+          1
+        ],
+        "outputCell": [
+          0,
+          3,
+          1
+        ],
+        "tokenOnlyQuote": "",
+        "tokenUnitQuote": "Standard mode (per 1M tokens)",
+        "billingConditionQuotes": [
+          "Muse Wonder Model: muse-wonder-1.0 ."
+        ],
+        "checks": [
+          {
+            "cell": [
+              0,
+              0,
+              0
+            ],
+            "text": "Usage"
+          },
+          {
+            "cell": [
+              0,
+              0,
+              1
+            ],
+            "text": "Standard mode (per 1M tokens)"
+          },
+          {
+            "cell": [
+              0,
+              1,
+              0
+            ],
+            "text": "Cached input"
+          },
+          {
+            "cell": [
+              0,
+              2,
+              0
+            ],
+            "text": "Input"
+          },
+          {
+            "cell": [
+              0,
+              3,
+              0
+            ],
+            "text": "Output"
+          },
+          {
+            "cell": [
+              0,
+              0,
+              2
+            ],
+            "text": "Contributor mode (per 1M tokens)"
+          },
+          {
+            "cell": [
+              0,
+              2,
+              2
+            ],
+            "text": "Not available"
+          }
+        ],
+        "completeListReview": "meta-wonder-complete-list",
+        "currencyEvidence": {
+          "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+          "quote": "Unless otherwise noted, all currency references are in U.S. Dollars.",
+          "retrievedAt": "2026-10-13T18:14:33.426386Z",
+          "sourceSha256": "5ff4e4520445ae14a01c69c7594b35b8c2b8ddb9351a4cf6678a7c81af51c55b"
+        },
+        "identity": {
+          "service": "meta",
+          "model": "muse-wonder-1.0",
+          "displayText": "muse-wonder-1.0",
+          "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits"
+        },
+        "requestFeeEvidence": {
+          "kind": "complete-official-price-list",
+          "statement": "none listed on the official pricing page",
+          "requestUsd": 0,
+          "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+          "captures": [
+            {
+              "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+              "retrievedAt": "2026-10-13T18:14:33.426386Z",
+              "sourceSha256": "cabcc8ee377e301d570ebf86980199fca06629b8733c93331c98b43b34832cd7",
+              "reviewedContentSha256": "ea90fd4d68c387913a51b15038c207066246c8c65fe3fefbce788a8794da94ce"
+            },
+            {
+              "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+              "retrievedAt": "2026-10-13T18:14:33.426386Z",
+              "sourceSha256": "5ff4e4520445ae14a01c69c7594b35b8c2b8ddb9351a4cf6678a7c81af51c55b",
+              "reviewedContentSha256": "a5e420aefaea401e2b01d913a0f7598cd8dc0042d41e401403b27a041b9879ae"
+            },
+            {
+              "sourceUrl": "https://dev.meta.ai/help/billing/api-bill",
+              "retrievedAt": "2026-10-13T18:14:33.426386Z",
+              "sourceSha256": "0d8d680b648e127599dcabe91cb36d9c78a3623a106d745458dd5eb05ca32a59",
+              "reviewedContentSha256": "bcc29fc616262251af1c30c68eab949f5daba58daaeca9a571b9a8a0a11387ff"
+            },
+            {
+              "sourceUrl": "https://dev.meta.ai/docs/muse-code/auth",
+              "retrievedAt": "2026-10-13T18:14:33.426386Z",
+              "sourceSha256": "5bdf34e1eeae0c495bf8dfe5f029daa2e6204112571117b2acbce0e79ebd3775",
+              "reviewedContentSha256": "f59265d09f6c389b1f5b369a8dee7a61a52ab113a9154413ba79cc6cd3f72de3"
+            },
+            {
+              "sourceUrl": "https://dev.meta.ai/help/billing/set-up-billing",
+              "retrievedAt": "2026-10-13T18:14:33.426386Z",
+              "sourceSha256": "328d76c0bc83354f3e347c1d205dfee792cd25b6db5566a00d2371cd33c7e679",
+              "reviewedContentSha256": "446c545c5710fd54c02dd0e2826d052c14e186c6ebc67a76c39d2df9c3006db2"
+            },
+            {
+              "sourceUrl": "https://dev.meta.ai/help/billing/download-invoice",
+              "retrievedAt": "2026-10-13T18:14:33.426386Z",
+              "sourceSha256": "4d86a3610b7b9a0f1249e13f2461226ce9d697007b59b5c519c64c55d077f7cc",
+              "reviewedContentSha256": "b1c9dea1bbd5ebd3ab75ab217c1b711394f8af0bacdd5f2cb4843f5828221893"
+            }
+          ],
+          "listedConditionalCharges": [
+            {
+              "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+              "quote": "Web search grounding : $2.50 per 1,000 search queries , in addition to the request's token cost.",
+              "disposition": "excluded-provider-web-search-tool",
+              "statement": "applies only to the provider's web-search tool, which Marrow never enables",
+              "retrievedAt": "2026-10-13T18:14:33.426386Z",
+              "sourceSha256": "cabcc8ee377e301d570ebf86980199fca06629b8733c93331c98b43b34832cd7",
+              "requestBuilderProof": {
+                "service": "meta",
+                "statement": "applies only to the provider's web-search tool, which Marrow never enables",
+                "reviewedAt": "2026-10-13T18:14:33.426386Z",
+                "sources": [
+                  {
+                    "path": "src/Marrow.Services/Providers/OpenAICompatibleSession.cs",
+                    "line": 1283,
+                    "sourceSha256": "a5d1218f00533d1e994e34e1e34458c81fa2c0f938f5c6a138da61edbc562fe6",
+                    "dispatchGuardLines": [
+                      995,
+                      1336
+                    ],
+                    "localFunctionDefinitionLines": [
+                      178,
+                      1217
+                    ]
+                  },
+                  {
+                    "path": "src/Marrow.Services/Providers/MetaSession.cs",
+                    "line": 45,
+                    "sourceSha256": "65c96090f5ae41f7e2477be3e6e7da82132ed007faf806527f3bdd51dc0b8a48"
+                  },
+                  {
+                    "path": "src/Marrow.Services/Providers/ProviderToolBillingGuard.cs",
+                    "line": 11,
+                    "sourceSha256": "e5cf1086eddc6f402516944721f4fce3d6853fcdbe3007a40e1d5c340deae7ad"
+                  },
+                  {
+                    "path": "tests/Marrow.Services.Tests/Providers/ProviderToolBillingGuardTests.cs",
+                    "line": 31,
+                    "sourceSha256": "6227b1ebe6f13cf6b71a4b3b57bbf21c14f5308984713518ff20a57fd6663cc2"
+                  }
+                ],
+                "regressionTests": [
+                  "Every_known_Meta_and_Zai_model_effort_and_tool_mode_builds_only_local_function_tools",
+                  "A_future_provider_tool_or_unknown_enablement_field_fails_closed_before_transport"
+                ],
+                "scope": "All known model IDs, all mapped efforts and unknown effort, tools on/off, normal/Hydra heads, built-in/local skill/MCP definitions. Only local function tools; payload allow-list enforced before reservation and at final transport for capped and uncapped requests.",
+                "mergeReview": {
+                  "scope": "ED-634 actual MA-gaps / MA-prices merge interaction; inspected preserved local-function-only builders, both dispatch guards and fake transport refusal; unchanged ProviderToolBillingGuardTests plus caller-price contracts pass13/13 twice. No price/capture/quote regeneration.",
+                  "evidence": "standing/06-final/preflight-isolation/merged-price-guard-1.log and -2.log",
+                  "headBeforeProofUpdate": "624abad9f3ce457fa49610a0fbf660aa66dd4e85"
+                }
+              }
+            }
+          ],
+          "accountDashboards": [
+            {
+              "sourceUrl": "https://dev.meta.ai/billing",
+              "kind": "account-transaction-dashboard",
+              "reason": "Account transaction UI, not public pricing; public token pricing and linked billing pages reviewed. No login or provider call."
+            }
+          ],
+          "scope": "complete official token price list and linked public billing terms; no applicable separate request charge; account transaction UIs are not price lists"
+        }
+      }
     }
   ]
 }
