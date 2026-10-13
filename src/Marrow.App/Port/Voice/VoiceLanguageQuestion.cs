@@ -78,6 +78,9 @@ internal sealed class VoiceLanguageQuestion : Panel
         SwiftGlass.SetEffect(glass, GlassEffect.Regular(GlassShape.RoundedRectangle(CardRadius, RoundedCornerStyle.Continuous)));
         // ED-NEW-voicefix-ui-8: the card's glass is its own piece; inside the composer's glass container it melted into the composer pill below it and flared its top edge
         SwiftGlass.SetStandsAlone(glass, true);
+        // ED-NEW-glassmerge-1 (OD-0147): the PopoverCard casts the card's one shadow (OD-0095), so the glass under it draws none of the canvas's past its edge: one shadow, not two,
+        // and the composer's outline beside the card stays as it was
+        SwiftGlass.SetCastsOwnShadow(glass, true);
         rim.CornerRadius = new CornerRadius(CardRadius);
         SwiftFont.System(13, SwiftFont.Weight.Semibold).Apply(question);
         SwiftFont.System(11).Apply(footer);
