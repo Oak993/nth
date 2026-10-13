@@ -708,7 +708,7 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
                         // PORT-ONLY (W24): the arguments of a live-answer call are followed as they stream.
                         if (Web.UiMcpServer.IsOwnTool(name) && Web.LiveAnswerTools.IsName(name[("mcp__" + Web.UiMcpServer.ServerName + "__").Length..])) stream.LiveInputs[index] = (toolID, new System.Text.StringBuilder());
                         if (ToolCall(name, JSONValue.FromDictionaryLiteral()) is { } call)
-                            sink(new ProviderEvent.ToolStarted(toolID, call));
+                            sink(new ProviderEvent.ToolStarted(toolID, call) { McpTool = Web.UiMcpServer.ClaudeTool(name, uiServer is not null) }); // + ED-NEW-web-sec-rev-6
                         break;
                     default:
                         break;
@@ -822,7 +822,7 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
                     }
                     else if (ToolCall(name, input) is { } call)
                     {
-                        sink(new ProviderEvent.ToolStarted(toolID, call));
+                        sink(new ProviderEvent.ToolStarted(toolID, call) { McpTool = Web.UiMcpServer.ClaudeTool(name, uiServer is not null) }); // + ED-NEW-web-sec-rev-6
                         sink(new ProviderEvent.ToolUpdated(toolID, new ToolUpdate { Title = call.Title, Detail = call.Detail, Edits = call.Edits, Kind = call.ToolCallKind }));
                     }
                     break;

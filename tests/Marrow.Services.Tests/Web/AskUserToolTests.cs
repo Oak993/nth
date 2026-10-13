@@ -137,16 +137,19 @@ public sealed class AskUserToolTests
         Assert.False(AskUserTool.IsApprovalFor(approval with { Value = request with { RequestKind = ApprovalRequest.Kind.Command } }));
     }
 
+    // ED-NEW-web-sec-rev-6: each row carries the server and tool the provider session read from the protocol for it, as the sessions now
+    // send it; the same titles without those fields are never the ask's row (ToolRowIdentityTests).
     [Theory]
-    [InlineData(ToolCall.Kind.Mcp, "nth-ui · ask_user", true)]
-    [InlineData(ToolCall.Kind.Mcp, "nth-ui·ask_user", true)]
-    [InlineData(ToolCall.Kind.Mcp, "nth-ui  ·  ask_user", true)]
-    [InlineData(ToolCall.Kind.Other, "mcp__nth-ui__ask_user", true)]
-    [InlineData(ToolCall.Kind.Mcp, "nth-ui · artifact_create", false)]
-    [InlineData(ToolCall.Kind.Mcp, "other · ask_user", false)]
-    [InlineData(ToolCall.Kind.Command, "nth-ui · ask_user", false)]
-    public void The_row_a_provider_draws_for_the_tool_is_known_so_the_card_can_take_its_place(ToolCall.Kind kind, string title, bool expected)
+    [InlineData(ToolCall.Kind.Mcp, "nth-ui · ask_user", "nth-ui", "ask_user", true)]
+    [InlineData(ToolCall.Kind.Mcp, "nth-ui·ask_user", "nth-ui", "ask_user", true)]
+    [InlineData(ToolCall.Kind.Mcp, "nth-ui  ·  ask_user", "nth-ui", "ask_user", true)]
+    [InlineData(ToolCall.Kind.Other, "mcp__nth-ui__ask_user", "nth-ui", "ask_user", true)]
+    [InlineData(ToolCall.Kind.Mcp, "nth-ui · artifact_create", "nth-ui", "artifact_create", false)]
+    [InlineData(ToolCall.Kind.Mcp, "other · ask_user", "other", "ask_user", false)]
+    [InlineData(ToolCall.Kind.Command, "nth-ui · ask_user", "nth-ui", "ask_user", false)]
+    public void The_row_a_provider_draws_for_the_tool_is_known_so_the_card_can_take_its_place(ToolCall.Kind kind, string title, string server, string tool, bool expected)
     {
-        Assert.Equal(expected, AskUserTool.IsProviderRow(new ToolCall { ToolCallKind = kind, Title = title }));
+        var row = new Marrow.Services.Providers.ProviderEvent.ToolStarted("t", new ToolCall { ToolCallKind = kind, Title = title }) { McpTool = new Marrow.Services.Providers.McpToolIdentity(server, tool) };
+        Assert.Equal(expected, AskUserTool.IsProviderRow(row));
     }
 }

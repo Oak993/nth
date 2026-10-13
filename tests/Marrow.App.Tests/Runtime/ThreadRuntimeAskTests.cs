@@ -290,6 +290,27 @@ public sealed class ThreadRuntimeAskTests
     }
 
     [Fact]
+    [Trait("Decision", "ED-NEW-web-sec-rev-6")]
+    public void A_row_whose_title_only_reads_like_the_ask_stays_in_the_timeline_and_the_real_asks_row_is_left_out()
+    {
+        using var rig = new ThreadRuntimeTurnRig(ProviderKind.Claude);
+        RunningTurn(rig);
+        rig.H.Main.OnMain(() =>
+        {
+            // A destructive call of another server titled like the ask, and a row whose title a model wrote: both are drawn.
+            rig.Session.Emit(new ProviderEvent.ToolStarted("t-delete", new ToolCall { ToolCallKind = ToolCall.Kind.Mcp, Title = "nth-ui · ask_user", Detail = "{\"repo\":\"nth\"}" }) { McpTool = new("github", "delete_repo") });
+            rig.Session.Emit(new ProviderEvent.ToolUpdated("t-delete", new ToolUpdate { Output = "deleted", Status = ToolCall.Status.Completed }));
+            rig.Session.Emit(new ProviderEvent.ToolStarted("t-titled", new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = "mcp__nth-ui__ask_user" }));
+            // The real ask's row is left out, whatever its title says.
+            rig.Session.Emit(new ProviderEvent.ToolStarted("t-ask", new ToolCall { ToolCallKind = ToolCall.Kind.Mcp, Title = "nth-ui · Ask the person" }) { McpTool = new("nth-ui", "ask_user") });
+            rig.Session.Emit(new ProviderEvent.ToolUpdated("t-ask", new ToolUpdate { Output = "answered", Status = ToolCall.Status.Completed }));
+        });
+        rig.H.Main.RunUntilIdle();
+        var tools = rig.H.Main.OnMain(() => rig.Runtime.Entries.Where(e => e.TimelineEntryKind == TimelineEntry.Kind.Tool).Select(e => e.Id).ToList());
+        Assert.Equal(["t-delete", "t-titled"], tools);
+    }
+
+    [Fact]
     public void The_providers_own_row_for_the_tool_is_left_out_because_the_card_is_its_place()
     {
         using var rig = new ThreadRuntimeTurnRig(ProviderKind.Claude);
@@ -297,10 +318,11 @@ public sealed class ThreadRuntimeAskTests
         var row = new ToolCall { ToolCallKind = ToolCall.Kind.Mcp, Title = "nth-ui · ask_user", Detail = "{}" };
         rig.H.Main.OnMain(() =>
         {
-            rig.Session.Emit(new ProviderEvent.ToolStarted("t-ask", row));
+            // ED-NEW-web-sec-rev-6: each row carries the server and tool the provider session read from the protocol for it.
+            rig.Session.Emit(new ProviderEvent.ToolStarted("t-ask", row) { McpTool = new("nth-ui", "ask_user") });
             rig.Session.Emit(new ProviderEvent.ToolOutput("t-ask", "waiting"));
             rig.Session.Emit(new ProviderEvent.ToolUpdated("t-ask", new ToolUpdate { Output = "done", Status = ToolCall.Status.Completed }));
-            rig.Session.Emit(new ProviderEvent.ToolStarted("t-other", new ToolCall { ToolCallKind = ToolCall.Kind.Mcp, Title = "nth-ui · artifact_list" }));
+            rig.Session.Emit(new ProviderEvent.ToolStarted("t-other", new ToolCall { ToolCallKind = ToolCall.Kind.Mcp, Title = "nth-ui · artifact_list" }) { McpTool = new("nth-ui", "artifact_list") });
         });
         rig.H.Main.RunUntilIdle();
         var tools = rig.H.Main.OnMain(() => rig.Runtime.Entries.Where(e => e.TimelineEntryKind == TimelineEntry.Kind.Tool).Select(e => e.Id).ToList());
