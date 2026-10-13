@@ -59,13 +59,15 @@ public sealed partial class AssistantController
         {
             try
             {
-                await capture.CaptureAsync(turn, memoryStop.Token).ConfigureAwait(false);
+                var outcomes = await capture.CaptureAsync(turn, memoryStop.Token).ConfigureAwait(false);
+                if (outcomes.Count > 0)
+                    AuditMemory(turn.AssistantId, "capture", $"kept {outcomes.Count(o => o.Result == NoteResult.Kept)}, waiting {outcomes.Count(o => o.Result == NoteResult.Quarantined)}, joined {outcomes.Count(o => o.Result == NoteResult.Merged)}, refused {outcomes.Count(o => o.Result is NoteResult.Refused or NoteResult.Failed)}");
                 notes.Store.FoldIfDue();
             }
             catch (OperationCanceledException) { }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or ObjectDisposedException or InvalidOperationException or JsonException)
             {
-                TryAudit(new AuditEntry { Assistant = turn.AssistantId, Tool = "nth-dextra/memory-capture", ActionClass = "Work", Result = "failed: " + error.GetType().Name });
+                AuditMemory(turn.AssistantId, "capture", "failed: " + error.GetType().Name);
             }
         });
     }
@@ -80,6 +82,13 @@ public sealed partial class AssistantController
             : id + " (no such note)");
         return [new DecisionInput("notes", string.Join('\n', lines))];
     }
+
+    /// <summary>
+    /// Writes one activity line for something done to the memory (12.5): the capture of a turn, or what the owner did in the Memory view
+    /// (a delete, a keep, an import). It holds counts and ids, never a note's words.
+    /// </summary>
+    public void AuditMemory(string? assistantId, string action, string result) =>
+        TryAudit(new AuditEntry { Assistant = assistantId ?? o.Profiles().FirstOrDefault(p => p.ParentId is null)?.Id ?? "dextra", Tool = "nth-dextra/memory-" + action, ActionClass = "Work", Result = result });
 
     private void DisposeMemory()
     {

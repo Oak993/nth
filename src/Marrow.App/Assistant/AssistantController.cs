@@ -131,7 +131,13 @@ public sealed class MemorySetup
     /// <summary>The accounts' folders the import reads now (read at every import, so an account added later is seen).</summary>
     public Func<IReadOnlyList<MemoryImportSource>> ImportSources { get; init; } = () => [];
 
-    /// <summary>Whatever else lives and dies with the memory (the import's watch): the controller disposes it.</summary>
+    /// <summary>
+    /// The watch over the folders the import reads (8.4): started once the owner has imported, and again after each import he runs
+    /// from the Memory view (the Memory view's model is given its Start). Null: none.
+    /// </summary>
+    public MemoryImportWatch? Watch { get; init; }
+
+    /// <summary>Whatever else lives and dies with the memory: the controller disposes it with the watch.</summary>
     public IDisposable? Owned { get; init; }
 }
 

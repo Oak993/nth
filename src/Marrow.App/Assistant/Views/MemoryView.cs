@@ -58,7 +58,7 @@ public sealed class MemoryView : Decorator
         addBox.MaxLength = MemoryRules.MaxNoteChars;
         addBox.AddHandler(InputElement.KeyDownEvent, (object? _, KeyEventArgs e) =>
         {
-            if (e.Key == Key.Enter) { model.Add(); e.Handled = true; }
+            if (e.Key == Key.Enter) { _ = model.Add(); e.Handled = true; }
         }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         forgetBox = Field(MemoryViewWords.ForgetPrompt, () => model.ForgetText, value => model.ForgetText = value, "Forget everything about a topic");
         forgetBox.AddHandler(InputElement.KeyDownEvent, (object? _, KeyEventArgs e) =>
@@ -275,7 +275,7 @@ public sealed class MemoryView : Decorator
             forgetPreview.Children.Add(line);
             foreach (var note in preview.Take(50)) forgetPreview.Children.Add(Text("• " + (note.Quarantined ? "(waiting) " : "") + note.Text, SwiftFont.TextStyle.Footnote, secondary: true));
             if (preview.Count > 50) forgetPreview.Children.Add(Text($"… and {preview.Count - 50} more.", SwiftFont.TextStyle.Footnote, secondary: true));
-            var remove = PlanCard.Capsule(preview.Count == 1 ? "Remove 1 note" : $"Remove {preview.Count} notes", model.ConfirmForget, "Remove these notes for real");
+            var remove = PlanCard.Capsule(preview.Count == 1 ? "Remove 1 note" : $"Remove {preview.Count} notes", () => _ = model.ConfirmForget(), "Remove these notes for real");
             var cancel = PlanCard.Capsule(MemoryViewWords.CancelTitle, () => { model.CancelForget(); forgetBox.Focus(); }, "Do not remove these notes");
             ConfirmForgetButton = remove.Button;
             CancelForgetButton = cancel.Button;
@@ -333,7 +333,7 @@ public sealed class MemoryView : Decorator
 
     private Control KeepAllRow()
     {
-        var all = PlanCard.Capsule(MemoryViewWords.KeepAllTitle, model.KeepAll, "Keep every note that waits and use it");
+        var all = PlanCard.Capsule(MemoryViewWords.KeepAllTitle, () => _ = model.KeepAll(), "Keep every note that waits and use it");
         KeepAllButton = all.Button;
         return new WrapPanel { Orientation = Orientation.Horizontal, Children = { all.Shown } };
     }
@@ -355,7 +355,7 @@ public sealed class MemoryView : Decorator
 
     private Control ToolsCard()
     {
-        var add = PlanCard.Capsule(MemoryViewWords.AddTitle, () => model.Add(), "Add the note");
+        var add = PlanCard.Capsule(MemoryViewWords.AddTitle, () => _ = model.Add(), "Add the note");
         AddButton = add.Button;
         var addRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 8 };
         Grid.SetColumn(add.Shown, 1);

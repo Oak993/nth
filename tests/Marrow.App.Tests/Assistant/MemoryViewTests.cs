@@ -26,7 +26,7 @@ public sealed class MemoryViewTests(HeadlessSession headless) : IDisposable
 
     public void Dispose() => rig.Dispose();
 
-    private MemoryModel Model() => new(rig.Memory, id => id switch { MemoryRig.Main => "Dextra", MemoryRig.Astur => "Shop", _ => id }, () => MemoryRig.Main, new MemoryImport(rig.Memory, () => MemoryRig.Main), () => [], TimeZoneInfo.Utc);
+    private MemoryModel Model() => new(rig.Memory, id => id switch { MemoryRig.Main => "Dextra", MemoryRig.Astur => "Shop", _ => id }, () => MemoryRig.Main, new MemoryImport(rig.Memory, () => MemoryRig.Main), () => [], TimeZoneInfo.Utc, new InlineMemoryWork());
 
     private string Add(string text, NoteKind kind = NoteKind.Fact, string scope = MemoryRig.Main, string? topic = null) =>
         rig.Memory.Propose(MemoryRig.Clean(text, kind, scope, topic)).Note!.Id;

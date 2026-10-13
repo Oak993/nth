@@ -39,7 +39,7 @@ internal sealed class MemoryNoteRow : Border
         var buttons = new WrapPanel { Orientation = Orientation.Horizontal, ItemSpacing = 6, LineSpacing = 6 };
         if (note.Quarantined)
         {
-            var keep = Button(MemoryViewWords.KeepTitle, () => model.Keep(note.Id), "Keep the note and use it: " + excerpt);
+            var keep = Button(MemoryViewWords.KeepTitle, () => _ = model.Keep(note.Id), "Keep the note and use it: " + excerpt);
             KeepButton = keep.Button;
             buttons.Children.Add(keep.Shown);
         }
@@ -49,7 +49,7 @@ internal sealed class MemoryNoteRow : Border
             EditButton = edit.Button;
             buttons.Children.Add(edit.Shown);
         }
-        var delete = Button(MemoryViewWords.DeleteTitle, () => model.Delete(note.Id), "Delete the note for real: " + excerpt);
+        var delete = Button(MemoryViewWords.DeleteTitle, () => _ = model.Delete(note.Id), "Delete the note for real: " + excerpt);
         DeleteButton = delete.Button;
         buttons.Children.Add(delete.Shown);
         var source = Button(MemoryViewWords.SourceTitle, () => model.ToggleSource(note.Id), "Show why you know the note: " + excerpt);
@@ -107,7 +107,7 @@ internal sealed class MemoryNoteRow : Border
         {
             if (e.Key != Key.Enter) return;
             focusAfter(note.Id, MemoryRowButton.EditBox);
-            model.SaveEdit();
+            _ = model.SaveEdit();
             e.Handled = true;
         }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         EditBox = box;
@@ -120,7 +120,7 @@ internal sealed class MemoryNoteRow : Border
         problem.Foreground = Chrome.Danger.Brush(problem);
         EditProblem = problem;
 
-        var save = Button(MemoryViewWords.SaveTitle, () => { focusAfter(note.Id, MemoryRowButton.EditBox); model.SaveEdit(); }, "Save the note: " + Excerpt(note.Text));
+        var save = Button(MemoryViewWords.SaveTitle, () => { focusAfter(note.Id, MemoryRowButton.EditBox); _ = model.SaveEdit(); }, "Save the note: " + Excerpt(note.Text));
         SaveButton = save.Button;
         var cancel = Button(MemoryViewWords.CancelTitle, () => { focusAfter(note.Id, MemoryRowButton.Edit); model.CancelEdit(); }, "Cancel the edit");
         var row = new WrapPanel { Orientation = Orientation.Horizontal, ItemSpacing = 6, LineSpacing = 6, Children = { save.Shown, cancel.Shown } };
@@ -131,7 +131,7 @@ internal sealed class MemoryNoteRow : Border
     {
         var question = Text("Delete this note for real? It is removed from the files, the index and the search, and nth will not write it again by itself.", SwiftFont.TextStyle.Footnote, secondary: false);
         AutomationProperties.SetLiveSetting(question, AutomationLiveSetting.Polite);
-        var confirm = Button("Delete it", () => model.Delete(note.Id), "Yes, delete the note for real: " + Excerpt(note.Text));
+        var confirm = Button("Delete it", () => _ = model.Delete(note.Id), "Yes, delete the note for real: " + Excerpt(note.Text));
         ConfirmDeleteButton = confirm.Button;
         var keep = Button("Keep the note", () => { focusAfter(note.Id, MemoryRowButton.Delete); model.CancelDelete(); }, "No, keep the note");
         KeepNoteButton = keep.Button;

@@ -3,6 +3,7 @@
 // the owner's Keep, Edit and Delete and Source for each note, "forget everything about ⟨topic⟩" with the notes it will remove shown
 // first, a note the owner writes himself, and the import of other agents' notes. Delete is real (the store removes the note from its
 // file, the index, the search index and the built prompts); a used note asks once more before it goes, a waiting one does not.
+// Everything that writes a file runs off the UI thread (IMemoryWork) and its outcome is applied back on it.
 using System.Globalization;
 using Marrow.Core.Port.Assistant;
 using Marrow.Services.Assistant;
@@ -66,6 +67,30 @@ public static class MemoryViewWords
     }
 }
 
+/// <summary>Where the model's file work runs: away from the UI thread, with its outcome applied back on it.</summary>
+public interface IMemoryWork
+{
+    /// <summary>Runs store work (it reads and writes files) away from the UI thread.</summary>
+    Task<T> Run<T>(Func<T> work);
+
+    /// <summary>Applies an outcome on the UI thread.</summary>
+    void Post(Action ui);
+}
+
+/// <summary>The product's work: the thread pool, and back on the thread the model was made on (the UI's).</summary>
+public sealed class PoolMemoryWork : IMemoryWork
+{
+    private readonly SynchronizationContext? context = SynchronizationContext.Current;
+
+    public Task<T> Run<T>(Func<T> work) => Task.Run(work);
+
+    public void Post(Action ui)
+    {
+        if (context is null) ui();
+        else context.Post(_ => ui(), null);
+    }
+}
+
 /// <summary>The notes of one topic.</summary>
 public sealed record MemoryTopicGroup(string Topic, string Title, IReadOnlyList<MemoryNote> Notes);
 
@@ -82,10 +107,13 @@ public sealed class MemoryModel : IDisposable
     private readonly Func<IReadOnlyList<MemoryImportSource>> sources;
     private readonly Func<string, string> scopeName;
     private readonly Func<string?> mainAssistant;
+    private readonly IMemoryWork work;
+    private readonly Action<string, string> audit;
+    private readonly Action imported;
     private readonly TimeZoneInfo zone;
     private string query = "";
     private string status = "";
-    private Task? importTask;
+    private int busy;
 
     /// <param name="store">The memory.</param>
     /// <param name="scopeName">The name of an assistant by its id (Dextra, an Astur); the shared set is named here.</param>
@@ -93,15 +121,22 @@ public sealed class MemoryModel : IDisposable
     /// <param name="import">The import of other agents' notes; null: the view offers none.</param>
     /// <param name="sources">The accounts the import reads now.</param>
     /// <param name="zone">The zone dates are shown in (the PC's).</param>
+    /// <param name="work">Where file work runs; the thread pool by default.</param>
+    /// <param name="audit">Writes one activity line for what the owner did to the memory (action, result: counts and ids, never a note's words).</param>
+    /// <param name="imported">Called after an import the owner ran (starts the watch over the folders, 8.4).</param>
     public MemoryModel(MemoryStore store, Func<string, string>? scopeName = null, Func<string?>? mainAssistant = null, MemoryImport? import = null,
-        Func<IReadOnlyList<MemoryImportSource>>? sources = null, TimeZoneInfo? zone = null)
+        Func<IReadOnlyList<MemoryImportSource>>? sources = null, TimeZoneInfo? zone = null, IMemoryWork? work = null, Action<string, string>? audit = null,
+        Action? imported = null)
     {
+        this.audit = audit ?? ((_, _) => { });
+        this.imported = imported ?? (() => { });
         this.store = store ?? throw new ArgumentNullException(nameof(store));
         this.scopeName = scopeName ?? (id => id);
         this.mainAssistant = mainAssistant ?? (() => null);
         this.import = import;
         this.sources = sources ?? (() => []);
         this.zone = zone ?? TimeZoneInfo.Local;
+        this.work = work ?? new PoolMemoryWork();
         store.Changed += OnStoreChanged;
         store.Faulted += OnFaulted;
         Rebuild();
@@ -111,6 +146,9 @@ public sealed class MemoryModel : IDisposable
     public event Action? Changed;
 
     public TimeZoneInfo Zone => zone;
+
+    /// <summary>A write is under way: further commands wait for it (a double press changes nothing twice).</summary>
+    public bool Busy => Volatile.Read(ref busy) != 0;
 
     // ---- what is shown ------------------------------------------------------------------------------------------------------
 
@@ -175,17 +213,40 @@ public sealed class MemoryModel : IDisposable
 
     private void Raise() => Changed?.Invoke();
 
-    private void OnStoreChanged(MemoryChange change)
+    // The store raises these on whichever thread wrote; the model changes only on the UI thread.
+    private void OnStoreChanged(MemoryChange change) => work.Post(() =>
     {
         Rebuild();
         Raise();
-    }
+    });
 
-    private void OnFaulted(string line)
+    private void OnFaulted(string line) => work.Post(() =>
     {
         status = line;
         Rebuild();
         Raise();
+    });
+
+    // Runs one write: the store work away from the UI thread, then its outcome applied on it. A command that arrives while one is
+    // running is dropped (the press is not queued behind a write the owner has not seen finish).
+    private async Task<bool> Write<T>(Func<T> storeWork, Action<T> apply)
+    {
+        if (Interlocked.CompareExchange(ref busy, 1, 0) != 0) return false;
+        try
+        {
+            var result = await work.Run(storeWork).ConfigureAwait(true);
+            work.Post(() =>
+            {
+                apply(result);
+                Rebuild();
+                Raise();
+            });
+            return true;
+        }
+        finally
+        {
+            Volatile.Write(ref busy, 0);
+        }
     }
 
     // ---- one note: edit, delete, keep, source ---------------------------------------------------------------------------------
@@ -218,27 +279,29 @@ public sealed class MemoryModel : IDisposable
         Raise();
     }
 
-    /// <summary>Saves the edit. A refusal (a secret, too long, empty) keeps the edit open and says why.</summary>
-    public bool SaveEdit()
+    /// <summary>Saves the edit. A refusal (a secret, too long, empty) keeps the edit open and says why. True when the note was saved.</summary>
+    public async Task<bool> SaveEdit()
     {
         if (EditingId is not { } id) return false;
-        var outcome = store.Edit(id, EditText);
-        if (!outcome.Written)
+        var text = EditText;
+        var saved = false;
+        await Write(() => store.Edit(id, text), outcome =>
         {
-            EditProblem = outcome.Message;
-            Raise();
-            return false;
-        }
-        EditingId = null;
-        EditProblem = null;
-        status = "Saved.";
-        Rebuild();
-        Raise();
-        return true;
+            if (!outcome.Written)
+            {
+                EditProblem = outcome.Message;
+                return;
+            }
+            saved = true;
+            EditingId = null;
+            EditProblem = null;
+            status = "Saved.";
+        }).ConfigureAwait(true);
+        return saved;
     }
 
     /// <summary>Delete on a note: a used note asks once more first; a waiting one goes at once (it was never used).</summary>
-    public void Delete(string id)
+    public async Task Delete(string id)
     {
         if (store.Find(id) is not { } note) return;
         if (note.Used && ConfirmDeleteId != id)
@@ -249,10 +312,11 @@ public sealed class MemoryModel : IDisposable
             return;
         }
         ConfirmDeleteId = null;
-        var report = store.Delete([id]);
-        status = report.Failed ? "The note could not be deleted: the memory files could not be written. Nothing changed." : "Deleted. The note is gone from the files, the index and the search.";
-        Rebuild();
-        Raise();
+        await Write(() => store.Delete([id]), report =>
+        {
+            status = report.Failed ? "The note could not be deleted: the memory files could not be written. Nothing changed." : "Deleted. The note is gone from the files, the index and the search.";
+            audit("delete", report.Failed ? "failed" : "deleted note " + id);
+        }).ConfigureAwait(true);
     }
 
     public void CancelDelete()
@@ -262,20 +326,20 @@ public sealed class MemoryModel : IDisposable
         Raise();
     }
 
-    public void Keep(string id)
+    public Task Keep(string id) => Write(() => store.Keep(id), kept =>
     {
-        var kept = store.Keep(id);
         status = kept ? "Kept. It is used from now on." : "That note is not waiting.";
-        Rebuild();
-        Raise();
-    }
+        if (kept) audit("keep", "kept note " + id);
+    });
 
-    public void KeepAll()
+    public Task KeepAll()
     {
-        var kept = store.Keep([.. Waiting.Select(n => n.Id)]);
-        status = kept.Count == 0 ? "Nothing was kept." : kept.Count == 1 ? "Kept 1 note. It is used from now on." : $"Kept {kept.Count} notes. They are used from now on.";
-        Rebuild();
-        Raise();
+        var ids = Waiting.Select(n => n.Id).ToList();
+        return Write(() => store.Keep(ids), kept =>
+        {
+            status = kept.Count == 0 ? "Nothing was kept." : kept.Count == 1 ? "Kept 1 note. It is used from now on." : $"Kept {kept.Count} notes. They are used from now on.";
+            if (kept.Count > 0) audit("keep", $"kept {kept.Count} notes");
+        });
     }
 
     public void ToggleSource(string id)
@@ -293,27 +357,29 @@ public sealed class MemoryModel : IDisposable
     public string? AddProblem { get; private set; }
 
     /// <summary>The owner writes a note himself: his own words, so the third-party rule does not apply and a note he deleted may be written again.</summary>
-    public bool Add()
+    public async Task<bool> Add()
     {
         var main = mainAssistant();
         var scope = AddKind is NoteKind.Preference or NoteKind.Fact || main is null ? MemoryScope.Shared : main;
-        var outcome = store.Propose(new NoteProposal(AddText, AddKind, scope, new NoteSource(NoteSourceKind.Owner, "memory view"))
+        var proposal = new NoteProposal(AddText, AddKind, scope, new NoteSource(NoteSourceKind.Owner, "memory view"))
         {
             Author = NoteAuthor.Owner,
             OwnerTyped = true,
-        });
-        if (!outcome.Written)
+        };
+        var added = false;
+        await Write(() => store.Propose(proposal), outcome =>
         {
-            AddProblem = outcome.Message;
-            Raise();
-            return false;
-        }
-        AddProblem = null;
-        AddText = "";
-        status = outcome.Result == NoteResult.Merged ? outcome.Message : "Kept.";
-        Rebuild();
-        Raise();
-        return true;
+            if (!outcome.Written)
+            {
+                AddProblem = outcome.Message;
+                return;
+            }
+            added = true;
+            AddProblem = null;
+            AddText = "";
+            status = outcome.Result == NoteResult.Merged ? outcome.Message : "Kept.";
+        }).ConfigureAwait(true);
+        return added;
     }
 
     // ---- forget everything about --------------------------------------------------------------------------------------------------
@@ -330,16 +396,18 @@ public sealed class MemoryModel : IDisposable
         Raise();
     }
 
-    public void ConfirmForget()
+    public async Task ConfirmForget()
     {
         if (ForgetPreview is not { Count: > 0 } preview) return;
-        var report = store.Delete([.. preview.Select(n => n.Id)]);
-        ForgetPreview = null;
-        ForgetText = "";
-        status = report.Failed ? "The notes could not be deleted: the memory files could not be written. Nothing changed."
-            : report.Removed == 1 ? "Removed 1 note, for real." : $"Removed {report.Removed} notes, for real.";
-        Rebuild();
-        Raise();
+        var ids = preview.Select(n => n.Id).ToList();
+        await Write(() => store.Delete(ids), report =>
+        {
+            ForgetPreview = null;
+            ForgetText = "";
+            status = report.Failed ? "The notes could not be deleted: the memory files could not be written. Nothing changed."
+                : report.Removed == 1 ? "Removed 1 note, for real." : $"Removed {report.Removed} notes, for real.";
+            audit("forget", report.Failed ? "failed" : $"removed {report.Removed} notes");
+        }).ConfigureAwait(true);
     }
 
     public void CancelForget()
@@ -362,34 +430,36 @@ public sealed class MemoryModel : IDisposable
 
     public bool HasAccounts => sources().Count > 0;
 
-    /// <summary>Brings in the notes other agents keep, off the calling thread. Returns the task that ends when the notes are in.</summary>
-    public Task ImportAsync()
+    /// <summary>Brings in the notes other agents keep, off the UI thread. Returns when the notes are in.</summary>
+    public async Task ImportAsync()
     {
-        if (import is null || Importing) return importTask ?? Task.CompletedTask;
+        if (import is null || Importing) return;
         var accounts = sources();
         if (accounts.Count == 0)
         {
             ImportSummary = MemoryViewWords.ImportNone;
             Raise();
-            return Task.CompletedTask;
+            return;
         }
         Importing = true;
         ImportSummary = MemoryViewWords.Importing;
         Raise();
-        return importTask = Task.Run(() =>
+        ImportReport report;
+        try
         {
-            ImportReport report;
-            try
-            {
-                report = import.Import(accounts);
-            }
-            catch (Exception error) when (error is IOException or UnauthorizedAccessException or ObjectDisposedException or InvalidOperationException)
-            {
-                report = new ImportReport(0, 0, 0, 0, 0, 0, 0, ["The import stopped: " + error.Message]);
-            }
+            report = await work.Run(() => import.Import(accounts)).ConfigureAwait(true);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ObjectDisposedException or InvalidOperationException)
+        {
+            report = new ImportReport(0, 0, 0, 0, 0, 0, 0, ["The import stopped: " + error.Message]);
+        }
+        work.Post(() =>
+        {
             importProblems = report.Problems;
             Importing = false;
             ImportSummary = MemoryViewWords.Importer(report);
+            audit("import", $"read {report.FilesRead} files: kept {report.Kept}, waiting {report.Quarantined}, joined {report.Merged}, refused {report.Refused}");
+            imported();
             Rebuild();
             Raise();
         });

@@ -283,6 +283,12 @@ public sealed partial class MemoryStore
 
     // ---- state for the import ---------------------------------------------------------------------------------------------------
 
+    /// <summary>Whether an import has ever read a file (the watch starts only after the owner has imported once, 8.4).</summary>
+    public bool HasImported
+    {
+        get { lock (gate) return state.HasImports; }
+    }
+
     internal ImportedFile? ImportedFileOf(string sourceKey, string path)
     {
         lock (gate) return state.File(sourceKey, path);

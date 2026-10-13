@@ -1,4 +1,5 @@
 using Marrow.App.Assistant.Views;
+using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Models;
 using Marrow.Core.Port.Assistant;
 using Marrow.Services.Assistant;
@@ -24,7 +25,7 @@ public sealed class MemoryModelTests : IDisposable
 
     private MemoryModel Model(MemoryImport? import = null, Func<IReadOnlyList<MemoryImportSource>>? sources = null)
     {
-        var model = new MemoryModel(rig.Memory, id => id switch { MemoryRig.Main => "Dextra", MemoryRig.Astur => "Shop", _ => id }, () => MemoryRig.Main, import, sources, TimeZoneInfo.Utc);
+        var model = new MemoryModel(rig.Memory, id => id switch { MemoryRig.Main => "Dextra", MemoryRig.Astur => "Shop", _ => id }, () => MemoryRig.Main, import, sources, TimeZoneInfo.Utc, new InlineMemoryWork());
         models.Add(model);
         return model;
     }
@@ -107,19 +108,19 @@ public sealed class MemoryModelTests : IDisposable
     }
 
     [Fact]
-    public void Editing_a_note_saves_it_and_a_refusal_keeps_the_edit_open_and_says_why()
+    public async Task Editing_a_note_saves_it_and_a_refusal_keeps_the_edit_open_and_says_why()
     {
         var id = Add("The owner lives in Pune");
         var model = Model();
         model.BeginEdit(id);
         Assert.Equal((id, "The owner lives in Pune"), (model.EditingId, model.EditText));
         model.EditText = "The owner password is hunter2horse";
-        Assert.False(model.SaveEdit());
+        Assert.False(await model.SaveEdit());
         Assert.Equal(id, model.EditingId);
         Assert.Contains("Secrets are never stored", model.EditProblem, StringComparison.Ordinal);
         Assert.Equal("The owner lives in Pune", rig.Memory.Find(id)!.Text);
         model.EditText = "The owner lives in Mumbai";
-        Assert.True(model.SaveEdit());
+        Assert.True(await model.SaveEdit());
         Assert.Null(model.EditingId);
         Assert.Equal("Saved.", model.Status);
         Assert.Equal("The owner lives in Mumbai", rig.Memory.Find(id)!.Text);
@@ -131,47 +132,47 @@ public sealed class MemoryModelTests : IDisposable
     }
 
     [Fact]
-    public void Delete_asks_once_more_for_a_used_note_and_removes_it_for_real_and_a_waiting_note_goes_at_once()
+    public async Task Delete_asks_once_more_for_a_used_note_and_removes_it_for_real_and_a_waiting_note_goes_at_once()
     {
         var used = Add("The zebrafish tank needs its filter cleaned");
         var waiting = rig.Memory.Propose(MemoryRig.FromWeb("Page says the vault is in the red folder")).Note!.Id;
         var model = Model();
-        model.Delete(used);
+        await model.Delete(used);
         Assert.Equal(used, model.ConfirmDeleteId);
         Assert.NotNull(rig.Memory.Find(used));
         model.CancelDelete();
         Assert.Null(model.ConfirmDeleteId);
-        model.Delete(used);
-        model.Delete(used);
+        await model.Delete(used);
+        await model.Delete(used);
         Assert.Null(rig.Memory.Find(used));
         Assert.Equal("Deleted. The note is gone from the files, the index and the search.", model.Status);
         Assert.DoesNotContain("zebrafish", rig.AllText(), StringComparison.OrdinalIgnoreCase);
-        model.Delete(waiting);
+        await model.Delete(waiting);
         Assert.Null(rig.Memory.Find(waiting));
         Assert.True(model.IsEmpty);
     }
 
     [Fact]
-    public void Keep_releases_one_waiting_note_or_all_of_them()
+    public async Task Keep_releases_one_waiting_note_or_all_of_them()
     {
         var a = rig.Memory.Propose(MemoryRig.FromWeb("Page one says the vault is in the red folder")).Note!.Id;
         rig.Memory.Propose(MemoryRig.FromWeb("Page two says the backup runs at midnight"));
         rig.Memory.Propose(MemoryRig.FromWeb("Page three says the printer is on floor two"));
         var model = Model();
-        model.Keep(a);
+        await model.Keep(a);
         Assert.Equal("Kept. It is used from now on.", model.Status);
         Assert.Equal(new MemoryCounts(1, 2), model.Counts);
-        model.Keep(a);
+        await model.Keep(a);
         Assert.Equal("That note is not waiting.", model.Status);
-        model.KeepAll();
+        await model.KeepAll();
         Assert.Equal("Kept 2 notes. They are used from now on.", model.Status);
         Assert.Equal(new MemoryCounts(3, 0), model.Counts);
-        model.KeepAll();
+        await model.KeepAll();
         Assert.Equal("Nothing was kept.", model.Status);
     }
 
     [Fact]
-    public void Source_opens_for_one_note_at_a_time_and_closes_with_a_second_press()
+    public async Task Source_opens_for_one_note_at_a_time_and_closes_with_a_second_press()
     {
         var a = Add("Releases go out on Fridays");
         var b = Add("Builds use dotnet 10");
@@ -182,20 +183,20 @@ public sealed class MemoryModelTests : IDisposable
         model.ToggleSource(b);
         Assert.Null(model.SourceOpenId);
         model.ToggleSource(a);
-        model.Delete(a);
-        model.Delete(a);
+        await model.Delete(a);
+        await model.Delete(a);
         Assert.Null(model.SourceOpenId);                                   // a note that went away takes its open source with it
     }
 
     [Fact]
-    public void A_note_the_owner_writes_goes_where_its_kind_belongs_in_his_own_words()
+    public async Task A_note_the_owner_writes_goes_where_its_kind_belongs_in_his_own_words()
     {
         var model = Model();
         model.AddText = "My sister Asha is vegetarian";
-        Assert.True(model.Add());                                          // his own words: the third-party rule does not hold him
+        Assert.True(await model.Add());                                          // his own words: the third-party rule does not hold him
         model.AddKind = NoteKind.Procedure;
         model.AddText = "Back up the laptop on Sundays";
-        Assert.True(model.Add());
+        Assert.True(await model.Add());
         Assert.Equal("", model.AddText);
         var notes = rig.Memory.Notes(null);
         var asha = Assert.Single(notes, n => n.Text.Contains("Asha", StringComparison.Ordinal));
@@ -204,18 +205,18 @@ public sealed class MemoryModelTests : IDisposable
         Assert.Equal(NoteSourceKind.Owner, asha.Sources.Single().Kind);
         // A refusal says why and keeps the words.
         model.AddText = "The key is sk-proj-AbCdEfGhIjKlMnOpQrStUv1234";
-        Assert.False(model.Add());
+        Assert.False(await model.Add());
         Assert.Contains("Secrets are never stored", model.AddProblem, StringComparison.Ordinal);
         Assert.Equal("The key is sk-proj-AbCdEfGhIjKlMnOpQrStUv1234", model.AddText);
         // The same words again are one note.
         model.AddText = "Back up the laptop on Sundays";
-        Assert.True(model.Add());
+        Assert.True(await model.Add());
         Assert.Equal("Already kept.", model.Status);
         Assert.Equal(2, rig.Memory.Notes(null).Count);
     }
 
     [Fact]
-    public void Forget_everything_about_a_topic_shows_the_notes_first_and_removes_only_when_confirmed()
+    public async Task Forget_everything_about_a_topic_shows_the_notes_first_and_removes_only_when_confirmed()
     {
         Add("Dinner is at eight and the owner is vegetarian", topic: "Diet");
         Add("The owner avoids peanuts", topic: "Diet");
@@ -228,7 +229,7 @@ public sealed class MemoryModelTests : IDisposable
         model.CancelForget();
         Assert.Null(model.ForgetPreview);
         model.PreviewForget();
-        model.ConfirmForget();
+        await model.ConfirmForget();
         Assert.Equal("Removed 2 notes, for real.", model.Status);
         Assert.Equal(["Releases go out on Fridays"], rig.Memory.Notes(null).Select(n => n.Text));
         Assert.Null(model.ForgetPreview);
@@ -236,8 +237,89 @@ public sealed class MemoryModelTests : IDisposable
         model.ForgetText = "unicorns";
         model.PreviewForget();
         Assert.Equal("No note is about that.", model.Status);
-        model.ConfirmForget();                                             // nothing is previewed, so nothing goes
+        await model.ConfirmForget();                                             // nothing is previewed, so nothing goes
         Assert.Single(rig.Memory.Notes(null));
+    }
+
+    private sealed class SpyWork : IMemoryWork
+    {
+        public List<int> RunThreads { get; } = [];
+
+        public Queue<Action> Posted { get; } = [];
+
+        public Task<T> Run<T>(Func<T> work) => Task.Run(() =>
+        {
+            lock (RunThreads) RunThreads.Add(Environment.CurrentManagedThreadId);
+            return work();
+        });
+
+        public void Post(Action ui)
+        {
+            lock (Posted) Posted.Enqueue(ui);
+        }
+
+        public void Drain()
+        {
+            while (true)
+            {
+                Action? next;
+                lock (Posted) next = Posted.Count > 0 ? Posted.Dequeue() : null;
+                if (next is null) return;
+                next();
+            }
+        }
+    }
+
+    [Fact]
+    public async Task File_work_runs_off_the_calling_thread_and_its_outcome_is_applied_where_the_owner_is()
+    {
+        var spy = new SpyWork();
+        var model = new MemoryModel(rig.Memory, id => id, () => MemoryRig.Main, new MemoryImport(rig.Memory), () => [], TimeZoneInfo.Utc, spy);
+        var id = Add("Releases go out on Fridays");
+        spy.Drain();
+        var caller = Environment.CurrentManagedThreadId;
+        await model.Delete(id);
+        await model.Delete(id);
+        var waitingBefore = model.Status;
+        Assert.Null(rig.Memory.Find(id));                                   // the write is done ...
+        Assert.Equal("", waitingBefore);                                    // ... and nothing the owner reads has changed until his thread applies it
+        spy.Drain();
+        Assert.Equal("Deleted. The note is gone from the files, the index and the search.", model.Status);
+        Assert.NotEmpty(spy.RunThreads);
+        Assert.DoesNotContain(caller, spy.RunThreads);
+        model.Dispose();
+    }
+
+    [Fact]
+    public async Task A_press_while_a_write_is_running_is_dropped_not_queued()
+    {
+        var gate = new TaskCompletionSource();
+        var started = new TaskCompletionSource();
+        var work = new GatedWork(gate.Task, started);
+        var model = new MemoryModel(rig.Memory, id => id, () => MemoryRig.Main, null, null, TimeZoneInfo.Utc, work);
+        var a = rig.Memory.Propose(MemoryRig.FromWeb("Page one says the vault is in the red folder")).Note!.Id;
+        var first = model.Keep(a);
+        await started.Task;
+        Assert.True(model.Busy);
+        await model.Keep(a);                                                // dropped at once
+        Assert.True(rig.Memory.Find(a)!.Quarantined);
+        gate.SetResult();
+        await first;
+        Assert.False(model.Busy);
+        Assert.True(rig.Memory.Find(a)!.Used);
+        model.Dispose();
+    }
+
+    private sealed class GatedWork(Task gate, TaskCompletionSource started) : IMemoryWork
+    {
+        public async Task<T> Run<T>(Func<T> work)
+        {
+            started.TrySetResult();
+            await gate.ConfigureAwait(false);
+            return work();
+        }
+
+        public void Post(Action ui) => ui();
     }
 
     [Fact]
@@ -257,6 +339,40 @@ public sealed class MemoryModelTests : IDisposable
         Assert.DoesNotContain("hunter2horse", rig.AllText(), StringComparison.Ordinal);
         await model.ImportAsync();
         Assert.Equal("Nothing new to bring in.", model.ImportSummary);
+    }
+
+    [Fact]
+    public async Task What_the_owner_does_is_written_to_the_activity_log_as_counts_and_ids_never_as_a_notes_words()
+    {
+        var lines = new List<(string Action, string Result)>();
+        var imported = 0;
+        var folder = Path.Combine(rig.Temp.Folder, "claude-a");
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(Path.Combine(folder, "CLAUDE.md"), "- Always reply in English.\n");
+        var source = new MemoryImportSource("acca", "Claude A", ProviderKind.Claude, folder);
+        var model = new MemoryModel(rig.Memory, id => id, () => MemoryRig.Main, new MemoryImport(rig.Memory), () => [source], TimeZoneInfo.Utc, new InlineMemoryWork(),
+            (action, result) => lines.Add((action, result)), () => imported++);
+        models.Add(model);
+        var used = Add("The zebrafish tank needs its filter cleaned", topic: "Aquarium");
+        var waiting = rig.Memory.Propose(MemoryRig.FromWeb("Page says the vault is in the red folder")).Note!.Id;
+        await model.Keep(waiting);
+        await model.Delete(used);
+        await model.Delete(used);
+        Add("Dinner is at eight", topic: "Diet");
+        model.ForgetText = "diet";
+        model.PreviewForget();
+        await model.ConfirmForget();
+        await model.ImportAsync();
+        Assert.Equal(1, imported);
+        Assert.Equal(["keep", "delete", "forget", "import"], lines.Select(l => l.Action));
+        Assert.Equal($"kept note {waiting}", lines[0].Result);
+        Assert.Equal($"deleted note {used}", lines[1].Result);
+        Assert.Equal("removed 1 notes", lines[2].Result);
+        Assert.Equal("read 1 files: kept 1, waiting 0, joined 0, refused 0", lines[3].Result);
+        var all = string.Join('\n', lines.Select(l => l.Action + "=" + l.Result));
+        Assert.DoesNotContain("zebrafish", all, StringComparison.Ordinal);
+        Assert.DoesNotContain("Dinner", all, StringComparison.Ordinal);
+        Assert.DoesNotContain("vault", all, StringComparison.Ordinal);
     }
 
     [Fact]

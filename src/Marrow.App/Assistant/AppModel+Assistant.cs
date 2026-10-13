@@ -120,15 +120,23 @@ public sealed partial class AppModel
         // Dextra's memory (AS-12): the notes live in the store; the capture runs only when a cheap model is bound (noteProposer).
         string? DextraId() => profiles().FirstOrDefault(p => p.ParentId is null)?.Id;
         var memoryStore = new MemoryStore(store, new MemoryStoreOptions { MainAssistantId = DextraId });
+        var memoryImport = new MemoryImport(memoryStore, DextraId);
+        IReadOnlyList<MemoryImportSource> ImportSources() => MemoryImportSources.FromAccounts(Settings.Accounts.Accounts,
+            new Marrow.Services.Port.Accounts.AccountEnvironment(() => Marrow.Services.Store.Storage.Root),
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), [.. Projects.Select(p => p.Path)]);
+        var memoryWatch = new MemoryImportWatch(memoryImport, ImportSources);
+        // The watch follows the folders only once the owner has imported (8.4); the Memory view starts it after each import he runs.
+        if (memoryStore.HasImported) memoryWatch.Start();
         var controller = new AssistantController(new AssistantControllerOptions
         {
             Notes = new MemorySetup
             {
                 Store = memoryStore,
                 Capture = noteProposer is null ? null : new MemoryCapture(memoryStore, noteProposer),
-                Import = new MemoryImport(memoryStore, DextraId),
-                ImportSources = () => MemoryImportSources.FromAccounts(Settings.Accounts.Accounts, new Marrow.Services.Port.Accounts.AccountEnvironment(() => Marrow.Services.Store.Storage.Root),
-                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), [.. Projects.Select(p => p.Path)]),
+                Import = memoryImport,
+                ImportSources = ImportSources,
+                Watch = memoryWatch,
+                Owned = memoryWatch,
             },
             Router = new RouterSetup { Accounts = RouterAccounts, Models = RouterModelsOf },
             Reserve = new ReserveSetup
@@ -164,6 +172,12 @@ public sealed partial class AppModel
             StopKey = stopKey,
             PcStreams = pcStreams,
             StopScopes = stopScopes ?? [],
+        });
+        // The day's folding of the notes (8.2) runs at start when it has not run today; the digest (AS-11) calls it each morning from then on.
+        _ = Task.Run(() =>
+        {
+            try { memoryStore.FoldIfDue(); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or ObjectDisposedException) { controller.AuditMemory(null, "fold", "failed: " + error.GetType().Name); }
         });
         controller.Runner.Load(store.Missions().Select(stored => MissionJournal.FromJson(stored.Body)).OfType<MissionRecord>());
         // What Revert and Restart kept for 7 days, and the workspaces of missions over for 7 days, are swept at start (the

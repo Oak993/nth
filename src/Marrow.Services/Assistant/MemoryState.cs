@@ -137,6 +137,8 @@ internal sealed class MemoryState
         return created;
     }
 
+    public bool HasImports => document["imports"] is JsonObject imports && imports.Count > 0;
+
     public ImportedFile? File(string sourceKey, string path)
     {
         if (document["imports"]?[sourceKey]?["files"]?[path] is not JsonObject item) return null;
