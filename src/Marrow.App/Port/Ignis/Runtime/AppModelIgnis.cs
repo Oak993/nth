@@ -31,6 +31,20 @@ public sealed partial class AppModel
     internal bool IgnisIsOnScreen(ChatThread thread) => IsApplicationActive() && IsOnScreen(thread);
 
     /// <summary>
+    /// What Dextra makes of a chat, for Ignis (AS-15, 13.2). A chat that carries a mission is mid-task until the mission is Done; with no
+    /// mission to be found (Dextra is not running it) the chat counts as mid-task, which only ever leaves it alone. A chat of an assistant
+    /// that is no mission's is that assistant's home thread.
+    /// </summary>
+    internal IgnisAssistantUse AssistantUseOf(ChatThread thread)
+    {
+        if (thread.MissionID is { } mission)
+            return Dextra?.Runner.Find(mission) is { } record && record.Mission.State == Marrow.Core.Port.Assistant.MissionState.Done
+                ? IgnisAssistantUse.None
+                : IgnisAssistantUse.MissionMidTask;
+        return thread.AssistantID is not null ? IgnisAssistantUse.HomeThread : IgnisAssistantUse.None;
+    }
+
+    /// <summary>
     /// ED-NEW-ignis-guards: called by UpdateThreadValue after a thread changed. A changed model or provider (the picker, a Hydra
     /// pair, an account switch) reaches the controller, which shows the switch-cost notice when a big cache is warm.
     /// </summary>
@@ -47,6 +61,8 @@ public sealed class AppIgnisEnvironment(AppModel app) : IIgnisEnvironment
     public bool IsLocked => WorkstationLock.IsLocked();
 
     public bool IsArchived(Guid thread) => app.Thread(thread)?.IsArchived ?? false;
+
+    public IgnisAssistantUse AssistantUse(Guid thread) => app.Thread(thread) is { } chat ? app.AssistantUseOf(chat) : IgnisAssistantUse.None;
 
     public bool IsOnScreen(Guid thread) => app.Thread(thread) is { } chat && app.IgnisIsOnScreen(chat);
 
