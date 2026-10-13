@@ -12,6 +12,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.UI.Chrome;
 using Marrow.UI.Panes;
@@ -28,9 +29,9 @@ public sealed class McpAppWindow
     public const double MinimumHeight = 180;
     public const double TitleHeight = 34;
     public const double ScreenMargin = 48;
-    public const string CloseText = "Back inline";
-    public const string PinText = "Keep on top";
-    public const string UnpinText = "Stop keeping on top";
+    public static string CloseText => UiText.Get("mcpapps.window.back_inline");
+    public static string PinText => UiText.Get("mcpapps.window.keep_on_top");
+    public static string UnpinText => UiText.Get("mcpapps.window.stop_keeping_on_top");
 
     private readonly McpAppSession session;
     private readonly SplitterSpring opacity = new(0, epsilon: 0.002);
@@ -101,7 +102,7 @@ public sealed class McpAppWindow
 
         Window = new AvaloniaWindow
         {
-            Title = session.Server + " · " + session.Title,
+            Title = UiText.Format("mcpapps.window.title", session.Server, session.Title),
             Width = Size.Width,
             Height = Size.Height,
             MinWidth = MinimumWidth,
@@ -225,9 +226,9 @@ public sealed class McpAppWindow
     private Grid Grips()
     {
         var grid = new Grid();
-        var widthLabel = $"Resize the {session.Server} window width";
-        var heightLabel = $"Resize the {session.Server} window height";
-        var bothLabel = $"Resize the {session.Server} window";
+        var widthLabel = UiText.Format("mcpapps.window.resize_width", session.Server);
+        var heightLabel = UiText.Format("mcpapps.window.resize_height", session.Server);
+        var bothLabel = UiText.Format("mcpapps.window.resize_both", session.Server);
         grid.Children.Add(Grip(SplitterOrientation.Vertical, -1, 0, widthLabel, HorizontalAlignment.Left, VerticalAlignment.Stretch, null));
         grid.Children.Add(Grip(SplitterOrientation.Vertical, 1, 0, widthLabel, HorizontalAlignment.Right, VerticalAlignment.Stretch, null));
         grid.Children.Add(Grip(SplitterOrientation.Horizontal, 0, 1, heightLabel, HorizontalAlignment.Stretch, VerticalAlignment.Bottom, null));
@@ -286,7 +287,7 @@ public sealed class McpAppWindow
         })
         {
             Label = label,
-            HelpHint = "Double-click for the default size",
+            HelpHint = UiText.Get("mcpapps.window.default_size_hint"),
             MirrorsInRightToLeft = false,
             FineInset = 0,
             TracksInScreenSpace = true, // the window moves under the pointer as it grows from its left edge

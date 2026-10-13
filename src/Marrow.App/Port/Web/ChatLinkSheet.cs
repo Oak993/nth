@@ -5,6 +5,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Port.Skills.Pages;
+using Marrow.Core.Localisation;
 using Marrow.Core.Web;
 using Marrow.UI.Port;
 
@@ -20,9 +21,9 @@ namespace Marrow.App.Port.Web;
 /// <summary>The sheet's content: the question and its answers over a choice.</summary>
 public sealed class ChatLinkSheetView : Decorator
 {
-    public const string RememberLabel = "Remember";
-    public const string CancelLabel = "Cancel";
-    public const string DefaultBrowserLabel = "Default browser";
+    public static string RememberLabel => UiText.Get("link.sheet.remember");
+    public static string CancelLabel => UiText.Get("link.sheet.cancel");
+    public static string DefaultBrowserLabel => UiText.Get("link.sheet.default_browser");
     public const string VisusLabel = "Visus";
 
     /// <summary>The sheet's width; the question wraps inside it and a long site name trims.</summary>
@@ -33,19 +34,19 @@ public sealed class ChatLinkSheetView : Decorator
         var title = LibraryUi.Text(ChatLinkChoice.Title, 15, weight: SwiftFont.Weight.Semibold, wrap: true);
         title.Named(ChatLinkChoice.Title, "chat-link-title");
         var site = LibraryUi.Text(WebPolicy.SourceName(choice.Url.AbsoluteString), 12, secondary: true, trim: true);
-        site.Named("Link to " + site.Text, "chat-link-site");
+        site.Named(UiText.Format("link.sheet.site_name", site.Text), "chat-link-site");
 
         Remember = new CheckBox { Content = LibraryUi.Text(RememberLabel, 13), IsChecked = choice.Remember };
         ChatDialogControls.Checkbox(Remember);
-        Remember.Named("Remember this choice for links from chats", "chat-link-remember");
+        Remember.Named(UiText.Get("link.sheet.remember_name"), "chat-link-remember");
         Remember.IsCheckedChanged += (_, _) => choice.Remember = Remember.IsChecked == true;
 
         CancelButton = LibraryButtons.Make(CancelLabel, () => { choice.Cancel(); dismiss(); }, ButtonLook.Plain, "chat-link-cancel");
         DefaultBrowserButton = LibraryButtons.Make(DefaultBrowserLabel, () => { choice.Choose(false); dismiss(); }, ButtonLook.Plain, "chat-link-default-browser");
         VisusButton = LibraryButtons.Make(VisusLabel, () => { choice.Choose(true); dismiss(); }, ButtonLook.Primary, "chat-link-visus");
-        CancelButton.Named("Cancel, open nothing", "chat-link-cancel");
-        DefaultBrowserButton.Named("Open this link in your default browser", "chat-link-default-browser");
-        VisusButton.Named("Open this link in Visus", "chat-link-visus");
+        CancelButton.Named(UiText.Get("link.sheet.cancel_name"), "chat-link-cancel");
+        DefaultBrowserButton.Named(UiText.Get("link.sheet.default_browser_name"), "chat-link-default-browser");
+        VisusButton.Named(UiText.Get("link.sheet.visus_name"), "chat-link-visus");
 
         // Wrapping keeps all three buttons reachable at a large text scale or in a long translation.
         var buttons = new WrapPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, ItemSpacing = 8, LineSpacing = 8, Children = { CancelButton, DefaultBrowserButton, VisusButton } };

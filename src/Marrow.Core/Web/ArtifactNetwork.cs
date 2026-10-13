@@ -5,6 +5,7 @@
 // counterpart.
 using System.Net;
 using System.Text.RegularExpressions;
+using Marrow.Core.Localisation;
 using Marrow.Core.Port.ModelsPalette;
 
 namespace Marrow.Core.Web;
@@ -29,7 +30,7 @@ public static partial class ArtifactNetwork
     public const string MetaName = "nth-connect";
 
     /// <summary>The consent card's warning, word for word (DESIGN 6.5).</summary>
-    public const string Warning = "Anything this artifact shows, computes or you type into it can be sent to these sites.";
+    public static string Warning => UiText.Get("mcpapps.consent.network_warning");
 
     /// <summary>At most this many hosts are offered; the rest are dropped with a reason.</summary>
     public const int MaxHosts = 16;
@@ -78,23 +79,23 @@ public static partial class ArtifactNetwork
             if (text.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) text = text[8..];
             else if (text.Contains("://", StringComparison.Ordinal))
             {
-                dropped.Add(new CspDroppedSource(entry, "not an https site"));
+                dropped.Add(new CspDroppedSource(entry, UiText.Get("mcpapps.reason.not_https")));
                 continue;
             }
 
             text = text.TrimEnd('/');
-            if (text.Contains('*', StringComparison.Ordinal)) dropped.Add(new CspDroppedSource(entry, "a wildcard"));
-            else if (IPAddress.TryParse(text.Trim('[', ']'), out _)) dropped.Add(new CspDroppedSource(entry, "an IP address"));
+            if (text.Contains('*', StringComparison.Ordinal)) dropped.Add(new CspDroppedSource(entry, CspBuilder.WildcardReason));
+            else if (IPAddress.TryParse(text.Trim('[', ']'), out _)) dropped.Add(new CspDroppedSource(entry, UiText.Get("mcpapps.reason.ip_address")));
             else if (text.Contains('/', StringComparison.Ordinal) || text.Contains(':', StringComparison.Ordinal) || text.Contains('@', StringComparison.Ordinal)
                      || Uri.CheckHostName(text) != UriHostNameType.Dns || !text.Contains('.', StringComparison.Ordinal))
-                dropped.Add(new CspDroppedSource(entry, "not a site name"));
+                dropped.Add(new CspDroppedSource(entry, UiText.Get("mcpapps.reason.not_site_name")));
             else
             {
                 var host = new System.Globalization.IdnMapping().GetAscii(text).ToLowerInvariant();
                 if (SandboxSites.SurfaceOf(host) is not null || host.EndsWith(".invalid", StringComparison.Ordinal) || host == "localhost" || host.EndsWith(".localhost", StringComparison.Ordinal))
-                    dropped.Add(new CspDroppedSource(entry, "not a site on the internet"));
+                    dropped.Add(new CspDroppedSource(entry, UiText.Get("mcpapps.reason.not_internet_site")));
                 else if (hosts.Any(h => h.Host == host)) continue;
-                else if (hosts.Count >= MaxHosts) dropped.Add(new CspDroppedSource(entry, "too many sites"));
+                else if (hosts.Count >= MaxHosts) dropped.Add(new CspDroppedSource(entry, UiText.Get("mcpapps.reason.too_many_sites")));
                 else hosts.Add(new ArtifactNetworkHost(host, DomainVote.Registrable("https://" + host + "/") ?? host));
             }
         }

@@ -9,6 +9,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Marrow.Core.Localisation;
 using Marrow.Core.Web;
 
 namespace Marrow.Services.Web;
@@ -136,7 +137,7 @@ public sealed partial class WebAgentEngine
         if (await Hold(s, state) is { } held) return held;
         if (state.Tab.Shared && await Site(s, state) is { } refused) return refused;
         var budget = (int)Math.Clamp(Num(s.Args, "max_tokens") ?? 4000, 200, 20_000) * 4;
-        Report("Reading the page", state.Short);
+        Report(UiText.Get("agent.step.reading_page"), state.Short);
         if (await Ensure(state, s)) await state.Overlay.Scan(state.Cdp!, s.Token);
         var origin = WebPolicy.OriginOf(state.Tab.Url);
         var cdp = state.Cdp!;
@@ -192,7 +193,7 @@ public sealed partial class WebAgentEngine
         if (string.IsNullOrEmpty(query)) return Fail(WebErrorCodes.BadArgs, "Pass query.");
         if (await Hold(s, state) is { } held) return held;
         if (state.Tab.Shared && await Site(s, state) is { } refused) return refused;
-        Report("Finding " + Clip(query, 30), state.Short);
+        Report(UiText.Format("agent.step.finding", Clip(query, 30)), state.Short);
         var cdp = state.Cdp!;
         var secrets = await Secrets(state, s.Token);
         var lines = new List<string>(WebAgentTree.Find(WebAgentTree.Parse(await cdp.CallAsync("Accessibility.getFullAXTree", null, null, s.Token)), state.Refs, query, null, secrets));
@@ -216,7 +217,7 @@ public sealed partial class WebAgentEngine
         var full = Bool(s.Args, "full");
         if (await Hold(s, state) is { } held) return held;
         if (state.Tab.Shared && await Site(s, state) is { } refused) return refused;
-        Report("Taking a screenshot", state.Short);
+        Report(UiText.Get("agent.step.screenshot"), state.Short);
         var cdp = state.Cdp!;
         var metrics = await cdp.CallAsync("Page.getLayoutMetrics", cancellationToken: s.Token);
         var visual = Prop(metrics, "cssVisualViewport");
@@ -291,7 +292,7 @@ public sealed partial class WebAgentEngine
             var (verdict, judged) = Strictest((WebAgentPolicy.CheckPress(element.Facts, origin), element), covered ? (WebAgentPolicy.CheckPress(hit!.Facts, origin), hit) : (WebGuardVerdict.Pass, hit!));
             var what = reference ?? N(point.X) + ", " + N(point.Y);
             if (await Guard(s, state, verdict, judged.Facts, "click|" + Identity(judged.Facts), null, judged.Rows, new WebPoint(point.X, point.Y)) is { } stop) return stop;
-            Report("Pressing " + Clip(Display(element), 40), state.Short);
+            Report(UiText.Format("agent.step.pressing", PillName(element, false)), state.Short);
             using (BeginStep(state))
             {
                 await Drive(state, s);
@@ -328,7 +329,7 @@ public sealed partial class WebAgentEngine
             if (element.IsSelect) return Fail(WebErrorCodes.BadArgs, reference + " is a list of options: use web_select.");
             if (!element.Editable) return Fail(WebErrorCodes.BadArgs, reference + " is not a text field: use web_click or web_select.");
             if (submit && await Guard(s, state, EnterVerdict(element, origin), element.Facts, "enter|" + Identity(element.Facts), null, element.Rows) is { } stop) return stop;
-            Report("Filling in the " + Lower(Clip(Display(element), 40)), state.Short);
+            Report(UiText.Format("agent.step.filling_in", PillName(element, true)), state.Short);
             using (BeginStep(state))
             {
                 await Drive(state, s);
@@ -368,7 +369,7 @@ public sealed partial class WebAgentEngine
         try
         {
             var origin = WebPolicy.OriginOf(state.Tab.Url);
-            Report("Pressing keys", state.Short);
+            Report(UiText.Get("agent.step.pressing_keys"), state.Short);
             var pressedEnter = false;
             using (BeginStep(state))
             {
@@ -428,7 +429,7 @@ public sealed partial class WebAgentEngine
         (double X, double Y) point;
         if (key is { } node) point = await Point(state, node, scroll: false, s.Token) ?? await Centre(state, s.Token);
         else point = await Centre(state, s.Token);
-        Report(dy < 0 ? "Scrolling up" : "Scrolling down", state.Short);
+        Report(dy < 0 ? UiText.Get("agent.step.scrolling_up") : UiText.Get("agent.step.scrolling_down"), state.Short);
         using (BeginStep(state))
         {
             await Drive(state, s);
@@ -472,7 +473,7 @@ public sealed partial class WebAgentEngine
             if (typing.Kind == WebGuardKind.Deny) return Fail(WebErrorCodes.Denied, typing.Reason!);
             if (element.IsSelect)
             {
-                Report("Choosing the " + Lower(Clip(Display(element), 40)), state.Short);
+                Report(UiText.Format("agent.step.choosing", PillName(element, true)), state.Short);
                 JsonElement chosen;
                 using (BeginStep(state))
                 {
@@ -496,7 +497,7 @@ public sealed partial class WebAgentEngine
                 if (want == isChecked) return new WebToolResult(reference + " is already " + (isChecked ? "on" : "off") + ".");
                 if (await Guard(s, state, WebAgentPolicy.CheckPress(element.Facts, origin), element.Facts, "click|" + Identity(element.Facts), null, element.Rows) is { } stop) return stop;
                 var point = await Point(state, key, scroll: true, s.Token) ?? throw new Refusal(Fail(WebErrorCodes.StaleRef, reference + " is not visible on the page. Scroll to it, or read the page again."));
-                Report("Choosing the " + Lower(Clip(Display(element), 40)), state.Short);
+                Report(UiText.Format("agent.step.choosing", PillName(element, true)), state.Short);
                 using (BeginStep(state))
                 {
                     await Drive(state, s);
@@ -564,6 +565,37 @@ public sealed partial class WebAgentEngine
         : element.Facts.Tag.ToLowerInvariant() is "input" or "textarea" ? "field" : "element";
 
     private static string Lower(string text) => text.Length == 0 ? text : char.ToLowerInvariant(text[0]) + text[1..];
+
+    // The element's name in the pill's step line: the page's own words (first letter lowered for "Filling in the email"), else its role, else "field" or "element".
+    private static string PillName(Element element, bool lowerFirst)
+    {
+        var own = element.Facts.Name.Length > 0 ? element.Facts.Name : element.Facts.Label is { Length: > 0 } label ? label : null;
+        if (own is null) return Clip(PillWord(element), 40);
+        var clipped = Clip(own, 40);
+        return lowerFirst ? Lower(clipped) : clipped;
+    }
+
+    private static string PillWord(Element element) =>
+        element.Facts.Role.Length > 0 ? RoleLabel(element.Facts.Role)
+        : element.Facts.Tag.ToLowerInvariant() is "input" or "textarea" ? UiText.Get("agent.step.element_field") : UiText.Get("agent.step.element_other");
+
+    // The common roles in the user's language; any other role shows as the browser names it, the word the model reads.
+    private static string RoleLabel(string role) => role.ToLowerInvariant() switch
+    {
+        "button" => UiText.Get("agent.step.role.button"),
+        "link" => UiText.Get("agent.step.role.link"),
+        "textbox" => UiText.Get("agent.step.role.textbox"),
+        "searchbox" => UiText.Get("agent.step.role.searchbox"),
+        "checkbox" => UiText.Get("agent.step.role.checkbox"),
+        "radio" => UiText.Get("agent.step.role.radio"),
+        "combobox" => UiText.Get("agent.step.role.combobox"),
+        "menuitem" => UiText.Get("agent.step.role.menuitem"),
+        "tab" => UiText.Get("agent.step.role.tab"),
+        "switch" => UiText.Get("agent.step.role.switch"),
+        "option" => UiText.Get("agent.step.role.option"),
+        "listbox" => UiText.Get("agent.step.role.listbox"),
+        _ => WebAgentTree.RoleWord(role),
+    };
 
     // The element's name for the model: page text, so inside the untrusted block.
     private static string? NameBlock(string? origin, Element element, Element? cover)

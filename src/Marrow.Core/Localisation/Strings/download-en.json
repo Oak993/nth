@@ -1,0 +1,32 @@
+{
+  "download.prompt.risky_warning": "This file can run code on your PC.",
+  "download.prompt.foot": "Saved to Downloads. Never opened by itself.",
+  "download.prompt.armed": "Click again to save",
+  "download.prompt.save": "Save",
+  "download.prompt.save_as": "Save as…",
+  "download.prompt.cancel": "Cancel",
+  "download.prompt.save_name": "Save {0} to Downloads",
+  "download.prompt.save_as_name": "Save {0} somewhere else",
+  "download.prompt.cancel_name": "Cancel the download of {0}",
+
+  "download.detail.full": "{0} · {1} · from {2}",
+  "download.detail.no_size": "{0} · from {1}",
+
+  "download.kind.application": "Application",
+  "download.kind.script": "Script",
+  "download.kind.archive": "{0} archive",
+  "download.kind.shortcut": "Shortcut",
+  "download.kind.disk_image": "Disk image",
+  "download.kind.image": "Image",
+  "download.kind.video": "Video",
+  "download.kind.audio": "Audio",
+  "download.kind.text": "Text",
+  "download.kind.file": "File",
+
+  "download.size.bytes.one": "{0} byte",
+  "download.size.bytes.other": "{0} bytes",
+
+  "download.confirm.saved_to_downloads": "Saved to Downloads · {0}",
+  "download.confirm.saved": "Saved · {0}",
+  "download.confirm.cancelled": "Download cancelled"
+}

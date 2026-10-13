@@ -10,6 +10,7 @@
 // Everything here is plain data; the services keep it in a JSON file. No Swift counterpart.
 using System.Security.Cryptography;
 using System.Text;
+using Marrow.Core.Localisation;
 
 namespace Marrow.Core.Web;
 
@@ -26,7 +27,7 @@ public sealed record McpAppDomainRequest(
     public string Sentence => McpAppDomains.Sentence(Server, Title, Domains.Count > 0 ? Domains : Broad.Select(b => McpAppDomains.Display(b.Source)).ToList());
 
     /// <summary>"Allow for shipyard".</summary>
-    public string AllowText => "Allow for " + Server;
+    public string AllowText => UiText.Format("mcpapps.consent.allow_for", Server);
 
     /// <summary>True when the declaration holds wildcards or 'unsafe-eval' that only "Allow broad access" would let through.</summary>
     public bool HasBroad => Broad.Count > 0;
@@ -56,14 +57,11 @@ public enum McpAppToolDecision
 public static class McpAppDomains
 {
     /// <summary>The words "Allow broad access" and the risk they name, shown in the card's details.</summary>
-    public const string BroadAccessTitle = "Allow broad access";
+    public static string BroadAccessTitle => UiText.Get("mcpapps.consent.broad_title");
 
-    public const string BroadAccessRisk =
-        "Wildcard sites let this app reach any site that matches them, local addresses let it reach your computer and local network, " +
-        "and 'unsafe-eval' lets it run text as code. " +
-        "Anything it shows, computes or you type into it can be sent to those sites.";
+    public static string BroadAccessRisk => UiText.Get("mcpapps.consent.broad_risk");
 
-    public const string NotNowText = "Not now";
+    public static string NotNowText => UiText.Get("mcpapps.consent.not_now");
 
     /// <summary>The consent request for a declaration, or null when it declares nothing outside the view's own origin.</summary>
     public static McpAppDomainRequest? Request(string server, string title, McpUiCsp declared)
@@ -73,7 +71,7 @@ public static class McpAppDomains
         var all = declared.ConnectDomains.Concat(declared.ResourceDomains).Concat(declared.FrameDomains).Concat(declared.BaseUriDomains).ToList();
         var strict = CspBuilder.Clean(all, allowBroad: false);
         var broad = CspBuilder.Clean(all, allowBroad: true);
-        var broadOnly = strict.Dropped.Where(d => d.Reason is "a wildcard" or "lets the page run text as code" or CspBuilder.LocalNetworkReason).ToList(); // + ED-NEW-web-w26-4
+        var broadOnly = strict.Dropped.Where(d => d.Reason == CspBuilder.WildcardReason || d.Reason == CspBuilder.UnsafeEvalReason || d.Reason == CspBuilder.LocalNetworkReason).ToList(); // + ED-NEW-web-w26-4
         var refused = broad.Dropped.ToList();
         var domains = strict.Kept.Select(Display).Distinct(StringComparer.Ordinal).ToList();
         if (domains.Count == 0 && broadOnly.Count == 0) return null;
@@ -82,7 +80,7 @@ public static class McpAppDomains
 
     /// <summary>"shipyard's Release board wants to reach: a, b".</summary>
     public static string Sentence(string server, string title, IReadOnlyList<string> domains) =>
-        $"{server}'s {(string.IsNullOrWhiteSpace(title) ? "app" : title)} wants to reach: {string.Join(", ", domains)}";
+        UiText.Format("mcpapps.consent.sentence", server, string.IsNullOrWhiteSpace(title) ? UiText.Get("mcpapps.consent.app_word") : title, string.Join(", ", domains));
 
     /// <summary>A source as the card names it: the host (and port, and path when not just "/"), without the https scheme.</summary>
     public static string Display(string source)

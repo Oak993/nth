@@ -7,6 +7,7 @@
 // counterpart. The site answers nth keeps, and the words every prompt and list uses for each kind.
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Marrow.Core.Localisation;
 
 namespace Marrow.Core.Web;
 
@@ -52,96 +53,96 @@ public sealed record SitePermission(WebProfileKind Profile, string Origin, SiteP
 public static class SitePermissions
 {
     /// <summary>The prompt's foot, word for word (the canvas's #perm2 .foot).</summary>
-    public const string Foot = "Enter does nothing here. Esc blocks.";
+    public static string Foot => UiText.Get("permission.prompt.foot");
 
-    public const string AllowOnceLabel = "Allow this time";
+    public static string AllowOnceLabel => UiText.Get("permission.prompt.allow_once");
 
-    public const string AllowAlwaysLabel = "Always on this site";
+    public static string AllowAlwaysLabel => UiText.Get("permission.prompt.allow_always");
 
-    public const string BlockLabel = "Block";
+    public static string BlockLabel => UiText.Get("permission.prompt.block");
 
     /// <summary>What the site wants, after "wants to" ("use your camera").</summary>
     public static string Verb(SitePermissionKind kind) => kind switch
     {
-        SitePermissionKind.Camera => "use your camera",
-        SitePermissionKind.Microphone => "use your microphone",
-        SitePermissionKind.Location => "know your location",
-        SitePermissionKind.Notifications => "show notifications",
-        SitePermissionKind.ClipboardRead => "see text and images you copy",
-        SitePermissionKind.Midi => "use your MIDI devices",
-        SitePermissionKind.Sensors => "use your device's motion sensors",
-        SitePermissionKind.LocalFonts => "use the fonts on this PC",
-        SitePermissionKind.WindowManagement => "manage windows on all your screens",
-        SitePermissionKind.FileSystemAccess => "edit files and folders on this PC",
-        SitePermissionKind.Autoplay => "play sound automatically",
-        SitePermissionKind.MultipleDownloads => "download multiple files",
-        SitePermissionKind.PointerLock => "hide and lock your pointer",
-        _ => "use a feature of this PC",
+        SitePermissionKind.Camera => UiText.Get("permission.verb.camera"),
+        SitePermissionKind.Microphone => UiText.Get("permission.verb.microphone"),
+        SitePermissionKind.Location => UiText.Get("permission.verb.location"),
+        SitePermissionKind.Notifications => UiText.Get("permission.verb.notifications"),
+        SitePermissionKind.ClipboardRead => UiText.Get("permission.verb.clipboard_read"),
+        SitePermissionKind.Midi => UiText.Get("permission.verb.midi"),
+        SitePermissionKind.Sensors => UiText.Get("permission.verb.sensors"),
+        SitePermissionKind.LocalFonts => UiText.Get("permission.verb.local_fonts"),
+        SitePermissionKind.WindowManagement => UiText.Get("permission.verb.window_management"),
+        SitePermissionKind.FileSystemAccess => UiText.Get("permission.verb.file_system_access"),
+        SitePermissionKind.Autoplay => UiText.Get("permission.verb.autoplay"),
+        SitePermissionKind.MultipleDownloads => UiText.Get("permission.verb.multiple_downloads"),
+        SitePermissionKind.PointerLock => UiText.Get("permission.verb.pointer_lock"),
+        _ => UiText.Get("permission.verb.fallback"),
     };
 
     /// <summary>The same in the "-ing" form, after "Block ... from" ("using your camera").</summary>
     public static string Gerund(SitePermissionKind kind) => kind switch
     {
-        SitePermissionKind.Camera => "using your camera",
-        SitePermissionKind.Microphone => "using your microphone",
-        SitePermissionKind.Location => "knowing your location",
-        SitePermissionKind.Notifications => "showing notifications",
-        SitePermissionKind.ClipboardRead => "seeing text and images you copy",
-        SitePermissionKind.Midi => "using your MIDI devices",
-        SitePermissionKind.Sensors => "using your device's motion sensors",
-        SitePermissionKind.LocalFonts => "using the fonts on this PC",
-        SitePermissionKind.WindowManagement => "managing windows on all your screens",
-        SitePermissionKind.FileSystemAccess => "editing files and folders on this PC",
-        SitePermissionKind.Autoplay => "playing sound automatically",
-        SitePermissionKind.MultipleDownloads => "downloading multiple files",
-        SitePermissionKind.PointerLock => "hiding and locking your pointer",
-        _ => "using a feature of this PC",
+        SitePermissionKind.Camera => UiText.Get("permission.gerund.camera"),
+        SitePermissionKind.Microphone => UiText.Get("permission.gerund.microphone"),
+        SitePermissionKind.Location => UiText.Get("permission.gerund.location"),
+        SitePermissionKind.Notifications => UiText.Get("permission.gerund.notifications"),
+        SitePermissionKind.ClipboardRead => UiText.Get("permission.gerund.clipboard_read"),
+        SitePermissionKind.Midi => UiText.Get("permission.gerund.midi"),
+        SitePermissionKind.Sensors => UiText.Get("permission.gerund.sensors"),
+        SitePermissionKind.LocalFonts => UiText.Get("permission.gerund.local_fonts"),
+        SitePermissionKind.WindowManagement => UiText.Get("permission.gerund.window_management"),
+        SitePermissionKind.FileSystemAccess => UiText.Get("permission.gerund.file_system_access"),
+        SitePermissionKind.Autoplay => UiText.Get("permission.gerund.autoplay"),
+        SitePermissionKind.MultipleDownloads => UiText.Get("permission.gerund.multiple_downloads"),
+        SitePermissionKind.PointerLock => UiText.Get("permission.gerund.pointer_lock"),
+        _ => UiText.Get("permission.gerund.fallback"),
     };
 
     /// <summary>The short noun of the site note, Settings and the notices ("Camera").</summary>
     public static string Noun(SitePermissionKind kind) => kind switch
     {
-        SitePermissionKind.Camera => "Camera",
-        SitePermissionKind.Microphone => "Microphone",
-        SitePermissionKind.Location => "Location",
-        SitePermissionKind.Notifications => "Notifications",
-        SitePermissionKind.ClipboardRead => "Clipboard",
-        SitePermissionKind.Midi => "MIDI devices",
-        SitePermissionKind.Sensors => "Motion sensors",
-        SitePermissionKind.LocalFonts => "Fonts",
-        SitePermissionKind.WindowManagement => "Window management",
-        SitePermissionKind.FileSystemAccess => "File editing",
-        SitePermissionKind.Autoplay => "Sound",
-        SitePermissionKind.MultipleDownloads => "Multiple downloads",
-        SitePermissionKind.PointerLock => "Pointer lock",
-        _ => "Feature",
+        SitePermissionKind.Camera => UiText.Get("permission.noun.camera"),
+        SitePermissionKind.Microphone => UiText.Get("permission.noun.microphone"),
+        SitePermissionKind.Location => UiText.Get("permission.noun.location"),
+        SitePermissionKind.Notifications => UiText.Get("permission.noun.notifications"),
+        SitePermissionKind.ClipboardRead => UiText.Get("permission.noun.clipboard_read"),
+        SitePermissionKind.Midi => UiText.Get("permission.noun.midi"),
+        SitePermissionKind.Sensors => UiText.Get("permission.noun.sensors"),
+        SitePermissionKind.LocalFonts => UiText.Get("permission.noun.local_fonts"),
+        SitePermissionKind.WindowManagement => UiText.Get("permission.noun.window_management"),
+        SitePermissionKind.FileSystemAccess => UiText.Get("permission.noun.file_system_access"),
+        SitePermissionKind.Autoplay => UiText.Get("permission.noun.autoplay"),
+        SitePermissionKind.MultipleDownloads => UiText.Get("permission.noun.multiple_downloads"),
+        SitePermissionKind.PointerLock => UiText.Get("permission.noun.pointer_lock"),
+        _ => UiText.Get("permission.noun.fallback"),
     };
 
     /// <summary>"localhost:5173 wants to use your camera" (the canvas's heading, no full stop).</summary>
-    public static string Title(string source, SitePermissionKind kind) => $"{source} wants to {Verb(kind)}";
+    public static string Title(string source, SitePermissionKind kind) => UiText.Format("permission.prompt.title", source, Verb(kind));
 
     /// <summary>10.1: "Allow localhost:5173 to use your camera this time".</summary>
-    public static string AllowOnceName(string source, SitePermissionKind kind) => $"Allow {source} to {Verb(kind)} this time";
+    public static string AllowOnceName(string source, SitePermissionKind kind) => UiText.Format("permission.prompt.allow_once_name", source, Verb(kind));
 
     /// <summary>10.1: "Always allow localhost:5173 to use your camera".</summary>
-    public static string AllowAlwaysName(string source, SitePermissionKind kind) => $"Always allow {source} to {Verb(kind)}";
+    public static string AllowAlwaysName(string source, SitePermissionKind kind) => UiText.Format("permission.prompt.allow_always_name", source, Verb(kind));
 
     /// <summary>10.1: "Block localhost:5173 from using your camera".</summary>
-    public static string BlockName(string source, SitePermissionKind kind) => $"Block {source} from {Gerund(kind)}";
+    public static string BlockName(string source, SitePermissionKind kind) => UiText.Format("permission.prompt.block_name", source, Gerund(kind));
 
     /// <summary>The quiet notice after an answer (the canvas's toasts): "Camera allowed this time".</summary>
     public static string Confirmation(string source, SitePermissionKind kind, SitePermissionAnswer answer) => answer switch
     {
-        SitePermissionAnswer.AllowOnce => $"{Noun(kind)} allowed this time",
-        SitePermissionAnswer.AllowAlways => $"{Noun(kind)} always allowed on {source}",
-        _ => $"{Noun(kind)} blocked on this site",
+        SitePermissionAnswer.AllowOnce => UiText.Format("permission.confirm.allowed_once", Noun(kind)),
+        SitePermissionAnswer.AllowAlways => UiText.Format("permission.confirm.allowed_always", Noun(kind), source),
+        _ => UiText.Format("permission.confirm.blocked", Noun(kind)),
     };
 
     /// <summary>A private tab's Block holds for the tab only: the notice says so.</summary>
-    public static string PrivateBlockConfirmation(SitePermissionKind kind) => $"{Noun(kind)} blocked in this tab";
+    public static string PrivateBlockConfirmation(SitePermissionKind kind) => UiText.Format("permission.confirm.blocked_in_tab", Noun(kind));
 
     /// <summary>The state as the site note and Settings say it ("Allowed", "Blocked").</summary>
-    public static string StateWord(SitePermissionState state) => state == SitePermissionState.Allow ? "Allowed" : "Blocked";
+    public static string StateWord(SitePermissionState state) => state == SitePermissionState.Allow ? UiText.Get("permission.state.allowed") : UiText.Get("permission.state.blocked");
 
     /// <summary>
     /// Whether a profile asks at all (5.5): browse, preview and private tabs ask; the agent profile and sandboxed content are

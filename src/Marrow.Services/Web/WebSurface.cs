@@ -1,3 +1,4 @@
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Web;
@@ -20,7 +21,7 @@ public sealed class WebSurface : IDisposable
     public const string StepFailedVisusStopped = "Visus stopped";
 
     /// <summary>DESIGN 2.7: what a guarded-action card says when the page crashes before the action ran.</summary>
-    public const string GuardedActionCrashed = "The page crashed before this ran. Nothing was sent.";
+    public static string GuardedActionCrashed => UiText.Get("agent.guard.crashed");
 
     private readonly List<WebSurfaceView> views = [];
     private readonly Dictionary<string, bool> windowFocus = new(StringComparer.Ordinal);

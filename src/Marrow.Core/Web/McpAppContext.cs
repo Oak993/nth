@@ -9,6 +9,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using Marrow.Core.Localisation;
 
 namespace Marrow.Core.Web;
 
@@ -16,11 +17,11 @@ namespace Marrow.Core.Web;
 public sealed record McpAppContextEntry(string Server, string Title, string Text, bool Truncated, int OriginalLength)
 {
     /// <summary>The chip: "shipyard context · 1.2k".</summary>
-    public string ChipText => Server + " context · " + McpAppModelContext.Size(Text.Length);
+    public string ChipText => UiText.Format("mcpapps.context.chip", Server, McpAppModelContext.Size(Text.Length));
 
     /// <summary>The chip's note when the text was cut.</summary>
     public string? TruncatedNote => Truncated
-        ? $"Cut to {McpAppModelContext.MaxCharacters.ToString("N0", CultureInfo.InvariantCulture)} of {OriginalLength.ToString("N0", CultureInfo.InvariantCulture)} characters"
+        ? UiText.FormatWith(CultureInfo.InvariantCulture, "mcpapps.context.truncated", McpAppModelContext.MaxCharacters, OriginalLength)
         : null;
 }
 
@@ -30,7 +31,7 @@ public sealed class McpAppModelContext
     /// <summary>DESIGN 7.6: at most 4,000 characters per app.</summary>
     public const int MaxCharacters = 4_000;
 
-    public const string UntrustedMark = "Untrusted";
+    public static string UntrustedMark => UiText.Get("mcpapps.context.untrusted");
 
     private readonly List<McpAppContextEntry> entries = [];
     private readonly object gate = new();
@@ -109,10 +110,10 @@ public sealed class McpAppModelContext
 public static partial class McpAppUntrusted
 {
     /// <summary>The row's heading for a posted message: "Message from shipyard".</summary>
-    public static string MessageHeading(string server) => "Message from " + server;
+    public static string MessageHeading(string server) => UiText.Format("mcpapps.message.heading", server);
 
     /// <summary>The first-use question for posted messages.</summary>
-    public static string MessagePermission(string server) => $"Let {server} post messages in this chat?";
+    public static string MessagePermission(string server) => UiText.Format("mcpapps.message.permission", server);
 
     /// <summary>
     /// ED-NEW-web-w26-7 (W26 security review): app messages may start at most this many turns in a row. Allowing an app's

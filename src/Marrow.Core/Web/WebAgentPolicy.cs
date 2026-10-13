@@ -210,19 +210,19 @@ public static partial class WebAgentPolicy
     };
 
     /// <summary>The card's foot: why nth asked ("Asked because this sends an email. Enter never confirms.").</summary>
-    public static string AskedBecause(WebGuardCategory category) => "Asked because " + category switch
+    public static string AskedBecause(WebGuardCategory category) => category switch
     {
-        WebGuardCategory.Send => "this sends a message",
-        WebGuardCategory.Post => "this posts in public",
-        WebGuardCategory.Order => "this places an order or moves money",
-        WebGuardCategory.Delete => "this deletes something",
-        WebGuardCategory.Install => "this installs something",
-        WebGuardCategory.SignOut => "this signs you out",
-        WebGuardCategory.Upload => "this uploads a file from your PC",
-        WebGuardCategory.Download => "this saves a file to your PC",
-        WebGuardCategory.NewSite => "this sends the form to another site",
-        _ => "this submits a form",
-    } + ". Enter never confirms.";
+        WebGuardCategory.Send => UiText.Get("agent.guard.asked_send"),
+        WebGuardCategory.Post => UiText.Get("agent.guard.asked_post"),
+        WebGuardCategory.Order => UiText.Get("agent.guard.asked_order"),
+        WebGuardCategory.Delete => UiText.Get("agent.guard.asked_delete"),
+        WebGuardCategory.Install => UiText.Get("agent.guard.asked_install"),
+        WebGuardCategory.SignOut => UiText.Get("agent.guard.asked_sign_out"),
+        WebGuardCategory.Upload => UiText.Get("agent.guard.asked_upload"),
+        WebGuardCategory.Download => UiText.Get("agent.guard.asked_download"),
+        WebGuardCategory.NewSite => UiText.Get("agent.guard.asked_new_site"),
+        _ => UiText.Get("agent.guard.asked_submit"),
+    };
 
     // The names a guard reads, in order: the accessible name, aria-label, a submit input's label, the title.
     private static IEnumerable<string> Names(WebElementFacts element)

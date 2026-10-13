@@ -11,6 +11,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Marrow.Core.Localisation;
 using Marrow.Core.Support;
 using Marrow.Core.Web;
 using Marrow.Services.MCP;
@@ -283,7 +284,7 @@ public sealed class McpAppMount : IWebResourceHandler, IDisposable
         }
         catch (Exception error)
         {
-            var reason = error.Message is { Length: > 0 } message ? message : "The server's app page could not be read.";
+            var reason = error.Message is { Length: > 0 } message ? message : UiText.Get("mcpapps.session.page_unreadable");
             host.Post(() =>
             {
                 if (disposed) return;

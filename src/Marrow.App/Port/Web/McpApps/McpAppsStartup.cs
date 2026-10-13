@@ -12,6 +12,7 @@
 // Open / Cancel, the full address in the detail; a link the user clicks in the view still opens at once.
 using Marrow.App.Runtime;
 using Marrow.App.Views.Panes;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Web;
@@ -49,32 +50,32 @@ public sealed class McpAppHostUi : IMcpAppHostUi
 
     public McpAppHostUi(Func<Guid, ThreadRuntime?> runtimes) => this.runtimes = runtimes;
 
-    public const string AllowOnceText = "Allow once";
-    public const string DenyText = "Deny";
-    public const string AllowText = "Allow";
+    public static string AllowOnceText => UiText.Get("mcpapps.card.allow_once");
+    public static string DenyText => UiText.Get("mcpapps.card.deny");
+    public static string AllowText => UiText.Get("mcpapps.card.allow");
 
-    public static string AlwaysText(string server) => "Always for " + server;
+    public static string AlwaysText(string server) => UiText.Format("mcpapps.card.always_for", server);
 
-    public const string OpenText = "Open";
-    public const string CancelText = "Cancel";
+    public static string OpenText => UiText.Get("mcpapps.card.open");
+    public static string CancelText => UiText.Get("mcpapps.card.cancel");
     private const int MaxLinkDetail = 500;
 
     /// <summary>ED-NEW-web-w26-3: "shipyard wants to open shipyard.dev".</summary>
-    public static string LinkTitle(string server, string url) => server + " wants to open " + WebPolicy.SourceName(url);
+    public static string LinkTitle(string server, string url) => UiText.Format("mcpapps.card.link_title", server, WebPolicy.SourceName(url));
 
     /// <summary>The whole address, so the user sees what the link carries (cut at 500 characters).</summary>
     public static string LinkDetail(string url) => url.Length <= MaxLinkDetail ? url : url[..MaxLinkDetail] + "…";
 
-    public static string ToolTitle(string server, string tool) => server + " wants to run " + tool;
+    public static string ToolTitle(string server, string tool) => UiText.Format("mcpapps.card.tool_title", server, tool);
 
-    public static string ToolDetail(string title) => "From its " + title + ", in this chat.";
+    public static string ToolDetail(string title) => UiText.Format("mcpapps.card.tool_detail", title);
 
-    public static string PermissionTitle(string server, WebPermissionKind kind) => server + " wants to use " + kind switch
+    public static string PermissionTitle(string server, WebPermissionKind kind) => kind switch
     {
-        WebPermissionKind.Camera => "the camera",
-        WebPermissionKind.Microphone => "the microphone",
-        WebPermissionKind.Location => "your location",
-        _ => kind.ToString(),
+        WebPermissionKind.Camera => UiText.Format("mcpapps.card.permission_camera", server),
+        WebPermissionKind.Microphone => UiText.Format("mcpapps.card.permission_microphone", server),
+        WebPermissionKind.Location => UiText.Format("mcpapps.card.permission_location", server),
+        _ => UiText.Format("mcpapps.card.permission_other", server, kind.ToString()),
     };
 
     public bool Dark => Avalonia.Application.Current is { } application && PlainControls.IsDark(application.ActualThemeVariant);

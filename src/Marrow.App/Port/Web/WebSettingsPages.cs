@@ -3,6 +3,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform.Storage;
 using Marrow.App.Views.Browser;
 using Marrow.App.Views.Settings;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Web;
@@ -57,7 +58,7 @@ public static class WebSettingsPages
     }
 
     private static string TitleOf(AppModel model, Guid thread) =>
-        model.Thread(thread)?.Title is { Length: > 0 } title && title != ChatThread.Untitled ? title : "Thread " + SwiftUUID.UuidString(thread)[..8].ToLowerInvariant();
+        model.Thread(thread)?.Title is { Length: > 0 } title && title != ChatThread.Untitled ? title : UiText.Format("settings.web.thread_fallback", SwiftUUID.UuidString(thread)[..8].ToLowerInvariant());
 
     private static Task ClearArtifactsAsync(Guid thread)
     {
@@ -70,7 +71,7 @@ public static class WebSettingsPages
         var top = (Avalonia.Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Windows.FirstOrDefault(window => window.IsActive)
             ?? (Avalonia.Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
         if (top?.StorageProvider is not { CanPickFolder: true } storage) return null;
-        var folders = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Choose the downloads folder", AllowMultiple = false });
+        var folders = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = UiText.Get("settings.visus.choose_folder_title"), AllowMultiple = false });
         return folders.Count == 1 ? folders[0].TryGetLocalPath() : null;
     }
 
@@ -80,7 +81,7 @@ public static class WebSettingsPages
         var request = new AlertRequest(question, detail,
         [
             new AlertButton(verb, () => answer.TrySetResult(true)) { Role = AlertButtonRole.Destructive },
-            new AlertButton("Cancel", () => answer.TrySetResult(false)) { Role = AlertButtonRole.Cancel },
+            new AlertButton(UiText.Get("settings.web.cancel"), () => answer.TrySetResult(false)) { Role = AlertButtonRole.Cancel },
         ], AlertKind.ConfirmationDialog);
         _ = ShowAsync(request, answer);
         return answer.Task;

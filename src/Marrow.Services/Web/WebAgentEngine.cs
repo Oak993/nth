@@ -13,6 +13,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Marrow.Core.Localisation;
 using Marrow.Core.Web;
 using Marrow.Services.Port.PcControl;
 
@@ -154,7 +155,7 @@ public sealed partial class WebAgentEngine : IDisposable
             driven = [.. states.Values.Where(s => s.Driven)];
         }
         // the chord is named only while Tactus is bound (without it Visus has no chord: Background tasks and the chat stop it)
-        hub.Report(new WebAgentActivity(Thread, WebAgentPhase.Stopped, "Every web step ended." + (hub.StopChord is { } chord ? " " + chord + " does the same." : "")));
+        hub.Report(new WebAgentActivity(Thread, WebAgentPhase.Stopped, hub.StopChord is { } chord ? UiText.Format("agent.step.stopped_with_chord", chord) : UiText.Get("agent.step.stopped")));
         Release(driven);
     }
 
@@ -292,7 +293,7 @@ public sealed partial class WebAgentEngine : IDisposable
             var move = WebGuardVerdict.Ask(WebGuardCategory.NewSite, "open");
             if (await Guard(s, state, move, new WebElementFacts(), "open|" + WebAgentUrls.Normalize(url), url) is { } cancelled) return cancelled;
         }
-        Report(searched ? "Searching for " + Clip(query!, 40) : "Opening " + WebPolicy.SourceName(url), state?.Short);
+        Report(searched ? UiText.Format("agent.step.searching", Clip(query!, 40)) : UiText.Format("agent.step.opening", WebPolicy.SourceName(url)), state?.Short);
         if (state is null)
         {
             var opened = await s.Host.OpenAgentTab(Thread, url, s.Token) ?? throw new Refusal(Fail(WebErrorCodes.PageFailed, "Visus could not open a tab."));
@@ -326,7 +327,7 @@ public sealed partial class WebAgentEngine : IDisposable
         var view = state.Tab.View;
         if (action == "back" && view is { CanGoBack: false }) return Fail(WebErrorCodes.BadArgs, state.Short + " has no page to go back to.");
         if (action == "forward" && view is { CanGoForward: false }) return Fail(WebErrorCodes.BadArgs, state.Short + " has no page to go forward to.");
-        Report(action switch { "back" => "Going back", "forward" => "Going forward", _ => "Reloading the page" }, state.Short);
+        Report(action switch { "back" => UiText.Get("agent.step.going_back"), "forward" => UiText.Get("agent.step.going_forward"), _ => UiText.Get("agent.step.reloading") }, state.Short);
         using (BeginStep(state))
         {
             var before = state.Tab.Url;
@@ -349,7 +350,7 @@ public sealed partial class WebAgentEngine : IDisposable
         if (kind is not ("load" or "ref" or "idle")) return Fail(WebErrorCodes.BadArgs, "for is load, ref or idle.");
         WebNodeKey? key = null;
         if (kind == "ref") key = RefOf(state, Str(s.Args, "ref"));
-        Report("Waiting for the page", state.Short);
+        Report(UiText.Get("agent.step.waiting"), state.Short);
         var start = hub.Clock.NowMs;
         while (true)
         {
@@ -371,7 +372,7 @@ public sealed partial class WebAgentEngine : IDisposable
         var state = await Prepare(s, TabFor(s, Str(s.Args, "tab")));
         if (await Hold(s, state) is { } held) return held;
         if (state.Tab.Shared && await Site(s, state) is { } refused) return refused;
-        Report(network ? "Reading the network" : "Reading the console", state.Short);
+        Report(network ? UiText.Get("agent.step.reading_network") : UiText.Get("agent.step.reading_console"), state.Short);
         var since = (long)Math.Max(0, Num(s.Args, "since") ?? 0);
         var (lines, next) = network ? state.Logs.Network(since) : state.Logs.Console(since);
         var origin = WebPolicy.OriginOf(state.Tab.Url);
@@ -403,7 +404,7 @@ public sealed partial class WebAgentEngine : IDisposable
         {
             return Fail(WebErrorCodes.BadArgs, "Pass preset, or width and height.");
         }
-        Report("Setting the device size", state.Short);
+        Report(UiText.Get("agent.step.setting_device"), state.Short);
         var cdp = state.Cdp!;
         if (size is null)
         {
@@ -433,13 +434,13 @@ public sealed partial class WebAgentEngine : IDisposable
         if (!hub.Grants.Eval(origin))
         {
             var ask = new WebEvalAsk(Thread, state.Short, origin, s.Model) { TabId = state.Tab.Id };
-            Report("Check the card", state.Short, WebAgentPhase.Asking);
+            Report(UiText.Get("agent.step.check_card"), state.Short, WebAgentPhase.Asking);
             var (answered, allowed) = await Ask("eval|" + origin, t => s.Asker.AskEval(ask, t), false, s);
             if (!answered) return Waiting(s);
             if (!allowed) return Fail(WebErrorCodes.NotApproved, "The user did not allow scripts in " + WebPolicy.SourceName(origin) + ". Use the other web tools.");
             hub.Grants.GrantEval(origin);
         }
-        Report("Running a script", state.Short);
+        Report(UiText.Get("agent.step.running_script"), state.Short);
         var result = await state.Cdp!.CallAsync("Runtime.evaluate", new JsonObject
         {
             ["expression"] = expression,
@@ -541,13 +542,13 @@ public sealed partial class WebAgentEngine : IDisposable
             var took = state is not null && TookOver(state);
             if (!paused && !took)
             {
-                if (held) Report("Resuming", state?.Short);
+                if (held) Report(UiText.Get("agent.step.resuming"), state?.Short);
                 return null;
             }
             if (!held)
             {
-                if (paused) Report("The page stays as it is", state?.Short, WebAgentPhase.Paused);
-                else Report("Resume when you are done", state?.Short, WebAgentPhase.TookOver);
+                if (paused) Report(UiText.Get("agent.step.page_stays"), state?.Short, WebAgentPhase.Paused);
+                else Report(UiText.Get("agent.step.resume_when_done"), state?.Short, WebAgentPhase.TookOver);
             }
             held = true;
             var left = HoldWaitMs - (hub.Clock.NowMs - start);
@@ -574,7 +575,7 @@ public sealed partial class WebAgentEngine : IDisposable
         if (state.OnceOrigin is not null) return null;
         if (!state.Tab.Shared && (!hub.Settings().AskNewSites || hub.Grants.Site(origin))) return null;
         var ask = new WebSiteAsk(Thread, state.Short, origin, s.Model, state.Tab.Shared) { TabId = state.Tab.Id };
-        Report("Check the card", state.Short, WebAgentPhase.Asking);
+        Report(UiText.Get("agent.step.check_card"), state.Short, WebAgentPhase.Asking);
         var (answered, answer) = await Ask("site|" + state.Tab.Id + "|" + origin, t => s.Asker.AskSite(ask, t), WebSiteAnswer.Deny, s);
         if (!answered) return Waiting(s);
         if (answer == WebSiteAnswer.Deny)
@@ -591,7 +592,7 @@ public sealed partial class WebAgentEngine : IDisposable
         lock (gate) from = WebAgentUrls.CrossOriginSources(readOrigins, url, hub.Grants.Pair);
         if (from.Count == 0) return (null, false);
         var ask = new WebNavigateAsk(Thread, state?.Short, from, url, WebAgentUrls.QueryFields(url, FromPage), s.Model) { TabId = state?.Tab.Id };
-        Report("Check the card", state?.Short, WebAgentPhase.Asking);
+        Report(UiText.Get("agent.step.check_card"), state?.Short, WebAgentPhase.Asking);
         var (answered, answer) = await Ask("nav|" + url, t => s.Asker.AskNavigate(ask, t), WebNavigateAnswer.Deny, s);
         if (!answered) return (Waiting(s), true);
         if (answer == WebNavigateAnswer.Deny)
@@ -613,10 +614,10 @@ public sealed partial class WebAgentEngine : IDisposable
         var origin = WebPolicy.OriginOf(target ?? state.Tab.Url) ?? state.Tab.Url;
         var name = Clip(element.Name, 60);
         var rows = new List<KeyValuePair<string, string>>(fields ?? []);
-        if (target is not null) rows.Add(new("Address", target));
-        rows.Add(new("Site", WebPolicy.SourceName(state.Tab.Url)));
+        if (target is not null) rows.Add(new(UiText.Get("agent.guard.row_address"), target));
+        rows.Add(new(UiText.Get("agent.guard.row_site"), WebPolicy.SourceName(state.Tab.Url)));
         var ask = new WebGuardAsk(Thread, state.Short, origin, verdict.Category, verdict.Word ?? "", name, s.Model) { Rows = rows, Chat = s.Host.ChatTitle(Thread), TabId = state.Tab.Id, Near = near };
-        Report("Check the card", state.Short, WebAgentPhase.Asking);
+        Report(UiText.Get("agent.step.check_card"), state.Short, WebAgentPhase.Asking);
         var (answered, confirmed) = await Ask("guard|" + state.Tab.Id + "|" + key + "|" + verdict.Category, t => s.Asker.Confirm(ask, t), false, s);
         if (!answered) return Waiting(s);
         return confirmed ? null : Fail(WebErrorCodes.Cancelled, "The user cancelled " + (name.Length > 0 ? name : "this step") + ". Do not try another way to do it.");
@@ -780,7 +781,7 @@ public sealed partial class WebAgentEngine : IDisposable
             if (!state.Driven || state.TookOver) return;
             state.TookOver = true;
         }
-        hub.Report(new WebAgentActivity(Thread, WebAgentPhase.TookOver, "Resume when you are done", state.Short) { TabId = state.Tab.Id });
+        hub.Report(new WebAgentActivity(Thread, WebAgentPhase.TookOver, UiText.Get("agent.step.resume_when_done"), state.Short) { TabId = state.Tab.Id });
         if (state.Cdp is { } cdp) _ = Swallow(state.Overlay.Drive(cdp, false, CancellationToken.None));
         hub.RaiseChanged();
     }

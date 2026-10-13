@@ -5,6 +5,7 @@
 // per-project script card, each drawn by the app under the tab's trust strip), the standing grants, and the settings. The app
 // binds Visus; tests bind fakes over FakeWebEngine.
 using System.Text.Json;
+using Marrow.Core.Localisation;
 using Marrow.Core.Web;
 
 namespace Marrow.Services.Web;
@@ -81,7 +82,7 @@ public interface IWebAgentHost
     bool InConversation(string thread, string url) => false;
 
     /// <summary>The model's name as the cards show it ("Claude Sonnet"), from the session's model id.</summary>
-    string ModelName(string? model) => string.IsNullOrWhiteSpace(model) ? "The model" : model;
+    string ModelName(string? model) => string.IsNullOrWhiteSpace(model) ? UiText.Get("agent.model_default") : model;
 
     /// <summary>The chat's title for the guarded-action card's "who" row; null when it has none.</summary>
     string? ChatTitle(string thread) => null;
@@ -112,7 +113,7 @@ public sealed record WebSiteAsk(string Thread, string Tab, string Origin, string
     public bool AllowAlways => !Shared;
 
     /// <summary>The card's title.</summary>
-    public string Title => $"Let {Model} use {WebPolicy.SourceName(Origin)} in Visus?";
+    public string Title => UiText.Format("agent.site.title", Model, WebPolicy.SourceName(Origin));
 }
 
 /// <summary>
@@ -127,9 +128,9 @@ public sealed record WebNavigateAsk(string Thread, string? Tab, IReadOnlyList<st
     public bool CarriesPageText => Query.Any(q => q.FromPage);
 
     /// <summary>"This address carries text from the page you were on" (DESIGN 5.10), when it does.</summary>
-    public const string CarriesNote = "This address carries text from the page you were on";
+    public static string CarriesNote => UiText.Get("agent.navigate.carries_note");
 
-    public string Title => $"Let {Model} open {WebPolicy.SourceName(Url)}?";
+    public string Title => UiText.Format("agent.navigate.title", Model, WebPolicy.SourceName(Url));
 }
 
 /// <summary>
@@ -156,19 +157,19 @@ public sealed record WebGuardAsk(string Thread, string Tab, string Origin, WebGu
     /// <summary>The card's first line: the element's own words with a question mark ("Send invite?").</summary>
     public string Title => Category switch
     {
-        WebGuardCategory.Upload => "Choose a file to upload?",
-        WebGuardCategory.Download => "Save this file?",
-        WebGuardCategory.NewSite when Element.Length == 0 => $"Open {WebPolicy.SourceName(Origin)}?",
-        _ => (Element.Length > 0 ? Element : Capitalized(Word)) + "?",
+        WebGuardCategory.Upload => UiText.Get("agent.guard.title_upload"),
+        WebGuardCategory.Download => UiText.Get("agent.guard.title_download"),
+        WebGuardCategory.NewSite when Element.Length == 0 => UiText.Format("agent.guard.title_new_site", WebPolicy.SourceName(Origin)),
+        _ => UiText.Format("agent.guard.title_named", Element.Length > 0 ? Element : WordTitle(Word)),
     };
 
     /// <summary>"The model will press Send invite in Visus for you."</summary>
     public string Detail => Category switch
     {
-        WebGuardCategory.Upload => "The model wants to upload a file in Visus. You choose the file; the model never sees where it is.",
-        WebGuardCategory.Download => $"The model started a download from {WebPolicy.SourceName(Origin)} in Visus.",
-        WebGuardCategory.NewSite when Element.Length == 0 => "The model wants to move your tab to another site.",
-        _ => $"The model will press {(Element.Length > 0 ? Element : Word)} in Visus for you.",
+        WebGuardCategory.Upload => UiText.Get("agent.guard.detail_upload"),
+        WebGuardCategory.Download => UiText.Format("agent.guard.detail_download", WebPolicy.SourceName(Origin)),
+        WebGuardCategory.NewSite when Element.Length == 0 => UiText.Get("agent.guard.detail_new_site"),
+        _ => UiText.Format("agent.guard.detail_press", Element.Length > 0 ? Element : WordText(Word)),
     };
 
     public string Foot => WebAgentPolicy.AskedBecause(Category);
@@ -176,13 +177,51 @@ public sealed record WebGuardAsk(string Thread, string Tab, string Origin, WebGu
     /// <summary>The confirm button's words: the element's own label ("Send invite"), else Confirm.</summary>
     public string ConfirmLabel => Category switch
     {
-        WebGuardCategory.Upload => "Choose a file",
-        WebGuardCategory.Download => "Save",
+        WebGuardCategory.Upload => UiText.Get("agent.guard.confirm_upload"),
+        WebGuardCategory.Download => UiText.Get("agent.guard.confirm_download"),
         _ when Element.Length is > 0 and <= 28 => Element,
-        _ => "Confirm",
+        _ => UiText.Get("agent.guard.confirm_default"),
     };
 
-    private static string Capitalized(string word) => word.Length == 0 ? "Confirm" : char.ToUpperInvariant(word[0]) + word[1..];
+    // The guarded word the card names when the control has no name of its own ("press send"), in the card's language. The words are the
+    // guard's English ids; one nth does not know shows as it is.
+    private static string WordText(string word) => word switch
+    {
+        "send" => UiText.Get("agent.guard.word.send"),
+        "delete" => UiText.Get("agent.guard.word.delete"),
+        "delete account" => UiText.Get("agent.guard.word.delete_account"),
+        "order" => UiText.Get("agent.guard.word.order"),
+        "submit" => UiText.Get("agent.guard.word.submit"),
+        "publish" => UiText.Get("agent.guard.word.publish"),
+        "post" => UiText.Get("agent.guard.word.post"),
+        "transfer" => UiText.Get("agent.guard.word.transfer"),
+        "install" => UiText.Get("agent.guard.word.install"),
+        "uninstall" => UiText.Get("agent.guard.word.uninstall"),
+        "sign out" => UiText.Get("agent.guard.word.sign_out"),
+        "upload" => UiText.Get("agent.guard.word.upload"),
+        "open" => UiText.Get("agent.guard.word.open"),
+        _ => word,
+    };
+
+    // The same word as the card's first line ("Send?"); its own key per word, so a language is never asked to change a case.
+    private static string WordTitle(string word) => word switch
+    {
+        "send" => UiText.Get("agent.guard.word_cap.send"),
+        "delete" => UiText.Get("agent.guard.word_cap.delete"),
+        "delete account" => UiText.Get("agent.guard.word_cap.delete_account"),
+        "order" => UiText.Get("agent.guard.word_cap.order"),
+        "submit" => UiText.Get("agent.guard.word_cap.submit"),
+        "publish" => UiText.Get("agent.guard.word_cap.publish"),
+        "post" => UiText.Get("agent.guard.word_cap.post"),
+        "transfer" => UiText.Get("agent.guard.word_cap.transfer"),
+        "install" => UiText.Get("agent.guard.word_cap.install"),
+        "uninstall" => UiText.Get("agent.guard.word_cap.uninstall"),
+        "sign out" => UiText.Get("agent.guard.word_cap.sign_out"),
+        "upload" => UiText.Get("agent.guard.word_cap.upload"),
+        "open" => UiText.Get("agent.guard.word_cap.open"),
+        "" => UiText.Get("agent.guard.confirm_default"),
+        _ => char.ToUpperInvariant(word[0]) + word[1..],
+    };
 }
 
 /// <summary>A point in a page's viewport, in CSS pixels.</summary>
@@ -194,7 +233,7 @@ public sealed record WebEvalAsk(string Thread, string Tab, string Origin, string
     /// <summary>The Visus tab's own id.</summary>
     public string? TabId { get; init; }
 
-    public string Title => $"Let {Model} run scripts in {WebPolicy.SourceName(Origin)}?";
+    public string Title => UiText.Format("agent.eval.title", Model, WebPolicy.SourceName(Origin));
 }
 
 /// <summary>Asks the user. Every ask is withdrawn when its token is cancelled (a stop, the turn's end, the ask's own lifetime).</summary>

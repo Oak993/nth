@@ -4,6 +4,7 @@
 // user allowed, never wider than declared. No Swift counterpart.
 using System.Net;
 using System.Text;
+using Marrow.Core.Localisation;
 
 namespace Marrow.Core.Web;
 
@@ -143,40 +144,46 @@ public static class CspBuilder
     }
 
     /// <summary>ED-NEW-web-w26-4: why a source on this computer or its local network needs broad access.</summary>
-    public const string LocalNetworkReason = "your computer or local network";
+    public static string LocalNetworkReason => UiText.Get("mcpapps.reason.local_network");
+
+    /// <summary>Why a wildcard source is dropped unless broad access is allowed.</summary>
+    public static string WildcardReason => UiText.Get("mcpapps.reason.wildcard");
+
+    /// <summary>Why 'unsafe-eval' is dropped unless broad access is allowed.</summary>
+    public static string UnsafeEvalReason => UiText.Get("mcpapps.reason.unsafe_eval");
 
     private static (string? Source, string? Reason) CleanOne(string text, bool allowBroad, bool allowIp)
     {
         if (text.Any(c => char.IsWhiteSpace(c) || c is ';' or ',' or '"' or '\\' or '<' or '>'))
-            return (null, "not a single source");
+            return (null, UiText.Get("mcpapps.reason.not_single_source"));
         if (text.StartsWith('\''))
         {
             if (text == "'unsafe-eval'" && allowBroad) return (text, null);
-            return (null, text == "'unsafe-eval'" ? "lets the page run text as code" : "not a domain");
+            return (null, text == "'unsafe-eval'" ? UnsafeEvalReason : UiText.Get("mcpapps.reason.not_domain"));
         }
 
-        if (text.Contains('\'', StringComparison.Ordinal)) return (null, "not a single source");
-        if (text == "*") return allowBroad ? (text, null) : (null, "a wildcard");
+        if (text.Contains('\'', StringComparison.Ordinal)) return (null, UiText.Get("mcpapps.reason.not_single_source"));
+        if (text == "*") return allowBroad ? (text, null) : (null, WildcardReason);
         var schemeEnd = text.IndexOf("://", StringComparison.Ordinal);
         var scheme = schemeEnd < 0 ? "https" : text[..schemeEnd].ToLowerInvariant();
-        if (schemeEnd < 0 && text.Contains(':', StringComparison.Ordinal) && !HasPortOnly(text)) return (null, "not a web address");
-        if (scheme is not ("https" or "http" or "wss" or "ws")) return (null, "not a web address");
+        if (schemeEnd < 0 && text.Contains(':', StringComparison.Ordinal) && !HasPortOnly(text)) return (null, UiText.Get("mcpapps.reason.not_web_address"));
+        if (scheme is not ("https" or "http" or "wss" or "ws")) return (null, UiText.Get("mcpapps.reason.not_web_address"));
         var rest = schemeEnd < 0 ? text : text[(schemeEnd + 3)..];
         if (rest.StartsWith("*.", StringComparison.Ordinal) || rest.Contains('*', StringComparison.Ordinal))
         {
-            if (!allowBroad) return (null, "a wildcard");
+            if (!allowBroad) return (null, WildcardReason);
             var after = rest.TrimStart('*', '.');
             return after.Length > 0 && Uri.CheckHostName(after.Split('/', ':')[0]) == UriHostNameType.Dns
-                ? (scheme + "://*." + after.ToLowerInvariant(), null) : (null, "a wildcard");
+                ? (scheme + "://*." + after.ToLowerInvariant(), null) : (null, WildcardReason);
         }
 
         if (!Uri.TryCreate(scheme + "://" + rest, UriKind.Absolute, out var uri) || uri.UserInfo.Length > 0 || uri.Query.Length > 0 || uri.Fragment.Length > 0)
-            return (null, "not a web address");
+            return (null, UiText.Get("mcpapps.reason.not_web_address"));
         if (uri.HostNameType is UriHostNameType.IPv4 or UriHostNameType.IPv6)
         {
-            if (!allowIp) return (null, "an IP address");
+            if (!allowIp) return (null, UiText.Get("mcpapps.reason.ip_address"));
         }
-        else if (uri.HostNameType != UriHostNameType.Dns || IPAddress.TryParse(uri.Host, out _)) return (null, "not a web address");
+        else if (uri.HostNameType != UriHostNameType.Dns || IPAddress.TryParse(uri.Host, out _)) return (null, UiText.Get("mcpapps.reason.not_web_address"));
 
         // + ED-NEW-web-w26-4 (W26 security review): a host on this computer or its local network is broad access too.
         if (!allowBroad && WebPolicy.IsDevHost(uri.Host)) return (null, LocalNetworkReason);

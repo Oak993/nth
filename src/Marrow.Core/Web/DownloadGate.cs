@@ -7,6 +7,7 @@
 // localhost:5173", "84 MB · Application · from downloads.example.com", "Click again to save", "Saved to Downloads. Never
 // opened by itself."); ED-NEW-web-w8b-2). No Swift counterpart. The rules of the download prompt, with no pixel and no engine.
 using System.Globalization;
+using Marrow.Core.Localisation;
 
 namespace Marrow.Core.Web;
 
@@ -17,19 +18,19 @@ public static class DownloadGate
     public static readonly TimeSpan SecondClickWindow = TimeSpan.FromSeconds(3);
 
     /// <summary>The risky file's warning, word for word.</summary>
-    public const string RiskyWarning = "This file can run code on your PC.";
+    public static string RiskyWarning => UiText.Get("download.prompt.risky_warning");
 
     /// <summary>Save's label while armed (the canvas's words).</summary>
-    public const string ArmedLabel = "Click again to save";
+    public static string ArmedLabel => UiText.Get("download.prompt.armed");
 
-    public const string SaveLabel = "Save";
+    public static string SaveLabel => UiText.Get("download.prompt.save");
 
-    public const string SaveAsLabel = "Save as…";
+    public static string SaveAsLabel => UiText.Get("download.prompt.save_as");
 
-    public const string CancelLabel = "Cancel";
+    public static string CancelLabel => UiText.Get("download.prompt.cancel");
 
     /// <summary>The prompt's foot (the canvas's #dl2 .foot).</summary>
-    public const string Foot = "Saved to Downloads. Never opened by itself.";
+    public static string Foot => UiText.Get("download.prompt.foot");
 
     /// <summary>What a file with no usable name is called.</summary>
     public const string FallbackName = "download";
@@ -141,24 +142,24 @@ public static class DownloadGate
         switch (extension)
         {
             case "exe" or "msi" or "msix" or "appx" or "appxbundle" or "msixbundle" or "scr" or "com" or "pif" or "application" or "appref-ms":
-                return "Application";
+                return UiText.Get("download.kind.application");
             case "bat" or "cmd" or "ps1" or "psm1" or "vbs" or "vbe" or "js" or "jse" or "wsf" or "wsh" or "hta":
-                return "Script";
+                return UiText.Get("download.kind.script");
             case "zip" or "7z" or "rar" or "tar" or "gz" or "tgz" or "bz2" or "xz" or "cab":
-                return extension.ToUpperInvariant() + " archive";
+                return UiText.Format("download.kind.archive", extension.ToUpperInvariant());
             case "lnk" or "url":
-                return "Shortcut";
+                return UiText.Get("download.kind.shortcut");
             case "iso" or "img" or "vhd" or "vhdx":
-                return "Disk image";
+                return UiText.Get("download.kind.disk_image");
         }
         if (extension.Length is > 0 and <= 5 && extension.All(char.IsAsciiLetterOrDigit)) return extension.ToUpperInvariant();
         return MimeOnly(mimeType ?? "") switch
         {
-            var m when m.StartsWith("image/", StringComparison.Ordinal) => "Image",
-            var m when m.StartsWith("video/", StringComparison.Ordinal) => "Video",
-            var m when m.StartsWith("audio/", StringComparison.Ordinal) => "Audio",
-            var m when m.StartsWith("text/", StringComparison.Ordinal) => "Text",
-            _ => "File",
+            var m when m.StartsWith("image/", StringComparison.Ordinal) => UiText.Get("download.kind.image"),
+            var m when m.StartsWith("video/", StringComparison.Ordinal) => UiText.Get("download.kind.video"),
+            var m when m.StartsWith("audio/", StringComparison.Ordinal) => UiText.Get("download.kind.audio"),
+            var m when m.StartsWith("text/", StringComparison.Ordinal) => UiText.Get("download.kind.text"),
+            _ => UiText.Get("download.kind.file"),
         };
     }
 
@@ -166,7 +167,7 @@ public static class DownloadGate
     public static string SizeText(long bytes)
     {
         if (bytes < 0) bytes = 0;
-        if (bytes < 1024) return bytes == 1 ? "1 byte" : bytes.ToString(CultureInfo.InvariantCulture) + " bytes";
+        if (bytes < 1024) return UiText.PluralWith(CultureInfo.InvariantCulture, "download.size.bytes", bytes);
         string[] units = ["KB", "MB", "GB", "TB"];
         double value = bytes;
         var unit = -1;
@@ -182,26 +183,24 @@ public static class DownloadGate
     /// <summary>The prompt's detail line: "12 KB · CSV · from localhost:5173" (no size part when the server sent none).</summary>
     public static string Detail(long? bytes, string? fileName, string? mimeType, string source)
     {
-        var parts = new List<string>(3);
-        if (bytes is { } size and >= 0) parts.Add(SizeText(size));
-        parts.Add(TypeLabel(fileName, mimeType));
-        parts.Add("from " + source);
-        return string.Join(" · ", parts);
+        var type = TypeLabel(fileName, mimeType);
+        if (bytes is { } size and >= 0) return UiText.Format("download.detail.full", SizeText(size), type, source);
+        return UiText.Format("download.detail.no_size", type, source);
     }
 
     /// <summary>10.1: Save's full name ("Save plans.csv to Downloads").</summary>
-    public static string SaveName(string fileName) => $"Save {fileName} to Downloads";
+    public static string SaveName(string fileName) => UiText.Format("download.prompt.save_name", fileName);
 
-    public static string SaveAsName(string fileName) => $"Save {fileName} somewhere else";
+    public static string SaveAsName(string fileName) => UiText.Format("download.prompt.save_as_name", fileName);
 
-    public static string CancelName(string fileName) => $"Cancel the download of {fileName}";
+    public static string CancelName(string fileName) => UiText.Format("download.prompt.cancel_name", fileName);
 
     /// <summary>The quiet notice when a saved file is complete, or at once for Cancel (the canvas's toasts).</summary>
     public static string Confirmation(DownloadChoice choice, string fileName) => choice switch
     {
-        DownloadChoice.Save => "Saved to Downloads · " + fileName,
-        DownloadChoice.SaveAs => "Saved · " + fileName,
-        _ => "Download cancelled",
+        DownloadChoice.Save => UiText.Format("download.confirm.saved_to_downloads", fileName),
+        DownloadChoice.SaveAs => UiText.Format("download.confirm.saved", fileName),
+        _ => UiText.Get("download.confirm.cancelled"),
     };
 
     private static string MimeOnly(string mime)

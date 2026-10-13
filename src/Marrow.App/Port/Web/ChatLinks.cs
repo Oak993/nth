@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Browser;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Web;
@@ -128,7 +129,7 @@ public static class ChatLinks
     {
         if (WorkspaceOwner(runtime) is not { App: { } app } owner || MarkdownLinkOpener.LocalPath(url) is not { } path) return [];
         if (ProjectPreviewHost.SiteFor(app, owner) is not { } site || ProjectPreviewHost.HtmlFileAddress(site, path) is null) return [];
-        return [new LinkMenuItem("Open in Visus", "eye", () => ProjectPreviewHost.OpenFile(app, owner, path))];
+        return [new LinkMenuItem(UiText.Get("link.menu.open_in_visus"), "eye", () => ProjectPreviewHost.OpenFile(app, owner, path))];
     }
 
     // A side chat is a thread of its own, but its pane sits in the main thread's workspace, so a page opens there.

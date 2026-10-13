@@ -8,6 +8,7 @@
 // through the pause control like any app; its line is the web tools' latest step, "Check the card" while Visus's own card
 // waits, "You took over Visus" while the user works in a driven tab, and "The page stays as it is" while it alone is paused.
 using Marrow.App.Views.Browser;
+using Marrow.Core.Localisation;
 using Marrow.Core.Port.PcControl;
 using Marrow.Services.Port.PcControl;
 using Marrow.Services.Web;
@@ -140,7 +141,7 @@ public sealed class TactusPillFeed : IDisposable
                 {
                     TookOver = visus && webTookOver,
                     OwnCard = visus && webCard,
-                    PausedLine = visus ? "The page stays as it is" : null,
+                    PausedLine = visus ? UiText.Get("agent.step.page_stays") : null,
                 });
             }
             return new PillFacts

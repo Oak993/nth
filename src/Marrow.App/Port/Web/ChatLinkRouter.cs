@@ -1,3 +1,4 @@
+using Marrow.Core.Localisation;
 using Marrow.Core.Port;
 using Marrow.Core.Web;
 
@@ -62,7 +63,7 @@ public sealed class ChatLinkChoice(WebSettings settings, SwiftURL url, bool cont
     private bool finished;
 
     /// <summary>The words of the question.</summary>
-    public const string Title = "Open links in Visus or your default browser?";
+    public static string Title => UiText.Get("link.question.title");
 
     /// <summary>The address the first click asked for; the answer opens this one.</summary>
     public SwiftURL Url { get; } = url;

@@ -9,6 +9,7 @@ using System.Text.Json.Nodes;
 using Avalonia.Controls;
 using Avalonia.VisualTree;
 using Marrow.App.Runtime;
+using Marrow.Core.Localisation;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Web;
@@ -105,12 +106,12 @@ public sealed class McpAppSession
     /// <summary>The words of the card's placeholder while the app is elsewhere, or null inline.</summary>
     public string? PlaceholderText => Mode switch
     {
-        McpAppDisplayMode.Pane => Title + " is open in a pane",
-        McpAppDisplayMode.PopOut => Title + " is in its own window",
+        McpAppDisplayMode.Pane => UiText.Format("mcpapps.session.in_pane", Title),
+        McpAppDisplayMode.PopOut => UiText.Format("mcpapps.session.in_window", Title),
         _ => null,
     };
 
-    public const string BringBackText = "Bring back";
+    public static string BringBackText => UiText.Get("mcpapps.session.bring_back");
 
     // ---- the tool call ----
 
