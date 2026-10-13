@@ -70,10 +70,10 @@ public static class CspBuilder
     {
         if (allowed is null) return ArtifactDefault;
         var directives = Parse(ArtifactDefault);
-        var resources = Granted(declared.ResourceDomains, allowed.ResourceDomains, allowBroad);
-        var connect = Granted(declared.ConnectDomains, allowed.ConnectDomains, allowBroad);
-        var frames = Granted(declared.FrameDomains, allowed.FrameDomains, allowBroad);
-        var bases = Granted(declared.BaseUriDomains, allowed.BaseUriDomains, allowBroad);
+        var resources = Secure(Granted(declared.ResourceDomains, allowed.ResourceDomains, allowBroad), socket: false);
+        var connect = Secure(Granted(declared.ConnectDomains, allowed.ConnectDomains, allowBroad), socket: true);
+        var frames = Secure(Granted(declared.FrameDomains, allowed.FrameDomains, allowBroad), socket: false);
+        var bases = Secure(Granted(declared.BaseUriDomains, allowed.BaseUriDomains, allowBroad), socket: false);
         foreach (var name in new[] { "script-src", "style-src", "img-src", "font-src", "media-src" })
             if (resources.Count > 0) directives[name] = [.. directives[name], .. resources.Where(s => name == "script-src" || !s.StartsWith('\''))];
         if (connect.Count > 0) directives["connect-src"] = connect.Where(s => !s.StartsWith('\'')).ToList();
@@ -143,6 +143,27 @@ public static class CspBuilder
         return mine.Where(yes.Contains).ToList();
     }
 
+    // + ED-NEW-web-sec-mcpapps-7 (web surfaces security review, L7 gap): "*" (broad access) is written as "https:", and in
+    // connect-src also "wss:", so the engine, like nth's own check (McpAppDomains.Reaches), reaches any host over https and
+    // wss only, never over plain http or ws (a CSP "*" matches plain http too).
+    private static List<string> Secure(List<string> sources, bool socket)
+    {
+        var secure = new List<string>();
+        foreach (var source in sources)
+        {
+            if (source != "*")
+            {
+                secure.Add(source);
+                continue;
+            }
+
+            secure.Add("https:");
+            if (socket) secure.Add("wss:");
+        }
+
+        return secure.Distinct(StringComparer.Ordinal).ToList();
+    }
+
     /// <summary>ED-NEW-web-w26-4: why a source on this computer or its local network needs broad access.</summary>
     public static string LocalNetworkReason => UiText.Get("mcpapps.reason.local_network");
 
@@ -151,6 +172,9 @@ public static class CspBuilder
 
     /// <summary>Why 'unsafe-eval' is dropped unless broad access is allowed.</summary>
     public static string UnsafeEvalReason => UiText.Get("mcpapps.reason.unsafe_eval");
+
+    /// <summary>Why a plain http or ws source to a site on the internet was dropped (ED-NEW-web-sec-mcpapps-4).</summary>
+    public static string NotSecureReason => UiText.Get("mcpapps.reason.not_secure");
 
     private static (string? Source, string? Reason) CleanOne(string text, bool allowBroad, bool allowIp)
     {
@@ -171,10 +195,15 @@ public static class CspBuilder
         var rest = schemeEnd < 0 ? text : text[(schemeEnd + 3)..];
         if (rest.StartsWith("*.", StringComparison.Ordinal) || rest.Contains('*', StringComparison.Ordinal))
         {
-            if (!allowBroad) return (null, WildcardReason);
             var after = rest.TrimStart('*', '.');
-            return after.Length > 0 && Uri.CheckHostName(after.Split('/', ':')[0]) == UriHostNameType.Dns
-                ? (scheme + "://*." + after.ToLowerInvariant(), null) : (null, WildcardReason);
+            var under = after.Split('/', ':')[0];
+            var valid = after.Length > 0 && Uri.CheckHostName(under) == UriHostNameType.Dns;
+            // + ED-NEW-web-sec-mcpapps-7 (web surfaces security review, L7 gap): a plain http or ws wildcard reaches the
+            // internet as a plain host does, so it is dropped the same way, with or without broad access; one on this
+            // computer or its local network ("http://*.local") stays broad access.
+            if (valid && scheme is "http" or "ws" && !WebPolicy.IsDevHost("nth-wildcard." + under)) return (null, NotSecureReason);
+            if (!allowBroad || !valid) return (null, WildcardReason);
+            return (scheme + "://*." + after.ToLowerInvariant(), null);
         }
 
         if (!Uri.TryCreate(scheme + "://" + rest, UriKind.Absolute, out var uri) || uri.UserInfo.Length > 0 || uri.Query.Length > 0 || uri.Fragment.Length > 0)
@@ -187,6 +216,10 @@ public static class CspBuilder
 
         // + ED-NEW-web-w26-4 (W26 security review): a host on this computer or its local network is broad access too.
         if (!allowBroad && WebPolicy.IsDevHost(uri.Host)) return (null, LocalNetworkReason);
+        // + ED-NEW-web-sec-mcpapps-4 (web surfaces security review, L7): plain http and ws reach a host on this computer or its
+        // local network only (which is broad access already); to a site on the internet nth's own check refused them while
+        // the CSP let them through. Dropped here, so the card, the CSP and nth's check say the same.
+        if (scheme is "http" or "ws" && !WebPolicy.IsDevHost(uri.Host)) return (null, NotSecureReason);
         var host = uri.IdnHost.ToLowerInvariant();
         var port = uri.IsDefaultPort ? "" : ":" + uri.Port;
         var path = uri.AbsolutePath == "/" && !rest.EndsWith('/') ? "" : uri.AbsolutePath;

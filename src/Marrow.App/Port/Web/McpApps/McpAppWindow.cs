@@ -2,8 +2,9 @@
 // glass window, always on top if pinned, draggable by its title strip and resizable with Splitter edge and corner grips (min
 // 280 x 180)"; canvas .popw; ED-NEW-web-w19-5). No Swift counterpart. The window holds the app's one host, under a 34 DIP
 // title strip that names the server (the trust strip of 8.2, outside the web rectangle). Closing it brings the app back to its
-// card in the thread. It opens pinned (on top), and the pin in the strip lets it fall behind other windows. Its size is the
-// server's: the last size the user gave it. It appears with opacity and a .94 scale on a spring (a short ease under Reduce
+// card in the thread. It opens unpinned and without taking focus (+ ED-NEW-web-sec-mcpapps-1, web surfaces security review
+// M6: it opened pinned on top and activated, so an app could raise a focus-stealing borderless window over everything); the
+// pin in the strip keeps it on top. Its size is the server's: the last size the user gave it. It appears with opacity and a .94 scale on a spring (a short ease under Reduce
 // Motion) while the host shows its snapshot, because a window's alpha does not reach WebView2's surface (DESIGN 2.4).
 using Avalonia;
 using Avalonia.Automation;
@@ -122,8 +123,8 @@ public sealed class McpAppWindow
             MinHeight = MinimumHeight,
             CanResize = false,
             ShowInTaskbar = false,
-            ShowActivated = true,
-            Topmost = true,
+            ShowActivated = false, // ED-NEW-web-sec-mcpapps-1: never takes focus by itself
+            Topmost = false,
             WindowDecorations = WindowDecorations.None,
             WindowStartupLocation = WindowStartupLocation.Manual,
             TransparencyLevelHint = [WindowTransparencyLevel.AcrylicBlur],
@@ -143,7 +144,7 @@ public sealed class McpAppWindow
             e.Handled = true;
             session.WindowClosed(this);
         };
-        Pinned = true;
+        Pinned = false; // ED-NEW-web-sec-mcpapps-1: on top only after the user's pin
         ApplyPin();
     }
 

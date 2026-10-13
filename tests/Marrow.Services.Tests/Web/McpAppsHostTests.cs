@@ -162,11 +162,11 @@ public sealed class McpAppsHostTests
         Assert.Equal("v2.4.1", rig.Servers.Calls[0].Arguments["version"]!.GetValue<string>());
         Assert.Equal(["promote_release", "promote_release"], rig.Ui.ToolCards);
 
-        rig.Ui.ToolAnswer = McpAppToolDecision.AlwaysForServer;
+        rig.Ui.ToolAnswer = McpAppToolDecision.AlwaysInChat;
         rig.Call("a", McpAppProtocol.ToolsCall, Params(("name", "promote_release")));
         rig.Call("b", McpAppProtocol.ToolsCall, Params(("name", "promote_release")));
         Assert.Equal(3, rig.Ui.ToolCards.Count);
-        Assert.Contains("promote_release", rig.Grants.Get("shipyard").AlwaysTools);
+        Assert.Equal([new McpAppChatTool(McpAppsRig.Chat, "promote_release")], rig.Grants.Get("shipyard").AlwaysTools); // ED-NEW-web-sec-mcpapps-2: this chat only
 
         rig.Ui.Supervised = false; // full access: the normal approval does not ask
         rig.Call("f", McpAppProtocol.ToolsCall, Params(("name", "list_releases")));
@@ -346,14 +346,14 @@ public sealed class McpAppsHostTests
         {
             Domains = new Dictionary<string, McpAppDomainGrant>(StringComparer.Ordinal) { [McpAppsRig.Resource] = new("abc123", true) },
             MessageChats = new HashSet<Guid> { McpAppsRig.Chat },
-            AlwaysTools = new HashSet<string>(StringComparer.Ordinal) { "promote_release" },
+            AlwaysTools = new HashSet<McpAppChatTool> { new(McpAppsRig.Chat, "promote_release") },
             WindowSize = (420, 300),
         });
 
         var reread = new McpAppGrantStore(path).Get("shipyard");
         Assert.Equal(new McpAppDomainGrant("abc123", true), reread.Domains[McpAppsRig.Resource]);
         Assert.Contains(McpAppsRig.Chat, reread.MessageChats);
-        Assert.Contains("promote_release", reread.AlwaysTools);
+        Assert.Equal([new McpAppChatTool(McpAppsRig.Chat, "promote_release")], reread.AlwaysTools);
         Assert.Equal((420d, 300d), reread.WindowSize!.Value);
         Assert.Empty(new McpAppGrantStore(path).Get("weather").Domains);
 

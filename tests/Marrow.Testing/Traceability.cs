@@ -20,8 +20,8 @@ public static partial class Traceability
 
     // Unnumbered first-release decisions use their append-only heading (ED-360) until the lead numbers them. A web
     // surfaces unit names its own (ED-NEW-web-w12-1: the lane, the unit, the number; lead 2026-10-11). The web security fixes
-    // name theirs by area (ED-NEW-web-sec-artifacts-1: the lane, "sec", the area, the number; lead 2026-10-13).
-    [GeneratedRegex(@"\A(?:ED-(?:[0-9]{3}|NEW-[a-z]+(?:-[a-z]+[0-9]+[a-z]?)?-[0-9]+|NEW-web-sec-[a-z]+-[0-9]+)|OD-[0-9]{4})\z")] private static partial Regex DecisionId();
+    // name theirs by area (ED-NEW-web-sec-artifacts-1, ED-NEW-web-sec-mcpapps-1: the lane, "sec", the area, the number; lead 2026-10-13).
+    [GeneratedRegex(@"\A(?:ED-(?:[0-9]{3}|NEW-[a-z]+(?:-[a-z]+[0-9]+[a-z]?|-sec-[a-z]+)?-[0-9]+)|OD-[0-9]{4})\z")] private static partial Regex DecisionId();
 
     [GeneratedRegex(@"\AO-[0-9]{2}\z")] private static partial Regex OracleId();
 
