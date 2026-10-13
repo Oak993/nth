@@ -39,6 +39,12 @@ public sealed record MissionRequest(string Title, string Brief, string Assistant
     /// <summary>The task rules and the plan the owner saw (AS-13); null for a mission with neither (the standing rules still bind it).</summary>
     public ReserveStart? Reserve { get; init; }
 
+    /// <summary>A dry run of a duty (7.3, AS-10): reads are real; every other action is refused and listed; no review, no merge.</summary>
+    public bool DryRun { get; init; }
+
+    /// <summary>The duty this mission is a run of (Origin Duty).</summary>
+    public string? DutyId { get; init; }
+
     /// <summary>The account of <see cref="Provider"/> the router chose (AS-14); null: the provider's first enabled account.</summary>
     public Guid? AccountId { get; init; }
 
@@ -203,6 +209,12 @@ public sealed partial class MissionRunner
     /// <summary>Raised after a mission changed (on the main thread).</summary>
     public event Action<MissionRecord>? Changed;
 
+    /// <summary>
+    /// A mission ended (Done or Failed) and its record is final: the report and the taint it carries are set (AS-16, 9.3: the Asturs' reports
+    /// go back to Dextra's chat from here, never from Changed, which fires on Done a moment before the report's taint is kept).
+    /// </summary>
+    public event Action<MissionRecord>? Finished;
+
     /// <summary>A journal or log write failed; the mission went on and the board shows the line.</summary>
     public event Action<string>? Faulted;
 
@@ -260,6 +272,8 @@ public sealed partial class MissionRunner
             Team = request.Team,
             Level = level,
             BudgetUsd = request.BudgetUsd,
+            DryRun = request.DryRun,
+            DutyId = request.DutyId,
             Created = now,
             Readers = request.Readers,
             RequestedBy = request.RequestedBy,
@@ -688,6 +702,7 @@ public sealed partial class MissionRunner
         var decision = verdict.Decision;
         if (thread == record.ReviewerThread && !Reviewer.Reads(c.Class))
             decision = new PolicyDecision(Verdict.Deny, PolicyRule.OwnerNever, "The reviewer only reads");
+        if (record.DryRun) return DryApproval(record, thread, request, c, decision);
         if (decision.Verdict == Verdict.Deny)
         {
             o.Agents.Resolve(thread, request, approve: false);
@@ -971,6 +986,11 @@ public sealed partial class MissionRunner
             if (Threads(record).Where(t => IsHelper(record, t)).Any(o.Agents.TurnRunning)) return;
             l.LeadDone = false;
             Update(id, r => r with { Report = o.Agents.FinalMessage(lead) ?? r.Report });
+            if (record.DryRun)
+            {
+                FinishDryRun(id);
+                return;
+            }
             if (record.Readers)
             {
                 // A reader mission changes nothing, so nothing is reviewed or merged: its report is the result (12.4). It
@@ -1120,7 +1140,9 @@ public sealed partial class MissionRunner
             AgentTaint = ValueMap<Guid, Taint>.Empty,
             Mission = r.Mission with { TaintContext = TaintContext.MissionEnded() },
         });
-        if (Find(id) is { } ended) ReportToParent(ended);
+        if (Find(id) is not { } ended) return;
+        ReportToParent(ended);
+        Finished?.Invoke(ended);
     }
 
     /// <summary>

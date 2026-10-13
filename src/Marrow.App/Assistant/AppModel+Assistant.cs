@@ -77,6 +77,7 @@ public sealed partial class AppModel
 
     private void DisposeSafety()
     {
+        DisposeDuties();
         dextraTray?.Dispose();
         dextraTray = null;
         Tray?.Dispose();
@@ -87,6 +88,9 @@ public sealed partial class AppModel
 
     /// <summary>Dextra's controller, while Dextra runs (AS-8 starts it from the home; null before).</summary>
     public AssistantController? Dextra { get; private set; }
+
+    /// <summary>The store Dextra was started over (one process holds it, 15.3); the duties (AS-10) read and write their files through it.</summary>
+    public AssistantStore? DextraStore { get; private set; }
 
     /// <summary>The usage reserve (AS-13) of the running controller, if it has one: the taps feed it, the board and the plan card read it.</summary>
     internal ReserveGuard? Reserve => Dextra?.Reserve;
@@ -111,7 +115,7 @@ public sealed partial class AppModel
         ProviderKind provider = ProviderKind.Claude, string? model = null, IReadOnlyList<string>? protectedRoots = null,
         AutoAnswerSwitch? autoAnswer = null, Func<IReadOnlyList<string>>? personalDataRecipients = null, Func<IReadOnlyList<string>>? allowlist = null,
         GlobalStop? stopKey = null, AppTray? tray = null, IPcStreamHold? pcStreams = null,
-        IReadOnlyList<IStopScope>? stopScopes = null, INoteProposer? noteProposer = null)
+        IReadOnlyList<IStopScope>? stopScopes = null, INoteProposer? noteProposer = null, IDutyTools? duties = null, AssistantTeam? team = null, IAssistantHomes? homes = null)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(audit);
@@ -124,6 +128,8 @@ public sealed partial class AppModel
         var costLedger = new CostLedger();
         var dutyHealth = new DutyHealthBook();
         var reservePersistence = new ReservePersistence(store, reserveSettings, calibrator, turnCosts, costs: costLedger, duties: dutyHealth);
+        // The Asturs' day slices are standing caps in these settings (AS-16, 9.3): they are put in step with the profiles once the rules are loaded.
+        team?.BindBudgets(reserveSettings);
         // Dextra's memory (AS-12): the notes live in the store; the capture runs only when a cheap model is bound (noteProposer).
         string? DextraId() => profiles().FirstOrDefault(p => p.ParentId is null)?.Id;
         var memoryStore = new MemoryStore(store, new MemoryStoreOptions { MainAssistantId = DextraId });
@@ -166,6 +172,7 @@ public sealed partial class AppModel
                     AssistantName = id => profiles().FirstOrDefault(profile => profile.Id == id)?.Name,
                 },
             },
+            Asturs = team is null ? null : new AsturSetup { Team = team, Homes = homes, LoadDelegations = store.Delegations, SaveDelegations = store.SaveDelegations },
             DutyHealth = dutyHealth,
             Triage = new TriageSetup { Options = TriageModels, Brain = () => BrainModelOf(provider, model) },
             Agents = new AppMissionAgents(this),
@@ -191,7 +198,9 @@ public sealed partial class AppModel
             StopKey = stopKey,
             PcStreams = pcStreams,
             StopScopes = stopScopes ?? [],
+            Duties = duties ?? DutyToolsGate,
         });
+        DextraStore = store;
         // The day's folding of the notes (8.2) runs at start when it has not run today; the digest (AS-11) calls it each morning from then on.
         _ = Task.Run(() =>
         {
@@ -199,6 +208,8 @@ public sealed partial class AppModel
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or ObjectDisposedException) { controller.AuditMemory(null, "fold", "failed: " + error.GetType().Name); }
         });
         controller.Runner.Load(store.Missions().Select(stored => MissionJournal.FromJson(stored.Body)).OfType<MissionRecord>());
+        // The Asturs' reports whose missions ended while nth was closed are caught up (AS-16).
+        controller.ResumeDelegations();
         // What Revert and Restart kept for 7 days, and the workspaces of missions over for 7 days, are swept at start (the
         // scheduler, AS-10, repeats it daily); a sweep that fails is reported and never stops the start.
         _ = SweepKept(controller);
@@ -297,6 +308,7 @@ public sealed partial class AppModel
     public void UnbindDextra()
     {
         if (Dextra is null) return;
+        DisposeDuties();
         dextraTray?.Dispose();
         dextraTray = null;
         Dextra = null;

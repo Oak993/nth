@@ -60,6 +60,17 @@ public sealed class AssistantToolRunner(AssistantRegistration registration, Func
             };
         var call = new AssistantToolCall(chat, tool, args, classification, decision, route);
 
+        // A dry run of a duty (7.3): nothing but reads acts. The call is logged as what it would have been, and listed for the owner.
+        string? dry = null;
+        try { dry = host.DryAnswer(call); }
+        catch (Exception error) when (error is not OperationCanceledException) { dry = "Dry run: nth could not tell whether this call may run, so it did not."; }
+        if (dry is not null)
+        {
+            try { host.Audit(Entry(call, "dry run: not run")); }
+            catch (Exception error) when (error is not OperationCanceledException) { return AssistantToolResult.Failed("Not run: the activity log could not be written."); }
+            return AssistantToolResult.Done(dry);
+        }
+
         // The decision is logged before anything acts; a log that cannot be written stops the call here (12.5).
         try { host.Audit(Entry(call, Outcome(decision))); }
         catch (Exception error) when (error is not OperationCanceledException)

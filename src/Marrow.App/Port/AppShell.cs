@@ -36,7 +36,7 @@ public sealed class AppShell : ITerminationSender
     private readonly Action afterWillTerminate;
     private bool terminationPending;
     private bool terminated;
-    private bool mainHooksAttached;
+    private AvaloniaWindow? hookedWindow; // the main window the hooks are on (AS-10: a window closed to the background is made again)
     internal bool HasTerminated => terminated;
 
     /// <param name="appDelegate">The application's delegate (DroppyCodeApp.swift:5, @NSApplicationDelegateAdaptor).</param>
@@ -54,9 +54,20 @@ public sealed class AppShell : ITerminationSender
     /// <summary>NSApp.delegate.</summary>
     public AppDelegate Delegate { get; }
 
+    /// <summary>
+    /// PORT-ONLY (AS-10, ED-NEW-dextra-as10-13): a hidden start (<c>nth --hidden</c>, <c>nth --duty id</c>) makes no main window and no boot
+    /// stage; it only leaves the quit path (the updater's and the Quit command's) as in a normal start.
+    /// </summary>
+    internal void PrepareHidden()
+    {
+        WindowManager.Shared.MainWindowClose = () => MainActor.Post(Terminate);
+        WindowManager.Shared.MainWindowMade = _ => AttachMainWindowHooks();
+    }
+
     internal void PrepareBoot()
     {
         WindowManager.Shared.MainWindowClose = () => MainActor.Post(Terminate);
+        WindowManager.Shared.MainWindowMade = _ => AttachMainWindowHooks();
         Delegate.PrepareBoot();
         AttachMainWindowHooks();
     }
@@ -77,11 +88,11 @@ public sealed class AppShell : ITerminationSender
 
     private void AttachMainWindowHooks()
     {
-        if (mainHooksAttached) return;
         // ED-004 (2): WM_ENDSESSION comes to every top-level window; the main window is the app's one lasting window.
-        if (WindowManager.Shared.MainWindow is { } main)
+        // AS-10: a window closed to the background is made again at the next show, and the hooks go on the new one.
+        if (WindowManager.Shared.MainWindow is { } main && !ReferenceEquals(hookedWindow, main))
         {
-            mainHooksAttached = true;
+            hookedWindow = main;
             AddWindowProcedureHook.Current(main, WndProc);
             // ED-219: the badge computed while the delegate launched had no window to sit on yet.
             (TaskbarBadge.Overlay.Current as WindowsTaskbarOverlay)?.Reapply();

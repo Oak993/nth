@@ -84,6 +84,9 @@ public sealed class AssistantControllerOptions
     /// <summary>Where untrusted output is read for instructions (AS-7, ED-NEW-dextra-as7-17): off the main thread, one at a time.</summary>
     public Action<Action> ScanOn { get; init; } = AssistantController.SerialScanner();
 
+    /// <summary>The team of Asturs behind delegate_to and create_assistant (AS-16); null: the two tools say they are not part of this build.</summary>
+    public AsturSetup? Asturs { get; init; }
+
     /// <summary>How long an nth-dextra call waits for the main thread to take in the chat's earlier events (ED-NEW-dextra-as7-18).</summary>
     public TimeSpan SettleWait { get; init; } = TimeSpan.FromSeconds(10);
     /// <summary>
@@ -100,6 +103,9 @@ public sealed class AssistantControllerOptions
 
     /// <summary>The usage reserve (AS-13): what it reads and keeps. Null: no reserve; nothing is held back for usage.</summary>
     public ReserveSetup? Reserve { get; init; }
+
+    /// <summary>The duty tools (AS-10): schedule_duty, watch_folder and watch_page, and what a duty may do. Null: they say they are not built yet.</summary>
+    public IDutyTools? Duties { get; init; }
 
     /// <summary>
     /// The usage-aware router (AS-14): what it reads of the owner's accounts and models. Null: a mission's lead runs on
@@ -304,6 +310,7 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
         }
         WatchAutoAnswer();
         LoadHomeTaint();
+        StartTeam();
     }
 
     /// <summary>The cost controls (AS-15): the owner's caps, checked before every turn of a mission, beside the reserve.</summary>
@@ -463,15 +470,34 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
     private PolicyContext MissionContext(string assistantId, Guid? mission, TaintContext taint)
     {
         var now = o.Time.GetUtcNow();
-        return new PolicyContext(AssistantChain.Of(assistantId, o.Profiles()), now)
+        var chain = AssistantChain.Of(assistantId, o.Profiles());
+        return new PolicyContext(chain, now)
         {
-            Grants = new ValueList<Grant>(Grants.Where(g => g.AssistantId == assistantId)),
+            // The grants of the acting assistant and of every assistant above it: an Astur's grant counts only inside one its parents hold (9.1, AS-16).
+            // A sibling's grants are never in the context, so one Astur's sign-in is not another's.
+            Grants = new ValueList<Grant>(Grants.Where(g => chain.Any(p => p.Id == g.AssistantId))),
             MissionId = mission,
             TaintContext = taint,
+            Duty = DutyScopeOf(mission),
         };
     }
 
-    private void Granted(DecisionItem card, DecisionAnswer answer)
+    // A duty's run (or a helper mission under one) can only narrow its assistant's grants (7.1, 12.1). The scope is read from the duty at
+    // each approval, so it holds after a restart; a duty that no longer exists narrows to nothing alone (every action asks).
+    private DutyScope? DutyScopeOf(Guid? mission)
+    {
+        if (o.Duties is not { } duties) return null;
+        for (var depth = 0; mission is { } id && depth < 8; depth++)
+        {
+            if (Runner.Find(id) is not { } record) return null;
+            if (record.DutyId is { } dutyId) return duties.ScopeOf(dutyId);
+            mission = record.Mission.ParentMissionId;
+        }
+        return null;
+    }
+
+    /// <summary>A grant the owner made from a card (For this mission, Always...): kept, logged with the card, unless an Astur's would be broader than Dextra's (9.1). Internal for the tests.</summary>
+    internal void Granted(DecisionItem card, DecisionAnswer answer)
     {
         Grant? grant = answer.Kind switch
         {
@@ -481,6 +507,17 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
             _ => null,
         };
         if (grant is null || GrantRules.Invalid(grant) is not null) return;
+        // 9.1: an Astur never holds a grant its parent lacks. One that Dextra's grants do not already contain is not kept, and the owner's chat says why.
+        if (GrantRefusal(grant) is { } notKept)
+        {
+            TryAudit(new AuditEntry
+            {
+                Assistant = grant.AssistantId, Mission = card.MissionId?.ToString("D"), Agent = card.ThreadId?.ToString("D"), Tool = "grant",
+                ActionClass = grant.Class.ToString(), Target = string.Join(", ", grant.Target.Values), Result = "not kept: " + notKept, AllowedBy = "card:" + card.Id.ToString("D"),
+            });
+            if (card.ThreadId is { } asked) Deliver(asked, "The owner's choice was kept for this once only, not as a grant: " + notKept);
+            return;
+        }
         // 12.5: a grant is logged with the card that made it; one that cannot be logged is not kept (ED-NEW-dextra-as5-13).
         try
         {
@@ -529,6 +566,15 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
         var result = RunNow(call);
         if (call.Decision.GrantsUsed.Count > 0) UseGrants(call.Decision.GrantsUsed, "call:" + call.Id);
         return Task.FromResult(result);
+    }
+
+    /// <summary>A call from a dry run's chat (7.3): only reads run; the rest is refused to the model and listed as a step.</summary>
+    public string? DryAnswer(AssistantToolCall call)
+    {
+        if (call.Chat.MissionId is not { } mission || Runner.Find(mission) is not { DryRun: true }) return null;
+        var outcome = Runner.DryLogOf(mission).Intercept(call.Classification.Class, call.Decision.Verdict,
+            DryRunWords.WouldCall(AssistantNames.Server + "/" + call.Tool.Name, call.Tool.Title), call.Tool.Title);
+        return outcome.Perform ? null : outcome.Answer;
     }
 
     private AssistantToolResult RunNow(AssistantToolCall call)
@@ -666,6 +712,14 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
                 var refused = Runner.Report(chat.Thread, Text("summary") ?? "", Text("status") ?? "done", List("artifacts"));
                 return refused is null ? AssistantToolResult.Done("Reported.") : AssistantToolResult.Failed("Not reported: " + refused);
             }
+            case "delegate_to" when o.Asturs is not null:
+                return Delegate(call);
+            case "create_assistant" when o.Asturs is not null:
+                // Never from an Allow: the engine asks for every change of standing configuration, and an Astur is made only from the card the owner answers.
+                return AssistantToolResult.Failed($"Not run: an {AssistantNames.Astur} is only made from a card the owner answers.");
+            case "schedule_duty" or "watch_folder" or "watch_page" when o.Duties is { } duties:
+                // 7.1: the owner's card was answered yes; the duty is made now. The words of how it went also reach the chat.
+                return duties.Create(call, text => Deliver(chat.Thread, $"{AssistantNames.Server} {call.Tool.Name}: {text}"));
             case "remember" when o.Notes is not null:
                 return Tools.Remember(call, PolicyContext(chat).TaintContext);
             case "recall" when o.Notes is not null:
@@ -673,7 +727,7 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
             case "forget" when o.Notes is not null:
                 return Tools.Forget(call);
             default:
-                // Wired by the units that own them: duties and watches (AS-10), usage and plans (AS-13),
+                // Wired by the units that own them: usage and plans (AS-13),
                 // Asturs (AS-16), suggestions (AS-11), sessions (AS-2's reader), deliver and merge_results (AS-8).
                 // Memory (AS-12) is wired when the controller is given its Notes.
                 return AssistantToolResult.Failed($"Not run: {call.Tool.Name} is not part of this build of {AssistantNames.Assistant} yet.");
@@ -688,7 +742,9 @@ public sealed partial class AssistantController : IAssistantToolHost, IDisposabl
 
     private DecisionItem Card(AssistantToolCall call, bool offered)
     {
-        IEnumerable<DecisionInput> inputs = MemoryCardInputs(call) ?? (call.Arguments.JSONValueObject is { } fields
+        if (call.Tool.Name == "create_assistant" && o.Asturs is not null) return AsturCard(call, offered);
+        // A duty's card shows what it will be: its trigger, what it does, its grants, its budget (7.1), not the raw arguments.
+        IEnumerable<DecisionInput> inputs = o.Duties?.Describe(call) ?? MemoryCardInputs(call) ?? (call.Arguments.JSONValueObject is { } fields
             ? fields.Select(f => new DecisionInput(f.Key, f.Value.JSONValueString ?? f.Value.ToString()))
             : []);
         var c = call.Classification;
