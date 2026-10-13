@@ -7818,3 +7818,36 @@ Evidence: SearchSuggestionRulesTests, SearchSuggestionSourceTests, VisusSuggesti
    no reparse point on the way, and no UNC or device form; anything else is refused.
 
 Evidence: WebW10HtmlFileTests, WebW10LinkTests (the sign-in boundary), WebW10ChatLinksVisusTests.
+
+## ED-NEW-web-w10-9 - W10 landing check (Claude Sonnet 5.5 checking the build of codex/web-w10)
+
+2026-10-13 - PORT-ONLY owner web-surfaces scope (DESIGN.md 5.11, 9, 10, 14 W10). ENGINEERING DECISION. No Swift counterpart.
+
+1. Checked against the row's "done when" (link setting and Ctrl+click; OAuth stays external; Visual answers setting; new shortcuts re-bindable) and
+   sections 5.11, 9, 10 and 11: every part is built. The tests were mutation-checked: ten deliberate breaks of the source (Ctrl ignored, a private tab
+   asking the search engine, a private host accepted as a tile source, the reparse-point walk removed, the MCP Apps switch unbound, a second
+   first-time question allowed, the sheet ignoring Reduce Motion with no anchor, the sign-in rule removed, the chat's own links no longer first, an
+   agent profile accepted by a clear) each failed at least one W10 test, except the last, which is an equivalent break (the next line of
+   WebProfileClears.Request refuses the same names). No existing test was loosened or deleted; the five changed existing test files keep their assertions
+   (ED-NEW-web-w10-2 and -4).
+2. Fixed: the first-time question sat over the main window with movement even when Reduce Motion was on whenever the link came from somewhere with no
+   control of its own (an MCP App's card, the git menu's Open repository, an artifact's link), because the anchor was null and Still(anchor) was
+   skipped. ChatLinkSheet.StillFor now looks at the main window the sheet is placed over, and at the system's setting when there is no window.
+3. Correction to ED-NEW-web-w10-2 point 3: the link popover gets the one extra row "Open in Visus", and only for an HTML file of the chat's project. No
+   "Open in default browser" row was built, and none is wanted: DESIGN 5.11 names Ctrl+click as the way to the other browser, and "Open Link" follows
+   the setting.
+4. Added tests where the report named a gap or the ED claimed a rule with no test: the OAuth boundary (the Services assembly that signs an MCP server in
+   cannot reach the app's chat links, and the system seam is not routed to Visus or the question under any choice; WebW10OAuthBoundaryTests), an
+   artifact's link following the setting and a sign-in staying external (WebW10TabulaLinkTests; the report's open question 4), the sheet's stillness
+   (WebW10ChatLinkSheetStillTests), and an HTML file reached through a junction, or in a project folder that is a junction, getting no address
+   (WebW10HtmlJunctionTests; ED-NEW-web-w10-8 point 2 said so with no test). The junction is made with the system's mklink /J, no network.
+5. Banned-pattern note (LEAN item 9): the typed empty catch blocks in WebW10HtmlFileTests.Clean and WebW10HtmlJunctionTests.Clean remove a throwaway
+   folder under the test data directory after the test has passed or failed on its own assertions; a leftover is harmless and a locked file must not
+   turn a passed test red. They hold a comment that says so.
+6. Left as they are, for the owner or the lead (none is in the row's "done when"): (a) Ctrl+click on the very first question: the reader answers
+   Visus and this one link goes to the default browser (the answer inverted for the click, ED-NEW-web-w10-1's contract and its test); (b) the markdown
+   in the composer's request cards and in the Hydra report popovers is outside the chat timeline, so its links keep the system browser; (c) DESIGN 9
+   "Appearance > Panes" (reset pane layout, pane gaps, splitter grip on hover) is built by no unit; (d) the live-tab cap is per web surface (-3
+   point 4); (e) the Settings window lists 20 pages in 580 pt and scrolls (-4 point 7).
+
+Evidence: WebW10OAuthBoundaryTests, WebW10TabulaLinkTests, WebW10ChatLinkSheetStillTests, WebW10HtmlJunctionTests.
