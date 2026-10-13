@@ -2582,17 +2582,30 @@ public sealed class ToolRow : Decorator
         }
         if (showsOutput && !opensImage) // :1710-1713 if isExpanded, showsOutput, !opensImage
         {
+            // ED-NEW-perf-motion-2 (OD-0076): an expand while the collapsed detail is still leaving brings that same view back from where its
+            // removal has taken it, so a quick double click never shows two details or a flash.
             ToolDetailView? detail = null;
+            ToolDetailView? leaving = null;
             stack.Track(() => state.IsExpanded, expanded =>
             {
                 if (expanded && detail is null)
                 {
-                    detail = new ToolDetailView(call, workingDirectory) { Margin = new Thickness(0, 0, 12, 0) }; // :1711-1712
-                    SwiftTransition.Insert(stack, stack.Children.Count, detail);
+                    if (leaving is { } back && SwiftTransition.IsRemoving(back))
+                    {
+                        detail = back;
+                        SwiftTransition.InsertContinuing(stack, stack.Children.Count, back);
+                    }
+                    else
+                    {
+                        detail = new ToolDetailView(call, workingDirectory) { Margin = new Thickness(0, 0, 12, 0) }; // :1711-1712
+                        SwiftTransition.Insert(stack, stack.Children.Count, detail);
+                    }
+                    leaving = null;
                 }
                 else if (!expanded && detail is { } shown)
                 {
                     detail = null;
+                    leaving = shown;
                     SwiftTransition.Remove(stack, shown);
                 }
             });

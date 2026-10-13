@@ -113,8 +113,13 @@ public sealed record SwiftTransition
         // A view with no `.transition(_:)` uses SwiftUI's default `.opacity`: documented SwiftUI behaviour, UNVERIFIED
         // under OD-0001 as ED-092 records for the other documented defaults.
         var state = attachments.GetValue(child, _ => new Attachment(Opacity));
-        // ED-159 follow-up (interruption): an insertion cancels whatever transition of this child is still running and
-        // starts afresh; a removal still in flight gives its wrapper back before the insertion places it again.
+        // OD-0076, ED-NEW-perf-motion-2: an insertion that interrupts this child's removal under way in this panel brings it back from where
+        // the removal has taken it (a transition with no asymmetric part: the removal's state at r is the insertion's at 1 - r), never from
+        // the insertion's start; a removal that has not moved yet (r = 0) still lets the insertion start afresh (ED-278 (10)).
+        var resume = elapsed == default && state.RemovalInFlight && ReferenceEquals(state.RemovingFrom, panel) && !state.Transition.HasAsymmetricPart()
+            && state.CurrentProgress is > 0 and < 1 ? 1 - state.CurrentProgress : 0;
+        // ED-159 follow-up (interruption): an insertion cancels whatever transition of this child is still running; a removal still in
+        // flight gives its wrapper back before the insertion places it again.
         state.Stop();
         state.Carried = null;
         if (state.RemovingFrom is { } lingering)
@@ -134,6 +139,12 @@ public sealed record SwiftTransition
         if (elapsed > TimeSpan.Zero && elapsed.Ticks + TimeSpan.TicksPerMillisecond >= SwiftTask.Seconds(animation.Duration).Ticks)
         {
             state.Present(child, 1, inserting: true); // ED-117 (2): complete 1 ms early at most
+            return;
+        }
+        if (resume > 0)
+        {
+            state.Present(child, resume, inserting: true);
+            state.Run(animation, (p, _) => state.Present(child, resume + (1 - resume) * p, inserting: true), from: resume);
             return;
         }
         state.Present(child, elapsed > TimeSpan.Zero ? animation.Progress(elapsed.TotalSeconds) : 0, inserting: true);
@@ -218,7 +229,11 @@ public sealed record SwiftTransition
     {
         // The same `.opacity` default (UNVERIFIED under OD-0001, ED-092) for a child that carries no transition.
         var state = attachments.GetValue(child, _ => new Attachment(Opacity));
-        var from = continuing && state.InsertionInFlight && !state.Transition.HasAsymmetricPart() ? 1 - state.CurrentProgress : 0;
+        // OD-0076, ED-NEW-perf-motion-2: a removal that interrupts an insertion under way starts from where the insertion has brought the
+        // child (RemoveContinuing's rule) whenever the insertion has moved; one that has not moved yet (p = 0) still starts from the
+        // removal's own start, as ED-278 (10) keeps for a stage swapped before any time passes.
+        var from = state.InsertionInFlight && !state.Transition.HasAsymmetricPart() && (continuing || state.CurrentProgress > 0)
+            ? 1 - state.CurrentProgress : 0;
         // An asymmetric transition's removal names no state of the insertion it interrupts, so it cannot start from the insertion's progress; it starts from the
         // insertion's presentation instead (the opacity and the rise the child has now), which the removal then carries (UI-CHAT-052, unit rec-tlr).
         var carries = state.InsertionInFlight && state.Transition.HasAsymmetricPart();

@@ -2121,6 +2121,72 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
+    // ED-NEW-perf-motion-2 (OD-0076): a second click while the collapsed output is still fading out brings that same detail back from the
+    // opacity it has reached; before, a fresh detail faded in from nothing beside the one still leaving.
+    [Trait("Decision", "ED-NEW-perfmotion-2")]
+    public void A_quick_second_click_on_an_output_row_brings_its_leaving_detail_back_from_where_it_is()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var frames = new ManualFrameSource();
+            using var frameSeam = FrameClock.Source.Override(frames);
+            ToolRow? row = null;
+            Button? toggle = null;
+            AvaloniaWindow? window = null;
+            void Step(double milliseconds)
+            {
+                h.Main.AdvanceMilliseconds(milliseconds);
+                frames.Advance(System.TimeSpan.FromMilliseconds(milliseconds));
+            }
+            ToolDetailView[] Details() => LogicalQuery.SelfAndDescendants<ToolDetailView>(row!).ToArray();
+            double Seen(Control view)
+            {
+                var opacity = 1.0;
+                for (Visual? at = view; at is not null && !ReferenceEquals(at, row); at = Avalonia.VisualTree.VisualExtensions.GetVisualParent(at)) opacity *= at.Opacity;
+                return opacity;
+            }
+            h.Main.OnMain(() =>
+            {
+                row = ToolRowFor(h.Runtime, Call(ToolCall.Kind.Command, "ls") with { Output = "a\nb" });
+                window = Show(new StackPanel { Children = { row } });
+                toggle = LogicalQuery.SelfAndDescendants<Button>(row).Single();
+                Click(toggle);
+            });
+            frames.Advance(System.TimeSpan.Zero);
+            Step(2000);
+            var detail = h.Main.OnMain(() => Assert.Single(Details()));
+            Assert.Equal(1, h.Main.OnMain(() => Seen(detail)), 6);
+
+            h.Main.OnMain(() => Click(toggle!));
+            frames.Advance(System.TimeSpan.Zero);
+            Step(50);
+            var shown = h.Main.OnMain(() => Seen(detail));
+            Assert.InRange(shown, 0.05, 0.95);
+            h.Main.OnMain(() =>
+            {
+                Click(toggle!);
+                Assert.Same(detail, Assert.Single(Details()));
+                Assert.Equal(shown, Seen(detail), 6);
+            });
+            var last = shown;
+            for (var frame = 0; frame < 60; frame++)
+            {
+                Step(1000 / 60.0);
+                var now = h.Main.OnMain(() => Seen(detail));
+                Assert.True(now >= last - 1e-6, $"the detail faded to {now} from {last} on its way back");
+                last = now;
+            }
+            Assert.Equal(1, last, 6);
+            h.Main.OnMain(() =>
+            {
+                Assert.Same(detail, Assert.Single(Details()));
+                Close(window!);
+            });
+        });
+    }
+
+    [Fact]
     // Partial proof PR-CHAT-099 (STOP #11); App/Views/Chat/TimelineRows.swift:2067-2091, :1784
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_status_icon_is_a_spinner_a_red_cross_a_raised_hand_or_the_kinds_glyph_in_a_16_point_column()
