@@ -50,6 +50,8 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
     // (file under src, the radius argument as written, how many assignments, kind)
     private static readonly (string File, string Radius, int Count, string Kind)[] Sites =
     [
+        ("Marrow.App/Assistant/Views/ActivityRowList.cs", "8", 1, Fit), // fixed ActivityRowList.RowHeight 34: h > 3.057 * 8 = 24.456; never in OD-0102's band
+        ("Marrow.App/Assistant/Views/HoldToActButton.cs", "radius", 1, Circular), // AS-8 design-page fill: assistant/index.html:564-566 .btn.irr::before inherits CSS border-radius; .btn at89, not a Swift continuous shape
         ("Marrow.App/Port/ChatDialogControls.cs", "6", 1, Fit),
         ("Marrow.App/Port/FirstRun/GettingReadySheet.cs", "GettingReadyLook.CornerRadius", 1, Circular), // GR-2 (ED-306): the sheet card, a design-page layout (getting-ready variant I, CSS border-radius 18), not a Swift shape
         ("Marrow.App/Port/Ignis/Settings/IgnisSavingsHistoryView.cs", "5, 5, 3, 3", 1, Circular), // Ignis (OD-0134, ED-NEW-handoverfix-3): a month bar, design-page layout (work/design/phoenix/phoenix-designs.html .mchart .mb, CSS border-radius 5px 5px 3px 3px), not a Swift shape

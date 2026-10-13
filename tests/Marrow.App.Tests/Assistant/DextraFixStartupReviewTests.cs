@@ -18,7 +18,7 @@ public sealed class DextraFixStartupReviewTests
         using var temp = new AssistantTempRoot();
         using var launch = new BackgroundLaunchRig(temp);
         Assert.Null(launch.Run(StartupMode.Normal, out _));
-        Assert.NotNull(launch.OnMain(() => launch.Model.AssistantHost.EnsureStarted()));
+        Assert.NotNull(launch.Main.Loop.Run(() => launch.Model.AssistantHost.EnsureStartedAsync()));
         Assert.Null(launch.Model.Duties!.Switches.SetKeepWorking(true));
         Assert.True(launch.Model.Duties.Switches.KeepWorkingWhenClosed && launch.Model.Tray is not null);
         Assert.Same(launch.Tray, launch.Model.Tray);

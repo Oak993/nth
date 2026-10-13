@@ -30,6 +30,7 @@ public sealed class DelegateSettingsPageTests(HeadlessSession headless)
     private static BrainChoices Brain(params ProviderKind[] providers) => new(() => providers, _ => [], _ => []);
 
     [Fact]
+    [Trait("Decision", "ED-NEW-dextra-open-7")]
     public void The_menu_shows_once_the_delegate_is_on_offers_dextra_and_the_providers_that_can_read_a_question_and_writes_the_choice()
     {
         headless.OnUiThread(() =>
@@ -44,12 +45,18 @@ public sealed class DelegateSettingsPageTests(HeadlessSession headless)
             Flip(rows.DelegateSwitch);
             stage.Layout();
             Assert.True(rows.WithRow.IsVisible);
-            Assert.Equal(["dextra", "Claude", "Codex"], rows.WithMenu.Items.Select(i => i.Id));        // Cursor has no one-shot model to read with
+            // DESIGN.md 4.3 and CU-DX-OPEN item 1 supersede AS-22's provider-only menu (ED-NEW-dextra-open-1).
+            Assert.Equal(["dextra", "Claude", "Codex", "Cursor"], rows.WithMenu.Items.Select(i => i.Id));
             Assert.Equal("dextra", rows.WithMenu.SelectedId);
             Assert.Equal("Dextra", rows.WithMenu.Items.First().Label.Text);
 
             rows.WithMenu.Select("Codex");
-            Assert.Equal(new DelegateWho(ProviderKind.Codex), settings.Value.DelegateWith);
+            // CU-DX-OPEN2 item 1 requires unavailable providers to be visible with a reason, rather than selectable.
+            Assert.Null(settings.Value.DelegateWith);
+            Assert.False(rows.WithMenu.Items.Single(i => i.Id == "Codex").IsEnabled);
+            Assert.Contains("unavailable", rows.WithMenu.Items.Single(i => i.Id == "Codex").Label.Text!, StringComparison.OrdinalIgnoreCase);
+            rows.WithMenu.Select("Claude");
+            Assert.Equal(new DelegateWho(ProviderKind.Claude), settings.Value.DelegateWith);
             rows.WithMenu.Select("dextra");
             Assert.Null(settings.Value.DelegateWith);
         });

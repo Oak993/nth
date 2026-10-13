@@ -125,6 +125,7 @@ public sealed class DextraVoice : IDisposable
             Controls = live.Controls,
             Language = () => parts.Typing().Lang is { } lang && VoiceLanguage.Find(lang) is not null ? lang : "auto",
             Vocabulary = () => string.Join(", ", host.Profiles().Select(p => p.Name)) + ".",
+            Digest = () => host.Digests?.Latest?.Spoken,
             ShowCard = id => CardRequested?.Invoke(id),
             StopLease = () => model.StopKey is { } key ? (key.TryAcquire("voice reply", out var held) ? held : null) : NoLease.Instance,
             PreemptDictation = parts.PreemptDictation,

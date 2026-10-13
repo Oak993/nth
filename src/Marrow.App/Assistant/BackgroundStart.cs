@@ -7,6 +7,7 @@
 using System.Text.Json.Nodes;
 using Marrow.App.Tray;
 using Marrow.Core.Port.Assistant;
+using Marrow.Core.Port;
 using Marrow.Services.Assistant;
 
 namespace Marrow.App.Assistant;
@@ -25,6 +26,9 @@ public sealed class BackgroundStartSeams
 
     /// <summary>Fakes for the host (Task Scheduler, the Run key, the desktop, the clock); the rest is the app's own.</summary>
     public DutySeams? Host { get; init; }
+
+    public Action<string>? FileIO { get; init; }
+    public Action<AssistantController>? ControllerBuilt { get; init; }
 }
 
 public static class BackgroundStart
@@ -81,17 +85,22 @@ public static class BackgroundStart
     {
         ArgumentNullException.ThrowIfNull(model);
         problem = null;
-        // The shell needs its Open affordance even when there are no duties or Dextra is Off.
         if (seams is null || seams.Tray is not null)
             model.EnsureTray(windowHidden, null, open, seams?.Tray).Refresh();
         if (!model.AssistantHost.MayRun) return null;
-        var roots = seams?.Roots() ?? AssistantStorage.Roots.Current;
         if (model.Duties is { } running) return running;
-        if (!HasDuties(roots)) return null;
-        var controller = model.AssistantHost.EnsureStarted(seams, mode, quit, restoringDuties: true);
-        if (controller is not null) return model.Duties;
-        if (model.AssistantHost.StartFault is { } fault)
-            problem = "Dextra's duties did not start: " + fault;
+        _ = RunAsync(model, mode, quit, seams);
         return null;
+    }
+
+    public static async Task<DutyHost?> RunAsync(AppModel model, StartupMode mode, Action quit, BackgroundStartSeams? seams = null)
+    {
+        if (!model.AssistantHost.MayRun) return null;
+        if (model.Duties is { } running) return running;
+        var probe = seams ?? new BackgroundStartSeams();
+        if (!await Task.Run(() => HasDuties(probe.Roots())).ConfigureAwait(false)) return null;
+        var start = await MainActor.Run<Task<AssistantController?>>(() => model.AssistantHost.EnsureStartedAsync(seams, mode, quit, restoringDuties: true)).ConfigureAwait(false);
+        await start.ConfigureAwait(false);
+        return await MainActor.Run(() => model.Duties).ConfigureAwait(false);
     }
 }

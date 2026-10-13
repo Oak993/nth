@@ -53,6 +53,10 @@ public sealed record TeamHostSeams
 
     /// <summary>The standing reserve rules in words for an assistant, shown under the card's budget.</summary>
     public Func<string, string> ReserveLine { get; init; } = _ => "";
+    public Func<IReadOnlyList<(string Id, string Name)>>? PillChoices { get; init; }
+    public Action<string>? Memory { get; init; }
+    public Action<string>? Duties { get; init; }
+    public Func<string, Task<string?>>? DeleteFiles { get; init; }
 }
 
 public static class TeamHostActions
@@ -68,6 +72,10 @@ public static class TeamHostActions
             Edit = id => Edit(profiles, desk, seams, id),
             Add = desk is null ? null : () => Add(profiles, desk, seams),
             Retire = desk is null ? null : desk.Retire,
+            Memory = seams.Memory,
+            Duties = seams.Duties,
+            DeleteFiles = seams.DeleteFiles,
+            Retired = seams.DeleteFiles is null ? null : () => seams.ShowSheet("Retired Asturs", new AsturFilesSheet(profiles, seams.DeleteFiles, seams.Said)),
             OpenChat = lead =>
             {
                 if (!seams.OpenThread(lead)) seams.Said("That chat is not here any more.");
@@ -96,13 +104,13 @@ public static class TeamHostActions
             return;
         }
         if (desk is null) return;
-        var model = new ProfileSheetModel(ProfileSheetMode.Edit, profiles, draft => desk.Update(id, draft), seams.CloseSheet, AsturTeamRules.ToDraft(profile), id, seams.ReserveLine(id));
+        var model = new ProfileSheetModel(ProfileSheetMode.Edit, profiles, draft => desk.Update(id, draft), seams.CloseSheet, AsturTeamRules.ToDraft(profile), id, seams.ReserveLine(id)) { PillChoices = seams.PillChoices };
         Show(model, seams);
     }
 
     private static void Add(Func<IReadOnlyList<AssistantProfile>> profiles, IAsturDesk desk, TeamHostSeams seams)
     {
-        var model = new ProfileSheetModel(ProfileSheetMode.Add, profiles, draft => desk.Create(draft), seams.CloseSheet, reserveLine: seams.ReserveLine(""));
+        var model = new ProfileSheetModel(ProfileSheetMode.Add, profiles, draft => desk.Create(draft), seams.CloseSheet, reserveLine: seams.ReserveLine("")) { PillChoices = seams.PillChoices };
         Show(model, seams);
     }
 

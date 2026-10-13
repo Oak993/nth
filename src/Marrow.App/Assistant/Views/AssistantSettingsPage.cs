@@ -52,6 +52,7 @@ public sealed record AssistantSettingsParts
 
     /// <summary>The running purchase desk (AS-20), read at every redraw; null or a null answer: Purchases says it is set up while Dextra is on.</summary>
     public Func<PurchaseDesk?>? Purchases { get; init; }
+    public Func<DigestService?>? Digests { get; init; }
 }
 
 public sealed class AssistantSettingsPage : Decorator
@@ -71,6 +72,8 @@ public sealed class AssistantSettingsPage : Decorator
     private readonly StackPanel grantList = new() { Spacing = 0 };
     private readonly List<(Grant Grant, Button Revoke)> grantRows = [];
     private int queued;
+    private readonly StackPanel suggestions = new();
+    private readonly Dictionary<SuggestionKind, (Button Button, Control Row)> suggestionRows = [];
 
     /// <summary>The page Settings opens: the app's Dextra host (its settings, its controller's grants).</summary>
     public AssistantSettingsPage()
@@ -89,6 +92,7 @@ public sealed class AssistantSettingsPage : Decorator
                 Revoke = id => host.Controller is { } controller ? controller.RevokeGrant(id, Marrow.Core.Port.SwiftClock.Provider.Current.GetUtcNow()) : ForgetKept(host.Settings, id),
                 MissionTitle = id => host.Controller?.Runner.Find(id)?.Mission.Title,
                 Purchases = () => host.Controller?.Purchases,
+                Digests = () => host.Digests,
                 WatchGrants = changed => { if (host.Controller is { } c) c.GrantsChanged += changed; },
                 UnwatchGrants = changed => { if (host.Controller is { } c) c.GrantsChanged -= changed; },
                 TalkStatus = () => host.Voice?.Chord.Status,
@@ -191,13 +195,16 @@ public sealed class AssistantSettingsPage : Decorator
                 new ChromeSection(AssistantSettingsWords.Voice, () => new ChromeCard(() => voicePanel)),
                 new ChromeSection(AssistantSettingsWords.Permissions, () => new ChromeCard(() => grantList)),
                 purchases,
+                new ChromeSection("Suggestions", () => new ChromeCard(() => suggestions)),
                 new ChromeSection(AssistantSettingsWords.Rules, () => new ChromeCard(() => AssistantRows.RulesList(null))),
             },
         };
         ShowGrants();
+        ShowSuggestions();
     }
 
     private bool watching;
+    private IDisposable? digestWatch;
 
     private void Watch(bool on)
     {
@@ -208,6 +215,7 @@ public sealed class AssistantSettingsPage : Decorator
             settings.Changed += Queue;
             parts.WatchGrants?.Invoke(Queue);
             parts.WatchTalk?.Invoke(Queue);
+            digestWatch = parts.Digests?.Invoke()?.Watch(Queue);
             Refresh();
         }
         else
@@ -215,6 +223,7 @@ public sealed class AssistantSettingsPage : Decorator
             settings.Changed -= Queue;
             parts.UnwatchGrants?.Invoke(Queue);
             parts.UnwatchTalk?.Invoke(Queue);
+            digestWatch?.Dispose(); digestWatch = null;
         }
     }
 
@@ -241,6 +250,27 @@ public sealed class AssistantSettingsPage : Decorator
         ShowTalkStatus();
         purchases?.Show();
         ShowGrants();
+        ShowSuggestions();
+    }
+
+    private void ShowSuggestions()
+    {
+        var focused = suggestionRows.Where(p => p.Value.Button.IsFocused || p.Value.Row.IsFocused).Select(p => (SuggestionKind?)p.Key).FirstOrDefault();
+        suggestions.Children.Clear();
+        suggestionRows.Clear();
+        foreach (var kind in Enum.GetValues<SuggestionKind>())
+        {
+            var label = kind switch { SuggestionKind.AllowanceUnused => "Unused allowance", SuggestionKind.DoneByHand => "Repeated work", SuggestionKind.FailingCheck => "Failing checks", SuggestionKind.IdleDuty => "Quiet duties", _ => "Ideas from Dextra" };
+            var service = parts.Digests?.Invoke();
+            var off = service?.IsOff(kind) == true;
+            var (button, shown) = TaskLook.Small(off ? "Turn on" : "On", () => { parts.Digests?.Invoke()?.TurnOn(kind); ShowSuggestions(); }, name: "Turn on " + label.ToLowerInvariant() + " suggestions");
+            button.IsEnabled = off;
+            var row = new ChromeRow(label, () => shown, service is null ? "Available while Dextra is on." : off ? "Turned off after three dismissals." : "Shown in the digest, at most three a day.") { Focusable = true };
+            AutomationProperties.SetName(row, label + (off ? ": suggestions off" : service is null ? ": available while Dextra is on" : ": suggestions on"));
+            suggestionRows[kind] = (button, row);
+            suggestions.Children.Add(row);
+            if (focused == kind) { if (off) button.Focus(); else row.Focus(); }
+        }
     }
 
     // A talk chord another app holds (or that cannot be registered) is said under its row, with the way out (2.4: "shows in Settings with Change").

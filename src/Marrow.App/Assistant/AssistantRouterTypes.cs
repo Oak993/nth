@@ -25,6 +25,7 @@ public sealed class RouterSetup
 
     /// <summary>Why nth cannot run mission work on a provider (12.3 point 3); null when it can.</summary>
     public Func<ProviderKind, string?> Refusal { get; init; } = SealedProviderConfig.Refusal;
+    public Func<string, RouterAccount, int>? Rank { get; init; }
 }
 
 /// <summary>What a step asks of the router.</summary>

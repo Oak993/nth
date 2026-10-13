@@ -49,9 +49,16 @@ internal sealed class BackgroundLaunchRig : IDisposable
 
     public void Run(Func<Task> work) => harness.Main.Loop.Run(work);
 
+    public AssistantController? Start(DextraHost? host = null, StartupMode? mode = null)
+    {
+        var pending = OnMain(() => (host ?? Model.AssistantHost).EnsureStartedAsync(mode: mode));
+        return Main.Loop.Run(() => pending);
+    }
+
     public AssistantTempRoot Temp { get; }
 
     public AppModel Model { get; }
+    public TestRuntime Main => harness.Main;
 
     public Marrow.App.Safety.GlobalStop Key { get; }
 
@@ -64,7 +71,9 @@ internal sealed class BackgroundLaunchRig : IDisposable
     public DutyHost? Run(StartupMode mode, out string? problem)
     {
         string? why = null;
-        var host = harness.Main.OnMain(() => BackgroundStart.Run(Model, mode, () => windowHidden, () => { }, () => Quits++, out why, Seams));
+        harness.Main.OnMain(() => Model.EnsureTray(() => windowHidden, null, () => { }, Seams.Tray).Refresh());
+        var host = harness.Main.Loop.Run(() => BackgroundStart.RunAsync(Model, mode, () => Quits++, Seams));
+        why = Model.AssistantHost.StartFault;
         problem = why;
         return host;
     }

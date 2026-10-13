@@ -10,7 +10,13 @@ namespace Marrow.App.Assistant;
 /// One ready call to the delegate's model: the provider it really runs on (for the privacy rules of 5.4: another provider reads a chat's words only
 /// when the owner allowed it; a local-model chat never reaches a cloud one), and the call itself, which may run on any thread.
 /// </summary>
-public sealed record DelegateCall(ProviderKind Provider, Func<string, CancellationToken, Task<string?>> Ask);
+public sealed record DelegateCall(ProviderKind Provider, Func<string, CancellationToken, Task<string?>> Ask)
+{
+    public ReserveAccountRef? Account { get; init; }
+    public string? Model { get; init; }
+    public Func<Guid, bool>? Admit { get; init; }
+    public Action? Release { get; init; }
+}
 
 /// <summary>
 /// The model behind the delegate. It sees only the prompt nth builds (data fenced, bounded) and has no tools; what it answers is read by

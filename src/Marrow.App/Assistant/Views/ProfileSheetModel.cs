@@ -56,6 +56,13 @@ public sealed class ProfileSheetModel
     public ProfileSheetMode Mode { get; }
 
     public string ReserveLine { get; }
+    public Func<IReadOnlyList<(string Id, string Name)>>? PillChoices { get; init; }
+    public void PreferAccount(string id)
+    {
+        Edit(d => d with { PillOrder = new Marrow.Core.Port.ValueList<string>(new[] { id }.Concat(d.PillOrder.Where(p => p != id))) });
+        Changed?.Invoke();
+    }
+    public void InheritPillOrder() { Edit(d => d with { PillOrder = Marrow.Core.Port.ValueList<string>.Empty }); Changed?.Invoke(); }
 
     /// <summary>The card, once there is one. In Add it appears when a sentence or a template starts it.</summary>
     public AsturDraft? Draft { get; private set; }

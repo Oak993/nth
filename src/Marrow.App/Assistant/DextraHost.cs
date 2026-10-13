@@ -35,6 +35,8 @@ public sealed class DextraHost : IDisposable
     private IReadOnlyList<AssistantProfile> restoredProfiles = [];
     private bool disposed;
     private bool starting;
+    private Task<AssistantController?>? initialization;
+    private int startEpoch;
     private readonly Marrow.UI.Port.IFrameSource? voiceFrames;
     private readonly Action<TimeSpan> voiceFrame;
     private Marrow.UI.Port.IFrameSource? waitingVoice;
@@ -71,6 +73,14 @@ public sealed class DextraHost : IDisposable
     /// <summary>The identity string the controller and the profiles use.</summary>
     public string AssistantId => Id.ToString("N");
 
+    internal void AdoptIdentity(Guid id)
+    {
+        var wasStarting = starting;
+        starting = true;
+        try { Settings.Update(value => value with { Id = id }); }
+        finally { starting = wasStarting; }
+    }
+
     /// <summary>The running controller, or null (off, first run not done, or the start failed).</summary>
     public AssistantController? Controller => started;
 
@@ -99,9 +109,9 @@ public sealed class DextraHost : IDisposable
     /// <summary>Dextra's profile and its Asturs' (9.1).</summary>
     public IReadOnlyList<AssistantProfile> Profiles()
     {
-        var root = restoredProfiles.FirstOrDefault(p => p.Id == AssistantId && p.IsRoot);
-        var current = new List<AssistantProfile> { root ?? new(AssistantId, Name) };
-        current.AddRange(asturs?.Invoke() ?? []);
+        var team = model.Dextra?.Team?.Profiles ?? asturs?.Invoke() ?? restoredProfiles;
+        var current = team.ToList();
+        if (!current.Any(p => p.IsRoot)) current.Insert(0, new AssistantProfile(AssistantId, Name));
         current.AddRange(restoredProfiles.Where(p => current.All(c => c.Id != p.Id)));
         return current;
     }
@@ -109,7 +119,8 @@ public sealed class DextraHost : IDisposable
     /// <summary>Starts the controller when Dextra may run and none runs; keeps its grants and its brain's switches in step.</summary>
     public AssistantController? EnsureStarted(BackgroundStartSeams? seams = null, StartupMode? mode = null, Action? quit = null, bool restoringDuties = false)
     {
-        if (disposed || !MayRun || starting) return started;
+        if (disposed || starting) return started;
+        if (model.Dextra is null && !MayRun) return started;
         if (started is not null) return started;
         AssistantController? controller;
         starting = true; // the identity's first store raises Changed; that must not start a second controller
@@ -139,6 +150,11 @@ public sealed class DextraHost : IDisposable
             owned = null;
             return null;
         }
+        return Publish(controller, seams, mode);
+    }
+
+    private AssistantController Publish(AssistantController controller, BackgroundStartSeams? seams = null, StartupMode? mode = null)
+    {
         StartFault = null;
         started = controller;
         controller.RestoreGrants(Settings.Value.Grants);
@@ -169,18 +185,22 @@ public sealed class DextraHost : IDisposable
         return controller;
     }
 
+    internal void OwnStartup(IDisposable storage) => owned = storage;
+
     /// <summary>
     /// Dextra turned off: every task is stopped (Stop all never asks), the tools are no chat's any more and the
     /// controller is let go.
     /// </summary>
     public void Stop()
     {
+        startEpoch++;
+        initialization = null;
         ++voiceStartEpoch;
         waitingVoice?.CancelFrame(voiceFrame);
         waitingVoice = null;
         startingVoice?.Cancel();
         startingVoice = null;
-        if ((started ?? model.Dextra) is not { } controller) return;
+        if ((started ?? model.Dextra) is not { } controller) { owned?.Dispose(); owned = null; return; }
         started = null;
         controller.GrantsChanged -= KeepGrants;
         if (Voice is { } oldVoice)
@@ -354,39 +374,102 @@ public sealed class DextraHost : IDisposable
     // setting and the tray the app made. Kept here so the views never touch Credential Manager.
     private AssistantController? Production(AppModel app, DextraSettings settings, Guid id, BackgroundStartSeams? seams, StartupMode mode, Action? quit, bool restoringDuties)
     {
-        var roots = seams?.Roots() ?? AssistantStorage.Roots.Current;
-        var store = AssistantStore.Open(roots, new AssistantStoreOptions { InterruptedMission = MissionJournal.Interrupted });
-        AuditLog audit;
-        try { audit = AuditLog.Open(roots, seams?.Keys() ?? AuditKeyStore.Production()); }
-        catch { store.Dispose(); throw; }
-        owned = new Owned(store, audit);
-        using (var team = AssistantTeam.Open(store))
+        _ = app; _ = settings; _ = id;
+        _ = EnsureStartedAsync(seams, mode, quit, restoringDuties);
+        return null;
+    }
+
+    /// <summary>One initialization shared by foreground and hidden starts. Store, key and team opening run off the UI thread.</summary>
+    public Task<AssistantController?> EnsureStartedAsync(BackgroundStartSeams? seams = null, StartupMode? mode = null, Action? quit = null, bool restoringDuties = false)
+    {
+        if (disposed || !MayRun) return Task.FromResult<AssistantController?>(null);
+        if (started is not null) return Task.FromResult<AssistantController?>(started);
+        if (model.Dextra is { } running) return Task.FromResult<AssistantController?>(Publish(running, seams, mode));
+        if (initialization is not null) return initialization;
+        var wasStarting = starting;
+        starting = true;
+        try { initialization = InitializeAsync(Id, seams ?? startup ?? new BackgroundStartSeams(), mode ?? StartupMode.Normal, quit, restoringDuties, startEpoch, seams is not null || startup is not null); }
+        finally { starting = wasStarting; }
+        return initialization;
+    }
+
+    private async Task<AssistantController?> InitializeAsync(Guid id, BackgroundStartSeams seams, StartupMode mode, Action? quit, bool restoringDuties, int epoch, bool explicitSeams)
+    {
+        DextraStartStorage? storage = null;
+        AssistantController? controller = null;
+        DutyHost? duties = null;
+        try
         {
-            var rootFile = Path.Combine(store.Root, "assistants", AssistantId, "profile.json");
-            if (File.Exists(rootFile) && team.Get(AssistantId) is not { IsRoot: true })
-                throw new InvalidDataException("Dextra's saved profile could not be read safely: " + string.Join(" ", team.Problems));
-            restoredProfiles = team.Profiles;
+            storage = await Task.Run(() => DextraStartStorage.Open(seams, id.ToString("N"))).ConfigureAwait(false);
+            var opened = storage;
+            var capture = await MainActor.Run(() =>
+            {
+                if (disposed || !MayRun || epoch != startEpoch) return ((DextraStartupSnapshot?)null, ProviderKind.Claude, (string?)null, (Guid?)null, (Marrow.App.Safety.GlobalStop?)null);
+                return (model.StartupSnapshot(), BrainProvider() ?? ProviderKind.Claude, BrainModel(), Settings.Value.BrainAccount, seams.StopKey ?? model.EnsureStopKey(() => Settings.Chord));
+            }).ConfigureAwait(false);
+            if (capture.Item1 is null) { await Task.Run(opened.Dispose).ConfigureAwait(false); return null; }
+            var scope = new VoiceStopScope();
+            var profiles = opened.Team.Profiles.Concat(opened.LegacyProfiles).DistinctBy(p => p.Id).ToArray();
+            var grants = await MainActor.Run(() => Settings.Value.Grants).ConfigureAwait(false);
+            controller = await Task.Run(() =>
+            {
+                var built = model.StartDextra(opened.Store, entry => opened.Audit.Append(entry), () => opened.Team.Profiles.Concat(opened.LegacyProfiles).DistinctBy(p => p.Id).ToArray(), capture.Item2, capture.Item3,
+                    protectedRoots: [opened.Roots.AuditDirectory], stopKey: capture.Item5, tray: seams.Tray ?? model.Tray,
+                    stopScopes: [scope], purchases: new PurchaseSetup { Book = PurchaseBook.Over(opened.Store), Hello = new WindowsHelloGate(), Vault = CardVault.Production },
+                    team: opened.Team, homes: new AppAssistantHomes(model, opened.Store), accountId: capture.Item4, startup: capture.Item1);
+                controller = built;
+                built.RestoreGrants(grants);
+                seams.ControllerBuilt?.Invoke(built);
+                return built;
+            }).ConfigureAwait(false);
+            var builtController = controller;
+            var activated = false;
+            var withDigest = !restoringDuties || await Task.Run(() => BackgroundStart.HasDigestDuty(opened.Store, profiles.Where(p => !p.Retired).Select(p => p.Id).ToArray())).ConfigureAwait(false);
+            var options = await MainActor.Run(() => model.DutyOptions(builtController, opened.Store, mode,
+                () => builtController.Profiles.Where(p => !p.Retired).Select(p => p.Id).Distinct(StringComparer.Ordinal).ToArray(), seams.Tray ?? model.Tray, quit, seams.Host,
+                model.DigestSetupOf(builtController, opened.Roots.AuditDirectory), withDigest,
+                () => Volatile.Read(ref activated) && Volatile.Read(ref startEpoch) == epoch && !Volatile.Read(ref disposed))).ConfigureAwait(false);
+            duties = await Task.Run(() => new DutyHost(options, deferTray: true)).ConfigureAwait(false);
+            var builtDuties = duties;
+            var notes = await Task.Run(builtDuties.Start).ConfigureAwait(false);
+            return await MainActor.Run<AssistantController?>(() =>
+            {
+                if (disposed || !MayRun || epoch != startEpoch) return null;
+                model.AdoptAsturs(opened.Team);
+                restoredProfiles = opened.LegacyProfiles;
+                voiceScope = scope;
+                owned = opened;
+                model.CompleteDextraStart(builtController, opened.Store, () => builtController.Profiles, seams.Tray ?? model.Tray);
+                model.CompleteDutyStart(builtDuties);
+                // A publication listener may stop immediately. The published host owns cleanup before notifying it.
+                storage = null; controller = null; duties = null;
+                var published = Publish(builtController, explicitSeams ? seams : null, mode);
+                if (disposed || !MayRun || epoch != startEpoch || started != builtController) return null;
+                builtController.ResumeDelegations();
+                Volatile.Write(ref activated, true);
+                _ = Task.Run(() => { builtDuties.Activate(); builtDuties.Scheduler.Reevaluate(); });
+                if (notes.Count > 0) StartFault = string.Join(" ", notes);
+                foreach (var note in notes) model.AssistantEvents.Publish(FeedDraft.About(FeedEventKind.WatcherChanged, FeedSeverity.Error, TimeProvider.System.GetUtcNow(), note));
+                return published;
+            }).ConfigureAwait(false);
         }
-        // Older duties can name an assistant that never had a profile; a present unusable profile is never replaced.
-        var missing = BackgroundStart.AssistantsWithDuties(store)
-            .Where(assistant => !File.Exists(Path.Combine(store.Root, "assistants", assistant, "profile.json"))).ToList();
-        restoredProfiles = [.. restoredProfiles, .. BackgroundStart.Profiles(store, missing)];
-        var stopKey = seams?.StopKey ?? app.EnsureStopKey(() => settings.Chord);
-        // AS-20 (12.7, 16.2): purchases.json beside the store's other files, the card in Credential Manager, Windows Hello. This build
-        // has no fill path (Visus and Tactus are not here), so the switch is hidden and every payment is handed to the owner.
-        var purchases = new PurchaseSetup { Book = PurchaseBook.Over(store), Hello = new WindowsHelloGate(), Vault = CardVault.Production };
-        voiceScope = new VoiceStopScope(); // Stop all and the stop chord cut a spoken reply (12.6); bound to the conversation once the voice exists
-        var controller = app.StartDextra(store, entry => audit.Append(entry), Profiles, BrainProvider() ?? ProviderKind.Claude, BrainModel(),
-            protectedRoots: [roots.AuditDirectory], stopKey: stopKey, tray: seams?.Tray ?? app.Tray, stopScopes: [voiceScope], purchases: purchases, accountId: settings.Value.BrainAccount);
-        controller.RestoreGrants(settings.Value.Grants);
-        var ids = BackgroundStart.AssistantsWithDuties(store);
-        var duties = app.StartDuties(controller, store, mode, quit: quit,
-            assistantIds: () => [.. Profiles().Where(p => !p.Retired).Select(p => p.Id).Distinct(StringComparer.Ordinal)],
-            tray: seams?.Tray ?? app.Tray, seams: seams?.Host, digest: app.DigestSetupOf(controller, roots.AuditDirectory),
-            withDigest: !restoringDuties || BackgroundStart.HasDigestDuty(store, ids));
-        foreach (var note in duties.Start())
-            app.AssistantEvents.Publish(FeedDraft.About(FeedEventKind.WatcherChanged, FeedSeverity.Error, TimeProvider.System.GetUtcNow(), note));
-        return controller;
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            await MainActor.Run(() =>
+            {
+                if (epoch != startEpoch || disposed) return;
+                Stop();
+                initialization = null;
+                StartFault = (restoringDuties ? "Dextra's duties did not start: " : "Dextra did not start: ") + error.Message;
+                Changed?.Invoke();
+            }).ConfigureAwait(false);
+            return null;
+        }
+        finally
+        {
+            if (duties is not null || controller is not null || storage is not null)
+                await Task.Run(() => { duties?.Dispose(); controller?.Dispose(); storage?.Dispose(); }).ConfigureAwait(false);
+        }
     }
 
     public void Dispose()
@@ -397,12 +480,4 @@ public sealed class DextraHost : IDisposable
         Settings.Changed -= OnSettings;
     }
 
-    private sealed class Owned(AssistantStore store, AuditLog audit) : IDisposable
-    {
-        public void Dispose()
-        {
-            audit.Dispose();
-            store.Dispose();
-        }
-    }
 }

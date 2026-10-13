@@ -18,6 +18,7 @@ using System;
 using System.IO;
 using System.Text;
 using System.Threading;
+using System.Text.RegularExpressions;
 
 internal static class PiStandIn
 {
@@ -58,15 +59,19 @@ internal static class PiStandIn
         StreamWriter output = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false));
         output.AutoFlush = true;
         int line = 0;
+        string textNonce = "";
         while (true)
         {
             string text = input.ReadLine();
             if (text == null) break;
             Write("stdin-" + line + ".txt", new UTF8Encoding(false).GetBytes(text));
+            // ED-NEW-dextra-open-7: a recorded proof must echo this launch's unpredictable nonce; no provider or model runs here.
+            var proofPrompt = Regex.Match(text, "marrow-text-only-proof ([A-Za-z0-9-]+)");
+            if (proofPrompt.Success) textNonce = proofPrompt.Groups[1].Value;
             string reply = Path.Combine(dir, "reply-" + line + ".jsonl");
             if (File.Exists(reply))
             {
-                byte[] bytes = File.ReadAllBytes(reply);
+                byte[] bytes = new UTF8Encoding(false).GetBytes(File.ReadAllText(reply).Replace("{{TEXT_NONCE}}", textNonce));
                 output.BaseStream.Write(bytes, 0, bytes.Length);
                 output.BaseStream.Flush();
             }

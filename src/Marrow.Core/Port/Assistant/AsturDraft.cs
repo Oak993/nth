@@ -43,6 +43,7 @@ public sealed record AsturDraft
     public string? Voice { get; init; }
 
     public AsturModel? Model { get; init; }
+    public ValueList<string> PillOrder { get; init; } = ValueList<string>.Empty;
 
     /// <summary>The draft with every text a clean one-line text and the lists trimmed of empty lines. It changes no meaning.</summary>
     public AsturDraft Normalized() => this with
@@ -56,6 +57,7 @@ public sealed record AsturDraft
         Duties = new ValueList<DutyDraft>(Duties.Select(d => d with { Text = MemoryRules.Clean(d.Text) }).Where(d => d.Text.Length > 0)),
         Wants = new ValueList<AsturWant>(Wants.Select(w => w with { Text = MemoryRules.Clean(w.Text) }).Where(w => w.Text.Length > 0)),
         Aliases = new ValueList<string>(Aliases.Select(MemoryRules.Clean).Where(a => a.Length > 0)),
+        PillOrder = new ValueList<string>(PillOrder.Select(MemoryRules.Clean).Where(s => s.Length > 0).Distinct(StringComparer.Ordinal).Take(32)),
     };
 
     /// <summary>The standing duties the owner kept.</summary>

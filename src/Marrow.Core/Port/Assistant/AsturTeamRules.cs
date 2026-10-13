@@ -124,6 +124,7 @@ public static class AsturTeamRules
             Style = d.Style,
             Voice = d.Voice,
             Model = d.Model,
+            PillOrder = d.PillOrder,
             Duties = d.Duties,
             Wants = d.Wants,
             Budget = d.Budget,
@@ -150,6 +151,7 @@ public static class AsturTeamRules
         Aliases = profile.Aliases,
         Voice = profile.Voice,
         Model = profile.Model,
+        PillOrder = profile.PillOrder,
     };
 
     /// <summary>

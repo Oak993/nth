@@ -57,10 +57,12 @@ public sealed class TeamPanel : Decorator
         Chart = new OrgChart(this.actions.OpenChat);
         Live = new LiveStatusText { Width = 1, Height = 1, ClipToBounds = true, Opacity = 0, IsHitTestVisible = false };
         Detail = new OrgDetail(source, this.actions, Say);
+        var retired = new DetailButton("Retired Asturs") { IsEnabled = this.actions.Retired is not null };
+        retired.Click += (_, _) => this.actions.Retired?.Invoke();
         Chart.SelectionChanged += _ => ShowDetail();
         trouble.IsVisible = false;
 
-        Child = new StackPanel { Orientation = Orientation.Vertical, Spacing = 10, Children = { header, Chart, empty, Detail, trouble, Live } };
+        Child = new StackPanel { Orientation = Orientation.Vertical, Spacing = 10, Children = { header, Chart, empty, Detail, retired, trouble, Live } };
         AutomationProperties.SetName(this, "Team");
         AutomationProperties.SetControlTypeOverride(this, AutomationControlType.Group);
         Refresh();

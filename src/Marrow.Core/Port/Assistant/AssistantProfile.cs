@@ -78,6 +78,8 @@ public sealed record AssistantProfile(string Id, string Name)
 
     /// <summary>The provider, model and account its missions try first; null: the router chooses.</summary>
     public AsturModel? Model { get; init; }
+    // PORT-ONLY: DESIGN.md 9.1; ED-NEW-dextra-open-4. Empty inherits the owner's general order.
+    public ValueList<string> PillOrder { get; init; } = ValueList<string>.Empty;
 
     /// <summary>The template it was made from ("channel"), or null for one made from a sentence.</summary>
     public string? Template { get; init; }

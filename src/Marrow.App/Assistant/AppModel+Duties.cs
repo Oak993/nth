@@ -33,9 +33,20 @@ public sealed partial class AppModel
         ArgumentNullException.ThrowIfNull(controller);
         ArgumentNullException.ThrowIfNull(store);
         Duties?.Dispose();
-        var host = new DutyHost(new DutyHostOptions
+        var host = new DutyHost(DutyOptions(controller, store, mode, assistantIds, tray, quit, seams, digest, withDigest));
+        (tools ?? DutyToolsGate).Bind(host.Tools);
+        Duties = host;
+        return host;
+    }
+
+    internal DutyHostOptions DutyOptions(AssistantController controller, AssistantStore store, StartupMode mode,
+        Func<IReadOnlyList<string>>? assistantIds, AppTray? tray, Action? quit, DutySeams? seams, DigestSetup? digest, bool withDigest, Func<bool>? activated = null)
+    {
+        var startupProjects = Projects.Select(p => p.Path).ToArray();
+        return new DutyHostOptions
         {
             Store = store,
+            Activated = activated ?? (() => true),
             Controller = controller,
             Provider = controller.Provider,
             Model = controller.Model,
@@ -43,7 +54,9 @@ public sealed partial class AppModel
             AssistantIds = assistantIds ?? (() => [.. controller.Profiles.Where(p => !p.Retired).Select(p => p.Id)]),
             OnMain = work => MainActor.Post(work),
             Projects = () => [.. Projects.Select(p => new MissionProject(p.Id, p.Name, p.Path))],
-            FolderGranted = path => IsFolderOpenToDextra(path, controller),
+            FolderGranted = path => activated is not null && !activated()
+                ? startupProjects.Any(root => PathRules.IsInside(path, root, strict: false)) || controller.Grants.Any(g => g.Target.Kind == GrantTargetKind.Folder && g.Target.Covers(GrantTarget.Folder(path)))
+                : IsFolderOpenToDextra(path, controller),
             ExePath = () => Environment.ProcessPath ?? "",
             Mode = mode,
             Tray = tray ?? Tray,
@@ -59,10 +72,15 @@ public sealed partial class AppModel
             AssistantName = id => id,
             AccountNames = () => [.. Settings.Accounts.Accounts.Select(a => Settings.Accounts.DisplayName(a.Id)).OfType<string>().Where(n => !string.IsNullOrWhiteSpace(n))],
             Digest = withDigest ? digest ?? DigestSetupOf(controller) : null,
-        });
-        (tools ?? DutyToolsGate).Bind(host.Tools);
+        };
+    }
+
+    internal void CompleteDutyStart(DutyHost host)
+    {
+        Duties?.Dispose();
+        DutyToolsGate.Bind(host.Tools);
         Duties = host;
-        return host;
+        host.AttachTray();
     }
 
     /// <summary>
@@ -76,6 +94,11 @@ public sealed partial class AppModel
         ArgumentNullException.ThrowIfNull(controller);
         return new DigestSetup
         {
+            MainAssistantId = () => controller.Team?.Root?.Id ?? AssistantHost.AssistantId,
+            AssistantName = id => controller.Team?.Get(id)?.Name ?? AssistantHost.NameOf(id),
+            Rewriter = new TriageSuggestionModel(controller.TriageModel, PrepareSuggestionText),
+            Asturs = () => [.. (controller.Team?.Active ?? []).Where(p => !p.IsRoot).Select(p => AsturDigestParagraph(controller, p))],
+            AstursSince = since => [.. (controller.Team?.Active ?? []).Where(p => !p.IsRoot).Select(p => AsturDigestParagraph(controller, p, since))],
             DayFinal = auditDirectory is null ? null : day => AuditVerifier.DayFinal(auditDirectory, day),
             ExpiredLogins = () => [.. Settings.Accounts.Accounts.Where(a => a.Enabled && !IsAccountConnected(a))
                 .Select(a => Settings.Accounts.DisplayName(a.Id)).OfType<string>().Where(n => !string.IsNullOrWhiteSpace(n))],
@@ -91,6 +114,19 @@ public sealed partial class AppModel
     }
 
     // A folder inside one of the owner's projects, or one he granted Dextra (a standing folder grant), is open to it (7.2).
+    private static DigestAstur AsturDigestParagraph(AssistantController controller, AssistantProfile profile, DateTimeOffset? since = null)
+    {
+        var missions = controller.Runner.Missions.Where(m => m.Mission.AssistantId == profile.Id).ToArray();
+        var finished = missions.Where(m => !m.DryRun && m.Mission.State == MissionState.Done && m.Ended >= (since ?? DateTimeOffset.UtcNow.AddDays(-1))).OrderByDescending(m => m.Ended).ToArray();
+        var done = finished.Length;
+        var working = missions.Count(m => m.Mission.State is MissionState.Working or MissionState.Reviewing);
+        var waiting = missions.Count(m => m.Mission.State == MissionState.NeedsYou);
+        var latest = finished.FirstOrDefault();
+        var report = latest is null ? "" : FeedShield.Excerpt(latest.Report ?? latest.Mission.Title, 240);
+        return new DigestAstur(profile.Name, $"{done} finished; {working} working; {waiting} waiting for you." + (report.Length > 0 ? " Latest: " + report : ""))
+        { Taint = latest is null ? Taint.Clean : TaintWiring.Capped(Taint.UnionOf([latest.ReportTaint, latest.Mission.TaintContext.Taint])) };
+    }
+
     private bool IsFolderOpenToDextra(string path, AssistantController controller) =>
         Projects.Any(p => PathRules.IsInside(path, p.Path, strict: false))
         || controller.Grants.Any(g => g.Target.Kind == GrantTargetKind.Folder && g.Target.Covers(GrantTarget.Folder(path)));

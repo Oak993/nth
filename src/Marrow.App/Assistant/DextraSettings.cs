@@ -23,12 +23,18 @@ public enum DelegateScope { Off, ThisProject, Everywhere }
 /// </summary>
 public sealed record DelegateWho(ProviderKind Provider, string? Model = null);
 
+// ED-NEW-dextra-open-1: null Who explicitly selects Dextra at this scope, rather than inheriting.
+public sealed record DelegateModelChoice(Guid Id, DelegateWho? Who);
+
 /// <summary>A chat's own choice from its menu (4.3: "the chat's menu"): on, or off though everything else is on. It beats the scope.</summary>
 public sealed record DelegateChatChoice(Guid Chat, bool On);
 
 /// <summary>Everything Settings › Assistant holds.</summary>
 public sealed record DextraPreferences
 {
+    // ED-NEW-dextra-open-1: legacy records are version 1; future records stay untouched.
+    public int Version { get; init; } = 1;
+    public ValueMap<string, string> Unknown { get; init; } = ValueMap<string, string>.Empty;
     /// <summary>Dextra's identity (its AssistantID); made once on first use and kept.</summary>
     public Guid? Id { get; init; }
 
@@ -61,6 +67,9 @@ public sealed record DextraPreferences
 
     /// <summary>Who answers for the owner (4.3): a provider's model, or null for Dextra's own brain.</summary>
     public DelegateWho? DelegateWith { get; init; }
+
+    public ValueList<DelegateModelChoice> DelegateProjectModels { get; init; } = ValueList<DelegateModelChoice>.Empty;
+    public ValueList<DelegateModelChoice> DelegateChatModels { get; init; } = ValueList<DelegateModelChoice>.Empty;
 
     /// <summary>The chats whose menu the owner used, newest last, at most <see cref="DextraSettings.DelegateChatsKept"/>: each beats the scope.</summary>
     public ValueList<DelegateChatChoice> DelegateChats { get; init; } = ValueList<DelegateChatChoice>.Empty;
@@ -130,6 +139,7 @@ public sealed class DextraSettings : ObservableModel
         }
         set
         {
+            if (Value.Version > 1) return;
             if (value == Value) return;
             settings.Set(SettingsKey, ToJson(value));
             if (Dispatcher.UIThread.CheckAccess()) Touch();
@@ -146,6 +156,7 @@ public sealed class DextraSettings : ObservableModel
     public Guid EnsureId()
     {
         if (Value.Id is { } id) return id;
+        if (Value.Version > 1) throw new InvalidOperationException("Dextra settings were written by a newer version.");
         var made = Guid.NewGuid();
         Update(value => value with { Id = made });
         return made;
@@ -161,6 +172,19 @@ public sealed class DextraSettings : ObservableModel
         var next = on is { } choice ? rest.Append(new DelegateChatChoice(chat, choice)) : rest;
         return value with { DelegateChats = new ValueList<DelegateChatChoice>(next.TakeLast(DelegateChatsKept)) };
     });
+
+    public void SetDelegateModel(Guid? project, Guid? chat, DelegateWho? who, bool inherit = false) => Update(value =>
+    {
+        if (chat is { } c) return value with { DelegateChatModels = Choices(value.DelegateChatModels, c, who, inherit) };
+        if (project is { } p) return value with { DelegateProjectModels = Choices(value.DelegateProjectModels, p, who, inherit) };
+        return value with { DelegateWith = who };
+    });
+
+    private static ValueList<DelegateModelChoice> Choices(ValueList<DelegateModelChoice> choices, Guid id, DelegateWho? who, bool inherit)
+    {
+        var rest = choices.Where(c => c.Id != id);
+        return new ValueList<DelegateModelChoice>((inherit ? rest : rest.Append(new DelegateModelChoice(id, who))).TakeLast(DelegateChatsKept));
+    }
 
     /// <summary>The chord the voice key registers (AS-18).</summary>
     public string TalkChord => string.IsNullOrWhiteSpace(Value.TalkChord) ? DefaultTalkChord : Value.TalkChord!;
@@ -193,6 +217,13 @@ public sealed class DextraSettings : ObservableModel
     private static readonly (DelegateScope Scope, string Raw)[] DelegateNames =
         [(DelegateScope.Off, "off"), (DelegateScope.ThisProject, "project"), (DelegateScope.Everywhere, "everywhere")];
 
+    private static readonly HashSet<string> Known = new(StringComparer.Ordinal)
+    {
+        "version", "id", "on", "firstRunDone", "brainProvider", "brainAccount", "brainModel", "readSameProvider", "readOtherProviders",
+        "delegate", "delegateProject", "delegateWith", "delegateChats", "delegateProjectModels", "delegateChatModels", "firstDuty",
+        "stopChord", "talkChord", "voiceName", "missionsCollapsed", "astursCollapsed", "grants",
+    };
+
     /// <summary>Compact JSON, fixed member order; defaults are left out.</summary>
     public static string ToJson(DextraPreferences value)
     {
@@ -200,6 +231,7 @@ public sealed class DextraSettings : ObservableModel
         using (var writer = new Utf8JsonWriter(buffer))
         {
             writer.WriteStartObject();
+            writer.WriteNumber("version", value.Version);
             if (value.Id is { } id) writer.WriteString("id", id.ToString("D"));
             writer.WriteBoolean("on", value.On);
             writer.WriteBoolean("firstRunDone", value.FirstRunDone);
@@ -229,6 +261,8 @@ public sealed class DextraSettings : ObservableModel
                 }
                 writer.WriteEndArray();
             }
+            WriteModelChoices(writer, "delegateProjectModels", value.DelegateProjectModels);
+            WriteModelChoices(writer, "delegateChatModels", value.DelegateChatModels);
             if (value.FirstDuty is { } duty) writer.WriteString("firstDuty", duty);
             if (value.StopChord is { } chord) writer.WriteString("stopChord", chord);
             if (value.TalkChord is { } talk) writer.WriteString("talkChord", talk);
@@ -238,6 +272,11 @@ public sealed class DextraSettings : ObservableModel
             writer.WriteStartArray("grants");
             foreach (var grant in value.Grants) WriteGrant(writer, grant);
             writer.WriteEndArray();
+            foreach (var field in value.Unknown.Where(p => !Known.Contains(p.Key)))
+            {
+                writer.WritePropertyName(field.Key);
+                writer.WriteRawValue(field.Value);
+            }
             writer.WriteEndObject();
         }
         return Encoding.UTF8.GetString(buffer.ToArray());
@@ -253,6 +292,10 @@ public sealed class DextraSettings : ObservableModel
             var root = document.RootElement;
             if (root.ValueKind != JsonValueKind.Object) return result;
             if (GuidOf(root, "id") is { } id) result = result with { Id = id };
+            if (root.TryGetProperty("version", out var version) && version.ValueKind == JsonValueKind.Number && version.TryGetInt32(out var number))
+                result = result with { Version = number };
+            if (result.Version > 1) return result with { On = false, FirstRunDone = false };
+            result = result with { Unknown = new ValueMap<string, string>(root.EnumerateObject().Where(p => !Known.Contains(p.Name)).GroupBy(p => p.Name, StringComparer.Ordinal).ToDictionary(p => p.Key, p => p.Last().Value.GetRawText(), StringComparer.Ordinal)) };
             if (Bool(root, "on") is { } on) result = result with { On = on };
             if (Bool(root, "firstRunDone") is { } done) result = result with { FirstRunDone = done };
             if (Text(root, "brainProvider") is { } raw && Enum.TryParse<ProviderKind>(raw, ignoreCase: false, out var provider) && Enum.IsDefined(provider))
@@ -278,6 +321,11 @@ public sealed class DextraSettings : ObservableModel
                 }
                 result = result with { DelegateChats = new ValueList<DelegateChatChoice>(kept.TakeLast(DelegateChatsKept)) };
             }
+            result = result with
+            {
+                DelegateProjectModels = ReadModelChoices(root, "delegateProjectModels"),
+                DelegateChatModels = ReadModelChoices(root, "delegateChatModels"),
+            };
             if (Text(root, "firstDuty") is { } duty && FirstDuties.Any(d => d.Id == duty)) result = result with { FirstDuty = duty };
             if (Text(root, "stopChord") is { Length: > 0 } chord) result = result with { StopChord = chord };
             if (Text(root, "talkChord") is { Length: > 0 } talk) result = result with { TalkChord = talk };
@@ -292,6 +340,46 @@ public sealed class DextraSettings : ObservableModel
             return DextraPreferences.Default;
         }
         return result;
+    }
+
+    private static void WriteModelChoices(Utf8JsonWriter writer, string name, ValueList<DelegateModelChoice> choices)
+    {
+        if (choices.Count == 0) return;
+        writer.WriteStartArray(name);
+        foreach (var choice in choices.TakeLast(DelegateChatsKept))
+        {
+            writer.WriteStartObject();
+            writer.WriteString("id", choice.Id.ToString("D"));
+            if (choice.Who is { } who)
+            {
+                writer.WriteStartObject("who");
+                writer.WriteString("provider", who.Provider.ToString());
+                if (who.Model is { } model) writer.WriteString("model", model);
+                writer.WriteEndObject();
+            }
+            else writer.WriteNull("who");
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
+    }
+
+    private static ValueList<DelegateModelChoice> ReadModelChoices(JsonElement root, string name)
+    {
+        var kept = new List<DelegateModelChoice>();
+        if (!root.TryGetProperty(name, out var choices) || choices.ValueKind != JsonValueKind.Array) return ValueList<DelegateModelChoice>.Empty;
+        foreach (var choice in choices.EnumerateArray())
+        {
+            if (choice.ValueKind != JsonValueKind.Object || GuidOf(choice, "id") is not { } id || !choice.TryGetProperty("who", out var who)) continue;
+            DelegateWho? selected = null;
+            if (who.ValueKind != JsonValueKind.Null)
+            {
+                if (who.ValueKind != JsonValueKind.Object || !Enum.TryParse<ProviderKind>(Text(who, "provider"), out var provider) || !Enum.IsDefined(provider)) continue;
+                selected = new DelegateWho(provider, Text(who, "model") is { Length: > 0 } model ? model : null);
+            }
+            kept.RemoveAll(c => c.Id == id);
+            kept.Add(new DelegateModelChoice(id, selected));
+        }
+        return new ValueList<DelegateModelChoice>(kept.TakeLast(DelegateChatsKept));
     }
 
     private static void WriteGrant(Utf8JsonWriter writer, Grant grant)

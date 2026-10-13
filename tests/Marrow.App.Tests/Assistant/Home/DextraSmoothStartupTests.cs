@@ -19,6 +19,7 @@ public sealed class DextraSmoothStartupTests
     {
         using var temp = new AssistantTempRoot();
         using var rig = new BackgroundLaunchRig(temp);
+        Assert.NotNull(rig.Start());
         var frames = new ManualFrameSource();
         var calls = 0;
         rig.OnMain(() =>
@@ -42,6 +43,7 @@ public sealed class DextraSmoothStartupTests
     {
         using var temp = new AssistantTempRoot();
         using var rig = new BackgroundLaunchRig(temp);
+        Assert.NotNull(rig.Start());
         var frames = new ManualFrameSource(); var calls = 0;
         rig.OnMain(() =>
         {
@@ -67,13 +69,16 @@ public sealed class DextraSmoothStartupTests
             startup: rig.Seams, voiceFrames: frames, voiceAsync: (_, _, _, cancellation) => { calls++; token = cancellation; return pending.Task; }));
         try
         {
-            rig.OnMain(() =>
+            var sawPublication = false;
+            host.Changed += () =>
             {
-                Assert.True(host.EnsureStarted(mode: new StartupMode(true, null, null)) is not null, host.StartFault);
+                if (host.Controller is null || sawPublication) return;
+                sawPublication = true;
                 Assert.Equal(0, calls);
                 frames.Advance(TimeSpan.FromMilliseconds(17)); frames.Advance(TimeSpan.FromMilliseconds(17));
                 Assert.Equal(0, calls); // ED-NEW-dextra-smooth-11: hidden startup runs on a later main turn.
-            });
+            };
+            Assert.NotNull(rig.Start(host, new StartupMode(true, null, null)));
             rig.OnMain(() =>
             {
                 Assert.Equal(1, calls);
@@ -107,7 +112,7 @@ public sealed class DextraSmoothStartupTests
         DextraVoice? voice = null;
         try
         {
-            rig.OnMain(() => Assert.NotNull(rig.Model.AssistantHost.EnsureStarted()));
+            Assert.NotNull(rig.Start());
             rig.Run(async () => voice = await DextraVoice.CreateDeferred(rig.Model, rig.Model.AssistantHost, new VoiceStopScope(), CancellationToken.None, parts));
             Assert.NotNull(voice);
             Assert.True(voice.Chord.Status.Works);

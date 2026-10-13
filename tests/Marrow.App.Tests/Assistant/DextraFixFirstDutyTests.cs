@@ -15,7 +15,7 @@ public sealed class DextraFixFirstDutyTests
         using var temp = new AssistantTempRoot();
         using var launch = new BackgroundLaunchRig(temp);
         Assert.False(BackgroundStart.HasDuties(temp.Roots));
-        var controller = launch.OnMain(() => launch.Model.AssistantHost.EnsureStarted());
+        var controller = launch.Start();
         Assert.NotNull(controller);
         var duties = launch.Model.Duties;
         Assert.NotNull(duties);

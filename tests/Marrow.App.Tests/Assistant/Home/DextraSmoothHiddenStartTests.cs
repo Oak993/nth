@@ -20,18 +20,24 @@ public sealed class DextraSmoothHiddenStartTests
             startup: rig.Seams, voiceFrames: frames, voiceAsync: (_, _, _, _) => { calls++; return Task.FromResult<DextraVoice?>(null); }));
         try
         {
-            rig.OnMain(() =>
+            var sawPublication = false;
+            host.Changed += () =>
             {
-                Assert.NotNull(host.EnsureStarted(mode: new StartupMode(true, null, null)));
-                Assert.Equal(0, calls); // The factory is never on the synchronous startup path.
+                if (host.Controller is null || sawPublication) return;
+                sawPublication = true;
+                Assert.Equal(0, calls); // The factory is never on the publication turn.
                 if (stopBeforePost) host.Stop();
-            }); // Deterministic loop drains posts, but the frame source is never advanced.
+            };
+            var started = rig.Start(host, new StartupMode(true, null, null));
+            Assert.True(sawPublication);
+            if (stopBeforePost) Assert.Null(started); else Assert.NotNull(started);
+            // Deterministic loop drains posts, but the frame source is never advanced.
             rig.Run(() => host.VoiceStartup);
             Assert.Equal(stopBeforePost ? 0 : 1, calls);
             Assert.Equal(0, frames.Pending);
             if (stopBeforePost)
             {
-                rig.OnMain(() => Assert.NotNull(host.EnsureStarted(mode: new StartupMode(true, null, null))));
+                Assert.NotNull(rig.Start(host, new StartupMode(true, null, null)));
                 rig.Run(() => host.VoiceStartup);
                 Assert.Equal(1, calls); // The canceled post cannot revive an earlier generation.
             }

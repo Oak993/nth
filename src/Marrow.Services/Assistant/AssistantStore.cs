@@ -29,6 +29,8 @@ public sealed record AssistantStoreOptions
     public Func<JsonObject, JsonObject?>? InterruptedMission { get; init; }
 
     /// <summary>A mission's journal is folded into its snapshot after this many saves (and at open and close).</summary>
+    public Action<string>? FileIO { get; init; }
+
     public int CompactEvery { get; init; } = 16;
 
     /// <summary>The feed keeps this many days, today included (15.3: 30 days).</summary>
@@ -129,6 +131,7 @@ public sealed partial class AssistantStore : IDisposable
         if (options.CompactEvery < 1) throw new ArgumentOutOfRangeException(nameof(options), "CompactEvery must be at least 1.");
         if (options.FeedDays < 1) throw new ArgumentOutOfRangeException(nameof(options), "FeedDays must be at least 1.");
         var root = Path.GetFullPath(roots.AssistantRoot);
+        options.FileIO?.Invoke("open");
         Directory.CreateDirectory(root);
         FileStream handle;
         try
@@ -226,6 +229,7 @@ public sealed partial class AssistantStore : IDisposable
         {
             ThrowIfClosed();
             var directory = Path.Combine(Root, "assistants");
+            options.FileIO?.Invoke(directory);
             if (!Directory.Exists(directory)) return [];
             return Directory.EnumerateDirectories(directory)
                 .Select(Path.GetFileName)
@@ -581,6 +585,7 @@ public sealed partial class AssistantStore : IDisposable
         lock (gate)
         {
             ThrowIfClosed();
+            options.FileIO?.Invoke(path);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             WriteAtomic(path, bytes);
         }
@@ -593,6 +598,7 @@ public sealed partial class AssistantStore : IDisposable
         lock (gate)
         {
             ThrowIfClosed();
+            options.FileIO?.Invoke(path);
             present = File.Exists(path);
             if (!present) return null;
             return AssistantJson.Parse(File.ReadAllText(path, Utf8)); // null when it does not parse or repeats a name
@@ -605,6 +611,7 @@ public sealed partial class AssistantStore : IDisposable
     /// </summary>
     private void WriteAtomic(string path, byte[] bytes)
     {
+        options.FileIO?.Invoke(path);
         var directory = Path.GetDirectoryName(path)!;
         var temporary = Path.Combine(directory, "." + Path.GetFileName(path) + "." + Guid.NewGuid().ToString("N") + TempSuffix);
         try
@@ -637,6 +644,7 @@ public sealed partial class AssistantStore : IDisposable
     /// </summary>
     private int RemoveTempFiles()
     {
+        options.FileIO?.Invoke(Root);
         var folders = new List<string> { MissionsDirectory, Root };
         var assistants = Path.Combine(Root, "assistants");
         if (Directory.Exists(assistants)) folders.AddRange(Directory.EnumerateDirectories(assistants));

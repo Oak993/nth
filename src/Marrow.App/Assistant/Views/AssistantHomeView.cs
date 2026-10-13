@@ -88,6 +88,7 @@ public sealed record AssistantHomeParts(IMissionJobs Jobs, IDecisionSource Decis
 
     /// <summary>Tells the home when the lane changed, on any thread; the subscription is dropped when the home leaves the screen.</summary>
     public Func<Action, IDisposable>? SuggestionsChanged { get; init; }
+    public Func<DateTimeOffset?>? DigestedThrough { get; init; }
 }
 
 /// <summary>One open suggestion as the home shows it: a short chip, and the whole line for the screen reader. Its tap brings the lane's Accept into view; it never accepts by itself.</summary>
@@ -286,7 +287,7 @@ public sealed class AssistantHomeView : Decorator
         // ---- the Board pane ----
         var context = parts.DecisionContext ?? new DecisionContext(parts.Decisions.Answer);
         Board = new BoardPane(
-            new MissionBoard(parts.Jobs, parts.TaskActions),
+            new MissionBoard(parts.Jobs, parts.TaskActions, parts.DigestedThrough),
             new DecisionList(parts.Decisions, context, parts.Answered is null ? null : Answered = new AnsweredList(parts.Answered)),
             new FeedTab(parts.Feed, parts.FeedSource, parts.OpenFeed),
             new TeamTab(parts.Profiles, parts.Team is null ? null : new TeamPanel(parts.Team, parts.TeamActions, parts.TeamProblems)));
@@ -384,7 +385,11 @@ public sealed class AssistantHomeView : Decorator
             OnVoice();
         }
         suggestionsWatch?.Dispose();
-        suggestionsWatch = parts.SuggestionsChanged?.Invoke(() => RefreshSuggestions());
+        suggestionsWatch = parts.SuggestionsChanged?.Invoke(() =>
+        {
+            RefreshSuggestions();
+            Board.Missions.Refresh();
+        });
         if (TopLevel.GetTopLevel(this) is { } top)
         {
             budget = MotionScope.For(top).Join(ArmillaListRank.Header, () => (HeaderMark.Moves ? 1 : 0) + (HeroShown && HeroMark.Moves ? 1 : 0), () => IsEffectivelyVisible, calm =>

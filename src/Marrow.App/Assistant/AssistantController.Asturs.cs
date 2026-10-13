@@ -270,6 +270,24 @@ public sealed partial class AssistantController
     }
 
     // ---- delegate_to ----
+    public async Task<TeamResult> DeleteAsturFiles(string id)
+    {
+        var retired = await RetireAstur(id).ConfigureAwait(false);
+        if (!retired.Ok || Team is null) return retired;
+        try { o.Audit(new AuditEntry { Assistant = Root?.Id ?? "", Tool = "team/delete-files", ActionClass = ActionClass.WriteElsewhere.ToString(), Target = id,
+            Result = "owner confirmed permanent deletion", AllowedBy = "owner" }); }
+        catch (Exception error) when (error is not OperationCanceledException) { return TeamResult.Refused("Its files were kept because the activity log could not be written."); }
+        if (o.Notes?.Store is { } notes)
+        {
+            var removed = await Task.Run(() => notes.Delete(notes.Notes(null).Where(n => n.Scope == id).Select(n => n.Id).ToArray())).ConfigureAwait(false);
+            if (removed.Failed) return TeamResult.Refused("Its notes could not be deleted; its files were kept.");
+        }
+        var result = await Team.DeleteFilesAsync(id).ConfigureAwait(false);
+        TryAudit(new AuditEntry { Assistant = Root?.Id ?? "", Tool = "team/delete-files", ActionClass = ActionClass.WriteElsewhere.ToString(), Target = id,
+            Result = result.Ok ? "deleted owned files; retired profile retained" : "incomplete: owned-files-delete-refused", AllowedBy = "owner" });
+        return result;
+    }
+
 
     private AssistantToolResult Delegate(AssistantToolCall call)
     {

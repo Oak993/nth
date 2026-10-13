@@ -120,11 +120,12 @@ public sealed partial class AppModel
         AutoAnswerSwitch? autoAnswer = null, Func<IReadOnlyList<string>>? personalDataRecipients = null, Func<IReadOnlyList<string>>? allowlist = null,
         GlobalStop? stopKey = null, AppTray? tray = null, IPcStreamHold? pcStreams = null,
         IReadOnlyList<IStopScope>? stopScopes = null, INoteProposer? noteProposer = null, IDutyTools? duties = null, AssistantTeam? team = null, IAssistantHomes? homes = null,
-        PurchaseSetup? purchases = null, Guid? accountId = null)
+        PurchaseSetup? purchases = null, Guid? accountId = null, DextraStartupSnapshot? startup = null)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(audit);
         ArgumentNullException.ThrowIfNull(profiles);
+        using var startupOwnership = new DextraStartOwnership();
         // The usage reserve (AS-13): the owner's rules and what nth learned of his usage come from the store and go back to it.
         var reserveSettings = new ReserveSettings();
         var calibrator = new UsageCalibrator();
@@ -132,7 +133,7 @@ public sealed partial class AppModel
         // The cost controls (AS-15): what each assistant spent today (the caps' figures) and which duties the breaker paused, kept beside them.
         var costLedger = new CostLedger();
         var dutyHealth = new DutyHealthBook();
-        var reservePersistence = new ReservePersistence(store, reserveSettings, calibrator, turnCosts, costs: costLedger, duties: dutyHealth);
+        var reservePersistence = startupOwnership.Add(new ReservePersistence(store, reserveSettings, calibrator, turnCosts, costs: costLedger, duties: dutyHealth));
         // The Asturs' day slices are standing caps in these settings (AS-16, 9.3): they are put in step with the profiles once the rules are loaded.
         team?.BindBudgets(reserveSettings);
         // Dextra's memory (AS-12): the notes live in the store; the capture runs only when a cheap model is bound (noteProposer).
@@ -142,10 +143,12 @@ public sealed partial class AppModel
         IReadOnlyList<MemoryImportSource> ImportSources() => MemoryImportSources.FromAccounts(Settings.Accounts.Accounts,
             new Marrow.Services.Port.Accounts.AccountEnvironment(() => Marrow.Services.Store.Storage.Root),
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), [.. Projects.Select(p => p.Path)]);
-        var memoryWatch = new MemoryImportWatch(memoryImport, ImportSources);
+        var memoryWatch = startupOwnership.Add(new MemoryImportWatch(memoryImport,
+            () => startup is not null && !MainActor.IsIsolated ? startup.ImportSources : ImportSources(),
+            refreshSources: () => MainActor.Run(ImportSources)));
         // The delegate responder (AS-22, 4.3): its book of answers lives in the store, its model is nth's one-shot text engine, and it is off until the owner turns it on.
         var delegateBook = new DelegateAnswerBook();
-        var delegateAnswers = new DelegateAnswerPersistence(store, delegateBook);
+        var delegateAnswers = startupOwnership.Add(new DelegateAnswerPersistence(store, delegateBook));
         // The watch follows the folders only once the owner has imported (8.4); the Memory view starts it after each import he runs.
         if (memoryStore.HasImported) memoryWatch.Start();
         var controller = new AssistantController(new AssistantControllerOptions
@@ -159,7 +162,11 @@ public sealed partial class AppModel
                 Watch = memoryWatch,
                 Owned = memoryWatch,
             },
-            Router = new RouterSetup { Accounts = RouterAccounts, Models = RouterModelsOf },
+            Router = new RouterSetup
+            {
+                Accounts = RouterAccounts, Models = RouterModelsOf,
+                Rank = (id, account) => AsturPillRank.Of(profiles().FirstOrDefault(p => p.Id == id)?.PillOrder ?? ValueList<string>.Empty, account),
+            },
             Reserve = new ReserveSetup
             {
                 Settings = reserveSettings,
@@ -215,7 +222,7 @@ public sealed partial class AppModel
             // AS-7 (ED-NEW-dextra-as7-14): the home chats' taint survives a restart; StartDextra runs after the library loads.
             LoadHomeTaint = store.HomeTaint,
             SaveHomeTaint = store.SaveHomeTaint,
-            HomeChats = () => [.. Threads.Where(t => t.AssistantID is not null && t.MissionID is null).Select(t => t.Id)],
+            HomeChats = startup is not null ? () => startup.HomeChats : () => [.. Threads.Where(t => t.AssistantID is not null && t.MissionID is null).Select(t => t.Id)],
             StopKey = stopKey,
             PcStreams = pcStreams,
             StopScopes = stopScopes ?? [],
@@ -223,7 +230,7 @@ public sealed partial class AppModel
             // AS-20 (12.7): purchases; the production start gives Windows Hello and the card in Credential Manager.
             Purchases = purchases,
         });
-        DextraStore = store;
+        startupOwnership.Transfer(controller);
         // The day's folding of the notes (8.2) runs at start when it has not run today; the digest (AS-11) calls it each morning from then on.
         _ = Task.Run(() =>
         {
@@ -232,16 +239,26 @@ public sealed partial class AppModel
         });
         controller.Runner.Load(store.Missions().Select(stored => MissionJournal.FromJson(stored.Body)).OfType<MissionRecord>());
         // The Asturs' reports whose missions ended while nth was closed are caught up (AS-16).
-        controller.ResumeDelegations();
+        if (startup is null) controller.ResumeDelegations();
         // What Revert and Restart kept for 7 days, and the workspaces of missions over for 7 days, are swept at start (the
         // scheduler, AS-10, repeats it daily); a sweep that fails is reported and never stops the start.
         _ = SweepKept(controller);
-        // The Assistant's items in nth's one tray icon (7.4, 12.6): Stop works with the window closed.
+        if (startup is null) CompleteDextraStart(controller, store, profiles, tray);
+        return startupOwnership.Release(controller);
+    }
+
+    internal DextraStartupSnapshot StartupSnapshot() => new(
+        [.. Threads.Where(t => t.AssistantID is not null && t.MissionID is null).Select(t => t.Id)],
+        MemoryImportSources.FromAccounts(Settings.Accounts.Accounts,
+            new Marrow.Services.Port.Accounts.AccountEnvironment(() => Marrow.Services.Store.Storage.Root),
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), [.. Projects.Select(p => p.Path)]));
+
+    internal void CompleteDextraStart(AssistantController controller, AssistantStore store, Func<IReadOnlyList<AssistantProfile>> profiles, AppTray? tray)
+    {
+        DextraStore = store;
         if (tray is not null) dextraTray = AssistantTray.Bind(tray, controller);
-        // The decision toasts (AS-9, 13.1): a card that needs the owner makes one, unless the home is in front.
         BindDecisionToasts(controller, id => profiles().FirstOrDefault(profile => profile.Id == id)?.Name is { Length: > 0 } name ? name : AssistantNames.Assistant);
         BindDextra(controller);
-        return controller;
     }
 
     /// <summary>
@@ -329,18 +346,25 @@ public sealed partial class AppModel
     /// </summary>
     internal IReadOnlyList<Marrow.Core.Port.Assistant.BrainModel> TriageModels()
     {
+        // Operational picks run on MainActor through the adapter. Off-actor inspections may use the brain's metadata,
+        // but cannot refresh account connectivity (which can lazily load settings) or claim cheap candidates usable.
+        if (!MainActor.IsIsolated) return [];
         var list = new List<Marrow.Core.Port.Assistant.BrainModel>();
         foreach (var kind in Marrow.Core.Port.SwiftEnum<ProviderKind>.AllCases)
         {
             if (!Providers.CountsAsInstalled(kind)) continue;
-            foreach (var option in Providers.Models(kind)) list.Add(BrainModelOf(kind, option.Id));
+            foreach (var account in Settings.Accounts.Accounts.Where(a => a.Service == kind && a.Enabled))
+                foreach (var option in Providers.Models(kind)) list.Add(BrainModelOf(kind, option.Id, account.Id));
         }
         return list;
     }
 
-    private Marrow.Core.Port.Assistant.BrainModel BrainModelOf(ProviderKind kind, string? model)
+    private Marrow.Core.Port.Assistant.BrainModel BrainModelOf(ProviderKind kind, string? model, Guid? onAccount = null)
     {
-        var account = AssistantTaps.AccountRef(Marrow.Core.Port.UsageAccountKey.Default(kind));
+        var pin = onAccount ?? AssistantHost.Settings.Value.BrainAccount;
+        var selected = pin is { } id ? Settings.Accounts.Accounts.FirstOrDefault(a => a.Id == id && a.Service == kind) : Settings.Accounts.Choose(kind);
+        var account = AssistantTaps.AccountRef(selected is { UsesLegacyCredentials: false } named
+            ? new Marrow.Core.Port.UsageAccountKey(kind, named.Id.ToString("D")) : Marrow.Core.Port.UsageAccountKey.Default(kind));
         var prices = IgnisRuntimeSeams.Points.Current()?.Find(kind, model);
         return new Marrow.Core.Port.Assistant.BrainModel(kind.Id, model ?? "", account.Key, account.Name)
         {
@@ -348,6 +372,9 @@ public sealed partial class AppModel
             OutputPerMillion = prices?.Prices.Output,
             ContextWindow = prices?.ContextWindow,
             RunsLocally = kind == ProviderKind.Local,
+            Usable = MainActor.IsIsolated && selected is { Enabled: true } && IsAccountConnected(selected) && CanUseAccount(selected.Id)
+                && (kind == ProviderKind.Codex || Marrow.Services.Port.MultiAccount.TextOnlyAccountHead.Supports(kind)),
+            Room = Reserve?.Standing(account, AssistantHost.AssistantId, null, null, model, 0)?.Windows.Select(w => w.Room).DefaultIfEmpty().Min(),
         };
     }
 
@@ -371,6 +398,7 @@ public sealed partial class AppModel
         dextraTray?.Dispose();
         dextraTray = null;
         Dextra = null;
+        DisposeAsturs();
         AssistantMcpBridge.Host.SetProcessDefault(NoAssistantToolHost.Instance);
     }
 

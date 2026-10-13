@@ -28,6 +28,8 @@ public sealed class CzMenuButton : CzButton
     public double WidestLabel { get; private set; }
     public double MenuWidth { get; private set; } = 220;
     public bool IsOpen { get; private set; }
+    /// <summary>ED-NEW-dextra-open-7: per-option availability survives deferred menu rebuilding and keyboard selection.</summary>
+    public Func<string, bool>? OptionAvailable { get; set; }
     public bool StackedRow { get; set; }
     public event Action<string>? SelectionChanged;
     public double MenuOpacity => fade.Value;
@@ -106,6 +108,7 @@ public sealed class CzMenuButton : CzButton
     {
         list.Children.Clear();
         Items = options.Select(x => new CzMenuItem(this, x.Id, x.Text)).ToArray();
+        ApplyAvailability();
         foreach (var item in Items) list.Children.Add(item);
         SelectedId = selected; valueText = text;
         ValueLabel.SetText(text ?? options.First(x => x.Id == selected).Text);
@@ -115,6 +118,7 @@ public sealed class CzMenuButton : CzButton
     {
         if (!IsEffectivelyEnabled) return;
         var item = Items.FirstOrDefault(x => x.Id == id) ?? throw new ArgumentOutOfRangeException(nameof(id));
+        if (!item.IsEnabled || OptionAvailable?.Invoke(id) == false) return;
         Show(id); SelectionChanged?.Invoke(id); CloseMenu();
     }
     /// <summary>Mirrors an external setting without emitting a user's pick, also while dimmed.</summary>
@@ -134,6 +138,7 @@ public sealed class CzMenuButton : CzButton
     public void OpenMenu()
     {
         if (!IsEffectivelyEnabled || IsOpen) return;
+        ApplyAvailability();
         MeasureLabels(); IsOpen = true; Chevron.SetOpen(true);
         var top = TopLevel.GetTopLevel(this);
         var at = top is null ? null : this.TranslatePoint(default, top);
@@ -149,6 +154,10 @@ public sealed class CzMenuButton : CzButton
         surface.AddHandler(KeyDownEvent, MenuKey, RoutingStrategies.Tunnel, handledEventsToo: true);
         focused = Math.Max(0, Items.ToList().FindIndex(x => x.Id == SelectedId)); Items[focused].Focus(NavigationMethod.Directional);
         Refresh();
+    }
+    private void ApplyAvailability()
+    {
+        foreach (var item in Items) item.IsEnabled = OptionAvailable?.Invoke(item.Id) != false;
     }
     public void CloseMenu(bool refocus = true)
     {

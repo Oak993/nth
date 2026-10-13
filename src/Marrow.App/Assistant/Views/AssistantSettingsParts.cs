@@ -13,6 +13,7 @@ using Marrow.Core.Port.Assistant;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Marrow.UI.Port.Settings;
+using Marrow.Services.Port.MultiAccount;
 
 namespace Marrow.App.Assistant.Views;
 
@@ -122,19 +123,29 @@ public sealed record BrainChoices(
 {
     public static BrainChoices None { get; } = new(() => [], _ => [], _ => []);
 
+    public Func<Guid?> Project { get; init; } = () => null;
+    public Func<Guid?> Chat { get; init; } = () => null;
+
     /// <summary>The app's: available providers, each one's enabled accounts, and its model catalogue.</summary>
     public static BrainChoices Of(AppModel model) => new(
         () => model.Providers.AvailableProviders,
         provider => [.. model.Settings.Accounts.ForService(provider).Where(a => a.Enabled)
             .Select(a => (a.Id, model.Settings.Accounts.DisplayName(a.Id) ?? model.Settings.Accounts.DefaultName(a.Id)))],
-        provider => model.Providers.Catalogs.TryGetValue(provider, out var catalog) ? [.. catalog.Select(m => (m.Id, m.Name))] : []);
+        provider => model.Providers.Catalogs.TryGetValue(provider, out var catalog) ? [.. catalog.Select(m => (m.Id, m.Name))] : [])
+        {
+            Project = () => model.SelectedThreadID is { } id ? model.Thread(id)?.ProjectID : model.DextraHomeProject() ?? model.Projects.FirstOrDefault()?.Id,
+            Chat = () => model.SelectedThreadID,
+        };
 }
+
+public enum DelegateModelScope { Everywhere, Project, Chat }
 
 /// <summary>The rows the card and the page share, over one <see cref="DextraSettings"/>.</summary>
 internal sealed class AssistantRows
 {
     private readonly DextraSettings settings;
     private readonly BrainChoices brain;
+    private DelegateModelScope modelScope;
 
     public AssistantRows(DextraSettings settings, BrainChoices? brain)
     {
@@ -165,11 +176,22 @@ internal sealed class AssistantRows
         AutomationProperties.SetName(ScopePicker, AssistantSettingsWords.Delegate);
         ScopeRow = new ChromeRow("", () => ScopePicker);
         WithMenu = new CzMenuButton(AssistantSettingsWords.RowWith, WithOptions(), WithId(settings.Value.DelegateWith));
-        WithMenu.SelectionChanged += id => settings.Update(p => p with
+        WithMenu.OptionAvailable = id => Unavailable(id) is null;
+        WithMenu.SelectionChanged += id =>
         {
-            DelegateWith = id != DextraOption && Enum.TryParse<ProviderKind>(id, out var kind) ? new DelegateWho(kind) : null,
-        });
+            if (Unavailable(id) is not null) { Show(); return; }
+            if (id == "inherit") { if (ScopeAvailable) settings.SetDelegateModel(ScopeProject, ScopeChat, null, inherit: true); Show(); }
+            else WriteWho(id != DextraOption && Enum.TryParse<ProviderKind>(id, out var kind) ? new DelegateWho(kind) : null);
+        };
         WithRow = new ChromeRow(AssistantSettingsWords.RowWith, () => WithMenu, AssistantSettingsWords.RowWithDetail);
+        WithScopePicker = new ChromeSegmentedPicker<DelegateModelScope>(
+            new ChromeSegmentedOption<DelegateModelScope>[] { new(DelegateModelScope.Everywhere, AssistantSettingsWords.Everywhere), new(DelegateModelScope.Project, AssistantSettingsWords.ThisProject), new(DelegateModelScope.Chat, "This chat only") },
+            new Binding<DelegateModelScope>(() => modelScope, SetModelScope));
+        AutomationProperties.SetName(WithScopePicker, "Answers with scope");
+        WithScopeRow = new ChromeRow("", () => WithScopePicker);
+        WithModelMenu = new CzMenuButton("Answer model", WithModels(), Who()?.Model ?? "default");
+        WithModelMenu.SelectionChanged += id => { if (Who() is { } who) WriteWho(who with { Model = id == "default" ? null : id }); };
+        WithModelRow = new ChromeRow(AssistantSettingsWords.RowModel, () => WithModelMenu);
         Show();
     }
 
@@ -185,6 +207,36 @@ internal sealed class AssistantRows
     public ChromeRow ScopeRow { get; }
     public CzMenuButton WithMenu { get; }
     public ChromeRow WithRow { get; }
+    public ChromeSegmentedPicker<DelegateModelScope> WithScopePicker { get; }
+    public ChromeRow WithScopeRow { get; }
+    public CzMenuButton WithModelMenu { get; }
+    public ChromeRow WithModelRow { get; }
+
+    internal void SetModelScope(DelegateModelScope scope) { modelScope = scope; Show(); }
+    private Guid? ScopeProject => modelScope == DelegateModelScope.Project ? brain.Project() : null;
+    private Guid? ScopeChat => modelScope == DelegateModelScope.Chat ? brain.Chat() : null;
+    private bool ScopeAvailable => modelScope == DelegateModelScope.Everywhere || (modelScope == DelegateModelScope.Project ? ScopeProject : ScopeChat) is not null;
+    private DelegateWho? Who() => modelScope == DelegateModelScope.Chat && ScopeChat is { } c
+        ? DelegateReach.Model(settings.Value, c, brain.Project() ?? Guid.Empty)
+        : modelScope == DelegateModelScope.Project && ScopeProject is { } p
+            ? settings.Value.DelegateProjectModels.FirstOrDefault(c => c.Id == p) is { } choice ? choice.Who : settings.Value.DelegateWith
+            : settings.Value.DelegateWith;
+    private void WriteWho(DelegateWho? who)
+    {
+        if (!ScopeAvailable) return;
+        settings.SetDelegateModel(ScopeProject, ScopeChat, who);
+        Show();
+    }
+    private IReadOnlyList<(string Id, string Text)> WithModels()
+    {
+        var list = new List<(string, string)> { ("default", AssistantSettingsWords.DefaultModel) };
+        if (Who() is { } who)
+        {
+            list.AddRange(brain.Models(who.Provider));
+            if (who.Model is { } model && list.All(m => m.Item1 != model)) list.Add((model, model));
+        }
+        return list;
+    }
 
     /// <summary>The brain's rows: provider, then account and model once a provider is picked.</summary>
     public Control BrainRows()
@@ -212,6 +264,8 @@ internal sealed class AssistantRows
         rows.Children.Add(new ChromeRow(AssistantSettingsWords.Delegate, () => DelegateSwitch, AssistantSettingsWords.DelegateDetail));
         rows.Children.Add(ScopeRow);
         rows.Children.Add(WithRow);
+        rows.Children.Add(WithScopeRow);
+        rows.Children.Add(WithModelRow);
         return rows;
     }
 
@@ -227,21 +281,47 @@ internal sealed class AssistantRows
         ModelMenu.SetOptions(ModelOptions(), value.BrainModel ?? "default");
         ModelRow.IsVisible = picked;
         ScopeRow.IsVisible = value.Delegate != DelegateScope.Off;
-        WithMenu.SetOptions(WithOptions(), WithId(value.DelegateWith));
+        var inherited = modelScope == DelegateModelScope.Project && !value.DelegateProjectModels.Any(c => c.Id == ScopeProject)
+            || modelScope == DelegateModelScope.Chat && !value.DelegateChatModels.Any(c => c.Id == ScopeChat);
+        var choice = inherited ? "inherit" : WithId(Who());
+        var why = Unavailable(choice);
+        var shortLabel = choice == DextraOption ? AssistantNames.Assistant : Who()?.Provider.DisplayName;
+        WithMenu.SetOptions(WithOptions(), choice, why is not null ? shortLabel + " — unavailable" : null);
         WithRow.IsVisible = value.Delegate != DelegateScope.Off || value.DelegateChats.Any(c => c.On);
+        WithMenu.IsEnabled = ScopeAvailable;
+        ToolTip.SetTip(WithMenu, ScopeAvailable ? why : "Open a chat or project to choose its delegate.");
+        AutomationProperties.SetHelpText(WithMenu, why ?? "");
+        WithScopeRow.IsVisible = WithRow.IsVisible;
+        WithModelMenu.SetOptions(WithModels(), Who()?.Model ?? "default");
+        WithModelMenu.IsEnabled = ScopeAvailable;
+        WithModelRow.IsVisible = WithRow.IsVisible && Who() is not null;
     }
 
     /// <summary>The id of "Dextra" in the Answers with menu (the brain itself).</summary>
     public const string DextraOption = "dextra";
 
-    // Dextra itself, then the providers whose one-shot model can read a question (nth's text engine: Claude and Codex) that are on and installed.
+    // Keep any installed or previously selected provider. Execution separately requires a verified text-only route.
     private IReadOnlyList<(string Id, string Text)> WithOptions()
     {
-        var list = new List<(string, string)> { (DextraOption, AssistantNames.Assistant) };
-        var offered = brain.Providers().Where(p => p is ProviderKind.Claude or ProviderKind.Codex).ToList();
-        if (settings.Value.DelegateWith is { } picked && !offered.Contains(picked.Provider)) offered.Add(picked.Provider);
-        list.AddRange(offered.Select(p => (p.ToString(), p.DisplayName)));
+        var list = new List<(string, string)> { (DextraOption, Label(DextraOption, AssistantNames.Assistant)) };
+        if (modelScope != DelegateModelScope.Everywhere) list.Insert(0, ("inherit", modelScope == DelegateModelScope.Project ? "Use global choice" : "Use project or global choice"));
+        var offered = brain.Providers().ToList();
+        if (Who() is { } picked && !offered.Contains(picked.Provider)) offered.Add(picked.Provider);
+        list.AddRange(offered.Select(p => (p.ToString(), Label(p.ToString(), p.DisplayName))));
         return list;
+    }
+
+    private string Label(string id, string name) => Unavailable(id) is { } why ? name + " — unavailable: " + why : name;
+    private string? Unavailable(string id)
+    {
+        if (id == "inherit") return null;
+        if (id == DextraOption)
+        {
+            var providers = brain.Providers();
+            var picked = settings.Value.BrainProvider ?? (providers.Contains(ProviderKind.Claude) ? ProviderKind.Claude : providers.FirstOrDefault());
+            return settings.Value.BrainProvider is null && providers.Count == 0 ? "No brain provider is available." : DextraTextRoutes.UnavailableReason(picked);
+        }
+        return Enum.TryParse<ProviderKind>(id, out var kind) ? DextraTextRoutes.UnavailableReason(kind) : "This provider is unavailable.";
     }
 
     private static string WithId(DelegateWho? who) => who?.Provider.ToString() ?? DextraOption;

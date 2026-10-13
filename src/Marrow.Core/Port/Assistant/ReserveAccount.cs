@@ -45,7 +45,7 @@ public sealed class ReserveAccount(string key, string name, string providerId, F
     /// <summary>Outside use is remembered this long (the calibrator and the after-report read it).</summary>
     public static readonly TimeSpan OutsideKept = TimeSpan.FromDays(14);
 
-    private sealed record SpendEntry(DateTimeOffset At, long Tokens, string? Model);
+    private sealed record SpendEntry(DateTimeOffset At, long Tokens, string? Model, bool AfterReading = false);
 
     private sealed class Flight(string? model, double p90Tokens)
     {
@@ -151,14 +151,14 @@ public sealed class ReserveAccount(string key, string name, string providerId, F
     // ---- the ledger ----
 
     /// <summary>The ledger saw <paramref name="tokens"/> spent on this account (by a turn, when <paramref name="turn"/> is in flight).</summary>
-    public void Spend(DateTimeOffset at, long tokens, string? model, Guid? turn = null)
+    public void Spend(DateTimeOffset at, long tokens, string? model, Guid? turn = null, bool afterReading = false)
     {
         if (tokens <= 0) return;
         if (turn is { } id && flights.TryGetValue(id, out var flight)) flight.SpentTokens += tokens;
         // Spends of one model in the same second are one entry: a busy team does not grow the list between two polls.
         if (spends.Count > 0 && spends[^1] is var last && last.Model == model && SameSecond(last.At, at) && at >= last.At)
-            spends[^1] = last with { At = at, Tokens = last.Tokens + tokens };
-        else spends.Add(new SpendEntry(at, tokens, model));
+            spends[^1] = last with { At = at, Tokens = last.Tokens + tokens, AfterReading = last.AfterReading || afterReading };
+        else spends.Add(new SpendEntry(at, tokens, model, afterReading));
         if (spends.Count > MaxSpends) Compact();
     }
 
@@ -254,7 +254,7 @@ public sealed class ReserveAccount(string key, string name, string providerId, F
         var points = 0.0;
         foreach (var s in spends)
         {
-            if (s.At <= from || s.At > to) continue;
+            if (s.At < from || s.At == from && !s.AfterReading || s.At > to) continue;
             var rate = rates(s.Model, kind).TokensPerPercent;
             if (!(rate > 0) || !double.IsFinite(rate)) return double.PositiveInfinity;
             points += s.Tokens / rate;
@@ -267,7 +267,7 @@ public sealed class ReserveAccount(string key, string name, string providerId, F
     {
         if (windows.Count == 0) return;
         var oldest = windows.Values.Min(t => t.Last.ObservedAt);
-        spends.RemoveAll(s => s.At <= oldest);
+        spends.RemoveAll(s => s.At < oldest || s.At == oldest && !s.AfterReading);
     }
 
     // Past the cap the older half is merged pairwise. The merged spend takes the later time (counted as later, never as earlier,
@@ -281,7 +281,7 @@ public sealed class ReserveAccount(string key, string name, string providerId, F
         {
             var a = spends[i];
             var b = spends[i + 1];
-            merged.Add(new SpendEntry(b.At > a.At ? b.At : a.At, a.Tokens + b.Tokens, a.Model == b.Model ? a.Model : null));
+            merged.Add(new SpendEntry(b.At > a.At ? b.At : a.At, a.Tokens + b.Tokens, a.Model == b.Model ? a.Model : null, a.AfterReading || b.AfterReading));
         }
         for (; i < spends.Count; i++) merged.Add(spends[i]);
         spends.Clear();

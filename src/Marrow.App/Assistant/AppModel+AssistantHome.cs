@@ -15,7 +15,7 @@ public sealed partial class AppModel
     /// <summary>Dextra's host: its settings (the "dextra" key), identity and controller. Made on first use.</summary>
     public DextraHost AssistantHost
     {
-        get => assistantHost ??= new DextraHost(this, new DextraSettings(UserDefaults.Standard.Current));
+        get => assistantHost ??= new DextraHost(this, new DextraSettings(UserDefaults.Standard.Current), asturs: () => Dextra?.Team?.Profiles ?? []);
         internal set
         {
             if (ReferenceEquals(assistantHost, value)) return;

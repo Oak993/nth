@@ -48,14 +48,18 @@ public sealed class DextraSmoothVoiceLifecycleTests
         Task previous = Task.CompletedTask;
         try
         {
-            rig.OnMain(() => { Assert.NotNull(host.EnsureStarted()); FrameTwice(frames); });
+            Assert.NotNull(rig.Start(host)); rig.OnMain(() => FrameTwice(frames));
             rig.Run(() => host.VoiceStartup);
             rig.OnMain(() =>
             {
                 var old = Assert.IsType<DextraVoice>(host.Voice);
                 host.Stop(); previous = old.NativeCleanup;
                 Assert.False(previous.IsCompleted);
-                Assert.NotNull(host.EnsureStarted()); FrameTwice(frames);
+            });
+            Assert.NotNull(rig.Start(host));
+            rig.OnMain(() =>
+            {
+                FrameTwice(frames);
                 Assert.Equal(1, calls); // replacement may not even prepare against the old reservation
             });
             native.Release.Set();
@@ -83,7 +87,7 @@ public sealed class DextraSmoothVoiceLifecycleTests
         var latest = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         try
         {
-            rig.OnMain(() => Assert.NotNull(rig.Model.AssistantHost.EnsureStarted()));
+            Assert.NotNull(rig.Start());
             rig.Run(async () => voice = await DextraVoice.CreateDeferred(rig.Model, rig.Model.AssistantHost,
                 new VoiceStopScope(), CancellationToken.None, doubles.Parts));
             voice!.Chord.StatusChanged += status => { if (status.Chord == "Ctrl+Alt+Home" && status.Works) latest.TrySetResult(); };
@@ -120,13 +124,13 @@ public sealed class DextraSmoothVoiceLifecycleTests
         Task abandoned = Task.CompletedTask;
         try
         {
-            rig.OnMain(() => { Assert.NotNull(host.EnsureStarted()); FrameTwice(frames); });
+            Assert.NotNull(rig.Start(host)); rig.OnMain(() => FrameTwice(frames));
             rig.Run(() => native.Entered.Task);
             rig.OnMain(() => { abandoned = host.VoiceStartup; host.Stop(); });
-            if (retryBeforeRelease) rig.OnMain(() => { Assert.NotNull(host.EnsureStarted()); FrameTwice(frames); });
+            if (retryBeforeRelease) { Assert.NotNull(rig.Start(host)); rig.OnMain(() => FrameTwice(frames)); }
             native.Release.Set();
             rig.Run(() => abandoned);
-            if (!retryBeforeRelease) rig.OnMain(() => { Assert.NotNull(host.EnsureStarted()); FrameTwice(frames); });
+            if (!retryBeforeRelease) { Assert.NotNull(rig.Start(host)); rig.OnMain(() => FrameTwice(frames)); }
             rig.Run(() => host.VoiceStartup);
             Assert.Equal(1, calls);
             Assert.Contains("fake chord release failed", host.StartFault, StringComparison.Ordinal);

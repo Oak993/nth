@@ -40,7 +40,7 @@ public sealed partial class DigestService
             Today = Today(views),
             ExpiredLogins = setup.ExpiredLogins?.Invoke() ?? [],
             Answered = setup.AnsweredSince?.Invoke(since) ?? setup.Answered?.Invoke() ?? [],
-            Asturs = setup.Asturs?.Invoke() ?? [],
+            Asturs = setup.AstursSince?.Invoke(since) ?? setup.Asturs?.Invoke() ?? [],
         };
         return new Gathered(facts, Spotter.Spot(SpotInput(now, zone, missions, views, facts.Accounts)));
     }

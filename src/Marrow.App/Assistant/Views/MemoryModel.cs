@@ -114,6 +114,7 @@ public sealed class MemoryModel : IDisposable
     private string query = "";
     private string status = "";
     private int busy;
+    private readonly string? fixedScope;
 
     /// <param name="store">The memory.</param>
     /// <param name="scopeName">The name of an assistant by its id (Dextra, an Astur); the shared set is named here.</param>
@@ -126,11 +127,12 @@ public sealed class MemoryModel : IDisposable
     /// <param name="imported">Called after an import the owner ran (starts the watch over the folders, 8.4).</param>
     public MemoryModel(MemoryStore store, Func<string, string>? scopeName = null, Func<string?>? mainAssistant = null, MemoryImport? import = null,
         Func<IReadOnlyList<MemoryImportSource>>? sources = null, TimeZoneInfo? zone = null, IMemoryWork? work = null, Action<string, string>? audit = null,
-        Action? imported = null)
+        Action? imported = null, string? fixedScope = null)
     {
         this.audit = audit ?? ((_, _) => { });
         this.imported = imported ?? (() => { });
         this.store = store ?? throw new ArgumentNullException(nameof(store));
+        this.fixedScope = fixedScope;
         this.scopeName = scopeName ?? (id => id);
         this.mainAssistant = mainAssistant ?? (() => null);
         this.import = import;
@@ -146,6 +148,8 @@ public sealed class MemoryModel : IDisposable
     public event Action? Changed;
 
     public TimeZoneInfo Zone => zone;
+    public string Subtitle => fixedScope is null ? MemoryViewWords.Subtitle : $"Notes kept by {ScopeTitle(fixedScope)}. Edit or delete any of its notes here.";
+    private MemoryNote? Find(string id) => store.Find(id) is { } note && (fixedScope is null || note.Scope == fixedScope) ? note : null;
 
     /// <summary>A write is under way: further commands wait for it (a double press changes nothing twice).</summary>
     public bool Busy => Volatile.Read(ref busy) != 0;
@@ -186,7 +190,7 @@ public sealed class MemoryModel : IDisposable
     private void Rebuild()
     {
         var words = MemoryRules.Tokens(query);
-        var all = store.Notes(null);
+        var all = store.Notes(null).Where(n => fixedScope is null || n.Scope == fixedScope).ToArray();
         Counts = new MemoryCounts(all.Count(n => n.Used), all.Count(n => n.Quarantined));
         bool Matches(MemoryNote n)
         {
@@ -263,7 +267,7 @@ public sealed class MemoryModel : IDisposable
 
     public void BeginEdit(string id)
     {
-        if (store.Find(id) is not { } note) return;
+        if (Find(id) is not { } note) return;
         EditingId = id;
         EditText = note.Text;
         EditProblem = null;
@@ -282,7 +286,7 @@ public sealed class MemoryModel : IDisposable
     /// <summary>Saves the edit. A refusal (a secret, too long, empty) keeps the edit open and says why. True when the note was saved.</summary>
     public async Task<bool> SaveEdit()
     {
-        if (EditingId is not { } id) return false;
+        if (EditingId is not { } id || Find(id) is null) return false;
         var text = EditText;
         var saved = false;
         await Write(() => store.Edit(id, text), outcome =>
@@ -303,7 +307,7 @@ public sealed class MemoryModel : IDisposable
     /// <summary>Delete on a note: a used note asks once more first; a waiting one goes at once (it was never used).</summary>
     public async Task Delete(string id)
     {
-        if (store.Find(id) is not { } note) return;
+        if (Find(id) is not { } note) return;
         if (note.Used && ConfirmDeleteId != id)
         {
             ConfirmDeleteId = id;
@@ -326,7 +330,7 @@ public sealed class MemoryModel : IDisposable
         Raise();
     }
 
-    public Task Keep(string id) => Write(() => store.Keep(id), kept =>
+    public Task Keep(string id) => Find(id) is null ? Task.CompletedTask : Write(() => store.Keep(id), kept =>
     {
         status = kept ? "Kept. It is used from now on." : "That note is not waiting.";
         if (kept) audit("keep", "kept note " + id);
@@ -344,6 +348,7 @@ public sealed class MemoryModel : IDisposable
 
     public void ToggleSource(string id)
     {
+        if (Find(id) is null) return;
         SourceOpenId = SourceOpenId == id ? null : id;
         Raise();
     }
@@ -360,7 +365,7 @@ public sealed class MemoryModel : IDisposable
     public async Task<bool> Add()
     {
         var main = mainAssistant();
-        var scope = AddKind is NoteKind.Preference or NoteKind.Fact || main is null ? MemoryScope.Shared : main;
+        var scope = fixedScope ?? (AddKind is NoteKind.Preference or NoteKind.Fact || main is null ? MemoryScope.Shared : main);
         var proposal = new NoteProposal(AddText, AddKind, scope, new NoteSource(NoteSourceKind.Owner, "memory view"))
         {
             Author = NoteAuthor.Owner,
@@ -391,7 +396,7 @@ public sealed class MemoryModel : IDisposable
 
     public void PreviewForget()
     {
-        ForgetPreview = store.PreviewForget(null, ForgetText);
+        ForgetPreview = store.PreviewForget(null, ForgetText).Where(n => fixedScope is null || n.Scope == fixedScope).ToArray();
         status = ForgetPreview.Count == 0 ? "No note is about that." : "";
         Raise();
     }
@@ -399,7 +404,7 @@ public sealed class MemoryModel : IDisposable
     public async Task ConfirmForget()
     {
         if (ForgetPreview is not { Count: > 0 } preview) return;
-        var ids = preview.Select(n => n.Id).ToList();
+        var ids = preview.Where(n => Find(n.Id) is not null).Select(n => n.Id).ToList();
         await Write(() => store.Delete(ids), report =>
         {
             ForgetPreview = null;
