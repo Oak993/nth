@@ -46,6 +46,7 @@ public sealed class TickText : Control
     private (string Text, double Width, IBrush? Ink, double Size, FontWeight Weight, FlowDirection Flow) layoutKey;
     private (double X, double Width, double Height, bool On, bool Dark)? sentBand;
     private bool? sentSleep;
+    private bool? sentShown;
 
     public TickText() => ActualThemeVariantChanged += (_, _) => { layout?.Dispose(); layout = null; InvalidateVisual(); SendBand(); };
 
@@ -133,7 +134,7 @@ public sealed class TickText : Control
         watch = null;
         visual?.SendHandlerMessage(SheenHandler.Stop.Instance);
         ElementComposition.SetElementChildVisual(this, null);
-        visual = null; handler = null; sentBand = null; sentSleep = null;
+        visual = null; handler = null; sentBand = null; sentSleep = null; sentShown = null;
         layout?.Dispose();
         layout = null;
     }
@@ -150,14 +151,15 @@ public sealed class TickText : Control
         handler = new SheenHandler(ArmillaHub.For(host.Compositor), AmbientRefreshPacer.For(host.Compositor), SwiftClock.Provider.Current);
         visual = host.Compositor.CreateCustomVisual(handler);
         ElementComposition.SetElementChildVisual(this, visual);
-        sentBand = null; sentSleep = null;
+        sentBand = null; sentSleep = null; sentShown = null;
         SendBand();
         OnWatch();
     }
 
     private void OnWatch()
     {
-        var sleep = (watch?.Sleeping ?? false) || availability?.Available == false;
+        SendShown();
+        var sleep = watch?.Sleeping ?? false;
         if (visual is null || sentSleep == sleep) return;
         sentSleep = sleep;
         visual.SendHandlerMessage(sleep ? SheenHandler.Sleep.On : SheenHandler.Sleep.Off);
@@ -166,6 +168,7 @@ public sealed class TickText : Control
     private void SendBand()
     {
         if (visual is null) return;
+        SendShown();
         var flip = FlowDirection == FlowDirection.RightToLeft;
         var band = (X: flip ? Bounds.Width - InkWidth : 0, Width: InkWidth, Height: Bounds.Height, On: Moves && IsVisible && InkWidth > 0,
             Dark: ActualThemeVariant == Avalonia.Styling.ThemeVariant.Dark);
@@ -173,6 +176,14 @@ public sealed class TickText : Control
         sentBand = band;
         visual.Size = new Vector(Bounds.Width, Bounds.Height);
         visual.SendHandlerMessage(new SheenHandler.Band(band.X, band.Width, band.Height, band.On, band.Dark));
+    }
+
+    private void SendShown()
+    {
+        var shown = IsEffectivelyVisible && availability?.Available != false;
+        if (visual is null || sentShown == shown) return;
+        sentShown = shown;
+        visual.SendHandlerMessage(shown ? SheenHandler.Shown.Yes : SheenHandler.Shown.No);
     }
 
     private sealed class TickPeer(TickText owner) : ControlAutomationPeer(owner)
@@ -190,6 +201,10 @@ public sealed class TickText : Control
 /// <summary>The render-thread side of a shimmer: a soft band over the text's extent, on the shared clock.</summary>
 internal sealed class SheenHandler(ArmillaHub hub, AmbientRefreshPacer? pacer, TimeProvider clock) : CompositionCustomVisualHandler
 {
+    internal sealed class Shown
+    {
+        internal static readonly Shown Yes = new(), No = new();
+    }
     internal sealed record Band(double X, double Width, double Height, bool On, bool Dark);
 
     internal sealed class Sleep
@@ -204,7 +219,7 @@ internal sealed class SheenHandler(ArmillaHub hub, AmbientRefreshPacer? pacer, T
 
     private static readonly SplineEasing Ease = new(.45, 0, .55, 1);
     private Band? band;
-    private bool sleeping, stopped, drawn;
+    private bool sleeping, hidden, stopped, drawn;
     private int requested;
     private int frames;
     private double time;
@@ -216,7 +231,7 @@ internal sealed class SheenHandler(ArmillaHub hub, AmbientRefreshPacer? pacer, T
 
     internal bool Ticking => Volatile.Read(ref requested) == 1;
 
-    private bool Live => band is { On: true } && !sleeping && !stopped;
+    private bool Live => band is { On: true } && !sleeping && !hidden && !stopped;
 
     public override void OnMessage(object message)
     {
@@ -230,6 +245,10 @@ internal sealed class SheenHandler(ArmillaHub hub, AmbientRefreshPacer? pacer, T
             case Sleep sleep:
                 sleeping = sleep == Sleep.On;
                 Request();
+                break;
+            case Shown shown:
+                hidden = shown == Shown.No;
+                if (!hidden) { Invalidate(); Request(); }
                 break;
             case Stop:
                 stopped = true;
@@ -274,7 +293,7 @@ internal sealed class SheenHandler(ArmillaHub hub, AmbientRefreshPacer? pacer, T
     public override void OnRender(ImmediateDrawingContext context)
     {
         drawn = true;
-        if (!Live || band is not { } b || b.Width <= 0) return;
+        if (stopped || hidden || band is not { On: true } b || b.Width <= 0) return;
         if (context.TryGetFeature<ISkiaSharpApiLeaseFeature>() is not { } feature) return;
         using var lease = feature.Lease();
         Draw(lease.SkCanvas, b, time, lease.CurrentOpacity);

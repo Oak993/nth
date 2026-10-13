@@ -156,7 +156,7 @@ public sealed class ArmillaMark : Control
     private void OnWatch()
     {
         SendVisible(IsEffectivelyVisible);
-        var sleep = (watch?.Sleeping ?? false) || availability?.Available == false;
+        var sleep = watch?.Sleeping ?? false;
         if (visual is null || sentSleep == sleep) return;
         sentSleep = sleep;
         visual.SendHandlerMessage(sleep ? ArmillaHandler.Sleep.On : ArmillaHandler.Sleep.Off);
@@ -164,6 +164,7 @@ public sealed class ArmillaMark : Control
 
     private void SendVisible(bool shown)
     {
+        shown &= availability?.Available != false;
         if (visual is null || sentVisible == shown) return;
         sentVisible = shown;
         visual.SendHandlerMessage(shown ? ArmillaHandler.Shown.Yes : ArmillaHandler.Shown.No);
@@ -203,7 +204,7 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
 
     private readonly ArmillaSkiaCanvas canvas = new();
     private ArmillaEngine? engine;
-    private bool requested, stopped, sleeping, hidden, drawn = true, more = true;
+    private bool requested, stopped, sleeping, hidden, takePose, drawn = true, more = true;
     private double lastTime = double.NaN;
     private int frames;
     private long extentBits;
@@ -223,6 +224,11 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
             case ArmillaLook look:
                 if (engine is null) engine = new ArmillaEngine(look) { Visible = !hidden && !sleeping };
                 else engine.Set(look);
+                if (hidden || sleeping)
+                {
+                    engine.DrawStill(NullArmillaCanvas.Instance);
+                    takePose = true;
+                }
                 more = true;
                 Invalidate();
                 Request();
@@ -264,7 +270,7 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
         // a mark that has rested 1.2 s in Idle, Paused or Offline steps at 30 fps
         var step = mark.RestStep(dt);
         if (step == 0 && dt > 0) { Register(); return; }
-        more = mark.Tick(step, t);
+        more = takePose || mark.Tick(step, t);
         Invalidate();
         if (drawn && more) Request();
     }
@@ -284,7 +290,7 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
 
     public override void OnRender(ImmediateDrawingContext context)
     {
-        if (stopped || sleeping || hidden || engine is not { } mark) return;
+        if (stopped || hidden || engine is not { } mark) return;
         drawn = true;
         if (context.TryGetFeature<ISkiaSharpApiLeaseFeature>() is not { } feature) return;
         using var lease = feature.Lease();
@@ -300,7 +306,9 @@ internal sealed class ArmillaHandler(ArmillaHub hub, AmbientRefreshPacer? pacer,
                 using var layer = new SKPaint { Color = new SKColor(255, 255, 255, (byte)Math.Round(Math.Clamp(lease.CurrentOpacity, 0, 1) * 255)) };
                 sk.SaveLayer(layer);
             }
-            mark.Draw(canvas);
+            if (sleeping || takePose) mark.DrawStill(canvas);
+            else mark.Draw(canvas);
+            takePose = false;
         }
         finally { sk.RestoreToCount(saved); }
         Interlocked.Exchange(ref extentBits, BitConverter.DoubleToInt64Bits(mark.MaxExtent));

@@ -26,7 +26,7 @@ public sealed class DextraViewWatch : IDisposable
     public bool Available => available;
     public event Action? Changed;
 
-    private bool Read() => view.IsEffectivelyVisible && TopLevel.GetTopLevel(view) is not null && (window?.Available ?? true);
+    private bool Read() => view.IsEffectivelyVisible && TopLevel.GetTopLevel(view) is not null && (window?.Seen ?? true);
     private void OnProperty(object? sender, AvaloniaPropertyChangedEventArgs args)
     {
         if (args.Property == Visual.IsVisibleProperty) Refresh();

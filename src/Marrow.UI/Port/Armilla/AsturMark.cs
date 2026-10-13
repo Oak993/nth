@@ -125,7 +125,7 @@ public sealed class AsturMark : Control
     private void OnWatch()
     {
         SendVisible(IsEffectivelyVisible);
-        var sleep = (watch?.Sleeping ?? false) || availability?.Available == false;
+        var sleep = watch?.Sleeping ?? false;
         if (visual is null || sentSleep == sleep) return;
         sentSleep = sleep;
         visual.SendHandlerMessage(sleep ? AsturMarkHandler.Sleep.On : AsturMarkHandler.Sleep.Off);
@@ -133,6 +133,7 @@ public sealed class AsturMark : Control
 
     private void SendVisible(bool shown)
     {
+        shown &= availability?.Available != false;
         if (visual is null || sentVisible == shown) return;
         sentVisible = shown;
         visual.SendHandlerMessage(shown ? AsturMarkHandler.Shown.Yes : AsturMarkHandler.Shown.No);
@@ -254,7 +255,7 @@ internal sealed class AsturMarkHandler(ArmillaHub hub, AmbientRefreshPacer? pace
 
     public override void OnRender(ImmediateDrawingContext context)
     {
-        if (stopped || sleeping || hidden || engine is not { } mark) return;
+        if (stopped || hidden || engine is not { } mark) return;
         drawn = true;
         if (context.TryGetFeature<ISkiaSharpApiLeaseFeature>() is not { } feature) return;
         using var lease = feature.Lease();

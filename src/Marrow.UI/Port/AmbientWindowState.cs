@@ -18,10 +18,11 @@ internal sealed class AmbientWindowState : IDisposable
     private readonly AmbientWinEventCallback callback;
     private readonly Action refresh;
     private nint hook;
-    private int users, available, queued;
+    private int users, available, seen, queued;
     private double lastInput = Now;
     internal event Action? Changed;
     internal bool Available => Volatile.Read(ref available) != 0;
+    internal bool Seen => Volatile.Read(ref seen) != 0;
     internal double LastInput => Volatile.Read(ref lastInput);
     internal static double Now => TimeProvider.System.GetTimestamp() / (double)TimeProvider.System.TimestampFrequency;
 
@@ -30,7 +31,7 @@ internal sealed class AmbientWindowState : IDisposable
         this.window = window;
         hwnd = test ? 0 : window.TryGetPlatformHandle()?.Handle ?? 0;
         callback = OnWindowEvent; refresh = Refresh;
-        if (test) { available = 1; return; }
+        if (test) { available = seen = 1; return; }
         window.PropertyChanged += WindowChanged;
         window.AddHandler(InputElement.PointerMovedEvent, PointerInput, RoutingStrategies.Tunnel, true);
         window.AddHandler(InputElement.PointerPressedEvent, PointerInput, RoutingStrategies.Tunnel, true);
@@ -51,7 +52,13 @@ internal sealed class AmbientWindowState : IDisposable
     internal void Touch(double now) { Volatile.Write(ref lastInput, now); Changed?.Invoke(); }
     internal void SetAvailable(bool value)
     {
-        if (Interlocked.Exchange(ref available, value ? 1 : 0) == (value ? 1 : 0)) return;
+        SetWindowFacts(new(value, false, false, false, true, true));
+    }
+    internal void SetWindowFacts(WindowVisibilityFacts facts)
+    {
+        var oldSeen = Interlocked.Exchange(ref seen, facts.Seen ? 1 : 0);
+        var oldAvailable = Interlocked.Exchange(ref available, facts.Available ? 1 : 0);
+        if (oldSeen == (facts.Seen ? 1 : 0) && oldAvailable == (facts.Available ? 1 : 0)) return;
         Changed?.Invoke();
     }
 
@@ -70,8 +77,9 @@ internal sealed class AmbientWindowState : IDisposable
     {
         Volatile.Write(ref queued, 0);
         if (hwnd == 0) return;
-        SetAvailable(window.IsVisible && window.IsActive && window.WindowState != WindowState.Minimized
-            && GetForegroundWindow() == hwnd && !Cloaked(hwnd) && !FullyCovered(hwnd));
+        var shown = window.IsVisible && window.WindowState != WindowState.Minimized;
+        SetWindowFacts(new(window.IsVisible, window.WindowState == WindowState.Minimized,
+            shown && Cloaked(hwnd), shown && FullyCovered(hwnd), window.IsActive, GetForegroundWindow() == hwnd));
     }
     private static bool Cloaked(nint handle) => DwmGetWindowAttribute(handle, 14, out int value, sizeof(int)) == 0 && value != 0;
     private static bool FullyCovered(nint handle)
