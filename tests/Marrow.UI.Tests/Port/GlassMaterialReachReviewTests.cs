@@ -33,8 +33,11 @@ using Scene = Marrow.UI.Tests.Fixtures.GlassScene;
 namespace Marrow.UI.Tests.Port;
 
 [Collection("Headless")]
-public sealed class GlassMaterialReachReviewTests(HeadlessSession headless)
+public sealed class GlassMaterialReachReviewTests(HeadlessSession headless) : IDisposable
 {
+    private readonly GlassReachOnly reachOnly = new(); // ED-NEW-glass-seams-1: the reach is what the GPU renderer draws
+    public void Dispose() => reachOnly.Dispose();
+
     private const BindingFlags Members = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
     private static int Largest(Func<int, int, Color> a, Func<int, int, Color> b, PixelRect area, out PixelPoint at)
