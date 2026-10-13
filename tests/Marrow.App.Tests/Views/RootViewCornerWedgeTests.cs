@@ -7,6 +7,7 @@ using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views;
+using Marrow.App.Views.Chat;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
@@ -66,12 +67,54 @@ public sealed class RootViewCornerWedgeTests(HeadlessSession headless)
         CornerSeam.Pairs(Width, Height, Chrome.WindowCornerRadius, [2, 3, 4, 5, 6, 8, 10], edgeInset: 1)
             .Concat(CornerSeam.Pairs(Width, Height, Chrome.WindowCornerRadius, [3, 4, 5, 6, 7], edgeInset: 3)).ToArray();
 
+    // ED-NEW-gatefix4-1: OD-0147 / ED-NEW-glasslook-4 approve the foreground capsule's shadow.
+    // ED-NEW-sidebarmodes-9 puts that button at (14,12), so its shadow reaches the old body samples.
+    // Keep every original ED-338 seam pair and bound on the backdrop, AND pin the visible foreground.
+    private static void AssertBackdropAndToolbar(AvaloniaWindow window, CornerSeam.Pair[] pairs, string when,
+        (int R, int G, int B)? bareBackdrop = null)
+    {
+        Assert.Equal(40, pairs.Length);
+        var toolbar = ((Control)window.Content!).GetVisualDescendants().OfType<EmptyPageSidebarButton>().Single();
+        var wasVisible = toolbar.IsVisible;
+        Assert.True(wasVisible);
+        Assert.Equal(new Point(14, 12), toolbar.TranslatePoint(new Point(), window)!.Value);
+        Assert.Equal(new Size(32, 32), toolbar.Bounds.Size);
+        var points = pairs.SelectMany(pair => new[] { pair.Wedge, pair.Body }).ToArray();
+        byte[] Read() => CornerSeam.Rgb(window, points)
+            .SelectMany(colour => new[] { (byte)colour.R, (byte)colour.G, (byte)colour.B }).ToArray();
+        var visible = Read();
+        Assert.Equal(ApprovedToolbarPixels(when), Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(visible)));
+        try
+        {
+            toolbar.IsVisible = false;
+            Settle(window);
+            CornerSeam.AssertSeamless(window, pairs, when, bareBackdrop);
+        }
+        finally
+        {
+            toolbar.IsVisible = wasVisible;
+            Settle(window);
+        }
+        Assert.Equal(visible, Read());
+    }
+
+    // Independently recorded at the approved glass-look landing 51fb3dde8f9f7726e9e0bee229c0fedee0e4dd49.
+    // SHA-256 of all 40 pairs, in Pairs() order, wedge then body, RGB bytes (240 bytes per scenario).
+    private static string ApprovedToolbarPixels(string when) => when switch
+    {
+        "light, grey backdrop" => "DD9EB5E2BBDAB15D80C10777EF9BA56CBE1EE481BF2042D0E86D062C09E5013C",
+        "light, striped backdrop" => "81EEACCA5C2AE4FF095160DE1B4217F3BAD5D595CA5436DCC69FCE2035B8E219",
+        "dark, grey backdrop" => "B6827186FB55C42303080CA417A183082EFB11CABC504E1DF8F9356627298026",
+        "dark, striped backdrop" => "4236D6B2E6F8F01D1A83091FF2BD28DA3440CDFC37779BC84E0DC8106D625D55",
+        _ => throw new ArgumentOutOfRangeException(nameof(when), when, "No approved corner pixels for this scenario"),
+    };
+
     [Theory]
     [InlineData(true, false)]
     [InlineData(false, false)]
     [InlineData(true, true)]
     [InlineData(false, true)]
-    [Trait("Decision", "ED-236")] // App/Views/RootView.swift:64-68; UI/Chrome/Chrome.swift:8, :211-215; App/Window/WindowManager.swift:62-69 the main window's surface; OD-0075
+    [Trait("Decision", "ED-NEW-gatefix4-1")] // App/Views/RootView.swift:64-68; UI/Chrome/Chrome.swift:8, :211-215; App/Window/WindowManager.swift:62-69 the main window's surface; OD-0075
     public void The_main_windows_four_corners_outside_the_26_point_curve_are_the_body_just_inside_it(bool dark, bool busy)
     {
         headless.OnUiThread(() =>
@@ -85,7 +128,7 @@ public sealed class RootViewCornerWedgeTests(HeadlessSession headless)
                 try
                 {
                     if (busy) { window.Background = Stripes(); Settle(window); }
-                    CornerSeam.AssertSeamless(window, Pairs(), $"{(dark ? "dark" : "light")}, {(busy ? "striped" : "grey")} backdrop", busy ? null : (Grey.R, Grey.G, Grey.B));
+                    AssertBackdropAndToolbar(window, Pairs(), $"{(dark ? "dark" : "light")}, {(busy ? "striped" : "grey")} backdrop", busy ? null : (Grey.R, Grey.G, Grey.B));
                 }
                 finally { window.Close(); }
             });
