@@ -60,6 +60,8 @@ public enum FeedEventKind
     DecisionRaised,
     DecisionAnswered,
     GrantUsed,
+    // AS-7: instructions found in untrusted content an agent read (12.4); shown and ignored.
+    InstructionFound,
 }
 
 /// <summary>

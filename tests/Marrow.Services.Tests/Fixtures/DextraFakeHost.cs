@@ -94,4 +94,34 @@ public sealed class DextraFakeHost : IAssistantToolHost
         if (AuditThrows) throw new IOException("fixture: the log is busy");
         lock (gate) { Log.Add("audit:" + entry.Tool + ":" + entry.Result); Audits.Add(entry); }
     }
+
+    /// <summary>The taints the runner handed the host (AS-7), in order.</summary>
+    public List<Taint> Absorbed { get; } = [];
+
+    public bool AbsorbThrows { get; set; }
+
+    public void Absorb(AssistantChat chat, Taint taint)
+    {
+        if (AbsorbThrows) throw new InvalidOperationException("fixture: the taint cannot be kept");
+        lock (gate) { Log.Add("absorb:" + taint.Sources.Count); Absorbed.Add(taint); }
+    }
+
+    /// <summary>What Settle waits on before the call is decided (AS-7); null settles at once.</summary>
+    public Func<Task>? Settling { get; set; }
+
+    /// <summary>How many calls settled first (kept out of <see cref="Log"/>, whose order the AS-4 tests read).</summary>
+    public int Settles => Volatile.Read(ref settles);
+
+    private int settles;
+
+    public Task Settle(AssistantChat chat, CancellationToken cancellationToken)
+    {
+        Interlocked.Increment(ref settles);
+        return Settling?.Invoke() ?? Task.CompletedTask;
+    }
+
+    /// <summary>What the host tells a chat at its start (AS-12); null tells it nothing.</summary>
+    public Func<AssistantChat, string?>? MemoryBlockFor { get; set; }
+
+    public string? MemoryBlock(AssistantChat chat) => MemoryBlockFor?.Invoke(chat);
 }

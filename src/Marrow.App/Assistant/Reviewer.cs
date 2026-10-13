@@ -8,6 +8,16 @@ using Marrow.Services.Assistant;
 
 namespace Marrow.App.Assistant;
 
+/// <summary>The router's choice for a mission's reviewer (AS-14): the model, and the account it runs on.</summary>
+public sealed record ReviewerPick(string? Model, Guid? AccountId, ReserveAccountRef? Account);
+
+/// <summary>The router's seam for the reviewer (3.4): a different model from the workers', on the cheapest account with room.</summary>
+public interface IReviewerRouter
+{
+    /// <summary>The reviewer's model and account, or null when the router has no better answer than the provider's first account.</summary>
+    ReviewerPick? Pick(MissionRecord mission, IReadOnlyList<string> models);
+}
+
 public static class Reviewer
 {
     /// <summary>How much of the patch the reviewer's brief carries.</summary>
@@ -18,8 +28,8 @@ public static class Reviewer
 
     /// <summary>
     /// The reviewer's model: by default a model of the same provider other than the workers' (3.4), so it does not grade
-    /// its own work; the workers' model when the provider lists no other. The router (AS-14) later adds "the cheapest
-    /// account with room".
+    /// its own work; the workers' model when the provider lists no other. The router (AS-14) adds "the cheapest account
+    /// with room" through <see cref="IReviewerRouter"/>; this is the answer without it.
     /// </summary>
     public static string? PickModel(string? workers, IReadOnlyList<string> models) =>
         models.FirstOrDefault(m => !string.Equals(m, workers, StringComparison.OrdinalIgnoreCase)) ?? workers;

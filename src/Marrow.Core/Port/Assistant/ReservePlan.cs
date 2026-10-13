@@ -48,6 +48,17 @@ public sealed record ReservePlan(IReadOnlyList<PlanAccountLine> Accounts)
     /// <summary>The "Always ask before starting" setting.</summary>
     public bool AlwaysAsk { get; init; }
 
+    /// <summary>Where the agents run (AS-15): the swarm gate reads a cloud or API fan-out from it. Empty: not known, so no fan-out is claimed.</summary>
+    public IReadOnlyList<SwarmLane> Lanes { get; init; } = [];
+
+    /// <summary>The tokens the plan expects to spend, p50 and p90, over every step (AS-15: the swarm gate's cost).</summary>
+    public long TokensP50 { get; init; }
+
+    public long TokensP90 { get; init; }
+
+    /// <summary>What the swarm gate shows (13.2): agents, time, tokens or dollars and who pays; null when the gate does not apply.</summary>
+    public SwarmFacts? Swarm => SwarmGate.Facts(this);
+
     /// <summary>The one-line plan (11.4).</summary>
     public string Line => ReservePlanWords.Line(this);
 
@@ -134,6 +145,7 @@ public static class ReservePlanWords
         if (plan.Accounts.Any(a => a.PlannedP90 > ReserveMath.StartTapPercent)) reasons.Add("over 5% of a window");
         if (plan.Accounts.Any(a => a.Floor is { } floor && floor < 100 && floor - a.Used <= 2 * a.PlannedP90)) reasons.Add("a floor is close");
         if (plan.Agents > ReserveMath.StartTapAgents) reasons.Add($"{plan.Agents} agents planned");
+        if (SwarmGate.FanOutReason(plan.Lanes) is { } fanOut) reasons.Add(fanOut);
         if (plan.ApiDollars > ReserveMath.StartTapDollars) reasons.Add($"about ${plan.ApiDollars.ToString("0.##", CultureInfo.InvariantCulture)} of API spend");
         if (plan.AlwaysAsk) reasons.Add("you asked to be asked");
         return reasons;

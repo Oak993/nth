@@ -46,6 +46,18 @@ public enum PolicyRule
     /// corpus passes), so it goes to the owner as a card. Set by the caller that holds the switch, never by the engine.
     /// </summary>
     AutoAnswerOff,
+    /// <summary>A reader or the reviewer asked for something that is not a read (12.4, AS-7).</summary>
+    ReadsOnly,
+    /// <summary>
+    /// Personal data or a secret would go to a recipient who is not on the owner's list, or to one nth cannot name (12.4
+    /// "Privacy shield on the way out", AS-7). Set by OutwardPrivacy, never by the engine.
+    /// </summary>
+    PersonalData,
+    /// <summary>
+    /// The first message to a third party the owner has not confirmed before is always confirmed (12.4, AS-7). Set by
+    /// OutwardPrivacy, never by the engine.
+    /// </summary>
+    NewRecipient,
 }
 
 /// <summary>What a duty run may do: it can only narrow its assistant's grants and classes (12.1).</summary>
@@ -76,6 +88,9 @@ public sealed record PolicyContext(ValueList<AssistantProfile> Chain, DateTimeOf
 
     /// <summary>The owner's global ask-first rules, on top of each profile's.</summary>
     public ValueList<AskFirstRule> AskFirst { get; init; } = ValueList<AskFirstRule>.Empty;
+
+    /// <summary>The acting agent's role (12.4): a reader and the reviewer may only be asked about reads.</summary>
+    public AgentRole Role { get; init; } = AgentRole.Actor;
 
     public bool Tainted => TaintContext.IsTainted;
 }
@@ -141,6 +156,9 @@ public static class PolicyEngine
             if (!context.PurchasesOn) return Make(Verdict.Deny, PolicyRule.PurchasesOff, "Purchases are off");
         }
         if (rule == ClassDefault.Never) return Make(Verdict.Deny, PolicyRule.OwnerNever, $"You chose never for this: {leaf.Reason}");
+
+        // 1a. A reader and the reviewer only read (12.4 "Reader and actor split"; ED-NEW-dextra-as7-2).
+        if (!AgentRoles.Permits(context.Role, leaf)) return Make(Verdict.Deny, PolicyRule.ReadsOnly, AgentRoles.ReadsOnly);
 
         // 2. Permanent configuration and suggestions from a tainted context are refused, whatever the grants.
         if (leaf.Guard is AssistantToolGuard.PermanentConfiguration or AssistantToolGuard.Suggestion && context.Tainted)

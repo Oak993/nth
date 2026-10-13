@@ -682,7 +682,7 @@ public sealed class FollowUpRow : Decorator
         rowLine.Children.Add(spacer);
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0, Margin = new Thickness(8, 0, 0, 0) };
-        sendButton = new QueueIconButton("paperplane", GetSendHelp(), () => runtime.SendFollowUpNow(prompt.Id));
+        sendButton = new QueueIconButton("paperplane", GetSendHelp(), () => runtime.SendFollowUpNow(prompt.Id, byOwner: true));
         buttons.Children.Add(sendButton);
         var pencil = new QueueIconButton("pencil", "Edit follow-up", () =>
         {

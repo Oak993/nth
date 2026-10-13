@@ -91,21 +91,26 @@ internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus) : I
     }
 
     // AS-13: the usage reserve reads the ledger's spend and the turns of mission chats whether or not anyone watches the feed.
+    // AS-15: so do the cost guard's caps (what each assistant spent today, what a task spent, and the money on API keys).
     private void TapReserve(Guid threadId, ProviderEvent @event)
     {
-        if (disposed || app.Reserve is not { } reserve) return;
+        if (disposed) return;
+        var reserve = app.Reserve;
+        var costs = app.Costs;
+        if (reserve is null && costs is null) return;
         try
         {
             switch (@event)
             {
                 case ProviderEvent.TokenSpend spend when spend.Value.TotalTokens > 0:
-                    reserve.OnSpend(threadId, spend.Value.Model, spend.Value.TotalTokens);
+                    reserve?.OnSpend(threadId, spend.Value.Model, spend.Value.TotalTokens);
+                    costs?.OnSpend(threadId, spend.Value);
                     break;
                 case ProviderEvent.TurnStarted when app.Thread(threadId) is { MissionID: { } mission } thread:
-                    reserve.TurnStarted(mission, threadId, thread.Model);
+                    reserve?.TurnStarted(mission, threadId, thread.Model);   // the reserve tells the caps (ReserveGuard.Costs)
                     break;
                 case ProviderEvent.TurnCompleted:
-                    reserve.TurnEnded(threadId);
+                    reserve?.TurnEnded(threadId);
                     break;
             }
         }
@@ -117,6 +122,9 @@ internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus) : I
 
     /// <summary>An account as the reserve names it: the feed's key, the owner's name for it, its provider.</summary>
     public ReserveAccountRef AccountRef(UsageAccountKey account) => new(AccountKey(account), AccountName(account), account.Provider.Id);
+
+    /// <summary>The same for an account of the store, by its id (AS-14: the router's accounts).</summary>
+    public ReserveAccountRef AccountRef(ProviderKind provider, Guid id) => AccountRef(KeyOf(provider, id));
 
     /// <summary>AppModel.TurnFinished: a chat's turn ended. A head reports through <see cref="TapHeadFinished"/> instead.</summary>
     public void TapTurnFinished(Guid threadId, TurnStatus status, bool continues)
@@ -187,6 +195,20 @@ internal sealed class AssistantFeedTaps(AppModel app, AssistantEventBus bus) : I
         catch (Exception)
         {
         }
+    }
+
+    /// <summary>
+    /// Dextra's controller (AS-7): an agent found instructions in untrusted content and nth ignored them (12.4 "Found
+    /// instructions in ⟨source⟩; ignored"). The quote is the content's words (masked by the scanner), so the shield and the
+    /// privacy filter apply. Unlike the runtime taps it may throw: the controller that calls it reports the fault.
+    /// </summary>
+    public void TapInstructionFound(Guid threadId, TaintSource source, InstructionFinding finding)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(finding);
+        if (disposed || !bus.HasSubscribers || app.Thread(threadId) is not { } thread) return;
+        Publish(thread, FeedEventKind.InstructionFound, FeedSeverity.Info,
+            "found instructions in " + TaintGates.OriginWord(source.Origin) + "; ignored", "“" + finding.Quote + "”");
     }
 
     /// <summary>MultiAccountRouting: an account's usage windows were polled.</summary>

@@ -11,21 +11,24 @@ public sealed class ReservesModel : IDisposable
     private readonly ReserveSettings settings;
     private readonly Func<IReadOnlyList<ReserveAccountBar>> bars;
     private readonly Func<string?> focus;
+    private readonly Func<IReadOnlyList<CapAssistant>> assistants;
 
     /// <param name="settings">The rules and switches (the store's reserves.json holds them).</param>
     /// <param name="bars">The accounts' bars now (ReserveGuard.Bars); empty before any poll.</param>
     /// <param name="focus">The account the owner is looking at, for the one question; null: the first.</param>
-    public ReservesModel(ReserveSettings settings, Func<IReadOnlyList<ReserveAccountBar>> bars, Func<string?>? focus = null)
+    /// <param name="assistants">The assistants a cap may name ("Channel A: at most 15% of any account a day"); null: none.</param>
+    public ReservesModel(ReserveSettings settings, Func<IReadOnlyList<ReserveAccountBar>> bars, Func<string?>? focus = null, Func<IReadOnlyList<CapAssistant>>? assistants = null)
     {
         this.settings = settings ?? throw new ArgumentNullException(nameof(settings));
         this.bars = bars ?? throw new ArgumentNullException(nameof(bars));
         this.focus = focus ?? (() => null);
+        this.assistants = assistants ?? (() => []);
         settings.Changed += Raise;
     }
 
     /// <summary>The model of a running guard: its rules, its bars, and the account the owner is looking at (null: the first).</summary>
-    public static ReservesModel For(ReserveGuard guard, Func<string?>? focus = null) =>
-        new((guard ?? throw new ArgumentNullException(nameof(guard))).Settings, guard.Bars, focus);
+    public static ReservesModel For(ReserveGuard guard, Func<string?>? focus = null, Func<IReadOnlyList<CapAssistant>>? assistants = null) =>
+        new((guard ?? throw new ArgumentNullException(nameof(guard))).Settings, guard.Bars, focus, assistants);
 
     /// <summary>The words typed so far.</summary>
     public string Draft { get; set; } = "";
@@ -37,6 +40,12 @@ public sealed class ReservesModel : IDisposable
     public string? Problem { get; private set; }
 
     public IReadOnlyList<ReserveRule> Rules => settings.Rules;
+
+    /// <summary>The standing caps (AS-15, 13.2): they are listed with the rules, since the owner says them the same way.</summary>
+    public IReadOnlyList<CostCap> Caps => settings.Caps;
+
+    /// <summary>The name the owner knows an assistant by; the id when it is not known.</summary>
+    public string AssistantName(string id) => assistants().FirstOrDefault(a => a.Id == id)?.Name ?? id;
 
     public IReadOnlyList<ReserveAccountBar> Bars => bars();
 
@@ -60,6 +69,15 @@ public sealed class ReservesModel : IDisposable
     {
         Question = null;
         Problem = null;
+        // Words about a cap ("at most 15% of any account a day") are a cap, not a reserve (AS-15).
+        if (CostCapText.LooksLikeCap(Draft))
+        {
+            var cap = CostCapText.Read(Draft, assistants(), ApiKeyNames());
+            if (cap.Problem is { } why) Problem = why;
+            else if (cap.Cap is { } made) AddCap(made);
+            Raise();
+            return;
+        }
         var reading = ReserveRuleText.Read(Draft, ReserveLifetime.Standing, AccountNames(), focus());
         if (reading.Question is { } question) Question = question;
         else if (reading.Problem is { } problem) Problem = problem;
@@ -74,6 +92,18 @@ public sealed class ReservesModel : IDisposable
         Question = null;
         Add(everywhere ? question.Everywhere : question.OnlyOne);
         Raise();
+    }
+
+    // The accounts that are API keys: a key's windows are money, so its cap is in dollars.
+    private IReadOnlyList<string> ApiKeyNames() => [.. bars().Where(b => IsApiKey(b.Key)).Select(b => b.Name).Distinct(StringComparer.OrdinalIgnoreCase)];
+
+    private static bool IsApiKey(string accountKey) =>
+        Marrow.Core.Port.SwiftEnum<Marrow.Core.Models.ProviderKind>.FromRawValue(accountKey.Split(':')[0]) is { } kind && SwarmPlaces.Of(kind) == SwarmPlace.Api;
+
+    private void AddCap(CostCap cap)
+    {
+        if (settings.AddCap(cap) is { } refused) Problem = refused;
+        else Draft = "";
     }
 
     private void Add(ReserveRule rule)
@@ -92,6 +122,8 @@ public sealed class ReservesModel : IDisposable
     }
 
     public bool Remove(string id) => settings.Remove(id);
+
+    public bool RemoveCap(string id) => settings.RemoveCap(id);
 
     public void SetHoldReserves(bool value) => settings.SetHoldReserves(value);
 

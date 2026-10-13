@@ -19,7 +19,13 @@ public sealed record AgentLaunch(Guid Mission, string AssistantId, string Title,
     /// <summary>The reviewer: it only reads (the provider's plan mode, and every write it asks for is refused).</summary>
     public bool Reviewer { get; init; }
 
+    /// <summary>A reader mission's lead (12.4 "Reader and actor split", AS-7): plan mode too, and it may only read.</summary>
+    public bool Reader { get; init; }
+
     public string? Branch { get; init; }
+
+    /// <summary>The account of the provider the chat runs on (the router's choice, AS-14); null: the provider's first enabled account.</summary>
+    public Guid? AccountId { get; init; }
 }
 
 /// <summary>A head of a mission's lead, as Hydra reports it.</summary>
@@ -63,6 +69,18 @@ public interface IMissionAgents
 
     /// <summary>The models of a provider, for the reviewer's pick.</summary>
     IReadOnlyList<string> Models(ProviderKind provider);
+
+    /// <summary>
+    /// Shows a line in the chat (12.3 point 2: an approval nth answered for the owner is labelled where it was asked).
+    /// A chat that is gone shows nothing.
+    /// </summary>
+    void Note(Guid thread, string text);
+
+    /// <summary>
+    /// Moves a live chat to another account of its provider (AS-14: the pause card's "Move the rest to ..."), bringing nth's own
+    /// summary of it, at the chat's next safe point. False when it could not be moved; the chat then stays where it is.
+    /// </summary>
+    Task<bool> MoveAccount(Guid thread, Guid account);
 
     /// <summary>How many tokens of context the chat holds (what a cold start reads again at the uncached price); null when unknown.</summary>
     long? ContextTokens(Guid thread);
@@ -180,12 +198,13 @@ public sealed class AppMissionAgents(AppModel app) : IMissionAgents
             Title = launch.Title,
             HasCustomTitle = true,
             MissionID = launch.Mission,
+            ProviderAccountID = launch.AccountId,
             AssistantID = Guid.TryParse(launch.AssistantId, out var assistant) ? assistant : null,
             WorktreePath = ownFolder ? launch.Folder : null,
             Branch = ownFolder ? launch.Branch : null,
             HydraEnabled = launch.Team,
             HydraEnabledIsExplicit = true,
-            InteractionMode = launch.Reviewer ? InteractionMode.Plan : InteractionMode.Build,
+            InteractionMode = launch.Reviewer || launch.Reader ? InteractionMode.Plan : InteractionMode.Build,
         };
         app.InsertThread(thread);
         app.Runtime(thread.Id).SendMissionMessage(launch.Brief);
@@ -231,6 +250,11 @@ public sealed class AppMissionAgents(AppModel app) : IMissionAgents
     ];
 
     public IReadOnlyList<string> Models(ProviderKind provider) => [.. app.Providers.Models(provider).Select(m => m.Id)];
+
+    public void Note(Guid thread, string text) => app.ExistingRuntime(thread)?.AppendDextraNote(text);
+
+    public Task<bool> MoveAccount(Guid thread, Guid account) =>
+        app.Thread(thread) is null ? Task.FromResult(false) : app.TryPinThreadAccountAsync(thread, account, Marrow.Core.Accounts.Bring.MarrowSummary);
 
     public long? ContextTokens(Guid thread) => app.ExistingRuntime(thread)?.Usage?.UsedTokens;
 

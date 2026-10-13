@@ -40,7 +40,7 @@ public sealed class AssistantMcpServer(AssistantRegistration? registration, Func
                     protocolVersion = ProtocolVersion(parameters),
                     capabilities = new { tools = new { } },
                     serverInfo = new { name = ServerName, version = "1.0.0" },
-                    instructions = Live ? AssistantToolText.Instructions(registration!.Chat.Role) : "This chat has no " + AssistantNames.Assistant + " tools.",
+                    instructions = Live ? AssistantToolText.Instructions(registration!.Chat.Role, registration.MemoryBlock()) : "This chat has no " + AssistantNames.Assistant + " tools.",
                 },
                 "ping" => new { },
                 "tools/list" => new { tools = Tools() },

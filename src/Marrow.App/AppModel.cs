@@ -1154,6 +1154,9 @@ public sealed partial class AppModel : MainActorModel
         if (Subagent(parentID) is { } existing) // AppModel.swift:1023
         {
             var existingRuntime = Runtime(existing.Id); // AppModel.swift:1024
+            // PORT-ONLY (Dextra AS-7, ED-NEW-dextra-as7-15): the parent wrote this prompt, so the helper carries the
+            // parent's taint as it stands now, not only as it stood when the helper opened.
+            DextraHelperPrompted(parent, existing);
             if (existingRuntime.IsRunning) // AppModel.swift:1025
             {
                 existingRuntime.EnqueueFollowUp(prompt, []); // AppModel.swift:1026
