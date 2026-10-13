@@ -28,6 +28,7 @@ public sealed class AssistantTeamOptions
 
     /// <summary>A new assistant's id: 32 lower-case hex digits, the form a chat's AssistantID has.</summary>
     public Func<string> NewId { get; init; } = () => Guid.NewGuid().ToString("N");
+    public string? RootId { get; init; }
 
     /// <summary>The most profiles read, retired ones included; past it the rest are left on disk and listed as a problem.</summary>
     public int MaxProfiles { get; init; } = 64;
@@ -62,6 +63,24 @@ public sealed class AssistantTeam : IDisposable
         var team = new AssistantTeam(store, options ?? new AssistantTeamOptions());
         team.Load();
         return team;
+    }
+
+    // Startup already opens this store synchronously. No async wait: initialize once before publishing the controller.
+    public static AssistantTeam OpenForHost(AssistantStore store, string rootId)
+    {
+        var team = Open(store, new AssistantTeamOptions { RootId = rootId });
+        try
+        {
+            if (team.Root is not null) return team;
+            if (!AssistantStore.IsId(rootId) || store.Profile(rootId) is not null || store.AssistantIds().Any(id => File.Exists(Path.Combine(store.Root, "assistants", id, "profile.json"))))
+                throw new IOException("The saved team cannot safely establish Dextra's root. " + string.Join(" ", team.Problems));
+            var root = new AssistantProfile(rootId, AssistantNames.Assistant) { Created = DateTimeOffset.UtcNow };
+            store.AssistantFolder(rootId); store.MemoryFolder(rootId); store.BrowserFolder(rootId);
+            store.SaveProfile(rootId, AssistantProfileFile.ToJson(root));
+            team.Add(root);
+            return team;
+        }
+        catch { team.Dispose(); throw; }
     }
 
     private void Load()
@@ -147,7 +166,7 @@ public sealed class AssistantTeam : IDisposable
         try
         {
             if (Root is { } existing) return TeamResult.Done(existing);
-            var root = new AssistantProfile(NewId(), AssistantNames.Assistant) { Created = options.Time.GetUtcNow() };
+            var root = new AssistantProfile(options.RootId ?? NewId(), AssistantNames.Assistant) { Created = options.Time.GetUtcNow() };
             if (!AssistantStore.IsId(root.Id)) return TeamResult.Refused("nth could not make an id for " + AssistantNames.Assistant + ".");
             if (await Write(root, cancellationToken, createFolders: true).ConfigureAwait(false) is { } failed) return TeamResult.Refused(failed);
             Add(root);
@@ -202,6 +221,7 @@ public sealed class AssistantTeam : IDisposable
                 Style = d.Style,
                 Voice = d.Voice,
                 Model = d.Model,
+                PillOrder = d.PillOrder,
                 Duties = d.Duties,
                 Wants = d.Wants,
                 Budget = d.Budget,
@@ -230,6 +250,19 @@ public sealed class AssistantTeam : IDisposable
             foreach (var borrower in team.Where(p => p.SharesBrowserOf == id))
                 await Replace(borrower, borrower with { SharesBrowserOf = null }, cancellationToken).ConfigureAwait(false);
             return result;
+        }
+        finally { one.Release(); }
+    }
+
+    public async Task<TeamResult> DeleteFilesAsync(string id, CancellationToken cancellationToken = default)
+    {
+        await one.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (Get(id) is not { IsRoot: false, Retired: true } profile) return TeamResult.Refused("Retire the Astur before deleting its files.");
+            try { await Task.Run(() => store.DeleteAsturFiles(id), cancellationToken).ConfigureAwait(false); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return TeamResult.Refused("Its files could not all be deleted: " + error.Message); }
+            return TeamResult.Done(profile);
         }
         finally { one.Release(); }
     }

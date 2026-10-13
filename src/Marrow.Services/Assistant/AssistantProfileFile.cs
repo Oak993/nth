@@ -23,7 +23,7 @@ public static class AssistantProfileFile
     private static readonly string[] Known =
     [
         "version", "id", "name", "parent", "aliases", "shape", "area", "style", "voice", "homeThread", "template", "created", "retired",
-        "sharesBrowserOf", "classRules", "askFirst", "connections", "skills", "duties", "wants", "budget", "model",
+        "sharesBrowserOf", "classRules", "askFirst", "connections", "skills", "duties", "wants", "budget", "model", "pillOrder",
     ];
 
     /// <summary>The document to store for a profile; <paramref name="extra"/> is what the file held that this build does not know.</summary>
@@ -49,6 +49,7 @@ public static class AssistantProfileFile
         document["askFirst"] = new JsonArray([.. profile.AskFirst.Select(Write)]);
         document["connections"] = Strings(profile.Connections);
         document["skills"] = Strings(profile.Skills);
+        if (profile.PillOrder.Count > 0) document["pillOrder"] = Strings(profile.PillOrder);
         document["duties"] = new JsonArray([.. profile.Duties.Select(d => (JsonNode)new JsonObject { ["text"] = d.Text, ["keep"] = d.Keep })]);
         document["wants"] = new JsonArray([.. profile.Wants.Select(w => (JsonNode)new JsonObject { ["kind"] = w.Kind.ToString(), ["text"] = w.Text, ["needsLogin"] = w.NeedsLogin })]);
         if (profile.Budget is { } budget)
@@ -104,6 +105,7 @@ public static class AssistantProfileFile
             Wants = Wants(document["wants"]),
             Budget = Budget(document["budget"]),
             Model = Model(document["model"]),
+            PillOrder = Lines(document["pillOrder"], 32, 64),
         };
         if (profile.IsRoot) profile = profile with { Shape = null, Budget = null };
         var extra = new JsonObject();
