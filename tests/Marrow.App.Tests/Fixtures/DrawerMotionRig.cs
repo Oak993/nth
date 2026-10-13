@@ -94,6 +94,8 @@ internal sealed class DrawerMotionRig : IDisposable
         Drain();
     }
 
+    internal void AdvanceWithoutFrame(double seconds) => harness.Main.Advance(TimeSpan.FromSeconds(seconds));
+
     internal void Drain()
     {
         harness.Main.RunUntilIdle();
