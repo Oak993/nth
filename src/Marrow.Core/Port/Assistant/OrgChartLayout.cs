@@ -29,18 +29,7 @@ public enum OrgLayoutMode { Chart, List }
 public sealed record OrgConnector(IReadOnlyList<OrgPoint> Points);
 
 /// <summary>Where everything goes, in the chart's own coordinates (x from its left edge, y from its top).</summary>
-public sealed record OrgPlan(OrgLayoutMode Mode, double Width, double Height, OrgRect Root, IReadOnlyList<OrgRect> Kids, IReadOnlyList<OrgConnector> Connectors)
-{
-    /// <summary>The same plan flipped left to right inside its width (a right-to-left window).</summary>
-    public OrgPlan Mirrored() => this with
-    {
-        Root = Flip(Root),
-        Kids = [.. Kids.Select(Flip)],
-        Connectors = [.. Connectors.Select(c => new OrgConnector([.. c.Points.Select(p => new OrgPoint(Width - p.X, p.Y))]))],
-    };
-
-    private OrgRect Flip(OrgRect r) => new(Width - r.Right, r.Y, r.Width, r.Height);
-}
+public sealed record OrgPlan(OrgLayoutMode Mode, double Width, double Height, OrgRect Root, IReadOnlyList<OrgRect> Kids, IReadOnlyList<OrgConnector> Connectors);
 
 public static class OrgChartLayout
 {

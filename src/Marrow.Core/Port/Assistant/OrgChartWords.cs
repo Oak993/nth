@@ -89,6 +89,18 @@ public static class OrgChartWords
         return work.Length == 0 ? text : text + ". " + work;
     }
 
+    /// <summary>What Pause says it did to one assistant's tasks: how many pause (each at its next turn boundary, nothing cut), or why none did.</summary>
+    public static string PauseLine(string name, int paused, string? refusal = null) =>
+        paused > 0 ? $"Pausing {ControlWords.Plural(paused, "task")} of {name}: each stops at its next turn boundary and nothing is cut."
+        : !string.IsNullOrWhiteSpace(refusal) ? refusal
+        : $"{name} has nothing to pause.";
+
+    /// <summary>What Resume says it did to one assistant's tasks.</summary>
+    public static string ResumeLine(string name, int resumed, string? refusal = null) =>
+        resumed > 0 ? $"Resumed {ControlWords.Plural(resumed, "task")} of {name}."
+        : !string.IsNullOrWhiteSpace(refusal) ? refusal
+        : $"{name} has nothing to resume.";
+
     /// <summary>Why "Add an Astur" waits: there are six, one for each look (2.5), so a seventh has none to take.</summary>
     public const string AllSixMade = "Six Asturs is the most: each has its own look.";
 

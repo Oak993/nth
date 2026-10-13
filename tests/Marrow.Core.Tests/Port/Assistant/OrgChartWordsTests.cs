@@ -88,4 +88,16 @@ public sealed class OrgChartWordsTests
         Assert.Equal("1 mission \u00B7 1 duty", OrgChartWords.Pair(OrgChartWords.Count(1, "mission", "missions"), OrgChartWords.Count(1, "duty", "duties")));
         Assert.Equal("+3", OrgChartWords.MoreChip(3));
     }
+
+    [Fact]
+    public void Pause_and_Resume_say_what_they_did_to_one_assistants_tasks_or_why_nothing_happened()
+    {
+        Assert.Equal("Pausing 2 tasks of Channel A: each stops at its next turn boundary and nothing is cut.", OrgChartWords.PauseLine("Channel A", 2));
+        Assert.Equal("Pausing 1 task of Store: each stops at its next turn boundary and nothing is cut.", OrgChartWords.PauseLine("Store", 1, "ignored"));
+        Assert.Equal("Channel A has nothing to pause.", OrgChartWords.PauseLine("Channel A", 0));
+        Assert.Equal("That task is not here any more.", OrgChartWords.PauseLine("Channel A", 0, "That task is not here any more."));
+        Assert.Equal("Resumed 3 tasks of Store.", OrgChartWords.ResumeLine("Store", 3));
+        Assert.Equal("Store has nothing to resume.", OrgChartWords.ResumeLine("Store", 0, " "));
+        Assert.Equal("Cannot resume.", OrgChartWords.ResumeLine("Store", 0, "Cannot resume."));
+    }
 }

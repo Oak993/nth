@@ -183,19 +183,6 @@ public sealed class OrgChartLayoutTests
     }
 
     [Fact]
-    public void A_mirrored_plan_is_the_same_plan_flipped_inside_its_width_for_a_right_to_left_window()
-    {
-        var plan = OrgChartLayout.Plan(640, 120, OrgPlanChecks.Heights(4));
-        var flipped = plan.Mirrored();
-
-        Assert.Equal(plan.Kids.Select(k => 640 - k.Right), flipped.Kids.Select(k => k.X));
-        Assert.Equal(plan.Root.CenterX, 640 - flipped.Root.CenterX, 6);
-        Assert.Null(OrgPlanChecks.NodesProblem(flipped));
-        Assert.Null(OrgPlanChecks.ConnectorsProblem(flipped));
-        Assert.Equal(plan.Mirrored().Mirrored().Kids, plan.Kids);
-    }
-
-    [Fact]
     public void A_bend_is_rounded_by_8_px_or_by_less_where_a_leg_is_shorter()
     {
         Assert.Equal(8, OrgChartLayout.BendRadius(new OrgPoint(0, 0), new OrgPoint(100, 0), new OrgPoint(100, 50)));
