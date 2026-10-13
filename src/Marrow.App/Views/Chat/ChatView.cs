@@ -934,6 +934,8 @@ internal sealed record ReserveSlide(PanelReserve Reserve, bool Slides, bool Anim
         public double Offset;
         public PanelReserve? Previous;
         public ChatFrameAnimation? Animation;
+        public ContinuousInstant Began;
+        public ChatSpringValue? OffsetRun, LeftRun, RightRun;
     }
 
     private readonly SlideState state = new();
@@ -959,24 +961,40 @@ internal sealed record ReserveSlide(PanelReserve Reserve, bool Slides, bool Anim
         }
         if (changed)
         {
+            var seconds = (SwiftClock.Now - state.Began).TotalSeconds;
+            var offsetSpeed = state.Animation.IsRunning ? state.OffsetRun?.Speed(seconds) ?? 0 : 0;
+            var leftSpeed = state.Animation.IsRunning ? state.LeftRun?.Speed(seconds) ?? 0 : 0;
+            var rightSpeed = state.Animation.IsRunning ? state.RightRun?.Speed(seconds) ?? 0 : 0;
             state.Animation.Stop();
             var previous = state.Previous!;
             var shift = ((Reserve.Leading - Reserve.Trailing) - (previous.Leading - previous.Trailing)) / 2; // :760
-            if (Slides && !AnimatesWidth && shift != 0) // :761
+            var slides = Slides && !EnvironmentValues.GetAccessibilityReduceMotion(content)
+                && !Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion;
+            var animation = Chrome.PanelSlide;
+            state.Began = SwiftClock.Now;
+            state.OffsetRun = state.LeftRun = state.RightRun = null;
+            if (slides && !AnimatesWidth && (shift != 0 || state.Offset != 0 || offsetSpeed != 0)) // :761
             {
                 content.Margin = margin; // :751-752: one layout at the final width.
                 var from = state.Offset - shift; // :766
-                state.Animation.Start(Chrome.PanelSlide, progress => OffsetTo(from * (1 - progress))); // :768
+                state.OffsetRun = new(from, 0, animation, offsetSpeed);
+                state.Animation.Start(animation, _ => OffsetTo(state.OffsetRun.Value(
+                    (SwiftClock.Now - state.Began).TotalSeconds, !state.Animation.IsRunning))); // :768
             }
             else
             {
                 OffsetTo(0); // :762
-                if (Slides && AnimatesWidth) // :754
+                if (slides && AnimatesWidth) // :754
                 {
                     var from = content.Margin;
-                    state.Animation.Start(Chrome.PanelSlide, progress => content.Margin = new Thickness(
-                        from.Left + (margin.Left - from.Left) * progress, 0,
-                        from.Right + (margin.Right - from.Right) * progress, 0));
+                    state.LeftRun = new(from.Left, margin.Left, animation, leftSpeed);
+                    state.RightRun = new(from.Right, margin.Right, animation, rightSpeed);
+                    state.Animation.Start(animation, _ =>
+                    {
+                        var elapsed = (SwiftClock.Now - state.Began).TotalSeconds;
+                        var complete = !state.Animation.IsRunning;
+                        content.Margin = new Thickness(state.LeftRun.Value(elapsed, complete), 0, state.RightRun.Value(elapsed, complete), 0);
+                    });
                 }
                 else content.Margin = margin;
             }

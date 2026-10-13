@@ -675,6 +675,7 @@ public abstract partial record Animation
         public override bool KeepsSpeed => Inner.KeepsSpeed;
         public override double Progress(double seconds) => seconds >= Duration ? 1 : Inner.Progress(seconds) + StartSpeed * Inner.Impulse(seconds);
         public override double Impulse(double seconds) => Inner.Impulse(seconds);
+        public override double Speed(double seconds) => seconds == 0 ? Inner.Speed(0) + StartSpeed : base.Speed(seconds);
     }
 
     private sealed record SpringAnimation(double Response, double DampingRatio, double BlendDuration) : Animation
