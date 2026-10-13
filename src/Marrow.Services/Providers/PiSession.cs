@@ -923,14 +923,13 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
             return;
         }
         var kindString = payload["kind"]?.JSONValueString ?? "tool";
-        var missionPc = configuration.Sealed is not null && Port.PcControl.PcProviderWiring.IsClaudeTool(payload["toolName"]?.JSONValueString);
-        if (!missionPc && sessionGrants.Contains(kindString))
+        if (sessionGrants.Contains(kindString))
         {
             process?.Send(Obj(("type", "extension_ui_response"), ("id", id), ("value", "Allow")));
             return;
         }
         // PORT-ONLY (Tactus, ED-NEW-pcctl-41): nth's own per-app approval governs the nth-pc tools (DESIGN.md 3.4, 4.1).
-        if ((!missionPc && pcTools && Port.PcControl.PcProviderWiring.IsClaudeTool(payload["toolName"]?.JSONValueString))
+        if ((pcTools && Port.PcControl.PcProviderWiring.IsClaudeTool(payload["toolName"]?.JSONValueString))
             || (dextraTools && Marrow.Services.Assistant.AssistantProviderWiring.IsClaudeTool(payload["toolName"]?.JSONValueString)))
         {
             process?.Send(Obj(("type", "extension_ui_response"), ("id", id), ("value", "Allow")));

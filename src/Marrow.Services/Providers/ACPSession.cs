@@ -848,8 +848,7 @@ public sealed class ACPSession : ProviderSession, Port.Skills.Providers.ISkillSe
         var options = parameters["options"]?.JSONValueArray ?? []; // :560
         var toolCall = parameters["toolCall"] ?? new JSONValue.Null(); // :561
         var call = MakeToolCall(toolCall); // :562
-        var missionPc = configuration.Sealed is not null && Port.PcControl.PcProviderWiring.AcpTool(toolCall["title"]?.JSONValueString) is not null;
-        if (!missionPc && (skillsMcp?.AutomaticOption(toolCall, options)
+        if ((skillsMcp?.AutomaticOption(toolCall, options)
             ?? (pcServer is not null ? Port.PcControl.PcProviderWiring.AcpAutomaticOption(toolCall, options) : null) // PORT-ONLY ED-NEW-pcctl-41: nth's approval governs nth-pc
             ?? (dextraServer is not null ? Marrow.Services.Assistant.AssistantProviderWiring.AcpAutomaticOption(toolCall, options) : null) // PORT-ONLY ED-NEW-dextra-as4-7: the server's policy check governs nth-dextra
             ?? AutomaticOption(call.ToolCallKind, options)) is { } optionID) // :563 + SK-17 owned read-only tools

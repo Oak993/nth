@@ -1047,11 +1047,10 @@ public sealed partial class CopilotSession : ProviderSession, ISkillSessionLifet
     private void HandlePermission(JSONValue data)
     {
         if (data["requestId"]?.JSONValueString is not { } requestID || data["permissionRequest"] is not { } request) return; // :777
-        var missionPc = configuration.Sealed is not null && Port.PcControl.PcProviderWiring.IsCopilotRequest(request);
-        if (!missionPc && data["resolvedByHook"]?.JSONValueBool == true) return; // :778
+        if (data["resolvedByHook"]?.JSONValueBool == true) return; // :778
         var toolCallID = request["toolCallId"]?.JSONValueString; // :779
         // PORT-ONLY (Tactus, ED-NEW-pcctl-41): nth's own per-app approval governs a call of the nth-pc tools (DESIGN.md 4.1).
-        if (!missionPc && pcServer is not null && Port.PcControl.PcProviderWiring.IsCopilotRequest(request))
+        if (pcServer is not null && Port.PcControl.PcProviderWiring.IsCopilotRequest(request))
         {
             RespondPermission(requestID, Port.PcControl.PcProviderWiring.CopilotApproval());
             return;
@@ -1062,7 +1061,7 @@ public sealed partial class CopilotSession : ProviderSession, ISkillSessionLifet
             RespondPermission(requestID, Marrow.Services.Assistant.AssistantProviderWiring.CopilotApproval());
             return;
         }
-        if (!missionPc && AutomaticDecision(request, data["promptRequest"]) is { } decision) // :780-783
+        if (AutomaticDecision(request, data["promptRequest"]) is { } decision) // :780-783
         {
             RespondPermission(requestID, decision);
             return;

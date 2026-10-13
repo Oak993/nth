@@ -42,7 +42,6 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
         public sealed record Decision(RPCID Id, ValueMap<string, JSONValue> Payloads) : PendingRequest; // :23
         public sealed record Permissions(RPCID Id, JSONValue Requested) : PendingRequest;                // :24
         public sealed record Question(RPCID Id) : PendingRequest;                                        // :25
-        public sealed record PcElicitation(RPCID Id) : PendingRequest; // PORT-ONLY ED-NEW-mission-pc-1: Dextra decides a sealed nth-pc request
     }
 
     // PORT-ONLY (SK-11b, WU-7): the folder Connect tells Codex about after initialize, and whether skills/list goes first (a session) or not (a ListCommands probe, which sends its own).
@@ -781,9 +780,6 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
         if (configuration.Sealed is not null) optionID = Marrow.Services.Assistant.SealedProviderConfig.CodexOnce(optionID); // PORT-ONLY (AS-5): a sealed chat keeps no rule
         switch (pending)
         {
-            case PendingRequest.PcElicitation(var id):
-                connection?.Respond(id, JSONValue.FromDictionaryLiteral(("action", optionID == "accept" ? "accept" : "decline")));
-                break;
             case PendingRequest.Decision(var id, var payloads):
                 connection?.Respond(id, new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
                 {
@@ -1896,17 +1892,6 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
             // approval of one nth-pc call, which nth's per-app approval already governs (DESIGN.md 3.4, 4.1).
             if (pcServer is not null && Port.PcControl.PcProviderWiring.IsCodexElicitation(parameters))
             {
-                if (configuration.Sealed is not null)
-                {
-                    // ED-NEW-mission-pc-1: no provider auto-approval. The execution adapter still checks the actual arguments.
-                    var tool = parameters["toolName"]?.JSONValueString;
-                    var title = Port.PcControl.PcProviderWiring.ToolNames.Contains(tool ?? "")
-                        ? Port.PcControl.PcProviderWiring.ClaudeToolPrefix + tool : "nth-pc";
-                    pendingRequests[id.Key] = new PendingRequest.PcElicitation(id);
-                    OnEvent?.Invoke(new ProviderEvent.Approval(new ApprovalRequest(id.Key, ApprovalRequest.Kind.Tool, title,
-                        new ValueList<ApprovalRequest.Option>([new("accept", "Approve", ApprovalRequest.Option.Role.Approve), new("decline", "Decline", ApprovalRequest.Option.Role.Decline)]))));
-                    return;
-                }
                 connection?.Respond(id, Port.PcControl.PcProviderWiring.CodexElicitationAccept());
                 return;
             }

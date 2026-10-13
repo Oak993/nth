@@ -962,9 +962,8 @@ public sealed class CommandCodeSession : ProviderSession, Marrow.Services.Port.S
         var input = request["input"] ?? new JSONValue.Null();
         var approval = MakeApproval(id, name, input);
         // PORT-ONLY (Tactus, ED-NEW-pcctl-41): nth's own per-app approval governs the nth-pc tools (DESIGN.md 3.4, 4.1).
-        var missionPc = configuration.Sealed is not null && Port.PcControl.PcProviderWiring.IsClaudeTool(name);
-        if (!missionPc && (AutoApproves(name, input) || sessionGrants.Contains(approval.RequestKind.GrantKey()) || (pcTools && Port.PcControl.PcProviderWiring.IsClaudeTool(name))
-            || (dextraTools && Marrow.Services.Assistant.AssistantProviderWiring.IsClaudeTool(name))))
+        if (AutoApproves(name, input) || sessionGrants.Contains(approval.RequestKind.GrantKey()) || (pcTools && Port.PcControl.PcProviderWiring.IsClaudeTool(name))
+            || (dextraTools && Marrow.Services.Assistant.AssistantProviderWiring.IsClaudeTool(name)))
         {
             Reply(id, allow: true);
             return;
