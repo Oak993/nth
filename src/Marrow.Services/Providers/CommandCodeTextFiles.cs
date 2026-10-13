@@ -213,4 +213,3 @@ internal sealed class CommandCodeTextFiles : IDisposable
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetFileInformationByHandle(SafeFileHandle handle, int kind, ref uint information, uint size);
 }
-
