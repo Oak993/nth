@@ -655,6 +655,8 @@ public sealed class DetailView : Decorator
     private AppModel? columnModel;
     private ObservationTracker? runningObservation;
     private Marrow.App.Port.Voice.VoiceSpeedQuestion? voiceQuestion;
+    private Marrow.App.Assistant.Views.AssistantHomeHost? assistantHome; // PORT-ONLY AS-8 (ED-NEW-dextra-as8-8)
+    private Control? assistantSheet;
 
     /// <summary>
     /// WV-1 (OD-0098 welcome-voice pick): the Welcome voice question the empty page draws (a "Voice typing" section above Activity). When the page gives way to a thread or the no-thread page the question is told
@@ -703,7 +705,7 @@ public sealed class DetailView : Decorator
         {
             var model = AppEnvironment.GetAppModel(this);
             // :130-133 thread existence and every existing runtime's running state are body inputs.
-            return (model.SelectedThreadID, model.Threads, model.Projects.Count);
+            return (model.SelectedThreadID, model.Threads, model.Projects.Count, model.AssistantHomeShown); // PORT-ONLY AS-8: the Assistant home
         }, _ => Rebuild());
         this.Task(() =>
         {
@@ -789,6 +791,21 @@ public sealed class DetailView : Decorator
         prebuilt.Clear();
         runningObservation?.Cancel();
         runningObservation = null;
+
+        // PORT-ONLY (Dextra AS-8, DESIGN.md 2.2, ED-NEW-dextra-as8-8): the Assistant home in the main area while its sidebar row is
+        // selected; one home per pane, kept while it stays shown.
+        if (model.AssistantHomeShown)
+        {
+            voiceQuestion?.CloseWelcome();
+            assistantHome ??= new Marrow.App.Assistant.Views.AssistantHomeHost(model, AppEnvironment.GetWindowLiveResize(this));
+            assistantHome.HorizontalAlignment = HorizontalAlignment.Stretch;
+            assistantHome.VerticalAlignment = VerticalAlignment.Stretch;
+            assistantSheet ??= assistantHome.DetailSheet();
+            if (!ReferenceEquals(Child, assistantSheet)) Child = assistantSheet;
+            return;
+        }
+        assistantHome = null;
+        assistantSheet = null;
 
         // :156-164 the empty states, frame(maxWidth:.infinity,maxHeight:.infinity).detailSheet()
         if (model.Projects.Count != 0) voiceQuestion?.CloseWelcome();

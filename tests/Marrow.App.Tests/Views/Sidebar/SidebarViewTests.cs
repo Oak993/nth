@@ -1373,9 +1373,13 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 Assert.Equal(Orientation.Vertical, stack.Orientation);
                 Assert.Equal(1d, stack.Spacing); // :103 LazyVStack(alignment: .leading, spacing: 1)
                 Assert.Equal(new Thickness(10, 12, 10, 8), stack.Margin); // :120-122
-                // The list sits between the search row (44 + 30) and the bottom rows (28 + 1 + 28 + 12).
+                // The list sits between the search row (44 + 30) and the bottom rows (28 + 1 + 28 + 12). PORT-ONLY (Dextra AS-8, DESIGN.md 2.1,
+                // ED-NEW-dextra-as8-8): the pinned Assistant row sits between the search row and the list, so the list starts below it.
+                var slot = LogicalQuery.SelfAndDescendants<Marrow.App.Assistant.Views.AssistantSidebarSlot>(view).Single();
+                Assert.Equal(74d, Frame(slot, view).Y - slot.Margin.Top);
+                Assert.Equal(Marrow.App.Assistant.Views.AssistantSidebarRow.RowHeight, slot.Bounds.Height);
                 var frame = Frame(scroll, view);
-                Assert.Equal(74d, frame.Y);
+                Assert.Equal(74d + slot.Margin.Top + slot.Bounds.Height + slot.Margin.Bottom, frame.Y);
                 Assert.Equal(view.Bounds.Height - 69, frame.Bottom);
                 Close(view);
             });
