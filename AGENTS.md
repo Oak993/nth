@@ -1,9 +1,10 @@
 # nth: instructions for AI coding agents
 
-nth is a Windows desktop app (C#, .NET SDK 10.0.401, Avalonia 12.1.2 pinned, no XAML) based on Droppy Code. Version
-1.0.0 shipped from branch `release/1.0.0`; work for the next release happens on `next-release`.
+nth is a Windows desktop app (C#, .NET SDK 10.0.401, Avalonia 12.1.2 pinned, no XAML) that includes code from Droppy
+Code. Version 1.0.0 shipped from branch `release/1.0.0` (tag `nth-1.0.0`); work for the next release happens on branch
+`next-release`.
 
-Read `docs/next-release/README.md` before you change anything. It is the authority for next-release work: branches,
+Read `docs/next-release/README.md` on branch `next-release` before you change anything. It is the authority for next-release work: branches,
 build, smart testing, where the glass code lives, the speed rules, the UI rules and the pull request checklist.
 `docs/next-release/OWNER-LIST.md` holds the owner's findings (each row is a specification) and
 `docs/next-release/SPEED-PLAN.md` the performance plan.

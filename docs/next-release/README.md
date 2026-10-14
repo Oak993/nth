@@ -30,7 +30,7 @@ The code is licensed under the GNU AGPL v3.0 with additional terms; see `LICENSE
 
 | Branch | What it is | Who writes to it |
 |---|---|---|
-| `release/1.0.0` | Exactly what shipped as 1.0.0 (commit 87eb11490) | Nobody. Never push to it. |
+| `release/1.0.0` | The shipped 1.0.0 code (tag `nth-1.0.0` = commit 87eb11490) plus the license files; the repository's front page | Nobody. Never push to it. |
 | `next-release` | 1.0.0, three small ledger and CI commits, and this folder: the base for all next-release work | Only the owner's review and merge step |
 | `cousin/<topic>` | Your own work, one branch per topic (for example `cousin/glass-lens`) | You |
 | `claude/*`, `codex/*` | The owner's AI agents' branches | Never push to these |

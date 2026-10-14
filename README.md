@@ -4,16 +4,18 @@ nth is a Windows desktop app for working with AI coding agents (Claude Code, Cod
 that leads a team of heads), the Dextra assistant, Tactus PC control, the Ignis cost saver, a browser, artifacts,
 downloads, composer lights and liquid glass.
 
-**Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app.** nth is a modified version: it began as a
-line-by-line port of the macOS app Droppy Code to Windows and has changed since. It is not the original Droppy Code and
-is not made by, endorsed by or affiliated with Droppy or Jordy Spruit.
+nth is its own application, designed and built by oak993. It includes code from **Droppy Code by Jordy Spruit
+(Droppy), https://getdroppycode.app**: nth started from a Windows port of Droppy Code, and that code, modified for nth,
+is used under the GNU AGPL v3.0. Much of nth is new and was built for nth, including Dextra, Tactus, Ignis and the
+composer lights. nth is not Droppy Code and is not made by, endorsed by or affiliated with Droppy or Jordy Spruit.
 
 ## Start here
 
-- **Contributors:** read [`docs/next-release/README.md`](docs/next-release/README.md) first. It covers the branches, how
-  to build and test, where the glass code lives and the rules for pull requests.
-- The current release is **1.0.0**, on branch `release/1.0.0`. Work for the next release happens on `next-release`.
-  Other branches are the owner's AI agents' working branches; you can ignore them.
+- **Contributors:** read [`docs/next-release/README.md`](https://github.com/Oak993/nth/blob/next-release/docs/next-release/README.md)
+  on branch `next-release` first. It covers the branches, how to build and test, where the glass code lives and the
+  rules for pull requests.
+- The current release is **1.0.0**: branch `release/1.0.0` (the shipped code is tagged `nth-1.0.0`). Work for the next
+  release happens on branch `next-release`.
 
 ## Build
 
