@@ -1,0 +1,1404 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Glass UI</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap');
+:root{
+  color-scheme:dark;
+  --bg:#09090b; --surface:#121215; --surface2:#17171b; --card:rgba(255,255,255,.035); --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.06);
+  --fg:#ededf0; --fg2:#a3a3ad; --fg3:#8a8a94; --on:#ececf1; --onfg:#0a0a0c; --focus:#9ecbff; --track:rgba(255,255,255,.14); --knob:#f4f4f6;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg)}
+body{font:14px/1.45 Inter,'Segoe UI',system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.page{max-width:1500px;margin:0 auto;padding:20px 24px 44px}
+.head h1{font-size:20px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
+.head p{margin:0;color:var(--fg2);max-width:900px}
+.controls{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;margin:16px 0 14px}
+.ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.lbl{font-size:12px;color:var(--fg3);font-weight:500}
+.seg{display:inline-flex;background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:3px;max-width:100%;flex-wrap:wrap}
+.seg button{all:unset;cursor:pointer;padding:5px 11px;border-radius:999px;font-size:12.5px;color:var(--fg2);white-space:nowrap}
+.seg button:hover{color:var(--fg)}
+.seg button[aria-pressed="true"]{background:var(--on);color:var(--onfg);font-weight:500}
+.seg button:focus-visible,.pad:focus-visible,#handle:focus-visible,input:focus-visible,.sw:focus-visible,.btn:focus-visible,.tints button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.pad{width:38px;height:38px;border-radius:50%;background:radial-gradient(circle at 50% 50%,#2a2a30,#121215);border:1px solid var(--line);position:relative;cursor:grab;touch-action:none;flex:none}
+.pad i{position:absolute;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:#fff;box-shadow:0 0 8px 2px rgba(255,255,255,.7)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 336px;gap:22px;align-items:start}
+.stagewrap{position:relative;width:100%;user-select:none;-webkit-user-select:none;overflow:hidden}
+#gl{position:absolute;left:0;top:0;display:block}
+.tag{position:absolute;font-size:11.5px;font-weight:500;padding:3px 9px;border-radius:999px;background:rgba(10,10,12,.66);color:#ececf0;border:1px solid rgba(255,255,255,.14);pointer-events:none;white-space:nowrap}
+.cap{position:absolute;left:0;font-size:12.5px;color:var(--fg2);pointer-events:none;white-space:nowrap}
+.cap b{color:var(--fg);font-weight:600}
+#zoomctl{position:absolute;right:0;display:flex;align-items:center;gap:8px}
+#zoomctl .seg button{padding:3px 10px;font-size:12px}
+#handle{position:absolute;top:0;width:30px;margin-left:-15px;cursor:ew-resize;touch-action:none;display:none}
+#handle:before{content:'';position:absolute;left:14px;top:0;bottom:0;width:2px;background:rgba(255,255,255,.9);box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+#handle span{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:#f2f2f5;box-shadow:0 2px 12px rgba(0,0,0,.55);display:grid;place-items:center;color:#111;font-size:12px;font-weight:600;letter-spacing:-1px}
+#kb{position:absolute;left:0;top:0;width:0;height:0}
+#kb button{all:unset;position:absolute;border-radius:999px;pointer-events:none}
+#kb button:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.tpad{position:absolute;touch-action:none}
+.hint{margin:10px 0 0;font-size:12.5px;color:var(--fg3)}
+#perf{font-variant-numeric:tabular-nums}
+/* glass settings panel: the app's Customization group */
+.gs{position:sticky;top:14px;font-size:13px}
+.gs h2{font-size:15px;font-weight:600;margin:0 0 2px}
+.gs .sub{margin:0 0 12px;color:var(--fg2);font-size:12.5px}
+.sect{font-size:12px;font-weight:600;color:var(--fg2);margin:14px 2px 6px;display:flex;justify-content:space-between;align-items:center}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:2px 14px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:.5px solid var(--line2)}
+.row:last-child{border-bottom:0}
+.rt{font-size:13px;font-weight:600;color:var(--fg)}
+.rd{font-size:12px;color:var(--fg2);line-height:1.35}
+.col{display:block}
+.col .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.val{font-variant-numeric:tabular-nums;font-size:12px;color:var(--fg2);white-space:nowrap}
+input[type=range]{accent-color:#e5e5ea;width:100%;margin:8px 0 2px;display:block}
+.ends{display:flex;justify-content:space-between;font-size:11px;color:var(--fg3)}
+.badge{font-size:11px;font-weight:500;color:var(--fg2);border:1px solid var(--line);border-radius:999px;padding:1px 8px;visibility:hidden}
+.badge.on{visibility:visible}
+.btn{all:unset;cursor:pointer;font-size:12px;font-weight:500;color:var(--fg);padding:4px 11px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid var(--line)}
+.btn:hover{background:rgba(255,255,255,.11)}
+.btn[disabled]{opacity:.4;cursor:default}
+.sw{appearance:none;-webkit-appearance:none;flex:none;width:44px;height:26px;border-radius:13px;background:var(--track);position:relative;cursor:pointer;transition:background .25s;margin:0}
+.sw:before{content:'';position:absolute;left:2px;top:2px;width:22px;height:22px;border-radius:50%;background:var(--knob);box-shadow:0 1px 3px rgba(0,0,0,.35);transition:transform .42s cubic-bezier(.3,1.35,.5,1)}
+.sw:checked{background:#cfcfd5}.sw:checked:before{transform:translateX(18px)}
+.tints{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.tints button{all:unset;cursor:pointer;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.tints button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px rgba(255,255,255,.85)}
+.gs .seg{flex-wrap:nowrap;flex:none}
+.fine-d{font-size:11.5px;color:var(--fg3);margin-top:1px}
+.tints .none{background:conic-gradient(from 45deg,#2a2a30 0 50%,#3a3a42 0)}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px 28px;margin-top:26px;color:var(--fg2);font-size:13px}
+.notes h3{font-size:12.5px;color:var(--fg);margin:0 0 3px;font-weight:600}
+.notes p{margin:0}
+.params{margin-top:28px}
+.params h2{font-size:14px;font-weight:600;margin:0 0 4px}
+.params p{margin:0 0 10px;color:var(--fg2);font-size:12.5px;max-width:900px}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;margin-bottom:18px}
+table{border-collapse:collapse;width:100%;font-size:12.5px;min-width:640px}
+th,td{text-align:left;padding:7px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--fg3);font-weight:500}
+td{color:var(--fg2);font-variant-numeric:tabular-nums} td:first-child{color:var(--fg);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+details{border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+summary{cursor:pointer;font-size:12.5px;color:var(--fg)}
+pre{margin:8px 0 0;font:12px/1.5 'JetBrains Mono',Consolas,monospace;color:#d8d8dc;white-space:pre-wrap;word-break:break-word}
+code{font:12px 'JetBrains Mono',Consolas,monospace;color:#d8d8dc}
+.fail{padding:40px;color:var(--fg2);text-align:center;border:1px solid var(--line);border-radius:14px}
+@media (max-width:1180px){.layout{grid-template-columns:minmax(0,1fr)}.gs{position:static;max-width:560px}}
+@media (max-width:640px){.tag{font-size:10px;padding:2px 7px}.page{padding:14px 16px 32px}.seg button{padding:5px 8px;font-size:12px}.controls{gap:10px 14px}.cap{font-size:11.5px}}
+@media (prefers-reduced-motion:reduce){.sw,.sw:before{transition:none}}
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<div class="page">
+  <header class="head">
+    <h1>Glass UI</h1>
+    <p>The nth main window as it looks today, and rebuilt in iOS 27 Liquid Glass. Every glass surface is a live WebGL2 lens over what is really behind it: the wallpaper, the thread and the panels under it. Only the containers are glass; the controls on them are glyphs and labels.</p>
+  </header>
+
+  <section class="controls" aria-label="View controls">
+    <div class="ctl"><span class="lbl">View</span>
+      <div class="seg" data-k="mode"><button data-v="split">Split</button><button data-v="today">Today</button><button data-v="liquid">Liquid glass</button><button data-v="sbs">Side by side</button></div></div>
+    <div class="ctl"><span class="lbl">Scene</span>
+      <div class="seg" data-k="scene"><button data-v="thread">Thread + model picker</button><button data-v="settings">Settings</button></div></div>
+    <div class="ctl"><span class="lbl">Backdrop</span>
+      <div class="seg" data-k="backdrop"><button data-v="blobs">Colour blobs</button><button data-v="dusk">Dusk</button><button data-v="black">Near-black</button><button data-v="grid">Lens test grid</button></div></div>
+    <div class="ctl"><span class="lbl">Light</span><div id="lightpad" class="pad" tabindex="0" role="slider" aria-label="Light direction" aria-valuetext="upper left"><i></i></div></div>
+  </section>
+
+  <div class="layout">
+    <div>
+      <div class="stagewrap" id="wrap">
+        <canvas id="gl" aria-label="nth window mock-up, today and in Liquid Glass"></canvas>
+        <div id="tags"></div>
+        <div id="zoomctl"><div class="seg" data-k="zoomV" aria-label="Close-up version"><button data-v="L">Liquid glass</button><button data-v="T">Today</button></div></div>
+        <div id="kb"></div>
+        <div id="handle" role="slider" tabindex="0" aria-label="Split position" aria-valuemin="0" aria-valuemax="100"><span>&#8249;&#8250;</span></div>
+      </div>
+      <p class="hint">Drag the split handle. Hover and press the composer controls, click the model chip to open or close the picker, scroll or swipe the thread under the composer, drag the light. Tab reaches the composer and Settings controls. The lens test grid puts the composer straight over a grid, colour bands and large type, like the live demos. <span id="perf"></span></p>
+    </div>
+
+    <aside class="gs" aria-label="Glass settings">
+      <h2>Glass settings</h2>
+      <p class="sub">Settings &rsaquo; Customization &rsaquo; Glass, as the app will ship it. Changes apply live to the Liquid glass version.</p>
+
+      <div class="card">
+        <div class="row"><div><div class="rt">Look</div><div class="rd" id="lookd">Default, the iOS 27 midpoint.</div></div>
+          <div class="seg" data-k="look"><button data-v="0">Clear</button><button data-v="0.5">Regular</button><button data-v="1">Tinted</button></div></div>
+        <div class="row col"><div class="top"><span class="rt">Transparency</span><span class="val" id="gv">Default</span></div>
+          <input type="range" id="g" min="0" max="100" step="1" value="50" aria-label="Liquid Glass, more clear to more tinted">
+          <div class="ends"><span>More clear</span><span>More tinted</span></div></div>
+      </div>
+
+      <div class="sect"><span>Fine-tuning</span><span style="display:flex;gap:8px;align-items:center"><span class="badge" id="custom">Custom</span><button class="btn" id="reset" disabled>Reset</button></span></div>
+      <div class="card" id="fine"></div>
+
+      <div class="sect"><span>Behaviour</span></div>
+      <div class="card">
+        <div class="row"><div><div class="rt">Tint colour</div><div class="rd">A small colour cast, capped so it stays glass.</div></div><div class="tints" id="tints"></div></div>
+        <div class="row"><div><div class="rt">Motion</div><div class="rd">Bulge on press and lens knobs.</div></div><div class="seg" data-k="motion"><button data-v="full">Full</button><button data-v="reduced">Reduced</button></div></div>
+        <div class="row"><div><div class="rt">Increase contrast</div><div class="rd">Sharper edges and a stronger line of light.</div></div><input type="checkbox" class="sw" id="sw-contrast" aria-label="Increase contrast"></div>
+        <div class="row"><div><div class="rt">Reduce transparency</div><div class="rd">Solid surfaces instead of glass.</div></div><input type="checkbox" class="sw" id="sw-reduce" aria-label="Reduce transparency"></div>
+      </div>
+    </aside>
+  </div>
+
+  <section class="notes">
+    <div><h3>1. Glass is what it does to the backdrop</h3><p>The body is a clear frost with a 6% white lift. Only bright content is pulled down; mid-tones keep at least 85% of their brightness, and the tint takes out colour, not light. Over orange it stays orange, over near-black it is a lifted grey sheet.</p></div>
+    <div><h3>2. One line of light, one dark edge</h3><p>A hairline one device pixel wide catches the light on the side facing it, with a small glint where the light is square on and a faint bounce opposite. Inside the outline sits the iOS 27 darkened band. No border, bevel or gloss.</p></div>
+    <div><h3>3. A lens you can see</h3><p>The outer 4.5 px stay sharp (blur 1.2 px), so content just outside the rim visibly squeezes and curves into it, and the bezel magnifies by about 1.1&times; before it flattens out. Full frost is reached 10 px in. Try the lens test grid.</p></div>
+    <div><h3>4. No glass on glass</h3><p>Both versions carry the app's real controls: a bare paperclip, the voice orb, a text model chip, the effort ring and send. Today wraps send in a glass circle; Liquid glass makes it the one solid object, a flat silver disc. The composer light runs round both.</p></div>
+    <div><h3>5. Readable on anything</h3><p>A soft dimming appears under text only when the frost behind it gets bright, and it grows when you turn the frost down. Sidebar labels get a soft local shadow, so they hold contrast over the colour blobs without darkening the whole surface.</p></div>
+    <div><h3>6. Calm motion</h3><p>Pressed glass swells a little and brightens on a spring with about 0.7 damping. Toggle knobs turn into a clear lens while they move. Reduced motion drops the bulge and stretch. Uniform scroll-edge bands sit under the title bar and under the composer.</p></div>
+  </section>
+
+  <section class="params">
+    <h2>Default glass parameters per look</h2>
+    <p>Values at the composer, in logical px. Frost is the blur radius (Gaussian sigma is about 0.48 of it). Refraction is the bend at the very edge as a multiple of the bezel. Other surfaces scale from these (table below). The Transparency slider blends between the three looks.</p>
+    <div class="tw"><table id="looktable"></table></div>
+    <h2>Per-surface values for the current settings</h2>
+    <p>Updates live as you move the sliders.</p>
+    <div class="tw"><table id="ptable"></table></div>
+    <details><summary>Current settings as JSON, for the app build</summary><pre id="json"></pre></details>
+  </section>
+</div>
+
+<script>
+(() => {
+'use strict';
+/* ---------- geometry (logical px; the mock is 1200 x 780) ---------- */
+const W = 1200, H = 780;
+const WIN = {x:24, y:22, w:1152, h:736, r:10};
+const SBW = 272, DX = WIN.x + SBW, DW = WIN.w - SBW, DR = WIN.x + WIN.w, WB = WIN.y + WIN.h;
+const CT = WIN.y + 64;
+// 52 pt, the app's composer height (codex-t46/composer-centred-measured.png), in both versions
+const COMP = {x:DX + 30, y:WB - 14 - 52, w:820, h:52, r:26};
+const CY = COMP.y + COMP.h / 2;
+const MODEL = {x:930, y:CY - 16, w:134, h:32};
+const CTL = {clip:357, link:392, orb:904, sun:945, ring:1082, send:1120};
+const POP = {w:330, h:404}; POP.tx = MODEL.x + MODEL.w / 2; POP.x = POP.tx - POP.w / 2; POP.y = COMP.y - 20 - POP.h;
+const SET = {x:WIN.x + (WIN.w - 780) / 2, y:WIN.y + (WIN.h - 580) / 2, w:780, h:580, r:20};
+const SBSEL = {x:36, w:248};
+const CH = 1150;
+const TBL = {x:310, y:33, w:144, h:34}, TBR1 = {x:864, y:33, w:76, h:34}, TBR2 = {x:950, y:33, w:76, h:34};
+const ICL = {L:[331, 365, 399, 433], T:[326, 368, 410, 452]}, TITLEX = {L:470, T:486};
+const SLD = {x:742, w:210, y:413};
+const FONT = "Inter, 'Segoe UI', system-ui, sans-serif", MONO = "'JetBrains Mono', Consolas, monospace";
+const T1 = 'rgba(255,255,255,.92)', T2 = 'rgba(255,255,255,.62)', T3 = 'rgba(255,255,255,.40)', T3L = 'rgba(255,255,255,.58)';
+const MODELC = 'rgba(255,168,128,.96)';   // the app's model chip: orange sun, warm label
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+
+/* ---------- looks: the three iOS 27 stops, and the fine-tuning ranges ---------- */
+const KEYS = ['refr', 'bezel', 'frost', 'fringe', 'rim', 'tint', 'sat', 'shadow'];
+const LOOKS = {
+  clear:   {refr:1.40, bezel:12, frost:24, fringe:.5, rim:.55, tint:.04, sat:1.25, shadow:1},
+  regular: {refr:1.30, bezel:12, frost:32, fringe:.4, rim:.50, tint:.12, sat:1.22, shadow:1},
+  tinted:  {refr:1.10, bezel:11, frost:44, fringe:.3, rim:.50, tint:.24, sat:1.15, shadow:1},
+};
+const FINE = {
+  refr:   {name:'Refraction', desc:'Bend at the edge, times the bezel; also sets the bezel magnification', min:.4, max:2.4, step:.05, fmt:v => v.toFixed(2) + '\u00d7'},
+  bezel:  {name:'Bezel width', desc:'How far in from the edge the lens reaches', min:6, max:24, step:.5, fmt:v => v.toFixed(1) + ' px'},
+  frost:  {name:'Frost', desc:'Blur radius of the body; never below 20, the text scrim grows as it drops', min:20, max:64, step:1, fmt:v => Math.round(v) + ' px'},
+  fringe: {name:'Colour fringe', desc:'Red-to-blue split in the sharp rim, at most 1 px', min:0, max:1, step:.05, fmt:v => v.toFixed(2) + ' px'},
+  rim:    {name:'Rim light', desc:'The one-pixel line on the lit side', min:.1, max:1, step:.01, fmt:v => v.toFixed(2)},
+  tint:   {name:'Tint', desc:'Takes colour out (not light) and calms bright content', min:0, max:.5, step:.01, fmt:v => v.toFixed(2)},
+  sat:    {name:'Saturation', desc:'Colour of what shows through', min:.8, max:1.8, step:.01, fmt:v => v.toFixed(2) + '\u00d7'},
+  shadow: {name:'Shadow depth', desc:'Soft shadow and contact shadow', min:0, max:2, step:.05, fmt:v => v.toFixed(2) + '\u00d7'},
+};
+
+const TINTS = {none:null, silver:[.86, .87, .9], blue:[0, .48, 1], purple:[.69, .32, .87], pink:[1, .18, .33], orange:[1, .58, 0], green:[.2, .78, .35]};
+function lookAt(g) {
+  const a = g <= .5 ? LOOKS.clear : LOOKS.regular, b = g <= .5 ? LOOKS.regular : LOOKS.tinted, t = g <= .5 ? g / .5 : (g - .5) / .5, o = {};
+  for (const k of KEYS) o[k] = +lerp(a[k], b[k], t).toFixed(4);
+  return o;
+}
+const lookName = g => g < .2 ? 'More clear' : g < .8 ? 'Default' : 'More tinted';
+const stopName = g => Math.abs(g) < .005 ? 'Clear' : Math.abs(g - .5) < .005 ? 'Regular' : Math.abs(g - 1) < .005 ? 'Tinted' : null;
+
+/* ---------- state ---------- */
+const S = {mode:'split', split:.5, scene:'thread', backdrop:'blobs', zoomV:'L', g:.5, p:lookAt(.5), tintCol:'none', motion:'full',
+  lightT:[-.6, -.8], scroll:0, maxScroll:400, pop:true, tg:{contrast:0, reduce:0, sidebar:1}, hover:null, chover:null, press:null, pressV:'L', ptr:[-999, -999]};
+try {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) S.motion = 'reduced';
+  if (matchMedia('(prefers-contrast: more)').matches) S.tg.contrast = 1;
+  if (matchMedia('(prefers-reduced-transparency: reduce)').matches) S.tg.reduce = 1;
+} catch (e) {}
+
+/* ---------- springs ---------- */
+const SP = new Map();
+function sp(key, init, k = 300, c = 26) { let s = SP.get(key); if (!s) { s = {x:init, v:0, t:init, k, c}; SP.set(key, s); } return s; }
+const val = (key, d = 0) => { const s = SP.get(key); return s ? s.x : d; };
+const vel = key => { const s = SP.get(key); return s ? s.v : 0; };
+function target(key, t, k, c) {
+  const s = sp(key, t, k, c); s.t = t; if (k) { s.k = k; s.c = c; }
+  if (S.motion !== 'full') { s.k = 900; s.c = 60; }
+}
+// a moving spring marks its version dirty: hover and press keys carry it ('h:L:c-model'), the rest touch both
+function stepSprings(dt, dirty) {
+  let act = false;
+  for (const [key, s] of SP) {
+    if (Math.abs(s.t - s.x) < 1e-4 && Math.abs(s.v) < 1e-3) { if (s.x !== s.t) { s.x = s.t; s.v = 0; markKey(key, dirty); } continue; }
+    const n = Math.ceil(dt / .004), h = dt / n;
+    for (let i = 0; i < n; i++) { const a = s.k * (s.t - s.x) - s.c * s.v; s.v += a * h; s.x += s.v * h; }
+    act = true; markKey(key, dirty);
+  }
+  return act;
+}
+function markKey(key, dirty) { const m = /^(?:h|p|ch):(T|L):/.exec(key); if (m) dirty.add(m[1]); else { dirty.add('T'); dirty.add('L'); } }
+
+const PRESS = [380, 28], HOVER = [260, 26];
+sp('pop', 1, 320, 30);
+sp('lx', S.lightT[0], 120, 22); sp('ly', S.lightT[1], 120, 22);
+for (const id of ['contrast', 'reduce', 'sidebar']) sp('k:' + id, S.tg[id], 420, 30);
+const light = () => { const x = val('lx'), y = val('ly'), l = Math.hypot(x, y) || 1; return [x / l, y / l]; };
+
+/* ---------- 2D helpers ---------- */
+const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; };
+function rr(c, x, y, w, h, r) { r = Math.max(0, Math.min(r, w / 2, h / 2)); c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+function fillRR(c, x, y, w, h, r, col) { rr(c, x, y, w, h, r); c.fillStyle = col; c.fill(); }
+// SCRIM > 0: a soft local shadow under the glyphs (vibrancy-style legibility on glass, never a darker surface)
+let SCRIM = 0;
+function txt(c, s, x, y, size, wt, col, al = 'left', font = FONT) {
+  c.font = `${wt} ${size}px ${font}`; c.fillStyle = col; c.textAlign = al; c.textBaseline = 'middle';
+  if (SCRIM) { c.save(); c.shadowColor = `rgba(0,0,0,${SCRIM})`; c.shadowBlur = 7 * c.getTransform().a; c.fillText(s, x, y); c.restore(); }
+  c.fillText(s, x, y);
+}
+function stk(c, col, lw) { c.strokeStyle = col; c.lineWidth = lw; c.lineCap = 'round'; c.lineJoin = 'round'; }
+function wrapText(c, s, w) { const out = []; let line = ''; for (const word of s.split(' ')) { const t = line ? line + ' ' + word : word; if (c.measureText(t).width > w && line) { out.push(line); line = word; } else line = t; } if (line) out.push(line); return out; }
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+/* ---------- icons ---------- */
+const IC = {
+  sidebar(c, x, y, col) { stk(c, col, 1.6); rr(c, x - 7.5, y - 6.5, 15, 13, 3); c.stroke(); c.beginPath(); c.moveTo(x - 2.5, y - 6.5); c.lineTo(x - 2.5, y + 6.5); c.stroke(); },
+  compose(c, x, y, col) { stk(c, col, 1.6); c.beginPath(); c.moveTo(x + 1, y - 6); c.lineTo(x - 4, y - 6); c.quadraticCurveTo(x - 7, y - 6, x - 7, y - 3); c.lineTo(x - 7, y + 4); c.quadraticCurveTo(x - 7, y + 7, x - 4, y + 7); c.lineTo(x + 3, y + 7); c.quadraticCurveTo(x + 6, y + 7, x + 6, y + 4); c.lineTo(x + 6, y); c.stroke(); c.beginPath(); c.moveTo(x - 2, y + 2); c.lineTo(x - 1.5, y - .5); c.lineTo(x + 5.5, y - 7.5); c.lineTo(x + 7.5, y - 5.5); c.lineTo(x + .5, y + 1.5); c.closePath(); c.stroke(); },
+  lock(c, x, y, col) { stk(c, col, 1.6); rr(c, x - 6, y - 1, 12, 9, 2.5); c.stroke(); c.beginPath(); c.moveTo(x - 3.5, y - 1); c.lineTo(x - 3.5, y - 4); c.arc(x, y - 4, 3.5, Math.PI, 0); c.stroke(); },
+  ext(c, x, y, col) { stk(c, col, 1.6); c.beginPath(); c.moveTo(x - 1, y - 6); c.lineTo(x - 4, y - 6); c.quadraticCurveTo(x - 6.5, y - 6, x - 6.5, y - 3.5); c.lineTo(x - 6.5, y + 4); c.quadraticCurveTo(x - 6.5, y + 6.5, x - 4, y + 6.5); c.lineTo(x + 3.5, y + 6.5); c.quadraticCurveTo(x + 6, y + 6.5, x + 6, y + 4); c.lineTo(x + 6, y + 1); c.stroke(); c.beginPath(); c.moveTo(x - 1, y + 1); c.lineTo(x + 6.5, y - 6.5); c.moveTo(x + 2, y - 6.5); c.lineTo(x + 6.5, y - 6.5); c.lineTo(x + 6.5, y - 2); c.stroke(); },
+  play(c, x, y, col) { stk(c, col, 1.6); c.beginPath(); c.moveTo(x - 3.5, y - 6); c.lineTo(x + 6, y); c.lineTo(x - 3.5, y + 6); c.closePath(); c.stroke(); },
+  term(c, x, y, col) { stk(c, col, 1.6); rr(c, x - 7, y - 6, 14, 12, 2.5); c.stroke(); c.beginPath(); c.moveTo(x - 3.5, y - 2.5); c.lineTo(x - 1, y); c.lineTo(x - 3.5, y + 2.5); c.moveTo(x + .5, y + 2.5); c.lineTo(x + 3.5, y + 2.5); c.stroke(); },
+  pm(c, x, y, col) { stk(c, col, 1.6); c.beginPath(); c.moveTo(x - 5, y - 3); c.lineTo(x + 5, y - 3); c.moveTo(x, y - 8); c.lineTo(x, y + 2); c.moveTo(x - 5, y + 6); c.lineTo(x + 5, y + 6); c.stroke(); },
+  min(c, x, y, col) { stk(c, col, 1.3); c.beginPath(); c.moveTo(x - 5, y); c.lineTo(x + 5, y); c.stroke(); },
+  max(c, x, y, col) { stk(c, col, 1.3); rr(c, x - 5, y - 5, 10, 10, 2); c.stroke(); },
+  close(c, x, y, col, s = 5) { stk(c, col, 1.4); c.beginPath(); c.moveTo(x - s, y - s); c.lineTo(x + s, y + s); c.moveTo(x + s, y - s); c.lineTo(x - s, y + s); c.stroke(); },
+  clip(c, x, y, col) { c.save(); c.translate(x, y); c.rotate(Math.PI / 4); stk(c, col, 1.6); c.beginPath(); c.moveTo(2, -3); c.lineTo(2, 4.5); c.arc(0, 4.5, 2, 0, Math.PI); c.lineTo(-2, -5); c.arc(1.25, -5, 3.25, Math.PI, 0); c.lineTo(4.5, 5); c.arc(0, 5, 4.5, 0, Math.PI); c.lineTo(-4.5, -2); c.stroke(); c.restore(); },
+  link(c, x, y, col) { stk(c, col, 1.5); c.beginPath(); c.arc(x - 3, y, 4.5, 0, 7); c.stroke(); c.beginPath(); c.arc(x + 3, y, 4.5, 0, 7); c.stroke(); },
+  sun(c, x, y, col, s = 1) { stk(c, col, 1.8 * s); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + .2; c.beginPath(); c.moveTo(x + Math.cos(a) * 1.6 * s, y + Math.sin(a) * 1.6 * s); c.lineTo(x + Math.cos(a) * 6.5 * s, y + Math.sin(a) * 6.5 * s); c.stroke(); } },
+  chev(c, x, y, col) { stk(c, col, 1.5); c.beginPath(); c.moveTo(x - 3.5, y - 1.5); c.lineTo(x, y + 2); c.lineTo(x + 3.5, y - 1.5); c.stroke(); },
+  chevL(c, x, y, col) { stk(c, col, 1.6); c.beginPath(); c.moveTo(x + 2, y - 4.5); c.lineTo(x - 2.5, y); c.lineTo(x + 2, y + 4.5); c.stroke(); },
+  ring(c, x, y, col, r = 6.5) { stk(c, col, 2); c.beginPath(); c.arc(x, y, r, 0, 7); c.stroke(); },
+  drop(c, x, y, col) { c.fillStyle = col; c.beginPath(); c.moveTo(x, y - 5.5); c.bezierCurveTo(x + 1.2, y - 3, x + 4, y - .5, x + 4, y + 1.8); c.arc(x, y + 1.8, 4, 0, Math.PI); c.bezierCurveTo(x - 4, y - .5, x - 1.2, y - 3, x, y - 5.5); c.fill(); },
+  up(c, x, y, col) { stk(c, col, 2.2); c.beginPath(); c.moveTo(x, y + 7); c.lineTo(x, y - 6.5); c.moveTo(x - 6, y - .5); c.lineTo(x, y - 6.8); c.lineTo(x + 6, y - .5); c.stroke(); },
+  gear(c, x, y, col) { stk(c, col, 1.5); c.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; c.moveTo(x + Math.cos(a) * 5, y + Math.sin(a) * 5); c.lineTo(x + Math.cos(a) * 7.3, y + Math.sin(a) * 7.3); } c.stroke(); c.beginPath(); c.arc(x, y, 5, 0, 7); c.stroke(); c.beginPath(); c.arc(x, y, 2, 0, 7); c.stroke(); },
+  search(c, x, y, col) { stk(c, col, 1.6); c.beginPath(); c.arc(x - 1.5, y - 1.5, 5, 0, 7); c.stroke(); c.beginPath(); c.moveTo(x + 2.2, y + 2.2); c.lineTo(x + 6, y + 6); c.stroke(); },
+  check(c, x, y, col) { stk(c, col, 1.8); c.beginPath(); c.moveTo(x - 4.5, y); c.lineTo(x - 1.5, y + 3.5); c.lineTo(x + 5, y - 4); c.stroke(); },
+  hydra(c, x, y, r = 12) {
+    let g;
+    if (c.createConicGradient) { g = c.createConicGradient(-1.2, x, y); ['#ff5f6d', '#ffc371', '#7cf29c', '#5ab0ff', '#b06cff', '#ff5f6d'].forEach((col, i) => g.addColorStop(i / 5, col)); }
+    else { g = c.createLinearGradient(x - r, y, x + r, y); g.addColorStop(0, '#ff5f6d'); g.addColorStop(.5, '#7cf29c'); g.addColorStop(1, '#b06cff'); }
+    stk(c, g, 2); c.beginPath(); c.arc(x, y, r - 1.5, 0, 7); c.stroke();
+    c.save(); c.translate(x, y); c.scale(r / 13, r / 13); c.beginPath();
+    c.moveTo(-3.5, 6.5); c.lineTo(-3, .5); c.lineTo(-6.2, -1.2); c.lineTo(-3, -4.6); c.lineTo(.2, -3.8); c.lineTo(4.4, -8.6); c.lineTo(2.4, -2.8); c.lineTo(5, 1.2); c.lineTo(2.8, 6.5); c.closePath();
+    c.fillStyle = '#f4f4f6'; c.fill(); c.restore();
+  },
+  nav(c, name, x, y, col) {
+    stk(c, col, 1.5); c.fillStyle = col;
+    switch (name) {
+      case 'General': return IC.gear(c, x, y, col);
+      case 'Hydra': return IC.hydra(c, x, y, 9);
+      case 'Ignis': return IC.drop(c, x, y, '#ff8a4c');
+      case 'Appearance': c.beginPath(); c.arc(x, y, 6.5, 0, 7); c.stroke(); [[-2.5, -2], [1.5, -3], [3, 1]].forEach(([a, b]) => { c.beginPath(); c.arc(x + a, y + b, 1.1, 0, 7); c.fill(); }); return;
+      case 'Customization': c.beginPath(); c.moveTo(x, y - 7); c.quadraticCurveTo(x + 1, y - 1, x + 7, y); c.quadraticCurveTo(x + 1, y + 1, x, y + 7); c.quadraticCurveTo(x - 1, y + 1, x - 7, y); c.quadraticCurveTo(x - 1, y - 1, x, y - 7); c.stroke(); return;
+      case 'Voice typing': c.beginPath(); [-6, -3, 0, 3, 6].forEach((d, i) => { const h = [3, 6, 8, 5, 2.5][i]; c.moveTo(x + d, y - h); c.lineTo(x + d, y + h); }); c.stroke(); return;
+      case 'Providers': rr(c, x - 5, y - 5, 10, 10, 2); c.stroke(); c.beginPath(); [-2.5, 2.5].forEach(d => { c.moveTo(x + d, y - 5); c.lineTo(x + d, y - 7.5); c.moveTo(x + d, y + 5); c.lineTo(x + d, y + 7.5); c.moveTo(x - 5, y + d); c.lineTo(x - 7.5, y + d); c.moveTo(x + 5, y + d); c.lineTo(x + 7.5, y + d); }); c.stroke(); return;
+      case 'Updates': c.beginPath(); c.arc(x, y, 6, -1.2, 4.2); c.stroke(); c.beginPath(); c.moveTo(x + 2.5, y - 6.8); c.lineTo(x + 2.4, y - 5.2); c.lineTo(x + 4.8, y - 4); c.stroke(); return;
+      case 'MCP': c.beginPath(); c.moveTo(x - 6, y + 2); c.lineTo(x + 1, y - 5); c.quadraticCurveTo(x + 4, y - 8, x + 6, y - 5); c.quadraticCurveTo(x + 8, y - 2, x + 5, y + 1); c.lineTo(x - 1, y + 7); c.stroke(); return;
+      case 'Plugins': c.beginPath(); c.moveTo(x - 3, y - 7); c.lineTo(x - 3, y - 3); c.moveTo(x + 3, y - 7); c.lineTo(x + 3, y - 3); c.stroke(); rr(c, x - 5.5, y - 3, 11, 6, 2); c.stroke(); c.beginPath(); c.moveTo(x, y + 3); c.lineTo(x, y + 7); c.stroke(); return;
+      case 'Skills': c.beginPath(); c.moveTo(x - 6, y + 6); c.lineTo(x + 2, y - 2); c.stroke(); IC.sun(c, x + 4, y - 4, col, .45); return;
+      case 'Models': c.beginPath(); [-4, 0, 4].forEach(d => { c.moveTo(x - 7, y + d); c.lineTo(x + 7, y + d); }); c.stroke(); [[-3, -4], [3, 0], [-1, 4]].forEach(([a, b]) => { c.beginPath(); c.arc(x + a, y + b, 1.8, 0, 7); c.fillStyle = '#3a3a40'; c.fill(); c.stroke(); }); return;
+      case 'Pills': c.save(); c.translate(x, y); c.rotate(-.7); rr(c, -7, -3.2, 14, 6.4, 3.2); c.stroke(); c.beginPath(); c.moveTo(0, -3.2); c.lineTo(0, 3.2); c.stroke(); c.restore(); return;
+      case 'Source control': c.beginPath(); c.arc(x - 3.5, y - 5, 1.8, 0, 7); c.moveTo(x + 5.3, y - 1); c.arc(x + 3.5, y - 1, 1.8, 0, 7); c.moveTo(x - 1.7, y + 5); c.arc(x - 3.5, y + 5, 1.8, 0, 7); c.stroke(); c.beginPath(); c.moveTo(x - 3.5, y - 3.2); c.lineTo(x - 3.5, y + 3.2); c.moveTo(x + 3.5, y + .8); c.quadraticCurveTo(x + 3.5, y + 3, x - 3.5, y + 3.2); c.stroke(); return;
+    }
+  }
+};
+
+/* ---------- wallpapers ---------- */
+function genWall(kind, sc) {
+  const cv = mk(W * sc, H * sc), c = cv.getContext('2d'); c.setTransform(sc, 0, 0, sc, 0, 0);
+  const rnd = mulberry(kind === 'dusk' ? 11 : 7);
+  if (kind === 'blobs') {
+    c.fillStyle = '#0d0a16'; c.fillRect(0, 0, W, H);
+    c.globalCompositeOperation = 'screen';
+    const B = [[190, 170, 360, '255,58,140'], [980, 130, 400, '36,196,255'], [640, 610, 430, '120,88,255'], [1090, 690, 320, '255,148,46'], [140, 700, 320, '34,226,148'], [600, 260, 250, '255,212,64'], [380, 420, 220, '255,90,70']];
+    for (const [x, y, r, col] of B) { const g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(${col},.95)`); g.addColorStop(.45, `rgba(${col},.55)`); g.addColorStop(1, `rgba(${col},0)`); c.fillStyle = g; c.fillRect(0, 0, W, H); }
+    c.globalCompositeOperation = 'source-over';
+    stk(c, 'rgba(255,255,255,.10)', 1.2);
+    for (let i = 0; i < 9; i++) { c.beginPath(); c.arc(600, 390, 120 + i * 70, 0, 7); c.stroke(); }
+  } else if (kind === 'dusk') {
+    const g = c.createLinearGradient(0, 0, 0, 660); [[0, '#0b0e2c'], [.32, '#28296a'], [.55, '#7d4b98'], [.74, '#ee7e66'], [.88, '#ffc488'], [1, '#ffd9a3']].forEach(([o, col]) => g.addColorStop(o, col));
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    for (let i = 0; i < 170; i++) { c.fillStyle = `rgba(255,255,255,${.15 + rnd() * .7})`; c.fillRect(rnd() * W, rnd() * 300, rnd() < .1 ? 2 : 1.2, rnd() < .1 ? 2 : 1.2); }
+    const sg = c.createRadialGradient(790, 600, 0, 790, 600, 460); sg.addColorStop(0, 'rgba(255,214,160,.85)'); sg.addColorStop(.25, 'rgba(255,170,120,.35)'); sg.addColorStop(1, 'rgba(255,150,120,0)'); c.fillStyle = sg; c.fillRect(0, 0, W, H);
+    c.beginPath(); c.arc(790, 606, 30, 0, 7); c.fillStyle = '#fff1d2'; c.fill();
+    const ridge = (base, amp, col, seed, haze) => {
+      const rd = t => 1 - Math.abs(Math.sin(t));
+      c.beginPath(); c.moveTo(0, H);
+      for (let x = 0; x <= W + 6; x += 5) { const y = base - amp * (.55 * rd(x * .0042 + seed) + .3 * rd(x * .013 + seed * 2.1) + .15 * rd(x * .037 + seed * 3.3)); c.lineTo(x, y); }
+      c.lineTo(W, H); c.closePath(); c.fillStyle = col; c.fill();
+      if (haze) { const hg = c.createLinearGradient(0, base - 60, 0, base + 40); hg.addColorStop(0, 'rgba(255,160,130,0)'); hg.addColorStop(1, haze); c.fillStyle = hg; c.fillRect(0, base - 60, W, 100); }
+    };
+    ridge(590, 190, '#6b4a8e', 1.3, 'rgba(250,150,130,.22)');
+    ridge(628, 140, '#3f2b63', 4.1, 'rgba(230,120,120,.18)');
+    ridge(668, 100, '#1d1434', 2.7);
+    const lg = c.createLinearGradient(0, 668, 0, H); lg.addColorStop(0, '#2a1d44'); lg.addColorStop(1, '#08060e'); c.fillStyle = lg; c.fillRect(0, 668, W, H - 668);
+    for (let i = 0; i < 70; i++) { const y = 672 + rnd() * 105, w = 20 + rnd() * 140 * (1 - (y - 672) / 130); c.fillStyle = `rgba(255,200,150,${.12 + rnd() * .35})`; c.fillRect(790 - w / 2 + (rnd() - .5) * 90, y, w, 1 + rnd() * 1.4); }
+  } else if (kind === 'grid') {
+    // the live demos' lens test, in nth's dark: a grid, colour bands across the composer row, and large type that crosses its rim
+    c.fillStyle = '#1b1c21'; c.fillRect(0, 0, W, H);
+    ['#7fb4ef', '#e79a86', '#a9c79a', '#b9a0e6', '#e7c98d'].forEach((col, i) => { c.fillStyle = col; c.fillRect(i * W / 5, 640, W / 5, 140); });
+    stk(c, 'rgba(255,255,255,.34)', 1);
+    for (let x = 12; x <= W; x += 32) { c.beginPath(); c.moveTo(x + .5, 0); c.lineTo(x + .5, H); c.stroke(); }
+    for (let y = 8; y <= H; y += 32) { c.beginPath(); c.moveTo(0, y + .5); c.lineTo(W, y + .5); c.stroke(); }
+    c.font = `600 230px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'alphabetic'; c.fillStyle = '#ededf0'; c.fillText('Aa', 520, 770);
+    c.font = `500 30px ${FONT}`; c.fillText('Liquid Glass lens test', 980, 610);
+  } else {
+    c.fillStyle = '#0a0a0c'; c.fillRect(0, 0, W, H);
+    const g = c.createRadialGradient(600, 300, 0, 600, 300, 760); g.addColorStop(0, '#161619'); g.addColorStop(1, '#0a0a0c'); c.fillStyle = g; c.fillRect(0, 0, W, H);
+  }
+  return cv;
+}
+const FILTER_OK = (() => { try { const c = mk(4, 4).getContext('2d'); return typeof c.filter === 'string' && (c.filter = 'blur(2px)', c.filter === 'blur(2px)'); } catch (e) { return false; } })();
+function blurCanvas(src, px) {
+  const out = mk(src.width, src.height), c = out.getContext('2d');
+  if (FILTER_OK) { const m = px * 2; c.filter = `blur(${px}px)`; c.drawImage(src, -m, -m, src.width + 2 * m, src.height + 2 * m); c.filter = 'none'; return out; }
+  const f = Math.max(2, Math.round(px / 2.5)), a = mk(src.width / f, src.height / f), ac = a.getContext('2d');
+  ac.imageSmoothingQuality = 'high'; ac.drawImage(src, 0, 0, a.width, a.height);
+  c.imageSmoothingQuality = 'high'; c.drawImage(a, 0, 0, out.width, out.height); return out;
+}
+
+/* ---------- content (thread) ---------- */
+const MSG = 'Make the composer look like iOS 27 Liquid Glass. Right now it reads like plastic buttons on a plastic tray.';
+const A1 = 'Done. The composer is now one clear sheet of glass: a light frost with a small white lift. Only bright content is calmed, so colour still shows through, and it is a little lighter than the window over dark content. The controls on it are glyphs and labels, not more glass.';
+const BUL = ['Edge: the iOS 27 darkened band inside the outline, fading inward.',
+  'Light: one hairline on the lit side, a small glint, a faint bounce opposite.',
+  'Lens: the outer few pixels stay sharp, so the rim visibly bends what crosses it; the centre stays flat.',
+  'Send is the only separate object: a solid silver disc.'];
+const CODE = ['// iOS 27 Liquid Glass: frost, compress, tint, then the edge',
+  'var c    = Frost(p + Bend(depth, normal), blur);',
+  'float l  = Luma(c), lt = Mid + (l - Mid) * (1f - Compress);',
+  'c        = l > lt ? c * MathF.Max(lt / l, Floor(l)) : c + (lt - l);',
+  'c        = Mix(c, Neutral(Grey, Luma(c)), Lerp(TintTop, TintBottom, y)) + Lift;',
+  'c       *= 1f - EdgeDark * Square(1f - depth / EdgeBand);',
+  '// one line of light, brightest where it faces the light',
+  'float lit = MathF.Pow(MathF.Max(Vector2.Dot(normal, Light), 0f), 2f);',
+  'c        += (1f - c) * Hairline(depth) * (Spec * lit + Glint(lit));',
+  'return Saturate(c, Saturation);'];
+const A2 = 'Scroll the thread under the composer: the code lines squeeze and curve into its top rim before they frost over. Drag the light and the hairline follows it round.';
+const A3 = 'The model picker and Settings use the same sheet, with flat fills for their rows instead of nested glass.';
+let CODE_TOP = 560, CONTENT_END = 1100;
+function para(c, s, x, y, w, size = 15, lh = 24, col = T1) { c.font = `400 ${size}px ${FONT}`; const ls = wrapText(c, s, w); ls.forEach((l, i) => txt(c, l, x, y + lh / 2 + i * lh, size, 400, col)); return y + ls.length * lh; }
+function codeLine(c, line, x, y) {
+  c.font = `400 13px ${MONO}`; c.textAlign = 'left'; c.textBaseline = 'middle';
+  if (line.trim().startsWith('//')) { c.fillStyle = '#7d8594'; c.fillText(line, x, y); return; }
+  const re = /(\d+(?:\.\d+)?f?)|([A-Za-z_]\w*)|(\s+)|([^\w\s]+)/g; let m, cx = x;
+  while ((m = re.exec(line))) {
+    const s = m[0]; let col = 'rgba(255,255,255,.88)';
+    if (m[1]) col = '#f2a272';
+    else if (m[2]) { if (/^(float|var|new|return)$/.test(s)) col = '#c4a7ff'; else if (/^[A-Z]/.test(s)) col = line[re.lastIndex] === '(' ? '#ffd580' : '#8ec5ff'; }
+    else if (m[4]) col = 'rgba(255,255,255,.55)';
+    c.fillStyle = col; c.fillText(s, cx, y); cx += c.measureText(s).width;
+  }
+}
+function drawContent(c, thumb) {
+  const X0 = 80, CW = 720; let y = 36;
+  const iw = 240, ih = 135, ix = X0 + CW - iw;
+  c.save(); rr(c, ix, y, iw, ih, 14); c.clip(); c.drawImage(thumb, ix, y, iw, ih); c.restore();
+  y += ih + 8;
+  c.font = `400 15px ${FONT}`; const ml = wrapText(c, MSG, 400); const bw = Math.max(...ml.map(l => c.measureText(l).width)) + 32, bh = ml.length * 22 + 18;
+  fillRR(c, X0 + CW - bw, y, bw, bh, 18, 'rgba(255,255,255,.10)');
+  ml.forEach((l, i) => txt(c, l, X0 + CW - bw + 16, y + 20 + i * 22, 15, 400, T1));
+  y += bh + 30;
+  IC.sun(c, X0 + 6, y + 10, '#ff8a5b', .9); txt(c, 'Opus 5.5 Max', X0 + 20, y + 10, 12.5, 500, T2); y += 30;
+  y = para(c, A1, X0, y, CW); y += 16;
+  txt(c, 'What changed', X0, y + 11, 16, 600, T1); y += 32;
+  for (const b of BUL) { c.beginPath(); c.arc(X0 + 6, y + 12, 2.3, 0, 7); c.fillStyle = T2; c.fill(); y = para(c, b, X0 + 20, y, CW - 20) + 6; }
+  y += 12; CODE_TOP = y;
+  const chh = 34 + CODE.length * 21 + 24;
+  fillRR(c, X0, y, CW, chh, 12, 'rgba(10,10,13,.80)');
+  rr(c, X0 + .5, y + .5, CW - 1, chh - 1, 12); stk(c, 'rgba(255,255,255,.08)', 1); c.stroke();
+  txt(c, 'GlassMaterial.cs', X0 + 16, y + 17, 12, 500, T2); txt(c, 'C#', X0 + CW - 16, y + 17, 11.5, 500, T3, 'right');
+  c.fillStyle = 'rgba(255,255,255,.06)'; c.fillRect(X0, y + 34, CW, 1);
+  CODE.forEach((l, i) => codeLine(c, l, X0 + 16, y + 34 + 12 + 10.5 + i * 21));
+  y += chh + 26;
+  y = para(c, A2, X0, y, CW) + 12;
+  y = para(c, A3, X0, y, CW) + 18;
+  ['copy', 'up', 'down'].forEach((k, i) => { const x = X0 + 8 + i * 30; stk(c, T3, 1.5); if (k === 'copy') { rr(c, x - 5, y - 3, 9, 10, 2); c.stroke(); rr(c, x - 2, y - 7, 9, 10, 2); c.stroke(); } else { c.beginPath(); c.moveTo(x - 5, y + (k === 'up' ? 3 : -3)); c.lineTo(x, y + (k === 'up' ? -4 : 4)); c.lineTo(x + 5, y + (k === 'up' ? 3 : -3)); c.stroke(); } });
+  CONTENT_END = y + 30;
+}
+
+/* ---------- base layer (desktop + window): one base for both versions, so only the glass differs ---------- */
+function drawBase(c, WL, R) {
+  c.drawImage(WL.full, 0, 0, W, H);
+  c.save(); c.shadowColor = 'rgba(0,0,0,.5)'; c.shadowBlur = 50 * R; c.shadowOffsetY = 16 * R; rr(c, WIN.x, WIN.y, WIN.w, WIN.h, WIN.r); c.fillStyle = '#000'; c.fill(); c.restore();
+  c.save(); rr(c, WIN.x, WIN.y, WIN.w, WIN.h, WIN.r); c.clip();
+  if (S.backdrop === 'grid') {
+    // lens test: the window is see-through, so the composer sits straight on the test card
+    c.drawImage(WL.full, 0, 0, W, H);
+    c.fillStyle = 'rgba(0,0,0,.10)'; c.fillRect(WIN.x, WIN.y, WIN.w, WIN.h);
+  } else {
+    // the app's window: native acrylic, a 0.26 black scrim, a Surface tint at 0.12, then the detail sheet (black 0.22, Surface 0.22)
+    c.drawImage(WL.acrylic, 0, 0, W, H);
+    c.fillStyle = 'rgba(0,0,0,.26)'; c.fillRect(WIN.x, WIN.y, WIN.w, WIN.h);
+    c.fillStyle = 'rgba(30,30,32,.12)'; c.fillRect(WIN.x, WIN.y, WIN.w, WIN.h);
+    c.fillStyle = 'rgba(0,0,0,.22)'; c.fillRect(DX, WIN.y, DW, WIN.h);
+    c.fillStyle = 'rgba(30,30,32,.22)'; c.fillRect(DX, WIN.y, DW, WIN.h);
+  }
+  c.restore();
+  rr(c, WIN.x + .5, WIN.y + .5, WIN.w - 1, WIN.h - 1, WIN.r); stk(c, 'rgba(255,255,255,.12)', 1); c.stroke();
+}
+// today's window chrome adds a 14 px white wash at the top; drawn as a patch so the base stays shared
+function drawSheenT(c) { const wr = c.createLinearGradient(0, WIN.y, 0, WIN.y + 14); wr.addColorStop(0, 'rgba(255,255,255,.12)'); wr.addColorStop(1, 'rgba(255,255,255,0)'); c.save(); rr(c, WIN.x, WIN.y, WIN.w, WIN.h, WIN.r); c.clip(); c.fillStyle = wr; c.fillRect(WIN.x, WIN.y, WIN.w, 14); c.restore(); }
+
+
+/* ---------- label patches ---------- */
+const GROUPS = [['Today', ['Glass engine pass', 'Composer aura fix', 'Hydra heads at once']], ['Yesterday', ['Installer rebuild', 'Ignis pill naming', 'Popover tip radius']], ['Previous 7 days', ['Settings search field', 'Codex thread sync', 'Voice typing latency', 'Gallery explore notes', 'Archive sweep']]];
+const SBROWS = []; { let y = 128; GROUPS.forEach((g, gi) => { y += 14; g[1].forEach((t, i) => { SBROWS.push({t, y, sel:gi === 0 && i === 0}); y += 30; }); y += 16; }); }
+function drawSidebar(c, v) {
+  const t3 = v === 'L' ? T3L : T3; SCRIM = v === 'L' ? .5 : 0;
+  IC.compose(c, 58, 57, T1); txt(c, 'New chat', 78, 57, 14, 500, T1); txt(c, 'Ctrl N', 270, 57, 11, 500, t3, 'right');
+  fillRR(c, 36, 84, 248, 30, 15, 'rgba(255,255,255,.07)');
+  IC.search(c, 58, 99, T2); txt(c, 'Search', 74, 99, 13.5, 400, t3); txt(c, 'Ctrl K', 268, 99, 11, 500, t3, 'right');
+  let y = 128; GROUPS.forEach(g => { txt(c, g[0], 50, y, 11.5, 600, t3); y += 14 + g[1].length * 30 + 16; });
+  for (const r of SBROWS) {
+    if (r.sel) fillRR(c, SBSEL.x, r.y, SBSEL.w, 30, v === 'T' ? 7 : 10, v === 'T' ? 'rgba(255,255,255,.07)' : 'rgba(255,255,255,.11)');
+    txt(c, r.t, 50, r.y + 15, 13.5, r.sel ? 600 : 400, r.sel ? T1 : 'rgba(255,255,255,.84)');
+  }
+  IC.gear(c, 58, WB - 36, T2); txt(c, 'Settings', 76, WB - 36, 13.5, 400, T2);
+  c.beginPath(); c.arc(266, WB - 36, 12, 0, 7); c.fillStyle = 'rgba(255,255,255,.14)'; c.fill(); txt(c, 'O', 266, WB - 35.5, 11.5, 600, T1, 'center');
+  SCRIM = 0;
+}
+function divider(c, x, y, a = .20) { c.fillStyle = `rgba(255,255,255,${a})`; c.fillRect(x - .5, y - 7, 1, 14); }
+function drawToolbar(c, v) {
+  const X = ICL[v]; SCRIM = v === 'L' ? .35 : 0;
+  IC.sidebar(c, X[0], 50, T1); IC.compose(c, X[1], 50, T1); IC.hydra(c, X[2], 50, 12); IC.lock(c, X[3], 50.5, T1);
+  IC.ext(c, 885, 50, T1); divider(c, 902, 50); IC.play(c, 920, 50, T1);
+  IC.term(c, 971, 50, T1); divider(c, 988, 50); IC.pm(c, 1005, 50, T1);
+  txt(c, 'Glass engine pass', TITLEX[v], 50, 15, 600, T1);
+  IC.min(c, 1061, 50, T2); IC.max(c, 1107, 50, T2); IC.close(c, 1153, 50, T2);
+  SCRIM = 0;
+}
+// the voice orb as the app draws it: a crisp dark sphere with one thin streak of light, 24 px
+function drawOrb(c, ox, oy, r = 12) {
+  let g = c.createRadialGradient(ox - r * .3, oy - r * .38, r * .1, ox, oy, r);
+  g.addColorStop(0, '#3b3b47'); g.addColorStop(.55, '#17171d'); g.addColorStop(1, '#060608');
+  c.beginPath(); c.arc(ox, oy, r, 0, 7); c.fillStyle = g; c.fill();
+  c.save(); c.beginPath(); c.arc(ox, oy, r - .6, 0, 7); c.clip();
+  g = c.createLinearGradient(ox - r, 0, ox + r, 0);
+  g.addColorStop(0, 'rgba(120,140,255,0)'); g.addColorStop(.3, 'rgba(150,150,255,.55)'); g.addColorStop(.5, 'rgba(250,248,255,.98)'); g.addColorStop(.7, 'rgba(255,150,200,.55)'); g.addColorStop(1, 'rgba(255,140,190,0)');
+  c.fillStyle = g; c.beginPath(); c.ellipse(ox, oy + .6, r * .92, 1.25, 0, 0, 7); c.fill();
+  g = c.createRadialGradient(ox, oy + .6, 0, ox, oy + .6, r * .5); g.addColorStop(0, 'rgba(190,200,255,.35)'); g.addColorStop(1, 'rgba(190,200,255,0)'); c.fillStyle = g; c.fillRect(ox - r, oy - r, 2 * r, 2 * r);
+  c.restore();
+  c.beginPath(); c.arc(ox, oy, r - .5, 0, 7); stk(c, 'rgba(255,255,255,.16)', 1); c.stroke();
+}
+// the app's composer inventory (codex-t46 renders): bare paperclip, link, placeholder, orb, text model chip, effort ring, send
+function drawComposerLabels(c, v) {
+  SCRIM = v === 'L' ? .3 : 0;
+  IC.clip(c, CTL.clip, CY, v === 'T' ? T2 : T1);
+  IC.link(c, CTL.link, CY, T2); txt(c, 'Ask Claude for anything; big jobs go out to a team of heads', CTL.link + 15, CY, 14.5, 400, v === 'T' ? 'rgba(255,255,255,.48)' : 'rgba(255,255,255,.62)');
+  SCRIM = 0;
+  drawOrb(c, CTL.orb, CY);
+  IC.sun(c, CTL.sun, CY, '#ff8a5b', .9); txt(c, 'Opus 5.5 Max', CTL.sun + 13, CY, 13.5, 500, MODELC); IC.chev(c, CTL.sun + 113, CY + 1, 'rgba(255,168,128,.8)');
+  IC.ring(c, CTL.ring, CY, 'rgba(255,255,255,.42)', 7);
+  if (v === 'T') { c.save(); c.translate(CTL.send, CY); c.scale(.72, .72); IC.up(c, 0, 0, 'rgba(255,255,255,.82)'); c.restore(); }
+  else { c.save(); c.translate(CTL.send, CY); c.scale(.86, .86); IC.up(c, 0, 0, '#141416'); c.restore(); }
+}
+
+const ROWS = [['Opus 5.5 Max', 'Anthropic', 1], ['Opus 5.5', 'Anthropic', 1], ['Sonnet 5.5', 'Anthropic', 1], ['Sonnet 5.5 (batch)', 'OpenRouter', 0], ['GPT-6.1 Sol', 'OpenAI', 0], ['Fledge', 'OpenCode', 0], ['Haiku 5', 'Anthropic', 1]];
+function rowIcon(c, x, y, a) { if (a) IC.sun(c, x, y, '#ff9a6b', .85); else { stk(c, T2, 1.5); c.beginPath(); for (let i = 0; i < 6; i++) { const t = i * Math.PI / 3 + Math.PI / 6; c[i ? 'lineTo' : 'moveTo'](x + Math.cos(t) * 6, y + Math.sin(t) * 6); } c.closePath(); c.stroke(); } }
+function drawPop(c) {
+  const p = POP; c.save(); rr(c, p.x, p.y, p.w, p.h, 20); c.clip();
+  IC.chevL(c, p.x + 20, p.y + 22, T2); txt(c, 'Select model', p.x + 32, p.y + 22, 13, 500, T2);
+  fillRR(c, p.x + 10, p.y + 40, 310, 34, 17, 'rgba(255,255,255,.07)');
+  IC.search(c, p.x + 30, p.y + 57, T2); txt(c, 'Search models', p.x + 44, p.y + 57, 13.5, 400, T3);
+  ROWS.forEach((r, i) => {
+    const ry = p.y + 84 + i * 46;
+    if (!i) fillRR(c, p.x + 6, ry + 1, 304, 44, 14, 'rgba(255,255,255,.10)');
+    rowIcon(c, p.x + 25, ry + 23, r[2]); txt(c, r[0], p.x + 46, ry + 15, 14, i ? 500 : 600, T1); txt(c, r[1], p.x + 46, ry + 32, 11.5, 400, T2);
+    if (!i) IC.check(c, p.x + p.w - 38, ry + 23, T1);
+  });
+  fillRR(c, p.x + p.w - 9, p.y + 88, 4, 118, 2, 'rgba(255,255,255,.22)');
+  c.restore();
+}
+const NAV = ['General', 'Hydra', 'Ignis', 'Appearance', 'Customization', 'Voice typing', 'Providers', 'Updates', 'MCP', 'Plugins', 'Skills', 'Models', 'Pills', 'Source control'];
+const NAVSEL = {T:4, L:4};
+const TOGS = {T:[['sidebar', 900, 515]], L:[['contrast', 900, 457], ['reduce', 900, 515], ['sidebar', 900, 573]]};
+function card(c, x, y, w, h) { fillRR(c, x, y, w, h, 16, 'rgba(255,255,255,.035)'); }
+function row(c, y, title, desc) { txt(c, title, 462, y + 20, 13.5, 600, T1); txt(c, desc, 462, y + 39, 12, 400, T2); }
+function hr(c, y) { c.fillStyle = 'rgba(255,255,255,.07)'; c.fillRect(462, y, 488, 1); }
+function picker(c, x, y, label) { fillRR(c, x, y, 120, 30, 15, 'rgba(255,255,255,.08)'); txt(c, label, x + 14, y + 15, 13, 500, T1); IC.chev(c, x + 104, y + 16, T2); }
+function settingsNav(c, v) {
+  fillRR(c, 222, 114, 188, 34, 17, 'rgba(255,255,255,.07)');
+  IC.search(c, 242, 131, T2); txt(c, 'Search', 258, 131, 13.5, 400, T3);
+  NAV.forEach((n, i) => {
+    const y = 162 + i * 30 + 15, sel = i === NAVSEL[v];
+    if (sel) fillRR(c, 222, 162 + i * 30, 188, 30, 8, 'rgba(255,255,255,.10)');
+    IC.nav(c, n, 241, y, sel ? T1 : T2); txt(c, n, 260, y, 13.5, sel ? 600 : 400, sel ? T1 : 'rgba(255,255,255,.82)');
+  });
+  c.fillStyle = 'rgba(255,255,255,.06)'; c.fillRect(422, SET.y + 16, 1, SET.h - 32);
+  IC.close(c, 962, 126, T1, 4.5);
+}
+// both versions open the same page, Settings > Customization; Liquid glass adds the Glass section the app will ship
+function czTop(c) {
+  txt(c, 'Customization', 446, 126, 20, 600, T1);
+  card(c, 446, 148, 520, 76);
+  // the preview composer on its stage, with the composer light
+  const bx = 470, by = 166, bw = 472, bh = 40;
+  c.save(); const ag = c.createLinearGradient(bx, 0, bx + bw, 0);
+  ag.addColorStop(0, 'rgba(90,230,160,.55)'); ag.addColorStop(.38, 'rgba(90,190,255,.45)'); ag.addColorStop(.72, 'rgba(160,120,255,.45)'); ag.addColorStop(1, 'rgba(255,110,180,.6)');
+  c.shadowColor = 'rgba(150,140,255,.35)'; c.shadowBlur = 8 * c.getTransform().a; rr(c, bx, by, bw, bh, 20); stk(c, ag, 1.4); c.stroke(); c.restore();
+  fillRR(c, bx, by, bw, bh, 20, 'rgba(255,255,255,.06)');
+  IC.clip(c, bx + 20, by + 20, T2); txt(c, 'Ask Claude for anything', bx + 38, by + 20, 12.5, 400, 'rgba(255,255,255,.5)');
+  drawOrb(c, bx + 318, by + 20, 9); IC.sun(c, bx + 346, by + 20, '#ff8a5b', .7); txt(c, 'Opus 5.5', bx + 356, by + 20, 12, 500, MODELC);
+  IC.ring(c, bx + 424, by + 20, 'rgba(255,255,255,.4)', 5.5); c.beginPath(); c.arc(bx + 450, by + 20, 11, 0, 7); c.fillStyle = 'rgba(255,255,255,.12)'; c.fill();
+  card(c, 446, 234, 520, 56);
+  row(c, 234, 'Style', 'The light around the composer.');
+  fillRR(c, 742, 246, 214, 32, 16, 'rgba(255,255,255,.06)');
+  ['Border beam', 'Uiverse light', 'Off'].forEach((n, i) => { const x = 744 + [0, 78, 160][i], w = [78, 82, 50][i]; if (i === 1) fillRR(c, x, 248, w, 28, 14, 'rgba(255,255,255,.16)'); txt(c, n, x + w / 2, 262, 12, i === 1 ? 600 : 500, i === 1 ? T1 : T2, 'center'); });
+}
+function drawSettingsT(c) {
+  settingsNav(c, 'T');
+  czTop(c);
+  txt(c, 'Look', 448, 312, 13, 600, T2);
+  card(c, 446, 326, 520, 232);
+  row(c, 326, 'Colours', 'The light\u2019s two colours.');
+  ['#5ae6a0', '#5abeff', '#a078ff', '#ff6eb4'].forEach((col, i) => { const x = 942 - i * 24, y = 355; c.beginPath(); c.arc(x, y, 8, 0, 7); c.fillStyle = col; c.fill(); });
+  hr(c, 384); row(c, 384, 'Rim light', 'How bright the line round the bar is.');
+  fillRR(c, 742, 411, 210, 4, 2, 'rgba(255,255,255,.16)'); fillRR(c, 742, 411, 126, 4, 2, 'rgba(255,255,255,.72)');
+  c.save(); c.shadowColor = 'rgba(0,0,0,.35)'; c.shadowBlur = 4; c.shadowOffsetY = 1; fillRR(c, 855, 403, 26, 20, 10, '#f4f4f6'); c.restore();
+  hr(c, 442); row(c, 442, 'Motion', 'How the light moves while a turn runs.'); picker(c, 830, 456, 'Calm');
+  hr(c, 500); row(c, 500, 'Translucent sidebar', 'Let the desktop tint the sidebar.');
+}
+function drawSettingsL(c) {
+  settingsNav(c, 'L');
+  czTop(c);
+  txt(c, 'Glass', 448, 312, 13, 600, T2);
+  card(c, 446, 326, 520, 290);
+  row(c, 326, 'Look', 'Clear lets the most through; Tinted reads best.');
+  fillRR(c, 742, 339, 214, 32, 16, 'rgba(255,255,255,.06)');
+  const st = stopName(S.g);
+  ['Clear', 'Regular', 'Tinted'].forEach((n, i) => { const x = 744 + i * 70; if (st === n) fillRR(c, x, 341, 70, 28, 14, 'rgba(255,255,255,.16)'); txt(c, n, x + 35, 355, 12.5, st === n ? 600 : 500, st === n ? T1 : T2, 'center'); });
+  hr(c, 384); row(c, 384, 'Transparency', 'From more clear to more tinted.');
+  const kx = SLD.x + SLD.w * S.g;
+  fillRR(c, SLD.x, SLD.y - 2, SLD.w, 4, 2, 'rgba(255,255,255,.16)'); fillRR(c, SLD.x, SLD.y - 2, kx - SLD.x, 4, 2, 'rgba(255,255,255,.72)');
+  [0, .5, 1].forEach(t => { c.fillStyle = 'rgba(255,255,255,.35)'; c.fillRect(SLD.x + SLD.w * t - .5, SLD.y + 7, 1, 4); });
+  c.save(); c.shadowColor = 'rgba(0,0,0,.35)'; c.shadowBlur = 4; c.shadowOffsetY = 1; fillRR(c, kx - 13, SLD.y - 10, 26, 20, 10, '#f4f4f6'); c.restore();
+  hr(c, 442); row(c, 442, 'Increase contrast', 'Sharper edges and a stronger line of light.');
+  hr(c, 500); row(c, 500, 'Reduce transparency', 'Solid surfaces instead of glass.');
+  hr(c, 558); row(c, 558, 'Translucent sidebar', 'Let the window behind tint the sidebar.');
+  card(c, 446, 626, 520, 44);
+  KEYS.forEach((k, i) => { const cx = 458 + (i % 4) * 128, y = 637 + Math.floor(i / 4) * 21; txt(c, ({fringe:'Fringe', bezel:'Bezel', shadow:'Shadow'})[k] || FINE[k].name, cx, y, 11, 500, T2); txt(c, FINE[k].fmt(S.p[k]), cx + 118, y, 11, 600, T1, 'right'); });
+}
+
+/* ---------- materials ---------- */
+// u_m (11 x vec4):
+// 0 bend px, bezel px, fringe px, body blur px | 1 rim blur px, tint grey, tint top, tint bottom
+// 2 compress mid, compress amount, saturation, white lift (today: film top, film bottom, saturation, -)
+// 3 edge band px, edge band dark, spec, counter | 4 shadow y, shadow sigma, shadow alpha, contact alpha
+// 5 hairline, pointer glow, press lift, opacity | 6 pointer x, y, hover, press
+// 7 light x, y, mode (0 glass, 1 flat fill, 2 solid, 3 composer light), fade px (negative: fade in from the top) | 8 fill rgba, or for glass: glow sigma, text scrim max, glint, bezel magnification
+// 9 line width (x device px), outer dark line alpha, channel cap (glass: weight of local brightness in the neutral tint), today (0 no, 1 gated, 2 ungated) | 10 tint colour rgb, amount
+// 11 text rect x, y, w, h: the text scrim lives only around it (w 0: everywhere)
+function newM() { const m = new Float32Array(48); m[23] = 1; m[36] = 1; m[38] = 1; return m; }
+const PUT = (m, i, a, b, c, d) => { i *= 4; m[i] = a; m[i + 1] = b; m[i + 2] = c; m[i + 3] = d; };
+// shared body constants (the app build matches these): compression target, neutral grey, white lift, local weight of the neutral tint
+const BODY = {mid:.22, grey:.17, lift:.06, local:.75, rimBlur:1.2, sharpTo:4.5, fullAt:10, floorMid:.85};
+function glassSpec(kind, s) {
+  const p = S.p, F = Math.max(20, p.frost), sm = p.shadow;
+  let bez = p.bezel, blur = F, sh = [0, 1, 0, 0], glow = .045, band = clamp(.065 * s, 2, 4.5), tint = p.tint;
+  switch (kind) {
+    case 'composer': sh = [6, 18, .20, .14]; break;
+    case 'capsule': bez = clamp(p.bezel * .57, 4, .3 * s); blur = F * .55; sh = [3, 9, .18, .12]; break;
+    case 'sidebar': bez = p.bezel * .85; blur = F * 1.4; glow = 0; band = 3.5; break;
+    case 'popover': blur = F * 1.2; sh = [12, 30, .30, .14]; glow = 0; tint += .12; break;   // menus read over busy threads: a little more tint
+    case 'settings': bez = p.bezel * 1.15; blur = F * 1.4; sh = [20, 48, .38, .16]; glow = 0; tint += .14; break;
+  }
+  bez = Math.min(bez, .45 * s);
+  const bend = Math.min(p.refr * bez, 30, .5 * s), q = .6 + .4 * Math.min(sm, 1.6), low = clamp((36 - F) / 16, 0, 1);
+  return {bez, bend, mag:1 + .075 * p.refr, blur, rimBlur:BODY.rimBlur, fringe:p.fringe, glow, band,
+    sh:[sh[0] * q, sh[1] * q, sh[2] * sm, sh[3] * Math.min(sm, 1.4)],
+    tintT:tint, tintB:tint * 1.15 + .01, comp:clamp(.06 + 1.6 * tint, 0, .7), mid:BODY.mid, grey:BODY.grey, sat:p.sat, lift:BODY.lift,
+    bandDark:Math.min(.38, .22 + .45 * tint), spec:p.rim, counter:.05, glint:.30, hair:.07, scrim:clamp(.32 - .5 * tint, .12, .32) + .22 * low};
+}
+function matCommon(kind, m, o, L) {
+  const hv = o.hover || 0, pr = o.press || 0;
+  if (kind === 'hit') return null;
+  if (kind === 'fill') {
+    const a = (o.rest || 0) + .075 * hv + .05 * pr;
+    if (a < .003) return null;
+    PUT(m, 7, 0, 0, 1, 0); PUT(m, 8, 1, 1, 1, a); return m;
+  }
+  if (kind === 'track') { const on = o.on || 0; PUT(m, 7, 0, 0, 1, 0); PUT(m, 8, 1, 1, 1, .14 + .58 * on); return m; }
+  if (kind === 'aura') { PUT(m, 4, 0, 8, 0, 0); PUT(m, 7, 0, 0, 3, 0); PUT(m, 8, 0, 0, 0, o.a == null ? .34 : o.a); return m; }   // the locked composer light
+  if (kind === 'solid') { // the send disc and toggle knobs: solid silver, flat (about 2% top to bottom), light-angled hairline
+    PUT(m, 3, 0, 0, .10, .02); PUT(m, 4, 1, 2.5, .16 * m[23], 0); PUT(m, 5, .04, 0, 0, m[23]);
+    PUT(m, 7, L[0], L[1], 2, 0); const t = o.tone || [.88, .88, .9]; PUT(m, 8, t[0] + .03 * hv, t[1] + .03 * hv, t[2] + .03 * hv, 1); return m;
+  }
+  return undefined;
+}
+function matL(kind, w, h, o) {
+  const m = newM(), s = Math.min(w, h), L = light();
+  PUT(m, 6, o.px || 0, o.py || 0, o.hover || 0, o.press || 0);
+  m[23] = o.op == null ? 1 : o.op;
+  const cm = matCommon(kind, m, o, L); if (cm !== undefined) return cm;
+  const pr = o.press || 0, ic = val('k:contrast'), red = val('k:reduce');
+  const tc = TINTS[S.tintCol];
+  m[38] = BODY.local;
+  if (tc) PUT(m, 10, tc[0], tc[1], tc[2], .16);
+  if (kind === 'knoblens') {
+    if (m[23] < .01) return null;
+    PUT(m, 0, s * .4, s * .34, .4, 1); PUT(m, 1, 1, .9, .04, .06); PUT(m, 2, .15, 0, 1.1, .03);
+    PUT(m, 3, 2, .22, .7, .1); PUT(m, 4, 2, 4, .22 * m[23], 0); PUT(m, 5, .1, 0, 0, m[23]); PUT(m, 7, L[0], L[1], 0, 0); PUT(m, 8, 20, 0, .3, 0); return m;
+  }
+  if (kind === 'edge') { // iOS 27 uniform scroll-edge band, under the title bar and under the composer
+    const p = S.p, b = Math.max(20, p.frost) * .75;
+    m[38] = 0;
+    const tb = o.fadeTop ? .03 + .4 * p.tint : .06 + .9 * p.tint;   // under the composer: mostly blur, a light dim
+    PUT(m, 0, 0, 1, 0, b); PUT(m, 1, b, .17, lerp(tb, .93, red), lerp(tb, .93, red)); PUT(m, 2, o.fadeTop ? .2 : .12, o.fadeTop ? clamp(.1 + .6 * p.tint, 0, .4) : clamp(.15 + 1.1 * p.tint, 0, .55), 1.15, 0);
+    PUT(m, 7, L[0], L[1], 0, o.fadeTop ? -o.fadeTop : 30); return m;
+  }
+  const P = glassSpec(kind, s);
+  let tT = P.tintT, tB = P.tintB, bend = P.bend * (1 + .2 * pr);
+  if (kind === 'sidebar') { const off = 1 - val('k:sidebar'); tT = lerp(tT, .9, off); tB = lerp(tB, .9, off); }
+  tT = lerp(tT, .93, red); tB = lerp(tB, .95, red); bend *= 1 - red;
+  PUT(m, 0, bend, P.bez, P.fringe * (1 - red), P.blur);
+  PUT(m, 1, P.rimBlur, P.grey, tT, tB);
+  PUT(m, 2, P.mid, P.comp, P.sat, P.lift * (1 - red));
+  PUT(m, 3, P.band, P.bandDark + .14 * ic, P.spec + .2 * ic, P.counter);
+  PUT(m, 4, P.sh[0], P.sh[1], P.sh[2] * m[23], P.sh[3] * m[23]);
+  PUT(m, 5, P.hair + .1 * ic, P.glow, .06, m[23]);
+  PUT(m, 7, L[0], L[1], 0, 0);
+  PUT(m, 8, clamp(s * .9, 20, 60), P.scrim * (1 - red), P.glint, lerp(P.mag, 1, red));
+  if (o.trect) PUT(m, 11, ...o.trect);
+  return m;
+
+}
+// today: the current engine (GlassMaterial.cs at 430c705): small pieces bend a fifth, rim and bend gated off over dark,
+// pills are Surface-tinted glass (#1E1E20 at 0.3 plus a 0.3 fill), a uniform rim, a dark contact line outside
+function matT(kind, w, h, o) {
+  const m = newM(), s = Math.min(w, h), L = light();
+  PUT(m, 6, o.px || 0, o.py || 0, o.hover || 0, o.press || 0);
+  m[23] = o.op == null ? 1 : o.op;
+  const cm = matCommon(kind, m, o, L); if (cm !== undefined) return cm;
+  const op = m[23];
+  const small = clamp((s - 16) / 84, .2, 1), bend = Math.min(40, .55 * s * small), bez = Math.min(11, .21 * s), sig = Math.min(12, Math.max(1, .15 * s)), blur = 2.1 * sig;
+  PUT(m, 7, 0, -1, 0, 0); PUT(m, 8, 48, 0, 0, 0);
+  switch (kind) {
+    case 'Tpill': case 'Tsend': case 'Torb': {
+      const g = kind === 'Tsend' ? .10 : kind === 'Torb' ? .03 : .118, t = kind === 'Tsend' ? .86 : kind === 'Torb' ? .78 : .5;
+      PUT(m, 0, bend, bez, .11 * bend, blur); PUT(m, 1, blur, g, t, t + .08); PUT(m, 2, .96, .74, 1.4, 0);
+      PUT(m, 5, .15, .06, .04, op); PUT(m, 9, 2, .6 * op, 1, 1); return m;
+    }
+    case 'Tcomposer':
+      PUT(m, 0, bend, bez, .11 * bend, blur); PUT(m, 1, blur, .118, .17, .17); PUT(m, 2, .94, .70, 1.4, 0);
+      PUT(m, 5, .15, 0, 0, op); PUT(m, 9, 2, .6 * op, 1, 1); return m;
+    case 'Tpopover':
+      PUT(m, 0, 0, 1, 0, 32); PUT(m, 1, 32, 1, .10, .10); PUT(m, 2, 1, 1, 1.15, 0); PUT(m, 4, 1, 3.5, .22 * op, 0);
+      PUT(m, 5, .20, 0, 0, op); PUT(m, 9, 1, .8 * op, .337, 2); return m;
+    case 'Tsettings':
+      PUT(m, 0, 0, 1, 0, 34); PUT(m, 1, 34, .118, .62, .66); PUT(m, 2, 1, 1, 1.1, 0); PUT(m, 4, 18, 26, .5 * op, .2 * op);
+      PUT(m, 5, .12, 0, 0, op); PUT(m, 9, 1, .5 * op, 1, 2); return m;
+  }
+  return null;
+}
+
+/* ---------- scene graph ---------- */
+const CONTAINER = {'tb-side':'tbL', 'tb-new':'tbL', 'tb-hydra':'tbL', 'tb-perm':'tbL', 'tb-open':'tbR1', 'tb-run':'tbR1', 'tb-term':'tbR2', 'tb-diff':'tbR2', 'c-attach':'composer', 'c-orb':'composer', 'c-model':'composer', 'c-effort':'composer', 'c-send':'composer'};
+const SCN = {T:null, L:null};   // the last scene built per version; hit testing reuses it instead of rebuilding
+function scene(v) {
+  const LV = v === 'L', layers = [], motion = S.motion === 'full';
+  // hover and press springs are kept per version, so the pointer over one version never lights the other
+  const hv = id => val('h:' + v + ':' + id), pr = id => val('p:' + v + ':' + id);
+  const cpress = cid => { let p = 0; for (const k in CONTAINER) if (CONTAINER[k] === cid) p = Math.max(p, pr(k)); return p; };
+  const chov = cid => { let h = 0; for (const k in CONTAINER) if (CONTAINER[k] === cid) h = Math.max(h, hv(k)); return h; };
+  const base = {px:S.ptr[0], py:S.ptr[1]};
+  const MAT = LV ? matL : matT;
+  // a glass container: in Liquid glass it swells a little on hover and press (iOS 27 interactive glass)
+  const box = (id, kind, x, y, w, h, r, o = {}) => {
+    const ho = o.hover != null ? o.hover : (LV ? val('ch:' + v + ':' + id) : chov(id)), pp = o.press != null ? o.press : cpress(id);
+    if (LV && motion && o.bulge !== false) { const g = clamp(.06 * Math.min(w, h), 1, 3) * pp + .4 * ho; x -= g; y -= g; w += 2 * g; h += 2 * g; r += g; }
+    return {id, kind, x, y, w, h, r, tip:o.tip || null, clip:o.clip || null, i:!!o.i, m:MAT(kind, w, h, {...base, ...o, hover:ho, press:pp})};
+  };
+  // a control: a flat fill that lights on hover; today the send button is its own glass circle
+  const ctl = (id, x, y, w, h, r, o = {}) => {
+    const ho = hv(id), pp = pr(id), kind = o.kind || 'fill';
+    if (motion && (LV || kind !== 'fill')) { const g = (LV ? .8 : .5) * pp; x -= g; y -= g; w += 2 * g; h += 2 * g; r += g; }
+    return {id, kind, x, y, w, h, r, tip:null, clip:null, i:true, m:MAT(kind, w, h, {...base, ...o, hover:ho, press:pp})};
+  };
+  const aura = c => ({id:'aura', kind:'aura', x:c.x, y:c.y, w:c.w, h:c.h, r:c.r, tip:null, clip:null, i:false, m:matCommon('aura', newM(), {a:LV ? .30 : .34}, [0, -1])});
+  const wclip = [WIN.x, WIN.y, WIN.w, WIN.h, WIN.r];
+  const set = S.scene === 'settings';
+  const sbRows = SBROWS.map((r, i) => ctl('sb-row-' + i, SBSEL.x, r.y, SBSEL.w, 30, LV ? 10 : 7));
+  // the composer's controls are the same in both versions: bare glyphs and a text chip with quiet hover fills
+  const compCtl = () => [ctl('c-attach', CTL.clip - 18, CY - 17, 36, 34, 17), ctl('c-orb', CTL.orb - 16, CY - 16, 32, 32, 16),
+    ctl('c-model', MODEL.x, MODEL.y, MODEL.w, MODEL.h, 16), ctl('c-effort', CTL.ring - 15, CY - 15, 30, 30, 15)];
+  if (LV) {
+    layers.push({shapes:[box('edge', 'edge', DX, WIN.y - 30, DW + 30, 94, 0, {bulge:false, clip:wclip}),
+      box('edgeB', 'edge', DX, CY, DW + 30, WB - CY + 30, 0, {bulge:false, clip:wclip, fadeTop:12})], patches:[]});
+    const X = ICL.L, comp = box('composer', 'composer', COMP.x, COMP.y, COMP.w, COMP.h, COMP.r, {trect:[CTL.clip - 16, CY - 10, CTL.send - 24 - (CTL.clip - 16), 20]});
+    layers.push({shapes:[
+      box('sidebar', 'sidebar', WIN.x - 40, WIN.y - 40, SBW + 40, WIN.h + 80, 0, {bulge:false, clip:wclip, trect:[WIN.x + 22, WIN.y + 22, SBW - 40, WIN.h - 44]}),
+      box('tbL', 'capsule', TBL.x, TBL.y, TBL.w, TBL.h, 17), box('tbR1', 'capsule', TBR1.x, TBR1.y, TBR1.w, TBR1.h, 17), box('tbR2', 'capsule', TBR2.x, TBR2.y, TBR2.w, TBR2.h, 17),
+      comp, aura(comp),
+      ctl('sb-new', 36, 40, 248, 34, 12), ctl('sb-settings', 36, WB - 52, 190, 32, 12), ...sbRows,
+      ...['tb-side', 'tb-new', 'tb-hydra', 'tb-perm'].map((id, i) => ctl(id, X[i] - 17, 35, 34, 30, 15)),
+      ctl('tb-open', 868, 35, 34, 30, 15), ctl('tb-run', 902, 35, 34, 30, 15), ctl('tb-term', 954, 35, 34, 30, 15), ctl('tb-diff', 988, 35, 34, 30, 15),
+      ...compCtl(), ctl('c-send', CTL.send - 16, CY - 16, 32, 32, 16, {kind:'solid'}),
+    ], patches:[
+      {id:'side-L', x:WIN.x, y:WIN.y, w:SBW, h:WIN.h, draw:c => drawSidebar(c, 'L')},
+      {id:'tb-L', x:DX, y:WIN.y, w:DW, h:56, draw:c => drawToolbar(c, 'L')},
+      {id:'comp-L', x:COMP.x, y:COMP.y, w:COMP.w, h:COMP.h, draw:c => drawComposerLabels(c, 'L')},
+    ]});
+  } else {
+    // today: each toolbar button is its own glass circle; in the composer only send is a glass circle (the app's render)
+    const X = ICL.T, comp = box('composer', 'Tcomposer', COMP.x, COMP.y, COMP.w, COMP.h, COMP.r);
+    layers.push({shapes:[
+      ...['tb-side', 'tb-new', 'tb-hydra', 'tb-perm'].map((id, i) => ctl(id, X[i] - 16, 34, 32, 32, 16, {kind:'Tpill'})),
+      box('tbR1', 'Tpill', 864, 34, 76, 32, 16), box('tbR2', 'Tpill', 950, 34, 76, 32, 16),
+      {...ctl('tb-open', 868, 35, 34, 30, 15), m:null}, {...ctl('tb-run', 902, 35, 34, 30, 15), m:null}, {...ctl('tb-term', 954, 35, 34, 30, 15), m:null}, {...ctl('tb-diff', 988, 35, 34, 30, 15), m:null},
+      comp, aura(comp),
+      ctl('sb-new', 36, 40, 248, 34, 8), ctl('sb-settings', 36, WB - 52, 190, 32, 8), ...sbRows,
+    ], patches:[
+      {id:'sheen-T', x:WIN.x, y:WIN.y, w:WIN.w, h:14, draw:drawSheenT},
+      {id:'side-T', x:WIN.x, y:WIN.y, w:SBW, h:WIN.h, draw:c => drawSidebar(c, 'T')},
+      {id:'tb-T', x:DX, y:WIN.y, w:DW, h:56, draw:c => drawToolbar(c, 'T')},
+    ]});
+    layers.push({shapes:[...compCtl(), ctl('c-send', CTL.send - 14, CY - 14, 28, 28, 14, {kind:'Tsend'})],
+      patches:[{id:'comp-T', x:COMP.x, y:COMP.y, w:COMP.w, h:COMP.h, draw:c => drawComposerLabels(c, 'T')}]});
+  }
+  if (!set) {
+    const a = val('pop');
+    if (a > .01) {
+      const sc = (motion ? .9 + .1 * a : 1), ox = POP.tx, oy = POP.y + POP.h + 12, xf = {sc, ox, oy, a};
+      const T = (x, y, w, h) => [ox + (x - ox) * sc, oy + (y - oy) * sc, w * sc, h * sc];
+      const [px, py, pw, ph] = T(POP.x, POP.y, POP.w, POP.h);
+      const rows = ROWS.map((r, i) => { const [x, y, w, h] = T(POP.x + 6, POP.y + 85 + i * 46, 304, 44); return ctl('pop-row-' + i, x, y, w, h, 14 * sc, {op:a}); });
+      layers.push({shapes:[box('pop', LV ? 'popover' : 'Tpopover', px, py, pw, ph, 20 * sc, {bulge:false, op:a, tip:[ox, 12 * sc, 9.36 * sc, 1]}), ...rows],
+        patches:[{id:'pop', x:POP.x, y:POP.y, w:POP.w, h:POP.h, draw:drawPop, xf}]});
+    }
+  } else {
+    layers.push({dim:.45, block:true, shapes:[], patches:[]});
+    const tg = TOGS[v];
+    const tr = (id, x, y) => ({...ctl('tg-' + id, x, y, 50, 28, 14), kind:'track', m:MAT('track', 50, 28, {on:val('k:' + id)})});
+    const extra = LV ? [...[0, 1, 2].map(i => ctl('st-look-' + i, 744 + i * 70, 341, 70, 28, 14)), {...ctl('st-trans', SLD.x - 14, SLD.y - 14, SLD.w + 28, 28, 14), m:null}]
+      : [ctl('st-motion', 830, 456, 120, 30, 15)];
+    layers.push({shapes:[box('set-panel', LV ? 'settings' : 'Tsettings', SET.x, SET.y, SET.w, SET.h, SET.r, {bulge:false}),
+      ctl('set-search', 222, 114, 188, 34, 17), ...NAV.map((n, i) => ctl('nav-' + i, 222, 162 + i * 30, 188, 30, 8)),
+      ctl('st-close', 948, 112, 28, 28, 14), ...extra, ...tg.map(([id, x, y]) => tr(id, x, y))],
+      patches:[{id:'set-' + v, x:SET.x, y:SET.y, w:SET.w, h:SET.h, draw:LV ? drawSettingsL : drawSettingsT, key:LV ? JSON.stringify([S.g, S.p]) : ''}]});
+    // knobs: a solid white pill; in Liquid glass it turns into a clear lens while pressed or moving
+    const knobs = [];
+    for (const [id, tx, ty] of tg) {
+      const pos = val('k:' + id), vv = vel('k:' + id), pp = pr('tg-' + id);
+      const ln = LV && motion ? Math.max(Math.min(1, Math.abs(vv) / 2.5), pp) : 0, stretch = LV && motion ? Math.min(8, Math.abs(vv) * 1.4) : 0;
+      const kw = 26 + stretch + (LV ? 8 : 4) * pp, kh = 24 + (LV ? 4 : 0) * pp, cx = tx + 15 + pos * 20, cy = ty + 14;
+      const r = [cx - kw / 2, cy - kh / 2, kw, kh, kh / 2];
+      knobs.push({id:'knob-' + id, kind:'solid', x:r[0], y:r[1], w:kw, h:kh, r:r[4], tip:null, clip:null, i:false, m:MAT('solid', kw, kh, {op:1 - ln, tone:[.96, .96, .97]})});
+      if (ln > .01) knobs.push({id:'lens-' + id, kind:'knoblens', x:r[0], y:r[1], w:kw, h:kh, r:r[4], tip:null, clip:null, i:false, m:matL('knoblens', kw, kh, {op:ln})});
+    }
+    layers.push({shapes:knobs, patches:[]});
+  }
+  SCN[v] = layers;
+  return layers;
+}
+
+/* ---------- WebGL ---------- */
+const wrapEl = document.getElementById('wrap'), cv = document.getElementById('gl');
+const gl = cv.getContext('webgl2', {alpha:false, antialias:false, premultipliedAlpha:false, preserveDrawingBuffer:false});
+if (!gl) { wrapEl.innerHTML = '<div class="fail">This page needs WebGL2 for real refraction, and this browser does not offer it.</div>'; return; }
+
+const VS = `#version 300 es
+in vec2 a; uniform vec4 u_q; uniform vec2 u_res; uniform vec2 u_o; uniform float u_R; out vec2 v_uv;
+void main(){ vec2 dv=(u_q.xy-u_o+a*u_q.zw)*u_R; gl_Position=vec4(dv.x/u_res.x*2.-1.,1.-dv.y/u_res.y*2.,0.,1.); v_uv=vec2(a.x,1.-a.y); }`;
+const FS_TEX = `#version 300 es
+precision mediump float; uniform sampler2D u_tex; uniform float u_a; in vec2 v_uv; out vec4 o;
+void main(){ o=texture(u_tex,v_uv)*u_a; }`;
+const FS_GLASS = `#version 300 es
+precision highp float;
+uniform sampler2D u_src; uniform vec2 u_res; uniform vec2 u_o; uniform float u_R;
+uniform vec4 u_rect; uniform float u_rad; uniform vec4 u_tip; uniform vec4 u_clip; uniform float u_clipr; uniform vec4 u_m[12];
+in vec2 v_uv; out vec4 o;
+const vec3 LUM=vec3(.2126,.7152,.0722);
+float sdRR(vec2 p,vec2 hs,float r){ vec2 q=abs(p)-hs+r; return length(max(q,0.))+min(max(q.x,q.y),0.)-r; }
+float smin(float a,float b,float k){ float h=clamp(.5+.5*(b-a)/k,0.,1.); return mix(b,a,h)-k*h*(1.-h); }
+float SD(vec2 p){
+  vec2 hs=u_rect.zw*.5; float d=sdRR(p-u_rect.xy-hs,hs,u_rad);
+  if(u_tip.w>.5){ vec2 q=p-vec2(u_tip.x,u_rect.y+u_rect.w); q=vec2(q.x+q.y,q.y-q.x)*.70710678; d=smin(d,sdRR(q,vec2(u_tip.z),3.),4.); }
+  return d;
+}
+vec2 dev(vec2 q){ return vec2((q.x-u_o.x)*u_R,u_res.y-(q.y-u_o.y)*u_R); }
+// frost: 16 taps on a golden-angle spiral, gaussian-weighted, read from a mip level matched to the tap spacing
+vec3 samp(vec2 q,float B){
+  vec2 dp=dev(q); float bd=B*u_R;
+  if(bd<1.) return textureLod(u_src,dp/u_res,0.).rgb;
+  float lod=max(0.,log2(bd/2.2));
+  vec3 c=vec3(0.); float ws=0.;
+  for(int i=0;i<16;i++){
+    float fi=float(i)+.5, r=sqrt(fi/16.), an=fi*2.39996323, w=exp(-2.2*r*r);
+    c+=w*textureLod(u_src,(dp+vec2(cos(an),sin(an))*r*bd)/u_res,lod).rgb; ws+=w;
+  }
+  return c/ws;
+}
+float hash(vec2 p){ vec3 p3=fract(vec3(p.xyx)*.1031); p3+=dot(p3,p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z); }
+void main(){
+  vec4 m0=u_m[0],m1=u_m[1],m2=u_m[2],m3=u_m[3],m4=u_m[4],m5=u_m[5],m6=u_m[6],m7=u_m[7],m8=u_m[8],m9=u_m[9],m10=u_m[10],m11=u_m[11];
+  vec2 p=vec2(gl_FragCoord.x,u_res.y-gl_FragCoord.y)/u_R+u_o;
+  float sd=SD(p), aa=.7/u_R, mask=1.-smoothstep(-aa,aa,sd);
+  float cm=1.;
+  if(u_clipr>=0.){ vec2 hs=u_clip.zw*.5; cm=1.-smoothstep(-aa,aa,sdRR(p-u_clip.xy-hs,hs,u_clipr)); mask*=cm; }
+  float op=m5.w;
+  if(m7.w>0.) op*=1.-smoothstep(u_rect.y+u_rect.w-m7.w,u_rect.y+u_rect.w,p.y);
+  if(m7.w<0.) op*=smoothstep(u_rect.y,u_rect.y-m7.w,p.y);
+  if(m7.z>2.5){                                          // the composer light: a calm additive glow hugging the rim
+    float u=clamp((p.x-u_rect.x)/u_rect.z,0.,1.), gy0=clamp((p.y-u_rect.y)/u_rect.w,0.,1.);
+    vec3 ca=mix(vec3(.35,.92,.62),vec3(.35,.74,1.),smoothstep(0.,.4,u));
+    ca=mix(ca,vec3(.64,.47,1.),smoothstep(.35,.75,u)); ca=mix(ca,vec3(1.,.42,.72),smoothstep(.7,1.,u));
+    float w=sd<0.?exp(sd/3.2):.55*exp(-sd/5.);
+    float e=(.45+.55*pow(abs(u*2.-1.),2.))*(.65+.35*gy0);
+    float a=m8.a*w*e*op*cm;
+    o=vec4(ca*a,0.); return;
+  }
+  float sh=0.;
+  if(m4.z>0.){ float s1=SD(p-vec2(0.,m4.x)); sh=m4.z*.5*(1.-tanh(clamp(.85*s1/max(m4.y,.5),-8.,8.))); }
+  if(m4.w>0.){ float s2=SD(p-vec2(0.,1.)); sh=1.-(1.-sh)*(1.-m4.w*.5*(1.-tanh(clamp(.85*s2/2.5,-8.,8.)))); }
+  if(m9.y>0.){ float lo=1./u_R+.5; float cl=m9.y*smoothstep(-aa,aa,sd)*(1.-smoothstep(lo*.6,lo*1.4,sd)); sh=1.-(1.-sh)*(1.-cl); }
+  sh*=cm;
+  if(mask<=0.){ o=vec4(0.,0.,0.,sh); return; }
+  float mode=m7.z;
+  if(mode>.5&&mode<1.5){ float a=m8.a*mask*op; o=vec4(m8.rgb*a,a+(1.-mask)*sh); return; }
+  float d=max(-sd,0.);
+  float gy=clamp((p.y-u_rect.y)/u_rect.w,0.,1.);
+  vec2 e=vec2(.5,0.);
+  vec2 g=vec2(SD(p+e.xy)-SD(p-e.xy),SD(p+e.yx)-SD(p-e.yx));
+  vec2 n=dot(g,g)>1e-8?normalize(g):vec2(0.,-1.);
+  vec2 Ld=normalize(m7.xy+vec2(1e-5)); float ndl=dot(n,Ld), face=max(ndl,0.);
+  float lw=max(.5,1.05/u_R)*m9.x;                    // about one device pixel
+  float line=1.-smoothstep(lw*.55,lw*1.45,d);
+  float lit=pow(face,1.6), cnt=pow(max(-ndl,0.),3.);
+  vec3 col;
+  if(mode>1.5){
+    col=m8.rgb*mix(1.02,.98,gy);
+    col+=(1.-col)*clamp(line*(m5.x+m3.z*lit+m3.w*cnt),0.,1.);
+  } else {
+    float today=m9.w, gate=1.;
+    if(today>.5&&today<1.5){ float bk=dot(textureLod(u_src,dev(p)/u_res,4.).rgb,LUM); gate=smoothstep(.15,.20,bk); }
+    float bez=max(m0.y,1.), t=clamp(d/bez,0.,1.);
+    float k=1.-sqrt(max(0.,1.-(1.-t)*(1.-t)));       // convex arc: steep at the rim, zero past the bezel
+    vec2 disp=n*m0.x*k*gate;                          // the rim pulls in what lies just outside it
+    float B;
+    if(today>.5) B=mix(m1.x,m0.w,smoothstep(0.,1.,clamp(d/(bez*1.8),0.,1.)));
+    else {
+      float Mg=max(m8.w,1.), Wm=bez*2.2;                // convex bezel: about 1.1x magnification at the rim, flat by 2.2 bezels in
+      float t1=1.-t; disp=n*m0.x*t1*t1*gate;           // the rim pulls in what lies just outside it, squeezed about 3x
+      float u=max(Wm-d,0.); disp-=n*(Mg-1.)/(2.*Mg)*u*u/Wm;
+      B=mix(m1.x,m0.w,smoothstep(4.5,10.,d));           // sharp outer 4.5 px so the bend reads; full frost 10 px in
+    }
+    float bl=length(disp);
+    if(m0.z>0.&&bl>1.){ vec2 cs=(disp/bl)*m0.z*.5*k; col=vec3(samp(p+disp+cs,B).r,samp(p+disp,B).g,samp(p+disp-cs,B).b); }
+    else col=samp(p+disp,B);
+    float lb=dot(col,LUM);                               // what is behind, before the material
+    if(today>.5){
+      col=max(mix(vec3(lb),col,m2.z),0.);
+      col=mix(col,vec3(m1.y),mix(m1.z,m1.w,gy));
+      col*=mix(m2.x,m2.y,gy);
+      col=col+.95*col*(1.-col)*(1.-col);
+      col=min(col,vec3(m9.z));
+      if(m5.y>0.&&m6.z>.001){ vec2 q=p-m6.xy; col+=(1.-col)*m5.y*m6.z*exp(-dot(q,q)/(2.*m8.x*m8.x)); }
+      col+=(1.-col)*m5.z*m6.w;
+      col+=(1.-col)*clamp(line*(m5.x+.06*abs(n.y))*mix(.35,1.,gate),0.,1.);
+    } else {
+      float l=lb, lt=m2.x+(l-m2.x)*(1.-m2.y);           // compress toward one calm value: darks lift, only bright content comes down
+      float fl=.85-.4*smoothstep(.5,.95,l);              // mid-tones keep at least 85% of their brightness
+      col= lt<l ? col*max(lt/max(l,1e-4),fl) : col+(lt-l);
+      l=dot(col,LUM); col=max(mix(vec3(l),col,m2.z),0.);
+      float ln=dot(col,LUM);                             // neutral tint: takes colour out, not light (weight m9.z on the local brightness)
+      col=mix(col,vec3(mix(m1.y,ln,m9.z)),mix(m1.z,m1.w,gy));
+      if(m10.w>0.){ float lc=dot(col,LUM); col=mix(col,m10.rgb*(.35+1.1*lc),m10.w); }
+      col+=(1.-col)*m2.w;                                // white lift
+      if(m8.y>0.){                                       // a soft scrim under the text only, and only where what shows through is bright
+        float tm=m11.z>0.?1.-smoothstep(0.,10.,sdRR(p-m11.xy-m11.zw*.5,m11.zw*.5,min(m11.z,m11.w)*.5)):1.;
+        float lc=dot(col,LUM); col*=1.-m8.y*smoothstep(.3,.7,lc)*smoothstep(4.,10.,d)*tm; }
+
+      col+=(1.-col)*m5.z*m6.w;                             // press: brighten
+      if(m5.y>0.&&m6.z>.001){ vec2 q=p-m6.xy; col+=(1.-col)*m5.y*m6.z*exp(-dot(q,q)/(2.*m8.x*m8.x)); }
+      float eb=1.-clamp(d/max(m3.x,.5),0.,1.); col*=1.-m3.y*eb*eb;   // iOS 27 darkened edge
+      float dark=1.-smoothstep(.12,.45,lb);
+      float glw=exp(-d/1.6)*(1.-line);
+      float gl2=pow(face,14.);
+      float df=1.-clamp(d/4.5,0.,1.); df*=df*(1.-line);           // soft inner light on the lit side (iOS 27: brighter, layered specular)
+      float a1=line*(m5.x*dark*(.35+.65*face)+m3.z*lit+m3.w*cnt+m8.z*gl2)+(.12*m3.z*lit+.18*m8.z*gl2)*glw+.16*m3.z*lit*df;
+      col+=(1.-col)*clamp(a1,0.,1.);
+    }
+  }
+  col+=(hash(gl_FragCoord.xy)-.5)/255.;                  // dither: no banding in the soft gradients
+  float a=mask*op;
+  o=vec4(col*a,a+(1.-mask)*sh);
+}`;
+function compile(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
+function program(fs) { const p = gl.createProgram(); gl.attachShader(p, compile(gl.VERTEX_SHADER, VS)); gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs)); gl.bindAttribLocation(p, 0, 'a'); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); return p; }
+const PG = program(FS_GLASS), PX = program(FS_TEX);
+const locs = (p, ns) => Object.fromEntries(ns.map(n => [n, gl.getUniformLocation(p, n)]));
+const UG = locs(PG, ['u_src', 'u_res', 'u_o', 'u_R', 'u_rect', 'u_rad', 'u_tip', 'u_clip', 'u_clipr', 'u_m', 'u_q']);
+const UX = locs(PX, ['u_tex', 'u_a', 'u_res', 'u_o', 'u_R', 'u_q']);
+const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+const vb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]), gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+function texFrom(src) {
+  const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.generateMipmap(gl.TEXTURE_2D);
+  return t;
+}
+function makeFB(w, h) {
+  const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texStorage2D(gl.TEXTURE_2D, Math.floor(Math.log2(Math.max(w, h))) + 1, gl.RGBA8, w, h);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+  return {t, f, w, h};
+}
+const black = (() => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 255])); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); return t; })();
+
+/* ---------- resources (textures are drawn once at RT, the highest view density) ---------- */
+let RT = 0, contentTex = null, ready = false, stages = [], views = [], dpr = 1;
+const baseTex = {T:null, L:null};
+const PT = new Map();
+const scratch = mk(4, 4);
+function buildWall() {
+  const R = Math.min(RT, 2);
+  const full = genWall(S.backdrop, R), WL = {full, acrylic:blurCanvas(full, 30 * R)};
+  const c = mk(W * R, H * R), x = c.getContext('2d'); x.setTransform(R, 0, 0, R, 0, 0); drawBase(x, WL, R);
+  if (baseTex.T) gl.deleteTexture(baseTex.T); baseTex.T = baseTex.L = texFrom(c);
+}
+let THUMB = null;
+function buildContent() {
+  if (!THUMB) { const d = genWall('dusk', .4); THUMB = mk(480, 270); THUMB.getContext('2d').drawImage(d, 0, 30, 480, 270, 0, 0, 480, 270); }
+  const c = mk(DW * RT, CH * RT), x = c.getContext('2d'); x.setTransform(RT, 0, 0, RT, 0, 0); drawContent(x, THUMB);
+  if (contentTex) gl.deleteTexture(contentTex); contentTex = texFrom(c);
+  S.maxScroll = Math.max(0, CONTENT_END - (WB - CT) + 150);
+}
+function rebuildTextures(nRT) {
+  RT = nRT;
+  for (const e of PT.values()) gl.deleteTexture(e.t); PT.clear();
+  buildWall(); buildContent();
+}
+function patchTex(p) {
+  const k = (p.key || '') + '@' + RT, e = PT.get(p.id);
+  if (e && e.k === k) return e;
+  if (e) gl.deleteTexture(e.t);
+  scratch.width = Math.ceil(p.w * RT); scratch.height = Math.ceil(p.h * RT);
+  const c = scratch.getContext('2d'); c.setTransform(RT, 0, 0, RT, -p.x * RT, -p.y * RT); p.draw(c);
+  const n = {k, t:texFrom(scratch), w:scratch.width / RT, h:scratch.height / RT}; PT.set(p.id, n); return n;
+}
+function sizeView(v) {
+  const fw = Math.max(1, Math.round((v.vw + 2 * v.M) * v.R)), fh = Math.max(1, Math.round((v.vh + 2 * v.M) * v.R));
+  if (v.fb && v.fb[0].w === fw && v.fb[0].h === fh) return;
+  if (v.fb) for (const f of v.fb) { gl.deleteFramebuffer(f.f); gl.deleteTexture(f.t); }
+  v.fb = [makeFB(fw, fh), makeFB(fw, fh)];   // two targets, ping-ponged per layer
+  v.out = null;
+}
+
+/* ---------- rendering ---------- */
+let VO = [0, 0], VR = 1;
+function drawTex(t, x, y, w, h, a, fw, fh) {
+  gl.useProgram(PX); gl.uniform2f(UX.u_res, fw, fh); gl.uniform2f(UX.u_o, VO[0], VO[1]); gl.uniform1f(UX.u_R, VR); gl.uniform4f(UX.u_q, x, y, w, h); gl.uniform1f(UX.u_a, a);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, t); gl.uniform1i(UX.u_tex, 0); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+function renderView(v, layers) {
+  const A = v.fb[0], fw = A.w, fh = A.h; VO = [v.ox - v.M, v.oy - v.M]; VR = v.R;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, A.f); gl.viewport(0, 0, fw, fh);
+  gl.disable(gl.BLEND); gl.clearColor(.035, .035, .043, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+  drawTex(baseTex[v.ver], 0, 0, W, H, 1, fw, fh);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  gl.enable(gl.SCISSOR_TEST);
+  const sx = Math.round((DX - VO[0]) * VR), sy = Math.round(fh - (WB - VO[1]) * VR);
+  gl.scissor(sx, sy, Math.max(0, Math.round(DW * VR)), Math.max(0, Math.round(WIN.h * VR)));
+  if (S.backdrop !== 'grid') drawTex(contentTex, DX, CT - S.scroll, DW, CH, 1, fw, fh);
+  gl.disable(gl.SCISSOR_TEST);
+  gl.bindTexture(gl.TEXTURE_2D, A.t); gl.generateMipmap(gl.TEXTURE_2D);
+  let src = 0;
+  layers.forEach((ly, li) => {
+    const dst = 1 - src, S0 = v.fb[src], D = v.fb[dst];
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, S0.f); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, D.f);
+    gl.blitFramebuffer(0, 0, fw, fh, 0, 0, fw, fh, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, D.f); gl.viewport(0, 0, fw, fh);
+    if (ly.dim) drawTex(black, VO[0], VO[1], fw / VR, fh / VR, ly.dim, fw, fh);
+    gl.useProgram(PG); gl.uniform2f(UG.u_res, fw, fh); gl.uniform2f(UG.u_o, VO[0], VO[1]); gl.uniform1f(UG.u_R, VR);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, S0.t); gl.uniform1i(UG.u_src, 0);
+    for (const s of ly.shapes) {
+      if (!s.m) continue;
+      if (s.x - VO[0] > fw / VR + 80 || s.y - VO[1] > fh / VR + 80 || s.x + s.w - VO[0] < -80 || s.y + s.h - VO[1] < -80) continue;
+      const pad = Math.max(s.m[16] + s.m[17] * 2.6, 3) + 3;
+      gl.uniform4f(UG.u_q, s.x - pad, s.y - pad, s.w + 2 * pad, s.h + 2 * pad + (s.tip ? 16 : 0));
+      gl.uniform4f(UG.u_rect, s.x, s.y, s.w, s.h); gl.uniform1f(UG.u_rad, s.r);
+      gl.uniform4fv(UG.u_tip, s.tip || [0, 0, 0, 0]);
+      if (s.clip) { gl.uniform4f(UG.u_clip, s.clip[0], s.clip[1], s.clip[2], s.clip[3]); gl.uniform1f(UG.u_clipr, s.clip[4]); } else gl.uniform1f(UG.u_clipr, -1);
+      gl.uniform4fv(UG.u_m, s.m);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
+    for (const p of ly.patches) {
+      const e = patchTex(p), xf = p.xf;
+      if (xf) drawTex(e.t, xf.ox + (p.x - xf.ox) * xf.sc, xf.oy + (p.y - xf.oy) * xf.sc, e.w * xf.sc, e.h * xf.sc, xf.a, fw, fh);
+      else drawTex(e.t, p.x, p.y, e.w, e.h, 1, fw, fh);
+    }
+    if (li < layers.length - 1) { gl.bindTexture(gl.TEXTURE_2D, D.t); gl.generateMipmap(gl.TEXTURE_2D); }
+    src = dst;
+  });
+  return v.fb[src];
+}
+let perfMs = 0, perfN = 0, gpuMs = null; const perfL = [];
+// real GPU time where the browser exposes it (EXT_disjoint_timer_query_webgl2); otherwise only CPU submit time is shown
+const TQ = gl.getExtension('EXT_disjoint_timer_query_webgl2');
+let tqPending = null;
+function pollTQ(n = 0) {
+  if (!tqPending) return;
+  const ok = gl.getQueryParameter(tqPending, gl.QUERY_RESULT_AVAILABLE), dis = gl.getParameter(TQ.GPU_DISJOINT_EXT);
+  if (ok && !dis) { const ms = gl.getQueryParameter(tqPending, gl.QUERY_RESULT) / 1e6; gpuMs = gpuMs == null ? ms : gpuMs * .8 + ms * .2; }
+  if (ok || dis || n > 40) { gl.deleteQuery(tqPending); tqPending = null; showPerf(); return; }
+  setTimeout(() => pollTQ(n + 1), 30);
+}
+// dirty: the versions whose look changed this frame ('T', 'L'); views of other versions keep their last frame
+function render(dirty) {
+  if (!ready) return;
+  const t0 = performance.now();
+  let q = null; if (TQ && !tqPending) { q = gl.createQuery(); gl.beginQuery(TQ.TIME_ELAPSED_EXT, q); }
+  const lay = {};
+  for (const v of views) {
+    if (v.out && !dirty.has(v.ver)) continue;
+    if (!lay[v.ver]) lay[v.ver] = scene(v.ver);
+    v.out = renderView(v, lay[v.ver]);
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, cv.width, cv.height);
+  gl.clearColor(.035, .035, .043, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+  for (const st of stages) {
+    const v = st.view, out = v.out;
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, out.f); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    const m = Math.round(v.M * v.R), sw = out.w - 2 * m, sh = out.h - 2 * m, f = st.from || 0, f1 = st.to == null ? 1 : st.to;
+    const x0 = Math.round(st.x * dpr), x1 = Math.round((st.x + st.w) * dpr), y0 = Math.round(cv.height - (st.y + st.h) * dpr), y1 = Math.round(cv.height - st.y * dpr);
+    const sx0 = Math.round(m + f * sw), sx1 = Math.round(m + f1 * sw), dx0 = Math.round(x0 + f * (x1 - x0)), dx1 = Math.round(x0 + f1 * (x1 - x0));
+    if (sx1 > sx0 && dx1 > dx0) gl.blitFramebuffer(sx0, out.h - m - sh, sx1, out.h - m, dx0, y0, dx1, y1, gl.COLOR_BUFFER_BIT, gl.LINEAR);
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  if (q) { gl.endQuery(TQ.TIME_ELAPSED_EXT); tqPending = q; setTimeout(pollTQ, 30); }
+  const dt = performance.now() - t0; perfN++;
+  if (perfN > 3) { perfL.push(dt); if (perfL.length > 30) perfL.shift(); const so = perfL.slice().sort((x, y) => x - y); perfMs = so[so.length >> 1]; }   // median of the last 30 frames, warm-up excluded
+}
+function showPerf() {
+  perfEl.textContent = gpuMs != null ? `GPU time per frame here: ${gpuMs.toFixed(1)} ms (timer query), CPU submit ${perfMs.toFixed(1)} ms; it renders only while something changes.`
+    : `CPU submit per frame here: ${perfMs.toFixed(1)} ms. This browser does not expose GPU timing, so GPU cost is not measured; it renders only while something changes.`;
+}
+let raf = 0, lastT = 0;
+const DIRTY = new Set();
+// what: 'T', 'L' or nothing (both versions)
+function invalidate(what) { if (what === 'T' || what === 'L') DIRTY.add(what); else { DIRTY.add('T'); DIRTY.add('L'); } if (!raf) raf = requestAnimationFrame(frame); }
+function frame(t) {
+  raf = 0; const dt = lastT ? Math.min(1 / 30, (t - lastT) / 1000) : 1 / 60; lastT = t;
+  const act = stepSprings(dt, DIRTY);
+  const d = new Set(DIRTY); DIRTY.clear();
+  render(d);
+  if (act) { if (!raf) raf = requestAnimationFrame(frame); } else { lastT = 0; showPerf(); }
+}
+
+const perfEl = document.getElementById('perf');
+
+/* ---------- layout ---------- */
+const tagsEl = document.getElementById('tags'), handle = document.getElementById('handle'), zoomEl = document.getElementById('zoomctl'), kbEl = document.getElementById('kb');
+const VT = {ver:'T', ox:0, oy:0, vw:W, vh:H, M:0, R:1, fb:null}, VL = {ver:'L', ox:0, oy:0, vw:W, vh:H, M:0, R:1, fb:null};
+const VC1 = {ver:'L', ox:0, oy:COMP.y - 44, vw:600, vh:COMP.h + 44 + 18, M:44, R:2, fb:null};
+const VC2 = {ver:'L', ox:0, oy:COMP.y - 44, vw:600, vh:COMP.h + 44 + 18, M:44, R:2, fb:null};
+let rebuildTimer = 0, mainH = 0, mainSt = [];
+function layout() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  const cw = wrapEl.clientWidth, gap = 14, narrow = cw < 640;
+  // on a phone the whole window would be about 350 px wide; show the detail pane's right part instead: toolbar pills, picker, model chip, send
+  for (const v of [VT, VL]) { if (narrow) { v.ox = DR + 6 - 600; v.oy = WIN.y; v.vw = 600; v.vh = WIN.h; } else { v.ox = 0; v.oy = 0; v.vw = W; v.vh = H; } }
+  const AR = VT.vh / VT.vw;
+  let sw, sh; stages = []; views = [];
+  if (S.mode === 'sbs') {
+    const hd = 26;
+    if (cw >= 900) { sw = (cw - gap) / 2; sh = sw * AR; mainH = sh + hd; stages = [{view:VT, x:0, y:hd, w:sw, h:sh}, {view:VL, x:sw + gap, y:hd, w:sw, h:sh}]; }
+    else { sw = cw; sh = sw * AR; mainH = sh * 2 + gap + 2 * hd; stages = [{view:VT, x:0, y:hd, w:sw, h:sh}, {view:VL, x:0, y:sh + gap + 2 * hd, w:sw, h:sh}]; }
+    views.push(VT, VL);
+  } else {
+    sw = cw; sh = cw * AR; mainH = sh;
+    if (S.mode === 'today') { stages = [{view:VT, x:0, y:0, w:sw, h:sh}]; views.push(VT); }
+    else if (S.mode === 'liquid') { stages = [{view:VL, x:0, y:0, w:sw, h:sh}]; views.push(VL); }
+    else { stages = [{view:VT, x:0, y:0, w:sw, h:sh, to:S.split}, {view:VL, x:0, y:0, w:sw, h:sh, from:S.split}]; views.push(VT, VL); }
+  }
+  mainSt = stages.slice();
+  VT.R = VL.R = clamp(sw * dpr / VT.vw, .4, 2.5);
+  // the composer close-up: its two ends, where the lens is, side by side in height
+  let y = mainH + (narrow ? 70 : 40);
+  VC1.ver = VC2.ver = S.zoomV;
+  const zl = S.zoomV === 'L' ? 'Liquid glass' : 'Today';
+  const z = cw >= 940 ? 2 : cw >= 640 ? 1.6 : 1.4, vw = cw / z;
+  VC1.vw = VC2.vw = vw; VC1.ox = COMP.x - 30; VC2.ox = COMP.x + COMP.w + 30 - vw;
+  VC1.R = VC2.R = Math.min(2.5, z * dpr);
+  const h = VC1.vh * z;
+  stages.push({view:VC1, x:0, y, w:cw, h}); stages.push({view:VC2, x:0, y:y + h + 10, w:cw, h});
+  views.push(VC1, VC2); y += 2 * h + 10;
+  const caption = `<b>Composer at ${z}x</b> &middot; ${zl} &middot; left end, then right end`;
+  for (const v of views) sizeView(v);
+  wrapEl.style.height = y + 'px';
+  cv.style.width = cw + 'px'; cv.style.height = y + 'px';
+  const pw = Math.round(cw * dpr), ph = Math.round(y * dpr);
+  if (cv.width !== pw || cv.height !== ph) { cv.width = pw; cv.height = ph; }
+  const nRT = clamp(Math.max(...views.map(v => v.R)), 1, 2.5);
+  if (!RT) { rebuildTextures(nRT); ready = true; }
+  else if (Math.abs(nRT - RT) / RT > .05) { clearTimeout(rebuildTimer); rebuildTimer = setTimeout(() => { rebuildTextures(nRT); invalidate(); }, 160); }
+  tagsEl.innerHTML = '';
+  const small = sw < 560;
+  const tag = (s, x, ty, right) => { const d = document.createElement('div'); d.className = 'tag'; d.textContent = s; d.style.top = ty + 'px'; if (right != null) d.style.right = right + 'px'; else d.style.left = x + 'px'; tagsEl.appendChild(d); };
+  const lname = 'Liquid glass \u00b7 ' + (stopName(S.g) || lookName(S.g));
+  for (const st of mainSt) {
+    const ty = st.y + (small ? 4 : 8);
+    if (S.mode === 'split') { if (st.view === VT) tag('Today', 8, ty); else tag(lname, 0, ty, 8); }
+    else if (S.mode === 'sbs') { const d = document.createElement('div'); d.className = 'cap'; d.innerHTML = '<b>' + (st.view === VT ? 'Today' : lname) + '</b>'; d.style.left = st.x + 'px'; d.style.top = (st.y - 22) + 'px'; d.dataset.l = st.view === VL ? '1' : ''; tagsEl.appendChild(d); }
+    else tag(st.view === VT ? 'Today' : lname, st.x + 8, ty);
+    // a touch pad over the thread, so a finger can scroll it (the rest of the page keeps native panning)
+    const a = toStage(st, DX, CT), b = toStage(st, DR, COMP.y - 6);
+    const tp = document.createElement('div'); tp.className = 'tpad'; Object.assign(tp.style, {left:Math.max(st.x, a[0]) + 'px', top:a[1] + 'px', width:Math.max(0, Math.min(st.x + st.w, b[0]) - Math.max(st.x, a[0])) + 'px', height:Math.max(0, b[1] - a[1]) + 'px'});
+    tagsEl.appendChild(tp);
+  }
+  const cap = document.createElement('div'); cap.className = 'cap'; cap.innerHTML = caption; cap.style.top = (mainH + 12) + 'px'; tagsEl.appendChild(cap);
+  zoomEl.style.top = (mainH + (narrow ? 34 : 6)) + 'px'; zoomEl.style.left = narrow ? '0' : ''; zoomEl.style.right = narrow ? '' : '0';
+  if (S.mode === 'split') { handle.style.display = 'block'; handle.style.left = (S.split * sw) + 'px'; handle.style.height = sh + 'px'; handle.setAttribute('aria-valuenow', Math.round(S.split * 100)); }
+  else handle.style.display = 'none';
+  buildKb();
+  invalidate();
+}
+const toStage = (st, lx, ly) => [st.x + (lx - st.view.ox) / st.view.vw * st.w, st.y + (ly - st.view.oy) / st.view.vh * st.h];
+
+/* ---------- keyboard: real buttons laid over the canvas controls (focus lights the control, Enter or Space presses it) ---------- */
+const KB = {thread:[['c-attach', 'Attach files'], ['c-orb', 'Voice typing'], ['c-model', 'Model, Opus 5.5 Max: open or close the picker'], ['c-effort', 'Effort'], ['c-send', 'Send'], ['sb-settings', 'Open Settings']],
+  settings:[['st-close', 'Close Settings'], ['st-look-0', 'Look: Clear'], ['st-look-1', 'Look: Regular'], ['st-look-2', 'Look: Tinted'], ['tg-contrast', 'Increase contrast'], ['tg-reduce', 'Reduce transparency'], ['tg-sidebar', 'Translucent sidebar']]};
+function kbStage() { return mainSt.find(s => s.view.ver === 'L') || mainSt[0]; }
+function buildKb() {
+  kbEl.innerHTML = '';
+  const st = kbStage(); if (!st) return;
+  const v = st.view.ver, sc = SCN[v] || scene(v), shapes = sc.flatMap(l => l.shapes);
+  for (const [id, label] of KB[S.scene]) {
+    const s = shapes.find(q => q.id === id); if (!s) continue;
+    const a = toStage(st, s.x, s.y), b = toStage(st, s.x + s.w, s.y + s.h);
+    if (a[0] < st.x - 1 || b[0] > st.x + st.w + 1) continue;   // outside the cropped phone view
+    const btn = document.createElement('button'); btn.type = 'button'; btn.dataset.id = id; btn.setAttribute('aria-label', label);
+    if (id.startsWith('tg-')) { btn.setAttribute('role', 'switch'); btn.setAttribute('aria-checked', String(!!S.tg[id.slice(3)])); }
+    Object.assign(btn.style, {left:a[0] + 'px', top:a[1] + 'px', width:(b[0] - a[0]) + 'px', height:(b[1] - a[1]) + 'px'});
+    btn.addEventListener('focus', () => { setHover(v + ':' + id, null); invalidate(v); });
+    btn.addEventListener('blur', () => { if (S.hover === v + ':' + id) { setHover(null, null); invalidate(v); } });
+    btn.addEventListener('click', () => { target('p:' + v + ':' + id, 1, ...PRESS); setTimeout(() => { target('p:' + v + ':' + id, 0, ...PRESS); invalidate(v); }, 140); act(id); invalidate(); });
+    kbEl.appendChild(btn);
+  }
+}
+
+/* ---------- interaction ---------- */
+function insideRR(s, x, y) { const hx = s.w / 2, hy = s.h / 2, qx = Math.abs(x - s.x - hx) - hx + s.r, qy = Math.abs(y - s.y - hy) - hy + s.r; return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - s.r <= 0; }
+function hitTest(v, x, y) {
+  const layers = SCN[v] || scene(v);
+  for (let i = layers.length - 1; i >= 0; i--) {
+    const ly = layers[i];
+    for (let j = ly.shapes.length - 1; j >= 0; j--) { const s = ly.shapes[j]; if (s.i && insideRR(s, x, y)) return s.id; }
+    if (ly.block) return null;
+  }
+  return null;
+}
+const CBOX = {composer:COMP, tbL:{...TBL, r:17}, tbR1:{...TBR1, r:17}, tbR2:{...TBR2, r:17}};
+function containerAt(v, x, y) { if (v !== 'L' || S.scene === 'settings') return null; if (S.pop && insideRR({x:POP.x, y:POP.y, w:POP.w, h:POP.h, r:20}, x, y)) return null; for (const k in CBOX) if (insideRR(CBOX[k], x, y)) return k; return null; }
+function locate(e) {
+  const b = wrapEl.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
+  for (let i = stages.length - 1; i >= 0; i--) {
+    const st = stages[i], v = st.view;
+    if (x >= st.x && x <= st.x + st.w && y >= st.y && y <= st.y + st.h) {
+      const f = (x - st.x) / st.w;
+      if (st.from != null && f < st.from) continue;
+      if (st.to != null && f > st.to) continue;
+      return {lx:v.ox + f * v.vw, ly:v.oy + (y - st.y) / st.h * v.vh, v:v.ver, st};
+    }
+  }
+  return null;
+}
+// hover keys carry their version: 'L:c-model'; container keys too: 'L:composer'
+function setHover(key, ckey) {
+  if (S.hover !== key) { if (S.hover) target('h:' + S.hover, 0, ...HOVER); S.hover = key; if (key) target('h:' + key, 1, ...HOVER); wrapEl.style.cursor = key ? 'pointer' : ''; }
+  if (S.chover !== ckey) { if (S.chover) target('ch:' + S.chover, 0, ...HOVER); S.chover = ckey; if (ckey) target('ch:' + ckey, 1, ...HOVER); }
+}
+let dragSplit = false, moveEv = null, moveRaf = 0, touch = null;
+// pointer moves are coalesced to one per frame, and only the version under the pointer is redrawn
+function processMove() {
+  moveRaf = 0; const e = moveEv; moveEv = null; if (!e || dragSplit) return;
+  if (touch) { const st = touch.st; S.scroll = clamp(touch.s0 - (e.clientY - touch.y0) / st.h * st.view.vh, 0, S.maxScroll); invalidate(); return; }
+  const p = locate(e); if (!p) { setHover(null, null); return; }
+  S.ptr = [p.lx, p.ly];
+  if (S.press === 'st-trans') setG(clamp((p.lx - SLD.x) / SLD.w, 0, 1));
+  const id = hitTest(p.v, p.lx, p.ly), cid = containerAt(p.v, p.lx, p.ly);
+  setHover(id ? p.v + ':' + id : null, cid ? p.v + ':' + cid : null);
+  if (cid) invalidate(p.v);   // the pointer glow inside a glass container follows the pointer
+}
+wrapEl.addEventListener('pointermove', e => { moveEv = e; if (!moveRaf) moveRaf = requestAnimationFrame(processMove); });
+wrapEl.addEventListener('pointerleave', () => { setHover(null, null); if (S.press) { target('p:' + S.pressV + ':' + S.press, 0, ...PRESS); S.press = null; } S.ptr = [-999, -999]; invalidate(); });
+wrapEl.addEventListener('pointerdown', e => {
+  if (handle.contains(e.target) || zoomEl.contains(e.target)) return;
+  const p = locate(e); if (!p) return;
+  const id = hitTest(p.v, p.lx, p.ly);
+  if (!id) {
+    if (e.pointerType !== 'mouse' && e.target.classList.contains('tpad') && S.scene === 'thread') { touch = {y0:e.clientY, s0:S.scroll, st:p.st}; try { e.target.setPointerCapture(e.pointerId); } catch (er) {} }
+    return;
+  }
+  S.ptr = [p.lx, p.ly]; S.press = id; S.pressV = p.v; target('p:' + p.v + ':' + id, 1, ...PRESS);
+  if (id === 'st-trans') setG(clamp((p.lx - SLD.x) / SLD.w, 0, 1));
+  invalidate(p.v);
+});
+wrapEl.addEventListener('pointerup', e => {
+  if (touch) { touch = null; return; }
+  const id = S.press; if (!id) return; S.press = null; target('p:' + S.pressV + ':' + id, 0, ...PRESS);
+  const p = locate(e); if (p && hitTest(p.v, p.lx, p.ly) === id) act(id);
+  invalidate();
+});
+wrapEl.addEventListener('pointercancel', () => { touch = null; });
+function act(id) {
+  if (id === 'c-model' && S.scene === 'thread') { S.pop = !S.pop; target('pop', S.pop ? 1 : 0, 320, 30); }
+  else if (id.startsWith('tg-')) setToggle(id.slice(3), !S.tg[id.slice(3)]);
+  else if (id === 'st-close') setScene('thread');
+  else if (id === 'sb-settings') setScene('settings');
+  else if (id.startsWith('st-look-')) setG([0, .5, 1][+id.slice(8)]);
+}
+wrapEl.addEventListener('wheel', e => {
+  const p = locate(e); if (!p || S.scene !== 'thread') return;
+  if (p.lx < DX || p.lx > DR || p.ly < WIN.y || p.ly > WB) return;
+  e.preventDefault();
+  S.scroll = clamp(S.scroll + e.deltaY * (e.deltaMode ? 30 : .7), 0, S.maxScroll); invalidate();
+}, {passive:false});
+handle.addEventListener('pointerdown', e => { dragSplit = true; handle.setPointerCapture(e.pointerId); e.stopPropagation(); });
+handle.addEventListener('pointermove', e => { if (!dragSplit) return; const b = wrapEl.getBoundingClientRect(); S.split = clamp((e.clientX - b.left) / b.width, 0, 1); layout(); });
+handle.addEventListener('pointerup', () => { dragSplit = false; });
+handle.addEventListener('keydown', e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { S.split = clamp(S.split + (e.key === 'ArrowLeft' ? -.05 : .05), 0, 1); layout(); e.preventDefault(); } });
+
+/* ---------- controls and the Glass settings panel ---------- */
+function syncSeg() {
+  document.querySelectorAll('.seg').forEach(g => { const k = g.dataset.k; if (!k) return; g.querySelectorAll('button').forEach(b => {
+    const on = k === 'look' ? stopName(S.g) === b.textContent : String(S[k]) === b.dataset.v; b.setAttribute('aria-pressed', String(on)); }); });
+}
+function setScene(s) { S.scene = s; setHover(null, null); syncSeg(); scene('T'); scene('L'); buildKb(); invalidate(); }
+function setToggle(k, on) { S.tg[k] = on ? 1 : 0; target('k:' + k, S.tg[k], 420, 30); syncPanel(); kbEl.querySelectorAll('[role=switch]').forEach(b => b.setAttribute('aria-checked', String(!!S.tg[b.dataset.id.slice(3)]))); invalidate(); }
+const gEl = document.getElementById('g'), gvEl = document.getElementById('gv'), fineEl = document.getElementById('fine');
+const resetEl = document.getElementById('reset'), customEl = document.getElementById('custom'), lookdEl = document.getElementById('lookd');
+const FIN = {};
+for (const k of KEYS) {
+  const f = FINE[k], r = document.createElement('div'); r.className = 'row col';
+  r.innerHTML = `<div class="top"><span class="rt">${f.name}</span><span class="val"></span></div><input type="range" min="${f.min}" max="${f.max}" step="${f.step}" aria-label="${f.name}"><div class="fine-d">${f.desc}</div>`;
+  const inp = r.querySelector('input'), vl = r.querySelector('.val');
+  inp.addEventListener('input', () => { S.p[k] = clamp(+inp.value, f.min, f.max); syncPanel(); invalidate(); });
+  FIN[k] = {inp, vl}; fineEl.appendChild(r);
+}
+const tintsEl = document.getElementById('tints');
+for (const k in TINTS) {
+  const b = document.createElement('button'); b.dataset.v = k; b.title = k === 'none' ? 'No tint' : k[0].toUpperCase() + k.slice(1); b.setAttribute('aria-label', b.title);
+  if (k === 'none') b.className = 'none'; else b.style.background = `rgb(${TINTS[k].map(x => Math.round(x * 255)).join(',')})`;
+  b.addEventListener('click', () => { S.tintCol = k; syncPanel(); invalidate(); }); tintsEl.appendChild(b);
+}
+const swC = document.getElementById('sw-contrast'), swR = document.getElementById('sw-reduce');
+swC.addEventListener('change', () => setToggle('contrast', swC.checked));
+swR.addEventListener('change', () => setToggle('reduce', swR.checked));
+function isCustom() { const d = lookAt(S.g); return KEYS.some(k => Math.abs(d[k] - S.p[k]) > 1e-3); }
+function setG(g) { S.g = clamp(Math.round(g * 100) / 100, 0, 1); S.p = lookAt(S.g); syncPanel(); syncSeg(); layoutTags(); invalidate(); }
+function layoutTags() { const t = tagsEl.querySelectorAll('.tag'); const lname = 'Liquid glass \u00b7 ' + (stopName(S.g) || lookName(S.g)); t.forEach(d => { if (d.textContent.startsWith('Liquid')) d.textContent = lname; }); tagsEl.querySelectorAll('.cap[data-l="1"] b').forEach(b => { b.textContent = lname; }); }
+function syncPanel() {
+  gEl.value = Math.round(S.g * 100);
+  const st = stopName(S.g);
+  gvEl.textContent = (st === 'Regular' ? 'Regular, default' : st || lookName(S.g)) + ` (${Math.round(S.g * 100)})`;
+  lookdEl.textContent = st === 'Clear' ? 'More clear: the most see-through.' : st === 'Tinted' ? 'More tinted: frostier, reads best.' : st === 'Regular' ? 'Default, the iOS 27 midpoint.' : 'Between two looks.';
+  for (const k of KEYS) { FIN[k].inp.value = S.p[k]; FIN[k].vl.textContent = FINE[k].fmt(S.p[k]); }
+  const cu = isCustom(); customEl.classList.toggle('on', cu); resetEl.disabled = !cu;
+  tintsEl.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === S.tintCol)));
+  swC.checked = !!S.tg.contrast; swR.checked = !!S.tg.reduce;
+  fillTables();
+}
+gEl.addEventListener('input', () => setG(+gEl.value / 100));
+resetEl.addEventListener('click', () => { S.p = lookAt(S.g); syncPanel(); invalidate(); });
+document.querySelectorAll('.seg').forEach(g => g.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return; const k = g.dataset.k, v = b.dataset.v;
+  if (k === 'look') { setG(+v); return; }
+  if (S[k] === v) return; S[k] = v; syncSeg();
+  if (k === 'backdrop') { buildWall(); invalidate(); }
+  else if (k === 'scene') setScene(v);
+  else if (k === 'mode' || k === 'zoomV') layout();
+  else if (k === 'motion') invalidate();
+}));
+const pad = document.getElementById('lightpad'), dot = pad.querySelector('i');
+function placeDot() { const r = pad.clientWidth / 2 || 19; dot.style.left = (r + S.lightT[0] * (r - 6)) + 'px'; dot.style.top = (r + S.lightT[1] * (r - 6)) + 'px'; const a = Math.atan2(S.lightT[1], S.lightT[0]) * 180 / Math.PI; pad.setAttribute('aria-valuetext', `${Math.round((a + 360) % 360)} degrees`); }
+function setLight(x, y) { const l = Math.hypot(x, y) || 1; S.lightT = [x / l, y / l]; target('lx', S.lightT[0], 120, 22); target('ly', S.lightT[1], 120, 22); placeDot(); invalidate(); }
+let dragPad = false;
+function padSet(e) { const b = pad.getBoundingClientRect(); setLight(e.clientX - b.left - b.width / 2, e.clientY - b.top - b.height / 2); }
+pad.addEventListener('pointerdown', e => { dragPad = true; pad.setPointerCapture(e.pointerId); padSet(e); });
+pad.addEventListener('pointermove', e => { if (dragPad) padSet(e); });
+pad.addEventListener('pointerup', () => { dragPad = false; });
+pad.addEventListener('keydown', e => { if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return; const a = Math.atan2(S.lightT[1], S.lightT[0]) + (e.key === 'ArrowLeft' ? -.2 : .2); setLight(Math.cos(a), Math.sin(a)); e.preventDefault(); });
+
+/* the tables and JSON reflect the live settings */
+const f2 = n => (Math.round(n * 100) / 100).toString();
+function fillTables() {
+  const lt = document.getElementById('looktable');
+  lt.innerHTML = '<thead><tr><th>Look</th><th>Slider</th>' + KEYS.map(k => `<th>${FINE[k].name}</th>`).join('') + '<th>Compression</th><th>Edge band</th><th>Text scrim</th><th>Magnification</th></tr></thead><tbody>' +
+    [['Clear', 0], ['Regular (default)', .5], ['Tinted', 1]].map(([n, g]) => { const p = LOOKS[['clear', 'regular', 'tinted'][g * 2]];
+      return `<tr><td>${n}</td><td>${g * 100}</td>` + KEYS.map(k => `<td>${FINE[k].fmt(p[k])}</td>`).join('') + `<td>${f2(clamp(.06 + 1.6 * p.tint, 0, .7))} toward ${BODY.mid}</td><td>${f2(Math.min(.38, .22 + .45 * p.tint))} dark</td><td>${f2(clamp(.32 - .5 * p.tint, .12, .32) + .22 * clamp((36 - p.frost) / 16, 0, 1))}</td><td>${(1 + .075 * p.refr).toFixed(3)}&times;</td></tr>`; }).join('') + '</tbody>';
+  lt.innerHTML += '<tfoot><tr><td>Slider range</td><td>0 to 100</td>' + KEYS.map(k => `<td>${FINE[k].fmt(FINE[k].min)} to ${FINE[k].fmt(FINE[k].max)}</td>`).join('') + '<td colspan="4">shared by all three looks</td></tr></tfoot>';
+  const tb = document.getElementById('ptable');
+  const rows = [[`Composer (${COMP.h} tall, r ${COMP.r})`, 'composer', COMP.h], ['Toolbar capsules (34 tall)', 'capsule', 34], ['Sidebar (edge to edge)', 'sidebar', 300], ['Model picker', 'popover', 404], ['Settings panel', 'settings', 580]];
+  tb.innerHTML = '<thead><tr><th>Surface</th><th>Frost</th><th>Bezel / bend</th><th>Tint and compression</th><th>Edge band</th><th>Light</th><th>Shadow</th></tr></thead><tbody>' + rows.map(([n, k, s]) => { const P = glassSpec(k, s);
+    return `<tr><td>${n}</td><td>${f2(P.blur)} px body from ${BODY.fullAt} px in; ${f2(P.rimBlur)} px in the outer ${BODY.sharpTo} px</td><td>${f2(P.bez)} px arc, ${f2(P.bend)} px bend, ${P.mag.toFixed(3)}&times; at the rim, fringe ${f2(P.fringe)} px</td><td>neutral (${BODY.local} local, ${1 - BODY.local} grey ${P.grey}) at ${f2(P.tintT)}&rarr;${f2(P.tintB)}; compress ${f2(P.comp)} toward ${P.mid}, floor ${BODY.floorMid} of local; lift ${P.lift}; saturation ${f2(P.sat)}; scrim ${f2(P.scrim)}</td><td>${f2(P.band)} px, ${Math.round(P.bandDark * 100)}% dark</td><td>line ${f2(P.spec)}, glint ${P.glint}, bounce ${P.counter}, silver ${P.hair} on dark</td><td>${P.sh[2] ? `0 ${f2(P.sh[0])} ${f2(P.sh[1])} / ${f2(P.sh[2])} + contact ${f2(P.sh[3])}` : 'none'}</td></tr>`; }).join('') + '</tbody>';
+  const surf = {}; for (const [n, k, s] of rows) { const P = glassSpec(k, s); surf[k] = {bezel:+f2(P.bez), bend:+f2(P.bend), magnification:+P.mag.toFixed(3), blur:+f2(P.blur), rimBlur:P.rimBlur, tintTop:+f2(P.tintT), tintBottom:+f2(P.tintB), compress:+f2(P.comp), scrim:+f2(P.scrim), edgeBand:+f2(P.band), edgeDark:+f2(P.bandDark), shadow:P.sh.map(x => +f2(x))}; }
+  document.getElementById('json').textContent = JSON.stringify({look:stopName(S.g) || 'custom', slider:S.g, params:S.p, ranges:Object.fromEntries(KEYS.map(k => [k, [FINE[k].min, FINE[k].max]])), tintColour:S.tintCol, motion:S.motion, increaseContrast:!!S.tg.contrast, reduceTransparency:!!S.tg.reduce,
+    shared:{...BODY, compression:'lt = mid + (l - mid)(1 - compress); l > lt: c *= max(lt/l, floorMid - .4*smoothstep(.5,.95,l)); else c += lt - l', neutralTint:'c = mix(c, mix(grey, luma(c), local), tint)', blurRamp:'mix(rimBlur, frost, smoothstep(sharpTo, fullAt, d))',
+      spec:'line*(rim*max(n.L,0)^1.6 + .30*max(n.L,0)^14 + .05*max(-n.L,0)^3) + silver .07*(.35+.65*max(n.L,0)) on dark ground', edgeBend:'outward n * bend * (1 - sqrt(1 - (1 - d/bezel)^2))', magnification:'inward n * (M-1)/(2M) * (2.2 bezel - d)^2 / (2.2 bezel)', lineWidth:'1 device px',
+      composerLight:'additive rim glow, green to cyan to violet to pink along the bar, 0.30 peak'}, surfaces:surf}, null, 1);
+}
+
+cv.addEventListener('webglcontextlost', e => { e.preventDefault(); ready = false; });
+cv.addEventListener('webglcontextrestored', () => location.reload());
+window.addEventListener('resize', layout);
+if (window.ResizeObserver) new ResizeObserver(() => layout()).observe(wrapEl);
+
+/* ---------- start ---------- */
+const fontsReady = document.fonts ? Promise.race([Promise.all(['400 14px Inter', '500 14px Inter', '600 14px Inter', '400 13px "JetBrains Mono"'].map(f => document.fonts.load(f))), new Promise(r => setTimeout(r, 2500))]) : Promise.resolve();
+try { for (const kv of location.hash.slice(1).split('&')) { const [k, v] = kv.split('='); if (!v) continue;
+  if (['mode', 'scene', 'backdrop', 'zoomV', 'motion', 'tintCol'].includes(k)) S[k] = v;
+  if (k === 'g') { S.g = clamp(+v / 100, 0, 1); S.p = lookAt(S.g); }
+  if (k === 'split') S.split = clamp(+v, 0, 1);
+  if (k === 'pop') { S.pop = v !== '0'; const q = sp('pop', 1); q.x = q.t = S.pop ? 1 : 0; }
+  if (k === 'press' || k === 'hover') for (const ver of ['T', 'L']) sp((k === 'press' ? 'p:' : 'h:') + ver + ':' + v, 1);
+  if (k === 'chover') sp('ch:L:' + v, 1);
+  if (k === 'scroll') S.scroll0 = +v;
+  if (k === 'light') { const a = +v * Math.PI / 180; S.lightT = [Math.cos(a), Math.sin(a)]; sp('lx', 0).x = sp('lx', 0).t = S.lightT[0]; sp('ly', 0).x = sp('ly', 0).t = S.lightT[1]; }
+  if (k in FINE) S.p[k] = clamp(+v, FINE[k].min, FINE[k].max);
+} } catch (e) {}
+for (const id of ['contrast', 'reduce']) { const q = sp('k:' + id, 0); q.x = q.t = S.tg[id]; }
+syncSeg(); syncPanel(); placeDot();
+// text is rasterised once into textures; when a web font arrives late (after the 2.5 s wait), raster it again
+function refreshText() { if (!ready) return; for (const e of PT.values()) gl.deleteTexture(e.t); PT.clear(); buildContent(); invalidate(); }
+if (document.fonts) { document.fonts.addEventListener('loadingdone', refreshText); document.fonts.ready.then(() => setTimeout(refreshText, 0)); }
+fontsReady.catch(() => {}).then(() => {
+  layout();
+  S.scroll = clamp(S.scroll0 != null ? S.scroll0 : CT + CODE_TOP + 46 + 10.5 + 21 * 4 - (COMP.y + 3), 0, S.maxScroll);
+  invalidate();
+  window.__glass = {S, render:() => invalidate(), scene, setG, perf:() => ({cpu:perfMs, gpu:gpuMs}), fontsOK:() => document.fonts ? document.fonts.check('500 14px Inter') : null};
+});
+
+})();
+</script>
+
+</body></html>
