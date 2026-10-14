@@ -5,9 +5,10 @@ Read this page first, then `OWNER-LIST.md` (what the owner found while testing 1
 lags and how it will be fixed). `HANDOFF.md` is the full handoff: the app's history, the state of every
 branch, and the method the owner's own AI agents follow.
 
-The repository is **private**. Never change its visibility and never copy it anywhere public.
+The repository's visibility is the owner's decision: never change it, and never copy the code into another project.
+The code is licensed under the GNU AGPL v3.0 with additional terms; see `LICENSE` and `TRADEMARK.md` at the root.
 
-> **Older instructions in this repository.** `CLAUDE.md`, `AGENTS.md`, `HANDOFF.md` and `WORKER_BRIEF.md` at the repository root were written for the owner's porting agents during the 1.0 port (exact Mac parity, no pushing). For next-release work this folder wins where they disagree: the owner now wants Windows-native behaviour instead of exact Mac parity, and you push your own `cousin/*` branch. Their rules on tests, secrets and never weakening a test still apply.
+> **Older instructions.** The 1.0 port's instructions (exact Mac parity, no pushing) are kept in `docs/history/port-1.0/`. The root `CLAUDE.md` and `AGENTS.md` are current and point here. For next-release work the owner wants Windows-native behaviour instead of exact Mac parity, and you push your own `cousin/*` branch.
 
 ## 1. What nth is
 
@@ -37,8 +38,8 @@ The repository is **private**. Never change its visibility and never copy it any
 1. Branch from `next-release`: `git switch -c cousin/<topic> origin/next-release`.
 2. Commit small steps with clear messages. Push only your own branch.
 3. Open a pull request into `next-release`. The owner's agents review it, run the tests on the owner's PC, and merge it.
-   A free private repository cannot lock branches, so these rules are the only protection: never force-push, never
-   push to someone else's branch.
+   The branches are not locked, so these rules are the only protection: never force-push, never push to someone
+   else's branch.
 
 ## 3. Build and run
 
