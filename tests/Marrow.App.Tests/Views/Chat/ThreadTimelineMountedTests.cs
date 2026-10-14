@@ -42,7 +42,7 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
         // Chrome.swift:40 contentTopInset = chromeTopPadding + capsuleHeight + contentBreathBelowChrome, computed from its three parts (12 + 32 + 28).
         Assert.Equal(12 + 32 + 28, Chrome.ChromeTopPadding + Chrome.CapsuleHeight + Chrome.ContentBreathBelowChrome);
         Assert.Equal(Chrome.ChromeTopPadding + Chrome.CapsuleHeight + Chrome.ContentBreathBelowChrome, Chrome.ContentTopInset);
-        // The pane the cousin's video shows (x 268 to 2558, 2290 wide) and four others: wider than the 860 cap, exactly the cap, narrower, narrower still.
+        // The pane the reference video shows (x 268 to 2558, 2290 wide) and four others: wider than the 860 cap, exactly the cap, narrower, narrower still.
         foreach (var width in new[] { 2290.0, 960.0, 860.0, 600.0, 420.0 })
         {
             mount.Window.Width = width; mount.Advance(150);

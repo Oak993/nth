@@ -1,0 +1,27 @@
+nth
+Copyright (c) 2026 oak993 and the nth contributors.
+
+nth by oak993, https://github.com/Oak993/nth
+
+nth is an application by oak993. It started in September 2026 from a Windows port (a translation from Swift to C#) of Droppy Code, which oak993 has modified and extended since then. It contains:
+
+- Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app
+  Copyright (c) 2026 Jordy Spruit (Droppy). GNU AGPL v3.0 with additional terms (a) to (c).
+- Portions that descend from T3 Code, Copyright (c) 2026 T3 Tools Inc., MIT License.
+- Third-party components listed in THIRD_PARTY_NOTICES.md, THIRD_PARTY_NOTICES_RUNTIME.md and
+  src/Marrow.App/Legal/THIRD_PARTY_NOTICES.md.
+
+nth is not Droppy Code. nth is an independent project: it is not made by, endorsed by or affiliated with Droppy or
+Jordy Spruit, or with any AI provider or other company whose products it works with.
+
+License: GNU Affero General Public License, version 3 only, with the additional terms in LICENSE (Droppy Code's terms
+(a) to (c) and nth's terms (d) to (i)).
+Source code: https://github.com/Oak993/nth (each release is tagged nth-<version>).
+Names and logos: TRADEMARK.md (nth) and src/Marrow.App/Legal/TRADEMARK.md (Droppy).
+Privacy: PRIVACY.md. Security: SECURITY.md.
+
+NO WARRANTY. nth comes with ABSOLUTELY NO WARRANTY, to the extent permitted by applicable law. AI agents that you run
+with nth can run commands, change or delete files and use your provider accounts. Keep backups. See sections 15 to 17
+of the License and term (g) in LICENSE.
+
+Keep this file with every copy of nth (term (d) in LICENSE).

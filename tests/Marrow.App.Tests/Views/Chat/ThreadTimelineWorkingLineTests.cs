@@ -68,7 +68,7 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-117")] // ThreadTimeline.swift:2096-2097,2106-2149,2281; capture clause: the card (the cousin's 1:28-1:34, map/CATALOGUE.md static.thread-timeline) and the badge (setting off: no video)
+    [Trait("Req", "PR-CHAT-117")] // ThreadTimeline.swift:2096-2097,2106-2149,2281; capture clause: the card (the reference video's 1:28-1:34, map/CATALOGUE.md static.thread-timeline) and the badge (setting off: no video)
     public void The_line_is_a_380_point_card_or_a_word_hugging_badge_and_opens_and_closes_over_one_animation_following_the_end_only_on_opening() => ThreadTimelineRig.Run(headless, mount =>
     {
         RunningThread(mount);
@@ -77,7 +77,7 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
         // The card (:2144-2147): 380 wide, 14 leading and trailing, 11 above and below, a continuous rounded rectangle at the pill's radius for the hit shape.
         Assert.Equal(380, frame.Bounds.Width, 3); Assert.Equal(new Thickness(14, 11), frame.Padding); Assert.Equal(TimelineMetrics.PillRadius, frame.CornerRadius.TopLeft);
         Assert.NotNull(frame.Background);
-        // :2178-2181 the fill behind it is the card's own width (the stack it backs hugs what it holds), not the row's: the cousin's card is 380 wide on a 820 column.
+        // :2178-2181 the fill behind it is the card's own width (the stack it backs hugs what it holds), not the row's: the reference card is 380 wide on a 820 column.
         var shell = LogicalQuery.SelfAndDescendants<Border>(line).First(border => border.CornerRadius.TopLeft == TimelineMetrics.PillRadius);
         Assert.Equal(380, shell.Bounds.Width, 3); Assert.True(line.Bounds.Width > 380, "on a row wider than the card");
         // :2122 an HStack aligned on the first text baseline, spacing 8; :2124 the title takes the full width, so the time and the chevron sit at the trailing edge.
@@ -137,7 +137,7 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
     private static double DistanceFromEnd(TimelineMount mount) => mount.Scroll.Extent.Height - mount.Scroll.Offset.Y - mount.Scroll.Viewport.Height;
 
     [Fact]
-    [Trait("Req", "PR-CHAT-121")] // ThreadTimeline.swift:2107-2119,2152-2176,813-829 (the reveal that bypasses the jump-button guard); the cousin's 1:34-1:50 working line opened (no video of the open body)
+    [Trait("Req", "PR-CHAT-121")] // ThreadTimeline.swift:2107-2119,2152-2176,813-829 (the reveal that bypasses the jump-button guard); the reference video's 1:34-1:50 working line opened (no video of the open body)
     public void Opening_the_line_follows_the_end_unconditionally_opens_the_thinking_and_the_steps_and_rests_the_motion_while_it_glides() => ThreadTimelineRig.Run(headless, mount =>
     {
         RunningThread(mount);

@@ -286,14 +286,14 @@ public sealed class ChatViewParityChromeTests(HeadlessSession headless)
             h.Main.OnMain(() =>
             {
                 model.Settings.HydraEnabled = true;
-                var project = model.AddProject(new Project("LifeOS-Migration", h.NewFolder("project")).Url);
+                var project = model.AddProject(new Project("Atlas-Migration", h.NewFolder("project")).Url);
                 var runtime = model.Runtime(model.NewThread(project)!.Id);
                 model.Sidebar.NoteLaidOutWidth(400);
                 // The Mac was measured with its column holding the window buttons, where it draws no list button. The port keeps the list
                 // button in that state (ED-NEW-sidebarmodes-1), so the same row without it is Panel only's; the list button's own slot
                 // in Column is checked after.
                 model.Settings.SidebarMode = SidebarMode.PanelOnly;
-                var row = new ChatChromeRow(model, runtime, new ChromeScrollModel(), "Establish LifeOS repo baseline framework", project, project.Path, new GitStatusModel())
+                var row = new ChatChromeRow(model, runtime, new ChromeScrollModel(), "Establish Atlas repo baseline framework", project, project.Path, new GitStatusModel())
                 { VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
                 var window = Host(row, 2290);
                 Rect Box(Control c) => new(c.TranslatePoint(default, window)!.Value, c.Bounds.Size);
@@ -324,7 +324,7 @@ public sealed class ChatViewParityChromeTests(HeadlessSession headless)
                 // Column, the column open and holding the window buttons: the list button takes the first 32-point slot and every control
                 // after it moves along by one slot (32 + the row's 10-point spacing); the trailing capsules stay put.
                 model.Settings.SidebarMode = SidebarMode.Column;
-                var withList = new ChatChromeRow(model, runtime, new ChromeScrollModel(), "Establish LifeOS repo baseline framework", project, project.Path, new GitStatusModel())
+                var withList = new ChatChromeRow(model, runtime, new ChromeScrollModel(), "Establish Atlas repo baseline framework", project, project.Path, new GitStatusModel())
                 { VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
                 window = Host(withList, 2290);
                 var list = LogicalQuery.SelfAndDescendants<Button>(LogicalQuery.SelfAndDescendants<ThreadsButton>(withList).Single()).Single();

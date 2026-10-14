@@ -1,19 +1,57 @@
 nth
-Copyright (c) 2026 oak993 (the changes and additions made for nth)
+Copyright (c) 2026 oak993 and the nth contributors (the nth material; see "Who holds which rights" below)
 
-nth is based in part on Droppy Code (see the original notice below). The Droppy Code that nth contains has been modified by oak993, from September 2026 on; the Git history of this repository records the date of each change. As a work based on Droppy Code, nth is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, version 3 of the License, with the additional terms below and the additional terms of Droppy Code.
+nth by oak993, https://github.com/Oak993/nth
 
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License below for more details.
+nth is its own application, designed and built by oak993. It started in September 2026 from a Windows port of Droppy Code: a translation of Droppy Code's Swift source for macOS into C# for Windows. The Droppy Code that nth contains (last brought up to date with Droppy Code 1.7.0, upstream commit 52bc79260) has been modified by oak993 from 19 September 2026 on, and oak993 has added new material, for example Dextra, Tactus, Ignis and the composer lights. The Git history of https://github.com/Oak993/nth records the date of each change. nth is not Droppy Code and is not made by, endorsed by or affiliated with Droppy or Jordy Spruit.
+
+As a work based on Droppy Code, nth is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, version 3 of the License (not any later version), with the additional terms of Droppy Code, (a) to (c) in the original notice below, and the additional terms of nth, (d) to (i) in this notice.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See sections 15 to 17 of the GNU Affero General Public License below, and term (g) of this notice, for more details.
+
+SOURCE CODE
+
+The Corresponding Source of every nth release is published at https://github.com/Oak993/nth, where each release is tagged nth-<version> (for example nth-1.0.0). If you received nth as an installer or as installed files, you can get the source of your version there, under these same terms.
+
+WHO HOLDS WHICH RIGHTS
+
+Droppy Code material: Jordy Spruit (Droppy) and the other authors of Droppy Code, under the original notice below.
+Portions that descend from T3 Code: T3 Tools Inc., under the MIT License (see the original notice below).
+Third-party components: their owners, under the licenses listed in THIRD_PARTY_NOTICES.md, THIRD_PARTY_NOTICES_RUNTIME.md and src/Marrow.App/Legal/THIRD_PARTY_NOTICES.md.
+The nth material: the material that oak993 added to this work, including oak993's changes to Droppy Code, and the contributions to nth that their authors have licensed to oak993 under the nth Contributor License Agreement in CONTRIBUTING.md. Its copyright belongs to oak993 and to those contributors.
+
+FILES NAMED IN THE ORIGINAL NOTICE
+
+The original Droppy Code notice below is kept word for word. Where it refers to TRADEMARK.md and THIRD_PARTY_NOTICES.md, it means Droppy Code's own files, which are kept unchanged in src/Marrow.App/Legal/ and are shipped with nth. The TRADEMARK.md at the root of this repository is nth's own name and brand policy, and the root THIRD_PARTY_NOTICES.md and THIRD_PARTY_NOTICES_RUNTIME.md list the third-party material that nth adds. All of these policies and notices apply.
 
 ADDITIONAL TERMS FOR NTH UNDER SECTION 7 OF THE GNU AFFERO GENERAL PUBLIC LICENSE
 
-In accordance with section 7 of the License, the following additional terms apply to the material that oak993 added to or changed in this work, and to any covered work based on it. They are in addition to the Droppy Code terms (a) to (c) in the original notice below, which stay in force unchanged.
+In accordance with section 7 of the License, and with the authorisation of the copyright holders of the nth material, the following additional terms apply to the nth material and to every covered work that contains it. They are in addition to the Droppy Code terms (a) to (c) in the original notice below, which stay in force unchanged. These terms do not change or limit the terms that apply to Droppy Code's own material.
 
-(d) Attribution (section 7(b)): every copy, modified version and covered work that contains this material must preserve the attribution "nth by oak993, https://github.com/Oak993/nth" in its About screen or equivalent user-visible credits, in its README or equivalent documentation, and in any copyright notices of its source files.
+(d) Attribution (section 7(b)): every copy, modified version and covered work that contains the nth material must preserve the attribution "nth by oak993, https://github.com/Oak993/nth", word for word and on one line, (1) in its About screen or other user-visible credits, or, if it has none, wherever it displays its Appropriate Legal Notices; (2) in its README or equivalent documentation; and (3) in the copyright notices of its source files that contain the nth material. It must also preserve the copyright notices of oak993 and of the nth contributors, this notice, the NOTICE file, and the third-party notices in THIRD_PARTY_NOTICES.md and THIRD_PARTY_NOTICES_RUNTIME.md. The attribution and these notices must be at least as easy to find and to read as the work's other credits.
 
-(e) Origin (section 7(c)): modified versions must be marked as modified and must not be presented as the original nth or as made by, endorsed by or affiliated with oak993.
+(e) Origin (section 7(c)): the origin of the nth material must not be misrepresented. A modified version that contains the nth material and that is conveyed, or that users can interact with remotely through a computer network, (1) must be marked as modified in its About screen or other user-visible credits and in its README, with the name or handle of whoever modified it and a date, for example "Modified from nth 1.0.0 by Example, March 2027"; (2) must not be presented as the original nth or as an official nth build, or as made by, endorsed by or affiliated with oak993 or the nth contributors; and (3) because this License grants no rights in the nth names and icon (term (f)), must carry its own user-visible product name, publisher name and icon, different from nth's. Unmodified copies may keep the name nth (see TRADEMARK.md).
 
-(f) Names and marks (section 7(e)): this License grants no rights to use the name "nth", the nth icon, or the feature names Dextra, Tactus and Ignis as the name or branding of another product, except as required to preserve the attribution above; see TRADEMARK.md.
+(f) Names and marks (section 7(e)): this License grants no rights under trademark law to use the name "nth", the nth icon, the publisher name "oak993", or the feature names Dextra, Tactus and Ignis as the name or branding of a product, modified version, service or feature, except as required to preserve the attribution in term (d) and to make truthful statements of origin such as "based on nth"; see TRADEMARK.md.
+
+(g) Warranty and liability (section 7(a)): in addition to sections 15 to 17 of the License, and to the fullest extent permitted by applicable law:
+(1) The nth material is provided "as is" and "as available", with all faults, and without any warranty or condition of any kind, express, implied or statutory, including of merchantability, satisfactory quality, fitness for a particular purpose, accuracy, security, non-infringement and uninterrupted or error-free operation.
+(2) nth runs AI agents, models, command-line tools and other programs that you choose. They can read, change and delete files, run commands, use the network, control apps on your computer (Tactus), act as an assistant (Dextra), and send your prompts, files, code, screen content and audio to the providers and services you choose. Their output can be wrong, incomplete, insecure or infringing, and their actions can be irreversible. You choose the agents, providers, accounts, permissions and modes you use; you are responsible for reviewing what they do and for keeping backups; and you use them at your own risk.
+(3) oak993 and the nth contributors are not liable for any loss or damage arising from the nth material or from its use, whatever the legal theory, including: loss or corruption of data, files, repositories or settings; actions taken by an agent, a model or PC control, such as commands run, files changed, messages sent, purchases or deployments; fees, usage, credits or quota used at an AI provider or other service, including by automatic features such as Ignis keep-warm turns or switching to another account; the suspension, limitation or closing of your accounts by a provider or service; data that you or your agents send to a provider or service; and defects in third-party programs, models, downloads or services that nth starts, installs, downloads or connects to.
+(4) The nth material grants no right to use any AI provider, model or other service. Your use of those services is governed by their own terms, and neither oak993 nor the nth contributors are responsible for whether your use of them complies with those terms.
+(5) The nth material is not designed or offered for uses in which its failure could lead to death, personal injury, or serious physical, environmental or financial damage; oak993 and the nth contributors give no warranty for such uses.
+(6) If applicable law does not allow liability to be excluded, the total liability of oak993 and all the nth contributors together, for all claims about the copy of nth concerned, is limited to the amount you paid them for that copy, if any.
+(7) Nothing in this term excludes or limits any liability that cannot be excluded or limited under applicable law, such as liability for death or personal injury caused by negligence, for fraud, for wilful misconduct, or under mandatory consumer law.
+
+(h) Publicity (section 7(d)): the names of oak993 and of the nth contributors may not be used for publicity purposes, for example to endorse or promote a product, service or modified version, without their prior written permission. This does not limit the attribution required by term (d), notices required by the License, or truthful statements of origin.
+
+(i) Indemnification (section 7(f)): anyone who conveys the nth material, or a modified version of it, with contractual assumptions of liability to the recipient (for example a warranty, a support or service agreement, a service-level promise or an indemnity) must indemnify oak993 and the nth contributors for any liability that those contractual assumptions directly impose on oak993 or the nth contributors.
+
+HOW THESE TERMS ARE TO BE READ
+
+Terms (d) to (i) are additional terms of the kinds that section 7(a) to 7(f) of the License permits, and nothing more. They do not restrict any right that the License gives: you may run, copy, modify, share and sell nth under the License, and you do not have to accept anything to run it (section 9). If any part of these terms is held to go beyond what section 7 permits, or to be unenforceable, that part is to be read in the narrowest way that makes it a permitted term or, failing that, treated as removed; the rest of these terms and the License stay in force. This notice and the License apply to every file in this repository unless a file states other terms.
+
+Questions about these terms: https://github.com/Oak993/nth/issues. Security problems: see SECURITY.md.
 
 ------------------------------------------------------------------------
 

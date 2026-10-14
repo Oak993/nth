@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability (private)
+    url: https://github.com/Oak993/nth/security/advisories/new
+    about: Report security problems privately, never in a public issue. See SECURITY.md.

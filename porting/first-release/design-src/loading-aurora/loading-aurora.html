@@ -790,7 +790,7 @@ const LOADERS = [
         g.fillStyle = rgba(P[0], 0.5 * a); g.fillRect(x - 0.8, foot, 1.6, s * 0.03);
       }
     } },
-  { n: 3, name: 'Drift Lights', note: 'Three soft points of light drift up and down in turn and trade the aurora colours. A cousin of the working dots. 2.4 s loop.',
+  { n: 3, name: 'Drift Lights', note: 'Three soft points of light drift up and down in turn and trade the aurora colours. A sibling of the working dots. 2.4 s loop.',
     draw(cv, s, sec, th) {
       const g = prep(cv, s), c = s / 2, ph = (sec / 2.4) % 1, dark = th === 'dark'; g.globalCompositeOperation = dark ? 'lighter' : 'source-over';
       for (let i = 0; i < 3; i++) {
