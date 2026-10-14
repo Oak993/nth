@@ -2,7 +2,7 @@
 
 This folder is the starting point for anyone (a person or an AI coding tool) who works on the release after nth 1.0.0.
 Read this page first, then `OWNER-LIST.md` (what the owner found while testing 1.0.0) and `SPEED-PLAN.md` (why the app
-lags and how it will be fixed). `HANDOFF.md`, when present, is the full handoff: the app's history, the state of every
+lags and how it will be fixed). `HANDOFF.md` is the full handoff: the app's history, the state of every
 branch, and the method the owner's own AI agents follow.
 
 The repository is **private**. Never change its visibility and never copy it anywhere public.
@@ -153,4 +153,4 @@ The app lags today, and glass is its biggest cost per frame. Read `SPEED-PLAN.md
 | `OWNER-LIST.md` | The owner's findings from testing 1.0.0, one row each (personal data removed) |
 | `SPEED-PLAN.md` | The speed plan: root causes with file and line, the Windows-way rules, the phases, the targets |
 | `designs/glass-ui/index.html` | The approved glass design page (open it in a browser) |
-| `HANDOFF.md` | The full handoff for the next release (added when ready) |
+| `HANDOFF.md` | The full handoff for the next release: history, state, all owner rows as a checklist, the speed plan, methods and rules |
