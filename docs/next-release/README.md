@@ -1,14 +1,14 @@
 # nth: next release, start here
 
 This folder is the starting point for anyone (a person or an AI coding tool) who works on the release after nth 1.0.0.
-Read this page first, then `OWNER-LIST.md` (what the owner found while testing 1.0.0) and `SPEED-PLAN.md` (why the app
-lags and how it will be fixed). `HANDOFF.md` is the full handoff: the app's history, the state of every
-branch, and the method the owner's own AI agents follow.
+Read this page first, then `SPEED-PLAN.md` (why the app lags and how it will be fixed). The owner's full list of
+findings from testing 1.0.0 (the rows named below) is shared with contributors directly, not in this repository.
 
-The repository's visibility is the owner's decision: never change it, and never copy the code into another project.
+The repository's visibility is the owner's decision. Keep unreleased work and any non-public material the owner shares
+with you private (`CONTRIBUTING.md`, contributor agreement section 9).
 The code is licensed under the GNU AGPL v3.0 with additional terms; see `LICENSE` and `TRADEMARK.md` at the root.
 
-> **Older instructions.** The 1.0 port's instructions (exact Mac parity, no pushing) are kept in `docs/history/port-1.0/`. The root `CLAUDE.md` and `AGENTS.md` are current and point here. For next-release work the owner wants Windows-native behaviour instead of exact Mac parity, and you push your own `cousin/*` branch.
+> **Older instructions.** The 1.0 port's instructions (exact Mac parity, no pushing) are kept in `docs/history/port-1.0/`. The root `CLAUDE.md` and `AGENTS.md` are current and point here. For next-release work the owner wants Windows-native behaviour instead of exact Mac parity, and contributors hand in their work as patches (section 2).
 
 ## 1. What nth is
 
@@ -26,20 +26,22 @@ The code is licensed under the GNU AGPL v3.0 with additional terms; see `LICENSE
 - The owner's direction for this release: keep Avalonia, no rewrite; make it feel native and smooth on Windows; stop
   copying macOS behaviour where Windows does it better. A native macOS app is a separate, later project.
 
-## 2. Branches and pull requests
+## 2. Branches and handing in work
 
 | Branch | What it is | Who writes to it |
 |---|---|---|
-| `release/1.0.0` | The shipped 1.0.0 code (tag `nth-1.0.0` = commit 87eb11490) plus the license files; the repository's front page | Nobody. Never push to it. |
-| `next-release` | 1.0.0, three small ledger and CI commits, and this folder: the base for all next-release work | Only the owner's review and merge step |
-| `cousin/<topic>` | Your own work, one branch per topic (for example `cousin/glass-lens`) | You |
-| `claude/*`, `codex/*` | The owner's AI agents' branches | Never push to these |
+| `release/1.0.0` | The shipped 1.0.0 code (tag `nth-1.0.0` = commit 87eb11490) plus the license files; the repository's front page | Only the owner |
+| `next-release` | 1.0.0 plus the license files and this folder: the base for all next-release work | Only the owner |
+| your local branch | Your own work, one branch per topic, on your own PC (for example `glass-lens`) | You |
 
-1. Branch from `next-release`: `git switch -c cousin/<topic> origin/next-release`.
-2. Commit small steps with clear messages. Push only your own branch.
-3. Open a pull request into `next-release`. The owner's agents review it, run the tests on the owner's PC, and merge it.
-   The branches are not locked, so these rules are the only protection: never force-push, never push to someone
-   else's branch.
+Only the owner pushes to this repository. Contributors work in their own copy and hand in patches:
+
+1. Branch from `next-release`: `git switch -c <topic> origin/next-release`.
+2. Commit small steps with clear messages. Before handing in, update: `git fetch origin` then
+   `git rebase origin/next-release`.
+3. Make one patch file with only your changes: `git format-patch origin/next-release --stdout > nth-<topic>-<date>.patch`,
+   and send it to the owner with the checklist in section 9. The owner's team reviews it, runs the tests and merges it.
+   Read `CONTRIBUTING.md` at the root first: sending a patch means you accept its contributor agreement.
 
 ## 3. Build and run
 
@@ -71,7 +73,7 @@ Rules:
 - Make sure the output shows a Passed or Failed total. A filter that matches nothing proves nothing.
 - A failure counts only if it also fails when its test runs alone, twice.
 - Never loosen, skip or delete a test. If a design change truly needs a different expected value, replace the test with
-  one that is equal or stricter and explain why in the pull request.
+  one that is equal or stricter and explain why in the note that comes with your patch.
 - Tests named `*Native*` need a real desktop and drive the real window. Run them only when your change touches them.
 - Tests never call a real AI provider, a real command-line tool or the network. They use the fakes in `tests/` and
   `src/*/Testing`.
@@ -91,7 +93,7 @@ Rules:
 | Shader warm-up at start | `src/Marrow.App/Views/Composer/GlassVariantPreparation.cs` |
 | The shared frame clock | `src/Marrow.UI/Port/FrameClock.cs` |
 
-Important: the lens in `GlassMaterial.cs` already ports the same two open-source engines LifeOS uses,
+Important: the lens in `GlassMaterial.cs` already ports two open-source liquid-glass engines,
 rizzytoday/liquid-glass (displacement map, per-channel aberration: scale -180, aberration 0 / 10 / 20) and
 dashersw/liquid-glass-js (the rim ring). The engine is there. What hides it (row #87): the window-sized frost layer
 washes the wallpaper out before any glass piece reads it, the wallpapers are calm and dark, the panels are tinted
@@ -100,10 +102,10 @@ elastic scroll edge yet, so there is no "jelly" scroll.
 
 ## 6. Your rows
 
-Read each full row in `OWNER-LIST.md` before you start; the row is the specification.
+Read each full row in the owner's list before you start; the row is the specification.
 
 - **#87** Glass does not look alive: the live wallpaper vivid behind clear panels, visible rim bend and fringe, a jelly
-  scroll (content bends at the rims while it scrolls, plus an elastic edge). Your LifeOS presets are good starting points.
+  scroll (content bends at the rims while it scrolls, plus an elastic edge).
 - **#32** The wallpaper is washed out behind the glass.
 - **#84** The working line's glass ("Combobulating... 17s") is too transparent; it must stand out over the composer.
 - **#83** Grey blocky specks around the working line's text, its timer and its white dot (likely the composer light's
@@ -137,10 +139,10 @@ The app lags today, and glass is its biggest cost per frame. Read `SPEED-PLAN.md
   append to them byte for byte.
 - Never commit a secret, token or real account data.
 
-## 9. Pull request checklist
+## 9. Patch checklist
 
-- [ ] Branched from `next-release`; only my own branch pushed.
-- [ ] The row numbers this solves are in the title (for example "#87 #32: live wallpaper through clear glass").
+- [ ] Based on the latest `next-release`; handed in as one patch file.
+- [ ] The row numbers this solves are in the note and the commit messages (for example "#87 #32: live wallpaper through clear glass").
 - [ ] Tests for what I touched: the filter I used and the Passed / Failed totals.
 - [ ] Frame times before and after (idle, scrolling, opening a popover) on a high-refresh screen, window in front.
 - [ ] Before and after screenshots or a short video, dark and light theme.
@@ -151,7 +153,5 @@ The app lags today, and glass is its biggest cost per frame. Read `SPEED-PLAN.md
 | File | What it holds |
 |---|---|
 | `README.md` | This page |
-| `OWNER-LIST.md` | The owner's findings from testing 1.0.0, one row each (personal data removed) |
 | `SPEED-PLAN.md` | The speed plan: root causes with file and line, the Windows-way rules, the phases, the targets |
 | `designs/glass-ui/index.html` | The approved glass design page (open it in a browser) |
-| `HANDOFF.md` | The full handoff for the next release: history, state, all owner rows as a checklist, the speed plan, methods and rules |

@@ -2,6 +2,9 @@
 
 This file lists third-party work the Windows port itself draws on. The upstream Droppy Code `THIRD_PARTY_NOTICES.md`,
 `LICENSE` and `TRADEMARK.md` ship with the port unchanged (OD-0002); this file adds to them, it does not replace them.
+Droppy Code's own third-party notices (T3 Code under MIT, Synara, SwiftTerm, MonoCode, Zeron, Octicons, TourKit and
+provider marks) are in `src/Marrow.App/Legal/THIRD_PARTY_NOTICES.md` and ship with the app; runtime components and
+translated code are in `THIRD_PARTY_NOTICES_RUNTIME.md`.
 
 ## Composer lights
 

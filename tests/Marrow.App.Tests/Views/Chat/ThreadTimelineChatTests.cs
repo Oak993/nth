@@ -205,7 +205,7 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
         });
 
     [Fact]
-    [Trait("Req", "UI-CHAT-006")] // When it shows, the press and the hide on a followed row (the spring's values and the place are proven apart, below): ChatView.swift:1085-1104; ThreadTimeline.swift:402-409,673-677,689-712; the cousin's scroll-to-bottom button (map/CATALOGUE.md timeline.scroll-to-bottom-button)
+    [Trait("Req", "UI-CHAT-006")] // When it shows, the press and the hide on a followed row (the spring's values and the place are proven apart, below): ChatView.swift:1085-1104; ThreadTimeline.swift:402-409,673-677,689-712; the reference recording's scroll-to-bottom button (map/CATALOGUE.md timeline.scroll-to-bottom-button)
     public void The_jump_button_shows_once_the_end_is_out_of_sight_glides_to_the_end_when_pressed_and_goes_at_once_when_a_row_is_followed()
         => WithChat((view, runtime, model, h, window, frames) =>
         {

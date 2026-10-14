@@ -17,7 +17,7 @@ namespace Marrow.App.Tests.Views.Chat;
 public sealed class ThreadTimelineVeilTests(HeadlessSession headless)
 {
     // porting reference capture: E:\Droppy\work\reference-video\frames\gap-R2-02\scrim_profile.json (2-chat-use.mov 8.382 without the veil, 8.403 with it; the window's top edge at video y 30;
-    // x 2000-2300; the share of the backdrop hidden at each video y). The theme, the transparency and the wallpaper are the cousin's own.
+    // x 2000-2300; the share of the backdrop hidden at each video y). The theme, the transparency and the wallpaper are the reference recording's own.
     private static readonly (int VideoY, double Share)[] Captured =
     [
         (32, 0.452), (36, 0.463), (40, 0.461), (44, 0.461), (48, 0.469), (52, 0.433), (56, 0.403), (60, 0.371), (64, 0.324), (68, 0.281),
@@ -49,7 +49,7 @@ public sealed class ThreadTimelineVeilTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-159 (capture comparison at full travel, dark: the falloff of the veil over its 72 points matches 2-chat-use.mov 8.403; the level itself is the cousin's theme's and is not compared); Chrome.swift:581-629
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-159 (capture comparison at full travel, dark: the falloff of the veil over its 72 points matches 2-chat-use.mov 8.403; the level itself is the reference recording's theme's and is not compared); Chrome.swift:581-629
     public void The_veil_at_full_travel_falls_off_over_its_seventy_two_points_as_it_does_on_the_reference_runtime() => ThemeShapeIsTheCaptures(ThemeVariant.Dark);
 
     private void ThemeShapeIsTheCaptures(ThemeVariant theme)

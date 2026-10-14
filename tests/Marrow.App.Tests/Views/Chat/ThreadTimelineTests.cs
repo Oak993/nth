@@ -312,8 +312,8 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
 
     // STOP App.Views.Chat.ThreadTimeline #8
     // Kind: reference capture. Swift: Chrome.swift:581-629, ThreadTimeline.swift:488,1376. Record: PR-CHAT-159 (capture comparison at travel 0, 20 and 44 in both themes).
-    // Missing: the reference runtime shows the veil only at full travel in the cousin's dark theme (2-chat-use.mov 8.403, none on short threads), so the falloff over its 72 points is compared (ThreadTimelineVeilTests)
-    // and the formula of its level through the travel is proven against the pixels, but the level at full travel (0.525 here, 0.46 there: the theme's surface alpha and wallpaper are the cousin's), travel 20 and
+    // Missing: the reference runtime shows the veil only at full travel in the reference recording's dark theme (2-chat-use.mov 8.403, none on short threads), so the falloff over its 72 points is compared (ThreadTimelineVeilTests)
+    // and the formula of its level through the travel is proven against the pixels, but the level at full travel (0.525 here, 0.46 there: the theme's surface alpha and wallpaper are the reference recording's), travel 20 and
     // the light theme have no reference frame; the Acrylic backdrop behind it needs a real window (OD-0014, OD-0005).
     // Needed: a capture of a thread scrolled to 20 points and a light-theme chat on the reference runtime.
 

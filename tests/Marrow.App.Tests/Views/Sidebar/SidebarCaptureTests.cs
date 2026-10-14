@@ -19,9 +19,9 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 namespace Marrow.App.Tests.Views.Sidebar;
 
 // Headless renders of the whole sidebar, laid beside the owner's reference video of the real Mac app 1.7.0
-// (E:\Droppy\work\reference-video\2-chat-use.mov; about 1 px = 1 pt). The library below mirrors the cousin's sidebar at
+// (E:\Droppy\work\reference-video\2-chat-use.mov; about 1 px = 1 pt). The library below mirrors the reference recording's sidebar at
 // 162 s in shape only (activity layout, a folded "4 heads" stub, a settled thread, the two footer rows); its titles,
-// dates and settings are the cousin's own and are not defaults. With MARROW_SIDEBAR_CAPTURE set to a folder the frame
+// dates and settings are the reference recording's own and are not defaults. With MARROW_SIDEBAR_CAPTURE set to a folder the frame
 // is written there as sidebar-port.png for the side-by-side (evidence kept under E:\Droppy\work\parity\evidence\
 // SidebarView\, never in git); the assertions here are the numbers read off that comparison.
 [Collection("Headless")]
@@ -43,7 +43,7 @@ public sealed class SidebarCaptureTests(HeadlessSession headless)
         CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
         try
         {
-            var project = AppModelSamples.Project("LifeOS-Migration", harness.NewFolder("LifeOS-Migration"));
+            var project = AppModelSamples.Project("Atlas-Migration", harness.NewFolder("Atlas-Migration"));
             var lead = ThreadAt(project, "Test four attention heads in a row", Now) with { ExpandsHelpers = false };
             var heads = Enumerable.Range(1, 4).Select(i => ThreadAt(project, "Head" + i, Now.AddMinutes(-i)) with
             {
@@ -51,7 +51,7 @@ public sealed class SidebarCaptureTests(HeadlessSession headless)
                 IsInPanel = false,
                 Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Completed) with { Index = i },
             }).ToArray();
-            var friday = ThreadAt(project, "Establish LifeOS repo baseline", Now.AddDays(-4));
+            var friday = ThreadAt(project, "Establish Atlas repo baseline", Now.AddDays(-4));
             var draft = ThreadAt(project, "New thread", Now.AddDays(-4).AddMinutes(-5));
             var older = ThreadAt(project, "I need the actual task list", Now.AddDays(-5));
             var settled = ThreadAt(project, "hi", Now.AddDays(-6)) with { IsSettled = true };

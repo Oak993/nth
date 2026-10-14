@@ -11,8 +11,8 @@ build, smart testing, where the glass code lives, the speed rules, the UI rules 
 
 ## Rules that always apply
 
-- Branch from `next-release`; push only your own branch; never force-push; never push to `release/1.0.0`,
-  `next-release`, `claude/*` or `codex/*`. Open a pull request into `next-release`.
+- Only the owner pushes to this repository. Branch from `next-release` in your own copy and hand in work as a patch
+  (`docs/next-release/README.md`, section 2). Never force-push.
 - Never weaken, skip or delete a test, and never edit an expectation to match the output. Run the tests that cover what
   you changed, with a filter, and report the Passed and Failed totals.
 - Tests never call a real AI provider, a real command-line tool or the network; they use the fakes in `tests/` and
@@ -23,8 +23,11 @@ build, smart testing, where the glass code lives, the speed rules, the UI rules 
   `porting/engineering_decisions.md`).
 - No new NuGet package and no Avalonia upgrade without the owner's approval. Keep line endings as they are
   (`.gitattributes` is `* -text`).
-- Keep the license notices: `LICENSE`, `TRADEMARK.md`, `THIRD_PARTY_NOTICES.md`, `src/Marrow.App/Legal/` and the
-  credit in Settings > About ("Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app").
+- Keep the license notices: `LICENSE`, `NOTICE`, `TRADEMARK.md`, `THIRD_PARTY_NOTICES.md`,
+  `THIRD_PARTY_NOTICES_RUNTIME.md`, `CONTRIBUTING.md`, `PRIVACY.md`, `SECURITY.md`, `src/Marrow.App/Legal/`, the file
+  headers, and the credit in Settings > About ("Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app").
+- Never paste third-party code or assets without its notice; never add copyleft code without the owner's approval.
+- Contributions are accepted only under the contributor agreement in `CONTRIBUTING.md`, as patches handed to the owner.
 
 ## History
 
